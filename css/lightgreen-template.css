@@ -1,0 +1,169 @@
+/**
+ *  This file is part of GestOre
+ *  @author     Paolo Scapin <paolo.scapin@gmail.com>
+ *  @copyright  (C) 2018 Paolo Scapin
+ *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ */
+
+:root {
+	/* lightgreen */
+    --lightgreen-panel-border:#d6e9c6;
+    --lightgreen-panel-color:#3c763d;
+    --lightgreen-panel-bg:#dff0d8;
+
+    --lightgreen-btn-color:#fff;
+    --lightgreen-btn-bg:#5cb85c;
+    --lightgreen-btn-border:#4cae4c;
+    --lightgreen-btn-focus-bg:#449d44;
+    --lightgreen-btn-focus-border:#255625;
+    --lightgreen-btn-hover-border:#398439;
+
+    --lightgreen-link-color:#2b542c;
+    --lightgreen-link-bg:#c1e2b3;
+
+	--lightgreen-btn-alert-border:#c9e2b3;
+	--lightgreen-btn-listgroup-bg:#d0e9c6;
+}
+
+.panel-lightgreen {
+  border-color: var(--lightgreen-panel-border);
+}
+.panel-lightgreen > .panel-heading {
+  color: var(--lightgreen-panel-color);
+  background-color: var(--lightgreen-panel-bg);
+  border-color: var(--lightgreen-panel-border);
+}
+.panel-lightgreen > .panel-heading + .panel-collapse > .panel-body {
+  border-top-color: var(--lightgreen-panel-border);
+}
+.panel-lightgreen > .panel-heading .badge {
+  color: var(--lightgreen-panel-bg);
+  background-color: var(--lightgreen-panel-color);
+}
+.panel-lightgreen > .panel-footer + .panel-collapse > .panel-body {
+  border-bottom-color: var(--lightgreen-panel-border);
+}
+
+.btn-lightgreen {
+  color: var(--lightgreen-btn-color);
+  background-color: var(--lightgreen-btn-bg);
+  border-color: var(--lightgreen-btn-border);
+}
+.btn-lightgreen:focus,
+.btn-lightgreen.focus {
+  color: var(--lightgreen-btn-color);
+  background-color: var(--lightgreen-btn-focus-bg);
+  border-color: var(--lightgreen-btn-focus-border);
+}
+.btn-lightgreen:hover {
+  color: var(--lightgreen-btn-color);
+  background-color: var(--lightgreen-btn-focus-bg);
+  border-color: var(--lightgreen-btn-hover-border);
+}
+.btn-lightgreen:active,
+.btn-lightgreen.active,
+.open > .dropdown-toggle.btn-lightgreen {
+  color: var(--lightgreen-btn-color);
+  background-color: var(--lightgreen-btn-focus-bg);
+  border-color: var(--lightgreen-btn-hover-border);
+}
+.btn-lightgreen:active:hover,
+.btn-lightgreen.active:hover,
+.open > .dropdown-toggle.btn-lightgreen:hover,
+.btn-lightgreen:active:focus,
+.btn-lightgreen.active:focus,
+.open > .dropdown-toggle.btn-lightgreen:focus,
+.btn-lightgreen:active.focus,
+.btn-lightgreen.active.focus,
+.open > .dropdown-toggle.btn-lightgreen.focus {
+  color: var(--lightgreen-btn-color);
+  background-color: var(--lightgreen-btn-hover-border);
+  border-color: var(--lightgreen-btn-focus-border);
+}
+.btn-lightgreen:active,
+.btn-lightgreen.active,
+.open > .dropdown-toggle.btn-lightgreen {
+  background-image: none;
+}
+.btn-lightgreen.disabled:hover,
+.btn-lightgreen[disabled]:hover,
+fieldset[disabled] .btn-lightgreen:hover,
+.btn-lightgreen.disabled:focus,
+.btn-lightgreen[disabled]:focus,
+fieldset[disabled] .btn-lightgreen:focus,
+.btn-lightgreen.disabled.focus,
+.btn-lightgreen[disabled].focus,
+fieldset[disabled] .btn-lightgreen.focus {
+  background-color: var(--lightgreen-btn-bg);
+  border-color: var(--lightgreen-btn-border);
+}
+.btn-lightgreen .badge {
+  color: var(--lightgreen-btn-bg);
+  background-color: var(--lightgreen-btn-color);
+}
+
+.text-lightgreen {
+  color: var(--lightgreen-panel-color);
+}
+a.text-lightgreen:hover,
+a.text-lightgreen:focus {
+  color: var(--lightgreen-link-color);
+}
+
+.bg-lightgreen {
+  background-color: var(--lightgreen-panel-bg);
+}
+a.bg-lightgreen:hover,
+a.bg-lightgreen:focus {
+  background-color: var(--lightgreen-link-bg);
+}
+
+.label-lightgreen {
+  background-color: var(--lightgreen-btn-bg);
+}
+.label-lightgreen[href]:hover,
+.label-lightgreen[href]:focus {
+  background-color: var(--lightgreen-btn-focus-bg);
+}
+
+.alert-lightgreen {
+  color: var(--lightgreen-panel-color);
+  background-color: var(--lightgreen-panel-bg);
+  border-color: var(--lightgreen-panel-border);
+}
+.alert-lightgreen hr {
+  border-top-color: var(--lightgreen-btn-alert-border);
+}
+.alert-lightgreen .alert-link {
+  color: var(--lightgreen-link-color);
+}
+
+.list-group-item-lightgreen {
+  color: var(--lightgreen-panel-color);
+  background-color: var(--lightgreen-panel-bg);
+}
+a.list-group-item-lightgreen,
+button.list-group-item-lightgreen {
+  color: var(--lightgreen-panel-color);
+}
+a.list-group-item-lightgreen .list-group-item-heading,
+button.list-group-item-lightgreen .list-group-item-heading {
+  color: inherit;
+}
+a.list-group-item-lightgreen:hover,
+button.list-group-item-lightgreen:hover,
+a.list-group-item-lightgreen:focus,
+button.list-group-item-lightgreen:focus {
+  color: var(--lightgreen-panel-color);
+  background-color: var(--lightgreen-btn-listgroup-bg);
+}
+a.list-group-item-lightgreen.active,
+button.list-group-item-lightgreen.active,
+a.list-group-item-lightgreen.active:hover,
+button.list-group-item-lightgreen.active:hover,
+a.list-group-item-lightgreen.active:focus,
+button.list-group-item-lightgreen.active:focus {
+  color: var(--lightgreen-btn-color);
+  background-color: var(--lightgreen-panel-color);
+  border-color: var(--lightgreen-panel-color);
+}

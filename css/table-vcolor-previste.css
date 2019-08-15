@@ -1,0 +1,93 @@
+/**
+ *  This file is part of GestOre
+ *  @author     Paolo Scapin <paolo.scapin@gmail.com>
+ *  @copyright  (C) 2018 Paolo Scapin
+ *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ */
+
+table td {
+	border-bottom: 1px solid #e4e4e4;
+	white-space: nowrap;
+}
+table th {
+	border-bottom: 2px solid #c5c5c5;
+	padding: 10px 20px;
+	background: #e6e6e6;
+	white-space: nowrap;
+}
+table tr:nth-child(even) {
+	background: #f7f7f7;
+}
+/* Table */
+.table-vcolor-previste {
+	border-collapse: collapse;
+	font-size: 14px;
+	min-width: 570px;
+}
+
+.table-vcolor-previste th, 
+.table-vcolor-previste td {
+	padding: 7px 17px;
+	text-align: center;
+	border-bottom: 1px solid #e4e4e4;
+	white-space: nowrap;
+}
+.table-vcolor-previste .title {
+	margin: 7px;
+}
+
+/* Table Header */
+.table-vcolor-previste thead th {
+	text-transform: uppercase;
+    color: #545454;
+    font-weight: normal;
+    border-right: 1px solid #ececec;
+}
+.table-vcolor-previste thead th:first-child {
+	text-align: left;
+	border-left: 1px solid #e4e4e4;
+}
+
+/* Table Body */
+.table-vcolor-previste tbody th {
+	text-align: left;
+    font-weight: normal;
+    background-color: #f5f5f5;
+	border-right: 1px solid #e4e4e4;
+	border-left: 1px solid #e4e4e4;
+    color: #484848;
+}
+
+.table-vcolor-previste tbody td:nth-child(2) {
+	background-color: #b6ffb5;
+	border-right: 1px solid #94efc1;
+}
+.table-vcolor-previste tbody td:nth-child(3) {
+	background-color: #ffdcdc;
+    border-right: 1px solid #f9c4c4;
+}
+.table-vcolor-previste tbody td:nth-child(4) {
+	background-color: #d3efff;
+	border-right: 1px solid #b1cef9;
+}
+
+.table-vcolor-previste tbody td:nth-child(5) {
+	background-color: #ffefd3;
+	border-right: 1px solid #f3e1c3;
+}
+/*
+.table-vcolor-previste tbody td:last-child {
+	background-color: #ffdcdc;
+    border-right: 1px solid #f9c4c4;
+}
+*/
+.table-vcolor-previste tbody tr:hover td {
+	background-color: #f5f5f5;
+	border-color: #e4e4e4;
+	
+}
+/* Table Footer */
+.demo-vcolor tfoot th {
+	border-top: 2px solid #6ea1cc;
+	text-align: right;
+}

@@ -1,0 +1,93 @@
+:root {
+    --paolo-color:#06c;
+    --docenti-color:#06c;
+    --docenti-bg:#06c;
+    --docenti-border:#06c;
+    --docenti-color:#06c;
+    --docenti-color:#06c;
+}
+
+.container {
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+
+
+.panel-paolo2 > .panel-heading {
+  background-color: red;
+}
+
+.panel-paolo {
+  background-color: red;
+}
+
+.panel-default>.panel-paolo {
+  background-color: var(--paolo-color);
+}
+
+.btn-paolo {
+  color: #fff;
+  background-color:var(--paolo-color);
+  border-color: #4cae4c;
+}
+
+.btn-docenti {
+  color: #fff;
+  background-color: #5bc0de;
+  border-color: #46b8da;
+}
+.btn-docenti:focus,
+.btn-docenti.focus {
+  color: #fff;
+  background-color: #31b0d5;
+  border-color: #1b6d85;
+}
+.btn-docenti:hover {
+  color: #fff;
+  background-color: #31b0d5;
+  border-color: #269abc;
+}
+.btn-docenti:active,
+.btn-docenti.active,
+.open > .dropdown-toggle.btn-docenti {
+  color: #fff;
+  background-color: #31b0d5;
+  border-color: #269abc;
+}
+.btn-docenti:active:hover,
+.btn-docenti.active:hover,
+.open > .dropdown-toggle.btn-docenti:hover,
+.btn-docenti:active:focus,
+.btn-docenti.active:focus,
+.open > .dropdown-toggle.btn-docenti:focus,
+.btn-docenti:active.focus,
+.btn-docenti.active.focus,
+.open > .dropdown-toggle.btn-docenti.focus {
+  color: #fff;
+  background-color: #269abc;
+  border-color: #1b6d85;
+}
+.btn-docenti:active,
+.btn-docenti.active,
+.open > .dropdown-toggle.btn-docenti {
+  background-image: none;
+}
+.btn-docenti.disabled:hover,
+.btn-docenti[disabled]:hover,
+fieldset[disabled] .btn-docenti:hover,
+.btn-docenti.disabled:focus,
+.btn-docenti[disabled]:focus,
+fieldset[disabled] .btn-docenti:focus,
+.btn-docenti.disabled.focus,
+.btn-docenti[disabled].focus,
+fieldset[disabled] .btn-docenti.focus {
+  background-color: #5bc0de;
+  border-color: #46b8da;
+}
+.btn-docenti .badge {
+  color: #5bc0de;
+  background-color: #fff;
+}

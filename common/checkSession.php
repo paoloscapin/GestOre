@@ -1,0 +1,167 @@
+<?php
+
+/**
+ *  This file is part of GestOre
+ *  @author     Paolo Scapin <paolo.scapin@gmail.com>
+ *  @copyright  (C) 2018 Paolo Scapin
+ *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ */
+
+require_once __DIR__ . '/__Util.php';
+require_once __DIR__ . '/path.php';
+require_once __DIR__ . '/connect.php';
+
+// start session
+if (session_status() == PHP_SESSION_NONE) {
+	session_set_cookie_params ( DURATA_SESSIONE );
+	session_start();
+}
+
+// se la session non contiene username, vai alla pagina di login (passando come location la pagina richiesta
+// if (!isset($__username) && !isset($_SESSION['__username'])) {
+if (!isset($__username) && !$session->has('__username')) {
+
+    // require_once __DIR__ . '/__GoogleClientConfig.php';
+    if (!isset($__gClient)) {
+
+        //Include Google client library 
+        require_once __DIR__ . '/google-client-library/src/Google_Client.php';
+        require_once __DIR__ . '/google-client-library/src/contrib/Google_Oauth2Service.php';
+
+        // Configuration and setup Google API
+        $__clientId = '667798242060-aff3o5kiub2h69vau5hm9lla2hbo40pn.apps.googleusercontent.com'; //Google client ID
+        $__clientSecret = 'Xp2leJOul4SZ3tKerPuuwvYs'; //Google client secret
+        $__redirectURL = $__http_base_link . '/index.php'; //Callback URL
+        //Call Google API
+        $gClient = new Google_Client();
+        $gClient->setApplicationName('GestOre');
+        $gClient->setClientId($__clientId);
+        $gClient->setClientSecret($__clientSecret);
+        $gClient->setRedirectUri($__redirectURL);
+
+        $google_oauthV2 = new Google_Oauth2Service($gClient);
+    }
+
+    if(isset($_GET['code'])){
+        $gClient->authenticate($_GET['code']);
+        $_SESSION['token'] = $gClient->getAccessToken();
+        header('Location: ' . filter_var($__redirectURL, FILTER_SANITIZE_URL));
+    }
+
+    if (isset($_SESSION['token'])) {
+        $gClient->setAccessToken($_SESSION['token']);
+    }
+
+    if ($gClient->getAccessToken()) {
+        //Get user profile data from google
+        $gpUserProfile = $google_oauthV2->userinfo->get();
+        
+        $useremail = $gpUserProfile['email'];
+
+        if(!empty($useremail)){
+            info('utente ' . $useremail . ': logged in');
+        }else{
+            $output = '<h3 style="color:red">Some problem occurred, please try again.</h3>';
+        }
+    } else {
+        $authUrl = $gClient->createAuthUrl();
+        $output = '<a href="'.filter_var($authUrl, FILTER_SANITIZE_URL).'"><img src="'.$__application_base_path.'/img/glogin.png" alt=""/></a>';
+        return;
+    }
+}
+
+// controlla che tutte le variabili richieste siano settate, oppure caricale
+if (!isset($__useremail)) {
+    $__useremail = $session->get('__useremail');
+}
+
+// se non era in sessione controlla se lo ha appena verificato con google
+if (!isset($__useremail)) {
+    $__useremail = $useremail;
+}
+
+// deve esserci un utente collegato, altrimenti non va bene
+if (empty ( $__useremail )) {
+    debug ( 'nessun utente collegato!' );
+    redirect ( '/error/notlogged.php' );
+}
+
+if (! $session->has ( 'utente_id' )) {
+    debug ( 'manca in sessione utente_id' );
+    $utente = dbGetFirst("SELECT * FROM utente WHERE utente.email = '$__useremail'");
+    if ($utente == null) {
+        debug ( 'manca in sessione utente_id' );
+        $__message = 'utente non trovato: ' . $__useremail;
+        redirect ( '/error/error.php?message=' . $__message);
+        exit ();
+    }
+
+    $session->set ( 'utente_id', $utente ['id'] );
+    $session->set ( 'username', $utente ['username'] );
+    $session->set ( 'utente_nome', $utente ['nome'] );
+    $session->set ( 'utente_cognome', $utente ['cognome'] );
+    $session->set ( 'utente_ruolo', $utente ['ruolo'] );
+    $session->set ( '__useremail', $__useremail );
+} else {
+//    debug ( 'esiste utente_id=' . $session->get ( 'utente_id' ) );
+}
+
+$__utente_id = $session->get ( 'utente_id' );
+$__username = $session->get ( 'username' );
+$__utente_nome = $session->get ( 'utente_nome' );
+$__utente_cognome = $session->get ( 'utente_cognome' );
+$__utente_ruolo = $session->get ( 'utente_ruolo' );
+
+// controlla se e' un docente deve avere i rispettivi termini
+if (!$session->has ( 'docente_id' ) && $session->has ( 'utente_ruolo' ) && ($session->get ( 'utente_ruolo' ) === "docente" || $session->get ( 'utente_ruolo' ) === "segreteria-didattica")) {
+    debug ( 'manca in sessione docente_id' );
+    $docente = dbGetFirst("SELECT * FROM docente WHERE docente.username = '$__username'");
+    if ($docente == null) {
+        header ( 'gestionale/common/error.php?message=utente non docente: ' . $__username );
+        exit ();
+    }
+    $session->set ( 'docente_id', $docente ['id'] );
+    $session->set ( 'docente_nome', $docente ['nome'] );
+    $session->set ( 'docente_cognome', $docente ['cognome'] );
+    $session->set ( 'docente_email', $__useremail );
+} else {
+//    debug ( 'esiste docente_id=' . $session->get ( 'docente_id' ) );
+}
+
+$__docente_id = $session->get ( 'docente_id' );
+$__docente_nome = $session->get ( 'docente_nome' );
+$__docente_cognome = $session->get ( 'docente_cognome' );
+$__docente_email = $session->get ( 'docente_email' );
+
+// configurazione globale
+require_once __DIR__ . '/Config.php';
+$__config = new Config();
+
+if (! $session->has ( 'anno_scolastico_corrente_anno' )) {
+    debug ( 'manca in sessione anno_scolastico_corrente_anno' );
+    $anno = dbGetFirst("SELECT * FROM anno_scolastico_corrente");
+    $session->set ( 'anno_scolastico_corrente_id', $anno ['id'] );
+    $session->set ( 'anno_scolastico_corrente_anno', $anno ['anno'] );
+    $session->set ( 'anno_scolastico_scorso_id', $anno ['anno_scorso_id'] );
+} else {
+//    debug ( 'esiste anno_scolastico_corrente_anno=' . $session->get ( 'anno_scolastico_corrente_anno' ) );
+}
+
+$__anno_scolastico_corrente_id = $session->get ( 'anno_scolastico_corrente_id' );
+$__anno_scolastico_corrente_anno = $session->get ( 'anno_scolastico_corrente_anno' );
+$__anno_scolastico_scorso_id = $session->get ( 'anno_scolastico_scorso_id' );
+/*
+debug ( '__username=' . $__username );
+debug ( '__anno_scolastico_corrente_id=' . $__anno_scolastico_corrente_id );
+debug ( '__anno_scolastico_corrente_anno=' . $__anno_scolastico_corrente_anno );
+debug ( '__anno_scolastico_scorso_id=' . $__anno_scolastico_scorso_id );
+debug ( '__utente_id=' . $__utente_id );
+debug ( '__utente_nome=' . $__utente_nome );
+debug ( '__utente_cognome=' . $__utente_cognome );
+debug ( '__utente_ruolo=' . $__utente_ruolo );
+debug ( '__docente_id=' . $__docente_id );
+debug ( '__docente_nome=' . $__docente_nome );
+debug ( '__docente_cognome=' . $__docente_cognome );
+debug ( '__docente_email=' . $__docente_email );
+*/
+?>

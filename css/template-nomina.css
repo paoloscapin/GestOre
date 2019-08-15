@@ -1,0 +1,430 @@
+/**
+ *  This file is part of GestOre
+ *  @author     Paolo Scapin <paolo.scapin@gmail.com>
+ *  @copyright  (C) 2018 Paolo Scapin
+ *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ */
+
+ ol {
+	margin: 0;
+	padding: 0
+}
+
+table td, table th {
+	padding: 0
+}
+
+.c0 {
+	margin-left: 290.6pt;
+	padding-top: 0pt;
+	padding-bottom: 0pt;
+	line-height: 1.15;
+	orphans: 2;
+	widows: 2;
+	text-align: left
+}
+
+.c1 {
+	color: #000000;
+	font-weight: 400;
+	text-decoration: none;
+	vertical-align: baseline;
+	font-size: 9pt;
+	font-family: "Arial";
+	font-style: normal
+}
+
+.c2 {
+	border-right-style: solid;
+	padding: 5pt 5pt 5pt 5pt;
+	border-bottom-color: #ffffff;
+	border-top-width: 0pt;
+	border-right-width: 0pt;
+	border-left-color: #ffffff;
+	vertical-align: top;
+	border-right-color: #ffffff;
+	border-left-width: 0pt;
+	border-top-style: solid;
+	border-left-style: solid;
+	border-bottom-width: 0pt;
+	width: 240.9pt;
+	border-top-color: #ffffff;
+	border-bottom-style: solid
+}
+
+.c3 {
+	padding-top: 0pt;
+	padding-bottom: 0pt;
+	line-height: 1.5;
+	orphans: 2;
+	widows: 2;
+	text-align: left
+}
+
+.c4 {
+	color: #000000;
+	font-weight: 400;
+	text-decoration: none;
+	vertical-align: baseline;
+	font-size: 10pt;
+	font-family: "Arial";
+	font-style: normal
+}
+
+.c5 {
+	font-size: 9pt;
+	font-weight: 700
+}
+
+.c6 {
+	padding-top: 0pt;
+	padding-bottom: 0pt;
+	line-height: 1.15;
+	orphans: 2;
+	widows: 2;
+	text-align: left
+}
+
+.c7 {
+	padding-top: 0pt;
+	padding-bottom: 0pt;
+	line-height: 1.15;
+	orphans: 2;
+	widows: 2;
+	text-align: center
+}
+
+.c8 {
+	height: 24pt
+}
+
+.c9 {
+	color: #000000;
+	font-weight: 700;
+	text-decoration: none;
+	vertical-align: baseline;
+	font-size: 10pt;
+	font-family: "Arial";
+	font-style: normal
+}
+
+.c10 {
+	height: 11pt
+}
+
+.c11 {
+	border-spacing: 0;
+	border-collapse: collapse;
+	margin-right: auto
+}
+
+.c12 {
+	padding-top: 0pt;
+	padding-bottom: 0pt;
+	line-height: 1.5;
+	orphans: 2;
+	widows: 2;
+	text-align: center
+}
+
+.c13 {
+	background-color: #ffffff;
+	max-width: 481.9pt;
+	padding: 1.7pt 26.7pt 1.7pt 26.7pt
+}
+
+.c14 {
+	margin-left: 42.5pt
+}
+
+.c15 {
+	color: #000000;
+	font-weight: 400;
+	text-decoration: none;
+	vertical-align: baseline;
+	font-size: 11pt;
+	font-family: "Arial";
+	font-style: normal
+}
+
+.c16 {
+	color: #000000;
+	text-decoration: none;
+	vertical-align: baseline;
+	font-family: "Arial";
+	font-style: normal
+}
+
+.c17 {
+	padding-top: 0pt;
+	padding-bottom: 0pt;
+	line-height: 1.0;
+	text-align: right
+}
+
+.c18 {
+	height: 0pt
+}
+
+.c19 {
+	padding-top: 0pt;
+	padding-bottom: 0pt;
+	line-height: 1.0;
+	text-align: left
+}
+
+.c20 {
+	font-size: 13pt
+}
+
+.c21 {
+	font-size: 11pt
+}
+
+.c31 {
+	border-spacing: 0;
+	border-collapse: collapse;
+	margin-right: auto
+}
+
+.c32 {
+	padding-top: 0pt;
+	padding-bottom: 0pt;
+	line-height: 1.0;
+	text-align: left
+}
+
+.c33 {
+	height: 0pt
+}
+
+.c34 {
+	border-right-style: solid;
+	padding: 5pt 5pt 5pt 5pt;
+	border-bottom-color: #000000;
+	border-top-width: 1pt;
+	border-right-width: 1pt;
+	border-left-color: #000000;
+	vertical-align: top;
+	border-right-color: #000000;
+	border-left-width: 1pt;
+	border-top-style: solid;
+	border-left-style: solid;
+	border-bottom-width: 1pt;
+	width: 175.3pt;
+	border-top-color: #000000;
+	border-bottom-style: solid
+}
+
+.c35 {
+	border-right-style: solid;
+	padding: 5pt 5pt 5pt 5pt;
+	border-bottom-color: #000000;
+	border-top-width: 1pt;
+	border-right-width: 1pt;
+	border-left-color: #000000;
+	vertical-align: top;
+	border-right-color: #000000;
+	border-left-width: 1pt;
+	border-top-style: solid;
+	border-left-style: solid;
+	border-bottom-width: 1pt;
+	width: 101.2pt;
+	border-top-color: #000000;
+	border-bottom-style: solid
+}
+
+.c36 {
+	border-right-style: solid;
+	padding: 5pt 5pt 5pt 5pt;
+	border-bottom-color: #000000;
+	border-top-width: 1pt;
+	border-right-width: 1pt;
+	border-left-color: #000000;
+	vertical-align: top;
+	border-right-color: #000000;
+	border-left-width: 1pt;
+	border-top-style: solid;
+	border-left-style: solid;
+	border-bottom-width: 1pt;
+	width: 133.2pt;
+	border-top-color: #000000;
+	border-bottom-style: solid
+}
+
+.c37 {
+	border-right-style: solid;
+	padding: 5pt 5pt 5pt 5pt;
+	border-bottom-color: #000000;
+	border-top-width: 1pt;
+	border-right-width: 1pt;
+	border-left-color: #000000;
+	vertical-align: top;
+	border-right-color: #000000;
+	border-left-width: 1pt;
+	border-top-style: solid;
+	border-left-style: solid;
+	border-bottom-width: 1pt;
+	width: 71.7pt;
+	border-top-color: #000000;
+	border-bottom-style: solid
+}
+
+.c38 {
+	color: #000000;
+	font-weight: 400;
+	text-decoration: none;
+	vertical-align: baseline;
+	font-size: 11pt;
+	font-family: "Arial";
+	font-style: normal
+}
+
+.c39 {
+	color: #000000;
+	font-weight: 700;
+	text-decoration: none;
+	vertical-align: baseline;
+	font-size: 12pt;
+	font-family: "Arial";
+	font-style: normal
+}
+
+.c40 {
+	padding-top: 5pt;
+	padding-bottom: 0pt;
+	line-height: 1.5;
+	orphans: 2;
+	widows: 2;
+	text-align: left
+}
+
+.c100L {
+	text-align: left
+}
+
+.c100C {
+	text-align: center
+}
+
+.c100R {
+	text-align: ricght
+}
+
+.title {
+	padding-top: 0pt;
+	color: #000000;
+	font-size: 26pt;
+	padding-bottom: 3pt;
+	font-family: "Arial";
+	line-height: 1.15;
+	page-break-after: avoid;
+	orphans: 2;
+	widows: 2;
+	text-align: left
+}
+
+.subtitle {
+	padding-top: 0pt;
+	color: #666666;
+	font-size: 15pt;
+	padding-bottom: 16pt;
+	font-family: "Arial";
+	line-height: 1.15;
+	page-break-after: avoid;
+	orphans: 2;
+	widows: 2;
+	text-align: left
+}
+
+li {
+	color: #000000;
+	font-size: 11pt;
+	font-family: "Arial"
+}
+
+p {
+	margin: 0;
+	color: #000000;
+	font-size: 11pt;
+	font-family: "Arial"
+}
+
+h1 {
+	padding-top: 20pt;
+	color: #000000;
+	font-size: 20pt;
+	padding-bottom: 6pt;
+	font-family: "Arial";
+	line-height: 1.15;
+	page-break-after: avoid;
+	orphans: 2;
+	widows: 2;
+	text-align: left
+}
+
+h2 {
+	padding-top: 18pt;
+	color: #000000;
+	font-size: 16pt;
+	padding-bottom: 6pt;
+	font-family: "Arial";
+	line-height: 1.15;
+	page-break-after: avoid;
+	orphans: 2;
+	widows: 2;
+	text-align: left
+}
+
+h3 {
+	padding-top: 16pt;
+	color: #434343;
+	font-size: 14pt;
+	padding-bottom: 4pt;
+	font-family: "Arial";
+	line-height: 1.15;
+	page-break-after: avoid;
+	orphans: 2;
+	widows: 2;
+	text-align: left
+}
+
+h4 {
+	padding-top: 14pt;
+	color: #666666;
+	font-size: 12pt;
+	padding-bottom: 4pt;
+	font-family: "Arial";
+	line-height: 1.15;
+	page-break-after: avoid;
+	orphans: 2;
+	widows: 2;
+	text-align: left
+}
+
+h5 {
+	padding-top: 12pt;
+	color: #666666;
+	font-size: 11pt;
+	padding-bottom: 4pt;
+	font-family: "Arial";
+	line-height: 1.15;
+	page-break-after: avoid;
+	orphans: 2;
+	widows: 2;
+	text-align: left
+}
+
+h6 {
+	padding-top: 12pt;
+	color: #666666;
+	font-size: 11pt;
+	padding-bottom: 4pt;
+	font-family: "Arial";
+	line-height: 1.15;
+	page-break-after: avoid;
+	font-style: italic;
+	orphans: 2;
+	widows: 2;
+	text-align: left
+}

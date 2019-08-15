@@ -1,0 +1,78 @@
+.little-table-wrapper {
+	width: 700px;
+	margin: 30px auto;
+	background: #fff;
+	padding: 20px;	
+	box-shadow: 0 1px 1px rgba(0,0,0,.05);
+}
+.little-table-title {
+	padding-bottom: 10px;
+	margin: 0 0 10px;
+}
+.little-table-title h2 {
+	margin: 6px 0 0;
+	font-size: 22px;
+}
+.little-table-title .add-new {
+	float: right;
+	height: 30px;
+	font-weight: bold;
+	font-size: 12px;
+	text-shadow: none;
+	min-width: 100px;
+	border-radius: 50px;
+	line-height: 13px;
+}
+.little-table-title .add-new i {
+	margin-right: 4px;
+}
+little-table.table {
+	table-layout: fixed;
+}
+little-table.table tr th, little-table.table tr td {
+	border-color: #e9e9e9;
+}
+little-table.table th i {
+	font-size: 13px;
+	margin: 0 5px;
+	cursor: pointer;
+}
+little-table.table th:last-child {
+	width: 100px;
+}
+little-table.table td a {
+	cursor: pointer;
+	display: inline-block;
+	margin: 0 5px;
+	min-width: 24px;
+}    
+little-table.table td a.add {
+	color: #27C46B;
+}
+little-table.table td a.edit {
+	color: #FFC107;
+}
+little-table.table td a.delete {
+	color: #E34724;
+}
+little-table.table td i {
+	font-size: 19px;
+}
+little-table.table td a.add i {
+	font-size: 24px;
+	margin-right: -1px;
+	position: relative;
+	top: 3px;
+}    
+little-table.table .form-control {
+	height: 32px;
+	line-height: 32px;
+	box-shadow: none;
+	border-radius: 2px;
+}
+little-table.table .form-control.error {
+	border-color: #f50000;
+}
+little-table.table td .add {
+	display: none;
+}

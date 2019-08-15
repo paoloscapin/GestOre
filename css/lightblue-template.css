@@ -1,0 +1,169 @@
+/**
+ *  This file is part of GestOre
+ *  @author     Paolo Scapin <paolo.scapin@gmail.com>
+ *  @copyright  (C) 2018 Paolo Scapin
+ *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ */
+
+:root {
+	/* lightblue */
+    --lightblue-panel-border:#bce8f1;
+    --lightblue-panel-color:#31708f;
+    --lightblue-panel-bg:#d9edf7;
+
+    --lightblue-btn-color:#fff;
+    --lightblue-btn-bg:#5bc0de;
+    --lightblue-btn-border:#46b8da;
+    --lightblue-btn-focus-bg:#31b0d5;
+    --lightblue-btn-focus-border:#1b6d85;
+    --lightblue-btn-hover-border:#269abc;
+
+    --lightblue-link-color:#245269;
+    --lightblue-link-bg:#afd9ee;
+
+	--lightblue-btn-alert-border:#a6e1ec;
+	--lightblue-btn-listgroup-bg:#c4e3f3;
+}
+
+.panel-lightblue {
+  border-color: var(--lightblue-panel-border);
+}
+.panel-lightblue > .panel-heading {
+  color: var(--lightblue-panel-color);
+  background-color: var(--lightblue-panel-bg);
+  border-color: var(--lightblue-panel-border);
+}
+.panel-lightblue > .panel-heading + .panel-collapse > .panel-body {
+  border-top-color: var(--lightblue-panel-border);
+}
+.panel-lightblue > .panel-heading .badge {
+  color: var(--lightblue-panel-bg);
+  background-color: var(--lightblue-panel-color);
+}
+.panel-lightblue > .panel-footer + .panel-collapse > .panel-body {
+  border-bottom-color: var(--lightblue-panel-border);
+}
+
+.btn-lightblue {
+  color: var(--lightblue-btn-color);
+  background-color: var(--lightblue-btn-bg);
+  border-color: var(--lightblue-btn-border);
+}
+.btn-lightblue:focus,
+.btn-lightblue.focus {
+  color: var(--lightblue-btn-color);
+  background-color: var(--lightblue-btn-focus-bg);
+  border-color: var(--lightblue-btn-focus-border);
+}
+.btn-lightblue:hover {
+  color: var(--lightblue-btn-color);
+  background-color: var(--lightblue-btn-focus-bg);
+  border-color: var(--lightblue-btn-hover-border);
+}
+.btn-lightblue:active,
+.btn-lightblue.active,
+.open > .dropdown-toggle.btn-lightblue {
+  color: var(--lightblue-btn-color);
+  background-color: var(--lightblue-btn-focus-bg);
+  border-color: var(--lightblue-btn-hover-border);
+}
+.btn-lightblue:active:hover,
+.btn-lightblue.active:hover,
+.open > .dropdown-toggle.btn-lightblue:hover,
+.btn-lightblue:active:focus,
+.btn-lightblue.active:focus,
+.open > .dropdown-toggle.btn-lightblue:focus,
+.btn-lightblue:active.focus,
+.btn-lightblue.active.focus,
+.open > .dropdown-toggle.btn-lightblue.focus {
+  color: var(--lightblue-btn-color);
+  background-color: var(--lightblue-btn-hover-border);
+  border-color: var(--lightblue-btn-focus-border);
+}
+.btn-lightblue:active,
+.btn-lightblue.active,
+.open > .dropdown-toggle.btn-lightblue {
+  background-image: none;
+}
+.btn-lightblue.disabled:hover,
+.btn-lightblue[disabled]:hover,
+fieldset[disabled] .btn-lightblue:hover,
+.btn-lightblue.disabled:focus,
+.btn-lightblue[disabled]:focus,
+fieldset[disabled] .btn-lightblue:focus,
+.btn-lightblue.disabled.focus,
+.btn-lightblue[disabled].focus,
+fieldset[disabled] .btn-lightblue.focus {
+  background-color: var(--lightblue-btn-bg);
+  border-color: var(--lightblue-btn-border);
+}
+.btn-lightblue .badge {
+  color: var(--lightblue-btn-bg);
+  background-color: var(--lightblue-btn-color);
+}
+
+.text-lightblue {
+  color: var(--lightblue-panel-color);
+}
+a.text-lightblue:hover,
+a.text-lightblue:focus {
+  color: var(--lightblue-link-color);
+}
+
+.bg-lightblue {
+  background-color: var(--lightblue-panel-bg);
+}
+a.bg-lightblue:hover,
+a.bg-lightblue:focus {
+  background-color: var(--lightblue-link-bg);
+}
+
+.label-lightblue {
+  background-color: var(--lightblue-btn-bg);
+}
+.label-lightblue[href]:hover,
+.label-lightblue[href]:focus {
+  background-color: var(--lightblue-btn-focus-bg);
+}
+
+.alert-lightblue {
+  color: var(--lightblue-panel-color);
+  background-color: var(--lightblue-panel-bg);
+  border-color: var(--lightblue-panel-border);
+}
+.alert-lightblue hr {
+  border-top-color: var(--lightblue-btn-alert-border);
+}
+.alert-lightblue .alert-link {
+  color: var(--lightblue-link-color);
+}
+
+.list-group-item-lightblue {
+  color: var(--lightblue-panel-color);
+  background-color: var(--lightblue-panel-bg);
+}
+a.list-group-item-lightblue,
+button.list-group-item-lightblue {
+  color: var(--lightblue-panel-color);
+}
+a.list-group-item-lightblue .list-group-item-heading,
+button.list-group-item-lightblue .list-group-item-heading {
+  color: inherit;
+}
+a.list-group-item-lightblue:hover,
+button.list-group-item-lightblue:hover,
+a.list-group-item-lightblue:focus,
+button.list-group-item-lightblue:focus {
+  color: var(--lightblue-panel-color);
+  background-color: var(--lightblue-btn-listgroup-bg);
+}
+a.list-group-item-lightblue.active,
+button.list-group-item-lightblue.active,
+a.list-group-item-lightblue.active:hover,
+button.list-group-item-lightblue.active:hover,
+a.list-group-item-lightblue.active:focus,
+button.list-group-item-lightblue.active:focus {
+  color: var(--lightblue-btn-color);
+  background-color: var(--lightblue-panel-color);
+  border-color: var(--lightblue-panel-color);
+}

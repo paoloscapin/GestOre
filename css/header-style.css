@@ -1,0 +1,52 @@
+/**
+ *  This file is part of GestOre
+ *  @author     Paolo Scapin <paolo.scapin@gmail.com>
+ *  @copyright  (C) 2018 Paolo Scapin
+ *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ */
+
+.top-navbar {
+     background-image: linear-gradient(#93d9ff, #00bfff 65%, #2FA4E7);/* linear-gradient(#99ffff, #00bfff); linear-gradient(#54B4EB, #2FA4E7 60%, #1D9CE5); */
+     background-repeat: no-repeat;
+     border-bottom: 1px solid #178ACC;
+     box-shadow: 0px 1px 10px rgba(0, 0, 0, 0.1);
+     border-radius: 0px;
+}
+
+.top-navbar-default {
+     background-color: #2FA4E7; /*  */
+     border-color: #1995DC;
+}
+
+.top-navbar-default .top-navbar-brand,
+.top-navbar-default .top-navbar-brand:hover,
+.top-navbar-default .top-navbar-brand:focus ,
+.top-navbar-default .top-navbar-nav > li > a {
+     color: #FFF;
+}
+
+.top-navbar-default .top-navbar-nav > li > a:hover,
+.top-navbar-default .top-navbar-nav > li > a:focus {
+     color: #FFF;
+     background-color: #178ACC;
+}
+	
+.top-navbar-default .top-navbar-toggle:hover,
+.top-navbar-default .top-navbar-toggle:focus {
+    background-color: #178ACC;
+}
+
+.top-navbar-default .top-navbar-toggle {
+    border-color: #178ACC;
+}
+
+.top-navbar-default .top-navbar-toggle .icon-bar {
+    background-color: #FFF;
+}
+
+.top-navbar-default .top-navbar-nav > .active > a,
+.top-navbar-default .top-navbar-nav > .active > a:hover,
+.top-navbar-default .top-navbar-nav > .active > a:focus {
+  color: #FFF;
+  background-color: #178ACC;
+}
