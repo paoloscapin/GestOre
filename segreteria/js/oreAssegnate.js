@@ -9,7 +9,7 @@ function ricalcolaTutti() {
 	$.get("oreAssegnateRicalcolaTutti.php", {
 	},
 	function (data, status) {
-		console.log(data);
+		// console.log(data);
 	});
 }
 
@@ -34,7 +34,7 @@ function reloadTable(ore_previste_tipo_attivita_id) {
 					"<td>" + ore.ore_previste_attivita_dettaglio + "</td>" +
 					"<td class=\"col-md-1 text-center\">" + ore.ore_previste_attivita_ore + "</td>" +
 					"<td class=\"col-md-2 text-center\">" +
-					"<div onclick=\"deleteOreAttivita(" + ore.ore_previste_attivita_id + ","+ ore.ore_previste_attivita_ore_previste_tipo_attivita_id +")\" class=\"btn btn-danger btn-xs\"><span class=\"glyphicon glyphicon-trash\"></div>&nbsp;" +
+					"<div onclick=\"deleteOreAttivita(" + ore.ore_previste_attivita_id + ","+ ore.ore_previste_attivita_ore_previste_tipo_attivita_id + ",'" + ore.docente_cognome + "','" + ore.docente_nome + "')\" class=\"btn btn-danger btn-xs\"><span class=\"glyphicon glyphicon-trash\"></div>&nbsp;" +
 					"</td>" +
 					"</tr>";
 				}
@@ -87,12 +87,17 @@ function oreAssegnateAddRecord() {
 	);
 }
 
-function deleteOreAttivita(ore_previste_attivita_id, ore_previste_tipo_attivita_id) {
-    $.post("oreAssegnateDelete.php", {
-			id: ore_previste_attivita_id
-	    },
-	    function (data, status) {
-	        reloadTable(ore_previste_tipo_attivita_id);
-	    }
-	);
+function deleteOreAttivita(ore_previste_attivita_id, ore_previste_tipo_attivita_id, cognome, nome) {
+    var conf = confirm("Sei sicuro di volere cancellare le ore del docente " + cognome + " " + nome + " ?");
+    if (conf == true) {
+        $.post("../common/deleteRecord.php", {
+				id: ore_previste_attivita_id,
+				table: 'ore_previste_attivita',
+				name: "docente " + cognome + " " + nome + " ore_previste_attivita_id=" + ore_previste_attivita_id + " ore_previste_tipo_attivita_id=" + ore_previste_tipo_attivita_id
+            },
+            function (data, status) {
+                reloadTable(ore_previste_tipo_attivita_id);
+            }
+        );
+    }
 }

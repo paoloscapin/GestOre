@@ -17,7 +17,8 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <?php
 require_once '../common/checkSession.php';
-require_once '../common/header-segreteria.php';
+
+require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 ruoloRichiesto('dirigente','segreteria-docenti');
@@ -26,11 +27,11 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
 
-<!-- Custom JS file -->
-<script type="text/javascript" src="js/scriptDocente.js"></script>
+<!-- Custom JS file moved to the end -->
 </head>
 
 <body >
+<?php require_once '../common/header-segreteria.php'; ?>
 
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
@@ -288,5 +289,9 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 </div>
 <!-- // Modal - Update profilo details -->
 </div>
+
+<!-- Custom JS file MUST be here because of toggle -->
+<script type="text/javascript" src="js/scriptDocente.js"></script>
+
 </body>
 </html>

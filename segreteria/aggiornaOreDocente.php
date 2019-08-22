@@ -8,7 +8,6 @@
  */
 
 require_once '../common/checkSession.php';
-require_once '../common/connect.php';
 ruoloRichiesto('dirigente');
 
 $query = "	SELECT

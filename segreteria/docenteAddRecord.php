@@ -7,12 +7,10 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-if(isset($_POST['nome']) && isset($_POST['cognome']) && isset($_POST['email'])) {
-	// include Database connection file
-	require_once '../common/checkSession.php';
-	require_once '../common/connect.php';
+ require_once '../common/checkSession.php';
+ ruoloRichiesto('segreteria-docenti','dirigente');
 
-	// get values
+if(isset($_POST['nome']) && isset($_POST['cognome']) && isset($_POST['email'])) {
 	$nome = $_POST['nome'];
 	$cognome = $_POST['cognome'];
 	$email = $_POST['email'];
@@ -20,24 +18,19 @@ if(isset($_POST['nome']) && isset($_POST['cognome']) && isset($_POST['email'])) 
 	$matricola = $_POST['matricola'];
 
 	$query = "INSERT INTO docente(nome, cognome, email, username, matricola) VALUES('$nome', '$cognome', '$email', '$username', '$matricola')";
-	if (!$result = mysqli_query($con, $query)) {
-		exit(mysqli_error($con));
-	}
+	dbExec($query);
 
 	// trova l'id inserito
-	$docente_id = $con->insert_id;
+	$docente_id = dblastId();
 
 	// insert dell'utente
 	$query = "INSERT INTO utente(nome, cognome, username, ruolo) VALUES('$nome', '$cognome', '$username', 'docente')";
-	if (!$result = mysqli_query($con, $query)) {
-		exit(mysqli_error($con));
-	}
+	dbExec($query);
 
 	// insert del profilo
 	$query = "INSERT INTO profilo_docente(anno_scolastico_id, docente_id) VALUES('$__anno_scolastico_corrente_id', '$docente_id')";
-	if (!$result = mysqli_query($con, $query)) {
-		exit(mysqli_error($con));
-	}
-	echo "aggiuto 1 docente!";
+	dbExec($query);
+
+	info("aggiunto utente username=$username id=$docente_id cognome=$cognome nome=$nome email=$email");
 }
 ?>

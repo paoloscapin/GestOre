@@ -7,26 +7,22 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-function checkTableExists($table, $docente_id, $anno_id) {
+require_once '../common/checkSession.php';
 
+function checkTableExists($table, $docente_id, $anno_id) {
 	$verifyQuery = "SELECT * FROM $table WHERE anno_scolastico_id = $anno_id AND docente_id = $docente_id;";
-	debug($verifyQuery);
 	$result = dbGetFirst($verifyQuery);
 
 	// se non ci sono risultati, inserisce la nuova riga in tabella
 	if ($result === null) {
 		$createQuery = "INSERT INTO $table (docente_id, anno_scolastico_id) VALUES ($docente_id, $anno_id);";
-		debug($createQuery);
 		dbExec($createQuery);
+		info("inserito in tabella $table nuovo docente id=$docente_id per anno=$anno_id");
 	}
 }
 
 // check request
 if(isset($_POST['id']) && isset($_POST['id']) != "") {
-	// include Database connection file
-	require_once '../common/checkSession.php';
-	require_once '../common/connect.php';
-
 	$docente_id = $_POST['id'];
 
 	// prima verifica che esistano tutti i records nelle tabelle interessate
@@ -73,12 +69,7 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 					AND ore_previste.anno_scolastico_id = '$__anno_scolastico_corrente_id'
 					AND docente.id = '$docente_id'";
 
-	debug($query);
 	$response = dbGetFirst($query);
 	echo json_encode($response);
-}
-else {
-	$response['status'] = 200;
-	$response['message'] = "Invalid Request!";
 }
 ?>

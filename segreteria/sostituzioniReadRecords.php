@@ -9,7 +9,6 @@
 
 
 require_once '../common/checkSession.php';
-require_once '../common/connect.php';
 
 $warning = '<span class="glyphicon glyphicon-warning-sign text-error"></span>';
 $okSymbol = '&ensp;<span class="glyphicon glyphicon-ok text-success"></span>';
@@ -69,7 +68,6 @@ $query = "
 		docente.cognome ASC,
 		docente.nome ASC
 	";
-debug($query);
 $resultArray = dbGetAll($query);
 foreach($resultArray as $sostituzioni) {
     $id = $sostituzioni['ore_fatte_id'];

@@ -13,16 +13,15 @@
 <html>
 <head>
 	<title>Segreteria</title>
-</head>
-
-<body >
 <?php
 require_once '../common/checkSession.php';
-require_once '../common/header-segreteria.php';
 require_once '../common/style.php';
 ruoloRichiesto('dirigente','segreteria-docenti');
 ?>
+</head>
 
+<body >
+<?php require_once '../common/header-segreteria.php'; ?>
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
 </div>

@@ -7,6 +7,9 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+require_once '../common/checkSession.php';
+ruoloRichiesto('segreteria-docenti','dirigente');
+
 if(isset($_POST)) {
 	// include Database connection file 
 	require_once '../common/connect.php';

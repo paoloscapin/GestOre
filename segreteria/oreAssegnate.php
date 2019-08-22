@@ -12,24 +12,27 @@
 <!DOCTYPE html>
 <html>
 <head>
+<title>Ore Assegnate</title>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <?php
 require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
+require_once '../common/style.php';
+require_once '../common/_include_bootstrap-select.php';
 ruoloRichiesto('dirigente','segreteria-docenti');
 ?>
-	<title>Ore Assegnate</title>
-	<meta charset="UTF-8">
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 
-	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/common/bootstrap-select/css/bootstrap-select.min.css">
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
+
+<!-- Custom JS file -->
+<script type="text/javascript" src="js/oreAssegnate.js"></script>
 </head>
 
 <body >
-<?php
-require_once '../common/header-segreteria.php';
-require_once '../common/connect.php';
-?>
+<?php require_once '../common/header-segreteria.php'; ?>
 
+<!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
 <div class="panel panel-primary">
 <div class="row" style="margin-top:10px;" style="margin-bottom:10px;">
@@ -107,8 +110,6 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 					docente.nome ASC
 				;
 		";
-		debug($query);
-
 		$resultArrayOre = dbGetAll($query);
 		$classname = "";
 		foreach($resultArrayOre as $row_ore) {
@@ -120,7 +121,7 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 								<td>'.$row_ore['ore_previste_attivita_dettaglio'].'</td>
 								<td class="col-md-1 text-center">'.$row_ore['ore_previste_attivita_ore'].'</td>
 								<td class="col-md-2 text-center">
-									<div onclick="deleteOreAttivita('.$row_ore['ore_previste_attivita_id'].','.$row_ore['ore_previste_attivita_ore_previste_tipo_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></div>&nbsp
+									<div onclick="deleteOreAttivita('.$row_ore['ore_previste_attivita_id'].','.$row_ore['ore_previste_attivita_ore_previste_tipo_attivita_id'].',\''.$row_ore['docente_cognome'].'\',\''.$row_ore['docente_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></div>&nbsp
 								</td>
 							</tr>
 					';
@@ -208,19 +209,5 @@ foreach($resultArray as $row) {
 <!-- // Modal - Add New Record -->
 
 </div>
-
-<!-- Bootstrap, jquery etc (css + js) -->
-<?php
-	require_once '../common/style.php';
-?>
-	<!-- boostrap-select -->
-	<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootstrap-select/js/bootstrap-select.min.js"></script>
-	<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootstrap-select/js/i18n/defaults-it_IT.min.js"></script>
-
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
-
-<!-- Custom JS file -->
-<script type="text/javascript" src="js/oreAssegnate.js"></script>
-
 </body>
 </html>

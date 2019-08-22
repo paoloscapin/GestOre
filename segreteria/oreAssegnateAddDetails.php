@@ -7,10 +7,9 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-if(isset($_POST)) {
-	require_once '../common/checkSession.php';
-	require_once '../common/connect.php';
+require_once '../common/checkSession.php';
 
+if(isset($_POST)) {
 	$ore_previste_attivita_id = $_POST['ore_previste_attivita_id'];
 	$dettaglio = $_POST['dettaglio'];
 	$ore = $_POST['ore'];
@@ -19,12 +18,12 @@ if(isset($_POST)) {
 
 	// per prima cosa inserisce l'attivita
 	$query = "INSERT INTO ore_previste_attivita(dettaglio, ore, docente_id, anno_scolastico_id, ore_previste_tipo_attivita_id) VALUES('$dettaglio', '$ore', $docente_id, $__anno_scolastico_corrente_id, $ore_previste_tipo_attivita_id)";
-	debug('$query='.$query);
 	dbExec($query);
+	info("assegnate ore=$ore docente_id=$docente_id attivita_id=$ore_previste_attivita_id dettaglio=$dettaglio");
+
 	// aggiunge anche le ore alle ore previste nel posto giusto (se ci riesce...)
 	// cerca il tipo di attivita
 	$query = "SELECT * FROM `ore_previste_tipo_attivita` WHERE id = $ore_previste_tipo_attivita_id";
-	debug('$query='.$query);
 	$item = dbGetFirst($query);
 	$categoria = $item['categoria'];
 	$da_rendicontare = $item['da_rendicontare'];

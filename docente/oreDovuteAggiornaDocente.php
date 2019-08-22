@@ -103,8 +103,8 @@ function orePrevisteAggiornaDocente($docenteId) {
 					docente_id = $docenteId
 				AND
 					anno_scolastico_id = $__anno_scolastico_corrente_id;";
-	debug($query);
 	dbExec($query);
+	info("aggiornate le ore previste per il docente id=$docenteId");
 	echo $message;
 }
 
@@ -135,7 +135,6 @@ function oreFatteAggiornaDocente($docenteId) {
         AND ore_fatte_attivita.contestata is not true
         AND ore_fatte_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id;
 		";
-	debug($query);
 	$resultArray = dbGetAll($query);
 	foreach($resultArray as $attivita) {
 		switch ($attivita['categoria'])  {
@@ -178,7 +177,6 @@ function oreFatteAggiornaDocente($docenteId) {
 				AND ore_previste_attivita.docente_id = $docenteId
                 AND ore_previste_tipo_attivita.inserito_da_docente = false
 				";
-	debug($query);
 	$resultArray = dbGetAll($query);
 	foreach($resultArray as $attivita) {
 	    switch ($attivita['ore_previste_tipo_attivita_categoria'])  {
@@ -215,7 +213,6 @@ function oreFatteAggiornaDocente($docenteId) {
 				WHERE viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id
 				AND viaggio.docente_id = $docenteId
 				";
-	debug($query);
 	$resultArray = dbGetAll($query);
 	foreach($resultArray as $viaggio) {
 	    $ore_40_con_studenti = $ore_40_con_studenti + $viaggio['viaggio_ore_recuperate_ore'];
@@ -252,8 +249,7 @@ function oreFatteAggiornaDocente($docenteId) {
 					docente_id = $docenteId
 				AND
 					anno_scolastico_id = $__anno_scolastico_corrente_id;";
-	debug($query);
+	info("aggiornate le ore fatte per il docente id=$docenteId");
 	dbExec($query);
 }
-
 ?>

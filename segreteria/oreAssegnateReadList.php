@@ -7,11 +7,9 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-if(isset($_POST)) {
-	// include Database connection file
-	require_once '../common/checkSession.php';
-	require_once '../common/connect.php';
+require_once '../common/checkSession.php';
 
+if(isset($_POST)) {
 	// get values
 	$ore_previste_tipo_attivita_id = $_POST['ore_previste_tipo_attivita_id'];
 
@@ -36,12 +34,7 @@ if(isset($_POST)) {
 						docente.nome ASC
 					;
 						";
-	debug($query);
 	$oreAssegnateArray = dbGetAll($query);
 	echo json_encode($oreAssegnateArray);
-}
-else {
-	$response['status'] = 200;
-	$response['message'] = "Invalid Request!";
 }
 ?>

@@ -33,7 +33,6 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 <body >
 <?php
 require_once '../common/header-segreteria.php';
-require_once '../common/connect.php';
 ?>
 
 <div class="container-fluid" style="margin-top:60px">

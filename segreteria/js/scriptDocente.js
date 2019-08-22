@@ -141,6 +141,7 @@ function profiloUpdateDetails() {
 	$.post("docenteProfiloUpdateDetails.php", {
 		profilo_id: $("#hidden_profilo_docente_id").val(),
 		docente_id: $("#hidden_docente_id").val(),
+		docente_cognome_e_nome: $("#profilo_cognome_e_nome").val(),
 		ore_dovute_id: $("#hidden_ore_dovute_id").val(),
 		ore_previste_id: $("#hidden_ore_previste_id").val(),
 		tipo_di_contratto: $("#profilo_tipo_di_contratto").val(),
