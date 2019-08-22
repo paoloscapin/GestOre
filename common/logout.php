@@ -13,6 +13,13 @@ require_once __DIR__ . '/path.php';
 require_once __DIR__ . '/__Log.php';
 require_once __DIR__ . '/__Util.php';
 
+// start session
+if (session_status() == PHP_SESSION_NONE) {
+	session_set_cookie_params ($__settings->system->durata_sessione);
+	session_start();
+}
+
+$__username = $session->get ( 'username' );
 info('utente ' . $__username . ': logged out');
 $session->logout();
 //Unset token and user data from session
