@@ -10,7 +10,6 @@
 if(isset($_POST)) {
 	// include Database connection file 
 	require_once '../common/checkSession.php';
-	require_once '../common/connect.php';
 
 	// get values
 	$lezione_corso_di_recupero_id = $_POST['lezione_corso_di_recupero_id'];
