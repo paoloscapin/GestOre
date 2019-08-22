@@ -22,7 +22,7 @@ if (haRuolo('docente')) {
 else if (haRuolo('dirigente')) {
     redirect('/dirigente/index.php');
 }
-else if (haRuolo('segreteria')) {
+else if (haRuolo('segreteria-docenti')) {
     redirect('/segreteria/index.php');
 }
 else if (haRuolo('admin')) {

@@ -7,10 +7,11 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-require_once __DIR__ . '/__Environment.php';
+require_once __DIR__ . '/__Settings.php';
 require_once __DIR__ . '/__Log.php';
+
 global $__con;
-$__con = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_DATABASE);
+$__con = new mysqli($__settings->db->host, $__settings->db->user, $__settings->db->password, $__settings->db->database);
 
 if ($__con->connect_error) {
 	die("Connection failed: " . $__con->connect_error);

@@ -10,33 +10,33 @@
 require_once __DIR__ . '/__Util.php';
 require_once __DIR__ . '/path.php';
 require_once __DIR__ . '/connect.php';
+require_once __DIR__ . '/__Settings.php';
 
 // start session
 if (session_status() == PHP_SESSION_NONE) {
-	session_set_cookie_params ( DURATA_SESSIONE );
+	session_set_cookie_params ($__settings->system->durata_sessione);
 	session_start();
 }
 
+// configurazione globale
+require_once __DIR__ . '/Config.php';
+
 // se la session non contiene username, vai alla pagina di login (passando come location la pagina richiesta
-// if (!isset($__username) && !isset($_SESSION['__username'])) {
 if (!isset($__username) && !$session->has('__username')) {
 
-    // require_once __DIR__ . '/__GoogleClientConfig.php';
     if (!isset($__gClient)) {
 
-        //Include Google client library 
+        $__redirectURL = $__http_base_link . '/index.php';
+
+        //Include Google client library
         require_once __DIR__ . '/google-client-library/src/Google_Client.php';
         require_once __DIR__ . '/google-client-library/src/contrib/Google_Oauth2Service.php';
 
-        // Configuration and setup Google API
-        $__clientId = '667798242060-aff3o5kiub2h69vau5hm9lla2hbo40pn.apps.googleusercontent.com'; //Google client ID
-        $__clientSecret = 'Xp2leJOul4SZ3tKerPuuwvYs'; //Google client secret
-        $__redirectURL = $__http_base_link . '/index.php'; //Callback URL
         //Call Google API
         $gClient = new Google_Client();
-        $gClient->setApplicationName('GestOre');
-        $gClient->setClientId($__clientId);
-        $gClient->setClientSecret($__clientSecret);
+        $gClient->setApplicationName($__settings->GoogleAuth->applicationName);
+        $gClient->setClientId($__settings->GoogleAuth->clientId);
+        $gClient->setClientSecret($__settings->GoogleAuth->clientSecret);
         $gClient->setRedirectUri($__redirectURL);
 
         $google_oauthV2 = new Google_Oauth2Service($gClient);
@@ -132,10 +132,6 @@ $__docente_id = $session->get ( 'docente_id' );
 $__docente_nome = $session->get ( 'docente_nome' );
 $__docente_cognome = $session->get ( 'docente_cognome' );
 $__docente_email = $session->get ( 'docente_email' );
-
-// configurazione globale
-require_once __DIR__ . '/Config.php';
-$__config = new Config();
 
 if (! $session->has ( 'anno_scolastico_corrente_anno' )) {
     debug ( 'manca in sessione anno_scolastico_corrente_anno' );

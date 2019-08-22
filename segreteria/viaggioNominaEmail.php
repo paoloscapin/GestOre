@@ -74,7 +74,7 @@ $headers .= "X-Mailer: PHP " . phpversion();
 $text_msg = "Incarico";
 
 $connection = 'http';
-if (defined('__https')) {
+if ($__settings->system->https) {
     $connection = 'https';
 }
 $url = "$connection://$_SERVER[HTTP_HOST]".$__application_base_path . '/docente/viaggio.php';

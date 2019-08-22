@@ -139,4 +139,7 @@ class Config {
     }
 
 }
+
+$__config = new Config();
+
 ?>

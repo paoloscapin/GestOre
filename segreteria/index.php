@@ -17,9 +17,9 @@
 
 <body >
 <?php
-	require_once '../common/checkSession.php';
-	require_once '../common/header-segreteria.php';
-	ruoloRichiesto('dirigente','segreteria-docenti');
+require_once '../common/checkSession.php';
+require_once '../common/header-segreteria.php';
+ruoloRichiesto('dirigente','segreteria-docenti');
 ?>
 
 <!-- Content Section -->

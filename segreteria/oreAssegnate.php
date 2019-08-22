@@ -45,7 +45,7 @@ require_once '../common/connect.php';
 </div>
 
 <?php
-// prepara l'elenco delle categorie di intervento
+// prepara l'elenco delle categorie di attivita'
 $query = "	SELECT * FROM `ore_previste_tipo_attivita` WHERE valido = true AND inserito_da_docente = false;
 			";
 $resultArrayTipoAttivita = dbGetAll($query);
