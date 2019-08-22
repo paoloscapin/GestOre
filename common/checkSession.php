@@ -23,9 +23,7 @@ require_once __DIR__ . '/Config.php';
 
 // se la session non contiene username, vai alla pagina di login (passando come location la pagina richiesta
 if (!isset($__username) && !$session->has('__username')) {
-
     if (!isset($__gClient)) {
-
         $__redirectURL = $__http_base_link . '/index.php';
 
         //Include Google client library
@@ -45,6 +43,10 @@ if (!isset($__username) && !$session->has('__username')) {
     if(isset($_GET['code'])){
         $gClient->authenticate($_GET['code']);
         $_SESSION['token'] = $gClient->getAccessToken();
+
+        // log the new access
+        $gpUserProfile = $google_oauthV2->userinfo->get();
+        $useremail = $gpUserProfile['email'];
         header('Location: ' . filter_var($__redirectURL, FILTER_SANITIZE_URL));
     }
 
@@ -58,9 +60,7 @@ if (!isset($__username) && !$session->has('__username')) {
         
         $useremail = $gpUserProfile['email'];
 
-        if(!empty($useremail)){
-            info('utente ' . $useremail . ': logged in');
-        }else{
+        if(empty($useremail)){
             $output = '<h3 style="color:red">Some problem occurred, please try again.</h3>';
         }
     } else {
@@ -82,7 +82,7 @@ if (!isset($__useremail)) {
 
 // deve esserci un utente collegato, altrimenti non va bene
 if (empty ( $__useremail )) {
-    debug ( 'nessun utente collegato!' );
+    warning ( 'nessun utente collegato!' );
     redirect ( '/error/notlogged.php' );
 }
 
@@ -90,8 +90,8 @@ if (! $session->has ( 'utente_id' )) {
     debug ( 'manca in sessione utente_id' );
     $utente = dbGetFirst("SELECT * FROM utente WHERE utente.email = '$__useremail'");
     if ($utente == null) {
-        debug ( 'manca in sessione utente_id' );
         $__message = 'utente non trovato: ' . $__useremail;
+        warning ($__message);
         redirect ( '/error/error.php?message=' . $__message);
         exit ();
     }
@@ -102,6 +102,10 @@ if (! $session->has ( 'utente_id' )) {
     $session->set ( 'utente_cognome', $utente ['cognome'] );
     $session->set ( 'utente_ruolo', $utente ['ruolo'] );
     $session->set ( '__useremail', $__useremail );
+    if(!empty($utente ['username'])){
+        $__username = $session->get ( 'username' );
+        info('utente ' . $utente ['username'] . ': logged in');
+    }
 } else {
 //    debug ( 'esiste utente_id=' . $session->get ( 'utente_id' ) );
 }
