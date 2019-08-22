@@ -203,8 +203,10 @@ function docenteReadRecords() {
 function docenteDelete(id, cognome, nome) {
     var conf = confirm("Sei sicuro di volere cancellare il docente " + cognome + " " + nome + " ?");
     if (conf == true) {
-        $.post("docenteDelete.php", {
-                id: id
+        $.post("../common/deleteRecord.php", {
+				id: id,
+				table: 'docente',
+				name: "docente " + cognome + " " + nome
             },
             function (data, status) {
                 docenteReadRecords();

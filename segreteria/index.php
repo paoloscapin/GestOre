@@ -27,7 +27,5 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 <div class="container-fluid" style="margin-top:60px">
 </div>
 
-<!-- Custom JS file -->
-<script type="text/javascript" src="js/indexScript.js"></script>
 </body>
 </html>

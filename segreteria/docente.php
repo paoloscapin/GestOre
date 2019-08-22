@@ -15,14 +15,22 @@
 	<title>Gestione docenti</title>
 	<meta charset="UTF-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<?php
+require_once '../common/checkSession.php';
+require_once '../common/header-segreteria.php';
+require_once '../common/style.php';
+require_once '../common/_include_bootstrap-toggle.php';
+ruoloRichiesto('dirigente','segreteria-docenti');
+?>
+
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
+
+<!-- Custom JS file -->
+<script type="text/javascript" src="js/scriptDocente.js"></script>
 </head>
 
 <body >
-<?php
-	require_once '../common/checkSession.php';
-	require_once '../common/header-segreteria.php';
-	ruoloRichiesto('dirigente','segreteria-docenti');
-?>
 
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
@@ -280,18 +288,5 @@
 </div>
 <!-- // Modal - Update profilo details -->
 </div>
-
-<!-- Bootstrap, jquery etc (css + js) -->
-<?php
-	require_once '../common/style.php';
-?>
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/common/bootstrap-toggle-master/css/bootstrap-toggle.min.css">
-<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootstrap-toggle-master/js/bootstrap-toggle.min.js"></script>
-
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
-
-<!-- Custom JS file -->
-<script type="text/javascript" src="js/script.js"></script>
 </body>
 </html>
