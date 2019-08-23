@@ -21,13 +21,11 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
 ruoloRichiesto('dirigente');
 ?>
-
 </head>
 
 <body >
 <?php
 require_once '../common/header-dirigente.php';
-require_once '../common/connect.php';
 
 // prepara l'elenco dei docenti
 $docenteOptionList = '				<option value="0"></option>';

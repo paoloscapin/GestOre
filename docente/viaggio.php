@@ -14,6 +14,7 @@
 <head>
 <?php
 	require_once '../common/checkSession.php';
+	require_once '../common/header-common.php';
 ?>
 	<title> Viaggi e Uscite</title>
 </head>

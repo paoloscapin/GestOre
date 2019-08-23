@@ -15,6 +15,7 @@
 require_once '../common/checkSession.php';
 ruoloRichiesto('docente','dirigente','segreteria-docenti');
 require_once '../common/connect.php';
+require_once '../common/header-common.php';
 
 function printableDate($data) {
 	if ($data != null) {

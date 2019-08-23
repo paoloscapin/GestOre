@@ -18,6 +18,7 @@
 <body >
 <?php
 	require_once '../common/checkSession.php';
+	require_once '../common/header-common.php';
 	require_once '../common/header-error.php';
 ?>
 

@@ -13,12 +13,17 @@
 <html>
 <head>
 	<title>Dirigente</title>
+
+<?php
+	require_once '../common/checkSession.php';
+	require_once '../common/header-common.php';
+	require_once '../common/style.php';
+	ruoloRichiesto('dirigente');
+?>
 </head>
 
 <body >
 <?php
-	require_once '../common/checkSession.php';
-	ruoloRichiesto('dirigente');
 	require_once '../common/header-dirigente.php';
 ?>
 
@@ -37,9 +42,5 @@
 </div>
 </div>
 
-<!-- Bootstrap, jquery etc (css + js) -->
-<?php
-	require_once '../common/style.php';
-?>
 </body>
 </html>
