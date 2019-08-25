@@ -50,11 +50,11 @@ if(mysqli_num_rows($result) > 0) {
 		++$counter;
 debug($row['viaggio_destinazione']);
 		$data .= '
-<div class="panel panel-info">
+<div class="panel panel-deeporange4">
 <div class="panel-heading container-fluid">
 <div class="row">
 	<div class="col-md-4">
-		<h4>'.$row['viaggio_destinazione'].': &emsp;'.date('d M', strtotime($row['viaggio_data_partenza'])).'</h4>
+		'.$row['viaggio_destinazione'].': &emsp;'.date('d M', strtotime($row['viaggio_data_partenza'])).'
 	</div>
 	<div class="col-md-4 text-center">';
 		// controlla lo stato
@@ -90,7 +90,7 @@ debug($row['viaggio_destinazione']);
 		$data .= '
 	</div>
 	<div class="col-md-4 text-right">
-		<h4><a data-toggle="collapse" href="#collapse'.$counter.'"><span class="panelarrow glyphicon glyphicon-resize-small"></span></a></h4>
+		<a data-toggle="collapse" href="#collapse'.$counter.'"><span class="panelarrow glyphicon glyphicon-resize-small"></span></a>
 	</div>
 </div>
 </div>

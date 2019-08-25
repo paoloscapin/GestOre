@@ -16,7 +16,7 @@
 	require_once '../common/checkSession.php';
 	require_once '../common/header-common.php';
 ?>
-	<title> Viaggi e Uscite</title>
+	<title>Viaggi e Uscite</title>
 </head>
 
 <body >
@@ -27,15 +27,15 @@
 
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-danger">
+<div class="panel panel-deeporange4">
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-4">
-			<h4><span class="glyphicon glyphicon-picture"></span>&emsp;Viaggi e Uscite</h4>
+			<span class="glyphicon glyphicon-picture"></span>&emsp;Viaggi e Uscite
 		</div>
 		<div class="col-md-4 text-center">
 			<label for="ancheChiuseCheckBox" class=""> Anche Chiuse </label>
-			<input type="checkbox" class="checkbox-inline pull-right" data-toggle="toggle" data-size="small" data-onstyle="success" id="ancheChiuseCheckBox" checked="checked" >
+			<input type="checkbox" class="checkbox-inline pull-right" data-toggle="toggle" data-size="mini" data-onstyle="success" id="ancheChiuseCheckBox" checked="checked" >
 		</div>
 	</div>
 </div>
@@ -55,7 +55,7 @@
 	<div class="modal-dialog" role="document">
 		<div class="modal-content">
 			<div class="modal-header">
-				<h4 class="modal-title">Spesa</h4>
+				<h5 class="modal-title text-center">Spesa</h5>
 			</div>
 			<div class="modal-body">
                 <div class="form-group">
@@ -91,7 +91,7 @@
             <div class="modal-body">
 			<div class="panel panel-info">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Aggiorna viaggio</h4>
+			<h5 class="modal-title text-center" id="myModalLabel">Aggiorna viaggio</h5>
 			</div>
 			<div class="panel-body">
 			<form class="form-horizontal">

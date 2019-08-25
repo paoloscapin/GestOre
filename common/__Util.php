@@ -33,6 +33,10 @@ function ruoloRichiesto(...$ruoli) {
     if (empty($__utente_ruolo)) {
         redirect("/error/unauthorized.php");
     }
+    // admin viene sempre autorizzato
+    if ($__utente_ruolo === 'admin') {
+        return;
+    }
     foreach ($ruoli as $ruolo) {
         if ($__utente_ruolo === $ruolo) {
             return;

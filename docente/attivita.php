@@ -21,7 +21,7 @@ require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_flatpickr.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente');
 ?>
-	<title>Attività</title>
+	<title>Ore Fatte</title>
 </head>
 
 <body >
@@ -31,20 +31,20 @@ require_once '../common/connect.php';
 ?>
 
 <div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-primary">
+<div class="panel panel-teal4">
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
-		<span class="glyphicon glyphicon-education"></span>&ensp;Attività
+			<span class="glyphicon glyphicon-education"></span>&ensp;AttivOre Fatte
 		</div>
 		<div class="col-md-4 text-center">
-			<button onclick="oreFatteSommario()" class="btn btn-xs btn-info"><span class="glyphicon glyphicon-option-horizontal"></span> Sommario</button>
+			<button onclick="oreFatteSommario()" class="btn btn-xs btn-teal4"><span class="glyphicon glyphicon-option-horizontal"></span> Sommario</button>
 		</div>
 		<div class="col-md-4 text-right">
             <?php
             if ($__config->getOre_fatte_aperto()) {
             	echo '
-					<button onclick="oreFatteGetAttivita(0)" class="btn btn-xs btn-info"><span class="glyphicon glyphicon-plus"></span></button>
+					<button onclick="oreFatteGetAttivita(0)" class="btn btn-xs btn-teal4"><span class="glyphicon glyphicon-plus"></span></button>
 				';
             }
    			?>
@@ -105,7 +105,7 @@ require_once '../common/connect.php';
 <!-- <div class="panel-footer"></div> -->
 </div>
 
-<div class="panel panel-success">
+<div class="panel panel-yellow4">
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
@@ -134,7 +134,7 @@ require_once '../common/connect.php';
 <!-- <div class="panel-footer"></div> -->
 </div>
 
-<div class="panel panel-danger">
+<div class="panel panel-deeporange4">
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
@@ -208,9 +208,9 @@ require_once '../common/connect.php';
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
-			<div class="panel panel-success">
+			<div class="panel panel-teal4">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Attività</h4>
+			<h5 class="modal-title text-center" id="myModalLabel">Attività</h5>
 			</div>
 			<div class="panel-body">
 			<div class="form-horizontal">
@@ -262,9 +262,9 @@ require_once '../common/connect.php';
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
-			<div class="panel panel-success">
+			<div class="panel panel-teal4">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Registro Attività</h4>
+			<h5 class="modal-title text-center" id="myModalLabel">Registro Attività</h5>
 			</div>
 			<div class="panel-body">
 			<div class="form-horizontal">
@@ -318,9 +318,9 @@ require_once '../common/connect.php';
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
-			<div class="panel panel-success">
+			<div class="panel panel-teal4">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Rendiconto Attività</h4>
+				<h5 class="modal-title text-center" id="myModalLabel">Rendiconto Attività</h5>
 			</div>
 			<div class="panel-body">
 			<div class="form-horizontal">
@@ -357,9 +357,9 @@ require_once '../common/connect.php';
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
-			<div class="panel panel-success">
+			<div class="panel panel-teal4">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Sommario Attività</h4>
+				<h5 class="modal-title text-center" id="myModalLabel">Sommario Attività</h5>
 			</div>
             <div class="panel-body">
                 <div class="row"  style="margin-bottom:10px;">
@@ -391,9 +391,9 @@ require_once '../common/connect.php';
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
-			<div class="panel panel-success">
+			<div class="panel panel-teal4">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModal_clilLabel">Attività CLIL</h4>
+			<h5 class="modal-title text-center" id="myModal_clilLabel">Attività CLIL</h5>
 			</div>
 			<div class="panel-body">
 			<div class="form-horizontal">

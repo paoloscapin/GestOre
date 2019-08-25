@@ -19,7 +19,7 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente');
 ?>
-	<title>Bonus docente</title>
+	<title>Bonus Docente Selezione</title>
 </head>
 
 <body >
@@ -51,14 +51,14 @@ debug($query);
 $resultArray = dbGetAll($query);
 foreach($resultArray as $bonus_area) {
     $data .= '
-        <div class="panel panel-warning">
+        <div class="panel panel-lima4">
             <div class="panel-heading">
                 <div class="row">
                     <div class="col-md-4">
-                        <h4><span class="glyphicon glyphicon-list-alt"></span>&ensp;'.$bonus_area['codice'].' '.$bonus_area['descrizione'].'</h4>
+                        <span class="glyphicon glyphicon-list-alt"></span>&ensp;'.$bonus_area['codice'].' '.$bonus_area['descrizione'].'
                     </div>
                     <div class="col-md-4 text-center">
-                        <h5>Max '.$bonus_area['valore_massimo'].'</h5>
+                        Max '.$bonus_area['valore_massimo'].'
                     </div>
                     <div class="col-md-4 text-right">
                     </div>

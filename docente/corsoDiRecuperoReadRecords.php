@@ -63,20 +63,20 @@ if(mysqli_num_rows($result) > 0) {
 	foreach($resultArray as $row) {
 		++$counter;
 		$data .= '
-<div class="panel panel-info">
+<div class="panel panel-lightblue4">
 <div class="panel-heading container-fluid">
 <div class="row">
 	<div class="col-md-4">
-		<h4>'.$row['corso_di_recupero_codice'].': &emsp;'.date('d M', strtotime($row['lezione_corso_di_recupero_data'])).' &emsp; '.strstr($row['lezione_corso_di_recupero_orario'], '-', true).'</h4>
+		'.$row['corso_di_recupero_codice'].': &emsp;'.date('d M', strtotime($row['lezione_corso_di_recupero_data'])).' &emsp; '.strstr($row['lezione_corso_di_recupero_orario'], '-', true).'
 	</div>
 	<div class="col-md-4 text-center">';
 		if ($row['lezione_corso_di_recupero_firmato'] == false) {
 			$data .= '
-		<button type="button" class="btn btn-warning firmaBtnClass" onclick="firma(\''.$row['lezione_corso_di_recupero_id'].'\')"><span class="glyphicon glyphicon-warning-sign
+		<button type="button" class="btn btn-xs btn-warning firmaBtnClass" onclick="firma(\''.$row['lezione_corso_di_recupero_id'].'\')"><span class="glyphicon glyphicon-warning-sign
 "> Firma il Registro </button>';
 		} else {
 			$data .= '
-		<button type="button" class="btn btn-success"'.
+		<button type="button" class="btn btn-xs btn-success"'.
 // TODO: reinserire il disabled rimosso solo per comodita' nel test
 //			'disabled="true"'.
 // TODO togliere questa riga che toglie la firma
@@ -87,7 +87,7 @@ if(mysqli_num_rows($result) > 0) {
 		$data .= '
 	</div>
 	<div class="col-md-4 text-right">
-		<h4><a data-toggle="collapse" href="#collapse'.$counter.'"><span class="panelarrow glyphicon glyphicon-resize-small"></span></a></h4>
+		<a data-toggle="collapse" href="#collapse'.$counter.'"><span class="panelarrow glyphicon glyphicon-resize-small"></span></a>
 	</div>
 </div>
 </div>
@@ -172,7 +172,7 @@ $data .= '
 </div>
 </div>
 <div class="panel-footer text-center">
-<button onclick="lezioneCorsoDiRecuperoGetDetails('.$row['lezione_corso_di_recupero_id'].')" class="btn btn-info"';
+<button onclick="lezioneCorsoDiRecuperoGetDetails('.$row['lezione_corso_di_recupero_id'].')" class="btn btn-xs btn-info"';
 	if ($row['lezione_corso_di_recupero_firmato'] == false) {
 // TODO:			$data .= ' disabled';
 	}

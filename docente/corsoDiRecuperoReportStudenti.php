@@ -86,7 +86,7 @@ foreach($resultArray as $row_classe) {
         		<div class="col-md-4">
         		</div>
         		<div class="col-md-4 text-center">
-        			<h4>'.$classe.'</h4>
+        			'.$classe.'
         		</div>
         		<div class="col-md-4 text-right">
         		</div>

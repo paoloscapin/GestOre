@@ -8,7 +8,6 @@
  */
 
 require_once '../common/checkSession.php';
-require_once '../common/connect.php';
 
 $modificabile = $__config->getOre_previsioni_aperto();
 

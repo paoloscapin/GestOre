@@ -28,25 +28,25 @@ ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente'
 
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-primary">
+<div class="panel panel-lightblue4">
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-3">
-			<h4><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero</h4>
+			<span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero
 		</div>
 		<div class="col-md-2 text-center">
-			<a href="<?php echo $__application_base_path; ?>/docente/corsoDiRecuperoReportStudenti.php" class="btn btn-default btn-warning" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Risultati </a>
+			<a href="<?php echo $__application_base_path; ?>/docente/corsoDiRecuperoReportStudenti.php" class="btn btn-xs btn-default btn-warning" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Risultati </a>
 		</div>
 		<div class="col-md-2 text-center">
-			<a href="<?php echo $__application_base_path; echo ($__config->getVoti_recupero_novembre_aperto() ? '/docente/corsoDiRecuperoReportStudenti.php' : '/docente/corsoDiRecuperoVoti.php');?>" class="btn btn-default btn-success" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Voti </a>
+			<a href="<?php echo $__application_base_path; echo ($__config->getVoti_recupero_novembre_aperto() ? '/docente/corsoDiRecuperoReportStudenti.php' : '/docente/corsoDiRecuperoVoti.php');?>" class="btn btn-xs btn-default btn-success" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Voti </a>
 		</div>
 		<div class="col-md-2 text-center">
 			<label for="soloOggiCheckBox" class=""> Solo Corsi di Oggi </label>
-			<input type="checkbox" class="checkbox-inline pull-right" data-toggle="toggle" data-size="small" data-onstyle="success" id="soloOggiCheckBox" checked="checked" >
+			<input type="checkbox" class="checkbox-inline pull-right" data-toggle="toggle" data-size="mini" data-onstyle="success" id="soloOggiCheckBox" checked="checked" >
 		</div>
 		<div class="col-md-2 text-right">
 			<label for="soloFirmatiCheckBox" class=""> Mostra anche già Firmati </label>
-			<input type="checkbox" class="checkbox-inline pull-right" data-toggle="toggle" data-size="small" data-onstyle="warning" id="soloFirmatiCheckBox" >
+			<input type="checkbox" class="checkbox-inline pull-right" data-toggle="toggle" data-size="mini" data-onstyle="warning" id="soloFirmatiCheckBox" >
 		</div>
 	</div>
 </div>
@@ -68,9 +68,9 @@ ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente'
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
-			<div class="panel panel-info">
+			<div class="panel panel-lightblue4">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Aggiorna dati lezione</h4>
+			<h5 class="modal-title text-center" id="myModalLabel">Aggiorna dati lezione</h5>
 			</div>
 			<div class="panel-body">
                 <div class="form-group">

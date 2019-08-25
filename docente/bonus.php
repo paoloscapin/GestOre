@@ -19,7 +19,7 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente');
 ?>
-	<title>Bonus docente</title>
+	<title>Bonus Docente</title>
 </head>
 
 <body >
@@ -29,11 +29,11 @@ require_once '../common/connect.php';
 ?>
 
 <div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-success">
+<div class="panel panel-lima4">
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
-		<h4><span class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus</h4>
+			<span class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus
 		</div>
 		<div class="col-md-4 text-center">
 		</div>
@@ -41,7 +41,7 @@ require_once '../common/connect.php';
             <?php
             if ($__config->getBonus_adesione_aperto()) {
                 echo '
-				<button onclick="document.location.href=\'bonusSelection.php\'" class="btn btn-info"><span class="glyphicon glyphicon-cog"></span>&ensp;Adesioni</button>
+				<button onclick="document.location.href=\'bonusSelection.php\'" class="btn btn-xs btn-lima4"><span class="glyphicon glyphicon-cog"></span>&ensp;Adesioni</button>
                 ';
             }
    			?>
@@ -155,7 +155,7 @@ foreach($resultArray as $bonus) {
             <div class="modal-body">
 			<div class="panel panel-success">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Rendiconto Evidenze</h4>
+			<h5 class="modal-title text-center" id="myModalLabel">Rendiconto Evidenze</h5>
 			</div>
 			<div class="panel-body">
                 <div class="form-group">
