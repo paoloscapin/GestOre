@@ -12,7 +12,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Segreteria</title>
+	<title>GestOre admin</title>
 <?php
 require_once '../common/checkSession.php';
 require_once '../common/style.php';

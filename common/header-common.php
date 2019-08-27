@@ -8,5 +8,5 @@
  */
 
 // favicon ref
-echo '<link rel="icon" href="/GestOre/ore-32.png" />';
+echo '<link rel="icon" href="'.$__application_base_path.'/ore-32.png" />';
 ?>

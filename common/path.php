@@ -11,10 +11,35 @@
 define ( 'APPLICATION_NAME', 'GestOre' );
 
 $uriBasePath = $_SERVER['REQUEST_URI'];
+// echo 'uriBasePath=' . $uriBasePath . '</br>';
 $current_http_link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
+// echo 'current_http_link=' . $current_http_link . '</br>';
+
 $toSearch = '/' . APPLICATION_NAME;
-$__application_base_path = substr ( $uriBasePath, 0, strpos ( $uriBasePath, $toSearch ) + strlen ( $toSearch ) );
-$__application_common_path = $__application_base_path.'/common';
+
+// se non trova il nome dell'applicazione, e' installato sulla root
+$pos = strpos ( $uriBasePath, $toSearch );
+if ($pos === false) {
+    $__application_base_path = '';
+    $__application_common_path = '/common';
+} else {
+    $__application_base_path = substr ( $uriBasePath, 0, $pos  + strlen ( $toSearch ));
+    $__application_common_path = $__application_base_path.'/common';
+}
+
+// per gli include e' diverso, bisogna tornare indietro con ..
 $__common_include_path = '../common';
-$__http_base_link = substr ( $current_http_link, 0, strpos ( $current_http_link, $toSearch ) + strlen ( $toSearch ) );
+
+// cerchiamo il base link
+// se non trova il nome dell'applicazione, e' installato sulla root
+$posLink = strpos ( $current_http_link, $toSearch );
+if ($posLink === false) {
+    $__http_base_link = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off' ? 'https' : 'http' . '://' . $_SERVER['SERVER_NAME'];
+} else {
+    $__http_base_link = substr ( $current_http_link, 0, $posLink  + strlen ( $toSearch ));
+}
+
+// echo '__application_base_path=' . $__application_base_path . '</br>';
+// echo '__application_common_path=' . $__application_common_path . '</br>';
+// echo '__http_base_link=' . $__http_base_link . '</br>';
 ?>
