@@ -75,7 +75,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalLabel">Nuovo docente</h4>
+                <h5 class="modal-title" id="myModalLabel">Nuovo docente</h5>
             </div>
             <div class="modal-body">
 
@@ -125,7 +125,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalLabel">Aggiorna</h4>
+                <h5 class="modal-title" id="myModalLabel">Aggiorna</h5>
             </div>
             <div class="modal-body">
 
@@ -179,7 +179,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 			<div class="panel panel-danger">
 			<div class="panel-heading">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalProfiloLabel">Aggiorna Profilo</h4>
+                <h5 class="modal-title" id="myModalProfiloLabel">Aggiorna Profilo</h5>
             </div>
             <div class="panel-body">
 			<div class="form-horizontal">

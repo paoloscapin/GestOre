@@ -408,7 +408,7 @@ echo $data;
 			<div class="panel panel-info">
 			<div class="panel-heading">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalPrevisteTitleLabel">Attività Previste</h4>
+                <h5 class="modal-title" id="myModalPrevisteTitleLabel">Attività Previste</h4>
             </div>
             <div class="panel-body">
 			    <div class="row">
@@ -446,11 +446,11 @@ echo $data;
 			<div class="panel panel-success">
 			<div class="panel-heading">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalFatteTitleLabel">Attività Fatte</h4>
+                <h5 class="modal-title" id="myModalFatteTitleLabel">Attività Fatte</h5>
             </div>
             <div class="panel-body">
 			    <div class="row">
-			        <div class="col-md-12 text-center"><h4>Sommario</h4></div>
+			        <div class="col-md-12 text-center"><h5>Sommario</h5></div>
 			    </div>
 			    <div class="row">
 			        <div class="col-md-12">
@@ -458,7 +458,7 @@ echo $data;
 			        </div>
 			    </div>
 			    <div class="row">
-			        <div class="col-md-12 text-center"><h4>Dettaglio</h4></div>
+			        <div class="col-md-12 text-center"><h5>Dettaglio</h5></div>
 			    </div>
 			    <div class="row">
 			        <div class="col-md-12">
@@ -467,7 +467,7 @@ echo $data;
 			    </div>
 
 			    <div class="row">
-			        <div class="col-md-12 text-center"><h4>Sommario Clil</h4></div>
+			        <div class="col-md-12 text-center"><h5>Sommario Clil</h5></div>
 			    </div>
 			    <div class="row">
 			        <div class="col-md-12">
@@ -475,7 +475,7 @@ echo $data;
 			        </div>
 			    </div>
 			    <div class="row">
-			        <div class="col-md-12 text-center"><h4>Dettaglio Clil</h4></div>
+			        <div class="col-md-12 text-center"><h5>Dettaglio Clil</h5></div>
 			    </div>
 			    <div class="row">
 			        <div class="col-md-12">
@@ -484,7 +484,7 @@ echo $data;
 			    </div>
 
 			    <div class="row">
-			        <div class="col-md-12 text-center"><h4>Attribuite</h4></div>
+			        <div class="col-md-12 text-center"><h5>Attribuite</h5></div>
 			    </div>
 			    <div class="row">
 			        <div class="col-md-12">
@@ -493,7 +493,7 @@ echo $data;
 			    </div>
 
 			    <div class="row">
-			        <div class="col-md-12 text-center"><h4>Viaggi</h4></div>
+			        <div class="col-md-12 text-center"><h5>Viaggi</h5></div>
 			    </div>
 			    <div class="row">
 			        <div class="col-md-12">
@@ -518,7 +518,7 @@ echo $data;
             <div class="modal-body">
 			<div class="panel panel-success">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Registro Attività</h4>
+				<h5 class="modal-title" id="myModalLabel">Registro Attività</h5>
 			</div>
 			<div class="panel-body">
 			<div class="form-horizontal">
@@ -573,7 +573,7 @@ echo $data;
             <div class="modal-body">
 			<div class="panel panel-success">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Rendiconto Evidenze</h4>
+				<h5 class="modal-title" id="myModalLabel">Rendiconto Evidenze</h5>
 			</div>
 			<div class="panel-body">
                 <div class="form-group">

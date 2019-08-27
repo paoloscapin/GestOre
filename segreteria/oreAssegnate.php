@@ -170,7 +170,7 @@ foreach($resultArray as $row) {
             <div class="modal-body">
 			<div class="panel panel-warning">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Nuovo Assegnamento</h4>
+				<h5 class="modal-title" id="myModalLabel">Nuovo Assegnamento</h5>
 			</div>
 			<div class="panel-body">
 			<form class="form-horizontal">

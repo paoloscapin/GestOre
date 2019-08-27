@@ -364,11 +364,11 @@ ORDER BY
 			<div class="panel panel-info">
 			<div class="panel-heading">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalPrevisteTitleLabel">Attività Previste</h4>
+                <h5 class="modal-title" id="myModalPrevisteTitleLabel">Attività Previste</h5>
             </div>
             <div class="panel-body">
 			    <div class="row">
-			        <div class="col-md-12 text-center"><h4>Sommario</h4></div>
+			        <div class="col-md-12 text-center"><h5>Sommario</h5></div>
 			    </div>
 			    <div class="row">
 			        <div class="col-md-12">
@@ -376,7 +376,7 @@ ORDER BY
 			        </div>
 			    </div>
 			    <div class="row">
-			        <div class="col-md-12 text-center"><h4>Dettaglio</h4></div>
+			        <div class="col-md-12 text-center"><h5>Dettaglio</h5></div>
 			    </div>
 			    <div class="row">
 			        <div class="col-md-12">
@@ -402,11 +402,11 @@ ORDER BY
 			<div class="panel panel-success">
 			<div class="panel-heading">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalFatteTitleLabel">Attività Fatte</h4>
+                <h5 class="modal-title" id="myModalFatteTitleLabel">Attività Fatte</h5>
             </div>
             <div class="panel-body">
 			    <div class="row">
-			        <div class="col-md-12 text-center"><h4>Sommario</h4></div>
+			        <div class="col-md-12 text-center"><h5>Sommario</h5></div>
 			    </div>
 			    <div class="row">
 			        <div class="col-md-12">
@@ -414,7 +414,7 @@ ORDER BY
 			        </div>
 			    </div>
 			    <div class="row">
-			        <div class="col-md-12 text-center"><h4>Dettaglio</h4></div>
+			        <div class="col-md-12 text-center"><h5>Dettaglio</h5></div>
 			    </div>
 			    <div class="row">
 			        <div class="col-md-12">
@@ -439,7 +439,7 @@ ORDER BY
             <div class="modal-body">
 			<div class="panel panel-success">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Registro Attività</h4>
+				<h5 class="modal-title" id="myModalLabel">Registro Attività</h5>
 			</div>
 			<div class="panel-body">
 			<div class="form-horizontal">

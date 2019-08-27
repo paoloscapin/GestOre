@@ -214,7 +214,7 @@ echo $data;
             <div class="modal-body">
 			<div class="panel panel-success">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Rendiconto Evidenze</h4>
+				<h5 class="modal-title" id="myModalLabel">Rendiconto Evidenze</h5>
 			</div>
 			<div class="panel-body">
                 <div class="form-group">

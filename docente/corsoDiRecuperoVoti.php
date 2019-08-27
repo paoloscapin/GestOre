@@ -278,7 +278,7 @@ if(mysqli_num_rows($result) > 0) {
             <div class="modal-body">
 			<div class="panel panel-danger">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Docente</h4>
+				<h5 class="modal-title" id="myModalLabel">Docente</h5>
 			</div>
 			<div class="panel-body">
 			<form class="form-horizontal">
