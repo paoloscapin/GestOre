@@ -39,7 +39,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-4">
-			<h4><span class="glyphicon glyphicon-education"></span>&emsp;Gestione Docenti</h4>
+			<span class="glyphicon glyphicon-education"></span>&emsp;Gestione Docenti
 		</div>
 	</div>
 </div>
@@ -48,7 +48,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
         <div class="col-md-6">
             <div class="pull-right">
 				<label class="checkbox-inline">
-					<input type="checkbox" checked data-toggle="toggle"  data-onstyle="primary" id="testCheckBox" >Solo Attivi
+					<input type="checkbox" checked data-toggle="toggle" data-size="small" data-onstyle="primary" id="testCheckBox" >Solo Attivi
 				</label>
             </div>
         </div>

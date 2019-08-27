@@ -37,7 +37,7 @@ require_once '../common/connect.php';
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-4">
-			<h4><span class="glyphicon glyphicon-picture"></span>&emsp;Viaggi e Uscite</h4>
+			<span class="glyphicon glyphicon-picture"></span>&emsp;Viaggi e Uscite
 		</div>
 	</div>
 </div>
@@ -46,7 +46,7 @@ require_once '../common/connect.php';
         <div class="col-md-6">
             <div class="pull-right">
 				<label class="checkbox-inline">
-					<input type="checkbox" checked data-toggle="toggle"  data-onstyle="primary" id="ancheChiusiCheckBox" >Anche Chiusi
+					<input type="checkbox" checked data-toggle="toggle" data-size="small" data-onstyle="primary" id="ancheChiusiCheckBox" >Anche Chiusi
 				</label>
             </div>
         </div>
@@ -94,7 +94,7 @@ if(mysqli_num_rows($result) > 0) {
             <div class="modal-body">
 			<div class="panel panel-danger">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Nuovo Incarico</h4>
+				<h5 class="modal-title" id="myModalLabel">Nuovo Incarico</h5>
 			</div>
 			<div class="panel-body">
 			<form class="form-horizontal">
@@ -177,7 +177,7 @@ if(mysqli_num_rows($result) > 0) {
             <div class="modal-body">
 			<div class="panel panel-danger">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="updateMyModalLabel">Aggiorna Incarico</h4>
+				<h5 class="modal-title" id="updateMyModalLabel">Aggiorna Incarico</h5>
 			</div>
 			<div class="panel-body">
 			<form class="form-horizontal">
@@ -271,7 +271,7 @@ if(mysqli_num_rows($result) > 0) {
             <div class="modal-body">
 			<div class="panel panel-info">
 			<div class="panel-heading">
-				<h4 class="modal-title" id="myModalLabel">Rimborso spese viaggio</h4>
+				<h5 class="modal-title" id="myModalLabel">Rimborso spese viaggio</h5>
 			</div>
 			<div class="panel-body">
 			<form class="form-horizontal">

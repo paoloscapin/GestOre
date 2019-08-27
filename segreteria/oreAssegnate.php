@@ -68,10 +68,10 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 				<div class="col-md-4">
 				</div>
 				<div class="col-md-4 text-center">
-					<h4>'.$nome.'</h4>
+					<strong>'.$nome.'</strong>
 				</div>
 				<div class="col-md-4 text-right">
-					<button onclick="addAttivita('.$tipoAttivitaId.',\''.$nome.'\','.$ore.','.$ore_max.')" class="btn btn-info"><span class="glyphicon glyphicon-plus"></span></button>
+					<button onclick="addAttivita('.$tipoAttivitaId.',\''.$nome.'\','.$ore.','.$ore_max.')" class="btn btn-xs btn-info"><span class="glyphicon glyphicon-plus"></span></button>
 				</div>
 			</div>
 		</div>

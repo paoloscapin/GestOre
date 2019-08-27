@@ -40,7 +40,7 @@ require_once '../common/header-segreteria.php';
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-4">
-			<h4><span class="glyphicon glyphicon-education"></span>&emsp;Sostituzioni</h4>
+			<span class="glyphicon glyphicon-education"></span>&emsp;Sostituzioni
 		</div>
 	</div>
 </div>
