@@ -106,7 +106,7 @@ $data .='
 }
 else {
 	// records now found
-	$data .= '<tr><td colspan="6">Records not found!</td></tr>';
+	$data .= '<tr><td colspan="8">Nessun viaggio presente</td></tr>';
 }
 
 $data .= '</table></div>';
