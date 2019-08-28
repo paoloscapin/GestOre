@@ -10,7 +10,6 @@
 require_once '../common/checkSession.php';
 
 if(isset($_POST['id']) && isset($_POST['id']) != "") {
-	// get materia ID
 	$id = $_POST['id'];
 
 	$query = "SELECT * FROM materia WHERE id = '$id'";
