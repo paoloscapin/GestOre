@@ -31,6 +31,7 @@ function dblastId() {
 function dbExec($query) {
 	global $__con;
 
+	debug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__con, $query)) {
 		error('errore in esecuzione query. query='.$query);
@@ -42,6 +43,7 @@ function dbExec($query) {
 function dbGetFirst($query) {
 	global $__con;
 
+	debug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__con, $query)) {
 		error('errore in esecuzione query. query='.$query);
@@ -62,6 +64,7 @@ function dbGetFirst($query) {
 function dbGetAll($query) {
 	global $__con;
 
+	debug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__con, $query)) {
 		error('errore in esecuzione query. query='.$query);
@@ -74,6 +77,7 @@ function dbGetAll($query) {
 function dbGetValue($query) {
 	global $__con;
 
+	debug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__con, $query)) {
 		error('errore in esecuzione query. query='.$query);
