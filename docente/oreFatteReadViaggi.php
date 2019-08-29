@@ -65,7 +65,7 @@ if(mysqli_num_rows($result) > 0) {
     }
 } else {
     // records now found
-    $data .= '<tr><td colspan="5">Records not found!</td></tr>';
+    $data .= '<tr><td colspan="5">Nessun viaggio</td></tr>';
 }
 
 $data .= '</tbody></table></div>';
