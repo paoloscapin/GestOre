@@ -24,7 +24,6 @@ if(isset($_POST['protocollo'])) {
 	$ora_rientro = $_POST['ora_rientro'];
 
 	$query = "INSERT INTO viaggio(protocollo, tipo_viaggio, data_nomina, data_partenza, data_rientro, docente_id, destinazione, classe, note, ora_partenza, ora_rientro, anno_scolastico_id) VALUES('$protocollo', '$tipo_viaggio', '$data_nomina', '$data_partenza', '$data_rientro', '$docente_incaricato_id', '$destinazione', '$classe', '$note', '$ora_partenza', '$ora_rientro', '$__anno_scolastico_corrente_id')";
-	debug($query);
 	dbExec($query);
 }
 ?>

@@ -17,7 +17,6 @@ if(isset($_POST)) {
 	// se adesione id non viene passato significa che devo inserire una nuova adesione con quel bonus id
 	if ($adesione_id < 0) {
 	    $query = "INSERT INTO `bonus_docente`(`approvato`, `docente_id`, `anno_scolastico_id`, `bonus_id`) VALUES (null, $__docente_id, $__anno_scolastico_corrente_id, $bonus_id);";
-	    debug($query);
 	    dbExec($query);
 
 	    //  devo potere tornare l'id che abbiamo generato
@@ -25,7 +24,6 @@ if(isset($_POST)) {
 	} else {
 	    // altrimenti devo cancellarla
 	    $query = "DELETE FROM `bonus_docente` WHERE id = $adesione_id;";
-	    debug($query);
 	    dbExec($query);
 	}
 }

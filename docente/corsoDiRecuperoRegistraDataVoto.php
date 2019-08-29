@@ -16,7 +16,6 @@ if(isset($_POST)) {
 	$value = $_POST['value'];
 
 	$query = "UPDATE studente_per_corso_di_recupero SET $dbFieldName = '$value' WHERE id = '$studente_per_corso_di_recupero_id';";
-	debug($query);
 	dbExec($query);
 }
 ?>

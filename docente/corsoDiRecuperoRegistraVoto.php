@@ -20,7 +20,6 @@ if(isset($_POST)) {
 	}
 
 	$query = "UPDATE studente_per_corso_di_recupero SET $dbFieldName = $voto, passato = $passato WHERE id = '$studente_per_corso_di_recupero_id';";
-	debug($query);
 	dbExec($query);
 }
 ?>

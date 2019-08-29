@@ -131,7 +131,6 @@ foreach($resultArray as $row_classe) {
 						studente_per_corso_di_recupero.nome ASC
 					;
 			";
-		debug($query);
 		$resultArray2 = dbGetAll($query);
 		if (count($resultArray2) > 0) {
 		    $data .= '

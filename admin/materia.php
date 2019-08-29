@@ -42,7 +42,7 @@ ruoloRichiesto('dirigente');
 		</div>
         <div class="col-md-6">
             <div class="pull-right">
-				<button class="btn btn-yellow4" data-toggle="modal" data-target="#add_record_modal"><span class="glyphicon glyphicon-plus"></span></button>
+				<button class="btn btn-xs btn-yellow4" data-toggle="modal" data-target="#add_record_modal"><span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>
 	</div>

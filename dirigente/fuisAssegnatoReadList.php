@@ -35,7 +35,6 @@ if(isset($_POST)) {
 					docente.nome ASC
 				;
 		";
-	debug($query);
 	$resultArray = dbGetAll($query);
 	echo json_encode($resultArray);
 }

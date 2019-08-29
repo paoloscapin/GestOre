@@ -20,19 +20,16 @@ if(isset($_POST)) {
     
     if ($importo_diaria > 0) {
         $query = "INSERT INTO fuis_viaggio_diaria(importo, liquidato, data_richiesta_liquidazione, viaggio_id) VALUES('$importo_diaria', true, '$data', '$viaggio_id')";
-        debug($query);
         dbExec($query);
     }
     
     if ($numero_ore > 0) {
         $query = "INSERT INTO viaggio_ore_recuperate(ore, viaggio_id) VALUES('$numero_ore', '$viaggio_id')";
-        debug($query);
         dbExec($query);
     }
 
     // chiude il viaggio
     $query = "UPDATE viaggio SET stato = 'chiuso' WHERE id = '$viaggio_id'";
-    debug($query);
     dbExec($query);
 }
 ?>

@@ -25,24 +25,17 @@ if(isset($_POST)) {
 	    $tabella_ore_fatte_attivita_commento = 'ore_fatte_attivita_clil_commento';
 	    $riferimento_id = 'ore_fatte_attivita_clil_id';
 	}
-	debug("attivita_id=" . $attivita_id);
-	debug("contestata=" . $contestata);
-	debug("commento=" . $commento);
-	debug("clilmode=" . $clilmode);
+	debug("attivita_id=" . $attivita_id. " contestata=" . $contestata . " commento=" . $commento . " clilmode=" . $clilmode);
 	$query = '';
 	if ($contestata === "true") {
 	    $query = "UPDATE $tabella_ore_fatte_attivita SET contestata = true WHERE id = $attivita_id";
-	    debug($query);
 	    dbExec($query);
 	    $query = "REPLACE INTO $tabella_ore_fatte_attivita_commento (`commento`, $riferimento_id) VALUES ('$commento', $attivita_id);";
-	    debug($query);
 	    dbExec($query);
 	} else {
 	    $query = "UPDATE $tabella_ore_fatte_attivita SET contestata = false WHERE id = $attivita_id";
-	    debug($query);
 	    dbExec($query);
 	    $query = "DELETE FROM $tabella_ore_fatte_attivita_commento WHERE $riferimento_id = $attivita_id;";
-	    debug($query);
 	    dbExec($query);
 	}
 	require_once '../docente/oreDovuteAggiornaDocente.php';

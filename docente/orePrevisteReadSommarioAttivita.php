@@ -26,7 +26,6 @@ $data .= '<div class="table-wrapper"><table class="table table-bordered table-st
 						</tr></thead><tbody>';
 
 $query = "	SELECT * FROM ore_previste_tipo_attivita WHERE ore_previste_tipo_attivita.inserito_da_docente = true";
-debug($query);
 $resultArray = dbGetAll($query);
 foreach($resultArray as $ore_previste_tipo_attivita) {
     $ore_previste_tipo_attivita_id = $ore_previste_tipo_attivita['id'];

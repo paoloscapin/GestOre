@@ -131,11 +131,9 @@ AND
 	debug('fuis_funzionale_approvato='.$fuis_funzionale_approvato);
 	/*
 	if ($fuis_corrente != null && $fuis_corrente['funzionale_approvato'] != null) {
-	    debug('setting');
 	    $clil_funzionale_approvato = $fuis_corrente['clil_funzionale_approvato'];
 	    $clil_con_studenti_approvato = $fuis_corrente['clil_con_studenti_approvato'];
 	    $fuis_funzionale_approvato = $fuis_corrente['funzionale_approvato'];
-	    debug('cambio fuis_funzionale_approvato='.$fuis_funzionale_approvato);
 	    $fuis_con_studenti_approvato = $fuis_corrente['con_studenti_approvato'];
 	    $fuis_sostituzioni_approvato = $fuis_corrente['sostituzioni_approvato'];
 	}
@@ -198,7 +196,6 @@ AND
             `clil_totale_approvato`=$clil_totale_approvato,
             `totale_da_pagare`=$totale_da_pagare
             ;";
-	debug($query);
 	dbExec($query);
 }
 ?>

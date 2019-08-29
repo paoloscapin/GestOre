@@ -21,7 +21,6 @@ if(isset($_POST)) {
 	} else {
 		$query = "INSERT INTO registro_attivita (descrizione, studenti, ore_fatte_attivita_id) VALUES('$descrizione', '$studenti', '$attivita_id')";
 	}
-	debug($query);
 	dbExec($query);
 
 	dbExec("UPDATE ore_fatte_attivita SET ultima_modifica = CURRENT_TIMESTAMP WHERE id = $attivita_id;");

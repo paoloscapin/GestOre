@@ -46,7 +46,6 @@ if( ! $ancheChiusi) {
 	// $query .= "AND NOT viaggio.stato = chiuso ";
 }
 $query .= "order by viaggio_data_partenza DESC, docente_cognome ASC,docente_nome ASC";
-debug($query);
 if (!$result = mysqli_query($con, $query)) {
 	exit(mysqli_error($con));
 }

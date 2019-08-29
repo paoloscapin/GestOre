@@ -46,7 +46,6 @@ $query = "	SELECT
 					ore_previste_tipo_attivita.categoria, ore_previste_tipo_attivita.nome ASC
 				"
 				;
-debug($query);
 if (!$result = mysqli_query($con, $query)) {
 	exit(mysqli_error($con));
 }

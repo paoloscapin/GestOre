@@ -23,8 +23,6 @@ if(isset($_POST)) {
 	} else {
 		$query = "INSERT INTO ore_fatte_attivita_clil (dettaglio, ore, ora_inizio, data, con_studenti, docente_id, anno_scolastico_id) VALUES('$dettaglio', '$ore', '$ora_inizio', '$data', $con_studenti, '$__docente_id', '$__anno_scolastico_corrente_id')";
 	}
-	debug($query);
-
 	dbExec($query);
 
 	require_once '../docente/oreDovuteAggiornaDocente.php';

@@ -18,7 +18,6 @@ $query = "	SELECT
 $query .= "WHERE docente.attivo = true ";
 $query .= "order by cognome,nome";
 
-debug($query);
 $resultArray = dbGetAll($query);
 foreach($resultArray as $docente) {
 	$docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];

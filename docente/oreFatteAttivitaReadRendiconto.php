@@ -28,10 +28,7 @@ if(isset($_POST['attivita_id']) && isset($_POST['attivita_id']) != "") {
 				LEFT JOIN rendiconto_attivita
 				ON rendiconto_attivita.ore_fatte_attivita_id = ore_fatte_attivita.id
 				WHERE ore_fatte_attivita.id = '$attivita_id'";
-	debug($query);
-
 	$response = dbGetFirst($query);
-
 	echo json_encode($response);
 }
 else {

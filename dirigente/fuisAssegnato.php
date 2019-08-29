@@ -97,7 +97,6 @@ foreach($resultArrayFuisAssegnatoTipo as $fuisAssegnatoTipo) {
 					docente.nome ASC
 				;
 		";
-	debug($query);
 	
 	$resultArrayFuisAssegnato = dbGetAll($query);
 	$classname = "";

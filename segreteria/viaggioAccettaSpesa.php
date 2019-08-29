@@ -16,7 +16,6 @@ if(isset($_POST)) {
 
 	// Update viaggio details
 	$query = "UPDATE spesa_viaggio SET validato = true WHERE id = '$spesa_viaggio_id';";
-	debug($query);
 	if (!$result = mysqli_query($con, $query)) {
 		exit(mysqli_error($con));
 	}

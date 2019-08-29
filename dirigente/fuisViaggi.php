@@ -54,7 +54,6 @@ $query = "	SELECT SUM(importo)
 				ON fuis_viaggio_diaria.viaggio_id = viaggio.id
 				WHERE viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id
             ";
-debug($query);
 $totale = dbGetValue($query);
 echo $totale;
 ?>

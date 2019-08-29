@@ -25,7 +25,6 @@ if(isset($_GET)) {
     // get values
     $docente_id = $_GET['id'];
     $query = "SELECT * FROM docente WHERE docente.id = $docente_id; ";
-    debug($query);
     $docente = dbGetFirst($query);
     $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
     // ultimo controllo fuis
@@ -258,7 +257,6 @@ AND
 AND
 	ore_fatte.anno_scolastico_id = $__anno_scolastico_corrente_id
 ";
-debug($query);
 $ore = dbGetFirst($query);
 // aggiornamento non genera extra
 if ($ore['ore_fatte_ore_40_aggiornamento'] >  $ore['ore_dovute_ore_40_aggiornamento']) {

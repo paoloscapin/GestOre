@@ -59,7 +59,6 @@ $query = "	SELECT
 					ore_fatte_attivita_clil.ora_inizio
 				"
 				;
-debug($query);
 if (!$result = mysqli_query($con, $query)) {
 	exit(mysqli_error($con));
 }

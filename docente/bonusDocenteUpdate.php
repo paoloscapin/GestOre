@@ -14,7 +14,6 @@ if(isset($_POST)) {
 	$rendiconto = mysqli_real_escape_string($con, $_POST['rendiconto']);
 
 	$query = "UPDATE bonus_docente SET rendiconto_evidenze = '$rendiconto' WHERE id = '$bonus_docente_id'";
-	debug($query);
 	dbExec($query);
 }
 

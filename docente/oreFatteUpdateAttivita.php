@@ -23,8 +23,6 @@ if(isset($_POST)) {
 	} else {
 		$query = "INSERT INTO ore_fatte_attivita (dettaglio, ore, ora_inizio, data, ore_previste_tipo_attivita_id, docente_id, anno_scolastico_id) VALUES('$dettaglio', '$ore', '$ora_inizio', '$data', '$tipo_attivita_id', '$__docente_id', '$__anno_scolastico_corrente_id')";
 	}
-	debug($query);
-
 	dbExec($query);
 
 	require_once '../docente/oreDovuteAggiornaDocente.php';

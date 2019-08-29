@@ -51,7 +51,6 @@ $query = "	SELECT
 					docente.nome ASC
 				"
 				;
-				debug($query);
 				$resultArray = dbGetAll($query);
 				foreach($resultArray as $diaria) {
 				    $id = $diaria['fuis_viaggio_diaria_id'];

@@ -21,7 +21,6 @@ class Config {
 	public function load() {
 		require_once __DIR__ . '/connect.php';
 		$query = "SELECT * FROM `$this->tableName`";
-		debug($query);
 		$item = dbGetFirst($query);
 		$this->id = $item['id'];
 		$this->voti_recupero_settembre_aperto = $item['voti_recupero_settembre_aperto'];
@@ -68,7 +67,6 @@ class Config {
                     ";
 
 		}
-		debug($query);
 		dbExec($query);
 	}
 

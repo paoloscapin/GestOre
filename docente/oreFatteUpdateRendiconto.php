@@ -20,8 +20,6 @@ if(isset($_POST)) {
 	} else {
 		$query = "INSERT INTO rendiconto_attivita (rendiconto, rendicontato, ore_fatte_attivita_id) VALUES('$rendiconto', true, $attivita_id)";
 	}
-	debug($query);
-
 	dbExec($query);
 }
 

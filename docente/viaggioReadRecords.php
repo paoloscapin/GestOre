@@ -38,7 +38,6 @@ $query = "	SELECT
 				viaggio.data_partenza DESC
 			"
 			;
-debug($query);
 if (!$result = mysqli_query($con, $query)) {
 	exit(mysqli_error($con));
 }
@@ -180,7 +179,6 @@ $data .= '
 						spesa_viaggio.data ASC
 					"
 					;
-debug($query);
 		if (!$result = mysqli_query($con, $query)) {
 			exit(mysqli_error($con));
 		}

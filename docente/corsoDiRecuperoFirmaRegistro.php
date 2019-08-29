@@ -20,7 +20,6 @@ if(isset($_POST)) {
 
 	// Update details
 	$query = "UPDATE lezione_corso_di_recupero SET firmato = NOT FIRMATO WHERE id = '$lezione_corso_di_recupero_id'";
-	debug($query);
 	dbExec($query);
 }
 ?>

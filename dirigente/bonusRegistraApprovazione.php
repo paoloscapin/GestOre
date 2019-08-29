@@ -17,7 +17,6 @@ if(isset($_POST)) {
 
 	// Update details
 	$query = "UPDATE bonus_docente SET approvato = $approvato, ultimo_controllo = now() WHERE id = '$bonus_docente_id'";
-    debug($query);
     dbExec($query);
 }
 ?>

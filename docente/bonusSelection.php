@@ -36,7 +36,6 @@ require_once '../common/connect.php';
 $bonus_id_array = [];
 $adesione_id_array = [];
 $query = "SELECT id, bonus_id from bonus_docente WHERE bonus_docente.docente_id = $__docente_id AND bonus_docente.anno_scolastico_id = $__anno_scolastico_corrente_id";
-debug($query);
 $res0 = dbGetAll($query);
 foreach($res0 as $bonus_docente) {
     $bonus_id_array[] = $bonus_docente['bonus_id'];
@@ -47,7 +46,6 @@ foreach($res0 as $bonus_docente) {
 // scandisco la lista delle aree e di ciascuna faccio un panel
 $data = '';
 $query = "SELECT * from bonus_area WHERE valido = true ORDER BY codice;";
-debug($query);
 $resultArray = dbGetAll($query);
 foreach($resultArray as $bonus_area) {
     $data .= '
@@ -69,7 +67,6 @@ foreach($resultArray as $bonus_area) {
     
     // scandisco la lista degli indicatori e per ciascuno inizio una table
     $query = 'SELECT * from bonus_indicatore WHERE valido = true AND bonus_area_id = '.$bonus_area['id'].' ORDER BY codice;';
-    debug($query);
     $res2 = dbGetAll($query);
     foreach($res2 as $bonus_indicatore) {
         $data .= '
@@ -96,7 +93,6 @@ foreach($resultArray as $bonus_area) {
         
         // ciascun bonus di questo indicatore va in una riga table
         $query = 'SELECT * from bonus WHERE valido = true AND bonus_indicatore_id = '.$bonus_indicatore['id'].' ORDER BY codice;';
-        debug($query);
         $res3 = dbGetAll($query);
         foreach($res3 as $bonus) {
             $bonus_id = $bonus['id'];

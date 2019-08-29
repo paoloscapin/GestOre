@@ -25,7 +25,6 @@ if(isset($_GET)) {
     // get values
     $docente_id = $_GET['id'];
     $query = "SELECT * FROM docente WHERE docente.id = $docente_id; ";
-    debug($query);
     $docente = dbGetFirst($query);
     $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
 }
@@ -138,7 +137,6 @@ if ($__config->getBonus_rendiconto_aperto() || $__config->getBonus_adesione_aper
     ORDER BY
     	bonus.codice;
     ";
-    debug($query);
     $resultArray2 = dbGetAll($query);
     foreach($resultArray2 as $bonus) {
         $marker = ($bonus['bonus_docente_ultima_modifica'] > $bonus['bonus_docente_ultimo_controllo']) ? '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow">.'. '' .'</span>': '';

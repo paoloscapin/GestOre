@@ -22,8 +22,6 @@ if(isset($_POST)) {
 	} else {
 	    $query = "INSERT INTO fuis_assegnato (importo, docente_id, fuis_assegnato_tipo_id, anno_scolastico_id) VALUES('$importo', '$docente_id', '$fuis_assegnato_tipo_id', '$__anno_scolastico_corrente_id')";
 	}
-	debug($query);
-	
 	dbExec($query);
 }
 ?>

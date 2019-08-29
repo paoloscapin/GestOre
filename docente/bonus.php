@@ -110,7 +110,6 @@ AND
 ORDER BY
 	bonus.codice;
 ";
-debug($query);
 $resultArray = dbGetAll($query);
 foreach($resultArray as $bonus) {
     $data = '

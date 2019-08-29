@@ -21,8 +21,6 @@ if(isset($_POST)) {
     $query = "UPDATE fuis_viaggio_diaria SET importo = '$importo', liquidato = true, data_richiesta_liquidazione = '$data' WHERE id = '$fuis_viaggio_diaria_id'";
 
     info('Diaria docente='.$docenteCognomeNome.' destinazione='.$destinazione.' data='.$dataPartenza);
-    debug($query);
-    
     dbExec($query);
 }
 ?>

@@ -80,7 +80,6 @@ function getHtmlNumAndFatteVisual($value, $total) {
 }
 
 $query = "SELECT * FROM docente WHERE docente.attivo = true ORDER BY cognome,nome; ";
-debug($query);
 $resultArray = dbGetAll($query);
 foreach($resultArray as $docente) {
     // disegna il pannello del docente
@@ -140,7 +139,6 @@ AND
 AND
 	ore_fatte.anno_scolastico_id = $__anno_scolastico_corrente_id
 ";
-    debug($query);
     $ore = dbGetFirst($query);
     // aggiornamento non genera extra
     if ($ore['ore_fatte_ore_40_aggiornamento'] >  $ore['ore_dovute_ore_40_aggiornamento']) {
@@ -154,7 +152,6 @@ AND
 	AND docente_id = ".$docente['id']."
     AND con_studenti = false
 	";
-    debug($query);
     $clil_funzionali=dbGetValue($query);
     
     $query = "
@@ -163,7 +160,6 @@ AND
 	AND docente_id = ".$docente['id']."
     AND con_studenti = true
 	";
-    debug($query);
     $clil_con_studenti=dbGetValue($query);
     
         $data .= '
@@ -301,7 +297,6 @@ AND
 ORDER BY
 	bonus.codice;
 ";
-        debug($query);
         $resultArray2 = dbGetAll($query);
         $richiesto = 0;
         $pendente = 0;
