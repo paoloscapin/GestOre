@@ -7,11 +7,9 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-if(isset($_POST)) {
-	require_once '../common/checkSession.php';
-	require_once '../common/connect.php';
+require_once '../common/checkSession.php';
 
-	// get values
+if(isset($_POST)) {
 	$lezione_corso_di_recupero_id = $_POST['lezione_corso_di_recupero_id'];
 	$argomento = mysqli_real_escape_string($con, $_POST['argomento']);
 	$argomentoChanged = $_POST['argomentoChanged'];
@@ -20,7 +18,6 @@ if(isset($_POST)) {
 	$studentiDaModificareIdArray = json_decode($_POST['studentiDaModificareIdList']);
 
 	if ($argomentoChanged || $noteChanged) {
-		// Update details
 		$query = "UPDATE lezione_corso_di_recupero SET ";
 		if ($argomentoChanged && $noteChanged) {
 			$query .= "argomento = '$argomento', note = '$note' ";
@@ -31,18 +28,15 @@ if(isset($_POST)) {
 		}
 		$query .= "WHERE id = '$lezione_corso_di_recupero_id'";
 
-		if (!$result = mysqli_query($con, $query)) {
-			exit(mysqli_error($con));
-		}
+		dbExec($query);
+		info("aggiornato lezione_corso_di_recupero id=$id argomento=$argomento note=$note");
 	}
-	// update student partecipa
+
+	// aggiorna i partecipanti
 	foreach($studentiDaModificareIdArray as $studente_partecipa_lezione_corso_di_recupero) {
 		$query = "UPDATE studente_partecipa_lezione_corso_di_recupero SET ha_partecipato = NOT ha_partecipato WHERE studente_partecipa_lezione_corso_di_recupero.id = $studente_partecipa_lezione_corso_di_recupero";
-		// UPDATE studente_partecipa_lezione_corso_di_recupero SET ha_partecipato = 1 - ha_partecipato
-
-		if (!$result = mysqli_query($con, $query)) {
-			exit(mysqli_error($con));
-		}
+		dbExec($query);
+		info("aggiornato studente_partecipa_lezione_corso_di_recupero studente_partecipa_lezione_corso_di_recupero=$studente_partecipa_lezione_corso_di_recupero");
 	}
 }
 ?>

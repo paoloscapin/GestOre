@@ -8,11 +8,11 @@
  */
 
 require_once '../common/checkSession.php';
-require_once '../common/connect.php';
 
 $soloNonFirmati = $_GET["soloNonFirmati"];
 $soloCorsiDiOggi = $_GET["soloCorsiDiOggi"];
 
+// se non sono un docente non sa cosa fare
 if ( empty($__docente_id) ) {
 	return;
 }
@@ -53,16 +53,12 @@ $query .= "
 			"
 			;
 
-if (!$result = mysqli_query($con, $query)) {
-	exit(mysqli_error($con));
-}
 $data = '';
-if(mysqli_num_rows($result) > 0) {
-	$resultArray = $result->fetch_all(MYSQLI_ASSOC);
-	$counter = 0;
-	foreach($resultArray as $row) {
-		++$counter;
-		$data .= '
+$counter = 0;
+
+foreach(dbGetAll($query) as $row) {
+	++$counter;
+	$data .= '
 <div class="panel panel-lightblue4">
 <div class="panel-heading container-fluid">
 <div class="row">
@@ -70,12 +66,12 @@ if(mysqli_num_rows($result) > 0) {
 		'.$row['corso_di_recupero_codice'].': &emsp;'.date('d M', strtotime($row['lezione_corso_di_recupero_data'])).' &emsp; '.strstr($row['lezione_corso_di_recupero_orario'], '-', true).'
 	</div>
 	<div class="col-md-4 text-center">';
-		if ($row['lezione_corso_di_recupero_firmato'] == false) {
-			$data .= '
+	if ($row['lezione_corso_di_recupero_firmato'] == false) {
+		$data .= '
 		<button type="button" class="btn btn-xs btn-warning firmaBtnClass" onclick="firma(\''.$row['lezione_corso_di_recupero_id'].'\')"><span class="glyphicon glyphicon-warning-sign
 "> Firma il Registro </button>';
-		} else {
-			$data .= '
+	} else {
+		$data .= '
 		<button type="button" class="btn btn-xs btn-success"'.
 // TODO: reinserire il disabled rimosso solo per comodita' nel test
 //			'disabled="true"'.
@@ -83,8 +79,8 @@ if(mysqli_num_rows($result) > 0) {
 'onclick="togliFirma(\''.$row['lezione_corso_di_recupero_id'].'\')"'.
 		'><span class="glyphicon glyphicon-check
 "> Firmato </button>';
-		}
-		$data .= '
+	}
+	$data .= '
 	</div>
 	<div class="col-md-4 text-right">
 		<a data-toggle="collapse" href="#collapse'.$counter.'"><span class="panelarrow glyphicon glyphicon-resize-small"></span></a>
@@ -94,7 +90,7 @@ if(mysqli_num_rows($result) > 0) {
 <div id="collapse'.$counter.'" class="panel-collapse collapse  collapse in">
 <div class="panel-body">
 ';
-		$data .= '
+	$data .= '
 <div class="col-md-8">
 	<form class="form-horizontal">
 		<div class="form-group">
@@ -125,7 +121,7 @@ if(mysqli_num_rows($result) > 0) {
 </div>
 <div class="col-md-4">
 ';
-$data .= '
+	$data .= '
 	<div class="table-wrapper"><table class="table table-bordered table-striped">
 					<tr>
 						<th>cognome</th>
@@ -134,39 +130,39 @@ $data .= '
 						<th>presente</th>
 					</tr>';
 
-		$query = "	SELECT
-						studente_partecipa_lezione_corso_di_recupero.id AS studente_partecipa_lezione_corso_di_recupero_id,
-						studente_partecipa_lezione_corso_di_recupero.ha_partecipato AS studente_partecipa_lezione_corso_di_recupero_ha_partecipato,
-						studente_per_corso_di_recupero.id AS studente_per_corso_di_recupero_id,
-						studente_per_corso_di_recupero.cognome AS studente_per_corso_di_recupero_cognome,
-						studente_per_corso_di_recupero.nome AS studente_per_corso_di_recupero_nome,
-						studente_per_corso_di_recupero.classe AS studente_per_corso_di_recupero_classe
-					FROM studente_partecipa_lezione_corso_di_recupero
-					INNER JOIN studente_per_corso_di_recupero studente_per_corso_di_recupero
-					ON studente_partecipa_lezione_corso_di_recupero.studente_per_corso_di_recupero_id = studente_per_corso_di_recupero.id
-					WHERE
-						studente_partecipa_lezione_corso_di_recupero.lezione_corso_di_recupero_id = ".$row['lezione_corso_di_recupero_id']."
-					"
-					;
-		if (!$result = mysqli_query($con, $query)) {
-			exit(mysqli_error($con));
+	$query = "	SELECT
+					studente_partecipa_lezione_corso_di_recupero.id AS studente_partecipa_lezione_corso_di_recupero_id,
+					studente_partecipa_lezione_corso_di_recupero.ha_partecipato AS studente_partecipa_lezione_corso_di_recupero_ha_partecipato,
+					studente_per_corso_di_recupero.id AS studente_per_corso_di_recupero_id,
+					studente_per_corso_di_recupero.cognome AS studente_per_corso_di_recupero_cognome,
+					studente_per_corso_di_recupero.nome AS studente_per_corso_di_recupero_nome,
+					studente_per_corso_di_recupero.classe AS studente_per_corso_di_recupero_classe
+				FROM studente_partecipa_lezione_corso_di_recupero
+				INNER JOIN studente_per_corso_di_recupero studente_per_corso_di_recupero
+				ON studente_partecipa_lezione_corso_di_recupero.studente_per_corso_di_recupero_id = studente_per_corso_di_recupero.id
+				WHERE
+					studente_partecipa_lezione_corso_di_recupero.lezione_corso_di_recupero_id = ".$row['lezione_corso_di_recupero_id']."
+				"
+				;
+	if (!$result = mysqli_query($con, $query)) {
+		exit(mysqli_error($con));
+	}
+	$partecipaArray = $result->fetch_all(MYSQLI_ASSOC);
+	foreach($partecipaArray as $partecipaRow) {
+		$data .= '
+			<tr>
+				<td>'.$partecipaRow['studente_per_corso_di_recupero_cognome'].'</td>
+				<td>'.$partecipaRow['studente_per_corso_di_recupero_nome'].'</td>
+				<td>'.$partecipaRow['studente_per_corso_di_recupero_classe'].'</td>
+			';
+		$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="attivo" ';
+		if ($partecipaRow['studente_partecipa_lezione_corso_di_recupero_ha_partecipato']) {
+			$data .= 'checked ';
 		}
-		$partecipaArray = $result->fetch_all(MYSQLI_ASSOC);
-		foreach($partecipaArray as $partecipaRow) {
-			$data .= '
-				<tr>
-					<td>'.$partecipaRow['studente_per_corso_di_recupero_cognome'].'</td>
-					<td>'.$partecipaRow['studente_per_corso_di_recupero_nome'].'</td>
-					<td>'.$partecipaRow['studente_per_corso_di_recupero_classe'].'</td>
-				';
-			$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="attivo" ';
-			if ($partecipaRow['studente_partecipa_lezione_corso_di_recupero_ha_partecipato']) {
-				$data .= 'checked ';
-			}
-			$data .= '></td>
-				</tr>
-				';
-		}
+		$data .= '></td>
+			</tr>
+			';
+	}
 
 	$data .= '</table></div>
 </div>
@@ -182,7 +178,6 @@ $data .= '
 </div>
 </div>
 ';
-	}
 }
 echo $data;
 ?>

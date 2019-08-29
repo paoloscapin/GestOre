@@ -38,15 +38,11 @@ function corsoDiRecuperoReadRecords() {
 }
 
 function firma(lezione_corso_di_recupero_id, aggiungi_ore = 2) {
-//	console.log('lezione_corso_di_recupero_id=' + lezione_corso_di_recupero_id);
 // registra la firma per questo id
-    // Update the details: use ajax to submit the request to the server
     $.post("corsoDiRecuperoFirmaRegistro.php", {
-            lezione_corso_di_recupero_id: lezione_corso_di_recupero_id,
-			aggiungi_ore: aggiungi_ore
+            lezione_corso_di_recupero_id: lezione_corso_di_recupero_id
         },
         function (data, status) {
-            // nothing to do
 			corsoDiRecuperoReadRecords();
         }
     );
@@ -57,18 +53,14 @@ function togliFirma(lezione_corso_di_recupero_id) {
 	firma(lezione_corso_di_recupero_id, -2);
 }
 
-// Get details for update
 function lezioneCorsoDiRecuperoGetDetails(id) {
-//	$('#summernote').summernote();
-	// Add record ID to the hidden field for future usage
 	$("#hidden_lezione_corso_di_recupero_id").val(id);
 	$.post("corsoDiRecuperoReadDetails.php", {
 			id: id
 		},
 		function (dati, status) {
-			// PARSE json data
 			var lezione = JSON.parse(dati);
-			// setting existing values to the modal popup fields
+			// lezione 0 contiene i valori comuni
 			$("#update_argomento").val(lezione[0].lezione_corso_di_recupero_argomento);
 			$("#update_argomento").prop('defaultValue', lezione[0].lezione_corso_di_recupero_argomento);
 			$("#update_note").val(lezione[0].lezione_corso_di_recupero_note);
@@ -77,6 +69,7 @@ function lezioneCorsoDiRecuperoGetDetails(id) {
 			// svuota il tbody della tabella studenti;
 			$('#update_studenti_table tbody').empty();
 			var markup = '';
+			// cicla su tutti gli studenti
 			lezione.forEach(function(element) {
 				markup = markup + 
 						"<tr>" +
@@ -89,15 +82,12 @@ function lezioneCorsoDiRecuperoGetDetails(id) {
 							((element.studente_partecipa_lezione_corso_di_recupero_ha_partecipato == 0) ? "" : " checked" ) +
 						"></td>" +
 				"</tr>";
-//				console.log(element);
 			});
-//			console.log(markup);
 			$('#update_studenti_table > tbody:last-child').append(markup);
 			$('#update_studenti_table td:nth-child(1),th:nth-child(1)').hide(); // nasconde la prima colonna con l'id
 		}
     );
 
-	// Open modal popup
 	$("#update_lezione_corso_di_recupero_modal").modal("show");
 }
 

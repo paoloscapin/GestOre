@@ -7,15 +7,15 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-if(isset($_POST)) {
-	require_once '../common/connect.php';
-	require_once '../common/checkSession.php';
+require_once '../common/checkSession.php';
 
+if(isset($_POST)) {
 	$studente_per_corso_di_recupero_id = $_POST['studente_per_corso_di_recupero_id'];
 	$dbFieldName = $_POST['dbFieldName'];
 	$value = $_POST['value'];
 
 	$query = "UPDATE studente_per_corso_di_recupero SET $dbFieldName = '$value' WHERE id = '$studente_per_corso_di_recupero_id';";
 	dbExec($query);
+	info("aggiornato studente_per_corso_di_recupero id=$studente_per_corso_di_recupero_id $dbFieldName=$value");
 }
 ?>

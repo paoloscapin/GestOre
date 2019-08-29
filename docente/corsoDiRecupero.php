@@ -15,15 +15,17 @@
 <?php
 require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
+require_once '../common/style.php';
+require_once '../common/_include_bootstrap-toggle.php';
 ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente');
 ?>
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
 	<title>Corsi di Recupero</title>
 </head>
 
 <body >
 <?php
 	require_once '../common/header-docente.php';
-	require_once '../common/connect.php';
 ?>
 
 <!-- Content Section -->
@@ -35,10 +37,10 @@ ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente'
 			<span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero
 		</div>
 		<div class="col-md-2 text-center">
-			<a href="<?php echo $__application_base_path; ?>/docente/corsoDiRecuperoReportStudenti.php" class="btn btn-xs btn-default btn-warning" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Risultati </a>
+			<a href="<?php echo $__application_base_path; ?>/docente/corsoDiRecuperoReportStudenti.php" class="btn btn-xs btn-default btn-yellow4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Risultati </a>
 		</div>
 		<div class="col-md-2 text-center">
-			<a href="<?php echo $__application_base_path; echo ($__config->getVoti_recupero_novembre_aperto() ? '/docente/corsoDiRecuperoReportStudenti.php' : '/docente/corsoDiRecuperoVoti.php');?>" class="btn btn-xs btn-default btn-success" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Voti </a>
+			<a href="<?php echo $__application_base_path; echo ($__config->getVoti_recupero_novembre_aperto() ? '/docente/corsoDiRecuperoReportStudenti.php' : '/docente/corsoDiRecuperoVoti.php');?>" class="btn btn-xs btn-teal4 btn-success" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Voti </a>
 		</div>
 		<div class="col-md-2 text-center">
 			<label for="soloOggiCheckBox" class=""> Solo Corsi di Oggi </label>
@@ -82,7 +84,6 @@ ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente'
                     <label for="update_note">Note</label>
 					<textarea class="form-control" rows="5" id="update_note" placeholder="note" ></textarea>
                 </div>
-<!-- <div id="summernote" class="summernote">Hello Summernote</div> -->
                 <div class="form-group">
                     <label for="update_studenti_table">Studenti</label>
 					<div class="table-wrapper">
@@ -114,16 +115,6 @@ ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente'
     </div>
 </div>
 <!-- // Modal - Update docente details -->
-
-<!-- Bootstrap, jquery etc (css + js) -->
-<?php
-	require_once '../common/style.php';
-?>
-
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/common/bootstrap-toggle-master/css/bootstrap-toggle.min.css">
-<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootstrap-toggle-master/js/bootstrap-toggle.min.js"></script>
-
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
 
 <!-- Custom JS file -->
 <script type="text/javascript" src="js/scriptCorsoDiRecupero.js"></script>

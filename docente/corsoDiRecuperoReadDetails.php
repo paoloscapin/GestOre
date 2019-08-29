@@ -7,16 +7,10 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-// check request
+require_once '../common/checkSession.php';
+
 if(isset($_POST['id']) && isset($_POST['id']) != "") {
-	// include Database connection file
-	require_once '../common/connect.php';
-
-	// get ID
 	$lezione_corso_di_recupero_id = $_POST['id'];
-
-	// Get Details
-	$query = "SELECT * FROM lezione_corso_di_recupero WHERE id = '$lezione_corso_di_recupero_id'";
 
 	$query = "	SELECT
 					studente_partecipa_lezione_corso_di_recupero.id AS studente_partecipa_lezione_corso_di_recupero_id,
@@ -37,14 +31,7 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 					studente_partecipa_lezione_corso_di_recupero.lezione_corso_di_recupero_id = ".$lezione_corso_di_recupero_id."
 				"
 				;
-	if (!$result = mysqli_query($con, $query)) {
-		exit(mysqli_error($con));
-	}
-	$partecipaArray = $result->fetch_all(MYSQLI_ASSOC);
+	$partecipaArray = dbGetAll($query);
 	echo json_encode($partecipaArray);
-}
-else {
-	$response['status'] = 200;
-	$response['message'] = "Invalid Request!";
 }
 ?>
