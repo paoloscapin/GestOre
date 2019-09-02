@@ -24,7 +24,7 @@ if(isset($_POST['nome']) && isset($_POST['cognome']) && isset($_POST['email'])) 
 	$docente_id = dblastId();
 
 	// insert dell'utente
-	$query = "INSERT INTO utente(nome, cognome, username, ruolo) VALUES('$nome', '$cognome', '$username', 'docente')";
+	$query = "INSERT INTO utente(nome, cognome, username, email, ruolo) VALUES('$nome', '$cognome', '$username', '$email', 'docente')";
 	dbExec($query);
 
 	// insert del profilo
