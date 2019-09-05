@@ -2,3 +2,5 @@
 /log/
 /common/__Environment.php
 /GestOre.json
+/.vscode/
+common/info.php
