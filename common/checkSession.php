@@ -57,7 +57,7 @@ if (!isset($__username) && !$session->has('__username')) {
     if ($gClient->getAccessToken()) {
         //Get user profile data from google
         $gpUserProfile = $google_oauthV2->userinfo->get();
-        
+
         $useremail = $gpUserProfile['email'];
 
         if(empty($useremail)){
@@ -117,7 +117,7 @@ $__utente_cognome = $session->get ( 'utente_cognome' );
 $__utente_ruolo = $session->get ( 'utente_ruolo' );
 
 // controlla se e' un docente deve avere i rispettivi termini
-if (!$session->has ( 'docente_id' ) && $session->has ( 'utente_ruolo' ) && ($session->get ( 'utente_ruolo' ) === "docente" || $session->get ( 'utente_ruolo' ) === "segreteria-didattica")) {
+if (!$session->has ( 'docente_id' ) && $session->has ( 'utente_ruolo' ) && ($session->get ( 'utente_ruolo' ) === "docente" || $session->get ( 'utente_ruolo' ) === "segreteria-didattica" || $session->get ( 'utente_ruolo' ) === "admin") ) {
     debug ( 'manca in sessione docente_id' );
     $docente = dbGetFirst("SELECT * FROM docente WHERE docente.username = '$__username'");
     if ($docente == null) {
