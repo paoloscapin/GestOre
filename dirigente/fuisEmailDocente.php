@@ -17,7 +17,7 @@ $docente = dbGetFirst($query);
 
 $to = $docente['email'];
 $subject = 'Aggiornamento Richiesta FUIS';
-$sender = "noreply-gestionale@martinomartini.eu";
+$sender = "noreply-piano.ore@marconirovereto.it";
 
 $headers = "From: $sender\n";
 $headers .= "MIME-Version: 1.0\n";
