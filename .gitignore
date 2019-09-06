@@ -4,3 +4,6 @@
 /GestOre.json
 /.vscode/
 common/info.php
+*.mo
+*.po~
+vendor/
