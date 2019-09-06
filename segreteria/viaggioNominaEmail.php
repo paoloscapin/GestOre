@@ -84,7 +84,7 @@ Gentile '.$row['docente_nome'].' '.$row['docente_cognome'].'
 <p>in data '.$dataNomina.' il Dirigente Scolastico le ha conferito l&rsquo;incarico di accompagnatore degli studenti durante '.$tipoViaggio.' a <b>'.$row['viaggio_destinazione'].'</b> del giorno <b>'.$dataPartenza.'</b></p>
 <p>La preghiamo di confermare al pi&ugrave; presto la sua disponibilit&agrave; confermando sul sito di
 <a href=\''.$url.'\'>accettare l&rsquo;incarico</a></p>
-<p>gestionale martini</p>
+<p>Segreteria Marconi</p>
 </body></html>
 ';
 
