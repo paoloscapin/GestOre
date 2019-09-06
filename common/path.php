@@ -11,8 +11,9 @@
 define ( 'APPLICATION_NAME', 'GestOre' );
 
 $uriBasePath = $_SERVER['REQUEST_URI'];
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
 // echo 'uriBasePath=' . $uriBasePath . '</br>';
-$current_http_link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
+$current_http_link = "$protocol://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
 // echo 'current_http_link=' . $current_http_link . '</br>';
 
 $toSearch = '/' . APPLICATION_NAME;
@@ -34,7 +35,7 @@ $__common_include_path = '../common';
 // se non trova il nome dell'applicazione, e' installato sulla root
 $posLink = strpos ( $current_http_link, $toSearch );
 if ($posLink === false) {
-    $__http_base_link = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off' ? 'https' : 'http' . '://' . $_SERVER['SERVER_NAME'];
+    $__http_base_link = "$protocol://{$_SERVER['SERVER_NAME']}";
 } else {
     $__http_base_link = substr ( $current_http_link, 0, $posLink  + strlen ( $toSearch ));
 }
