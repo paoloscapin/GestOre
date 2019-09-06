@@ -24,7 +24,7 @@
 
 			<a href="<?php echo $__application_base_path; ?>/docente/previste.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Previste </a>
 			<a href="<?php echo $__application_base_path; ?>/docente/attivita.php" class="btn btn-default navbar-btn btn-teal4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Fatte </a>
-			
+
 			<?php if($__settings->config->bonus) : ?>
 			<a href="<?php echo $__application_base_path; ?>/docente/bonus.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus </a>
 			<?php endif; ?>

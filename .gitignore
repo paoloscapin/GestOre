@@ -4,3 +4,7 @@
 /GestOre.json
 /.vscode/
 common/info.php
+/vendor
+*.po~
+*.mo
+/node_modules/
