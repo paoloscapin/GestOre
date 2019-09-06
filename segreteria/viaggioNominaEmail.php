@@ -62,9 +62,10 @@ setlocale(LC_TIME, $oldLocale);
 
 $to = $row['docente_email'];
 $subject = 'Incarico '.$row['viaggio_tipo_viaggio'].' a '.$row['viaggio_destinazione'].' del '.$dataPartenza;
-$sender = "noreply-gestionale@martinomartini.eu";
+$sender = "noreply-piano.ore@marconirovereto.it";
 
 $headers = "From: $sender\n";
+$headers = "Reply-To: $sender\n";
 $headers .= "MIME-Version: 1.0\n";
 $headers .= "Content-Type: text/html; charset=\"UTF-8\"\n";
 $headers .= "Content-Transfer-Encoding: 8bit\n";
