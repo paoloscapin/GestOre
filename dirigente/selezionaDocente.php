@@ -60,7 +60,10 @@ foreach(dbGetAll($query) as $row) {
 					</select>
                 </div>
         </div>
-        <div class="col-md-6 text-center">
+        <div class="col-md-2">
+			<button onclick="agisciComeDocenteSelezionato(-1)" class="btn btn-danger btn-sm"><span class="glyphicon glyphicon-education"></button>
+        </div>
+        <div class="col-md-4 text-center">
 			<a href="<?php echo $__application_base_path; ?>/segreteria/index.php" class="btn btn-default btn-orange4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Segreteria </a>
         </div>
     </div>

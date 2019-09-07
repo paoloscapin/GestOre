@@ -13,6 +13,10 @@ function agisciComeDocente(docente_id) {
     });
 }
 
+function agisciComeDocenteSelezionato(docente_id) {
+	agisciComeDocente($("#docente").val());
+}
+
 $(document).ready(function () {
 //	$('#docente').data('selectpicker').$button.focus();
 	$('#docente').data('selectpicker').$searchbox.focus();
@@ -21,5 +25,4 @@ $(document).ready(function () {
 				var docente_id = this.value;
 				agisciComeDocente(docente_id);
 	});
-
 });
