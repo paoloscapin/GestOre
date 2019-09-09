@@ -4,6 +4,7 @@
 /GestOre.json
 /.vscode/
 common/info.php
+vendor/
 *.mo
 *.po~
-vendor/
+/i18n.pot
