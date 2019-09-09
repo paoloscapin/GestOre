@@ -8,6 +8,8 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/__i18n.php';
+
 require_once '../common/connect.php';
 
 $docente_id = $__docente_id;
@@ -58,7 +60,7 @@ $query = "
 $ore = dbGetValue($query);
 if (!empty($ore)) {
     $data .= '<tr>
-		<td>Funzionali</td>
+		<td>'.__("Funzionali").'</td>
 		<td>'.$ore.'</td>
 		</tr>
 		';
