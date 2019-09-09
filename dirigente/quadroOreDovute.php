@@ -15,6 +15,8 @@
 	<title>Quadro Ore Dovute</title>
 <?php
 require_once '../common/checkSession.php';
+require_once '../common/__i18n.php';
+
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 //require_once '../common/_include_bootstrap-toggle.php';
@@ -66,7 +68,7 @@ function getHtmlNumAndPrevisteVisual($value, $total) {
 function getHtmlNumAndFatteVisual($value, $total) {
     global $okSymbol;
     global $warning;
-    
+
     $numString = ($value >= 10) ? $value : '&ensp;' . $value;
     $diff = $total - $value;
     if ($diff > 0) {
@@ -99,26 +101,26 @@ foreach($resultArray as $docente) {
     $query = "
 SELECT
 	docente.*,
-	
+
 	ore_dovute.ore_40_sostituzioni_di_ufficio AS ore_dovute_ore_40_sostituzioni_di_ufficio,
 	ore_dovute.	ore_40_con_studenti AS ore_dovute_ore_40_con_studenti,
 	ore_dovute.ore_40_aggiornamento AS ore_dovute_ore_40_aggiornamento,
 	ore_dovute.	ore_70_funzionali AS ore_dovute_ore_70_funzionali,
 	ore_dovute.ore_70_con_studenti AS ore_dovute_ore_70_con_studenti,
-	
+
 	ore_previste.ore_40_sostituzioni_di_ufficio AS ore_previste_ore_40_sostituzioni_di_ufficio,
 	ore_previste.	ore_40_con_studenti AS ore_previste_ore_40_con_studenti,
 	ore_previste.ore_40_aggiornamento AS ore_previste_ore_40_aggiornamento,
 	ore_previste.	ore_70_funzionali AS ore_previste_ore_70_funzionali,
 	ore_previste.ore_70_con_studenti AS ore_previste_ore_70_con_studenti,
-	
+
 	ore_fatte.ore_40_sostituzioni_di_ufficio AS ore_fatte_ore_40_sostituzioni_di_ufficio,
 	ore_fatte.	ore_40_con_studenti AS ore_fatte_ore_40_con_studenti,
 	ore_fatte.ore_40_aggiornamento AS ore_fatte_ore_40_aggiornamento,
 	ore_fatte.	ore_70_funzionali AS ore_fatte_ore_70_funzionali,
 	ore_fatte.ore_70_con_studenti AS ore_fatte_ore_70_con_studenti
-	
-	
+
+
 FROM docente
 
 INNER JOIN ore_dovute
@@ -144,7 +146,7 @@ AND
     if ($ore['ore_fatte_ore_40_aggiornamento'] >  $ore['ore_dovute_ore_40_aggiornamento']) {
         $ore['ore_fatte_ore_40_aggiornamento'] =  $ore['ore_dovute_ore_40_aggiornamento'];
     }
-    
+
     // prende anche le ore di clil
     $query = "
 	SELECT SUM(ore) FROM ore_fatte_attivita_clil
@@ -153,7 +155,7 @@ AND
     AND con_studenti = false
 	";
     $clil_funzionali=dbGetValue($query);
-    
+
     $query = "
 	SELECT SUM(ore) FROM ore_fatte_attivita_clil
 	WHERE anno_scolastico_id = $__anno_scolastico_corrente_id
@@ -161,7 +163,7 @@ AND
     AND con_studenti = true
 	";
     $clil_con_studenti=dbGetValue($query);
-    
+
         $data .= '
 	<div class="table-wrapper">
 	<table class="table table-vnocolor-index">
@@ -171,9 +173,9 @@ AND
 				<th class="col-md-1 text-left">40 Sostituzioni</th>
 				<th class="col-md-1 text-left">40 con Studenti</th>
 				<th class="col-md-1 text-left">40 Aggiornamento</th>
-				<th class="col-md-1 text-left">70 Funzionali</th>
+				<th class="col-md-1 text-left">70 '.__("Funzionali").'</th>
 				<th class="col-md-1 text-left">70 con Studenti</th>
-				<th class="col-md-1 text-left">CLIL Funzionali</th>
+				<th class="col-md-1 text-left">CLIL '.__("Funzionali").'</th>
 				<th class="col-md-1 text-left">CLIL con Studenti</th>
 				<th class="col-md-1 text-left"></th>
 			</tr>
@@ -233,14 +235,14 @@ AND
             </div>
             <div class="panel-body">
         ';
-        
+
         // chiude il pannello del bonus
         $data .= '
             </div>
             <!-- <div class="panel-footer"></div> -->
             </div>
         ';
-        
+
     // disegna il pannello del bonus
         $data .= '
             <div class="panel panel-success">
@@ -257,27 +259,27 @@ AND
             </div>
             <div class="panel-body">
         ';
-       
-        // disegna il body del pannello del bonus     
+
+        // disegna il body del pannello del bonus
         $query = "
 SELECT
 	bonus_docente.id AS bonus_docente_id,
 	bonus_docente.approvato AS bonus_docente_approvato,
-	
+
 	bonus_area.codice AS bonus_area_codice,
 	bonus_area.descrizione AS bonus_area_descrizione,
 	bonus_area.valore_massimo AS bonus_area_valore_massimo,
 	bonus_area.peso_percentuale AS bonus_area_peso_percentuale,
-	
+
 	bonus_indicatore.codice AS bonus_indicatore_codice,
 	bonus_indicatore.descrizione AS bonus_indicatore_descrizione,
 	bonus_indicatore.valore_massimo AS bonus_indicatore_valore_massimo,
-	
+
 	bonus.codice AS bonus_codice,
 	bonus.descrittori AS bonus_descrittori,
 	bonus.evidenze AS bonus_evidenze,
 	bonus.valore_previsto AS bonus_valore_previsto
-	
+
 FROM bonus_docente
 
 INNER JOIN bonus
@@ -293,7 +295,7 @@ WHERE
 	bonus_docente.docente_id = ".$docente['id']."
 AND
 	bonus_docente.anno_scolastico_id = $__anno_scolastico_corrente_id
-	
+
 ORDER BY
 	bonus.codice;
 ";
@@ -311,7 +313,7 @@ ORDER BY
             }
         }
         $perc = ($richiesto == 0) ? 0: ($approvato / $richiesto) * 100;
-        
+
         // chiude il pannello del bonus
         $data .= '
         <div class="row">
@@ -321,7 +323,7 @@ ORDER BY
             <div class="col-md-2 text-left">'.$pendente.'</div>
             <div class="col-md-1 text-right">Approvato</div>
             <div class="col-md-2 text-left">'.$approvato.'</div>
-    
+
             <div class="col-md-2">
             <div class="progress progress-striped">
               <div class="progress-bar progress-bar-success" id="progress-bar-approvate" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: '.$perc.'%"></div>
@@ -337,7 +339,7 @@ ORDER BY
 <!-- <div class="panel-footer"></div> -->
 </div>
         ';
-        
+
     // chiude il pannello del docente
         $data .= '
                 </div>

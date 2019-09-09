@@ -1,0 +1,42 @@
+# Italian translations for PACKAGE package.
+# Copyright (C) 2019 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# tuxadmin <piano.ore@marconirovereto.it>, 2019.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-09-09 23:20+0200\n"
+"PO-Revision-Date: 2019-09-09 21:18+0200\n"
+"Last-Translator: Piano Ore <piano.ore@marconirovereto.it>\n"
+"Language-Team: Italian\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: docente/oreFatteClilReadSommarioAttivita.php:63 docente/index.php:51
+#: docente/index.php:100 docente/indexold.php:150 docente/indexold.php:191
+#: dirigente/fuisDocentiReadRecords.php:29
+#: dirigente/fuisDocentiReadRecords.php:31 dirigente/quadroDocente.php:128
+#: dirigente/quadroDocente.php:130 dirigente/quadroDocente.php:276
+#: dirigente/quadroOreDovute.php:176 dirigente/quadroOreDovute.php:178
+msgid "Funzionali"
+msgstr "per Studenti"
+
+#. TRANS: This is a comment in po file
+#: common/test.php:4
+msgid "Good Morning"
+msgstr "Buon Giorno"
+
+#: common/test.php:8
+#, php-format
+msgid "Your account will expire in %d day"
+msgid_plural "Your account will expire in %d days"
+msgstr[0] "in %d giorno"
+msgstr[1] "in %d giorni"
+
+#~ msgid "HELLO_WORLD"
+#~ msgstr "Ciao Mondo"

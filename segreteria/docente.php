@@ -17,6 +17,7 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <?php
 require_once '../common/checkSession.php';
+require_once '../common/__i18n.php';
 
 require_once '../common/header-common.php';
 require_once '../common/style.php';
@@ -245,7 +246,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
                 <hr>
 
                 <div class="form-group">
-                    <label class="col-sm-2 control-label" for="profilo_ore_70_funzionali">Funzionali (30)</label>
+                    <label class="col-sm-2 control-label" for="profilo_ore_70_funzionali"><?php echo __(Funzionali); ?> (30)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_70_funzionali" placeholder="funz" class="form-control"/></div>
 
                     <label class="col-sm-2 control-label" for="profilo_ore_70_con_studenti">con Stud. (40)</label>
