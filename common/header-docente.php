@@ -6,6 +6,7 @@
  *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
+require_once '../common/__i18n.php';
 
 ?>
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
@@ -34,7 +35,7 @@
 			<a href="<?php echo $__application_base_path; ?>/docente/bonus.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus </a>
 			<?php endif; ?>
 
-			<a href="<?php echo $__application_base_path; ?>/docente/index.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-time"></span><?php echo $__settings->label->ore_riepilogo ? $__settings->label->ore_riepilogo : "&ensp; Riepilogo" ?></a>
+			<a href="<?php echo $__application_base_path; ?>/docente/index.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;<?php echo __("Riepilogo ore"); ?></a>
 			<a href="<?php echo $__application_base_path; ?>/docente/viaggio.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-picture"></span>&ensp;Uscite</a>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
