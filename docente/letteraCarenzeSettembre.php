@@ -85,22 +85,17 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 	</p>
 	<a id="t.2983f64f2b1f99c5e93bd72decaa07795be55513"></a>
 	<a id="t.0"></a>
-	</br>
-	</br>
 	<p class="c12">
 		<span class="c9 c20">COMUNICAZIONE ESITO CARENZA ANNO SCOLASTICO PRECEDENTE</span>
 	</p>
 	</br>
 	<p class="c12">
-		<span class="c9 c20">&#x2161; sessione di recupero</span>
+		<span class="c9 c20">&#x2160; sessione di recupero</span>
 	</p>
-	</br>
-	</br>
-	</br>
 	</br>
 	<table class="c11">
 		<tbody>
-			<tr class="c8">
+			<tr class="c18">
 				<td class="c2" colspan="1" rowspan="1"><p class="c6 c4 c21"><?php echo $luogoIstituto; ?>, <?php echo $dataLettera; ?>
 					</p></td>
 				<td class="c2" colspan="1" rowspan="1">
@@ -109,7 +104,7 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 					</p>
 				</td>
 			</tr>
-			<tr class="c8">
+			<tr class="c18">
 				<td class="c2" colspan="1" rowspan="1"><p class="c6">
 					</p></td>
 				<td class="c2" colspan="1" rowspan="1">
@@ -121,17 +116,13 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 		</tbody>
 	</table>
 	</br>
-	</br>
-	</br>
-	</br>
 	<p class="c3">
 		<span class="c1 c21">
 		Il Consiglio di classe comunica che, a seguito della
-		<span class="c5 c21">Seconda Sessione</span>
+		<span class="c5 c21">Prima Sessione</span>
 		 di prova di recupero della carenza maturata alla fine dell&#39;anno scolastico scorso, l&#39;alunno/a ha conseguito i seguenti risultati:
 		</span>
 	</p>
-	</br>
 	</br>
 		<table class="c31">
 			<tbody>
@@ -167,10 +158,6 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 		</table>
 
 	</br>
-	</br>
-	</br>
-	</br>
-	</br>
 	<a id="t.f727949b760321cc972232d42b2d9fa1f8785d82"></a>
 	<a id="t.1"></a>
 	<table class="c11 c1 c21">
@@ -188,7 +175,44 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 				</td>
 			</tr>
 		</tbody>
-	</table>
+    </table>
+</br>
+<div id="scissors">
+    <div></div>
+</div>
+</br>
+</br>
+<p class="c3">
+    <span class="c1 c21">
+    Il sottoscritto _______________________________________ genitore dello studente/essa <?php echo $studente_corso['cognome'] . " " . $studente_corso['nome']; ?>
+    della classe ____________ <strong>dichiara</strong> di aver ricevuto in data ____________ comunicazione dell’esito della prova
+    di recupero carenze di <?php echo $studente_corso['materia_nome']; ?> a.s. scorso.
+</p>
+<p class="c3">
+</br>
+FIRMA (studente maggiorenne o genitore per studente minorenne)
+</br>
+</br>
+______________________________________________________________
+</p>
+
+<?php if($voto < 6) : ?>
+</br>
+<p class="c3">
+    <span class="c1 c21">
+    <strong>CHIEDE</strong> che il/la figlio/a possa sostenere un'ulteriore verifica
+	per il superamento della carenza in <?php echo $studente_corso['materia_nome']; ?> entro il giorno <strong>8 novembre</strong>,
+	da concordare con il docente della classe.
+</p>
+<p class="c3">
+</br>
+FIRMA (studente maggiorenne o genitore per studente minorenne)
+</br>
+</br>
+______________________________________________________________
+</p>
+
+<?php endif; ?>
 <script>
 // function myFunction() {
 //     window.print();

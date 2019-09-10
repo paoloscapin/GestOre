@@ -72,6 +72,7 @@
 	$dataPartenza = utf8_encode( strftime("%d %B %Y", strtotime($row['viaggio_data_partenza'])));
 	$dataRientro = utf8_encode( strftime("%d %B %Y", strtotime($row['viaggio_data_rientro'])));
 	setlocale(LC_TIME, $oldLocale);
+	$luogoIstituto = $__settings->local->luogoIstituto;
 	echo '<title>';
 	echo 'nomina prot '.str_replace('/','-',$row['viaggio_protocollo']).' '.$row['docente_cognome'].' '.$row['docente_nome'].' - '.$row['viaggio_destinazione'];
 	echo '</title>';
@@ -83,7 +84,7 @@
 	<div>
 		<p class="c7">
 			<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px; height: 136.00px;">
-				<img alt="" src="<?php echo $__application_base_path; ?>/img/intestazione.png" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
+				<img alt="" src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")); ?>" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
 			</span>
 		</p>
 	</div>
@@ -99,7 +100,7 @@
 						<span class="c9">Prot. n&deg; <?php echo $row['viaggio_protocollo']; ?></span>
 					</p></td>
 				<td class="c2" colspan="1" rowspan="1"><p class="c6 c14">
-						<span class="c4">Mezzolombardo, <?php echo $dataNomina; ?></span>
+						<span class="c4"><?php echo $luogoIstituto; ?>, <?php echo $dataNomina; ?></span>
 					</p></td>
 			</tr>
 		</tbody>
@@ -213,12 +214,12 @@ if ($note != null && strlen($note) > 0) {
 			<tr class="c18">
 				<td class="c2" colspan="1" rowspan="1"><p class="c17">
 						<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 144.00px; height: 142.00px;">
-							<img alt="" src="<?php echo $__application_base_path; ?>/img/timbro.png" style="width: 144.00px; height: 142.00px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
+							<img alt="" src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'timbro.png'")); ?>" style="width: 144.00px; height: 142.00px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
 						</span>
 					</p></td>
 				<td class="c2" colspan="1" rowspan="1"><p class="c19">
 						<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 248.00px; height: 98.00px;">
-							<img alt="" src="<?php echo $__application_base_path; ?>/img/firma.jpg" style="width: 248.00px; height: 98.00px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
+							<img alt="" src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'firma.png'")); ?>" style="width: 248.00px; height: 98.00px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
 						</span>
 					</p></td>
 			</tr>

@@ -19,6 +19,7 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_flatpickr.php';
+ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente');
 ?>
 
 	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">

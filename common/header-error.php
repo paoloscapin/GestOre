@@ -13,12 +13,7 @@ require_once __DIR__ . '/path.php';
 
 <nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
 	<div class="container-fluid">
-		<div class="navbar-header">
-			<a href="<?php echo $__application_base_path; ?>" class="navbar-brand top-navbar-brand" >
-				<img style="height: 44px; margin-top: -10px;" src="<?php echo $__application_base_path; ?>/img/logo.png" alt="Logo">
-			</a>
-			<a class="navbar-brand top-navbar-brand" href="#"> </a>
-		</div>
+	<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav">
 			<li class="active"><a href="<?php echo $__application_base_path; ?>"><span class="glyphicon glyphicon-home"></span> Home </a></li>

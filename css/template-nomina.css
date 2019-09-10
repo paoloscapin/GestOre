@@ -428,3 +428,23 @@ h6 {
 	widows: 2;
 	text-align: left
 }
+
+#scissors {
+	height: 36px;
+	margin: auto auto;
+	background-image: url('../img/cutting-scissors.png');
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: 36px;
+	position: relative;
+	overflow: hidden;
+}
+
+#scissors:after {
+	content: "";
+	position: relative;
+	top: 50%;
+	display: block;
+	border-top: 1px dashed gray;
+	margin-top: -1px;
+}

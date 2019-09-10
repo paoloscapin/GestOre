@@ -222,14 +222,25 @@ foreach($resultArray as $row_classe) {
 				$data .= '
 									<td class="col-sm-1 text-center">'.$passatoMarker.'</td>
 						';
-				// se si sa se è passato, consente di generare la lettera alla famiglia
-				if (!$esente && isset($row_studente['studente_per_corso_di_recupero_passato']) && (/* $row_studente['studente_per_corso_di_recupero_voto_settembre'] >= 6 || */ $row_studente['studente_per_corso_di_recupero_voto_novembre'] > 0) ) {
+				// se e' aperto solo settembre, controlla se deve generare la lettera (se c'è il voto)
+				if ($__config->getVoti_recupero_settembre_aperto() && ! $__config->getVoti_recupero_novembre_aperto() && ($row_studente['studente_per_corso_di_recupero_voto_settembre'] > 0) ) {
 					$data .= '
 									<td class="text-center">
-									<button onclick="letteraCarenze('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-envelope"></button>
+									<button onclick="letteraCarenzeSettembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-envelope"></button>
 									</td>
 						';
-				} else {
+				}
+
+				// se e' aperto novembre, controlla se deve generare la lettera finale (se c'è il voto)
+				else if ($__config->getVoti_recupero_novembre_aperto() && ($row_studente['studente_per_corso_di_recupero_voto_novembre'] > 0) ) {
+					$data .= '
+									<td class="text-center">
+									<button onclick="letteraCarenzeNovembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-envelope"></button>
+									</td>
+						';
+				}
+				
+				else {
 					$data .= '
 									<td></td>
 						';

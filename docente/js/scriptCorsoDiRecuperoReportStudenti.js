@@ -10,6 +10,16 @@ function letteraCarenze(id) {
 	window.open(url, "_blank");
 }
 
+function letteraCarenzeSettembre(id) {
+	var url = 'letteraCarenzeSettembre.php?id=' + id;
+	window.open(url, "_blank");
+}
+
+function letteraCarenzeNovembre(id) {
+	var url = 'letteraCarenze.php?id=' + id;
+	window.open(url, "_blank");
+}
+
 function registraVotoNovembre(studente_per_corso_di_recupero_id, voto, __this) {
 	$.post("corsoDiRecuperoRegistraVoto.php", {
 		studente_per_corso_di_recupero_id: studente_per_corso_di_recupero_id,
