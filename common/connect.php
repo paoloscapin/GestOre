@@ -34,7 +34,7 @@ function dbExec($query) {
 	debug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__con, $query)) {
-		error('errore in esecuzione query. query='.$query);
+		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__con));
 		exit('Application Error');
 	}
 }
@@ -46,7 +46,7 @@ function dbGetFirst($query) {
 	debug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__con, $query)) {
-		error('errore in esecuzione query. query='.$query);
+		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__con));
 		return null;
 	}
 
@@ -67,7 +67,7 @@ function dbGetAll($query) {
 	debug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__con, $query)) {
-		error('errore in esecuzione query. query='.$query);
+		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__con));
 		return null;
 	}
 	return $result->fetch_all(MYSQLI_ASSOC);
@@ -80,7 +80,7 @@ function dbGetValue($query) {
 	debug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__con, $query)) {
-		error('errore in esecuzione query. query='.$query);
+		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__con));
 		return null;
 	}
 	$value = $result->fetch_array(MYSQLI_NUM);
