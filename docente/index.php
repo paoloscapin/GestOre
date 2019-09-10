@@ -11,7 +11,9 @@
 
 <!DOCTYPE html>
 <html>
+
 <head>
+
 <?php
 require_once '../common/checkSession.php';
 require_once '../common/__i18n.php';
@@ -21,169 +23,175 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente');
 ?>
+
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-vcolor-index.css">
-	<title>Piano Orario</title>
+<title>Piano Orario</title>
 </head>
 
-<body >
+<body>
 <?php
 require_once '../common/header-docente.php';
 require_once '../common/connect.php';
 ?>
 
-<div class="container-fluid" style="margin-top:60px">
+    <div class="container-fluid" style="margin-top:60px">
 
-<div class="panel panel-success">
-<div class="panel-heading">
-	<span class="glyphicon glyphicon-list-alt"></span>
-	<a data-toggle="collapse" href="#collapse_40">&ensp;40+70 ore </a>
-</div>
-<div id="collapse_40" class="panel-collapse collapse  collapse in">
-<div class="panel-body">
+        <?php if($__settings->config->gestioneClil) : ?>
 
-	<div class="table-wrapper">
-	<table class="table table-vnocolor-index">
-		<thead>
-			<tr>
-				<th class="col-md-2"></th>
-				<th class="col-md-2 text-left">Sostituzioni</th>
-				<th class="col-md-2 text-left">Aggiornamento</th>
-				<th class="col-md-2 text-left"><?php echo __("Funzionali"); ?></th>
-				<th class="col-md-2 text-left">con Studenti</th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr>
-				<td>dovute</td>
-				<td class="text-left" id="dovute_ore_40_sostituzioni_di_ufficio"></td>
-				<td class="text-left" id="dovute_ore_40_aggiornamento"></td>
-				<td class="text-left" id="dovute_ore_70_funzionali"></td>
-				<td class="text-left" id="dovute_totale_con_studenti"></td>
-			</tr>
-			<tr class="orange5">
-				<td>previste</td>
-				<td class="text-left" id="previste_ore_40_sostituzioni_di_ufficio"></td>
-				<td class="text-left" id="previste_ore_40_aggiornamento"></td>
-				<td class="text-left" id="previste_ore_70_funzionali"></td>
-				<td class="text-left" id="previste_totale_con_studenti"></td>
-			</tr>
-			<tr class="teal5">
-				<td>fatte</td>
-				<td class="text-left" id="fatte_ore_40_sostituzioni_di_ufficio"></td>
-				<td class="text-left" id="fatte_ore_40_aggiornamento"></td>
-				<td class="text-left" id="fatte_ore_70_funzionali"></td>
-				<td class="text-left" id="fatte_totale_con_studenti"></td>
-			</tr>
-		</tbody>
-	</table>
-	</div>
-</div>
-</div>
+        <div class="panel panel-primary" id="panel-clil">
+            <div class="panel-heading">
+                <span class="glyphicon glyphicon-list-alt"></span>&ensp;Clil
+            </div>
+            <div id="collapse_clil" class="panel-collapse collapse  collapse in">
+                <div class="panel-body">
 
-<!-- <div class="panel-footer"></div> -->
-</div>
+                    <div class="table-wrapper">
+                        <table class="table table-vnocolor-index">
+                            <thead>
+                                <tr>
+                                    <th class="col-md-5"></th>
+                                    <th class="col-md-3 text-left"><?php echo __("Funzionali"); ?></th>
+                                    <th class="col-md-3 text-left">con Studenti</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="orange5">
+                                    <td>previste</td>
+                                    <td class="text-left" id="clil_previste_ore_70_funzionali"></td>
+                                    <td class="text-left" id="clil_previste_ore_70_con_studenti"></td>
+                                </tr>
+                                <tr>
+                                <tr class="teal5">
+                                    <td class="text-left" id="clil_fatte_funzionali"></td>
+                                    <td class="text-left" id="clil_fatte_con_studenti"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- <div class="panel-footer"></div> -->
+        </div>
 
-<?php if($__settings->config->gestioneClil) : ?>
+        <?php else : ?>
 
-<div class="panel panel-primary" id="panel-clil">
-<div class="panel-heading">
-	<span class="glyphicon glyphicon-list-alt"></span>&ensp;Clil
-</div>
-<div id="collapse_clil" class="panel-collapse collapse  collapse in">
-<div class="panel-body">
+        <?php endif; ?>
 
-	<div class="table-wrapper">
-	<table class="table table-vnocolor-index">
-		<thead>
-			<tr>
-				<th class="col-md-5"></th>
-				<th class="col-md-3 text-left"><?php echo __("Funzionali"); ?></th>
-				<th class="col-md-3 text-left">con Studenti</th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr class="orange5">
-				<td>previste</td>
-				<td class="text-left" id="clil_previste_ore_70_funzionali"></td>
-				<td class="text-left" id="clil_previste_ore_70_con_studenti"></td>
-			</tr>
-			<tr>
-			<tr class="teal5">
-				<td class="text-left" id="clil_fatte_funzionali"></td>
-				<td class="text-left" id="clil_fatte_con_studenti"></td>
-			</tr>
-		</tbody>
-	</table>
-	</div>
-</div>
-</div>
-<!-- <div class="panel-footer"></div> -->
-</div>
+        <!-- Pannello 80 ore -->
+        <div class="panel panel-warning">
+            <div class="panel-heading">
+                <span class="glyphicon glyphicon-list-alt"></span>
+                <a data-toggle="collapse" href="#collapse_80">&ensp;80 ore </a>
+            </div>
+            <div id="collapse_80" class="panel-collapse collapse  collapse in">
+                <div class="panel-body">
 
-<?php else : ?>
+                    <div class="table-wrapper">
+                        <table class="table table-vnocolor-index">
+                            <thead>
+                                <tr>
+                                    <th class="col-md-2 text-left"></th>
+                                    <th class="col-md-2 text-left">Collegio Doc.</th>
+                                    <th class="col-md-2 text-left">Udienze</th>
+                                    <th class="col-md-2 text-left">Dipartimenti</th>
+                                    <th class="col-md-2 text-left">Aggiornamento</th>
+                                    <th class="col-md-2 text-left">CdC</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="text-left">dovute</td>
+                                    <td class="text-left" id="dovute_ore_80_collegi_docenti"></td>
+                                    <td class="text-left" id="dovute_ore_80_udienze_generali"></td>
+                                    <td class="text-left" id="dovute_ore_80_dipartimenti"></td>
+                                    <td class="text-left" id="dovute_ore_80_aggiornamento_facoltativo"></td>
+                                    <td class="text-left" id="dovute_ore_80_consigli_di_classe"></td>
+                                </tr>
+                                <?php if(false) : ?>
+                                <tr class="orange5">
+                                    <td class="text-left">previste</td>
+                                    <td class="text-left" id="previste_ore_80_collegi_docenti"></td>
+                                    <td class="text-left" id="previste_ore_80_udienze_generali"></td>
+                                    <td class="text-left" id="previste_ore_80_dipartimenti"></td>
+                                    <td class="text-left" id="previste_ore_80_aggiornamento_facoltativo"></td>
+                                    <td class="text-left" id="previste_ore_80_consigli_di_classe"></td>
+                                </tr>
+                                <?php endif; ?>
+                                <tr class="teal5">
+                                    <td class="text-left">fatte</td>
+                                    <td class="text-left" id="fatte_ore_80_collegi_docenti"></td>
+                                    <td class="text-left" id="fatte_ore_80_udienze_generali"></td>
+                                    <td class="text-left" id="fatte_ore_80_dipartimenti"></td>
+                                    <td class="text-left" id="fatte_ore_80_aggiornamento_facoltativo"></td>
+                                    <td class="text-left" id="fatte_ore_80_consigli_di_classe"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- <div class="panel-footer"></div> -->
+        </div>
+        <!-- Fine pannello 80 ore -->
+        <!-- Pannello 40+70 ore -->
+        <div class="panel panel-success">
+            <div class="panel-heading">
+                <span class="glyphicon glyphicon-list-alt"></span>
+                <a data-toggle="collapse" href="#collapse_40">&ensp;40+70 ore </a>
+            </div>
+            <div id="collapse_40" class="panel-collapse collapse  collapse in">
+                <div class="panel-body">
 
-<?php endif; ?>
+                    <div class="table-wrapper">
+                        <table class="table table-vnocolor-index">
+                            <thead>
+                                <tr>
+                                    <th class="col-md-2"></th>
+                                    <th class="col-md-2 text-left">Sostituzioni</th>
+                                    <th class="col-md-2 text-left">Aggiornamento</th>
+                                    <th class="col-md-2 text-left"><?php echo __("Funzionali"); ?></th>
+                                    <th class="col-md-2 text-left">con Studenti</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>dovute</td>
+                                    <td class="text-left" id="dovute_ore_40_sostituzioni_di_ufficio"></td>
+                                    <td class="text-left" id="dovute_ore_40_aggiornamento"></td>
+                                    <td class="text-left" id="dovute_ore_70_funzionali"></td>
+                                    <td class="text-left" id="dovute_totale_con_studenti"></td>
+                                </tr>
+                                <tr class="orange5">
+                                    <td>previste</td>
+                                    <td class="text-left" id="previste_ore_40_sostituzioni_di_ufficio"></td>
+                                    <td class="text-left" id="previste_ore_40_aggiornamento"></td>
+                                    <td class="text-left" id="previste_ore_70_funzionali"></td>
+                                    <td class="text-left" id="previste_totale_con_studenti"></td>
+                                </tr>
+                                <tr class="teal5">
+                                    <td>fatte</td>
+                                    <td class="text-left" id="fatte_ore_40_sostituzioni_di_ufficio"></td>
+                                    <td class="text-left" id="fatte_ore_40_aggiornamento"></td>
+                                    <td class="text-left" id="fatte_ore_70_funzionali"></td>
+                                    <td class="text-left" id="fatte_totale_con_studenti"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-<div class="panel panel-warning">
-<div class="panel-heading">
-	<span class="glyphicon glyphicon-list-alt"></span>
-	<a data-toggle="collapse" href="#collapse_80">&ensp;80 ore </a>
-</div>
-<div id="collapse_80" class="panel-collapse collapse  collapse in">
-<div class="panel-body">
+            <!-- <div class="panel-footer"></div> -->
+        </div>
+        <!-- Fine pannello 40+70 ore -->
 
-	<div class="table-wrapper">
-	<table class="table table-vnocolor-index">
-		<thead>
-			<tr>
-				<th class="col-md-2 text-left"></th>
-				<th class="col-md-2 text-left">Collegio Doc.</th>
-				<th class="col-md-2 text-left">Udienze</th>
-				<th class="col-md-2 text-left">Dipartimenti</th>
-				<th class="col-md-2 text-left">Aggiornamento</th>
-				<th class="col-md-2 text-left">CdC</th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr>
-				<td class="text-left" >dovute</td>
-				<td class="text-left" id="dovute_ore_80_collegi_docenti"></td>
-				<td class="text-left" id="dovute_ore_80_udienze_generali"></td>
-				<td class="text-left" id="dovute_ore_80_dipartimenti"></td>
-				<td class="text-left" id="dovute_ore_80_aggiornamento_facoltativo"></td>
-				<td class="text-left" id="dovute_ore_80_consigli_di_classe"></td>
-			</tr>
-<?php if(false) : ?>
-			<tr class="orange5">
-				<td class="text-left" >previste</td>
-				<td class="text-left" id="previste_ore_80_collegi_docenti"></td>
-				<td class="text-left" id="previste_ore_80_udienze_generali"></td>
-				<td class="text-left" id="previste_ore_80_dipartimenti"></td>
-				<td class="text-left" id="previste_ore_80_aggiornamento_facoltativo"></td>
-				<td class="text-left" id="previste_ore_80_consigli_di_classe"></td>
-			</tr>
-<?php endif; ?>
-			<tr class="teal5">
-				<td class="text-left" >fatte</td>
-				<td class="text-left" id="fatte_ore_80_collegi_docenti"></td>
-				<td class="text-left" id="fatte_ore_80_udienze_generali"></td>
-				<td class="text-left" id="fatte_ore_80_dipartimenti"></td>
-				<td class="text-left" id="fatte_ore_80_aggiornamento_facoltativo"></td>
-				<td class="text-left" id="fatte_ore_80_consigli_di_classe"></td>
-			</tr>
-		</tbody>
-	</table>
-	</div>
-</div>
-</div>
-<!-- <div class="panel-footer"></div> -->
-</div>
+    </div>
 
-</div>
+    <!-- bootbox notificator -->
+    <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js">
+    </script>
 
-<!-- bootbox notificator -->
-<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
-
-<script type="text/javascript" src="js/scriptIndex.js"></script>
+    <script type="text/javascript" src="js/scriptIndex.js"></script>
 </body>
+
 </html>
