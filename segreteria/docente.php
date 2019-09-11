@@ -232,7 +232,7 @@ $ore80 = [
                     <label class="col-sm-2 control-label" for="profilo_ore_80_dipartimenti_min">Dip min (<?= $ore80["ore_max_dipartimenti"] ?>)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_80_dipartimenti_min" placeholder="Dip min" class="form-control"/></div>
 
-                    <label class="col-sm-2 control-label" for="profilo_ore_80_dipartimenti_max">Dip Max (<?= $ore80["ore_max_collegi_docenti"] ?>)</label>
+                    <label class="col-sm-2 control-label" for="profilo_ore_80_dipartimenti_max">Dip Max (<?= $ore80["ore_max_dipartimenti"] ?>)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_80_dipartimenti_max" placeholder="Dip Max" class="form-control"/></div>
 
                     <label class="col-sm-2 control-label" for="profilo_ore_80_consigli_di_classe">CDC (<?= $ore80["ore_max_consigli_di_classe"] ?>)</label>
