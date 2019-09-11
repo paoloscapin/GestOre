@@ -61,7 +61,7 @@ function orePrevisteAggiornaDocente($docenteId) {
 				$ore_40_con_studenti = $ore_40_con_studenti + $attivita['ore'];
 				break;
 
-			case "default":
+			default:
 				warning('attivita sconosciuta: '.$attivita['categoria']);
 				break;
 		}
@@ -154,7 +154,7 @@ function oreFatteAggiornaDocente($docenteId) {
 				$ore_40_con_studenti = $ore_40_con_studenti + $attivita['ore'];
 				break;
 
-			case "default":
+			default:
 				warning('attivita sconosciuta: '.$attivita['categoria']);
 				break;
 		}
@@ -196,7 +196,7 @@ function oreFatteAggiornaDocente($docenteId) {
 	            $ore_40_con_studenti = $ore_40_con_studenti + $attivita['ore_previste_attivita_ore'];
 	            break;
 	            
-	        case "default":
+	        default:
 	            warning('attivita sconosciuta: '.$attivita['categoria']);
 	            break;
 	    }
