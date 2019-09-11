@@ -197,7 +197,11 @@ function oreFatteAggiornaDocente($docenteId) {
 	            $ore_40_con_studenti = $ore_40_con_studenti + $attivita['ore_previste_attivita_ore'];
 	            break;
 
+<<<<<<< HEAD
 	        default:
+=======
+	        case "default":
+>>>>>>> bd6a01e95ef6b250e330c7e7ebd2b5c98669b8bc
 	            warning('attivita sconosciuta: '.$attivita['categoria']);
 	            break;
 	    }
