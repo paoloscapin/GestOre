@@ -9,10 +9,14 @@
 
 require_once '../common/checkSession.php';
 
-if(isset($_POST['id']) && isset($_POST['id']) != "") {
-	$id = $_POST['id'];
+require_once __DIR__ . '/checkSession.php';
 
-	$query = "SELECT * FROM materia WHERE id = '$id'";
+// check request
+if(isset($_POST['id']) && isset($_POST['id']) != "" && isset($_POST['table']) && isset($_POST['table']) != "") {
+	$id = $_POST['id'];
+	$table = $_POST['table'];
+
+    $query = "SELECT * FROM $table WHERE id = '$id'";
 	$result = dbGetFirst($query);
 	echo json_encode($result);
 }

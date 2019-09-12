@@ -12,7 +12,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Materie</title>
+	<title>Tipo Fuis Assegnato</title>
 	<meta charset="UTF-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <?php
@@ -25,7 +25,7 @@ ruoloRichiesto('dirigente');
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
 
-<script type="text/javascript" src="js/materia.js"></script>
+<script type="text/javascript" src="js/fuisAssegnatoTipo.js"></script>
 </head>
 
 <body >
@@ -37,11 +37,11 @@ ruoloRichiesto('dirigente');
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-6">
-			<span class="glyphicon glyphicon-education"></span>&emsp;Gestione Materie
+			<span class="glyphicon glyphicon-education"></span>&emsp;Tipo FUIS Assegnato
 		</div>
         <div class="col-md-6">
             <div class="pull-right">
-				<button class="btn btn-xs btn-yellow4" onclick="materiaGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
+				<button class="btn btn-xs btn-yellow4" onclick="fuisAssegnatoTipoGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>
 	</div>
@@ -64,7 +64,7 @@ ruoloRichiesto('dirigente');
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h5 class="modal-title" id="myModalLabel">Nuova Materia</h5>
+                <h5 class="modal-title" id="myModalLabel">Tipo FUIS Assegnato</h5>
             </div>
             <div class="modal-body">
 
@@ -72,21 +72,16 @@ ruoloRichiesto('dirigente');
                     <label for="nome">Nome</label>
                     <input type="text" id="nome" placeholder="nome" class="form-control"/>
                 </div>
-
-                <div class="form-group">
-                    <label for="codice">Codice</label>
-                    <input type="text" id="codice" placeholder="codice" class="form-control"/>
-                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                <button type="button" class="btn btn-primary" onclick="materiaSave()">Salva</button>
+                <button type="button" class="btn btn-primary" onclick="fuisAssegnatoTipoSave()">Salva</button>
 				<input type="hidden" id="hidden_record_id">
             </div>
         </div>
     </div>
 </div>
-<!-- // Modal - Add New Record -->
+<!-- // Modal - Add/Update New Record -->
 
 </body>
 </html>

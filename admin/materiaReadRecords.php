@@ -18,7 +18,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					</tr>';
 
 $query = "	SELECT
-				materia.id AS local_materia_id,
+				materia.id AS local_id,
 				materia.*
 			FROM materia
 			";
@@ -32,8 +32,8 @@ foreach(dbGetAll($query) as $row) {
 		';
 	$data .='
 		<td>
-		<button onclick="materiaGetDetails('.$row['local_materia_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-		<button onclick="materiaDelete('.$row['local_materia_id'].', \''.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button onclick="materiaGetDetails('.$row['local_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+		<button onclick="materiaDelete('.$row['local_id'].', \''.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		</tr>';
 }
