@@ -9,7 +9,8 @@
 require_once '../common/__Settings.php';
 
 function orePrevisteAggiornaDocente($docenteId) {
-	global $__anno_scolastico_corrente_id;
+    global $__anno_scolastico_corrente_id;
+    global $__settings;
 
 	// per prima cosa azzera i contatori
 	$ore_40_sostituzioni_di_ufficio = 0;
@@ -38,7 +39,7 @@ function orePrevisteAggiornaDocente($docenteId) {
 		on ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
 		WHERE ore_previste_attivita.docente_id = $docenteId AND ore_previste_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id;
 		";
-	$resultArray = dbGetAll($query);
+    $resultArray = dbGetAll($query);
 	foreach($resultArray as $attivita) {
 		switch ($attivita['categoria'])  {
 			case $__settings->categorie->funzionali:
@@ -53,7 +54,7 @@ function orePrevisteAggiornaDocente($docenteId) {
 				$totale_aggiornamento = $totale_aggiornamento + $attivita['ore'];
 				break;
 
-			case $__settings->categorie->con_studenti":
+			case $__settings->categorie->con_studenti:
 				// TODO: mettere a punto una strategia generale di massimi
 				// controlla che ci siano al massimo 16 ore per le uscite
 				if ($attivita['nome'] === 'visite e viaggi') {
@@ -111,6 +112,7 @@ function orePrevisteAggiornaDocente($docenteId) {
 
 function oreFatteAggiornaDocente($docenteId) {
 	global $__anno_scolastico_corrente_id;
+    global $__settings;
 
 	// per prima cosa azzera i contatori
 	$ore_40_sostituzioni_di_ufficio = 0;
