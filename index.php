@@ -14,27 +14,17 @@
 <head>
 <?php
 require_once __DIR__ . '/common/checkSession.php';
+require_once __DIR__ . '/common/header-common.php';
 
 // if the session contains the role, go to the home corresponding to that role
-if (haRuolo('docente')) {
-    redirect('/docente/index.php');
-}
-else if (haRuolo('dirigente')) {
-    redirect('/dirigente/index.php');
-}
-else if (haRuolo('segreteria-docenti')) {
-    redirect('/segreteria/index.php');
-}
-else if (haRuolo('admin')) {
-    redirect('/admin/index.php');
+if (getHomeLink() !== "#") {
+    redirect(getHomeLink());
 }
 ?>
-
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <?php
-require_once __DIR__ . '/common/header-common.php';
 require_once __DIR__ . '/common/style.php';
 ?>
 <style type="text/css">
