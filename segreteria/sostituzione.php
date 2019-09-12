@@ -52,7 +52,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
         </div>
         <div class="col-md-4">
             <div class="pull-right">
-				<button class="btn btn-xs btn-success" data-toggle="modal" data-target="#add_new_record_modal"><span class="glyphicon glyphicon-plus"></span></button>
+				<button class="btn btn-xs btn-success" onclick="openModal()" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>
 	</div>
