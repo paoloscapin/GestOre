@@ -16,8 +16,9 @@ require_once '../common/__i18n.php';
 	<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav">
-			<li class="active"><a href="<?php echo $__application_base_path; ?>/docente/index.php"><span class="glyphicon glyphicon-home"></span> Home </a></li>
-			<li><a href="#">  </a></li>
+            <li class="active">
+                <a href="<?php echo getHomeLink(); ?>"><span class="glyphicon glyphicon-home"></span> Home </a></li>
+            <li><a href="#">  </a></li>
 
 			<?php if($__settings->config->corsiDiRecupero) : ?>
 			<a href="<?php echo $__application_base_path; ?>/docente/corsoDiRecupero.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
