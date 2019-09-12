@@ -15,7 +15,7 @@
 	<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav">
-			<li class="active"><a href="<?php echo $__application_base_path; ?>/segreteria/index.php"><span class="glyphicon glyphicon-home"></span> Home </a></li>
+			<li class="active"><a href="<?php echo getHomeLink(); ?>"><span class="glyphicon glyphicon-home"></span> Home </a></li>
 			<li><a href="#">  </a></li>
 
 			<a href="<?php echo $__application_base_path; ?>/segreteria/docente.php" class="btn btn-default navbar-btn btn-primary" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Docenti </a>
