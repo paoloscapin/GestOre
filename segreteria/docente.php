@@ -245,7 +245,7 @@ $ore80 = [
                     <label class="col-sm-2 control-label" for="profilo_ore_40_sostituzioni_di_ufficio">Sostituzioni (18)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_40_sostituzioni_di_ufficio" placeholder="sost" class="form-control"/></div>
 
-                    <label class="col-sm-2 control-label" for="profilo_ore_40_con_studenti">con Stud. (18)</label>
+                    <label class="col-sm-2 control-label" for="profilo_ore_40_con_studenti">con Stud. (15)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_40_con_studenti" placeholder="stud" class="form-control"/></div>
 
                     <label class="col-sm-2 control-label" for="profilo_ore_40_aggiornamento">Aggiorn. (10)</label>
@@ -255,7 +255,7 @@ $ore80 = [
                 <hr>
 
                 <div class="form-group">
-                    <label class="col-sm-2 control-label" for="profilo_ore_70_funzionali"><?php echo __(Funzionali); ?> (30)</label>
+                    <label class="col-sm-2 control-label" for="profilo_ore_70_funzionali"><?php echo __("Funzionali"); ?> (30)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_70_funzionali" placeholder="funz" class="form-control"/></div>
 
                     <label class="col-sm-2 control-label" for="profilo_ore_70_con_studenti">con Stud. (40)</label>

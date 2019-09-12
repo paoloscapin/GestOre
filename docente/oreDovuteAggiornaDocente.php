@@ -9,7 +9,8 @@
 require_once '../common/__Settings.php';
 
 function orePrevisteAggiornaDocente($docenteId) {
-	global $__anno_scolastico_corrente_id;
+    global $__anno_scolastico_corrente_id;
+    global $__settings;
 
 	// per prima cosa azzera i contatori
 	$ore_40_sostituzioni_di_ufficio = 0;
@@ -38,7 +39,7 @@ function orePrevisteAggiornaDocente($docenteId) {
 		on ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
 		WHERE ore_previste_attivita.docente_id = $docenteId AND ore_previste_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id;
 		";
-	$resultArray = dbGetAll($query);
+    $resultArray = dbGetAll($query);
 	foreach($resultArray as $attivita) {
 		switch ($attivita['categoria'])  {
 			case $__settings->categorie->funzionali:
@@ -111,6 +112,7 @@ function orePrevisteAggiornaDocente($docenteId) {
 
 function oreFatteAggiornaDocente($docenteId) {
 	global $__anno_scolastico_corrente_id;
+    global $__settings;
 
 	// per prima cosa azzera i contatori
 	$ore_40_sostituzioni_di_ufficio = 0;
@@ -197,11 +199,7 @@ function oreFatteAggiornaDocente($docenteId) {
 	            $ore_40_con_studenti = $ore_40_con_studenti + $attivita['ore_previste_attivita_ore'];
 	            break;
 
-<<<<<<< HEAD
 	        default:
-=======
-	        case "default":
->>>>>>> bd6a01e95ef6b250e330c7e7ebd2b5c98669b8bc
 	            warning('attivita sconosciuta: '.$attivita['categoria']);
 	            break;
 	    }
