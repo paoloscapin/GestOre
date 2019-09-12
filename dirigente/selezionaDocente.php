@@ -34,8 +34,12 @@ $query = "	SELECT * FROM docente
 			ORDER BY docente.cognome, docente.nome ASC
 			;";
 foreach(dbGetAll($query) as $row) {
+    $selected = "";
+    if ( $__useremail === $row["email"]) {
+        $selected = "selected";
+    }
     $docenteOptionList .= '
-		<option value="'.$row['id'].'" data-subtext="'.$row['username'].'">'.$row['cognome'].' '.$row['nome'].'</option>';
+		<option value="'.$row['id'].'" data-subtext="'.$row['username'].'" '.$selected.'>'.$row['cognome'].' '.$row['nome'].'</option>';
 }
 ?>
 

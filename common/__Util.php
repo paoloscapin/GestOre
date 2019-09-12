@@ -57,6 +57,31 @@ function haRuolo($ruolo) {
     return false;
 }
 
+function getHomeLink() {
+    global $__utente_ruolo;
+    global $__application_base_path;
+
+    switch ($__utente_ruolo) {
+        case 'admin':
+            return $__application_base_path."/index.php";
+            break;
+        case 'dirigente':
+            return $__application_base_path."/dirigente/index.php";
+            break;
+        case 'segreteria-didattica':
+            return $__application_base_path."/segreteria/index.php";
+            break;
+        case 'docente':
+            return $__application_base_path."/docente/index.php";
+            break;
+
+        default:
+            return "#";
+            break;
+    }
+
+}
+
 // rimpiazza i caratteri speciali di una stringa in modo da poterla passare come parametro a js
 function str2js($str) {
     return preg_replace("/\r\n|\r|\n/",'<br/>',str_replace("'", "\'", $str));
