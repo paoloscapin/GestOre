@@ -31,6 +31,7 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 					viaggio.ore_richieste AS viaggio_ore_richieste,
 					viaggio.richiesta_fuis AS viaggio_richiesta_fuis,
 					viaggio.stato AS viaggio_stato,
+					docente.id AS docente_id,
 					docente.cognome AS docente_cognome,
 					docente.nome AS docente_nome,
 						spesa_viaggio.id AS spesa_viaggio_id,

@@ -201,7 +201,11 @@ function oreFatteAggiornaDocente($docenteId) {
 	            break;
 	    }
 	}
-	
+
+	// le sostituzioni ora sono in una tabella a parte
+	$query = "SELECT SUM(ora) FROM sostituzione_docente WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId;";
+	$ore_40_sostituzioni_di_ufficio = dbGetValue($query);
+
 	// infine le ore dei viaggi (che vanno con gli studenti)
 	$query = "	SELECT
 					viaggio_ore_recuperate.id AS viaggio_ore_recuperate_id,
@@ -235,9 +239,10 @@ function oreFatteAggiornaDocente($docenteId) {
 	
 	// aggiorna i valori della tabella ore_fatte
 
-	// eliminato dal seguente:
+	// inerito di nuovo dal seguente:
 	// 						ore_40_sostituzioni_di_ufficio = '$ore_40_sostituzioni_di_ufficio',
 	$query = "	UPDATE ore_fatte SET
+						ore_40_sostituzioni_di_ufficio = '$ore_40_sostituzioni_di_ufficio',
 						ore_40_aggiornamento = '$ore_40_aggiornamento',
 						ore_40_con_studenti = '$ore_40_con_studenti',
 						ore_70_funzionali = '$ore_70_funzionali',

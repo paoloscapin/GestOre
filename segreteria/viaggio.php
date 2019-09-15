@@ -336,6 +336,8 @@ if(mysqli_num_rows($result) > 0) {
 				<button type="button" class="btn btn-success" id="btnEvaso" onclick="viaggioEvaso()" >Evaso</button>
 				<button type="button" class="btn btn-success" id="btnChiudi" onclick="viaggioChiudi()" >Chiudi</button>
 				<input type="hidden" id="hidden_rimborso_viaggio_id">
+				<input type="hidden" id="hidden_rimborso_viaggio_docente_id">
+				<input type="hidden" id="hidden_rimborso_viaggio_docente_cognome_e_nome">
 			</div>
             </div>
             </div>

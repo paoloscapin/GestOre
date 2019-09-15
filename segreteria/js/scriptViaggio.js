@@ -168,10 +168,11 @@ function viaggioRimborso(id) {
 			id: id
 		},
 		function (data, status) {
-			// PARSE json data
-			console.log(data);
 			var spesaViaggioArray = JSON.parse(data);
+			// memorizza docente id e cognome e nome da usare poi
 			console.log(spesaViaggioArray);
+			$("#hidden_rimborso_viaggio_docente_id").val(spesaViaggioArray[0].docente_id);
+			$("#hidden_rimborso_viaggio_docente_cognome_e_nome").val(spesaViaggioArray[0].docente_cognome + " " + spesaViaggioArray[0].docente_nome);
 			var stato = spesaViaggioArray[0].viaggio_stato;
 			if (stato != "evaso" && stato != "effettuato") {
 				alert('il viaggio risulta in stato ' + stato + ' e non può essere trattato');
@@ -285,7 +286,8 @@ function viaggioChiudi() {
 	if (diaria == true) {
 		var importo = prompt("Indennità forfettaria: inserire importo dovuto", "0");
 		if (importo != null) {
-			importo_diaria = parseFloat(importo);
+			// problrmi con la virgola: se bisogna trasformo in un punto.
+			var importo_diaria = parseFloat(importo.replace(',', '.'));
 		} else {
 			return;
 		}
@@ -301,7 +303,9 @@ function viaggioChiudi() {
     $.post("viaggioChiudi.php", {
 		viaggio_id: viaggio_id,
 		importo_diaria: importo_diaria,
-		numero_ore: ore_richieste
+		numero_ore: ore_richieste,
+		docente_id: $("#hidden_rimborso_viaggio_docente_id").val(),
+		docente_cognome_e_nome: $("#hidden_rimborso_viaggio_docente_cognome_e_nome").val()
         },
         function (data, status) {
 			$("#rimborso_viaggio_modal").modal("hide");
