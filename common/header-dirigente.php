@@ -44,7 +44,7 @@
 ?>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
-			<li><a href="/help/GestOre/html/GestOre.html" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>
+			<li><a href="<?php echo $__settings->local->helpLinkDirigente; ?>" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>
 			<li><a><span class=""></span><?php echo $__utente_nome.' '.$__utente_cognome ?></a></li>
 			<li><?php echo '<a href='.$__application_base_path.'/common/logout.php><span class="glyphicon glyphicon-log-out"></span></a>'; ?></li>
 		</ul>

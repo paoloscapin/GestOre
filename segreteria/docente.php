@@ -35,29 +35,27 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-success">
+<div class="panel panel-lightblue4">
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-4">
 			<span class="glyphicon glyphicon-education"></span>&emsp;Gestione Docenti
 		</div>
-	</div>
-</div>
-<div class="panel-body">
-    <div class="row"  style="margin-bottom:10px;">
-        <div class="col-md-6">
-            <div class="pull-right">
+        <div class="col-md-4">
+            <div class="text-center">
 				<label class="checkbox-inline">
-					<input type="checkbox" checked data-toggle="toggle" data-size="small" data-onstyle="primary" id="testCheckBox" >Solo Attivi
+					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="testCheckBox" >Solo Attivi
 				</label>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="pull-right">
-				<button class="btn btn-success" data-toggle="modal" data-target="#add_new_record_modal"><span class="glyphicon glyphicon-plus"></span>&ensp;Nuovo Docente </button>
+				<button class="btn btn-xs btn-lightblue4" data-toggle="modal" data-target="#add_new_record_modal"><span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>
-    </div>
+	</div>
+</div>
+<div class="panel-body">
     <div class="row">
         <div class="col-md-12">
             <div class="records_content"></div>
@@ -73,7 +71,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 <div class="modal fade" id="add_new_record_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header panel-lightblue4">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 <h5 class="modal-title" id="myModalLabel">Nuovo docente</h5>
             </div>
@@ -123,7 +121,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 <div class="modal fade" id="update_docente_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header panel-lightblue4">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 <h5 class="modal-title" id="myModalLabel">Aggiorna</h5>
             </div>
@@ -176,7 +174,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
-			<div class="panel panel-danger">
+			<div class="panel panel-deeporange4">
 			<div class="panel-heading">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 <h5 class="modal-title" id="myModalProfiloLabel">Aggiorna Profilo</h5>
