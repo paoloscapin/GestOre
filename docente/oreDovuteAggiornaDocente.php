@@ -7,9 +7,12 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 require_once '../common/__Settings.php';
+require_once '../common/__Log.php';
+
 
 function orePrevisteAggiornaDocente($docenteId) {
 	global $__anno_scolastico_corrente_id;
+	global $__settings;
 
 	// per prima cosa azzera i contatori
 	$ore_40_sostituzioni_di_ufficio = 0;
@@ -206,7 +209,8 @@ function oreFatteAggiornaDocente($docenteId) {
 
 	// le sostituzioni ora sono in una tabella a parte
 	$query = "SELECT SUM(ora) FROM sostituzione_docente WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId;";
-	$ore_40_sostituzioni_di_ufficio = dbGetValue($query);
+    $ore_40_sostituzioni_di_ufficio = dbGetValue($query);
+    $ore_40_sostituzioni_di_ufficio = is_null($ore_40_sostituzioni_di_ufficio)?'0': $ore_40_sostituzioni_di_ufficio;
 
 	// infine le ore dei viaggi (che vanno con gli studenti)
 	$query = "	SELECT
