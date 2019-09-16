@@ -7,6 +7,7 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+require_once '../common/__i18n.php';
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
@@ -25,9 +26,9 @@ $data .= '
             <th class="text-center col-md-1">Viaggi (diaria)</th>
             <th class="text-center col-md-1">Assegnate</th>
             <th class="text-center col-md-1">Sostituzioni</th>
-            <th class="text-center col-md-1">Funzionali</th>
+            <th class="text-center col-md-1">'.__("Funzionali").'</th>
             <th class="text-center col-md-1">Con Studenti</th>
-            <th class="text-center col-md-1">Clil Funzionali</th>
+            <th class="text-center col-md-1">Clil '.__("Funzionali").'</th>
             <th class="text-center col-md-1">Clil Con Studenti</th>
             <th class="text-center col-md-1">Da Pagare</th>
 		</tr>
@@ -59,7 +60,7 @@ foreach($resultArray as $docente) {
     $clil_funzionale = $docente['clil_funzionale_approvato'];
     $clil_con_studenti = $docente['clil_con_studenti_approvato'];
     $totale = $docente['totale_da_pagare'];
-    
+
     // controlla se sono state modificate delle attivita:
     $ultimo_controllo = $docente['ultimo_controllo'];
     $q2 = "SELECT COUNT(ultima_modifica) from ore_fatte_attivita WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $local_docente_id AND ultima_modifica > '$ultimo_controllo';";
