@@ -16,6 +16,8 @@
 <?php
 require_once '../common/checkSession.php';
 require_once '../common/style.php';
+require_once '../common/header-common.php';
+
 ruoloRichiesto('admin');
 ?>
 </head>

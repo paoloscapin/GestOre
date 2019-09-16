@@ -2,3 +2,10 @@
 /log/
 /common/__Environment.php
 /GestOre.json
+/.vscode/
+common/info.php
+/node_modules/
+vendor/
+*.mo
+*.po~
+/i18n.pot

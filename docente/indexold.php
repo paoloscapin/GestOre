@@ -14,6 +14,8 @@
 <head>
 <?php
 require_once '../common/checkSession.php';
+require_once '../common/__i18n.php';
+
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
@@ -145,7 +147,7 @@ require_once '../common/connect.php';
 		<thead>
 			<tr>
 				<th class="col-md-5"></th>
-				<th class="col-md-3 text-left">Funzionali</th>
+				<th class="col-md-3 text-left"><?php echo __("Funzionali"); ?></th>
 				<th class="col-md-3 text-left">con Studenti</th>
 			</tr>
 		</thead>
@@ -186,7 +188,7 @@ require_once '../common/connect.php';
 		<thead>
 			<tr>
 				<th class="col-md-5"></th>
-				<th class="col-md-3 text-left">Funzionali</th>
+				<th class="col-md-3 text-left"><?php echo __("Funzionali"); ?></th>
 				<th class="col-md-3 text-left">con Studenti</th>
 			</tr>
 		</thead>
