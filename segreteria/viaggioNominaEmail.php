@@ -62,9 +62,10 @@ setlocale(LC_TIME, $oldLocale);
 
 $to = $row['docente_email'];
 $subject = 'Incarico '.$row['viaggio_tipo_viaggio'].' a '.$row['viaggio_destinazione'].' del '.$dataPartenza;
-$sender = "noreply-gestionale@martinomartini.eu";
+$sender = "noreply-piano.ore@marconirovereto.it";
 
 $headers = "From: $sender\n";
+$headers = "Reply-To: $sender\n";
 $headers .= "MIME-Version: 1.0\n";
 $headers .= "Content-Type: text/html; charset=\"UTF-8\"\n";
 $headers .= "Content-Transfer-Encoding: 8bit\n";
@@ -84,7 +85,7 @@ Gentile '.$row['docente_nome'].' '.$row['docente_cognome'].'
 <p>in data '.$dataNomina.' il Dirigente Scolastico le ha conferito l&rsquo;incarico di accompagnatore degli studenti durante '.$tipoViaggio.' a <b>'.$row['viaggio_destinazione'].'</b> del giorno <b>'.$dataPartenza.'</b></p>
 <p>La preghiamo di confermare al pi&ugrave; presto la sua disponibilit&agrave; confermando sul sito di
 <a href=\''.$url.'\'>accettare l&rsquo;incarico</a></p>
-<p>gestionale martini</p>
+<p>Segreteria Marconi</p>
 </body></html>
 ';
 

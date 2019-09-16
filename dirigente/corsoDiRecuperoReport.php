@@ -13,7 +13,9 @@
 <html>
 <head>
 <?php
-	require_once '../common/checkSession.php';
+    require_once '../common/checkSession.php';
+    require_once '../common/header-common.php';
+    
 	ruoloRichiesto('segreteria','segreteria-didattica','dirigente');
 ?>
 	<title>Corsi di Recupero</title>

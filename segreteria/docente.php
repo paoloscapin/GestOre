@@ -17,11 +17,21 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <?php
 require_once '../common/checkSession.php';
+require_once '../common/__i18n.php';
+require_once '../common/__Settings.php';
 
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 ruoloRichiesto('dirigente','segreteria-docenti');
+// Leggo la configurazione delle 80 ore
+$ore80 = [
+    "ore_max_collegi_docenti" => $__settings->ore80->ore_max_collegi_docenti,
+    "ore_max_udienze_generali" => $__settings->ore80->ore_max_udienze_generali,
+    "ore_max_dipartimenti" => $__settings->ore80->ore_max_dipartimenti,
+    "ore_max_aggiornamento_facoltativo" => $__settings->ore80->ore_max_aggiornamento_facoltativo,
+    "ore_max_consigli_di_classe" => $__settings->ore80->ore_max_consigli_di_classe,
+    ];
 ?>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
@@ -204,26 +214,26 @@ ruoloRichiesto('dirigente','segreteria-docenti');
                 </div>
 
                 <hr>
-
+                <!-- imposto i valori tra parentesi delle voci delle 80 ore ai valori configurati massimi -->
                 <div class="form-group">
-                    <label class="col-sm-2 control-label" for="profilo_ore_80_collegi_docenti">Collegio Doc (8)</label>
+                    <label class="col-sm-2 control-label" for="profilo_ore_80_collegi_docenti">Collegio Doc (<?= $ore80["ore_max_collegi_docenti"] ?>)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_80_collegi_docenti" placeholder="cd" class="form-control"/></div>
 
-                    <label class="col-sm-2 control-label" for="profilo_ore_80_udienze_generali">Udienze Gen (8)</label>
+                    <label class="col-sm-2 control-label" for="profilo_ore_80_udienze_generali">Udienze Gen (<?= $ore80["ore_max_udienze_generali"] ?>)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_80_udienze_generali" placeholder="udienze" class="form-control"/></div>
 
-                    <label class="col-sm-2 control-label" for="profilo_ore_80_aggiornamento_facoltativo">Aggiorn. (10)</label>
+                    <label class="col-sm-2 control-label" for="profilo_ore_80_aggiornamento_facoltativo">Aggiorn. (<?= $ore80["ore_max_aggiornamento_facoltativo"] ?>)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_80_aggiornamento_facoltativo" placeholder="agg" class="form-control"/></div>
                 </div>
 
                 <div class="form-group">
-                    <label class="col-sm-2 control-label" for="profilo_ore_80_dipartimenti_min">Dip min (12)</label>
+                    <label class="col-sm-2 control-label" for="profilo_ore_80_dipartimenti_min">Dip min (<?= $ore80["ore_max_dipartimenti"] ?>)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_80_dipartimenti_min" placeholder="Dip min" class="form-control"/></div>
 
-                    <label class="col-sm-2 control-label" for="profilo_ore_80_dipartimenti_max">Dip Max (24)</label>
+                    <label class="col-sm-2 control-label" for="profilo_ore_80_dipartimenti_max">Dip Max (<?= $ore80["ore_max_dipartimenti"] ?>)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_80_dipartimenti_max" placeholder="Dip Max" class="form-control"/></div>
 
-                    <label class="col-sm-2 control-label" for="profilo_ore_80_consigli_di_classe">CDC (30)</label>
+                    <label class="col-sm-2 control-label" for="profilo_ore_80_consigli_di_classe">CDC (<?= $ore80["ore_max_consigli_di_classe"] ?>)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_80_consigli_di_classe" placeholder="cdc" class="form-control"/></div>
                 </div>
 
@@ -243,7 +253,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
                 <hr>
 
                 <div class="form-group">
-                    <label class="col-sm-2 control-label" for="profilo_ore_70_funzionali">Funzionali (30)</label>
+                    <label class="col-sm-2 control-label" for="profilo_ore_70_funzionali"><?php echo __("Funzionali"); ?> (30)</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_70_funzionali" placeholder="funz" class="form-control"/></div>
 
                     <label class="col-sm-2 control-label" for="profilo_ore_70_con_studenti">con Stud. (40)</label>
@@ -279,6 +289,13 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 				<input type="hidden" id="hidden_profilo_docente_id">
 				<input type="hidden" id="hidden_ore_dovute_id">
 				<input type="hidden" id="hidden_ore_previste_id">
+
+                <!-- campi dove scrivere la configurazione delle 80 ore -->
+				<input type="hidden" id="profilo_ore_max_collegi_docenti">
+				<input type="hidden" id="profilo_ore_max_udienze_generali">
+				<input type="hidden" id="profilo_ore_max_dipartimenti">
+				<input type="hidden" id="profilo_ore_max_aggiornamento_facoltativo">
+				<input type="hidden" id="profilo_ore_max_consigli_di_classe">
 			</div>
 			</div>
 			</div>
