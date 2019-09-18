@@ -19,6 +19,15 @@ $( '#testCheckBox' ).change( function () {
 } );
 
 function ricalcola () {
+    const ORE_CATTEDRA = 18;
+    const NUMERO_SETTIMANE_AS = 33;
+    const GIORNI_DI_SERVIZIO = 300;
+    const ORE_DI_AGGIORNAMENTO = 10;
+    const ORE_40_CON_STUDENTI = 15;
+    const MINUTI_CONTEGGIATI_CON_STUDENTI = 60;
+    const MINUTI_CONTEGGIATI_SOSTITUZIONI = 50;
+    const ORE_70_FUNZIONALI = 30;
+
     var profilo_tipo_di_contratto = $( "#profilo_tipo_di_contratto" ).val();
     var profilo_giorni_di_servizio = $( "#profilo_giorni_di_servizio" ).val();
     var profilo_ore_di_cattedra = $( "#profilo_ore_di_cattedra" ).val();
@@ -32,14 +41,15 @@ function ricalcola () {
     var profilo_ore_max_consigli_di_classe = $( "#profilo_ore_max_consigli_di_classe" ).val();
 
     // cattedra + 18 ore, 33 eccedenti
-    if ( profilo_ore_di_cattedra > 18 ) {
-        profilo_ore_eccedenti = Math.round( 33 / 300 * profilo_giorni_di_servizio );
-        profilo_ore_di_cattedra = 18;
+    if ( profilo_ore_di_cattedra > ORE_CATTEDRA ) {
+        profilo_ore_eccedenti = Math.round( NUMERO_SETTIMANE_AS / GIORNI_DI_SERVIZIO * profilo_giorni_di_servizio );
+        profilo_ore_di_cattedra = ORE_CATTEDRA;
+
     }
     $( "#profilo_ore_eccedenti" ).val( profilo_ore_eccedenti );
 
     // calcola lo standard di 300 gg con 18 ore di cattedra rispetto ai giorni di servizio e ore effettive
-    var coefficente = ( profilo_giorni_di_servizio * profilo_ore_di_cattedra ) / ( 18 * 300 );
+    var coefficente = ( profilo_giorni_di_servizio * profilo_ore_di_cattedra ) / ( ORE_CATTEDRA * GIORNI_DI_SERVIZIO );
 
     // NB: Per evitare somme di errori decimali, calcola prima il totale (80, 40, 70)
     var totale_80 = Math.round( coefficente * 80 );
@@ -68,26 +78,26 @@ function ricalcola () {
     var totale_40_in_minuti = coefficente * 40 * 60;
 
     // aggiornamento sono in effetti da 60 minuti
-    var profilo_ore_40_aggiornamento = Math.round( coefficente * 10 );
+    var profilo_ore_40_aggiornamento = Math.round( coefficente * ORE_DI_AGGIORNAMENTO );
 
     // quelle con studenti sono da 50
-    var profilo_ore_40_con_studenti = Math.round( coefficente * 18 );
+    var profilo_ore_40_con_studenti = Math.round( coefficente * ORE_40_CON_STUDENTI );
 
     // calcola quanti minuti ho tornato con aggiornamento e studenti insieme
-    var minutiRitornati = ( profilo_ore_40_aggiornamento * 60 ) + ( profilo_ore_40_con_studenti * 50 );
+    var minutiRitornati = ( profilo_ore_40_aggiornamento * 60 ) + ( profilo_ore_40_con_studenti * MINUTI_CONTEGGIATI_CON_STUDENTI );
 
     // e dunque ne devo tornare ancora...
     var minutiDaFare = totale_40_in_minuti - minutiRitornati;
 
     // minuti da tornare in sostituzioni da 50 minuti
-    var profilo_ore_40_sostituzioni_di_ufficio = Math.round( minutiDaFare / 50 );
+    var profilo_ore_40_sostituzioni_di_ufficio = Math.round( minutiDaFare / MINUTI_CONTEGGIATI_SOSTITUZIONI );
 
     $( "#profilo_ore_40_sostituzioni_di_ufficio" ).val( profilo_ore_40_sostituzioni_di_ufficio );
     $( "#profilo_ore_40_con_studenti" ).val( profilo_ore_40_con_studenti );
     $( "#profilo_ore_40_aggiornamento" ).val( profilo_ore_40_aggiornamento );
 
     // le 70 non hanno questo problema, considero 50 minuti con studenti e 30 funzionali
-    var profilo_ore_70_funzionali = Math.round( coefficente * 30 );
+    var profilo_ore_70_funzionali = Math.round( coefficente * ORE_70_FUNZIONALI );
     // il resto con studenti
     var profilo_ore_70_con_studenti = totale_70 - profilo_ore_70_funzionali;
     $( "#profilo_ore_70_funzionali" ).val( profilo_ore_70_funzionali );
@@ -99,7 +109,7 @@ function ricalcola () {
     }
 
     // le vere 40 si ricalcolano per eliminare errori dovuti ai minuti sospesi in giro
-    var totale_40_vero = Math.round( profilo_ore_40_aggiornamento + ( ( profilo_ore_40_con_studenti + profilo_ore_40_sostituzioni_di_ufficio ) / 60 * 50 ) );
+    var totale_40_vero = Math.round( profilo_ore_40_aggiornamento + ( profilo_ore_40_con_studenti * MINUTI_CONTEGGIATI_CON_STUDENTI + profilo_ore_40_sostituzioni_di_ufficio * MINUTI_CONTEGGIATI_SOSTITUZIONI ) / 60 );
     $( "#profilo_ore_80_totale" ).val( totale_80 );
     $( "#profilo_ore_40_totale" ).val( totale_40_vero );
     $( "#profilo_ore_70_totale" ).val( totale_70 );
