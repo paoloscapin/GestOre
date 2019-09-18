@@ -203,7 +203,7 @@ function oreFatteAggiornaDocente($docenteId) {
 	}
 
 	// le sostituzioni ora sono in una tabella a parte
-	$query = "SELECT SUM(ora) FROM sostituzione_docente WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId;";
+	$query = "SELECT COALESCE(SUM(ora), 0) FROM sostituzione_docente WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId;";
 	$ore_40_sostituzioni_di_ufficio = dbGetValue($query);
 
 	// infine le ore dei viaggi (che vanno con gli studenti)
