@@ -17,7 +17,7 @@ function getHomeLink() {
             $__application_base_path."/admin/index.php",
         'dirigente' =>
             $__application_base_path."/dirigente/index.php",
-        'segreteria-didattica' =>
+        'segreteria-docenti' =>
             $__application_base_path."/segreteria/index.php",
         'docente' =>
             $__application_base_path."/docente/index.php"
