@@ -9,6 +9,13 @@
 
 require_once '../common/checkSession.php';
 
+function numOrBlank($num) {
+	if ($num > 0) {
+		return $num;
+	}
+	return '';
+}
+
 $soloAttivi = $_GET["soloAttivi"];
 
 // Design initial table header
@@ -19,19 +26,18 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th>Email</th>
 						<th>Username</th>
 						<th>Matricola</th>
+						<th>Contratto</th>
+						<th>Giorni</th>
+						<th>Cattedra</th>
 						<th>Attivo</th>
 						<th>Profilo</th>
 						<th>Modifica</th>
 					</tr>';
 
-$query = "	SELECT
-				docente.id AS local_docente_id,
-				docente.*
-			FROM docente
-			";
+$query = "SELECT docente.id AS local_docente_id, docente.*, profilo_docente.* FROM docente LEFT OUTER JOIN profilo_docente ON docente.id = profilo_docente.docente_id WHERE profilo_docente.anno_scolastico_id = $__anno_scolastico_corrente_id ";
 
 if( $soloAttivi) {
-	$query .= "WHERE docente.attivo = true ";
+	$query .= " AND docente.attivo = true ";
 }
 $query .= "order by cognome,nome";
 
@@ -42,6 +48,9 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.$row['email'].'</td>
 		<td>'.$row['username'].'</td>
 		<td>'.$row['matricola'].'</td>
+		<td>'.$row['tipo_di_contratto'].'</td>
+		<td>'.numOrBlank($row['giorni_di_servizio']).'</td>
+		<td>'.numOrBlank($row['ore_di_cattedra']).'</td>
 		';
 
 	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="attivo" ';
