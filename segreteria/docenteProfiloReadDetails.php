@@ -8,6 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/__Settings.php';
 
 function checkTableExists($table, $docente_id, $anno_id) {
 	$verifyQuery = "SELECT * FROM $table WHERE anno_scolastico_id = $anno_id AND docente_id = $docente_id;";
@@ -70,6 +71,16 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 					AND docente.id = '$docente_id'";
 
 	$response = dbGetFirst($query);
+	    // Aggiunge la configurazione della divisione delle 80 ore
+		$response += [
+			"ore_max_collegi_docenti" => $__settings->ore80->ore_max_collegi_docenti,
+			"ore_max_udienze_generali" => $__settings->ore80->ore_max_udienze_generali,
+			"ore_max_dipartimenti" => $__settings->ore80->ore_max_dipartimenti,
+			"ore_max_aggiornamento_facoltativo" => $__settings->ore80->ore_max_aggiornamento_facoltativo,
+			"ore_max_consigli_di_classe" => $__settings->ore80->ore_max_consigli_di_classe,
+			"ore_max_sostituzioni" => $__settings->ore80->ore_max_sostituzioni,
+			"minuti_ore_con_studenti" => $__settings->ore80->minuti_ore_con_studenti,
+		];
 	echo json_encode($response);
 }
 ?>

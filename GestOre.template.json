@@ -1,0 +1,50 @@
+{
+    "name": "GestOre",
+    "system": {
+        "https": true,
+        "durata_sessione": 31536000
+    },
+    "GoogleAuth": {
+        "applicationName": "GestOre",
+        "clientId": "--- inserire il clientId fornito da google ---",
+        "clientSecret": "--- inserire il clientSecret fornito da google ---"
+    },
+    "db": {
+        "host": "localhost",
+        "user": "gestore",
+        "password": "password",
+        "database": "gestore"
+    },
+    "log": {
+        "logIntoAppFolder": false,
+        "logFile": "d:/Temp/log/GestOre.log",
+        "timeFormat": "%d/%m/%Y - %H:%M:%S",
+        "debug": true
+    },
+    "config": {
+        "gestioneClil": false,
+        "bonus": true,
+        "corsiDiRecupero": true
+    },
+    "local": {
+        "helpLinkDocente": "https://docs.google.com/document/d/1Ymf4zN6lbeJ-430u-AhgB90TELg4gy1u1QHbDchsrww/edit?usp=sharing",
+        "helpLinkDirigente": "https://docs.google.com/document/d/1r630J8N7qQ2dcik7Ies0LJSPnHz8wWUVlzDPJXdWreY/edit?usp=sharing",
+        "helpLinkSegreteria": "https://docs.google.com/document/d/1SeYhz-V1ypSMMgvJMxoiV0DTbKRI_llCRFPEnbnUctU/edit?usp=sharing",
+        "helpLinkAdmin": "https://docs.google.com/document/d/17B9ZXTg1WD7IBwZMKuHj47YigVjfPkH3o8gp-fpD9ig/edit?usp=sharing",
+        "nomeIstituto": "--- inserire la località per i documenti generati ---",
+        "emailNoReplyFrom": "--- inserire un indirizzo di email noreply (ad esempio noreply-GestOre@istituto.it) ---",
+        "luogoIstituto": "--- inserire la località per i documenti generati ---"
+    },
+    "ore80": {
+        "minuti_ore_con_studenti": 50,
+        "ore_max_sostituzioni": 18,
+        "ore_max_collegi_docenti": 8,
+        "ore_max_udienze_generali": 8,
+        "ore_max_dipartimenti": 24,
+        "ore_max_aggiornamento_facoltativo": 10,
+        "ore_max_consigli_di_classe": 30
+    },
+    "label": {
+        "ore_funzionali": "funzionali"
+    }
+}
