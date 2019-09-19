@@ -14,7 +14,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gestionale Login</title>
+<title>GestOre Login</title>
 <link rel="stylesheet" href="../common/bootstrap-3.3.7-dist/css/bootstrap.min.css">
 <script src="../common/jquery-3.3.1-dist/jquery-3.3.1.min.js"></script>
 <script src="../common/bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>

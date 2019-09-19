@@ -17,9 +17,12 @@
 
 <body >
 <?php
-	require_once '../common/checkSession.php';
-	require_once '../common/header-common.php';
-	require_once '../common/header-error.php';
+require_once '../common/__Util.php';
+require_once '../common/path.php';
+require_once '../common/connect.php';
+//	require_once '../common/checkSession.php';
+require_once '../common/header-common.php';
+require_once '../common/header-error.php';
 ?>
 
 <!-- Content Section -->

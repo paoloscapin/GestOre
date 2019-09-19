@@ -121,7 +121,7 @@ if (!$session->has ( 'docente_id' ) && $session->has ( 'utente_ruolo' ) && ($ses
     debug ( 'manca in sessione docente_id' );
     $docente = dbGetFirst("SELECT * FROM docente WHERE docente.username = '$__username'");
     if ($docente == null) {
-        header ( 'gestionale/common/error.php?message=utente non docente: ' . $__username );
+        redirect("/error/unauthorized.php");
         exit ();
     }
     $session->set ( 'docente_id', $docente ['id'] );
