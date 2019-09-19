@@ -37,7 +37,11 @@ require_once '../common/connect.php';
     <div class="row">
         <div class="col-md-12">
 <?php
-
+if (! haRuolo('segreteria-didattica')) {
+	$selezioneDocente = "AND corso_di_recupero.docente_id = $__docente_id";
+} else {
+	$selezioneDocente = "";
+}
 $query = "	SELECT
 				corso_di_recupero.id AS corso_di_recupero_id,
 				corso_di_recupero.codice AS corso_di_recupero_codice,
@@ -51,7 +55,7 @@ $query = "	SELECT
 			INNER JOIN materia materia
 			ON corso_di_recupero.materia_id = materia.id
 			WHERE corso_di_recupero.anno_scolastico_id = $__anno_scolastico_corrente_id
-			AND corso_di_recupero.docente_id = $__docente_id
+			$selezioneDocente
 			"
 			;
 $query .= "

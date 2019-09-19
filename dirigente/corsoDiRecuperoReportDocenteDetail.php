@@ -39,7 +39,7 @@ $query = "	SELECT SUM(lezione_corso_di_recupero.numero_ore) FROM lezione_corso_d
 			ON lezione_corso_di_recupero.corso_di_recupero_id = corso_di_recupero.id
 			INNER JOIN docente docente
 			ON corso_di_recupero.docente_id = docente.id
-			WHERE docente.id = docente_id AND lezione_corso_di_recupero.firmato = true
+			WHERE docente.id = $docente_id AND lezione_corso_di_recupero.firmato = true
 	";
 $oreFatte = dbGetValue($query);
 $data .= '
