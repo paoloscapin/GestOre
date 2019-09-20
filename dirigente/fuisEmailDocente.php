@@ -17,7 +17,7 @@ $docente = dbGetFirst($query);
 
 $to = $docente['email'];
 $subject = 'Aggiornamento Richiesta FUIS';
-$sender = "noreply-gestionale@martinomartini.eu";
+$sender = $__settings->local->emailNoReplyFrom;
 
 $headers = "From: $sender\n";
 $headers .= "MIME-Version: 1.0\n";
@@ -42,7 +42,7 @@ Gentile '.$docente['nome'].' '.$docente['cognome'].'
 <p>Le modifiche apportate possono essere riviste all&rsquo;indirizzo
 <strong><a href=\''.$url.'\'>attivit&agrave;</a></strong></p>
 <p>In caso di dubbi puoi rivolgerti al DS</p>
-<p>gestionale martini</p>
+<p>' . $__settings->name . ' ' . $__settings->local->nomeIstituto . '</p>
 </body></html>
 ';
 
