@@ -59,7 +59,9 @@ function lezioneCorsoDiRecuperoGetDetails(id) {
 			id: id
 		},
 		function (dati, status) {
+			console.log(dati);
 			var lezione = JSON.parse(dati);
+			console.log(lezione);
 			// lezione 0 contiene i valori comuni
 			$("#update_argomento").val(lezione[0].lezione_corso_di_recupero_argomento);
 			$("#update_argomento").prop('defaultValue', lezione[0].lezione_corso_di_recupero_argomento);

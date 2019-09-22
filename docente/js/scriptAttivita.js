@@ -23,6 +23,9 @@ function oreFatteReadAttivitaRecords() {
 	$.get("oreFatteClilReadAttivita.php", {}, function (data, status) {
 		$(".attivita_fatte_clil_records_content").html(data);
 	});
+	$.get("oreFatteReadGruppi.php", {}, function (data, status) {
+		$(".attivita_fatte_gruppi_records_content").html(data);
+	});
 	$.get("oreFatteReadAttribuite.php", {}, function (data, status) {
 		$(".attribuite_records_content").html(data);
 	});

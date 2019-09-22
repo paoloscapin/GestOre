@@ -41,31 +41,79 @@ function gruppoIncontroGetDetails(id, gruppo_id) {
     $("#hidden_gruppo_id").val(gruppo_id);
     $("#hidden_record_id").val(id);
     if (id > 0) {
-        $.post("../common/readRecordDetails.php", {
-			id: id,
-            table: 'gruppo_incontro'
-		},
+        $("#verbale-part").show();
+        $('#effettuato-part').show();
+        $('#partecipanti-part').show();
+        $.post("../docente/gruppoIncontroReadDetails.php", {
+                id: id,
+                table: 'gruppo_incontro'
+        },
 		function (data, status) {
             var record = JSON.parse(data);
             setDbDateToPickr(data_incontro_pickr, record.data);
 			$("#ora_incontro").val(record.ora);
 			$("#ordine_del_giorno").val(record.ordine_del_giorno);
-		});
+			$("#verbale").val(record.verbale);
+			$("#durata").val(record.durata);
+            $('#effettuato').bootstrapToggle(record.effettuato == 1? 'on' : 'off');
+            $('#partecipanti_table tbody').empty();
+			var markup = '';
+			// cicla su tutti gli studenti
+			record.partecipanti.forEach(function(partecipanti) {
+				markup = markup + 
+						"<tr>" +
+						"<td>" + partecipanti.gruppo_incontro_partecipazione_id + "</td>" +
+						"<td>" + partecipanti.docente_id + "</td>" +
+						"<td>" + partecipanti.cognome_e_nome + "</td>" +
+						"<td style=\"text-align: center; vertical-align: middle;\">" +
+							"<input type=\"checkbox\" name=\"query_myTextEditBox\"" +
+							((partecipanti.ha_partecipato == 0) ? "" : " checked" ) +
+						"></td>" +
+				"</tr>";
+			});
+			$('#partecipanti_table > tbody:last-child').append(markup);
+            $('#partecipanti_table td:nth-child(1),#partecipanti_table th:nth-child(1),#partecipanti_table td:nth-child(2),#partecipanti_table th:nth-child(2)').hide(); // nasconde la prima colonna con l'id
+        });
     } else {
         data_incontro_pickr.setDate(Date.today().toString('d/M/yyyy'));
         $("#ora_incontro").val("12");
         $("#ordine_del_giorno").val("");
+        $("#verbale-part").hide();
+        $('#effettuato-part').hide();
+        $('#partecipanti-part').hide();
     }
 	$("#update_modal").modal("show");
 }
 
 function gruppoIncontroSave() {
+    var partecipantiDaModificareIdList = [];
+    var partecipantiDaModificareDocenteIdList = [];
+    if ($("#hidden_record_id").val() > 0) {
+        $('#partecipanti_table tbody tr').each(function() {
+            var row = $(this);
+            var presenteCheckbox = row.find('input[type="checkbox"]');
+            var presenteOriginal = presenteCheckbox.prop('defaultChecked');
+            var presenteCorrente = presenteCheckbox.prop('checked');
+            var id = row.children().eq(0).text();
+            var docente_id = row.children().eq(1).text();
+            if (presenteCorrente != presenteOriginal) {
+                partecipantiDaModificareIdList.push(id);
+                partecipantiDaModificareDocenteIdList.push(docente_id);
+            }
+        });
+    }
+
     $.post("gruppoIncontroSave.php", {
         id: $("#hidden_record_id").val(),
         gruppo_id: $("#hidden_gruppo_id").val(),
         data: getDbDateFromPickrId("#data_incontro"),
         ora: $("#ora_incontro").val(),
-        ordine_del_giorno: $("#ordine_del_giorno").val()
+        durata: $("#durata").val(),
+        effettuato: $("#effettuato").is(':checked')? 1: 0,
+        ordine_del_giorno: $("#ordine_del_giorno").val(),
+        verbale: $("#verbale").val(),
+        partecipantiDaModificareIdList: JSON.stringify(partecipantiDaModificareIdList),
+        partecipantiDaModificareDocenteIdList: JSON.stringify(partecipantiDaModificareDocenteIdList)
     },
     function (data, status) {
         $("#update_modal").modal("hide");
@@ -91,6 +139,8 @@ $(document).ready(function () {
 
 	flatpickr.localize(flatpickr.l10ns.it);
 
-    gruppoIncontroReadRecords(2);
-    gruppoIncontroReadRecords(3);
+    var gruppoList = JSON.parse($("#hidden_list_gruppo_id").val());
+    gruppoList.forEach(function(gruppo_id) {
+        gruppoIncontroReadRecords(gruppo_id);
+      });
 });

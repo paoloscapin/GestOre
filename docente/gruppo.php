@@ -36,13 +36,18 @@ ruoloRichiesto('docente','segreteria-docenti','dirigente');
 <?php
 $data = '';
 
+$gruppo_id_list = array();
+
 // potrebbe variare in seguito se introduciamo lo stesso per dirigente e segreteria
 $docente_id = $__docente_id;
 $docente_condition = ($docente_id == null ? " 1 " : " responsabile_docente_id = $docente_id; ");
 
-// prepara l'elenco delle categorie di attivita'
 $query = "	SELECT * FROM `gruppo` WHERE dipartimento = false AND anno_scolastico_id = $__anno_scolastico_corrente_id AND $docente_condition;";
 foreach(dbGetAll($query) as $gruppo) {
+
+    // aggiunge l'id del gruppo alla lista, per poi lasciarlo al js in un hidden field
+    $gruppo_id_list[] = $gruppo['id'];
+
 	$data .= '
     <div class="panel panel-lightblue4">
     <div class="panel-heading">
@@ -53,7 +58,7 @@ foreach(dbGetAll($query) as $gruppo) {
             <div class="col-md-4 text-center">
             </div>
             <div class="col-md-4 text-right">
-                        <button onclick="gruppoIncontroGetDetails('.$gruppo['id'].',-1)" class="btn btn-xs btn-lightblue4"><span class="glyphicon glyphicon-plus"></span></button>
+                        <button onclick="gruppoIncontroGetDetails(-1, '.$gruppo['id'].')" class="btn btn-xs btn-lightblue4"><span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>
     </div>
@@ -101,14 +106,48 @@ echo $data;
                     <label for="ordine_del_giorno" class="col-sm-2 control-label">Ordine del Giorno</label>
                     <div class="col-sm-10"><textarea rows="3" id="ordine_del_giorno" placeholder="Ordine del Giorno" class="form-control" ></textarea></div>
                 </div>
-                </form>
+
+                <div class="form-group" id="verbale-part">
+                    <hr>
+                    <label for="ordine_del_giorno" class="col-sm-2 control-label">Verbale</label>
+                    <div class="col-sm-10"><textarea rows="5" id="verbale" placeholder="verbale" class="form-control" ></textarea></div>
+                </div>
+
+                <div class="form-group text-center" id="effettuato-part">
+                    <hr>
+                    <label for="durata" class="col-sm-3 control-label">Durata ore</label>
+                    <div class="col-sm-1"><input type="text" id="durata" placeholder="0" class="form-control"/></div>
+                    <label for="effettuato" class="col-sm-3 control-label">Effettuato</label>
+					<div class="col-sm-1"><input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="effettuato" ></div>
+                </div>
+
+                <div class="form-group text-center" id="partecipanti-part">
+                    <hr>
+                    <label for="partecipanti_table">Partecipanti</label>
+					<div class="table-wrapper">
+					<table class="table table-bordered table-striped" id="partecipanti_table">
+						<thead>
+						<tr>
+							<th>id</th>
+							<th>docenteId</th>
+							<th>docente</th>
+							<th class="text-center"></th>
+						</tr>
+						</thead>
+						<tbody>
+						</tbody>
+					</table>
+                </div>
+
+            </form>
 
             </div>
-            <div class="modal-footer">
+			<div class="panel-footer text-center">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                 <button type="button" class="btn btn-primary" onclick="gruppoIncontroSave()">Salva</button>
 				<input type="hidden" id="hidden_record_id">
 				<input type="hidden" id="hidden_gruppo_id">
+				<input type="hidden" id="hidden_list_gruppo_id" value='<?php echo json_encode($gruppo_id_list); ?>'>
             </div>
 			</div>
 			</div>

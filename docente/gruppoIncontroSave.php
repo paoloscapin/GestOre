@@ -17,16 +17,39 @@ if(isset($_POST)) {
     $data = $_POST['data'];
 	$ora = $_POST['ora'];
 	$ordine_del_giorno = escapePost('ordine_del_giorno');
-
+    $verbale = escapePost('verbale');
+    $effettuato = $_POST['effettuato'];
+    $durata = $_POST['durata'];
+    $partecipantiDaModificareIdArray = json_decode($_POST['partecipantiDaModificareIdList']);
+    $partecipantiDaModificareDocenteIdArray = json_decode($_POST['partecipantiDaModificareDocenteIdList']);
+    
     if ($id > 0) {
-        $query = "UPDATE $tableName SET data = '$data', ora = '$ora', ordine_del_giorno = '$ordine_del_giorno' WHERE id = '$id'";
+        $query = "UPDATE $tableName SET data = '$data', ora = '$ora', ordine_del_giorno = '$ordine_del_giorno', verbale = '$verbale', durata = $durata, effettuato = $effettuato WHERE id = '$id'";
         dbExec($query);
         info("aggiornato $tableName id=$id data=$data ora=$ora");
     } else {
-        $query = "INSERT INTO $tableName(gruppo_id, data, ora, ordine_del_giorno) VALUES('$gruppo_id', '$data', '$ora', '$ordine_del_giorno')";
+        $query = "INSERT INTO $tableName(gruppo_id, data, ora, ordine_del_giorno, verbale, effettuato, durata) VALUES('$gruppo_id', '$data', '$ora', '$ordine_del_giorno', '$verbale', false, 0)";
         dbExec($query);
-        $id = dblastId();
-        info("aggiunto $tableName id=$id data=$data ora=$ora");    
+        $lastId = dblastId();
+        info("aggiunto $tableName id=$lastId data=$data ora=$ora");    
+    }
+
+    if ($id > 0) {
+        // aggiorna i partecipanti
+        foreach($partecipantiDaModificareIdArray as $docente_partecipa_gruppo_incontro) {
+            $query = "UPDATE gruppo_incontro_partecipazione SET ha_partecipato = NOT ha_partecipato, ore = $durata WHERE gruppo_incontro_partecipazione.id = $docente_partecipa_gruppo_incontro";
+            dbExec($query);
+            info("aggiornato gruppo_incontro_partecipazione docente_partecipa_gruppo_incontro=$docente_partecipa_gruppo_incontro");
+
+            require_once '../docente/oreDovuteAggiornaDocente.php';
+            foreach($partecipantiDaModificareDocenteIdArray as $docente_id) {
+                oreFatteAggiornaDocente($docente_id);
+                info("aggiornate ore docente id=$docente_id");
+            }
+        }
+    } else {
+        $query = "INSERT INTO gruppo_incontro_partecipazione(gruppo_incontro_id, docente_id) SELECT $lastId, docente_id FROM `gruppo_partecipante` WHERE gruppo_id = $gruppo_id;";
+        dbExec($query);
     }
 }
 ?>

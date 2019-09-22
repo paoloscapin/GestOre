@@ -163,7 +163,7 @@ if(mysqli_num_rows($result) > 0) {
 	}
 } else {
 		// records now found
-		$data .= '<tr><td colspan="7">Nessuna attività inserita</td></tr>';
+		$data .= '<tr><td colspan="8">Nessuna attività inserita</td></tr>';
 }
 $data .= '</tbody>';
 

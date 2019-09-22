@@ -30,7 +30,7 @@ foreach(dbGetAll($query) as $gruppo_incontro) {
     $dataIncontro = utf8_encode( strftime("%d %B %Y", strtotime($gruppo_incontro['data'])));
     setlocale(LC_TIME, $oldLocale);
 
-    $statoMarker = ($gruppo_incontro['effettuato'] == 1) ? '<span class="label label-success">terminato</span>' : '<span class="label label-primary">pendente</span>';
+    $statoMarker = ($gruppo_incontro['effettuato'] == 1) ? '<span class="label label-success">effettuato</span>' : '<span class="label label-primary">pendente</span>';
 
     $data .= '<tr>
     <td>'.$dataIncontro.'</td>

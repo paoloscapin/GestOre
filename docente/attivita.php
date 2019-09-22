@@ -35,7 +35,7 @@ require_once '../common/connect.php';
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
-			<span class="glyphicon glyphicon-education"></span>&ensp;AttivOre Fatte
+			<span class="glyphicon glyphicon-education"></span>&ensp;Attività Fatte
 		</div>
 		<div class="col-md-4 text-center">
 			<button onclick="oreFatteSommario()" class="btn btn-xs btn-teal4"><span class="glyphicon glyphicon-option-horizontal"></span> Sommario</button>
@@ -68,6 +68,7 @@ require_once '../common/connect.php';
 <!-- <div class="panel-footer"></div> -->
 </div>
 
+<?php if($__settings->config->gestioneClil) : ?>
 <div class="panel panel-info">
 <div class="panel-heading">
 	<div class="row">
@@ -98,6 +99,36 @@ require_once '../common/connect.php';
     <div class="row">
         <div class="col-md-12">
             <div class="attivita_fatte_clil_records_content"></div>
+        </div>
+    </div>
+</div>
+
+<!-- <div class="panel-footer"></div> -->
+</div>
+<?php endif; ?>
+
+<div class="panel panel-lightblue4">
+<div class="panel-heading">
+	<div class="row">
+		<div class="col-md-4">
+		<span class="glyphicon glyphicon-user"></span>&ensp;Gruppi
+		</div>
+		<div class="col-md-4 text-center">
+		</div>
+		<div class="col-md-4 text-right">
+		</div>
+	</div>
+</div>
+<div class="panel-body">
+    <div class="row"  style="margin-bottom:10px;">
+        <div class="col-md-6">
+        </div>
+        <div class="col-md-6">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="attivita_fatte_gruppi_records_content"></div>
         </div>
     </div>
 </div>

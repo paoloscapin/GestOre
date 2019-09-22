@@ -202,6 +202,20 @@ function oreFatteAggiornaDocente($docenteId) {
 	    }
 	}
 
+	// i gruppi di lavoro
+	$query = "SELECT COALESCE(SUM(gruppo_incontro_partecipazione.ore), 0)
+			FROM gruppo_incontro_partecipazione
+			INNER JOIN docente ON gruppo_incontro_partecipazione.docente_id = docente.id
+			INNER JOIN gruppo_incontro ON gruppo_incontro_partecipazione.gruppo_incontro_id = gruppo_incontro.id
+			INNER JOIN gruppo ON gruppo_incontro.gruppo_id = gruppo.id
+			WHERE gruppo_incontro_partecipazione.docente_id = $docenteId
+			AND gruppo_incontro_partecipazione.ha_partecipato = true
+			AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id
+			AND gruppo_incontro.effettuato = true
+			AND gruppo.dipartimento = false";
+	$ore_gruppi = dbGetValue($query);
+	$ore_40_con_studenti = $ore_40_con_studenti + $ore_gruppi;
+
 	// le sostituzioni ora sono in una tabella a parte
 	$query = "SELECT COALESCE(SUM(ora), 0) FROM sostituzione_docente WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId;";
 	$ore_40_sostituzioni_di_ufficio = dbGetValue($query);
