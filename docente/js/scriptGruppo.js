@@ -18,7 +18,9 @@ function getDbDateFromPickrId(pickrId) {
 
 function gruppoIncontroReadRecords(group_id) {
 	$.get("gruppoIncontroReadRecords.php?gruppo_id=" + group_id, {}, function (data, status) {
-		$(".gruppo_records_content_" + group_id).html(data);
+        var record = JSON.parse(data);
+        $(".gruppo_records_content_" + group_id).html(record.table);
+        $("#totale_ore_" + group_id).text(record.totale_ore);
 	});
 }
 
@@ -77,7 +79,9 @@ function gruppoIncontroGetDetails(id, gruppo_id) {
     } else {
         data_incontro_pickr.setDate(Date.today().toString('d/M/yyyy'));
         $("#ora_incontro").val("12");
+        $("#durata").val("2");
         $("#ordine_del_giorno").val("");
+        $("#verbale").val("");
         $("#verbale-part").hide();
         $('#effettuato-part').hide();
         $('#partecipanti-part').hide();

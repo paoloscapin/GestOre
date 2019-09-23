@@ -56,6 +56,7 @@ foreach(dbGetAll($query) as $gruppo) {
                 <span class="glyphicon glyphicon-user"></span>&ensp;'.$gruppo['nome'].'
             </div>
             <div class="col-md-4 text-center">
+            max ore: '.$gruppo['max_ore'].' (usate: <span id="totale_ore_'.$gruppo['id'].'"></span>)
             </div>
             <div class="col-md-4 text-right">
                         <button onclick="gruppoIncontroGetDetails(-1, '.$gruppo['id'].')" class="btn btn-xs btn-lightblue4"><span class="glyphicon glyphicon-plus"></span></button>
@@ -100,6 +101,10 @@ echo $data;
                     <label class="col-sm-2 control-label" for="ora_incontro">Ora</label>
                     <div class="col-sm-4"><input type="text" id="ora_incontro" placeholder="ora" class="form-control"/></div>
                 </div>
+                <div class="form-group">
+                    <label for="durata" class="col-sm-6 control-label">Durata ore</label>
+                    <div class="col-sm-1"><input type="text" id="durata" placeholder="0" class="form-control"/></div>
+                    </div>
                 <hr>
 
                 <div class="form-group">
@@ -115,9 +120,7 @@ echo $data;
 
                 <div class="form-group text-center" id="effettuato-part">
                     <hr>
-                    <label for="durata" class="col-sm-3 control-label">Durata ore</label>
-                    <div class="col-sm-1"><input type="text" id="durata" placeholder="0" class="form-control"/></div>
-                    <label for="effettuato" class="col-sm-3 control-label">Effettuato</label>
+                    <label for="effettuato" class="col-sm-6 control-label">Effettuato</label>
 					<div class="col-sm-1"><input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="effettuato" ></div>
                 </div>
 

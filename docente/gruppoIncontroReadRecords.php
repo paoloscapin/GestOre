@@ -10,20 +10,23 @@
 // include Database connection file
 require_once '../common/checkSession.php';
 
+$data = array();
 $gruppo_id = $_GET["gruppo_id"];
 
 // Design initial table header
-$data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
+$table = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
 						<th>Data</th>
 						<th>Ora</th>
 						<th>Stato</th>
+						<th>Durata</th>
 						<th class="text-center">-</th>
 					</tr>
 					</thead>';
 
 $query = "	SELECT * from gruppo_incontro WHERE gruppo_id = $gruppo_id order by data DESC;";
+$totale_ore = 0;
 
 foreach(dbGetAll($query) as $gruppo_incontro) {
     $oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
@@ -32,19 +35,24 @@ foreach(dbGetAll($query) as $gruppo_incontro) {
 
     $statoMarker = ($gruppo_incontro['effettuato'] == 1) ? '<span class="label label-success">effettuato</span>' : '<span class="label label-primary">pendente</span>';
 
-    $data .= '<tr>
+    $table .= '<tr>
     <td>'.$dataIncontro.'</td>
     <td>'.$gruppo_incontro['ora'].'</td>
     <td>'.$statoMarker.'</td>
+    <td>'.$gruppo_incontro['durata'].'</td>
     ';
-    $data .='
+    $table .='
         <td class="text-center">
             <button onclick="gruppoIncontroGetDetails('.$gruppo_incontro['id'].', \''.$gruppo_incontro['gruppo_id'].'\', \''.$gruppo_incontro['data'].'\', \''.$gruppo_incontro['ora'].'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
             <button onclick="gruppoIncontroDelete('.$gruppo_incontro['id'].', \''.$gruppo_incontro['gruppo_id'].'\', \''.$gruppo_incontro['data'].'\', \''.$gruppo_incontro['ora'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
         </td>
         </tr>';
-}
-$data .= '</table></div>';
 
-echo $data;
+    $totale_ore = $totale_ore + $gruppo_incontro['durata'];
+}
+$table .= '</table></div>';
+
+$data['table'] = $table;
+$data['totale_ore'] = $totale_ore;
+echo json_encode($data);
 ?>
