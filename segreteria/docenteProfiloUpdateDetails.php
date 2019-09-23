@@ -76,19 +76,19 @@ if(isset($_POST)) {
 				WHERE id = '$ore_previste_id'";
 	dbExec($query);
 
-	// rimuovo eventuali vecchie sostituzioni
+	// rimuovo eventuali vecchie sostituzioni: vecchia cosa che non dovrebbe servire nei prossimi anni
 	$query = "DELETE FROM ore_previste_attivita WHERE dettaglio = 'Sostituzioni di ufficio' AND docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id";
 	dbExec($query);
 	info("aggiornato profilo per il docente $docente_cognome_e_nome");
 
+/* non vengono inserite qui ma assegnate una per volta
 	// restano da aggiornare le sostituzioni
 	$sostituzioni_tipo_attivita_id = dbGetValue("SELECT id FROM ore_previste_tipo_attivita WHERE nome = 'sostituzioni'");
-
 	$_POST['ore_previste_attivita_id'] = '';
 	$_POST['dettaglio'] = 'Sostituzioni di ufficio';
 	$_POST['ore'] = $ore_40_sostituzioni_di_ufficio;
 	$_POST['ore_previste_tipo_attivita_id'] = $sostituzioni_tipo_attivita_id;
 	$_POST['docente_id'] = $docente_id;
-	include 'oreAssegnateAddDetails.php';
+	include 'oreAssegnateAddDetails.php';*/
 }
 ?>

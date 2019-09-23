@@ -29,6 +29,9 @@ function oreFatteReadAttivitaRecords() {
 	$.get("oreFatteReadAttribuite.php", {}, function (data, status) {
 		$(".attribuite_records_content").html(data);
 	});
+	$.get("oreFatteReadSostituzioni.php", {}, function (data, status) {
+		$(".sostituzioni_records_content").html(data);
+	});
 	$.get("oreFatteReadViaggi.php", {}, function (data, status) {
 		$(".viaggi_records_content").html(data);
 	});

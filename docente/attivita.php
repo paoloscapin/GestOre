@@ -136,7 +136,7 @@ require_once '../common/connect.php';
 <!-- <div class="panel-footer"></div> -->
 </div>
 
-<div class="panel panel-yellow4">
+<div class="panel panel-lima4">
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
@@ -158,6 +158,35 @@ require_once '../common/connect.php';
     <div class="row">
         <div class="col-md-12">
             <div class="attribuite_records_content"></div>
+        </div>
+    </div>
+</div>
+
+<!-- <div class="panel-footer"></div> -->
+</div>
+
+<div class="panel panel-yellow4">
+<div class="panel-heading">
+	<div class="row">
+		<div class="col-md-4">
+		<span class="glyphicon glyphicon-picture"></span>&ensp;Sostituzioni
+		</div>
+		<div class="col-md-4 text-center">
+		</div>
+		<div class="col-md-4 text-right">
+		</div>
+	</div>
+</div>
+<div class="panel-body">
+    <div class="row"  style="margin-bottom:10px;">
+        <div class="col-md-6">
+        </div>
+        <div class="col-md-6">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="sostituzioni_records_content"></div>
         </div>
     </div>
 </div>
