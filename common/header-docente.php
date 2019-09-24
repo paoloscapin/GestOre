@@ -15,8 +15,8 @@
 	<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav">
-			<li class="active"><a href="<?php echo $__application_base_path; ?>/docente/index.php"><span class="glyphicon glyphicon-home"></span> Home </a></li>
-			<li><a href="#">  </a></li>
+
+			<a href="<?php echo $__application_base_path; ?>/docente/index.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Ore </a>
 
 			<?php if($__settings->config->corsiDiRecupero) : ?>
 			<a href="<?php echo $__application_base_path; ?>/docente/corsoDiRecupero.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
