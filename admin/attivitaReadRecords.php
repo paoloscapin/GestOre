@@ -17,6 +17,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th>Ore</th>
 						<th>Ore max</th>
 						<th>Valido</th>
+						<th>Previsto da docente</th>
 						<th>Inserito da docente</th>
 						<th>Da Rendicontare</th>
 						<th>Modifica</th>
@@ -38,6 +39,7 @@ foreach(dbGetAll($query) as $row) {
     <td>'.$row['ore_max'].'</td>
     ';
 	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="valido" ' . ($row['valido']? 'checked ' : '').'></td>';
+	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="previsto_da_docente" ' . ($row['previsto_da_docente']? 'checked ' : '').'></td>';
 	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="inserito_da_docente" ' . ($row['inserito_da_docente']? 'checked ' : '').'></td>';
 	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="da_rendicontare" ' . ($row['da_rendicontare']? 'checked ' : '').'></td>';
 	$data .='

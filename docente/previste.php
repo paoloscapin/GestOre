@@ -90,12 +90,12 @@ foreach($resultArray as $row) {
 	} else if ($row['ore_max'] != 0) {
 		$subtext = ' data-subtext="max '.$row['ore_max'].' ore"';
 	}
-	// se non va inserito dal docente lo disabilito
+	// se non va previsto dal docente lo disabilito
 	$disable = '';
-	if (! $row['inserito_da_docente']) {
+	if (! $row['previsto_da_docente']) {
 		$disable = ' disabled ';
 	}
-	if ($row['inserito_da_docente']) {
+	if ($row['previsto_da_docente']) {
 		$tipoAttivitaOptionList .= '
 			<option value="'.$row['id'].'"'.$subtext.$disable.' >'.$row['nome'].'</option>
 			';

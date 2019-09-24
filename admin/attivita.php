@@ -95,6 +95,11 @@ ruoloRichiesto('dirigente');
                 </div>
 
                 <div class="form-group">
+                    <label for="previsto_da_docente">Previsto da Docente</label>
+					<input type="checkbox" checked data-toggle="toggle" data-onstyle="primary" id="previsto_da_docente" >
+                </div>
+
+                <div class="form-group">
                     <label for="inserito_da_docente">Inserito da Docente</label>
 					<input type="checkbox" checked data-toggle="toggle" data-onstyle="primary" id="inserito_da_docente" >
                 </div>
@@ -146,6 +151,11 @@ ruoloRichiesto('dirigente');
                 <div class="form-group">
                     <label for="update_valido">Valido</label>
 					<input type="checkbox" checked data-toggle="toggle" data-onstyle="primary" id="update_valido" >
+                </div>
+
+                <div class="form-group">
+                    <label for="update_previsto_da_docente">Previsto da Docente</label>
+					<input type="checkbox" checked data-toggle="toggle" data-onstyle="primary" id="update_previsto_da_docente" >
                 </div>
 
                 <div class="form-group">

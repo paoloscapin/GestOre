@@ -12,6 +12,7 @@ function attivitaAddRecord() {
         ore: $("#ore").val(),
         ore_max: $("#ore_max").val(),
         valido: $("#valido").is(':checked')? 1: 0,
+        previsto_da_docente: $("#previsto_da_docente").is(':checked')? 1: 0,
         inserito_da_docente: $("#inserito_da_docente").is(':checked')? 1: 0,
         da_rendicontare: $("#da_rendicontare").is(':checked')? 1: 0
     }, function (data, status) {
@@ -57,6 +58,7 @@ function attivitaGetDetails(id) {
 			$("#update_ore").val(record.ore);
 			$("#update_ore_max").val(record.ore_max);
 			$('#update_valido').bootstrapToggle(record.valido == 1? 'on' : 'off');
+			$('#update_previsto_da_docente').bootstrapToggle(record.previsto_da_docente == 1? 'on' : 'off');
 			$('#update_inserito_da_docente').bootstrapToggle(record.inserito_da_docente == 1? 'on' : 'off');
 			$('#update_da_rendicontare').bootstrapToggle(record.da_rendicontare == 1? 'on' : 'off');
 		}
@@ -72,6 +74,7 @@ function attivitaUpdateDetails() {
             ore: $("#update_ore").val(),
             ore_max: $("#update_ore_max").val(),
             valido: $("#update_valido").is(':checked')? 1: 0,
+            previsto_da_docente: $("#update_previsto_da_docente").is(':checked')? 1: 0,
             inserito_da_docente: $("#update_inserito_da_docente").is(':checked')? 1: 0,
             da_rendicontare: $("#update_da_rendicontare").is(':checked')? 1: 0
         },
