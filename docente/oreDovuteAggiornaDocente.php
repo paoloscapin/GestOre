@@ -176,6 +176,7 @@ function oreFatteAggiornaDocente($docenteId) {
 				WHERE ore_previste_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id
 				AND ore_previste_attivita.docente_id = $docenteId
                 AND ore_previste_tipo_attivita.inserito_da_docente = false
+                AND ore_previste_tipo_attivita.previsto_da_docente = false
 				";
 	$resultArray = dbGetAll($query);
 	foreach($resultArray as $attivita) {
@@ -214,7 +215,7 @@ function oreFatteAggiornaDocente($docenteId) {
 			AND gruppo_incontro.effettuato = true
 			AND gruppo.dipartimento = false";
 	$ore_gruppi = dbGetValue($query);
-	$ore_40_con_studenti = $ore_40_con_studenti + $ore_gruppi;
+	$ore_70_funzionali = $ore_70_funzionali + $ore_gruppi;
 
 	// le sostituzioni ora sono in una tabella a parte
 	$query = "SELECT COALESCE(SUM(ora), 0) FROM sostituzione_docente WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId;";

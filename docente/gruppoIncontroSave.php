@@ -28,7 +28,7 @@ if(isset($_POST)) {
         dbExec($query);
         info("aggiornato $tableName id=$id data=$data ora=$ora");
     } else {
-        $query = "INSERT INTO $tableName(gruppo_id, data, ora, ordine_del_giorno, verbale, effettuato, durata) VALUES('$gruppo_id', '$data', '$ora', '$ordine_del_giorno', '$verbale', false, 0)";
+        $query = "INSERT INTO $tableName(gruppo_id, data, ora, ordine_del_giorno, verbale, effettuato, durata) VALUES('$gruppo_id', '$data', '$ora', '$ordine_del_giorno', '$verbale', false, $durata)";
         dbExec($query);
         $lastId = dblastId();
         info("aggiunto $tableName id=$lastId data=$data ora=$ora");    

@@ -59,9 +59,9 @@ function lezioneCorsoDiRecuperoGetDetails(id) {
 			id: id
 		},
 		function (dati, status) {
-			console.log(dati);
+//			console.log(dati);
 			var lezione = JSON.parse(dati);
-			console.log(lezione);
+//			console.log(lezione);
 			// lezione 0 contiene i valori comuni
 			$("#update_argomento").val(lezione[0].lezione_corso_di_recupero_argomento);
 			$("#update_argomento").prop('defaultValue', lezione[0].lezione_corso_di_recupero_argomento);
@@ -105,9 +105,9 @@ function lezioneCorsoDiRecuperoUpdateDetails() {
 //	console.log("argomento=" + argomento);
 //	console.log("argomentoOriginal=" + argomentoOriginal);
 //	console.log("argomentoChanged=" + argomentoChanged);
-	console.log("note=" + note);
-	console.log("noteOriginal=" + noteOriginal);
-	console.log("noteChanged=" + noteChanged);
+//	console.log("note=" + note);
+//	console.log("noteOriginal=" + noteOriginal);
+//	console.log("noteChanged=" + noteChanged);
 	var counter = 0;
 	var studentiDaModificareIdList = [];
 	$('#update_studenti_table tbody tr').each(function() {

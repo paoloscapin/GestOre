@@ -32,35 +32,36 @@ require_once '../common/header-docente.php';
 
 <div class="panel panel-orange4">
 <div class="panel-heading">
-	<span class="glyphicon glyphicon-list-alt"></span>
-	<a data-toggle="collapse" href="#collapse_Previste">&ensp;Ore Previste </a>
+<div class="row">
+		<div class="col-md-4">
+			<span class="glyphicon glyphicon-list-alt"></span>&ensp;Ore Previste
+		</div>
+		<div class="col-md-4 text-center">
+		</div>
+		<div class="col-md-4 text-right">
+            <?php
+            if ($__config->getOre_previsioni_aperto()) {
+            	echo '
+					<button onclick="attivitaPrevistaAdd()" class="btn btn-xs btn-orange4"><span class="glyphicon glyphicon-plus"></span></button>
+				';
+            }
+   			?>
+		</div>
+	</div>
 </div>
-<div id="collapse_Previste" class="panel-collapse collapse  collapse in">
 <div class="panel-body">
     <div class="row"  style="margin-bottom:10px;">
         <div class="col-md-6">
         </div>
         <div class="col-md-6">
-            <div class="pull-right">
-            <?php
-            if ($__config->getOre_previsioni_aperto()) {
-            	echo '
-   				<button class="btn btn-orange4" data-toggle="modal" onclick="attivitaPrevistaAdd()"><span class="glyphicon glyphicon-plus"></span>&ensp;Aggiungi attività </button>
-				';
-            }
-   			?>
-   			</div>
         </div>
     </div>
-
 <div id="notificationBlock"></div>
-
     <div class="row">
         <div class="col-md-12">
             <div class="attivita_previste_records_content"></div>
         </div>
     </div>
-</div>
 </div>
 
 <!-- <div class="panel-footer"></div> -->
@@ -106,13 +107,14 @@ $tipoAttivitaOptionList .= '</optgroup>';
 
 <!-- Modal - attivita details -->
 <div class="modal fade" id="update_attivita_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h5 class="modal-title text-center" id="myModalLabel">Attività Prevista</h5>
-            </div>
-            <div class="modal-body">
+		<div class="modal-body">
+			<div class="panel panel-orange4">
+			<div class="panel-heading">
+			<h5 class="modal-title text-center" id="myModalLabel">Attività Prevista</h5>
+			</div>
+			<div class="panel-body">
 			<div class="form-horizontal">
 
                 <div class="form-group tipo_attivita_selector">
@@ -138,8 +140,11 @@ $tipoAttivitaOptionList .= '</optgroup>';
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
 				<button type="button" class="btn btn-primary" onclick="attivitaPrevistaUpdateDetails()" >Salva</button>
 				<input type="hidden" id="hidden_ore_previste_attivita_id">
+				</div>
 			</div>
-        </div>
+        	</div>
+        	</div>
+    	</div>
     </div>
 </div>
 <!-- // Modal - attivita details -->
