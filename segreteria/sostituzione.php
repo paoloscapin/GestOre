@@ -37,7 +37,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-deeporange4">
+<div class="panel panel-yellow4">
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-4">
@@ -52,7 +52,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
         </div>
         <div class="col-md-4">
             <div class="pull-right">
-				<button class="btn btn-xs btn-success" onclick="openModal()" ><span class="glyphicon glyphicon-plus"></span></button>
+				<button class="btn btn-xs btn-yellow4" onclick="openModal()" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>
 	</div>

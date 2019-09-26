@@ -79,14 +79,16 @@ $ore80 = [
 
 <!-- Bootstrap Modals -->
 <!-- Modal - Add New Record/docente -->
-<div class="modal fade" id="add_new_record_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog" role="document">
+<div class="modal fade" id="add_new_record_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalProfiloLabel">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header panel-lightblue4">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h5 class="modal-title" id="myModalLabel">Nuovo docente</h5>
-            </div>
             <div class="modal-body">
+			<div class="panel panel-lightblue4">
+			<div class="panel-heading">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h5 class="modal-title" id="myModalProfiloLabel">Docente</h5>
+            </div>
+            <div class="panel-body">
 
                 <div class="form-group">
                     <label for="nome">Nome</label>
@@ -115,7 +117,7 @@ $ore80 = [
 
                 <div class="form-group">
                     <label for="attivo">Attivo</label>
-					<input type="checkbox" checked data-toggle="toggle" data-onstyle="primary" id="attivo" >
+					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="attivo" >
                 </div>
 
             </div>
@@ -123,20 +125,25 @@ $ore80 = [
                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                 <button type="button" class="btn btn-primary" onclick="docenteAddRecord()">Salva</button>
             </div>
+			</div>
+			</div>
         </div>
     </div>
 </div>
+
 <!-- // Modal - Add New Record/docente -->
 
 <!-- Modal - Update docente details -->
-<div class="modal fade" id="update_docente_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog" role="document">
+<div class="modal fade" id="update_docente_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalProfiloLabel">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header panel-lightblue4">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h5 class="modal-title" id="myModalLabel">Aggiorna</h5>
-            </div>
             <div class="modal-body">
+			<div class="panel panel-lightblue4">
+			<div class="panel-heading">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h5 class="modal-title" id="myModalProfiloLabel">Docente</h5>
+            </div>
+            <div class="panel-body">
 
                 <div class="form-group">
                     <label for="update_nome">Nome</label>
@@ -165,7 +172,7 @@ $ore80 = [
 
                 <div class="form-group">
                     <label for="update_attivo">Attivo</label>
-					<input type="checkbox" data-toggle="toggle" data-onstyle="primary" id="update_attivo" >
+					<input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="update_attivo" >
                 </div>
 
             </div>
@@ -174,10 +181,13 @@ $ore80 = [
 				<button type="button" class="btn btn-primary" onclick="docenteUpdateDetails()" >Salva</button>
 				<input type="hidden" id="hidden_docente_id">
 				<input type="hidden" id="hidden_era_attivo">
+            </div>
+			</div>
 			</div>
         </div>
     </div>
 </div>
+
 <!-- // Modal - Update docente details -->
 
 <!-- Modal - Update profilo details -->

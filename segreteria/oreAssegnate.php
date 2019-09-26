@@ -34,12 +34,12 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-primary">
+<div class="panel panel-lima4">
 <div class="row" style="margin-top:10px;" style="margin-bottom:10px;">
 	<div class="col-md-4">
 	</div>
 	<div class="col-md-4 text-center">
-		<button onclick="ricalcolaTutti()" class="btn btn-info"><span class="glyphicon glyphicon-refresh"></span>&ensp;Ricalcola Tutti</button>
+		<button onclick="ricalcolaTutti()" class="btn btn-lima4"><span class="glyphicon glyphicon-refresh"></span>&ensp;Ricalcola Tutti</button>
 	</div>
 	<div class="col-md-4 text-right">
 	</div>
@@ -61,7 +61,7 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 	$ore_max = $tipoAttivita['ore_max'];
 	$da_rendicontare = $tipoAttivita['da_rendicontare'];
 	$data .= '
-		<div class="panel panel-success">
+		<div class="panel panel-lima4">
 		<div class="panel-heading container-fluid">
 			<div class="row">
 				<div class="col-md-4">
@@ -70,7 +70,7 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 					<strong>'.$nome.'</strong>
 				</div>
 				<div class="col-md-4 text-right">
-					<button onclick="addAttivita('.$tipoAttivitaId.',\''.$nome.'\','.$ore.','.$ore_max.')" class="btn btn-xs btn-info"><span class="glyphicon glyphicon-plus"></span></button>
+					<button onclick="addAttivita('.$tipoAttivitaId.',\''.$nome.'\','.$ore.','.$ore_max.')" class="btn btn-xs btn-lima4"><span class="glyphicon glyphicon-plus"></span></button>
 				</div>
 			</div>
 		</div>
@@ -167,7 +167,7 @@ foreach($resultArray as $row) {
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
-			<div class="panel panel-warning">
+			<div class="panel panel-lima4">
 			<div class="panel-heading">
 				<h5 class="modal-title" id="myModalLabel">Nuovo Assegnamento</h5>
 			</div>

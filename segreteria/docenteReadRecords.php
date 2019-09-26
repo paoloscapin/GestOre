@@ -63,11 +63,11 @@ foreach(dbGetAll($query) as $row) {
 
 	if ($row['attivo'] == 1) {
 		$data .='
-				<button onclick="profiloGetDetails(\''.$row['local_docente_id'].'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-cog"></button>
+				<button onclick="profiloGetDetails(\''.$row['local_docente_id'].'\')" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-cog"></button>
 			</td>';
 	} else {
 		$data .='
-				<button onclick="profiloGetDetails(\''.$row['local_docente_id'].'\')" class="btn btn-info btn-xs disabed" disabled="disabled" ><span class="glyphicon glyphicon-cog"></button>
+				<button onclick="profiloGetDetails(\''.$row['local_docente_id'].'\')" class="btn btn-deeporange4 btn-xs disabed" disabled="disabled" ><span class="glyphicon glyphicon-cog"></button>
 			</td>';
 	}
 	$data .='
