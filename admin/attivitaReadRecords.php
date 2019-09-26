@@ -43,7 +43,7 @@ foreach(dbGetAll($query) as $row) {
 	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="inserito_da_docente" ' . ($row['inserito_da_docente']? 'checked ' : '').'></td>';
 	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="da_rendicontare" ' . ($row['da_rendicontare']? 'checked ' : '').'></td>';
 	$data .='
-		<td>
+		<td class="text-center">
 		<button onclick="attivitaGetDetails('.$row['local_ore_previste_tipo_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 		<button onclick="attivitaDelete('.$row['local_ore_previste_tipo_attivita_id'].', \''.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>

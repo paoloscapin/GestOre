@@ -48,11 +48,15 @@ function attivitaDelete(id, nome) {
 
 function attivitaGetDetails(id) {
 	$("#hidden_attivita_id").val(id);
-	$.post("attivitaReadDetails.php", {
-			id: id
+	$.post("../common/readRecordDetails.php", {
+            id: id,
+            table: 'ore_previste_tipo_attivita'
 		},
 		function (data, status) {
-			var record = JSON.parse(data);
+            var record = JSON.parse(data);
+            console.log('record.previsto_da_docente='+record.previsto_da_docente);
+            console.log('record.inserito_da_docente='+record.inserito_da_docente);
+            console.log('record.da_rendicontare='+record.da_rendicontare);
 			$("#update_categoria").val(record.categoria);
 			$("#update_nome").val(record.nome);
 			$("#update_ore").val(record.ore);

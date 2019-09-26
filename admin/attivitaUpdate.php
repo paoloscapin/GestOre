@@ -17,11 +17,12 @@ if(isset($_POST)) {
 	$ore = $_POST['ore'];
 	$ore_max = $_POST['ore_max'];
 	$valido = $_POST['valido'];
+	$previsto_da_docente = $_POST['previsto_da_docente'];
 	$inserito_da_docente = $_POST['inserito_da_docente'];
 	$da_rendicontare = $_POST['da_rendicontare'];
 
-    $query = "UPDATE ore_previste_tipo_attivita SET categoria = '$categoria', nome = '$nome' , ore = '$ore' , ore_max = '$ore_max' , valido = '$valido' , inserito_da_docente = '$inserito_da_docente' , da_rendicontare = '$da_rendicontare' WHERE id = '$id'";
+    $query = "UPDATE ore_previste_tipo_attivita SET categoria = '$categoria', nome = '$nome', ore = '$ore', ore_max = '$ore_max', valido = '$valido', previsto_da_docente = '$previsto_da_docente', inserito_da_docente = '$inserito_da_docente', da_rendicontare = '$da_rendicontare' WHERE id = '$id'";
 	dbExec($query);
-	info("aggiornato ore_previste_tipo_attivita id=$id nome=$nome categoria=$categoria ore=$ore ore_max=$ore_max valido=$valido inserito_da_docente=$inserito_da_docente da_rendicontare=$da_rendicontare");
+	info("aggiornato ore_previste_tipo_attivita id=$id nome=$nome categoria=$categoria ore=$ore ore_max=$ore_max valido=$valido previsto_da_docente=$previsto_da_docente inserito_da_docente=$inserito_da_docente da_rendicontare=$da_rendicontare");
 }
 ?>
