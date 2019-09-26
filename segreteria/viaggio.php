@@ -31,29 +31,32 @@ require_once '../common/header-segreteria.php';
 require_once '../common/connect.php';
 ?>
 
-<!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-danger">
-<div class="panel-heading container-fluid">
+<div class="panel panel-deeporange4">
+<div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
-			<span class="glyphicon glyphicon-picture"></span>&emsp;Viaggi e Uscite
+			<span class="glyphicon glyphicon-picture"></span>&ensp;Viaggi e Uscite
+		</div>
+		<div class="col-md-4 text-center">
+<!--
+            <label class="checkbox-inline">
+                <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="ancheChiusiCheckBox" >Anche Chiusi
+            </label>
+-->
+		</div>
+		<div class="col-md-4 text-right">
+            <div class="pull-right">
+				<button class="btn btn-xs btn-deeporange4" onclick="viaggioNuovo()" ><span class="glyphicon glyphicon-plus"></span></button>
+            </div>
 		</div>
 	</div>
 </div>
 <div class="panel-body">
-    <div class="row"  style="margin-bottom:10px;">
+<div class="row"  style="margin-bottom:10px;">
         <div class="col-md-6">
-            <div class="pull-right">
-				<label class="checkbox-inline">
-					<input type="checkbox" checked data-toggle="toggle" data-size="small" data-onstyle="primary" id="ancheChiusiCheckBox" >Anche Chiusi
-				</label>
-            </div>
         </div>
         <div class="col-md-6">
-            <div class="pull-right">
-				<button class="btn btn-danger" onclick="viaggioNuovo()" ><span class="glyphicon glyphicon-plus"></span>&emsp;Nuovo Incarico </button>
-            </div>
         </div>
     </div>
     <div class="row">
@@ -86,15 +89,14 @@ if(mysqli_num_rows($result) > 0) {
 }
 ?>
 
-<!-- Bootstrap Modals -->
 <!-- Modal - Add New Record -->
 <div class="modal fade" id="add_new_record_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
-			<div class="panel panel-danger">
+			<div class="panel panel-deeporange4">
 			<div class="panel-heading">
-				<h5 class="modal-title" id="myModalLabel">Nuovo Incarico</h5>
+				<h5 class="modal-title" id="myModalLabel">Viaggio / Uscita</h5>
 			</div>
 			<div class="panel-body">
 			<form class="form-horizontal">
@@ -171,13 +173,13 @@ if(mysqli_num_rows($result) > 0) {
 <!-- // Modal - Add New Record/viaggio -->
 
 <!-- Modal - Update viaggio details -->
-<div class="modal fade" id="update_record_modal" data-keyboard="false" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="updateMyModalLabel">
+<div class="modal fade" id="update_record_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="updateMyModalLabel">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
-			<div class="panel panel-danger">
+			<div class="panel panel-deeporange4">
 			<div class="panel-heading">
-				<h5 class="modal-title" id="updateMyModalLabel">Aggiorna Incarico</h5>
+				<h5 class="modal-title" id="updateMyModalLabel">Viaggio / Uscita</h5>
 			</div>
 			<div class="panel-body">
 			<form class="form-horizontal">
@@ -269,7 +271,7 @@ if(mysqli_num_rows($result) > 0) {
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
-			<div class="panel panel-info">
+			<div class="panel panel-deeporange4">
 			<div class="panel-heading">
 				<h5 class="modal-title" id="myModalLabel">Rimborso spese viaggio</h5>
 			</div>

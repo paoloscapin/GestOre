@@ -27,7 +27,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center">Rimborso</th>
 					</tr>
 					</thead>';
-
+					
 $query = "	SELECT
 				viaggio.id AS viaggio_id,
 				viaggio.data_partenza AS viaggio_data_partenza,
@@ -43,7 +43,7 @@ $query = "	SELECT
 			";
 
 if( ! $ancheChiusi) {
-	// $query .= "AND NOT viaggio.stato = chiuso ";
+	$query .= "AND NOT viaggio.stato = 'chiuso' ";
 }
 $query .= "order by viaggio_data_partenza DESC, docente_cognome ASC,docente_nome ASC";
 if (!$result = mysqli_query($con, $query)) {

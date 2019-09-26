@@ -5,7 +5,7 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-var ancheChiusi=0;
+var ancheChiusi=1;
 var ore_richieste = 0;
 var diaria = 0;
 
