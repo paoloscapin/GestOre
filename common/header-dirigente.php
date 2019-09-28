@@ -17,15 +17,14 @@
 
 		<ul class="nav navbar-nav top-navbar-nav">
 
-			<a href="<?php echo $__application_base_path; ?>/dirigente/selezionaDocente.php" class="btn btn-default navbar-btn btn-primary" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Docente </a>
-			<a href="<?php echo $__application_base_path; ?>/dirigente/quadroOreDovute.php" class="btn btn-default navbar-btn btn-success" role="button"><span class="glyphicon glyphicon-dashboard"></span>&ensp;Ore Dovute </a>
-			<a href="<?php echo $__application_base_path; ?>/dirigente/corsoDiRecuperoReport.php" class="btn btn-default navbar-btn btn-info" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
-			<a href="<?php echo $__application_base_path; ?>/dirigente/configurazione.php" class="btn btn-default navbar-btn btn-warning" role="button"><span class="glyphicon glyphicon-cog"></span>&ensp;Configura </a>
+			<a href="<?php echo $__application_base_path; ?>/dirigente/corsoDiRecuperoReport.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
+			<a href="<?php echo $__application_base_path; ?>/dirigente/configurazione.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-cog"></span>&ensp;Configura </a>
+			<a href="<?php echo $__application_base_path; ?>/dirigente/quadroOreDovute.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-dashboard"></span>&ensp;Previste </a>
 
 <div class="btn-group">
 
-<a href="<?php echo $__application_base_path; ?>/dirigente/fuis.php" class="btn btn-default navbar-btn btn-danger" role="button"><span class="glyphicon glyphicon-euro"></span>&ensp;Fuis </a>
-  <button type="button" class="btn btn-default navbar-btn btn-danger dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+<a href="<?php echo $__application_base_path; ?>/dirigente/fuis.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-euro"></span>&ensp;Fuis </a>
+  <button type="button" class="btn btn-default navbar-btn btn-deeporange4 dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
     <span class="caret"></span>
     <span class="sr-only">Toggle Dropdown</span>
   </button>
@@ -37,7 +36,7 @@
 </div>
 <?php
 // if ($__config->getBonus_rendiconto_aperto() || $__config->getBonus_adesione_aperto()) {
-    echo '<a href="'.$__application_base_path.'/dirigente/bonusDocenti.php" class="btn btn-default navbar-btn btn-success" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus </a>';
+    echo '<a href="'.$__application_base_path.'/dirigente/bonusDocenti.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus </a>';
 // }
 ?>
 		</ul>
