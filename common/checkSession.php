@@ -104,6 +104,7 @@ if (! $session->has ( 'utente_id' )) {
     $session->set ( '__useremail', $__useremail );
     if(!empty($utente ['username'])){
         $__username = $session->get ( 'username' );
+        $session->set ( '__username',  $__username);
         info('utente ' . $utente ['username'] . ': logged in');
     }
 } else {
