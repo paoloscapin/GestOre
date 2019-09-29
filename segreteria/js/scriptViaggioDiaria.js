@@ -13,9 +13,9 @@ function viaggioDiariaReadRecords() {
 
 function viaggioDiariaPaga(fuis_viaggio_diaria_id, docenteCognomeNome, destinazione, dataPartenza, importo) {
 	message =	'docente: ' + docenteCognomeNome + '\n' + 'data: ' + dataPartenza + '\n' + 'destinazione: ' + destinazione + '\n' + 'importo: ' + importo;
-	console.log(message);
+	// console.log(message);
 	if (confirm(message)) {
-		console.log('ok ' + message);
+		// console.log('ok ' + message);
 		$.post("viaggioDiariaPaga.php", {
 			fuis_viaggio_diaria_id: fuis_viaggio_diaria_id,
 			importo: importo,
@@ -29,7 +29,7 @@ function viaggioDiariaPaga(fuis_viaggio_diaria_id, docenteCognomeNome, destinazi
 		}
 		);
 	} else {
-		console.log('annullato');
+		// console.log('annullato');
 	}
 }
 

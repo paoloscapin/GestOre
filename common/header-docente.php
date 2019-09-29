@@ -42,12 +42,12 @@ if ($num > 0) {
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a href="<?php echo $__settings->local->helpLinkDocente; ?>" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>
 			<li><a><span class=""></span>
-			<?php if (haRuolo('dirigente')) echo "(D)" ?>
+			<?php if (haRuolo('admin')) echo "(A)" ?>
 			<?php echo $__docente_nome.' '.$__docente_cognome ?></a></li>
 			<li>
 			<?php
-			if (haRuolo('dirigente')) {
-				echo '<a href='.$__application_base_path.'/dirigente/selezionaDocente.php><span class="glyphicon glyphicon-log-out"></span></a>';
+			if (haRuolo('admin')) {
+				echo '<a href='.$__application_base_path.'/admin/index.php><span class="glyphicon glyphicon-log-out"></span></a>';
 			} else {
 				echo '<a href='.$__application_base_path.'/common/logout.php?base=docente><span class="glyphicon glyphicon-log-out"></span></a>';
 			}

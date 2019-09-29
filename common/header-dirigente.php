@@ -19,7 +19,7 @@
 
 			<a href="<?php echo $__application_base_path; ?>/dirigente/corsoDiRecuperoReport.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
 			<a href="<?php echo $__application_base_path; ?>/dirigente/configurazione.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-cog"></span>&ensp;Configura </a>
-			<a href="<?php echo $__application_base_path; ?>/dirigente/quadroOreDovute.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-dashboard"></span>&ensp;Previste </a>
+			<a href="<?php echo $__application_base_path; ?>/dirigente/previste.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-dashboard"></span>&ensp;Previste </a>
 
 <div class="btn-group">
 

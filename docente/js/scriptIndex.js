@@ -53,7 +53,7 @@ function oreDovuteReadRecords() {
 		table_name: 'ore_dovute'
 	},
 	function (dati, status) {
-		console.log(dati);
+		// console.log(dati);
         ore_dovute = JSON.parse(dati);
         var dovute_con_studenti_totale = parseInt(ore_dovute.ore_70_con_studenti) + parseInt(ore_dovute.ore_40_con_studenti);
         $("#dovute_totale_con_studenti").html(getHtmlNum(dovute_con_studenti_totale));
@@ -73,14 +73,14 @@ function oreDovuteReadRecords() {
 			table_name: 'ore_previste'
 		},
 		function (dati, status) {
-			console.log(dati);
+			// console.log(dati);
 			ore_previste = JSON.parse(dati);
             var previste_con_studenti_totale = parseInt(ore_previste.ore_70_con_studenti) + parseInt(ore_previste.ore_40_con_studenti);
             $("#previste_totale_con_studenti").html(getHtmlNumAndPrevisteVisual(previste_con_studenti_totale,dovute_con_studenti_totale));
             $("#previste_ore_70_funzionali").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_70_funzionali,ore_dovute.ore_70_funzionali));
 			$("#previste_ore_70_con_studenti").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_70_con_studenti,ore_dovute.ore_70_con_studenti));
 
-			$("#previste_ore_40_sostituzioni_di_ufficio").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_40_sostituzioni_di_ufficio,ore_dovute.ore_40_sostituzioni_di_ufficio));
+			// $("#previste_ore_40_sostituzioni_di_ufficio").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_40_sostituzioni_di_ufficio,ore_dovute.ore_40_sostituzioni_di_ufficio));
 			$("#previste_ore_40_aggiornamento").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_40_aggiornamento,ore_dovute.ore_40_aggiornamento));
 			$("#previste_ore_40_con_studenti").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_40_con_studenti,ore_dovute.ore_40_con_studenti));
 			
@@ -94,7 +94,7 @@ function oreDovuteReadRecords() {
 				table_name: 'ore_fatte'
 			},
 			function (dati, status) {
-				console.log(dati);
+				// console.log(dati);
 				ore_fatte = JSON.parse(dati);
                 var fatte_con_studenti_totale = parseInt(ore_fatte.ore_70_con_studenti) + parseInt(ore_fatte.ore_40_con_studenti);
                 $("#fatte_totale_con_studenti").html(getHtmlNumAndFatteVisual(fatte_con_studenti_totale,dovute_con_studenti_totale));
@@ -114,7 +114,7 @@ function oreDovuteReadRecords() {
 					table_name: 'ore_fatte_attivita_clil'
 				},
 				function (dati, status) {
-					console.log(dati);
+					// console.log(dati);
 					ore_fatte_clil = JSON.parse(dati);
 					$("#clil_fatte_funzionali").html(getHtmlNumAndFatteVisual(ore_fatte_clil.funzionali,0));
 					$("#clil_fatte_con_studenti").html(getHtmlNumAndFatteVisual(ore_fatte_clil.con_studenti,0));

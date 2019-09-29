@@ -16,7 +16,6 @@ window.addEventListener('beforeunload', (event) => {
 		}
 	});
 	if (modificato) {
-		console.log('SALVO');
 		saveBonusSelection();
 	}
 });

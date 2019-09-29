@@ -114,7 +114,7 @@ function profiloGetDetails(docente_id) {
 			id: docente_id
 		},
 		function (data, status) {
-			console.log(data);
+			// console.log(data);
 			var profilo = JSON.parse(data);
 			$("#profilo_cognome_e_nome").val(profilo.docente_cognome + " " + profilo.docente_nome);
 			$("#profilo_tipo_di_contratto").val(profilo.tipo_di_contratto);

@@ -102,7 +102,7 @@ function viaggioGetDetails(id) {
 		function (data, status) {
 			// PARSE json data
 			var viaggio = JSON.parse(data);
-			console.log(viaggio);
+			// console.log(viaggio);
 			// setting existing values to the modal popup fields
 			$("#update_protocollo").val(viaggio.protocollo);
 			$('#update_tipo_viaggio').selectpicker('val', viaggio.tipo_viaggio);
@@ -170,7 +170,7 @@ function viaggioRimborso(id) {
 		function (data, status) {
 			var spesaViaggioArray = JSON.parse(data);
 			// memorizza docente id e cognome e nome da usare poi
-			console.log(spesaViaggioArray);
+			// console.log(spesaViaggioArray);
 			$("#hidden_rimborso_viaggio_docente_id").val(spesaViaggioArray[0].docente_id);
 			$("#hidden_rimborso_viaggio_docente_cognome_e_nome").val(spesaViaggioArray[0].docente_cognome + " " + spesaViaggioArray[0].docente_nome);
 			var stato = spesaViaggioArray[0].viaggio_stato;

@@ -25,7 +25,29 @@ ruoloRichiesto('segreteria-docenti','dirigente','docente');
 
 <body >
 <?php
+
+$docente_id = $__docente_id;
+if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
+	$docente_id = $_POST['docente_id'];
+	$modificabile = false;
+}
+if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
+	$docente_id = $_GET['docente_id'];
+	$modificabile = false;
+	$query = "SELECT * FROM docente WHERE docente.id = '$docente_id'";
+	$result = dbGetFirst($query);
+    if ($result != null) {
+        $session->set('docente_id', $result['id']);
+        $session->set('docente_nome', $result['nome']);
+		$session->set('docente_cognome', $result['cognome']);
+		$__docente_id = $result['id'];
+		$__docente_nome = $result['nome'];
+		$__docente_cognome = $result['cognome'];
+	}
+}
+
 require_once '../common/header-docente.php';
+
 ?>
 
 <div class="container-fluid" style="margin-top:60px">
@@ -140,6 +162,7 @@ $tipoAttivitaOptionList .= '</optgroup>';
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
 				<button type="button" class="btn btn-primary" onclick="attivitaPrevistaUpdateDetails()" >Salva</button>
 				<input type="hidden" id="hidden_ore_previste_attivita_id">
+				<input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">
 				</div>
 			</div>
         	</div>

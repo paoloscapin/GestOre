@@ -51,6 +51,10 @@ function haRuolo($ruolo) {
     if (empty($__utente_ruolo)) {
         return false;
     }
+    // admin viene sempre autorizzato
+    if ($__utente_ruolo === 'admin') {
+        return true;
+    }
     if ($__utente_ruolo === $ruolo) {
         return true;
     }

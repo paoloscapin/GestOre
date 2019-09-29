@@ -54,9 +54,9 @@ function attivitaGetDetails(id) {
 		},
 		function (data, status) {
             var record = JSON.parse(data);
-            console.log('record.previsto_da_docente='+record.previsto_da_docente);
-            console.log('record.inserito_da_docente='+record.inserito_da_docente);
-            console.log('record.da_rendicontare='+record.da_rendicontare);
+            // console.log('record.previsto_da_docente='+record.previsto_da_docente);
+            // console.log('record.inserito_da_docente='+record.inserito_da_docente);
+            // console.log('record.da_rendicontare='+record.da_rendicontare);
 			$("#update_categoria").val(record.categoria);
 			$("#update_nome").val(record.nome);
 			$("#update_ore").val(record.ore);

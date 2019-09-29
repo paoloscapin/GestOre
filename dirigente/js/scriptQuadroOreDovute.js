@@ -173,7 +173,7 @@ function viewQuadroOrario() {
 		table_name: 'ore_dovute'
 	},
 	function (dati, status) {
-		console.log(dati);
+		// console.log(dati);
 		ore_dovute = JSON.parse(dati);
 
 		$.post("../docente/oreDovuteReadDetails.php", {
@@ -181,7 +181,7 @@ function viewQuadroOrario() {
 			table_name: 'ore_fatte'
 		},
 		function (dati, status) {
-			console.log(dati);
+			// console.log(dati);
 			ore_fatte = JSON.parse(dati);
 			var ore_fatte_ore_40_aggiornamento = parseInt(ore_fatte.ore_40_aggiornamento);
 			var ore_dovute_ore_40_aggiornamento = parseInt(ore_dovute.ore_40_aggiornamento);
@@ -200,7 +200,7 @@ function viewQuadroOrario() {
 				table_name: 'ore_fatte_attivita_clil'
 			},
 			function (dati, status) {
-				console.log(dati);
+				// console.log(dati);
 				ore_fatte_clil = JSON.parse(dati);
 				$("#clil_fatte_funzionali").html(getHtmlNumAndFatteVisual(ore_fatte_clil.funzionali,0));
 				$("#clil_fatte_con_studenti").html(getHtmlNumAndFatteVisual(ore_fatte_clil.con_studenti,0));
@@ -221,12 +221,12 @@ function viewFuis() {
 		docente_id: id
 	},
 	function (data, status) {
-		console.log(data);
+		// console.log(data);
 		$.post("fuisDocentiLoadRecord.php", {
 			docente_id: id
 		},
 		function (data, status) {
-			console.log(data);
+			// console.log(data);
 			fuis = JSON.parse(data);
 			$("#sostituzioni_ore").html(number_format(fuis.sostituzioni_ore,0));
 			$("#funzionale_ore").html(number_format(fuis.funzionale_ore,0));
@@ -417,7 +417,7 @@ function oreFatteClilGetRegistroAttivita(attivita_id, registro_id) {
 			attivita_id: attivita_id
 		},
 		function (dati, status) {
-			console.log(dati);
+			// console.log(dati);
 			var attivita = JSON.parse(dati);
 			$("#registro_tipo_attivita").html('<p class="form-control-static">' + attivita.nome + '</p>');
 			$("#registro_attivita_dettaglio").html('<p class="form-control-static">' + attivita.dettaglio + '</p>');

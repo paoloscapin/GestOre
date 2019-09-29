@@ -43,14 +43,14 @@ function registraDataVoto(studente_per_corso_di_recupero_id, value, dbFieldName)
 		value: value
 		},
 		function (data, status) {
-			console.log(data);
+			// console.log(data);
 		}
 	);
 }
 
 // seleziona il docente, apre il dialog e memorizza l'id studente
 function votoDocenteSelect(studente_per_corso_di_recupero_id) {
-	console.log('votoDocenteSelect '+studente_per_corso_di_recupero_id);
+	// console.log('votoDocenteSelect '+studente_per_corso_di_recupero_id);
 	$("#studente_per_corso_di_recupero_id").val(studente_per_corso_di_recupero_id);
 	$("#select_docente_modal").modal("show");
 }
@@ -68,7 +68,7 @@ function corsoVotoSetDocente() {
 	// serve solo a memorizzare il TR dove si trova il bottone per aggiornare poi il nome docente (bisogna reinserirlo!)
 	$(".btnVotoDocenteSelect").on('click', function(e){
 		var studente_per_corso_di_recupero_id = $('td:first', $(this).parents('tr')).text();
-		  console.log('BTN CLICK docenteVotoSettembre', ' studente_id=', studente_per_corso_di_recupero_id);
+		  // console.log('BTN CLICK docenteVotoSettembre', ' studente_id=', studente_per_corso_di_recupero_id);
 		  trSelected = this;
 	});
 
@@ -112,7 +112,7 @@ $(document).ready(function () {
 		var voto = this.value;
 		// ogni tanto lo chiama due volte una con undefined
 		if (voto === undefined) {
-			console.log('skip undefined!');
+			// console.log('skip undefined!');
 			return;
 		}
 		var studente_per_corso_di_recupero_id = $('td:first', $(this).parents('tr')).text();

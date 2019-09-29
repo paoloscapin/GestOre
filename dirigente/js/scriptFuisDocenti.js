@@ -9,7 +9,7 @@ function ricalcolaTutti() {
 	$.get("fuisDocentiCalcola.php", {
 	},
 	function (data, status) {
-		console.log(data);
+		// console.log(data);
 		fuisDocentiReadRecords();
 	});
 }
@@ -58,7 +58,7 @@ function getFromTable(table, item) {
 
 function fuisDocentiReadRecords() {
 	$.get("fuisDocentiReadRecords.php", {}, function (data, status) {
-		console.log(data);
+		// console.log(data);
 		$(".fuis_docenti_records_content").html(data);
 		$('#fuis_docenti_table td:nth-child(1),th:nth-child(1)').hide(); // nasconde la prima colonna con l'id
 		// calcola il totale
@@ -79,7 +79,7 @@ function fuisDocentiReadRecords() {
 				parziale_ore = 0;
 			}
 			var parziale_non_clil = viaggi + assegnato + parziale_ore;
-			console.log('parziale_ore=' + parziale_ore + ' parziale_non_clil=' + parziale_non_clil);
+			// console.log('parziale_ore=' + parziale_ore + ' parziale_non_clil=' + parziale_non_clil);
 			var parziale_clil = clil_funzionale + clil_con_studenti;
 
 			totale_non_clil += parziale_non_clil;

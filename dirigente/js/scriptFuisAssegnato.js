@@ -10,7 +10,7 @@ function reloadTable(fuis_assegnato_tipo_id) {
 		fuis_assegnato_tipo_id: fuis_assegnato_tipo_id
 		},
 		function (data, status) {
-			console.log(data);
+			//console.log(data);
 			var fuisArray = JSON.parse(data);
 			// console.log(fuisArray);
 			var tableId = 'table_' + fuis_assegnato_tipo_id;
@@ -21,7 +21,7 @@ function reloadTable(fuis_assegnato_tipo_id) {
 			var totale = 0;
 			fuisArray.forEach(function(fuis) {
 				totale = totale + parseFloat(fuis.fuis_assegnato_importo);
-				console.log("importo=" + fuis.fuis_assegnato_importo + " totale=" + totale);
+				// console.log("importo=" + fuis.fuis_assegnato_importo + " totale=" + totale);
 				markup = markup + 
 					"<tr>" +
 					"<td style=\"display:none;\">" + fuis.fuis_assegnato_id + "</td>" +
@@ -34,7 +34,7 @@ function reloadTable(fuis_assegnato_tipo_id) {
 					"</tr>";
 			});
 			$('#' + tableId + ' > tbody:last-child').append(markup);
-			console.log("totale=" + totale);
+			// console.log("totale=" + totale);
 			$('#' + totaleId).text('Totale ' + Math.round(totale));
 			$('#' + totaleId).css("font-weight","Bold");
 		}
@@ -69,7 +69,7 @@ $(document).ready(function () {
 	$.post("fuisAssegnatoGetIdList.php", {
 		},
 		function (data, status) {
-			console.log(data);
+		// console.log(data);
 			var idArray = JSON.parse(data);
 			idArray.forEach(function(id) {
 				reloadTable(id.id);

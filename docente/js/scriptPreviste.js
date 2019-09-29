@@ -6,29 +6,23 @@
  */
 
 function oreDovuteReadAttivita() {
-	$.get("oreDovuteReadAttivita.php", {}, function (data, status) {
+	$.get("oreDovuteReadAttivita.php", {docente_id: $("#hidden_docente_id").val()}, function (data, status) {
 		$(".attivita_previste_records_content").html(data);
 	});
 }
 
 function attivitaPrevistaUpdateDetails() {
-    var update_tipo_attivita_id = $("#tipo_attivita").val();
-    var update_ore = $("#update_ore").val();
-    var update_dettaglio = $("#update_dettaglio").val();
-
-    // get hidden field value
-    var ore_previste_attivita_id = $("#hidden_ore_previste_attivita_id").val();
-
     $.post("oreDovuteUpdateAttivita.php", {
-    	ore_previste_attivita_id: ore_previste_attivita_id,
-    	update_tipo_attivita_id: update_tipo_attivita_id,
-    	update_ore: update_ore,
-    	update_dettaglio: update_dettaglio
+		docente_id: $("#hidden_docente_id").val(),
+    	ore_previste_attivita_id: $("#hidden_ore_previste_attivita_id").val(),
+    	update_tipo_attivita_id: $("#tipo_attivita").val(),
+    	update_ore: $("#update_ore").val(),
+    	update_dettaglio: $("#update_dettaglio").val()
     }, function (data, status) {
     	if (data !== '') {
     		bootbox.alert(data);
     	}
-    	console.log(data);
+    	// console.log(data);
     	oreDovuteReadAttivita();
     });
     $("#update_attivita_modal").modal("hide");
@@ -42,7 +36,7 @@ function oreDovuteAttivitaGetDetails(attivita_id) {
 				attivita_id: attivita_id
 			},
 			function (dati, status) {
-				console.log(dati);
+				// console.log(dati);
 				var attivita = JSON.parse(dati);
 				$('#tipo_attivita').selectpicker('val', attivita.ore_previste_tipo_attivita_id);
 				$("#update_ore").val(attivita.ore);
@@ -73,7 +67,8 @@ function attivitaPrevistaDelete(id) {
     var conf = confirm("Sei sicuro di volere cancellare questa attività ?");
     if (conf == true) {
         $.post("oreDovuteAttivitaDelete.php", {
-                id: id
+			docente_id: $("#hidden_docente_id").val(),
+			id: id
             },
             function (data, status) {
             	oreDovuteReadAttivita();

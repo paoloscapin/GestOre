@@ -16,7 +16,10 @@
 require_once __DIR__ . '/common/checkSession.php';
 
 // if the session contains the role, go to the home corresponding to that role
-if (haRuolo('docente') || haRuolo('segreteria-didattica')) {
+if (haRuolo('admin')) {
+    redirect('/admin/index.php');
+}
+else if (haRuolo('docente') || haRuolo('segreteria-didattica')) {
     redirect('/docente/index.php');
 }
 else if (haRuolo('dirigente')) {

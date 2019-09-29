@@ -16,7 +16,9 @@ if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
 	$docente_id = $_POST['docente_id'];
 	$modificabile = false;
 }
-
+if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
+	$docente_id = $_GET['docente_id'];
+}
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 						<tr>

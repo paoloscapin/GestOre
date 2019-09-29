@@ -87,7 +87,7 @@ $(document).ready(function () {
 			var voto = this.value;
 			// ogni tanto lo chiama due volte una con undefined
 			if (voto === undefined) {
-				console.log('skip undefined!');
+				// console.log('skip undefined!');
 				return;
 			}
 			var studente_per_corso_di_recupero_id = $('td:first', $(this).parents('tr')).text();

@@ -19,7 +19,7 @@ function saveConfigurazione() {
 			voti_recupero_novembre_aperto: $('#voti_recupero_novembre_checkbox').prop("checked")
 		},
 		function (data, status) {
-			console.log(data);
+			// console.log(data);
 		}
 	);
 }

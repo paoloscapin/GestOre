@@ -19,7 +19,7 @@ function reloadTable() {
 	$.post("fuisReadRecords.php", {
 	},
 	function (dati, status) {
-		console.log(dati);
+		// console.log(dati);
 		dati = JSON.parse(dati);
 		$("#fuis_viaggi").text(dati.fuis_viaggi);
 		$("#fuis_assegnato").text(dati.fuis_assegnato);
