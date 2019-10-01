@@ -12,14 +12,11 @@ require_once '../common/checkSession.php';
 $modificabile = $__config->getOre_previsioni_aperto();
 
 $docente_id = $__docente_id;
-if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
-	$docente_id = $_POST['docente_id'];
-	$modificabile = false;
+if (haRuolo('dirigente')) {
+	// il dirigente può sempre fare modifiche
+	$modificabile = true;
 }
-if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
-	$docente_id = $_GET['docente_id'];
-}
-// Design initial table header
+
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 						<tr>
 							<th>Tipo</th>
@@ -47,48 +44,31 @@ $query = "	SELECT
 				ORDER BY
 				ore_previste_tipo_attivita.inserito_da_docente DESC,
 				ore_previste_tipo_attivita.previsto_da_docente DESC,
-					ore_previste_tipo_attivita.categoria, ore_previste_tipo_attivita.nome ASC
-				"
+				ore_previste_tipo_attivita.categoria, ore_previste_tipo_attivita.nome ASC;"
 				;
-if (!$result = mysqli_query($con, $query)) {
-	exit(mysqli_error($con));
-}
 
-// if query results contains rows then fetch those rows
-if(mysqli_num_rows($result) > 0) {
-	while($row = mysqli_fetch_assoc($result)) {
-		//			console_log_data("docente=", $row);
-		$data .= '<tr>
-			<td>'.$row['ore_previste_tipo_attivita_categoria'].'</td>
-			<td>'.$row['ore_previste_tipo_attivita_nome'].'</td>
-			<td>'.$row['ore_previste_attivita_dettaglio'].'</td>
-			<td>'.$row['ore_previste_attivita_ore'].'</td>
-			';
+foreach(dbGetAll($query) as $row) {
+	$data .= '<tr>
+	<td>'.$row['ore_previste_tipo_attivita_categoria'].'</td>
+	<td>'.$row['ore_previste_tipo_attivita_nome'].'</td>
+	<td>'.$row['ore_previste_attivita_dettaglio'].'</td>
+	<td>'.$row['ore_previste_attivita_ore'].'</td>
+	';
 
-		$data .='
-			<td>
-			';
-			debug('ore_previste_tipo_attivita_inserito_da_docente='.$row['ore_previste_tipo_attivita_inserito_da_docente']);
-			debug('ore_previste_tipo_attivita_previsto_da_docente='.$row['ore_previste_tipo_attivita_previsto_da_docente']);
-		if ($row['ore_previste_tipo_attivita_inserito_da_docente'] || $row['ore_previste_tipo_attivita_previsto_da_docente']) {
-			if ($modificabile) {
-				$data .='
-				<button onclick="attivitaPrevistaModifica('.$row['ore_previste_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-				<button onclick="attivitaPrevistaDelete('.$row['ore_previste_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-			';
-			}
+	$data .='<td>';
+	// si possono modificare solo le righe previste da docente
+	if ($row['ore_previste_tipo_attivita_previsto_da_docente']) {
+		if ($modificabile) {
+			$data .='
+			<button onclick="previstaModifica('.$row['ore_previste_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+			<button onclick="previstaDelete('.$row['ore_previste_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		';
 		}
-		$data .='
-			</td>
-			</tr>';
 	}
-} else {
-		// records now found
-		$data .= '<tr><td colspan="5">Nessuna attività inserita</td></tr>';
+	$data .='</td></tr>';
 }
 
 $data .= '</table></div>';
 
 echo $data;
-
 ?>

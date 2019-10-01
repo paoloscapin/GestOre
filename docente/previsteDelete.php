@@ -7,9 +7,10 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+require_once '../common/checkSession.php';
+
 if(isset($_POST['id']) && isset($_POST['id']) != "") {
-	require_once '../common/checkSession.php';
-	require_once '../common/connect.php';
+
 	$docente_id = $_POST['docente_id'];
 	$id = $_POST['id'];
 

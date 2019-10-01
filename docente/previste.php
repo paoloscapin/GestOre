@@ -26,14 +26,19 @@ ruoloRichiesto('segreteria-docenti','dirigente','docente');
 <body >
 <?php
 
+// default opera sul docente connesso e agisce come docente
 $docente_id = $__docente_id;
-if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
-	$docente_id = $_POST['docente_id'];
-	$modificabile = false;
-}
+$operatore = 'docente';
+
 if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
+	// se specificato il docente id nel get, devi essere dirigente
+	ruoloRichiesto('dirigente');
+
+	// agisci quindi come dirigente
+	$operatore = 'dirigente';
+
+	// simula l'utente in modo che il menu poi il menu docenti si comporti correttamente
 	$docente_id = $_GET['docente_id'];
-	$modificabile = false;
 	$query = "SELECT * FROM docente WHERE docente.id = '$docente_id'";
 	$result = dbGetFirst($query);
     if ($result != null) {
@@ -47,7 +52,6 @@ if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
 }
 
 require_once '../common/header-docente.php';
-
 ?>
 
 <div class="container-fluid" style="margin-top:60px">
@@ -62,7 +66,8 @@ require_once '../common/header-docente.php';
 		</div>
 		<div class="col-md-4 text-right">
             <?php
-            if ($__config->getOre_previsioni_aperto()) {
+			// il dirigente puo' comunque modificare le previsioni, anche quando e' chiuso
+            if ($__config->getOre_previsioni_aperto() || haRuolo('dirigente')) {
             	echo '
 					<button onclick="attivitaPrevistaAdd()" class="btn btn-xs btn-orange4"><span class="glyphicon glyphicon-plus"></span></button>
 				';
@@ -160,9 +165,10 @@ $tipoAttivitaOptionList .= '</optgroup>';
             </div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-				<button type="button" class="btn btn-primary" onclick="attivitaPrevistaUpdateDetails()" >Salva</button>
+				<button type="button" class="btn btn-primary" onclick="previstaUpdateDetails()" >Salva</button>
 				<input type="hidden" id="hidden_ore_previste_attivita_id">
 				<input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">
+				<input type="hidden" id="hidden_operatore" value="<?php echo $operatore; ?>">
 				</div>
 			</div>
         	</div>

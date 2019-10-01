@@ -149,7 +149,7 @@ function fuisChiudi() {
 }
 
 function viewAttivitaPreviste(id, docente) {
-	$.post("../docente/oreDovuteReadAttivita.php", {
+	$.post("../docente/previsteReadRecords.php", {
 			docente_id: id
 		},
 		function (data, status) {
@@ -157,7 +157,7 @@ function viewAttivitaPreviste(id, docente) {
 			$("#myModalPrevisteTitleLabel").text('Attività Previste (' + docente + ')');
 		    $("#previste_modal").modal("show");
 		});
-	$.post("../docente/orePrevisteReadSommarioAttivita.php", {
+	$.post("../docente/previsteReadSommarioAttivita.php", {
 		docente_id: id
 	},
 	function (data, status) {
