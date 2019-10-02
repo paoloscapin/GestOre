@@ -32,7 +32,7 @@ $connection = 'http';
 if ($__settings->system->https) {
     $connection = 'https';
 }
-$url = "$connection://$_SERVER[HTTP_HOST]".$__application_base_path . '/docente/attivita.php';
+$url = "$connection://$_SERVER[HTTP_HOST]".$__application_base_path . '/index.php';
 $html_msg = '
 <html><body>
 Gentile '.$docente['nome'].' '.$docente['cognome'].'

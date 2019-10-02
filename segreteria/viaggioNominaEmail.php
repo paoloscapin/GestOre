@@ -77,7 +77,7 @@ $connection = 'http';
 if ($__settings->system->https) {
     $connection = 'https';
 }
-$url = "$connection://$_SERVER[HTTP_HOST]".$__application_base_path . '/docente/viaggio.php';
+$url = "$connection://$_SERVER[HTTP_HOST]".$__application_base_path . '/index.php';
 $html_msg = '
 <html><body>
 Gentile '.$row['docente_nome'].' '.$row['docente_cognome'].'
