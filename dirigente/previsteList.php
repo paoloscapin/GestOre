@@ -26,7 +26,7 @@ ruoloRichiesto('dirigente');
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/timejs/date-it-IT.js"></script>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-3.css">
-<script type="text/javascript" src="js/scriptPrevistexx.js"></script>
+<script type="text/javascript" src="js/scriptPrevisteDirigente.js"></script>
 
 </head>
 
@@ -40,12 +40,12 @@ require_once '../common/connect.php';
 <div class="panel panel-orange4">
 <div class="panel-heading container-fluid">
 	<div class="row">
-		<div class="col-md-3">
+		<div class="col-md-4">
 			<span class="glyphicon glyphicon-list-alt"></span>&emsp;<strong>Ore Previste</strong>
 		</div>
-		<div class="col-md-3 text-center" id="totale_previste">
+		<div class="col-md-4 text-center" id="totale_previste">
 		</div>
-		<div class="col-md-3 text-center" id="totale_previste_clil">
+		<div class="col-md-4 text-center" id="totale_previste_clil">
 		</div>
 	</div>
 </div>
@@ -112,6 +112,7 @@ ORDER BY
 ";
 
 $resultArray = dbGetAll($query);
+$fuis_totale_previsto = 0;
 foreach($resultArray as $docente) {
     $docenteId = $docente['id'];
     $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
@@ -127,11 +128,12 @@ foreach($resultArray as $docente) {
 	$ore_con_studenti = $docente['ore_previste_ore_70_con_studenti'] - $docente['ore_dovute_ore_70_con_studenti'];
 	$fuis_funzionale_previsto = $ore_funzionali * 17.5;
     $fuis_con_studenti_previsto = $ore_con_studenti * 35;
-    $fuis_totale_previsto = $fuis_funzionale_previsto + $fuis_con_studenti_previsto;
+    $fuis_docente_previsto = $fuis_funzionale_previsto + $fuis_con_studenti_previsto;
     // non si chiedono soldi indietro !!
-    if ($fuis_totale_previsto < 0) {
-        $fuis_totale_previsto = 0;
+    if ($fuis_docente_previsto < 0) {
+        $fuis_docente_previsto = 0;
     }
+    $fuis_totale_previsto = $fuis_totale_previsto + $fuis_docente_previsto;
     $marker = '';
 
     echo '<tr>';
@@ -140,7 +142,7 @@ foreach($resultArray as $docente) {
     echo '<td class="text-left">'.getHtmlNumAndPrevisteVisual($docente['ore_fatte_ore_40_sostituzioni_di_ufficio'],$docente['ore_dovute_ore_40_sostituzioni_di_ufficio']).'</td>';
     echo '<td class="text-left">'.getHtmlNumAndPrevisteVisual($docente['ore_previste_ore_70_funzionali'],$docente['ore_dovute_ore_70_funzionali']).'</td>';
     echo '<td class="text-left">'.getHtmlNumAndPrevisteVisual($previste_con_studenti_total,$dovute_con_studenti_total).'</td>';
-    echo '<td class="text-center">'.$fuis_totale_previsto.'</td>';
+    echo '<td class="text-center">'.$fuis_docente_previsto.'</td>';
     echo '</tr>';
     }
 ?>
@@ -154,6 +156,7 @@ foreach($resultArray as $docente) {
 <!-- <div class="panel-footer"></div> -->
 </div>
 </div>
+<input type="hidden" id="hidden_fuis_totale_previsto" value="<?php echo $fuis_totale_previsto; ?>">
 </body>
 </html>
 
