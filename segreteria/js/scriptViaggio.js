@@ -303,7 +303,7 @@ function viaggioChiudi() {
     $.post("viaggioChiudi.php", {
 		viaggio_id: viaggio_id,
 		importo_diaria: importo_diaria,
-		numero_ore: ore_richieste,
+		numero_ore: numero_ore,
 		docente_id: $("#hidden_rimborso_viaggio_docente_id").val(),
 		docente_cognome_e_nome: $("#hidden_rimborso_viaggio_docente_cognome_e_nome").val()
         },
