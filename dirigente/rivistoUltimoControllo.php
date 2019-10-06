@@ -10,13 +10,13 @@
 if(isset($_POST)) {
     require_once '../common/checkSession.php';
     require_once '../common/header-common.php';
-    require_once '../common/connect.php';
     
-    // get values
+    // deve sapere su quale docente e quale tabella farlo
     $docente_id = $_POST['docente_id'];
+    $tabella = $_POST['tabella'];
     
-    // Update details
-    $query = "UPDATE fuis_docente SET ultimo_controllo = now() WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;";
+    $query = "UPDATE $tabella SET ultimo_controllo = now() WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;";
+    info("aggiornato ultimo controllo per docente docente_id=$docente_id");
     dbExec($query);
 }
 ?>

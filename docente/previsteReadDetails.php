@@ -13,7 +13,7 @@ if(isset($_POST['attivita_id']) && isset($_POST['attivita_id']) != "") {
 
 	$attivita_id = $_POST['attivita_id'];
 
-	$query = "SELECT * FROM ore_previste_attivita WHERE id = '$attivita_id'";
+	$query = "SELECT * FROM ore_previste_attivita LEFT JOIN ore_previste_attivita_commento ON ore_previste_attivita_commento.ore_previste_attivita_id = ore_previste_attivita.id WHERE ore_previste_attivita.id = '$attivita_id'";
 	$response = dbGetFirst($query);
 	echo json_encode($response);
 }

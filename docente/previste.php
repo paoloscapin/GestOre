@@ -17,6 +17,7 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
+require_once '../common/_include_bootstrap-notify.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente');
 ?>
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-vcolor-index.css">
@@ -49,6 +50,8 @@ if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
 		$__docente_nome = $result['nome'];
 		$__docente_cognome = $result['cognome'];
 	}
+	$ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_previste WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
+    debug('ultimo_controllo=' . $ultimo_controllo);
 }
 
 require_once '../common/header-docente.php';
@@ -59,15 +62,27 @@ require_once '../common/header-docente.php';
 <div class="panel panel-orange4">
 <div class="panel-heading">
 <div class="row">
-		<div class="col-md-4">
+		<div class="col-md-3">
 			<span class="glyphicon glyphicon-list-alt"></span>&ensp;Ore Previste
 		</div>
-		<div class="col-md-4 text-center">
-		</div>
-		<div class="col-md-4 text-right">
+		<?php if($operatore == 'dirigente') : ?>
+			<div class="col-md-2 text-left">
+				<button onclick="previsteChiudi()" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-off"> Chiudi</button>
+			</div>
+			<div class="col-md-2 text-center">
+				<button onclick="previsteRivisto()" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"> Rivisto</button>
+			</div>
+			<div class="col-md-2 text-right">
+				<button onclick="previsteEmail()" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-envelope"> Notifica Docente</button>
+			</div>
+		<?php else: ?>
+			<div class="col-md-6 text-right">
+			</div>
+		<?php endif; ?>
+		<div class="col-md-3 text-right">
             <?php
 			// il dirigente puo' comunque modificare le previsioni, anche quando e' chiuso
-            if ($__config->getOre_previsioni_aperto() || haRuolo('dirigente')) {
+            if ($__config->getOre_previsioni_aperto() || $operatore == 'dirigente') {
             	echo '
 					<button onclick="attivitaPrevistaAdd()" class="btn btn-xs btn-orange4"><span class="glyphicon glyphicon-plus"></span></button>
 				';
@@ -161,6 +176,12 @@ $tipoAttivitaOptionList .= '</optgroup>';
                     <label class="col-sm-3 control-label" for="update_dettaglio">dettaglio</label>
                     <div class="col-sm-9"><input type="text" id="update_dettaglio" placeholder="specificare solo se necessario" class="form-control"/></div>
                 </div>
+
+                <div class="form-group" id="commento-part">
+                    <hr>
+                    <label class="col-sm-3 control-label" for="update_commento">commento</label>
+                    <div class="col-sm-9"><input type="text" id="update_commento" placeholder="commento" class="form-control"/></div>
+                </div>
             </div>
             </div>
 			<div class="modal-footer">
@@ -169,6 +190,7 @@ $tipoAttivitaOptionList .= '</optgroup>';
 				<input type="hidden" id="hidden_ore_previste_attivita_id">
 				<input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">
 				<input type="hidden" id="hidden_operatore" value="<?php echo $operatore; ?>">
+				<input type="hidden" id="hidden_ultimo_controllo" value="<?php echo $ultimo_controllo; ?>">
 				</div>
 			</div>
         	</div>

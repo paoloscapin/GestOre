@@ -1,4 +1,3 @@
-
 /**
  *  This file is part of GestOre
  *  @author     Paolo Scapin <paolo.scapin@gmail.com>
@@ -7,8 +6,9 @@
  */
 
 function bonusRivisto() {
-	$.post("bonusDocenteRivisto.php", {
-		docente_id: $("#hidden_docente_id").val()
+	$.post("rivistoControllo.php", {
+		docente_id: $("#hidden_docente_id").val(),
+		tabella: "bonus_docente"
 	},
 	function (data, status) {
 		// rimuove tutti gli span della colonna 2 che sono i marker degli elementi nuovi
@@ -17,7 +17,7 @@ function bonusRivisto() {
 		var tzoffset = (new Date()).getTimezoneOffset() * 60000;
 		var localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
 		var ultimo_controllo = localISOTime.replace('T', ' ');
-		$("#hidden_ultimo_controllo").val(ultimo_controllo);
+		$("#rivistoUltimoControllo").val(ultimo_controllo);
 		$.notify({
 			icon: 'glyphicon glyphicon-ok',
 			title: '<Strong>Bonus</Strong></br>',

@@ -8,15 +8,16 @@
  */
 
 require_once '../common/checkSession.php';
-require_once '../common/connect.php';
+
+info("inizio");
 
 $docente_id = $_POST["docente_id"];
+$oggetto_modifica = $_POST["oggetto_modifica"];
 
-$query = "SELECT * FROM docente WHERE docente.id = '$docente_id'";
-$docente = dbGetFirst($query);
+$docente = dbGetFirst("SELECT * FROM docente WHERE docente.id = '$docente_id'");
 
 $to = $docente['email'];
-$subject = 'Aggiornamento Richiesta FUIS';
+$subject = "Aggiornamento Richiesta $oggetto_modifica";
 $sender = $__settings->local->emailNoReplyFrom;
 
 $headers = "From: $sender\n";
@@ -26,7 +27,7 @@ $headers .= "Content-Transfer-Encoding: 8bit\n";
 $headers .= "X-Mailer: PHP " . phpversion();
 
 // Corpi del messaggio nei due formati testo e HTML
-$text_msg = "La sua richiesta FUIS è stata aggiornata";
+$text_msg = "La sua richiesta di $oggetto_modifica è stata aggiornata";
 
 $connection = 'http';
 if ($__settings->system->https) {
@@ -37,7 +38,7 @@ $html_msg = '
 <html><body>
 Gentile '.$docente['nome'].' '.$docente['cognome'].'
  
-<p>la tua richiesta FUIS &egrave; stata rivista e sono state apportate alcune modifiche.</p>
+<p>la tua richiesta di '.$oggetto_modifica.' &egrave; stata rivista e sono state apportate alcune modifiche.</p>
 
 <p>Le modifiche apportate possono essere riviste all&rsquo;indirizzo
 <strong><a href=\''.$url.'\'>attivit&agrave;</a></strong></p>
@@ -51,9 +52,11 @@ ini_set("sendmail_from", $sender);
 
 // Invia il messaggio, il quinto parametro "-f$sender" imposta il Return-Path su hosting Linux
 if (mail($to, $subject, $html_msg, $headers, "-f$sender")) {
-    echo "email inviata correttamente a ".$docente['email'];
+    info("email $oggetto_modifica inviata correttamente a ".$docente['email']);
+    echo "email $oggetto_modifica inviata correttamente a ".$docente['email'];
 } else {
-    echo "errore nell'invio della email";
+    info("errore nell'invio della email $oggetto_modifica a ".$docente['email']);
+    echo "errore nell'invio della email $oggetto_modifica a ".$docente['email'];
 }
 
 ?>

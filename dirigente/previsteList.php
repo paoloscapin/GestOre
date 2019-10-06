@@ -72,21 +72,22 @@ SELECT
 	docente.*,
 	
 	ore_dovute.ore_40_sostituzioni_di_ufficio AS ore_dovute_ore_40_sostituzioni_di_ufficio,
-	ore_dovute.	ore_40_con_studenti AS ore_dovute_ore_40_con_studenti,
+	ore_dovute.ore_40_con_studenti AS ore_dovute_ore_40_con_studenti,
 	ore_dovute.ore_40_aggiornamento AS ore_dovute_ore_40_aggiornamento,
-	ore_dovute.	ore_70_funzionali AS ore_dovute_ore_70_funzionali,
+	ore_dovute.ore_70_funzionali AS ore_dovute_ore_70_funzionali,
 	ore_dovute.ore_70_con_studenti AS ore_dovute_ore_70_con_studenti,
 	
 	ore_previste.ore_40_sostituzioni_di_ufficio AS ore_previste_ore_40_sostituzioni_di_ufficio,
-	ore_previste.	ore_40_con_studenti AS ore_previste_ore_40_con_studenti,
+	ore_previste.ore_40_con_studenti AS ore_previste_ore_40_con_studenti,
 	ore_previste.ore_40_aggiornamento AS ore_previste_ore_40_aggiornamento,
-	ore_previste.	ore_70_funzionali AS ore_previste_ore_70_funzionali,
+	ore_previste.ore_70_funzionali AS ore_previste_ore_70_funzionali,
 	ore_previste.ore_70_con_studenti AS ore_previste_ore_70_con_studenti,
+	ore_previste.ultimo_controllo AS ore_previste_ultimo_controllo,
 	
 	ore_fatte.ore_40_sostituzioni_di_ufficio AS ore_fatte_ore_40_sostituzioni_di_ufficio,
-	ore_fatte.	ore_40_con_studenti AS ore_fatte_ore_40_con_studenti,
+	ore_fatte.ore_40_con_studenti AS ore_fatte_ore_40_con_studenti,
 	ore_fatte.ore_40_aggiornamento AS ore_fatte_ore_40_aggiornamento,
-	ore_fatte.	ore_70_funzionali AS ore_fatte_ore_70_funzionali,
+	ore_fatte.ore_70_funzionali AS ore_fatte_ore_70_funzionali,
 	ore_fatte.ore_70_con_studenti AS ore_fatte_ore_70_con_studenti
 	
 	
@@ -135,6 +136,10 @@ foreach($resultArray as $docente) {
     }
     $fuis_totale_previsto = $fuis_totale_previsto + $fuis_docente_previsto;
     $marker = '';
+    $ultimo_controllo = $docente['ore_previste_ultimo_controllo'];
+    $q2 = "SELECT COUNT(ultima_modifica) from ore_previste_attivita WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId AND ultima_modifica > '$ultimo_controllo';";
+    $numChanges = dbGetValue($q2);
+    $marker = ($numChanges == 0) ? '': '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>';
 
     echo '<tr>';
     echo '<td><a href="../docente/previste.php?docente_id='.$docenteId.'" target="_blank">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>';

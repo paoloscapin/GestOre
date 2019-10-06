@@ -83,8 +83,9 @@ function number_format (number, decimals, decPoint, thousandsSep) {
 // ----------------------------------------------------------------------------------------------
 
 function fuisEmail() {
-	$.post("fuisEmailDocente.php", {
-		docente_id: $("#hidden_docente_id").val()
+	$.post("../dirigente/emailNotificaDocente.php", {
+		docente_id: $("#hidden_docente_id").val(),
+		oggetto_modifica: "FUIS"
 	},
 	function (data, status) {
 		$.notify({
@@ -105,8 +106,9 @@ function fuisEmail() {
 }
 
 function fuisRivisto() {
-	$.post("fuisDocenteRivisto.php", {
-		docente_id: $("#hidden_docente_id").val()
+	$.post("../dirigente/rivistoUltimoControllo.php", {
+		docente_id: $("#hidden_docente_id").val(),
+		tabella: "fuis_docente"
 	},
 	function (data, status) {
 		var tzoffset = (new Date()).getTimezoneOffset() * 60000;
