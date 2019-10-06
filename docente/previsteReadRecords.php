@@ -31,7 +31,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 							<th>Tipo</th>
 							<th>Nome</th>
 							<th>Dettaglio</th>
-							<th>ore</th>
+							<th class="col-md-1 text-center">ore</th>
 							<th></th>
 						</tr>';
 
@@ -70,17 +70,17 @@ foreach(dbGetAll($query) as $row) {
 	}
 
 	$data .= '<tr>
-	<td>'.$row['ore_previste_tipo_attivita_categoria'].$marker.'</td>
-	<td>'.$row['ore_previste_tipo_attivita_nome'].'</td>
+	<td class="col-md-1">'.$row['ore_previste_tipo_attivita_categoria'].$marker.'</td>
+	<td class="col-md-3">'.$row['ore_previste_tipo_attivita_nome'].'</td>
 	<td>'.$row['ore_previste_attivita_dettaglio'];
 	if ($row['ore_previste_attivita_commento_commento'] != null && !empty(trim($row['ore_previste_attivita_commento_commento'], " "))) {
 		$data .='</br><span class="text-danger"><strong>'.$row['ore_previste_attivita_commento_commento'].'</strong></span>';
 	}
 	$data .= '</td>
-	<td>'.$row['ore_previste_attivita_ore'].'</td>
+	<td class="col-md-1 text-center">'.$row['ore_previste_attivita_ore'].'</td>
 	';
 
-	$data .='<td>';
+	$data .='<td class="col-md-1 text-center">';
 	// si possono modificare solo le righe previste da docente: se dirigente lo script non cancella ma propone di mettere le ore a zero
 	if ($row['ore_previste_tipo_attivita_previsto_da_docente']) {
 		if ($modificabile) {
