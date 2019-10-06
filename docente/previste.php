@@ -63,24 +63,27 @@ require_once '../common/header-docente.php';
 <div class="panel panel-orange4">
 <div class="panel-heading">
 <div class="row">
-		<div class="col-md-3">
+		<div class="col-md-2">
 			<span class="glyphicon glyphicon-list-alt"></span>&ensp;Ore Previste
 		</div>
 		<?php if($operatore == 'dirigente') : ?>
-			<div class="col-md-2 text-left">
-				<button onclick="previsteChiudi()" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-off"> Chiudi</button>
+			<div class="col-md-2 text-center">
+				<button onclick="previsteChiudi()" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-off"> Chiudi</button>
 			</div>
 			<div class="col-md-2 text-center">
-				<button onclick="previsteRivisto()" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"> Rivisto</button>
+				<button onclick="previsteRivisto()" class="btn btn-lima4 btn-xs"><span class="glyphicon glyphicon-ok"> Rivisto</button>
 			</div>
-			<div class="col-md-2 text-right">
-				<button onclick="previsteEmail()" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-envelope"> Notifica Docente</button>
+			<div class="col-md-2 text-center">
+				<button onclick="previsteEmail()" class="btn btn-lightblue4 btn-xs"><span class="glyphicon glyphicon-envelope"> Notifica Docente</button>
+			</div>
+			<div class="col-md-2 text-center">
+				<button onclick="previsteAzzeraSostituzioni()" class="btn btn-yellow4 btn-xs"><span class="glyphicon glyphicon-retweet"> Azzera Sostituzioni</button>
 			</div>
 		<?php else: ?>
-			<div class="col-md-6 text-right">
+			<div class="col-md-8 text-right">
 			</div>
 		<?php endif; ?>
-		<div class="col-md-3 text-right">
+		<div class="col-md-2 text-right">
             <?php
 			// il dirigente puo' comunque modificare le previsioni, anche quando e' chiuso
             if ($__config->getOre_previsioni_aperto() || $operatore == 'dirigente') {

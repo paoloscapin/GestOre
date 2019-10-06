@@ -165,6 +165,15 @@ function previsteRivisto() {
 	});
 }
 
+function previsteAzzeraSostituzioni() {
+	$.post("../dirigente/sostituzioniRimuovi.php", {
+		docente_id: $("#hidden_docente_id").val()
+	},
+	function (data, status) {
+		previsteReadRecords();
+	});
+}
+
 function previsteChiudi() {
 	$.notify({
 		icon: 'glyphicon glyphicon-off',

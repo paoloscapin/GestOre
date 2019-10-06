@@ -35,7 +35,7 @@ require_once '../common/connect.php';
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
-			<span class="glyphicon glyphicon-education"></span>&ensp;Attività Fatte
+			<span class="glyphicon glyphicon-folder-close"></span>&ensp;Attività Fatte
 		</div>
 		<div class="col-md-4 text-center">
 			<button onclick="oreFatteSommario()" class="btn btn-xs btn-teal4"><span class="glyphicon glyphicon-option-horizontal"></span> Sommario</button>
@@ -169,7 +169,7 @@ require_once '../common/connect.php';
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
-		<span class="glyphicon glyphicon-picture"></span>&ensp;Sostituzioni
+		<span class="glyphicon glyphicon-retweet"></span>&ensp;Sostituzioni
 		</div>
 		<div class="col-md-4 text-center">
 		</div>
