@@ -70,9 +70,9 @@ foreach(dbGetAll($query) as $row) {
 	}
 
 	$data .= '<tr>
-	<td class="col-md-1">'.$row['ore_previste_tipo_attivita_categoria'].$marker.'</td>
+	<td class="col-md-1">'.$row['ore_previste_tipo_attivita_categoria'].'</td>
 	<td class="col-md-3">'.$row['ore_previste_tipo_attivita_nome'].'</td>
-	<td>'.$row['ore_previste_attivita_dettaglio'];
+	<td>'.$row['ore_previste_attivita_dettaglio'].$marker;
 	if ($row['ore_previste_attivita_commento_commento'] != null && !empty(trim($row['ore_previste_attivita_commento_commento'], " "))) {
 		$data .='</br><span class="text-danger"><strong>'.$row['ore_previste_attivita_commento_commento'].'</strong></span>';
 	}

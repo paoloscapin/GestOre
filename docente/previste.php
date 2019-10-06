@@ -21,6 +21,7 @@ require_once '../common/_include_bootstrap-notify.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente');
 ?>
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-vcolor-index.css">
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-3.css">
 	<title>Ore Previste</title>
 </head>
 
