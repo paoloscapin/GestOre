@@ -33,6 +33,60 @@ function viaggioDiariaPaga(fuis_viaggio_diaria_id, docenteCognomeNome, destinazi
 	}
 }
 
+function viaggioDiariaGetDetails(diaria_id, diaria_importo, viaggio_ore_recuperate_id, viaggio_ore_recuperate_ore, docente_id) {
+	$("#hidden_diaria_id").val(diaria_id);
+	$("#diaria").val(diaria_importo);
+	$("#hidden_diaria").val(diaria_importo);
+	if (diaria_id != 0) {
+		$("#diaria-part").show();
+	} else {
+		if (viaggio_ore_recuperate_id == 0) {
+			return;
+		}
+		$("#diaria-part").hide();
+	}
+
+	$("#hidden_ore_id").val(viaggio_ore_recuperate_id);
+	$("#ore").val(viaggio_ore_recuperate_ore);
+	$("#hidden_ore").val(viaggio_ore_recuperate_ore);
+	$("#hidden_docente_id").val(docente_id);
+
+	$("#viaggioDiariaModal").modal("show");
+}
+
+function viaggioDiariaSalva() {
+	if ($("#hidden_diaria").val() != $("#diaria").val()) {
+		$.post("../common/recordUpdate.php", {
+			table: 'fuis_viaggio_diaria',
+			id: $("#hidden_diaria_id").val(),
+			nome:'importo',
+			valore: $("#diaria").val()
+		},
+		function (data, status) {
+			$.post("../docente/oreFatteAggiornaDocente.php", { docente_id: $("#hidden_docente_id").val() },
+			function (data, status) {
+				viaggioDiariaReadRecords();
+			});
+		});
+	}
+	
+	if ($("#hidden_ore").val() != $("#ore").val()) {
+		$.post("../common/recordUpdate.php", {
+			table: 'viaggio_ore_recuperate',
+			id: $("#hidden_ore_id").val(),
+			nome:'ore',
+			valore: $("#ore").val()
+		},
+		function (data, status) {
+			$.post("../docente/oreFatteAggiornaDocente.php", { docente_id: $("#hidden_docente_id").val() },
+			function (data, status) {
+				viaggioDiariaReadRecords();
+			});
+		});
+	}
+	$("#viaggioDiariaModal").modal("hide");
+}
+
 $(document).ready(function () {
 	viaggioDiariaReadRecords();
 });

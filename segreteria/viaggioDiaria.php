@@ -21,7 +21,7 @@ require_once '../common/_include_bootstrap-select.php';
 //require_once '../common/_include_flatpickr.php';
 ruoloRichiesto('segreteria-docenti','dirigente');
 ?>
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-3.css">
 	<title>Diaria</title>
 </head>
 
@@ -32,7 +32,7 @@ require_once '../common/connect.php';
 ?>
 
 <div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-danger">
+<div class="panel panel-deeporange4">
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
@@ -60,6 +60,51 @@ require_once '../common/connect.php';
 
 <!-- <div class="panel-footer"></div> -->
 </div>
+
+<!-- Bootstrap Modals -->
+<!-- Modal - Update Record -->
+<div class="modal fade" id="viaggioDiariaModal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+			<div class="panel panel-deeporange4">
+			<div class="panel-heading">
+				<h5 class="modal-title" id="myModalLabel">Aggiorna Ore e Diaria</h5>
+			</div>
+			<div class="panel-body">
+			<form class="form-horizontal">
+
+                <div class="form-group" id="ore-part">
+                    <label class="col-sm-2 control-label" for="ore">Ore</label>
+					<div class="col-sm-4"><input type="text" value="" id="ore" placeholder="" class="form-control" /></div>
+                </div>
+                <div class="form-group" id="diaria-part">
+                    <label class="col-sm-2 control-label" for="diaria">Diaria</label>
+					<div class="col-sm-4"><input type="text" value="" id="diaria" placeholder="" class="form-control" /></div>
+                </div>
+			</form>
+            <input type="hidden" id="hidden_diaria_id">
+            <input type="hidden" id="hidden_diaria">
+            <input type="hidden" id="hidden_ore_id">
+            <input type="hidden" id="hidden_ore">
+            <input type="hidden" id="hidden_docente_id">
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" onclick="viaggioDiariaSalva()">Salva</button>
+            </div>
+			</div>
+			</div>
+        </div>
+    </div>
+</div>
+<!-- // Modal - Add New Record -->
+
+
+
+
+
 </div>
 
 <!-- Custom JS file -->
