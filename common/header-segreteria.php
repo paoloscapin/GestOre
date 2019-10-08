@@ -19,7 +19,8 @@
 			<a href="<?php echo $__application_base_path; ?>/segreteria/docente.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Docenti </a>
 			<a href="<?php echo $__application_base_path; ?>/segreteria/oreAssegnate.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Assegnate </a>
 			<a href="<?php echo $__application_base_path; ?>/segreteria/sostituzione.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-retweet"></span>&ensp;Sostituzioni </a>
-			<a href="<?php echo $__application_base_path; ?>/segreteria/index.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Udienze </a>
+			<a href="<?php echo $__application_base_path; ?>/segreteria/gruppoGestione.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Gruppi </a>
+			<a href="<?php echo $__application_base_path; ?>/segreteria/index.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-scale"></span>&ensp;Udienze </a>
 <div class="btn-group">
 
 <a href="<?php echo $__application_base_path; ?>/segreteria/viaggio.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-picture"></span>&ensp;Uscite </a>
