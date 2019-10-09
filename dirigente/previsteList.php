@@ -124,11 +124,14 @@ foreach($resultArray as $docente) {
     // non considerato in previsioni !!
     $ore_sostituzioni =  $docente['ore_fatte_ore_40_sostituzioni_di_ufficio'] - $docente['ore_dovute_ore_40_sostituzioni_di_ufficio'];
 
-    // totale 
+    // totale
     $ore_funzionali = $docente['ore_previste_ore_70_funzionali'] - $docente['ore_dovute_ore_70_funzionali'];
-	$ore_con_studenti = $docente['ore_previste_ore_70_con_studenti'] - $docente['ore_dovute_ore_70_con_studenti'];
-	$fuis_funzionale_previsto = $ore_funzionali * 17.5;
-    $fuis_con_studenti_previsto = $ore_con_studenti * 35;
+    $ore_con_studenti = $previste_con_studenti_total - $dovute_con_studenti_total;
+//    $ore_con_studenti_vecchio = $docente['ore_previste_ore_70_con_studenti'] - $docente['ore_dovute_ore_70_con_studenti'];
+//    info("docenteCognomeNome=$docenteCognomeNome ore_con_studenti__vecchio=$ore_con_studenti__vecchio ore_con_studenti=$ore_con_studenti");
+
+    $fuis_funzionale_previsto = $ore_funzionali * $__settings->importi->oreFunzionali;
+    $fuis_con_studenti_previsto = $ore_con_studenti * $__settings->importi->oreConStudenti;
     $fuis_docente_previsto = $fuis_funzionale_previsto + $fuis_con_studenti_previsto;
     // non si chiedono soldi indietro !!
     if ($fuis_docente_previsto < 0) {

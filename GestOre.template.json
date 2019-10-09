@@ -35,6 +35,10 @@
         "emailNoReplyFrom": "--- inserire un indirizzo di email noreply (ad esempio noreply-GestOre@istituto.it) ---",
         "luogoIstituto": "--- inserire la località per i documenti generati ---"
     },
+    "importi": {
+        "oreConStudenti": 35,
+        "oreFunzionali": 17.5
+    },
     "ore80": {
         "minuti_ore_con_studenti": 50,
         "ore_max_sostituzioni": 18,
