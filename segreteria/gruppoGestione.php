@@ -108,12 +108,6 @@ foreach(dbGetAll($query) as $docenteRow) {
                     <?php echo $docenteOptionList ?>
 					</select></div>
                 </div>
-
-                <div class="form-group">
-                    <label class="col-sm-3 control-label"  for="ore_responsabile">Ore Responsabile</label>
-                    <input class="col-sm-8" type="text" id="ore_responsabile" placeholder="ore riconosciute al responsabile" class="form-control"/>
-                </div>
-
 			</form>
 
             </div>
