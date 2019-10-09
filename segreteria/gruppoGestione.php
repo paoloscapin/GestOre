@@ -21,6 +21,7 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
+require_once '../common/_include_select2.php';
 ruoloRichiesto('dirigente','segreteria-docenti');
 ?>
 
@@ -118,7 +119,37 @@ foreach(dbGetAll($query) as $docenteRow) {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                <button type="button" class="btn btn-primary" onclick="gruppoGestioneAddRecord()">Salva</button>
+                <button type="button" class="btn btn-primary" onclick="gruppoGestioneSave()">Salva</button>
+            </div>
+			</div>
+			</div>
+        </div>
+    </div>
+</div>
+<!-- // Modal - Add New Record -->
+
+<!-- Modal - partecipanti -->
+<div class="modal fade" id="partecipanti_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="partecipantiModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+			<div class="panel panel-lightblue4">
+			<div class="panel-heading">
+				<h5 class="modal-title" id="partecipantiModalLabel">Partecipanti Gruppo</h5>
+			</div>
+			<div class="panel-body">
+			<form class="form-horizontal">
+
+                <select id="partecipanti" class="js-example-basic-multiple form-control" multiple="multiple" style="width: 75%">
+                    <?php echo $docenteOptionList ?>
+                </select>
+				<input type="hidden" id="hidden_gruppo_id">
+
+			</form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" onclick="gruppoPartecipantiSave()">Salva</button>
             </div>
 			</div>
 			</div>

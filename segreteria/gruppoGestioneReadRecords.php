@@ -10,12 +10,13 @@
 require_once '../common/checkSession.php';
 
 // Design initial table header
-$data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green-3">
+$data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<tr>
 						<th>Nome</th>
 						<th>Commento</th>
 						<th>Responsabile</th>
 						<th>max ore</th>
+						<th></th>
 					</tr>';
 
 $query = "	SELECT
@@ -40,7 +41,7 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.$row['gruppo_max_ore'].'</td>
 		';
 	$data .='
-		<td>
+		<td class="text-center">
 		<button onclick="gruppoGestioneGetDetails('.$row['gruppo_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 		<button onclick="gruppoGestioneDelete('.$row['gruppo_id'].', \''.$row['gruppo_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>
