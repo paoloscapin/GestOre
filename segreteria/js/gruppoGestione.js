@@ -27,6 +27,11 @@ function gruppoGestioneDelete(id, nome) {
 }
 
 function openModal() {
+    $("#nome").val("");
+    $("#commento").val("");
+    $("#max_ore").val("");
+    $('#responsabile').val("0");
+    $('#responsabile').selectpicker('refresh');
 	$("#add_new_record_modal").modal("show");
 }
 
@@ -36,8 +41,7 @@ function gruppoGestioneSave() {
         commento: $("#commento").val(),
         max_ore: $("#max_ore").val(),
         dipartimento: 0,
-        responsabile_docente_id: $("#responsabile").val(),
-        ore_responsabile: $("#ore_responsabile").val()
+        responsabile_docente_id: $("#responsabile").val()
     }, function (data, status) {
         $("#add_new_record_modal").modal("hide");
         gruppoGestioneReadRecords();
