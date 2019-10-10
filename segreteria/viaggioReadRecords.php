@@ -24,7 +24,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center">Modifica</th>
 						<th class="text-center">Stampa</th>
 						<th class="text-center">Email</th>
-						<th class="text-center">Rimborso</th>
+						<th class="text-center">Chiudi</th>
 					</tr>
 					</thead>';
 					
@@ -46,66 +46,66 @@ if( ! $ancheChiusi) {
 	$query .= "AND NOT viaggio.stato = 'chiuso' ";
 }
 $query .= "order by viaggio_data_partenza DESC, docente_cognome ASC,docente_nome ASC";
-if (!$result = mysqli_query($con, $query)) {
-	exit(mysqli_error($con));
-}
 
-// if query results contains rows then fetch those rows
-if(mysqli_num_rows($result) > 0) {
-	while($row = mysqli_fetch_assoc($result)) {
-//			console_log_data("docente=", $row);
-		$statoMarker = '';
-		switch ($row['viaggio_stato']) {
-			case "assegnato":
-				$statoMarker = '<span class="label label-info">assegnato</span>';
-				break;
-			case "accettato":
-				$statoMarker = '<span class="label label-success">accettato</span>';
-				break;
-			case "effettuato":
-				$statoMarker = '<span class="label label-warning">effettuato</span>';
-				break;
-			case "evaso":
-				$statoMarker = '<span class="label label-primary">evaso</span>';
-				break;
-			case "chiuso":
-				$statoMarker = '<span class="label label-danger">chiuso</span>';
-				break;
-			case "annullato":
-				$statoMarker = '<span class="label label-danger">annullato</span>';
-				break;
-			default:
-				$statoMarker = '<span class="label label-danger">sconosciuto</span>';
-		}
-		$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
-		$dataPartenza = utf8_encode( strftime("%d %B %Y", strtotime($row['viaggio_data_partenza'])));
-		setlocale(LC_TIME, $oldLocale);
-		$data .= '<tr>
+$resultArray = dbGetAll($query);
+
+foreach($resultArray as $row) {
+	$statoMarker = '';
+	switch ($row['viaggio_stato']) {
+		case "assegnato":
+			$statoMarker = '<span class="label label-info">assegnato</span>';
+			break;
+		case "accettato":
+			$statoMarker = '<span class="label label-success">accettato</span>';
+			break;
+		case "effettuato":
+			$statoMarker = '<span class="label label-warning">effettuato</span>';
+			break;
+		case "evaso":
+			$statoMarker = '<span class="label label-primary">evaso</span>';
+			break;
+		case "chiuso":
+			$statoMarker = '<span class="label label-danger">chiuso</span>';
+			break;
+		case "annullato":
+			$statoMarker = '<span class="label label-danger">annullato</span>';
+			break;
+		default:
+			$statoMarker = '<span class="label label-danger">sconosciuto</span>';
+	}
+	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
+	$dataPartenza = utf8_encode( strftime("%d %B %Y", strtotime($row['viaggio_data_partenza'])));
+	setlocale(LC_TIME, $oldLocale);
+	$data .= '<tr>
 		<td>'.$dataPartenza.'</td>
 		<td>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
 		<td>'.$row['viaggio_destinazione'].'</td>
 		<td>'.$statoMarker.'</td>
 		';
-$data .='
-		<td class="text-center">
+	$data .='<td class="text-center">
 		<button onclick="viaggioGetDetails('.$row['viaggio_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 		<button onclick="viaggioDelete('.$row['viaggio_id'].', \''.$row['viaggio_data_partenza'].'\', \''.$row['viaggio_destinazione'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		<td class="text-center">
-		<button onclick="viaggioStampaNomina('.$row['viaggio_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-save-file"></button>
-		</td>
-		<td class="text-center">
-		<button onclick="viaggioNominaEmail('.$row['viaggio_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-envelope"></button>
-		</td>
-		<td class="text-center">
-		<button onclick="viaggioRimborso('.$row['viaggio_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-usd"></button>
-		</td>
-		</tr>';
+		<button onclick="viaggioStampaNomina('.$row['viaggio_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-save-file"></button>
+		</td>';
+	if ($row['viaggio_stato'] == "assegnato") {
+		$data .='
+			<td class="text-center">
+			<button onclick="viaggioNominaEmail('.$row['viaggio_id'].')" class="btn btn-lightblue4 btn-xs"><span class="glyphicon glyphicon-envelope"></button>
+			</td>';
+	} else {
+		$data .='<td></td>';
 	}
-}
-else {
-	// records now found
-	$data .= '<tr><td colspan="8">Nessun viaggio presente</td></tr>';
+	if ($row['viaggio_stato'] == "effettuato") {
+		$data .='
+			<td class="text-center">
+			<button onclick="viaggioRimborso('.$row['viaggio_id'].')" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-collapse-down"></button>
+			</td>';
+	} else {
+		$data .='<td></td>';
+	}
+	$data .='</tr>';
 }
 
 $data .= '</table></div>';
