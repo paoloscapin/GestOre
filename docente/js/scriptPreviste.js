@@ -17,6 +17,13 @@ function previsteReadRecords() {
 }
 
 function previstaUpdateDetails() {
+	if ($("#tipo_attivita").val() <= 0) {
+		$("#_error-previste").text("Devi selezionare un tipo di attività");
+		$("#_error-previste-part").show();
+		return;
+	}
+	$("#_error-previste-part").hide();
+
 	$.post("../docente/previsteSave.php", {
 		docente_id: $("#hidden_docente_id").val(),
     	ore_previste_attivita_id: $("#hidden_ore_previste_attivita_id").val(),
@@ -63,6 +70,7 @@ function previsteGetDetails(attivita_id) {
 		$("#commento-part").hide();
 	}
 
+	$("#_error-previste-part").hide();
 	$("#update_attivita_modal").modal("show");
 }
 

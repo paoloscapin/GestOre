@@ -151,11 +151,18 @@ function oreFatteGetAttivita(attivita_id) {
 		attivita_data_pickr.setDate(Date.today().toString('d/M/yyyy'));
 	}
 
-	// Open modal popup
+	$("#_error-attivita-part").hide();
 	$("#docente_attivita_modal").modal("show");
 }
 
 function attivitaFattaUpdateDetails() {
+	if ($("#attivita_tipo_attivita").val() <= 0) {
+		$("#_error-attivita").text("Devi selezionare un tipo di attività");
+		$("#_error-attivita-part").show();
+		return;
+	}
+	$("#_error-attivita-part").hide();
+
  	$.post("oreFatteUpdateAttivita.php", {
     	attivita_id: $("#hidden_ore_fatte_attivita_id").val(),
     	tipo_attivita_id: $("#attivita_tipo_attivita").val(),

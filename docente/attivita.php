@@ -301,6 +301,12 @@ require_once '../common/connect.php';
                     <label class="col-sm-2 control-label" for="attivita_dettaglio">Dettaglio</label>
                     <div class="col-sm-9"><input type="text" id="attivita_dettaglio" placeholder="specificare se necessario" class="form-control"/></div>
                 </div>
+
+                <div class="form-group" id="_error-attivita-part"><strong>
+                    <hr>
+                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                    <div class="col-sm-9" id="_error-attivita"></div>
+				</strong></div>
             </div>
             </div>
 			<div class="modal-footer">

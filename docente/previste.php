@@ -186,6 +186,12 @@ $tipoAttivitaOptionList .= '</optgroup>';
                     <label class="col-sm-3 control-label" for="update_commento">commento</label>
                     <div class="col-sm-9"><input type="text" id="update_commento" placeholder="commento" class="form-control"/></div>
                 </div>
+
+                <div class="form-group" id="_error-previste-part"><strong>
+                    <hr>
+                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                    <div class="col-sm-9" id="_error-previste"></div>
+				</strong></div>
             </div>
             </div>
 			<div class="modal-footer">
