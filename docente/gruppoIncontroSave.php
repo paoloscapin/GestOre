@@ -41,11 +41,14 @@ if(isset($_POST)) {
             dbExec($query);
             info("aggiornato gruppo_incontro_partecipazione docente_partecipa_gruppo_incontro=$docente_partecipa_gruppo_incontro");
 
-            require_once '../docente/oreDovuteAggiornaDocente.php';
-            foreach($partecipantiDaModificareDocenteIdArray as $docente_id) {
-                oreFatteAggiornaDocente($docente_id);
-                info("aggiornate ore docente id=$docente_id");
-            }
+        }
+
+        // per sicurezza aggiorna le ore fatte di tutti i partecipanti al gruppo
+        require_once '../docente/oreDovuteAggiornaDocente.php';
+        $partecipantiIdList = dbGetAll("SELECT docente_id FROM `gruppo_partecipante` WHERE gruppo_id = $gruppo_id");
+        foreach($partecipantiIdList as $row) {
+            oreFatteAggiornaDocente($row['docente_id']);
+            info("aggiornate ore docente id=$docente_id");
         }
     } else {
         $query = "INSERT INTO gruppo_incontro_partecipazione(gruppo_incontro_id, docente_id) SELECT $lastId, docente_id FROM `gruppo_partecipante` WHERE gruppo_id = $gruppo_id;";
