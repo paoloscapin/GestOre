@@ -47,7 +47,8 @@ if(isset($_POST)) {
         require_once '../docente/oreDovuteAggiornaDocente.php';
         $partecipantiIdList = dbGetAll("SELECT docente_id FROM `gruppo_partecipante` WHERE gruppo_id = $gruppo_id");
         foreach($partecipantiIdList as $row) {
-            oreFatteAggiornaDocente($row['docente_id']);
+            $docente_id = $row['docente_id'];
+            oreFatteAggiornaDocente($docente_id);
             info("aggiornate ore docente id=$docente_id");
         }
     } else {
