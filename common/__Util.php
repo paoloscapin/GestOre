@@ -66,4 +66,18 @@ function str2js($str) {
     return preg_replace("/\r\n|\r|\n/",'<br/>',str_replace("'", "\'", $str));
 }
 
+// ricupera una label se ridefinita nel json
+function getLabel($label) {
+    global $__settings;
+    if (property_exists($__settings->label, $label)) {
+        return $__settings->label->$label;
+    }
+    return $label;
+}
+
+// scrive una label controllando se nel json viene ridefinita
+function echoLabel($label) {
+    echo getLabel($label);
+}
+
 ?>

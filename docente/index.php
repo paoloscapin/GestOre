@@ -46,7 +46,7 @@ require_once '../common/connect.php';
 				<th class="col-md-2"></th>
 				<th class="col-md-2 text-left">Sostituzioni</th>
 				<th class="col-md-2 text-left">Aggiornamento</th>
-				<th class="col-md-2 text-left">Funzionali</th>
+				<th class="col-md-2 text-left"><?php echoLabel('Funzionali');?></th>
 				<th class="col-md-2 text-left">con Studenti</th>
 			</tr>
 		</thead>
@@ -95,7 +95,7 @@ require_once '../common/connect.php';
 		<thead>
 			<tr>
 				<th class="col-md-5"></th>
-				<th class="col-md-3 text-left">Funzionali</th>
+				<th class="col-md-3 text-left"><?php echoLabel('Funzionali');?></th>
 				<th class="col-md-3 text-left">con Studenti</th>
 			</tr>
 		</thead>
@@ -144,7 +144,7 @@ require_once '../common/connect.php';
 		</thead>
 		<tbody>
 			<tr>
-				<td class="text-left" >dovute</td>
+				<td class="text-left" ><?php echoLabel('dovute');?></td>
 				<td class="text-left" id="dovute_ore_80_collegi_docenti"></td>
 				<td class="text-left" id="dovute_ore_80_udienze_generali"></td>
 				<td class="text-left" id="dovute_ore_80_dipartimenti"></td>
