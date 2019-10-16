@@ -136,7 +136,9 @@ require_once '../common/connect.php';
 			<tr>
 				<th class="col-md-2 text-left"></th>
 				<th class="col-md-2 text-left">Collegio Doc.</th>
+				<?php if($__settings->ore80->ore_max_udienze_generali > 0) : ?>
 				<th class="col-md-2 text-left">Udienze</th>
+				<?php endif; ?>
 				<th class="col-md-2 text-left">Dipartimenti</th>
 				<th class="col-md-2 text-left">Aggiornamento</th>
 				<th class="col-md-2 text-left">CdC</th>
@@ -146,7 +148,9 @@ require_once '../common/connect.php';
 			<tr>
 				<td class="text-left" ><?php echoLabel('dovute');?></td>
 				<td class="text-left" id="dovute_ore_80_collegi_docenti"></td>
+				<?php if($__settings->ore80->ore_max_udienze_generali > 0) : ?>
 				<td class="text-left" id="dovute_ore_80_udienze_generali"></td>
+				<?php endif; ?>
 				<td class="text-left" id="dovute_ore_80_dipartimenti"></td>
 				<td class="text-left" id="dovute_ore_80_aggiornamento_facoltativo"></td>
 				<td class="text-left" id="dovute_ore_80_consigli_di_classe"></td>
@@ -164,7 +168,9 @@ require_once '../common/connect.php';
 			<tr class="teal5">
 				<td class="text-left" >fatte</td>
 				<td class="text-left" id="fatte_ore_80_collegi_docenti"></td>
+				<?php if($__settings->ore80->ore_max_udienze_generali > 0) : ?>
 				<td class="text-left" id="fatte_ore_80_udienze_generali"></td>
+				<?php endif; ?>
 				<td class="text-left" id="fatte_ore_80_dipartimenti"></td>
 				<td class="text-left" id="fatte_ore_80_aggiornamento_facoltativo"></td>
 				<td class="text-left" id="fatte_ore_80_consigli_di_classe"></td>
