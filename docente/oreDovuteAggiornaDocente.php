@@ -69,11 +69,13 @@ function orePrevisteAggiornaDocente($docenteId) {
 	}
 
 	// se richieste più di un certo numero di ore di viaggi, le eccedenti vengono tolte (non si dovevano aggiungere ma cosi' e' piu' semplice)
-	if ($__settings->viaggi->max_ore > 0) {
-		if ($totale_visite > $__settings->viaggi->max_ore) {
-			$eccedenti_viaggi = $totale_visite - $__settings->viaggi->max_ore;
+	$max_ore_viaggi = getSettingsValue('viaggi','max_ore', 16);
+
+	if ($max_ore_viaggi > 0) {
+		if ($totale_visite > $max_ore_viaggi) {
+			$eccedenti_viaggi = $totale_visite - $max_ore_viaggi;
 			$ore_40_con_studenti = $ore_40_con_studenti - $eccedenti_viaggi;
-			$message = "Sono consentite al massimo ".$__settings->viaggi->max_ore . " per visite e viaggi: le $eccedenti_viaggi ore eccedenti non saranno considerate. Per queste ore eccedenti è possibile chiedere la diaria.";
+			$message = "Sono consentite al massimo $max_ore_viaggi per visite e viaggi: le $eccedenti_viaggi ore eccedenti non saranno considerate. Per queste ore eccedenti è possibile chiedere la diaria.";
 		}
 	}
 

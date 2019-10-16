@@ -80,4 +80,16 @@ function echoLabel($label) {
     echo getLabel($label);
 }
 
+// ricupera un valore se definito nel json oppure default
+function getSettingsValue($section, $name, $default) {
+    global $__settings;
+    if (! property_exists($__settings, $section)) {
+        return $default;
+    }
+    if (! property_exists($__settings->$section, $name)) {
+        return $default;
+    }
+    return $__settings->$section->$name;
+}
+
 ?>
