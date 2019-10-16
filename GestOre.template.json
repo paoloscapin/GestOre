@@ -48,6 +48,10 @@
         "ore_max_aggiornamento_facoltativo": 10,
         "ore_max_consigli_di_classe": 30
     },
+    "viaggi": {
+        "max_ore": 16,
+        "richiesta_diaria": true
+    },
     "label": {
         "ore_funzionali": "funzionali"
     }

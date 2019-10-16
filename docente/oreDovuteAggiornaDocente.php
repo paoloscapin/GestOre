@@ -9,6 +9,7 @@
 
 function orePrevisteAggiornaDocente($docenteId) {
 	global $__anno_scolastico_corrente_id;
+	global $__settings;
 
 	// per prima cosa azzera i contatori
 	$ore_40_sostituzioni_di_ufficio = 0;
@@ -67,11 +68,13 @@ function orePrevisteAggiornaDocente($docenteId) {
 		}
 	}
 
-	// se richieste più di 16 ore di viaggi, le eccedenti vengono tolte (non si dovevano aggiungere ma cosi' e' piu' semplice
-	if ($totale_visite > 16) {
-		$eccedenti_viaggi = $totale_visite - 16;
-		$ore_40_con_studenti = $ore_40_con_studenti - $eccedenti_viaggi;
-		$message = "Sono consentite al massimo 16 ore per visite e viaggi: le $eccedenti_viaggi ore eccedenti sono state rimosse. Per queste ore eccedenti è possibile chiedere la diaria.";
+	// se richieste più di un certo numero di ore di viaggi, le eccedenti vengono tolte (non si dovevano aggiungere ma cosi' e' piu' semplice)
+	if ($__settings->viaggi->max_ore > 0) {
+		if ($totale_visite > $__settings->viaggi->max_ore) {
+			$eccedenti_viaggi = $totale_visite - $__settings->viaggi->max_ore;
+			$ore_40_con_studenti = $ore_40_con_studenti - $eccedenti_viaggi;
+			$message = "Sono consentite al massimo ".$__settings->viaggi->max_ore . " per visite e viaggi: le $eccedenti_viaggi ore eccedenti non saranno considerate. Per queste ore eccedenti è possibile chiedere la diaria.";
+		}
 	}
 
 	// le eccedenti di 10 delle 40 aggiornamento le mette nelle 80 aggiornamento (fino a 10)
