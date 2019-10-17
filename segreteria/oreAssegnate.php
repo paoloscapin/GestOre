@@ -17,13 +17,16 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <?php
 require_once '../common/checkSession.php';
+
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
+require_once '../common/_include_select2.php';
 ruoloRichiesto('dirigente','segreteria-docenti');
 ?>
 
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-3.css">
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
 
 <!-- Custom JS file -->
 <script type="text/javascript" src="js/oreAssegnate.js"></script>
@@ -70,7 +73,7 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 					<strong>'.$nome.'</strong>
 				</div>
 				<div class="col-md-4 text-right">
-					<button onclick="addAttivita('.$tipoAttivitaId.',\''.$nome.'\','.$ore.','.$ore_max.')" class="btn btn-xs btn-lima4"><span class="glyphicon glyphicon-plus"></span></button>
+					<button onclick="addAttivita('.$tipoAttivitaId.',\''.addslashes($nome).'\','.$ore.','.$ore_max.')" class="btn btn-xs btn-info"><span class="glyphicon glyphicon-plus"></span></button>
 				</div>
 			</div>
 		</div>
@@ -84,7 +87,7 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 					<th>Docente</th>
 					<th>Dettaglio</th>
 					<th>Ore</th>
-					<th></th>
+					<th>Modifica</th>
 				</thead>
 				<tbody>
 			';
@@ -119,8 +122,10 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 								<td>'.$row_ore['docente_cognome'].' '.$row_ore['docente_nome'].'</td>
 								<td>'.$row_ore['ore_previste_attivita_dettaglio'].'</td>
 								<td class="col-md-1 text-center">'.$row_ore['ore_previste_attivita_ore'].'</td>
-								<td class="col-md-2 text-center">
-									<div onclick="deleteOreAttivita('.$row_ore['ore_previste_attivita_id'].','.$row_ore['ore_previste_attivita_ore_previste_tipo_attivita_id'].',\''.$row_ore['docente_cognome'].'\',\''.$row_ore['docente_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></div>&nbsp
+                                <td class="col-md-2 text-center">
+                                    <button onclick="attivitaGetDetails ('.$row_ore['ore_previste_attivita_id'].','.$row_ore['ore_previste_attivita_ore_previste_tipo_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+
+									<botton onclick="deleteOreAttivita('.$row_ore['ore_previste_attivita_id'].','.$row_ore['ore_previste_attivita_ore_previste_tipo_attivita_id'].',\''.addslashes($row_ore['docente_cognome']).'\',\''.addslashes($row_ore['docente_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></botton>
 								</td>
 							</tr>
 					';
@@ -135,15 +140,15 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 	</div>
 ';
 	$data .= '
-</div>
-</div>
+  </div> <!-- // Div - panel body -->
+</div> <!-- // Div - inner panel -->
 ';
 }
 echo $data;
 ?>
 
-</div>
-</div>
+    </div> <!-- // Div - Outer Panel -->
+</div> <!-- // Div - Content Section Container-fluid -->
 
 <?php
 
@@ -176,10 +181,12 @@ foreach($resultArray as $row) {
 
                 <div class="form-group docente_incaricato_selector">
                     <label class="col-sm-2 control-label" for="docente_incaricato">Docente</label>
-					<div class="col-sm-8"><select id="docente_incaricato" name="docente_incaricato" class="docente_incaricato selectpicker" data-style="btn-success" data-live-search="true"
+					<div class="col-sm-8">
+                        <select id="docente_incaricato" name="docente_incaricato" class="docente_incaricato selectpicker" data-style="btn-success" data-live-search="true"
 					data-noneSelectedText="seleziona..." data-width="70%" >
-<?php echo $docenteOptionList ?>
-					</select></div>
+                            <?php echo $docenteOptionList ?>
+					    </select>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -204,9 +211,55 @@ foreach($resultArray as $row) {
 			</div>
         </div>
     </div>
-</div>
+</div> <!-- // Div - add_new_record_modal -->
 <!-- // Modal - Add New Record -->
 
+<!-- Modal - Update attivita details -->
+<div class="modal fade" id="update_attivita_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalProfiloLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+			<div class="panel panel-lightblue4">
+			<div class="panel-heading">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h5 class="modal-title" id="myModalProfiloLabel">Attività</h5>
+            </div>
+            <div class="panel-body">
+
+                <div class="form-group">
+                    <label for="update_docente_incaricato">Docente</label>
+                    <input type="text" id="update_docente_incaricato" placeholder="docente" class="form-control" disabled />
+                </div>
+
+                <div class="form-group">
+                    <label for="update_attivita">Attività</label>
+                    <input type="text" id="update_attivita" placeholder="attività" class="form-control" disabled />
+                </div>
+
+                <div class="form-group">
+                    <label for="update_dettaglio">Dettaglio</label>
+                    <input type="text" id="update_dettaglio" placeholder="dettaglio" class="form-control"/>
+                </div>
+
+                <div class="form-group">
+                    <label for="update_ore">Ore</label>
+                    <input type="text" id="update_ore" placeholder="ore" class="form-control"/>
+                </div>
+
+            </div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+				<button type="button" class="btn btn-primary" onclick="attivitaUpdateDetails()" >Salva</button>
+				<input type="hidden" id="hidden_ore_previste_attivita_id">
+				<input type="hidden" id="hidden_ore_previste_tipo_attivita_id">
+            </div>
+			</div>
+			</div>
+        </div>
+    </div>
 </div>
+
+<!-- // Modal - Update docente details -->
+
 </body>
 </html>
