@@ -52,7 +52,7 @@ require_once '../common/connect.php';
 		</thead>
 		<tbody>
 			<tr>
-				<td>dovute</td>
+				<td><?php echoLabel('dovute');?></td>
 				<td class="text-left" id="dovute_ore_40_sostituzioni_di_ufficio"></td>
 				<td class="text-left" id="dovute_ore_40_aggiornamento"></td>
 				<td class="text-left" id="dovute_ore_70_funzionali"></td>

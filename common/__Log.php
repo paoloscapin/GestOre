@@ -17,7 +17,7 @@ if ($__settings->log->debug) {
 
 $fileName = '';
 if ($__settings->log->logIntoAppFolder) {
-    $fileName = __DIR__;
+    $fileName = __DIR__ . "/../log/";
 }
 $fileName .= $__settings->log->logFile;
 
