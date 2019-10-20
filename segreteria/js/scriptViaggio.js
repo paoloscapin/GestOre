@@ -173,8 +173,10 @@ function viaggioRimborso(id) {
 			// console.log(spesaViaggioArray);
 			$("#hidden_rimborso_viaggio_docente_id").val(spesaViaggioArray[0].docente_id);
 			$("#hidden_rimborso_viaggio_docente_cognome_e_nome").val(spesaViaggioArray[0].docente_cognome + " " + spesaViaggioArray[0].docente_nome);
+			$("#rimborso_label_docente").text(spesaViaggioArray[0].docente_cognome + " " + spesaViaggioArray[0].docente_nome);
+
 			var stato = spesaViaggioArray[0].viaggio_stato;
-			if (stato != "evaso" && stato != "effettuato") {
+			if (stato != "chiuso" && stato != "effettuato") {
 				alert('il viaggio risulta in stato ' + stato + ' e non può essere trattato');
 				return;
 			}
@@ -192,19 +194,8 @@ function viaggioRimborso(id) {
 			$("#rimborso_data_rientro").text(data_rientro.toLocaleDateString("it-IT", { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
 			$("#rimborso_ora_partenza").text(spesaViaggioArray[0].viaggio_ora_partenza);
 			$("#rimborso_ora_rientro").text(spesaViaggioArray[0].viaggio_ora_rientro);
+			$("#rimborso_label_data").text(data_partenza.toLocaleDateString("it-IT", { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
 
-			// controlla che sia richiesta la diaria o le ore
-			ore_richieste = spesaViaggioArray[0].viaggio_ore_richieste;
-			diaria = spesaViaggioArray[0].viaggio_richiesta_fuis;
-
-			$("#rimborso_ore_richieste").text(spesaViaggioArray[0].viaggio_ore_richieste);
-			$("#rimborso_richiesta_fuis").prop('checked', diaria == true);
-			if (diaria == true && ore_richieste > 0) {
-				alert('non si dovrebbe richiedere la diaria e le ore insieme, tranni casi particolari: ore_richieste=' + ore_richieste + ' diaria=' + diaria);
-			}
-			if (ore_richieste <= 0 && diaria != true) {
-				alert('Non abbiamo richiesto ore o diaria...: ore_richieste=' + ore_richieste + ' diaria=' + diaria);
-			}
 			// svuota il tbody della tabella spese;
 			$('#rimborso_spese_table tbody').empty();
 			var markup = '';
@@ -241,9 +232,6 @@ function viaggioRimborso(id) {
 			if (stato == "evaso" || richiestiRimborsi == false) {
 				$("#btnEvaso").hide();
 				$("#btnChiudi").show();
-			} else {
-				$("#btnEvaso").show();
-				$("#btnChiudi").hide();
 			}
 			// Open modal popup
 			$("#rimborso_viaggio_modal").modal("show");
@@ -263,12 +251,14 @@ function viaggioAccettaSpesa(spesa_viaggio_id) {
 
 var totaleRimborso = 0;
 
-function viaggioEvaso() {
+function viaggioRimborsato() {
     var viaggio_id = $("#hidden_rimborso_viaggio_id").val();
 
-    $.post("../docente/viaggioCambiaStato.php", {
-		viaggio_id: viaggio_id,
-    	nuovo_stato: "evaso"
+    $.post("../common/recordUpdate.php", {
+		table: 'viaggio',
+		id: viaggio_id,
+		nome: "rimborsato",
+		valore: 1
         },
         function (data, status) {
 			$("#rimborso_viaggio_modal").modal("hide");
@@ -277,10 +267,63 @@ function viaggioEvaso() {
     );
 }
 
+function viaggioChiusura(id) {
+	$("#hidden_chiusura_viaggio_id").val(id);
+	$.post("viaggioReadDetails.php", {
+			id: id
+		},
+		function (data, status) {
+			var viaggio = JSON.parse(data);
+			// memorizza docente id e cognome e nome da usare poi
+			// console.log(spesaViaggioArray);
+			$("#hidden_chiusura_viaggio_docente_id").val(viaggio.docente_id);
+			$("#hidden_chiusura_viaggio_docente_cognome_e_nome").val(viaggio.cognome + " " + viaggio.nome);
+			$("#chiusura_label_docente").text(viaggio.cognome + " " + viaggio.nome);
+
+			var stato = viaggio.stato;
+			if (stato != "evaso" && stato != "effettuato") {
+				alert('il viaggio risulta in stato ' + stato + ' e non può essere trattato');
+				return;
+			}
+
+			$("#chiusura_destinazione").text(viaggio.destinazione);
+			$("#chiusura_classe").text(viaggio.classe);
+
+			var data_nomina_str = viaggio.data_nomina;
+			var data_partenza_str = viaggio.data_partenza;
+			var data_rientro_str = viaggio.data_rientro;
+			var data_nomina = Date.parseExact(data_nomina_str, 'yyyy-MM-dd');
+			var data_partenza = Date.parseExact(data_partenza_str, 'yyyy-MM-dd');
+			var data_rientro = Date.parseExact(data_rientro_str, 'yyyy-MM-dd');
+			$("#chiusura_data_partenza").text(data_partenza.toLocaleDateString("it-IT", { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+			$("#chiusura_data_rientro").text(data_rientro.toLocaleDateString("it-IT", { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+			$("#chiusura_ora_partenza").text(viaggio.ora_partenza);
+			$("#chiusura_ora_rientro").text(viaggio.ora_rientro);
+
+			$("#chiusura_label_data").text(data_partenza.toLocaleDateString("it-IT", { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+
+			// controlla che sia richiesta la diaria o le ore
+			ore_richieste = viaggio.ore_richieste;
+			diaria = viaggio.richiesta_fuis;
+
+			$("#chiusura_ore_richieste").text(viaggio.ore_richieste);
+			$("#chiusura_richiesta_fuis").prop('checked', diaria == true);
+			if (diaria == true && ore_richieste > 0) {
+				alert('non si dovrebbe richiedere la diaria e le ore insieme, tranni casi particolari: ore_richieste=' + ore_richieste + ' diaria=' + diaria);
+			}
+			if (ore_richieste <= 0 && diaria != true) {
+				alert('Non abbiamo richiesto ore o diaria...: ore_richieste=' + ore_richieste + ' diaria=' + diaria);
+			}
+			$("#chiusura_viaggio_modal").modal("show");
+		}
+    );
+}
+
 function viaggioChiudi() {
-	var viaggio_id = $("#hidden_rimborso_viaggio_id").val();
+	var viaggio_id = $("#hidden_chiusura_viaggio_id").val();
 	var importo_diaria = 0;
 	var numero_ore = 0;
+	var ore_richieste = $("#chiusura_ore_richieste").text();
 
 	// se si deve indennita' forfettaria:
 	if (diaria == true) {
@@ -304,11 +347,11 @@ function viaggioChiudi() {
 		viaggio_id: viaggio_id,
 		importo_diaria: importo_diaria,
 		numero_ore: numero_ore,
-		docente_id: $("#hidden_rimborso_viaggio_docente_id").val(),
-		docente_cognome_e_nome: $("#hidden_rimborso_viaggio_docente_cognome_e_nome").val()
+		docente_id: $("#hidden_chiusura_viaggio_docente_id").val(),
+		docente_cognome_e_nome: $("#hidden_chiusura_viaggio_docente_cognome_e_nome").val()
         },
         function (data, status) {
-			$("#rimborso_viaggio_modal").modal("hide");
+			$("#chiusura_viaggio_modal").modal("hide");
 			diaria = false;
 			ore_richieste = 0;
         	viaggioReadRecords();

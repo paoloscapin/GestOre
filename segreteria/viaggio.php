@@ -271,10 +271,16 @@ if(mysqli_num_rows($result) > 0) {
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
-			<div class="panel panel-deeporange4">
+			<div class="panel panel-lima4">
 			<div class="panel-heading">
-				<h5 class="modal-title" id="myModalLabel">Rimborso spese viaggio</h5>
-			</div>
+            <div class="row">
+                <div class="col-md-4">
+                    <span class="glyphicon glyphicon-euro"></span>&ensp;Rimborso spese
+                </div>
+                <div class="col-md-4 text-center" id="rimborso_label_docente"></div>
+                <div class="col-md-4 text-right" id="rimborso_label_data"></div>
+                </div>
+            </div>
 			<div class="panel-body">
 			<form class="form-horizontal">
                 <div class="form-group">
@@ -321,25 +327,79 @@ if(mysqli_num_rows($result) > 0) {
 					</table>
 					</div>
                 </div>
-<hr>
+
+			</form>
+            </div>
+			<div class="panel-footer text-center">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+				<button type="button" class="btn btn-success" id="btnRimborsato" onclick="viaggioRimborsato()" >Rimborsato</button>
+				<input type="hidden" id="hidden_rimborso_viaggio_id">
+				<input type="hidden" id="hidden_rimborso_viaggio_docente_id">
+				<input type="hidden" id="hidden_rimborso_viaggio_docente_cognome_e_nome">
+			</div>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- // Modal - Rchiesta Chiusura -->
+<div class="modal fade" id="chiusura_viaggio_modal" data-backdrop="static" tabindex="3" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+			<div class="panel panel-deeporange4">
+			<div class="panel-heading">
+            <div class="row">
+                <div class="col-md-4">
+                    <span class="glyphicon glyphicon-picture"></span>&ensp;Chiusura viaggio
+                </div>
+                <div class="col-md-4 text-center" id="chiusura_label_docente"></div>
+                <div class="col-md-4 text-right" id="chiusura_label_data"></div>
+                </div>
+            </div>
+			<div class="panel-body">
+			<form class="form-horizontal">
+                <div class="form-group">
+                    <label for="chiusura_destinazione" class="col-sm-2 control-label">Destinazione</label>
+                    <div class="col-sm-4"><p class="form-control-static" id="chiusura_destinazione" ></p></div>
+
+                    <label for="chiusura_classe" class="col-sm-2 control-label">Classe</label>
+                    <div class="col-sm-4"><p class="form-control-static" id="chiusura_classe" ></p></div>
+                </div>
 
                 <div class="form-group">
-                    <label for="rimborso_ore_richieste" class="col-sm-3 control-label">ore di recupero (max 8)</label>
-                    <div class="col-sm-2"><p class="form-control-static" id="rimborso_ore_richieste" ></p></div>
+                    <label for="chiusura_data_partenza" class="col-sm-2 control-label">Dal</label>
+                    <div class="col-sm-4"><p class="form-control-static" id="chiusura_data_partenza" ></p></div>
+
+                    <label for="chiusura_data_rientro" class="col-sm-2 control-label">Al</label>
+                    <div class="col-sm-4"><p class="form-control-static" id="chiusura_data_rientro" ></p></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="chiusura_ora_partenza" class="col-sm-2 control-label">Partenza</label>
+                    <div class="col-sm-4"><p class="form-control-static" id="chiusura_ora_partenza" ></p></div>
+
+                    <label for="chiusura_ora_rientro" class="col-sm-2 control-label">Rientro</label>
+                    <div class="col-sm-4"><p class="form-control-static" id="chiusura_ora_rientro" ></p></div>
+                </div>
+<hr>
+                <div class="form-group">
+                    <label for="chiusura_ore_richieste" class="col-sm-3 control-label">ore di recupero (max 8)</label>
+                    <div class="col-sm-2"><p class="form-control-static" id="chiusura_ore_richieste" ></p></div>
                     <div class="col-sm-3"><h4 class="form-control-static" id="lab" ><Strong><u>Oppure</u></Strong></h4></div>
-                    <label for="rimborso_richiesta_fuis" class="col-sm-3 control-label">Indennità forfettaria</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="rimborso_richiesta_fuis" ></div>
+                    <label for="chiusura_richiesta_fuis" class="col-sm-3 control-label">Indennità forfettaria</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="chiusura_richiesta_fuis" ></div>
                 </div>
 
 			</form>
             </div>
 			<div class="panel-footer text-center">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-				<button type="button" class="btn btn-success" id="btnEvaso" onclick="viaggioEvaso()" >Evaso</button>
 				<button type="button" class="btn btn-success" id="btnChiudi" onclick="viaggioChiudi()" >Chiudi</button>
-				<input type="hidden" id="hidden_rimborso_viaggio_id">
-				<input type="hidden" id="hidden_rimborso_viaggio_docente_id">
-				<input type="hidden" id="hidden_rimborso_viaggio_docente_cognome_e_nome">
+				<input type="hidden" id="hidden_chiusura_viaggio_id">
+				<input type="hidden" id="hidden_chiusura_viaggio_docente_id">
+				<input type="hidden" id="hidden_chiusura_viaggio_docente_cognome_e_nome">
 			</div>
             </div>
             </div>

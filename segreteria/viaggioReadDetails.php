@@ -16,7 +16,7 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	$viaggio_id = $_POST['id'];
 
 	// Get Docente Details
-	$query = "SELECT * FROM viaggio WHERE id = '$viaggio_id'";
+	$query = "SELECT viaggio.*, docente.cognome, docente.nome FROM `viaggio` INNER JOIN docente on viaggio.docente_id = docente.id WHERE viaggio.id='$viaggio_id'";
 
 	if (!$result = mysqli_query($con, $query)) {
 		exit(mysqli_error($con));

@@ -25,6 +25,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center">Stampa</th>
 						<th class="text-center">Email</th>
 						<th class="text-center">Chiudi</th>
+						<th class="text-center">Rimborsa</th>
 					</tr>
 					</thead>';
 					
@@ -34,6 +35,7 @@ $query = "	SELECT
 				viaggio.data_rientro AS viaggio_data_rientro,
 				viaggio.destinazione AS viaggio_destinazione,
 				viaggio.stato AS viaggio_stato,
+				viaggio.rimborsato AS viaggio_rimborsato,
 				docente.cognome AS docente_cognome,
 				docente.nome AS docente_nome
 			FROM viaggio viaggio
@@ -89,6 +91,7 @@ foreach($resultArray as $row) {
 		<td class="text-center">
 		<button onclick="viaggioStampaNomina('.$row['viaggio_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-save-file"></button>
 		</td>';
+	// se assegnato, posso inviare la email
 	if ($row['viaggio_stato'] == "assegnato") {
 		$data .='
 			<td class="text-center">
@@ -97,10 +100,23 @@ foreach($resultArray as $row) {
 	} else {
 		$data .='<td></td>';
 	}
+	// se effettuato, allora lo posso chiudere
 	if ($row['viaggio_stato'] == "effettuato") {
 		$data .='
 			<td class="text-center">
-			<button onclick="viaggioRimborso('.$row['viaggio_id'].')" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-collapse-down"></button>
+			<button onclick="viaggioChiusura('.$row['viaggio_id'].')" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-collapse-down"></button>
+			</td>';
+	} else {
+		$data .='<td></td>';
+	}
+	// se effettuato o chiuso e non ancora rimborsato, allora lo posso rimborsare
+	// controllo di non averlo ancora rimborsato
+	$viaggioId = $row['viaggio_id'];
+	$numSpese = dbGetValue("SELECT COUNT(id) FROM `spesa_viaggio` WHERE viaggio_id=$viaggioId;");
+	if (($row['viaggio_stato'] == "effettuato" || $row['viaggio_stato'] == "chiuso") && ! $row['viaggio_rimborsato'] && $numSpese > 0) {
+		$data .='
+			<td class="text-center">
+			<button onclick="viaggioRimborso('.$row['viaggio_id'].')" class="btn btn-lima4 btn-xs"><span class="glyphicon glyphicon-euro"></button>
 			</td>';
 	} else {
 		$data .='<td></td>';
