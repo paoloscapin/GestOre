@@ -80,7 +80,7 @@ function viaggioGetDetails(id) {
 			$("#update_viaggio_classe").prop('defaultValue', spesaViaggioArray[0].viaggio_classe);
 			$("#update_viaggio_stato").prop('defaultValue', spesaViaggioArray[0].viaggio_stato);
 			$("#update_viaggio_ore_richieste").prop('defaultValue', spesaViaggioArray[0].viaggio_ore_richieste);
-			$("#update_viaggio_richiesta_fuis").prop('checked', spesaViaggioArray[0].viaggio_richiesta_fuis);
+			$("#update_viaggio_richiesta_fuis").prop('checked', spesaViaggioArray[0].viaggio_richiesta_fuis != 0);
 
 			// svuota il tbody della tabella spese;
 			$('#update_viaggio_spese_table tbody').empty();
