@@ -25,10 +25,8 @@ if(isset($_POST)) {
 	$ora_rientro = $_POST['ora_rientro'];
 	$stato = $_POST['stato'];
 
-	// Update viaggio details
 	$query = "UPDATE viaggio SET protocollo = '$protocollo', tipo_viaggio = '$tipo_viaggio', data_nomina = '$data_nomina', data_partenza = '$data_partenza', data_rientro = '$data_rientro', docente_id = '$docente_incaricato_id', classe = '$classe', note = '$note', destinazione = '$destinazione', ora_partenza = '$ora_partenza', ora_rientro = '$ora_rientro', stato = '$stato' WHERE id = '$viaggio_id'";
-	if (!$result = mysqli_query($con, $query)) {
-		exit(mysqli_error($con));
-	}
+	dbExec($query);
+	info("aggiornato viaggio id=$viaggio_id protocollo=$protocollo tipo_viaggio=$tipo_viaggio data_nomina=$data_nomina data_partenza=$data_partenza data_rientro=$data_rientro docente_id=$docente_incaricato_id classe=$classe note=$note destinazione=$destinazione ora_partenza=$ora_partenza ora_rientro=$ora_rientro stato=$stato");
 }
 ?>

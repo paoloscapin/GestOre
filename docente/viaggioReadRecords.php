@@ -47,7 +47,6 @@ if(mysqli_num_rows($result) > 0) {
 	$counter = 0;
 	foreach($resultArray as $row) {
 		++$counter;
-debug($row['viaggio_destinazione']);
 		$data .= '
 <div class="panel panel-deeporange4">
 <div class="panel-heading container-fluid">
