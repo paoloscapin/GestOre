@@ -42,6 +42,8 @@ $query = "
     INNER JOIN fuis_docente
     ON fuis_docente.docente_id = docente.id
     WHERE
+        docente.attivo = true
+    AND
         fuis_docente.anno_scolastico_id = $__anno_scolastico_corrente_id
     ORDER BY
         docente.cognome ASC, docente.nome ASC

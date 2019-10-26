@@ -103,6 +103,8 @@ INNER JOIN ore_fatte
 ON ore_fatte.docente_id = docente.id
 
 WHERE
+    docente.attivo = true
+AND
 	ore_dovute.anno_scolastico_id = $__anno_scolastico_corrente_id
 AND
 	ore_previste.anno_scolastico_id = $__anno_scolastico_corrente_id
