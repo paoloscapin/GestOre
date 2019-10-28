@@ -31,7 +31,7 @@ require_once '../common/connect.php';
 
 <div class="container-fluid" style="margin-top:60px">
 
-<div class="panel panel-success">
+<div class="panel panel-lima4">
 <div class="panel-heading">
 	<span class="glyphicon glyphicon-list-alt"></span>
 	<a data-toggle="collapse" href="#collapse_40">&ensp;40+70 ore </a>
@@ -83,7 +83,7 @@ require_once '../common/connect.php';
 
 <?php if($__settings->config->gestioneClil) : ?>
 
-<div class="panel panel-primary" id="panel-clil">
+<div class="panel panel-lightblue4" id="panel-clil">
 <div class="panel-heading">
 	<span class="glyphicon glyphicon-list-alt"></span>&ensp;Clil
 </div>
@@ -95,18 +95,19 @@ require_once '../common/connect.php';
 		<thead>
 			<tr>
 				<th class="col-md-5"></th>
-				<th class="col-md-3 text-left"><?php echoLabel('Funzionali');?></th>
-				<th class="col-md-3 text-left">con Studenti</th>
+				<th class="col-md-3 text-left"><?php echoLabel('Commissione');?></th>
+				<th class="col-md-3 text-left"><?php echoLabel('Preparazione Materiali');?></th>
 			</tr>
 		</thead>
 		<tbody>
 			<tr class="orange5">
 				<td>previste</td>
-				<td class="text-left" id="clil_previste_ore_70_funzionali"></td>
-				<td class="text-left" id="clil_previste_ore_70_con_studenti"></td>
+				<td class="text-left" id="clil_previste_funzionali"></td>
+				<td class="text-left" id="clil_previste_con_studenti"></td>
 			</tr>
 			<tr>
 			<tr class="teal5">
+				<td>fatte</td>
 				<td class="text-left" id="clil_fatte_funzionali"></td>
 				<td class="text-left" id="clil_fatte_con_studenti"></td>
 			</tr>
@@ -122,7 +123,7 @@ require_once '../common/connect.php';
 
 <?php endif; ?>
 
-<div class="panel panel-warning">
+<div class="panel panel-yellow4" id="panel-80-ore" >
 <div class="panel-heading">
 	<span class="glyphicon glyphicon-list-alt"></span>
 	<a data-toggle="collapse" href="#collapse_80">&ensp;80 ore </a>
