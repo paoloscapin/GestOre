@@ -120,7 +120,7 @@ function oreDovuteReadRecords() {
 					$("#clil_previste_con_studenti").html(getHtmlNum(ore_clil.con_studenti_previste));
 					$("#clil_fatte_funzionali").html(getHtmlNumAndFatteVisual(ore_clil.funzionali,ore_clil.funzionali_previste));
 					$("#clil_fatte_con_studenti").html(getHtmlNumAndFatteVisual(ore_clil.con_studenti,ore_clil.con_studenti_previste));
-					if (parseInt(ore_clil.funzionali,10) + parseInt(ore_clil.con_studenti,10) == 0) {
+					if (parseInt(ore_clil.funzionali,10) + parseInt(ore_clil.con_studenti,10) + parseInt(ore_clil.funzionali_previste,10) + parseInt(ore_clil.con_studenti_previste,10) == 0) {
 						$("#panel-clil").addClass('hidden');
 					} else {
 						$("#panel-clil").removeClass('hidden');
