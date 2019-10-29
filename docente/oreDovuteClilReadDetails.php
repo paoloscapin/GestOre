@@ -27,12 +27,12 @@ $con_studenti=dbGetValue($query);
 
 $query = "SELECT COALESCE(SUM(ore_previste_attivita.ore),0) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
 WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docente_id
-AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'commissione' ;";
+AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'funzionali' ;";
 $funzionali_previste=dbGetValue($query);
 
 $query = "SELECT COALESCE(SUM(ore_previste_attivita.ore),0) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
 WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docente_id
-AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'materiali' ;";
+AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'con studenti' ;";
 $con_studenti_previste=dbGetValue($query);
 
 $response = compact('funzionali', 'con_studenti', 'funzionali_previste', 'con_studenti_previste');
