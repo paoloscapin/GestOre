@@ -26,7 +26,7 @@ ruoloRichiesto('dirigente');
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/timejs/date-it-IT.js"></script>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-3.css">
-<script type="text/javascript" src="js/scriptPrevisteDirigente.js"></script>
+<!-- Custom JS file moved to the end -->
 
 </head>
 
@@ -40,12 +40,21 @@ require_once '../common/connect.php';
 <div class="panel panel-orange4">
 <div class="panel-heading container-fluid">
 	<div class="row">
-		<div class="col-md-4">
+		<div class="col-md-3">
 			<span class="glyphicon glyphicon-list-alt"></span>&emsp;<strong>Ore Previste</strong>
 		</div>
-		<div class="col-md-4 text-center" id="totale_previste">
+		<div class="col-md-3 text-center" id="totale_previste">
 		</div>
-		<div class="col-md-4 text-center" id="totale_previste_clil">
+		<div class="col-md-3 text-center" id="totale_previste_clil">
+		</div>
+		<div class="col-md-3 text-center" id="toggle_previste_clil">
+            <div class="text-center">
+                <?php if($__settings->config->gestioneClil) : ?>
+				<label class="checkbox-inline">
+					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="ancheClilCheckBox" ><strong>Clil</strong>
+				</label>
+                <?php endif; ?>
+            </div>
 		</div>
 	</div>
 </div>
@@ -61,6 +70,12 @@ require_once '../common/connect.php';
             <th class="text-center col-md-1">Funzionali</th>
             <th class="text-center col-md-1">Con Studenti</th>
             <th class="text-center col-md-1">Da Pagare</th>
+            <?php if($__settings->config->gestioneClil) : ?>
+            <th class="text-center col-md-1">CLIL</th>
+            <?php endif; ?>
+            <?php if($__settings->config->gestioneClil) : ?>
+            <th class="text-center col-md-1">Da Pagare CLIL</th>
+            <?php endif; ?>
 		</tr>
     </thead>
     <tbody>
@@ -116,6 +131,7 @@ ORDER BY
 
 $resultArray = dbGetAll($query);
 $fuis_totale_previsto = 0;
+$fuis_totale_previsto_clil = 0;
 foreach($resultArray as $docente) {
     $docenteId = $docente['id'];
     $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
@@ -140,11 +156,32 @@ foreach($resultArray as $docente) {
         $fuis_docente_previsto = 0;
     }
     $fuis_totale_previsto = $fuis_totale_previsto + $fuis_docente_previsto;
+
+    // aggiunge una stellina se qualcosa e' cambiato dall'ultimo controllo
     $marker = '';
     $ultimo_controllo = $docente['ore_previste_ultimo_controllo'];
     $q2 = "SELECT COUNT(ultima_modifica) from ore_previste_attivita WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId AND ultima_modifica > '$ultimo_controllo';";
     $numChanges = dbGetValue($q2);
     $marker = ($numChanges == 0) ? '': '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>';
+
+    // controlla le ore di clil
+    $clil_funzionali_previste = 0;
+    $clil_con_studenti_previste = 0;
+    if ($__settings->config->gestioneClil) {
+        $query = "SELECT COALESCE(SUM(ore_previste_attivita.ore),0) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
+        WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId
+        AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'funzionali' ;";
+        $clil_funzionali_previste=dbGetValue($query);
+
+        $query = "SELECT COALESCE(SUM(ore_previste_attivita.ore),0) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
+        WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId
+        AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'con studenti' ;";
+        $clil_con_studenti_previste=dbGetValue($query);
+    }
+    $fuis_docente_previsto_clil = $clil_funzionali_previste * $__settings->importi->oreFunzionali + $clil_con_studenti_previste * $__settings->importi->oreConStudenti;
+    if ($fuis_docente_previsto_clil > 0) {
+        $fuis_totale_previsto_clil += $fuis_docente_previsto_clil;
+    }
 
     echo '<tr>';
     echo '<td><a href="../docente/previste.php?docente_id='.$docenteId.'" target="_blank">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>';
@@ -152,7 +189,11 @@ foreach($resultArray as $docente) {
     echo '<td class="text-left">'.getHtmlNumAndPrevisteVisual($docente['ore_fatte_ore_40_sostituzioni_di_ufficio'],$docente['ore_dovute_ore_40_sostituzioni_di_ufficio']).'</td>';
     echo '<td class="text-left">'.getHtmlNumAndPrevisteVisual($docente['ore_previste_ore_70_funzionali'],$docente['ore_dovute_ore_70_funzionali']).'</td>';
     echo '<td class="text-left">'.getHtmlNumAndPrevisteVisual($previste_con_studenti_total,$dovute_con_studenti_total).'</td>';
-    echo '<td class="text-center">'.$fuis_docente_previsto.'</td>';
+    echo '<td class="text-center">'.(($fuis_docente_previsto > 0) ? $fuis_docente_previsto : '') . '</td>';
+    if ($__settings->config->gestioneClil) {
+        echo '<td class="text-left">'.getHtmlClil($clil_funzionali_previste,$clil_con_studenti_previste).'</td>';
+        echo '<td class="text-center">'.(($fuis_docente_previsto_clil > 0) ? $fuis_docente_previsto_clil : '') .'</td>';
+    }
     echo '</tr>';
     }
 ?>
@@ -167,6 +208,11 @@ foreach($resultArray as $docente) {
 </div>
 </div>
 <input type="hidden" id="hidden_fuis_totale_previsto" value="<?php echo $fuis_totale_previsto; ?>">
+<input type="hidden" id="hidden_fuis_totale_previsto_clil" value="<?php echo $fuis_totale_previsto_clil; ?>">
+
+<!-- Custom JS file MUST be here because of toggle -->
+<script type="text/javascript" src="js/scriptPrevisteDirigente.js"></script>
+
 </body>
 </html>
 
@@ -209,4 +255,16 @@ function getHtmlNumAndPrevisteVisual($value, $total) {
     }
     return '&emsp;' . $numString;
 }
+
+function getHtmlClil($funzionali, $con_studenti) {
+    if ($funzionali == 0 && $con_studenti == 0){
+        return '';
+    }
+
+    $result = '';
+        $result .= '&ensp;<span class="text-left">F='. (($funzionali >= 10) ? $funzionali : '&ensp;' . $funzionali) .'</span>';
+        $result .= '&ensp;<span class="text-right">S='. (($con_studenti >= 10) ? $con_studenti : '&ensp;' . $con_studenti) .'</span>';
+    return $result;
+}
+
 ?>
