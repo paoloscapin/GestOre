@@ -24,7 +24,9 @@
     "config": {
         "gestioneClil": false,
         "bonus": true,
-        "corsiDiRecupero": true
+        "corsiDiRecupero": true,
+        "minuti": false,
+        "visualizzaSostituzioniDocente": true
     },
     "local": {
         "helpLinkDocente": "https://docs.google.com/document/d/1Ymf4zN6lbeJ-430u-AhgB90TELg4gy1u1QHbDchsrww/edit?usp=sharing",

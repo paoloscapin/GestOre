@@ -44,7 +44,11 @@ require_once '../common/connect.php';
 		<thead>
 			<tr>
 				<th class="col-md-2"></th>
-				<th class="col-md-2 text-left">Sostituzioni</th>
+				<th class="col-md-2 text-left">
+				<?php if(getSettingsValue('config','visualizzaSostituzioniDocente', true)) : ?>
+				Sostituzioni
+				<?php endif; ?>
+				</th>
 				<th class="col-md-2 text-left">Aggiornamento</th>
 				<th class="col-md-2 text-left"><?php echoLabel('Funzionali');?></th>
 				<th class="col-md-2 text-left">con Studenti</th>
@@ -53,21 +57,33 @@ require_once '../common/connect.php';
 		<tbody>
 			<tr>
 				<td><?php echoLabel('dovute');?></td>
+				<?php if(getSettingsValue('config','visualizzaSostituzioniDocente', true)) : ?>
 				<td class="text-left" id="dovute_ore_40_sostituzioni_di_ufficio"></td>
+				<?php else : ?>
+				<td class="text-left" id="dovute_ore_40_sostituzioni_di_ufficio_no"></td>
+				<?php endif; ?>
 				<td class="text-left" id="dovute_ore_40_aggiornamento"></td>
 				<td class="text-left" id="dovute_ore_70_funzionali"></td>
 				<td class="text-left" id="dovute_totale_con_studenti"></td>
 			</tr>
 			<tr class="orange5">
 				<td>previste</td>
+				<?php if(getSettingsValue('config','visualizzaSostituzioniDocente', true)) : ?>
 				<td class="text-left" id="previste_ore_40_sostituzioni_di_ufficio"></td>
+				<?php else : ?>
+				<td class="text-left" id="previste_ore_40_sostituzioni_di_ufficio_no"></td>
+				<?php endif; ?>
 				<td class="text-left" id="previste_ore_40_aggiornamento"></td>
 				<td class="text-left" id="previste_ore_70_funzionali"></td>
 				<td class="text-left" id="previste_totale_con_studenti"></td>
 			</tr>
 			<tr class="teal5">
 				<td>fatte</td>
+				<?php if(getSettingsValue('config','visualizzaSostituzioniDocente', true)) : ?>
 				<td class="text-left" id="fatte_ore_40_sostituzioni_di_ufficio"></td>
+				<?php else : ?>
+				<td class="text-left" id="fatte_ore_40_sostituzioni_di_ufficio_no"></td>
+				<?php endif; ?>
 				<td class="text-left" id="fatte_ore_40_aggiornamento"></td>
 				<td class="text-left" id="fatte_ore_70_funzionali"></td>
 				<td class="text-left" id="fatte_totale_con_studenti"></td>
