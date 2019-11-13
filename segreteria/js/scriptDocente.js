@@ -120,21 +120,21 @@ function profiloGetDetails(docente_id) {
 			$("#profilo_tipo_di_contratto").val(profilo.tipo_di_contratto);
 			$("#profilo_giorni_di_servizio").val(profilo.giorni_di_servizio);
 			$("#profilo_ore_di_cattedra").val(profilo.ore_di_cattedra);
-			$("#profilo_ore_eccedenti").val(profilo.ore_eccedenti);
-			$("#profilo_ore_80_collegi_docenti").val(profilo.ore_80_collegi_docenti);
-			$("#profilo_ore_80_udienze_generali").val(profilo.ore_80_udienze_generali);
-			$("#profilo_ore_80_aggiornamento_facoltativo").val(profilo.ore_80_aggiornamento_facoltativo);
-			$("#profilo_ore_80_dipartimenti_min").val(profilo.ore_80_dipartimenti);
-			$("#profilo_ore_80_dipartimenti_max").val(profilo.ore_80_dipartimenti);
-			$("#profilo_ore_80_consigli_di_classe").val(profilo.ore_80_consigli_di_classe);
-			$("#profilo_ore_80_totale").val(profilo.ore_80_totale);
-			$("#profilo_ore_40_sostituzioni_di_ufficio").val(profilo.ore_40_sostituzioni_di_ufficio);
-			$("#profilo_ore_40_con_studenti").val(profilo.ore_40_con_studenti);
-			$("#profilo_ore_40_aggiornamento").val(profilo.ore_40_aggiornamento);
-			$("#profilo_ore_40_totale").val(profilo.ore_40_totale);
-			$("#profilo_ore_70_funzionali").val(profilo.ore_70_funzionali);
-			$("#profilo_ore_70_con_studenti").val(profilo.ore_70_con_studenti);
-			$("#profilo_ore_70_totale").val(profilo.ore_70_totale);
+			setOre('#profilo_ore_eccedenti', profilo.ore_eccedenti);
+			setOre('#profilo_ore_80_collegi_docenti', profilo.ore_80_collegi_docenti);
+			setOre('#profilo_ore_80_udienze_generali', profilo.ore_80_udienze_generali);
+			setOre('#profilo_ore_80_aggiornamento_facoltativo', profilo.ore_80_aggiornamento_facoltativo);
+			setOre('#profilo_ore_80_dipartimenti_min', profilo.ore_80_dipartimenti);
+			setOre('#profilo_ore_80_dipartimenti_max', profilo.ore_80_dipartimenti);
+			setOre('#profilo_ore_80_consigli_di_classe', profilo.ore_80_consigli_di_classe);
+			setOre('#profilo_ore_80_totale', profilo.ore_80_totale);
+			setOre('#profilo_ore_40_sostituzioni_di_ufficio', profilo.ore_40_sostituzioni_di_ufficio);
+			setOre('#profilo_ore_40_con_studenti', profilo.ore_40_con_studenti);
+			setOre('#profilo_ore_40_aggiornamento', profilo.ore_40_aggiornamento);
+			setOre('#profilo_ore_40_totale', profilo.ore_40_totale);
+			setOre('#profilo_ore_70_funzionali', profilo.ore_70_funzionali);
+			setOre('#profilo_ore_70_con_studenti', profilo.ore_70_con_studenti);
+			setOre('#profilo_ore_70_totale', profilo.ore_70_totale);
 			$("#profilo_note").val(profilo.note);
 			
 			// hidden fields
@@ -165,23 +165,26 @@ function profiloUpdateDetails() {
 		tipo_di_contratto: $("#profilo_tipo_di_contratto").val(),
 		giorni_di_servizio: $("#profilo_giorni_di_servizio").val(),
 		ore_di_cattedra: $("#profilo_ore_di_cattedra").val(),
-		ore_eccedenti: $("#profilo_ore_eccedenti").val(),
-		ore_80_collegi_docenti: $("#profilo_ore_80_collegi_docenti").val(),
-		ore_80_udienze_generali: $("#profilo_ore_80_udienze_generali").val(),
-		ore_80_aggiornamento_facoltativo: $("#profilo_ore_80_aggiornamento_facoltativo").val(),
-		ore_80_dipartimenti_min: $("#profilo_ore_80_dipartimenti_min").val(),
-		ore_80_dipartimenti_max: $("#profilo_ore_80_dipartimenti_max").val(),
-		ore_80_consigli_di_classe: $("#profilo_ore_80_consigli_di_classe").val(),
-		ore_80_totale: $("#profilo_ore_80_totale").val(),
 
-		ore_40_sostituzioni_di_ufficio: $("#profilo_ore_40_sostituzioni_di_ufficio").val(),
-		ore_40_con_studenti: $("#profilo_ore_40_con_studenti").val(),
-		ore_40_aggiornamento: $("#profilo_ore_40_aggiornamento").val(),
-		ore_40_totale: $("#profilo_ore_40_totale").val(),
 
-		ore_70_funzionali: $("#profilo_ore_70_funzionali").val(),
-		ore_70_con_studenti: $("#profilo_ore_70_con_studenti").val(),
-		ore_70_totale: $("#profilo_ore_70_totale").val(),
+
+		ore_eccedenti: getOre("#profilo_ore_eccedenti"),
+		ore_80_collegi_docenti: getOre("#profilo_ore_80_collegi_docenti"),
+		ore_80_udienze_generali: getOre("#profilo_ore_80_udienze_generali"),
+		ore_80_aggiornamento_facoltativo: getOre("#profilo_ore_80_aggiornamento_facoltativo"),
+		ore_80_dipartimenti_min: getOre("#profilo_ore_80_dipartimenti_min"),
+		ore_80_dipartimenti_max: getOre("#profilo_ore_80_dipartimenti_max"),
+		ore_80_consigli_di_classe: getOre("#profilo_ore_80_consigli_di_classe"),
+		ore_80_totale: getOre("#profilo_ore_80_totale"),
+
+		ore_40_sostituzioni_di_ufficio: getOre("#profilo_ore_40_sostituzioni_di_ufficio"),
+		ore_40_con_studenti: getOre("#profilo_ore_40_con_studenti"),
+		ore_40_aggiornamento: getOre("#profilo_ore_40_aggiornamento"),
+		ore_40_totale: getOre("#profilo_ore_40_totale"),
+
+		ore_70_funzionali: getOre("#profilo_ore_70_funzionali"),
+		ore_70_con_studenti: getOre("#profilo_ore_70_con_studenti"),
+		ore_70_totale: getOre("#profilo_ore_70_totale"),
 		note: $("#profilo_note").val()
      },
      function (data, status) {
@@ -272,5 +275,24 @@ function docenteUpdateDetails() {
 }
 
 $(document).ready(function () {
-    docenteReadRecords();
+	docenteReadRecords();
+
+	// questi campi potrebbero essere gestiti in minuti se settato nel json
+	campiInMinuti(
+		'#profilo_ore_eccedenti',
+		'#profilo_ore_80_collegi_docenti',
+		'#profilo_ore_80_udienze_generali',
+		'#profilo_ore_80_aggiornamento_facoltativo',
+		'#profilo_ore_80_dipartimenti_min',
+		'#profilo_ore_80_dipartimenti_max',
+		'#profilo_ore_80_consigli_di_classe',
+		'#profilo_ore_80_totale',
+		'#profilo_ore_40_sostituzioni_di_ufficio',
+		'#profilo_ore_40_con_studenti',
+		'#profilo_ore_40_aggiornamento',
+		'#profilo_ore_40_totale',
+		'#profilo_ore_70_funzionali',
+		'#profilo_ore_70_con_studenti',
+		'#profilo_ore_70_totale'
+	);
 });

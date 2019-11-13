@@ -22,6 +22,7 @@ require_once '../common/__Settings.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
+require_once '../common/__Minuti.php';
 ruoloRichiesto('dirigente','segreteria-docenti');
 // Leggo la configurazione delle 80 ore
 $ore80 = [
