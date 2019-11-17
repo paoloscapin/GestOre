@@ -28,12 +28,12 @@ function campiInMinuti() {
     }
     for (i = 0; i < arguments.length; i++) {
         var fieldId = arguments[i];
-        console.log("campiInMinuti setup di fieldId=" + fieldId);
+//        console.log("campiInMinuti setup di fieldId=" + fieldId);
         $(fieldId).change(function(event) {
-            console.log('change id=' + event.target.id);
+//            console.log('change id=' + event.target.id);
             var id = '#' + event.target.id;
             var resultOre= trasformaInFloat($(id).val());
-            console.log("campiInMinuti resultOre=" + resultOre);
+//            console.log("campiInMinuti resultOre=" + resultOre);
             $(id).val(trasformaFloatInStringa(resultOre));
         });
     }
@@ -42,7 +42,7 @@ function campiInMinuti() {
 function setOre(fieldId, ore) {
     // se non gestisco i minuti scrivo direttamente le ore
     if ( ! __minuti) {
-        $(fieldId).val(ore);
+        $(fieldId).val(Math.round(ore));
         return;
     }
     var oreString = trasformaFloatInStringa(ore);
@@ -52,13 +52,13 @@ function setOre(fieldId, ore) {
 function getOre(fieldId) {
     // prendo il valore del campo
     var valore = $(fieldId).val();
-    console.log("getMinuti valore letto=" + valore);
+//    console.log("getMinuti valore letto=" + valore);
     // se non gestisco i minuti non devo fare niente
     if ( ! __minuti) {
         return valore;
     }
     var resultOre = trasformaInFloat(valore);
-    console.log("getMinuti resultOre=" + resultOre);
+//    console.log("getMinuti resultOre=" + resultOre);
     return resultOre;
 }
 
@@ -68,7 +68,7 @@ function trasformaInMinuti(src) {
     var minuti = 0;
     var arr = $.trim(src).split(/[ ,.:-]+/);
     for (var i = 0; i < arr.length; i++) {
-        console.log("arr[" + i + "]=" + arr[i]);
+//        console.log("arr[" + i + "]=" + arr[i]);
     }
 
     // se c'e' un solo valore, sono ore
@@ -104,6 +104,9 @@ function trasformaInFloat(src) {
 }
 
 function trasformaFloatInStringa(oreFloat) {
-    var minutiTotale = oreFloat * 60;
+    if ( ! __minuti) {
+        return Math.round(oreFloat);
+    }
+    var minutiTotale = Math.round(oreFloat * 60);
     return trasformaInStringa(minutiTotale);
 }

@@ -19,6 +19,7 @@ require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 //require_once '../common/_include_bootstrap-select.php';
+require_once '../common/__Minuti.php';
 ruoloRichiesto('dirigente');
 ?>
 
@@ -143,10 +144,8 @@ foreach($resultArray as $docente) {
     $ore_sostituzioni =  $docente['ore_fatte_ore_40_sostituzioni_di_ufficio'] - $docente['ore_dovute_ore_40_sostituzioni_di_ufficio'];
 
     // totale
-    $ore_funzionali = $docente['ore_previste_ore_70_funzionali'] - $docente['ore_dovute_ore_70_funzionali'];
-    $ore_con_studenti = $previste_con_studenti_total - $dovute_con_studenti_total;
-//    $ore_con_studenti_vecchio = $docente['ore_previste_ore_70_con_studenti'] - $docente['ore_dovute_ore_70_con_studenti'];
-//    info("docenteCognomeNome=$docenteCognomeNome ore_con_studenti__vecchio=$ore_con_studenti__vecchio ore_con_studenti=$ore_con_studenti");
+    $ore_funzionali = round($docente['ore_previste_ore_70_funzionali'] - $docente['ore_dovute_ore_70_funzionali']);
+    $ore_con_studenti = round($previste_con_studenti_total - $dovute_con_studenti_total);
 
     $fuis_funzionale_previsto = $ore_funzionali * $__settings->importi->oreFunzionali;
     $fuis_con_studenti_previsto = $ore_con_studenti * $__settings->importi->oreConStudenti;
@@ -171,12 +170,12 @@ foreach($resultArray as $docente) {
         $query = "SELECT COALESCE(SUM(ore_previste_attivita.ore),0) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
         WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId
         AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'funzionali' ;";
-        $clil_funzionali_previste=dbGetValue($query);
+        $clil_funzionali_previste=round(dbGetValue($query));
 
         $query = "SELECT COALESCE(SUM(ore_previste_attivita.ore),0) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
         WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId
         AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'con studenti' ;";
-        $clil_con_studenti_previste=dbGetValue($query);
+        $clil_con_studenti_previste=round(dbGetValue($query));
     }
     $fuis_docente_previsto_clil = $clil_funzionali_previste * $__settings->importi->oreFunzionali + $clil_con_studenti_previste * $__settings->importi->oreConStudenti;
     if ($fuis_docente_previsto_clil > 0) {
@@ -221,12 +220,18 @@ $warning = '<span class="glyphicon glyphicon-warning-sign text-error"></span>';
 $okSymbol = '&ensp;<span class="glyphicon glyphicon-ok text-success"></span>';
 
 function getHtmlNum($value) {
+    // arrotonda
+    $value = round($value);
 	return '&emsp;' . (($value >= 10) ? $value : '&ensp;' . $value);
 }
 
 function getHtmlNumAndPrevisteVisualLimited($value, $total) {
 	global $okSymbol;
 	global $warning;
+
+    // arrotonda
+    $value = round($value);
+    $total = round($total);
 
 	$numString = ($value >= 10) ? $value : '&ensp;' . $value;
 	$diff = $total - $value;
@@ -243,7 +248,11 @@ function getHtmlNumAndPrevisteVisualLimited($value, $total) {
 function getHtmlNumAndPrevisteVisual($value, $total) {
     global $okSymbol;
     global $warning;
-    
+ 
+    // arrotonda
+    $value = round($value);
+    $total = round($total);
+   
     $numString = ($value >= 10) ? $value : '&ensp;' . $value;
     $diff = $total - $value;
     if ($diff > 0) {
@@ -257,6 +266,10 @@ function getHtmlNumAndPrevisteVisual($value, $total) {
 }
 
 function getHtmlClil($funzionali, $con_studenti) {
+    // arrotonda
+    $funzionali = round($funzionali);
+    $con_studenti = round($con_studenti);
+
     if ($funzionali == 0 && $con_studenti == 0){
         return '';
     }

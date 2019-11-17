@@ -8,6 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/__Minuti.php';
 
 // default opera sul docente connesso e agisce come docente
 $docente_id = $__docente_id;
@@ -76,8 +77,11 @@ foreach(dbGetAll($query) as $row) {
 	if ($row['ore_previste_attivita_commento_commento'] != null && !empty(trim($row['ore_previste_attivita_commento_commento'], " "))) {
 		$data .='</br><span class="text-danger"><strong>'.$row['ore_previste_attivita_commento_commento'].'</strong></span>';
 	}
+
+	$ore_con_minuti = oreToDisplay($row['ore_previste_attivita_ore']);
+
 	$data .= '</td>
-	<td class="col-md-1 text-center">'.$row['ore_previste_attivita_ore'].'</td>
+	<td class="col-md-1 text-center">'.$ore_con_minuti.'</td>
 	';
 
 	$data .='<td class="col-md-1 text-center">';

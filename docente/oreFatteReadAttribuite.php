@@ -9,6 +9,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/__Minuti.php';
 
 $modificabile = $__config->getOre_fatte_aperto();
 
@@ -51,41 +52,31 @@ $query = "	SELECT
 					ore_previste_tipo_attivita.categoria, ore_previste_tipo_attivita.nome ASC
 				"
 				;
-				
-if (!$result = mysqli_query($con, $query)) {
-    exit(mysqli_error($con));
-}
 
-// if query results contains rows then fetch those rows
-if(mysqli_num_rows($result) > 0) {
-    while($row = mysqli_fetch_assoc($result)) {
-        //			console_log_data("docente=", $row);
-        $data .= '<tr>
-                <td>'.$row['ore_previste_tipo_attivita_categoria'].'</td>
-                <td>'.$row['ore_previste_tipo_attivita_nome'].'</td>
-                <td>'.$row['ore_previste_attivita_dettaglio'].'</td>
-                <td class="text-center">'.$row['ore_previste_attivita_ore'].'</td>
-                ';
-        
-        $data .='
-                    <td class="text-center">
-                    ';
-        if ($row['ore_previste_tipo_attivita_da_rendicontare']) {
-            if ($modificabile) {
-                $data .='
-				        <button onclick="oreFatteGetRegistroAttivita('.$row['ore_previste_attivita_id'].', '.$docente_id.')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
-        			';
-            }
-        }
-        $data .='
-                </td>
-                <td></td>
-                </tr>';
-    }
-} else {
-    // records now found
-    $data .= '<tr><td colspan="6">Nessuna attività attribuita</td></tr>';
-}
+foreach(dbGetAll($query) as $row) {
+	$ore_con_minuti = oreToDisplay($row['ore_previste_attivita_ore']);
+	$data .= '<tr>
+	<td>'.$row['ore_previste_tipo_attivita_categoria'].'</td>
+	<td>'.$row['ore_previste_tipo_attivita_nome'].'</td>
+	<td>'.$row['ore_previste_attivita_dettaglio'].'</td>
+	<td class="text-center">'.$row['ore_previste_attivita_ore'].'</td>
+	';
+
+	$data .='
+			<td class="text-center">
+			';
+	if ($row['ore_previste_tipo_attivita_da_rendicontare']) {
+	if ($modificabile) {
+		$data .='
+				<button onclick="oreFatteGetRegistroAttivita('.$row['ore_previste_attivita_id'].', '.$docente_id.')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
+			';
+	}
+	}
+	$data .='
+		</td>
+		<td></td>
+		</tr>';
+}			
 
 $data .= '</tbody></table></div>';
 

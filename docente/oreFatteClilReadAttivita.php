@@ -9,6 +9,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/__Minuti.php';
 
 $modificabile = $__config->getOre_fatte_aperto();
 
@@ -90,9 +91,10 @@ if(mysqli_num_rows($result) > 0) {
 		}
 		$data .='</td>';
 		
+		$ore_con_minuti = oreToDisplay($row['ore_fatte_attivita_ore']);
 		$data .='
 		<td class="text-center">'.$strikeOn.strftime("%d/%m/%Y", strtotime($row['ore_fatte_attivita_data'])).$strikeOff.'</td>
-		<td class="text-center">'.$strikeOn.$row['ore_fatte_attivita_ore'].$strikeOff.'</td>
+		<td class="text-center">'.$strikeOn.$ore_con_minuti.$strikeOff.'</td>
 		';
 
 		$data .='
@@ -117,11 +119,11 @@ if(mysqli_num_rows($result) > 0) {
 		} else {
 		    if ($row['ore_fatte_attivita_contestata'] == 1) {
 		        $data .='
-    				    <button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$row['ore_fatte_attivita_ore'].', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'clil\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>
+    				    <button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'clil\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>
 				    ';
 		    } else {
 		        $data .='
-    				<button onclick="oreFatteControllaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$row['ore_fatte_attivita_ore'].', \'clil\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-remove"></span> Contesta</button>
+    				<button onclick="oreFatteControllaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \'clil\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-remove"></span> Contesta</button>
 				';
 		    }
 		}
