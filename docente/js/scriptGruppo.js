@@ -56,7 +56,7 @@ function gruppoIncontroGetDetails(id, gruppo_id) {
 			$("#ora_incontro").val(record.ora);
 			$("#ordine_del_giorno").val(record.ordine_del_giorno);
 			$("#verbale").val(record.verbale);
-			$("#durata").val(record.durata);
+            setOre('#durata', record.durata);
             $('#effettuato').bootstrapToggle(record.effettuato == 1? 'on' : 'off');
             $('#partecipanti_table tbody').empty();
 			var markup = '';
@@ -79,7 +79,7 @@ function gruppoIncontroGetDetails(id, gruppo_id) {
     } else {
         data_incontro_pickr.setDate(Date.today().toString('d/M/yyyy'));
         $("#ora_incontro").val("12");
-        $("#durata").val("2");
+        setOre('#durata', 2);
         $("#ordine_del_giorno").val("");
         $("#verbale").val("");
         $("#verbale-part").hide();
@@ -112,7 +112,7 @@ function gruppoIncontroSave() {
         gruppo_id: $("#hidden_gruppo_id").val(),
         data: getDbDateFromPickrId("#data_incontro"),
         ora: $("#ora_incontro").val(),
-        durata: $("#durata").val(),
+        durata: getOre("#durata"),
         effettuato: $("#effettuato").is(':checked')? 1: 0,
         ordine_del_giorno: $("#ordine_del_giorno").val(),
         verbale: $("#verbale").val(),
@@ -126,6 +126,11 @@ function gruppoIncontroSave() {
 }
 
 $(document).ready(function () {
+	// questi campi potrebbero essere gestiti in minuti se settato nel json
+	campiInMinuti(
+		'#durata'
+	);
+
     data_incontro_pickr = flatpickr("#data_incontro", {
 		locale: {
 			firstDayOfWeek: 1

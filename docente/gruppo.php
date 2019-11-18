@@ -22,6 +22,7 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_flatpickr.php';
+require_once '../common/__Minuti.php';
 ruoloRichiesto('docente','segreteria-docenti','dirigente');
 ?>
 
