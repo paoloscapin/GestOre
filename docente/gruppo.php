@@ -103,8 +103,8 @@ echo $data;
                     <div class="col-sm-4"><input type="text" id="ora_incontro" placeholder="ora" class="form-control"/></div>
                 </div>
                 <div class="form-group">
-                    <label for="durata" class="col-sm-6 control-label">Durata ore</label>
-                    <div class="col-sm-1"><input type="text" id="durata" placeholder="0" class="form-control"/></div>
+                    <label for="durata" class="col-sm-2 control-label">Durata ore</label>
+                    <div class="col-sm-2"><input type="text" id="durata" placeholder="0" class="form-control"/></div>
                     </div>
                 <hr>
 

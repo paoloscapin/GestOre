@@ -8,7 +8,9 @@
  */
 
 // controlla se deve gestire i minuti
-$__minuti = getSettingsValue('config','minuti', false);
+if (! isset($__minuti)) {
+    $__minuti = getSettingsValue('config','minuti', false);
+}
 
 // ritorna la scritta corretta per un certo numero di minuti es.: 152 -> 2:32
 function orario($minuti) {
@@ -22,7 +24,7 @@ function orario($minuti) {
     }
     $displayOre = floor($minuti / 60);
 
-    $displayMinuti = ($minuti % 60 == 0) ? '' : sprintf(':%02d', $minuti % 60);
+    $displayMinuti = ($minuti % 60 == 0) ? '&ensp;&ensp;&ensp;' : sprintf(':%02d', $minuti % 60);
 
     return $segno . $displayOre . $displayMinuti;
 }
@@ -32,7 +34,7 @@ function oreToDisplay($ore) {
     if (! $__minuti) {
         return round($ore);
     }
-    return orario($ore *60);
+    return orario(round($ore *60));
 }
 
 ?>

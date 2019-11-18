@@ -37,7 +37,6 @@ function viaggioAccetta(viaggio_id) {
 }
 
 function viaggioInoltra(viaggio_id) {
-
     var conf = confirm("Sei sicuro di volere inoltrare la richiesta ?");
     if (conf == true) {
         $.post("viaggioCambiaStato.php", {
@@ -54,8 +53,7 @@ function viaggioInoltra(viaggio_id) {
 
 // Get details for update
 function viaggioGetDetails(id) {
-	console.log('viaggioGetDetails id='+id);
-	// Add record ID to the hidden field for future usage
+	// console.log('viaggioGetDetails id='+id);
 	$("#hidden_viaggio_id").val(id);
 	$.post("viaggioReadDetails.php", {
 			id: id
@@ -105,8 +103,6 @@ function viaggioGetDetails(id) {
 			$('#update_viaggio_spese_table td:nth-child(1),th:nth-child(1)').hide(); // nasconde la prima colonna con l'id
 		}
     );
-
-	// Open modal popup
 	$("#update_viaggio_modal").modal("show");
 }
 
@@ -125,19 +121,15 @@ function cancellaLineaSpesa(id) {
     }
 }
 
-//Get details for update
 function viaggioSpesaGetDetails(id) {
-	// Add record ID to the hidden field for future usage
 	$("#hidden_spesa_viaggio_id").val(id);
 	if (id > 0) {
 		$.post("viaggioLineaSpesaReadDetails.php", {
 			id: id
 		},
 		function (dati, status) {
-			// PARSE json data
 			var spesaViaggio = JSON.parse(dati);
-			console.log(spesaViaggio.tipo);
-			// setting existing values to the modal popup fields
+			// console.log(spesaViaggio.tipo);
 			var update_spesa_data_str = spesaViaggio.data;
 			var update_spesa_data = Date.parseExact(update_spesa_data_str, 'yyyy-MM-dd');
 			update_spesa_data_pickr.setDate(update_spesa_data);
@@ -153,8 +145,6 @@ function viaggioSpesaGetDetails(id) {
 		$("#update_spesa_importo").val('');
 		$("#update_spesa_note").val('');
 	}
-
-	// Open modal popup
 	$("#update_spesa_row_modal").modal("show");
 }
 
@@ -167,20 +157,17 @@ function viaggioAddSpesa() {
 }
 
 function viaggioSpesaUpdateDetails() {
-    // get values
     var data_spesa_str = $("#update_spesa_data").val();
 	var data_spesa_date = Date.parseExact(data_spesa_str, 'd/M/yyyy');
 	var data = data_spesa_date.toString('yyyy-MM-dd');
-
     var tipo = $("#update_spesa_tipo").val();
     var importo = $("#update_spesa_importo").val();
-    var note = $("#update_spesa_note").val();
-    // get hidden field value
+	var note = $("#update_spesa_note").val();
+
     var spesa_viaggio_id = $("#hidden_spesa_viaggio_id").val();
     var viaggio_id = $("#hidden_viaggio_id").val();
 
-    // Update the details by requesting to the server using ajax
-    $.post("viaggioLineaSpesaUpdateDetails.php", {
+	$.post("viaggioLineaSpesaUpdateDetails.php", {
     		spesa_viaggio_id: spesa_viaggio_id,
     		viaggio_id: viaggio_id,
     		data: data,
@@ -189,9 +176,7 @@ function viaggioSpesaUpdateDetails() {
     		note: note
         },
         function (data, status) {
-            // hide modal popup
             $("#update_spesa_row_modal").modal("hide");
-            // reload docenti by using docenteReadRecords();
             viaggioGetDetails(viaggio_id);
         }
     );
@@ -232,7 +217,6 @@ function viaggioUpdateDetails() {
 
 }
 
-// Read records on page load
 $(document).ready(function () {
 	update_viaggio_data_partenza_pickr = flatpickr("#update_viaggio_data_partenza", {
 		locale: {
@@ -276,12 +260,12 @@ $(document).ready(function () {
 			$("#update_viaggio_ore_richieste").val(0);
 		}
 	});
-*/
 
 	$('#update_viaggio_ore_richieste').change(function() {
 		var val = $("#update_viaggio_ore_richieste").val() > 16 ? 16 : $("#update_viaggio_ore_richieste").val();
 		$("#update_viaggio_ore_richieste").val(val);
 	});
+*/
 
     viaggioReadRecords();
 });

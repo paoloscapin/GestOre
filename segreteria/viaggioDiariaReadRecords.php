@@ -8,6 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/__Minuti.php';
 
 $data = '';
 
@@ -54,8 +55,8 @@ $query = "	SELECT
 			WHERE viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id
 			AND viaggio.stato = 'chiuso'
 			ORDER BY
-				fuis_viaggio_diaria.data_richiesta_liquidazione ASC,
-				viaggio.data_partenza ASC,
+				fuis_viaggio_diaria.data_richiesta_liquidazione DESC,
+				viaggio.data_partenza DESC,
 				docente.cognome ASC,
 				docente.nome ASC;";
 
@@ -66,7 +67,7 @@ foreach($resultArray as $diaria) {
 	$destinazione = $diaria['viaggio_destinazione'];
 	$dataPartenza = strftime("%d/%m/%Y", strtotime($diaria['viaggio_data_partenza']));
 	$importo = $diaria['fuis_viaggio_diaria_importo'];
-	$viaggio_ore_recuperate_ore = $diaria['viaggio_ore_recuperate_ore'];
+	$viaggio_ore_recuperate_ore_con_minuti = oreToDisplay($diaria['viaggio_ore_recuperate_ore']);
 	$data .= '<tr>
 				<td>'.$docenteCognomeNome.'</td>
 				<td>'.$destinazione.'</td>
@@ -74,7 +75,7 @@ foreach($resultArray as $diaria) {
 				<td class="text-right">'.formatImporto($importo).'</td>';
 	$dataLiquidazione = $diaria['fuis_viaggio_diaria_data_richiesta_liquidazione'];
 	$data .='<td class="text-center">'.formatDataLiquidazione($dataLiquidazione, $importo).'</td>';
-	$data .='<td class="text-center">'.$viaggio_ore_recuperate_ore.'</td>';
+	$data .='<td class="text-center">'.$viaggio_ore_recuperate_ore_con_minuti.'</td>';
 	$data .='<td class="text-center">
 		<button onclick=\'viaggioDiariaGetDetails("'.$diaria['fuis_viaggio_diaria_id'].'", "'.$diaria['fuis_viaggio_diaria_importo'].'", "'.$diaria['viaggio_ore_recuperate_id'].'", "'.$diaria['viaggio_ore_recuperate_ore'].'", '.$diaria['docente_id'].')\' class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 		</td>';
