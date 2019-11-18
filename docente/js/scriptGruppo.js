@@ -18,6 +18,7 @@ function getDbDateFromPickrId(pickrId) {
 
 function gruppoIncontroReadRecords(group_id) {
 	$.get("gruppoIncontroReadRecords.php?gruppo_id=" + group_id, {}, function (data, status) {
+        console.log(data);
         var record = JSON.parse(data);
         $(".gruppo_records_content_" + group_id).html(record.table);
         $("#totale_ore_" + group_id).text(record.totale_ore);

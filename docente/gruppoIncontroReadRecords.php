@@ -9,6 +9,7 @@
 
 // include Database connection file
 require_once '../common/checkSession.php';
+require_once '../common/__MinutiFunction.php';
 
 $data = array();
 $gruppo_id = $_GET["gruppo_id"];
