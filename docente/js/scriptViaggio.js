@@ -70,6 +70,9 @@ function viaggioGetDetails(id) {
 			var data_rientro = Date.parseExact(data_rientro_str, 'yyyy-MM-dd');
 			update_viaggio_data_partenza_pickr.setDate(data_partenza);
 			update_viaggio_data_rientro_pickr.setDate(data_rientro);
+			if (spesaViaggioArray[0].viaggio_ore_richieste == null) {
+				spesaViaggioArray[0].viaggio_ore_richieste = 0;
+			}
 
 			$("#update_viaggio_ora_partenza").val(spesaViaggioArray[0].viaggio_ora_partenza);
 			$("#update_viaggio_ora_rientro").val(spesaViaggioArray[0].viaggio_ora_rientro);
@@ -78,7 +81,7 @@ function viaggioGetDetails(id) {
 			$("#update_viaggio_classe").prop('defaultValue', spesaViaggioArray[0].viaggio_classe);
 			$("#update_viaggio_stato").prop('defaultValue', spesaViaggioArray[0].viaggio_stato);
 			$("#update_viaggio_ore_richieste").prop('defaultValue', spesaViaggioArray[0].viaggio_ore_richieste);
-			$("#update_viaggio_richiesta_fuis").prop('checked', spesaViaggioArray[0].viaggio_richiesta_fuis != 0);
+			$("#update_viaggio_richiesta_fuis").prop('checked', spesaViaggioArray[0].viaggio_richiesta_fuis != 0 && spesaViaggioArray[0].viaggio_richiesta_fuis != null);
 
 			// svuota il tbody della tabella spese;
 			$('#update_viaggio_spese_table tbody').empty();
@@ -197,7 +200,10 @@ function viaggioUpdateDetails() {
     var viaggio_ora_partenza = $("#update_viaggio_ora_partenza").val();
     var viaggio_ora_rientro = $("#update_viaggio_ora_rientro").val();
     var viaggio_ore_richieste = $("#update_viaggio_ore_richieste").val();
-    var viaggio_richiesta_fuis = $("#update_viaggio_richiesta_fuis").prop('checked');
+	var viaggio_richiesta_fuis = $("#update_viaggio_richiesta_fuis").prop('checked');
+	if (viaggio_richiesta_fuis == null) {
+		viaggio_richiesta_fuis = false;
+	}
 	$.post("viaggioUpdateDetails.php", {
 		viaggio_id: viaggio_id,
 		viaggio_destinazione: viaggio_destinazione,
