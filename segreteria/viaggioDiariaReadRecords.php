@@ -54,8 +54,8 @@ $query = "	SELECT
 			WHERE viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id
 			AND viaggio.stato = 'chiuso'
 			ORDER BY
-				fuis_viaggio_diaria.data_richiesta_liquidazione ASC,
-				viaggio.data_partenza ASC,
+				fuis_viaggio_diaria.data_richiesta_liquidazione DESC,
+				viaggio.data_partenza DESC,
 				docente.cognome ASC,
 				docente.nome ASC;";
 

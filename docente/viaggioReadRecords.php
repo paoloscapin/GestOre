@@ -215,13 +215,19 @@ $data .= '
 		<div class="col-sm-1">
 			<p class="form-control-static">'.$row['viaggio_ore_richieste'].'</p>
 		</div>
-		<div class="col-sm-4 text-center"><h4 class="form-control-static" id="lab" ><Strong><u>Oppure</u></Strong></h4></div>
-		<label for="viaggio_richiesta_fuis" class="col-sm-3 control-label">Indennità forfettaria</label>';
-		$data .= '<td class="col-sm-1 text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="viaggio_richiesta_fuis" ';
-		if ($row['viaggio_richiesta_fuis']) {
-			$data .= 'checked ';
+		';
+		if (getSettingsValue('viaggi','richiesta_diaria', true)) {
+			$data .= '
+			<div class="col-sm-4 text-center"><h4 class="form-control-static" id="lab" ><Strong><u>Oppure</u></Strong></h4></div>
+			<label for="viaggio_richiesta_fuis" class="col-sm-3 control-label">Indennità forfettaria</label>';
+			$data .= '<td class="col-sm-1 text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="viaggio_richiesta_fuis" ';
+			if ($row['viaggio_richiesta_fuis']) {
+				$data .= 'checked ';
+			}
+			$data .= '></td>
+			';
 		}
-		$data .= '></td>
+		$data .= '
 				</tr>
 				';
 		$data .= '
