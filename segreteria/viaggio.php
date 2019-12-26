@@ -383,11 +383,11 @@ if(mysqli_num_rows($result) > 0) {
                     <label for="chiusura_ora_rientro" class="col-sm-2 control-label">Rientro</label>
                     <div class="col-sm-4"><p class="form-control-static" id="chiusura_ora_rientro" ></p></div>
                 </div>
+                <?php if(getSettingsValue('viaggi','richiesta_diaria', true)) : ?>
 <hr>
                 <div class="form-group">
                     <label for="chiusura_ore_richieste" class="col-sm-3 control-label">ore di recupero (max 8)</label>
                     <div class="col-sm-2"><p class="form-control-static" id="chiusura_ore_richieste" ></p></div>
-					<?php if(getSettingsValue('viaggi','richiesta_diaria', true)) : ?>
                     <div class="col-sm-3"><h4 class="form-control-static" id="lab" ><Strong><u>Oppure</u></Strong></h4></div>
                     <label for="chiusura_richiesta_fuis" class="col-sm-3 control-label">Indennità forfettaria</label>
                     <div class="col-sm-1 "><input type="checkbox" id="chiusura_richiesta_fuis" ></div>
