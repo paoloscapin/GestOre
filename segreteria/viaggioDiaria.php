@@ -75,11 +75,11 @@ require_once '../common/connect.php';
 			<form class="form-horizontal">
 
                 <div class="form-group" id="ore-part">
-                    <label class="col-sm-2 control-label" for="ore">Ore</label>
+                    <label class="col-sm-4 control-label" for="ore">Ore</label>
 					<div class="col-sm-4"><input type="text" value="" id="ore" placeholder="" class="form-control" /></div>
                 </div>
                 <div class="form-group" id="diaria-part">
-                    <label class="col-sm-2 control-label" for="diaria">Diaria</label>
+                    <label class="col-sm-4 control-label" for="diaria">Diaria</label>
 					<div class="col-sm-4"><input type="text" value="" id="diaria" placeholder="" class="form-control" /></div>
                 </div>
 			</form>
@@ -87,10 +87,12 @@ require_once '../common/connect.php';
             <input type="hidden" id="hidden_diaria">
             <input type="hidden" id="hidden_ore_id">
             <input type="hidden" id="hidden_ore">
+            <input type="hidden" id="hidden_viaggio_id">
+            <input type="hidden" id="hidden_docente_cognome_nome">
             <input type="hidden" id="hidden_docente_id">
 
             </div>
-            <div class="modal-footer">
+            <div class="panel-footer text-center">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                 <button type="button" class="btn btn-primary" onclick="viaggioDiariaSalva()">Salva</button>
             </div>

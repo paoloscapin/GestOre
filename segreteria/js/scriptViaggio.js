@@ -269,6 +269,7 @@ function viaggioRimborsato() {
 
 function viaggioChiusura(id) {
 	$("#hidden_chiusura_viaggio_id").val(id);
+	//console.log("chiusura id="+id);
 	$.post("viaggioReadDetails.php", {
 			id: id
 		},
@@ -306,14 +307,17 @@ function viaggioChiusura(id) {
 			ore_richieste = viaggio.ore_richieste;
 			diaria = viaggio.richiesta_fuis;
 
-			$("#chiusura_ore_richieste").text(viaggio.ore_richieste);
+			$("#chiusura_ore_richieste").val(viaggio.ore_richieste);
+			$("#chiusura_idennita_forfettaria").val(0);
 			$("#chiusura_richiesta_fuis").prop('checked', diaria == true);
+			/*
 			if (diaria == true && ore_richieste > 0) {
 				alert('non si dovrebbe richiedere la diaria e le ore insieme, tranni casi particolari: ore_richieste=' + ore_richieste + ' diaria=' + diaria);
 			}
 			if (ore_richieste <= 0 && diaria != true) {
 				alert('Non abbiamo richiesto ore o diaria...: ore_richieste=' + ore_richieste + ' diaria=' + diaria);
 			}
+			*/
 			$("#chiusura_viaggio_modal").modal("show");
 		}
     );
@@ -321,29 +325,12 @@ function viaggioChiusura(id) {
 
 function viaggioChiudi() {
 	var viaggio_id = $("#hidden_chiusura_viaggio_id").val();
-	var importo_diaria = 0;
-	var numero_ore = 0;
-	var ore_richieste = $("#chiusura_ore_richieste").text();
+	var numero_ore = $("#chiusura_ore_richieste").text();
+	var idennita_forfettaria = $("#chiusura_idennita_forfettaria").text();
+	// problemi con la virgola: se bisogna trasformo in un punto.
+	var importo_diaria = parseFloat(idennita_forfettaria.replace(',', '.'));
 
-	// se si deve indennita' forfettaria:
-	if (diaria == true) {
-		var importo = prompt("Indennità forfettaria: inserire importo dovuto", "0");
-		if (importo != null) {
-			// problrmi con la virgola: se bisogna trasformo in un punto.
-			var importo_diaria = parseFloat(importo.replace(',', '.'));
-		} else {
-			return;
-		}
-	}
-	if (ore_richieste > 0) {
-		var ore = prompt("Ore di recupero", ore_richieste);
-		if (ore != null) {
-			numero_ore = parseInt(ore, 10);
-		} else {
-			return;
-		}
-	}
-    $.post("viaggioChiudi.php", {
+	$.post("viaggioChiudi.php", {
 		viaggio_id: viaggio_id,
 		importo_diaria: importo_diaria,
 		numero_ore: numero_ore,

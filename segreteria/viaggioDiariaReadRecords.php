@@ -76,7 +76,7 @@ foreach($resultArray as $diaria) {
 	$data .='<td class="text-center">'.formatDataLiquidazione($dataLiquidazione, $importo).'</td>';
 	$data .='<td class="text-center">'.$viaggio_ore_recuperate_ore.'</td>';
 	$data .='<td class="text-center">
-		<button onclick=\'viaggioDiariaGetDetails("'.$diaria['fuis_viaggio_diaria_id'].'", "'.$diaria['fuis_viaggio_diaria_importo'].'", "'.$diaria['viaggio_ore_recuperate_id'].'", "'.$diaria['viaggio_ore_recuperate_ore'].'", '.$diaria['docente_id'].')\' class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+		<button onclick=\'viaggioDiariaGetDetails("'.$diaria['fuis_viaggio_diaria_id'].'", "'.$diaria['fuis_viaggio_diaria_importo'].'", "'.$diaria['viaggio_ore_recuperate_id'].'", "'.$diaria['viaggio_ore_recuperate_ore'].'", "'.$diaria['viaggio_id'].'", "'.$docenteCognomeNome.'", '.$diaria['docente_id'].')\' class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 		</td>';
 	$data .= '</tr>';
 }

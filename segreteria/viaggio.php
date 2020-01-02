@@ -383,19 +383,24 @@ if(mysqli_num_rows($result) > 0) {
                     <label for="chiusura_ora_rientro" class="col-sm-2 control-label">Rientro</label>
                     <div class="col-sm-4"><p class="form-control-static" id="chiusura_ora_rientro" ></p></div>
                 </div>
-                <?php if(getSettingsValue('viaggi','richiesta_diaria', true)) : ?>
-<hr>
+                <hr>
+                <hr>
                 <div class="form-group">
-                    <label for="chiusura_ore_richieste" class="col-sm-3 control-label">ore di recupero (max 8)</label>
-                    <div class="col-sm-2"><p class="form-control-static" id="chiusura_ore_richieste" ></p></div>
-                    <div class="col-sm-3"><h4 class="form-control-static" id="lab" ><Strong><u>Oppure</u></Strong></h4></div>
-                    <label for="chiusura_richiesta_fuis" class="col-sm-3 control-label">Indennità forfettaria</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="chiusura_richiesta_fuis" ></div>
-					<?php endif; ?>
+                    <label class="col-sm-3 control-label" for="chiusura_ore_richieste">Ore con Studenti</label>
+                    <div class="col-sm-8"><input type="text" id="chiusura_ore_richieste" placeholder="0" class="form-control"/></div>
                 </div>
-
+                <div class="form-group">
+                    <label class="col-sm-3" for="chiusura_idennita_forfettaria">Indennità forfettaria</label>
+                    <div class="col-sm-8"><input type="text" id="chiusura_idennita_forfettaria" placeholder="0" class="form-control"/></div>
+                </div>
+                <?php if(getSettingsValue('viaggi','richiesta_diaria', true)) : ?>
+                    <hr>
+                    <label for="chiusura_richiesta_fuis" class="col-sm-3 control-label">Richiesta Diaria</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="chiusura_richiesta_fuis" ></div>
+				<?php endif; ?>
+                </div>
 			</form>
-            </div>
+            
 			<div class="panel-footer text-center">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
 				<button type="button" class="btn btn-success" id="btnChiudi" onclick="viaggioChiudi()" >Chiudi</button>

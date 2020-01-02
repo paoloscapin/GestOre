@@ -33,57 +33,45 @@ function viaggioDiariaPaga(fuis_viaggio_diaria_id, docenteCognomeNome, destinazi
 	}
 }
 
-function viaggioDiariaGetDetails(diaria_id, diaria_importo, viaggio_ore_recuperate_id, viaggio_ore_recuperate_ore, docente_id) {
+function viaggioDiariaGetDetails(diaria_id, diaria_importo, viaggio_ore_recuperate_id, viaggio_ore_recuperate_ore, viaggio_id, docente_cognome_nome, docente_id) {
 	$("#hidden_diaria_id").val(diaria_id);
 	$("#diaria").val(diaria_importo);
 	$("#hidden_diaria").val(diaria_importo);
-	if (diaria_id != 0) {
-		$("#diaria-part").show();
-	} else {
-		if (viaggio_ore_recuperate_id == 0) {
-			return;
-		}
-		$("#diaria-part").hide();
-	}
+	$("#hidden_viaggio_id").val(viaggio_id);
+	$("#hidden_docente_cognome_nome").val(docente_cognome_nome);
 
 	$("#hidden_ore_id").val(viaggio_ore_recuperate_id);
 	$("#ore").val(viaggio_ore_recuperate_ore);
 	$("#hidden_ore").val(viaggio_ore_recuperate_ore);
 	$("#hidden_docente_id").val(docente_id);
 
+	$("#diaria-part").show();
 	$("#viaggioDiariaModal").modal("show");
 }
 
 function viaggioDiariaSalva() {
-	if ($("#hidden_diaria").val() != $("#diaria").val()) {
-		$.post("../common/recordUpdate.php", {
-			table: 'fuis_viaggio_diaria',
-			id: $("#hidden_diaria_id").val(),
-			nome:'importo',
-			valore: $("#diaria").val()
-		},
-		function (data, status) {
-			$.post("../docente/oreFatteAggiornaDocente.php", { docente_id: $("#hidden_docente_id").val() },
-			function (data, status) {
-				viaggioDiariaReadRecords();
-			});
-		});
-	}
+	// la cosa piu semplice da fare e' quella di chiudere di nuovo il viaggio con i nuovi valori
+	if ($("#hidden_diaria").val() != $("#diaria").val() || $("#hidden_ore").val() != $("#ore").val()) {
+		// recupera i valori che ci servono
+		var viaggio_id = $("#hidden_viaggio_id").val();
+		var numero_ore = $("#ore").val();
+		var idennita_forfettaria = $("#diaria").val();
+		// problemi con la virgola: se bisogna trasformo in un punto.
+		var importo_diaria = parseFloat(idennita_forfettaria.replace(',', '.'));
 	
-	if ($("#hidden_ore").val() != $("#ore").val()) {
-		$.post("../common/recordUpdate.php", {
-			table: 'viaggio_ore_recuperate',
-			id: $("#hidden_ore_id").val(),
-			nome:'ore',
-			valore: $("#ore").val()
-		},
-		function (data, status) {
-			$.post("../docente/oreFatteAggiornaDocente.php", { docente_id: $("#hidden_docente_id").val() },
+		$.post("viaggioChiudi.php", {
+			viaggio_id: viaggio_id,
+			importo_diaria: importo_diaria,
+			numero_ore: numero_ore,
+			docente_id: $("#hidden_docente_id").val(),
+			docente_cognome_e_nome: $("#hidden_docente_cognome_nome").val()
+			},
 			function (data, status) {
 				viaggioDiariaReadRecords();
-			});
-		});
+			}
+		);
 	}
+
 	$("#viaggioDiariaModal").modal("hide");
 }
 

@@ -17,6 +17,7 @@ if(isset($_POST)) {
     $docente_cognome_e_nome = $_POST['docente_cognome_e_nome'];
     $data = date('Y-m-d');
 
+    dbExec("DELETE FROM fuis_viaggio_diaria WHERE viaggio_id=$viaggio_id;");
     if ($importo_diaria > 0) {
         $query = "INSERT INTO fuis_viaggio_diaria(importo, liquidato, data_richiesta_liquidazione, viaggio_id) VALUES('$importo_diaria', true, '$data', '$viaggio_id')";
         dbExec($query);
@@ -24,6 +25,7 @@ if(isset($_POST)) {
         info("aggiunto fuis_viaggio_diaria id=$id viaggio_id=$viaggio_id importo_diaria=$importo_diaria docente_id=$docente_id docente_cognome_e_nome=$docente_cognome_e_nome");
     }
     
+    dbExec("DELETE FROM viaggio_ore_recuperate WHERE viaggio_id=$viaggio_id;");
     if ($numero_ore > 0) {
         $query = "INSERT INTO viaggio_ore_recuperate(ore, viaggio_id) VALUES('$numero_ore', '$viaggio_id')";
         dbExec($query);

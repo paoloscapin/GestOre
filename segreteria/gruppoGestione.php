@@ -88,17 +88,17 @@ foreach(dbGetAll($query) as $docenteRow) {
 
                 <div class="form-group">
                     <label class="col-sm-3 control-label"  for="nome">Nome</label>
-                    <input class="col-sm-8" type="text" id="nome" placeholder="nome del gruppo" class="form-control"/>
+                    <div class="col-sm-8"><input type="text" id="nome" placeholder="nome del gruppo" class="form-control"/></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-3 control-label"  for="commento">Commento</label>
-                    <input class="col-sm-8" type="text" id="commento" placeholder="commento" class="form-control"/>
+                    <div class="col-sm-8"><input type="text" id="commento" placeholder="commento" class="form-control"/></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-3 control-label"  for="max_ore">Max Ore</label>
-                    <input class="col-sm-8" type="text" id="max_ore" placeholder="massimo ore previste per incontri del gruppo" class="form-control"/>
+                    <div class="col-sm-8"><input type="text" id="max_ore" placeholder="massimo ore previste per incontri del gruppo" class="form-control"/></div>
                 </div>
 
                 <div class="form-group responsabile_selector">
@@ -111,7 +111,7 @@ foreach(dbGetAll($query) as $docenteRow) {
 			</form>
 
             </div>
-            <div class="modal-footer">
+            <div class="panel-footer text-center">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                 <button type="button" class="btn btn-primary" onclick="gruppoGestioneSave()">Salva</button>
             </div>
