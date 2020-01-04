@@ -148,8 +148,29 @@ foreach($resultArray as $docente) {
 //    $ore_con_studenti_vecchio = $docente['ore_previste_ore_70_con_studenti'] - $docente['ore_dovute_ore_70_con_studenti'];
 //    info("docenteCognomeNome=$docenteCognomeNome ore_con_studenti__vecchio=$ore_con_studenti__vecchio ore_con_studenti=$ore_con_studenti");
 
+    // se si possono compensare in ore quelle mancanti funzionali con quelle fatte in piu' con studenti lo aggiorna ora
+	if (getSettingsValue('fuis','accetta_con_studenti_per_funzionali', false)) {
+        if ($ore_funzionali < 0) {
+			$daSpostare = -$ore_funzionali;
+			// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
+			if ($ore_con_studenti < $daSpostare) {
+				$daSpostare = $ore_con_studenti;
+			}
+			$ore_con_studenti = $ore_con_studenti - $daSpostare;
+			$ore_funzionali = $ore_funzionali + $daSpostare;
+		}
+    }
+
+    // calcola gli importi fuis previsti per questo docente
     $fuis_funzionale_previsto = $ore_funzionali * $__settings->importi->oreFunzionali;
     $fuis_con_studenti_previsto = $ore_con_studenti * $__settings->importi->oreConStudenti;
+
+	// se non configurato per compensare, i valori negativi devono essere azzerati (se ce ne sono...)
+	if (!getSettingsValue('fuis','compensa_in_valore', false)) {
+		$fuis_funzionale_previsto = max($fuis_funzionale_previsto, 0);
+		$fuis_con_studenti_previsto = max($fuis_con_studenti_previsto, 0);
+	}
+
     $fuis_docente_previsto = $fuis_funzionale_previsto + $fuis_con_studenti_previsto;
     // non si chiedono soldi indietro !!
     if ($fuis_docente_previsto < 0) {

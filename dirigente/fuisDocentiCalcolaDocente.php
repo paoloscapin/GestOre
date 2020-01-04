@@ -8,7 +8,8 @@
  */
 
 function calcolaFuisDocente($localDocenteId) {
-    global $__anno_scolastico_corrente_id;
+	global $__anno_scolastico_corrente_id;
+	global $__settings;
 
 	// cerca le diarie viaggi di quest'anno
 	$query = "
@@ -76,12 +77,42 @@ AND
 	ore_fatte.anno_scolastico_id = $__anno_scolastico_corrente_id
 ";
 	$ore = dbGetFirst($query);
-	$ore_sostituzioni =  $ore['ore_fatte_ore_40_sostituzioni_di_ufficio'] - $ore['ore_dovute_ore_40_sostituzioni_di_ufficio'];
+	$ore_sostituzioni = $ore['ore_fatte_ore_40_sostituzioni_di_ufficio'] - $ore['ore_dovute_ore_40_sostituzioni_di_ufficio'];
+	// ma se configurato per non sottrarre le sostituzioni, ignora questa parte se sono dovute dal docente (mette a 0)
+	if (! getSettingsValue('fuis','rimuovi_sostituzioni_non_fatte', true)) {
+		if ($ore_sostituzioni > 0) {
+			$ore_sostituzioni = 0;
+		}
+	}
+	
 	$ore_funzionali = $ore['ore_fatte_ore_70_funzionali'] - $ore['ore_dovute_ore_70_funzionali'];
 	$ore_con_studenti = $ore['ore_fatte_ore_70_con_studenti'] - $ore['ore_dovute_ore_70_con_studenti'];
-	$fuis_funzionale_proposto = $ore_funzionali * 17.5;
-	$fuis_con_studenti_proposto = $ore_con_studenti * 35;
-	$fuis_sostituzioni_proposto = $ore_sostituzioni * 35;
+
+	// se si possono compensare in ore quelle mancanti funzionali con quelle fatte in piu' con studenti lo aggiorna ora
+	if (getSettingsValue('fuis','accetta_con_studenti_per_funzionali', false)) {
+		if ($ore_funzionali < 0) {
+			$daSpostare = -$ore_funzionali;
+			// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
+			if ($ore_con_studenti < $daSpostare) {
+				$daSpostare = $ore_con_studenti;
+			}
+			$ore_con_studenti = $ore_con_studenti - $daSpostare;
+			$ore_funzionali = $ore_funzionali + $daSpostare;
+		}
+	}
+
+	// NB: non deve accadere che manchino delle ore con studenti: in quel caso il DS assegnerebbe altre attivita' o Disposizioni
+	//     In caso siano rimaste in negativo ore con studenti la cosa viene qui ignorata, visto che in ogni caso il fuis non puo' diventare negativo
+	$fuis_funzionale_proposto = $ore_funzionali * $__settings->importi->oreFunzionali;
+	$fuis_con_studenti_proposto = $ore_con_studenti * $__settings->importi->oreConStudenti;
+	$fuis_sostituzioni_proposto = $ore_sostituzioni * $__settings->importi->oreConStudenti;
+
+	// se non configurato per compensare, i valori negativi devono essere azzerati (se ce ne sono...)
+	if (!getSettingsValue('fuis','compensa_in_valore', false)) {
+		$fuis_funzionale_proposto = max($fuis_funzionale_proposto, 0);
+		$fuis_con_studenti_proposto = max($fuis_con_studenti_proposto, 0);
+		$fuis_sostituzioni_proposto = max($fuis_sostituzioni_proposto, 0);
+	}
 
 	// CLIL
 	// somma i fuis funzionali e con studenti di quest'anno
@@ -115,8 +146,8 @@ AND
 ";
 	$clil_ore_con_studenti = 0 + dbGetValue($query);
 
-	$clil_funzionale_proposto = $clil_ore_funzionale * 17.5;
-	$clil_con_studenti_proposto = $clil_ore_con_studenti * 35;
+	$clil_funzionale_proposto = $clil_ore_funzionale * $__settings->importi->oreFunzionali;
+	$clil_con_studenti_proposto = $clil_ore_con_studenti * $__settings->importi->oreConStudenti;
 
 	// prende il valore attualmente registrato
 	$query = "SELECT * FROM fuis_docente WHERE docente_id = $localDocenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;";
@@ -142,6 +173,7 @@ AND
 	$totale_approvato = $fuis_sostituzioni_approvato + $fuis_funzionale_approvato + $fuis_con_studenti_approvato;
 	$clil_totale_proposto = $clil_funzionale_proposto + $clil_con_studenti_proposto;
 	$clil_totale_approvato = $clil_funzionale_approvato + $clil_con_studenti_approvato;
+
 	// nessuno deve dare soldi indietro alla scuola
 	if ($totale_proposto < 0) {
 	    $totale_proposto = 0;
