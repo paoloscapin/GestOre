@@ -29,7 +29,7 @@ function sostituzione_docenteReadRecords() {
 	});
 }
 
-function sostituzione_docenteDelete(id, cognome, nome) {
+function sostituzione_docenteDelete(id, docente_id, cognome, nome) {
     var conf = confirm("Sei sicuro di volere cancellare la sostituzione del docente " + cognome + " " + nome + " ?");
     if (conf == true) {
         $.post("../common/deleteRecord.php", {
@@ -38,6 +38,9 @@ function sostituzione_docenteDelete(id, cognome, nome) {
 				name: "sostituzione del docente " + cognome + " " + nome
             },
             function (data, status) {
+                $.post("../docente/oreFatteAggiornaDocente.php", { docente_id: docente_id },
+                function (data, status) {
+                });
                 sostituzione_docenteReadRecords();
             }
         );

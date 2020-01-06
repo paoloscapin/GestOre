@@ -54,6 +54,11 @@
         "max_ore": 16,
         "richiesta_diaria": true
     },
+    "fuis": {
+        "rimuovi_sostituzioni_non_fatte": true,
+        "compensa_in_valore": true,
+        "accetta_con_studenti_per_funzionali": false
+    },
     "label": {
         "ore_funzionali": "funzionali"
     }

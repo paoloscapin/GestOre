@@ -23,7 +23,8 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 
 $query = "	SELECT
 				sostituzione_docente.id AS local_sostituzione_docente_id,
-				sostituzione_docente.*, docente.*
+				sostituzione_docente.*, docente.*,
+				docente.id AS docente_id
 			FROM sostituzione_docente
 			INNER JOIN docente docente
 			ON sostituzione_docente.docente_id = docente.id
@@ -54,7 +55,7 @@ foreach(dbGetAll($query) as $row) {
 		';
 	$data .='
 		<td>
-		<button onclick="sostituzione_docenteDelete('.$row['local_sostituzione_docente_id'].', \''.$row['cognome'].'\', \''.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button onclick="sostituzione_docenteDelete('.$row['local_sostituzione_docente_id'].', '.$row['docente_id'].', \''.$row['cognome'].'\', \''.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		</tr>';
 }

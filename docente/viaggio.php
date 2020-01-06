@@ -140,17 +140,17 @@
 					</div>
 					<button type="button" class="btn btn-success" data-toggle="modal" onclick="viaggioAddSpesa()"><span class="glyphicon glyphicon-plus"></span>&ensp;Aggiungi Spesa</button>
                 </div>
+				<?php if(getSettingsValue('viaggi','richiesta_diaria', true)) : ?>
 <hr>
 
                 <div class="form-group">
                     <label for="update_viaggio_ore_richieste" class="col-sm-3 control-label">ore di recupero (max 8)</label>
-                    <div class="col-sm-2"><input type="text" id="update_viaggio_ore_richieste" placeholder="0" class="form-control"/></div>
-					<?php if(getSettingsValue('viaggi','richiesta_diaria', true)) : ?>
-             		<div class="col-sm-3 text-center"><h4 class="form-control-static" id="lab" ><Strong><u>Oppure</u></Strong></h4></div>
+                    <div class="col-sm-1"><input type="text" id="update_viaggio_ore_richieste" placeholder="0" class="form-control"/></div>
+             		<div class="col-sm-4 text-center"><h4 class="form-control-static" id="lab" ><Strong><u>Oppure</u></Strong></h4></div>
                     <label for="update_viaggio_richiesta_fuis" class="col-sm-3 control-label">Indennità forfettaria</label>
                     <div class="col-sm-1 "><input type="checkbox" id="update_viaggio_richiesta_fuis" ></div>
-					<?php endif; ?>
                 </div>
+				<?php endif; ?>
 
 			</form>
             </div>
