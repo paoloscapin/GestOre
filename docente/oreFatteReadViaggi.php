@@ -9,6 +9,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/__Minuti.php';
 
 $modificabile = $__config->getOre_fatte_aperto();
 
@@ -44,33 +45,21 @@ $query = "	SELECT
 					viaggio.data_partenza DESC
 				"
 				;
-				
-if (!$result = mysqli_query($con, $query)) {
-    exit(mysqli_error($con));
-}
 
-// if query results contains rows then fetch those rows
-if(mysqli_num_rows($result) > 0) {
-    while($row = mysqli_fetch_assoc($result)) {
-        //			console_log_data("docente=", $row);
-        $data .= '<tr>
-                <td>'.$row['viaggio_destinazione'].'</td>
-    			<td class="text-center">'.strftime("%d/%m/%Y", strtotime($row['viaggio_data_partenza'])).'</td>
-    			<td class="text-center">'.$row['viaggio_ore_recuperate_ore'].'</td>
-                ';
-        
-        $data .='
-                <td></td>
-                </tr>';
-    }
-} else {
-    // records now found
-    $data .= '<tr><td colspan="5">Nessun viaggio</td></tr>';
+foreach(dbGetAll($query) as $row) {
+	$ore_con_minuti = oreToDisplay($row['viaggio_ore_recuperate_ore']);
+	$data .= '<tr>
+		<td>'.$row['viaggio_destinazione'].'</td>
+		<td class="text-center">'.strftime("%d/%m/%Y", strtotime($row['viaggio_data_partenza'])).'</td>
+		<td class="text-center">'.$ore_con_minuti.'</td>
+		';
+
+	$data .='
+		<td></td>
+		</tr>';
 }
 
 $data .= '</tbody></table></div>';
 
 echo $data;
-	
-
 ?>

@@ -8,6 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/__Minuti.php';
 
 $modificabile = $__config->getOre_fatte_aperto();
 

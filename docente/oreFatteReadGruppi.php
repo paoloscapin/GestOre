@@ -9,6 +9,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/__Minuti.php';
 
 $modificabile = $__config->getOre_fatte_aperto();
 
@@ -47,10 +48,11 @@ $query = "SELECT
         ";
 
 foreach(dbGetAll($query) as $row) {
+    $ore_con_minuti = oreToDisplay($row['gruppo_incontro_partecipazione_ore']);
     $data .= '<tr>
         <td>'.$row['gruppo_nome'].'</td>
         <td>'.$row['gruppo_incontro_data'].'</td>
-        <td>'.$row['gruppo_incontro_partecipazione_ore'].'</td>
+        <td>'.$ore_con_minuti.'</td>
         </tr>
         ';
 

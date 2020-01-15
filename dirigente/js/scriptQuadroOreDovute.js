@@ -327,6 +327,7 @@ function oreFatteRipristrinaAttivita(attivita_id, dettaglio, ore, commento, clil
     bootbox.confirm({
 	    message: "<p><strong>Attività:</strong></br>" + dettaglio + "</p>"
 	    		+ "<p><strong>Commento:</strong></br>" + commento + "</p>"
+	    		+ "<p><strong>Ore:</strong></br>" + ore + "</p>"
 	    		+ "<hr style=\"border-top: 2px solid #6699ff;\">"
 	    		+ "<p>Vuoi ripristinare questa attività e rimuovere il commento?</p>",
 	    buttons: {

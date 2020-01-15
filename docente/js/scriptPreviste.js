@@ -28,7 +28,7 @@ function previstaUpdateDetails() {
 		docente_id: $("#hidden_docente_id").val(),
     	ore_previste_attivita_id: $("#hidden_ore_previste_attivita_id").val(),
     	update_tipo_attivita_id: $("#tipo_attivita").val(),
-    	update_ore: $("#update_ore").val(),
+		update_ore: getOre("#update_ore"),
     	update_dettaglio: $("#update_dettaglio").val(),
     	operatore: $("#hidden_operatore").val(),
     	update_commento: $("#update_commento").val()
@@ -52,7 +52,7 @@ function previsteGetDetails(attivita_id) {
 				// console.log(dati);
 				var attivita = JSON.parse(dati);
 				$('#tipo_attivita').selectpicker('val', attivita.ore_previste_tipo_attivita_id);
-				$("#update_ore").val(attivita.ore);
+				setOre('#update_ore', attivita.ore);
 				$("#update_dettaglio").val(attivita.dettaglio);
 				$("#update_commento").val(attivita.commento);
 			}
@@ -99,7 +99,7 @@ function previstaDelete(attivita_id) {
 			},
 			callback: function (result) {
 				if (result === true) {
-					$("#update_ore").val('0');
+					setOre('#update_ore', 0);
 				} else {
 					$("#update_attivita_modal").modal("hide");
 				}
@@ -202,4 +202,8 @@ function previsteChiudi() {
 //Read records on page load
 $(document).ready(function () {
     previsteReadRecords();
+	// questi campi potrebbero essere gestiti in minuti se settato nel json
+	campiInMinuti(
+		'#update_ore'
+	);
 });

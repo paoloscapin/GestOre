@@ -135,7 +135,7 @@ function oreFatteGetAttivita(attivita_id) {
 				// console.log(dati);
 				var attivita = JSON.parse(dati);
 				$('#attivita_tipo_attivita').selectpicker('val', attivita.ore_previste_tipo_attivita_id);
-				$("#attivita_ore").val(attivita.ore);
+				setOre('#attivita_ore', attivita.ore);
 				$("#attivita_dettaglio").val(attivita.dettaglio);
 				$("#attivita_ora_inizio").val(attivita.ora_inizio);
 				$("#attivita_ora_inizio").prop('defaultValue', attivita.ora_inizio);
@@ -145,7 +145,7 @@ function oreFatteGetAttivita(attivita_id) {
 	} else {
 		$("#attivita_tipo_attivita").val('');
 		$('#attivita_tipo_attivita').selectpicker('val', 0);
-		$("#attivita_ore").val(2);
+		setOre('#attivita_ore', 2);
 		$("#attivita_dettaglio").val('');
 		ora_inizio_pickr.setDate(new Date());
 		attivita_data_pickr.setDate(Date.today().toString('d/M/yyyy'));
@@ -166,7 +166,7 @@ function attivitaFattaUpdateDetails() {
  	$.post("oreFatteUpdateAttivita.php", {
     	attivita_id: $("#hidden_ore_fatte_attivita_id").val(),
     	tipo_attivita_id: $("#attivita_tipo_attivita").val(),
-    	ore: $("#attivita_ore").val(),
+    	ore: getOre("#attivita_ore"),
     	dettaglio: $("#attivita_dettaglio").val(),
     	ora_inizio: $("#attivita_ora_inizio").val(),
     	data: getDbDateFromPickrId("#attivita_data")
@@ -208,7 +208,7 @@ function oreFatteClilGetAttivita(attivita_id) {
 			function (dati, status) {
 				// console.log(dati);
 				var attivita = JSON.parse(dati);
-				$("#attivita_clil_ore").val(attivita.ore);
+				setOre('#attivita_clil_ore', attivita.ore);
 				$("#attivita_clil_dettaglio").val(attivita.dettaglio);
 				$("#attivita_clil_ora_inizio").val(attivita.ora_inizio);
 				$("#attivita_clil_ora_inizio").prop('defaultValue', attivita.ora_inizio);
@@ -218,7 +218,7 @@ function oreFatteClilGetAttivita(attivita_id) {
 	} else {
 		$("#attivita_clil_tipo_attivita").val('');
 		$('#attivita_clil_tipo_attivita').selectpicker('val', 0);
-		$("#attivita_clil_ore").val(2);
+		setOre('#attivita_clil_ore', 2);
 		$("#attivita_clil_dettaglio").val('');
 		ora_inizio_clil_pickr.setDate(new Date());
 		attivita_clil_data_pickr.setDate(Date.today().toString('d/M/yyyy'));
@@ -232,7 +232,7 @@ function attivitaFattaClilUpdateDetails() {
  	$.post("oreFatteClilUpdateAttivita.php", {
     	attivita_id: $("#hidden_ore_fatte_clil_attivita_id").val(),
     	con_studenti: $("#clil_con_studenti").is(':checked'),
-    	ore: $("#attivita_clil_ore").val(),
+    	ore: getOre("#attivita_clil_ore"),
     	dettaglio: $("#attivita_clil_dettaglio").val(),
     	ora_inizio: $("#attivita_clil_ora_inizio").val(),
     	data: getDbDateFromPickrId("#attivita_clil_data")
@@ -329,4 +329,9 @@ $(document).ready(function () {
 	flatpickr.localize(flatpickr.l10ns.it);
 
 	oreFatteReadAttivitaRecords();
+	// questi campi potrebbero essere gestiti in minuti se settato nel json
+	campiInMinuti(
+		'#attivita_ore',
+		'#attivita_clil_ore'
+	);
 });

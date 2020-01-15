@@ -14,7 +14,7 @@ if(isset($_POST)) {
 	// get values
 	$profilo_id = $_POST['profilo_id'];
 	$docente_id = $_POST['docente_id'];
-	$docente_cognome_e_nome = $_POST['docente_cognome_e_nome'];
+	$docente_cognome_e_nome = escapePost('docente_cognome_e_nome');
 	$ore_dovute_id = $_POST['ore_dovute_id'];
 	$ore_previste_id = $_POST['ore_previste_id'];
 	$tipo_di_contratto = $_POST['tipo_di_contratto'];
@@ -35,7 +35,7 @@ if(isset($_POST)) {
 	$ore_70_funzionali = $_POST['ore_70_funzionali'];
 	$ore_70_con_studenti = $_POST['ore_70_con_studenti'];
 	$ore_70_totale = $_POST['ore_70_totale'];
-	$note = $_POST['note'];
+	$note = escapePost('note');
 	$ore_40_totale = 0 + round($ore_40_aggiornamento + ($ore_40_sostituzioni_di_ufficio * 50 / 60) + ($ore_40_con_studenti * 50 / 60));
 	$ore_70_totale = 0 + round($ore_70_funzionali + $ore_70_con_studenti);
 
@@ -76,7 +76,7 @@ if(isset($_POST)) {
 				WHERE id = '$ore_previste_id'";
 	dbExec($query);
 
-	// rimuovo eventuali vecchie sostituzioni: vecchia cosa che non dovrebbe servire nei prossimi anni
+	// rimuovo eventuali vecchie sostituzioni: TODO: vecchia cosa che non dovrebbe servire nei prossimi anni
 	$query = "DELETE FROM ore_previste_attivita WHERE dettaglio = 'Sostituzioni di ufficio' AND docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id";
 	dbExec($query);
 	info("aggiornato profilo per il docente $docente_cognome_e_nome");

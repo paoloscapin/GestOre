@@ -9,6 +9,7 @@
 
 // include Database connection file
 require_once '../common/checkSession.php';
+require_once '../common/__MinutiFunction.php';
 
 $data = array();
 $gruppo_id = $_GET["gruppo_id"];
@@ -35,11 +36,13 @@ foreach(dbGetAll($query) as $gruppo_incontro) {
 
     $statoMarker = ($gruppo_incontro['effettuato'] == 1) ? '<span class="label label-success">effettuato</span>' : '<span class="label label-primary">pendente</span>';
 
+    $ore_con_minuti = oreToDisplay($gruppo_incontro['durata']);
+
     $table .= '<tr>
     <td>'.$dataIncontro.'</td>
     <td>'.$gruppo_incontro['ora'].'</td>
     <td>'.$statoMarker.'</td>
-    <td>'.$gruppo_incontro['durata'].'</td>
+    <td>'.$ore_con_minuti.'</td>
     ';
     $table .='
         <td class="text-center">
@@ -53,6 +56,6 @@ foreach(dbGetAll($query) as $gruppo_incontro) {
 $table .= '</table></div>';
 
 $data['table'] = $table;
-$data['totale_ore'] = $totale_ore;
+$data['totale_ore'] = oreToDisplay($totale_ore);
 echo json_encode($data);
 ?>

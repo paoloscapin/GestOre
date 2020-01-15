@@ -9,16 +9,16 @@ var warning = '<span class="glyphicon glyphicon-warning-sign text-error"></span>
 var okSymbol = '&ensp;<span class="glyphicon glyphicon-ok text-success"></span>';
 
 function getHtmlNum(value) {
-	return '&emsp;' + ((value >= 10) ? value : '&ensp;' + value);
+	return '&emsp;' + ((value >= 10) ? trasformaFloatInStringa(value) : '&ensp;' + trasformaFloatInStringa(value));
 }
 
 function getHtmlNumAndPrevisteVisual(value, total) {
-	var numString = (value >= 10) ? value : '&ensp;' + value;
+	var numString = (value >= 10) ? trasformaFloatInStringa(value) : '&ensp;' + trasformaFloatInStringa(value);
 	var diff = total - value;
 	if (diff > 0) {
-		numString += '&ensp;<span class="label label-warning">- '+ diff +'</span>';
+		numString += '&ensp;<span class="label label-warning">- '+ trasformaFloatInStringa(diff) +'</span>';
 	} else if (diff < 0) {
-			numString += '&ensp;<span class="label label-danger">+ '+ (-diff) +'</span>';
+			numString += '&ensp;<span class="label label-danger">+ '+ trasformaFloatInStringa(-diff) +'</span>';
 	} else {
 		numString += okSymbol;
 	}
@@ -26,12 +26,12 @@ function getHtmlNumAndPrevisteVisual(value, total) {
 }
 
 function getHtmlNumAndFatteVisual(value, total) {
-	var numString = (value >= 10) ? value : '&ensp;' + value;
+	var numString = (value >= 10) ? trasformaFloatInStringa(value) : '&ensp;' + trasformaFloatInStringa(value);
 	var diff = total - value;
 	if (diff > 0) {
-		numString += '&ensp;<span class="label label-warning">- '+ diff +'</span>';
+		numString += '&ensp;<span class="label label-warning">- '+ trasformaFloatInStringa(diff) +'</span>';
 	} else if (diff < 0) {
-			numString += '&ensp;<span class="label label-danger">+ '+ (-diff) +'</span>';
+			numString += '&ensp;<span class="label label-danger">+ '+ trasformaFloatInStringa(-diff) +'</span>';
 	} else {
 		numString += okSymbol;
 	}
@@ -39,11 +39,11 @@ function getHtmlNumAndFatteVisual(value, total) {
 }
 
 function getHtmlNumAndFacoltativeVisual(value, total) {
-	return '&emsp;' + ((value >= 10) ? value : '&ensp;' + value);
+	return '&emsp;' + ((value >= 10) ? trasformaFloatInStringa(value) : '&ensp;' + trasformaFloatInStringa(value));
 }
 
 function getHtmlNumAndFatte80Visual(value, total) {
-	return '&emsp;' + ((value >= 10) ? value : '&ensp;' + value);
+	return '&emsp;' + ((value >= 10) ? trasformaFloatInStringa(value) : '&ensp;' + trasformaFloatInStringa(value));
 }
 
 function oreDovuteReadRecords() {
@@ -55,7 +55,7 @@ function oreDovuteReadRecords() {
 	function (dati, status) {
 		// console.log(dati);
         ore_dovute = JSON.parse(dati);
-        var dovute_con_studenti_totale = parseInt(ore_dovute.ore_70_con_studenti) + parseInt(ore_dovute.ore_40_con_studenti);
+        var dovute_con_studenti_totale = parseFloat(ore_dovute.ore_70_con_studenti) + parseFloat(ore_dovute.ore_40_con_studenti);
         $("#dovute_totale_con_studenti").html(getHtmlNum(dovute_con_studenti_totale));
 		$("#dovute_ore_70_funzionali").html(getHtmlNum(ore_dovute.ore_70_funzionali));
 		$("#dovute_ore_70_con_studenti").html(getHtmlNum(ore_dovute.ore_70_con_studenti));
@@ -75,7 +75,7 @@ function oreDovuteReadRecords() {
 		function (dati, status) {
 			// console.log(dati);
 			ore_previste = JSON.parse(dati);
-            var previste_con_studenti_totale = parseInt(ore_previste.ore_70_con_studenti) + parseInt(ore_previste.ore_40_con_studenti);
+            var previste_con_studenti_totale = parseFloat(ore_previste.ore_70_con_studenti) + parseFloat(ore_previste.ore_40_con_studenti);
             $("#previste_totale_con_studenti").html(getHtmlNumAndPrevisteVisual(previste_con_studenti_totale,dovute_con_studenti_totale));
             $("#previste_ore_70_funzionali").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_70_funzionali,ore_dovute.ore_70_funzionali));
 			$("#previste_ore_70_con_studenti").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_70_con_studenti,ore_dovute.ore_70_con_studenti));
@@ -96,7 +96,7 @@ function oreDovuteReadRecords() {
 			function (dati, status) {
 				// console.log(dati);
 				ore_fatte = JSON.parse(dati);
-                var fatte_con_studenti_totale = parseInt(ore_fatte.ore_70_con_studenti) + parseInt(ore_fatte.ore_40_con_studenti);
+                var fatte_con_studenti_totale = parseFloat(ore_fatte.ore_70_con_studenti) + parseFloat(ore_fatte.ore_40_con_studenti);
                 $("#fatte_totale_con_studenti").html(getHtmlNumAndFatteVisual(fatte_con_studenti_totale,dovute_con_studenti_totale));
                 $("#fatte_ore_70_funzionali").html(getHtmlNumAndFatteVisual(ore_fatte.ore_70_funzionali,ore_dovute.ore_70_funzionali));
 				$("#fatte_ore_70_con_studenti").html(getHtmlNumAndFatteVisual(ore_fatte.ore_70_con_studenti,ore_dovute.ore_70_con_studenti));
