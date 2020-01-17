@@ -52,7 +52,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 
 <?php
 // prepara l'elenco delle categorie di attivita'
-$query = "	SELECT * FROM `ore_previste_tipo_attivita` WHERE valido = true AND inserito_da_docente = false AND previsto_da_docente = false;";
+$query = "	SELECT * FROM `ore_previste_tipo_attivita` WHERE valido = true AND inserito_da_docente = false AND previsto_da_docente = false ORDER BY ore_previste_tipo_attivita.nome;";
 $resultArrayTipoAttivita = dbGetAll($query);
 
 $data = '';
@@ -84,10 +84,10 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 			<table class="table table-bordered table-striped" id="table_'.$tipoAttivitaId.'" >
 				<thead>
 					<th style="display:none;">id</th>
-					<th>Docente</th>
-					<th>Dettaglio</th>
-					<th>Ore</th>
-					<th>Modifica</th>
+					<th class="col-md-2">Docente</th>
+					<th class="col-md-8">Dettaglio</th>
+					<th class="col-md-1">Ore</th>
+					<th class="col-md-1">Modifica</th>
 				</thead>
 				<tbody>
 			';
