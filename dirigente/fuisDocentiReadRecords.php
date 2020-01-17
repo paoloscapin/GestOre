@@ -71,10 +71,11 @@ foreach($resultArray as $docente) {
         $numChanges = dbGetValue($q3);
     }
     $marker = ($numChanges == 0) ? '': '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>';
+    $openTabMode = getSettingsValue('interfaccia','apriDocenteInNuovoTab', false) ? '_blank' : '_self';
 
     $data .= '<tr>
     			<td>'.$local_docente_id.'</td>
-    			<td><a href="quadroDocente.php?id='.$local_docente_id.'" target="_blank">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>
+    			<td><a href="quadroDocente.php?id='.$local_docente_id.'" target="'.$openTabMode.'">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>
     			<td class="text-right viaggi">'.formatNoZero($viaggi).'</td>
     			<td class="text-right assegnato">'.formatNoZero($assegnato).'</td>
     			<td class="text-right sostituzioni">'.formatNoZero($sostituzioni).'</td>

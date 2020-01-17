@@ -46,7 +46,7 @@ require_once '../common/connect.php';
 			<tr>
 				<th class="col-md-2"></th>
 				<th class="col-md-2 text-left">
-				<?php if(getSettingsValue('config','visualizzaSostituzioniDocente', true)) : ?>
+				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocente', true)) : ?>
 				Sostituzioni
 				<?php endif; ?>
 				</th>
@@ -58,7 +58,7 @@ require_once '../common/connect.php';
 		<tbody>
 			<tr>
 				<td><?php echoLabel('dovute');?></td>
-				<?php if(getSettingsValue('config','visualizzaSostituzioniDocente', true)) : ?>
+				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocente', true)) : ?>
 				<td class="text-left" id="dovute_ore_40_sostituzioni_di_ufficio"></td>
 				<?php else : ?>
 				<td class="text-left" id="dovute_ore_40_sostituzioni_di_ufficio_no"></td>
@@ -69,7 +69,7 @@ require_once '../common/connect.php';
 			</tr>
 			<tr class="orange5">
 				<td>previste</td>
-				<?php if(getSettingsValue('config','visualizzaSostituzioniDocente', true)) : ?>
+				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocente', true)) : ?>
 				<td class="text-left" id="previste_ore_40_sostituzioni_di_ufficio"></td>
 				<?php else : ?>
 				<td class="text-left" id="previste_ore_40_sostituzioni_di_ufficio_no"></td>
@@ -80,7 +80,7 @@ require_once '../common/connect.php';
 			</tr>
 			<tr class="teal5">
 				<td>fatte</td>
-				<?php if(getSettingsValue('config','visualizzaSostituzioniDocente', true)) : ?>
+				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocente', true)) : ?>
 				<td class="text-left" id="fatte_ore_40_sostituzioni_di_ufficio"></td>
 				<?php else : ?>
 				<td class="text-left" id="fatte_ore_40_sostituzioni_di_ufficio_no"></td>

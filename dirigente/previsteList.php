@@ -203,8 +203,10 @@ foreach($resultArray as $docente) {
         $fuis_totale_previsto_clil += $fuis_docente_previsto_clil;
     }
 
+    $openTabMode = getSettingsValue('interfaccia','apriDocenteInNuovoTab', false) ? '_blank' : '_self';
+
     echo '<tr>';
-    echo '<td><a href="../docente/previste.php?docente_id='.$docenteId.'" target="_blank">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>';
+    echo '<td><a href="../docente/previste.php?docente_id='.$docenteId.'" target="'.$openTabMode.'">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>';
     echo '<td class="text-left">'.getHtmlNumAndPrevisteVisualLimited($docente['ore_previste_ore_40_aggiornamento'],$docente['ore_dovute_ore_40_aggiornamento']).'</td>';
     echo '<td class="text-left">'.getHtmlNumAndPrevisteVisual($docente['ore_fatte_ore_40_sostituzioni_di_ufficio'],$docente['ore_dovute_ore_40_sostituzioni_di_ufficio']).'</td>';
     echo '<td class="text-left">'.getHtmlNumAndPrevisteVisual($docente['ore_previste_ore_70_funzionali'],$docente['ore_dovute_ore_70_funzionali']).'</td>';
