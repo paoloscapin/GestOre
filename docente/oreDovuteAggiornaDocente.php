@@ -109,7 +109,7 @@ function orePrevisteAggiornaDocente($docenteId) {
 				AND
 					anno_scolastico_id = $__anno_scolastico_corrente_id;";
 	dbExec($query);
-	info("aggiornate le ore previste per il docente id=$docenteId");
+	debug("aggiornate le ore previste per il docente id=$docenteId");
 	echo $message;
 }
 
@@ -274,7 +274,7 @@ function oreFatteAggiornaDocente($docenteId) {
 					docente_id = $docenteId
 				AND
 					anno_scolastico_id = $__anno_scolastico_corrente_id;";
-	info("aggiornate le ore fatte per il docente id=$docenteId");
+	debug("aggiornate le ore fatte per il docente id=$docenteId");
 	dbExec($query);
 }
 ?>
