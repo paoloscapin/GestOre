@@ -325,8 +325,8 @@ function viaggioChiusura(id) {
 
 function viaggioChiudi() {
 	var viaggio_id = $("#hidden_chiusura_viaggio_id").val();
-	var numero_ore = $("#chiusura_ore_richieste").text();
-	var idennita_forfettaria = $("#chiusura_idennita_forfettaria").text();
+	var numero_ore = $("#chiusura_ore_richieste").val();
+	var idennita_forfettaria = $("#chiusura_idennita_forfettaria").val();
 	// problemi con la virgola: se bisogna trasformo in un punto.
 	var importo_diaria = parseFloat(idennita_forfettaria.replace(',', '.'));
 
