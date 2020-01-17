@@ -27,7 +27,7 @@ $headers .= "Content-Transfer-Encoding: 8bit\n";
 $headers .= "X-Mailer: PHP " . phpversion();
 
 // Corpi del messaggio nei due formati testo e HTML
-$text_msg = "La sua richiesta di $oggetto_modifica è stata aggiornata";
+$text_msg = "La tua richiesta di $oggetto_modifica è stata rivista";
 
 $connection = 'http';
 if ($__settings->system->https) {
@@ -38,9 +38,9 @@ $html_msg = '
 <html><body>
 Gentile '.$docente['nome'].' '.$docente['cognome'].'
  
-<p>la tua richiesta di '.$oggetto_modifica.' &egrave; stata rivista e sono state apportate alcune modifiche.</p>
+<p>la tua richiesta di '.$oggetto_modifica.' &egrave; stata rivista.</p>
 
-<p>Le modifiche apportate possono essere riviste all&rsquo;indirizzo
+<p>La versione approvata &egrave vivionabile all&rsquo;indirizzo
 <strong><a href=\''.$url.'\'>attivit&agrave;</a></strong></p>
 <p>In caso di dubbi puoi rivolgerti al DS</p>
 <p>' . $__settings->name . ' ' . $__settings->local->nomeIstituto . '</p>
