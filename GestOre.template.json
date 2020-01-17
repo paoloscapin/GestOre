@@ -16,10 +16,10 @@
         "database": "gestore"
     },
     "log": {
-        "logIntoAppFolder": false,
-        "logFile": "d:/Temp/log/GestOre.log",
+        "logIntoAppFolder": true,
+        "logFile": "GestOre.log",
         "timeFormat": "%d/%m/%Y - %H:%M:%S",
-        "debug": true
+        "debug": false
     },
     "config": {
         "gestioneClil": false,
@@ -60,6 +60,7 @@
         "accetta_con_studenti_per_funzionali": false
     },
     "label": {
-        "ore_funzionali": "funzionali"
+        "ore_funzionali": "funzionali",
+        "dovute": "pianificate"
     }
 }

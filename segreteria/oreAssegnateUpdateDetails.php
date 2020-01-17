@@ -12,7 +12,7 @@ ruoloRichiesto('segreteria-docenti','dirigente');
 
 if(isset($_POST)) {
 	$ore_previste_attivita_id = $_POST['ore_previste_attivita_id'];
-	$dettaglio = $_POST['dettaglio'];
+	$dettaglio = escapePost('dettaglio');
 	$ore = $_POST['ore'];
 
     $query = "UPDATE ore_previste_attivita SET dettaglio = '$dettaglio', ore = '$ore' WHERE id = $ore_previste_attivita_id";

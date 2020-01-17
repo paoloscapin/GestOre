@@ -11,7 +11,7 @@ require_once '../common/checkSession.php';
 
 if(isset($_POST)) {
 	$ore_previste_attivita_id = $_POST['ore_previste_attivita_id'];
-	$dettaglio = $_POST['dettaglio'];
+	$dettaglio = escapePost('dettaglio');
 	$ore = $_POST['ore'];
 	$ore_previste_tipo_attivita_id = $_POST['ore_previste_tipo_attivita_id'];
 	$docente_id = $_POST['docente_id'];
