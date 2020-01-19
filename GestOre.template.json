@@ -29,7 +29,8 @@
     },
     "interfaccia": {
         "apriDocenteInNuovoTab": false,
-        "visualizzaSostituzioniDocente": true
+        "visualizzaSostituzioniDocente": true,
+        "extraMenuDirigente": false
     },
     "local": {
         "helpLinkDocente": "https://docs.google.com/document/d/1Ymf4zN6lbeJ-430u-AhgB90TELg4gy1u1QHbDchsrww/edit?usp=sharing",
@@ -55,7 +56,8 @@
     },
     "viaggi": {
         "max_ore": 16,
-        "richiesta_diaria": true
+        "richiesta_diaria": true,
+        "accettazione": true
     },
     "fuis": {
         "rimuovi_sostituzioni_non_fatte": true,

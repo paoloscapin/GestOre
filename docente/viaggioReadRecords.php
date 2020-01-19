@@ -232,14 +232,14 @@ if (getSettingsValue('viaggi','richiesta_diaria', true)) {
 </div>
 <div class="panel-footer text-center">';
 
-	if ($row['viaggio_stato'] === 'accettato') {
+	if ($row['viaggio_stato'] === 'accettato' || ($row['viaggio_stato'] === 'assegnato' && !getSettingsValue('viaggi', 'accettazione', true))) {
 		$data .= '
 	<button onclick="viaggioGetDetails('.$row['viaggio_id'].')" class="btn btn-info"><span class="glyphicon glyphicon-pencil"> Modifica</button>';
 		$data .= '
 	<button onclick="viaggioInoltra('.$row['viaggio_id'].')" class="btn btn-warning"><span class="glyphicon glyphicon-log-out"> Inoltra Richiesta</button>';
 	}
 
-	if ($row['viaggio_stato'] === 'assegnato') {
+	if ($row['viaggio_stato'] === 'assegnato' && getSettingsValue('viaggi', 'accettazione', true)) {
 		$data .= '
 		<button type="button" class="btn btn-warning btn-sm firmaBtnClass" onclick="viaggioAccetta(\''.$row['viaggio_id'].'\')"><span class="glyphicon glyphicon-thumbs-up
 "> Accetta </button>';
