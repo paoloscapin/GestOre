@@ -52,7 +52,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 
 <?php
 // prepara l'elenco delle categorie di attivita'
-$query = "	SELECT * FROM `ore_previste_tipo_attivita` WHERE valido = true AND inserito_da_docente = false AND previsto_da_docente = false ORDER BY ore_previste_tipo_attivita.nome;";
+$query = "	SELECT * FROM `ore_previste_tipo_attivita` WHERE valido = true AND inserito_da_docente = false AND previsto_da_docente = false;";
 $resultArrayTipoAttivita = dbGetAll($query);
 
 $data = '';

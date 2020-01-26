@@ -41,7 +41,7 @@ require_once '../common/connect.php';
 <!-- pannello Fuis Assegnato (un pannello per ciascun tipo) -->
 <?php
 // prepara l'elenco dei tipi
-$query = "	SELECT * FROM `fuis_assegnato_tipo`;
+$query = "	SELECT * FROM `fuis_assegnato_tipo` ORDER BY nome;
 			";
 $resultArrayFuisAssegnatoTipo = dbGetAll($query);
 

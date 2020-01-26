@@ -15,10 +15,9 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	// get viaggio id
 	$viaggio_id = $_POST['id'];
 
-	// delete viaggio
+	// cancella il viaggio
 	$query = "DELETE FROM viaggio WHERE id = '$viaggio_id'";
-	if (!$result = mysqli_query($con, $query)) {
-		exit(mysqli_error($con));
-	}
+	dbExec($query);
+	info("rimosso viaggio id=$viaggio_id");
 }
 ?>
