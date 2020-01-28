@@ -56,7 +56,7 @@ $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
 $data = '';
 
 // disegna il pannello del bonus
-if ($__config->getBonus_rendiconto_aperto() || $__config->getBonus_adesione_aperto()) {
+if (true || $__config->getBonus_rendiconto_aperto() || $__config->getBonus_adesione_aperto()) {
     $data .= '
         <div class="panel panel-success">
             <div class="panel-heading">

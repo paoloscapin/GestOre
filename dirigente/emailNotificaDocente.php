@@ -40,7 +40,7 @@ Gentile '.$docente['nome'].' '.$docente['cognome'].'
  
 <p>la tua richiesta di '.$oggetto_modifica.' &egrave; stata rivista.</p>
 
-<p>La versione approvata &egrave vivionabile all&rsquo;indirizzo
+<p>La versione approvata &egrave; visionabile all&rsquo;indirizzo
 <strong><a href=\''.$url.'\'>attivit&agrave;</a></strong></p>
 <p>In caso di dubbi puoi rivolgerti al DS</p>
 <p>' . $__settings->name . ' ' . $__settings->local->nomeIstituto . '</p>
