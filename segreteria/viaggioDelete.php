@@ -17,7 +17,7 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 
 	// cancella il viaggio
 	dbExec("DELETE FROM viaggio_ore_recuperate WHERE viaggio_id = '$viaggio_id'");
-	dbExec("DELETE FROM fuis_viaggio_diaria WHERE id = '$viaggio_id'");
+	dbExec("DELETE FROM fuis_viaggio_diaria WHERE viaggio_id = '$viaggio_id'");
 	dbExec("DELETE FROM viaggio WHERE id = '$viaggio_id'");
 	info("rimosso viaggio id=$viaggio_id");
 }
