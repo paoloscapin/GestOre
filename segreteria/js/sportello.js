@@ -66,8 +66,8 @@ function sportelloSave() {
 }
 
 
-function sportelloGetDetails(gruppo_id) {
-    $("#hidden_gruppo_id").val(gruppo_id);
+function sportelloGetDetails(sportello_id) {
+    $("#hidden_gruppo_id").val(sportello_id);
 
     $.post("sportelloReadRecord.php", {
         gruppo_id: gruppo_id
@@ -88,7 +88,7 @@ function gruppoPartecipantiSave() {
 //    console.log($('#partecipanti').val());
     $.post("sportelloPartecipantiSave.php", {
 
-        gruppo_id: $("#hidden_gruppo_id").val(),
+        gruppo_id: $("#hidden_sportello_id").val(),
         partecipantiArray: JSON.stringify($('#partecipanti').val())
     }, function (data, status) {
         $("#partecipanti_modal").modal("hide");
