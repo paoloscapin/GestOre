@@ -36,7 +36,7 @@ require_once '../common/connect.php';
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
-			<span class="glyphicon glyphicon-picture"></span>&ensp;Sportelli
+			<span class="glyphicon glyphicon-object-align-horizontal"></span>&ensp;Sportelli
 		</div>
 		<div class="col-md-4 text-center">
 <!--
