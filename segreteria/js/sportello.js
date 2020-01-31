@@ -47,7 +47,7 @@ function sportelloNuovo() {
 	$("#numero_ore").val("0");
 	$("#luogo").val("");
 	$("#classe").val("");
-	$("#add_new_record_modal").modal("show");
+	$("#sportello_modal").modal("show");
 }
 
 function sportelloSave() {
@@ -60,28 +60,31 @@ function sportelloSave() {
 		luogo: $("#commento").val(),
         classe: $("#classe").val()
     }, function (data, status) {
-        $("#add_new_record_modal").modal("hide");
+        $("#sportello_modal").modal("hide");
         sportelloReadRecords();
     });
 }
 
-
 function sportelloGetDetails(sportello_id) {
-    $("#hidden_gruppo_id").val(sportello_id);
+    $("#hidden_sportello_id").val(sportello_id);
 
-    $.post("sportelloReadRecord.php", {
-        gruppo_id: gruppo_id
+    $.post("../docente/sportelloReadDetails.php", {
+        sportello_id: sportello_id
     }, function (data, status) {
-//        console.log(data);
-        var record = JSON.parse(data);
-        var idList = new Array();
-        var i;
-        for (i = 0; i < record.length; ++i) {
-            idList.push(record[i]);
-        }
-        $("#partecipanti").val(idList).trigger('change');
+        var sportello = JSON.parse(data);
+        setDbDateToPickr(data, sportello.sportello_data);
+        $("#ora").val(sportello.sportello_ora);
+        $('#docente').selectpicker('val', sportello.docente_id);
+        $('#materia').selectpicker('val', sportello.materia_id);
+        $("#numero_ore").val(sportello.sportello_numero_ore);
+        $("#luogo").val(sportello.sportello_luogo);
+        $("#classe").val(sportello.sportello_classe);
+
+
+
         $("#partecipanti_modal").modal("show");
     });
+	$("#sportello_modal").modal("show");
 }
 
 function gruppoPartecipantiSave() {
