@@ -12,7 +12,6 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 $ancheCancellati = $_GET["ancheCancellati"];
-
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>

@@ -138,6 +138,28 @@ $__docente_nome = $session->get ( 'docente_nome' );
 $__docente_cognome = $session->get ( 'docente_cognome' );
 $__docente_email = $session->get ( 'docente_email' );
 
+// controlla se e' uno studente deve avere i rispettivi termini
+if (!$session->has ( 'studente_id' ) && $session->has ( 'utente_ruolo' ) && ($session->get ( 'utente_ruolo' ) === "studente")) {
+    debug ( 'manca in sessione studente_id' );
+    $studente = dbGetFirst("SELECT * FROM studente WHERE studente.email = '$__useremail'");
+    if ($studente == null) {
+        redirect("/error/unauthorized.php");
+        exit ();
+    }
+    $session->set ( 'studente_id', $studente ['id'] );
+    $session->set ( 'studente_nome', $studente ['nome'] );
+    $session->set ( 'studente_cognome', $studente ['cognome'] );
+    $session->set ( 'studente_email', $__useremail );
+} else {
+//    debug ( 'esiste studente_id=' . $session->get ( 'studente_id' ) );
+}
+
+$__studente_id = $session->get ( 'studente_id' );
+$__studente_nome = $session->get ( 'studente_nome' );
+$__studente_cognome = $session->get ( 'studente_cognome' );
+$__studente_email = $session->get ( 'studente_email' );
+
+// aggiusta l'anno scolastico
 if (! $session->has ( 'anno_scolastico_corrente_anno' )) {
     debug ( 'manca in sessione anno_scolastico_corrente_anno' );
     $anno = dbGetFirst("SELECT * FROM anno_scolastico_corrente");

@@ -28,6 +28,9 @@ else if (haRuolo('dirigente')) {
 else if (haRuolo('segreteria-docenti')) {
     redirect('/segreteria/index.php');
 }
+else if (haRuolo('studente')) {
+    redirect('/studente/index.php');
+}
 else if (haRuolo('admin')) {
     redirect('/admin/index.php');
 }

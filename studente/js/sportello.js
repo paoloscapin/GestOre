@@ -84,13 +84,18 @@ function sportelloGetDetails(sportello_id) {
     });
 }
 
+function gruppoPartecipantiSave() {
+//    console.log($('#partecipanti').val());
+    $.post("sportelloPartecipantiSave.php", {
+
+        gruppo_id: $("#hidden_sportello_id").val(),
+        partecipantiArray: JSON.stringify($('#partecipanti').val())
+    }, function (data, status) {
+        $("#partecipanti_modal").modal("hide");
+    });
+}
+
 $(document).ready(function () {
-	data_pickr = flatpickr("#data", {
-		locale: {
-			firstDayOfWeek: 1
-		},
-		dateFormat: 'j/n/Y'
-	});
 
 	sportelloReadRecords();
 
