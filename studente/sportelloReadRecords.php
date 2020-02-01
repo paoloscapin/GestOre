@@ -118,7 +118,7 @@ foreach($resultArray as $row) {
 				} else {
 					$data .='
 						<span class="label label-info">Disponibile</span>
-						<button onclick="sportelloIscriviti('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+						<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 					';
 			}
 
