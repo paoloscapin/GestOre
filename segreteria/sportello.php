@@ -47,7 +47,7 @@ require_once '../common/connect.php';
 		</div>
 		<div class="col-md-4 text-right">
             <div class="pull-right">
-				<button class="btn btn-xs btn-orange4" onclick="sportelloNuovo()" ><span class="glyphicon glyphicon-plus"></span></button>
+				<button class="btn btn-xs btn-orange4" onclick="sportelloGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
 		</div>
 	</div>
@@ -152,6 +152,22 @@ if(mysqli_num_rows($result) > 0) {
                     <label class="col-sm-2 control-label" for="classe">Classe</label>
                     <div class="col-sm-8"><input type="text" id="classe" placeholder="classe" class="form-control"/></div>
                 </div>
+
+                <div class="form-group">
+                    <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="cancellato" ></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="firmato" class="col-sm-2 control-label">Firmato</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="firmato" ></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-2 control-label" for="classe">Classe</label>
+                    <div class="col-sm-8"><input type="text" id="classe" placeholder="classe" class="form-control"/></div>
+                </div>
+
                 <input type="hidden" id="hidden_sportello_id">
 			</form>
 

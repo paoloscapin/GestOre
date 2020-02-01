@@ -22,13 +22,13 @@ function sportelloReadRecords() {
 	});
 }
 
-function sportelloDelete(id, nome) {
-    var conf = confirm("Sei sicuro di volere cancellare lo sportello " + nome + " ?");
+function sportelloDelete(id, materia) {
+    var conf = confirm("Sei sicuro di volere cancellare lo sportello di " + materia + " ?");
     if (conf == true) {
         $.post("../common/deleteRecord.php", {
 				id: id,
 				table: 'sportello',
-				name: "sportello" + nome
+				name: "materia" + materia
             },
             function (data, status) {
                 sportelloReadRecords();
@@ -37,28 +37,18 @@ function sportelloDelete(id, nome) {
     }
 }
 
-function sportelloNuovo() {
-	data_pickr.setDate(Date.today().toString('d/M/yyyy'));
-    $("#ora").val("14");
-    $('#docente').val("0");
-    $('#docente').selectpicker('refresh');
-    $('#materia').val("0");
-    $('#materia').selectpicker('refresh');
-	$("#numero_ore").val("0");
-	$("#luogo").val("");
-	$("#classe").val("");
-	$("#sportello_modal").modal("show");
-}
-
 function sportelloSave() {
-    $.post("sportelloAddRecord.php", {
+    $.post("sportelloSave.php", {
+        id: $("#hidden_sportello_id").val(),
 		data: getDbDateFromPickrId("#data"),
         ora: $("#ora").val(),
         docente_id: $("#docente").val(),
 		materia_id: $("#materia").val(),
         numero_ore: $("#numero_ore").val(),
 		luogo: $("#commento").val(),
-        classe: $("#classe").val()
+        classe: $("#classe").val(),
+        cancellato: $("#cancellato").prop('checked'),
+        firmato: $("#firmato").prop('checked')
     }, function (data, status) {
         $("#sportello_modal").modal("hide");
         sportelloReadRecords();
@@ -68,22 +58,35 @@ function sportelloSave() {
 function sportelloGetDetails(sportello_id) {
     $("#hidden_sportello_id").val(sportello_id);
 
-    $.post("../docente/sportelloReadDetails.php", {
-        sportello_id: sportello_id
-    }, function (data, status) {
-        var sportello = JSON.parse(data);
-        setDbDateToPickr(data, sportello.sportello_data);
-        $("#ora").val(sportello.sportello_ora);
-        $('#docente').selectpicker('val', sportello.docente_id);
-        $('#materia').selectpicker('val', sportello.materia_id);
-        $("#numero_ore").val(sportello.sportello_numero_ore);
-        $("#luogo").val(sportello.sportello_luogo);
-        $("#classe").val(sportello.sportello_classe);
+    if (sportello_id > 0) {
+        $.post("../docente/sportelloReadDetails.php", {
+            sportello_id: sportello_id
+        }, function (data, status) {
+            var sportello = JSON.parse(data);
+            setDbDateToPickr(data_pickr, sportello.sportello_data);
+            $("#ora").val(sportello.sportello_ora);
+            $('#docente').selectpicker('val', sportello.docente_id);
+            $('#materia').selectpicker('val', sportello.materia_id);
+            $("#numero_ore").val(sportello.sportello_numero_ore);
+            $("#luogo").val(sportello.sportello_luogo);
+            $("#classe").val(sportello.sportello_classe);
+            $("#cancellato").prop('checked', sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null);
+            $("#firmato").prop('checked', sportello.sportello_firmato != 0 && sportello.sportello_firmato != null);
+        });
+    } else {
+        data_pickr.setDate(Date.today().toString('d/M/yyyy'));
+        $("#ora").val("14");
+        $('#docente').val("0");
+        $('#docente').selectpicker('refresh');
+        $('#materia').val("0");
+        $('#materia').selectpicker('refresh');
+        $("#numero_ore").val("0");
+        $("#luogo").val("");
+        $("#classe").val("");
+        $("#cancellato").prop('checked', false);
+        $("#firmato").prop('checked', false);
+}
 
-
-
-        $("#partecipanti_modal").modal("show");
-    });
 	$("#sportello_modal").modal("show");
 }
 
@@ -96,5 +99,4 @@ $(document).ready(function () {
 	});
 
 	sportelloReadRecords();
-
 });

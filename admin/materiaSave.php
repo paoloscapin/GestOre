@@ -17,12 +17,10 @@ if(isset($_POST)) {
 	$codice = $_POST['codice'];
 
     if ($id > 0) {
-        info("update id=$id");
         $query = "UPDATE $tableName SET nome = '$nome', codice = '$codice' WHERE id = '$id'";
         dbExec($query);
         info("aggiornato $tableName id=$id nome=$nome codice=$codice");
     } else {
-        info("insert id=$id");
         $query = "INSERT INTO $tableName(nome, codice) VALUES('$nome', '$codice')";
         dbExec($query);
         $id = dblastId();
