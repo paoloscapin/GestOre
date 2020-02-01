@@ -17,37 +17,9 @@ function getDbDateFromPickrId(pickrId) {
 }
 
 function sportelloReadRecords() {
-	$.get("sportelloReadRecords.php?ancheCancellati=true", {}, function (data, status) {
+	$.get("../docente/sportelloReadRecords.php?ancheCancellati=true", {}, function (data, status) {
 		$(".records_content").html(data);
 	});
-}
-
-function sportelloDelete(id, nome) {
-    var conf = confirm("Sei sicuro di volere cancellare lo sportello " + nome + " ?");
-    if (conf == true) {
-        $.post("../common/deleteRecord.php", {
-				id: id,
-				table: 'sportello',
-				name: "sportello" + nome
-            },
-            function (data, status) {
-                sportelloReadRecords();
-            }
-        );
-    }
-}
-
-function sportelloNuovo() {
-	data_pickr.setDate(Date.today().toString('d/M/yyyy'));
-    $("#ora").val("14");
-    $('#docente').val("0");
-    $('#docente').selectpicker('refresh');
-    $('#materia').val("0");
-    $('#materia').selectpicker('refresh');
-	$("#numero_ore").val("0");
-	$("#luogo").val("");
-	$("#classe").val("");
-	$("#sportello_modal").modal("show");
 }
 
 function sportelloSave() {
@@ -60,41 +32,29 @@ function sportelloSave() {
 		luogo: $("#commento").val(),
         classe: $("#classe").val()
     }, function (data, status) {
-        $("#sportello_modal").modal("hide");
+        $("#add_new_record_modal").modal("hide");
         sportelloReadRecords();
     });
 }
 
 function sportelloGetDetails(sportello_id) {
     $("#hidden_sportello_id").val(sportello_id);
-
     $.post("../docente/sportelloReadDetails.php", {
         sportello_id: sportello_id
     }, function (data, status) {
+        console.log(data);
         var sportello = JSON.parse(data);
-        setDbDateToPickr(data, sportello.sportello_data);
+        $("#data").val(sportello.sportello_data);
         $("#ora").val(sportello.sportello_ora);
-        $('#docente').selectpicker('val', sportello.docente_id);
-        $('#materia').selectpicker('val', sportello.materia_id);
+        $("#docente").val(sportello.docente_nome + ' ' + sportello.docente_nome);
+        $("#materia").val(sportello.materia_nome);
         $("#numero_ore").val(sportello.sportello_numero_ore);
         $("#luogo").val(sportello.sportello_luogo);
         $("#classe").val(sportello.sportello_classe);
-
-
-
-        $("#partecipanti_modal").modal("show");
     });
-	$("#sportello_modal").modal("show");
+    $("#sportello_modal").modal("show");
 }
 
 $(document).ready(function () {
-	data_pickr = flatpickr("#data", {
-		locale: {
-			firstDayOfWeek: 1
-		},
-		dateFormat: 'j/n/Y'
-	});
-
 	sportelloReadRecords();
-
 });

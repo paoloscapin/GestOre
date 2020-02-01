@@ -19,7 +19,7 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_flatpickr.php';
-ruoloRichiesto('segreteria-docenti','dirigente');
+ruoloRichiesto('docente');
 ?>
 	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 	<title>Sportelli</title>
@@ -27,7 +27,7 @@ ruoloRichiesto('segreteria-docenti','dirigente');
 
 <body >
 <?php
-require_once '../common/header-segreteria.php';
+require_once '../common/header-docente.php';
 require_once '../common/connect.php';
 ?>
 
@@ -46,9 +46,6 @@ require_once '../common/connect.php';
 -->
 		</div>
 		<div class="col-md-4 text-right">
-            <div class="pull-right">
-				<button class="btn btn-xs btn-orange4" onclick="sportelloNuovo()" ><span class="glyphicon glyphicon-plus"></span></button>
-            </div>
 		</div>
 	</div>
 </div>
@@ -69,41 +66,6 @@ require_once '../common/connect.php';
 <!-- <div class="panel-footer"></div> -->
 </div>
 
-<?php
-// prepara l'elenco dei docenti
-$docenteOptionList = '				<option value="0"></option>';
-$query = "	SELECT * FROM docente
-            WHERE docente.attivo = true
-            ORDER BY docente.cognome, docente.nome ASC
-            ;";
-if (!$result = mysqli_query($con, $query)) {
-    exit(mysqli_error($con));
-}
-if(mysqli_num_rows($result) > 0) {
-    $resultArray = $result->fetch_all(MYSQLI_ASSOC);
-    foreach($resultArray as $row) {
-        $docenteOptionList .= '
-            <option value="'.$row['id'].'" >'.$row['cognome'].' '.$row['nome'].'</option>
-        ';
-    }
-}
-
-// prepara l'elenco delle materie
-$materiaOptionList = '				<option value="0"></option>';
-$query = "	SELECT * FROM materia ORDER BY materia.nome ASC;";
-if (!$result = mysqli_query($con, $query)) {
-    exit(mysqli_error($con));
-}
-if(mysqli_num_rows($result) > 0) {
-    $resultArray = $result->fetch_all(MYSQLI_ASSOC);
-    foreach($resultArray as $row) {
-        $materiaOptionList .= '
-            <option value="'.$row['id'].'" >'.$row['nome'].'</option>
-        ';
-    }
-}
-?>
-
 <!-- Modal - Add/Update Record -->
 <div class="modal fade" id="sportello_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog modal-lg" role="document">
@@ -118,47 +80,45 @@ if(mysqli_num_rows($result) > 0) {
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="data">Data</label>
-					<div class="col-sm-4"><input type="text" value="21/8/2018" id="data" placeholder="data" class="form-control" /></div>
+					<div class="col-sm-4"><input type="text" value="21/8/2018" id="data" class="form-control" readonly="readonly" /></div>
 
                     <label class="col-sm-2 control-label" for="ora">Ora</label>
-                    <div class="col-sm-4"><input type="text" id="ora" placeholder="ora" class="form-control"/></div>
+                    <div class="col-sm-4"><input type="text" id="ora" class="form-control" readonly="readonly" /></div>
                 </div>
 
                 <div class="form-group docente_selector">
                     <label class="col-sm-2 control-label" for="docente">Docente</label>
-					<div class="col-sm-8"><select id="docente" name="docente" class="docente selectpicker" data-style="btn-success" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
-                    <?php echo $docenteOptionList ?>
-					</select></div>
+                    <div class="col-sm-4"><input type="text" id="docente" class="form-control" readonly="readonly" /></div>
                 </div>
 
                 <div class="form-group materia_selector">
                     <label class="col-sm-2 control-label" for="materia">Materia</label>
-					<div class="col-sm-8"><select id="materia" name="materia" class="materia selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
-                    <?php echo $materiaOptionList ?>
-					</select></div>
+                    <div class="col-sm-4"><input type="text" id="materia" class="form-control" readonly="readonly" /></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="numero_ore">Numero di ore</label>
-                    <div class="col-sm-8"><input type="text" id="numero_ore" placeholder="numero ore" class="form-control"/></div>
+                    <div class="col-sm-4"><input type="text" id="numero_ore" class="form-control" readonly="readonly" /></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="luogo">Luogo</label>
-                    <div class="col-sm-8"><input type="text" id="luogo" placeholder="luogo" class="form-control"/></div>
+                    <div class="col-sm-8"><input type="text" id="luogo" lass="form-control"/></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="classe">Classe</label>
-                    <div class="col-sm-8"><input type="text" id="classe" placeholder="classe" class="form-control"/></div>
+                    <div class="col-sm-8"><input type="text" id="classe" class="form-control"/></div>
                 </div>
                 <input type="hidden" id="hidden_sportello_id">
 			</form>
 
             </div>
-            <div class="modal-footer text-center">
+            <div class="modal-footer">
+			<div class="col-sm-12 text-center">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                 <button type="button" class="btn btn-primary" onclick="sportelloSave()">Salva</button>
+            </div>
             </div>
 			</div>
 			</div>
