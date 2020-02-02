@@ -53,7 +53,7 @@ $query = "	SELECT
 			";
 
 if( ! $ancheCancellati) {
-	$query .= "AND NOT viaggio.cancellato ";
+	$query .= "AND NOT sportello.cancellato ";
 }
 $query .= "ORDER BY sportello.data DESC, docente_cognome ASC,docente_nome ASC";
 

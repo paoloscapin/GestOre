@@ -110,6 +110,35 @@ require_once '../common/connect.php';
                     <label class="col-sm-2 control-label" for="classe">Classe</label>
                     <div class="col-sm-8"><input type="text" id="classe" class="form-control"/></div>
                 </div>
+
+                <div class="form-group">
+                    <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="cancellato" disabled="disabled" ></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="firmato" class="col-sm-2 control-label">Firmato</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="firmato" ></div>
+                </div>
+
+                <div class="form-group text-center" id="studenti-part">
+                    <hr>
+                    <label for="studenti_table">Studenti</label>
+					<div class="table-wrapper">
+					<table class="table table-bordered table-striped" id="studenti_table">
+						<thead>
+						<tr>
+							<th>id</th>
+							<th>studenteId</th>
+							<th class="text-center">Studente</th>
+							<th class="text-center">Presente</th>
+						</tr>
+						</thead>
+						<tbody>
+						</tbody>
+					</table>
+                </div>
+
                 <input type="hidden" id="hidden_sportello_id">
 			</form>
 

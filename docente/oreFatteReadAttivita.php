@@ -67,107 +67,103 @@ $query = "	SELECT
 					ore_fatte_attivita.ora_inizio
 				"
 				;
-if (!$result = mysqli_query($con, $query)) {
-	exit(mysqli_error($con));
+
+$result = dbGetAll($query);
+if ($result == null) {
+	$result = [];
 }
-
-// if query results contains rows then fetch those rows
-if(mysqli_num_rows($result) > 0) {
-	while($row = mysqli_fetch_assoc($result)) {
-	    $strikeOn = '';
-	    $strikeOff = '';
-	    if ($row['ore_fatte_attivita_contestata'] == 1) {
-	        $strikeOn = '<strike>';
-	        $strikeOff = '</strike>';
-	    }
-	    
-	    // controlla se aggiornata dall'ultima modifica
-	    $marker = '';
-	    if (! $modificabile) {
-	        if ($row['ore_fatte_attivita_ultima_modifica'] > $ultimo_controllo) {
-	            $marker = '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>';
-	        }
-	    }
-	    
-	    $data .= '<tr>
-			<td>'.$strikeOn.$row['ore_previste_tipo_attivita_categoria'].$strikeOff.$marker.'</td>
-			<td>'.$strikeOn.$row['ore_previste_tipo_attivita_nome'].$strikeOff.'</td>
-			<td>'.$strikeOn.$row['ore_fatte_attivita_dettaglio'].$strikeOff;
-		if ($row['ore_fatte_attivita_contestata'] == 1) {
-		    $data .='</br><span class="text-danger"><strong>'.$row['ore_fatte_attivita_commento_commento'].'</strong></span>';
+foreach($result as $row) {
+	$strikeOn = '';
+	$strikeOff = '';
+	if ($row['ore_fatte_attivita_contestata'] == 1) {
+		$strikeOn = '<strike>';
+		$strikeOff = '</strike>';
+	}
+	
+	// controlla se aggiornata dall'ultima modifica
+	$marker = '';
+	if (! $modificabile) {
+		if ($row['ore_fatte_attivita_ultima_modifica'] > $ultimo_controllo) {
+			$marker = '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>';
 		}
-		$data .='</td>';
-		
-		$ore_con_minuti = oreToDisplay($row['ore_fatte_attivita_ore']);
+	}
+	
+	$data .= '<tr>
+		<td>'.$strikeOn.$row['ore_previste_tipo_attivita_categoria'].$strikeOff.$marker.'</td>
+		<td>'.$strikeOn.$row['ore_previste_tipo_attivita_nome'].$strikeOff.'</td>
+		<td>'.$strikeOn.$row['ore_fatte_attivita_dettaglio'].$strikeOff;
+	if ($row['ore_fatte_attivita_contestata'] == 1) {
+		$data .='</br><span class="text-danger"><strong>'.$row['ore_fatte_attivita_commento_commento'].'</strong></span>';
+	}
+	$data .='</td>';
+	
+	$ore_con_minuti = oreToDisplay($row['ore_fatte_attivita_ore']);
 
-		// data e ora solo per quelle inserite da docente
-		if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
+	// data e ora solo per quelle inserite da docente
+	if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
+		$data .='
+		<td class="text-center">'.$strikeOn.strftime("%d/%m/%Y", strtotime($row['ore_fatte_attivita_data'])).$strikeOff.'</td>
+		<td class="text-center">'.$strikeOn.$ore_con_minuti.$strikeOff.'</td>
+		';
+	} else {
+		$data .='
+		<td class="text-center">'.'</td>
+		<td class="text-center">'.$ore_con_minuti.'</td>
+		';
+	}
+
+	$data .='
+		<td class="text-center">
+		';
+	// registro per quelle inserite da docente
+	if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
+		$data .='
+			<button onclick="oreFatteGetRegistroAttivita('.$row['ore_fatte_attivita_id'].', '.$row['registro_attivita_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
+		';
+	} else {
+		// per le altre inserire un rendiconto se richiesto
+		if ($row['ore_previste_tipo_attivita_da_rendicontare']) {
+			// TODO: inserire di nuovo
+			/*
+			// se non ancora rendicontato colora in warning
+			$btn_class = $row['rendiconto_attivita_rendicontato'] ? 'btn-success' : 'btn-warning';
 			$data .='
-			<td class="text-center">'.$strikeOn.strftime("%d/%m/%Y", strtotime($row['ore_fatte_attivita_data'])).$strikeOff.'</td>
-			<td class="text-center">'.$strikeOn.$ore_con_minuti.$strikeOff.'</td>
+			<button onclick="oreFatteGetRendicontoAttivita('.$row['ore_fatte_attivita_id'].', '.$row['rendiconto_attivita_id'].')" class="btn '. $btn_class .' btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
+		';
+		*/
+		}
+	}
+	$data .='
+		</td>';
+	$marker = ($row['ore_fatte_attivita_contestata'] == 1)? $contestataMarker : $accettataMarker;
+	$data .= '<td class="col-md-1 text-center">'.$marker.'</td>';
+	
+	$data .='
+		<td class="text-center">
+		';
+	if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
+		if ($modificabile) {
+			$data .='
+				<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+				<button onclick="oreFatteDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 			';
 		} else {
-			$data .='
-			<td class="text-center">'.'</td>
-			<td class="text-center">'.$ore_con_minuti.'</td>
-			';
-		}
-
-		$data .='
-			<td class="text-center">
-			';
-		// registro per quelle inserite da docente
-		if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
-			$data .='
-				<button onclick="oreFatteGetRegistroAttivita('.$row['ore_fatte_attivita_id'].', '.$row['registro_attivita_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
-			';
-		} else {
-			// per le altre inserire un rendiconto se richiesto
-			if ($row['ore_previste_tipo_attivita_da_rendicontare']) {
-				// TODO: inserire di nuovo
-				/*
-				// se non ancora rendicontato colora in warning
-				$btn_class = $row['rendiconto_attivita_rendicontato'] ? 'btn-success' : 'btn-warning';
+			if ($row['ore_fatte_attivita_contestata'] == 1) {
 				$data .='
-				<button onclick="oreFatteGetRendicontoAttivita('.$row['ore_fatte_attivita_id'].', '.$row['rendiconto_attivita_id'].')" class="btn '. $btn_class .' btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
-			';
-			*/
-			}
-		}
-		$data .='
-			</td>';
-		$marker = ($row['ore_fatte_attivita_contestata'] == 1)? $contestataMarker : $accettataMarker;
-		$data .= '<td class="col-md-1 text-center">'.$marker.'</td>';
-		
-		$data .='
-			<td class="text-center">
-			';
-		if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
-			if ($modificabile) {
-				$data .='
-					<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-					<button onclick="oreFatteDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+					<button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>
 				';
 			} else {
-			    if ($row['ore_fatte_attivita_contestata'] == 1) {
-			        $data .='
-    				    <button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>
-				    ';
-			    } else {
-			        $data .='
-    				<button onclick="oreFatteControllaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-remove"></span> Contesta</button>
-				';
-			    }
+				$data .='
+				<button onclick="oreFatteControllaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-remove"></span> Contesta</button>
+			';
 			}
 		}
-		$data .='
-			</td>
-			</tr>';
 	}
-} else {
-		// records now found
-		$data .= '<tr><td colspan="8">Nessuna attività inserita</td></tr>';
+	$data .='
+		</td>
+		</tr>';
 }
+
 $data .= '</tbody>';
 
 $data .= '</table>

@@ -40,6 +40,30 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
         WHERE sportello.id = '$sportello_id';";
 
     $sportello = dbGetFirst($query);
+
+    $studenti_list = array();
+
+    $query = "SELECT
+            sportello_studente.id AS sportello_studente_id,
+            sportello_studente.iscritto AS sportello_studente_iscritto,
+            sportello_studente.presente AS sportello_studente_presente,
+            sportello_studente.note AS sportello_studente_note,
+
+            studente.cognome AS studente_cognome,
+            studente.nome AS studente_nome,
+            studente.id AS studente_id
+
+        FROM
+            sportello_studente
+        INNER JOIN studente
+        ON sportello_studente.studente_id = studente.id
+        WHERE sportello_studente.sportello_id = '$sportello_id';";
+
+    $studenti = dbGetAll($query);
+
+    // $sportello += ["studenti" => $studenti];
+    $sportello['studenti'] = $studenti;
+
 	echo json_encode($sportello);
 }
 ?>

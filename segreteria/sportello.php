@@ -163,11 +163,6 @@ if(mysqli_num_rows($result) > 0) {
                     <div class="col-sm-1 "><input type="checkbox" id="firmato" ></div>
                 </div>
 
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="classe">Classe</label>
-                    <div class="col-sm-8"><input type="text" id="classe" placeholder="classe" class="form-control"/></div>
-                </div>
-
                 <input type="hidden" id="hidden_sportello_id">
 			</form>
 
