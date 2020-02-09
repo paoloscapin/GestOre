@@ -116,12 +116,12 @@ foreach($resultArray as $row) {
 			if ($row['iscritto']) {
 				$data .='
 					<span class="label label-success">Iscritto</span>
-					<button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+					<button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 					';
 				} else {
 					$data .='
 						<span class="label label-info">Disponibile</span>
-						<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.$row['materia_nome'].'\', \''.$row['sportello_argomento'].'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+						<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 					';
 			}
 
