@@ -12,11 +12,11 @@ ruoloRichiesto('segreteria-docenti','dirigente');
 
 if(isset($_POST)) {
 	$docente_id = $_POST['docente_id'];
-	$nome = $_POST['nome'];
-	$cognome = $_POST['cognome'];
-	$email = $_POST['email'];
-	$username = $_POST['username'];
-	$matricola = $_POST['matricola'];
+	$nome = escapePost('nome');
+	$cognome = escapePost('cognome');
+	$email = escapePost('email');
+	$username = escapePost('username');
+	$matricola = escapePost('matricola');
 	$attivo = $_POST['attivo'];
 	$era_attivo = $_POST['era_attivo'];
 	// posso usare $_POST['era_attivo']; che vale 1 o 0

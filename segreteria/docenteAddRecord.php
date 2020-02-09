@@ -11,11 +11,11 @@
  ruoloRichiesto('segreteria-docenti','dirigente');
 
 if(isset($_POST['nome']) && isset($_POST['cognome']) && isset($_POST['email'])) {
-	$nome = $_POST['nome'];
-	$cognome = $_POST['cognome'];
-	$email = $_POST['email'];
-	$username = $_POST['username'];
-	$matricola = $_POST['matricola'];
+	$nome = escapePost('nome');
+	$cognome = escapePost('cognome');
+	$email = escapePost('email');
+	$username = escapePost('username');
+	$matricola = escapePost('matricola');
 
 	$query = "INSERT INTO docente(nome, cognome, email, username, matricola) VALUES('$nome', '$cognome', '$email', '$username', '$matricola')";
 	dbExec($query);
