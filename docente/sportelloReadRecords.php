@@ -19,7 +19,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-2">Data</th>
 						<th class="text-center col-md-1">Ora</th>
 						<th class="text-center col-md-2">Materia</th>
-						<th class="text-center col-md-2">Docente</th>
+						<th class="text-center col-md-2">Argomento</th>
 						<th class="text-center col-md-1">Ore</th>
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-1">Stato</th>
@@ -33,6 +33,7 @@ $query = "	SELECT
 				sportello.data AS sportello_data,
 				sportello.ora AS sportello_ora,
 				sportello.numero_ore AS sportello_numero_ore,
+				sportello.argomento as sportello_argomento,
 				sportello.luogo AS sportello_luogo,
 				sportello.classe AS sportello_classe,
 				sportello.firmato AS sportello_firmato,
@@ -75,7 +76,7 @@ foreach($resultArray as $row) {
 		<td>'.$dataSportello.'</td>
 		<td>'.$row['sportello_ora'].'</td>
 		<td>'.$row['materia_nome'].'</td>
-		<td>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
+		<td>'.$row['sportello_argomento'].'</td>
 		<td>'.$row['sportello_numero_ore'].'</td>
 		<td>'.$row['sportello_classe'].'</td>
 		<td>'.$cancellatoMarker.'</td>

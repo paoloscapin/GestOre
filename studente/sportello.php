@@ -21,8 +21,12 @@ require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_flatpickr.php';
 ruoloRichiesto('studente','dirigente');
 ?>
-	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
-	<title>Sportelli</title>
+
+<title>Sportelli</title>
+
+<!-- bootbox notificator -->
+<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 </head>
 
 <body >

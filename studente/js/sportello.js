@@ -25,15 +25,37 @@ function sportelloCancellaIscrizione(sportello_id, materia) {
     }
 }
 
-function sportelloIscriviti(sportello_id, materia) {
-    $.post("../studente/sportelloIscriviStudente.php", {
-            id: sportello_id,
-            materia: materia
-        },
-        function (data, status) {
-            sportelloReadRecords();
-        }
-    );
+function sportelloIscriviti(sportello_id, materia, argomento) {
+    if (! argomento) {
+        bootbox.prompt({
+            title: "<p>Sportello: " + materia + "</p>",
+            message: '<p>Inserire l\'argomento:</p>',
+            inputType: 'textarea',
+            callback: function (testo) {
+                if (testo != null) {
+                    argomento = testo;
+                }
+                $.post("../studente/sportelloIscriviStudente.php", {
+                    id: sportello_id,
+                    materia: materia,
+                    argomento: argomento
+                },
+                function (data, status) {
+                    sportelloReadRecords();
+            });
+            }
+        });;
+    } else {
+        $.post("../studente/sportelloIscriviStudente.php", {
+                id: sportello_id,
+                materia: materia,
+                argomento: argomento
+            },
+            function (data, status) {
+                sportelloReadRecords();
+        });
+
+    }
 }
 
 $(document).ready(function () {

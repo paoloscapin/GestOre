@@ -102,13 +102,18 @@ require_once '../common/connect.php';
                 </div>
 
                 <div class="form-group">
+                    <label class="col-sm-2 control-label" for="argomento">Argomento</label>
+                    <div class="col-sm-8"><input type="text" id="argomento" class="form-control" readonly="readonly" /></div>
+                </div>
+
+                <div class="form-group">
                     <label class="col-sm-2 control-label" for="luogo">Luogo</label>
-                    <div class="col-sm-8"><input type="text" id="luogo" lass="form-control"/></div>
+                    <div class="col-sm-8"><input type="text" id="luogo" class="form-control" readonly="readonly" /></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="classe">Classe</label>
-                    <div class="col-sm-8"><input type="text" id="classe" class="form-control"/></div>
+                    <div class="col-sm-8"><input type="text" id="classe" class="form-control" readonly="readonly" /></div>
                 </div>
 
                 <div class="form-group">

@@ -12,10 +12,15 @@
 
 if(isset($_POST)) {
 	$sportello_id = $_POST['id'];
-	$materia = $_POST['materia'];
+	$materia = escapePost('materia');
+	$argomento = escapePost('argomento');
 
-	dbExec("INSERT INTO sportello_studente(iscritto, sportello_id, studente_id) VALUES(true, $sportello_id, $__studente_id)");
+	dbExec("INSERT INTO sportello_studente(iscritto, argomento, sportello_id, studente_id) VALUES(true, '$argomento', $sportello_id, $__studente_id)");
 	$last_id = dblastId();
-	info("iscritto $__studente_cognome $__studente_nome allo sportello di $materia sportello_id=$sportello_id");
+	info("iscritto $__studente_cognome $__studente_nome allo sportello di $materia argomento=$argomento sportello_id=$sportello_id");
+
+	// aggiorna l'argomento dello sportello
+	dbExec("UPDATE sportello  SET argomento = '$argomento' WHERE id = '$sportello_id'");
+	info("aggiornato sportello sportello_id=$sportello_id argomento=$argomento");
 }
 ?>

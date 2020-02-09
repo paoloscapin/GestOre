@@ -144,6 +144,11 @@ if(mysqli_num_rows($result) > 0) {
                 </div>
 
                 <div class="form-group">
+                    <label class="col-sm-2 control-label" for="argomento">Argomento</label>
+                    <div class="col-sm-8"><input type="text" id="argomento" placeholder="argomento" class="form-control"/></div>
+                </div>
+
+                <div class="form-group">
                     <label class="col-sm-2 control-label" for="luogo">Luogo</label>
                     <div class="col-sm-8"><input type="text" id="luogo" placeholder="luogo" class="form-control"/></div>
                 </div>

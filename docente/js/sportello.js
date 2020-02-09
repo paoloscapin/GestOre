@@ -57,6 +57,7 @@ function sportelloGetDetails(sportello_id) {
         $("#docente").val(sportello.docente_nome + ' ' + sportello.docente_nome);
         $("#materia").val(sportello.materia_nome);
         $("#numero_ore").val(sportello.sportello_numero_ore);
+        $("#argomento").val(sportello.sportello_argomento);
         $("#luogo").val(sportello.sportello_luogo);
         $("#classe").val(sportello.sportello_classe);
         $("#cancellato").prop('checked', sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null);

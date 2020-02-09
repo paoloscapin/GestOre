@@ -45,6 +45,7 @@ function sportelloSave() {
         docente_id: $("#docente").val(),
 		materia_id: $("#materia").val(),
         numero_ore: $("#numero_ore").val(),
+		argomento: $("#argomento").val(),
 		luogo: $("#commento").val(),
         classe: $("#classe").val(),
         cancellato: $("#cancellato").prop('checked'),
@@ -68,6 +69,7 @@ function sportelloGetDetails(sportello_id) {
             $('#docente').selectpicker('val', sportello.docente_id);
             $('#materia').selectpicker('val', sportello.materia_id);
             $("#numero_ore").val(sportello.sportello_numero_ore);
+            $("#argomento").val(sportello.sportello_argomento);
             $("#luogo").val(sportello.sportello_luogo);
             $("#classe").val(sportello.sportello_classe);
             $("#cancellato").prop('checked', sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null);
@@ -81,6 +83,7 @@ function sportelloGetDetails(sportello_id) {
         $('#materia').val("0");
         $('#materia').selectpicker('refresh');
         $("#numero_ore").val("0");
+        $("#argomento").val("");
         $("#luogo").val("");
         $("#classe").val("");
         $("#cancellato").prop('checked', false);
