@@ -46,7 +46,7 @@ function editFuisAssegnato(fuis_assegnato_id, fuis_assegnato_tipo_id, nome, impo
 	$("#hidden_fuis_assegnato_tipo_id").val(fuis_assegnato_tipo_id);
 	$("#myModalLabel").text(nome);
 	$("#importo").val(importo);
-	$("#docente_incaricato").val(docente_id);
+	$('#docente_incaricato').selectpicker('val', docente_id);
 	$("#add_new_record_modal").modal("show");
 }
 
@@ -64,6 +64,20 @@ function fuisAssegnatoSaveRecord() {
 	);
 }
 
+function deleteFuisAssegnato(fuis_assegnato_id, fuis_assegnato_tipo_id) {
+    var conf = confirm("Sei sicuro di volere cancellare questo fuis assegnato ?");
+    if (conf == true) {
+        $.post("../common/deleteRecord.php", {
+				id: fuis_assegnato_id,
+				table: 'fuis_assegnato',
+				name: "fuis assegnato importo=" + importo
+            },
+            function (data, status) {
+                reloadTable($("#hidden_fuis_assegnato_tipo_id").val());
+            }
+        );
+    }
+}
 
 $(document).ready(function () {
 	$.post("fuisAssegnatoGetIdList.php", {

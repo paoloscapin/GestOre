@@ -18,10 +18,14 @@ if(isset($_POST)) {
 
 	$query = '';
 	if ($fuis_assegnato_id > 0) {
-	    $query = "UPDATE fuis_assegnato SET importo = '$importo', docente_id = '$docente_id' WHERE id = '$fuis_assegnato_id'";
+		$query = "UPDATE fuis_assegnato SET importo = '$importo', docente_id = '$docente_id' WHERE id = '$fuis_assegnato_id'";
+		dbExec($query);
+		info("aggiornato fuis_assegnato id=$fuis_assegnato_id importo=$importo docente_id=$docente_id");
 	} else {
 	    $query = "INSERT INTO fuis_assegnato (importo, docente_id, fuis_assegnato_tipo_id, anno_scolastico_id) VALUES('$importo', '$docente_id', '$fuis_assegnato_tipo_id', '$__anno_scolastico_corrente_id')";
+		dbExec($query);
+		$id = dblastId();
+		info("aggiunto fuis_assegnato id=$id importo=$importo docente_id=$docente_id fuis_assegnato_tipo_id=$fuis_assegnato_tipo_id");
 	}
-	dbExec($query);
 }
 ?>
