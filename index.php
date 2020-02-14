@@ -19,7 +19,7 @@ require_once __DIR__ . '/common/checkSession.php';
 if (haRuolo('admin')) {
     redirect('/admin/index.php');
 }
-else if (haRuolo('docente') || haRuolo('segreteria-didattica')) {
+else if (haRuolo('docente')) {
     redirect('/docente/index.php');
 }
 else if (haRuolo('dirigente')) {
@@ -27,6 +27,9 @@ else if (haRuolo('dirigente')) {
 }
 else if (haRuolo('segreteria-docenti')) {
     redirect('/segreteria/index.php');
+}
+else if (haRuolo('segreteria-didattica')) {
+    redirect('/didattica/index.php');
 }
 else if (haRuolo('studente')) {
     redirect('/studente/index.php');

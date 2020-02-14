@@ -17,12 +17,12 @@
 require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
-ruoloRichiesto('studente');
+ruoloRichiesto('segreteria-didattica');
 ?>
 </head>
 
 <body >
-<?php require_once '../common/header-studente.php'; ?>
+<?php require_once '../common/header-didattica.php'; ?>
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
 </div>
