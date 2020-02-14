@@ -119,7 +119,16 @@ function calcolaTotaleBonus() {
 	$('#progress-bar-pendente').css('width', (100 - perc) + '%').attr('aria-valuenow', (100 - perc));
 }
 
+function bonusAssegnatoReadRecords() {
+	var docente_id = $("#hidden_docente_id").val();
+	$.get("bonusAssegnatoReadRecords.php?docente_id=" + docente_id, {}, function (data, status) {
+		$(".records_content").html(data);
+	});
+}
+
 $(document).ready(function () {
+
+	bonusAssegnatoReadRecords();
 
 	$('#table-docente-bonus td:nth-child(1)').hide(); // nasconde la prima colonna con l'id
 
