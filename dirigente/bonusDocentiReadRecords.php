@@ -19,8 +19,12 @@ function formatNoZeroNoDecimal($value) {
     return ($value != 0) ? number_format($value,0) : ' ';
 }
 
+// calcola il totale degli assegnati
+$totale_bonus_assegnato = dbGetValue("SELECT SUM(importo) FROM `bonus_assegnato`;");
+debug('totale_bonus_assegnato=' . $totale_bonus_assegnato);
+
+
 // calcola i punti totali delle varie opzioni
-// TODO: forse non serve a nulla
 $query = "SELECT SUM(valore_previsto) FROM `bonus`;";
 $totale_valore_previsto = dbGetValue($query);
 debug('totale_valore_previsto=' . $totale_valore_previsto);
@@ -30,9 +34,13 @@ $query = "SELECT SUM(valore_previsto) FROM bonus LEFT JOIN bonus_docente ON bonu
 $totale_valore_approvato = dbGetValue($query);
 debug('totale_valore_approvato=' . $totale_valore_approvato);
 
+// importo totale disponibile per il bonus
 $importo_totale_bonus = 20615;
+
+// quello che non e' stato ancora assegnato resta da dividere tra quelli approvati
+$importo_totale_bonus_approvato = $importo_totale_bonus - $totale_bonus_assegnato;
 if ($totale_valore_approvato != 0) {
-    $importo_per_punto = $importo_totale_bonus / $totale_valore_approvato;
+    $importo_per_punto = $importo_totale_bonus_approvato / $totale_valore_approvato;
 } else {
     $importo_per_punto = 0;
 }
@@ -44,10 +52,11 @@ $data .= '
         <tr>
             <th class="text-center col-md-1">id</th>
             <th class="text-center col-md-2">Docente</th>
-            <th class="text-center col-md-2">Richiesto</th>
-            <th class="text-center col-md-2">Approvato</th>
-            <th class="text-center col-md-2">Importo</th>
-            <th class="text-center col-md-3">Stato</th>
+            <th class="text-center col-md-1">Richiesto</th>
+            <th class="text-center col-md-1">Approvato</th>
+            <th class="text-center col-md-1">Importo</th>
+            <th class="text-center col-md-1">Assegnato</th>
+            <th class="text-center col-md-1">da Pagare</th>
 		</tr>
     </thead>
     <tbody>';
@@ -69,15 +78,22 @@ foreach($resultArray as $docente) {
     $numero_modificati = dbGetValue($query);
     debug('docente='.$docenteCognomeNome.' numero_modificati='.$numero_modificati);
     $marker = ($numero_modificati == 0) ? '': '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>';
-    
+
+    $query = "SELECT SUM(importo) FROM bonus_assegnato WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND bonus_assegnato.docente_id = $local_docente_id;";
+    $importo_bonus_assegnato = dbGetValue($query);
+
+    // il totale da pagare
+    $importo_da_pagare = $importo_approvato + $importo_bonus_assegnato;
+
     $data .= '<tr>
     			<td>'.$local_docente_id.'</td>
     			<td><a href="bonusDettaglioDocente.php?id='.$local_docente_id.'" target="_blank">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>
     			<td class="text-right viaggi">'.formatNoZeroNoDecimal($punti_richiesti).'</td>
     			<td class="text-right assegnato">'.formatNoZeroNoDecimal($punti_approvati).'</td>
     			<td class="text-right funzionale">'.formatNoZero($importo_approvato).'</td>
+    			<td class="text-right funzionale">'.formatNoZero($importo_bonus_assegnato).'</td>
 
-    			<td class="text-right totale"></td>
+    			<td class="text-right totale">'.formatNoZero($importo_da_pagare).'</td>
     		</tr>';
 }
 $data .= '</tbody>';
