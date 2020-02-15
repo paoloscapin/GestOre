@@ -126,6 +126,53 @@ function bonusAssegnatoReadRecords() {
 	});
 }
 
+function bonusAssegnatoGetDetails(id) {
+    $("#hidden_record_id").val(id);
+    if (id > 0) {
+        $.post("../common/readRecordDetails.php", {
+			id: id,
+            table: 'bonus_assegnato'
+		},
+		function (data, status) {
+			var record = JSON.parse(data);
+			$("#commento").val(record.commento);
+			$("#importo").val(record.importo);
+		});
+    } else {
+        $("#commento").val("");
+        $("#importo").val("");
+    }
+	$("#update_modal").modal("show");
+}
+
+function bonusAssegnatoSave() {
+    $.post("bonusAssegnatoSave.php", {
+        id: $("#hidden_record_id").val(),
+        commento: $("#commento").val(),
+		importo: $("#importo").val(),
+		docente_id: $("#hidden_docente_id").val()
+    },
+    function (data, status) {
+        $("#update_modal").modal("hide");
+        bonusAssegnatoReadRecords();
+    });
+}
+
+function bonusAssegnatoDelete(id) {
+    var conf = confirm("Sei sicuro di volere cancellare qiuesto bonus ?");
+    if (conf == true) {
+        $.post("../common/deleteRecord.php", {
+				id: id,
+				table: 'bonus_assegnato',
+				name: "bonus_assegnato "
+            },
+            function (data, status) {
+                bonusAssegnatoReadRecords();
+            }
+        );
+    }
+}
+
 $(document).ready(function () {
 
 	bonusAssegnatoReadRecords();

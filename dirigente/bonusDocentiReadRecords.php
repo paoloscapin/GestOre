@@ -8,7 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-require_once '../common/connect.php';
+require_once '../common/importi_load.php';
 
 
 function formatNoZero($value) {
@@ -35,7 +35,7 @@ $totale_valore_approvato = dbGetValue($query);
 debug('totale_valore_approvato=' . $totale_valore_approvato);
 
 // importo totale disponibile per il bonus
-$importo_totale_bonus = 20615;
+$importo_totale_bonus = $__importo_bonus;
 
 // quello che non e' stato ancora assegnato resta da dividere tra quelli approvati
 $importo_totale_bonus_approvato = $importo_totale_bonus - $totale_bonus_assegnato;
@@ -85,9 +85,11 @@ foreach($resultArray as $docente) {
     // il totale da pagare
     $importo_da_pagare = $importo_approvato + $importo_bonus_assegnato;
 
+    $openTabMode = getSettingsValue('interfaccia','apriDocenteInNuovoTab', false) ? '_blank' : '_self';
+
     $data .= '<tr>
     			<td>'.$local_docente_id.'</td>
-    			<td><a href="bonusDettaglioDocente.php?id='.$local_docente_id.'" target="_blank">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>
+    			<td><a href="bonusDettaglioDocente.php?id='.$local_docente_id.'" target="'.$openTabMode.'">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>
     			<td class="text-right viaggi">'.formatNoZeroNoDecimal($punti_richiesti).'</td>
     			<td class="text-right assegnato">'.formatNoZeroNoDecimal($punti_approvati).'</td>
     			<td class="text-right funzionale">'.formatNoZero($importo_approvato).'</td>

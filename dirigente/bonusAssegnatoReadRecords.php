@@ -10,12 +10,12 @@
 require_once '../common/checkSession.php';
 
 $docente_id = $_GET['docente_id'];
-
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<tr>
 						<th>Commento</th>
 						<th>Importo</th>
+						<th></th>
 					</tr>';
 
 $query = "	SELECT
@@ -25,15 +25,17 @@ $query = "	SELECT
 			WHERE bonus_assegnato.anno_scolastico_id = $__anno_scolastico_corrente_id
 			AND bonus_assegnato.docente_id = $docente_id";
 
-foreach(dbGetAll($query) as $row) {
+$result = dbGetAll($query);
+
+foreach($result as $row) {
 	$data .= '<tr>
 		<td>'.$row['commento'].'</td>
 		<td>'.$row['importo'].'</td>
 		';
 	$data .='
 		<td>
-		<button onclick="fuisAssegnatoGetDetails('.$row['local_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-		<button onclick="fuisAssegnatoDelete('.$row['local_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button onclick="bonusAssegnatoGetDetails('.$row['local_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+		<button onclick="bonusAssegnatoDelete('.$row['local_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		</tr>';
 }

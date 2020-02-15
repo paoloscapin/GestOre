@@ -61,7 +61,7 @@ require_once '../common/header-dirigente.php';
 		</div>
         <div class="col-md-6">
             <div class="pull-right">
-				<button class="btn btn-xs btn-lima4" data-toggle="modal" data-target="#add_record_modal"><span class="glyphicon glyphicon-plus"></span></button>
+                <button class="btn btn-xs btn-lima4" onclick="bonusAssegnatoGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>
 	</div>
@@ -89,20 +89,20 @@ require_once '../common/header-dirigente.php';
             <div class="modal-body">
 
                 <div class="form-group">
-                    <label for="nome">Commento</label>
-                    <input type="text" id="nome" placeholder="nome" class="form-control"/>
+                    <label for="commento">Commento</label>
+                    <input type="text" id="commento" placeholder="commento" class="form-control"/>
                 </div>
 
                 <div class="form-group">
-                    <label for="codice">Importo</label>
-                    <input type="text" id="codice" placeholder="codice" class="form-control"/>
+                    <label for="importo">Importo</label>
+                    <input type="text" id="importo" placeholder="importo" class="form-control"/>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                 <button type="button" class="btn btn-primary" onclick="bonusAssegnatoSave()">Salva</button>
 				<input type="hidden" id="hidden_record_id">
-				<input type="hidden" id="hidden_docente_id" value="$docente_id">
+				<input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">
             </div>
         </div>
     </div>
