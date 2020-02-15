@@ -24,3 +24,32 @@ function saveConfigurazione() {
 	);
 }
 
+
+function salvaImporti() {
+
+	$.post("../common/importi_save.php", {
+			importo_id: $('#hidden_importo_id').val(),
+			importo_fuis: $('#importo_fuis').val(),
+			importo_fuis_clil: $('#importo_fuis_clil').val(),
+			importo_bonus: $('#importo_bonus').val()
+		},
+		function (data, status) {
+			$.notify({
+				icon: 'glyphicon glyphicon-ok',
+				title: '<Strong>Importi</Strong></br>',
+				message: '<p>I nuovi importi sono stati salvati!</p></br>FUIS: ' + $('#importo_fuis').val() + '</br>FUIS Clil: ' +$('#importo_fuis_clil').val() + '</br>Bonus: ' + $('#importo_bonus').val()
+			},{
+				placement: {
+					from: "top",
+					align: "center"
+				},
+				delay: 3000,
+				timer: 100,
+				mouse_over: "pause",
+				type: 'success'
+			});	
+		}
+	);
+}
+
+

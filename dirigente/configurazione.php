@@ -19,6 +19,7 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
+require_once '../common/_include_bootstrap-notify.php';
 ruoloRichiesto('dirigente');
 ?>
 
@@ -27,10 +28,35 @@ ruoloRichiesto('dirigente');
 <body >
 <?php
 require_once '../common/header-dirigente.php';
+require_once '../common/importi_load.php';
 ?>
 
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
+
+<div class="panel panel-orange4">
+<div class="panel-heading">Importi</div>
+<div class="panel-body">
+	<div class="form-horizontal">
+
+		<div class="form-group">
+			<label class="col-sm-2 control-label" for="importo_fuis">Importo FUIS</label>
+			<div class="col-sm-2"><input type="text" id="importo_fuis" placeholder="0" class="form-control" value="<?php echo $__importo_fuis; ?>" /></div>
+
+			<label class="col-sm-2 control-label" for="importo_fuis_clil">Importo FUIS CLIL</label>
+			<div class="col-sm-2"><input type="text" id="importo_fuis_clil" placeholder="0" class="form-control" value="<?php echo $__importo_fuis_clil; ?>" /></div>
+
+			<label class="col-sm-2 control-label" for="importo_bonus">Importo Bonus</label>
+			<div class="col-sm-2"><input type="text" id="importo_bonus" placeholder="0" class="form-control" value="<?php echo $__importo_bonus; ?>" /></div>
+		</div>
+    </div>
+	<input type="hidden" id="hidden_importo_id" value="<?php echo $__importo_id; ?>" >
+	<hr>
+	<div class="text-center">
+			<button type="button" class="btn btn-primary" onclick="salvaImporti()">Salva Importi</button>
+	</div>
+</div>
+</div>
 
 <div class="panel panel-success">
 <div class="panel-heading">Ore Dovute</div>

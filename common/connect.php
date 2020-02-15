@@ -70,7 +70,8 @@ function dbGetAll($query) {
 		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__con));
 		return null;
 	}
-	return $result->fetch_all(MYSQLI_ASSOC);
+	$value = $result->fetch_all(MYSQLI_ASSOC);
+	return is_array($value) ? $value : [];
 }
 
 // ritorna un valore specifico se il risultato e' un solo valore
