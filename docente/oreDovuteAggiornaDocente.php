@@ -62,6 +62,10 @@ function orePrevisteAggiornaDocente($docenteId) {
 				$ore_40_con_studenti = $ore_40_con_studenti + $attivita['ore'];
 				break;
 
+			case "CLIL":
+				// il clil viene poi conteggiato a parte e quindi non viene considerato qui
+				break;
+	
 			default:
 				warning('attivita sconosciuta: '.$attivita['categoria']);
 				break;
