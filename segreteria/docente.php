@@ -62,7 +62,7 @@ $ore80 = [
         </div>
         <div class="col-md-4">
             <div class="pull-right">
-				<button class="btn btn-xs btn-lightblue4" data-toggle="modal" data-target="#add_new_record_modal"><span class="glyphicon glyphicon-plus"></span></button>
+                <button class="btn btn-xs btn-lightblue4" onclick="docenteGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>
 	</div>
@@ -78,9 +78,8 @@ $ore80 = [
 <!-- <div class="panel-footer"></div> -->
 </div>
 
-<!-- Bootstrap Modals -->
-<!-- Modal - Add New Record/docente -->
-<div class="modal fade" id="add_new_record_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalProfiloLabel">
+<!-- Modal - Add/Update docente details -->
+<div class="modal fade" id="update_docente_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalProfiloLabel">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
@@ -90,6 +89,13 @@ $ore80 = [
                 <h5 class="modal-title" id="myModalProfiloLabel">Docente</h5>
             </div>
             <div class="panel-body">
+
+                <?php if(getSettingsValue('config','comprensorio', false)) : ?>
+                <div class="form-group">
+                    <label for="codice_istituto">Codice Istituto</label>
+                    <input type="text" id="codice_istituto" placeholder="codice_istituto" class="form-control"/>
+                </div>
+                <?php endif; ?>
 
                 <div class="form-group">
                     <label for="nome">Nome</label>
@@ -118,68 +124,13 @@ $ore80 = [
 
                 <div class="form-group">
                     <label for="attivo">Attivo</label>
-					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="attivo" >
-                </div>
-
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                <button type="button" class="btn btn-primary" onclick="docenteAddRecord()">Salva</button>
-            </div>
-			</div>
-			</div>
-        </div>
-    </div>
-</div>
-
-<!-- // Modal - Add New Record/docente -->
-
-<!-- Modal - Update docente details -->
-<div class="modal fade" id="update_docente_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalProfiloLabel">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-body">
-			<div class="panel panel-lightblue4">
-			<div class="panel-heading">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h5 class="modal-title" id="myModalProfiloLabel">Docente</h5>
-            </div>
-            <div class="panel-body">
-
-                <div class="form-group">
-                    <label for="update_nome">Nome</label>
-                    <input type="text" id="update_nome" placeholder="nome" class="form-control"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="update_cognome">Cognome</label>
-                    <input type="text" id="update_cognome" placeholder="cognome" class="form-control"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="update_email">Email</label>
-                    <input type="text" id="update_email" placeholder="email" class="form-control"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="update_username">Username</label>
-                    <input type="text" id="update_username" placeholder="username" class="form-control"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="update_matricola">Matricola</label>
-                    <input type="text" id="update_matricola" placeholder="matricola" class="form-control"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="update_attivo">Attivo</label>
-					<input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="update_attivo" >
+					<input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="attivo" >
                 </div>
 
             </div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-				<button type="button" class="btn btn-primary" onclick="docenteUpdateDetails()" >Salva</button>
+				<button type="button" class="btn btn-primary" onclick="docenteSave()" >Salva</button>
 				<input type="hidden" id="hidden_docente_id">
 				<input type="hidden" id="hidden_era_attivo">
             </div>
@@ -189,7 +140,7 @@ $ore80 = [
     </div>
 </div>
 
-<!-- // Modal - Update docente details -->
+<!-- // Modal - Add/Update docente details -->
 
 <!-- Modal - Update profilo details -->
 <div class="modal fade" id="update_profilo_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalProfiloLabel">

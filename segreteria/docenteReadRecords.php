@@ -20,8 +20,12 @@ $soloAttivi = $_GET["soloAttivi"];
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
-					<tr>
-						<th>Cognome</th>
+					<tr>';
+if(getSettingsValue('config','comprensorio', false)) {
+	$data .='				<th>Codice Istituto</th>';
+}
+
+$data .='				<th>Cognome</th>
 						<th>Nome</th>
 						<th>Email</th>
 						<th>Username</th>
@@ -39,10 +43,19 @@ $query = "SELECT docente.id AS local_docente_id, docente.*, profilo_docente.* FR
 if( $soloAttivi) {
 	$query .= " AND docente.attivo = true ";
 }
-$query .= "order by cognome,nome";
+
+$query .= " ORDER BY ";
+if(getSettingsValue('config','comprensorio', false)) {
+	$query .= " docente.codice_istituto, ";
+}
+$query .= " docente.cognome, docente.nome ";
 
 foreach(dbGetAll($query) as $row) {
-	$data .= '<tr>
+	$data .= '<tr>';
+	if(getSettingsValue('config','comprensorio', false)) {
+		$data .='				<td>'.$row['codice_istituto'].'</td>';
+	}
+	$data .= '
 		<td>'.$row['cognome'].'</td>
 		<td>'.$row['nome'].'</td>
 		<td>'.$row['email'].'</td>
@@ -53,7 +66,7 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.numOrBlank($row['ore_di_cattedra']).'</td>
 		';
 
-	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="attivo" ';
+	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="attivo_" ';
 	if ($row['attivo']) {
 		$data .= 'checked ';
 	}

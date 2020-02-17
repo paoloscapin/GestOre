@@ -26,7 +26,8 @@
         "bonus": true,
         "corsiDiRecupero": true,
         "minuti": false,
-        "sportelli": false
+        "sportelli": false,
+        "comprensorio": false
     },
     "interfaccia": {
         "apriDocenteInNuovoTab": false,

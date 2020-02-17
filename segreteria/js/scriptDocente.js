@@ -194,28 +194,6 @@ function profiloUpdateDetails() {
  );
 }
 
-function docenteAddRecord() {
-    $.post("docenteAddRecord.php", {
-        nome: $("#nome").val(),
-        cognome: $("#cognome").val(),
-        email: $("#email").val(),
-        username: $("#username").val(),
-        matricola: $("#matricola").val(),
-		attivo: $("#attivo").val()
-    }, function (data, status) {
-        $("#add_new_record_modal").modal("hide");
-
-        docenteReadRecords();
-
-        $("#nome").val("");
-        $("#cognome").val("");
-        $("#email").val("");
-        $("#username").val("");
-        $("#matricola").val("");
-        $("#attivo").val("");
-    });
-}
-
 function docenteReadRecords() {
 	$.get("docenteReadRecords.php?soloAttivi=" + soloAttivi, {}, function (data, status) {
 		$(".records_content").html(data);
@@ -239,39 +217,49 @@ function docenteDelete(id, cognome, nome) {
 
 function docenteGetDetails(id) {
 	$("#hidden_docente_id").val(id);
-	$.post("docenteReadDetails.php", {
+	if (id > 0) {
+		$.post("docenteReadDetails.php", {
 			id: id
 		},
 		function (data, status) {
 			var docente = JSON.parse(data);
-			$("#update_cognome").val(docente.cognome);
-			$("#update_nome").val(docente.nome);
-			$("#update_email").val(docente.email);
-			$("#update_username").val(docente.username);
-			$("#update_matricola").val(docente.matricola);
-			$('#update_attivo').bootstrapToggle(docente.attivo == 1? 'on' : 'off');
+			$("#codice_istituto").val(docente.codice_istituto);
+			$("#cognome").val(docente.cognome);
+			$("#nome").val(docente.nome);
+			$("#email").val(docente.email);
+			$("#username").val(docente.username);
+			$("#matricola").val(docente.matricola);
+			$('#attivo').bootstrapToggle(docente.attivo == 1? 'on' : 'off');
 			$("#hidden_era_attivo").val(docente.attivo);
-		}
-    );
+		});
+	} else {
+        $("#codice_istituto").val("");
+        $("#nome").val("");
+        $("#cognome").val("");
+        $("#email").val("");
+        $("#username").val("");
+        $("#matricola").val("");
+        $("#attivo").val("");
+	}
 	$("#update_docente_modal").modal("show");
 }
 
-function docenteUpdateDetails() {
-    $.post("docenteUpdateDetails.php", {
-            docente_id: $("#hidden_docente_id").val(),
-            cognome: $("#update_cognome").val(),
-            nome: $("#update_nome").val(),
-            email: $("#update_email").val(),
-            username: $("#update_username").val(),
-            matricola: $("#update_matricola").val(),
-			attivo: $("#update_attivo").is(':checked')? 1: 0,
-			era_attivo: $("#hidden_era_attivo").val()
-        },
-        function (data, status) {
-            $("#update_docente_modal").modal("hide");
-            docenteReadRecords();
-        }
-    );
+function docenteSave() {
+    $.post("docenteSave.php", {
+		docente_id: $("#hidden_docente_id").val(),
+		codice_istituto: $("#codice_istituto").val(),
+		cognome: $("#cognome").val(),
+		nome: $("#nome").val(),
+		email: $("#email").val(),
+		username: $("#username").val(),
+		matricola: $("#matricola").val(),
+		attivo: $("#attivo").is(':checked')? 1: 0,
+		era_attivo: $("#hidden_era_attivo").val()
+	},
+    function (data, status) {
+		$("#update_docente_modal").modal("hide");
+		docenteReadRecords();
+	});
 }
 
 $(document).ready(function () {
