@@ -25,7 +25,7 @@ function reloadTable(fuis_assegnato_tipo_id) {
 				markup = markup + 
 					"<tr>" +
 					"<td style=\"display:none;\">" + fuis.fuis_assegnato_id + "</td>" +
-					"<td>" + fuis.docente_cognome + " " + fuis.docente_nome + "</td>" +
+					"<td>" + ($("#hidden_comprensorio").val() ? fuis.docente_codice_istituto + " ":"") +  fuis.docente_cognome + " " + fuis.docente_nome + "</td>" +
 					"<td class=\"col-md-2 text-right\">" + parseFloat(fuis.fuis_assegnato_importo).toFixed(2) + "</td>" +
 					"<td class=\"col-md-2 text-center\">" +
 					"<div onclick=\"editFuisAssegnato(" + fuis.fuis_assegnato_id + ","+ fuis.fuis_assegnato_fuis_assegnato_tipo_id + "," + 1 + ","+ fuis.fuis_assegnato_importo + "," + fuis.docente_id + ")\" class=\"btn btn-success btn-xs\"><span class=\"glyphicon glyphicon-pencil\"></div>&nbsp;" +

@@ -33,7 +33,7 @@ $query = "	SELECT
 if( $soloOggi) {
 	$query .= "AND sostituzione_docente.data = CURDATE() ";
 }
-$query .= "ORDER BY sostituzione_docente.data DESC, docente.cognome ASC";
+$query .= "ORDER BY ".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")." sostituzione_docente.data DESC, docente.cognome ASC";
 
 $lastData = "";
 foreach(dbGetAll($query) as $row) {

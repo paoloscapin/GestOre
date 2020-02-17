@@ -97,6 +97,7 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 					ore_previste_attivita.dettaglio AS ore_previste_attivita_dettaglio,
 					ore_previste_attivita.ore AS ore_previste_attivita_ore,
 					ore_previste_attivita.ore_previste_tipo_attivita_id AS ore_previste_attivita_ore_previste_tipo_attivita_id,
+					".(getSettingsValue('config','comprensorio', false) ? " docente.codice_istituto AS docente_codice_istituto, " : "")."
 					docente.nome AS docente_nome,
 					docente.cognome AS docente_cognome
 				FROM
@@ -108,6 +109,7 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 				AND
 					ore_previste_attivita.ore_previste_tipo_attivita_id = '$tipoAttivitaId'
 				ORDER BY
+					".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")."
 					docente.cognome ASC,
 					docente.nome ASC
 				;
@@ -119,7 +121,7 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 			$data .= '
 							<tr class="'.$classname.'">
 								<td style="display:none;">'.$row_ore['ore_previste_attivita_id'].'</td>
-								<td>'.$row_ore['docente_cognome'].' '.$row_ore['docente_nome'].'</td>
+								<td>'.(getSettingsValue('config','comprensorio', false) ? $row['codice_istituto']." " : "").$row_ore['docente_cognome'].' '.$row_ore['docente_nome'].'</td>
 								<td>'.$row_ore['ore_previste_attivita_dettaglio'].'</td>
 								<td class="col-md-1 text-center">'.$row_ore['ore_previste_attivita_ore'].'</td>
                                 <td class="col-md-2 text-center">
@@ -156,12 +158,12 @@ echo $data;
 $docenteOptionList = '				<option value="0"></option>';
 $query = "	SELECT * FROM docente
 			WHERE docente.attivo = true
-			ORDER BY docente.cognome, docente.nome ASC
+			ORDER BY ".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")." docente.cognome, docente.nome ASC
 			;";
 $resultArray = dbGetAll($query);
 foreach($resultArray as $row) {
 	$docenteOptionList .= '
-		<option value="'.$row['id'].'" >'.$row['cognome'].' '.$row['nome'].'</option>
+		<option value="'.$row['id'].'" >'.(getSettingsValue('config','comprensorio', false) ? $row['codice_istituto']." " : "").$row['cognome'].' '.$row['nome'].'</option>
 	';
 }
 ?>

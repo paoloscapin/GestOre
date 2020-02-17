@@ -30,6 +30,7 @@ if(isset($_POST)) {
 					AND
 						ore_previste_attivita.ore_previste_tipo_attivita_id = '$ore_previste_tipo_attivita_id'
 					ORDER BY
+						".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")."
 						docente.cognome ASC,
 						docente.nome ASC
 					;

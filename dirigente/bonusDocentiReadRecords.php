@@ -62,7 +62,7 @@ $data .= '
     <tbody>';
 
 // prendi tutti i docenti e per ciascuno il suo bonus
-$query = "	SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ;";
+$query = "	SELECT * FROM docente WHERE docente.attivo = true ORDER BY ".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")."docente.cognome, docente.nome ASC ;";
 $resultArray = dbGetAll($query);
 foreach($resultArray as $docente) {
     $local_docente_id = $docente['id'];

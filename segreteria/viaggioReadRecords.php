@@ -47,7 +47,7 @@ $query = "	SELECT
 if( ! $ancheChiusi) {
 	$query .= "AND NOT viaggio.stato = 'chiuso' ";
 }
-$query .= "order by viaggio_data_partenza DESC, docente_cognome ASC,docente_nome ASC";
+$query .= "ORDER BY ".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")." viaggio_data_partenza DESC, docente_cognome ASC,docente_nome ASC";
 
 $resultArray = dbGetAll($query);
 

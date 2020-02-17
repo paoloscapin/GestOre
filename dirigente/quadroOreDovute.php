@@ -79,7 +79,7 @@ function getHtmlNumAndFatteVisual($value, $total) {
     return '&emsp;' . $numString;
 }
 
-$query = "SELECT * FROM docente WHERE docente.attivo = true ORDER BY cognome,nome; ";
+$query = "SELECT * FROM docente WHERE docente.attivo = true ORDER BY ".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")." cognome,nome; ";
 $resultArray = dbGetAll($query);
 foreach($resultArray as $docente) {
     // disegna il pannello del docente

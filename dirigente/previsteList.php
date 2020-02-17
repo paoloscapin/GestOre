@@ -127,6 +127,7 @@ AND
 AND
     ore_fatte.anno_scolastico_id = $__anno_scolastico_corrente_id
 ORDER BY
+    ".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")."
     cognome,nome
 ";
 
@@ -135,7 +136,7 @@ $fuis_totale_previsto = 0;
 $fuis_totale_previsto_clil = 0;
 foreach($resultArray as $docente) {
     $docenteId = $docente['id'];
-    $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
+    $docenteCognomeNome = (getSettingsValue('config','comprensorio', false) ? $docente['codice_istituto']." " : ""). $docente['cognome'].' '.$docente['nome'];
 
     $dovute_con_studenti_total = $docente['ore_dovute_ore_70_con_studenti'] + $docente['ore_dovute_ore_40_con_studenti'];
     $previste_con_studenti_total = $docente['ore_previste_ore_70_con_studenti'] + $docente['ore_previste_ore_40_con_studenti'];

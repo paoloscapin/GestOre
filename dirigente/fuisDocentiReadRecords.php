@@ -46,13 +46,14 @@ $query = "
     AND
         fuis_docente.anno_scolastico_id = $__anno_scolastico_corrente_id
     ORDER BY
+        ".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")."
         docente.cognome ASC, docente.nome ASC
     ";
 
 $resultArray = dbGetAll($query);
 foreach($resultArray as $docente) {
     $local_docente_id = $docente['local_docente_id'];
-    $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
+    $docenteCognomeNome = (getSettingsValue('config','comprensorio', false) ? $docente['codice_istituto']." " : ""). $docente['cognome'].' '.$docente['nome'];
     $viaggi = $docente['viaggi'];
     $assegnato = $docente['assegnato'];
     $sostituzioni = $docente['sostituzioni_approvato'];

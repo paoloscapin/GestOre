@@ -82,6 +82,7 @@ foreach($resultArrayFuisAssegnatoTipo as $fuisAssegnatoTipo) {
 					fuis_assegnato.importo AS fuis_assegnato_importo,
 					fuis_assegnato.fuis_assegnato_tipo_id AS fuis_assegnato_fuis_assegnato_tipo_id,
 					docente.id AS docente_id,
+					".(getSettingsValue('config','comprensorio', false) ? " docente.codice_istituto AS docente_codice_istituto, " : "")."
 					docente.nome AS docente_nome,
 					docente.cognome AS docente_cognome
 				FROM
@@ -92,7 +93,8 @@ foreach($resultArrayFuisAssegnatoTipo as $fuisAssegnatoTipo) {
 					fuis_assegnato.anno_scolastico_id = '$__anno_scolastico_corrente_id'
 				AND
 					fuis_assegnato.fuis_assegnato_tipo_id = '$fuisAssegnatoTipoId'
-				ORDER BY
+				ORDER BY 
+					".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")."
 					docente.cognome ASC,
 					docente.nome ASC
 				;
@@ -138,12 +140,12 @@ echo $data;
 $docenteOptionList = '				<option value="0"></option>';
 $query = "	SELECT * FROM docente
 			WHERE docente.attivo = true
-			ORDER BY docente.cognome, docente.nome ASC
+			ORDER BY ".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")." docente.cognome, docente.nome ASC
 			;";
 $resultArray = dbGetAll($query);
 foreach($resultArray as $row) {
 	$docenteOptionList .= '
-		<option value="'.$row['id'].'" >'.$row['cognome'].' '.$row['nome'].'</option>
+		<option value="'.$row['id'].'" >'.(getSettingsValue('config','comprensorio', false) ? $row['codice_istituto']." " : "").$row['cognome'].' '.$row['nome'].'</option>
 	';
 }
 ?>
@@ -181,6 +183,7 @@ foreach($resultArray as $row) {
                 <button type="button" class="btn btn-primary" onclick="fuisAssegnatoSaveRecord()">Salva</button>
 				<input type="hidden" id="hidden_fuis_assegnato_tipo_id">
 				<input type="hidden" id="hidden_fuis_assegnato_id">
+				<input type="hidden" id="hidden_comprensorio" value="<?php echo getSettingsValue('config','comprensorio', false); ?>">
             </div>
 			</div>
 			</div>

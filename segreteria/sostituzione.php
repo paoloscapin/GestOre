@@ -79,7 +79,7 @@ FROM docente
 INNER JOIN ore_dovute ON ore_dovute.docente_id = docente.id AND ore_dovute.anno_scolastico_id = $__anno_scolastico_corrente_id
 INNER JOIN ore_fatte ON ore_fatte.docente_id = docente.id AND ore_fatte.anno_scolastico_id = $__anno_scolastico_corrente_id
 WHERE docente.attivo = true
-ORDER BY differenza DESC, docente.cognome, docente.nome ASC;";
+ORDER BY ".(getSettingsValue('config','comprensorio', false) ? " codice_istituto ASC, " : "")." differenza DESC, docente.cognome, docente.nome ASC;";
 foreach(dbGetAll($query) as $docenteRow) {
 	$docenteOptionList .= '<option value="'.$docenteRow['docente_id'].'" data-subtext="'.$docenteRow['differenza'].'">'.$docenteRow['cognome'].' '.$docenteRow['nome'].'</option>';
 }

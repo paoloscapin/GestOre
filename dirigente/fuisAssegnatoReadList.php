@@ -20,6 +20,7 @@ if(isset($_POST)) {
 					fuis_assegnato.importo AS fuis_assegnato_importo,
 					fuis_assegnato.fuis_assegnato_tipo_id AS fuis_assegnato_fuis_assegnato_tipo_id,
 					docente.id AS docente_id,
+					".(getSettingsValue('config','comprensorio', false) ? " docente.codice_istituto AS docente_codice_istituto, " : "")."
 					docente.nome AS docente_nome,
 					docente.cognome AS docente_cognome
 				FROM
@@ -31,15 +32,12 @@ if(isset($_POST)) {
 				AND
 					fuis_assegnato.fuis_assegnato_tipo_id = '$fuis_assegnato_tipo_id'
 				ORDER BY
+					".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")."
 					docente.cognome ASC,
 					docente.nome ASC
 				;
 		";
 	$resultArray = dbGetAll($query);
 	echo json_encode($resultArray);
-}
-else {
-	$response['status'] = 200;
-	$response['message'] = "Invalid Request!";
 }
 ?>

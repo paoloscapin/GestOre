@@ -42,6 +42,7 @@ $query = "	SELECT
 				viaggio_ore_recuperate.ore AS viaggio_ore_recuperate_ore,
 
 				docente.id AS docente_id,
+				".(getSettingsValue('config','comprensorio', false) ? " docente.codice_istituto AS docente_codice_istituto, " : "")."
 				docente.nome AS docente_nome,
 				docente.cognome AS docente_cognome
 					
@@ -55,6 +56,7 @@ $query = "	SELECT
 			WHERE viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id
 			AND viaggio.stato = 'chiuso'
 			ORDER BY
+				".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")."
 				fuis_viaggio_diaria.data_richiesta_liquidazione DESC,
 				viaggio.data_partenza DESC,
 				docente.cognome ASC,
@@ -63,7 +65,7 @@ $query = "	SELECT
 $resultArray = dbGetAll($query);
 foreach($resultArray as $diaria) {
 	$id = $diaria['fuis_viaggio_diaria_id'];
-	$docenteCognomeNome = $diaria['docente_cognome'].' '.$diaria['docente_nome'];
+	$docenteCognomeNome = (getSettingsValue('config','comprensorio', false) ? $diaria['codice_istituto']." " : "") . $diaria['docente_cognome'].' '.$diaria['docente_nome'];
 	$destinazione = $diaria['viaggio_destinazione'];
 	$dataPartenza = strftime("%d/%m/%Y", strtotime($diaria['viaggio_data_partenza']));
 	$importo = $diaria['fuis_viaggio_diaria_importo'];

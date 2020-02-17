@@ -31,11 +31,11 @@ require_once '../common/header-admin.php';
 $docenteOptionList = '				<option value="0"></option>';
 $query = "	SELECT * FROM docente
 			WHERE docente.attivo = true
-			ORDER BY docente.cognome, docente.nome ASC
+			ORDER BY ".(getSettingsValue('config','comprensorio', false) ? " codice_istituto, " : "")." docente.cognome, docente.nome ASC
 			;";
 foreach(dbGetAll($query) as $row) {
     $docenteOptionList .= '
-		<option value="'.$row['id'].'" data-subtext="'.$row['username'].'">'.$row['cognome'].' '.$row['nome'].'</option>';
+		<option value="'.$row['id'].'" data-subtext="'.$row['username'].'">'.(getSettingsValue('config','comprensorio', false) ? $row['codice_istituto']." " : "").$row['cognome'].' '.$row['nome'].'</option>';
 }
 ?>
 
