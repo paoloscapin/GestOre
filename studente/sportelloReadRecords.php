@@ -16,14 +16,13 @@ $ancheCancellati = $_GET["ancheCancellati"];
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
-						<th class="text-center col-md-1">Data</th>
+						<th class="text-center col-md-2">Data</th>
 						<th class="text-center col-md-1">Ora</th>
 						<th class="text-center col-md-1">Materia</th>
 						<th class="text-center col-md-1">Docente</th>
 						<th class="text-center col-md-3">Argomento</th>
-						<th class="text-center col-md-1">Ore</th>
+						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Classe</th>
-						<th class="text-center col-md-1">Stato</th>
 						<th class="text-center col-md-1">Studenti</th>
 						<th class="text-center col-md-1">Iscritto</th>
 					</tr>
@@ -49,11 +48,9 @@ $query = "	SELECT
 			INNER JOIN docente docente ON sportello.docente_id = docente.id
 			INNER JOIN materia materia ON sportello.materia_id = materia.id
 			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
+			AND NOT sportello.cancellato
 			";
 
-if( ! $ancheCancellati) {
-	$query .= "AND NOT viaggio.cancellato ";
-}
 $query .= "ORDER BY sportello.data DESC, docente_cognome ASC,docente_nome ASC";
 
 $resultArray = dbGetAll($query);
@@ -61,22 +58,7 @@ if ($resultArray == null) {
 	$resultArray = [];
 }
 foreach($resultArray as $row) {
-	$passato = false;
-	// date('d.m.Y',strtotime("-1 days"));
-	if (strtotime($row['sportello_data']) < strtotime('now')) {
-		$passato = true;
-	}
-
-	$cancellatoMarker = '';
-	$cancellato = false;
-	if ($row['sportello_cancellato']) {
-		$statoMarker = '<span class="label label-danger">cancellato</span>';
-		$cancellato = true;
-	} else if ($row['sportello_firmato']) {
-		$statoMarker = '<span class="label label-success">effettuato</span>';
-	}  else if (! $passato) {
-		$statoMarker = '<span class="label label-info">disponibile</span>';
-	}
+	$passato = (strtotime($row['sportello_data']) < strtotime('now'));
 
 	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
 	$dataSportello = utf8_encode( strftime("%d %B %Y", strtotime($row['sportello_data'])));
@@ -88,43 +70,48 @@ foreach($resultArray as $row) {
 		<td>'.$row['materia_nome'].'</td>
 		<td>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
 		<td>'.$row['sportello_argomento'].'</td>
-		<td>'.$row['sportello_numero_ore'].'</td>
+		<td>'.$row['sportello_luogo'].'</td>
 		<td>'.$row['sportello_classe'].'</td>
-		<td>'.$statoMarker.'</td>
 		<td>'.$row['numero_studenti'].'</td>
 		';
-
 
 	// apri l'ultima colonna
 	$data .= '<td class="text-center">';
 
-	// per quelli cancellati non scrive nulla
-	if (!$cancellato) {
-		// per prima cosa considera quelli passati
-		if ($passato) {
-			if ($row['presente']) {
-				$data .='<span class="label label-success">Presente</span>';
-			} else {
-				if ($row['iscritto']) {
-					debug('iscritto');
-					$data .='<span class="label label-danger">Assente</span>';
-				}
-				// se passato e non ero iscritto non deve segnalare nulla
-			}
+	// per prima cosa considera quelli passati
+	if ($passato) {
+		if ($row['presente']) {
+			$data .='<span class="label label-success">Presente</span>';
 		} else {
-			// per quelli non passati, se sono iscritto lo dice e mi lascia cancellare, altrimenti mi lascia iscrivere
 			if ($row['iscritto']) {
-				$data .='
-					<span class="label label-success">Iscritto</span>
-					<button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-					';
-				} else {
+				debug('iscritto');
+				$data .='<span class="label label-danger">Assente</span>';
+			}
+			// se passato e non ero iscritto non deve segnalare nulla
+		}
+	} else {
+		// controlla se terminata l'iscrizione, il lunedi precedente o scaduta (si puo' prenotare fino a 2 giorni prima)
+		$dataSportello = $row['sportello_data'];
+		$previousMonday = new DateTime($dataSportello.' Monday ago');
+		$lastDay = new DateTime($dataSportello.' 2 days ago');
+		$today = new DateTime('today');
+		$todayAfterpreviousMonday = ($today >= $previousMonday);
+		$todayBeforeLastDay = ($today <= $lastDay);
+		$prenotabile = ($todayAfterpreviousMonday and $todayBeforeLastDay);
+
+		// per quelli non passati, se sono iscritto lo dice e mi lascia cancellare, altrimenti mi lascia iscrivere se non sono scaduti i termini
+		if ($row['iscritto']) {
+			$data .='
+				<span class="label label-success">Iscritto</span>
+				<button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+				';
+			} else {
+				if ($prenotabile) {
 					$data .='
 						<span class="label label-info">Disponibile</span>
 						<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-					';
-			}
-
+						';
+				}
 		}
 	}
 
