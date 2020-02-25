@@ -5,6 +5,7 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+var soloNuovi=1;
 function setDbDateToPickr(pickr, data_str) {
 	var data = Date.parseExact(data_str, 'yyyy-MM-dd');
 	pickr.setDate(data);
@@ -16,9 +17,22 @@ function getDbDateFromPickrId(pickrId) {
 	return data_date.toString('yyyy-MM-dd');
 }
 
+$('#soloNuoviCheckBox').change(function() {
+    // this si riferisce al checkbox
+    if (this.checked) {
+		soloNuovi = 1;
+    } else {
+		soloNuovi = 0;
+    }
+    sportelloReadRecords();
+});
+
 function sportelloReadRecords() {
-	$.get("../docente/sportelloReadRecords.php?ancheCancellati=true", {}, function (data, status) {
-		$(".records_content").html(data);
+	$.get("../docente/sportelloReadRecords.php?ancheCancellati=true&soloNuovi=" + soloNuovi, {}, function (data, status) {
+        $(".records_content").html(data);
+        $('[data-toggle="tooltip"]').tooltip({
+            container: 'body'
+        });
 	});
 }
 

@@ -5,6 +5,9 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+var soloNuovi=1;
+var materia_filtro_id=0;
+
 function setDbDateToPickr(pickr, data_str) {
 	var data = Date.parseExact(data_str, 'yyyy-MM-dd');
 	pickr.setDate(data);
@@ -16,9 +19,22 @@ function getDbDateFromPickrId(pickrId) {
 	return data_date.toString('yyyy-MM-dd');
 }
 
+$('#soloNuoviCheckBox').change(function() {
+    // this si riferisce al checkbox
+    if (this.checked) {
+		soloNuovi = 1;
+    } else {
+		soloNuovi = 0;
+    }
+    sportelloReadRecords();
+});
+
 function sportelloReadRecords() {
-	$.get("sportelloReadRecords.php?ancheCancellati=true", {}, function (data, status) {
+	$.get("sportelloReadRecords.php?ancheCancellati=true&soloNuovi=" + soloNuovi + "&materia_filtro_id=" + materia_filtro_id, {}, function (data, status) {
 		$(".records_content").html(data);
+        $('[data-toggle="tooltip"]').tooltip({
+            container: 'body'
+        });
 	});
 }
 
@@ -101,5 +117,12 @@ $(document).ready(function () {
 		dateFormat: 'j/n/Y'
 	});
 
-	sportelloReadRecords();
+    sportelloReadRecords();
+    
+    $("#materia_filtro").on("changed.bs.select", 
+    function(e, clickedIndex, newValue, oldValue) {
+        materia_filtro_id = this.value;
+        sportelloReadRecords();
+    });
+
 });

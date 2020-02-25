@@ -12,6 +12,10 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 $ancheCancellati = $_GET["ancheCancellati"];
+$soloNuovi = $_GET["soloNuovi"];
+
+$direzioneOrdinamento="ASC";
+
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
@@ -56,13 +60,17 @@ $query = "	SELECT
 if( ! $ancheCancellati) {
 	$query .= "AND NOT sportello.cancellato ";
 }
-$query .= "ORDER BY sportello.data DESC, docente_cognome ASC,docente_nome ASC";
+if( $soloNuovi) {
+	$query .= "AND sportello.data >= CURDATE() ";
+}
+$query .= "ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC,docente_nome ASC";
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
 	$resultArray = [];
 }
 foreach($resultArray as $row) {
+	$sportello_id = $row['sportello_id'];
 	$cancellatoMarker = '';
 	if ($row['sportello_cancellato']) {
 		$statoMarker = '<span class="label label-danger">cancellato</span>';
@@ -72,6 +80,32 @@ foreach($resultArray as $row) {
 	$dataSportello = utf8_encode( strftime("%d %B %Y", strtotime($row['sportello_data'])));
 	setlocale(LC_TIME, $oldLocale);
 
+	// se ci sono prenotazioni, cerca la lista di studenti che sono prenotati
+	$studenteTip = '';
+	if ($row['numero_studenti'] > 0) {
+		$query2 = "SELECT
+				sportello_studente.id AS sportello_studente_id,
+				sportello_studente.iscritto AS sportello_studente_iscritto,
+				sportello_studente.presente AS sportello_studente_presente,
+				sportello_studente.note AS sportello_studente_note,
+
+				studente.cognome AS studente_cognome,
+				studente.nome AS studente_nome,
+				studente.classe AS studente_classe,
+				studente.id AS studente_id
+
+			FROM
+				sportello_studente
+			INNER JOIN studente
+			ON sportello_studente.studente_id = studente.id
+			WHERE sportello_studente.sportello_id = '$sportello_id';";
+
+		$studenti = dbGetAll($query2);
+		foreach($studenti as $studente) {
+			$studenteTip = $studenteTip . $studente['studente_cognome'] . " " . $studente['studente_nome'] ." " . $studente['studente_classe'] . "</br>";
+		}
+	}
+
 	$data .= '<tr>
 		<td>'.$dataSportello.'</td>
 		<td>'.$row['sportello_ora'].'</td>
@@ -80,17 +114,16 @@ foreach($resultArray as $row) {
 		<td>'.$row['sportello_numero_ore'].'</td>
 		<td>'.$row['sportello_classe'].'</td>
 		<td>'.$cancellatoMarker.'</td>
-		<td>'.$row['numero_studenti'].'</td>
+		<td data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
 		';
 	$data .='
 		<td class="text-center">
-		<button onclick="sportelloGetDetails('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+		<button onclick="sportelloGetDetails('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
 		</td>
 		</tr>';
 }
 
 $data .= '</table></div>';
-
 echo $data;
 ?>
 
