@@ -90,7 +90,7 @@ if(mysqli_num_rows($result) > 0) {
 
 <body >
 <?php
-require_once '../common/header-segreteria.php';
+require_once '../common/header-didattica.php';
 ?>
 
 <div class="container-fluid" style="margin-top:60px">
