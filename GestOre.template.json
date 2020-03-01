@@ -65,6 +65,10 @@
         "compensa_in_valore": true,
         "accetta_con_studenti_per_funzionali": false
     },
+    "sportelli": {
+        "numero_max_prenotazioni": 10,
+        "nascondiNomeStudenti": false
+    },
     "label": {
         "ore_funzionali": "funzionali",
         "dovute": "pianificate"

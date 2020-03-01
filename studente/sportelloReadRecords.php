@@ -101,7 +101,11 @@ foreach($resultArray as $row) {
 
 		$studenti = dbGetAll($query2);
 		foreach($studenti as $studente) {
-			$studenteTip = $studenteTip . $studente['studente_cognome'] . " " . $studente['studente_nome'] ." " . $studente['studente_classe'] . "</br>";
+			if (getSettingsValue('sportelli','nascondiNomeStudenti', false)) {
+				$studenteTip = $studenteTip . '---' . " " . '---' ." " . $studente['studente_classe'] . "</br>";
+			} else {
+				$studenteTip = $studenteTip . $studente['studente_cognome'] . " " . $studente['studente_nome'] ." " . $studente['studente_classe'] . "</br>";
+			}
 		}
 	}
 
