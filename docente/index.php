@@ -112,8 +112,8 @@ require_once '../common/connect.php';
 		<thead>
 			<tr>
 				<th class="col-md-5"></th>
-				<th class="col-md-3 text-left"><?php echoLabel('Incontri CLIL');?></th>
 				<th class="col-md-3 text-left"><?php echoLabel('Preparazione Materiali CLIL');?></th>
+				<th class="col-md-3 text-left"><?php echoLabel('Incontri CLIL');?></th>
 			</tr>
 		</thead>
 		<tbody>
