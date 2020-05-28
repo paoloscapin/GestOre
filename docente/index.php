@@ -140,7 +140,7 @@ require_once '../common/connect.php';
 
 <?php endif; ?>
 
-<?php if(getSettingsValue('config','visualizza80Ore', false)) : ?>
+<?php if(getSettingsValue('interfaccia','docenteVisualizza80Ore', true)) : ?>
 
 <div class="panel panel-yellow4" id="panel-80-ore" >
 <div class="panel-heading">
@@ -205,7 +205,7 @@ require_once '../common/connect.php';
 
 <?php endif; ?>
 
-<?php if(getSettingsValue('config','visualizzaFuis', false)) : ?>
+<?php if(getSettingsValue('interfaccia','docenteVisualizzaFuis', false)) : ?>
 
 	<div class="panel panel-deeporange4" id="panel-fuis">
 <div class="panel-heading">

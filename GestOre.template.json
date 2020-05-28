@@ -29,6 +29,8 @@
         "sportelli": false
     },
     "interfaccia": {
+        "docenteVisualizza80Ore": true,
+        "docenteVisualizzaFuis": false,
         "apriDocenteInNuovoTab": false,
         "visualizzaSostituzioniDocente": true,
         "extraMenuDirigente": false

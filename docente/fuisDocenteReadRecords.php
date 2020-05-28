@@ -13,12 +13,15 @@ require_once '../common/__Minuti.php';
 $docente_id = $__docente_id;
 
 // disegna la tabella
-$data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
+$data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green"><tbody>
 						<tr>
 							<th>Tipo</th>
 							<th>Dettaglio</th>
 							<th class="col-md-1 text-center">Importo</th>
 						</tr>';
+
+// azzera il totale
+$totale = 0;
 
 // fuis diaria viaggi
 $query = "	SELECT fuis_viaggio_diaria.importo AS importo,
@@ -31,6 +34,8 @@ $query = "	SELECT fuis_viaggio_diaria.importo AS importo,
             ";
 
 foreach(dbGetAll($query) as $row) {
+
+	$totale += $row['importo'];
 
 	$data .= '<tr>
 	<td class="col-md-1">'.'Diaria vaiggio'.'</td>
@@ -52,6 +57,8 @@ $query = "	SELECT fuis_assegnato.importo AS importo,
 
 foreach(dbGetAll($query) as $row) {
 
+	$totale += $row['importo'];
+
 	$data .= '<tr>
 	<td class="col-md-1">'.'Fuis Assegnato'.'</td>
 	<td class="col-md-3">'.$row['nome'].'</td>
@@ -59,6 +66,13 @@ foreach(dbGetAll($query) as $row) {
 	';
 	$data .='</tr>';
 }
+
+$data .= '</tbody><tfoot><tr>
+<td class="col-md-1"></td>
+<td class="col-md-3"><Strong>'.'Totale'.'</Strong></td>
+<td class="col-md-3"><Strong>'.$totale.'</Strong></td>
+';
+$data .='</tr></tfoot>';
 
 $data .= '</table></div>';
 

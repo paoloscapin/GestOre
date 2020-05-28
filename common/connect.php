@@ -52,7 +52,7 @@ function dbGetFirst($query) {
 
 	// controlla che ci siano dei risultati
 	if(mysqli_num_rows($result) <= 0) {
-		warning('nessun risultato per la query: '.$query);
+		debug('nessun risultato per la query: '.$query);
 		return null;
 	}
 
