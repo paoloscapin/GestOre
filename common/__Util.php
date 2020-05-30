@@ -63,7 +63,7 @@ function haRuolo($ruolo) {
 
 // rimpiazza i caratteri speciali di una stringa in modo da poterla passare come parametro a js
 function str2js($str) {
-    return preg_replace("/\r\n|\r|\n/",'<br/>',str_replace("'", "\'", $str));
+    return preg_replace("/\r\n|\r|\n/",'<br/>',str_replace("'", "\'", str_replace("\"", "", $str)));
 }
 
 // ricupera una label se ridefinita nel json

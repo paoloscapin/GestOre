@@ -31,12 +31,14 @@ if(isset($_POST)) {
 	    $query = "UPDATE $tabella_ore_fatte_attivita SET contestata = true WHERE id = $attivita_id";
 	    dbExec($query);
 	    $query = "REPLACE INTO $tabella_ore_fatte_attivita_commento (`commento`, $riferimento_id) VALUES ('$commento', $attivita_id);";
-	    dbExec($query);
+		dbExec($query);
+		info("contestata attivita attivita_id=$attivita_id docente_id=$docente_id clil=$clilmode commento=$commento");
 	} else {
 	    $query = "UPDATE $tabella_ore_fatte_attivita SET contestata = false WHERE id = $attivita_id";
 	    dbExec($query);
 	    $query = "DELETE FROM $tabella_ore_fatte_attivita_commento WHERE $riferimento_id = $attivita_id;";
 	    dbExec($query);
+		info("ripristinata attivita attivita_id=$attivita_id docente_id=$docente_id clil=$clilmode");
 	}
 	require_once '../docente/oreDovuteAggiornaDocente.php';
 	oreFatteAggiornaDocente($docente_id);
