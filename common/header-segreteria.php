@@ -21,6 +21,7 @@
 			<a href="<?php echo $__application_base_path; ?>/segreteria/sostituzione.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-retweet"></span>&ensp;Sostituzioni </a>
 			<a href="<?php echo $__application_base_path; ?>/segreteria/gruppoGestione.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Gruppi </a>
 			<a href="<?php echo $__application_base_path; ?>/segreteria/index.php" class="btn btn-default navbar-btn btn-teal4" role="button"><span class="glyphicon glyphicon-scale"></span>&ensp;Udienze </a>
+			<a href="<?php echo $__application_base_path; ?>/segreteria/fuisDocenti.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-scale"></span>&ensp;Fuis Totale </a>
 <div class="btn-group">
 
 <a href="<?php echo $__application_base_path; ?>/segreteria/viaggio.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-picture"></span>&ensp;Uscite </a>

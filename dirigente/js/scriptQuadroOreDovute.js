@@ -159,7 +159,7 @@ function viewAttivitaPreviste(id, docente) {
 			$("#myModalPrevisteTitleLabel").text('Attività Previste (' + docente + ')');
 		    $("#previste_modal").modal("show");
 		});
-	$.post("../docente/previsteReadSommarioAttivita.php", {
+	$.post("../docente/orePrevisteReadSommarioAttivita.php", {
 		docente_id: id
 	},
 	function (data, status) {

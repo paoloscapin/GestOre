@@ -65,7 +65,8 @@ function fuisAssegnatoSaveRecord() {
 }
 
 function deleteFuisAssegnato(fuis_assegnato_id, fuis_assegnato_tipo_id) {
-    var conf = confirm("Sei sicuro di volere cancellare questo fuis assegnato ?");
+	var conf = confirm("Sei sicuro di volere cancellare questo fuis assegnato ?");
+	$("#hidden_fuis_assegnato_tipo_id").val(fuis_assegnato_tipo_id);
     if (conf == true) {
         $.post("../common/deleteRecord.php", {
 				id: fuis_assegnato_id,
