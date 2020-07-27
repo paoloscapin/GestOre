@@ -151,7 +151,7 @@ require_once '../common/checkSession.php';
 						<tr>
 							<td>'.$nuovoCognomeNomeClasse.'</td>
 						';
-					$esente = (!empty($partecipaRow['studente_per_corso_di_recupero_serve_voto'])) && $partecipaRow['studente_per_corso_di_recupero_serve_voto'] == 1;
+					$esente = (!empty($partecipaRow['studente_per_corso_di_recupero_serve_voto'])) && $partecipaRow['studente_per_corso_di_recupero_serve_voto'] == 0;
 
 					if ($esente) {
 						$data .= '

@@ -136,7 +136,7 @@ foreach(dbGetAll($query) as $row) {
 		';
 	$cognomeNomeClasse = '';
 	foreach(dbGetAll($query) as $studenteRow) {
-		$esente = (!empty($studenteRow['studente_per_corso_di_recupero_serve_voto'])) && $studenteRow['studente_per_corso_di_recupero_serve_voto'] == 1;
+		$esente = (!empty($studenteRow['studente_per_corso_di_recupero_serve_voto'])) && $studenteRow['studente_per_corso_di_recupero_serve_voto'] == 0;
 		$data .= '<tr>';
 		$data .= '<td>'.$studenteRow['studente_per_corso_di_recupero_id'].'</td>';
 		$nuovoCognomeNomeClasse = $studenteRow['studente_per_corso_di_recupero_cognome'].' '.$studenteRow['studente_per_corso_di_recupero_nome'].' - '.$studenteRow['studente_per_corso_di_recupero_classe'];
