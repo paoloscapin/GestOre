@@ -17,6 +17,12 @@ function escapePost($parameter) {
     return mysqli_real_escape_string($con, $_POST[$parameter]);
 }
 
+// escape a string in general
+function escapeString($string) {
+    global $con;
+    return mysqli_real_escape_string($con, $string);
+}
+
 // redirect to a specific url and die
 function redirect($url) {
     global $__application_base_path;

@@ -39,6 +39,18 @@ function dbExec($query) {
 	}
 }
 
+// esegue una query anche multipla (che non ritorna valori)
+function dbExecMulti($query) {
+	global $__con;
+
+	debug($query);
+	// esegue la query
+	if (!$result = mysqli_multi_query($__con, $query)) {
+		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__con));
+		exit('Application Error');
+	}
+}
+
 // ritorna il primo risultato di una query
 function dbGetFirst($query) {
 	global $__con;
