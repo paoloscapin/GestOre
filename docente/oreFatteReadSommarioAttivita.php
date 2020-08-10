@@ -17,7 +17,6 @@ if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
 
 $data = '';
 
-// Design initial table header
 $data .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 						<thead><tr>
 							<th class="col-md-2 text-left">Tipo</th>
@@ -25,7 +24,8 @@ $data .= '<div class="table-wrapper"><table class="table table-bordered table-st
 							<th class="col-md-2 text-center">Ore</th>
 						</tr></thead><tbody>';
 
-$query = "	SELECT * FROM ore_previste_tipo_attivita WHERE ore_previste_tipo_attivita.inserito_da_docente = true";
+// prima il sommario delle attivita' inserite dal docente
+$query = "SELECT * FROM ore_previste_tipo_attivita WHERE ore_previste_tipo_attivita.inserito_da_docente = true ORDER BY categoria ASC;";
 $resultArray = dbGetAll($query);
 foreach($resultArray as $ore_previste_tipo_attivita) {
     $ore_previste_tipo_attivita_id = $ore_previste_tipo_attivita['id'];
@@ -51,6 +51,28 @@ foreach($resultArray as $ore_previste_tipo_attivita) {
 			';
     }
 }
+
+// segue il sommario dei gruppi
+$query = "SELECT gruppo.nome AS gruppo_nome, SUM(gruppo_incontro_partecipazione.ore) AS sommma_ore FROM gruppo_incontro_partecipazione
+            INNER JOIN gruppo_incontro ON gruppo_incontro_partecipazione.gruppo_incontro_id = gruppo_incontro.id
+            INNER JOIN gruppo ON gruppo_incontro.gruppo_id = gruppo.id
+            WHERE gruppo_incontro_partecipazione.docente_id = 19
+            AND gruppo_incontro_partecipazione.ha_partecipato = true
+            AND gruppo.anno_scolastico_id = 1
+            AND gruppo_incontro.effettuato = true
+            AND gruppo.dipartimento = false
+            GROUP BY gruppo_id
+            ORDER BY gruppo.nome ASC";
+$resultArray = dbGetAll($query);
+foreach($resultArray as $ore_gruppi) {
+    $data .= '<tr>
+        <td>funzionali (gruppi)</td>
+        <td>'.$ore_gruppi['gruppo_nome'].'</td>
+        <td>'.$ore_gruppi['sommma_ore'].'</td>
+        </tr>
+        ';
+}
+
 $data .= '</tbody>';
 
 $data .= '</table>
