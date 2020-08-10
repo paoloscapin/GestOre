@@ -56,9 +56,9 @@ foreach($resultArray as $ore_previste_tipo_attivita) {
 $query = "SELECT gruppo.nome AS gruppo_nome, SUM(gruppo_incontro_partecipazione.ore) AS sommma_ore FROM gruppo_incontro_partecipazione
             INNER JOIN gruppo_incontro ON gruppo_incontro_partecipazione.gruppo_incontro_id = gruppo_incontro.id
             INNER JOIN gruppo ON gruppo_incontro.gruppo_id = gruppo.id
-            WHERE gruppo_incontro_partecipazione.docente_id = 19
+            WHERE gruppo_incontro_partecipazione.docente_id = $docente_id
             AND gruppo_incontro_partecipazione.ha_partecipato = true
-            AND gruppo.anno_scolastico_id = 1
+            AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id
             AND gruppo_incontro.effettuato = true
             AND gruppo.dipartimento = false
             GROUP BY gruppo_id
