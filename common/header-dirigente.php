@@ -56,6 +56,9 @@
 	</div>
 
 <?php endif; ?>
+<?php
+echo '<a href="'.$__application_base_path.'/dirigente/storico.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Storico </a>';
+?>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a href="<?php echo $__settings->local->helpLinkDirigente; ?>" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>
