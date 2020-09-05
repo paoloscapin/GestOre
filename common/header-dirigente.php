@@ -38,7 +38,7 @@
 </div>
 <?php
 // if ($__config->getBonus_rendiconto_aperto() || $__config->getBonus_adesione_aperto()) {
-    echo '<a href="'.$__application_base_path.'/dirigente/bonusDocenti.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus </a>';
+    echo ' <a href="'.$__application_base_path.'/dirigente/bonusDocenti.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus </a>';
 // }
 ?>
 <?php if(getSettingsValue('interfaccia','extraMenuDirigente', false)) : ?>
@@ -57,7 +57,7 @@
 
 <?php endif; ?>
 <?php
-echo '<a href="'.$__application_base_path.'/dirigente/storico.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Storico </a>';
+echo ' <a href="'.$__application_base_path.'/dirigente/storico.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Storico </a>';
 ?>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
