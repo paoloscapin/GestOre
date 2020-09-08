@@ -70,8 +70,8 @@ $data = '';
 $data = $data . '<h2 style="">Bonus Docenti anno scolastico '.$nome_anno_scolastico.'</h2>';
 
 // cicla i docenti
-foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.docente_id=docente.id WHERE ore_dovute.anno_scolastico_id=$anno_id AND ore_dovute.ore_40_totale>0 ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
-	$docente_id = $docente['id'];
+foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM docente INNER JOIN ore_dovute ON ore_dovute.docente_id=docente.id WHERE ore_dovute.anno_scolastico_id=$anno_id AND ore_dovute.ore_40_totale>0 ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
+	$docente_id = $docente['docente_id'];
 	$totaleDocente = 0;
 	
 	$data .= '<h3 style="page-break-before: always;">'.$docente['cognome'] . ' ' . $docente['nome'].'</h3>';
@@ -131,7 +131,7 @@ foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.doce
 	ON bonus_indicatore.bonus_area_id = bonus_area.id
 	
 	WHERE
-		bonus_docente.docente_id = ".$docente['id']."
+		bonus_docente.docente_id = ".$docente_id."
 	AND
 		bonus_docente.anno_scolastico_id = $__anno_scolastico_corrente_id
 		
