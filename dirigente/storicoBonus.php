@@ -27,7 +27,7 @@ if(! isset($_GET)) {
 	$anno_id = $_GET['anno_id'];
 }
 $nome_anno_scolastico = dbGetValue("SELECT anno FROM anno_scolastico WHERE id=$anno_id");
-echo '<title>Storico Bonus ' . $nome_anno_scolastico . '</title>';
+echo '<title>Storico Bonus ' . $nome_anno_scolastico.' - '.getSettingsValue('local','nomeIstituto', '') . '</title>';
 
 ?>
 
@@ -67,7 +67,9 @@ debug('importo_per_punto=' . $importo_per_punto);
 
 // Intestazione pagina
 $data = '';
-$data = $data . '<h2 style="">Bonus Docenti anno scolastico '.$nome_anno_scolastico.'</h2>';
+$data .= '<h2 style="text-align: center; padding-bottom: 1cm;"><img style="text-align: center;" alt="" src="data:image/png;base64,'. base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'Logo.png'")).'" title=""></h2>';
+$data .= '<h3 style="text-align: center; padding-bottom: 3cm;">'.getSettingsValue('local','nomeIstituto', '').'</h3>';
+$data .= '<h2 style="text-align: center;">Bonus Docenti anno scolastico '.$nome_anno_scolastico.'</h2>';
 
 // cicla i docenti
 foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM docente INNER JOIN ore_dovute ON ore_dovute.docente_id=docente.id WHERE ore_dovute.anno_scolastico_id=$anno_id AND ore_dovute.ore_40_totale>0 ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
