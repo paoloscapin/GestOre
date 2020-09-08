@@ -67,8 +67,8 @@ $data = '';
 $data = $data . '<h2 style="">FUIS Docenti anno scolastico '.$nome_anno_scolastico.' - '.getSettingsValue('local','nomeIstituto', '').'</h2>';
 
 // cicla i docenti
-foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.docente_id=docente.id WHERE ore_dovute.anno_scolastico_id=$anno_id AND ore_dovute.ore_40_totale>0 ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
-	$docente_id = $docente['id'];
+foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM docente INNER JOIN ore_dovute ON ore_dovute.docente_id=docente.id WHERE ore_dovute.anno_scolastico_id=$anno_id AND ore_dovute.ore_40_totale>0 ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
+	$docente_id = $docente['docente_id'];
 	$totaleAssegnatoDocente = 0;
 	$totaleDiariaDocente = 0;
 	$totaleAttivitaDocente = 0;
