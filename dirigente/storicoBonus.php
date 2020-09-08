@@ -27,7 +27,7 @@ if(! isset($_GET)) {
 	$anno_id = $_GET['anno_id'];
 }
 $nome_anno_scolastico = dbGetValue("SELECT anno FROM anno_scolastico WHERE id=$anno_id");
-echo '<title>Storico Bonus ' . $nome_anno_scolastico . '</title>';
+echo '<title>Storico Bonus ' . $nome_anno_scolastico.' - '.getSettingsValue('local','nomeIstituto', '') . '</title>';
 
 ?>
 
@@ -67,12 +67,23 @@ debug('importo_per_punto=' . $importo_per_punto);
 
 // Intestazione pagina
 $data = '';
-$data = $data . '<h2 style="">Bonus Docenti anno scolastico '.$nome_anno_scolastico.'</h2>';
+$dataCopertina = '';
+$dataConsuntivo = '';
+
+// prima pagina
+$dataCopertina .= '<h2 style="text-align: center; padding-bottom: 1cm;"><img style="text-align: center;" alt="" src="data:image/png;base64,'. base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'Logo.png'")).'" title=""></h2>';
+$dataCopertina .= '<h3 style="text-align: center; padding-bottom: 3cm;">'.getSettingsValue('local','nomeIstituto', '').'</h3>';
+$dataCopertina .= '<h2 style="text-align: center;">Bonus Docenti anno scolastico '.$nome_anno_scolastico.'</h2>';
+
+// azzera i totali di istituto
+$totaleAssegnatoIstuto = 0;
+$totaleApprovatoIstuto = 0;
 
 // cicla i docenti
-foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.docente_id=docente.id WHERE ore_dovute.anno_scolastico_id=$anno_id AND ore_dovute.ore_40_totale>0 ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
-	$docente_id = $docente['id'];
-	$totaleDocente = 0;
+foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM docente INNER JOIN ore_dovute ON ore_dovute.docente_id=docente.id WHERE ore_dovute.anno_scolastico_id=$anno_id AND ore_dovute.ore_40_totale>0 ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
+	$docente_id = $docente['docente_id'];
+	$totaleAssegnatoDocente = 0;
+	$totaleApprovatoDocente = 0;
 	
 	$data .= '<h3 style="page-break-before: always;">'.$docente['cognome'] . ' ' . $docente['nome'].'</h3>';
 	$data .= '';
@@ -84,7 +95,7 @@ foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.doce
 		$data .= '<table class="table table-bordered table-striped table-green"><thead><tr><th class="col-sm-11">Commento</th><th class="text-center col-sm-1">Importo</th></tr></thead><tbody>';
 		foreach($assegnatoList as $assegnato) {
 			$data .= '<tr><td>'.$assegnato['commento'].'</td><td class="text-right funzionale">'.$assegnato['importo'].'</td></tr>';
-			$totaleDocente = $totaleDocente + $assegnato['importo'];
+			$totaleAssegnatoDocente = $totaleAssegnatoDocente + $assegnato['importo'];
 		}
 		$data .= '</tbody></table>';
 		$data .= '<hr>';
@@ -131,14 +142,13 @@ foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.doce
 	ON bonus_indicatore.bonus_area_id = bonus_area.id
 	
 	WHERE
-		bonus_docente.docente_id = ".$docente['id']."
+		bonus_docente.docente_id = ".$docente_id."
 	AND
 		bonus_docente.anno_scolastico_id = $__anno_scolastico_corrente_id
 		
 	ORDER BY
 		bonus.codice;
 	";
-	$totale = 0;
 	$resultArray2 = dbGetAll($query);
 	foreach($resultArray2 as $bonus) {
 		// calcola l'importo
@@ -155,7 +165,7 @@ foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.doce
 			$data .= '></td>';
 			if ($bonus['bonus_docente_approvato']) {
 				$data .= '<td class="text-right funzionale">'.formatNoZero($importo).'</td>';
-				$totale = $totale + $importo;
+				$totaleApprovatoDocente = $totaleApprovatoDocente + $importo;
 			} else {
 				$data .= '<td></td>';
 			}
@@ -163,19 +173,40 @@ foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.doce
 			$data .= '</tr>';
 	}
 	$data .='</tbody>';
-	if ($totale > 0) {
+	if ($totaleApprovatoDocente > 0) {
 		$data .='<tfooter>';
-		$data .='<tr><td colspan="4" class="text-right"><strong>Totale approvato:</td><td class="text-right funzionale">' . formatNoZero($totale) . '</strong></td></tr>';
+		$data .='<tr><td colspan="4" class="text-right"><strong>Totale approvato:</td><td class="text-right funzionale">' . formatNoZero($totaleApprovatoDocente) . '</strong></td></tr>';
 		$data .='</tfooter>';
 	}
 	$data .='</table>';
 
-	$totaleDocente = $totaleDocente + $totale;
+	$totaleDocente = $totaleAssegnatoDocente + $totaleApprovatoDocente;
 
 	$data .= '<p><strong>'.$docente['cognome'] . ' ' . $docente['nome'].': Totale da pagare = ' . number_format($totaleDocente,2) . ' €</strong></p>';
 	$data .= '<hr>';
+
+	// aggiorna i totali di istituto
+	$totaleAssegnatoIstuto = $totaleAssegnatoIstuto + $totaleAssegnatoDocente;
+	$totaleApprovatoIstuto = $totaleApprovatoIstuto + $totaleApprovatoDocente;
 }
 
+// stampa i totali di istituto
+$dataConsuntivo .= '<hr style="page-break-before: always;">';
+$dataConsuntivo .= '<h2 style="text-align: center; padding-top: 3cm; padding-bottom: 2cm;">Totale Bonus anno scolastico '.$nome_anno_scolastico.'</h2>';
+$dataConsuntivo .= '<table class="table table-bordered table-striped table-green">';
+
+$dataConsuntivo .= '<thead><tr><th class="col-md-11 text-left">Tipo</th><th class="col-md-1 text-center">Importo</th></tr></thead><tbody>';
+$dataConsuntivo .= '<tr><td class="col-md-11 text-left">Totale Bonus Assegnato</td><td class="col-md-1 text-right">' . number_format($totaleAssegnatoIstuto,2) . '</td></tr>';
+$dataConsuntivo .= '<tr><td class="col-md-11 text-left">Totale Bonus Approvato</td><td class="col-md-1 text-right">' . number_format($totaleApprovatoIstuto,2) . '</td></tr>';
+$dataConsuntivo .= '</tbody><tfooter>';
+$dataConsuntivo .='<tr><td colspan="1" class="text-right"><strong>Totale:</td><td class="text-right funzionale">' . formatNoZero($totaleAssegnatoIstuto + $totaleApprovatoIstuto) . '</strong></td></tr>';
+$dataConsuntivo .='</tfooter></table>';
+$dataConsuntivo .= '<hr>';
+
+// copertina, consuntivo, poi tutto il resto
+
+echo $dataCopertina;
+echo $dataConsuntivo;
 echo $data;
 ?>
 

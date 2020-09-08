@@ -64,11 +64,23 @@ $accettataMarker = '<span style="color:green !important;font-weight:bold">&#1000
 
 // Intestazione pagina
 $data = '';
-$data = $data . '<h2 style="">FUIS Docenti anno scolastico '.$nome_anno_scolastico.' - '.getSettingsValue('local','nomeIstituto', '').'</h2>';
+$dataCopertina = '';
+$dataConsuntivo = '';
+
+// prima pagina
+$dataCopertina .= '<h2 style="text-align: center; padding-bottom: 1cm;"><img style="text-align: center;" alt="" src="data:image/png;base64,'. base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'Logo.png'")).'" title=""></h2>';
+$dataCopertina .= '<h3 style="text-align: center; padding-bottom: 3cm;">'.getSettingsValue('local','nomeIstituto', '').'</h3>';
+$dataCopertina .= '<h2 style="text-align: center;">FUIS Docenti anno scolastico '.$nome_anno_scolastico.'</h2>';
+
+// azzera i totali di istituto
+$totaleAssegnatoIstuto = 0;
+$totaleDiariaIstuto = 0;
+$totaleAttivitaIstuto = 0;
+$totaleClilIstuto = 0;
 
 // cicla i docenti
-foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.docente_id=docente.id WHERE ore_dovute.anno_scolastico_id=$anno_id AND ore_dovute.ore_40_totale>0 ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
-	$docente_id = $docente['id'];
+foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM docente INNER JOIN ore_dovute ON ore_dovute.docente_id=docente.id WHERE ore_dovute.anno_scolastico_id=$anno_id AND ore_dovute.ore_40_totale>0 ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
+	$docente_id = $docente['docente_id'];
 	$totaleAssegnatoDocente = 0;
 	$totaleDiariaDocente = 0;
 	$totaleAttivitaDocente = 0;
@@ -161,7 +173,11 @@ foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.doce
 
 		// se non contestata, la aggiunge alle ore fatte
 		if ($attivita['contestata'] != 1) {
-			$oreFatte[$attivita['categoria']] += $attivita['ore_attivita'];
+			if (array_key_exists($attivita['categoria'], $oreFatte)) {
+				$oreFatte[$attivita['categoria']] += $attivita['ore_attivita'];
+			} else {
+				warning('categoria non trovata nome='.$attivita['categoria'].' ore='.$ore_con_minuti. 'docente='.$docente['cognome'] . ' ' . $docente['nome']);
+			}
 		}
 	}
 
@@ -263,11 +279,11 @@ foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.doce
 	}
 
 	// totale per fuis attivita'
-	$totale_importo = $fuis_sostituzioni_importo + $fuis_funzionale_importo + $fuis_con_studenti_importo;
+	$totaleAttivitaDocente = $fuis_sostituzioni_importo + $fuis_funzionale_importo + $fuis_con_studenti_importo;
 
 	// ma nessuno deve dare soldi indietro alla scuola
-	if ($totale_importo < 0) {
-	    $totale_importo = 0;
+	if ($totaleAttivitaDocente < 0) {
+	    $totaleAttivitaDocente = 0;
 	}
 
 	// scrive le ore come sono prima di calcolare l'importo
@@ -278,7 +294,7 @@ foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.doce
 	$data .= '<tr><td class="col-md-2 text-left">funzionali</td><td class="col-md-3 text-center">'.$oreDovute['funzionali'] . '</td><td class="col-md-3 text-center">' . $oreFatte['funzionali'] . '</td><td class="col-md-3 text-center">' . $ore_funzionali . '</td><td class="col-md-1 text-right">' . number_format($fuis_funzionale_importo,2) . '</td></tr>';
 	$data .= '<tr><td class="col-md-2 text-left">con studenti</td><td class="col-md-3 text-center">'.$oreDovute['con studenti'] . '</td><td class="col-md-3 text-center">' . $oreFatte['con studenti'] . '</td><td class="col-md-3 text-center">' . $ore_con_studenti . '</td><td class="col-md-1 text-right">' . number_format($fuis_con_studenti_importo,2) . '</td></tr>';
 	$data .= '</tbody><tfooter>';
-	$data .='<tr><td colspan="4" class="text-right"><strong>Totale:</strong></td><td class="text-right funzionale"><strong>' . number_format($totale_importo,2) . '</strong></td></tr>';
+	$data .='<tr><td colspan="4" class="text-right"><strong>Totale:</strong></td><td class="text-right funzionale"><strong>' . number_format($totaleAttivitaDocente,2) . '</strong></td></tr>';
 	$data .='</tfooter></table>';
 	$data .= '<hr>';
 
@@ -323,7 +339,7 @@ foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.doce
 
 		$fuis_clil_funzionale_importo = $oreFatte['clil_funzionali'] * $__settings->importi->oreFunzionali;
 		$fuis_clil_con_studenti_importo = $oreFatte['clil_con_studenti'] * $__settings->importi->oreConStudenti;
-		$fuis_clil_totale = $fuis_clil_funzionale_importo + $fuis_clil_con_studenti_importo;
+		$totaleClilDocente = $fuis_clil_funzionale_importo + $fuis_clil_con_studenti_importo;
 	
 
 		// scrive le ore come sono prima di calcolare l'importo
@@ -333,12 +349,35 @@ foreach(dbGetAll("SELECT * FROM docente INNER JOIN ore_dovute ON ore_dovute.doce
 		$data .= '<tr><td class="col-md-8 text-left">clil funzionali</td><td class="col-md-3 text-center">' . $oreFatte['clil_funzionali'] . '</td><td class="col-md-1 text-right">' . number_format($fuis_clil_funzionale_importo,2) . '</td></tr>';
 		$data .= '<tr><td class="col-md-8 text-left">clil con studenti</td><td class="col-md-3 text-center">'.$oreFatte['clil_con_studenti'] . '</td><td class="col-md-1 text-right">' . number_format($fuis_clil_con_studenti_importo,2) . '</td></tr>';
 		$data .= '</tbody><tfooter>';
-		$data .='<tr><td colspan="2" class="text-right"><strong>Totale:</strong></td><td class="text-right funzionale"><strong>' . number_format($fuis_clil_totale,2) . '</strong></td></tr>';
+		$data .='<tr><td colspan="2" class="text-right"><strong>Totale:</strong></td><td class="text-right funzionale"><strong>' . number_format($totaleClilDocente,2) . '</strong></td></tr>';
 		$data .='</tfooter></table>';
 		$data .= '<hr>';
 	}
+
+	// aggiorna i totali di istituto
+	$totaleAssegnatoIstuto = $totaleAssegnatoIstuto + $totaleAssegnatoDocente;
+	$totaleDiariaIstuto = $totaleDiariaIstuto + $totaleDiariaDocente;
+	$totaleAttivitaIstuto = $totaleAttivitaIstuto + $totaleAttivitaDocente;
+	$totaleClilIstuto = $totaleClilIstuto + $totaleClilDocente;
 }
 
+// stampa i totali di istituto
+$dataConsuntivo .= '<hr style="page-break-before: always;">';
+$dataConsuntivo .= '<h2 style="text-align: center; padding-top: 3cm; padding-bottom: 2cm;">Totale FUIS anno scolastico '.$nome_anno_scolastico.'</h2>';
+$dataConsuntivo .= '<table class="table table-bordered table-striped table-green">';
+
+$dataConsuntivo .= '<thead><tr><th class="col-md-11 text-left">Tipo</th><th class="col-md-1 text-center">Importo</th></tr></thead><tbody>';
+$dataConsuntivo .= '<tr><td class="col-md-11 text-left">Totale Diaria Viaggi</td><td class="col-md-1 text-right">' . number_format($totaleDiariaIstuto,2) . '</td></tr>';
+$dataConsuntivo .= '<tr><td class="col-md-11 text-left">Totale FUIS Assegnato</td><td class="col-md-1 text-right">' . number_format($totaleAssegnatoIstuto,2) . '</td></tr>';
+$dataConsuntivo .= '<tr><td class="col-md-11 text-left">Totale FUIS Attività</td><td class="col-md-1 text-right">' . number_format($totaleAttivitaIstuto,2) . '</td></tr>';
+$dataConsuntivo .= '<tr><td class="col-md-11 text-left">Totale FUIS CLIL</td><td class="col-md-1 text-right">' . number_format($totaleClilIstuto,2) . '</td></tr>';
+$dataConsuntivo .= '</tbody></table>';
+$dataConsuntivo .= '<hr>';
+
+// copertina, consuntivo, poi tutto il resto
+
+echo $dataCopertina;
+echo $dataConsuntivo;
 echo $data;
 ?>
 
