@@ -80,7 +80,7 @@ AND
 	$ore_sostituzioni = $ore['ore_fatte_ore_40_sostituzioni_di_ufficio'] - $ore['ore_dovute_ore_40_sostituzioni_di_ufficio'];
 	// ma se configurato per non sottrarre le sostituzioni, ignora questa parte se sono dovute dal docente (mette a 0)
 	if (! getSettingsValue('fuis','rimuovi_sostituzioni_non_fatte', true)) {
-		if ($ore_sostituzioni > 0) {
+		if ($ore_sostituzioni < 0) {
 			$ore_sostituzioni = 0;
 		}
 	}

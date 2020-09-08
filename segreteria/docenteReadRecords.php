@@ -34,10 +34,10 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th>Modifica</th>
 					</tr>';
 
-$query = "SELECT docente.id AS local_docente_id, docente.*, profilo_docente.* FROM docente LEFT OUTER JOIN profilo_docente ON docente.id = profilo_docente.docente_id WHERE profilo_docente.anno_scolastico_id = $__anno_scolastico_corrente_id ";
+$query = "SELECT docente.id AS local_docente_id, docente.*, profilo_docente.* FROM docente LEFT OUTER JOIN profilo_docente ON docente.id = profilo_docente.docente_id AND profilo_docente.anno_scolastico_id = $__anno_scolastico_corrente_id ";
 
 if( $soloAttivi) {
-	$query .= " AND docente.attivo = true ";
+	$query .= " WHERE docente.attivo = true ";
 }
 $query .= "order by cognome,nome";
 

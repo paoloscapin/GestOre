@@ -20,9 +20,8 @@ function formatNoZeroNoDecimal($value) {
 }
 
 // calcola il totale degli assegnati
-$totale_bonus_assegnato = dbGetValue("SELECT SUM(importo) FROM `bonus_assegnato`;");
+$totale_bonus_assegnato = dbGetValue("SELECT SUM(importo) FROM `bonus_assegnato` WHERE anno_scolastico_id = $__anno_scolastico_corrente_id;");
 debug('totale_bonus_assegnato=' . $totale_bonus_assegnato);
-
 
 // calcola i punti totali delle varie opzioni
 $query = "SELECT SUM(valore_previsto) FROM `bonus`;";

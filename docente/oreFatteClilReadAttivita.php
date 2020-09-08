@@ -76,7 +76,7 @@ if(mysqli_num_rows($result) > 0) {
 	    
 	    // controlla se aggiornata dall'ultima modifica
 	    $marker = '';
-	    if (! $modificabile) {
+		if ((! $modificabile) && isset($ultimo_controllo)) {
 	        if ($row['ore_fatte_attivita_ultima_modifica'] > $ultimo_controllo) {
 	            $marker = '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>';
 	        }

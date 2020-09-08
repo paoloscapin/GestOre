@@ -348,6 +348,14 @@ echo $data;
 			        </div>
 			    </div>
 			    <div class="row">
+			        <div class="col-md-12 text-center"><h4>Attribuite</h4></div>
+			    </div>
+			    <div class="row">
+			        <div class="col-md-12">
+			            <div class="attribuite_records_content"></div>
+			        </div>
+			    </div>
+			    <div class="row">
 			        <div class="col-md-12 text-center"><h4>Dettaglio</h4></div>
 			    </div>
 			    <div class="row">
@@ -372,16 +380,6 @@ echo $data;
 			            <div class="attivita_fatte_clil_records_content"></div>
 			        </div>
 			    </div>
-
-			    <div class="row">
-			        <div class="col-md-12 text-center"><h4>Attribuite</h4></div>
-			    </div>
-			    <div class="row">
-			        <div class="col-md-12">
-			            <div class="attribuite_records_content"></div>
-			        </div>
-			    </div>
-
 			    <div class="row">
 			        <div class="col-md-12 text-center"><h4>Viaggi</h4></div>
 			    </div>

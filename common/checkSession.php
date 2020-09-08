@@ -163,7 +163,7 @@ $__studente_email = $session->get ( 'studente_email' );
 if (! $session->has ( 'anno_scolastico_corrente_anno' )) {
     debug ( 'manca in sessione anno_scolastico_corrente_anno' );
     $anno = dbGetFirst("SELECT * FROM anno_scolastico_corrente");
-    $session->set ( 'anno_scolastico_corrente_id', $anno ['id'] );
+    $session->set ( 'anno_scolastico_corrente_id', $anno ['anno_scolastico_id'] );
     $session->set ( 'anno_scolastico_corrente_anno', $anno ['anno'] );
     $session->set ( 'anno_scolastico_scorso_id', $anno ['anno_scorso_id'] );
 } else {

@@ -16,13 +16,14 @@
 
 		<ul class="nav navbar-nav top-navbar-nav">
 
-			<a href="<?php echo $__application_base_path; ?>/dirigente/selezionaDocente.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Docente </a>
-			<a href="<?php echo $__application_base_path; ?>/segreteria/index.php" class="btn btn-default navbar-btn btn-teal4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Segreteria </a>
-			<a href="<?php echo $__application_base_path; ?>/didattica/index.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Didattica </a>
 			<a href="<?php echo $__application_base_path; ?>/dirigente/index.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Dirigente </a>
+			<a href="<?php echo $__application_base_path; ?>/segreteria/index.php" class="btn btn-default navbar-btn btn-teal4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Segreteria </a>
+			<a href="<?php echo $__application_base_path; ?>/dirigente/selezionaDocente.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Docente </a>
+			<a href="<?php echo $__application_base_path; ?>/didattica/index.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Didattica </a>
 			<a href="<?php echo $__application_base_path; ?>/admin/materia.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Materie </a>
 			<a href="<?php echo $__application_base_path; ?>/admin/attivita.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Tipo Attività </a>
 			<a href="<?php echo $__application_base_path; ?>/admin/fuisAssegnatoTipo.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Tipo FuisAssegnato </a>
+			<a href="<?php echo $__application_base_path; ?>/admin/annoScolastico.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Anno Scolastico </a>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 		<li><a href="<?php echo $__settings->local->helpLinkDocente; ?>" target="_blank" ><span class="glyphicon glyphicon-education"></span></a></li>
