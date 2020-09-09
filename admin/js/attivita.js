@@ -5,30 +5,69 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-function attivitaAddRecord() {
-    $.post("attivitaAddRecord.php", {
+function attivitaReadRecords() {
+	$.get("attivitaReadRecords.php", {}, function (data, status) {
+		$(".records_content").html(data);
+	});
+}
+
+function attivitaGetDetails(id) {
+    $("#hidden_record_id").val(id);
+    if (id > 0) {
+
+        $.post("../common/readRecordDetails.php", {
+                id: id,
+                table: 'ore_previste_tipo_attivita'
+            },
+            function (data, status) {
+                var record = JSON.parse(data);
+                $('#categoria').selectpicker('val', record.categoria);
+                $("#nome").val(record.nome);
+                $("#ore").val(record.ore);
+                $("#ore_max").val(record.ore_max);
+                $('#check_valido').bootstrapToggle(record.valido == 1? 'on' : 'off');
+                $('#check_previsto_da_docente').bootstrapToggle(record.previsto_da_docente == 1? 'on' : 'off');
+                $('#check_inserito_da_docente').bootstrapToggle(record.inserito_da_docente == 1? 'on' : 'off');
+                $('#check_da_rendicontare').bootstrapToggle(record.da_rendicontare == 1? 'on' : 'off');
+            }
+        );
+    } else {
+        $("#categoria").selectpicker('val', 0);
+        $("#nome").val("");
+        $("#ore").val("");
+        $("#ore_max").val("");
+        $('#check_valido').bootstrapToggle('on');
+        $('#check_previsto_da_docente').bootstrapToggle('on');
+        $('#check_inserito_da_docente').bootstrapToggle('on');
+        $('#check_da_rendicontare').bootstrapToggle('on');
+    }
+	$("#record_modal").modal("show");
+}
+
+function attivitaSave() {
+    $.post("attivitaSave.php", {
+        id: $("#hidden_record_id").val(),
         categoria: $("#categoria").val(),
         nome: $("#nome").val(),
         ore: $("#ore").val(),
         ore_max: $("#ore_max").val(),
-        valido: $("#valido").is(':checked')? 1: 0,
-        previsto_da_docente: $("#previsto_da_docente").is(':checked')? 1: 0,
-        inserito_da_docente: $("#inserito_da_docente").is(':checked')? 1: 0,
-        da_rendicontare: $("#da_rendicontare").is(':checked')? 1: 0
-    }, function (data, status) {
-        $("#add_record_modal").modal("hide");
+        valido: $("#check_valido").is(':checked')? 1: 0,
+        previsto_da_docente: $("#check_previsto_da_docente").is(':checked')? 1: 0,
+        inserito_da_docente: $("#check_inserito_da_docente").is(':checked')? 1: 0,
+        da_rendicontare: $("#check_da_rendicontare").is(':checked')? 1: 0
+    },
+    function (data, status) {
+        $("#record_modal").modal("hide");
         attivitaReadRecords();
         $("#categoria").val("");
         $("#nome").val("");
         $("#ore").val("");
         $("#ore_max").val("");
+        $('#check_valido').bootstrapToggle('on');
+        $('#check_previsto_da_docente').bootstrapToggle('on');
+        $('#check_inserito_da_docente').bootstrapToggle('on');
+        $('#check_da_rendicontare').bootstrapToggle('on');
     });
-}
-
-function attivitaReadRecords() {
-	$.get("attivitaReadRecords.php", {}, function (data, status) {
-		$(".records_content").html(data);
-	});
 }
 
 function attivitaDelete(id, nome) {
@@ -44,49 +83,6 @@ function attivitaDelete(id, nome) {
             }
         );
     }
-}
-
-function attivitaGetDetails(id) {
-	$("#hidden_attivita_id").val(id);
-	$.post("../common/readRecordDetails.php", {
-            id: id,
-            table: 'ore_previste_tipo_attivita'
-		},
-		function (data, status) {
-            var record = JSON.parse(data);
-            // console.log('record.previsto_da_docente='+record.previsto_da_docente);
-            // console.log('record.inserito_da_docente='+record.inserito_da_docente);
-            // console.log('record.da_rendicontare='+record.da_rendicontare);
-			$("#update_categoria").val(record.categoria);
-			$("#update_nome").val(record.nome);
-			$("#update_ore").val(record.ore);
-			$("#update_ore_max").val(record.ore_max);
-			$('#update_valido').bootstrapToggle(record.valido == 1? 'on' : 'off');
-			$('#update_previsto_da_docente').bootstrapToggle(record.previsto_da_docente == 1? 'on' : 'off');
-			$('#update_inserito_da_docente').bootstrapToggle(record.inserito_da_docente == 1? 'on' : 'off');
-			$('#update_da_rendicontare').bootstrapToggle(record.da_rendicontare == 1? 'on' : 'off');
-		}
-    );
-	$("#update_record_modal").modal("show");
-}
-
-function attivitaUpdateDetails() {
-    $.post("attivitaUpdate.php", {
-            id: $("#hidden_attivita_id").val(),
-            categoria: $("#update_categoria").val(),
-            nome: $("#update_nome").val(),
-            ore: $("#update_ore").val(),
-            ore_max: $("#update_ore_max").val(),
-            valido: $("#update_valido").is(':checked')? 1: 0,
-            previsto_da_docente: $("#update_previsto_da_docente").is(':checked')? 1: 0,
-            inserito_da_docente: $("#update_inserito_da_docente").is(':checked')? 1: 0,
-            da_rendicontare: $("#update_da_rendicontare").is(':checked')? 1: 0
-        },
-        function (data, status) {
-            $("#update_record_modal").modal("hide");
-            attivitaReadRecords();
-        }
-    );
 }
 
 $(document).ready(function () {

@@ -21,6 +21,7 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
+require_once '../common/_include_bootstrap-select.php';
 ruoloRichiesto('dirigente');
 ?>
 
@@ -43,7 +44,7 @@ ruoloRichiesto('dirigente');
 		</div>
         <div class="col-md-6">
             <div class="pull-right">
-				<button class="btn btn-xs btn-lima4" data-toggle="modal" data-target="#add_record_modal"><span class="glyphicon glyphicon-plus"></span></button>
+                <button class="btn btn-xs btn-lima4" onclick="attivitaGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>
 	</div>
@@ -60,71 +61,8 @@ ruoloRichiesto('dirigente');
 </div>
 
 <!-- Bootstrap Modals -->
-<!-- Modal - Add New Record -->
-<div class="modal fade" id="add_record_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-body">
-			<div class="panel panel-lima4">
-			<div class="panel-heading">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h5 class="modal-title" id="myModalLabel">Tipo Attività</h5>
-            </div>
-            <div class="panel-body">
-
-                <div class="form-group">
-                    <label for="categoria">Categoria</label>
-                    <input type="text" id="categoria" placeholder="categoria" class="form-control"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="nome">Nome</label>
-                    <input type="text" id="nome" placeholder="nome" class="form-control"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="ore">Ore</label>
-                    <input type="text" id="ore" placeholder="ore" class="form-control"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="ore_max">Ore max</label>
-                    <input type="text" id="ore_max" placeholder="max ore" class="form-control"/>
-                </div>
-
-                <div class="form-group">
-                    <label for="valido">Valido</label>
-					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="valido" >
-                </div>
-
-                <div class="form-group">
-                    <label for="previsto_da_docente">Previsto da Docente</label>
-					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="previsto_da_docente" >
-                </div>
-
-                <div class="form-group">
-                    <label for="inserito_da_docente">Inserito da Docente</label>
-					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="inserito_da_docente" >
-                </div>
-
-                <div class="form-group">
-                    <label for="da_rendicontare">Da Rendicontare</label>
-					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="da_rendicontare" >
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                <button type="button" class="btn btn-primary" onclick="attivitaAddRecord()">Salva</button>
-            </div>
-			</div>
-			</div>
-        </div>
-    </div>
-</div>
-<!-- // Modal - Add New Record -->
-
-<!-- Modal - Update record details -->
-<div class="modal fade" id="update_record_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalUpdateLabel">
+<!-- Modal - Add/Update Record -->
+<div class="modal fade" id="record_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
@@ -134,51 +72,61 @@ ruoloRichiesto('dirigente');
                 <h5 class="modal-title" id="myModalUpdateLabel">Tipo Attività</h5>
             </div>
             <div class="panel-body">
+            <form class="form-horizontal">
 
-            <div class="form-group">
-                    <label for="update_categoria">Categoria</label>
-                    <input type="text" id="update_categoria" placeholder="categoria" class="form-control"/>
+                <div class="form-group categoria_selector">
+                    <label class="col-sm-2 control-label" for="categoria">Categoria</label>
+					<div class="col-sm-8"><select id="categoria" name="categoria" class="categoria selectpicker" data-style="btn-teal4" data-live-search="false" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <option value="aggiornamento" >aggiornamento</option>
+                    <option value="funzionali" >funzionali</option>
+                    <option value="con studenti" >con studenti</option>
+                    <option value="CLIL" >CLIL</option>
+					</select></div>
                 </div>
 
                 <div class="form-group">
-                    <label for="update_nome">Nome</label>
-                    <input type="text" id="update_nome" placeholder="nome" class="form-control"/>
+                    <label class="col-sm-3 control-label" for="nome">Nome</label>
+                     <div class="col-sm-8"><input type="text" id="nome" placeholder="nome" class="form-control"/></div>
                 </div>
 
                 <div class="form-group">
-                    <label for="update_ore">Ore</label>
-                    <input type="text" id="update_ore" placeholder="ore" class="form-control"/>
+                    <label class="col-sm-3 control-label" for="ore">Ore</label>
+                     <div class="col-sm-2"><input type="text" id="ore" placeholder="ore" class="form-control"/></div>
                 </div>
 
                 <div class="form-group">
-                    <label for="update_ore_max">Ore max</label>
-                    <input type="text" id="update_ore_max" placeholder="max ore" class="form-control"/>
+                    <label class="col-sm-3 control-label" for="ore_max">Ore max</label>
+                     <div class="col-sm-2"><input type="text" id="ore_max" placeholder="max ore" class="form-control"/></div>
+                </div>
+
+                <hr>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="check_valido">Valido</label>
+					<div class="col-sm-2"><input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="check_valido" ></div>
                 </div>
 
                 <div class="form-group">
-                    <label for="update_valido">Valido</label>
-					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="update_valido" >
+                    <label class="col-sm-3 control-label" for="check_previsto_da_docente">Previsto da Docente</label>
+					<div class="col-sm-2"><input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="check_previsto_da_docente" ></div>
                 </div>
 
                 <div class="form-group">
-                    <label for="update_previsto_da_docente">Previsto da Docente</label>
-					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="update_previsto_da_docente" >
+                    <label class="col-sm-3 control-label" for="check_inserito_da_docente">Inserito da Docente</label>
+					<div class="col-sm-2"><input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="check_inserito_da_docente" ></div>
                 </div>
 
                 <div class="form-group">
-                    <label for="update_inserito_da_docente">Inserito da Docente</label>
-					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="update_inserito_da_docente" >
+                    <label class="col-sm-3 control-label" for="check_da_rendicontare">Da Rendicontare</label>
+					<div class="col-sm-2"><input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="check_da_rendicontare" ></div>
                 </div>
-
-                <div class="form-group">
-                    <label for="update_da_rendicontare">Da Rendicontare</label>
-					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="update_da_rendicontare" >
-                </div>
+            </form>
             </div>
-			<div class="modal-footer">
+
+			<div class="panel-footer text-center">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-				<button type="button" class="btn btn-primary" onclick="attivitaUpdateDetails()" >Salva</button>
-				<input type="hidden" id="hidden_attivita_id">
+				<button type="button" class="btn btn-primary" onclick="attivitaSave()" >Salva</button>
+				<input type="hidden" id="hidden_record_id">
                 </div>
 			</div>
 			</div>
