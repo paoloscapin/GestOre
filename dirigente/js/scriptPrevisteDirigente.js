@@ -6,8 +6,8 @@
  */
 
 function refreshTotale() {
-    $("#totale_previste").html('<strong>Totale FUIS previsto: ' + $("#hidden_fuis_totale_previsto").val() + '</strong>');
-    $("#totale_previste_clil").html('<strong>Totale CLIL previsto: ' + $("#hidden_fuis_totale_previsto_clil").val() + '</strong>');
+    $("#totale_previste").html('<strong>Totale FUIS previsto: ' + $("#hidden_fuis_totale_previsto").val() + '</strong> (budget: ' + $("#hidden_fuis_budget").val() + ')');
+    $("#totale_previste_clil").html('<strong>Totale CLIL previsto: ' + $("#hidden_fuis_totale_previsto_clil").val() + '</strong> (budget: ' + $("#hidden_fuis_budget_clil").val() + ')');
 }
 
 $(document).ready(function () {

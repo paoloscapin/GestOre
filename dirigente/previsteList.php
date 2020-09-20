@@ -20,6 +20,7 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 //require_once '../common/_include_bootstrap-select.php';
 require_once '../common/__Minuti.php';
+require_once '../common/importi_load.php';
 ruoloRichiesto('dirigente');
 ?>
 
@@ -126,6 +127,8 @@ function importoStampabile($importo) {
 </div>
 <input type="hidden" id="hidden_fuis_totale_previsto" value="<?php echo $fuis_totale_previsto; ?>">
 <input type="hidden" id="hidden_fuis_totale_previsto_clil" value="<?php echo $fuis_totale_previsto_clil; ?>">
+<input type="hidden" id="hidden_fuis_budget" value="<?php echo $__importi['fuis']; ?>">
+<input type="hidden" id="hidden_fuis_budget_clil" value="<?php echo $__importi['fuis_clil']; ?>">
 
 <!-- Custom JS file MUST be here because of toggle -->
 <script type="text/javascript" src="js/scriptPrevisteDirigente.js"></script>
