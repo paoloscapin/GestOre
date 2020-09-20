@@ -13,11 +13,13 @@
 <html>
 <head>
 <?php
-	require_once '../common/checkSession.php';
-	ruoloRichiesto('segreteria','segreteria-didattica','dirigente');
+require_once '../common/checkSession.php';
+require_once '../common/header-common.php';
+require_once '../common/style.php';
+require_once '../common/_include_bootstrap-select.php';
+ruoloRichiesto('segreteria','segreteria-didattica','dirigente');
 ?>
 	<title>Corsi di Recupero</title>
-	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/common/bootstrap-select/css/bootstrap-select.min.css">
 </head>
 
 <body >

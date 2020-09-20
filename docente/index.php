@@ -100,7 +100,7 @@ require_once '../common/connect.php';
 
 <?php if($__settings->config->gestioneClil) : ?>
 
-<div class="panel panel-lightblue4" id="panel-clil">
+<div class="panel panel-lightblue4 hidden" id="panel-clil">
 <div class="panel-heading">
 	<span class="glyphicon glyphicon-list-alt"></span>&ensp;Clil
 </div>
@@ -237,6 +237,7 @@ require_once '../common/connect.php';
 <!-- bootbox notificator -->
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 
+<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js"></script>
 <script type="text/javascript" src="js/scriptIndex.js"></script>
 </body>
 </html>

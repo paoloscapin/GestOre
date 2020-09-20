@@ -1,0 +1,27 @@
+.releaseversion {
+	position: relative;
+	display: inline;
+}
+
+.releaseversion .releaseversiontext {
+	visibility: hidden;
+	width: 320px;
+	background-color: #a32e15;
+	color: #fff;
+	text-align: left;
+	border-radius: 4px;
+	padding: 5px 5px 5px 5px;
+	position: absolute;
+	z-index: 1;
+	top: 130%;
+	left: 100%;
+	margin-left: -60px;
+	margin-top: 60px;
+	opacity: 0;
+	transition: opacity 1s;
+}
+
+.releaseversion:hover .releaseversiontext {
+	visibility: visible;
+	opacity: 1;
+}

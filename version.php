@@ -7,7 +7,10 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-// favicon ref
-echo '<link rel="icon" href="'.$__application_base_path.'/ore-32.png" />';
-echo '<link rel="stylesheet" href="'.$__application_base_path.'/css/releaseversion.css">';
+?>
+
+<?php
+$__software_name = 'GestOre';
+$__software_version = '1.1.0';
+$__software_release_date = '20 set 2020';
 ?>

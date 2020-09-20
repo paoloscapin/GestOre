@@ -61,29 +61,158 @@ require_once '../common/header-docente.php';
 
 <div class="container-fluid" style="margin-top:60px">
 
+<?php if($operatore == 'dirigente') : ?>
+<!-- pannello fuis per dirigente -->
+<div class="panel panel-deeporange4">
+<div class="panel-heading container-fluid">
+	<div class="row">
+		<div class="col-md-2">
+			<span class="glyphicon glyphicon-euro"></span>&emsp;FUIS - previsione
+		</div>
+		<div class="col-md-2 text-center">
+			<button onclick="previsteChiudi()" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-off"> Chiudi</button>
+		</div>
+		<div class="col-md-2 text-center">
+			<button onclick="previsteRivisto()" class="btn btn-lima4 btn-xs"><span class="glyphicon glyphicon-ok"> Rivisto</button>
+		</div>
+		<div class="col-md-2 text-center">
+			<button onclick="previsteEmail()" class="btn btn-lightblue4 btn-xs"><span class="glyphicon glyphicon-envelope"> Notifica Docente</button>
+		</div>
+		<div class="col-md-2 text-center">
+			<button onclick="previsteAzzeraSostituzioni()" class="btn btn-yellow4 btn-xs"><span class="glyphicon glyphicon-retweet"> Azzera Sostituzioni</button>
+		</div>
+		<div class="col-md-2 text-right">
+		</div>
+	</div>
+</div>
+<div class="panel-body">
+
+<div class="table-wrapper">
+	<table class="table table-vnocolor-index">
+		<thead>
+			<tr>
+				<th class="col-md-2"></th>
+				<th class="col-md-1 text-right">Fuis Docente</th>
+				<th class="col-md-1"></th>
+				<th class="col-md-2"></th>
+				<th class="col-md-1 text-right">Fuis CLIL</th>
+				<th class="col-md-1"></th>
+				<th class="col-md-2"></th>
+				<th class="col-md-1 text-right">Corsi di Recupero</th>
+				<th class="col-md-1"></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td class="col-md-2 text-right" ><?php echoLabel('Assegnato');?></td>
+				<td class="col-md-1 text-right" id="fuis_assegnato">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><?php echoLabel('Funzionali');?></td>
+				<td class="col-md-1 text-right" id="fuis_clil_funzionali">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><?php echoLabel('ore extra');?></td>
+				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero">0.00</td>
+				<td class="col-md-1 text-right"></td>
+			</tr>
+			<tr>
+				<td class="col-md-2 text-right" ><?php echoLabel('Ore');?></td>
+				<td class="col-md-1 text-right" id="fuis_ore">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><?php echoLabel('Con Studenti');?></td>
+				<td class="col-md-1 text-right" id="fuis_clil_con_studenti">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+			</tr>
+			<tr>
+				<td class="col-md-2 text-right" ><?php echoLabel('Diaria Viaggi');?></td>
+				<td class="col-md-1 text-right" id="fuis_diaria">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+			</tr>
+		</tbody>
+		<tfooter>
+			<tr class="deeporange5">
+				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" id="fuis_docente_totale"><strong>0.00</strong></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" id="fuis_clil_totale"><strong>0.00</strong></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero_totale"><strong>0.00</strong></td>
+				<td class="col-md-1 text-right"></td>
+			</tr>
+		<tfooter>
+	</table>
+	</div>
+</div>
+
+<!-- <div class="panel-footer"></div> -->
+</div>
+
+<?php endif; ?>
+
+<div class="panel panel-lima4">
+<div class="panel-heading">
+	<span class="glyphicon glyphicon-time"></span>
+	<a data-toggle="collapse" href="#collapse_40">&ensp;40+70 ore </a>
+</div>
+<div id="collapse_40" class="panel-collapse collapse  collapse in">
+<div class="panel-body">
+
+	<div class="table-wrapper">
+	<table class="table table-vnocolor-index">
+		<thead>
+			<tr>
+				<th class="col-md-2"></th>
+				<th class="col-md-2 text-left">Aggiornamento</th>
+				<th class="col-md-2 text-left"><?php echoLabel('Funzionali');?></th>
+				<th class="col-md-2 text-left">con Studenti</th>
+				<th class="col-md-2 text-left"><span class="clil hidden">CLIL (<?php echoLabel('Funzionali');?>)</span></th>
+				<th class="col-md-2 text-left"><span class="clil hidden">CLIL (con Studenti)</span></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><?php echoLabel('dovute');?></td>
+				<td class="text-left" id="dovute_ore_40_aggiornamento"></td>
+				<td class="text-left" id="dovute_ore_70_funzionali"></td>
+				<td class="text-left" id="dovute_totale_con_studenti"></td>
+				<td class="text-left" ></td>
+				<td class="text-left" ></td>
+			</tr>
+			<tr class="orange5">
+				<td>previste</td>
+				<td class="text-left" id="previste_ore_40_aggiornamento"></td>
+				<td class="text-left" id="previste_ore_70_funzionali"></td>
+				<td class="text-left" id="previste_totale_con_studenti"></td>
+				<td class="text-left clil" id="clil_previste_funzionali"></td><td class="NOclil"></td>
+				<td class="text-left clil" id="clil_previste_con_studenti"></td><td class="NOclil"></td>
+			</tr>
+		</tbody>
+	</table>
+	</div>
+</div>
+</div>
+
+<!-- <div class="panel-footer"></div> -->
+</div>
+
 <div class="panel panel-orange4">
 <div class="panel-heading">
 <div class="row">
 		<div class="col-md-2">
 			<span class="glyphicon glyphicon-list-alt"></span>&ensp;Ore Previste
 		</div>
-		<?php if($operatore == 'dirigente') : ?>
-			<div class="col-md-2 text-center">
-				<button onclick="previsteChiudi()" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-off"> Chiudi</button>
-			</div>
-			<div class="col-md-2 text-center">
-				<button onclick="previsteRivisto()" class="btn btn-lima4 btn-xs"><span class="glyphicon glyphicon-ok"> Rivisto</button>
-			</div>
-			<div class="col-md-2 text-center">
-				<button onclick="previsteEmail()" class="btn btn-lightblue4 btn-xs"><span class="glyphicon glyphicon-envelope"> Notifica Docente</button>
-			</div>
-			<div class="col-md-2 text-center">
-				<button onclick="previsteAzzeraSostituzioni()" class="btn btn-yellow4 btn-xs"><span class="glyphicon glyphicon-retweet"> Azzera Sostituzioni</button>
-			</div>
-		<?php else: ?>
-			<div class="col-md-8 text-right">
-			</div>
-		<?php endif; ?>
+		<div class="col-md-8 text-right">
+		</div>
 		<div class="col-md-2 text-right">
             <?php
 			// il dirigente puo' comunque modificare le previsioni, anche quando e' chiuso
@@ -110,6 +239,53 @@ require_once '../common/header-docente.php';
         </div>
     </div>
 </div>
+
+<!-- <div class="panel-footer"></div> -->
+</div>
+
+<!-- corsi di recupero solo se ne ha fatti -->
+<?php
+	$dataCdr = '';
+	$oreCdr = dbGetValue("SELECT COALESCE(SUM(lezione_corso_di_recupero.numero_ore),0) FROM `lezione_corso_di_recupero` INNER JOIN corso_di_recupero ON lezione_corso_di_recupero.corso_di_recupero_id=corso_di_recupero.id  WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id AND firmato=true;");
+	if ($oreCdr > 0) {
+		$dataCdr .= '<div class="panel panel-lightblue4">
+						<div class="panel-heading container-fluid"><div class="row">
+								<div class="col-md-2"><span class="glyphicon glyphicon-repeat"></span>&emsp;Corsi di Recupero</div>
+								<div class="col-md-8 text-right"></div><div class="col-md-2 text-right"></div>
+						</div></div>
+						<div class="panel-body"><div class="row"><div class="col-md-12">
+						<div class="corso_di_recupero_records_content"></div>
+						</div></div></div><input type="hidden" id="hidden_corso_di_recupero_id"></div>';
+	}
+	echo $dataCdr;
+?>
+
+<div class="panel panel-deeporange4">
+<div class="panel-heading container-fluid">
+	<div class="row">
+		<div class="col-md-2">
+			<span class="glyphicon glyphicon-picture"></span>&emsp;Viaggi con Diaria - previsione
+		</div>
+		<div class="col-md-8 text-right">
+		</div>
+		<div class="col-md-2 text-right">
+            <?php
+			// il dirigente puo' comunque modificare le previsioni, anche quando e' chiuso
+            if ($__config->getOre_previsioni_aperto() || $operatore == 'dirigente') {
+            	echo '<button onclick="diariaPrevistaGetDetails(-1)" class="btn btn-xs btn-deeporange4"><span class="glyphicon glyphicon-plus"></span></button>';
+            }
+   			?>
+		</div>
+	</div>
+</div>
+<div class="panel-body">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="diaria_records_content"></div>
+        </div>
+    </div>
+</div>
+<input type="hidden" id="hidden_diaria_id">
 
 <!-- <div class="panel-footer"></div> -->
 </div>
@@ -211,11 +387,110 @@ $tipoAttivitaOptionList .= '</optgroup>';
 </div>
 <!-- // Modal - attivita details -->
 
+<!-- Modal - diaria details -->
+<div class="modal fade" id="diaria_modal" tabindex="-1" role="dialog" aria-labelledby="diariaModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+		<div class="modal-body">
+			<div class="panel panel-deeporange4">
+			<div class="panel-heading">
+			<h5 class="modal-title text-center" id="myModalLabel">Diaria Viaggio Prevista</h5>
+			</div>
+			<div class="panel-body">
+			<div class="form-horizontal">
+
+			<div class="form-group">
+                    <label class="col-sm-3 control-label" for="diaria_descrizione">descrizione viaggio</label>
+                    <div class="col-sm-9"><input type="text" id="diaria_descrizione" placeholder="inserire i dettagli noti del viaggio" class="form-control"/></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="diaria_giorni_senza_pernottamento">giorni senza pernottamento</label>
+                    <div class="col-sm-2"><input type="text" id="diaria_giorni_senza_pernottamento" placeholder="" class="form-control"/></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="diaria_giorni_con_pernottamento">giorni con pernottamento</label>
+                    <div class="col-sm-2"><input type="text" id="diaria_giorni_con_pernottamento" placeholder="" class="form-control"/></div>
+                </div>
+
+                <div class="form-group" id="diaria_commento-part">
+                    <hr>
+                    <label class="col-sm-3 control-label" for="diaria_commento">commento</label>
+                    <div class="col-sm-9"><input type="text" id="diaria_commento" placeholder="commento" class="form-control"/></div>
+                </div>
+
+            </div>
+            </div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+				<button type="button" class="btn btn-primary" onclick="diariaSave()" >Salva</button>
+				<input type="hidden" id="hidden_diaria_id">
+				<input type="hidden" id="hidden_diaria_docente_id" value="<?php echo $docente_id; ?>">
+				<input type="hidden" id="hidden_diaria_operatore" value="<?php echo $operatore; ?>">
+				<input type="hidden" id="hidden_diaria_ultimo_controllo" value="<?php echo $ultimo_controllo; ?>">
+				</div>
+			</div>
+        	</div>
+        	</div>
+    	</div>
+    </div>
+</div>
+<!-- // Modal - diaria details -->
+
+<!-- Modal - corsi di recupero details -->
+<div class="modal fade" id="corso_di_recupero_modal" tabindex="-1" role="dialog" aria-labelledby="corso_di_recuperoModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+		<div class="modal-body">
+			<div class="panel panel-deeporange4">
+			<div class="panel-heading">
+			<h5 class="modal-title text-center" id="myModalLabel">Corso di Recupero pagamento</h5>
+			</div>
+			<div class="panel-body">
+			<div class="form-horizontal">
+
+			<div class="form-group">
+                    <label class="col-sm-3 control-label" for="corso_di_recupero_codice">codice</label>
+                    <div class="col-sm-9"><input type="text" id="corso_di_recupero_codice" placeholder="" class="form-control" readonly="readonly"/></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="corso_di_recupero_ore_totali">ore totali</label>
+                    <div class="col-sm-2"><input type="text" id="corso_di_recupero_ore_totali" placeholder="" class="form-control" readonly="readonly"/></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="corso_di_recupero_ore_recuperate">ore recuperate</label>
+                    <div class="col-sm-2"><input type="text" id="corso_di_recupero_ore_recuperate" placeholder="" class="form-control"/></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="corso_di_recupero_ore_extra">ore extra</label>
+                    <div class="col-sm-2"><input type="text" id="corso_di_recupero_ore_extra" placeholder="" class="form-control"/></div>
+                </div>
+
+            </div>
+            </div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+				<button type="button" class="btn btn-primary" onclick="corsoDiRecuperoPrevisteSave()" >Salva</button>
+				<input type="hidden" id="hidden_corso_di_recupero_id">
+				</div>
+			</div>
+        	</div>
+        	</div>
+    	</div>
+    </div>
+</div>
+<!-- // Modal - corsi di recupero details -->
+
 </div>
 
 <!-- bootbox notificator -->
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 
+<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js"></script>
 <script type="text/javascript" src="js/scriptPreviste.js"></script>
 </body>
 </html>

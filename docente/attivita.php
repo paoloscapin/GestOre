@@ -32,6 +32,97 @@ require_once '../common/connect.php';
 ?>
 
 <div class="container-fluid" style="margin-top:60px">
+
+<div class="panel panel-lima4">
+<div class="panel-heading">
+	<span class="glyphicon glyphicon-time"></span>
+	<a data-toggle="collapse" href="#collapse_40">&ensp;40+70 ore </a>
+</div>
+<div id="collapse_40" class="panel-collapse collapse  collapse in">
+<div class="panel-body">
+
+	<div class="table-wrapper">
+	<table class="table table-vnocolor-index">
+		<thead>
+			<tr>
+				<th class="col-md-1"></th>
+				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocenteInFatte', false)) : ?>
+					<th class="col-md-1">Sostituzioni</th>
+				<?php else : ?>
+					<th class="col-md-1"></th>
+				<?php endif; ?>
+				<?php if(getSettingsValue('interfaccia','visualizzaAggiornamento', true)) : ?>
+					<th class="col-md-1 text-left">Aggiornamento</th>
+				<?php else : ?>
+					<th class="col-md-1"></th>
+				<?php endif; ?>
+				<th class="col-md-1"></th>
+				<th class="col-md-2 text-left"><?php echoLabel('Funzionali');?></th>
+				<th class="col-md-2 text-left">con Studenti</th>
+				<th class="col-md-2 text-left"><span class="clil hidden">CLIL (<?php echoLabel('Funzionali');?>)</span></th>
+				<th class="col-md-2 text-left"><span class="clil hidden">CLIL (con Studenti)</span></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><?php echoLabel('dovute');?></td>
+				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocenteInFatte', false)) : ?>
+					<td class="text-left" id="dovute_ore_40_sostituzioni_di_ufficio"></td>
+				<?php else : ?>
+					<td></td>
+				<?php endif; ?>
+				<?php if(getSettingsValue('interfaccia','visualizzaAggiornamento', true)) : ?>
+					<td class="text-left" id="dovute_ore_40_aggiornamento"></td>
+				<?php else : ?>
+					<td></td>
+				<?php endif; ?>
+				<td></td>
+				<td class="text-left" id="dovute_ore_70_funzionali"></td>
+				<td class="text-left" id="dovute_totale_con_studenti"></td>
+				<td class="text-left" ></td>
+				<td class="text-left" ></td>
+			</tr>
+			<tr class="orange5">
+				<td>previste</td>
+				<td></td>
+				<?php if(getSettingsValue('interfaccia','visualizzaAggiornamento', true)) : ?>
+					<td class="text-left" id="previste_ore_40_aggiornamento"></td>
+				<?php else : ?>
+					<td></td>
+				<?php endif; ?>
+				<td></td>
+				<td class="text-left" id="previste_ore_70_funzionali"></td>
+				<td class="text-left" id="previste_totale_con_studenti"></td>
+				<td class="text-left clil" id="clil_previste_funzionali"></td><td class="NOclil"></td>
+				<td class="text-left clil" id="clil_previste_con_studenti"></td><td class="NOclil"></td>
+			</tr>
+			<tr class="teal5">
+				<td>fatte</td>
+				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocenteInFatte', false)) : ?>
+					<td class="text-left" id="fatte_ore_40_sostituzioni_di_ufficio"></td>
+				<?php else : ?>
+					<td></td>
+				<?php endif; ?>
+				<?php if(getSettingsValue('interfaccia','visualizzaAggiornamento', false)) : ?>
+					<td class="text-left" id="fatte_ore_40_aggiornamento"></td>
+				<?php else : ?>
+					<td></td>
+				<?php endif; ?>
+				<td></td>
+				<td class="text-left" id="fatte_ore_70_funzionali"></td>
+				<td class="text-left" id="fatte_totale_con_studenti"></td>
+				<td class="text-left clil" id="clil_fatte_funzionali"></td><td class="NOclil"></td>
+				<td class="text-left clil" id="clil_fatte_con_studenti"></td><td class="NOclil"></td>
+			</tr>
+		</tbody>
+	</table>
+	</div>
+</div>
+</div>
+
+<!-- <div class="panel-footer"></div> -->
+</div>
+
 <div class="panel panel-teal4">
 <div class="panel-heading">
 	<div class="row">
@@ -509,6 +600,7 @@ require_once '../common/connect.php';
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 
 <!-- Custom JS file -->
+<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js"></script>
 <script type="text/javascript" src="js/scriptAttivita.js"></script>
 
 </body>
