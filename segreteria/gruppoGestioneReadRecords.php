@@ -29,6 +29,7 @@ $query = "	SELECT
 			FROM gruppo
             INNER JOIN docente
             ON gruppo.responsabile_docente_id = docente.id
+			WHERE anno_scolastico_id = $__anno_scolastico_corrente_id
 			";
 
 $query .= "order by gruppo.nome";
@@ -51,4 +52,3 @@ foreach(dbGetAll($query) as $row) {
 $data .= '</table></div>';
 echo $data;
 ?>
-
