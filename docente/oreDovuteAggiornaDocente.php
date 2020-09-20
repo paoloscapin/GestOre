@@ -72,6 +72,10 @@ function orePrevisteAggiornaDocente($docenteId) {
 		}
 	}
 
+	// aggiunge tutte le ore dei corsi di recupero segnate come recuperate
+	$ore_corsi_di_recupero = dbGetValue("SELECT COALESCE(SUM(corso_di_recupero.ore_recuperate), 0) FROM corso_di_recupero WHERE docente_id = $docenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
+	$ore_40_con_studenti = $ore_40_con_studenti + $ore_corsi_di_recupero;
+
 	// se richieste più di un certo numero di ore di viaggi, le eccedenti vengono tolte (non si dovevano aggiungere ma cosi' e' piu' semplice)
 	$max_ore_viaggi = getSettingsValue('viaggi','max_ore', 16);
 

@@ -10,6 +10,16 @@
 require_once '../common/checkSession.php';
 require_once '../common/__Minuti.php';
 
+
+function writeOre($attuali, $originali) {
+	// se non ci sono gli originali, scrive solo gli attuali
+	if ($originali == null || $originali == 0) {
+		return oreToDisplay($attuali);
+	}
+	// altrimenti gli originali cancellati e gli attuali in rosso
+	return '<s style="text-decoration-style: double;"> '.oreToDisplay($originali).' </s>&ensp;<span class="text-danger"><strong> '.oreToDisplay($attuali).' </strong></span>';
+}
+
 // default opera sul docente connesso e agisce come docente
 $docente_id = $__docente_id;
 $operatore = 'docente';
@@ -46,7 +56,8 @@ $query = "	SELECT
 					ore_previste_tipo_attivita.inserito_da_docente AS ore_previste_tipo_attivita_inserito_da_docente,
 					ore_previste_tipo_attivita.previsto_da_docente AS ore_previste_tipo_attivita_previsto_da_docente,
 					ore_previste_tipo_attivita.nome AS ore_previste_tipo_attivita_nome,
-                    ore_previste_attivita_commento.commento AS ore_previste_attivita_commento_commento
+                    ore_previste_attivita_commento.commento AS ore_previste_attivita_commento_commento,
+                    ore_previste_attivita_commento.ore_originali AS ore_previste_attivita_commento_ore_originali
 
 				FROM ore_previste_attivita ore_previste_attivita
 				INNER JOIN ore_previste_tipo_attivita ore_previste_tipo_attivita
@@ -56,11 +67,11 @@ $query = "	SELECT
 				WHERE ore_previste_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id
 				AND ore_previste_attivita.docente_id = $docente_id
 				ORDER BY
-				ore_previste_tipo_attivita.inserito_da_docente DESC,
 				ore_previste_tipo_attivita.previsto_da_docente DESC,
 				ore_previste_tipo_attivita.categoria, ore_previste_tipo_attivita.nome ASC;"
 				;
 
+$parteModificabile = true;
 foreach(dbGetAll($query) as $row) {
 	// controlla se aggiornata dall'ultima modifica (solo per il dirigente)
 	$marker = '';
@@ -70,10 +81,15 @@ foreach(dbGetAll($query) as $row) {
 		}
 	}
 
-	$data .= '<tr>
-	<td class="col-md-1">'.$row['ore_previste_tipo_attivita_categoria'].'</td>
-	<td class="col-md-3">'.$row['ore_previste_tipo_attivita_nome'].'</td>
-	<td>'.$row['ore_previste_attivita_dettaglio'].$marker;
+	// inserisce una riga rossa nella tabella quando iniziano le attività che non posso modificare
+	if ($parteModificabile && ! $row['ore_previste_tipo_attivita_previsto_da_docente']) {
+		$parteModificabile = false;
+		$data .= '<tr style="border-top:2px solid red">';
+	} else {
+		$data .= '<tr>';
+	}
+
+	$data .= '<td class="col-md-1">'.$row['ore_previste_tipo_attivita_categoria'].'</td><td class="col-md-3">'.$row['ore_previste_tipo_attivita_nome'].'</td><td>'.$row['ore_previste_attivita_dettaglio'].$marker;
 	if ($row['ore_previste_attivita_commento_commento'] != null && !empty(trim($row['ore_previste_attivita_commento_commento'], " "))) {
 		$data .='</br><span class="text-danger"><strong>'.$row['ore_previste_attivita_commento_commento'].'</strong></span>';
 	}
@@ -81,7 +97,7 @@ foreach(dbGetAll($query) as $row) {
 	$ore_con_minuti = oreToDisplay($row['ore_previste_attivita_ore']);
 
 	$data .= '</td>
-	<td class="col-md-1 text-center">'.$ore_con_minuti.'</td>
+	<td class="col-md-1 text-center">'.writeOre($row['ore_previste_attivita_ore'], $row['ore_previste_attivita_commento_ore_originali']).'</td>
 	';
 
 	$data .='<td class="col-md-1 text-center">';

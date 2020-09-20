@@ -5,47 +5,6 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-var warning = '<span class="glyphicon glyphicon-warning-sign text-error"></span>';
-var okSymbol = '&ensp;<span class="glyphicon glyphicon-ok text-success"></span>';
-
-function getHtmlNum(value) {
-	return '&emsp;' + ((value >= 10) ? trasformaFloatInStringa(value) : '&ensp;' + trasformaFloatInStringa(value));
-}
-
-function getHtmlNumAndPrevisteVisual(value, total) {
-	var numString = (value >= 10) ? trasformaFloatInStringa(value) : '&ensp;' + trasformaFloatInStringa(value);
-	var diff = total - value;
-	if (diff > 0) {
-		numString += '&ensp;<span class="label label-warning">- '+ trasformaFloatInStringa(diff) +'</span>';
-	} else if (diff < 0) {
-			numString += '&ensp;<span class="label label-danger">+ '+ trasformaFloatInStringa(-diff) +'</span>';
-	} else {
-		numString += okSymbol;
-	}
-	return '&emsp;' + numString;
-}
-
-function getHtmlNumAndFatteVisual(value, total) {
-	var numString = (value >= 10) ? trasformaFloatInStringa(value) : '&ensp;' + trasformaFloatInStringa(value);
-	var diff = total - value;
-	if (diff > 0) {
-		numString += '&ensp;<span class="label label-warning">- '+ trasformaFloatInStringa(diff) +'</span>';
-	} else if (diff < 0) {
-			numString += '&ensp;<span class="label label-danger">+ '+ trasformaFloatInStringa(-diff) +'</span>';
-	} else {
-		numString += okSymbol;
-	}
-	return '&emsp;' + numString;
-}
-
-function getHtmlNumAndFacoltativeVisual(value, total) {
-	return '&emsp;' + ((value >= 10) ? trasformaFloatInStringa(value) : '&ensp;' + trasformaFloatInStringa(value));
-}
-
-function getHtmlNumAndFatte80Visual(value, total) {
-	return '&emsp;' + ((value >= 10) ? trasformaFloatInStringa(value) : '&ensp;' + trasformaFloatInStringa(value));
-}
-
 function oreDovuteReadRecords() {
 	var ore_dovute, ore_previste, ore_fatte;
 

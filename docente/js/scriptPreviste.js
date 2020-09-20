@@ -13,7 +13,26 @@ function previsteReadRecords() {
 	function (data, status) {
 		$(".attivita_previste_records_content").html(data);
 	});
+}
 
+function viaggioDiariaPrevistaReadRecords() {
+	$.post("../docente/viaggioDiariaPrevistaReadRecords.php", {
+		operatore: $("#hidden_diaria_operatore").val(),
+		ultimo_controllo: $("#hidden_diaria_ultimo_controllo").val()
+	},
+	function (data, status) {
+		$(".diaria_records_content").html(data);
+	});
+}
+
+function corsoDiRecuperoPrevisteReadRecords() {
+	$.post("../docente/corsoDiRecuperoPrevisteReadRecords.php", {
+		operatore: $("#hidden_operatore").val(),
+		ultimo_controllo: $("#hidden_ultimo_controllo").val()
+	},
+	function (data, status) {
+		$(".corso_di_recupero_records_content").html(data);
+	});
 }
 
 function previstaUpdateDetails() {
@@ -36,8 +55,9 @@ function previstaUpdateDetails() {
     	if (data !== '') {
     		bootbox.alert(data);
     	}
-    	// console.log(data);
     	previsteReadRecords();
+		oreDovuteReadRecords();
+		fuisPrevisteAggiornaDocente();
     });
     $("#update_attivita_modal").modal("hide");
 }
@@ -84,7 +104,7 @@ function attivitaPrevistaAdd() {
 
 function previstaDelete(attivita_id) {
 	if ($("#hidden_operatore").val() == 'dirigente') {
-		previsteGetDetails(attivita_id);		
+		previsteGetDetails(attivita_id);
 		bootbox.confirm({
 			title: "Cancellazione Ore Previste",
 			message: 'Per ragioni di storico non è possibile cancellare le ore previste.</br>Si consiglia di mettere a zero il loro valore',
@@ -114,10 +134,164 @@ function previstaDelete(attivita_id) {
 				},
 				function (data, status) {
 					previsteReadRecords();
+					oreDovuteReadRecords();
+					fuisPrevisteAggiornaDocente();
 				}
 			);
 		}
 	}
+}
+
+function diariaPrevistaGetDetails(id) {
+	$("#hidden_diaria_id").val(id);
+	if (id > 0) {
+		$.post("../docente/viaggioDiariaPrevistaReadDetails.php", {
+			id: id
+			},
+			function (dati, status) {
+				// console.log(dati);
+				var diaria = JSON.parse(dati);
+				$("#diaria_descrizione").val(diaria.descrizione);
+				$("#diaria_giorni_senza_pernottamento").val(diaria.giorni_senza_pernottamento);
+				$("#diaria_giorni_con_pernottamento").val(diaria.giorni_con_pernottamento);
+				$("#diaria_commento").val(diaria.commento);
+			}
+		);
+	} else {
+		$("#diaria_descrizione").val('');
+		$("#diaria_giorni_senza_pernottamento").val('');
+		$("#diaria_giorni_con_pernottamento").val('');
+		$("#diaria_commento").val('');
+	}
+	if ($("#hidden_operatore").val() == 'dirigente') {
+		$("#diaria_commento-part").show();
+	} else {
+		$("#diaria_commento-part").hide();
+	}
+
+	if ($("#hidden_operatore").val() == 'dirigente') {
+		$("#diaria_commento-part").show();
+	} else {
+		$("#diaria_commento-part").hide();
+	}
+
+	$("#diaria_modal").modal("show");
+}
+
+function diariaSave() {
+	$.post("../docente/viaggioDiariaPrevistaSave.php", {
+    	id: $("#hidden_diaria_id").val(),
+		docente_id: $("#hidden_diaria_docente_id").val(),
+    	operatore: $("#hidden_diaria_operatore").val(),
+    	descrizione: $("#diaria_descrizione").val(),
+    	giorni_senza_pernottamento: $("#diaria_giorni_senza_pernottamento").val(),
+    	giorni_con_pernottamento: $("#diaria_giorni_con_pernottamento").val(),
+    	commento: $("#diaria_commento").val()
+    }, function (data, status) {
+    	if (data !== '') {
+    		bootbox.alert(data);
+    	}
+    	viaggioDiariaPrevistaReadRecords();
+		oreDovuteReadRecords();
+		fuisPrevisteAggiornaDocente();
+    });
+    $("#diaria_modal").modal("hide");
+}
+
+function diariaPrevistaDelete(id) {
+	if ($("#hidden_operatore").val() == 'dirigente') {
+		diariaPrevistaGetDetails(id);
+		bootbox.confirm({
+			title: "Cancellazione Diaria Prevista",
+			message: 'Per ragioni di storico non è possibile cancellare le previsione.</br>Si consiglia di mettere a zero il loro valore',
+			buttons: {
+				confirm: {
+					label: 'Va Bene',
+					className: 'btn-lima4'
+				},
+				cancel: {
+					label: 'Annulla'
+				}
+			},
+			callback: function (result) {
+				if (result === true) {
+					$("#diaria_giorni_senza_pernottamento").val(0);
+					$("#diaria_giorni_con_pernottamento").val(0);
+				} else {
+					$("#diaria_modal").modal("hide");
+				}
+			}
+		});
+	} else {
+		var conf = confirm("Sei sicuro di volere cancellare questa diaria prevista ?");
+		if (conf == true) {
+			$.post("../docente/viaggioDiariaPrevistaDelete.php", {
+				docente_id: $("#hidden_docente_id").val(),
+				id: id
+				},
+				function (data, status) {
+					viaggioDiariaPrevistaReadRecords();
+					oreDovuteReadRecords();
+					fuisPrevisteAggiornaDocente();
+				}
+			);
+		}
+	}
+}
+
+function corsoDiRecuperoPrevisteEdit(id, codice, ore_totali, ore_recuperate, ore_extra) {
+	$("#hidden_corso_di_recupero_id").val(id);
+	$("#corso_di_recupero_codice").val(codice);
+	$("#corso_di_recupero_ore_totali").val(ore_totali);
+	$("#corso_di_recupero_ore_recuperate").val(ore_recuperate);
+	$("#corso_di_recupero_ore_extra").val(ore_extra);
+	$("#corso_di_recupero_modal").modal("show");
+}
+
+$('#corso_di_recupero_ore_recuperate').change(function() {
+    var corso_di_recupero_ore_recuperate = $('#corso_di_recupero_ore_recuperate').val();
+	var corso_di_recupero_ore_totali = $('#corso_di_recupero_ore_totali').val();
+	corso_di_recupero_ore_recuperate = Math.min(corso_di_recupero_ore_recuperate, corso_di_recupero_ore_totali);
+	var corso_di_recupero_ore_extra = corso_di_recupero_ore_totali - corso_di_recupero_ore_recuperate;
+	$("#corso_di_recupero_ore_recuperate").val(corso_di_recupero_ore_recuperate);
+	$("#corso_di_recupero_ore_extra").val(corso_di_recupero_ore_extra);
+});
+
+$('#corso_di_recupero_ore_extra').change(function() {
+    var corso_di_recupero_ore_extra = $('#corso_di_recupero_ore_extra').val();
+	var corso_di_recupero_ore_totali = $('#corso_di_recupero_ore_totali').val();
+	corso_di_recupero_ore_extra = Math.min(corso_di_recupero_ore_extra, corso_di_recupero_ore_totali);
+	var corso_di_recupero_ore_recuperate = corso_di_recupero_ore_totali - corso_di_recupero_ore_extra;
+	$("#corso_di_recupero_ore_recuperate").val(corso_di_recupero_ore_recuperate);
+	$("#corso_di_recupero_ore_extra").val(corso_di_recupero_ore_extra);
+});
+
+
+function corsoDiRecuperoPrevisteSave() {
+	var ore_totali = $("#corso_di_recupero_ore_totali").val();
+	var ore_recuperate = $("#corso_di_recupero_ore_recuperate").val();
+	var ore_pagamento_extra = $("#corso_di_recupero_ore_extra").val();
+	
+	// per prima cosa le recuperate non possone essere piu' delle totali (ma non meno di 0)
+	ore_recuperate = Math.min(ore_recuperate, ore_totali);
+	ore_recuperate = Math.max(ore_recuperate, 0);
+	// poi le extra si calcolano in automatico
+	ore_pagamento_extra = ore_totali - ore_recuperate;
+
+	// adesso le posso salvare
+	$.post("../docente/corsoDiRecuperoPrevisteSave.php", {
+    	id: $("#hidden_corso_di_recupero_id").val(),
+		ore_recuperate: ore_recuperate,
+    	ore_pagamento_extra: ore_pagamento_extra
+    }, function (data, status) {
+    	if (data !== '') {
+    		bootbox.alert(data);
+    	}
+    	corsoDiRecuperoPrevisteReadRecords();
+		oreDovuteReadRecords();
+		fuisPrevisteAggiornaDocente();
+    });
+    $("#corso_di_recupero_modal").modal("hide");
 }
 
 // ----------------------------------------------------------------------------------------------
@@ -156,6 +330,8 @@ function previsteRivisto() {
 		var ultimo_controllo = localISOTime.replace('T', ' ');
 		$("#hidden_ultimo_controllo").val(ultimo_controllo);
 		previsteReadRecords();
+		oreDovuteReadRecords();
+		fuisPrevisteAggiornaDocente();
 		$.notify({
 			icon: 'glyphicon glyphicon-ok',
 			title: '<Strong>Previste</Strong></br>',
@@ -179,6 +355,8 @@ function previsteAzzeraSostituzioni() {
 	},
 	function (data, status) {
 		previsteReadRecords();
+		oreDovuteReadRecords();
+		fuisPrevisteAggiornaDocente();
 	});
 }
 
@@ -199,9 +377,86 @@ function previsteChiudi() {
 	});
 }
 
+function oreDovuteReadRecords() {
+	var ore_dovute, ore_previste, ore_fatte;
+
+	$.post("oreDovuteReadDetails.php", {
+		table_name: 'ore_dovute'
+	},
+	function (dati, status) {
+		// console.log(dati);
+        ore_dovute = JSON.parse(dati);
+		var dovute_con_studenti_totale = parseFloat(ore_dovute.ore_70_con_studenti) + parseFloat(ore_dovute.ore_40_con_studenti);
+		$("#dovute_ore_40_aggiornamento").html(getHtmlNum(ore_dovute.ore_40_aggiornamento));
+		$("#dovute_ore_70_funzionali").html(getHtmlNum(ore_dovute.ore_70_funzionali));
+		$("#dovute_totale_con_studenti").html(getHtmlNum(dovute_con_studenti_totale));
+		$.post("oreDovuteReadDetails.php", {
+			table_name: 'ore_previste'
+		},
+		function (dati, status) {
+			// console.log(dati);
+			ore_previste = JSON.parse(dati);
+            var previste_con_studenti_totale = parseFloat(ore_previste.ore_70_con_studenti) + parseFloat(ore_previste.ore_40_con_studenti);
+			$("#previste_ore_40_aggiornamento").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_40_aggiornamento,ore_dovute.ore_40_aggiornamento));
+			$("#previste_ore_70_funzionali").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_70_funzionali,ore_dovute.ore_70_funzionali));
+			$("#previste_totale_con_studenti").html(getHtmlNumAndPrevisteVisual(previste_con_studenti_totale,dovute_con_studenti_totale));
+			$.post("oreDovuteClilReadDetails.php", {
+				table_name: 'ore_fatte_attivita_clil'
+			},
+			function (dati, status) {
+				// console.log(dati);
+				ore_clil = JSON.parse(dati);
+				$("#clil_previste_funzionali").html(getHtmlNumAndPrevisteVisual(ore_clil.funzionali_previste, 0));
+				$("#clil_previste_con_studenti").html(getHtmlNumAndPrevisteVisual(ore_clil.con_studenti_previste, 0));
+//				$("#clil_fatte_funzionali").html(getHtmlNumAndFatteVisual(ore_clil.funzionali,ore_clil.funzionali_previste));
+//				$("#clil_fatte_con_studenti").html(getHtmlNumAndFatteVisual(ore_clil.con_studenti,ore_clil.con_studenti_previste));
+				if (parseInt(ore_clil.funzionali,10) + parseInt(ore_clil.con_studenti,10) + parseInt(ore_clil.funzionali_previste,10) + parseInt(ore_clil.con_studenti_previste,10) == 0) {
+					$(".clil").addClass('hidden');
+					$(".NOclil").removeClass('hidden');
+				} else {
+					$(".clil").removeClass('hidden');
+					$(".NOclil").addClass('hidden');
+				}
+			});
+		});
+	});
+}
+
+function fuisPrevisteAggiornaDocente() {
+
+	$.post("../dirigente/fuisPrevisteCalcolaDocente.php", {
+		docente_id: $("#hidden_docente_id").val()
+	},
+	function (dati, status) {
+		console.log(dati);
+		fuisPrevisto = JSON.parse(dati);
+		$("#fuis_assegnato").html(number_format(fuisPrevisto.assegnato,2));
+		$("#fuis_ore").html(number_format(fuisPrevisto.ore,2));
+		$("#fuis_diaria").html(number_format(fuisPrevisto.diaria,2));
+
+		$("#fuis_clil_funzionali").html(number_format(fuisPrevisto.clilFunzionale,2));
+		$("#fuis_clil_con_studenti").html(number_format(fuisPrevisto.clilConStudenti,2));
+
+		$("#fuis_corsi_di_recupero").html(number_format(fuisPrevisto.extraCorsiDiRecupero,2));
+
+		// totali
+		$("#fuis_docente_totale").html(number_format(parseFloat(fuisPrevisto.assegnato) + parseFloat(fuisPrevisto.ore) + parseFloat(fuisPrevisto.diaria),2));
+		$("#fuis_clil_totale").html(number_format(parseFloat(fuisPrevisto.clilFunzionale) + parseFloat(fuisPrevisto.clilConStudenti), 2));
+		$("#fuis_corsi_di_recupero_totale").html(number_format(fuisPrevisto.extraCorsiDiRecupero,2));
+		$('#fuis_docente_totale').css({ 'font-weight': 'bold' });
+		$('#fuis_clil_totale').css({ 'font-weight': 'bold' });
+		$('#fuis_corsi_di_recupero_totale').css({ 'font-weight': 'bold' });
+	});
+}
+
 //Read records on page load
 $(document).ready(function () {
-    previsteReadRecords();
+	previsteReadRecords();
+	viaggioDiariaPrevistaReadRecords();
+	corsoDiRecuperoPrevisteReadRecords();
+	oreDovuteReadRecords();
+	fuisPrevisteAggiornaDocente();
+
 	// questi campi potrebbero essere gestiti in minuti se settato nel json
 	campiInMinuti(
 		'#update_ore'
