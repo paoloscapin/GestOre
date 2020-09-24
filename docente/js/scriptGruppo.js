@@ -21,7 +21,7 @@ function gruppoIncontroReadRecords(group_id) {
         // console.log(data);
         var record = JSON.parse(data);
         $(".gruppo_records_content_" + group_id).html(record.table);
-        $("#totale_ore_" + group_id).text(record.totale_ore);
+        $("#totale_ore_" + group_id).html(record.totale_ore);
 	});
 }
 
@@ -126,11 +126,47 @@ function gruppoIncontroSave() {
     });
 }
 
+function gruppoGestionePartecipantiRead(gruppo_id) {
+    $("#hidden_gruppo_id").val(gruppo_id);
+
+    $.post("../segreteria/gruppoGestionePartecipantiRead.php", {
+        gruppo_id: gruppo_id
+    }, function (data, status) {
+//        console.log(data);
+        var record = JSON.parse(data);
+        var idList = new Array();
+        var i;
+        for (i = 0; i < record.length; ++i) {
+            idList.push(record[i]);
+        }
+        $("#partecipanti").val(idList).trigger('change');
+        $("#partecipanti_modal").modal("show");
+    });
+}
+
+function gruppoPartecipantiSave() {
+//    console.log($('#partecipanti').val());
+    $.post("../segreteria/gruppoGestionePartecipantiSave.php", {
+
+        gruppo_id: $("#hidden_gruppo_id").val(),
+        partecipantiArray: JSON.stringify($('#partecipanti').val())
+    }, function (data, status) {
+        $("#partecipanti_modal").modal("hide");
+    });
+}
+
 $(document).ready(function () {
 	// questi campi potrebbero essere gestiti in minuti se settato nel json
 	campiInMinuti(
 		'#durata'
 	);
+
+    $("#partecipanti").select2( {
+        placeholder: "Seleziona i docenti",
+        allowClear: false,
+        language: "it",
+        multiple: true
+    });      
 
     data_incontro_pickr = flatpickr("#data_incontro", {
 		locale: {

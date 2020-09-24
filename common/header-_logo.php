@@ -10,7 +10,13 @@
 ?>
 
 <?php
-require_once __DIR__ . '/../version.php';
+if(file_exists(__DIR__ . '/../versiona.php')) {
+	include_once __DIR__ . '/../versiona.php';
+} else {
+	$__software_name = APPLICATION_NAME;
+	$__software_version = 'unknown';
+	$__software_release_date = 'unknown';
+}
 ?>
 
 	<div class="navbar-header">

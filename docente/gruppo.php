@@ -21,6 +21,7 @@ require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
+require_once '../common/_include_select2.php';
 require_once '../common/_include_flatpickr.php';
 require_once '../common/__Minuti.php';
 ruoloRichiesto('docente','segreteria-docenti','dirigente');
@@ -53,14 +54,17 @@ foreach(dbGetAll($query) as $gruppo) {
     <div class="panel panel-lightblue4">
     <div class="panel-heading">
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <span class="glyphicon glyphicon-user"></span>&ensp;'.$gruppo['nome'].'
             </div>
-            <div class="col-md-4 text-center">
+            <div class="col-md-3 text-center">
             max ore: '.$gruppo['max_ore'].' (usate: <span id="totale_ore_'.$gruppo['id'].'"></span>)
             </div>
-            <div class="col-md-4 text-right">
-                        <button onclick="gruppoIncontroGetDetails(-1, '.$gruppo['id'].')" class="btn btn-xs btn-lightblue4"><span class="glyphicon glyphicon-plus"></span></button>
+            <div class="col-md-3 text-center">
+                    <button onclick="gruppoGestionePartecipantiRead('.$gruppo['id'].')" class="btn btn-xs btn-lightblue4"><span class="glyphicon glyphicon-education">&ensp;Partecipanti</span></button>
+            </div>
+            <div class="col-md-3 text-right">
+                    <button onclick="gruppoIncontroGetDetails(-1, '.$gruppo['id'].')" class="btn btn-xs btn-lightblue4"><span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>
     </div>
@@ -83,7 +87,49 @@ foreach(dbGetAll($query) as $gruppo) {
 echo $data;
 ?>
 
+<?php
+// prepara l'elenco dei docenti
+$docenteOptionList = '				<option value="0"></option>';
+$query = "	SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC;";
+foreach(dbGetAll($query) as $docenteRow) {
+	$docenteOptionList .= '<option value="'.$docenteRow['id'].'">'.$docenteRow['cognome'].' '.$docenteRow['nome'].'</option>';
+}
+?>
+
 <!-- Bootstrap Modals -->
+<!-- Modal - partecipanti -->
+<div class="modal fade" id="partecipanti_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="partecipantiModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+			<div class="panel panel-lightblue4">
+			<div class="panel-heading">
+				<h5 class="modal-title" id="partecipantiModalLabel">Partecipanti Gruppo</h5>
+			</div>
+			<div class="panel-body">
+			<form class="form-horizontal">
+
+                <select id="partecipanti" class="js-example-basic-multiple form-control" multiple="multiple" style="width: 75%">
+                    <?php echo $docenteOptionList ?>
+                </select>
+				<input type="hidden" id="hidden_gruppo_id">
+
+			</form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" onclick="gruppoPartecipantiSave()">Salva</button>
+            </div>
+			</div>
+			</div>
+        </div>
+    </div>
+</div>
+<!-- // Modal - partecipanti -->
+
+
+
+
 <!-- Modal - Add/Update Record -->
 <div class="modal fade" id="update_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
 <div class="modal-dialog modal-lg" role="document">
@@ -105,7 +151,7 @@ echo $data;
                 <div class="form-group">
                     <label for="durata" class="col-sm-2 control-label">Durata ore</label>
                     <div class="col-sm-2"><input type="text" id="durata" placeholder="0" class="form-control"/></div>
-                    </div>
+                </div>
                 <hr>
 
                 <div class="form-group">
@@ -153,7 +199,6 @@ echo $data;
 				<input type="hidden" id="hidden_gruppo_id">
 				<input type="hidden" id="hidden_list_gruppo_id" value='<?php echo json_encode($gruppo_id_list); ?>'>
             </div>
-			</div>
 			</div>
         </div>
     </div>
