@@ -10,8 +10,8 @@
 ?>
 
 <?php
-if(file_exists(__DIR__ . '/../versiona.php')) {
-	include_once __DIR__ . '/../versiona.php';
+if(file_exists(__DIR__ . '/../version.php')) {
+	include_once __DIR__ . '/../version.php';
 } else {
 	$__software_name = APPLICATION_NAME;
 	$__software_version = 'unknown';

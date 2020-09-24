@@ -9,10 +9,11 @@
 
 // session_start();
 require_once __DIR__ . '/path.php';
+require_once __DIR__ . '/connect.php';
 ?>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
-
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/releaseversion.css">
 <nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
 	<div class="container-fluid">
 	<?php require_once '../common/header-_logo.php'; ?>
