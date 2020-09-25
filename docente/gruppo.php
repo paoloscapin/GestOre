@@ -60,9 +60,11 @@ foreach(dbGetAll($query) as $gruppo) {
             <div class="col-md-3 text-center">
             max ore: '.$gruppo['max_ore'].' (usate: <span id="totale_ore_'.$gruppo['id'].'"></span>)
             </div>
-            <div class="col-md-3 text-center">
-                    <button onclick="gruppoGestionePartecipantiRead('.$gruppo['id'].')" class="btn btn-xs btn-lightblue4"><span class="glyphicon glyphicon-education">&ensp;Partecipanti</span></button>
-            </div>
+            <div class="col-md-3 text-center">';
+    if(getSettingsValue('interfaccia','gruppoResponsabileGestiionePartecipanti', true)) {
+        $data .= '<button onclick="gruppoGestionePartecipantiRead('.$gruppo['id'].')" class="btn btn-xs btn-lightblue4"><span class="glyphicon glyphicon-education">&ensp;Partecipanti</span></button>';
+    }
+    $data .= '</div>
             <div class="col-md-3 text-right">
                     <button onclick="gruppoIncontroGetDetails(-1, '.$gruppo['id'].')" class="btn btn-xs btn-lightblue4"><span class="glyphicon glyphicon-plus"></span></button>
             </div>

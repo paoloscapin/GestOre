@@ -33,7 +33,8 @@
         "visualizzaSostituzioniDocente": true,
         "extraMenuDirigente": false,
         "visualizzaAggiornamento": true,
-        "visualizzaSostituzioniDocenteInFatte": false
+        "visualizzaSostituzioniDocenteInFatte": false,
+        "gruppoResponsabileGestiionePartecipanti": true
     },
     "local": {
         "helpLinkDocente": "https://docs.google.com/document/d/1Ymf4zN6lbeJ-430u-AhgB90TELg4gy1u1QHbDchsrww/edit?usp=sharing",
