@@ -36,10 +36,9 @@ function orePrevisteAggiornaDocente($docenteId) {
 		FROM ore_previste_attivita
 		INNER JOIN ore_previste_tipo_attivita
 		on ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
-		WHERE ore_previste_attivita.docente_id = $docenteId AND ore_previste_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id;
-		";
-	$resultArray = dbGetAll($query);
-	foreach($resultArray as $attivita) {
+		WHERE ore_previste_attivita.docente_id = $docenteId AND ore_previste_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id;";
+
+	foreach(dbGetAll($query) as $attivita) {
 		switch ($attivita['categoria'])  {
 			case "funzionali":
 				$ore_70_funzionali = $ore_70_funzionali + $attivita['ore'];
@@ -123,7 +122,8 @@ function orePrevisteAggiornaDocente($docenteId) {
 
 function oreFatteAggiornaDocente($docenteId) {
 	global $__anno_scolastico_corrente_id;
-	
+	global $__settings;
+
 	// per prima cosa azzera i contatori
 	$ore_40_sostituzioni_di_ufficio = 0;
 	$ore_40_con_studenti = 0;
@@ -132,6 +132,7 @@ function oreFatteAggiornaDocente($docenteId) {
 	$ore_70_con_studenti = 0;
 	$ore_80_aggiornamento = 0;
 	$totale_aggiornamento = 0;
+	$totale_visite = 0;
 
 	// per prima cosa controlla quante sono le ore 40 con gli studenti dovute per questo docente
 	$ore_con_studenti_40_dovute = dbGetValue("SELECT ore_40_con_studenti FROM ore_dovute WHERE docente_id = $docenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
@@ -144,12 +145,9 @@ function oreFatteAggiornaDocente($docenteId) {
 		FROM ore_fatte_attivita
 		INNER JOIN ore_previste_tipo_attivita
 		on ore_fatte_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
-		WHERE ore_fatte_attivita.docente_id = $docenteId
-        AND ore_fatte_attivita.contestata is not true
-        AND ore_fatte_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id;
-		";
-	$resultArray = dbGetAll($query);
-	foreach($resultArray as $attivita) {
+		WHERE ore_fatte_attivita.docente_id = $docenteId AND ore_fatte_attivita.contestata is not true AND ore_fatte_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id;";
+
+	foreach(dbGetAll($query) as $attivita) {
 		switch ($attivita['categoria'])  {
 			case "funzionali":
 				$ore_70_funzionali = $ore_70_funzionali + $attivita['ore'];
@@ -172,7 +170,11 @@ function oreFatteAggiornaDocente($docenteId) {
 				break;
 		}
 	}
-	
+
+	// aggiunge tutte le ore dei corsi di recupero segnate come recuperate
+	$ore_corsi_di_recupero = dbGetValue("SELECT COALESCE(SUM(corso_di_recupero.ore_recuperate), 0) FROM corso_di_recupero WHERE docente_id = $docenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
+	$ore_40_con_studenti = $ore_40_con_studenti + $ore_corsi_di_recupero;
+
 	// a queste vanno aggiunte le ore attribuite
 	$query = "	SELECT
 					ore_previste_attivita.id AS ore_previste_attivita_id,
@@ -189,27 +191,26 @@ function oreFatteAggiornaDocente($docenteId) {
 				WHERE ore_previste_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id
 				AND ore_previste_attivita.docente_id = $docenteId
                 AND ore_previste_tipo_attivita.inserito_da_docente = false
-                AND ore_previste_tipo_attivita.previsto_da_docente = false
-				";
-	$resultArray = dbGetAll($query);
-	foreach($resultArray as $attivita) {
+                AND ore_previste_tipo_attivita.previsto_da_docente = false;";
+
+	foreach(dbGetAll($query) as $attivita) {
 	    switch ($attivita['ore_previste_tipo_attivita_categoria'])  {
 	        case "funzionali":
 	            $ore_70_funzionali = $ore_70_funzionali + $attivita['ore_previste_attivita_ore'];
 	            break;
-	            
+
 	        case "sostituzioni":
 	            $ore_40_sostituzioni_di_ufficio = $ore_40_sostituzioni_di_ufficio + $attivita['ore_previste_attivita_ore'];
 	            break;
-	            
+
 	        case "aggiornamento":
 	            $totale_aggiornamento = $totale_aggiornamento + $attivita['ore_previste_attivita_ore'];
 	            break;
-	            
+
 	        case "con studenti":
 	            $ore_40_con_studenti = $ore_40_con_studenti + $attivita['ore_previste_attivita_ore'];
 	            break;
-	            
+
 	        default:
 	            warning('attivita sconosciuta: '.$attivita['categoria']);
 	            break;
@@ -226,7 +227,7 @@ function oreFatteAggiornaDocente($docenteId) {
 			AND gruppo_incontro_partecipazione.ha_partecipato = true
 			AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id
 			AND gruppo_incontro.effettuato = true
-			AND gruppo.dipartimento = false";
+			AND gruppo.dipartimento = false;";
 	$ore_gruppi = dbGetValue($query);
 	$ore_70_funzionali = $ore_70_funzionali + $ore_gruppi;
 
@@ -243,13 +244,12 @@ function oreFatteAggiornaDocente($docenteId) {
 				INNER JOIN viaggio viaggio
 				ON viaggio_ore_recuperate.viaggio_id = viaggio.id
 				WHERE viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id
-				AND viaggio.docente_id = $docenteId
-				";
-	$resultArray = dbGetAll($query);
-	foreach($resultArray as $viaggio) {
+				AND viaggio.docente_id = $docenteId;";
+
+	foreach(dbGetAll($query) as $viaggio) {
 	    $ore_40_con_studenti = $ore_40_con_studenti + $viaggio['viaggio_ore_recuperate_ore'];
 	}
-	    
+
 	// le eccedenti di 10 delle 40 aggiornamento le mette nelle 80 aggiornamento (fino a 10)
 	$ore_40_aggiornamento = min($totale_aggiornamento, 10);
 	if ($totale_aggiornamento > 10) {
@@ -264,7 +264,7 @@ function oreFatteAggiornaDocente($docenteId) {
 
 	$ore_40_totali = 0 + round($ore_40_aggiornamento + ($ore_40_sostituzioni_di_ufficio * 50 / 60) + ($ore_40_con_studenti * 50 / 60));
 	$ore_70_totali = 0 + round($ore_70_funzionali + $ore_70_con_studenti);
-	
+
 	// aggiorna i valori della tabella ore_fatte
 
 	// inserito di nuovo dal seguente:

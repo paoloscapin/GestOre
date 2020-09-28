@@ -75,6 +75,16 @@ function oreFatteReadRecords() {
 	});
 }
 
+function corsoDiRecuperoPrevisteReadRecords() {
+	$.post("../docente/corsoDiRecuperoPrevisteReadRecords.php", {
+		operatore: $("#hidden_operatore").val(),
+		ultimo_controllo: $("#hidden_ultimo_controllo").val()
+	},
+	function (data, status) {
+		$(".corso_di_recupero_records_content").html(data);
+	});
+}
+
 function oreFatteReadAttivitaRecords() {
 	oreFatteReadRecords();
 
@@ -96,6 +106,7 @@ function oreFatteReadAttivitaRecords() {
 	$.get("oreFatteReadViaggi.php", {}, function (data, status) {
 		$(".viaggi_records_content").html(data);
 	});
+	corsoDiRecuperoPrevisteReadRecords();
 }
 
 function oreFatteGetRegistroAttivita(attivita_id, registro_id) {
@@ -256,6 +267,63 @@ function oreFatteSommario() {
 	});
 
 	$("#docente_sommario_modal").modal("show");
+}
+
+//---------------------------- START Corso di Recupero ----------------------------------------
+
+function corsoDiRecuperoPrevisteEdit(id, codice, ore_totali, ore_recuperate, ore_extra) {
+	$("#hidden_corso_di_recupero_id").val(id);
+	$("#corso_di_recupero_codice").val(codice);
+	$("#corso_di_recupero_ore_totali").val(ore_totali);
+	$("#corso_di_recupero_ore_recuperate").val(ore_recuperate);
+	$("#corso_di_recupero_ore_extra").val(ore_extra);
+	$("#corso_di_recupero_modal").modal("show");
+}
+
+$('#corso_di_recupero_ore_recuperate').change(function() {
+    var corso_di_recupero_ore_recuperate = $('#corso_di_recupero_ore_recuperate').val();
+	var corso_di_recupero_ore_totali = $('#corso_di_recupero_ore_totali').val();
+	corso_di_recupero_ore_recuperate = Math.min(corso_di_recupero_ore_recuperate, corso_di_recupero_ore_totali);
+	var corso_di_recupero_ore_extra = corso_di_recupero_ore_totali - corso_di_recupero_ore_recuperate;
+	$("#corso_di_recupero_ore_recuperate").val(corso_di_recupero_ore_recuperate);
+	$("#corso_di_recupero_ore_extra").val(corso_di_recupero_ore_extra);
+});
+
+$('#corso_di_recupero_ore_extra').change(function() {
+    var corso_di_recupero_ore_extra = $('#corso_di_recupero_ore_extra').val();
+	var corso_di_recupero_ore_totali = $('#corso_di_recupero_ore_totali').val();
+	corso_di_recupero_ore_extra = Math.min(corso_di_recupero_ore_extra, corso_di_recupero_ore_totali);
+	var corso_di_recupero_ore_recuperate = corso_di_recupero_ore_totali - corso_di_recupero_ore_extra;
+	$("#corso_di_recupero_ore_recuperate").val(corso_di_recupero_ore_recuperate);
+	$("#corso_di_recupero_ore_extra").val(corso_di_recupero_ore_extra);
+});
+
+
+function corsoDiRecuperoPrevisteSave() {
+	var ore_totali = $("#corso_di_recupero_ore_totali").val();
+	var ore_recuperate = $("#corso_di_recupero_ore_recuperate").val();
+	var ore_pagamento_extra = $("#corso_di_recupero_ore_extra").val();
+	
+	// per prima cosa le recuperate non possone essere piu' delle totali (ma non meno di 0)
+	ore_recuperate = Math.min(ore_recuperate, ore_totali);
+	ore_recuperate = Math.max(ore_recuperate, 0);
+	// poi le extra si calcolano in automatico
+	ore_pagamento_extra = ore_totali - ore_recuperate;
+
+	// adesso le posso salvare
+	$.post("../docente/corsoDiRecuperoPrevisteSave.php", {
+    	id: $("#hidden_corso_di_recupero_id").val(),
+		ore_recuperate: ore_recuperate,
+    	ore_pagamento_extra: ore_pagamento_extra
+    }, function (data, status) {
+    	if (data !== '') {
+    		bootbox.alert(data);
+    	}
+    	corsoDiRecuperoPrevisteReadRecords();
+		oreFatteReadRecords();
+		// TODO: insert for dirigente if used fuisFatteAggiornaDocente();
+    });
+    $("#corso_di_recupero_modal").modal("hide");
 }
 
 //---------------------------- START CLIL ----------------------------------------

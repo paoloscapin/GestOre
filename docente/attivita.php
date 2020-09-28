@@ -27,6 +27,10 @@ ruoloRichiesto('segreteria-docenti','dirigente','docente');
 
 <body >
 <?php
+// default opera sul docente connesso e agisce come docente
+$docente_id = $__docente_id;
+$operatore = 'docente';
+
 require_once '../common/header-docente.php';
 require_once '../common/connect.php';
 ?>
@@ -285,6 +289,23 @@ require_once '../common/connect.php';
 
 <!-- <div class="panel-footer"></div> -->
 </div>
+
+<!-- corsi di recupero solo se ne ha fatti -->
+<?php
+	$dataCdr = '';
+	$oreCdr = dbGetValue("SELECT COALESCE(SUM(lezione_corso_di_recupero.numero_ore),0) FROM `lezione_corso_di_recupero` INNER JOIN corso_di_recupero ON lezione_corso_di_recupero.corso_di_recupero_id=corso_di_recupero.id  WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id AND firmato=true;");
+	if ($oreCdr > 0) {
+		$dataCdr .= '<div class="panel panel-lightblue4">
+						<div class="panel-heading container-fluid"><div class="row">
+								<div class="col-md-2"><span class="glyphicon glyphicon-repeat"></span>&emsp;Corsi di Recupero</div>
+								<div class="col-md-8 text-right"></div><div class="col-md-2 text-right"></div>
+						</div></div>
+						<div class="panel-body"><div class="row"><div class="col-md-12">
+						<div class="corso_di_recupero_records_content"></div>
+						</div></div></div><input type="hidden" id="hidden_corso_di_recupero_id"></div>';
+	}
+	echo $dataCdr;
+?>
 
 <div class="panel panel-deeporange4">
 <div class="panel-heading">
@@ -594,6 +615,53 @@ require_once '../common/connect.php';
     </div>
 </div>
 <!-- // Modal - attivita clil details -->
+
+<!-- Modal - corsi di recupero details -->
+<div class="modal fade" id="corso_di_recupero_modal" tabindex="-1" role="dialog" aria-labelledby="corso_di_recuperoModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+		<div class="modal-body">
+			<div class="panel panel-deeporange4">
+			<div class="panel-heading">
+			<h5 class="modal-title text-center" id="myModalLabel">Corso di Recupero pagamento</h5>
+			</div>
+			<div class="panel-body">
+			<div class="form-horizontal">
+
+			<div class="form-group">
+                    <label class="col-sm-3 control-label" for="corso_di_recupero_codice">codice</label>
+                    <div class="col-sm-9"><input type="text" id="corso_di_recupero_codice" placeholder="" class="form-control" readonly="readonly"/></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="corso_di_recupero_ore_totali">ore totali</label>
+                    <div class="col-sm-2"><input type="text" id="corso_di_recupero_ore_totali" placeholder="" class="form-control" readonly="readonly"/></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="corso_di_recupero_ore_recuperate">ore recuperate</label>
+                    <div class="col-sm-2"><input type="text" id="corso_di_recupero_ore_recuperate" placeholder="" class="form-control"/></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="corso_di_recupero_ore_extra">ore extra</label>
+                    <div class="col-sm-2"><input type="text" id="corso_di_recupero_ore_extra" placeholder="" class="form-control"/></div>
+                </div>
+
+            </div>
+            </div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+				<button type="button" class="btn btn-primary" onclick="corsoDiRecuperoPrevisteSave()" >Salva</button>
+				<input type="hidden" id="hidden_corso_di_recupero_id">
+				</div>
+			</div>
+        	</div>
+        	</div>
+    	</div>
+    </div>
+</div>
+<!-- // Modal - corsi di recupero details -->
 
 </div>
 
