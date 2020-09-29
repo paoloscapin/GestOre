@@ -42,14 +42,17 @@ require_once '../common/connect.php';
 <div class="panel panel-orange4">
 <div class="panel-heading container-fluid">
 	<div class="row">
-		<div class="col-md-3">
+		<div class="col-md-2">
 			<span class="glyphicon glyphicon-list-alt"></span>&emsp;<strong>Ore Previste</strong>
 		</div>
 		<div class="col-md-3 text-center" id="totale_previste">
 		</div>
 		<div class="col-md-3 text-center" id="totale_previste_clil">
 		</div>
-		<div class="col-md-3 text-center" id="page_refresh">
+		<div class="col-md-3 text-center" id="totale_previste_corsi_di_recupero">
+		</div>
+		<div class="col-md-1 text-right" id="page_refresh">
+            <button onclick="refreshPagina()" class="btn btn-xs btn-orange4"><span class="glyphicon glyphicon-refresh"></span></button>
 		</div>
 	</div>
 </div>
@@ -79,6 +82,7 @@ require_once '../dirigente/fuisPrevisteCalcolaDocente.php';
 
 $fuis_totale_previsto = 0;
 $fuis_totale_previsto_clil = 0;
+$fuis_totale_corsi_di_recupero = 0;
 foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cognome,nome;") as $docente) {
     $docenteId = $docente['id'];
     $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
@@ -108,6 +112,7 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cog
 
     $fuis_totale_previsto = $fuis_totale_previsto + $fuisPrevisto['diaria'] + $fuisPrevisto['assegnato'] + $fuisPrevisto['ore'];
     $fuis_totale_previsto_clil = $fuis_totale_previsto_clil + $fuisPrevisto['clilFunzionale'] + $fuisPrevisto['clilConStudenti'];
+    $fuis_totale_corsi_di_recupero = $fuis_totale_corsi_di_recupero + $fuisPrevisto['extraCorsiDiRecupero'];
 }
 
 function importoStampabile($importo) {
@@ -127,6 +132,7 @@ function importoStampabile($importo) {
 </div>
 <input type="hidden" id="hidden_fuis_totale_previsto" value="<?php echo $fuis_totale_previsto; ?>">
 <input type="hidden" id="hidden_fuis_totale_previsto_clil" value="<?php echo $fuis_totale_previsto_clil; ?>">
+<input type="hidden" id="hidden_fuis_totale_corsi_di_recupero" value="<?php echo $fuis_totale_corsi_di_recupero; ?>">
 <input type="hidden" id="hidden_fuis_budget" value="<?php echo $__importi['fuis']; ?>">
 <input type="hidden" id="hidden_fuis_budget_clil" value="<?php echo $__importi['fuis_clil']; ?>">
 

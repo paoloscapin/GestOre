@@ -144,7 +144,7 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM 
 	WHERE
 		bonus_docente.docente_id = ".$docente_id."
 	AND
-		bonus_docente.anno_scolastico_id = $__anno_scolastico_corrente_id
+		bonus_docente.anno_scolastico_id = $anno_id
 		
 	ORDER BY
 		bonus.codice;
