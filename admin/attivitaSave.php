@@ -13,7 +13,7 @@ ruoloRichiesto('dirigente');
 if(isset($_POST)) {
 	$id = $_POST['id'];
 	$categoria = $_POST['categoria'];
-	$nome = $_POST['nome'];
+	$nome = escapePost('nome');
 	$ore = $_POST['ore'];
 	$ore_max = $_POST['ore_max'];
 	$valido = $_POST['valido'];
