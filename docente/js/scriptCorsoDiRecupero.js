@@ -5,7 +5,7 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-var soloNonFirmati = 1;
+var soloNonFirmati = 0;
 var soloCorsiDiOggi = 1;
 
 $('#soloFirmatiCheckBox').change(function() {

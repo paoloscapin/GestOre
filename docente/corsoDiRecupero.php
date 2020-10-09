@@ -48,7 +48,7 @@ ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente'
 		</div>
 		<div class="col-md-2 text-right">
 			<label for="soloFirmatiCheckBox" class=""> Mostra anche già Firmati </label>
-			<input type="checkbox" class="checkbox-inline pull-right" data-toggle="toggle" data-size="mini" data-onstyle="warning" id="soloFirmatiCheckBox" >
+			<input type="checkbox" class="checkbox-inline pull-right" data-toggle="toggle" data-size="mini" data-onstyle="warning" id="soloFirmatiCheckBox" checked="checked" >
 		</div>
 	</div>
 </div>

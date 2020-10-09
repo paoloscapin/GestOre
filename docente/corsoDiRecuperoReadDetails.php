@@ -29,7 +29,7 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 				ON studente_partecipa_lezione_corso_di_recupero.lezione_corso_di_recupero_id = lezione_corso_di_recupero.id
 				WHERE
 					studente_partecipa_lezione_corso_di_recupero.lezione_corso_di_recupero_id = ".$lezione_corso_di_recupero_id."
-				"
+				 ORDER BY studente_per_corso_di_recupero.classe ASC, studente_per_corso_di_recupero.cognome ASC, studente_per_corso_di_recupero.nome ASC"
 				;
 	$partecipaArray = dbGetAll($query);
 	echo json_encode($partecipaArray);
