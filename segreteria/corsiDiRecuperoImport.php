@@ -50,7 +50,7 @@ function nextWords() {
     $words = str_getcsv($line);
 
     // trim delle parole
-    $words = array_map('trim', $words); 
+    $words = array_map('trim', $words);
     return $words;
 }
 
@@ -240,10 +240,13 @@ while ($words[0] == 'CODICE') {
 		$sql .= "INSERT INTO studente_per_corso_di_recupero (cognome, nome, classe, corso_di_recupero_id) VALUES ('$cognome', '$nome', '$classe', @last_id_corso_di_recupero);
             ";
 
+        // se aveva raggiunto la fine delle linee, interrompi
+        if ($completato) {
+            break;
+        }
         nextWords();
         if ($linePos >= $numberOfLines) {
             $completato = true;
-            break;
         }
     }
 	// studente_partecipa_lezione_corso_di_recupero
