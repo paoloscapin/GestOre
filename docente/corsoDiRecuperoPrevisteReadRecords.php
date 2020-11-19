@@ -51,6 +51,10 @@ foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.* FROM corso_di_recupero INN
 		$obbligatorie_per_chiudere_le_10_ore = true;
 		$mancanti_recuperate_totale = 10 - $ore_recuperate_totale;
 		$ore_recuperate_calcolate = min($ore_firmate, $mancanti_recuperate_totale);
+
+		// ma se le aveva già inserite in altro modo le lascio così (ad esempio 30 tutte in recuperate)
+		$ore_recuperate_calcolate = max($ore_recuperate_calcolate, $ore_recuperate);
+
 		$ore_recuperate_totale += $ore_recuperate_calcolate;
 		$ore_pagamento_extra_calcolate = $ore_firmate - $ore_recuperate_calcolate;
 

@@ -50,7 +50,7 @@ function nextWords() {
     $words = str_getcsv($line);
 
     // trim delle parole
-    $words = array_map('trim', $words); 
+    $words = array_map('trim', $words);
     return $words;
 }
 
@@ -190,8 +190,16 @@ while ($words[0] == 'CODICE') {
         $lezioni_inizio = $words[2];
         $lezioni_fine = $words[3];
         // prende solo il numero del giorno dal primo campo e lo usa per settembre
-        $numeroGiorno = (int) filter_var($lezioni_data, FILTER_SANITIZE_NUMBER_INT);
-        $dateMySql = $anno."-09-".sprintf('%02d', $numeroGiorno);
+        // $numeroGiorno = (int) filter_var($lezioni_data, FILTER_SANITIZE_NUMBER_INT);
+        // $dateMySql = $anno."-09-".sprintf('%02d', $numeroGiorno);
+        $oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
+        $dataLezione = DateTime::createFromFormat('d/m/Y', $lezioni_data);
+        if ($dataLezione == null) {
+            erroreDiImport("data non riconosciuta (formato richiesto=d/m/Y): " . $lezioni_data);
+            break;
+        }
+        $dataLezioneSql = $dataLezione->format('Y-m-d');
+        setlocale(LC_TIME, $oldLocale);
 
         // prende l'ora di inizio dal secondo campo
         $timeStart = strtotime ($lezioni_inizio);
@@ -204,7 +212,7 @@ while ($words[0] == 'CODICE') {
         // orario in formato stringa
         $orario = date("H:i", $timeStart) . " - " . date("H:i", $timeEnd);
 
-        $sql .= "INSERT INTO lezione_corso_di_recupero (data, inizia_alle, numero_ore, orario, corso_di_recupero_id) VALUES ('$dateMySql', '$inizia_alle', $numero_ore, '$orario', @last_id_corso_di_recupero);
+        $sql .= "INSERT INTO lezione_corso_di_recupero (data, inizia_alle, numero_ore, orario, corso_di_recupero_id) VALUES ('$dataLezioneSql', '$inizia_alle', $numero_ore, '$orario', @last_id_corso_di_recupero);
             ";
         nextWords();
     }
@@ -232,10 +240,13 @@ while ($words[0] == 'CODICE') {
 		$sql .= "INSERT INTO studente_per_corso_di_recupero (cognome, nome, classe, corso_di_recupero_id) VALUES ('$cognome', '$nome', '$classe', @last_id_corso_di_recupero);
             ";
 
+        // se aveva raggiunto la fine delle linee, interrompi
+        if ($completato) {
+            break;
+        }
         nextWords();
         if ($linePos >= $numberOfLines) {
             $completato = true;
-            break;
         }
     }
 	// studente_partecipa_lezione_corso_di_recupero

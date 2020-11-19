@@ -1,3 +1,9 @@
+## Version 1.1.2
+
+##### Improvements
+- corsi di recupero firmati default on
+- corsi di recupero primo totale anche maggiore di 10 se serve
+
 ## Version 1.1.1 - 24 set 2020
 
 ##### Improvements

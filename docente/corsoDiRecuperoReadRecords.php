@@ -142,8 +142,8 @@ foreach(dbGetAll($query) as $row) {
 				ON studente_partecipa_lezione_corso_di_recupero.studente_per_corso_di_recupero_id = studente_per_corso_di_recupero.id
 				WHERE
 					studente_partecipa_lezione_corso_di_recupero.lezione_corso_di_recupero_id = ".$row['lezione_corso_di_recupero_id']."
-				"
-				;
+				 ORDER BY studente_per_corso_di_recupero.classe ASC, studente_per_corso_di_recupero.cognome ASC, studente_per_corso_di_recupero.nome ASC"
+				 ;
 	if (!$result = mysqli_query($con, $query)) {
 		exit(mysqli_error($con));
 	}
