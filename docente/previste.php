@@ -243,6 +243,43 @@ require_once '../common/header-docente.php';
 <!-- <div class="panel-footer"></div> -->
 </div>
 
+<div class="panel panel-lima4">
+<div class="panel-heading">
+	<div class="row">
+		<div class="col-md-2">
+			<span class="glyphicon glyphicon-list-alt"></span>&ensp;Attribuite
+		</div>
+		<div class="col-md-8 text-center">
+		</div>
+		<div class="col-md-2 text-right">
+		<?php
+			// il dirigente puo' comunque modificare le attribuite
+            if ($operatore == 'dirigente') {
+            	echo '
+					<button onclick="attribuiteGetDetails(-1)" class="btn btn-xs btn-lima4"><span class="glyphicon glyphicon-plus"></span></button>
+				';
+            }
+   			?>
+		</div>
+	</div>
+</div>
+<div class="panel-body">
+    <div class="row"  style="margin-bottom:10px;">
+        <div class="col-md-6">
+        </div>
+        <div class="col-md-6">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="attribuite_records_content"></div>
+        </div>
+    </div>
+</div>
+
+<!-- <div class="panel-footer"></div> -->
+</div>
+
 <!-- corsi di recupero solo se ne ha fatti -->
 <?php
 	$dataCdr = '';
@@ -485,6 +522,11 @@ $tipoAttivitaOptionList .= '</optgroup>';
 </div>
 <!-- // Modal - corsi di recupero details -->
 
+<!-- include la gestione delle ore attribuite (Modal Dialog) -->
+<?php
+require_once '../docente/attribuiteModal.php';
+?>
+
 </div>
 
 <!-- bootbox notificator -->
@@ -492,5 +534,6 @@ $tipoAttivitaOptionList .= '</optgroup>';
 
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js"></script>
 <script type="text/javascript" src="js/scriptPreviste.js"></script>
+<script type="text/javascript" src="js/scriptAttribuite.js"></script>
 </body>
 </html>

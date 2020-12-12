@@ -663,6 +663,11 @@ require_once '../common/connect.php';
 </div>
 <!-- // Modal - corsi di recupero details -->
 
+<!-- include la gestione delle ore attribuite (Modal Dialog) -->
+<?php
+require_once '../docente/attribuiteModal.php';
+?>
+
 </div>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
@@ -670,6 +675,7 @@ require_once '../common/connect.php';
 <!-- Custom JS file -->
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js"></script>
 <script type="text/javascript" src="js/scriptAttivita.js"></script>
+<script type="text/javascript" src="js/scriptAttribuite.js"></script>
 
 </body>
 </html>

@@ -15,6 +15,12 @@ function previsteReadRecords() {
 	});
 }
 
+function attribuiteReadRecords() {
+	$.get("oreFatteReadAttribuite.php", {}, function (data, status) {
+		$(".attribuite_records_content").html(data);
+	});
+}
+
 function viaggioDiariaPrevistaReadRecords() {
 	$.post("../docente/viaggioDiariaPrevistaReadRecords.php", {
 		operatore: $("#hidden_diaria_operatore").val(),
@@ -57,7 +63,7 @@ function previstaUpdateDetails() {
     	}
     	previsteReadRecords();
 		oreDovuteReadRecords();
-		fuisPrevisteAggiornaDocente();
+		fuisAggiornaDocente();
     });
     $("#update_attivita_modal").modal("hide");
 }
@@ -135,7 +141,7 @@ function previstaDelete(attivita_id) {
 				function (data, status) {
 					previsteReadRecords();
 					oreDovuteReadRecords();
-					fuisPrevisteAggiornaDocente();
+					fuisAggiornaDocente();
 				}
 			);
 		}
@@ -193,7 +199,7 @@ function diariaSave() {
     	}
     	viaggioDiariaPrevistaReadRecords();
 		oreDovuteReadRecords();
-		fuisPrevisteAggiornaDocente();
+		fuisAggiornaDocente();
     });
     $("#diaria_modal").modal("hide");
 }
@@ -232,7 +238,7 @@ function diariaPrevistaDelete(id) {
 				function (data, status) {
 					viaggioDiariaPrevistaReadRecords();
 					oreDovuteReadRecords();
-					fuisPrevisteAggiornaDocente();
+					fuisAggiornaDocente();
 				}
 			);
 		}
@@ -289,7 +295,7 @@ function corsoDiRecuperoPrevisteSave() {
     	}
     	corsoDiRecuperoPrevisteReadRecords();
 		oreDovuteReadRecords();
-		fuisPrevisteAggiornaDocente();
+		fuisAggiornaDocente();
     });
     $("#corso_di_recupero_modal").modal("hide");
 }
@@ -331,7 +337,7 @@ function previsteRivisto() {
 		$("#hidden_ultimo_controllo").val(ultimo_controllo);
 		previsteReadRecords();
 		oreDovuteReadRecords();
-		fuisPrevisteAggiornaDocente();
+		fuisAggiornaDocente();
 		$.notify({
 			icon: 'glyphicon glyphicon-ok',
 			title: '<Strong>Previste</Strong></br>',
@@ -356,7 +362,7 @@ function previsteAzzeraSostituzioni() {
 	function (data, status) {
 		previsteReadRecords();
 		oreDovuteReadRecords();
-		fuisPrevisteAggiornaDocente();
+		fuisAggiornaDocente();
 	});
 }
 
@@ -422,7 +428,10 @@ function oreDovuteReadRecords() {
 	});
 }
 
-function fuisPrevisteAggiornaDocente() {
+function fuisAggiornaDocente() {
+	if ($("#hidden_operatore").val() != 'dirigente') {
+		return;
+	}
 
 	$.post("../dirigente/fuisPrevisteCalcolaDocente.php", {
 		docente_id: $("#hidden_docente_id").val()
@@ -446,16 +455,21 @@ function fuisPrevisteAggiornaDocente() {
 		$('#fuis_docente_totale').css({ 'font-weight': 'bold' });
 		$('#fuis_clil_totale').css({ 'font-weight': 'bold' });
 		$('#fuis_corsi_di_recupero_totale').css({ 'font-weight': 'bold' });
+		oreDovuteReadRecords();
 	});
 }
 
 //Read records on page load
 $(document).ready(function () {
 	previsteReadRecords();
+	attribuiteReadRecords();
 	viaggioDiariaPrevistaReadRecords();
 	corsoDiRecuperoPrevisteReadRecords();
-	oreDovuteReadRecords();
-	fuisPrevisteAggiornaDocente();
+
+	// viene chiamato dalla successiva dunque lo elimino da qui:
+	// oreDovuteReadRecords();
+
+	fuisAggiornaDocente();
 
 	// questi campi potrebbero essere gestiti in minuti se settato nel json
 	campiInMinuti(

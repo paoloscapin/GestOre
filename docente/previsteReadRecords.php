@@ -66,6 +66,7 @@ $query = "	SELECT
                 on ore_previste_attivita_commento.ore_previste_attivita_id = ore_previste_attivita.id
 				WHERE ore_previste_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id
 				AND ore_previste_attivita.docente_id = $docente_id
+				AND ore_previste_tipo_attivita.previsto_da_docente = true
 				ORDER BY
 				ore_previste_tipo_attivita.previsto_da_docente DESC,
 				ore_previste_tipo_attivita.categoria, ore_previste_tipo_attivita.nome ASC;"

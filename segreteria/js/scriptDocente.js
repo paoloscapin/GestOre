@@ -274,6 +274,22 @@ function docenteUpdateDetails() {
     );
 }
 
+function importFile(file) {
+    var contenuto = "";
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+        contenuto = event.target.result;
+        $.post("docenteImport.php", {
+            contenuto: contenuto
+        },
+        function (data, status) {
+			$('#result_text').html(data);
+			docenteReadRecords();
+        });
+    });
+    reader.readAsText(file);
+}
+
 $(document).ready(function () {
 	docenteReadRecords();
 
@@ -295,4 +311,8 @@ $(document).ready(function () {
 		'#profilo_ore_70_con_studenti',
 		'#profilo_ore_70_totale'
 	);
+
+    $('#file_select_id').change(function (e) {
+        importFile(e. target. files[0]);
+    });
 });
