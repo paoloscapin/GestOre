@@ -11,14 +11,19 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/__Minuti.php';
 
-$modificabile = $__config->getOre_fatte_aperto();
-$sommarioDirigente = false;
+$operatoreDirigente = false;
 
 $docente_id = $__docente_id;
+if (haRuolo('dirigente')) {
+	$operatoreDirigente = true;
+	debug('si sono dirigente, id='.$__docente_id);
+}
+
+// il dirigente lo chiama passando il docente_id (todo: rimuovere)
 if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
+	ruoloRichiesto('dirigente');
 	$docente_id = $_POST['docente_id'];
-	$modificabile = false;
-	$sommarioDirigente = true;
+	$operatoreDirigente = true;
 }
 
 $data = '';
@@ -26,13 +31,11 @@ $data = '';
 // nel sommario non vogliamo le ultime due colonne e nome e dettaglio insieme
 $data .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green"><thead><tr>
 <th class="col-md-2 text-left">Tipo</th>
-<th class="text-left">Nome</th>';
-if (! $sommarioDirigente) {
-	$data .= '<th class="col-md-3 text-left">Dettaglio</th>';
-}
-$data .= '<th class="col-md-2 text-center">Ore</th>';
-if (! $sommarioDirigente) {
-	$data .= '<th class="col-md-1 text-center">Rendiconto</th>';
+<th class="col-md-2 text-left">Nome</th>
+<th class="col-md-5 text-left">Dettaglio</th>
+<th class="col-md-2 text-center">Ore</th>';
+if ($operatoreDirigente) {
+	$data .= '<th class="col-md-1 text-center"></th>';
 }
 
 $data .= '</tr></thead><tbody>';
@@ -60,24 +63,13 @@ $query = "	SELECT
 
 foreach(dbGetAll($query) as $row) {
 	$ore_con_minuti = oreToDisplay($row['ore_previste_attivita_ore']);
-	$data .= '<tr>
-	<td>'.$row['ore_previste_tipo_attivita_categoria'].'</td>';
-	if ($sommarioDirigente) {
-		$data .= '<td>'.$row['ore_previste_tipo_attivita_nome'].' - '.$row['ore_previste_attivita_dettaglio'].'</td>';
-	} else {
-		$data .= '<td>'.$row['ore_previste_tipo_attivita_nome'].'</td>';
-		$data .= '<td>'.$row['ore_previste_attivita_dettaglio'].'</td>';
-	}
+	$data .= '<tr><td>'.$row['ore_previste_tipo_attivita_categoria'].'</td>';
+	$data .= '<td>'.$row['ore_previste_tipo_attivita_nome'].'</td>';
+	$data .= '<td>'.$row['ore_previste_attivita_dettaglio'].'</td>';
 	$data .= '<td class="text-center">'.$row['ore_previste_attivita_ore'].'</td>
 	';
-	if (! $sommarioDirigente) {
-		$data .='<td class="text-center">';
-		if ($row['ore_previste_tipo_attivita_da_rendicontare']) {
-			if ($modificabile) {
-				$data .='<button onclick="oreFatteGetRegistroAttivita('.$row['ore_previste_attivita_id'].', '.$docente_id.')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>';
-			}
-		}
-		$data .='</td>';
+	if ($operatoreDirigente) {
+		$data .='<td class="text-center"><button onclick="attribuiteGetDetails('.$row['ore_previste_attivita_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button></td>';
 	}
 	$data .='</tr>';
 }			
