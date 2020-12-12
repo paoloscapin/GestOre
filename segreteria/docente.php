@@ -50,17 +50,20 @@ $ore80 = [
 <div class="panel panel-lightblue4">
 <div class="panel-heading container-fluid">
 	<div class="row">
-		<div class="col-md-4">
+		<div class="col-md-3">
 			<span class="glyphicon glyphicon-education"></span>&emsp;Gestione Docenti
 		</div>
-        <div class="col-md-4">
+		<div class="col-md-3 text-center">
+            <label id="import_btn" class="btn btn-xs btn-lightblue4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
+		</div>
+        <div class="col-md-3">
             <div class="text-center">
 				<label class="checkbox-inline">
 					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="testCheckBox" >Solo Attivi
 				</label>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="pull-right">
 				<button class="btn btn-xs btn-lightblue4" data-toggle="modal" data-target="#add_new_record_modal"><span class="glyphicon glyphicon-plus"></span></button>
             </div>
@@ -68,6 +71,10 @@ $ore80 = [
 	</div>
 </div>
 <div class="panel-body">
+<div class="row"  style="margin-bottom:10px;">
+    <div class="col-md-12 text-center" id='result_text'>
+        </div>
+    </div>
     <div class="row">
         <div class="col-md-12">
             <div class="records_content"></div>
