@@ -24,6 +24,50 @@ function saveConfigurazione() {
 	);
 }
 
+function importBonusFile(file) {
+	var contenuto = "";
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+        contenuto = event.target.result;
+		$.post("bonusImport.php", {
+            contenuto: contenuto
+        },
+        function (data, status) {
+			// console.log('data=[' + data.trim() + ']');
+			// se data non e' vuoto c'e' stato un errore da riportare
+			if (data.trim() === '') {
+				$.notify({
+					icon: 'glyphicon glyphicon-ok',
+					title: '<Strong>Criteri Bonus</Strong></br>',
+					message: '<p>I nuovi criteri sono stati importati!</p>'
+				},{
+					placement: {
+						from: "top",
+						align: "center"
+					},
+					delay: 3000,
+					timer: 100,
+					mouse_over: "pause",
+					type: 'success'
+				});	
+			} else {
+				$.notify({
+					icon: 'glyphicon glyphicon-exclamation-sign',
+					title: '<Strong>Criteri Bonus</Strong></br>',
+					message: '<p>Errore nell\'import dei nuovi criteri</p></br>' + data.trim()
+				},{
+					placement: {
+						from: "top",
+						align: "center"
+					},
+					delay: 0,
+					type: 'danger'
+				});
+			}
+        });
+	});
+    reader.readAsText(file);
+}
 
 function salvaImporti() {
 
@@ -53,3 +97,9 @@ function salvaImporti() {
 }
 
 
+$(document).ready(function () {
+
+    $('#bonus_select_id').change(function (e) {
+        importBonusFile(e. target. files[0]);
+    });
+});
