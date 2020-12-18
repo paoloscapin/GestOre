@@ -159,8 +159,8 @@ if (empty($data)) {
 // esegue la query se non vuota
 if (!empty($sqlList)) {
     foreach($sqlList as $sql) {
-        // dbExec($sql);
-        debug($sql);
+        dbExec($sql);
+        // debug($sql);
     }
     info('Import criteri bonus effettuato: ' . $data);
 }
