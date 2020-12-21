@@ -437,7 +437,7 @@ function fuisAggiornaDocente() {
 		docente_id: $("#hidden_docente_id").val()
 	},
 	function (dati, status) {
-		console.log(dati);
+		// console.log(dati);
 		fuisPrevisto = JSON.parse(dati);
 		$("#fuis_assegnato").html(number_format(fuisPrevisto.assegnato,2));
 		$("#fuis_ore").html(number_format(fuisPrevisto.ore,2));
@@ -455,7 +455,6 @@ function fuisAggiornaDocente() {
 		$('#fuis_docente_totale').css({ 'font-weight': 'bold' });
 		$('#fuis_clil_totale').css({ 'font-weight': 'bold' });
 		$('#fuis_corsi_di_recupero_totale').css({ 'font-weight': 'bold' });
-		oreDovuteReadRecords();
 	});
 }
 
@@ -466,8 +465,7 @@ $(document).ready(function () {
 	viaggioDiariaPrevistaReadRecords();
 	corsoDiRecuperoPrevisteReadRecords();
 
-	// viene chiamato dalla successiva dunque lo elimino da qui:
-	// oreDovuteReadRecords();
+	oreDovuteReadRecords();
 
 	fuisAggiornaDocente();
 
