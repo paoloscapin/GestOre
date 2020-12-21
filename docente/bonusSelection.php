@@ -56,7 +56,6 @@ foreach($resultArray as $bonus_area) {
                         <span class="glyphicon glyphicon-list-alt"></span>&ensp;'.$bonus_area['codice'].' '.$bonus_area['descrizione'].'
                     </div>
                     <div class="col-md-4 text-center">
-                        Max '.$bonus_area['valore_massimo'].'
                     </div>
                     <div class="col-md-4 text-right">
                     </div>
@@ -76,7 +75,7 @@ foreach($resultArray as $bonus_area) {
             				<table class="table table-bordered table-striped table-green" id="bonus_selection_table">
             					<thead>
             						<tr>
-                						<th colspan="5" class="text-center">'.$bonus_indicatore['codice'].' '.$bonus_indicatore['descrizione'].' - (max '.$bonus_indicatore['valore_massimo'].')</th>
+                                    <th></th><th></th><th colspan="5" class="text-center">'.$bonus_indicatore['codice'].' - '.$bonus_indicatore['descrizione'].'</th>
                                     </tr>
             						<tr>
                 						<th class="text-center col-md-1">bonus_id</th>
