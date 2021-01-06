@@ -140,6 +140,8 @@ require_once '../common/connect.php';
 
 <?php endif; ?>
 
+<?php if(getSettingsValue('interfaccia','docenteVisualizza80Ore', true)) : ?>
+
 <div class="panel panel-yellow4" id="panel-80-ore" >
 <div class="panel-heading">
 	<span class="glyphicon glyphicon-list-alt"></span>
@@ -200,6 +202,35 @@ require_once '../common/connect.php';
 </div>
 <!-- <div class="panel-footer"></div> -->
 </div>
+
+<?php endif; ?>
+
+<?php if(getSettingsValue('interfaccia','docenteVisualizzaFuis', false)) : ?>
+
+	<div class="panel panel-deeporange4" id="panel-fuis">
+<div class="panel-heading">
+	<span class="glyphicon glyphicon-list-alt"></span>&ensp;FUIS
+</div>
+<div id="collapse_fuis" class="panel-collapse collapse  collapse in">
+<div class="panel-body">
+    <div class="row"  style="margin-bottom:10px;">
+        <div class="col-md-6">
+        </div>
+        <div class="col-md-6">
+        </div>
+    </div>
+	<div id="notificationBlock"></div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="fuis_docente_records_content"></div>
+        </div>
+    </div>
+</div>
+</div>
+<!-- <div class="panel-footer"></div> -->
+</div>
+
+<?php endif; ?>
 
 </div>
 

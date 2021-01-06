@@ -12,7 +12,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>GestOre didattica</title>
+	<title>GestOre studente</title>
 <?php
 require_once '../common/checkSession.php';
 require_once '../common/header-common.php';

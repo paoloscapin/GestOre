@@ -5,9 +5,25 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+var soloNuovi=1;
+var materia_filtro_id=0;
+
+$('#soloNuoviCheckBox').change(function() {
+    // this si riferisce al checkbox
+    if (this.checked) {
+		soloNuovi = 1;
+    } else {
+		soloNuovi = 0;
+    }
+    sportelloReadRecords();
+});
+
 function sportelloReadRecords() {
-	$.get("sportelloReadRecords.php?ancheCancellati=true", {}, function (data, status) {
+	$.get("sportelloReadRecords.php?ancheCancellati=true&soloNuovi=" + soloNuovi + "&materia_filtro_id=" + materia_filtro_id, {}, function (data, status) {
 		$(".records_content").html(data);
+        $('[data-toggle="tooltip"]').tooltip({
+            container: 'body'
+        });
 	});
 }
 
@@ -26,38 +42,56 @@ function sportelloCancellaIscrizione(sportello_id, materia) {
 }
 
 function sportelloIscriviti(sportello_id, materia, argomento) {
-    if (! argomento) {
-        bootbox.prompt({
-            title: "<p>Sportello: " + materia + "</p>",
-            message: '<p>Inserire l\'argomento:</p>',
-            inputType: 'textarea',
-            callback: function (testo) {
-                if (testo != null) {
-                    argomento = testo;
-                }
-                $.post("../studente/sportelloIscriviStudente.php", {
-                    id: sportello_id,
-                    materia: materia,
-                    argomento: argomento
-                },
-                function (data, status) {
-                    sportelloReadRecords();
-            });
+    var primoIscritto = argomento ? false : true;
+    var titolo = "<p>Sportello: " + materia + "</p>";
+    var messaggio = primoIscritto ? "<p>Inserire l\'argomento per lo sportello:</p>" : "<p>Confermare l\'argomento per lo sportello:</p>" + argomento;
+    var inputType = primoIscritto ? 'textarea' : 'checkbox';
+    var inputOptions = primoIscritto ? [] : [{text: 'Confermo',value: '1',}];
+    var value = primoIscritto ? [] : ['1'];
+
+    bootbox.prompt({
+        title: titolo,
+        message: messaggio,
+        inputType: inputType,
+        inputOptions: inputOptions,
+        value: value,
+        required: true,
+
+        callback: function (result) {
+            console.log('result='+result);
+            // null se cancel
+            if (!result) {
+                console.log('result is null: ritorno');
+                return;
             }
-        });;
-    } else {
-        $.post("../studente/sportelloIscriviStudente.php", {
+            if (argomento) {
+                // controlla il checkbox
+                if (result != 1) {
+                    console.log('result='+result + ' ritorno');
+                    return;
+                }
+            } else {
+                argomento = result;
+            }
+            $.post("../studente/sportelloIscriviStudente.php", {
                 id: sportello_id,
                 materia: materia,
                 argomento: argomento
             },
             function (data, status) {
                 sportelloReadRecords();
-        });
-
-    }
+            });
+        }
+    });
 }
 
 $(document).ready(function () {
 	sportelloReadRecords();
+    
+    $("#materia_filtro").on("changed.bs.select", 
+    function(e, clickedIndex, newValue, oldValue) {
+        materia_filtro_id = this.value;
+        sportelloReadRecords();
+    });
+
 });

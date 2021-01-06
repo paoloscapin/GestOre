@@ -90,7 +90,16 @@ function oreDovuteReadRecords() {
 	});
 }
 
+function fuisDocenteReadRecords() {
+	$.post("../docente/fuisDocenteReadRecords.php", {
+	},
+	function (data, status) {
+		$(".fuis_docente_records_content").html(data);
+	});
+}
+
 //Read records on page load
 $(document).ready(function () {
     oreDovuteReadRecords();
+    fuisDocenteReadRecords();
 });

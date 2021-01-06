@@ -29,6 +29,8 @@
         "sportelli": false
     },
     "interfaccia": {
+        "docenteVisualizza80Ore": true,
+        "docenteVisualizzaFuis": false,
         "apriDocenteInNuovoTab": false,
         "visualizzaSostituzioniDocente": true,
         "extraMenuDirigente": false,
@@ -67,6 +69,10 @@
         "rimuovi_sostituzioni_non_fatte": true,
         "compensa_in_valore": true,
         "accetta_con_studenti_per_funzionali": false
+    },
+    "sportelli": {
+        "numero_max_prenotazioni": 10,
+        "nascondiNomeStudenti": false
     },
     "label": {
         "ore_funzionali": "funzionali",
