@@ -1,4 +1,4 @@
-## Version 1.2.0 - Panda - Import
+## Version 1.2.0 - 7 gen 2021 - Panda - Import
 
 ##### Improvements
 - ore attirbuite separate, inserite in fatte e previste, con aggiornamento possibile da dirigente
