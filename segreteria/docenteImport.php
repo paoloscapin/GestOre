@@ -65,7 +65,7 @@ foreach($lines as $line) {
     // trim delle parole
     $words = array_map('trim', $words);
 
-    // ci devono essere nome,cognome,email,classe,anno
+    // ci devono essere almeno cognome,nome,email
     if (count($words) < 3) {
         erroreDiImport("numero di argomenti errato (" . count($words) . ")");
         break;
@@ -73,6 +73,8 @@ foreach($lines as $line) {
     $cognome = escapeString($words[0]);
     $nome = escapeString($words[1]);
     $email = escapeString($words[2]);
+
+    // il numero di matricola opzionale
     $matricola = '';
     if (count($words) >= 4) {
         $matricola = escapeString($words[3]);

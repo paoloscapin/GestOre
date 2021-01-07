@@ -56,6 +56,7 @@ foreach($lines as $line) {
     // scompone i csv
     $words = str_getcsv($line);
     if (startswith( $line, "#") || empty($line)) {
+        debug('Skip line: ' . $line);
         continue;
     }
 
@@ -67,8 +68,8 @@ foreach($lines as $line) {
         erroreDiImport("numero di argomenti errato (" . count($words) . ")");
         break;
     }
-    $nome = escapeString($words[0]);
-    $cognome = escapeString($words[1]);
+    $cognome = escapeString($words[0]);
+    $nome = escapeString($words[1]);
     $email = escapeString($words[2]);
     $classe = escapeString($words[3]);
     $anno = escapeString($words[4]);
