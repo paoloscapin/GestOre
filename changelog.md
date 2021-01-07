@@ -1,10 +1,11 @@
-## Version 1.1.3
+## Version 1.2.0
 
 ##### Improvements
 - ore attirbuite separate, inserite in fatte e previste, con aggiornamento possibile da dirigente
 - segreteria: import docenti da file excel
 - dirigente: import criteri bonus da file excel
 - didattica: list, gestione studenti e import da file excel
+- merge gestione sportelli
 
 ## Version 1.1.2
 
