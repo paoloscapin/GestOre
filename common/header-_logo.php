@@ -17,13 +17,10 @@ if(file_exists(__DIR__ . '/../version.php')) {
 	$__software_version = 'unknown';
 	$__software_release_date = 'unknown';
 }
-if (haRuolo('admin')) {
-	$changeLogLinkBegin = '<a href="' . $__application_base_path . '/changelog.md" target="_blank" >';
-	$changeLogLinkEnd = '</a>';
-} else {
-	$changeLogLinkBegin = '';
-	$changeLogLinkEnd = '';
-}
+
+$changeLogLinkBegin = '<a href="' . $__application_base_path . '/changelog.md" target="_blank" >';
+$changeLogLinkEnd = '</a>';
+
 ?>
 
 	<div class="navbar-header">
