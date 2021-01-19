@@ -86,10 +86,13 @@ function orePrevisteAggiornaDocente($docenteId) {
 		}
 	}
 
+	// controllo quante ore di aggiornamento dovrebbe fare
+	$ore_aggiornamento_dovute = dbGetValue("SELECT ore_40_aggiornamento FROM ore_dovute WHERE docente_id = $docenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
+
 	// le eccedenti di 10 delle 40 aggiornamento le mette nelle 80 aggiornamento (fino a 10)
-	$ore_40_aggiornamento = min($totale_aggiornamento, 10);
+	$ore_40_aggiornamento = min($totale_aggiornamento, $ore_aggiornamento_dovute);
 	if ($totale_aggiornamento > 10) {
-		$ore_80_aggiornamento = min(($totale_aggiornamento - 10), 10);
+		$ore_80_aggiornamento = min(($totale_aggiornamento - $ore_aggiornamento_dovute), $ore_aggiornamento_dovute);
 	}
 
 	// tutte le ore con studenti superiori alle 40 dovute le mette nelle 70
@@ -250,10 +253,13 @@ function oreFatteAggiornaDocente($docenteId) {
 	    $ore_40_con_studenti = $ore_40_con_studenti + $viaggio['viaggio_ore_recuperate_ore'];
 	}
 
+	// controllo quante ore di aggiornamento dovrebbe fare
+	$ore_aggiornamento_dovute = dbGetValue("SELECT ore_40_aggiornamento FROM ore_dovute WHERE docente_id = $docenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
+
 	// le eccedenti di 10 delle 40 aggiornamento le mette nelle 80 aggiornamento (fino a 10)
-	$ore_40_aggiornamento = min($totale_aggiornamento, 10);
-	if ($totale_aggiornamento > 10) {
-		$ore_80_aggiornamento = min(($totale_aggiornamento - 10), 10);
+	$ore_40_aggiornamento = min($totale_aggiornamento, $ore_aggiornamento_dovute);
+	if ($totale_aggiornamento > $ore_aggiornamento_dovute) {
+		$ore_80_aggiornamento = min(($totale_aggiornamento - $ore_aggiornamento_dovute), $ore_aggiornamento_dovute);
 	}
 
 	// tutte le ore con studenti superiori alle 40 dovute le mette nelle 70
