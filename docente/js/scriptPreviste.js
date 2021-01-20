@@ -88,8 +88,14 @@ function previsteGetDetails(attivita_id) {
 		$('#tipo_attivita').selectpicker('val', 0);
 		$("#update_ore").val('');
 		$("#update_dettaglio").val('');
-		$("#update_commento").val('');
-	}
+		if ($("#hidden_operatore").val() == 'dirigente') {
+			var d = new Date();
+			var strDate = d.getDate() + "/" + (d.getMonth()+1) + "/" + d.getFullYear();
+			$("#update_commento").val('Inserito da dirigente (' + strDate + ')');
+		} else {
+			$("#update_commento").val('');
+		}
+		}
 	if ($("#hidden_operatore").val() == 'dirigente') {
 		$("#commento-part").show();
 	} else {
