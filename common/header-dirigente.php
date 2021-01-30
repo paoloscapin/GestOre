@@ -22,6 +22,7 @@
 			<?php endif; ?>
 			<a href="<?php echo $__application_base_path; ?>/dirigente/configurazione.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-cog"></span>&ensp;Configura </a>
 			<a href="<?php echo $__application_base_path; ?>/dirigente/previsteList.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-dashboard"></span>&ensp;Previste </a>
+			<a href="<?php echo $__application_base_path; ?>/dirigente/fatteList.php" class="btn btn-default navbar-btn btn-teal4" role="button"><span class="glyphicon glyphicon-folder-close"></span>&ensp;Fatte </a>
 
 <div class="btn-group">
 
