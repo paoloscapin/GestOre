@@ -14,7 +14,10 @@ ruoloRichiesto('dirigente');
 
 function calcolaFuisDocente($localDocenteId) {
 	global $__anno_scolastico_corrente_id;
-	global $__importi;
+    global $__importi;
+
+    // eventuale messaggio per chiarire la compensazione effettuata
+    $messaggio = "";
 
     $fuisPrevisto = array();
 	// calcola il totale del fuis assegnato
@@ -51,16 +54,31 @@ function calcolaFuisDocente($localDocenteId) {
 
 	// se si possono compensare in ore quelle mancanti funzionali con quelle fatte in piu' con studenti lo aggiorna ora
 	if (getSettingsValue('fuis','accetta_con_studenti_per_funzionali', false)) {
-		if ($bilancioFunzionali < 0) {
+		if ($bilancioFunzionali < 0 && $bilancioConStudenti > 0) {
 			$daSpostare = -$bilancioFunzionali;
 			// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
 			if ($bilancioConStudenti < $daSpostare) {
 				$daSpostare = $bilancioConStudenti;
 			}
 			$bilancioConStudenti = $bilancioConStudenti - $daSpostare;
-			$bilancioFunzionali = $bilancioFunzionali + $daSpostare;
-            debug('spostate bilancioFunzionali='.$bilancioFunzionali);
-            debug('spostate bilancioConStudenti='.$bilancioConStudenti);
+            $bilancioFunzionali = $bilancioFunzionali + $daSpostare;
+            $messaggio = $messaggio . "Spostate " . $daSpostare ." ore con studenti per coprire " . $daSpostare ." ore funzionali mancanti. ";
+            debug('spostate con studenti in funzionali bilancioFunzionali='.$bilancioFunzionali.' bilancioConStudenti='.$bilancioConStudenti);
+		}
+	}
+
+	// se si possono compensare in ore quelle mancanti con studenti con quelle fatte in piu' funzionali lo aggiorna ora
+	if (getSettingsValue('fuis','accetta_funzionali_per_con_studenti', false)) {
+		if ($bilancioConStudenti < 0 && $bilancioFunzionali > 0) {
+			$daSpostare = -$bilancioConStudenti;
+			// se non ce ne sono abbastanza funzionali, sposta tutte quelle che ci sono
+			if ($bilancioFunzionali < $daSpostare) {
+				$daSpostare = $bilancioFunzionali;
+			}
+			$bilancioFunzionali = $bilancioFunzionali - $daSpostare;
+            $bilancioConStudenti = $bilancioConStudenti + $daSpostare;
+            $messaggio = $messaggio . "Spostate " . $daSpostare ." ore funzionali per coprire " . $daSpostare ." ore con studenti mancanti. ";
+            debug('spostate funzionali in con studenti bilancioFunzionali='.$bilancioFunzionali.' bilancioConStudenti='.$bilancioConStudenti);
 		}
 	}
 
@@ -97,7 +115,7 @@ function calcolaFuisDocente($localDocenteId) {
 
     $extraCorsiDiRecupero = $oreExtraCorsiDiRecupero * $__importi['importo_ore_corsi_di_recupero'];
 
-    $fuisPrevisto = array("assegnato"=>$assegnato,"ore"=>$ore,"diaria"=>$diaria,"clilFunzionale"=>$clilFunzionale,"clilConStudenti"=>$clilConStudenti,"extraCorsiDiRecupero"=>$extraCorsiDiRecupero);
+    $fuisPrevisto = array("assegnato"=>$assegnato,"ore"=>$ore,"diaria"=>$diaria,"clilFunzionale"=>$clilFunzionale,"clilConStudenti"=>$clilConStudenti,"extraCorsiDiRecupero"=>$extraCorsiDiRecupero,"messaggio"=>$messaggio);
     return $fuisPrevisto;
 }
 
