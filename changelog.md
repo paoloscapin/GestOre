@@ -1,3 +1,10 @@
+## Version 1.2.1
+
+##### Improvements
+- aggiunto opzione accetta_funzionali_per_con_studenti default false
+- aggiunto opzione segnala_fatte_eccedenti_previsione default false
+- aggiunto opzione rimuovi_fatte_eccedenti_previsione default false
+
 ## Version 1.2.0 - 7 gen 2021 - Panda - Import
 
 ##### Improvements

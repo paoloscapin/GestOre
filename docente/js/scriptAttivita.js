@@ -16,6 +16,76 @@ function getDbDateFromPickrId(pickrId) {
 	return data_date.toString('yyyy-MM-dd');
 }
 
+// genera un messaggio se le ore vengono compensate tra funzionali e con studenti
+function messaggioCompensate(dovuteFunzionali, dovuteConStudenti, oreFunzionali, oreConStudenti) {
+	var accetta_con_studenti_per_funzionali = $('#accetta_con_studenti_per_funzionali').val();
+	var accetta_funzionali_per_con_studenti = $('#accetta_funzionali_per_con_studenti').val();
+	var messaggio = "";
+    var bilancioFunzionali = oreFunzionali - dovuteFunzionali;
+    var bilancioConStudenti = oreConStudenti - dovuteConStudenti;
+
+	if (accetta_con_studenti_per_funzionali != 0) {
+		if (bilancioFunzionali < 0 && bilancioConStudenti > 0) {
+			var daSpostare = -bilancioFunzionali;
+			// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
+			if (bilancioConStudenti < daSpostare) {
+				daSpostare = bilancioConStudenti;
+			}
+			bilancioConStudenti = bilancioConStudenti - daSpostare;
+            bilancioFunzionali = bilancioFunzionali + daSpostare;
+            messaggio = "" + daSpostare + " ore con studenti verranno spostate per coprire " + daSpostare + " ore funzionali mancanti. ";
+		}
+	}
+
+	if (accetta_funzionali_per_con_studenti != 0) {
+		if (bilancioConStudenti < 0 && bilancioFunzionali > 0) {
+			var daSpostare = -bilancioConStudenti;
+			// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
+			if (bilancioFunzionali < daSpostare) {
+				daSpostare = bilancioFunzionali;
+			}
+			bilancioFunzionali = bilancioFunzionali - daSpostare;
+			bilancioConStudenti = bilancioConStudenti + daSpostare;
+			if (messaggio.length != 0) {
+				messaggio = messaggio + "</br>";
+			}
+            messaggio = "" + daSpostare + " ore funzionali verranno spostate per coprire " + daSpostare + " ore con studenti mancanti. ";
+		}
+	}
+
+	return messaggio;
+}
+
+// genera un messaggio se ore funzionali o con studenti fatte sono maggiori di quelle previste
+function messaggioEccesso(dovuteFunzionali, dovuteConStudenti, previsteFunzionali, previsteConStudenti, fatteFunzionali, fatteConStudenti) {
+	var segnala_fatte_eccedenti_previsione = $('#segnala_fatte_eccedenti_previsione').val();
+	var messaggio = "";
+    var bilancioPrevisteFunzionali = previsteFunzionali - dovuteFunzionali;
+    var bilancioPrevisteConStudenti = previsteConStudenti - dovuteConStudenti;
+    var bilancioFatteFunzionali = fatteFunzionali - dovuteFunzionali;
+    var bilancioFatteConStudenti = fatteConStudenti - dovuteConStudenti;
+
+	if (segnala_fatte_eccedenti_previsione != 0) {
+		if (bilancioFatteFunzionali > 0 && bilancioFatteFunzionali > bilancioPrevisteFunzionali) {
+			var bilancioDifferenzaFunzionali = bilancioFatteFunzionali - Math.max(bilancioPrevisteFunzionali,0);
+            messaggio = messaggio + bilancioDifferenzaFunzionali + " ore funzionali non concordate non saranno incluse nel conteggio FUIS. ";
+		}
+		if (bilancioFatteConStudenti > 0 && bilancioFatteConStudenti > bilancioPrevisteConStudenti) {
+			var bilancioDifferenzaConStudenti = bilancioFatteConStudenti - Math.max(bilancioPrevisteConStudenti,0);
+			if (messaggio.length != 0) {
+				messaggio = messaggio + "</br>";
+			}
+            messaggio = messaggio + bilancioDifferenzaConStudenti + " ore con studenti non concordate non saranno incluse nel conteggio FUIS. ";
+		}
+
+		if (messaggio.length > 0) {
+			messaggio = messaggio + "</br>";
+			messaggio = messaggio + "Contattare il Dirigente Scolastico.";
+		}
+	}
+	return messaggio;
+}
+
 function oreFatteReadRecords() {
 	var ore_dovute, ore_previste, ore_fatte;
 
@@ -50,8 +120,33 @@ function oreFatteReadRecords() {
 				$("#fatte_ore_40_sostituzioni_di_ufficio").html(getHtmlNumAndFatteVisual(ore_fatte.ore_40_sostituzioni_di_ufficio,ore_dovute.ore_40_sostituzioni_di_ufficio));
 				$("#fatte_ore_40_aggiornamento").html(getHtmlNumAndFatteVisual(ore_fatte.ore_40_aggiornamento,ore_dovute.ore_40_aggiornamento));
                 $("#fatte_ore_70_funzionali").html(getHtmlNumAndFatteVisual(ore_fatte.ore_70_funzionali,ore_dovute.ore_70_funzionali));
-                $("#fatte_ore_70_funzionali").html(getHtmlNumAndFatteVisual(ore_fatte.ore_70_funzionali,ore_dovute.ore_70_funzionali));
 				$("#fatte_totale_con_studenti").html(getHtmlNumAndFatteVisual(fatte_con_studenti_totale,dovute_con_studenti_totale));
+
+				// messaggio
+				var messaggio = messaggioCompensate(ore_dovute.ore_70_funzionali, dovute_con_studenti_totale, ore_fatte.ore_70_funzionali, fatte_con_studenti_totale);
+				// console.log('messaggio compensate: ' + messaggio);
+				if (messaggio.length > 0) {
+					$("#ore_message").html(messaggio);
+					$('#ore_message').css({ 'font-weight': 'bold' });
+					$('#ore_message').css({ 'text-align': 'center' });
+					$('#ore_message').css({ 'background-color': '#BAEED0' });
+					$("#ore_message").removeClass('hidden');
+				} else {
+					$("#ore_message").addClass('hidden');
+				}
+
+				// messaggio eccesso
+				messaggio = messaggioEccesso(ore_dovute.ore_70_funzionali, dovute_con_studenti_totale, ore_previste.ore_70_funzionali, previste_con_studenti_totale, ore_fatte.ore_70_funzionali, fatte_con_studenti_totale);
+				if (messaggio.length > 0) {
+					$("#ore_eccesso_message").html(messaggio);
+					$('#ore_eccesso_message').css({ 'font-weight': 'bold' });
+					$('#ore_eccesso_message').css({ 'text-align': 'center' });
+					$('#ore_eccesso_message').css({ 'background-color': '#FFC6B4' });
+					$("#ore_eccesso_message").removeClass('hidden');
+				} else {
+					$("#ore_eccesso_message").addClass('hidden');
+				}
+
 				$.post("oreDovuteClilReadDetails.php", {
 					table_name: 'ore_fatte_attivita_clil'
 				},
@@ -107,6 +202,7 @@ function oreFatteReadAttivitaRecords() {
 		$(".viaggi_records_content").html(data);
 	});
 	corsoDiRecuperoPrevisteReadRecords();
+	fuisAggiornaDocente();
 }
 
 function oreFatteGetRegistroAttivita(attivita_id, registro_id) {
@@ -424,6 +520,57 @@ function oreFatteClilSommario() {
 //----------------------------   END CLIL ----------------------------------------
 
 
+function fuisAggiornaDocente() {
+	if ($("#hidden_operatore").val() != 'dirigente') {
+		return;
+	}
+
+	$.post("../dirigente/fuisFatteCalcolaDocente.php", {
+		docente_id: $("#hidden_docente_id").val()
+	},
+	function (dati, status) {
+		fuisPrevisto = JSON.parse(dati);
+		$("#fuis_assegnato").html(number_format(fuisPrevisto.assegnato,2));
+		$("#fuis_ore").html(number_format(fuisPrevisto.ore,2));
+		$("#fuis_diaria").html(number_format(fuisPrevisto.diaria,2));
+
+		$("#fuis_clil_funzionali").html(number_format(fuisPrevisto.clilFunzionale,2));
+		$("#fuis_clil_con_studenti").html(number_format(fuisPrevisto.clilConStudenti,2));
+
+		$("#fuis_corsi_di_recupero").html(number_format(fuisPrevisto.extraCorsiDiRecupero,2));
+
+		// totali
+		$("#fuis_docente_totale").html(number_format(parseFloat(fuisPrevisto.assegnato) + parseFloat(fuisPrevisto.ore) + parseFloat(fuisPrevisto.diaria),2));
+		$("#fuis_clil_totale").html(number_format(parseFloat(fuisPrevisto.clilFunzionale) + parseFloat(fuisPrevisto.clilConStudenti), 2));
+		$("#fuis_corsi_di_recupero_totale").html(number_format(fuisPrevisto.extraCorsiDiRecupero,2));
+		$('#fuis_docente_totale').css({ 'font-weight': 'bold' });
+		$('#fuis_clil_totale').css({ 'font-weight': 'bold' });
+		$('#fuis_corsi_di_recupero_totale').css({ 'font-weight': 'bold' });
+
+		// messaggio
+		if (fuisPrevisto.messaggio.length > 0) {
+			$("#fuis_message").html(fuisPrevisto.messaggio);
+			$('#fuis_message').css({ 'font-weight': 'bold' });
+			$('#fuis_message').css({ 'text-align': 'center' });
+			$('#fuis_message').css({ 'background-color': '#FFC6B4' });
+			$("#fuis_message").removeClass('hidden');
+		} else {
+			$("#fuis_message").addClass('hidden');
+		}
+
+		// messaggio eccesso
+		if (fuisPrevisto.messaggioEccesso.length > 0) {
+			$("#fuis_messageEccesso").html(fuisPrevisto.messaggioEccesso);
+			$('#fuis_messageEccesso').css({ 'font-weight': 'bold' });
+			$('#fuis_messageEccesso').css({ 'text-align': 'center' });
+			$('#fuis_messageEccesso').css({ 'background-color': '#FFC6B4' });
+			$("#fuis_messageEccesso").removeClass('hidden');
+		} else {
+			$("#fuis_messageEccesso").addClass('hidden');
+		}
+	});
+}
+
 $(document).ready(function () {
 	attivita_data_pickr = flatpickr("#attivita_data", {
 		locale: {
@@ -458,6 +605,9 @@ $(document).ready(function () {
 	flatpickr.localize(flatpickr.l10ns.it);
 
 	oreFatteReadAttivitaRecords();
+
+	fuisAggiornaDocente();
+
 	// questi campi potrebbero essere gestiti in minuti se settato nel json
 	campiInMinuti(
 		'#attivita_ore',

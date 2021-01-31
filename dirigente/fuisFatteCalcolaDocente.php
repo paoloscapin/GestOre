@@ -18,6 +18,7 @@ function calcolaFuisDocente($localDocenteId) {
 
     // eventuale messaggio per chiarire la compensazione effettuata
     $messaggio = "";
+    $messaggioEccesso = "";
 
     $fuisPrevisto = array();
 	// calcola il totale del fuis assegnato
@@ -33,21 +34,27 @@ function calcolaFuisDocente($localDocenteId) {
     $dovuteConStudenti = $dovute['ore_70_con_studenti'] + $dovute['ore_40_con_studenti'];
 
     // le previste funzionali e con studenti
-    $oreFunzionali = dbGetValue("SELECT COALESCE(SUM(ore_previste_attivita.ore)) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
+    $previsteFunzionali = dbGetValue("SELECT COALESCE(SUM(ore_previste_attivita.ore)) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
         WHERE ore_previste_attivita.docente_id = $localDocenteId AND ore_previste_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id AND ore_previste_tipo_attivita.categoria='funzionali'");
-    $oreConStudenti = dbGetValue("SELECT COALESCE(SUM(ore_previste_attivita.ore)) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
+    $previsteConStudenti = dbGetValue("SELECT COALESCE(SUM(ore_previste_attivita.ore)) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
         WHERE ore_previste_attivita.docente_id = $localDocenteId AND ore_previste_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id AND ore_previste_tipo_attivita.categoria='con studenti'");
 
-    $ore_corsi_di_recupero = dbGetValue("SELECT COALESCE(SUM(corso_di_recupero.ore_recuperate), 0) FROM corso_di_recupero WHERE docente_id = $localDocenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
+    // le fatte funzionali e con studenti le carica da db
+    $query = "SELECT * FROM ore_fatte WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $localDocenteId;";
+    $response = dbGetFirst($query);
+    $fatteFunzionali = $response['ore_70_funzionali'];
+    $fatteConStudenti = $response['ore_70_con_studenti'] + $response['ore_40_con_studenti'];
 
-    $bilancioFunzionali = $oreFunzionali - $dovuteFunzionali;
-    $bilancioConStudenti = $oreConStudenti - $dovuteConStudenti;
+    $bilancioFunzionali = $fatteFunzionali - $dovuteFunzionali;
+    $bilancioConStudenti = $fatteConStudenti - $dovuteConStudenti;
     debug('dovuteFunzionali='.$dovuteFunzionali);
-    debug('oreFunzionali='.$oreFunzionali);
+    debug('previsteFunzionali='.$previsteFunzionali);
+    debug('fatteFunzionali='.$fatteFunzionali);
     debug('bilancioFunzionali='.$bilancioFunzionali);
 
     debug('dovuteConStudenti='.$dovuteConStudenti);
-    debug('oreConStudenti='.$oreConStudenti);
+    debug('previsteConStudenti='.$previsteConStudenti);
+    debug('fatteConStudenti='.$fatteConStudenti);
     debug('bilancioConStudenti='.$bilancioConStudenti);
     // ------------------------------------------------------------
     // applica le regole per vedere se deve dei soldi e quanti
@@ -80,7 +87,25 @@ function calcolaFuisDocente($localDocenteId) {
             $messaggio = $messaggio . "Spostate " . $daSpostare ." ore funzionali per coprire " . $daSpostare ." ore con studenti mancanti. ";
             debug('spostate funzionali in con studenti bilancioFunzionali='.$bilancioFunzionali.' bilancioConStudenti='.$bilancioConStudenti);
 		}
-	}
+    }
+
+    // possibile controllo se le ore fatte eccedono le previsioni
+    $pagabiliFunzionali = max($previsteFunzionali - $dovuteFunzionali,0);
+    $pagabiliConStudenti = max($previsteConStudenti - $dovuteConStudenti,0);
+    if ($bilancioFunzionali > 0 && $bilancioFunzionali > $pagabiliFunzionali) {
+        $bilancioDifferenzaFunzionali = $bilancioFunzionali - $pagabiliFunzionali;
+        $bilancioFunzionali = $pagabiliFunzionali;
+        $messaggioEccesso = $messaggioEccesso . $bilancioDifferenzaFunzionali . " ore funzionali non concordate non saranno incluse nel conteggio FUIS: considerate solo ". $bilancioFunzionali .".";
+    }
+    if ($bilancioConStudenti > 0 && $bilancioConStudenti > $pagabiliConStudenti) {
+        $bilancioDifferenzaConStudenti = $bilancioConStudenti - $pagabiliConStudenti;
+        $bilancioConStudenti = $pagabiliConStudenti;
+        if ( ! empty($messaggioEccesso)) {
+            $messaggioEccesso = $messaggioEccesso . "</br>";
+        }
+        $messaggioEccesso = $messaggioEccesso . $bilancioDifferenzaConStudenti . " ore con studenti non concordate non saranno incluse nel conteggio FUIS: considerate solo ". $bilancioConStudenti .". ";
+    }
+    debug('messaggioEccesso=' . $messaggioEccesso);
 
 	// NB: non deve accadere che manchino delle ore con studenti: in quel caso il DS assegnerebbe altre attivita' o Disposizioni
 	//     In caso siano rimaste in negativo ore con studenti la cosa viene qui ignorata, visto che in ogni caso il fuis non puo' diventare negativo
@@ -115,7 +140,7 @@ function calcolaFuisDocente($localDocenteId) {
 
     $extraCorsiDiRecupero = $oreExtraCorsiDiRecupero * $__importi['importo_ore_corsi_di_recupero'];
 
-    $fuisPrevisto = array("assegnato"=>$assegnato,"ore"=>$ore,"diaria"=>$diaria,"clilFunzionale"=>$clilFunzionale,"clilConStudenti"=>$clilConStudenti,"extraCorsiDiRecupero"=>$extraCorsiDiRecupero,"messaggio"=>$messaggio);
+    $fuisPrevisto = array("assegnato"=>$assegnato,"ore"=>$ore,"diaria"=>$diaria,"clilFunzionale"=>$clilFunzionale,"clilConStudenti"=>$clilConStudenti,"extraCorsiDiRecupero"=>$extraCorsiDiRecupero,"messaggio"=>$messaggio,"messaggioEccesso"=>$messaggioEccesso);
     return $fuisPrevisto;
 }
 

@@ -68,7 +68,10 @@
     "fuis": {
         "rimuovi_sostituzioni_non_fatte": true,
         "compensa_in_valore": true,
-        "accetta_con_studenti_per_funzionali": false
+        "accetta_con_studenti_per_funzionali": false,
+        "accetta_funzionali_per_con_studenti": false,
+        "segnala_fatte_eccedenti_previsione": false,
+        "rimuovi_fatte_eccedenti_previsione": false
     },
     "sportelli": {
         "numero_max_prenotazioni": 10,

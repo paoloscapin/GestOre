@@ -31,11 +31,136 @@ ruoloRichiesto('segreteria-docenti','dirigente','docente');
 $docente_id = $__docente_id;
 $operatore = 'docente';
 
+if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
+	// se specificato il docente id nel get, devi essere dirigente
+	ruoloRichiesto('dirigente');
+
+	// agisci quindi come dirigente
+	$operatore = 'dirigente';
+
+	// simula l'utente in modo che il menu poi il menu docenti si comporti correttamente
+	$docente_id = $_GET['docente_id'];
+	$query = "SELECT * FROM docente WHERE docente.id = '$docente_id'";
+	$result = dbGetFirst($query);
+    if ($result != null) {
+        $session->set('docente_id', $result['id']);
+        $session->set('docente_nome', $result['nome']);
+		$session->set('docente_cognome', $result['cognome']);
+		$__docente_id = $result['id'];
+		$__docente_nome = $result['nome'];
+		$__docente_cognome = $result['cognome'];
+	}
+	$ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_fatte WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
+    debug('ultimo_controllo=' . $ultimo_controllo);
+}
+
 require_once '../common/header-docente.php';
-require_once '../common/connect.php';
 ?>
 
 <div class="container-fluid" style="margin-top:60px">
+
+<?php if($operatore == 'dirigente') : ?>
+<!-- pannello fuis per dirigente -->
+<div class="panel panel-deeporange4">
+<div class="panel-heading container-fluid">
+	<div class="row">
+		<div class="col-md-2">
+			<span class="glyphicon glyphicon-euro"></span>&emsp;FUIS
+		</div>
+		<div class="col-md-2 text-center">
+			<button onclick="fatteChiudi()" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-off"> Chiudi</button>
+		</div>
+		<div class="col-md-2 text-center">
+			<button onclick="fatteRivisto()" class="btn btn-lima4 btn-xs"><span class="glyphicon glyphicon-ok"> Rivisto</button>
+		</div>
+		<div class="col-md-2 text-center">
+			<button onclick="fatteEmail()" class="btn btn-lightblue4 btn-xs"><span class="glyphicon glyphicon-envelope"> Notifica Docente</button>
+		</div>
+		<div class="col-md-2 text-center">
+		</div>
+		<div class="col-md-2 text-right">
+		</div>
+	</div>
+</div>
+<div class="panel-body">
+
+<div class="table-wrapper">
+	<table class="table table-vnocolor-index">
+		<thead>
+			<tr>
+				<th class="col-md-2"></th>
+				<th class="col-md-1 text-right">Fuis Docente</th>
+				<th class="col-md-1"></th>
+				<th class="col-md-2"></th>
+				<th class="col-md-1 text-right">Fuis CLIL</th>
+				<th class="col-md-1"></th>
+				<th class="col-md-2"></th>
+				<th class="col-md-1 text-right">Corsi di Recupero</th>
+				<th class="col-md-1"></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td class="col-md-2 text-right" ><?php echoLabel('Assegnato');?></td>
+				<td class="col-md-1 text-right" id="fuis_assegnato">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><?php echoLabel('Funzionali');?></td>
+				<td class="col-md-1 text-right" id="fuis_clil_funzionali">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><?php echoLabel('ore extra');?></td>
+				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero">0.00</td>
+				<td class="col-md-1 text-right"></td>
+			</tr>
+			<tr>
+				<td class="col-md-2 text-right" ><?php echoLabel('Ore');?></td>
+				<td class="col-md-1 text-right" id="fuis_ore">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><?php echoLabel('Con Studenti');?></td>
+				<td class="col-md-1 text-right" id="fuis_clil_con_studenti">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+			</tr>
+			<tr>
+				<td class="col-md-2 text-right" ><?php echoLabel('Diaria Viaggi');?></td>
+				<td class="col-md-1 text-right" id="fuis_diaria">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+			</tr>
+		</tbody>
+		<tfooter>
+			<tr class="deeporange5">
+				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" id="fuis_docente_totale"><strong>0.00</strong></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" id="fuis_clil_totale"><strong>0.00</strong></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero_totale"><strong>0.00</strong></td>
+				<td class="col-md-1 text-right"></td>
+			</tr>
+		<tfooter>
+	</table>
+	</div>
+	<div id="fuis_message" class="row" style="margin-bottom:10px;"></div>
+	<div id="fuis_messageEccesso" class="row" style="margin-bottom:10px;"></div>
+	<input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">
+	<input type="hidden" id="hidden_operatore" value="<?php echo $operatore; ?>">
+	<input type="hidden" id="hidden_ultimo_controllo" value="<?php echo $ultimo_controllo; ?>">
+
+</div>
+
+<!-- <div class="panel-footer"></div> -->
+</div>
+
+<?php endif; ?>
 
 <div class="panel panel-lima4">
 <div class="panel-heading">
@@ -121,6 +246,11 @@ require_once '../common/connect.php';
 		</tbody>
 	</table>
 	</div>
+	<div id="ore_message" class="row" style="margin-bottom:10px;"></div>
+	<input type="hidden" id="accetta_con_studenti_per_funzionali" value="<?php if (getSettingsValue('fuis','accetta_con_studenti_per_funzionali', false)) {echo('1');} else {echo('0');} ?>">
+	<input type="hidden" id="accetta_funzionali_per_con_studenti" value="<?php if (getSettingsValue('fuis','accetta_funzionali_per_con_studenti', false)) {echo('1');} else {echo('0');} ?>">
+	<div id="ore_eccesso_message" class="row" style="margin-bottom:10px;"></div>
+	<input type="hidden" id="segnala_fatte_eccedenti_previsione" value="<?php if (getSettingsValue('fuis','segnala_fatte_eccedenti_previsione', false)) {echo('1');} else {echo('0');} ?>">
 </div>
 </div>
 
