@@ -23,7 +23,7 @@ $data = '';
 // Design initial table header
 $data .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 						<thead><tr>
-							<th class="col-md-10 text-center">Data</th>
+							<th class="col-md-11 text-left">Data</th>
 							<th class="col-md-2 text-center">Ore</th>
 						</tr></thead><tbody>';
 

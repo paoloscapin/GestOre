@@ -26,7 +26,8 @@
         "bonus": true,
         "corsiDiRecupero": true,
         "minuti": false,
-        "sportelli": false
+        "sportelli": false,
+        "gestioneViaggiSemplificata": false
     },
     "interfaccia": {
         "docenteVisualizza80Ore": true,

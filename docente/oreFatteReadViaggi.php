@@ -24,10 +24,9 @@ $data = '';
 // Design initial table header
 $data .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 						<thead><tr>
-							<th class="col-md-7 text-left">Destinazione</th>
+							<th class="col-md-10 text-left">Destinazione</th>
 							<th class="col-md-1 text-center">Data</th>
 							<th class="col-md-1 text-center">Ore</th>
-							<th class="col-md-3 text-center"></th>
 						</tr></thead><tbody>';
 
 $query = "	SELECT
@@ -52,10 +51,6 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.$row['viaggio_destinazione'].'</td>
 		<td class="text-center">'.strftime("%d/%m/%Y", strtotime($row['viaggio_data_partenza'])).'</td>
 		<td class="text-center">'.$ore_con_minuti.'</td>
-		';
-
-	$data .='
-		<td></td>
 		</tr>';
 }
 

@@ -20,12 +20,12 @@ function calcolaFuisDocente($localDocenteId) {
     $messaggio = "";
     $messaggioEccesso = "";
 
-    $fuisPrevisto = array();
+    $fuisFatto = array();
 	// calcola il totale del fuis assegnato
     $assegnato = dbGetValue("SELECT COALESCE(SUM(importo), 0) FROM fuis_assegnato WHERE docente_id = $localDocenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
 
 	// calcola il totale diaria viaggi
-    $diaria_res = dbGetFirst("SELECT COALESCE(SUM(giorni_con_pernottamento), 0) AS giorni_con_pernottamento, COALESCE(SUM(giorni_senza_pernottamento), 0) AS giorni_senza_pernottamento FROM viaggio_diaria_prevista WHERE docente_id = $localDocenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
+    $diaria_res = dbGetFirst("SELECT COALESCE(SUM(giorni_con_pernottamento), 0) AS giorni_con_pernottamento, COALESCE(SUM(giorni_senza_pernottamento), 0) AS giorni_senza_pernottamento FROM viaggio_diaria_fatta WHERE docente_id = $localDocenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
     $diaria = $diaria_res['giorni_senza_pernottamento'] * $__importi['importo_diaria_senza_pernottamento'] + $diaria_res['giorni_con_pernottamento'] * $__importi['importo_diaria_con_pernottamento'];
 
     // calcola le ore (prima le dovute)
@@ -140,15 +140,15 @@ function calcolaFuisDocente($localDocenteId) {
 
     $extraCorsiDiRecupero = $oreExtraCorsiDiRecupero * $__importi['importo_ore_corsi_di_recupero'];
 
-    $fuisPrevisto = array("assegnato"=>$assegnato,"ore"=>$ore,"diaria"=>$diaria,"clilFunzionale"=>$clilFunzionale,"clilConStudenti"=>$clilConStudenti,"extraCorsiDiRecupero"=>$extraCorsiDiRecupero,"messaggio"=>$messaggio,"messaggioEccesso"=>$messaggioEccesso);
-    return $fuisPrevisto;
+    $fuisFatto = array("assegnato"=>$assegnato,"ore"=>$ore,"diaria"=>$diaria,"clilFunzionale"=>$clilFunzionale,"clilConStudenti"=>$clilConStudenti,"extraCorsiDiRecupero"=>$extraCorsiDiRecupero,"messaggio"=>$messaggio,"messaggioEccesso"=>$messaggioEccesso);
+    return $fuisFatto;
 }
 
 // se viene chiamato con un post, allora ritonna il valore con echo
 if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
     $docente_id = $_POST['docente_id'];
-    $fuisPrevisto = calcolaFuisDocente($docente_id);
-    echo json_encode($fuisPrevisto);
+    $fuisFatto = calcolaFuisDocente($docente_id);
+    echo json_encode($fuisFatto);
 }
 
 ?>
