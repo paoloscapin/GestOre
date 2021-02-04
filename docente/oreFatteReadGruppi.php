@@ -24,8 +24,8 @@ $data = '';
 // Design initial table header
 $data .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 						<thead><tr>
-							<th class="col-md-2 text-left">Gruppo</th>
-							<th class="col-md-2 text-left">Data</th>
+							<th class="col-md-10 text-left">Gruppo</th>
+							<th class="col-md-1 text-center">Data</th>
 							<th class="col-md-1 text-center">Ore</th>
 						</tr></thead><tbody>';
 
@@ -51,8 +51,8 @@ foreach(dbGetAll($query) as $row) {
     $ore_con_minuti = oreToDisplay($row['gruppo_incontro_partecipazione_ore']);
     $data .= '<tr>
         <td>'.$row['gruppo_nome'].'</td>
-        <td>'.$row['gruppo_incontro_data'].'</td>
-        <td>'.$ore_con_minuti.'</td>
+        <td class="text-center">'.strftime("%d/%m/%Y", strtotime($row['gruppo_incontro_data'])).'</td>
+        <td class="text-center">'.$ore_con_minuti.'</td>
         </tr>
         ';
 

@@ -180,6 +180,16 @@ function corsoDiRecuperoPrevisteReadRecords() {
 	});
 }
 
+function viaggioDiariaFattaReadRecords() {
+	$.post("../docente/viaggioDiariaFattaReadRecords.php", {
+		operatore: $("#hidden_diaria_operatore").val(),
+		ultimo_controllo: $("#hidden_diaria_ultimo_controllo").val()
+	},
+	function (data, status) {
+		$(".diaria_records_content").html(data);
+	});
+}
+
 function oreFatteReadAttivitaRecords() {
 	oreFatteReadRecords();
 
@@ -202,6 +212,7 @@ function oreFatteReadAttivitaRecords() {
 		$(".viaggi_records_content").html(data);
 	});
 	corsoDiRecuperoPrevisteReadRecords();
+	viaggioDiariaFattaReadRecords();
 	fuisAggiornaDocente();
 }
 
@@ -519,6 +530,109 @@ function oreFatteClilSommario() {
 
 //----------------------------   END CLIL ----------------------------------------
 
+//----------------------------   START DIARIA ------------------------------------
+
+function diariaFattaGetDetails(id) {
+	$("#hidden_diaria_id").val(id);
+	if (id > 0) {
+		$.post("../docente/viaggioDiariaFattaReadDetails.php", {
+			id: id
+			},
+			function (dati, status) {
+				// console.log(dati);
+				var diaria = JSON.parse(dati);
+				$("#diaria_descrizione").val(diaria.descrizione);
+				$("#diaria_giorni_senza_pernottamento").val(diaria.giorni_senza_pernottamento);
+				$("#diaria_giorni_con_pernottamento").val(diaria.giorni_con_pernottamento);
+				$("#diaria_commento").val(diaria.commento);
+				setDbDateToPickr(diaria_data_pickr, diaria.data_partenza);
+			}
+		);
+	} else {
+		$("#diaria_descrizione").val('');
+		$("#diaria_giorni_senza_pernottamento").val('');
+		$("#diaria_giorni_con_pernottamento").val('');
+		$("#diaria_commento").val('');
+		diaria_data_pickr.setDate(Date.today().toString('d/M/yyyy'));
+	}
+	if ($("#hidden_operatore").val() == 'dirigente') {
+		$("#diaria_commento-part").show();
+	} else {
+		$("#diaria_commento-part").hide();
+	}
+
+	if ($("#hidden_operatore").val() == 'dirigente') {
+		$("#diaria_commento-part").show();
+	} else {
+		$("#diaria_commento-part").hide();
+	}
+
+	$("#diaria_modal").modal("show");
+}
+
+function diariaSave() {
+	$.post("../docente/viaggioDiariaFattaSave.php", {
+    	id: $("#hidden_diaria_id").val(),
+		docente_id: $("#hidden_diaria_docente_id").val(),
+		operatore: $("#hidden_diaria_operatore").val(),
+		data_partenza: getDbDateFromPickrId("#diaria_data"),
+    	descrizione: $("#diaria_descrizione").val(),
+    	giorni_senza_pernottamento: $("#diaria_giorni_senza_pernottamento").val(),
+    	giorni_con_pernottamento: $("#diaria_giorni_con_pernottamento").val(),
+    	commento: $("#diaria_commento").val()
+    }, function (data, status) {
+    	if (data !== '') {
+    		bootbox.alert(data);
+    	}
+    	viaggioDiariaFattaReadRecords();
+		oreFatteReadRecords();
+		fuisAggiornaDocente();
+    });
+    $("#diaria_modal").modal("hide");
+}
+
+function diariaFattaDelete(id) {
+	if ($("#hidden_operatore").val() == 'dirigente') {
+		diariaFattaGetDetails(id);
+		bootbox.confirm({
+			title: "Cancellazione Diaria Fatta",
+			message: 'Per ragioni di storico non è possibile cancellare le previsione.</br>Si consiglia di mettere a zero il loro valore',
+			buttons: {
+				confirm: {
+					label: 'Va Bene',
+					className: 'btn-lima4'
+				},
+				cancel: {
+					label: 'Annulla'
+				}
+			},
+			callback: function (result) {
+				if (result === true) {
+					$("#diaria_giorni_senza_pernottamento").val(0);
+					$("#diaria_giorni_con_pernottamento").val(0);
+				} else {
+					$("#diaria_modal").modal("hide");
+				}
+			}
+		});
+	} else {
+		var conf = confirm("Sei sicuro di volere cancellare questa diaria Fatta ?");
+		if (conf == true) {
+			$.post("../docente/viaggioDiariaFattaDelete.php", {
+				docente_id: $("#hidden_docente_id").val(),
+				id: id
+				},
+				function (data, status) {
+					viaggioDiariaFattaReadRecords();
+					oreFatteReadRecords();
+					fuisAggiornaDocente();
+				}
+			);
+		}
+	}
+}
+
+//----------------------------   END DIARIA ----------------------------------------
 
 function fuisAggiornaDocente() {
 	if ($("#hidden_operatore").val() != 'dirigente') {
@@ -529,27 +643,27 @@ function fuisAggiornaDocente() {
 		docente_id: $("#hidden_docente_id").val()
 	},
 	function (dati, status) {
-		fuisPrevisto = JSON.parse(dati);
-		$("#fuis_assegnato").html(number_format(fuisPrevisto.assegnato,2));
-		$("#fuis_ore").html(number_format(fuisPrevisto.ore,2));
-		$("#fuis_diaria").html(number_format(fuisPrevisto.diaria,2));
+		fuisFatto = JSON.parse(dati);
+		$("#fuis_assegnato").html(number_format(fuisFatto.assegnato,2));
+		$("#fuis_ore").html(number_format(fuisFatto.ore,2));
+		$("#fuis_diaria").html(number_format(fuisFatto.diaria,2));
 
-		$("#fuis_clil_funzionali").html(number_format(fuisPrevisto.clilFunzionale,2));
-		$("#fuis_clil_con_studenti").html(number_format(fuisPrevisto.clilConStudenti,2));
+		$("#fuis_clil_funzionali").html(number_format(fuisFatto.clilFunzionale,2));
+		$("#fuis_clil_con_studenti").html(number_format(fuisFatto.clilConStudenti,2));
 
-		$("#fuis_corsi_di_recupero").html(number_format(fuisPrevisto.extraCorsiDiRecupero,2));
+		$("#fuis_corsi_di_recupero").html(number_format(fuisFatto.extraCorsiDiRecupero,2));
 
 		// totali
-		$("#fuis_docente_totale").html(number_format(parseFloat(fuisPrevisto.assegnato) + parseFloat(fuisPrevisto.ore) + parseFloat(fuisPrevisto.diaria),2));
-		$("#fuis_clil_totale").html(number_format(parseFloat(fuisPrevisto.clilFunzionale) + parseFloat(fuisPrevisto.clilConStudenti), 2));
-		$("#fuis_corsi_di_recupero_totale").html(number_format(fuisPrevisto.extraCorsiDiRecupero,2));
+		$("#fuis_docente_totale").html(number_format(parseFloat(fuisFatto.assegnato) + parseFloat(fuisFatto.ore) + parseFloat(fuisFatto.diaria),2));
+		$("#fuis_clil_totale").html(number_format(parseFloat(fuisFatto.clilFunzionale) + parseFloat(fuisFatto.clilConStudenti), 2));
+		$("#fuis_corsi_di_recupero_totale").html(number_format(fuisFatto.extraCorsiDiRecupero,2));
 		$('#fuis_docente_totale').css({ 'font-weight': 'bold' });
 		$('#fuis_clil_totale').css({ 'font-weight': 'bold' });
 		$('#fuis_corsi_di_recupero_totale').css({ 'font-weight': 'bold' });
 
 		// messaggio
-		if (fuisPrevisto.messaggio.length > 0) {
-			$("#fuis_message").html(fuisPrevisto.messaggio);
+		if (fuisFatto.messaggio.length > 0) {
+			$("#fuis_message").html(fuisFatto.messaggio);
 			$('#fuis_message').css({ 'font-weight': 'bold' });
 			$('#fuis_message').css({ 'text-align': 'center' });
 			$('#fuis_message').css({ 'background-color': '#FFC6B4' });
@@ -559,8 +673,8 @@ function fuisAggiornaDocente() {
 		}
 
 		// messaggio eccesso
-		if (fuisPrevisto.messaggioEccesso.length > 0) {
-			$("#fuis_messageEccesso").html(fuisPrevisto.messaggioEccesso);
+		if (fuisFatto.messaggioEccesso.length > 0) {
+			$("#fuis_messageEccesso").html(fuisFatto.messaggioEccesso);
 			$('#fuis_messageEccesso').css({ 'font-weight': 'bold' });
 			$('#fuis_messageEccesso').css({ 'text-align': 'center' });
 			$('#fuis_messageEccesso').css({ 'background-color': '#FFC6B4' });
@@ -573,6 +687,13 @@ function fuisAggiornaDocente() {
 
 $(document).ready(function () {
 	attivita_data_pickr = flatpickr("#attivita_data", {
+		locale: {
+			firstDayOfWeek: 1
+		},
+		dateFormat: 'j/n/Y'
+	});
+	
+	diaria_data_pickr = flatpickr("#diaria_data", {
 		locale: {
 			firstDayOfWeek: 1
 		},

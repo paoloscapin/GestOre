@@ -466,6 +466,39 @@ require_once '../common/header-docente.php';
 <!-- <div class="panel-footer"></div> -->
 </div>
 
+<!-- gestione diaria semplificata -->
+<?php if($__settings->config->gestioneViaggiSemplificata) : ?>
+<div class="panel panel-deeporange4">
+<div class="panel-heading container-fluid">
+	<div class="row">
+		<div class="col-md-2">
+			<span class="glyphicon glyphicon-picture"></span>&emsp;Viaggi con Diaria
+		</div>
+		<div class="col-md-8 text-right">
+		</div>
+		<div class="col-md-2 text-right">
+            <?php
+			// il dirigente puo' comunque modificare, anche quando e' chiuso
+            if ($__config->getOre_previsioni_aperto() || $operatore == 'dirigente') {
+            	echo '<button onclick="diariaFattaGetDetails(-1)" class="btn btn-xs btn-deeporange4"><span class="glyphicon glyphicon-plus"></span></button>';
+            }
+   			?>
+		</div>
+	</div>
+</div>
+<div class="panel-body">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="diaria_records_content"></div>
+        </div>
+    </div>
+</div>
+<input type="hidden" id="hidden_diaria_id">
+
+<!-- <div class="panel-footer"></div> -->
+</div>
+<?php endif; ?>
+
 <?php
 	// prepara l'elenco dei tipi di attivita
 	$categoria = '';
@@ -797,6 +830,62 @@ require_once '../common/header-docente.php';
 <?php
 require_once '../docente/attribuiteModal.php';
 ?>
+
+<!-- Modal - diaria details -->
+<div class="modal fade" id="diaria_modal" tabindex="-1" role="dialog" aria-labelledby="diariaModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+		<div class="modal-body">
+			<div class="panel panel-deeporange4">
+			<div class="panel-heading">
+			<h5 class="modal-title text-center" id="myModalLabel">Diaria Viaggio</h5>
+			</div>
+			<div class="panel-body">
+			<div class="form-horizontal">
+
+				<div class="form-group">
+                    <label class="col-sm-2 control-label" for="diaria_data">Data</label>
+					<div class="col-sm-4"><input type="text" value="21/8/2018" id=diaria_data placeholder="data" class="form-control" /></div>
+                </div>
+
+				<div class="form-group">
+                    <label class="col-sm-3 control-label" for="diaria_descrizione">descrizione viaggio</label>
+                    <div class="col-sm-9"><input type="text" id="diaria_descrizione" placeholder="inserire i dettagli noti del viaggio" class="form-control"/></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="diaria_giorni_senza_pernottamento">giorni senza pernottamento</label>
+                    <div class="col-sm-2"><input type="text" id="diaria_giorni_senza_pernottamento" placeholder="" class="form-control"/></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="diaria_giorni_con_pernottamento">giorni con pernottamento</label>
+                    <div class="col-sm-2"><input type="text" id="diaria_giorni_con_pernottamento" placeholder="" class="form-control"/></div>
+                </div>
+
+                <div class="form-group" id="diaria_commento-part">
+                    <hr>
+                    <label class="col-sm-3 control-label" for="diaria_commento">commento</label>
+                    <div class="col-sm-9"><input type="text" id="diaria_commento" placeholder="commento" class="form-control"/></div>
+                </div>
+
+            </div>
+            </div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+				<button type="button" class="btn btn-primary" onclick="diariaSave()" >Salva</button>
+				<input type="hidden" id="hidden_diaria_id">
+				<input type="hidden" id="hidden_diaria_docente_id" value="<?php echo $docente_id; ?>">
+				<input type="hidden" id="hidden_diaria_operatore" value="<?php echo $operatore; ?>">
+				<input type="hidden" id="hidden_diaria_ultimo_controllo" value="<?php echo $ultimo_controllo; ?>">
+				</div>
+			</div>
+        	</div>
+        	</div>
+    	</div>
+    </div>
+</div>
+<!-- // Modal - diaria details -->
 
 </div>
 

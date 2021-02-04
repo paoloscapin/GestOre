@@ -31,9 +31,9 @@ $data = '';
 // nel sommario non vogliamo le ultime due colonne e nome e dettaglio insieme
 $data .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green"><thead><tr>
 <th class="col-md-2 text-left">Tipo</th>
-<th class="col-md-2 text-left">Nome</th>
-<th class="col-md-5 text-left">Dettaglio</th>
-<th class="col-md-2 text-center">Ore</th>';
+<th class="col-md-3 text-left">Nome</th>
+<th class="col-md-6 text-left">Dettaglio</th>
+<th class="col-md-1 text-center">Ore</th>';
 if ($operatoreDirigente) {
 	$data .= '<th class="col-md-1 text-center"></th>';
 }

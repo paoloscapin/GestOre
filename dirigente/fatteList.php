@@ -130,8 +130,8 @@ function importoStampabile($importo) {
 <!-- <div class="panel-footer"></div> -->
 </div>
 </div>
-<input type="hidden" id="hidden_fuis_totale_fatto$fuis_totale_fatto" value="<?php echo $fuis_totale_fatto; ?>">
-<input type="hidden" id="hidden_fuis_totale_fatto$fuis_totale_fatto_clil" value="<?php echo $fuis_totale_fatto_clil; ?>">
+<input type="hidden" id="hidden_fuis_totale_fatto" value="<?php echo $fuis_totale_fatto; ?>">
+<input type="hidden" id="hidden_fuis_totale_fatto_clil" value="<?php echo $fuis_totale_fatto_clil; ?>">
 <input type="hidden" id="hidden_fuis_totale_corsi_di_recupero" value="<?php echo $fuis_totale_corsi_di_recupero; ?>">
 <input type="hidden" id="hidden_fuis_budget" value="<?php echo $__importi['fuis']; ?>">
 <input type="hidden" id="hidden_fuis_budget_clil" value="<?php echo $__importi['fuis_clil']; ?>">
