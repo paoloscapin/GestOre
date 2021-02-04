@@ -6,8 +6,27 @@
  */
 
 function refreshTotale() {
-    $("#totale_previste").html('<strong>Totale FUIS previsto: ' + $("#hidden_fuis_totale_previsto").val() + '</strong> (budget: ' + $("#hidden_fuis_budget").val() + ')');
-    $("#totale_previste_clil").html('<strong>Totale CLIL previsto: ' + $("#hidden_fuis_totale_previsto_clil").val() + '</strong> (budget: ' + $("#hidden_fuis_budget_clil").val() + ')');
+    var diffTotaleFuis = Math.round($("#hidden_fuis_budget").val() - $("#hidden_fuis_totale_previsto").val());
+    var diffTotaleFuisNumber = new Number(diffTotaleFuis).toLocaleString("it-IT");
+    var diffTotaleFuisClil = $("#hidden_fuis_budget_clil").val() - $("#hidden_fuis_totale_previsto_clil").val();
+    var diffTotaleFuisClilNumber = new Number(diffTotaleFuisClil).toLocaleString("it-IT");
+
+    var totHtml = '<strong>Totale FUIS: ' + $("#hidden_fuis_totale_previsto").val() + '</strong> (budget: ' + $("#hidden_fuis_budget").val() + ') ';
+    if (diffTotaleFuis > 0) {
+        var totHtml = totHtml + '<span class="label label-success">+ ' + diffTotaleFuisNumber + '</span>';
+    } else {
+        var totHtml = totHtml + '<span class="label label-danger">- ' + (-diffTotaleFuisNumber) + '</span>';
+    }
+
+    var totHtmlClil = '<strong>Totale CLIL: ' + $("#hidden_fuis_totale_previsto_clil").val() + '</strong> (budget: ' + $("#hidden_fuis_budget_clil").val() + ') ';
+    if (diffTotaleFuisClil > 0) {
+        var totHtmlClil = totHtmlClil + '<span class="label label-success">+ ' + diffTotaleFuisClilNumber + '</span>';
+    } else {
+        var totHtmlClil = totHtmlClil + '<span class="label label-danger">- ' + (-diffTotaleFuisClilNumber) + '</span>';
+    }
+
+    $("#totale_previste").html(totHtml);
+    $("#totale_previste_clil").html(totHtmlClil);
     $("#totale_previste_corsi_di_recupero").html('<strong>Totale Corsi di Recupero: ' + $("#hidden_fuis_totale_corsi_di_recupero").val() + '</strong>');
 }
 
