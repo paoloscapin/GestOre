@@ -1,4 +1,10 @@
-## Version 1.2.1
+## Version 1.2.2 - 4 feb 2021
+
+##### Improvements
+- opzione gestione semplificata diaria
+- calcolo differenze fuis rimanente in fatte
+
+## Version 1.2.1 - 30 gen 2021
 
 ##### Improvements
 - aggiunto opzione accetta_funzionali_per_con_studenti default false
