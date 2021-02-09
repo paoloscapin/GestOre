@@ -18,8 +18,7 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	dbExec("DELETE FROM viaggio_diaria_fatta WHERE id = '$id'");
 	info("cancellata viaggio_diaria_fatta id=$id");
 
-	// La diaria non influenza il conteggio delle ore
-	// require_once '../docente/oreDovuteAggiornaDocente.php';
-	// oreFatteAggiornaDocente($__docente_id);
+	require_once '../docente/oreDovuteAggiornaDocente.php';
+	oreFatteAggiornaDocente($__docente_id);
 }
 ?>

@@ -151,10 +151,6 @@ require_once '../common/header-docente.php';
 	</div>
 	<div id="fuis_message" class="row" style="margin-bottom:10px;"></div>
 	<div id="fuis_messageEccesso" class="row" style="margin-bottom:10px;"></div>
-	<input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">
-	<input type="hidden" id="hidden_operatore" value="<?php echo $operatore; ?>">
-	<input type="hidden" id="hidden_ultimo_controllo" value="<?php echo $ultimo_controllo; ?>">
-
 </div>
 
 <!-- <div class="panel-footer"></div> -->
@@ -252,6 +248,9 @@ require_once '../common/header-docente.php';
 	<div id="ore_eccesso_message" class="row" style="margin-bottom:10px;"></div>
 	<input type="hidden" id="segnala_fatte_eccedenti_previsione" value="<?php if (getSettingsValue('fuis','segnala_fatte_eccedenti_previsione', false)) {echo('1');} else {echo('0');} ?>">
 </div>
+<input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">
+<input type="hidden" id="hidden_operatore" value="<?php echo $operatore; ?>">
+<input type="hidden" id="hidden_ultimo_controllo" value="<?php echo $ultimo_controllo; ?>">
 </div>
 
 <!-- <div class="panel-footer"></div> -->
@@ -437,6 +436,8 @@ require_once '../common/header-docente.php';
 	echo $dataCdr;
 ?>
 
+<!-- gestione viaggi completa -->
+<?php if(! $__settings->config->gestioneViaggiSemplificata) : ?>
 <div class="panel panel-deeporange4">
 <div class="panel-heading">
 	<div class="row">
@@ -466,20 +467,20 @@ require_once '../common/header-docente.php';
 <!-- <div class="panel-footer"></div> -->
 </div>
 
-<!-- gestione diaria semplificata -->
-<?php if($__settings->config->gestioneViaggiSemplificata) : ?>
+<!-- gestione viaggi semplificata -->
+<?php else : ?>
 <div class="panel panel-deeporange4">
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-2">
-			<span class="glyphicon glyphicon-picture"></span>&emsp;Viaggi con Diaria
+			<span class="glyphicon glyphicon-picture"></span>&emsp;Viaggi
 		</div>
 		<div class="col-md-8 text-right">
 		</div>
 		<div class="col-md-2 text-right">
             <?php
 			// il dirigente puo' comunque modificare, anche quando e' chiuso
-            if ($__config->getOre_previsioni_aperto() || $operatore == 'dirigente') {
+            if ($__config->getOre_fatte_aperto() || $operatore == 'dirigente') {
             	echo '<button onclick="diariaFattaGetDetails(-1)" class="btn btn-xs btn-deeporange4"><span class="glyphicon glyphicon-plus"></span></button>';
             }
    			?>
@@ -578,6 +579,12 @@ require_once '../common/header-docente.php';
                     <div class="col-sm-9"><input type="text" id="attivita_dettaglio" placeholder="specificare se necessario" class="form-control"/></div>
                 </div>
 
+                <div class="form-group" id="commento-part">
+                    <hr>
+                    <label class="col-sm-2 control-label" for="attivita_commento">commento</label>
+                    <div class="col-sm-9"><input type="text" id="attivita_commento" placeholder="commento" class="form-control"/></div>
+                </div>
+
                 <div class="form-group" id="_error-attivita-part"><strong>
                     <hr>
                     <div class="col-sm-3 text-right text-danger ">Attenzione</div>
@@ -588,7 +595,7 @@ require_once '../common/header-docente.php';
 			<div class="modal-footer">
 			<div class="col-sm-12 text-center">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-				<button type="button" class="btn btn-primary" onclick="attivitaFattaUpdateDetails()" >Salva</button>
+				<button type="button" class="btn btn-primary" onclick="attivitaFattaSave()" >Salva</button>
 				<input type="hidden" id="hidden_ore_fatte_attivita_id">
 			</div>
 			</div>
@@ -763,12 +770,17 @@ require_once '../common/header-docente.php';
                     <label class="col-sm-2 control-label" for="attivita_clil_dettaglio">Dettaglio</label>
                     <div class="col-sm-9"><input type="text" id="attivita_clil_dettaglio" placeholder="specificare se necessario" class="form-control"/></div>
                 </div>
+                <div class="form-group" id="clil_commento-part">
+                    <hr>
+                    <label class="col-sm-2 control-label" for="attivita_clil_commento">commento</label>
+                    <div class="col-sm-9"><input type="text" id="attivita_clil_commento" placeholder="commento" class="form-control"/></div>
+                </div>
             </div>
             </div>
 			<div class="modal-footer">
 			<div class="col-sm-12 text-center">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-				<button type="button" class="btn btn-primary" onclick="attivitaFattaClilUpdateDetails()" >Salva</button>
+				<button type="button" class="btn btn-primary" onclick="attivitaFattaClilSave()" >Salva</button>
 				<input type="hidden" id="hidden_ore_fatte_clil_attivita_id">
 			</div>
 			</div>
@@ -861,6 +873,11 @@ require_once '../docente/attribuiteModal.php';
                 <div class="form-group">
                     <label class="col-sm-3 control-label" for="diaria_giorni_con_pernottamento">giorni con pernottamento</label>
                     <div class="col-sm-2"><input type="text" id="diaria_giorni_con_pernottamento" placeholder="" class="form-control"/></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="diaria_ore">ore recuperate</label>
+                    <div class="col-sm-2"><input type="text" id="diaria_ore" placeholder="" class="form-control"/></div>
                 </div>
 
                 <div class="form-group" id="diaria_commento-part">
