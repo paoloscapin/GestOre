@@ -33,5 +33,8 @@ if(isset($_POST)) {
     // deve aggiornare i totali delle ore
     require_once '../docente/oreDovuteAggiornaDocente.php';
 	orePrevisteAggiornaDocente($__docente_id);
+
+	// le attribuite influenzano anche le ore fatte
+	oreFatteAggiornaDocente($__docente_id);
 }
 ?>

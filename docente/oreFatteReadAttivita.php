@@ -11,14 +11,32 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/__Minuti.php';
 
+function writeOre($attuali, $originali) {
+	// se non ci sono gli originali, scrive solo gli attuali
+	if ($originali == null || $originali == 0) {
+		return oreToDisplay($attuali);
+	}
+	// altrimenti gli originali cancellati e gli attuali in rosso
+	return '<s style="text-decoration-style: double;"> '.oreToDisplay($originali).' </s>&ensp;<span class="text-danger"><strong> '.oreToDisplay($attuali).' </strong></span>';
+}
+
+// default opera sul docente connesso e agisce come docente
+$docente_id = $__docente_id;
+$operatore = 'docente';
+
 $modificabile = $__config->getOre_fatte_aperto();
 
-$docente_id = $__docente_id;
-if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
-    $docente_id = $_POST['docente_id'];
-    $ultimo_controllo = $_POST['ultimo_controllo'];
-    $modificabile = false;
+if(isset($_POST['operatore']) && $_POST['operatore'] == 'dirigente') {
+	// se vuoi fare il dirigente, devi essere dirigente
+	ruoloRichiesto('dirigente');
+	// agisci quindi come dirigente
+	$operatore = 'dirigente';
+	// il dirigente può sempre fare modifiche
+	$modificabile = true;
+	// devi leggere il timestamp dell'ultimo controllo effettuato
+	$ultimo_controllo = $_POST['ultimo_controllo'];
 }
+debug('modificabile='.$modificabile);
 
 $contestataMarker = '<span class=\'label label-danger\'>contestata</span>';
 $accettataMarker = '';
@@ -30,12 +48,11 @@ $data .= '<div class="table-wrapper"><table class="table table-bordered table-st
 						<thead><tr>
 							<th class="col-md-1 text-left">Tipo</th>
 							<th class="col-md-2 text-left">Nome</th>
-							<th class="col-md-4 text-left">Dettaglio</th>
+							<th class="col-md-5 text-left">Dettaglio</th>
 							<th class="col-md-1 text-center">Data</th>
 							<th class="col-md-1 text-center">Ore</th>
 							<th class="col-md-1 text-center">Registro</th>
-							<th></th>
-							<th></th>
+							<th class="col-md-1 text-center"></th>
 						</tr></thead><tbody>';
 
 $query = "	SELECT
@@ -51,7 +68,8 @@ $query = "	SELECT
 					ore_previste_tipo_attivita.nome AS ore_previste_tipo_attivita_nome,
 					ore_previste_tipo_attivita.da_rendicontare AS ore_previste_tipo_attivita_da_rendicontare,
 					registro_attivita.id AS registro_attivita_id,
-                    ore_fatte_attivita_commento.commento AS ore_fatte_attivita_commento_commento
+                    ore_fatte_attivita_commento.commento AS ore_fatte_attivita_commento_commento,
+                    ore_fatte_attivita_commento.ore_originali AS ore_fatte_attivita_ore_originali
 
 				FROM ore_fatte_attivita ore_fatte_attivita
 				INNER JOIN ore_previste_tipo_attivita ore_previste_tipo_attivita
@@ -68,11 +86,7 @@ $query = "	SELECT
 				"
 				;
 
-$result = dbGetAll($query);
-if ($result == null) {
-	$result = [];
-}
-foreach($result as $row) {
+foreach(dbGetAll($query) as $row) {
 	$strikeOn = '';
 	$strikeOff = '';
 	if ($row['ore_fatte_attivita_contestata'] == 1) {
@@ -80,67 +94,46 @@ foreach($result as $row) {
 		$strikeOff = '</strike>';
 	}
 	
-	// controlla se aggiornata dall'ultima modifica
+	// controlla se aggiornata dall'ultima modifica (solo per il dirigente)
 	$marker = '';
-	if ((! $modificabile) && isset($ultimo_controllo)) {
+	if ($operatore == 'dirigente') {
 		if ($row['ore_fatte_attivita_ultima_modifica'] > $ultimo_controllo) {
-			$marker = '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>';
+			$marker = '&nbsp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>&ensp;';
 		}
 	}
-	
+
 	$data .= '<tr>
-		<td>'.$strikeOn.$row['ore_previste_tipo_attivita_categoria'].$strikeOff.$marker.'</td>
+		<td>'.$strikeOn.$row['ore_previste_tipo_attivita_categoria'].$strikeOff.'</td>
 		<td>'.$strikeOn.$row['ore_previste_tipo_attivita_nome'].$strikeOff.'</td>
-		<td>'.$strikeOn.$row['ore_fatte_attivita_dettaglio'].$strikeOff;
-	if ($row['ore_fatte_attivita_contestata'] == 1) {
+		<td>'.$marker.$strikeOn.$row['ore_fatte_attivita_dettaglio'].$strikeOff;
+
+	if ($row['ore_fatte_attivita_commento_commento'] != null && !empty(trim($row['ore_fatte_attivita_commento_commento'], " "))) {
 		$data .='</br><span class="text-danger"><strong>'.$row['ore_fatte_attivita_commento_commento'].'</strong></span>';
 	}
 	$data .='</td>';
-	
+
 	$ore_con_minuti = oreToDisplay($row['ore_fatte_attivita_ore']);
 
-	// data e ora solo per quelle inserite da docente
+	// data e ora solo per quelle inserite da docente (dovrebbero essere tutte a questo punto)
 	if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
-		$data .='
-		<td class="text-center">'.$strikeOn.strftime("%d/%m/%Y", strtotime($row['ore_fatte_attivita_data'])).$strikeOff.'</td>
-		<td class="text-center">'.$strikeOn.$ore_con_minuti.$strikeOff.'</td>
-		';
+		$data .= '<td class="text-center">'.$strikeOn.strftime("%d/%m/%Y", strtotime($row['ore_fatte_attivita_data'])).$strikeOff.'</td>';
+		$data .= '<td class="text-center">'.writeOre($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali']).'</td>';
 	} else {
-		$data .='
-		<td class="text-center">'.'</td>
-		<td class="text-center">'.$ore_con_minuti.'</td>
-		';
+		$data .='<td class="text-center">'.'</td><td class="text-center">'.writeOre($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali']).'</td>';
 	}
 
-	$data .='
-		<td class="text-center">
-		';
+	$data .='<td class="text-center">';
 	// registro per quelle inserite da docente
 	if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
-		$data .='
-			<button onclick="oreFatteGetRegistroAttivita('.$row['ore_fatte_attivita_id'].', '.$row['registro_attivita_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
-		';
-	} else {
-		// per le altre inserire un rendiconto se richiesto
-		if ($row['ore_previste_tipo_attivita_da_rendicontare']) {
-			// TODO: inserire di nuovo
-			/*
-			// se non ancora rendicontato colora in warning
-			$btn_class = $row['rendiconto_attivita_rendicontato'] ? 'btn-success' : 'btn-warning';
-			$data .='
-			<button onclick="oreFatteGetRendicontoAttivita('.$row['ore_fatte_attivita_id'].', '.$row['rendiconto_attivita_id'].')" class="btn '. $btn_class .' btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
-		';
-		*/
-		}
+		$data .='<button onclick="oreFatteGetRegistroAttivita('.$row['ore_fatte_attivita_id'].', '.$row['registro_attivita_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>';
 	}
-	$data .='
-		</td>';
+	$data .='</td>';
+
 	$marker = ($row['ore_fatte_attivita_contestata'] == 1)? $contestataMarker : $accettataMarker;
-	$data .= '<td class="col-md-1 text-center">'.$marker.'</td>';
-	
-	$data .='
-		<td class="text-center">
-		';
+//	$data .= '<td class="col-md-1 text-center">'.$marker.'</td>';
+
+	$data .='<td class="text-center">';
+
 	if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
 		if ($modificabile) {
 			$data .='
@@ -159,16 +152,10 @@ foreach($result as $row) {
 			}
 		}
 	}
-	$data .='
-		</td>
-		</tr>';
+	$data .='</td></tr>';
 }
 
-$data .= '</tbody>';
-
-$data .= '</table>
-';
-$data .= '</div>';
+$data .= '</tbody></table></div>';
 
 echo $data;
 

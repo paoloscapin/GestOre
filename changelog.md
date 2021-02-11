@@ -1,3 +1,13 @@
+## Version 1.2.3 - 11 feb 2021
+
+##### Improvements
+- aggiornata gestione CLIL in fatte per calcolo fuis
+- gestione commenti dirigente nelle ore fatte
+- ultimo controllo calcolato e segnalato in ore fatte
+
+##### Bug Fixes
+- controllo data sportello > oggi
+
 ## Version 1.2.2 - 4 feb 2021
 
 ##### Improvements
