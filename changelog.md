@@ -1,8 +1,16 @@
+## Version 1.2.3 - 9 mar 2021
+
+##### Improvements
+- aggiunta folder doc e inserito sql per setup database
+
 ## Version 1.2.2 - 4 feb 2021
 
 ##### Improvements
 - opzione gestione semplificata diaria
 - calcolo differenze fuis rimanente in fatte
+
+##### Note
+- necessita aggiornamento del database
 
 ## Version 1.2.1 - 30 gen 2021
 
