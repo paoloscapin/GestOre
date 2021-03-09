@@ -10,7 +10,6 @@
 require_once '../common/checkSession.php';
 require_once '../common/__Minuti.php';
 
-
 function writeOre($attuali, $originali) {
 	// se non ci sono gli originali, scrive solo gli attuali
 	if ($originali == null || $originali == 0) {
@@ -78,7 +77,7 @@ foreach(dbGetAll($query) as $row) {
 	$marker = '';
 	if ($operatore == 'dirigente') {
 		if ($row['ore_previste_attivita_ultima_modifica'] > $ultimo_controllo) {
-			$marker = '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>';
+			$marker = '&nbsp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>&ensp;';
 		}
 	}
 
@@ -90,16 +89,13 @@ foreach(dbGetAll($query) as $row) {
 		$data .= '<tr>';
 	}
 
-	$data .= '<td class="col-md-1">'.$row['ore_previste_tipo_attivita_categoria'].'</td><td class="col-md-3">'.$row['ore_previste_tipo_attivita_nome'].'</td><td>'.$row['ore_previste_attivita_dettaglio'].$marker;
+	$data .= '<td class="col-md-1">'.$row['ore_previste_tipo_attivita_categoria'].'</td><td class="col-md-3">'.$row['ore_previste_tipo_attivita_nome'].'</td><td>'.$marker.$row['ore_previste_attivita_dettaglio'];
 	if ($row['ore_previste_attivita_commento_commento'] != null && !empty(trim($row['ore_previste_attivita_commento_commento'], " "))) {
 		$data .='</br><span class="text-danger"><strong>'.$row['ore_previste_attivita_commento_commento'].'</strong></span>';
 	}
+	$data .='</td>';
 
-	$ore_con_minuti = oreToDisplay($row['ore_previste_attivita_ore']);
-
-	$data .= '</td>
-	<td class="col-md-1 text-center">'.writeOre($row['ore_previste_attivita_ore'], $row['ore_previste_attivita_commento_ore_originali']).'</td>
-	';
+	$data .= '<td class="col-md-1 text-center">'.writeOre($row['ore_previste_attivita_ore'], $row['ore_previste_attivita_commento_ore_originali']).'</td>';
 
 	$data .='<td class="col-md-1 text-center">';
 	// si possono modificare solo le righe previste da docente: se dirigente lo script non cancella ma propone di mettere le ore a zero

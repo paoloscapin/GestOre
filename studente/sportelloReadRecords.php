@@ -73,7 +73,9 @@ if ($resultArray == null) {
 }
 foreach($resultArray as $row) {
 	$sportello_id = $row['sportello_id'];
-	$passato = (strtotime($row['sportello_data']) < strtotime('now'));
+	$todayDate = new DateTime ("today");
+	$sportelloDate = new DateTime ($row['sportello_data']);
+	$passato = ($sportelloDate < $todayDate);
 
 	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
 	$dataSportello = utf8_encode( strftime("%d %B %Y", strtotime($row['sportello_data'])));

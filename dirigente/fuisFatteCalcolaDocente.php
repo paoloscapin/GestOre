@@ -10,7 +10,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/importi_load.php';
-ruoloRichiesto('dirigente');
+// ruoloRichiesto('dirigente');
 
 function calcolaFuisDocente($localDocenteId) {
 	global $__anno_scolastico_corrente_id;
@@ -122,18 +122,39 @@ function calcolaFuisDocente($localDocenteId) {
 
     // nessuno deve tornare dei soldi:
     $ore = max($ore, 0);
+
     // ------------------------------------------------------------
-
     // CLIL
-    $query = "SELECT COALESCE(SUM(ore_previste_attivita.ore),0) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
-        WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $localDocenteId AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'funzionali' ;";
-    $clilFunzionaleOre=dbGetValue($query);
-    $clilFunzionale = $clilFunzionaleOre * $__importi['importo_ore_funzionali'];
+    $clilPrevisteFunzionali=dbGetValue("SELECT COALESCE(SUM(ore_previste_attivita.ore),0) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $localDocenteId AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'funzionali';");
+    $clilPrevisteConStudenti=dbGetValue("SELECT COALESCE(SUM(ore_previste_attivita.ore),0) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $localDocenteId AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'con studenti';");
 
-    $query = "SELECT COALESCE(SUM(ore_previste_attivita.ore),0) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
-        WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $localDocenteId AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'con studenti' ;";
-    $clilConStudentiOre=dbGetValue($query);
-    $clilConStudenti = $clilConStudentiOre * $__importi['importo_ore_con_studenti'];
+
+    $clilFatteFunzionali=dbGetValue("SELECT COALESCE(SUM(ore_fatte_attivita_clil.ore),0) FROM ore_fatte_attivita_clil WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $localDocenteId AND con_studenti = 0;");
+    $clilFatteConStudenti=dbGetValue("SELECT COALESCE(SUM(ore_fatte_attivita_clil.ore),0) FROM ore_fatte_attivita_clil WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $localDocenteId AND con_studenti = 1;");
+
+    if ($clilFatteFunzionali > $clilPrevisteFunzionali) {
+        if ( ! empty($messaggioEccesso)) {
+            $messaggioEccesso = $messaggioEccesso . "</br>";
+        }
+        $clilFatteFunzionaliBilancio = $clilPrevisteFunzionali;
+        $messaggioEccesso = $messaggioEccesso . ($clilFatteFunzionali - $clilPrevisteFunzionali) . " ore CLIL funzionali non concordate non saranno incluse nel conteggio FUIS: considerate solo ". $clilFatteFunzionaliBilancio .". ";
+    } else {
+        $clilFatteFunzionaliBilancio = $clilFatteFunzionali;
+    }
+    debug('clilPrevisteConStudenti='.$clilPrevisteConStudenti);
+    debug('clilFatteConStudenti='.$clilFatteConStudenti);
+    if ($clilFatteConStudenti > $clilPrevisteConStudenti) {
+        if ( ! empty($messaggioEccesso)) {
+            $messaggioEccesso = $messaggioEccesso . "</br>";
+        }
+        $clilFatteConStudentiBilancio = $clilPrevisteConStudenti;
+        $messaggioEccesso = $messaggioEccesso . ($clilFatteConStudenti - $clilPrevisteConStudenti) . " ore CLIL con studenti non concordate non saranno incluse nel conteggio FUIS: considerate solo ". $clilFatteConStudentiBilancio .". ";
+    } else {
+        $clilFatteConStudentiBilancio = $clilFatteConStudenti;
+    }
+
+    $clilFunzionale = $clilFatteFunzionaliBilancio * $__importi['importo_ore_funzionali'];
+    $clilConStudenti = $clilFatteConStudentiBilancio * $__importi['importo_ore_con_studenti'];
 
     // extra ore dei corsi di recupero
     $oreExtraCorsiDiRecupero = dbGetValue("SELECT  COALESCE(SUM(corso_di_recupero.ore_pagamento_extra), 0) FROM corso_di_recupero WHERE docente_id = $localDocenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");

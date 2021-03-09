@@ -11,6 +11,6 @@
 
 <?php
 $__software_name = 'GestOre';
-$__software_version = '1.2.3';
+$__software_version = '1.2.4';
 $__software_release_date = '9 mar 2021';
 ?>

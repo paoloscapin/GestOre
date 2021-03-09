@@ -90,7 +90,16 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cog
     // aggiunge una stellina se qualcosa e' cambiato dall'ultimo controllo
     $ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_fatte WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId;");
     $marker = '';
+
+    // controlla se e' cambiato qualcosa nelle ore fatte, nelle clil, nei viaggi
     $numChanges = dbGetValue("SELECT COUNT(ultima_modifica) from ore_fatte_attivita WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId AND ultima_modifica > '$ultimo_controllo';");
+    if ($numChanges == 0) {
+        $numChanges = dbGetValue("SELECT COUNT(ultima_modifica) from ore_fatte_attivita_clil WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId AND ultima_modifica > '$ultimo_controllo';");
+    }
+    if ($numChanges == 0) {
+        $numChanges = dbGetValue("SELECT COUNT(ultima_modifica) from viaggio_diaria_fatta WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId AND ultima_modifica > '$ultimo_controllo';");
+    }
+
     $marker = ($numChanges == 0) ? '': '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>';
 
     $openTabMode = getSettingsValue('interfaccia','apriDocenteInNuovoTab', false) ? '_blank' : '_self';

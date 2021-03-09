@@ -17,8 +17,18 @@ function writeGiorni($attuali, $originali) {
 		return $attuali;
 	}
 	// altrimenti gli originali cancellati e gli attuali in rosso
-//	return '<span style="background: linear-gradient(to left top, transparent 47.75%, currentColor 49.5%, currentColor 50.5%, transparent 52.25%); "> '.$originali.' </span> <span class="text-danger"><strong> '.$attuali.' </strong></span>';
 	return '<s style="text-decoration-style: double;"> '.$originali.' </s>&ensp;<span class="text-danger"><strong> '.$attuali.' </strong></span>';
+}
+
+function writeOre($attuali, $originali) {
+	// se non ci sono gli originali, scrive solo gli attuali
+	if ($originali == null || $originali == 0) {
+		return oreToDisplay($attuali);
+	}
+	// altrimenti gli originali cancellati e gli attuali in rosso
+	$ore_con_minuti = oreToDisplay($attuali);
+	$ore_con_minuti_originali = oreToDisplay($originali);
+	return '<s style="text-decoration-style: double;"> '.$ore_con_minuti_originali.' </s>&ensp;<span class="text-danger"><strong> '.$ore_con_minuti.' </strong></span>';
 }
 
 // default opera sul docente connesso e agisce come docente
@@ -41,10 +51,11 @@ if(isset($_POST['operatore']) && $_POST['operatore'] == 'dirigente') {
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 						<tr>
 							<th class="col-md-1 text-left">Data</th>
-							<th class="col-md-6 text-left">Descrizione</th>
+							<th class="col-md-5 text-left">Descrizione</th>
 							<th class="col-md-1 text-center">Senza Pernottamento</th>
 							<th class="col-md-1 text-center">Con Pernottamento</th>
 							<th class="col-md-1 text-center">Importo</th>
+							<th class="col-md-1 text-center">Ore</th>
 							<th class="col-md-1 text-center"></th>
 						</tr>';
 
@@ -68,6 +79,8 @@ foreach(dbGetAll("SELECT viaggio_diaria_fatta.id as local_viaggio_diaria_fatta_i
 		<td class="text-center">'.writeGiorni($row['giorni_senza_pernottamento'], $row['giorni_senza_pernottamento_originali']).'</td>
 		<td class="text-center">'.writeGiorni($row['giorni_con_pernottamento'], $row['giorni_con_pernottamento_originali']).'</td>
 		<td class="text-right">'.$importo.' €&ensp;</td>';
+
+	$data .= '<td class="text-center">'.writeOre($row['ore'], $row['ore_originali']).'</td>';
 
 	$data .='<td class="text-center">';
 	// si possono modificare solo le righe previste da docente: se dirigente lo script non cancella ma propone di mettere le ore a zero
