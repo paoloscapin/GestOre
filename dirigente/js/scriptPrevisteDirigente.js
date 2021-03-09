@@ -36,4 +36,12 @@ function refreshPagina() {
 
 $(document).ready(function () {
     refreshTotale();
+
+    $("#tipoAttivita").on("changed.bs.select", 
+    function(e, clickedIndex, newValue, oldValue) {
+        var attivita_id = this.value;
+        alert(attivita_id);
+        filtraTipoAttivita(attivita_id);
+    });
+
 });

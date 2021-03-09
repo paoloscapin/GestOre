@@ -18,7 +18,8 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
-//require_once '../common/_include_bootstrap-select.php';
+// require_once '../common/_include_select2.php';
+require_once '../common/_include_bootstrap-select.php';
 require_once '../common/__Minuti.php';
 require_once '../common/importi_load.php';
 ruoloRichiesto('dirigente');
@@ -38,11 +39,36 @@ require_once '../common/header-dirigente.php';
 require_once '../common/connect.php';
 ?>
 
+<?php
+// prepara l'elenco dei tipi di attivita
+$categoria = '';
+$tipoAttivitaOptionList = '<option value="0"></option>';
+$query = "SELECT * FROM ore_previste_tipo_attivita WHERE ore_previste_tipo_attivita.valido = true ORDER BY ore_previste_tipo_attivita.categoria DESC, ore_previste_tipo_attivita.nome ASC ;";
+$resultArray = dbGetAll($query);
+foreach(dbGetAll("SELECT * FROM ore_previste_tipo_attivita WHERE ore_previste_tipo_attivita.valido = true ORDER BY ore_previste_tipo_attivita.categoria DESC, ore_previste_tipo_attivita.nome ASC ;") as $row) {
+	if ($categoria !== $row['categoria']) {
+		if ($categoria !== '') {
+			$tipoAttivitaOptionList .= '</optgroup>';
+		}
+		$categoria = $row['categoria'];
+		$tipoAttivitaOptionList .= '<optgroup label="'.$categoria.'">';
+	}
+
+	$disable = '';
+	if ($row['previsto_da_docente']) {
+		$tipoAttivitaOptionList .= '
+			<option value="'.$row['id'].'"'.$disable.' >'.$row['nome'].'</option>
+			';
+	}
+}
+$tipoAttivitaOptionList .= '</optgroup>';
+?>
+
 <div class="container-fluid" style="margin-top:60px">
 <div class="panel panel-orange4">
 <div class="panel-heading container-fluid">
 	<div class="row">
-		<div class="col-md-2">
+		<div class="col-md-1">
 			<span class="glyphicon glyphicon-list-alt"></span>&emsp;<strong>Ore Previste</strong>
 		</div>
 		<div class="col-md-3 text-center" id="totale_previste">
@@ -50,6 +76,9 @@ require_once '../common/connect.php';
 		<div class="col-md-3 text-center" id="totale_previste_clil">
 		</div>
 		<div class="col-md-3 text-center" id="totale_previste_corsi_di_recupero">
+		</div>
+		<div class="col-md-1 text-center" id="filtro">
+            <select id="tipoAttivita" name="tipoAttivita" class="tipoAttivita selectpicker" data-style="btn-yellow4 btn-xs" data-live-search="true" data-noneSelectedText="Tutte le attivita" data-selectOnTab="true" ><?php echo $tipoAttivitaOptionList ?></select>
 		</div>
 		<div class="col-md-1 text-right" id="page_refresh">
             <button onclick="refreshPagina()" class="btn btn-xs btn-orange4"><span class="glyphicon glyphicon-refresh"></span></button>

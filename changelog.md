@@ -4,6 +4,9 @@
 - opzione gestione semplificata diaria
 - calcolo differenze fuis rimanente in fatte
 
+##### Note
+- necessita aggiornamento del database
+
 ## Version 1.2.1 - 30 gen 2021
 
 ##### Improvements
