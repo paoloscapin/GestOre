@@ -10,7 +10,6 @@
  require_once '../common/checkSession.php';
  ruoloRichiesto('segreteria-didattica');
 
- $tableName = "studente";
  if(isset($_POST)) {
 	$id = $_POST['id'];
 	$cognome = escapePost('cognome');
@@ -20,14 +19,20 @@
 	$anno = escapePost('anno');
 
 	if ($id > 0) {
-        $query = "UPDATE $tableName SET cognome = '$cognome', nome = '$nome', email = '$email', classe = '$classe', anno = '$anno' WHERE id = '$id'";
+        $query = "UPDATE studente SET cognome = '$cognome', nome = '$nome', email = '$email', classe = '$classe', anno = '$anno' WHERE id = '$id'";
         dbExec($query);
-        info("aggiornato $tableName id=$id cognome=$cognome nome=$nome email=$email classe=$classe anno=$anno");
+        info("aggiornato studente id=$id cognome=$cognome nome=$nome email=$email classe=$classe anno=$anno");
     } else {
-        $query = "INSERT INTO $tableName(cognome, nome, email, classe, anno) VALUES('$cognome', '$nome', '$email', '$classe', '$anno)";
+        $query = "INSERT INTO studente(cognome, nome, email, classe, anno) VALUES('$cognome', '$nome', '$email', '$classe', '$anno')";
         dbExec($query);
-        $id = dblastId();
-		info("aggiunto sportello id=$id cognome=$cognome nome=$nome email=$email classe=$classe anno=$anno");
+        $studenteId = dblastId();
+		info("aggiunto studente id=$studenteId cognome=$cognome nome=$nome email=$email classe=$classe anno=$anno");
+
+        // insert dell'utente
+        $username = strstr($email, '@', true);
+        $username = $nome . '.' . $cognome;
+        $query = "INSERT INTO utente(nome, cognome, username, email, ruolo) VALUES('$nome', '$cognome', '$username', '$email', 'studente')";
+        dbExec($query);
     }
 }
 ?>
