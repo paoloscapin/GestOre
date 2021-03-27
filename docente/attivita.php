@@ -746,11 +746,14 @@ require_once '../common/header-docente.php';
 			</div>
 			<div class="panel-body">
 			<div class="form-horizontal">
-
-                <div class="form-group tipo_attivita_selector">
-                    <label class="col-sm-2 control-label" for="tipo_attivita">Con Studenti</label>
+				<div class="form-group attivita_clil_tipo_attivita_selector">
+                    <label class="col-sm-2 control-label" for="attivita_clil_tipo_attivita">Tipo attività</label>
 					<div class="col-sm-6">
-						<input type="checkbox" data-toggle="toggle" data-onstyle="primary" id="clil_con_studenti" checked>
+						<select id="attivita_clil_tipo_attivita" name="attivita_clil_tipo_attivita" class="attivita_clil_tipo_attivita selectpicker" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+							<option value="0"></option>
+							<option value="1">funzionali</option>
+							<option value="2">con studenti</option>
+						</select>
 					</div>
                 </div>
                 <div class="form-group">
@@ -775,6 +778,12 @@ require_once '../common/header-docente.php';
                     <label class="col-sm-2 control-label" for="attivita_clil_commento">commento</label>
                     <div class="col-sm-9"><input type="text" id="attivita_clil_commento" placeholder="commento" class="form-control"/></div>
                 </div>
+				
+                <div class="form-group" id="_error-attivita_clil-part"><strong>
+                    <hr>
+                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                    <div class="col-sm-9" id="_error-attivita_clil"></div>
+				</strong></div>
             </div>
             </div>
 			<div class="modal-footer">

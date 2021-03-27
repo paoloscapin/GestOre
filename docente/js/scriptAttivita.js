@@ -486,6 +486,8 @@ function oreFatteClilGetAttivita(attivita_id) {
 			function (dati, status) {
 				// console.log(dati);
 				var attivita = JSON.parse(dati);
+				var con_studenti = attivita.con_studenti == 0 ? 1 : 2;
+				$('#attivita_clil_tipo_attivita').selectpicker('val', con_studenti);
 				setOre('#attivita_clil_ore', attivita.ore);
 				$("#attivita_clil_dettaglio").val(attivita.dettaglio);
 				$("#attivita_clil_ora_inizio").val(attivita.ora_inizio);
@@ -515,15 +517,23 @@ function oreFatteClilGetAttivita(attivita_id) {
 		$("#clil_commento-part").hide();
 	}
 
-	// Open modal popup
+	$("#_error-attivita_clil-part").hide();
 	$("#docente_attivita_clil_modal").modal("show");
 }
 
 function attivitaFattaClilSave() {
+	if ($("#attivita_clil_tipo_attivita").val() <= 0) {
+		$("#_error-attivita_clil").text("Devi selezionare un tipo di attività");
+		$("#_error-attivita_clil-part").show();
+		return;
+	}
+	$("#_error-attivita_clil-part").hide();
+	var con_studenti = $("#attivita_clil_tipo_attivita").val() == 1 ? false: true;
+
  	$.post("oreFatteClilSave.php", {
 		docente_id: $("#hidden_docente_id").val(),
     	attivita_id: $("#hidden_ore_fatte_clil_attivita_id").val(),
-    	con_studenti: $("#clil_con_studenti").is(':checked'),
+    	con_studenti: con_studenti,
     	ore: getOre("#attivita_clil_ore"),
     	dettaglio: $("#attivita_clil_dettaglio").val(),
     	ora_inizio: $("#attivita_clil_ora_inizio").val(),
