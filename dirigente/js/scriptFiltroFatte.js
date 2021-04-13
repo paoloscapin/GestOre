@@ -9,7 +9,7 @@ var tipo_attivita_id = 0;
 var ordinamento = 0;
 
 function selezionaTipoAttivita() {
-	$.post("filtroAttivitaReadRecords.php", {
+	$.post("filtroFatteReadRecords.php", {
         tipo_attivita_id: tipo_attivita_id,
         ordinamento: ordinamento
     },

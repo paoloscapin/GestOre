@@ -12,7 +12,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Filtro Attività</title>
+	<title>Filtro Previste</title>
 <?php
 require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
@@ -23,7 +23,7 @@ ruoloRichiesto('dirigente');
 ?>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-3.css">
-<script type="text/javascript" src="js/scriptFiltroAttivita.js"></script>
+<script type="text/javascript" src="js/scriptFiltroPreviste.js"></script>
 
 </head>
 
@@ -63,7 +63,7 @@ require_once '../common/connect.php';
 <div class="row">
 	<div class="col-md-6">
 	   <div class="form-group tipo_attivita_selector text-center">
-			<label for="tipo_attivita">Filtro Attività</label>
+			<label for="tipo_attivita">Filtro Attività Previste</label>
 			<select id="tipo_attivita" name="tipo_attivita" class="tipo_attivita selectpicker" data-style="btn-info" data-live-search="true"
 			data-noneSelectedText="seleziona..." data-width="50%" >
 	<?php echo $tipoAttivitaOptionList ?>
@@ -81,7 +81,7 @@ require_once '../common/connect.php';
 	</div>
 </div>
 
-<div class="panel panel-teal4">
+<div class="panel panel-orange4">
 	<div class="records_content"></div>
 </div>
 </div>

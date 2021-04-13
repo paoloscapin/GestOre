@@ -21,8 +21,17 @@
 				<a href="<?php echo $__application_base_path; ?>/dirigente/corsoDiRecuperoReport.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
 			<?php endif; ?>
 			<a href="<?php echo $__application_base_path; ?>/dirigente/configurazione.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-cog"></span>&ensp;Configura </a>
-			<a href="<?php echo $__application_base_path; ?>/dirigente/previsteList.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-dashboard"></span>&ensp;Previste </a>
 
+<div class="btn-group">
+	<a href="<?php echo $__application_base_path; ?>/dirigente/previsteList.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-dashboard"></span>&ensp;Previste </a>
+	<button type="button" class="btn btn-default navbar-btn btn-orange4 dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+		<span class="caret"></span>
+		<span class="sr-only">Toggle Dropdown</span>
+	</button>
+	<ul class="dropdown-menu">
+		<li><a href="<?php echo $__application_base_path; ?>/dirigente/filtroPreviste.php">Filtro Attività Previste</a></li>
+	</ul>
+</div>
 <div class="btn-group">
 	<a href="<?php echo $__application_base_path; ?>/dirigente/fatteList.php" class="btn btn-default navbar-btn btn-teal4" role="button"><span class="glyphicon glyphicon-folder-close"></span>&ensp;Fatte </a>
 	<button type="button" class="btn btn-default navbar-btn btn-teal4 dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -30,8 +39,7 @@
 		<span class="sr-only">Toggle Dropdown</span>
 	</button>
 	<ul class="dropdown-menu">
-		<li><a href="<?php echo $__application_base_path; ?>/dirigente/filtroAttivita.php">Filtro Attività</a></li>
-		<li><a href="<?php echo $__application_base_path; ?>/dirigente/fuisAssegnato.php">Fuis Assegnato</a></li>
+		<li><a href="<?php echo $__application_base_path; ?>/dirigente/filtroFatte.php">Filtro Attività Fatte</a></li>
 	</ul>
 </div>
 
@@ -42,8 +50,8 @@
 		<span class="sr-only">Toggle Dropdown</span>
 	</button>
 	<ul class="dropdown-menu">
+	<li><a href="<?php echo $__application_base_path; ?>/dirigente/fuisAssegnato.php">Fuis Assegnato</a></li>
 		<li><a href="<?php echo $__application_base_path; ?>/dirigente/fuisViaggi.php">Fuis Viaggi</a></li>
-		<li><a href="<?php echo $__application_base_path; ?>/dirigente/fuisAssegnato.php">Fuis Assegnato</a></li>
 		<li><a href="<?php echo $__application_base_path; ?>/dirigente/fuisDocenti.php">Fuis Docenti</a></li>
 	</ul>
 </div>
