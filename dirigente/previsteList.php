@@ -43,7 +43,7 @@ require_once '../common/connect.php';
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-2">
-			<span class="glyphicon glyphicon-list-alt"></span>&emsp;<strong>Ore Previste</strong>
+			<span class="glyphicon glyphicon-dashboard"></span>&emsp;<strong>Ore Previste</strong>
 		</div>
 		<div class="col-md-3 text-center" id="totale_previste">
 		</div>
