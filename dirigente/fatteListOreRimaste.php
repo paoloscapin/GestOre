@@ -32,6 +32,7 @@ function getHtmlNumAndPrevisteVisual($value, $total) {
     $okSymbol = '&ensp;<span class="glyphicon glyphicon-ok text-success"></span>';
     
     $numString = ($value >= 10) ? trasformaFloatInStringa($value) : '&ensp;' . trasformaFloatInStringa($value);
+    $numString = '';
 	$diff = $total - $value;
 	if ($diff > 0) {
 		$numString .= '&ensp;<span class="label label-warning">- ' . trasformaFloatInStringa($diff) . '</span>';
@@ -48,6 +49,7 @@ function getHtmlNumAndFatteVisual($value, $total) {
     $okSymbol = '&ensp;<span class="glyphicon glyphicon-ok text-success"></span>';
     
     $numString = ($value >= 10) ? trasformaFloatInStringa($value) : '&ensp;' . trasformaFloatInStringa($value);
+    $numString = '';
 	$diff = $total - $value;
 	if ($diff > 0) {
 		$numString .= '&ensp;<span class="label label-warning">- ' . trasformaFloatInStringa($diff) . '</span>';
@@ -151,14 +153,16 @@ AND ore_fatte.anno_scolastico_id = 2
 
 ORDER BY cognome,nome;";
 foreach(dbGetAll($query) as $docente) {
-    $dovute_con_studenti_totale = $docente['ore_dovute_ore_70_con_studenti'] + $docente['ore_dovute_ore_70_con_studenti'];
-    $previste_con_studenti_totale = $docente['ore_previste_ore_70_con_studenti'] + $docente['ore_previste_ore_70_con_studenti'];
-    $fatte_con_studenti_totale = $docente['ore_fatte_ore_70_con_studenti'] + $docente['ore_fatte_ore_70_con_studenti'];
+    $dovute_con_studenti_totale = $docente['ore_dovute_ore_70_con_studenti'] + $docente['ore_dovute_ore_40_con_studenti'];
+    $previste_con_studenti_totale = $docente['ore_previste_ore_70_con_studenti'] + $docente['ore_previste_ore_40_con_studenti'];
+    $fatte_con_studenti_totale = $docente['ore_fatte_ore_70_con_studenti'] + $docente['ore_fatte_ore_40_con_studenti'];
 
     $ore_dovute_ore_70_funzionali = $docente['ore_dovute_ore_70_funzionali'];
     $ore_previste_ore_70_funzionali = $docente['ore_previste_ore_70_funzionali'];
     $ore_fatte_ore_70_funzionali = $docente['ore_fatte_ore_70_funzionali'];
 
+    debug('dovute_con_studenti_totale='.$dovute_con_studenti_totale);
+    debug('dovute_con_studenti_totale='.$dovute_con_studenti_totale);
     debug('dovute_con_studenti_totale='.$dovute_con_studenti_totale);
 
     $docenteId = $docente['id'];
@@ -174,7 +178,8 @@ foreach(dbGetAll($query) as $docente) {
     echo '<td class="text-center">'. getHtmlNumAndPrevisteVisual($previste_con_studenti_totale,$dovute_con_studenti_totale) . '</td>';
     echo '<td class="text-center">'. getHtmlNumAndFatteVisual($ore_fatte_ore_70_funzionali,$ore_dovute_ore_70_funzionali) . '</td>';
     echo '<td class="text-center">'. getHtmlNumAndPrevisteVisual($fatte_con_studenti_totale,$dovute_con_studenti_totale) . '</td>';
-    echo '<td></td>';
+
+    echo '<td class="text-center">'. getHtmlNumAndPrevisteVisual($fatte_con_studenti_totale + $ore_fatte_ore_70_funzionali,$dovute_con_studenti_totale + $ore_dovute_ore_70_funzionali) . '</td>';
     echo '</tr>';
 }
 ?>

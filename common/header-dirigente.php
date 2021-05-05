@@ -40,6 +40,7 @@
 	</button>
 	<ul class="dropdown-menu">
 		<li><a href="<?php echo $__application_base_path; ?>/dirigente/filtroFatte.php">Filtro Attività Fatte</a></li>
+		<li><a href="<?php echo $__application_base_path; ?>/dirigente/fatteListOreRimaste.php">Ore da Fare Rimaste</a></li>
 	</ul>
 </div>
 
