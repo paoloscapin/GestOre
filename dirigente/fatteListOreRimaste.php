@@ -122,36 +122,37 @@ $fuis_totale_fatto_clil = 0;
 $fuis_totale_corsi_di_recupero = 0;
 $query = "SELECT docente.*,
 
-ore_dovute.ore_70_con_studenti AS ore_dovute_ore_70_con_studenti,
-ore_dovute.ore_40_con_studenti AS ore_dovute_ore_40_con_studenti,
-ore_dovute.ore_70_funzionali AS ore_dovute_ore_70_funzionali,
-ore_dovute.ore_40_sostituzioni_di_ufficio AS ore_dovute_ore_40_sostituzioni_di_ufficio,
-ore_dovute.ore_40_aggiornamento AS ore_dovute_ore_40_aggiornamento,
+    ore_dovute.ore_70_con_studenti AS ore_dovute_ore_70_con_studenti,
+    ore_dovute.ore_40_con_studenti AS ore_dovute_ore_40_con_studenti,
+    ore_dovute.ore_70_funzionali AS ore_dovute_ore_70_funzionali,
+    ore_dovute.ore_40_sostituzioni_di_ufficio AS ore_dovute_ore_40_sostituzioni_di_ufficio,
+    ore_dovute.ore_40_aggiornamento AS ore_dovute_ore_40_aggiornamento,
 
-ore_previste.ore_70_con_studenti AS ore_previste_ore_70_con_studenti,
-ore_previste.ore_40_con_studenti AS ore_previste_ore_40_con_studenti,
-ore_previste.ore_70_funzionali AS ore_previste_ore_70_funzionali,
-ore_previste.ore_40_sostituzioni_di_ufficio AS ore_previste_ore_40_sostituzioni_di_ufficio,
-ore_previste.ore_40_aggiornamento AS ore_previste_ore_40_aggiornamento,
+    ore_previste.ore_70_con_studenti AS ore_previste_ore_70_con_studenti,
+    ore_previste.ore_40_con_studenti AS ore_previste_ore_40_con_studenti,
+    ore_previste.ore_70_funzionali AS ore_previste_ore_70_funzionali,
+    ore_previste.ore_40_sostituzioni_di_ufficio AS ore_previste_ore_40_sostituzioni_di_ufficio,
+    ore_previste.ore_40_aggiornamento AS ore_previste_ore_40_aggiornamento,
 
-ore_fatte.ore_70_con_studenti AS ore_fatte_ore_70_con_studenti,
-ore_fatte.ore_40_con_studenti AS ore_fatte_ore_40_con_studenti,
-ore_fatte.ore_70_funzionali AS ore_fatte_ore_70_funzionali,
-ore_fatte.ore_40_sostituzioni_di_ufficio AS ore_fatte_ore_40_sostituzioni_di_ufficio,
-ore_fatte.ore_40_aggiornamento AS ore_fatte_ore_40_aggiornamento
+    ore_fatte.ore_70_con_studenti AS ore_fatte_ore_70_con_studenti,
+    ore_fatte.ore_40_con_studenti AS ore_fatte_ore_40_con_studenti,
+    ore_fatte.ore_70_funzionali AS ore_fatte_ore_70_funzionali,
+    ore_fatte.ore_40_sostituzioni_di_ufficio AS ore_fatte_ore_40_sostituzioni_di_ufficio,
+    ore_fatte.ore_40_aggiornamento AS ore_fatte_ore_40_aggiornamento
 
-FROM docente AS docente
+    FROM docente AS docente
 
-INNER JOIN ore_dovute AS ore_dovute ON ore_dovute.docente_id = docente.id
-INNER JOIN ore_previste AS ore_previste ON ore_previste.docente_id = docente.id
-INNER JOIN ore_fatte AS ore_fatte ON ore_fatte.docente_id = docente.id
+    INNER JOIN ore_dovute AS ore_dovute ON ore_dovute.docente_id = docente.id
+    INNER JOIN ore_previste AS ore_previste ON ore_previste.docente_id = docente.id
+    INNER JOIN ore_fatte AS ore_fatte ON ore_fatte.docente_id = docente.id
 
-WHERE docente.attivo = true
-AND ore_dovute.anno_scolastico_id = 2
-AND ore_previste.anno_scolastico_id = 2
-AND ore_fatte.anno_scolastico_id = 2
+    WHERE docente.attivo = true
+    AND ore_dovute.anno_scolastico_id = $__anno_scolastico_corrente_id
+    AND ore_previste.anno_scolastico_id = $__anno_scolastico_corrente_id
+    AND ore_fatte.anno_scolastico_id = $__anno_scolastico_corrente_id
 
-ORDER BY cognome,nome;";
+    ORDER BY cognome,nome;";
+
 foreach(dbGetAll($query) as $docente) {
     $dovute_con_studenti_totale = $docente['ore_dovute_ore_70_con_studenti'] + $docente['ore_dovute_ore_40_con_studenti'];
     $previste_con_studenti_totale = $docente['ore_previste_ore_70_con_studenti'] + $docente['ore_previste_ore_40_con_studenti'];
@@ -160,10 +161,6 @@ foreach(dbGetAll($query) as $docente) {
     $ore_dovute_ore_70_funzionali = $docente['ore_dovute_ore_70_funzionali'];
     $ore_previste_ore_70_funzionali = $docente['ore_previste_ore_70_funzionali'];
     $ore_fatte_ore_70_funzionali = $docente['ore_fatte_ore_70_funzionali'];
-
-    debug('dovute_con_studenti_totale='.$dovute_con_studenti_totale);
-    debug('dovute_con_studenti_totale='.$dovute_con_studenti_totale);
-    debug('dovute_con_studenti_totale='.$dovute_con_studenti_totale);
 
     $docenteId = $docente['id'];
     $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
