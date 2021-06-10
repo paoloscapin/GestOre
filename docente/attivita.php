@@ -901,10 +901,7 @@ require_once '../docente/attribuiteModal.php';
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
 				<button type="button" class="btn btn-primary" onclick="diariaSave()" >Salva</button>
 				<input type="hidden" id="hidden_diaria_id">
-				<input type="hidden" id="hidden_diaria_docente_id" value="<?php echo $docente_id; ?>">
-				<input type="hidden" id="hidden_diaria_operatore" value="<?php echo $operatore; ?>">
-				<input type="hidden" id="hidden_diaria_ultimo_controllo" value="<?php echo $ultimo_controllo; ?>">
-				</div>
+			</div>
 			</div>
         	</div>
         	</div>

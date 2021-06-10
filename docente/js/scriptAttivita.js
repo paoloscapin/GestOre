@@ -192,8 +192,8 @@ function corsoDiRecuperoPrevisteReadRecords() {
 
 function viaggioDiariaFattaReadRecords() {
 	$.post("../docente/viaggioDiariaFattaReadRecords.php", {
-		operatore: $("#hidden_diaria_operatore").val(),
-		ultimo_controllo: $("#hidden_diaria_ultimo_controllo").val()
+		operatore: $("#hidden_operatore").val(),
+		ultimo_controllo: $("#hidden_ultimo_controllo").val()
 	},
 	function (data, status) {
 		$(".diaria_records_content").html(data);
@@ -202,8 +202,8 @@ function viaggioDiariaFattaReadRecords() {
 
 function oreFatteReadAttivita() {
 	$.post("../docente/oreFatteReadAttivita.php", {
-		operatore: $("#hidden_diaria_operatore").val(),
-		ultimo_controllo: $("#hidden_diaria_ultimo_controllo").val()
+		operatore: $("#hidden_operatore").val(),
+		ultimo_controllo: $("#hidden_ultimo_controllo").val()
 	},
 	function (data, status) {
 		$(".attivita_fatte_records_content").html(data);
@@ -212,8 +212,8 @@ function oreFatteReadAttivita() {
 
 function oreFatteClilReadAttivita() {
 	$.post("../docente/oreFatteClilReadAttivita.php", {
-		operatore: $("#hidden_diaria_operatore").val(),
-		ultimo_controllo: $("#hidden_diaria_ultimo_controllo").val()
+		operatore: $("#hidden_operatore").val(),
+		ultimo_controllo: $("#hidden_ultimo_controllo").val()
 	},
 	function (data, status) {
 		$(".attivita_fatte_clil_records_content").html(data);
@@ -643,8 +643,8 @@ function diariaFattaGetDetails(id) {
 function diariaSave() {
 	$.post("../docente/viaggioDiariaFattaSave.php", {
     	id: $("#hidden_diaria_id").val(),
-		docente_id: $("#hidden_diaria_docente_id").val(),
-		operatore: $("#hidden_diaria_operatore").val(),
+		docente_id: $("#hidden_docente_id").val(),
+		operatore: $("#hidden_operatore").val(),
 		data_partenza: getDbDateFromPickrId("#diaria_data"),
     	descrizione: $("#diaria_descrizione").val(),
     	giorni_senza_pernottamento: $("#diaria_giorni_senza_pernottamento").val(),
@@ -753,6 +753,76 @@ function fuisAggiornaDocente() {
 		} else {
 			$("#fuis_messageEccesso").addClass('hidden');
 		}
+	});
+}
+
+// --------------------------- Email, Rivisto, Chiudi ------------------------------
+
+function fatteEmail() {
+	$.post("../dirigente/emailNotificaDocente.php", {
+		docente_id: $("#hidden_docente_id").val(),
+		oggetto_modifica: "Ore Fatte"
+	},
+	function (data, status) {
+		$.notify({
+			icon: 'glyphicon glyphicon-envelope',
+			title: '<Strong>Notifica docente</Strong></br>',
+			message: data
+		},{
+			placement: {
+				from: "top",
+				align: "center"
+			},
+			delay: 2000,
+			timer: 100,
+			mouse_over: "pause",
+			type: 'info'
+		});
+	});
+}
+
+function fatteRivisto() {
+	$.post("../dirigente/rivistoUltimoControllo.php", {
+		docente_id: $("#hidden_docente_id").val(),
+		tabella: "ore_fatte"
+	},
+	function (data, status) {
+		var tzoffset = (new Date()).getTimezoneOffset() * 60000;
+		var localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
+		var ultimo_controllo = localISOTime.replace('T', ' ');
+		$("#hidden_ultimo_controllo").val(ultimo_controllo);
+		oreFatteReloadTables();
+		$.notify({
+			icon: 'glyphicon glyphicon-ok',
+			title: '<Strong>FUIS</Strong></br>',
+			message: 'Revisione effettuata!' 
+		},{
+			placement: {
+				from: "top",
+				align: "center"
+			},
+			delay: 2000,
+			timer: 100,
+			mouse_over: "pause",
+			type: 'success'
+		});
+	});
+}
+
+function fatteChiudi() {
+	$.notify({
+		icon: 'glyphicon glyphicon-off',
+		title: '<Strong>Chiusura FUIS</Strong></br>',
+		message: '<Strong>Attenzione:</Strong> la funzionalità non è ancora disponibile!'
+	},{
+		placement: {
+			from: "top",
+			align: "center"
+		},
+		delay: 5000,
+		timer: 100,
+		mouse_over: "pause",
+		type: 'danger'
 	});
 }
 

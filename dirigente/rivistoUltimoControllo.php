@@ -16,7 +16,7 @@ if(isset($_POST)) {
     $tabella = $_POST['tabella'];
     
     $query = "UPDATE $tabella SET ultimo_controllo = now() WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;";
-    info("aggiornato ultimo controllo per docente docente_id=$docente_id");
     dbExec($query);
+    info("aggiornato ultimo controllo tabella=$tabella per docente docente_id=$docente_id");
 }
 ?>
