@@ -228,7 +228,7 @@ require_once '../common/header-docente.php';
 				<?php else : ?>
 					<td></td>
 				<?php endif; ?>
-				<?php if(getSettingsValue('interfaccia','visualizzaAggiornamento', false)) : ?>
+				<?php if(getSettingsValue('interfaccia','visualizzaAggiornamento', true)) : ?>
 					<td class="text-left" id="fatte_ore_40_aggiornamento"></td>
 				<?php else : ?>
 					<td></td>

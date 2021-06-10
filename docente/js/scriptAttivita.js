@@ -24,35 +24,35 @@ function appendiMessaggio(messaggio, nuovo) {
 }
 
 // genera un messaggio se le ore vengono compensate tra funzionali e con studenti
-function messaggioCompensate(dovuteFunzionali, dovuteConStudenti, oreFunzionali, oreConStudenti) {
+function messaggioCompensate(dovuteFunzionali, dovuteConStudenti, fatteFunzionali, fatteConStudenti) {
 	var accetta_con_studenti_per_funzionali = $('#accetta_con_studenti_per_funzionali').val();
 	var accetta_funzionali_per_con_studenti = $('#accetta_funzionali_per_con_studenti').val();
 	var messaggio = "";
-    var bilancioFunzionali = oreFunzionali - dovuteFunzionali;
-    var bilancioConStudenti = oreConStudenti - dovuteConStudenti;
+    var bilancioFatteFunzionali = fatteFunzionali - dovuteFunzionali;
+    var bilancioFatteConStudenti = fatteConStudenti - dovuteConStudenti;
 
 	if (accetta_con_studenti_per_funzionali != 0) {
-		if (bilancioFunzionali < 0 && bilancioConStudenti > 0) {
-			var daSpostare = -bilancioFunzionali;
+		if (bilancioFatteFunzionali < 0 && bilancioFatteConStudenti > 0) {
+			var daSpostare = -bilancioFatteFunzionali;
 			// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
-			if (bilancioConStudenti < daSpostare) {
-				daSpostare = bilancioConStudenti;
+			if (bilancioFatteConStudenti < daSpostare) {
+				daSpostare = bilancioFatteConStudenti;
 			}
-			bilancioConStudenti = bilancioConStudenti - daSpostare;
-            bilancioFunzionali = bilancioFunzionali + daSpostare;
+			bilancioFatteConStudenti = bilancioFatteConStudenti - daSpostare;
+            bilancioFatteFunzionali = bilancioFatteFunzionali + daSpostare;
 			messaggio = appendiMessaggio(messaggio, "" + daSpostare + " ore con studenti verranno spostate per coprire " + daSpostare + " ore funzionali mancanti. ");
 		}
 	}
 
 	if (accetta_funzionali_per_con_studenti != 0) {
-		if (bilancioConStudenti < 0 && bilancioFunzionali > 0) {
-			var daSpostare = -bilancioConStudenti;
+		if (bilancioFatteConStudenti < 0 && bilancioFatteFunzionali > 0) {
+			var daSpostare = -bilancioFatteConStudenti;
 			// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
-			if (bilancioFunzionali < daSpostare) {
-				daSpostare = bilancioFunzionali;
+			if (bilancioFatteFunzionali < daSpostare) {
+				daSpostare = bilancioFatteFunzionali;
 			}
-			bilancioFunzionali = bilancioFunzionali - daSpostare;
-			bilancioConStudenti = bilancioConStudenti + daSpostare;
+			bilancioFatteFunzionali = bilancioFatteFunzionali - daSpostare;
+			bilancioFatteConStudenti = bilancioFatteConStudenti + daSpostare;
 			messaggio = appendiMessaggio(messaggio, "" + daSpostare + " ore funzionali verranno spostate per coprire " + daSpostare + " ore con studenti mancanti. ");
 		}
 	}
@@ -64,14 +64,43 @@ function messaggioCompensate(dovuteFunzionali, dovuteConStudenti, oreFunzionali,
 function messaggioEccesso(dovuteFunzionali, dovuteConStudenti, previsteFunzionali, previsteConStudenti, fatteFunzionali, fatteConStudenti, clilFunzionaliPreviste, clilConStudentiPreviste, clilFunzionali, clilConStudenti) {
 	var segnala_fatte_eccedenti_previsione = $('#segnala_fatte_eccedenti_previsione').val();
 	var messaggio = "";
-    var bilancioPrevisteFunzionali = previsteFunzionali - dovuteFunzionali;
-    var bilancioPrevisteConStudenti = previsteConStudenti - dovuteConStudenti;
-    var bilancioFatteFunzionali = fatteFunzionali - dovuteFunzionali;
-	var bilancioFatteConStudenti = fatteConStudenti - dovuteConStudenti;
-	var bilancioClilConStudenti = clilConStudenti - clilConStudentiPreviste;
-	var bilancioClilFunzionali = clilFunzionali - clilFunzionaliPreviste;
-
 	if (segnala_fatte_eccedenti_previsione != 0) {
+		// calcola i bilanci cosi come sono ora
+		var bilancioPrevisteFunzionali = previsteFunzionali - dovuteFunzionali;
+		var bilancioPrevisteConStudenti = previsteConStudenti - dovuteConStudenti;
+		var bilancioFatteFunzionali = fatteFunzionali - dovuteFunzionali;
+		var bilancioFatteConStudenti = fatteConStudenti - dovuteConStudenti;
+		var bilancioClilConStudenti = clilConStudenti - clilConStudentiPreviste;
+		var bilancioClilFunzionali = clilFunzionali - clilFunzionaliPreviste;
+
+		var accetta_con_studenti_per_funzionali = $('#accetta_con_studenti_per_funzionali').val();
+		var accetta_funzionali_per_con_studenti = $('#accetta_funzionali_per_con_studenti').val();
+		
+		// controlla se alcune ore saranno spostate da funzionali a con studenti o viceversa
+		if (accetta_con_studenti_per_funzionali != 0) {
+			if (bilancioFatteFunzionali < 0 && bilancioFatteConStudenti > 0) {
+				var daSpostare = -bilancioFatteFunzionali;
+				// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
+				if (bilancioFatteConStudenti < daSpostare) {
+					daSpostare = bilancioFatteConStudenti;
+				}
+				bilancioFatteConStudenti = bilancioFatteConStudenti - daSpostare;
+				bilancioFatteFunzionali = bilancioFatteFunzionali + daSpostare;
+			}
+		}
+	
+		if (accetta_funzionali_per_con_studenti != 0) {
+			if (bilancioFatteConStudenti < 0 && bilancioFatteFunzionali > 0) {
+				var daSpostare = -bilancioFatteConStudenti;
+				// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
+				if (bilancioFatteFunzionali < daSpostare) {
+					daSpostare = bilancioFatteFunzionali;
+				}
+				bilancioFatteFunzionali = bilancioFatteFunzionali - daSpostare;
+				bilancioFatteConStudenti = bilancioFatteConStudenti + daSpostare;
+			}
+		}
+
 		if (bilancioFatteFunzionali > 0 && bilancioFatteFunzionali > bilancioPrevisteFunzionali) {
 			var bilancioDifferenzaFunzionali = bilancioFatteFunzionali - Math.max(bilancioPrevisteFunzionali,0);
             messaggio = appendiMessaggio(messaggio, "" + bilancioDifferenzaFunzionali + " ore funzionali non concordate non saranno incluse nel conteggio FUIS. ");
