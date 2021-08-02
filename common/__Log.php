@@ -51,4 +51,16 @@ function error($message) {
     $__logger->err("$page: [$__username] $message");
 }
 
+function rotateLog() {
+    global $fileName;
+    global $__logger;
+    $rotateFileName = $fileName . date("Y-m-d_H.i.s").'.log';
+    $__logger->info("rotating into $rotateFileName");
+    $__logger->flush();
+    $__logger->close();
+    rename($fileName, $rotateFileName);
+    $__logger->open();
+    $__logger->info("old log was saved into $rotateFileName");
+}
+
 ?>

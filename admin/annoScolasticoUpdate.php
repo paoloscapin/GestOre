@@ -43,9 +43,13 @@ if(isset($_POST)) {
 	$anno_scolastico_nuovo_id = $_POST['anno_scolastico_nuovo_id'];
 	$anno_scolastico_nuovo_anno = $_POST['anno_scolastico_nuovo_anno'];
 
+    // aggiorna l'anno scolastico
     $query = "UPDATE anno_scolastico_corrente SET anno = '$anno_scolastico_nuovo_anno', anno_scolastico_id = $anno_scolastico_nuovo_id, anno_scorso_id = $anno_scolastico_corrente_id";
     dbExec($query);
-    info($query);
+
+    // ruota i log (il messaggio viene ripetuto sul nuovo log file)
+    info("aggiornato anno scolastico: nuovo=$anno_scolastico_nuovo_anno (id=$anno_scolastico_nuovo_id) precedente=$anno_scolastico_corrente_anno (id=$anno_scolastico_corrente_id)");
+    rotateLog();
     info("aggiornato anno scolastico: nuovo=$anno_scolastico_nuovo_anno (id=$anno_scolastico_nuovo_id) precedente=$anno_scolastico_corrente_anno (id=$anno_scolastico_corrente_id)");
 
     // per tutti i docenti attivi aggiorna le tabelle copiandole dall'anno precedente
