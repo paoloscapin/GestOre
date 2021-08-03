@@ -105,6 +105,8 @@ foreach(dbGetAll($query) as $row) {
 	}
 	$data .='</td>';
 
+	$ore_con_minuti = oreToDisplay($row['ore_fatte_attivita_ore']);
+
 	$data .= '<td class="text-center">'.$strikeOn.strftime("%d/%m/%Y", strtotime($row['ore_fatte_attivita_data'])).$strikeOff.'</td>';
 	$data .= '<td class="text-center">'.writeOre($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali']).'</td>';
 
