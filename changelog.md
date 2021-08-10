@@ -1,3 +1,11 @@
+## Version 1.2.5 - 8 ago 2021
+
+##### Improvements
+- allineato funzionamento storico con modifiche ultime versioni
+- calcolo sostituzioni in calcolaFuisDocente()
+- controllo flag rimuovi_fatte_eccedenti_previsione in calcolaFuisDocente()
+- ruota il file di log al nuovo anno
+
 ## Version 1.2.4 - 9 mar 2021
 
 ##### Improvements
