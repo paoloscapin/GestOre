@@ -235,10 +235,14 @@ while ($words[0] == 'CODICE') {
         $cognome = escapeString($arr[0]);
         $nome = escapeString(implode(' ', array_slice($arr, 1)));
         $numero_studenti++;
-
+        $serve_voto = 1;
+        // controlla se il terzo campo dello studente contiene "uditore"
+        $commento = escapeString(strtolower($words[4]));
+        if (strpos($commento, 'uditore') !== false) {
+            $serve_voto = 0;
+        }
         // inserisce lo studente se non esiste
-		$sql .= "INSERT INTO studente_per_corso_di_recupero (cognome, nome, classe, corso_di_recupero_id) VALUES ('$cognome', '$nome', '$classe', @last_id_corso_di_recupero);
-            ";
+		$sql .= "INSERT INTO studente_per_corso_di_recupero (cognome, nome, classe, serve_voto, corso_di_recupero_id) VALUES ('$cognome', '$nome', '$classe', $serve_voto, @last_id_corso_di_recupero);";
 
         // se aveva raggiunto la fine delle linee, interrompi
         if ($completato) {

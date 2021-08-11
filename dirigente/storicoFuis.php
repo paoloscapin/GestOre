@@ -63,7 +63,7 @@ $contestataMarker = '<span style="color:red !important;font-weight:bold">&#10008
 $accettataMarker = '<span style="color:green !important;font-weight:bold">&#10004;</span>';
 
 // Intestazione pagina
-$data = '';
+$dataContenuto = '';
 $dataCopertina = '';
 $dataConsuntivo = '';
 
@@ -79,7 +79,15 @@ $totaleAttivitaIstuto = 0;
 $totaleClilIstuto = 0;
 
 // cicla i docenti
-foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM docente INNER JOIN ore_dovute ON ore_dovute.docente_id=docente.id WHERE ore_dovute.anno_scolastico_id=$anno_id AND ore_dovute.ore_40_totale>0 ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
+foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
+	if ($anno_id == $__anno_scolastico_corrente_id && $docente['attivo'] == 0) {
+		debug('Salto il docente '.$docente['cognome'] . ' ' . $docente['nome'].' non attivo');
+		continue;
+	}
+
+	// anche se non lo salto, controllo se effettivamente ci sta qualcosa di significativo
+	$significativo = false;
+	$data = '';
 	$docente_id = $docente['docente_id'];
 	$totaleAssegnatoDocente = 0;
 	$totaleDiariaDocente = 0;
@@ -102,6 +110,7 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM 
 		$data .='<tr><td colspan="1" class="text-right"><strong>Totale:</strong></td><td class="text-right funzionale"><strong>' . formatNoZero($totaleAssegnatoDocente) . '</strong></td></tr>';
 		$data .='</tfooter></table>';
 		$data .= '<hr>';
+		$significativo = true;
 	}
 
 	// diarie viaggio (non le ore)
@@ -117,6 +126,7 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM 
 		$data .='<tr><td colspan="3" class="text-right"><strong>Totale:</strong></td><td class="text-right funzionale"><strong>' . formatNoZero($totaleDiariaDocente) . '</strong></td></tr>';
 		$data .='</tfooter></table>';
 		$data .= '<hr>';
+		$significativo = true;
 	}
 
 	// attivita'
@@ -149,6 +159,7 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM 
 	WHERE ore_fatte_attivita.docente_id = $docente_id AND ore_fatte_attivita.anno_scolastico_id = $anno_id
 	ORDER BY ore_fatte_attivita.data DESC, ore_fatte_attivita.ora_inizio;";
 	foreach(dbGetAll($query) as $attivita) {
+		$significativo = true;
 		$data .= '<tr><td>'.$attivita['categoria'].'</td><td>'.$attivita['nome'].'</td><td>'.$attivita['dettaglio'];
 		if (!empty($attivita['descrizione'])) {
 			$data .='</br>'.$attivita['descrizione'].'';
@@ -200,6 +211,7 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM 
 			$oreFatte[$attribuite['categoria']] += $attribuite['ore_attivita'];
 		}			
 		$data .= '</tbody></table>';
+		$significativo = true;
 	}
 
 	// gruppi di lavoro
@@ -224,9 +236,10 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM 
 		}
 		$data .= '</tbody></table>';
 		$data .= '<hr>';
+		$significativo = true;
 	}
 	
-	// infine le ore dei viaggi (che vanno con gli studenti)
+	// le ore dei viaggi (che vanno con gli studenti)
 	$viaggioList = dbGetAll("SELECT * FROM viaggio_ore_recuperate INNER JOIN viaggio ON viaggio_ore_recuperate.viaggio_id = viaggio.id WHERE viaggio.docente_id = $docente_id AND viaggio.anno_scolastico_id = $anno_id ORDER BY data_partenza ASC;");
 	if (!empty($viaggioList)) {
 		$data .= '<h4 style="text-align: center;">Viaggi: ore recuperate</h4>';
@@ -239,6 +252,23 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM 
 		}
 		$data .= '</tbody></table>';
 		$data .= '<hr>';
+		$significativo = true;
+	}
+
+	// eventuali corsi di recupero inizio anno
+	$corsoDiRecuperoList = dbGetAll("SELECT corso_di_recupero.codice as corso_di_recupero_codice, corso_di_recupero.*, materia.* FROM corso_di_recupero INNER JOIN materia ON corso_di_recupero.materia_id = materia.id WHERE docente_id = $docente_id AND anno_scolastico_id = $anno_id AND ore_recuperate > 0;");
+	if (!empty($corsoDiRecuperoList)) {
+		$data .= '<h4 style="text-align: center;">Corsi di recupero: ore recuperate</h4>';
+		$data .= '<table class="table table-bordered table-striped table-green">';
+		$data .= '<thead><tr><th class="col-sm-6">Codice</th><th class="col-sm-3">Materia</th><th class="text-center col-sm-1">Ore</th><th class="col-md-1 text-center">Stato</th></tr></thead><tbody>';
+		foreach($corsoDiRecuperoList as $corsoDiRecupero) {
+			$data .= '<tr><td>'.$corsoDiRecupero['corso_di_recupero_codice'].'</td><td>'.$corsoDiRecupero['nome'].'</td><td class="col-md-1 text-center">'.$corsoDiRecupero['ore_recuperate'].'</td>'.$accettato.'</tr>';
+			// viaggi sono sempre con studenti
+			$oreFatte['con studenti'] += $corsoDiRecupero['ore_recuperate'];
+		}
+		$data .= '</tbody></table>';
+		$data .= '<hr>';
+		$significativo = true;
 	}
 
 	// calcoli dei totali ore:
@@ -299,6 +329,10 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM 
 	$data .= '<hr>';
 
 	// CLIL attivita'
+	$fuis_clil_funzionale_importo = 0;
+	$fuis_clil_con_studenti_importo = 0;
+	$totaleClilDocente = 0;
+
 	$query = "SELECT * FROM ore_fatte_attivita_clil
 		LEFT JOIN registro_attivita_clil registro_attivita_clil ON registro_attivita_clil.ore_fatte_attivita_clil_id = ore_fatte_attivita_clil.id
 		LEFT JOIN ore_fatte_attivita_clil_commento ON ore_fatte_attivita_clil_commento.ore_fatte_attivita_clil_id = ore_fatte_attivita_clil.id
@@ -352,6 +386,7 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM 
 		$data .='<tr><td colspan="2" class="text-right"><strong>Totale:</strong></td><td class="text-right funzionale"><strong>' . number_format($totaleClilDocente,2) . '</strong></td></tr>';
 		$data .='</tfooter></table>';
 		$data .= '<hr>';
+		$significativo = true;
 	}
 
 	// aggiorna i totali di istituto
@@ -359,6 +394,11 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM 
 	$totaleDiariaIstuto = $totaleDiariaIstuto + $totaleDiariaDocente;
 	$totaleAttivitaIstuto = $totaleAttivitaIstuto + $totaleAttivitaDocente;
 	$totaleClilIstuto = $totaleClilIstuto + $totaleClilDocente;
+
+	// se ha trovato qualcosa di significativo, include il docente nello storico
+	if ($significativo) {
+		$dataContenuto = $dataContenuto . $data;
+	}
 }
 
 // stampa i totali di istituto
@@ -378,7 +418,7 @@ $dataConsuntivo .= '<hr>';
 
 echo $dataCopertina;
 echo $dataConsuntivo;
-echo $data;
+echo $dataContenuto;
 ?>
 
 </body>

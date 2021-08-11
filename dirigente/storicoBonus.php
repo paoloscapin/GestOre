@@ -81,6 +81,10 @@ $totaleApprovatoIstuto = 0;
 
 // cicla i docenti
 foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM docente INNER JOIN ore_dovute ON ore_dovute.docente_id=docente.id WHERE ore_dovute.anno_scolastico_id=$anno_id AND ore_dovute.ore_40_totale>0 ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
+	if ($anno_id == $__anno_scolastico_corrente_id && $docente['attivo'] == 0) {
+		debug('Salto il docente '.$docente['cognome'] . ' ' . $docente['nome'].' non attivo');
+		continue;
+	}
 	$docente_id = $docente['docente_id'];
 	$totaleAssegnatoDocente = 0;
 	$totaleApprovatoDocente = 0;
