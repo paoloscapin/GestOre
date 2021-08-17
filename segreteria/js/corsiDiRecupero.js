@@ -29,6 +29,7 @@ function corsiDiRecuperoGetDetails(id) {
 			id: id
 		},
 		function (data, status) {
+            // console.log(data);
             var record = JSON.parse(data);
             $("#codice").val(record.corso_di_recupero_codice);
             $("#aula").val(record.corso_di_recupero_aula);
@@ -38,7 +39,8 @@ function corsiDiRecuperoGetDetails(id) {
             var testoLezioni = '';
             record.lezioni.forEach(function(lezione) {
                 testoLezioni = testoLezioni + lezione.data + ' - ' + lezione.inizia_alle + ' - ' + lezione.numero_ore + ' - ' + lezione.orario + '\n';
-                if (lezione.firmato) {
+                console.log(lezione);
+                if (lezione.firmato == 1) {
                     modificabile = false;
                 }
             });
@@ -87,8 +89,13 @@ function corsiDiRecuperoSave() {
     // se non e' modificabile, chiede una conferma che sia davvero voluto
         if (!modificabile) {
             var conf = confirm("Attenzione !!!\r\n\r\nIl corso di recupero " + originalCodice + " contiene delle lezioni firmate.\r\nModificando i dati del corso potrebbe portare a delle inconsistenze.\r\n\r\nSei sicuro di volere modificare i dati?");
-            if (conf == true) {
-                $.post("../segreteria/corsiDiRecuperoSave.php", {
+            if (conf != true) {
+                corsiDiRecuperoReadRecords();
+                $("#update_modal").modal("hide");
+                return;
+            }
+        }
+        $.post("../segreteria/corsiDiRecuperoSave.php", {
                     id: $("#hidden_record_id").val(),
                     codice: $("#codice").val(),
                     aula: $("#aula").val(),
@@ -103,9 +110,7 @@ function corsiDiRecuperoSave() {
                 function (data, status) {
                     corsiDiRecuperoReadRecords();
                 });
-            }
         }
-    }
     $("#update_modal").modal("hide");
 }
 
