@@ -78,6 +78,22 @@ function gruppoPartecipantiSave() {
     });
 }
 
+function importFile(file) {
+    var contenuto = "";
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+        contenuto = event.target.result;
+        $.post("gruppiImport.php", {
+            contenuto: contenuto
+        },
+        function (data, status) {
+            $('#result_text').html(data);
+            gruppoGestioneReadRecords();
+        });
+    });
+    reader.readAsText(file);
+}
+
 $(document).ready(function () {
     gruppoGestioneReadRecords();
 
@@ -87,5 +103,9 @@ $(document).ready(function () {
         language: "it",
         multiple: true
       });      
+
+      $('#file_select_id').change(function (e) {
+        importFile(e. target. files[0]);
+    });
 
 });

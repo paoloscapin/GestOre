@@ -42,9 +42,10 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 		<div class="col-md-4">
 			<span class="glyphicon glyphicon-user"></span>&emsp;Gruppi
 		</div>
-        <div class="col-md-4">
+        <div class="col-md-4 text-center">
+            <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 text-right">
             <div class="pull-right">
 				<button class="btn btn-xs btn-lightblue4" onclick="openModal()" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
@@ -53,6 +54,8 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 </div>
 <div class="panel-body">
     <div class="row"  style="margin-bottom:10px;">
+        <div class="col-md-12 text-center" id='result_text'>
+        </div>
     </div>
     <div class="row">
         <div class="col-md-12">

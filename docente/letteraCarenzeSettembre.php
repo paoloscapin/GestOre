@@ -171,7 +171,14 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 			<tr class="c18">
 				<td class="c2" colspan="1" rowspan="1"><p class="c17">
 					</p></td>
-				<td class="c2" colspan="1" rowspan="1"><?php echo $__docente_nome . ' ' . $__docente_cognome; ?>
+				<td class="c2" colspan="1" rowspan="1">
+					<?php
+					if(getSettingsValue('config','corsiDiRecuperoFirmaDocente', true)) {
+						echo $__docente_nome . ' ' . $__docente_cognome;
+					} else {
+						echo ' ';
+					}
+					?>
 				</td>
 			</tr>
 		</tbody>
@@ -201,7 +208,7 @@ ______________________________________________________________
 <p class="c3">
     <span class="c1 c21">
     <strong>CHIEDE</strong> che il/la figlio/a possa sostenere un'ulteriore verifica
-	per il superamento della carenza in <?php echo $studente_corso['materia_nome']; ?> entro il giorno <strong>8 novembre</strong>,
+	per il superamento della carenza in <?php echo $studente_corso['materia_nome']; ?> entro <strong>novembre</strong>,
 	da concordare con il docente della classe.
 </p>
 <p class="c3">

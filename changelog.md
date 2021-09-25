@@ -1,3 +1,11 @@
+## Version 1.2.6 - 25 set 2021
+
+##### Improvements
+- corso di recupero per didattica in menu
+- lettera carenze opzione senza firma docente
+- import corsi di recupero senza lezioni per studio individuale (solo verifica)
+- import di gruppi
+
 ## Version 1.2.5 - 8 ago 2021
 
 ##### Improvements

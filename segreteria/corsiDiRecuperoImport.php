@@ -152,7 +152,7 @@ while ($words[0] == 'CODICE') {
         $messaggio = "docente non assegnato per il corso $corso_codice: utilizzato docente 'didattica'";
         warning("Linea $linePos: " . $messaggio);
         $data = $data . "<strong>Warning linea $linePos:</strong> " . $messaggio;
-} else {
+    } else {
         $query = "SELECT docente.id FROM docente WHERE docente.cognome LIKE '$corso_docente_cognome' COLLATE utf8_general_ci ";
         if (!empty($corso_docente_nome)) {
             $query .= " AND docente.nome LIKE '$corso_docente_nome' COLLATE utf8_general_ci ";
@@ -185,41 +185,47 @@ while ($words[0] == 'CODICE') {
         erroreDiImport("Lezioni non specificate per il corso $corso_codice");
         break;
     }
-    while($words[0] == 'Lezioni' || empty(trim($words[0]))) {
-        $lezioni_data = $words[1];
-        $lezioni_inizio = $words[2];
-        $lezioni_fine = $words[3];
-        // prende solo il numero del giorno dal primo campo e lo usa per settembre
-        // $numeroGiorno = (int) filter_var($lezioni_data, FILTER_SANITIZE_NUMBER_INT);
-        // $dateMySql = $anno."-09-".sprintf('%02d', $numeroGiorno);
-        $oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
-        $dataLezione = DateTime::createFromFormat('d/m/Y', $lezioni_data);
-        if ($dataLezione == null) {
-            erroreDiImport("data non riconosciuta (formato richiesto=d/m/Y): " . $lezioni_data);
-            break;
-        }
-        $dataLezioneSql = $dataLezione->format('Y-m-d');
-        setlocale(LC_TIME, $oldLocale);
 
-        // prende l'ora di inizio dal secondo campo
-        $timeStart = strtotime ($lezioni_inizio);
-        $timeEnd = strtotime ($lezioni_fine);
-        // ora di inizio
-        $inizia_alle = date("H:i:s", $timeStart);
-        // durata (in ore da 50 minuti)
-        $numero_ore = ($timeEnd - $timeStart) / (50 * 60);
-        $numero_ore_recupero += 2;
-        // orario in formato stringa
-        $orario = date("H:i", $timeStart) . " - " . date("H:i", $timeEnd);
-
-        $sql .= "INSERT INTO lezione_corso_di_recupero (data, inizia_alle, numero_ore, orario, corso_di_recupero_id) VALUES ('$dataLezioneSql', '$inizia_alle', $numero_ore, '$orario', @last_id_corso_di_recupero);
+    // le lezioni potrebbero non esserci, ad esempio quando si assegna studio individuale
+    if (! empty(trim($words[1]))) {
+        while($words[0] == 'Lezioni' || empty(trim($words[0]))) {
+            $lezioni_data = $words[1];
+            $lezioni_inizio = $words[2];
+            $lezioni_fine = $words[3];
+            // prende solo il numero del giorno dal primo campo e lo usa per settembre
+            // $numeroGiorno = (int) filter_var($lezioni_data, FILTER_SANITIZE_NUMBER_INT);
+            // $dateMySql = $anno."-09-".sprintf('%02d', $numeroGiorno);
+            $oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
+            $dataLezione = DateTime::createFromFormat('d/m/Y', $lezioni_data);
+            if ($dataLezione == null) {
+                erroreDiImport("data non riconosciuta (formato richiesto=d/m/Y): " . $lezioni_data);
+                break;
+            }
+            $dataLezioneSql = $dataLezione->format('Y-m-d');
+            setlocale(LC_TIME, $oldLocale);
+    
+            // prende l'ora di inizio dal secondo campo
+            $timeStart = strtotime ($lezioni_inizio);
+            $timeEnd = strtotime ($lezioni_fine);
+            // ora di inizio
+            $inizia_alle = date("H:i:s", $timeStart);
+            // durata (in ore da 50 minuti)
+            $numero_ore = ($timeEnd - $timeStart) / (50 * 60);
+            $numero_ore_recupero += 2;
+            // orario in formato stringa
+            $orario = date("H:i", $timeStart) . " - " . date("H:i", $timeEnd);
+    
+            $sql .= "INSERT INTO lezione_corso_di_recupero (data, inizia_alle, numero_ore, orario, corso_di_recupero_id) VALUES ('$dataLezioneSql', '$inizia_alle', $numero_ore, '$orario', @last_id_corso_di_recupero);
             ";
+            nextWords();
+        }
+    } else {
         nextWords();
     }
 
     // aggiorna le ore totali
     $sql .= "UPDATE corso_di_recupero SET numero_ore=$numero_ore_recupero WHERE corso_di_recupero.id=@last_id_corso_di_recupero;
-        ";
+    ";
 
     // segue Studenti
     // numero studenti totali
@@ -257,7 +263,6 @@ while ($words[0] == 'CODICE') {
     $sql .= "INSERT INTO studente_partecipa_lezione_corso_di_recupero (lezione_corso_di_recupero_id, studente_per_corso_di_recupero_id)
                     SELECT lezione_corso_di_recupero.id, studente_per_corso_di_recupero.id FROM lezione_corso_di_recupero, studente_per_corso_di_recupero
                     WHERE lezione_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero AND studente_per_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero;
-        
                     ";
 
     $data = $data . 'codice=' . $corso_codice . ' materia=' . $corso_materia . ' aula=' . $corso_aula . ' docente=' . $corso_docente_cognome . " " . $corso_docente_nome . ' numero ore=' . $numero_ore_recupero . ' numero studenti=' . $numero_studenti;
