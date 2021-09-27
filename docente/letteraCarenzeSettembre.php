@@ -17,6 +17,16 @@ ruoloRichiesto('docente','dirigente','segreteria-docenti');
 require_once '../common/connect.php';
 require_once '../common/header-common.php';
 
+function printableVoto($voto) {
+	if ($voto != 0) {
+		if ($voto == 1) {
+			return 'Assente';
+		}
+		return $voto;
+	}
+	return null;
+}
+
 function printableDate($data) {
 	if ($data != null) {
 		return strftime("%d/%m/%Y", strtotime($data));
@@ -151,7 +161,7 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 						<p class="c40 c100C"><?php echo $superata; ?></p>
 					</td>
 					<td class="c37 colspan="1" rowspan="1">
-						<p class="c40 c100C"><span class="c39"><?php echo $voto; ?></span></p>
+						<p class="c40 c100C"><span class="c39"><?php echo printableVoto($voto); ?></span></p>
 					</td>
 				</tr>
 			</tbody>
