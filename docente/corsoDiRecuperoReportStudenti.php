@@ -57,6 +57,16 @@ ruoloRichiesto('segreteria-didattica','dirigente','docente');
 <?php
 require_once '../common/connect.php';
 
+function printableVoto($voto) {
+	if ($voto != 0) {
+		if ($voto == 1) {
+			return 'Assente';
+		}
+		return $voto;
+	}
+	return null;
+}
+
 function printableDate($data) {
 	if ($data != null) {
 		return strftime("%d/%m/%Y", strtotime($data));
@@ -169,7 +179,7 @@ foreach($resultArray as $row_classe) {
 									<td>'.$row_studente['studente_per_corso_di_recupero_id'].'</td>
 									<td>'.$row_studente['studente_per_corso_di_recupero_cognome'].' '.$row_studente['studente_per_corso_di_recupero_nome'].'</td>
 									<td><small>'.$row_studente['materia_nome'].'</small></td>
-									<td style="text-align: center;">'.$row_studente['studente_per_corso_di_recupero_voto_settembre'].'</td>
+									<td style="text-align: center;">'.printableVoto($row_studente['studente_per_corso_di_recupero_voto_settembre']).'</td>
 									<td style="text-align: center;">'.printableDate($row_studente['studente_per_corso_di_recupero_data_voto_settembre']).'</td>
 									<td><small>'.$row_studente['docente_set_cognome'].' '.$row_studente['docente_set_nome'].'</small></td>
 						';
@@ -180,26 +190,27 @@ foreach($resultArray as $row_classe) {
 					// prepara la lista dei voti possibili
 					$votoNovembre = $row_studente['studente_per_corso_di_recupero_voto_novembre'];
 					$votoNovembreOptionList = '				<select  class="votoNovembre selectpicker" data-noneSelectedText="seleziona..." data-width="50%" ><option value="0"></option>';
+					// opzione per assente
+					$bgColor = 'red';
+					$votoNovembreOptionList .= '<option value="'.'1'.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.'Assente'.'</span>"';
+					if ($votoNovembre === 1) {
+						$votoNovembreOptionList .= ' selected ';
+					}
+					$votoNovembreOptionList .= '>'.'assente'.'</option>';
+
+					// voti da 4 a 10
 					for($i = 4; $i<=10; $i++) {
 						$bgColor = ($i <= 5) ? 'red' : 'green';
-						$votoNovembreOptionList .= '
-				<option value="'.$i.'" data-content="
-						<span class=\'label label-info\'
-						style=\'background-color: '.$bgColor.';\'
-						>'.$i.'</span>"
-						';
+						$votoNovembreOptionList .= '<option value="'.$i.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.$i.'</span>"';
 
 						// seleziona il voto corrente di novembre se esiste (se e' gia' stato dato)
 						if ($votoNovembre == $i) {
 							$votoNovembreOptionList .= ' selected ';
 						}
-						$votoNovembreOptionList .= '
-    	        		>'.$i.'</option>
-						';
+						$votoNovembreOptionList .= '>'.$i.'</option>';
 					}
 					$votoNovembreOptionList .= '</select>';
-					$data .= '
-    							<td>'.$votoNovembreOptionList.'</td>';
+					$data .= '<td>'.$votoNovembreOptionList.'</td>';
 
 					// la data del voto di novembre
 					$dataNovembre = strftime("%d/%m/%Y", strtotime($row_studente['studente_per_corso_di_recupero_data_voto_novembre']));

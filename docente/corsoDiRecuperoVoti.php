@@ -153,6 +153,15 @@ foreach(dbGetAll($query) as $row) {
 		} else {
 			$votoSettembre = $studenteRow['studente_per_corso_di_recupero_voto_settembre'];
 			$votoSettembreOptionList = '<select class="votoSettembre selectpicker" data-noneSelectedText="seleziona..." data-width="50%" ><option value="0"></option>';
+
+			// opzione per assente
+			$bgColor = 'red';
+			$votoSettembreOptionList .= '<option value="'.'1'.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.'Assente'.'</span>"';
+			if ($votoSettembre == 1) {
+				$votoSettembreOptionList .= ' selected ';
+			}
+			$votoSettembreOptionList .= '>'.'assente'.'</option>';
+
 			for($i = 4; $i <= 10; $i++) {
 				$bgColor = ($i <= 5) ? 'red' : 'green';
 				// prepara la lista dei possibili voti

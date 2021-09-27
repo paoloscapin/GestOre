@@ -15,7 +15,7 @@ function registraVotoSettembre(studente_per_corso_di_recupero_id, voto, __this) 
 			//  cambiato il voto: scrive se passato o no
 			if (__this.value > 5) {
 				$('td:last', $(__this).parents('tr')).html('<span class=\'label label-success\'>passato</span>');
-			} else if (__this.value < 4) {
+			} else if (__this.value < 1) {
 				$('td:last', $(__this).parents('tr')).html('');
 			} else {
 				$('td:last', $(__this).parents('tr')).html('<span class=\'label label-danger\'>non passato</span>');
