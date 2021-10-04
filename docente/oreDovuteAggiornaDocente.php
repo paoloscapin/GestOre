@@ -254,7 +254,7 @@ function oreFatteAggiornaDocente($docenteId) {
 	}
 
 	// se attiva la gestione viaggi semplificata, aggiungo le ore dei viaggi
-	if($__settings->config->gestioneViaggiSemplificata) {
+	if(getSettingsValue("config", "gestioneViaggiSemplificata", false)) {
 		$ore_viaggi_semplificata = dbGetValue("SELECT COALESCE(SUM(ore), 0) FROM viaggio_diaria_fatta WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId;");
 		debug('ore_viaggi_semplificata=' . $ore_viaggi_semplificata);
 		$ore_40_con_studenti = $ore_40_con_studenti + $ore_viaggi_semplificata;

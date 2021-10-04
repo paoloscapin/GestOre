@@ -12,9 +12,8 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 // per prima cosa determina quale è la data da controllare
-$dateToCheck = new DateTime('today');
-
-$formattedDateToCheck = $dateToCheck->format('Y-m-d');
+$daysInAdvance = getSettingsValue('sportelli', 'chiusuraIscrizioniGiorni', '1');
+$dateToCheck = date('Y-m-d', strtotime($date. ' + ' . $daysInAdvance . ' days'));
 
 $query = "	SELECT
 				sportello.id AS sportello_id,
@@ -39,7 +38,7 @@ $query = "	SELECT
 			ON sportello.materia_id = materia.id
 			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
 			AND NOT sportello.cancellato
-			AND sportello.data = '$formattedDateToCheck' ;
+			AND sportello.data = '$dateToCheck' ;
 			";
 
 foreach(dbGetAll($query) as $sportello) {
@@ -105,9 +104,9 @@ foreach(dbGetAll($query) as $sportello) {
 	
 	// Invia il messaggio, il quinto parametro "-f$sender" imposta il Return-Path su hosting Linux
 	if (mail($to, $subject, $html_msg, $headers, "-f$sender")) {
-		info("email $subject inviata correttamente a ".$to);
+		info("email inviata correttamente a " . $to . " oggetto: " . $subject);
 	} else {
-		warning("errore nell'invio della email $subject a ".$to);
+		warning("errore nell'invio della email a " . $to . " oggetto: " . $subject);
 	}
 }
 ?>
