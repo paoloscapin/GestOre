@@ -203,6 +203,11 @@ require_once '../common/header-didattica.php';
                     <div class="col-sm-1 "><input type="checkbox" id="firmato" ></div>
                 </div>
 
+                <div class="form-group">
+                    <label for="online" class="col-sm-2 control-label">Online</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
+                </div>
+
                 <input type="hidden" id="hidden_sportello_id">
 			</form>
 

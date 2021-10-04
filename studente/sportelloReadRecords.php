@@ -43,6 +43,7 @@ $query = "	SELECT
 				sportello.classe AS sportello_classe,
 				sportello.firmato AS sportello_firmato,
 				sportello.cancellato AS sportello_cancellato,
+				sportello.online AS sportello_online,
 				materia.nome AS materia_nome,
 				docente.cognome AS docente_cognome,
 				docente.nome AS docente_nome,
@@ -111,13 +112,21 @@ foreach($resultArray as $row) {
 		}
 	}
 
+	// marker per eventuali sportelli online
+	$luogo_or_onine_marker = $row['sportello_luogo'];
+	if ($row['sportello_online']) {
+		$luogo_or_onine_marker = '<span class="label label-danger">online</span>';
+	} else {
+		debug("online=".$row['sportello_online']);
+	}
+
 	$data .= '<tr>
 		<td>'.$dataSportello.'</td>
 		<td>'.$row['sportello_ora'].'</td>
 		<td>'.$row['materia_nome'].'</td>
 		<td>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
 		<td>'.$row['sportello_argomento'].'</td>
-		<td>'.$row['sportello_luogo'].'</td>
+		<td>'.$luogo_or_onine_marker.'</td>
 		<td>'.$row['sportello_classe'].'</td>
 		<td data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
 		';
@@ -145,6 +154,13 @@ foreach($resultArray as $row) {
 		$todayAfterpreviousMonday = ($today >= $previousMonday);
 		$todayBeforeLastDay = ($today <= $lastDay);
 		$prenotabile = ($todayAfterpreviousMonday and $todayBeforeLastDay);
+//		debug("dataSportello=".$dataSportello);
+//		debug("today=".$today->format('d-m-Y H:i:s'));
+//		debug("lastDay=".$lastDay->format('d-m-Y H:i:s'));
+//		debug("previousMonday=".$previousMonday->format('d-m-Y H:i:s'));
+//		debug("todayAfterpreviousMonday=".$todayAfterpreviousMonday);
+//		debug("todayBeforeLastDay=".$todayBeforeLastDay);
+//		debug("prenotabile=".$prenotabile);
 
 		// controlla che non sia stato raggiunto il massimo numero di prenotazioni
 		if ($row['numero_studenti'] >= getSettingsValue('sportelli','numero_max_prenotazioni', 10)) {
@@ -175,4 +191,3 @@ $data .= '</table></div>';
 
 echo $data;
 ?>
-

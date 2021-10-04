@@ -86,26 +86,50 @@ if (empty ( $__useremail )) {
     redirect ( '/error/notlogged.php' );
 }
 
+// anche gli studenti hanno utente_id in sessione (= -1)
 if (! $session->has ( 'utente_id' )) {
     debug ( 'manca in sessione utente_id' );
     $utente = dbGetFirst("SELECT * FROM utente WHERE utente.email = '$__useremail'");
-    if ($utente == null) {
-        $__message = 'utente non trovato: ' . $__useremail;
-        warning ($__message);
-        redirect ( '/error/error.php?message=' . $__message);
-        exit ();
-    }
+    if ($utente != null) {
+        // lo ho trovato tra gli utenti
+        $session->set ( 'utente_id', $utente ['id'] );
+        $session->set ( 'username', $utente ['username'] );
+        $session->set ( 'utente_nome', $utente ['nome'] );
+        $session->set ( 'utente_cognome', $utente ['cognome'] );
+        $session->set ( 'utente_ruolo', $utente ['ruolo'] );
+        $session->set ( '__useremail', $__useremail );
+        if(!empty($utente ['username'])){
+            $__username = $session->get ( 'username' );
+            $session->set ( '__username',  $__username);
+            info('utente ' . $utente ['username'] . ': logged in');
+        }
+    } else {
+        // lo cerco tra gli studenti:
+        $studente = dbGetFirst("SELECT * FROM studente WHERE studente.email = '$__useremail'");
+        if ($studente != null) {
+            // lo ho trovato tra gli studenti: utente id = -1
+            $session->set ( 'utente_id', -1 );
+            $session->set ( 'studente_id', $studente ['id'] );
+            $session->set ( 'studente_nome', $studente ['nome'] );
+            $session->set ( 'studente_cognome', $studente ['cognome'] );
+            $session->set ( 'studente_email', $__useremail );
 
-    $session->set ( 'utente_id', $utente ['id'] );
-    $session->set ( 'username', $utente ['username'] );
-    $session->set ( 'utente_nome', $utente ['nome'] );
-    $session->set ( 'utente_cognome', $utente ['cognome'] );
-    $session->set ( 'utente_ruolo', $utente ['ruolo'] );
-    $session->set ( '__useremail', $__useremail );
-    if(!empty($utente ['username'])){
-        $__username = $session->get ( 'username' );
-        $session->set ( '__username',  $__username);
-        info('utente ' . $utente ['username'] . ': logged in');
+            $session->set ( 'username', $studente ['nome'].$studente ['cognome'] );
+            $session->set ( 'utente_nome', $studente ['nome'] );
+            $session->set ( 'utente_cognome', $studente ['cognome'] );
+            $session->set ( 'utente_ruolo', 'studente');
+            $session->set ( '__useremail', $__useremail );
+            if(!empty($utente ['username'])){
+                $__username = $session->get ( 'username' );
+                $session->set ( '__username',  $__username);
+                info('studente ' . $utente ['username'] . ': logged in');
+            }
+        } else {
+            $__message = 'utente non trovato: ' . $__useremail;
+            warning ($__message);
+            redirect ( '/error/error.php?message=' . $__message);
+            exit ();
+        }
     }
 } else {
 //    debug ( 'esiste utente_id=' . $session->get ( 'utente_id' ) );
@@ -137,22 +161,6 @@ $__docente_id = $session->get ( 'docente_id' );
 $__docente_nome = $session->get ( 'docente_nome' );
 $__docente_cognome = $session->get ( 'docente_cognome' );
 $__docente_email = $session->get ( 'docente_email' );
-
-// controlla se e' uno studente deve avere i rispettivi termini
-if (!$session->has ( 'studente_id' ) && $session->has ( 'utente_ruolo' ) && ($session->get ( 'utente_ruolo' ) === "studente")) {
-    debug ( 'manca in sessione studente_id' );
-    $studente = dbGetFirst("SELECT * FROM studente WHERE studente.email = '$__useremail'");
-    if ($studente == null) {
-        redirect("/error/unauthorized.php");
-        exit ();
-    }
-    $session->set ( 'studente_id', $studente ['id'] );
-    $session->set ( 'studente_nome', $studente ['nome'] );
-    $session->set ( 'studente_cognome', $studente ['cognome'] );
-    $session->set ( 'studente_email', $__useremail );
-} else {
-//    debug ( 'esiste studente_id=' . $session->get ( 'studente_id' ) );
-}
 
 $__studente_id = $session->get ( 'studente_id' );
 $__studente_nome = $session->get ( 'studente_nome' );
@@ -186,5 +194,9 @@ debug ( '__docente_id=' . $__docente_id );
 debug ( '__docente_nome=' . $__docente_nome );
 debug ( '__docente_cognome=' . $__docente_cognome );
 debug ( '__docente_email=' . $__docente_email );
+debug ( '__studente_id=' . $__studente_id );
+debug ( '__studente_nome=' . $__studente_nome );
+debug ( '__studente_cognome=' . $__studente_cognome );
+debug ( '__studente_email=' . $__studente_email );
 */
 ?>

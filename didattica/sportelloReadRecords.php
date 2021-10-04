@@ -21,12 +21,13 @@ $direzioneOrdinamento="ASC";
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
-						<th class="text-center col-md-2">Data</th>
+						<th class="text-center col-md-1">Data</th>
 						<th class="text-center col-md-1">Ora</th>
 						<th class="text-center col-md-2">Materia</th>
 						<th class="text-center col-md-2">Docente</th>
 						<th class="text-center col-md-1">Ore</th>
 						<th class="text-center col-md-1">Classe</th>
+						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Stato</th>
 						<th class="text-center col-md-1">Studenti</th>
 						<th class="text-center col-md-1"></th>
@@ -41,6 +42,7 @@ $query = "	SELECT
 				sportello.luogo AS sportello_luogo,
 				sportello.classe AS sportello_classe,
 				sportello.firmato AS sportello_firmato,
+				sportello.online AS sportello_online,
 				sportello.cancellato AS sportello_cancellato,
 				materia.nome AS materia_nome,
 				docente.cognome AS docente_cognome,
@@ -106,6 +108,14 @@ foreach($resultArray as $row) {
 		}
 	}
 
+	// marker per eventuali sportelli online
+	$luogo_or_onine_marker = $row['sportello_luogo'];
+	if ($row['sportello_online']) {
+		$luogo_or_onine_marker = '<span class="label label-danger">online</span>';
+	} else {
+		debug("online=".$row['sportello_online']);
+	}
+
 	$data .= '<tr>
 		<td>'.$dataSportello.'</td>
 		<td>'.$row['sportello_ora'].'</td>
@@ -113,6 +123,7 @@ foreach($resultArray as $row) {
 		<td>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
 		<td>'.$row['sportello_numero_ore'].'</td>
 		<td>'.$row['sportello_classe'].'</td>
+		<td>'.$luogo_or_onine_marker.'</td>
 		<td>'.$cancellatoMarker.'</td>
 		<td data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
 		';

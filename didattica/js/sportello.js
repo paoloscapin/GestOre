@@ -62,10 +62,11 @@ function sportelloSave() {
 		materia_id: $("#materia").val(),
         numero_ore: $("#numero_ore").val(),
 		argomento: $("#argomento").val(),
-		luogo: $("#commento").val(),
+		luogo: $("#luogo").val(),
         classe: $("#classe").val(),
-        cancellato: $("#cancellato").prop('checked'),
-        firmato: $("#firmato").prop('checked')
+        cancellato: $("#cancellato").is(':checked')? 1: 0,
+        firmato: $("#firmato").is(':checked')? 1: 0,
+        online: $("#online").is(':checked')? 1: 0
     }, function (data, status) {
         $("#sportello_modal").modal("hide");
         sportelloReadRecords();
@@ -90,6 +91,7 @@ function sportelloGetDetails(sportello_id) {
             $("#classe").val(sportello.sportello_classe);
             $("#cancellato").prop('checked', sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null);
             $("#firmato").prop('checked', sportello.sportello_firmato != 0 && sportello.sportello_firmato != null);
+            $("#online").prop('checked', sportello.sportello_online != 0 && sportello.sportello_online != null);
         });
     } else {
         data_pickr.setDate(Date.today().toString('d/M/yyyy'));
@@ -104,8 +106,8 @@ function sportelloGetDetails(sportello_id) {
         $("#classe").val("");
         $("#cancellato").prop('checked', false);
         $("#firmato").prop('checked', false);
-}
-
+        $("#onine").prop('checked', false);
+    }
 	$("#sportello_modal").modal("show");
 }
 
@@ -124,5 +126,4 @@ $(document).ready(function () {
         materia_filtro_id = this.value;
         sportelloReadRecords();
     });
-
 });

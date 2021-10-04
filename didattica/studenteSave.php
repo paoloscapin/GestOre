@@ -27,12 +27,6 @@
         dbExec($query);
         $studenteId = dblastId();
 		info("aggiunto studente id=$studenteId cognome=$cognome nome=$nome email=$email classe=$classe anno=$anno");
-
-        // insert dell'utente
-        $username = strstr($email, '@', true);
-        $username = $nome . '.' . $cognome;
-        $query = "INSERT INTO utente(nome, cognome, username, email, ruolo) VALUES('$nome', '$cognome', '$username', '$email', 'studente')";
-        dbExec($query);
     }
 }
 ?>

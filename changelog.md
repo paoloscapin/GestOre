@@ -1,3 +1,11 @@
+## Version 1.2.7 - 4 ott 2021
+
+##### Improvements
+- sportello online (flag)
+- studente login separato (non utente)
+- sportelloCheck per controllare se ci sono iscritti (incluso invio email)
+- aggiunta cartella template per i modelli per import di docenti, studenti, gruppi e corsi di recupero
+
 ## Version 1.2.6 - 25 set 2021
 
 ##### Improvements

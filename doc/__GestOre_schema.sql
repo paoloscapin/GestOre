@@ -1440,6 +1440,7 @@ CREATE TABLE IF NOT EXISTS `sportello` (
   `categoria` VARCHAR(45) NULL,
   `firmato` TINYINT NULL DEFAULT 0,
   `cancellato` TINYINT NULL DEFAULT 0,
+  `online` TINYINT NULL DEFAULT 0,
   `note` TEXT NULL,
   `anno_scolastico_id` INT NOT NULL,
   `materia_id` INT NOT NULL,
