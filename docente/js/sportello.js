@@ -87,7 +87,8 @@ function sportelloGetDetails(sportello_id) {
                     "<tr>" +
                     "<td>" + studenti.sportello_studente_id + "</td>" +
                     "<td>" + studenti.sportello_studente_presente + "</td>" +
-                    "<td>" + studenti.studente_cognome + " " + studenti.studente_nome + "</td>" +
+                    "<td style=\"text-align: left; vertical-align: middle;\">" + studenti.studente_cognome + " " + studenti.studente_nome + "</td>" +
+                    "<td style=\"text-align: left; vertical-align: middle;\">" + studenti.sportello_studente_argomento + "</td>" +
                     "<td style=\"text-align: center; vertical-align: middle;\">" +
                         "<input type=\"checkbox\" name=\"query_myTextEditBox\"" +
                         ((studenti.sportello_studente_presente == 0 || studenti.sportello_studente_presente == null) ? "" : " checked" ) +

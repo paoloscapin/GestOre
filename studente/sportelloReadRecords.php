@@ -43,7 +43,9 @@ $query = "	SELECT
 				sportello.classe AS sportello_classe,
 				sportello.firmato AS sportello_firmato,
 				sportello.cancellato AS sportello_cancellato,
+				sportello.categoria AS sportello_categoria,
 				sportello.online AS sportello_online,
+				sportello.max_iscrizioni AS sportello_max_iscrizioni,
 				materia.nome AS materia_nome,
 				docente.cognome AS docente_cognome,
 				docente.nome AS docente_nome,
@@ -153,19 +155,28 @@ foreach($resultArray as $row) {
 		$today = new DateTime('today');
 		$todayAfterpreviousMonday = ($today >= $previousMonday);
 		$todayBeforeLastDay = ($today <= $lastDay);
-		$prenotabile = ($todayAfterpreviousMonday and $todayBeforeLastDay);
-//		debug("dataSportello=".$dataSportello);
-//		debug("today=".$today->format('d-m-Y H:i:s'));
-//		debug("lastDay=".$lastDay->format('d-m-Y H:i:s'));
-//		debug("previousMonday=".$previousMonday->format('d-m-Y H:i:s'));
-//		debug("todayAfterpreviousMonday=".$todayAfterpreviousMonday);
-//		debug("todayBeforeLastDay=".$todayBeforeLastDay);
-//		debug("prenotabile=".$prenotabile);
+		$prenotabile = ($todayAfterpreviousMonday && $todayBeforeLastDay);
+		// debug("dataSportello=".$dataSportello);
+		// debug("today=".$today->format('d-m-Y H:i:s'));
+		// debug("lastDay=".$lastDay->format('d-m-Y H:i:s'));
+		// debug("previousMonday=".$previousMonday->format('d-m-Y H:i:s'));
+		// debug("todayAfterpreviousMonday=".$todayAfterpreviousMonday);
+		// debug("todayBeforeLastDay=".$todayBeforeLastDay);
+		// debug("prenotabile=".$prenotabile);
 
 		// controlla che non sia stato raggiunto il massimo numero di prenotazioni
-		if ($row['numero_studenti'] >= getSettingsValue('sportelli','numero_max_prenotazioni', 10)) {
+		$max_iscrizioni = $row['sportello_max_iscrizioni'];
+		if ($max_iscrizioni == null && $row['sportello_categoria'] == 'sportello didattico') {
+			$max_iscrizioni = getSettingsValue('sportelli','numero_max_prenotazioni', 10);
+		}
+		// debug("max_iscrizioni=".$max_iscrizioni);
+		// debug("numero_studenti=".$row['numero_studenti']);
+
+		// zero o null significa nessun limite, altrimenti controlla quanti ce ne sono
+		if ($max_iscrizioni != null && $max_iscrizioni > 0 && $max_iscrizioni <= $row['numero_studenti']) {
 			$prenotabile = false;
 		}
+		// debug("prenotabile=".$prenotabile);
 
 		// per quelli non passati, se sono iscritto lo dice e mi lascia cancellare, altrimenti mi lascia iscrivere se non sono scaduti i termini
 		if ($row['iscritto']) {
@@ -173,13 +184,13 @@ foreach($resultArray as $row) {
 				<span class="label label-success">Iscritto</span>
 				<button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 				';
-			} else {
-				if ($prenotabile) {
-					$data .='
-						<span class="label label-info">Disponibile</span>
-						<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-						';
-				}
+		} else {
+			if ($prenotabile) {
+				$data .='
+					<span class="label label-info">Disponibile</span>
+					<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+					';
+			}
 		}
 	}
 

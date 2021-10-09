@@ -73,7 +73,7 @@ if ($resultArray == null) {
 }
 foreach($resultArray as $row) {
 	$sportello_id = $row['sportello_id'];
-	$cancellatoMarker = '';
+	$statoMarker = '';
 	if ($row['sportello_cancellato']) {
 		$statoMarker = '<span class="label label-danger">cancellato</span>';
 	}
@@ -112,8 +112,6 @@ foreach($resultArray as $row) {
 	$luogo_or_onine_marker = $row['sportello_luogo'];
 	if ($row['sportello_online']) {
 		$luogo_or_onine_marker = '<span class="label label-danger">online</span>';
-	} else {
-		debug("online=".$row['sportello_online']);
 	}
 
 	$data .= '<tr>
@@ -123,8 +121,8 @@ foreach($resultArray as $row) {
 		<td>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
 		<td>'.$row['sportello_numero_ore'].'</td>
 		<td>'.$row['sportello_classe'].'</td>
-		<td>'.$luogo_or_onine_marker.'</td>
-		<td>'.$cancellatoMarker.'</td>
+		<td class="text-center">'.$luogo_or_onine_marker.'</td>
+		<td class="text-center">'.$statoMarker.'</td>
 		<td data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
 		';
 	$data .='

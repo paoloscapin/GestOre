@@ -111,6 +111,22 @@ function sportelloGetDetails(sportello_id) {
 	$("#sportello_modal").modal("show");
 }
 
+function importFile(file) {
+    var contenuto = "";
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+        contenuto = event.target.result;
+        $.post("sportelloImport.php", {
+            contenuto: contenuto
+        },
+        function (data, status) {
+            $('#result_text').html(data);
+            sportelloReadRecords();
+        });
+    });
+    reader.readAsText(file);
+}
+
 $(document).ready(function () {
 	data_pickr = flatpickr("#data", {
 		locale: {
@@ -125,5 +141,9 @@ $(document).ready(function () {
     function(e, clickedIndex, newValue, oldValue) {
         materia_filtro_id = this.value;
         sportelloReadRecords();
+    });
+
+    $('#file_select_id').change(function (e) {
+        importFile(e. target. files[0]);
     });
 });

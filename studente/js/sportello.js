@@ -42,12 +42,19 @@ function sportelloCancellaIscrizione(sportello_id, materia) {
 }
 
 function sportelloIscriviti(sportello_id, materia, argomento) {
+    var unSoloArgomento = $("#hidden_unSoloArgomento").val() == 0 ? false : true;
+    // console.log('unSoloArgomento=' + unSoloArgomento);
+
     var primoIscritto = argomento ? false : true;
+
+    // per il primo iscritto chiede argomento, oppure anche se gli argomenti possono essere diversi
+    var chiediArgomento = ! unSoloArgomento || primoIscritto;
+
     var titolo = "<p>Sportello: " + materia + "</p>";
-    var messaggio = primoIscritto ? "<p>Inserire l\'argomento per lo sportello:</p>" : "<p>Confermare l\'argomento per lo sportello:</p>" + argomento;
-    var inputType = primoIscritto ? 'textarea' : 'checkbox';
-    var inputOptions = primoIscritto ? [] : [{text: 'Confermo',value: '1',}];
-    var value = primoIscritto ? [] : ['1'];
+    var messaggio = chiediArgomento ? "<p>Inserire l\'argomento per lo sportello:</p>" : "<p>Confermare l\'argomento per lo sportello:</p>" + argomento;
+    var inputType = chiediArgomento ? 'textarea' : 'checkbox';
+    var inputOptions = chiediArgomento ? [] : [{text: 'Confermo',value: '1',}];
+    var value = chiediArgomento ? [] : ['1'];
 
     bootbox.prompt({
         title: titolo,
@@ -58,16 +65,16 @@ function sportelloIscriviti(sportello_id, materia, argomento) {
         required: true,
 
         callback: function (result) {
-            console.log('result='+result);
+            // console.log('result='+result);
             // null se cancel
             if (!result) {
-                console.log('result is null: ritorno');
+                // console.log('result is null: ritorno');
                 return;
             }
             if (argomento) {
                 // controlla il checkbox
                 if (result != 1) {
-                    console.log('result='+result + ' ritorno');
+                    // console.log('result='+result + ' ritorno');
                     return;
                 }
             } else {

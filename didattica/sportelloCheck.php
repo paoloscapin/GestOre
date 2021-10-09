@@ -13,7 +13,7 @@ require_once '../common/connect.php';
 
 // per prima cosa determina quale è la data da controllare
 $daysInAdvance = getSettingsValue('sportelli', 'chiusuraIscrizioniGiorni', '1');
-$dateToCheck = date('Y-m-d', strtotime($date. ' + ' . $daysInAdvance . ' days'));
+$dateToCheck = date('Y-m-d', strtotime(' + ' . $daysInAdvance . ' days'));
 
 $query = "	SELECT
 				sportello.id AS sportello_id,
@@ -63,19 +63,45 @@ foreach(dbGetAll($query) as $sportello) {
 
 	$text_msg = "Gentile $nomeCognome, allo sportello $dicituraSportello risultano iscritti $sportelloNumeroStudenti studenti";
 	$html_msg = "
-	<html><body>
+	<html>
+	<head>
+	<style>
+	#student {
+	  font-family: Arial, Helvetica, sans-serif;
+	  border-collapse: collapse;
+	  width: 100%;
+	}
+	#student td, #student th {
+	  border: 1px solid #ddd;
+	  padding: 6px;
+	}
+	#student tr:nth-child(even){background-color: #f2f2f2;}
+	#student tr:hover {background-color: #ddd;}
+	#student th {
+	  padding-top: 6px;
+	  padding-bottom: 6px;
+	  text-align: left;
+	  background-color: #04AA6D;
+	  color: white;
+	}
+	</style>
+	</head>
+	<body>
 	<p>Sportello: $dateString - $sportelloOra (durata $sportelloNumeroOre ore)</br>
 	Docente: $nomeCognome</br>
 	Materia: $sportelloMateria</p>
 	<hr>
 	<p>Argomento: <strong>$sportelloArgomento</strong></p>
-	<p>Studenti: ($sportelloNumeroStudenti):";
-
+	<p>Studenti: ($sportelloNumeroStudenti):</br>
+	<table id=\"student\">
+	<tr><th>Studente</th><th>Classe</th><th>Argomento</th><tr>
+";
+	
 	foreach(dbGetAll("SELECT * FROM studente INNER JOIN sportello_studente ON sportello_studente.studente_id = studente.id  where sportello_studente.sportello_id = '$sportello_id';") as $studente) {
-		$html_msg .=  "</br>&nbsp;&nbsp;&nbsp;&nbsp;" . $studente['cognome'] . " " . $studente['nome'] ." " . $studente['classe'];
+		$html_msg .=  "<tr><td>" . $studente['cognome'] . " " . $studente['nome'] ."</td><td>" . $studente['classe']."</td><td>".$studente['argomento'].'</td></tr>';
 	}
 
-	$html_msg .= '</p></body></html>';
+	$html_msg .= '</table></p></body></html>';
 
 	// invia la email al docente
 	$to = $sportello['docente_email'];

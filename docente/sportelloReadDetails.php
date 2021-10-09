@@ -48,6 +48,7 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
             sportello_studente.id AS sportello_studente_id,
             sportello_studente.iscritto AS sportello_studente_iscritto,
             sportello_studente.presente AS sportello_studente_presente,
+            sportello_studente.argomento AS sportello_studente_argomento,
             sportello_studente.note AS sportello_studente_note,
 
             studente.cognome AS studente_cognome,
