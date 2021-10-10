@@ -1,3 +1,11 @@
+## Version 1.2.8 - 10 ott 2021
+
+##### Improvements
+- sportello import
+- template xlsx per import sportello
+- categoria sportello
+- aggiornato sql
+
 ## Version 1.2.7 - 4 ott 2021
 
 ##### Improvements
