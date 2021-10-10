@@ -15,6 +15,16 @@ require_once '../common/connect.php';
 $daysInAdvance = getSettingsValue('sportelli', 'chiusuraIscrizioniGiorni', '1');
 $dateToCheck = date('Y-m-d', strtotime(' + ' . $daysInAdvance . ' days'));
 
+// controlla la data dell'ultimo controllo effettuato
+$lastCheckDate = dbGetValue("SELECT ultimo_controllo_sportelli FROM config");
+
+// se si tratta della stessa data non deve fare nulla
+if ($lastCheckDate == $dateToCheck) {
+	info('controllo sportello già effettuato per la data ' . $dateToCheck);
+	return;
+}
+
+info('inizio controllo sportello per la data ' . $dateToCheck);
 $query = "	SELECT
 				sportello.id AS sportello_id,
 				sportello.data AS sportello_data,
@@ -135,5 +145,9 @@ foreach(dbGetAll($query) as $sportello) {
 		warning("errore nell'invio della email a " . $to . " oggetto: " . $subject);
 	}
 }
-?>
 
+// effettuato il controllo deve solo aggiornare la data di ultimo controllo in config
+dbExec("UPDATE config SET ultimo_controllo_sportelli = '$dateToCheck';");
+
+info('terminato controllo sportello per la data ' . $dateToCheck);
+?>
