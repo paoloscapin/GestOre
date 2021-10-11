@@ -13,6 +13,7 @@ require_once '../common/connect.php';
 
 $ancheCancellati = $_GET["ancheCancellati"];
 $soloNuovi = $_GET["soloNuovi"];
+$docente_filtro_id = $_GET["docente_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
 
 $direzioneOrdinamento="ASC";
@@ -29,7 +30,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-1">Studenti</th>
-						<th class="text-center col-md-1">Iscritto</th>
+						<th class="text-center col-md-1">Iscrizione</th>
 					</tr>
 					</thead>';
 
@@ -61,6 +62,9 @@ $query = "	SELECT
 
 if( $materia_filtro_id > 0) {
 	$query .= "AND sportello.materia_id = $materia_filtro_id ";
+}
+if( $docente_filtro_id > 0) {
+	$query .= "AND sportello.docente_id = $docente_filtro_id ";
 }
 if( ! $ancheCancellati) {
 	$query .= "AND NOT sportello.cancellato ";

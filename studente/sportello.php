@@ -59,17 +59,16 @@ ruoloRichiesto('studente','dirigente');
 </head>
 
 <?php
-// prepara l'elenco delle materie (per il filtro)
-$materiaFiltroOptionList = '				<option value="0">tutte</option>';
-$query = "	SELECT * FROM materia ORDER BY materia.nome ASC;";
-if (!$result = mysqli_query($con, $query)) {
-    exit(mysqli_error($con));
+// prepara l'elenco dei docenti per il filtro
+$docenteFiltroOptionList = '<option value="0">tutti</option>';
+foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ; ")as $docente) {
+    $docenteFiltroOptionList .= ' <option value="'.$docente['id'].'" >'.$docente['cognome'].' '.$docente['nome'].'</option> ';
 }
-if(mysqli_num_rows($result) > 0) {
-    $resultArray = $result->fetch_all(MYSQLI_ASSOC);
-    foreach($resultArray as $row) {
-        $materiaFiltroOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
-    }
+
+// prepara l'elenco delle materie per il filtro e per le materie del dialog
+$materiaFiltroOptionList = '<option value="0">tutte</option>';
+foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materia) {
+    $materiaFiltroOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
 }
 ?>
 
@@ -83,10 +82,18 @@ require_once '../common/connect.php';
 <div class="panel panel-orange4">
 <div class="panel-heading">
 	<div class="row">
-		<div class="col-md-4">
+		<div class="col-md-3">
 			<span class="glyphicon glyphicon-object-align-horizontal"></span>&ensp;Sportelli
 		</div>
-        <div class="col-md-4">
+        <div class="col-md-3">
+            <div class="text-center">
+                <label class="col-sm-2 control-label" for="docente">Docente</label>
+					<div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $docenteFiltroOptionList ?>
+					</select></div>
+            </div>
+        </div>
+        <div class="col-md-3">
             <div class="text-center">
                 <label class="col-sm-2 control-label" for="materia">Materia</label>
 					<div class="col-sm-8"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
@@ -94,7 +101,7 @@ require_once '../common/connect.php';
 					</select></div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="text-center">
 				<label class="checkbox-inline">
 					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox" >Solo Nuovi

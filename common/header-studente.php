@@ -21,7 +21,7 @@
 		</ul>
 
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
-			<li><a href="<?php echo $__settings->local->helpLinkStudente; ?>" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>
+			<li><a href="<?php echo $__application_base_path; ?>/help/GestOre - Guida Studenti.pdf" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>
 			<li><a><span class=""></span>
 			<?php if (haRuolo('admin')) echo "(A)" ?>
 			<?php echo $__studente_nome.' '.$__studente_cognome ?></a></li>

@@ -72,20 +72,6 @@ if(mysqli_num_rows($result) > 0) {
     }
 }
 
-// prepara l'elenco delle materie (anche per il filtro)
-$materiaOptionList = '				<option value="0"></option>';
-$query = "	SELECT * FROM materia ORDER BY materia.nome ASC;";
-if (!$result = mysqli_query($con, $query)) {
-    exit(mysqli_error($con));
-}
-if(mysqli_num_rows($result) > 0) {
-    $resultArray = $result->fetch_all(MYSQLI_ASSOC);
-    foreach($resultArray as $row) {
-        $materiaOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
-        $materiaFiltroOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
-    }
-}
-
 // prepara l'elenco delle categorie per il filtro
 $categoriaFiltroOptionList = '<option value="0">tutte</option>';
 foreach(dbGetAll("SELECT * FROM sportello_categoria") as $categoria) {
