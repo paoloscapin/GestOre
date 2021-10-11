@@ -63,6 +63,7 @@ function sportelloSave() {
         numero_ore: $("#numero_ore").val(),
 		argomento: $("#argomento").val(),
 		luogo: $("#luogo").val(),
+        max_iscrizioni: $("#max_iscrizioni").val(),
         classe: $("#classe").val(),
         cancellato: $("#cancellato").is(':checked')? 1: 0,
         firmato: $("#firmato").is(':checked')? 1: 0,
@@ -89,6 +90,7 @@ function sportelloGetDetails(sportello_id) {
             $("#argomento").val(sportello.sportello_argomento);
             $("#luogo").val(sportello.sportello_luogo);
             $("#classe").val(sportello.sportello_classe);
+            $("#max_iscrizioni").val(sportello.sportello_max_iscrizioni);
             $("#cancellato").prop('checked', sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null);
             $("#firmato").prop('checked', sportello.sportello_firmato != 0 && sportello.sportello_firmato != null);
             $("#online").prop('checked', sportello.sportello_online != 0 && sportello.sportello_online != null);
@@ -104,6 +106,7 @@ function sportelloGetDetails(sportello_id) {
         $("#argomento").val("");
         $("#luogo").val("");
         $("#classe").val("");
+        $("#max_iscrizioni").val($("#hidden_max_iscrizioni_default").val());
         $("#cancellato").prop('checked', false);
         $("#firmato").prop('checked', false);
         $("#onine").prop('checked', false);

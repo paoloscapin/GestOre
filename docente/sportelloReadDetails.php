@@ -20,6 +20,7 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
             sportello.argomento as sportello_argomento,
             sportello.luogo as sportello_luogo,
             sportello.classe as sportello_classe,
+            sportello.max_iscrizioni as sportello_max_iscrizioni,
             sportello.firmato as sportello_firmato,
             sportello.cancellato as sportello_cancellato,
             sportello.online as sportello_online,

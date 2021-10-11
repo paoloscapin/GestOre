@@ -20,19 +20,20 @@ if(isset($_POST)) {
 	$argomento = escapePost('argomento');
 	$luogo = escapePost('luogo');
 	$classe = escapePost('classe');
+	$max_iscrizioni = $_POST['max_iscrizioni'];
 	$cancellato = $_POST['cancellato'];
 	$firmato = $_POST['firmato'];
 	$online = $_POST['online'];
 
 	if ($id > 0) {
-		$query = "UPDATE sportello SET data = '$data', ora = '$ora', docente_id = '$docente_id', materia_id = '$materia_id', numero_ore = '$numero_ore', argomento = '$argomento', luogo = '$luogo', classe = '$classe', cancellato = $cancellato, firmato = $firmato, online = $online WHERE id = '$id'";
+		$query = "UPDATE sportello SET data = '$data', ora = '$ora', docente_id = '$docente_id', materia_id = '$materia_id', numero_ore = '$numero_ore', argomento = '$argomento', luogo = '$luogo', classe = '$classe', max_iscrizioni = '$max_iscrizioni', cancellato = $cancellato, firmato = $firmato, online = $online WHERE id = '$id'";
 		dbExec($query);
-		info("aggiornato sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe");
+		info("aggiornato sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe max_iscrizioni=$max_iscrizioni online = $online");
 	} else {
-		$query = "INSERT INTO sportello(data, ora, docente_id, materia_id, numero_ore, argomento, luogo, classe, online, anno_scolastico_id) VALUES('$data', '$ora', '$docente_id', '$materia_id', '$numero_ore', '$argomento', '$luogo', '$classe', '$onine', $__anno_scolastico_corrente_id)";
+		$query = "INSERT INTO sportello(data, ora, docente_id, materia_id, numero_ore, argomento, luogo, classe, max_iscrizioni, online, anno_scolastico_id) VALUES('$data', '$ora', '$docente_id', '$materia_id', '$numero_ore', '$argomento', '$luogo', '$classe', '$max_iscrizioni', '$online', $__anno_scolastico_corrente_id)";
 		dbExec($query);
 		$id = dblastId();
-		info("aggiunto sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe  online = $online");
+		info("aggiunto sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe max_iscrizioni=$max_iscrizioni online = $online");
 	}
 }
 ?>
