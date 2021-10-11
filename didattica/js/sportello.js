@@ -6,6 +6,8 @@
  */
 
 var soloNuovi=1;
+var categoria_filtro_id=0;
+var docente_filtro_id=0;
 var materia_filtro_id=0;
 
 function setDbDateToPickr(pickr, data_str) {
@@ -30,7 +32,7 @@ $('#soloNuoviCheckBox').change(function() {
 });
 
 function sportelloReadRecords() {
-	$.get("sportelloReadRecords.php?ancheCancellati=true&soloNuovi=" + soloNuovi + "&materia_filtro_id=" + materia_filtro_id, {}, function (data, status) {
+	$.get("sportelloReadRecords.php?ancheCancellati=true&soloNuovi=" + soloNuovi + "&categoria_filtro_id=" + categoria_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&materia_filtro_id=" + materia_filtro_id, {}, function (data, status) {
 		$(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
@@ -139,6 +141,18 @@ $(document).ready(function () {
 	});
 
     sportelloReadRecords();
+    
+    $("#categoria_filtro").on("changed.bs.select", 
+    function(e, clickedIndex, newValue, oldValue) {
+        categoria_filtro_id = this.value;
+        sportelloReadRecords();
+    });
+    
+    $("#docente_filtro").on("changed.bs.select", 
+    function(e, clickedIndex, newValue, oldValue) {
+        docente_filtro_id = this.value;
+        sportelloReadRecords();
+    });
     
     $("#materia_filtro").on("changed.bs.select", 
     function(e, clickedIndex, newValue, oldValue) {

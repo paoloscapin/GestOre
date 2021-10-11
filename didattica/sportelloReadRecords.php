@@ -13,6 +13,8 @@ require_once '../common/connect.php';
 
 $ancheCancellati = $_GET["ancheCancellati"];
 $soloNuovi = $_GET["soloNuovi"];
+$categoria_filtro_id = $_GET["categoria_filtro_id"];
+$docente_filtro_id = $_GET["docente_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
 
 $direzioneOrdinamento="ASC";
@@ -56,8 +58,17 @@ $query = "	SELECT
 			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
 			";
 
+if ($categoria_filtro_id > 0) {
+	// todo: trasformare la categoria in id invece che nome: per ora trova il nome della categoria se viene richiesta
+	$categoria_filtro_nome = dbGetValue("SELECT nome FROM sportello_categoria WHERE id='$categoria_filtro_id';");
+	$query .= "AND sportello.categoria = '$categoria_filtro_nome' ";
+}
+
 if( $materia_filtro_id > 0) {
 	$query .= "AND sportello.materia_id = $materia_filtro_id ";
+}
+if( $docente_filtro_id > 0) {
+	$query .= "AND sportello.docente_id = $docente_filtro_id ";
 }
 if( ! $ancheCancellati) {
 	$query .= "AND NOT sportello.cancellato ";

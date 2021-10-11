@@ -74,7 +74,6 @@ if(mysqli_num_rows($result) > 0) {
 
 // prepara l'elenco delle materie (anche per il filtro)
 $materiaOptionList = '				<option value="0"></option>';
-$materiaFiltroOptionList = '				<option value="0">tutte</option>';
 $query = "	SELECT * FROM materia ORDER BY materia.nome ASC;";
 if (!$result = mysqli_query($con, $query)) {
     exit(mysqli_error($con));
@@ -85,6 +84,26 @@ if(mysqli_num_rows($result) > 0) {
         $materiaOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
         $materiaFiltroOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
     }
+}
+
+// prepara l'elenco delle categorie per il filtro
+$categoriaFiltroOptionList = '<option value="0">tutte</option>';
+foreach(dbGetAll("SELECT * FROM sportello_categoria") as $categoria) {
+    $categoriaFiltroOptionList .= ' <option value="'.$categoria['id'].'" >'.$categoria['nome'].'</option> ';
+}
+
+// prepara l'elenco dei docenti per il filtro
+$docenteFiltroOptionList = '<option value="0">tutti</option>';
+foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ; ")as $docente) {
+    $docenteFiltroOptionList .= ' <option value="'.$docente['id'].'" >'.$docente['cognome'].' '.$docente['nome'].'</option> ';
+}
+
+// prepara l'elenco delle materie per il filtro e per le materie del dialog
+$materiaFiltroOptionList = '<option value="0">tutte</option>';
+$materiaOptionList = '				<option value="0"></option>';
+foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materia) {
+    $materiaFiltroOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
+    $materiaOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
 }
 ?>
 
@@ -97,14 +116,22 @@ require_once '../common/header-didattica.php';
 <div class="panel panel-orange4">
 <div class="panel-heading">
 	<div class="row">
-		<div class="col-md-2">
+		<div class="col-md-1">
 			<span class="glyphicon glyphicon-object-align-horizontal"></span>&ensp;Sportelli
 		</div>
         <div class="col-md-2">
             <div class="text-center">
                 <label class="col-sm-2 control-label" for="categoria">Categoria</label>
-					<div class="col-sm-8"><select id="categoria_filtro" name="categoria_filtro" class="categoria_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
-                    <?php echo $materiaFiltroOptionList ?>
+					<div class="col-sm-8"><select id="categoria_filtro" name="categoria_filtro" class="categoria_filtro selectpicker" data-style="btn-teal4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $categoriaFiltroOptionList ?>
+					</select></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="text-center">
+                <label class="col-sm-2 control-label" for="docente">Docente</label>
+					<div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $docenteFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
@@ -126,7 +153,7 @@ require_once '../common/header-didattica.php';
 		<div class="col-md-2 text-center">
             <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
 		</div>
-		<div class="col-md-2 text-right">
+		<div class="col-md-1 text-right">
             <div class="pull-right">
 				<button class="btn btn-xs btn-orange4" onclick="sportelloGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
