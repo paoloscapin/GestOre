@@ -56,6 +56,22 @@ function sportelloDelete(id, materia) {
 }
 
 function sportelloSave() {
+	if ($("#materia").val() <= 0) {
+		$("#_error-materia").text("Devi selezionare una materia");
+		$("#_error-materia-part").show();
+		return;
+	}
+	if ($("#docente").val() <= 0) {
+		$("#_error-materia").text("Devi selezionare un docente");
+		$("#_error-materia-part").show();
+		return;
+	}
+	if ($("#numero_ore").val() <= 0) {
+		$("#_error-materia").text("Il numero di ore non può essere 0");
+		$("#_error-materia-part").show();
+		return;
+	}
+    $("#_error-materia-part").hide();
     $.post("sportelloSave.php", {
         id: $("#hidden_sportello_id").val(),
 		data: getDbDateFromPickrId("#data"),
@@ -113,6 +129,7 @@ function sportelloGetDetails(sportello_id) {
         $("#firmato").prop('checked', false);
         $("#onine").prop('checked', false);
     }
+	$("#_error-materia-part").hide();
 	$("#sportello_modal").modal("show");
 }
 

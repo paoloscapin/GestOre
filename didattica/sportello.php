@@ -234,6 +234,11 @@ require_once '../common/header-didattica.php';
                     <label for="online" class="col-sm-2 control-label">Online</label>
                     <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
                 </div>
+                <div class="form-group" id="_error-materia-part"><strong>
+                    <hr>
+                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                    <div class="col-sm-9" id="_error-materia"></div>
+				</strong></div>
 
                 <input type="hidden" id="hidden_sportello_id">
                 <input type="hidden" id="hidden_max_iscrizioni_default" value="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>">

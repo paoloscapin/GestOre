@@ -11,6 +11,9 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
+// non abbiamo una sessione per cui calcola l'id dell'anno scolastico
+$anno_scolastico_corrente_id = dbGetValue("SELECT anno_scolastico_id FROM anno_scolastico_corrente");
+
 // per prima cosa determina quale è la data da controllare
 $daysInAdvance = getSettingsValue('sportelli', 'chiusuraIscrizioniGiorni', '1');
 $dateToCheck = date('Y-m-d', strtotime(' + ' . $daysInAdvance . ' days'));
@@ -46,7 +49,7 @@ $query = "	SELECT
 			ON sportello.docente_id = docente.id
 			INNER JOIN materia materia
 			ON sportello.materia_id = materia.id
-			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
+			WHERE sportello.anno_scolastico_id = $anno_scolastico_corrente_id
 			AND NOT sportello.cancellato
 			AND sportello.data = '$dateToCheck' ;
 			";
