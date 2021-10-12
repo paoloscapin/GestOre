@@ -437,7 +437,7 @@ require_once '../common/header-docente.php';
 ?>
 
 <!-- gestione viaggi completa -->
-<?php if(! $__settings->config->gestioneViaggiSemplificata) : ?>
+<?php if(! getSettingsValue("config", "gestioneViaggiSemplificata", false)) : ?>
 <div class="panel panel-deeporange4">
 <div class="panel-heading">
 	<div class="row">

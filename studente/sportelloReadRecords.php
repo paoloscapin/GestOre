@@ -13,6 +13,7 @@ require_once '../common/connect.php';
 
 $ancheCancellati = $_GET["ancheCancellati"];
 $soloNuovi = $_GET["soloNuovi"];
+$docente_filtro_id = $_GET["docente_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
 
 $direzioneOrdinamento="ASC";
@@ -29,7 +30,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-1">Studenti</th>
-						<th class="text-center col-md-1">Iscritto</th>
+						<th class="text-center col-md-1">Iscrizione</th>
 					</tr>
 					</thead>';
 
@@ -43,6 +44,9 @@ $query = "	SELECT
 				sportello.classe AS sportello_classe,
 				sportello.firmato AS sportello_firmato,
 				sportello.cancellato AS sportello_cancellato,
+				sportello.categoria AS sportello_categoria,
+				sportello.online AS sportello_online,
+				sportello.max_iscrizioni AS sportello_max_iscrizioni,
 				materia.nome AS materia_nome,
 				docente.cognome AS docente_cognome,
 				docente.nome AS docente_nome,
@@ -58,6 +62,9 @@ $query = "	SELECT
 
 if( $materia_filtro_id > 0) {
 	$query .= "AND sportello.materia_id = $materia_filtro_id ";
+}
+if( $docente_filtro_id > 0) {
+	$query .= "AND sportello.docente_id = $docente_filtro_id ";
 }
 if( ! $ancheCancellati) {
 	$query .= "AND NOT sportello.cancellato ";
@@ -111,13 +118,21 @@ foreach($resultArray as $row) {
 		}
 	}
 
+	// marker per eventuali sportelli online
+	$luogo_or_onine_marker = $row['sportello_luogo'];
+	if ($row['sportello_online']) {
+		$luogo_or_onine_marker = '<span class="label label-danger">online</span>';
+	} else {
+		debug("online=".$row['sportello_online']);
+	}
+
 	$data .= '<tr>
 		<td>'.$dataSportello.'</td>
 		<td>'.$row['sportello_ora'].'</td>
 		<td>'.$row['materia_nome'].'</td>
 		<td>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
 		<td>'.$row['sportello_argomento'].'</td>
-		<td>'.$row['sportello_luogo'].'</td>
+		<td>'.$luogo_or_onine_marker.'</td>
 		<td>'.$row['sportello_classe'].'</td>
 		<td data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
 		';
@@ -144,12 +159,28 @@ foreach($resultArray as $row) {
 		$today = new DateTime('today');
 		$todayAfterpreviousMonday = ($today >= $previousMonday);
 		$todayBeforeLastDay = ($today <= $lastDay);
-		$prenotabile = ($todayAfterpreviousMonday and $todayBeforeLastDay);
+		$prenotabile = ($todayAfterpreviousMonday && $todayBeforeLastDay);
+		// debug("dataSportello=".$dataSportello);
+		// debug("today=".$today->format('d-m-Y H:i:s'));
+		// debug("lastDay=".$lastDay->format('d-m-Y H:i:s'));
+		// debug("previousMonday=".$previousMonday->format('d-m-Y H:i:s'));
+		// debug("todayAfterpreviousMonday=".$todayAfterpreviousMonday);
+		// debug("todayBeforeLastDay=".$todayBeforeLastDay);
+		// debug("prenotabile=".$prenotabile);
 
 		// controlla che non sia stato raggiunto il massimo numero di prenotazioni
-		if ($row['numero_studenti'] >= getSettingsValue('sportelli','numero_max_prenotazioni', 10)) {
+		$max_iscrizioni = $row['sportello_max_iscrizioni'];
+		if ($max_iscrizioni == null && $row['sportello_categoria'] == 'sportello didattico') {
+			$max_iscrizioni = getSettingsValue('sportelli','numero_max_prenotazioni', 10);
+		}
+		// debug("max_iscrizioni=".$max_iscrizioni);
+		// debug("numero_studenti=".$row['numero_studenti']);
+
+		// zero o null significa nessun limite, altrimenti controlla quanti ce ne sono
+		if ($max_iscrizioni != null && $max_iscrizioni > 0 && $max_iscrizioni <= $row['numero_studenti']) {
 			$prenotabile = false;
 		}
+		// debug("prenotabile=".$prenotabile);
 
 		// per quelli non passati, se sono iscritto lo dice e mi lascia cancellare, altrimenti mi lascia iscrivere se non sono scaduti i termini
 		if ($row['iscritto']) {
@@ -157,13 +188,13 @@ foreach($resultArray as $row) {
 				<span class="label label-success">Iscritto</span>
 				<button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 				';
-			} else {
-				if ($prenotabile) {
-					$data .='
-						<span class="label label-info">Disponibile</span>
-						<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-						';
-				}
+		} else {
+			if ($prenotabile) {
+				$data .='
+					<span class="label label-info">Disponibile</span>
+					<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+					';
+			}
 		}
 	}
 
@@ -175,4 +206,3 @@ $data .= '</table></div>';
 
 echo $data;
 ?>
-

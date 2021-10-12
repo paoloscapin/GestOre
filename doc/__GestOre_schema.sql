@@ -794,6 +794,7 @@ CREATE TABLE IF NOT EXISTS `config` (
   `fuis_ore_funzionali` FLOAT NULL,
   `fuis_diaria_viaggi` FLOAT NULL,
   `fuis_assegnato` FLOAT NULL,
+  `ultimo_controllo_sportelli` DATE NULL DEFAULT '2020-01-01',
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
@@ -1434,12 +1435,14 @@ CREATE TABLE IF NOT EXISTS `sportello` (
   `data` DATE NULL,
   `ora` VARCHAR(45) NULL,
   `numero_ore` DOUBLE NULL,
-  `argomento` VARCHAR(200) NULL,
+  `argomento` VARCHAR(2000) NULL,
   `luogo` VARCHAR(45) NULL,
   `classe` VARCHAR(45) NULL,
-  `categoria` VARCHAR(45) NULL,
+  `categoria` VARCHAR(200) NULL DEFAULT 'sportello didattico',
+  `max_iscrizioni` INT NULL,
   `firmato` TINYINT NULL DEFAULT 0,
   `cancellato` TINYINT NULL DEFAULT 0,
+  `online` TINYINT NULL DEFAULT 0,
   `note` TEXT NULL,
   `anno_scolastico_id` INT NOT NULL,
   `materia_id` INT NOT NULL,
@@ -1451,6 +1454,7 @@ CREATE TABLE IF NOT EXISTS `sportello` (
   INDEX `date_INDEX` (`data` ASC),
   INDEX `firmato_INDEX` (`firmato` ASC),
   INDEX `cancellato_INDEX` (`cancellato` ASC),
+  INDEX `categoria_INDEX` (`categoria` ASC),
   CONSTRAINT `fk_sportello_anno_scolastico1`
     FOREIGN KEY (`anno_scolastico_id`)
     REFERENCES `anno_scolastico` (`id`)
@@ -1677,6 +1681,21 @@ CREATE TABLE IF NOT EXISTS `viaggio_diaria_fatta_commento` (
     REFERENCES `viaggio_diaria_fatta` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `sportello_categoria`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `sportello_categoria` ;
+
+CREATE TABLE IF NOT EXISTS `sportello_categoria` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(200) NULL,
+  `conteggio_ore_automatico` TINYINT NULL DEFAULT 1,
+  `previsione_ore_automatico` TINYINT NULL DEFAULT 1,
+  PRIMARY KEY (`id`),
+  INDEX `nome_INDEX` (`nome` ASC))
 ENGINE = InnoDB;
 
 

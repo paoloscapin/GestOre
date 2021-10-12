@@ -83,7 +83,6 @@ foreach($lines as $line) {
         // calcola lo username (precede @ nell'email)
         $username = strstr($email, '@', true);
         $sqlList[] = "INSERT INTO studente (cognome,nome,email,classe,anno) VALUES ('$cognome','$nome','$email','$classe','$anno')";
-        $sqlList[] = "INSERT INTO utente (username,cognome,nome,ruolo,email) VALUES ('$username','$cognome','$nome','studente','$email')";
     } else {
         // se c'era gia', lo aggiorna con i valori trovati della classe
         $daModificare++;

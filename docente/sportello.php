@@ -162,6 +162,7 @@ require_once '../common/connect.php';
 							<th>id</th>
 							<th>studenteId</th>
 							<th class="text-center">Studente</th>
+							<th class="text-center">Argomento</th>
 							<th class="text-center">Presente</th>
 						</tr>
 						</thead>

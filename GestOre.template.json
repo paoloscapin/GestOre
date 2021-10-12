@@ -78,7 +78,9 @@
     },
     "sportelli": {
         "numero_max_prenotazioni": 10,
-        "nascondiNomeStudenti": false
+        "nascondiNomeStudenti": false,
+        "chiusuraIscrizioniGiorni": 1,
+        "unSoloArgomento": true
     },
     "label": {
         "ore_funzionali": "funzionali",

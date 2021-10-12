@@ -20,8 +20,10 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
             sportello.argomento as sportello_argomento,
             sportello.luogo as sportello_luogo,
             sportello.classe as sportello_classe,
+            sportello.max_iscrizioni as sportello_max_iscrizioni,
             sportello.firmato as sportello_firmato,
             sportello.cancellato as sportello_cancellato,
+            sportello.online as sportello_online,
             sportello.note as sportello_note,
 
             docente.cognome AS docente_cognome,
@@ -47,6 +49,7 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
             sportello_studente.id AS sportello_studente_id,
             sportello_studente.iscritto AS sportello_studente_iscritto,
             sportello_studente.presente AS sportello_studente_presente,
+            sportello_studente.argomento AS sportello_studente_argomento,
             sportello_studente.note AS sportello_studente_note,
 
             studente.cognome AS studente_cognome,

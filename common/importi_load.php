@@ -9,9 +9,32 @@
 
 require_once '../common/checkSession.php';
 
-$query = "SELECT * FROM importo WHERE anno_scolastico_id = $__anno_scolastico_corrente_id;";
-$__importi = dbGetFirst($query);
+$__importi = dbGetFirst("SELECT * FROM importo WHERE anno_scolastico_id = $__anno_scolastico_corrente_id;");
 
+// se non trova il record di quest'anno, prova a prenderlo dall'anno scorso
+if (empty($__importi)) {
+    $__importi = dbGetFirst("SELECT * FROM importo WHERE anno_scolastico_id = $__anno_scolastico_scorso_id;");
+
+    // se trova un record dello scorso anno, lo copia sui valori di quest'anno
+    if (! empty($__importi)) {
+        $__importo_fuis = $__importi['fuis'];
+        $__importo_fuis_clil = $__importi['fuis_clil'];
+        $__importo_bonus = $__importi['bonus'];
+        $__importo_ore_con_studenti = $__importi['importo_ore_con_studenti'];
+        $__importo_ore_funzionali = $__importi['importo_ore_funzionali'];
+        $__importo_ore_corsi_di_recupero = $__importi['importo_ore_corsi_di_recupero'];
+        $__importo_diaria_con_pernottamento = $__importi['importo_diaria_con_pernottamento'];
+        $__importo_diaria_senza_pernottamento = $__importi['importo_diaria_senza_pernottamento'];
+
+        $query = "INSERT INTO importo (fuis, fuis_clil, bonus, importo_ore_con_studenti, importo_ore_funzionali, importo_ore_corsi_di_recupero, importo_diaria_con_pernottamento, importo_diaria_senza_pernottamento, anno_scolastico_id)
+        VALUES ('".$__importi['fuis']."','".$__importi['fuis_clil']."','".$__importi['bonus']."','".$__importi['importo_ore_con_studenti']."','".$__importi['importo_ore_funzionali']."','".$__importi['importo_ore_corsi_di_recupero']."','".$__importi['importo_diaria_con_pernottamento']."','".$__importi['importo_diaria_senza_pernottamento']."',$__anno_scolastico_corrente_id)";
+        dbExec($query);
+        $id = dblastId();
+        info("inserito importo id=$id preso dall'anno precedente");
+    }
+}
+
+// se ha trovato qualcosa, lo usa
 if (! empty($__importi)) {
     $__importo_id = $__importi['id'];
     $__importo_fuis = $__importi['fuis'];

@@ -19,8 +19,10 @@ if(isset($_POST)) {
 	$last_id = dblastId();
 	info("iscritto $__studente_cognome $__studente_nome allo sportello di $materia argomento=$argomento sportello_id=$sportello_id");
 
-	// aggiorna l'argomento dello sportello
-	dbExec("UPDATE sportello  SET argomento = '$argomento' WHERE id = '$sportello_id'");
-	info("aggiornato sportello sportello_id=$sportello_id argomento=$argomento");
+	// aggiorna l'argomento dello sportello se ne prevediamo uno solo per tutti
+	if (getSettingsValue('sportelli','unSoloArgomento', true)) {
+		dbExec("UPDATE sportello  SET argomento = '$argomento' WHERE id = '$sportello_id'");
+		info("aggiornato sportello con il suo argomento sportello_id=$sportello_id argomento=$argomento");
+	}
 }
 ?>

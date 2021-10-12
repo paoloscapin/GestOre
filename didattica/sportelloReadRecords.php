@@ -13,6 +13,8 @@ require_once '../common/connect.php';
 
 $ancheCancellati = $_GET["ancheCancellati"];
 $soloNuovi = $_GET["soloNuovi"];
+$categoria_filtro_id = $_GET["categoria_filtro_id"];
+$docente_filtro_id = $_GET["docente_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
 
 $direzioneOrdinamento="ASC";
@@ -21,12 +23,13 @@ $direzioneOrdinamento="ASC";
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
-						<th class="text-center col-md-2">Data</th>
+						<th class="text-center col-md-1">Data</th>
 						<th class="text-center col-md-1">Ora</th>
 						<th class="text-center col-md-2">Materia</th>
 						<th class="text-center col-md-2">Docente</th>
 						<th class="text-center col-md-1">Ore</th>
 						<th class="text-center col-md-1">Classe</th>
+						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Stato</th>
 						<th class="text-center col-md-1">Studenti</th>
 						<th class="text-center col-md-1"></th>
@@ -41,6 +44,7 @@ $query = "	SELECT
 				sportello.luogo AS sportello_luogo,
 				sportello.classe AS sportello_classe,
 				sportello.firmato AS sportello_firmato,
+				sportello.online AS sportello_online,
 				sportello.cancellato AS sportello_cancellato,
 				materia.nome AS materia_nome,
 				docente.cognome AS docente_cognome,
@@ -54,8 +58,17 @@ $query = "	SELECT
 			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
 			";
 
+if ($categoria_filtro_id > 0) {
+	// todo: trasformare la categoria in id invece che nome: per ora trova il nome della categoria se viene richiesta
+	$categoria_filtro_nome = dbGetValue("SELECT nome FROM sportello_categoria WHERE id='$categoria_filtro_id';");
+	$query .= "AND sportello.categoria = '$categoria_filtro_nome' ";
+}
+
 if( $materia_filtro_id > 0) {
 	$query .= "AND sportello.materia_id = $materia_filtro_id ";
+}
+if( $docente_filtro_id > 0) {
+	$query .= "AND sportello.docente_id = $docente_filtro_id ";
 }
 if( ! $ancheCancellati) {
 	$query .= "AND NOT sportello.cancellato ";
@@ -71,7 +84,7 @@ if ($resultArray == null) {
 }
 foreach($resultArray as $row) {
 	$sportello_id = $row['sportello_id'];
-	$cancellatoMarker = '';
+	$statoMarker = '';
 	if ($row['sportello_cancellato']) {
 		$statoMarker = '<span class="label label-danger">cancellato</span>';
 	}
@@ -106,6 +119,12 @@ foreach($resultArray as $row) {
 		}
 	}
 
+	// marker per eventuali sportelli online
+	$luogo_or_onine_marker = $row['sportello_luogo'];
+	if ($row['sportello_online']) {
+		$luogo_or_onine_marker = '<span class="label label-danger">online</span>';
+	}
+
 	$data .= '<tr>
 		<td>'.$dataSportello.'</td>
 		<td>'.$row['sportello_ora'].'</td>
@@ -113,7 +132,8 @@ foreach($resultArray as $row) {
 		<td>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
 		<td>'.$row['sportello_numero_ore'].'</td>
 		<td>'.$row['sportello_classe'].'</td>
-		<td>'.$cancellatoMarker.'</td>
+		<td class="text-center">'.$luogo_or_onine_marker.'</td>
+		<td class="text-center">'.$statoMarker.'</td>
 		<td data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
 		';
 	$data .='

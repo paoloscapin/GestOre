@@ -72,19 +72,24 @@ if(mysqli_num_rows($result) > 0) {
     }
 }
 
-// prepara l'elenco delle materie (anche per il filtro)
-$materiaOptionList = '				<option value="0"></option>';
-$materiaFiltroOptionList = '				<option value="0">tutte</option>';
-$query = "	SELECT * FROM materia ORDER BY materia.nome ASC;";
-if (!$result = mysqli_query($con, $query)) {
-    exit(mysqli_error($con));
+// prepara l'elenco delle categorie per il filtro
+$categoriaFiltroOptionList = '<option value="0">tutte</option>';
+foreach(dbGetAll("SELECT * FROM sportello_categoria") as $categoria) {
+    $categoriaFiltroOptionList .= ' <option value="'.$categoria['id'].'" >'.$categoria['nome'].'</option> ';
 }
-if(mysqli_num_rows($result) > 0) {
-    $resultArray = $result->fetch_all(MYSQLI_ASSOC);
-    foreach($resultArray as $row) {
-        $materiaOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
-        $materiaFiltroOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
-    }
+
+// prepara l'elenco dei docenti per il filtro
+$docenteFiltroOptionList = '<option value="0">tutti</option>';
+foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ; ")as $docente) {
+    $docenteFiltroOptionList .= ' <option value="'.$docente['id'].'" >'.$docente['cognome'].' '.$docente['nome'].'</option> ';
+}
+
+// prepara l'elenco delle materie per il filtro e per le materie del dialog
+$materiaFiltroOptionList = '<option value="0">tutte</option>';
+$materiaOptionList = '				<option value="0"></option>';
+foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materia) {
+    $materiaFiltroOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
+    $materiaOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
 }
 ?>
 
@@ -97,10 +102,26 @@ require_once '../common/header-didattica.php';
 <div class="panel panel-orange4">
 <div class="panel-heading">
 	<div class="row">
-		<div class="col-md-3">
+		<div class="col-md-1">
 			<span class="glyphicon glyphicon-object-align-horizontal"></span>&ensp;Sportelli
 		</div>
-        <div class="col-md-3">
+        <div class="col-md-2">
+            <div class="text-center">
+                <label class="col-sm-2 control-label" for="categoria">Categoria</label>
+					<div class="col-sm-8"><select id="categoria_filtro" name="categoria_filtro" class="categoria_filtro selectpicker" data-style="btn-teal4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $categoriaFiltroOptionList ?>
+					</select></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="text-center">
+                <label class="col-sm-2 control-label" for="docente">Docente</label>
+					<div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $docenteFiltroOptionList ?>
+					</select></div>
+            </div>
+        </div>
+        <div class="col-md-2">
             <div class="text-center">
                 <label class="col-sm-2 control-label" for="materia">Materia</label>
 					<div class="col-sm-8"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
@@ -108,14 +129,17 @@ require_once '../common/header-didattica.php';
 					</select></div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="text-center">
 				<label class="checkbox-inline">
 					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox" >Solo Nuovi
 				</label>
             </div>
         </div>
-		<div class="col-md-3 text-right">
+		<div class="col-md-2 text-center">
+            <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
+		</div>
+		<div class="col-md-1 text-right">
             <div class="pull-right">
 				<button class="btn btn-xs btn-orange4" onclick="sportelloGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
@@ -123,10 +147,8 @@ require_once '../common/header-didattica.php';
 	</div>
 </div>
 <div class="panel-body">
-<div class="row"  style="margin-bottom:10px;">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6">
+    <div class="row"  style="margin-bottom:10px;">
+        <div class="col-md-12 text-center" id='result_text'>
         </div>
     </div>
     <div class="row">
@@ -194,6 +216,11 @@ require_once '../common/header-didattica.php';
                 </div>
 
                 <div class="form-group">
+                    <label class="col-sm-2 control-label" for="max_iscrizioni">Max Iscrizioni</label>
+                    <div class="col-sm-8"><input type="text" id="max_iscrizioni" placeholder="max_iscrizioni" class="form-control"/></div>
+                </div>
+
+                <div class="form-group">
                     <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
                     <div class="col-sm-1 "><input type="checkbox" id="cancellato" ></div>
                 </div>
@@ -203,7 +230,18 @@ require_once '../common/header-didattica.php';
                     <div class="col-sm-1 "><input type="checkbox" id="firmato" ></div>
                 </div>
 
+                <div class="form-group">
+                    <label for="online" class="col-sm-2 control-label">Online</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
+                </div>
+                <div class="form-group" id="_error-materia-part"><strong>
+                    <hr>
+                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                    <div class="col-sm-9" id="_error-materia"></div>
+				</strong></div>
+
                 <input type="hidden" id="hidden_sportello_id">
+                <input type="hidden" id="hidden_max_iscrizioni_default" value="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>">
 			</form>
 
             </div>
