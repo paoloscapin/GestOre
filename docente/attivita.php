@@ -332,11 +332,40 @@ require_once '../common/header-docente.php';
 </div>
 <?php endif; ?>
 
+<div class="panel panel-orange4">
+<div class="panel-heading">
+	<div class="row">
+		<div class="col-md-4">
+		<span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli
+		</div>
+		<div class="col-md-4 text-center">
+		</div>
+		<div class="col-md-4 text-right">
+		</div>
+	</div>
+</div>
+<div class="panel-body">
+    <div class="row"  style="margin-bottom:10px;">
+        <div class="col-md-6">
+        </div>
+        <div class="col-md-6">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="attivita_fatte_sportelli_records_content"></div>
+        </div>
+    </div>
+</div>
+
+<!-- <div class="panel-footer"></div> -->
+</div>
+
 <div class="panel panel-lightblue4">
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
-		<span class="glyphicon glyphicon-user"></span>&ensp;Gruppi
+		<span class="glyphicon glyphicon-gift"></span>&ensp;Gruppi
 		</div>
 		<div class="col-md-4 text-center">
 		</div>
