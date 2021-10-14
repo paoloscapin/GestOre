@@ -98,10 +98,8 @@ function sportelloGetDetails(sportello_id) {
         $("#firmato").prop('checked', firmato);
         // abilita la firma se non firmato
         if (! firmato && ! cancellato) {
-            console.log('show firmato='+firmato+ ' cancellato='+cancellato);
             $("#firma_sportello_button_id").show();
         } else {
-            console.log('hide firmato='+firmato+ ' cancellato='+cancellato);
             $("#firma_sportello_button_id").hide();
         }
 
