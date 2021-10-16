@@ -267,7 +267,7 @@ require_once '../common/header-docente.php';
 		</div>
 		<div class="col-md-4 text-right">
             <?php
-            if ($__config->getOre_fatte_aperto()) {
+            if ($__config->getOre_fatte_aperto() || $operatore == 'dirigente') {
             	echo '
 					<button onclick="oreFatteGetAttivita(0)" class="btn btn-xs btn-teal4"><span class="glyphicon glyphicon-plus"></span></button>
 				';
@@ -305,7 +305,7 @@ require_once '../common/header-docente.php';
 		</div>
 		<div class="col-md-4 text-right">
             <?php
-            if ($__config->getOre_fatte_aperto()) {
+            if ($__config->getOre_fatte_aperto() || $operatore == 'dirigente') {
             	echo '
 					<button onclick="oreFatteClilGetAttivita(0)" class="btn btn-xs btn-info"><span class="glyphicon glyphicon-plus"></span></button>
 				';
