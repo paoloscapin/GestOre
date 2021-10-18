@@ -36,7 +36,7 @@ require_once '../common/connect.php';
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-4">
-			<span class="glyphicon glyphicon-object-align-horizontal"></span>&ensp;Studenti
+			<span class="glyphicon glyphicon-user"></span>&ensp;Studenti
 		</div>
 		<div class="col-md-4 text-center">
             <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>

@@ -1,3 +1,9 @@
+## Version 1.2.9 - 18 ott 2021
+
+##### Improvements
+- icone
+- sportello firme
+
 ## Version 1.2.8 - 10 ott 2021
 
 ##### Improvements

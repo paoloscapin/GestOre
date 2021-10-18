@@ -16,7 +16,7 @@
 
 		<ul class="nav navbar-nav top-navbar-nav">
 		<?php if(getSettingsValue('config','sportelli', false)) : ?>
-			<a href="<?php echo $__application_base_path; ?>/studente/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-object-align-horizontal"></span>&ensp;Sportelli </a>
+			<a href="<?php echo $__application_base_path; ?>/studente/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
 		<?php endif; ?>
 		</ul>
 

@@ -103,7 +103,7 @@ require_once '../common/header-didattica.php';
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-1">
-			<span class="glyphicon glyphicon-object-align-horizontal"></span>&ensp;Sportelli
+			<span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli
 		</div>
         <div class="col-md-2">
             <div class="text-center">
