@@ -39,7 +39,7 @@ if ($num > 0) {
 <!--			<a href="<?php echo $__application_base_path; ?>/docente/index.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;80 Ore</a> -->
 			<a href="<?php echo $__application_base_path; ?>/docente/viaggio.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-picture"></span>&ensp;Uscite</a>
 <?php if(getSettingsValue('config','sportelli', false)) : ?>
-	<a href="<?php echo $__application_base_path; ?>/docente/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-object-align-horizontal"></span>&ensp;Sportelli </a>
+	<a href="<?php echo $__application_base_path; ?>/docente/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
 <?php endif; ?>
 </ul>
 

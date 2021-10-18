@@ -59,6 +59,23 @@ function sportelloSave() {
     });
 }
 
+function sportelloFirma() {
+    if ($("#firmato").is(':checked')) {
+        // gia' firmato, non dovrebbe succedere0
+        return;
+    }
+    // setta che è firmato
+    $("#firmato").prop('checked', true);
+
+    // lo salva
+    $.post("sportelloAggiorna.php", {
+        id: $("#hidden_sportello_id").val(),
+        firmato: $("#firmato").is(':checked')? 1: 0,
+        studentiDaModificareIdList: JSON.stringify([]),
+    }, function (data, status) {
+    });
+}
+
 function sportelloGetDetails(sportello_id) {
     $("#hidden_sportello_id").val(sportello_id);
     $.post("../docente/sportelloReadDetails.php", {
@@ -66,6 +83,9 @@ function sportelloGetDetails(sportello_id) {
     }, function (data, status) {
         // console.log(data);
         var sportello = JSON.parse(data);
+        var cancellato = sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null;
+        var firmato = sportello.sportello_firmato != 0 && sportello.sportello_firmato != null;
+    
         $("#data").val(sportello.sportello_data);
         $("#ora").val(sportello.sportello_ora);
         $("#docente").val(sportello.docente_nome + ' ' + sportello.docente_nome);
@@ -74,8 +94,14 @@ function sportelloGetDetails(sportello_id) {
         $("#argomento").val(sportello.sportello_argomento);
         $("#luogo").val(sportello.sportello_luogo);
         $("#classe").val(sportello.sportello_classe);
-        $("#cancellato").prop('checked', sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null);
-        $("#firmato").prop('checked', sportello.sportello_firmato != 0 && sportello.sportello_firmato != null);
+        $("#cancellato").prop('checked', cancellato);
+        $("#firmato").prop('checked', firmato);
+        // abilita la firma se non firmato
+        if (! firmato && ! cancellato) {
+            $("#firma_sportello_button_id").show();
+        } else {
+            $("#firma_sportello_button_id").hide();
+        }
 
         $('#studenti_table tbody').empty();
         var markup = '';

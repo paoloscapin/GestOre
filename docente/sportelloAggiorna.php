@@ -22,7 +22,7 @@ if(isset($_POST)) {
 
     // aggiorna i partecipanti
     foreach($studentiDaModificareIdList as $studente) {
-        $query = "UPDATE sportello_studente SET presente = NOT presente WHERE sportello_studente.id = $studente";
+        $query = "UPDATE sportello_studente SET presente = IF (`presente`, 0, 1) WHERE sportello_studente.id = $studente";
         dbExec($query);
         info("aggiornato id=$studente");
 

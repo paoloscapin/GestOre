@@ -254,6 +254,10 @@ function oreFatteReloadTables() {
 	oreFatteReadAttivita();
 	oreFatteClilReadAttivita();
 
+	$.get("oreFatteReadSportelli.php", {}, function (data, status) {
+		$(".attivita_fatte_sportelli_records_content").html(data);
+	});
+
 	$.get("oreFatteReadGruppi.php", {}, function (data, status) {
 		$(".attivita_fatte_gruppi_records_content").html(data);
 	});

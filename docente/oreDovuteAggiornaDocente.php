@@ -220,6 +220,30 @@ function oreFatteAggiornaDocente($docenteId) {
 	    }
 	}
 
+	// gli sportelli (di vario tipo) se attivati: todo: controllare che la categoria sia di tipo automaticamente inserito
+	if(getSettingsValue("config", "sportelli", false)) {
+		$totaleOreSportello = 0;
+		$query = "	SELECT sportello.id AS sportello_id, sportello.*,
+					( SELECT COUNT(id) FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.presente) AS numero_presenti,
+					( SELECT COUNT(id) FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.iscritto) AS numero_iscritti
+					FROM sportello sportello
+					WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id AND sportello.docente_id = $docenteId AND sportello.firmato = true AND sportello.cancellato = false
+					ORDER BY sportello.categoria, sportello.data DESC ;" ;
+		foreach(dbGetAll($query) as $sportello) {
+			debug('calcolo sportello ' .$sportello['sportello_id']);
+			$oreSportello = 0;
+			if ($sportello['numero_presenti'] > 0) {
+				$oreSportello = $sportello['numero_ore'];
+			} else if ($sportello['numero_iscritti'] > 0) {
+				$oreSportello = 1;
+			}
+			debug('oreSportello=' .$oreSportello);
+			$totaleOreSportello += $oreSportello;
+		}
+		debug('totaleOreSportello=' .$totaleOreSportello);
+		$ore_40_con_studenti = $ore_40_con_studenti + $totaleOreSportello;
+	}
+
 	// i gruppi di lavoro
 	$query = "SELECT COALESCE(SUM(gruppo_incontro_partecipazione.ore), 0)
 			FROM gruppo_incontro_partecipazione
