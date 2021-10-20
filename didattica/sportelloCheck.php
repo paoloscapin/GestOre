@@ -123,7 +123,7 @@ foreach(dbGetAll($query) as $sportello) {
 	} else {
 		$subject = "Annullato $dicituraSportello";
 		$text_msg = "Gentile $nomeCognome, lo sportello $dicituraSportello viene annullato perché non risultano iscritti";
-		$html_msg = "<html><body><p><strong>Annullamento Sporetello</strong></p><p>Gentile $nomeCognome, lo sportello $dicituraSportello viene annullato perché non risultano studenti iscritti</p>";
+		$html_msg = "<html><body><p><strong>Annullamento Sportello</strong></p><p>Gentile $nomeCognome, lo sportello $dicituraSportello viene annullato perché non risultano studenti iscritti</p>";
 	}
 	$sender = $__settings->local->emailNoReplyFrom;
 	$headers = "From: $sender\n";
