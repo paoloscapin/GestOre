@@ -23,7 +23,7 @@ $lastCheckDate = dbGetValue("SELECT ultimo_controllo_sportelli FROM config");
 
 // se si tratta della stessa data non deve fare nulla
 if ($lastCheckDate == $dateToCheck) {
-	info('controllo sportello già effettuato per la data ' . $dateToCheck);
+	debug('controllo sportello già effettuato per la data ' . $dateToCheck);
 	return;
 }
 
@@ -100,8 +100,8 @@ foreach(dbGetAll($query) as $sportello) {
 	</style>
 	</head>
 	<body>
-	<p>Sportello: $dateString - $sportelloOra (durata $sportelloNumeroOre ore)</br>
-	Docente: $nomeCognome</br>
+	<p>Sportello: $dateString - $sportelloOra (durata $sportelloNumeroOre ore)<br>
+	Docente: $nomeCognome<br>
 	Materia: $sportelloMateria</p>
 	<hr>
 	<p>Argomento: <strong>$sportelloArgomento</strong></p>
