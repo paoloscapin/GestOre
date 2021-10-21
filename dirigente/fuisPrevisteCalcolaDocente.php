@@ -41,7 +41,7 @@ function calcolaFuisDocente($localDocenteId) {
     $ore_corsi_di_recupero = dbGetValue("SELECT COALESCE(SUM(corso_di_recupero.ore_recuperate), 0) FROM corso_di_recupero WHERE docente_id = $localDocenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
 
     $bilancioFunzionali = $oreFunzionali - $dovuteFunzionali;
-    $bilancioConStudenti = $oreConStudenti - $dovuteConStudenti;
+    $bilancioConStudenti = $oreConStudenti + $ore_corsi_di_recupero - $dovuteConStudenti;
     debug('dovuteFunzionali='.$dovuteFunzionali);
     debug('oreFunzionali='.$oreFunzionali);
     debug('bilancioFunzionali='.$bilancioFunzionali);
