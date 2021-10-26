@@ -22,11 +22,11 @@ $direzioneOrdinamento="ASC";
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
-						<th class="text-center col-md-2">Data</th>
+						<th class="text-center col-md-1">Data</th>
 						<th class="text-center col-md-1">Ora</th>
-						<th class="text-center col-md-1">Materia</th>
-						<th class="text-center col-md-1">Docente</th>
-						<th class="text-center col-md-3">Argomento</th>
+						<th class="text-center col-md-2">Materia</th>
+						<th class="text-center col-md-2">Docente</th>
+						<th class="text-center col-md-2">Argomento</th>
 						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-1">Studenti</th>
@@ -159,14 +159,17 @@ foreach($resultArray as $row) {
 		$today = new DateTime('today');
 		$todayAfterpreviousMonday = ($today >= $previousMonday);
 		$todayBeforeLastDay = ($today <= $lastDay);
+		if (! getSettingsValue('sportelli','prenotaMaxSettimanaSuccessiva', true)) {
+			$todayAfterpreviousMonday = true;
+		}
 		$prenotabile = ($todayAfterpreviousMonday && $todayBeforeLastDay);
-		// debug("dataSportello=".$dataSportello);
-		// debug("today=".$today->format('d-m-Y H:i:s'));
-		// debug("lastDay=".$lastDay->format('d-m-Y H:i:s'));
-		// debug("previousMonday=".$previousMonday->format('d-m-Y H:i:s'));
-		// debug("todayAfterpreviousMonday=".$todayAfterpreviousMonday);
-		// debug("todayBeforeLastDay=".$todayBeforeLastDay);
-		// debug("prenotabile=".$prenotabile);
+		 debug("dataSportello=".$dataSportello);
+		 debug("today=".$today->format('d-m-Y H:i:s'));
+		 debug("lastDay=".$lastDay->format('d-m-Y H:i:s'));
+		 debug("previousMonday=".$previousMonday->format('d-m-Y H:i:s'));
+		 debug("todayAfterpreviousMonday=".$todayAfterpreviousMonday);
+		 debug("todayBeforeLastDay=".$todayBeforeLastDay);
+		 debug("prenotabile=".$prenotabile);
 
 		// controlla che non sia stato raggiunto il massimo numero di prenotazioni
 		$max_iscrizioni = $row['sportello_max_iscrizioni'];

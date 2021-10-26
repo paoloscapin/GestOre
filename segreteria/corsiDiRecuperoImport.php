@@ -243,7 +243,7 @@ while ($words[0] == 'CODICE') {
         $numero_studenti++;
         $serve_voto = 1;
         // controlla se il terzo campo dello studente contiene "uditore"
-        $commento = escapeString(strtolower($words[4]));
+        $commento = escapeString(strtolower($words[3]));
         if (strpos($commento, 'uditore') !== false) {
             $serve_voto = 0;
         }

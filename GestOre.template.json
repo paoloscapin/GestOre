@@ -80,7 +80,8 @@
         "numero_max_prenotazioni": 10,
         "nascondiNomeStudenti": false,
         "chiusuraIscrizioniGiorni": 1,
-        "unSoloArgomento": true
+        "unSoloArgomento": true,
+        "prenotaMaxSettimanaSuccessiva": true
     },
     "label": {
         "ore_funzionali": "funzionali",

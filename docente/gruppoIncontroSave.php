@@ -10,7 +10,6 @@
 require_once '../common/checkSession.php';
 ruoloRichiesto('docente','segreteria-docenti','dirigente');
 
-$tableName = "gruppo_incontro";
 if(isset($_POST)) {
 	$id = $_POST['id'];
 	$gruppo_id = $_POST['gruppo_id'];
@@ -24,14 +23,14 @@ if(isset($_POST)) {
     $partecipantiDaModificareDocenteIdArray = json_decode($_POST['partecipantiDaModificareDocenteIdList']);
     
     if ($id > 0) {
-        $query = "UPDATE $tableName SET data = '$data', ora = '$ora', ordine_del_giorno = '$ordine_del_giorno', verbale = '$verbale', durata = $durata, effettuato = $effettuato WHERE id = '$id'";
+        $query = "UPDATE gruppo_incontro SET data = '$data', ora = '$ora', ordine_del_giorno = '$ordine_del_giorno', verbale = '$verbale', durata = '$durata', effettuato = $effettuato WHERE id = '$id'";
         dbExec($query);
-        info("aggiornato $tableName id=$id data=$data ora=$ora");
+        info("aggiornato gruppo_incontro id=$id data=$data ora=$ora");
     } else {
-        $query = "INSERT INTO $tableName(gruppo_id, data, ora, ordine_del_giorno, verbale, effettuato, durata) VALUES('$gruppo_id', '$data', '$ora', '$ordine_del_giorno', '$verbale', false, $durata)";
+        $query = "INSERT INTO gruppo_incontro(gruppo_id, data, ora, ordine_del_giorno, verbale, effettuato, durata) VALUES('$gruppo_id', '$data', '$ora', '$ordine_del_giorno', '$verbale', false, '$durata')";
         dbExec($query);
         $lastId = dblastId();
-        info("aggiunto $tableName id=$lastId data=$data ora=$ora");    
+        info("aggiunto gruppo_incontro id=$lastId data=$data ora=$ora");    
     }
 
     if ($id > 0) {
