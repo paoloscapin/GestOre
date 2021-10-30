@@ -17,7 +17,7 @@
 		<ul class="nav navbar-nav top-navbar-nav">
 		<?php if(getSettingsValue('config','sportelli', false)) : ?>
 			<a href="<?php echo $__application_base_path; ?>/didattica/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
-			<a href="<?php echo $__application_base_path; ?>/didattica/studente.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Studenti </a>
+			<a href="<?php echo $__application_base_path; ?>/didattica/studente.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Studenti </a>
 		<?php endif; ?>
 		<?php if($__settings->config->corsiDiRecupero) : ?>
 			<a href="<?php echo $__application_base_path; ?>/docente/corsoDiRecuperoVoti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>

@@ -1,3 +1,10 @@
+## Version 1.2.11 - 30 ott 2021
+
+##### Improvements
+- didattica impersona studente
+- didattica dettaglio sportello con lista studenti
+- miglioramento interfaccia
+
 ## Version 1.2.10 - 26 ott 2021
 
 ##### Improvements
