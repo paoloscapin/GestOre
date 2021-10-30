@@ -25,8 +25,8 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-2">Materia</th>
 						<th class="text-center col-md-2">Argomento</th>
 						<th class="text-center col-md-1">Ore</th>
-						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Classe</th>
+						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Stato</th>
 						<th class="text-center col-md-1">Studenti</th>
 						<th class="text-center col-md-1"></th>
@@ -74,9 +74,12 @@ if ($resultArray == null) {
 }
 foreach($resultArray as $row) {
 	$sportello_id = $row['sportello_id'];
-	$cancellatoMarker = '';
+	$statoMarker = '';
 	if ($row['sportello_cancellato']) {
-		$statoMarker = '<span class="label label-danger">cancellato</span>';
+		$statoMarker .= '<span class="label label-danger">cancellato</span>';
+	}
+	if ($row['sportello_firmato']) {
+		$statoMarker .= '<span class="label label-success">firmato</span>';
 	}
 
 	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
@@ -123,9 +126,9 @@ foreach($resultArray as $row) {
 		<td>'.$row['materia_nome'].'</td>
 		<td>'.$row['sportello_argomento'].'</td>
 		<td>'.$row['sportello_numero_ore'].'</td>
-		<td>'.$luogo_or_onine_marker.'</td>
 		<td>'.$row['sportello_classe'].'</td>
-		<td>'.$cancellatoMarker.'</td>
+		<td>'.$luogo_or_onine_marker.'</td>
+		<td class="text-center">'.$statoMarker.'</td>
 		<td data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
 		';
 	$data .='

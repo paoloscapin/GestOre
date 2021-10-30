@@ -17,7 +17,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
-ruoloRichiesto('studente');
+ruoloRichiesto('studente','segreteria-didattica','dirigente');
 ?>
 </head>
 

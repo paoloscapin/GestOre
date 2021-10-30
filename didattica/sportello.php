@@ -234,6 +234,22 @@ require_once '../common/header-didattica.php';
                     <label for="online" class="col-sm-2 control-label">Online</label>
                     <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
                 </div>
+
+                <div class="form-group text-center" id="studenti-part">
+                    <hr>
+                    <label for="studenti_table">Studenti</label>
+					<div class="table-wrapper">
+					<table class="table table-bordered table-striped" id="studenti_table">
+						<thead>
+						<tr>
+							<th>id</th><th>studenteId</th><th class="text-center">Studente</th><th class="text-center">Argomento</th><th class="text-center">Presente</th>
+						</tr>
+						</thead>
+						<tbody>
+						</tbody>
+					</table>
+                </div>
+
                 <div class="form-group" id="_error-materia-part"><strong>
                     <hr>
                     <div class="col-sm-3 text-right text-danger ">Attenzione</div>

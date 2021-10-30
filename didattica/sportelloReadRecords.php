@@ -86,7 +86,10 @@ foreach($resultArray as $row) {
 	$sportello_id = $row['sportello_id'];
 	$statoMarker = '';
 	if ($row['sportello_cancellato']) {
-		$statoMarker = '<span class="label label-danger">cancellato</span>';
+		$statoMarker .= '<span class="label label-danger">cancellato</span>';
+	}
+	if ($row['sportello_firmato']) {
+		$statoMarker .= '<span class="label label-success">firmato</span>';
 	}
 
 	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');

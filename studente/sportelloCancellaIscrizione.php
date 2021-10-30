@@ -8,7 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
- ruoloRichiesto('studente','dirigente');
+ ruoloRichiesto('studente','segreteria-didattica','dirigente');
 
 if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	$sportello_id = $_POST['id'];

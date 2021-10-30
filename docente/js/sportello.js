@@ -88,7 +88,7 @@ function sportelloGetDetails(sportello_id) {
     
         $("#data").val(sportello.sportello_data);
         $("#ora").val(sportello.sportello_ora);
-        $("#docente").val(sportello.docente_nome + ' ' + sportello.docente_nome);
+        $("#docente").val(sportello.docente_cognome + ' ' + sportello.docente_nome);
         $("#materia").val(sportello.materia_nome);
         $("#numero_ore").val(sportello.sportello_numero_ore);
         $("#argomento").val(sportello.sportello_argomento);

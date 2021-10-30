@@ -11,8 +11,8 @@ function studenteReadRecords() {
 	});
 }
 
-function studenteDelete(id, materia) {
-    var conf = confirm("Sei sicuro di volere cancellare lo studente " + cognome + " ?");
+function studenteDelete(id, cognome, nome) {
+    var conf = confirm("Sei sicuro di volere cancellare lo studente " + cognome + " " + nome + " ?");
     if (conf == true) {
         $.post("../common/deleteRecord.php", {
 				id: id,
@@ -24,6 +24,14 @@ function studenteDelete(id, materia) {
             }
         );
     }
+}
+
+function studenteImpersona(id, cognome, nome) {
+    $.post("agisciComeStudente.php", {
+        studente_id: id
+    }, function (data, status) {
+        window.open('/GestOre/studente/index.php', '_blank');
+    });
 }
 
 function studenteSave() {

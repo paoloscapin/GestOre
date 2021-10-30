@@ -112,6 +112,27 @@ function sportelloGetDetails(sportello_id) {
             $("#cancellato").prop('checked', sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null);
             $("#firmato").prop('checked', sportello.sportello_firmato != 0 && sportello.sportello_firmato != null);
             $("#online").prop('checked', sportello.sportello_online != 0 && sportello.sportello_online != null);
+
+            $('#studenti_table tbody').empty();
+            var markup = '';
+            // cicla su tutti gli studenti
+            console.log(sportello.studenti);
+            sportello.studenti.forEach(function(studenti) {
+                console.log(studenti);
+                markup = markup + 
+                        "<tr>" +
+                        "<td>" + studenti.sportello_studente_id + "</td>" +
+                        "<td>" + studenti.sportello_studente_presente + "</td>" +
+                        "<td style=\"text-align: left; vertical-align: middle;\">" + studenti.studente_cognome + " " + studenti.studente_nome + "</td>" +
+                        "<td style=\"text-align: left; vertical-align: middle;\">" + studenti.sportello_studente_argomento + "</td>" +
+                        "<td style=\"text-align: center; vertical-align: middle;\">" +
+                            "<input type=\"checkbox\" name=\"query_myTextEditBox\"" +
+                            ((studenti.sportello_studente_presente == 0 || studenti.sportello_studente_presente == null) ? "" : " checked" ) +
+                        " disabled='true'></td>" +
+                "</tr>";
+            });
+            $('#studenti_table > tbody:last-child').append(markup);
+            $('#studenti_table td:nth-child(1),#studenti_table th:nth-child(1),#studenti_table td:nth-child(2),#studenti_table th:nth-child(2)').hide(); // nasconde la prima colonna con l'id
         });
     } else {
         data_pickr.setDate(Date.today().toString('d/M/yyyy'));
