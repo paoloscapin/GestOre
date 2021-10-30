@@ -183,6 +183,12 @@ foreach($resultArray as $row) {
 		if ($max_iscrizioni != null && $max_iscrizioni > 0 && $max_iscrizioni <= $row['numero_studenti']) {
 			$prenotabile = false;
 		}
+
+		// la didattica puo' inserire la prenotazione sempre
+		if (haRuolo('segreteria-didattica')) {
+			$prenotabile = true;
+		}
+		
 		// debug("prenotabile=".$prenotabile);
 
 		// per quelli non passati, se sono iscritto lo dice e mi lascia cancellare, altrimenti mi lascia iscrivere se non sono scaduti i termini
