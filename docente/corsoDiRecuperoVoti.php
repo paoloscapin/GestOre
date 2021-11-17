@@ -67,6 +67,18 @@ $query .= "
 			;
 
 $data = '';
+
+// la segreteria didattica (o il dirigente) vede anche il link al report studenti
+if (haRuolo('segreteria-didattica')) {
+	$data .= '
+	<div class="row text-center">
+	<button class="btn btn-xs btn-teal4 text-center"  onclick=" window.open(\'../dirigente/corsoDiRecuperoReportStudenti.php\',\'_blank\')"><span class="glyphicon glyphicon-list-alt"> Report</span></button>
+	<p></p>
+	</div>
+	';
+}
+
+
 foreach(dbGetAll($query) as $row) {
 	$corso_di_recupero_id = $row['corso_di_recupero_id'];
 	$data .= '

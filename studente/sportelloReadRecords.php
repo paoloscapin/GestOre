@@ -128,7 +128,7 @@ foreach($resultArray as $row) {
 
 	$data .= '<tr>
 		<td>'.$dataSportello.'</td>
-		<td>'.$row['sportello_ora'].'</td>
+		<td>'.$row['sportello_ora']. ' &nbsp;&nbsp;&nbsp;('.$row['sportello_numero_ore']. ($row['sportello_numero_ore'] > 1? ' ore)' : ' ora)').'</td>
 		<td>'.$row['materia_nome'].'</td>
 		<td>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
 		<td>'.$row['sportello_argomento'].'</td>

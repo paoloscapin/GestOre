@@ -36,6 +36,7 @@ function registraVotoNovembre(studente_per_corso_di_recupero_id, voto, __this) {
 				$('td:nth-child(11)', $(__this).parents('tr')).html('');
 			} else {
 				$('td:nth-child(10)', $(__this).parents('tr')).html('<span class=\'label label-danger\'>non passato</span>');
+				$('td:nth-child(11)', $(__this).parents('tr')).html('<button onclick="letteraCarenze('+studente_per_corso_di_recupero_id+')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-envelope"></button>');
 			}
 		}
 	);

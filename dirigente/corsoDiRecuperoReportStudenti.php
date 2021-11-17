@@ -117,14 +117,14 @@ foreach(dbGetAll($query) as $row_classe) {
 						<tr><td colspan="6"><h2>Corsi di Recupero: Classe '.$classe.'</h2></td></tr>
 						<tbody>
 							<tr>
-								<th>Studente</th>
-								<th>Materia</th>
-								<th>Voto Sett</th>
-								<th>Data Sett</th>
-								<th>Docente Sett</th>
-								<th>Voto Nov</th>
-								<th>Data Nov</th>
-								<th>Docente Nov</th>
+								<th style="text-align: center;">Studente</th>
+								<th style="text-align: center;">Materia</th>
+								<th style="text-align: center;">Voto Sett</th>
+								<th style="text-align: center;">Data Sett</th>
+								<th style="text-align: center;">Docente Sett</th>
+								<th style="text-align: center;">Voto Nov</th>
+								<th style="text-align: center;">Data Nov</th>
+								<th style="text-align: center;">Docente Nov</th>
 							</tr>
 
 ';
@@ -134,14 +134,14 @@ foreach(dbGetAll($query) as $row_classe) {
 			$classname = ($classname==="even_row") ? "odd_row" : "even_row";
 			$data .= '
 							<tr class="'.$classname.'">
-								<td>'.$row_studente['studente_per_corso_di_recupero_cognome'].' '.$row_studente['studente_per_corso_di_recupero_nome'].'</td>
-								<td>'.$row_studente['materia_nome'].'</td>
-								<td style="text-align: center;">'.printableVoto($row_studente['studente_per_corso_di_recupero_voto_settembre']).'</td>
-								<td style="text-align: center;">'.printableDate($row_studente['studente_per_corso_di_recupero_data_voto_settembre']).'</td>
-								<td><small>'.$row_studente['docente_set_cognome'].' '.$row_studente['docente_set_nome'].'</small></td>
-								<td style="text-align: center;">'.printableVoto($row_studente['studente_per_corso_di_recupero_voto_novembre']).'</td>
-								<td style="text-align: center;">'.printableDate($row_studente['studente_per_corso_di_recupero_data_voto_novembre']).'</td>
-								<td><small>'.$row_studente['docente_nov_cognome'].' '.$row_studente['docente_nov_nome'].'</small></td>
+								<td style="text-align: left;width: 15%;">'.$row_studente['studente_per_corso_di_recupero_cognome'].' '.$row_studente['studente_per_corso_di_recupero_nome'].'</td>
+								<td style="text-align: left;width: 15%;"'.$row_studente['materia_nome'].'</td>
+								<td style="text-align: center;width: 10%;">'.printableVoto($row_studente['studente_per_corso_di_recupero_voto_settembre']).'</td>
+								<td style="text-align: center;width: 10%;">'.printableDate($row_studente['studente_per_corso_di_recupero_data_voto_settembre']).'</td>
+								<td style="text-align: left;width: 15%;"><small>'.$row_studente['docente_set_cognome'].' '.$row_studente['docente_set_nome'].'</small></td>
+								<td style="text-align: center;width: 10%;">'.printableVoto($row_studente['studente_per_corso_di_recupero_voto_novembre']).'</td>
+								<td style="text-align: center;width: 10%;">'.printableDate($row_studente['studente_per_corso_di_recupero_data_voto_novembre']).'</td>
+								<td style="text-align: left;width: 15%;"><small>'.$row_studente['docente_nov_cognome'].' '.$row_studente['docente_nov_nome'].'</small></td>
 							</tr>
 ';
 		}
