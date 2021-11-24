@@ -27,5 +27,8 @@ if(isset($_POST)) {
         info("aggiornato id=$studente");
 
     }
+
+	require_once '../docente/oreDovuteAggiornaDocente.php';
+	oreFatteAggiornaDocente($__docente_id);
 }
 ?>

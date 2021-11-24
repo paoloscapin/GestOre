@@ -198,9 +198,16 @@ foreach(dbGetAll($query) as $row) {
 				$data .= '<button onclick="votoDocenteSelect('.$studenteRow['studente_per_corso_di_recupero_id'].')" class="btnVotoDocenteSelect btn btn-warning btn-xs"><span class="glyphicon glyphicon-education"></button>';
 			}
 			$data .= '</td>';
-			$data .= '<td></td>';
-			$data .= '<td></td>';
-			$data .= '<td></td>';
+
+			// voto novembre se presente
+			$votoNovembre = $studenteRow['studente_per_corso_di_recupero_voto_novembre'];
+			$dataNov = $studenteRow['studente_per_corso_di_recupero_data_voto_novembre'];
+			$dataNovembre = ($dataNov == null) ? '' : strftime("%d/%m/%Y", strtotime($dataNov));
+			$docenteNovembre = $studenteRow['docente_nov_cognome'].' '.$studenteRow['docente_nov_nome'];
+
+			$data .= '<td class="text-center">'.$votoNovembre.'</td>';
+			$data .= '<td class="text-center">'.$dataNovembre.'</td>';
+			$data .= '<td>'.$docenteNovembre.'</td>';
 		}
 
 		$passatoMarker = '';

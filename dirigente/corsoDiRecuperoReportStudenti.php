@@ -135,7 +135,7 @@ foreach(dbGetAll($query) as $row_classe) {
 			$data .= '
 							<tr class="'.$classname.'">
 								<td style="text-align: left;width: 15%;">'.$row_studente['studente_per_corso_di_recupero_cognome'].' '.$row_studente['studente_per_corso_di_recupero_nome'].'</td>
-								<td style="text-align: left;width: 15%;"'.$row_studente['materia_nome'].'</td>
+								<td style="text-align: left;width: 15%;">'.$row_studente['materia_nome'].'</td>
 								<td style="text-align: center;width: 10%;">'.printableVoto($row_studente['studente_per_corso_di_recupero_voto_settembre']).'</td>
 								<td style="text-align: center;width: 10%;">'.printableDate($row_studente['studente_per_corso_di_recupero_data_voto_settembre']).'</td>
 								<td style="text-align: left;width: 15%;"><small>'.$row_studente['docente_set_cognome'].' '.$row_studente['docente_set_nome'].'</small></td>
