@@ -8,8 +8,16 @@
  */
 
 require_once '../common/checkSession.php';
-require_once '../common/connect.php';
 require_once '../common/__Minuti.php';
+
+function writeOre($attuali, $originali) {
+	// se non ci sono gli originali, scrive solo gli attuali
+	if ($originali == null || $originali == 0) {
+		return oreToDisplay($attuali);
+	}
+	// altrimenti gli originali cancellati e gli attuali in rosso
+	return '<s style="text-decoration-style: double;"> '.oreToDisplay($originali).' </s>&ensp;<span class="text-danger"><strong> '.oreToDisplay($attuali).' </strong></span>';
+}
 
 $operatoreDirigente = false;
 
@@ -30,13 +38,11 @@ $data = '';
 
 // nel sommario non vogliamo le ultime due colonne e nome e dettaglio insieme
 $data .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green"><thead><tr>
-<th class="col-md-2 text-left">Tipo</th>
-<th class="col-md-3 text-left">Nome</th>
-<th class="col-md-6 text-left">Dettaglio</th>
-<th class="col-md-1 text-center">Ore</th>';
-if ($operatoreDirigente) {
-	$data .= '<th class="col-md-1 text-center"></th>';
-}
+<th>Tipo</th>
+<th>Nome</th>
+<th>Dettaglio</th>
+<th class="col-md-1 text-center">ore</th>
+<th></th>';
 
 $data .= '</tr></thead><tbody>';
 
@@ -47,11 +53,15 @@ $query = "	SELECT
 					ore_previste_tipo_attivita.id AS ore_previste_tipo_attivita_id,
 					ore_previste_tipo_attivita.categoria AS ore_previste_tipo_attivita_categoria,
 					ore_previste_tipo_attivita.da_rendicontare AS ore_previste_tipo_attivita_da_rendicontare,
-					ore_previste_tipo_attivita.nome AS ore_previste_tipo_attivita_nome
+					ore_previste_tipo_attivita.nome AS ore_previste_tipo_attivita_nome,
+                    ore_previste_attivita_commento.commento AS ore_previste_attivita_commento_commento,
+                    ore_previste_attivita_commento.ore_originali AS ore_previste_attivita_commento_ore_originali
 					
 				FROM ore_previste_attivita ore_previste_attivita
 				INNER JOIN ore_previste_tipo_attivita ore_previste_tipo_attivita
 				ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
+                LEFT JOIN ore_previste_attivita_commento
+                on ore_previste_attivita_commento.ore_previste_attivita_id = ore_previste_attivita.id
 				WHERE ore_previste_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id
 				AND ore_previste_attivita.docente_id = $docente_id
                 AND ore_previste_tipo_attivita.inserito_da_docente = false
@@ -63,16 +73,24 @@ $query = "	SELECT
 
 foreach(dbGetAll($query) as $row) {
 	$ore_con_minuti = oreToDisplay($row['ore_previste_attivita_ore']);
-	$data .= '<tr><td>'.$row['ore_previste_tipo_attivita_categoria'].'</td>';
-	$data .= '<td>'.$row['ore_previste_tipo_attivita_nome'].'</td>';
-	$data .= '<td>'.$row['ore_previste_attivita_dettaglio'].'</td>';
-	$data .= '<td class="text-center">'.$row['ore_previste_attivita_ore'].'</td>
-	';
-	if ($operatoreDirigente) {
-		$data .='<td class="text-center"><button onclick="attribuiteGetDetails('.$row['ore_previste_attivita_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button></td>';
+	$data .= '<tr><td class="col-md-1">'.$row['ore_previste_tipo_attivita_categoria'].'</td>';
+	$data .= '<td class="col-md-3">'.$row['ore_previste_tipo_attivita_nome'].'</td>';
+	$data .= '<td>'.$row['ore_previste_attivita_dettaglio'];
+	if ($row['ore_previste_attivita_commento_commento'] != null && !empty(trim($row['ore_previste_attivita_commento_commento'], " "))) {
+		$data .='</br><span class="text-danger"><strong>'.$row['ore_previste_attivita_commento_commento'].'</strong></span>';
 	}
-	$data .='</tr>';
-}			
+	$data .='</td>';
+
+	$data .= '<td class="col-md-1 text-center">'.writeOre($row['ore_previste_attivita_ore'], $row['ore_previste_attivita_commento_ore_originali']).'</td>';
+
+	$data .='<td class="col-md-1 text-center">';
+	// si possono modificare solo le righe previste da docente: se dirigente lo script non cancella ma propone di mettere le ore a zero
+	if ($operatoreDirigente) {
+		$data .='<button onclick="attribuiteGetDetails('.$row['ore_previste_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>';
+	}
+
+	$data .='</td></tr>';
+}
 
 $data .= '</tbody></table></div>';
 

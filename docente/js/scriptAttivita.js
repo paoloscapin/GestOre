@@ -125,7 +125,7 @@ function messaggioEccesso(dovuteFunzionali, dovuteConStudenti, previsteFunzional
 	return messaggio;
 }
 
-function oreFatteReadRecords() {
+function oreDovuteReadRecords() {
 	var ore_dovute, ore_previste, ore_fatte;
 
 	$.post("oreDovuteReadDetails.php", {
@@ -250,7 +250,7 @@ function oreFatteClilReadAttivita() {
 }
 
 function oreFatteReloadTables() {
-	oreFatteReadRecords();
+	oreDovuteReadRecords();
 	oreFatteReadAttivita();
 	oreFatteClilReadAttivita();
 
@@ -502,7 +502,7 @@ function corsoDiRecuperoPrevisteSave() {
     		bootbox.alert(data);
     	}
     	corsoDiRecuperoPrevisteReadRecords();
-		oreFatteReadRecords();
+		oreDovuteReadRecords();
 		// TODO: insert for dirigente if used fuisFatteAggiornaDocente();
     });
     $("#corso_di_recupero_modal").modal("hide");
@@ -689,7 +689,7 @@ function diariaSave() {
     		bootbox.alert(data);
     	}
     	viaggioDiariaFattaReadRecords();
-		oreFatteReadRecords();
+		oreDovuteReadRecords();
 		fuisAggiornaDocente();
     });
     $("#diaria_modal").modal("hide");
@@ -728,7 +728,7 @@ function diariaFattaDelete(id) {
 				},
 				function (data, status) {
 					viaggioDiariaFattaReadRecords();
-					oreFatteReadRecords();
+					oreDovuteReadRecords();
 					fuisAggiornaDocente();
 				}
 			);
