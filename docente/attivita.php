@@ -393,12 +393,20 @@ require_once '../common/header-docente.php';
 <div class="panel panel-lima4">
 <div class="panel-heading">
 	<div class="row">
-		<div class="col-md-4">
+		<div class="col-md-2">
 		<span class="glyphicon glyphicon-list-alt"></span>&ensp;Attribuite
 		</div>
-		<div class="col-md-4 text-center">
+		<div class="col-md-8 text-center">
 		</div>
-		<div class="col-md-4 text-right">
+		<div class="col-md-2 text-right">
+		<?php
+			// il dirigente puo' comunque modificare le attribuite
+            if ($operatore == 'dirigente') {
+            	echo '
+					<button onclick="attribuiteGetDetails(-1)" class="btn btn-xs btn-lima4"><span class="glyphicon glyphicon-plus"></span></button>
+				';
+            }
+   			?>
 		</div>
 	</div>
 </div>
@@ -938,6 +946,11 @@ require_once '../docente/attribuiteModal.php';
     </div>
 </div>
 <!-- // Modal - diaria details -->
+
+<!-- include la gestione delle ore attribuite (Modal Dialog) -->
+<?php
+require_once '../docente/attribuiteModal.php';
+?>
 
 </div>
 

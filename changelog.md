@@ -1,3 +1,9 @@
+## Version 1.2.12 - 28 nov 2021
+
+##### Improvements
+- modifica attribuite con commento del dirigente
+- fatte permette a dirigente di modificare attribuite
+
 ## Version 1.2.11 - 30 ott 2021
 
 ##### Improvements

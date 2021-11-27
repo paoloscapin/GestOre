@@ -47,7 +47,7 @@
 			<div class="form-horizontal">
 
 			<div class="form-group attribuite_tipo_attivita_selector">
-                    <label class="col-sm-3 control-label" for="tipo_attivita">Tipo attività</label>
+                    <label class="col-sm-3 control-label" for="attribuite_tipo_attivita">Tipo attività</label>
 					<div class="col-sm-6">
 						<select id="attribuite_tipo_attivita" name="attribuite_tipo_attivita" class="attribuite_tipo_attivita selectpicker" data-live-search="true"
 					data-noneSelectedText="seleziona..." data-width="70%" >
@@ -56,15 +56,29 @@
 					</div>
                 </div>
 
-			<div class="form-group">
-                    <label class="col-sm-3 control-label" for="attribuite_dettaglio">dettaglio</label>
-                    <div class="col-sm-9"><input type="text" id="attribuite_dettaglio" placeholder="" class="form-control" /></div>
-                </div>
-
                 <div class="form-group">
                     <label class="col-sm-3 control-label" for="attribuite_ore">ore</label>
                     <div class="col-sm-2"><input type="text" id="attribuite_ore" placeholder="" class="form-control" /></div>
                 </div>
+
+				<div class="form-group">
+                    <label class="col-sm-3 control-label" for="attribuite_dettaglio">dettaglio</label>
+                    <div class="col-sm-9"><input type="text" id="attribuite_dettaglio" placeholder="" class="form-control" /></div>
+                </div>
+
+                <div class="form-group" id="attribuite_commento-part">
+                    <hr>
+                    <label class="col-sm-3 control-label" for="attribuite_commento">commento</label>
+                    <div class="col-sm-9"><input type="text" id="attribuite_commento" placeholder="commento" class="form-control"/></div>
+                </div>
+
+                <div class="form-group" id="_error-attribuite-part">
+				<strong>
+                    <hr>
+                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                    <div class="col-sm-9" id="_error-attribuite"></div>
+				</strong>
+				</div>
 
             </div>
             </div>
