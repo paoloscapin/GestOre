@@ -35,7 +35,9 @@ $dataCdr .= '<div class="table-wrapper"><table class="table table-bordered table
 // contatori delle ore recuperate e pagamento extra
 $ore_recuperate_totale = 0;
 $ore_pagamento_extra_totale = 0;
-foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.* FROM corso_di_recupero INNER JOIN lezione_corso_di_recupero on lezione_corso_di_recupero.corso_di_recupero_id=corso_di_recupero.id WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id AND firmato=true") AS $corso) {
+
+// prima i corsi di recupero che sono stati fatti a settembre (non in_itinere)
+foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.* FROM corso_di_recupero INNER JOIN lezione_corso_di_recupero on lezione_corso_di_recupero.corso_di_recupero_id=corso_di_recupero.id WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id AND firmato=true AND NOT in_itinere") AS $corso) {
 	$corsoId = $corso['id'];
 	$corsoCodice = $corso['codice'];
 	// per prima cosa calcola quante ore sono state firmate
@@ -84,6 +86,24 @@ foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.* FROM corso_di_recupero INN
 		$dataCdr .= '<button onclick="corsoDiRecuperoPrevisteEdit('.$corsoId.', \''.$corsoCodice.'\', '.$ore_firmate.', '.$ore_recuperate.', '.$ore_pagamento_extra.')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>';
 	}
 	$dataCdr .= '</td></tr>';
+}
+
+// adesso aggiungo tutti i corsi in itinere
+foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.* FROM corso_di_recupero INNER JOIN lezione_corso_di_recupero on lezione_corso_di_recupero.corso_di_recupero_id=corso_di_recupero.id WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id AND firmato=true AND in_itinere = true") AS $corso) {
+	$corsoId = $corso['id'];
+	$corsoCodice = $corso['codice'];
+	// per prima cosa calcola quante ore sono state firmate
+	$ore_firmate = dbGetValue("SELECT COALESCE(SUM(lezione_corso_di_recupero.numero_ore),0) FROM `lezione_corso_di_recupero` WHERE corso_di_recupero_id = $corsoId;");
+	$ore_recuperate = $corso['ore_recuperate'];
+	$ore_pagamento_extra = $corso['ore_pagamento_extra'];
+
+	// controlla che siano tutte nelle ore recuperate altrimenti mette a posto
+	if ($ore_recuperate != $ore_firmate || $ore_pagamento_extra != 0) {
+		$ore_recuperate = $ore_firmate;
+		$ore_pagamento_extra = 0;
+		dbExec("UPDATE corso_di_recupero SET ore_recuperate=$ore_recuperate, ore_pagamento_extra=$ore_pagamento_extra WHERE id = $corsoId;");
+	}
+	$dataCdr .= '<tr><td class="col-md-7 text-left">'.$corsoCodice.'</td><td class="col-md-1 text-center">'.$ore_firmate.'</td><td class="col-md-1 text-center">'.$ore_recuperate.'</td><td class="col-md-1 text-center">'.$ore_pagamento_extra.'</td><td class="col-md-1 text-center"></td></tr>';
 }
 
 $dataCdr .= '</table></div>';

@@ -3,6 +3,7 @@
 ##### Improvements
 - modifica attribuite con commento del dirigente
 - fatte permette a dirigente di modificare attribuite
+- corso di recupero in itinere
 
 ## Version 1.2.11 - 30 ott 2021
 
