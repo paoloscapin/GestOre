@@ -109,7 +109,10 @@ while ($words[0] == 'CODICE') {
         break;
     }
     $corso_codice = $words[1];
-//    debug("codice=" . $codice);
+    $corso_in_itinere = $words[2];
+    // debug("codice=" . $corso_codice);
+    // debug("corso_in_itinere=" . $corso_in_itinere);
+    $in_itinere_value = ($corso_in_itinere == 'in itinere') ? 1 : 0;
 
     // segue materia
     nextWords();
@@ -173,7 +176,7 @@ while ($words[0] == 'CODICE') {
         $corso_docente_id = $corso_docente_id_list[0]['id'];
     }
 
-    $sql .= "INSERT INTO corso_di_recupero (codice, aula, docente_id, anno_scolastico_id, materia_id) VALUES ('$corso_codice', '$corso_aula', '$corso_docente_id', '$__anno_scolastico_corrente_id', '$corso_materia_id');
+    $sql .= "INSERT INTO corso_di_recupero (codice, aula, in_itinere, docente_id, anno_scolastico_id, materia_id) VALUES ('$corso_codice', '$corso_aula', '$in_itinere_value', '$corso_docente_id', '$__anno_scolastico_corrente_id', '$corso_materia_id');
         SET @last_id_corso_di_recupero = LAST_INSERT_ID();
         ";
 
@@ -273,6 +276,7 @@ while ($words[0] == 'CODICE') {
 // esegue la query se non vuota
 if (!empty($sql)) {
     dbExecMulti($sql);
+    // debug($sql);
     info('Import corsi di recupero effettuato');
 }
 

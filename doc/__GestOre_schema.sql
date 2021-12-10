@@ -126,6 +126,7 @@ DROP TABLE IF EXISTS `corso_di_recupero` ;
 
 CREATE TABLE IF NOT EXISTS `corso_di_recupero` (
   `id` INT NOT NULL AUTO_INCREMENT,
+  `in_itinere` TINYINT NULL DEFAULT 0,
   `codice` VARCHAR(45) NULL,
   `aula` VARCHAR(45) NULL,
   `numero_ore` INT NULL,
@@ -138,6 +139,7 @@ CREATE TABLE IF NOT EXISTS `corso_di_recupero` (
   INDEX `fk_corso_di_recupero_materia1_idx` (`materia_id` ASC),
   INDEX `fk_corso_di_recupero_anno_scolastico1_idx` (`anno_scolastico_id` ASC),
   INDEX `fk_corso_di_recupero_docente1_idx` (`docente_id` ASC),
+  INDEX `in_itinere_INDEX` (`in_itinere` ASC),
   CONSTRAINT `fk_corso_di_recupero_materia1`
     FOREIGN KEY (`materia_id`)
     REFERENCES `materia` (`id`)

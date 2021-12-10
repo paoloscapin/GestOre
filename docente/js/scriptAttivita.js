@@ -212,7 +212,8 @@ function oreDovuteReadRecords() {
 function corsoDiRecuperoPrevisteReadRecords() {
 	$.post("../docente/corsoDiRecuperoPrevisteReadRecords.php", {
 		operatore: $("#hidden_operatore").val(),
-		ultimo_controllo: $("#hidden_ultimo_controllo").val()
+		ultimo_controllo: $("#hidden_ultimo_controllo").val(),
+		sorgente_richiesta: "fatte"
 	},
 	function (data, status) {
 		$(".corso_di_recupero_records_content").html(data);

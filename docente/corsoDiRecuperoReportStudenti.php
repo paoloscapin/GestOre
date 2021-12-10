@@ -82,7 +82,7 @@ $query = "	SELECT DISTINCT studente_per_corso_di_recupero.classe AS studente_per
 			INNER JOIN corso_di_recupero corso_di_recupero
 			ON studente_per_corso_di_recupero.corso_di_recupero_id = corso_di_recupero.id
 			WHERE
-				corso_di_recupero.anno_scolastico_id = '$__anno_scolastico_corrente_id'
+				corso_di_recupero.anno_scolastico_id = '$__anno_scolastico_corrente_id' AND NOT in_itinere
 			ORDER BY
 				studente_per_corso_di_recupero.classe ASC;
 			";

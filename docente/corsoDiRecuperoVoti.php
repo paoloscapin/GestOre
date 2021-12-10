@@ -54,7 +54,7 @@ $query = "	SELECT
 			ON corso_di_recupero.docente_id = docente.id
 			INNER JOIN materia materia
 			ON corso_di_recupero.materia_id = materia.id
-			WHERE corso_di_recupero.anno_scolastico_id = $__anno_scolastico_corrente_id
+			WHERE corso_di_recupero.anno_scolastico_id = $__anno_scolastico_corrente_id AND NOT in_itinere
 			$selezioneDocente
 			"
 			;
