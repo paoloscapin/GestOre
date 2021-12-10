@@ -28,6 +28,14 @@ if(isset($_POST['operatore']) && $_POST['operatore'] == 'dirigente') {
 	$ultimo_controllo = $_POST['ultimo_controllo'];
 }
 
+// le previste considerano come se tutto fosse stato firmato nel caso di corsi in itinere, ma le fatte no
+if(isset($_POST['sorgente_richiesta']) && $_POST['sorgente_richiesta'] == 'fatte') {
+	$controllaFirmeInItinere = true;
+} else {
+	$controllaFirmeInItinere = false;
+}
+
+
 $dataCdr = '';
 // intestazione della table
 $dataCdr .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green"><tr><th>Corso</th><th>Ore Totali</th><th>Recuperate</th><th>Pagamento Extra</th><th></th></tr>';
@@ -89,11 +97,13 @@ foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.* FROM corso_di_recupero INN
 }
 
 // adesso aggiungo tutti i corsi in itinere
-foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.* FROM corso_di_recupero INNER JOIN lezione_corso_di_recupero on lezione_corso_di_recupero.corso_di_recupero_id=corso_di_recupero.id WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id AND firmato=true AND in_itinere = true") AS $corso) {
+foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.* FROM corso_di_recupero INNER JOIN lezione_corso_di_recupero on lezione_corso_di_recupero.corso_di_recupero_id=corso_di_recupero.id WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id AND in_itinere = true") AS $corso) {
 	$corsoId = $corso['id'];
 	$corsoCodice = $corso['codice'];
 	// per prima cosa calcola quante ore sono state firmate
-	$ore_firmate = dbGetValue("SELECT COALESCE(SUM(lezione_corso_di_recupero.numero_ore),0) FROM `lezione_corso_di_recupero` WHERE corso_di_recupero_id = $corsoId;");
+	$soloFirmatePart = $controllaFirmeInItinere ? '  AND firmato=true ' : '';
+
+	$ore_firmate = dbGetValue("SELECT COALESCE(SUM(lezione_corso_di_recupero.numero_ore),0) FROM `lezione_corso_di_recupero` WHERE corso_di_recupero_id = $corsoId " . $soloFirmatePart . ";");
 	$ore_recuperate = $corso['ore_recuperate'];
 	$ore_pagamento_extra = $corso['ore_pagamento_extra'];
 
