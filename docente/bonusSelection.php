@@ -52,12 +52,13 @@ foreach($resultArray as $bonus_area) {
         <div class="panel panel-lima4">
             <div class="panel-heading">
                 <div class="row">
-                    <div class="col-md-4">
-                        <span class="glyphicon glyphicon-list-alt"></span>&ensp;'.$bonus_area['codice'].' '.$bonus_area['descrizione'].'
+                    <div class="col-md-1">
+                        <span class="glyphicon glyphicon-list-alt"></span>&ensp;'.$bonus_area['codice'].'
                     </div>
-                    <div class="col-md-4 text-center">
+                    <div class="col-md-10 text-left">
+                        <span style="white-space: pre-line">'.$bonus_area['descrizione'].'</span>
                     </div>
-                    <div class="col-md-4 text-right">
+                    <div class="col-md-1 text-right">
                     </div>
         		</div>
         	</div>
@@ -75,7 +76,7 @@ foreach($resultArray as $bonus_area) {
             				<table class="table table-bordered table-striped table-green" id="bonus_selection_table">
             					<thead>
             						<tr>
-                                    <th></th><th></th><th colspan="5" class="text-center">'.$bonus_indicatore['codice'].' - '.$bonus_indicatore['descrizione'].'</th>
+                                    <th></th><th></th><th colspan="5" class="text-left"><span style="white-space: pre-line">'.$bonus_indicatore['codice'].' - '.$bonus_indicatore['descrizione'].'</span></th>
                                     </tr>
             						<tr>
                 						<th class="text-center col-md-1">bonus_id</th>
@@ -113,8 +114,8 @@ foreach($resultArray as $bonus_area) {
             }
             $data .= '
                                         <td class="text-center">'.$bonus['codice'].'</td>
-                                        <td class="text-left">'.$bonus['descrittori'].'</td>
-                                        <td class="text-left">'.$bonus['evidenze'].'</td>
+                                        <td class="text-left"><span style="white-space: pre-line">'.$bonus['descrittori'].'</span></td>
+                                        <td class="text-left"><span style="white-space: pre-line">'.$bonus['evidenze'].'</span></td>
                                         <td class="text-center">'.$bonus['valore_previsto'].'</td>
     	   ';
             

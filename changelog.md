@@ -1,3 +1,11 @@
+## Version 1.2.13 - 6 gen 2022
+
+##### Improvements
+- import bonus csv con newlines
+
+##### Bug Fixes
+- decimali importi in previste e fatte
+
 ## Version 1.2.12 - 28 nov 2021
 
 ##### Improvements

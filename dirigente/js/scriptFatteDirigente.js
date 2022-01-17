@@ -6,19 +6,22 @@
  */
 
 function refreshTotale() {
+    var totaleFuisFatto = new Number($("#hidden_fuis_totale_fatto").val()).toFixed(2);
     var diffTotaleFuis = Math.round($("#hidden_fuis_budget").val() - $("#hidden_fuis_totale_fatto").val());
-    var diffTotaleFuisNumber = new Number(diffTotaleFuis).toLocaleString("it-IT");
-    var diffTotaleFuisClil = $("#hidden_fuis_budget_clil").val() - $("#hidden_fuis_totale_fatto_clil").val();
-    var diffTotaleFuisClilNumber = new Number(diffTotaleFuisClil).toLocaleString("it-IT");
+    var diffTotaleFuisNumber = new Number(diffTotaleFuis).toFixed(2);
 
-    var totHtml = '<strong>Totale FUIS: ' + $("#hidden_fuis_totale_fatto").val() + '</strong> (budget: ' + $("#hidden_fuis_budget").val() + ') ';
+    var totaleFuisFattoClil = new Number($("#hidden_fuis_totale_fatto_clil").val()).toFixed(2);
+    var diffTotaleFuisClil = $("#hidden_fuis_budget_clil").val() - $("#hidden_fuis_totale_fatto_clil").val();
+    var diffTotaleFuisClilNumber = new Number(diffTotaleFuisClil).toFixed(2);
+
+    var totHtml = '<strong>Totale FUIS: ' + totaleFuisFatto + '</strong> (budget: ' + $("#hidden_fuis_budget").val() + ') ';
     if (diffTotaleFuis > 0) {
         var totHtml = totHtml + '<span class="label label-success">+ ' + diffTotaleFuisNumber + '</span>';
     } else {
         var totHtml = totHtml + '<span class="label label-danger">- ' + (-diffTotaleFuisNumber) + '</span>';
     }
 
-    var totHtmlClil = '<strong>Totale CLIL: ' + $("#hidden_fuis_totale_fatto_clil").val() + '</strong> (budget: ' + $("#hidden_fuis_budget_clil").val() + ') ';
+    var totHtmlClil = '<strong>Totale CLIL: ' + totaleFuisFattoClil + '</strong> (budget: ' + $("#hidden_fuis_budget_clil").val() + ') ';
     if (diffTotaleFuisClil > 0) {
         var totHtmlClil = totHtmlClil + '<span class="label label-success">+ ' + diffTotaleFuisClilNumber + '</span>';
     } else {

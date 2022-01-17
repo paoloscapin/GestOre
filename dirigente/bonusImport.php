@@ -22,15 +22,34 @@ function erroreDiImport($messaggio) {
     global $data;
     global $linePos;
     global $sqlList;
+    global $line;
 
     warning("Errore di import linea $linePos: " . $messaggio);
+    warning("Linea: " . $line);
     $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
 
     // azzera le istruzioni sql
     $sqlList = '';
 }
 
+// necessario per estrarre correttamente il csv bisogna operare su file virtuale
+function my_str_getcsv($input, $delimiter = ",", $enclosure = '"', $escape = "\\") {
+    global $lines_array;
+
+    $fiveMBs = 5 * 1024 * 1024;
+    $fp = fopen("php://temp/maxmemory:$fiveMBs", 'r+');
+    fputs($fp, $input);
+    rewind($fp);
+
+    while (($line = fgetcsv($fp, 1000, ",")) !== false) {
+        $lines_array[] = $line;
+    }
+
+    fclose($fp);
+}
+
 // setup del src e del risultato (data) e delle istruzioni (sql[])
+$lines_array = [];
 $data = '';
 $sqlList = array();
 
@@ -38,8 +57,14 @@ $src = '';
 if(isset($_POST)) {
 	$src = trim($_POST['contenuto']);
 }
-$lines_array = explode("\n", $src);
-$lines = array_filter($lines_array, 'trim');
+
+// estrae l'array di linee
+my_str_getcsv($src);
+
+// traccia il risultato dell'estrazione per debug
+// $res = var_export($the_big_array, true);
+// debug($res);
+
 $linePos = 0;
 
 // la prima istruzione sql disabilita tutti i bonus (area, descrittore e bonus)
@@ -53,14 +78,15 @@ $areaCode = '';
 $indicatoreNumber = 0;
 $descrittoreNumber = 0;
 
-// scorre tutte le linee del csv
-foreach($lines as $line) {
+// scorre tutte le linee del csv: i valori csv sono contenuti nella linea che e' un array lei stessa
+foreach($lines_array as $words) {
     $linePos ++;
 
-    // scompone i csv
-    $words = str_getcsv($line);
-    if (startswith( $line, "#") || empty($line)) {
-        debug('Skip line: ' . $line);
+    // ricostruisce la linea intera
+    $line = join(",",$words);
+
+    if (empty($words) || startswith( $words[0], "#")) {
+        debug('Skip line ' . $linePos . ': ' . $line);
         continue;
     }
 

@@ -115,8 +115,8 @@ foreach($resultArray as $bonus) {
     $data = '
             <tr>
                 <td class="text-left">'.$bonus['bonus_codice'].'</td>
-                <td class="text-left">'.$bonus['bonus_descrittori'].'</td>
-                <td class="text-left">'.$bonus['bonus_evidenze'].'</td>
+                <td class="text-left"><span style="white-space: pre-line">'.$bonus['bonus_descrittori'].'</span></td>
+                <td class="text-left"><span style="white-space: pre-line">'.$bonus['bonus_evidenze'].'</span></td>
                 <td class="text-left">'.$bonus['bonus_valore_previsto'].'</td>
 			';
 

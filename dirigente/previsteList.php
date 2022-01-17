@@ -116,7 +116,7 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cog
 }
 
 function importoStampabile($importo) {
-    return $importo;
+    return number_format($importo, 2);
 }
 
 ?>
