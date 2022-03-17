@@ -55,7 +55,7 @@ foreach(dbGetAll($query) as $row) {
 		';
 	$data .='
 		<td>
-		<button onclick="sostituzione_docenteDelete('.$row['local_sostituzione_docente_id'].', '.$row['docente_id'].', \''.$row['cognome'].'\', \''.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button onclick="sostituzione_docenteDelete('.$row['local_sostituzione_docente_id'].', '.$row['docente_id'].', \''.str2js($row['cognome']).'\', \''.str2js($row['nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		</tr>';
 }

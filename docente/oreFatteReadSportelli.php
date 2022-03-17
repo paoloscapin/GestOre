@@ -44,7 +44,7 @@ $query = "	SELECT sportello.id AS sportello_id, sportello.*, materia.*,
 
 foreach(dbGetAll($query) as $sportello) {
 	
-	$onlineMarker = ($sportello['online']) ? '' : '<span class=\'label label-danger\'>online</span>';
+	$onlineMarker = (empty($sportello['online'])) ? '' : '<span class=\'label label-danger\'>online</span>';
 
 	$ore_con_minuti = oreToDisplay($sportello['numero_ore']);
 	$data .= '<tr><td>'.$sportello['categoria'].'</td>';

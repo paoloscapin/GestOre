@@ -1,3 +1,9 @@
+## Version 1.2.14 - 22 gen 2022
+
+##### Bug Fixes
+- sportelli erano online sempre in vista docente
+- segreteria sostituzioni read records nomi con gli apostrofi
+
 ## Version 1.2.13 - 6 gen 2022
 
 ##### Improvements
