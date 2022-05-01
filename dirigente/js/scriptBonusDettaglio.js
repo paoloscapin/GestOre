@@ -173,6 +173,30 @@ function bonusAssegnatoDelete(id) {
     }
 }
 
+function registraPunteggioBonus(bonus_docente_id, punteggio, valore_massimo, codice) {
+    $.post("bonusPunteggioSave.php", {
+        bonus_docente_id: bonus_docente_id,
+        punteggio: punteggio
+    },
+    function (data, status) {
+		$.notify({
+			icon: 'glyphicon glyphicon-off',
+			title: '<Strong>' + codice + '</Strong></br>',
+			message: '<Strong>Attenzione:</Strong> assegnato ' + punteggio +' punti su ' + valore_massimo
+		},{
+			placement: {
+				from: "top",
+				align: "center"
+			},
+			delay: 4000,
+			timer: 100,
+			mouse_over: "pause",
+			type: 'success'
+		});
+	
+    });
+}
+
 $(document).ready(function () {
 
 	bonusAssegnatoReadRecords();
@@ -188,4 +212,19 @@ $(document).ready(function () {
 		bonusRegistraApprovazione(bonus_docente_id, this.checked);
 	});
 	calcolaTotaleBonus();
+
+
+	$(".punteggioBonus").on('change', function(e){
+		var punteggio = this.value;
+		// ogni tanto lo chiama due volte una con undefined
+		if (punteggio === undefined) {
+			// console.log('skip undefined!');
+			return;
+		}
+		var bonus_docente_id = $('td:first', $(this).parents('tr')).text();
+		var codice = $('td:nth-child(2)', $(this).parents('tr')).text();
+		var valore_massimo = $('td:nth-child(4)', $(this).parents('tr')).text();
+		// console.log('bonus_docente_id=' + bonus_docente_id + ' punteggio=' + punteggio + ' di=' + valore_massimo);
+		registraPunteggioBonus(bonus_docente_id, punteggio, valore_massimo, codice);
+	});
 });

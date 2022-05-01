@@ -112,12 +112,14 @@ ORDER BY
 ";
 $resultArray = dbGetAll($query);
 foreach($resultArray as $bonus) {
+	$bonus_valore = getSettingsValue('bonus','punteggio_variabile', false) ? '0 - ' : '';
+	$bonus_valore = $bonus_valore . $bonus['bonus_valore_previsto'];
     $data = '
             <tr>
                 <td class="text-left">'.$bonus['bonus_codice'].'</td>
                 <td class="text-left"><span style="white-space: pre-line">'.$bonus['bonus_descrittori'].'</span></td>
                 <td class="text-left"><span style="white-space: pre-line">'.$bonus['bonus_evidenze'].'</span></td>
-                <td class="text-left">'.$bonus['bonus_valore_previsto'].'</td>
+                <td class="text-center">'.$bonus_valore.'</td>
 			';
 
 	$data .='

@@ -96,6 +96,9 @@ foreach($resultArray as $bonus_area) {
         $res3 = dbGetAll($query);
         foreach($res3 as $bonus) {
             $bonus_id = $bonus['id'];
+            $bonus_valore = getSettingsValue('bonus','punteggio_variabile', false) ? '0 - ' : '';
+            $bonus_valore = $bonus_valore . $bonus['valore_previsto'];
+
             $data .= '
                                     <tr>
                                         <td>'.$bonus_id.'</td>
@@ -116,7 +119,7 @@ foreach($resultArray as $bonus_area) {
                                         <td class="text-center">'.$bonus['codice'].'</td>
                                         <td class="text-left"><span style="white-space: pre-line">'.$bonus['descrittori'].'</span></td>
                                         <td class="text-left"><span style="white-space: pre-line">'.$bonus['evidenze'].'</span></td>
-                                        <td class="text-center">'.$bonus['valore_previsto'].'</td>
+                                        <td class="text-center">'.$bonus_valore.'</td>
     	   ';
             
             
