@@ -18,6 +18,7 @@ if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
 	$modificabile = false;
 }
 
+$totale = 0;
 $data = '';
 
 // Design initial table header
@@ -33,9 +34,12 @@ foreach(dbGetAll($query) as $row) {
         <td>'.strftime("%d/%m/%Y", strtotime($row['data'])).'</td>
         <td class="text-center">'.$row['ora'].'</td>
         ';
+	$totale += $row['ora'];
 }
 
-$data .= '</tbody></table></div>';
+$data .= '</tbody>
+<tfoot><tr><td class="text-right"><strong>Totale:</strong></td><td class="text-center"><strong>'.$totale.'</strong></td></tr></tfoot>
+</table></div>';
 
 echo $data;
 	

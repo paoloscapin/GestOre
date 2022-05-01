@@ -1,3 +1,8 @@
+## Version 1.2.15 - 1 may 2022
+
+##### Improvements
+- bonus con valore variabile
+
 ## Version 1.2.14 - 22 gen 2022
 
 ##### Bug Fixes

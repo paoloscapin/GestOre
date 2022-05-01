@@ -17,7 +17,7 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 //require_once '../common/_include_bootstrap-toggle.php';
-//require_once '../common/_include_bootstrap-select.php';
+require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_bootstrap-notify.php';
 ruoloRichiesto('dirigente');
 require_once '../common/connect.php';
@@ -203,7 +203,7 @@ foreach($resultArray2 as $bonus) {
             <td class="text-left">'.$bonus['bonus_docente_id'].' </td>
             <td class="text-left">'.$bonus['bonus_codice'].' '.$marker.'</td>
             <td class="text-left">'.$bonus['bonus_descrittori'].'</td>
-            <td class="text-left">'.$bonus['bonus_valore_previsto'].'</td>
+            <td class="text-center">'.$bonus['bonus_valore_previsto'].'</td>
         ';
         
         $data .='
@@ -215,16 +215,35 @@ foreach($resultArray2 as $bonus) {
         $data .='
             </td>
         ';
-        $data .= '<td class="text-center"><input type="checkbox" data-toggle="toggle" data-onstyle="primary" id="approvato'.$bonus['bonus_docente_id'].'" ';
-        if ($bonus['bonus_docente_approvato']) {
-            $data .= 'checked ';
+        if (getSettingsValue('bonus','punteggio_variabile', false)) {
+            
+
+            $maxValue = $bonus['bonus_valore_previsto'];
+
+            $punteggioBonusOptionList = '<select class="punteggioBonus selectpicker" data-noneSelectedText="seleziona..." data-width="50%" ><option value="0"></option>';
+
+
+            for($i = 0; $i <= $maxValue; $i++) {
+				$punteggioBonusOptionList .= '<option value="'.$i.'" data-content="<span class=\'label label-info\'\'>'.$i.'</span>"';
+				if ($bonus['bonus_docente_approvato'] !== NULL && $bonus['bonus_docente_approvato'] == $i) {
+					$punteggioBonusOptionList .= ' selected ';
+				}
+				$punteggioBonusOptionList .= '>'.$i.'</option>';
+			}
+			$punteggioBonusOptionList .= '</select>';
+
+			$data .= '<td>'.$punteggioBonusOptionList.'</td>';
+
+
+        } else {
+            $data .= '<td class="text-center"><input type="checkbox" data-toggle="toggle" data-onstyle="primary" id="approvato'.$bonus['bonus_docente_id'].'" ';
+            if ($bonus['bonus_docente_approvato']) {
+                $data .= 'checked ';
+            }
+            $data .= '></td>';
         }
-        $data .= '></td>
-                    </tr>
-                    ';
-        $data .='
-    </tr>
-        ';
+
+        $data .='</tr>';
             
 }
 
