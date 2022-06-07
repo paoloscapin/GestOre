@@ -44,7 +44,7 @@ if(isset($_POST)) {
     $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
                         <tr>
                             <th>Docente</th>
-                            <th>Ore</th>
+                            <th class="text-center">Ore</th>
                         </tr>';
 
     $query = "SELECT SUM($tabella.ore), docente.* FROM $tabella
@@ -56,18 +56,21 @@ if(isset($_POST)) {
     ORDER BY $orderBy ;";
 
     debug($query);
-
+    $totale = 0;
     foreach(dbGetAll($query) as $row) {
         $docenteId = $row['id'];
         $docenteCognomeNome = $row['cognome'].' '.$row['nome'];
+        $oreDocente = $row['SUM('.$tabella.'.ore)'];
 
         $data .= '<tr>
         <td><a href="../docente/previste.php?docente_id='.$docenteId.'" target="'.$openTabMode.'">&ensp;'.$docenteCognomeNome.'</a></td>
-        <td>'.$row['SUM('.$tabella.'.ore)'].'</td>
+        <td class="text-center">'.$oreDocente.'</td>
             ';
         $data .='</tr>';
+        $totale += $oreDocente;
     }
 
+    $data .= '<tfoot><tr class="warning"><td class="text-center"><strong>Torale:</strong></td><td class="text-center"><strong>'.$totale.'</strong></td></tr></tfoot>';
     $data .= '</table></div>';
     echo $data;
 }

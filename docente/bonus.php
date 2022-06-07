@@ -114,6 +114,8 @@ $resultArray = dbGetAll($query);
 foreach($resultArray as $bonus) {
 	$bonus_valore = getSettingsValue('bonus','punteggio_variabile', false) ? '0 - ' : '';
 	$bonus_valore = $bonus_valore . $bonus['bonus_valore_previsto'];
+	$bonus_descrittori = js_escape($bonus['bonus_descrittori']);
+	$bonus_evidenze = js_escape($bonus['bonus_evidenze']);
     $data = '
             <tr>
                 <td class="text-left">'.$bonus['bonus_codice'].'</td>
@@ -126,7 +128,7 @@ foreach($resultArray as $bonus) {
         		<td class="text-center">
 		';
 	$data .='
-				<button onclick="bonusRendiconto('.$bonus['bonus_docente_id'].', \''.$bonus['bonus_codice'].'\', \''.$bonus['bonus_descrittori'].'\', \''.$bonus['bonus_evidenze'].'\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
+				<button onclick="bonusRendiconto('.$bonus['bonus_docente_id'].', \''.$bonus['bonus_codice'].'\', \''.$bonus_descrittori.'\', \''.$bonus_evidenze.'\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
 			';
 	$data .='
                 </td>

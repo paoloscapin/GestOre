@@ -72,6 +72,11 @@ function str2js($str) {
     return preg_replace("/\r\n|\r|\n/",'<br/>',str_replace("'", "\'", str_replace("\"", "", $str)));
 }
 
+// rimpiazza i caratteri non stampabili di una stringa con un punto in modo da poterla passare come parametro a js
+function js_escape($str) {
+	return preg_replace('/[^A-Za-z0-9\-\*\ \,\.\:\;\(\)\=\?\/]/', '.', $str);
+}
+
 // ricupera una label se ridefinita nel json
 function getLabel($label) {
     global $__settings;

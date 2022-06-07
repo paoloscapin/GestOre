@@ -1,3 +1,12 @@
+## Version 1.2.16 - 7 giu 2022
+
+##### Improvements
+- totale ore in filtro fatte e filtro previste
+
+##### Bug Fixes
+- attività fatte: sportelli visibile solo se configurato
+- bonus: escape testo descrittori ed evidenze per passarlo al js
+
 ## Version 1.2.15 - 1 may 2022
 
 ##### Improvements

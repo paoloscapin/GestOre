@@ -332,6 +332,7 @@ require_once '../common/header-docente.php';
 </div>
 <?php endif; ?>
 
+<?php if(getSettingsValue("config", "sportelli", false)) : ?>
 <div class="panel panel-orange4">
 <div class="panel-heading">
 	<div class="row">
@@ -357,6 +358,7 @@ require_once '../common/header-docente.php';
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- <div class="panel-footer"></div> -->
 </div>
