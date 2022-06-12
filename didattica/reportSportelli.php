@@ -70,20 +70,35 @@ $dataCopertina .= '<h2 style="text-align: center; padding-bottom: 1cm;"><img sty
 $dataCopertina .= '<h3 style="text-align: center; padding-bottom: 3cm;">'.getSettingsValue('local','nomeIstituto', '').'</h3>';
 $dataCopertina .= '<h2 style="text-align: center;">Report Sportelli anno scolastico '.$nome_anno_scolastico.'</h2>';
 
-// cicla gli studenti
-$query = "SELECT * FROM studente WHERE studente.classe <> '' ORDER BY studente.classe ASC, studente.cognome ASC, studente.nome ASC";
+// classe corrente
+$classe = '';
+$listaNessunoSportello = '';
 
+// cicla gli studenti
 foreach(dbGetAll("SELECT * FROM studente WHERE studente.classe <> '' ORDER BY studente.classe ASC, studente.cognome ASC, studente.nome ASC;") as $studente) {
 
-    // anche se non lo salto, controllo se effettivamente ci sta qualcosa di significativo
-	$significativo = false;
+    // anche se non lo salto, controllo se effettivamente ha fatto sportelli
+	$haFattoSportelli = false;
+    $oreSportelli = 0;
     $studenteId = $studente['id'];
 	$data = '';
 
-	$data .= '<h2 style="page-break-before: always;text-align: center;">'.$studente['cognome'] . ' ' . $studente['nome'].' - '. $studente['classe'].'</h2>';
-	$data .= '';
+    // per prima cosa controlla se è cambiata la classe
+    if ($classe != $studente['classe']) {
+        // tracrive la liste di nessuno sportello della classe precedente (se esiste)
+        if ($listaNessunoSportello != '') {
+            $data .= '<h4 style="background-color: #e3bf9b !important;">Nella classe '. $classe .' non hanno frequentato sportelli gli studenti:</h4>';
+            $data .= $listaNessunoSportello;
+        }
 
-    $significativo = false;
+        // inserisce intestazione della nuova classe
+        $data .= '<h2 style="page-break-before: always;text-align: center;">'. $studente['classe'].'</h2>';
+        $classe = $studente['classe'];
+
+        // resetta la lista di nessuno sportello
+        $listaNessunoSportello = '';
+    }
+
 
     $query = "SELECT sportello_studente.argomento AS argomento_studente, materia.nome AS nome_materia, docente.cognome AS cognome_docente, docente.nome AS nome_docente, sportello.* FROM sportello_studente
         INNER JOIN sportello ON sportello_studente.sportello_id = sportello.id
@@ -96,9 +111,9 @@ foreach(dbGetAll("SELECT * FROM studente WHERE studente.classe <> '' ORDER BY st
     ";
 
     $sportelloList = dbGetAll($query);
-    $oreSportelli = 0;
     if (!empty($sportelloList)) {
-        $data .= '<h4 style="background-color: #9be3bf !important;">Sportelli</h4>';
+        // intestazione dello studente
+        $data .= '<h4 style="background-color: #9be3bf !important;">'.$studente['cognome'] . ' ' . $studente['nome']. ' ('.$studente['classe'].')'.'</h4>';
 		$data .= '<table class="table table-bordered table-striped table-green"><thead><tr><th class="col-md-3 text-left">Materia</th><th class="col-md-1 text-center">Data</th><th class="col-md-3 text-left">Docente</th><th class="col-md-4 text-center">Argomento</th><th class="col-md-1 text-center">Ore</th></tr></thead><tbody>';
 		foreach($sportelloList as $sportello) {
 			$data .= '<tr><td>'.$sportello['nome_materia'].'</td><td class="text-center">'.formatDate($sportello['data']).'</td><td>'.$sportello['nome_docente'].' '.$sportello['cognome_docente'].'</td><td>'.$sportello['argomento_studente'].'</td><td class="text-center">'.$sportello['numero_ore'].'</td></tr>';
@@ -108,24 +123,49 @@ foreach(dbGetAll("SELECT * FROM studente WHERE studente.classe <> '' ORDER BY st
 		$data .='<tr><td colspan="4" class="text-right"><strong>Totale ore sportelli:</strong></td><td class="text-center funzionale"><strong>' . $oreSportelli . '</strong></td></tr>';
 		$data .='</tfooter></table>';
 		$data .= '<hr>';
-		$significativo = true;
+		$haFattoSportelli = true;
         $totaleOreSportelliIstituto += $oreSportelli;
+    } else {
+        // intestazione dello studente in arancione
+        $listaNessunoSportello .= '<p>' . $studente['cognome'] . ' ' . $studente['nome']. '</p>';
     }
 
-	// se ha trovato qualcosa di significativo, include il docente nello storico
-	if ($significativo) {
+	// se ha trovato degli sportelli, lo include normalmente
+	if ($haFattoSportelli || true) {
+		$dataContenuto = $dataContenuto . $data;
+	}
+}
+// per l'ultima classe considerata
+if ($listaNessunoSportello != '') {
+    $data .= '<h4 style="background-color: #e3bf9b !important;">Nella classe '. $classe .' non hanno frequentato sportelli gli studenti:</h4>';
+    $data .= $listaNessunoSportello;
+	if ($haFattoSportelli || true) {
 		$dataContenuto = $dataContenuto . $data;
 	}
 }
 
 // stampa i totali di istituto
 $dataConsuntivo .= '<hr style="page-break-before: always;">';
-$dataConsuntivo .= '<h2 style="text-align: center; padding-top: 3cm; padding-bottom: 2cm;">Report Sportelli anno scolastico '.$nome_anno_scolastico.'</h2>';
+$dataConsuntivo .= '<h2 style="text-align: center; padding-top: 3cm; padding-bottom: 2cm;">Statistiche Sportelli '.$nome_anno_scolastico.'</h2>';
+
+$dataConsuntivo .= '<h4 style="background-color: #9be3bf !important;">Ore complessive frequentate dagli studenti: ' . $totaleOreSportelliIstituto . '</h4>';
+$dataConsuntivo .= '<hr>';
+
 $dataConsuntivo .= '<table class="table table-bordered table-striped table-green">';
 
 $dataConsuntivo .= '<thead><tr><th class="col-md-11 text-left">Materia</th><th class="col-md-1 text-center">ore</th></tr></thead><tbody>';
-$dataConsuntivo .= '<tr><td class="col-md-11 text-left">Totale Ore Sportelli</td><td class="col-md-1 text-right">' . $totaleOreSportelliIstituto . '</td></tr>';
-$dataConsuntivo .= '</tbody></table>';
+
+// calcola gli sportelli per ciascuna materia
+$oreTotaliSportello = 0;
+foreach(dbGetAll("SELECT * FROM materia ORDER BY nome;") as $materia) {
+    $materiaId = $materia['id'];
+    $oreMateria = dbGetValue("SELECT COALESCE(SUM(numero_ore), 0) FROM sportello WHERE materia_id = $materiaId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
+    $dataConsuntivo .= '<tr><td class="col-md-11 text-left">'.$materia['nome'].'</td><td class="col-md-1 text-right">' . $oreMateria . '</td></tr>';
+    $oreTotaliSportello += $oreMateria;
+}
+
+$dataConsuntivo .= '</tbody><tfooter><tr><td class="col-md-11 text-right"><strong>Totale Ore Sportelli</strong></td><td class="col-md-1 text-right"><strong>' . $oreTotaliSportello . '</strong></td></tr>';
+$dataConsuntivo .= '</tfooter></table>';
 $dataConsuntivo .= '<hr>';
 
 // copertina, consuntivo, poi tutto il resto
