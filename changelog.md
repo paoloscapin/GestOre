@@ -1,3 +1,8 @@
+## Version 1.2.17 - 12 giu 2022
+
+##### Improvements
+- report sportelli in didattica
+
 ## Version 1.2.16 - 7 giu 2022
 
 ##### Improvements
