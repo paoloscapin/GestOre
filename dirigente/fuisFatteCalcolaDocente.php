@@ -26,7 +26,13 @@ function calcolaFuisDocente($localDocenteId) {
 
 	// calcola il totale diaria viaggi
     $diaria_res = dbGetFirst("SELECT COALESCE(SUM(giorni_con_pernottamento), 0) AS giorni_con_pernottamento, COALESCE(SUM(giorni_senza_pernottamento), 0) AS giorni_senza_pernottamento FROM viaggio_diaria_fatta WHERE docente_id = $localDocenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
-    $diaria = $diaria_res['giorni_senza_pernottamento'] * $__importi['importo_diaria_senza_pernottamento'] + $diaria_res['giorni_con_pernottamento'] * $__importi['importo_diaria_con_pernottamento'];
+    $diaria_nuova = $diaria_res['giorni_senza_pernottamento'] * $__importi['importo_diaria_senza_pernottamento'] + $diaria_res['giorni_con_pernottamento'] * $__importi['importo_diaria_con_pernottamento'];
+
+    // se ci sono degli importi segnati in modo vecchio, li somma in denaro (TODO: TEMP)
+    $diaria_vecchia = dbGetValue("SELECT COALESCE(SUM(fuis_viaggio_diaria.importo), 0) FROM fuis_viaggio_diaria fuis_viaggio_diaria INNER JOIN viaggio viaggio ON fuis_viaggio_diaria.viaggio_id = viaggio.id WHERE viaggio.docente_id = $localDocenteId AND viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id");
+
+    $diaria = $diaria_vecchia + $diaria_nuova;
+    debug("diaria=".$diaria."  diaria_vecchia=".$diaria_vecchia."  diaria_nuova=".$diaria_nuova);
 
     // calcola le ore (prima le dovute)
     $dovute = dbGetFirst("SELECT * FROM ore_dovute WHERE docente_id = $localDocenteId AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
