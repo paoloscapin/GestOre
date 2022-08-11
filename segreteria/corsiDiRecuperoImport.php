@@ -195,6 +195,11 @@ while ($words[0] == 'CODICE') {
             $lezioni_data = $words[1];
             $lezioni_inizio = $words[2];
             $lezioni_fine = $words[3];
+            // controlla che la linea non sia vuota
+            if (empty($lezioni_data) && empty($lezioni_inizio) && empty($lezioni_fine)) {
+                nextWords();
+                continue;
+            }
             // prende solo il numero del giorno dal primo campo e lo usa per settembre
             // $numeroGiorno = (int) filter_var($lezioni_data, FILTER_SANITIZE_NUMBER_INT);
             // $dateMySql = $anno."-09-".sprintf('%02d', $numeroGiorno);
