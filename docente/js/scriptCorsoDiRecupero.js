@@ -6,7 +6,7 @@
  */
 
 var soloNonFirmati = 0;
-var soloCorsiDiOggi = 1;
+var soloCorsiDiOggi = 0;
 
 $('#soloFirmatiCheckBox').change(function() {
     // this si riferisce al checkbox 

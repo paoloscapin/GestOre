@@ -26,6 +26,7 @@ $query = "	SELECT
 				lezione_corso_di_recupero.note AS lezione_corso_di_recupero_note,
 				corso_di_recupero.id AS corso_di_recupero_id,
 				corso_di_recupero.codice AS corso_di_recupero_codice,
+				corso_di_recupero.aula AS corso_di_recupero_aula,
 				corso_di_recupero.numero_ore AS corso_di_recupero_numero_ore,
 				materia.nome AS materia_nome
 			FROM lezione_corso_di_recupero
@@ -62,10 +63,11 @@ foreach(dbGetAll($query) as $row) {
 <div class="panel panel-lightblue4">
 <div class="panel-heading container-fluid">
 <div class="row">
-	<div class="col-md-4">
-		'.$row['corso_di_recupero_codice'].': &emsp;'.date('d M', strtotime($row['lezione_corso_di_recupero_data'])).' &emsp; '.strstr($row['lezione_corso_di_recupero_orario'], '-', true).'
+	<div class="col-md-3">
+		<strong>'.$row['corso_di_recupero_codice'].':</strong> &emsp;'.date('d M', strtotime($row['lezione_corso_di_recupero_data'])).' &emsp; '.strstr($row['lezione_corso_di_recupero_orario'], '-', true).'
 	</div>
-	<div class="col-md-4 text-center">';
+	<div class="col-md-3">Aula: '.$row['corso_di_recupero_aula'].'</div>
+	<div class="col-md-3 text-center">';
 	if ($row['lezione_corso_di_recupero_firmato'] == false) {
 		$data .= '
 		<button type="button" class="btn btn-xs btn-warning firmaBtnClass" onclick="firma(\''.$row['lezione_corso_di_recupero_id'].'\')"><span class="glyphicon glyphicon-warning-sign
@@ -82,12 +84,12 @@ foreach(dbGetAll($query) as $row) {
 	}
 	$data .= '
 	</div>
-	<div class="col-md-4 text-right">
+	<div class="col-md-3 text-right">
 		<a data-toggle="collapse" href="#collapse'.$counter.'"><span class="panelarrow glyphicon glyphicon-resize-small"></span></a>
 	</div>
 </div>
 </div>
-<div id="collapse'.$counter.'" class="panel-collapse collapse  collapse in">
+<div id="collapse'.$counter.'" class="panel-collapse collapse  collapse out">
 <div class="panel-body">
 ';
 	$data .= '

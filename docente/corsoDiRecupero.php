@@ -44,7 +44,7 @@ ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente'
 		</div>
 		<div class="col-md-2 text-center">
 			<label for="soloOggiCheckBox" class=""> Solo Corsi di Oggi </label>
-			<input type="checkbox" class="checkbox-inline pull-right" data-toggle="toggle" data-size="mini" data-onstyle="success" id="soloOggiCheckBox" checked="checked" >
+			<input type="checkbox" class="checkbox-inline pull-right" data-toggle="toggle" data-size="mini" data-onstyle="success" id="soloOggiCheckBox" >
 		</div>
 		<div class="col-md-2 text-right">
 			<label for="soloFirmatiCheckBox" class=""> Mostra anche già Firmati </label>
