@@ -1,3 +1,11 @@
+## Version 1.2.18 - 30 ago 2022
+
+##### Improvements
+- aula in docente-Corso di Recupero
+
+##### Bug Fixes
+- email 200 caratteri in studente e utente
+
 ## Version 1.2.17 - 12 giu 2022
 
 ##### Improvements
