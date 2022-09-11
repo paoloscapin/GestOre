@@ -233,6 +233,7 @@ CREATE TABLE IF NOT EXISTS `studente_per_corso_di_recupero` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `cognome` VARCHAR(45) NULL,
   `nome` VARCHAR(45) NULL,
+  `commento` VARCHAR(200) NULL,
   `classe` VARCHAR(10) NULL,
   `voto_settembre` INT NULL,
   `data_voto_settembre` DATE NULL,
@@ -965,8 +966,11 @@ DROP TABLE IF EXISTS `fuis_assegnato_tipo` ;
 
 CREATE TABLE IF NOT EXISTS `fuis_assegnato_tipo` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `nome` VARCHAR(45) NULL,
-  PRIMARY KEY (`id`))
+  `nome` VARCHAR(200) NULL,
+  `codice_citrix` VARCHAR(45) NULL,
+  `attivo` TINYINT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `attivo_index` (`attivo` ASC))
 ENGINE = InnoDB;
 
 
