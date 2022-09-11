@@ -10,20 +10,21 @@
 require_once '../common/checkSession.php';
 ruoloRichiesto('admin');
 
-$tableName = "fuis_assegnato_tipo";
 if(isset($_POST)) {
 	$id = $_POST['id'];
     $nome = $_POST['nome'];
+    $codice_citrix = $_POST['codice_citrix'];
+    $attivo = $_POST['attivo'];
 
     if ($id > 0) {
-        $query = "UPDATE $tableName SET nome = '$nome' WHERE id = '$id'";
+        $query = "UPDATE fuis_assegnato_tipo SET nome = '$nome', codice_citrix = '$codice_citrix', attivo = '$attivo' WHERE id = '$id'";
         dbExec($query);
-        info("aggiornato $tableName id=$id nome=$nome");
+        info("aggiornato fuis_assegnato_tipo id=$id nome=$nome codice_citrix=$codice_citrix attivo=$attivo");
     } else {
-        $query = "INSERT INTO $tableName(nome) VALUES('$nome')";
+        $query = "INSERT INTO fuis_assegnato_tipo(nome, codice_citrix,  attivo) VALUES('$nome', '$codice_citrix', '$attivo')";
         dbExec($query);
         $id = dblastId();
-        info("aggiunto $tableName id=$id nome=$nome");    
+        info("aggiunto fuis_assegnato_tipo id=$id nome=$nome codice_citrix=$codice_citrix attivo=$attivo");    
     }
 }
 ?>

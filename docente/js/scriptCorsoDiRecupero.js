@@ -78,6 +78,7 @@ function lezioneCorsoDiRecuperoGetDetails(id) {
 						"<td>" + element.studente_partecipa_lezione_corso_di_recupero_id + "</td>" +
 						"<td>" + element.studente_per_corso_di_recupero_cognome + "</td>" +
 						"<td>" + element.studente_per_corso_di_recupero_nome + "</td>" +
+						"<td>" + element.studente_per_corso_di_recupero_commento + "</td>" +
 						"<td>" + element.studente_per_corso_di_recupero_classe + "</td>" +
 						"<td style=\"text-align: center; vertical-align: middle;\">" +
 							"<input type=\"checkbox\" name=\"query_myTextEditBox\"" +

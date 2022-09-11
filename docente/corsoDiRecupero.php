@@ -93,6 +93,7 @@ ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente'
 							<th>id</th>
 							<th>cognome</th>
 							<th>nome</th>
+							<th>commento</th>
 							<th>classe</th>
 							<th>presente</th>
 						</tr>

@@ -1,3 +1,12 @@
+## Version 1.2.19 - 11 set 2022
+
+##### Improvements
+- Corso di Recupero Studente aggiunto commento
+- fuis assegnato tipo codice_citrix ed abilita
+
+##### Bug Fixes
+- corso di recupero serve voto era ignorato
+
 ## Version 1.2.18 - 30 ago 2022
 
 ##### Improvements

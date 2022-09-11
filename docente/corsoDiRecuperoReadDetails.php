@@ -18,6 +18,7 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 					studente_per_corso_di_recupero.id AS studente_per_corso_di_recupero_id,
 					studente_per_corso_di_recupero.cognome AS studente_per_corso_di_recupero_cognome,
 					studente_per_corso_di_recupero.nome AS studente_per_corso_di_recupero_nome,
+					studente_per_corso_di_recupero.commento AS studente_per_corso_di_recupero_commento,
 					studente_per_corso_di_recupero.classe AS studente_per_corso_di_recupero_classe,
 					lezione_corso_di_recupero.argomento AS lezione_corso_di_recupero_argomento,
 					lezione_corso_di_recupero.note AS lezione_corso_di_recupero_note,

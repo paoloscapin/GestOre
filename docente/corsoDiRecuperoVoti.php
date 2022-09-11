@@ -140,6 +140,7 @@ foreach(dbGetAll($query) as $row) {
 				WHERE
 					studente_per_corso_di_recupero.corso_di_recupero_id = $corso_di_recupero_id
 				ORDER BY
+					studente_per_corso_di_recupero.serve_voto DESC,
 					studente_per_corso_di_recupero.cognome ASC,
 					studente_per_corso_di_recupero.nome ASC
 		";
@@ -148,7 +149,8 @@ foreach(dbGetAll($query) as $row) {
 		';
 	$cognomeNomeClasse = '';
 	foreach(dbGetAll($query) as $studenteRow) {
-		$esente = (!empty($studenteRow['studente_per_corso_di_recupero_serve_voto'])) && $studenteRow['studente_per_corso_di_recupero_serve_voto'] == 0;
+		$esente = (!is_null($studenteRow['studente_per_corso_di_recupero_serve_voto'])) && $studenteRow['studente_per_corso_di_recupero_serve_voto'] == 0;
+
 		$data .= '<tr>';
 		$data .= '<td>'.$studenteRow['studente_per_corso_di_recupero_id'].'</td>';
 		$nuovoCognomeNomeClasse = $studenteRow['studente_per_corso_di_recupero_cognome'].' '.$studenteRow['studente_per_corso_di_recupero_nome'].' - '.$studenteRow['studente_per_corso_di_recupero_classe'];

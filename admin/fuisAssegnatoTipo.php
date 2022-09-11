@@ -20,12 +20,12 @@ require_once '../common/checkSession.php';
 
 require_once '../common/header-common.php';
 require_once '../common/style.php';
+require_once '../common/_include_bootstrap-toggle.php';
+
 ruoloRichiesto('dirigente');
 ?>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
-
-<script type="text/javascript" src="js/fuisAssegnatoTipo.js"></script>
 </head>
 
 <body >
@@ -36,10 +36,17 @@ ruoloRichiesto('dirigente');
 <div class="panel panel-yellow4">
 <div class="panel-heading container-fluid">
 	<div class="row">
-		<div class="col-md-6">
+		<div class="col-md-5">
 			<span class="glyphicon glyphicon-education"></span>&emsp;Tipo FUIS Assegnato
 		</div>
-        <div class="col-md-6">
+        <div class="col-md-2">
+            <div class="text-center">
+				<label class="checkbox-inline">
+					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloAttiviCheckBox" >Solo Attivi
+				</label>
+            </div>
+        </div>
+        <div class="col-md-5">
             <div class="pull-right">
 				<button class="btn btn-xs btn-yellow4" onclick="fuisAssegnatoTipoGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
@@ -57,31 +64,44 @@ ruoloRichiesto('dirigente');
 <!-- <div class="panel-footer"></div> -->
 </div>
 
-<!-- Bootstrap Modals -->
-<!-- Modal - Add/Update Record -->
-<div class="modal fade" id="update_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog" role="document">
+<div class="modal fade" id="update_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h5 class="modal-title" id="myModalLabel">Tipo FUIS Assegnato</h5>
-            </div>
             <div class="modal-body">
+			<div class="panel panel-yellow4">
+			<div class="panel-heading">
+				<h5 class="modal-title" id="myModalLabel">Tipo FUIS Assegnato</h5>
+			</div>
+			<div class="panel-body">
+			<form class="form-horizontal">
 
                 <div class="form-group">
-                    <label for="nome">Nome</label>
-                    <input type="text" id="nome" placeholder="nome" class="form-control"/>
+                    <label class="col-sm-2 control-label" for="nome">Nome</label>
+                    <div class="col-sm-8"><input type="text" id="nome" placeholder="nome" class="form-control"/></div>
                 </div>
+                <div class="form-group">
+                    <label class="col-sm-2 control-label" for="codice_citrix">Codice Citrix</label>
+                    <div class="col-sm-8"><input type="text" id="codice_citrix" placeholder="codice_citrix" class="form-control"/></div>
+                </div>
+                <div class="form-group">
+                    <label for="attivo" class="col-sm-2 control-label">Attivo</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="attivo" ></div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer text-center">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+            <button type="button" class="btn btn-primary" onclick="fuisAssegnatoTipoSave()">Salva</button>
+	    	<input type="hidden" id="hidden_record_id">
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                <button type="button" class="btn btn-primary" onclick="fuisAssegnatoTipoSave()">Salva</button>
-				<input type="hidden" id="hidden_record_id">
-            </div>
+			</div>
+			</div>
         </div>
     </div>
 </div>
 <!-- // Modal - Add/Update New Record -->
 
+<!-- Custom JS file -->
+<script type="text/javascript" src="js/fuisAssegnatoTipo.js"></script>
 </body>
 </html>

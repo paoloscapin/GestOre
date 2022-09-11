@@ -128,6 +128,7 @@ foreach(dbGetAll($query) as $row) {
 					<tr>
 						<th>cognome</th>
 						<th>nome</th>
+						<th>commento</th>
 						<th>classe</th>
 						<th>presente</th>
 					</tr>';
@@ -138,6 +139,7 @@ foreach(dbGetAll($query) as $row) {
 					studente_per_corso_di_recupero.id AS studente_per_corso_di_recupero_id,
 					studente_per_corso_di_recupero.cognome AS studente_per_corso_di_recupero_cognome,
 					studente_per_corso_di_recupero.nome AS studente_per_corso_di_recupero_nome,
+					studente_per_corso_di_recupero.commento AS studente_per_corso_di_recupero_commento,
 					studente_per_corso_di_recupero.classe AS studente_per_corso_di_recupero_classe
 				FROM studente_partecipa_lezione_corso_di_recupero
 				INNER JOIN studente_per_corso_di_recupero studente_per_corso_di_recupero
@@ -155,6 +157,7 @@ foreach(dbGetAll($query) as $row) {
 			<tr>
 				<td>'.$partecipaRow['studente_per_corso_di_recupero_cognome'].'</td>
 				<td>'.$partecipaRow['studente_per_corso_di_recupero_nome'].'</td>
+				<td>'.$partecipaRow['studente_per_corso_di_recupero_commento'].'</td>
 				<td>'.$partecipaRow['studente_per_corso_di_recupero_classe'].'</td>
 			';
 		$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="attivo" ';

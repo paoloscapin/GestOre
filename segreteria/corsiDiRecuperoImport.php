@@ -256,7 +256,7 @@ while ($words[0] == 'CODICE') {
             $serve_voto = 0;
         }
         // inserisce lo studente se non esiste
-		$sql .= "INSERT INTO studente_per_corso_di_recupero (cognome, nome, classe, serve_voto, corso_di_recupero_id) VALUES ('$cognome', '$nome', '$classe', $serve_voto, @last_id_corso_di_recupero);";
+		$sql .= "INSERT INTO studente_per_corso_di_recupero (cognome, nome, commento, classe, serve_voto, corso_di_recupero_id) VALUES ('$cognome', '$nome', '$commento', '$classe', $serve_voto, @last_id_corso_di_recupero);";
 
         // se aveva raggiunto la fine delle linee, interrompi
         if ($completato) {
