@@ -93,6 +93,9 @@ $sql = '';
 // cerca la didattica per controllare a chi assegnare i corsi senza docente
 $didattica_id = dbGetValue("SELECT id FROM docente WHERE username = 'didattica';");
 
+// resetta il contatore degli studi individuali
+$studio_individuale_num = 0;
+
 // prima riga: l'anno
 $words = nextWords();
 checkWord('ANNO');
@@ -109,10 +112,13 @@ while ($words[0] == 'CODICE') {
         break;
     }
     $corso_codice = $words[1];
+
+    // se il codice del corso e' "studio individuale" il comportamento sara' un poco diverso
+    $studio_individuale = (strtolower($corso_codice) == 'studio individuale') ? 1 : 0;
+
+    // se sulla colonna C riporta 'in itinere' il corso è in itinere (durante l'anno scolastico)
     $corso_in_itinere = $words[2];
-    // debug("codice=" . $corso_codice);
-    // debug("corso_in_itinere=" . $corso_in_itinere);
-    $in_itinere_value = ($corso_in_itinere == 'in itinere') ? 1 : 0;
+    $in_itinere_value = (strtolower($corso_in_itinere) == 'in itinere') ? 1 : 0;
 
     // segue materia
     nextWords();
@@ -132,108 +138,130 @@ while ($words[0] == 'CODICE') {
         }
     }
 
-    // segue Aula
-    nextWords();
-    if (!checkWord('Aula')) {
-        erroreDiImport("Aula non specificata per il corso $corso_codice");
-        break;
+    // se e' uno studio individuale, modifica il codice
+    if ($studio_individuale) {
+        $studio_individuale_num = $studio_individuale_num + 1;
+        $corso_codice = '_Studio Individuale ' . $studio_individuale_num . ' ' . $corso_materia;
     }
-    $corso_aula = escapeString($words[1]);
 
-    // segue Docente
-    nextWords();
-    if (!checkWord('Docente')) {
-        erroreDiImport("Docente non specificato per il corso $corso_codice");
-        break;
-    }
-    $corso_docente_cognome = escapeString(titlecase($words[1]));
-    $corso_docente_nome = escapeString(titlecase($words[2]));
-    // se vuoto, lo assegna alla didattica (deve esserci un docente)
-    if (empty($corso_docente_cognome)) {
-        $corso_docente_id = $didattica_id;
-
-        $messaggio = "docente non assegnato per il corso $corso_codice: utilizzato docente 'didattica'";
-        warning("Linea $linePos: " . $messaggio);
-        $data = $data . "<strong>Warning linea $linePos:</strong> " . $messaggio;
-    } else {
-        $query = "SELECT docente.id FROM docente WHERE docente.cognome LIKE '$corso_docente_cognome' COLLATE utf8_general_ci ";
-        if (!empty($corso_docente_nome)) {
-            $query .= " AND docente.nome LIKE '$corso_docente_nome' COLLATE utf8_general_ci ";
-        }
-        $corso_docente_id_list = dbGetAll($query);
-        // controlla di avere trovato almeno un docente
-        if (count($corso_docente_id_list) == 0) {
-            erroreDiImport("docente non trovato cognome=$corso_docente_cognome nome=$corso_docente_nome");
+    // segue Aula se non in studio individuale
+    if (! $studio_individuale) {
+        nextWords();
+        if (!checkWord('Aula')) {
+            erroreDiImport("Aula non specificata per il corso $corso_codice");
             break;
         }
-        // controlla che non ce ne siano piu' di uno
-        if (count($corso_docente_id_list) > 1) {
-            $messaggio = "piu' docenti corrispondono alla ricerca cognome=$corso_docente_cognome nome=$corso_docente_nome: utilizzato il primo";
-            warning("Errore di import linea $linePos: " . $messaggio);
-            $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
+        $corso_aula = escapeString($words[1]);
+    } else {
+        $corso_aula = '';
+    }
+
+    // segue Docente se non in studio individuale
+    if (! $studio_individuale) {
+        nextWords();
+        if (!checkWord('Docente')) {
+            erroreDiImport("Docente non specificato per il corso $corso_codice");
+            break;
         }
-        // se tutto va bene c'e' un solo valore
-        $corso_docente_id = $corso_docente_id_list[0]['id'];
+        $corso_docente_cognome = escapeString(titlecase($words[1]));
+        $corso_docente_nome = escapeString(titlecase($words[2]));
+        // se vuoto, lo assegna alla didattica (deve esserci un docente)
+        if (empty($corso_docente_cognome)) {
+            $corso_docente_id = $didattica_id;
+    
+            $messaggio = "docente non assegnato per il corso $corso_codice: utilizzato docente 'didattica'";
+            warning("Linea $linePos: " . $messaggio);
+            $data = $data . "<strong>Warning linea $linePos:</strong> " . $messaggio;
+        } else {
+            $query = "SELECT docente.id FROM docente WHERE docente.cognome LIKE '$corso_docente_cognome' COLLATE utf8_general_ci ";
+            if (!empty($corso_docente_nome)) {
+                $query .= " AND docente.nome LIKE '$corso_docente_nome' COLLATE utf8_general_ci ";
+            }
+            $corso_docente_id_list = dbGetAll($query);
+            // controlla di avere trovato almeno un docente
+            if (count($corso_docente_id_list) == 0) {
+                erroreDiImport("docente non trovato cognome=$corso_docente_cognome nome=$corso_docente_nome");
+                break;
+            }
+            // controlla che non ce ne siano piu' di uno
+            if (count($corso_docente_id_list) > 1) {
+                $messaggio = "piu' docenti corrispondono alla ricerca cognome=$corso_docente_cognome nome=$corso_docente_nome: utilizzato il primo";
+                warning("Errore di import linea $linePos: " . $messaggio);
+                $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
+            }
+            // se tutto va bene c'e' un solo valore
+            $corso_docente_id = $corso_docente_id_list[0]['id'];
+        }
+    } else {
+        // anche lo studio individuale viene assegnato alla didattica
+        $corso_docente_id = $didattica_id;
+        $corso_docente_cognome = '';
+        $corso_docente_nome = '';
     }
 
     $sql .= "INSERT INTO corso_di_recupero (codice, aula, in_itinere, docente_id, anno_scolastico_id, materia_id) VALUES ('$corso_codice', '$corso_aula', '$in_itinere_value', '$corso_docente_id', '$__anno_scolastico_corrente_id', '$corso_materia_id');
         SET @last_id_corso_di_recupero = LAST_INSERT_ID();
         ";
 
-    // segue Lezioni
-    nextWords();
     // numero ore totali
     $numero_ore_recupero = 0;
-    if (!checkWord('Lezioni')) {
-        erroreDiImport("Lezioni non specificate per il corso $corso_codice");
-        break;
-    }
 
-    // le lezioni potrebbero non esserci, ad esempio quando si assegna studio individuale
-    if (! empty(trim($words[1]))) {
-        while($words[0] == 'Lezioni' || empty(trim($words[0]))) {
-            $lezioni_data = $words[1];
-            $lezioni_inizio = $words[2];
-            $lezioni_fine = $words[3];
-            // controlla che la linea non sia vuota
-            if (empty($lezioni_data) && empty($lezioni_inizio) && empty($lezioni_fine)) {
+    // segue Lezioni se non in studio individuale
+    if (! $studio_individuale) {
+        nextWords();
+        if (!checkWord('Lezioni')) {
+            erroreDiImport("Lezioni non specificate per il corso $corso_codice");
+            break;
+        }
+    
+        // le lezioni potrebbero non esserci, ad esempio quando si assegna studio individuale
+        if (! empty(trim($words[1]))) {
+            while($words[0] == 'Lezioni' || empty(trim($words[0]))) {
+                $lezioni_data = $words[1];
+                $lezioni_inizio = $words[2];
+                $lezioni_fine = $words[3];
+                // controlla che la linea non sia vuota
+                if (empty($lezioni_data) && empty($lezioni_inizio) && empty($lezioni_fine)) {
+                    nextWords();
+                    continue;
+                }
+                // prende solo il numero del giorno dal primo campo e lo usa per settembre
+                // $numeroGiorno = (int) filter_var($lezioni_data, FILTER_SANITIZE_NUMBER_INT);
+                // $dateMySql = $anno."-09-".sprintf('%02d', $numeroGiorno);
+                $oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
+                $dataLezione = DateTime::createFromFormat('d/m/Y', $lezioni_data);
+                if ($dataLezione == null) {
+                    erroreDiImport("data non riconosciuta (formato richiesto=d/m/Y): " . $lezioni_data);
+                    break;
+                }
+                $dataLezioneSql = $dataLezione->format('Y-m-d');
+                setlocale(LC_TIME, $oldLocale);
+        
+                // prende l'ora di inizio dal secondo campo
+                $timeStart = strtotime ($lezioni_inizio);
+                $timeEnd = strtotime ($lezioni_fine);
+                // ora di inizio
+                $inizia_alle = date("H:i:s", $timeStart);
+                // durata (in ore da 50 minuti)
+                $numero_ore = ($timeEnd - $timeStart) / (50 * 60);
+                $numero_ore_recupero += 2;
+                // orario in formato stringa
+                $orario = date("H:i", $timeStart) . " - " . date("H:i", $timeEnd);
+        
+                $sql .= "INSERT INTO lezione_corso_di_recupero (data, inizia_alle, numero_ore, orario, corso_di_recupero_id) VALUES ('$dataLezioneSql', '$inizia_alle', $numero_ore, '$orario', @last_id_corso_di_recupero);
+                ";
                 nextWords();
-                continue;
             }
-            // prende solo il numero del giorno dal primo campo e lo usa per settembre
-            // $numeroGiorno = (int) filter_var($lezioni_data, FILTER_SANITIZE_NUMBER_INT);
-            // $dateMySql = $anno."-09-".sprintf('%02d', $numeroGiorno);
-            $oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
-            $dataLezione = DateTime::createFromFormat('d/m/Y', $lezioni_data);
-            if ($dataLezione == null) {
-                erroreDiImport("data non riconosciuta (formato richiesto=d/m/Y): " . $lezioni_data);
-                break;
-            }
-            $dataLezioneSql = $dataLezione->format('Y-m-d');
-            setlocale(LC_TIME, $oldLocale);
-    
-            // prende l'ora di inizio dal secondo campo
-            $timeStart = strtotime ($lezioni_inizio);
-            $timeEnd = strtotime ($lezioni_fine);
-            // ora di inizio
-            $inizia_alle = date("H:i:s", $timeStart);
-            // durata (in ore da 50 minuti)
-            $numero_ore = ($timeEnd - $timeStart) / (50 * 60);
-            $numero_ore_recupero += 2;
-            // orario in formato stringa
-            $orario = date("H:i", $timeStart) . " - " . date("H:i", $timeEnd);
-    
-            $sql .= "INSERT INTO lezione_corso_di_recupero (data, inizia_alle, numero_ore, orario, corso_di_recupero_id) VALUES ('$dataLezioneSql', '$inizia_alle', $numero_ore, '$orario', @last_id_corso_di_recupero);
-            ";
+        } else {
             nextWords();
         }
+
+        // aggiorna le ore totali
+        $sql .= "UPDATE corso_di_recupero SET numero_ore=$numero_ore_recupero WHERE corso_di_recupero.id=@last_id_corso_di_recupero;
+        ";
     } else {
         nextWords();
     }
-
-    // aggiorna le ore totali
-    $sql .= "UPDATE corso_di_recupero SET numero_ore=$numero_ore_recupero WHERE corso_di_recupero.id=@last_id_corso_di_recupero;
-    ";
 
     // segue Studenti
     // numero studenti totali
@@ -267,11 +295,14 @@ while ($words[0] == 'CODICE') {
             $completato = true;
         }
     }
-	// studente_partecipa_lezione_corso_di_recupero
-    $sql .= "INSERT INTO studente_partecipa_lezione_corso_di_recupero (lezione_corso_di_recupero_id, studente_per_corso_di_recupero_id)
-                    SELECT lezione_corso_di_recupero.id, studente_per_corso_di_recupero.id FROM lezione_corso_di_recupero, studente_per_corso_di_recupero
-                    WHERE lezione_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero AND studente_per_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero;
-                    ";
+	// studente_partecipa_lezione_corso_di_recupero se non si tratta di studio individuale
+    if (! $studio_individuale) {
+
+        $sql .= "INSERT INTO studente_partecipa_lezione_corso_di_recupero (lezione_corso_di_recupero_id, studente_per_corso_di_recupero_id)
+                SELECT lezione_corso_di_recupero.id, studente_per_corso_di_recupero.id FROM lezione_corso_di_recupero, studente_per_corso_di_recupero
+                WHERE lezione_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero AND studente_per_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero;
+                ";
+    }
 
     $data = $data . 'codice=' . $corso_codice . ' materia=' . $corso_materia . ' aula=' . $corso_aula . ' docente=' . $corso_docente_cognome . " " . $corso_docente_nome . ' numero ore=' . $numero_ore_recupero . ' numero studenti=' . $numero_studenti;
     $data .= '</br>';
