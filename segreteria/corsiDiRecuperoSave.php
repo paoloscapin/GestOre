@@ -52,6 +52,9 @@ if(isset($_POST)) {
                 $inizia_alle = $wordList[1];
                 $numero_ore = $wordList[2];
                 $orario = $wordList[3];
+                if (count($wordList) > 4) {
+                    $orario = $orario . ' - ' . $wordList[4];
+                }
                 dbExec("INSERT INTO lezione_corso_di_recupero(data,inizia_alle,numero_ore,orario,corso_di_recupero_id) VALUES('$data', '$inizia_alle', $numero_ore, '$orario', $id);");
             }
         }
