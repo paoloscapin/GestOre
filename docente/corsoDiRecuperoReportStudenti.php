@@ -168,7 +168,7 @@ foreach($resultArray as $row_classe) {
 				} else if (isset($row_studente['studente_per_corso_di_recupero_passato']) && $row_studente['studente_per_corso_di_recupero_passato'] == 0){
 					$passatoMarker = '<span class=\'label label-danger\'>non passato</span>';
 				}
-				$esente = (!empty($row_studente['studente_per_corso_di_recupero_serve_voto'])) && $row_studente['studente_per_corso_di_recupero_serve_voto'] == 0;
+				$esente = (!is_null($row_studente['studente_per_corso_di_recupero_serve_voto'])) && $row_studente['studente_per_corso_di_recupero_serve_voto'] == 0;
 				if ($esente) {
 					$passatoMarker = '<span class=\'label label-info\'>esente</span>';
 				}
