@@ -1,7 +1,14 @@
+## Version 1.2.20 - 23 set 2022
+
+##### Improvements
+- corso di recupero Import - Studio Individuale
+- corsiDiRecuperoVotoSettembreTuttiIDocenti nel json, se true i docenti possono inserire voti anche per gli studenti che non hanno fatto il corso con loro
+- gruppi export ed import
+
 ## Version 1.2.19 - 11 set 2022
 
 ##### Improvements
-- Corso di Recupero Studente aggiunto commento
+- corso di recupero Studente aggiunto commento
 - fuis assegnato tipo codice_citrix ed abilita
 
 ##### Bug Fixes

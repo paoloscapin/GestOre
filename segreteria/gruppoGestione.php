@@ -39,13 +39,27 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 <div class="panel panel-lightblue4">
 <div class="panel-heading container-fluid">
 	<div class="row">
-		<div class="col-md-4">
+		<div class="col-md-3">
 			<span class="glyphicon glyphicon-user"></span>&emsp;Gruppi
 		</div>
-        <div class="col-md-4 text-center">
+        <div class="col-md-3 text-center">
             <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
         </div>
-        <div class="col-md-4 text-right">
+        <div class="col-md-3 text-center">
+            <div class="pull-right">
+				<button class="btn btn-xs btn-yellow4" onclick="esporta()" ><span class="glyphicon glyphicon-download">&emsp;Esporta</span></button>
+                <select title="anno" id="anno_select" >
+                    <?php
+                    foreach (dbGetAll("SELECT * FROM anno_scolastico WHERE id <= $__anno_scolastico_corrente_id;") as $annoResult) {
+                        $annoId = $annoResult['id'];
+                        $annoCodice = $annoResult['anno'];
+                        echo '<option value="' . $annoId . '"> ' . $annoCodice . '</option>';
+                    }
+                    ?>
+                </select>
+            </div>
+        </div>
+        <div class="col-md-3 text-right">
             <div class="pull-right">
 				<button class="btn btn-xs btn-lightblue4" onclick="openModal()" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>

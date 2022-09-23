@@ -94,6 +94,11 @@ function importFile(file) {
     reader.readAsText(file);
 }
 
+function esporta() {
+	var anno_id = $("#anno_select").val();
+	window.open("gruppiExport.php" + "?anno_id=" + anno_id, '_blank');
+}
+
 $(document).ready(function () {
     gruppoGestioneReadRecords();
 

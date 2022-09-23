@@ -178,11 +178,50 @@ foreach($resultArray as $row_classe) {
 								<tr class="'.$classname.'">
 									<td>'.$row_studente['studente_per_corso_di_recupero_id'].'</td>
 									<td>'.$row_studente['studente_per_corso_di_recupero_cognome'].' '.$row_studente['studente_per_corso_di_recupero_nome'].'</td>
-									<td><small>'.$row_studente['materia_nome'].'</small></td>
-									<td style="text-align: center;">'.printableVoto($row_studente['studente_per_corso_di_recupero_voto_settembre']).'</td>
-									<td style="text-align: center;">'.printableDate($row_studente['studente_per_corso_di_recupero_data_voto_settembre']).'</td>
+									<td><small>'.$row_studente['materia_nome'].'</small></td>';
+
+				if (getSettingsValue('config', 'corsiDiRecuperoVotoSettembreTuttiIDocenti', true)) {
+					$votoSettembre = $row_studente['studente_per_corso_di_recupero_voto_settembre'];
+					$votoSettembreOptionList = '				<select  class="votoSettembre selectpicker" data-noneSelectedText="seleziona..." data-width="50%" ><option value="0"></option>';
+					// opzione per assente
+					$bgColor = 'red';
+					$votoSettembreOptionList .= '<option value="'.'1'.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.'Assente'.'</span>"';
+					if ($votoSettembre === 1) {
+						$votoSettembreOptionList .= ' selected ';
+					}
+					$votoSettembreOptionList .= '>'.'assente'.'</option>';
+
+					// voti da 4 a 10
+					for($i = 4; $i<=10; $i++) {
+						$bgColor = ($i <= 5) ? 'red' : 'green';
+						$votoSettembreOptionList .= '<option value="'.$i.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.$i.'</span>"';
+
+						// seleziona il voto corrente di settembre se esiste (se e' gia' stato dato)
+						if ($votoSettembre == $i) {
+							$votoSettembreOptionList .= ' selected ';
+						}
+						$votoSettembreOptionList .= '>'.$i.'</option>';
+					}
+					$votoSettembreOptionList .= '</select>';
+					$data .= '<td>'.$votoSettembreOptionList.'</td>';
+
+					// la data del voto di settembre
+					$dataSettembre = strftime("%d/%m/%Y", strtotime($row_studente['studente_per_corso_di_recupero_data_voto_settembre']));
+					if (empty($row_studente['studente_per_corso_di_recupero_data_voto_settembre'])) {
+						$dataSettembre = date('d/m/Y');
+					}
+					$data .= '
+    							<td><input type="text" placeholder="Data" class="form-control dataVotoSettembre" value="'.$dataSettembre.'" /></td>';
+
+					$data .= '
 									<td><small>'.$row_studente['docente_set_cognome'].' '.$row_studente['docente_set_nome'].'</small></td>
 						';
+				} else {
+					$data .= '
+					<td style="text-align: center;">'.printableVoto($row_studente['studente_per_corso_di_recupero_voto_settembre']).'</td>
+					<td style="text-align: center;">'.printableDate($row_studente['studente_per_corso_di_recupero_data_voto_settembre']).'</td>
+					<td><small>'.$row_studente['docente_set_cognome'].' '.$row_studente['docente_set_nome'].'</small></td>';
+				}
 
 				// se i voti di novembre sono aperti, apre l'inserimento per quelli che non sono esenti e non hanno preso almeno 6 a settembre
 				if ($__config->getVoti_recupero_novembre_aperto() && ! $esente && $row_studente['studente_per_corso_di_recupero_voto_settembre'] < 6) {

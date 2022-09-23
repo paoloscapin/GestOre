@@ -28,7 +28,8 @@
         "minuti": false,
         "sportelli": false,
         "gestioneViaggiSemplificata": false,
-        "corsiDiRecuperoFirmaDocente": true
+        "corsiDiRecuperoFirmaDocente": true,
+        "corsiDiRecuperoVotoSettembreTuttiIDocenti": true
     },
     "interfaccia": {
         "docenteVisualizza80Ore": true,
