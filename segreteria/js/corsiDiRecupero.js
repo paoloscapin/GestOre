@@ -119,8 +119,8 @@ function corsiDiRecuperoDelete(id, nome) {
     if (conf == true) {
         $.post("../common/deleteRecord.php", {
 				id: id,
-				table: '',
-				name: "corsiDiRecupero " + nome
+				table: 'corso_di_recupero',
+				name: nome
             },
             function (data, status) {
                 corsiDiRecuperoReadRecords();
