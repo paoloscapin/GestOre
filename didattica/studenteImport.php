@@ -11,6 +11,7 @@
 
 <?php
 require_once '../common/checkSession.php';
+require_once '../common/__Util.php';
 ruoloRichiesto('dirigente','segreteria-didattica');
 
 function startsWith($haystack, $needle) {
@@ -68,8 +69,8 @@ foreach($lines as $line) {
         erroreDiImport("numero di argomenti errato (" . count($words) . ")");
         break;
     }
-    $cognome = escapeString($words[0]);
-    $nome = escapeString($words[1]);
+    $cognome = camelCase(escapeString($words[0]));
+    $nome = camelCase(escapeString($words[1]));
     $email = escapeString($words[2]);
     $classe = escapeString($words[3]);
     $anno = escapeString($words[4]);

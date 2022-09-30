@@ -103,4 +103,9 @@ function getSettingsValue($section, $name, $default) {
     return $__settings->$section->$name;
 }
 
+// ritorna il camelcase di una stringa
+function camelCase($src) {
+    return ucwords(strtolower($src));
+}
+
 ?>
