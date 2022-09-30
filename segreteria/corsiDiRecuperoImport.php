@@ -287,12 +287,9 @@ while ($words[0] == 'CODICE') {
 		$sql .= "INSERT INTO studente_per_corso_di_recupero (cognome, nome, commento, classe, serve_voto, corso_di_recupero_id) VALUES ('$cognome', '$nome', '$commento', '$classe', $serve_voto, @last_id_corso_di_recupero);";
 
         // se aveva raggiunto la fine delle linee, interrompi
-        if ($completato) {
+        if (nextWords() == null) {
+            // debug('Sono finite le linee: linepos='.$linePos.' numberOfLines='.$numberOfLines);
             break;
-        }
-        nextWords();
-        if ($linePos >= $numberOfLines) {
-            $completato = true;
         }
     }
 	// studente_partecipa_lezione_corso_di_recupero se non si tratta di studio individuale
