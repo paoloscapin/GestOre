@@ -97,42 +97,58 @@ while (($words = nextWords()) != null) {
     debug('words[3]='.$words[3]);
     debug('words[4]='.$words[4]);
 
-    $gruppo_nome = escapeString($words[0]);
-    $gruppo_commento = escapeString($words[1]);
-    $gruppo_max_ore = escapeString($words[2]);
+    $attivita_nome = escapeString($words[0]);
+    $attivita_dettaglio = escapeString($words[1]);
+    $attivita_ore = escapeString($words[2]);
+    $docente_cognome = escapeString(titlecase($words[3]));
+    $docente_nome = escapeString(titlecase($words[4]));
 
-    $gruppo_responsabile_cognome = escapeString(titlecase($words[3]));
-    $gruppo_responsabile_nome = escapeString(titlecase($words[4]));
-    $query = "SELECT docente.id FROM docente WHERE docente.cognome LIKE '$gruppo_responsabile_cognome' COLLATE utf8_general_ci AND docente.nome LIKE '$gruppo_responsabile_nome' COLLATE utf8_general_ci ";
-    $gruppo_docente_id_list = dbGetAll($query);
+    $query = "SELECT docente.id FROM docente WHERE docente.cognome LIKE '$docente_cognome' COLLATE utf8_general_ci AND docente.nome LIKE '$docente_nome' COLLATE utf8_general_ci ";
+    $id_list = dbGetAll($query);
     // controlla di avere trovato almeno un docente
-    if (count($gruppo_docente_id_list) == 0) {
-        erroreDiImport("gruppo $gruppo_nome: docente non trovato cognome=$gruppo_responsabile_cognome nome=$gruppo_responsabile_nome");
+    if (count($id_list) == 0) {
+        erroreDiImport("attivita $attivita_nome: docente non trovato cognome=$docente_cognome nome=$docente_nome");
         break;
     }
     // controlla che non ce ne siano piu' di uno
-    if (count($gruppo_docente_id_list) > 1) {
-        $messaggio = "gruppo $gruppo_nome: piu' docenti corrispondono alla ricerca cognome=$gruppo_responsabile_cognome nome=$gruppo_responsabile_nome: utilizzato il primo";
+    if (count($id_list) > 1) {
+        $messaggio = "attivita $attivita_nome: piu' docenti corrispondono alla ricerca cognome=$docente_cognome nome=$docente_nome: utilizzato il primo";
         warning("Errore di import linea $linePos: " . $messaggio);
         $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
     }
     // se tutto va bene c'e' un solo valore
-    $gruppo_responsabile_docente_id = $gruppo_docente_id_list[0]['id'];
+    $docente_id = $id_list[0]['id'];
 
-    $sql .= "INSERT INTO gruppo (nome, dipartimento, commento, max_ore, anno_scolastico_id, responsabile_docente_id) VALUES ('$gruppo_nome', 0, '$gruppo_commento', '$gruppo_max_ore', '$__anno_scolastico_corrente_id', '$gruppo_responsabile_docente_id');
-        SET @last_id_gruppo = LAST_INSERT_ID();
+    // ora deve trovare il tipo di attivita
+    $query = "SELECT ore_previste_tipo_attivita.id FROM ore_previste_tipo_attivita WHERE ore_previste_tipo_attivita.nome LIKE '$attivita_nome' COLLATE utf8_general_ci";
+    $id_list = dbGetAll($query);
+    // controlla di avere trovato almeno una attivita
+    if (count($id_list) == 0) {
+        erroreDiImport("attivita $attivita_nome: tipo attivita non trovato nome=$attivita_nome");
+        break;
+    }
+    // controlla che non ce ne siano piu' di uno
+    if (count($id_list) > 1) {
+        erroreDiImport("attivita $attivita_nome: piu' tipo attivita corrispondono alla ricerca nome=$attivita_nome");
+        break;
+    }
+    // se tutto va bene c'e' un solo valore
+    $attivita_tipo_id = $id_list[0]['id'];
+
+    $sql .= "INSERT INTO ore_previste_attivita(dettaglio, ore, docente_id, anno_scolastico_id, ore_previste_tipo_attivita_id) VALUES('$attivita_dettaglio', '$attivita_ore', $docente_id, $__anno_scolastico_corrente_id, $attivita_tipo_id) ;
+        SET @last_id_attivita = LAST_INSERT_ID();
         ";
 
-    $data = $data . 'Gruppo=' . $gruppo_nome . ' commento=' . $gruppo_commento . ' ore=' . $gruppo_max_ore . ' responsabile=' . $gruppo_responsabile_cognome . " " . $gruppo_responsabile_nome;
+    $data = $data . 'attivita=' . $attivita_nome . ' dettaglio=' . $attivita_dettaglio . ' ore=' . $attivita_ore . ' docente=' . $docente_cognome . " " . $docente_nome;
     $data .= '</br>';
-    debug('Gruppo=' . $gruppo_nome . ' commento=' . $gruppo_commento . ' ore=' . $gruppo_max_ore . ' responsabilente=' . $gruppo_responsabile_cognome . " " . $gruppo_responsabile_nome);
+    debug('attivita=' . $attivita_nome . ' dettaglio=' . $attivita_dettaglio . ' ore=' . $attivita_ore . ' docente=' . $docente_cognome . " " . $docente_nome);
 }
 
 // esegue la query se non vuota
 if (!empty($sql)) {
     // debug($sql);
     dbExecMulti($sql);
-    info('Import gruppi effettuato');
+    info('Import attivita effettuato');
 }
 
 echo $data;

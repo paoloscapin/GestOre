@@ -1,3 +1,8 @@
+## Version 1.2.21 - 4 ott 2022
+
+##### Improvements
+- import delle ore assegnate
+
 ## Version 1.2.20 - 23 set 2022
 
 ##### Improvements

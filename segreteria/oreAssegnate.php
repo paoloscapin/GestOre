@@ -38,17 +38,31 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
 <div class="panel panel-lima4">
-<div class="row" style="margin-top:10px;" style="margin-bottom:10px;">
-	<div class="col-md-4">
-	</div>
-	<div class="col-md-4 text-center">
-		<button onclick="ricalcolaTutti()" class="btn btn-lima4"><span class="glyphicon glyphicon-refresh"></span>&ensp;Ricalcola Tutti</button>
-	</div>
-	<div class="col-md-4 text-right">
+<div class="panel-heading container-fluid">
+	<div class="row">
+		<div class="col-md-3">
+			<span class="glyphicon glyphicon-list-alt"></span>&emsp;Ore Assegnate
+		</div>
+        <div class="col-md-3 text-center">
+            <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
+        </div>
+		<div class="col-md-3 text-center">
+			<button onclick="ricalcolaTutti()" class="btn btn-xs btn-lima4"><span class="glyphicon glyphicon-refresh"></span>&ensp;Ricalcola Tutti</button>
+		</div>
+		<div class="col-md-4 text-right">
+		</div>
+		<div class="col-md-4 text-right">
+		</div>
 	</div>
 </div>
-<div class="row" style="margin-top:10px;" style="margin-bottom:10px;">
 </div>
+<div class="row"  style="margin-bottom:10px;">
+	<div class="col-md-12 text-center" id='result_text'>
+	</div>
+</div>
+<div class="row">
+<div class="col-md-12">
+
 
 <?php
 // prepara l'elenco delle categorie di attivita'
@@ -147,7 +161,8 @@ foreach($resultArrayTipoAttivita as $tipoAttivita) {
 echo $data;
 ?>
 
-    </div> <!-- // Div - Outer Panel -->
+</div>
+</div>
 </div> <!-- // Div - Content Section Container-fluid -->
 
 <?php

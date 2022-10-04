@@ -135,3 +135,25 @@ function deleteOreAttivita ( ore_previste_attivita_id, ore_previste_tipo_attivit
         );
     }
 }
+
+function importFile(file) {
+    var contenuto = "";
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+        contenuto = event.target.result;
+        $.post("oreAssegnateImport.php", {
+            contenuto: contenuto
+        },
+        function (data, status) {
+            $('#result_text').html(data);
+            // window.location.reload();
+        });
+    });
+    reader.readAsText(file);
+}
+
+$(document).ready(function () {
+      $('#file_select_id').change(function (e) {
+        importFile(e. target. files[0]);
+    });
+});
