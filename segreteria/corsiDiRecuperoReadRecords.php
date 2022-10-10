@@ -9,6 +9,8 @@
 
 require_once '../common/checkSession.php';
 
+$inItinere = $_GET["inItinere"];
+
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<tr>
@@ -33,7 +35,7 @@ $query = "	SELECT
 			ON corso_di_recupero.materia_id = materia.id
 			INNER JOIN docente docente
 			ON corso_di_recupero.docente_id = docente.id
-            WHERE corso_di_recupero.anno_scolastico_id = $__anno_scolastico_corrente_id
+            WHERE corso_di_recupero.anno_scolastico_id = $__anno_scolastico_corrente_id AND corso_di_recupero.in_itinere = $inItinere
 			ORDER BY corso_di_recupero.codice ASC
 			";
 

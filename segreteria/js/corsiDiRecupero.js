@@ -12,9 +12,22 @@ var originalMateria_id = 0;
 var originalTestoLezioni = '';
 var originalTestoStudenti = '';
 var modificabile = true;
- 
+
+var inItinere = 0;
+
+$('#inItinereCheckBox').change(function() {
+    // this si riferisce al checkbox 
+    if (this.checked) {
+		inItinere = 1;
+        corsiDiRecuperoReadRecords();
+    } else {
+		inItinere = 0;
+        corsiDiRecuperoReadRecords();
+    }
+});
+
 function corsiDiRecuperoReadRecords() {
-	$.get("corsiDiRecuperoReadRecords.php", {}, function (data, status) {
+	$.get("corsiDiRecuperoReadRecords.php?inItinere=" + inItinere, {}, function (data, status) {
 		$(".records_content").html(data);
 	});
 }

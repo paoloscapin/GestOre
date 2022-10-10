@@ -17,8 +17,11 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <?php
 require_once '../common/checkSession.php';
+require_once '../common/__Settings.php';
+
 require_once '../common/header-common.php';
 require_once '../common/style.php';
+require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
 ruoloRichiesto('dirigente','segreteria-docenti');
 ?>
@@ -30,7 +33,6 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 <!-- <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css"> -->
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
 
-<script type="text/javascript" src="js/corsiDiRecupero.js"></script>
 </head>
 
 <body >
@@ -41,10 +43,20 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 <div class="panel panel-lightblue4">
 <div class="panel-heading container-fluid">
 	<div class="row">
-		<div class="col-md-6">
+		<div class="col-md-3">
 			<span class="glyphicon glyphicon-education"></span>&emsp;Corsi di Recupero
 		</div>
-        <div class="col-md-6">
+		<div class="col-md-3 text-center">
+            <label id="import_btn" class="btn btn-xs btn-lightblue4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
+		</div>
+        <div class="col-md-3">
+            <div class="text-center">
+				<label class="checkbox-inline">
+					<input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="inItinereCheckBox" >In Itinere
+				</label>
+            </div>
+        </div>
+        <div class="col-md-3">
             <div class="pull-right">
 				<button class="btn btn-xs btn-lightblue4" onclick="corsiDiRecuperoGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
@@ -52,6 +64,10 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 	</div>
 </div>
 <div class="panel-body">
+    <div class="row"  style="margin-bottom:10px;">
+    <div class="col-md-12 text-center" id='result_text'>
+        </div>
+    </div>
     <div class="row">
         <div class="col-md-12">
             <div class="records_content"></div>
@@ -60,15 +76,8 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 </div>
 
 <div class="panel-footer">
-    <div class="text-center">
-        <label id="import_btn" class="btn btn-xs btn-lightblue4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
-    </div>
 </div>
 </div>
-
-<div id='result_text'>
-</div>
-
 
 <?php
 // prepara l'elenco dei docenti
@@ -159,6 +168,9 @@ foreach($resultArray as $row) {
     </div>
 </div>
 <!-- // Modal - Add/Update New Record -->
+
+<!-- Custom JS file MUST be here because of toggle -->
+<script type="text/javascript" src="js/corsiDiRecupero.js"></script>
 
 </body>
 </html>

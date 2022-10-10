@@ -283,6 +283,10 @@ while ($words[0] == 'CODICE') {
         if (strpos($commento, 'uditore') !== false) {
             $serve_voto = 0;
         }
+        // per i corsi in itinere i voti non sono inseriti in gestore ma direttamente sul registro
+        if ($in_itinere_value == 1) {
+            $serve_voto = 0;
+        }
         // inserisce lo studente se non esiste
 		$sql .= "INSERT INTO studente_per_corso_di_recupero (cognome, nome, commento, classe, serve_voto, corso_di_recupero_id) VALUES ('$cognome', '$nome', '$commento', '$classe', $serve_voto, @last_id_corso_di_recupero);";
 
