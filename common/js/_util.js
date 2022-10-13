@@ -83,3 +83,32 @@ function number_format (number, decimals, decPoint, thousandsSep) {
 function number_format_simple (number, decimals, decPoint, thousandsSep) {
 	return parseFloat(number).toFixed(decimals);
 }
+
+function __notify(title, message, icon, type, delay) {
+	$.notify({
+		icon: icon,
+		title: '<Strong>' + title + '</Strong></br>',
+		message: message
+	},{
+		placement: {
+			from: "top",
+			align: "center"
+		},
+		delay: delay,
+		timer: 1000,
+		mouse_over: "pause",
+		type: type
+	});
+}
+
+function errorNotify(title, message) {
+	__notify(title, message, 'glyphicon glyphicon-alert', 'danger', 15000);
+}
+
+function warningNotify(title, message) {
+	__notify(title, message, 'glyphicon glyphicon-warning-sign', 'warning', 5000);
+}
+
+function infoNotify(title, message) {
+	__notify(title, message, 'glyphicon glyphicon-thumbs-up', 'success', 5000);
+}

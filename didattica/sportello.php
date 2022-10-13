@@ -202,22 +202,22 @@ require_once '../common/header-didattica.php';
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="argomento">Argomento</label>
-                    <div class="col-sm-8"><input type="text" id="argomento" placeholder="argomento" class="form-control"/></div>
+                    <div class="col-sm-8"><input type="text" id="argomento" placeholder="! non inserire se si desidera che siano gli studenti a specificarlo !" class="form-control"/></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="luogo">Luogo</label>
-                    <div class="col-sm-8"><input type="text" id="luogo" placeholder="luogo" class="form-control"/></div>
+                    <div class="col-sm-8"><input type="text" id="luogo" placeholder="aula o laboratorio in cui si svolge lo sportello" class="form-control"/></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="classe">Classe</label>
-                    <div class="col-sm-8"><input type="text" id="classe" placeholder="classe" class="form-control"/></div>
+                    <div class="col-sm-8"><input type="text" id="classe" placeholder="se si desidera specificare la classe/classi a cui si rivolge" class="form-control"/></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="max_iscrizioni">Max Iscrizioni</label>
-                    <div class="col-sm-8"><input type="text" id="max_iscrizioni" placeholder="max_iscrizioni" class="form-control"/></div>
+                    <div class="col-sm-8"><input type="text" id="max_iscrizioni" placeholder="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>" class="form-control"/></div>
                 </div>
 
                 <div class="form-group">

@@ -85,7 +85,8 @@
         "nascondiNomeStudenti": false,
         "chiusuraIscrizioniGiorni": 1,
         "unSoloArgomento": true,
-        "prenotaMaxSettimanaSuccessiva": true
+        "prenotaMaxSettimanaSuccessiva": true,
+        "inseriti_da_docente": false
     },
     "label": {
         "ore_funzionali": "funzionali",
