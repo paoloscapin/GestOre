@@ -1,3 +1,10 @@
+## Version 1.2.22 - 13 ott 2022
+
+##### Improvements
+- sportelli inseriti da docente
+- gestione errori di cancellazione sportello
+- inseriti i notify in _util
+
 ## Version 1.2.21 - 4 ott 2022
 
 ##### Improvements

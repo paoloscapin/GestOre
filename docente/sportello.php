@@ -19,6 +19,7 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_flatpickr.php';
+require_once '../common/_include_bootstrap-notify.php';
 ruoloRichiesto('docente');
 ?>
 	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
@@ -53,6 +54,23 @@ ruoloRichiesto('docente');
 </style>
 </head>
 
+<?php
+// prepara l'elenco delle materie (anche per il filtro)
+$materiaOptionList = '				<option value="0"></option>';
+$materiaFiltroOptionList = '				<option value="0">tutte</option>';
+$query = "	SELECT * FROM materia ORDER BY materia.nome ASC;";
+if (!$result = mysqli_query($con, $query)) {
+    exit(mysqli_error($con));
+}
+if(mysqli_num_rows($result) > 0) {
+    $resultArray = $result->fetch_all(MYSQLI_ASSOC);
+    foreach($resultArray as $row) {
+        $materiaOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
+        $materiaFiltroOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
+    }
+}
+?>
+
 <body >
 <?php
 require_once '../common/header-docente.php';
@@ -72,6 +90,11 @@ require_once '../common/connect.php';
             </label>
 		</div>
 		<div class="col-md-4 text-right">
+<?php if(getSettingsValue("sportelli", "inseriti_da_docente", false)) : ?>
+            <div class="pull-right">
+                <button class="btn btn-xs btn-orange4" onclick="sportelloGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
+            </div>
+<?php endif; ?>
 		</div>
 	</div>
 </div>
@@ -106,10 +129,10 @@ require_once '../common/connect.php';
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="data">Data</label>
-					<div class="col-sm-4"><input type="text" value="21/8/2018" id="data" class="form-control" readonly="readonly" /></div>
+					<div class="col-sm-4"><input type="text" value="21/8/2018" id="data" class="form-control" /></div>
 
                     <label class="col-sm-2 control-label" for="ora">Ora</label>
-                    <div class="col-sm-4"><input type="text" id="ora" class="form-control" readonly="readonly" /></div>
+                    <div class="col-sm-4"><input type="text" id="ora" class="form-control" /></div>
                 </div>
 
                 <div class="form-group docente_selector">
@@ -119,27 +142,34 @@ require_once '../common/connect.php';
 
                 <div class="form-group materia_selector">
                     <label class="col-sm-2 control-label" for="materia">Materia</label>
-                    <div class="col-sm-4"><input type="text" id="materia" class="form-control" readonly="readonly" /></div>
+					<div class="col-sm-8"><select id="materia" name="materia" class="materia selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $materiaOptionList ?>
+					</select></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="numero_ore">Numero di ore</label>
-                    <div class="col-sm-4"><input type="text" id="numero_ore" class="form-control" readonly="readonly" /></div>
+                    <div class="col-sm-4"><input type="text" id="numero_ore" class="form-control" /></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="argomento">Argomento</label>
-                    <div class="col-sm-8"><input type="text" id="argomento" class="form-control" readonly="readonly" /></div>
+                    <div class="col-sm-8"><input type="text" id="argomento" class="form-control" placeholder="! non inserire se si desidera che siano gli studenti a specificarlo !" /></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="luogo">Luogo</label>
-                    <div class="col-sm-8"><input type="text" id="luogo" class="form-control" readonly="readonly" /></div>
+                    <div class="col-sm-8"><input type="text" id="luogo" class="form-control" placeholder="aula o laboratorio in cui si svolge lo sportello" /></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="classe">Classe</label>
-                    <div class="col-sm-8"><input type="text" id="classe" class="form-control" readonly="readonly" /></div>
+                    <div class="col-sm-8"><input type="text" id="classe" class="form-control" placeholder="se si desidera specificare la classe/classi a cui si rivolge" /></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="col-sm-2 control-label" for="max_iscrizioni">Max Iscrizioni</label>
+                    <div class="col-sm-8"><input type="text" id="max_iscrizioni" placeholder="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>" class="form-control"/></div>
                 </div>
 
                 <div class="form-group">
@@ -153,6 +183,11 @@ require_once '../common/connect.php';
                     <div class="col-sm-1 text-center" id="firma_sportello_button_id">
                         <button type="button" class="btn btn-success" onclick="sportelloFirma()">Firma lo Sportello</button>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="online" class="col-sm-2 control-label">Online</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
                 </div>
 
                 <div class="form-group text-center" id="studenti-part">
@@ -174,7 +209,15 @@ require_once '../common/connect.php';
 					</table>
                 </div>
 
+                <div class="form-group" id="_error-materia-part"><strong>
+                    <hr>
+                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                    <div class="col-sm-9" id="_error-materia"></div>
+				</strong></div>
+
                 <input type="hidden" id="hidden_sportello_id">
+                <input type="hidden" id="hidden_max_iscrizioni_default" value="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>">
+                <input type="hidden" id="hidden_docente_cognome_nome" value="<?php echo "$__docente_cognome $__docente_nome"; ?>">
 			</form>
 
             </div>
