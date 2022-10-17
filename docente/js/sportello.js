@@ -129,10 +129,8 @@ function sportelloFirma() {
     $("#firmato").prop('checked', true);
 
     // lo salva
-    $.post("sportelloAggiorna.php", {
-        id: $("#hidden_sportello_id").val(),
-        firmato: $("#firmato").is(':checked')? 1: 0,
-        studentiDaModificareIdList: JSON.stringify([]),
+    $.post("sportelloFirma.php", {
+        id: $("#hidden_sportello_id").val()
     }, function (data, status) {
     });
 }
@@ -170,9 +168,9 @@ function sportelloGetDetails(sportello_id) {
             $('#studenti_table tbody').empty();
             var markup = '';
             // cicla su tutti gli studenti
-            console.log(sportello.studenti);
+            // console.log(sportello.studenti);
             sportello.studenti.forEach(function(studenti) {
-                console.log(studenti);
+                // console.log(studenti);
                 markup = markup + 
                         "<tr>" +
                         "<td>" + studenti.sportello_studente_id + "</td>" +
