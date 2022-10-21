@@ -152,24 +152,43 @@ foreach($resultArray as $row) {
 			// se passato e non ero iscritto non deve segnalare nulla
 		}
 	} else {
-		// controlla se terminata l'iscrizione, il lunedi precedente o scaduta (si puo' prenotare fino a 2 giorni prima)
-		$dataSportello = $row['sportello_data'];
-		$previousMonday = new DateTime($dataSportello.' Monday ago');
-		$lastDay = new DateTime($dataSportello.' 2 days ago');
+
+		// prende la data di oggi e quella dello sportello
 		$today = new DateTime('today');
+		$dataSportello = $row['sportello_data'];
+
+		// controlla quanti giorni prima chiudono le iscrizioni ( 0 = la mezzanotte del giorno precedente allo sportello)
+		$daysInAdvance = getSettingsValue('sportelli', 'chiusuraIscrizioniGiorni', '1');
+
+		// 1 days ago = la mezzanotte del giorno prima, 2 days ago = la mezzanotte di due giorni prima. Quindi bisogna aggiungere 1 per il controllo
+		$daysAgo = $daysInAdvance + 1;
+
+		// calcola l'ultimo giorno in cui lo sportello può essere prenotato: 1 day ago vuole dire fino alla notte del giorno precedente, quindi è il minimo da considerare
+		$lastDay = new DateTime($dataSportello.' '.$daysAgo.' days ago');
+
+		// calcola la data del lunedi della settimana precedente a quella dello sportello e scopre se siamo dopo quel giorno
+		$previousMonday = new DateTime($dataSportello.' Monday ago');
 		$todayAfterpreviousMonday = ($today >= $previousMonday);
-		$todayBeforeLastDay = ($today <= $lastDay);
+		// se non configurato per prenotare al massimo la settimana successiva, considera come se oggi fosse comunque una data dopo il lunedi della settimana precedente
 		if (! getSettingsValue('sportelli','prenotaMaxSettimanaSuccessiva', true)) {
 			$todayAfterpreviousMonday = true;
 		}
+
+		// ora puo' controllare se oggi viene prima dell'ultimo giorno valido per la prenotazione (o lo stesso giorno)
+		$todayBeforeLastDay = ($today <= $lastDay);
+
+		// lo sportello si puo' prenotare se oggi e' >= al primo lunedi' da cui si puo' prenotare e <= all'ultimo giorno di prenotazione
 		$prenotabile = ($todayAfterpreviousMonday && $todayBeforeLastDay);
-		 debug("dataSportello=".$dataSportello);
-		 debug("today=".$today->format('d-m-Y H:i:s'));
-		 debug("lastDay=".$lastDay->format('d-m-Y H:i:s'));
-		 debug("previousMonday=".$previousMonday->format('d-m-Y H:i:s'));
-		 debug("todayAfterpreviousMonday=".$todayAfterpreviousMonday);
-		 debug("todayBeforeLastDay=".$todayBeforeLastDay);
-		 debug("prenotabile=".$prenotabile);
+
+		// debug("today=".$today->format('d-m-Y H:i:s'));
+		// debug("dataSportello=".$dataSportello);
+		// debug("daysInAdvance=".$daysInAdvance->format('d-m-Y H:i:s'));
+		// debug("daysAgo=".$daysAgo->format('d-m-Y H:i:s'));
+		// debug("lastDay=".$lastDay->format('d-m-Y H:i:s'));
+		// debug("previousMonday=".$previousMonday->format('d-m-Y H:i:s'));
+		// debug("todayAfterpreviousMonday=".$todayAfterpreviousMonday);
+		// debug("todayBeforeLastDay=".$todayBeforeLastDay);
+		// debug("prenotabile=".$prenotabile);
 
 		// controlla che non sia stato raggiunto il massimo numero di prenotazioni
 		$max_iscrizioni = $row['sportello_max_iscrizioni'];
