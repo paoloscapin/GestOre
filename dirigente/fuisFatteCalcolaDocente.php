@@ -158,8 +158,20 @@ function calcolaFuisDocente($localDocenteId) {
     $clilPrevisteConStudenti=dbGetValue("SELECT COALESCE(SUM(ore_previste_attivita.ore),0) FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $localDocenteId AND ore_previste_tipo_attivita.categoria = 'CLIL' AND ore_previste_tipo_attivita.nome = 'con studenti';");
 
 
-    $clilFatteFunzionali=dbGetValue("SELECT COALESCE(SUM(ore_fatte_attivita_clil.ore),0) FROM ore_fatte_attivita_clil WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $localDocenteId AND con_studenti = 0;");
+    $clilFatteFunzionaliParziali=dbGetValue("SELECT COALESCE(SUM(ore_fatte_attivita_clil.ore),0) FROM ore_fatte_attivita_clil WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $localDocenteId AND con_studenti = 0;");
+    // deve aggiungere le ore dei gruppi clil
+
+	// anche i gruppi di lavoro clil entrano nel clil funzionale (ma solo nelle ore fatte, dove il responsabile ha inserito la partecipazione)
+	$query = "SELECT COALESCE(SUM(gruppo_incontro_partecipazione.ore), 0) FROM gruppo_incontro_partecipazione INNER JOIN gruppo_incontro ON gruppo_incontro_partecipazione.gruppo_incontro_id = gruppo_incontro.id INNER JOIN gruppo ON gruppo_incontro.gruppo_id = gruppo.id
+		WHERE gruppo_incontro_partecipazione.docente_id = $localDocenteId AND gruppo_incontro_partecipazione.ha_partecipato = true AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id AND gruppo_incontro.effettuato = true AND gruppo.dipartimento = false AND gruppo.clil = true;";
+	$clil_ore_gruppi = dbGetValue($query);
+	$clilFatteFunzionali = $clilFatteFunzionaliParziali + $clil_ore_gruppi;
+	debug('clilFatteFunzionaliParziali='.$clilFatteFunzionaliParziali);
+	debug('clil_ore_gruppi='.$clil_ore_gruppi);
+	debug('clilFatteFunzionali='.$clilFatteFunzionali);
+
     $clilFatteConStudenti=dbGetValue("SELECT COALESCE(SUM(ore_fatte_attivita_clil.ore),0) FROM ore_fatte_attivita_clil WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $localDocenteId AND con_studenti = 1;");
+	debug('clilFatteConStudenti='.$clilFatteConStudenti);
 
     $clilFatteFunzionaliBilancio = $clilFatteFunzionali;
     $clilFatteConStudentiBilancio = $clilFatteConStudenti;
