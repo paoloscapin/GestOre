@@ -129,7 +129,21 @@ AND
 AND
 	ore_fatte_attivita_clil.con_studenti = false
 ";
-	$clil_ore_funzionale = 0 + dbGetValue($query);
+	$clil_ore_funzionale_parziale = 0 + dbGetValue($query);
+
+	// anche i gruppi di lavoro clil entrano nel clil funzionale (ma solo nelle ore fatte, dove il responsabile ha inserito la partecipazione)
+	$query = "SELECT COALESCE(SUM(gruppo_incontro_partecipazione.ore), 0) FROM gruppo_incontro_partecipazione
+			INNER JOIN gruppo_incontro ON gruppo_incontro_partecipazione.gruppo_incontro_id = gruppo_incontro.id
+			INNER JOIN gruppo ON gruppo_incontro.gruppo_id = gruppo.id
+			WHERE gruppo_incontro_partecipazione.docente_id = $localDocenteId
+			AND gruppo_incontro_partecipazione.ha_partecipato = true
+			AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id
+			AND gruppo_incontro.effettuato = true AND gruppo.dipartimento = false AND gruppo.clil = true;";
+	$ore_gruppi_clil = dbGetValue($query);
+	$clil_ore_funzionale = $clil_ore_funzionale_parziale + $ore_gruppi_clil;
+	debug('clil_ore_funzionale_parziale='.$clil_ore_funzionale_parziale);
+	debug('ore_gruppi_clil='.$ore_gruppi_clil);
+	debug('clil_ore_funzionale='.$clil_ore_funzionale);
 
 	$query = "
 SELECT

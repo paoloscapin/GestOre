@@ -798,6 +798,7 @@ CREATE TABLE IF NOT EXISTS `config` (
   `fuis_diaria_viaggi` FLOAT NULL,
   `fuis_assegnato` FLOAT NULL,
   `ultimo_controllo_sportelli` DATE NULL DEFAULT '2020-01-01',
+  `debug` TINYINT NULL DEFAULT 0,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
@@ -1211,6 +1212,7 @@ CREATE TABLE IF NOT EXISTS `gruppo` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(200) NULL,
   `dipartimento` TINYINT NULL,
+  `clil` TINYINT NULL DEFAULT 0,
   `commento` TEXT NULL,
   `max_ore` DOUBLE NOT NULL DEFAULT 10,
   `anno_scolastico_id` INT NOT NULL,
@@ -1220,6 +1222,7 @@ CREATE TABLE IF NOT EXISTS `gruppo` (
   INDEX `fk_gruppo_docente1_idx` (`responsabile_docente_id` ASC),
   INDEX `dipartimento_index` (`dipartimento` ASC),
   INDEX `dipartimento_nome` (`nome` ASC),
+  INDEX `clil_index` (`clil` ASC),
   CONSTRAINT `fk_gruppo_anno_scolastico1`
     FOREIGN KEY (`anno_scolastico_id`)
     REFERENCES `anno_scolastico` (`id`)

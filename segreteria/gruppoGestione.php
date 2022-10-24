@@ -20,6 +20,7 @@ require_once '../common/checkSession.php';
 
 require_once '../common/header-common.php';
 require_once '../common/style.php';
+require_once '../common/_include_bootstrap-notify.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_select2.php';
 ruoloRichiesto('dirigente','segreteria-docenti');
@@ -61,7 +62,7 @@ ruoloRichiesto('dirigente','segreteria-docenti');
         </div>
         <div class="col-md-3 text-right">
             <div class="pull-right">
-				<button class="btn btn-xs btn-lightblue4" onclick="openModal()" ><span class="glyphicon glyphicon-plus"></span></button>
+				<button class="btn btn-xs btn-lightblue4" onclick="gruppoGestioneGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
         </div>
 	</div>
@@ -92,7 +93,7 @@ foreach(dbGetAll($query) as $docenteRow) {
 
 <!-- Bootstrap Modals -->
 <!-- Modal - Add/Update Record -->
-<div class="modal fade" id="add_new_record_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+<div class="modal fade" id="gruppo_gestione_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
@@ -116,6 +117,11 @@ foreach(dbGetAll($query) as $docenteRow) {
                 <div class="form-group">
                     <label class="col-sm-3 control-label"  for="max_ore">Max Ore</label>
                     <div class="col-sm-8"><input type="text" id="max_ore" placeholder="massimo ore previste per incontri del gruppo" class="form-control"/></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="clil" class="col-sm-3 control-label">Clil</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="clil" ></div>
                 </div>
 
                 <div class="form-group responsabile_selector">

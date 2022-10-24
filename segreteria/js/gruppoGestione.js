@@ -20,36 +20,61 @@ function gruppoGestioneDelete(id, nome) {
 				name: "gruppo" + nome
             },
             function (data, status) {
+                if (data=='Application Error') {
+                    errorNotify('Impossibile cancellare il gruppo', 'Il gruppo <Strong>' + nome + '</Strong> contiene probabilmente dei docenti partecipanti, incontri effettuati o altri riferimenti');
+                } else {
+                    infoNotify('Cancellazione effettuata', 'Il gruppo <Strong>' + nome + '</Strong> è stato cancellato regolarmente');
+                }
+                    
                 gruppoGestioneReadRecords();
             }
         );
     }
 }
 
-function openModal() {
-    $("#nome").val("");
-    $("#commento").val("");
-    $("#max_ore").val("");
-    $('#responsabile').val("0");
-    $('#responsabile').selectpicker('refresh');
-	$("#add_new_record_modal").modal("show");
+function gruppoGestioneGetDetails(id) {
+    $("#hidden_gruppo_id").val(id);
+    if (id > 0) {
+        $.post("gruppoGestioneReadDetails.php", {
+			id: id
+		},
+		function (data, status) {
+			var gruppo = JSON.parse(data);
+            $("#nome").val(gruppo.nome);
+            $("#commento").val(gruppo.commento);
+            $("#max_ore").val(gruppo.max_ore);
+            $("#clil").prop('checked', gruppo.clil != 0 && gruppo.clil != null);
+            $('#responsabile').val(gruppo.responsabile_docente_id);
+            $('#responsabile').selectpicker('refresh');
+		});
+    } else {
+        $("#nome").val("");
+        $("#commento").val("");
+        $("#max_ore").val("");
+        $("#clil").val("");
+        $('#responsabile').val("0");
+        $('#responsabile').selectpicker('refresh');
+    }
+	$("#gruppo_gestione_modal").modal("show");
 }
 
 function gruppoGestioneSave() {
-    $.post("gruppoGestioneAddRecord.php", {
+    $.post("gruppoGestioneSave.php", {
+        id: $("#hidden_gruppo_id").val(),
         nome: $("#nome").val(),
         commento: $("#commento").val(),
         max_ore: $("#max_ore").val(),
         dipartimento: 0,
+        clil: $("#clil").is(':checked')? 1: 0,
         responsabile_docente_id: $("#responsabile").val()
     }, function (data, status) {
-        $("#add_new_record_modal").modal("hide");
+        $("#gruppo_gestione_modal").modal("hide");
         gruppoGestioneReadRecords();
     });
 }
 
 
-function gruppoGestioneGetDetails(gruppo_id) {
+function gruppoPartecipantiGetDetails(gruppo_id) {
     $("#hidden_gruppo_id").val(gruppo_id);
 
     $.post("gruppoGestionePartecipantiRead.php", {

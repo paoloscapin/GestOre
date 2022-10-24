@@ -46,23 +46,9 @@ function sportelloDelete(id, materia) {
             },
             function (data, status) {
                 if (data=='Application Error') {
-/*                    $.notify({
-                        icon: 'glyphicon glyphicon-ok',
-                        title: '<Strong>Impossibile cancellare lo sportello</Strong></br>',
-                        message: 'Lo sportello della materia <Strong>' + materia + '</Strong> contiene probabilmente degli studenti iscritti o altri riferimenti' 
-                    },{
-                        placement: {
-                            from: "top",
-                            align: "center"
-                        },
-                        delay: 15000,
-                        timer: 1000,
-                        mouse_over: "pause",
-                        type: 'danger'
-                    });*/
                     errorNotify('Impossibile cancellare lo sportello', 'Lo sportello della materia <Strong>' + materia + '</Strong> contiene probabilmente degli studenti iscritti o altri riferimenti');
-                    warningNotify('Impossibile cancellare lo sportello', 'Lo sportello della materia <Strong>' + materia + '</Strong> contiene probabilmente degli studenti iscritti o altri riferimenti');
-                    infoNotify('Impossibile cancellare lo sportello', 'Lo sportello della materia <Strong>' + materia + '</Strong> contiene probabilmente degli studenti iscritti o altri riferimenti');
+                } else {
+                    infoNotify('Cancellazione effettuata', 'Lo sportello della materia <Strong>' + materia + '</Strong> è stato cancellato regolarmente');
                 }
                 sportelloReadRecords();
             }
