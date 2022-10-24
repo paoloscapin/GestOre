@@ -16,5 +16,16 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 
 	dbExec("DELETE FROM sportello_studente WHERE sportello_id = $sportello_id AND studente_id  = $__studente_id");
 	info("cancellata iscrizione di $__studente_cognome $__studente_nome dallo sportello di $materia sportello_id=$sportello_id");
+
+	// se e' settato un solo argomento, nel caso si cancelli l'ultimo studente, non ha senso tenere l'argomento per cui toglie anche quello
+	if (getSettingsValue("sportelli", "unSoloArgomento", true)) {
+		// controlla quanti studenti sono ancora iscritti
+		$iscritti = dbGetValue("SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = $sportello_id;");
+		if ($iscritti == 0) {
+			debug("non ci sono altri iscritti quindi cancello l'argomento");
+			dbExec("UPDATE sportello SET argomento='' WHERE id = $sportello_id;");
+			info("cancellato argomento per lo sportello id=$sportello_id");
+		}
+	}
 }
 ?>
