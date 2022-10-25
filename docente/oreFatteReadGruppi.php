@@ -24,14 +24,15 @@ $data = '';
 // Design initial table header
 $data .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 						<thead><tr>
-							<th class="col-md-10 text-left">Gruppo</th>
+							<th class="col-md-9 text-left">Gruppo</th>
 							<th class="col-md-1 text-center">Data</th>
 							<th class="col-md-1 text-center">Ore</th>
+							<th class="col-md-1 text-center">Clil</th>
 						</tr></thead><tbody>';
 
 $query = "SELECT
             gruppo.nome AS gruppo_nome,
-            gruppo_incontro.data AS gruppo_incontro_data,
+            gruppo.clil AS gruppo_clil,
             gruppo_incontro.data AS gruppo_incontro_data,
             gruppo_incontro_partecipazione.ore AS gruppo_incontro_partecipazione_ore
 
@@ -49,10 +50,15 @@ $query = "SELECT
 
 foreach(dbGetAll($query) as $row) {
     $ore_con_minuti = oreToDisplay($row['gruppo_incontro_partecipazione_ore']);
+	$clilMarker = '';
+	if ($row['gruppo_clil']) {
+		$clilMarker = '<span class="label label-danger">clil</span>';
+	}
     $data .= '<tr>
         <td>'.$row['gruppo_nome'].'</td>
         <td class="text-center">'.strftime("%d/%m/%Y", strtotime($row['gruppo_incontro_data'])).'</td>
         <td class="text-center">'.$ore_con_minuti.'</td>
+		<td>'.$clilMarker.'</td>
         </tr>
         ';
 

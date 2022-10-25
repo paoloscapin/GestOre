@@ -254,7 +254,8 @@ function oreFatteAggiornaDocente($docenteId) {
 			AND gruppo_incontro_partecipazione.ha_partecipato = true
 			AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id
 			AND gruppo_incontro.effettuato = true
-			AND gruppo.dipartimento = false;";
+			AND gruppo.dipartimento = false
+			AND gruppo.clil = false;";
 	$ore_gruppi = dbGetValue($query);
 	$ore_70_funzionali = $ore_70_funzionali + $ore_gruppi;
 
