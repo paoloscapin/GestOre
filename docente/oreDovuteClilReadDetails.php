@@ -20,7 +20,16 @@ if(isset($_POST['table_name']) && isset($_POST['table_name']) != "") {
 
 // ricupera la somma delle ore funzionali e con studenti fatte e previste in clil
 $query = "SELECT COALESCE(SUM(ore),0) FROM $table_name WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docente_id AND con_studenti = false;";
-$funzionali=dbGetValue($query);
+$funzionaliParziale=dbGetValue($query);
+
+// anche i gruppi di lavoro clil entrano nel clil funzionale (ma solo nelle ore fatte, dove il responsabile ha inserito la partecipazione)
+$query = "SELECT COALESCE(SUM(gruppo_incontro_partecipazione.ore), 0) FROM gruppo_incontro_partecipazione INNER JOIN gruppo_incontro ON gruppo_incontro_partecipazione.gruppo_incontro_id = gruppo_incontro.id INNER JOIN gruppo ON gruppo_incontro.gruppo_id = gruppo.id
+	WHERE gruppo_incontro_partecipazione.docente_id = $docente_id AND gruppo_incontro_partecipazione.ha_partecipato = true AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id AND gruppo_incontro.effettuato = true AND gruppo.dipartimento = false AND gruppo.clil = true;";
+$clil_ore_gruppi = dbGetValue($query);
+$funzionali = $funzionaliParziale + $clil_ore_gruppi;
+debug('funzionaliParziale='.$funzionaliParziale);
+debug('clil_ore_gruppi='.$clil_ore_gruppi);
+debug('funzionali='.$funzionali);
 
 $query = "SELECT COALESCE(SUM(ore),0) FROM $table_name WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docente_id AND con_studenti = true;";
 $con_studenti=dbGetValue($query);

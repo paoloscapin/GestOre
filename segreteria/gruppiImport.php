@@ -119,13 +119,19 @@ while (($words = nextWords()) != null) {
     // se tutto va bene c'e' un solo valore
     $gruppo_responsabile_docente_id = $gruppo_docente_id_list[0]['id'];
 
-    $sql .= "INSERT INTO gruppo (nome, dipartimento, commento, max_ore, anno_scolastico_id, responsabile_docente_id) VALUES ('$gruppo_nome', 0, '$gruppo_commento', '$gruppo_max_ore', '$__anno_scolastico_corrente_id', '$gruppo_responsabile_docente_id');
-        SET @last_id_gruppo = LAST_INSERT_ID();
-        ";
+    // controlla se e' un gruppo clil
+    $clil = false;
+    $gruppo_clil = strtolower(escapeString($words[5]));
+    if ($gruppo_clil == 'si' || $gruppo_clil == 'clil') {
+        $clil = true;
+    }
 
-    $data = $data . 'Gruppo=' . $gruppo_nome . ' commento=' . $gruppo_commento . ' ore=' . $gruppo_max_ore . ' responsabile=' . $gruppo_responsabile_cognome . " " . $gruppo_responsabile_nome;
+    $sql .= "INSERT INTO gruppo (nome, dipartimento, commento, max_ore, clil, anno_scolastico_id, responsabile_docente_id) VALUES ('$gruppo_nome', 0, '$gruppo_commento', '$gruppo_max_ore', $gruppo_clil, '$__anno_scolastico_corrente_id', '$gruppo_responsabile_docente_id');
+        SET @last_id_gruppo = LAST_INSERT_ID(); ";
+
+    $data = $data . 'Gruppo=' . $gruppo_nome . ' commento=' . $gruppo_commento . ' ore=' . $gruppo_max_ore . ' responsabile=' . $gruppo_responsabile_cognome . " " . $gruppo_responsabile_nome . ' clil=' . $clil;
     $data .= '</br>';
-    debug('Gruppo=' . $gruppo_nome . ' commento=' . $gruppo_commento . ' ore=' . $gruppo_max_ore . ' responsabilente=' . $gruppo_responsabile_cognome . " " . $gruppo_responsabile_nome);
+    debug('Gruppo=' . $gruppo_nome . ' commento=' . $gruppo_commento . ' ore=' . $gruppo_max_ore . ' responsabilente=' . $gruppo_responsabile_cognome . " " . $gruppo_responsabile_nome . ' clil=' . $clil);
 }
 
 // esegue la query se non vuota

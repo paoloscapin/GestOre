@@ -1,8 +1,8 @@
-## Version 1.2.23 - 24 ott 2022
+## Version 1.2.23 - 25 ott 2022
 
 ##### Improvements
 - gestione gruppo completata
-- inseriti gruppi clil
+- inseriti gruppi clil con import ed export e template
 - cacella argomento sportelli se cancello l'ultimo iscritto
 
 ## Version 1.2.22 - 13 ott 2022
