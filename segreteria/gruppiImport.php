@@ -103,7 +103,7 @@ while (($words = nextWords()) != null) {
 
     $gruppo_responsabile_cognome = escapeString(titlecase($words[3]));
     $gruppo_responsabile_nome = escapeString(titlecase($words[4]));
-    $query = "SELECT docente.id FROM docente WHERE docente.cognome LIKE '$gruppo_responsabile_cognome' COLLATE utf8_general_ci AND docente.nome LIKE '$gruppo_responsabile_nome' COLLATE utf8_general_ci ";
+    $query = "SELECT docente.id FROM docente WHERE docente.cognome LIKE '$gruppo_responsabile_cognome' COLLATE utf8_general_ci AND docente.nome LIKE '$gruppo_responsabile_nome' COLLATE utf8_general_ci AND docente.attivo = true";
     $gruppo_docente_id_list = dbGetAll($query);
     // controlla di avere trovato almeno un docente
     if (count($gruppo_docente_id_list) == 0) {

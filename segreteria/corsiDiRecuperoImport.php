@@ -177,6 +177,7 @@ while ($words[0] == 'CODICE') {
             if (!empty($corso_docente_nome)) {
                 $query .= " AND docente.nome LIKE '$corso_docente_nome' COLLATE utf8_general_ci ";
             }
+            $query .=" AND docente.attivo = true ";
             $corso_docente_id_list = dbGetAll($query);
             // controlla di avere trovato almeno un docente
             if (count($corso_docente_id_list) == 0) {

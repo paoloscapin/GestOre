@@ -85,6 +85,7 @@ foreach($lines as $line) {
     if (!empty($docente_nome)) {
         $query .= " AND docente.nome LIKE '$docente_nome' COLLATE utf8_general_ci ";
     }
+    $query .=" AND docente.attivo = true ";
     $docente_id_list = dbGetAll($query);
     // controlla di avere trovato almeno un docente
     if (count($docente_id_list) == 0) {
