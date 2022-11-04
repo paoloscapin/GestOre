@@ -28,6 +28,7 @@
         "minuti": false,
         "sportelli": false,
         "gestioneViaggiSemplificata": false,
+        "pianiDiLavoro": false,
         "corsiDiRecuperoFirmaDocente": true,
         "corsiDiRecuperoVotoSettembreTuttiIDocenti": true
     },
