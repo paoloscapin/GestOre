@@ -30,7 +30,8 @@
         "gestioneViaggiSemplificata": false,
         "pianiDiLavoro": false,
         "corsiDiRecuperoFirmaDocente": true,
-        "corsiDiRecuperoVotoSettembreTuttiIDocenti": true
+        "corsiDiRecuperoVotoSettembreTuttiIDocenti": true,
+        "corsiDiRecuperoPagatiDaProvincia": true
     },
     "interfaccia": {
         "docenteVisualizza80Ore": true,
