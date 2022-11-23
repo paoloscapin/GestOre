@@ -19,47 +19,17 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_flatpickr.php';
+require_once '../common/_include_summernote.php';
 ruoloRichiesto('docente','dirigente');
 ?>
 	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
-	<title>Sportelli</title>
-    <style>
-/* Tooltip */
-.tooltip > .tooltip-inner {
-    background-color: #73AD21; 
-    color: #FFFFFF; 
-    border: 1px solid green; 
-    padding: 15px;
-    font-size: 20px;
-}
-.tooltip.top > .tooltip-arrow {
-    border-top: 5px solid green;
-}
-.tooltip.bottom > .tooltip-arrow {
-    border-bottom: 5px solid blue;
-}
-.tooltip.left > .tooltip-arrow {
-    border-left: 5px solid red;
-}
-.tooltip.right > .tooltip-arrow {
-    border-right: 5px solid black;
-}
-.tooltip-inner {
-    max-width: 450px;
-    /* If max-width does not work, try using width instead */
-    width: 450px;
-    text-align: left;
-}
-</style>
+	<title>Piani di Lavoro</title>
 </head>
 
 <?php
 // prepara l'elenco dei docenti
 $docenteOptionList = '				<option value="0"></option>';
-$query = "	SELECT * FROM docente
-            WHERE docente.attivo = true
-            ORDER BY docente.cognome, docente.nome ASC
-            ;";
+$query = "	SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC;";
 if (!$result = mysqli_query($con, $query)) {
     exit(mysqli_error($con));
 }
@@ -70,12 +40,6 @@ if(mysqli_num_rows($result) > 0) {
             <option value="'.$row['id'].'" >'.$row['cognome'].' '.$row['nome'].'</option>
         ';
     }
-}
-
-// prepara l'elenco delle categorie per il filtro
-$categoriaFiltroOptionList = '<option value="0">tutte</option>';
-foreach(dbGetAll("SELECT * FROM sportello_categoria") as $categoria) {
-    $categoriaFiltroOptionList .= ' <option value="'.$categoria['id'].'" >'.$categoria['nome'].'</option> ';
 }
 
 // prepara l'elenco dei docenti per il filtro
@@ -91,6 +55,42 @@ foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materi
     $materiaFiltroOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
     $materiaOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
 }
+
+// classi da 1 a 5
+$classeOptionList = '';
+for($i = 1; $i<=5; $i++) {
+    $classeOptionList .= ' <option value="'.$i.'" >'.$i.'</option> ';
+}
+
+// prepara l'elenco degli indirizzi per il filtro e per gli indirizi del dialog
+$indirizzoFiltroOptionList = '<option value="0">tutti gli indirizzi</option>';
+$indirizzoOptionList = '';
+foreach(dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; ")as $indirizzo) {
+    $indirizzoFiltroOptionList .= ' <option value="'.$indirizzo['id'].'" >'.$indirizzo['nome_breve'].'</option> ';
+    $indirizzoOptionList .= ' <option value="'.$indirizzo['id'].'" >'.$indirizzo['nome_breve'].'</option> ';
+}
+
+// possibili valori di stato
+$statoFiltroOptionList = '<option value="0">tutti</option>';
+$statoFiltroOptionList .= '<option value="'.'draft'.'" data-content="<span class=\'label label-warning\';\'>'.'draft'.'</span>">'.'draft'.'</option>';
+$statoFiltroOptionList .= '<option value="'.'pubblicato'.'" data-content="<span class=\'label label-info\';\'>'.'pubblicato'.'</span>">'.'pubblicato'.'</option>';
+$statoFiltroOptionList .= '<option value="'.'finale'.'" data-content="<span class=\'label label-success\';\'>'.'finale'.'</span>">'.'finale'.'</option>';
+$statoFiltroOptionList .= '<option value="'.'annullato'.'" data-content="<span class=\'label label-danger\';\'>'.'annullato'.'</span>">'.'annullato'.'</option>';
+$statoOptionList = '';
+$statoOptionList .= '<option value="'.'draft'.'" data-content="<span class=\'label label-warning\';\'>'.'draft'.'</span>">'.'draft'.'</option>';
+$statoOptionList .= '<option value="'.'pubblicato'.'" data-content="<span class=\'label label-info\';\'>'.'pubblicato'.'</span>">'.'pubblicato'.'</option>';
+$statoOptionList .= '<option value="'.'finale'.'" data-content="<span class=\'label label-success\';\'>'.'finale'.'</span>">'.'finale'.'</option>';
+$statoOptionList .= '<option value="'.'annullato'.'" data-content="<span class=\'label label-danger\';\'>'.'annullato'.'</span>">'.'annullato'.'</option>';
+
+// elenco degli anni scolastici
+$annoFiltroOptionList = '<option value="0">tutti</option>';
+$annoOptionList = '';
+$query = "	SELECT * FROM anno_scolastico ORDER BY anno_scolastico.id ASC;";
+foreach(dbGetAll($query) as $annoRow) {
+    $annoFiltroOptionList .= ' <option value="'.$annoRow['id'].'" >'.$annoRow['anno'].'</option> ';
+	$annoOptionList .= '<option value="'.$annoRow['id'].'">'.$annoRow['anno'].'</option>';
+}
+
 ?>
 
 <body >
@@ -107,9 +107,9 @@ require_once '../common/header-docente.php';
 		</div>
         <div class="col-md-2">
             <div class="text-center">
-                <label class="col-sm-2 control-label" for="categoria">Categoria</label>
-					<div class="col-sm-8"><select id="categoria_filtro" name="categoria_filtro" class="categoria_filtro selectpicker" data-style="btn-teal4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
-                    <?php echo $categoriaFiltroOptionList ?>
+                <label class="col-sm-2 control-label" for="anno">Anno</label>
+					<div class="col-sm-8"><select id="anno_filtro" name="anno_filtro" class="anno_filtro selectpicker" data-style="btn-teal4" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $annoFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
@@ -131,17 +131,25 @@ require_once '../common/header-docente.php';
         </div>
         <div class="col-md-2">
             <div class="text-center">
+                <label class="col-sm-2 control-label" for="materia">Stato</label>
+					<div class="col-sm-8"><select id="stato_filtro" name="stato_filtro" class="stato_filtro selectpicker" data-style="btn-yellow4" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $statoFiltroOptionList ?>
+					</select></div>
+            </div>
+        </div>
+        <div class="col-md-1">
+            <div class="text-center">
 				<label class="checkbox-inline">
-					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox" >Solo Nuovi
+					<input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloTemplateCheckBox" >Template
 				</label>
             </div>
         </div>
-		<div class="col-md-2 text-center">
+		<div class="col-md-1 text-center">
             <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
 		</div>
 		<div class="col-md-1 text-right">
             <div class="pull-right">
-				<button class="btn btn-xs btn-orange4" onclick="sportelloGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
+				<button class="btn btn-xs btn-lima4" onclick="pianoDiLavoroGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
 		</div>
 	</div>
@@ -162,108 +170,76 @@ require_once '../common/header-docente.php';
 </div>
 
 <!-- Modal - Add/Update Record -->
-<div class="modal fade" id="sportello_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+<div class="modal fade" id="piano_di_lavoro_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
 			<div class="panel panel-orange4">
 			<div class="panel-heading">
-				<h5 class="modal-title" id="myModalLabel">Sportello</h5>
+				<h5 class="modal-title" id="myModalLabel">Piano di Lavoro</h5>
 			</div>
 			<div class="panel-body">
 			<form class="form-horizontal">
 
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="data">Data</label>
-					<div class="col-sm-4"><input type="text" value="21/8/2018" id="data" placeholder="data" class="form-control" /></div>
-
-                    <label class="col-sm-2 control-label" for="ora">Ora</label>
-                    <div class="col-sm-4"><input type="text" id="ora" placeholder="ora" class="form-control"/></div>
-                </div>
-
                 <div class="form-group docente_selector">
                     <label class="col-sm-2 control-label" for="docente">Docente</label>
-					<div class="col-sm-8"><select id="docente" name="docente" class="docente selectpicker" data-style="btn-success" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
-                    <?php echo $docenteOptionList ?>
-					</select></div>
+					<div class="col-sm-8"><select id="docente" name="docente" class="docente selectpicker" data-style="btn-success" data-live-search="true" data-width="70%"  <?php if (! haRuolo('dirigente')) {echo 'disabled';} ?> ><?php echo $docenteOptionList ?></select></div>
                 </div>
 
                 <div class="form-group materia_selector">
                     <label class="col-sm-2 control-label" for="materia">Materia</label>
-					<div class="col-sm-8"><select id="materia" name="materia" class="materia selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
-                    <?php echo $materiaOptionList ?>
-					</select></div>
+					<div class="col-sm-8"><select id="materia" name="materia" class="materia selectpicker" data-style="btn-yellow4" data-live-search="true" data-width="70%" ><?php echo $materiaOptionList ?></select></div>
                 </div>
 
                 <div class="form-group">
-                    <label class="col-sm-2 control-label" for="numero_ore">Numero di ore</label>
-                    <div class="col-sm-8"><input type="text" id="numero_ore" placeholder="numero ore" class="form-control"/></div>
+                    <label class="col-sm-2 control-label" for="attivita_data">Classe</label>
+                    <div class="col-sm-2">
+                        <select id="classe" name="classe" class="classe selectpicker" data-live-search="false" data-width="70%" > <?php echo $classeOptionList ?></select>
+                    </div>
+
+                    <div class="col-sm-2">
+                        <select id="indirizzo" name="indirizzo" class="indirizzo selectpicker" data-width="70%" > <?php echo $indirizzoOptionList ?></select>
+                    </div>
+
+                    <div class="col-sm-2"><input type="text" id="sezione" placeholder="sezione" class="form-control"/></div>
                 </div>
 
                 <div class="form-group">
-                    <label class="col-sm-2 control-label" for="argomento">Argomento</label>
-                    <div class="col-sm-8"><input type="text" id="argomento" placeholder="! non inserire se si desidera che siano gli studenti a specificarlo !" class="form-control"/></div>
+                    <label for="anno" class="col-sm-2 control-label">Anno Scolastico</label>
+                    <div class="col-sm-3">
+                        <select id="anno" name="anno" class="anno selectpicker" data-live-search="false" data-width="70%" > <?php echo $annoOptionList ?></select>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="col-sm-2 control-label" for="luogo">Luogo</label>
-                    <div class="col-sm-8"><input type="text" id="luogo" placeholder="aula o laboratorio in cui si svolge lo sportello" class="form-control"/></div>
+                    <label for="stato" class="col-sm-2 control-label">Stato</label>
+                    <div class="col-sm-3">
+                        <select id="stato" name="stato" class="stato selectpicker" data-live-search="false" data-width="70%" > <?php echo $statoOptionList ?></select>
+                    </div>
+                    <label for="template" class="col-sm-2 control-label">Template</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="template" ></div>
                 </div>
-
+            </form>
+            <hr>
                 <div class="form-group">
-                    <label class="col-sm-2 control-label" for="classe">Classe</label>
-                    <div class="col-sm-8"><input type="text" id="classe" placeholder="se si desidera specificare la classe/classi a cui si rivolge" class="form-control"/></div>
+                    <label for="competenze">competenze</label>
+					<div class="summernote" rows="6" id="competenze" placeholder="competenze" ></div>
                 </div>
 
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="max_iscrizioni">Max Iscrizioni</label>
-                    <div class="col-sm-8"><input type="text" id="max_iscrizioni" placeholder="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>" class="form-control"/></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="cancellato" ></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="firmato" class="col-sm-2 control-label">Firmato</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="firmato" ></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="online" class="col-sm-2 control-label">Online</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
-                </div>
-
-                <div class="form-group text-center" id="studenti-part">
-                    <hr>
-                    <label for="studenti_table">Studenti</label>
-					<div class="table-wrapper">
-					<table class="table table-bordered table-striped" id="studenti_table">
-						<thead>
-						<tr>
-							<th>id</th><th>studenteId</th><th class="text-center">Studente</th><th class="text-center">Argomento</th><th class="text-center">Presente</th>
-						</tr>
-						</thead>
-						<tbody>
-						</tbody>
-					</table>
-                </div>
-
-                <div class="form-group" id="_error-materia-part"><strong>
+                <div class="form-group" id="_error-piano_di_lavoro-part"><strong>
                     <hr>
                     <div class="col-sm-3 text-right text-danger ">Attenzione</div>
-                    <div class="col-sm-9" id="_error-materia"></div>
-				</strong></div>
+                    <div class="col-sm-9" id="_error-piano_di_lavoro"></div>
+				    </strong>
+                </div>
 
-                <input type="hidden" id="hidden_sportello_id">
-                <input type="hidden" id="hidden_max_iscrizioni_default" value="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>">
-			</form>
+                <input type="hidden" id="hidden_piano_di_lavoro_id">
+                <input type="hidden" id="hidden_docente_id" value="<?php echo $__docente_id; ?>">
 
             </div>
-            <div class="modal-footer text-center">
+            <div class="panel-footer text-center">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                <button type="button" class="btn btn-primary" onclick="sportelloSave()">Salva</button>
+                <button type="button" class="btn btn-primary" onclick="pianoDiLavoroSave()">Salva</button>
             </div>
 			</div>
 			</div>
@@ -275,6 +251,6 @@ require_once '../common/header-docente.php';
 </div>
 
 <!-- Custom JS file -->
-<script type="text/javascript" src="js/sportello.js"></script>
+<script type="text/javascript" src="js/pianoDiLavoro.js"></script>
 </body>
 </html>

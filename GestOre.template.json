@@ -90,6 +90,8 @@
         "prenotaMaxSettimanaSuccessiva": true,
         "inseriti_da_docente": false
     },
+    "pianiDiLavoro": {
+    },
     "label": {
         "ore_funzionali": "funzionali",
         "dovute": "pianificate"
