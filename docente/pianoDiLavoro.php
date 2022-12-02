@@ -91,6 +91,18 @@ foreach(dbGetAll($query) as $annoRow) {
 	$annoOptionList .= '<option value="'.$annoRow['id'].'">'.$annoRow['anno'].'</option>';
 }
 
+// elenco delle metodologie
+$metodologiaOptionList = '';
+foreach(dbGetAll("SELECT * FROM piano_di_lavoro_metodologia ORDER BY piano_di_lavoro_metodologia.nome ASC ; ")as $metodologia) {
+    $metodologiaOptionList .= ' <option value="'.$metodologia['id'].'" >'.$metodologia['nome'].'</option> ';
+}
+
+// elenco tic
+$ticOptionList = '';
+foreach(dbGetAll("SELECT * FROM piano_di_lavoro_tic ORDER BY piano_di_lavoro_tic.nome ASC ; ")as $tic) {
+    $ticOptionList .= ' <option value="'.$tic['id'].'" >'.$tic['nome'].'</option> ';
+}
+
 ?>
 
 <body >
@@ -209,11 +221,8 @@ require_once '../common/header-docente.php';
                     <div class="col-sm-3">
                         <select id="anno" name="anno" class="anno selectpicker" data-live-search="false" data-width="70%" > <?php echo $annoOptionList ?></select>
                     </div>
-                </div>
-
-                <div class="form-group">
                     <label for="stato" class="col-sm-2 control-label">Stato</label>
-                    <div class="col-sm-3">
+                    <div class="col-sm-2">
                         <select id="stato" name="stato" class="stato selectpicker" data-live-search="false" data-width="70%" > <?php echo $statoOptionList ?></select>
                     </div>
                     <label for="template" class="col-sm-2 control-label">Template</label>
@@ -225,6 +234,18 @@ require_once '../common/header-docente.php';
                     <label for="competenze">competenze</label>
 					<div class="summernote" rows="6" id="competenze" placeholder="competenze" ></div>
                 </div>
+            <hr>
+			<form class="form-horizontal">
+            <div class="form-group metodologia_selector">
+                    <label class="col-sm-2 control-label" for="metodologia">Metodologie</label>
+                    <div class="col-sm-10"><select id="metodologia" name="metodologia" class="metodologia selectpicker" multiple data-selected-text-format="count > 3" data-style="btn-yellow4" data-live-search="true" data-width="100%" ><?php echo $metodologiaOptionList ?></select></div>
+                </div>
+                <div class="form-group tic_selector">
+                    <label class="col-sm-2 control-label" for="tic">TIC</label>
+                    <div class="col-sm-10"><select id="tic" name="tic" class="tic selectpicker" multiple data-selected-text-format="count > 3" data-style="btn-yellow4" data-live-search="true" data-width="100%" ><?php echo $ticOptionList ?></select></div>
+                </div>
+            </form>
+            <hr>
 
                 <div class="form-group" id="_error-piano_di_lavoro-part"><strong>
                     <hr>

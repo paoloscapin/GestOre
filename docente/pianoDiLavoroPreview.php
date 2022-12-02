@@ -71,7 +71,7 @@ echo '<title>Piano di Lavoro  ' . $nomeClasse.' - '. $annoScolasticoNome . '</ti
 <meta content="text/html; charset=UTF-8" http-equiv="content-type">
 
 <style>
-h1,h2,h3,h4 {
+h1,h2,h3,h4,h5 {
   color: #0e2c50;
   font-family: Helvetica, Sans-Serif;
 }
@@ -115,6 +115,11 @@ body {
 <p>&nbsp;</p>
 
 <hr>
+<h2 style="text-align: center;">COMPETENZE</h2>
+<?php echo $competenze; ?>
+<p>&nbsp;</p>
+
+<hr>
 <h2 style="text-align: center;">UNIT&Agrave; DIDATTICHE</h2>
 <p>&nbsp;</p>
 
@@ -141,10 +146,10 @@ foreach(dbGetAll($query) as $row) {
     <tbody>
     <tr>
     <td style="width: 6%;text-align: center;">
-    <h2 class="unita_titolo">&nbsp;'.$piano_di_lavoro_contenuto_posizione.'</h3>
+    <h2 class="unita_titolo">&nbsp;'.$piano_di_lavoro_contenuto_posizione.'</h2>
     </td>
     <td style="width: 94%;">
-    <h2 class="unita_titolo">'.$piano_di_lavoro_contenuto_titolo.'</h3>
+    <h2 class="unita_titolo">'.$piano_di_lavoro_contenuto_titolo.'</h2>
     </td>
     </tr>
     </tbody>
@@ -166,12 +171,69 @@ foreach(dbGetAll($query) as $row) {
 
 echo $data;
 
-?>
+// le metodologie se presenti
+$data = '';
+$metodologieList = dbGetAll("SELECT * FROM piano_di_lavoro_metodologia INNER JOIN piano_di_lavoro_usa_metodologia ON piano_di_lavoro_metodologia.id = piano_di_lavoro_usa_metodologia.piano_di_lavoro_metodologia_id WHERE piano_di_lavoro_id = $piano_di_lavoro_id ;");
+if (! empty ($metodologieList)) {
+    $data .= '
+	<hr>
+	<h2 style="text-align: center;">METODOLOGIE</h2>
 
-<p>&nbsp;</p>
-<hr>
-<h2 style="text-align: center;">COMPETENZE</h2>
-<?php echo $competenze; ?>
+    <table style="border-collapse: collapse; width: 100%;">
+    <tbody>';
+
+	foreach($metodologieList as $metodologia) {
+		$data .= '
+		<tr padding-top: 50px;>
+		<td style="width: 25%; padding-top: 30px; padding-bottom: 30px; text-align: right; padding-right: 30px; vertical-align: top;"><h5 style="text-transform:uppercase;">'.$metodologia['nome'].'</h5></td>
+		<td style="width: 75%; padding-top: 30px; padding-bottom: 30px; vertical-align: top;">'.$metodologia['descrizione'].'</td>
+		</tr>';
+	}
+
+
+	$data .= '
+		</tbody>
+		</table>
+		</br>
+		<p>&nbsp;</p>
+        ';
+
+	echo $data;
+
+}
+
+// TIC se presenti
+$data = '';
+$ticList = dbGetAll("SELECT * FROM piano_di_lavoro_tic INNER JOIN piano_di_lavoro_usa_tic ON piano_di_lavoro_tic.id = piano_di_lavoro_usa_tic.piano_di_lavoro_tic_id WHERE piano_di_lavoro_id = $piano_di_lavoro_id ;");
+if (! empty ($ticList)) {
+    $data .= '
+	<hr>
+	<h2 style="text-align: center;">TIC</h2>
+
+    <table style="border-collapse: collapse; width: 100%;">
+    <tbody>';
+
+	foreach($ticList as $tic) {
+		$data .= '
+		<tr padding-top: 50px;>
+		<td style="width: 25%; padding-top: 30px; padding-bottom: 30px; text-align: right; padding-right: 30px; vertical-align: top;"><h5 style="text-transform:uppercase;">'.$tic['nome'].'</h5></td>
+		<td style="width: 75%; padding-top: 30px; padding-bottom: 30px; vertical-align: top;">'.$tic['descrizione'].'</td>
+		</tr>';
+	}
+
+
+	$data .= '
+		</tbody>
+		</table>
+		</br>
+		<p>&nbsp;</p>
+        ';
+
+	echo $data;
+
+}
+
+?>
 
 </body>
 </html>

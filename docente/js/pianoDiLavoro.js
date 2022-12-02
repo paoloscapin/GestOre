@@ -32,14 +32,14 @@ function pianoDiLavoroDelete(id, materia) {
     if (conf == true) {
         $.post("../common/deleteRecord.php", {
 				id: id,
-				table: 'sportello',
+				table: 'piano_di_lavoro',
 				name: "materia" + materia
             },
             function (data, status) {
                 if (data=='Application Error') {
-                    errorNotify('Impossibile cancellare lo sportello', 'Lo sportello della materia <Strong>' + materia + '</Strong> contiene probabilmente degli studenti iscritti o altri riferimenti');
+                    errorNotify('Impossibile cancellare il piano di lavoro', 'Il piano di lavoro <Strong>' + materia + '</Strong> contiene probabilmente dei riferimenti');
                 } else {
-                    infoNotify('Cancellazione effettuata', 'Lo sportello della materia <Strong>' + materia + '</Strong> è stato cancellato regolarmente');
+                    infoNotify('Cancellazione effettuata', 'Il piano di lavoro <Strong>' + materia + '</Strong> è stato cancellato regolarmente');
                 }
                 pianoDiLavoroReadRecords();
             }
@@ -75,7 +75,9 @@ function pianoDiLavoroSave() {
         sezione: $("#sezione").val(),
         template: $("#template").is(':checked')? 1: 0,
         stato: $("#stato").val(),
-        competenze: competenze
+        competenze: competenze,
+        metodologie: $("#metodologia").val(),
+        tic: $("#tic").val()
     }, function (data, status) {
         $("#piano_di_lavoro_modal").modal("hide");
         pianoDiLavoroReadRecords();
@@ -108,6 +110,8 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
             $("#template").prop('checked', piano_di_lavoro.template != 0 && piano_di_lavoro.template != null);
             $('#stato').selectpicker('val', piano_di_lavoro.stato);
             $('#testo').summernote('code', piano_di_lavoro.competenze);
+            $('#metodologia').selectpicker('val', piano_di_lavoro.metodologie);
+            $('#tic').selectpicker('val', piano_di_lavoro.tic);
         });
     } else {
         $('#docente').selectpicker('val', $("#hidden_docente_id").val());
@@ -119,6 +123,8 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
         $("#template").prop('checked', false);
         $('#stato').selectpicker('val', 'draft');
         $('#testo').summernote('code', '');
+        $('#metodologia').selectpicker('val', 0);
+        $('#tic').selectpicker('val', 0);
     }
 	$("#_error-piano_di_lavoro-part").hide();
     $("#piano_di_lavoro_modal").modal("show");
@@ -135,7 +141,7 @@ $(document).ready(function () {
     pianoDiLavoroReadRecords();
 
     $('.summernote').summernote({
-		height: 300,                 // set editor height
+		height: 150,                 // set editor height
 		minHeight: null,             // set minimum height of editor
 		maxHeight: null,             // set maximum height of editor
 		focus: true                  // set focus to editable area after initializing summernote
