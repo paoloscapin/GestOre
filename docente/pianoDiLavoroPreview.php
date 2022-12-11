@@ -293,6 +293,7 @@ if (! $print) {
 	$dompdf->render();
 	
 	// Output the generated PDF to Browser
-	$dompdf->stream();
+	$annoStampabile = str_replace('/','-',$annoScolasticoNome);
+	$dompdf->stream("Piano di Lavoro $materiaNome - $nomeClasse - $annoStampabile.pdf");
 }
 ?>

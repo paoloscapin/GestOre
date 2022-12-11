@@ -145,7 +145,7 @@ $dataCopertina .= '<h3 style="text-align: center;">stato: ' . $pianoDiLavoro['st
             <div class="modal-body">
 			<div class="panel panel-teal4">
 			<div class="panel-heading">
-			<h5 class="modal-title text-center" id="myModalLabel">Sezione</h5>
+			<h5 class="modal-title text-center" id="myModalLabel">Modulo</h5>
 			</div>
 			<div class="panel-body">
                 <div class="form-group">
