@@ -7,21 +7,31 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-?>
+$pagina = '';
 
-<html>
-<head>
-<?php
 require_once '../common/checkSession.php';
 ruoloRichiesto('docente','dirigente','segreteria-docenti');
 require_once '../common/connect.php';
-require_once '../common/header-common.php';
+require_once '../common/dompdf/autoload.inc.php';
+
+use Dompdf\Dompdf;
 
 if(! isset($_GET)) {
 	return;
 } else {
 	$piano_di_lavoro_id = $_GET['piano_di_lavoro_id'];
+	if(isset($_GET['print'])) {
+		$print = true;
+	} else {
+		$print = false;
+	}
 }
+
+$pagina .= '<html>
+<head>
+<link rel="icon" href="'.$__application_base_path.'/ore-32.png" />
+<link rel="stylesheet" href="'.$__application_base_path.'/css/releaseversion.css">
+';
 
 // recupera dal db i dati di questo piano di lavoro
 $query = "	SELECT
@@ -63,67 +73,95 @@ if ($pianoDiLavoro['stato'] == 'draft') {
 // controlla se e' un template
 $templateMarker = ($pianoDiLavoro['template'] == true)? '<span class="label label-success">Template</span>' : '';
 
-
-echo '<title>Piano di Lavoro  ' . $nomeClasse.' - '. $annoScolasticoNome . '</title>';
-
-?>
-
+// aggiunge nella pagina il titolo e gli stili
+$pagina .= '<title>Piano di Lavoro  ' . $nomeClasse.' - '. $annoScolasticoNome . '</title>';
+$pagina .='
 <meta content="text/html; charset=UTF-8" http-equiv="content-type">
-
 <style>
-h1,h2,h3,h4,h5 {
-  color: #0e2c50;
-  font-family: Helvetica, Sans-Serif;
-}
+	h1,h2,h3,h4,h5 { color: #0e2c50; font-family: Helvetica, Sans-Serif; }
+	.unita_titolo { display:inline-block; vertical-align: middle; }
+	body { max-width: 800px; }
+	@media print {
+		.noprint {
+		   visibility: hidden;
+		}
+	 }
 
-.unita_titolo {display:inline-block; vertical-align: middle;}
-
-body {
-    max-width: 800px;
-}
-
+	 @page {
+		@bottom-left {
+		  content: counter(page) " of " counter(pages);
+		}
+	  }
 </style>
+';
 
+// lo script non deve entrare nel pdf
+if (! $print) {
+	$pagina .='
+	<script type="text/javascript">
+	window.onload = (event) => {
+		console.log("ready");
+		var printBtn = document.querySelector(".btn_print");
+		printBtn.onclick = function(event) {
+			event.preventDefault();
+			window.location.search += "&print=true";
+		}
+	};
+	</script>
+	';
+}
+
+// chiude l'intestazione
+$pagina .='
 </head>
-
 <body>
-	<div style="; text-align: center;">
+';
 
-			<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px; height: 136.00px;">
-				<img alt="" src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")); ?>" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
-			</span>
-
+// bottone di print solo se in visualizzazione
+if (! $print) {
+	$pagina .='
+	<div class="text-center noprint" style="padding: 20px;">
+		<input type="button" value="Print" class="btn btn-info btn_print">
 	</div>
+	';
+}
 
+// il resto deve entrare in entrambi i casi, pagina o pdf
+$pagina .= '
+<div style="; text-align: center;">
+	<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px;">
+		<img alt="" src="data:image/png;base64,'.base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")).'" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
+	</span>
+	<hr>
+</div>
+';
+$pagina .= '
 <h1 style="text-align: center;">Piano di lavoro</h1>
 <table style="width: 100%; border-collapse: collapse; border-style: none; border=0">
 <tbody>
 <tr>
 <td style="width: 18%;">
-<h3 style="text-align: center;"><strong><?php echo $nomeClasse;?></strong></h3>
+<h3 style="text-align: center;"><strong>'.$nomeClasse.'</strong></h3>
 </td>
 <td style="width: 64%;">
-<h2 style="text-align: center;"><strong><?php echo $materiaNome;?></strong></h2>
+<h2 style="text-align: center;"><strong>'.$materiaNome.'</strong></h2>
 </td>
 <td style="width: 18%;">
-<h3 style="text-align: center;"><strong><?php echo $annoScolasticoNome;?></strong></h3>
+<h3 style="text-align: center;"><strong>'.$annoScolasticoNome.'</strong></h3>
 </td>
 </tr>
 </tbody>
 </table>
-<p style="text-align: center;">Docente: <?php echo $nomeCognomeDocente;?></p>
+<p style="text-align: center;">Docente: '.$nomeCognomeDocente.'</p>
 <p>&nbsp;</p>
 
 <hr>
-<h2 style="text-align: center;">COMPETENZE</h2>
-<?php echo $competenze; ?>
-<p>&nbsp;</p>
+<h2 style="text-align: center;">COMPETENZE</h2>'.$competenze.'<p>&nbsp;</p>
 
 <hr>
 <h2 style="text-align: center;">UNIT&Agrave; DIDATTICHE</h2>
 <p>&nbsp;</p>
-
-<?php
+';
 
 $query = "	SELECT
 				piano_di_lavoro_contenuto.id AS piano_di_lavoro_contenuto_id,
@@ -141,35 +179,42 @@ foreach(dbGetAll($query) as $row) {
 	$piano_di_lavoro_contenuto_titolo = $row['piano_di_lavoro_contenuto_titolo'];
 	$piano_di_lavoro_contenuto_testo = $row['piano_di_lavoro_contenuto_testo'];
 
-    $data .= '
-    <table style="border-collapse: collapse; width: 100%; border=1">
-    <tbody>
-    <tr>
-    <td style="width: 6%;text-align: center;">
-    <h2 class="unita_titolo">&nbsp;'.$piano_di_lavoro_contenuto_posizione.'</h2>
-    </td>
-    <td style="width: 94%;">
-    <h2 class="unita_titolo">'.$piano_di_lavoro_contenuto_titolo.'</h2>
-    </td>
-    </tr>
-    </tbody>
-    </table>
-    </br>
-    <table style="border-collapse: collapse; width: 100%; border=0">
-    <tbody>
-    <tr>
-    <td style="width: 6%;">&nbsp;</td>
-    <td style="width: 94%;">
-    '.$piano_di_lavoro_contenuto_testo.'
-    </td>
-    </tr>
-    </tbody>
-    </table>
-    <p>&nbsp;</p>
-        ';
-}
+	// evita un page break in mezzo ad un blocco
+	$data .= '<div style="page-break-inside: avoid">';
 
-echo $data;
+    $data .= '
+		<table style="border-collapse: collapse; width: 100%; border=1">
+		<tbody>
+		<tr>
+		<td style="width: 6%;text-align: center;">
+		<h2 class="unita_titolo">&nbsp;'.$piano_di_lavoro_contenuto_posizione.'</h2>
+		</td>
+		<td style="width: 94%;">
+		<h2 class="unita_titolo">'.$piano_di_lavoro_contenuto_titolo.'</h2>
+		</td>
+		</tr>
+		</tbody>
+		</table>
+		<table style="border-collapse: collapse; width: 100%; border=0">
+		<tbody>
+		<tr>
+		<td style="width: 6%;">&nbsp;</td>
+		<td style="width: 94%;">
+		'.$piano_di_lavoro_contenuto_testo.'
+		</td>
+		</tr>
+		</tbody>
+		</table>
+        ';
+
+		// chiude il div del page break avoid
+		$data .= '</div>';
+		$data .= '<div style="page-break-inside: auto">';
+		$data .= '<p>&nbsp;</p>';
+		$data .= '</div>';
+	}
+
+$pagina .= $data;
 
 // le metodologie se presenti
 $data = '';
@@ -198,8 +243,7 @@ if (! empty ($metodologieList)) {
 		<p>&nbsp;</p>
         ';
 
-	echo $data;
-
+	$pagina .= $data;
 }
 
 // TIC se presenti
@@ -229,13 +273,26 @@ if (! empty ($ticList)) {
 		<p>&nbsp;</p>
         ';
 
-	echo $data;
-
+	$pagina .= $data;
 }
 
+// chiude la pagina
+$pagina .= '</body></html>';
+
+// decide se visualizzarla o inviarla a pdf
+if (! $print) {
+	echo $pagina;
+} else {
+	$dompdf = new Dompdf();
+	$dompdf->loadHtml($pagina);
+ 
+	// (Optional) Setup the paper size and orientation
+	$dompdf->setPaper('A4', 'portrait');
+	
+	// Render the HTML as PDF
+	$dompdf->render();
+	
+	// Output the generated PDF to Browser
+	$dompdf->stream();
+}
 ?>
-
-</body>
-</html>
-
-

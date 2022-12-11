@@ -130,6 +130,41 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
     $("#piano_di_lavoro_modal").modal("show");
 }
 
+function pianoDiLavoroDuplicate(original_piano_di_lavoro_id) {
+    bootbox.confirm({
+        message: "<p><strong>Attenzione</strong></br></p>"
+                + "<p>Il piano di lavoro sta per essere duplicato.</br>"
+                + "Al termine della copia i dati del nuovo piano possono essere modificati."
+                + "Nel nuovo piano si potrà poi cambiare i contenuti dei moduli.</p>"
+                + "<hr style=\"border-top: 2px solid #6699ff;\">"
+                + "<p>Vuoi creare una copia di questo piano di lavoro?</p>",
+        buttons: {
+            confirm: {
+                label: 'Si',
+                className: 'btn-success'
+            },
+            cancel: {
+                label: 'No',
+                className: 'btn-danger'
+            }
+        },
+        callback: function (result) {
+            if (result === true) {
+                $.post("../docente/pianoDiLavoroDuplica.php", {
+                    id: original_piano_di_lavoro_id
+                },
+                function (data, status) {
+                    piano_di_lavoro_id = data;
+                    $("#hidden_piano_di_lavoro_id").val(piano_di_lavoro_id);
+                    pianoDiLavoroGetDetails(piano_di_lavoro_id);
+                });
+            } else {
+                bootbox.alert('Duplicazione piano di lavoro: operazione cancellata');
+            }
+        }
+    });
+}
+
 $(document).ready(function () {
 
     // se e' collegato un docente, filtra direttamente i suoi piani quando apre la pagina

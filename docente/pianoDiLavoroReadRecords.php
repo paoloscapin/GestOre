@@ -115,7 +115,8 @@ foreach(dbGetAll($query) as $row) {
 		';
 	$data .='
 		<td class="text-center">
-			<button onclick="pianoDiLavoroOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-file"></span></button>
+			<button onclick="pianoDiLavoroOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-file">&nbsp;Modifica</span></button>
+			<button onclick="pianoDiLavoroDuplicate('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-copy">&nbsp;Duplica</span></button>
 		</td>
 		<td class="text-center">
 			<button onclick="pianoDiLavoroGetDetails('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
