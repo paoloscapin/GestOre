@@ -57,6 +57,7 @@ $nomeCognomeDocente = $pianoDiLavoro['docente_nome'] . ' ' . $pianoDiLavoro['doc
 $annoScolasticoNome = $pianoDiLavoro['anno_scolastico_anno'];
 $materiaNome = $pianoDiLavoro['materia_nome'];
 $competenze = $pianoDiLavoro['competenze'];
+$note_aggiuntive = $pianoDiLavoro['note_aggiuntive'];
 
 // controllo lo stato
 $statoMarker = '';
@@ -80,6 +81,7 @@ $pagina .='
 <style>
 	h1,h2,h3,h4,h5 { color: #0e2c50; font-family: Helvetica, Sans-Serif; }
 	.unita_titolo { display:inline-block; vertical-align: middle; }
+	.nome { text-transform:uppercase; color: #0e2c50; font-family: Helvetica, Sans-Serif; display: block; font-weight: bold; font-size: .83em; }
 	body { max-width: 800px; }
 	@media print {
 		.noprint {
@@ -230,8 +232,8 @@ if (! empty ($metodologieList)) {
 	foreach($metodologieList as $metodologia) {
 		$data .= '
 		<tr padding-top: 50px;>
-		<td style="width: 25%; padding-top: 30px; padding-bottom: 30px; text-align: right; padding-right: 30px; vertical-align: top;"><h5 style="text-transform:uppercase;">'.$metodologia['nome'].'</h5></td>
-		<td style="width: 75%; padding-top: 30px; padding-bottom: 30px; vertical-align: top;">'.$metodologia['descrizione'].'</td>
+		<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$metodologia['nome'].'</span></td>
+		<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$metodologia['descrizione'].'</td>
 		</tr>';
 	}
 
@@ -240,7 +242,35 @@ if (! empty ($metodologieList)) {
 		</tbody>
 		</table>
 		</br>
-		<p>&nbsp;</p>
+        ';
+
+	$pagina .= $data;
+}
+
+// i materiali se presenti
+$data = '';
+$materialiList = dbGetAll("SELECT * FROM piano_di_lavoro_materiale INNER JOIN piano_di_lavoro_usa_materiale ON piano_di_lavoro_materiale.id = piano_di_lavoro_usa_materiale.piano_di_lavoro_materiale_id WHERE piano_di_lavoro_id = $piano_di_lavoro_id ;");
+if (! empty ($materialiList)) {
+    $data .= '
+	<hr>
+	<h2 style="text-align: center;">MATERIALI</h2>
+
+    <table style="border-collapse: collapse; width: 100%;">
+    <tbody>';
+
+	foreach($materialiList as $materiale) {
+		$data .= '
+		<tr padding-top: 50px;>
+		<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$materiale['nome'].'</span></td>
+		<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$materiale['descrizione'].'</td>
+		</tr>';
+	}
+
+
+	$data .= '
+		</tbody>
+		</table>
+		</br>
         ';
 
 	$pagina .= $data;
@@ -260,8 +290,8 @@ if (! empty ($ticList)) {
 	foreach($ticList as $tic) {
 		$data .= '
 		<tr padding-top: 50px;>
-		<td style="width: 25%; padding-top: 30px; padding-bottom: 30px; text-align: right; padding-right: 30px; vertical-align: top;"><h5 style="text-transform:uppercase;">'.$tic['nome'].'</h5></td>
-		<td style="width: 75%; padding-top: 30px; padding-bottom: 30px; vertical-align: top;">'.$tic['descrizione'].'</td>
+		<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$tic['nome'].'</span></td>
+		<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$tic['descrizione'].'</td>
 		</tr>';
 	}
 
@@ -270,8 +300,17 @@ if (! empty ($ticList)) {
 		</tbody>
 		</table>
 		</br>
-		<p>&nbsp;</p>
         ';
+
+	$pagina .= $data;
+}
+
+// note aggiuntive se presenti
+if (! empty($note_aggiuntive)) {
+	$data = '';
+    $data .= '
+	<hr>
+	<h2 style="text-align: center;">NOTE AGGIUNTIVE</h2>'.$note_aggiuntive.'<p>&nbsp;</p>';
 
 	$pagina .= $data;
 }

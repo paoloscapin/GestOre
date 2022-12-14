@@ -31,9 +31,8 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-2">Docente</th>
 						<th class="text-center col-md-1">Stato</th>
-						<th class="text-center col-md-1">Tipo</th>
-						<th class="text-center col-md-1">Documento</th>
-						<th class="text-center col-md-1"></th>
+						<th class="text-center col-md-1">Unità Didattiche</th>
+						<th class="text-center col-md-2"></th>
 					</tr>
 					</thead>';
 					
@@ -110,16 +109,16 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.$dataUltimaModifica.'</td>
 		<td>'.$classe.'</td>
 		<td>'.$docenteNomeCognome.'</td>
-		<td class="text-center">'.$statoMarker.'</td>
-		<td class="text-center">'.$templateMarker.'</td>
+		<td class="text-center">'.$templateMarker.'&nbsp;'.$statoMarker.'</td>
 		';
 	$data .='
 		<td class="text-center">
-			<button onclick="pianoDiLavoroOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-file">&nbsp;Modifica</span></button>
-			<button onclick="pianoDiLavoroDuplicate('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-copy">&nbsp;Duplica</span></button>
+			<button onclick="pianoDiLavoroOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-file">&nbsp;U.D.</span></button>
 		</td>
 		<td class="text-center">
-			<button onclick="pianoDiLavoroGetDetails('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
+		<button onclick="pianoDiLavoroPreview('.$row['piano_di_lavoro_id'].')" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-blackboard"></span>&nbsp;Preview</button>
+		<button onclick="pianoDiLavoroDuplicate('.$row['piano_di_lavoro_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-copy">&nbsp;Duplica</span></button>
+		<button onclick="pianoDiLavoroGetDetails('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
 			<button onclick="pianoDiLavoroDelete('.$row['piano_di_lavoro_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		</tr>';

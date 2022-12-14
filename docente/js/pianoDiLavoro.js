@@ -64,6 +64,7 @@ function pianoDiLavoroSave() {
     $("#_error-piano_di_lavoro-part").hide();
 
     var competenze = $('#competenze').summernote('code');
+    var note_aggiuntive = $('#note_aggiuntive').summernote('code');
 
     $.post("../docente/pianoDiLavoroSave.php", {
         id: $("#hidden_piano_di_lavoro_id").val(),
@@ -76,7 +77,9 @@ function pianoDiLavoroSave() {
         template: $("#template").is(':checked')? 1: 0,
         stato: $("#stato").val(),
         competenze: competenze,
+        note_aggiuntive: note_aggiuntive,
         metodologie: $("#metodologia").val(),
+        materiali: $("#materiale").val(),
         tic: $("#tic").val()
     }, function (data, status) {
         $("#piano_di_lavoro_modal").modal("hide");
@@ -109,8 +112,10 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
             $('#anno').selectpicker('val', piano_di_lavoro.anno_scolastico_id);
             $("#template").prop('checked', piano_di_lavoro.template != 0 && piano_di_lavoro.template != null);
             $('#stato').selectpicker('val', piano_di_lavoro.stato);
-            $('#testo').summernote('code', piano_di_lavoro.competenze);
+            $('#competenze').summernote('code', piano_di_lavoro.competenze);
+            $('#note_aggiuntive').summernote('code', piano_di_lavoro.note_aggiuntive);
             $('#metodologia').selectpicker('val', piano_di_lavoro.metodologie);
+            $('#materiale').selectpicker('val', piano_di_lavoro.materiali);
             $('#tic').selectpicker('val', piano_di_lavoro.tic);
         });
     } else {
@@ -122,8 +127,10 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
         $('#anno').selectpicker('val', 1);
         $("#template").prop('checked', false);
         $('#stato').selectpicker('val', 'draft');
-        $('#testo').summernote('code', '');
+        $('#competenze').summernote('code', '');
+        $('#note_aggiuntive').summernote('code', '');
         $('#metodologia').selectpicker('val', 0);
+        $('#materiale').selectpicker('val', 0);
         $('#tic').selectpicker('val', 0);
     }
 	$("#_error-piano_di_lavoro-part").hide();
@@ -165,6 +172,10 @@ function pianoDiLavoroDuplicate(original_piano_di_lavoro_id) {
     });
 }
 
+function pianoDiLavoroPreview(piano_di_lavoro_id) {
+    window.open('/GestOre/docente/pianoDiLavoroPreview.php?piano_di_lavoro_id=' + piano_di_lavoro_id, '_blank');
+}
+
 $(document).ready(function () {
 
     // se e' collegato un docente, filtra direttamente i suoi piani quando apre la pagina
@@ -176,7 +187,14 @@ $(document).ready(function () {
     pianoDiLavoroReadRecords();
 
     $('.summernote').summernote({
-		height: 150,                 // set editor height
+		height: 120,                 // set editor height
+		minHeight: null,             // set minimum height of editor
+		maxHeight: null,             // set maximum height of editor
+		focus: true                  // set focus to editable area after initializing summernote
+	  });
+
+      $('.summernote-small').summernote({
+		height: 80,                 // set editor height
 		minHeight: null,             // set minimum height of editor
 		maxHeight: null,             // set maximum height of editor
 		focus: true                  // set focus to editable area after initializing summernote

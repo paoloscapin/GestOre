@@ -95,14 +95,20 @@ foreach(dbGetAll($query) as $annoRow) {
 
 // elenco delle metodologie
 $metodologiaOptionList = '';
-foreach(dbGetAll("SELECT * FROM piano_di_lavoro_metodologia ORDER BY piano_di_lavoro_metodologia.nome ASC ; ")as $metodologia) {
+foreach(dbGetAll("SELECT * FROM piano_di_lavoro_metodologia WHERE attivo IS true ORDER BY piano_di_lavoro_metodologia.nome ASC ; ")as $metodologia) {
     $metodologiaOptionList .= ' <option value="'.$metodologia['id'].'" >'.$metodologia['nome'].'</option> ';
 }
 
 // elenco tic
 $ticOptionList = '';
-foreach(dbGetAll("SELECT * FROM piano_di_lavoro_tic ORDER BY piano_di_lavoro_tic.nome ASC ; ")as $tic) {
+foreach(dbGetAll("SELECT * FROM piano_di_lavoro_tic WHERE attivo IS true ORDER BY piano_di_lavoro_tic.nome ASC ; ")as $tic) {
     $ticOptionList .= ' <option value="'.$tic['id'].'" >'.$tic['nome'].'</option> ';
+}
+
+// elenco materiali
+$materialeOptionList = '';
+foreach(dbGetAll("SELECT * FROM piano_di_lavoro_materiale WHERE attivo IS true ORDER BY piano_di_lavoro_materiale.nome ASC ; ")as $materiale) {
+    $materialeOptionList .= ' <option value="'.$materiale['id'].'" >'.$materiale['nome'].'</option> ';
 }
 
 ?>
@@ -159,7 +165,6 @@ require_once '../common/header-docente.php';
             </div>
         </div>
 		<div class="col-md-1 text-center">
-            <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
 		</div>
 		<div class="col-md-1 text-right">
             <div class="pull-right">
@@ -232,15 +237,19 @@ require_once '../common/header-docente.php';
                 </div>
             </form>
             <hr>
-                <div class="form-group">
-                    <label for="competenze">competenze</label>
-					<div class="summernote" rows="6" id="competenze" placeholder="competenze" ></div>
-                </div>
+            <div class="form-group">
+                <label for="competenze">competenze</label>
+                <div class="summernote" rows="6" id="competenze" placeholder="competenze" ></div>
+            </div>
             <hr>
 			<form class="form-horizontal">
-            <div class="form-group metodologia_selector">
+                <div class="form-group metodologia_selector">
                     <label class="col-sm-2 control-label" for="metodologia">Metodologie</label>
                     <div class="col-sm-10"><select id="metodologia" name="metodologia" class="metodologia selectpicker" multiple data-selected-text-format="count > 3" data-style="btn-yellow4" data-live-search="true" data-width="100%" ><?php echo $metodologiaOptionList ?></select></div>
+                </div>
+                <div class="form-group materiale_selector">
+                    <label class="col-sm-2 control-label" for="materiale">Materiali</label>
+                    <div class="col-sm-10"><select id="materiale" name="materiale" class="materiale selectpicker" multiple data-selected-text-format="count > 3" data-style="btn-yellow4" data-live-search="true" data-width="100%" ><?php echo $materialeOptionList ?></select></div>
                 </div>
                 <div class="form-group tic_selector">
                     <label class="col-sm-2 control-label" for="tic">TIC</label>
@@ -248,16 +257,20 @@ require_once '../common/header-docente.php';
                 </div>
             </form>
             <hr>
+            <div class="form-group">
+                <label for="note_aggiuntive">note aggiuntive</label>
+                <div class="summernote-small" rows="6" id="note_aggiuntive" placeholder="note_aggiuntive" ></div>
+            </div>
 
-                <div class="form-group" id="_error-piano_di_lavoro-part"><strong>
-                    <hr>
-                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
-                    <div class="col-sm-9" id="_error-piano_di_lavoro"></div>
-				    </strong>
-                </div>
+            <div class="form-group" id="_error-piano_di_lavoro-part"><strong>
+                <hr>
+                <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                <div class="col-sm-9" id="_error-piano_di_lavoro"></div>
+                </strong>
+            </div>
 
-                <input type="hidden" id="hidden_piano_di_lavoro_id">
-                <input type="hidden" id="hidden_docente_id" value="<?php echo $__docente_id; ?>">
+            <input type="hidden" id="hidden_piano_di_lavoro_id">
+            <input type="hidden" id="hidden_docente_id" value="<?php echo $__docente_id; ?>">
 
             </div>
             <div class="panel-footer text-center">

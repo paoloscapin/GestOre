@@ -15,15 +15,16 @@ if(isset($_POST)) {
 	$original_piano_di_lavoro_id = $_POST['id'];
 
     // legge il contenuto del record corrente e lo duplica
-    $query = "INSERT INTO piano_di_lavoro(docente_id, materia_id, anno_scolastico_id, indirizzo_id, classe, sezione, template, stato, competenze)
-            SELECT '$__docente_id', materia_id, anno_scolastico_id, indirizzo_id, classe, sezione, template, stato, competenze
+    $query = "INSERT INTO piano_di_lavoro(docente_id, materia_id, anno_scolastico_id, indirizzo_id, classe, sezione, template, stato, competenze, note_aggiuntive)
+            SELECT '$__docente_id', materia_id, anno_scolastico_id, indirizzo_id, classe, sezione, template, stato, competenze, note_aggiuntive
             FROM piano_di_lavoro WHERE id = $original_piano_di_lavoro_id; ";
     dbExec($query);
 
     $piano_di_lavoro_id = dblastId();
 
-    // aggiorna tutte le metodologie e le tic riferite
+    // aggiorna tutte le metodologie, i materiali e le tic riferite
     dbExec("INSERT INTO piano_di_lavoro_usa_metodologia(piano_di_lavoro_id, piano_di_lavoro_metodologia_id) SELECT '$piano_di_lavoro_id', piano_di_lavoro_metodologia_id FROM piano_di_lavoro_usa_metodologia WHERE piano_di_lavoro_id = $original_piano_di_lavoro_id;");
+    dbExec("INSERT INTO piano_di_lavoro_usa_materiale(piano_di_lavoro_id, piano_di_lavoro_materiale_id) SELECT '$piano_di_lavoro_id', piano_di_lavoro_materiale_id FROM piano_di_lavoro_usa_materiale WHERE piano_di_lavoro_id = $original_piano_di_lavoro_id;");
     dbExec("INSERT INTO piano_di_lavoro_usa_tic(piano_di_lavoro_id, piano_di_lavoro_tic_id) SELECT '$piano_di_lavoro_id', piano_di_lavoro_tic_id FROM piano_di_lavoro_usa_tic WHERE piano_di_lavoro_id = $original_piano_di_lavoro_id;");
 
     // ora deve duplicare tutti i moduli
