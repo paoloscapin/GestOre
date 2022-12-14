@@ -237,30 +237,40 @@ require_once '../common/header-docente.php';
                 </div>
             </form>
             <hr>
+<?php if(getSettingsValue('pianiDiLavoro','competenze', true)) : ?>
             <div class="form-group">
                 <label for="competenze">competenze</label>
                 <div class="summernote" rows="6" id="competenze" placeholder="competenze" ></div>
             </div>
             <hr>
+<?php endif; ?>
 			<form class="form-horizontal">
+<?php if(getSettingsValue('pianiDiLavoro','metodologie', true)) : ?>
                 <div class="form-group metodologia_selector">
                     <label class="col-sm-2 control-label" for="metodologia">Metodologie</label>
                     <div class="col-sm-10"><select id="metodologia" name="metodologia" class="metodologia selectpicker" multiple data-selected-text-format="count > 3" data-style="btn-yellow4" data-live-search="true" data-width="100%" ><?php echo $metodologiaOptionList ?></select></div>
                 </div>
+<?php endif; ?>
+<?php if(getSettingsValue('pianiDiLavoro','materiali', true)) : ?>
                 <div class="form-group materiale_selector">
                     <label class="col-sm-2 control-label" for="materiale">Materiali</label>
                     <div class="col-sm-10"><select id="materiale" name="materiale" class="materiale selectpicker" multiple data-selected-text-format="count > 3" data-style="btn-yellow4" data-live-search="true" data-width="100%" ><?php echo $materialeOptionList ?></select></div>
                 </div>
+<?php endif; ?>
+<?php if(getSettingsValue('pianiDiLavoro','tic', true)) : ?>
                 <div class="form-group tic_selector">
                     <label class="col-sm-2 control-label" for="tic">TIC</label>
                     <div class="col-sm-10"><select id="tic" name="tic" class="tic selectpicker" multiple data-selected-text-format="count > 3" data-style="btn-yellow4" data-live-search="true" data-width="100%" ><?php echo $ticOptionList ?></select></div>
                 </div>
+<?php endif; ?>
             </form>
+<?php if(getSettingsValue('pianiDiLavoro','note_aggiuntive', true)) : ?>
             <hr>
             <div class="form-group">
                 <label for="note_aggiuntive">note aggiuntive</label>
                 <div class="summernote-small" rows="6" id="note_aggiuntive" placeholder="note_aggiuntive" ></div>
             </div>
+<?php endif; ?>
 
             <div class="form-group" id="_error-piano_di_lavoro-part"><strong>
                 <hr>

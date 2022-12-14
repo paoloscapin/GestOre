@@ -115,55 +115,58 @@ if (! $print) {
 
 // chiude l'intestazione
 $pagina .='
-</head>
-<body>
-';
+	</head>
+	<body>
+	';
 
 // bottone di print solo se in visualizzazione
 if (! $print) {
 	$pagina .='
-	<div class="text-center noprint" style="padding: 20px;">
-		<input type="button" value="Print" class="btn btn-info btn_print">
-	</div>
-	';
+		<div class="text-center noprint" style="padding: 20px;">
+			<input type="button" value="Print" class="btn btn-info btn_print">
+		</div>';
 }
 
 // il resto deve entrare in entrambi i casi, pagina o pdf
 $pagina .= '
-<div style="; text-align: center;">
-	<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px;">
-		<img alt="" src="data:image/png;base64,'.base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")).'" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
-	</span>
-	<hr>
-</div>
-';
+	<div style="; text-align: center;">
+		<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px;">
+			<img alt="" src="data:image/png;base64,'.base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")).'" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
+		</span>
+		<hr>
+	</div>';
+
 $pagina .= '
-<h1 style="text-align: center;">Piano di lavoro</h1>
-<table style="width: 100%; border-collapse: collapse; border-style: none; border=0">
-<tbody>
-<tr>
-<td style="width: 18%;">
-<h3 style="text-align: center;"><strong>'.$nomeClasse.'</strong></h3>
-</td>
-<td style="width: 64%;">
-<h2 style="text-align: center;"><strong>'.$materiaNome.'</strong></h2>
-</td>
-<td style="width: 18%;">
-<h3 style="text-align: center;"><strong>'.$annoScolasticoNome.'</strong></h3>
-</td>
-</tr>
-</tbody>
-</table>
-<p style="text-align: center;">Docente: '.$nomeCognomeDocente.'</p>
-<p>&nbsp;</p>
+	<h1 style="text-align: center;">Piano di lavoro</h1>
+	<table style="width: 100%; border-collapse: collapse; border-style: none; border=0">
+	<tbody>
+	<tr>
+	<td style="width: 18%;">
+	<h3 style="text-align: center;"><strong>'.$nomeClasse.'</strong></h3>
+	</td>
+	<td style="width: 64%;">
+	<h2 style="text-align: center;"><strong>'.$materiaNome.'</strong></h2>
+	</td>
+	<td style="width: 18%;">
+	<h3 style="text-align: center;"><strong>'.$annoScolasticoNome.'</strong></h3>
+	</td>
+	</tr>
+	</tbody>
+	</table>
+	<p style="text-align: center;">Docente: '.$nomeCognomeDocente.'</p>
+	<p>&nbsp;</p>';
 
-<hr>
-<h2 style="text-align: center;">COMPETENZE</h2>'.$competenze.'<p>&nbsp;</p>
+if (getSettingsValue('pianiDiLavoro','competenze', true)) {
+	$pagina .= '
+		<hr>
+		<h2 style="text-align: center;">COMPETENZE</h2>'.$competenze.'<p>&nbsp;</p>';
+}
 
-<hr>
-<h2 style="text-align: center;">UNIT&Agrave; DIDATTICHE</h2>
-<p>&nbsp;</p>
-';
+$pagina .= '
+	<hr>
+	<h2 style="text-align: center;">UNIT&Agrave; DIDATTICHE</h2>
+	<p>&nbsp;</p>
+	';
 
 $query = "	SELECT
 				piano_di_lavoro_contenuto.id AS piano_di_lavoro_contenuto_id,
@@ -219,100 +222,111 @@ foreach(dbGetAll($query) as $row) {
 $pagina .= $data;
 
 // le metodologie se presenti
-$data = '';
-$metodologieList = dbGetAll("SELECT * FROM piano_di_lavoro_metodologia INNER JOIN piano_di_lavoro_usa_metodologia ON piano_di_lavoro_metodologia.id = piano_di_lavoro_usa_metodologia.piano_di_lavoro_metodologia_id WHERE piano_di_lavoro_id = $piano_di_lavoro_id ;");
-if (! empty ($metodologieList)) {
-    $data .= '
-	<hr>
-	<h2 style="text-align: center;">METODOLOGIE</h2>
-
-    <table style="border-collapse: collapse; width: 100%;">
-    <tbody>';
-
-	foreach($metodologieList as $metodologia) {
+if (getSettingsValue('pianiDiLavoro','metodologie', true)) {
+	$data = '';
+	$metodologieList = dbGetAll("SELECT * FROM piano_di_lavoro_metodologia INNER JOIN piano_di_lavoro_usa_metodologia ON piano_di_lavoro_metodologia.id = piano_di_lavoro_usa_metodologia.piano_di_lavoro_metodologia_id WHERE piano_di_lavoro_id = $piano_di_lavoro_id ;");
+	if (! empty ($metodologieList)) {
 		$data .= '
-		<tr padding-top: 50px;>
-		<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$metodologia['nome'].'</span></td>
-		<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$metodologia['descrizione'].'</td>
-		</tr>';
+			<div style="page-break-inside: avoid">
+			<hr>
+			<h2 style="text-align: center;">METODOLOGIE</h2>
+			<table style="border-collapse: collapse; width: 100%;">
+			<tbody>';
+
+		foreach($metodologieList as $metodologia) {
+			$data .= '
+				<tr padding-top: 50px;>
+				<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$metodologia['nome'].'</span></td>
+				<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$metodologia['descrizione'].'</td>
+				</tr>';
+		}
+
+		$data .= '
+			</tbody>
+			</table>
+			</br>
+			</div>';
+
+		$pagina .= $data;
 	}
-
-
-	$data .= '
-		</tbody>
-		</table>
-		</br>
-        ';
-
-	$pagina .= $data;
 }
 
 // i materiali se presenti
-$data = '';
-$materialiList = dbGetAll("SELECT * FROM piano_di_lavoro_materiale INNER JOIN piano_di_lavoro_usa_materiale ON piano_di_lavoro_materiale.id = piano_di_lavoro_usa_materiale.piano_di_lavoro_materiale_id WHERE piano_di_lavoro_id = $piano_di_lavoro_id ;");
-if (! empty ($materialiList)) {
-    $data .= '
-	<hr>
-	<h2 style="text-align: center;">MATERIALI</h2>
-
-    <table style="border-collapse: collapse; width: 100%;">
-    <tbody>';
-
-	foreach($materialiList as $materiale) {
+if (getSettingsValue('pianiDiLavoro','materiali', true)) {
+	$data = '';
+	$materialiList = dbGetAll("SELECT * FROM piano_di_lavoro_materiale INNER JOIN piano_di_lavoro_usa_materiale ON piano_di_lavoro_materiale.id = piano_di_lavoro_usa_materiale.piano_di_lavoro_materiale_id WHERE piano_di_lavoro_id = $piano_di_lavoro_id ;");
+	if (! empty ($materialiList)) {
 		$data .= '
-		<tr padding-top: 50px;>
-		<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$materiale['nome'].'</span></td>
-		<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$materiale['descrizione'].'</td>
-		</tr>';
+			<div style="page-break-inside: avoid">
+			<hr>
+			<h2 style="text-align: center;">MATERIALI</h2>
+
+			<table style="border-collapse: collapse; width: 100%;">
+			<tbody>';
+
+		foreach($materialiList as $materiale) {
+			$data .= '
+				<tr padding-top: 50px;>
+				<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$materiale['nome'].'</span></td>
+				<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$materiale['descrizione'].'</td>
+				</tr>';
+		}
+
+
+		$data .= '
+			</tbody>
+			</table>
+			</br>
+			</div>';
+
+		$pagina .= $data;
 	}
-
-
-	$data .= '
-		</tbody>
-		</table>
-		</br>
-        ';
-
-	$pagina .= $data;
 }
 
 // TIC se presenti
-$data = '';
-$ticList = dbGetAll("SELECT * FROM piano_di_lavoro_tic INNER JOIN piano_di_lavoro_usa_tic ON piano_di_lavoro_tic.id = piano_di_lavoro_usa_tic.piano_di_lavoro_tic_id WHERE piano_di_lavoro_id = $piano_di_lavoro_id ;");
-if (! empty ($ticList)) {
-    $data .= '
-	<hr>
-	<h2 style="text-align: center;">TIC</h2>
-
-    <table style="border-collapse: collapse; width: 100%;">
-    <tbody>';
-
-	foreach($ticList as $tic) {
+if (getSettingsValue('pianiDiLavoro','tic', true)) {
+	$data = '';
+	$ticList = dbGetAll("SELECT * FROM piano_di_lavoro_tic INNER JOIN piano_di_lavoro_usa_tic ON piano_di_lavoro_tic.id = piano_di_lavoro_usa_tic.piano_di_lavoro_tic_id WHERE piano_di_lavoro_id = $piano_di_lavoro_id ;");
+	if (! empty ($ticList)) {
 		$data .= '
-		<tr padding-top: 50px;>
-		<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$tic['nome'].'</span></td>
-		<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$tic['descrizione'].'</td>
-		</tr>';
+			<div style="page-break-inside: avoid">
+			<hr>
+			<h2 style="text-align: center;">TIC</h2>
+
+			<table style="border-collapse: collapse; width: 100%;">
+			<tbody>';
+
+		foreach($ticList as $tic) {
+			$data .= '
+				<tr padding-top: 50px;>
+				<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$tic['nome'].'</span></td>
+				<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$tic['descrizione'].'</td>
+				</tr>';
+		}
+
+
+		$data .= '
+			</tbody>
+			</table>
+			</br>
+			</div>';
+
+		$pagina .= $data;
 	}
-
-
-	$data .= '
-		</tbody>
-		</table>
-		</br>
-        ';
-
-	$pagina .= $data;
 }
 
 // note aggiuntive se presenti
-if (! empty($note_aggiuntive)) {
-	$data = '';
-    $data .= '
-	<hr>
-	<h2 style="text-align: center;">NOTE AGGIUNTIVE</h2>'.$note_aggiuntive.'<p>&nbsp;</p>';
+if (getSettingsValue('pianiDiLavoro','note_aggiuntive', true)) {
+	if (! empty($note_aggiuntive)) {
+		$data = '';
+		$data .= '
+			<div style="page-break-inside: avoid">
+			<hr>
+			<h2 style="text-align: center;">NOTE AGGIUNTIVE</h2>'.$note_aggiuntive.'<p>&nbsp;</p>
+			</div>';
 
-	$pagina .= $data;
+		$pagina .= $data;
+	}
 }
 
 // chiude la pagina

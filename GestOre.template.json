@@ -91,6 +91,11 @@
         "inseriti_da_docente": false
     },
     "pianiDiLavoro": {
+        "competenze": true,
+        "metodologie": true,
+        "materiali": true,
+        "tic": true,
+        "note_aggiuntive": true
     },
     "label": {
         "ore_funzionali": "funzionali",
