@@ -1708,6 +1708,214 @@ CREATE TABLE IF NOT EXISTS `sportello_categoria` (
 ENGINE = InnoDB;
 
 
+-- -----------------------------------------------------
+-- Table `indirizzo`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `indirizzo` ;
+
+CREATE TABLE IF NOT EXISTS `indirizzo` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(200) NULL,
+  `nome_breve` VARCHAR(20) NULL,
+  `biennio` TINYINT NULL DEFAULT 1,
+  `triennio` TINYINT NULL DEFAULT 1,
+  PRIMARY KEY (`id`),
+  INDEX `biennio_INDEX` (`biennio` ASC),
+  INDEX `triennio_INDEX` (`triennio` ASC),
+  INDEX `nome_breve_INDEX` (`nome_breve` ASC))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `piano_di_lavoro`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `piano_di_lavoro` ;
+
+CREATE TABLE IF NOT EXISTS `piano_di_lavoro` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `classe` INT NOT NULL DEFAULT 1,
+  `sezione` VARCHAR(10) NOT NULL DEFAULT 'A',
+  `stato` VARCHAR(45) NULL DEFAULT 'draft',
+  `competenze` TEXT NULL,
+  `note_aggiuntive` TEXT NULL,
+  `template` TINYINT NULL DEFAULT 0,
+  `creazione` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `ultima_modifica` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `indirizzo_id` INT NOT NULL,
+  `materia_id` INT NOT NULL,
+  `anno_scolastico_id` INT NOT NULL,
+  `docente_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_piano_di_lavoro_indirizzo1_idx` (`indirizzo_id` ASC),
+  INDEX `fk_piano_di_lavoro_materia1_idx` (`materia_id` ASC),
+  INDEX `fk_piano_di_lavoro_anno_scolastico1_idx` (`anno_scolastico_id` ASC),
+  INDEX `fk_piano_di_lavoro_docente1_idx` (`docente_id` ASC),
+  INDEX `stato_INDEX` (`stato` ASC),
+  INDEX `classe_INDEX` (`classe` ASC),
+  INDEX `sezione_INDEX` (`sezione` ASC),
+  INDEX `template_INDEX` (`template` ASC),
+  CONSTRAINT `fk_piano_di_lavoro_indirizzo1`
+    FOREIGN KEY (`indirizzo_id`)
+    REFERENCES `indirizzo` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_piano_di_lavoro_materia1`
+    FOREIGN KEY (`materia_id`)
+    REFERENCES `materia` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_piano_di_lavoro_anno_scolastico1`
+    FOREIGN KEY (`anno_scolastico_id`)
+    REFERENCES `anno_scolastico` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_piano_di_lavoro_docente1`
+    FOREIGN KEY (`docente_id`)
+    REFERENCES `docente` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `piano_di_lavoro_contenuto`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `piano_di_lavoro_contenuto` ;
+
+CREATE TABLE IF NOT EXISTS `piano_di_lavoro_contenuto` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `titolo` VARCHAR(200) NULL,
+  `testo` TEXT NULL,
+  `posizione` INT NULL,
+  `piano_di_lavoro_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_piano_di_lavoro_contenuto_piano_di_lavoro1_idx` (`piano_di_lavoro_id` ASC),
+  INDEX `posizione_INDEX` (`posizione` ASC),
+  CONSTRAINT `fk_piano_di_lavoro_contenuto_piano_di_lavoro1`
+    FOREIGN KEY (`piano_di_lavoro_id`)
+    REFERENCES `piano_di_lavoro` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `piano_di_lavoro_metodologia`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `piano_di_lavoro_metodologia` ;
+
+CREATE TABLE IF NOT EXISTS `piano_di_lavoro_metodologia` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(200) NULL,
+  `descrizione` TEXT NULL,
+  `attivo` TINYINT NULL DEFAULT 1,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `piano_di_lavoro_usa_metodologia`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `piano_di_lavoro_usa_metodologia` ;
+
+CREATE TABLE IF NOT EXISTS `piano_di_lavoro_usa_metodologia` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `piano_di_lavoro_id` INT NOT NULL,
+  `piano_di_lavoro_metodologia_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_piano_di_lavoro_usa_metodologia_piano_di_lavoro1_idx` (`piano_di_lavoro_id` ASC),
+  INDEX `fk_piano_di_lavoro_usa_metodologia_piano_di_lavoro_metodolo_idx` (`piano_di_lavoro_metodologia_id` ASC),
+  CONSTRAINT `fk_piano_di_lavoro_usa_metodologia_piano_di_lavoro1`
+    FOREIGN KEY (`piano_di_lavoro_id`)
+    REFERENCES `piano_di_lavoro` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_piano_di_lavoro_usa_metodologia_piano_di_lavoro_metodologia1`
+    FOREIGN KEY (`piano_di_lavoro_metodologia_id`)
+    REFERENCES `piano_di_lavoro_metodologia` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `piano_di_lavoro_tic`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `piano_di_lavoro_tic` ;
+
+CREATE TABLE IF NOT EXISTS `piano_di_lavoro_tic` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(200) NULL,
+  `descrizione` TEXT NULL,
+  `attivo` TINYINT NULL DEFAULT 1,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `piano_di_lavoro_usa_tic`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `piano_di_lavoro_usa_tic` ;
+
+CREATE TABLE IF NOT EXISTS `piano_di_lavoro_usa_tic` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `piano_di_lavoro_id` INT NOT NULL,
+  `piano_di_lavoro_tic_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_piano_di_lavoro_usa_tic_piano_di_lavoro1_idx` (`piano_di_lavoro_id` ASC),
+  INDEX `fk_piano_di_lavoro_usa_tic_piano_di_lavoro_tic1_idx` (`piano_di_lavoro_tic_id` ASC),
+  CONSTRAINT `fk_piano_di_lavoro_usa_tic_piano_di_lavoro1`
+    FOREIGN KEY (`piano_di_lavoro_id`)
+    REFERENCES `piano_di_lavoro` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_piano_di_lavoro_usa_tic_piano_di_lavoro_tic1`
+    FOREIGN KEY (`piano_di_lavoro_tic_id`)
+    REFERENCES `piano_di_lavoro_tic` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `piano_di_lavoro_materiale`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `piano_di_lavoro_materiale` ;
+
+CREATE TABLE IF NOT EXISTS `piano_di_lavoro_materiale` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(200) NULL,
+  `descrizione` TEXT NULL,
+  `attivo` TINYINT NULL DEFAULT 1,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `piano_di_lavoro_usa_materiale`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `piano_di_lavoro_usa_materiale` ;
+
+CREATE TABLE IF NOT EXISTS `piano_di_lavoro_usa_materiale` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `piano_di_lavoro_id` INT NOT NULL,
+  `piano_di_lavoro_materiale_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_piano_di_lavoro_usa_materiale_piano_di_lavoro1_idx` (`piano_di_lavoro_id` ASC),
+  INDEX `fk_piano_di_lavoro_usa_materiale_piano_di_lavoro_materiale1_idx` (`piano_di_lavoro_materiale_id` ASC),
+  CONSTRAINT `fk_piano_di_lavoro_usa_materiale_piano_di_lavoro1`
+    FOREIGN KEY (`piano_di_lavoro_id`)
+    REFERENCES `piano_di_lavoro` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_piano_di_lavoro_usa_materiale_piano_di_lavoro_materiale1`
+    FOREIGN KEY (`piano_di_lavoro_materiale_id`)
+    REFERENCES `piano_di_lavoro_materiale` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
