@@ -27,6 +27,21 @@ function pianoDiLavoroDocumentoSave() {
     });
 }
 
+function pianoDiLavoroDocumentoRemove(piano_di_lavoro_documento_id, piano_di_lavoro_contenuto_posizione) {
+    var conf = confirm("Sei sicuro di volere cancellare il modulo " + piano_di_lavoro_contenuto_posizione + " ?");
+    if (conf == true) {
+        $.post("../common/deleteRecord.php", {
+				id: piano_di_lavoro_documento_id,
+				table: 'piano_di_lavoro_contenuto',
+				name: "posizione " + piano_di_lavoro_contenuto_posizione
+            },
+            function (data, status) {
+                pianoDiLavoroDocumentoReadRecords();
+            }
+        );
+    }
+}
+
 function pianoDiLavoroDocumentoGetDetails(piano_di_lavoro_documento_id) {
     $("#hidden_piano_di_lavoro_documento_id").val(piano_di_lavoro_documento_id);
 

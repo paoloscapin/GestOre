@@ -31,7 +31,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-2">Docente</th>
 						<th class="text-center col-md-1">Stato</th>
-						<th class="text-center col-md-1">Unità Didattiche</th>
+						<th class="text-center col-md-1">Moduli</th>
 						<th class="text-center col-md-2"></th>
 					</tr>
 					</thead>';
@@ -113,7 +113,7 @@ foreach(dbGetAll($query) as $row) {
 		';
 	$data .='
 		<td class="text-center">
-			<button onclick="pianoDiLavoroOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-file">&nbsp;U.D.</span></button>
+			<button onclick="pianoDiLavoroOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-file">&nbsp;Moduli</span></button>
 		</td>
 		<td class="text-center">
 		<button onclick="pianoDiLavoroPreview('.$row['piano_di_lavoro_id'].')" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-blackboard"></span>&nbsp;Preview</button>

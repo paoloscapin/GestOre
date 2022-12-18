@@ -38,9 +38,10 @@ foreach($rowList as $row) {
 <div class="panel panel-teal4">
 <div class="panel-heading container-fluid">
 <div class="row">
-<div class="col-md-1"><strong>U.D. '.$row['piano_di_lavoro_contenuto_posizione'].'</strong></div>
+<div class="col-md-1"><strong>Modulo '.$row['piano_di_lavoro_contenuto_posizione'].'</strong></div>
 <div class="col-md-10"><strong>'.$row['piano_di_lavoro_contenuto_titolo'].'</strong></div>
 <div class="col-md-1 text-right"><div class="pull-right">
+	<button class="btn btn-xs btn-teal4" onclick="pianoDiLavoroDocumentoRemove('.$pianoDiLavoroContenutoId.', '.$piano_di_lavoro_contenuto_posizione.')"><span class="glyphicon glyphicon-remove"></span>&nbsp;elimina</button>
 	<button class="btn btn-xs btn-teal4" onclick="moveUp('.$piano_di_lavoro_contenuto_posizione.')" '. (($counter==1)?'disabled':'') .'><span class="glyphicon glyphicon-chevron-up"></span></button>
 	<button class="btn btn-xs btn-teal4" onclick="moveDown('.$piano_di_lavoro_contenuto_posizione.')" '. (($counter==$numContenuti)?'disabled':'') .'><span class="glyphicon glyphicon-chevron-down"></span></button>
 </div></div>

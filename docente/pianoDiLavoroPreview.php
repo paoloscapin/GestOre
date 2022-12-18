@@ -164,7 +164,7 @@ if (getSettingsValue('pianiDiLavoro','competenze', true)) {
 
 $pagina .= '
 	<hr>
-	<h2 style="text-align: center;">UNIT&Agrave; DIDATTICHE</h2>
+	<h2 style="text-align: center;">MODULI</h2>
 	<p>&nbsp;</p>
 	';
 
