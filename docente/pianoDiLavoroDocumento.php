@@ -154,7 +154,7 @@ $dataCopertina .= '<h3 style="text-align: center;">stato: ' . $pianoDiLavoro['st
                 </div>
 
                 <div class="form-group">
-                    <label for="testo">Testo</label>
+                    <label for="testo">Contenuti</label>
 					<div class="summernote" rows="10" id="testo" placeholder="testo" ></div>
                 </div>
             </div>
