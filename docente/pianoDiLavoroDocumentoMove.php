@@ -22,7 +22,7 @@ if(isset($_POST)) {
     // controlla quale e' la posizione piu' alta
     $lastPos = dbGetValue("SELECT COALESCE(MAX(piano_di_lavoro_contenuto.posizione),0) FROM `piano_di_lavoro_contenuto` WHERE piano_di_lavoro_id=$piano_di_lavoro_id;");
     
-    // controlla che sia valida
+    // controlla l'ordine delle posizioni
     if ($nuovaPosizione < 1 || $nuovaPosizione > $lastPos) {
         warning("cerco di muovere da posizione $vecchiaPosizione a posizione $nuovaPosizione il contenuto del piano $piano_di_lavoro_id");
         return;

@@ -30,10 +30,10 @@ function pianoDiLavoroDocumentoSave() {
 function pianoDiLavoroDocumentoRemove(piano_di_lavoro_documento_id, piano_di_lavoro_contenuto_posizione) {
     var conf = confirm("Sei sicuro di volere cancellare il modulo " + piano_di_lavoro_contenuto_posizione + " ?");
     if (conf == true) {
-        $.post("../common/deleteRecord.php", {
-				id: piano_di_lavoro_documento_id,
-				table: 'piano_di_lavoro_contenuto',
-				name: "posizione " + piano_di_lavoro_contenuto_posizione
+        $.post("../docente/pianoDiLavoroDocumentoDelete.php", {
+                id: piano_di_lavoro_documento_id,
+                piano_di_lavoro_id: $("#hidden_piano_di_lavoro_id").val(),
+				posizione: piano_di_lavoro_contenuto_posizione
             },
             function (data, status) {
                 pianoDiLavoroDocumentoReadRecords();
@@ -57,8 +57,7 @@ function pianoDiLavoroDocumentoGetDetails(piano_di_lavoro_documento_id) {
         });
     } else {
         $("#titolo").val("");
-        $("#testo").val("");
-		$("#testo").html('');
+        $('#testo').summernote('code', '');
     }
     $("#piano_di_lavoro_documento_modal").modal("show");
 }
