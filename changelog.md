@@ -1,3 +1,15 @@
+## Version 1.2.25 - 11 dic 2022
+
+##### Improvements
+- piano di lavoro
+
+## Version 1.2.24 - 23 nov 2022
+
+##### Improvements
+- gestione gruppo completata
+- inseriti gruppi clil con import ed export e template
+- cacella argomento sportelli se cancello l'ultimo iscritto
+
 ## Version 1.2.23 - 25 ott 2022
 
 ##### Improvements

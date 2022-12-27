@@ -100,4 +100,26 @@ function dbGetValue($query) {
 	return is_array($value) ? $value[0] : null;
 }
 
+// ritorna un valore specifico se il risultato e' un solo valore
+function dbGetAllValues($query) {
+	global $__con;
+
+	debug($query);
+	// esegue la query
+	if (!$result = mysqli_query($__con, $query)) {
+		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__con));
+		return null;
+	}
+	$valueList = $result->fetch_all(MYSQLI_NUM);
+	if (! is_array($valueList)) {
+		return [];
+	}
+	$values = [];
+	foreach($valueList as $valueContainer) {
+		$values[] = $valueContainer[0];
+	}
+
+	return $values;
+}
+
 ?>

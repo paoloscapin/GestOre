@@ -85,9 +85,10 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 <body class="c13">
 	<div>
 		<p class="c7">
-			<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px; height: 136.00px;">
+			<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px;">
 				<img alt="" src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")); ?>" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
 			</span>
+<hr>
 		</p>
 	</div>
 	<p class="c6 c10">
@@ -197,7 +198,6 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 <div id="scissors">
     <div></div>
 </div>
-</br>
 </br>
 <p class="c3">
     <span class="c1 c21">

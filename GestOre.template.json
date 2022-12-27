@@ -28,6 +28,7 @@
         "minuti": false,
         "sportelli": false,
         "gestioneViaggiSemplificata": false,
+        "pianiDiLavoro": false,
         "corsiDiRecuperoFirmaDocente": true,
         "corsiDiRecuperoVotoSettembreTuttiIDocenti": true,
         "corsiDiRecuperoPagatiDaProvincia": true
@@ -88,6 +89,13 @@
         "unSoloArgomento": true,
         "prenotaMaxSettimanaSuccessiva": true,
         "inseriti_da_docente": false
+    },
+    "pianiDiLavoro": {
+        "competenze": true,
+        "metodologie": true,
+        "materiali": true,
+        "tic": true,
+        "note_aggiuntive": true
     },
     "label": {
         "ore_funzionali": "funzionali",

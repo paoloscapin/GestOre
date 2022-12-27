@@ -89,7 +89,7 @@ ruoloRichiesto('dirigente');
                 </div>
             </form>
         </div>
-        <div class="modal-footer text-center">
+        <div class="panel-footer text-center">
             <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
             <button type="button" class="btn btn-primary" onclick="fuisAssegnatoTipoSave()">Salva</button>
 	    	<input type="hidden" id="hidden_record_id">

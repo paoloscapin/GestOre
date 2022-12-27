@@ -261,7 +261,7 @@ require_once '../common/header-didattica.php';
 			</form>
 
             </div>
-            <div class="modal-footer text-center">
+            <div class="panel-footer text-center">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                 <button type="button" class="btn btn-primary" onclick="sportelloSave()">Salva</button>
             </div>
