@@ -162,6 +162,8 @@ if (getSettingsValue('pianiDiLavoro','competenze', true)) {
 		<h2 style="text-align: center;">COMPETENZE</h2>'.$competenze.'<p>&nbsp;</p>';
 }
 
+// evita un page break in mezzo ad un blocco
+$pagina .= '<div style="page-break-inside: avoid">';
 $pagina .= '
 	<hr>
 	<h2 style="text-align: center;">MODULI</h2>
@@ -183,9 +185,6 @@ foreach(dbGetAll($query) as $row) {
 	$piano_di_lavoro_contenuto_posizione = $row['piano_di_lavoro_contenuto_posizione'];
 	$piano_di_lavoro_contenuto_titolo = $row['piano_di_lavoro_contenuto_titolo'];
 	$piano_di_lavoro_contenuto_testo = $row['piano_di_lavoro_contenuto_testo'];
-
-	// evita un page break in mezzo ad un blocco
-	$data .= '<div style="page-break-inside: avoid">';
 
     $data .= '
 		<table style="border-collapse: collapse; width: 100%; border=1">
@@ -216,8 +215,16 @@ foreach(dbGetAll($query) as $row) {
 		$data .= '</div>';
 		$data .= '<div style="page-break-inside: auto">';
 		$data .= '<p>&nbsp;</p>';
+
+		// qui la pagina potrebbe anche finire
 		$data .= '</div>';
+
+		// evita un page break in mezzo ad un blocco
+		$data .= '<div style="page-break-inside: avoid">';
 	}
+
+// chiudo l'ultimo div del page break perché qui si potrebbe anche interrompere la pagina
+$data .= '</div>';
 
 $pagina .= $data;
 
