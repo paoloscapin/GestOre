@@ -85,17 +85,39 @@ $pagina .='
 	body { max-width: 800px; }
 	@media print {
 		.noprint {
-		   visibility: hidden;
+			visibility: hidden;
 		}
-	 }
+	}
 
 	 @page {
 		@bottom-left {
-		  content: counter(page) " of " counter(pages);
+			content: counter(page) " of " counter(pages);
 		}
-	  }
-</style>
-';
+	}
+
+	.label {
+        box-sizing: border-box;
+    	padding: 0.2em 0.6em 0.2em;
+    	border-radius: 0.25em;
+        font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+        font-weight: 700;
+        font-size: 75%;
+        vertical-align: baseline;
+        color: white;
+    }
+	.label-success {
+        background-color: #5cb85c;
+    }
+	.label-info {
+        background-color: #5bc0de;
+    }
+	.label-warning {
+        background-color: #eea236;
+    }
+	.label-danger {
+        background-color: #d9534f;
+    }
+</style>';
 
 // lo script non deve entrare nel pdf
 if (! $print) {
@@ -109,15 +131,13 @@ if (! $print) {
 			window.location.search += "&print=true";
 		}
 	};
-	</script>
-	';
+	</script>';
 }
 
 // chiude l'intestazione
 $pagina .='
 	</head>
-	<body>
-	';
+	<body>';
 
 // bottone di print solo se in visualizzazione
 if (! $print) {
@@ -136,24 +156,65 @@ $pagina .= '
 		<hr>
 	</div>';
 
+// prima table: solo il titolo centrato
 $pagina .= '
-	<h1 style="text-align: center;">Piano di lavoro</h1>
 	<table style="width: 100%; border-collapse: collapse; border-style: none; border=0">
 	<tbody>
 	<tr>
 	<td style="width: 18%;">
-	<h3 style="text-align: center;"><strong>'.$nomeClasse.'</strong></h3>
+	</td>
+	<td style="width: 64%;">
+	<h1 style="text-align: center;">Piano di lavoro</h1>
+	</td>
+	<td style="width: 18%;text-align: right;">
+	</td>
+	</tr>
+	</tbody>
+	</table>';
+
+// seconda table: classe - materia - anno
+$pagina .= '
+	<table style="width: 100%; border-collapse: collapse; border-style: none; border=0">
+	<tbody>
+	<tr>
+	<td style="width: 18%;">
+	<h3 style="text-align: left;"><strong>'.$nomeClasse.'</strong></h3>
 	</td>
 	<td style="width: 64%;">
 	<h2 style="text-align: center;"><strong>'.$materiaNome.'</strong></h2>
 	</td>
 	<td style="width: 18%;">
-	<h3 style="text-align: center;"><strong>'.$annoScolasticoNome.'</strong></h3>
+	<h3 style="text-align: right;"><strong>'.$annoScolasticoNome.'</strong></h3>
 	</td>
 	</tr>
 	</tbody>
-	</table>
-	<p style="text-align: center;">Docente: '.$nomeCognomeDocente.'</p>
+	</table>';
+
+// terza table: unused - docente/template - stato
+$pagina .= '
+	<table style="width: 100%; border-collapse: collapse; border-style: none; border=0">
+	<tbody>
+	<tr>
+	<td style="width: 18%;">
+	<h3 style="text-align: left;"><strong>'.' '.'</strong></h3>
+	</td>
+	<td style="width: 64%;text-align: center;">';
+if ($pianoDiLavoro['template'] == true) {
+	$pagina .= $templateMarker;
+} else {
+	$pagina .= '<p style="text-align: center;">Docente: '.$nomeCognomeDocente.'</p>';
+}
+$pagina .= '
+	</td>
+	<td style="width: 18%;text-align: right;">';
+$pagina .= 'Stato: ' . $statoMarker . '';
+$pagina .= '
+	</td>
+	</tr>
+	</tbody>
+	</table>';
+
+$pagina .= '
 	<p>&nbsp;</p>';
 
 if (getSettingsValue('pianiDiLavoro','competenze', true)) {
@@ -167,8 +228,7 @@ $pagina .= '<div style="page-break-inside: avoid">';
 $pagina .= '
 	<hr>
 	<h2 style="text-align: center;">MODULI</h2>
-	<p>&nbsp;</p>
-	';
+	<p>&nbsp;</p>';
 
 $query = "	SELECT
 				piano_di_lavoro_contenuto.id AS piano_di_lavoro_contenuto_id,
@@ -208,8 +268,7 @@ foreach(dbGetAll($query) as $row) {
 		</td>
 		</tr>
 		</tbody>
-		</table>
-        ';
+		</table>';
 
 		// chiude il div del page break avoid
 		$data .= '</div>';
@@ -299,7 +358,6 @@ if (getSettingsValue('pianiDiLavoro','tic', true)) {
 			<div style="page-break-inside: avoid">
 			<hr>
 			<h2 style="text-align: center;">TIC</h2>
-
 			<table style="border-collapse: collapse; width: 100%;">
 			<tbody>';
 
