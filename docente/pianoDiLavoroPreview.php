@@ -117,6 +117,28 @@ $pagina .='
 	.label-danger {
         background-color: #d9534f;
     }
+    .icon-play{
+        background-image : url("../img/pdf-256.png");
+        background-size: cover;
+        display: inline-block;
+        height: 24px;
+        width: 24px;
+    }
+
+	.btn_print {
+        box-sizing: border-box;
+    	padding: 0.2em 0.6em 0.2em;
+    	border-radius: 0.25em;
+        font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+        font-weight: 700;
+        font-size: 75%;
+        vertical-align: center;
+		background-color: #4c3635;
+        color: white;
+		align-items: center;
+		display: inline-flex;
+    }
+
 </style>';
 
 // lo script non deve entrare nel pdf
@@ -124,7 +146,6 @@ if (! $print) {
 	$pagina .='
 	<script type="text/javascript">
 	window.onload = (event) => {
-		console.log("ready");
 		var printBtn = document.querySelector(".btn_print");
 		printBtn.onclick = function(event) {
 			event.preventDefault();
@@ -142,8 +163,8 @@ $pagina .='
 // bottone di print solo se in visualizzazione
 if (! $print) {
 	$pagina .='
-		<div class="text-center noprint" style="padding: 20px;">
-			<input type="button" value="Print" class="btn btn-info btn_print">
+		<div class="text-center noprint" style="text-align: center;padding: 50px;">
+		<button onclick="pianoDiLavoroSavePdf('.$piano_di_lavoro_id.')" class="btn btn-orange4 btn-xs btn_print"><i class="icon-play"></i>&nbsp;Scarica il pdf</button>
 		</div>';
 }
 

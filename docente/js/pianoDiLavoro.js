@@ -176,6 +176,10 @@ function pianoDiLavoroPreview(piano_di_lavoro_id) {
     window.open('/GestOre/docente/pianoDiLavoroPreview.php?piano_di_lavoro_id=' + piano_di_lavoro_id, '_blank');
 }
 
+function pianoDiLavoroSavePdf(piano_di_lavoro_id) {
+    window.open('/GestOre/docente/pianoDiLavoroPreview.php?piano_di_lavoro_id=' + piano_di_lavoro_id + '&print=true', '_blank');
+}
+
 $(document).ready(function () {
 
     // se e' collegato un docente, filtra direttamente i suoi piani quando apre la pagina

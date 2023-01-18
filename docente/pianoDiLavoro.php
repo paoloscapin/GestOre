@@ -26,6 +26,16 @@ ruoloRichiesto('docente','dirigente');
     <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 	<title>Piani di Lavoro</title>
+
+<style>
+    .icon-play{
+        background-image : url('../img/pdf-256.png');
+        background-size: cover;
+        display: inline-block;
+        height: 16px;
+        width: 16px;
+    }
+</style>
 </head>
 
 <?php
