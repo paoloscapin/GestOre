@@ -75,7 +75,9 @@ foreach(dbGetAll($query) as $row) {
 
 ?>
 <div class="row">
-	<div class="col-md-6">
+	<div class="col-md-1">
+	</div>
+	<div class="col-md-5">
 	   <div class="form-group corso_di_recupero_selector text-center">
 			<label for="corso_di_recupero">Corso di Recupero</label>
 			<select id="corso_di_recupero" name="corso_di_recupero" class="corso_di_recupero selectpicker" data-style="btn-info" data-live-search="true"
@@ -84,7 +86,7 @@ foreach(dbGetAll($query) as $row) {
 			</select>
 		</div>
 	</div>
-	<div class="col-md-6">
+	<div class="col-md-5">
 	   <div class="form-group docente_selector text-center">
 			<label for="docente">Docente</label>
 			<select id="docente" name="docente" class="docente selectpicker" data-style="btn-success" data-live-search="true"
@@ -92,6 +94,9 @@ foreach(dbGetAll($query) as $row) {
 	<?php echo $docenteOptionList ?>
 			</select>
 		</div>
+	</div>
+	<div class="col-md-1">
+		<button class="btn btn-xs btn-teal4" onclick="esporta()" ><span class="glyphicon glyphicon-download">&emsp;Esporta Risultati</span></button>
 	</div>
 </div>
 

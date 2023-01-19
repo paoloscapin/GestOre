@@ -19,6 +19,10 @@ function selezionaCorsoDiRecuperoDocenteReport(docente_id) {
 	$('#corso_di_recupero').selectpicker('val', 0);
 }
 
+function esporta() {
+	window.open("../dirigente/corsoDiRecuperoExport.php", '_blank');
+}
+
 $(document).ready(function () {
 	$("#corso_di_recupero").on("changed.bs.select", 
 			function(e, clickedIndex, newValue, oldValue) {
