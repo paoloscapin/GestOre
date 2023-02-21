@@ -55,6 +55,7 @@ if(isset($_POST)) {
 	$classe = $_POST['classe'];
 	$sezione = $_POST['sezione'];
 	$template = $_POST['template'];
+	$clil = $_POST['clil'];
 	$stato = $_POST['stato'];
     $competenze = escapePost('competenze');
     $note_aggiuntive = escapePost('note_aggiuntive');
@@ -63,7 +64,7 @@ if(isset($_POST)) {
     $tic_id_list_str = $_POST['tic'];
     
     if ($id > 0) {
-        $query = "UPDATE piano_di_lavoro SET docente_id = $docente_id, materia_id = $materia_id, anno_scolastico_id = $anno_scolastico_id, indirizzo_id = $indirizzo_id, classe = $classe, sezione = '$sezione', template = $template , stato = '$stato', competenze = '$competenze' , note_aggiuntive = '$note_aggiuntive' WHERE id = '$id'";
+        $query = "UPDATE piano_di_lavoro SET docente_id = $docente_id, materia_id = $materia_id, anno_scolastico_id = $anno_scolastico_id, indirizzo_id = $indirizzo_id, classe = $classe, sezione = '$sezione', template = $template, clil = $clil, stato = '$stato', competenze = '$competenze' , note_aggiuntive = '$note_aggiuntive' WHERE id = '$id'";
         dbExec($query);
         info("aggiornato piano_di_lavoro id=$id");
 
@@ -91,7 +92,7 @@ if(isset($_POST)) {
             salvaTic($id, $tic_id_list_str);
         }
     } else {
-        $query = "INSERT INTO piano_di_lavoro(docente_id, materia_id, anno_scolastico_id, indirizzo_id, classe, sezione, template, stato, competenze, note_aggiuntive) VALUES($docente_id, $materia_id, $anno_scolastico_id, $indirizzo_id, '$classe', '$sezione', $template, '$stato', '$competenze', '$note_aggiuntive')";
+        $query = "INSERT INTO piano_di_lavoro(docente_id, materia_id, anno_scolastico_id, indirizzo_id, classe, sezione, template, clil, stato, competenze, note_aggiuntive) VALUES($docente_id, $materia_id, $anno_scolastico_id, $indirizzo_id, '$classe', '$sezione', $template, $clil, '$stato', '$competenze', '$note_aggiuntive')";
         dbExec($query);
         $id = dblastId();
         info("aggiunto piano_di_lavoro id=$id");

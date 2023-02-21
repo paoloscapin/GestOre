@@ -75,6 +75,7 @@ function pianoDiLavoroSave() {
         indirizzo_id: $("#indirizzo").val(),
         sezione: $("#sezione").val(),
         template: $("#template").is(':checked')? 1: 0,
+        clil: $("#clil").is(':checked')? 1: 0,
         stato: $("#stato").val(),
         competenze: competenze,
         note_aggiuntive: note_aggiuntive,
@@ -111,6 +112,7 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
             $("#sezione").val(piano_di_lavoro.sezione);
             $('#anno').selectpicker('val', piano_di_lavoro.anno_scolastico_id);
             $("#template").prop('checked', piano_di_lavoro.template != 0 && piano_di_lavoro.template != null);
+            $("#clil").prop('checked', piano_di_lavoro.clil != 0 && piano_di_lavoro.clil != null);
             $('#stato').selectpicker('val', piano_di_lavoro.stato);
             $('#competenze').summernote('code', piano_di_lavoro.competenze);
             $('#note_aggiuntive').summernote('code', piano_di_lavoro.note_aggiuntive);
@@ -126,6 +128,7 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
         $("#sezione").val("");
         $('#anno').selectpicker('val', 1);
         $("#template").prop('checked', false);
+        $("#clil").prop('checked', false);
         $('#stato').selectpicker('val', 'draft');
         $('#competenze').summernote('code', '');
         $('#note_aggiuntive').summernote('code', '');

@@ -74,6 +74,9 @@ if ($pianoDiLavoro['stato'] == 'draft') {
 // controlla se e' un template
 $templateMarker = ($pianoDiLavoro['template'] == true)? '<span class="label label-success">Template</span>' : '';
 
+// controlla se e' un clil
+$clilMarker = ($pianoDiLavoro['clil'] == true)? '<span class="label label-info">Clil</span>' : '';
+
 // aggiunge nella pagina il titolo e gli stili
 $pagina .= '<title>Piano di Lavoro  ' . $nomeClasse.' - '. $annoScolasticoNome . '</title>';
 $pagina .='
@@ -217,7 +220,7 @@ $pagina .= '
 	<tbody>
 	<tr>
 	<td style="width: 18%;">
-	<h3 style="text-align: left;"><strong>'.' '.'</strong></h3>
+	<h3 style="text-align: left;"><strong>'.' '.$clilMarker.'</strong></h3>
 	</td>
 	<td style="width: 64%;text-align: center;">';
 if ($pianoDiLavoro['template'] == true) {

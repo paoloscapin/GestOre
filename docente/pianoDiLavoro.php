@@ -40,7 +40,7 @@ ruoloRichiesto('docente','dirigente');
 
 <?php
 // prepara l'elenco dei docenti
-$docenteOptionList = '				<option value="0"></option>';
+$docenteOptionList = '<option value="0"></option>';
 $query = "	SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC;";
 if (!$result = mysqli_query($con, $query)) {
     exit(mysqli_error($con));
@@ -62,24 +62,24 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY doc
 
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
 $materiaFiltroOptionList = '<option value="0">tutte</option>';
-$materiaOptionList = '				<option value="0"></option>';
+$materiaOptionList = '<option value="0"></option>';
 foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materia) {
-    $materiaFiltroOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
-    $materiaOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
+    $materiaFiltroOptionList .= '<option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
+    $materiaOptionList .= '<option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
 }
 
 // classi da 1 a 5
 $classeOptionList = '';
 for($i = 1; $i<=5; $i++) {
-    $classeOptionList .= ' <option value="'.$i.'" >'.$i.'</option> ';
+    $classeOptionList .= '<option value="'.$i.'" >'.$i.'</option> ';
 }
 
 // prepara l'elenco degli indirizzi per il filtro e per gli indirizi del dialog
 $indirizzoFiltroOptionList = '<option value="0">tutti gli indirizzi</option>';
 $indirizzoOptionList = '';
 foreach(dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; ")as $indirizzo) {
-    $indirizzoFiltroOptionList .= ' <option value="'.$indirizzo['id'].'" >'.$indirizzo['nome_breve'].'</option> ';
-    $indirizzoOptionList .= ' <option value="'.$indirizzo['id'].'" >'.$indirizzo['nome_breve'].'</option> ';
+    $indirizzoFiltroOptionList .= '<option value="'.$indirizzo['id'].'" >'.$indirizzo['nome_breve'].'</option> ';
+    $indirizzoOptionList .= '<option value="'.$indirizzo['id'].'" >'.$indirizzo['nome_breve'].'</option> ';
 }
 
 // possibili valori di stato
@@ -99,26 +99,26 @@ $annoFiltroOptionList = '<option value="0">tutti</option>';
 $annoOptionList = '';
 $query = "	SELECT * FROM anno_scolastico ORDER BY anno_scolastico.id ASC;";
 foreach(dbGetAll($query) as $annoRow) {
-    $annoFiltroOptionList .= ' <option value="'.$annoRow['id'].'" >'.$annoRow['anno'].'</option> ';
+    $annoFiltroOptionList .= '<option value="'.$annoRow['id'].'" >'.$annoRow['anno'].'</option> ';
 	$annoOptionList .= '<option value="'.$annoRow['id'].'">'.$annoRow['anno'].'</option>';
 }
 
 // elenco delle metodologie
 $metodologiaOptionList = '';
 foreach(dbGetAll("SELECT * FROM piano_di_lavoro_metodologia WHERE attivo IS true ORDER BY piano_di_lavoro_metodologia.nome ASC ; ")as $metodologia) {
-    $metodologiaOptionList .= ' <option value="'.$metodologia['id'].'" >'.$metodologia['nome'].'</option> ';
+    $metodologiaOptionList .= '<option value="'.$metodologia['id'].'" >'.$metodologia['nome'].'</option> ';
 }
 
 // elenco tic
 $ticOptionList = '';
 foreach(dbGetAll("SELECT * FROM piano_di_lavoro_tic WHERE attivo IS true ORDER BY piano_di_lavoro_tic.nome ASC ; ")as $tic) {
-    $ticOptionList .= ' <option value="'.$tic['id'].'" >'.$tic['nome'].'</option> ';
+    $ticOptionList .= '<option value="'.$tic['id'].'" >'.$tic['nome'].'</option> ';
 }
 
 // elenco materiali
 $materialeOptionList = '';
 foreach(dbGetAll("SELECT * FROM piano_di_lavoro_materiale WHERE attivo IS true ORDER BY piano_di_lavoro_materiale.nome ASC ; ")as $materiale) {
-    $materialeOptionList .= ' <option value="'.$materiale['id'].'" >'.$materiale['nome'].'</option> ';
+    $materialeOptionList .= '<option value="'.$materiale['id'].'" >'.$materiale['nome'].'</option> ';
 }
 
 ?>
@@ -200,7 +200,7 @@ require_once '../common/header-docente.php';
 
 <!-- Modal - Add/Update Record -->
 <div class="modal fade" id="piano_di_lavoro_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog" style="width: 80%;" role="document">
         <div class="modal-content">
             <div class="modal-body">
 			<div class="panel panel-orange4">
@@ -238,12 +238,14 @@ require_once '../common/header-docente.php';
                     <div class="col-sm-3">
                         <select id="anno" name="anno" class="anno selectpicker" data-live-search="false" data-width="70%" > <?php echo $annoOptionList ?></select>
                     </div>
-                    <label for="stato" class="col-sm-2 control-label">Stato</label>
+                    <label for="stato" class="col-sm-1 control-label">Stato</label>
                     <div class="col-sm-2">
                         <select id="stato" name="stato" class="stato selectpicker" data-live-search="false" data-width="70%" > <?php echo $statoOptionList ?></select>
                     </div>
-                    <label for="template" class="col-sm-2 control-label">Template</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="template" ></div>
+                    <label for="template" class="col-sm-1 control-label">Template</label>
+                    <div class="col-sm-1"><input type="checkbox" id="template" style="vertical-align: middle;"></div>
+                    <label for="clil" class="col-sm-1 control-label">Clil</label>
+                    <div class="col-sm-1"><input type="checkbox" id="clil" style="vertical-align: middle;"></div>
                 </div>
             </form>
             <hr>

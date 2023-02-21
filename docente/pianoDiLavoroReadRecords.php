@@ -93,6 +93,11 @@ foreach(dbGetAll($query) as $row) {
 		$templateMarker .= '<span class="label label-success">Template</span>';
 	}
 
+	$clilMarker = '';
+	if ($row['clil'] == true) {
+		$clilMarker .= '<span class="label label-info">Clil</span>';
+	}
+
 	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
 	$dataCreazione = utf8_encode( strftime("%d %B %Y", strtotime($row['creazione'])));
 	$dataUltimaModifica = utf8_encode( strftime("%d %B %Y", strtotime($row['ultima_modifica'])));
@@ -109,7 +114,7 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.$dataUltimaModifica.'</td>
 		<td>'.$classe.'</td>
 		<td>'.$docenteNomeCognome.'</td>
-		<td class="text-center">'.$templateMarker.'&nbsp;'.$statoMarker.'</td>
+		<td class="text-center">'.$templateMarker.'&nbsp;'.$clilMarker.'&nbsp;'.$statoMarker.'</td>
 		';
 	$data .='
 		<td class="text-center">
