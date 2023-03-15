@@ -275,7 +275,7 @@ foreach(dbGetAll($query) as $row) {
 		<tbody>
 		<tr>
 		<td style="width: 6%;text-align: center;">
-		<h2 class="unita_titolo">&nbsp;'.$piano_di_lavoro_contenuto_posizione.'</h2>
+		<h2 class="unita_titolo">&nbsp;'.$piano_di_lavoro_contenuto_posizione.'.</h2>
 		</td>
 		<td style="width: 94%;">
 		<h2 class="unita_titolo">'.$piano_di_lavoro_contenuto_titolo.'</h2>
