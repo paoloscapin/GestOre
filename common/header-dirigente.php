@@ -28,7 +28,7 @@
 		<span class="caret"></span>
 		<span class="sr-only">Toggle Dropdown</span>
 	</button>
-	<ul class="dropdown-menu">
+	<ul class="dropdown-menu btn-orange4">
 		<li><a href="<?php echo $__application_base_path; ?>/dirigente/filtroPreviste.php">Filtro Attività Previste</a></li>
 	</ul>
 </div>
@@ -38,7 +38,7 @@
 		<span class="caret"></span>
 		<span class="sr-only">Toggle Dropdown</span>
 	</button>
-	<ul class="dropdown-menu">
+	<ul class="dropdown-menu btn-teal4">
 		<li><a href="<?php echo $__application_base_path; ?>/dirigente/filtroFatte.php">Filtro Attività Fatte</a></li>
 		<li><a href="<?php echo $__application_base_path; ?>/dirigente/fatteListOreRimaste.php">Ore da Fare Rimaste</a></li>
 	</ul>
@@ -50,7 +50,7 @@
 		<span class="caret"></span>
 		<span class="sr-only">Toggle Dropdown</span>
 	</button>
-	<ul class="dropdown-menu">
+	<ul class="dropdown-menu btn-deeporange4">
 	<li><a href="<?php echo $__application_base_path; ?>/dirigente/fuisAssegnato.php">Fuis Assegnato</a></li>
 		<li><a href="<?php echo $__application_base_path; ?>/dirigente/fuisViaggi.php">Fuis Viaggi</a></li>
 		<li><a href="<?php echo $__application_base_path; ?>/dirigente/fuisDocenti.php">Fuis Docenti</a></li>

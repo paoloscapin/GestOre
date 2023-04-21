@@ -11,8 +11,6 @@
 $json = file_get_contents(__DIR__ . '/../GestOre.json');
 
 // decode JSON
-$json_data = json_decode($json,false);
-
 $__settings = json_decode($json);
 
 ?>

@@ -6,6 +6,10 @@
  *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+require_once '../common/PHPMailer/PHPMailer.php';
+require_once '../common/PHPMailer/Exception.php';
 
 $pagina = '';
 
@@ -20,10 +24,23 @@ if(! isset($_GET)) {
 	return;
 } else {
 	$piano_di_lavoro_id = $_GET['piano_di_lavoro_id'];
+	// controlla se e' richiesta la stampa
 	if(isset($_GET['print'])) {
 		$print = true;
 	} else {
 		$print = false;
+	}
+	// controlla se e' una carenza
+	if(isset($_GET['carenza'])) {
+		$carenza = true;
+	} else {
+		$carenza = false;
+	}
+	// controlla se e' una carenza
+	if(isset($_GET['email'])) {
+		$email = true;
+	} else {
+		$email = false;
 	}
 }
 
@@ -77,8 +94,28 @@ $templateMarker = ($pianoDiLavoro['template'] == true)? '<span class="label labe
 // controlla se e' un clil
 $clilMarker = ($pianoDiLavoro['clil'] == true)? '<span class="label label-info">Clil</span>' : '';
 
+// se e' una carenza, legge i dati dello studente
+$studenteNomeCognome = '';
+$studenteEmail = '';
+$studenteClasse = '';
+if ($carenza) {
+	$studente_id = $pianoDiLavoro['studente_id'];
+	if ($studente_id != null) {
+		$studente = dbGetFirst("SELECT * FROM studente WHERE id = $studente_id");
+		if ($studente != null) {
+			$studenteNomeCognome = $studente['nome'] . ' ' . $studente['cognome'] ;
+			$studenteEmail = $studente['email'] ;
+			$studenteClasse = $studente['classe'] ;
+		}
+	}
+}
+
 // aggiunge nella pagina il titolo e gli stili
-$pagina .= '<title>Piano di Lavoro  ' . $nomeClasse.' - '. $annoScolasticoNome . '</title>';
+if ($carenza) {
+	$pagina .= '<title>Carenza  ' . $studenteNomeCognome .' - ' . $materiaNome . ' - ' . $annoScolasticoNome . '</title>';
+} else {
+	$pagina .= '<title>Piano di Lavoro  ' . $nomeClasse .' - ' . $annoScolasticoNome . '</title>';
+}
 $pagina .='
 <meta content="text/html; charset=UTF-8" http-equiv="content-type">
 <style>
@@ -180,7 +217,7 @@ $pagina .= '
 		<hr>
 	</div>';
 
-// prima table: solo il titolo centrato
+// prima table: solo il titolo centrato (carenza o piano di lavoro)
 $pagina .= '
 	<table style="width: 100%; border-collapse: collapse; border-style: none; border=0">
 	<tbody>
@@ -188,9 +225,11 @@ $pagina .= '
 	<td style="width: 18%;">
 	</td>
 	<td style="width: 64%;">
-	<h1 style="text-align: center;">Piano di lavoro</h1>
+	<h1 style="text-align: center;">';
+$pagina .= ($carenza? $studenteNomeCognome : 'Piano di lavoro');
+$pagina .= '</h1>
 	</td>
-	<td style="width: 18%;text-align: right;">
+	<td style="width: 18%;text-align: right;"><h3 style="text-align: right;">'.$studenteClasse.'</h3>
 	</td>
 	</tr>
 	</tbody>
@@ -202,7 +241,7 @@ $pagina .= '
 	<tbody>
 	<tr>
 	<td style="width: 18%;">
-	<h3 style="text-align: left;"><strong>'.$nomeClasse.'</strong></h3>
+	<h3 style="text-align: left;"><strong>'.($carenza? 'Recupero' : $nomeClasse).'</strong></h3>
 	</td>
 	<td style="width: 64%;">
 	<h2 style="text-align: center;"><strong>'.$materiaNome.'</strong></h2>
@@ -231,7 +270,9 @@ if ($pianoDiLavoro['template'] == true) {
 $pagina .= '
 	</td>
 	<td style="width: 18%;text-align: right;">';
-$pagina .= 'Stato: ' . $statoMarker . '';
+if (!$carenza) {
+	$pagina .= 'Stato: ' . $statoMarker . '';
+}
 $pagina .= '
 	</td>
 	</tr>
@@ -428,14 +469,62 @@ if (! $print) {
 	$dompdf = new Dompdf();
 	$dompdf->loadHtml($pagina);
  
-	// (Optional) Setup the paper size and orientation
+	// configura i parametri
 	$dompdf->setPaper('A4', 'portrait');
 	
-	// Render the HTML as PDF
+	// Render html in pdf
 	$dompdf->render();
-	
-	// Output the generated PDF to Browser
+
+	// produce il nome del file
 	$annoStampabile = str_replace('/','-',$annoScolasticoNome);
-	$dompdf->stream("Piano di Lavoro $materiaNome - $nomeClasse - $annoStampabile.pdf");
+	if (! $carenza) {
+		$pdfFileName = "Piano di Lavoro $materiaNome - $nomeClasse - $annoStampabile.pdf";
+	} else {
+		$pdfFileName = "Recupero di $materiaNome - $studenteNomeCognome $studenteClasse - $annoStampabile.pdf";
+	}
+
+	// richiesta di invio di email
+	if ($email) {
+		// produce il pdf da inviare
+		$outputPdf = $dompdf->output();
+		
+		$mail = new PHPMailer(true);
+
+		$sender = getSettingsValue('local', 'emailNoReplyFrom', '');
+		$mail->setFrom($sender, 'no replay');
+		$mail->addAddress($studenteEmail, $studenteNomeCognome);
+
+		// cc to carenze
+		$cc = getSettingsValue('local', 'emailCarenze', '');
+		if ($cc != '') {
+			$mail->AddCC('person1@example.com', 'Person One');
+		}
+
+		// subject
+		$mail->Subject = "$studenteNomeCognome: Recupero di $materiaNome";
+
+		$mail->isHTML(TRUE);
+		$mail->Body = "<html><body><p><strong>Carenza di $materiaNome</strong></p><p>Gentile $studenteNomeCognome, allegato troverai il programma di $materiaNome</p></body></html>";
+		$mail->AltBody = "Gentile $studenteNomeCognome, allegato troverai il programma di $materiaNome";
+
+		// allega il pdf
+		$encoding = 'base64';
+		$type = 'application/pdf';
+		$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+
+		// send the message
+		if(!$mail->send()){
+			echo 'Message could not be sent.';
+			echo 'Mailer Error: ' . $mail->ErrorInfo;
+		} else {
+			// marca che e' stato notificato
+			dbExec("UPDATE piano_di_lavoro SET stato = 'notificato' WHERE id = $piano_di_lavoro_id;");
+
+			echo "<script>window.close();</script>";
+		}
+	} else if ($print) {
+		// invia il pdf al browser che fa partire il download in automatico
+		$dompdf->stream($pdfFileName);
+	}
 }
 ?>

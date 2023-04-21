@@ -42,10 +42,20 @@ if ($num > 0) {
 	<a href="<?php echo $__application_base_path; ?>/docente/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
 <?php endif; ?>
 <?php if(getSettingsValue('config','pianiDiLavoro', false)) : ?>
+	<div class="btn-group">
 	<a href="<?php echo $__application_base_path; ?>/docente/pianoDiLavoro.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
+<?php if(getSettingsValue('config','carenze', false)) : ?>
+	<button type="button" class="btn btn-default navbar-btn btn-lima4 dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+		<span class="caret"></span>
+		<span class="sr-only">Toggle Dropdown</span>
+	</button>
+	<ul class="dropdown-menu btn-lima4">
+		<li><a href="<?php echo $__application_base_path; ?>/docente/carenza.php">Lettere Carenze</a></li>
+	</ul>
+<?php endif; ?>
+	</div>
 <?php endif; ?>
 </ul>
-
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a href="<?php echo $__settings->local->helpLinkDocente; ?>" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>
 			<li><a><span class=""></span>

@@ -12,7 +12,6 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 $anchePubblicati = $_GET["anchePubblicati"];
-$soloTemplate = $_GET["soloTemplate"];
 $anno_filtro_id = $_GET["anno_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
 $docente_filtro_id = $_GET["docente_filtro_id"];
@@ -24,10 +23,9 @@ $direzioneOrdinamento="ASC";
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
+						<th class="text-center col-md-2">Studente</th>
 						<th class="text-center col-md-1">Anno Scolastico</th>
 						<th class="text-center col-md-2">Materia</th>
-						<th class="text-center col-md-1">Creato il</th>
-						<th class="text-center col-md-1">Ultima modifica</th>
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-2">Docente</th>
 						<th class="text-center col-md-1">Stato</th>
@@ -37,7 +35,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					</thead>';
 					
 $query = "	SELECT
-				piano_di_lavoro.id AS piano_di_lavoro_id, piano_di_lavoro.*, materia.nome AS materia_nome, docente.cognome AS docente_cognome, docente.nome AS docente_nome, indirizzo.nome_breve AS indirizzo_nome_breve , anno_scolastico.anno AS anno FROM piano_di_lavoro piano_di_lavoro
+				piano_di_lavoro.id AS piano_di_lavoro_id, piano_di_lavoro.*, materia.nome AS materia_nome, docente.cognome AS docente_cognome, docente.nome AS docente_nome, indirizzo.nome_breve AS indirizzo_nome_breve , anno_scolastico.anno AS anno, studente.cognome AS studente_cognome, studente.nome AS studente_nome, studente.classe AS studente_classe FROM piano_di_lavoro piano_di_lavoro
 			INNER JOIN docente docente
 			ON piano_di_lavoro.docente_id = docente.id
 			INNER JOIN materia materia
@@ -46,6 +44,8 @@ $query = "	SELECT
 			ON piano_di_lavoro.indirizzo_id = indirizzo.id
 			INNER JOIN anno_scolastico anno_scolastico
 			ON piano_di_lavoro.anno_scolastico_id = anno_scolastico.id
+			LEFT JOIN studente studente
+			ON piano_di_lavoro.studente_id = studente.id
 			WHERE 1 = 1
 			";
 
@@ -65,13 +65,7 @@ if( $stato_filtro_id != '0') {
 	$query .= "AND piano_di_lavoro.stato = '$stato_filtro_id' ";
 }
 
-if( $soloTemplate) {
-	$query .= " AND piano_di_lavoro.template ";
-} else {
-	$query .= " AND NOT piano_di_lavoro.template ";
-}
-
-$query .= " AND NOT piano_di_lavoro.carenza ";
+$query .= " AND piano_di_lavoro.carenza ";
 
 $query .= "ORDER BY piano_di_lavoro.creazione $direzioneOrdinamento";
 
@@ -88,6 +82,8 @@ foreach(dbGetAll($query) as $row) {
 		$statoMarker .= '<span class="label label-success">finale</span>';
 	} elseif ($row['stato'] == 'pubblicato') {
 		$statoMarker .= '<span class="label label-info">pubblicato</span>';
+	} elseif ($row['stato'] == 'notificato') {
+		$statoMarker .= '<span class="label label-success">notificato</span>';
 	}
 
 	$templateMarker = '';
@@ -109,26 +105,28 @@ foreach(dbGetAll($query) as $row) {
 
 	$docenteNomeCognome = $row['docente_nome'] . ' ' . $row['docente_cognome'];
 
+	$studente = $row['studente_cognome'] . ' ' . $row['studente_nome'] . ' (' . $row['studente_classe'] . ')';
+
 	$data .= '<tr>
+		<td>'.$studente.'</td>
 		<td>'.$row['anno'].'</td>
 		<td>'.$row['materia_nome'].'</td>
-		<td>'.$dataCreazione.'</td>
-		<td>'.$dataUltimaModifica.'</td>
 		<td>'.$classe.'</td>
 		<td>'.$docenteNomeCognome.'</td>
-		<td class="text-center">'.$templateMarker.'&nbsp;'.$clilMarker.'&nbsp;'.$statoMarker.'</td>
+		<td class="text-center">'.$templateMarker.'&nbsp;'.$clilMarker.'&nbsp;'.$statoMarker.'
+			<button onclick="carenzaEmailPdf('.$row['piano_di_lavoro_id'].')" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-envelope"></span>&nbsp;email</button>
+		</td>
 		';
 	$data .='
 		<td class="text-center">
-			<button onclick="pianoDiLavoroOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-file">&nbsp;Moduli</span></button>
+			<button onclick="carenzaOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-file">&nbsp;Moduli</span></button>
 		</td>
 		<td class="text-center">
-		<button onclick="pianoDiLavoroPreview('.$row['piano_di_lavoro_id'].')" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-blackboard"></span>&nbsp;Preview</button>
-		<button onclick="pianoDiLavoroCarenza('.$row['piano_di_lavoro_id'].')" class="btn btn-yellow4 btn-xs"><span class="glyphicon glyphicon-flag"></span>&nbsp;Carenze</button>
-		<button onclick="pianoDiLavoroDuplicate('.$row['piano_di_lavoro_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-copy">&nbsp;Duplica</span></button>
-		<button onclick="pianoDiLavoroSavePdf('.$row['piano_di_lavoro_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>
-		<button onclick="pianoDiLavoroGetDetails('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
-		<button onclick="pianoDiLavoroDelete('.$row['piano_di_lavoro_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button onclick="carenzaPreview('.$row['piano_di_lavoro_id'].')" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-blackboard"></span>&nbsp;Preview</button>
+		<button onclick="carenzaDuplicate('.$row['piano_di_lavoro_id'].')" class="btn btn-yellow4 btn-xs"><span class="glyphicon glyphicon-copy">&nbsp;Duplica</span></button>
+		<button onclick="carenzaSavePdf('.$row['piano_di_lavoro_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>
+		<button onclick="carenzaGetDetails('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
+		<button onclick="carenzaDelete('.$row['piano_di_lavoro_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		</tr>';
 }

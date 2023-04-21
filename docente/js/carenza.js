@@ -5,29 +5,18 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-var soloTemplate=0;
 var anno_filtro_id=0;
 var materia_filtro_id=0;
 var docente_filtro_id=0;
 var stato_filtro_id=0;
 
-$('#soloTemplateCheckBox').change(function() {
-    // this si riferisce al checkbox
-    if (this.checked) {
-		soloTemplate = 1;
-    } else {
-		soloTemplate = 0;
-    }
-    pianoDiLavoroReadRecords();
-});
-
-function pianoDiLavoroReadRecords() {
-	$.get("../docente/pianoDiLavoroReadRecords.php?anchePubblicati=true&soloTemplate=" + soloTemplate + "&anno_filtro_id=" + anno_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&stato_filtro_id=" + stato_filtro_id, {}, function (data, status) {
+function carenzaReadRecords() {
+	$.get("../docente/carenzaReadRecords.php?anchePubblicati=true&anno_filtro_id=" + anno_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&stato_filtro_id=" + stato_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
 	});
 }
 
-function pianoDiLavoroDelete(id, materia) {
+function carenzaDelete(id, materia) {
     var conf = confirm("Sei sicuro di volere cancellareil piano di lavoro di " + materia + " ?");
     if (conf == true) {
         $.post("../common/deleteRecord.php", {
@@ -41,13 +30,13 @@ function pianoDiLavoroDelete(id, materia) {
                 } else {
                     infoNotify('Cancellazione effettuata', 'Il piano di lavoro <Strong>' + materia + '</Strong> è stato cancellato regolarmente');
                 }
-                pianoDiLavoroReadRecords();
+                carenzaReadRecords();
             }
         );
     }
 }
 
-function pianoDiLavoroSave() {
+function carenzaSave() {
     // controlla che ci siano la materia ed il docente
     if ($("#materia").val() <= 0) {
 		$("#_error-piano_di_lavoro").text("Devi selezionare una materia");
@@ -82,15 +71,15 @@ function pianoDiLavoroSave() {
         metodologie: $("#metodologia").val(),
         materiali: $("#materiale").val(),
         tic: $("#tic").val(),
-        carenza: 0,
-        studente_id: 0
+        carenza: 1,
+		studente_id: $("#studente").val()
     }, function (data, status) {
         $("#piano_di_lavoro_modal").modal("hide");
-        pianoDiLavoroReadRecords();
+        carenzaReadRecords();
     });
 }
 
-function pianoDiLavoroOpenDocument(piano_di_lavoro_id) {
+function carenzaOpenDocument(piano_di_lavoro_id) {
     $.post("../docente/pianoDiLavoroControllaDiritti.php", {
         piano_di_lavoro_id: piano_di_lavoro_id
     }, function (data, status) {
@@ -98,7 +87,7 @@ function pianoDiLavoroOpenDocument(piano_di_lavoro_id) {
     });
 }
 
-function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
+function carenzaGetDetails(piano_di_lavoro_id) {
     $("#hidden_piano_di_lavoro_id").val(piano_di_lavoro_id);
 
     if (piano_di_lavoro_id > 0) {
@@ -121,6 +110,7 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
             $('#metodologia').selectpicker('val', piano_di_lavoro.metodologie);
             $('#materiale').selectpicker('val', piano_di_lavoro.materiali);
             $('#tic').selectpicker('val', piano_di_lavoro.tic);
+            $('#studente').selectpicker('val', piano_di_lavoro.studente_id);
         });
     } else {
         $('#docente').selectpicker('val', $("#hidden_docente_id").val());
@@ -137,17 +127,18 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
         $('#metodologia').selectpicker('val', 0);
         $('#materiale').selectpicker('val', 0);
         $('#tic').selectpicker('val', 0);
+        $('#studente').selectpicker('val', 0);
     }
 	$("#_error-piano_di_lavoro-part").hide();
     $("#piano_di_lavoro_modal").modal("show");
 }
 
-function pianoDiLavoroDuplicate(original_piano_di_lavoro_id) {
+function carenzaDuplicate(original_piano_di_lavoro_id) {
     bootbox.confirm({
         message: "<p><strong>Attenzione</strong></br></p>"
-                + "<p>Il piano di lavoro sta per essere duplicato.</br>"
+                + "<p>La carenza sta per essere duplicata.</br>"
                 + "Al termine della copia i dati del nuovo piano possono essere modificati."
-                + "Nel nuovo piano si potrà poi cambiare i contenuti dei moduli.</p>"
+                + "Inizialmente la nuova carenza non avrà uno studente associato.</p>"
                 + "<hr style=\"border-top: 2px solid #6699ff;\">"
                 + "<p>Vuoi creare una copia di questo piano di lavoro?</p>",
         buttons: {
@@ -168,7 +159,7 @@ function pianoDiLavoroDuplicate(original_piano_di_lavoro_id) {
                 function (data, status) {
                     piano_di_lavoro_id = data;
                     $("#hidden_piano_di_lavoro_id").val(piano_di_lavoro_id);
-                    pianoDiLavoroGetDetails(piano_di_lavoro_id);
+                    carenzaGetDetails(piano_di_lavoro_id);
                 });
             } else {
                 bootbox.alert('Duplicazione piano di lavoro: operazione cancellata');
@@ -177,47 +168,17 @@ function pianoDiLavoroDuplicate(original_piano_di_lavoro_id) {
     });
 }
 
-function pianoDiLavoroCarenza(original_piano_di_lavoro_id) {
-    bootbox.confirm({
-        message: "<p><strong>Attenzione</strong></br></p>"
-                + "<p>Stai creando una nuova carenza.</br>"
-                + "Al termine della copia i dati del nuovo piano possono essere modificati."
-                + "Nel nuovo piano si potrà poi cambiare i contenuti dei moduli.</p>"
-                + "<hr style=\"border-top: 2px solid #6699ff;\">"
-                + "<p>Vuoi creare una carenza a partire da questo piano di lavoro?</p>",
-        buttons: {
-            confirm: {
-                label: 'Si',
-                className: 'btn-success'
-            },
-            cancel: {
-                label: 'No',
-                className: 'btn-danger'
-            }
-        },
-        callback: function (result) {
-            if (result === true) {
-                $.post("../docente/pianoDiLavoroCreaCarenza.php", {
-                    id: original_piano_di_lavoro_id
-                },
-                function (data, status) {
-                    piano_di_lavoro_id = data;
-                    $("#hidden_piano_di_lavoro_id").val(piano_di_lavoro_id);
-                    pianoDiLavoroGetDetails(piano_di_lavoro_id);
-                });
-            } else {
-                bootbox.alert('Creazione carenza: operazione cancellata');
-            }
-        }
-    });
+function carenzaPreview(piano_di_lavoro_id) {
+    window.open('/GestOre/docente/pianoDiLavoroPreview.php?piano_di_lavoro_id=' + piano_di_lavoro_id + '&carenza=true', '_blank');
 }
 
-function pianoDiLavoroPreview(piano_di_lavoro_id) {
-    window.open('/GestOre/docente/pianoDiLavoroPreview.php?piano_di_lavoro_id=' + piano_di_lavoro_id, '_blank');
+function carenzaSavePdf(piano_di_lavoro_id) {
+    window.open('/GestOre/docente/pianoDiLavoroPreview.php?piano_di_lavoro_id=' + piano_di_lavoro_id + '&carenza=true' + '&print=true', '_blank');
 }
 
-function pianoDiLavoroSavePdf(piano_di_lavoro_id) {
-    window.open('/GestOre/docente/pianoDiLavoroPreview.php?piano_di_lavoro_id=' + piano_di_lavoro_id + '&print=true', '_blank');
+function carenzaEmailPdf(piano_di_lavoro_id) {
+    window.open('/GestOre/docente/pianoDiLavoroPreview.php?piano_di_lavoro_id=' + piano_di_lavoro_id + '&carenza=true' + '&print=true' + '&email=true', '_blank');
+    carenzaReadRecords();
 }
 
 $(document).ready(function () {
@@ -228,7 +189,7 @@ $(document).ready(function () {
         $('#docente_filtro').selectpicker('val', $("#hidden_docente_id").val());
     }
 
-    pianoDiLavoroReadRecords();
+    carenzaReadRecords();
 
     $('.summernote').summernote({
 		height: 120,                 // set editor height
@@ -247,25 +208,25 @@ $(document).ready(function () {
     $("#materia_filtro").on("changed.bs.select", 
     function(e, clickedIndex, newValue, oldValue) {
         materia_filtro_id = this.value;
-        pianoDiLavoroReadRecords();
+        carenzaReadRecords();
     });
 
     $("#anno_filtro").on("changed.bs.select", 
     function(e, clickedIndex, newValue, oldValue) {
         anno_filtro_id = this.value;
-        pianoDiLavoroReadRecords();
+        carenzaReadRecords();
     });
 
     $("#docente_filtro").on("changed.bs.select", 
     function(e, clickedIndex, newValue, oldValue) {
         docente_filtro_id = this.value;
-        pianoDiLavoroReadRecords();
+        carenzaReadRecords();
     });
 
     $("#stato_filtro").on("changed.bs.select", 
     function(e, clickedIndex, newValue, oldValue) {
         stato_filtro_id = this.value;
-        pianoDiLavoroReadRecords();
+        carenzaReadRecords();
     });
 
 });

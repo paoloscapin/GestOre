@@ -15,8 +15,8 @@ if(isset($_POST)) {
 	$original_piano_di_lavoro_id = $_POST['id'];
 
     // legge il contenuto del record corrente e lo duplica
-    $query = "INSERT INTO piano_di_lavoro(docente_id, materia_id, anno_scolastico_id, indirizzo_id, classe, sezione, template, stato, competenze, note_aggiuntive, carenza)
-            SELECT '$__docente_id', materia_id, anno_scolastico_id, indirizzo_id, classe, sezione, template, stato, competenze, note_aggiuntive, carenza
+    $query = "INSERT INTO piano_di_lavoro(docente_id, anno_scolastico_id, carenza, template, materia_id, indirizzo_id, classe, sezione, competenze, note_aggiuntive)
+            SELECT '$__docente_id', '$__anno_scolastico_corrente_id', 1, 0, materia_id, indirizzo_id, classe, sezione, competenze, note_aggiuntive
             FROM piano_di_lavoro WHERE id = $original_piano_di_lavoro_id; ";
     dbExec($query);
 
@@ -30,7 +30,7 @@ if(isset($_POST)) {
     // ora deve duplicare tutti i moduli
     dbExec("INSERT INTO piano_di_lavoro_contenuto(titolo, testo, posizione, piano_di_lavoro_id) SELECT titolo, testo, posizione, '$piano_di_lavoro_id' FROM piano_di_lavoro_contenuto WHERE piano_di_lavoro_id = $original_piano_di_lavoro_id;");
 
-    info("duplicato piano_di_lavoro original_piano_di_lavoro_id=$original_piano_di_lavoro_id piano_di_lavoro_id=$piano_di_lavoro_id");    
+    info("creata carenza original_piano_di_lavoro_id=$original_piano_di_lavoro_id piano_di_lavoro_id=$piano_di_lavoro_id");    
 
     // ritorna l'id della nuova copia del piano di lavoro
     echo json_encode($piano_di_lavoro_id);
