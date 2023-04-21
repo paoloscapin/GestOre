@@ -1,3 +1,8 @@
+## Version 1.2.26 - 21 apr 2023
+
+##### Improvements
+- lettera carenze ed email
+
 ## Version 1.2.25 - 11 dic 2022
 
 ##### Improvements
