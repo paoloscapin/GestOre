@@ -123,8 +123,16 @@ foreach(dbGetAll($query) as $row) {
 			<button onclick="pianoDiLavoroOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-file">&nbsp;Moduli</span></button>
 		</td>
 		<td class="text-center">
-		<button onclick="pianoDiLavoroPreview('.$row['piano_di_lavoro_id'].')" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-blackboard"></span>&nbsp;Preview</button>
-		<button onclick="pianoDiLavoroCarenza('.$row['piano_di_lavoro_id'].')" class="btn btn-yellow4 btn-xs"><span class="glyphicon glyphicon-flag"></span>&nbsp;Carenze</button>
+		<button onclick="pianoDiLavoroPreview('.$row['piano_di_lavoro_id'].')" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-blackboard"></span>&nbsp;Preview</button>';
+	
+	// bottone carenze solo se abilitata funzionalita'
+	if(getSettingsValue('config','carenze', false)) {
+		// bottone carenze solo da piani di lavoro non template e pubblicati
+		if ($row['stato'] == 'pubblicato' && ! $row['template'] == true) {
+			$data .='<button onclick="pianoDiLavoroCarenza('.$row['piano_di_lavoro_id'].')" class="btn btn-yellow4 btn-xs"><span class="glyphicon glyphicon-flag"></span>&nbsp;Carenze</button>';
+		}
+	}		
+	$data .='
 		<button onclick="pianoDiLavoroDuplicate('.$row['piano_di_lavoro_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-copy">&nbsp;Duplica</span></button>
 		<button onclick="pianoDiLavoroSavePdf('.$row['piano_di_lavoro_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>
 		<button onclick="pianoDiLavoroGetDetails('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>

@@ -252,6 +252,10 @@ require_once '../common/header-docente.php';
                 </div>
             </form>
             <hr>
+            <div class="form-group">
+                <label for="note_aggiuntive">indicazioni di studio</label>
+                <div class="summernote-small" rows="6" id="note_aggiuntive" placeholder="note_aggiuntive" ></div>
+            </div>
 <?php if(getSettingsValue('pianiDiLavoro','competenze', true)) : ?>
             <div class="form-group">
                 <label for="competenze">competenze</label>
@@ -279,13 +283,7 @@ require_once '../common/header-docente.php';
                 </div>
 <?php endif; ?>
             </form>
-<?php if(getSettingsValue('pianiDiLavoro','note_aggiuntive', true)) : ?>
             <hr>
-            <div class="form-group">
-                <label for="note_aggiuntive">note aggiuntive</label>
-                <div class="summernote-small" rows="6" id="note_aggiuntive" placeholder="note_aggiuntive" ></div>
-            </div>
-<?php endif; ?>
 
             <div class="form-group" id="_error-piano_di_lavoro-part"><strong>
                 <hr>

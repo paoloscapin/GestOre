@@ -1,3 +1,13 @@
+## Version 1.2.27 - 7 mag 2023
+
+##### Improvements
+- indicazioni di studio
+- dirigente abilita email carenza
+- bottoni disabilitati in carenza
+
+##### Bug Fixes
+- salvataggio piano quando studente_id null
+
 ## Version 1.2.26 - 21 apr 2023
 
 ##### Improvements

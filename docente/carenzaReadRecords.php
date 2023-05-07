@@ -113,19 +113,28 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.$row['materia_nome'].'</td>
 		<td>'.$classe.'</td>
 		<td>'.$docenteNomeCognome.'</td>
-		<td class="text-center">'.$templateMarker.'&nbsp;'.$clilMarker.'&nbsp;'.$statoMarker.'
-			<button onclick="carenzaEmailPdf('.$row['piano_di_lavoro_id'].')" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-envelope"></span>&nbsp;email</button>
-		</td>
-		';
-	$data .='
-		<td class="text-center">
-			<button onclick="carenzaOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-file">&nbsp;Moduli</span></button>
-		</td>
-		<td class="text-center">
+		<td class="text-center">'.$templateMarker.'&nbsp;'.$clilMarker.'&nbsp;'.$statoMarker;
+
+		// controlla se il dirigente ha abilitato l'invio della email
+		if ($__config->getEmail_carenze_aperto()) {
+			// se e' gia' stata inviata, non appare il bottone della email
+			if ($row['stato'] != 'notificato') {
+				$data .= '<button onclick="carenzaEmailPdf('.$row['piano_di_lavoro_id'].')" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-envelope"></span>&nbsp;email</button>';
+			}
+		}
+		$data .='</td>';
+
+	$data .='<td class="text-center">';
+	// se e' gia' stata inviata, non appare il bottone Moduli
+	if ($row['stato'] != 'notificato') {
+		$data .='<button onclick="carenzaOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-file">&nbsp;Moduli</span></button>';
+	}
+	$data .='</td>';
+	$data .='<td class="text-center">
 		<button onclick="carenzaPreview('.$row['piano_di_lavoro_id'].')" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-blackboard"></span>&nbsp;Preview</button>
 		<button onclick="carenzaDuplicate('.$row['piano_di_lavoro_id'].')" class="btn btn-yellow4 btn-xs"><span class="glyphicon glyphicon-copy">&nbsp;Duplica</span></button>
 		<button onclick="carenzaSavePdf('.$row['piano_di_lavoro_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>
-		<button onclick="carenzaGetDetails('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
+		<button onclick="carenzaGetDetails('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs" '.(($row['stato'] == 'notificato') ? 'disabled = "disabled"' : '' ).'><span class="glyphicon glyphicon-pencil"></span></button>
 		<button onclick="carenzaDelete('.$row['piano_di_lavoro_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		</tr>';

@@ -282,6 +282,20 @@ $pagina .= '
 $pagina .= '
 	<p>&nbsp;</p>';
 
+// nelle carenze inseriamo qui le indicazioni di studio che si trovano registrate nelle note aggiuntive
+if ($carenza) {
+	if (! empty($note_aggiuntive)) {
+		$data = '';
+		$data .= '
+			<div style="page-break-inside: avoid">
+			<hr>
+			<h2 style="text-align: center;">INDICAZIONI DI STUDIO</h2>'.$note_aggiuntive.'<p>&nbsp;</p>
+			</div>';
+
+		$pagina .= $data;
+	}
+}
+
 if (getSettingsValue('pianiDiLavoro','competenze', true)) {
 	$pagina .= '
 		<hr>
@@ -445,8 +459,8 @@ if (getSettingsValue('pianiDiLavoro','tic', true)) {
 	}
 }
 
-// note aggiuntive se presenti
-if (getSettingsValue('pianiDiLavoro','note_aggiuntive', true)) {
+// note aggiuntive se presenti e se non e' una carenze (nelle carenze si usano per le indicazioni di studio)
+if (getSettingsValue('pianiDiLavoro','note_aggiuntive', true) && !$carenza) {
 	if (! empty($note_aggiuntive)) {
 		$data = '';
 		$data .= '
@@ -497,7 +511,7 @@ if (! $print) {
 		// cc to carenze
 		$cc = getSettingsValue('local', 'emailCarenze', '');
 		if ($cc != '') {
-			$mail->AddCC('person1@example.com', 'Person One');
+			$mail->AddCC($cc, 'Carenze Repository');
 		}
 
 		// subject

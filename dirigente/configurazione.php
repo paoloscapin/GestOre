@@ -84,6 +84,9 @@ require_once '../common/importi_load.php';
 			<label class="col-sm-3 control-label" for="voti_recupero_novembre_checkbox">Voti Recupero Novembre
 				<input type="checkbox" class="checkbox-inline col-sm-1" id="voti_recupero_novembre_checkbox"  data-toggle="toggle" data-size="small" data-onstyle="info" data-on="Aperto" data-off="Chiuso" <?php if ($__config->getVoti_recupero_novembre_aperto()) echo 'checked'; ?> >
 			</label>
+			<label class="col-sm-3 control-label" for="email_carenze_checkbox">email Carenze
+				<input type="checkbox" class="checkbox-inline col-sm-1" id="email_carenze_checkbox"  data-toggle="toggle" data-size="small" data-onstyle="info" data-on="Aperto" data-off="Chiuso" <?php if ($__config->getEmail_carenze_aperto()) echo 'checked'; ?> >
+			</label>
 		</div>
 	</div>
 </div>

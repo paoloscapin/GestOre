@@ -71,7 +71,7 @@ if(isset($_POST)) {
     }
     
     if ($id > 0) {
-        $query = "UPDATE piano_di_lavoro SET docente_id = $docente_id, materia_id = $materia_id, anno_scolastico_id = $anno_scolastico_id, indirizzo_id = $indirizzo_id, classe = $classe, sezione = '$sezione', template = $template, clil = $clil, stato = '$stato', competenze = '$competenze' , note_aggiuntive = '$note_aggiuntive', studente_id = $studente_id WHERE id = '$id' ;";
+        $query = "UPDATE piano_di_lavoro SET docente_id = $docente_id, materia_id = $materia_id, anno_scolastico_id = $anno_scolastico_id, indirizzo_id = $indirizzo_id, classe = $classe, sezione = '$sezione', template = $template, clil = $clil, stato = '$stato', competenze = '$competenze' , note_aggiuntive = '$note_aggiuntive' ".($studente_id != null? ", studente_id = $studente_id" : "")." WHERE id = '$id' ;";
         dbExec($query);
         info("aggiornato piano_di_lavoro id=$id");
 

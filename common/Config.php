@@ -17,6 +17,7 @@ class Config {
 	private $ore_fatte_aperto;
 	private $bonus_adesione_aperto;
 	private $bonus_rendiconto_aperto;
+	private $email_carenze_aperto;
 	
 	public function load() {
 		require_once __DIR__ . '/connect.php';
@@ -29,6 +30,8 @@ class Config {
 		$this->ore_fatte_aperto = $item['ore_fatte_aperto'];
 		$this->bonus_adesione_aperto = $item['bonus_adesione_aperto'];
 		$this->bonus_rendiconto_aperto = $item['bonus_rendiconto_aperto'];
+		$this->email_carenze_aperto = $item['email_carenze_aperto'];
+
 		$this->loaded = true;
 	}
 
@@ -43,7 +46,8 @@ class Config {
                             `ore_fatte_aperto`=$this->ore_fatte_aperto,
                             `ore_previsioni_aperto`=$this->ore_previsioni_aperto,
                             `bonus_adesione_aperto`=$this->bonus_adesione_aperto,
-                            `bonus_rendiconto_aperto`=$this->bonus_rendiconto_aperto
+                            `bonus_rendiconto_aperto`=$this->bonus_rendiconto_aperto,
+                            `email_carenze_aperto`=$this->email_carenze_aperto
                         WHERE
                             id = $this->id
                         ;
@@ -55,14 +59,16 @@ class Config {
                             `ore_previsioni_aperto`,
                             `ore_fatte_aperto`,
                             `bonus_adesione_aperto`,
-                            `bonus_rendiconto_aperto`)
+                            `bonus_rendiconto_aperto`,
+                            `email_carenze_aperto`)
                         VALUES (
                             $this->voti_recupero_settembre_aperto,
                             $this->voti_recupero_novembre_aperto,
                             $this->ore_previsioni_aperto,
                             $this->ore_fatte_aperto,
                             $this->bonus_adesione_aperto,
-                            $this->bonus_rendiconto_aperto
+                            $this->bonus_rendiconto_aperto,
+                            $this->email_carenze_aperto
                         );
                     ";
 
@@ -111,6 +117,13 @@ class Config {
 	    }
 	    return $this->bonus_rendiconto_aperto;
 	}
+
+	public function getEmail_carenze_aperto() {
+	    if (!$this->loaded) {
+	        $this->load();
+	    }
+	    return $this->email_carenze_aperto;
+	}
 	
 	public function setVoti_recupero_settembre_aperto($voti_recupero_settembre_aperto) {
 		$this->voti_recupero_settembre_aperto = $voti_recupero_settembre_aperto;
@@ -134,6 +147,10 @@ class Config {
 
     public function setBonus_rendiconto_aperto($bonus_rendiconto_aperto) {
         $this->bonus_rendiconto_aperto = $bonus_rendiconto_aperto;
+    }
+
+    public function setEmail_carenze_aperto($email_carenze_aperto) {
+        $this->email_carenze_aperto = $email_carenze_aperto;
     }
 
 }
