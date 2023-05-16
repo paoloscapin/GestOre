@@ -92,7 +92,7 @@ foreach(dbGetAll($query) as $row) {
 
 	$templateMarker = '';
 	if ($row['template'] == true) {
-		$templateMarker .= '<span class="label label-success">Template</span>';
+		$templateMarker .= '<span class="label label-success">'.getLabel('Template').'</span>';
 	}
 
 	$clilMarker = '';

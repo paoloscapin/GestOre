@@ -101,6 +101,7 @@
     },
     "label": {
         "ore_funzionali": "funzionali",
-        "dovute": "pianificate"
+        "dovute": "pianificate",
+        "Template": "Template"
     }
 }
