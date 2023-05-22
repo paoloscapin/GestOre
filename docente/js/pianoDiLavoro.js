@@ -168,6 +168,11 @@ function pianoDiLavoroDuplicate(original_piano_di_lavoro_id) {
                 function (data, status) {
                     piano_di_lavoro_id = data;
                     $("#hidden_piano_di_lavoro_id").val(piano_di_lavoro_id);
+
+                    // dopo la duplicazione in genere non voglio essere nella lista dei template
+                    soloTemplate=0;
+                    $("#soloTemplateCheckBox").prop("checked", false);
+                    $('#soloTemplateCheckBox').bootstrapToggle('off');
                     pianoDiLavoroGetDetails(piano_di_lavoro_id);
                 });
             } else {
