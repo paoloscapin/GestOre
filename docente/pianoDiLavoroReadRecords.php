@@ -111,7 +111,14 @@ foreach(dbGetAll($query) as $row) {
 
 	// definisce se e' modificabile
 	$modificabile = true;
-	if ($row['stato'] == 'finale') {
+
+	// i template in stato finale non si possono modificare
+	if ($row['template'] == true && $row['stato'] == 'finale') {
+		$modificabile = false;
+	}
+
+	// i piani non template in stato pubblicato non si possono modificare
+	if ($row['stato'] == 'pubblicato' && ! $row['template'] == true) {
 		$modificabile = false;
 	}
 
@@ -137,7 +144,7 @@ foreach(dbGetAll($query) as $row) {
 		</td>
 		<td class="text-center">
 		<button onclick="pianoDiLavoroPreview('.$row['piano_di_lavoro_id'].')" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-blackboard"></span>&nbsp;Preview</button>';
-	
+
 	// bottone carenze solo se abilitata funzionalita'
 	if(getSettingsValue('config','carenze', false)) {
 		// bottone carenze solo da piani di lavoro non template e pubblicati
@@ -145,10 +152,10 @@ foreach(dbGetAll($query) as $row) {
 			$data .='<button onclick="pianoDiLavoroCarenza('.$row['piano_di_lavoro_id'].')" class="btn btn-yellow4 btn-xs"><span class="glyphicon glyphicon-flag"></span>&nbsp;Carenze</button>';
 		}
 	}
-	
-	// bottone duplica da template va controllato se final (oppure se da non controllare)
-	if(getSettingsValue('pianiDiLavoro','duplicaTemplateSoloSeFinal', true)) {
-		// bottone duplica per i template sono se sono final
+
+	// bottone duplica da template va controllato se finale (oppure se da non controllare)
+	if(getSettingsValue('pianiDiLavoro','duplicaTemplateSoloSeFinale', true)) {
+		// bottone duplica per i template sono se sono finale
 		if ($row['template'] == false || $row['stato'] == 'finale') {
 			$data .='<button onclick="pianoDiLavoroDuplicate('.$row['piano_di_lavoro_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-copy">&nbsp;Duplica</span></button>';
 		}

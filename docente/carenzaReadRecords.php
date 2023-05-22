@@ -135,7 +135,7 @@ foreach(dbGetAll($query) as $row) {
 		<button onclick="carenzaDuplicate('.$row['piano_di_lavoro_id'].')" class="btn btn-yellow4 btn-xs"><span class="glyphicon glyphicon-copy">&nbsp;Duplica</span></button>
 		<button onclick="carenzaSavePdf('.$row['piano_di_lavoro_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>
 		<button onclick="carenzaGetDetails('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs" '.(($row['stato'] == 'notificato') ? 'disabled = "disabled"' : '' ).'><span class="glyphicon glyphicon-pencil"></span></button>
-		<button onclick="carenzaDelete('.$row['piano_di_lavoro_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button onclick="carenzaDelete('.$row['piano_di_lavoro_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"  '.(($row['stato'] == 'notificato') ? 'disabled = "disabled"' : '' ).'><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		</tr>';
 }

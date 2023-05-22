@@ -98,7 +98,7 @@
         "materiali": true,
         "tic": true,
         "note_aggiuntive": true,
-        "duplicaTemplateSoloSeFinal": true
+        "duplicaTemplateSoloSeFinale": true
     },
     "label": {
         "ore_funzionali": "funzionali",
