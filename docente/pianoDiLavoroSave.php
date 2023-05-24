@@ -99,7 +99,7 @@ if(isset($_POST)) {
             salvaTic($id, $tic_id_list_str);
         }
     } else {
-        $query = "INSERT INTO piano_di_lavoro(docente_id, materia_id, anno_scolastico_id, indirizzo_id, classe, sezione, template, clil, stato, competenze, note_aggiuntive, carenza, studente_id) VALUES($docente_id, $materia_id, $anno_scolastico_id, $indirizzo_id, '$classe', '$sezione', $template, $clil, '$stato', '$competenze', '$note_aggiuntive', $carenza, $studente_id)";
+        $query = "INSERT INTO piano_di_lavoro(docente_id, materia_id, anno_scolastico_id, indirizzo_id, classe, sezione, template, clil, stato, competenze, note_aggiuntive, carenza".($studente_id != null? ", studente_id" : "").") VALUES($docente_id, $materia_id, $anno_scolastico_id, $indirizzo_id, '$classe', '$sezione', $template, $clil, '$stato', '$competenze', '$note_aggiuntive', $carenza".($studente_id != null? ", $studente_id" : "").")";
         dbExec($query);
         $id = dblastId();
         info("aggiunto piano_di_lavoro id=$id");

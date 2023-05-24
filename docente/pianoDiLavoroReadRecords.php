@@ -92,7 +92,7 @@ foreach(dbGetAll($query) as $row) {
 
 	$templateMarker = '';
 	if ($row['template'] == true) {
-		$templateMarker .= '<span class="label label-success">Template</span>';
+		$templateMarker .= '<span class="label label-success">'.getLabel('Template').'</span>';
 	}
 
 	$clilMarker = '';
@@ -109,6 +109,26 @@ foreach(dbGetAll($query) as $row) {
 
 	$docenteNomeCognome = $row['docente_nome'] . ' ' . $row['docente_cognome'];
 
+	// definisce se e' modificabile
+	$modificabile = true;
+
+	// i template in stato finale non si possono modificare
+	if ($row['template'] == true && $row['stato'] == 'finale') {
+		$modificabile = false;
+	}
+
+	// i piani non template in stato pubblicato non si possono modificare
+	if ($row['stato'] == 'pubblicato' && ! $row['template'] == true) {
+		$modificabile = false;
+	}
+
+	// todo: aggiungere altri controlli come per esempio che sia modificabile solo dal docente assegnato
+
+	// il dirigente puo' sempre modificare tutto
+	if (haRuolo('dirigente')) {
+		$modificabile = true;
+	}
+
 	$data .= '<tr>
 		<td>'.$row['anno'].'</td>
 		<td>'.$row['materia_nome'].'</td>
@@ -120,23 +140,30 @@ foreach(dbGetAll($query) as $row) {
 		';
 	$data .='
 		<td class="text-center">
-			<button onclick="pianoDiLavoroOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-file">&nbsp;Moduli</span></button>
+			<button onclick="pianoDiLavoroOpenDocument('.$row['piano_di_lavoro_id'].')" class="btn btn-teal4 btn-xs" '.($modificabile? ' ':'disabled ').' ><span class="glyphicon glyphicon-file">&nbsp;Moduli</span></button>
 		</td>
 		<td class="text-center">
 		<button onclick="pianoDiLavoroPreview('.$row['piano_di_lavoro_id'].')" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-blackboard"></span>&nbsp;Preview</button>';
-	
+
 	// bottone carenze solo se abilitata funzionalita'
 	if(getSettingsValue('config','carenze', false)) {
 		// bottone carenze solo da piani di lavoro non template e pubblicati
 		if ($row['stato'] == 'pubblicato' && ! $row['template'] == true) {
 			$data .='<button onclick="pianoDiLavoroCarenza('.$row['piano_di_lavoro_id'].')" class="btn btn-yellow4 btn-xs"><span class="glyphicon glyphicon-flag"></span>&nbsp;Carenze</button>';
 		}
-	}		
+	}
+
+	// bottone duplica da template va controllato se finale (oppure se da non controllare)
+	if(getSettingsValue('pianiDiLavoro','duplicaTemplateSoloSeFinale', true)) {
+		// bottone duplica per i template sono se sono finale
+		if ($row['template'] == false || $row['stato'] == 'finale') {
+			$data .='<button onclick="pianoDiLavoroDuplicate('.$row['piano_di_lavoro_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-copy">&nbsp;Duplica</span></button>';
+		}
+	}
 	$data .='
-		<button onclick="pianoDiLavoroDuplicate('.$row['piano_di_lavoro_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-copy">&nbsp;Duplica</span></button>
 		<button onclick="pianoDiLavoroSavePdf('.$row['piano_di_lavoro_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>
-		<button onclick="pianoDiLavoroGetDetails('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
-		<button onclick="pianoDiLavoroDelete('.$row['piano_di_lavoro_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button onclick="pianoDiLavoroGetDetails('.$row['piano_di_lavoro_id'].')" class="btn btn-warning btn-xs" '.($modificabile? ' ':'disabled ').' ><span class="glyphicon glyphicon-pencil"></span></button>
+		<button onclick="pianoDiLavoroDelete('.$row['piano_di_lavoro_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs" '.($modificabile? ' ':'disabled ').' ><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		</tr>';
 }

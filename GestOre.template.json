@@ -97,10 +97,12 @@
         "metodologie": true,
         "materiali": true,
         "tic": true,
-        "note_aggiuntive": true
+        "note_aggiuntive": true,
+        "duplicaTemplateSoloSeFinale": true
     },
     "label": {
         "ore_funzionali": "funzionali",
-        "dovute": "pianificate"
+        "dovute": "pianificate",
+        "Template": "Template"
     }
 }

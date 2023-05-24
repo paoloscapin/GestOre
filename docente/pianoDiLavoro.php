@@ -170,7 +170,7 @@ require_once '../common/header-docente.php';
         <div class="col-md-1">
             <div class="text-center">
 				<label class="checkbox-inline">
-					<input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloTemplateCheckBox" >Template
+					<input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloTemplateCheckBox" ><?php echoLabel('Template'); ?>
 				</label>
             </div>
         </div>
@@ -242,7 +242,7 @@ require_once '../common/header-docente.php';
                     <div class="col-sm-2">
                         <select id="stato" name="stato" class="stato selectpicker" data-live-search="false" data-width="70%" > <?php echo $statoOptionList ?></select>
                     </div>
-                    <label for="template" class="col-sm-1 control-label">Template</label>
+                    <label for="template" class="col-sm-1 control-label"><?php echoLabel('Template'); ?></label>
                     <div class="col-sm-1"><input type="checkbox" id="template" style="vertical-align: middle;"></div>
                     <label for="clil" class="col-sm-1 control-label">Clil</label>
                     <div class="col-sm-1"><input type="checkbox" id="clil" style="vertical-align: middle;"></div>

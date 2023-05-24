@@ -66,7 +66,7 @@ if ($pianoDiLavoro['stato'] == 'draft') {
 }
 
 // controlla se e' un template
-$templateMarker = ($pianoDiLavoro['template'] == true)? '<span class="label label-success">Template</span>' : '';
+$templateMarker = ($pianoDiLavoro['template'] == true)? '<span class="label label-success">'.getLabel('Template').'</span>' : '';
 
 echo '<title>Piano di Lavoro  ' . $nomeClasse . ' - '. $materiaNome . ' - ' . $annoScolasticoNome . '</title>';
 

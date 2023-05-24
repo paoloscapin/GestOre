@@ -1,3 +1,10 @@
+## Version 1.2.28 - 24 mag 2023
+
+##### Improvements
+- template piano di lavoro rinominabile
+- blocca template se finale e piani di lavoro se pubblicati
+- duplica piano mette in draft e non template
+
 ## Version 1.2.27 - 7 mag 2023
 
 ##### Improvements
