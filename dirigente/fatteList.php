@@ -73,6 +73,7 @@ require_once '../common/connect.php';
                 <th></th>
                 <th></th>
             <?php endif; ?>
+            <th class="text-center col-md-1">Corsi di Recupero</th>
 		</tr>
     </thead>
     <tbody>
@@ -112,19 +113,28 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cog
     echo '<td class="text-left">'.importoStampabile($fuisFatto['diaria']).'</td>';
     echo '<td class="text-left">'.importoStampabile($fuisFatto['assegnato']).'</td>';
     echo '<td class="text-left">'.importoStampabile($fuisFatto['ore']).'</td>';
-    if ($__settings->config->gestioneClil) {
+    if (getSettingsValue("config", "gestioneClil", false)) {
         echo '<td class="text-left">'.importoStampabile($fuisFatto['clilFunzionale']).'</td>';
         echo '<td class="text-left">'.importoStampabile($fuisFatto['clilConStudenti']).'</td>';
     } else {
         echo '<td></td><td></td>';
     }
+    echo '<td>'.importoStampabile($fuisFatto['extraCorsiDiRecupero']).'</td>';
 
     $fuis_totale_fatto = $fuis_totale_fatto + $fuisFatto['diaria'] + $fuisFatto['assegnato'] + $fuisFatto['ore'];
     $fuis_totale_fatto_clil = $fuis_totale_fatto_clil + $fuisFatto['clilFunzionale'] + $fuisFatto['clilConStudenti'];
     $fuis_totale_corsi_di_recupero = $fuis_totale_corsi_di_recupero + $fuisFatto['extraCorsiDiRecupero'];
+
+    // se la scuola paga i corsi di recupero extra, questi vanno aggiunti nel totale delle ore
+    if (! getSettingsValue("corsiDiRecupero", "corsiDiRecuperoPagatiDaProvincia", true)) {
+        $fuis_totale_fatto = $fuis_totale_fatto + $fuisFatto['extraCorsiDiRecupero'];
+    }
 }
 
 function importoStampabile($importo) {
+    if ($importo == 0) {
+        return "";
+    }
     return number_format($importo, 2);
 }
 
@@ -144,6 +154,7 @@ function importoStampabile($importo) {
 <input type="hidden" id="hidden_fuis_totale_corsi_di_recupero" value="<?php echo $fuis_totale_corsi_di_recupero; ?>">
 <input type="hidden" id="hidden_fuis_budget" value="<?php echo $__importi['fuis']; ?>">
 <input type="hidden" id="hidden_fuis_budget_clil" value="<?php echo $__importi['fuis_clil']; ?>">
+<input type="hidden" id="hidden_corsi_di_recupero_pagati_da_provincia" value="<?php echo (getSettingsValue("corsiDiRecupero", "corsiDiRecuperoPagatiDaProvincia", true)? "1": "0"); ?>">
 
 <!-- Custom JS file MUST be here because of toggle -->
 <script type="text/javascript" src="js/scriptFatteDirigente.js"></script>

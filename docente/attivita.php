@@ -107,7 +107,7 @@ require_once '../common/header-docente.php';
 				<td class="col-md-2 text-right" ><?php echoLabel('Funzionali');?></td>
 				<td class="col-md-1 text-right" id="fuis_clil_funzionali">0.00</td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ><?php echoLabel('ore extra');?></td>
+				<td class="col-md-2 text-right" ><?php echoLabel('Ore Extra');?></td>
 				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero">0.00</td>
 				<td class="col-md-1 text-right"></td>
 			</tr>

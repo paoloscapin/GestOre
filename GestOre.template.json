@@ -29,10 +29,7 @@
         "sportelli": false,
         "gestioneViaggiSemplificata": false,
         "pianiDiLavoro": false,
-        "carenze": true,
-        "corsiDiRecuperoFirmaDocente": true,
-        "corsiDiRecuperoVotoSettembreTuttiIDocenti": true,
-        "corsiDiRecuperoPagatiDaProvincia": true
+        "carenze": true
     },
     "interfaccia": {
         "docenteVisualizza80Ore": true,
@@ -99,6 +96,11 @@
         "tic": true,
         "note_aggiuntive": true,
         "duplicaTemplateSoloSeFinale": true
+    },
+    "corsiDiRecupero": {
+        "corsiDiRecuperoFirmaDocente": true,
+        "corsiDiRecuperoVotoSettembreTuttiIDocenti": true,
+        "corsiDiRecuperoPagatiDaProvincia": true
     },
     "label": {
         "ore_funzionali": "funzionali",

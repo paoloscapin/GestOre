@@ -184,7 +184,7 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 					</p></td>
 				<td class="c2" colspan="1" rowspan="1">
 					<?php
-					if(getSettingsValue('config','corsiDiRecuperoFirmaDocente', true)) {
+					if(getSettingsValue('corsiDiRecupero','corsiDiRecuperoFirmaDocente', true)) {
 						echo $__docente_nome . ' ' . $__docente_cognome;
 					} else {
 						echo ' ';
