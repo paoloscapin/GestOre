@@ -1,3 +1,10 @@
+## Version 1.2.29 - 30 mag 2023
+
+##### Improvements
+- json: sistemato config corsi_di_recupero
+- gestione corsi di recupero pagati da provincia o da fuis
+- importo stampabile vuoto se il valore è zero
+
 ## Version 1.2.28 - 24 mag 2023
 
 ##### Improvements
