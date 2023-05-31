@@ -28,9 +28,11 @@ function refreshTotale() {
         var totHtmlClil = totHtmlClil + '<span class="label label-danger">- ' + (-diffTotaleFuisClilNumber) + '</span>';
     }
 
+    var $messaggioCorsoDiRecuperoExtra = ($("#hidden_corsi_di_recupero_pagati_da_provincia").val() == 0)? '(già incluso in fuis)' : '(pagato da Provincia)';
+
     $("#totale_previste").html(totHtml);
     $("#totale_previste_clil").html(totHtmlClil);
-    $("#totale_previste_corsi_di_recupero").html('<strong>Totale Corsi di Recupero: ' + $("#hidden_fuis_totale_corsi_di_recupero").val() + '</strong>');
+    $("#totale_previste_corsi_di_recupero").html('<strong>Totale Corsi di Recupero: ' + $messaggioCorsoDiRecuperoExtra + ': ' + $("#hidden_fuis_totale_corsi_di_recupero").val() + '</strong>');
 }
 
 function refreshPagina() {
