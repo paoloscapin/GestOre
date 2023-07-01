@@ -27,13 +27,12 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 		// e il piano di lavoro stesso
 		dbExec("DELETE FROM piano_di_lavoro WHERE id = $id; ");
 
+		info("rimosso piano_di_lavoro id=$id");
 	} else {
+
 		// per i docenti cambia lo stato in annullato
 		dbExec("UPDATE piano_di_lavoro SET stato = 'annullato' WHERE id = '$id'; ");
         info("aggiornato piano_di_lavoro id=$id stato=annullato");
 	}
-
-	dbExec($query);
-	info("rimosso piano_di_lavoro id=$id");
 }
 ?>
