@@ -28,18 +28,17 @@ function pianoDiLavoroReadRecords() {
 }
 
 function pianoDiLavoroDelete(id, materia) {
-    var conf = confirm("Sei sicuro di volere cancellareil piano di lavoro di " + materia + " ?");
+    var conf = confirm("Sei sicuro di volere cancellare il piano di lavoro di " + materia + " ?");
     if (conf == true) {
-        $.post("../common/deleteRecord.php", {
+        $.post("../docente/pianoDiLavoroDelete.php", {
 				id: id,
-				table: 'piano_di_lavoro',
-				name: "materia" + materia
+				materia: materia
             },
             function (data, status) {
                 if (data=='Application Error') {
-                    errorNotify('Impossibile cancellare il piano di lavoro', 'Il piano di lavoro <Strong>' + materia + '</Strong> contiene probabilmente dei riferimenti');
+                    errorNotify('Impossibile cancellare il piano di lavoro', 'Il piano di lavoro di <Strong>' + materia + '</Strong> contiene probabilmente dei riferimenti');
                 } else {
-                    infoNotify('Cancellazione effettuata', 'Il piano di lavoro <Strong>' + materia + '</Strong> è stato cancellato regolarmente');
+                    infoNotify('Cancellazione effettuata', 'Il piano di lavoro di <Strong>' + materia + '</Strong> è stato cancellato regolarmente');
                 }
                 pianoDiLavoroReadRecords();
             }
