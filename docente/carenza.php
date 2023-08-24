@@ -163,14 +163,12 @@ require_once '../common/header-docente.php';
             </div>
         </div>
         <div class="col-md-2">
-<?php if(haRuolo('dirigente')) : ?>
             <div class="text-center">
                 <label class="col-sm-2 control-label" for="docente">Docente</label>
 					<div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $docenteFiltroOptionList ?>
 					</select></div>
             </div>
-<?php endif; ?>
         </div>
         <div class="col-md-2">
             <div class="text-center">

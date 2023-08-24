@@ -10,6 +10,7 @@ var anno_filtro_id=0;
 var materia_filtro_id=0;
 var docente_filtro_id=0;
 var stato_filtro_id=0;
+var nomeClasse_filtro='';
 
 $('#soloTemplateCheckBox').change(function() {
     // this si riferisce al checkbox
@@ -22,24 +23,23 @@ $('#soloTemplateCheckBox').change(function() {
 });
 
 function pianoDiLavoroReadRecords() {
-	$.get("../docente/pianoDiLavoroReadRecords.php?anchePubblicati=true&soloTemplate=" + soloTemplate + "&anno_filtro_id=" + anno_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&stato_filtro_id=" + stato_filtro_id, {}, function (data, status) {
+	$.get("../docente/pianoDiLavoroReadRecords.php?anchePubblicati=true&soloTemplate=" + soloTemplate + "&anno_filtro_id=" + anno_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&stato_filtro_id=" + stato_filtro_id + "&nomeClasse_filtro=" + nomeClasse_filtro, {}, function (data, status) {
         $(".records_content").html(data);
 	});
 }
 
 function pianoDiLavoroDelete(id, materia) {
-    var conf = confirm("Sei sicuro di volere cancellareil piano di lavoro di " + materia + " ?");
+    var conf = confirm("Sei sicuro di volere cancellare il piano di lavoro di " + materia + " ?");
     if (conf == true) {
-        $.post("../common/deleteRecord.php", {
+        $.post("../docente/pianoDiLavoroDelete.php", {
 				id: id,
-				table: 'piano_di_lavoro',
-				name: "materia" + materia
+				materia: materia
             },
             function (data, status) {
                 if (data=='Application Error') {
-                    errorNotify('Impossibile cancellare il piano di lavoro', 'Il piano di lavoro <Strong>' + materia + '</Strong> contiene probabilmente dei riferimenti');
+                    errorNotify('Impossibile cancellare il piano di lavoro', 'Il piano di lavoro di <Strong>' + materia + '</Strong> contiene probabilmente dei riferimenti');
                 } else {
-                    infoNotify('Cancellazione effettuata', 'Il piano di lavoro <Strong>' + materia + '</Strong> è stato cancellato regolarmente');
+                    infoNotify('Cancellazione effettuata', 'Il piano di lavoro di <Strong>' + materia + '</Strong> è stato cancellato regolarmente');
                 }
                 pianoDiLavoroReadRecords();
             }
@@ -270,6 +270,12 @@ $(document).ready(function () {
     $("#stato_filtro").on("changed.bs.select", 
     function(e, clickedIndex, newValue, oldValue) {
         stato_filtro_id = this.value;
+        pianoDiLavoroReadRecords();
+    });
+
+    $("#nomeClasse_filtro").on("changed.bs.select", 
+    function(e, clickedIndex, newValue, oldValue) {
+        nomeClasse_filtro = this.value;
         pianoDiLavoroReadRecords();
     });
 

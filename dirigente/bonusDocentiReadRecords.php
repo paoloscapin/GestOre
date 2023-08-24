@@ -74,7 +74,11 @@ foreach($resultArray as $docente) {
     $query = "SELECT SUM(valore_previsto) FROM bonus LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND bonus_docente.docente_id = $local_docente_id;";
     $punti_richiesti = dbGetValue($query);
     // solo quelli approvati
-    $query = "SELECT COALESCE(SUM(approvato), 0) FROM bonus LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND bonus_docente.docente_id = $local_docente_id;";
+    if (getSettingsValue('bonus','punteggio_variabile', false)) {
+        $query = "SELECT COALESCE(SUM(approvato), 0) FROM bonus LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND bonus_docente.docente_id = $local_docente_id;";
+    } else {
+        $query = "SELECT SUM(valore_previsto) FROM bonus LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND bonus_docente.docente_id = $local_docente_id AND approvato is true;";
+    }
     $punti_approvati = dbGetValue($query);
     $importo_approvato = $importo_per_punto * $punti_approvati;
     $query = "SELECT COUNT(id) FROM bonus_docente WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $local_docente_id AND ultima_modifica > ultimo_controllo;";

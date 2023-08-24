@@ -21,7 +21,7 @@ require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_flatpickr.php';
 require_once '../common/_include_summernote.php';
 require_once '../common/_include_bootstrap-notify.php';
-ruoloRichiesto('docente','dirigente');
+ruoloRichiesto('docente','segreteria-didattica','dirigente');
 ?>
     <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
@@ -80,6 +80,12 @@ $indirizzoOptionList = '';
 foreach(dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; ")as $indirizzo) {
     $indirizzoFiltroOptionList .= '<option value="'.$indirizzo['id'].'" >'.$indirizzo['nome_breve'].'</option> ';
     $indirizzoOptionList .= '<option value="'.$indirizzo['id'].'" >'.$indirizzo['nome_breve'].'</option> ';
+}
+
+// prepara l'elenco delle classi per il filtro
+$nomeClasseFiltroOptionList = '<option value=""></option>';
+foreach(dbGetAllValues("SELECT distinct nome_classe AS nome_classe FROM `piano_di_lavoro` WHERE anno_scolastico_id = $__anno_scolastico_corrente_id ORDER BY nome_classe ASC; ")as $nome_classe) {
+    $nomeClasseFiltroOptionList .= ' <option value="'.$nome_classe.'" >'.$nome_classe.'</option> ';
 }
 
 // possibili valori di stato
@@ -161,12 +167,18 @@ require_once '../common/header-docente.php';
         </div>
         <div class="col-md-2">
             <div class="text-center">
-                <label class="col-sm-2 control-label" for="materia">Stato</label>
+                <label class="col-sm-2 control-label" for="stato">Stato</label>
 					<div class="col-sm-8"><select id="stato_filtro" name="stato_filtro" class="stato_filtro selectpicker" data-style="btn-yellow4" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $statoFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
+		<div class="col-md-1 text-center">
+            <label class="col-sm-2 control-label" for="nomeClasse">classe</label>
+            <div class="text-center">
+                <div class="col-sm-8"><select id="nomeClasse_filtro" name="nomeClasse_filtro" class="nomeClasse_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" ><?php echo $nomeClasseFiltroOptionList ?></select></div>
+            </div>
+		</div>
         <div class="col-md-1">
             <div class="text-center">
 				<label class="checkbox-inline">
@@ -174,8 +186,6 @@ require_once '../common/header-docente.php';
 				</label>
             </div>
         </div>
-		<div class="col-md-1 text-center">
-		</div>
 		<div class="col-md-1 text-right">
             <div class="pull-right">
 				<button class="btn btn-xs btn-lima4" onclick="pianoDiLavoroGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
