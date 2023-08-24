@@ -10,6 +10,7 @@ var anno_filtro_id=0;
 var materia_filtro_id=0;
 var docente_filtro_id=0;
 var stato_filtro_id=0;
+var nomeClasse_filtro='';
 
 $('#soloTemplateCheckBox').change(function() {
     // this si riferisce al checkbox
@@ -22,7 +23,7 @@ $('#soloTemplateCheckBox').change(function() {
 });
 
 function pianoDiLavoroReadRecords() {
-	$.get("../docente/pianoDiLavoroReadRecords.php?anchePubblicati=true&soloTemplate=" + soloTemplate + "&anno_filtro_id=" + anno_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&stato_filtro_id=" + stato_filtro_id, {}, function (data, status) {
+	$.get("../docente/pianoDiLavoroReadRecords.php?anchePubblicati=true&soloTemplate=" + soloTemplate + "&anno_filtro_id=" + anno_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&stato_filtro_id=" + stato_filtro_id + "&nomeClasse_filtro=" + nomeClasse_filtro, {}, function (data, status) {
         $(".records_content").html(data);
 	});
 }
@@ -269,6 +270,12 @@ $(document).ready(function () {
     $("#stato_filtro").on("changed.bs.select", 
     function(e, clickedIndex, newValue, oldValue) {
         stato_filtro_id = this.value;
+        pianoDiLavoroReadRecords();
+    });
+
+    $("#nomeClasse_filtro").on("changed.bs.select", 
+    function(e, clickedIndex, newValue, oldValue) {
+        nomeClasse_filtro = this.value;
         pianoDiLavoroReadRecords();
     });
 

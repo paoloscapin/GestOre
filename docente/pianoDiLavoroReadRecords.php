@@ -17,6 +17,7 @@ $anno_filtro_id = $_GET["anno_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
 $docente_filtro_id = $_GET["docente_filtro_id"];
 $stato_filtro_id = $_GET["stato_filtro_id"];
+$nomeClasse_filtro = $_GET["nomeClasse_filtro"];
 
 $direzioneOrdinamento="ASC";
 
@@ -63,6 +64,10 @@ if( $docente_filtro_id > 0) {
 
 if( $stato_filtro_id != '0') {
 	$query .= "AND piano_di_lavoro.stato = '$stato_filtro_id' ";
+}
+
+if( $nomeClasse_filtro != '') {
+	$query .= "AND piano_di_lavoro.nome_classe = '$nomeClasse_filtro' ";
 }
 
 if( $soloTemplate) {
