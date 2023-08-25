@@ -45,7 +45,7 @@ require_once '../common/header-dirigente.php';
 foreach (dbGetAll("SELECT * FROM anno_scolastico WHERE id <= $__anno_scolastico_corrente_id;") as $annoResult) {
     $annoId = $annoResult['id'];
     $annoCodice = $annoResult['anno'];
-    echo '<option value="' . $annoId . '"> ' . $annoCodice . '</option>';
+    echo '<option value="' . $annoId . '"'.($__anno_scolastico_corrente_id == $annoId? 'selected ': '').' > ' . $annoCodice . '</option>';
 }
 ?>
             </select>

@@ -15,6 +15,7 @@
 
 <?php
 require_once '../common/checkSession.php';
+require_once '../common/importi_load.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
@@ -44,16 +45,26 @@ function formatNoZero($value) {
     return ($value != 0) ? number_format($value,2) : ' ';
 }
 
+function formatNoZeroNoDecimal($value) {
+    return ($value != 0) ? number_format($value,0) : ' ';
+}
+
 // calcola il totale degli assegnati
 $totale_bonus_assegnato = dbGetValue("SELECT SUM(importo) FROM `bonus_assegnato` WHERE anno_scolastico_id = $anno_id;");
 debug('totale_bonus_assegnato=' . $totale_bonus_assegnato);
 
 // calcola il totale in punti finora approvati
-$totale_valore_approvato = dbGetValue("SELECT SUM(valore_previsto) FROM bonus LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id WHERE anno_scolastico_id = $anno_id AND approvato is true;");
+if (getSettingsValue('bonus','punteggio_variabile', false)) {
+    $query = "SELECT COALESCE(SUM(approvato), 0) FROM bonus LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id;";
+} else {
+    $query = "SELECT SUM(valore_previsto) FROM bonus LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND approvato is true;";
+}
+$totale_valore_approvato = dbGetValue($query);
 debug('totale_valore_approvato=' . $totale_valore_approvato);
 
 // importo totale disponibile per il bonus
-$importo_totale_bonus = dbGetValue("SELECT bonus FROM importo WHERE anno_scolastico_id = $anno_id;");
+$importo_totale_bonus = $__importo_bonus;
+debug('importo_totale_bonus=' . $importo_totale_bonus);
 
 // quello che non e' stato ancora assegnato resta da dividere tra quelli approvati
 $importo_totale_bonus_approvato = $importo_totale_bonus - $totale_bonus_assegnato;
@@ -80,12 +91,13 @@ $totaleAssegnatoIstuto = 0;
 $totaleApprovatoIstuto = 0;
 
 // cicla i docenti
-foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM docente INNER JOIN ore_dovute ON ore_dovute.docente_id=docente.id WHERE ore_dovute.anno_scolastico_id=$anno_id AND ore_dovute.ore_40_totale>0 ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
+foreach(dbGetAll("SELECT * FROM docente ORDER BY docente.cognome, docente.nome ASC ;") as $docente) {
+	// per l'anno corrente (caso tipico) esclude i docenti che non sono attivi (per gli altri anni non si puo' sapere)
 	if ($anno_id == $__anno_scolastico_corrente_id && $docente['attivo'] == 0) {
 		debug('Salto il docente '.$docente['cognome'] . ' ' . $docente['nome'].' non attivo');
 		continue;
 	}
-	$docente_id = $docente['docente_id'];
+	$docente_id = $docente['id'];
 	$totaleAssegnatoDocente = 0;
 	$totaleApprovatoDocente = 0;
 	
@@ -155,18 +167,38 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.*, ore_dovute.* FROM 
 	";
 	$resultArray2 = dbGetAll($query);
 	foreach($resultArray2 as $bonus) {
+		$bonusDocenteApprovato = $bonus['bonus_docente_approvato'];
+		if ($bonusDocenteApprovato == null) {
+			$bonusDocenteApprovato = 0;
+		}
+		if (getSettingsValue('bonus','punteggio_variabile', false)) {
+			// se il punteggio e' variabile, i punti approvati sono quelli riportati nella voce approvato
+			$puntiApprovati = $bonusDocenteApprovato;
+		} else {
+			// se il punteggio e' fisso, i punti approvati sono quelli previsti oppure zero se non approvato
+			if ($bonusDocenteApprovato == 0) {
+				$puntiApprovati = 0;
+			} else {
+				$puntiApprovati = $bonus['bonus_valore_previsto'];
+			}
+		}
+
 		// calcola l'importo
-		$importo = $importo_per_punto * $bonus['bonus_valore_previsto'];
+		$importo = $importo_per_punto * $puntiApprovati;
 		$data .= '<tr>
 				<td class="text-left">'.$bonus['bonus_codice'].'</td>
 				<td class="text-left">'.$bonus['bonus_descrittori'].'<hr><strong>Rendiconto:</strong></br>'.$bonus['bonus_docente_rendiconto_evidenze'].'</td>
 				<td class="text-center">'.$bonus['bonus_valore_previsto'].'</td>
 			';
-			$data .= '<td class="text-center"><input type="checkbox" ';
-			if ($bonus['bonus_docente_approvato']) {
-				$data .= 'checked ';
+			if (getSettingsValue('bonus','punteggio_variabile', false)) {
+				$data .= '<td class="text-center">'.$bonusDocenteApprovato.'</td>';
+			} else {
+				if ($bonus['bonus_docente_approvato']) {
+					$data .= '<td class="text-center"><input type="checkbox" checked ></td>';
+				} else {
+					$data .= '<td class="text-center"><input type="checkbox" ></td>';
+				}
 			}
-			$data .= '></td>';
 			if ($bonus['bonus_docente_approvato']) {
 				$data .= '<td class="text-right funzionale">'.formatNoZero($importo).'</td>';
 				$totaleApprovatoDocente = $totaleApprovatoDocente + $importo;
