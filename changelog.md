@@ -1,3 +1,8 @@
+## Version 1.2.30 - 25 ago 2023
+
+##### Improvements
+- storico: aggiornato storico fuis e bonus, default anno corrente
+
 ## Version 1.2.29 - 30 mag 2023
 
 ##### Improvements

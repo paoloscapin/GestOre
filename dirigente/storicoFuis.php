@@ -20,6 +20,7 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-notify.php';
 require_once '../common/__Minuti.php';
+require_once '../common/importi_load.php';
 ruoloRichiesto('dirigente');
 
 if(! isset($_GET)) {
@@ -77,6 +78,7 @@ $totaleAssegnatoIstuto = 0;
 $totaleDiariaIstuto = 0;
 $totaleAttivitaIstuto = 0;
 $totaleClilIstuto = 0;
+$totaleCorsiDiRecuperoExtraIstituto = 0;
 
 // cicla i docenti
 foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
@@ -93,6 +95,7 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 	$totaleDiariaDocente = 0;
 	$totaleAttivitaDocente = 0;
 	$totaleClilDocente = 0;
+	$totaleCorsiDiRecuperoExtraDocente = 0;
 	
 	$data .= '<h2 style="page-break-before: always;text-align: center;">'.$docente['cognome'] . ' ' . $docente['nome'].'</h2>';
 	$data .= '';
@@ -100,7 +103,7 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 	// fuis assegnato
 	$assegnatoList = dbGetAll("SELECT * FROM fuis_assegnato INNER JOIN fuis_assegnato_tipo ON fuis_assegnato.fuis_assegnato_tipo_id=fuis_assegnato_tipo.id WHERE fuis_assegnato.docente_id = $docente_id AND fuis_assegnato.anno_scolastico_id = $anno_id;");
 	if (!empty($assegnatoList)) {
-		$data .= '<h4 style="background-color: #f1e6b2 !important;">FUIS Assegnato</h4>';
+		$data .= '<h4 style="text-align: center;background-color: #f1e6b2 !important;"><strong>FUIS Assegnato</strong></h4>';
 		$data .= '<table class="table table-bordered table-striped table-green"><thead><tr><th class="col-sm-11">Tipo</th><th class="text-center col-sm-1">Importo</th></tr></thead><tbody>';
 		foreach($assegnatoList as $assegnato) {
 			$data .= '<tr><td>'.$assegnato['nome'].'</td><td class="text-right funzionale">'.$assegnato['importo'].'</td></tr>';
@@ -116,7 +119,7 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 	// diarie viaggio (non le ore)
 	$diariaList = dbGetAll("SELECT * FROM fuis_viaggio_diaria INNER JOIN viaggio ON fuis_viaggio_diaria.viaggio_id = viaggio.id WHERE viaggio.docente_id = $docente_id AND viaggio.anno_scolastico_id = $anno_id ORDER BY data_partenza ASC;");
 	if (!empty($diariaList)) {
-		$data .= '<h4 style="background-color: #fcaebb !important;">FUIS Diaria Viaggi</h4>';
+		$data .= '<h4 style="text-align: center;background-color: #fcaebb !important;"><strong>Diaria Viaggi</strong></h4>';
 		$data .= '<table class="table table-bordered table-striped table-green"><thead><tr><th class="col-sm-6">Destinazione</th><th class="col-sm-4">Classe</th><th class="col-md-1 text-center">Data</th><th class="text-center col-sm-1">Importo</th></tr></thead><tbody>';
 		foreach($diariaList as $diaria) {
 			$data .= '<tr><td>'.$diaria['destinazione'].'</td><td>'.$diaria['classe'].'</td><td class="text-center">'.formatDate($diaria['data_partenza']).'</td><td class="text-right funzionale">'.$diaria['importo'].'</td></tr>';
@@ -130,10 +133,10 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 	}
 
 	// attivita'
-	$data .= '<h4 style="background-color: #9be3bf !important;">Attività</h4>';
+	$data .= '<h4 style="text-align: center;background-color: #9be3bf !important;"><strong>Attività</strong></h4>';
 
 	// Inserite da docente
-	$data .= '<h4 style="text-align: center;">Inserite da docente</h4>';
+	$data .= '<h4 style="text-align: center;background-color: #97D3CF !important;">Inserite da docente</h4>';
 	// fuis: carica prima le ore dovute, previste e fatte
 	$dovute = dbGetFirst("SELECT * FROM ore_dovute WHERE docente_id = $docente_id AND anno_scolastico_id = $anno_id;");
 	$previste = dbGetFirst("SELECT * FROM ore_previste WHERE docente_id = $docente_id AND anno_scolastico_id = $anno_id;");
@@ -143,7 +146,7 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 	$oreDovute = array("funzionali"=>($dovute['ore_70_funzionali']),"con studenti"=>($dovute['ore_40_con_studenti'] + $dovute['ore_70_con_studenti']),"sostituzioni"=>($dovute['ore_40_sostituzioni_di_ufficio']),"aggiornamento"=>($dovute['ore_40_aggiornamento']));
 
 	// tabella delle ore fatte
-	$oreFatte = array_fill_keys(array('funzionali', 'con studenti', 'sostituzioni', 'aggiornamento', 'clil_funzionali', 'clil_con_studenti'), 0);
+	$oreFatte = array_fill_keys(array('funzionali', 'con studenti', 'sostituzioni', 'aggiornamento', 'clil_funzionali', 'clil_con_studenti', 'corsiDiRecuperoPagamentoExtra'), 0);
 
 	// le sostituzioni sono tutte registrate qui
 	$oreFatte['sostituzioni'] = $fatte['ore_40_sostituzioni_di_ufficio'];
@@ -195,18 +198,53 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 	$data .= '</tbody></table>';
 	$data .= '<hr>';
 
+	// sportelli
+	$query = "	SELECT
+		sportello.id AS sportello_id, sportello.*, materia.*,
+		(	SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.presente) AS numero_presenti,
+		(	SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.iscritto) AS numero_iscritti
+		FROM sportello sportello INNER JOIN materia materia ON sportello.materia_id = materia.id
+		WHERE sportello.docente_id = $docente_id AND sportello.anno_scolastico_id = $anno_id AND sportello.firmato = true AND sportello.cancellato = false
+		ORDER BY sportello.data ASC;";
+
+	$sportelliList = dbGetAll($query);
+	if (!empty($sportelliList)) {
+		$data .= '<h4 style="text-align: center;background-color: #FFD290 !important;">Sportelli</h4>';
+		$data .= '<table class="table table-bordered table-striped table-green">';
+		$data .= '<thead><tr><th class="col-md-2 text-left">Categoria</th><th class="col-md-2 text-left">Materia</th><th class="col-md-3 text-left">Note</th><th class="col-md-1 text-center">Studenti</th><th class="col-md-1 text-center">Data</th><th class="text-center col-md-1">Ora</th></tr></thead><tbody>';
+		foreach(dbGetAll($query) as $sportello) {
+	
+			$onlineMarker = (empty($sportello['online'])) ? '' : '<span class=\'label label-danger\'>online</span>';
+
+			$ore_con_minuti = oreToDisplay($sportello['numero_ore']);
+			$data .= '<tr><td>'.$sportello['categoria'].'</td>';
+			$data .= '<td>'.$sportello['nome'].'</td>';
+			$data .= '<td>'.$onlineMarker.$sportello['note'].'</td>';
+			$data .= '<td class="text-center">'.$sportello['numero_presenti'].' di '.$sportello['numero_iscritti'].' iscritti</td>';
+			$data .= '<td class="text-center">'.strftime("%d/%m/%Y", strtotime($sportello['data'])).'</td>';
+			$data .= '<td class="text-center">'.$ore_con_minuti.'</td>';
+			$data .='</tr>';
+			
+			$oreFatte['con studenti'] += $sportello['numero_ore'];
+		}
+	
+		$data .= '</tbody></table>';
+		$data .= '<hr>';
+	}
+
+
 	// attribuite
 	$query = "	SELECT ore_previste_attivita.ore AS ore_attivita, ore_previste_attivita.*, ore_previste_tipo_attivita.* FROM ore_previste_attivita INNER JOIN ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
 		WHERE ore_previste_attivita.anno_scolastico_id = $anno_id AND ore_previste_attivita.docente_id = $docente_id AND ore_previste_tipo_attivita.inserito_da_docente = false AND ore_previste_tipo_attivita.previsto_da_docente = false
 		ORDER BY ore_previste_tipo_attivita.categoria, ore_previste_tipo_attivita.nome ASC";
 	$attribuiteList = dbGetAll($query);
 	if (!empty($attribuiteList)) {
-		$data .= '<h4 style="text-align: center;">Attribuite</h4>';
+		$data .= '<h4 style="text-align: center;background-color: #CCF3DD !important;">Attribuite</h4>';
 		$data .= '<table class="table table-bordered table-striped table-green">';
-		$data .= '<thead><tr><th class="col-md-1 text-left">Tipo</th><th class="col-md-3 text-left">Nome</th><th class="col-md-6 text-left">Dettaglio</th><th class="col-md-1 text-center">Ore</th><th class="col-md-1 text-center">Stato</th></tr></thead><tbody>';
-		foreach(dbGetAll($query) as $attribuite) {
+		$data .= '<thead><tr><th class="col-md-1 text-left">Tipo</th><th class="col-md-4 text-left">Nome</th><th class="col-md-6 text-left">Dettaglio</th><th class="col-md-1 text-center">Ore</th></tr></thead><tbody>';
+		foreach($attribuiteList as $attribuite) {
 			$ore_con_minuti = oreToDisplay($attribuite['ore_attivita']);
-			$data .= '<tr><td>'.$attribuite['categoria'].'</td><td>'.$attribuite['nome'].'</td><td>'.$attribuite['dettaglio'].'</td><td class="text-center">'.$attribuite['ore'].'</td>'.$accettato.'</tr>';
+			$data .= '<tr><td>'.$attribuite['categoria'].'</td><td>'.$attribuite['nome'].'</td><td>'.$attribuite['dettaglio'].'</td><td class="text-center">'.$attribuite['ore'].'</td></tr>';
 			// la aggiunge (attribuite non sono mai contestate)
 			$oreFatte[$attribuite['categoria']] += $attribuite['ore_attivita'];
 		}			
@@ -226,11 +264,11 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 
 	$gruppoList = dbGetAll($query);
 	if (!empty($gruppoList)) {
-		$data .= '<h4 style="text-align: center;">Gruppi</h4>';
+		$data .= '<h4 style="text-align: center;background-color: #93DAFA !important;">Gruppi</h4>';
 		$data .= '<table class="table table-bordered table-striped table-green">';
-		$data .= '<thead><tr><th class="col-md-3 text-left">Gruppo</th><th class="col-md-6 text-left">Ordine del Giorno</th><th class="col-md-1 text-center">Data</th><th class="col-md-1 text-center">Ore</th><th class="col-md-1 text-center">Stato</th></tr></thead><tbody>';
-		foreach(dbGetAll($query) as $gruppo) {
-			$data .= '<tr><td>'.$gruppo['nome'].'</td><td>'.$gruppo['ordine_del_giorno'].'</td><td class="col-md-1 text-center">'.formatDate($gruppo['data']).'</td><td class="col-md-1 text-center">'.$gruppo['ore'].'</td>'.$accettato.'</tr>';
+		$data .= '<thead><tr><th class="col-md-3 text-left">Gruppo</th><th class="col-md-7 text-left">Ordine del Giorno</th><th class="col-md-1 text-center">Data</th><th class="col-md-1 text-center">Ore</th></tr></thead><tbody>';
+		foreach($gruppoList as $gruppo) {
+			$data .= '<tr><td>'.$gruppo['nome'].'</td><td>'.$gruppo['ordine_del_giorno'].'</td><td class="col-md-1 text-center">'.formatDate($gruppo['data']).'</td><td class="col-md-1 text-center">'.$gruppo['ore'].'</td></tr>';
 			// i gruppi di lavoro sono sempre ore funzionali
 			$oreFatte['funzionali'] += $gruppo['ore'];
 		}
@@ -242,11 +280,11 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 	// le ore dei viaggi (che vanno con gli studenti)
 	$viaggioList = dbGetAll("SELECT * FROM viaggio_ore_recuperate INNER JOIN viaggio ON viaggio_ore_recuperate.viaggio_id = viaggio.id WHERE viaggio.docente_id = $docente_id AND viaggio.anno_scolastico_id = $anno_id ORDER BY data_partenza ASC;");
 	if (!empty($viaggioList)) {
-		$data .= '<h4 style="text-align: center;">Viaggi: ore recuperate</h4>';
+		$data .= '<h4 style="text-align: center;background-color: #FFE3DA !important;">Viaggi: ore recuperate</h4>';
 		$data .= '<table class="table table-bordered table-striped table-green">';
-		$data .= '<thead><tr><th class="col-sm-6">Viaggio: destinazione</th><th class="col-sm-3">Classe</th><th class="text-center col-sm-1">Data</th><th class="text-center col-sm-1">Ore</th><th class="col-md-1 text-center">Stato</th></tr></thead><tbody>';
+		$data .= '<thead><tr><th class="col-sm-6">Viaggio: destinazione</th><th class="col-sm-4">Classe</th><th class="text-center col-sm-1">Data</th><th class="text-center col-sm-1">Ore</th></tr></thead><tbody>';
 		foreach($viaggioList as $viaggio) {
-			$data .= '<tr><td>'.$viaggio['destinazione'].'</td><td>'.$viaggio['classe'].'</td><td class="col-md-1 text-center">'.formatDate($viaggio['data_partenza']).'</td><td class="col-md-1 text-center">'.$viaggio['ore'].'</td>'.$accettato.'</tr>';
+			$data .= '<tr><td>'.$viaggio['destinazione'].'</td><td>'.$viaggio['classe'].'</td><td class="col-md-1 text-center">'.formatDate($viaggio['data_partenza']).'</td><td class="col-md-1 text-center">'.$viaggio['ore'].'</td></tr>';
 			// viaggi sono sempre con studenti
 			$oreFatte['con studenti'] += $viaggio['ore'];
 		}
@@ -258,12 +296,12 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 	// eventuali corsi di recupero inizio anno
 	$corsoDiRecuperoList = dbGetAll("SELECT corso_di_recupero.codice as corso_di_recupero_codice, corso_di_recupero.*, materia.* FROM corso_di_recupero INNER JOIN materia ON corso_di_recupero.materia_id = materia.id WHERE docente_id = $docente_id AND anno_scolastico_id = $anno_id AND ore_recuperate > 0;");
 	if (!empty($corsoDiRecuperoList)) {
-		$data .= '<h4 style="text-align: center;">Corsi di recupero: ore recuperate</h4>';
+		$data .= '<h4 style="text-align: center;background-color: #B9E6FB !important;">Corsi di recupero</h4>';
 		$data .= '<table class="table table-bordered table-striped table-green">';
-		$data .= '<thead><tr><th class="col-sm-6">Codice</th><th class="col-sm-3">Materia</th><th class="text-center col-sm-1">Ore</th><th class="col-md-1 text-center">Stato</th></tr></thead><tbody>';
+		$data .= '<thead><tr><th class="col-sm-4">Codice</th><th class="col-sm-6">Materia</th><th class="text-center col-sm-1">Ore Recuperate</th></tr></thead><tbody>';
 		foreach($corsoDiRecuperoList as $corsoDiRecupero) {
-			$data .= '<tr><td>'.$corsoDiRecupero['corso_di_recupero_codice'].'</td><td>'.$corsoDiRecupero['nome'].'</td><td class="col-md-1 text-center">'.$corsoDiRecupero['ore_recuperate'].'</td>'.$accettato.'</tr>';
-			// viaggi sono sempre con studenti
+			$data .= '<tr><td>'.$corsoDiRecupero['corso_di_recupero_codice'].'</td><td>'.$corsoDiRecupero['nome'].'</td><td class="col-md-1 text-center">'.$corsoDiRecupero['ore_recuperate'].'</td></tr>';
+			// corsi di recupero sono sempre con studenti
 			$oreFatte['con studenti'] += $corsoDiRecupero['ore_recuperate'];
 		}
 		$data .= '</tbody></table>';
@@ -317,7 +355,7 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 	}
 
 	// scrive le ore come sono prima di calcolare l'importo
-	$data .= '<h4 style="text-align: center;">Totale Ore attività</h4>';
+	$data .= '<h4 style="text-align: center;;background-color: #FFA98F !important;">Totale Ore attività</h4>';
 	$data .= '<table class="table table-bordered table-striped table-green">';
 	$data .= '<thead><tr><th class="col-md-2 text-left">Tipo</th><th class="col-md-3 text-center">Dovute</th><th class="col-md-3 text-center">Fatte</th><th class="col-md-3 text-center">Bilancio</th><th class="col-md-1 text-center">Importo</th></tr></thead><tbody>';
 	$data .= '<tr><td class="col-md-2 text-left">sostituzioni</td><td class="col-md-3 text-center">'.$oreDovute['sostituzioni'] . '</td><td class="col-md-3 text-center">' . $oreFatte['sostituzioni'] . '</td><td class="col-md-3 text-center">' . $ore_sostituzioni . '</td><td class="col-md-1 text-right">' . number_format($fuis_sostituzioni_importo,2) . '</td></tr>';
@@ -327,6 +365,24 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 	$data .='<tr><td colspan="4" class="text-right"><strong>Totale:</strong></td><td class="text-right funzionale"><strong>' . number_format($totaleAttivitaDocente,2) . '</strong></td></tr>';
 	$data .='</tfooter></table>';
 	$data .= '<hr>';
+
+	// eventuali corsi di recupero inizio anno con pagamento extra
+	$corsoDiRecuperoList = dbGetAll("SELECT corso_di_recupero.codice as corso_di_recupero_codice, corso_di_recupero.*, materia.* FROM corso_di_recupero INNER JOIN materia ON corso_di_recupero.materia_id = materia.id WHERE docente_id = $docente_id AND anno_scolastico_id = $anno_id AND ore_pagamento_extra > 0;");
+	if (!empty($corsoDiRecuperoList)) {
+		$data .= '<h4 style="text-align: center;background-color: #B9E6FB !important;">Corsi di recupero: pagamento extra</h4>';
+		$data .= '<table class="table table-bordered table-striped table-green">';
+		$data .= '<thead><tr><th class="col-sm-4">Codice</th><th class="col-sm-6">Materia</th><th class="text-center col-sm-1">Ore Pagamento Extra</th></tr></thead><tbody>';
+		foreach($corsoDiRecuperoList as $corsoDiRecupero) {
+			$data .= '<tr><td>'.$corsoDiRecupero['corso_di_recupero_codice'].'</td><td>'.$corsoDiRecupero['nome'].'</td><td class="col-md-1 text-center">'.$corsoDiRecupero['ore_pagamento_extra'].'</td></tr>';
+			// corsi di recupero sono sempre con studenti
+			$oreFatte['corsiDiRecuperoPagamentoExtra'] += $corsoDiRecupero['ore_pagamento_extra'];
+		}
+		$data .= '</tbody></table>';
+		$data .= '<hr>';
+		$significativo = true;
+
+		$totaleCorsiDiRecuperoExtraDocente = $oreFatte['corsiDiRecuperoPagamentoExtra'] * $__importi['importo_ore_corsi_di_recupero'];
+	}
 
 	// CLIL attivita'
 	$fuis_clil_funzionale_importo = 0;
@@ -394,6 +450,7 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 	$totaleDiariaIstuto = $totaleDiariaIstuto + $totaleDiariaDocente;
 	$totaleAttivitaIstuto = $totaleAttivitaIstuto + $totaleAttivitaDocente;
 	$totaleClilIstuto = $totaleClilIstuto + $totaleClilDocente;
+	$totaleCorsiDiRecuperoExtraIstituto = $totaleCorsiDiRecuperoExtraIstituto + $totaleCorsiDiRecuperoExtraDocente;
 
 	// se ha trovato qualcosa di significativo, include il docente nello storico
 	if ($significativo) {
@@ -411,6 +468,7 @@ $dataConsuntivo .= '<tr><td class="col-md-11 text-left">Totale Diaria Viaggi</td
 $dataConsuntivo .= '<tr><td class="col-md-11 text-left">Totale FUIS Assegnato</td><td class="col-md-1 text-right">' . number_format($totaleAssegnatoIstuto,2) . '</td></tr>';
 $dataConsuntivo .= '<tr><td class="col-md-11 text-left">Totale FUIS Attività</td><td class="col-md-1 text-right">' . number_format($totaleAttivitaIstuto,2) . '</td></tr>';
 $dataConsuntivo .= '<tr><td class="col-md-11 text-left">Totale FUIS CLIL</td><td class="col-md-1 text-right">' . number_format($totaleClilIstuto,2) . '</td></tr>';
+$dataConsuntivo .= '<tr><td class="col-md-11 text-left">Totale Corsi di Recepero Extra</td><td class="col-md-1 text-right">' . number_format($totaleCorsiDiRecuperoExtraIstituto,2) . '</td></tr>';
 $dataConsuntivo .= '</tbody></table>';
 $dataConsuntivo .= '<hr>';
 
