@@ -7,14 +7,21 @@
 
 function storicoBonus() {
 	var anno_id = $("#anno_select").val();
-	window.open("storicoBonus.php" + "?anno_id=" + anno_id, '_blank');
+	window.open("storicoBonus2.php" + "?anno_id=" + anno_id, '_blank');
+}
+
+function storicoBonusSavePdf(anno_id) {
+    window.open('/GestOre/dirigente/storicoBonus2.php?anno_id=' + anno_id + '&print=true', '_blank');
 }
 
 function storicoFuis() {
 	var anno_id = $("#anno_select").val();
-	window.open("storicoFuis.php" + "?anno_id=" + anno_id, '_blank');
+	window.open("storicoFuis2.php" + "?anno_id=" + anno_id, '_blank');
 }
 
+function storicoFuisSavePdf(anno_id) {
+    window.open('/GestOre/dirigente/storicoFuis2.php?anno_id=' + anno_id + '&print=true', '_blank');
+}
 
  $(document).ready(function () {
 });

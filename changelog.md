@@ -1,3 +1,9 @@
+## Version 1.2.31 - 29 ago 2023
+
+##### Improvements
+- storico: ricostruiti allineati storico fuis e bonus
+- utilizzo di dompdf per storico fuis e bonus
+
 ## Version 1.2.30 - 25 ago 2023
 
 ##### Improvements
