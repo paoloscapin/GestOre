@@ -549,7 +549,8 @@ $dataCopertina .= '<h3 style="text-align: center; padding-bottom: 3cm;">'.getSet
 $dataCopertina .= '<h2 style="text-align: center;">FUIS Docenti anno scolastico '.$nome_anno_scolastico.'</h2>';
 
 // titolo
-$title = 'Storico FUIS ' . $nome_anno_scolastico.' - '.getSettingsValue('local','nomeIstituto', '');
+$annoStampabile = str_replace('/','-',$nome_anno_scolastico);
+$title = 'Storico FUIS ' . $annoStampabile.' - '.getSettingsValue('local','nomeIstituto', '');
 
 // adesso viene il momento di produrre la pagina o il pdf
 $pagina .= '<html>
