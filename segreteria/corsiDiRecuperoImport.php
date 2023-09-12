@@ -93,8 +93,9 @@ $sql = '';
 // cerca la didattica per controllare a chi assegnare i corsi senza docente
 $didattica_id = dbGetValue("SELECT id FROM docente WHERE username = 'didattica';");
 
-// resetta il contatore degli studi individuali
+// resetta il contatore degli studi individuali e pnrr
 $studio_individuale_num = 0;
+$pnrr_num = 0;
 
 // prima riga: l'anno
 $words = nextWords();
@@ -113,8 +114,9 @@ while ($words[0] == 'CODICE') {
     }
     $corso_codice = $words[1];
 
-    // se il codice del corso e' "studio individuale" il comportamento sara' un poco diverso
-    $studio_individuale = (strtolower($corso_codice) == 'studio individuale') ? 1 : 0;
+    // se il codice del corso e' "studio individuale" o "pnrr" il comportamento sara' un poco diverso
+    $studio_individuale = (strtolower(substr($corso_codice, 0, 18)) == 'studio individuale') ? 1 : 0;
+    $pnrr = (strtolower(substr($corso_codice, 0, 4)) == 'pnrr') ? 1 : 0;
 
     // se sulla colonna C riporta 'in itinere' il corso è in itinere (durante l'anno scolastico)
     $corso_in_itinere = $words[2];
@@ -138,14 +140,18 @@ while ($words[0] == 'CODICE') {
         }
     }
 
-    // se e' uno studio individuale, modifica il codice
+    // se e' uno studio individuale o un pnrr, modifica il codice
     if ($studio_individuale) {
         $studio_individuale_num = $studio_individuale_num + 1;
         $corso_codice = '_Studio Individuale ' . $studio_individuale_num . ' ' . $corso_materia;
     }
+    if ($pnrr) {
+        $pnrr_num = $pnrr_num + 1;
+        $corso_codice = '_PNRR ' . $pnrr_num . ' ' . $corso_materia;
+    }
 
     // segue Aula se non in studio individuale
-    if (! $studio_individuale) {
+    if (! $studio_individuale && ! pnrr) {
         nextWords();
         if (!checkWord('Aula')) {
             erroreDiImport("Aula non specificata per il corso $corso_codice");
@@ -157,7 +163,7 @@ while ($words[0] == 'CODICE') {
     }
 
     // segue Docente se non in studio individuale
-    if (! $studio_individuale) {
+    if (! $studio_individuale && ! pnrr) {
         nextWords();
         if (!checkWord('Docente')) {
             erroreDiImport("Docente non specificato per il corso $corso_codice");
@@ -208,7 +214,7 @@ while ($words[0] == 'CODICE') {
     $numero_ore_recupero = 0;
 
     // segue Lezioni se non in studio individuale
-    if (! $studio_individuale) {
+    if (! $studio_individuale && ! pnrr) {
         nextWords();
         if (!checkWord('Lezioni')) {
             erroreDiImport("Lezioni non specificate per il corso $corso_codice");
@@ -297,9 +303,8 @@ while ($words[0] == 'CODICE') {
             break;
         }
     }
-	// studente_partecipa_lezione_corso_di_recupero se non si tratta di studio individuale
-    if (! $studio_individuale) {
-
+	// studente_partecipa_lezione_corso_di_recupero se non si tratta di studio individuale o pnrr
+    if (! $studio_individuale && ! pnrr) {
         $sql .= "INSERT INTO studente_partecipa_lezione_corso_di_recupero (lezione_corso_di_recupero_id, studente_per_corso_di_recupero_id)
                 SELECT lezione_corso_di_recupero.id, studente_per_corso_di_recupero.id FROM lezione_corso_di_recupero, studente_per_corso_di_recupero
                 WHERE lezione_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero AND studente_per_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero;

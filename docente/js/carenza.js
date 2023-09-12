@@ -5,13 +5,24 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+var soloNotificati=0;
 var anno_filtro_id=0;
 var materia_filtro_id=0;
 var docente_filtro_id=0;
 var stato_filtro_id=0;
 
+$('#soloNotificatiCheckBox').change(function() {
+    // this si riferisce al checkbox
+    if (this.checked) {
+		soloNotificati = 1;
+    } else {
+		soloNotificati = 0;
+    }
+    carenzaReadRecords();
+});
+
 function carenzaReadRecords() {
-	$.get("../docente/carenzaReadRecords.php?anchePubblicati=true&anno_filtro_id=" + anno_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&stato_filtro_id=" + stato_filtro_id, {}, function (data, status) {
+	$.get("../docente/carenzaReadRecords.php?anchePubblicati=true&soloNotificati=" + soloNotificati + "&anno_filtro_id=" + anno_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&stato_filtro_id=" + stato_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
 	});
 }
@@ -182,6 +193,7 @@ function carenzaEmailPdf(piano_di_lavoro_id) {
 }
 
 $(document).ready(function () {
+    console.log("version = 5");
 
     // se e' collegato un docente, filtra direttamente i suoi piani quando apre la pagina
     if ($("#hidden_docente_id").val() != '') {

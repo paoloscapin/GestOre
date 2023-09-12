@@ -41,7 +41,9 @@ ruoloRichiesto('docente','segreteria-didattica','dirigente');
 <?php
 // prepara l'elenco dei docenti
 $docenteOptionList = '<option value="0"></option>';
-$query = "	SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC;";
+// i docenti non devono essere solo quelli attivi: anche quelli degli anni scorsi
+// $query = "	SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC;";
+$query = "	SELECT * FROM docente ORDER BY docente.cognome, docente.nome ASC;";
 if (!$result = mysqli_query($con, $query)) {
     exit(mysqli_error($con));
 }
@@ -56,7 +58,9 @@ if(mysqli_num_rows($result) > 0) {
 
 // prepara l'elenco dei docenti per il filtro
 $docenteFiltroOptionList = '<option value="0">tutti</option>';
-foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ; ")as $docente) {
+// i docenti non devono essere solo quelli attivi: anche quelli degli anni scorsi
+// foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ; ")as $docente) {
+foreach(dbGetAll("SELECT * FROM docente ORDER BY docente.cognome, docente.nome ASC ; ")as $docente) {
     $docenteFiltroOptionList .= ' <option value="'.$docente['id'].'" >'.$docente['cognome'].' '.$docente['nome'].'</option> ';
 }
 
@@ -182,8 +186,10 @@ require_once '../common/header-docente.php';
         <div class="col-md-1">
             <div class="text-center">
 				<label class="checkbox-inline">
+                <strong>
 					<input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloTemplateCheckBox" ><?php echoLabel('Template'); ?>
-				</label>
+                </strong>
+                </label>
             </div>
         </div>
 		<div class="col-md-1 text-right">
@@ -319,6 +325,6 @@ require_once '../common/header-docente.php';
 </div>
 
 <!-- Custom JS file -->
-<script type="text/javascript" src="js/pianoDiLavoro.js"></script>
+<script type="text/javascript" src="js/pianoDiLavoro.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 </html>

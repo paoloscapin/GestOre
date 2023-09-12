@@ -75,7 +75,9 @@ if(mysqli_num_rows($result) > 0) {
 
 // prepara l'elenco dei docenti per il filtro
 $docenteFiltroOptionList = '<option value="0">tutti</option>';
-foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ; ")as $docente) {
+// i docenti non devono essere solo quelli attivi: anche quelli degli anni scorsi
+// foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ; ")as $docente) {
+foreach(dbGetAll("SELECT * FROM docente ORDER BY docente.cognome, docente.nome ASC ; ")as $docente) {
     $docenteFiltroOptionList .= ' <option value="'.$docente['id'].'" >'.$docente['cognome'].' '.$docente['nome'].'</option> ';
 }
 
@@ -182,8 +184,15 @@ require_once '../common/header-docente.php';
         </div>
         <div class="col-md-1">
         </div>
-		<div class="col-md-1 text-center">
-		</div>
+        <div class="col-md-1">
+            <div class="text-center">
+				<label class="checkbox-inline">
+                <strong>
+					<input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNotificatiCheckBox" ><?php echoLabel('Solo Notificati'); ?>
+                </strong>
+				</label>
+            </div>
+        </div>
 		<div class="col-md-1 text-right">
 		</div>
 	</div>
@@ -308,6 +317,6 @@ require_once '../common/header-docente.php';
 </div>
 
 <!-- Custom JS file -->
-<script type="text/javascript" src="js/carenza.js"></script>
+<script type="text/javascript" src="js/carenza.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 </html>

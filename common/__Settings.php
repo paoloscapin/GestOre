@@ -13,4 +13,6 @@ $json = file_get_contents(__DIR__ . '/../GestOre.json');
 // decode JSON
 $__settings = json_decode($json);
 
+// include version number for cache busting
+require_once __DIR__ . '/../version.php';
 ?>

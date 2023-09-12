@@ -19,8 +19,6 @@ $docente_filtro_id = $_GET["docente_filtro_id"];
 $stato_filtro_id = $_GET["stato_filtro_id"];
 $nomeClasse_filtro = $_GET["nomeClasse_filtro"];
 
-$direzioneOrdinamento="ASC";
-
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
@@ -78,7 +76,7 @@ if( $soloTemplate) {
 
 $query .= " AND NOT piano_di_lavoro.carenza ";
 
-$query .= "ORDER BY piano_di_lavoro.creazione $direzioneOrdinamento";
+$query .= " ORDER BY docente.cognome ASC, docente.nome ASC, piano_di_lavoro.creazione ASC";
 
 foreach(dbGetAll($query) as $row) {
 
@@ -112,7 +110,7 @@ foreach(dbGetAll($query) as $row) {
 
 	$classe = $row['classe'].$row['indirizzo_nome_breve'].$row['sezione'];
 
-	$docenteNomeCognome = $row['docente_nome'] . ' ' . $row['docente_cognome'];
+	$docenteCognomeNome = $row['docente_cognome'] . ' ' . $row['docente_nome'];
 
 	// definisce se e' modificabile
 	$modificabile = true;
@@ -140,7 +138,7 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.$dataCreazione.'</td>
 		<td>'.$dataUltimaModifica.'</td>
 		<td>'.$classe.'</td>
-		<td>'.$docenteNomeCognome.'</td>
+		<td>'.$docenteCognomeNome.'</td>
 		<td class="text-center">'.$templateMarker.'&nbsp;'.$clilMarker.'&nbsp;'.$statoMarker.'</td>
 		';
 	$data .='

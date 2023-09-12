@@ -12,12 +12,11 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 $anchePubblicati = $_GET["anchePubblicati"];
+$soloNotificati = $_GET["soloNotificati"];
 $anno_filtro_id = $_GET["anno_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
 $docente_filtro_id = $_GET["docente_filtro_id"];
 $stato_filtro_id = $_GET["stato_filtro_id"];
-
-$direzioneOrdinamento="ASC";
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -65,9 +64,13 @@ if( $stato_filtro_id != '0') {
 	$query .= "AND piano_di_lavoro.stato = '$stato_filtro_id' ";
 }
 
+if( $soloNotificati) {
+	$query .= " AND piano_di_lavoro.stato = 'notificato' ";
+}
+
 $query .= " AND piano_di_lavoro.carenza ";
 
-$query .= "ORDER BY piano_di_lavoro.creazione $direzioneOrdinamento";
+$query .= " ORDER BY docente.cognome ASC, docente.nome ASC, piano_di_lavoro.creazione ASC";
 
 foreach(dbGetAll($query) as $row) {
 
@@ -103,7 +106,7 @@ foreach(dbGetAll($query) as $row) {
 
 	$classe = $row['classe'].$row['indirizzo_nome_breve'].$row['sezione'];
 
-	$docenteNomeCognome = $row['docente_nome'] . ' ' . $row['docente_cognome'];
+	$docenteCognomeNome = $row['docente_cognome'] . ' ' . $row['docente_nome'];
 
 	$studente = $row['studente_cognome'] . ' ' . $row['studente_nome'] . ' (' . $row['studente_classe'] . ')';
 
@@ -112,7 +115,7 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.$row['anno'].'</td>
 		<td>'.$row['materia_nome'].'</td>
 		<td>'.$classe.'</td>
-		<td>'.$docenteNomeCognome.'</td>
+		<td>'.$docenteCognomeNome.'</td>
 		<td class="text-center">'.$templateMarker.'&nbsp;'.$clilMarker.'&nbsp;'.$statoMarker;
 
 		// controlla se il dirigente ha abilitato l'invio della email

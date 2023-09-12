@@ -1,3 +1,10 @@
+## Version 1.2.32 - 12 set 2023
+
+##### Improvements
+- Corsi di Recupero import tipo pnrr
+##### Bug Fixes
+- carenza e piano di lavoro filtro docenti con docenti vecchi
+
 ## Version 1.2.31 - 29 ago 2023
 
 ##### Improvements
