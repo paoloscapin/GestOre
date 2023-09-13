@@ -1,3 +1,8 @@
+## Version 1.2.33 - 13 set 2023
+
+##### Bug Fixes
+- corsi di recupero voti aperti e chiusi fix
+
 ## Version 1.2.32 - 12 set 2023
 
 ##### Improvements

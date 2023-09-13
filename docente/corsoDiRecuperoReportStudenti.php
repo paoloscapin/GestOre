@@ -58,11 +58,17 @@ ruoloRichiesto('segreteria-didattica','dirigente','docente');
 require_once '../common/connect.php';
 
 function printableVoto($voto) {
+
+	// rosso se non passato
+	$bgColor = ($voto <= 5) ? 'red' : 'green';
+
 	if ($voto != 0) {
+		// 1 vuole dire che non c'era
 		if ($voto == 1) {
-			return 'Assente';
+			$voto = 'Assente';
 		}
-		return $voto;
+		$result = '<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.$voto.'</span>';
+		return $result;
 	}
 	return null;
 }
@@ -180,9 +186,9 @@ foreach($resultArray as $row_classe) {
 									<td>'.$row_studente['studente_per_corso_di_recupero_cognome'].' '.$row_studente['studente_per_corso_di_recupero_nome'].'</td>
 									<td><small>'.$row_studente['materia_nome'].'</small></td>';
 
-				if (getSettingsValue('corsiDiRecupero', 'corsiDiRecuperoVotoSettembreTuttiIDocenti', true)) {
+				if (getSettingsValue('corsiDiRecupero', 'corsiDiRecuperoVotoSettembreTuttiIDocenti', true) && $__config->getVoti_recupero_settembre_aperto()) {
 					$votoSettembre = $row_studente['studente_per_corso_di_recupero_voto_settembre'];
-					$votoSettembreOptionList = '				<select  class="votoSettembre selectpicker" data-noneSelectedText="seleziona..." data-width="50%" ><option value="0"></option>';
+					$votoSettembreOptionList = '				<select  class="votoSettembre selectpicker" data-noneSelectedText="seleziona..." data-width="50%" '.($__config->getVoti_recupero_settembre_aperto() ? '':' disabled').'><option value="0"></option>';
 					// opzione per assente
 					$bgColor = 'red';
 					$votoSettembreOptionList .= '<option value="'.'1'.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.'Assente'.'</span>"';
@@ -211,7 +217,7 @@ foreach($resultArray as $row_classe) {
 						$dataSettembre = date('d/m/Y');
 					}
 					$data .= '
-    							<td><input type="text" placeholder="Data" class="form-control dataVotoSettembre" value="'.$dataSettembre.'" /></td>';
+    							<td><input type="text" placeholder="Data" class="form-control dataVotoSettembre" value="'.$dataSettembre.'" '.($__config->getVoti_recupero_settembre_aperto() ? '':' disabled').' /></td>';
 
 					$data .= '
 									<td><small>'.$row_studente['docente_set_cognome'].' '.$row_studente['docente_set_nome'].'</small></td>

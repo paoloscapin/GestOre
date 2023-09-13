@@ -37,6 +37,30 @@ require_once '../common/connect.php';
     <div class="row">
         <div class="col-md-12">
 <?php
+
+function printableVoto($voto) {
+
+	// rosso se non passato
+	$bgColor = ($voto <= 5) ? 'red' : 'green';
+
+	if ($voto != 0) {
+		// 1 vuole dire che non c'era
+		if ($voto == 1) {
+			$voto = 'Assente';
+		}
+		$result = '<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.$voto.'</span>';
+		return $result;
+	}
+	return null;
+}
+
+function printableDate($data) {
+	if ($data != null) {
+		return strftime("%d/%m/%Y", strtotime($data));
+	}
+	return null;
+}
+
 if (! haRuolo('segreteria-didattica')) {
 	$selezioneDocente = "AND corso_di_recupero.docente_id = $__docente_id";
 } else {
@@ -165,41 +189,48 @@ foreach(dbGetAll($query) as $row) {
 			$data .= '<td></td>';
 			$data .= '<td></td>';
 		} else {
-			$votoSettembre = $studenteRow['studente_per_corso_di_recupero_voto_settembre'];
-			$votoSettembreOptionList = '<select class="votoSettembre selectpicker" data-noneSelectedText="seleziona..." data-width="50%" ><option value="0"></option>';
+			if ($__config->getVoti_recupero_settembre_aperto()) {
+				$votoSettembre = $studenteRow['studente_per_corso_di_recupero_voto_settembre'];
+				$votoSettembreOptionList = '<select class="votoSettembre selectpicker" data-noneSelectedText="seleziona..." data-width="50%" ><option value="0"></option>';
 
-			// opzione per assente
-			$bgColor = 'red';
-			$votoSettembreOptionList .= '<option value="'.'1'.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.'Assente'.'</span>"';
-			if ($votoSettembre == 1) {
-				$votoSettembreOptionList .= ' selected ';
-			}
-			$votoSettembreOptionList .= '>'.'assente'.'</option>';
-
-			for($i = 4; $i <= 10; $i++) {
-				$bgColor = ($i <= 5) ? 'red' : 'green';
-				// prepara la lista dei possibili voti
-				$votoSettembreOptionList .= '<option value="'.$i.'" data-content="<span class=\'label label-info\'style=\'background-color: '.$bgColor.';\'>'.$i.'</span>"';
-				if ($votoSettembre == $i) {
-					// marca selected il voto corrente
+				// opzione per assente
+				$bgColor = 'red';
+				$votoSettembreOptionList .= '<option value="'.'1'.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.'Assente'.'</span>"';
+				if ($votoSettembre == 1) {
 					$votoSettembreOptionList .= ' selected ';
 				}
-				$votoSettembreOptionList .= '>'.$i.'</option>';
+				$votoSettembreOptionList .= '>'.'assente'.'</option>';
+
+				for($i = 4; $i <= 10; $i++) {
+					$bgColor = ($i <= 5) ? 'red' : 'green';
+					// prepara la lista dei possibili voti
+					$votoSettembreOptionList .= '<option value="'.$i.'" data-content="<span class=\'label label-info\'style=\'background-color: '.$bgColor.';\'>'.$i.'</span>"';
+					if ($votoSettembre == $i) {
+						// marca selected il voto corrente
+						$votoSettembreOptionList .= ' selected ';
+					}
+					$votoSettembreOptionList .= '>'.$i.'</option>';
+				}
+				$votoSettembreOptionList .= '</select>';
+				$data .= '<td>'.$votoSettembreOptionList.'</td>';
+				$dataSettembre = strftime("%d/%m/%Y", strtotime($studenteRow['studente_per_corso_di_recupero_data_voto_settembre']));
+				if (empty($studenteRow['studente_per_corso_di_recupero_data_voto_settembre'])) {
+					$dataSettembre = date('d/m/Y');
+				}
+				$data .= '<td><input type="text" placeholder="Data" class="form-control dataVotoSettembre" value="'.$dataSettembre.'" /></td>';
+				$docenteSettembre = $studenteRow['docente_set_cognome'].' '.$studenteRow['docente_set_nome'];
+				$data .= '<td>'.$docenteSettembre;
+				// la segreteria didattica deve poter scegliere il docente
+				if (haRuolo('segreteria-didattica')) {
+					$data .= '<button onclick="votoDocenteSelect('.$studenteRow['studente_per_corso_di_recupero_id'].')" class="btnVotoDocenteSelect btn btn-warning btn-xs"><span class="glyphicon glyphicon-education"></button>';
+				}
+				$data .= '</td>';
+			} else {
+				$data .= '
+				<td style="text-align: center;">'.printableVoto($studenteRow['studente_per_corso_di_recupero_voto_settembre']).'</td>
+				<td style="text-align: center;">'.printableDate($studenteRow['studente_per_corso_di_recupero_data_voto_settembre']).'</td>
+				<td><small>'.$studenteRow['docente_set_cognome'].' '.$studenteRow['docente_set_nome'].'</small></td>';
 			}
-			$votoSettembreOptionList .= '</select>';
-			$data .= '<td>'.$votoSettembreOptionList.'</td>';
-			$dataSettembre = strftime("%d/%m/%Y", strtotime($studenteRow['studente_per_corso_di_recupero_data_voto_settembre']));
-			if (empty($studenteRow['studente_per_corso_di_recupero_data_voto_settembre'])) {
-				$dataSettembre = date('d/m/Y');
-			}
-			$data .= '<td><input type="text" placeholder="Data" class="form-control dataVotoSettembre" value="'.$dataSettembre.'" /></td>';
-			$docenteSettembre = $studenteRow['docente_set_cognome'].' '.$studenteRow['docente_set_nome'];
-			$data .= '<td>'.$docenteSettembre;
-			// la segreteria didattica deve poter scegliere il docente
-			if (haRuolo('segreteria-didattica')) {
-				$data .= '<button onclick="votoDocenteSelect('.$studenteRow['studente_per_corso_di_recupero_id'].')" class="btnVotoDocenteSelect btn btn-warning btn-xs"><span class="glyphicon glyphicon-education"></button>';
-			}
-			$data .= '</td>';
 
 			// voto novembre se presente
 			$votoNovembre = $studenteRow['studente_per_corso_di_recupero_voto_novembre'];
@@ -207,8 +238,8 @@ foreach(dbGetAll($query) as $row) {
 			$dataNovembre = ($dataNov == null) ? '' : strftime("%d/%m/%Y", strtotime($dataNov));
 			$docenteNovembre = $studenteRow['docente_nov_cognome'].' '.$studenteRow['docente_nov_nome'];
 
-			$data .= '<td class="text-center">'.$votoNovembre.'</td>';
-			$data .= '<td class="text-center">'.$dataNovembre.'</td>';
+			$data .= '<td class="text-center">'.printableVoto($votoNovembre).'</td>';
+			$data .= '<td class="text-center">'.printableDate($dataNovembre).'</td>';
 			$data .= '<td>'.$docenteNovembre.'</td>';
 		}
 
