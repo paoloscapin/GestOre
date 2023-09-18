@@ -1,3 +1,9 @@
+## Version 1.2.34 - 18 set 2023
+
+##### Improvements
+- corsi di recupero lettere settembre con dompdf
+- apertura lettere con bottone specifico
+
 ## Version 1.2.33 - 13 set 2023
 
 ##### Bug Fixes

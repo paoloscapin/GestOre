@@ -7,15 +7,26 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-?>
+$pagina = '';
 
-<html>
-<head>
-<?php
 require_once '../common/checkSession.php';
+require_once '../common/importi_load.php';
 ruoloRichiesto('docente','dirigente','segreteria-docenti');
-require_once '../common/connect.php';
-require_once '../common/header-common.php';
+require_once '../common/dompdf/autoload.inc.php';
+
+use Dompdf\Dompdf;
+
+if(! isset($_GET)) {
+	return;
+} else {
+	$studente_corso_id = $_GET['id'];
+	// controlla se e' richiesta la stampa
+	if(isset($_GET['print'])) {
+		$print = true;
+	} else {
+		$print = false;
+	}
+}
 
 function printableVoto($voto) {
 	if ($voto != 0) {
@@ -34,7 +45,17 @@ function printableDate($data) {
 	return null;
 }
 
-$studente_corso_id = $_GET["id"];
+// load the css file into a string
+ob_start();
+include '../css/template-nomina.css';
+$cssFileContent = ob_get_clean();
+
+// per il pdf trasformiamo Arial in Helvetica
+$cssFileContent = str_replace('Arial', 'Helvetica', $cssFileContent);
+
+// contenuto della pagina
+$data = '';
+
 $query = "
 			SELECT studente_per_corso_di_recupero.*,
 				docente_voto_settembre.id AS docente_voto_settembre_id,
@@ -76,17 +97,15 @@ if ($studente_corso['voto_novembre'] > 0) {
 }
 $luogoIstituto = $__settings->local->luogoIstituto;
 $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</span>' : '<span class="c39" style="color:#cc0000;">NON superata</span>';
-?>
 
-	<title><?php echo $studente_corso['cognome'] . " " . $studente_corso['nome']; ?> - Lettera Carenza <?php echo $studente_corso['materia_nome']; ?></title>
-	<meta content="text/html; charset=UTF-8" http-equiv="content-type">
-	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/template-nomina.css">
-</head>
+$title = $studente_corso['cognome'] . ' ' . $studente_corso['nome'] . ' - Lettera Carenza ' . $studente_corso['materia_nome'];
+
+$data .= '
 <body class="c13">
 	<div>
 		<p class="c7">
 			<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px;">
-				<img alt="" src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")); ?>" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
+				<img alt="" src="data:image/png;base64,'.base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")).'" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
 			</span>
 <hr>
 		</p>
@@ -101,13 +120,13 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 	</p>
 	</br>
 	<p class="c12">
-		<span class="c9 c20">&#x2160; sessione di recupero</span>
+		<span class="c9 c20">I sessione di recupero</span>
 	</p>
 	</br>
 	<table class="c11">
 		<tbody>
 			<tr class="c18">
-				<td class="c2" colspan="1" rowspan="1"><p class="c6 c4 c21"><?php echo $luogoIstituto; ?>, <?php echo $dataLettera; ?>
+				<td class="c2" colspan="1" rowspan="1"><p class="c6 c4 c21">'.$luogoIstituto.', '.$dataLettera.'
 					</p></td>
 				<td class="c2" colspan="1" rowspan="1">
 					<p class="c6 c14">
@@ -120,7 +139,7 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 					</p></td>
 				<td class="c2" colspan="1" rowspan="1">
 					<p class="c6 c14">
-						<span class="c4 c21"><strong><?php echo $studente_corso['cognome'] . " " . $studente_corso['nome']; ?></strong></span>
+						<span class="c4 c21"><strong>'.$studente_corso['cognome'] . " " . $studente_corso['nome'].'</strong></span>
 					</p>
 				</td>
 			</tr>
@@ -153,16 +172,16 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 				</tr>
 				<tr class="c33">
 					<td class="c34" colspan="1" rowspan="1">
-						<p class="c40"><span class="c39"><?php echo $studente_corso['materia_nome']; ?></span></p>
+						<p class="c40"><span class="c39">'.$studente_corso['materia_nome'].'</span></p>
 					</td>
 					<td class="c35" colspan="1" rowspan="1">
-						<p class="c40"><span class="c39"><?php echo printableDate($data_voto); ?></span></p>
+						<p class="c40"><span class="c39">'.printableDate($data_voto).'</span></p>
 					</td>
 					<td class="c36" colspan="1" rowspan="1">
-						<p class="c40 c100C"><?php echo $superata; ?></p>
+						<p class="c40 c100C">'.$superata.'</p>
 					</td>
 					<td class="c37 colspan="1" rowspan="1">
-						<p class="c40 c100C"><span class="c39"><?php echo printableVoto($voto); ?></span></p>
+						<p class="c40 c100C"><span class="c39">'.printableVoto($voto).'</span></p>
 					</td>
 				</tr>
 			</tbody>
@@ -182,14 +201,7 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 			<tr class="c18">
 				<td class="c2" colspan="1" rowspan="1"><p class="c17">
 					</p></td>
-				<td class="c2" colspan="1" rowspan="1">
-					<?php
-					if(getSettingsValue('corsiDiRecupero','corsiDiRecuperoFirmaDocente', true)) {
-						echo $__docente_nome . ' ' . $__docente_cognome;
-					} else {
-						echo ' ';
-					}
-					?>
+				<td class="c2" colspan="1" rowspan="1">'.(getSettingsValue('corsiDiRecupero','corsiDiRecuperoFirmaDocente', true)? $__docente_nome . ' ' . $__docente_cognome : ' ').'
 				</td>
 			</tr>
 		</tbody>
@@ -201,9 +213,9 @@ $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</sp
 </br>
 <p class="c3">
     <span class="c1 c21">
-    Il sottoscritto _______________________________________ genitore dello studente/essa <?php echo $studente_corso['cognome'] . " " . $studente_corso['nome']; ?>
+    Il sottoscritto _______________________________________ genitore dello studente/essa '.$studente_corso['cognome'] . " " . $studente_corso['nome'].'
     della classe ____________ <strong>dichiara</strong> di aver ricevuto in data ____________ comunicazione dell’esito della prova
-    di recupero carenze di <?php echo $studente_corso['materia_nome']; ?> a.s. scorso.
+    di recupero carenze di '.$studente_corso['materia_nome'].' a.s. scorso.
 </p>
 <p class="c3">
 </br>
@@ -211,14 +223,14 @@ FIRMA (studente maggiorenne o genitore per studente minorenne)
 </br>
 </br>
 ______________________________________________________________
-</p>
+</p>';
 
-<?php if($voto < 6) : ?>
-</br>
+if($voto < 6)
+$data .= '</br>
 <p class="c3">
     <span class="c1 c21">
-    <strong>CHIEDE</strong> che il/la figlio/a possa sostenere un'ulteriore verifica
-	per il superamento della carenza in <?php echo $studente_corso['materia_nome']; ?> entro <strong>novembre</strong>,
+    <strong>CHIEDE</strong> che il/la figlio/a possa sostenere un\'ulteriore verifica
+	per il superamento della carenza in '.$studente_corso['materia_nome'].' entro <strong>novembre</strong>,
 	da concordare con il docente della classe.
 </p>
 <p class="c3">
@@ -227,14 +239,79 @@ FIRMA (studente maggiorenne o genitore per studente minorenne)
 </br>
 </br>
 ______________________________________________________________
-</p>
+</p>';
 
-<?php endif; ?>
-<script>
-// function myFunction() {
-//     window.print();
-// }
-// myFunction();
-</script>
-</body>
-</html>
+// adesso viene il momento di produrre la pagina o il pdf
+$pagina .= '<html>
+<head>
+<link rel="icon" href="'.$__application_base_path.'/ore-32.png" />
+<link rel="stylesheet" href="'.$__application_base_path.'/css/releaseversion.css?v='. $__software_version.'">
+<link rel="stylesheet" href="'.$__application_base_path.'/css/template-nomina.css?v='. $__software_version.'">
+';
+
+$pagina .= '<title>' .$title . '</title>';
+$pagina .='
+<meta content="text/html; charset=UTF-8" http-equiv="content-type">
+<style>
+';
+$pagina .= $cssFileContent;
+$pagina .='
+</style>';
+
+// lo script non deve entrare nel pdf
+if (! $print) {
+	$pagina .='
+	<script type="text/javascript">
+	window.onload = (event) => {
+		var printBtn = document.querySelector(".btn_print");
+		printBtn.onclick = function(event) {
+			event.preventDefault();
+			window.location.search += "&print=true";
+		}
+	};
+	</script>';
+}
+
+// chiude l'intestazione
+$pagina .='
+	</head>
+	<body>';
+
+// bottone di print solo se in visualizzazione
+if (! $print) {
+	$pagina .='
+		<div class="text-center noprint" style="text-align: center;padding: 50px;">
+		<button class="btn btn-orange4 btn-xs btn_print"><i class="icon-play"></i>&nbsp;Scarica il pdf</button>
+		</div>';
+}
+
+// il resto deve entrare in entrambi i casi, pagina o pdf: copertina, consuntivo, poi tutto il resto
+$pagina .= $data;
+
+// chiude la pagina
+$pagina .= '</body></html>';
+
+// decide se visualizzarla o inviarla a pdf
+if (! $print) {
+	echo $pagina;
+} else {
+	$dompdf = new Dompdf();
+	$dompdf->loadHtml($pagina);
+ 
+	// configura i parametri
+	$dompdf->setPaper('A4', 'portrait');
+	
+	// Render html in pdf
+	$dompdf->render();
+
+	// produce il nome del file
+	$pdfFileName = "$title.pdf";
+
+	// richiesta di invio di email
+	if ($print) {
+		// invia il pdf al browser che fa partire il download in automatico
+		$dompdf->stream($pdfFileName);
+	}
+}
+
+?>

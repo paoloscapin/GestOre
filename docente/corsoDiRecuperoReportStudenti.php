@@ -43,6 +43,15 @@ ruoloRichiesto('segreteria-didattica','dirigente','docente');
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
 
+<style>
+    .icon-play{
+        background-image : url('../img/pdf-256.png');
+        background-size: cover;
+        display: inline-block;
+        height: 16px;
+        width: 16px;
+    }
+</style>
 </head>
 
 <body >
@@ -278,29 +287,35 @@ foreach($resultArray as $row_classe) {
 				$data .= '
 									<td class="col-sm-1 text-center">'.$passatoMarker.'</td>
 						';
-				// se e' aperto solo settembre, controlla se deve generare la lettera (se c'è il voto)
-				if ($__config->getVoti_recupero_settembre_aperto() && ! $__config->getVoti_recupero_novembre_aperto() && ($row_studente['studente_per_corso_di_recupero_voto_settembre'] > 0) ) {
-					$data .= '
-									<td class="text-center">
-									<button onclick="letteraCarenzeSettembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-envelope"></button>
-									</td>
-						';
+
+				// controlla se e' aperto la generazione delle lettere
+				if ($__config->getEmail_carenze_aperto()) {
+					// se ha i lvoto solo a settembre, deve generare la lettera di settembre
+					if (($row_studente['studente_per_corso_di_recupero_voto_settembre'] > 0) && ($row_studente['studente_per_corso_di_recupero_voto_novembre'] <= 0)) {
+						$data .= '
+										<td class="text-center">
+										<button onclick="letteraCarenzeSettembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>
+										</td>
+							';
+					}
+					// se ha i lvoto solo a novembre, deve generare la lettera di novembre
+					else if (($row_studente['studente_per_corso_di_recupero_voto_novembre'] > 0) ) {
+						$data .= '
+										<td class="text-center">
+										<button onclick="letteraCarenzeNovembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>
+										</td>
+							';
+					}
+					// altrimenti non deve generare niente
+					else {
+						$data .= '<td></td>';
+					}
+				}
+				// altrimenti non deve generare niente
+				else {
+					$data .= '<td></td>';
 				}
 
-				// se e' aperto novembre, controlla se deve generare la lettera finale (se c'è il voto)
-				else if ($__config->getVoti_recupero_novembre_aperto() && ($row_studente['studente_per_corso_di_recupero_voto_novembre'] > 0) ) {
-					$data .= '
-									<td class="text-center">
-									<button onclick="letteraCarenzeNovembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-envelope"></button>
-									</td>
-						';
-				}
-				
-				else {
-					$data .= '
-									<td></td>
-						';
-				}
 				$data .= '
 								</tr>
 						';
@@ -327,7 +342,7 @@ echo $data;
 </div>
 </div>
 <!-- Custom JS file -->
-<script type="text/javascript" src="js/scriptCorsoDiRecuperoReportStudenti.js"></script>
+<script type="text/javascript" src="js/scriptCorsoDiRecuperoReportStudenti.js?v=<?php echo $__software_version; ?>"></script>
 
 </body>
 </html>
