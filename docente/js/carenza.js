@@ -193,7 +193,6 @@ function carenzaEmailPdf(piano_di_lavoro_id) {
 }
 
 $(document).ready(function () {
-    console.log("version = 5");
 
     // se e' collegato un docente, filtra direttamente i suoi piani quando apre la pagina
     if ($("#hidden_docente_id").val() != '') {
