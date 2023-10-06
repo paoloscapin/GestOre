@@ -195,7 +195,7 @@ foreach($resultArray as $row_classe) {
 									<td>'.$row_studente['studente_per_corso_di_recupero_cognome'].' '.$row_studente['studente_per_corso_di_recupero_nome'].'</td>
 									<td><small>'.$row_studente['materia_nome'].'</small></td>';
 
-				if (getSettingsValue('corsiDiRecupero', 'corsiDiRecuperoVotoSettembreTuttiIDocenti', true) && $__config->getVoti_recupero_settembre_aperto()) {
+				if (getSettingsValue('corsiDiRecupero', 'corsiDiRecuperoVotoSettembreTuttiIDocenti', true) && $__config->getVoti_recupero_settembre_aperto() && !$esente) {
 					$votoSettembre = $row_studente['studente_per_corso_di_recupero_voto_settembre'];
 					$votoSettembreOptionList = '				<select  class="votoSettembre selectpicker" data-noneSelectedText="seleziona..." data-width="50%" '.($__config->getVoti_recupero_settembre_aperto() ? '':' disabled').'><option value="0"></option>';
 					// opzione per assente

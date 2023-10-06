@@ -1,3 +1,8 @@
+## Version 1.2.35 -  2023
+
+##### Bug Fixes
+- corsi di recupero import var pnrr fix
+
 ## Version 1.2.34 - 18 set 2023
 
 ##### Improvements

@@ -151,7 +151,7 @@ while ($words[0] == 'CODICE') {
     }
 
     // segue Aula se non in studio individuale
-    if (! $studio_individuale && ! pnrr) {
+    if (! $studio_individuale && ! $pnrr) {
         nextWords();
         if (!checkWord('Aula')) {
             erroreDiImport("Aula non specificata per il corso $corso_codice");
@@ -163,7 +163,7 @@ while ($words[0] == 'CODICE') {
     }
 
     // segue Docente se non in studio individuale
-    if (! $studio_individuale && ! pnrr) {
+    if (! $studio_individuale && ! $pnrr) {
         nextWords();
         if (!checkWord('Docente')) {
             erroreDiImport("Docente non specificato per il corso $corso_codice");
@@ -214,7 +214,7 @@ while ($words[0] == 'CODICE') {
     $numero_ore_recupero = 0;
 
     // segue Lezioni se non in studio individuale
-    if (! $studio_individuale && ! pnrr) {
+    if (! $studio_individuale && ! $pnrr) {
         nextWords();
         if (!checkWord('Lezioni')) {
             erroreDiImport("Lezioni non specificate per il corso $corso_codice");
@@ -285,9 +285,17 @@ while ($words[0] == 'CODICE') {
         $nome = escapeString(implode(' ', array_slice($arr, 1)));
         $numero_studenti++;
         $serve_voto = 1;
-        // controlla se il terzo campo dello studente contiene "uditore"
-        $commento = escapeString(strtolower($words[3]));
-        if (strpos($commento, 'uditore') !== false) {
+        // il terzo campo e' un commento (oppure il quarto se presente)
+        $commento = '';
+        if (count($words) > 3) {
+            $commento = escapeString($words[3]);
+            // se e' vuoto il commento potrebbe essere nel quarto
+            if (empty(trim($commento)) && count($words) > 4) {
+                $commento = escapeString($words[4]);
+            }
+        }
+        // controlla se il commento contiene "uditore"
+        if (strpos(strtolower($commento), 'uditore') !== false) {
             $serve_voto = 0;
         }
         // per i corsi in itinere i voti non sono inseriti in gestore ma direttamente sul registro
@@ -304,7 +312,7 @@ while ($words[0] == 'CODICE') {
         }
     }
 	// studente_partecipa_lezione_corso_di_recupero se non si tratta di studio individuale o pnrr
-    if (! $studio_individuale && ! pnrr) {
+    if (! $studio_individuale && ! $pnrr) {
         $sql .= "INSERT INTO studente_partecipa_lezione_corso_di_recupero (lezione_corso_di_recupero_id, studente_per_corso_di_recupero_id)
                 SELECT lezione_corso_di_recupero.id, studente_per_corso_di_recupero.id FROM lezione_corso_di_recupero, studente_per_corso_di_recupero
                 WHERE lezione_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero AND studente_per_corso_di_recupero.corso_di_recupero_id = @last_id_corso_di_recupero;
