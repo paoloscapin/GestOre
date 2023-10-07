@@ -1,3 +1,8 @@
+## Version 1.2.36 -  2023
+
+##### Bug Fixes
+- fix per prenotazione sportello con argomento deciso dal docente
+
 ## Version 1.2.35 -  2023
 
 ##### Bug Fixes

@@ -45,11 +45,20 @@ function sportelloCancellaIscrizione(sportello_id, materia) {
 function sportelloIscriviti(sportello_id, materia, argomento) {
     var unSoloArgomento = $("#hidden_unSoloArgomento").val() == 0 ? false : true;
     // console.log('unSoloArgomento=' + unSoloArgomento);
+    // console.log('argomento=' + argomento);
 
     var primoIscritto = argomento ? false : true;
+    // console.log('primoIscritto=' + primoIscritto);
 
     // per il primo iscritto chiede argomento, oppure anche se gli argomenti possono essere diversi
     var chiediArgomento = ! unSoloArgomento || primoIscritto;
+    // console.log('chiediArgomento=' + chiediArgomento);
+
+    // ma se era stato già previsto dal docente, allora si puo' solo accettare
+    if (argomento != null && argomento.length != 0) {
+        chiediArgomento = false;
+    }
+    // console.log('chiediArgomento finale=' + chiediArgomento);
 
     var titolo = "<p>Sportello: " + materia + "</p>";
     var messaggio = chiediArgomento ? "<p>Inserire l\'argomento per lo sportello:</p>" : "<p>Confermare l\'argomento per lo sportello:</p>" + argomento;
