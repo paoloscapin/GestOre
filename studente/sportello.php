@@ -131,6 +131,6 @@ require_once '../common/connect.php';
 <input type="hidden" id="hidden_unSoloArgomento" value="<?php echo getSettingsValue("sportelli", "unSoloArgomento", true) ? 1 : 0; ?>">
 
 <!-- Custom JS file -->
-<script type="text/javascript" src="js/sportello.js"></script>
+<script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 </html>
