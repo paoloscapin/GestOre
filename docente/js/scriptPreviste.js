@@ -59,9 +59,6 @@ function previstaUpdateDetails() {
     	operatore: $("#hidden_operatore").val(),
     	update_commento: $("#update_commento").val()
     }, function (data, status) {
-    	if (data !== '') {
-    		bootbox.alert(data);
-    	}
     	previsteReadRecords();
 		oreDovuteReadRecords();
 		fuisAggiornaDocente();

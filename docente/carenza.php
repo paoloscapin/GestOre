@@ -45,32 +45,10 @@ foreach(dbGetAll("SELECT * FROM studente  WHERE studente.classe <> '' ORDER BY s
     $studenteOptionList .= '<option value="'.$studente['id'].'" data-subtext="'.$studente['classe'].'">'.$studente['cognome'].' '.$studente['nome'].'</option> ';
 }
 
-$query = "	SELECT * FROM studente  WHERE studente.classe <> '' ORDER BY studente.classe ASC, studente.cognome ASC, studente.nome ASC ;";
-if (!$result = mysqli_query($con, $query)) {
-    exit(mysqli_error($con));
-}
-if(mysqli_num_rows($result) > 0) {
-    $resultArray = $result->fetch_all(MYSQLI_ASSOC);
-    foreach($resultArray as $row) {
-        $docenteOptionList .= '
-            <option value="'.$row['id'].'" >'.$row['cognome'].' '.$row['nome'].'</option>
-        ';
-    }
-}
-
 // prepara l'elenco dei docenti
 $docenteOptionList = '<option value="0"></option>';
-$query = "	SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC;";
-if (!$result = mysqli_query($con, $query)) {
-    exit(mysqli_error($con));
-}
-if(mysqli_num_rows($result) > 0) {
-    $resultArray = $result->fetch_all(MYSQLI_ASSOC);
-    foreach($resultArray as $row) {
-        $docenteOptionList .= '
-            <option value="'.$row['id'].'" >'.$row['cognome'].' '.$row['nome'].'</option>
-        ';
-    }
+foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC;")as $docente) {
+    $docenteOptionList .= '<option value="'.$docente['id'].'">'.$docente['cognome'].' '.$docente['nome'].'</option> ';
 }
 
 // prepara l'elenco dei docenti per il filtro

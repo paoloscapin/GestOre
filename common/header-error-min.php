@@ -19,7 +19,7 @@ require_once __DIR__ . '/connect.php';
 	<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav">
-			<li class="active"><a href="<?php echo $__joomla_base_path; ?>"><span class="glyphicon glyphicon-home"></span> Home </a></li>
+			<li class="active"><a href="<?php echo $__application_base_path; ?>"><span class="glyphicon glyphicon-home"></span> Home </a></li>
 			<li><a href="#">  </a></li>
 		</ul>
 

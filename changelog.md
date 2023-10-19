@@ -1,3 +1,8 @@
+## Version 1.2.37 -  2023
+
+##### Bug Fixes
+- minor fixes
+
 ## Version 1.2.36 -  2023
 
 ##### Bug Fixes

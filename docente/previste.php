@@ -33,7 +33,7 @@ ruoloRichiesto('segreteria-docenti','dirigente','docente');
 $docente_id = $__docente_id;
 $operatore = 'docente';
 
-if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
+if(isset($_GET['docente_id']) && $_GET['docente_id'] != "") {
 	// se specificato il docente id nel get, devi essere dirigente
 	ruoloRichiesto('dirigente');
 
@@ -52,9 +52,9 @@ if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
 		$__docente_nome = $result['nome'];
 		$__docente_cognome = $result['cognome'];
 	}
-	$ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_previste WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
-    debug('ultimo_controllo=' . $ultimo_controllo);
 }
+$ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_previste WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
+debug('ultimo_controllo=' . $ultimo_controllo);
 
 require_once '../common/header-docente.php';
 ?>
@@ -536,8 +536,8 @@ require_once '../docente/attribuiteModal.php';
 <!-- bootbox notificator -->
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 
-<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js"></script>
-<script type="text/javascript" src="js/scriptPreviste.js"></script>
-<script type="text/javascript" src="js/scriptAttribuite.js"></script>
+<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/scriptPreviste.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/scriptAttribuite.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 </html>

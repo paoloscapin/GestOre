@@ -251,7 +251,7 @@ while ($words[0] == 'CODICE') {
                 $inizia_alle = date("H:i:s", $timeStart);
                 // durata (in ore da 50 minuti)
                 $numero_ore = ($timeEnd - $timeStart) / (50 * 60);
-                $numero_ore_recupero += 2;
+                $numero_ore_recupero += $numero_ore;
                 // orario in formato stringa
                 $orario = date("H:i", $timeStart) . " - " . date("H:i", $timeEnd);
         
