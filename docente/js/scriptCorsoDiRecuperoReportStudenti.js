@@ -16,7 +16,7 @@ function letteraCarenzeSettembre(id) {
 }
 
 function letteraCarenzeNovembre(id) {
-	var url = 'letteraCarenze.php?id=' + id;
+	var url = 'letteraCarenzeNovembre.php?id=' + id;
 	window.open(url, "_blank");
 }
 

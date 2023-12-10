@@ -180,15 +180,19 @@ foreach($resultArray as $row) {
 		// lo sportello si puo' prenotare se oggi e' >= al primo lunedi' da cui si puo' prenotare e <= all'ultimo giorno di prenotazione
 		$prenotabile = ($todayAfterpreviousMonday && $todayBeforeLastDay);
 
+		// e' cancellabile se oggi e' <= all'ultimo giorno di prenotazione
+		$cancellabile = $todayBeforeLastDay;
+
 		// debug("today=".$today->format('d-m-Y H:i:s'));
 		// debug("dataSportello=".$dataSportello);
-		// debug("daysInAdvance=".$daysInAdvance->format('d-m-Y H:i:s'));
-		// debug("daysAgo=".$daysAgo->format('d-m-Y H:i:s'));
+		// debug("daysInAdvance=".$daysInAdvance);
+		// debug("daysAgo=".$daysAgo);
 		// debug("lastDay=".$lastDay->format('d-m-Y H:i:s'));
 		// debug("previousMonday=".$previousMonday->format('d-m-Y H:i:s'));
 		// debug("todayAfterpreviousMonday=".$todayAfterpreviousMonday);
 		// debug("todayBeforeLastDay=".$todayBeforeLastDay);
 		// debug("prenotabile=".$prenotabile);
+		// debug("cancellabile=".$cancellabile);
 
 		// controlla che non sia stato raggiunto il massimo numero di prenotazioni
 		$max_iscrizioni = $row['sportello_max_iscrizioni'];
@@ -203,20 +207,26 @@ foreach($resultArray as $row) {
 			$prenotabile = false;
 		}
 
-		// la didattica puo' inserire la prenotazione sempre
+		// la didattica puo' inserire la prenotazione sempre e puo' sempre cancellare
 		if (haRuolo('segreteria-didattica')) {
 			$prenotabile = true;
+			$cancellabile = true;
 		}
 		
-		// debug("prenotabile=".$prenotabile);
+		// debug("final prenotabile=".$prenotabile);
+		// debug("final cancellabile=".$cancellabile);
 
 		// per quelli non passati, se sono iscritto lo dice e mi lascia cancellare, altrimenti mi lascia iscrivere se non sono scaduti i termini
 		if ($row['iscritto']) {
 			$data .='
 				<span class="label label-success">Iscritto</span>
-				<button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 				';
-		} else {
+				if ($cancellabile) {
+					$data .='
+						<button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+						';
+				}
+			} else {
 			if ($prenotabile) {
 				$data .='
 					<span class="label label-info">Disponibile</span>

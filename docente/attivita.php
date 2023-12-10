@@ -59,8 +59,8 @@ require_once '../common/header-docente.php';
 
 <div class="container-fluid" style="margin-top:60px">
 
-<?php if($operatore == 'dirigente') : ?>
 <!-- pannello fuis per dirigente -->
+<?php if($operatore == 'dirigente') : ?>
 <div class="panel panel-deeporange4">
 <div class="panel-heading container-fluid">
 	<div class="row">
@@ -158,6 +158,7 @@ require_once '../common/header-docente.php';
 
 <?php endif; ?>
 
+<!-- pannello riassuntivo -->
 <div class="panel panel-lima4">
 <div class="panel-heading">
 	<span class="glyphicon glyphicon-time"></span>
@@ -182,10 +183,14 @@ require_once '../common/header-docente.php';
 					<th class="col-md-1"></th>
 				<?php endif; ?>
 				<th class="col-md-1"></th>
-				<th class="col-md-2 text-left"><?php echoLabel('Funzionali');?></th>
-				<th class="col-md-2 text-left">con Studenti</th>
-				<th class="col-md-2 text-left"><span class="clil hidden">CLIL (<?php echoLabel('Funzionali');?>)</span></th>
-				<th class="col-md-2 text-left"><span class="clil hidden">CLIL (con Studenti)</span></th>
+				<th class="col-md-1 text-left"><?php echoLabel('Funzionali');?></th>
+				<th class="col-md-1 text-left">con Studenti</th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1 text-left"><span class="clil hidden">CLIL</span></br><span class="clil hidden">(<?php echoLabel('Funzionali');?>)</span></th>
+				<th class="col-md-1 text-left"><span class="clil hidden">CLIL</span></br><span class="clil hidden">(con Studenti)</span></th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento</span></br><span class="clil hidden">(<?php echoLabel('Funzionali');?>)</span></th>
+				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento</span></br><span class="orientamento hidden">(con Studenti)</span></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -218,8 +223,12 @@ require_once '../common/header-docente.php';
 				<td></td>
 				<td class="text-left" id="previste_ore_70_funzionali"></td>
 				<td class="text-left" id="previste_totale_con_studenti"></td>
+				<td></td>
 				<td class="text-left clil" id="clil_previste_funzionali"></td><td class="NOclil"></td>
 				<td class="text-left clil" id="clil_previste_con_studenti"></td><td class="NOclil"></td>
+				<td></td>
+				<td class="text-left orientamento" id="orientamento_previste_funzionali"></td><td class="NOorientamento"></td>
+				<td class="text-left orientamento" id="orientamento_previste_con_studenti"></td><td class="NOorientamento"></td>
 			</tr>
 			<tr class="teal5">
 				<td>fatte</td>
@@ -236,8 +245,12 @@ require_once '../common/header-docente.php';
 				<td></td>
 				<td class="text-left" id="fatte_ore_70_funzionali"></td>
 				<td class="text-left" id="fatte_totale_con_studenti"></td>
+				<td></td>
 				<td class="text-left clil" id="clil_fatte_funzionali"></td><td class="NOclil"></td>
 				<td class="text-left clil" id="clil_fatte_con_studenti"></td><td class="NOclil"></td>
+				<td></td>
+				<td class="text-left orientamento" id="orientamento_fatte_funzionali"></td><td class="NOorientamento"></td>
+				<td class="text-left orientamento" id="orientamento_fatte_con_studenti"></td><td class="NOorientamento"></td>
 			</tr>
 		</tbody>
 	</table>
@@ -256,6 +269,7 @@ require_once '../common/header-docente.php';
 <!-- <div class="panel-footer"></div> -->
 </div>
 
+<!-- pannello attivita' fatte -->
 <div class="panel panel-teal4">
 <div class="panel-heading">
 	<div class="row">

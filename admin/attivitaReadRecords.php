@@ -12,15 +12,17 @@ require_once '../common/checkSession.php';
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<tr>
-						<th>Categoria</th>
-						<th>Nome</th>
-						<th>Ore</th>
-						<th>Ore max</th>
-						<th>Valido</th>
-						<th>Previsto da docente</th>
-						<th>Inserito da docente</th>
-						<th>Da Rendicontare</th>
-						<th>Modifica</th>
+						<th class="col-md-1 text-left">Categoria</th>
+						<th class="col-md-2 text-left">Nome</th>
+						<th class="col-md-1 text-left">Funzionali</th>
+						<th class="col-md-1 text-left">Con Studenti</th>
+						<th class="col-md-1 text-left">Clil</th>
+						<th class="col-md-1 text-left">Orientamento</th>
+						<th class="col-md-1 text-left">Valido</th>
+						<th class="col-md-1 text-left">Previsto da docente</th>
+						<th class="col-md-1 text-left">Inserito da docente</th>
+						<th class="col-md-1 text-left">Da Rendicontare</th>
+						<th class="col-md-1 text-left"></th>
 					</tr>';
 
 $query = "	SELECT
@@ -35,9 +37,12 @@ foreach(dbGetAll($query) as $row) {
 	$data .= '<tr>
     <td>'.$row['categoria'].'</td>
     <td>'.$row['nome'].'</td>
-    <td>'.$row['ore'].'</td>
-    <td>'.$row['ore_max'].'</td>
     ';
+	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="funzionali" ' . ($row['funzionali']? 'checked ' : '').'></td>';
+	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="con_studenti" ' . ($row['con_studenti']? 'checked ' : '').'></td>';
+	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="clil" ' . ($row['clil']? 'checked ' : '').'></td>';
+	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="orientamento" ' . ($row['orientamento']? 'checked ' : '').'></td>';
+
 	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="valido" ' . ($row['valido']? 'checked ' : '').'></td>';
 	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="previsto_da_docente" ' . ($row['previsto_da_docente']? 'checked ' : '').'></td>';
 	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="inserito_da_docente" ' . ($row['inserito_da_docente']? 'checked ' : '').'></td>';

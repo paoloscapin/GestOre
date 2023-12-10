@@ -28,7 +28,7 @@ ruoloRichiesto('dirigente');
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-3.css">
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
 
-<script type="text/javascript" src="js/attivita.js"></script>
+<script type="text/javascript" src="js/attivita.js?v=<?php echo $__software_version; ?>"></script>
 </head>
 
 <body >
@@ -81,6 +81,7 @@ ruoloRichiesto('dirigente');
                     <option value="funzionali" >funzionali</option>
                     <option value="con studenti" >con studenti</option>
                     <option value="CLIL" >CLIL</option>
+                    <option value="orientamento" >orientamento</option>
 					</select></div>
                 </div>
 
@@ -102,20 +103,33 @@ ruoloRichiesto('dirigente');
                 <hr>
 
                 <div class="form-group">
+                    <label class="col-sm-3 control-label" for="check_funzionali">Funzionali</label>
+					<div class="col-sm-2"><input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="check_funzionali" ></div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="check_con_studenti">con Studenti</label>
+					<div class="col-sm-2"><input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="check_con_studenti" ></div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="check_clil">Clil</label>
+					<div class="col-sm-2"><input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="check_clil" ></div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="check_orientamento">Orientamento</label>
+					<div class="col-sm-2"><input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="check_orientamento" ></div>
+                </div>
+                <div class="form-group">
                     <label class="col-sm-3 control-label" for="check_valido">Valido</label>
 					<div class="col-sm-2"><input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="check_valido" ></div>
                 </div>
-
                 <div class="form-group">
                     <label class="col-sm-3 control-label" for="check_previsto_da_docente">Previsto da Docente</label>
 					<div class="col-sm-2"><input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="check_previsto_da_docente" ></div>
                 </div>
-
                 <div class="form-group">
                     <label class="col-sm-3 control-label" for="check_inserito_da_docente">Inserito da Docente</label>
 					<div class="col-sm-2"><input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="check_inserito_da_docente" ></div>
                 </div>
-
                 <div class="form-group">
                     <label class="col-sm-3 control-label" for="check_da_rendicontare">Da Rendicontare</label>
 					<div class="col-sm-2"><input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="check_da_rendicontare" ></div>

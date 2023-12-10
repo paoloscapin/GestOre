@@ -76,13 +76,14 @@ function salvaImporti() {
 			importo_id: $('#hidden_importo_id').val(),
 			importo_fuis: $('#importo_fuis').val(),
 			importo_fuis_clil: $('#importo_fuis_clil').val(),
+			importo_fuis_orientamento: $('#importo_fuis_orientamento').val(),
 			importo_bonus: $('#importo_bonus').val()
 		},
 		function (data, status) {
 			$.notify({
 				icon: 'glyphicon glyphicon-ok',
 				title: '<Strong>Importi</Strong></br>',
-				message: '<p>I nuovi importi sono stati salvati!</p></br>FUIS: ' + $('#importo_fuis').val() + '</br>FUIS Clil: ' +$('#importo_fuis_clil').val() + '</br>Bonus: ' + $('#importo_bonus').val()
+				message: '<p>I nuovi importi sono stati salvati!</p></br>FUIS: ' + $('#importo_fuis').val() + '</br>FUIS Clil: ' +$('#importo_fuis_clil').val() + '</br>FUIS Orientamento: ' +$('#importo_fuis_orientamento').val() + '</br>Bonus: ' + $('#importo_bonus').val()
 			},{
 				placement: {
 					from: "top",

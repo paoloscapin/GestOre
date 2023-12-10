@@ -41,13 +41,16 @@ require_once '../common/importi_load.php';
 
 		<div class="form-group">
 			<label class="col-sm-2 control-label" for="importo_fuis">Importo FUIS</label>
-			<div class="col-sm-2"><input type="text" id="importo_fuis" placeholder="0" class="form-control" value="<?php echo $__importo_fuis; ?>" /></div>
+			<div class="col-sm-1"><input type="text" id="importo_fuis" placeholder="0" class="form-control" value="<?php echo $__importo_fuis; ?>" /></div>
 
 			<label class="col-sm-2 control-label" for="importo_fuis_clil">Importo FUIS CLIL</label>
-			<div class="col-sm-2"><input type="text" id="importo_fuis_clil" placeholder="0" class="form-control" value="<?php echo $__importo_fuis_clil; ?>" /></div>
+			<div class="col-sm-1"><input type="text" id="importo_fuis_clil" placeholder="0" class="form-control" value="<?php echo $__importo_fuis_clil; ?>" /></div>
+
+			<label class="col-sm-2 control-label" for="importo_fuis_orientamento">Importo FUIS Orientamento</label>
+			<div class="col-sm-1"><input type="text" id="importo_fuis_orientamento" placeholder="0" class="form-control" value="<?php echo $__importo_fuis_orientamento; ?>" /></div>
 
 			<label class="col-sm-2 control-label" for="importo_bonus">Importo Bonus</label>
-			<div class="col-sm-2"><input type="text" id="importo_bonus" placeholder="0" class="form-control" value="<?php echo $__importo_bonus; ?>" /></div>
+			<div class="col-sm-1"><input type="text" id="importo_bonus" placeholder="0" class="form-control" value="<?php echo $__importo_bonus; ?>" /></div>
 		</div>
     </div>
 	<input type="hidden" id="hidden_importo_id" value="<?php echo $__importo_id; ?>" >
@@ -113,7 +116,7 @@ require_once '../common/importi_load.php';
 </div>
 
 <!-- Custom JS file -->
-<script type="text/javascript" src="js/scriptConfigurazione.js"></script>
+<script type="text/javascript" src="js/scriptConfigurazione.js?v=<?php echo $__software_version; ?>"></script>
 
 </body>
 </html>

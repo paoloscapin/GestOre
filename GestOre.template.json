@@ -23,6 +23,7 @@
     },
     "config": {
         "gestioneClil": false,
+        "gestioneOrientamento": false,
         "bonus": true,
         "corsiDiRecupero": true,
         "minuti": false,

@@ -1,4 +1,12 @@
-## Version 1.2.37 -  2023
+## Version 1.2.38 - 10 dic 2023
+
+##### Improvements
+- aggiunto flag gruppo orientamento in db
+- aggiunto flag funzionali e con_studenti in ore_previste_tipo_attivita
+- gestione ore orientamento nelle fatte
+- importo orientamanto per configurazione
+
+## Version 1.2.37 - 19 ott 2023
 
 ##### Bug Fixes
 - minor fixes
