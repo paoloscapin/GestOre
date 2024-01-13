@@ -45,6 +45,8 @@ $query = "	SELECT
 				sportello.cancellato AS sportello_cancellato,
 				sportello.categoria AS sportello_categoria,
 				sportello.online AS sportello_online,
+				sportello.clil AS sportello_clil,
+				sportello.orientamento AS sportello_orientamento,
 				materia.nome AS materia_nome,
 				docente.cognome AS docente_cognome,
 				docente.nome AS docente_nome,

@@ -1,3 +1,11 @@
+## Version 1.2.39 - 13 gen 2024
+
+##### Improvements
+- sportello clil e orientamento
+
+##### Bug Fixes
+- minor fixes
+
 ## Version 1.2.38 - 10 dic 2023
 
 ##### Improvements

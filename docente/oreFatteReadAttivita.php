@@ -26,6 +26,7 @@ function writeLineAttivita($row) {
 	global $modificabile;
 	global $modificabile;
 	global $accettataMarker;
+	global $ultimo_controllo;
 
 	$strikeOn = '';
 	$strikeOff = '';

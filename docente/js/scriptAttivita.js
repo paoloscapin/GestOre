@@ -191,6 +191,12 @@ function oreDovuteReadRecords() {
 						$(".clil").removeClass('hidden');
 						$(".NOclil").addClass('hidden');
 					}
+					$("#orientamento_previste_funzionali").html(getHtmlNumAndPrevisteVisual(ore_clil.funzionali_previste+1, 0));
+					$("#orientamento_previste_con_studenti").html(getHtmlNumAndPrevisteVisual(ore_clil.con_studenti_previste+1, 0));
+					$("#orientamento_fatte_funzionali").html(getHtmlNumAndFatteVisual(ore_clil.funzionali+2,ore_clil.funzionali_previste));
+					$("#orientamento_fatte_con_studenti").html(getHtmlNumAndFatteVisual(ore_clil.con_studenti+2,ore_clil.con_studenti_previste));
+					$(".orientamento").removeClass('hidden');
+					$(".NOorientamento").addClass('hidden');
 
 					// messaggio eccesso
 					messaggio = messaggioEccesso(ore_dovute.ore_70_funzionali, dovute_con_studenti_totale, ore_previste.ore_70_funzionali, previste_con_studenti_totale, ore_fatte.ore_70_funzionali, fatte_con_studenti_totale, ore_clil.funzionali_previste, ore_clil.con_studenti_previste, ore_clil.funzionali, ore_clil.con_studenti);
@@ -686,9 +692,6 @@ function diariaSave() {
 		ore: getOre('#diaria_ore'),
     	commento: $("#diaria_commento").val()
     }, function (data, status) {
-    	if (data !== '') {
-    		bootbox.alert(data);
-    	}
     	viaggioDiariaFattaReadRecords();
 		oreDovuteReadRecords();
 		fuisAggiornaDocente();

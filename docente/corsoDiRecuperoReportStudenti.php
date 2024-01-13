@@ -247,7 +247,7 @@ foreach($resultArray as $row_classe) {
 					// opzione per assente
 					$bgColor = 'red';
 					$votoNovembreOptionList .= '<option value="'.'1'.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.'Assente'.'</span>"';
-					if ($votoNovembre === 1) {
+					if ($votoNovembre == 1) {
 						$votoNovembreOptionList .= ' selected ';
 					}
 					$votoNovembreOptionList .= '>'.'assente'.'</option>';

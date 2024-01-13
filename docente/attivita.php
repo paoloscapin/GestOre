@@ -22,6 +22,7 @@ require_once '../common/_include_flatpickr.php';
 require_once '../common/__Minuti.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente');
 ?>
+    <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 	<title>Ore Fatte</title>
 </head>
 
@@ -189,7 +190,7 @@ require_once '../common/header-docente.php';
 				<th class="col-md-1 text-left"><span class="clil hidden">CLIL</span></br><span class="clil hidden">(<?php echoLabel('Funzionali');?>)</span></th>
 				<th class="col-md-1 text-left"><span class="clil hidden">CLIL</span></br><span class="clil hidden">(con Studenti)</span></th>
 				<th class="col-md-1"></th>
-				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento</span></br><span class="clil hidden">(<?php echoLabel('Funzionali');?>)</span></th>
+				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento</span></br><span class="orientamento hidden">(<?php echoLabel('Funzionali');?>)</span></th>
 				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento</span></br><span class="orientamento hidden">(con Studenti)</span></th>
 			</tr>
 		</thead>
@@ -973,9 +974,9 @@ require_once '../docente/attribuiteModal.php';
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 
 <!-- Custom JS file -->
-<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js"></script>
-<script type="text/javascript" src="js/scriptAttivita.js"></script>
-<script type="text/javascript" src="js/scriptAttribuite.js"></script>
+<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/scriptAttivita.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/scriptAttribuite.js?v=<?php echo $__software_version; ?>"></script>
 
 </body>
 </html>

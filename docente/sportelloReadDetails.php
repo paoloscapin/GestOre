@@ -24,6 +24,8 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
             sportello.firmato as sportello_firmato,
             sportello.cancellato as sportello_cancellato,
             sportello.online as sportello_online,
+            sportello.clil AS sportello_clil,
+			sportello.orientamento AS sportello_orientamento,
             sportello.note as sportello_note,
 
             docente.cognome AS docente_cognome,

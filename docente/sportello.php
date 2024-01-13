@@ -55,19 +55,13 @@ ruoloRichiesto('docente');
 </head>
 
 <?php
-// prepara l'elenco delle materie (anche per il filtro)
-$materiaOptionList = '				<option value="0"></option>';
-$materiaFiltroOptionList = '				<option value="0">tutte</option>';
-$query = "	SELECT * FROM materia ORDER BY materia.nome ASC;";
-if (!$result = mysqli_query($con, $query)) {
-    exit(mysqli_error($con));
-}
-if(mysqli_num_rows($result) > 0) {
-    $resultArray = $result->fetch_all(MYSQLI_ASSOC);
-    foreach($resultArray as $row) {
-        $materiaOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
-        $materiaFiltroOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
-    }
+
+// prepara l'elenco delle materie per il filtro e per le materie del dialog
+$materiaFiltroOptionList = '<option value="0">tutte</option>';
+$materiaOptionList = '<option value="0"></option>';
+foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materia) {
+    $materiaFiltroOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
+    $materiaOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
 }
 ?>
 
@@ -173,6 +167,15 @@ require_once '../common/connect.php';
                 </div>
 
                 <div class="form-group">
+                    <label for="online" class="col-sm-2 control-label">Online</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
+                    <label for="clil" class="col-sm-2 control-label">Clil</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="clil" ></div>
+                    <label for="orientamento" class="col-sm-2 control-label">Orientamento</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="orientamento" ></div>
+                </div>
+
+                <div class="form-group">
                     <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
                     <div class="col-sm-1 "><input type="checkbox" id="cancellato" disabled="disabled" ></div>
                 </div>
@@ -183,11 +186,6 @@ require_once '../common/connect.php';
                     <div class="col-sm-1 text-center" id="firma_sportello_button_id">
                         <button type="button" class="btn btn-success" onclick="sportelloFirma()">Firma lo Sportello</button>
                     </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="online" class="col-sm-2 control-label">Online</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
                 </div>
 
                 <div class="form-group text-center" id="studenti-part">
@@ -237,6 +235,6 @@ require_once '../common/connect.php';
 </div>
 
 <!-- Custom JS file -->
-<script type="text/javascript" src="js/sportello.js"></script>
+<script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 </html>
