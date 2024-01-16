@@ -8,8 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-require_once '../common/connect.php';
-require_once '../common/__Minuti.php';
+require_once '../common/__MinutiFunction.php';
 
 $modificabile = $__config->getOre_fatte_aperto();
 
@@ -19,6 +18,8 @@ if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
 	$modificabile = false;
 }
 
+// valori da restituire come totali
+$viaggiOre = 0;
 $data = '';
 
 // Design initial table header
@@ -45,16 +46,20 @@ $query = "	SELECT
 				"
 				;
 
-foreach(dbGetAll($query) as $row) {
-	$ore_con_minuti = oreToDisplay($row['viaggio_ore_recuperate_ore']);
+foreach(dbGetAll($query) as $viaggio) {
+	$ore_con_minuti = oreToDisplay($viaggio['viaggio_ore_recuperate_ore']);
 	$data .= '<tr>
-		<td>'.$row['viaggio_destinazione'].'</td>
-		<td class="text-center">'.strftime("%d/%m/%Y", strtotime($row['viaggio_data_partenza'])).'</td>
+		<td>'.$viaggio['viaggio_destinazione'].'</td>
+		<td class="text-center">'.strftime("%d/%m/%Y", strtotime($viaggio['viaggio_data_partenza'])).'</td>
 		<td class="text-center">'.$ore_con_minuti.'</td>
 		</tr>';
+
+	// aggiorna il totale da restituire
+	$viaggiOre += $viaggio['viaggio_ore_recuperate_ore'];
 }
 
 $data .= '</tbody></table></div>';
 
-echo $data;
+$response = compact('data', 'viaggiOre');
+echo json_encode($response);
 ?>

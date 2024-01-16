@@ -18,13 +18,17 @@ function startsWith($haystack, $needle) {
     return (substr($haystack, 0, $length) === $needle);
 }
 
+$terminatoCorrettamente = true;
+
 function erroreDiImport($messaggio) {
-    global $data;
+    global $dataHtml;
     global $linePos;
     global $sqlList;
+    global $terminatoCorrettamente;
 
+    $terminatoCorrettamente = false;
     warning("Errore di import linea $linePos: " . $messaggio);
-    $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
+    $dataHtml = $dataHtml . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
 
     // azzera le istruzioni sql
     $sqlList = '';
@@ -37,8 +41,8 @@ function getWordContent($words, $pos) {
     return escapeString($words[$pos]);
 }
 
-// setup del src e del risultato (data) e delle istruzioni (sql[])
-$data = '';
+// setup del src e del risultato (dataHtml) e delle istruzioni (sql[])
+$dataHtml = '';
 $sqlList = array();
 
 $src = '';
@@ -103,9 +107,8 @@ foreach($lines as $line) {
     }
     // controlla che non ce ne siano piu' di uno
     if (count($docente_id_list) > 1) {
-        $messaggio = "piu' docenti corrispondono alla ricerca cognome=$docente_cognome nome=$docente_nome: utilizzato il primo";
-        warning("Errore di import linea $linePos: " . $messaggio);
-        $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
+        erroreDiImport("piu' docenti corrispondono alla ricerca cognome=$docente_cognome nome=$docente_nome");
+        break;
     }
     // se tutto va bene c'e' un solo valore
     $docente_id = $docente_id_list[0]['id'];
@@ -160,5 +163,9 @@ if (!empty($sqlList)) {
     info('Import effettuato: inseriti ' . $sportelli . ' nuovi sportelli');
 }
 
-echo '<strong>Import effettuato: inseriti ' . $sportelli . ' nuovi sportelli</strong>';
+if ($terminatoCorrettamente) {
+    echo '<strong>Import effettuato: inseriti ' . $sportelli . ' nuovi sportelli</strong>';
+} else {
+    echo $dataHtml;
+}
 ?>

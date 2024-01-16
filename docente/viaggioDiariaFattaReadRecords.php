@@ -8,7 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-require_once '../common/__Minuti.php';
+require_once '../common/__MinutiFunction.php';
 require_once '../common/importi_load.php';
 
 function writeGiorni($attuali, $originali) {
@@ -47,6 +47,12 @@ if(isset($_POST['operatore']) && $_POST['operatore'] == 'dirigente') {
 	// devi leggere il timestamp dell'ultimo controllo effettuato
 	$ultimo_controllo = $_POST['ultimo_controllo'];
 }
+
+// valori da restituire come totali
+$diariaGiorniSenzaPernottamento =0;
+$diariaGiorniConPernottamento =0;
+$diariaImporto=0;
+$diariaOre=0;
 
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 						<tr>
@@ -91,9 +97,15 @@ foreach(dbGetAll("SELECT viaggio_diaria_fatta.id as local_viaggio_diaria_fatta_i
 	';
 	}
 	$data .='</td></tr>';
+
+	$diariaGiorniSenzaPernottamento += $row['giorni_senza_pernottamento'];
+	$diariaGiorniConPernottamento += $row['giorni_con_pernottamento'];
+	$diariaImporto += $importo;
+	$diariaOre += $row['ore'];
 }
 
 $data .= '</table></div>';
 
-echo $data;
+$response = compact('data', 'diariaGiorniSenzaPernottamento', 'diariaGiorniConPernottamento', 'diariaImporto', 'diariaOre');
+echo json_encode($response);
 ?>

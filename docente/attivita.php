@@ -89,61 +89,72 @@ require_once '../common/header-docente.php';
 	<table class="table table-vnocolor-index">
 		<thead>
 			<tr>
-				<th class="col-md-2"></th>
-				<th class="col-md-1 text-right">Fuis Docente</th>
+				<th colspan="2" class="col-md-2 text-right">Fuis Docente</th>
 				<th class="col-md-1"></th>
-				<th class="col-md-2"></th>
-				<th class="col-md-1 text-right">Fuis CLIL</th>
+				<th colspan="2" class="col-md-2 text-right">Fuis Clil</th>
 				<th class="col-md-1"></th>
-				<th class="col-md-2"></th>
-				<th class="col-md-1 text-right">Corsi di Recupero</th>
+				<th colspan="2" class="col-md-2 text-right">Fuis Orientamento</th>
+				<th class="col-md-1"></th>
+				<th colspan="2" class="col-md-2 text-right">Corsi di Recupero</th>
 				<th class="col-md-1"></th>
 			</tr>
 		</thead>
 		<tbody>
 			<tr>
-				<td class="col-md-2 text-right" ><?php echoLabel('Assegnato');?></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Assegnato');?></td>
 				<td class="col-md-1 text-right" id="fuis_assegnato">0.00</td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ><?php echoLabel('Funzionali');?></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Funzionali');?></td>
 				<td class="col-md-1 text-right" id="fuis_clil_funzionali">0.00</td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ><?php echoLabel('Ore Extra');?></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Funzionali');?></td>
+				<td class="col-md-1 text-right" id="fuis_orientamento_funzionali">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Ore Extra');?></td>
 				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero">0.00</td>
 				<td class="col-md-1 text-right"></td>
 			</tr>
 			<tr>
-				<td class="col-md-2 text-right" ><?php echoLabel('Ore');?></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Ore');?></td>
 				<td class="col-md-1 text-right" id="fuis_ore">0.00</td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ><?php echoLabel('Con Studenti');?></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Con Studenti');?></td>
 				<td class="col-md-1 text-right" id="fuis_clil_con_studenti">0.00</td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Con Studenti');?></td>
+				<td class="col-md-1 text-right" id="fuis_orientamento_con_studenti">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ></td>
 				<td class="col-md-1 text-right"></td>
 				<td class="col-md-1 text-right"></td>
 			</tr>
 			<tr>
-				<td class="col-md-2 text-right" ><?php echoLabel('Diaria Viaggi');?></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Diaria Viaggi');?></td>
 				<td class="col-md-1 text-right" id="fuis_diaria">0.00</td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ></td>
+				<td class="col-md-1 text-right" ></td>
 				<td class="col-md-1 text-right"></td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ></td>
+				<td class="col-md-1 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ></td>
 				<td class="col-md-1 text-right"></td>
 				<td class="col-md-1 text-right"></td>
 			</tr>
 		</tbody>
 		<tfooter>
 			<tr class="deeporange5">
-				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_docente_totale"><strong>0.00</strong></td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_clil_totale"><strong>0.00</strong></td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" id="fuis_orientamento_totale"><strong>0.00</strong></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero_totale"><strong>0.00</strong></td>
 				<td class="col-md-1 text-right"></td>
 			</tr>

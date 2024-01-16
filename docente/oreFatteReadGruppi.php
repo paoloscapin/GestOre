@@ -8,8 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-require_once '../common/connect.php';
-require_once '../common/__Minuti.php';
+require_once '../common/__MinutiFunction.php';
 
 $modificabile = $__config->getOre_fatte_aperto();
 
@@ -19,20 +18,25 @@ if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
 	$modificabile = false;
 }
 
+// valori da restituire come totali
+$gruppiOre = 0;
+$gruppiOreClil = 0;
+$gruppiOreOrientamento = 0;
 $data = '';
 
 // Design initial table header
 $data .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 						<thead><tr>
-							<th class="col-md-9 text-left">Gruppo</th>
+                            <th class="col-md-1 text-left">Tipo</th>
+                            <th class="col-md-9 text-left">Gruppo</th>
 							<th class="col-md-1 text-center">Data</th>
 							<th class="col-md-1 text-center">Ore</th>
-							<th class="col-md-1 text-center">Clil</th>
 						</tr></thead><tbody>';
 
 $query = "SELECT
             gruppo.nome AS gruppo_nome,
             gruppo.clil AS gruppo_clil,
+            gruppo.orientamento AS gruppo_orientamento,
             gruppo_incontro.data AS gruppo_incontro_data,
             gruppo_incontro_partecipazione.ore AS gruppo_incontro_partecipazione_ore
 
@@ -45,28 +49,39 @@ $query = "SELECT
             AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id
             AND gruppo_incontro.effettuato = true
             AND gruppo.dipartimento = false
-            ORDER BY gruppo_incontro.data DESC;
+            ORDER BY gruppo.orientamento ASC, gruppo.clil ASC, gruppo_incontro.data DESC;
         ";
 
-foreach(dbGetAll($query) as $row) {
-    $ore_con_minuti = oreToDisplay($row['gruppo_incontro_partecipazione_ore']);
+foreach(dbGetAll($query) as $gruppo) {
+    $ore_con_minuti = oreToDisplay($gruppo['gruppo_incontro_partecipazione_ore']);
 	$clilMarker = '';
-	if ($row['gruppo_clil']) {
+	if ($gruppo['gruppo_clil']) {
 		$clilMarker = '<span class="label label-danger">clil</span>';
 	}
+	$orientamentoMarker = '';
+	if ($gruppo['gruppo_orientamento']) {
+		$orientamentoMarker = '<span class="label label-warning">orientamento</span>';
+	}
     $data .= '<tr>
-        <td>'.$row['gruppo_nome'].'</td>
-        <td class="text-center">'.strftime("%d/%m/%Y", strtotime($row['gruppo_incontro_data'])).'</td>
+    <td>'.$clilMarker.$orientamentoMarker.'</td>
+        <td>'.$gruppo['gruppo_nome'].'</td>
+        <td class="text-center">'.strftime("%d/%m/%Y", strtotime($gruppo['gruppo_incontro_data'])).'</td>
         <td class="text-center">'.$ore_con_minuti.'</td>
-		<td>'.$clilMarker.'</td>
         </tr>
         ';
 
+    // aggiorna il totale delle ore:
+    if ($gruppo['gruppo_clil']) {
+        $gruppiOreClil += $gruppo['gruppo_incontro_partecipazione_ore'];
+    } elseif ($gruppo['gruppo_orientamento']) {
+        $gruppiOreOrientamento += $gruppo['gruppo_incontro_partecipazione_ore'];
+    } else {
+        $gruppiOre += $gruppo['gruppo_incontro_partecipazione_ore'];
+    }    
 }
 
 $data .= '</tbody></table></div>';
 
-echo $data;
-	
-
+$response = compact('data', 'gruppiOre', 'gruppiOreClil', 'gruppiOreOrientamento');
+echo json_encode($response);
 ?>

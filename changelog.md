@@ -1,3 +1,23 @@
+## Version 1.2.40 - 16 gen 2024
+
+##### Improvements
+- scriptAttivita.js aggiorna i valori di ore e fuis nello script
+- scriptAttivita.js utilizza ora $.when per garantire l'ordine di esecuzione delle operazioni in sequenza
+- readImporti.php e readSettings.php per essere usati da js come in scriptAttivita.js
+- fuisAssegnatoGetImportoPerDocente.php per essere usato da js come in scriptAttivita.js
+- attivita.php fatto spazio per fuis orientamento
+- corsoDiRecuperoPrevisteReadRecords.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- coreFatteClilReadAttivita.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- oreFatteReadAttivita.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- oreFatteReadAttribuite.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- oreFatteReadGruppi ora torna i dati calcolati oltre al pezzo di html per la tabella
+- oreFatteReadSostituzioni ora torna i dati calcolati oltre al pezzo di html per la tabella
+- oreFatteReadSportelli.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- oreFatteReadViaggi.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- viaggioDiariaFattaReadRecords.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- sportello import migliorato controllo errori
+- NB: le ore previste per ora non sono considerate nel calcolo del fuis
+
 ## Version 1.2.39 - 13 gen 2024
 
 ##### Improvements

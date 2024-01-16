@@ -8,8 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-require_once '../common/connect.php';
-require_once '../common/__Minuti.php';
+require_once '../common/__MinutiFunction.php';
 
 function writeOre($attuali, $originali) {
 	// se non ci sono gli originali, scrive solo gli attuali
@@ -36,11 +35,13 @@ if(isset($_POST['operatore']) && $_POST['operatore'] == 'dirigente') {
 	// devi leggere il timestamp dell'ultimo controllo effettuato
 	$ultimo_controllo = $_POST['ultimo_controllo'];
 }
-debug('modificabile='.$modificabile);
 
 $contestataMarker = '<span class=\'label label-danger\'>contestata</span>';
 $accettataMarker = '';
 
+// valori da restituire come totali
+$attivitaClilOreFunzionali = 0;
+$attivitaClilOreConStudenti = 0;
 $data = '';
 
 // Design initial table header
@@ -129,10 +130,17 @@ foreach(dbGetAll($query) as $row) {
 		}
 	}
 	$data .='</td></tr>';
+
+	// aggiorna il totale delle ore: per prima cosa quelle di aggiornamento
+	if ($row['ore_fatte_attivita_con_studenti']) {
+		$attivitaClilOreConStudenti += $row['ore_fatte_attivita_ore'];
+	} else {
+		$attivitaClilOreFunzionali += $row['ore_fatte_attivita_ore'];
+	}
 }
 
 $data .= '</tbody></table></div>';
 
-echo $data;
-
+$response = compact('data', 'attivitaClilOreFunzionali', 'attivitaClilOreConStudenti');
+echo json_encode($response);
 ?>

@@ -8,7 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-require_once '../common/__Minuti.php';
+require_once '../common/__MinutiFunction.php';
 
 $modificabile = $__config->getOre_fatte_aperto();
 
@@ -18,7 +18,7 @@ if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
 	$modificabile = false;
 }
 
-$totale = 0;
+$sostituzioniOre = 0;
 $data = '';
 
 // Design initial table header
@@ -34,14 +34,15 @@ foreach(dbGetAll($query) as $row) {
         <td>'.strftime("%d/%m/%Y", strtotime($row['data'])).'</td>
         <td class="text-center">'.$row['ora'].'</td>
         ';
-	$totale += $row['ora'];
+	
+	// aggiorna il totale da restituire (viene segnata un'ora per volta, quindi sempre 1)
+	$sostituzioniOre += 1;
 }
 
 $data .= '</tbody>
-<tfoot><tr><td class="text-right"><strong>Totale:</strong></td><td class="text-center"><strong>'.$totale.'</strong></td></tr></tfoot>
+<tfoot><tr><td class="text-right"><strong>Totale:</strong></td><td class="text-center"><strong>'.$sostituzioniOre.'</strong></td></tr></tfoot>
 </table></div>';
 
-echo $data;
-	
-
+$response = compact('data', 'sostituzioniOre');
+echo json_encode($response);
 ?>

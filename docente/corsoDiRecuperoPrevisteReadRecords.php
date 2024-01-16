@@ -8,7 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-require_once '../common/__Minuti.php';
+require_once '../common/__MinutiFunction.php';
 require_once '../common/importi_load.php';
 
 // default opera sul docente connesso e agisce come docente
@@ -35,6 +35,10 @@ if(isset($_POST['sorgente_richiesta']) && $_POST['sorgente_richiesta'] == 'fatte
 	$controllaFirmeInItinere = false;
 }
 
+// valori da restituire come totali
+$corso_di_recupero_ore_recuperate = 0;
+$corso_di_recupero_ore_pagamento_extra = 0;
+$corso_di_recupero_ore_in_itinere = 0;
 
 $dataCdr = '';
 // intestazione della table
@@ -82,6 +86,10 @@ foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.* FROM corso_di_recupero INN
 		dbExec("UPDATE corso_di_recupero SET ore_recuperate=$ore_recuperate_per_db, ore_pagamento_extra=$ore_pagamento_extra WHERE id = $corsoId;");
 	}
 
+	// aggiorna il totale da ritornare
+	$corso_di_recupero_ore_recuperate += $ore_recuperate;
+	$corso_di_recupero_ore_pagamento_extra += $ore_pagamento_extra;
+	
 	// se sono rimaste delle ore firmate, ore devono essere inserite
 	if ($ore_firmate > 0) {
 		$dataCdr .= '<tr><td class="col-md-7 text-left">2'.$corsoCodice.'</td><td class="col-md-1 text-center">'.$ore_firmate.'</td><td class="col-md-1 text-center">'.$ore_recuperate.'</td><td class="col-md-1 text-center">'.$ore_pagamento_extra.'</td><td class="col-md-1 text-center">';
@@ -107,10 +115,16 @@ foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.* FROM corso_di_recupero INN
 		$ore_pagamento_extra = 0;
 		dbExec("UPDATE corso_di_recupero SET ore_recuperate=$ore_recuperate, ore_pagamento_extra=$ore_pagamento_extra WHERE id = $corsoId;");
 	}
+
+	// aggiorna il totale da ritornare
+	$corso_di_recupero_ore_in_itinere += ore_firmate;
+
 	$dataCdr .= '<tr><td class="col-md-7 text-left">'.$corsoCodice.'</td><td class="col-md-1 text-center">'.$ore_firmate.'</td><td class="col-md-1 text-center">'.$ore_recuperate.'</td><td class="col-md-1 text-center">'.$ore_pagamento_extra.'</td><td class="col-md-1 text-center"></td></tr>';
 }
 
 $dataCdr .= '</table></div>';
 
-echo $dataCdr;
+$response = compact('dataCdr', 'corso_di_recupero_ore_recuperate', 'corso_di_recupero_ore_pagamento_extra', 'corso_di_recupero_ore_in_itinere');
+echo json_encode($response);
+
 ?>
