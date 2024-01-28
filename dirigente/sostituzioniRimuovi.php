@@ -34,8 +34,5 @@ if ($sostituzioni_da_fare > 0) {
     // mette in negativo nelle assegnate
     dbExec("INSERT INTO `ore_previste_attivita`(`dettaglio`, `ore`, `ultima_modifica`, `ore_previste_tipo_attivita_id`, `docente_id`, `anno_scolastico_id`) VALUES ('Sostituzioni rimosse', -$sostituzioni_da_fare, now(), $id_sostituzioni, $docente_id, $__anno_scolastico_corrente_id);");
     info("azzerate le sostituzioni docente_id=$docente_id rimosse=$sostituzioni_da_fare");
-
-    require_once '../docente/oreDovuteAggiornaDocente.php';
-	orePrevisteAggiornaDocente($docente_id);
 }
 ?>

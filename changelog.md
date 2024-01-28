@@ -1,3 +1,21 @@
+## Version 1.2.41 - 28 gen 2024
+##### Improvements
+- database inseriti in ore_previste_tipo_attivita i flag funzionali, con_studenti, clil, orientamento, aggiornamento
+- aggiunto script calcolaOreDocenteEFuis.js per calcolare (riportando o no le tabelle) i totali di dovute previste e fatte
+- scriptAttivita, scriptIndex e scriptPreviste adeguati di conseguenza
+- rimossi riferimenti a oreDovuteAggiornaDocente.php oreFatteAggiornaDocente (e previste)
+- oreFatteAggiorna.php legge tutte le tabelle necessarie per produrre i dati necessari di ore e fuis totali di un docente
+- rifatta la lettura di ore fatte read cdr, sportelli, attivita, attribuite, viaggi, diaria, gruppi
+- rivista anche la lettura di tutte le ore previste 
+- fatteList non ricalcola il fuis docente ma chiama oreFatteAggiorna.php
+- gruppo import export incluso orientamento, gruppo gestione incluso orientamento Template per import gruppi 4.0)
+- GestOre.template.json aggiunto config gestioneOrientamento
+- css aggiunto colore beige
+- Start / Stop timer in Util per controllare i tempi impiegati
+
+##### Bug Fixes
+- attribuite read per previste
+
 ## Version 1.2.40 - 16 gen 2024
 
 ##### Improvements

@@ -537,6 +537,7 @@ require_once '../docente/attribuiteModal.php';
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/calcolaOreDocenteEFuis.js?v=<?php echo $__software_version; ?>"></script>
 <script type="text/javascript" src="js/scriptPreviste.js?v=<?php echo $__software_version; ?>"></script>
 <script type="text/javascript" src="js/scriptAttribuite.js?v=<?php echo $__software_version; ?>"></script>
 </body>

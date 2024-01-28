@@ -8,11 +8,4 @@
  */
 
 require_once '../common/checkSession.php';
-
-if(isset($_POST)) {
-	$docente_id = $_POST['docente_id'];
-
-	require_once '../docente/oreDovuteAggiornaDocente.php';
-	oreFatteAggiornaDocente($docente_id);
-}
 ?>

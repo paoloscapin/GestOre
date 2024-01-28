@@ -162,7 +162,7 @@ require_once '../common/header-docente.php';
 	</table>
 	</div>
 	<div id="fuis_message" class="row" style="margin-bottom:10px;"></div>
-	<div id="fuis_messageEccesso" class="row" style="margin-bottom:10px;"></div>
+	<div id="fuis_eccesso_message" class="row" style="margin-bottom:10px;"></div>
 </div>
 
 <!-- <div class="panel-footer"></div> -->
@@ -986,6 +986,7 @@ require_once '../docente/attribuiteModal.php';
 
 <!-- Custom JS file -->
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/calcolaOreDocenteEFuis.js?v=<?php echo $__software_version; ?>"></script>
 <script type="text/javascript" src="js/scriptAttivita.js?v=<?php echo $__software_version; ?>"></script>
 <script type="text/javascript" src="js/scriptAttribuite.js?v=<?php echo $__software_version; ?>"></script>
 

@@ -17,17 +17,18 @@ if(isset($_POST)) {
 	$max_ore = $_POST['max_ore'];
 	$dipartimento = $_POST['dipartimento'];
 	$clil = $_POST['clil'];
+	$orientamento = $_POST['orientamento'];
 	$responsabile_docente_id = $_POST['responsabile_docente_id'];
 
     if ($id > 0) {
-		$query = "UPDATE gruppo SET nome = '$nome', commento = '$commento', max_ore = '$max_ore', dipartimento = '$dipartimento', clil = '$clil', responsabile_docente_id = $responsabile_docente_id WHERE id = '$id'";
+		$query = "UPDATE gruppo SET nome = '$nome', commento = '$commento', max_ore = '$max_ore', dipartimento = '$dipartimento', clil = '$clil', orientamento = '$orientamento', responsabile_docente_id = $responsabile_docente_id WHERE id = '$id'";
 		dbExec($query);
-		info("aggiornato gruppo id=$id nome=$nome categoria=$categoria ore=$ore ore_max=$ore_max valido=$valido previsto_da_docente=$previsto_da_docente inserito_da_docente=$inserito_da_docente da_rendicontare=$da_rendicontare");
+		info("aggiornato gruppo id=$id nome=$nome categoria=$categoria ore=$ore ore_max=$ore_max clil=$clil orientamento=$orientamento valido=$valido previsto_da_docente=$previsto_da_docente inserito_da_docente=$inserito_da_docente da_rendicontare=$da_rendicontare");
 	} else {
-		$query = "INSERT INTO gruppo(nome, dipartimento, commento, max_ore, clil, anno_scolastico_id, responsabile_docente_id) VALUES('$nome', '$dipartimento', '$commento', '$max_ore', '$clil', $__anno_scolastico_corrente_id, $responsabile_docente_id)";
+		$query = "INSERT INTO gruppo(nome, dipartimento, commento, max_ore, clil, orientamento, anno_scolastico_id, responsabile_docente_id) VALUES('$nome', '$dipartimento', '$commento', '$max_ore', '$clil', '$orientamento', $__anno_scolastico_corrente_id, $responsabile_docente_id)";
 		dbExec($query);
 		$id = dblastId();
-		info("aggiunto gruppo id=$last_id nome=$nome commento=$commento max_ore=$max_ore dipartimento=$dipartimento clil=$clil responsabile_docente_id=$responsabile_docente_id");
+		info("aggiunto gruppo id=$last_id nome=$nome commento=$commento max_ore=$max_ore dipartimento=$dipartimento clil=$clil orientamento=$orientamento responsabile_docente_id=$responsabile_docente_id");
 	}
 }
 ?>

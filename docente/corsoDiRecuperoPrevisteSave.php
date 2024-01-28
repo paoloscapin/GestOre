@@ -24,11 +24,6 @@ if(isset($_POST)) {
 	// aggiorna le ore
 	dbExec("UPDATE corso_di_recupero SET ore_recuperate = '$ore_recuperate', ore_pagamento_extra = '$ore_pagamento_extra' WHERE id = '$id';");
 	info("aggiornata corso_di_recupero id=$id ore_recuperate=$ore_recuperate ore_pagamento_extra=$ore_pagamento_extra");
-
-	// spostare le ore nei corsi di recupero ha impatto sia sulle previste che sulle fatte
-	require_once '../docente/oreDovuteAggiornaDocente.php';
-	orePrevisteAggiornaDocente($__docente_id);
-	oreFatteAggiornaDocente($__docente_id);
 }
 
 ?>

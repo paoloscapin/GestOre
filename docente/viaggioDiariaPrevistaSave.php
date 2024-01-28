@@ -58,9 +58,6 @@ if(isset($_POST)) {
 		$ore_previste_attivita_id = dblastId();
 		info("aggiunto viaggio_diaria_prevista id=$id descrizione=$descrizione giorni_senza_pernottamento=$giorni_senza_pernottamento giorni_con_pernottamento=$giorni_con_pernottamento docente_id=$docente_id");
 	}
-
-	require_once '../docente/oreDovuteAggiornaDocente.php';
-	orePrevisteAggiornaDocente($__docente_id);
 }
 
 ?>

@@ -7,7 +7,15 @@
 
 function attribuiteReadRecords() {
 	$.get("oreFatteReadAttribuite.php", {}, function (data, status) {
-		$(".attribuite_records_content").html(data);
+		// console.log(data);
+		data = JSON.parse(data);
+		attribuiteOreFunzionali = data.attribuiteOreFunzionali;
+		attribuiteOreConStudenti = data.attribuiteOreConStudenti;
+		attribuiteClilOreFunzionali = data.attribuiteClilOreFunzionali;
+		attribuiteClilOreConStudenti = data.attribuiteClilOreConStudenti;
+		attribuiteOrientamentoOreFunzionali = data.attribuiteOrientamentoOreFunzionali;
+		attribuiteOrientamentoOreConStudenti = data.attribuiteOrientamentoOreConStudenti;
+		$(".attribuite_records_content").html(data.data);
 	});
 }
 

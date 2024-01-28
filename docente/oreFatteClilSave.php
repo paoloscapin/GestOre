@@ -72,9 +72,6 @@ if(isset($_POST)) {
 		}
 		info("aggiunto ore_fatte_attivita_clil id=$ore_fatte_attivita_clil_id dettaglio=$dettaglio ore=$ore con_studenti=$con_studenti docente_id=$docente_id");
 	}
-
-	require_once '../docente/oreDovuteAggiornaDocente.php';
-	oreFatteAggiornaDocente($__docente_id);
 }
 
 ?>

@@ -26,7 +26,6 @@ ruoloRichiesto('dirigente');
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/timejs/date-it-IT.js"></script>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
-<script type="text/javascript" src="js/scriptFuisAssegnato.js"></script>
 
 </head>
 
@@ -41,7 +40,7 @@ require_once '../common/connect.php';
 <!-- pannello Fuis Assegnato (un pannello per ciascun tipo) -->
 <?php
 // prepara l'elenco dei tipi
-$query = "	SELECT * FROM `fuis_assegnato_tipo` ORDER BY nome;
+$query = "	SELECT * FROM `fuis_assegnato_tipo` WHERE attivo = 1 ORDER BY nome;
 			";
 $resultArrayFuisAssegnatoTipo = dbGetAll($query);
 
@@ -190,5 +189,6 @@ foreach($resultArray as $row) {
 <!-- // Modal - Add New Record -->
 
 </div>
+<script type="text/javascript" src="js/scriptFuisAssegnato.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 </html>

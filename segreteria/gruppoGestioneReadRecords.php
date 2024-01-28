@@ -12,12 +12,13 @@ require_once '../common/checkSession.php';
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<tr>
-						<th>Nome</th>
-						<th>Commento</th>
-						<th>Responsabile</th>
-						<th>max ore</th>
-						<th>clil</th>
-						<th></th>
+						<th class="col-md-3 text-left">Nome</th>
+						<th class="col-md-3 text-left">Commento</th>
+						<th class="col-md-2 text-left">Responsabile</th>
+						<th class="col-md-1 text-left">max ore</th>
+						<th class="col-md-1 text-left">clil</th>
+						<th class="col-md-1 text-left">orientamento</th>
+						<th class="col-md-1 text-left"></th>
 					</tr>';
 
 $query = "	SELECT
@@ -26,6 +27,7 @@ $query = "	SELECT
 				gruppo.commento AS gruppo_commento,
 				gruppo.max_ore AS gruppo_max_ore,
 				gruppo.clil AS gruppo_clil,
+				gruppo.orientamento AS gruppo_orientamento,
 				docente.nome AS docente_nome,
 				docente.cognome AS docente_cognome
 			FROM gruppo
@@ -41,6 +43,10 @@ foreach(dbGetAll($query) as $row) {
 	if ($row['gruppo_clil']) {
 		$clilMarker = '<span class="label label-danger">clil</span>';
 	}
+	$orientamentoMarker = '';
+	if ($row['gruppo_orientamento']) {
+		$orientamentoMarker = '<span class="label label-warning">orientamento</span>';
+	}
 
 	$data .= '<tr>
 		<td>'.$row['gruppo_nome'].'</td>
@@ -48,6 +54,7 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.$row['docente_cognome'].' '.$row['docente_nome'].'</td>
 		<td>'.$row['gruppo_max_ore'].'</td>
 		<td>'.$clilMarker.'</td>
+		<td>'.$orientamentoMarker.'</td>
 		';
 	$data .='
 		<td class="text-center">

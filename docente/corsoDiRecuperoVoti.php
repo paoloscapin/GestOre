@@ -234,8 +234,7 @@ foreach(dbGetAll($query) as $row) {
 
 			// voto novembre se presente
 			$votoNovembre = $studenteRow['studente_per_corso_di_recupero_voto_novembre'];
-			$dataNov = $studenteRow['studente_per_corso_di_recupero_data_voto_novembre'];
-			$dataNovembre = ($dataNov == null) ? '' : strftime("%d/%m/%Y", strtotime($dataNov));
+			$dataNovembre = $studenteRow['studente_per_corso_di_recupero_data_voto_novembre'];
 			$docenteNovembre = $studenteRow['docente_nov_cognome'].' '.$studenteRow['docente_nov_nome'];
 
 			$data .= '<td class="text-center">'.printableVoto($votoNovembre).'</td>';

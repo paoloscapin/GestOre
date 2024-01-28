@@ -108,4 +108,24 @@ function camelCase($src) {
     return ucwords(strtolower($src));
 }
 
+// timer per valutare i tempi di chiamata
+function microtime_float() {
+    list($usec, $sec) = explode(" ", microtime());
+    return ((float)$usec + (float)$sec);
+}
+
+$timer = [];
+function startTimer($name) {
+    global $timer;
+
+    $timer[$name] = microtime_float();
+}
+
+function stopTimer($name) {
+    global $timer;
+
+    $endTime = microtime_float();
+    return $endTime - $timer[$name];
+}
+
 ?>

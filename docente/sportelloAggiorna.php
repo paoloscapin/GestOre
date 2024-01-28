@@ -41,10 +41,6 @@ if(isset($_POST)) {
             dbExec($query);
             info("aggiornato id=$studente");
         }
-
-        // forse e' cambiato lo stato di firmato per cui aggiorna le ore
-        require_once '../docente/oreDovuteAggiornaDocente.php';
-        oreFatteAggiornaDocente($__docente_id);
     } else {
 		$query = "INSERT INTO sportello(data, ora, docente_id, materia_id, numero_ore, argomento, luogo, classe, max_iscrizioni, online, clil, orientamento, anno_scolastico_id) VALUES('$data', '$ora', '$docente_id', '$materia_id', '$numero_ore', '$argomento', '$luogo', '$classe', '$max_iscrizioni', '$online', '$clil', '$orientamento', $__anno_scolastico_corrente_id)";
 		dbExec($query);

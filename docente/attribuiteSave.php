@@ -76,12 +76,5 @@ if(isset($_POST)) {
 		dbExec("INSERT INTO ore_previste_attivita_commento (commento, ore_originali, ore_previste_attivita_id) VALUES('$commento', '$ore_originali', $attribuite_attivita_id);");
 		info("inserito ore_previste_attivita_commento commento=$commento ore_originali=$ore_originali ore_previste_attivita_id=$attribuite_attivita_id");
 	}
-
-    // deve aggiornare i totali delle ore
-    require_once '../docente/oreDovuteAggiornaDocente.php';
-	orePrevisteAggiornaDocente($__docente_id);
-
-	// le attribuite influenzano anche le ore fatte
-	oreFatteAggiornaDocente($__docente_id);
 }
 ?>

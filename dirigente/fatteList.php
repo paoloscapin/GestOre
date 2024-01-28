@@ -45,9 +45,11 @@ require_once '../common/connect.php';
 		<div class="col-md-2">
 			<span class="glyphicon glyphicon-folder-close"></span>&emsp;<strong>Ore Fatte</strong>
 		</div>
-		<div class="col-md-3 text-center" id="totale_fatte">
+		<div class="col-md-2 text-center" id="totale_fatte">
 		</div>
-		<div class="col-md-3 text-center" id="totale_fatte_clil">
+		<div class="col-md-2 text-center" id="totale_fatte_clil">
+		</div>
+		<div class="col-md-2 text-center" id="totale_fatte_orientamento">
 		</div>
 		<div class="col-md-3 text-center" id="totale_fatte_corsi_di_recupero">
 		</div>
@@ -67,22 +69,25 @@ require_once '../common/connect.php';
             <th class="text-center col-md-1">Assegnato</th>
             <th class="text-center col-md-1">Ore</th>
             <?php if($__settings->config->gestioneClil) : ?>
-                <th class="text-center col-md-1">Clil Funzionale</th>
-                <th class="text-center col-md-1">Clil con Studenti</th>
+                <th class="text-center col-md-1">Clil</th>
             <?php else: ?>
-                <th></th>
-                <th></th>
+                <th class="text-center col-md-1"></th>
+            <?php endif; ?>
+            <?php if($__settings->config->gestioneOrientamento) : ?>
+                <th class="text-center col-md-1">Orientamento</th>
+            <?php else: ?>
+                <t class="text-center col-md-1"h></th>
             <?php endif; ?>
             <th class="text-center col-md-1">Corsi di Recupero</th>
 		</tr>
     </thead>
     <tbody>
-
 <?php
-require_once '../dirigente/fuisFatteCalcolaDocente.php';
+require_once '../docente/oreFatteAggiorna.php';
 
 $fuis_totale_fatto = 0;
 $fuis_totale_fatto_clil = 0;
+$fuis_totale_fatto_orientamento = 0;
 $fuis_totale_corsi_di_recupero = 0;
 foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cognome,nome;") as $docente) {
     $docenteId = $docente['id'];
@@ -105,30 +110,36 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cog
 
     $openTabMode = getSettingsValue('interfaccia','apriDocenteInNuovoTab', false) ? '_blank' : '_self';
 
-    $fuisFatto = calcolaFuisDocente($docenteId);
+    $fuisFatto = oreFatteAggiorna(true, $docenteId, 'dirigente', $ultimo_controllo, true);
 
     echo '<tr>';
     echo '<td><a href="../docente/attivita.php?docente_id='.$docenteId.'" target="'.$openTabMode.'">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>';
 
-    echo '<td class="text-left">'.importoStampabile($fuisFatto['diaria']).'</td>';
-    echo '<td class="text-left">'.importoStampabile($fuisFatto['assegnato']).'</td>';
-    echo '<td class="text-left">'.importoStampabile($fuisFatto['ore']).'</td>';
+    echo '<td class="text-left">'.importoStampabile($fuisFatto['diariaImporto']).'</td>';
+    echo '<td class="text-left">'.importoStampabile($fuisFatto['fuisAssegnato']).'</td>';
+    echo '<td class="text-left">'.importoStampabile($fuisFatto['fuisOre']).'</td>';
     if (getSettingsValue("config", "gestioneClil", false)) {
-        echo '<td class="text-left">'.importoStampabile($fuisFatto['clilFunzionale']).'</td>';
-        echo '<td class="text-left">'.importoStampabile($fuisFatto['clilConStudenti']).'</td>';
+        echo '<td class="text-left">'.importoStampabile($fuisFatto['fuisClilFunzionale'] + $fuisFatto['fuisClilConStudenti']).'</td>';
     } else {
-        echo '<td></td><td></td>';
+        echo '<td></td>';
     }
-    echo '<td>'.importoStampabile($fuisFatto['extraCorsiDiRecupero']).'</td>';
+    if (getSettingsValue("config", "gestioneOrientamento", false)) {
+        echo '<td class="text-left">'.importoStampabile($fuisFatto['fuisOrientamentoFunzionale'] + $fuisFatto['fuisOrientamentoConStudenti']).'</td>';
+    } else {
+        echo '<td></td>';
+    }
+    echo '<td>'.importoStampabile($fuisFatto['fuisExtraCorsiDiRecupero']).'</td>';
 
-    $fuis_totale_fatto = $fuis_totale_fatto + $fuisFatto['diaria'] + $fuisFatto['assegnato'] + $fuisFatto['ore'];
-    $fuis_totale_fatto_clil = $fuis_totale_fatto_clil + $fuisFatto['clilFunzionale'] + $fuisFatto['clilConStudenti'];
-    $fuis_totale_corsi_di_recupero = $fuis_totale_corsi_di_recupero + $fuisFatto['extraCorsiDiRecupero'];
+    $fuis_totale_fatto = $fuis_totale_fatto + $fuisFatto['diariaImporto'] + $fuisFatto['fuisAssegnato'] + $fuisFatto['fuisOre'];
+    $fuis_totale_fatto_clil = $fuis_totale_fatto_clil + $fuisFatto['fuisClilFunzionale'] + $fuisFatto['fuisClilConStudenti'];
+    $fuis_totale_fatto_orientamento = $fuis_totale_fatto_orientamento + $fuisFatto['fuisOrientamentoFunzionale'] + $fuisFatto['fuisOrientamentoConStudenti'];
+    $fuis_totale_corsi_di_recupero = $fuis_totale_corsi_di_recupero + $fuisFatto['fuisExtraCorsiDiRecupero'];
 
     // se la scuola paga i corsi di recupero extra, questi vanno aggiunti nel totale delle ore
     if (! getSettingsValue("corsiDiRecupero", "corsiDiRecuperoPagatiDaProvincia", true)) {
-        $fuis_totale_fatto = $fuis_totale_fatto + $fuisFatto['extraCorsiDiRecupero'];
+        $fuis_totale_fatto = $fuis_totale_fatto + $fuisFatto['fuisExtraCorsiDiRecupero'];
     }
+
 }
 
 function importoStampabile($importo) {
@@ -151,13 +162,15 @@ function importoStampabile($importo) {
 </div>
 <input type="hidden" id="hidden_fuis_totale_fatto" value="<?php echo $fuis_totale_fatto; ?>">
 <input type="hidden" id="hidden_fuis_totale_fatto_clil" value="<?php echo $fuis_totale_fatto_clil; ?>">
+<input type="hidden" id="hidden_fuis_totale_fatto_orientamento" value="<?php echo $fuis_totale_fatto_orientamento; ?>">
 <input type="hidden" id="hidden_fuis_totale_corsi_di_recupero" value="<?php echo $fuis_totale_corsi_di_recupero; ?>">
 <input type="hidden" id="hidden_fuis_budget" value="<?php echo $__importi['fuis']; ?>">
 <input type="hidden" id="hidden_fuis_budget_clil" value="<?php echo $__importi['fuis_clil']; ?>">
+<input type="hidden" id="hidden_fuis_budget_orientamento" value="<?php echo $__importi['fuis_orientamento']; ?>">
 <input type="hidden" id="hidden_corsi_di_recupero_pagati_da_provincia" value="<?php echo (getSettingsValue("corsiDiRecupero", "corsiDiRecuperoPagatiDaProvincia", true)? "1": "0"); ?>">
 
 <!-- Custom JS file MUST be here because of toggle -->
-<script type="text/javascript" src="js/scriptFatteDirigente.js"></script>
+<script type="text/javascript" src="js/scriptFatteDirigente.js?v=<?php echo $__software_version; ?>"></script>
 
 </body>
 </html>

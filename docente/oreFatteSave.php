@@ -72,9 +72,6 @@ if(isset($_POST)) {
 		}
 		info("aggiunto ore_fatte_attivita id=$ore_fatte_attivita_id dettaglio=$dettaglio ore=$ore ore_previste_tipo_attivita_id=$tipo_attivita_id docente_id=$docente_id");
 	}
-
-	require_once '../docente/oreDovuteAggiornaDocente.php';
-	oreFatteAggiornaDocente($__docente_id);
 }
 
 ?>

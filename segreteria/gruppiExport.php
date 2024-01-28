@@ -28,7 +28,7 @@ header('Content-Disposition: attachment; filename=gruppi-'.$nome_anno_scolastico
 // prepara il file con le intestazioni
 ob_clean();
 $output = fopen("php://output", "w");
-fputcsv($output, array('# nome gruppo', 'commento', 'ore max', 'cognome responsabile', 'nome responsabile', 'clil'));
+fputcsv($output, array('# nome gruppo', 'commento', 'ore max', 'cognome responsabile', 'nome responsabile', 'clil', 'orientamento'));
 
 // recupera i gruppi dell'anno specificato
 $query = "	SELECT gruppo.id AS gruppo_id,
@@ -36,6 +36,7 @@ $query = "	SELECT gruppo.id AS gruppo_id,
 				gruppo.commento AS gruppo_commento,
 				gruppo.max_ore AS gruppo_max_ore,
 				gruppo.clil AS gruppo_clil,
+				gruppo.orientamento AS gruppo_orientamento,
 				docente.nome AS docente_nome,
 				docente.cognome AS docente_cognome
 			FROM gruppo
@@ -47,7 +48,7 @@ $query = "	SELECT gruppo.id AS gruppo_id,
 $query .= "order by gruppo.nome";
 
 foreach(dbGetAll($query) as $gruppo) {
-    fputcsv($output, array($gruppo['gruppo_nome'], $gruppo['gruppo_commento'], $gruppo['gruppo_max_ore'], $gruppo['docente_cognome'], $gruppo['docente_nome'], ($gruppo['gruppo_clil'])? 'si' : 'no'));
+    fputcsv($output, array($gruppo['gruppo_nome'], $gruppo['gruppo_commento'], $gruppo['gruppo_max_ore'], $gruppo['docente_cognome'], $gruppo['docente_nome'], ($gruppo['gruppo_clil'])? 'si' : 'no', ($gruppo['gruppo_orientamento'])? 'si' : 'no'));
 }
 fclose($output);
 

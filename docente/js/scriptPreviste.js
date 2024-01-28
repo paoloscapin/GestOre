@@ -15,33 +15,6 @@ function previsteReadRecords() {
 	});
 }
 
-function attribuiteReadRecords() {
-	$.get("oreFatteReadAttribuite.php", {}, function (data, status) {
-		$(".attribuite_records_content").html(data);
-	});
-}
-
-function viaggioDiariaPrevistaReadRecords() {
-	$.post("../docente/viaggioDiariaPrevistaReadRecords.php", {
-		operatore: $("#hidden_diaria_operatore").val(),
-		ultimo_controllo: $("#hidden_diaria_ultimo_controllo").val()
-	},
-	function (data, status) {
-		$(".diaria_records_content").html(data);
-	});
-}
-
-function corsoDiRecuperoPrevisteReadRecords() {
-	$.post("../docente/corsoDiRecuperoPrevisteReadRecords.php", {
-		operatore: $("#hidden_operatore").val(),
-		ultimo_controllo: $("#hidden_ultimo_controllo").val(),
-		sorgente_richiesta: "previste"
-	},
-	function (data, status) {
-		$(".corso_di_recupero_records_content").html(data);
-	});
-}
-
 function previstaUpdateDetails() {
 	if ($("#tipo_attivita").val() <= 0) {
 		$("#_error-previste").text("Devi selezionare un tipo di attività");
@@ -59,9 +32,7 @@ function previstaUpdateDetails() {
     	operatore: $("#hidden_operatore").val(),
     	update_commento: $("#update_commento").val()
     }, function (data, status) {
-    	previsteReadRecords();
-		oreDovuteReadRecords();
-		fuisAggiornaDocente();
+		orePrevisteReloadTables();
     });
     $("#update_attivita_modal").modal("hide");
 }
@@ -143,9 +114,7 @@ function previstaDelete(attivita_id) {
 				id: attivita_id
 				},
 				function (data, status) {
-					previsteReadRecords();
-					oreDovuteReadRecords();
-					fuisAggiornaDocente();
+					orePrevisteReloadTables();
 				}
 			);
 		}
@@ -198,12 +167,7 @@ function diariaSave() {
     	giorni_con_pernottamento: $("#diaria_giorni_con_pernottamento").val(),
     	commento: $("#diaria_commento").val()
     }, function (data, status) {
-    	if (data !== '') {
-    		bootbox.alert(data);
-    	}
-    	viaggioDiariaPrevistaReadRecords();
-		oreDovuteReadRecords();
-		fuisAggiornaDocente();
+		orePrevisteReloadTables();
     });
     $("#diaria_modal").modal("hide");
 }
@@ -240,9 +204,7 @@ function diariaPrevistaDelete(id) {
 				id: id
 				},
 				function (data, status) {
-					viaggioDiariaPrevistaReadRecords();
-					oreDovuteReadRecords();
-					fuisAggiornaDocente();
+					orePrevisteReloadTables();
 				}
 			);
 		}
@@ -294,12 +256,7 @@ function corsoDiRecuperoPrevisteSave() {
 		ore_recuperate: ore_recuperate,
     	ore_pagamento_extra: ore_pagamento_extra
     }, function (data, status) {
-    	if (data !== '') {
-    		bootbox.alert(data);
-    	}
-    	corsoDiRecuperoPrevisteReadRecords();
-		oreDovuteReadRecords();
-		fuisAggiornaDocente();
+		orePrevisteReloadTables();
     });
     $("#corso_di_recupero_modal").modal("hide");
 }
@@ -339,9 +296,7 @@ function previsteRivisto() {
 		var localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
 		var ultimo_controllo = localISOTime.replace('T', ' ');
 		$("#hidden_ultimo_controllo").val(ultimo_controllo);
-		previsteReadRecords();
-		oreDovuteReadRecords();
-		fuisAggiornaDocente();
+		orePrevisteReloadTables();
 		$.notify({
 			icon: 'glyphicon glyphicon-ok',
 			title: '<Strong>Previste</Strong></br>',
@@ -364,9 +319,7 @@ function previsteAzzeraSostituzioni() {
 		docente_id: $("#hidden_docente_id").val()
 	},
 	function (data, status) {
-		previsteReadRecords();
-		oreDovuteReadRecords();
-		fuisAggiornaDocente();
+		orePrevisteReloadTables();
 	});
 }
 
@@ -387,147 +340,25 @@ function previsteChiudi() {
 	});
 }
 
-function messaggioCompensate(dovuteFunzionali, dovuteConStudenti, oreFunzionali, oreConStudenti) {
-	var accetta_con_studenti_per_funzionali = $('#accetta_con_studenti_per_funzionali').val();
-	var accetta_funzionali_per_con_studenti = $('#accetta_funzionali_per_con_studenti').val();
-	var messaggio = "";
-    var bilancioFunzionali = oreFunzionali - dovuteFunzionali;
-    var bilancioConStudenti = oreConStudenti - dovuteConStudenti;
-
-	if (accetta_con_studenti_per_funzionali != 0) {
-		if (bilancioFunzionali < 0 && bilancioConStudenti > 0) {
-			var daSpostare = -bilancioFunzionali;
-			// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
-			if (bilancioConStudenti < daSpostare) {
-				daSpostare = bilancioConStudenti;
-			}
-			bilancioConStudenti = bilancioConStudenti - daSpostare;
-            bilancioFunzionali = bilancioFunzionali + daSpostare;
-            messaggio = "" + daSpostare + " ore con studenti verranno spostate per coprire " + daSpostare + " ore funzionali mancanti. ";
-		}
-	}
-
-	if (accetta_funzionali_per_con_studenti != 0) {
-		if (bilancioConStudenti < 0 && bilancioFunzionali > 0) {
-			var daSpostare = -bilancioConStudenti;
-			// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
-			if (bilancioFunzionali < daSpostare) {
-				daSpostare = bilancioFunzionali;
-			}
-			bilancioFunzionali = bilancioFunzionali - daSpostare;
-            bilancioConStudenti = bilancioConStudenti + daSpostare;
-            messaggio = "" + daSpostare + " ore funzionali verranno spostate per coprire " + daSpostare + " ore con studenti mancanti. ";
-		}
-	}
-
-	return messaggio;
-}
-
-function oreDovuteReadRecords() {
-	var ore_dovute, ore_previste, ore_fatte;
-
-	$.post("oreDovuteReadDetails.php", {
-		table_name: 'ore_dovute'
-	},
-	function (dati, status) {
-		// console.log(dati);
-        ore_dovute = JSON.parse(dati);
-		var dovute_con_studenti_totale = parseFloat(ore_dovute.ore_70_con_studenti) + parseFloat(ore_dovute.ore_40_con_studenti);
-		$("#dovute_ore_40_aggiornamento").html(getHtmlNum(ore_dovute.ore_40_aggiornamento));
-		$("#dovute_ore_70_funzionali").html(getHtmlNum(ore_dovute.ore_70_funzionali));
-		$("#dovute_totale_con_studenti").html(getHtmlNum(dovute_con_studenti_totale));
-		$.post("oreDovuteReadDetails.php", {
-			table_name: 'ore_previste'
-		},
-		function (dati, status) {
-			// console.log(dati);
-			ore_previste = JSON.parse(dati);
-            var previste_con_studenti_totale = parseFloat(ore_previste.ore_70_con_studenti) + parseFloat(ore_previste.ore_40_con_studenti);
-			$("#previste_ore_40_aggiornamento").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_40_aggiornamento,ore_dovute.ore_40_aggiornamento));
-			$("#previste_ore_70_funzionali").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_70_funzionali,ore_dovute.ore_70_funzionali));
-			$("#previste_totale_con_studenti").html(getHtmlNumAndPrevisteVisual(previste_con_studenti_totale,dovute_con_studenti_totale));
-
-			// messaggio
-			var messaggio = messaggioCompensate(ore_dovute.ore_70_funzionali, dovute_con_studenti_totale, ore_previste.ore_70_funzionali, previste_con_studenti_totale);
-			// console.log('messaggio compensate: ' + messaggio);
-			if (messaggio.length > 0) {
-				$("#ore_message").html(messaggio);
-				$('#ore_message').css({ 'font-weight': 'bold' });
-				$('#ore_message').css({ 'text-align': 'center' });
-				$('#ore_message').css({ 'background-color': '#BAEED0' });
-				$("#ore_message").removeClass('hidden');
-			} else {
-				$("#ore_message").addClass('hidden');
-			}
-
-			$.post("oreDovuteClilReadDetails.php", {
-				table_name: 'ore_fatte_attivita_clil'
-			},
-			function (dati, status) {
-				// console.log(dati);
-				ore_clil = JSON.parse(dati);
-				$("#clil_previste_funzionali").html(getHtmlNumAndPrevisteVisual(ore_clil.funzionali_previste, 0));
-				$("#clil_previste_con_studenti").html(getHtmlNumAndPrevisteVisual(ore_clil.con_studenti_previste, 0));
-//				$("#clil_fatte_funzionali").html(getHtmlNumAndFatteVisual(ore_clil.funzionali,ore_clil.funzionali_previste));
-//				$("#clil_fatte_con_studenti").html(getHtmlNumAndFatteVisual(ore_clil.con_studenti,ore_clil.con_studenti_previste));
-				if (parseInt(ore_clil.funzionali,10) + parseInt(ore_clil.con_studenti,10) + parseInt(ore_clil.funzionali_previste,10) + parseInt(ore_clil.con_studenti_previste,10) == 0) {
-					$(".clil").addClass('hidden');
-					$(".NOclil").removeClass('hidden');
-				} else {
-					$(".clil").removeClass('hidden');
-					$(".NOclil").addClass('hidden');
-				}
-			});
-		});
-	});
-}
-
-function fuisAggiornaDocente() {
-	if ($("#hidden_operatore").val() != 'dirigente') {
-		return;
-	}
-
-	$.post("../dirigente/fuisPrevisteCalcolaDocente.php", {
-		docente_id: $("#hidden_docente_id").val()
-	},
-	function (dati, status) {
-		// console.log(dati);
-		fuisPrevisto = JSON.parse(dati);
-		$("#fuis_assegnato").html(number_format(fuisPrevisto.assegnato,2));
-		$("#fuis_ore").html(number_format(fuisPrevisto.ore,2));
-		$("#fuis_diaria").html(number_format(fuisPrevisto.diaria,2));
-
-		$("#fuis_clil_funzionali").html(number_format(fuisPrevisto.clilFunzionale,2));
-		$("#fuis_clil_con_studenti").html(number_format(fuisPrevisto.clilConStudenti,2));
-
-		$("#fuis_corsi_di_recupero").html(number_format(fuisPrevisto.extraCorsiDiRecupero,2));
-
-		// totali
-		$("#fuis_docente_totale").html(number_format(parseFloat(fuisPrevisto.assegnato) + parseFloat(fuisPrevisto.ore) + parseFloat(fuisPrevisto.diaria),2));
-		$("#fuis_clil_totale").html(number_format(parseFloat(fuisPrevisto.clilFunzionale) + parseFloat(fuisPrevisto.clilConStudenti), 2));
-		$("#fuis_corsi_di_recupero_totale").html(number_format(fuisPrevisto.extraCorsiDiRecupero,2));
-		$('#fuis_docente_totale').css({ 'font-weight': 'bold' });
-		$('#fuis_clil_totale').css({ 'font-weight': 'bold' });
-		$('#fuis_corsi_di_recupero_totale').css({ 'font-weight': 'bold' });
-
-		// messaggio
-		$("#fuis_message").html(fuisPrevisto.messaggio);
-		$('#fuis_message').css({ 'font-weight': 'bold' });
-		$('#fuis_message').css({ 'text-align': 'center' });
-		$('#fuis_message').css({ 'background-color': '#FFC6B4' });
-	});
-}
-
 //Read records on page load
 $(document).ready(function () {
-	previsteReadRecords();
-	attribuiteReadRecords();
-	viaggioDiariaPrevistaReadRecords();
-	corsoDiRecuperoPrevisteReadRecords();
 
-	oreDovuteReadRecords();
+	// legge gli importi
+	var getImporti = $.get("../common/readImporti.php", {}, function (data, status) {
+		_importi = JSON.parse(data);
+		// console.log(_importi);
+	});
 
-	fuisAggiornaDocente();
+	// legge i settings
+	var getSettings = $.get("../common/readSettings.php", {}, function (data, status) {
+		_settings = JSON.parse(data);
+		// console.log(_settings);
+
+	});
+
+	$.when(getImporti, getSettings).done(function (r1, r2) {
+		orePrevisteReloadTables();
+	});
 
 	// questi campi potrebbero essere gestiti in minuti se settato nel json
 	campiInMinuti(

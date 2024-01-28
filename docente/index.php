@@ -44,101 +44,100 @@ require_once '../common/connect.php';
 	<table class="table table-vnocolor-index">
 		<thead>
 			<tr>
-				<th class="col-md-2"></th>
-				<th class="col-md-2 text-left">
-				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocente', true)) : ?>
-				Sostituzioni
+				<th class="col-md-1"></th>
+				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocente', false)) : ?>
+					<th class="col-md-1">Sostituzioni</th>
+				<?php else : ?>
+					<th class="col-md-1"></th>
 				<?php endif; ?>
-				</th>
-				<th class="col-md-2 text-left">Aggiornamento</th>
-				<th class="col-md-2 text-left"><?php echoLabel('Funzionali');?></th>
-				<th class="col-md-2 text-left">con Studenti</th>
+				<?php if(getSettingsValue('interfaccia','visualizzaAggiornamento', true)) : ?>
+					<th class="col-md-1 text-left">Aggiornamento</th>
+				<?php else : ?>
+					<th class="col-md-1"></th>
+				<?php endif; ?>
+				<th class="col-md-1"></th>
+				<th class="col-md-1 text-left"><?php echoLabel('Funzionali');?></th>
+				<th class="col-md-1 text-left">con Studenti</th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1 text-left"><span class="clil hidden">CLIL</span></br><span class="clil hidden">(<?php echoLabel('Funzionali');?>)</span></th>
+				<th class="col-md-1 text-left"><span class="clil hidden">CLIL</span></br><span class="clil hidden">(con Studenti)</span></th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento</span></br><span class="orientamento hidden">(<?php echoLabel('Funzionali');?>)</span></th>
+				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento</span></br><span class="orientamento hidden">(con Studenti)</span></th>
 			</tr>
 		</thead>
 		<tbody>
 			<tr>
 				<td><?php echoLabel('dovute');?></td>
 				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocente', true)) : ?>
-				<td class="text-left" id="dovute_ore_40_sostituzioni_di_ufficio"></td>
+					<td class="text-left" id="dovute_ore_40_sostituzioni_di_ufficio"></td>
 				<?php else : ?>
-				<td class="text-left" id="dovute_ore_40_sostituzioni_di_ufficio_no"></td>
+					<td></td>
 				<?php endif; ?>
-				<td class="text-left" id="dovute_ore_40_aggiornamento"></td>
+				<?php if(getSettingsValue('interfaccia','visualizzaAggiornamento', true)) : ?>
+					<td class="text-left" id="dovute_ore_40_aggiornamento"></td>
+				<?php else : ?>
+					<td></td>
+				<?php endif; ?>
+				<td></td>
 				<td class="text-left" id="dovute_ore_70_funzionali"></td>
 				<td class="text-left" id="dovute_totale_con_studenti"></td>
+				<td class="text-left" ></td>
+				<td class="text-left" ></td>
 			</tr>
 			<tr class="orange5">
 				<td>previste</td>
-				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocente', true)) : ?>
-				<td class="text-left" id="previste_ore_40_sostituzioni_di_ufficio"></td>
+				<td></td>
+				<?php if(getSettingsValue('interfaccia','visualizzaAggiornamento', true)) : ?>
+					<td class="text-left" id="previste_ore_40_aggiornamento"></td>
 				<?php else : ?>
-				<td class="text-left" id="previste_ore_40_sostituzioni_di_ufficio_no"></td>
+					<td></td>
 				<?php endif; ?>
-				<td class="text-left" id="previste_ore_40_aggiornamento"></td>
+				<td></td>
 				<td class="text-left" id="previste_ore_70_funzionali"></td>
 				<td class="text-left" id="previste_totale_con_studenti"></td>
+				<td></td>
+				<td class="text-left clil" id="clil_previste_funzionali"></td><td class="NOclil"></td>
+				<td class="text-left clil" id="clil_previste_con_studenti"></td><td class="NOclil"></td>
+				<td></td>
+				<td class="text-left orientamento" id="orientamento_previste_funzionali"></td><td class="NOorientamento"></td>
+				<td class="text-left orientamento" id="orientamento_previste_con_studenti"></td><td class="NOorientamento"></td>
 			</tr>
 			<tr class="teal5">
 				<td>fatte</td>
-				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocente', true)) : ?>
+					<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocente', true)) : ?>
 				<td class="text-left" id="fatte_ore_40_sostituzioni_di_ufficio"></td>
 				<?php else : ?>
-				<td class="text-left" id="fatte_ore_40_sostituzioni_di_ufficio_no"></td>
+					<td></td>
 				<?php endif; ?>
-				<td class="text-left" id="fatte_ore_40_aggiornamento"></td>
+				<?php if(getSettingsValue('interfaccia','visualizzaAggiornamento', true)) : ?>
+					<td class="text-left" id="fatte_ore_40_aggiornamento"></td>
+				<?php else : ?>
+					<td></td>
+				<?php endif; ?>
+				<td></td>
 				<td class="text-left" id="fatte_ore_70_funzionali"></td>
 				<td class="text-left" id="fatte_totale_con_studenti"></td>
+				<td></td>
+				<td class="text-left clil" id="clil_fatte_funzionali"></td><td class="NOclil"></td>
+				<td class="text-left clil" id="clil_fatte_con_studenti"></td><td class="NOclil"></td>
+				<td></td>
+				<td class="text-left orientamento" id="orientamento_fatte_funzionali"></td><td class="NOorientamento"></td>
+				<td class="text-left orientamento" id="orientamento_fatte_con_studenti"></td><td class="NOorientamento"></td>
 			</tr>
 		</tbody>
 	</table>
 	</div>
+	<div id="ore_message" class="row" style="margin-bottom:10px;"></div>
+	<input type="hidden" id="accetta_con_studenti_per_funzionali" value="<?php if (getSettingsValue('fuis','accetta_con_studenti_per_funzionali', false)) {echo('1');} else {echo('0');} ?>">
+	<input type="hidden" id="accetta_funzionali_per_con_studenti" value="<?php if (getSettingsValue('fuis','accetta_funzionali_per_con_studenti', false)) {echo('1');} else {echo('0');} ?>">
+	<div id="ore_eccesso_message" class="row" style="margin-bottom:10px;"></div>
+	<input type="hidden" id="segnala_fatte_eccedenti_previsione" value="<?php if (getSettingsValue('fuis','segnala_fatte_eccedenti_previsione', false)) {echo('1');} else {echo('0');} ?>">
 </div>
 </div>
 
 <!-- <div class="panel-footer"></div> -->
 </div>
-
-<?php if($__settings->config->gestioneClil) : ?>
-
-<div class="panel panel-lightblue4 hidden" id="panel-clil">
-<div class="panel-heading">
-	<span class="glyphicon glyphicon-list-alt"></span>&ensp;Clil
-</div>
-<div id="collapse_clil" class="panel-collapse collapse  collapse in">
-<div class="panel-body">
-
-	<div class="table-wrapper">
-	<table class="table table-vnocolor-index">
-		<thead>
-			<tr>
-				<th class="col-md-5"></th>
-				<th class="col-md-3 text-left"><?php echoLabel('Incontri CLIL');?></th>
-				<th class="col-md-3 text-left"><?php echoLabel('Preparazione Materiali CLIL');?></th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr class="orange5">
-				<td>previste</td>
-				<td class="text-left" id="clil_previste_funzionali"></td>
-				<td class="text-left" id="clil_previste_con_studenti"></td>
-			</tr>
-			<tr>
-			<tr class="teal5">
-				<td>fatte</td>
-				<td class="text-left" id="clil_fatte_funzionali"></td>
-				<td class="text-left" id="clil_fatte_con_studenti"></td>
-			</tr>
-		</tbody>
-	</table>
-	</div>
-</div>
-</div>
-<!-- <div class="panel-footer"></div> -->
-</div>
-
-<?php else : ?>
-
-<?php endif; ?>
 
 <?php if(getSettingsValue('interfaccia','docenteVisualizza80Ore', true)) : ?>
 
@@ -165,7 +164,7 @@ require_once '../common/connect.php';
 			</tr>
 		</thead>
 		<tbody>
-			<tr>
+			<tr class="teal5">
 				<td class="text-left" ><?php echoLabel('dovute');?></td>
 				<td class="text-left" id="dovute_ore_80_collegi_docenti"></td>
 				<?php if($__settings->ore80->ore_max_udienze_generali > 0) : ?>
@@ -184,7 +183,6 @@ require_once '../common/connect.php';
 				<td class="text-left" id="previste_ore_80_aggiornamento_facoltativo"></td>
 				<td class="text-left" id="previste_ore_80_consigli_di_classe"></td>
 			</tr>
-<?php endif; ?>
 			<tr class="teal5">
 				<td class="text-left" >fatte</td>
 				<td class="text-left" id="fatte_ore_80_collegi_docenti"></td>
@@ -195,6 +193,7 @@ require_once '../common/connect.php';
 				<td class="text-left" id="fatte_ore_80_aggiornamento_facoltativo"></td>
 				<td class="text-left" id="fatte_ore_80_consigli_di_classe"></td>
 			</tr>
+			<?php endif; ?>
 		</tbody>
 	</table>
 	</div>
@@ -237,7 +236,8 @@ require_once '../common/connect.php';
 <!-- bootbox notificator -->
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 
-<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js"></script>
-<script type="text/javascript" src="js/scriptIndex.js"></script>
+<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/calcolaOreDocenteEFuis.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/scriptIndex.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 </html>

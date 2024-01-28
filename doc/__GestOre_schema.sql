@@ -603,12 +603,14 @@ CREATE TABLE IF NOT EXISTS `ore_previste_tipo_attivita` (
   `con_studenti` TINYINT NULL,
   `clil` TINYINT NULL DEFAULT 0,
   `orientamento` TINYINT NULL DEFAULT 0,
+  `aggiornamento` TINYINT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `clil_INDEX` (`clil` ASC),
   INDEX `orientamento_index` (`orientamento` ASC),
   INDEX `categoria_INDEX` (`categoria` ASC),
   INDEX `funzionali_INDEX` (`funzionali` ASC),
-  INDEX `con_studenti_INDEX` (`con_studenti` ASC))
+  INDEX `con_studenti_INDEX` (`con_studenti` ASC),
+  INDEX `aggiornamento_INDEX` (`aggiornamento` ASC))
 ENGINE = InnoDB;
 
 

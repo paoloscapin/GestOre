@@ -27,8 +27,6 @@ if(isset($_POST)) {
 	$item = dbGetFirst($query);
 	$categoria = $item['categoria'];
 	$da_rendicontare = $item['da_rendicontare'];
-	require_once '../docente/oreDovuteAggiornaDocente.php';
-	orePrevisteAggiornaDocente($docente_id);
 	// se non sono da rendicontare, le aggiunge direttamente anche nella tabella delle ore fatte
 	if (!$da_rendicontare) {
 		// TODO: inserire

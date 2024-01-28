@@ -44,6 +44,7 @@ function gruppoGestioneGetDetails(id) {
             $("#commento").val(gruppo.commento);
             $("#max_ore").val(gruppo.max_ore);
             $("#clil").prop('checked', gruppo.clil != 0 && gruppo.clil != null);
+            $("#orientamento").prop('checked', gruppo.orientamento != 0 && gruppo.orientamento != null);
             $('#responsabile').val(gruppo.responsabile_docente_id);
             $('#responsabile').selectpicker('refresh');
 		});
@@ -52,6 +53,7 @@ function gruppoGestioneGetDetails(id) {
         $("#commento").val("");
         $("#max_ore").val("");
         $("#clil").val("");
+        $("#orientamento").val("");
         $('#responsabile').val("0");
         $('#responsabile').selectpicker('refresh');
     }
@@ -66,6 +68,7 @@ function gruppoGestioneSave() {
         max_ore: $("#max_ore").val(),
         dipartimento: 0,
         clil: $("#clil").is(':checked')? 1: 0,
+        orientamento: $("#orientamento").is(':checked')? 1: 0,
         responsabile_docente_id: $("#responsabile").val()
     }, function (data, status) {
         $("#gruppo_gestione_modal").modal("hide");

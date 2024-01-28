@@ -17,8 +17,5 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	dbExec("DELETE FROM viaggio_diaria_fatta_commento WHERE viaggio_diaria_fatta_id = '$id'");
 	dbExec("DELETE FROM viaggio_diaria_fatta WHERE id = '$id'");
 	info("cancellata viaggio_diaria_fatta id=$id");
-
-	require_once '../docente/oreDovuteAggiornaDocente.php';
-	oreFatteAggiornaDocente($__docente_id);
 }
 ?>
