@@ -1,3 +1,7 @@
+## Version 1.2.42 - 1 feb 2024
+##### Improvements
+- report degli sportelli effettuati fatto da segreteria
+
 ## Version 1.2.41 - 28 gen 2024
 ##### Improvements
 - database inseriti in ore_previste_tipo_attivita i flag funzionali, con_studenti, clil, orientamento, aggiornamento

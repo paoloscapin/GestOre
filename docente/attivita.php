@@ -143,7 +143,7 @@ require_once '../common/header-docente.php';
 				<td class="col-md-1 text-right"></td>
 			</tr>
 		</tbody>
-		<tfooter>
+		<tfoot>
 			<tr class="deeporange5">
 				<td class="col-md-1 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_docente_totale"><strong>0.00</strong></td>
@@ -158,7 +158,7 @@ require_once '../common/header-docente.php';
 				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero_totale"><strong>0.00</strong></td>
 				<td class="col-md-1 text-right"></td>
 			</tr>
-		<tfooter>
+		<tfoot>
 	</table>
 	</div>
 	<div id="fuis_message" class="row" style="margin-bottom:10px;"></div>

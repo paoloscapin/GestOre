@@ -45,7 +45,7 @@ require_once '../common/connect.php';
 		<thead>
 			<tr>
 				<th class="col-md-1"></th>
-				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocente', false)) : ?>
+				<?php if(getSettingsValue('interfaccia','visualizzaSostituzioniDocente', true)) : ?>
 					<th class="col-md-1">Sostituzioni</th>
 				<?php else : ?>
 					<th class="col-md-1"></th>
