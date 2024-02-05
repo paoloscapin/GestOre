@@ -1,3 +1,9 @@
+## Version 1.2.43 - 5 feb 2024
+##### Improvements
+- header docente e segreteria per report sportelli
+- filtro docente per report sportelli effettuati
+- sostituzioni effettuate calcolate con le tabelle corrette
+
 ## Version 1.2.42 - 1 feb 2024
 ##### Improvements
 - report degli sportelli effettuati fatto da segreteria
