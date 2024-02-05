@@ -60,6 +60,12 @@ ruoloRichiesto('dirigente','segreteria-docenti','docente');
 </head>
 
 <?php
+// prepara l'elenco dei docenti per il filtro e per il dialog
+$docenteFiltroOptionList = '<option value="0">tutti</option>';
+foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ; ")as $docente) {
+    $docenteFiltroOptionList .= ' <option value="'.$docente['id'].'" >'.$docente['cognome'].' '.$docente['nome'].'</option> ';
+}
+
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
 $materiaFiltroOptionList = '<option value="0">tutte</option>';
 foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materia) {
@@ -68,7 +74,13 @@ foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materi
 ?>
 
 <body >
-<?php require_once '../common/header-segreteria.php'; ?>
+<?php
+if (! empty($__utente_ruolo) && $__utente_ruolo == 'docente') {
+    require_once '../common/header-docente.php';
+} else {
+    require_once '../common/header-segreteria.php';
+}
+?>
 
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
@@ -87,13 +99,19 @@ foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materi
             </div>
         </div>
         <div class="col-md-3">
-            <div class="text-center">
+            <label class="col-sm-2 control-label" for="docente">Docente</label>
+                <div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                <?php echo $docenteFiltroOptionList ?>
+                </select></div>
+        </div>
+        <div class="col-md-2">
+        <div class="text-center">
 				<label class="checkbox-inline">
 					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="passatiCheckBox" >Passati
 				</label>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-1">
         </div>
 	</div>
 </div>

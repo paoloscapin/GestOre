@@ -10,6 +10,7 @@
 require_once '../common/checkSession.php';
 
 $passati = $_GET["passati"];
+$docente_filtro_id = $_GET["docente_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
 $materiaNome = dbGetValue("SELECT nome FROM materia WHERE id=$materia_filtro_id;");
 
@@ -61,8 +62,14 @@ $query = "	SELECT
 			FROM sportello sportello
 			INNER JOIN docente docente ON sportello.docente_id = docente.id
 			INNER JOIN materia materia ON sportello.materia_id = materia.id
-			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id AND sportello.materia_id = $materia_filtro_id AND NOT sportello.cancellato ";
+			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id AND NOT sportello.cancellato ";
 
+if( $docente_filtro_id > 0) {
+	$query .= "AND sportello.docente_id = $docente_filtro_id ";
+}
+if( $materia_filtro_id > 0) {
+	$query .= "AND sportello.materia_id = $materia_filtro_id ";
+}
 if( $passati) {
 	$query .= "AND sportello.data <= CURDATE() ";
 } else {

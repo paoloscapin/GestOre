@@ -36,8 +36,8 @@
     <li><a href="<?php echo $__application_base_path; ?>/segreteria/viaggioDiaria.php">Diaria</a></li>
   </ul>
 </div>
-
-<div class="btn-group">
+<?php if(getSettingsValue('config','sportelli', false)) : ?>
+	<div class="btn-group">
 <a href="<?php echo $__application_base_path; ?>/segreteria/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
   <button type="button" class="btn btn-default navbar-btn btn-orange4 dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
     <span class="caret"></span>
@@ -47,9 +47,6 @@
     <li><a href="<?php echo $__application_base_path; ?>/segreteria/sportelloReportEffettuati.php">Report Sportelli Effettuati</a></li>
   </ul>
 </div>
-
-<?php if(getSettingsValue('config','sportelli', false)) : ?>
-	<a href="<?php echo $__application_base_path; ?>/segreteria/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
 <?php endif; ?>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
