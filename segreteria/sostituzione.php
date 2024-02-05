@@ -77,7 +77,7 @@ $docenteOptionList = '				<option value="0"></option>';
 // $query = "SELECT COALESCE(SUM(ora), 0) FROM sostituzione_docente WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId;";
 $query = "SELECT docente.id as docente_id, cognome, nome, ore_dovute.ore_40_sostituzioni_di_ufficio - COALESCE(SUM(sostituzione_docente.ora), 0) AS differenza FROM docente
     INNER JOIN ore_dovute ON ore_dovute.docente_id = docente.id AND ore_dovute.anno_scolastico_id = $__anno_scolastico_corrente_id
-    INNER JOIN sostituzione_docente ON sostituzione_docente.docente_id = docente.id AND sostituzione_docente.anno_scolastico_id = $__anno_scolastico_corrente_id
+    LEFT JOIN sostituzione_docente ON sostituzione_docente.docente_id = docente.id AND sostituzione_docente.anno_scolastico_id = $__anno_scolastico_corrente_id
     WHERE docente.attivo = true
     GROUP BY docente.id
     ORDER BY differenza DESC, docente.cognome, docente.nome ASC ;";
