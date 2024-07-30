@@ -115,58 +115,28 @@ require_once '../common/connect.php';
     <tbody>
 
 <?php
-require_once '../dirigente/fuisFatteCalcolaDocente.php';
+require_once '../docente/oreFatteAggiorna.php';
 
 $fuis_totale_fatto = 0;
 $fuis_totale_fatto_clil = 0;
 $fuis_totale_corsi_di_recupero = 0;
-$query = "SELECT docente.*,
-
-    ore_dovute.ore_70_con_studenti AS ore_dovute_ore_70_con_studenti,
-    ore_dovute.ore_40_con_studenti AS ore_dovute_ore_40_con_studenti,
-    ore_dovute.ore_70_funzionali AS ore_dovute_ore_70_funzionali,
-    ore_dovute.ore_40_sostituzioni_di_ufficio AS ore_dovute_ore_40_sostituzioni_di_ufficio,
-    ore_dovute.ore_40_aggiornamento AS ore_dovute_ore_40_aggiornamento,
-
-    ore_previste.ore_70_con_studenti AS ore_previste_ore_70_con_studenti,
-    ore_previste.ore_40_con_studenti AS ore_previste_ore_40_con_studenti,
-    ore_previste.ore_70_funzionali AS ore_previste_ore_70_funzionali,
-    ore_previste.ore_40_sostituzioni_di_ufficio AS ore_previste_ore_40_sostituzioni_di_ufficio,
-    ore_previste.ore_40_aggiornamento AS ore_previste_ore_40_aggiornamento,
-
-    ore_fatte.ore_70_con_studenti AS ore_fatte_ore_70_con_studenti,
-    ore_fatte.ore_40_con_studenti AS ore_fatte_ore_40_con_studenti,
-    ore_fatte.ore_70_funzionali AS ore_fatte_ore_70_funzionali,
-    ore_fatte.ore_40_sostituzioni_di_ufficio AS ore_fatte_ore_40_sostituzioni_di_ufficio,
-    ore_fatte.ore_40_aggiornamento AS ore_fatte_ore_40_aggiornamento
-
-    FROM docente AS docente
-
-    INNER JOIN ore_dovute AS ore_dovute ON ore_dovute.docente_id = docente.id
-    INNER JOIN ore_previste AS ore_previste ON ore_previste.docente_id = docente.id
-    INNER JOIN ore_fatte AS ore_fatte ON ore_fatte.docente_id = docente.id
-
-    WHERE docente.attivo = true
-    AND ore_dovute.anno_scolastico_id = $__anno_scolastico_corrente_id
-    AND ore_previste.anno_scolastico_id = $__anno_scolastico_corrente_id
-    AND ore_fatte.anno_scolastico_id = $__anno_scolastico_corrente_id
-
-    ORDER BY cognome,nome;";
-
-foreach(dbGetAll($query) as $docente) {
-    $dovute_con_studenti_totale = $docente['ore_dovute_ore_70_con_studenti'] + $docente['ore_dovute_ore_40_con_studenti'];
-    $previste_con_studenti_totale = $docente['ore_previste_ore_70_con_studenti'] + $docente['ore_previste_ore_40_con_studenti'];
-    $fatte_con_studenti_totale = $docente['ore_fatte_ore_70_con_studenti'] + $docente['ore_fatte_ore_40_con_studenti'];
-
-    $ore_dovute_ore_70_funzionali = $docente['ore_dovute_ore_70_funzionali'];
-    $ore_previste_ore_70_funzionali = $docente['ore_previste_ore_70_funzionali'];
-    $ore_fatte_ore_70_funzionali = $docente['ore_fatte_ore_70_funzionali'];
-
+foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cognome,nome;") as $docente) {
     $docenteId = $docente['id'];
     $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
-    $marker = '';
+
+    $ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_fatte WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId;");
+    $fuisFatto = oreFatteAggiorna(true, $docenteId, 'dirigente', $ultimo_controllo, true);
+
+    $dovute_con_studenti_totale = $fuisFatto['oreConStudentiDovute'];
+    $previste_con_studenti_totale = $fuisFatto['oreConStudentiPreviste'];
+    $fatte_con_studenti_totale = $fuisFatto['oreConStudenti'];
+
+    $ore_dovute_ore_70_funzionali = $fuisFatto['oreFunzionaliDovute'];
+    $ore_previste_ore_70_funzionali = $fuisFatto['oreFunzionaliPreviste'];
+    $ore_fatte_ore_70_funzionali = $fuisFatto['oreFunzionali'];
 
     $openTabMode = getSettingsValue('interfaccia','apriDocenteInNuovoTab', false) ? '_blank' : '_self';
+    $marker = '';
 
     echo '<tr>';
     echo '<td><a href="../docente/attivita.php?docente_id='.$docenteId.'" target="'.$openTabMode.'">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>';

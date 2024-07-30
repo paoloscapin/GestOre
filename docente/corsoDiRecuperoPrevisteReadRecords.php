@@ -115,7 +115,7 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 		}
 
 		// aggiorna il totale da ritornare
-		$corso_di_recupero_ore_in_itinere += ore_firmate;
+		$corso_di_recupero_ore_in_itinere += $ore_firmate;
 
 		$dataCdr .= '<tr><td class="col-md-7 text-left">'.$corsoCodice.'</td><td class="col-md-1 text-center">'.$ore_firmate.'</td><td class="col-md-1 text-center">'.$ore_recuperate.'</td><td class="col-md-1 text-center">'.$ore_pagamento_extra.'</td><td class="col-md-1 text-center"></td></tr>';
 	}

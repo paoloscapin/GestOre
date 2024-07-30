@@ -182,7 +182,38 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 
 	$totale = $totale + compact('oreConStudenti', 'oreFunzionali', 'oreClilConStudenti', 'oreClilFunzionali', 'oreOrientamentoConStudenti', 'oreOrientamentoFunzionali', 'oreSostituzione', 'oreAggiornamento', 'diariaGiorniSenzaPernottamento', 'diariaGiorniConPernottamento', 'diariaImporto');
 
-	// adesso devo calcolare il fuis
+	// adesso devo calcolare il fuis: prima le previste
+    $bilancioFunzionaliPreviste = $oreFunzionaliPreviste - $oreFunzionaliDovute;
+    $bilancioConStudentiPreviste = $oreConStudentiPreviste - $oreConStudentiDovute;
+	$fuisFunzionalePreviste = $bilancioFunzionaliPreviste * $__importi['importo_ore_funzionali'];
+	$fuisConStudentiPreviste = $bilancioConStudentiPreviste * $__importi['importo_ore_con_studenti'];
+
+	// se non configurato per compensare, i valori negativi devono essere azzerati (se ce ne sono...)
+	if (!getSettingsValue('fuis','compensa_in_valore', false)) {
+		$fuisFunzionalePreviste = max($fuisFunzionalePreviste, 0);
+		$fuisConStudentiPreviste = max($fuisConStudentiPreviste, 0);
+	}
+
+    $fuisOrePreviste = $fuisFunzionalePreviste + $fuisConStudentiPreviste;
+
+    // nessuno deve tornare dei soldi:
+    $fuisOrePreviste = max($fuisOrePreviste, 0);
+
+	// fuis clil previsto
+    $fuisClilFunzionalePreviste = $oreClilFunzionaliPreviste * $__importi['importo_ore_funzionali'];
+    $fuisClilConStudentiPreviste = $oreClilConStudentiPreviste * $__importi['importo_ore_con_studenti'];
+
+	// per ora orientamento in modo semplice, somma le ore fatte
+    $fuisOrientamentoFunzionalePreviste = $oreOrientamentoFunzionaliPreviste * $__importi['importo_ore_funzionali'];
+    $fuisOrientamentoConStudentiPreviste = $oreOrientamentoConStudentiPreviste * $__importi['importo_ore_con_studenti'];
+
+	$totale = $totale + compact('fuisOrePreviste', 'fuisClilFunzionalePreviste', 'fuisClilConStudentiPreviste', 'fuisOrientamentoFunzionalePreviste', 'fuisOrientamentoConStudentiPreviste');
+
+// ==================================================================================================================
+// ==================================================================================================================
+// ==================================================================================================================
+// ==================================================================================================================
+	// poi le fatte
     $bilancioFunzionali = $oreFunzionali - $oreFunzionaliDovute;
     $bilancioConStudenti = $oreConStudenti - $oreConStudentiDovute;
 
@@ -263,7 +294,6 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	}
 
     $fuisOre = $fuisFunzionale + $fuisConStudenti;
-
     // nessuno deve tornare dei soldi:
     $fuisOre = max($fuisOre, 0);
 

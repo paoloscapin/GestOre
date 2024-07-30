@@ -45,9 +45,11 @@ require_once '../common/connect.php';
 		<div class="col-md-2">
 			<span class="glyphicon glyphicon-dashboard"></span>&emsp;<strong>Ore Previste</strong>
 		</div>
-		<div class="col-md-3 text-center" id="totale_previste">
+		<div class="col-md-2 text-center" id="totale_previste">
 		</div>
-		<div class="col-md-3 text-center" id="totale_previste_clil">
+		<div class="col-md-2 text-center" id="totale_previste_clil">
+		</div>
+		<div class="col-md-2 text-center" id="totale_previste_orientamento">
 		</div>
 		<div class="col-md-3 text-center" id="totale_previste_corsi_di_recupero">
 		</div>
@@ -67,22 +69,25 @@ require_once '../common/connect.php';
             <th class="text-center col-md-1">Assegnato</th>
             <th class="text-center col-md-1">Ore</th>
             <?php if($__settings->config->gestioneClil) : ?>
-                <th class="text-center col-md-1">Clil Funzionale</th>
-                <th class="text-center col-md-1">Clil con Studenti</th>
+                <th class="text-center col-md-1">Clil</th>
             <?php else: ?>
                 <th></th>
-                <th></th>
+            <?php endif; ?>
+            <?php if($__settings->config->gestioneOrientamento) : ?>
+                <th class="text-center col-md-1">Orientamento</th>
+            <?php else: ?>
+                <t class="text-center col-md-1"h></th>
             <?php endif; ?>
             <th class="text-center col-md-1">Corsi di Recupero</th>
 		</tr>
     </thead>
     <tbody>
-
 <?php
-require_once '../dirigente/fuisPrevisteCalcolaDocente.php';
+require_once '../docente/oreFatteAggiorna.php';
 
 $fuis_totale_previsto = 0;
 $fuis_totale_previsto_clil = 0;
+$fuis_totale_previsto_orientamento = 0;
 $fuis_totale_corsi_di_recupero = 0;
 foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cognome,nome;") as $docente) {
     $docenteId = $docente['id'];
@@ -91,34 +96,41 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cog
     // aggiunge una stellina se qualcosa e' cambiato dall'ultimo controllo
     $ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_previste WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId;");
     $marker = '';
+
+    // controlla se e' cambiato qualcosa nelle ore previste, nelle clil, nei viaggi
     $numChanges = dbGetValue("SELECT COUNT(ultima_modifica) from ore_previste_attivita WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId AND ultima_modifica > '$ultimo_controllo';");
     $marker = ($numChanges == 0) ? '': '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>';
 
     $openTabMode = getSettingsValue('interfaccia','apriDocenteInNuovoTab', false) ? '_blank' : '_self';
 
-    $fuisPrevisto = calcolaFuisDocente($docenteId);
+    $fuisPrevisto = oreFatteAggiorna(true, $docenteId, 'dirigente', $ultimo_controllo, true);
 
     echo '<tr>';
     echo '<td><a href="../docente/previste.php?docente_id='.$docenteId.'" target="'.$openTabMode.'">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>';
 
-    echo '<td class="text-left">'.importoStampabile($fuisPrevisto['diaria']).'</td>';
-    echo '<td class="text-left">'.importoStampabile($fuisPrevisto['assegnato']).'</td>';
-    echo '<td class="text-left">'.importoStampabile($fuisPrevisto['ore']).'</td>';
+    echo '<td class="text-left">'.importoStampabile($fuisPrevisto['diariaImporto']).'</td>';
+    echo '<td class="text-left">'.importoStampabile($fuisPrevisto['fuisAssegnato']).'</td>';
+    echo '<td class="text-left">'.importoStampabile($fuisPrevisto['fuisOrePreviste']).'</td>';
     if (getSettingsValue("config", "gestioneClil", false)) {
-        echo '<td class="text-left">'.importoStampabile($fuisPrevisto['clilFunzionale']).'</td>';
-        echo '<td class="text-left">'.importoStampabile($fuisPrevisto['clilConStudenti']).'</td>';
+        echo '<td class="text-left">'.importoStampabile($fuisPrevisto['fuisClilFunzionalePreviste'] + $fuisPrevisto['fuisClilConStudentiPreviste']).'</td>';
     } else {
-        echo '<td></td><td></td>';
+        echo '<td></td>';
     }
-    echo '<td>'.importoStampabile($fuisPrevisto['extraCorsiDiRecupero']).'</td>';
+    if (getSettingsValue("config", "gestioneOrientamento", false)) {
+        echo '<td class="text-left">'.importoStampabile($fuisPrevisto['fuisOrientamentoFunzionalePreviste'] + $fuisPrevisto['fuisOrientamentoConStudentiPreviste']).'</td>';
+    } else {
+        echo '<td></td>';
+    }
+    echo '<td>'.importoStampabile($fuisPrevisto['fuisExtraCorsiDiRecupero']).'</td>';
 
-    $fuis_totale_previsto = $fuis_totale_previsto + $fuisPrevisto['diaria'] + $fuisPrevisto['assegnato'] + $fuisPrevisto['ore'];
-    $fuis_totale_previsto_clil = $fuis_totale_previsto_clil + $fuisPrevisto['clilFunzionale'] + $fuisPrevisto['clilConStudenti'];
-    $fuis_totale_corsi_di_recupero = $fuis_totale_corsi_di_recupero + $fuisPrevisto['extraCorsiDiRecupero'];
+    $fuis_totale_previsto = $fuis_totale_previsto + $fuisPrevisto['diariaImporto'] + $fuisPrevisto['fuisAssegnato'] + $fuisPrevisto['fuisOrePreviste'];
+    $fuis_totale_previsto_clil = $fuis_totale_previsto_clil + $fuisPrevisto['fuisClilFunzionalePreviste'] + $fuisPrevisto['fuisClilConStudentiPreviste'];
+    $fuis_totale_previsto_orientamento = $fuis_totale_previsto_orientamento + $fuisPrevisto['fuisOrientamentoFunzionalePreviste'] + $fuisPrevisto['fuisOrientamentoConStudentiPreviste'];
+    $fuis_totale_corsi_di_recupero = $fuis_totale_corsi_di_recupero + $fuisPrevisto['fuisExtraCorsiDiRecupero'];
 
     // se la scuola paga i corsi di recupero extra, questi vanno aggiunti nel totale delle ore
     if (! getSettingsValue("corsiDiRecupero", "corsiDiRecuperoPagatiDaProvincia", true)) {
-        $fuis_totale_previsto = $fuis_totale_previsto + $fuisPrevisto['extraCorsiDiRecupero'];
+        $fuis_totale_previsto = $fuis_totale_previsto + $fuisPrevisto['fuisExtraCorsiDiRecupero'];
     }
 }
 
@@ -142,13 +154,15 @@ function importoStampabile($importo) {
 </div>
 <input type="hidden" id="hidden_fuis_totale_previsto" value="<?php echo $fuis_totale_previsto; ?>">
 <input type="hidden" id="hidden_fuis_totale_previsto_clil" value="<?php echo $fuis_totale_previsto_clil; ?>">
+<input type="hidden" id="hidden_fuis_totale_previsto_orientamento" value="<?php echo $fuis_totale_previsto_orientamento; ?>">
 <input type="hidden" id="hidden_fuis_totale_corsi_di_recupero" value="<?php echo $fuis_totale_corsi_di_recupero; ?>">
 <input type="hidden" id="hidden_fuis_budget" value="<?php echo $__importi['fuis']; ?>">
 <input type="hidden" id="hidden_fuis_budget_clil" value="<?php echo $__importi['fuis_clil']; ?>">
+<input type="hidden" id="hidden_fuis_budget_orientamento" value="<?php echo $__importi['fuis_orientamento']; ?>">
 <input type="hidden" id="hidden_corsi_di_recupero_pagati_da_provincia" value="<?php echo (getSettingsValue("corsiDiRecupero", "corsiDiRecuperoPagatiDaProvincia", true)? "1": "0"); ?>">
 
 <!-- Custom JS file MUST be here because of toggle -->
-<script type="text/javascript" src="js/scriptPrevisteDirigente.js"></script>
+<script type="text/javascript" src="js/scriptPrevisteDirigente.js?v=<?php echo $__software_version; ?>"></script>
 
 </body>
 </html>

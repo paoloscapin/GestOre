@@ -29,6 +29,8 @@ $attivitaOrientamentoOreFunzionali = 0;
 $attivitaOrientamentoOreConStudenti = 0;
 
 function writeLineAttivita($row, $clil, $orientamento, $operatore, $ultimo_controllo, $modificabile) {
+	global $__config;
+
 	global $accettataMarker;
 	global $attivitaAggiornamento;
 	global $attivitaOreFunzionali;
@@ -91,14 +93,21 @@ function writeLineAttivita($row, $clil, $orientamento, $operatore, $ultimo_contr
 	$dataAttivita .='<td class="text-center">';
 
 	if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
-		if ($modificabile) {
-			$dataAttivita .='<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-				<button onclick="oreFatteDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>';
-		} else {
-			if ($row['ore_fatte_attivita_contestata'] == 1) {
-				$dataAttivita .='<button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>';
+		if ($operatore == 'dirigente') {
+			if ($__config->getOre_fatte_aperto()) {
+				$dataAttivita .='<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+					<button onclick="oreFatteDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>';
 			} else {
-				$dataAttivita .='<button onclick="oreFatteControllaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-remove"></span> Contesta</button>';
+				if ($row['ore_fatte_attivita_contestata'] == 1) {
+					$dataAttivita .='<button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>';
+				} else {
+					$dataAttivita .='<button onclick="oreFatteControllaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-remove"></span> Contesta</button>';
+				}
+			}
+		} else {
+			if ($modificabile) {
+				$dataAttivita .='<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+					<button onclick="oreFatteDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>';
 			}
 		}
 	} else {
@@ -302,6 +311,7 @@ function oreFatteReadAttivitaVecchio($soloTotale, $docente_id, $operatore, $ulti
 
 function oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile) {
 	global $__anno_scolastico_corrente_id;
+	global $__config;
 
 	global $attivitaAggiornamento;
 	global $attivitaOreFunzionali;
@@ -523,16 +533,23 @@ function oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_cont
 	//	$dataAttivita .= '<td class="col-md-1 text-center">'.$marker.'</td>';
 	
 		$dataAttivita .='<td class="text-center">';
-	
+
 		if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
-			if ($modificabile) {
-				$dataAttivita .='<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-					<button onclick="oreFatteDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>';
-			} else {
-				if ($row['ore_fatte_attivita_contestata'] == 1) {
-					$dataAttivita .='<button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>';
+			if ($operatore == 'dirigente') {
+				if ($__config->getOre_fatte_aperto()) {
+					$dataAttivita .='<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+						<button onclick="oreFatteDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>';
 				} else {
-					$dataAttivita .='<button onclick="oreFatteControllaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-remove"></span> Contesta</button>';
+					if ($row['ore_fatte_attivita_contestata'] == 1) {
+						$dataAttivita .='<button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>';
+					} else {
+						$dataAttivita .='<button onclick="oreFatteControllaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-remove"></span> Contesta</button>';
+					}
+				}
+			} else {
+				if ($modificabile) {
+					$dataAttivita .='<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+						<button onclick="oreFatteDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>';
 				}
 			}
 		} else {

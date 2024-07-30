@@ -1,3 +1,17 @@
+## Version 1.2.45 - 30 lug 2024
+##### Improvements
+- previsteList con oreFatteAggiorna
+- orientamento in previsteList
+- carenza delete
+
+##### Bug Fixes
+- some minor fixes
+
+## Version 1.2.44 - 6 apr 2024
+##### Improvements
+- corso di recupero opzione per 'non richiesto'
+- fatetListOreRimaste allineato per essere calcolato con il nuovo metodo di oreFatteAggiorna
+
 ## Version 1.2.43 - 5 feb 2024
 ##### Improvements
 - header docente e segreteria per report sportelli

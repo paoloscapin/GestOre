@@ -30,8 +30,13 @@ if(! isset($_GET)) {
 
 function printableVoto($voto) {
 	if ($voto != 0) {
+		// 1 vuole dire che non c'era
 		if ($voto == 1) {
-			return 'Assente';
+			$voto = 'Assente';
+		}
+		// 2 che non ha voluto farlo (eg non ha presentato la richiesta)
+		if ($voto == 2) {
+			$voto = 'Non Richiesto';
 		}
 		return $voto;
 	}

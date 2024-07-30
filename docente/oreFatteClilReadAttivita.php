@@ -21,6 +21,7 @@ function writeOreClil($attuali, $originali) {
 
 function oreFatteClilReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile) {
 	global $__anno_scolastico_corrente_id;
+	global $__config;
 
 	$contestataMarker = '<span class=\'label label-danger\'>contestata</span>';
 	$accettataMarker = '';
@@ -115,16 +116,21 @@ function oreFatteClilReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_
 		// $dataClilAttivita .= '<td class="col-md-1 text-center">'.$marker.'</td>';
 	
 		$dataClilAttivita .='<td class="text-center">';
-		if ($modificabile) {
-			$dataClilAttivita .='
-				<button onclick="oreFatteClilGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-				<button onclick="oreFatteClilDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-			';
-		} else {
-			if ($row['ore_fatte_attivita_contestata'] == 1) {
-				$dataClilAttivita .='<button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'clil\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>';
+		if ($operatore == 'dirigente') {
+			if ($__config->getOre_fatte_aperto()) {
+				$dataClilAttivita .='<button onclick="oreFatteClilGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+					<button onclick="oreFatteClilDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>';
 			} else {
-				$dataClilAttivita .='<button onclick="oreFatteControllaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \'clil\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-remove"></span> Contesta</button>';
+				if ($row['ore_fatte_attivita_contestata'] == 1) {
+					$dataClilAttivita .='<button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'clil\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>';
+				} else {
+					$dataClilAttivita .='<button onclick="oreFatteControllaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-remove"></span> Contesta</button>';
+				}
+			}
+		} else {
+			if ($modificabile) {
+				$dataClilAttivita .='<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+					<button onclick="oreFatteDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>';
 			}
 		}
 		$dataClilAttivita .='</td></tr>';

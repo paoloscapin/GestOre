@@ -27,19 +27,20 @@ function carenzaReadRecords() {
 	});
 }
 
-function carenzaDelete(id, materia) {
-    var conf = confirm("Sei sicuro di volere cancellareil piano di lavoro di " + materia + " ?");
+function carenzaDelete(id, materia, studente) {
+    var conf = confirm("Sei sicuro di volere cancellare la carenza di " + studente + " in " + materia + " ?");
     if (conf == true) {
-        $.post("../common/deleteRecord.php", {
-				id: id,
+        $.post("../docente/carenzaDelete.php", {
+                id: id,
 				table: 'piano_di_lavoro',
-				name: "materia" + materia
+                studente: studente,
+				materia: materia
             },
             function (data, status) {
                 if (data=='Application Error') {
-                    errorNotify('Impossibile cancellare il piano di lavoro', 'Il piano di lavoro <Strong>' + materia + '</Strong> contiene probabilmente dei riferimenti');
+                    errorNotify('Impossibile cancellare la carenza', 'La carenza di <Strong>' + studente + " in " + materia + '</Strong> è forse stata già inviata?');
                 } else {
-                    infoNotify('Cancellazione effettuata', 'Il piano di lavoro <Strong>' + materia + '</Strong> è stato cancellato regolarmente');
+                    infoNotify('Cancellazione effettuata', 'La carenza di <Strong>' + studente + " in " +  materia + '</Strong> è stato cancellata regolarmente');
                 }
                 carenzaReadRecords();
             }
