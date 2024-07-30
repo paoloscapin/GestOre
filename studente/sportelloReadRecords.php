@@ -239,7 +239,6 @@ foreach($resultArray as $row) {
 	// chiudi l'ultima colonna e la riga
 	$data .= '</td></tr>';
 }
-
 $data .= '</table></div>';
 
 echo $data;
