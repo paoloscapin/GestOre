@@ -1,4 +1,82 @@
-## Version 1.2.37 -  2023
+## Version 1.2.45 - 30 lug 2024
+##### Improvements
+- previsteList con oreFatteAggiorna
+- orientamento in previsteList
+- carenza delete
+
+##### Bug Fixes
+- some minor fixes
+
+## Version 1.2.44 - 6 apr 2024
+##### Improvements
+- corso di recupero opzione per 'non richiesto'
+- fatetListOreRimaste allineato per essere calcolato con il nuovo metodo di oreFatteAggiorna
+
+## Version 1.2.43 - 5 feb 2024
+##### Improvements
+- header docente e segreteria per report sportelli
+- filtro docente per report sportelli effettuati
+- sostituzioni effettuate calcolate con le tabelle corrette
+
+## Version 1.2.42 - 1 feb 2024
+##### Improvements
+- report degli sportelli effettuati fatto da segreteria
+
+## Version 1.2.41 - 28 gen 2024
+##### Improvements
+- database inseriti in ore_previste_tipo_attivita i flag funzionali, con_studenti, clil, orientamento, aggiornamento
+- aggiunto script calcolaOreDocenteEFuis.js per calcolare (riportando o no le tabelle) i totali di dovute previste e fatte
+- scriptAttivita, scriptIndex e scriptPreviste adeguati di conseguenza
+- rimossi riferimenti a oreDovuteAggiornaDocente.php oreFatteAggiornaDocente (e previste)
+- oreFatteAggiorna.php legge tutte le tabelle necessarie per produrre i dati necessari di ore e fuis totali di un docente
+- rifatta la lettura di ore fatte read cdr, sportelli, attivita, attribuite, viaggi, diaria, gruppi
+- rivista anche la lettura di tutte le ore previste 
+- fatteList non ricalcola il fuis docente ma chiama oreFatteAggiorna.php
+- gruppo import export incluso orientamento, gruppo gestione incluso orientamento Template per import gruppi 4.0)
+- GestOre.template.json aggiunto config gestioneOrientamento
+- css aggiunto colore beige
+- Start / Stop timer in Util per controllare i tempi impiegati
+
+##### Bug Fixes
+- attribuite read per previste
+
+## Version 1.2.40 - 16 gen 2024
+
+##### Improvements
+- scriptAttivita.js aggiorna i valori di ore e fuis nello script
+- scriptAttivita.js utilizza ora $.when per garantire l'ordine di esecuzione delle operazioni in sequenza
+- readImporti.php e readSettings.php per essere usati da js come in scriptAttivita.js
+- fuisAssegnatoGetImportoPerDocente.php per essere usato da js come in scriptAttivita.js
+- attivita.php fatto spazio per fuis orientamento
+- corsoDiRecuperoPrevisteReadRecords.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- coreFatteClilReadAttivita.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- oreFatteReadAttivita.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- oreFatteReadAttribuite.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- oreFatteReadGruppi ora torna i dati calcolati oltre al pezzo di html per la tabella
+- oreFatteReadSostituzioni ora torna i dati calcolati oltre al pezzo di html per la tabella
+- oreFatteReadSportelli.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- oreFatteReadViaggi.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- viaggioDiariaFattaReadRecords.php ora torna i dati calcolati oltre al pezzo di html per la tabella
+- sportello import migliorato controllo errori
+- NB: le ore previste per ora non sono considerate nel calcolo del fuis
+
+## Version 1.2.39 - 13 gen 2024
+
+##### Improvements
+- sportello clil e orientamento
+
+##### Bug Fixes
+- minor fixes
+
+## Version 1.2.38 - 10 dic 2023
+
+##### Improvements
+- aggiunto flag gruppo orientamento in db
+- aggiunto flag funzionali e con_studenti in ore_previste_tipo_attivita
+- gestione ore orientamento nelle fatte
+- importo orientamanto per configurazione
+
+## Version 1.2.37 - 19 ott 2023
 
 ##### Bug Fixes
 - minor fixes

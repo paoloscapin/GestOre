@@ -25,8 +25,5 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	$query = "DELETE FROM ore_fatte_attivita WHERE id = '$id'";
 	dbExec($query);
 	info("rimosso ore_fatte_attivita id=$id");
-
-	require_once '../docente/oreDovuteAggiornaDocente.php';
-	oreFatteAggiornaDocente($__docente_id);
 }
 ?>

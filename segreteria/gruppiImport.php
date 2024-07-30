@@ -96,6 +96,7 @@ while (($words = nextWords()) != null) {
     debug('words[2]='.$words[2]);
     debug('words[3]='.$words[3]);
     debug('words[4]='.$words[4]);
+    debug('words[5]='.$words[5]);
 
     $gruppo_nome = escapeString($words[0]);
     $gruppo_commento = escapeString($words[1]);
@@ -126,12 +127,19 @@ while (($words = nextWords()) != null) {
         $clil = true;
     }
 
-    $sql .= "INSERT INTO gruppo (nome, dipartimento, commento, max_ore, clil, anno_scolastico_id, responsabile_docente_id) VALUES ('$gruppo_nome', 0, '$gruppo_commento', '$gruppo_max_ore', $gruppo_clil, '$__anno_scolastico_corrente_id', '$gruppo_responsabile_docente_id');
+    // controlla se e' un gruppo orientamento
+    $orientamento = false;
+    $gruppo_orientamento = strtolower(escapeString($words[5]));
+    if ($gruppo_orientamento == 'si' || $gruppo_orientamento == 'orientamento') {
+        $orientamento = true;
+    }
+
+    $sql .= "INSERT INTO gruppo (nome, dipartimento, commento, max_ore, clil, orientamento, anno_scolastico_id, responsabile_docente_id) VALUES ('$gruppo_nome', 0, '$gruppo_commento', '$gruppo_max_ore', $gruppo_clil, '$__anno_scolastico_corrente_id', '$gruppo_responsabile_docente_id');
         SET @last_id_gruppo = LAST_INSERT_ID(); ";
 
-    $data = $data . 'Gruppo=' . $gruppo_nome . ' commento=' . $gruppo_commento . ' ore=' . $gruppo_max_ore . ' responsabile=' . $gruppo_responsabile_cognome . " " . $gruppo_responsabile_nome . ' clil=' . $clil;
+    $data = $data . 'Gruppo=' . $gruppo_nome . ' commento=' . $gruppo_commento . ' ore=' . $gruppo_max_ore . ' responsabile=' . $gruppo_responsabile_cognome . " " . $gruppo_responsabile_nome . ' clil=' . $clil . ' orientamento=' . $orientamento;
     $data .= '</br>';
-    debug('Gruppo=' . $gruppo_nome . ' commento=' . $gruppo_commento . ' ore=' . $gruppo_max_ore . ' responsabilente=' . $gruppo_responsabile_cognome . " " . $gruppo_responsabile_nome . ' clil=' . $clil);
+    debug('Gruppo=' . $gruppo_nome . ' commento=' . $gruppo_commento . ' ore=' . $gruppo_max_ore . ' responsabilente=' . $gruppo_responsabile_cognome . " " . $gruppo_responsabile_nome . ' clil=' . $clil . ' orientamento=' . $orientamento);
 }
 
 // esegue la query se non vuota

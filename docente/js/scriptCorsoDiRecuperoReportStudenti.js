@@ -16,7 +16,7 @@ function letteraCarenzeSettembre(id) {
 }
 
 function letteraCarenzeNovembre(id) {
-	var url = 'letteraCarenze.php?id=' + id;
+	var url = 'letteraCarenzeNovembre.php?id=' + id;
 	window.open(url, "_blank");
 }
 
@@ -29,13 +29,13 @@ function registraVotoSettembre(studente_per_corso_di_recupero_id, voto, __this) 
 		function (data, status) {
 			//  cambiato il voto: scrive se passato o no
 			if (__this.value > 5) {
-				$('td:nth-child(10)', $(__this).parents('tr')).html('<span class=\'label label-success\'>passato</span>');
+				$('td:nth-child(10)', $(__this).parents('tr')).html('<span class=\'label label-success\' style=\'background-color: Green;>passato</span>');
 				// $('td:nth-child(11)', $(__this).parents('tr')).html('<button onclick="letteraCarenzeSettembre('+studente_per_corso_di_recupero_id+')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-envelope"></button>');
 			} else if (__this.value < 1) {
 				$('td:nth-child(10)', $(__this).parents('tr')).html('');
 				$('td:nth-child(11)', $(__this).parents('tr')).html('');
 			} else {
-				$('td:nth-child(10)', $(__this).parents('tr')).html('<span class=\'label label-danger\'>non passato</span>');
+				$('td:nth-child(10)', $(__this).parents('tr')).html('<span class=\'label label-danger\' style=\'background-color: FireBrick;>non passato</span>');
 				// $('td:nth-child(11)', $(__this).parents('tr')).html('<button onclick="letteraCarenzeSettembre('+studente_per_corso_di_recupero_id+')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-envelope"></button>');
 			}
 		}
@@ -64,13 +64,13 @@ function registraVotoNovembre(studente_per_corso_di_recupero_id, voto, __this) {
 		function (data, status) {
 			//  cambiato il voto: scrive se passato o no
 			if (__this.value > 5) {
-				$('td:nth-child(10)', $(__this).parents('tr')).html('<span class=\'label label-success\'>passato</span>');
+				$('td:nth-child(10)', $(__this).parents('tr')).html('<span class=\'label label-success\' style=\'background-color: Green\';>passato</span>');
 				// $('td:nth-child(11)', $(__this).parents('tr')).html('<button onclick="letteraCarenze('+studente_per_corso_di_recupero_id+')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-envelope"></button>');
 			} else if (__this.value < 1) {
 				$('td:nth-child(10)', $(__this).parents('tr')).html('');
 				$('td:nth-child(11)', $(__this).parents('tr')).html('');
 			} else {
-				$('td:nth-child(10)', $(__this).parents('tr')).html('<span class=\'label label-danger\'>non passato</span>');
+				$('td:nth-child(10)', $(__this).parents('tr')).html('<span class=\'label label-danger\' style=\'background-color: FireBrick\';>non passato</span>');
 				// $('td:nth-child(11)', $(__this).parents('tr')).html('<button onclick="letteraCarenze('+studente_per_corso_di_recupero_id+')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-envelope"></button>');
 			}
 		}

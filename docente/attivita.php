@@ -22,6 +22,7 @@ require_once '../common/_include_flatpickr.php';
 require_once '../common/__Minuti.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente');
 ?>
+    <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 	<title>Ore Fatte</title>
 </head>
 
@@ -59,8 +60,8 @@ require_once '../common/header-docente.php';
 
 <div class="container-fluid" style="margin-top:60px">
 
-<?php if($operatore == 'dirigente') : ?>
 <!-- pannello fuis per dirigente -->
+<?php if($operatore == 'dirigente') : ?>
 <div class="panel panel-deeporange4">
 <div class="panel-heading container-fluid">
 	<div class="row">
@@ -88,69 +89,80 @@ require_once '../common/header-docente.php';
 	<table class="table table-vnocolor-index">
 		<thead>
 			<tr>
-				<th class="col-md-2"></th>
-				<th class="col-md-1 text-right">Fuis Docente</th>
+				<th colspan="2" class="col-md-2 text-right">Fuis Docente</th>
 				<th class="col-md-1"></th>
-				<th class="col-md-2"></th>
-				<th class="col-md-1 text-right">Fuis CLIL</th>
+				<th colspan="2" class="col-md-2 text-right">Fuis Clil</th>
 				<th class="col-md-1"></th>
-				<th class="col-md-2"></th>
-				<th class="col-md-1 text-right">Corsi di Recupero</th>
+				<th colspan="2" class="col-md-2 text-right">Fuis Orientamento</th>
+				<th class="col-md-1"></th>
+				<th colspan="2" class="col-md-2 text-right">Corsi di Recupero</th>
 				<th class="col-md-1"></th>
 			</tr>
 		</thead>
 		<tbody>
 			<tr>
-				<td class="col-md-2 text-right" ><?php echoLabel('Assegnato');?></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Assegnato');?></td>
 				<td class="col-md-1 text-right" id="fuis_assegnato">0.00</td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ><?php echoLabel('Funzionali');?></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Funzionali');?></td>
 				<td class="col-md-1 text-right" id="fuis_clil_funzionali">0.00</td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ><?php echoLabel('Ore Extra');?></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Funzionali');?></td>
+				<td class="col-md-1 text-right" id="fuis_orientamento_funzionali">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Ore Extra');?></td>
 				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero">0.00</td>
 				<td class="col-md-1 text-right"></td>
 			</tr>
 			<tr>
-				<td class="col-md-2 text-right" ><?php echoLabel('Ore');?></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Ore');?></td>
 				<td class="col-md-1 text-right" id="fuis_ore">0.00</td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ><?php echoLabel('Con Studenti');?></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Con Studenti');?></td>
 				<td class="col-md-1 text-right" id="fuis_clil_con_studenti">0.00</td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Con Studenti');?></td>
+				<td class="col-md-1 text-right" id="fuis_orientamento_con_studenti">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ></td>
 				<td class="col-md-1 text-right"></td>
 				<td class="col-md-1 text-right"></td>
 			</tr>
 			<tr>
-				<td class="col-md-2 text-right" ><?php echoLabel('Diaria Viaggi');?></td>
+				<td class="col-md-1 text-right" ><?php echoLabel('Diaria Viaggi');?></td>
 				<td class="col-md-1 text-right" id="fuis_diaria">0.00</td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ></td>
+				<td class="col-md-1 text-right" ></td>
 				<td class="col-md-1 text-right"></td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ></td>
+				<td class="col-md-1 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ></td>
 				<td class="col-md-1 text-right"></td>
 				<td class="col-md-1 text-right"></td>
 			</tr>
 		</tbody>
-		<tfooter>
+		<tfoot>
 			<tr class="deeporange5">
-				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_docente_totale"><strong>0.00</strong></td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_clil_totale"><strong>0.00</strong></td>
 				<td class="col-md-1 text-right"></td>
-				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" id="fuis_orientamento_totale"><strong>0.00</strong></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero_totale"><strong>0.00</strong></td>
 				<td class="col-md-1 text-right"></td>
 			</tr>
-		<tfooter>
+		<tfoot>
 	</table>
 	</div>
 	<div id="fuis_message" class="row" style="margin-bottom:10px;"></div>
-	<div id="fuis_messageEccesso" class="row" style="margin-bottom:10px;"></div>
+	<div id="fuis_eccesso_message" class="row" style="margin-bottom:10px;"></div>
 </div>
 
 <!-- <div class="panel-footer"></div> -->
@@ -158,6 +170,7 @@ require_once '../common/header-docente.php';
 
 <?php endif; ?>
 
+<!-- pannello riassuntivo -->
 <div class="panel panel-lima4">
 <div class="panel-heading">
 	<span class="glyphicon glyphicon-time"></span>
@@ -182,10 +195,14 @@ require_once '../common/header-docente.php';
 					<th class="col-md-1"></th>
 				<?php endif; ?>
 				<th class="col-md-1"></th>
-				<th class="col-md-2 text-left"><?php echoLabel('Funzionali');?></th>
-				<th class="col-md-2 text-left">con Studenti</th>
-				<th class="col-md-2 text-left"><span class="clil hidden">CLIL (<?php echoLabel('Funzionali');?>)</span></th>
-				<th class="col-md-2 text-left"><span class="clil hidden">CLIL (con Studenti)</span></th>
+				<th class="col-md-1 text-left"><?php echoLabel('Funzionali');?></th>
+				<th class="col-md-1 text-left">con Studenti</th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1 text-left"><span class="clil hidden">CLIL</span></br><span class="clil hidden">(<?php echoLabel('Funzionali');?>)</span></th>
+				<th class="col-md-1 text-left"><span class="clil hidden">CLIL</span></br><span class="clil hidden">(con Studenti)</span></th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento</span></br><span class="orientamento hidden">(<?php echoLabel('Funzionali');?>)</span></th>
+				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento</span></br><span class="orientamento hidden">(con Studenti)</span></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -218,8 +235,12 @@ require_once '../common/header-docente.php';
 				<td></td>
 				<td class="text-left" id="previste_ore_70_funzionali"></td>
 				<td class="text-left" id="previste_totale_con_studenti"></td>
+				<td></td>
 				<td class="text-left clil" id="clil_previste_funzionali"></td><td class="NOclil"></td>
 				<td class="text-left clil" id="clil_previste_con_studenti"></td><td class="NOclil"></td>
+				<td></td>
+				<td class="text-left orientamento" id="orientamento_previste_funzionali"></td><td class="NOorientamento"></td>
+				<td class="text-left orientamento" id="orientamento_previste_con_studenti"></td><td class="NOorientamento"></td>
 			</tr>
 			<tr class="teal5">
 				<td>fatte</td>
@@ -236,8 +257,12 @@ require_once '../common/header-docente.php';
 				<td></td>
 				<td class="text-left" id="fatte_ore_70_funzionali"></td>
 				<td class="text-left" id="fatte_totale_con_studenti"></td>
+				<td></td>
 				<td class="text-left clil" id="clil_fatte_funzionali"></td><td class="NOclil"></td>
 				<td class="text-left clil" id="clil_fatte_con_studenti"></td><td class="NOclil"></td>
+				<td></td>
+				<td class="text-left orientamento" id="orientamento_fatte_funzionali"></td><td class="NOorientamento"></td>
+				<td class="text-left orientamento" id="orientamento_fatte_con_studenti"></td><td class="NOorientamento"></td>
 			</tr>
 		</tbody>
 	</table>
@@ -256,6 +281,7 @@ require_once '../common/header-docente.php';
 <!-- <div class="panel-footer"></div> -->
 </div>
 
+<!-- pannello attivita' fatte -->
 <div class="panel panel-teal4">
 <div class="panel-heading">
 	<div class="row">
@@ -959,9 +985,10 @@ require_once '../docente/attribuiteModal.php';
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 
 <!-- Custom JS file -->
-<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js"></script>
-<script type="text/javascript" src="js/scriptAttivita.js"></script>
-<script type="text/javascript" src="js/scriptAttribuite.js"></script>
+<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/calcolaOreDocenteEFuis.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/scriptAttivita.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/scriptAttribuite.js?v=<?php echo $__software_version; ?>"></script>
 
 </body>
 </html>

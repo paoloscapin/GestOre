@@ -207,7 +207,7 @@ foreach($resultArray as $row) {
 			$prenotabile = false;
 		}
 
-		// la didattica puo' inserire la prenotazione sempre e può sempre cancellare
+		// la didattica puo' inserire la prenotazione sempre e puo' sempre cancellare
 		if (haRuolo('segreteria-didattica')) {
 			$prenotabile = true;
 			$cancellabile = true;
@@ -221,12 +221,12 @@ foreach($resultArray as $row) {
 			$data .='
 				<span class="label label-success">Iscritto</span>
 				';
-	if ($cancellabile) {
-				$data .='
-					<button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-					';
-			}
-		} else {
+				if ($cancellabile) {
+					$data .='
+						<button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+						';
+				}
+			} else {
 			if ($prenotabile) {
 				$data .='
 					<span class="label label-info">Disponibile</span>
@@ -239,7 +239,6 @@ foreach($resultArray as $row) {
 	// chiudi l'ultima colonna e la riga
 	$data .= '</td></tr>';
 }
-
 $data .= '</table></div>';
 
 echo $data;

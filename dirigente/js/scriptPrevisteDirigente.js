@@ -14,25 +14,37 @@ function refreshTotale() {
     var diffTotaleFuisClil = $("#hidden_fuis_budget_clil").val() - $("#hidden_fuis_totale_previsto_clil").val();
     var diffTotaleFuisClilNumber = new Number(diffTotaleFuisClil).toFixed(2);
 
-    var totHtml = '<strong>Totale FUIS: ' + totaleFuisPrevisto + '</strong> (budget: ' + $("#hidden_fuis_budget").val() + ') ';
+    var totaleFuisPrevistoOrientamento = new Number($("#hidden_fuis_totale_previsto_orientamento").val()).toFixed(2);
+    var diffTotaleFuisOrientamento = $("#hidden_fuis_budget_orientamento").val() - $("#hidden_fuis_totale_previsto_orientamento").val();
+    var diffTotaleFuisOrientamentoNumber = new Number(diffTotaleFuisOrientamento).toFixed(2);
+
+    var totHtml = '<strong>Totale FUIS: ' + totaleFuisPrevisto + '</strong> </br>(budget: ' + $("#hidden_fuis_budget").val() + ') ';
     if (diffTotaleFuis > 0) {
         var totHtml = totHtml + '<span class="label label-success">+ ' + diffTotaleFuisNumber + '</span>';
     } else {
         var totHtml = totHtml + '<span class="label label-danger">- ' + (-diffTotaleFuisNumber) + '</span>';
     }
 
-    var totHtmlClil = '<strong>Totale CLIL: ' + totaleFuisPrevistoClil + '</strong> (budget: ' + $("#hidden_fuis_budget_clil").val() + ') ';
+    var totHtmlClil = '<strong>Totale CLIL: ' + totaleFuisPrevistoClil + '</strong> </br>(budget: ' + $("#hidden_fuis_budget_clil").val() + ') ';
     if (diffTotaleFuisClil > 0) {
         var totHtmlClil = totHtmlClil + '<span class="label label-success">+ ' + diffTotaleFuisClilNumber + '</span>';
     } else {
         var totHtmlClil = totHtmlClil + '<span class="label label-danger">- ' + (-diffTotaleFuisClilNumber) + '</span>';
     }
 
-    var $messaggioCorsoDiRecuperoExtra = ($("#hidden_corsi_di_recupero_pagati_da_provincia").val() == 0)? '(già incluso in fuis)' : '(pagato da Provincia)';
+    var totHtmlOrientamento = '<strong>Totale Orientamento: ' + totaleFuisPrevistoOrientamento + '</strong>  </br>(budget: ' + $("#hidden_fuis_budget_orientamento").val() + ') ';
+    if (diffTotaleFuisOrientamento > 0) {
+        var totHtmlOrientamento = totHtmlOrientamento + '<span class="label label-success">+ ' + diffTotaleFuisOrientamentoNumber + '</span>';
+    } else {
+        var totHtmlOrientamento = totHtmlOrientamento + '<span class="label label-danger">- ' + (-diffTotaleFuisOrientamentoNumber) + '</span>';
+    }
+
+    var $messaggioCorsoDiRecuperoExtra = ($("#hidden_corsi_di_recupero_pagati_da_provincia").val() == 0)? '(già incluso nel totale fuis)' : '(pagato da Provincia)';
 
     $("#totale_previste").html(totHtml);
     $("#totale_previste_clil").html(totHtmlClil);
-    $("#totale_previste_corsi_di_recupero").html('<strong>Totale Corsi di Recupero: ' + $messaggioCorsoDiRecuperoExtra + ': ' + $("#hidden_fuis_totale_corsi_di_recupero").val() + '</strong>');
+    $("#totale_previste_orientamento").html(totHtmlOrientamento);
+    $("#totale_previste_corsi_di_recupero").html('<strong>Totale Corsi di Recupero: ' + $("#hidden_fuis_totale_corsi_di_recupero").val() + ': ' + '</strong>  </br>' + $messaggioCorsoDiRecuperoExtra);
 }
 
 function refreshPagina() {

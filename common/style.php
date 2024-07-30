@@ -9,5 +9,5 @@
 
 require_once __DIR__ . '/_include_bootstrap.php';
 ?>
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/gestore.css">
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css?v=<?php echo $__software_version; ?>">
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/gestore.css?v=<?php echo $__software_version; ?>">

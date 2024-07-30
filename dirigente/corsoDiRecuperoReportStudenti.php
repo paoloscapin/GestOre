@@ -36,6 +36,9 @@ function printableVoto($voto) {
 		if ($voto == 1) {
 			return 'Assente';
 		}
+		if ($voto == 2) {
+			return 'Non Richiesto';
+		}
 		return $voto;
 	}
 	return null;

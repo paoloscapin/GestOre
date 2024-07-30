@@ -23,10 +23,5 @@ foreach($resultArray as $docente) {
 	$docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
 
 	echo $docenteCognomeNome . ': ';
-	// per prima cosa deve aggiornare le fatte: quelle che vengono da quelle assegnate devono entrare una sola volta!
-	// ricalcola le previste e le fatte
-	require_once '../docente/oreDovuteAggiornaDocente.php';
-	orePrevisteAggiornaDocente($docente['id']);
-	oreFatteAggiornaDocente($docente['id']);
 }
 ?>

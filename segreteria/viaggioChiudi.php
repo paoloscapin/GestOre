@@ -31,9 +31,6 @@ if(isset($_POST)) {
         dbExec($query);
         $id = dblastId();
         info("aggiunto viaggio_ore_recuperate id=$id viaggio_id=$viaggio_id numero_ore=$numero_ore docente_id=$docente_id docente_cognome_e_nome=$docente_cognome_e_nome");
-        // bisogna aggiornare le ore con quelle concesse
-        require_once '../docente/oreDovuteAggiornaDocente.php';
-        oreFatteAggiornaDocente($docente_id);
     }
 
     // chiude il viaggio

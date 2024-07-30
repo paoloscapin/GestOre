@@ -40,7 +40,5 @@ if(isset($_POST)) {
 	    dbExec($query);
 		info("ripristinata attivita attivita_id=$attivita_id docente_id=$docente_id clil=$clilmode");
 	}
-	require_once '../docente/oreDovuteAggiornaDocente.php';
-	oreFatteAggiornaDocente($docente_id);
 }
 ?>

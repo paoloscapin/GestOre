@@ -85,7 +85,9 @@ function sportelloSave() {
         classe: $("#classe").val(),
         cancellato: $("#cancellato").is(':checked')? 1: 0,
         firmato: $("#firmato").is(':checked')? 1: 0,
-        online: $("#online").is(':checked')? 1: 0
+        online: $("#online").is(':checked')? 1: 0,
+        clil: $("#clil").is(':checked')? 1: 0,
+        orientamento: $("#orientamento").is(':checked')? 1: 0
     }, function (data, status) {
         $("#sportello_modal").modal("hide");
         sportelloReadRecords();
@@ -112,6 +114,8 @@ function sportelloGetDetails(sportello_id) {
             $("#cancellato").prop('checked', sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null);
             $("#firmato").prop('checked', sportello.sportello_firmato != 0 && sportello.sportello_firmato != null);
             $("#online").prop('checked', sportello.sportello_online != 0 && sportello.sportello_online != null);
+            $("#clil").prop('checked', sportello.sportello_clil != 0 && sportello.sportello_clil != null);
+            $("#orientamento").prop('checked', sportello.sportello_orientamento != 0 && sportello.sportello_orientamento != null);
 
             $('#studenti_table tbody').empty();
             var markup = '';
@@ -149,6 +153,8 @@ function sportelloGetDetails(sportello_id) {
         $("#cancellato").prop('checked', false);
         $("#firmato").prop('checked', false);
         $("#onine").prop('checked', false);
+        $("#clil").prop('checked', false);
+        $("#orientamento").prop('checked', false);
     }
 	$("#_error-materia-part").hide();
 	$("#sportello_modal").modal("show");

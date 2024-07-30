@@ -29,7 +29,6 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-3.css">
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
 
-<script type="text/javascript" src="js/gruppoGestione.js"></script>
 </head>
 
 <body >
@@ -119,10 +118,19 @@ foreach(dbGetAll($query) as $docenteRow) {
                     <div class="col-sm-8"><input type="text" id="max_ore" placeholder="massimo ore previste per incontri del gruppo" class="form-control"/></div>
                 </div>
 
+                <?php if(getSettingsValue('config','gestioneClil', false)) : ?>
                 <div class="form-group">
                     <label for="clil" class="col-sm-3 control-label">Clil</label>
                     <div class="col-sm-1 "><input type="checkbox" id="clil" ></div>
                 </div>
+        		<?php endif; ?>
+
+                <?php if(getSettingsValue('config','gestioneOrientamento', false)) : ?>
+                <div class="form-group">
+                    <label for="orientamento" class="col-sm-3 control-label">Orientamento</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="orientamento" ></div>
+                </div>
+        		<?php endif; ?>
 
                 <div class="form-group responsabile_selector">
                     <label class="col-sm-3 control-label" for="responsabile">Responsabile</label>
@@ -177,5 +185,6 @@ foreach(dbGetAll($query) as $docenteRow) {
 
 </div>
 
+<script type="text/javascript" src="js/gruppoGestione.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 </html>

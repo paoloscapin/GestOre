@@ -66,15 +66,31 @@ ruoloRichiesto('segreteria-didattica','dirigente','docente');
 <?php
 require_once '../common/connect.php';
 
+$assenteColor = 'DarkRed';
+$nonRichiestoColor = 'DarkOrange';
+$passatoColor = 'Green';
+$nonPassatoColor = 'FireBrick';
+
 function printableVoto($voto) {
+	global $assenteColor, $nonRichiestoColor, $passatoColor, $nonPassatoColor;
 
 	// rosso se non passato
-	$bgColor = ($voto <= 5) ? 'red' : 'green';
+	if ($voto == 1) {
+		$bgColor = $assenteColor;
+	} elseif ($voto == 2) {
+		$bgColor = $nonRichiestoColor;
+	} else {
+		$bgColor = ($voto <= 5) ? $nonPassatoColor : $passatoColor;
+	}
 
 	if ($voto != 0) {
 		// 1 vuole dire che non c'era
 		if ($voto == 1) {
 			$voto = 'Assente';
+		}
+		// 2 che non ha voluto farlo (eg non ha presentato la richiesta)
+		if ($voto == 2) {
+			$voto = 'Non Richiesto';
 		}
 		$result = '<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.$voto.'</span>';
 		return $result;
@@ -179,9 +195,9 @@ foreach($resultArray as $row_classe) {
 		    foreach($resultArray2 as $row_studente) {
 				$passatoMarker = '';
 				if ($row_studente['studente_per_corso_di_recupero_passato']) {
-					$passatoMarker = '<span class=\'label label-success\'>passato</span>';
+					$passatoMarker = '<span class=\'label label-info\' style=\'background-color: '.$passatoColor.';\'>passato</span>';
 				} else if (isset($row_studente['studente_per_corso_di_recupero_passato']) && $row_studente['studente_per_corso_di_recupero_passato'] == 0){
-					$passatoMarker = '<span class=\'label label-danger\'>non passato</span>';
+					$passatoMarker = '<span class=\'label label-info\' style=\'background-color: '.$nonPassatoColor.';\'>non passato</span>';
 				}
 				$esente = (!is_null($row_studente['studente_per_corso_di_recupero_serve_voto'])) && $row_studente['studente_per_corso_di_recupero_serve_voto'] == 0;
 				if ($esente) {
@@ -198,17 +214,25 @@ foreach($resultArray as $row_classe) {
 				if (getSettingsValue('corsiDiRecupero', 'corsiDiRecuperoVotoSettembreTuttiIDocenti', true) && $__config->getVoti_recupero_settembre_aperto() && !$esente) {
 					$votoSettembre = $row_studente['studente_per_corso_di_recupero_voto_settembre'];
 					$votoSettembreOptionList = '				<select  class="votoSettembre selectpicker" data-noneSelectedText="seleziona..." data-width="50%" '.($__config->getVoti_recupero_settembre_aperto() ? '':' disabled').'><option value="0"></option>';
-					// opzione per assente
-					$bgColor = 'red';
+					// opzione per Assente
+					$bgColor = $assenteColor;
 					$votoSettembreOptionList .= '<option value="'.'1'.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.'Assente'.'</span>"';
 					if ($votoSettembre == 1) {
 						$votoSettembreOptionList .= ' selected ';
 					}
-					$votoSettembreOptionList .= '>'.'assente'.'</option>';
+					$votoSettembreOptionList .= '>'.'Assente'.'</option>';
 
+					// opzione per Non Richiesto
+					$bgColor = $nonRichiestoColor;
+					$votoSettembreOptionList .= '<option value="'.'2'.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.'Non Richiesto'.'</span>"';
+					if ($votoSettembre == 2) {
+						$votoSettembreOptionList .= ' selected ';
+					}
+					$votoSettembreOptionList .= '>'.'Non Richiesto'.'</option>';
+					
 					// voti da 4 a 10
 					for($i = 4; $i<=10; $i++) {
-						$bgColor = ($i <= 5) ? 'red' : 'green';
+						$bgColor = ($i <= 5) ? $nonPassatoColor : $passatoColor;
 						$votoSettembreOptionList .= '<option value="'.$i.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.$i.'</span>"';
 
 						// seleziona il voto corrente di settembre se esiste (se e' gia' stato dato)
@@ -244,17 +268,25 @@ foreach($resultArray as $row_classe) {
 					// prepara la lista dei voti possibili
 					$votoNovembre = $row_studente['studente_per_corso_di_recupero_voto_novembre'];
 					$votoNovembreOptionList = '				<select  class="votoNovembre selectpicker" data-noneSelectedText="seleziona..." data-width="50%" ><option value="0"></option>';
-					// opzione per assente
-					$bgColor = 'red';
+					// opzione per Assente
+					$bgColor = $assenteColor;
 					$votoNovembreOptionList .= '<option value="'.'1'.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.'Assente'.'</span>"';
-					if ($votoNovembre === 1) {
+					if ($votoNovembre == 1) {
 						$votoNovembreOptionList .= ' selected ';
 					}
-					$votoNovembreOptionList .= '>'.'assente'.'</option>';
+					$votoNovembreOptionList .= '>'.'Assente'.'</option>';
+
+					// opzione per Non Richiesto
+					$bgColor = $nonRichiestoColor;
+					$votoNovembreOptionList .= '<option value="'.'2'.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.'Non Richiesto'.'</span>"';
+					if ($votoNovembre == 2) {
+						$votoNovembreOptionList .= ' selected ';
+					}
+					$votoNovembreOptionList .= '>'.'Non Richiesto'.'</option>';
 
 					// voti da 4 a 10
 					for($i = 4; $i<=10; $i++) {
-						$bgColor = ($i <= 5) ? 'red' : 'green';
+						$bgColor = ($i <= 5) ? $nonPassatoColor : $passatoColor;
 						$votoNovembreOptionList .= '<option value="'.$i.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.$i.'</span>"';
 
 						// seleziona il voto corrente di novembre se esiste (se e' gia' stato dato)

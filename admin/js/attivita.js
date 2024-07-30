@@ -25,6 +25,10 @@ function attivitaGetDetails(id) {
                 $("#nome").val(record.nome);
                 $("#ore").val(record.ore);
                 $("#ore_max").val(record.ore_max);
+                $('#check_funzionali').bootstrapToggle(record.funzionali == 1? 'on' : 'off');
+                $('#check_con_studenti').bootstrapToggle(record.con_studenti == 1? 'on' : 'off');
+                $('#check_clil').bootstrapToggle(record.clil == 1? 'on' : 'off');
+                $('#check_orientamento').bootstrapToggle(record.orientamento == 1? 'on' : 'off');
                 $('#check_valido').bootstrapToggle(record.valido == 1? 'on' : 'off');
                 $('#check_previsto_da_docente').bootstrapToggle(record.previsto_da_docente == 1? 'on' : 'off');
                 $('#check_inserito_da_docente').bootstrapToggle(record.inserito_da_docente == 1? 'on' : 'off');
@@ -36,6 +40,10 @@ function attivitaGetDetails(id) {
         $("#nome").val("");
         $("#ore").val("");
         $("#ore_max").val("");
+        $('#check_funzionali').bootstrapToggle('off');
+        $('#check_con_studenti').bootstrapToggle('off');
+        $('#check_clil').bootstrapToggle('off');
+        $('#check_orientamento').bootstrapToggle('off');
         $('#check_valido').bootstrapToggle('on');
         $('#check_previsto_da_docente').bootstrapToggle('on');
         $('#check_inserito_da_docente').bootstrapToggle('on');
@@ -51,6 +59,10 @@ function attivitaSave() {
         nome: $("#nome").val(),
         ore: $("#ore").val(),
         ore_max: $("#ore_max").val(),
+        funzionali: $("#check_funzionali").is(':checked')? 1: 0,
+        con_studenti: $("#check_con_studenti").is(':checked')? 1: 0,
+        clil: $("#check_clil").is(':checked')? 1: 0,
+        orientamento: $("#check_orientamento").is(':checked')? 1: 0,
         valido: $("#check_valido").is(':checked')? 1: 0,
         previsto_da_docente: $("#check_previsto_da_docente").is(':checked')? 1: 0,
         inserito_da_docente: $("#check_inserito_da_docente").is(':checked')? 1: 0,
@@ -63,6 +75,10 @@ function attivitaSave() {
         $("#nome").val("");
         $("#ore").val("");
         $("#ore_max").val("");
+        $('#check_funzionali').bootstrapToggle('off');
+        $('#check_con_studenti').bootstrapToggle('off');
+        $('#check_clil').bootstrapToggle('off');
+        $('#check_orientamento').bootstrapToggle('off');
         $('#check_valido').bootstrapToggle('on');
         $('#check_previsto_da_docente').bootstrapToggle('on');
         $('#check_inserito_da_docente').bootstrapToggle('on');

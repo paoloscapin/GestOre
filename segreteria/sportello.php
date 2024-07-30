@@ -56,36 +56,18 @@ ruoloRichiesto('segreteria-docenti','dirigente');
 <?php
 // prepara l'elenco dei docenti
 $docenteOptionList = '				<option value="0"></option>';
-$query = "	SELECT * FROM docente
-            WHERE docente.attivo = true
-            ORDER BY docente.cognome, docente.nome ASC
-            ;";
-if (!$result = mysqli_query($con, $query)) {
-    exit(mysqli_error($con));
-}
-if(mysqli_num_rows($result) > 0) {
-    $resultArray = $result->fetch_all(MYSQLI_ASSOC);
-    foreach($resultArray as $row) {
-        $docenteOptionList .= '
-            <option value="'.$row['id'].'" >'.$row['cognome'].' '.$row['nome'].'</option>
-        ';
-    }
+foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ; ")as $docente) {
+    $docenteOptionList .= ' <option value="'.$docente['id'].'" >'.$docente['cognome'].' '.$docente['nome'].'</option>';
 }
 
-// prepara l'elenco delle materie (anche per il filtro)
-$materiaOptionList = '				<option value="0"></option>';
-$materiaFiltroOptionList = '				<option value="0">tutte</option>';
-$query = "	SELECT * FROM materia ORDER BY materia.nome ASC;";
-if (!$result = mysqli_query($con, $query)) {
-    exit(mysqli_error($con));
+// prepara l'elenco delle materie per il filtro e per le materie del dialog
+$materiaFiltroOptionList = '<option value="0">tutte</option>';
+$materiaOptionList = '<option value="0"></option>';
+foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materia) {
+    $materiaFiltroOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
+    $materiaOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
 }
-if(mysqli_num_rows($result) > 0) {
-    $resultArray = $result->fetch_all(MYSQLI_ASSOC);
-    foreach($resultArray as $row) {
-        $materiaOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
-        $materiaFiltroOptionList .= ' <option value="'.$row['id'].'" >'.$row['nome'].'</option> ';
-    }
-}
+
 ?>
 
 <body >
@@ -194,14 +176,26 @@ require_once '../common/header-segreteria.php';
                 </div>
 
                 <div class="form-group">
-                    <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="cancellato" ></div>
+                    <label for="online" class="col-sm-2 control-label">Online</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
+                    <label for="clil" class="col-sm-2 control-label">Clil</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="clil" ></div>
+                    <label for="orientamento" class="col-sm-2 control-label">Orientamento</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="orientamento" ></div>
                 </div>
 
                 <div class="form-group">
+                    <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="cancellato" ></div>
                     <label for="firmato" class="col-sm-2 control-label">Firmato</label>
                     <div class="col-sm-1 "><input type="checkbox" id="firmato" ></div>
                 </div>
+
+                <div class="form-group" id="_error-materia-part"><strong>
+                    <hr>
+                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                    <div class="col-sm-9" id="_error-materia"></div>
+				</strong></div>
 
                 <input type="hidden" id="hidden_sportello_id">
 			</form>
@@ -221,6 +215,6 @@ require_once '../common/header-segreteria.php';
 </div>
 
 <!-- Custom JS file -->
-<script type="text/javascript" src="js/sportello.js"></script>
+<script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 </html>

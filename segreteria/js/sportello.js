@@ -54,6 +54,22 @@ function sportelloDelete(id, materia) {
 }
 
 function sportelloSave() {
+	if ($("#materia").val() <= 0) {
+		$("#_error-materia").text("Devi selezionare una materia");
+		$("#_error-materia-part").show();
+		return;
+	}
+	if ($("#docente").val() <= 0) {
+		$("#_error-materia").text("Devi selezionare un docente");
+		$("#_error-materia-part").show();
+		return;
+	}
+	if ($("#numero_ore").val() <= 0) {
+		$("#_error-materia").text("Il numero di ore non può essere 0");
+		$("#_error-materia-part").show();
+		return;
+	}
+    $("#_error-materia-part").hide();
     $.post("sportelloSave.php", {
         id: $("#hidden_sportello_id").val(),
 		data: getDbDateFromPickrId("#data"),
@@ -62,10 +78,14 @@ function sportelloSave() {
 		materia_id: $("#materia").val(),
         numero_ore: $("#numero_ore").val(),
 		argomento: $("#argomento").val(),
-		luogo: $("#commento").val(),
+		luogo: $("#luogo").val(),
+        max_iscrizioni: $("#max_iscrizioni").val(),
         classe: $("#classe").val(),
-        cancellato: $("#cancellato").prop('checked'),
-        firmato: $("#firmato").prop('checked')
+        cancellato: $("#cancellato").is(':checked')? 1: 0,
+        firmato: $("#firmato").is(':checked')? 1: 0,
+        online: $("#online").is(':checked')? 1: 0,
+        clil: $("#clil").is(':checked')? 1: 0,
+        orientamento: $("#orientamento").is(':checked')? 1: 0
     }, function (data, status) {
         $("#sportello_modal").modal("hide");
         sportelloReadRecords();
@@ -80,6 +100,8 @@ function sportelloGetDetails(sportello_id) {
             sportello_id: sportello_id
         }, function (data, status) {
             var sportello = JSON.parse(data);
+            var cancellato = sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null;
+            var firmato = sportello.sportello_firmato != 0 && sportello.sportello_firmato != null;
             setDbDateToPickr(data_pickr, sportello.sportello_data);
             $("#ora").val(sportello.sportello_ora);
             $('#docente').selectpicker('val', sportello.docente_id);
@@ -88,8 +110,12 @@ function sportelloGetDetails(sportello_id) {
             $("#argomento").val(sportello.sportello_argomento);
             $("#luogo").val(sportello.sportello_luogo);
             $("#classe").val(sportello.sportello_classe);
+            $("#max_iscrizioni").val(sportello.sportello_max_iscrizioni);
             $("#cancellato").prop('checked', sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null);
             $("#firmato").prop('checked', sportello.sportello_firmato != 0 && sportello.sportello_firmato != null);
+            $("#online").prop('checked', sportello.sportello_online != 0 && sportello.sportello_online != null);
+            $("#clil").prop('checked', sportello.sportello_clil != 0 && sportello.sportello_clil != null);
+            $("#orientamento").prop('checked', sportello.sportello_orientamento != 0 && sportello.sportello_orientamento != null);
         });
     } else {
         data_pickr.setDate(Date.today().toString('d/M/yyyy'));
@@ -104,8 +130,11 @@ function sportelloGetDetails(sportello_id) {
         $("#classe").val("");
         $("#cancellato").prop('checked', false);
         $("#firmato").prop('checked', false);
-}
-
+        $("#onine").prop('checked', false);
+        $("#clil").prop('checked', false);
+        $("#orientamento").prop('checked', false);
+    }
+    $("#_error-materia-part").hide();
 	$("#sportello_modal").modal("show");
 }
 

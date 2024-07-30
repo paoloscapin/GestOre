@@ -127,8 +127,8 @@ DROP TABLE IF EXISTS `corso_di_recupero` ;
 CREATE TABLE IF NOT EXISTS `corso_di_recupero` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `in_itinere` TINYINT NULL DEFAULT 0,
-  `codice` VARCHAR(45) NULL,
-  `aula` VARCHAR(45) NULL,
+  `codice` VARCHAR(200) NULL,
+  `aula` VARCHAR(200) NULL,
   `numero_ore` INT NULL,
   `ore_pagamento_extra` INT NULL DEFAULT 0,
   `ore_recuperate` INT NULL DEFAULT 0,
@@ -599,7 +599,18 @@ CREATE TABLE IF NOT EXISTS `ore_previste_tipo_attivita` (
   `inserito_da_docente` TINYINT NULL COMMENT 'indica se il docente lo puo inserire o viene assegnato',
   `previsto_da_docente` TINYINT NULL,
   `da_rendicontare` TINYINT NULL,
-  PRIMARY KEY (`id`))
+  `funzionali` TINYINT NULL,
+  `con_studenti` TINYINT NULL,
+  `clil` TINYINT NULL DEFAULT 0,
+  `orientamento` TINYINT NULL DEFAULT 0,
+  `aggiornamento` TINYINT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  INDEX `clil_INDEX` (`clil` ASC),
+  INDEX `orientamento_index` (`orientamento` ASC),
+  INDEX `categoria_INDEX` (`categoria` ASC),
+  INDEX `funzionali_INDEX` (`funzionali` ASC),
+  INDEX `con_studenti_INDEX` (`con_studenti` ASC),
+  INDEX `aggiornamento_INDEX` (`aggiornamento` ASC))
 ENGINE = InnoDB;
 
 
@@ -787,6 +798,7 @@ CREATE TABLE IF NOT EXISTS `config` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `voti_recupero_settembre_aperto` TINYINT NULL,
   `voti_recupero_novembre_aperto` TINYINT NULL,
+  `email_carenze_aperto` TINYINT NULL DEFAULT 0,
   `ore_previsioni_aperto` TINYINT NULL,
   `ore_fatte_aperto` TINYINT NULL,
   `bonus_adesione_aperto` TINYINT NULL,
@@ -1213,6 +1225,7 @@ CREATE TABLE IF NOT EXISTS `gruppo` (
   `nome` VARCHAR(200) NULL,
   `dipartimento` TINYINT NULL,
   `clil` TINYINT NULL DEFAULT 0,
+  `orientamento` TINYINT NULL DEFAULT 0,
   `commento` TEXT NULL,
   `max_ore` DOUBLE NOT NULL DEFAULT 10,
   `anno_scolastico_id` INT NOT NULL,
@@ -1223,6 +1236,7 @@ CREATE TABLE IF NOT EXISTS `gruppo` (
   INDEX `dipartimento_index` (`dipartimento` ASC),
   INDEX `dipartimento_nome` (`nome` ASC),
   INDEX `clil_index` (`clil` ASC),
+  INDEX `orientamento_index` (`orientamento` ASC),
   CONSTRAINT `fk_gruppo_anno_scolastico1`
     FOREIGN KEY (`anno_scolastico_id`)
     REFERENCES `anno_scolastico` (`id`)
@@ -1448,6 +1462,8 @@ CREATE TABLE IF NOT EXISTS `sportello` (
   `luogo` VARCHAR(45) NULL,
   `classe` VARCHAR(45) NULL,
   `categoria` VARCHAR(200) NULL DEFAULT 'sportello didattico',
+  `clil` TINYINT NULL DEFAULT 0,
+  `orientamento` TINYINT NULL DEFAULT 0,
   `max_iscrizioni` INT NULL,
   `firmato` TINYINT NULL DEFAULT 0,
   `cancellato` TINYINT NULL DEFAULT 0,
@@ -1464,6 +1480,8 @@ CREATE TABLE IF NOT EXISTS `sportello` (
   INDEX `firmato_INDEX` (`firmato` ASC),
   INDEX `cancellato_INDEX` (`cancellato` ASC),
   INDEX `categoria_INDEX` (`categoria` ASC),
+  INDEX `clil_INDEX` (`clil` ASC),
+  INDEX `orientamento_INDEX` (`orientamento` ASC),
   CONSTRAINT `fk_sportello_anno_scolastico1`
     FOREIGN KEY (`anno_scolastico_id`)
     REFERENCES `anno_scolastico` (`id`)
@@ -1570,6 +1588,7 @@ CREATE TABLE IF NOT EXISTS `importo` (
   `bonus` DOUBLE NULL,
   `diaria` DOUBLE NULL,
   `fuis_clil` DOUBLE NULL,
+  `fuis_orientamento` DOUBLE NULL DEFAULT 0,
   `importo_ore_con_studenti` DOUBLE NULL,
   `importo_ore_funzionali` DOUBLE NULL,
   `importo_ore_corsi_di_recupero` DOUBLE NULL,
@@ -1735,16 +1754,20 @@ CREATE TABLE IF NOT EXISTS `piano_di_lavoro` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `classe` INT NOT NULL DEFAULT 1,
   `sezione` VARCHAR(10) NOT NULL DEFAULT 'A',
+  `nome_classe` VARCHAR(200) NULL,
   `stato` VARCHAR(45) NULL DEFAULT 'draft',
   `competenze` TEXT NULL,
   `note_aggiuntive` TEXT NULL,
   `template` TINYINT NULL DEFAULT 0,
+  `carenza` TINYINT NULL DEFAULT 0,
+  `clil` TINYINT NULL DEFAULT 0,
   `creazione` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   `ultima_modifica` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `indirizzo_id` INT NOT NULL,
   `materia_id` INT NOT NULL,
   `anno_scolastico_id` INT NOT NULL,
   `docente_id` INT NOT NULL,
+  `studente_id` INT NULL,
   PRIMARY KEY (`id`),
   INDEX `fk_piano_di_lavoro_indirizzo1_idx` (`indirizzo_id` ASC),
   INDEX `fk_piano_di_lavoro_materia1_idx` (`materia_id` ASC),
@@ -1754,6 +1777,9 @@ CREATE TABLE IF NOT EXISTS `piano_di_lavoro` (
   INDEX `classe_INDEX` (`classe` ASC),
   INDEX `sezione_INDEX` (`sezione` ASC),
   INDEX `template_INDEX` (`template` ASC),
+  INDEX `fk_piano_di_lavoro_studente1_idx` (`studente_id` ASC),
+  INDEX `carenza_INDEX` (`carenza` ASC),
+  INDEX `nome_classe_INDEX` (`nome_classe` ASC),
   CONSTRAINT `fk_piano_di_lavoro_indirizzo1`
     FOREIGN KEY (`indirizzo_id`)
     REFERENCES `indirizzo` (`id`)
@@ -1772,6 +1798,11 @@ CREATE TABLE IF NOT EXISTS `piano_di_lavoro` (
   CONSTRAINT `fk_piano_di_lavoro_docente1`
     FOREIGN KEY (`docente_id`)
     REFERENCES `docente` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_piano_di_lavoro_studente1`
+    FOREIGN KEY (`studente_id`)
+    REFERENCES `studente` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;

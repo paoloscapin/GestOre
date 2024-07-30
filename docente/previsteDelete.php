@@ -17,8 +17,5 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	dbExec("DELETE FROM ore_previste_attivita_commento WHERE ore_previste_attivita_id = '$id'");
 	dbExec("DELETE FROM ore_previste_attivita WHERE id = '$id'");
 	info("cancellata ore_previste_attivita id=$ore_previste_attivita_id dettaglio=$update_dettaglio ore=$update_ore ore_previste_tipo_attivita_id=$update_tipo_attivita_id docente_id=$docente_id");
-
-	require_once '../docente/oreDovuteAggiornaDocente.php';
-	orePrevisteAggiornaDocente($docente_id);
 }
 ?>

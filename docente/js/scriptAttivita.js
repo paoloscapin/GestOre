@@ -5,6 +5,13 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+function getSettingsValue(o, def) {
+	if (o === undefined) {
+		return def;
+	}
+	return o;
+}
+
 function setDbDateToPickr(pickr, data_str) {
 	var data = Date.parseExact(data_str, 'yyyy-MM-dd');
 	pickr.setDate(data);
@@ -14,266 +21,6 @@ function getDbDateFromPickrId(pickrId) {
 	var data_str = $(pickrId).val();
 	var data_date = Date.parseExact(data_str, 'd/M/yyyy');
 	return data_date.toString('yyyy-MM-dd');
-}
-
-function appendiMessaggio(messaggio, nuovo) {
-	if (messaggio.length != 0) {
-		messaggio = messaggio + "</br>";
-	}
-	return messaggio + nuovo;
-}
-
-// genera un messaggio se le ore vengono compensate tra funzionali e con studenti
-function messaggioCompensate(dovuteFunzionali, dovuteConStudenti, fatteFunzionali, fatteConStudenti) {
-	var accetta_con_studenti_per_funzionali = $('#accetta_con_studenti_per_funzionali').val();
-	var accetta_funzionali_per_con_studenti = $('#accetta_funzionali_per_con_studenti').val();
-	var messaggio = "";
-    var bilancioFatteFunzionali = fatteFunzionali - dovuteFunzionali;
-    var bilancioFatteConStudenti = fatteConStudenti - dovuteConStudenti;
-
-	if (accetta_con_studenti_per_funzionali != 0) {
-		if (bilancioFatteFunzionali < 0 && bilancioFatteConStudenti > 0) {
-			var daSpostare = -bilancioFatteFunzionali;
-			// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
-			if (bilancioFatteConStudenti < daSpostare) {
-				daSpostare = bilancioFatteConStudenti;
-			}
-			bilancioFatteConStudenti = bilancioFatteConStudenti - daSpostare;
-            bilancioFatteFunzionali = bilancioFatteFunzionali + daSpostare;
-			messaggio = appendiMessaggio(messaggio, "" + daSpostare + " ore con studenti verranno spostate per coprire " + daSpostare + " ore funzionali mancanti. ");
-		}
-	}
-
-	if (accetta_funzionali_per_con_studenti != 0) {
-		if (bilancioFatteConStudenti < 0 && bilancioFatteFunzionali > 0) {
-			var daSpostare = -bilancioFatteConStudenti;
-			// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
-			if (bilancioFatteFunzionali < daSpostare) {
-				daSpostare = bilancioFatteFunzionali;
-			}
-			bilancioFatteFunzionali = bilancioFatteFunzionali - daSpostare;
-			bilancioFatteConStudenti = bilancioFatteConStudenti + daSpostare;
-			messaggio = appendiMessaggio(messaggio, "" + daSpostare + " ore funzionali verranno spostate per coprire " + daSpostare + " ore con studenti mancanti. ");
-		}
-	}
-
-	return messaggio;
-}
-
-// genera un messaggio se ore funzionali o con studenti fatte sono maggiori di quelle previste
-function messaggioEccesso(dovuteFunzionali, dovuteConStudenti, previsteFunzionali, previsteConStudenti, fatteFunzionali, fatteConStudenti, clilFunzionaliPreviste, clilConStudentiPreviste, clilFunzionali, clilConStudenti) {
-	var segnala_fatte_eccedenti_previsione = $('#segnala_fatte_eccedenti_previsione').val();
-	var messaggio = "";
-	if (segnala_fatte_eccedenti_previsione != 0) {
-		// calcola i bilanci cosi come sono ora
-		var bilancioPrevisteFunzionali = previsteFunzionali - dovuteFunzionali;
-		var bilancioPrevisteConStudenti = previsteConStudenti - dovuteConStudenti;
-		var bilancioFatteFunzionali = fatteFunzionali - dovuteFunzionali;
-		var bilancioFatteConStudenti = fatteConStudenti - dovuteConStudenti;
-		var bilancioClilConStudenti = clilConStudenti - clilConStudentiPreviste;
-		var bilancioClilFunzionali = clilFunzionali - clilFunzionaliPreviste;
-
-		var accetta_con_studenti_per_funzionali = $('#accetta_con_studenti_per_funzionali').val();
-		var accetta_funzionali_per_con_studenti = $('#accetta_funzionali_per_con_studenti').val();
-		
-		// controlla se alcune ore saranno spostate da funzionali a con studenti o viceversa
-		if (accetta_con_studenti_per_funzionali != 0) {
-			if (bilancioFatteFunzionali < 0 && bilancioFatteConStudenti > 0) {
-				var daSpostare = -bilancioFatteFunzionali;
-				// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
-				if (bilancioFatteConStudenti < daSpostare) {
-					daSpostare = bilancioFatteConStudenti;
-				}
-				bilancioFatteConStudenti = bilancioFatteConStudenti - daSpostare;
-				bilancioFatteFunzionali = bilancioFatteFunzionali + daSpostare;
-			}
-		}
-	
-		if (accetta_funzionali_per_con_studenti != 0) {
-			if (bilancioFatteConStudenti < 0 && bilancioFatteFunzionali > 0) {
-				var daSpostare = -bilancioFatteConStudenti;
-				// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
-				if (bilancioFatteFunzionali < daSpostare) {
-					daSpostare = bilancioFatteFunzionali;
-				}
-				bilancioFatteFunzionali = bilancioFatteFunzionali - daSpostare;
-				bilancioFatteConStudenti = bilancioFatteConStudenti + daSpostare;
-			}
-		}
-
-		if (bilancioFatteFunzionali > 0 && bilancioFatteFunzionali > bilancioPrevisteFunzionali) {
-			var bilancioDifferenzaFunzionali = bilancioFatteFunzionali - Math.max(bilancioPrevisteFunzionali,0);
-            messaggio = appendiMessaggio(messaggio, "" + bilancioDifferenzaFunzionali + " ore funzionali non concordate non saranno incluse nel conteggio FUIS. ");
-		}
-		if (bilancioFatteConStudenti > 0 && bilancioFatteConStudenti > bilancioPrevisteConStudenti) {
-			var bilancioDifferenzaConStudenti = bilancioFatteConStudenti - Math.max(bilancioPrevisteConStudenti,0);
-            messaggio = appendiMessaggio(messaggio, "" + bilancioDifferenzaConStudenti + " ore con studenti non concordate non saranno incluse nel conteggio FUIS. ");
-		}
-
-		if(bilancioClilFunzionali > 0) {
-			messaggio = appendiMessaggio(messaggio, "" + bilancioClilFunzionali + " ore CLIL funzionali non concordate non saranno incluse nel conteggio FUIS. ");
-		}
-		if(bilancioClilConStudenti > 0) {
-			messaggio = appendiMessaggio(messaggio, "" + bilancioClilConStudenti + " ore CLIL con studenti non concordate non saranno incluse nel conteggio FUIS. ");
-		}
-
-		if (messaggio.length > 0) {
-			messaggio = messaggio + "</br>";
-			messaggio = messaggio + "Contattare il Dirigente Scolastico.";
-		}
-	}
-	return messaggio;
-}
-
-function oreDovuteReadRecords() {
-	var ore_dovute, ore_previste, ore_fatte;
-
-	$.post("oreDovuteReadDetails.php", {
-		table_name: 'ore_dovute'
-	},
-	function (dati, status) {
-		// console.log(dati);
-        ore_dovute = JSON.parse(dati);
-		var dovute_con_studenti_totale = parseFloat(ore_dovute.ore_70_con_studenti) + parseFloat(ore_dovute.ore_40_con_studenti);
-		$("#dovute_ore_40_sostituzioni_di_ufficio").html(getHtmlNum(ore_dovute.ore_40_sostituzioni_di_ufficio));
-		$("#dovute_ore_40_aggiornamento").html(getHtmlNum(ore_dovute.ore_40_aggiornamento));
-		$("#dovute_ore_70_funzionali").html(getHtmlNum(ore_dovute.ore_70_funzionali));
-		$("#dovute_totale_con_studenti").html(getHtmlNum(dovute_con_studenti_totale));
-		$.post("oreDovuteReadDetails.php", {
-			table_name: 'ore_previste'
-		},
-		function (dati, status) {
-			// console.log(dati);
-			ore_previste = JSON.parse(dati);
-            var previste_con_studenti_totale = parseFloat(ore_previste.ore_70_con_studenti) + parseFloat(ore_previste.ore_40_con_studenti);
-			$("#previste_ore_40_aggiornamento").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_40_aggiornamento,ore_dovute.ore_40_aggiornamento));
-			$("#previste_ore_70_funzionali").html(getHtmlNumAndPrevisteVisual(ore_previste.ore_70_funzionali,ore_dovute.ore_70_funzionali));
-			$("#previste_totale_con_studenti").html(getHtmlNumAndPrevisteVisual(previste_con_studenti_totale,dovute_con_studenti_totale));
-			$.post("oreDovuteReadDetails.php", {
-				table_name: 'ore_fatte'
-			},
-			function (dati, status) {
-				// console.log(dati);
-				ore_fatte = JSON.parse(dati);
-                var fatte_con_studenti_totale = parseFloat(ore_fatte.ore_70_con_studenti) + parseFloat(ore_fatte.ore_40_con_studenti);
-				$("#fatte_ore_40_sostituzioni_di_ufficio").html(getHtmlNumAndFatteVisual(ore_fatte.ore_40_sostituzioni_di_ufficio,ore_dovute.ore_40_sostituzioni_di_ufficio));
-				$("#fatte_ore_40_aggiornamento").html(getHtmlNumAndFatteVisual(ore_fatte.ore_40_aggiornamento,ore_dovute.ore_40_aggiornamento));
-                $("#fatte_ore_70_funzionali").html(getHtmlNumAndFatteVisual(ore_fatte.ore_70_funzionali,ore_dovute.ore_70_funzionali));
-				$("#fatte_totale_con_studenti").html(getHtmlNumAndFatteVisual(fatte_con_studenti_totale,dovute_con_studenti_totale));
-
-				// messaggio
-				var messaggio = messaggioCompensate(ore_dovute.ore_70_funzionali, dovute_con_studenti_totale, ore_fatte.ore_70_funzionali, fatte_con_studenti_totale);
-				// console.log('messaggio compensate: ' + messaggio);
-				if (messaggio.length > 0) {
-					$("#ore_message").html(messaggio);
-					$('#ore_message').css({ 'font-weight': 'bold' });
-					$('#ore_message').css({ 'text-align': 'center' });
-					$('#ore_message').css({ 'background-color': '#BAEED0' });
-					$("#ore_message").removeClass('hidden');
-				} else {
-					$("#ore_message").addClass('hidden');
-				}
-
-				$.post("oreDovuteClilReadDetails.php", {
-					table_name: 'ore_fatte_attivita_clil'
-				},
-				function (dati, status) {
-					// console.log(dati);
-					ore_clil = JSON.parse(dati);
-					$("#clil_previste_funzionali").html(getHtmlNumAndPrevisteVisual(ore_clil.funzionali_previste, 0));
-					$("#clil_previste_con_studenti").html(getHtmlNumAndPrevisteVisual(ore_clil.con_studenti_previste, 0));
-					$("#clil_fatte_funzionali").html(getHtmlNumAndFatteVisual(ore_clil.funzionali,ore_clil.funzionali_previste));
-					$("#clil_fatte_con_studenti").html(getHtmlNumAndFatteVisual(ore_clil.con_studenti,ore_clil.con_studenti_previste));
-					if (parseInt(ore_clil.funzionali,10) + parseInt(ore_clil.con_studenti,10) + parseInt(ore_clil.funzionali_previste,10) + parseInt(ore_clil.con_studenti_previste,10) == 0) {
-						$(".clil").addClass('hidden');
-						$(".NOclil").removeClass('hidden');
-					} else {
-						$(".clil").removeClass('hidden');
-						$(".NOclil").addClass('hidden');
-					}
-
-					// messaggio eccesso
-					messaggio = messaggioEccesso(ore_dovute.ore_70_funzionali, dovute_con_studenti_totale, ore_previste.ore_70_funzionali, previste_con_studenti_totale, ore_fatte.ore_70_funzionali, fatte_con_studenti_totale, ore_clil.funzionali_previste, ore_clil.con_studenti_previste, ore_clil.funzionali, ore_clil.con_studenti);
-					if (messaggio.length > 0) {
-						$("#ore_eccesso_message").html(messaggio);
-						$('#ore_eccesso_message').css({ 'font-weight': 'bold' });
-						$('#ore_eccesso_message').css({ 'text-align': 'center' });
-						$('#ore_eccesso_message').css({ 'background-color': '#BAEED0' });
-						$("#ore_eccesso_message").removeClass('hidden');
-					} else {
-						$("#ore_eccesso_message").addClass('hidden');
-					}
-				});
-			});
-		});
-	});
-}
-
-function corsoDiRecuperoPrevisteReadRecords() {
-	$.post("../docente/corsoDiRecuperoPrevisteReadRecords.php", {
-		operatore: $("#hidden_operatore").val(),
-		ultimo_controllo: $("#hidden_ultimo_controllo").val(),
-		sorgente_richiesta: "fatte"
-	},
-	function (data, status) {
-		$(".corso_di_recupero_records_content").html(data);
-	});
-}
-
-function viaggioDiariaFattaReadRecords() {
-	$.post("../docente/viaggioDiariaFattaReadRecords.php", {
-		operatore: $("#hidden_operatore").val(),
-		ultimo_controllo: $("#hidden_ultimo_controllo").val()
-	},
-	function (data, status) {
-		$(".diaria_records_content").html(data);
-	});
-}
-
-function oreFatteReadAttivita() {
-	$.post("../docente/oreFatteReadAttivita.php", {
-		operatore: $("#hidden_operatore").val(),
-		ultimo_controllo: $("#hidden_ultimo_controllo").val()
-	},
-	function (data, status) {
-		$(".attivita_fatte_records_content").html(data);
-	});
-}
-
-function oreFatteClilReadAttivita() {
-	$.post("../docente/oreFatteClilReadAttivita.php", {
-		operatore: $("#hidden_operatore").val(),
-		ultimo_controllo: $("#hidden_ultimo_controllo").val()
-	},
-	function (data, status) {
-		$(".attivita_fatte_clil_records_content").html(data);
-	});
-}
-
-function oreFatteReloadTables() {
-	oreDovuteReadRecords();
-	oreFatteReadAttivita();
-	oreFatteClilReadAttivita();
-
-	$.get("oreFatteReadSportelli.php", {}, function (data, status) {
-		$(".attivita_fatte_sportelli_records_content").html(data);
-	});
-
-	$.get("oreFatteReadGruppi.php", {}, function (data, status) {
-		$(".attivita_fatte_gruppi_records_content").html(data);
-	});
-	$.get("oreFatteReadAttribuite.php", {}, function (data, status) {
-		$(".attribuite_records_content").html(data);
-	});
-	$.get("oreFatteReadSostituzioni.php", {}, function (data, status) {
-		$(".sostituzioni_records_content").html(data);
-	});
-	$.get("oreFatteReadViaggi.php", {}, function (data, status) {
-		$(".viaggi_records_content").html(data);
-	});
-	corsoDiRecuperoPrevisteReadRecords();
-	viaggioDiariaFattaReadRecords();
-	fuisAggiornaDocente();
 }
 
 function oreFatteGetRegistroAttivita(attivita_id, registro_id) {
@@ -481,7 +228,6 @@ $('#corso_di_recupero_ore_extra').change(function() {
 	$("#corso_di_recupero_ore_extra").val(corso_di_recupero_ore_extra);
 });
 
-
 function corsoDiRecuperoPrevisteSave() {
 	var ore_totali = $("#corso_di_recupero_ore_totali").val();
 	var ore_recuperate = $("#corso_di_recupero_ore_recuperate").val();
@@ -500,14 +246,14 @@ function corsoDiRecuperoPrevisteSave() {
     	ore_pagamento_extra: ore_pagamento_extra
     }, function (data, status) {
     	if (data !== '') {
-    		bootbox.alert(data);
+    		// bootbox.alert(data);
     	}
-    	corsoDiRecuperoPrevisteReadRecords();
-		oreDovuteReadRecords();
-		// TODO: insert for dirigente if used fuisFatteAggiornaDocente();
+		oreFatteReloadTables();
     });
     $("#corso_di_recupero_modal").modal("hide");
 }
+
+//----------------------------   END Corso di Recupero ----------------------------------------
 
 //---------------------------- START CLIL ----------------------------------------
 
@@ -686,12 +432,7 @@ function diariaSave() {
 		ore: getOre('#diaria_ore'),
     	commento: $("#diaria_commento").val()
     }, function (data, status) {
-    	if (data !== '') {
-    		bootbox.alert(data);
-    	}
-    	viaggioDiariaFattaReadRecords();
-		oreDovuteReadRecords();
-		fuisAggiornaDocente();
+		oreFatteReloadTables();
     });
     $("#diaria_modal").modal("hide");
 }
@@ -728,9 +469,7 @@ function diariaFattaDelete(id) {
 				id: id
 				},
 				function (data, status) {
-					viaggioDiariaFattaReadRecords();
-					oreDovuteReadRecords();
-					fuisAggiornaDocente();
+					oreFatteReloadTables();
 				}
 			);
 		}
@@ -738,57 +477,6 @@ function diariaFattaDelete(id) {
 }
 
 //----------------------------   END DIARIA ----------------------------------------
-
-function fuisAggiornaDocente() {
-	if ($("#hidden_operatore").val() != 'dirigente') {
-		return;
-	}
-
-	$.post("../dirigente/fuisFatteCalcolaDocente.php", {
-		docente_id: $("#hidden_docente_id").val()
-	},
-	function (dati, status) {
-		fuisFatto = JSON.parse(dati);
-		$("#fuis_assegnato").html(number_format(fuisFatto.assegnato,2));
-		$("#fuis_ore").html(number_format(fuisFatto.ore,2));
-		$("#fuis_diaria").html(number_format(fuisFatto.diaria,2));
-
-		$("#fuis_clil_funzionali").html(number_format(fuisFatto.clilFunzionale,2));
-		$("#fuis_clil_con_studenti").html(number_format(fuisFatto.clilConStudenti,2));
-
-		$("#fuis_corsi_di_recupero").html(number_format(fuisFatto.extraCorsiDiRecupero,2));
-
-		// totali
-		$("#fuis_docente_totale").html(number_format(parseFloat(fuisFatto.assegnato) + parseFloat(fuisFatto.ore) + parseFloat(fuisFatto.diaria),2));
-		$("#fuis_clil_totale").html(number_format(parseFloat(fuisFatto.clilFunzionale) + parseFloat(fuisFatto.clilConStudenti), 2));
-		$("#fuis_corsi_di_recupero_totale").html(number_format(fuisFatto.extraCorsiDiRecupero,2));
-		$('#fuis_docente_totale').css({ 'font-weight': 'bold' });
-		$('#fuis_clil_totale').css({ 'font-weight': 'bold' });
-		$('#fuis_corsi_di_recupero_totale').css({ 'font-weight': 'bold' });
-
-		// messaggio
-		if (fuisFatto.messaggio.length > 0) {
-			$("#fuis_message").html(fuisFatto.messaggio);
-			$('#fuis_message').css({ 'font-weight': 'bold' });
-			$('#fuis_message').css({ 'text-align': 'center' });
-			$('#fuis_message').css({ 'background-color': '#FFC6B4' });
-			$("#fuis_message").removeClass('hidden');
-		} else {
-			$("#fuis_message").addClass('hidden');
-		}
-
-		// messaggio eccesso
-		if (fuisFatto.messaggioEccesso.length > 0) {
-			$("#fuis_messageEccesso").html(fuisFatto.messaggioEccesso);
-			$('#fuis_messageEccesso').css({ 'font-weight': 'bold' });
-			$('#fuis_messageEccesso').css({ 'text-align': 'center' });
-			$('#fuis_messageEccesso').css({ 'background-color': '#FFC6B4' });
-			$("#fuis_messageEccesso").removeClass('hidden');
-		} else {
-			$("#fuis_messageEccesso").addClass('hidden');
-		}
-	});
-}
 
 // --------------------------- Email, Rivisto, Chiudi ------------------------------
 
@@ -900,9 +588,22 @@ $(document).ready(function () {
 
 	flatpickr.localize(flatpickr.l10ns.it);
 
-	oreFatteReloadTables();
+	// legge gli importi
+	var getImporti = $.get("../common/readImporti.php", {}, function (data, status) {
+		_importi = JSON.parse(data);
+		// console.log(_importi);
+	});
 
-	fuisAggiornaDocente();
+	// legge i settings
+	var getSettings = $.get("../common/readSettings.php", {}, function (data, status) {
+		_settings = JSON.parse(data);
+		// console.log(_settings);
+
+	});
+
+	$.when(getImporti, getSettings).done(function (r1, r2) {
+		oreFatteReloadTables();
+	});
 
 	// questi campi potrebbero essere gestiti in minuti se settato nel json
 	campiInMinuti(

@@ -137,7 +137,7 @@ require_once '../common/header-docente.php';
 				<td class="col-md-1 text-right"></td>
 			</tr>
 		</tbody>
-		<tfooter>
+		<tfoot>
 			<tr class="deeporange5">
 				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_docente_totale"><strong>0.00</strong></td>
@@ -149,7 +149,7 @@ require_once '../common/header-docente.php';
 				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero_totale"><strong>0.00</strong></td>
 				<td class="col-md-1 text-right"></td>
 			</tr>
-		<tfooter>
+		<tfoot>
 	</table>
 	</div>
 	<div id="fuis_message" class="row" style="margin-bottom:10px;"></div>
@@ -537,6 +537,7 @@ require_once '../docente/attribuiteModal.php';
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/calcolaOreDocenteEFuis.js?v=<?php echo $__software_version; ?>"></script>
 <script type="text/javascript" src="js/scriptPreviste.js?v=<?php echo $__software_version; ?>"></script>
 <script type="text/javascript" src="js/scriptAttribuite.js?v=<?php echo $__software_version; ?>"></script>
 </body>

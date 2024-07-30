@@ -25,19 +25,28 @@
 			<?php if($__settings->config->corsiDiRecupero) : ?>
 				<a href="<?php echo $__application_base_path; ?>/segreteria/corsiDiRecupero.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
 			<?php endif; ?>
-<div class="btn-group">
 
+<div class="btn-group">
 <a href="<?php echo $__application_base_path; ?>/segreteria/viaggio.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-picture"></span>&ensp;Uscite </a>
   <button type="button" class="btn btn-default navbar-btn btn-deeporange4 dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
     <span class="caret"></span>
     <span class="sr-only">Toggle Dropdown</span>
   </button>
-  <ul class="dropdown-menu">
+  <ul class="dropdown-menu btn-deeporange4">
     <li><a href="<?php echo $__application_base_path; ?>/segreteria/viaggioDiaria.php">Diaria</a></li>
   </ul>
 </div>
 <?php if(getSettingsValue('config','sportelli', false)) : ?>
-	<a href="<?php echo $__application_base_path; ?>/segreteria/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
+	<div class="btn-group">
+<a href="<?php echo $__application_base_path; ?>/segreteria/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
+  <button type="button" class="btn btn-default navbar-btn btn-orange4 dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    <span class="caret"></span>
+    <span class="sr-only">Toggle Dropdown</span>
+  </button>
+  <ul class="dropdown-menu btn-orange4">
+    <li><a href="<?php echo $__application_base_path; ?>/segreteria/sportelloReportEffettuati.php">Report Sportelli Effettuati</a></li>
+  </ul>
+</div>
 <?php endif; ?>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">

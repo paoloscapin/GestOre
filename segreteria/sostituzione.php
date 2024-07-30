@@ -74,12 +74,14 @@ ruoloRichiesto('dirigente','segreteria-docenti');
 // prepara l'elenco dei docenti
 $docenteOptionList = '				<option value="0"></option>';
 
-$query = "SELECT docente.id as docente_id, cognome, nome, ore_dovute.ore_40_sostituzioni_di_ufficio - ore_fatte.ore_40_sostituzioni_di_ufficio AS differenza
-FROM docente
-INNER JOIN ore_dovute ON ore_dovute.docente_id = docente.id AND ore_dovute.anno_scolastico_id = $__anno_scolastico_corrente_id
-INNER JOIN ore_fatte ON ore_fatte.docente_id = docente.id AND ore_fatte.anno_scolastico_id = $__anno_scolastico_corrente_id
-WHERE docente.attivo = true
-ORDER BY differenza DESC, docente.cognome, docente.nome ASC;";
+// $query = "SELECT COALESCE(SUM(ora), 0) FROM sostituzione_docente WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docenteId;";
+$query = "SELECT docente.id as docente_id, cognome, nome, ore_dovute.ore_40_sostituzioni_di_ufficio - COALESCE(SUM(sostituzione_docente.ora), 0) AS differenza FROM docente
+    INNER JOIN ore_dovute ON ore_dovute.docente_id = docente.id AND ore_dovute.anno_scolastico_id = $__anno_scolastico_corrente_id
+    LEFT JOIN sostituzione_docente ON sostituzione_docente.docente_id = docente.id AND sostituzione_docente.anno_scolastico_id = $__anno_scolastico_corrente_id
+    WHERE docente.attivo = true
+    GROUP BY docente.id
+    ORDER BY differenza DESC, docente.cognome, docente.nome ASC ;";
+
 foreach(dbGetAll($query) as $docenteRow) {
 	$docenteOptionList .= '<option value="'.$docenteRow['docente_id'].'" data-subtext="'.$docenteRow['differenza'].'">'.$docenteRow['cognome'].' '.$docenteRow['nome'].'</option>';
 }

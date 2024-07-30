@@ -215,7 +215,7 @@ function oreFatteAggiornaDocente($docenteId) {
 	            break;
 
 	        default:
-	            warning('attivita sconosciuta: '.$attivita['categoria']);
+	            warning('attivita sconosciuta: '.$attivita['ore_previste_tipo_attivita_categoria']);
 	            break;
 	    }
 	}

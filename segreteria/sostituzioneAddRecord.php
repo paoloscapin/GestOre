@@ -21,7 +21,5 @@ if(isset($_POST)) {
 	$last_id = dblastId();
 
 	info("aggiunto sostituzione id=$last_id docente_id=$docente_id dataSostituzione=$dataSostituzione");
-	require_once '../docente/oreDovuteAggiornaDocente.php';
-	oreFatteAggiornaDocente($docente_id);
 }
 ?>

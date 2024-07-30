@@ -18,10 +18,6 @@ if(isset($_POST)) {
 		$query = "UPDATE sportello SET firmato = 1 WHERE id = '$id'";
 		dbExec($query);
 		info("firmato sportello id=$id");
-
-        // e' cambiato lo stato di firmato per cui aggiorna le ore
-        require_once '../docente/oreDovuteAggiornaDocente.php';
-        oreFatteAggiornaDocente($__docente_id);
 	}
 }
 ?>
