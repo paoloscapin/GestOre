@@ -233,6 +233,12 @@ $(document).ready(function () {
         $('#docente_filtro').selectpicker('val', $("#hidden_docente_id").val());
     }
 
+    // anno scolastico di default e' quello corrente
+    if ($("#hidden_anno_scolastico_id").val() != '') {
+        anno_filtro_id = $("#hidden_anno_scolastico_id").val();
+        $('#anno_filtro').selectpicker('val', $("#hidden_anno_scolastico_id").val());
+    }
+    
     pianoDiLavoroReadRecords();
 
     $('.summernote').summernote({

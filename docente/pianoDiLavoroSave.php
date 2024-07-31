@@ -65,13 +65,19 @@ if(isset($_POST)) {
     $carenza = $_POST['carenza'];
     $studente_id = $_POST['studente_id'];
 
+    // calcola il nome classe: per prima cosa serve il nome breve dell'indirizzo
+    $nome_indirizzo = dbGetValue("SELECT nome_breve FROM indirizzo WHERE id = $indirizzo_id ;");
+    // costruisce il nome della classe
+    $nome_classe = $classe . $nome_indirizzo . $sezione;
+    debug("nome classe=$nome_classe");
+
     // se non e' una carenza non c'e' lo studente
     if ($carenza == 0) {
         $studente_id = null;
     }
     
     if ($id > 0) {
-        $query = "UPDATE piano_di_lavoro SET docente_id = $docente_id, materia_id = $materia_id, anno_scolastico_id = $anno_scolastico_id, indirizzo_id = $indirizzo_id, classe = $classe, sezione = '$sezione', template = $template, clil = $clil, stato = '$stato', competenze = '$competenze' , note_aggiuntive = '$note_aggiuntive' ".($studente_id != null? ", studente_id = $studente_id" : "")." WHERE id = '$id' ;";
+        $query = "UPDATE piano_di_lavoro SET docente_id = $docente_id, materia_id = $materia_id, anno_scolastico_id = $anno_scolastico_id, indirizzo_id = $indirizzo_id, classe = $classe, sezione = '$sezione', nome_classe = '$nome_classe', template = $template, clil = $clil, stato = '$stato', competenze = '$competenze' , note_aggiuntive = '$note_aggiuntive' ".($studente_id != null? ", studente_id = $studente_id" : "")." WHERE id = '$id' ;";
         dbExec($query);
         info("aggiornato piano_di_lavoro id=$id");
 
@@ -99,7 +105,7 @@ if(isset($_POST)) {
             salvaTic($id, $tic_id_list_str);
         }
     } else {
-        $query = "INSERT INTO piano_di_lavoro(docente_id, materia_id, anno_scolastico_id, indirizzo_id, classe, sezione, template, clil, stato, competenze, note_aggiuntive, carenza".($studente_id != null? ", studente_id" : "").") VALUES($docente_id, $materia_id, $anno_scolastico_id, $indirizzo_id, '$classe', '$sezione', $template, $clil, '$stato', '$competenze', '$note_aggiuntive', $carenza".($studente_id != null? ", $studente_id" : "").")";
+        $query = "INSERT INTO piano_di_lavoro(docente_id, materia_id, anno_scolastico_id, indirizzo_id, classe, sezione, nome_classe, template, clil, stato, competenze, note_aggiuntive, carenza".($studente_id != null? ", studente_id" : "").") VALUES($docente_id, $materia_id, $anno_scolastico_id, $indirizzo_id, '$classe', '$sezione', '$nome_classe', $template, $clil, '$stato', '$competenze', '$note_aggiuntive', $carenza".($studente_id != null? ", $studente_id" : "").")";
         dbExec($query);
         $id = dblastId();
         info("aggiunto piano_di_lavoro id=$id");

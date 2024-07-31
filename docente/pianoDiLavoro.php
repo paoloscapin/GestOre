@@ -88,7 +88,7 @@ foreach(dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; ")
 
 // prepara l'elenco delle classi per il filtro
 $nomeClasseFiltroOptionList = '<option value=""></option>';
-foreach(dbGetAllValues("SELECT distinct nome_classe AS nome_classe FROM `piano_di_lavoro` WHERE anno_scolastico_id = $__anno_scolastico_corrente_id ORDER BY nome_classe ASC; ")as $nome_classe) {
+foreach(dbGetAllValues("SELECT DISTINCT nome_classe FROM `piano_di_lavoro` INNER JOIN indirizzo ON piano_di_lavoro.indirizzo_id = indirizzo.id ORDER BY indirizzo.nome_breve, classe, sezione ASC; ")as $nome_classe) {
     $nomeClasseFiltroOptionList .= ' <option value="'.$nome_classe.'" >'.$nome_classe.'</option> ';
 }
 
@@ -169,18 +169,18 @@ require_once '../common/header-docente.php';
 					</select></div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-1">
             <div class="text-center">
                 <label class="col-sm-2 control-label" for="stato">Stato</label>
-					<div class="col-sm-8"><select id="stato_filtro" name="stato_filtro" class="stato_filtro selectpicker" data-style="btn-yellow4" data-noneSelectedText="seleziona..." data-width="70%" >
+					<div class="col-sm-8"><select id="stato_filtro" name="stato_filtro" class="stato_filtro selectpicker" data-style="btn-purple" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $statoFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
-		<div class="col-md-1 text-center">
+		<div class="col-md-2 text-center">
             <label class="col-sm-2 control-label" for="nomeClasse">classe</label>
             <div class="text-center">
-                <div class="col-sm-8"><select id="nomeClasse_filtro" name="nomeClasse_filtro" class="nomeClasse_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" ><?php echo $nomeClasseFiltroOptionList ?></select></div>
+                <div class="col-sm-8"><select id="nomeClasse_filtro" name="nomeClasse_filtro" class="nomeClasse_filtro selectpicker" data-style="btn-salmon" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" ><?php echo $nomeClasseFiltroOptionList ?></select></div>
             </div>
 		</div>
         <div class="col-md-1">
@@ -309,6 +309,7 @@ require_once '../common/header-docente.php';
 
             <input type="hidden" id="hidden_piano_di_lavoro_id">
             <input type="hidden" id="hidden_docente_id" value="<?php echo $__docente_id; ?>">
+            <input type="hidden" id="hidden_anno_scolastico_id" value="<?php echo $__anno_scolastico_corrente_id; ?>">
 
             </div>
             <div class="panel-footer text-center">

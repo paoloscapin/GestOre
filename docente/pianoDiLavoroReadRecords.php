@@ -76,7 +76,7 @@ if( $soloTemplate) {
 
 $query .= " AND NOT piano_di_lavoro.carenza ";
 
-$query .= " ORDER BY docente.cognome ASC, docente.nome ASC, piano_di_lavoro.creazione ASC";
+$query .= " ORDER BY docente.cognome ASC, docente.nome ASC, piano_di_lavoro.creazione DESC";
 
 foreach(dbGetAll($query) as $row) {
 

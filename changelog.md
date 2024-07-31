@@ -1,3 +1,12 @@
+## Version 1.2.46 - 31 lug 2024
+##### Improvements
+- valori recenti in testa per piano di lavoro
+- anno corrente come default per piano di lavoro
+
+##### Bug Fixes
+- filtro classi in piano di lavoro
+- piano di lavoro calcola e salva nome_classe in automatico
+
 ## Version 1.2.45 - 30 lug 2024
 ##### Improvements
 - previsteList con oreFatteAggiorna
