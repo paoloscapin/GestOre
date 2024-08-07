@@ -14,7 +14,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					<tr>
 						<th>Username</th>
 						<th>Cognome</th>
-						<th>Nomee</th>
+						<th>Nome</th>
 						<th>ruolo</th>
 						<th>email</th>
 						<th></th>

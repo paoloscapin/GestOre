@@ -1,3 +1,7 @@
+## Version 1.2.47 - 7 ago 2024
+##### Bug Fixes
+- 2 minor typo
+
 ## Version 1.2.46 - 31 lug 2024
 ##### Improvements
 - valori recenti in testa per piano di lavoro

@@ -70,7 +70,7 @@ if(isset($_POST)) {
         $totale += $oreDocente;
     }
 
-    $data .= '<tfoot><tr class="warning"><td class="text-center"><strong>Torale:</strong></td><td class="text-center"><strong>'.$totale.'</strong></td></tr></tfoot>';
+    $data .= '<tfoot><tr class="warning"><td class="text-center"><strong>Totale:</strong></td><td class="text-center"><strong>'.$totale.'</strong></td></tr></tfoot>';
     $data .= '</table></div>';
     echo $data;
 }
