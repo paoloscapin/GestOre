@@ -1,3 +1,13 @@
+## Version 1.2.48 - 29 ago 2024
+##### Improvements
+- header dirigente e segreteria fuis
+- studente import rimozione email
+- attivita rimosso specchietto clil extra
+
+##### Bug Fixes
+- protezione per ore previste null se docente non ha ancora le ore
+- php 8 per google client library
+
 ## Version 1.2.47 - 7 ago 2024
 ##### Bug Fixes
 - 2 minor typo

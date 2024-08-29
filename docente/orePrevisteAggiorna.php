@@ -41,10 +41,14 @@ function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_contr
 	// servono le ore dovute
 	require_once '../docente/oreDovuteReadDetails.php';
 	$ore_dovute = oreDovuteReadDetails($soloTotale, $docente_id, 'ore_dovute');
-	$oreConStudentiDovute = $ore_dovute['ore_40_con_studenti'] + $ore_dovute['ore_70_con_studenti'];
-	$oreFunzionaliDovute = $ore_dovute['ore_70_funzionali'];
-	$oreAggiornamentoDovute = $ore_dovute['ore_40_aggiornamento'];
-	$oreSostituzioniDovute = $ore_dovute['ore_40_sostituzioni_di_ufficio'];
+
+	// se non sono state inserite per questo docente, le lascia a zero
+	if ($ore_dovute != null) {
+		$oreConStudentiDovute = $ore_dovute['ore_40_con_studenti'] + $ore_dovute['ore_70_con_studenti'];
+		$oreFunzionaliDovute = $ore_dovute['ore_70_funzionali'];
+		$oreAggiornamentoDovute = $ore_dovute['ore_40_aggiornamento'];
+		$oreSostituzioniDovute = $ore_dovute['ore_40_sostituzioni_di_ufficio'];
+	}
 
 	$totale = $totale + compact('oreConStudentiDovute', 'oreFunzionaliDovute', 'oreAggiornamentoDovute', 'oreSostituzioniDovute');
 

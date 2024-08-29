@@ -44,18 +44,9 @@
 	</ul>
 </div>
 
-<div class="btn-group">
-	<a href="<?php echo $__application_base_path; ?>/dirigente/fuis.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-euro"></span>&ensp;Fuis </a>
-	<button type="button" class="btn btn-default navbar-btn btn-deeporange4 dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-		<span class="caret"></span>
-		<span class="sr-only">Toggle Dropdown</span>
-	</button>
-	<ul class="dropdown-menu btn-deeporange4">
-	<li><a href="<?php echo $__application_base_path; ?>/dirigente/fuisAssegnato.php">Fuis Assegnato</a></li>
-		<li><a href="<?php echo $__application_base_path; ?>/dirigente/fuisViaggi.php">Fuis Viaggi</a></li>
-		<li><a href="<?php echo $__application_base_path; ?>/dirigente/fuisDocenti.php">Fuis Docenti</a></li>
-	</ul>
-</div>
+<?php
+echo ' <a href="'.$__application_base_path.'/dirigente/fuisAssegnato.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-euro"></span>&ensp;Fuis Assegnato </a>';
+?>
 
 <?php
 // if ($__config->getBonus_rendiconto_aperto() || $__config->getBonus_adesione_aperto()) {

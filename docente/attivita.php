@@ -314,49 +314,9 @@ require_once '../common/header-docente.php';
             <div class="attivita_fatte_records_content"></div>
         </div>
     </div>
-</div>
 
 <!-- <div class="panel-footer"></div> -->
 </div>
-
-<?php if($__settings->config->gestioneClil) : ?>
-<div class="panel panel-info">
-<div class="panel-heading">
-	<div class="row">
-		<div class="col-md-4">
-		<span class="glyphicon glyphicon-education"></span>&ensp;Attività CLIL
-		</div>
-		<div class="col-md-4 text-center">
-			<button onclick="oreFatteClilSommario()" class="btn btn-xs btn-info"><span class="glyphicon glyphicon-option-horizontal"></span> Sommario</button>
-		</div>
-		<div class="col-md-4 text-right">
-            <?php
-            if ($__config->getOre_fatte_aperto() || $operatore == 'dirigente') {
-            	echo '
-					<button onclick="oreFatteClilGetAttivita(0)" class="btn btn-xs btn-info"><span class="glyphicon glyphicon-plus"></span></button>
-				';
-            }
-   			?>
-		</div>
-	</div>
-</div>
-<div class="panel-body">
-    <div class="row"  style="margin-bottom:10px;">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6">
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-12">
-            <div class="attivita_fatte_clil_records_content"></div>
-        </div>
-    </div>
-</div>
-
-<!-- <div class="panel-footer"></div> -->
-</div>
-<?php endif; ?>
 
 <?php if(getSettingsValue("config", "sportelli", false)) : ?>
 <div class="panel panel-orange4">

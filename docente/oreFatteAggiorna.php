@@ -53,15 +53,19 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	// servono le ore dovute
 	require_once '../docente/oreDovuteReadDetails.php';
 	$ore_dovute = oreDovuteReadDetails($soloTotale, $docente_id, 'ore_dovute');
-	$oreConStudentiDovute = $ore_dovute['ore_40_con_studenti'] + $ore_dovute['ore_70_con_studenti'];
-	$oreFunzionaliDovute = $ore_dovute['ore_70_funzionali'];
-	$oreAggiornamentoDovute = $ore_dovute['ore_40_aggiornamento'];
-	$oreSostituzioniDovute = $ore_dovute['ore_40_sostituzioni_di_ufficio'];
-	$ore80DovuteCollegiDocenti = $ore_dovute['ore_80_collegi_docenti'];
-	$ore80DovuteUdienzeGenerali = $ore_dovute['ore_80_udienze_generali'];
-	$ore80DovuteDipartimenti = $ore_dovute['ore_80_dipartimenti'];
-	$ore80DovuteAggiornamento = $ore_dovute['ore_80_aggiornamento_facoltativo'];
-	$ore80DovuteConsigliDiClasse = $ore_dovute['ore_80_consigli_di_classe'];
+
+	// se non sono state inserite per questo docente, le lascia a zero
+	if ($ore_dovute != null) {
+		$oreConStudentiDovute = $ore_dovute['ore_40_con_studenti'] + $ore_dovute['ore_70_con_studenti'];
+		$oreFunzionaliDovute = $ore_dovute['ore_70_funzionali'];
+		$oreAggiornamentoDovute = $ore_dovute['ore_40_aggiornamento'];
+		$oreSostituzioniDovute = $ore_dovute['ore_40_sostituzioni_di_ufficio'];
+		$ore80DovuteCollegiDocenti = $ore_dovute['ore_80_collegi_docenti'];
+		$ore80DovuteUdienzeGenerali = $ore_dovute['ore_80_udienze_generali'];
+		$ore80DovuteDipartimenti = $ore_dovute['ore_80_dipartimenti'];
+		$ore80DovuteAggiornamento = $ore_dovute['ore_80_aggiornamento_facoltativo'];
+		$ore80DovuteConsigliDiClasse = $ore_dovute['ore_80_consigli_di_classe'];
+	}
 
 	$totale = $totale + compact('oreConStudentiDovute', 'oreFunzionaliDovute', 'oreAggiornamentoDovute', 'oreSostituzioniDovute', 'ore80DovuteCollegiDocenti', 'ore80DovuteUdienzeGenerali', 'ore80DovuteDipartimenti', 'ore80DovuteAggiornamento', 'ore80DovuteConsigliDiClasse');
 

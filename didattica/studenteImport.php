@@ -96,6 +96,9 @@ if (empty($data)) {
     debug($data);
 }
 
+// rinomina l'at degli indirizzi di email degli studenti che non hanno piu' accesso
+$sqlList[] = "UPDATE studente SET email = REPLACE(email, '@', '_') WHERE studente.classe = ''";
+
 // esegue la query se non vuota
 if (!empty($sqlList)) {
     foreach($sqlList as $sql) {
