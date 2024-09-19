@@ -28,7 +28,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Stato</th>
-						<th class="text-center col-md-1">Studenti</th>
+						<th class="text-center col-md-1">Studenti Prenotati</th>
 						<th class="text-center col-md-1"></th>
 					</tr>
 					</thead>';
@@ -123,15 +123,15 @@ foreach($resultArray as $row) {
 	}
 
 	$data .= '<tr>
-		<td>'.$dataSportello.'</td>
-		<td>'.$row['sportello_ora'].'</td>
+		<td align="center">'.$dataSportello.'</td>
+		<td align="center">'.$row['sportello_ora'].'</td>
 		<td>'.$row['materia_nome'].'</td>
 		<td>'.$row['sportello_argomento'].'</td>
-		<td>'.$row['sportello_numero_ore'].'</td>
-		<td>'.$row['sportello_classe'].'</td>
+		<td align="center">'.$row['sportello_numero_ore'].'</td>
+		<td align="center">'.$row['sportello_classe'].'</td>
 		<td>'.$luogo_or_onine_marker.'</td>
 		<td class="text-center">'.$statoMarker.'</td>
-		<td data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
+		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
 		';
 	$data .='
 		<td class="text-center">
