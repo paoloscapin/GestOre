@@ -130,7 +130,9 @@ foreach($resultArray as $row) {
 	// calcola il numero di posti disponibili per lo sportello
 	$max_iscrizioni = $row['sportello_max_iscrizioni'];
 	$posti_disponibili = $max_iscrizioni - $row['numero_studenti'];
-
+	$sportello_cancellato = $row['sportello_cancellato'];
+	if (!$sportello_cancellato)
+	{
 	$data .= '<tr>
 		<td align="center">'.$dataSportello.'</td>
 		<td align="center">'.$row['sportello_ora']. ' &nbsp;&nbsp;&nbsp;('.$row['sportello_numero_ore']. ($row['sportello_numero_ore'] > 1? ' ore)' : ' ora)').'</td>
@@ -141,7 +143,20 @@ foreach($resultArray as $row) {
 		<td align="center">'.$row['sportello_classe'].'</td>
 		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$posti_disponibili.'</td>
 		';
-
+	}
+	else
+	{
+		$data .= '<tr>
+		<td align="center"><s>'.$dataSportello.'</td>
+		<td align="center"><s>'.$row['sportello_ora']. ' &nbsp;&nbsp;&nbsp;('.$row['sportello_numero_ore']. ($row['sportello_numero_ore'] > 1? ' ore)' : ' ora)').'</td>
+		<td><s>'.$row['materia_nome'].'</td>
+		<td align="center"><s>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
+		<td><s>'.$row['sportello_argomento'].'</td>
+		<td align="center"><s>'.$luogo_or_onine_marker.'</td>
+		<td align="center"><s>'.$row['sportello_classe'].'</td>
+		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="<s>'.$studenteTip.'"><s>0</td>
+		';
+	}
 	// apri l'ultima colonna
 	$data .= '<td class="text-center">';
 
@@ -182,7 +197,6 @@ foreach($resultArray as $row) {
 		// ora puo' controllare se oggi viene prima dell'ultimo giorno valido per la prenotazione (o lo stesso giorno)
 		$todayBeforeLastDay = ($today <= $lastDay);
         
-		$sportello_cancellato = $row['sportello_cancellato'];
 		// lo sportello si puo' prenotare se oggi e' >= al primo lunedi' da cui si puo' prenotare e <= all'ultimo giorno di prenotazione
 		$prenotabile = ($todayAfterpreviousMonday && $todayBeforeLastDay && (!$sportello_cancellato));
 
