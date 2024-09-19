@@ -24,8 +24,8 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					<tr>
 						<th class="text-center col-md-1">Data</th>
 						<th class="text-center col-md-1">Ora</th>
-						<th class="text-center col-md-2">Materia</th>
-						<th class="text-center col-md-2">Docente</th>
+						<th class="text-center col-md-3">Materia</th>
+						<th class="text-center col-md-1">Docente</th>
 						<th class="text-center col-md-2">Argomento</th>
 						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Classe</th>
@@ -127,14 +127,14 @@ foreach($resultArray as $row) {
 	}
 
 	$data .= '<tr>
-		<td>'.$dataSportello.'</td>
-		<td>'.$row['sportello_ora']. ' &nbsp;&nbsp;&nbsp;('.$row['sportello_numero_ore']. ($row['sportello_numero_ore'] > 1? ' ore)' : ' ora)').'</td>
+		<td align="center">'.$dataSportello.'</td>
+		<td align="center">'.$row['sportello_ora']. ' &nbsp;&nbsp;&nbsp;('.$row['sportello_numero_ore']. ($row['sportello_numero_ore'] > 1? ' ore)' : ' ora)').'</td>
 		<td>'.$row['materia_nome'].'</td>
-		<td>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
+		<td align="center">'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
 		<td>'.$row['sportello_argomento'].'</td>
-		<td>'.$luogo_or_onine_marker.'</td>
-		<td>'.$row['sportello_classe'].'</td>
-		<td data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
+		<td align="center">'.$luogo_or_onine_marker.'</td>
+		<td align="center">'.$row['sportello_classe'].'</td>
+		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
 		';
 
 	// apri l'ultima colonna
