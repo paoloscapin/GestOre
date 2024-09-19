@@ -57,8 +57,9 @@ $query = "	SELECT
 			INNER JOIN docente docente ON sportello.docente_id = docente.id
 			INNER JOIN materia materia ON sportello.materia_id = materia.id
 			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
-			AND NOT sportello.cancellato
 			";
+
+// rimossa riga da query visto che compare già qui sotto AND NOT sportello.cancellato
 
 if( $materia_filtro_id > 0) {
 	$query .= "AND sportello.materia_id = $materia_filtro_id ";
@@ -180,9 +181,10 @@ foreach($resultArray as $row) {
 
 		// ora puo' controllare se oggi viene prima dell'ultimo giorno valido per la prenotazione (o lo stesso giorno)
 		$todayBeforeLastDay = ($today <= $lastDay);
-
+        
+		$sportello_cancellato = $row['sportello_cancellato'];
 		// lo sportello si puo' prenotare se oggi e' >= al primo lunedi' da cui si puo' prenotare e <= all'ultimo giorno di prenotazione
-		$prenotabile = ($todayAfterpreviousMonday && $todayBeforeLastDay);
+		$prenotabile = ($todayAfterpreviousMonday && $todayBeforeLastDay && (!$sportello_cancellato));
 
 		// e' cancellabile se oggi e' <= all'ultimo giorno di prenotazione
 		$cancellabile = $todayBeforeLastDay;
@@ -236,6 +238,9 @@ foreach($resultArray as $row) {
 					<span class="label label-info">Disponibile</span>
 					<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 					';
+			}
+			if ($sportello_cancellato) {
+				$data .='<span class="label label-danger">cancellato</span>';
 			}
 		}
 	}
