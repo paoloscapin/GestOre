@@ -101,10 +101,17 @@ require_once '../common/connect.php';
 					</select></div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-1">
             <div class="text-center">
 				<label class="checkbox-inline">
 					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox" >Solo Nuovi
+				</label>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="text-center">
+				<label class="checkbox-inline">
+					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="ancheCancellatiCheckBox" >Anche cancellati
 				</label>
             </div>
         </div>
