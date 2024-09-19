@@ -29,7 +29,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-2">Argomento</th>
 						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Classe</th>
-						<th class="text-center col-md-1">Studenti</th>
+						<th class="text-center col-md-1">Posti disponibili</th>
 						<th class="text-center col-md-1">Iscrizione</th>
 					</tr>
 					</thead>';
@@ -126,6 +126,10 @@ foreach($resultArray as $row) {
 		debug("online=".$row['sportello_online']);
 	}
 
+	// calcola il numero di posti disponibili per lo sportello
+	$max_iscrizioni = $row['sportello_max_iscrizioni'];
+	$posti_disponibili = $max_iscrizioni - $row['numero_studenti'];
+
 	$data .= '<tr>
 		<td align="center">'.$dataSportello.'</td>
 		<td align="center">'.$row['sportello_ora']. ' &nbsp;&nbsp;&nbsp;('.$row['sportello_numero_ore']. ($row['sportello_numero_ore'] > 1? ' ore)' : ' ora)').'</td>
@@ -134,7 +138,7 @@ foreach($resultArray as $row) {
 		<td>'.$row['sportello_argomento'].'</td>
 		<td align="center">'.$luogo_or_onine_marker.'</td>
 		<td align="center">'.$row['sportello_classe'].'</td>
-		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
+		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$posti_disponibili.'</td>
 		';
 
 	// apri l'ultima colonna
@@ -195,7 +199,7 @@ foreach($resultArray as $row) {
 		// debug("cancellabile=".$cancellabile);
 
 		// controlla che non sia stato raggiunto il massimo numero di prenotazioni
-		$max_iscrizioni = $row['sportello_max_iscrizioni'];
+
 		if ($max_iscrizioni == null && $row['sportello_categoria'] == 'sportello didattico') {
 			$max_iscrizioni = getSettingsValue('sportelli','numero_max_prenotazioni', 10);
 		}
