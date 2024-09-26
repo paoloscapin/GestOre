@@ -97,7 +97,8 @@
         "materiali": true,
         "tic": true,
         "note_aggiuntive": true,
-        "duplicaTemplateSoloSeFinale": true
+        "duplicaTemplateSoloSeFinale": true,
+        "stampaEstesa": false
     },
     "corsiDiRecupero": {
         "corsiDiRecuperoFirmaDocente": true,
