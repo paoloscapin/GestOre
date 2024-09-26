@@ -192,7 +192,7 @@ if(isset($_POST['richiesta']) && $_POST['richiesta'] == "orePrevisteAggiorna") {
 	} else {
 		$operatore = 'docente';
 		$ultimo_controllo = '';
-		$modificabile = $__config->getOre_fatte_aperto();
+		$modificabile = $__config->getOre_previsioni_aperto();
 	}
 	$totale = orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
 

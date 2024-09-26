@@ -1,3 +1,8 @@
+## Version 1.2.49 - 26 sep 2024
+##### Bug Fixes
+- fix per import corsi di recupero pnrr
+- orePrevisteAggiorna controllo su previsioni invece che fatte
+
 ## Version 1.2.48 - 29 ago 2024
 ##### Improvements
 - header dirigente e segreteria fuis

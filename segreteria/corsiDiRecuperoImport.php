@@ -162,8 +162,8 @@ while ($words[0] == 'CODICE') {
         $corso_aula = '';
     }
 
-    // segue Docente se non in studio individuale
-    if (! $studio_individuale && ! $pnrr) {
+    // segue Docente se non in studio individuale (ma c'e' per il PNRR)
+    if (! $studio_individuale) {
         nextWords();
         if (!checkWord('Docente')) {
             erroreDiImport("Docente non specificato per il corso $corso_codice");
