@@ -122,6 +122,7 @@ $pagina .='
 	h1,h2,h3,h4,h5 { color: #0e2c50; font-family: Helvetica, Sans-Serif; }
 	.unita_titolo { display:inline-block; vertical-align: middle; }
 	.nome { text-transform:uppercase; color: #0e2c50; font-family: Helvetica, Sans-Serif; display: block; font-weight: bold; font-size: .83em; }
+	.nomeSemplice { color: #0e2c50; font-family: Helvetica, Sans-Serif; display: block; font-weight: bold; font-size: .83em; }
 	body { max-width: 800px; }
 	@media print {
 		.noprint {
@@ -371,26 +372,33 @@ if (getSettingsValue('pianiDiLavoro','metodologie', true)) {
 	$data = '';
 	$metodologieList = dbGetAll("SELECT * FROM piano_di_lavoro_metodologia INNER JOIN piano_di_lavoro_usa_metodologia ON piano_di_lavoro_metodologia.id = piano_di_lavoro_usa_metodologia.piano_di_lavoro_metodologia_id WHERE piano_di_lavoro_id = $piano_di_lavoro_id ;");
 	if (! empty ($metodologieList)) {
-		$data .= '
-			<div style="page-break-inside: avoid">
+		$data .= '<div style="page-break-inside: avoid">
 			<hr>
-			<h2 style="text-align: center;">METODOLOGIE</h2>
-			<table style="border-collapse: collapse; width: 100%;">
-			<tbody>';
+			<h2 style="text-align: center;">METODOLOGIE</h2>';
 
-		foreach($metodologieList as $metodologia) {
-			$data .= '
-				<tr padding-top: 50px;>
-				<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$metodologia['nome'].'</span></td>
-				<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$metodologia['descrizione'].'</td>
-				</tr>';
+		if (getSettingsValue('pianiDiLavoro','stampaEstesa', false)) {
+			$data .= '<table style="border-collapse: collapse; width: 100%;"><tbody>';
+			foreach($metodologieList as $metodologia) {
+				$data .= '<tr padding-top: 50px;>
+					<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$metodologia['nome'].'</span></td>
+					<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$metodologia['descrizione'].'</td>
+					</tr>';
+			}
+			$data .= '</tbody></table>';
+		} else {
+			$data .= '<span class="nomeSemplice">';
+			$firstElement = true;
+			foreach($metodologieList as $metodologia) {
+				if (!$firstElement) {
+					$data .= ', ';
+				}
+				$data .= $metodologia['nome'];
+				$firstElement = false;
+			}
+			$data .= '</span>';
 		}
 
-		$data .= '
-			</tbody>
-			</table>
-			</br>
-			</div>';
+		$data .= '</br></div>';
 
 		$pagina .= $data;
 	}
@@ -401,28 +409,34 @@ if (getSettingsValue('pianiDiLavoro','materiali', true)) {
 	$data = '';
 	$materialiList = dbGetAll("SELECT * FROM piano_di_lavoro_materiale INNER JOIN piano_di_lavoro_usa_materiale ON piano_di_lavoro_materiale.id = piano_di_lavoro_usa_materiale.piano_di_lavoro_materiale_id WHERE piano_di_lavoro_id = $piano_di_lavoro_id ;");
 	if (! empty ($materialiList)) {
-		$data .= '
-			<div style="page-break-inside: avoid">
+		$data .= '<div style="page-break-inside: avoid">
 			<hr>
-			<h2 style="text-align: center;">MATERIALI</h2>
+			<h2 style="text-align: center;">MATERIALI</h2>';
 
-			<table style="border-collapse: collapse; width: 100%;">
-			<tbody>';
+			if (getSettingsValue('pianiDiLavoro','stampaEstesa', false)) {
+				$data .= '<table style="border-collapse: collapse; width: 100%;"><tbody>';
+				foreach($materialiList as $materiale) {
+					$data .= '<tr padding-top: 50px;>
+						<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$materiale['nome'].'</span></td>
+						<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$materiale['descrizione'].'</td>
+						</tr>';
+				}
+				$data .= '</tbody></table>';
+			} else {
+				$data .= '<span class="nomeSemplice">';
+				$firstElement = true;
+				foreach($materialiList as $materiale) {
+					if (!$firstElement) {
+						$data .= ', ';
+					}
+					$data .= $materiale['nome'];
+					$firstElement = false;
+				}
+				$data .= '</span>';
+			}
 
-		foreach($materialiList as $materiale) {
-			$data .= '
-				<tr padding-top: 50px;>
-				<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$materiale['nome'].'</span></td>
-				<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$materiale['descrizione'].'</td>
-				</tr>';
-		}
-
-
-		$data .= '
-			</tbody>
-			</table>
-			</br>
-			</div>';
+	
+		$data .= '</br></div>';
 
 		$pagina .= $data;
 	}
@@ -433,27 +447,34 @@ if (getSettingsValue('pianiDiLavoro','tic', true)) {
 	$data = '';
 	$ticList = dbGetAll("SELECT * FROM piano_di_lavoro_tic INNER JOIN piano_di_lavoro_usa_tic ON piano_di_lavoro_tic.id = piano_di_lavoro_usa_tic.piano_di_lavoro_tic_id WHERE piano_di_lavoro_id = $piano_di_lavoro_id ;");
 	if (! empty ($ticList)) {
-		$data .= '
-			<div style="page-break-inside: avoid">
+		$data .= '<div style="page-break-inside: avoid">
 			<hr>
-			<h2 style="text-align: center;">TIC</h2>
-			<table style="border-collapse: collapse; width: 100%;">
-			<tbody>';
+			<h2 style="text-align: center;">TIC</h2>';
 
-		foreach($ticList as $tic) {
-			$data .= '
-				<tr padding-top: 50px;>
-				<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$tic['nome'].'</span></td>
-				<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$tic['descrizione'].'</td>
-				</tr>';
+		if (getSettingsValue('pianiDiLavoro','stampaEstesa', false)) {
+			$data .= '<table style="border-collapse: collapse; width: 100%;"><tbody>';
+			foreach($ticList as $tic) {
+				$data .= '
+					<tr padding-top: 50px;>
+					<td style="width: 25%; padding-top: 4px; padding-bottom: 20px; text-align: right; padding-right: 30px; vertical-align: top;"><span class="nome">'.$tic['nome'].'</span></td>
+					<td style="width: 75%; padding-top: 0px; padding-bottom: 20px; vertical-align: top;">'.$tic['descrizione'].'</td>
+					</tr>';
+			}
+			$data .= '</tbody></table>';
+		} else {
+			$data .= '<span class="nomeSemplice">';
+			$firstElement = true;
+			foreach($ticList as $tic) {
+				if (!$firstElement) {
+					$data .= ', ';
+				}
+				$data .= $tic['nome'];
+				$firstElement = false;
+			}
+			$data .= '</span>';
 		}
 
-
-		$data .= '
-			</tbody>
-			</table>
-			</br>
-			</div>';
+		$data .= '</br></div>';
 
 		$pagina .= $data;
 	}
