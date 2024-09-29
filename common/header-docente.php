@@ -64,6 +64,9 @@ if ($num > 0) {
 <?php endif; ?>
 	</div>
 <?php endif; ?>
+<?php if(getSettingsValue('config','modulisticaDocenti', false)) : ?>
+	<a href="<?php echo $__application_base_path; ?>/docente/modulisticaList.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-tag"></span>&ensp;Modulistica </a>
+<?php endif; ?>
 </ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a href="<?php echo $__settings->local->helpLinkDocente; ?>" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>

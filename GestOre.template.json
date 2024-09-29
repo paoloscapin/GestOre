@@ -30,7 +30,8 @@
         "sportelli": false,
         "gestioneViaggiSemplificata": false,
         "pianiDiLavoro": false,
-        "carenze": true
+        "carenze": true,
+        "modulisticaDocenti": false
     },
     "interfaccia": {
         "docenteVisualizza80Ore": true,
