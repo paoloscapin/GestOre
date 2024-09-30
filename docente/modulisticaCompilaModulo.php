@@ -58,6 +58,7 @@ require_once '../common/connect.php';
 
 <?php
 
+$listaCampi = [];
 foreach(dbGetAll("SELECT * FROM modulistica_campo WHERE modulistica_template_id = $template_id;") as $campo) {
     $nome = $campo['nome'];
     $etichetta = $campo['etichetta'];
@@ -70,6 +71,8 @@ foreach(dbGetAll("SELECT * FROM modulistica_campo WHERE modulistica_template_id 
     echo('<label class="col-sm-2 control-label" for="'.$nome.'">'.$etichetta.'</label>');
     echo('<div class="col-sm-10"><input type="text" id="'.$nome.'" placeholder="'.$tip.'" class="form-control"/></div>');
     echo('</div>');
+
+    $listaCampi[] = $nome;
 }
 ?>
 
@@ -83,20 +86,22 @@ foreach(dbGetAll("SELECT * FROM modulistica_campo WHERE modulistica_template_id 
 <div class="panel panel-teal4">
 <div class="panel-heading container-fluid">
 	<div class="row">
-    <div class="col-md-11">
-			<span class="glyphicon glyphicon-folder-close"></span>&emsp;<strong><?php echo "$templateNome"; ?></strong>
+    <div class="col-md-5">
+		<span class="glyphicon glyphicon-folder-close"></span>&emsp;<strong><?php echo "$templateNome"; ?></strong>
 	</div>
-	<div class="col-md-1 text-right" id="page_refresh">
+    <div class="col-md-2 text-center">
+        <button type="button" class="btn btn-xs btn-default btn-orange4" onclick="aggiorna()" >Aggiorna</button>
+    </div>
+	<div class="col-md-5 text-right" id="page_refresh">
     </div>
 	</div>
 </div>
-<div class="panel-body">
+<div class="panel-body" id="modulo_compilato_id">
 <?php echo "$templateTemplate"; ?>
 
 </div>
 </div>
 <!-- fine altro pannello -->
-
 
 </div>
 
@@ -105,6 +110,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_campo WHERE modulistica_template_id 
 </div>
 
 <input type="hidden" id="hidden_template" value="<?php echo $templateTemplate; ?>">
+<input type="hidden" id="hidden_lista_campi" value="<?php echo json_encode($listaCampi); ?>">
 
 <!-- Custom JS file -->
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js?v=<?php echo $__software_version; ?>"></script>
