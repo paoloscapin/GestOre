@@ -6,16 +6,23 @@
  */
 
 function aggiorna() {
-    template = $("#hidden_template").val();
-    console.log($("#hidden_lista_campi").val());
+    documento = $("#hidden_template").val();
 
     listaCampi = JSON.parse($("#hidden_lista_campi").val());
-    console.log(listaCampi);
+    // console.log(listaCampi);
+
+    // sostituisce tutti i campi che trova con i valori inseriti dall'utente
     for(var i = 0; i < listaCampi.length; i++){
-        console.log(listaCampi[i]);
+        var valore = $("#" + listaCampi[i]).val();
+        documento = documento.replaceAll('{{' + listaCampi[i] + '}}', valore);
     }
 
-    $("#modulo_compilato_id").html(template);
+    // sostituisce tutti i campi standard
+    documento = documento.replaceAll('{{luogo_documento}}', 'Mezzolombardo');
+    var data = new Date().toLocaleDateString("it-IT");
+    documento = documento.replaceAll('{{data_documento}}', data);
+
+    $("#modulo_compilato_id").html(documento);
 }
 
 $(document).ready(function () {

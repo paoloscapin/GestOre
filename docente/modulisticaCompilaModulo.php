@@ -108,9 +108,9 @@ foreach(dbGetAll("SELECT * FROM modulistica_campo WHERE modulistica_template_id 
 </div>
 
 </div>
-
+<?php $listaCampiEncoded = json_encode($listaCampi); ?>
 <input type="hidden" id="hidden_template" value="<?php echo $templateTemplate; ?>">
-<input type="hidden" id="hidden_lista_campi" value="<?php echo json_encode($listaCampi); ?>">
+<input type="hidden" id="hidden_lista_campi" value='<?php echo $listaCampiEncoded; ?>'>
 
 <!-- Custom JS file -->
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js?v=<?php echo $__software_version; ?>"></script>
