@@ -102,7 +102,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_campo WHERE modulistica_template_id 
 </div>
 <div class="panel-footer">
 <div class="text-center">
-        <button type="button" class="btn btn-xs btn-default btn-orange4" onclick="invia()" >Invia</button>
+    <button type="button" class="btn btn-xs btn-default btn-orange4" onclick="invia()" >Invia</button>
 </div>
 </div>
 </div>
@@ -116,6 +116,10 @@ foreach(dbGetAll("SELECT * FROM modulistica_campo WHERE modulistica_template_id 
 <?php $listaCampiEncoded = json_encode($listaCampi); ?>
 <input type="hidden" id="hidden_template" value="<?php echo $templateTemplate; ?>">
 <input type="hidden" id="hidden_lista_campi" value='<?php echo $listaCampiEncoded; ?>'>
+<input type="hidden" id="hidden_template_id" value='<?php echo $template_id; ?>'>
+<input type="hidden" id="hidden_docente_id" value='<?php echo $docente_id; ?>'>
+
+
 
 <!-- Custom JS file -->
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js?v=<?php echo $__software_version; ?>"></script>

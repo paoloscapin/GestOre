@@ -11,8 +11,17 @@ function aggiorna() {
 }
 
 function invia() {
+    template_id = $("#hidden_template_id").val();
     documento = aggiornaContenutoDocumento();
-    $("#modulo_compilato_id").html(documento);
+    docente_id = $("#hidden_docente_id").val();
+
+    oldcmd = "../docente/modulisticaInviaModulo.php?template_id=" + template_id + "&documento=" + documento + "&docente_id=" + docente_id;
+    console.log("invia non ancora fatto");
+    
+    $.get("../docente/modulisticaInviaModulo.php", {template_id: template_id, documento: documento, docente_id: docente_id}, function (data, status) {
+        console.log("invia status=" + status + " data=" + data);
+        $(".modulo_compilato_id").html("Inviato!");
+	});
 }
 
 function aggiornaContenutoDocumento() {

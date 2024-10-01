@@ -18,8 +18,9 @@ ruoloRichiesto('docente','dirigente','segreteria-docenti','segreteria-didattica'
 require_once '../common/connect.php';
 require_once '../common/dompdf/autoload.inc.php';
 
-use Dompdf\Dompdf;
+debug('Sono qui');
 
+use Dompdf\Dompdf;
 if(! isset($_GET)) {
 	return;
 } else {
@@ -29,7 +30,7 @@ if(! isset($_GET)) {
     $docente_nome = $__docente_nome;
     $docente_cognome = $__docente_cognome;
     $docente_email = $__docente_email;
-    $nomeCognomeDocente = $pianoDiLavoro['docente_nome'] . ' ' . $pianoDiLavoro['docente_cognome'];
+    $nomeCognomeDocente = $docente_nome . ' ' . $docente_cognome;
     $anno = date("Y");;
 
     // recupera i dati del template
@@ -43,7 +44,7 @@ $pagina .= '<html><head>
 
 // ricava il titolo in modo generale
 $titolo = $template['nome'] .' - ' . $nomeCognomeDocente . ' - ' . $anno;
-
+debug('titolo' . $titolo);
 // aggiunge nella pagina il titolo e gli stili
 $pagina .= '<title>' . $titolo . '</title>';
 
@@ -98,13 +99,8 @@ $dompdf->setPaper('A4', 'portrait');
 $dompdf->render();
 
 // produce il nome del file
-$annoStampabile = str_replace('/','-',$annoScolasticoNome);
-if (! $carenza) {
-    $pdfFileName = "Piano di Lavoro $materiaNome - $nomeClasse - $annoStampabile.pdf";
-} else {
-    $pdfFileName = "Recupero di $materiaNome - $studenteNomeCognome $studenteClasse - $annoStampabile.pdf";
-}
-
+$pdfFileName = $titolo . ".pdf";
+debug('pdfFileName' . $pdfFileName);
 // per ora va sempre inviata per email
 $email = true;
 
@@ -127,10 +123,9 @@ if ($email) {
 
     // subject
     $mail->Subject = $titolo;
-
     $mail->isHTML(TRUE);
-    $mail->Body = "<html><body><p><strong>Carenza di $materiaNome</strong></p><p>Gentile $studenteNomeCognome, allegato troverai il programma di $materiaNome</p></body></html>";
-    $mail->AltBody = "Gentile $studenteNomeCognome, allegato troverai il programma di $materiaNome";
+    $mail->Body = "<html><body><p><strong>".$template['nome']."</strong></p><p>Gentile ".$nomeCognomeDocente.", allegato troverai il programma di ".$anno."</p></body></html>";
+    $mail->AltBody = "Gentile $nomeCognomeDocente, allegato troverai il programma di $anno";
 
     // allega il pdf
     $encoding = 'base64';
@@ -139,11 +134,12 @@ if ($email) {
 
     // send the message
     if(!$mail->send()){
+        warning('Message could not be sent. ' . 'Mailer Error: ' . $mail->ErrorInfo);
         echo 'Message could not be sent.';
         echo 'Mailer Error: ' . $mail->ErrorInfo;
     } else {
         // marca che e' stato notificato
-        dbExec("UPDATE piano_di_lavoro SET stato = 'notificato' WHERE id = $piano_di_lavoro_id;");
+        // dbExec("UPDATE piano_di_lavoro SET stato = 'notificato' WHERE id = $piano_di_lavoro_id;");
 
         echo "<script>window.close();</script>";
     }
