@@ -90,7 +90,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_campo WHERE modulistica_template_id 
 		<span class="glyphicon glyphicon-folder-close"></span>&emsp;<strong><?php echo "$templateNome"; ?></strong>
 	</div>
     <div class="col-md-2 text-center">
-        <button type="button" class="btn btn-xs btn-default btn-orange4" onclick="aggiorna()" >Aggiorna</button>
+        <button type="button" class="btn btn-xs btn-default btn-yellow4" onclick="aggiorna()" >Aggiorna</button>
     </div>
 	<div class="col-md-5 text-right" id="page_refresh">
     </div>
@@ -99,6 +99,11 @@ foreach(dbGetAll("SELECT * FROM modulistica_campo WHERE modulistica_template_id 
 <div class="panel-body" id="modulo_compilato_id">
 <?php echo "$templateTemplate"; ?>
 
+</div>
+<div class="panel-footer">
+<div class="text-center">
+        <button type="button" class="btn btn-xs btn-default btn-orange4" onclick="invia()" >Invia</button>
+</div>
 </div>
 </div>
 <!-- fine altro pannello -->

@@ -6,6 +6,16 @@
  */
 
 function aggiorna() {
+    documento = aggiornaContenutoDocumento();
+    $("#modulo_compilato_id").html(documento);
+}
+
+function invia() {
+    documento = aggiornaContenutoDocumento();
+    $("#modulo_compilato_id").html(documento);
+}
+
+function aggiornaContenutoDocumento() {
     documento = $("#hidden_template").val();
 
     listaCampi = JSON.parse($("#hidden_lista_campi").val());
@@ -22,7 +32,7 @@ function aggiorna() {
     var data = new Date().toLocaleDateString("it-IT");
     documento = documento.replaceAll('{{data_documento}}', data);
 
-    $("#modulo_compilato_id").html(documento);
+    return documento;
 }
 
 $(document).ready(function () {
