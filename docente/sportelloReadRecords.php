@@ -29,6 +29,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Stato</th>
 						<th class="text-center col-md-1">Studenti Prenotati</th>
+						<th class="text-center col-md-1">Max prenotazioni</th>
 						<th class="text-center col-md-1"></th>
 					</tr>
 					</thead>';
@@ -47,6 +48,7 @@ $query = "	SELECT
 				sportello.online AS sportello_online,
 				sportello.clil AS sportello_clil,
 				sportello.orientamento AS sportello_orientamento,
+				sportello.max_iscrizioni AS sportello_max_iscrizioni,
 				materia.nome AS materia_nome,
 				docente.cognome AS docente_cognome,
 				docente.nome AS docente_nome,
@@ -83,7 +85,13 @@ foreach($resultArray as $row) {
 	if ($row['sportello_firmato']) {
 		$statoMarker .= '<span class="label label-success">firmato</span>';
 	}
-
+	if (($row['sportello_max_iscrizioni']) == ($row['numero_studenti'])) {
+		$statoMarker .= '<span class="label label-danger">posti esauriti</span>';
+	}
+	else
+	{
+		$statoMarker .= '<span class="label label-success">posti disponibili</span>';
+	}
 	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
 	$dataSportello = utf8_encode( strftime("%d %B %Y", strtotime($row['sportello_data'])));
 	setlocale(LC_TIME, $oldLocale);
@@ -135,6 +143,7 @@ foreach($resultArray as $row) {
 		<td>'.$luogo_or_onine_marker.'</td>
 		<td class="text-center">'.$statoMarker.'</td>
 		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
+		<td class="text-center">'.$row['sportello_max_iscrizioni'].'</td>
 		';
 	$data .='
 		<td class="text-center">
@@ -145,7 +154,7 @@ foreach($resultArray as $row) {
 	// rimossa possibilità al docente di cancellare sportello
 	//	<button onclick="sportelloDelete('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
     //
-}
+	}
 	else
 	{
 		$data .= '<tr>
@@ -158,6 +167,7 @@ foreach($resultArray as $row) {
 		<td><s>'.$luogo_or_onine_marker.'</td>
 		<td class="text-center">'.$statoMarker.'</td>
 		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'"><s>'.$row['numero_studenti'].'</td>
+		<td class="text-center">'.$row['max_iscrizioni'].'</td>
 		';
 	$data .='
 		<td class="text-center">
