@@ -16,6 +16,7 @@ $soloNuovi = $_GET["soloNuovi"];
 $categoria_filtro_id = $_GET["categoria_filtro_id"];
 $docente_filtro_id = $_GET["docente_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
+$classe_filtro_id = $_GET["classe_filtro_id"];
 
 $direzioneOrdinamento="ASC";
 
@@ -57,6 +58,8 @@ $query = "	SELECT
 			ON sportello.docente_id = docente.id
 			INNER JOIN materia materia
 			ON sportello.materia_id = materia.id
+			INNER JOIN classe classe
+			ON sportello.classe_id = classe.id
 			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
 			";
 
@@ -66,6 +69,9 @@ if ($categoria_filtro_id > 0) {
 	$query .= "AND sportello.categoria = '$categoria_filtro_nome' ";
 }
 
+if( $classe_filtro_id > 0) {
+	$query .= "AND sportello.classe_id = $classe_filtro_id ";
+}
 if( $materia_filtro_id > 0) {
 	$query .= "AND sportello.materia_id = $materia_filtro_id ";
 }

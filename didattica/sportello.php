@@ -75,6 +75,15 @@ foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materi
     $materiaFiltroOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
     $materiaOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
 }
+
+// prepara l'elenco delle materie per il filtro e per le materie del dialog
+$classeFiltroOptionList = '<option value="0">tutte</option>';
+$classeOptionList = '<option value="0"></option>';
+foreach(dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ")as $classe) {
+    $classeFiltroOptionList .= ' <option value="'.$classe['id'].'" >'.$classe['nome'].'</option> ';
+    $classeOptionList .= ' <option value="'.$classe['id'].'" >'.$classe['nome'].'</option> ';
+}
+
 ?>
 
 <body >
@@ -91,7 +100,7 @@ require_once '../common/header-didattica.php';
 		</div>
         <div class="col-md-2">
             <div class="text-center">
-                <label class="col-sm-2 control-label" for="categoria">Categoria</label>
+                <label class="col-sm-4 control-label" for="categoria" style="margin:5px 0px 0px 0px;">Categoria</label>
 					<div class="col-sm-8"><select id="categoria_filtro" name="categoria_filtro" class="categoria_filtro selectpicker" data-style="btn-teal4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $categoriaFiltroOptionList ?>
 					</select></div>
@@ -99,7 +108,7 @@ require_once '../common/header-didattica.php';
         </div>
         <div class="col-md-2">
             <div class="text-center">
-                <label class="col-sm-2 control-label" for="docente">Docente</label>
+                <label class="col-sm-4 control-label" for="docente" style="margin:5px 0px 0px 0px;">Docente</label>
 					<div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $docenteFiltroOptionList ?>
 					</select></div>
@@ -107,9 +116,17 @@ require_once '../common/header-didattica.php';
         </div>
         <div class="col-md-2">
             <div class="text-center">
-                <label class="col-sm-2 control-label" for="materia">Materia</label>
+                <label class="col-sm-4 control-label" for="materia" style="margin:5px 0px 0px 0px;">Materia</label>
 					<div class="col-sm-8"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $materiaFiltroOptionList ?>
+					</select></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="text-center">
+                <label class="col-sm-4 control-label" for="classe" style="margin:5px 0px 0px 0px;">Classe</label>
+					<div class="col-sm-8"><select id="classe_filtro" name="classe_filtro" class="classe_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $classeFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
@@ -120,7 +137,7 @@ require_once '../common/header-didattica.php';
 				</label>
             </div>
         </div>
-		<div class="col-md-2 text-center">
+		<div class="col-md-1 text-center">
             <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
 		</div>
 		<div class="col-md-1 text-right">
