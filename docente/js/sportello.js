@@ -121,6 +121,16 @@ function sportelloSave() {
     });
 }
 
+function confermaCancellato() {
+    if ($("#cancellato").is(':checked')) {
+        let result = confirm ("Sei sicuro di voler cancellare lo sportello? Agli studenti eventualmente iscritti arriverà un avviso di annullamento dello sportello.");
+        if (result === false)
+        {
+            $("#cancellato").prop('checked',false);
+        }
+    }
+}
+
 function sportelloFirma() {
     if ($("#firmato").is(':checked')) {
         // gia' firmato, non dovrebbe succedere0

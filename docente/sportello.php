@@ -188,7 +188,7 @@ require_once '../common/connect.php';
                 ?>
                 <div class="form-group">
                     <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="cancellato"></div>
+                    <div class="col-sm-1 "><input type="checkbox" onclick="confermaCancellato()" id="cancellato"></div>
                 </div>
 
                 <div class="form-group">
