@@ -147,7 +147,6 @@ function previsteReadRecords($soloTotale, $docente_id, $operatore, $ultimo_contr
 		$dataAttivita .='</td>';
 		$dataAttivita .= '<td class="col-md-1 text-center">'.writeOrePreviste($row['ore_previste_attivita_ore'], $row['ore_previste_attivita_commento_ore_originali']).'</td>';
 		$dataAttivita .='<td class="col-md-1 text-center">';
-
 		// si possono modificare solo le righe previste da docente: se dirigente lo script non cancella ma propone di mettere le ore a zero
 		if ($row['ore_previste_tipo_attivita_previsto_da_docente']) {
 			if ($modificabile) {
@@ -206,7 +205,6 @@ if(isset($_POST['richiesta']) && $_POST['richiesta'] == "previsteReadRecords") {
 		$docente_id = $__docente_id;
 	}
 	$soloTotale = json_decode($_POST['soloTotale']);
-
 	if(isset($_POST['operatore']) && $_POST['operatore'] == 'dirigente') {
 		// se vuoi fare il dirigente, devi essere dirigente
 		ruoloRichiesto('dirigente');
@@ -221,7 +219,7 @@ if(isset($_POST['richiesta']) && $_POST['richiesta'] == "previsteReadRecords") {
 		$ultimo_controllo = '';
 		$modificabile = $__config->getOre_previsioni_aperto();
 	}
-
+    
 	$result = previsteReadRecords($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
 	echo json_encode($result);
 }
