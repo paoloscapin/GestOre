@@ -65,6 +65,14 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY doc
     $docenteFiltroOptionList .= ' <option value="'.$docente['id'].'" >'.$docente['cognome'].' '.$docente['nome'].'</option> ';
 }
 
+$classeFiltroOptionList = '<option value="0">tutte</option>';
+$classeFiltroOptionList .= '<option value="1">biennio</option>';
+$classeFiltroOptionList .= '<option value="2">triennio CHI</option>';
+$classeFiltroOptionList .= '<option value="3">triennio INFO</option>';
+$classeFiltroOptionList .= '<option value="4">triennio ELE</option>';
+$classeFiltroOptionList .= '<option value="5">triennio MEC</option>';
+$classeFiltroOptionList .= '<option value="6">triennio CAT</option>';
+
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
 $materiaFiltroOptionList = '<option value="0">tutte</option>';
 foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materia) {
@@ -82,22 +90,30 @@ require_once '../common/connect.php';
 <div class="panel panel-orange4">
 <div class="panel-heading">
 	<div class="row">
-		<div class="col-md-3">
+		<div class="col-md-1">
 			<span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli
 		</div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="text-center">
-                <label class="col-sm-2 control-label" for="docente">Docente</label>
+                <label class="col-sm-2 control-label" for="docente" style="margin:5px 0px 0px 0px">Docente</label>
 					<div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $docenteFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="text-center">
-                <label class="col-sm-2 control-label" for="materia">Materia</label>
-					<div class="col-sm-8"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+        <div class="col-md-4">
+            <div class="text-center" >
+                <label class="col-sm-1 control-label" for="materia" style="margin:5px 0px 0px 0px">Materia</label>
+					<div class="col-sm-11"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="90%" >
                     <?php echo $materiaFiltroOptionList ?>
+					</select></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="text-center">
+                <label class="col-sm-1 control-label" for="classe" style="margin:5px 0px 0px 0px">Classe</label>
+					<div class="col-sm-8"><select id="classe_filtro" name="classe_filtro" class="classe_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $classeFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
