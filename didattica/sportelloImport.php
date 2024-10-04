@@ -120,6 +120,13 @@ foreach($lines as $line) {
         break;
     }
 
+    // classe
+    $classe_id = dbGetValue("SELECT classe.id FROM classe WHERE classe.nome = '$classe'");
+    if ($classe_id == null) {
+        erroreDiImport("classe non trovata nome=$classe");
+        break;
+    }
+
     // max iscrizioni (potrebbe usare il default se non presente)
     if (empty($max_iscrizioni)) {
         $max_iscrizioni = getSettingsValue("sportelli", "numero_max_prenotazioni", 8);
@@ -147,9 +154,9 @@ foreach($lines as $line) {
     $sportelloPrecedente = dbGetFirst("SELECT * FROM sportello WHERE docente_id = $docente_id AND data = '$data' AND ora = '$ora' AND anno_scolastico_id=$__anno_scolastico_corrente_id;");
     if ($sportelloPrecedente != null) {
         erroreDiImport("il docente  $docente_cognome $docente_nome ha già uno sportello per il $data alle $ora");
-        break;
+        continue;
     }
-    $insertSportelloSql = "INSERT INTO sportello(categoria, data, ora, docente_id, materia_id, numero_ore, max_iscrizioni, argomento, luogo, classe, online, clil, orientamento, anno_scolastico_id) VALUES('$categoria', '$data', '$ora', '$docente_id', '$materia_id', '$numero_ore', '$max_iscrizioni', '$argomento_opzionale', '$luogo', '$classe', '$online_value', '$clil_value', '$orientamento_value', $__anno_scolastico_corrente_id); ";
+    $insertSportelloSql = "INSERT INTO sportello(categoria, data, ora, docente_id, materia_id, classe_id, numero_ore, max_iscrizioni, argomento, luogo, classe, online, clil, orientamento, anno_scolastico_id) VALUES('$categoria', '$data', '$ora', '$docente_id', '$materia_id', '$classe_id', '$numero_ore', '$max_iscrizioni', '$argomento_opzionale', '$luogo', '$classe', '$online_value', '$clil_value', '$orientamento_value', $__anno_scolastico_corrente_id); ";
     $sqlList[] = $insertSportelloSql;
     $sportelli++ ;
 }

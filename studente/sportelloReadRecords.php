@@ -15,6 +15,7 @@ $ancheCancellati = $_GET["ancheCancellati"];
 $soloNuovi = $_GET["soloNuovi"];
 $docente_filtro_id = $_GET["docente_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
+$classe_filtro_id = $_GET["classe_filtro_id"];
 
 $direzioneOrdinamento="ASC";
 
@@ -56,11 +57,15 @@ $query = "	SELECT
 			FROM sportello sportello
 			INNER JOIN docente docente ON sportello.docente_id = docente.id
 			INNER JOIN materia materia ON sportello.materia_id = materia.id
+			INNER JOIN classe classe ON sportello.classe_id = classe.id
 			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
 			";
 
 // rimossa riga da query visto che compare già qui sotto AND NOT sportello.cancellato
 
+if( $classe_filtro_id > 0) {
+	$query .= "AND sportello.classe_id = $classe_filtro_id ";
+}
 if( $materia_filtro_id > 0) {
 	$query .= "AND sportello.materia_id = $materia_filtro_id ";
 }

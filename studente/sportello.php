@@ -65,19 +65,18 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY doc
     $docenteFiltroOptionList .= ' <option value="'.$docente['id'].'" >'.$docente['cognome'].' '.$docente['nome'].'</option> ';
 }
 
-$classeFiltroOptionList = '<option value="0">tutte</option>';
-$classeFiltroOptionList .= '<option value="1">biennio</option>';
-$classeFiltroOptionList .= '<option value="2">triennio CHI</option>';
-$classeFiltroOptionList .= '<option value="3">triennio INFO</option>';
-$classeFiltroOptionList .= '<option value="4">triennio ELE</option>';
-$classeFiltroOptionList .= '<option value="5">triennio MEC</option>';
-$classeFiltroOptionList .= '<option value="6">triennio CAT</option>';
-
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
 $materiaFiltroOptionList = '<option value="0">tutte</option>';
 foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materia) {
     $materiaFiltroOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
 }
+
+// prepara l'elenco delle materie per il filtro e per le materie del dialog
+$classeFiltroOptionList = '<option value="0">tutte</option>';
+foreach(dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ")as $classe) {
+    $classeFiltroOptionList .= ' <option value="'.$classe['id'].'" >'.$classe['nome'].'</option> ';
+}
+
 ?>
 
 <body >
