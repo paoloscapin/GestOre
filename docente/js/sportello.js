@@ -22,10 +22,8 @@ $('#soloNuoviCheckBox').change(function() {
     // this si riferisce al checkbox
     if (this.checked) {
 		soloNuovi = 1;
-        ancheCancellati = 1;
     } else {
 		soloNuovi = 0;
-        ancheCancellati = 0;
     }
     sportelloReadRecords();
 });
@@ -35,7 +33,7 @@ $('#ancheCancellatiCheckBox').change(function() {
     if (this.checked) {
 		ancheCancellati = 1;
     } else {
-
+		ancheCancellati = 0;
     }
     sportelloReadRecords();
 });
