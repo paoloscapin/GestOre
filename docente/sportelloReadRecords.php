@@ -167,7 +167,7 @@ foreach($resultArray as $row) {
 		<td><s>'.$luogo_or_onine_marker.'</td>
 		<td class="text-center">'.$statoMarker.'</td>
 		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'"><s>'.$row['numero_studenti'].'</td>
-		<td class="text-center">'.$row['max_iscrizioni'].'</td>
+		<td class="text-center">'.$row['sportello_max_iscrizioni'].'</td>
 		';
 	$data .='
 		<td class="text-center">
