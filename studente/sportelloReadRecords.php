@@ -253,6 +253,11 @@ foreach($resultArray as $row) {
 					<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 					';
 			}
+			else {
+				$data .='
+					<span class="label label-danger">Posti esauriti</span>
+					';
+			}
 			if ($sportello_cancellato) {
 				$data .='<span class="label label-danger">cancellato</span>';
 			}
