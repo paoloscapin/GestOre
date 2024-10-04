@@ -57,7 +57,7 @@ function viaggioDiariaFattaReadRecords($soloTotale, $docente_id, $operatore, $ul
 
 	$dataDiaria .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 							<tr>
-								<th class="col-md-1 text-left">Data</th>
+								<th class="col-md-1 text-left">Data </th>
 								<th class="col-md-5 text-left">Descrizione</th>
 								<th class="col-md-1 text-center">Senza Pernottamento</th>
 								<th class="col-md-1 text-center">Con Pernottamento</th>
