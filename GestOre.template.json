@@ -89,6 +89,7 @@
         "chiusuraIscrizioniGiorni": 1,
         "unSoloArgomento": true,
         "prenotaMaxSettimanaSuccessiva": true,
+        "sezione_online_clil_orientamento_visibile": false,
         "inseriti_da_docente": false
     },
     "pianiDiLavoro": {
