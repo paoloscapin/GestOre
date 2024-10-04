@@ -62,7 +62,7 @@ $query = "	SELECT
 				sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
 			";
 
-if( ! $ancheCancellati) {
+if( !$ancheCancellati) {
 	$query .= "AND NOT sportello.cancellato ";
 }
 if( $soloNuovi) {
@@ -122,6 +122,9 @@ foreach($resultArray as $row) {
 		debug("online=".$row['sportello_online']);
 	}
 
+	$sportello_cancellato = $row['sportello_cancellato'];
+	if (!$sportello_cancellato)
+	{
 	$data .= '<tr>
 		<td align="center">'.$dataSportello.'</td>
 		<td align="center">'.$row['sportello_ora'].'</td>
@@ -136,9 +139,36 @@ foreach($resultArray as $row) {
 	$data .='
 		<td class="text-center">
 		<button onclick="sportelloGetDetails('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
-		<button onclick="sportelloDelete('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		</tr>';
+	//
+	// rimossa possibilità al docente di cancellare sportello
+	//	<button onclick="sportelloDelete('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+    //
+}
+	else
+	{
+		$data .= '<tr>
+		<td align="center"><s>'.$dataSportello.'</td>
+		<td align="center"><s>'.$row['sportello_ora'].'</td>
+		<td><s>'.$row['materia_nome'].'</td>
+		<td><s>'.$row['sportello_argomento'].'</td>
+		<td align="center"><s>'.$row['sportello_numero_ore'].'</td>
+		<td align="center"><s>'.$row['sportello_classe'].'</td>
+		<td><s>'.$luogo_or_onine_marker.'</td>
+		<td class="text-center">'.$statoMarker.'</td>
+		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'"><s>'.$row['numero_studenti'].'</td>
+		';
+	$data .='
+		<td class="text-center">
+		<button onclick="sportelloGetDetails('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
+		</td>
+		</tr>';
+	//
+	// rimossa possibilità al docente di cancellare sportello
+	//	<button onclick="sportelloDelete('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+    //
+}
 }
 
 $data .= '</table></div>';

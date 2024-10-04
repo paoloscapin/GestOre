@@ -78,11 +78,18 @@ require_once '../common/connect.php';
 		<div class="col-md-4">
 			<span class="glyphicon glyphicon-object-align-horizontal"></span>&ensp;Sportelli
 		</div>
-		<div class="col-md-4 text-center">
+		<div class="col-md-2 text-center">
             <label class="checkbox-inline">
                 <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox" >Solo Nuovi
             </label>
 		</div>
+        <div class="col-md-2">
+            <div class="text-center">
+				<label class="checkbox-inline">
+					<input type="checkbox"  data-toggle="toggle" data-size="mini" data-onstyle="primary" id="ancheCancellatiCheckBox" >Anche cancellati
+				</label>
+            </div>
+        </div>
 		<div class="col-md-4 text-right">
 <?php if(getSettingsValue("sportelli", "inseriti_da_docente", false)) : ?>
             <div class="pull-right">
@@ -177,7 +184,7 @@ require_once '../common/connect.php';
 
                 <div class="form-group">
                     <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="cancellato" disabled="disabled" ></div>
+                    <div class="col-sm-1 "><input type="checkbox" id="cancellato"></div>
                 </div>
 
                 <div class="form-group">
