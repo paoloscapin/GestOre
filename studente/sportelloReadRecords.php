@@ -237,6 +237,10 @@ foreach($resultArray as $row) {
 		// debug("final cancellabile=".$cancellabile);
 
 		// per quelli non passati, se sono iscritto lo dice e mi lascia cancellare, altrimenti mi lascia iscrivere se non sono scaduti i termini
+		if ($sportello_cancellato) {
+			$data .='<span class="label label-danger">cancellato</span>';
+		}
+		else
 		if ($row['iscritto']) {
 			$data .='
 				<span class="label label-success">Iscritto</span>
@@ -257,9 +261,6 @@ foreach($resultArray as $row) {
 				$data .='
 					<span class="label label-danger">Posti esauriti</span>
 					';
-			}
-			if ($sportello_cancellato) {
-				$data .='<span class="label label-danger">cancellato</span>';
 			}
 		}
 	}
