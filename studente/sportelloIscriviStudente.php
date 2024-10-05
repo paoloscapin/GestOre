@@ -24,5 +24,7 @@ if(isset($_POST)) {
 		dbExec("UPDATE sportello  SET argomento = '$argomento' WHERE id = '$sportello_id'");
 		info("aggiornato sportello con il suo argomento sportello_id=$sportello_id argomento=$argomento");
 	}
+
+	include 'sportelloInviaMailDocente.php';
 }
 ?>
