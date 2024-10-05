@@ -38,6 +38,6 @@ $sportello = dbGetFirst($query);
 $mailbody = "Lo/a studente/ssa ".$__studente_cognome." ".$__studente_nome." ha prenotato lo sportello di ".$sportello['materia_nome']." previsto per il giorno " . $sportello['sportello_data'] . " alle ore " . $sportello['sportello_ora'] . " indicando il seguente argomento: " . $argomento;
 
 $sender = $__settings->local->emailNoReplyFrom;
-
-mail($sportello['docente_email'], 'GestOre - Prenotazione sportello', $mailbody ,  additional_params: "-f$sender")
+$mailsubject = 'GestOre - Prenotazione sportello ' . $sportello['materia_nome'];
+mail($sportello['docente_email'], $mailsubject, $mailbody ,  additional_params: "-f$sender")
 ?>

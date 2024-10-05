@@ -54,7 +54,11 @@ $query = "	SELECT
 				(	SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id) AS numero_studenti,
 				(	SELECT sportello_studente.iscritto FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS iscritto,
 				(	SELECT sportello_studente.presente FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS presente,
-				(	SELECT sportello_studente.argomento FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS argomento
+				(	SELECT sportello_studente.argomento FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS argomento,
+				(	SELECT studente.cognome FROM studente WHERE id = $__studente_id) AS studente_cognome,
+				(	SELECT studente.nome FROM studente WHERE id = $__studente_id) AS studente_nome,
+				(	SELECT studente.email FROM studente WHERE id = $__studente_id) AS studente_email,
+				(	SELECT studente.classe FROM studente WHERE id = $__studente_id) AS studente_classe
 			FROM sportello sportello
 			INNER JOIN docente docente ON sportello.docente_id = docente.id
 			INNER JOIN materia materia ON sportello.materia_id = materia.id
@@ -299,7 +303,7 @@ foreach($resultArray as $row) {
 			if ($prenotabile) {
 				$data .='
 					<span class="label label-primary">Disponibile</span>
-					<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+					<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\',\''.addslashes($row['sportello_data']).'\',\''.addslashes($row['sportello_ora']).'\',\''.addslashes($row['sportello_numero_ore']).'\',\''.addslashes($row['sportello_luogo']).'\',\''.addslashes($row['studente_cognome']).'\',\''.addslashes($row['studente_nome']).'\',\''.addslashes($row['studente_email']).'\',\''.addslashes($row['studente_classe']).'\',\''.addslashes($row['docente_cognome']).'\',\''.addslashes($row['docente_nome']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 					';
 			}
 			else 
