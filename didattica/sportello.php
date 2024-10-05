@@ -219,14 +219,19 @@ require_once '../common/header-didattica.php';
                     <div class="col-sm-8"><input type="text" id="max_iscrizioni" placeholder="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>" class="form-control"/></div>
                 </div>
 
-                <div class="form-group">
+                <?php
+                if ($__settings->sportelli->sezione_online_clil_orientamento_visibile)
+                {
+                echo '<div class="form-group">
                     <label for="online" class="col-sm-2 control-label">Online</label>
                     <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
                     <label for="clil" class="col-sm-2 control-label">Clil</label>
                     <div class="col-sm-1 "><input type="checkbox" id="clil" ></div>
                     <label for="orientamento" class="col-sm-2 control-label">Orientamento</label>
                     <div class="col-sm-1 "><input type="checkbox" id="orientamento" ></div>
-                </div>
+                </div>';
+                }
+                ?>
 
                 <div class="form-group">
                     <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
