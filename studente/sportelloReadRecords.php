@@ -53,7 +53,8 @@ $query = "	SELECT
 				docente.nome AS docente_nome,
 				(	SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id) AS numero_studenti,
 				(	SELECT sportello_studente.iscritto FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS iscritto,
-				(	SELECT sportello_studente.presente FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS presente
+				(	SELECT sportello_studente.presente FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS presente,
+				(	SELECT sportello_studente.argomento FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS argomento
 			FROM sportello sportello
 			INNER JOIN docente docente ON sportello.docente_id = docente.id
 			INNER JOIN materia materia ON sportello.materia_id = materia.id
@@ -143,7 +144,23 @@ foreach($resultArray as $row) {
 		<td align="center">'.$row['sportello_ora']. ' &nbsp;&nbsp;&nbsp;('.$row['sportello_numero_ore']. ($row['sportello_numero_ore'] > 1? ' ore)' : ' ora)').'</td>
 		<td>'.$row['materia_nome'].'</td>
 		<td align="center">'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
-		<td>'.$row['sportello_argomento'].'</td>
+		';
+		if ($row['sportello_argomento'] == "")
+		{
+			if ($row['argomento'] == "")
+			{
+				$data .= '<td></td>';
+			}
+			else
+			{
+				$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento da te indicato.<br><br><b>RICORDA</b><br>Ogni studente iscritto allo sportello<br>indica il proprio argomento.">' . $row['argomento'] . '</td>';				
+			}
+		}
+		else
+		{
+			$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento scelto dal docente<br><br><b>RICORDA</b><br>Per questo tipo di sportello l\'argomento<br>è deciso dal docente">' . $row['sportello_argomento'] . '</td>';
+		}
+		$data .= '
 		<td align="center">'.$luogo_or_onine_marker.'</td>
 		<td align="center">'.$row['sportello_classe'].'</td>
 		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$posti_disponibili.'</td>
@@ -156,7 +173,23 @@ foreach($resultArray as $row) {
 		<td align="center"><s>'.$row['sportello_ora']. ' &nbsp;&nbsp;&nbsp;('.$row['sportello_numero_ore']. ($row['sportello_numero_ore'] > 1? ' ore)' : ' ora)').'</td>
 		<td><s>'.$row['materia_nome'].'</td>
 		<td align="center"><s>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
-		<td><s>'.$row['sportello_argomento'].'</td>
+		';
+		if ($row['sportello_argomento'] == "")
+		{
+			if ($row['argomento'] == "")
+			{
+				$data .= '<td></td>';
+			}
+			else
+			{
+				$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento da te indicato.<br><br><b>RICORDA</b><br>Ogni studente iscritto allo sportello<br>indica il proprio argomento.">' . $row['argomento'] . '</td>';				
+			}
+		}
+		else
+		{
+			$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento scelto dal docente<br><br><b>RICORDA</b><br>Per questo tipo di sportello l\'argomento<br>è deciso dal docente">' . $row['sportello_argomento'] . '</td>';
+		}
+		$data .= '
 		<td align="center"><s>'.$luogo_or_onine_marker.'</td>
 		<td align="center"><s>'.$row['sportello_classe'].'</td>
 		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="<s>'.$studenteTip.'"><s>0</td>
