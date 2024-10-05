@@ -49,6 +49,7 @@ $query = "	SELECT
 				sportello.clil AS sportello_clil,
 				sportello.orientamento AS sportello_orientamento,
 				sportello.cancellato AS sportello_cancellato,
+				sportello.max_iscrizioni AS sportello_max_iscrizioni,
 				materia.nome AS materia_nome,
 				docente.cognome AS docente_cognome,
 				docente.nome AS docente_nome,
@@ -98,6 +99,12 @@ foreach($resultArray as $row) {
 	}
 	if ($row['sportello_firmato']) {
 		$statoMarker .= '<span class="label label-success">firmato</span>';
+	}
+	if ($row['numero_studenti'] == $row['sportello_max_iscrizioni']) {
+		$statoMarker .= '<span class="label label-danger">posti esauriti</span>';
+	}
+	else{
+		$statoMarker .= '<span class="label label-success">posti disponibili</span>';
 	}
 
 	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
