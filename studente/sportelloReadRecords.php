@@ -174,6 +174,10 @@ foreach($resultArray as $row) {
 				debug('iscritto');
 				$data .='<span class="label label-danger">Assente</span>';
 			}
+			else
+			{
+				$data .='<span class="label label-default">Non iscritto</span>';
+			}
 			// se passato e non ero iscritto non deve segnalare nulla
 		}
 	} else {
@@ -193,7 +197,9 @@ foreach($resultArray as $row) {
 
 		// calcola la data del lunedi della settimana precedente a quella dello sportello e scopre se siamo dopo quel giorno
 		$previousMonday = new DateTime($dataSportello.' Monday ago');
+
 		$todayAfterpreviousMonday = ($today >= $previousMonday);
+
 		// se non configurato per prenotare al massimo la settimana successiva, considera come se oggi fosse comunque una data dopo il lunedi della settimana precedente
 		if (! getSettingsValue('sportelli','prenotaMaxSettimanaSuccessiva', true)) {
 			$todayAfterpreviousMonday = true;
@@ -246,7 +252,8 @@ foreach($resultArray as $row) {
 			$data .='<span class="label label-danger">cancellato</span>';
 		}
 		else
-		if ($row['iscritto']) {
+		if ($row['iscritto']) 
+			{
 			$data .='
 				<span class="label label-success">Iscritto</span>
 				';
@@ -258,14 +265,24 @@ foreach($resultArray as $row) {
 			} else {
 			if ($prenotabile) {
 				$data .='
-					<span class="label label-info">Disponibile</span>
+					<span class="label label-primary">Disponibile</span>
 					<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 					';
 			}
-			else {
+			else 
+			{
+				if ($posti_disponibili == 0) 
+				{
 				$data .='
 					<span class="label label-danger">Posti esauriti</span>
 					';
+				}
+				else
+				{
+					$data .='
+						<div data-toggle="tooltip" data-placement="left"  title="Prenotabile dal lunedì precedente"><span span class="label label-info">Non ancora prenotabile</span></div>
+						';
+				}	
 			}
 		}
 	}
