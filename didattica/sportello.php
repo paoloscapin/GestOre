@@ -96,52 +96,50 @@ require_once '../common/header-didattica.php';
 <div class="panel-heading">
 	<div class="row">
 		<div class="col-md-1">
-			<span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli
+			<span class="glyphicon glyphicon-blackboard" style="margin:5px 0px 0px 0px;"></span>&ensp;Sportelli
 		</div>
         <div class="col-md-2">
             <div class="text-center">
-                <label class="col-sm-4 control-label" for="categoria" style="margin:5px 0px 0px 0px;">Categoria</label>
-					<div class="col-sm-8"><select id="categoria_filtro" name="categoria_filtro" class="categoria_filtro selectpicker" data-style="btn-teal4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                <label class="col-sm-3 control-label" for="categoria" style="margin:5px 0px 0px 0px;">Categoria</label>
+					<div class="col-sm-9"><select id="categoria_filtro" name="categoria_filtro" class="categoria_filtro selectpicker" data-style="btn-teal4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $categoriaFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="text-center">
-                <label class="col-sm-4 control-label" for="docente" style="margin:5px 0px 0px 0px;">Docente</label>
-					<div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+            <div class="text-right">
+                <label class="col-sm-2 control-label" for="docente" style="margin:5px 0px 0px 0px;">Docente</label>
+					<div class="col-sm-10"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $docenteFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="text-center">
-                <label class="col-sm-4 control-label" for="materia" style="margin:5px 0px 0px 0px;">Materia</label>
-					<div class="col-sm-8"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+            <div class="text-right">
+                <label class="col-sm-2 control-label" for="materia" style="margin:5px 0px 0px 0px;">Materia</label>
+					<div class="col-sm-10"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $materiaFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="text-center">
-                <label class="col-sm-4 control-label" for="classe" style="margin:5px 0px 0px 0px;">Classe</label>
-					<div class="col-sm-8"><select id="classe_filtro" name="classe_filtro" class="classe_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+            <div class="text-right">
+                <label class="col-sm-2 control-label" for="classe" style="margin:5px 0px 0px 0px;">Classe</label>
+					<div class="col-sm-auto"><select id="classe_filtro" name="classe_filtro" class="classe_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $classeFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="text-center">
+            <div class="text-center" style="margin:5px 0px 0px 0px;">
 				<label class="checkbox-inline">
 					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox" >Solo Nuovi
 				</label>
             </div>
         </div>
-		<div class="col-md-1 text-center">
+		<div class="col-md-auto text-right">
             <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
-		</div>
-		<div class="col-md-1 text-right">
-            <div class="pull-right">
+            <div class="pull-right"></div>
 				<button class="btn btn-xs btn-orange4" onclick="sportelloGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
 		</div>
