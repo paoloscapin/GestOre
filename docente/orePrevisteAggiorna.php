@@ -87,8 +87,8 @@ function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_contr
 	$totale = $totale + compact('dataAttribuite');
 
 	// diaria nelle fatte e nelle previste (questo serve al viaggi gestione semplificata)
-	require_once '../docente/viaggioDiariaFattaReadRecords.php';
-	$result = viaggioDiariaFattaReadRecords($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
+	require_once '../docente/viaggioDiariaPrevistaReadRecords.php';
+	$result = viaggioDiariaPrevistaReadRecords($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
 	$oreConStudentiPreviste += $result['diariaOre'];
 	$diariaGiorniSenzaPernottamento += $result['diariaGiorniSenzaPernottamento'];
 	$diariaGiorniConPernottamento += $result['diariaGiorniConPernottamento'];
