@@ -1,19 +1,4 @@
-<!--
-/**
- *  This file is part of GestOre
- *  @author     Paolo Scapin <paolo.scapin@gmail.com>
- *  @copyright  (C) 2018 Paolo Scapin
- *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
- */
--->
-
-<?php
-
-  require_once '../common/checkSession.php';
-  ruoloRichiesto('studente','segreteria-didattica','dirigente');
-
-  $full_mail_body = '
-  <html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
   <head>
   <!--[if gte mso 9]>
   <xml>
@@ -169,7 +154,7 @@
         <td style="overflow-wrap:break-word;word-break:break-word;padding:30px 10px 0px 15px;font-family:arial,helvetica,sans-serif;" align="left">
           
     <h1 style="padding-bottom: 10px; margin: 1px; color: #ecf0f1; line-height: 140%; text-align: center; word-wrap: break-word; font-weight: normal; font-family: Montserrat,sans-serif; font-size: 22px;">
-      {titolo}
+      ISCRIZIONE SPORTELLO
       
     </h1>
   
@@ -244,7 +229,7 @@
         <td style="overflow-wrap:break-word;word-break:break-word;padding:20px 10px 10px 15px;font-family:arial,helvetica,sans-serif;" align="left">
           
     <h3 style="margin: 0px; color: #293c4b; line-height: 140%; text-align: left; word-wrap: break-word; font-weight: normal; font-family: Montserrat,sans-serif; font-size: 18px;">
-      <strong>Buongiorno {Destinatario},</strong>
+      <strong>Buongiorno ISCRIZIONI BUONARROTI,</strong>
     </h3>
   
         </td>
@@ -258,7 +243,7 @@
         <td style="overflow-wrap:break-word;word-break:break-word;padding:10px;font-family:arial,helvetica,sans-serif;" align="left">
           
     <div style="color: #656e72; line-height: 140%; text-align: left; word-wrap: break-word;">
-      <p style="font-size: 14px; line-height: 140%;">{Messaggio}</p>
+      <p style="font-size: 14px; line-height: 140%;">hai ricevuto questa mail come conferma della tua iscrizione allo sportello qui riportato</p>
       <br>
       <table style="font-family:arial,helvetica,sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="1">
         <tbody>
@@ -270,7 +255,7 @@
             </td>
             <td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color:aquamarine"  align="left">
               <div style="color: #656e72; line-height: 140%; text-align: left; word-wrap: break-word;">
-                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="font-size: 16px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>{Data}</strong></span></p>
+                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="font-size: 16px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>10-10-2024</strong></span></p>
               </div>
             </td>
           </tr>
@@ -282,7 +267,7 @@
             </td>
             <td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color:aquamarine"  align="left">
               <div style="color: #656e72; line-height: 140%; text-align: left; word-wrap: break-word;">
-                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="font-size: 16px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>{Orario}</strong></span></p>
+                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="font-size: 16px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>12:00</strong></span></p>
               </div>
             </td>
           </tr>
@@ -294,7 +279,7 @@
             </td>
             <td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color:aquamarine"  align="left">
               <div style="color: #656e72; line-height: 140%; text-align: left; word-wrap: break-word;">
-                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="font-size: 16px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>{Docente}</strong></span></p>
+                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="font-size: 16px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>IZZO SEBASTIANO</strong></span></p>
               </div>
             </td>
           </tr>
@@ -306,7 +291,7 @@
             </td>
             <td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color:aquamarine"  align="left">
               <div style="color: #656e72; line-height: 140%; text-align: left; word-wrap: break-word;">
-                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="font-size: 16px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>{Materia}</strong></span></p>
+                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="font-size: 16px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>Tecnologie e progettazione di sistemi informatici e di telecomunicazioni</strong></span></p>
               </div>
             </td>
           </tr>
@@ -318,7 +303,7 @@
             </td>
             <td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color:aquamarine"  align="left">
               <div style="color: #656e72; line-height: 140%; text-align: left; word-wrap: break-word;">
-                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="font-size: 16px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>{Aula}</strong></span></p>
+                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="font-size: 16px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong></strong></span></p>
               </div>
             </td>
           </tr>
@@ -355,12 +340,7 @@
   <table style="font-family:arial,helvetica,sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
     <tbody>
       <tr>
-        <td style="overflow-wrap:break-word;word-break:break-word;padding:10px 20px 20px 10px;font-family:arial,helvetica,sans-serif;" align="left">';
-
-      $linkCalendar = 'https://calendar.google.com/calendar/render?action=TEMPLATE&dates=' . $datetime_sportello . 'Z%2F' . $datetime_fine_sportello . 'Z&details=' . urlencode("Sportello di " . $materia . ' - Aula ' . urlencode($luogo)) . '&location=' . urlencode('Istituto Tecnico Tecnologico Buonarroti, Via Brigata Acqui, 15, 38122 Trento TN, Italia') . '&text=' . urlencode("Sportello di " . $materia . " - Aula " . $luogo);
-      info("link promemoria su Google Calendar: " . $linkCalendar);
-
-      $full_mail_body .= '
+        <td style="overflow-wrap:break-word;word-break:break-word;padding:10px 20px 20px 10px;font-family:arial,helvetica,sans-serif;" align="left">
     <div style="color: #000000; line-height: 140%; text-align: center; word-wrap: break-word;">
       <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&dates=20241007T140000Z%2F20241007T154000Z&details=Sportello+di+A.AUT.-P.C.I.-TEC.PROF.&location=Istituto+Tecnico+Tecnologico+Buonarroti%2C+Via+Brigata+Acqui%2C+15%2C+38122+Trento+TN%2C+Italia%20Aula%20&text=Sportello+di+A.AUT.-P.C.I.-TEC.PROF.+Aula+" target="_blank" style="font-size: 16px; line-height: 22.4px; text-decoration: none; color: #000000; font-weight: bold;">
         CLICCA QUI!<br>per aggiungere un promemoria sul tuo Google Calendar<br></a>
@@ -370,24 +350,16 @@
       </tr>
     </tbody>
   </table>
-  
+    
     <!--[if (!mso)&(!IE)]><!--></div><!--<![endif]-->
+  </div>
+</div>
+<!--[if (mso)|(IE)]></td><![endif]-->
+      <!--[if (mso)|(IE)]></tr></table></td></tr></table><![endif]-->
     </div>
   </div>
-  <!--[if (mso)|(IE)]></td><![endif]-->
-        <!--[if (mso)|(IE)]></tr></table></td></tr></table><![endif]-->
-      </div>
-    </div>
-  </div>
-  <br><br>
-  
-      <!--[if (mso)|(IE)]></td></tr></table><![endif]-->
-      </td>
-    </tr>
-    </tbody>
-    </table>
-    <!--[if mso]></div><![endif]-->
-    <!--[if IE]></div><![endif]-->  
+</div>
+
   <table style="font-family:arial,helvetica,sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
     <tbody>
       <tr>
@@ -395,11 +367,7 @@
 
   <div align="center">
     <!--[if mso]><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-spacing: 0; border-collapse: collapse; mso-table-lspace:0pt; mso-table-rspace:0pt;font-family:arial,helvetica,sans-serif;"><tr><td style="font-family:arial,helvetica,sans-serif;" align="center"><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://www.buonarroti.tn.it/" style="height:39px; v-text-anchor:middle; width:248px;" arcsize="10.5%" stroke="f" fillcolor="#7db00e"><w:anchorlock/><center style="color:#FFFFFF;font-family:arial,helvetica,sans-serif;"><![endif]-->
-      <p style="padding: 10px; box-sizing: border-box;display: inline-block;font-family:arial,helvetica,sans-serif;text-decoration: none;-webkit-text-size-adjust: none;text-align: center;color: #FFFFFF; background-color: #7db00e; border-radius: 4px;-webkit-border-radius: 4px; -moz-border-radius: 4px; width:auto; max-width:100%; overflow-wrap: break-word; word-break: break-word; word-wrap:break-word; mso-border-alt: none;">';
-
-    $full_mail_body .= ' Mail generata da GestOre<br>' . $__settings->local->nomeIstituto . '</p>';
-    
-    $full_mail_body .= '
+      <p style="padding: 10px; box-sizing: border-box;display: inline-block;font-family:arial,helvetica,sans-serif;text-decoration: none;-webkit-text-size-adjust: none;text-align: center;color: #FFFFFF; background-color: #7db00e; border-radius: 4px;-webkit-border-radius: 4px; -moz-border-radius: 4px; width:auto; max-width:100%; overflow-wrap: break-word; word-break: break-word; word-wrap:break-word; mso-border-alt: none;"> Mail generata da GestOre<br>ITT Buonarroti - Trento</p>
     </div>
   
         </td>
@@ -407,33 +375,15 @@
     </tbody>
   </table>
 
+  
+  
+      <!--[if (mso)|(IE)]></td></tr></table><![endif]-->
+      </td>
+    </tr>
+    </tbody>
+    </table>
+    <!--[if mso]></div><![endif]-->
+    <!--[if IE]></div><![endif]-->
   </body>
   
-  </html>';
-  // inverto format data
-  $data_array = explode("-", $data);
-  $data = $data_array[2] . "-" . $data_array[1] . "-" . $data_array[0];
-  //
-  $full_mail_body = str_replace("{titolo}","ISCRIZIONE SPORTELLO",$full_mail_body);
-  $full_mail_body = str_replace("{Destinatario}",strtoupper($studente_cognome) . " " . strtoupper($studente_nome),$full_mail_body);
-  $full_mail_body = str_replace("{Messaggio}","hai ricevuto questa mail come conferma della tua iscrizione allo sportello qui riportato",$full_mail_body);
-  $full_mail_body = str_replace("{Data}",$data,$full_mail_body);
-  $full_mail_body = str_replace("{Orario}",$ora,$full_mail_body);
-  $full_mail_body = str_replace("{Docente}",strtoupper($docente_cognome . " " . $docente_nome),$full_mail_body);
-  $full_mail_body = str_replace("{Materia}",$materia,$full_mail_body);
-  $full_mail_body = str_replace("{Aula}",$luogo,$full_mail_body);
-  info("NUOVO " . $full_mail_body);
-
-  $sender = $__settings->local->emailNoReplyFrom;
-  $headers  = 'MIME-Version: 1.0' . "\r\n";
-  $headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-  $headers .= "From: " . $sender . "\r\n"."X-Mailer: php";
-  $mailsubject = 'GestOre - Prenotazione sportello ' . $materia;
-  mail($studente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
-
- ?>
-  
-
-
-
-
+  </html>
