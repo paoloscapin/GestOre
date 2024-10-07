@@ -205,15 +205,15 @@ foreach($resultArray as $row) {
 	// per prima cosa considera quelli passati
 	if ($passato) {
 		if ($row['presente']) {
-			$data .='<span class="label label-success">Presente</span>';
+			$data .='<div data-toggle="tooltip" data-placement="left"  title="La tua presenza è stata registrata"><span class="label label-success">Presente</span></div>';
 		} else {
 			if ($row['iscritto']) {
 				debug('iscritto');
-				$data .='<span class="label label-danger">Assente</span>';
+				$data .='<div data-toggle="tooltip" data-placement="left"  title="Sei risultato assente ad uno sportello a cui ti eri prenotato"><span class="label label-danger">Assente</span></div>';
 			}
 			else
 			{
-				$data .='<span class="label label-default">Non iscritto</span>';
+				$data .='<div data-toggle="tooltip" data-placement="left"  title="Sportello passato a cui ti sei iscritto"><span class="label label-default">Non iscritto</span></div>';
 			}
 			// se passato e non ero iscritto non deve segnalare nulla
 		}
@@ -286,24 +286,27 @@ foreach($resultArray as $row) {
 
 		// per quelli non passati, se sono iscritto lo dice e mi lascia cancellare, altrimenti mi lascia iscrivere se non sono scaduti i termini
 		if ($sportello_cancellato) {
-			$data .='<span class="label label-danger">cancellato</span>';
+			$data .='<div data-toggle="tooltip" data-placement="left"  title="Sportello annullato dal docente"><span class="label label-default">cancellato</span></div>';
 		}
 		else
 		if ($row['iscritto']) 
 			{
-			$data .='
-				<span class="label label-success">Iscritto</span>
-				';
 				if ($cancellabile) {
 					$data .='
-						<button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+						<div data-toggle="tooltip" data-placement="left"  title="Clicca qui per cancellare la prenotazione"><span class="label label-success">Iscritto</span><button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button></div>
+						';
+				}
+				else
+				{
+					$data .='
+						<div data-toggle="tooltip" data-placement="left"  title="Iscrizione non più cancellabile"><span class="label label-success">Iscritto</span></div>
 						';
 				}
 			} else {
 			if ($prenotabile) {
 				$data .='
-					<span class="label label-primary">Disponibile</span>
-					<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\',\''.addslashes($row['sportello_data']).'\',\''.addslashes($row['sportello_ora']).'\',\''.addslashes($row['sportello_numero_ore']).'\',\''.addslashes($row['sportello_luogo']).'\',\''.addslashes($row['studente_cognome']).'\',\''.addslashes($row['studente_nome']).'\',\''.addslashes($row['studente_email']).'\',\''.addslashes($row['studente_classe']).'\',\''.addslashes($row['docente_cognome']).'\',\''.addslashes($row['docente_nome']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+					<div data-toggle="tooltip" data-placement="left"  title="Clicca qui per iscriverti allo sportello"><span class="label label-primary">Disponibile</span>
+					<button onclick="sportelloIscriviti('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\',\''.addslashes($row['sportello_data']).'\',\''.addslashes($row['sportello_ora']).'\',\''.addslashes($row['sportello_numero_ore']).'\',\''.addslashes($row['sportello_luogo']).'\',\''.addslashes($row['studente_cognome']).'\',\''.addslashes($row['studente_nome']).'\',\''.addslashes($row['studente_email']).'\',\''.addslashes($row['studente_classe']).'\',\''.addslashes($row['docente_cognome']).'\',\''.addslashes($row['docente_nome']).'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button></div>
 					';
 			}
 			else 
@@ -311,14 +314,24 @@ foreach($resultArray as $row) {
 				if ($posti_disponibili == 0) 
 				{
 				$data .='
-					<span class="label label-danger">Posti esauriti</span>
+					<div data-toggle="tooltip" data-placement="left"  title="Posti disponibili esauriti"><span class="label label-danger">Posti esauriti</span></div>
 					';
 				}
 				else
 				{
-					$data .='
+					$tSportello = new DateTime($dataSportello);
+					if ($tSportello<=$today)
+					{
+						$data .='
+						<div data-toggle="tooltip" data-placement="left"  title="Iscrizioni chiuse"><span span class="label label-danger">Iscrizioni chiuse</span></div>
+						';
+					}
+					else
+					{
+						$data .='
 						<div data-toggle="tooltip" data-placement="left"  title="Prenotabile dal lunedì precedente"><span span class="label label-info">Non ancora prenotabile</span></div>
 						';
+					}
 				}	
 			}
 		}
