@@ -22,6 +22,7 @@ $richiesta = dbGetFirst("SELECT * FROM modulistica_richiesta WHERE id = $richies
 $approvata = $richiesta['approvata'];
 $respinta = $richiesta['respinta'];
 $annullata = $richiesta['annullata'];
+$richiestaUuid = $richiesta['uuid'];
 
 $template_id = $richiesta['modulistica_template_id'];
 $template = dbGetFirst("SELECT * FROM modulistica_template WHERE id = $template_id;");
@@ -46,8 +47,15 @@ $titolo = $template['nome'] .' - ' . $nomeCognomeDocente . ' - ' . $dataInvio;
 if (! $approvata && ! $respinta && ! $annullata) {
 	if(isset($_GET['comando'])) {
 		$comando = $_GET['comando'];
+		$uuid = $_GET['uuid'];
+
+		// controlla lo uuid
+		if ($uuid != $richiestaUuid) {
+			warning("uuid errato per la richiesta id=$richiesta_id richiesta=$titolo: uuid ricevuto=".$uuid);
+			redirect("/error/unauthorized.php");
+		}
 	
-		// se c'e' un comando, lo esegue (magari chiede conferma)
+		// se c'e' un comando, lo esegue controllando che ci sia il corretto uuid
 		if ($comando == 'approva') {
 			dbExec("UPDATE modulistica_richiesta SET `approvata` = 1 WHERE id = $richiesta_id;");
 			info("approvata la richiesta id=$richiesta_id richiesta=$titolo");

@@ -72,6 +72,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
     $nome = $campo['nome'];
     $etichetta = $campo['etichetta'];
     $valore_default = $campo['valore_default'];
+    $listaValori = $campo['lista_valori'];
     $tip = $campo['tip'];
     $tipo = $campo['tipo'];
     $obbligatorio = $campo['obbligatorio'];
@@ -86,7 +87,11 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
         }
         echo ('/>');
     } else if($tipo == 2) {
-
+        echo('<select id="'.$nome.'" placeholder="'.$tip.'">');
+        foreach(explode("::", $listaValori) as $valore) {
+            echo('<option value="'.$valore.'">'.$valore.'</option>');            
+        }
+        echo('</select>');
     }
 
     echo('</div>');

@@ -40,7 +40,7 @@ if(! isset($_POST)) {
     // recupera i dati del template e della richiesta
     $template = dbGetFirst("SELECT * FROM modulistica_template WHERE id = $template_id;");
 
-    // se deve essere approvata allora legge i dati della richiesta
+    // se deve essere approvata allora legge i dati della richiesta (serve solo lo uuid)
     if ($template['approva']) {
         $richiesta = dbGetFirst("SELECT * FROM modulistica_richiesta WHERE id = $richiesta_id;");
     }
@@ -216,7 +216,7 @@ $mail->Body .= "</p>";
 
 if ($template['approva']) {
     $mail->Body .= '<div class="form-group" style="text-align: center"><button class="btn-ar btn-approva" onclick="location.href=\'http://localhost/GestOre/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&comando=approva\'">Approva</button>
-		<button class="btn-ar btn-respingi" onclick="location.href=\'http://localhost/GestOre/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&comando=respingi\'">Respingi</button></div>';
+		<button class="btn-ar btn-respingi" onclick="location.href=\'http://localhost/GestOre/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=respingi\'">Respingi</button></div>';
 }
 
 $mail->Body .= "<p>I campi del modulo sono riportati qui di seguito e il pdf generato &egrave; allegato a questa email.</p>";

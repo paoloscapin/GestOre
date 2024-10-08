@@ -19,6 +19,7 @@ function invia() {
     documento = aggiornaContenutoDocumento();
     docente_id = $("#hidden_docente_id").val();
     email_to = $("#hidden_template_email_to").val();
+    uuid = generateGuid();
 
     // salva la richiesta ed eventualmente genera l'aggancio per l'approvazione
     $.post("../docente/modulisticaModuloCompilatoSave.php", {
@@ -26,7 +27,8 @@ function invia() {
         docente_id: docente_id,
         listaCampi: JSON.stringify(listaCampi),
         listaCampiId: JSON.stringify(listaCampiId),
-        listaValori: JSON.stringify(listaValori)
+        listaValori: JSON.stringify(listaValori),
+        uuid: uuid
     }, function (data, status) {
         // richiesta id viene tornato nel campo data
         richiesta_id = parseInt(data);
@@ -94,6 +96,11 @@ function aggiornaContenutoDocumento() {
     documento = documento.replaceAll('{{data_documento}}', data);
 
     return documento;
+}
+
+// genera un identificatore univoco casuale
+function generateGuid() {
+    return Math.random().toString(36).substring(2, 15) +  Math.random().toString(36).substring(2, 15);
 }
 
 $(document).ready(function () {

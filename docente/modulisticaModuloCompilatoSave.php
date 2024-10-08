@@ -12,12 +12,13 @@ require_once '../common/checkSession.php';
 if(isset($_POST)) {
 	$docente_id = $_POST['docente_id'];
 	$template_id = $_POST['template_id'];
+	$uuid = $_POST['uuid'];
 
 	$listaCampi = json_decode($_POST['listaCampi']);
 	$listaCampiId = json_decode($_POST['listaCampiId']);
 	$listaValori = json_decode($_POST['listaValori']);
 
-	dbExec("INSERT INTO modulistica_richiesta (modulistica_template_id, docente_id) VALUES($template_id, $docente_id);");
+	dbExec("INSERT INTO modulistica_richiesta (uuid, modulistica_template_id, docente_id) VALUES('$uuid', $template_id, $docente_id);");
 	$richiestaId = dblastId();
 
 	for ($i = 0; $i < count($listaCampiId); $i++) {
