@@ -75,8 +75,8 @@ function sportelloSave() {
 		return;
 	}
     if ($("#classe").val() <= 0) {
-		$("#_error-classe").text("Devi selezionare una classe");
-		$("#_error-classe-part").show();
+		$("#_error-materia").text("Devi selezionare una classe");
+		$("#_error-materia-part").show();
 		return;
 	}
 	if ($("#numero_ore").val() <= 0) {

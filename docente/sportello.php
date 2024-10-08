@@ -276,12 +276,6 @@ echo $modifica_sportelli;
                     <div class="col-sm-9" id="_error-materia"></div>
 				</strong></div>
 
-                <div class="form-group" id="_error-classe-part"><strong>
-                    <hr>
-                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
-                    <div class="col-sm-9" id="_error-classe"></div>
-				</strong></div>
-
                 <input type="hidden" id="hidden_sportello_id">
                 <input type="hidden" id="hidden_max_iscrizioni_default" value="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>">
                 <input type="hidden" id="hidden_docente_cognome_nome" value="<?php echo "$__docente_cognome $__docente_nome"; ?>">
