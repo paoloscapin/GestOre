@@ -54,6 +54,9 @@ $pagina .= '<html><head>
 // ricava il titolo in modo generale
 $titolo = $template['nome'] .' - ' . $nomeCognomeDocente . ' - ' . $anno;
 debug('titolo=' . $titolo);
+$version = phpversion();
+debug('version=' . $version);
+
 // aggiunge nella pagina il titolo e gli stili
 $pagina .= '<title>' . $titolo . '</title>';
 
@@ -215,7 +218,7 @@ if ($template['approva']) {
 $mail->Body .= "</p>";
 
 if ($template['approva']) {
-    $mail->Body .= '<div class="form-group" style="text-align: center"><button class="btn-ar btn-approva" onclick="location.href=\'http://localhost/GestOre/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&comando=approva\'">Approva</button>
+    $mail->Body .= '<div class="form-group" style="text-align: center"><button class="btn-ar btn-approva" onclick="location.href=\'http://localhost/GestOre/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=approva\'">Approva</button>
 		<button class="btn-ar btn-respingi" onclick="location.href=\'http://localhost/GestOre/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=respingi\'">Respingi</button></div>';
 }
 
