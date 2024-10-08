@@ -74,6 +74,11 @@ function sportelloSave() {
 		$("#_error-materia-part").show();
 		return;
 	}
+    if ($("#classe").val() <= 0) {
+		$("#_error-classe").text("Devi selezionare una classe");
+		$("#_error-classe-part").show();
+		return;
+	}
 	if ($("#numero_ore").val() <= 0) {
 		$("#_error-materia").text("Il numero di ore non può essere 0");
 		$("#_error-materia-part").show();
@@ -96,27 +101,112 @@ function sportelloSave() {
         }
     });
 
-    $.post("sportelloAggiorna.php", {
-
-        id: $("#hidden_sportello_id").val(),
-		data: getDbDateFromPickrId("#data"),
-        ora: $("#ora").val(),
-		materia_id: $("#materia").val(),
-        numero_ore: $("#numero_ore").val(),
-		argomento: $("#argomento").val(),
-		luogo: $("#luogo").val(),
-        max_iscrizioni: $("#max_iscrizioni").val(),
-        classe: $("#classe").val(),
-        cancellato: $("#cancellato").is(':checked')? 1: 0,
-        firmato: $("#firmato").is(':checked')? 1: 0,
-        online: $("#online").is(':checked')? 1: 0,
-        clil: $("#clil").is(':checked')? 1: 0,
-        orientamento: $("#orientamento").is(':checked')? 1: 0,
-        studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
-    }, function (data, status) {
-        $("#sportello_modal").modal("hide");
-        sportelloReadRecords();
-    });
+    if ($("#hidden_lista_classi").val() == "testo") // se la classe è una casella di testo
+    {
+        if ($('#hidden_sezione_online_clil').val() == 'true')
+        {
+            $.post("sportelloAggiorna.php", {
+                id: $("#hidden_sportello_id").val(),
+                data: getDbDateFromPickrId("#data"),
+                ora: $("#ora").val(),
+                docente_id: $("#docente").val(),
+                materia_id: $("#materia").val(),
+                numero_ore: $("#numero_ore").val(),
+                argomento: $("#argomento").val(),
+                luogo: $("#luogo").val(),
+                max_iscrizioni: $("#max_iscrizioni").val(),
+                classe: $("#classe").val(),
+                classe_id: 0,
+                cancellato: $("#cancellato").is(':checked')? 1: 0,
+                firmato: $("#firmato").is(':checked')? 1: 0,
+                online: $("#online").is(':checked')? 1: 0,
+                clil: $("#clil").is(':checked')? 1: 0,
+                orientamento: $("#orientamento").is(':checked')? 1: 0,
+                studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
+            }, function (data, status) {
+                $("#sportello_modal").modal("hide");
+                sportelloReadRecords();
+            });
+        }
+        else
+        {
+            $.post("sportelloAggiorna.php", {
+                id: $("#hidden_sportello_id").val(),
+                data: getDbDateFromPickrId("#data"),
+                ora: $("#ora").val(),
+                docente_id: $("#docente").val(),
+                materia_id: $("#materia").val(),
+                numero_ore: $("#numero_ore").val(),
+                argomento: $("#argomento").val(),
+                luogo: $("#luogo").val(),
+                max_iscrizioni: $("#max_iscrizioni").val(),
+                classe: $("#classe").val(),
+                classe_id: 0,
+                cancellato: $("#cancellato").is(':checked')? 1: 0,
+                firmato: $("#firmato").is(':checked')? 1: 0,
+                online: 0,
+                clil: 0,
+                orientamento: 0,
+                studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
+            }, function (data, status) {
+                $("#sportello_modal").modal("hide");
+                sportelloReadRecords();
+            });
+        }
+    }
+    else
+    {
+        if ($('#hidden_sezione_online_clil').val() == 'true')
+            {
+                $.post("sportelloAggiorna.php", {
+                    id: $("#hidden_sportello_id").val(),
+                    data: getDbDateFromPickrId("#data"),
+                    ora: $("#ora").val(),
+                    docente_id: $("#docente").val(),
+                    materia_id: $("#materia").val(),
+                    numero_ore: $("#numero_ore").val(),
+                    argomento: $("#argomento").val(),
+                    luogo: $("#luogo").val(),
+                    max_iscrizioni: $("#max_iscrizioni").val(),
+                    classe: "",
+                    classe_id: $("#classe").val(),
+                    cancellato: $("#cancellato").is(':checked')? 1: 0,
+                    firmato: $("#firmato").is(':checked')? 1: 0,
+                    online: $("#online").is(':checked')? 1: 0,
+                    clil: $("#clil").is(':checked')? 1: 0,
+                    orientamento: $("#orientamento").is(':checked')? 1: 0,
+                    studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
+                }, function (data, status) {
+                    $("#sportello_modal").modal("hide");
+                    sportelloReadRecords();
+                });
+            }
+            else
+            {
+                $.post("sportelloAggiorna.php", {
+                    id: $("#hidden_sportello_id").val(),
+                    data: getDbDateFromPickrId("#data"),
+                    ora: $("#ora").val(),
+                    docente_id: $("docente").val(),
+                    materia_id: $("#materia").val(),
+                    numero_ore: $("#numero_ore").val(),
+                    argomento: $("#argomento").val(),
+                    luogo: $("#luogo").val(),
+                    max_iscrizioni: $("#max_iscrizioni").val(),
+                    classe: "",
+                    classe_id: $("#classe").val(),
+                    cancellato: $("#cancellato").is(':checked')? 1: 0,
+                    firmato: $("#firmato").is(':checked')? 1: 0,
+                    online: 0,
+                    clil: 0,
+                    orientamento: 0,
+                    studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
+                }, function (data, status) {
+                    $("#sportello_modal").modal("hide");
+                    sportelloReadRecords();
+                });
+            }
+    }
 }
 
 function confermaCancellato() {
@@ -151,7 +241,7 @@ function sportelloGetDetails(sportello_id) {
         $.post("../docente/sportelloReadDetails.php", {
             sportello_id: sportello_id
         }, function (data, status) {
-            // console.log(data);
+            //console.log(data);
             var sportello = JSON.parse(data);
             var cancellato = sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null;
             var firmato = sportello.sportello_firmato != 0 && sportello.sportello_firmato != null;
@@ -162,13 +252,24 @@ function sportelloGetDetails(sportello_id) {
             $("#numero_ore").val(sportello.sportello_numero_ore);
             $("#argomento").val(sportello.sportello_argomento);
             $("#luogo").val(sportello.sportello_luogo);
-            $("#classe").val(sportello.sportello_classe);
+            if ($('#hidden_lista_classi').val() == 'testo')
+            {
+                $("#classe").val(sportello.classe);    
+            }
+            else
+            {
+                $('#classe').selectpicker('val', sportello.classe_id);
+            }
             $("#max_iscrizioni").val(sportello.sportello_max_iscrizioni);
             $("#cancellato").prop('checked', sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null);
             $("#firmato").prop('checked', sportello.sportello_firmato != 0 && sportello.sportello_firmato != null);
-            $("#online").prop('checked', sportello.sportello_online != 0 && sportello.sportello_online != null);
-            $("#clil").prop('checked', sportello.sportello_clil != 0 && sportello.sportello_clil != null);
-            $("#orientamento").prop('checked', sportello.sportello_orientamento != 0 && sportello.sportello_orientamento != null);
+
+            if ($('#hidden_sezione_online_clil').val() == 'true')
+            {
+                $("#online").prop('checked', sportello.sportello_online != 0 && sportello.sportello_online != null);
+                $("#clil").prop('checked', sportello.sportello_clil != 0 && sportello.sportello_clil != null);
+                $("#orientamento").prop('checked', sportello.sportello_orientamento != 0 && sportello.sportello_orientamento != null);
+            }
             // abilita la firma se non firmato
             if (! firmato && ! cancellato) {
                 $("#firma_sportello_button_id").show();
@@ -207,13 +308,18 @@ function sportelloGetDetails(sportello_id) {
         $("#numero_ore").val("0");
         $("#argomento").val("");
         $("#luogo").val("");
-        $("#classe").val("");
+        $('#classe').val("0");
+        $("#classe").selectpicker('refresh');
         $("#max_iscrizioni").val($("#hidden_max_iscrizioni_default").val());
         $("#cancellato").prop('checked', false);
         $("#firmato").prop('checked', false);
-        $("#onine").prop('checked', false);
-        $("#clil").prop('checked', false);
-        $("#orientamento").prop('checked', false);
+
+        if ($('#hidden_sezione_online_clil').val() == 'true')
+        {
+            $("#onine").prop('checked', false);
+            $("#clil").prop('checked', false);
+            $("#orientamento").prop('checked', false);
+        }
     }
 	$("#_error-materia-part").hide();
     $("#sportello_modal").modal("show");

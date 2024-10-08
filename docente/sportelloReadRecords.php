@@ -58,6 +58,8 @@ $query = "	SELECT
 			ON sportello.docente_id = docente.id
 			INNER JOIN materia materia
 			ON sportello.materia_id = materia.id
+			INNER JOIN classe classe
+			ON sportello.classe_id = classe.id			
 			WHERE 
 				sportello.docente_id = $__docente_id
 			AND

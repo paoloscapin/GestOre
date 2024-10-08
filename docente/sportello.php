@@ -57,12 +57,30 @@ ruoloRichiesto('docente');
 <?php
 
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
-$materiaFiltroOptionList = '<option value="0">tutte</option>';
 $materiaOptionList = '<option value="0"></option>';
 foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materia) {
-    $materiaFiltroOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
     $materiaOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
 }
+
+$nclassi = dbGetValue (" SELECT COUNT(*) FROM classe WHERE classe.attiva=1");
+
+$classeOptionList = "";
+
+info("NCLASSI: " . $nclassi);
+if ($nclassi>0)
+{
+    // prepara l'elenco delle materie per il filtro e per le materie del dialog
+    $classeOptionList = '<option value="0"></option>';
+    foreach(dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ")as $classe) {
+        $classeOptionList .= ' <option value="'.$classe['id'].'" >'.$classe['nome'].'</option> ';
+    }
+}
+else
+{
+    $classeOptionList .= 'empty';
+    info("classe option list: " . $classeOptionList);
+}
+
 ?>
 
 <body >
@@ -163,10 +181,36 @@ require_once '../common/connect.php';
                     <div class="col-sm-8"><input type="text" id="luogo" class="form-control" placeholder="aula o laboratorio in cui si svolge lo sportello" /></div>
                 </div>
 
-                <div class="form-group">
+                <?php
+
+                if ($classeOptionList == "empty") // se la tabella classe è vuota allora metti una casella di testo
+                {
+                    echo '
+                    <input type="hidden" id="hidden_lista_classi" value="testo">
+
+                    <div class="form-group classe_selector">
                     <label class="col-sm-2 control-label" for="classe">Classe</label>
-                    <div class="col-sm-8"><input type="text" id="classe" class="form-control" placeholder="se si desidera specificare la classe/classi a cui si rivolge" /></div>
-                </div>
+				    <div class="col-sm-8"><input type="text" id="classe" placeholder="classi a cui è rivolto lo sportello" class="form-control"/></div>
+                	</select></div>
+                </div>';
+
+                }
+                else // altrimenti crea e popola una combobox
+                {
+                    info("AIUTO + " . $classeOptionList);
+                    $txt_echo = '
+                    <input type="hidden" id="hidden_lista_classi" value="lista">
+                    <div class="form-group classe_selector">
+                        <label class="col-sm-2 control-label" for="classe">Classe</label>
+                        <div class="col-sm-8"><select id="classe" name="classe" class="classe selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >';
+                    $txt_echo .= $classeOptionList;
+                    $txt_echo .= '</select></div>
+                    </div>';
+                    info("TXT ECO: " . $txt_echo);
+                    echo $txt_echo;
+                }
+
+                ?>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="max_iscrizioni">Max Iscrizioni</label>
@@ -183,7 +227,12 @@ require_once '../common/connect.php';
                     <div class="col-sm-1 "><input type="checkbox" id="clil" ></div>
                     <label for="orientamento" class="col-sm-2 control-label">Orientamento</label>
                     <div class="col-sm-1 "><input type="checkbox" id="orientamento" ></div>
+                    <input type="hidden" id="hidden_sezione_online_clil" value="true">
                 </div>';
+                }
+                else
+                {
+                    echo '<input type="hidden" id="hidden_sezione_online_clil" value="false">';
                 }
                 ?>
                 <div class="form-group">
@@ -222,6 +271,12 @@ require_once '../common/connect.php';
                     <hr>
                     <div class="col-sm-3 text-right text-danger ">Attenzione</div>
                     <div class="col-sm-9" id="_error-materia"></div>
+				</strong></div>
+
+                <div class="form-group" id="_error-classe-part"><strong>
+                    <hr>
+                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                    <div class="col-sm-9" id="_error-classe"></div>
 				</strong></div>
 
                 <input type="hidden" id="hidden_sportello_id">

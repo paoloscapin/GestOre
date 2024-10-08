@@ -72,6 +72,9 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
     // $sportello += ["studenti" => $studenti];
     $sportello['studenti'] = $studenti;
 
+    info("MAX ISCRIZIONI SPORTELLO: " . $sportello['sportello_max_iscrizioni']);
+    $struct_json = json_encode($sportello);
+    info("STRUTTURA JSON: " . $struct_json);
 	echo json_encode($sportello);
 }
 ?>
