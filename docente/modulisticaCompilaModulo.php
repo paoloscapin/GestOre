@@ -62,6 +62,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
 }
 
 $listaCampi = [];
+$listaCampoNumeroElementi = [];
 $listaCampiId = [];
 $listaEtichette = [];
 $listaValoriDefault = [];
@@ -76,6 +77,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
     $tip = $campo['tip'];
     $tipo = $campo['tipo'];
     $obbligatorio = $campo['obbligatorio'];
+    $campoNumeroElementi = 0;
 
     echo('<div class="form-group">');
     echo('<label class="col-sm-2 control-label" for="'.$nome.'">'.$etichetta.'</label>');
@@ -96,11 +98,10 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
         echo('</select>');
     } else if($tipo == 3) {
         // tipo 3 = checkbox
-        $posizione = 1;
         foreach(explode("::", $listaValori) as $valore) {
-            echo('<div class="checkbox"><label><input type="checkbox" id='.$nome.'_'.$posizione.' value="">');
+            echo('<div class="checkbox"><label><input type="checkbox" id='.$nome.'_'.$campoNumeroElementi.' value="">');
             echo($valore.'</label></div>');
-            $posizione += 1;
+            $campoNumeroElementi += 1;
         }
     }
 
@@ -109,6 +110,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
 
     $listaCampiId[] = $id;
     $listaCampi[] = $nome;
+    $listaCampoNumeroElementi[] = $campoNumeroElementi;
     $listaEtichette[] = $etichetta;
     $listaValoriDefault[] = $valore_default;
     $listaTipi[] = $tipo;
@@ -162,6 +164,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
 
 <input type="hidden" id="hidden_lista_campi_id" value='<?php echo(json_encode($listaCampiId)); ?>'>
 <input type="hidden" id="hidden_lista_campi" value='<?php echo(json_encode($listaCampi)); ?>'>
+<input type="hidden" id="hidden_lista_campo_numero_elementi" value='<?php echo(json_encode($listaCampoNumeroElementi)); ?>'>
 <input type="hidden" id="hidden_lista_etichette" value='<?php echo(json_encode($listaEtichette)); ?>'>
 <input type="hidden" id="hidden_lista_tipi" value='<?php echo(json_encode($listaTipi)); ?>'>
 <input type="hidden" id="hidden_lista_obbligatori" value='<?php echo(json_encode($listaObbligatori)); ?>'>

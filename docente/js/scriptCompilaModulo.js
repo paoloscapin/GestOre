@@ -68,15 +68,34 @@ function aggiornaContenutoDocumento() {
 
     // sostituisce tutti i campi che trova con i valori inseriti dall'utente
     for(var i = 0; i < listaCampi.length; i++){
-        var valore = $("#" + listaCampi[i]).val();
+        // a seconda del tipo trova il valore
+        if (listaTipi[i] == 1 || listaTipi[i] == 2) {
+            // tipo 1 = testo semplice e tipo 2 = combo box (select option): prende il valore inserito
+            var valore = $("#" + listaCampi[i]).val();
+            documento = documento.replaceAll('{{' + listaCampi[i] + '}}', valore);
+
+        } else if (listaTipi[i] == 3 || listaTipi[i] == 4) {
+            // tipo 3 = checkbox e tipo 4 = radio: deve prendere tutti i valori dei checkbox del gruppo
+            valore = '';
+            for (j = 0; j < listaCampoNumeroElementi[i]; j++) {
+                if ($("#" + listaCampi[i] + "_" + j).is(':checked')) {
+                    if (valore != '') {
+                        valore += '::';
+                    }
+                    documento = documento.replaceAll('{{' + listaCampi[i] + "_" + j + '}}', '&#x2612; ');
+                    valore += j;
+                } else {
+                    documento = documento.replaceAll('{{' + listaCampi[i] + "_" + j + '}}', '&#x2610; ');
+                }
+
+            }
+        }
 
         // controlla se era obbligatorio e risulta vuoto deve essere riempito
         if (obbligatoriCompletati && valore == '' && listaObbligatori[i] == true) {
             obbligatoriCompletati = false;
             alert('Il campo ' + listaCampi[i] + ' è obbligatorio');
         }
-
-        documento = documento.replaceAll('{{' + listaCampi[i] + '}}', valore);
 
         // aggiunge il valore letto alla lista dei valori
         listaValori.push(valore);
@@ -106,6 +125,7 @@ function generateGuid() {
 $(document).ready(function () {
     // memorizza la lista dei campi, tipi e se sono obbligatori oppure no
     listaCampi = JSON.parse($("#hidden_lista_campi").val());
+    listaCampoNumeroElementi = JSON.parse($("#hidden_lista_campo_numero_elementi").val());
     listaCampiId = JSON.parse($("#hidden_lista_campi_id").val());
     listaEtichette = JSON.parse($("#hidden_lista_etichette").val());
     listaTipi = JSON.parse($("#hidden_lista_tipi").val());
