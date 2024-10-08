@@ -269,8 +269,22 @@ function sportelloGetDetails(sportello_id) {
                 $("#online").prop('checked', sportello.sportello_online != 0 && sportello.sportello_online != null);
                 $("#clil").prop('checked', sportello.sportello_clil != 0 && sportello.sportello_clil != null);
                 $("#orientamento").prop('checked', sportello.sportello_orientamento != 0 && sportello.sportello_orientamento != null);
+                $("#online").prop('disabled', $('#hidden_modifica_sportelli').val());
+                $("#clil").prop('disabled', $('#hidden_modifica_sportelli').val());
+                $("#orientamento").prop('disabled', $('#hidden_modifica_sportelli').val());
             }
-            // abilita la firma se non firmato
+
+            $("#ora").prop('disabled', $('#hidden_modifica_sportelli').val());
+            $("#data").prop('disabled', $('#hidden_modifica_sportelli').val());
+            $("#max_iscrizioni").prop('disabled', $('#hidden_modifica_sportelli').val());
+            $("#docente").prop('disabled', $('#hidden_modifica_sportelli')).val();
+            $("#materia").prop('disabled', $('#hidden_modifica_sportelli').val());
+            $("#numero_ore").prop('disabled', $('#hidden_modifica_sportelli').val());
+            $("#argomento").prop('disabled', $('#hidden_modifica_sportelli').val());
+            $("#luogo").prop('disabled', $('#hidden_modifica_sportelli').val());
+            $("#classe").prop('disabled', $('#hidden_modifica_sportelli').val());
+
+                // abilita la firma se non firmato
             if (! firmato && ! cancellato) {
                 $("#firma_sportello_button_id").show();
             } else {

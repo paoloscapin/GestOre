@@ -81,12 +81,15 @@ else
     info("classe option list: " . $classeOptionList);
 }
 
+$modifica_sportelli = '<input type="hidden" id="hidden_modifica_sportelli" value=' . !$__settings->sportelli->docente_puo_modificare . '>';
 ?>
 
 <body >
 <?php
 require_once '../common/header-docente.php';
 require_once '../common/connect.php';
+
+echo $modifica_sportelli;
 ?>
 
 <div class="container-fluid" style="margin-top:60px">

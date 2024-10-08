@@ -90,7 +90,8 @@
         "unSoloArgomento": true,
         "prenotaMaxSettimanaSuccessiva": true,
         "sezione_online_clil_orientamento_visibile": false,
-        "inseriti_da_docente": false
+        "inseriti_da_docente": false,
+        "docente_puo_modificare": false
     },
     "pianiDiLavoro": {
         "competenze": true,
