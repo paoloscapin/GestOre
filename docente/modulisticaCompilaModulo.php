@@ -81,17 +81,27 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
     echo('<label class="col-sm-2 control-label" for="'.$nome.'">'.$etichetta.'</label>');
     echo('<div class="col-sm-10">');
     if ($tipo == 1) {
+        // tipo 1 = testo semplice
         echo('<input type="text" id="'.$nome.'" placeholder="'.$tip.'" class="form-control"');
         if (array_key_exists($nome, $valoriNoti)) {
             echo(' value="'. $valoriNoti[$nome] . '"');
         }
         echo ('/>');
     } else if($tipo == 2) {
+        // tipo 2 = combo box (select option)
         echo('<select id="'.$nome.'" placeholder="'.$tip.'">');
         foreach(explode("::", $listaValori) as $valore) {
-            echo('<option value="'.$valore.'">'.$valore.'</option>');            
+            echo('<option value="'.$valore.'">'.$valore.'</option>');
         }
         echo('</select>');
+    } else if($tipo == 3) {
+        // tipo 3 = checkbox
+        $posizione = 1;
+        foreach(explode("::", $listaValori) as $valore) {
+            echo('<div class="checkbox"><label><input type="checkbox" id='.$nome.'_'.$posizione.' value="">');
+            echo($valore.'</label></div>');
+            $posizione += 1;
+        }
     }
 
     echo('</div>');
