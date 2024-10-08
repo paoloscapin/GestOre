@@ -35,6 +35,7 @@ function sportelloReadRecords() {
 	$.get("sportelloReadRecords.php?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id, {}, function (data, status) {
 		$(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
+            trigger: 'hover',
             container: 'body'
         });
 	});
@@ -42,6 +43,7 @@ function sportelloReadRecords() {
 
 function sportelloCancellaIscrizione(sportello_id, materia) {
     var conf = confirm("Sei sicuro di volere cancellare la tua iscrizione dallo sportello di " + materia + " ?");
+
     if (conf == true) {
         $.post("../studente/sportelloCancellaIscrizione.php", {
                 id: sportello_id,
