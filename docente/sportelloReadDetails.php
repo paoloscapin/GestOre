@@ -11,6 +11,7 @@ require_once '../common/checkSession.php';
 
 if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
 	$sportello_id = $_POST['sportello_id'];
+    info("SPORTELLO ID READ DETAILS DOCENTE: " . $sportello_id);
 
     $query = "SELECT
             sportello.id as sportello_id,
@@ -31,7 +32,7 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
             docente.cognome AS docente_cognome,
             docente.nome AS docente_nome,
             docente.id AS docente_id,
-
+            classe.id AS classe_id,
             materia.nome AS materia_nome,
             materia.id AS materia_id
 
@@ -41,6 +42,8 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
         ON sportello.docente_id = docente.id
         INNER JOIN materia
         ON sportello.materia_id = materia.id
+        INNER JOIN classe
+        ON sportello.classe_id = classe.id
         WHERE sportello.id = '$sportello_id';";
 
     $sportello = dbGetFirst($query);

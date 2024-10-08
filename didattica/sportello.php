@@ -78,10 +78,25 @@ foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materi
 
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
 $classeFiltroOptionList = '<option value="0">tutte</option>';
-$classeOptionList = '<option value="0"></option>';
-foreach(dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ")as $classe) {
-    $classeFiltroOptionList .= ' <option value="'.$classe['id'].'" >'.$classe['nome'].'</option> ';
-    $classeOptionList .= ' <option value="'.$classe['id'].'" >'.$classe['nome'].'</option> ';
+
+$nclassi = dbGetValue (" SELECT COUNT(*) FROM classe WHERE classe.attiva=1");
+
+$classeOptionList = "";
+
+info("NCLASSI: " . $nclassi);
+if ($nclassi>0)
+{
+    $classeOptionList = '<option value="0"></option>';
+    foreach(dbGetAll("SELECT * FROM classe WHERE classe.attiva=1 ORDER BY classe.nome ASC ; ")as $classe) {
+        $classeFiltroOptionList .= ' <option value="'.$classe['id'].'" >'.$classe['nome'].'</option> ';
+        $classeOptionList .= ' <option value="'.$classe['id'].'" >'.$classe['nome'].'</option> ';
+    }
+    info("classe option list: " . $classeOptionList);
+}
+else
+{
+    $classeOptionList .= 'empty';
+    info("classe option list: " . $classeOptionList);
 }
 
 ?>
@@ -209,10 +224,34 @@ require_once '../common/header-didattica.php';
                     <div class="col-sm-8"><input type="text" id="luogo" placeholder="aula o laboratorio in cui si svolge lo sportello" class="form-control"/></div>
                 </div>
 
-                <div class="form-group">
+                <?php
+                info("AIUTO");
+                if ($classeOptionList == "empty") // se la tabella classe è vuota allora metti una casella di testo
+                {
+                    echo '
+                    <input type="hidden" id="hidden_lista_classi" value="testo">
+
+                    <div class="form-group classe_selector">
                     <label class="col-sm-2 control-label" for="classe">Classe</label>
-                    <div class="col-sm-8"><input type="text" id="classe" placeholder="se si desidera specificare la classe/classi a cui si rivolge" class="form-control"/></div>
-                </div>
+				    <div class="col-sm-8"><input type="text" id="classe" placeholder="classi a cui è rivolto lo sportello" class="form-control"/></div>
+                	</select></div>
+                </div>';
+
+                }
+                else // altrimenti crea e popola una combobox
+                {
+                    echo '
+                    <input type="hidden" id="hidden_lista_classi" value="lista">
+                    <div class="form-group classe_selector">
+                        <label class="col-sm-2 control-label" for="classe">Classe</label>
+                        <div class="col-sm-8"><select id="classe" name="classe" class="classe selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >';
+                    echo $classeOptionList;
+                    echo '</select></div>
+                    </div>
+                ';
+                }
+
+                ?>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="max_iscrizioni">Max Iscrizioni</label>
@@ -229,7 +268,13 @@ require_once '../common/header-didattica.php';
                     <div class="col-sm-1 "><input type="checkbox" id="clil" ></div>
                     <label for="orientamento" class="col-sm-2 control-label">Orientamento</label>
                     <div class="col-sm-1 "><input type="checkbox" id="orientamento" ></div>
-                </div>';
+                    </div>
+                    <input type="hidden" id="hidden_sezione_online_clil" value="true">
+                    ';
+                }
+                else
+                {
+                    echo '<input type="hidden" id="hidden_sezione_online_clil" value="false">';
                 }
                 ?>
 
@@ -261,6 +306,12 @@ require_once '../common/header-didattica.php';
                     <div class="col-sm-9" id="_error-materia"></div>
 				</strong></div>
 
+                <div class="form-group" id="_error-classe-part"><strong>
+                    <hr>
+                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                    <div class="col-sm-9" id="_error-classe"></div>
+				</strong></div>
+
                 <input type="hidden" id="hidden_sportello_id">
                 <input type="hidden" id="hidden_max_iscrizioni_default" value="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>">
 			</form>
@@ -279,7 +330,12 @@ require_once '../common/header-didattica.php';
 
 </div>
 
+<?php 
+info("PRIMA DEL JAVASCRIPT"); ?>
 <!-- Custom JS file -->
 <script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>"></script>
+<?php
+info("DOPO DEL JAVASCRIPT");
+?>
 </body>
 </html>
