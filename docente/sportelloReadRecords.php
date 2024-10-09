@@ -82,17 +82,24 @@ foreach($resultArray as $row) {
 	$sportello_id = $row['sportello_id'];
 	$statoMarker = '';
 	if ($row['sportello_cancellato']) {
-		$statoMarker .= '<span class="label label-danger">cancellato</span>';
-	}
-	if ($row['sportello_firmato']) {
-		$statoMarker .= '<span class="label label-success">firmato</span>';
-	}
-	if (($row['sportello_max_iscrizioni']) == ($row['numero_studenti'])) {
-		$statoMarker .= '<span class="label label-danger">posti esauriti</span>';
+		$statoMarker .= '<span class="label label-default">cancellato</span>';
 	}
 	else
 	{
-		$statoMarker .= '<span class="label label-success">posti disponibili</span>';
+		if ($row['sportello_firmato']) 
+		{
+			$statoMarker .= '<span class="label label-primary">firmato</span>';
+		}
+		else
+		{
+			if (($row['sportello_max_iscrizioni']) == ($row['numero_studenti'])) {
+				$statoMarker .= '<span class="label label-danger">posti esauriti</span>';
+			}
+			else
+			{
+				$statoMarker .= '<span class="label label-success">posti disponibili</span>';
+			}
+		}
 	}
 	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
 	$dataSportello = utf8_encode( strftime("%d %B %Y", strtotime($row['sportello_data'])));
@@ -133,54 +140,36 @@ foreach($resultArray as $row) {
 	}
 
 	$sportello_cancellato = $row['sportello_cancellato'];
-	if (!$sportello_cancellato)
+	$barrato = '';
+	if ($sportello_cancellato)
 	{
-	$data .= '<tr>
-		<td align="center">'.$dataSportello.'</td>
-		<td align="center">'.$row['sportello_ora'].'</td>
-		<td>'.$row['materia_nome'].'</td>
-		<td>'.$row['sportello_argomento'].'</td>
-		<td align="center">'.$row['sportello_numero_ore'].'</td>
-		<td align="center">'.$row['sportello_classe'].'</td>
-		<td>'.$luogo_or_onine_marker.'</td>
-		<td class="text-center">'.$statoMarker.'</td>
-		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
-		<td class="text-center">'.$row['sportello_max_iscrizioni'].'</td>
-		';
-	$data .='
-		<td class="text-center">
-		<button onclick="sportelloGetDetails('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
-		</td>
-		</tr>';
-	//
-	// rimossa possibilità al docente di cancellare sportello
-	//	<button onclick="sportelloDelete('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-    //
+		$barrato='<s>';
 	}
-	else
-	{
-		$data .= '<tr>
-		<td align="center"><s>'.$dataSportello.'</td>
-		<td align="center"><s>'.$row['sportello_ora'].'</td>
-		<td><s>'.$row['materia_nome'].'</td>
-		<td><s>'.$row['sportello_argomento'].'</td>
-		<td align="center"><s>'.$row['sportello_numero_ore'].'</td>
-		<td align="center"><s>'.$row['sportello_classe'].'</td>
-		<td><s>'.$luogo_or_onine_marker.'</td>
+	
+	$data .= '<tr>
+		<td align="center">'.$barrato.$dataSportello.'</td>
+		<td align="center">'.$barrato.$row['sportello_ora'].'</td>
+		<td>'.$barrato.$row['materia_nome'].'</td>
+		<td>'.$barrato.$row['sportello_argomento'].'</td>
+		<td align="center">'.$barrato.$row['sportello_numero_ore'].'</td>
+		<td align="center">'.$barrato.$row['sportello_classe'].'</td>
+		<td>'.$barrato.$luogo_or_onine_marker.'</td>
 		<td class="text-center">'.$statoMarker.'</td>
-		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'"><s>'.$row['numero_studenti'].'</td>
-		<td class="text-center">'.$row['sportello_max_iscrizioni'].'</td>
+		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$barrato.$row['numero_studenti'].'</td>
+		<td class="text-center">'.$barrato.$row['sportello_max_iscrizioni'].'</td>
 		';
 	$data .='
 		<td class="text-center">
 		<button onclick="sportelloGetDetails('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
 		</td>
 		</tr>';
-	//
-	// rimossa possibilità al docente di cancellare sportello
-	//	<button onclick="sportelloDelete('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-    //
-}
+
+	if ($__settings->sportelli->docente_puo_eliminare)
+		{
+		$data .='
+			<button onclick="sportelloDelete('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		';
+	}
 }
 
 $data .= '</table></div>';

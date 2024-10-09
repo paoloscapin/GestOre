@@ -95,17 +95,27 @@ if ($resultArray == null) {
 foreach($resultArray as $row) {
 	$sportello_id = $row['sportello_id'];
 	$statoMarker = '';
-	if ($row['sportello_cancellato']) {
-		$statoMarker .= '<span class="label label-danger">cancellato</span>';
+	if ($row['sportello_cancellato']) 
+	{
+		$statoMarker .= '<span class="label label-default">cancellato</span>';
 	}
-	if ($row['sportello_firmato']) {
-		$statoMarker .= '<span class="label label-success">firmato</span>';
-	}
-	if ($row['numero_studenti'] == $row['sportello_max_iscrizioni']) {
-		$statoMarker .= '<span class="label label-danger">posti esauriti</span>';
-	}
-	else{
-		$statoMarker .= '<span class="label label-success">posti disponibili</span>';
+	else
+	{
+		if ($row['sportello_firmato']) 
+		{
+			$statoMarker .= '<span class="label label-primary">firmato</span>';
+		}
+		else
+		{
+			if ($row['numero_studenti'] == $row['sportello_max_iscrizioni']) 
+			{
+				$statoMarker .= '<span class="label label-danger">posti esauriti</span>';
+			}
+			else
+			{
+				$statoMarker .= '<span class="label label-success">posti disponibili</span>';
+			}
+		}
 	}
 
 	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
@@ -144,16 +154,22 @@ foreach($resultArray as $row) {
 		$luogo_or_onine_marker = '<span class="label label-danger">online</span>';
 	}
 
+	$sportello_cancellato = $row['sportello_cancellato'];
+	$barrato = '';
+	if ($sportello_cancellato)
+	{
+		$barrato='<s>';
+	}
 	$data .= '<tr>
-		<td align="center">'.$dataSportello.'</td>
-		<td align="center">'.$row['sportello_ora'].'</td>
-		<td>'.$row['materia_nome'].'</td>
-		<td align="center">'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
-		<td align="center">'.$row['sportello_numero_ore'].'</td>
-		<td align="center">'.$row['sportello_classe'].'</td>
-		<td class="text-center">'.$luogo_or_onine_marker.'</td>
+		<td align="center">'.$barrato.$dataSportello.'</td>
+		<td align="center">'.$barrato.$row['sportello_ora'].'</td>
+		<td>'.$barrato.$row['materia_nome'].'</td>
+		<td align="center">'.$barrato.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
+		<td align="center">'.$barrato.$row['sportello_numero_ore'].'</td>
+		<td align="center">'.$barrato.$row['sportello_classe'].'</td>
+		<td class="text-center">'.$barrato.$luogo_or_onine_marker.'</td>
 		<td class="text-center">'.$statoMarker.'</td>
-		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
+		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$barrato.$row['numero_studenti'].'</td>
 		';
 	$data .='
 		<td class="text-center">
