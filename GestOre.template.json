@@ -88,6 +88,7 @@
         "nascondiNomeStudenti": false,
         "chiusuraIscrizioniGiorni": 1,
         "unSoloArgomento": true,
+        "import_sportelli_docente_stesso_orario": true,
         "prenotaMaxSettimanaSuccessiva": true,
         "sezione_online_clil_orientamento_visibile": false,
         "inseriti_da_docente": false,
