@@ -63,8 +63,8 @@ function sportelloSave() {
 		return;
 	}
     if ($("#classe").val() <= 0) {
-		$("#_error-classe").text("Devi selezionare una classe");
-		$("#_error-classe-part").show();
+		$("#_error-materia").text("Devi selezionare una classe");
+		$("#_error-materia-part").show();
 		return;
 	}
 	if ($("#docente").val() <= 0) {
@@ -253,6 +253,7 @@ function sportelloGetDetails(sportello_id) {
             $("#clil").prop('checked', false);
             $("#orientamento").prop('checked', false);
         }
+        $('#studenti_table tbody').empty();
     }
                   
         
