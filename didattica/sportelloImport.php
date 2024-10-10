@@ -28,7 +28,7 @@ function erroreDiImport($messaggio) {
 
     $terminatoCorrettamente = false;
     warning("Errore di import linea $linePos: " . $messaggio);
-    $dataHtml = $dataHtml . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
+    $dataHtml = $dataHtml . "<strong>Errore di import linea $linePos:</strong> " . $messaggio .'<br>';
 
     // azzera le istruzioni sql
     $sqlList = '';
