@@ -56,7 +56,7 @@ function sportelloCancellaIscrizione(sportello_id, materia) {
     }
 }
 
-function sportelloIscriviti(sportello_id, materia, argomento, data, ora, numero_ore, luogo, studente_cognome, studente_nome, studente_email, studente_classe, docente_cognome, docente_nome) {
+function sportelloIscriviti(sportello_id, materia, argomento, data, ora, numero_ore, luogo, studente_cognome, studente_nome, studente_email, studente_classe, docente_cognome, docente_nome, docente_email) {
     var unSoloArgomento = $("#hidden_unSoloArgomento").val() == 0 ? false : true;
     // console.log('unSoloArgomento=' + unSoloArgomento);
     // console.log('argomento=' + argomento);
@@ -117,7 +117,8 @@ function sportelloIscriviti(sportello_id, materia, argomento, data, ora, numero_
                 studente_email: studente_email,
                 studente_classe: studente_classe,
                 docente_cognome: docente_cognome,
-                docente_nome: docente_nome
+                docente_nome: docente_nome,
+                docente_email: docente_email
             },
             function (data, status) {
                 sportelloReadRecords();
