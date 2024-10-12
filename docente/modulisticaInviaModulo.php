@@ -26,21 +26,30 @@ if(! isset($_POST)) {
 	$richiesta_id = $_POST['richiesta_id'];
 	$documento = $_POST['documento'];
     $docente_id = $_POST['docente_id'];
-    $email_to = $_POST['email_to'];
     $approva_id = $_POST['approva_id'];
-	$listaEtichette = json_decode($_POST['listaEtichette']);
 	$listaValori = json_decode($_POST['listaValori']);
 
     $docente_nome = $__docente_nome;
     $docente_cognome = $__docente_cognome;
     $docente_email = $__docente_email;
     $nomeCognomeDocente = $docente_nome . ' ' . $docente_cognome;
-    $anno = date("Y");;
+    $anno = date("Y");
 
     // recupera i dati del template e della richiesta
     $template = dbGetFirst("SELECT * FROM modulistica_template WHERE id = $template_id;");
+    $email_to = $template['email_to'];
+    $email_approva = $template['email_approva'];
 
-    // se deve essere approvata allora legge i dati della richiesta (serve solo lo uuid)
+	$listaEtichette = [];
+	$listaTipi = [];
+	$listaValoriSelezionabili = [];
+	foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $template_id;") as $campo) {
+		$listaEtichette[] = $campo['etichetta'];
+		$listaValoriSelezionabili[] = $campo['lista_valori'];
+		$listaTipi[] = $campo['tipo'];
+	}
+
+	// se deve essere approvata allora legge i dati della richiesta (serve solo lo uuid)
     if ($template['approva']) {
         $richiesta = dbGetFirst("SELECT * FROM modulistica_richiesta WHERE id = $richiesta_id;");
     }
@@ -50,12 +59,8 @@ $pagina .= '<html><head>
 <link rel="icon" href="'.$__application_base_path.'/ore-32.png" />
 <link rel="stylesheet" href="'.$__application_base_path.'/css/releaseversion.css">';
 
-
 // ricava il titolo in modo generale
-$titolo = $template['nome'] .' - ' . $nomeCognomeDocente . ' - ' . $anno;
-debug('titolo=' . $titolo);
-$version = phpversion();
-debug('version=' . $version);
+$titolo = '[M-' . $richiesta_id . '] ' . $template['nome'] .' - ' . $nomeCognomeDocente . ' - ' . $anno;
 
 // aggiunge nella pagina il titolo e gli stili
 $pagina .= '<title>' . $titolo . '</title>';
@@ -116,27 +121,28 @@ debug('pdfFileName=' . $pdfFileName);
 
 // produce il pdf da inviare
 $outputPdf = $dompdf->output();
+$encoding = 'base64';
+$type = 'application/pdf';
 
-// ------------------------------------------------------------------
-// invio della email al docente richiedente
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// ora deve inviare la emai potenzialmente a tre diversi destinatari: il docente richiedente, l'ufficio competente, il dirigente se richiede approvazione
+// 1: invio della email al docente richiedente
 $mail = new PHPMailer(true);
-
-$sender = getSettingsValue('local', 'emailNoReplyFrom', '');
-$mail->setFrom($sender, 'no replay');
+$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no replay');
 $mail->addAddress($docente_email, $nomeCognomeDocente);
 
 // subject
 $mail->Subject = $titolo;
 $mail->isHTML(TRUE);
-$mail->Body = "<html><body><p>Gentile ".$nomeCognomeDocente.", allegato troverai il modulo ".$titolo." che hai inviato</p>";
+$mail->Body = '<html>'.getEmailHead().'<body>';
+$mail->Body .= "<p>Gentile ".$nomeCognomeDocente.", allegato troverai il modulo ".$template['nome']." che hai inviato</p>";
 $mail->Body .= "<b>&Egrave; tua responsabilit&agrave; controllare che i dati riportati siano corretti</b></p></body></html>";
-$mail->Body .= "<p>Se dovessi trovare delle incongruenze con quanto da te compilato avvisa subito la segreteria inviando una email all'indirizzo</p>";
+$mail->Body .= "<p>Se dovessi trovare delle incongruenze con quanto da te compilato avvisa subito la segreteria inviando una email all'indirizzo: " . $email_to . "</p>";
+$mail->Body .= produciTabella();
 $mail->Body .= "</body></html>";
-$mail->AltBody = "Gentile ".$nomeCognomeDocente.", allegato troverai il modulo ".$titolo." che hai inviato. E tua responsabilita controllare che i dati riportati siano corretti. Se dovessi trovare delle incongruenze con quanto da te compilato avvisa subito la segreteria inviando una email";
+$mail->AltBody = "Gentile ".$nomeCognomeDocente.", allegato troverai il modulo ".$template['nome']." che hai inviato. E tua responsabilita controllare che i dati riportati siano corretti. Se dovessi trovare delle incongruenze con quanto da te compilato avvisa subito la segreteria inviando una email";
 
 // allega il pdf
-$encoding = 'base64';
-$type = 'application/pdf';
 $mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
 
 // send the message
@@ -147,12 +153,10 @@ if(!$mail->send()){
     return;
 }
 
-// ------------------------------------------------------------------
-// invio della email al email_to con eventuale link di approvazione
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// 2: inoltra la richiesta al destinatario
 $mail = new PHPMailer(true);
-
 $mail->setFrom($docente_email, $nomeCognomeDocente);
-
 // tutti i destinatari separati da virgole
 foreach(explode(',',$email_to) as $address) {
     $mail->addAddress($address, $address);
@@ -162,82 +166,17 @@ foreach(explode(',',$email_to) as $address) {
 $mail->Subject = $titolo;
 $mail->isHTML(TRUE);
 
-
-$head='<head>
-	<style>
-	#campi {
-	  font-family: Arial, Helvetica, sans-serif;
-	  border-collapse: collapse;
-	  width: 100%;
-	}
-	#campi td, #campi th {
-	  border: 1px solid #ddd;
-	  padding: 6px;
-	}
-	#campi tr:nth-child(even){background-color: #f2f2f2;}
-	#campi tr:hover {background-color: #ddd;}
-	#campi th {
-	  padding-top: 6px;
-	  padding-bottom: 6px;
-	  text-align: left;
-	  background-color: #04AA6D;
-	  color: white;
-	}
-    .col1 { width: 25%; }
-    .col2 { width: 75%; }
-
-	.btn-ar {
-		color: #fff;
-		padding: 15px 25px;
-		margin: 20px 25px 10px 25px;
-		background-image: radial-gradient(93% 87% at 87% 89%, rgba(0, 0, 0, 0.23) 0%, transparent 86.18%), radial-gradient(66% 66% at 26% 20%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 69.79%, rgba(255, 255, 255, 0) 100%);
-		box-shadow: inset -3px -3px 9px rgba(255, 255, 255, 0.25), inset 0px 3px 9px rgba(255, 255, 255, 0.3), inset 0px 1px 1px rgba(255, 255, 255, 0.6), inset 0px -8px 36px rgba(0, 0, 0, 0.3), inset 0px 1px 5px rgba(255, 255, 255, 0.6), 2px 19px 31px rgba(0, 0, 0, 0.2);
-		border-radius: 14px;
-		font-weight: bold;
-		font-size: 16px;
-		border: 0;
-		user-select: none;
-		-webkit-user-select: none;
-		touch-action: manipulation;
-		cursor: pointer;
-	}
-	.btn-approva {
-		background-color: #1CAF43;
-	}
-	.btn-respingi {
-		background-color: #F1003C;
-	}
-	</style>
-	</head>';
-
-$mail->Body = '<html>'.$head.'<body>';
+$mail->Body = '<html>'.getEmailHead().'<body>';
 $mail->Body .= "<p>".$nomeCognomeDocente." ha inviato il modulo ".$template['nome'];
 if ($template['approva']) {
     $mail->Body .= " che <b>richiede di essere approvato</b>.";
 }
 $mail->Body .= "</p>";
-
-if ($template['approva']) {
-    $mail->Body .= '<div class="form-group" style="text-align: center"><button class="btn-ar btn-approva" onclick="location.href=\'http://localhost/GestOre/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=approva\'">Approva</button>
-		<button class="btn-ar btn-respingi" onclick="location.href=\'http://localhost/GestOre/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=respingi\'">Respingi</button></div>';
-}
-
-$mail->Body .= "<p>I campi del modulo sono riportati qui di seguito e il pdf generato &egrave; allegato a questa email.</p>";
-
-$mail->Body .= '<table id="campi"><tr><th>nome</th><th>valore</th><tr>';
-
-for ($i = 0; $i < count($listaEtichette); $i++) {
-    $campo = $listaEtichette[$i];
-    $valore = escapeString($listaValori[$i]);
-    $mail->Body .= '<tr><td class="col1">'.$campo.'</td><td class="col2">'.$valore.'</td><tr>';
-}
-$mail->Body .= '</table id="campi"></p>';
-
+$mail->Body .= produciTabella();
 $mail->Body .= "</body></html>";
+$mail->AltBody = $nomeCognomeDocente."ha inviato il modulo ".$template['nome']." qui allegato.";
 
 // allega il pdf
-$encoding = 'base64';
-$type = 'application/pdf';
 $mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
 
 // send the message
@@ -245,5 +184,112 @@ if(!$mail->send()){
     warning('Message could not be sent. ' . 'Mailer Error: ' . $mail->ErrorInfo);
     echo 'errore: messaggio non inviato.';
     echo 'Mailer Error: ' . $mail->ErrorInfo;
+    return;
+}
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// 3: se richiesta l'approvazione, invio della email a chi la deve approvare (con link di approvazione)
+$mail = new PHPMailer(true);
+$mail->setFrom($docente_email, $nomeCognomeDocente);
+// tutti i destinatari che possono approvare separati da virgole
+foreach(explode(',',$email_approva) as $address) {
+    $mail->addAddress($address, $address);
+}
+
+// subject
+$mail->Subject = $titolo;
+$mail->isHTML(TRUE);
+
+$mail->Body = '<html>'.getEmailHead().'<body>';
+$mail->Body .= "<p>".$nomeCognomeDocente." ha inviato il modulo ".$template['nome'];
+if ($template['approva']) {
+    $mail->Body .= " che <b>richiede di essere approvato</b>.";
+}
+$mail->Body .= "</p>";
+
+// inserisce i bottoni per approvare o respingere
+if ($template['approva']) {
+    $mail->Body .= '<div class="form-group" style="text-align: center">
+	<a class="btn-ar btn-approva" href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=approva\'">Approva</a>
+	<a class="btn-ar btn-respingi" href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=respingi\'">Respingi</a>
+	</div>';
+}
+$mail->Body .= "</p>";
+$mail->Body .= produciTabella();
+$mail->Body .= "</body></html>";
+
+// allega il pdf
+$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+
+// send the message
+if(!$mail->send()){
+    warning('Message could not be sent. ' . 'Mailer Error: ' . $mail->ErrorInfo);
+    echo 'errore: messaggio non inviato.';
+    echo 'Mailer Error: ' . $mail->ErrorInfo;
+}
+
+function getEmailHead() {
+	$head='<head><style>
+		#campi { font-family: Arial, Helvetica, sans-serif; border-collapse: collapse; width: 100%; }
+		#campi td, #campi th { border: 1px solid #ddd; padding: 6px; }
+		#campi tr:nth-child(even) { background-color: #f2f2f2; }
+		#campi tr:hover { background-color: #ddd; }
+		#campi th { padding-top: 6px; padding-bottom: 6px; text-align: left; background-color: #04AA6D; color: white; }
+		.col1 { width: 25%; }
+		.col2 { width: 75%; }
+		.tick { margin-left: 0.65cm; text-indent: -0.65cm; }
+		.btn-ar { color: #fff; padding: 15px 25px; margin: 20px 25px 10px 25px;
+			background-image: radial-gradient(93% 87% at 87% 89%, rgba(0, 0, 0, 0.23) 0%, transparent 86.18%), radial-gradient(66% 66% at 26% 20%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 69.79%, rgba(255, 255, 255, 0) 100%);
+			box-shadow: inset -3px -3px 9px rgba(255, 255, 255, 0.25), inset 0px 3px 9px rgba(255, 255, 255, 0.3), inset 0px 1px 1px rgba(255, 255, 255, 0.6), inset 0px -8px 36px rgba(0, 0, 0, 0.3), inset 0px 1px 5px rgba(255, 255, 255, 0.6), 2px 19px 31px rgba(0, 0, 0, 0.2);
+			border-radius: 14px; font-weight: bold; font-size: 16px; border: 0; user-select: none; -webkit-user-select: none; touch-action: manipulation; cursor: pointer; }
+		.btn-approva { background-color: #1CAF43; }
+		.btn-respingi { background-color: #F1003C; }
+		</style></head>';
+
+	return $head;
+}
+
+function produciTabella() {
+	global $listaEtichette;
+	global $listaValori;
+	global $listaTipi;
+	global $listaValoriSelezionabili;
+	$chekboxChecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;" checked></b> ';
+	$chekboxUnchecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;"></b> ';
+	$radioChecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;" checked></b> ';
+	$radioUnchecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;"></b> ';
+
+	$tableBlock = '<p>I campi del modulo sono riportati qui di seguito e il pdf generato &egrave; allegato a questa email.</p>';
+	$tableBlock .= '<table id="campi"><tr><th>nome</th><th>valore</th><tr>';
+	for ($i = 0; $i < count($listaEtichette); $i++) {
+		$campo = $listaEtichette[$i];
+		if ($listaTipi[$i] == 1 || $listaTipi[$i] == 2) {
+			// per tipo 1 e 2 mette solo il valore
+			$valore = escapeString($listaValori[$i]);
+		} else  if ($listaTipi[$i] == 3 || $listaTipi[$i] == 4) {
+			// per 3 e 4 la stringa rappresenta le posizioni in cui i checkbox o radio sono settati e i testi vanno presi da lista valori del db
+			// la trasforma in una lista di stringhe esplodendo i :: come separatori
+			$listaBoxChecked = array_map('intval', explode('::', $listaValori[$i]));
+	
+			$risultato = '';
+			// prende tutte le diciture dei box
+			$localiValoriSelezionabili = explode('::', $listaValoriSelezionabili[$i]);
+			for ($j = 0; $j < count($localiValoriSelezionabili); $j++) {
+				$valoreSelezionabile = $localiValoriSelezionabili[$j];
+	
+				// controlla se questo deve essere marcato
+				if (in_array($j, $listaBoxChecked)) {
+					$risultato = $risultato . $chekboxChecked . $valoreSelezionabile . '</div><br/>';
+				} else {
+					$risultato = $risultato . $chekboxUnchecked . $valoreSelezionabile . '</div><br/>';
+				}
+			}
+	
+			$valore = $risultato;
+		}
+		$tableBlock .= '<tr><td class="col1">'.$campo.'</td><td class="col2">'.$valore.'</td></tr>';
+	}
+	$tableBlock .= '</table>';
+	return $tableBlock;
 }
 ?>

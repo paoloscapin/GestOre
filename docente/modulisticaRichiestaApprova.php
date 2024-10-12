@@ -6,23 +6,62 @@
  *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+require_once '../common/PHPMailer/PHPMailer.php';
+require_once '../common/PHPMailer/Exception.php';
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('docente','dirigente','segreteria-docenti','segreteria-didattica');
+// ruoloRichiesto('docente','dirigente','segreteria-docenti','segreteria-didattica');
 require_once '../common/connect.php';
 require_once '../common/header-common.php';
+
+function produciTabella() {
+}
+
+function notifica($to, $toName, $titolo, $stato, $messaggio) {
+	$mail = new PHPMailer(true);
+	$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no replay');
+	$mail->addAddress($to, $toName);
+
+	// subject
+	$mail->Subject = $stato . $titolo;
+	$mail->isHTML(TRUE);
+
+	$mail->Body = '<html><body>';
+	$mail->Body .= "<p>Il modulo ".$nomeCognomeDocente." ha inviato il modulo ".$template['nome'];
+
+	$mail->Body .= '<p>La richiesta '.$titolo.' &egrave; stata '.$stato.' in data '.date("d/m/Y").'</p>';
+
+	$mail->Body .= produciTabella();
+
+	$mail->Body .= "</body></html>";
+	$mail->AltBody = 'Richiesta '.$titolo.': '.$stato.' in data '.date("d/m/Y");
+
+	// send the message
+	if(!$mail->send()){
+		warning('La notifica non ha funzionato: toName='.$toName.'to='.$to.' Mailer Error='. $mail->ErrorInfo);
+	}
+}
 
 if(! isset($_GET)) {
 	return;
 }
 
-// recupera la richiesta
+// recupera la richiesta e lo uuid (necessario un secondo controllo perche' non ci sono limitazioni di ruolo o controlli di accesso alla pagina)
 $richiesta_id = $_GET['richiesta_id'];
+$uuid = $_GET['uuid'];
 $richiesta = dbGetFirst("SELECT * FROM modulistica_richiesta WHERE id = $richiesta_id;");
+$richiestaUuid = $richiesta['uuid'];
+// controlla lo uuid
+if ($uuid != $richiestaUuid) {
+	warning("uuid errato per la richiesta id=$richiesta_id: uuid ricevuto=".$uuid);
+	redirect("/error/unauthorized.php");
+}
+
 $approvata = $richiesta['approvata'];
 $respinta = $richiesta['respinta'];
 $annullata = $richiesta['annullata'];
-$richiestaUuid = $richiesta['uuid'];
 
 $template_id = $richiesta['modulistica_template_id'];
 $template = dbGetFirst("SELECT * FROM modulistica_template WHERE id = $template_id;");
@@ -31,6 +70,7 @@ $docente_id = $richiesta['docente_id'];
 $docente = dbGetFirst("SELECT * FROM docente WHERE id = $docente_id;");
 
 $nomeCognomeDocente = $docente['nome'] . ' ' . $docente['cognome'];
+$emailDocente = $docente['email'];
 
 $oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
 $dataInvio = utf8_encode( strftime("%d %B %Y", strtotime($richiesta['data_invio'])));
@@ -41,42 +81,53 @@ if ($richiesta['data_approvazione'] != null) {
 }
 setlocale(LC_TIME, $oldLocale);
 
-$titolo = $template['nome'] .' - ' . $nomeCognomeDocente . ' - ' . $dataInvio;
+$titolo = '[M-' . $richiesta_id . '] ' . $template['nome'] .' - ' . $nomeCognomeDocente;
 
 // se e' gia' in stato di approvata, respinta o annullata non prende altri comandi
 if (! $approvata && ! $respinta && ! $annullata) {
+
+	// se c'e' un comando, lo esegue
 	if(isset($_GET['comando'])) {
 		$comando = $_GET['comando'];
-		$uuid = $_GET['uuid'];
 
-		// controlla lo uuid
-		if ($uuid != $richiestaUuid) {
-			warning("uuid errato per la richiesta id=$richiesta_id richiesta=$titolo: uuid ricevuto=".$uuid);
-			redirect("/error/unauthorized.php");
-		}
-	
-		// se c'e' un comando, lo esegue controllando che ci sia il corretto uuid
 		if ($comando == 'approva') {
 			dbExec("UPDATE modulistica_richiesta SET `approvata` = 1 WHERE id = $richiesta_id;");
 			info("approvata la richiesta id=$richiesta_id richiesta=$titolo");
-			redirect('/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id);
+			notifica($emailDocente, $nomeCognomeDocente, $titolo, 'Approvata', '');
+			notifica($template['email_to'], $template['email_to'], $titolo, 'Approvata', '');
 		} else if ($comando == 'respingi') {
 			// todo: chiede la ragione per inserirla nelle motivazioni
 			$mesaggio = "La richiesta viene respinta";
 			dbExec('UPDATE modulistica_richiesta SET `respinta` = 1, `messaggio_respinta` = "'.escapeString($mesaggio).'" WHERE id = '.$richiesta_id.';');
 			info("respinta la richiesta id=$richiesta_id richiesta=$titolo messaggio=$messaggio");
-			redirect('/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id);
+			notifica($emailDocente, $nomeCognomeDocente, $titolo, 'Respinta', $mesaggio);
+			notifica($template['email_to'], $template['email_to'], $titolo, 'Respinta', $mesaggio);
+		} else if ($comando == 'annulla') {
+			// todo: chiede la ragione per inserirla nelle motivazioni
+			$mesaggio = "La richiesta viene annullata";
+			dbExec('UPDATE modulistica_richiesta SET `annullata` = 1, `messaggio_respinta` = "'.escapeString($mesaggio).'" WHERE id = '.$richiesta_id.';');
+			info("annullata la richiesta id=$richiesta_id richiesta=$titolo messaggio=$messaggio");
+			notifica($emailDocente, $nomeCognomeDocente, $titolo, 'Annullata', $mesaggio);
+			notifica($template['email_to'], $template['email_to'], $titolo, 'Annullata', $mesaggio);
 		} else {
 			warning('comando sconosciuto: comando=' . $comando . ": ignorato");
 		}
+
+		// eseguito il comando (o no) fa il redirect
+		redirect('/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$uuid);
 	}
 }
 
+// se arriva qui non ha eseguito comandi per cui può visualizzare lo stato della richiesta
 $listaEtichette = [];
+$listaTipi = [];
+$listaValoriSelezionabili = [];
 $listaValori = [];
 foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $template_id;") as $campo) {
     $etichetta = $campo['etichetta'];
 	$listaEtichette[] = $etichetta;
+	$listaValoriSelezionabili[] = $campo['lista_valori'];
+	$listaTipi[] = $campo['tipo'];
 
 	$template_campo_id = $campo['id'];
 	$richiesta_campo = dbGetFirst("SELECT * FROM modulistica_richiesta_campo WHERE modulistica_richiesta_id = $richiesta_id AND modulistica_template_campo_id = $template_campo_id;");
@@ -107,7 +158,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
 	}
     .col1 { width: 25%; }
     .col2 { width: 75%; }
-
+	.tick { margin-left: 0.65cm; text-indent: -0.65cm; }
 	.btn-ar {
 		color: #fff;
 		padding: 15px 25px;
@@ -136,6 +187,11 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
 	<body>
 <?php
 
+$chekboxChecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;" checked></b> ';
+$chekboxUnchecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;"></b> ';
+$radioChecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;" checked></b> ';
+$radioUnchecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;"></b> ';
+
 $data = '<h2 style="text-align: center">'.$titolo.'</h2>';
 
 // se e' gia' stata approvata o respinta, scrive lo stato e non lascia modificare
@@ -150,8 +206,8 @@ if ($template['approva']) {
 	} else {
 		$data .= '<h3 style="text-align: center">La richiesta non &egrave; ancora stata approvata</h3>';
 		if ($template['approva']) {
-			$data .= '<div class="form-group" style="text-align: center"><button class="btn-ar btn-approva" onclick="location.href=\'http://localhost/GestOre/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&comando=approva\'">Approva</button>
-				<button class="btn-ar btn-respingi" onclick="location.href=\'http://localhost/GestOre/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&comando=respingi\'">Respingi</button></div>';
+			$data .= '<div class="form-group" style="text-align: center"><button class="btn-ar btn-approva" onclick="location.href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$uuid.'&comando=approva\'">Approva</button>
+				<button class="btn-ar btn-respingi" onclick="location.href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$uuid.'&comando=respingi\'">Respingi</button></div>';
 		}
 	}
 }
@@ -162,8 +218,31 @@ $data .= '<table id="campi"><tr><th>nome</th><th>valore</th><tr>';
 
 for ($i = 0; $i < count($listaEtichette); $i++) {
     $campo = $listaEtichette[$i];
-    $valore = escapeString($listaValori[$i]);
-    $data .= '<tr><td class="col1">'.$campo.'</td><td class="col2">'.$valore.'</td><tr>';
+	if ($listaTipi[$i] == 1 || $listaTipi[$i] == 2) {
+		// per tipo 1 e 2 mette solo il valore
+		$valore = escapeString($listaValori[$i]);
+	} else  if ($listaTipi[$i] == 3 || $listaTipi[$i] == 4) {
+		// per 3 e 4 la stringa rappresenta le posizioni in cui i checkbox o radio sono settati e i testi vanno presi da lista valori del db
+		// la trasforma in una lista di stringhe esplodendo i :: come separatori
+		$listaBoxChecked = array_map('intval', explode('::', $listaValori[$i]));
+
+		$risultato = '';
+		// prende tutte le diciture dei box
+		$localiValoriSelezionabili = explode('::', $listaValoriSelezionabili[$i]);
+		for ($j = 0; $j < count($localiValoriSelezionabili); $j++) {
+			$valoreSelezionabile = $localiValoriSelezionabili[$j];
+
+			// controlla se questo deve essere marcato
+			if (in_array($j, $listaBoxChecked)) {
+				$risultato = $risultato . $chekboxChecked . $valoreSelezionabile . '</div><br/>';
+			} else {
+				$risultato = $risultato . $chekboxUnchecked . $valoreSelezionabile . '</div><br/>';
+			}
+		}
+
+		$valore = $risultato;
+	}
+    $data .= '<tr><td class="col1">'.$campo.'</td><td class="col2">'.$valore.'</td></tr>';
 }
 $data .= '</table id="campi"></p>';
 

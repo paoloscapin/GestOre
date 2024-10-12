@@ -9,6 +9,12 @@ var listaTipi;
 var listaObbligatori;
 var listaValori;
 
+// checked e unchecked checkbox e radio
+chekboxChecked = '<b><input type="checkbox" value="" style="vertical-align: bottom;" checked></b> ';
+chekboxUnchecked = '<b><input type="checkbox" value="" style="vertical-align: bottom;"></b> ';
+radioChecked = '<b><label><input type="checkbox" value="" style="vertical-align: bottom;" checked></label></b> ';
+radioUnchecked = '<b><label><input type="checkbox" value="" style="vertical-align: bottom;"></label></b> ';
+
 function aggiorna() {
     documento = aggiornaContenutoDocumento();
     $("#modulo_compilato_id").html(documento);
@@ -18,7 +24,6 @@ function invia() {
     template_id = $("#hidden_template_id").val();
     documento = aggiornaContenutoDocumento();
     docente_id = $("#hidden_docente_id").val();
-    email_to = $("#hidden_template_email_to").val();
     uuid = generateGuid();
 
     // salva la richiesta ed eventualmente genera l'aggancio per l'approvazione
@@ -39,13 +44,10 @@ function invia() {
             richiesta_id: richiesta_id,
             documento: documento,
             docente_id: docente_id,
-            email_to: email_to,
             approva_id: 0,
-            listaEtichette: JSON.stringify(listaEtichette),
             listaValori: JSON.stringify(listaValori)    
         }, function (data, status) {
-            // text.includes("world")
-            if (data === '' && status === 'success') {
+            if (data.trim() === '' && status === 'success') {
                 $("#modulo_compilato_id").html("<p><b>Il modulo &egrave; stato inviato.</b></p><p>Una copia della richiesta &egrave; stata inoltrata alla tua casella di email per controllo.</p>");
             } else {
                 console.log('data=[' + data) + ']';
@@ -59,6 +61,7 @@ function invia() {
 
 function aggiornaContenutoDocumento() {
     documento = $("#hidden_template").val();
+    var valore = '';
 
     // per il controllo dei campi obbligatori
     obbligatoriCompletati = true;
@@ -71,24 +74,30 @@ function aggiornaContenutoDocumento() {
         // a seconda del tipo trova il valore
         if (listaTipi[i] == 1 || listaTipi[i] == 2) {
             // tipo 1 = testo semplice e tipo 2 = combo box (select option): prende il valore inserito
-            var valore = $("#" + listaCampi[i]).val();
+            valore = $("#" + listaCampi[i]).val();
             documento = documento.replaceAll('{{' + listaCampi[i] + '}}', valore);
 
         } else if (listaTipi[i] == 3 || listaTipi[i] == 4) {
             // tipo 3 = checkbox e tipo 4 = radio: deve prendere tutti i valori dei checkbox del gruppo
             valore = '';
+            // costruisce la stringa html da sostituire al placeholder
+            risultato = '';
+            valoriSelezionabili = listaValoriSelezionabili[i].split('::');
             for (j = 0; j < listaCampoNumeroElementi[i]; j++) {
                 if ($("#" + listaCampi[i] + "_" + j).is(':checked')) {
                     if (valore != '') {
                         valore += '::';
                     }
-                    documento = documento.replaceAll('{{' + listaCampi[i] + "_" + j + '}}', '&#x2612; ');
+//                    documento = documento.replaceAll('{{' + listaCampi[i] + "_" + j + '}}', '<b>&#x2612;</b> ');
+                    // documento = documento.replaceAll('{{' + listaCampi[i] + "_" + j + '}}', chekboxChecked + valoriSelezionabili[j]);
+                    risultato = risultato + chekboxChecked + valoriSelezionabili[j] + '</br>';
                     valore += j;
                 } else {
-                    documento = documento.replaceAll('{{' + listaCampi[i] + "_" + j + '}}', '&#x2610; ');
+                    // documento = documento.replaceAll('{{' + listaCampi[i] + "_" + j + '}}', chekboxUnchecked + valoriSelezionabili[j]);
+                    risultato = risultato + chekboxUnchecked + valoriSelezionabili[j] + '</br>';
                 }
-
             }
+            documento = documento.replaceAll('{{' + listaCampi[i] + '}}', risultato);
         }
 
         // controlla se era obbligatorio e risulta vuoto deve essere riempito
@@ -110,7 +119,6 @@ function aggiornaContenutoDocumento() {
     documento = documento.replaceAll('{{docente_nome_e_cognome}}', $("#hidden_docente_cognome_e_nome").val());
     documento = documento.replaceAll('{{docente_email}}', $("#hidden_docente_email").val());
     documento = documento.replaceAll('{{luogo_documento}}', 'Mezzolombardo');
-    documento = documento.replaceAll('{{luogo_documento}}', 'Mezzolombardo');
     var data = new Date().toLocaleDateString("it-IT");
     documento = documento.replaceAll('{{data_documento}}', data);
 
@@ -125,6 +133,7 @@ function generateGuid() {
 $(document).ready(function () {
     // memorizza la lista dei campi, tipi e se sono obbligatori oppure no
     listaCampi = JSON.parse($("#hidden_lista_campi").val());
+    listaValoriSelezionabili = JSON.parse($("#hidden_lista_valori_selezionabili").val());
     listaCampoNumeroElementi = JSON.parse($("#hidden_lista_campo_numero_elementi").val());
     listaCampiId = JSON.parse($("#hidden_lista_campi_id").val());
     listaEtichette = JSON.parse($("#hidden_lista_etichette").val());

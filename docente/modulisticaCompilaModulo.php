@@ -17,13 +17,13 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
+require_once '../common/_include_bootstrap-select.php';
 ruoloRichiesto('docente','segreteria-docenti','dirigente');
 
 $docente_id = $_GET['docente_id'];
 $template_id = $_GET['template_id'];
 $template = dbGetFirst("SELECT * FROM modulistica_template WHERE id = $template_id;");
 $templateNome = $template['nome'];
-$templateEmailTo = $template['email_to'];
 $templateTemplate = $template['template'];
 ?>
 
@@ -66,6 +66,7 @@ $listaCampoNumeroElementi = [];
 $listaCampiId = [];
 $listaEtichette = [];
 $listaValoriDefault = [];
+$listaValoriSelezionabili = [];
 $listaTipi = [];
 $listaObbligatori = [];
 foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $template_id;") as $campo) {
@@ -91,7 +92,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
         echo ('/>');
     } else if($tipo == 2) {
         // tipo 2 = combo box (select option)
-        echo('<select id="'.$nome.'" placeholder="'.$tip.'">');
+        echo('<select id="'.$nome.'" placeholder="'.$tip.'" class="selectpicker"  data-width="100%">');
         foreach(explode("::", $listaValori) as $valore) {
             echo('<option value="'.$valore.'">'.$valore.'</option>');
         }
@@ -100,6 +101,13 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
         // tipo 3 = checkbox
         foreach(explode("::", $listaValori) as $valore) {
             echo('<div class="checkbox"><label><input type="checkbox" id='.$nome.'_'.$campoNumeroElementi.' value="">');
+            echo($valore.'</label></div>');
+            $campoNumeroElementi += 1;
+        }
+    } else if($tipo == 4) {
+        // tipo 4 = radio
+        foreach(explode("::", $listaValori) as $valore) {
+            echo('<div class="radio"><label><input type="radio" id='.$nome.'_'.$campoNumeroElementi.' name="'.$nome.'" value="">');
             echo($valore.'</label></div>');
             $campoNumeroElementi += 1;
         }
@@ -113,6 +121,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
     $listaCampoNumeroElementi[] = $campoNumeroElementi;
     $listaEtichette[] = $etichetta;
     $listaValoriDefault[] = $valore_default;
+    $listaValoriSelezionabili[] = $listaValori;
     $listaTipi[] = $tipo;
     $listaObbligatori[] = $obbligatorio;
 }
@@ -157,13 +166,13 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
 </div>
 <input type="hidden" id="hidden_template" value="<?php echo $templateTemplate; ?>">
 <input type="hidden" id="hidden_template_id" value='<?php echo $template_id; ?>'>
-<input type="hidden" id="hidden_template_email_to" value='<?php echo $templateEmailTo; ?>'>
 <input type="hidden" id="hidden_docente_id" value='<?php echo $docente_id; ?>'>
 <input type="hidden" id="hidden_docente_cognome_e_nome" value='<?php echo($__docente_nome.' '.$__docente_cognome); ?>'>
 <input type="hidden" id="hidden_docente_email" value='<?php echo $__docente_email; ?>'>
 
 <input type="hidden" id="hidden_lista_campi_id" value='<?php echo(json_encode($listaCampiId)); ?>'>
 <input type="hidden" id="hidden_lista_campi" value='<?php echo(json_encode($listaCampi)); ?>'>
+<input type="hidden" id="hidden_lista_valori_selezionabili" value='<?php debug("vs=".json_encode($listaValoriSelezionabili)); echo(json_encode($listaValoriSelezionabili)); ?>'>
 <input type="hidden" id="hidden_lista_campo_numero_elementi" value='<?php echo(json_encode($listaCampoNumeroElementi)); ?>'>
 <input type="hidden" id="hidden_lista_etichette" value='<?php echo(json_encode($listaEtichette)); ?>'>
 <input type="hidden" id="hidden_lista_tipi" value='<?php echo(json_encode($listaTipi)); ?>'>

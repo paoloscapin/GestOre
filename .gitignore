@@ -2,3 +2,5 @@
 /log/
 /common/__Environment.php
 /GestOre.json
+common/dompdf/vendor/dompdf/dompdf/lib/fonts/DejaVuSans-Bold.ufm.json
+common/dompdf/vendor/dompdf/dompdf/lib/fonts/DejaVuSans.ufm.json
