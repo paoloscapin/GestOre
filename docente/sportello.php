@@ -66,7 +66,6 @@ $nclassi = dbGetValue (" SELECT COUNT(*) FROM classe WHERE classe.attiva=1");
 
 $classeOptionList = "";
 
-info("NCLASSI: " . $nclassi);
 if ($nclassi>0)
 {
     // prepara l'elenco delle materie per il filtro e per le materie del dialog
@@ -78,7 +77,6 @@ if ($nclassi>0)
 else
 {
     $classeOptionList .= 'empty';
-    info("classe option list: " . $classeOptionList);
 }
 
 $modifica_sportelli = '<input type="hidden" id="hidden_modifica_sportelli" value=' . !$__settings->sportelli->docente_puo_modificare . '>';
@@ -200,7 +198,6 @@ echo $modifica_sportelli;
                 }
                 else // altrimenti crea e popola una combobox
                 {
-                    info("AIUTO + " . $classeOptionList);
                     $txt_echo = '
                     <input type="hidden" id="hidden_lista_classi" value="lista">
                     <div class="form-group classe_selector">
@@ -209,7 +206,6 @@ echo $modifica_sportelli;
                     $txt_echo .= $classeOptionList;
                     $txt_echo .= '</select></div>
                     </div>';
-                    info("TXT ECO: " . $txt_echo);
                     echo $txt_echo;
                 }
 
