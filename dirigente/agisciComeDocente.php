@@ -37,6 +37,6 @@ if (isset($_POST)) {
     $__docente_id = $session->get('docente_id');
     $__docente_nome = $session->get('docente_nome');
     $__docente_cognome = $session->get('docente_cognome');
-    debug('redirect con docente_id=' . docente_id);
+    debug('redirect con docente_id=' . $docente_id);
     redirect('/docente/index.php');
 }
