@@ -56,19 +56,22 @@ if(isset($_POST)) {
 	$datetime_fine_sportello = date_format($dateT_fine,"Ymd-His");
 	$datetime_fine_sportello = str_replace("-","T",$datetime_fine_sportello);
 	
-	info("PRIMA DI INVIO MAIL STUDENTE");
+	// inverto format data - giorno con mese
+	$data_array = explode("-", $data);
+	$data = $data_array[2] . "-" . $data_array[1] . "-" . $data_array[0];
+	
 	// invio la mail di iscrizione allo studente
-	require 'sportelloMailStudente.php';
-	info("DOPO INVIO MAIL STUDENTE");
+	require 'sportelloMailIscrizioneStudente.php';
+
 	$query = "	SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = " . $sportello_id;
 	
 	$numero_studenti_iscritti = dbGetValue($query);
-	info("NUMERO STUDENTI ISCRITTI ALLO SPORTELLO: ".$numero_studenti_iscritti);
+
 	// è il primo studente dello sportello?
 	if ($numero_studenti_iscritti == 1)
 	{
 		// invio una mail al docente per avvisarlo che c'è almeno uno studente iscritto
-		require 'sportelloInviaMailDocente.php';
+		require 'sportelloInviaMailIscrizioneDocente.php';
 	}
 }
 ?>
