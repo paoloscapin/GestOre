@@ -245,15 +245,7 @@ foreach($resultArray as $row) {
 
 		// ora puo' controllare se oggi viene prima dell'ultimo giorno valido per la prenotazione (o lo stesso giorno)
 		$todayBeforeLastDay = ($today <= $lastDay);
-		if ($todayBeforeLastDay)
-		{
-			info("PRIMA");
-		}
-		else
-		{
-			info("DOPO");
-		}
-        info("todayaftermonday: " . $todayAfterpreviousMonday . " today prima lastday " . $todayBeforeLastDay . " sportello: " . $dataSportello. " giorni in anticipo: " . $daysInAdvance. " data oggi: " . $today->format("d/m/Y H:i:s") . " previous monday: " . $previousMonday->format("d/m/Y H:i:s") . " last day: " . $lastDay->format("d/m/Y H:i:s"));
+
 		// lo sportello si puo' prenotare se oggi e' >= al primo lunedi' da cui si puo' prenotare e <= all'ultimo giorno di prenotazione
 		$prenotabile = ($todayAfterpreviousMonday && $todayBeforeLastDay && (!$sportello_cancellato));
 
@@ -286,7 +278,6 @@ foreach($resultArray as $row) {
 
 		// la didattica puo' inserire la prenotazione sempre e puo' sempre cancellare
 		if (haRuolo('segreteria-didattica')) {
-			info("RUOLO SEGRETERIA DIDATTICA");
 			$prenotabile = true;
 			$cancellabile = true;
 		}
@@ -303,7 +294,7 @@ foreach($resultArray as $row) {
 			{
 				if ($cancellabile) {
 					$data .='
-						<div data-toggle="tooltip" data-placement="left"  title="Clicca qui per cancellare la prenotazione"><span class="label label-success">Iscritto</span><button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button></div>
+						<div data-toggle="tooltip" data-placement="left"  title="Clicca qui per cancellare la prenotazione"><span class="label label-success">Iscritto</span><button onclick="sportelloCancellaIscrizione('.$row['sportello_id'].', \''.addslashes($row['materia_nome']).'\', \''.addslashes($row['sportello_argomento']).'\',\''.addslashes($row['sportello_data']).'\',\''.addslashes($row['sportello_ora']).'\',\''.addslashes($row['sportello_numero_ore']).'\',\''.addslashes($row['sportello_luogo']).'\',\''.addslashes($row['studente_cognome']).'\',\''.addslashes($row['studente_nome']).'\',\''.addslashes($row['studente_email']).'\',\''.addslashes($row['studente_classe']).'\',\''.addslashes($row['docente_cognome']).'\',\''.addslashes($row['docente_nome']).'\',\''.addslashes($row['docente_email']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button></div>
 						';
 				}
 				else
