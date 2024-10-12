@@ -34,7 +34,7 @@ function previsteReadRecords($soloTotale, $docente_id, $operatore, $ultimo_contr
 
 	// controlla se deve restituire solo il totale o anche la tabella html
 	if($soloTotale) {
-		$query = "SELECT ore_previste_tipo_attivita.funzionali, ore_previste_tipo_attivita.con_studenti, ore_previste_tipo_attivita.clil, ore_previste_tipo_attivita.aggiornamento, ore_previste_tipo_attivita.orientamento, Sum(ore_previste_attivita.ore) AS ore FROM ore_previste_attivita
+		$query = "SELECT ore_previste_tipo_attivita.id, ore_previste_tipo_attivita.funzionali, ore_previste_tipo_attivita.con_studenti, ore_previste_tipo_attivita.clil, ore_previste_tipo_attivita.aggiornamento, ore_previste_tipo_attivita.orientamento, Sum(ore_previste_attivita.ore) AS ore FROM ore_previste_attivita
 					INNER JOIN ore_previste_tipo_attivita ore_previste_tipo_attivita ON ore_previste_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
 					WHERE ore_previste_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id AND ore_previste_attivita.docente_id = $docente_id AND ore_previste_tipo_attivita.previsto_da_docente = true
 					group by ore_previste_tipo_attivita.clil, ore_previste_tipo_attivita.orientamento, ore_previste_tipo_attivita.aggiornamento, ore_previste_tipo_attivita.funzionali, ore_previste_tipo_attivita.con_studenti;";
@@ -52,7 +52,7 @@ function previsteReadRecords($soloTotale, $docente_id, $operatore, $ultimo_contr
 				} elseif ($attivita['con_studenti'] == 1) {
 					$attivitaClilOreConStudenti += $attivita['ore'];
 				} else {
-					warning('attivita clil non funzionale e non con studenti: id=' . $attivita['ore_previste_tipo_attivita_id']);
+					warning('attivita clil non funzionale e non con studenti: id=' . $attivita['id']);
 				}
 		
 			// consideriamo quelle di orientamento
@@ -62,7 +62,7 @@ function previsteReadRecords($soloTotale, $docente_id, $operatore, $ultimo_contr
 				} elseif ($attivita['con_studenti'] == 1) {
 					$attivitaOrientamentoOreConStudenti += $attivita['ore'];
 				} else {
-					warning('attivita orientamento non funzionale e non con studenti: id=' . $attivita['ore_previste_tipo_attivita_id']);
+					warning('attivita orientamento non funzionale e non con studenti: id=' . $attivita['id']);
 				}
 		
 			// infine le altre attivita'
