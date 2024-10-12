@@ -44,12 +44,27 @@ if(isset($_POST)) {
 		dbExec($query);
 		info("aggiornato sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online = $online clil = $clil orientamento = $orientamento");
 
+        if ($cancellato)
+        // cancella gli eventuali iscritti
+		{
+			info("invio mail di cancellazione al docente");
+			require "sportelloInviaMailCancellazioneDocente.php";
+			info("invio mail di cancellazione agli studenti iscritti allo sportello");
+			require "sportelloInviaMailCancellazioneStudente.php";
+
+			$query = "DELETE FROM sportello_studente WHERE sportello_id = '$id'";
+			dbExec($query);
+			info("cancellati gli studenti iscritti allo sportello id=$id");
+		}
+		else
         // aggiorna i partecipanti
-        foreach($studentiDaModificareIdList as $studente) {
-            $query = "UPDATE sportello_studente SET presente = IF (`presente`, 0, 1) WHERE sportello_studente.id = $studente";
-            dbExec($query);
-            info("aggiornato id=$studente");
-        }
+		{
+			foreach($studentiDaModificareIdList as $studente) {
+				$query = "UPDATE sportello_studente SET presente = IF (`presente`, 0, 1) WHERE sportello_studente.id = $studente";
+				dbExec($query);
+				info("aggiornato id=$studente");
+			}
+		}
     } else {
 		$query = "INSERT INTO sportello(data, ora, docente_id, materia_id, numero_ore, argomento, luogo, classe, classe_id, max_iscrizioni, online, clil, orientamento, anno_scolastico_id) VALUES('$data', '$ora', '$docente_id', '$materia_id', '$numero_ore', '$argomento', '$luogo', '$classe', '$classe_id', '$max_iscrizioni', '$online', '$clil', '$orientamento', $__anno_scolastico_corrente_id)";
 		dbExec($query);
