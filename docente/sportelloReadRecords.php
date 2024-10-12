@@ -175,7 +175,7 @@ foreach($resultArray as $row) {
 	{
 		$data .='
 		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Sportello non modificabile">
-		<span class="glyphicon glyphicon-lock"></span>
+		<span class="btn btn-danger btn-xs glyphicon glyphicon-lock"></span>
 		</td>
 		</tr>';
 	}
