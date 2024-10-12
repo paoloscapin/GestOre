@@ -41,18 +41,33 @@ function sportelloReadRecords() {
 	});
 }
 
-function sportelloCancellaIscrizione(sportello_id, materia) {
+function sportelloCancellaIscrizione(sportello_id, materia, argomento, data, ora, numero_ore, luogo, studente_cognome, studente_nome, studente_email, studente_classe, docente_cognome, docente_nome, docente_email) 
+{
     var conf = confirm("Sei sicuro di volere cancellare la tua iscrizione dallo sportello di " + materia + " ?");
 
+
     if (conf == true) {
+
         $.post("../studente/sportelloCancellaIscrizione.php", {
-                id: sportello_id,
-				materia: materia
-            },
-            function (data, status) {
-                sportelloReadRecords();
-            }
-        );
+            id: sportello_id,
+            argomento: argomento,
+            materia: materia,
+            data: data,
+            ora: ora,
+            numero_ore: numero_ore,
+            luogo: luogo,
+            studente_cognome: studente_cognome,
+            studente_nome: studente_nome,
+            studente_email: studente_email,
+            studente_classe: studente_classe,
+            docente_cognome: docente_cognome,
+            docente_nome: docente_nome,
+            docente_email: docente_email
+        },
+        function (data, status) {
+            sportelloReadRecords();
+        });
+
     }
 }
 
