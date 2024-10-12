@@ -69,7 +69,15 @@ function sportelloDelete(id, materia) {
 
 function sportelloSave() {
     // controlla che ci siano la materia ed il numero di ore
-    if ($("#materia").val() <= 0) {
+    if ($("#firmato").is(":checked"))
+        {
+        if ($("#hidden_numero_studenti_iscritti").val() == 0) {
+		    $("#_error-materia").text("Non puoi firmare uno sportello che non ha nessuno studente iscritto");
+		    $("#_error-materia-part").show();
+            return;
+        }
+    }
+   if ($("#materia").val() <= 0) {
 		$("#_error-materia").text("Devi selezionare una materia");
 		$("#_error-materia-part").show();
 		return;

@@ -80,13 +80,16 @@ if ($resultArray == null) {
 }
 foreach($resultArray as $row) {
 	$sportello_id = $row['sportello_id'];
+	$sportello_firmato = $row['sportello_firmato'];
+	$sportello_cancellato = $row['sportello_cancellato'];
+	$sportello_nstudenti = $row['numero_studenti'];
 	$statoMarker = '';
-	if ($row['sportello_cancellato']) {
+	if ($sportello_cancellato) {
 		$statoMarker .= '<span class="label label-default">cancellato</span>';
 	}
 	else
 	{
-		if ($row['sportello_firmato']) 
+		if ($sportello_firmato) 
 		{
 			$statoMarker .= '<span class="label label-primary">firmato</span>';
 		}
@@ -107,7 +110,7 @@ foreach($resultArray as $row) {
 
 	// se ci sono prenotazioni, cerca la lista di studenti che sono prenotati
 	$studenteTip = '';
-	if ($row['numero_studenti'] > 0) {
+	if ($sportello_nstudenti > 0) {
 		$query2 = "SELECT
 				sportello_studente.id AS sportello_studente_id,
 				sportello_studente.iscritto AS sportello_studente_iscritto,
@@ -139,14 +142,16 @@ foreach($resultArray as $row) {
 		debug("online=".$row['sportello_online']);
 	}
 
-	$sportello_cancellato = $row['sportello_cancellato'];
 	$barrato = '';
 	if ($sportello_cancellato)
 	{
 		$barrato='<s>';
 	}
-	
-	$data .= '<tr>
+	$testo='<tr><input type="hidden" id="hidden_numero_studenti_iscritti" value='.$sportello_nstudenti.'><tr>';
+	info($testo);
+	$data .= '<tr><input type="hidden" id="hidden_numero_studenti_iscritti" value=';
+	$data .= $sportello_nstudenti;
+	$data .= '>
 		<td align="center">'.$barrato.$dataSportello.'</td>
 		<td align="center">'.$barrato.$row['sportello_ora'].'</td>
 		<td>'.$barrato.$row['materia_nome'].'</td>
@@ -158,12 +163,22 @@ foreach($resultArray as $row) {
 		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$barrato.$row['numero_studenti'].'</td>
 		<td class="text-center">'.$barrato.$row['sportello_max_iscrizioni'].'</td>
 		';
-	$data .='
-		<td class="text-center">
+	if ((!$sportello_cancellato)&&(!$sportello_firmato))
+	{
+		$data .='
+		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Clicca qui per gestire lo sportello">
 		<button onclick="sportelloGetDetails('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
 		</td>
 		</tr>';
-
+	}
+	else
+	{
+		$data .='
+		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Sportello non modificabile">
+		<span class="glyphicon glyphicon-lock"></span>
+		</td>
+		</tr>';
+	}
 	if ($__settings->sportelli->docente_puo_eliminare)
 		{
 		$data .='
