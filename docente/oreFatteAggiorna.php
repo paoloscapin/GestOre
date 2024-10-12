@@ -39,6 +39,9 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	$oreClilConStudentiPreviste = 0;
 	$oreOrientamentoFunzionaliPreviste = 0;
 	$oreOrientamentoConStudentiPreviste = 0;
+	$diariaGiorniSenzaPernottamentoPreviste = 0;
+	$diariaGiorniConPernottamentoPreviste = 0;
+	$diariaImportoPreviste = 0;
 
 	$oreConStudentiDovute = 0;
 	$oreFunzionaliDovute = 0;
@@ -108,6 +111,14 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	$oreOrientamentoFunzionaliPreviste += $result['attribuiteOrientamentoOreFunzionali'];
 
 	// diaria nelle fatte e nelle previste (questo serve al viaggi gestione semplificata)
+	require_once '../docente/viaggioDiariaPrevistaReadRecords.php';
+	$result = viaggioDiariaPrevistaReadRecords(true, $docente_id, $operatore, $ultimo_controllo, $modificabile);
+	$oreConStudentiPreviste += $result['diariaOre'];
+	$diariaGiorniSenzaPernottamentoPreviste += $result['diariaGiorniSenzaPernottamento'];
+	$diariaGiorniConPernottamentoPreviste += $result['diariaGiorniConPernottamento'];
+	$diariaImportoPreviste += $result['diariaImporto'];
+	$totale = $totale + compact('diariaGiorniSenzaPernottamentoPreviste', 'diariaGiorniConPernottamentoPreviste', 'diariaImportoPreviste');
+
 	require_once '../docente/viaggioDiariaFattaReadRecords.php';
 	$result = viaggioDiariaFattaReadRecords($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
 	$oreConStudenti += $result['diariaOre'];

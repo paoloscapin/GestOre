@@ -1,3 +1,10 @@
+## Version 1.2.50 - 00 ott 2024
+##### Improvements
+- inserita gestione moduli prima versione
+
+##### Bug Fixes
+- viaggi diaria in previste
+
 ## Version 1.2.49 - 26 sep 2024
 ##### Bug Fixes
 - fix per import corsi di recupero pnrr

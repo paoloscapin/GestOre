@@ -7,21 +7,20 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
- require_once '../common/checkSession.php';
- require_once '../common/__MinutiFunction.php';
- require_once '../common/importi_load.php';
+require_once '../common/checkSession.php';
+require_once '../common/__MinutiFunction.php';
+require_once '../common/importi_load.php';
  
-function writeGiorni($attuali, $originali) {
+function writeGiorniPrevisti($attuali, $originali) {
 	// se non ci sono gli originali, scrive solo gli attuali
 	if ($originali == null || $originali == 0) {
 		return $attuali;
 	}
 	// altrimenti gli originali cancellati e gli attuali in rosso
-//	return '<span style="background: linear-gradient(to left top, transparent 47.75%, currentColor 49.5%, currentColor 50.5%, transparent 52.25%); "> '.$originali.' </span> <span class="text-danger"><strong> '.$attuali.' </strong></span>';
 	return '<s style="text-decoration-style: double;"> '.$originali.' </s>&ensp;<span class="text-danger"><strong> '.$attuali.' </strong></span>';
 }
 
-function writeOreDiaria($attuali, $originali) {
+function writeOreDiariaPreviste($attuali, $originali) {
 	// se non ci sono gli originali, scrive solo gli attuali
 	if ($originali == null || $originali == 0) {
 		return oreToDisplay($attuali);
@@ -31,7 +30,6 @@ function writeOreDiaria($attuali, $originali) {
 	$ore_con_minuti_originali = oreToDisplay($originali);
 	return '<s style="text-decoration-style: double;"> '.$ore_con_minuti_originali.' </s>&ensp;<span class="text-danger"><strong> '.$ore_con_minuti.' </strong></span>';
 }
-
 
 function viaggioDiariaPrevistaReadRecords($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile) {
 	global $__anno_scolastico_corrente_id;
@@ -83,11 +81,11 @@ function viaggioDiariaPrevistaReadRecords($soloTotale, $docente_id, $operatore, 
 		}
 		$importo = $row['giorni_senza_pernottamento'] * $__importo_diaria_senza_pernottamento + $row['giorni_con_pernottamento'] * $__importo_diaria_con_pernottamento;
 		$dataDiaria .= '</td>
-			<td class="text-center">'.writeGiorni($row['giorni_senza_pernottamento'], $row['giorni_senza_pernottamento_originali']).'</td>
-			<td class="text-center">'.writeGiorni($row['giorni_con_pernottamento'], $row['giorni_con_pernottamento_originali']).'</td>
+			<td class="text-center">'.writeGiorniPrevisti($row['giorni_senza_pernottamento'], $row['giorni_senza_pernottamento_originali']).'</td>
+			<td class="text-center">'.writeGiorniPrevisti($row['giorni_con_pernottamento'], $row['giorni_con_pernottamento_originali']).'</td>
 			<td class="text-right">'.$importo.' €&ensp;</td>';
 
-		$dataDiaria .= '<td class="text-center">'.writeOreDiaria($row['ore'], $row['ore_originali']).'</td>';
+		$dataDiaria .= '<td class="text-center">'.writeOreDiariaPreviste($row['ore'], $row['ore_originali']).'</td>';
 
 		$dataDiaria .='<td class="text-center">';
 		// si possono modificare solo le righe previste da docente: se dirigente lo script non cancella ma propone di mettere le ore a zero

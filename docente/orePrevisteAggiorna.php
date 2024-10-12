@@ -95,6 +95,7 @@ function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_contr
 	$diariaImporto += $result['diariaImporto'];
 	$dataDiaria = $result['dataDiaria'];
 	$totale = $totale + compact('dataDiaria');
+	$totale = $totale + compact('diariaGiorniSenzaPernottamento', 'diariaGiorniConPernottamento', 'diariaImporto');
 
 	// aggiunge le previste al risultato totale
 	$totale = $totale + compact('oreConStudentiPreviste', 'oreFunzionaliPreviste', 'oreClilConStudentiPreviste', 'oreClilFunzionaliPreviste', 'oreOrientamentoConStudentiPreviste', 'oreOrientamentoFunzionaliPreviste', 'oreAggiornamentoPreviste');
