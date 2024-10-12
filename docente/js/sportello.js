@@ -69,14 +69,7 @@ function sportelloDelete(id, materia) {
 
 function sportelloSave() {
     // controlla che ci siano la materia ed il numero di ore
-    if ($("#firmato").is(":checked"))
-        {
-        if ($("#hidden_numero_studenti_iscritti").val() == 0) {
-		    $("#_error-materia").text("Non puoi firmare uno sportello che non ha nessuno studente iscritto");
-		    $("#_error-materia-part").show();
-            return;
-        }
-    }
+
    if ($("#materia").val() <= 0) {
 		$("#_error-materia").text("Devi selezionare una materia");
 		$("#_error-materia-part").show();
@@ -227,19 +220,16 @@ function confermaCancellato() {
     }
 }
 
-function sportelloFirma() {
-    if ($("#firmato").is(':checked')) {
-        // gia' firmato, non dovrebbe succedere0
-        return;
+function confermaFirmato() 
+{
+    if ($("#firmato").is(':checked')) 
+    {
+        if ($("#hidden_numero_studenti_iscritti").val() == 0) 
+        {
+            alert ("Non puoi firmare uno sportello a cui non ci sono studenti iscritti!");
+            $("#firmato").prop('checked',false);
+        }
     }
-    // setta che è firmato
-    $("#firmato").prop('checked', true);
-
-    // lo salva
-    $.post("sportelloFirma.php", {
-        id: $("#hidden_sportello_id").val()
-    }, function (data, status) {
-    });
 }
 
 function sportelloGetDetails(sportello_id) {

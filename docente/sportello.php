@@ -241,10 +241,10 @@ echo $modifica_sportelli;
 
                 <div class="form-group">
                     <label for="firmato" class="col-sm-2 control-label">Firmato</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="firmato" ></div>
-                    <div class="col-sm-1 text-center" id="firma_sportello_button_id">
+                    <div class="col-sm-1 "><input type="checkbox" onclick="confermaFirmato()" id="firmato" ></div>
+                    <!-- <div class="col-sm-1 text-center" id="firma_sportello_button_id">
                         <button type="button" class="btn btn-success" onclick="sportelloFirma()">Firma lo Sportello</button>
-                    </div>
+                    </div> -->
                 </div>
 
                 <div class="form-group text-center" id="studenti-part">
