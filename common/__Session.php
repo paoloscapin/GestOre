@@ -23,8 +23,13 @@ class _Session {
 	public function logout() {
 		// Initialize the session.
 		// If you are using session_name("something"), don't forget it now!
-		session_start();
-
+		
+		$status = session_status();
+		if($status == PHP_SESSION_NONE){
+    	//There is no active session
+    		session_start();	
+		}
+		
 		// Unset all of the session variables.
 		$_SESSION = array();
 

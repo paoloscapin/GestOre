@@ -288,16 +288,20 @@ class Google_OAuth2 extends Google_Auth {
      */
   public function revokeToken($token = null) {
     if (!$token) {
-      $token = $this->token['access_token'];
+      if (isset($this->token['access_token']))
+       {
+        $token = $this->token['access_token'];
+      }
     }
-    $request = new Google_HttpRequest(self::OAUTH2_REVOKE_URI, 'POST', array(), "token=$token");
-    $response = Google_Client::$io->makeRequest($request);
-    $code = $response->getResponseHttpCode();
-    if ($code == 200) {
-      $this->token = null;
-      return true;
+    if ($token) {
+      $request = new Google_HttpRequest(self::OAUTH2_REVOKE_URI, 'POST', array(), "token=$token");
+      $response = Google_Client::$io->makeRequest($request);
+      $code = $response->getResponseHttpCode();
+      if ($code == 200) {
+        $this->token = null;
+        return true;
+      }
     }
-
     return false;
   }
 

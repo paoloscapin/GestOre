@@ -19,18 +19,19 @@ if (session_status() == PHP_SESSION_NONE) {
 	session_start();
 }
 
-$__username = $session->get ( 'username' );
-info('utente ' . $__username . ': logged out');
-$session->logout();
-//Unset token and user data from session
-unset($_SESSION['token']);
-unset($_SESSION['userData']);
-
 $__redirectURL = $__http_base_link . '/index.php';
 
 //Include Google client library
 require_once __DIR__ . '/google-client-library/src/Google_Client.php';
 require_once __DIR__ . '/google-client-library/src/contrib/Google_Oauth2Service.php';
+
+$__username = $session->get ( 'username' );
+info('utente ' . $__username . ': logged out');
+$session->logout();
+//Unset token and user data from session
+
+unset($_SESSION['token']);
+unset($_SESSION['userData']);
 
 //Call Google API
 $gClient = new Google_Client();
@@ -40,10 +41,13 @@ $gClient->setClientSecret($__settings->GoogleAuth->clientSecret);
 $gClient->setRedirectUri($__redirectURL);
 
 //Reset OAuth access token
-$gClient->revokeToken();
+//$gClient->revokeToken();
 
-//Destroy entire session
-session_destroy();
+$status = session_status();
+if($status == PHP_SESSION_ACTIVE){
+    //Destroy current
+    session_destroy();
+}
 
 //Redirect to homepage
 redirect('/' . 'index.php');
