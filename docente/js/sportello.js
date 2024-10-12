@@ -212,10 +212,21 @@ function sportelloSave() {
 
 function confermaCancellato() {
     if ($("#cancellato").is(':checked')) {
-        let result = confirm ("Sei sicuro di voler cancellare lo sportello? Agli studenti eventualmente iscritti arriverà un avviso di annullamento dello sportello.");
-        if (result === false)
+        if ($("#hidden_numero_studenti_iscritti").val() == 0) 
         {
-            $("#cancellato").prop('checked',false);
+            let result = confirm ("Non ci sono studenti iscritti, sei sicuro di voler cancellare lo sportello?\nPuoi eventualmente riprogrammare lo sportello ad un'altra data con una richiesta all'amministratore.");
+            if (result === false)
+                {
+                    $("#cancellato").prop('checked',false);
+                }
+            }
+        else
+        {
+            let result = confirm ("Sei sicuro di voler cancellare lo sportello? Agli studenti eventualmente iscritti arriverà un avviso di annullamento dello sportello.");
+            if (result === false)
+            {
+                $("#cancellato").prop('checked',false);
+            }
         }
     }
 }
