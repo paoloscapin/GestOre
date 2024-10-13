@@ -51,6 +51,7 @@
         "nomeIstituto": "--- inserire la località per i documenti generati ---",
         "luogoIstituto": "--- inserire la località per i documenti generati ---",
         "emailNoReplyFrom": "--- inserire un indirizzo di email noreply (ad esempio noreply-GestOre@istituto.it) ---",
+        "emailSportelli": "--- inserire un indirizzo di email a cui inviare in bcc le mail di sportello generate ---",
         "emailCarenze": "--- inserire un indirizzo di email a cui inviare in cc le lettere di carenza generate ---"
     },
     "importi": {

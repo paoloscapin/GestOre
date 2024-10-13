@@ -27,7 +27,8 @@
   $sender = $__settings->local->emailNoReplyFrom;
   $headers  = 'MIME-Version: 1.0' . "\r\n";
   $headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-  $headers .= "From: " . $sender . "\r\n"."X-Mailer: php";
+  $headers .= "From: " . $sender . "\r\n";
+  $headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
   $mailsubject = 'GestOre - Annullamento iscrizione sportello ' . $materia;
   mail($studente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
   info("mail di cancellazione prenotazione inviata allo studente - email: " . $studente_email);

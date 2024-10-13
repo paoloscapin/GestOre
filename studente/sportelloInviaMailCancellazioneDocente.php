@@ -29,7 +29,8 @@ $full_mail_body = str_replace("{messaggio_finale}","Se dovesse iscriversi nuovam
 $sender = $__settings->local->emailNoReplyFrom;
 $headers  = 'MIME-Version: 1.0' . "\r\n";
 $headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-$headers .= "From: " . $sender . "\r\n"."X-Mailer: php";
+$headers .= "From: " . $sender . "\r\n";
+$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
 $mailsubject = 'GestOre - Annullamento sportello ' . $materia;
 mail($docente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
 info("inviata mail di cancellazione ultimo studente dallo sportello - email: " . $docente_email);
