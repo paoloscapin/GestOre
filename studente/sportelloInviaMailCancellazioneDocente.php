@@ -18,7 +18,7 @@ $full_mail_body = file_get_contents("template_mail_cancella_docente.html");
 //
 $full_mail_body = str_replace("{titolo}","ANNULLAMENTO SPORTELLO",$full_mail_body);
 $full_mail_body = str_replace("{nome}",strtoupper($docente_cognome) . " " . strtoupper($docente_nome),$full_mail_body);
-$full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail perchè l'ultimo studente iscritto allo sportello si è iscritto. Quindi in mancanza di altre iscrizioni lo sportello è annullato",$full_mail_body);
+$full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail perchè l'ultimo studente iscritto allo sportello si è cancellato. Quindi in mancanza di altre iscrizioni lo sportello è annullato",$full_mail_body);
 $full_mail_body = str_replace("{data}",$data,$full_mail_body);
 $full_mail_body = str_replace("{ora}",$ora,$full_mail_body);
 $full_mail_body = str_replace("{docente}",strtoupper($docente_cognome . " " . $docente_nome),$full_mail_body);
