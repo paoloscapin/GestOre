@@ -20,11 +20,22 @@ $direzioneOrdinamento="ASC";
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
+						<th class="text-center col-md-1">Categoria</th>
 						<th class="text-center col-md-1">Data</th>
-						<th class="text-center col-md-1">Ora</th>
-						<th class="text-center col-md-2">Materia</th>
+						<th class="text-center col-md-1">Ora</th>';
+if ($__settings->sportelli->unSoloArgomento == true)
+{
+	$data .= '			<th class="text-center col-md-2">Materia</th>
 						<th class="text-center col-md-2">Argomento</th>
-						<th class="text-center col-md-1">Ore</th>
+						';
+}
+else
+{
+	$data .= '			<th class="text-center col-md-3">Materia</th>
+						';
+}
+
+$data .= '				<th class="text-center col-md-1">Ore</th>
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Stato</th>
@@ -80,6 +91,7 @@ if ($resultArray == null) {
 }
 foreach($resultArray as $row) {
 	$sportello_id = $row['sportello_id'];
+	$sportello_categoria = $row['sportello_categoria'];
 	$sportello_firmato = $row['sportello_firmato'];
 	$sportello_cancellato = $row['sportello_cancellato'];
 	$sportello_nstudenti = $row['numero_studenti'];
@@ -152,13 +164,19 @@ foreach($resultArray as $row) {
 	$data .= '<tr><input type="hidden" id="hidden_numero_studenti_iscritti" value=';
 	$data .= $sportello_nstudenti;
 	$data .= '>
+		<td align="center">'.$barrato.$sportello_categoria.'</td>
 		<td align="center">'.$barrato.$dataSportello.'</td>
 		<td align="center">'.$barrato.$row['sportello_ora'].'</td>
-		<td>'.$barrato.$row['materia_nome'].'</td>
-		<td>'.$barrato.$row['sportello_argomento'].'</td>
+		<td>'.$barrato.$row['materia_nome'].'</td>';
+	if ($__settings->sportelli->unSoloArgomento == true)
+	{
+		$data .= '<td>'.$barrato.$row['sportello_argomento'].'</td>';
+	}
+	
+	$data .= '
 		<td align="center">'.$barrato.$row['sportello_numero_ore'].'</td>
 		<td align="center">'.$barrato.$row['sportello_classe'].'</td>
-		<td>'.$barrato.$luogo_or_onine_marker.'</td>
+		<td align="center">'.$barrato.$luogo_or_onine_marker.'</td>
 		<td class="text-center">'.$statoMarker.'</td>
 		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$barrato.$row['numero_studenti'].'</td>
 		<td class="text-center">'.$barrato.$row['sportello_max_iscrizioni'].'</td>

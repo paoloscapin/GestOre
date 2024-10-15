@@ -25,10 +25,11 @@ info("SPORTELLO READ RECORDS");
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
+						<th class="text-center col-md-1">Categoria</th>
 						<th class="text-center col-md-1">Data</th>
 						<th class="text-center col-md-1">Ora</th>
-						<th class="text-center col-md-2">Materia</th>
-						<th class="text-center col-md-2">Docente</th>
+						<th class="text-center col-md-3">Materia</th>
+						<th class="text-center col-md-1">Docente</th>
 						<th class="text-center col-md-1">Ore</th>
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-1">Luogo</th>
@@ -44,6 +45,7 @@ $query = "	SELECT
 				sportello.ora AS sportello_ora,
 				sportello.numero_ore AS sportello_numero_ore,
 				sportello.luogo AS sportello_luogo,
+				sportello.categoria AS sportello_categoria,
 				sportello.classe AS sportello_classe,
 				sportello.firmato AS sportello_firmato,
 				sportello.online AS sportello_online,
@@ -94,6 +96,7 @@ if ($resultArray == null) {
 }
 foreach($resultArray as $row) {
 	$sportello_id = $row['sportello_id'];
+	$sportello_categoria = $row['sportello_categoria'];
 	$statoMarker = '';
 	if ($row['sportello_cancellato']) 
 	{
@@ -161,6 +164,7 @@ foreach($resultArray as $row) {
 		$barrato='<s>';
 	}
 	$data .= '<tr>
+		<td align="center">'.$barrato.$sportello_categoria.'</td>
 		<td align="center">'.$barrato.$dataSportello.'</td>
 		<td align="center">'.$barrato.$row['sportello_ora'].'</td>
 		<td>'.$barrato.$row['materia_nome'].'</td>

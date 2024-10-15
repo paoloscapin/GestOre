@@ -23,9 +23,10 @@ $direzioneOrdinamento="ASC";
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
+						<th class="text-center col-md-1">Categoria</th>
 						<th class="text-center col-md-1">Data</th>
 						<th class="text-center col-md-1">Ora</th>
-						<th class="text-center col-md-3">Materia</th>
+						<th class="text-center col-md-2">Materia</th>
 						<th class="text-center col-md-1">Docente</th>
 						<th class="text-center col-md-2">Argomento</th>
 						<th class="text-center col-md-1">Luogo</th>
@@ -34,7 +35,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-1">Iscrizione</th>
 					</tr>
 					</thead>';
-
+				info("STUDENTE ID = ".$__studente_id);
 $query = "	SELECT
 				sportello.id AS sportello_id,
 				sportello.data AS sportello_data,
@@ -92,6 +93,7 @@ if ($resultArray == null) {
 }
 foreach($resultArray as $row) {
 	$sportello_id = $row['sportello_id'];
+	$sportello_categoria = $row['sportello_categoria'];
 	$todayDate = new DateTime ("today");
 	$sportelloDate = new DateTime ($row['sportello_data']);
 	$passato = ($sportelloDate < $todayDate);
@@ -145,6 +147,7 @@ foreach($resultArray as $row) {
 	if (!$sportello_cancellato)
 	{
 	$data .= '<tr>
+		<td align="center">'.$sportello_categoria.'</td>
 		<td align="center">'.$dataSportello.'</td>
 		<td align="center">'.$row['sportello_ora']. ' &nbsp;&nbsp;&nbsp;('.$row['sportello_numero_ore']. ($row['sportello_numero_ore'] > 1? ' ore)' : ' ora)').'</td>
 		<td>'.$row['materia_nome'].'</td>
@@ -174,6 +177,7 @@ foreach($resultArray as $row) {
 	else
 	{
 		$data .= '<tr>
+		<td align="center"><s>'.$sportello_categoria.'</td>
 		<td align="center"><s>'.$dataSportello.'</td>
 		<td align="center"><s>'.$row['sportello_ora']. ' &nbsp;&nbsp;&nbsp;('.$row['sportello_numero_ore']. ($row['sportello_numero_ore'] > 1? ' ore)' : ' ora)').'</td>
 		<td><s>'.$row['materia_nome'].'</td>
