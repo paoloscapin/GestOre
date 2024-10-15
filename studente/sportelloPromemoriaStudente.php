@@ -88,6 +88,10 @@ foreach($resultArray as $row)
 			$resultArray = [];
 		}
 
+		// inverto format data - giorno con mese
+		$data_array = explode("-", $sportello_data);
+		$sportello_data = $data_array[2] . "-" . $data_array[1] . "-" . $data_array[0];
+
 		$data = "";
 		$tabella_html = '';
 
@@ -107,10 +111,6 @@ foreach($resultArray as $row)
 
 			// preparo il testo della mail
 			$full_mail_body = file_get_contents("template_mail_promemoria_studente.html");
-
-			// inverto format data - giorno con mese
-			$data_array = explode("-", $sportello_data);
-			$sportello_data = $data_array[2] . "-" . $data_array[1] . "-" . $data_array[0];
 
 			$full_mail_body = str_replace("{titolo}","PROMEMORIA SPORTELLO",$full_mail_body);
 			$full_mail_body = str_replace("{nome}",strtoupper($studente_cognome) . " " . strtoupper($studente_nome),$full_mail_body);
