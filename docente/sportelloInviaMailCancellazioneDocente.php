@@ -41,6 +41,7 @@ $full_mail_body = str_replace("{ora}",$ora,$full_mail_body);
 $full_mail_body = str_replace("{docente}",strtoupper($docente_cognome . " " . $docente_nome),$full_mail_body);
 $full_mail_body = str_replace("{materia}",$materia,$full_mail_body);
 $full_mail_body = str_replace("{aula}",$luogo,$full_mail_body);
+$full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
 
 $messaggio_finale = "A questo sportello non risultavano studenti iscritti";
 $lista_studenti = "";
