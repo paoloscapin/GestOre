@@ -58,10 +58,7 @@ foreach($resultArray as $row)
 
 	$numero_studenti_iscritti = dbGetValue($query);
 
-	$data .= "ID=" . $sportello_id . " - ORA=" . $sportello_ora . " - CANCELLATO=" . $sportello_cancellato . " - ID DOCENTE=" . $sportello_docente_id . " - NR ISCRITTI=" . $numero_studenti_iscritti;
-
-	info("dati sportello docente da inviare promemoria agli studenti: " . $data);
-	echo "CRON MESSAGE: dati sportello docente da inviare promemoria agli studenti: " . $data . " - ";
+	info("dati sportello docente da inviare promemoria agli studenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id);
 
 	if ($numero_studenti_iscritti>0)
 	// CI SONO STUDENTI ISCRITTI - INVIO IL PROMEMORIA AGLI STUDENTI
@@ -101,13 +98,8 @@ foreach($resultArray as $row)
 			$studente_nome = $row['studente_nome'];
 			$studente_email = $row['studente_email'];
 			$sportello_argomento = $row['sportello_argomento'];
-			$data .= "S-COGNOME: " . $studente_cognome . " - ";
-			$data .= "S-NOME: " . $studente_nome . " - ";
-			$data .= "S-EMAIL: " . $studente_email . " - ";
-			$data .= "S-ARGOMENTO: " . $sportello_argomento . "<br>";
 
-			info("studenti iscritti sportello: " . $data);
-			echo "studenti iscritti sportello: " . $data . " - ";
+			info("studenti iscritti sportello: COGNOME " . $studente_cognome . " NOME " . $studente_nome . " DATA ". $data);
 
 			// preparo il testo della mail
 			$full_mail_body = file_get_contents("template_mail_promemoria_studente.html");
@@ -135,8 +127,7 @@ foreach($resultArray as $row)
 	}
 	else
 	{
-		info("NON CI SONO studenti iscritti sportello: " . $data);
-		echo "NON CI SONO studenti iscritti sportello: " . $data . " - ";
+		info("NON CI SONO studenti iscritti sportello");
 	}
 	
 }

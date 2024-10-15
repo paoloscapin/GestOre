@@ -63,9 +63,10 @@ foreach($resultArray as $row)
 
 	$data .= "ID=" . $sportello_id . " - ORA=" . $sportello_ora . " - CANCELLATO=" . $sportello_cancellato . " - ID DOCENTE=" . $sportello_docente_id . " - NR ISCRITTI=" . $numero_studenti_iscritti;
 
-	info("dati sportello docente da inviare promemoria: " . $data);
-	echo "CRON MESSAGE: dati sportello docente da inviare promemoria: " . $data . " - ";
+	
+	info("dati promemoria sportello docente da inviare - COGNOME " . $sportello_docente_cognome . " NOME  " . $sportello_docente_nome);
 
+	
 	if ($numero_studenti_iscritti>0)
 	// CI SONO STUDENTI ISCRITTI - INVIO IL PROMEMORIA CON ELENCO STUDENTI AL DOCENTE
 	{

@@ -11,7 +11,6 @@ require_once '../common/checkSession.php';
 
 if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
 	$sportello_id = $_POST['sportello_id'];
-    info("SPORTELLO ID READ DETAILS DOCENTE: " . $sportello_id);
 
     $query = "SELECT
             sportello.id as sportello_id,
@@ -69,12 +68,9 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
 
     $studenti = dbGetAll($query);
 
-    // $sportello += ["studenti" => $studenti];
     $sportello['studenti'] = $studenti;
 
-    info("MAX ISCRIZIONI SPORTELLO: " . $sportello['sportello_max_iscrizioni']);
     $struct_json = json_encode($sportello);
-    info("STRUTTURA JSON: " . $struct_json);
 	echo json_encode($sportello);
 }
 ?>

@@ -160,7 +160,7 @@ foreach($resultArray as $row) {
 		$barrato='<s>';
 	}
 	$testo='<tr><input type="hidden" id="hidden_numero_studenti_iscritti" value='.$sportello_nstudenti.'><tr>';
-	info($testo);
+
 	$data .= '<tr><input type="hidden" id="hidden_numero_studenti_iscritti" value=';
 	$data .= $sportello_nstudenti;
 	$data .= '>

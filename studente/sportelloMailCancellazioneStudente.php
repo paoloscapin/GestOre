@@ -14,7 +14,6 @@
 
   $full_mail_body = file_get_contents("template_mail_cancella_studente.html");
 
-  //
   $full_mail_body = str_replace("{titolo}","CANCELLAZIONE ISCRIZIONE SPORTELLO",$full_mail_body);
   $full_mail_body = str_replace("{nome}",strtoupper($studente_cognome) . " " . strtoupper($studente_nome),$full_mail_body);
   $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail come conferma della tua cancellazione dallo sportello qui riportato",$full_mail_body);

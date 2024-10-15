@@ -35,7 +35,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-1">Iscrizione</th>
 					</tr>
 					</thead>';
-				info("STUDENTE ID = ".$__studente_id);
+
 $query = "	SELECT
 				sportello.id AS sportello_id,
 				sportello.data AS sportello_data,
@@ -136,9 +136,7 @@ foreach($resultArray as $row) {
 	$luogo_or_onine_marker = $row['sportello_luogo'];
 	if ($row['sportello_online']) {
 		$luogo_or_onine_marker = '<span class="label label-danger">online</span>';
-	} else {
-		debug("online=".$row['sportello_online']);
-	}
+	} 
 
 	// calcola il numero di posti disponibili per lo sportello
 	$max_iscrizioni = $row['sportello_max_iscrizioni'];
