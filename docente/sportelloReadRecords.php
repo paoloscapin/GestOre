@@ -116,6 +116,19 @@ foreach($resultArray as $row) {
 			}
 		}
 	}
+
+	$dt_sportello = new DateTime($row['sportello_data']);
+	$dt_oggi = new DateTime("now");
+
+	$vecchio = 0;
+
+	if ($dt_oggi>$dt_sportello)
+	{
+		$vecchio = 1;
+	}
+
+	if ($row['sportello_data'])
+
 	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
 	$dataSportello = utf8_encode( strftime("%d %B %Y", strtotime($row['sportello_data'])));
 	setlocale(LC_TIME, $oldLocale);
@@ -181,7 +194,7 @@ foreach($resultArray as $row) {
 		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$barrato.$row['numero_studenti'].'</td>
 		<td class="text-center">'.$barrato.$row['sportello_max_iscrizioni'].'</td>
 		';
-	if ((!$sportello_cancellato)&&(!$sportello_firmato))
+	if ((!$sportello_cancellato)&&(!$sportello_firmato)&&(!$vecchio))
 	{
 		$data .='
 		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Clicca qui per gestire lo sportello">
