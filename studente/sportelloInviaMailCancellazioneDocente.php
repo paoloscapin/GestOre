@@ -25,6 +25,7 @@ $full_mail_body = str_replace("{docente}",strtoupper($docente_cognome . " " . $d
 $full_mail_body = str_replace("{materia}",$materia,$full_mail_body);
 $full_mail_body = str_replace("{aula}",$luogo,$full_mail_body);
 $full_mail_body = str_replace("{messaggio_finale}","Se dovesse iscriversi nuovamente uno studente sarai avvisato via mail.",$full_mail_body);
+$full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
 
 $sender = $__settings->local->emailNoReplyFrom;
 $headers  = 'MIME-Version: 1.0' . "\r\n";
