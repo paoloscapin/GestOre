@@ -67,27 +67,47 @@ if ($resultArray == null)
 }
 else
 {
-    $lista_studenti="<ul>";
-    $messaggio_finale = "A questo sportello risultavano iscritti i seguenti studenti:";
+    $data = "";
+    $data_html = '<tr>';
+    $messaggio_finale = "Allo sportello che è stato cancellato erano iscritti i seguenti studenti:";
     foreach($resultArray as $row) 
     {
         $studente_cognome = $row['studente_cognome'];
         $studente_nome = $row['studente_nome'];
         $studente_classe = $row['studente_classe'];
-        $lista_studenti .= "<li>" . $studente_classe. " - " . $studente_cognome . " " . $studente_nome . "</li>";
+        $data .= "S-COGNOME: " . $studente_cognome . " - ";
+        $data .= "S-NOME: " . $studente_nome . " - ";
+        $data .= "S-CLASSE: " . $studente_classe . " - ";
+
+
+        $row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
+        <p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
+        $row_html = str_replace("VALORE",$studente_classe,$row_html);
+        $data_html .= $row_html;
+
+        $row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
+        <p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
+        $row_html = str_replace("VALORE",$studente_cognome,$row_html);
+        $data_html .= $row_html;
+
+        $row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
+        <p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
+        $row_html = str_replace("VALORE",$studente_nome,$row_html);
+        $data_html .= $row_html;
     }
-    $lista_studenti .= "</ul>";
+
+    $data_html .= '</tr>';
+
+    $full_mail_body = str_replace("{messaggio_finale}",$messaggio_finale,$full_mail_body);
+    $full_mail_body = str_replace("{codice_html_tabella}",$data_html,$full_mail_body);
+
+    $sender = $__settings->local->emailNoReplyFrom;
+    $headers  = 'MIME-Version: 1.0' . "\r\n";
+    $headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
+    $headers .= "From: " . $sender . "\r\n";
+    $headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
+    $mailsubject = 'GestOre - Annullamento sportello ' . $materia;
+    mail($docente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
+    info("inviata mail di cancellazione sportello come richiesto dal docente - " . $docente_cognome . " " . $docente_nome);
 }
-
-$full_mail_body = str_replace("{messaggio_finale}",$messaggio_finale,$full_mail_body);
-$full_mail_body = str_replace("{elenco_studenti}",$lista_studenti,$full_mail_body);
-
-$sender = $__settings->local->emailNoReplyFrom;
-$headers  = 'MIME-Version: 1.0' . "\r\n";
-$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-$headers .= "From: " . $sender . "\r\n";
-$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
-$mailsubject = 'GestOre - Annullamento sportello ' . $materia;
-mail($docente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
-info("inviata mail di cancellazione sportello come richiesto dal docente - " . $docente_cognome . " " . $docente_nome);
 ?>

@@ -311,10 +311,35 @@
           </tbody>
         </table>
   
+        <div style="color: #656e72; line-height: 140%; text-align: left; word-wrap: break-word;">
+          <br><div style="color: #000000; line-height: 140%; text-align: center; word-wrap: break-word;">
+            <p style="font-size: 14px; line-height: 140%;">{messaggio_finale}</p>
+          </div>
+          <br>
+          <p style="font-size: 20px; font-weight:bold; ; font-size: 140%; color: blue; text-align:center;"><u>ELENCO DEGLI STUDENTI ISCRITTI</u></p>
+          <br>
+          <table style="font-family:arial,helvetica,sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="1">
+            <tbody>
+              <tr>
+                <th style="width:10%; overflow-wrap:break-word;word-break:break-word;padding:5px 0px 5px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 175, 1);"  align="left">
+                    <p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>classe</strong></span></p>
+                </th>
+                <th style="width:20%; overflow-wrap:break-word;word-break:break-word;padding:5px 0px 5px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 175, 1)"  align="left">
+                    <p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>cognome</strong></span></p>
+                </th>
+                <th style="width:20%; overflow-wrap:break-word;word-break:break-word;padding:5px 0px 5px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 175, 1);"  align="left">
+                    <p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>nome</strong></span></p>
+              </tr>
+              {codice_html_tabella}
+                    </tbody>
+  </table>
+
       </div>
     
           </td>
         </tr>
+  
+
       </tbody>
     </table>
     
@@ -337,20 +362,7 @@
       <div style="width: 100% !important;">
       <!--[if (!mso)&(!IE)]><!--><div style="padding: 0px;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;"><!--<![endif]-->
       
-    <table style="font-family:arial,helvetica,sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
-      <tbody>
-        <tr>
-          <td style="overflow-wrap:break-word;word-break:break-word;padding:10px 20px 20px 10px;font-family:arial,helvetica,sans-serif;" align="left">
-      <div style="color: #000000; line-height: 140%; text-align: center; word-wrap: break-word;">
-        <p style="font-size: 14px; line-height: 140%;">{messaggio_finale}</p>
-      </div>
-      <div style="color: #000000; line-height: 140%; text-align: left; word-wrap: break-word;">
-        <p style="font-size: 14px; line-height: 140%;">{elenco_studenti}</p>
-      </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    
     
       <!--[if (!mso)&(!IE)]><!--></div><!--<![endif]-->
       </div>
