@@ -57,7 +57,7 @@ foreach($resultArray as $row)
 	$sportello_materia = $row['sportello_materia'];
 	$sportello_luogo = $row['sportello_luogo'];
 
-	$query = "SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = 1117";
+	$query = "SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = $sportello_id";
 
 	$numero_studenti_iscritti = dbGetValue($query);
 
