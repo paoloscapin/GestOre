@@ -31,7 +31,7 @@ function erroreDiImport($messaggio) {
     $dataHtml = $dataHtml . "<strong>Errore di import linea $linePos:</strong> " . $messaggio .'<br>';
 
     // azzera le istruzioni sql
-    $sqlList = '';
+    $sqlList = array();
 }
 
 function getWordContent($words, $pos) {
@@ -160,6 +160,7 @@ foreach($lines as $line) {
         }
     }
     $insertSportelloSql = "INSERT INTO sportello(categoria, data, ora, docente_id, materia_id, classe_id, numero_ore, max_iscrizioni, argomento, luogo, classe, online, clil, orientamento, anno_scolastico_id) VALUES('$categoria', '$data', '$ora', '$docente_id', '$materia_id', '$classe_id', '$numero_ore', '$max_iscrizioni', '$argomento_opzionale', '$luogo', '$classe', '$online_value', '$clil_value', '$orientamento_value', $__anno_scolastico_corrente_id); ";
+    info("SPORTELLO SQL : " . $insertSportelloSql);
     $sqlList[] = $insertSportelloSql;
     $sportelli++ ;
 }
