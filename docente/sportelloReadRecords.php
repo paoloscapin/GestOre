@@ -89,7 +89,8 @@ $resultArray = dbGetAll($query);
 if ($resultArray == null) {
 	$resultArray = [];
 }
-foreach($resultArray as $row) {
+foreach($resultArray as $row) 
+{
 	$sportello_id = $row['sportello_id'];
 	$sportello_categoria = $row['sportello_categoria'];
 	$sportello_firmato = $row['sportello_firmato'];
@@ -116,22 +117,21 @@ foreach($resultArray as $row) {
 			}
 		}
 	}
-
-	$dt_sportello = new DateTime($row['sportello_data']);
-	$dt_oggi = new DateTime("now");
-
+	
+	$dt_sportello = $row['sportello_data'];
+	$dt_oggi = date("Y-m-d");
 	$vecchio = 0;
-
-	if ($dt_oggi>$dt_sportello)
+	if (strtotime($dt_sportello) < strtotime($dt_oggi))
 	{
 		$vecchio = 1;
 	}
-
+	
 	if ($row['sportello_data'])
-
+	{
 	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
 	$dataSportello = utf8_encode( strftime("%d %B %Y", strtotime($row['sportello_data'])));
 	setlocale(LC_TIME, $oldLocale);
+	}
 
 	// se ci sono prenotazioni, cerca la lista di studenti che sono prenotati
 	$studenteTip = '';

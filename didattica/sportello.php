@@ -83,7 +83,7 @@ $nclassi = dbGetValue (" SELECT COUNT(*) FROM classe WHERE classe.attiva=1");
 
 $classeOptionList = "";
 
-info("NCLASSI: " . $nclassi);
+
 if ($nclassi>0)
 {
     $classeOptionList = '<option value="0"></option>';
@@ -91,12 +91,12 @@ if ($nclassi>0)
         $classeFiltroOptionList .= ' <option value="'.$classe['id'].'" >'.$classe['nome'].'</option> ';
         $classeOptionList .= ' <option value="'.$classe['id'].'" >'.$classe['nome'].'</option> ';
     }
-    info("classe option list: " . $classeOptionList);
+
 }
 else
 {
     $classeOptionList .= 'empty';
-    info("classe option list: " . $classeOptionList);
+
 }
 
 ?>
@@ -225,7 +225,7 @@ require_once '../common/header-didattica.php';
                 </div>
 
                 <?php
-                info("AIUTO");
+
                 if ($classeOptionList == "empty") // se la tabella classe è vuota allora metti una casella di testo
                 {
                     echo '
@@ -324,12 +324,9 @@ require_once '../common/header-didattica.php';
 
 </div>
 
-<?php 
-info("PRIMA DEL JAVASCRIPT"); ?>
+
 <!-- Custom JS file -->
 <script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>"></script>
-<?php
-info("DOPO DEL JAVASCRIPT");
-?>
+
 </body>
 </html>

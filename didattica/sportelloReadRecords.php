@@ -20,7 +20,7 @@ $classe_filtro_id = $_GET["classe_filtro_id"];
 
 $direzioneOrdinamento="ASC";
 
-info("SPORTELLO READ RECORDS");
+
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
