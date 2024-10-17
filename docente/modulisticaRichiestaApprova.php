@@ -20,6 +20,8 @@ function produciTabella() {
 }
 
 function notifica($to, $toName, $titolo, $stato, $messaggio) {
+	global $nomeCognomeDocente, $template;
+
 	$mail = new PHPMailer(true);
 	$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no replay');
 	$mail->addAddress($to, $toName);
@@ -29,7 +31,7 @@ function notifica($to, $toName, $titolo, $stato, $messaggio) {
 	$mail->isHTML(TRUE);
 
 	$mail->Body = '<html><body>';
-	$mail->Body .= "<p>Il modulo ".$nomeCognomeDocente." ha inviato il modulo ".$template['nome'];
+	$mail->Body .= "<p>Il docente ".$nomeCognomeDocente." ha inviato il modulo ".$template['nome'];
 
 	$mail->Body .= '<p>La richiesta '.$titolo.' &egrave; stata '.$stato.' in data '.date("d/m/Y").'</p>';
 
@@ -97,14 +99,14 @@ if (! $approvata && ! $respinta && ! $annullata) {
 			notifica($template['email_to'], $template['email_to'], $titolo, 'Approvata', '');
 		} else if ($comando == 'respingi') {
 			// todo: chiede la ragione per inserirla nelle motivazioni
-			$mesaggio = "La richiesta viene respinta";
+			$mesaggio = "";
 			dbExec('UPDATE modulistica_richiesta SET `respinta` = 1, `messaggio_respinta` = "'.escapeString($mesaggio).'" WHERE id = '.$richiesta_id.';');
 			info("respinta la richiesta id=$richiesta_id richiesta=$titolo messaggio=$messaggio");
 			notifica($emailDocente, $nomeCognomeDocente, $titolo, 'Respinta', $mesaggio);
 			notifica($template['email_to'], $template['email_to'], $titolo, 'Respinta', $mesaggio);
 		} else if ($comando == 'annulla') {
 			// todo: chiede la ragione per inserirla nelle motivazioni
-			$mesaggio = "La richiesta viene annullata";
+			$mesaggio = "";
 			dbExec('UPDATE modulistica_richiesta SET `annullata` = 1, `messaggio_respinta` = "'.escapeString($mesaggio).'" WHERE id = '.$richiesta_id.';');
 			info("annullata la richiesta id=$richiesta_id richiesta=$titolo messaggio=$messaggio");
 			notifica($emailDocente, $nomeCognomeDocente, $titolo, 'Annullata', $mesaggio);
@@ -133,58 +135,27 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
 	$richiesta_campo = dbGetFirst("SELECT * FROM modulistica_richiesta_campo WHERE modulistica_richiesta_id = $richiesta_id AND modulistica_template_campo_id = $template_campo_id;");
 	$listaValori[] = $richiesta_campo['valore'];
 }
-
 ?>
-<html>
-	<head>
-	<style>
-	#campi {
-	  font-family: Arial, Helvetica, sans-serif;
-	  border-collapse: collapse;
-	  width: 100%;
-	}
-	#campi td, #campi th {
-	  border: 1px solid #ddd;
-	  padding: 6px;
-	}
-	#campi tr:nth-child(even){background-color: #f2f2f2;}
-	#campi tr:hover {background-color: #ddd;}
-	#campi th {
-	  padding-top: 6px;
-	  padding-bottom: 6px;
-	  text-align: left;
-	  background-color: #04AA6D;
-	  color: white;
-	}
+<html><head><style>
+	#campi { font-family: Arial, Helvetica, sans-serif; border-collapse: collapse; width: 100%; }
+	#campi td, #campi th { border: 1px solid #ddd; padding: 6px; }
+	#campi tr:nth-child(even) { background-color: #f2f2f2; }
+	#campi tr:hover { background-color: #ddd; }
+	#campi th { padding-top: 6px; padding-bottom: 6px; text-align: left; background-color: #04AA6D; color: white; }
     .col1 { width: 25%; }
     .col2 { width: 75%; }
 	.tick { margin-left: 0.65cm; text-indent: -0.65cm; }
-	.btn-ar {
-		color: #fff;
-		padding: 15px 25px;
-		margin: 20px 25px 10px 25px;
+	.btn-ar { color: #fff; padding: 10px 15px; margin: 20px 15px 10px 15px;
 		background-image: radial-gradient(93% 87% at 87% 89%, rgba(0, 0, 0, 0.23) 0%, transparent 86.18%), radial-gradient(66% 66% at 26% 20%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 69.79%, rgba(255, 255, 255, 0) 100%);
 		box-shadow: inset -3px -3px 9px rgba(255, 255, 255, 0.25), inset 0px 3px 9px rgba(255, 255, 255, 0.3), inset 0px 1px 1px rgba(255, 255, 255, 0.6), inset 0px -8px 36px rgba(0, 0, 0, 0.3), inset 0px 1px 5px rgba(255, 255, 255, 0.6), 2px 19px 31px rgba(0, 0, 0, 0.2);
-		border-radius: 14px;
-		font-weight: bold;
-		font-size: 16px;
-		border: 0;
-		user-select: none;
-		-webkit-user-select: none;
-		touch-action: manipulation;
-		cursor: pointer;
-	}
-	.btn-approva {
-		background-color: #1CAF43;
-	}
-	.btn-respingi {
-		background-color: #F1003C;
-	}
-
+		border-radius: 12px; font-weight: bold; font-size: 14px; border: 0; user-select: none; -webkit-user-select: none; touch-action: manipulation; cursor: pointer; }
+		.btn-approva { background-color: #1CAF43; }
+		.btn-respingi { background-color: #F1003C; }
+		.btn-waiting { background-color: #f2e829; }
+		.btn-label { padding: 5px 12px; border-radius: 8px; margin: 10px 5px; }
 	</style>
 	<title><?php echo $titolo; ?></title>
-	</head>
-	<body>
+	</head><body>
 <?php
 
 $chekboxChecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;" checked></b> ';
@@ -194,15 +165,29 @@ $radioUnchecked = '<div class="tick"><b><input type="checkbox" value="" style="v
 
 $data = '<h2 style="text-align: center">'.$titolo.'</h2>';
 
+// controlla se e' respinta o annullata e in quel caso richiede che ci sia un messaggio se non e' gia' presente
+if ($template['approva'] && ($richiesta['respinta'] || $richiesta['annullata']) && strlen($richiesta['messaggio_respinta']) == 0) {
+	echo('<script type="text/javascript" src="../common/jquery-3.3.1-dist/jquery-3.3.1.min.js"></script>');
+	echo('<script type="text/javascript" src="../common/bootbox-4.4.0/js/bootbox.min.js"></script>');
+	echo('<script>');
+	echo('messaggio = prompt("Inserisci la motivazione");');
+	echo('$.post("../common/recordUpdate.php", {table: "modulistica_richiesta", id: '.$richiesta_id.', nome: "messaggio_respinta", valore: messaggio}, function (data, status) {location.reload();});');
+	echo('</script>');
+	echo("</body></html>");
+	return;
+}
+
 // se e' gia' stata approvata o respinta, scrive lo stato e non lascia modificare
 if ($template['approva']) {
 	if ($richiesta['approvata']) {
-		$data .= '<h3 style="text-align: center">La richiesta &egrave; stata <b>APPROVATA</b> in data '.$dataApprovazione.'</h3>';
+		$data .= '<h3 style="text-align: center">La richiesta &egrave; stata <span class="btn-ar btn-approva btn-label">APPROVATA</span> in data '.$dataApprovazione.'</h3>';
 	} else if ($richiesta['respinta']) {
-		$data .= '<h3 style="text-align: center">La richiesta &egrave; stata <b>RESPINTA</b> in data '.$dataApprovazione.'</h3>';
-		$data .= "<p>con la seguente motivazione: ".$richiesta['messaggio_respinta']."</p>";
+		//		$data .= '<h3 style="text-align: center">La richiesta &egrave; stata <b>RESPINTA</b> in data '.$dataApprovazione.'</h3>';
+		$data .= '<h3 style="text-align: center">La richiesta &egrave; stata <span class="btn-ar btn-respingi btn-label">RESPINTA</span> in data '.$dataApprovazione.'</h3>';
+		$data .= '<h3 style="text-align: center">Motivazione: '.$richiesta['messaggio_respinta'].'</h3>';
 	} else if ($richiesta['annullata']) {
-		$data .= '<h3 style="text-align: center">La richiesta &egrave; stata <b>ANNULLATA</b> in data '.$dataApprovazione.'</h3>';
+		$data .= '<h3 style="text-align: center">La richiesta &egrave; stata <span class="btn-ar btn-respingi btn-label">ANNULLATA</span> in data '.$dataApprovazione.'</h3>';
+		$data .= '<h3 style="text-align: center">Motivazione: '.$richiesta['messaggio_respinta'].'</h3>';
 	} else {
 		$data .= '<h3 style="text-align: center">La richiesta non &egrave; ancora stata approvata</h3>';
 		if ($template['approva']) {

@@ -169,7 +169,8 @@ $mail->isHTML(TRUE);
 $mail->Body = '<html>'.getEmailHead().'<body>';
 $mail->Body .= "<p>".$nomeCognomeDocente." ha inviato il modulo ".$template['nome'];
 if ($template['approva']) {
-    $mail->Body .= " che <b>richiede di essere approvato</b>.";
+//     $mail->Body .= " che <b>richiede di essere approvato</b>.";
+    $mail->Body .= '<span class="btn-ar btn-waiting btn-label">in attesa di approvazione</span>.';
 }
 $mail->Body .= "</p>";
 $mail->Body .= produciTabella();
@@ -238,12 +239,14 @@ function getEmailHead() {
 		.col1 { width: 25%; }
 		.col2 { width: 75%; }
 		.tick { margin-left: 0.65cm; text-indent: -0.65cm; }
-		.btn-ar { color: #fff; padding: 15px 25px; margin: 20px 25px 10px 25px;
+		.btn-ar { color: #fff; padding: 10px 15px; margin: 20px 15px 10px 15px;
 			background-image: radial-gradient(93% 87% at 87% 89%, rgba(0, 0, 0, 0.23) 0%, transparent 86.18%), radial-gradient(66% 66% at 26% 20%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 69.79%, rgba(255, 255, 255, 0) 100%);
 			box-shadow: inset -3px -3px 9px rgba(255, 255, 255, 0.25), inset 0px 3px 9px rgba(255, 255, 255, 0.3), inset 0px 1px 1px rgba(255, 255, 255, 0.6), inset 0px -8px 36px rgba(0, 0, 0, 0.3), inset 0px 1px 5px rgba(255, 255, 255, 0.6), 2px 19px 31px rgba(0, 0, 0, 0.2);
-			border-radius: 14px; font-weight: bold; font-size: 16px; border: 0; user-select: none; -webkit-user-select: none; touch-action: manipulation; cursor: pointer; }
+			border-radius: 12px; font-weight: bold; font-size: 14px; border: 0; user-select: none; -webkit-user-select: none; touch-action: manipulation; cursor: pointer; }
 		.btn-approva { background-color: #1CAF43; }
 		.btn-respingi { background-color: #F1003C; }
+		.btn-waiting { background-color: #f2e829; }
+		.btn-label { padding: 5px 12px; border-radius: 8px; margin: 10px 5px; }
 		</style></head>';
 
 	return $head;

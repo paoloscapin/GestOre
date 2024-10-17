@@ -45,14 +45,11 @@ function invia() {
             documento: documento,
             docente_id: docente_id,
             approva_id: 0,
-            listaValori: JSON.stringify(listaValori)    
+            listaValori: JSON.stringify(listaValori)
         }, function (data, status) {
             if (data.trim() === '' && status === 'success') {
                 $("#modulo_compilato_id").html("<p><b>Il modulo &egrave; stato inviato.</b></p><p>Una copia della richiesta &egrave; stata inoltrata alla tua casella di email per controllo.</p>");
             } else {
-                console.log('data=[' + data) + ']';
-                console.log('data type=' + typeof(data)+' len='+data.length+' char='+data.charCodeAt(0));
-                console.log('status=' + status);
                 $("#modulo_compilato_id").html(data);
             }
         });
@@ -88,7 +85,6 @@ function aggiornaContenutoDocumento() {
                     if (valore != '') {
                         valore += '::';
                     }
-//                    documento = documento.replaceAll('{{' + listaCampi[i] + "_" + j + '}}', '<b>&#x2612;</b> ');
                     // documento = documento.replaceAll('{{' + listaCampi[i] + "_" + j + '}}', chekboxChecked + valoriSelezionabili[j]);
                     risultato = risultato + chekboxChecked + valoriSelezionabili[j] + '</br>';
                     valore += j;
