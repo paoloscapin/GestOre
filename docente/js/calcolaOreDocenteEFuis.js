@@ -13,9 +13,9 @@ function oreFatteReloadTables(soloTotale = false) {
 		ultimo_controllo: $("#hidden_ultimo_controllo").val()
 	},
 	function (data, status) {
-		console.log(data);
+//		console.log(data);
 		data = JSON.parse(data);
-		console.log(data);
+//		console.log(data);
 
 		if (! soloTotale) {
 			$(".corso_di_recupero_records_content").html(data.dataCdr);
@@ -153,9 +153,9 @@ function orePrevisteReloadTables(soloTotale = false) {
 		ultimo_controllo: $("#hidden_ultimo_controllo").val()
 	},
 	function (data, status) {
-		console.log(data);
+//		console.log(data);
 		data = JSON.parse(data);
-		console.log(data);
+//		console.log(data);
 
 		if (! soloTotale) {
 			$(".corso_di_recupero_records_content").html(data.dataCdr);
