@@ -167,7 +167,7 @@ foreach($resultArray as $row) {
 		<td align="center">'.$barrato.$sportello_categoria.'</td>
 		<td align="center">'.$barrato.$dataSportello.'</td>
 		<td align="center">'.$barrato.$row['sportello_ora'].'</td>
-		<td>'.$barrato.$row['materia_nome'].'</td>
+		<td align="center">'.$barrato.$row['materia_nome'].'</td>
 		<td align="center">'.$barrato.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
 		<td align="center">'.$barrato.$row['sportello_numero_ore'].'</td>
 		<td align="center">'.$barrato.$row['sportello_classe'].'</td>
