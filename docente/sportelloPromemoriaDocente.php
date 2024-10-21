@@ -181,6 +181,7 @@ foreach($resultArray as $row)
 		$full_mail_body = str_replace("{docente}",strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome),$full_mail_body);
 		$full_mail_body = str_replace("{materia}",$sportello_materia,$full_mail_body);
 		$full_mail_body = str_replace("{aula}",$sportello_luogo,$full_mail_body);
+		$full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
 
 		$sender = $__settings->local->emailNoReplyFrom;
 		$headers  = 'MIME-Version: 1.0' . "\r\n";
