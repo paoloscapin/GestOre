@@ -69,9 +69,14 @@ function aggiornaContenutoDocumento() {
     // sostituisce tutti i campi che trova con i valori inseriti dall'utente
     for(var i = 0; i < listaCampi.length; i++){
         // a seconda del tipo trova il valore
-        if (listaTipi[i] == 1 || listaTipi[i] == 2) {
+        if (listaTipi[i] == 1 || listaTipi[i] == 2 || listaTipi[i] == 5) {
             // tipo 1 = testo semplice e tipo 2 = combo box (select option): prende il valore inserito
             valore = $("#" + listaCampi[i]).val();
+
+            // tipo 5 = textarea per cui serve un pre per gli a capo
+            if (listaTipi[i] == 5) {
+                valore = '<span  style="white-space: pre-wrap;">' + valore + '</span>';
+            }
             documento = documento.replaceAll('{{' + listaCampi[i] + '}}', valore);
 
         } else if (listaTipi[i] == 3 || listaTipi[i] == 4) {

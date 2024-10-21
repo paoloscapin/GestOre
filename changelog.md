@@ -1,6 +1,7 @@
-## Version 1.2.50 - 00 ott 2024
+## Version 1.2.50 - 01 ott 2024
 ##### Improvements
 - inserita gestione moduli prima versione
+- opzione per correggere anche le previste con le regole
 
 ##### Bug Fixes
 - viaggi diaria in previste

@@ -79,7 +79,8 @@
         "accetta_funzionali_per_con_studenti": false,
         "segnala_fatte_eccedenti_previsione": false,
         "rimuovi_fatte_eccedenti_previsione": false,
-        "rimuovi_fatte_clil_eccedenti_previsione": false
+        "rimuovi_fatte_clil_eccedenti_previsione": false,
+        "compensa_anche_previste": false
     },
     "bonus": {
         "punteggio_variabile": false

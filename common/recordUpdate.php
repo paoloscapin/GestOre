@@ -13,7 +13,7 @@ if(isset($_POST)) {
     $table = $_POST['table'];
 	$id = $_POST['id'];
 	$nome = $_POST['nome'];
-	$valore = $_POST['valore'];
+	$valore = escapePost('valore');
 
     if ($id > 0) {
         dbExec("UPDATE $table SET $nome = '$valore' WHERE id = '$id'");
