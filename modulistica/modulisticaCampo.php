@@ -22,7 +22,7 @@ require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_bootstrap-notify.php';
 require_once '../common/_include_summernote.php';
-ruoloRichiesto('admin');
+ruoloRichiesto('modulistica');
 
 if(! isset($_GET)) {
 	return;
@@ -56,7 +56,7 @@ $tipoOptionList .= '<optgroup><option data-icon="glyphicon glyphicon-font" value
 
 <body >
 <?php
-	require_once '../common/header-admin.php';
+	require_once '../common/header-modulistica.php';
 ?>
 
 <!-- esterno: questo pannello contiene gli altri due -->

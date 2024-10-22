@@ -25,7 +25,7 @@ function readTemplate() {
 }
 
 function modulisticaCampoSave() {
-    $.post("../admin/modulisticaCampoSave.php", {
+    $.post("../modulistica/modulisticaCampoSave.php", {
         id: $("#hidden_template_campo_id").val(),
         nome: $("#nome").val(),
         etichetta: $("#etichetta").val(),
@@ -59,7 +59,7 @@ function modulisticaTemplateSave() {
 function modulisticaCampoRemove(modulistica_campo_id, modulistica_contenuto_posizione) {
     var conf = confirm("Sei sicuro di volere cancellare il modulo " + modulistica_contenuto_posizione + " ?");
     if (conf == true) {
-        $.post("../admin/modulisticaCampoDelete.php", {
+        $.post("../modulistica/modulisticaCampoDelete.php", {
                 id: modulistica_campo_id,
                 modulistica_template_id: $("#hidden_template_id").val(),
 				posizione: modulistica_contenuto_posizione
@@ -101,7 +101,7 @@ function modulisticaCampoGetDetails(modulistica_campo_id) {
 }
 
 function move(modulistica_campo_posizione, diQuanto) {
-    $.post("../admin/modulisticaCampoMove.php", {
+    $.post("../modulistica/modulisticaCampoMove.php", {
         template_id: $("#hidden_template_id").val(),
         modulistica_campo_posizione: modulistica_campo_posizione,
 		di_quanto: diQuanto

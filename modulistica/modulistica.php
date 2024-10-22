@@ -22,14 +22,14 @@ require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('modulistica');
 ?>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
 </head>
 
 <body >
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once '../common/header-modulistica.php'; ?>
 
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">

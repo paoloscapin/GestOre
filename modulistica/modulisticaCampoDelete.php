@@ -8,7 +8,7 @@
  */
 
  require_once '../common/checkSession.php';
- ruoloRichiesto('admin');
+ ruoloRichiesto('modulistica');
 
  if(isset($_POST['id']) && isset($_POST['id']) != "") {
     $id = $_POST['id'];

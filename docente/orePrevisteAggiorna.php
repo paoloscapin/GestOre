@@ -21,7 +21,7 @@ function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_contr
 	$oreAggiornamento = 0;
 	$diariaGiorniSenzaPernottamento = 0;
 	$diariaGiorniConPernottamento = 0;
-	$diariaImporto = 0;
+	$diariaImportoPreviste = 0;
 	$messaggio = '';
 	$messaggioEccesso = '';
 
@@ -67,7 +67,7 @@ function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_contr
 
 	// previste dei corsi di recupero: per le previste controlla le firme sui corsi in itinere
 	require_once '../docente/corsoDiRecuperoPrevisteReadRecords.php';
-	$result = corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile, true);
+	$result = corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile, false);
 	$oreConStudentiPreviste += $result['corso_di_recupero_ore_recuperate'];
 	$oreConStudentiPreviste += $result['corso_di_recupero_ore_in_itinere'];
 	$oreCorsoDiRecuperoExtra += $result['corso_di_recupero_ore_pagamento_extra'];
@@ -92,10 +92,10 @@ function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_contr
 	$oreConStudentiPreviste += $result['diariaOre'];
 	$diariaGiorniSenzaPernottamento += $result['diariaGiorniSenzaPernottamento'];
 	$diariaGiorniConPernottamento += $result['diariaGiorniConPernottamento'];
-	$diariaImporto += $result['diariaImporto'];
+	$diariaImportoPreviste += $result['diariaImporto'];
 	$dataDiaria = $result['dataDiaria'];
 	$totale = $totale + compact('dataDiaria');
-	$totale = $totale + compact('diariaGiorniSenzaPernottamento', 'diariaGiorniConPernottamento', 'diariaImporto');
+	$totale = $totale + compact('diariaGiorniSenzaPernottamento', 'diariaGiorniConPernottamento', 'diariaImportoPreviste');
 
 	// aggiunge le previste al risultato totale
 	$totale = $totale + compact('oreConStudentiPreviste', 'oreFunzionaliPreviste', 'oreClilConStudentiPreviste', 'oreClilFunzionaliPreviste', 'oreOrientamentoConStudentiPreviste', 'oreOrientamentoFunzionaliPreviste', 'oreAggiornamentoPreviste');
@@ -147,27 +147,27 @@ function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_contr
 		$fuisConStudenti = max($fuisConStudenti, 0);
 	}
 
-    $fuisOre = $fuisFunzionale + $fuisConStudenti;
+    $fuisOrePreviste = $fuisFunzionale + $fuisConStudenti;
 
     // nessuno deve tornare dei soldi:
-    $fuisOre = max($fuisOre, 0);
+    $fuisOrePreviste = max($fuisOrePreviste, 0);
 
     $clilFatteFunzionaliBilancio = $oreClilFunzionaliPreviste;
     $clilFatteConStudentiBilancio = $oreClilConStudentiPreviste;
 
-    $fuisClilFunzionale = $clilFatteFunzionaliBilancio * $__importi['importo_ore_funzionali'];
-    $fuisClilConStudenti = $clilFatteConStudentiBilancio * $__importi['importo_ore_con_studenti'];
+    $fuisClilFunzionalePreviste = $clilFatteFunzionaliBilancio * $__importi['importo_ore_funzionali'];
+    $fuisClilConStudentiPreviste = $clilFatteConStudentiBilancio * $__importi['importo_ore_con_studenti'];
 
 	// per ora orientamento in modo semplice, somma le ore fatte
-    $fuisOrientamentoFunzionale = $oreOrientamentoFunzionaliPreviste * $__importi['importo_ore_funzionali'];
-    $fuisOrientamentoConStudenti = $oreOrientamentoConStudentiPreviste * $__importi['importo_ore_con_studenti'];
+    $fuisOrientamentoFunzionalePreviste = $oreOrientamentoFunzionaliPreviste * $__importi['importo_ore_funzionali'];
+    $fuisOrientamentoConStudentiPreviste = $oreOrientamentoConStudentiPreviste * $__importi['importo_ore_con_studenti'];
 
 	$fuisExtraCorsiDiRecupero = $oreCorsoDiRecuperoExtra * $__importi['importo_ore_corsi_di_recupero'];
 
 	// calcola il totale del fuis assegnato
     $fuisAssegnato = dbGetValue("SELECT COALESCE(SUM(importo), 0) FROM fuis_assegnato WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
 
-	$totale = $totale + compact('messaggio', 'messaggioEccesso', 'fuisFunzionale', 'fuisConStudenti', 'fuisOre', 'fuisClilFunzionale', 'fuisClilConStudenti', 'fuisOrientamentoFunzionale', 'fuisOrientamentoConStudenti', 'fuisExtraCorsiDiRecupero', 'fuisAssegnato');
+	$totale = $totale + compact('messaggio', 'messaggioEccesso', 'fuisFunzionale', 'fuisConStudenti', 'fuisOrePreviste', 'fuisClilFunzionalePreviste', 'fuisClilConStudentiPreviste', 'fuisOrientamentoFunzionalePreviste', 'fuisOrientamentoConStudentiPreviste', 'fuisExtraCorsiDiRecupero', 'fuisAssegnato');
 
 	return $totale;
 }

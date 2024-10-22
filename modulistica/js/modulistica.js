@@ -18,7 +18,7 @@ $('#soloValidiCheckBox').change(function() {
 });
 
 function modulisticaReadRecords() {
-	$.get("../admin/modulisticaReadRecords.php?soloValidi=" + soloValidi, {}, function (data, status) {
+	$.get("../modulistica/modulisticaReadRecords.php?soloValidi=" + soloValidi, {}, function (data, status) {
 		$(".records_content").html(data);
 	});
 }
@@ -62,7 +62,7 @@ function modulisticaGetDetails(id) {
 }
 
 function modulisticaSave() {
-    $.post("../admin/modulisticaSave.php", {
+    $.post("../modulistica/modulisticaSave.php", {
         id: $("#hidden_record_id").val(),
         nome: $("#nome").val(),
         intestazione: $("#intestazione").is(':checked')? 1: 0,
@@ -79,7 +79,7 @@ function modulisticaSave() {
 }
 
 function modulisticaOpenTemplate(id) {
-    window.open('/GestOre/admin/modulisticaCampo.php?template_id=' + id, '_blank');
+    window.open('/GestOre/modulistica/modulisticaCampo.php?template_id=' + id, '_blank');
 }
 
 $(document).ready(function () {

@@ -2,6 +2,7 @@
 ##### Improvements
 - inserita gestione moduli prima versione
 - opzione per correggere anche le previste con le regole
+- gestione moduli sotto folder modulistica e ruolo modulistica
 
 ##### Bug Fixes
 - viaggi diaria in previste

@@ -8,7 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('admin');
+ruoloRichiesto('modulistica');
 
 if(isset($_POST)) {
 	$modulistica_template_id = $_POST['template_id'];
