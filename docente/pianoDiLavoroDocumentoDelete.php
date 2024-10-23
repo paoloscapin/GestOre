@@ -21,7 +21,7 @@
     // ora deve controllare tutti i numeri dei moduli
     $pos = 1;
     foreach(dbGetAll("SELECT * FROM piano_di_lavoro_contenuto WHERE piano_di_lavoro_id = $piano_di_lavoro_id ORDER BY posizione; ") as $modulo) {
-        if ($pos != $modulo[posizione]) {
+        if ($pos != $modulo[$posizione]) {
             dbExec("UPDATE piano_di_lavoro_contenuto SET posizione = $pos WHERE id = '$modulo[id]'");
         }
         $pos = $pos + 1;

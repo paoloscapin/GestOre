@@ -29,7 +29,7 @@ if(isset($_POST)) {
 		$query .= "WHERE id = '$lezione_corso_di_recupero_id'";
 
 		dbExec($query);
-		info("aggiornato lezione_corso_di_recupero id=$id argomento=$argomento note=$note");
+		info("aggiornato lezione_corso_di_recupero id=$lezione_corso_di_recupero_id argomento=$argomento note=$note");
 	}
 
 	// aggiorna i partecipanti
