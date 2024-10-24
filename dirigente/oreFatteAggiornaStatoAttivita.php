@@ -14,7 +14,7 @@ if(isset($_POST)) {
 	$attivita_id = $_POST['attivita_id'];
 	$docente_id = $_POST['docente_id'];
 	$contestata = $_POST['contestata'];
-	$commento = mysqli_real_escape_string($con, $_POST['commento']);
+	$commento = escapePost('commento');
 	$clilmode = $_POST['clilmode'];
 	
 	$tabella_ore_fatte_attivita = 'ore_fatte_attivita';

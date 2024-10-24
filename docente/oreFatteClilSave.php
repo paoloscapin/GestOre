@@ -14,10 +14,10 @@ if(isset($_POST)) {
 	$ore_fatte_attivita_clil_id = $_POST['attivita_id'];
 	$con_studenti = $_POST['con_studenti'];
 	$ore = $_POST['ore'];
-	$dettaglio = mysqli_real_escape_string($con, $_POST['dettaglio']);
+	$dettaglio = escapePost('dettaglio');
 	$ora_inizio = $_POST['ora_inizio'];
 	$data = $_POST['data'];
-	$commento = mysqli_real_escape_string($con, $_POST['commento']);
+	$commento = escapePost('commento');
 	$operatore = $_POST['operatore'];
 
 	// il dirigente gestisce anche i commenti

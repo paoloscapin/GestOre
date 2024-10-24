@@ -12,8 +12,8 @@ if(isset($_POST)) {
 	require_once '../common/connect.php';
 	$registro_id = $_POST['registro_id'];
 	$attivita_id = $_POST['attivita_id'];
-	$descrizione = mysqli_real_escape_string($con, $_POST['descrizione']);
-	$studenti = mysqli_real_escape_string($con, $_POST['studenti']);
+	$descrizione = escapePost('descrizione');
+	$studenti = escapePost('studenti');
 
 	$query = '';
 	if ($registro_id > 0) {

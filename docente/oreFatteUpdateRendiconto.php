@@ -12,7 +12,7 @@ if(isset($_POST)) {
 	require_once '../common/connect.php';
 	$rendiconto_id = $_POST['rendiconto_id'];
 	$attivita_id = $_POST['attivita_id'];
-	$rendiconto = mysqli_real_escape_string($con, $_POST['rendiconto']);
+	$rendiconto = escapePost('rendiconto');
 
 	$query = '';
 	if ($rendiconto_id > 0) {

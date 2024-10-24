@@ -17,7 +17,7 @@ if(isset($_POST)) {
 	$data = $_POST['data'];
 	$tipo = $_POST['tipo'];
 	$importo = $_POST['importo'];
-	$note = $_POST['note'];
+	$note = escapePost('note');
 
 	$query = '';
 	if ($spesa_viaggio_id > 0) {
