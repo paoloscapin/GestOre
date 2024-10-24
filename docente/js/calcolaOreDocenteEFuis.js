@@ -211,7 +211,7 @@ function orePrevisteReloadTables(soloTotale = false) {
 		// parte fuis solo su condizione
 		if (true) {
 			$("#fuis_assegnato").html(number_format(data.fuisAssegnato,2));
-			$("#fuis_ore").html(number_format(data.fuisOre,2));
+			$("#fuis_ore").html(number_format(data.fuisOrePreviste,2));
 			$("#fuis_diaria").html(number_format(data.diariaImporto,2));
 	
 			$("#fuis_clil_funzionali").html(number_format(data.fuisClilFunzionale,2));

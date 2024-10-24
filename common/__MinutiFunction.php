@@ -31,6 +31,11 @@ function orario($minuti) {
 
 function oreToDisplay($ore) {
     global $__minuti;
+
+    if (! isset($__minuti)) {
+        $__minuti = getSettingsValue('config','minuti', false);
+    }
+
     if (! $__minuti) {
         return round($ore);
     }
