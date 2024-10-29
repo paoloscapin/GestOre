@@ -240,11 +240,22 @@ function confermaFirmato()
             alert ("Non puoi firmare uno sportello a cui non ci sono studenti iscritti!");
             $("#firmato").prop('checked',false);
         }
+        else
+        {
+            var conferma = confirm("Una volta firmato lo sportello non potrai più modificare nulla. Sei sicuro?");
+              if (!conferma)
+                {
+                  $("#firmato").prop('checked',false);
+                }
+            }
+            
     }
 }
 
-function sportelloGetDetails(sportello_id) {
+function sportelloGetDetails(sportello_id,sportello_n_studenti) {
     $("#hidden_sportello_id").val(sportello_id);
+//    $("#hidden_numero_studenti_iscritti").val(10);
+    $("#hidden_numero_studenti_iscritti").val(sportello_n_studenti);
 
     if (sportello_id > 0) {
         $.post("../docente/sportelloReadDetails.php", {
