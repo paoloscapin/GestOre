@@ -69,7 +69,7 @@ $listaValoriDefault = [];
 $listaValoriSelezionabili = [];
 $listaTipi = [];
 $listaObbligatori = [];
-foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $template_id;") as $campo) {
+foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $template_id ORDER BY posizione;") as $campo) {
     $id = $campo['id'];
     $nome = $campo['nome'];
     $etichetta = $campo['etichetta'];
@@ -122,9 +122,9 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
     $listaCampiId[] = $id;
     $listaCampi[] = $nome;
     $listaCampoNumeroElementi[] = $campoNumeroElementi;
-    $listaEtichette[] = $etichetta;
+    $listaEtichette[] = str_replace("'","&#39;",$etichetta);
     $listaValoriDefault[] = $valore_default;
-    $listaValoriSelezionabili[] = $listaValori;
+    $listaValoriSelezionabili[] = str_replace("'","&#39;",$listaValori);
     $listaTipi[] = $tipo;
     $listaObbligatori[] = $obbligatorio;
 }
@@ -175,7 +175,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
 
 <input type="hidden" id="hidden_lista_campi_id" value='<?php echo(json_encode($listaCampiId)); ?>'>
 <input type="hidden" id="hidden_lista_campi" value='<?php echo(json_encode($listaCampi)); ?>'>
-<input type="hidden" id="hidden_lista_valori_selezionabili" value='<?php debug("vs=".json_encode($listaValoriSelezionabili)); echo(json_encode($listaValoriSelezionabili)); ?>'>
+<input type="hidden" id="hidden_lista_valori_selezionabili" value='<?php echo(json_encode($listaValoriSelezionabili)); ?>'>
 <input type="hidden" id="hidden_lista_campo_numero_elementi" value='<?php echo(json_encode($listaCampoNumeroElementi)); ?>'>
 <input type="hidden" id="hidden_lista_etichette" value='<?php echo(json_encode($listaEtichette)); ?>'>
 <input type="hidden" id="hidden_lista_tipi" value='<?php echo(json_encode($listaTipi)); ?>'>
