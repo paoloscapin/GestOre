@@ -172,11 +172,8 @@ foreach($resultArray as $row)
 	{
 		$barrato='<s>';
 	}
-	$testo='<tr><input type="hidden" id="hidden_numero_studenti_iscritti" value='.$sportello_nstudenti.'><tr>';
 
-	$data .= '<tr><input type="hidden" id="hidden_numero_studenti_iscritti" value=';
-	$data .= $sportello_nstudenti;
-	$data .= '>
+	$data .= '
 		<td align="center">'.$barrato.$sportello_categoria.'</td>
 		<td align="center">'.$barrato.$dataSportello.'</td>
 		<td align="center">'.$barrato.$row['sportello_ora'].'</td>
@@ -198,7 +195,7 @@ foreach($resultArray as $row)
 	{
 		$data .='
 		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Clicca qui per gestire lo sportello">
-		<button onclick="sportelloGetDetails('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
+		<button onclick="sportelloGetDetails('.$row["sportello_id"].','.$sportello_nstudenti.')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
 		</td>
 		</tr>';
 	}
