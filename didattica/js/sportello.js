@@ -224,7 +224,7 @@ function sportelloGetDetails(sportello_id) {
                     "<td style=\"text-align: center; vertical-align: middle;\">" +
                     "<input type=\"checkbox\" name=\"query_myTextEditBox\"" +
                     ((studenti.sportello_studente_presente == 0 || studenti.sportello_studente_presente == null) ? "" : " checked") +
-                    " disabled='true'></td>" +
+                    "></td>" +
                     "</tr>";
             });
             $('#studenti_table > tbody:last-child').append(markup);
