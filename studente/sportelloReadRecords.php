@@ -16,8 +16,11 @@ $soloNuovi = $_GET["soloNuovi"];
 $docente_filtro_id = $_GET["docente_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
 $classe_filtro_id = $_GET["classe_filtro_id"];
+$categoria_filtro_id = $_GET["categoria_filtro_id"];
 
 $direzioneOrdinamento="ASC";
+
+$nome_categoria = dbGetValue("SELECT nome FROM sportello_categoria WHERE id = ".$categoria_filtro_id);
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -65,6 +68,8 @@ $query = "	SELECT
 			INNER JOIN docente docente ON sportello.docente_id = docente.id
 			INNER JOIN materia materia ON sportello.materia_id = materia.id
 			INNER JOIN classe classe ON sportello.classe_id = classe.id
+			INNER JOIN sportello_categoria ON sportello.categoria = sportello_categoria.nome
+			
 			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
 			";
 
@@ -78,6 +83,9 @@ if( $materia_filtro_id > 0) {
 }
 if( $docente_filtro_id > 0) {
 	$query .= "AND sportello.docente_id = $docente_filtro_id ";
+}
+if( $categoria_filtro_id > 0) {
+	$query .= "AND sportello.categoria = '" . $nome_categoria . "' ";
 }
 if( ! $ancheCancellati) {
 	$query .= "AND NOT sportello.cancellato ";

@@ -59,6 +59,13 @@ ruoloRichiesto('studente','segreteria-didattica','dirigente');
 </head>
 
 <?php
+
+// prepara l'elenco delle categorie per il filtro
+$categoriaFiltroOptionList = '<option value="0">tutti</option>';
+foreach(dbGetAll("SELECT * FROM sportello_categoria ORDER BY sportello_categoria.nome ASC ; ")as $categoria) {
+    $categoriaFiltroOptionList .= ' <option value="'.$categoria['id'].'" >'.$categoria['nome'].'</option> ';
+}
+
 // prepara l'elenco dei docenti per il filtro
 $docenteFiltroOptionList = '<option value="0">tutti</option>';
 foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ; ")as $docente) {
@@ -89,34 +96,42 @@ require_once '../common/connect.php';
 <div class="panel panel-orange4">
 <div class="panel-heading">
 	<div class="row">
-		<div class="col-md-1">
+		<div class="col-md-1" style="padding:10px">
 			<span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli
 		</div>
-        <div class="col-md-2">
+        <div class="col-md-2" style="padding:0px">
+            <div class="text-center">
+                <label class="col-sm-2 control-label" for="categoria" style="margin:10px 0px 0px 0px">Categoria</label>
+					<div class="col-sm-8" style="padding:0px"><select id="categoria_filtro" name="categoria_filtro" class="categoria_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $categoriaFiltroOptionList ?>
+					</select></div>
+            </div>
+        </div>
+        <div class="col-md-2" style="padding:0px">
             <div class="text-center">
                 <label class="col-sm-2 control-label" for="docente" style="margin:5px 0px 0px 0px">Docente</label>
-					<div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+					<div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="90%" >
                     <?php echo $docenteFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-2" style="padding:0px">
             <div class="text-center" >
-                <label class="col-sm-1 control-label" for="materia" style="margin:5px 0px 0px 0px">Materia</label>
-					<div class="col-sm-11"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="90%" >
+                <label class="col-sm-2 control-label" for="materia" style="margin:5px 0px 0px 0px">Materia</label>
+					<div class="col-sm-8"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="90%" >
                     <?php echo $materiaFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-2" style="padding:0px">
             <div class="text-center">
-                <label class="col-sm-1 control-label" for="classe" style="margin:5px 0px 0px 0px">Classe</label>
-					<div class="col-sm-8"><select id="classe_filtro" name="classe_filtro" class="classe_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                <label class="col-sm-2 control-label" for="classe" style="margin:5px 0px 0px 0px">Classe</label>
+					<div class="col-sm-10"><select id="classe_filtro" name="classe_filtro" class="classe_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="90%" >
                     <?php echo $classeFiltroOptionList ?>
 					</select></div>
             </div>
         </div>
-        <div class="col-md-1">
+        <div class="col-md-1" style="padding:0px">
             <div class="text-center">
 				<label class="checkbox-inline">
 					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox" >Solo Nuovi
