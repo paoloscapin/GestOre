@@ -9,8 +9,6 @@
 
 require_once '../common/checkSession.php';
 
-info("inizio");
-
 $docente_id = $_POST["docente_id"];
 $oggetto_modifica = $_POST["oggetto_modifica"];
 
@@ -18,13 +16,12 @@ $docente = dbGetFirst("SELECT * FROM docente WHERE docente.id = '$docente_id'");
 
 $to = $docente['email'];
 $subject = "Aggiornamento Richiesta $oggetto_modifica";
-$sender = $__settings->local->emailNoReplyFrom;
 
-$headers = "From: $sender\n";
-$headers .= "MIME-Version: 1.0\n";
-$headers .= "Content-Type: text/html; charset=\"UTF-8\"\n";
-$headers .= "Content-Transfer-Encoding: 8bit\n";
-$headers .= "X-Mailer: PHP " . phpversion();
+$sender = $__settings->local->emailNoReplyFrom;
+$headers  = 'MIME-Version: 1.0' . "\r\n";
+$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
+$headers .= "From: " . $sender . "\r\n";
+$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
 
 // Corpi del messaggio nei due formati testo e HTML
 $text_msg = "La tua richiesta di $oggetto_modifica è stata rivista";
@@ -34,14 +31,15 @@ if ($__settings->system->https) {
     $connection = 'https';
 }
 $url = "$connection://$_SERVER[HTTP_HOST]".$__application_base_path . '/index.php';
+
 $html_msg = '
 <html><body>
 Gentile '.$docente['nome'].' '.$docente['cognome'].'
  
 <p>la tua richiesta di '.$oggetto_modifica.' &egrave; stata rivista.</p>
 
-<p>La versione approvata &egrave; visionabile all&rsquo;indirizzo
-<strong><a href=\''.$url.'\'>attivit&agrave;</a></strong></p>
+<p>La versione approvata &egrave; visionabile all&rsquo;indirizzo del
+<strong><a href=\''.$url.'\'>GestOre</a></strong></p>
 <p>In caso di dubbi puoi rivolgerti al DS</p>
 <p>' . $__settings->name . ' ' . $__settings->local->nomeIstituto . '</p>
 </body></html>
@@ -51,7 +49,7 @@ Gentile '.$docente['nome'].' '.$docente['cognome'].'
 ini_set("sendmail_from", $sender);
 
 // Invia il messaggio, il quinto parametro "-f$sender" imposta il Return-Path su hosting Linux
-if (mail($to, $subject, $html_msg, $headers, "-f$sender")) {
+if (mail($to, $subject, $html_msg, $headers, additional_params: "-f$sender")) {
     info("email $oggetto_modifica inviata correttamente a ".$docente['email']);
     echo "email $oggetto_modifica inviata correttamente a ".$docente['email'];
 } else {
