@@ -17,10 +17,6 @@ $query = "SELECT nome FROM materia WHERE id = '$materia_id'";
 
 $materia = dbGetValue($query);
 
-// inverto format data - giorno con mese
-$data_array = explode("-", $data);
-$data = $data_array[2] . "-" . $data_array[1] . "-" . $data_array[0];
-
 // recupero l'elenco degli studenti iscritti allo sportello
 $query = "SELECT 
             studente.id AS studente_id,
@@ -47,9 +43,9 @@ else
 
     $full_mail_body = file_get_contents("template_mail_cancella_studente.html");
 
-    $full_mail_body = str_replace("{titolo}","ANNULLAMENTO SPORTELLO",$full_mail_body);
+    $full_mail_body = str_replace("{titolo}","ANNULLAMENTO ATTIVITA'<br>".strtoupper($categoria),$full_mail_body);
     $full_mail_body = str_replace("{nome}",strtoupper($studente_cognome) . " " . strtoupper($studente_nome),$full_mail_body);
-    $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail perchè il docente ha cancellato lo sportello a cui eri iscritto. Puoi prenotarti ad uno degli altri sportelli disponibili",$full_mail_body);
+    $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail perchè il docente ha cancellato la seguente attività a cui eri iscritto</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3><p style='font-size: 14px; line-height: 140%;'> Puoi prenotarti ad una della altre attività disponibili",$full_mail_body);
     $full_mail_body = str_replace("{data}",$data,$full_mail_body);
     $full_mail_body = str_replace("{ora}",$ora,$full_mail_body);
     $full_mail_body = str_replace("{docente}",strtoupper($docente_cognome . " " . $docente_nome),$full_mail_body);
@@ -62,7 +58,7 @@ else
     $headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
     $headers .= "From: " . $sender . "\r\n";
     $headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
-    $mailsubject = 'GestOre - Annullamento sportello ' . $materia;
+    $mailsubject = 'GestOre - Annullamento attività ' . $categoria . ' - '. $materia;
     mail($studente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
     info("mail di cancellazione dello sportello da parte del docente inviata allo studente - " . $studente_cognome . " " . $studente_nome);
   }

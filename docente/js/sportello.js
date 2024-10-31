@@ -112,6 +112,7 @@ function sportelloSave() {
                 ora: $("#ora").val(),
                 docente_id: $("#docente").val(),
                 materia_id: $("#materia").val(),
+                categoria: $("#hidden_categoria").val(),
                 numero_ore: $("#numero_ore").val(),
                 argomento: $("#argomento").val(),
                 luogo: $("#luogo").val(),
@@ -137,6 +138,7 @@ function sportelloSave() {
                 ora: $("#ora").val(),
                 docente_id: $("#docente").val(),
                 materia_id: $("#materia").val(),
+                categoria: $("#hidden_categoria").val(),
                 numero_ore: $("#numero_ore").val(),
                 argomento: $("#argomento").val(),
                 luogo: $("#luogo").val(),
@@ -165,6 +167,7 @@ function sportelloSave() {
                     ora: $("#ora").val(),
                     docente_id: $("#docente").val(),
                     materia_id: $("#materia").val(),
+                    categoria: $("#hidden_categoria").val(),
                     numero_ore: $("#numero_ore").val(),
                     argomento: $("#argomento").val(),
                     luogo: $("#luogo").val(),
@@ -190,6 +193,7 @@ function sportelloSave() {
                     ora: $("#ora").val(),
                     docente_id: $("docente").val(),
                     materia_id: $("#materia").val(),
+                    categoria: $("#hidden_categoria").val(),
                     numero_ore: $("#numero_ore").val(),
                     argomento: $("#argomento").val(),
                     luogo: $("#luogo").val(),
@@ -252,10 +256,11 @@ function confermaFirmato()
     }
 }
 
-function sportelloGetDetails(sportello_id,sportello_n_studenti) {
+function sportelloGetDetails(sportello_id,sportello_n_studenti,categoria) {
     $("#hidden_sportello_id").val(sportello_id);
 //    $("#hidden_numero_studenti_iscritti").val(10);
-    $("#hidden_numero_studenti_iscritti").val(sportello_n_studenti);
+$("#hidden_numero_studenti_iscritti").val(sportello_n_studenti);
+$("#hidden_categoria").val(categoria);
 
     if (sportello_id > 0) {
         $.post("../docente/sportelloReadDetails.php", {

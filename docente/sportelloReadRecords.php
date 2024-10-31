@@ -195,7 +195,7 @@ foreach($resultArray as $row)
 	{
 		$data .='
 		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Clicca qui per gestire lo sportello">
-		<button onclick="sportelloGetDetails('.$row["sportello_id"].','.$sportello_nstudenti.')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
+		<button onclick="sportelloGetDetails('.$row["sportello_id"].','.$sportello_nstudenti.',\''.$sportello_categoria.'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
 		</td>
 		</tr>';
 	}

@@ -28,6 +28,7 @@ if(isset($_POST)) {
 	$ora = $_POST['ora'];
 	$docente_id = $__docente_id;
 	$materia_id = $_POST['materia_id'];
+	$categoria = $_POST['categoria'];
 	$numero_ore = $_POST['numero_ore'];
 	$argomento = escapePost('argomento');
 	$luogo = escapePost('luogo');

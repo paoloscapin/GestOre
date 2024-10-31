@@ -8,9 +8,9 @@
  */
 
 
- 
+
 require_once '../common/checkSession.php';
-ruoloRichiesto('docente','segreteria-didattica','dirigente');
+ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
 
 // recupero i dati della materia
 $query = "SELECT nome FROM materia WHERE id = '$materia_id'";
@@ -26,26 +26,6 @@ $docente_cognome = $result['cognome'];
 $docente_nome = $result['nome'];
 $docente_email = $result['email'];
 
-// inverto format data - giorno con mese
-$data_array = explode("-", $data);
-$data = $data_array[2] . "-" . $data_array[1] . "-" . $data_array[0];
-
-// preparo il testo della mail
-$full_mail_body = file_get_contents("template_mail_cancella_docente_studenti.html");
-
-$full_mail_body = str_replace("{titolo}","ANNULLAMENTO SPORTELLO",$full_mail_body);
-$full_mail_body = str_replace("{nome}",strtoupper($docente_cognome) . " " . strtoupper($docente_nome),$full_mail_body);
-$full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail perchè hai cancellato il seguente sportello",$full_mail_body);
-$full_mail_body = str_replace("{data}",$data,$full_mail_body);
-$full_mail_body = str_replace("{ora}",$ora,$full_mail_body);
-$full_mail_body = str_replace("{docente}",strtoupper($docente_cognome . " " . $docente_nome),$full_mail_body);
-$full_mail_body = str_replace("{materia}",$materia,$full_mail_body);
-$full_mail_body = str_replace("{aula}",$luogo,$full_mail_body);
-$full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
-
-$messaggio_finale = "A questo sportello non risultavano studenti iscritti";
-$lista_studenti = "";
-
 // recupero l'elenco degli studenti iscritti allo sportello
 $query = "SELECT 
             studente.id AS studente_id,
@@ -60,54 +40,70 @@ $query = "SELECT
             WHERE sportello_studente.sportello_id = $id";
 
 $resultArray = dbGetAll($query);
+$full_mail_body = "";
 
-if ($resultArray == null) 
-{
-	$resultArray = [];
-}
-else
-{
-    $data = "";
+if ($resultArray == null) {
+    // preparo il testo della mail
+    $full_mail_body = file_get_contents("template_mail_cancella_docente.html");
+    $messaggio_finale = "A questa attività non risultavano studenti iscritti";
+    $resultArray = [];
+} else {
+    // preparo il testo della mail
+    $full_mail_body = file_get_contents("template_mail_cancella_docente_studenti.html");
     $data_html = '<tr>';
-    $messaggio_finale = "Allo sportello che è stato cancellato erano iscritti i seguenti studenti:";
-    foreach($resultArray as $row) 
-    {
+    $messaggio_finale = "A questa attività che è stata cancellata erano iscritti i seguenti studenti:";
+    foreach ($resultArray as $row) {
         $studente_cognome = $row['studente_cognome'];
         $studente_nome = $row['studente_nome'];
         $studente_classe = $row['studente_classe'];
-        $data .= "S-COGNOME: " . $studente_cognome . " - ";
-        $data .= "S-NOME: " . $studente_nome . " - ";
-        $data .= "S-CLASSE: " . $studente_classe . " - ";
-
 
         $row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
         <p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
-        $row_html = str_replace("VALORE",$studente_classe,$row_html);
+        $row_html = str_replace("VALORE", $studente_classe, $row_html);
         $data_html .= $row_html;
 
         $row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
         <p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
-        $row_html = str_replace("VALORE",$studente_cognome,$row_html);
+        $row_html = str_replace("VALORE", $studente_cognome, $row_html);
         $data_html .= $row_html;
 
         $row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
         <p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
-        $row_html = str_replace("VALORE",$studente_nome,$row_html);
+        $row_html = str_replace("VALORE", $studente_nome, $row_html);
         $data_html .= $row_html;
     }
 
     $data_html .= '</tr>';
-
-    $full_mail_body = str_replace("{messaggio_finale}",$messaggio_finale,$full_mail_body);
-    $full_mail_body = str_replace("{codice_html_tabella}",$data_html,$full_mail_body);
-
-    $sender = $__settings->local->emailNoReplyFrom;
-    $headers  = 'MIME-Version: 1.0' . "\r\n";
-    $headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-    $headers .= "From: " . $sender . "\r\n";
-    $headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
-    $mailsubject = 'GestOre - Annullamento sportello ' . $materia;
-    mail($docente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
-    info("inviata mail di cancellazione sportello come richiesto dal docente - " . $docente_cognome . " " . $docente_nome);
 }
+
+// inverto format data - giorno con mese
+$data_array = explode("-", $data);
+$data = $data_array[2] . "-" . $data_array[1] . "-" . $data_array[0];
+
+$full_mail_body = str_replace("{titolo}", "ANNULLAMENTO ATTIVITA'<br>" . strtoupper($categoria), $full_mail_body);
+$full_mail_body = str_replace("{nome}", strtoupper($docente_cognome) . " " . strtoupper($docente_nome), $full_mail_body);
+$full_mail_body = str_replace("{messaggio}", "hai ricevuto questa mail perchè hai cancellato la seguente attività</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3>", $full_mail_body);
+$full_mail_body = str_replace("{data}", $data, $full_mail_body);
+$full_mail_body = str_replace("{ora}", $ora, $full_mail_body);
+$full_mail_body = str_replace("{docente}", strtoupper($docente_cognome . " " . $docente_nome), $full_mail_body);
+$full_mail_body = str_replace("{materia}", $materia, $full_mail_body);
+$full_mail_body = str_replace("{aula}", $luogo, $full_mail_body);
+$full_mail_body = str_replace("{nome_istituto}", $__settings->local->nomeIstituto, $full_mail_body);
+
+$full_mail_body = str_replace("{messaggio_finale}", $messaggio_finale, $full_mail_body);
+
+if ($resultArray != null) 
+{
+    $full_mail_body = str_replace("{codice_html_tabella}", $data_html, $full_mail_body);
+}
+
+$sender = $__settings->local->emailNoReplyFrom;
+$headers = 'MIME-Version: 1.0' . "\r\n";
+$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
+$headers .= "From: " . $sender . "\r\n";
+$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n" . "X-Mailer: php";
+$mailsubject = 'GestOre - Annullamento attività ' . $categoria . ' - ' . $materia;
+mail($docente_email, $mailsubject, $full_mail_body, $headers, additional_params: "-f$sender");
+info("inviata mail di cancellazione sportello come richiesto dal docente - " . $docente_cognome . " " . $docente_nome);
+
 ?>
