@@ -15,6 +15,7 @@ if(isset($_POST)) {
 	$sportello_id = $_POST['id'];
 	$materia = escapePost('materia');
 	$argomento = escapePost('argomento');
+	$categoria = $_POST['categoria'];
 	$data = $_POST['data'];
 	$ora = $_POST['ora'];
 	$numero_ore = $_POST['numero_ore'];

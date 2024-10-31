@@ -17,9 +17,9 @@
 
   $linkCalendar = 'https://calendar.google.com/calendar/render?action=TEMPLATE&dates=' . $datetime_sportello . 'Z%2F' . $datetime_fine_sportello . 'Z&details=' . urlencode("Sportello di " . $materia . ' - Aula ' . urlencode($luogo)) . '&location=' . urlencode('Istituto Tecnico Tecnologico Buonarroti, Via Brigata Acqui, 15, 38122 Trento TN, Italia') . '&text=' . urlencode("Sportello di " . $materia . " - Aula " . $luogo);
 
-  $full_mail_body = str_replace("{titolo}","ISCRIZIONE SPORTELLO",$full_mail_body);
+  $full_mail_body = str_replace("{titolo}","ISCRIZIONE ATTIVITA'<br>".strtoupper($categoria),$full_mail_body);
   $full_mail_body = str_replace("{nome}",strtoupper($studente_cognome) . " " . strtoupper($studente_nome),$full_mail_body);
-  $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail come conferma della tua iscrizione allo sportello qui riportato",$full_mail_body);
+  $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail come conferma della tua iscrizione alla seguente attività</p><br> <h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3>",$full_mail_body);
   $full_mail_body = str_replace("{data}",$data,$full_mail_body);
   $full_mail_body = str_replace("{ora}",$ora,$full_mail_body);
   $full_mail_body = str_replace("{docente}",strtoupper($docente_cognome . " " . $docente_nome),$full_mail_body);
@@ -33,7 +33,7 @@
   $headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
   $headers .= "From: " . $sender . "\r\n";
   $headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
-  $mailsubject = 'GestOre - Prenotazione sportello ' . $materia;
+  $mailsubject = 'GestOre - Prenotazione attività ' . $categoria . ' - materia '. $materia;
   mail($studente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
   info("inviata mail allo studente per iscrizione allo sportello - email: " . $studente_email);
  ?>

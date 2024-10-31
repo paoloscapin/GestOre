@@ -42,7 +42,7 @@ function sportelloReadRecords() {
 	});
 }
 
-function sportelloCancellaIscrizione(sportello_id, materia, argomento, data, ora, numero_ore, luogo, studente_cognome, studente_nome, studente_email, studente_classe, docente_cognome, docente_nome, docente_email) 
+function sportelloCancellaIscrizione(sportello_id, materia, categoria, argomento, data, ora, numero_ore, luogo, studente_cognome, studente_nome, studente_email, studente_classe, docente_cognome, docente_nome, docente_email) 
 {
     var conf = confirm("Sei sicuro di volere cancellare la tua iscrizione dallo sportello di " + materia + " ?");
 
@@ -53,6 +53,7 @@ function sportelloCancellaIscrizione(sportello_id, materia, argomento, data, ora
             id: sportello_id,
             argomento: argomento,
             materia: materia,
+            categoria: categoria,
             data: data,
             ora: ora,
             numero_ore: numero_ore,
@@ -72,7 +73,7 @@ function sportelloCancellaIscrizione(sportello_id, materia, argomento, data, ora
     }
 }
 
-function sportelloIscriviti(sportello_id, materia, argomento, data, ora, numero_ore, luogo, studente_cognome, studente_nome, studente_email, studente_classe, docente_cognome, docente_nome, docente_email) {
+function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, ora, numero_ore, luogo, studente_cognome, studente_nome, studente_email, studente_classe, docente_cognome, docente_nome, docente_email) {
     var unSoloArgomento = $("#hidden_unSoloArgomento").val() == 0 ? false : true;
     // console.log('unSoloArgomento=' + unSoloArgomento);
     // console.log('argomento=' + argomento);
@@ -124,6 +125,7 @@ function sportelloIscriviti(sportello_id, materia, argomento, data, ora, numero_
                 id: sportello_id,
                 materia: materia,
                 argomento: argomento,
+                categoria: categoria,
                 data: data,
                 ora: ora,
                 numero_ore: numero_ore,

@@ -14,6 +14,7 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	$sportello_id = $_POST['id'];
 	$materia = $_POST['materia'];
 	$argomento = $_POST['argomento'];
+	$categoria = $_POST['categoria'];
 	$data = $_POST['data'];
 	$ora = $_POST['ora'];
 	$numero_ore = $_POST['numero_ore'];

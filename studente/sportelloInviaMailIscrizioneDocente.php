@@ -18,9 +18,9 @@ $full_mail_body = file_get_contents("template_mail_iscrivi_docente.html");
 $linkCalendar = 'https://calendar.google.com/calendar/render?action=TEMPLATE&dates=' . $datetime_sportello . 'Z%2F' . $datetime_fine_sportello . 'Z&details=' . urlencode("Sportello di " . $materia . ' - Aula ' . urlencode($luogo)) . '&location=' . urlencode('Istituto Tecnico Tecnologico Buonarroti, Via Brigata Acqui, 15, 38122 Trento TN, Italia') . '&text=' . urlencode("Sportello di " . $materia . " - Aula " . $luogo);
 
 //
-$full_mail_body = str_replace("{titolo}","ISCRIZIONE STUDENTE SPORTELLO",$full_mail_body);
+$full_mail_body = str_replace("{titolo}","ISCRIZIONE STUDENTE ATTIVITA'<br>".strtoupper($categoria),$full_mail_body);
 $full_mail_body = str_replace("{nome}",strtoupper($docente_cognome) . " " . strtoupper($docente_nome),$full_mail_body);
-$full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail perchè si è iscritto il primo studente al seguente sportello",$full_mail_body);
+$full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail perchè si è iscritto il primo studente alla seguente attività <br><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3>",$full_mail_body);
 $full_mail_body = str_replace("{data}",$data,$full_mail_body);
 $full_mail_body = str_replace("{ora}",$ora,$full_mail_body);
 $full_mail_body = str_replace("{docente}",strtoupper($docente_cognome . " " . $docente_nome),$full_mail_body);
@@ -34,7 +34,7 @@ $headers  = 'MIME-Version: 1.0' . "\r\n";
 $headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
 $headers .= "From: " . $sender . "\r\n";
 $headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
-$mailsubject = 'GestOre - Prenotazione studente allo sportello ' . $materia;
+$mailsubject = 'GestOre - Prenotazione studente attività ' . $categoria . ' - materia '. $materia;
 mail($docente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
 info("inviata mail al docente per prima iscrizione studente allo sportello - email: " . $docente_email);
 ?>

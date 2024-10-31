@@ -18,6 +18,7 @@ $query = "	SELECT
 				sportello.cancellato AS sportello_cancellato,
 				sportello.docente_id AS sportello_docente_id,
 				sportello.materia_id AS sportello_materia_id,
+				sportello.categoria AS sportello_categoria,
 				sportello.luogo AS sportello_luogo,
 				date_format(sportello.data,'%d/%m/%Y %H:%i:%s') AS data,
 
@@ -52,6 +53,7 @@ foreach($resultArray as $row)
 	$sportello_docente_nome = $row['docente_nome'];
 	$sportello_docente_email = $row['docente_email'];
 	$sportello_materia = $row['sportello_materia'];
+	$sportello_categoria = strtoupper($row['sportello_categoria']);
 	$sportello_luogo = $row['sportello_luogo'];
 
 	$query = "SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = $sportello_id";
@@ -104,9 +106,9 @@ foreach($resultArray as $row)
 			// preparo il testo della mail
 			$full_mail_body = file_get_contents("template_mail_promemoria_studente.html");
 
-			$full_mail_body = str_replace("{titolo}","PROMEMORIA SPORTELLO",$full_mail_body);
+			$full_mail_body = str_replace("{titolo}","PROMEMORIA ATTIVITA'<br>".$sportello_categoria,$full_mail_body);
 			$full_mail_body = str_replace("{nome}",strtoupper($studente_cognome) . " " . strtoupper($studente_nome),$full_mail_body);
-			$full_mail_body = str_replace("{messaggio}","questo è il promemoria del seguente sportello",$full_mail_body);
+			$full_mail_body = str_replace("{messaggio}","questo è il promemoria per l'attività <br><h3 style='background-color:yellow; font-size:20px'><b><center>" . $sportello_categoria ."</center></b></h3>",$full_mail_body);
 			$full_mail_body = str_replace("{data}",$sportello_data,$full_mail_body);
 			$full_mail_body = str_replace("{ora}",$sportello_ora,$full_mail_body);
 			$full_mail_body = str_replace("{docente}",strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome),$full_mail_body);
@@ -119,7 +121,7 @@ foreach($resultArray as $row)
 			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
 			$headers .= "From: " . $sender . "\r\n";
 			$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
-			$mailsubject = 'GestOre - Promemoria sportello ' . $sportello_materia;
+			$mailsubject = 'GestOre - Promemoria attività ' . $sportello_categoria . ' - materia '. $sportello_materia;
 			mail($studente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
 			echo "inviata mail di promemoria agli studenti per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome . " - ";
 			info("inviata mail di promemoria agli studenti per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
