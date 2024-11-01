@@ -295,7 +295,7 @@ echo $modifica_sportelli;
             <div class="modal-footer">
 			<div class="col-sm-12 text-center">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                <button type="button" class="btn btn-primary" onclick="sportelloSave()">Salva</button>
+                <button id="button_save" type="button" class="btn btn-primary" onclick="sportelloSave()">Salva</button>
             </div>
             </div>
 			</div>

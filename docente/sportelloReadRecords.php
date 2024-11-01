@@ -195,7 +195,7 @@ foreach($resultArray as $row)
 	{
 		$data .='
 		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Clicca qui per gestire lo sportello">
-		<button onclick="sportelloGetDetails('.$row["sportello_id"].','.$sportello_nstudenti.',\''.$sportello_categoria.'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
+		<button onclick="sportelloGetDetails('.$row["sportello_id"].',true,'.$sportello_nstudenti.',\''.$sportello_categoria.'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
 		</td>
 		</tr>';
 	}
@@ -203,7 +203,7 @@ foreach($resultArray as $row)
 	{
 		$data .='
 		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Sportello non modificabile">
-		<span class="btn btn-danger btn-xs glyphicon glyphicon-lock"></span>
+		<button style="padding: 0;border: none;background: none;" onclick="sportelloGetDetails('.$row["sportello_id"].',false,'.$sportello_nstudenti.',\''.$sportello_categoria.'\')"><span class="btn btn-danger btn-xs glyphicon glyphicon-lock"></span></button>
 		</td>
 		</tr>';
 	}
