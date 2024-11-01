@@ -56,6 +56,12 @@ ruoloRichiesto('docente');
 
 <?php
 
+// prepara l'elenco delle categorie per il filtro
+$categoriaOptionList = '<option value="0">tutti</option>';
+foreach(dbGetAll("SELECT * FROM sportello_categoria ORDER BY sportello_categoria.nome ASC ; ")as $categoria) {
+    $categoriaOptionList .= ' <option value="'.$categoria['id'].'" >'.$categoria['nome'].'</option> ';
+}
+
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
 $materiaOptionList = '<option value="0"></option>';
 foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materia) {
@@ -158,6 +164,13 @@ echo $modifica_sportelli;
                 <div class="form-group docente_selector">
                     <label class="col-sm-2 control-label" for="docente">Docente</label>
                     <div class="col-sm-4"><input type="text" id="docente" class="form-control" readonly="readonly" /></div>
+                </div>
+
+                <div class="form-group categoria_selector">
+                    <label class="col-sm-2 control-label" for="categoria">Categoria</label>
+					<div class="col-sm-8"><select id="categoria" name="categoria" class="categoria selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $categoriaOptionList ?>
+					</select></div>
                 </div>
 
                 <div class="form-group materia_selector">
@@ -273,7 +286,6 @@ echo $modifica_sportelli;
 				</strong></div>
 
                 <input type="hidden" id="hidden_sportello_id">
-                <input type="hidden" id="hidden_categoria">
                 <input type="hidden" id="hidden_numero_studenti_iscritti">
                 <input type="hidden" id="hidden_max_iscrizioni_default" value="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>">
                 <input type="hidden" id="hidden_docente_cognome_nome" value="<?php echo "$__docente_cognome $__docente_nome"; ?>">

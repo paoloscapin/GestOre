@@ -33,7 +33,9 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
             docente.id AS docente_id,
             classe.id AS classe_id,
             materia.nome AS materia_nome,
-            materia.id AS materia_id
+            materia.id AS materia_id,
+            sportello_categoria.id AS categoria_id,
+            sportello_categoria.nome AS categoria_nome
 
         FROM
             sportello
@@ -43,7 +45,9 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
         ON sportello.materia_id = materia.id
         INNER JOIN classe
         ON sportello.classe_id = classe.id
-        WHERE sportello.id = '$sportello_id';";
+        INNER JOIN sportello_categoria
+        ON sportello.categoria = sportello_categoria.nome
+        WHERE sportello.id = '$sportello_id'";
 
     $sportello = dbGetFirst($query);
 

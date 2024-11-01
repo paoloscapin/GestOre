@@ -70,8 +70,13 @@ function sportelloDelete(id, materia) {
 function sportelloSave() {
     // controlla che ci siano la materia ed il numero di ore
 
-   if ($("#materia").val() <= 0) {
+    if ($("#materia").val() <= 0) {
 		$("#_error-materia").text("Devi selezionare una materia");
+		$("#_error-materia-part").show();
+		return;
+	}
+    if ($("#categoria").val() <= 0) {
+		$("#_error-materia").text("Devi selezionare una categoria");
 		$("#_error-materia-part").show();
 		return;
 	}
@@ -112,7 +117,7 @@ function sportelloSave() {
                 ora: $("#ora").val(),
                 docente_id: $("#docente").val(),
                 materia_id: $("#materia").val(),
-                categoria: $("#hidden_categoria").val(),
+                categoria_id: $("#categoria").val(),
                 numero_ore: $("#numero_ore").val(),
                 argomento: $("#argomento").val(),
                 luogo: $("#luogo").val(),
@@ -138,7 +143,7 @@ function sportelloSave() {
                 ora: $("#ora").val(),
                 docente_id: $("#docente").val(),
                 materia_id: $("#materia").val(),
-                categoria: $("#hidden_categoria").val(),
+                categoria_id: $("#categoria").val(),
                 numero_ore: $("#numero_ore").val(),
                 argomento: $("#argomento").val(),
                 luogo: $("#luogo").val(),
@@ -167,7 +172,7 @@ function sportelloSave() {
                     ora: $("#ora").val(),
                     docente_id: $("#docente").val(),
                     materia_id: $("#materia").val(),
-                    categoria: $("#hidden_categoria").val(),
+                    categoria_id: $("#categoria").val(),
                     numero_ore: $("#numero_ore").val(),
                     argomento: $("#argomento").val(),
                     luogo: $("#luogo").val(),
@@ -193,7 +198,7 @@ function sportelloSave() {
                     ora: $("#ora").val(),
                     docente_id: $("docente").val(),
                     materia_id: $("#materia").val(),
-                    categoria: $("#hidden_categoria").val(),
+                    categoria_id: $("#categoria").val(),
                     numero_ore: $("#numero_ore").val(),
                     argomento: $("#argomento").val(),
                     luogo: $("#luogo").val(),
@@ -260,7 +265,6 @@ function sportelloGetDetails(sportello_id,sportello_n_studenti,categoria) {
     $("#hidden_sportello_id").val(sportello_id);
 //    $("#hidden_numero_studenti_iscritti").val(10);
 $("#hidden_numero_studenti_iscritti").val(sportello_n_studenti);
-$("#hidden_categoria").val(categoria);
 
     if (sportello_id > 0) {
         $.post("../docente/sportelloReadDetails.php", {
@@ -274,6 +278,7 @@ $("#hidden_categoria").val(categoria);
             $("#ora").val(sportello.sportello_ora);
             $("#docente").val(sportello.docente_cognome + ' ' + sportello.docente_nome);
             $('#materia').selectpicker('val', sportello.materia_id);
+            $('#categoria').selectpicker('val', sportello.categoria_id);
             $("#numero_ore").val(sportello.sportello_numero_ore);
             $("#argomento").val(sportello.sportello_argomento);
             $("#luogo").val(sportello.sportello_luogo);
@@ -304,6 +309,7 @@ $("#hidden_categoria").val(categoria);
             $("#max_iscrizioni").prop('disabled', $('#hidden_modifica_sportelli').val());
             $("#docente").prop('disabled', $('#hidden_modifica_sportelli')).val();
             $("#materia").prop('disabled', $('#hidden_modifica_sportelli').val());
+            $("#categoria").prop('disabled', $('#hidden_modifica_sportelli').val());
             $("#numero_ore").prop('disabled', $('#hidden_modifica_sportelli').val());
             $("#argomento").prop('disabled', $('#hidden_modifica_sportelli').val());
             $("#luogo").prop('disabled', $('#hidden_modifica_sportelli').val());
@@ -344,6 +350,8 @@ $("#hidden_categoria").val(categoria);
         $('#docente').selectpicker('refresh');
         $('#materia').val("0");
         $('#materia').selectpicker('refresh');
+        $('#categoria').val("0");
+        $('#categoria').selectpicker('refresh');
         $("#numero_ore").val("0");
         $("#argomento").val("");
         $("#luogo").val("");

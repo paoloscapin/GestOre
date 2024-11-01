@@ -28,7 +28,7 @@ if(isset($_POST)) {
 	$ora = $_POST['ora'];
 	$docente_id = $__docente_id;
 	$materia_id = $_POST['materia_id'];
-	$categoria = $_POST['categoria'];
+	$categoria_id = $_POST['categoria_id'];
 	$numero_ore = $_POST['numero_ore'];
 	$argomento = escapePost('argomento');
 	$luogo = escapePost('luogo');
@@ -40,10 +40,12 @@ if(isset($_POST)) {
 	$orientamento = $_POST['orientamento'];
     $studentiDaModificareIdList = json_decode($_POST['studentiDaModificareIdList']);
 
+	$categoria = dbGetValue("SELECT nome from sportello_categoria WHERE id = ".$categoria_id);
+
 	if ($id > 0) {
-		$query = "UPDATE sportello SET data = '$data', ora = '$ora', docente_id = '$docente_id', materia_id = '$materia_id', numero_ore = '$numero_ore', argomento = '$argomento', luogo = '$luogo', classe = '$classe', classe_id = '$classe_id', max_iscrizioni = '$max_iscrizioni', cancellato = $cancellato, firmato = $firmato, online = $online, clil = $clil, orientamento = $orientamento WHERE id = '$id'";
+		$query = "UPDATE sportello SET data = '$data', ora = '$ora', docente_id = '$docente_id', materia_id = '$materia_id', categoria = '$categoria', numero_ore = '$numero_ore', argomento = '$argomento', luogo = '$luogo', classe = '$classe', classe_id = '$classe_id', max_iscrizioni = '$max_iscrizioni', cancellato = $cancellato, firmato = $firmato, online = $online, clil = $clil, orientamento = $orientamento WHERE id = '$id'";
 		dbExec($query);
-		info("aggiornato sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online = $online clil = $clil orientamento = $orientamento");
+		info("aggiornato sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id categoria=$categoria numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online = $online clil = $clil orientamento = $orientamento");
 
         if ($cancellato)
         // cancella gli eventuali iscritti
@@ -67,7 +69,7 @@ if(isset($_POST)) {
 			}
 		}
     } else {
-		$query = "INSERT INTO sportello(data, ora, docente_id, materia_id, numero_ore, argomento, luogo, classe, classe_id, max_iscrizioni, online, clil, orientamento, anno_scolastico_id) VALUES('$data', '$ora', '$docente_id', '$materia_id', '$numero_ore', '$argomento', '$luogo', '$classe', '$classe_id', '$max_iscrizioni', '$online', '$clil', '$orientamento', $__anno_scolastico_corrente_id)";
+		$query = "INSERT INTO sportello(data, ora, docente_id, materia_id, categoria, numero_ore, argomento, luogo, classe, classe_id, max_iscrizioni, online, clil, orientamento, anno_scolastico_id) VALUES('$data', '$ora', '$docente_id', '$materia_id', '$categoria', '$numero_ore', '$argomento', '$luogo', '$classe', '$classe_id', '$max_iscrizioni', '$online', '$clil', '$orientamento', $__anno_scolastico_corrente_id)";
 		dbExec($query);
 		$id = dblastId();
 		info("aggiunto sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online = $online clil = $clil orientamento = $orientamento");
