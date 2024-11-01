@@ -132,7 +132,7 @@ foreach($resultArray as $row)
 		info("studenti iscritti sportello: " . $data_html);
 
 		// preparo il testo della mail
-		$full_mail_body = file_get_contents("template_mail_promemoria_docente_con_elenco_studenti.html");
+		$full_mail_body = file_get_contents("template_mail_cancella_docente_studenti.html");
 
 		// inverto format data - giorno con mese
 		$data_array = explode("-", $sportello_data);
@@ -169,9 +169,9 @@ foreach($resultArray as $row)
 		$data_array = explode("-", $sportello_data);
 		$sportello_data = $data_array[2] . "-" . $data_array[1] . "-" . $data_array[0];
 
-		$full_mail_body = str_replace("{titolo}","ANNULLAMENTO SPORTELLO",$full_mail_body);
+		$full_mail_body = str_replace("{titolo}","ANNULLAMENTO ATTIVITA'<br>".strtoupper($sportello_categoria),$full_mail_body);
 		$full_mail_body = str_replace("{nome}",strtoupper($sportello_docente_cognome) . " " . strtoupper($sportello_docente_nome),$full_mail_body);
-		$full_mail_body = str_replace("{messaggio}","il seguente sportello viene ANNULLATO a causa di mancanza di iscritti",$full_mail_body);
+		$full_mail_body = str_replace("{messaggio}","la seguente attività viene ANNULLATA a causa di mancanza di iscritti</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($sportello_categoria) . "</center></b></h3>",$full_mail_body);
 		$full_mail_body = str_replace("{data}",$sportello_data,$full_mail_body);
 		$full_mail_body = str_replace("{ora}",$sportello_ora,$full_mail_body);
 		$full_mail_body = str_replace("{docente}",strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome),$full_mail_body);
