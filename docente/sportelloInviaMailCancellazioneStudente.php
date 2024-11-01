@@ -58,7 +58,7 @@ else
     $headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
     $headers .= "From: " . $sender . "\r\n";
     $headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
-    $mailsubject = 'GestOre - Annullamento attività ' . $categoria . ' - '. $materia;
+    $mailsubject = 'GestOre - Annullamento attività ' . $categoria . ' - materia '. $materia;
     mail($studente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
     info("mail di cancellazione dello sportello da parte del docente inviata allo studente - " . $studente_cognome . " " . $studente_nome);
   }

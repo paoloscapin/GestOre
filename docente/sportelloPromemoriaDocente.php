@@ -184,7 +184,7 @@ foreach($resultArray as $row)
 		$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
 		$headers .= "From: " . $sender . "\r\n";
 		$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
-		$mailsubject = 'GestOre - Annullamento sportello ' . $sportello_materia;
+		$mailsubject = 'GestOre - Annullamento attività ' . $sportello_categoria . ' - materia ' . $sportello_materia;
 		mail($sportello_docente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
 		echo "inviata mail di annullamento sportello per mancanza iscritti - " . $sportello_docente_cognome . " " . $sportello_docente_nome . " - ";
 		info("inviata mail di annullamento sportello per mancanza iscritti - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
