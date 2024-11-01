@@ -63,9 +63,11 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY doc
 }
 
 // prepara l'elenco delle categorie per il filtro
+$categoriaOptionList = '<option value="0">tutte</option>';
 $categoriaFiltroOptionList = '<option value="0">tutte</option>';
 foreach(dbGetAll("SELECT * FROM sportello_categoria") as $categoria) {
     $categoriaFiltroOptionList .= ' <option value="'.$categoria['id'].'" >'.$categoria['nome'].'</option> ';
+    $categoriaOptionList .= ' <option value="'.$categoria['id'].'" >'.$categoria['nome'].'</option> ';
 }
 
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
@@ -199,6 +201,13 @@ require_once '../common/header-didattica.php';
                     <label class="col-sm-2 control-label" for="docente">Docente</label>
 					<div class="col-sm-8"><select id="docente" name="docente" class="docente selectpicker" data-style="btn-success" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $docenteOptionList ?>
+					</select></div>
+                </div>
+
+                <div class="form-group categoria_selector">
+                    <label class="col-sm-2 control-label" for="categoria">Categoria</label>
+					<div class="col-sm-8"><select id="categoria" name="categoria" class="categoria selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $categoriaOptionList ?>
 					</select></div>
                 </div>
 

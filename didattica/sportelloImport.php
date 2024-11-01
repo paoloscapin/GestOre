@@ -120,6 +120,13 @@ foreach($lines as $line) {
         break;
     }
 
+    // categoria
+    $categoria_id = dbGetValue("SELECT sportello_categoria.id FROM sportello_categoria WHERE sportello_categoria.nome = '$categoria'");
+    if ($categoria_id == null) {
+        erroreDiImport("categoria non trovata nome=$categoria");
+        break;
+    }
+
     // classe
     $classe_id = dbGetValue("SELECT classe.id FROM classe WHERE classe.nome = '$classe'");
     if ($classe_id == null) {

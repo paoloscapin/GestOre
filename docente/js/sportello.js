@@ -7,6 +7,7 @@
 
 var soloNuovi=1;
 var ancheCancellati=0;
+
 function setDbDateToPickr(pickr, data_str) {
 	var data = Date.parseExact(data_str, 'yyyy-MM-dd');
 	pickr.setDate(data);

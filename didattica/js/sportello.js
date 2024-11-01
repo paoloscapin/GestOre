@@ -62,6 +62,11 @@ function sportelloSave() {
 		$("#_error-materia-part").show();
 		return;
 	}
+    if ($("#categoria").val() <= 0) {
+		$("#_error-materia").text("Devi selezionare una categoria");
+		$("#_error-materia-part").show();
+		return;
+	}
     if ($("#classe").val() <= 0) {
 		$("#_error-materia").text("Devi selezionare una classe");
 		$("#_error-materia-part").show();
@@ -89,6 +94,7 @@ function sportelloSave() {
                 ora: $("#ora").val(),
                 docente_id: $("#docente").val(),
                 materia_id: $("#materia").val(),
+                categoria_id: $("#categoria").val(),
                 numero_ore: $("#numero_ore").val(),
                 argomento: $("#argomento").val(),
                 luogo: $("#luogo").val(),
@@ -114,6 +120,7 @@ function sportelloSave() {
                     ora: $("#ora").val(),
                     docente_id: $("#docente").val(),
                     materia_id: $("#materia").val(),
+                    categoria_id: $("#categoria").val(),
                     numero_ore: $("#numero_ore").val(),
                     argomento: $("#argomento").val(),
                     luogo: $("#luogo").val(),
@@ -141,6 +148,7 @@ function sportelloSave() {
                 ora: $("#ora").val(),
                 docente_id: $("#docente").val(),
                 materia_id: $("#materia").val(),
+                categoria_id: $("#categoria").val(),
                 numero_ore: $("#numero_ore").val(),
                 argomento: $("#argomento").val(),
                 luogo: $("#luogo").val(),
@@ -165,6 +173,7 @@ function sportelloSave() {
                 ora: $("#ora").val(),
                 docente_id: $("#docente").val(),
                 materia_id: $("#materia").val(),
+                categoria_id: $("#categoria").val(),
                 numero_ore: $("#numero_ore").val(),
                 argomento: $("#argomento").val(),
                 luogo: $("#luogo").val(),
@@ -196,6 +205,7 @@ function sportelloGetDetails(sportello_id) {
             $("#ora").val(sportello.sportello_ora);
             $('#docente').selectpicker('val', sportello.docente_id);
             $('#materia').selectpicker('val', sportello.materia_id);
+            $('#categoria').selectpicker('val', sportello.categoria_id);
             $("#numero_ore").val(sportello.sportello_numero_ore);
             $("#argomento").val(sportello.sportello_argomento);
             $("#luogo").val(sportello.sportello_luogo);
@@ -239,6 +249,8 @@ function sportelloGetDetails(sportello_id) {
         $('#docente').selectpicker('refresh');
         $('#materia').val("0");
         $('#materia').selectpicker('refresh');
+        $('#categoria').val("0");
+        $('#categoria').selectpicker('refresh');
         $("#numero_ore").val("0");
         $("#argomento").val("");
         $("#luogo").val("");
