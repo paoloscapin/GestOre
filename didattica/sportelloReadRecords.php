@@ -28,14 +28,14 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-1">Categoria</th>
 						<th class="text-center col-md-1">Data</th>
 						<th class="text-center col-md-1">Ora</th>
-						<th class="text-center col-md-3">Materia</th>
+						<th class="text-center col-md-2">Materia</th>
 						<th class="text-center col-md-1">Docente</th>
 						<th class="text-center col-md-1">Ore</th>
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-1">Luogo</th>
 						<th class="text-center col-md-1">Stato</th>
 						<th class="text-center col-md-1">Studenti Prenotati</th>
-						<th class="text-center col-md-1"></th>
+						<th class="text-center col-md-2">Azioni</th>
 					</tr>
 					</thead>';
 					
@@ -179,6 +179,7 @@ foreach($resultArray as $row) {
 		<td class="text-center">
 		<button onclick="sportelloGetDetails('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 		<button onclick="sportelloDelete('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button id="selectbutton'.$row['sportello_id'].'" onclick="sportelloSelect('.$row['sportello_id'].')" class="btn btn-info btn-xs"><span id="selecticon'.$row['sportello_id'].'" class="glyphicon glyphicon-remove"></button>
 		</td>
 		</tr>';
 }

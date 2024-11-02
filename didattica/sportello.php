@@ -159,16 +159,17 @@ require_once '../common/header-didattica.php';
             <div class="pull-right"></div>
 				<button class="btn btn-xs btn-orange4" onclick="sportelloGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
-		</div>
+        </div>
 	</div>
 </div>
-<div class="panel-body">
-    <div class="row"  style="margin-bottom:10px;">
+<div class="panel-body" style="padding:0px;margin:0px">
+    <div class="row"  style="margin-bottom:0px;">
         <div class="col-md-12 text-center" id='result_text'>
         </div>
     </div>
     <div class="row">
         <div class="col-md-12">
+            <p style="text-align:right;font-weight:bold;color:blue;margin:0px 0px 10px 0px;padding:0px 0px 10px 0px;" id="sportelli_selezionati"></p>
             <div class="records_content"></div>
         </div>
     </div>

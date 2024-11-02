@@ -5,50 +5,82 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-var soloNuovi=1;
-var categoria_filtro_id=0;
-var docente_filtro_id=0;
-var materia_filtro_id=0;
-var classe_filtro_id=0;
+var soloNuovi = 1;
+var categoria_filtro_id = 0;
+var docente_filtro_id = 0;
+var materia_filtro_id = 0;
+var classe_filtro_id = 0;
+var selections = [];
 
 function setDbDateToPickr(pickr, data_str) {
-	var data = Date.parseExact(data_str, 'yyyy-MM-dd');
-	pickr.setDate(data);
+    var data = Date.parseExact(data_str, 'yyyy-MM-dd');
+    pickr.setDate(data);
 }
 
 function getDbDateFromPickrId(pickrId) {
-	var data_str = $(pickrId).val();
-	var data_date = Date.parseExact(data_str, 'd/M/yyyy');
-	return data_date.toString('yyyy-MM-dd');
+    var data_str = $(pickrId).val();
+    var data_date = Date.parseExact(data_str, 'd/M/yyyy');
+    return data_date.toString('yyyy-MM-dd');
 }
 
-$('#soloNuoviCheckBox').change(function() {
+$('#soloNuoviCheckBox').change(function () {
     // this si riferisce al checkbox
     if (this.checked) {
-		soloNuovi = 1;
+        soloNuovi = 1;
     } else {
-		soloNuovi = 0;
+        soloNuovi = 0;
     }
     sportelloReadRecords();
 });
 
 function sportelloReadRecords() {
-	$.get("sportelloReadRecords.php?ancheCancellati=true&soloNuovi=" + soloNuovi + "&categoria_filtro_id=" + categoria_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id, {}, function (data, status) {
-		$(".records_content").html(data);
+    $.get("sportelloReadRecords.php?ancheCancellati=true&soloNuovi=" + soloNuovi + "&categoria_filtro_id=" + categoria_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id, {}, function (data, status) {
+        $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
         });
-	});
+    });
+}
+
+function sportelloSelect(id) {
+    if ($("#selecticon" + id).hasClass("glyphicon-remove")) {
+        $("#selecticon" + id).removeClass("glyphicon-remove");
+        $("#selecticon" + id).addClass("glyphicon-ok");
+        $("#selectbutton" + id).removeClass("btn-info");
+        $("#selectbutton" + id).addClass("btn-primary");
+        $("#selectbutton" + id).trigger("blur");
+        $("#selecticon" + id).trigger("blur");
+        selections.push(id);
+    }
+    else {
+        $("#selecticon" + id).addClass("glyphicon-remove");
+        $("#selecticon" + id).removeClass("glyphicon-ok");
+        $("#selectbutton" + id).removeClass("btn-primary");
+        $("#selectbutton" + id).addClass("btn-info");
+        $("#selectbutton" + id).trigger("blur");
+        $("#selecticon" + id).trigger("blur");
+        selections.splice(selections.indexOf(id), 1);
+    }
+    if (selections.length > 0) {
+        $("#sportelli_selezionati").html('<label id="import_studenti" style="margin:0px 10px 0px 0px;padding:5px;" class="btn btn-xs btn-success"><span class="glyphicon glyphicon-upload"></span><b> ISCRIVI STUDENTI</b><input type="file" id="file_select_students" style="display: none;"></label><label id="numero_studenti" style="margin:0px 10px 0px 0px;padding:5px;" class="btn btn-xs btn-primary"><b> NUMERO STUDENTI SELEZIONATI: ' + selections.length + '</b></label>');
+        $('#file_select_students').change(function (e) {
+            importStudents(e.target.files[0],selections);
+        });
+    }
+    else {
+        $("#sportelli_selezionati").html("");
+        $('#file_select_students').change(function (e) { });
+    }
 }
 
 function sportelloDelete(id, materia) {
     var conf = confirm("Sei sicuro di volere cancellare lo sportello di " + materia + " ?");
     if (conf == true) {
         $.post("../common/deleteRecord.php", {
-				id: id,
-				table: 'sportello',
-				name: "materia" + materia
-            },
+            id: id,
+            table: 'sportello',
+            name: "materia" + materia
+        },
             function (data, status) {
                 sportelloReadRecords();
             }
@@ -57,37 +89,36 @@ function sportelloDelete(id, materia) {
 }
 
 function sportelloSave() {
-	if ($("#materia").val() <= 0) {
-		$("#_error-materia").text("Devi selezionare una materia");
-		$("#_error-materia-part").show();
-		return;
-	}
+    if ($("#materia").val() <= 0) {
+        $("#_error-materia").text("Devi selezionare una materia");
+        $("#_error-materia-part").show();
+        return;
+    }
     if ($("#categoria").val() <= 0) {
-		$("#_error-materia").text("Devi selezionare una categoria");
-		$("#_error-materia-part").show();
-		return;
-	}
+        $("#_error-materia").text("Devi selezionare una categoria");
+        $("#_error-materia-part").show();
+        return;
+    }
     if ($("#classe").val() <= 0) {
-		$("#_error-materia").text("Devi selezionare una classe");
-		$("#_error-materia-part").show();
-		return;
-	}
-	if ($("#docente").val() <= 0) {
-		$("#_error-materia").text("Devi selezionare un docente");
-		$("#_error-materia-part").show();
-		return;
-	}
-	if ($("#numero_ore").val() <= 0) {
-		$("#_error-materia").text("Il numero di ore non può essere 0");
-		$("#_error-materia-part").show();
-		return;
-	}
+        $("#_error-materia").text("Devi selezionare una classe");
+        $("#_error-materia-part").show();
+        return;
+    }
+    if ($("#docente").val() <= 0) {
+        $("#_error-materia").text("Devi selezionare un docente");
+        $("#_error-materia-part").show();
+        return;
+    }
+    if ($("#numero_ore").val() <= 0) {
+        $("#_error-materia").text("Il numero di ore non può essere 0");
+        $("#_error-materia-part").show();
+        return;
+    }
     $("#_error-materia-part").hide();
 
     if ($("#hidden_lista_classi").val() == "testo") // se la classe è una casella di testo
     {
-        if ($('#hidden_sezione_online_clil').val() == 'true')
-        {
+        if ($('#hidden_sezione_online_clil').val() == 'true') {
             $.post("sportelloSave.php", {
                 id: $("#hidden_sportello_id").val(),
                 data: getDbDateFromPickrId("#data"),
@@ -101,19 +132,18 @@ function sportelloSave() {
                 max_iscrizioni: $("#max_iscrizioni").val(),
                 classe: $("#classe").val(),
                 classe_id: 0,
-                cancellato: $("#cancellato").is(':checked')? 1: 0,
-                firmato: $("#firmato").is(':checked')? 1: 0,
-                online: $("#online").is(':checked')? 1: 0,
-                clil: $("#clil").is(':checked')? 1: 0,
-                orientamento: $("#orientamento").is(':checked')? 1: 0
+                cancellato: $("#cancellato").is(':checked') ? 1 : 0,
+                firmato: $("#firmato").is(':checked') ? 1 : 0,
+                online: $("#online").is(':checked') ? 1 : 0,
+                clil: $("#clil").is(':checked') ? 1 : 0,
+                orientamento: $("#orientamento").is(':checked') ? 1 : 0
             }, function (data, status) {
                 $("#sportello_modal").modal("hide");
                 sportelloReadRecords();
             });
         }
-        else
-        {
-            $.post("sportelloSave.php", 
+        else {
+            $.post("sportelloSave.php",
                 {
                     id: $("#hidden_sportello_id").val(),
                     data: getDbDateFromPickrId("#data"),
@@ -127,8 +157,8 @@ function sportelloSave() {
                     max_iscrizioni: $("#max_iscrizioni").val(),
                     classe: $("#classe").val(),
                     classe_id: 0,
-                    cancellato: $("#cancellato").is(':checked')? 1: 0,
-                    firmato: $("#firmato").is(':checked')? 1: 0,
+                    cancellato: $("#cancellato").is(':checked') ? 1 : 0,
+                    firmato: $("#firmato").is(':checked') ? 1 : 0,
                     online: 0,
                     clil: 0,
                     orientamento: 0
@@ -140,8 +170,7 @@ function sportelloSave() {
     }
     else                                    // se la classe è scelta da una lista
     {
-        if ($('#hidden_sezione_online_clil').val() == 'true')
-        {
+        if ($('#hidden_sezione_online_clil').val() == 'true') {
             $.post("sportelloSave.php", {
                 id: $("#hidden_sportello_id").val(),
                 data: getDbDateFromPickrId("#data"),
@@ -155,18 +184,17 @@ function sportelloSave() {
                 max_iscrizioni: $("#max_iscrizioni").val(),
                 classe: "",
                 classe_id: $("#classe").val(),
-                cancellato: $("#cancellato").is(':checked')? 1: 0,
-                firmato: $("#firmato").is(':checked')? 1: 0,
-                online: $("#online").is(':checked')? 1: 0,
-                clil: $("#clil").is(':checked')? 1: 0,
-                orientamento: $("#orientamento").is(':checked')? 1: 0
+                cancellato: $("#cancellato").is(':checked') ? 1 : 0,
+                firmato: $("#firmato").is(':checked') ? 1 : 0,
+                online: $("#online").is(':checked') ? 1 : 0,
+                clil: $("#clil").is(':checked') ? 1 : 0,
+                orientamento: $("#orientamento").is(':checked') ? 1 : 0
             }, function (data, status) {
                 $("#sportello_modal").modal("hide");
                 sportelloReadRecords();
             });
         }
-        else
-        {
+        else {
             $.post("sportelloSave.php", {
                 id: $("#hidden_sportello_id").val(),
                 data: getDbDateFromPickrId("#data"),
@@ -180,8 +208,8 @@ function sportelloSave() {
                 max_iscrizioni: $("#max_iscrizioni").val(),
                 classe: "",
                 classe_id: $("#classe").val(),
-                cancellato: $("#cancellato").is(':checked')? 1: 0,
-                firmato: $("#firmato").is(':checked')? 1: 0,
+                cancellato: $("#cancellato").is(':checked') ? 1 : 0,
+                firmato: $("#firmato").is(':checked') ? 1 : 0,
                 online: 0,
                 clil: 0,
                 orientamento: 0,
@@ -189,7 +217,7 @@ function sportelloSave() {
                 $("#sportello_modal").modal("hide");
                 sportelloReadRecords();
             });
-        }        
+        }
     }
 }
 
@@ -240,9 +268,8 @@ function sportelloGetDetails(sportello_id) {
             $('#studenti_table > tbody:last-child').append(markup);
             $('#studenti_table td:nth-child(1),#studenti_table th:nth-child(1),#studenti_table td:nth-child(2),#studenti_table th:nth-child(2)').hide(); // nasconde la prima colonna con l'id
         });
-    } 
-    else 
-    {
+    }
+    else {
         data_pickr.setDate(Date.today().toString('d/M/yyyy'));
         $("#ora").val("14:00");
         $('#docente').val("0");
@@ -259,18 +286,17 @@ function sportelloGetDetails(sportello_id) {
         $("#max_iscrizioni").val($("#hidden_max_iscrizioni_default").val());
         $("#cancellato").prop('checked', false);
         $("#firmato").prop('checked', false);
-        if ($('#hidden_sezione_online_clil').val() == 'true') 
-        {
+        if ($('#hidden_sezione_online_clil').val() == 'true') {
             $("#onine").prop('checked', false);
             $("#clil").prop('checked', false);
             $("#orientamento").prop('checked', false);
         }
         $('#studenti_table tbody').empty();
     }
-                  
-        
-	$("#_error-materia-part").hide();
-	$("#sportello_modal").modal("show");
+
+
+    $("#_error-materia-part").hide();
+    $("#sportello_modal").modal("show");
 }
 
 function importFile(file) {
@@ -281,49 +307,71 @@ function importFile(file) {
         $.post("sportelloImport.php", {
             contenuto: contenuto
         },
-        function (data, status) {
-            $('#result_text').html(data);
-            sportelloReadRecords();
-        });
+            function (data, status) {
+                $('#result_text').html(data);
+                sportelloReadRecords();
+            });
+    });
+    reader.readAsText(file);
+}
+
+function importStudents(file,selezione) {
+    var contenuto = "";
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+        contenuto = event.target.result;
+        $.post("sportelloStudentiImport.php", {
+            contenuto: contenuto,
+            lista_sportelli: selezione
+        },
+            function (data, status) {
+                $('#result_text').html(data);
+                $('#file_select_students').change(function (e) { });
+                $("#sportelli_selezionati").html("");
+                selections.length=0;
+                sportelloReadRecords();
+                setTimeout(function(){$('#result_text').html("");},5000);
+            });
     });
     reader.readAsText(file);
 }
 
 $(document).ready(function () {
-	data_pickr = flatpickr("#data", {
-		locale: {
-			firstDayOfWeek: 1
-		},
-		dateFormat: 'j/n/Y'
-	});
+    data_pickr = flatpickr("#data", {
+        locale: {
+            firstDayOfWeek: 1
+        },
+        dateFormat: 'j/n/Y'
+    });
 
     sportelloReadRecords();
-    
-    $("#categoria_filtro").on("changed.bs.select", 
-    function(e, clickedIndex, newValue, oldValue) {
-        categoria_filtro_id = this.value;
-        sportelloReadRecords();
-    });
-    
-    $("#docente_filtro").on("changed.bs.select", 
-    function(e, clickedIndex, newValue, oldValue) {
-        docente_filtro_id = this.value;
-        sportelloReadRecords();
-    });
-    
-    $("#materia_filtro").on("changed.bs.select", 
-        function(e, clickedIndex, newValue, oldValue) {
+
+    $("#categoria_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            categoria_filtro_id = this.value;
+            sportelloReadRecords();
+        });
+
+    $("#docente_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            docente_filtro_id = this.value;
+            sportelloReadRecords();
+        });
+
+    $("#materia_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
             materia_filtro_id = this.value;
             sportelloReadRecords();
         });
-    
-    $("#classe_filtro").on("changed.bs.select", 
-    function(e, clickedIndex, newValue, oldValue) {
-        classe_filtro_id = this.value;
-        sportelloReadRecords();
+
+    $("#classe_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            classe_filtro_id = this.value;
+            sportelloReadRecords();
+        });
+
+    $('#file_select_id').change(function (e) {
+        importFile(e.target.files[0]);
     });
 
-        $('#file_select_id').change(function (e) {
-        importFile(e. target. files[0]);
-    });
 });
