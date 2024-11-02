@@ -152,6 +152,9 @@ require_once '../common/header-didattica.php';
 				<label class="checkbox-inline">
 					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox" >Solo Nuovi
 				</label>
+                <label class="checkbox-inline">
+					<input type="checkbox"  data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloPrenotatiCheckBox" >Solo Prenotati
+				</label>
             </div>
         </div>
 		<div class="col-md-auto text-right">

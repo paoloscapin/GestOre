@@ -13,12 +13,13 @@ require_once '../common/connect.php';
 
 $ancheCancellati = $_GET["ancheCancellati"];
 $soloNuovi = $_GET["soloNuovi"];
+$soloPrenotati = $_GET["soloPrenotati"];
 $categoria_filtro_id = $_GET["categoria_filtro_id"];
 $docente_filtro_id = $_GET["docente_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
 $classe_filtro_id = $_GET["classe_filtro_id"];
 
-$direzioneOrdinamento="ASC";
+$direzioneOrdinamento = "ASC";
 
 
 // Design initial table header
@@ -38,7 +39,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-2">Azioni</th>
 					</tr>
 					</thead>';
-					
+
 $query = "	SELECT
 				sportello.id AS sportello_id,
 				sportello.data AS sportello_data,
@@ -73,62 +74,56 @@ if ($categoria_filtro_id > 0) {
 	$query .= "AND sportello.categoria = '$categoria_filtro_nome' ";
 }
 
-if( $classe_filtro_id > 0) {
+if ($classe_filtro_id > 0) {
 	$query .= "AND sportello.classe_id = $classe_filtro_id ";
 }
-if( $materia_filtro_id > 0) {
+if ($materia_filtro_id > 0) {
 	$query .= "AND sportello.materia_id = $materia_filtro_id ";
 }
-if( $docente_filtro_id > 0) {
+if ($docente_filtro_id > 0) {
 	$query .= "AND sportello.docente_id = $docente_filtro_id ";
 }
-if( ! $ancheCancellati) {
+if (!$ancheCancellati) {
 	$query .= "AND NOT sportello.cancellato ";
 }
-if( $soloNuovi) {
+if ($soloNuovi) {
 	$query .= "AND sportello.data >= CURDATE() ";
 }
+
 $query .= "ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC,docente_nome ASC";
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
 	$resultArray = [];
 }
-foreach($resultArray as $row) {
-	$sportello_id = $row['sportello_id'];
-	$sportello_categoria = $row['sportello_categoria'];
-	$statoMarker = '';
-	if ($row['sportello_cancellato']) 
+foreach ($resultArray as $row) {
+	if ((($soloPrenotati == 1) && ($row['numero_studenti'] > 0)) || ($soloPrenotati==0)) 
 	{
-		$statoMarker .= '<span class="label label-default">cancellato</span>';
-	}
-	else
-	{
-		if ($row['sportello_firmato']) 
-		{
-			$statoMarker .= '<span class="label label-primary">firmato</span>';
-		}
-		else
-		{
-			if ($row['numero_studenti'] == $row['sportello_max_iscrizioni']) 
-			{
-				$statoMarker .= '<span class="label label-danger">posti esauriti</span>';
-			}
-			else
-			{
-				$statoMarker .= '<span class="label label-success">posti disponibili</span>';
+		$sportello_id = $row['sportello_id'];
+		$sportello_categoria = $row['sportello_categoria'];
+		$statoMarker = '';
+		if ($row['sportello_cancellato']) {
+			$statoMarker .= '<span class="label label-default">cancellato</span>';
+		} else {
+			if ($row['sportello_firmato']) {
+				$statoMarker .= '<span class="label label-primary">firmato</span>';
+			} else {
+				if ($row['numero_studenti'] == $row['sportello_max_iscrizioni']) {
+					$statoMarker .= '<span class="label label-danger">posti esauriti</span>';
+				} else {
+					$statoMarker .= '<span class="label label-success">posti disponibili</span>';
+				}
 			}
 		}
-	}
 
-	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
-	$dataSportello = utf8_encode( strftime("%d %B %Y", strtotime($row['sportello_data'])));
-	setlocale(LC_TIME, $oldLocale);
+		$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
+		$dataSportello = utf8_encode(strftime("%d %B %Y", strtotime($row['sportello_data'])));
+		setlocale(LC_TIME, $oldLocale);
 
-	// se ci sono prenotazioni, cerca la lista di studenti che sono prenotati
-	$studenteTip = '';
-	if ($row['numero_studenti'] > 0) {
-		$query2 = "SELECT
+		// se ci sono prenotazioni, cerca la lista di studenti che sono prenotati
+		$studenteTip = '';
+		if ($row['numero_studenti'] > 0) {
+			$query2 = "SELECT
 				sportello_studente.id AS sportello_studente_id,
 				sportello_studente.iscritto AS sportello_studente_iscritto,
 				sportello_studente.presente AS sportello_studente_presente,
@@ -145,47 +140,46 @@ foreach($resultArray as $row) {
 			ON sportello_studente.studente_id = studente.id
 			WHERE sportello_studente.sportello_id = '$sportello_id';";
 
-		$studenti = dbGetAll($query2);
-		foreach($studenti as $studente) {
-			$studenteTip = $studenteTip . $studente['studente_cognome'] . " " . $studente['studente_nome'] ." " . $studente['studente_classe'] . "</br>";
+			$studenti = dbGetAll($query2);
+			foreach ($studenti as $studente) {
+				$studenteTip = $studenteTip . $studente['studente_cognome'] . " " . $studente['studente_nome'] . " " . $studente['studente_classe'] . "</br>";
+			}
 		}
-	}
 
-	// marker per eventuali sportelli online
-	$luogo_or_onine_marker = $row['sportello_luogo'];
-	if ($row['sportello_online']) {
-		$luogo_or_onine_marker = '<span class="label label-danger">online</span>';
-	}
+		// marker per eventuali sportelli online
+		$luogo_or_onine_marker = $row['sportello_luogo'];
+		if ($row['sportello_online']) {
+			$luogo_or_onine_marker = '<span class="label label-danger">online</span>';
+		}
 
-	$sportello_cancellato = $row['sportello_cancellato'];
-	$barrato = '';
-	if ($sportello_cancellato)
-	{
-		$barrato='<s>';
-	}
-	$data .= '<tr>
-		<td align="center">'.$barrato.$sportello_categoria.'</td>
-		<td align="center">'.$barrato.$dataSportello.'</td>
-		<td align="center">'.$barrato.$row['sportello_ora'].'</td>
-		<td align="center">'.$barrato.$row['materia_nome'].'</td>
-		<td align="center">'.$barrato.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
-		<td align="center">'.$barrato.$row['sportello_numero_ore'].'</td>
-		<td align="center">'.$barrato.$row['sportello_classe'].'</td>
-		<td class="text-center">'.$barrato.$luogo_or_onine_marker.'</td>
-		<td class="text-center">'.$statoMarker.'</td>
-		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$barrato.$row['numero_studenti'].'</td>
+		$sportello_cancellato = $row['sportello_cancellato'];
+		$barrato = '';
+		if ($sportello_cancellato) {
+			$barrato = '<s>';
+		}
+		$data .= '<tr>
+		<td align="center">' . $barrato . $sportello_categoria . '</td>
+		<td align="center">' . $barrato . $dataSportello . '</td>
+		<td align="center">' . $barrato . $row['sportello_ora'] . '</td>
+		<td align="center">' . $barrato . $row['materia_nome'] . '</td>
+		<td align="center">' . $barrato . $row['docente_nome'] . ' ' . $row['docente_cognome'] . '</td>
+		<td align="center">' . $barrato . $row['sportello_numero_ore'] . '</td>
+		<td align="center">' . $barrato . $row['sportello_classe'] . '</td>
+		<td class="text-center">' . $barrato . $luogo_or_onine_marker . '</td>
+		<td class="text-center">' . $statoMarker . '</td>
+		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="' . $studenteTip . '">' . $barrato . $row['numero_studenti'] . '</td>
 		';
-	$data .='
+		$data .= '
 		<td class="text-center">
-		<button onclick="sportelloGetDetails('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-		<button onclick="sportelloDelete('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-		<button id="selectbutton'.$row['sportello_id'].'" onclick="sportelloSelect('.$row['sportello_id'].')" class="btn btn-info btn-xs"><span id="selecticon'.$row['sportello_id'].'" class="glyphicon glyphicon-remove"></button>
+		<button onclick="sportelloGetDetails(' . $row['sportello_id'] . ')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+		<button onclick="sportelloDelete(' . $row['sportello_id'] . ', \'' . $row['materia_nome'] . '\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button id="selectbutton' . $row['sportello_id'] . '" onclick="sportelloSelect(' . $row['sportello_id'] . ')" class="btn btn-info btn-xs"><span id="selecticon' . $row['sportello_id'] . '" class="glyphicon glyphicon-remove"></button>
 		</td>
 		</tr>';
+	}
 }
 
 $data .= '</table></div>';
 
 echo $data;
 ?>
-
