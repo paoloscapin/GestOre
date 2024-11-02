@@ -6,7 +6,8 @@
  */
 
 var soloNuovi=1;
-var ancheCancellati=1;
+var soloIscritto=0;
+var ancheCancellati=0;
 var docente_filtro_id=0;
 var materia_filtro_id=0;
 var classe_filtro_id=0;
@@ -22,6 +23,16 @@ $('#soloNuoviCheckBox').change(function() {
     sportelloReadRecords();
 });
 
+$('#soloIscrittoCheckBox').change(function() {
+    // this si riferisce al checkbox
+    if (this.checked) {
+		soloIscritto = 1;
+    } else {
+		soloIscritto = 0;
+    }
+    sportelloReadRecords();
+});
+
 $('#ancheCancellatiCheckBox').change(function() {
     // this si riferisce al checkbox
     if (this.checked) {
@@ -33,7 +44,7 @@ $('#ancheCancellatiCheckBox').change(function() {
 });
 
 function sportelloReadRecords() {
-	$.get("sportelloReadRecords.php?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&categoria_filtro_id=" + categoria_filtro_id, {}, function (data, status) {
+	$.get("sportelloReadRecords.php?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloIscritto=" + soloIscritto + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&categoria_filtro_id=" + categoria_filtro_id, {}, function (data, status) {
 		$(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',
