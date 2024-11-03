@@ -15,11 +15,11 @@
   $full_mail_body = file_get_contents("template_mail_iscrivi_studente.html");
 
 
-  $linkCalendar = 'https://calendar.google.com/calendar/render?action=TEMPLATE&dates=' . $datetime_sportello . 'Z%2F' . $datetime_fine_sportello . 'Z&details=' . urlencode("Attività " . $categoria . " - materia ". $materia . ' - Aula ' . urlencode($luogo)) . '&location=' . urlencode('Istituto Tecnico Tecnologico Buonarroti, Via Brigata Acqui, 15, 38122 Trento TN, Italia') . '&text=' . urlencode("Sportello di " . $materia . " - Aula " . $luogo);
+  $linkCalendar = 'https://calendar.google.com/calendar/render?action=TEMPLATE&dates=' . $datetime_sportello . 'Z%2F' . $datetime_fine_sportello . 'Z&details=' . urlencode("Attività " . $categoria . " - materia ". $materia . ' - Aula ' . urlencode($luogo)) . '&location=' . urlencode('Istituto Tecnico Tecnologico Buonarroti, Via Brigata Acqui, 15, 38122 Trento TN, Italia') . '&text=' . urlencode("Attività " . $categoria . " - materia ". $materia . ' - Aula ' . urlencode($luogo));
 
   $full_mail_body = str_replace("{titolo}","ISCRIZIONE ATTIVITA'<br>".strtoupper($categoria),$full_mail_body);
   $full_mail_body = str_replace("{nome}",strtoupper($studente_cognome) . " " . strtoupper($studente_nome),$full_mail_body);
-  $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail come conferma della tua iscrizione alla seguente attività</p><br> <h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3>",$full_mail_body);
+  $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail come conferma della tua iscrizione alla seguente attività</p> <h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3>",$full_mail_body);
   $full_mail_body = str_replace("{data}",$data,$full_mail_body);
   $full_mail_body = str_replace("{ora}",$ora,$full_mail_body);
   $full_mail_body = str_replace("{docente}",strtoupper($docente_cognome . " " . $docente_nome),$full_mail_body);

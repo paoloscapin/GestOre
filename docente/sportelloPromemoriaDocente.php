@@ -140,7 +140,7 @@ foreach($resultArray as $row)
 
 		$full_mail_body = str_replace("{titolo}","PROMEMORIA ATTIVITA'<br>".strtoupper($sportello_categoria),$full_mail_body);
 		$full_mail_body = str_replace("{nome}",strtoupper($sportello_docente_cognome) . " " . strtoupper($sportello_docente_nome),$full_mail_body);
-		$full_mail_body = str_replace("{messaggio}","questo è il promemoria per la seguente attività</p><br><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($sportello_categoria) . "</center></b></h3>",$full_mail_body);
+		$full_mail_body = str_replace("{messaggio}","questo è il promemoria per la seguente attività</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($sportello_categoria) . "</center></b></h3>",$full_mail_body);
 		$full_mail_body = str_replace("{data}",$sportello_data,$full_mail_body);
 		$full_mail_body = str_replace("{ora}",$sportello_ora,$full_mail_body);
 		$full_mail_body = str_replace("{docente}",strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome),$full_mail_body);

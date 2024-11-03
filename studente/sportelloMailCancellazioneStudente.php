@@ -16,7 +16,7 @@
 
   $full_mail_body = str_replace("{titolo}","CANCELLAZIONE ATTIVITA'<br>".strtoupper($categoria),$full_mail_body);
   $full_mail_body = str_replace("{nome}",strtoupper($studente_cognome) . " " . strtoupper($studente_nome),$full_mail_body);
-  $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail come conferma della tua cancellazione dalla seguente attività</p><br><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3>",$full_mail_body);
+  $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail come conferma della tua cancellazione dalla seguente attività</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3>",$full_mail_body);
   $full_mail_body = str_replace("{data}",$data,$full_mail_body);
   $full_mail_body = str_replace("{ora}",$ora,$full_mail_body);
   $full_mail_body = str_replace("{docente}",strtoupper($docente_cognome . " " . $docente_nome),$full_mail_body);

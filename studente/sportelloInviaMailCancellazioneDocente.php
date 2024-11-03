@@ -18,7 +18,7 @@ $full_mail_body = file_get_contents("template_mail_cancella_docente.html");
 //
 $full_mail_body = str_replace("{titolo}","ANNULLAMENTO ATTIVITA'<br>".strtoupper($categoria),$full_mail_body);
 $full_mail_body = str_replace("{nome}",strtoupper($docente_cognome) . " " . strtoupper($docente_nome),$full_mail_body);
-$full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail perchè si è cancellato l'ultimo studente iscritto alla seguente attività:</p><br><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3><br><p style='font-size: 14px; line-height: 140%;'>Quindi in mancanza di altre iscrizioni l'attività è annullata</p>",$full_mail_body);
+$full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail perchè si è cancellato l'ultimo studente iscritto alla seguente attività:</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3><br><p style='font-size: 14px; line-height: 140%;'>Quindi in mancanza di altre iscrizioni l'attività è annullata</p>",$full_mail_body);
 $full_mail_body = str_replace("{data}",$data,$full_mail_body);
 $full_mail_body = str_replace("{ora}",$ora,$full_mail_body);
 $full_mail_body = str_replace("{docente}",strtoupper($docente_cognome . " " . $docente_nome),$full_mail_body);
