@@ -62,7 +62,7 @@ foreach($resultArray as $row)
 
 	info("dati sportello docente per verifica assenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id);
 
-	if ($numero_studenti_iscritti>0)
+	if (($numero_studenti_iscritti>0)&&($sportello_categoria=="sportello didattico"))
 	// CI SONO STUDENTI ISCRITTI - CERCO GLI ASSENTI
 	{
 
