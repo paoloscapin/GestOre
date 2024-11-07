@@ -58,7 +58,7 @@ require_once '../common/connect.php';
 
 // carica tutti i valori noti per questo docente
 $valoriNoti = [];
-foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $template_id;") as $campo) {
+foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $template_id ORDER BY posizione;") as $campo) {
 }
 
 $listaCampi = [];

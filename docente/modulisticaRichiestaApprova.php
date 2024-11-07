@@ -125,7 +125,7 @@ $listaEtichette = [];
 $listaTipi = [];
 $listaValoriSelezionabili = [];
 $listaValori = [];
-foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $template_id;") as $campo) {
+foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $template_id ORDER BY posizione;") as $campo) {
     $etichetta = $campo['etichetta'];
 	$listaEtichette[] = $etichetta;
 	$listaValoriSelezionabili[] = $campo['lista_valori'];
@@ -205,7 +205,10 @@ for ($i = 0; $i < count($listaEtichette); $i++) {
     $campo = $listaEtichette[$i];
 	if ($listaTipi[$i] == 1 || $listaTipi[$i] == 2) {
 		// per tipo 1 e 2 mette solo il valore
-		$valore = escapeString($listaValori[$i]);
+		$valore = $listaValori[$i];
+	} else  if ($listaTipi[$i] == 5) {
+		// per tipo 5 (textarea) inserisce il "pre")
+		$valore = '<span  style="white-space: pre-wrap;">' . $listaValori[$i] . '</span>';
 	} else  if ($listaTipi[$i] == 3 || $listaTipi[$i] == 4) {
 		// per 3 e 4 la stringa rappresenta le posizioni in cui i checkbox o radio sono settati e i testi vanno presi da lista valori del db
 		// la trasforma in una lista di stringhe esplodendo i :: come separatori
