@@ -39,11 +39,13 @@ $query = "	SELECT
 				
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
+	echo "nessuno sportello oggi -".$query;
 	$resultArray = [];
 }
 
 foreach($resultArray as $row) 
 {
+	
 	$data = "";
 	$sportello_id = $row['sportello_id'];
 	$sportello_ora = $row['sportello_ora'];
@@ -60,10 +62,9 @@ foreach($resultArray as $row)
 	$query = "SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = $sportello_id";
 
 	$numero_studenti_iscritti = dbGetValue($query);
-
 	info("dati sportello docente per verifica assenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id);
 
-	if (($numero_studenti_iscritti>0)&&($sportello_categoria=="sportello didattico"))
+	if (($numero_studenti_iscritti>0)&&($sportello_categoria=="SPORTELLO DIDATTICO"))
 	// CI SONO STUDENTI ISCRITTI - CERCO GLI ASSENTI
 	{
 
@@ -83,8 +84,7 @@ foreach($resultArray as $row)
 					WHERE
 					sportello_id = " . $sportello_id . "
 					AND sportello_studente.iscritto = 1
-					AND sportello_studente.presente = 0";
-					
+					 AND ((sportello_studente.presente IS NULL) OR ((sportello_studente.presente IS NOT NULL) AND (sportello_studente.presente = 0)))";
 		$resultArray = dbGetAll($query);
 		if ($resultArray == null) {
 			$resultArray = [];
@@ -123,16 +123,17 @@ foreach($resultArray as $row)
 			$to = $studente_email;
 			$toName = $studente_nome . " " . $studente_cognome;
 		
-			info("Invio mail al docente: ".$to." ".$toName);
-			echo "Invio mail al docente: ".$to." ".$toName."\n";
-				$mailsubject = 'GestOre - Notifica assenza attività ' . $sportello_categoria . ' - materia '. $sportello_materia;
+			info("Invio mail allo studente: ".$to." ".$toName);
+			echo "Invio mail allo studente: ".$to." ".$toName."\n";
+			$mailsubject = 'GestOre - Notifica assenza attività ' . $sportello_categoria . ' - materia '. $sportello_materia;
 			sendMail($to,$toName,$mailsubject,$full_mail_body);
 			info("inviata mail di notifica assenza agli studenti assenti per l'attività del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
 		}
 	}
 	else
 	{
-		info("NON CI SONO studenti iscritti attività");
+		echo "NON CI SONO studenti iscritti all'attività";
+		info("NON CI SONO studenti iscritti all'attività");
 	}
 	
 }
