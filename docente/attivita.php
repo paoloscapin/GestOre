@@ -197,10 +197,8 @@ require_once '../common/header-docente.php';
 				<th class="col-md-1"></th>
 				<th class="col-md-1 text-left"><?php echoLabel('Funzionali');?></th>
 				<th class="col-md-1 text-left">con Studenti</th>
-				<th class="col-md-1"></th>
 				<th class="col-md-1 text-left"><span class="clil hidden">CLIL</span></br><span class="clil hidden">(<?php echoLabel('Funzionali');?>)</span></th>
 				<th class="col-md-1 text-left"><span class="clil hidden">CLIL</span></br><span class="clil hidden">(con Studenti)</span></th>
-				<th class="col-md-1"></th>
 				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento</span></br><span class="orientamento hidden">(<?php echoLabel('Funzionali');?>)</span></th>
 				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento</span></br><span class="orientamento hidden">(con Studenti)</span></th>
 			</tr>
@@ -235,10 +233,8 @@ require_once '../common/header-docente.php';
 				<td></td>
 				<td class="text-left" id="previste_ore_70_funzionali"></td>
 				<td class="text-left" id="previste_totale_con_studenti"></td>
-				<td></td>
 				<td class="text-left clil" id="clil_previste_funzionali"></td><td class="NOclil"></td>
 				<td class="text-left clil" id="clil_previste_con_studenti"></td><td class="NOclil"></td>
-				<td></td>
 				<td class="text-left orientamento" id="orientamento_previste_funzionali"></td><td class="NOorientamento"></td>
 				<td class="text-left orientamento" id="orientamento_previste_con_studenti"></td><td class="NOorientamento"></td>
 			</tr>
@@ -257,10 +253,8 @@ require_once '../common/header-docente.php';
 				<td></td>
 				<td class="text-left" id="fatte_ore_70_funzionali"></td>
 				<td class="text-left" id="fatte_totale_con_studenti"></td>
-				<td></td>
 				<td class="text-left clil" id="clil_fatte_funzionali"></td><td class="NOclil"></td>
 				<td class="text-left clil" id="clil_fatte_con_studenti"></td><td class="NOclil"></td>
-				<td></td>
 				<td class="text-left orientamento" id="orientamento_fatte_funzionali"></td><td class="NOorientamento"></td>
 				<td class="text-left orientamento" id="orientamento_fatte_con_studenti"></td><td class="NOorientamento"></td>
 			</tr>

@@ -29,8 +29,10 @@ function oreFatteReloadTables(soloTotale = false) {
 			$(".viaggi_records_content").html(data.dataViaggi);
 		}
 
-		$("#orientamento_fatte_funzionali").html(getHtmlNumAndFatteVisual(data.oreOrientamentoFunzionali,0));
-		$("#orientamento_fatte_con_studenti").html(getHtmlNumAndFatteVisual(data.oreOrientamentoConStudenti,0));
+		$("#orientamento_previste_funzionali").html(getHtmlNumAndPrevisteVisual(data.oreOrientamentoFunzionaliPreviste,0));
+		$("#orientamento_previste_con_studenti").html(getHtmlNumAndPrevisteVisual(data.oreOrientamentoConStudentiPreviste,0));
+		$("#orientamento_fatte_funzionali").html(getHtmlNumAndFatteVisual(data.oreOrientamentoFunzionali,data.oreOrientamentoFunzionaliPreviste));
+		$("#orientamento_fatte_con_studenti").html(getHtmlNumAndFatteVisual(data.oreOrientamentoConStudenti,data.oreOrientamentoConStudentiPreviste));
 	
 		if (Number(data.oreOrientamentoFunzionali) + Number(data.oreOrientamentoConStudenti) == 0) {
 			$(".orientamento").addClass('hidden');
@@ -164,10 +166,10 @@ function orePrevisteReloadTables(soloTotale = false) {
 			$(".attribuite_records_content").html(data.dataAttribuite);
 		}
 
-		$("#orientamento_fatte_funzionali").html(getHtmlNumAndFatteVisual(data.oreOrientamentoFunzionali,0));
-		$("#orientamento_fatte_con_studenti").html(getHtmlNumAndFatteVisual(data.oreOrientamentoConStudenti,0));
-		$("#orientamento_previste_funzionali").html(getHtmlNumAndFatteVisual(data.oreOrientamentoFunzionaliPreviste,0));
-		$("#orientamento_previste_con_studenti").html(getHtmlNumAndFatteVisual(data.oreOrientamentoConStudentiPreviste,0));
+		$("#orientamento_fatte_funzionali").html(getHtmlNumAndFatteVisual(data.oreOrientamentoFunzionali,data.oreOrientamentoFunzionaliPreviste));
+		$("#orientamento_fatte_con_studenti").html(getHtmlNumAndFatteVisual(data.oreOrientamentoConStudenti,data.oreOrientamentoConStudentiPreviste));
+		$("#orientamento_previste_funzionali").html(getHtmlNumAndPrevisteVisual(data.oreOrientamentoFunzionaliPreviste,0));
+		$("#orientamento_previste_con_studenti").html(getHtmlNumAndPrevisteVisual(data.oreOrientamentoConStudentiPreviste,0));
 	
 		if (Number(data.oreOrientamentoFunzionali) + Number(data.oreOrientamentoConStudenti) == 0) {
 			$(".orientamento").addClass('hidden');
