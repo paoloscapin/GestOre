@@ -5,40 +5,42 @@
         "durata_sessione": 31536000
     },
     "GoogleAuth": {
-        "applicationName": "GestOre",
-        "clientId": "--- inserire il clientId fornito da google ---",
-        "clientSecret": "--- inserire il clientSecret fornito da google ---"
+        "applicationName": "Gestione Ore",
+        "clientId": "--- google client id per autenticazione ---",
+        "clientSecret": "--- autenticazione google secrect code ---",
+        "GoogleAppPassword": "--- Google App password generata per Gestore ---",
+        "GoogleAppMail": "--- mail dove è attiva la Google App ---"
     },
     "db": {
-        "host": "localhost",
-        "user": "gestore",
-        "password": "password",
-        "database": "gestore"
+        "host": "--- db host ---", 
+        "user": "--- db user ---",
+        "password": "--- db pass ---",
+        "database": "--- db name ---"
     },
     "log": {
         "logIntoAppFolder": true,
         "logFile": "GestOre.log",
         "timeFormat": "%d/%m/%Y - %H:%M:%S",
-        "debug": false
+        "debug": true
     },
     "config": {
         "gestioneClil": false,
-        "gestioneOrientamento": false,
-        "bonus": true,
-        "corsiDiRecupero": true,
-        "minuti": false,
-        "sportelli": false,
-        "gestioneViaggiSemplificata": false,
+        "gestioneOrientamento": true,
+        "bonus": false,
+        "corsiDiRecupero": false,
+        "minuti": true,
+        "sportelli": true,
+        "gestioneViaggiSemplificata": true,
         "pianiDiLavoro": false,
-        "carenze": true
+        "carenze": false
     },
     "interfaccia": {
-        "docenteVisualizza80Ore": true,
-        "docenteVisualizzaFuis": false,
-        "apriDocenteInNuovoTab": false,
-        "visualizzaSostituzioniDocente": true,
+        "apriDocenteInNuovoTab": true,
+        "visualizzaSostituzioniDocente": false,
         "extraMenuDirigente": false,
         "visualizzaAggiornamento": true,
+        "docenteVisualizza80Ore": true,
+        "docenteVisualizzaFuis": false,
         "visualizzaSostituzioniDocenteInFatte": false,
         "gruppoResponsabileGestiionePartecipanti": true
     },
@@ -48,24 +50,24 @@
         "helpLinkSegreteria": "https://docs.google.com/document/d/1SeYhz-V1ypSMMgvJMxoiV0DTbKRI_llCRFPEnbnUctU/edit?usp=sharing",
         "helpLinkAdmin": "https://docs.google.com/document/d/17B9ZXTg1WD7IBwZMKuHj47YigVjfPkH3o8gp-fpD9ig/edit?usp=sharing",
         "helpLinkDidattica":  "https://docs.google.com/document/d/17B9ZXTg1WD7IBwZMKuHj47YigVjfPkH3o8gp-fpD9ig/edit?usp=sharing",
-        "nomeIstituto": "--- inserire la località per i documenti generati ---",
-        "luogoIstituto": "--- inserire la località per i documenti generati ---",
-        "emailNoReplyFrom": "--- inserire un indirizzo di email noreply (ad esempio noreply-GestOre@istituto.it) ---",
-        "emailSportelli": "--- inserire un indirizzo di email a cui inviare in bcc le mail di sportello generate ---",
-        "emailCarenze": "--- inserire un indirizzo di email a cui inviare in cc le lettere di carenza generate ---"
+        "nomeIstituto": "ITT Buonarroti - Trento",
+        "emailNoReplyFrom": "--- deve essere la mail usata per la GoogleApp oppure un alias collegato allo stesso account ---", 
+        "emailSportelli": "--- mail in BCC a cui viene inviato ogni email degli sportelli ---",
+        "emailCarenze": "--- inserire un indirizzo di email a cui inviare in cc le lettere di carenza generate ---",
+        "luogoIstituto": "--- inserire la località per i documenti generati ---"
     },
     "importi": {
-        "oreConStudenti": 35,
-        "oreFunzionali": 17.5
+        "oreConStudenti": 38.5,
+        "oreFunzionali": 19.25
     },
     "ore80": {
         "minuti_ore_con_studenti": 50,
-        "ore_max_sostituzioni": 18,
-        "ore_max_collegi_docenti": 8,
-        "ore_max_udienze_generali": 8,
-        "ore_max_dipartimenti": 24,
-        "ore_max_aggiornamento_facoltativo": 10,
-        "ore_max_consigli_di_classe": 30
+        "ore_max_sostituzioni": 24,
+        "ore_max_collegi_docenti": 22,
+        "ore_max_udienze_generali": 0,
+        "ore_max_dipartimenti": 13,
+        "ore_max_aggiornamento_facoltativo": 0,
+        "ore_max_consigli_di_classe": 40
     },
     "viaggi": {
         "max_ore": 16,
@@ -73,13 +75,14 @@
         "accettazione": true
     },
     "fuis": {
-        "rimuovi_sostituzioni_non_fatte": true,
-        "compensa_in_valore": true,
-        "accetta_con_studenti_per_funzionali": false,
-        "accetta_funzionali_per_con_studenti": false,
-        "segnala_fatte_eccedenti_previsione": false,
-        "rimuovi_fatte_eccedenti_previsione": false,
-        "rimuovi_fatte_clil_eccedenti_previsione": false
+        "rimuovi_sostituzioni_non_fatte": false,
+        "compensa_in_valore": false,
+        "accetta_con_studenti_per_funzionali": true,
+        "accetta_funzionali_per_con_studenti": true,  
+        "segnala_fatte_eccedenti_previsione": true,
+        "rimuovi_fatte_eccedenti_previsione": true,
+        "rimuovi_fatte_clil_eccedenti_previsione": false,
+        "compensa_anche_previste": true
     },
     "bonus": {
         "punteggio_variabile": false
@@ -87,13 +90,14 @@
     "sportelli": {
         "numero_max_prenotazioni": 10,
         "nascondiNomeStudenti": false,
-        "chiusuraIscrizioniGiorni": 1,
-        "unSoloArgomento": true,
-        "import_sportelli_docente_stesso_orario": true,
+        "chiusuraIscrizioniGiorni": 0,
+        "unSoloArgomento": false,
+        "import_sportelli_docente_stesso_orario": false,
         "prenotaMaxSettimanaSuccessiva": true,
         "sezione_online_clil_orientamento_visibile": false,
         "inseriti_da_docente": false,
-        "docente_puo_modificare": false
+        "docente_puo_modificare": false,
+        "docente_puo_eliminare": false
     },
     "pianiDiLavoro": {
         "competenze": true,
@@ -102,7 +106,7 @@
         "tic": true,
         "note_aggiuntive": true,
         "duplicaTemplateSoloSeFinale": true,
-        "stampaEstesa": false
+        "stampaEstesa": true
     },
     "corsiDiRecupero": {
         "corsiDiRecuperoFirmaDocente": true,
@@ -111,7 +115,7 @@
     },
     "label": {
         "ore_funzionali": "funzionali",
-        "dovute": "pianificate",
-        "Template": "Template"
+        "dovute": "pianificate"
     }
 }
+
