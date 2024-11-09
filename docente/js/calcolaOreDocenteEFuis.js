@@ -166,6 +166,8 @@ function orePrevisteReloadTables(soloTotale = false) {
 
 		$("#orientamento_fatte_funzionali").html(getHtmlNumAndFatteVisual(data.oreOrientamentoFunzionali,0));
 		$("#orientamento_fatte_con_studenti").html(getHtmlNumAndFatteVisual(data.oreOrientamentoConStudenti,0));
+		$("#orientamento_previste_funzionali").html(getHtmlNumAndFatteVisual(data.oreOrientamentoFunzionaliPreviste,0));
+		$("#orientamento_previste_con_studenti").html(getHtmlNumAndFatteVisual(data.oreOrientamentoConStudentiPreviste,0));
 	
 		if (Number(data.oreOrientamentoFunzionali) + Number(data.oreOrientamentoConStudenti) == 0) {
 			$(".orientamento").addClass('hidden');

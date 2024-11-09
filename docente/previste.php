@@ -93,10 +93,10 @@ require_once '../common/header-docente.php';
 			<tr>
 				<th class="col-md-2"></th>
 				<th class="col-md-1 text-right">Fuis Docente</th>
-				<th class="col-md-1"></th>
 				<th class="col-md-2"></th>
 				<th class="col-md-1 text-right">Fuis CLIL</th>
-				<th class="col-md-1"></th>
+				<th class="col-md-2"></th>
+				<th class="col-md-1 text-right">Fuis Orientamento</th>
 				<th class="col-md-2"></th>
 				<th class="col-md-1 text-right">Corsi di Recupero</th>
 				<th class="col-md-1"></th>
@@ -106,10 +106,10 @@ require_once '../common/header-docente.php';
 			<tr>
 				<td class="col-md-2 text-right" ><?php echoLabel('Assegnato');?></td>
 				<td class="col-md-1 text-right" id="fuis_assegnato">0.00</td>
-				<td class="col-md-1 text-right"></td>
 				<td class="col-md-2 text-right" ><?php echoLabel('Funzionali');?></td>
 				<td class="col-md-1 text-right" id="fuis_clil_funzionali">0.00</td>
-				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><?php echoLabel('Funzionali');?></td>
+				<td class="col-md-1 text-right" id="fuis_orientamento_funzionali">0.00</td>
 				<td class="col-md-2 text-right" ><?php echoLabel('Ore Extra');?></td>
 				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero">0.00</td>
 				<td class="col-md-1 text-right"></td>
@@ -117,10 +117,10 @@ require_once '../common/header-docente.php';
 			<tr>
 				<td class="col-md-2 text-right" ><?php echoLabel('Ore');?></td>
 				<td class="col-md-1 text-right" id="fuis_ore">0.00</td>
-				<td class="col-md-1 text-right"></td>
 				<td class="col-md-2 text-right" ><?php echoLabel('Con Studenti');?></td>
 				<td class="col-md-1 text-right" id="fuis_clil_con_studenti">0.00</td>
-				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><?php echoLabel('Con Studenti');?></td>
+				<td class="col-md-1 text-right" id="fuis_orientamento_con_studenti">0.00</td>
 				<td class="col-md-2 text-right" ></td>
 				<td class="col-md-1 text-right"></td>
 				<td class="col-md-1 text-right"></td>
@@ -141,10 +141,10 @@ require_once '../common/header-docente.php';
 			<tr class="deeporange5">
 				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_docente_totale"><strong>0.00</strong></td>
-				<td class="col-md-1 text-right"></td>
 				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_clil_totale"><strong>0.00</strong></td>
-				<td class="col-md-1 text-right"></td>
+				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" id="fuis_orientamento_totale"><strong>0.00</strong></td>
 				<td class="col-md-2 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_corsi_di_recupero_totale"><strong>0.00</strong></td>
 				<td class="col-md-1 text-right"></td>
@@ -176,8 +176,10 @@ require_once '../common/header-docente.php';
 				<th class="col-md-2 text-left">Aggiornamento</th>
 				<th class="col-md-2 text-left"><?php echoLabel('Funzionali');?></th>
 				<th class="col-md-2 text-left">con Studenti</th>
-				<th class="col-md-2 text-left"><span class="clil hidden">CLIL (<?php echoLabel('Funzionali');?>)</span></th>
-				<th class="col-md-2 text-left"><span class="clil hidden">CLIL (con Studenti)</span></th>
+				<th class="col-md-1 text-left"><span class="clil hidden">CLIL (<?php echoLabel('Funzionali');?>)</span></th>
+				<th class="col-md-1 text-left"><span class="clil hidden">CLIL (con Studenti)</span></th>
+				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento<br>(<?php echoLabel('Funzionali');?>)</span></th>
+				<th class="col-md-1 text-left"><span class="orientamento hidden">Orientamento<br>(con Studenti)</span></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -188,6 +190,8 @@ require_once '../common/header-docente.php';
 				<td class="text-left" id="dovute_totale_con_studenti"></td>
 				<td class="text-left" ></td>
 				<td class="text-left" ></td>
+				<td class="text-left" ></td>
+				<td class="text-left" ></td>
 			</tr>
 			<tr class="orange5">
 				<td>previste</td>
@@ -196,6 +200,8 @@ require_once '../common/header-docente.php';
 				<td class="text-left" id="previste_totale_con_studenti"></td>
 				<td class="text-left clil" id="clil_previste_funzionali"></td><td class="NOclil"></td>
 				<td class="text-left clil" id="clil_previste_con_studenti"></td><td class="NOclil"></td>
+				<td class="text-left orientamento" id="orientamento_previste_funzionali"></td><td class="NOorientamento"></td>
+				<td class="text-left orientamento" id="orientamento_previste_con_studenti"></td><td class="NOorientamento"></td>
 			</tr>
 		</tbody>
 	</table>
