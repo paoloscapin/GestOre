@@ -8,6 +8,7 @@
  */
 
 require_once '../common/connect.php';
+require_once '../common/send-mail.php';
 
 $today = new DateTime("now");
 
@@ -116,14 +117,13 @@ foreach($resultArray as $row)
 			$full_mail_body = str_replace("{aula}",$sportello_luogo,$full_mail_body);
 			$full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
 
-			$sender = $__settings->local->emailNoReplyFrom;
-			$headers  = 'MIME-Version: 1.0' . "\r\n";
-			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-			$headers .= "From: " . $sender . "\r\n";
-			$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
+			$to = $studente_email;
+			$toName = $studente_nome . " " . $studente_cognome;
+
+			info("Invio mail allo studente: ".$to." ".$toName);
+			echo "Invio mail al docente: ".$to." ".$toName."\n";
 			$mailsubject = 'GestOre - Promemoria attività ' . $sportello_categoria . ' - materia '. $sportello_materia;
-			mail($studente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
-			echo "inviata mail di promemoria agli studenti per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome . " - ";
+			sendMail($to,$toName,$mailsubject,$full_mail_body);
 			info("inviata mail di promemoria agli studenti per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
 		}
 	}

@@ -10,6 +10,7 @@
 
 
 require_once '../common/checkSession.php';
+require_once '../common/send-mail.php';
 ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
 
 // recupero i dati della materia
@@ -97,13 +98,13 @@ if ($resultArray != null)
     $full_mail_body = str_replace("{codice_html_tabella}", $data_html, $full_mail_body);
 }
 
-$sender = $__settings->local->emailNoReplyFrom;
-$headers = 'MIME-Version: 1.0' . "\r\n";
-$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-$headers .= "From: " . $sender . "\r\n";
-$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n" . "X-Mailer: php";
+$to = $docente_email;
+$toName = $docente_nome . " " . $docente_cognome;
+info("Invio mail al docente: ".$to." ".$toName);
+echo "Invio mail al docente: ".$to." ".$toName."\n";
 $mailsubject = 'GestOre - Annullamento attività ' . $categoria . ' - materia' . $materia;
-mail($docente_email, $mailsubject, $full_mail_body, $headers, additional_params: "-f$sender");
+sendMail($to,$toName,$mailsubject,$full_mail_body);
+
 info("inviata mail di cancellazione sportello come richiesto dal docente - " . $docente_cognome . " " . $docente_nome);
 
 ?>

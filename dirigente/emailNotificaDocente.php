@@ -8,23 +8,12 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/send-mail.php';
 
 $docente_id = $_POST["docente_id"];
 $oggetto_modifica = $_POST["oggetto_modifica"];
 
 $docente = dbGetFirst("SELECT * FROM docente WHERE docente.id = '$docente_id'");
-
-$to = $docente['email'];
-$subject = "Aggiornamento Richiesta $oggetto_modifica";
-
-$sender = $__settings->local->emailNoReplyFrom;
-$headers  = 'MIME-Version: 1.0' . "\r\n";
-$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-$headers .= "From: " . $sender . "\r\n";
-$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
-
-// Corpi del messaggio nei due formati testo e HTML
-$text_msg = "La tua richiesta di $oggetto_modifica è stata rivista";
 
 $connection = 'http';
 if ($__settings->system->https) {
@@ -45,16 +34,12 @@ Gentile '.$docente['nome'].' '.$docente['cognome'].'
 </body></html>
 ';
 
-// Imposta il Return-Path (funziona solo su hosting Windows)
-ini_set("sendmail_from", $sender);
-
-// Invia il messaggio, il quinto parametro "-f$sender" imposta il Return-Path su hosting Linux
-if (mail($to, $subject, $html_msg, $headers, additional_params: "-f$sender")) {
-    info("email $oggetto_modifica inviata correttamente a ".$docente['email']);
-    echo "email $oggetto_modifica inviata correttamente a ".$docente['email'];
-} else {
-    info("errore nell'invio della email $oggetto_modifica a ".$docente['email']);
-    echo "errore nell'invio della email $oggetto_modifica a ".$docente['email'];
-}
+$to = $docente['email'];
+$toName = $docente['nome'] . " " . $docente['cognome'];
+info("Invio mail al docente: ".$to." ".$toName);
+echo "Inviata mail al docente: ".$to." ".$toName." - ";
+$mailsubject = 'GestOre - Aggiornamento attività previste ' . $oggetto_modifica;
+sendMail($to,$toName,$mailsubject,$html_msg);
+info("inviata mail ".$mailsubject);
 
 ?>

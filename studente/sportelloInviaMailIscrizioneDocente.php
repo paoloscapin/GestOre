@@ -10,6 +10,8 @@
 
  
 require_once '../common/checkSession.php';
+require_once '../common/send-mail.php';
+
 ruoloRichiesto('studente','segreteria-didattica','dirigente');
 
 $full_mail_body = file_get_contents("template_mail_iscrivi_docente.html");
@@ -29,12 +31,12 @@ $full_mail_body = str_replace("{aula}",$luogo,$full_mail_body);
 $full_mail_body = str_replace("{link}",$linkCalendar,$full_mail_body);
 $full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
 
-$sender = $__settings->local->emailNoReplyFrom;
-$headers  = 'MIME-Version: 1.0' . "\r\n";
-$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-$headers .= "From: " . $sender . "\r\n";
-$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
+$to = $docente_email;
+$toName = $docente_nome . " " . $docente_cognome;
+info("Invio mail al docente: ".$to." ".$toName);
+echo "Invio mail al docente: ".$to." ".$toName."\n";
 $mailsubject = 'GestOre - Prenotazione studente attività ' . $categoria . ' - materia '. $materia;
-mail($docente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
+sendMail($to,$toName,$mailsubject,$full_mail_body);
+
 info("inviata mail al docente per prima iscrizione studente allo sportello - email: " . $docente_email);
 ?>

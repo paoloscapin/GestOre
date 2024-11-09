@@ -8,6 +8,7 @@
  */
 
 require_once '../common/connect.php';
+require_once '../common/send-mail.php';
 
 $today = new DateTime("now");
 
@@ -118,15 +119,14 @@ foreach($resultArray as $row)
 			$full_mail_body = str_replace("{aula}",$sportello_luogo,$full_mail_body);
 			$full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
 			$full_mail_body = str_replace("{messaggio_finale}","<h3 style='font-size:14px;color: #000000;text-align:justify'> Se eri presente segnala subito al docente la mancanza. <u>L'assenza ad un'attività prenotata e non giustificata in anticipo con il docente sarà tenuta in considerazione ai fini disciplinari.</u> Ricorda che puoi cancellarti da un'attività fino alla sera precedente.</b></h3>",$full_mail_body);
-
-			$sender = $__settings->local->emailNoReplyFrom;
-			$headers  = 'MIME-Version: 1.0' . "\r\n";
-			$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-			$headers .= "From: " . $sender . "\r\n";
-			$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
-			$mailsubject = 'GestOre - Notifica assenza attività ' . $sportello_categoria . ' - materia '. $sportello_materia;
-			mail($studente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
-			echo "inviata mail di notifica assenza agli studenti assenti per l'attività del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome . " - ";
+		
+			$to = $studente_email;
+			$toName = $studente_nome . " " . $studente_cognome;
+		
+			info("Invio mail al docente: ".$to." ".$toName);
+			echo "Invio mail al docente: ".$to." ".$toName."\n";
+				$mailsubject = 'GestOre - Notifica assenza attività ' . $sportello_categoria . ' - materia '. $sportello_materia;
+			sendMail($to,$toName,$mailsubject,$full_mail_body);
 			info("inviata mail di notifica assenza agli studenti assenti per l'attività del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
 		}
 	}

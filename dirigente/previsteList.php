@@ -64,19 +64,19 @@ require_once '../common/connect.php';
     <div class="table-wrapper"><table id="previste_docenti_table" class="table table-bordered table-striped table-green">
     <thead>
         <tr>
-            <th class="text-center col-md-2">Docente</th>
+            <th class="text-center col-md-1">Docente</th>
             <th class="text-center col-md-1">Diaria</th>
             <th class="text-center col-md-1">Assegnato</th>
             <th class="text-center col-md-1">Ore</th>
             <?php if($__settings->config->gestioneClil) : ?>
                 <th class="text-center col-md-1">Clil</th>
             <?php else: ?>
-                <th></th>
+                <!-- <th class="text-center col-md-1"h></th> -->
             <?php endif; ?>
             <?php if($__settings->config->gestioneOrientamento) : ?>
                 <th class="text-center col-md-1">Orientamento</th>
             <?php else: ?>
-                <t class="text-center col-md-1"h></th>
+                <!-- <th class="text-center col-md-1"h></th> -->
             <?php endif; ?>
             <th class="text-center col-md-1">Corsi di Recupero</th>
 		</tr>
@@ -108,18 +108,18 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cog
     echo '<tr>';
     echo '<td><a href="../docente/previste.php?docente_id='.$docenteId.'" target="'.$openTabMode.'">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>';
 
-    echo '<td class="text-left">'.importoStampabile($fuisPrevisto['diariaImportoPreviste']).'</td>';
-    echo '<td class="text-left">'.importoStampabile($fuisPrevisto['fuisAssegnato']).'</td>';
-    echo '<td class="text-left">'.importoStampabile($fuisPrevisto['fuisOrePreviste']).'</td>';
+    echo '<td class="text-right">'.importoStampabile($fuisPrevisto['diariaImportoPreviste']).'</td>';
+    echo '<td class="text-right">'.importoStampabile($fuisPrevisto['fuisAssegnato']).'</td>';
+    echo '<td class="text-right">'.importoStampabile($fuisPrevisto['fuisOrePreviste']).'</td>';
     if (getSettingsValue("config", "gestioneClil", false)) {
-        echo '<td class="text-left">'.importoStampabile($fuisPrevisto['fuisClilFunzionalePreviste'] + $fuisPrevisto['fuisClilConStudentiPreviste']).'</td>';
+        echo '<td class="text-right">'.importoStampabile($fuisPrevisto['fuisClilFunzionalePreviste'] + $fuisPrevisto['fuisClilConStudentiPreviste']).'</td>';
     } else {
-        echo '<td></td>';
+        //echo '<td></td>';
     }
     if (getSettingsValue("config", "gestioneOrientamento", false)) {
-        echo '<td class="text-left">'.importoStampabile($fuisPrevisto['fuisOrientamentoFunzionalePreviste'] + $fuisPrevisto['fuisOrientamentoConStudentiPreviste']).'</td>';
+        echo '<td class="text-right">'.importoStampabile($fuisPrevisto['fuisOrientamentoFunzionalePreviste'] + $fuisPrevisto['fuisOrientamentoConStudentiPreviste']).'</td>';
     } else {
-        echo '<td></td>';
+        //echo '<td></td>';
     }
     echo '<td>'.importoStampabile($fuisPrevisto['fuisExtraCorsiDiRecupero']).'</td>';
 
@@ -138,7 +138,7 @@ function importoStampabile($importo) {
     if ($importo == 0) {
         return "";
     }
-    return number_format($importo, 2);
+    return number_format($importo, 2,",",".");
 }
 
 ?>

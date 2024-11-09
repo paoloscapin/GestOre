@@ -10,6 +10,7 @@
 // include Database connection file
 //require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/send-mail.php';
 
 
 $today = new DateTime("now");
@@ -148,15 +149,16 @@ foreach($resultArray as $row)
 		$full_mail_body = str_replace("{aula}",$sportello_luogo,$full_mail_body);
 		$full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
 		$full_mail_body = str_replace("{codice_html_tabella}",$tabella_html,$full_mail_body);
+		$full_mail_body = str_replace("{messaggio_finale}","", $full_mail_body);
 
-		$sender = $__settings->local->emailNoReplyFrom;
-		$headers  = 'MIME-Version: 1.0' . "\r\n";
-		$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-		$headers .= "From: " . $sender . "\r\n";
-		$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
+		$to = $sportello_docente_email;
+		$toName = $sportello_docente_nome . " " . $sportello_docente_cognome;
+
+		info("Invio mail al docente: ".$to." ".$toName);
+		echo "Invio mail al docente: ".$to." ".$toName."\n";
 		$mailsubject = 'GestOre - Promemoria attività ' . $sportello_categoria . ' - materia ' . $sportello_materia;
-		mail($sportello_docente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
-		echo "inviata mail di promemoria per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome . " - ";
+		sendMail($to,$toName,$mailsubject,$full_mail_body);
+		echo "inviata mail di promemoria per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome;
 		info("inviata mail di promemoria per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
 	}
 	else
@@ -179,14 +181,16 @@ foreach($resultArray as $row)
 		$full_mail_body = str_replace("{aula}",$sportello_luogo,$full_mail_body);
 		$full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
 
-		$sender = $__settings->local->emailNoReplyFrom;
-		$headers  = 'MIME-Version: 1.0' . "\r\n";
-		$headers .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
-		$headers .= "From: " . $sender . "\r\n";
-		$headers .= "Bcc: " . $__settings->local->emailSportelli . "\r\n"."X-Mailer: php";
+		$to = $sportello_docente_email;
+		$toName = $sportello_docente_nome . " " . $sportello_docente_cognome;
+	
+		info("Invio mail al docente: ".$to." ".$toName);
+		echo "Invio mail al docente: ".$to." ".$toName."\n";
+
 		$mailsubject = 'GestOre - Annullamento attività ' . $sportello_categoria . ' - materia ' . $sportello_materia;
-		mail($sportello_docente_email, $mailsubject, $full_mail_body ,  $headers, additional_params: "-f$sender");
-		echo "inviata mail di annullamento sportello per mancanza iscritti - " . $sportello_docente_cognome . " " . $sportello_docente_nome . " - ";
+		sendMail($to,$toName,$mailsubject,$full_mail_body);
+
+		echo "inviata mail di annullamento sportello per mancanza iscritti - " . $sportello_docente_cognome . " " . $sportello_docente_nome;
 		info("inviata mail di annullamento sportello per mancanza iscritti - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
 
 		}
