@@ -39,7 +39,7 @@ $query = "	SELECT
 				
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
-	echo "nessuno sportello oggi -".$query;
+	echo "nessuno sportello oggi";
 	$resultArray = [];
 }
 

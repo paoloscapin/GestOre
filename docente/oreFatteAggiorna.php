@@ -231,7 +231,7 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 					$daSpostare = $bilancioFunzionaliPreviste;
 				}
 				$bilancioFunzionaliPreviste = $bilancioFunzionaliPreviste - $daSpostare;
-				$bilancioConStudenti = $bilancioConStudenti + $daSpostare;
+				$bilancioConStudentiPreviste = $bilancioConStudentiPreviste + $daSpostare;
 				$messaggioPreviste = $messaggioPreviste . $daSpostare ." ore funzionali verranno usate per coprire " . $daSpostare ." ore con studenti mancanti. ";
 				debug('spostate funzionali in con studenti bilancioFunzionali='.$bilancioFunzionaliPreviste.' bilancioConStudenti='.$bilancioConStudentiPreviste);
 			}
