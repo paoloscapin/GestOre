@@ -71,12 +71,12 @@ require_once '../common/connect.php';
             <?php if($__settings->config->gestioneClil) : ?>
                 <th class="text-center col-md-1">Clil</th>
             <?php else: ?>
-                <th></th>
+                <th class="text-center col-md-1"></th>
             <?php endif; ?>
             <?php if($__settings->config->gestioneOrientamento) : ?>
                 <th class="text-center col-md-1">Orientamento</th>
             <?php else: ?>
-                <t class="text-center col-md-1"h></th>
+                <th class="text-center col-md-1"></th>
             <?php endif; ?>
             <th class="text-center col-md-1">Corsi di Recupero</th>
 		</tr>
