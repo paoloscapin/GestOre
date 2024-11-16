@@ -9,6 +9,7 @@ var soloNuovi = 1;
 var soloPrenotati = 0;
 var categoria_filtro_id = 0;
 var docente_filtro_id = 0;
+var studente_filtro_id = 0;
 var materia_filtro_id = 0;
 var classe_filtro_id = 0;
 var selections = [];
@@ -53,6 +54,21 @@ function sportelloReadRecords() {
     });
 }
 
+function iscriviStudente(studente_id, selezione) {
+    $.post("sportelloIscriviStudente.php", {
+        id_studente: studente_id,
+        lista_sportelli: selezione
+    }, function (data, status) {
+        $('#riga_iscrizioni_sportelli').hide();
+        $('#result_text').html(data);
+        $('#file_select_students').change(function (e) { });
+        $("#sportelli_selezionati").html("");
+        selections.length = 0;
+        setTimeout(function () { $('#result_text').html("");}, 5000);
+        sportelloReadRecords();
+    });
+}
+
 function sportelloSelect(id) {
     if ($("#selecticon" + id).hasClass("glyphicon-remove")) {
         $("#selecticon" + id).removeClass("glyphicon-remove");
@@ -73,14 +89,18 @@ function sportelloSelect(id) {
         selections.splice(selections.indexOf(id), 1);
     }
     if (selections.length > 0) {
-        $("#sportelli_selezionati").html('<label id="import_studenti" style="margin:0px 10px 0px 0px;padding:5px;" class="btn btn-xs btn-success"><span class="glyphicon glyphicon-upload"></span><b> ISCRIVI STUDENTI</b><input type="file" id="file_select_students" style="display: none;"></label><label id="numero_studenti" style="margin:0px 10px 0px 0px;padding:5px;" class="btn btn-xs btn-primary"><b> NUMERO STUDENTI SELEZIONATI: ' + selections.length + '</b></label>');
+        $("#numero_studenti").html('NUMERO ATTIVITA SELEZIONATE: ' + selections.length);
         $('#file_select_students').change(function (e) {
-            importStudents(e.target.files[0],selections);
-        });
+            importStudents(e.target.files[0], selections);
+          });
+          $('#riga_iscrizioni_sportelli').show();
+   
     }
     else {
-        $("#sportelli_selezionati").html("");
+        $("#numero_studenti").html("");
         $('#file_select_students').change(function (e) { });
+        $('#select_studente').on("click"), function (e) { };
+        $('#riga_iscrizioni_sportelli').hide();
     }
 }
 
@@ -343,7 +363,7 @@ function importFile(file) {
     reader.readAsText(file);
 }
 
-function importStudents(file,selezione) {
+function importStudents(file, selezione) {
     var contenuto = "";
     const reader = new FileReader();
     reader.addEventListener('load', (event) => {
@@ -356,9 +376,9 @@ function importStudents(file,selezione) {
                 $('#result_text').html(data);
                 $('#file_select_students').change(function (e) { });
                 $("#sportelli_selezionati").html("");
-                selections.length=0;
+                selections.length = 0;
                 sportelloReadRecords();
-                setTimeout(function(){$('#result_text').html("");},5000);
+                setTimeout(function () { $('#result_text').html(""); }, 5000);
             });
     });
     reader.readAsText(file);
@@ -386,6 +406,11 @@ $(document).ready(function () {
             sportelloReadRecords();
         });
 
+    $("#studente_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            studente_filtro_id = this.value;
+        });
+
     $("#materia_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             materia_filtro_id = this.value;
@@ -397,6 +422,8 @@ $(document).ready(function () {
             classe_filtro_id = this.value;
             sportelloReadRecords();
         });
+
+    $('#riga_iscrizioni_sportelli').hide();
 
     $('#file_select_id').change(function (e) {
         importFile(e.target.files[0]);

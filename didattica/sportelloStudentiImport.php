@@ -127,11 +127,11 @@ if (!empty($sqlList)) {
         dbExec($sql);
         // debug($sql);
     }
-    info('Import effettuato: inseriti ' . $iscrizioni . ' nuove iscrizioni');
+    info('Import effettuato: inserite ' . $iscrizioni . ' nuove iscrizioni');
 }
 
 if ($terminatoCorrettamente) {
-    echo '<strong>Import effettuato: inseriti ' . $iscrizioni . ' nuove iscrizioni</strong>';
+    echo '<strong>Import effettuato: inserite ' . $iscrizioni . ' nuove iscrizioni</strong>';
 } else {
     echo $dataHtml;
 }
