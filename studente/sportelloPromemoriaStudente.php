@@ -62,6 +62,7 @@ foreach($resultArray as $row)
 	$numero_studenti_iscritti = dbGetValue($query);
 
 	info("dati sportello docente da inviare promemoria agli studenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id);
+	echo "dati sportello docente da inviare promemoria agli studenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id;
 
 	if ($numero_studenti_iscritti>0)
 	// CI SONO STUDENTI ISCRITTI - INVIO IL PROMEMORIA AGLI STUDENTI
@@ -121,7 +122,7 @@ foreach($resultArray as $row)
 			$toName = $studente_nome . " " . $studente_cognome;
 
 			info("Invio mail allo studente: ".$to." ".$toName);
-			echo "Invio mail al docente: ".$to." ".$toName."\n";
+			echo "Invio mail promemoria llo studente: ".$to." ".$toName."\n";
 			$mailsubject = 'GestOre - Promemoria attività ' . $sportello_categoria . ' - materia '. $sportello_materia;
 			sendMail($to,$toName,$mailsubject,$full_mail_body);
 			info("inviata mail di promemoria agli studenti per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
@@ -130,6 +131,7 @@ foreach($resultArray as $row)
 	else
 	{
 		info("NON CI SONO studenti iscritti sportello");
+		echo "NON CI SONO studenti iscritti sportello";
 	}
 	
 }
