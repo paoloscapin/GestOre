@@ -127,6 +127,19 @@ function sportelloSave() {
     }
     $("#_error-materia-part").hide();
 
+    // controlla la lista di studenti segnati presenti
+    var studentiDaModificareIdList = [];
+    $('#studenti_table tbody tr').each(function () {
+        var row = $(this);
+        var presenteCheckbox = row.find('input[type="checkbox"]');
+        var presenteOriginal = presenteCheckbox.prop('defaultChecked');
+        var presenteCorrente = presenteCheckbox.prop('checked');
+        var id = row.children().eq(0).text();
+        if (presenteCorrente != presenteOriginal) {
+            studentiDaModificareIdList.push(id);
+        }
+    });
+
     if ($("#hidden_lista_classi").val() == "testo") // se la classe è una casella di testo
     {
         if ($('#hidden_sezione_online_clil').val() == 'true') {
@@ -147,7 +160,8 @@ function sportelloSave() {
                 firmato: $("#firmato").is(':checked') ? 1 : 0,
                 online: $("#online").is(':checked') ? 1 : 0,
                 clil: $("#clil").is(':checked') ? 1 : 0,
-                orientamento: $("#orientamento").is(':checked') ? 1 : 0
+                orientamento: $("#orientamento").is(':checked') ? 1 : 0,
+                studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
             }, function (data, status) {
                 $("#sportello_modal").modal("hide");
                 sportelloReadRecords();
@@ -172,7 +186,8 @@ function sportelloSave() {
                     firmato: $("#firmato").is(':checked') ? 1 : 0,
                     online: 0,
                     clil: 0,
-                    orientamento: 0
+                    orientamento: 0,
+                    studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
                 }, function (data, status) {
                     $("#sportello_modal").modal("hide");
                     sportelloReadRecords();
@@ -199,7 +214,8 @@ function sportelloSave() {
                 firmato: $("#firmato").is(':checked') ? 1 : 0,
                 online: $("#online").is(':checked') ? 1 : 0,
                 clil: $("#clil").is(':checked') ? 1 : 0,
-                orientamento: $("#orientamento").is(':checked') ? 1 : 0
+                orientamento: $("#orientamento").is(':checked') ? 1 : 0,
+                studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
             }, function (data, status) {
                 $("#sportello_modal").modal("hide");
                 sportelloReadRecords();
@@ -224,6 +240,7 @@ function sportelloSave() {
                 online: 0,
                 clil: 0,
                 orientamento: 0,
+                studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
             }, function (data, status) {
                 $("#sportello_modal").modal("hide");
                 sportelloReadRecords();

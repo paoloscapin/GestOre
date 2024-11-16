@@ -37,6 +37,7 @@ if(isset($_POST)) {
 	$online = $_POST['online'];
 	$clil = $_POST['clil'];
 	$orientamento = $_POST['orientamento'];
+	$studentiDaModificareIdList = json_decode($_POST['studentiDaModificareIdList']);
 
 	if ($categoria_id != 0) // 
 	{
@@ -51,6 +52,27 @@ if(isset($_POST)) {
 		$query = "UPDATE sportello SET data = '$data', ora = '$ora', docente_id = '$docente_id', materia_id = '$materia_id', categoria = '$categoria', numero_ore = '$numero_ore', argomento = '$argomento', luogo = '$luogo', classe = '$classe', classe_id = $classe_id, max_iscrizioni = '$max_iscrizioni', cancellato = $cancellato, firmato = $firmato, online = $online, clil = $clil, orientamento = $orientamento WHERE id = '$id'";
 		dbExec($query);
 		info("aggiornato sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id categoria=$categoria numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online = $online clil = $clil orientamento = $orientamento");
+		if ($cancellato)
+        // cancella gli eventuali iscritti
+		{
+			info("invio mail di cancellazione al docente");
+			require "sportelloInviaMailCancellazioneDocente.php";
+			info("invio mail di cancellazione agli studenti iscritti allo sportello");
+			require "sportelloInviaMailCancellazioneStudente.php";
+
+			$query = "DELETE FROM sportello_studente WHERE sportello_id = '$id'";
+			dbExec($query);
+			info("cancellati gli studenti iscritti allo sportello id=$id");
+		}
+		else
+        // aggiorna i partecipanti
+		{
+			foreach($studentiDaModificareIdList as $studente) {
+				$query = "UPDATE sportello_studente SET presente = IF (`presente`, 0, 1) WHERE sportello_studente.id = $studente";
+				dbExec($query);
+				info("aggiornato id=$studente");
+			}
+		}
 	} else {
 		$query = "INSERT INTO sportello(data, ora, docente_id, materia_id, categoria, numero_ore, argomento, luogo, classe, classe_id, max_iscrizioni, online, clil, orientamento, anno_scolastico_id) VALUES('$data', '$ora', '$docente_id', '$materia_id', '$categoria', '$numero_ore', '$argomento', '$luogo', '$classe', '$classe_id', '$max_iscrizioni', '$online', '$clil', '$orientamento', $__anno_scolastico_corrente_id)";
 		dbExec($query);
