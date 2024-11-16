@@ -201,8 +201,6 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	// adesso devo calcolare il fuis: prima le previste
     $bilancioFunzionaliPreviste = $oreFunzionaliPreviste - $oreFunzionaliDovute;
     $bilancioConStudentiPreviste = $oreConStudentiPreviste - $oreConStudentiDovute;
-	$fuisFunzionalePreviste = $bilancioFunzionaliPreviste * $__importi['importo_ore_funzionali'];
-	$fuisConStudentiPreviste = $bilancioConStudentiPreviste * $__importi['importo_ore_con_studenti'];
 
 	if (getSettingsValue('fuis', 'compensa_anche_previste', false)) {
 		// se si possono compensare in ore quelle mancanti funzionali con quelle previste in piu' con studenti lo aggiorna ora
@@ -237,6 +235,9 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 			}
 		}
 	}
+
+	$fuisFunzionalePreviste = $bilancioFunzionaliPreviste * $__importi['importo_ore_funzionali'];
+	$fuisConStudentiPreviste = $bilancioConStudentiPreviste * $__importi['importo_ore_con_studenti'];
 
 	// se non configurato per compensare, i valori negativi devono essere azzerati (se ce ne sono...)
 	if (!getSettingsValue('fuis','compensa_in_valore', false)) {
