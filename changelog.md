@@ -1,3 +1,11 @@
+## Version 1.2.51 - 27 nov 2024
+##### Improvements
+- migliorata gestione moduli ed email
+
+##### Bug Fixes
+- problemi con __MinutiFunction
+- sistemati escapePost mancanti
+
 ## Version 1.2.50 - 01 ott 2024
 ##### Improvements
 - inserita gestione moduli prima versione
