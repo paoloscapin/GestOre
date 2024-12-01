@@ -6,7 +6,7 @@
  */
 
 function bonusRivisto() {
-	$.post("rivistoControllo.php", {
+	$.post("rivistoUltimoControllo.php", {
 		docente_id: $("#hidden_docente_id").val(),
 		tabella: "bonus_docente"
 	},
