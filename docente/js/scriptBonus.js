@@ -15,9 +15,10 @@ window.addEventListener('beforeunload', (event) => {
 			modificato = true;
 		}
 	});
-	if (modificato) {
-		saveBonusSelection();
-	}
+	// c'è già un evento sul checked quindi questo è un doppione
+	//if (modificato) {
+    //	saveBonusSelection();
+	//	}
 });
 
 function saveBonusSelection() {
@@ -91,8 +92,9 @@ $(document).ready(function () {
 		var adesioneCorrente = adesioneCheckbox.prop('checked');
 		var idBonus = row.children().eq(0).text();
 		var idAdesione = row.children().eq(1).text();
-//		console.log('Codice Adesione=' + idAdesione + ' idBonus=' + idBonus + ' checked=' + adesioneCorrente);
+		//		console.log('Codice Adesione=' + idAdesione + ' idBonus=' + idBonus + ' checked=' + adesioneCorrente);
         if ($(this).is(':checked')) {
+			//            
         	// bisogna attivarlo:
         	$.post("bonusAdesioniUpdate.php", {
         		adesione_id: idAdesione,
@@ -101,7 +103,21 @@ $(document).ready(function () {
             function (data, status) {
 //            	console.log('inserimento: bonusAdesioniUpdate.php torna id=' + data);
             	row.children().eq(1).html(data);
-//            	console.log('Inserito idAdesione=' + idAdesione + ' idBonus=' + idBonus + ' text=' + row.children().eq(1).text());
+				$.notify({
+					icon: 'glyphicon glyphicon-info-sign',
+					title: '<Strong>Selezione Bonus</Strong></br>',
+					message: 'Criterio aggiunto. Selezione dei criteri per il bonus aggiornata!'
+				},{
+					placement: {
+						from: "top",
+						align: "center"
+					},
+					delay: 5000,
+					timer: 100,
+					mouse_over: "pause",
+					type: 'info'
+				});
+				console.log('Inserito idAdesione=' + idAdesione + ' idBonus=' + idBonus + ' text=' + row.children().eq(1).text());
             });
         } else {
         	// bisogna rimuoverlo:
@@ -112,6 +128,20 @@ $(document).ready(function () {
             function (data, status) {
 //            	console.log('rimozione: bonusAdesioniUpdate.php result data=' + data);
             	row.children().eq(1).html(-1);
+				$.notify({
+					icon: 'glyphicon glyphicon-info-sign',
+					title: '<Strong>Selezione Bonus</Strong></br>',
+					message: 'Criterio rimosso. Selezione dei criteri per il bonus aggiornata!'
+				},{
+					placement: {
+						from: "top",
+						align: "center"
+					},
+					delay: 5000,
+					timer: 100,
+					mouse_over: "pause",
+					type: 'info'
+				});
 //            	console.log('Rimosso idAdesione=' + idAdesione + ' idBonus=' + idBonus + ' text=' + row.children().eq(1).text());
             });
         }

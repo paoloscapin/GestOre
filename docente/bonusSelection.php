@@ -17,6 +17,7 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
+require_once '../common/_include_bootstrap-notify.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente');
 ?>
 	<title>Bonus Docente Selezione</title>
