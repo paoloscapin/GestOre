@@ -1,19 +1,16 @@
 <?php
-
 /**
  *  This file is part of GestOre
  *  @author     Paolo Scapin <paolo.scapin@gmail.com>
  *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
-
+require_once '../common/checkSession.php';
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>
 <?php
-require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 //require_once '../common/_include_bootstrap-toggle.php';
@@ -54,7 +51,6 @@ if(isset($_GET['docente_id']) && $_GET['docente_id'] != "") {
 }
 $ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_fatte WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
 debug('ultimo_controllo=' . $ultimo_controllo);
-
 require_once '../common/header-docente.php';
 ?>
 

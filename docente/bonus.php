@@ -6,73 +6,74 @@
  *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
-
+require_once '../common/checkSession.php';
 ?>
 
 <!DOCTYPE html>
 <html>
+
 <head>
-<?php
-require_once '../common/checkSession.php';
-require_once '../common/header-common.php';
-require_once '../common/style.php';
-require_once '../common/_include_bootstrap-select.php';
-ruoloRichiesto('segreteria-docenti','dirigente','docente');
-?>
+	<?php
+
+	require_once '../common/header-common.php';
+	require_once '../common/style.php';
+	require_once '../common/_include_bootstrap-select.php';
+	ruoloRichiesto('segreteria-docenti', 'dirigente', 'docente');
+	?>
 	<title>Bonus Docente</title>
 </head>
 
-<body >
-<?php
-require_once '../common/header-docente.php';
-require_once '../common/connect.php';
-?>
+<body>
+	<?php
+	require_once '../common/header-docente.php';
+	require_once '../common/connect.php';
+	?>
 
-<div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-lima4">
-<div class="panel-heading">
-	<div class="row">
-		<div class="col-md-4">
-			<span class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus
-		</div>
-		<div class="col-md-4 text-center">
-		</div>
-		<div class="col-md-4 text-right">
-            <?php
-            if ($__config->getBonus_adesione_aperto()) {
-                echo '
+	<div class="container-fluid" style="margin-top:60px">
+		<div class="panel panel-lima4">
+			<div class="panel-heading">
+				<div class="row">
+					<div class="col-md-4">
+						<span class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus
+					</div>
+					<div class="col-md-4 text-center">
+					</div>
+					<div class="col-md-4 text-right">
+						<?php
+						if ($__config->getBonus_adesione_aperto()) {
+							echo '
 				<button onclick="document.location.href=\'bonusSelection.php\'" class="btn btn-xs btn-lima4"><span class="glyphicon glyphicon-cog"></span>&ensp;Adesioni</button>
                 ';
-            }
-   			?>
-		</div>
-	</div>
-</div>
-<div class="panel-body">
-    <div class="row"  style="margin-bottom:10px;">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6">
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-12">
-			<div class="table-wrapper">
-				<table class="table table-bordered table-striped table-green" id="bonus_docente_table">
-					<thead>
-						<tr>
-						<th class="text-center">Codice</th>
-						<th class="text-center">Descrittore</th>
-						<th class="text-center">Evidenze</th>
-						<th class="text-center">Valore</th>
-						<th class="text-center"></th>
-						<th class="text-center">Approvato</th>
-						</tr>
-					</thead>
-					<tbody>
-<?php
+						}
+						?>
+					</div>
+				</div>
+			</div>
+			<div class="panel-body">
+				<div class="row" style="margin-bottom:10px;">
+					<div class="col-md-6">
+					</div>
+					<div class="col-md-6">
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-12">
+						<div class="table-wrapper">
+							<table class="table table-bordered table-striped table-green" id="bonus_docente_table">
+								<thead>
+									<tr>
+										<th class="text-center">Codice</th>
+										<th class="text-center">Descrittore</th>
+										<th class="text-center">Evidenze</th>
+										<th class="text-center">Valore</th>
+										<th class="text-center"></th>
+										<th class="text-center">Approvato</th>
+									</tr>
+								</thead>
+								<tbody>
+									<?php
 
-$query = "
+									$query = "
 SELECT
 	bonus_docente.id AS bonus_docente_id,
 	bonus_docente.approvato AS bonus_docente_approvato,
@@ -110,93 +111,113 @@ AND
 ORDER BY
 	bonus.codice;
 ";
-$resultArray = dbGetAll($query);
-foreach($resultArray as $bonus) {
-	$bonus_valore = getSettingsValue('bonus','punteggio_variabile', false) ? '0 - ' : '';
-	$bonus_valore = $bonus_valore . $bonus['bonus_valore_previsto'];
-	$bonus_descrittori = js_escape($bonus['bonus_descrittori']);
-	$bonus_evidenze = js_escape($bonus['bonus_evidenze']);
-    $data = '
+									$resultArray = dbGetAll($query);
+									foreach ($resultArray as $bonus) {
+										$bonus_valore = getSettingsValue('bonus', 'punteggio_variabile', false) ? '0 - ' : '';
+										$bonus_valore = $bonus_valore . $bonus['bonus_valore_previsto'];
+										$bonus_descrittori = js_escape($bonus['bonus_descrittori']);
+										$bonus_evidenze = js_escape($bonus['bonus_evidenze']);
+										$data = '
             <tr>
-                <td class="text-left">'.$bonus['bonus_codice'].'</td>
-                <td class="text-left"><span style="white-space: pre-line">'.$bonus['bonus_descrittori'].'</span></td>
-                <td class="text-left"><span style="white-space: pre-line">'.$bonus['bonus_evidenze'].'</span></td>
-                <td class="text-center">'.$bonus_valore.'</td>
+                <td class="text-left">' . $bonus['bonus_codice'] . '</td>
+                <td class="text-left"><span style="white-space: pre-line">' . $bonus['bonus_descrittori'] . '</span></td>
+                <td class="text-left"><span style="white-space: pre-line">' . $bonus['bonus_evidenze'] . '</span></td>
+                <td class="text-center">' . $bonus_valore . '</td>
 			';
 
-	$data .='
+										$data .= '
         		<td class="text-center">
 		';
-	$data .='
-				<button onclick="bonusRendiconto('.$bonus['bonus_docente_id'].', \''.$bonus['bonus_codice'].'\', \''.$bonus_descrittori.'\', \''.$bonus_evidenze.'\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
+										$data .= '
+				<button onclick="bonusRendiconto(' . $bonus['bonus_docente_id'] . ', \'' . $bonus['bonus_codice'] . '\', \'' . $bonus_descrittori . '\', \'' . $bonus_evidenze . '\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
 			';
-	$data .='
+										$data .= '
                 </td>
 		';
-	$data .='
-            <td class="text-left">'.$bonus['bonus_docente_approvato'].'</td>
-        </tr>
-	';
-	echo $data;
-
-}
-?>
-					</tbody>
-				</table>
-	        </div>
-        </div>
-    </div>
-</div>
-
-<!-- <div class="panel-footer"></div> -->
-</div>
-
-<!-- Modal - rendiconto details -->
-<div class="modal fade" id="bonus_docente_rendiconto_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-body">
-			<div class="panel panel-success">
-			<div class="panel-heading">
-			<h5 class="modal-title text-center" id="myModalLabel">Rendiconto Evidenze</h5>
+										if (getSettingsValue('bonus', 'punteggio_variabile', false)) 
+										{
+											$data .= '<td class="text-left">' . $bonus['bonus_docente_approvato'] . '</td></tr>';
+										} 
+										else 
+										{
+											if ($bonus['bonus_docente_approvato'] != NULL) 
+											{
+												if ($bonus['bonus_docente_approvato'] == 1) 
+												{
+													$data .= '<td class="text-left">' . $bonus_valore . '</td></tr>	';
+												} 
+												else 
+												{
+													$data .= '<td class="text-left">0</td></tr>';
+												}
+											}
+											else
+											{
+												$data .= '<td class="text-left"></td></tr>';
+											}
+										}
+										echo $data;
+									}
+									?>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
 			</div>
-			<div class="panel-body">
-                <div class="form-group">
-                    <div class="" id="evidenze_text"></div>
-                </div>
 
-                <div class="form-group">
-                    <label for="rendiconto_rendiconto">Rendiconto</label>
-                    <textarea class="form-control" rows="5" id="rendiconto_rendiconto" placeholder="rendiconto" ></textarea>
-                </div>
-            </div>
-			<div class="modal-footer">
-			<div class="col-sm-12 text-center">
-				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-				
-<?php
-if ($__config->getBonus_rendiconto_aperto()) {
-    echo '
+			<!-- <div class="panel-footer"></div> -->
+		</div>
+
+		<!-- Modal - rendiconto details -->
+		<div class="modal fade" id="bonus_docente_rendiconto_modal" tabindex="-1" role="dialog"
+			aria-labelledby="myModalLabel">
+			<div class="modal-dialog modal-lg" role="document">
+				<div class="modal-content">
+					<div class="modal-body">
+						<div class="panel panel-success">
+							<div class="panel-heading">
+								<h5 class="modal-title text-center" id="myModalLabel">Rendiconto Evidenze</h5>
+							</div>
+							<div class="panel-body">
+								<div class="form-group">
+									<div class="" id="evidenze_text"></div>
+								</div>
+
+								<div class="form-group">
+									<label for="rendiconto_rendiconto">Rendiconto</label>
+									<textarea class="form-control" rows="5" id="rendiconto_rendiconto"
+										placeholder="rendiconto"></textarea>
+								</div>
+							</div>
+							<div class="modal-footer">
+								<div class="col-sm-12 text-center">
+									<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+
+									<?php
+									if ($__config->getBonus_rendiconto_aperto()) {
+										echo '
                 <button type="button" class="btn btn-primary" onclick="bonusDocenteRendicontoUpdateDetails()" >Salva</button>
     ';
-}
-?>
-				<input type="hidden" id="hidden_bonus_docente_id">
+									}
+									?>
+									<input type="hidden" id="hidden_bonus_docente_id">
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
-			</div>
-        	</div>
-        	</div>
-    	</div>
-    </div>
-</div>
-<!-- // Modal - rendiconto details -->
+		</div>
+		<!-- // Modal - rendiconto details -->
 
-</div>
+	</div>
 
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
+	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 
-<!-- Custom JS file -->
-<script type="text/javascript" src="js/scriptBonus.js"></script>
+	<!-- Custom JS file -->
+	<script type="text/javascript" src="js/scriptBonus.js"></script>
 
 </body>
+
 </html>

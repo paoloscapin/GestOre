@@ -1,0 +1,11 @@
+[29-Nov-2024 14:17:08 UTC] PHP Warning:  session_set_cookie_params(): Session cookie parameters cannot be changed after headers have already been sent in /home/gvgtcyej/public_html/GestOre/common/checkSession.php on line 17
+[29-Nov-2024 14:17:08 UTC] PHP Warning:  session_start(): Session cannot be started after headers have already been sent in /home/gvgtcyej/public_html/GestOre/common/checkSession.php on line 18
+[29-Nov-2024 14:17:08 UTC] PHP Warning:  Cannot modify header information - headers already sent by (output started at /home/gvgtcyej/public_html/GestOre/version.php:11) in /home/gvgtcyej/public_html/GestOre/common/checkSession.php on line 50
+[29-Nov-2024 14:17:08 UTC] PHP Deprecated:  Function strftime() is deprecated in /home/gvgtcyej/public_html/GestOre/common/Log/file.php on line 294
+[29-Nov-2024 14:17:08 UTC] PHP Deprecated:  Function strftime() is deprecated in /home/gvgtcyej/public_html/GestOre/common/Log/file.php on line 294
+[29-Nov-2024 14:17:08 UTC] PHP Deprecated:  Function strftime() is deprecated in /home/gvgtcyej/public_html/GestOre/common/Log/file.php on line 294
+[29-Nov-2024 14:17:08 UTC] PHP Deprecated:  Function strftime() is deprecated in /home/gvgtcyej/public_html/GestOre/common/Log/file.php on line 294
+[29-Nov-2024 14:17:08 UTC] PHP Deprecated:  Function strftime() is deprecated in /home/gvgtcyej/public_html/GestOre/common/Log/file.php on line 294
+[29-Nov-2024 14:17:08 UTC] PHP Deprecated:  Function strftime() is deprecated in /home/gvgtcyej/public_html/GestOre/common/Log/file.php on line 294
+[29-Nov-2024 14:17:08 UTC] PHP Deprecated:  Function strftime() is deprecated in /home/gvgtcyej/public_html/GestOre/common/Log/file.php on line 294
+[29-Nov-2024 14:17:08 UTC] PHP Warning:  Cannot modify header information - headers already sent by (output started at /home/gvgtcyej/public_html/GestOre/version.php:11) in /home/gvgtcyej/public_html/GestOre/common/__Util.php on line 31

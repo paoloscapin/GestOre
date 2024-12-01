@@ -7,12 +7,6 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-?>
-
-<!DOCTYPE html>
-<html>
-<head>
-<?php
 require_once __DIR__ . '/common/checkSession.php';
 
 // if the session contains the role, go to the home corresponding to that role
@@ -37,15 +31,17 @@ else if (haRuolo('studente')) {
 else if (haRuolo('admin')) {
     redirect('/admin/index.php');
 }
-?>
 
-<meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<?php
 require_once __DIR__ . '/common/header-common.php';
 require_once __DIR__ . '/common/style.php';
 ?>
+<!DOCTYPE html>
+<html>
+<head></head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style type="text/css">
 	.login-form {
 		width: 340px;

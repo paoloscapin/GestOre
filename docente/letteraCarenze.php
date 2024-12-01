@@ -6,13 +6,13 @@
  *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
-
+require_once '../common/checkSession.php';
 ?>
 
 <html>
 <head>
 <?php
-require_once '../common/checkSession.php';
+
 ruoloRichiesto('docente','dirigente','segreteria-docenti');
 require_once '../common/connect.php';
 require_once '../common/header-common.php';

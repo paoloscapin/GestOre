@@ -6,7 +6,7 @@
  *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
-
+require_once '../common/checkSession.php';
 ?>
 
 <!DOCTYPE html>
@@ -16,7 +16,7 @@
 	<meta charset="UTF-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 <?php
-require_once '../common/checkSession.php';
+
 require_once '../common/__Settings.php';
 
 require_once '../common/header-common.php';

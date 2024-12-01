@@ -6,13 +6,6 @@
  *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
-
-?>
-
-<!DOCTYPE html>
-<html>
-<head>
-<?php
 require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
@@ -20,6 +13,10 @@ require_once '../common/_include_bootstrap-select.php';
 require_once '../common/__Minuti.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente','segreteria-didattica');
 ?>
+
+<!DOCTYPE html>
+<html>
+<head>
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-vcolor-index.css">
 	<title>Piano Orario</title>
 </head>

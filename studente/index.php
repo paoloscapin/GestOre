@@ -6,6 +6,7 @@
  *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
+require_once '../common/checkSession.php';
 
 ?>
 
@@ -14,7 +15,6 @@
 <head>
 	<title>GestOre studente</title>
 <?php
-require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 ruoloRichiesto('studente','segreteria-didattica','dirigente');
