@@ -18,6 +18,7 @@ if(isset($_POST)) {
 	$ore_dovute_id = $_POST['ore_dovute_id'];
 	$ore_previste_id = $_POST['ore_previste_id'];
 	$tipo_di_contratto = $_POST['tipo_di_contratto'];
+	$classe_di_concorso = $_POST['classe_di_concorso'];
 	$giorni_di_servizio = $_POST['giorni_di_servizio'];
 	$ore_di_cattedra = $_POST['ore_di_cattedra'];
 	$ore_eccedenti = $_POST['ore_eccedenti'];

@@ -124,6 +124,11 @@ $ore80 = [
                 </div>
 
                 <div class="form-group">
+                    <label for="classe_di_concorso">Classe di concorso</label>
+                    <input type="text" id="classe_di_concorso" placeholder="classe_di_concorso" class="form-control"/>
+                </div>
+
+                <div class="form-group">
                     <label for="attivo">Attivo</label>
 					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="attivo" >
                 </div>
@@ -179,6 +184,11 @@ $ore80 = [
                 </div>
 
                 <div class="form-group">
+                    <label for="update_classe_di_concorso">Classe di concorso</label>
+                    <input type="text" id="update_classe_di_concorso" placeholder="classe_di_concorso" class="form-control"/>
+                </div>
+
+                <div class="form-group">
                     <label for="update_attivo">Attivo</label>
 					<input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="update_attivo" >
                 </div>
@@ -213,17 +223,25 @@ $ore80 = [
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="update_nome">Docente</label>
-                    <div class="col-sm-5"><input type="text" id="profilo_cognome_e_nome" placeholder="cognome e nome" class="form-control" readonly /></div>
+                    <div class="col-sm-6"><input type="text" id="profilo_cognome_e_nome" placeholder="cognome e nome" class="form-control" readonly /></div>
 
-                    <label class="col-sm-2 control-label" for="profilo_tipo_di_contratto">Contratto</label>
-                    <div class="col-sm-2"><input type="text" id="profilo_tipo_di_contratto" placeholder="contratto" class="form-control"/></div>
+                    <label class="col-sm-2 control-label" for="profilo_classe_di_concorso">Classe di Concorso</label>
+                    <div class="col-sm-2"><input type="text" id="profilo_classe_di_concorso" placeholder="classe_di_concorso" class="form-control"/></div>
 
-					<button onclick="ricalcola()" class="btn btn-danger"><span class="glyphicon glyphicon-calendar"></span></button>
                 </div>
 
                 <div class="form-group">
+                    <label class="col-sm-2 control-label" for="profilo_tipo_di_contratto">Contratto</label>
+                    <div class="col-sm-2"><input type="text" id="profilo_tipo_di_contratto" placeholder="contratto" class="form-control"/></div>
+	
                     <label class="col-sm-2 control-label" for="profilo_giorni_di_servizio">gg Servizio</label>
                     <div class="col-sm-2"><input type="text" id="profilo_giorni_di_servizio" placeholder="servizio" class="form-control"/></div>
+
+                    <label class="col-sm-2 control-label">Ricalcola</label>
+                    <button onclick="ricalcola()" class="col-sm-1 btn btn-danger"><span class="glyphicon glyphicon-calendar"></span></button>
+                </div>
+
+                <div class="form-group">
 
                     <label class="col-sm-2 control-label" for="profilo_ore_di_cattedra">ore Cattedra</label>
                     <div class="col-sm-2"><input type="text" id="profilo_ore_di_cattedra" placeholder="cattedra" class="form-control"/></div>

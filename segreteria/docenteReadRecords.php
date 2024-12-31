@@ -25,13 +25,14 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th>Nome</th>
 						<th>Email</th>
 						<th>Username</th>
-						<th>Matricola</th>
-						<th>Contratto</th>
-						<th>Giorni</th>
-						<th>Cattedra</th>
-						<th>Attivo</th>
-						<th>Profilo</th>
-						<th>Modifica</th>
+						<th class="text-center">Matricola</th>
+						<th class="text-center">Classe di Concorso</th>
+						<th class="text-center">Contratto</th>
+						<th class="text-center">Giorni</th>
+						<th class="text-center">Cattedra</th>
+						<th class="text-center">Attivo</th>
+						<th class="text-center">Profilo</th>
+						<th class="text-center">Modifica</th>
 					</tr>';
 
 $query = "SELECT docente.id AS local_docente_id, docente.*, profilo_docente.* FROM docente LEFT OUTER JOIN profilo_docente ON docente.id = profilo_docente.docente_id AND profilo_docente.anno_scolastico_id = $__anno_scolastico_corrente_id ";
@@ -47,10 +48,11 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.$row['nome'].'</td>
 		<td>'.$row['email'].'</td>
 		<td>'.$row['username'].'</td>
-		<td>'.$row['matricola'].'</td>
-		<td>'.$row['tipo_di_contratto'].'</td>
-		<td>'.numOrBlank($row['giorni_di_servizio']).'</td>
-		<td>'.numOrBlank($row['ore_di_cattedra']).'</td>
+		<td class="text-center">'.$row['matricola'].'</td>
+		<td class="text-center">'.$row['classe_di_concorso'].'</td>
+		<td class="text-center">'.$row['tipo_di_contratto'].'</td>
+		<td class="text-center">'.numOrBlank($row['giorni_di_servizio']).'</td>
+		<td class="text-center">'.numOrBlank($row['ore_di_cattedra']).'</td>
 		';
 
 	$data .= '<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="attivo" ';

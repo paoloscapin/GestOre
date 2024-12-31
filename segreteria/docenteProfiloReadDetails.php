@@ -37,6 +37,7 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
                         docente.cognome AS docente_cognome,
                         docente.nome AS docente_nome,
                         profilo_docente.id AS profilo_docente_id,
+						profilo_docente.classe_di_concorso AS classe_di_concorso,
                         profilo_docente.tipo_di_contratto AS tipo_di_contratto,
                         profilo_docente.giorni_di_servizio AS giorni_di_servizio,
                         profilo_docente.ore_di_cattedra AS ore_di_cattedra,

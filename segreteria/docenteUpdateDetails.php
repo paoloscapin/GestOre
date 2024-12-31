@@ -17,11 +17,15 @@ if(isset($_POST)) {
 	$email = escapePost('email');
 	$username = escapePost('username');
 	$matricola = escapePost('matricola');
+	$classe_di_concorso =  escapePost('classe_di_concorso');
 	$attivo = $_POST['attivo'];
 	$era_attivo = $_POST['era_attivo'];
 	// posso usare $_POST['era_attivo']; che vale 1 o 0
 
 	$query = "UPDATE docente SET nome = '$nome', cognome = '$cognome', email = '$email', username = '$username', matricola = '$matricola', attivo = '$attivo' WHERE id = '$docente_id'";
+	dbExec($query);
+
+	$query = "UPDATE profilo_docente SET classe_di_concorso = '$classe_di_concorso' WHERE docente_id = '$docente_id' AND anno_scolastico_id = '$__anno_scolastico_corrente_id'";
 	dbExec($query);
 
 	info("aggiornato docente docente_id=$docente_id cognome=$cognome nome=$nome email=$email");

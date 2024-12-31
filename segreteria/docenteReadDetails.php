@@ -14,7 +14,8 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	$docente_id = $_POST['id'];
 
 	// Get Docente Details
-	$query = "SELECT * FROM docente WHERE id = '$docente_id'";
+	$query = "SELECT docente.id AS local_docente_id, docente.*, profilo_docente.* FROM docente LEFT OUTER JOIN profilo_docente ON docente.id = profilo_docente.docente_id AND profilo_docente.anno_scolastico_id = $__anno_scolastico_corrente_id  WHERE docente.id = $docente_id";
+
 	$docente = dbGetFirst($query);
 	echo json_encode($docente);
 }

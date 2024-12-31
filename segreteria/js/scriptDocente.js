@@ -117,6 +117,7 @@ function profiloGetDetails(docente_id) {
 			// console.log(data);
 			var profilo = JSON.parse(data);
 			$("#profilo_cognome_e_nome").val(profilo.docente_cognome + " " + profilo.docente_nome);
+			$("#profilo_classe_di_concorso").val(profilo.classe_di_concorso);
 			$("#profilo_tipo_di_contratto").val(profilo.tipo_di_contratto);
 			$("#profilo_giorni_di_servizio").val(profilo.giorni_di_servizio);
 			$("#profilo_ore_di_cattedra").val(profilo.ore_di_cattedra);
@@ -162,6 +163,7 @@ function profiloUpdateDetails() {
 		docente_cognome_e_nome: $("#profilo_cognome_e_nome").val(),
 		ore_dovute_id: $("#hidden_ore_dovute_id").val(),
 		ore_previste_id: $("#hidden_ore_previste_id").val(),
+		classe_di_concorso: $("#profilo_classe_di_concorso").val(),
 		tipo_di_contratto: $("#profilo_tipo_di_contratto").val(),
 		giorni_di_servizio: $("#profilo_giorni_di_servizio").val(),
 		ore_di_cattedra: $("#profilo_ore_di_cattedra").val(),
@@ -201,6 +203,7 @@ function docenteAddRecord() {
         email: $("#email").val(),
         username: $("#username").val(),
         matricola: $("#matricola").val(),
+		classe_di_concorso: $("#classe_di_concorso").val(),
 		attivo: $("#attivo").val()
     }, function (data, status) {
         $("#add_new_record_modal").modal("hide");
@@ -212,6 +215,7 @@ function docenteAddRecord() {
         $("#email").val("");
         $("#username").val("");
         $("#matricola").val("");
+		$("classe_di_concorso").val("");
         $("#attivo").val("");
     });
 }
@@ -249,6 +253,7 @@ function docenteGetDetails(id) {
 			$("#update_email").val(docente.email);
 			$("#update_username").val(docente.username);
 			$("#update_matricola").val(docente.matricola);
+			$("#update_classe_di_concorso").val(docente.classe_di_concorso);
 			$('#update_attivo').bootstrapToggle(docente.attivo == 1? 'on' : 'off');
 			$("#hidden_era_attivo").val(docente.attivo);
 		}
@@ -264,6 +269,7 @@ function docenteUpdateDetails() {
             email: $("#update_email").val(),
             username: $("#update_username").val(),
             matricola: $("#update_matricola").val(),
+			classe_di_concorso: $('#update_classe_di_concorso').val(),
 			attivo: $("#update_attivo").is(':checked')? 1: 0,
 			era_attivo: $("#hidden_era_attivo").val()
         },
