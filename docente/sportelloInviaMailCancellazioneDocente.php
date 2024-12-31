@@ -45,12 +45,12 @@ $full_mail_body = "";
 
 if ($resultArray == null) {
     // preparo il testo della mail
-    $full_mail_body = file_get_contents("template_mail_cancella_docente.html");
+    $full_mail_body = file_get_contents("../docente/template_mail_cancella_docente.html");
     $messaggio_finale = "A questa attività non risultavano studenti iscritti";
     $resultArray = [];
 } else {
     // preparo il testo della mail
-    $full_mail_body = file_get_contents("template_mail_cancella_docente_studenti.html");
+    $full_mail_body = file_get_contents("../docente/template_mail_cancella_docente_studenti.html");
     $data_html = '<tr>';
     $messaggio_finale = "A questa attività che è stata cancellata erano iscritti i seguenti studenti:";
     foreach ($resultArray as $row) {

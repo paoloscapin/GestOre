@@ -56,9 +56,9 @@ if(isset($_POST)) {
         // cancella gli eventuali iscritti
 		{
 			info("invio mail di cancellazione al docente");
-			require "sportelloInviaMailCancellazioneDocente.php";
+			require "../docente/sportelloInviaMailCancellazioneDocente.php";
 			info("invio mail di cancellazione agli studenti iscritti allo sportello");
-			require "sportelloInviaMailCancellazioneStudente.php";
+			require "../docente/sportelloInviaMailCancellazioneStudente.php";
 
 			$query = "DELETE FROM sportello_studente WHERE sportello_id = '$id'";
 			dbExec($query);
