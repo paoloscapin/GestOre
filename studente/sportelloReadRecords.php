@@ -107,7 +107,8 @@ foreach ($resultArray as $row) {
 		$sportello_categoria = $row['sportello_categoria'];
 		$todayDate = new DateTime("today");
 		$sportelloDate = new DateTime($row['sportello_data']);
-		$passato = ($sportelloDate < $todayDate);
+		$passato = ($sportelloDate <= $todayDate);
+		//info("sportelloDate " . $sportelloDate->format(("d-m-Y")) . " todayDate " . $todayDate->format(("d-m-Y")));
 
 		$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
 		$dataSportello = utf8_encode(strftime("%d %B %Y", strtotime($row['sportello_data'])));
@@ -210,7 +211,7 @@ foreach ($resultArray as $row) {
 					debug('iscritto');
 					$data .= '<div data-toggle="tooltip" data-placement="left"  title="Sei risultato assente ad uno sportello a cui ti eri prenotato"><span class="label label-danger">Assente</span></div>';
 				} else {
-					$data .= '<div data-toggle="tooltip" data-placement="left"  title="Sportello passato a cui ti sei iscritto"><span class="label label-default">Non iscritto</span></div>';
+					$data .= '<div data-toggle="tooltip" data-placement="left"  title="Sportello passato a cui non eri iscritto"><span class="label label-default">Non iscritto</span></div>';
 				}
 				// se passato e non ero iscritto non deve segnalare nulla
 			}
