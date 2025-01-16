@@ -44,6 +44,7 @@
   </button>
   <ul class="dropdown-menu btn-orange4">
     <li><a href="<?php echo $__application_base_path; ?>/segreteria/sportelloReportEffettuati.php">Report Sportelli Effettuati</a></li>
+    <li><a href="<?php echo $__application_base_path; ?>/segreteria/sportelloStatisticheEffettuati.php">Statistiche Sportelli Effettuati</a></li>
   </ul>
 </div>
 <?php endif; ?>
