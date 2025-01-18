@@ -78,12 +78,10 @@ foreach (dbGetAll("SELECT * FROM studente ORDER BY studente.cognome, studente.no
 
 // prepara l'elenco delle categorie per il filtro
 $categoriaFiltroOptionList = '<option value="0">tutti</option>';
-$default = "sportello didattico";
+$categoriaOptionList = '<option value="0">tutti</option>';
 foreach (dbGetAll("SELECT * FROM sportello_categoria ORDER BY sportello_categoria.nome ASC ; ") as $categoria) {
-    if ($categoria['nome'] == $default)
-        $categoriaFiltroOptionList .= ' <option value="' . $categoria['id'] . '" selected >' . $categoria['nome'] . '</option> ';
-    else
-        $categoriaFiltroOptionList .= ' <option value="' . $categoria['id'] . '" >' . $categoria['nome'] . '</option> ';
+    $categoriaFiltroOptionList .= ' <option value="' . $categoria['id'] . '" >' . $categoria['nome'] . '</option> ';
+    $categoriaOptionList .= ' <option value="' . $categoria['id'] . '" >' . $categoria['nome'] . '</option> ';
 }
 
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
@@ -202,12 +200,13 @@ if ($nclassi > 0) {
                 </div>
             </div>
             <div class="row" id="riga_iscrizioni_sportelli" style="margin:0px 0px 20px 0px">
-        
+
                 <div class="col-md-6">
                 </div>
                 <div class="col-md-3">
                     <label id="select_studente" style="margin:0px 10px 0px 0px;padding:5px;"
-                        class="btn btn-xs btn-danger" onclick="iscriviStudente(studente_filtro_id,selections)"><span class="glyphicon glyphicon-upload"></span><b> ISCRIVI STUDENTE</b></label>
+                        class="btn btn-xs btn-danger" onclick="iscriviStudente(studente_filtro_id,selections)"><span
+                            class="glyphicon glyphicon-upload"></span><b> ISCRIVI STUDENTE</b></label>
                     <select id="studente_filtro" name="studente_filtro" class="studente_filtro selectpicker"
                         data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..."
                         data-width="60%">
@@ -223,7 +222,7 @@ if ($nclassi > 0) {
                         style="margin:0px 10px 0px 0px;padding:5px;" class="btn btn-xs btn-primary"><b>testo</b></label>
                 </div>
             </div>
-    
+
             <div class="records_content"></div>
         </div>
     </div>
