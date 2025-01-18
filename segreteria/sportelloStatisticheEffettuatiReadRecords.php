@@ -38,6 +38,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					<tr>
 						<th class="text-center col-md-1">Cognome</th>
 						<th class="text-center col-md-1">Nome</th>
+						<th class="text-center col-md-1">Classe di Concorso</th>
 						<th class="text-center col-md-1">Sportelli Programmati</th>
 						<th class="text-center col-md-1">Sportelli Effettuati</th>
 						<th class="text-center col-md-1">Ore Totali Programmate</th>
@@ -45,13 +46,16 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					</tr>
 					</thead>';
 $outputcsv = array();
-array_push($outputcsv,"Cognome,Nome,SportelliProgrammati,SportelliEffettuati,Ore Totali Programmate,Ore Fatte\n");
+array_push($outputcsv,"Cognome,Nome,Class di Concorso,SportelliProgrammati,SportelliEffettuati,Ore Totali Programmate,Ore Fatte\n");
 
-$tutti_docenti = dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome ASC");
+$tutti_docenti = dbGetAll("SELECT docente.id,docente.cognome,docente.nome, profilo_docente.classe_di_concorso FROM docente 
+INNER JOIN profilo_docente ON docente.id = profilo_docente.docente_id
+WHERE docente.attivo = true AND anno_scolastico_id = $__anno_scolastico_corrente_id ORDER BY docente.cognome ASC");
 foreach ($tutti_docenti as $docente) {
 	$id_docente = $docente['id'];
 	$docente_cognome = $docente['cognome'];
 	$docente_nome = $docente['nome'];
+	$cdc_docente = $docente['classe_di_concorso']; 
 
 	// elenco sportelli docente non cancellati
 	$query = "SELECT id,COUNT(id) AS numero, COUNT(CASE firmato WHEN '1' THEN 1 ELSE NULL END) AS nfatti, COUNT(numero_ore) AS ore_totali, COUNT(CASE firmato WHEN '1' THEN numero_ore ELSE NULL END) AS ore_fatte FROM sportello
@@ -85,12 +89,13 @@ foreach ($tutti_docenti as $docente) {
 		$data .= '<tr>' .
 			'<td class="text-center">' . $docente_cognome . '</td>' .
 			'<td class="text-center">' . $docente_nome . '</td>' .
+			'<td class="text-center">' . $cdc_docente . '</td>' .
 			'<td class="text-center">' . $result['numero'] . '</td>' .
 			'<td class="text-center">' . $result['nfatti'] . '</td>' .
 			'<td class="text-center">' . $result['ore_totali'] . '</td>' .
 			'<td class="text-center">' . $result['ore_fatte'] . '</td>' .
 			'</tr>';
-		array_push($outputcsv,$docente_cognome.",".$docente_nome.",".$result['numero'].",".$result['nfatti'].",".$result['ore_totali'].",".$result['ore_fatte']."\n");
+		array_push($outputcsv,$docente_cognome.",".$docente_nome.",".$cdc_docente.",".$result['numero'].",".$result['nfatti'].",".$result['ore_totali'].",".$result['ore_fatte']."\n");
 	}
 }
 
