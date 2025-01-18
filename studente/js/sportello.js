@@ -11,7 +11,7 @@ var ancheCancellati=0;
 var docente_filtro_id=0;
 var materia_filtro_id=0;
 var classe_filtro_id=0;
-var categoria_filtro_id=0;
+var categoria_filtro_id=1; // sportello didattico
 
 $('#soloNuoviCheckBox').change(function() {
     // this si riferisce al checkbox

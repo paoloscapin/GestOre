@@ -7,7 +7,7 @@
 
 var soloNuovi = 1;
 var soloPrenotati = 0;
-var categoria_filtro_id = 0;
+var categoria_filtro_id = 1; // sportello didattico
 var docente_filtro_id = 0;
 var studente_filtro_id = 0;
 var materia_filtro_id = 0;
