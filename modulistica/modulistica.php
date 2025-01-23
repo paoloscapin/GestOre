@@ -37,7 +37,7 @@ ruoloRichiesto('modulistica');
 <div class="panel-heading container-fluid">
 	<div class="row">
 		<div class="col-md-5">
-			<span class="glyphicon glyphicon-education"></span>&emsp;Modulistica
+			<span class="glyphicon glyphicon-folder-close"></span>&emsp;Modulistica
 		</div>
         <div class="col-md-2">
             <div class="text-center">

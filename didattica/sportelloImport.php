@@ -35,7 +35,7 @@ function erroreDiImport($messaggio) {
 }
 
 function getWordContent($words, $pos) {
-    if (count($words) < $pos) {
+    if (count($words) <= $pos) {
         return '';
     }
     return escapeString($words[$pos]);

@@ -11,12 +11,13 @@ use PHPMailer\PHPMailer\Exception;
 require_once '../common/PHPMailer/PHPMailer.php';
 require_once '../common/PHPMailer/Exception.php';
 
-$pagina = '';
-
 require_once '../common/checkSession.php';
 ruoloRichiesto('docente','dirigente','segreteria-docenti','segreteria-didattica');
 require_once '../common/connect.php';
 require_once '../common/dompdf/autoload.inc.php';
+require_once '../docente/modulisticaProduciTabella.php';
+
+$pagina = '';
 
 use Dompdf\Dompdf;
 if(! isset($_POST)) {
@@ -60,7 +61,7 @@ $pagina .= '<html><head>
 <link rel="stylesheet" href="'.$__application_base_path.'/css/releaseversion.css">';
 
 // ricava il titolo in modo generale
-$titolo = '[M-' . $richiesta_id . '] ' . $template['nome'] .' - ' . $nomeCognomeDocente . ' - ' . $anno;
+$titolo = 'M-' . $richiesta_id . ' ' . $template['nome'] .' - ' . $nomeCognomeDocente . ' - ' . $anno;
 
 // aggiunge nella pagina il titolo e gli stili
 $pagina .= '<title>' . $titolo . '</title>';
@@ -138,7 +139,8 @@ $mail->Body = '<html>'.getEmailHead().'<body>';
 $mail->Body .= "<p>Gentile ".$nomeCognomeDocente.", allegato troverai il modulo ".$template['nome']." che hai inviato</p>";
 $mail->Body .= "<b>&Egrave; tua responsabilit&agrave; controllare che i dati riportati siano corretti</b></p></body></html>";
 $mail->Body .= "<p>Se dovessi trovare delle incongruenze con quanto da te compilato avvisa subito la segreteria inviando una email all'indirizzo: " . $email_to . "</p>";
-$mail->Body .= produciTabella();
+$mail->Body .= '<p>I campi del modulo sono riportati qui di seguito e il pdf generato &egrave; allegato a questa email.</p>';
+$mail->Body .= produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriSelezionabili);
 $mail->Body .= "</body></html>";
 $mail->AltBody = "Gentile ".$nomeCognomeDocente.", allegato troverai il modulo ".$template['nome']." che hai inviato. E tua responsabilita controllare che i dati riportati siano corretti. Se dovessi trovare delle incongruenze con quanto da te compilato avvisa subito la segreteria inviando una email";
 
@@ -169,11 +171,11 @@ $mail->isHTML(TRUE);
 $mail->Body = '<html>'.getEmailHead().'<body>';
 $mail->Body .= "<p>".$nomeCognomeDocente." ha inviato il modulo ".$template['nome'];
 if ($template['approva']) {
-//     $mail->Body .= " che <b>richiede di essere approvato</b>.";
-    $mail->Body .= '<span class="btn-ar btn-waiting btn-label">in attesa di approvazione</span>.';
+    $mail->Body .= '<span class="btn-ar btn-pendente btn-label">in attesa di approvazione</span>.';
 }
 $mail->Body .= "</p>";
-$mail->Body .= produciTabella();
+$mail->Body .= '<p>I campi del modulo sono riportati qui di seguito e il pdf generato &egrave; allegato a questa email.</p>';
+$mail->Body .= produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriSelezionabili);
 $mail->Body .= "</body></html>";
 $mail->AltBody = $nomeCognomeDocente."ha inviato il modulo ".$template['nome']." qui allegato.";
 
@@ -190,43 +192,39 @@ if(!$mail->send()){
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // 3: se richiesta l'approvazione, invio della email a chi la deve approvare (con link di approvazione)
-$mail = new PHPMailer(true);
-$mail->setFrom($docente_email, $nomeCognomeDocente);
-// tutti i destinatari che possono approvare separati da virgole
-foreach(explode(',',$email_approva) as $address) {
-    $mail->addAddress($address, $address);
-}
-
-// subject
-$mail->Subject = $titolo;
-$mail->isHTML(TRUE);
-
-$mail->Body = '<html>'.getEmailHead().'<body>';
-$mail->Body .= "<p>".$nomeCognomeDocente." ha inviato il modulo ".$template['nome'];
 if ($template['approva']) {
-    $mail->Body .= " che <b>richiede di essere approvato</b>.";
-}
-$mail->Body .= "</p>";
+	$mail = new PHPMailer(true);
+	$mail->setFrom($docente_email, $nomeCognomeDocente);
+	// tutti i destinatari che possono approvare separati da virgole
+	foreach(explode(',',$email_approva) as $address) {
+		$mail->addAddress($address, $address);
+	}
 
-// inserisce i bottoni per approvare o respingere
-if ($template['approva']) {
-    $mail->Body .= '<div class="form-group" style="text-align: center">
-	<a class="btn-ar btn-approva" href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=approva\'">Approva</a>
-	<a class="btn-ar btn-respingi" href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=respingi\'">Respingi</a>
-	</div>';
-}
-$mail->Body .= "</p>";
-$mail->Body .= produciTabella();
-$mail->Body .= "</body></html>";
+	// subject
+	$mail->Subject = $titolo;
+	$mail->isHTML(TRUE);
 
-// allega il pdf
-$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+	$mail->Body = '<html>'.getEmailHead().'<body>';
+	$mail->Body .= "<p>" . $nomeCognomeDocente . " ha inviato il modulo ".$template['nome'] . " che <b>richiede di essere approvato</b>.</p>";
 
-// send the message
-if(!$mail->send()){
-    warning('Message could not be sent. ' . 'Mailer Error: ' . $mail->ErrorInfo);
-    echo 'errore: messaggio non inviato.';
-    echo 'Mailer Error: ' . $mail->ErrorInfo;
+	// inserisce i bottoni per approvare o respingere
+	$mail->Body .= '<div class="form-group" style="text-align: center">
+		<a class="btn-ar btn-approva" href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=approva\'">Approva</a>
+		<a class="btn-ar btn-respingi" href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=respingi\'">Respingi</a>
+		</div>';
+	$mail->Body .= '<p>I campi del modulo sono riportati qui di seguito e il pdf generato &egrave; allegato a questa email.</p>';
+	$mail->Body .= produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriSelezionabili);
+	$mail->Body .= "</body></html>";
+
+	// allega il pdf
+	$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+
+	// send the message
+	if(!$mail->send()){
+		warning('Message could not be sent. ' . 'Mailer Error: ' . $mail->ErrorInfo);
+		echo 'errore: messaggio non inviato.';
+		echo 'Mailer Error: ' . $mail->ErrorInfo;
+	}
 }
 
 function getEmailHead() {
@@ -246,57 +244,11 @@ function getEmailHead() {
 		.btn-approva { background-color: #1CAF43; }
 		.btn-respingi { background-color: #F1003C; }
 		.btn-waiting { background-color: #f2e829; }
+		.btn-chiudi { background-color: #0ae4f0; }
+		.btn-pendente { background-color: #777777; }
 		.btn-label { padding: 5px 12px; border-radius: 8px; margin: 10px 5px; }
 		</style></head>';
 
 	return $head;
-}
-
-function produciTabella() {
-	global $listaEtichette;
-	global $listaValori;
-	global $listaTipi;
-	global $listaValoriSelezionabili;
-	$chekboxChecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;" checked></b> ';
-	$chekboxUnchecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;"></b> ';
-	$radioChecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;" checked></b> ';
-	$radioUnchecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;"></b> ';
-
-	$tableBlock = '<p>I campi del modulo sono riportati qui di seguito e il pdf generato &egrave; allegato a questa email.</p>';
-	$tableBlock .= '<table id="campi"><tr><th>nome</th><th>valore</th><tr>';
-	for ($i = 0; $i < count($listaEtichette); $i++) {
-		$campo = $listaEtichette[$i];
-		if ($listaTipi[$i] == 1 || $listaTipi[$i] == 2) {
-			// per tipo 1 e 2 mette solo il valore
-			$valore = $listaValori[$i];
-		} else  if ($listaTipi[$i] == 5) {
-			// per tipo 5 (textarea) inserisce il "pre")
-			$valore = '<span  style="white-space: pre-wrap;">' . $listaValori[$i] . '</span>';
-			debug('ì='.$i.' valore='.$valore);
-		} else  if ($listaTipi[$i] == 3 || $listaTipi[$i] == 4) {
-			// per 3 e 4 la stringa rappresenta le posizioni in cui i checkbox o radio sono settati e i testi vanno presi da lista valori del db
-			// la trasforma in una lista di stringhe esplodendo i :: come separatori
-			$listaBoxChecked = array_map('intval', explode('::', $listaValori[$i]));
-	
-			$risultato = '';
-			// prende tutte le diciture dei box
-			$localiValoriSelezionabili = explode('::', $listaValoriSelezionabili[$i]);
-			for ($j = 0; $j < count($localiValoriSelezionabili); $j++) {
-				$valoreSelezionabile = $localiValoriSelezionabili[$j];
-	
-				// controlla se questo deve essere marcato
-				if (in_array($j, $listaBoxChecked)) {
-					$risultato = $risultato . $chekboxChecked . $valoreSelezionabile . '</div><br/>';
-				} else {
-					$risultato = $risultato . $chekboxUnchecked . $valoreSelezionabile . '</div><br/>';
-				}
-			}
-	
-			$valore = $risultato;
-		}
-		$tableBlock .= '<tr><td class="col1">'.$campo.'</td><td class="col2">'.$valore.'</td></tr>';
-	}
-	$tableBlock .= '</table>';
-	return $tableBlock;
 }
 ?>

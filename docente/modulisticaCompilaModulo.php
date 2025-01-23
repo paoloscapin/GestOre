@@ -112,7 +112,7 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
             $campoNumeroElementi += 1;
         }
     } else if($tipo == 5) {
-        // tipo 4 = text area
+        // tipo 5 = text area
         echo('<textarea rows="3" id="'.$nome.'" placeholder="'.$tip.'" class="form-control" ></textarea>');
     }
 

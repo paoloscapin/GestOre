@@ -1,3 +1,19 @@
+## Version 1.2.52 - 12 dic 2024
+##### Improvements
+- lista delle richieste modulistica e gestione
+- campo tipo 6 - calendario
+- messaggio_respinta in messaggio
+- bottone modulistica in header segreteria
+- funzione produciTabella per email e lista dettaglio
+
+
+##### Bug Fixes
+- problemi con email con parentesi quadre che vengono ragguppate da gmail
+- contatore di parole in sportelloImport
+- rimosse dal titolo le parentesi quadre per problemi gmail
+- save modulo compilato salva anche anno scolastico
+- rivisti i comandi di approva
+
 ## Version 1.2.51 - 27 nov 2024
 ##### Improvements
 - migliorata gestione moduli ed email

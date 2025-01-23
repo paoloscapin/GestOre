@@ -1985,6 +1985,7 @@ CREATE TABLE IF NOT EXISTS `modulistica_template` (
   `intestazione` TINYINT NULL,
   `valido` TINYINT NULL,
   `firma_forte` TINYINT NULL DEFAULT 0,
+  `messaggio_approvazione` TINYINT NULL DEFAULT 0,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
@@ -2027,14 +2028,22 @@ CREATE TABLE IF NOT EXISTS `modulistica_richiesta` (
   `annullata` TINYINT NULL DEFAULT 0,
   `approvata` TINYINT NULL DEFAULT 0,
   `respinta` TINYINT NULL DEFAULT 0,
-  `messaggio_respinta` TEXT NULL,
+  `messaggio` TEXT NULL,
+  `chiusa` TINYINT NULL DEFAULT 0,
   `data_invio` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `data_approvazione` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `data_approvazione` TIMESTAMP NULL DEFAULT NULL,
+  `data_chiusura` TIMESTAMP NULL DEFAULT NULL,
   `modulistica_template_id` INT NOT NULL,
   `docente_id` INT NOT NULL,
+  `anno_scolastico_id` INT NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `fk_modulistica_richiesta_modulistica_template1_idx` (`modulistica_template_id` ASC),
   INDEX `fk_modulistica_richiesta_docente1_idx` (`docente_id` ASC),
+  INDEX `fk_modulistica_richiesta_anno_scolastico1_idx` (`anno_scolastico_id` ASC),
+  INDEX `chiusa_INDEX` (`chiusa` ASC),
+  INDEX `aprovata_INDEX` (`approvata` ASC),
+  INDEX `annullata_INDEX` (`annullata` ASC),
+  INDEX `respinta_INDEX` (`respinta` ASC),
   CONSTRAINT `fk_modulistica_richiesta_modulistica_template1`
     FOREIGN KEY (`modulistica_template_id`)
     REFERENCES `modulistica_template` (`id`)
@@ -2043,6 +2052,11 @@ CREATE TABLE IF NOT EXISTS `modulistica_richiesta` (
   CONSTRAINT `fk_modulistica_richiesta_docente1`
     FOREIGN KEY (`docente_id`)
     REFERENCES `docente` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_modulistica_richiesta_anno_scolastico1`
+    FOREIGN KEY (`anno_scolastico_id`)
+    REFERENCES `anno_scolastico` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;

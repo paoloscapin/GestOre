@@ -18,7 +18,7 @@ if(isset($_POST)) {
 	$listaCampiId = json_decode($_POST['listaCampiId']);
 	$listaValori = json_decode($_POST['listaValori']);
 
-	dbExec("INSERT INTO modulistica_richiesta (uuid, modulistica_template_id, docente_id) VALUES('$uuid', $template_id, $docente_id);");
+	dbExec("INSERT INTO modulistica_richiesta (uuid, modulistica_template_id, docente_id, anno_scolastico_id) VALUES('$uuid', $template_id, $docente_id, $__anno_scolastico_corrente_id);");
 	$richiestaId = dblastId();
 
 	for ($i = 0; $i < count($listaCampiId); $i++) {

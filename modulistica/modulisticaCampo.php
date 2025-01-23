@@ -49,7 +49,7 @@ $tipoOptionList .= '<optgroup><option data-icon="glyphicon glyphicon-list" value
 $tipoOptionList .= '<optgroup><option data-icon="glyphicon glyphicon-check" value="3" >checkbox</option></optgroup>';
 $tipoOptionList .= '<optgroup><option data-icon="glyphicon glyphicon-record" value="4" >radio</option></optgroup>';
 $tipoOptionList .= '<optgroup><option data-icon="glyphicon glyphicon-font" value="5" >text area</option></optgroup>';
-
+$tipoOptionList .= '<optgroup><option data-icon="glyphicon glyphicon-calendar" value="6" >date</option></optgroup>';
 ?>
 
 </head>
