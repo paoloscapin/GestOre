@@ -65,6 +65,12 @@ foreach(dbGetAll($query) as $annoRow) {
     $annoFiltroOptionList .= '<option value="'.$annoRow['id'].'" >'.$annoRow['anno'].'</option> ';
 }
 
+// prepara l'elenco dei tipi di richiesta per il filtro
+$tipoFiltroOptionList = '<option value="0">tutti</option>';
+foreach(dbGetAll("SELECT * FROM modulistica_template WHERE modulistica_template.valido = true ORDER BY modulistica_template.nome ASC; ")as $modulistica_template) {
+    $tipoFiltroOptionList .= ' <option value="'.$modulistica_template['id'].'" >'.$modulistica_template['nome'].'</option> ';
+}
+
 // prepara l'elenco dei docenti per il filtro
 $docenteFiltroOptionList = '<option value="0">tutti</option>';
 foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC; ")as $docente) {
@@ -93,6 +99,14 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY doc
         </div>
         <div class="col-md-2">
             <div class="text-center">
+                <label class="col-sm-2 control-label" for="tipo">Tipo</label>
+					<div class="col-sm-8"><select id="tipo_filtro" name="tipo_filtro" class="tipo_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $tipoFiltroOptionList ?>
+					</select></div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="text-center">
                 <label class="col-sm-2 control-label" for="docente">Docente</label>
 					<div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $docenteFiltroOptionList ?>
@@ -107,8 +121,18 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY doc
 					</select></div>
             </div>
         </div>
-        <div class="col-md-5">
-            <div class="pull-right">
+        <div class="col-md-2">
+            <div class="text-center">
+				<label class="checkbox-inline">
+					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloApertiCheckBox" >Solo Aperti
+				</label>
+            </div>
+        </div>
+        <div class="col-md-1">
+            <div class="text-center">
+				<label class="checkbox-inline">
+					<input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloMieiCheckBox" >Solo Miei
+				</label>
             </div>
         </div>
 	</div>
@@ -191,6 +215,9 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY doc
                 <input type="hidden" id="hidden_modulistica_richiesta_uuid">
                 <input type="hidden" id="hidden_modulistica_messaggio">
                 <input type="hidden" id="hidden_anno_scolastico_id" value="<?php echo $__anno_scolastico_corrente_id; ?>">
+                <input type="hidden" id="hidden_utente_ruolo" value="<?php echo $__utente_ruolo; ?>">
+                <input type="hidden" id="hidden_useremail" value="<?php echo $__useremail; ?>">
+
 			</form>
 
             </div>

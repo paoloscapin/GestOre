@@ -12,8 +12,11 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 $anno_filtro_id = $_GET["anno_filtro_id"];
+$tipo_filtro_id = $_GET["tipo_filtro_id"];
 $docente_filtro_id = $_GET["docente_filtro_id"];
 $stato_filtro_id = $_GET["stato_filtro_id"];
+$soloAperti = $_GET["soloAperti"];
+$soloMiei = $_GET["soloMiei"];
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -44,6 +47,10 @@ if( $anno_filtro_id > 0) {
 	$query .= "AND modulistica_richiesta.anno_scolastico_id = $anno_filtro_id ";
 }
 
+if( $tipo_filtro_id > 0) {
+	$query .= "AND modulistica_richiesta.modulistica_template_id = $tipo_filtro_id ";
+}
+
 if( $docente_filtro_id > 0) {
 	$query .= "AND modulistica_richiesta.docente_id = $docente_filtro_id ";
 }
@@ -66,6 +73,14 @@ if( $stato_filtro_id != '0') {
     }
 }
 
+if ($soloAperti) {
+	$query .= "AND NOT modulistica_richiesta.chiusa ";
+}
+
+if ($soloMiei) {
+	$query .= "AND (modulistica_template.email_to = '$__useremail' OR modulistica_template.email_approva = '$__useremail') ";
+}
+
 $query .= " ORDER BY modulistica_richiesta.id DESC, docente.cognome ASC, docente.nome ASC";
 
 foreach(dbGetAll($query) as $row) {
@@ -75,16 +90,20 @@ foreach(dbGetAll($query) as $row) {
 
 	$statoMarker = '';
 	if ($row['annullata']) {
-		$statoMarker .= '<span class="label label-warning">annullata</span>';
+		$statoMarker .= '<span class="label btn-waiting">annullata</span>';
 	} else {
         if ($row['approvata']) {
-            $statoMarker .= '<span class="label label-success">approvata</span>';
+            $statoMarker .= '<span class="label btn-approva">approvata</span>';
         }
         if ($row['respinta']) {
-            $statoMarker .= '<span class="label label-danger">respinta</span>';
+            $statoMarker .= '<span class="label btn-respingi">respinta</span>';
+        }
+		// se richiede approvazione ma non e' ancora stata approvata o respinta allora e' pendente
+        if ($row['approva'] == 1 and $row['approvata'] == 0 and $row['respinta'] == 0) {
+            $statoMarker .= '<span class="label btn-pendente">in attesa</span>';
         }
         if ($row['chiusa']) {
-            $statoMarker .= '<span class="label label-info">chiusa</span>';
+            $statoMarker .= '<span class="label btn-chiudi">chiusa</span>';
         }
     }
 

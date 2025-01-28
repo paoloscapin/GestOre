@@ -8,9 +8,39 @@
 var anno_filtro_id=0;
 var docente_filtro_id=0;
 var stato_filtro_id=0;
+var tipo_filtro_id=0;
+var soloAperti=1;
+var soloMiei=0;
+
+$('#soloApertiCheckBox').change(function() {
+    // this si riferisce al checkbox
+    if (this.checked) {
+		soloAperti = 1;
+    } else {
+		soloAperti = 0;
+    }
+    modulisticaRichiestaReadRecords();
+});
+
+$('#soloMieiCheckBox').change(function() {
+    // this si riferisce al checkbox
+    if (this.checked) {
+		soloMiei = 1;
+    } else {
+		soloMiei = 0;
+    }
+    modulisticaRichiestaReadRecords();
+});
 
 function modulisticaRichiestaReadRecords() {
-	$.get("../segreteria/modulisticaRichiestaReadRecords.php?anno_filtro_id=" + anno_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&stato_filtro_id=" + stato_filtro_id, {}, function (data, status) {
+	$.get("../segreteria/modulisticaRichiestaReadRecords.php", {
+            anno_filtro_id: anno_filtro_id,
+            docente_filtro_id: docente_filtro_id,
+            stato_filtro_id: stato_filtro_id,
+            tipo_filtro_id: tipo_filtro_id,
+            soloAperti: soloAperti,
+            soloMiei: soloMiei            
+    }, function (data, status) {
         $(".records_content").html(data);
 	});
 }
@@ -79,6 +109,8 @@ function modulisticaRichiestaGetDetails(modulistica_richiesta_id, modulistica_ri
 
             // lo puoi chiudere se e' approvato, respinto o non richiede approvazione, oppure se e' annullato e comunque se non ancora chiuso
             if (modulistica_richiesta.chiusa != 1 && ((modulistica_richiesta.approvata == 1 || modulistica_richiesta.respinta == 1 || modulistica_richiesta.annullata == 1 ) || (modulistica_richiesta.annullata != 1 && modulistica_richiesta.template.approva != 1) )) {
+                
+                // naturalmente devi essere il destinatario finale (controllato con email) oppure admin
                 $("#chiudi-part").show();
             }
         });
@@ -93,6 +125,10 @@ $(document).ready(function () {
         anno_filtro_id = $("#hidden_anno_scolastico_id").val();
         $('#anno_filtro').selectpicker('val', $("#hidden_anno_scolastico_id").val());
     }
+
+    // memorizza la email e il ruolo dell'utente collegato cosi' da controllare cosa puo' fare
+    __utente_ruolo = $("#hidden_utente_ruolo").val();
+    __useremail = $("#hidden_useremail").val();
     
     modulisticaRichiestaReadRecords();
 
@@ -102,12 +138,24 @@ $(document).ready(function () {
         modulisticaRichiestaReadRecords();
     });
 
+    $("#tipo_filtro").on("changed.bs.select", 
+        function(e, clickedIndex, newValue, oldValue) {
+            tipo_filtro_id = this.value;
+            modulisticaRichiestaReadRecords();
+    });
+
+    $("#docente_filtro").on("changed.bs.select", 
+        function(e, clickedIndex, newValue, oldValue) {
+            docente_filtro_id = this.value;
+            modulisticaRichiestaReadRecords();
+    });
+
     $("#docente_filtro").on("changed.bs.select", 
     function(e, clickedIndex, newValue, oldValue) {
         docente_filtro_id = this.value;
         modulisticaRichiestaReadRecords();
     });
-
+    
     $("#stato_filtro").on("changed.bs.select", 
     function(e, clickedIndex, newValue, oldValue) {
         stato_filtro_id = this.value;

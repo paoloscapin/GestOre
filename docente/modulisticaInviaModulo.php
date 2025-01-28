@@ -156,38 +156,37 @@ if(!$mail->send()){
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
-// 2: inoltra la richiesta al destinatario
-$mail = new PHPMailer(true);
-$mail->setFrom($docente_email, $nomeCognomeDocente);
-// tutti i destinatari separati da virgole
-foreach(explode(',',$email_to) as $address) {
-    $mail->addAddress($address, $address);
-}
+// 2: se non richiede l'approvazione, inoltra la richiesta direttamente al destinatario
+if (! $template['approva']) {
+	$mail = new PHPMailer(true);
+	$mail->setFrom($docente_email, $nomeCognomeDocente);
+	// tutti i destinatari separati da virgole
+	foreach(explode(',',$email_to) as $address) {
+		$mail->addAddress($address, $address);
+	}
 
-// subject
-$mail->Subject = $titolo;
-$mail->isHTML(TRUE);
+	// subject
+	$mail->Subject = $titolo;
+	$mail->isHTML(TRUE);
 
-$mail->Body = '<html>'.getEmailHead().'<body>';
-$mail->Body .= "<p>".$nomeCognomeDocente." ha inviato il modulo ".$template['nome'];
-if ($template['approva']) {
-    $mail->Body .= '<span class="btn-ar btn-pendente btn-label">in attesa di approvazione</span>.';
-}
-$mail->Body .= "</p>";
-$mail->Body .= '<p>I campi del modulo sono riportati qui di seguito e il pdf generato &egrave; allegato a questa email.</p>';
-$mail->Body .= produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriSelezionabili);
-$mail->Body .= "</body></html>";
-$mail->AltBody = $nomeCognomeDocente."ha inviato il modulo ".$template['nome']." qui allegato.";
+	$mail->Body = '<html>'.getEmailHead().'<body>';
+	$mail->Body .= "<p>".$nomeCognomeDocente." ha inviato il modulo ".$template['nome'];
+	$mail->Body .= "</p>";
+	$mail->Body .= '<p>I campi del modulo sono riportati qui di seguito e il pdf generato &egrave; allegato a questa email.</p>';
+	$mail->Body .= produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriSelezionabili);
+	$mail->Body .= "</body></html>";
+	$mail->AltBody = $nomeCognomeDocente."ha inviato il modulo ".$template['nome']." qui allegato.";
 
-// allega il pdf
-$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+	// allega il pdf
+	$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
 
-// send the message
-if(!$mail->send()){
-    warning('Message could not be sent. ' . 'Mailer Error: ' . $mail->ErrorInfo);
-    echo 'errore: messaggio non inviato.';
-    echo 'Mailer Error: ' . $mail->ErrorInfo;
-    return;
+	// send the message
+	if(!$mail->send()){
+		warning('Message could not be sent. ' . 'Mailer Error: ' . $mail->ErrorInfo);
+		echo 'errore: messaggio non inviato.';
+		echo 'Mailer Error: ' . $mail->ErrorInfo;
+		return;
+	}
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------

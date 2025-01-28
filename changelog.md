@@ -1,11 +1,16 @@
-## Version 1.2.52 - 12 dic 2024
+## Version 1.2.53 - 28 gen 2025
+##### Improvements
+- modulistica: se non richiede l'approvazione, inoltra la richiesta direttamente al destinatario
+- lista richieste segreteria: filtro per anche chiuse, solo miei, solo aperte
+- lista richieste con visualizzazione in attesa
+
+## Version 1.2.52 - 23 gen 2025
 ##### Improvements
 - lista delle richieste modulistica e gestione
 - campo tipo 6 - calendario
 - messaggio_respinta in messaggio
 - bottone modulistica in header segreteria
 - funzione produciTabella per email e lista dettaglio
-
 
 ##### Bug Fixes
 - problemi con email con parentesi quadre che vengono ragguppate da gmail
