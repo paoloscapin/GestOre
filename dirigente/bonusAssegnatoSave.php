@@ -13,7 +13,7 @@ ruoloRichiesto('dirigente');
 $tableName = "bonus_assegnato";
 if(isset($_POST)) {
 	$id = $_POST['id'];
-    $commento = $_POST['commento'];
+    $commento = escapePost('commento');
 	$importo = $_POST['importo'];
 	$docente_id = $_POST['docente_id'];
 

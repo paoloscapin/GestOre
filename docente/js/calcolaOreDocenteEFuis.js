@@ -13,9 +13,9 @@ function oreFatteReloadTables(soloTotale = false) {
 		ultimo_controllo: $("#hidden_ultimo_controllo").val()
 	},
 	function (data, status) {
-		console.log(data);
+//		console.log(data);
 		data = JSON.parse(data);
-		console.log(data);
+//		console.log(data);
 
 		if (! soloTotale) {
 			$(".corso_di_recupero_records_content").html(data.dataCdr);
@@ -153,9 +153,9 @@ function orePrevisteReloadTables(soloTotale = false) {
 		ultimo_controllo: $("#hidden_ultimo_controllo").val()
 	},
 	function (data, status) {
-		console.log(data);
+//		console.log(data);
 		data = JSON.parse(data);
-		console.log(data);
+//		console.log(data);
 
 		if (! soloTotale) {
 			$(".corso_di_recupero_records_content").html(data.dataCdr);
@@ -211,7 +211,7 @@ function orePrevisteReloadTables(soloTotale = false) {
 		// parte fuis solo su condizione
 		if (true) {
 			$("#fuis_assegnato").html(number_format(data.fuisAssegnato,2));
-			$("#fuis_ore").html(number_format(data.fuisOre,2));
+			$("#fuis_ore").html(number_format(data.fuisOrePreviste,2));
 			$("#fuis_diaria").html(number_format(data.diariaImporto,2));
 	
 			$("#fuis_clil_funzionali").html(number_format(data.fuisClilFunzionale,2));

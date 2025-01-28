@@ -11,7 +11,7 @@ if(isset($_POST)) {
 	require_once '../common/checkSession.php';
 	require_once '../common/connect.php';
 	$bonus_docente_id = $_POST['bonus_docente_id'];
-	$rendiconto = mysqli_real_escape_string($con, $_POST['rendiconto']);
+	$rendiconto = escapePost('rendiconto');
 
 	$query = "UPDATE bonus_docente SET rendiconto_evidenze = '$rendiconto' WHERE id = '$bonus_docente_id'";
 	dbExec($query);

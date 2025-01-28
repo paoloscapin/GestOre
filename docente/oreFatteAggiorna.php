@@ -31,6 +31,7 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	$diariaImporto = 0;
 	$messaggio = '';
 	$messaggioEccesso = '';
+	$messaggioPreviste = '';
 
 	$oreAggiornamentoPreviste = 0;
 	$oreConStudentiPreviste = 0;
@@ -39,6 +40,9 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	$oreClilConStudentiPreviste = 0;
 	$oreOrientamentoFunzionaliPreviste = 0;
 	$oreOrientamentoConStudentiPreviste = 0;
+	$diariaGiorniSenzaPernottamentoPreviste = 0;
+	$diariaGiorniConPernottamentoPreviste = 0;
+	$diariaImportoPreviste = 0;
 
 	$oreConStudentiDovute = 0;
 	$oreFunzionaliDovute = 0;
@@ -108,6 +112,14 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	$oreOrientamentoFunzionaliPreviste += $result['attribuiteOrientamentoOreFunzionali'];
 
 	// diaria nelle fatte e nelle previste (questo serve al viaggi gestione semplificata)
+	require_once '../docente/viaggioDiariaPrevistaReadRecords.php';
+	$result = viaggioDiariaPrevistaReadRecords(true, $docente_id, $operatore, $ultimo_controllo, $modificabile);
+	$oreConStudentiPreviste += $result['diariaOre'];
+	$diariaGiorniSenzaPernottamentoPreviste += $result['diariaGiorniSenzaPernottamento'];
+	$diariaGiorniConPernottamentoPreviste += $result['diariaGiorniConPernottamento'];
+	$diariaImportoPreviste += $result['diariaImporto'];
+	$totale = $totale + compact('diariaGiorniSenzaPernottamentoPreviste', 'diariaGiorniConPernottamentoPreviste', 'diariaImportoPreviste');
+
 	require_once '../docente/viaggioDiariaFattaReadRecords.php';
 	$result = viaggioDiariaFattaReadRecords($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
 	$oreConStudenti += $result['diariaOre'];
@@ -189,6 +201,41 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	// adesso devo calcolare il fuis: prima le previste
     $bilancioFunzionaliPreviste = $oreFunzionaliPreviste - $oreFunzionaliDovute;
     $bilancioConStudentiPreviste = $oreConStudentiPreviste - $oreConStudentiDovute;
+
+	if (getSettingsValue('fuis', 'compensa_anche_previste', false)) {
+		// se si possono compensare in ore quelle mancanti funzionali con quelle previste in piu' con studenti lo aggiorna ora
+		if (getSettingsValue('fuis','accetta_con_studenti_per_funzionali', false)) {
+			if ($bilancioFunzionaliPreviste < 0 && $bilancioConStudentiPreviste > 0) {
+				$daSpostare = -$bilancioFunzionaliPreviste;
+				debug('daSpostare='.$daSpostare);
+				// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
+				if ($bilancioConStudentiPreviste < $daSpostare) {
+					$daSpostare = $bilancioConStudentiPreviste;
+					debug('daSpostare(in if)='.$daSpostare);
+				}
+				$bilancioConStudentiPreviste = $bilancioConStudentiPreviste - $daSpostare;
+				$bilancioFunzionaliPreviste = $bilancioFunzionaliPreviste + $daSpostare;
+				$messaggioPreviste = $messaggioPreviste . $daSpostare ." ore con studenti verranno usate per coprire " . $daSpostare ." ore funzionali mancanti. ";
+				debug('spostate con studenti in funzionali bilancioFunzionali='.$bilancioFunzionaliPreviste.' bilancioConStudenti='.$bilancioConStudentiPreviste);
+			}
+		}
+
+		// se si possono compensare in ore quelle mancanti con studenti con quelle previste in piu' funzionali lo aggiorna ora
+		if (getSettingsValue('fuis','accetta_funzionali_per_con_studenti', false)) {
+			if ($bilancioConStudentiPreviste < 0 && $bilancioFunzionaliPreviste > 0) {
+				$daSpostare = -$bilancioConStudentiPreviste;
+				// se non ce ne sono abbastanza funzionali, sposta tutte quelle che ci sono
+				if ($bilancioFunzionaliPreviste < $daSpostare) {
+					$daSpostare = $bilancioFunzionaliPreviste;
+				}
+				$bilancioFunzionaliPreviste = $bilancioFunzionaliPreviste - $daSpostare;
+				$bilancioConStudentiPreviste = $bilancioConStudentiPreviste + $daSpostare;
+				$messaggioPreviste = $messaggioPreviste . $daSpostare ." ore funzionali verranno usate per coprire " . $daSpostare ." ore con studenti mancanti. ";
+				debug('spostate funzionali in con studenti bilancioFunzionali='.$bilancioFunzionaliPreviste.' bilancioConStudenti='.$bilancioConStudentiPreviste);
+			}
+		}
+	}
+
 	$fuisFunzionalePreviste = $bilancioFunzionaliPreviste * $__importi['importo_ore_funzionali'];
 	$fuisConStudentiPreviste = $bilancioConStudentiPreviste * $__importi['importo_ore_con_studenti'];
 

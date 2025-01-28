@@ -1,3 +1,41 @@
+## Version 1.2.53 - 28 gen 2025
+##### Improvements
+- modulistica: se non richiede l'approvazione, inoltra la richiesta direttamente al destinatario
+- lista richieste segreteria: filtro per anche chiuse, solo miei, solo aperte
+- lista richieste con visualizzazione in attesa
+
+## Version 1.2.52 - 23 gen 2025
+##### Improvements
+- lista delle richieste modulistica e gestione
+- campo tipo 6 - calendario
+- messaggio_respinta in messaggio
+- bottone modulistica in header segreteria
+- funzione produciTabella per email e lista dettaglio
+
+##### Bug Fixes
+- problemi con email con parentesi quadre che vengono ragguppate da gmail
+- contatore di parole in sportelloImport
+- rimosse dal titolo le parentesi quadre per problemi gmail
+- save modulo compilato salva anche anno scolastico
+- rivisti i comandi di approva
+
+## Version 1.2.51 - 27 nov 2024
+##### Improvements
+- migliorata gestione moduli ed email
+
+##### Bug Fixes
+- problemi con __MinutiFunction
+- sistemati escapePost mancanti
+
+## Version 1.2.50 - 01 ott 2024
+##### Improvements
+- inserita gestione moduli prima versione
+- opzione per correggere anche le previste con le regole
+- gestione moduli sotto folder modulistica e ruolo modulistica
+
+##### Bug Fixes
+- viaggi diaria in previste
+
 ## Version 1.2.49 - 26 sep 2024
 ##### Bug Fixes
 - fix per import corsi di recupero pnrr

@@ -13,8 +13,8 @@ if(isset($_POST)) {
 
     $fuis_viaggio_diaria_id = $_POST['fuis_viaggio_diaria_id'];
     $importo = $_POST['importo'];
-    $docenteCognomeNome = $_POST['docenteCognomeNome'];
-    $destinazione = $_POST['destinazione'];
+    $docenteCognomeNome = escapePost('docenteCognomeNome');
+    $destinazione = escapePost('destinazione');
     $dataPartenza = $_POST['dataPartenza'];
     $data = date('Y-m-d');
     

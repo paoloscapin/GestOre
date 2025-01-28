@@ -34,6 +34,9 @@ else if (haRuolo('segreteria-didattica')) {
 else if (haRuolo('studente')) {
     redirect('/studente/index.php');
 }
+else if (haRuolo('modulistica')) {
+    redirect('/modulistica/modulistica.php');
+}
 else if (haRuolo('admin')) {
     redirect('/admin/index.php');
 }

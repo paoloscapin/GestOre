@@ -6,6 +6,10 @@
  *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+require_once '../common/PHPMailer/PHPMailer.php';
+require_once '../common/PHPMailer/Exception.php';
 
 // include Database connection file
 require_once '../common/checkSession.php';
@@ -75,40 +79,22 @@ foreach(dbGetAll($query) as $sportello) {
 	$dicituraSportello = "sportello di " . $sportelloMateria . ' di ' . $dateString . ' alle ' . $sportelloOra . ' (durata ' . $sportelloNumeroOre . ' ore)';
 
 	$text_msg = "Gentile $nomeCognome, allo sportello $dicituraSportello risultano iscritti $sportelloNumeroStudenti studenti";
-	$html_msg = "
-	<html>
-	<head>
-	<style>
-	#student {
-	  font-family: Arial, Helvetica, sans-serif;
-	  border-collapse: collapse;
-	  width: 100%;
-	}
-	#student td, #student th {
-	  border: 1px solid #ddd;
-	  padding: 6px;
-	}
-	#student tr:nth-child(even){background-color: #f2f2f2;}
-	#student tr:hover {background-color: #ddd;}
-	#student th {
-	  padding-top: 6px;
-	  padding-bottom: 6px;
-	  text-align: left;
-	  background-color: #04AA6D;
-	  color: white;
-	}
-	</style>
-	</head>
-	<body>
-	<p>Sportello: $dateString - $sportelloOra (durata $sportelloNumeroOre ore)<br>
-	Docente: $nomeCognome<br>
-	Materia: $sportelloMateria</p>
-	<hr>
-	<p>Argomento: <strong>$sportelloArgomento</strong></p>
-	<p>Studenti: ($sportelloNumeroStudenti):</br>
-	<table id=\"student\">
-	<tr><th>Studente</th><th>Classe</th><th>Argomento</th><tr>
-";
+	$html_msg = "<html><head><style>
+		#student { font-family: Arial, Helvetica, sans-serif; border-collapse: collapse; width: 100%; }
+		#student td, #student th { border: 1px solid #ddd; padding: 6px; }
+		#student tr:nth-child(even) { background-color: #f2f2f2; }
+		#student tr:hover {background-color: #ddd; }
+		#student th { padding-top: 6px; padding-bottom: 6px; text-align: left; background-color: #04AA6D; color: white; }
+		</style></head>
+		<body>
+		<p>Sportello: $dateString - $sportelloOra (durata $sportelloNumeroOre ore)<br>
+		Docente: $nomeCognome<br>
+		Materia: $sportelloMateria</p>
+		<hr>
+		<p>Argomento: <strong>$sportelloArgomento</strong></p>
+		<p>Studenti: ($sportelloNumeroStudenti):</br>
+		<table id=\"student\">
+		<tr><th>Studente</th><th>Classe</th><th>Argomento</th><tr>";
 	
 	foreach(dbGetAll("SELECT * FROM studente INNER JOIN sportello_studente ON sportello_studente.studente_id = studente.id  where sportello_studente.sportello_id = '$sportello_id';") as $studente) {
 		$html_msg .=  "<tr><td>" . $studente['cognome'] . " " . $studente['nome'] ."</td><td>" . $studente['classe']."</td><td>".$studente['argomento'].'</td></tr>';
@@ -116,6 +102,32 @@ foreach(dbGetAll($query) as $sportello) {
 
 	$html_msg .= '</table></p></body></html>';
 
+	// invia la email al docente
+	$docenteEmail = $sportello['docente_email'];
+	$mail = new PHPMailer(true);
+	$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no replay');
+	$mail->addAddress($docenteEmail, $nomeCognome);
+	if ($sportelloNumeroStudenti > 0) {
+		$subject = "Conferma $dicituraSportello";
+	} else {
+		$subject = "Annullato $dicituraSportello";
+		$text_msg = "Gentile $nomeCognome, lo sportello $dicituraSportello viene annullato perché non risultano iscritti";
+		$html_msg = "<html><body><p><strong>Annullamento Sportello</strong></p><p>Gentile $nomeCognome, lo sportello $dicituraSportello viene annullato perché non risultano studenti iscritti</p>";
+	}
+	$mail->Subject = $subject;
+	$mail->isHTML(TRUE);
+	$mail->Body = $html_msg;
+	$mail->AltBody = $text_msg;
+
+	// send the message
+	if(!$mail->send()){
+		warning('Message could not be sent. ' . 'Mailer Error: ' . $mail->ErrorInfo);
+		warning("errore nell'invio della email a " . $docenteEmail . " oggetto: " . $subject);
+	} else {
+		info("email inviata correttamente a " . $docenteEmail . " oggetto: " . $subject);
+	}
+
+	/*
 	// invia la email al docente
 	$to = $sportello['docente_email'];
 	if ($sportelloNumeroStudenti > 0) {
@@ -147,6 +159,7 @@ foreach(dbGetAll($query) as $sportello) {
 	} else {
 		warning("errore nell'invio della email a " . $to . " oggetto: " . $subject);
 	}
+	*/
 }
 
 // effettuato il controllo deve solo aggiornare la data di ultimo controllo in config

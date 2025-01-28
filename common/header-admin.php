@@ -24,6 +24,9 @@
 			<a href="<?php echo $__application_base_path; ?>/admin/attivita.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Tipo Attività </a>
 			<a href="<?php echo $__application_base_path; ?>/admin/fuisAssegnatoTipo.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Tipo FuisAssegnato </a>
 			<a href="<?php echo $__application_base_path; ?>/admin/annoScolastico.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-calendar"></span>&ensp;Anno Scolastico </a>
+<?php if(getSettingsValue('config','modulisticaDocenti', false)) : ?>
+			<a href="<?php echo $__application_base_path; ?>/modulistica/modulistica.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-tag"></span>&ensp;Modulistica </a>
+<?php endif; ?>
 			<a href="<?php echo $__application_base_path; ?>/admin/utente.php" class="btn btn-default navbar-btn btn-teal4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Utente </a>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">

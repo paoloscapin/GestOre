@@ -39,9 +39,10 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-2">Materia</th>
 						<th class="text-center col-md-2">Docente</th>
 						<th class="text-center col-md-1">Ore</th>
+						<th class="text-center col-md-2">Classe</th>
 						<th class="text-center col-md-1">Stato</th>
-						<th class="text-center col-md-2">Iscritti</th>
-						<th class="text-center col-md-2">Presenti</th>
+						<th class="text-center col-md-1">Iscritti</th>
+						<th class="text-center col-md-1">Presenti</th>
 					</tr>
 					</thead>';
 
@@ -133,6 +134,7 @@ foreach($resultArray as $row) {
 		<td>'.$row['materia_nome'].'</td>
 		<td>'.$row['docente_nome'].' '.$row['docente_cognome'].'</td>
 		<td class="text-center">'.$row['sportello_numero_ore'].'</td>
+		<td class="text-center">'.$row['sportello_classe'].'</td>
 		<td class="text-center">'.$statoMarker.'</td>
 		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$iscrittiTip.'">'.$row['numero_iscritti'].'</td>
 		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$presentiTip.'">'.$row['numero_presenti'].'</td>

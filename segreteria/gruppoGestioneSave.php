@@ -12,8 +12,8 @@
 
 if(isset($_POST)) {
 	$id = $_POST['id'];
-	$nome = $_POST['nome'];
-	$commento = $_POST['commento'];
+	$nome = escapePost('nome');
+	$commento = escapePost('commento');
 	$max_ore = $_POST['max_ore'];
 	$dipartimento = $_POST['dipartimento'];
 	$clil = $_POST['clil'];

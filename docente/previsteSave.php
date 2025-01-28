@@ -14,8 +14,8 @@ if(isset($_POST)) {
 	$ore_previste_attivita_id = $_POST['ore_previste_attivita_id'];
 	$update_tipo_attivita_id = $_POST['update_tipo_attivita_id'];
 	$update_ore = $_POST['update_ore'];
-	$update_dettaglio = mysqli_real_escape_string($con, $_POST['update_dettaglio']);
-	$update_commento = mysqli_real_escape_string($con, $_POST['update_commento']);
+	$update_dettaglio = escapePost('update_dettaglio');
+	$update_commento = escapePost('update_commento');
 	$operatore = $_POST['operatore'];
 
 	// il dirigente gestisce anche i commenti

@@ -13,8 +13,8 @@ ruoloRichiesto('admin');
 $tableName = "materia";
 if(isset($_POST)) {
 	$id = $_POST['id'];
-    $nome = $_POST['nome'];
-	$codice = $_POST['codice'];
+    $nome = escapePost('nome');
+	$codice = escapePost('codice');
 
     if ($id > 0) {
         $query = "UPDATE $tableName SET nome = '$nome', codice = '$codice' WHERE id = '$id'";

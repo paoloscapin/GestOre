@@ -313,7 +313,8 @@ require_once '../common/header-docente.php';
         <div class="col-md-12">
             <div class="attivita_fatte_records_content"></div>
         </div>
-    </div>
+	</div>
+</div>
 
 <!-- <div class="panel-footer"></div> -->
 </div>

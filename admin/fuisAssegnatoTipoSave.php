@@ -12,7 +12,7 @@ ruoloRichiesto('admin');
 
 if(isset($_POST)) {
 	$id = $_POST['id'];
-    $nome = $_POST['nome'];
+    $nome = escapePost('nome');
     $codice_citrix = $_POST['codice_citrix'];
     $attivo = $_POST['attivo'];
 

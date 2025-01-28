@@ -71,12 +71,12 @@ require_once '../common/connect.php';
             <?php if($__settings->config->gestioneClil) : ?>
                 <th class="text-center col-md-1">Clil</th>
             <?php else: ?>
-                <th></th>
+                <th class="text-center col-md-1"></th>
             <?php endif; ?>
             <?php if($__settings->config->gestioneOrientamento) : ?>
                 <th class="text-center col-md-1">Orientamento</th>
             <?php else: ?>
-                <t class="text-center col-md-1"h></th>
+                <th class="text-center col-md-1"></th>
             <?php endif; ?>
             <th class="text-center col-md-1">Corsi di Recupero</th>
 		</tr>
@@ -108,7 +108,7 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cog
     echo '<tr>';
     echo '<td><a href="../docente/previste.php?docente_id='.$docenteId.'" target="'.$openTabMode.'">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>';
 
-    echo '<td class="text-left">'.importoStampabile($fuisPrevisto['diariaImporto']).'</td>';
+    echo '<td class="text-left">'.importoStampabile($fuisPrevisto['diariaImportoPreviste']).'</td>';
     echo '<td class="text-left">'.importoStampabile($fuisPrevisto['fuisAssegnato']).'</td>';
     echo '<td class="text-left">'.importoStampabile($fuisPrevisto['fuisOrePreviste']).'</td>';
     if (getSettingsValue("config", "gestioneClil", false)) {
@@ -123,7 +123,7 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cog
     }
     echo '<td>'.importoStampabile($fuisPrevisto['fuisExtraCorsiDiRecupero']).'</td>';
 
-    $fuis_totale_previsto = $fuis_totale_previsto + $fuisPrevisto['diariaImporto'] + $fuisPrevisto['fuisAssegnato'] + $fuisPrevisto['fuisOrePreviste'];
+    $fuis_totale_previsto = $fuis_totale_previsto + $fuisPrevisto['diariaImportoPreviste'] + $fuisPrevisto['fuisAssegnato'] + $fuisPrevisto['fuisOrePreviste'];
     $fuis_totale_previsto_clil = $fuis_totale_previsto_clil + $fuisPrevisto['fuisClilFunzionalePreviste'] + $fuisPrevisto['fuisClilConStudentiPreviste'];
     $fuis_totale_previsto_orientamento = $fuis_totale_previsto_orientamento + $fuisPrevisto['fuisOrientamentoFunzionalePreviste'] + $fuisPrevisto['fuisOrientamentoConStudentiPreviste'];
     $fuis_totale_corsi_di_recupero = $fuis_totale_corsi_di_recupero + $fuisPrevisto['fuisExtraCorsiDiRecupero'];

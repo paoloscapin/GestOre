@@ -1947,6 +1947,147 @@ CREATE TABLE IF NOT EXISTS `piano_di_lavoro_usa_materiale` (
 ENGINE = InnoDB;
 
 
+-- -----------------------------------------------------
+-- Table `modulistica_docente_info`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `modulistica_docente_info` ;
+
+CREATE TABLE IF NOT EXISTS `modulistica_docente_info` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `attributo` VARCHAR(45) NOT NULL,
+  `valore` TEXT NULL,
+  `tipo` INT NULL,
+  `docente_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_docente_info_docente1_idx` (`docente_id` ASC),
+  INDEX `attributo_index` (`attributo` ASC),
+  CONSTRAINT `fk_docente_info_docente1`
+    FOREIGN KEY (`docente_id`)
+    REFERENCES `docente` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `modulistica_template`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `modulistica_template` ;
+
+CREATE TABLE IF NOT EXISTS `modulistica_template` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(200) NULL,
+  `posizione` INT NULL,
+  `email_to` VARCHAR(200) NULL,
+  `email_approva` VARCHAR(200) NULL,
+  `template` TEXT NULL,
+  `approva` TINYINT NULL,
+  `intestazione` TINYINT NULL,
+  `valido` TINYINT NULL,
+  `firma_forte` TINYINT NULL DEFAULT 0,
+  `messaggio_approvazione` TINYINT NULL DEFAULT 0,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `modulistica_template_campo`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `modulistica_template_campo` ;
+
+CREATE TABLE IF NOT EXISTS `modulistica_template_campo` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(45) NULL,
+  `valore_default` TEXT NULL,
+  `lista_valori` TEXT NULL,
+  `etichetta` VARCHAR(200) NULL,
+  `tip` VARCHAR(200) NULL,
+  `tipo` INT NULL,
+  `posizione` INT NULL DEFAULT 0,
+  `obbligatorio` TINYINT NULL,
+  `salva_valore` TINYINT NULL DEFAULT 1,
+  `modulistica_template_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `nome_index` (`nome` ASC),
+  INDEX `fk_modulistica_campo_modulistica_template1_idx` (`modulistica_template_id` ASC),
+  CONSTRAINT `fk_modulistica_campo_modulistica_template1`
+    FOREIGN KEY (`modulistica_template_id`)
+    REFERENCES `modulistica_template` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `modulistica_richiesta`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `modulistica_richiesta` ;
+
+CREATE TABLE IF NOT EXISTS `modulistica_richiesta` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `annullata` TINYINT NULL DEFAULT 0,
+  `approvata` TINYINT NULL DEFAULT 0,
+  `respinta` TINYINT NULL DEFAULT 0,
+  `messaggio` TEXT NULL,
+  `chiusa` TINYINT NULL DEFAULT 0,
+  `data_invio` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `data_approvazione` TIMESTAMP NULL DEFAULT NULL,
+  `data_chiusura` TIMESTAMP NULL DEFAULT NULL,
+  `modulistica_template_id` INT NOT NULL,
+  `docente_id` INT NOT NULL,
+  `anno_scolastico_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_modulistica_richiesta_modulistica_template1_idx` (`modulistica_template_id` ASC),
+  INDEX `fk_modulistica_richiesta_docente1_idx` (`docente_id` ASC),
+  INDEX `fk_modulistica_richiesta_anno_scolastico1_idx` (`anno_scolastico_id` ASC),
+  INDEX `chiusa_INDEX` (`chiusa` ASC),
+  INDEX `aprovata_INDEX` (`approvata` ASC),
+  INDEX `annullata_INDEX` (`annullata` ASC),
+  INDEX `respinta_INDEX` (`respinta` ASC),
+  CONSTRAINT `fk_modulistica_richiesta_modulistica_template1`
+    FOREIGN KEY (`modulistica_template_id`)
+    REFERENCES `modulistica_template` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_modulistica_richiesta_docente1`
+    FOREIGN KEY (`docente_id`)
+    REFERENCES `docente` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_modulistica_richiesta_anno_scolastico1`
+    FOREIGN KEY (`anno_scolastico_id`)
+    REFERENCES `anno_scolastico` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `modulistica_richiesta_campo`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `modulistica_richiesta_campo` ;
+
+CREATE TABLE IF NOT EXISTS `modulistica_richiesta_campo` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `valore` TEXT NULL,
+  `modulistica_richiesta_id` INT NOT NULL,
+  `modulistica_template_campo_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_modulistica_richiesta_campo_modulistica_richiesta1_idx` (`modulistica_richiesta_id` ASC),
+  INDEX `fk_modulistica_richiesta_campo_modulistica_template_campo1_idx` (`modulistica_template_campo_id` ASC),
+  CONSTRAINT `fk_modulistica_richiesta_campo_modulistica_richiesta1`
+    FOREIGN KEY (`modulistica_richiesta_id`)
+    REFERENCES `modulistica_richiesta` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_modulistica_richiesta_campo_modulistica_template_campo1`
+    FOREIGN KEY (`modulistica_template_campo_id`)
+    REFERENCES `modulistica_template_campo` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;

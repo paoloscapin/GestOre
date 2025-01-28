@@ -11,9 +11,9 @@ require_once '../common/checkSession.php';
 
 if(isset($_POST)) {
 	$lezione_corso_di_recupero_id = $_POST['lezione_corso_di_recupero_id'];
-	$argomento = mysqli_real_escape_string($con, $_POST['argomento']);
+	$argomento = escapePost('argomento');
 	$argomentoChanged = $_POST['argomentoChanged'];
-	$note = mysqli_real_escape_string($con, $_POST['note']);
+	$note = escapePost('note');
 	$noteChanged = $_POST['noteChanged'];
 	$studentiDaModificareIdArray = json_decode($_POST['studentiDaModificareIdList']);
 
@@ -29,7 +29,7 @@ if(isset($_POST)) {
 		$query .= "WHERE id = '$lezione_corso_di_recupero_id'";
 
 		dbExec($query);
-		info("aggiornato lezione_corso_di_recupero id=$id argomento=$argomento note=$note");
+		info("aggiornato lezione_corso_di_recupero id=$lezione_corso_di_recupero_id argomento=$argomento note=$note");
 	}
 
 	// aggiorna i partecipanti
