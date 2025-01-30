@@ -89,6 +89,7 @@
         "numero_max_prenotazioni": 10,
         "nascondiNomeStudenti": false,
         "chiusuraIscrizioniGiorni": 1,
+        "chiusuraIscrizioniOra": 24,
         "unSoloArgomento": true,
         "prenotaMaxSettimanaSuccessiva": true,
         "inseriti_da_docente": false

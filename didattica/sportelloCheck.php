@@ -31,6 +31,15 @@ if ($lastCheckDate == $dateToCheck) {
 	return;
 }
 
+// controlla a che ora chiudono le iscrizioni in modo che non venga effettuato prima della chiusura
+$oraChiusura = getSettingsValue('sportelli', 'chiusuraIscrizioniOra', '24');
+$todayAndTime = new DateTime('now');
+$oraCorrente = $todayAndTime->format('H');
+if ($oraCorrente < $oraChiusura) {
+	debug('controllo sportello per la data ' . $dateToCheck . ': siamo in attesa delle ore ' . $oraChiusura . ' (sono le ' . $oraCorrente . ')');
+	return;
+}
+
 info('inizio controllo sportello per la data ' . $dateToCheck);
 $query = "	SELECT
 				sportello.id AS sportello_id,

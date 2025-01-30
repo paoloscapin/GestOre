@@ -1,3 +1,7 @@
+## Version 1.2.54 - 30 gen 2025
+##### Improvements
+- sportello: ora di scadenza iscrizioni
+
 ## Version 1.2.53 - 28 gen 2025
 ##### Improvements
 - modulistica: se non richiede l'approvazione, inoltra la richiesta direttamente al destinatario
