@@ -45,32 +45,40 @@ require_once '../common/connect.php';
 <div class="panel-body">
     <div class="row">
     <div class="col-md-12">
-    <div class="table-wrapper"><table id="modulistica_docenti_table" class="table table-bordered table-striped table-green">
-    <thead>
-        <tr>
-        <th class="text-center col-md-12">Modulo</th>
-		</tr>
-    </thead>
-    <tbody>
-<?php
 
+<?php
 $openTabMode = getSettingsValue('interfaccia','apriModuloInNuovoTab', false) ? '_blank' : '_self';
 $docente_id = $__docente_id;
 
-foreach(dbGetAll("SELECT * FROM modulistica_template WHERE modulistica_template.valido = true ORDER BY posizione;") as $template) {
-    $template_id = $template['id'];
-    $templateNome = $template['nome'];
+foreach(dbGetAll("SELECT * FROM modulistica_categoria ORDER BY posizione;") as $categoria) {
+    $categoriaId = $categoria["id"];
+    $categoriaNome = $categoria["nome"];
+    $categoriaColore = $categoria["colore"];
 
-    $marker = '';
+    echo('<div class="table-wrapper"><table id="modulistica_docenti_table" class="table table-bordered table-striped table-green">
+        <thead> <tr> <th class="text-center col-md-12" style="'.$categoriaColore.'" >'.$categoriaNome.'</th> </tr> </thead> <tbody>');
 
-    echo '<tr>';
-    echo '<td><a href="../docente/modulisticaCompilaModulo.php?docente_id='.$docente_id.'&template_id='.$template_id.'" target="'.$openTabMode.'">&ensp;'.$templateNome.' '.$marker.' </a></td>';
+
+    foreach(dbGetAll("SELECT * FROM modulistica_template WHERE modulistica_template.valido = true AND modulistica_template.modulistica_categoria_id = $categoriaId ORDER BY posizione;") as $template) {
+        $template_id = $template['id'];
+        $templateNome = $template['nome'];
+
+        $marker = '';
+
+        echo '<tr>';
+        echo '<td><a href="../docente/modulisticaCompilaModulo.php?docente_id='.$docente_id.'&template_id='.$template_id.'" target="'.$openTabMode.'">&ensp;'.$templateNome.' '.$marker.' </a></td>';
+    }
 }
 ?>
         </tbody>
         </table>
         </div>
-        </div>
+
+    
+    
+    
+    
+    </div>
     </div>
 </div>
 

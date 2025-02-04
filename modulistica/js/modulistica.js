@@ -54,9 +54,12 @@ function modulisticaGetDetails(id) {
 			$("#email_approva").val(record.email_approva);
             $("#firma_forte").prop('checked', record.firma_forte != 0 && record.firma_forte != null);
             $("#valido").prop('checked', record.valido != 0 && record.valido != null);
+            $('#categoria').selectpicker('val', record.modulistica_categoria_id);
+            console.log();
 		});
     } else {
         $("#nome").val("");
+        $('#categoria').selectpicker('val', 1);
     }
 	$("#update_modal").modal("show");
 }
@@ -70,7 +73,8 @@ function modulisticaSave() {
         approva: $("#approva").is(':checked')? 1: 0,
         email_approva: $("#email_approva").val(),
         firma_forte: $("#firma_forte").is(':checked')? 1: 0,
-        valido: $("#valido").is(':checked')? 1: 0
+        valido: $("#valido").is(':checked')? 1: 0,
+        categoria: $("#categoria").val(),
     },
     function (data, status) {
         $("#update_modal").modal("hide");

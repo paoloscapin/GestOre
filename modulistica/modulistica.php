@@ -21,11 +21,12 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
+require_once '../common/_include_bootstrap-select.php';
 
 ruoloRichiesto('modulistica');
 ?>
 
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-4.css">
 </head>
 
 <body >
@@ -63,6 +64,14 @@ ruoloRichiesto('modulistica');
 
 <!-- <div class="panel-footer"></div> -->
 </div>
+
+<?php
+$categoriaOptionList = '';
+$categoriaOptionList .= '<option value="'.'draft'.'" data-content="<span class=\'label label-warning\';\'>'.'draft'.'</span>">'.'draft'.'</option>';
+$categoriaOptionList .= '<option value="'.'pubblicato'.'" data-content="<span class=\'label label-info\';\'>'.'pubblicato'.'</span>">'.'pubblicato'.'</option>';
+$categoriaOptionList .= '<option value="'.'finale'.'" data-content="<span class=\'label label-success\';\'>'.'finale'.'</span>">'.'finale'.'</option>';
+$categoriaOptionList .= '<option value="'.'annullato'.'" data-content="<span class=\'label label-danger\';\'>'.'annullato'.'</span>">'.'annullato'.'</option>';
+?>
 
 <div class="modal fade" id="update_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog modal-lg" role="document">
@@ -105,6 +114,9 @@ ruoloRichiesto('modulistica');
                 <div class="form-group">
                     <label for="valido" class="col-sm-2 control-label">Valido</label>
                     <div class="col-sm-1 "><input type="checkbox" id="valido" ></div>
+                    <div class="col-sm-2">
+                        <select id="categoria" name="categoria" class="categoria selectpicker" data-live-search="false" data-width="70%" > <?php echo $categoriaOptionList ?></select>
+                    </div>
                 </div>
             </form>
         </div>
