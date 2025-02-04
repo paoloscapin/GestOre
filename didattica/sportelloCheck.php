@@ -24,18 +24,26 @@ $dateToCheck = date('Y-m-d', strtotime(' + ' . $daysInAdvance . ' days'));
 
 // controlla la data dell'ultimo controllo effettuato
 $lastCheckDate = dbGetValue("SELECT ultimo_controllo_sportelli FROM config");
-
+// info("anno_scolastico_corrente_id=".$anno_scolastico_corrente_id);
+// info("daysInAdvance=".$daysInAdvance);
+// info("dateToCheck=".$dateToCheck);
 // se si tratta della stessa data non deve fare nulla
 if ($lastCheckDate == $dateToCheck) {
+// 	info('controllo sportello già effettuato per la data ' . $dateToCheck);
 	debug('controllo sportello già effettuato per la data ' . $dateToCheck);
 	return;
 }
 
 // controlla a che ora chiudono le iscrizioni in modo che non venga effettuato prima della chiusura
 $oraChiusura = getSettingsValue('sportelli', 'chiusuraIscrizioniOra', '24');
-$todayAndTime = new DateTime('now');
+$todayAndTime = new DateTime();
 $oraCorrente = $todayAndTime->format('H');
+// info("oraChiusura=".$oraChiusura);
+// info("todayAndTime=".$todayAndTime->format('d-m-Y H:i:s'));
+// info("oraCorrente=".$oraCorrente);
+
 if ($oraCorrente < $oraChiusura) {
+// 	info('controllo sportello per la data ' . $dateToCheck . ': siamo in attesa delle ore ' . $oraChiusura . ' (sono le ' . $oraCorrente . ')');
 	debug('controllo sportello per la data ' . $dateToCheck . ': siamo in attesa delle ore ' . $oraChiusura . ' (sono le ' . $oraCorrente . ')');
 	return;
 }
