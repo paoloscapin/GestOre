@@ -1,3 +1,8 @@
+## Version 1.2.54 - 4 feb 2025
+##### Bug Fixes
+- sportelloChek: lettura data con 'now' non funzionante
+- sportello per studente visualizzava gli sportelli sbagliati (mancava un giorno)
+
 ## Version 1.2.54 - 30 gen 2025
 ##### Improvements
 - sportello: ora di scadenza iscrizioni

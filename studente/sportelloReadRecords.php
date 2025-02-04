@@ -162,7 +162,7 @@ foreach($resultArray as $row) {
 		$oraChiusura = getSettingsValue('sportelli', 'chiusuraIscrizioniOra', '24');
 
 		// 1 days ago = la mezzanotte del giorno prima, 2 days ago = la mezzanotte di due giorni prima. Quindi bisogna aggiungere 1 per il controllo
-		$daysAgo = $daysInAdvance + 1;
+		$daysAgo = $daysInAdvance;
 
 		// calcola l'ultimo giorno in cui lo sportello può essere prenotato: 1 day ago vuole dire fino alla notte del giorno precedente, quindi è il minimo da considerare
 		$lastDay = new DateTime($dataSportello.' '.$daysAgo.' days ago');
@@ -180,7 +180,7 @@ foreach($resultArray as $row) {
 		$todayBeforeLastDay = ($today <= $lastDay);
 
 		// se esiste l'ora, considera anche quella
-		$todayAndTime = new DateTime('now');
+		$todayAndTime = new DateTime();
 		$lastDayAndTime = $lastDay->add(DateInterval::createFromDateString($oraChiusura.' hour'));
 		$todayAndTimeBeforeLastDayAndTime = ($todayAndTime <= $lastDayAndTime);
 
