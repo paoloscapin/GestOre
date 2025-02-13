@@ -40,6 +40,8 @@ if(! isset($_POST)) {
     $template = dbGetFirst("SELECT * FROM modulistica_template WHERE id = $template_id;");
     $email_to = $template['email_to'];
     $email_approva = $template['email_approva'];
+    $email_di_avviso = $template['email_di_avviso'];
+	$produci_pdf = $template['produci_pdf'];
 
 	$listaEtichette = [];
 	$listaTipi = [];
@@ -56,74 +58,67 @@ if(! isset($_POST)) {
     }
 }
 
-$pagina .= '<html><head>
-<link rel="icon" href="'.$__application_base_path.'/ore-32.png" />
-<link rel="stylesheet" href="'.$__application_base_path.'/css/releaseversion.css">';
-
-// ricava il titolo in modo generale
-$titolo = 'M-' . $richiesta_id . ' ' . $template['nome'] .' - ' . $nomeCognomeDocente . ' - ' . $anno;
-
-// aggiunge nella pagina il titolo e gli stili
-$pagina .= '<title>' . $titolo . '</title>';
-
-$pagina .='
-<meta content="text/html; charset=UTF-8" http-equiv="content-type">
-<style>
-	h1,h2,h3,h4,h5 { color: #0e2c50; font-family: Helvetica, Sans-Serif; }
-	.unita_titolo { display:inline-block; vertical-align: middle; }
-	.nome { text-transform:uppercase; color: #0e2c50; font-family: Helvetica, Sans-Serif; display: block; font-weight: bold; font-size: .83em; }
-	.nomeSemplice { color: #0e2c50; font-family: Helvetica, Sans-Serif; display: block; font-weight: bold; font-size: .83em; }
-	body { max-width: 800px; }
-	@media print {
-		.noprint {
-			visibility: hidden;
-		}
+// produce il pdf solo se richiesto
+if ($produci_pdf) {
+	$pagina .= '<html><head> <link rel="icon" href="'.$__application_base_path.'/ore-32.png" /> <link rel="stylesheet" href="'.$__application_base_path.'/css/releaseversion.css">';
+	
+	// ricava il titolo in modo generale
+	$titolo = 'M-' . $richiesta_id . ' ' . $template['nome'] .' - ' . $nomeCognomeDocente . ' - ' . $anno;
+	
+	// aggiunge nella pagina il titolo e gli stili
+	$pagina .= '<title>' . $titolo . '</title>';
+	
+	$pagina .='
+	<meta content="text/html; charset=UTF-8" http-equiv="content-type">
+	<style>
+		h1,h2,h3,h4,h5 { color: #0e2c50; font-family: Helvetica, Sans-Serif; }
+		.unita_titolo { display:inline-block; vertical-align: middle; }
+		.nome { text-transform:uppercase; color: #0e2c50; font-family: Helvetica, Sans-Serif; display: block; font-weight: bold; font-size: .83em; }
+		.nomeSemplice { color: #0e2c50; font-family: Helvetica, Sans-Serif; display: block; font-weight: bold; font-size: .83em; }
+		body { max-width: 800px; }
+		@media print { .noprint { visibility: hidden; } }
+		@page { @bottom-left { content: counter(page) " of " counter(pages); } }
+	</style>';
+	
+	// chiude l'intestazione
+	$pagina .='</head><body>';
+	
+	// aggiunge l'intestazione della scuola (se richiesta) in cima al documento pdf
+	if ($template['intestazione']) {
+		$pagina .= '
+		<div style="; text-align: center;">
+			<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px;">
+				<img alt="" src="data:image/png;base64,'.base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")).'" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
+			</span>
+			<hr>
+		</div>';
 	}
-	 @page {
-		@bottom-left {
-			content: counter(page) " of " counter(pages);
-		}
-	}
-</style>';
-
-// chiude l'intestazione
-$pagina .='</head><body>';
-
-// aggiunge l'intestazione se richiesta
-if ($template['intestazione']) {
-    $pagina .= '
-	<div style="; text-align: center;">
-		<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px;">
-			<img alt="" src="data:image/png;base64,'.base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")).'" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
-		</span>
-		<hr>
-	</div>';
+	
+	// aggiunge il corpo del documento nel pdf
+	$pagina .= $documento;
+	
+	// chiude la pagina
+	$pagina .= '</body></html>';
+	
+	// costruisce il pdf
+	$dompdf = new Dompdf();
+	$dompdf->loadHtml($pagina);
+	
+	// configura i parametri
+	$dompdf->setPaper('A4', 'portrait');
+	
+	// Render html in pdf
+	$dompdf->render();
+	
+	// produce il nome del file
+	$pdfFileName = $titolo . ".pdf";
+	debug('pdfFileName=' . $pdfFileName);
+	
+	// produce il pdf da inviare
+	$outputPdf = $dompdf->output();
+	$encoding = 'base64';
+	$type = 'application/pdf';
 }
-
-// aggiunge il corpo del documento nel pdf
-$pagina .= $documento;
-
-// chiude la pagina
-$pagina .= '</body></html>';
-
-// costruisce il pdf
-$dompdf = new Dompdf();
-$dompdf->loadHtml($pagina);
-
-// configura i parametri
-$dompdf->setPaper('A4', 'portrait');
-
-// Render html in pdf
-$dompdf->render();
-
-// produce il nome del file
-$pdfFileName = $titolo . ".pdf";
-debug('pdfFileName=' . $pdfFileName);
-
-// produce il pdf da inviare
-$outputPdf = $dompdf->output();
-$encoding = 'base64';
-$type = 'application/pdf';
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // ora deve inviare la emai potenzialmente a tre diversi destinatari: il docente richiedente, l'ufficio competente, il dirigente se richiede approvazione
@@ -145,7 +140,9 @@ $mail->Body .= "</body></html>";
 $mail->AltBody = "Gentile ".$nomeCognomeDocente.", allegato troverai il modulo ".$template['nome']." che hai inviato. E tua responsabilita controllare che i dati riportati siano corretti. Se dovessi trovare delle incongruenze con quanto da te compilato avvisa subito la segreteria inviando una email";
 
 // allega il pdf
-$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+if ($produci_pdf) {
+	$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+}
 
 // send the message
 if(!$mail->send()){
@@ -156,8 +153,8 @@ if(!$mail->send()){
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
-// 2: se non richiede l'approvazione, inoltra la richiesta direttamente al destinatario
-if (! $template['approva']) {
+// 2: inoltra la richiesta direttamente al destinatario se non richiede l'approvazione oppure se e' richiesto l'avviso
+if ( (! $template['approva']) || $email_di_avviso) {
 	$mail = new PHPMailer(true);
 	$mail->setFrom($docente_email, $nomeCognomeDocente);
 	// tutti i destinatari separati da virgole
@@ -178,8 +175,10 @@ if (! $template['approva']) {
 	$mail->AltBody = $nomeCognomeDocente."ha inviato il modulo ".$template['nome']." qui allegato.";
 
 	// allega il pdf
-	$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
-
+	if ($produci_pdf) {
+		$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+	}
+	
 	// send the message
 	if(!$mail->send()){
 		warning('Message could not be sent. ' . 'Mailer Error: ' . $mail->ErrorInfo);
@@ -216,7 +215,9 @@ if ($template['approva']) {
 	$mail->Body .= "</body></html>";
 
 	// allega il pdf
-	$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+	if ($produci_pdf) {
+		$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+	}
 
 	// send the message
 	if(!$mail->send()){

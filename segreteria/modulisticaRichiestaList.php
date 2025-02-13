@@ -80,7 +80,13 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY doc
 ?>
 
 <body >
-<?php require_once '../common/header-segreteria.php'; ?>
+<?php
+if ($__utente_ruolo == 'segreteria-docenti') {
+    require_once '../common/header-segreteria.php';
+} else {
+    require_once '../common/header-dirigente.php';
+}
+?>
 
 <div class="container-fluid" style="margin-top:60px">
 <div class="panel panel-lightblue4">

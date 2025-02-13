@@ -74,6 +74,9 @@ echo ' <a href="'.$__application_base_path.'/dirigente/storico.php" class="btn b
 <?php if(getSettingsValue('config','pianiDiLavoro', false)) : ?>
 	<a href="<?php echo $__application_base_path; ?>/docente/pianoDiLavoro.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
 <?php endif; ?>
+<?php if(getSettingsValue('config','modulisticaDocenti', false)) : ?>
+	<a href="<?php echo $__application_base_path; ?>/segreteria/modulisticaRichiestaList.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-tag"></span>&ensp;Modulistica </a>
+<?php endif; ?>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a href="<?php echo $__settings->local->helpLinkDirigente; ?>" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>

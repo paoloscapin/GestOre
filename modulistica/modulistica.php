@@ -67,10 +67,9 @@ ruoloRichiesto('modulistica');
 
 <?php
 $categoriaOptionList = '';
-$categoriaOptionList .= '<option value="'.'draft'.'" data-content="<span class=\'label label-warning\';\'>'.'draft'.'</span>">'.'draft'.'</option>';
-$categoriaOptionList .= '<option value="'.'pubblicato'.'" data-content="<span class=\'label label-info\';\'>'.'pubblicato'.'</span>">'.'pubblicato'.'</option>';
-$categoriaOptionList .= '<option value="'.'finale'.'" data-content="<span class=\'label label-success\';\'>'.'finale'.'</span>">'.'finale'.'</option>';
-$categoriaOptionList .= '<option value="'.'annullato'.'" data-content="<span class=\'label label-danger\';\'>'.'annullato'.'</span>">'.'annullato'.'</option>';
+foreach(dbGetAll("SELECT * FROM modulistica_categoria ORDER BY posizione;") as $categoria) {
+    $categoriaOptionList .= '<option value="'.$categoria["id"].'" data-content="<span class=\'label\'; style=\'color: #008;'.$categoria["colore"].'\';\'>'.$categoria["nome"].'</span>">'.$categoria["nome"].'</option>';
+}
 ?>
 
 <div class="modal fade" id="update_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
@@ -89,12 +88,21 @@ $categoriaOptionList .= '<option value="'.'annullato'.'" data-content="<span cla
                     <div class="col-sm-8"><input type="text" id="nome" placeholder="nome" class="form-control"/></div>
                 </div>
                 <div class="form-group">
-                    <label for="intestazione" class="col-sm-2 control-label">intestazione</label>
+                    <label for="produci_pdf" class="col-sm-2 control-label">produci pdf</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="produci_pdf" ></div>
+                </div>
+                <div class="form-group">
+                    <label for="intestazione" class="col-sm-2 control-label">intestazione pdf</label>
                     <div class="col-sm-1 "><input type="checkbox" id="intestazione" ></div>
                 </div>
+                <hr>
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="email_to">destinatario</label>
                     <div class="col-sm-8"><input type="text" id="email_to" placeholder="email del destinatario finale (ufficio competente)" class="form-control"/></div>
+                </div>
+                <div class="form-group">
+                    <label for="email_di_avviso" class="col-sm-2 control-label">mail di avviso</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="email_di_avviso" ></div>
                 </div>
                 <hr>
                 <div class="form-group">
@@ -114,8 +122,11 @@ $categoriaOptionList .= '<option value="'.'annullato'.'" data-content="<span cla
                 <div class="form-group">
                     <label for="valido" class="col-sm-2 control-label">Valido</label>
                     <div class="col-sm-1 "><input type="checkbox" id="valido" ></div>
-                    <div class="col-sm-2">
-                        <select id="categoria" name="categoria" class="categoria selectpicker" data-live-search="false" data-width="70%" > <?php echo $categoriaOptionList ?></select>
+                </div>
+                <div class="form-group">
+                    <label for="valido" class="col-sm-2 control-label">Categoria</label>
+                    <div class="col-sm-4">
+                        <select id="categoria" name="categoria" class="categoria selectpicker" data-live-search="false" data-width="100%" > <?php echo $categoriaOptionList ?></select>
                     </div>
                 </div>
             </form>

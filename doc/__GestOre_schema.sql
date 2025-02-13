@@ -1970,6 +1970,20 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
+-- Table `modulistica_categoria`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `modulistica_categoria` ;
+
+CREATE TABLE IF NOT EXISTS `modulistica_categoria` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(200) NULL,
+  `colore` VARCHAR(45) NULL,
+  `posizione` INT NULL,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
 -- Table `modulistica_template`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `modulistica_template` ;
@@ -1986,7 +2000,16 @@ CREATE TABLE IF NOT EXISTS `modulistica_template` (
   `valido` TINYINT NULL,
   `firma_forte` TINYINT NULL DEFAULT 0,
   `messaggio_approvazione` TINYINT NULL DEFAULT 0,
-  PRIMARY KEY (`id`))
+  `email_di_avviso` TINYINT NULL DEFAULT 0,
+  `produci_pdf` TINYINT NULL DEFAULT 1,
+  `modulistica_categoria_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_modulistica_template_modulistica_categoria1_idx` (`modulistica_categoria_id` ASC),
+  CONSTRAINT `fk_modulistica_template_modulistica_categoria1`
+    FOREIGN KEY (`modulistica_categoria_id`)
+    REFERENCES `modulistica_categoria` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 

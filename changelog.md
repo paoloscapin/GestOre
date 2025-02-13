@@ -1,4 +1,12 @@
-## Version 1.2.54 - 4 feb 2025
+## Version 1.2.56 - 13 feb 2025
+##### Improvements
+- modulistica separata per categorie
+- modulistica flag per produci pdf e mail di avviso
+
+##### Bug Fixes
+- viaggio spesa salvataggio non funzionante
+
+## Version 1.2.55 - 4 feb 2025
 ##### Bug Fixes
 - sportelloChek: lettura data con 'now' non funzionante
 - sportello per studente visualizzava gli sportelli sbagliati (mancava un giorno)
