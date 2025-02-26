@@ -10,7 +10,12 @@
 
 function produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriSelezionabili) {
 
-    $chekboxChecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;" checked></b> ';
+	// se la lista dei campi e' vuota non deve produrre nessuna tabella
+	if(count($listaEtichette) <= 0) {
+		return '';
+	}
+
+	$chekboxChecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;" checked></b> ';
 	$chekboxUnchecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;"></b> ';
 	$radioChecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;" checked></b> ';
 	$radioUnchecked = '<div class="tick"><b><input type="checkbox" value="" style="vertical-align: bottom;"></b> ';
@@ -46,10 +51,37 @@ function produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriS
 			}
 	
 			$valore = $risultato;
+		} else {
+			$valore = '';
 		}
 		$tableBlock .= '<tr><td class="col1">'.$campo.'</td><td class="col2">'.$valore.'</td></tr>';
 	}
 	$tableBlock .= '</table>';
 	return $tableBlock;
+}
+
+function getEmailHead() {
+	$head='<head><style>
+		#campi { font-family: Arial, Helvetica, sans-serif; border-collapse: collapse; width: 100%; }
+		#campi td, #campi th { border: 1px solid #ddd; padding: 6px; }
+		#campi tr:nth-child(even) { background-color: #f2f2f2; }
+		#campi tr:hover { background-color: #ddd; }
+		#campi th { padding-top: 6px; padding-bottom: 6px; text-align: left; background-color: #04AA6D; color: white; }
+		.col1 { width: 25%; }
+		.col2 { width: 75%; }
+		.tick { margin-left: 0.65cm; text-indent: -0.65cm; }
+		.btn-ar { color: #fff; padding: 10px 15px; margin: 20px 15px 10px 15px;
+			background-image: radial-gradient(93% 87% at 87% 89%, rgba(0, 0, 0, 0.23) 0%, transparent 86.18%), radial-gradient(66% 66% at 26% 20%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 69.79%, rgba(255, 255, 255, 0) 100%);
+			box-shadow: inset -3px -3px 9px rgba(255, 255, 255, 0.25), inset 0px 3px 9px rgba(255, 255, 255, 0.3), inset 0px 1px 1px rgba(255, 255, 255, 0.6), inset 0px -8px 36px rgba(0, 0, 0, 0.3), inset 0px 1px 5px rgba(255, 255, 255, 0.6), 2px 19px 31px rgba(0, 0, 0, 0.2);
+			border-radius: 12px; font-weight: bold; font-size: 14px; border: 0; user-select: none; -webkit-user-select: none; touch-action: manipulation; cursor: pointer; }
+		.btn-approva { background-color: #1CAF43; }
+		.btn-respingi { background-color: #F1003C; }
+		.btn-waiting { background-color: #f2e829; }
+		.btn-chiudi { background-color: #0ae4f0; }
+		.btn-pendente { background-color: #777777; }
+		.btn-label { padding: 5px 12px; border-radius: 8px; margin: 10px 5px; }
+		</style></head>';
+
+	return $head;
 }
 ?>

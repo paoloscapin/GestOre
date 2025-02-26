@@ -40,6 +40,9 @@ if(! isset($_POST)) {
     $template = dbGetFirst("SELECT * FROM modulistica_template WHERE id = $template_id;");
     $email_to = $template['email_to'];
     $email_approva = $template['email_approva'];
+    $email_di_avviso = $template['email_di_avviso'];
+	$produci_pdf = $template['produci_pdf'];
+	$messaggio_approvazione = $template['messaggio_approvazione'];
 
 	$listaEtichette = [];
 	$listaTipi = [];
@@ -56,80 +59,73 @@ if(! isset($_POST)) {
     }
 }
 
-$pagina .= '<html><head>
-<link rel="icon" href="'.$__application_base_path.'/ore-32.png" />
-<link rel="stylesheet" href="'.$__application_base_path.'/css/releaseversion.css">';
-
 // ricava il titolo in modo generale
 $titolo = 'M-' . $richiesta_id . ' ' . $template['nome'] .' - ' . $nomeCognomeDocente . ' - ' . $anno;
 
-// aggiunge nella pagina il titolo e gli stili
-$pagina .= '<title>' . $titolo . '</title>';
-
-$pagina .='
-<meta content="text/html; charset=UTF-8" http-equiv="content-type">
-<style>
-	h1,h2,h3,h4,h5 { color: #0e2c50; font-family: Helvetica, Sans-Serif; }
-	.unita_titolo { display:inline-block; vertical-align: middle; }
-	.nome { text-transform:uppercase; color: #0e2c50; font-family: Helvetica, Sans-Serif; display: block; font-weight: bold; font-size: .83em; }
-	.nomeSemplice { color: #0e2c50; font-family: Helvetica, Sans-Serif; display: block; font-weight: bold; font-size: .83em; }
-	body { max-width: 800px; }
-	@media print {
-		.noprint {
-			visibility: hidden;
-		}
+// produce il pdf solo se richiesto
+if ($produci_pdf) {
+	$pagina .= '<html><head> <link rel="icon" href="'.$__application_base_path.'/ore-32.png" /> <link rel="stylesheet" href="'.$__application_base_path.'/css/releaseversion.css">';
+	
+	// aggiunge nella pagina il titolo e gli stili
+	$pagina .= '<title>' . $titolo . '</title>';
+	
+	$pagina .='
+	<meta content="text/html; charset=UTF-8" http-equiv="content-type">
+	<style>
+		h1,h2,h3,h4,h5 { color: #0e2c50; font-family: Helvetica, Sans-Serif; }
+		.unita_titolo { display:inline-block; vertical-align: middle; }
+		.nome { text-transform:uppercase; color: #0e2c50; font-family: Helvetica, Sans-Serif; display: block; font-weight: bold; font-size: .83em; }
+		.nomeSemplice { color: #0e2c50; font-family: Helvetica, Sans-Serif; display: block; font-weight: bold; font-size: .83em; }
+		body { max-width: 800px; }
+		@media print { .noprint { visibility: hidden; } }
+		@page { @bottom-left { content: counter(page) " of " counter(pages); } }
+	</style>';
+	
+	// chiude l'intestazione
+	$pagina .='</head><body>';
+	
+	// aggiunge l'intestazione della scuola (se richiesta) in cima al documento pdf
+	if ($template['intestazione']) {
+		$pagina .= '
+		<div style="; text-align: center;">
+			<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px;">
+				<img alt="" src="data:image/png;base64,'.base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")).'" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
+			</span>
+			<hr>
+		</div>';
 	}
-	 @page {
-		@bottom-left {
-			content: counter(page) " of " counter(pages);
-		}
-	}
-</style>';
-
-// chiude l'intestazione
-$pagina .='</head><body>';
-
-// aggiunge l'intestazione se richiesta
-if ($template['intestazione']) {
-    $pagina .= '
-	<div style="; text-align: center;">
-		<span style="overflow: hidden; display: inline-block; margin: 0.00px 0.00px; border: 0.00px solid #000000; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px); width: 642.82px;">
-			<img alt="" src="data:image/png;base64,'.base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'")).'" style="width: 642.82px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">
-		</span>
-		<hr>
-	</div>';
+	
+	// aggiunge il corpo del documento nel pdf
+	$pagina .= $documento;
+	
+	// chiude la pagina
+	$pagina .= '</body></html>';
+	
+	// costruisce il pdf
+	$dompdf = new Dompdf();
+	$dompdf->loadHtml($pagina);
+	
+	// configura i parametri
+	$dompdf->setPaper('A4', 'portrait');
+	
+	// Render html in pdf
+	$dompdf->render();
+	
+	// produce il nome del file
+	$pdfFileName = $titolo . ".pdf";
+	debug('pdfFileName=' . $pdfFileName);
+	
+	// produce il pdf da inviare
+	$outputPdf = $dompdf->output();
+	$encoding = 'base64';
+	$type = 'application/pdf';
 }
-
-// aggiunge il corpo del documento nel pdf
-$pagina .= $documento;
-
-// chiude la pagina
-$pagina .= '</body></html>';
-
-// costruisce il pdf
-$dompdf = new Dompdf();
-$dompdf->loadHtml($pagina);
-
-// configura i parametri
-$dompdf->setPaper('A4', 'portrait');
-
-// Render html in pdf
-$dompdf->render();
-
-// produce il nome del file
-$pdfFileName = $titolo . ".pdf";
-debug('pdfFileName=' . $pdfFileName);
-
-// produce il pdf da inviare
-$outputPdf = $dompdf->output();
-$encoding = 'base64';
-$type = 'application/pdf';
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // ora deve inviare la emai potenzialmente a tre diversi destinatari: il docente richiedente, l'ufficio competente, il dirigente se richiede approvazione
 // 1: invio della email al docente richiedente
 $mail = new PHPMailer(true);
-$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no replay');
+$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no reply');
 $mail->addAddress($docente_email, $nomeCognomeDocente);
 
 // subject
@@ -139,13 +135,20 @@ $mail->Body = '<html>'.getEmailHead().'<body>';
 $mail->Body .= "<p>Gentile ".$nomeCognomeDocente.", allegato troverai il modulo ".$template['nome']." che hai inviato</p>";
 $mail->Body .= "<b>&Egrave; tua responsabilit&agrave; controllare che i dati riportati siano corretti</b></p></body></html>";
 $mail->Body .= "<p>Se dovessi trovare delle incongruenze con quanto da te compilato avvisa subito la segreteria inviando una email all'indirizzo: " . $email_to . "</p>";
-$mail->Body .= '<p>I campi del modulo sono riportati qui di seguito e il pdf generato &egrave; allegato a questa email.</p>';
+if(count($listaEtichette) > 0) {
+	$mail->Body .= '<p>I campi del modulo sono riportati nella tabella qui di seguito.</p>';
+}
+if ($produci_pdf) {
+	$mail->Body .= '<p>Il pdf generato &egrave; allegato a questa email.</p>';
+}
 $mail->Body .= produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriSelezionabili);
 $mail->Body .= "</body></html>";
 $mail->AltBody = "Gentile ".$nomeCognomeDocente.", allegato troverai il modulo ".$template['nome']." che hai inviato. E tua responsabilita controllare che i dati riportati siano corretti. Se dovessi trovare delle incongruenze con quanto da te compilato avvisa subito la segreteria inviando una email";
 
-// allega il pdf
-$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+// allega il pdf se richiesto
+if ($produci_pdf) {
+	$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+}
 
 // send the message
 if(!$mail->send()){
@@ -153,11 +156,13 @@ if(!$mail->send()){
     echo 'errore: messaggio non inviato.';
     echo 'Mailer Error: ' . $mail->ErrorInfo;
     return;
+} else {
+	info('email inviata al docente '.$nomeCognomeDocente.' oggetto: '.$titolo);
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
-// 2: se non richiede l'approvazione, inoltra la richiesta direttamente al destinatario
-if (! $template['approva']) {
+// 2: inoltra la richiesta direttamente al destinatario se non richiede l'approvazione oppure se e' richiesto l'avviso
+if ( (! $template['approva']) || $email_di_avviso) {
 	$mail = new PHPMailer(true);
 	$mail->setFrom($docente_email, $nomeCognomeDocente);
 	// tutti i destinatari separati da virgole
@@ -171,21 +176,39 @@ if (! $template['approva']) {
 
 	$mail->Body = '<html>'.getEmailHead().'<body>';
 	$mail->Body .= "<p>".$nomeCognomeDocente." ha inviato il modulo ".$template['nome'];
+	if ($template['approva']) {
+		$mail->Body .= " che <b>richiede di essere approvato</b>.</p>";
+	} else {
+		// se non richiede di essere approvato, potrebbe anche essere chiuso direttamente da qui
+		// todo: inserire un bottone per chiudi ?
+	}
 	$mail->Body .= "</p>";
-	$mail->Body .= '<p>I campi del modulo sono riportati qui di seguito e il pdf generato &egrave; allegato a questa email.</p>';
+
+	// todo: inserire un bottone per andare direttamente alla pratica ?
+
+	if(count($listaEtichette) > 0) {
+		$mail->Body .= '<p>I campi del modulo sono riportati nella tabella qui di seguito.</p>';
+	}
+	if ($produci_pdf) {
+		$mail->Body .= '<p>Il pdf generato &egrave; allegato a questa email.</p>';
+	}
 	$mail->Body .= produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriSelezionabili);
 	$mail->Body .= "</body></html>";
 	$mail->AltBody = $nomeCognomeDocente."ha inviato il modulo ".$template['nome']." qui allegato.";
 
 	// allega il pdf
-	$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
-
+	if ($produci_pdf) {
+		$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+	}
+	
 	// send the message
 	if(!$mail->send()){
 		warning('Message could not be sent. ' . 'Mailer Error: ' . $mail->ErrorInfo);
 		echo 'errore: messaggio non inviato.';
 		echo 'Mailer Error: ' . $mail->ErrorInfo;
 		return;
+	} else {
+		info('email inviata al destinatario '.$email_to.' oggetto: '.$titolo);
 	}
 }
 
@@ -207,47 +230,36 @@ if ($template['approva']) {
 	$mail->Body .= "<p>" . $nomeCognomeDocente . " ha inviato il modulo ".$template['nome'] . " che <b>richiede di essere approvato</b>.</p>";
 
 	// inserisce i bottoni per approvare o respingere
+	if ($messaggio_approvazione) {
+		$messaggio_approvazioneValore = 1;
+	} else {
+		$messaggio_approvazioneValore = 0;
+	}
 	$mail->Body .= '<div class="form-group" style="text-align: center">
-		<a class="btn-ar btn-approva" href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=approva\'">Approva</a>
-		<a class="btn-ar btn-respingi" href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=respingi\'">Respingi</a>
+		<a class="btn-ar btn-approva" href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=approva&richiestaMessaggio='.$messaggio_approvazioneValore.'\'">Approva</a>
+		<a class="btn-ar btn-respingi" href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$richiesta['uuid'].'&comando=respingi&richiestaMessaggio=1\'">Respingi</a>
 		</div>';
-	$mail->Body .= '<p>I campi del modulo sono riportati qui di seguito e il pdf generato &egrave; allegato a questa email.</p>';
+	if(count($listaEtichette) > 0) {
+		$mail->Body .= '<p>I campi del modulo sono riportati nella tabella qui di seguito.</p>';
+	}
+	if ($produci_pdf) {
+		$mail->Body .= '<p>Il pdf generato &egrave; allegato a questa email.</p>';
+	}
 	$mail->Body .= produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriSelezionabili);
 	$mail->Body .= "</body></html>";
 
 	// allega il pdf
-	$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+	if ($produci_pdf) {
+		$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+	}
 
 	// send the message
 	if(!$mail->send()){
 		warning('Message could not be sent. ' . 'Mailer Error: ' . $mail->ErrorInfo);
 		echo 'errore: messaggio non inviato.';
 		echo 'Mailer Error: ' . $mail->ErrorInfo;
+	} else {
+		info('email inviata per richiesta di approvazione a '.$email_approva.' oggetto: '.$titolo);
 	}
-}
-
-function getEmailHead() {
-	$head='<head><style>
-		#campi { font-family: Arial, Helvetica, sans-serif; border-collapse: collapse; width: 100%; }
-		#campi td, #campi th { border: 1px solid #ddd; padding: 6px; }
-		#campi tr:nth-child(even) { background-color: #f2f2f2; }
-		#campi tr:hover { background-color: #ddd; }
-		#campi th { padding-top: 6px; padding-bottom: 6px; text-align: left; background-color: #04AA6D; color: white; }
-		.col1 { width: 25%; }
-		.col2 { width: 75%; }
-		.tick { margin-left: 0.65cm; text-indent: -0.65cm; }
-		.btn-ar { color: #fff; padding: 10px 15px; margin: 20px 15px 10px 15px;
-			background-image: radial-gradient(93% 87% at 87% 89%, rgba(0, 0, 0, 0.23) 0%, transparent 86.18%), radial-gradient(66% 66% at 26% 20%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 69.79%, rgba(255, 255, 255, 0) 100%);
-			box-shadow: inset -3px -3px 9px rgba(255, 255, 255, 0.25), inset 0px 3px 9px rgba(255, 255, 255, 0.3), inset 0px 1px 1px rgba(255, 255, 255, 0.6), inset 0px -8px 36px rgba(0, 0, 0, 0.3), inset 0px 1px 5px rgba(255, 255, 255, 0.6), 2px 19px 31px rgba(0, 0, 0, 0.2);
-			border-radius: 12px; font-weight: bold; font-size: 14px; border: 0; user-select: none; -webkit-user-select: none; touch-action: manipulation; cursor: pointer; }
-		.btn-approva { background-color: #1CAF43; }
-		.btn-respingi { background-color: #F1003C; }
-		.btn-waiting { background-color: #f2e829; }
-		.btn-chiudi { background-color: #0ae4f0; }
-		.btn-pendente { background-color: #777777; }
-		.btn-label { padding: 5px 12px; border-radius: 8px; margin: 10px 5px; }
-		</style></head>';
-
-	return $head;
 }
 ?>

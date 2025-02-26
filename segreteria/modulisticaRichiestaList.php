@@ -80,7 +80,13 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY doc
 ?>
 
 <body >
-<?php require_once '../common/header-segreteria.php'; ?>
+<?php
+if ($__utente_ruolo == 'segreteria-docenti') {
+    require_once '../common/header-segreteria.php';
+} else {
+    require_once '../common/header-dirigente.php';
+}
+?>
 
 <div class="container-fluid" style="margin-top:60px">
 <div class="panel panel-lightblue4">
@@ -192,7 +198,7 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY doc
                     </div>
                     <div class="form-group" id="_messaggio_approvazione-part">
                         <label class="col-sm-2 control-label" for="messaggio_approvazione">messaggio</label>
-	    				<div class="col-sm-10"><span id="messaggio_approvazione" class="form-control"></span></div>
+	    				<div class="col-sm-10"><b><span id="messaggio_approvazione" class="form-control" style="text-align: left"></span></b></div>
                     </div>
                 </div>
 

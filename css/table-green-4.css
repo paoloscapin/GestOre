@@ -1,0 +1,61 @@
+/**
+ *  This file is part of GestOre
+ *  @author     Paolo Scapin <paolo.scapin@gmail.com>
+ *  @copyright  (C) 2018 Paolo Scapin
+ *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ */
+
+/* Table green 4 */
+.table-green {
+	border-collapse: collapse;
+	font-size: 14px;
+	min-width: 596px;
+}
+
+.table-green th, 
+.table-green td {
+	padding: 7px 17px;
+}
+.table-green caption {
+	margin: 7px;
+}
+
+/*
+.table-green thead th:last-child,
+.table-green tfoot th:last-child,
+.table-green tbody td:last-child {
+	border: 0;
+}
+*/
+
+/* Table Header */
+.table-green thead th {
+	border-right: 1px solid #c7ecc7;
+	text-transform: uppercase;
+}
+
+/* Table Body */
+.table-green tbody td {
+	color: #353535;
+	border-right: 1px solid #c7ecc7;
+}
+.table-green tbody tr:nth-child(odd) td {
+	background-color: #f4fff7;
+}
+.table-green tbody tr:nth-child(even) td {
+	background-color: #dbffe5;
+}
+
+.table-green tbody td:last-child {
+	text-align: center;
+}
+.table-green tbody tr:hover td {
+	background-color: #ffffa2;
+	border-color: #ffff0f;
+}
+
+/* Table Footer */
+.table-green tfoot th {
+	border-right: 1px solid #c7ecc7;
+	text-align: right;
+}

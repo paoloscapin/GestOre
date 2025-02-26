@@ -10,46 +10,63 @@
 require_once '../common/checkSession.php';
 
 $soloValidi = $_GET["soloValidi"];
+$data = '';
+$primaRiga = true;
 
-// Design initial table header
-$data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
-            <tr>
-                <th class="text-center col-md-9">Modulo</th>
-                <th class="text-center col-md-1">Valido</th>
-                <th class="text-center col-md-1">Modifica</th>
-                <th class="text-center col-md-1"></th>
-            </tr>';
+foreach(dbGetAll("SELECT * FROM modulistica_categoria ORDER BY posizione;") as $categoria) {
+    $categoriaId = $categoria["id"];
+    $categoriaNome = $categoria["nome"];
+    $categoriaColore = $categoria["colore"];
 
-$query = "	SELECT modulistica_template.id AS local_id, modulistica_template.* FROM modulistica_template ";
-if( $soloValidi ) {
-	$query .= "WHERE modulistica_template.valido is true ";
-}
+    $data .= '<div class="table-wrapper"><table id="modulistica_docenti_table" class="table table-bordered table-striped table-green">
+        <thead> <tr style="'.$categoriaColore.'" >';
+    if ($primaRiga) {
+        $primaRiga = false;
+        $data .= '
+            <th class="text-center col-md-9">'.$categoriaNome.'</th>
+            <th class="text-center col-md-1">Valido</th>
+            <th class="text-center col-md-1">Modifica</th>
+            <th class="text-center col-md-1"></th>';
+    } else {
+        $data .= '
+            <th class="text-center col-md-9">'.$categoriaNome.'</th>
+            <th class="text-center col-md-1"></th>
+            <th class="text-center col-md-1"></th>
+            <th class="text-center col-md-1"></th>';
+    }
+    $data .= '</tr> </thead> <tbody>';
 
-$query .= "ORDER BY valido DESC, nome ASC;";
+    $query = "SELECT modulistica_template.id AS local_id, modulistica_template.* FROM modulistica_template WHERE modulistica_template.modulistica_categoria_id = $categoriaId ";
+    if( $soloValidi ) {
+        $query .= "AND modulistica_template.valido is true ";
+    }
+    
+    $query .= "ORDER BY valido DESC, posizione ASC;";
 
-foreach(dbGetAll($query) as $row) {
-    $statoMarker = '';
-    if (! $row['valido']) {
-		$statoMarker = '<span class="label label-danger">disattivato</span>';
-	} else {
-        $statoMarker = '<span class="label label-success">si</span>';
+
+    foreach(dbGetAll($query) as $template) {
+        $statoMarker = '';
+        if (! $template['valido']) {
+            $statoMarker = '<span class="label label-danger">disattivato</span>';
+        } else {
+            $statoMarker = '<span class="label label-success">si</span>';
+        }
+
+        $data .= '
+                <tr>
+                    <td>'.$template['nome'].'</td>
+                    <td class="text-center">'.$statoMarker.'</td>
+                    <td class="text-center">
+                        <button onclick="modulisticaOpenTemplate('.$template['local_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-file">&nbsp;Contenuto</span></button>
+                    </td>
+                    <td>
+                        <button onclick="modulisticaGetDetails('.$template['local_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
+                        <button onclick="modulisticaDelete('.$template['local_id'].', \''.$template['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+                    </td>
+                </tr>';
     }
 
-    $data .= '
-            <tr>
-                <td>'.$row['nome'].'</td>
-                <td class="text-center">'.$statoMarker.'</td>
-                <td class="text-center">
-                    <button onclick="modulisticaOpenTemplate('.$row['local_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-file">&nbsp;Contenuto</span></button>
-                </td>
-                <td>
-                    <button onclick="modulisticaGetDetails('.$row['local_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-                    <button onclick="modulisticaDelete('.$row['local_id'].', \''.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-                </td>
-            </tr>';
+    $data .= '</table></div>';
 }
-
-$data .= '
-        </table></div>';
-echo $data;
+    echo $data;
 ?>

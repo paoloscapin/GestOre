@@ -21,11 +21,12 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
+require_once '../common/_include_bootstrap-select.php';
 
 ruoloRichiesto('modulistica');
 ?>
 
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
+<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-4.css">
 </head>
 
 <body >
@@ -64,6 +65,13 @@ ruoloRichiesto('modulistica');
 <!-- <div class="panel-footer"></div> -->
 </div>
 
+<?php
+$categoriaOptionList = '';
+foreach(dbGetAll("SELECT * FROM modulistica_categoria ORDER BY posizione;") as $categoria) {
+    $categoriaOptionList .= '<option value="'.$categoria["id"].'" data-content="<span class=\'label\'; style=\'color: #008;'.$categoria["colore"].'\';\'>'.$categoria["nome"].'</span>">'.$categoria["nome"].'</option>';
+}
+?>
+
 <div class="modal fade" id="update_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -76,35 +84,54 @@ ruoloRichiesto('modulistica');
 			<form class="form-horizontal">
 
                 <div class="form-group">
-                    <label class="col-sm-2 control-label" for="nome">Modulo</label>
-                    <div class="col-sm-8"><input type="text" id="nome" placeholder="nome" class="form-control"/></div>
+                    <label class="col-sm-3 control-label" for="nome">Modulo</label>
+                    <div class="col-sm-7"><input type="text" id="nome" placeholder="nome" class="form-control"/></div>
                 </div>
                 <div class="form-group">
-                    <label for="intestazione" class="col-sm-2 control-label">intestazione</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="intestazione" ></div>
+                    <label for="valido" class="col-sm-3 control-label">Categoria</label>
+                    <div class="col-sm-4">
+                        <select id="categoria" name="categoria" class="categoria selectpicker" data-live-search="false" data-width="100%" > <?php echo $categoriaOptionList ?></select>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label class="col-sm-2 control-label" for="email_to">destinatario</label>
-                    <div class="col-sm-8"><input type="text" id="email_to" placeholder="email del destinatario finale (ufficio competente)" class="form-control"/></div>
+                    <label for="valido" class="col-sm-3 control-label">Valido</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="valido" ></div>
                 </div>
                 <hr>
                 <div class="form-group">
-                    <label for="approva" class="col-sm-2 control-label">approvazione</label>
+                    <label for="produci_pdf" class="col-sm-3 control-label">produci pdf</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="produci_pdf" ></div>
+                </div>
+                <div class="form-group">
+                    <label for="intestazione" class="col-sm-3 control-label">intestazione pdf</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="intestazione" ></div>
+                </div>
+                <hr>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="email_to">destinatario</label>
+                    <div class="col-sm-7"><input type="text" id="email_to" placeholder="email del destinatario finale (ufficio competente)" class="form-control"/></div>
+                </div>
+                <div class="form-group">
+                    <label for="email_di_avviso" class="col-sm-3 control-label">mail di avviso</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="email_di_avviso" ></div>
+                </div>
+                <hr>
+                <div class="form-group">
+                    <label for="approva" class="col-sm-3 control-label">approvazione</label>
                     <div class="col-sm-1 "><input type="checkbox" id="approva" ></div>
                 </div>
                 <div class="form-group">
-                    <label class="col-sm-2 control-label" for="email_approva">approvazione</label>
-                    <div class="col-sm-8"><input type="text" id="email_approva" placeholder="email per approvazione" class="form-control"/></div>
+                    <label class="col-sm-3 control-label" for="email_approva">email approvazione</label>
+                    <div class="col-sm-7"><input type="text" id="email_approva" placeholder="email per approvazione" class="form-control"/></div>
+                </div>
+                <div class="form-group">
+                    <label for="messaggio_approvazione" class="col-sm-3 control-label">messaggio approvazione</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="messaggio_approvazione" ></div>
                 </div>
                 <hr>
                 <div class="form-group">
-                    <label for="firma_forte" class="col-sm-2 control-label">firma forte</label>
+                    <label for="firma_forte" class="col-sm-3 control-label">firma forte</label>
                     <div class="col-sm-1 "><input type="checkbox" id="firma_forte" ></div>
-                </div>
-                <hr>
-                <div class="form-group">
-                    <label for="valido" class="col-sm-2 control-label">Valido</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="valido" ></div>
                 </div>
             </form>
         </div>
