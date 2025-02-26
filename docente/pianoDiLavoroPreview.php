@@ -526,7 +526,7 @@ if (! $print) {
 		$mail = new PHPMailer(true);
 
 		$sender = getSettingsValue('local', 'emailNoReplyFrom', '');
-		$mail->setFrom($sender, 'no replay');
+		$mail->setFrom($sender, 'no reply');
 		$mail->addAddress($studenteEmail, $studenteNomeCognome);
 
 		// cc to carenze

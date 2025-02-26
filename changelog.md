@@ -1,3 +1,14 @@
+## Version 1.2.57 - 14 feb 2025
+##### Bug Fixes
+- titolo anche se non pdf
+- messaggioApprovazione in modulisticaSave
+
+##### Improvements
+- mosso getEmailHead in produciTabella.php
+- approva connsidera i casi gia' trattata e chiusa
+- migliore visualizzazione messaggio in email
+- bottone chiudi in email quando serve
+
 ## Version 1.2.56 - 13 feb 2025
 ##### Improvements
 - modulistica separata per categorie

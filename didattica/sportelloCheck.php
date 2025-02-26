@@ -122,7 +122,7 @@ foreach(dbGetAll($query) as $sportello) {
 	// invia la email al docente
 	$docenteEmail = $sportello['docente_email'];
 	$mail = new PHPMailer(true);
-	$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no replay');
+	$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no reply');
 	$mail->addAddress($docenteEmail, $nomeCognome);
 	if ($sportelloNumeroStudenti > 0) {
 		$subject = "Conferma $dicituraSportello";
