@@ -1,4 +1,4 @@
-## Version 1.2.57 - 14 feb 2025
+## Version 1.2.57 - 26 feb 2025
 ##### Bug Fixes
 - titolo anche se non pdf
 - messaggioApprovazione in modulisticaSave
