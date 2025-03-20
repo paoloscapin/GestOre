@@ -1759,6 +1759,7 @@ CREATE TABLE IF NOT EXISTS `piano_di_lavoro` (
   `competenze` TEXT NULL,
   `note_aggiuntive` TEXT NULL,
   `template` TINYINT NULL DEFAULT 0,
+  `obiettivi_minimi` TINYINT NULL DEFAULT 0,
   `carenza` TINYINT NULL DEFAULT 0,
   `clil` TINYINT NULL DEFAULT 0,
   `creazione` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1780,6 +1781,7 @@ CREATE TABLE IF NOT EXISTS `piano_di_lavoro` (
   INDEX `fk_piano_di_lavoro_studente1_idx` (`studente_id` ASC),
   INDEX `carenza_INDEX` (`carenza` ASC),
   INDEX `nome_classe_INDEX` (`nome_classe` ASC),
+  INDEX `obiettivi_minimi_INDEX` (`obiettivi_minimi` ASC),
   CONSTRAINT `fk_piano_di_lavoro_indirizzo1`
     FOREIGN KEY (`indirizzo_id`)
     REFERENCES `indirizzo` (`id`)

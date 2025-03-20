@@ -1,3 +1,9 @@
+## Version 1.2.58 - 20 mar 2025
+##### Improvements
+- flag obiettivi_minimi in piano_di_lavoro nel db
+- selezione obiettivi minimi oppure template o docente
+- migliorata interfaccia per menu filtri carenza
+
 ## Version 1.2.57 - 26 feb 2025
 ##### Bug Fixes
 - titolo anche se non pdf

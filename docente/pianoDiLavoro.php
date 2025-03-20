@@ -104,6 +104,24 @@ $statoOptionList .= '<option value="'.'pubblicato'.'" data-content="<span class=
 $statoOptionList .= '<option value="'.'finale'.'" data-content="<span class=\'label label-success\';\'>'.'finale'.'</span>">'.'finale'.'</option>';
 $statoOptionList .= '<option value="'.'annullato'.'" data-content="<span class=\'label label-danger\';\'>'.'annullato'.'</span>">'.'annullato'.'</option>';
 
+// possibili valori di tipo (obiettivi minimi, dipartimento o docente)
+$label = 'Template';
+if (property_exists($__settings->label, $label)) {
+    $template = $__settings->label->$label;
+} else {
+    $template = $label;
+}
+debug("t=".$l);
+
+$tipoFiltroOptionList = '';
+$tipoFiltroOptionList .= '<option value="'.'docente'.'" data-content="<span class=\'label label-warning\';\'>'.'docente'.'</span>">'.'docente'.'</option>';
+$tipoFiltroOptionList .= '<option value="'.'template'.'" data-content="<span class=\'label label-info\';\'>'. $template .'</span>">'. $template .'</option>';
+$tipoFiltroOptionList .= '<option value="'.'obiettivi minimi'.'" data-content="<span class=\'label label-success\';\'>'.'obiettivi minimi'.'</span>">'.'obiettivi minimi'.'</option>';
+$tipoOptionList = '';
+$tipoOptionList .= '<option value="'.'docente'.'" data-content="<span class=\'label label-warning\';\'>'.'docente'.'</span>">'.'docente'.'</option>';
+$tipoOptionList .= '<option value="'.'template'.'" data-content="<span class=\'label label-info\';\'>'. $template .'</span>">'. $template .'</option>';
+$tipoOptionList .= '<option value="'.'obiettivi minimi'.'" data-content="<span class=\'label label-success\';\'>'.'obiettivi minimi'.'</span>">'.'obiettivi minimi'.'</option>';
+
 // elenco degli anni scolastici
 $annoFiltroOptionList = '<option value="0">tutti</option>';
 $annoOptionList = '';
@@ -142,10 +160,10 @@ require_once '../common/header-docente.php';
 <div class="panel panel-lima4">
 <div class="panel-heading">
 	<div class="row">
-		<div class="col-md-1">
+		<div class="col-md-2">
 			<span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro
 		</div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <div class="text-center">
                 <label class="col-sm-2 control-label" for="anno">Anno</label>
 					<div class="col-sm-8"><select id="anno_filtro" name="anno_filtro" class="anno_filtro selectpicker" data-style="btn-teal4" data-noneSelectedText="seleziona..." data-width="70%" >
@@ -153,7 +171,7 @@ require_once '../common/header-docente.php';
 					</select></div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <div class="text-center">
                 <label class="col-sm-2 control-label" for="docente">Docente</label>
 					<div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
@@ -161,35 +179,12 @@ require_once '../common/header-docente.php';
 					</select></div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <div class="text-center">
                 <label class="col-sm-2 control-label" for="materia">Materia</label>
 					<div class="col-sm-8"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
                     <?php echo $materiaFiltroOptionList ?>
 					</select></div>
-            </div>
-        </div>
-        <div class="col-md-1">
-            <div class="text-center">
-                <label class="col-sm-2 control-label" for="stato">Stato</label>
-					<div class="col-sm-8"><select id="stato_filtro" name="stato_filtro" class="stato_filtro selectpicker" data-style="btn-purple" data-noneSelectedText="seleziona..." data-width="70%" >
-                    <?php echo $statoFiltroOptionList ?>
-					</select></div>
-            </div>
-        </div>
-		<div class="col-md-2 text-center">
-            <label class="col-sm-2 control-label" for="nomeClasse">classe</label>
-            <div class="text-center">
-                <div class="col-sm-8"><select id="nomeClasse_filtro" name="nomeClasse_filtro" class="nomeClasse_filtro selectpicker" data-style="btn-salmon" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" ><?php echo $nomeClasseFiltroOptionList ?></select></div>
-            </div>
-		</div>
-        <div class="col-md-1">
-            <div class="text-center">
-				<label class="checkbox-inline">
-                <strong>
-					<input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloTemplateCheckBox" ><?php echoLabel('Template'); ?>
-                </strong>
-                </label>
             </div>
         </div>
 		<div class="col-md-1 text-right">
@@ -198,6 +193,35 @@ require_once '../common/header-docente.php';
             </div>
 		</div>
 	</div>
+<br>
+    <div class="row">
+        <div class="col-md-2">
+		</div>
+        <div class="col-md-3">
+            <div class="text-center">
+                <label class="col-sm-2 control-label" for="stato">Stato</label>
+					<div class="col-sm-8"><select id="stato_filtro" name="stato_filtro" class="stato_filtro selectpicker" data-style="btn-purple" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $statoFiltroOptionList ?>
+					</select></div>
+            </div>
+        </div>
+		<div class="col-md-3 text-center">
+            <label class="col-sm-2 control-label" for="nomeClasse">Classe</label>
+            <div class="text-center">
+                <div class="col-sm-8"><select id="nomeClasse_filtro" name="nomeClasse_filtro" class="nomeClasse_filtro selectpicker" data-style="btn-salmon" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" ><?php echo $nomeClasseFiltroOptionList ?></select></div>
+            </div>
+		</div>
+        <div class="col-md-3">
+            <div class="text-center">
+                <label class="col-sm-2 control-label" for="tipo">Tipo</label>
+					<div class="col-sm-8"><select id="tipo_filtro" name="tipo_filtro" class="tipo_filtro selectpicker" data-style="btn-purple" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $tipoFiltroOptionList ?>
+					</select></div>
+            </div>
+        </div>
+		<div class="col-md-1 text-right">
+		</div>
+    </div>
 </div>
 <div class="panel-body">
     <div class="row"  style="margin-bottom:10px;">
@@ -251,15 +275,17 @@ require_once '../common/header-docente.php';
 
                 <div class="form-group">
                     <label for="anno" class="col-sm-2 control-label">Anno Scolastico</label>
-                    <div class="col-sm-3">
+                    <div class="col-sm-2">
                         <select id="anno" name="anno" class="anno selectpicker" data-live-search="false" data-width="70%" > <?php echo $annoOptionList ?></select>
                     </div>
                     <label for="stato" class="col-sm-1 control-label">Stato</label>
                     <div class="col-sm-2">
                         <select id="stato" name="stato" class="stato selectpicker" data-live-search="false" data-width="70%" > <?php echo $statoOptionList ?></select>
                     </div>
-                    <label for="template" class="col-sm-1 control-label"><?php echoLabel('Template'); ?></label>
-                    <div class="col-sm-1"><input type="checkbox" id="template" style="vertical-align: middle;"></div>
+                    <label for="tipo" class="col-sm-1 control-label">Tipo</label>
+                    <div class="col-sm-2">
+                        <select id="tipo" name="tipo" class="tipo selectpicker" data-live-search="false" data-width="70%" > <?php echo $tipoOptionList ?></select>
+                    </div>
                     <label for="clil" class="col-sm-1 control-label">Clil</label>
                     <div class="col-sm-1"><input type="checkbox" id="clil" style="vertical-align: middle;"></div>
                 </div>

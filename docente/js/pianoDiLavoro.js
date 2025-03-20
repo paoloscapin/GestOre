@@ -6,11 +6,13 @@
  */
 
 var soloTemplate=0;
+var soloObiettiviMinimi=0;
 var anno_filtro_id=0;
 var materia_filtro_id=0;
 var docente_filtro_id=0;
 var stato_filtro_id=0;
 var nomeClasse_filtro='';
+var tipo_filtro='';
 
 $('#soloTemplateCheckBox').change(function() {
     // this si riferisce al checkbox
@@ -23,7 +25,7 @@ $('#soloTemplateCheckBox').change(function() {
 });
 
 function pianoDiLavoroReadRecords() {
-	$.get("../docente/pianoDiLavoroReadRecords.php?anchePubblicati=true&soloTemplate=" + soloTemplate + "&anno_filtro_id=" + anno_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&stato_filtro_id=" + stato_filtro_id + "&nomeClasse_filtro=" + nomeClasse_filtro, {}, function (data, status) {
+	$.get("../docente/pianoDiLavoroReadRecords.php?anchePubblicati=true&soloTemplate=" + soloTemplate + "&soloObiettiviMinimi=" + soloObiettiviMinimi + "&anno_filtro_id=" + anno_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&stato_filtro_id=" + stato_filtro_id + "&tipo_filtro=" + tipo_filtro + "&nomeClasse_filtro=" + nomeClasse_filtro, {}, function (data, status) {
         $(".records_content").html(data);
 	});
 }
@@ -65,6 +67,8 @@ function pianoDiLavoroSave() {
 
     var competenze = $('#competenze').summernote('code');
     var note_aggiuntive = $('#note_aggiuntive').summernote('code');
+    var template = $("#tipo").val() == 'template'? 1 : 0;
+    var obiettivi_minimi = $("#tipo").val() == 'obiettivi minimi'? 1 : 0;
 
     $.post("../docente/pianoDiLavoroSave.php", {
         id: $("#hidden_piano_di_lavoro_id").val(),
@@ -74,7 +78,8 @@ function pianoDiLavoroSave() {
         classe: $("#classe").val(),
         indirizzo_id: $("#indirizzo").val(),
         sezione: $("#sezione").val(),
-        template: $("#template").is(':checked')? 1: 0,
+        template: template,
+        obiettivi_minimi: obiettivi_minimi,
         clil: $("#clil").is(':checked')? 1: 0,
         stato: $("#stato").val(),
         competenze: competenze,
@@ -105,7 +110,7 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
         $.post("../docente/pianoDiLavoroReadDetails.php", {
             piano_di_lavoro_id: piano_di_lavoro_id
         }, function (data, status) {
-            console.log(data);
+            // console.log(data);
             var piano_di_lavoro = JSON.parse(data);
             $('#docente').selectpicker('val', piano_di_lavoro.docente_id);
             $('#materia').selectpicker('val', piano_di_lavoro.materia_id);
@@ -113,7 +118,13 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
             $('#indirizzo').selectpicker('val', piano_di_lavoro.indirizzo_id);
             $("#sezione").val(piano_di_lavoro.sezione);
             $('#anno').selectpicker('val', piano_di_lavoro.anno_scolastico_id);
-            $("#template").prop('checked', piano_di_lavoro.template != 0 && piano_di_lavoro.template != null);
+            if (piano_di_lavoro.template != 0) {
+                $('#tipo').selectpicker('val', 'template');console.log('template');
+            } else if (piano_di_lavoro.obiettivi_minimi != 0) {
+                $('#tipo').selectpicker('val', 'obiettivi minimi');console.log('minimi');
+            } else {
+                $('#tipo').selectpicker('val', 'docente');console.log('docente');
+            }
             $("#clil").prop('checked', piano_di_lavoro.clil != 0 && piano_di_lavoro.clil != null);
             $('#stato').selectpicker('val', piano_di_lavoro.stato);
             $('#competenze').summernote('code', piano_di_lavoro.competenze);
@@ -129,7 +140,7 @@ function pianoDiLavoroGetDetails(piano_di_lavoro_id) {
         $('#indirizzo').selectpicker('val', 1);
         $("#sezione").val("");
         $('#anno').selectpicker('val', 1);
-        $("#template").prop('checked', false);
+        $('#stato').selectpicker('val', 'docente');
         $("#clil").prop('checked', false);
         $('#stato').selectpicker('val', 'draft');
         $('#competenze').summernote('code', '');
@@ -274,11 +285,29 @@ $(document).ready(function () {
     });
 
     $("#stato_filtro").on("changed.bs.select", 
-    function(e, clickedIndex, newValue, oldValue) {
-        stato_filtro_id = this.value;
-        pianoDiLavoroReadRecords();
+        function(e, clickedIndex, newValue, oldValue) {
+            stato_filtro_id = this.value;
+            pianoDiLavoroReadRecords();
     });
 
+    $("#tipo_filtro").on("changed.bs.select", 
+        function(e, clickedIndex, newValue, oldValue) {
+            tipo_filtro = this.value;
+            // deve calcolare i flag
+            console.log('tipo_filtro='+tipo_filtro);
+            if (tipo_filtro == 'template') {
+                soloTemplate = 1;
+                soloObiettivi_minimi = 0;
+            } else if (tipo_filtro == 'docente') {
+                soloTemplate = 0;
+                soloObiettiviMinimi = 0;
+            } else {
+                soloTemplate = 0;
+                soloObiettiviMinimi = 1;
+            }
+            pianoDiLavoroReadRecords();
+    });
+  
     $("#nomeClasse_filtro").on("changed.bs.select", 
     function(e, clickedIndex, newValue, oldValue) {
         nomeClasse_filtro = this.value;
