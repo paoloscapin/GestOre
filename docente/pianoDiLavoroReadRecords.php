@@ -13,6 +13,7 @@ require_once '../common/connect.php';
 
 $anchePubblicati = $_GET["anchePubblicati"];
 $soloTemplate = $_GET["soloTemplate"];
+$soloObiettiviMinimi = $_GET["soloObiettiviMinimi"];
 $anno_filtro_id = $_GET["anno_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
 $docente_filtro_id = $_GET["docente_filtro_id"];
@@ -74,10 +75,17 @@ if( $soloTemplate) {
 	$query .= " AND NOT piano_di_lavoro.template ";
 }
 
+if( $soloObiettiviMinimi) {
+	$query .= " AND piano_di_lavoro.obiettivi_minimi ";
+} else {
+	$query .= " AND NOT piano_di_lavoro.obiettivi_minimi ";
+}
+
 $query .= " AND NOT piano_di_lavoro.carenza ";
 
 $query .= " ORDER BY docente.cognome ASC, docente.nome ASC, piano_di_lavoro.creazione DESC";
-
+debug('soloTemplate='.$soloTemplate);
+debug('soloObiettiviMinimi='.$soloObiettiviMinimi);
 foreach(dbGetAll($query) as $row) {
 
 	$piano_di_lavoro_id = $row['piano_di_lavoro_id'];

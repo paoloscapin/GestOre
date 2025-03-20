@@ -15,8 +15,8 @@ if(isset($_POST)) {
 	$original_piano_di_lavoro_id = $_POST['id'];
 
     // legge il contenuto del record corrente e lo duplica
-    $query = "INSERT INTO piano_di_lavoro(docente_id, anno_scolastico_id, carenza, template, materia_id, indirizzo_id, classe, sezione, nome_classe, competenze, note_aggiuntive)
-            SELECT '$__docente_id', '$__anno_scolastico_corrente_id', 1, 0, materia_id, indirizzo_id, classe, sezione, nome_classe, competenze, note_aggiuntive
+    $query = "INSERT INTO piano_di_lavoro(docente_id, anno_scolastico_id, carenza, template, obiettivi_minimi, materia_id, indirizzo_id, classe, sezione, nome_classe, competenze, note_aggiuntive)
+            SELECT '$__docente_id', '$__anno_scolastico_corrente_id', 1, 0, 0, materia_id, indirizzo_id, classe, sezione, nome_classe, competenze, note_aggiuntive
             FROM piano_di_lavoro WHERE id = $original_piano_di_lavoro_id; ";
     dbExec($query);
 

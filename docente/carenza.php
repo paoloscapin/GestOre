@@ -134,7 +134,7 @@ require_once '../common/header-docente.php';
 		<div class="col-md-1">
 			<span class="glyphicon glyphicon-th-large"></span>&ensp;Carenze
 		</div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <div class="text-center">
                 <label class="col-sm-2 control-label" for="anno">Anno</label>
 					<div class="col-sm-8"><select id="anno_filtro" name="anno_filtro" class="anno_filtro selectpicker" data-style="btn-teal4" data-noneSelectedText="seleziona..." data-width="70%" >
@@ -142,7 +142,7 @@ require_once '../common/header-docente.php';
 					</select></div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <div class="text-center">
                 <label class="col-sm-2 control-label" for="docente">Docente</label>
 					<div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
@@ -150,7 +150,7 @@ require_once '../common/header-docente.php';
 					</select></div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <div class="text-center">
                 <label class="col-sm-2 control-label" for="materia">Materia</label>
 					<div class="col-sm-8"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
@@ -159,10 +159,6 @@ require_once '../common/header-docente.php';
             </div>
         </div>
         <div class="col-md-2">
-        </div>
-        <div class="col-md-1">
-        </div>
-        <div class="col-md-1">
             <div class="text-center">
 				<label class="checkbox-inline">
                 <strong>
@@ -171,8 +167,6 @@ require_once '../common/header-docente.php';
 				</label>
             </div>
         </div>
-		<div class="col-md-1 text-right">
-		</div>
 	</div>
 </div>
 <div class="panel-body">
