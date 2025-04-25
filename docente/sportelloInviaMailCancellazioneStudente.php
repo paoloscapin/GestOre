@@ -42,7 +42,7 @@ else
     $studente_nome = $row['studente_nome'];
     $studente_email = $row['studente_email'];
 
-    $full_mail_body = file_get_contents("template_mail_cancella_studente.html");
+    $full_mail_body = file_get_contents("../docente/template_mail_cancella_studente.html");
 
     $full_mail_body = str_replace("{titolo}","ANNULLAMENTO ATTIVITA'<br>".strtoupper($categoria),$full_mail_body);
     $full_mail_body = str_replace("{nome}",strtoupper($studente_cognome) . " " . strtoupper($studente_nome),$full_mail_body);
