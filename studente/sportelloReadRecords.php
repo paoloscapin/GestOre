@@ -107,7 +107,7 @@ foreach ($resultArray as $row) {
 		$sportello_categoria = $row['sportello_categoria'];
 		$todayDate = new DateTime("today");
 		$sportelloDate = new DateTime($row['sportello_data']);
-		$passato = ($sportelloDate <= $todayDate);
+		$passato = ($sportelloDate < $todayDate);
 		//info("sportelloDate " . $sportelloDate->format(("d-m-Y")) . " todayDate " . $todayDate->format(("d-m-Y")));
 
 		$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
