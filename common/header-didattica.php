@@ -26,7 +26,19 @@
 		<?php if(getSettingsValue('config','pianiDiLavoro', false)) : ?>
 			<div class="btn-group">
 			<a href="<?php echo $__application_base_path; ?>/docente/pianoDiLavoro.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
+			</div>
 		<?php endif; ?>
+		<?php if(getSettingsValue('config','pianiDiLavoroEstesi', false)) : ?>
+			<div class="btn-group">
+			<a href="<?php echo $__application_base_path; ?>/docente/pdl.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
+			</div>
+		<?php endif; ?>
+		<?php if(getSettingsValue('config','programmaMaterie', false)) : ?>
+			<div class="btn-group">
+			<a href="<?php echo $__application_base_path; ?>/didattica/programmaMaterie.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Programma Materie </a>
+			</div>
+		<?php endif; ?>
+		
 		</ul>
 
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">

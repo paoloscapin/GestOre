@@ -64,6 +64,14 @@ if ($num > 0) {
 <?php endif; ?>
 	</div>
 <?php endif; ?>
+<?php if(getSettingsValue('config','pianiDiLavoroEstesi', false)) : ?>
+	<?php if(getSettingsValue('pianiDiLavoroEstesi','visibile_docente', false)) : ?>
+		<div class="btn-group">
+	<a href="<?php echo $__application_base_path; ?>/docente/pdl.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
+	</div>
+	<?php endif; ?>
+<?php endif; ?>
+
 </ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a href="<?php echo $__settings->local->helpLinkDocente; ?>" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>

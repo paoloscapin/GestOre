@@ -74,6 +74,13 @@ echo ' <a href="'.$__application_base_path.'/dirigente/storico.php" class="btn b
 <?php if(getSettingsValue('config','pianiDiLavoro', false)) : ?>
 	<a href="<?php echo $__application_base_path; ?>/docente/pianoDiLavoro.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
 <?php endif; ?>
+<?php if(getSettingsValue('config','pianiDiLavoroEstesi', false)) : ?>
+	<a href="<?php echo $__application_base_path; ?>/docente/pdl.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
+<?php endif; ?>
+<?php if(getSettingsValue('config','programmaMaterie', false)) : ?>
+			<div class="btn-group">
+			<a href="<?php echo $__application_base_path; ?>/didattica/programmaMaterie.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Programma Materie </a>
+<?php endif; ?>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a href="<?php echo $__settings->local->helpLinkDirigente; ?>" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>
