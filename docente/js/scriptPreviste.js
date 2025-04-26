@@ -133,6 +133,7 @@ function diariaPrevistaGetDetails(id) {
 				$("#diaria_descrizione").val(diaria.descrizione);
 				$("#diaria_giorni_senza_pernottamento").val(diaria.giorni_senza_pernottamento);
 				$("#diaria_giorni_con_pernottamento").val(diaria.giorni_con_pernottamento);
+				setOre('#diaria_ore', diaria.ore);
 				$("#diaria_commento").val(diaria.commento);
 			}
 		);
@@ -140,6 +141,7 @@ function diariaPrevistaGetDetails(id) {
 		$("#diaria_descrizione").val('');
 		$("#diaria_giorni_senza_pernottamento").val('');
 		$("#diaria_giorni_con_pernottamento").val('');
+		setOre('#diaria_ore', 0);
 		$("#diaria_commento").val('');
 	}
 	if ($("#hidden_operatore").val() == 'dirigente') {
@@ -154,10 +156,19 @@ function diariaPrevistaGetDetails(id) {
 		$("#diaria_commento-part").hide();
 	}
 
+    $("#_error-diaria-part").hide();
 	$("#diaria_modal").modal("show");
 }
 
 function diariaSave() {
+	if (($("#diaria_ore").val() != "0:00")&&(($("#diaria_giorni_con_pernottamento").val() > 0)||($("#diaria_giorni_con_pernottamento").val() > 0))) {
+        $("#_error-diaria").text("Le ore di recupero, per le uscite in giornata oltre il proprio orario di servizio, possono essere inserite in alternativa alla diaria giornaliera se tali ore non finiscono a FUIS. In tutti gli altri casi va inserita solo la diaria giornaliera.");
+        $("#_error-diaria-part").show();
+        return;
+    }
+    // se tutto bene nasconde il messaggio di errore e prosegue nel save
+    $("#_error-diaria-part").hide();
+
 	$.post("../docente/viaggioDiariaPrevistaSave.php", {
     	id: $("#hidden_diaria_id").val(),
 		docente_id: $("#hidden_diaria_docente_id").val(),
@@ -165,6 +176,7 @@ function diariaSave() {
     	descrizione: $("#diaria_descrizione").val(),
     	giorni_senza_pernottamento: $("#diaria_giorni_senza_pernottamento").val(),
     	giorni_con_pernottamento: $("#diaria_giorni_con_pernottamento").val(),
+		ore: getOre('#diaria_ore'),
     	commento: $("#diaria_commento").val()
     }, function (data, status) {
 		orePrevisteReloadTables();
@@ -362,6 +374,7 @@ $(document).ready(function () {
 
 	// questi campi potrebbero essere gestiti in minuti se settato nel json
 	campiInMinuti(
-		'#update_ore'
+		'#update_ore',
+		'#diaria_ore'
 	);
 });
