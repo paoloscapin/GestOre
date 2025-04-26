@@ -915,7 +915,7 @@ require_once '../docente/attribuiteModal.php';
 			<div class="form-group" id="_error-diaria-part"><strong>
                     <hr>
                     <div class="col-sm-3 text-right text-danger ">Attenzione</div>
-                    <div class="col-sm-9" id="_error-diaria">ciao</div>
+                    <div class="col-sm-9" id="_error-diaria"></div>
 				</strong>
 			</div>
 			<div class="modal-footer">
