@@ -32,6 +32,8 @@
         "sportelli": true,
         "gestioneViaggiSemplificata": true,
         "pianiDiLavoro": false,
+        "pianiDiLavoroEstesi": false,
+        "programmaMaterie": true,
         "carenze": false
     },
     "interfaccia": {
@@ -107,6 +109,9 @@
         "note_aggiuntive": true,
         "duplicaTemplateSoloSeFinale": true,
         "stampaEstesa": true
+    },
+    "pianiDiLavoroEstesi": {
+        "visibile_docenti": false
     },
     "corsiDiRecupero": {
         "corsiDiRecuperoFirmaDocente": true,
