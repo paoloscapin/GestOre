@@ -912,6 +912,12 @@ require_once '../docente/attribuiteModal.php';
 
             </div>
             </div>
+			<div class="form-group" id="_error-diaria-part"><strong>
+                    <hr>
+                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                    <div class="col-sm-9" id="_error-diaria">ciao</div>
+				</strong>
+			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
 				<button type="button" class="btn btn-primary" onclick="diariaSave()" >Salva</button>
