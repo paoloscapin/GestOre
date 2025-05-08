@@ -111,7 +111,6 @@ if (property_exists($__settings->label, $label)) {
 } else {
     $template = $label;
 }
-debug("t=".$l);
 
 $tipoFiltroOptionList = '';
 $tipoFiltroOptionList .= '<option value="'.'docente'.'" data-content="<span class=\'label label-warning\';\'>'.'docente'.'</span>">'.'docente'.'</option>';

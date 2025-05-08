@@ -1,3 +1,10 @@
+## Version 1.2.59 - 8 mag 2025
+##### Bug Fixes
+- stampa piano di lavoro in pdf: rimossa table a causa di pagine bianche se troppo lunga
+
+##### Improvements
+- stampa titolo piano di lavoro, obiettivi minimi e programma svolto
+
 ## Version 1.2.58 - 20 mar 2025
 ##### Improvements
 - flag obiettivi_minimi in piano_di_lavoro nel db

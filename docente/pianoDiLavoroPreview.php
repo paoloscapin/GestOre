@@ -75,16 +75,18 @@ $annoScolasticoNome = $pianoDiLavoro['anno_scolastico_anno'];
 $materiaNome = $pianoDiLavoro['materia_nome'];
 $competenze = $pianoDiLavoro['competenze'];
 $note_aggiuntive = $pianoDiLavoro['note_aggiuntive'];
+$stato = $pianoDiLavoro['stato'];
+$obiettivi_minimi = $pianoDiLavoro['obiettivi_minimi'];
 
 // controllo lo stato
 $statoMarker = '';
-if ($pianoDiLavoro['stato'] == 'draft') {
+if ($stato == 'draft') {
 	$statoMarker .= '<span class="label label-warning">draft</span>';
-} elseif ($pianoDiLavoro['stato'] == 'annullato') {
+} elseif ($stato == 'annullato') {
 	$statoMarker .= '<span class="label label-danger">annullato</span>';
-} elseif ($pianoDiLavoro['stato'] == 'finale') {
+} elseif ($stato == 'finale') {
 	$statoMarker .= '<span class="label label-success">finale</span>';
-} elseif ($pianoDiLavoro['stato'] == 'pubblicato') {
+} elseif ($stato == 'pubblicato') {
 	$statoMarker .= '<span class="label label-info">pubblicato</span>';
 }
 
@@ -113,6 +115,8 @@ if ($carenza) {
 // aggiunge nella pagina il titolo e gli stili
 if ($carenza) {
 	$pagina .= '<title>Carenza  ' . $studenteNomeCognome .' - ' . $materiaNome . ' - ' . $annoScolasticoNome . '</title>';
+} else if ($obiettivi_minimi) {
+	$pagina .= '<title>Obiettivi Minimi  ' . $nomeClasse .' - ' . $annoScolasticoNome . '</title>';
 } else {
 	$pagina .= '<title>Piano di Lavoro  ' . $nomeClasse .' - ' . $annoScolasticoNome . '</title>';
 }
@@ -218,7 +222,7 @@ $pagina .= '
 		<hr>
 	</div>';
 
-// prima table: solo il titolo centrato (carenza o piano di lavoro)
+// prima table: solo il titolo centrato
 $pagina .= '
 	<table style="width: 100%; border-collapse: collapse; border-style: none; border=0">
 	<tbody>
@@ -227,7 +231,18 @@ $pagina .= '
 	</td>
 	<td style="width: 64%;">
 	<h1 style="text-align: center;">';
-$pagina .= ($carenza? $studenteNomeCognome : 'Piano di lavoro');
+
+	// carenza o piano di lavoro: se pubblicato 'Programma effettivamente Svolto'
+if ($carenza) {
+	$pagina .= $studenteNomeCognome ;
+} else if($obiettivi_minimi) {
+	$pagina .= 'Obiettivi Minimi';
+} else if($stato == 'pubblicato') {
+	$pagina .= 'Programma Svolto';
+} else {
+	$pagina .= 'Piano di lavoro';
+}
+
 $pagina .= '</h1>
 	</td>
 	<td style="width: 18%;text-align: right;"><h3 style="text-align: right;">'.$studenteClasse.'</h3>
@@ -326,41 +341,52 @@ foreach(dbGetAll($query) as $row) {
 	$piano_di_lavoro_contenuto_titolo = $row['piano_di_lavoro_contenuto_titolo'];
 	$piano_di_lavoro_contenuto_testo = $row['piano_di_lavoro_contenuto_testo'];
 
-    $data .= '
-		<table style="border-collapse: collapse; width: 100%; border=1">
-		<tbody>
-		<tr>
-		<td style="width: 6%;text-align: center;">
-		<h2 class="unita_titolo">&nbsp;'.$piano_di_lavoro_contenuto_posizione.'.</h2>
-		</td>
-		<td style="width: 94%;">
-		<h2 class="unita_titolo">'.$piano_di_lavoro_contenuto_titolo.'</h2>
-		</td>
-		</tr>
-		</tbody>
-		</table>
-		<table style="border-collapse: collapse; width: 100%; border=0">
-		<tbody>
-		<tr>
-		<td style="width: 6%;">&nbsp;</td>
-		<td style="width: 94%;">
-		'.$piano_di_lavoro_contenuto_testo.'
-		</td>
-		</tr>
-		</tbody>
-		</table>';
+	if (false) {
+		// qyesto meccanismo obsoleto utilizzava una tabella, che tuttavia creava problemi nella realizzazione del pdf se si espandeva su più di una pagina
+		$data .= '
+			<table style="border-collapse: collapse; width: 100%; border=1">
+			<tbody>
+			<tr>
+			<td style="width: 6%;text-align: center;">
+			<h2 class="unita_titolo">&nbsp;'.$piano_di_lavoro_contenuto_posizione.'.</h2>
+			</td>
+			<td style="width: 94%;">
+			<h2 class="unita_titolo">'.$piano_di_lavoro_contenuto_titolo.'</h2>
+			</td>
+			</tr>
+			</tbody>
+			</table>
+			<table style="border-collapse: collapse; width: 100%; border=0">
+			<tbody>
+			<tr>
+			<td style="width: 6%;">&nbsp;</td>
+			<td style="width: 94%;">
+			'.$piano_di_lavoro_contenuto_testo.'
+			</td>
+			</tr>
+			</tbody>
+			</table>';
 
-		// chiude il div del page break avoid
-		$data .= '</div>';
-		$data .= '<div style="page-break-inside: auto">';
-		$data .= '<p>&nbsp;</p>';
+	} else {
+		$data .= '
+			<h2 class="unita_titolo">&nbsp;'.$piano_di_lavoro_contenuto_posizione.'.&nbsp;'.$piano_di_lavoro_contenuto_titolo.'</h2>'.
+			'<div style="padding-left: 30px;">'.
+			$piano_di_lavoro_contenuto_testo.
+			'</div>';
 
-		// qui la pagina potrebbe anche finire
-		$data .= '</div>';
-
-		// evita un page break in mezzo ad un blocco
-		$data .= '<div style="page-break-inside: avoid">';
 	}
+
+	// chiude il div del page break avoid
+	$data .= '</div>';
+	$data .= '<div style="page-break-inside: auto">';
+	$data .= '<p>&nbsp;</p>';
+
+	// qui la pagina potrebbe anche finire
+	$data .= '</div>';
+
+	// evita un page break in mezzo ad un blocco
+	$data .= '<div style="page-break-inside: avoid">';
+}
 
 // chiudo l'ultimo div del page break perché qui si potrebbe anche interrompere la pagina
 $data .= '</div>';
