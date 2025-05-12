@@ -342,6 +342,24 @@ foreach(dbGetAll($query) as $row) {
 	$piano_di_lavoro_contenuto_testo = $row['piano_di_lavoro_contenuto_testo'];
 
 	if (false) {
+		// elimina eventuali tag con decoratori inseriti da ms-word o simile che creano problemi in generazione del pdf
+		// TODO: andrebbe spostato in un posto dove il testo viene salvato, in modo però che venga poi riletto per visualizzare quello effettivamente salvato
+
+		// elimina tutti gli span
+		$piano_di_lavoro_contenuto_testo = preg_replace('|<span.*?>|s', '', $piano_di_lavoro_contenuto_testo);
+		$piano_di_lavoro_contenuto_testo = preg_replace('|</span>|s', '', $piano_di_lavoro_contenuto_testo);
+
+		// elimina i fastidiosi o:p
+		$piano_di_lavoro_contenuto_testo = preg_replace('|<o:p>|s', '', $piano_di_lavoro_contenuto_testo);
+		$piano_di_lavoro_contenuto_testo = preg_replace('|</o:p>|s', '', $piano_di_lavoro_contenuto_testo);
+
+		// elimina tutti i decorator dei tag p, dei tag ul, dei tag li
+		$piano_di_lavoro_contenuto_testo = preg_replace('|<p .*?>|s', '<p>', $piano_di_lavoro_contenuto_testo);
+		$piano_di_lavoro_contenuto_testo = preg_replace('|<ul .*?>|s', '<ul>', $piano_di_lavoro_contenuto_testo);
+		$piano_di_lavoro_contenuto_testo = preg_replace('|<li .*?>|s', '<li>', $piano_di_lavoro_contenuto_testo);
+	}
+
+	if (false) {
 		// qyesto meccanismo obsoleto utilizzava una tabella, che tuttavia creava problemi nella realizzazione del pdf se si espandeva su più di una pagina
 		$data .= '
 			<table style="border-collapse: collapse; width: 100%; border=1">
