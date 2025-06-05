@@ -344,7 +344,7 @@ function sportelloGetDetails(sportello_id) {
 
 
     $("#_error-materia-part").hide();
-    $("#sportello_modal").modal("show");
+   
 }
 
 function importFile(file) {
