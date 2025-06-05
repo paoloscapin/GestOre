@@ -27,7 +27,7 @@ function erroreDiImport($messaggio) {
     $dataHtml = $dataHtml . "<strong>Errore di import linea $linePos:</strong> " . $messaggio .'<br>';
 
     // azzera le istruzioni sql
-    $sqlList = array();
+   // $sqlList = array();
 }
 
 function getWordContent($words, $pos) {
@@ -172,12 +172,12 @@ foreach($lines as $line) {
 if (!empty($sqlList)) {
     foreach($sqlList as $sql) {
         dbExec($sql);
-        // debug($sql);
     }
+
     info('Import effettuato: inseriti ' . $sportelli . ' nuovi sportelli');
 }
 
-if ($terminatoCorrettamente) {
+if ($sportelli>0) {
     echo '<strong>Import effettuato: inseriti ' . $sportelli . ' nuovi sportelli</strong>';
 } else {
     echo $dataHtml;
