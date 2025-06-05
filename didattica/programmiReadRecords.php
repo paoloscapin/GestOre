@@ -48,8 +48,8 @@ $query = "	SELECT
 			ON programma_materie.id_materia = materia.id
 			INNER JOIN utente utente
 			ON programma_materie.id_utente = utente.id
-			";
-
+			WHERE true ";
+				
 if ($anno_filtro_id > 0) {
 	$query .= "AND programma_materie.anno = '$anno_filtro_id' ";
 }
@@ -60,7 +60,7 @@ if ($indirizzo_filtro_id > 0) {
 	$query .= "AND programma_materie.id_indirizzo = $indirizzo_filtro_id ";
 }
 
-//$query .= "ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC,docente_nome ASC";
+$query .= "ORDER BY programma_materie.anno ASC, indirizzo.nome ASC, materia.nome ASC";
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
@@ -84,10 +84,21 @@ foreach ($resultArray as $row) {
 		<td align="center">' . $materia . '</td>
 		';
 		$data .= '
-		<td class="text-center">
-		<button onclick="sportelloGetDetails(' . $programma_id . ')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-		<button onclick="sportelloDelete(' . $programma_id . ', \'' . $row['materia_nome'] . '\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-		<button id="selectbutton' . $programma_id . '" onclick="sportelloSelect(' . $programma_id . ')" class="btn btn-info btn-xs"><span id="selecticon' . $programma_id . '" class="glyphicon glyphicon-remove"></button>
+		<td class="text-center">';
+
+		if (haRuolo('docente'))
+		$data .= '
+			<button onclick="programmaGetDetails(' . $programma_id . ')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Visualizza il dettaglio della materia"><span class="glyphicon glyphicon-search"></button>
+		';
+		if ((haRuolo('dirigente'))||(haRuolo('segreteria-didattica')))
+		{
+			$data .= '
+  			<button onclick="programmaGetDetails(' . $programma_id . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la materia"><span class="glyphicon glyphicon-pencil"></button>
+			<button onclick="programmaDelete(' . $programma_id . ', \'' . $materia. '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la materia"><span class="glyphicon glyphicon-trash"></button>
+			<button onclick="programmaPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma della materia"><span class="glyphicon glyphicon-print"></button>
+		';
+		}
+		$data .= '
 		</td>
 		<td align="center">' . $update . '</td>
 		<td align="center">' . $autore . '</td>
