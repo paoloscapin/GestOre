@@ -14,8 +14,9 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 //require_once '../common/_include_bootstrap-toggle.php';
-require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_flatpickr.php';
+require_once '../common/_include_bootstrap-select.php';
+require_once '../common/_include_bootstrap-notify.php';
 require_once '../common/__Minuti.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente');
 ?>
