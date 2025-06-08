@@ -55,6 +55,7 @@ function programmaGetDetails(programma_id) {
 
 function moduloGetDetails(modulo_id) {
     $("#hidden_modulo_id").val(modulo_id);
+    nmoduli = parseInt($("#hidden_nmoduli").val());
 
     if (modulo_id > 0) {
         $.post("../didattica/moduloReadDetails.php", {
@@ -71,7 +72,7 @@ function moduloGetDetails(modulo_id) {
     }
     else {
             $('#titolo').val("");
-            $('#ordine').val("1");
+            $('#ordine').val(nmoduli+1);
             $('#conoscenze').val("");
             $('#abilita').val("");
             $('#competenze').val("");
@@ -177,7 +178,7 @@ function moduloSave() {
         return;
     }
     $("#_error-modulo-part").hide();
-
+      console.log("salvataggio in corso");
     $.post("moduloSave.php", {
         id: $("#hidden_modulo_id").val(),
         id_programma: $("#hidden_programma_id").val(),

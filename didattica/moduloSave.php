@@ -27,16 +27,16 @@ if(isset($_POST)) {
 	$periodo = str_replace("'","''",$periodo);
 	date_default_timezone_set("Europe/Rome");
     $update = date("Y-m-d H-i-s");
-	$utente_id = $__utente_id;
+	$id_utente = $__utente_id;
 	if ($id > 0) {
-		$query = "UPDATE programma_moduli SET id_programma = '$id_programma', ordine = '$ordine', nome = '$titolo', conoscenze = '$conoscenze', abilita = '$abilita', competenze = '$competenze', periodo = '$periodo', updated = '$update' WHERE id = '$id'";
+		$query = "UPDATE programma_moduli SET id_programma = '$id_programma', id_utente = '$id_utente', ordine = '$ordine', nome = '$titolo', conoscenze = '$conoscenze', abilita = '$abilita', competenze = '$competenze', periodo = '$periodo', updated = '$update' WHERE id = '$id'";
 		dbExec($query);
-		info("aggiornato programma modulo id=$id id_materia=$materia_id id_utente=$utente_id updated=$update");
+		info("aggiornato programma modulo id=$id id_programma=$id_programma id_utente=$id_utente updated=$update");
 	} else {
-		$query = "INSERT INTO programma_moduli(id_programma,ordine,nome,conoscenze,abilita,competenze,periodo,updated) VALUES('$id_programma', '$ordine', '$titolo', '$conoscenze', '$abilita', '$competenze', '$periodo','$update')";
+		$query = "INSERT INTO programma_moduli(id_programma,ordine,nome,conoscenze,abilita,competenze,periodo,id_utente,updated) VALUES('$id_programma', '$ordine', '$titolo', '$conoscenze', '$abilita', '$competenze', '$periodo','$id_utente','$update')";
 		dbExec($query);
 		$id = dblastId();
-		info("aggiunto programma modulo id=$id  id_materia=$materia_id id_utente=$utente_id updated=$update");
+		info("aggiunto programma modulo id=$id  id_programma=$id_programma id_utente=$id_utente updated=$update");
 	}
 }
 ?>

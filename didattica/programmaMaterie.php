@@ -337,7 +337,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                 if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
                                     echo '
                                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                <button type="button" class="btn btn-primary" onclick="programmaSave()">Salva</button>
+                                <button type="button" class="btn btn-primary" onclick="moduloSave()">Salva</button>
                                 ';
                                 }
                                 ?>

@@ -66,8 +66,10 @@ $resultArray = dbGetAll($query);
 if ($resultArray == null) {
 	$resultArray = [];
 }
+
 foreach ($resultArray as $row) {
 	{
+
 		$programma_id = $row['programma_id'];
 		$anno = $row['anno_id'];
 		$indirizzo = $row['indirizzo_nome'];

@@ -19,6 +19,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					<tr>
 						<th class="text-center col-md-1">Ordine</th>
 						<th class="text-center col-md-4">Titolo</th>
+						<th class="text-center col-md-2">Autore</th>
 						<th class="text-center col-md-2">Ultimo aggiornamento</th>
 						<th class="text-center col-md-2">Azioni</th>
 					</tr>
@@ -27,6 +28,7 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					$query = "	SELECT
 					programma_moduli.id AS modulo_id,
 					programma_moduli.id_programma AS programma_id,
+					programma_moduli.id_utente AS modulo_utente,
 					programma_moduli.ordine AS modulo_ordine,
 					programma_moduli.nome AS modulo_nome,
 					programma_moduli.updated AS modulo_updated
@@ -39,16 +41,24 @@ $resultArray = dbGetAll($query);
 if ($resultArray == null) {
 	$resultArray = [];
 }
+$nmoduli=0;
 foreach ($resultArray as $row) {
 	{
+		$nmoduli++;
 		$idmodulo = $row['modulo_id'];
 		$id_programma = $row['programma_id'];
 		$ordine = $row['modulo_ordine'];
 		$titolo = $row['modulo_nome'];
 		$updated = $row['modulo_updated'];
+		$id_autore = $row['modulo_utente'];
+		$query = "SELECT utente.cognome,utente.nome from utente WHERE utente.id = " . $id_autore;
+		$result = dbGetFirst($query);
+		$autore = $result['cognome']." ".$result['nome'];
+		//$autore="massimo";
 		$data .= '<tr>
 		<td align="center">' . $ordine . '</td>
 		<td align="center">' . $titolo . '</td>
+		<td align="center">' . $autore . '</td>
 		<td align="center">' . $updated . '</td>
 		';
 		$data .= '
@@ -74,6 +84,7 @@ foreach ($resultArray as $row) {
 }
 
 $data .= '</table></div>';
+$data .= '<input type="hidden" id="hidden_nmoduli" value=' . $nmoduli . '>';
 
 echo $data;
 ?>
