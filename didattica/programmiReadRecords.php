@@ -49,7 +49,7 @@ $query = "	SELECT
 			INNER JOIN utente utente
 			ON programma_materie.id_utente = utente.id
 			WHERE true ";
-				
+
 if ($anno_filtro_id > 0) {
 	$query .= "AND programma_materie.anno = '$anno_filtro_id' ";
 }
@@ -67,8 +67,7 @@ if ($resultArray == null) {
 	$resultArray = [];
 }
 
-foreach ($resultArray as $row) {
-	{
+foreach ($resultArray as $row) { {
 
 		$programma_id = $row['programma_id'];
 		$anno = $row['anno_id'];
@@ -77,8 +76,8 @@ foreach ($resultArray as $row) {
 		$update = $row['ultimo_agg'];
 		$autore = $row['utente_cognome'] . " " . $row['utente_nome'];
 
-		$phpdate = strtotime( $update );
-		$update = date( 'd-m-Y', $phpdate ) . " alle ore " . date( 'H:i:s', $phpdate );
+		$phpdate = strtotime($update);
+		$update = date('d-m-Y', $phpdate) . " alle ore " . date('H:i:s', $phpdate);
 
 		$data .= '<tr>
 		<td align="center">' . $anno . '</td>
@@ -88,18 +87,20 @@ foreach ($resultArray as $row) {
 		$data .= '
 		<td class="text-center">';
 
-		if (haRuolo('docente'))
-		$data .= '
-			<button onclick="programmaGetDetails(' . $programma_id . ')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Visualizza il dettaglio della materia"><span class="glyphicon glyphicon-search"></button>
-		';
-		if ((haRuolo('dirigente'))||(haRuolo('segreteria-didattica')))
-		{
+		if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
 			$data .= '
   			<button onclick="programmaGetDetails(' . $programma_id . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la materia"><span class="glyphicon glyphicon-pencil"></button>
-			<button onclick="programmaDelete(' . $programma_id . ', \'' . $materia. '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la materia"><span class="glyphicon glyphicon-trash"></button>
+			<button onclick="programmaDelete(' . $programma_id . ', \'' . $materia . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la materia"><span class="glyphicon glyphicon-trash"></button>
 			<button onclick="programmaPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma della materia"><span class="glyphicon glyphicon-print"></button>
 		';
-		}
+		} else
+			if (haRuolo('docente')) {
+				if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
+					$data .= '
+						<button onclick="programmaGetDetails(' . $programma_id . ')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Visualizza il dettaglio della materia"><span class="glyphicon glyphicon-search"></button>
+						';
+				}
+			}
 		$data .= '
 		</td>
 		<td align="center">' . $update . '</td>

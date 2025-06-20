@@ -22,7 +22,7 @@ ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
     <script type="text/javascript"
         src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
-    <title>Programma Materie</title>
+    <title>Programmi Svolti</title>
 
     <style>
         .icon-play {
@@ -36,13 +36,27 @@ ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
 </head>
 
 <?php
-if (((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))  || ((haRuolo('docente')) && (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) && (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false))) )
+// if (((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))  || ((haRuolo('docente')) && (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) && (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false))) )
+// {
+//     $modificheDisabilitate = '';
+// } else {
+//     $modificheDisabilitate = ' disabled ';
+// }
+
+$id_docente_utente = 0;
+if ($__utente_ruolo=='docente')
 {
-    $modificheDisabilitate = '';
-} else {
-    $modificheDisabilitate = ' disabled ';
+$query = "SELECT * from docente WHERE docente.username='".$__username."'";
+$result = dbGetFirst($query);
+if ($result != null)
+{
+    $id_docente_utente = $result['id'];
+}
 }
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
+$modificheDisabilitate = 'disabled';
+$annoCorsoOptionList = "";
+$indirizzoCorsoOptionList = "";
 $materiaFiltroOptionList = '<option value="0">Tutte</option>';
 $materiaOptionList = '<option value="0"></option>';
 foreach (dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ") as $materia) {
@@ -50,20 +64,28 @@ foreach (dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ") as $mate
     $materiaOptionList .= '<option value="' . $materia['id'] . '" >' . $materia['nome'] . '</option> ';
 }
 
-// classi da 1 a 5
-$annoCorsoFiltroOptionList = '<option value="0">T</option>';
-$annoCorsoOptionList = '<option value="0">selezionare anno</option>';
-for ($i = 1; $i <= 5; $i++) {
-    $annoCorsoFiltroOptionList .= '<option value="' . $i . '" >' . $i . '</option> ';
-    $annoCorsoOptionList .= '<option value="' . $i . '" >' . $i . '</option> ';
+// classi 
+$classiFiltroOptionList = '<option value="0">T</option>';
+$classiOptionList = '<option value="0">selezionare classe</option>';
+foreach (dbGetAll("SELECT * FROM classi WHERE attiva=1 ORDER BY classi.classe ASC ; ") as $classe) {
+    $classiFiltroOptionList .= '<option value="' . $classe['id'] . '" >' . $classe['classe'] . '</option> ';
+    $classiOptionList .= '<option value="' . $classe['id'] . '" >' . $classe['classe'] . '</option> ';
 }
 
-// prepara l'elenco degli indirizzi per il filtro e per gli indirizi del dialog
-$indirizzoCorsoFiltroOptionList = '<option value="0">Tutti</option>';
-$indirizzoCorsoOptionList = '<option value="0">selezionare indirizzo</option>';
-foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; ") as $indirizzo) {
-    $indirizzoCorsoFiltroOptionList .= '<option value="' . $indirizzo['id'] . '" >' . $indirizzo['nome'] . '</option> ';
-    $indirizzoCorsoOptionList .= '<option value="' . $indirizzo['id'] . '" >' . $indirizzo['nome'] . '</option> ';
+// prepara l'elenco dei docenti
+$docentiFiltroOptionList = '<option value="0">Tutti</option>';
+$docentiOptionList = '<option value="0"></option>';
+foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente.cognome ASC ; ") as $docente) {
+    if (($docente['id'])==$id_docente_utente)
+    {
+        $docentiFiltroOptionList .= '<option value="' . $docente['id'] . '" selected>' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+        $docentiOptionList .= '<option value="' . $docente['id'] . '" selected>' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+    }
+    else
+    {
+        $docentiFiltroOptionList .= '<option value="' . $docente['id'] . '" >' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+        $docentiOptionList .= '<option value="' . $docente['id'] . '" >' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+    }
 }
 
 ?>
@@ -84,32 +106,24 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
     {
         require_once '../common/header-studente.php';
     }
-    ?>
 
+    ?>
+    <input type="hidden" id="hidden_docente_id" value="<?php echo $id_docente_utente ?>">
     <div class="container-fluid" style="margin-top:60px">
         <div class="panel panel-lima4">
             <div class="panel-heading">
                 <div class="row">
                     <div class="col-md-1 text-center">
                         <span class="glyphicon glyphicon-list-alt"
-                            style="margin:5px"></span><br><b>Programma<br>Discipline</b>
+                            style="margin:5px"></span><br><b>Programmi<br>Svolti</b>
                     </div>
                     <div class="col-md-1 text-center">
-                        <label class="col-sm-8 control-label" for="annoCorso">Anno</label>
+                        <label class="col-sm-12 control-label" for="classi">Classe</label>
                         <div class="text-center">
-                            <div class="col-sm-8"><select id="annoCorso_filtro" name="annoCorso_filtro"
-                                    class="annoCorso_filtro selectpicker" data-style="btn-salmon"
-                                    data-live-search="true" data-noneSelectedText="seleziona..."
-                                    data-width="100%"><?php echo $annoCorsoFiltroOptionList ?></select></div>
-                        </div>
-                    </div>
-                    <div class="col-md-2 text-center">
-                        <label class="col-sm-12 control-label" for="indirizzoCorso">Indirizzo</label>
-                        <div class="text-center">
-                            <div class="col-sm-12"><select id="indirizzoCorso_filtro" name="indirizzoCorso_filtro"
-                                    class="indirizzoCorso_filtro selectpicker" data-style="btn-salmon"
-                                    data-live-search="true" data-noneSelectedText="seleziona..."
-                                    data-width="100%"><?php echo $indirizzoCorsoFiltroOptionList ?></select></div>
+                            <div class="col-sm-12"><select id="classi_filtro" name="classi_filtro"
+                                    class="classi_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
+                                    data-noneSelectedText="seleziona..."
+                                    data-width="100%"><?php echo $classiFiltroOptionList ?></select></div>
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -122,7 +136,20 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                 </select></div>
                         </div>
                     </div>
-                    <!-- <div class="col-md-1">
+
+                       <div class="col-md-2">
+                        <div class="text-center">
+                            <label class="col-sm-12 control-label" for="docente">Docente</label>
+                            <div class="col-sm-12"><select id="docente_filtro" name="docente_filtro"
+                                    class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
+                                    data-noneSelectedText="seleziona..." 
+                                   <?php if (!(haRuolo("segreteria didattica"))) echo ' disabled '; ?>
+                                    data-width="100%">
+                                    <?php echo $docentiFiltroOptionList ?>
+                                </select></div>
+                        </div>
+                         </div>
+                       <!-- <div class="col-md-1">
             <div class="text-center">
                 <label class="checkbox-inline">
                 <strong>
@@ -131,24 +158,20 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                 </label>
             </div>
         </div>-->
-                    <?php
-                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
-                        echo '
                     <div>
                         <div>
 
                             <div class="col-md-2 text-right">
                                 <div class="text-center">
                                     <label class="col-sm-12 control-label" for="materia">Aggiungi Programma</label>
-                                    <button class="btn btn-xs btn-lima4" onclick="programmaGetDetails(-1)"><span
+                                    <button class="btn btn-xs btn-lima4" onclick="programmiSvoltiGetDetails(-1,<?php echo $id_docente_utente ?>)"><span
                                             style="font-size:20px" class="glyphicon glyphicon-plus"></span></button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    ';
-                    }
-                    ?>
+
+                    
                     <div class="panel-body">
                         <div class="row" style="margin-bottom:10px;">
                             <div class="col-md-12 text-center" id='result_text'>
@@ -173,33 +196,33 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                 <div class="panel panel-orange4">
                                     <div class="panel-heading">
                                         <h3 class="modal-title" style="text-align:center" id="myModalLabel">Programma
-                                            Materia
+                                            Svolto
                                         </h3>
                                     </div>
                                     <div class="panel-body">
                                         <form class="form-horizontal">
 
-                                            <div class="form-group anno_selector">
+                                            <div class="form-group classe_selector">
                                                 <label class="col-sm-2 control-label" style="text-align:center"
-                                                    for="docente">Anno</label>
-                                                <div class="col-sm-10"><select id="anno" name="anno"
-                                                        class="anno selectpicker" data-style="btn-success"
+                                                    for="classe">Classe</label>
+                                                <div class="col-sm-10"><select id="classe" name="classe"
+                                                        class="classe selectpicker" data-style="btn-success"
                                                         data-live-search="true" data-noneSelectedText="seleziona..."
-                                                        <?php echo $modificheDisabilitate ?> data-width="100%">
-                                                        <?php echo $annoCorsoOptionList ?>
+                                                        data-width="100%">
+                                                        <?php echo $classiOptionList ?>
                                                     </select></div>
-                                            </div>
-
-                                            <div class="form-group indirizzo_selector">
+                                            </div>         
+        
+                                                <div class="form-group docente_selector">
                                                 <label class="col-sm-2 control-label" style="text-align:center"
-                                                    for="categoria">Indirizzo</label>
-                                                <div class="col-sm-10"><select id="indirizzo" name="indirizzo"
+                                                    for="docente">Docente</label>
+                                                <div class="col-sm-10"><select id="docente" name="docente"
                                                         class="indirizzo selectpicker" data-style="btn-yellow4"
                                                         data-live-search="true" data-noneSelectedText="seleziona..."
-                                                        <?php echo $modificheDisabilitate ?> data-width="100%">
-                                                        <?php echo $indirizzoCorsoOptionList ?>
+                                                        data-width="100%">
+                                                        <?php echo $docentiOptionList ?>
                                                     </select></div>
-                                            </div>
+                                                </div>
 
                                             <div class="form-group materia_selector">
                                                 <label class="col-sm-2 control-label" style="text-align:center"
@@ -207,7 +230,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                                 <div class="col-sm-10"><select id="materia" name="materia"
                                                         class="materia selectpicker" data-style="btn-yellow4"
                                                         data-live-search="true" data-noneSelectedText="seleziona..."
-                                                        <?php echo $modificheDisabilitate ?> data-width="100%">
+                                                        data-width="100%">
                                                         <?php echo $materiaOptionList ?>
                                                     </select></div>
                                             </div>
@@ -227,19 +250,54 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                 <div class=" panel panel-lima4">
                                         <div class="panel-body" style="padding:0px">
                                             <div class="row">
-                                                <div class="col-md-12">
+                                                <div class="col-md-2"></div>
+                                                <div class="col-md-4">
                                                     <h3 style="text-align:center">Elenco Moduli
                                                         <?php
                                                         if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
                                                             echo '
                                                         <button class="btn btn-xs btn-lima4"
-                                                            onclick="moduloGetDetails(-1)"><span style="font-size:14px"
+                                                            onclick="moduloSvoltiGetDetails(-1)"><span style="font-size:14px"
                                                                 class="glyphicon glyphicon-plus"></span></button>
                                                         ';
+                                                        }
+                                                        else if (haRuolo('docente'))
+                                                        {
+                                                            if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) 
+                                                            {
+                                                                echo '
+                                                                <button class="btn btn-xs btn-lima4"
+                                                                onclick="moduloSvoltiGetDetails(-1)"><span style="font-size:14px"
+                                                                class="glyphicon glyphicon-plus"></span></button>
+                                                        ';
+                                                            }
                                                         }
                                                         ?>
                                                     </h3>
                                                 </div>
+                                                <div class="col-md-4">
+                                                    <h3 style="text-align:center">Importa Moduli
+                                                        <?php
+                                                        if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+                                                            echo '
+                                                        <button class="btn btn-xs btn-lima4"
+                                                            onclick="moduliSvoltiImport()"><span style="font-size:14px"
+                                                                class="glyphicon glyphicon-cloud-upload"></span></button>
+                                                        ';
+                                                        }
+                                                        else if (haRuolo('docente')){
+                                                            if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
+                                                                echo '
+                                                                <button class="btn btn-xs btn-lima4"
+                                                                onclick="moduliSvoltiImport()"><span style="font-size:14px"
+                                                                class="glyphicon glyphicon-cloud-upload"></span></button>
+                                                                ';
+                                                            }
+                                                        }
+                                                        ?>
+                                                    </h3>
+                                                </div>
+                                                <div class="col-md-2"></div>
                                                 <div class="moduli_content"></div>
                                             </div>
                                         </div>
@@ -250,14 +308,22 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                             <div class="panel-footer text-center">
                                 <?php
                                 if (haRuolo('docente')) {
-                                    echo '
-                                <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                                    if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
+                                        echo '
+                                        <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                                        <button type="button" class="btn btn-primary" onclick="programmiSvoltiSave()">Salva</button>
                                 ';
+                                    } else {
+                                        echo '
+                                <       button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                                ';
+                                    }
                                 }
+                                else
                                 if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
                                     echo '
                                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                <button type="button" class="btn btn-primary" onclick="programmaSave()">Salva</button>
+                                <button type="button" class="btn btn-primary" onclick="programmiSvoltiSave()">Salva</button>
                                 ';
                                 }
                                 ?>
@@ -286,7 +352,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="ordine">Ordine</label>
                                         <div class="col-sm-10"><input type="text" id="ordine" placeholder="ordine"
-                                                class="form-control" data-toggle="tooltip" data-placement="top" <?php echo $modificheDisabilitate ?>
+                                                class="form-control" data-toggle="tooltip" data-placement="top"
                                                 title="Inserisci il numero del modulo" />
                                         </div>
                                     </div>
@@ -294,41 +360,18 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="titolo">Titolo</label>
                                         <div class="col-sm-10"><input type="text" id="titolo" placeholder="titolo"
-                                                class="form-control" data-toggle="tooltip" data-placement="top" <?php echo $modificheDisabilitate ?>
+                                                class="form-control" data-toggle="tooltip" data-placement="top"
                                                 title="Inserisci il titolo del modulo" /></div>
                                     </div>
 
                                     <div class="form-group">
-                                        <label class="col-sm-2 control-label" for="conoscenze">Conoscenze</label>
-                                        <div class="col-sm-10"><textarea id="conoscenze" rows="5"
-                                                placeholder="conoscenze" class="form-control" data-toggle="tooltip"
-                                                data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci le conoscenze relative a questo modulo"></textarea>
+                                        <label class="col-sm-2 control-label" for="contenuto">Contenuto</label>
+                                        <div class="col-sm-10"><textarea id="contenuto" rows="5" placeholder="contenuto"
+                                                class="form-control" data-toggle="tooltip" data-placement="top"
+                                                title="Inserisci il contenuto relativo a questo modulo"></textarea>
                                         </div>
                                     </div>
 
-                                    <div class="form-group">
-                                        <label class="col-sm-2 control-label" for="abilita">Abilità</label>
-                                        <div class="col-sm-10"><textarea id="abilita" rows="5" placeholder="abilita"
-                                                class="form-control" data-toggle="tooltip" data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci le abilità relative a questo modulo"></textarea></div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="col-sm-2 control-label" for="competenze">Competenze</label>
-                                        <div class="col-sm-10"><textarea id="competenze" rows="5"
-                                                placeholder="competenze" class="form-control" data-toggle="tooltip"
-                                                data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci le competenze relative a questo modulo"> </textarea>
-                                        </div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="col-sm-2 control-label" for="periodo">Periodo</label>
-                                        <div class="col-sm-10"><input type="text" id="periodo" placeholder="periodo"
-                                                class="form-control" data-toggle="tooltip" data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci il periodo di svolgimento del modulo" /></div>
-                                    </div>
                                     <div class="form-group" id="_error-modulo-part"><strong>
 
                                             <div class="col-sm-3 text-right text-danger ">Attenzione</div>
@@ -345,31 +388,24 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                             <div class="panel-footer text-center">
                                 <?php
 
-                                if (haRuolo('segreteria-didattica'))
-                                {
+                                if (haRuolo('segreteria-didattica')) {
                                     echo '
                                     <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                    <button type="button" class="btn btn-primary" onclick="moduloSave()">Salva</button>';		
-                                }
-                                else
-                                if (haRuolo('docente')) 
-                                {
-                                    if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) 
-                                    {
-                                        if (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false)) 
-                                                                                {
+                                    <button type="button" class="btn btn-primary" onclick="moduloSvoltiSave()">Salva</button>';
+                                } else
+                                    if (haRuolo('docente')) {
+                                        if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) {
+                                            if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
                                                 echo '
                                                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                                <button type="button" class="btn btn-primary" onclick="moduloSave()">Salva</button>';				
-                                        } 
-                                    else 
-                                        {
+                                                <button type="button" class="btn btn-primary" onclick="moduloSvoltiSave()">Salva</button>';
+                                            } else {
                                                 echo '
                                                 <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>';
-                                                
-                                        }          
+
+                                            }
+                                        }
                                     }
-                                }
 
                                 ?>
                             </div>
@@ -383,7 +419,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
     </div>
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/programma.js?v=<?php echo $__software_version; ?>"></script>
+    <script type="text/javascript" src="js/svolti.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 
 </html>

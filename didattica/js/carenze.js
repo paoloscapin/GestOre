@@ -5,12 +5,13 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-var $anno_filtro_id = 0;
-var $indirizzo_filtro_id = 0;
+var $docente_filtro_id = 0;
+var $classe_filtro_id = 0;
 var $materia_filtro_id = 0;
+var $studente_filtro_id = 0;
 
-function programmiReadRecords() {
-    $.get("programmiReadRecords.php?anno_id=" + $anno_filtro_id + "&indirizzo_id=" + $indirizzo_filtro_id + "&materia_id=" + $materia_filtro_id, {}, function (data, status) {
+function carenzeReadRecords() {
+    $.get("carenzeReadRecords.php?docente_id=" + $docente_filtro_id + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
@@ -190,7 +191,6 @@ function moduloSave() {
         periodo: $("#periodo").val()
     }, function (data, status) {
         $("#modulo_modal").modal("hide");
-        $("#programma_modal").modal("show");
         moduliReadRecords($("#hidden_programma_id").val());
     });
 
@@ -199,24 +199,31 @@ function moduloSave() {
 
 $(document).ready(function () {
 
-    programmiReadRecords();
 
-    $("#annoCorso_filtro").on("changed.bs.select",
+    carenzeReadRecords();
+
+    $("#docente_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
-            $anno_filtro_id = this.value;
-            programmiReadRecords();
+            $docente_id = this.value;
+            carenzeReadRecords();
         });
 
-    $("#indirizzoCorso_filtro").on("changed.bs.select",
+    $("#classe_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
-            $indirizzo_filtro_id = this.value;
-            programmiReadRecords();
+            $classe_id = this.value;
+            carenzeReadRecords();
         });
 
     $("#materia_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             $materia_filtro_id = this.value;
-            programmiReadRecords();
+            carenzeReadRecords();
+        });
+
+    $("#studente_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            $studente_filtro_id = this.value;
+            carenzeReadRecords();
         });
 
 });     

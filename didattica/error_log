@@ -1,0 +1,29 @@
+[17-Jun-2025 16:14:35 Europe/Rome] PHP Fatal error:  Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'scacchiera" per reazioni red ox e valutazione spontaneità di reazione
+Pila D...' at line 1 in /home/gvgtcyej/public_html/GestOre/common/connect.php:36
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(36): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/didattica/moduliSvoltiImport.php(65): dbExec()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 36
+[17-Jun-2025 16:16:57 Europe/Rome] PHP Warning:  Undefined variable $anno_id in /home/gvgtcyej/public_html/GestOre/didattica/programmiSvoltiSave.php on line 30
+[17-Jun-2025 16:16:57 Europe/Rome] PHP Warning:  Undefined variable $indirizzo_id in /home/gvgtcyej/public_html/GestOre/didattica/programmiSvoltiSave.php on line 30
+[17-Jun-2025 16:17:07 Europe/Rome] PHP Fatal error:  Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'scacchiera" per reazioni red ox e valutazione spontaneità di reazione
+Pila D...' at line 1 in /home/gvgtcyej/public_html/GestOre/common/connect.php:36
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(36): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/didattica/moduliSvoltiImport.php(65): dbExec()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 36
+[17-Jun-2025 16:17:16 Europe/Rome] PHP Warning:  Undefined variable $anno_id in /home/gvgtcyej/public_html/GestOre/didattica/programmiSvoltiSave.php on line 30
+[17-Jun-2025 16:17:16 Europe/Rome] PHP Warning:  Undefined variable $indirizzo_id in /home/gvgtcyej/public_html/GestOre/didattica/programmiSvoltiSave.php on line 30
+[17-Jun-2025 16:17:33 Europe/Rome] PHP Warning:  Undefined variable $anno_id in /home/gvgtcyej/public_html/GestOre/didattica/programmiSvoltiSave.php on line 30
+[17-Jun-2025 16:17:33 Europe/Rome] PHP Warning:  Undefined variable $indirizzo_id in /home/gvgtcyej/public_html/GestOre/didattica/programmiSvoltiSave.php on line 30
+[17-Jun-2025 16:17:47 Europe/Rome] PHP Warning:  Undefined variable $anno_id in /home/gvgtcyej/public_html/GestOre/didattica/programmiSvoltiSave.php on line 30
+[17-Jun-2025 16:17:47 Europe/Rome] PHP Warning:  Undefined variable $indirizzo_id in /home/gvgtcyej/public_html/GestOre/didattica/programmiSvoltiSave.php on line 30
+[17-Jun-2025 16:19:04 Europe/Rome] PHP Fatal error:  Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'scacchiera" per reazioni red ox e valutazione spontaneità di reazione
+Pila D...' at line 1 in /home/gvgtcyej/public_html/GestOre/common/connect.php:36
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(36): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/didattica/moduliSvoltiImport.php(65): dbExec()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 36

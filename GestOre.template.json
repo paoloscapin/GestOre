@@ -34,7 +34,9 @@
         "pianiDiLavoro": false,
         "pianiDiLavoroEstesi": false,
         "programmaMaterie": true,
-        "carenze": false
+        "programmiSvolti":true,
+        "carenze": false,
+        "carenzeObiettiviMinimi": false
     },
     "interfaccia": {
         "apriDocenteInNuovoTab": true,
@@ -110,8 +112,19 @@
         "duplicaTemplateSoloSeFinale": true,
         "stampaEstesa": true
     },
+    "programmiMaterie": {
+        "visibile_docenti": false,
+        "docente_puo__modificare": false
+    },
+    "programmiSvolti": {
+        "visibile_docenti": true
+    },
     "pianiDiLavoroEstesi": {
         "visibile_docenti": false
+    },
+        "carenzeObiettiviMinimi": {
+        "visibile_docenti": false,
+        "visibile_studenti": false
     },
     "corsiDiRecupero": {
         "corsiDiRecuperoFirmaDocente": true,

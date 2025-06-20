@@ -38,6 +38,48 @@
 			<a href="<?php echo $__application_base_path; ?>/didattica/programmaMaterie.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Programma Materie </a>
 			</div>
 		<?php endif; ?>
+		<?php if(getSettingsValue('config','programmiSvolti', false)) : ?>
+			<div class="btn-group">
+			<a href="<?php echo $__application_base_path; ?>/didattica/programmiSvolti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Svolti </a>
+			</div>
+		<?php endif; ?>
+		<?php 
+		if (haRuolo('segreteria didattica'))
+		{ 
+			if (getSettingsValue('config','carenzeObiettiviMinimi', false)) 
+			{
+				echo '
+			<div class="btn-group">
+			<a href="<?php echo $__application_base_path; ?>/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Carenze </a>
+			</div>
+			';
+			}
+		}
+		else
+		if (haRuolo('docente'))
+		{
+			if ((getSettingsValue('config','carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi','visibile_docenti', false))) 
+			{
+				echo '
+			<div class="btn-group">
+			<a href="<?php echo $__application_base_path; ?>/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Carenze </a>
+			</div>
+			';
+			}
+		}	  
+		else
+		 if (haRuolo('studente'))
+		 {
+			if ((getSettingsValue('config','carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi','visibile_studenti', false))) 
+			{
+				echo '
+			<div class="btn-group">
+			<a href="<?php echo $__application_base_path; ?>/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Carenze </a>
+			</div>
+			';
+			}
+		}	  
+		?>
 		
 		</ul>
 

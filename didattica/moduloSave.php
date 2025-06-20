@@ -8,7 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('segreteria-didattica');
+ruoloRichiesto('segreteria-didattica', 'docente');
 
 if(isset($_POST)) {
 	$id = $_POST['id'];
@@ -25,6 +25,11 @@ if(isset($_POST)) {
 	$abilita = str_replace("'","''",$abilita);
 	$competenze = str_replace("'","''",$competenze);
 	$periodo = str_replace("'","''",$periodo);
+	$titolo = str_replace('"',"''",$titolo);
+	$conoscenze = str_replace('"',"''",$conoscenze);
+	$abilita = str_replace('"',"''",$abilita);
+	$competenze = str_replace('"',"''",$competenze);
+	$periodo = str_replace('"',"''",$periodo);
 	date_default_timezone_set("Europe/Rome");
     $update = date("Y-m-d H-i-s");
 	$id_utente = $__utente_id;

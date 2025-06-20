@@ -1,0 +1,37 @@
+[10-May-2025 04:03:53 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Cannot delete or update a parent row: a foreign key constraint fails (`gvgtcyej_gestione_ore`.`ore_previste_attivita`, CONSTRAINT `fk_ore_previste_attivita_ore_previste_tipo_attivita1` FOREIGN KEY (`ore_previste_tipo_attivita_id`) REFERENCES `ore_previste_tipo_attivita` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION) in /home/gvgtcyej/public_html/GestOre/common/connect.php:36
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(36): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/common/deleteRecord.php(19): dbExec()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 36
+[10-May-2025 04:04:38 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Cannot delete or update a parent row: a foreign key constraint fails (`gvgtcyej_gestione_ore`.`ore_previste_attivita`, CONSTRAINT `fk_ore_previste_attivita_ore_previste_tipo_attivita1` FOREIGN KEY (`ore_previste_tipo_attivita_id`) REFERENCES `ore_previste_tipo_attivita` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION) in /home/gvgtcyej/public_html/GestOre/common/connect.php:36
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(36): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/common/deleteRecord.php(19): dbExec()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 36
+[10-May-2025 15:48:21 UTC] PHP Warning:  Undefined variable $id in /home/gvgtcyej/public_html/GestOre/common/importi_save.php on line 22
+[27-May-2025 09:10:57 UTC] PHP Warning:  Undefined variable $id in /home/gvgtcyej/public_html/GestOre/common/importi_save.php on line 22
+[27-May-2025 09:43:20 UTC] PHP Warning:  Undefined variable $id in /home/gvgtcyej/public_html/GestOre/common/importi_save.php on line 22
+[27-May-2025 09:46:46 UTC] PHP Warning:  Undefined variable $id in /home/gvgtcyej/public_html/GestOre/common/importi_save.php on line 22
+[10-Jun-2025 12:34:25 UTC] PHP Warning:  Undefined variable $id in /home/gvgtcyej/public_html/GestOre/common/importi_save.php on line 22
+[10-Jun-2025 12:34:51 UTC] PHP Warning:  Undefined variable $id in /home/gvgtcyej/public_html/GestOre/common/importi_save.php on line 22
+[10-Jun-2025 13:00:27 UTC] PHP Warning:  Undefined variable $id in /home/gvgtcyej/public_html/GestOre/common/importi_save.php on line 22
+[17-Jun-2025 09:27:36 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Cannot delete or update a parent row: a foreign key constraint fails (`gvgtcyej_gestione_ore`.`programma_moduli`, CONSTRAINT `fk_programma_id` FOREIGN KEY (`ID_PROGRAMMA`) REFERENCES `programma_materie` (`ID`)) in /home/gvgtcyej/public_html/GestOre/common/connect.php:36
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(36): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/common/deleteRecord.php(19): dbExec()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 36
+[17-Jun-2025 09:28:25 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Cannot delete or update a parent row: a foreign key constraint fails (`gvgtcyej_gestione_ore`.`programma_moduli`, CONSTRAINT `fk_programma_id` FOREIGN KEY (`ID_PROGRAMMA`) REFERENCES `programma_materie` (`ID`)) in /home/gvgtcyej/public_html/GestOre/common/connect.php:36
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(36): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/common/deleteRecord.php(19): dbExec()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 36
+[17-Jun-2025 09:28:43 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Cannot delete or update a parent row: a foreign key constraint fails (`gvgtcyej_gestione_ore`.`programma_moduli`, CONSTRAINT `fk_programma_id` FOREIGN KEY (`ID_PROGRAMMA`) REFERENCES `programma_materie` (`ID`)) in /home/gvgtcyej/public_html/GestOre/common/connect.php:36
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(36): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/common/deleteRecord.php(19): dbExec()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 36

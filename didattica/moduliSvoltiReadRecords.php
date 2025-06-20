@@ -26,16 +26,16 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					</thead>';
 
 $query = "	SELECT
-					programma_moduli.id AS modulo_id,
-					programma_moduli.id_programma AS programma_id,
-					programma_moduli.id_utente AS modulo_utente,
-					programma_moduli.ordine AS modulo_ordine,
-					programma_moduli.nome AS modulo_nome,
-					programma_moduli.updated AS modulo_updated
-				FROM programma_moduli
-				WHERE programma_moduli.id_programma=$programma_id ";
+					programmi_svolti_moduli.id AS modulo_id,
+					programmi_svolti_moduli.id_programma AS programma_id,
+					programmi_svolti_moduli.id_utente AS modulo_utente,
+					programmi_svolti_moduli.ordine AS modulo_ordine,
+					programmi_svolti_moduli.nome AS modulo_nome,
+					programmi_svolti_moduli.updated AS modulo_updated
+				FROM programmi_svolti_moduli
+				WHERE programmi_svolti_moduli.id_programma=$programma_id ";
 
-$query .= "ORDER BY programma_moduli.ordine ASC";
+$query .= "ORDER BY programmi_svolti_moduli.ordine ASC";
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
@@ -65,18 +65,20 @@ foreach ($resultArray as $row) { {
 
 		if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
 			$data .= '
-			<button onclick="moduloGetDetails(' . $idmodulo . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il modulo"><span class="glyphicon glyphicon-pencil"></button>
-			<button onclick="moduloDelete(' . $idmodulo . ',\'' . $id_programma . '\',\'' . $titolo . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il modulo"><span class="glyphicon glyphicon-trash"></button>
+			<button onclick="moduloSvoltiGetDetails(' . $idmodulo . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il modulo"><span class="glyphicon glyphicon-pencil"></button>
+			<button onclick="moduloSvoltiDelete(' . $idmodulo . ',\'' . $id_programma . '\',\'' . $titolo . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il modulo"><span class="glyphicon glyphicon-trash"></button>
 			';
 		} else
 			if (haRuolo('docente')) {
-				if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
-					if (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false)) {
+				if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) {
+					if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
 						$data .= '
-  						<button onclick="moduloGetDetails(' . $idmodulo . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la materia"><span class="glyphicon glyphicon-pencil"></button>';
+  						<button onclick="moduloSvoltiGetDetails(' . $idmodulo . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la materia"><span class="glyphicon glyphicon-pencil"></button>
+						<button onclick="moduloSvoltiDelete(' . $idmodulo . ',\'' . $id_programma . '\',\'' . $titolo . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il modulo"><span class="glyphicon glyphicon-trash"></button>
+						';
 					} else {
 						$data .= '
-						<button onclick="moduloGetDetails(' . $idmodulo . ')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Vedi il dettaglio del modulo"><span class="glyphicon glyphicon-search"></button>';
+						<button onclick="moduloSvoltiGetDetails(' . $idmodulo . ')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Vedi il dettaglio del modulo"><span class="glyphicon glyphicon-search"></button>';
 					}
 				}
 			}

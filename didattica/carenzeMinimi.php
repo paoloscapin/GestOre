@@ -22,7 +22,7 @@ ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
     <script type="text/javascript"
         src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
-    <title>Programma Materie</title>
+    <title>Carenze Studenti</title>
 
     <style>
         .icon-play {
@@ -36,12 +36,20 @@ ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
 </head>
 
 <?php
-if (((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))  || ((haRuolo('docente')) && (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) && (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false))) )
+
+$modificheDisabilitate = "";
+
+$id_docente_utente = 0;
+if ($__utente_ruolo=='docente')
 {
-    $modificheDisabilitate = '';
-} else {
-    $modificheDisabilitate = ' disabled ';
+$query = "SELECT * from docente WHERE docente.username='".$__username."'";
+$result = dbGetFirst($query);
+if ($result != null)
+{
+    $id_docente_utente = $result['id'];
 }
+}
+
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
 $materiaFiltroOptionList = '<option value="0">Tutte</option>';
 $materiaOptionList = '<option value="0"></option>';
@@ -50,20 +58,36 @@ foreach (dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ") as $mate
     $materiaOptionList .= '<option value="' . $materia['id'] . '" >' . $materia['nome'] . '</option> ';
 }
 
-// classi da 1 a 5
-$annoCorsoFiltroOptionList = '<option value="0">T</option>';
-$annoCorsoOptionList = '<option value="0">selezionare anno</option>';
-for ($i = 1; $i <= 5; $i++) {
-    $annoCorsoFiltroOptionList .= '<option value="' . $i . '" >' . $i . '</option> ';
-    $annoCorsoOptionList .= '<option value="' . $i . '" >' . $i . '</option> ';
+// classi 
+$classiFiltroOptionList = '<option value="0">T</option>';
+$classiOptionList = '<option value="0">selezionare classe</option>';
+foreach (dbGetAll("SELECT * FROM classi WHERE attiva=1 ORDER BY classi.classe ASC ; ") as $classe) {
+    $classiFiltroOptionList .= '<option value="' . $classe['id'] . '" >' . $classe['classe'] . '</option> ';
+    $classiOptionList .= '<option value="' . $classe['id'] . '" >' . $classe['classe'] . '</option> ';
 }
 
-// prepara l'elenco degli indirizzi per il filtro e per gli indirizi del dialog
-$indirizzoCorsoFiltroOptionList = '<option value="0">Tutti</option>';
-$indirizzoCorsoOptionList = '<option value="0">selezionare indirizzo</option>';
-foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; ") as $indirizzo) {
-    $indirizzoCorsoFiltroOptionList .= '<option value="' . $indirizzo['id'] . '" >' . $indirizzo['nome'] . '</option> ';
-    $indirizzoCorsoOptionList .= '<option value="' . $indirizzo['id'] . '" >' . $indirizzo['nome'] . '</option> ';
+// prepara l'elenco dei docenti
+$docentiFiltroOptionList = '<option value="0">Tutti</option>';
+$docentiOptionList = '<option value="0"></option>';
+foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente.cognome ASC ; ") as $docente) {
+    if (($docente['id'])==$id_docente_utente)
+    {
+        $docentiFiltroOptionList .= '<option value="' . $docente['id'] . '" selected>' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+        $docentiOptionList .= '<option value="' . $docente['id'] . '" selected>' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+    }
+    else
+    {
+        $docentiFiltroOptionList .= '<option value="' . $docente['id'] . '" >' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+        $docentiOptionList .= '<option value="' . $docente['id'] . '" >' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+    }
+}
+
+// studenti
+$studentiFiltroOptionList = '<option value="0">T</option>';
+$studentiOptionList = '<option value="0">selezionare studente</option>';
+foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=$__anno_scolastico_corrente_id ORDER BY studente.cognome, studente.nome ASC") as $studente) {
+    $studentiFiltroOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['cognome'] . ' - ' . $studente['classe'] . '</option> ';
+    $studentiOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['cognome'] . ' - ' . $studente['classe'] . '</option> ';
 }
 
 ?>
@@ -74,15 +98,9 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
     {
         require_once '../common/header-didattica.php';
     }
-    else
-    if (haRuolo('docente'))
+    else if (haRuolo('docente'))
     {
         require_once '../common/header-docente.php';
-    }
-    else
-    if (haRuolo('studente'))
-    {
-        require_once '../common/header-studente.php';
     }
     ?>
 
@@ -92,33 +110,43 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                 <div class="row">
                     <div class="col-md-1 text-center">
                         <span class="glyphicon glyphicon-list-alt"
-                            style="margin:5px"></span><br><b>Programma<br>Discipline</b>
+                            style="margin:5px"></span><br><b>Elenco<br>Carenze</b>
                     </div>
                     <div class="col-md-1 text-center">
-                        <label class="col-sm-8 control-label" for="annoCorso">Anno</label>
+                        <label class="col-sm-12 control-label" for="classe">Classe</label>
                         <div class="text-center">
-                            <div class="col-sm-8"><select id="annoCorso_filtro" name="annoCorso_filtro"
-                                    class="annoCorso_filtro selectpicker" data-style="btn-salmon"
+                            <div class="col-sm-12"><select id="classe_filtro" name="classe_filtro"
+                                    class="classe_filtro selectpicker" data-style="btn-salmon"
                                     data-live-search="true" data-noneSelectedText="seleziona..."
-                                    data-width="100%"><?php echo $annoCorsoFiltroOptionList ?></select></div>
+                                    data-width="100%"><?php echo $classiFiltroOptionList ?></select></div>
                         </div>
                     </div>
-                    <div class="col-md-2 text-center">
-                        <label class="col-sm-12 control-label" for="indirizzoCorso">Indirizzo</label>
+                    <div class="col-md-3 text-center">
+                        <label class="col-sm-12 control-label" for="materia">Materia</label>
                         <div class="text-center">
-                            <div class="col-sm-12"><select id="indirizzoCorso_filtro" name="indirizzoCorso_filtro"
-                                    class="indirizzoCorso_filtro selectpicker" data-style="btn-salmon"
-                                    data-live-search="true" data-noneSelectedText="seleziona..."
-                                    data-width="100%"><?php echo $indirizzoCorsoFiltroOptionList ?></select></div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            <label class="col-sm-12 control-label" for="materia">Materia</label>
                             <div class="col-sm-12"><select id="materia_filtro" name="materia_filtro"
-                                    class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
+                                    class="mamteria_filtro selectpicker" data-style="btn-salmon"
+                                    data-live-search="true" data-noneSelectedText="seleziona..."
+                                    data-width="100%"><?php echo $materiaFiltroOptionList ?></select></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            <label class="col-sm-12 control-label" for="docente">Docente</label>
+                            <div class="col-sm-12"><select id="docente_filtro" name="docente_filtro"
+                                    class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
                                     data-noneSelectedText="seleziona..." data-width="100%">
-                                    <?php echo $materiaFiltroOptionList ?>
+                                    <?php echo $docentiFiltroOptionList ?>
+                                </select></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            <label class="col-sm-12 control-label" for="materia">Studente</label>
+                            <div class="col-sm-12"><select id="studente_filtro" name="studente_filtro"
+                                    class="studente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
+                                    data-noneSelectedText="seleziona..." data-width="100%">
+                                    <?php echo $studentiFiltroOptionList ?>
                                 </select></div>
                         </div>
                     </div>
@@ -139,8 +167,8 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
 
                             <div class="col-md-2 text-right">
                                 <div class="text-center">
-                                    <label class="col-sm-12 control-label" for="materia">Aggiungi Programma</label>
-                                    <button class="btn btn-xs btn-lima4" onclick="programmaGetDetails(-1)"><span
+                                    <label class="col-sm-12 control-label" for="materia">Aggiungi Carenza</label>
+                                    <button class="btn btn-xs btn-lima4" onclick="carenzaGetDetails(-1)"><span
                                             style="font-size:20px" class="glyphicon glyphicon-plus"></span></button>
                                 </div>
                             </div>
@@ -186,8 +214,8 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                                         class="anno selectpicker" data-style="btn-success"
                                                         data-live-search="true" data-noneSelectedText="seleziona..."
                                                         <?php echo $modificheDisabilitate ?> data-width="100%">
-                                                        <?php echo $annoCorsoOptionList ?>
-                                                    </select></div>
+                                  
+                                                    </select></div> -->
                                             </div>
 
                                             <div class="form-group indirizzo_selector">
@@ -197,8 +225,8 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                                         class="indirizzo selectpicker" data-style="btn-yellow4"
                                                         data-live-search="true" data-noneSelectedText="seleziona..."
                                                         <?php echo $modificheDisabilitate ?> data-width="100%">
-                                                        <?php echo $indirizzoCorsoOptionList ?>
-                                                    </select></div>
+                               
+                                                    </select></div> -->
                                             </div>
 
                                             <div class="form-group materia_selector">
@@ -383,7 +411,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
     </div>
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/programma.js?v=<?php echo $__software_version; ?>"></script>
+    <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 
 </html>

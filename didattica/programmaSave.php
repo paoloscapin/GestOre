@@ -10,14 +10,14 @@
 require_once '../common/checkSession.php';
 ruoloRichiesto('segreteria-didattica');
 
-if(isset($_POST)) {
+if (isset($_POST)) {
 
 	$id = $_POST['id'];
 	$anno_id = $_POST['anno_id'];
 	$indirizzo_id = $_POST['indirizzo_id'];
 	$materia_id = $_POST['materia_id'];
 	date_default_timezone_set("Europe/Rome");
-    $update = date("Y-m-d H-i-s");
+	$update = date("Y-m-d H-i-s");
 	$utente_id = $__utente_id;
 	if ($id > 0) {
 		$query = "UPDATE programma_materie SET anno = '$anno_id', id_indirizzo = '$indirizzo_id', id_materia = '$materia_id', id_utente = '$utente_id', updated = '$update' WHERE id = '$id'";
