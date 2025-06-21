@@ -50,7 +50,9 @@
 			{
 				echo '
 			<div class="btn-group">
-			<a href="<?php echo $__application_base_path; ?>/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Carenze </a>
+			<a href="';
+			echo $__application_base_path;
+			echo'/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
 			</div>
 			';
 			}
@@ -62,7 +64,9 @@
 			{
 				echo '
 			<div class="btn-group">
-			<a href="<?php echo $__application_base_path; ?>/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Carenze </a>
+			<a href="';
+			echo $__application_base_path;
+			echo '/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
 			</div>
 			';
 			}

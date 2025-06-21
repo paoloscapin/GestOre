@@ -146,6 +146,23 @@ function programmaSave() {
 
 }
 
+function importFile(file) {
+    var contenuto = "";
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+        contenuto = event.target.result;
+        $.post("carenzeImport.php", {
+            contenuto: contenuto
+        },
+            function (data, status) {
+                $('#result_text').html(data);
+                carenzeReadRecords();
+                setTimeout(function () { $('#result_text').html(""); }, 5000);
+            });
+    });
+    reader.readAsText(file);
+}
+
 function moduloSave() {
 
     if ($.trim($("#ordine").val()).length <= 0) {
@@ -226,4 +243,7 @@ $(document).ready(function () {
             carenzeReadRecords();
         });
 
+    $('#file_select_id').change(function (e) {
+        importFile(e.target.files[0]);
+    });
 });     

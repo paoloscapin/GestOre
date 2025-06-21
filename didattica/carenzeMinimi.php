@@ -86,8 +86,8 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
 $studentiFiltroOptionList = '<option value="0">T</option>';
 $studentiOptionList = '<option value="0">selezionare studente</option>';
 foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=$__anno_scolastico_corrente_id ORDER BY studente.cognome, studente.nome ASC") as $studente) {
-    $studentiFiltroOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['cognome'] . ' - ' . $studente['classe'] . '</option> ';
-    $studentiOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['cognome'] . ' - ' . $studente['classe'] . '</option> ';
+    $studentiFiltroOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - ' . $studente['classe'] . '</option> ';
+    $studentiOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - ' . $studente['classe'] . '</option> ';
 }
 
 ?>
@@ -173,6 +173,12 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="col-md-auto text-right">
+                        <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span
+                                class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file"
+                                id="file_select_id" style="display: none;"></label>
+                        <div class="pull-right"></div>
                     </div>
                     ';
                     }

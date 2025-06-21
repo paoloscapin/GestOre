@@ -15,31 +15,52 @@ $docente_id = $_GET["docente_id"];
 $classe_id = $_GET["classe_id"];
 $materia_id = $_GET["materia_id"];
 $studente_id = $_GET["studente_id"];
- 
+
 // Design initial table header
-$data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
+$data = '<style>
+  .col-md-2-custom {
+    width: 20%;
+  }
+  .col-md-1-custom {
+    width: 10%;
+  }
+  .col-md-1-2-custom {
+    width: 12%;
+  }
+  .col-md-1-5-custom {
+    width: 15%;
+  }
+  .col-md-0-5-custom {
+    width: 5%;
+  }
+
+</style>
+<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
-						<th class="text-center col-md-2">Studente</th>
-						<th class="text-center col-md-2">Docente</th>
-						<th class="text-center col-md-3">Materia</th>
-						<th class="text-center col-md-1">Grave</th>
-						<th class="text-center col-md-1">Generata</th>
-						<th class="text-center col-md-1">Inviata</th>
-						<th class="text-center col-md-2">Azioni</th>
+						<th class="text-center col-md-1-2-custom">Studente</th>
+						<th class="text-center col-md-2">Materia</th>
+						<th class="text-center col-md-0-5-custom">Classe</th>
+						<th class="text-center col-md-1-2-custom">Docente</th>
+						<th class="text-center col-md-0-5-custom">Stato</th>
+						<th class="text-center col-md-1-custom">Data inserimento</th>
+						<th class="text-center col-md-1-custom">Data validazione</th>
+						<th class="text-center col-md-1-custom">Data invio</th>
+						<th class="text-center col-md-1">Azioni</th>
 					</tr>
 					</thead>';
 
 $query = "	SELECT
 					carenze.id AS carenza_id,
-					carenze.id_docente AS carenza_id_docente,
 					carenze.id_studente AS carenza_id_studente,
 					carenze.id_materia AS carenza_id_materia,
+					carenze.id_classe AS carenza_id_classe,
+					carenze.id_docente AS carenza_id_docente,
 					carenze.id_anno_scolastico AS carenza_id_anno_scolastico,
-					carenze.grave AS carenza_grave,
-					carenze.generata AS carenza_generata,
-					carenze.inviata AS carenza_inviata,
-					carenze.data_invio AS datainvio,
+					carenze.stato AS carenza_stato,
+					carenze.data_inserimento AS carenza_inserimento,
+					carenze.data_validazione AS carenza_validazione,
+					carenze.data_invio AS carenza_invio,
 					studente.cognome AS stud_cognome,
 					studente.nome AS stud_nome,
 					classi.classe AS classe,
@@ -54,24 +75,20 @@ $query = "	SELECT
 				INNER JOIN materia materia
 				ON carenze.id_materia = materia.id
 				INNER JOIN classi classi
-				ON studente.id_classe = classi.id
+				ON carenze.id_classe = classi.id
 				WHERE carenze.id_anno_scolastico=$__anno_scolastico_corrente_id";
 
-if ($docente_id>0)
-{
-	$query .= " AND carenze.id_docente=".$docente_id;
+if ($docente_id > 0) {
+	$query .= " AND carenze.id_docente=" . $docente_id;
 }
-if ($classe_id>0)
-{
-	$query .= " AND carenze.id_docente=".$classe_id;
+if ($classe_id > 0) {
+	$query .= " AND carenze.id_classe=" . $classe_id;
 }
-if ($materia_id>0)
-{
-	$query .= " AND carenze.id_docente=".$materia_id;
+if ($materia_id > 0) {
+	$query .= " AND carenze.id_materia=" . $materia_id;
 }
-if ($studente_id>0)
-{
-	$query .= " AND carenze.id_studente=".$studente_id;
+if ($studente_id > 0) {
+	$query .= " AND carenze.id_studente=" . $studente_id;
 }
 
 $query .= " ORDER BY studente.cognome, studente.nome ASC";
@@ -82,77 +99,115 @@ if ($resultArray == null) {
 }
 
 $ncarenze = 0;
-foreach ($resultArray as $row) { {
+foreach ($resultArray as $row) 
+	{
 		$ncarenze++;
 		$idcarenza = $row['carenza_id'];
 		$studente = $row['stud_cognome'] . ' ' . $row['stud_nome'];
-		$docente = $row['doc_cognome'] . ' ' . $row['doc_nome'];
-		$materia = $row['materia'];
-		$classe = $row['classe'];
-		$grave = $row['carenza_grave'];
-		$generata = $row['carenza_generata'];
-		$inviata = $row['carenza_inviata'];
-		if ($inviata==1)
+		if ($row['carenza_id_docente']==0)
 		{
-			$data_invio = $row['datainvio'];
+			$docente='';
 		}
 		else
 		{
+			$docente = $row['doc_cognome'] . ' ' . $row['doc_nome'];
+		}
+		$materia = $row['materia'];
+		$classe = $row['classe'];
+		$stato = $row['carenza_stato'];
+
+		$data_inserimento = $row['carenza_inserimento'];
+
+		if ($stato > 0) {
+			$data_validazione = $row['carenza_validazione'];
+		} else {
+			$data_validazione = 'da validare';
+		}
+
+		if ($stato > 1) {
+			$data_invio = $row['carenza_invio'];
+		} else {
 			$data_invio = 'da inviare';
 		}
 		$data .= '<tr>
 		<td align="center">' . $studente . '</td>
-		<td align="center">' . $docente . '</td>
-		<td align="center">' . $materia . '</td>';
-		if ($grave==1)
+		<td align="center">' . $materia . '</td>
+		<td align="center">' . $classe . '</td>
+		<td align="center">' . $docente . '</td>';
+
+		$statoMarker = '';
+		if ($stato == 0) 
 		{
-		  $data .= '<td align="center"><button class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Carenza grave"><span class="glyphicon glyphicon-minus-sign"></button></td>';
-		}
-		else
+			$statoMarker .= '<span class="label label-primary">inserito</span>';
+		} 
+		else 
 		{
-		  $data .= '<td align="center"><button class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Carenza non grave"><span class="glyphicon glyphicon-minus-sign"></button></td>';
+			if ($stato > 0) 
+			{
+				$statoMarker .= '<span class="label label-danger">validato</span>';
+			} 
+			else 
+			{
+				if ($stato > 1) 
+				{
+					$statoMarker .= '<span class="label label-success">inviato</span>';
+				}
+			}
 		}
 
-		if ($generata==1)
-		{
-		  $data .= '<td align="center"><button class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Generata"><span class="glyphicon glyphicon-thumbs-up"></button></td>';
-		}
-		else
-		{
-		  $data .= '<td align="center"><button class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Non generata"><span class="glyphicon glyphicon-thumbs-down"></button></td>';
-		}
-		$data .= '
+		$data .= '<td align="center">' . $statoMarker . '</td>
+		<td align="center">' . $data_inserimento . '</td>
+		<td align="center">' . $data_validazione . '</td>
 		<td align="center">' . $data_invio . '</td>
 		';
 		$data .= '
 		<td class="text-center">';
 
-		if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+		if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) 
+		{
 			$data .= '
-			<button onclick="moduloGetDetails(' . $idmodulo . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il modulo"><span class="glyphicon glyphicon-pencil"></button>
-			<button onclick="moduloDelete(' . $idmodulo . ',\'' . $id_programma . '\',\'' . $titolo . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il modulo"><span class="glyphicon glyphicon-trash"></button>
-			';
-		} else
-			if (haRuolo('docente')) {
-				if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
-					if (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false)) {
-						$data .= '
-  						<button onclick="moduloGetDetails(' . $idmodulo . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la materia"><span class="glyphicon glyphicon-pencil"></button>';
-					} else {
-						$data .= '
-						<button onclick="moduloGetDetails(' . $idmodulo . ')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Vedi il dettaglio del modulo"><span class="glyphicon glyphicon-search"></button>';
+			<button onclick="carenzaGetDetails(' . $idcarenza . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la carenza"><span class="glyphicon glyphicon-pencil"></button>
+			<button onclick="carenzaDelete(' . $idcarenza . ')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la carenza"><span class="glyphicon glyphicon-trash"></button>';
+			if ($stato == 0) 
+			{
+				$data .= '
+				<button onclick="carenzaValida(' . $idcarenza . ',' . $__utente_id . ')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Conferma la carenza"><span class="glyphicon glyphicon-ok"></button>';
+			} 
+			else 
+			{
+				$data .= '
+				<button onclick="carenzaValida(' . $idcarenza . ',' . $__utente_id . ',' . $stato . ')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Rimuovi la conferma della carenza"><span class="glyphicon glyphicon-remove"></button>';
+			}
+		} 
+		else
+		if (haRuolo('docente')) 
+		{
+			if (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) 
+			{
+				if (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false)) 
+				{
+					if (getSettingsValue('carenzeObiettiviMinimi', 'docente_puo_modificare', false)) 
+					{
+						if ($stato == 0) 
+						{
+							$data .= '
+							<button onclick="carenzaValida(' . $idcarenza . ',' . $__utente_id . ')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Conferma la carenza"><span class="glyphicon glyphicon-ok"></button>';
+						} 
+						else 
+						{
+							$data .= '
+							<button onclick="carenzaValida(' . $idcarenza . ',' . $__utente_id . ',' . $stato . ')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Rimuovi la conferma della carenza"><span class="glyphicon glyphicon-remove"></button>';
+						}
 					}
 				}
 			}
+		}
 
-		$data .= '
-		</td>
-		</tr>';
+		$data .= '</td></tr>';
 	}
-}
+
 
 $data .= '</table></div>';
 $data .= '<input type="hidden" id="hidden_nmoduli" value=' . $ncarenze . '>';
 
 echo $data;
-?>
