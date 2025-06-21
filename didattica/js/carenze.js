@@ -9,9 +9,10 @@ var $docente_filtro_id = 0;
 var $classe_filtro_id = 0;
 var $materia_filtro_id = 0;
 var $studente_filtro_id = 0;
+var $anno_filtro_id = 0;
 
 function carenzeReadRecords() {
-    $.get("carenzeReadRecords.php?docente_id=" + $docente_filtro_id + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id, {}, function (data, status) {
+    $.get("carenzeReadRecords.php?anno=" + $anno_filtro_id + "&docente_id=" + $docente_filtro_id + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
@@ -19,129 +20,94 @@ function carenzeReadRecords() {
     });
 }
 
-function moduliReadRecords(programma_id) {
-    $.get("../didattica/moduliReadRecords.php", {
-        programma_id: programma_id
-    }, function (data, status) {
-        $(".moduli_content").html(data);
-    });
+function carenzeGetDetails(carenza_id) {
+    $("#hidden_carenza_id").val(carenza_id);
 
-}
-
-function programmaGetDetails(programma_id) {
-    $("#hidden_programma_id").val(programma_id);
-
-    if (programma_id > 0) {
-        $.post("../didattica/programmaReadDetails.php", {
-            programma_id: programma_id
+    if (carenza_id > 0) {
+        $.post("../didattica/carenzeReadDetails.php", {
+            carenza_id: carenza_id
         }, function (data, status) {
-            var programma = JSON.parse(data);
-            $('#anno').selectpicker('val', programma.programma_anno);
-            $('#indirizzo').selectpicker('val', programma.programma_idindirizzo);
-            $('#materia').selectpicker('val', programma.programma_idmateria);
+            var carenza = JSON.parse(data);
+            $('#classe').selectpicker('val', carenza.carenza_id_classe);
+            $('#materia').selectpicker('val', carenza.carenza_id_materia);
+            $('#studente').selectpicker('val', carenza.carenza_id_studente);
         });
-        moduliReadRecords(programma_id);
+        carenzeReadRecords(carenza_id);
     }
     else {
-        $('#anno').val("0");
-        $('#anno').selectpicker('refresh');
-        $('#indirizzo').val("0");
-        $('#indirizzo').selectpicker('refresh');
+        $('#classe').val("0");
+        $('#classe').selectpicker('refresh');
         $('#materia').val("0");
         $('#materia').selectpicker('refresh');
+        $('#studente').val("0");
+        $('#studente').selectpicker('refresh');
     }
-    $("#_error-programma-part").hide();
-    $("#programma_modal").modal("show");
+    $("#_error-carenza-part").hide();
+    $("#carenza_modal").modal("show");
 }
 
-function moduloGetDetails(modulo_id) {
-    $("#hidden_modulo_id").val(modulo_id);
-    nmoduli = parseInt($("#hidden_nmoduli").val());
-
-    if (modulo_id > 0) {
-        $.post("../didattica/moduloReadDetails.php", {
-            modulo_id: modulo_id
-        }, function (data, status) {
-            var programma = JSON.parse(data);
-            $('#titolo').val(programma.modulo_nome);
-            $('#ordine').val(programma.modulo_ordine);
-            $('#conoscenze').val(programma.modulo_conoscenze);
-            $('#abilita').val(programma.modulo_abilita);
-            $('#competenze').val(programma.modulo_competenze);
-            $('#periodo').val(programma.modulo_periodo);
-        });
-    }
-    else {
-            $('#titolo').val("");
-            $('#ordine').val(nmoduli+1);
-            $('#conoscenze').val("");
-            $('#abilita').val("");
-            $('#competenze').val("");
-            $('#periodo').val("");
-    }
-    $("#_error-modulo-part").hide();
-    $("#modulo_modal").modal("show");
-}
-
-function programmaDelete(id, materia) {
-    var conf = confirm("Sei sicuro di volere cancellare la materia di " + materia + " ?");
+function carenzaDelete(id, materia, studente) {
+    var conf = confirm("Sei sicuro di volere cancellare la carenza di " + materia + " a " + studente + " ?");
     if (conf == true) {
         $.post("../common/deleteRecord.php", {
             id: id,
-            table: 'programma_materie',
-            name: "materia" + materia
+            table: 'carenze',
+            name: materia + '-' + studente
         },
             function (data, status) {
-                programmiReadRecords();
+                carenzeReadRecords();
             }
         );
     }
 }
 
-function moduloDelete(id, id_programma, titolo) {
-    var conf = confirm("Sei sicuro di volere cancellare il modulo  " + titolo + " ?");
+function carenzaValida(id, id_utente, stato) {
+    conf = true;
+
+    if (stato == 1) {
+        conf = confirm("Confermi che vuoi togliere la validazione a questa carenza?");
+    }
     if (conf == true) {
-        $.post("../common/deleteRecord.php", {
+        $.post("../didattica/carenzaValida.php", {
             id: id,
-            table: 'programma_moduli',
-            name: "nome" + titolo
+            id_utente: id_utente,
+            stato: stato
         },
             function (data, status) {
-                moduliReadRecords(id_programma);
-                 //$("#programma_modal").modal("hide");
+                carenzeReadRecords();
             }
         );
     }
 }
 
-function programmaSave() {
+function carenzaSave() {
 
-    if ($("#anno").val() <= 0) {
-        $("#_error-programma").text("Devi selezionare un anno");
-        $("#_error-programma-part").show();
+    if ($("#studente").val() <= 0) {
+        $("#_error-carenza").text("Devi selezionare uno studente");
+        $("#_error-carenza-part").show();
         return;
     }
-    if ($("#indirizzo").val() <= 0) {
-        $("#_error-programma").text("Devi selezionare un indirizzo");
-        $("#_error-programma-part").show();
+    if ($("#classe").val() <= 0) {
+        $("#_error-carenza").text("Devi selezionare una classe");
+        $("#_error-carenza-part").show();
         return;
     }
     if ($("#materia").val() <= 0) {
-        $("#_error-programma").text("Devi selezionare una materia");
-        $("#_error-programma-part").show();
+        $("#_error-carenza").text("Devi selezionare una materia");
+        $("#_error-carenza-part").show();
         return;
     }
 
-    $("#_error-programma-part").hide();
+    $("#_error-carenza-part").hide();
 
-    $.post("programmaSave.php", {
-        id: $("#hidden_programma_id").val(),
-        anno_id: $("#anno").val(),
-        indirizzo_id: $("#indirizzo").val(),
+    $.post("carenzaSave.php", {
+        id: $("#hidden_carenza_id").val(),
+        studente_id: $("#studente").val(),
+        classe_id: $("#classe").val(),
         materia_id: $("#materia").val(),
     }, function (data, status) {
-        $("#programma_modal").modal("hide");
-        programmiReadRecords();
+        $("#carenza_modal").modal("hide");
+        carenzeReadRecords();
     });
 
 }
@@ -163,56 +129,26 @@ function importFile(file) {
     reader.readAsText(file);
 }
 
-function moduloSave() {
-
-    if ($.trim($("#ordine").val()).length <= 0) {
-        $("#_error-modulo").text("Devi indicare l'ordine del modulo, ad es. 1");
-        $("#_error-modulo-part").show();
-        return;
-    }
-    if ($.trim($("#titolo").val()).length <= 0) {
-        $("#_error-modulo").text("Devi indicare il titolo del modulo");
-        $("#_error-modulo-part").show();
-        return;
-    }
-    if ($.trim($("#conoscenze").val()).length <= 0) {
-        $("#_error-modulo").text("Devi indicare tutte le conoscenze");
-        $("#_error-modulo-part").show();
-        return;
-    }
-    if ($.trim($("#abilita").val()).length <= 0) {
-        $("#_error-modulo").text("Devi indicare almeno una abilità");
-        $("#_error-modulo-part").show();
-        return;
-    }
-    if ($.trim($("#competenze").val()).length <= 0) {
-        $("#_error-modulo").text("Devi indicare almeno una competenza");
-        $("#_error-modulo-part").show();
-        return;
-    }
-    if ($.trim($("#periodo").val()).length <= 0) {
-        $("#_error-modulo").text("Devi indicare il periodo di svolgimento");
-        $("#_error-modulo-part").show();
-        return;
-    }
-    $("#_error-modulo-part").hide();
-      console.log("salvataggio in corso");
-    $.post("moduloSave.php", {
-        id: $("#hidden_modulo_id").val(),
-        id_programma: $("#hidden_programma_id").val(),
-        ordine: $("#ordine").val(),
-        titolo: $("#titolo").val(),
-        conoscenze: $("#conoscenze").val(),
-        abilita: $("#abilita").val(),
-        competenze: $("#competenze").val(),
-        periodo: $("#periodo").val()
-    }, function (data, status) {
-        $("#modulo_modal").modal("hide");
-        moduliReadRecords($("#hidden_programma_id").val());
-    });
-
+function hideTooltip(el) {
+    $(el).tooltip('hide');
 }
 
+function exportFile() {
+    var $docente_filtro_id = 0;
+    var $classe_filtro_id = 0;
+    var $materia_filtro_id = 0;
+    var $studente_filtro_id = 0;
+    var $anno_filtro_id = 0;
+    const url = "carenzeExport.php"
+        + "?id_docente=" + encodeURIComponent($docente_filtro_id)
+        + "&id_classe=" + encodeURIComponent($classe_filtro_id)
+        + "&id_materia=" + encodeURIComponent($materia_filtro_id)
+        + "&id_studente=" + encodeURIComponent($studente_filtro_id)
+        + "&id_anno=" + encodeURIComponent($anno_filtro_id);
+
+    // Forza il browser a scaricare il file
+    window.open(url, '_blank');
+};
 
 $(document).ready(function () {
 
@@ -221,13 +157,13 @@ $(document).ready(function () {
 
     $("#docente_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
-            $docente_id = this.value;
+            $docente_filtro_id = this.value;
             carenzeReadRecords();
         });
 
     $("#classe_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
-            $classe_id = this.value;
+            $classe_filtro_id = this.value;
             carenzeReadRecords();
         });
 
@@ -243,7 +179,20 @@ $(document).ready(function () {
             carenzeReadRecords();
         });
 
+    $("#anno_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            $anno_filtro_id = this.value;
+            carenzeReadRecords();
+        });
+
+    $('#export_btn').on('click', function (e) {
+        exportFile();
+    });
+
     $('#file_select_id').change(function (e) {
         importFile(e.target.files[0]);
     });
+
+    $('#docente_filtro').val("0");
+    $('#docente_filtro').selectpicker('refresh');
 });     

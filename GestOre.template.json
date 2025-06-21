@@ -123,8 +123,9 @@
         "visibile_docenti": false
     },
         "carenzeObiettiviMinimi": {
-        "visibile_docenti": false,
-        "visibile_studenti": false
+        "visibile_docenti": true,
+        "visibile_studenti": false,
+        "docente_puo__modificare": false
     },
     "corsiDiRecupero": {
         "corsiDiRecuperoFirmaDocente": true,

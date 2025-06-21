@@ -13,6 +13,16 @@ require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_bootstrap-notify.php';
 ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
+	
+if (!getSettingsValue('config','carenzeObiettiviMinimi', false))
+{
+    redirect("/error/unauthorized.php");
+}
+
+if (!getSettingsValue('carenzeObiettiviMinimi','visibile_docenti', false))
+{
+    ruoloRichiesto('segreteria-didattica');
+}
 ?>
 
 <!DOCTYPE html>
@@ -66,6 +76,21 @@ foreach (dbGetAll("SELECT * FROM classi WHERE attiva=1 ORDER BY classi.classe AS
     $classiOptionList .= '<option value="' . $classe['id'] . '" >' . $classe['classe'] . '</option> ';
 }
 
+// anno 
+$annoFiltroOptionList = '<option value="0">T</option>';
+$annoOptionList = '<option value="0">selezionare anno</option>';
+$annoFiltroOptionList .= '<option value="1">1</option> ';
+$annoOptionList .= '<option value="1">Classi prime</option>';
+$annoFiltroOptionList .= '<option value="2">2</option> ';
+$annoOptionList .= '<option value="2">Classi seconde</option>';
+$annoFiltroOptionList .= '<option value="3">3</option> ';
+$annoOptionList .= '<option value="3">Classi terze/option>';
+$annoFiltroOptionList .= '<option value="4">4</option> ';
+$annoOptionList .= '<option value="4">Classi quarte</option>';
+$annoFiltroOptionList .= '<option value="5">5</option> ';
+$annoOptionList .= '<option value="5">Classi quinte</option>';
+
+
 // prepara l'elenco dei docenti
 $docentiFiltroOptionList = '<option value="0">Tutti</option>';
 $docentiOptionList = '<option value="0"></option>';
@@ -103,7 +128,24 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
         require_once '../common/header-docente.php';
     }
     ?>
+<style>
+  .col-md-2-custom {
+    width: 20%;
+  }
+  .col-md-1-custom {
+    width: 10%;
+  }
+  .col-md-1-2-custom {
+    width: 12%;
+  }
+  .col-md-1-5-custom {
+    width: 15%;
+  }
+  .col-md-0-5-custom {
+    width: 5%;
+  }
 
+</style>
     <div class="container-fluid" style="margin-top:60px">
         <div class="panel panel-lima4">
             <div class="panel-heading">
@@ -119,6 +161,15 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                                     class="classe_filtro selectpicker" data-style="btn-salmon"
                                     data-live-search="true" data-noneSelectedText="seleziona..."
                                     data-width="100%"><?php echo $classiFiltroOptionList ?></select></div>
+                        </div>
+                    </div>
+                    <div class="col-md-1 text-center">
+                        <label class="col-sm-8 control-label" for="anno">Anno</label>
+                        <div class="text-center">
+                            <div class="col-sm-8"><select id="anno_filtro" name="anno_filtro"
+                                    class="anno_filtro selectpicker" data-style="btn-salmon"
+                                    data-live-search="true" data-noneSelectedText="seleziona..."
+                                    data-width="100%"><?php echo $annoFiltroOptionList ?></select></div>
                         </div>
                     </div>
                     <div class="col-md-3 text-center">
@@ -150,39 +201,34 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                                 </select></div>
                         </div>
                     </div>
-                    <!-- <div class="col-md-1">
-            <div class="text-center">
-                <label class="checkbox-inline">
-                <strong>
-                    <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloTemplateCheckBox" ><?php echoLabel('Template'); ?>
-                </strong>
-                </label>
-            </div>
-        </div>-->
+
                     <?php
                     if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
                         echo '
                     <div>
                         <div>
 
-                            <div class="col-md-2 text-right">
+                            <div class="col-md-1 text-center">
                                 <div class="text-center">
-                                    <label class="col-sm-12 control-label" for="materia">Aggiungi Carenza</label>
-                                    <button class="btn btn-xs btn-lima4" onclick="carenzaGetDetails(-1)"><span
-                                            style="font-size:20px" class="glyphicon glyphicon-plus"></span></button>
+                                    <label class="control-label" for="materia">Aggiungi Carenza</label>
+                                    <button class="btn btn-xs btn-lima4" onclick="carenzeGetDetails(-1)"><span
+                                            style="font-size:30px" class="glyphicon glyphicon-plus"></span></button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-auto text-right">
+
+                    <div class="col-md-auto text-center">
                         <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span
                                 class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file"
                                 id="file_select_id" style="display: none;"></label>
-                        <div class="pull-right"></div>
-                    </div>
                     ';
                     }
                     ?>
+                    <div class="col-md-auto text-center"><br>
+                        <label id="export_btn" class="btn btn-xs btn-lima4 btn-file"><span
+                                id="file_export_id" class="glyphicon glyphicon-download"></span>&emsp;Esporta</label>
+                    </div>
                     <div class="panel-body">
                         <div class="row" style="margin-bottom:10px;">
                             <div class="col-md-12 text-center" id='result_text'>
@@ -199,40 +245,28 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                 </div>
 
                 <!-- Modal - Add/Update Record -->
-                <div class="modal fade" id="programma_modal" data-backdrop="static" tabindex="-1" role="dialog"
+                <div class="modal fade" id="carenza_modal" data-backdrop="static" tabindex="-1" role="dialog"
                     aria-labelledby="myModalLabel">
-                    <div class="modal-dialog modal-lg" style="margin:auto;width:%40" role="document">
+                    <div class="modal-dialog modal-lg" style="margin:auto;width:%30" role="document">
                         <div class="modal-content">
                             <div class="modal-body">
                                 <div class="panel panel-orange4">
                                     <div class="panel-heading">
-                                        <h3 class="modal-title" style="text-align:center" id="myModalLabel">Programma
-                                            Materia
+                                        <h3 class="modal-title" style="text-align:center" id="myModalLabel">Carenza Studente
                                         </h3>
                                     </div>
                                     <div class="panel-body">
                                         <form class="form-horizontal">
 
-                                            <div class="form-group anno_selector">
+                                            <div class="form-group studente_selector">
                                                 <label class="col-sm-2 control-label" style="text-align:center"
-                                                    for="docente">Anno</label>
-                                                <div class="col-sm-10"><select id="anno" name="anno"
-                                                        class="anno selectpicker" data-style="btn-success"
+                                                    for="categoria">Studente</label>
+                                                <div class="col-sm-10"><select id="studente" name="studente"
+                                                        class="studente selectpicker" data-style="btn-yellow4"
                                                         data-live-search="true" data-noneSelectedText="seleziona..."
                                                         <?php echo $modificheDisabilitate ?> data-width="100%">
-                                  
-                                                    </select></div> -->
-                                            </div>
-
-                                            <div class="form-group indirizzo_selector">
-                                                <label class="col-sm-2 control-label" style="text-align:center"
-                                                    for="categoria">Indirizzo</label>
-                                                <div class="col-sm-10"><select id="indirizzo" name="indirizzo"
-                                                        class="indirizzo selectpicker" data-style="btn-yellow4"
-                                                        data-live-search="true" data-noneSelectedText="seleziona..."
-                                                        <?php echo $modificheDisabilitate ?> data-width="100%">
-                               
-                                                    </select></div> -->
+                                                        <?php echo $studentiFiltroOptionList ?>
+                                                    </select></div>
                                             </div>
 
                                             <div class="form-group materia_selector">
@@ -246,163 +280,31 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                                                     </select></div>
                                             </div>
 
-                                            <div class="form-group" id="_error-programma-part"><strong>
+                                            <div class="form-group" id="_error-carenza-part"><strong>
 
                                                     <div class="col-sm-3 text-right text-danger ">Attenzione</div>
-                                                    <div class="col-sm-9" id="_error-programma"></div>
+                                                    <div class="col-sm-9" id="_error-carenza></div>
                                                 </strong></div>
-
-                                            <input type="hidden" id="hidden_programma_id">
-
+                                            <input type="hidden" id="hidden_carenza_id">
                                         </form>
-
                                     </div>
-                                    <div class="container-fluid"">
-                                <div class=" panel panel-lima4">
-                                        <div class="panel-body" style="padding:0px">
-                                            <div class="row">
-                                                <div class="col-md-12">
-                                                    <h3 style="text-align:center">Elenco Moduli
-                                                        <?php
-                                                        if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
-                                                            echo '
-                                                        <button class="btn btn-xs btn-lima4"
-                                                            onclick="moduloGetDetails(-1)"><span style="font-size:14px"
-                                                                class="glyphicon glyphicon-plus"></span></button>
-                                                        ';
-                                                        }
-                                                        ?>
-                                                    </h3>
-                                                </div>
-                                                <div class="moduli_content"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="panel-footer text-center">
-                                <?php
-                                if (haRuolo('docente')) {
-                                    echo '
-                                <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
-                                ';
-                                }
-                                if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
-                                    echo '
-                                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                <button type="button" class="btn btn-primary" onclick="programmaSave()">Salva</button>
-                                ';
-                                }
-                                ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- // Modal - Add/Update Record -->
-
-        <!-- Modal - Add/Update Record -->
-        <div class="modal fade" id="modulo_modal" data-backdrop="static" tabindex="-1" role="dialog"
-            aria-labelledby="myModalLabel">
-            <div class="modal-dialog modal-lg" style="margin:auto;width:%100" role="document">
-                <div class="modal-content">
-                    <div class="modal-body">
-                        <div class="panel panel-orange4">
-                            <div class="panel-heading">
-                                <h3 class="modal-title" style="text-align:center" id="myModalLabel">Dati del modulo
-                                </h3>
-                            </div>
-                            <div class="panel-body">
-                                <form class="form-horizontal">
-
-                                    <div class="form-group">
-                                        <label class="col-sm-2 control-label" for="ordine">Ordine</label>
-                                        <div class="col-sm-10"><input type="text" id="ordine" placeholder="ordine"
-                                                class="form-control" data-toggle="tooltip" data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci il numero del modulo" />
-                                        </div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="col-sm-2 control-label" for="titolo">Titolo</label>
-                                        <div class="col-sm-10"><input type="text" id="titolo" placeholder="titolo"
-                                                class="form-control" data-toggle="tooltip" data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci il titolo del modulo" /></div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="col-sm-2 control-label" for="conoscenze">Conoscenze</label>
-                                        <div class="col-sm-10"><textarea id="conoscenze" rows="5"
-                                                placeholder="conoscenze" class="form-control" data-toggle="tooltip"
-                                                data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci le conoscenze relative a questo modulo"></textarea>
-                                        </div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="col-sm-2 control-label" for="abilita">Abilità</label>
-                                        <div class="col-sm-10"><textarea id="abilita" rows="5" placeholder="abilita"
-                                                class="form-control" data-toggle="tooltip" data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci le abilità relative a questo modulo"></textarea></div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="col-sm-2 control-label" for="competenze">Competenze</label>
-                                        <div class="col-sm-10"><textarea id="competenze" rows="5"
-                                                placeholder="competenze" class="form-control" data-toggle="tooltip"
-                                                data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci le competenze relative a questo modulo"> </textarea>
-                                        </div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label class="col-sm-2 control-label" for="periodo">Periodo</label>
-                                        <div class="col-sm-10"><input type="text" id="periodo" placeholder="periodo"
-                                                class="form-control" data-toggle="tooltip" data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci il periodo di svolgimento del modulo" /></div>
-                                    </div>
-                                    <div class="form-group" id="_error-modulo-part"><strong>
-
-                                            <div class="col-sm-3 text-right text-danger ">Attenzione</div>
-                                            <div class="col-sm-9" id="_error-modulo"></div>
-                                        </strong>
-                                    </div>
-
-
-
-                                    <input type="hidden" id="hidden_modulo_id">
-                                </form>
-
                             </div>
                             <div class="panel-footer text-center">
                                 <?php
 
-                                if (haRuolo('segreteria-didattica'))
+                                if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) 
                                 {
                                     echo '
                                     <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                    <button type="button" class="btn btn-primary" onclick="moduloSave()">Salva</button>';		
+                                    <button type="button" class="btn btn-primary" onclick="carenzaSave()">Salva</button>
+                                    ';
                                 }
                                 else
                                 if (haRuolo('docente')) 
                                 {
-                                    if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) 
-                                    {
-                                        if (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false)) 
-                                                                                {
-                                                echo '
-                                                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                                <button type="button" class="btn btn-primary" onclick="moduloSave()">Salva</button>';				
-                                        } 
-                                    else 
-                                        {
-                                                echo '
-                                                <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>';
-                                                
-                                        }          
-                                    }
+                                    echo '
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                                    ';
                                 }
 
                                 ?>

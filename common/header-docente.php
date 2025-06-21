@@ -52,6 +52,13 @@
 			</div>
 		<?php endif; ?>
 
+		<?php if((getSettingsValue('config','carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi','visibile_docenti', false)))  : ?>
+			<div class="btn-group">
+			<a href="<?php echo $__application_base_path; ?>/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
+			</div>
+		<?php endif; ?>
+
+
 			<?php
 			require_once '../common/connect.php';
 			$num = dbGetValue("SELECT COUNT(id) FROM gruppo WHERE gruppo.dipartimento = false AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id AND gruppo.responsabile_docente_id = $__docente_id;");
