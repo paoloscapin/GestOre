@@ -8,7 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('segreteria-didattica','docente');
+ruoloRichiesto('segreteria-didattica', 'docente');
 
 if (isset($_POST)) {
 
@@ -16,18 +16,33 @@ if (isset($_POST)) {
 	$docente_id = $_POST['docente_id'];
 	$classe_id = $_POST['classe_id'];
 	$materia_id = $_POST['materia_id'];
+	$duplica = $_POST['duplica'];
 	date_default_timezone_set("Europe/Rome");
 	$update = date("Y-m-d H-i-s");
 	$utente_id = $__utente_id;
-	if ($id > 0) {
-		$query = "UPDATE programmi_svolti SET id_classe = '$classe_id', id_docente = '$docente_id', id_materia = '$materia_id', id_utente = '$utente_id', updated = '$update' WHERE id = '$id'";
-		dbExec($query);
-		info("aggiornato programma svolto id=$id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_utente=$utente_id updated=$update");
+	if ($duplica == 'false') {
+		if ($id > 0) {
+			$query = "UPDATE programmi_svolti SET id_classe = '$classe_id', id_docente = '$docente_id', id_materia = '$materia_id', id_utente = '$utente_id', updated = '$update' WHERE id = '$id'";
+			dbExec($query);
+			info("aggiornato programma svolto id=$id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_utente=$utente_id updated=$update");
+		} else {
+			$query = "INSERT INTO programmi_svolti(id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated) VALUES('$classe_id', '$docente_id', '$materia_id', '$__anno_scolastico_corrente_id', '$utente_id', '$update')";
+			dbExec($query);
+			$new_id = dblastId();
+			info("aggiunto programma svolto id=$new_id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_anno_scolastico=$__anno_scolastico_corrente_id id_utente=$utente_id updated=$update");
+		}
 	} else {
+		// creo il programma vuoto per la nuova classe
 		$query = "INSERT INTO programmi_svolti(id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated) VALUES('$classe_id', '$docente_id', '$materia_id', '$__anno_scolastico_corrente_id', '$utente_id', '$update')";
 		dbExec($query);
-		$id = dblastId();
-		info("aggiunto programma svolto id=$id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_anno_scolastico=$__anno_scolastico_corrente_id id_utente=$utente_id updated=$update");
+		$new_id = dblastId();
+		info("aggiunto programma svolto id=$new_id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_anno_scolastico=$__anno_scolastico_corrente_id id_utente=$utente_id updated=$update");
+
+		// duplico i moduli collegati al programma originale
+		$query = "INSERT INTO programmi_svolti_moduli (ID_PROGRAMMA, ORDINE, NOME, CONTENUTO, ID_UTENTE, UPDATED)
+    	SELECT $new_id AS ID_PROGRAMMA, ORDINE, NOME, CONTENUTO, ID_UTENTE, NOW() AS UPDATED FROM programmi_svolti_moduli WHERE ID_PROGRAMMA = $id";
+		dbExec($query);
+		info("duplicati i moduli del programma svolto id=$id e li ho collegati al nuovo programma svolto id=$new_id");
 	}
 }
 ?>

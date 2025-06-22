@@ -189,13 +189,13 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
 
                 <!-- Modal - Add/Update Record -->
                 <div class="modal fade" id="programma_modal" data-backdrop="static" tabindex="-1" role="dialog"
-                    aria-labelledby="myModalLabel">
+                    aria-labelledby="myModalLabel1">
                     <div class="modal-dialog modal-lg" style="margin:auto;width:%40" role="document">
                         <div class="modal-content">
                             <div class="modal-body">
                                 <div class="panel panel-orange4">
                                     <div class="panel-heading">
-                                        <h3 class="modal-title" style="text-align:center" id="myModalLabel">Programma
+                                        <h3 class="modal-title" style="text-align:center" id="myModalLabel1">Programma
                                             Svolto
                                         </h3>
                                     </div>
@@ -242,7 +242,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                 </strong></div>
 
                                             <input type="hidden" id="hidden_programma_id">
-
+                                            <input type="hidden" id="hidden_duplica">
                                         </form>
 
                                     </div>

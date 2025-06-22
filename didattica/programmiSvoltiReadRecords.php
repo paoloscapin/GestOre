@@ -21,8 +21,8 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					<tr>
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-2">Docente</th>
-						<th class="text-center col-md-4">Materia</th>
-						<th class="text-center col-md-1">Azioni</th>
+						<th class="text-center col-md-3">Materia</th>
+						<th class="text-center col-md-2">Azioni</th>
 						<th class="text-center col-md-2">Ultimo aggiornamento</th>
 						<th class="text-center col-md-2">Autore ultimo aggiornamento</th>
 					</tr>
@@ -96,16 +96,19 @@ foreach ($resultArray as $row) { {
 
 		if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
 			$data .= '
-  			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il programma"><span class="glyphicon glyphicon-pencil"></button>
+  			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il programma"><span class="glyphicon glyphicon-pencil"></button>
 			<button onclick="programmiSvoltiDelete(' . $programma_id . ', \'' . $materia . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il programma"><span class="glyphicon glyphicon-trash"></button>
 			<button onclick="programmiSvoltiPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma svolto"><span class="glyphicon glyphicon-print"></button>
+			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ', \'true\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Duplica il programma per un altra classe"><span class="glyphicon glyphicon-duplicate"></button>
+			<button onclick="programmiSvoltiCondividi(' . $programma_id . ', \'' . $materia . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Condividi il programma con un altro docente"><span class="glyphicon glyphicon-share"></button>
 		';
 		} else
 			if (haRuolo('docente')) {
 				if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) {
 					$data .= '
-			  			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il programma"><span class="glyphicon glyphicon-pencil"></button>
+			  			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il programma"><span class="glyphicon glyphicon-pencil"></button>
 						<button onclick="programmiSvoltiDelete(' . $programma_id . ', \'' . $materia . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il programma"><span class="glyphicon glyphicon-trash"></button>
+						<button onclick="programmiSvoltiGetDetails(' . $programma_id . ', \'true\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Duplica il programma per un altra classe"><span class="glyphicon glyphicon-duplicate"></button>
 						';
 				}
 			}
