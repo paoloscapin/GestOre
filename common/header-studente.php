@@ -20,8 +20,9 @@
 		<?php endif; ?>
 		</ul>
 		<ul class="nav navbar-nav top-navbar-nav">
-		<?php if(getSettingsValue('config','carenze', false)) : ?>
-			<a href="<?php echo $__application_base_path; ?>/studente/carenze.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Carenze </a>
+		<?php 
+		if((getSettingsValue('config','carenzeObiettiviMinimi', false))&&(getSettingsValue('carenzeObiettiviMinimi','visibile_studenti', false))) :?>
+			<a href="<?php echo $__application_base_path; ?>/studente/carenze.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
 		<?php endif; ?>
 		</ul>
 

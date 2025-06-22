@@ -1,0 +1,82 @@
+<?php
+
+/**
+ *  This file is part of GestOre
+ *  @author     Paolo Scapin <paolo.scapin@gmail.com>
+ *  @copyright  (C) 2018 Paolo Scapin
+ *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ */
+
+// include Database connection file
+require_once '../common/checkSession.php';
+require_once '../common/connect.php';
+
+
+// Design initial table header
+$data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
+					<thead>
+					<tr>
+						<th class="text-center col-md-2">Materia</th>						
+						<th class="text-center col-md-2">Docente</th>
+						<th class="text-center col-md-1">Data ricezione</th>
+						<th class="text-center col-md-5">Note</th>
+						<th class="text-center col-md-1">Programma Carenza</th>
+					</tr>
+					</thead>';
+
+$query = "	SELECT
+					carenze.id AS carenza_id,
+					carenze.id_studente AS carenza_id_studente,
+					carenze.id_materia AS carenza_id_materia,
+					carenze.id_classe AS carenza_id_classe,
+					carenze.id_docente AS carenza_id_docente,
+					carenze.id_anno_scolastico AS carenza_id_anno_scolastico,
+					carenze.stato AS carenza_stato,
+					carenze.data_inserimento AS carenza_inserimento,
+					carenze.data_validazione AS carenza_validazione,
+					carenze.data_invio AS carenza_invio,
+					docente.cognome AS doc_cognome,
+					docente.nome AS doc_nome,
+					materia.nome AS materia
+				FROM carenze
+				INNER JOIN docente docente
+				ON carenze.id_docente = docente.id
+				INNER JOIN studente studente
+				ON carenze.id_studente = studente.id
+				INNER JOIN materia materia
+				ON carenze.id_materia = materia.id
+				INNER JOIN classi classi
+				ON carenze.id_classe = classi.id
+				WHERE carenze.id_anno_scolastico='$__anno_scolastico_corrente_id' AND studente.id='$__studente_id' AND carenze.stato='1'";
+
+
+$resultArray = dbGetAll($query);
+if ($resultArray == null) {
+	$resultArray = [];
+}
+foreach ($resultArray as $row) {
+		$materia = $row['materia'];
+		// Creazione dell'oggetto DateTime
+		$datf = new DateTime($row['carenza_validazione']);
+
+		// Conversione nel formato desiderato
+		$data_ricezione  = $datf->format('d-m-Y H:i:s');
+		$note = '';
+		$data .= '<tr>
+		<td align="center">' . $materia . '</td>
+		<td align="center">' . $row['doc_cognome'] . ' ' . $row['doc_nome'] . '</td>
+		<td align="center">' . $data_ricezione . '</td>
+		<td align="center">' . $note . '</td>
+		<td align="center">
+			<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Scarica il PDF del programma della carenza"><span class="glyphicon glyphicon-save"></button>
+			<button onclick="carenzaMail(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia una copia via
+			 mail"><span class="glyphicon glyphicon-print"></button>
+		</td>';
+
+		$data .= '</tr>';
+	}
+
+$data .= '</table></div>';
+
+echo $data;
+?>
