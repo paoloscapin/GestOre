@@ -48,7 +48,7 @@ if ($resultArray == null) {
 // cancello se esistono i moduli (da cancellare)
 $query = "DELETE from programmi_svolti_moduli WHERE ID_PROGRAMMA=$programma_modulo_id";
 dbExec($query);
-
+$data='';
 $nmoduli = 0;
 foreach ($resultArray as $row) { {
 		$nmoduli++;
@@ -67,7 +67,6 @@ foreach ($resultArray as $row) { {
 		$idmodulo = dblastId();
 		info("aggiunto programma modulo svolto id=$idmodulo  id_programma=$id_programma id_utente=$id_autore updated=$updated");
 
-		$data='';
 		$query = "SELECT utente.cognome,utente.nome from utente WHERE utente.id = " . $id_autore;
 		$result = dbGetFirst($query);
 		$autore = $result['cognome'] . " " . $result['nome'];

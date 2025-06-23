@@ -164,7 +164,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                             <div class="col-md-2 text-right">
                                 <div class="text-center">
                                     <label class="col-sm-12 control-label" for="materia">Aggiungi Programma</label>
-                                    <button class="btn btn-xs btn-lima4" onclick="programmiSvoltiGetDetails(-1,<?php echo $id_docente_utente ?>)"><span
+                                    <button class="btn btn-xs btn-lima4" onclick="programmiSvoltiGetDetails(-1,'false','false')"><span
                                             style="font-size:20px" class="glyphicon glyphicon-plus"></span></button>
                                 </div>
                             </div>
@@ -243,6 +243,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
 
                                             <input type="hidden" id="hidden_programma_id">
                                             <input type="hidden" id="hidden_duplica">
+                                            <input type="hidden" id="hidden_share">
                                         </form>
 
                                     </div>

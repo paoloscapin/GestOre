@@ -212,11 +212,13 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                                     </select></div>
                                             </div>
 
-                                            <div class="form-group" id="_error-programma-part"><strong>
+                                            <div class="form-group" id="_error-programma-part">
+                                                <strong>
 
                                                     <div class="col-sm-3 text-right text-danger ">Attenzione</div>
                                                     <div class="col-sm-9" id="_error-programma"></div>
-                                                </strong></div>
+                                                </strong>
+                                            </div>
 
                                             <input type="hidden" id="hidden_programma_id">
 
