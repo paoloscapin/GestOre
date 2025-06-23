@@ -181,6 +181,10 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                                     data-width="100%"><?php echo $materiaFiltroOptionList ?></select></div>
                         </div>
                     </div>
+                    <?php
+                    if (haRuolo('segreteria-didattica'))
+                    {
+                        echo '
                     <div class="col-md-2">
                         <div class="text-center">
                             <label class="col-sm-12 control-label" for="docente">Docente</label>
@@ -191,6 +195,9 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                                 </select></div>
                         </div>
                     </div>
+                    ';
+                    }
+                    ?>
                     <div class="col-md-2">
                         <div class="text-center">
                             <label class="col-sm-12 control-label" for="materia">Studente</label>
@@ -280,11 +287,12 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                                                     </select></div>
                                             </div>
 
-                                            <div class="form-group" id="_error-carenza-part"><strong>
-
+                                            <div class="form-group" id="_error-carenza-part">
+                                                <strong>
                                                     <div class="col-sm-3 text-right text-danger ">Attenzione</div>
-                                                    <div class="col-sm-9" id="_error-carenza></div>
-                                                </strong></div>
+                                                    <div class="col-sm-9" id="error-carenza"></div>
+                                                </strong>
+                                            </div>
                                             <input type="hidden" id="hidden_carenza_id">
                                         </form>
                                     </div>

@@ -16,8 +16,9 @@ if (isset($_POST)) {
 	$id = $_POST['id'];
 	$utente_id = $_POST['id_utente'];
 	$stato = $_POST['stato'];
-
-	// recupero il docente_id partendo da uteente_id
+    $nota = $_POST['nota'];
+	$nota = str_replace("'","",$nota);
+	// recupero il docente_id partendo da utente_id
 	$query = "SELECT 
 	utente.id AS utente_id,
 	utente.cognome AS utente_cognome,
@@ -44,11 +45,11 @@ if (isset($_POST)) {
 
 	if ($stato==0)
 	{
-		$query = "UPDATE carenze SET id_docente = '0', stato = '$stato', data_validazione = '$update' WHERE id = '$id'";
+		$query = "UPDATE carenze SET id_docente = '0', stato = '$stato', data_validazione = '$update', nota_docente = '' WHERE id = '$id'";
 	}
 	else
 	{
-		$query = "UPDATE carenze SET id_docente = '$docente_id', stato = '$stato', data_validazione = '$update' WHERE id = '$id'";
+		$query = "UPDATE carenze SET id_docente = '$docente_id', stato = '$stato', data_validazione = '$update', nota_docente = '$nota'WHERE id = '$id'";
 	}
 	dbExec($query);
 	info("aggiornata validazione carenza id=$id  docente_id=$docente_id stato=$stato updated=$update");

@@ -62,16 +62,21 @@ function carenzaDelete(id, materia, studente) {
 }
 
 function carenzaValida(id, id_utente, stato) {
-    conf = true;
-
+    var conf = true;
+    var nota_docente = "";
+    if (stato == 0) {
+      nota_docente = prompt("Inserisci una nota per lo studente (OPZIONALE - indicazioni materiali da studiare, materiale su classroom, etc..)","Nessuna nota aggiuntiva dal docente");
+    }
+    
     if (stato == 1) {
         conf = confirm("Confermi che vuoi togliere la validazione a questa carenza?");
     }
-    if (conf == true) {
+    if ((conf == true)&&(nota_docente!=null)) {
         $.post("../didattica/carenzaValida.php", {
             id: id,
             id_utente: id_utente,
-            stato: stato
+            stato: stato,
+            nota: nota_docente
         },
             function (data, status) {
                 carenzeReadRecords();
@@ -104,7 +109,7 @@ function carenzaSave() {
         id: $("#hidden_carenza_id").val(),
         studente_id: $("#studente").val(),
         classe_id: $("#classe").val(),
-        materia_id: $("#materia").val(),
+        materia_id: $("#materia").val()
     }, function (data, status) {
         $("#carenza_modal").modal("hide");
         carenzeReadRecords();

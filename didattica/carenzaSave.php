@@ -24,11 +24,11 @@ if (isset($_POST)) {
 	$update = date("Y-m-d H-i-s");
 	$utente_id = $__utente_id;
 	if ($id > 0) {
-		$query = "UPDATE carenze SET id_studente = '$studente_id', id_classe = '$classe_id', id_materia = '$materia_id', id_docente = '0', stato = '0', data_inserimento = '$update', data_validazione = '', data_invio = '', WHERE id = '$id'";
+		$query = "UPDATE carenze SET id_studente = '$studente_id', id_classe = '$classe_id', id_materia = '$materia_id', id_docente = '0', stato = '0', data_inserimento = '$update', data_validazione = '', data_invio = '' WHERE id = '$id'";
 		dbExec($query);
 		info("aggiornata materia id=$id  anno=$anno_id id_indirizzo=$indirizzo_id id_materia=$materia_id id_utente=$utente_id updated=$update");
 	} else {
-		$query = "INSERT INTO carenze(id_studente, id_materia, id_classe, id_docente, id_anno_scolastico, stato, data_inserimento, data_validazione, data_invio) VALUES('$studente_id', '$materia_id', '$classe_id', '0', '	$__anno_scolastico_corrente_id', '0', '$update','','')";
+		$query = "INSERT INTO carenze(id_studente, id_materia, id_classe, id_docente, id_anno_scolastico, stato, data_inserimento, data_validazione, data_invio) VALUES('$studente_id', '$materia_id', '$classe_id', '0', '$__anno_scolastico_corrente_id', '0', '$update','','')";
 		dbExec($query);
 		$id = dblastId();
 		info("aggiunta carenza	 id=$id  id_studente)$studente_id id_classe=$classe_id id_materia=$materia_id id_utente=$utente_id updated=$update");

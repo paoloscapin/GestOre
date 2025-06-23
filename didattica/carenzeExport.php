@@ -77,8 +77,7 @@ $columns = [
     "stud_cognome" => "Cognome Studente",
     "stud_nome" => "Nome Studente",
     "classe" => "Classe",
-    "doc_cognome" => "Cognome Docente",
-    "doc_nome" => "Nome Docente",
+    "docente" => "Docente",
     "materia" => "Materia"
 ];
 
@@ -101,6 +100,7 @@ foreach ($resultArray as $row) {
             $csvRow[] = '';
         } else {
             // Valore normale
+			$docente = trim(($row['doc_cognome'] ?? '') . ' ' . ($row['doc_nome'] ?? ''));
             $csvRow[] = $row[$field] ?? '';
         }
     }
