@@ -16,6 +16,7 @@ $classe_id = $_GET["classe_id"];
 $materia_id = $_GET["materia_id"];
 $studente_id = $_GET["studente_id"];
 $anno = $_GET["anno"];
+$da_validare_filtro = $_GET["da_validare_filtro"];
 
 // Design initial table header
 $data = '<style>
@@ -107,6 +108,9 @@ if ($studente_id > 0) {
 if ($anno > 0) {
 	$query .= " AND classi.classe LIKE '" . $anno . "%' ";
 }
+if ($da_validare_filtro > 0) {
+	$query .= " AND carenze.stato='0' ";
+}
 
 $query .= " ORDER BY studente.cognome, studente.nome, materia.nome ASC";
 
@@ -160,10 +164,10 @@ foreach ($resultArray as $row) {
 		$statoMarker .= '<span class="label label-primary">inserito</span>';
 	} else {
 		if ($stato > 0) {
-			$statoMarker .= '<span class="label label-danger">validato</span>';
+			$statoMarker .= '<span class="label label-success">validato</span>';
 		} else {
 			if ($stato > 1) {
-				$statoMarker .= '<span class="label label-success">inviato</span>';
+				$statoMarker .= '<span class="label label-info">inviato</span>';
 			}
 		}
 	}
@@ -182,10 +186,10 @@ foreach ($resultArray as $row) {
 			<button onclick="carenzaDelete(\'' . $idcarenza . '\',\'' . $materia . '\',\'' . $studente . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la carenza"><span class="glyphicon glyphicon-trash"></button>';
 		if ($stato == 0) {
 			$data .= '
-				<button onclick="carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Conferma la carenza"><span class="glyphicon glyphicon-ok"></button>';
+				<button onclick="carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Conferma la carenza"><span class="glyphicon glyphicon-warning-sign"></button>';
 		} else {
 			$data .= '
-				<button onclick="carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Rimuovi la conferma della carenza - Nota attualmente inserita - ' . $nota . '"><span class="glyphicon glyphicon-remove"></button>';
+				<button onclick="carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Rimuovi la conferma della carenza - Nota attualmente inserita - ' . $nota . '"><span class="glyphicon glyphicon-ok"></button>';
 		}
 	} else
 		if (haRuolo('docente')) {
@@ -194,17 +198,17 @@ foreach ($resultArray as $row) {
 					if (getSettingsValue('carenzeObiettiviMinimi', 'docente_puo_modificare', false)) {
 						if ($stato == 0) {
 							$data .= '
-								<button onclick="hideTooltip(this); carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Conferma la carenza"><span class="glyphicon glyphicon-ok"></button>';
+								<button onclick="hideTooltip(this); carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Conferma la carenza"><span class="glyphicon glyphicon-warning-sign"></button>';
 						} else {
 							if ($docente_riga_id == $id_docente_attuale)
 							{
 								$data .= '
-								<button onclick="hideTooltip(this); carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Rimuovi la conferma della carenza - Nota attualmente inserita - ' . $nota . '"><span class="glyphicon glyphicon-remove"></button>';
+								<button onclick="hideTooltip(this); carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Rimuovi la conferma della carenza - Nota attualmente inserita - ' . $nota . '"><span class="glyphicon glyphicon-ok"></button>';
 							}
 							else
 							{
 								$data .= '
-								<button onclick="hideTooltip(this)" class="btn btn-secondary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Non puoi modificare la carenza confermata da un altro docente"><span class="glyphicon glyphicon-remove"></button>';
+								<button onclick="hideTooltip(this)" class="btn btn-secondary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Non puoi modificare la carenza confermata da un altro docente"><span class="glyphicon glyphicon-ok"></button>';
 							}
 						}
 					}

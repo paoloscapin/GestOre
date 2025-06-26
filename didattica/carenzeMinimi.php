@@ -190,8 +190,9 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                             <label class="col-sm-12 control-label" for="docente">Docente</label>
                             <div class="col-sm-12"><select id="docente_filtro" name="docente_filtro"
                                     class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
-                                    data-noneSelectedText="seleziona..." data-width="100%">
-                                    <?php echo $docentiFiltroOptionList ?>
+                                    data-noneSelectedText="seleziona..." data-width="100%">';
+                                    echo $docentiFiltroOptionList;
+                                    echo '
                                 </select></div>
                         </div>
                     </div>
@@ -228,14 +229,26 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                     <div class="col-md-auto text-center">
                         <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span
                                 class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file"
-                                id="file_select_id" style="display: none;"></label>
+                                id="file_select_id" style="display: none;"></label></div>
                     ';
                     }
                     ?>
-                    <div class="col-md-auto text-center"><br>
+                    <div class="col-md-auto text-center">
                         <label id="export_btn" class="btn btn-xs btn-lima4 btn-file"><span
                                 id="file_export_id" class="glyphicon glyphicon-download"></span>&emsp;Esporta</label>
                     </div>
+                    <?php
+                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                        echo '                    
+                                    <br><div class="col-md-auto text-center">
+                                                                <label class="checkbox-inline">
+                                                <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary"
+                                                    id="daValidareCheckBox">Da validare
+                                            </label>
+                                    </div>
+                                        ';
+                    }
+                    ?>
                     <div class="panel-body">
                         <div class="row" style="margin-bottom:10px;">
                             <div class="col-md-12 text-center" id='result_text'>

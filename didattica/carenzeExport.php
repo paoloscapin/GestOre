@@ -16,6 +16,7 @@ $classe_id = $_GET["id_classe"];
 $materia_id = $_GET["id_materia"];
 $studente_id = $_GET["id_studente"];
 $anno = $_GET["id_anno"];
+$da_validare = $_GET["da_validare"];
 
 $query = "	SELECT
 					carenze.id AS carenza_id,
@@ -60,6 +61,9 @@ if ($studente_id > 0) {
 if ($anno > 0) {
 	$query .= " AND classi.classe LIKE '" . $anno . "%' ";
 }
+if ($da_validare > 0) {
+	$query .= " AND carenze.stato='0' ";
+}
 
 $query .= " ORDER BY studente.cognome, studente.nome ASC";
 
@@ -92,19 +96,48 @@ $output = fopen('php://output', 'w');
 fputcsv($output, array_values($columns));
 
 // Scrivi i dati
-foreach ($resultArray as $row) {
+foreach ($resultArray as $row) 
+{
     $csvRow = [];
-    foreach ($columns as $field => $label) {
-		if ($field === 'doc_cognome' && $row[$field] === 'Tutti') {
+    foreach ($columns as $field => $label) 
+	{
+		if ($field === 'doc_cognome' && $row[$field] === 'Tutti') 
+		{
             // Sostituisci "Tutti" con stringa vuota
             $csvRow[] = '';
-        } else {
-            // Valore normale
-			$docente = trim(($row['doc_cognome'] ?? '') . ' ' . ($row['doc_nome'] ?? ''));
-            $csvRow[] = $row[$field] ?? '';
-        }
-    }
+        } 
+		else 
+		{
+			if ($field === 'carenza_stato' && $row[$field] === '0') 
+			{
+				// Sostituisci "0" con "da validare"
+				$csvRow[] = 'da validare';
+			} 
+			else  
+			{
+				if ($field === 'carenza_stato' && $row[$field] === '1') 
+				{
+					// Sostituisci "1" con "validato"
+					$csvRow[] = 'validato';
+				} 
+				else  
+				{
+					if ($field === 'carenza_stato' && $row[$field] === '2') 
+					{
+						// Sostituisci "2" con "inviato"
+						$csvRow[] = 'inviato';
+					} 
+					else 
+					{
+						// Valore normale
+						$docente = trim(($row['doc_cognome'] ?? '') . ' ' . ($row['doc_nome'] ?? ''));
+						$csvRow[] = $row[$field] ?? '';
+					}
+				}
+			}
+		}
+	}
+
     fputcsv($output, $csvRow);
 }
-
 fclose($output);

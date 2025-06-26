@@ -10,9 +10,20 @@ var $classe_filtro_id = 0;
 var $materia_filtro_id = 0;
 var $studente_filtro_id = 0;
 var $anno_filtro_id = 0;
+var $da_validare_filtro = 0;
+
+$('#daValidareCheckBox').change(function() {
+    // this si riferisce al checkbox
+    if (this.checked) {
+		$da_validare_filtro = 1;
+    } else {
+		$da_validare_filtro = 0;
+    }
+    carenzeReadRecords();
+});
 
 function carenzeReadRecords() {
-    $.get("carenzeReadRecords.php?anno=" + $anno_filtro_id + "&docente_id=" + $docente_filtro_id + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id, {}, function (data, status) {
+    $.get("carenzeReadRecords.php?anno=" + $anno_filtro_id + "&docente_id=" + $docente_filtro_id + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id + "&da_validare_filtro=" + $da_validare_filtro, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
@@ -69,7 +80,7 @@ function carenzaValida(id, id_utente, stato) {
     }
     
     if (stato == 1) {
-        conf = confirm("Confermi che vuoi togliere la validazione a questa carenza?");
+        conf = confirm("fConfermi che vuoi togliere la validazione a questa carenza?");
     }
     if ((conf == true)&&(nota_docente!=null)) {
         $.post("../didattica/carenzaValida.php", {
@@ -139,19 +150,15 @@ function hideTooltip(el) {
 }
 
 function exportFile() {
-    var $docente_filtro_id = 0;
-    var $classe_filtro_id = 0;
-    var $materia_filtro_id = 0;
-    var $studente_filtro_id = 0;
-    var $anno_filtro_id = 0;
     const url = "carenzeExport.php"
         + "?id_docente=" + encodeURIComponent($docente_filtro_id)
         + "&id_classe=" + encodeURIComponent($classe_filtro_id)
         + "&id_materia=" + encodeURIComponent($materia_filtro_id)
         + "&id_studente=" + encodeURIComponent($studente_filtro_id)
-        + "&id_anno=" + encodeURIComponent($anno_filtro_id);
-
+        + "&id_anno=" + encodeURIComponent($anno_filtro_id)
+        + "&da_validare=" + encodeURIComponent($da_validare_filtro);
     // Forza il browser a scaricare il file
+    console.log(url);
     window.open(url, '_blank');
 };
 
@@ -198,6 +205,6 @@ $(document).ready(function () {
         importFile(e.target.files[0]);
     });
 
-    $('#docente_filtro').val("0");
-    $('#docente_filtro').selectpicker('refresh');
+    //$('#docente_filtro').val("0");
+    //$('#docente_filtro').selectpicker('refresh');
 });     
