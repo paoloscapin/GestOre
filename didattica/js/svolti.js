@@ -10,8 +10,8 @@ var $materia_filtro_id = 0;
 var $docenti_filtro_id = 0;
 
 function programmiSvoltiReadRecords() {
-    if ($("#hidden_docente_id").val()>0)
-        $docenti_filtro_id=$("#hidden_docente_id").val();
+    if ($("#hidden_docente_id").val() > 0)
+        $docenti_filtro_id = $("#hidden_docente_id").val();
     $.get("programmiSvoltiReadRecords.php?classi_id=" + $classi_filtro_id + "&materia_id=" + $materia_filtro_id + "&docenti_id=" + $docenti_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
@@ -31,62 +31,51 @@ function moduliSvoltiReadRecords(programma_id) {
 
 }
 
-function programmiSvoltiGetDetails(programma_id,duplica,share) {
+function programmiSvoltiGetDetails(programma_id, duplica, share) {
     $("#hidden_programma_id").val(programma_id);
     $("#hidden_duplica").val(duplica);
     $("#hidden_share").val(share);
-    id_docente =  $('#docente').val();
-    if (duplica=='true')
-    {
+    id_docente = $('#docente').val();
+    if (duplica == 'true') {
         $("#myModalLabel1").html("Duplica il programma per un altra classe");
     }
     else
-    if (share=='true')
-    {
-        $("#myModalLabel1").html("Invia una copia del programma al codocente della classe");
-    }
-    else
-    {
-        $("#myModalLabel1").html("Programma svolto");
-    }
+        if (share == 'true') {
+            $("#myModalLabel1").html("Invia una copia del programma al codocente della classe");
+        }
+        else {
+            $("#myModalLabel1").html("Programma svolto");
+        }
     if (programma_id > 0) {
         $.post("../didattica/programmiSvoltiReadDetails.php", {
             programma_id: programma_id
         }, function (data, status) {
             var programma = JSON.parse(data);
-            if (duplica=='true')
-            {
+            if (duplica == 'true') {
                 $('#classe').selectpicker('val', 0);
             }
-            else
-            {
+            else {
                 $('#classe').selectpicker('val', programma.programma_classe);
             }
-            if (share=='true')
-            {
+            if (share == 'true') {
                 $('#docente').selectpicker('val', 0);
             }
-            else
-            {
+            else {
                 $('#docente').selectpicker('val', programma.programma_iddocente);
             }
 
             $('#materia').selectpicker('val', programma.programma_idmateria);
-            
-            if (duplica=='false')
-            {
+
+            if (duplica == 'false') {
                 $('#classe').attr('disabled', true);
             }
-            else
-            {
+            else {
                 $('#classe').attr('disabled', false);
             }
-            if (share=='false')
-            {
+            if (share == 'false') {
                 $('#docente').attr('disabled', true);
             }
-            else
-            {
+            else {
                 $('#docente').attr('disabled', false);
             }
             $('#materia').attr('disabled', true);
@@ -98,18 +87,16 @@ function programmiSvoltiGetDetails(programma_id,duplica,share) {
     }
     else {
         $('#classe').attr('disabled', false);
-        if (id_docente!=0)
-        {
+        if (id_docente != 0) {
             $('#docente').attr('disabled', true);
         }
-        else
-        {
+        else {
             $('#docente').attr('disabled', false);
         }
         $('#materia').attr('disabled', false);
         $('#classe').val("0");
         $('#classe').selectpicker('refresh');
-        $('#classe').disabled=true;
+        $('#classe').disabled = true;
         $('#docente').val(id_docente);
         $('#docente').selectpicker('refresh');
         $('#materia').val("0");
@@ -121,59 +108,52 @@ function programmiSvoltiGetDetails(programma_id,duplica,share) {
     $("#programma_modal").modal("show");
 }
 
-async function moduliSvoltiImport()
-{
+async function moduliSvoltiImport() {
     let programma_id = $("#hidden_programma_id").val();
-    console.log("programma ID "+programma_id);
 
     // Se il programma id è negativo, salviamo prima
-    if (programma_id<0)
-    {
-        console.log("save bk");
+    if (programma_id < 0) {
 
         programma_id = await new Promise((resolve, reject) => {
-        $.post("programmiSvoltiSave.php", {
-            id: '-1',
-            docente_id: $("#docente").val(),
-            classe_id: $("#classe").val(),
-            materia_id: $("#materia").val(),
-            duplica: 'false',
-            share: 'false',
-            overwrite: 'false'
-        }, function (data, status) 
-        {   
-            console.log('data save ' + data);
-            $("#hidden_programma_id").val(data);  
-            resolve(data);
-    }).fail(function(jqXHR, textStatus, errorThrown) {
+            $.post("programmiSvoltiSave.php", {
+                id: '-1',
+                docente_id: $("#docente").val(),
+                classe_id: $("#classe").val(),
+                materia_id: $("#materia").val(),
+                duplica: 'false',
+                share: 'false',
+                overwrite: 'false'
+            }, function (data, status) {
+                $("#hidden_programma_id").val(data);
+                resolve(data);
+            }).fail(function (jqXHR, textStatus, errorThrown) {
                 console.error("Errore nel salvataggio:", textStatus, errorThrown);
                 reject(errorThrown);
             });
         });
     }
 
-    console.log("programma ID after "+programma_id);
+    console.log("programma ID after " + programma_id);
 
     // Se abbiamo un ID valido, proseguiamo con l'importazione
-    if (programma_id>0)
-    {
-    var conf = confirm("Sei sicuro di volere importare il programma di dipartimento ? Eventuali moduli già presenti saranno sovrascritti.");
+    if (programma_id > 0) {
+        var conf = confirm("Sei sicuro di volere importare il programma di dipartimento ? Eventuali moduli già presenti saranno sovrascritti.");
 
-    if (conf == true) {
-        await new Promise((resolve, reject) => {
-        $.post("../didattica/moduliSvoltiImport.php", {
-            programma_modulo_id: programma_id,
-            classe_id: $('#classe').val(),
-            materia_id: $('#materia').val()
-        },
-            function (data, status) {
-                console.log("Importazione completata");
-                moduliSvoltiReadRecords($("#hidden_programma_id").val());
-                resolve();
-                  }).fail(function (jqXHR, textStatus, errorThrown) {
-                    console.error("Errore nell'importazione:", textStatus, errorThrown);
-                    reject(errorThrown);
-                });
+        if (conf == true) {
+            await new Promise((resolve, reject) => {
+                $.post("../didattica/moduliSvoltiImport.php", {
+                    programma_modulo_id: programma_id,
+                    classe_id: $('#classe').val(),
+                    materia_id: $('#materia').val()
+                },
+                    function (data, status) {
+                        console.log("Importazione completata");
+                        moduliSvoltiReadRecords($("#hidden_programma_id").val());
+                        resolve();
+                    }).fail(function (jqXHR, textStatus, errorThrown) {
+                        console.error("Errore nell'importazione:", textStatus, errorThrown);
+                        reject(errorThrown);
+                    });
             });
         }
     }
@@ -181,28 +161,26 @@ async function moduliSvoltiImport()
 
 async function moduloSvoltiGetDetails(modulo_id) {
     let programma_id = $("#hidden_programma_id").val();
-    console.log("programma ID "+programma_id);
+    console.log("programma ID " + programma_id);
 
     // Se il programma id è negativo, salviamo prima
-    if (programma_id<0)
-    {
+    if (programma_id < 0) {
         console.log("save bk");
 
         programma_id = await new Promise((resolve, reject) => {
-        $.post("programmiSvoltiSave.php", {
-            id: '-1',
-            docente_id: $("#docente").val(),
-            classe_id: $("#classe").val(),
-            materia_id: $("#materia").val(),
-            duplica: 'false',
-            share: 'false',
-            overwrite: 'false'
-        }, function (data, status) 
-        {   
-            console.log('data save ' + data);
-            $("#hidden_programma_id").val(data);  
-            resolve(data);
-    }).fail(function(jqXHR, textStatus, errorThrown) {
+            $.post("programmiSvoltiSave.php", {
+                id: '-1',
+                docente_id: $("#docente").val(),
+                classe_id: $("#classe").val(),
+                materia_id: $("#materia").val(),
+                duplica: 'false',
+                share: 'false',
+                overwrite: 'false'
+            }, function (data, status) {
+                console.log('data save ' + data);
+                $("#hidden_programma_id").val(data);
+                resolve(data);
+            }).fail(function (jqXHR, textStatus, errorThrown) {
                 console.error("Errore nel salvataggio:", textStatus, errorThrown);
                 reject(errorThrown);
             });
@@ -214,28 +192,28 @@ async function moduloSvoltiGetDetails(modulo_id) {
 
     if (modulo_id > 0) {
         const data = await new Promise((resolve, reject) => {
-        $.post("../didattica/moduloSvoltiReadDetails.php", {
-            modulo_id: modulo_id
-        }, function (data, status) {
-             resolve(data);
-                    }).fail(function (jqXHR, textStatus, errorThrown) {
-                        console.error("Errore nel recupero dettagli modulo:", textStatus, errorThrown);
-                        reject(errorThrown);
-                    });
-                });
-                const programma = JSON.parse(data);
-                $('#titolo').val(programma.modulo_nome);
-                $('#ordine').val(programma.modulo_ordine);
-                $('#contenuto').val(programma.modulo_contenuto);
+            $.post("../didattica/moduloSvoltiReadDetails.php", {
+                modulo_id: modulo_id
+            }, function (data, status) {
+                resolve(data);
+            }).fail(function (jqXHR, textStatus, errorThrown) {
+                console.error("Errore nel recupero dettagli modulo:", textStatus, errorThrown);
+                reject(errorThrown);
+            });
+        });
+        const programma = JSON.parse(data);
+        $('#titolo').val(programma.modulo_nome);
+        $('#ordine').val(programma.modulo_ordine);
+        $('#contenuto').val(programma.modulo_contenuto);
     }
     else {
-            console.log("Nmoduli "+nmoduli);
-            console.log("Nmoduli bis "+parseInt(nmoduli));
-            $('#titolo').val("");
-            $('#ordine').val(parseInt(nmoduli)+1);
-            $('#contenuto').val("");
-            $("#moduli_content").html("");
-          }
+        console.log("Nmoduli " + nmoduli);
+        console.log("Nmoduli bis " + parseInt(nmoduli));
+        $('#titolo').val("");
+        $('#ordine').val(parseInt(nmoduli) + 1);
+        $('#contenuto').val("");
+        $("#moduli_content").html("");
+    }
     $("#_error-modulo-part").hide();
     $("#modulo_modal").modal("show");
 }
@@ -269,30 +247,14 @@ function moduloSvoltiDelete(id, id_programma, titolo) {
         },
             function (data, status) {
                 moduliSvoltiReadRecords(id_programma);
-                 //$("#programma_modal").modal("hide");
+                //$("#programma_modal").modal("hide");
             }
         );
     }
 }
 
-function programmiSvoltiSaveBk(){
-        $.post("programmiSvoltiSave.php", {
-        id: '-1',
-        docente_id: $("#docente").val(),
-        classe_id: $("#classe").val(),
-        materia_id: $("#materia").val(),
-        duplica: 'false',
-        share: 'false',
-        overwrite: 'false'
-    }, function (data, status) 
-    {
-      console.log('data save ' + data);
-      $("#hidden_programma_id").val(data);  
-    });
-}
-
 function programmiSvoltiSave() {
-    console.log("Programma Svolti SAVE");
+
     if ($("#docente").val() <= 0) {
         $("#_error-programma").text("Devi selezionare un docente");
         $("#_error-programma-part").show();
@@ -310,58 +272,29 @@ function programmiSvoltiSave() {
     }
 
     $("#_error-programma-part").hide();
- 
+
     $.post("programmiSvoltiSave.php", {
         id: $("#hidden_programma_id").val(),
         docente_id: $("#docente").val(),
         classe_id: $("#classe").val(),
         materia_id: $("#materia").val(),
         duplica: $("#hidden_duplica").val(),
-        share: $("#hidden_share").val(),
-        overwrite: 'false'
+        share: $("#hidden_share").val()
     }, function (data, status) {
-        if (data=='Programma già esistente')
-        {
-            var conf = confirm("Esiste già il programma nella classe di destinazione. Lo sovrascrivo?");
-            if (conf)
-            {
-                console.log('programma esistente procedo');
-                console.log($("#hidden_programma_id").val()+'-'+$("#docente").val()+'-'+$("#materia").val()+'-'+$("#hidden_duplica").val()+'-'+$("#hidden_share").val());
-
-                $.post("programmiSvoltiSave.php", 
-                {
-                    id: $("#hidden_programma_id").val(),
-                    docente_id: $("#docente").val(),
-                    classe_id: $("#classe").val(),
-                    materia_id: $("#materia").val(),
-                    duplica: $("#hidden_duplica").val(),
-                    share: $("#hidden_share").val(),
-                    overwrite: 'true'
-                }, function (data, status) 
-                    {
-                        $("#programma_modal").modal("hide");
-                        programmiSvoltiReadRecords();
-                    });
-                console.log('elimina');
-                console.log($("#hidden_programma_id").val());
-
-                $.post("../didattica/moduliElimina.php", {
-                    id: $("#hidden_programma_id").val()
-                });
-                $.post("../common/deleteRecord.php", {
-                    id: $("#hidden_programma_id").val(),
-                    table: 'programmi_svolti',
-                    name: "materia id " + $("#materia").val()
-                },
-                    function (data, status) {
-                    });
+        if (data == 'Programma già esistente') {
+            if ($("#hidden_share").val() == 'true') {
+                alert("Non puoi condividere il programma con il docente, perchè ha già un programma presente!")
             }
+            else 
+            {
+                alert("Esiste già il programma nella classe di destinazione!");
+            } 
         }
-        else
-        {
+        else {
             $("#programma_modal").modal("hide");
             programmiSvoltiReadRecords();
         }
+
     });
 }
 
@@ -383,7 +316,7 @@ function moduloSvoltiSave() {
         return;
     }
     $("#_error-modulo-part").hide();
-      console.log("salvataggio in corso");
+    console.log("salvataggio in corso");
     $.post("moduloSvoltiSave.php", {
         id: $("#hidden_modulo_id").val(),
         id_programma: $("#hidden_programma_id").val(),
@@ -421,4 +354,4 @@ $(document).ready(function () {
             programmiSvoltiReadRecords();
         });
 
-    });     
+});     

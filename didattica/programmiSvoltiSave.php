@@ -18,7 +18,6 @@ if (isset($_POST)) {
 	$materia_id = $_POST['materia_id'];
 	$duplica = $_POST['duplica'];
 	$share = $_POST['share'];
-	$overwrite = $_POST['overwrite'];
 	date_default_timezone_set("Europe/Rome");
 	$update = date("Y-m-d H-i-s");
 	$utente_id = $__utente_id;
@@ -42,7 +41,7 @@ if (isset($_POST)) {
 		$query = "SELECT * from programmi_svolti WHERE id_classe='$classe_id' AND id_docente='$docente_id' AND id_materia='$materia_id'";
 		$result = dbGetFirst($query);
 		
-		if (($result!=null)&&($overwrite!='true'))
+		if ($result!=null)
 		{
 		  $data = 'Programma già esistente';	
 		}
