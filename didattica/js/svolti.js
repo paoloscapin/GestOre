@@ -121,54 +121,123 @@ function programmiSvoltiGetDetails(programma_id,duplica,share) {
     $("#programma_modal").modal("show");
 }
 
-function moduliSvoltiImport()
+async function moduliSvoltiImport()
 {
-    programma_id = $("#hidden_programma_id").val();
+    let programma_id = $("#hidden_programma_id").val();
+    console.log("programma ID "+programma_id);
+
+    // Se il programma id è negativo, salviamo prima
+    if (programma_id<0)
+    {
+        console.log("save bk");
+
+        programma_id = await new Promise((resolve, reject) => {
+        $.post("programmiSvoltiSave.php", {
+            id: '-1',
+            docente_id: $("#docente").val(),
+            classe_id: $("#classe").val(),
+            materia_id: $("#materia").val(),
+            duplica: 'false',
+            share: 'false',
+            overwrite: 'false'
+        }, function (data, status) 
+        {   
+            console.log('data save ' + data);
+            $("#hidden_programma_id").val(data);  
+            resolve(data);
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+                console.error("Errore nel salvataggio:", textStatus, errorThrown);
+                reject(errorThrown);
+            });
+        });
+    }
+
+    console.log("programma ID after "+programma_id);
+
+    // Se abbiamo un ID valido, proseguiamo con l'importazione
     if (programma_id>0)
     {
     var conf = confirm("Sei sicuro di volere importare il programma di dipartimento ? Eventuali moduli già presenti saranno sovrascritti.");
 
     if (conf == true) {
+        await new Promise((resolve, reject) => {
         $.post("../didattica/moduliSvoltiImport.php", {
             programma_modulo_id: programma_id,
             classe_id: $('#classe').val(),
             materia_id: $('#materia').val()
         },
             function (data, status) {
+                console.log("Importazione completata");
                 moduliSvoltiReadRecords($("#hidden_programma_id").val());
-            }
-        );
-    }
+                resolve();
+                  }).fail(function (jqXHR, textStatus, errorThrown) {
+                    console.error("Errore nell'importazione:", textStatus, errorThrown);
+                    reject(errorThrown);
+                });
+            });
+        }
     }
 }
 
-function moduloSvoltiGetDetails(modulo_id) {
-    programma_id = $("#hidden_programma_id").val();
-    if (programma_id>0)
+async function moduloSvoltiGetDetails(modulo_id) {
+    let programma_id = $("#hidden_programma_id").val();
+    console.log("programma ID "+programma_id);
+
+    // Se il programma id è negativo, salviamo prima
+    if (programma_id<0)
     {
+        console.log("save bk");
+
+        programma_id = await new Promise((resolve, reject) => {
+        $.post("programmiSvoltiSave.php", {
+            id: '-1',
+            docente_id: $("#docente").val(),
+            classe_id: $("#classe").val(),
+            materia_id: $("#materia").val(),
+            duplica: 'false',
+            share: 'false',
+            overwrite: 'false'
+        }, function (data, status) 
+        {   
+            console.log('data save ' + data);
+            $("#hidden_programma_id").val(data);  
+            resolve(data);
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+                console.error("Errore nel salvataggio:", textStatus, errorThrown);
+                reject(errorThrown);
+            });
+        });
+    }
+    programma_id = $("#hidden_programma_id").val();
     $("#hidden_modulo_id").val(modulo_id);
-    nmoduli = parseInt($("#hidden_nmoduli").val());
+    let nmoduli = modulo_id < 0 ? 0 : parseInt(modulo_id);
 
     if (modulo_id > 0) {
+        const data = await new Promise((resolve, reject) => {
         $.post("../didattica/moduloSvoltiReadDetails.php", {
             modulo_id: modulo_id
         }, function (data, status) {
-            var programma = JSON.parse(data);
-            $('#titolo').val(programma.modulo_nome);
-            $('#ordine').val(programma.modulo_ordine);
-            $('#contenuto').val(programma.modulo_contenuto);
-
-        });
+             resolve(data);
+                    }).fail(function (jqXHR, textStatus, errorThrown) {
+                        console.error("Errore nel recupero dettagli modulo:", textStatus, errorThrown);
+                        reject(errorThrown);
+                    });
+                });
+                const programma = JSON.parse(data);
+                $('#titolo').val(programma.modulo_nome);
+                $('#ordine').val(programma.modulo_ordine);
+                $('#contenuto').val(programma.modulo_contenuto);
     }
     else {
+            console.log("Nmoduli "+nmoduli);
+            console.log("Nmoduli bis "+parseInt(nmoduli));
             $('#titolo').val("");
-            $('#ordine').val(nmoduli+1);
+            $('#ordine').val(parseInt(nmoduli)+1);
             $('#contenuto').val("");
             $("#moduli_content").html("");
           }
     $("#_error-modulo-part").hide();
     $("#modulo_modal").modal("show");
-    }
 }
 
 
@@ -206,8 +275,24 @@ function moduloSvoltiDelete(id, id_programma, titolo) {
     }
 }
 
-function programmiSvoltiSave() {
+function programmiSvoltiSaveBk(){
+        $.post("programmiSvoltiSave.php", {
+        id: '-1',
+        docente_id: $("#docente").val(),
+        classe_id: $("#classe").val(),
+        materia_id: $("#materia").val(),
+        duplica: 'false',
+        share: 'false',
+        overwrite: 'false'
+    }, function (data, status) 
+    {
+      console.log('data save ' + data);
+      $("#hidden_programma_id").val(data);  
+    });
+}
 
+function programmiSvoltiSave() {
+    console.log("Programma Svolti SAVE");
     if ($("#docente").val() <= 0) {
         $("#_error-programma").text("Devi selezionare un docente");
         $("#_error-programma-part").show();
@@ -225,7 +310,7 @@ function programmiSvoltiSave() {
     }
 
     $("#_error-programma-part").hide();
-    console.log($("#hidden_programma_id").val()+'-'+$("#docente").val()+'-'+$("#materia").val()+'-'+$("#hidden_duplica").val()+'-'+$("#hidden_share").val())
+ 
     $.post("programmiSvoltiSave.php", {
         id: $("#hidden_programma_id").val(),
         docente_id: $("#docente").val(),

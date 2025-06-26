@@ -32,6 +32,7 @@ if (isset($_POST)) {
 			$query = "INSERT INTO programmi_svolti(id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated) VALUES('$classe_id', '$docente_id', '$materia_id', '$__anno_scolastico_corrente_id', '$utente_id', '$update')";
 			dbExec($query);
 			$new_id = dblastId();
+			$data = $new_id;
 			info("aggiunto programma svolto id=$new_id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_anno_scolastico=$__anno_scolastico_corrente_id id_utente=$utente_id updated=$update");
 		}
 	} else if ($duplica == 'true')
@@ -77,7 +78,6 @@ if (isset($_POST)) {
 			dbExec($query);
 			$new_id = dblastId();
 			info("aggiunto programma svolto id=$new_id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_anno_scolastico=$__anno_scolastico_corrente_id id_utente=$utente_id updated=$update");
-
 			// duplico i moduli collegati al programma originale
 			$query = "INSERT INTO programmi_svolti_moduli (ID_PROGRAMMA, ORDINE, NOME, CONTENUTO, ID_UTENTE, UPDATED)
 			SELECT $new_id AS ID_PROGRAMMA, ORDINE, NOME, CONTENUTO, ID_UTENTE, NOW() AS UPDATED FROM programmi_svolti_moduli WHERE ID_PROGRAMMA = $id";

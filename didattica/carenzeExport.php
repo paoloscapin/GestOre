@@ -11,7 +11,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$docente_id = $_GET["id_docente_"];
+$docente_id = $_GET["id_docente"];
 $classe_id = $_GET["id_classe"];
 $materia_id = $_GET["id_materia"];
 $studente_id = $_GET["id_studente"];
@@ -108,7 +108,3 @@ foreach ($resultArray as $row) {
 }
 
 fclose($output);
-
-$data = '<h3><b> File ' . $filename - ' generato.</b></h3>';
-
-echo $data;
