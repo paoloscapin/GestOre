@@ -161,11 +161,9 @@ async function moduliSvoltiImport() {
 
 async function moduloSvoltiGetDetails(modulo_id) {
     let programma_id = $("#hidden_programma_id").val();
-    console.log("programma ID " + programma_id);
 
     // Se il programma id è negativo, salviamo prima
     if (programma_id < 0) {
-        console.log("save bk");
 
         programma_id = await new Promise((resolve, reject) => {
             $.post("programmiSvoltiSave.php", {
@@ -188,7 +186,7 @@ async function moduloSvoltiGetDetails(modulo_id) {
     }
     programma_id = $("#hidden_programma_id").val();
     $("#hidden_modulo_id").val(modulo_id);
-    let nmoduli = modulo_id < 0 ? 0 : parseInt(modulo_id);
+    let nmoduli = $("#hidden_nmoduli").val();
 
     if (modulo_id > 0) {
         const data = await new Promise((resolve, reject) => {
