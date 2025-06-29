@@ -13,10 +13,11 @@ require_once '../common/checkSession.php';
 ruoloRichiesto('studente', 'docente', 'dirigente', 'segreteria-docenti');
 // program.php (in testa al file, prima di qualsiasi uso di mPDF)
 require_once '../common/vendor/autoload.php';
-
+require_once '../common/send-mail.php';
 // 1) PARAMETRI POST
 $carenzaId = isset($_POST['id']) ? (int) $_POST['id'] : -1;
 $doPrint = isset($_POST['print']) && ($_POST['print'] == '1' || $_POST['print'] === 'true');
+$doMail = isset($_POST['mail']) && ($_POST['mail'] == '1' || $_POST['mail'] === 'true');
 $titolo = isset($_POST['titolo']) ? $_POST['titolo'] : 'Programma didattico';
 
 if ($carenzaId==-1)
@@ -24,7 +25,7 @@ if ($carenzaId==-1)
 
 // 2) RECUPERO DATI PROGRAMMA
 $query = "SELECT  
-        carenze.id,
+        carenze.id AS carenza_id,
         carenze.id_studente AS stud_id,
         carenze.id_materia AS materia_id,
         carenze.id_classe AS classe_id,
@@ -41,6 +42,7 @@ $query = "SELECT
         studente.id AS studente_id,
         studente.cognome AS stud_cognome,
         studente.nome AS stud_nome, 
+        studente.email AS stud_email,
         docente.id AS docente_id,
         docente.cognome AS doc_cognome,
         docente.nome AS doc_nome,
@@ -672,11 +674,50 @@ if ($doPrint) {
     // 3) scrivo la tabella
     $pdf->writeHTML($tbl, true, false, true, false, '');
 
+if ($doMail)
+{
+  $filename = __DIR__  . '/tmp/carenza_id_' . $carenzaId . '.pdf';
+  $pdf->Output($filename, 'F'); // salva il file
+
+    $studente_cognome = $program['stud_cognome'];
+    $studente_nome = $program['stud_nome'];
+    $studente_email = $program['stud_email'];
+    $docente_cognome = $program['doc_cognome'];
+    $docente_nome = $program['doc_nome'];
+
+    $full_mail_body = file_get_contents("../didattica/template_mail_carenza.html");
+
+    $full_mail_body = str_replace("{titolo}","CARENZA FORMATIVA",$full_mail_body);
+    $full_mail_body = str_replace("{nome}",strtoupper($studente_cognome) . " " . strtoupper($studente_nome),$full_mail_body);
+    $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail perchè hai riportato la carenza formativa a fine anno secondo quanto qui riportato:",$full_mail_body);
+    $full_mail_body = str_replace("{classe}",$program['classe_nome'],$full_mail_body);
+    $full_mail_body = str_replace("{indirizzo}",$program['ind_nome'],$full_mail_body);
+    $full_mail_body = str_replace("{docente}",strtoupper($docente_cognome . " " . $docente_nome),$full_mail_body);
+    $full_mail_body = str_replace("{materia}",$program['materia_nome'],$full_mail_body);
+    $full_mail_body = str_replace("{nota}",$nota_docente,$full_mail_body);
+    $full_mail_body = str_replace("{messaggio_finale}",'In allegato trovi il programma con gli obiettivi minimi da recuperare.',$full_mail_body);
+    $full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
+  
+    $to = $studente_email;
+    $toName = $studente_nome . " " . $studente_cognome;
+		info("Invio carenza via mail allo studente: ".$to." ".$toName);
+    $mailsubject = 'GestOre - Invio programma carenza formativa - materia '. $program['materia_nome'];
+    sendMailwithAttachment($to,$toName,$mailsubject,$full_mail_body,$filename);
+   	date_default_timezone_set("Europe/Rome");
+    $update = date("Y-m-d H-i-s");
+    $query = "UPDATE carenze SET stato = '2', data_invio = '$update' WHERE id = '" . $program['carenza_id'] . "'";
+    dbExec($query);
+    info("aggiornata data invio carenza id=" . $program['carenza_id']);
+    echo 'sent';
+    exit;
+}
+else
+{
   // 4) output
   $pdf->Output($titolo . ' ' . $program['stud_cognome'] . ' ' . $program['stud_nome'] . ' ' . $program['materia_nome'] . '  - Classe ' . $program['classe_nome'] . '° - Indirizzo ' . $program['ind_nome'] . '° - Docente ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.pdf', 'D');
   exit;
 }
-
+}
 // 7) Altrimenti mostra la preview HTML
 echo $html;
 

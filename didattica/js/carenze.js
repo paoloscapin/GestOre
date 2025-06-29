@@ -82,10 +82,29 @@ function carenzaPrint(id_carenza) {
   // aggiungo i campi
   form.append($('<input>', {type:'hidden', name:'id',     value:id_carenza}));
   form.append($('<input>', {type:'hidden', name:'print',  value:0}));
+  form.append($('<input>', {type:'hidden', name:'mail',  value:0}));
   form.append($('<input>', {type:'hidden', name:'titolo', value:'Programma carenza formativa'}));
   // lo “submitto” e lo rimuovo
   form.appendTo('body').submit().remove();
 }
+
+function carenzaSend(id_carenza) {
+     $.post("stampaCarenza.php", {
+            id: id_carenza,
+            print: 1,
+            mail: 1,
+            titolo: 'Programma carenza formativa'
+        },
+            function (data, status) {
+                if (data=='sent')
+                {
+                    alert("Carenza spedita alla mail dello studente!");   
+                }
+                carenzeReadRecords();
+            }
+        );
+}
+
 
 function carenzaValida(id, id_utente, stato) {
     var conf = true;

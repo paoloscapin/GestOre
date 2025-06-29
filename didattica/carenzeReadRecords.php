@@ -163,11 +163,11 @@ foreach ($resultArray as $row) {
 	if ($stato == 0) {
 		$statoMarker .= '<span class="label label-primary">inserito</span>';
 	} else {
-		if ($stato > 0) {
-			$statoMarker .= '<span class="label label-success">validato</span>';
+		if ($stato > 1) {
+			$statoMarker .= '<span class="label label-warning">inviato</span>';
 		} else {
-			if ($stato > 1) {
-				$statoMarker .= '<span class="label label-info">inviato</span>';
+			if ($stato > 0) {
+				$statoMarker .= '<span class="label label-success">validato</span>';
 			}
 		}
 	}
@@ -188,9 +188,13 @@ foreach ($resultArray as $row) {
 			$data .= '
 				<button onclick="carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Conferma la carenza"><span class="glyphicon glyphicon-warning-sign"></button>';
 		} else {
+			if ($stato == 1) {
+				$data .= '
+				<button onclick="carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Rimuovi la conferma della carenza - Nota attualmente inserita - ' . $nota . '"><span class="glyphicon glyphicon-ok"></button>';
+			}
 			$data .= '
-				<button onclick="carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Rimuovi la conferma della carenza - Nota attualmente inserita - ' . $nota . '"><span class="glyphicon glyphicon-ok"></button>
-				<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera il PDF della carenza che arriva alla studente"><span class="glyphicon glyphicon-print"></button>';
+			<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera il PDF della carenza che arriva alla studente"><span class="glyphicon glyphicon-print"></button>
+			<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia la mail della carenza allo studente"><span class="glyphicon glyphicon-send"></button>';
 		}
 	} else
 		if (haRuolo('docente')) {
@@ -201,16 +205,18 @@ foreach ($resultArray as $row) {
 							$data .= '
 								<button onclick="hideTooltip(this); carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Conferma la carenza"><span class="glyphicon glyphicon-warning-sign"></button>';
 						} else {
-							if ($docente_riga_id == $id_docente_attuale)
-							{
-								$data .= '
+							if ($stato == 1) {
+								if ($docente_riga_id == $id_docente_attuale) {
+									$data .= '
 								<button onclick="hideTooltip(this); carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Rimuovi la conferma della carenza - Nota attualmente inserita - ' . $nota . '"><span class="glyphicon glyphicon-ok"></button>';
+								} else {
+									$data .= '
+								<button onclick="hideTooltip(this)" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Non puoi modificare la carenza confermata da un altro docente"><span class="glyphicon glyphicon-ok"></button>';
+								}
 							}
-							else
-							{
-								$data .= '
-								<button onclick="hideTooltip(this)" class="btn btn-secondary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Non puoi modificare la carenza confermata da un altro docente"><span class="glyphicon glyphicon-ok"></button>';
-							}
+							// $data .= '
+							// <button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera il PDF della carenza che arriva alla studente"><span class="glyphicon glyphicon-print"></button>';
+							
 						}
 					}
 				}
