@@ -40,6 +40,11 @@
 		<?php endif; ?>
 		<?php if(getSettingsValue('config','programmiSvolti', false)) : ?>
 			<div class="btn-group">
+			<a href="<?php echo $__application_base_path; ?>/didattica/programmaMinimi.php" class="btn btn-default navbar-btn btn-purple" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Obiettivi Minimi </a>
+			</div>
+		<?php endif; ?>
+		<?php if(getSettingsValue('config','programmiSvolti', false)) : ?>
+			<div class="btn-group">
 			<a href="<?php echo $__application_base_path; ?>/didattica/programmiSvolti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Svolti </a>
 			</div>
 		<?php endif; ?>
