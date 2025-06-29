@@ -316,12 +316,6 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                                 title="Inserisci le abilità relative a questo modulo"></textarea></div>
                                     </div>
 
-                                    <div class="form-group">
-                                        <label class="col-sm-2 control-label" for="periodo">Periodo</label>
-                                        <div class="col-sm-10"><input type="text" id="periodo" placeholder="periodo"
-                                                class="form-control" data-toggle="tooltip" data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci il periodo di svolgimento del modulo" /></div>
-                                    </div>
                                     <div class="form-group" id="_error-modulo-part"><strong>
 
                                             <div class="col-sm-3 text-right text-danger ">Attenzione</div>

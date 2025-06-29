@@ -66,7 +66,6 @@ function moduloGetDetails(modulo_id) {
             $('#ordine').val(programma.modulo_ordine);
             $('#conoscenze').val(programma.modulo_conoscenze);
             $('#abilita').val(programma.modulo_abilita);
-            $('#periodo').val(programma.modulo_periodo);
         });
     }
     else {
@@ -74,7 +73,6 @@ function moduloGetDetails(modulo_id) {
             $('#ordine').val(nmoduli+1);
             $('#conoscenze').val("");
             $('#abilita').val("");
-            $('#periodo').val("");
     }
     $("#_error-modulo-part").hide();
     $("#modulo_modal").modal("show");
@@ -153,7 +151,7 @@ function programmaPrint(id_programma) {
   // aggiungo i campi
   form.append($('<input>', {type:'hidden', name:'id',     value:id_programma}));
   form.append($('<input>', {type:'hidden', name:'print',  value:0}));
-  form.append($('<input>', {type:'hidden', name:'titolo', value:'Programma didattico'}));
+  form.append($('<input>', {type:'hidden', name:'titolo', value:'Programma obiettivi minimi'}));
   // lo “submitto” e lo rimuovo
   form.appendTo('body').submit().remove();
 }
@@ -180,21 +178,16 @@ function moduloSave() {
         $("#_error-modulo-part").show();
         return;
     }
-    if ($.trim($("#periodo").val()).length <= 0) {
-        $("#_error-modulo").text("Devi indicare il periodo di svolgimento");
-        $("#_error-modulo-part").show();
-        return;
-    }
+
     $("#_error-modulo-part").hide();
       console.log("salvataggio in corso");
-    $.post("moduloSave.php", {
+    $.post("moduloMinimiSave.php", {
         id: $("#hidden_modulo_id").val(),
         id_programma: $("#hidden_programma_id").val(),
         ordine: $("#ordine").val(),
         titolo: $("#titolo").val(),
         conoscenze: $("#conoscenze").val(),
-        abilita: $("#abilita").val(),
-        periodo: $("#periodo").val()
+        abilita: $("#abilita").val()
     }, function (data, status) {
         $("#modulo_modal").modal("hide");
         $("#programma_modal").modal("show");

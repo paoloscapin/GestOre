@@ -10,39 +10,67 @@
 $pagina = '';
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('docente', 'dirigente', 'segreteria-docenti');
+ruoloRichiesto('studente', 'docente', 'dirigente', 'segreteria-docenti');
 // program.php (in testa al file, prima di qualsiasi uso di mPDF)
 require_once '../common/vendor/autoload.php';
 
 // 1) PARAMETRI POST
-$programId = isset($_POST['id']) ? (int) $_POST['id'] : -1;
+$carenzaId = isset($_POST['id']) ? (int) $_POST['id'] : -1;
 $doPrint = isset($_POST['print']) && ($_POST['print'] == '1' || $_POST['print'] === 'true');
 $titolo = isset($_POST['titolo']) ? $_POST['titolo'] : 'Programma didattico';
 
-if ($programId==-1)
+if ($carenzaId==-1)
   exit;
 
 // 2) RECUPERO DATI PROGRAMMA
-$query = "SELECT  programma_minimi.id,
-		programma_minimi.anno AS anno,
-		materia.id AS materia_id,
+$query = "SELECT  
+        carenze.id,
+        carenze.id_studente AS stud_id,
+        carenze.id_materia AS materia_id,
+        carenze.id_classe AS classe_id,
+        carenze.id_docente AS doc_id,
+        carenze.nota_docente AS nota,
+        classi.id AS classi_id,
+        classi.classe AS classe_nome,
+        classi.anno AS classe_anno,
+        classi.id_primo_indirizzo AS classe_primo,
+        classi.id_secondo_indirizzo AS classe_secondo,
+        indirizzo.nome AS ind_nome,
+        materia.id AS mat_id,
         materia.nome AS materia_nome,
-        indirizzo.nome AS indirizzo_nome
- FROM gvgtcyej_gestione_ore.programma_minimi
+        studente.id AS studente_id,
+        studente.cognome AS stud_cognome,
+        studente.nome AS stud_nome, 
+        docente.id AS docente_id,
+        docente.cognome AS doc_cognome,
+        docente.nome AS doc_nome,
+        programma_minimi.ID AS prog_id,
+        programma_minimi.ID_INDIRIZZO as prog_id_indirizzo,
+        programma_minimi.ID_MATERIA as prog_id_materia,
+        programma_minimi.anno AS prog_anno
+ FROM gvgtcyej_gestione_ore.carenze
+		INNER JOIN gvgtcyej_gestione_ore.classi classi
+		ON classi.id = carenze.id_classe
 		INNER JOIN gvgtcyej_gestione_ore.materia materia
-		ON materia.id = programma_minimi.id_materia
+		ON materia.id = carenze.id_materia
+		INNER JOIN gvgtcyej_gestione_ore.studente studente
+		ON studente.id = carenze.id_studente
+		INNER JOIN gvgtcyej_gestione_ore.docente docente
+		ON docente.id = carenze.id_docente
+        INNER JOIN gvgtcyej_gestione_ore.programma_minimi programma_minimi
+        ON programma_minimi.ANNO = classi.anno AND programma_minimi.ID_MATERIA = materia.id AND (programma_minimi.ID_INDIRIZZO = classi.id_primo_indirizzo OR programma_minimi.ID_INDIRIZZO = classi.id_secondo_indirizzo)
 		INNER JOIN gvgtcyej_gestione_ore.indirizzo indirizzo
-		ON indirizzo.id = programma_minimi.id_indirizzo
-		WHERE programma_minimi.id = $programId";
+		ON indirizzo.id = classi.id_primo_indirizzo
+		WHERE carenze.id = $carenzaId";
 
 $program = dbGetFirst($query);
 
 // 3) RECUPERO MODULI
-
-$query = "SELECT * from programma_minimi_moduli WHERE id_programma = $programId";
-
+$id_programma_minimi = $program['prog_id'];
+$query = "SELECT * from programma_minimi_moduli WHERE id_programma = $id_programma_minimi";
 $modules = dbGetAll($query);
 
+$nota_docente = $program['nota'];
 
 $base64img = 'data:image/png;base64,'. base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'"));
 
@@ -303,8 +331,9 @@ ob_start();
   <?php if (!$doPrint): ?>
     <div class="print-button">
       <form method="post" action="">
-        <input type="hidden" name="id" value="<?= $programId ?>">
+        <input type="hidden" name="id" value="<?= $carenzaId ?>">
         <input type="hidden" name="print" value="1">
+        <input type="hidden" name="titolo" value="Programma carenza formativa">
         <button type="submit" style="font-family: Arial, sans-serif; font-size: 16px; font-weight: bold;">Scarica PDF</button>
       </form>
     </div>
@@ -318,9 +347,11 @@ ob_start();
   <div class="header">
     <div class="info">
       <h1><?php echo $titolo ?></h1>
-      <p>Classe <?= htmlspecialchars($program['anno']) ?>° | 
-        Indirizzo <?= htmlspecialchars($program['indirizzo_nome']) ?><br>
-        Materia <?= htmlspecialchars($program['materia_nome']) ?>| 
+      <p>Studente <?= htmlspecialchars($program['stud_cognome'] . ' ' . $program['stud_nome']) ?> | 
+        Classe <?= htmlspecialchars($program['classe_nome']) ?> | 
+        Indirizzo <?= htmlspecialchars($program['ind_nome']) ?><br>
+        Materia <?= htmlspecialchars($program['materia_nome']) ?><br>
+        Docente <?= htmlspecialchars($program['doc_cognome'] . ' ' . $program['doc_nome']) ?> | 
         Anno scolastico <?= $__anno_scolastico_corrente_anno ?></p>
     </div>
   </div>
@@ -350,7 +381,7 @@ ob_start();
         <tbody>
           <?php foreach ([
             'Conoscenze' => asList($m['CONOSCENZE']),
-            'Abilità' => asList($m['ABILITA']),
+            'Abilità' => asList($m['ABILITA'])
           ] as $th => $td): ?>
             <tr>
               <td width="25%" style="
@@ -378,6 +409,55 @@ ob_start();
     </div>
   <?php endforeach; ?>
 
+  <!-- stampo la nota del docente -->
+    <div class="module-card">
+      <table width="100%" style="
+    width:100%;               
+    border-collapse:collapse;
+    margin-bottom:6mm;
+  " border="0" cellpadding="0" cellspacing="0">
+        <thead>
+          <tr>
+            <th colspan="2" style="
+                background-color: #0057b7;
+                color:            #ffffff;
+                font-size:        16px;
+                padding:          8px;
+                text-align:       left;
+                border:           2px solid #0057b7;
+              ">
+              Note del docente
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ([
+            'Note' => asList($nota_docente)
+          ] as $th => $td): ?>
+            <tr>
+              <td width="25%" style="
+                width:            25%;
+                background-color: #d9eefa;
+                color:            #2c3e50;
+                border:           1px solid #0057b7;
+                padding:          6px 8px;
+                vertical-align:   top;
+              ">
+                <?= $th ?>
+              </td>
+              <td width="75%" style="
+                background-color: #f7fbfe;
+                border:           1px solid #0057b7;
+                padding:          6px 8px;
+                vertical-align:   top;
+              ">
+                <?= $td ?>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
 </body>
 
 </html>
@@ -485,10 +565,13 @@ if ($doPrint) {
     margin:0 0 0mm;
 ">' . $titolo . '</h1>
 <p style="text-align:center;margin:0px;font-size:12px">
-  Classe ' . htmlspecialchars($program['anno']) . ' | 
-  Indirizzo ' . htmlspecialchars($program['indirizzo_nome']) . '<br>
-  Materia ' . htmlspecialchars($program['materia_nome']) . ' | 
+  Studente ' . htmlspecialchars($program['stud_cognome'] . ' ' . $program['stud_nome']) . ' | 
+  Classe ' . htmlspecialchars($program['classe_nome']) . ' | 
+  Indirizzo ' . htmlspecialchars($program['ind_nome']) . '<br>
+  Materia ' . htmlspecialchars($program['materia_nome']) . '<br>
+  Docente ' . htmlspecialchars($program['doc_cognome'] . ' ' . $program['doc_nome']) . ' | 
   Anno scolastico ' . $__anno_scolastico_corrente_anno . '</p><br>';
+
 
   // scrivo logo+intestazione
   $pdf->writeHTML($htmlIntro, true, false, true, false, '');
@@ -542,8 +625,55 @@ if ($doPrint) {
     $pdf->writeHTML($tbl, true, false, true, false, '');
   }
 
+    // CAMPO NOTA DEL DOCENTE
+      // costruisci l’HTML della tabella, stile INLINE per colori e bordi
+    $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
+    $tbl .= '<thead>';
+    $tbl .= '  <tr>';
+    $tbl .= '    <th colspan="2" style="
+                          background-color:#0057b7;
+                          color:#ffffff;
+                          font-size:16px;
+                          padding:8px;
+                          text-align:left;
+                          border:2px solid #0057b7;">
+            Note del docente
+          </th>';
+    $tbl .= '  </tr>';
+    $tbl .= '</thead><tbody>';
+
+    // quattro righe fisse
+    $rows = [
+      'Note' => asList($nota_docente)
+    ];
+    foreach ($rows as $label => $data) {
+      $tbl .= '<tr>';
+      $tbl .= '<td width="25%" style="
+                          background-color:#d9eefa;
+                          border:1px solid #0057b7;
+                          padding:6px 8px;
+                          vertical-align:top;">
+                        ' . $label . '
+                     </td>';
+      $tbl .= '<td width="75%" style="
+                          background-color:#f7fbfe;
+                          border:1px solid #0057b7;
+                          padding:6px 8px;
+                          vertical-align:top;">
+                        ' . $data . '
+                     </td>';
+      $tbl .= '</tr>';
+    }
+
+    $tbl .= '</tbody></table>';
+    // un piccolo spazio fra una tabella e l’altra
+    $tbl .= '<div style="height:4mm"></div>';
+
+    // 3) scrivo la tabella
+    $pdf->writeHTML($tbl, true, false, true, false, '');
+
   // 4) output
-  $pdf->Output($titolo . ' ' . $program['materia_nome'] . '  - Classe ' . $program['anno'] . '° - Indirizzo ' . $program['indirizzo_nome'] . '.pdf', 'D');
+  $pdf->Output($titolo . ' ' . $program['stud_cognome'] . ' ' . $program['stud_nome'] . ' ' . $program['materia_nome'] . '  - Classe ' . $program['classe_nome'] . '° - Indirizzo ' . $program['ind_nome'] . '° - Docente ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.pdf', 'D');
   exit;
 }
 

@@ -72,6 +72,21 @@ function carenzaDelete(id, materia, studente) {
     }
 }
 
+function carenzaPrint(id_carenza) {
+  // creo form nascosto
+  var form = $('<form>', {
+    action: 'stampaCarenza.php',
+    method: 'POST',
+    target: '_black'    // apre in un nuovo tab
+  });
+  // aggiungo i campi
+  form.append($('<input>', {type:'hidden', name:'id',     value:id_carenza}));
+  form.append($('<input>', {type:'hidden', name:'print',  value:0}));
+  form.append($('<input>', {type:'hidden', name:'titolo', value:'Programma carenza formativa'}));
+  // lo “submitto” e lo rimuovo
+  form.appendTo('body').submit().remove();
+}
+
 function carenzaValida(id, id_utente, stato) {
     var conf = true;
     var nota_docente = "";
