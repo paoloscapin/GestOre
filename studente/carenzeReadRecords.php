@@ -35,6 +35,7 @@ $query = "	SELECT
 					carenze.data_inserimento AS carenza_inserimento,
 					carenze.data_validazione AS carenza_validazione,
 					carenze.data_invio AS carenza_invio,
+					carenze.nota_docente AS nota,
 					docente.cognome AS doc_cognome,
 					docente.nome AS doc_nome,
 					materia.nome AS materia
@@ -58,19 +59,19 @@ foreach ($resultArray as $row) {
 		$materia = $row['materia'];
 		// Creazione dell'oggetto DateTime
 		$datf = new DateTime($row['carenza_validazione']);
-
+		$idcarenza = $row['carenza_id'];
 		// Conversione nel formato desiderato
 		$data_ricezione  = $datf->format('d-m-Y H:i:s');
-		$note = '';
+		$note = $row['nota'];
 		$data .= '<tr>
 		<td align="center">' . $materia . '</td>
 		<td align="center">' . $row['doc_cognome'] . ' ' . $row['doc_nome'] . '</td>
 		<td align="center">' . $data_ricezione . '</td>
 		<td align="center">' . $note . '</td>
 		<td align="center">
-			<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Scarica il PDF del programma della carenza"><span class="glyphicon glyphicon-save"></button>
-			<button onclick="carenzaMail(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia una copia via
-			 mail"><span class="glyphicon glyphicon-print"></button>
+			<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Scarica il PDF del programma della carenza"><span class="glyphicon glyphicon-print"></button>
+<!--			<button onclick="carenzaMail(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia una copia via
+			 mail"><span class="glyphicon glyphicon-envelope"></button> -->
 		</td>';
 
 		$data .= '</tr>';
