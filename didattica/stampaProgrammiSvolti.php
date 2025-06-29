@@ -23,23 +23,36 @@ if ($programId==-1)
   exit;
 
 // 2) RECUPERO DATI PROGRAMMA
-$query = "SELECT  programma_materie.id,
-		programma_materie.anno AS anno,
+$query = "SELECT  programmi_svolti.id,
+		programmi_svolti.id_materia AS svolti_id_materia,
+    programmi_svolti.id_docente AS svolti_id_docente,
+		programmi_svolti.id_classe AS svolti_id_classe,
 		materia.id AS materia_id,
-        materia.nome AS materia_nome,
-        indirizzo.nome AS indirizzo_nome
- FROM gvgtcyej_gestione_ore.programma_materie
+    materia.nome AS materia_nome,
+    docente.cognome AS doc_cognome,
+    docente.nome AS doc_nome,
+    docente.id AS doc_id,
+    classi.id AS classe_id,
+    classi.classe AS classe_nome,
+    classi.anno AS classe_anno,
+    classi.id_primo_indirizzo AS classe_id_indirizzo,
+    indirizzo.nome AS indirizzo_nome
+ FROM gvgtcyej_gestione_ore.programmi_svolti
 		INNER JOIN gvgtcyej_gestione_ore.materia materia
-		ON materia.id = programma_materie.id_materia
+		ON materia.id = programmi_svolti.id_materia
+		INNER JOIN gvgtcyej_gestione_ore.classi classi
+		ON classi.id = programmi_svolti.id_classe
+		INNER JOIN gvgtcyej_gestione_ore.docente docente
+		ON docente.id = programmi_svolti.id_docente
 		INNER JOIN gvgtcyej_gestione_ore.indirizzo indirizzo
-		ON indirizzo.id = programma_materie.id_indirizzo
-		WHERE programma_materie.id = $programId";
+		ON indirizzo.id = classi.id_primo_indirizzo
+		WHERE programmi_svolti.id = $programId";
 
 $program = dbGetFirst($query);
 
 // 3) RECUPERO MODULI
 
-$query = "SELECT * from programma_moduli WHERE id_programma = $programId";
+$query = "SELECT * from programmi_svolti_moduli WHERE id_programma = $programId ORDER BY programmi_svolti_moduli.ordine ASC";
 
 $modules = dbGetAll($query);
 
@@ -56,47 +69,29 @@ $base64img = 'data:image/png;base64,'. base64_encode(dbGetValue("SELECT src FROM
  */
 function textToJsonArray(string $text): string
 {
-  // 1) Dividi in righe
   $lines = preg_split('/\r?\n/', $text);
   $items = [];
-  $currentList = [];
 
   foreach ($lines as $line) {
     $trimmed = trim($line);
-    if ($trimmed === '') {
-      // riga vuota: chiudi eventuale lista
-      if ($currentList) {
-        $items[] = buildListHtml($currentList);
-        $currentList = [];
-      }
-      continue;
-    }
+    if ($trimmed === '') continue;
 
+    // Se è riga con elenco puntato
     if (preg_match('/^[\-\*]\s*(.+)$/', $trimmed, $m)) {
-      // riga a list bullet
-      $currentList[] = trim($m[1]);
+      $items[] = $m[1];
     } else {
-      // non è bullet: chiudi lista se aperta
-      if ($currentList) {
-        $items[] = buildListHtml($currentList);
-        $currentList = [];
-      }
-      // spezza la riga su punto o tab
+      // Altrimenti, spezza su punti o tab
       $parts = preg_split('/\.\s*|\t+/', $trimmed);
-      foreach ($parts as $p) {
-        $p = trim($p);
+      foreach ($parts as $part) {
+        $p = trim($part);
         if ($p !== '') {
           $items[] = $p;
         }
       }
     }
   }
-  // chiudi lista rimanente
-  if ($currentList) {
-    $items[] = buildListHtml($currentList);
-  }
 
-  return json_encode(array_values($items), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+  return json_encode($items, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 }
 
 /**
@@ -117,30 +112,14 @@ function buildListHtml(array $elements): string
 // 4) HELPER PER LISTE (campi JSON → UL)
 function asList(string $text): string
 {
-  // 1) Decodifica l’array JSON
   $items = json_decode(textToJsonArray($text), true) ?: [];
-
   $html = '<ul>';
   foreach ($items as $item) {
-    $trim = ltrim($item);
-    // 2) Se è già un blocco <ul> trattalo come sotto‐lista:
-    if (str_starts_with($trim, '<ul')) {
-      // Rimuovo la chiusura </li> dell'ultimo elemento
-      // e ci incollo dentro la <ul> ... </ul> e poi riaggiungo </li>
-      $html = preg_replace(
-        '/<\/li>$/',
-        $trim . '</li>',
-        $html
-      );
-    } else {
-      // 3) Altrimenti apro un nuovo <li>
-      $html .= '<li>' . $item . '</li>';
-    }
+    $html .= '<li>' . htmlspecialchars($item) . '</li>';
   }
   $html .= '</ul>';
   return $html;
 }
-
 // 5) INIZIO OUTPUT HTML IN BUFFER
 ob_start();
 ?><!DOCTYPE html>
@@ -282,7 +261,8 @@ ob_start();
     .module td {
       border: 1px solid #0057b7;
       padding: 6px 8px;
-      vertical-align: top;
+      vertical-align: middle;
+      text-align: center;
     }
 
     .module th {
@@ -305,6 +285,7 @@ ob_start();
       <form method="post" action="">
         <input type="hidden" name="id" value="<?= $programId ?>">
         <input type="hidden" name="print" value="1">
+        <input type="hidden" name="titolo" value="<?php echo $titolo ?>">
         <button type="submit" style="font-family: Arial, sans-serif; font-size: 16px; font-weight: bold;">Scarica PDF</button>
       </form>
     </div>
@@ -318,9 +299,10 @@ ob_start();
   <div class="header">
     <div class="info">
       <h1><?php echo $titolo ?></h1>
-      <p>Classe <?= htmlspecialchars($program['anno']) ?>° | 
+      <p>Classe <?= htmlspecialchars($program['classe_nome']) ?> | 
         Indirizzo <?= htmlspecialchars($program['indirizzo_nome']) ?><br>
-        Materia <?= htmlspecialchars($program['materia_nome']) ?>| 
+        Materia <?= htmlspecialchars($program['materia_nome']) ?> | 
+        Docente <?= htmlspecialchars($program['doc_cognome'].' '.$program['doc_nome']) ?> | 
         Anno scolastico <?= $__anno_scolastico_corrente_anno ?></p>
     </div>
   </div>
@@ -349,11 +331,8 @@ ob_start();
         </thead>
         <tbody>
           <?php foreach ([
-            'Conoscenze' => asList($m['CONOSCENZE']),
-            'Abilità' => asList($m['ABILITA']),
-            'Competenze' => asList($m['COMPETENZE']),
-            'Periodo' => htmlspecialchars($m['PERIODO']),
-          ] as $th => $td): ?>
+            'Conoscenze degli argomenti svolti' => asList($m['CONTENUTO'])
+            ] as $th => $td): ?>
             <tr>
               <td width="25%" style="
                 width:            25%;
@@ -361,7 +340,8 @@ ob_start();
                 color:            #2c3e50;
                 border:           1px solid #0057b7;
                 padding:          6px 8px;
-                vertical-align:   top;
+                vertical-align:   middle;
+                text-align: center;
               ">
                 <?= $th ?>
               </td>
@@ -487,9 +467,10 @@ if ($doPrint) {
     margin:0 0 0mm;
 ">' . $titolo . '</h1>
 <p style="text-align:center;margin:0px;font-size:12px">
-  Classe ' . htmlspecialchars($program['anno']) . ' | 
+  Classe ' . htmlspecialchars($program['classe_nome']) . ' | 
   Indirizzo ' . htmlspecialchars($program['indirizzo_nome']) . '<br>
   Materia ' . htmlspecialchars($program['materia_nome']) . ' | 
+  Docente ' . htmlspecialchars($program['doc_cognome'].' '.$program['doc_nome']) . ' |
   Anno scolastico ' . $__anno_scolastico_corrente_anno . '</p><br>';
 
   // scrivo logo+intestazione
@@ -514,25 +495,23 @@ if ($doPrint) {
 
     // quattro righe fisse
     $rows = [
-      'Conoscenze' => asList($m['CONOSCENZE']),
-      'Abilità' => asList($m['ABILITA']),
-      'Competenze' => asList($m['COMPETENZE']),
-      'Periodo' => htmlspecialchars($m['PERIODO']),
+      'Conoscenze degli argomenti svolti' => asList($m['CONTENUTO'])
     ];
     foreach ($rows as $label => $data) {
       $tbl .= '<tr>';
-      $tbl .= '<td width="25%" style="
+      $tbl .= '<td width="25%"  valign="middle" style="
                           background-color:#d9eefa;
                           border:1px solid #0057b7;
                           padding:6px 8px;
-                          vertical-align:top;">
+                          vertical-align: middle;
+                          text-align: center;">
                         ' . $label . '
                      </td>';
       $tbl .= '<td width="75%" style="
                           background-color:#f7fbfe;
                           border:1px solid #0057b7;
                           padding:6px 8px;
-                          vertical-align:top;">
+                          vertical-align:middle;">
                         ' . $data . '
                      </td>';
       $tbl .= '</tr>';
@@ -547,7 +526,7 @@ if ($doPrint) {
   }
 
   // 4) output
-  $pdf->Output($titolo . ' ' . $program['materia_nome'] . '  - Classe ' . $program['anno'] . '° - Indirizzo ' . $program['indirizzo_nome'] . '.pdf', 'D');
+  $pdf->Output($titolo . ' ' . $program['materia_nome'] . '  - Classe ' . $program['classe_nome'] . ' - Indirizzo ' . $program['indirizzo_nome'] . ' - Docente ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.pdf', 'D');
   exit;
 }
 

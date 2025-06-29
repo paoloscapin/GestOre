@@ -235,6 +235,21 @@ function programmiSvoltiDelete(id, materia) {
     }
 }
 
+function programmiSvoltiPrint(id_programma) {
+  // creo form nascosto
+  var form = $('<form>', {
+    action: 'stampaProgrammiSvolti.php',
+    method: 'POST',
+    target: '_black'    // apre in un nuovo tab
+  });
+  // aggiungo i campi
+  form.append($('<input>', {type:'hidden', name:'id',     value:id_programma}));
+  form.append($('<input>', {type:'hidden', name:'print',  value:0}));
+  form.append($('<input>', {type:'hidden', name:'titolo', value:'Programma svolto'}));
+  // lo “submitto” e lo rimuovo
+  form.appendTo('body').submit().remove();
+}
+
 function moduloSvoltiDelete(id, id_programma, titolo) {
     var conf = confirm("Sei sicuro di volere cancellare il modulo  " + titolo + " ?");
     if (conf == true) {
