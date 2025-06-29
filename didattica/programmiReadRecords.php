@@ -98,6 +98,7 @@ foreach ($resultArray as $row) { {
 				if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
 					$data .= '
 						<button onclick="programmaGetDetails(' . $programma_id . ')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Visualizza il dettaglio della materia"><span class="glyphicon glyphicon-search"></button>
+						<button onclick="programmaPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma della materia"><span class="glyphicon glyphicon-print"></button>
 						';
 				}
 			}
