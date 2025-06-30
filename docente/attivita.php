@@ -372,12 +372,14 @@ require_once '../common/header-docente.php';
 <div class="panel panel-lima4">
 <div class="panel-heading">
 	<div class="row">
-		<div class="col-md-2">
+		<div class="col-md-4">
 		<span class="glyphicon glyphicon-list-alt"></span>&ensp;Attribuite
 		</div>
-		<div class="col-md-8 text-center">
+		<div class="col-md-4 text-center">
+			<button onclick="oreAttribuiteSommario()" class="btn btn-xs btn-teal4"><span class="glyphicon glyphicon-option-horizontal"></span> Sommario</button>
 		</div>
-		<div class="col-md-2 text-right">
+		
+		<div class="col-md-4 text-right">
 		<?php
 			// il dirigente puo' comunque modificare le attribuite
             if ($operatore == 'dirigente') {

@@ -191,6 +191,14 @@ function oreFatteDeleteAttivita(id) {
     }
 }
 
+function oreAttribuiteSommario() {
+	$.get("oreAttribuiteReadSommarioAttivita.php", {}, function (data, status) {
+		$(".sommario_attivita_records_content").html(data);
+	});
+
+	$("#docente_sommario_modal").modal("show");
+}
+
 function oreFatteSommario() {
 	$.get("oreFatteReadSommarioAttivita.php", {}, function (data, status) {
 		$(".sommario_attivita_records_content").html(data);
