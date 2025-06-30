@@ -120,10 +120,23 @@ if ($resultArray == null) {
 }
 
 $ncarenze = 0;
+$array_carenze = '';
+
 foreach ($resultArray as $row) {
-	$docente_riga_id = $row['doc_id'];
-	$ncarenze++;
 	$idcarenza = $row['carenza_id'];
+	$ncarenze++;
+	$docente_riga_id = $row['doc_id'];
+	if ($row['carenza_stato']==1)
+	{
+		if ($array_carenze == '')
+		{
+			$array_carenze .= $idcarenza;
+		}
+		else
+		{
+			$array_carenze .= ', ' . $idcarenza;
+		}
+	}
 	$nota = $row['carenza_nota'];
 	$studente = $row['stud_cognome'] . ' ' . $row['stud_nome'];
 	if ($row['carenza_id_docente'] == 0) {
@@ -229,5 +242,6 @@ foreach ($resultArray as $row) {
 
 $data .= '</table></div>';
 $data .= '<input type="hidden" id="hidden_nmoduli" value=' . $ncarenze . '>';
+$data .= '<input type="hidden" id="hidden_arraycarenze" value="' . htmlspecialchars($array_carenze) . '">';
 
 echo $data;

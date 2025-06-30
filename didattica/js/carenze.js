@@ -11,6 +11,8 @@ var $materia_filtro_id = 0;
 var $studente_filtro_id = 0;
 var $anno_filtro_id = 0;
 var $da_validare_filtro = 0;
+let completati = 0;
+let totale = 0;
 
 $('#daValidareCheckBox').change(function() {
     // this si riferisce al checkbox
@@ -100,11 +102,76 @@ function carenzaSend(id_carenza) {
                 {
                     alert("Carenza spedita alla mail dello studente!");   
                 }
+                else
+                {
+                    alert("Carenza NON spedita!");
+                }
                 carenzeReadRecords();
             }
         );
 }
 
+function carenzaSendCallback(id_carenza,callback) {
+     $.post("stampaCarenza.php", {
+            id: id_carenza,
+            print: 1,
+            mail: 1,
+            titolo: 'Programma carenza formativa'
+        })
+        .done(function(response) {
+        if (response.trim() === 'sent') {
+            callback(); // Successo
+        } else {
+            console.error(`Errore nella risposta per carenza ID ${id_carenza}: ${response}`);
+            callback(); // Chiamata completata anche se fallita, per avanzare la barra
+        }
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) {
+        console.error(`Errore AJAX per carenza ID ${id_carenza}: ${textStatus}`, errorThrown);
+        callback(); // Avanza comunque la progress bar
+    });
+}
+
+function mostraOverlay() {
+  $('#progressOverlay').show();
+}
+
+function nascondiOverlay() {
+  $('#progressOverlay').hide();
+}
+
+function aggiornaProgressBar() {
+  completati++;
+  const percentuale = Math.round((completati / totale) * 100);
+  $('#progressBar').css('width', percentuale + '%').text(percentuale + '%');
+
+  if (completati === totale) {
+    setTimeout(() => {
+      nascondiOverlay();
+      alert("Tutte le email sono state inviate!");
+    }, 500);
+  }
+}
+
+function invioMassivoCarenze()
+{
+    const stringacarenze = $("#hidden_arraycarenze").val();
+    const arraycarenze = stringacarenze.split(',').filter(id => id !== ""); // evita ID vuoti
+    totale = arraycarenze.length;
+    completati = 0;
+      if (arraycarenze.length > 0)
+    {
+        mostraOverlay();
+        arraycarenze.forEach(id => {
+            carenzaSendCallback(id,aggiornaProgressBar);
+            
+        })
+    }
+    else
+    {
+        alert("Nessuna carenza da inviare!");
+    }
+}
 
 function carenzaValida(id, id_utente, stato) {
     var conf = true;
@@ -233,6 +300,10 @@ $(document).ready(function () {
 
     $('#export_btn').on('click', function (e) {
         exportFile();
+    });
+
+    $('#send_btn').on('click', function (e) {
+        invioMassivoCarenze();
     });
 
     $('#file_select_id').change(function (e) {
