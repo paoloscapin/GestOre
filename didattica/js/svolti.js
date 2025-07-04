@@ -8,16 +8,101 @@
 var $classi_filtro_id = 0;
 var $materia_filtro_id = 0;
 var $docenti_filtro_id = 0;
+var $da_completare_filtro_id = 0;
+
+
+$('#daCompletareCheckBox').change(function () {
+    // this si riferisce al checkbox
+    if (this.checked) {
+        $da_completare_filtro_id = 1;
+        $('#send_btn').show();
+    } else {
+        $da_completare_filtro_id = 0;
+        $('#send_btn').hide();
+    }
+    programmiSvoltiReadRecords();
+});
 
 function programmiSvoltiReadRecords() {
     if ($("#hidden_docente_id").val() > 0)
         $docenti_filtro_id = $("#hidden_docente_id").val();
-    $.get("programmiSvoltiReadRecords.php?classi_id=" + $classi_filtro_id + "&materia_id=" + $materia_filtro_id + "&docenti_id=" + $docenti_filtro_id, {}, function (data, status) {
+    $.get("programmiSvoltiReadRecords.php?classi_id=" + $classi_filtro_id + "&materia_id=" + $materia_filtro_id + "&docenti_id=" + $docenti_filtro_id + "&da_completare_id=" + $da_completare_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
         });
     });
+}
+
+function mostraOverlay() {
+    $('#progressOverlay').show();
+}
+
+function nascondiOverlay() {
+    $('#progressOverlay').hide();
+}
+
+function aggiornaProgressBar() {
+    completati++;
+    const percentuale = Math.round((completati / totale) * 100);
+    $('#progressBar').css('width', percentuale + '%').text(percentuale + '%');
+
+    if (completati === totale) {
+        setTimeout(() => {
+            nascondiOverlay();
+            alert("Tutte le email sono state inviate!");
+        }, 500);
+    }
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function inviaSollecito(single_id) {
+
+    if (single_id > 0) {
+        totale = 1;
+        completati = 0;
+        await $.post("invioSollecito.php", {
+            id: single_id
+        }).then(response => {
+            if (response.trim() !== 'sent') {
+                console.error(`Errore per programma ID ${single_id}: ${response}`);
+            }
+        }).catch(err => {
+            console.error(`Errore AJAX per studente ID ${single_id}:`, err);
+        });
+        aggiornaProgressBar();
+        await sleep(Math.floor(Math.random() * 5000) + 1000); // tra 1 e 2 secondi    
+    }
+    else {
+        const sollecito = $('#hidden_sollecito').val();
+        const sollecito_array = sollecito.split(',');
+        totale = sollecito_array.length;
+        completati = 0;
+
+        if (totale > 0) {
+            mostraOverlay();
+
+            for (const soll of sollecito_array) {
+                await $.post("invioSollecito.php", {
+                    id: soll
+                }).then(response => {
+                    if (response.trim() !== 'sent') {
+                        console.error(`Errore per programma ID ${soll}: ${response}`);
+                    }
+                }).catch(err => {
+                    console.error(`Errore AJAX per studente ID ${soll}:`, err);
+                });
+
+                aggiornaProgressBar();
+                await sleep(Math.floor(Math.random() * 5000) + 1000); // tra 1 e 2 secondi
+            }
+        } else {
+            alert("Nessun sollecito da inviare!");
+        }
+    }
 }
 
 function moduliSvoltiReadRecords(programma_id) {
@@ -236,18 +321,18 @@ function programmiSvoltiDelete(id, materia) {
 }
 
 function programmiSvoltiPrint(id_programma) {
-  // creo form nascosto
-  var form = $('<form>', {
-    action: 'stampaProgrammiSvolti.php',
-    method: 'POST',
-    target: '_black'    // apre in un nuovo tab
-  });
-  // aggiungo i campi
-  form.append($('<input>', {type:'hidden', name:'id',     value:id_programma}));
-  form.append($('<input>', {type:'hidden', name:'print',  value:0}));
-  form.append($('<input>', {type:'hidden', name:'titolo', value:'Programma svolto'}));
-  // lo “submitto” e lo rimuovo
-  form.appendTo('body').submit().remove();
+    // creo form nascosto
+    var form = $('<form>', {
+        action: 'stampaProgrammiSvolti.php',
+        method: 'POST',
+        target: '_black'    // apre in un nuovo tab
+    });
+    // aggiungo i campi
+    form.append($('<input>', { type: 'hidden', name: 'id', value: id_programma }));
+    form.append($('<input>', { type: 'hidden', name: 'print', value: 0 }));
+    form.append($('<input>', { type: 'hidden', name: 'titolo', value: 'Programma svolto' }));
+    // lo “submitto” e lo rimuovo
+    form.appendTo('body').submit().remove();
 }
 
 function moduloSvoltiDelete(id, id_programma, titolo) {
@@ -298,10 +383,9 @@ function programmiSvoltiSave() {
             if ($("#hidden_share").val() == 'true') {
                 alert("Non puoi condividere il programma con il docente, perchè ha già un programma presente!")
             }
-            else 
-            {
+            else {
                 alert("Esiste già il programma nella classe di destinazione!");
-            } 
+            }
         }
         else {
             $("#programma_modal").modal("hide");
@@ -355,6 +439,10 @@ $(document).ready(function () {
             programmiSvoltiReadRecords();
         });
 
+    $('#send_btn').on('click', function (e) {
+        inviaSollecito(-1);
+    });
+
     $("#materia_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             $materia_filtro_id = this.value;
@@ -366,5 +454,5 @@ $(document).ready(function () {
             $docenti_filtro_id = this.value;
             programmiSvoltiReadRecords();
         });
-
+    $('#send_btn').hide();
 });     

@@ -19,9 +19,12 @@ $carenzaId = isset($_POST['id']) ? (int) $_POST['id'] : -1;
 $doPrint = isset($_POST['print']) && ($_POST['print'] == '1' || $_POST['print'] === 'true');
 $doMail = isset($_POST['mail']) && ($_POST['mail'] == '1' || $_POST['mail'] === 'true');
 $titolo = isset($_POST['titolo']) ? $_POST['titolo'] : 'Programma didattico';
+$doGenera = isset($_POST['genera']) && ($_POST['genera'] == '1' || $_POST['genera'] === 'true');
 
-if ($carenzaId==-1)
-  exit;
+if (!isset($_POST['id_carenze'])) {
+  if ($carenzaId == -1)
+    exit;
+}
 
 // 2) RECUPERO DATI PROGRAMMA
 $query = "SELECT  
@@ -67,14 +70,16 @@ $query = "SELECT
 
 $program = dbGetFirst($query);
 
+
 // 3) RECUPERO MODULI
 $id_programma_minimi = $program['prog_id'];
 $query = "SELECT * from programma_minimi_moduli WHERE id_programma = $id_programma_minimi";
 $modules = dbGetAll($query);
+$studente_id = $program['studente_id'];
 
 $nota_docente = $program['nota'];
 
-$base64img = 'data:image/png;base64,'. base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'"));
+$base64img = 'data:image/png;base64,' . base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'"));
 
 /**
  * Converte una stringa in un JSON-array.
@@ -173,7 +178,8 @@ function asList(string $text): string
 
 // 5) INIZIO OUTPUT HTML IN BUFFER
 ob_start();
-?><!DOCTYPE html>
+?>
+<!DOCTYPE html>
 <html lang="it">
 
 <head>
@@ -193,18 +199,24 @@ ob_start();
       color: #2c3e50;
     }
 
-  .print-button {
-    position: fixed;    /* rispetto al viewport */
-    top: 20px;          /* 20px dal bordo superiore */
-    left: 20px;         /* 20px dal bordo sinistro */
-    z-index: 9999;      /* sopra a tutto (anche all’embed/pdf) */
-    background: #FFA500;   /* sfondo bianco per staccarsi dal pdf */
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-weight: 900;
-    font-style: italic;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  }
+    .print-button {
+      position: fixed;
+      /* rispetto al viewport */
+      top: 20px;
+      /* 20px dal bordo superiore */
+      left: 20px;
+      /* 20px dal bordo sinistro */
+      z-index: 9999;
+      /* sopra a tutto (anche all’embed/pdf) */
+      background: #FFA500;
+      /* sfondo bianco per staccarsi dal pdf */
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-weight: 900;
+      font-style: italic;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
     /* logo centrato in alto solo sulla prima pagina */
     .first-logo {
       text-align: center;
@@ -336,6 +348,8 @@ ob_start();
         <input type="hidden" name="id" value="<?= $carenzaId ?>">
         <input type="hidden" name="print" value="1">
         <input type="hidden" name="titolo" value="Programma carenza formativa">
+        <input type="hidden" name="DoMail" value="0">
+        <input type="hidden" name="DoGenera" value="0">
         <button type="submit" style="font-family: Arial, sans-serif; font-size: 16px; font-weight: bold;">Scarica PDF</button>
       </form>
     </div>
@@ -381,10 +395,12 @@ ob_start();
           </tr>
         </thead>
         <tbody>
-          <?php foreach ([
-            'Conoscenze' => asList($m['CONOSCENZE']),
-            'Abilità' => asList($m['ABILITA'])
-          ] as $th => $td): ?>
+          <?php foreach (
+            [
+              'Conoscenze' => asList($m['CONOSCENZE']),
+              'Abilità' => asList($m['ABILITA'])
+            ] as $th => $td
+          ): ?>
             <tr>
               <td width="25%" style="
                 width:            25%;
@@ -412,15 +428,15 @@ ob_start();
   <?php endforeach; ?>
 
   <!-- stampo la nota del docente -->
-    <div class="module-card">
-      <table width="100%" style="
+  <div class="module-card">
+    <table width="100%" style="
     width:100%;               
     border-collapse:collapse;
     margin-bottom:6mm;
   " border="0" cellpadding="0" cellspacing="0">
-        <thead>
-          <tr>
-            <th colspan="2" style="
+      <thead>
+        <tr>
+          <th colspan="2" style="
                 background-color: #0057b7;
                 color:            #ffffff;
                 font-size:        16px;
@@ -428,16 +444,18 @@ ob_start();
                 text-align:       left;
                 border:           2px solid #0057b7;
               ">
-              Note del docente
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ([
+            Note del docente
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach (
+          [
             'Note' => asList($nota_docente)
-          ] as $th => $td): ?>
-            <tr>
-              <td width="25%" style="
+          ] as $th => $td
+        ): ?>
+          <tr>
+            <td width="25%" style="
                 width:            25%;
                 background-color: #d9eefa;
                 color:            #2c3e50;
@@ -445,21 +463,21 @@ ob_start();
                 padding:          6px 8px;
                 vertical-align:   top;
               ">
-                <?= $th ?>
-              </td>
-              <td width="75%" style="
+              <?= $th ?>
+            </td>
+            <td width="75%" style="
                 background-color: #f7fbfe;
                 border:           1px solid #0057b7;
                 padding:          6px 8px;
                 vertical-align:   top;
               ">
-                <?= $td ?>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
+              <?= $td ?>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
 </body>
 
 </html>
@@ -533,7 +551,7 @@ if ($doPrint) {
   }
 
   // 2) Configura colori e font del footer
-//    setFooterData(textColorRGB, lineColorRGB)
+  //    setFooterData(textColorRGB, lineColorRGB)
   $pdf->setFooterData(
     [100, 100, 100],   // colore testo (RGB)
     [200, 200, 200]    // colore linea orizzontale
@@ -627,12 +645,12 @@ if ($doPrint) {
     $pdf->writeHTML($tbl, true, false, true, false, '');
   }
 
-    // CAMPO NOTA DEL DOCENTE
-      // costruisci l’HTML della tabella, stile INLINE per colori e bordi
-    $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
-    $tbl .= '<thead>';
-    $tbl .= '  <tr>';
-    $tbl .= '    <th colspan="2" style="
+  // CAMPO NOTA DEL DOCENTE
+  // costruisci l’HTML della tabella, stile INLINE per colori e bordi
+  $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
+  $tbl .= '<thead>';
+  $tbl .= '  <tr>';
+  $tbl .= '    <th colspan="2" style="
                           background-color:#0057b7;
                           color:#ffffff;
                           font-size:16px;
@@ -641,43 +659,42 @@ if ($doPrint) {
                           border:2px solid #0057b7;">
             Note del docente
           </th>';
-    $tbl .= '  </tr>';
-    $tbl .= '</thead><tbody>';
+  $tbl .= '  </tr>';
+  $tbl .= '</thead><tbody>';
 
-    // quattro righe fisse
-    $rows = [
-      'Note' => asList($nota_docente)
-    ];
-    foreach ($rows as $label => $data) {
-      $tbl .= '<tr>';
-      $tbl .= '<td width="25%" style="
+  // quattro righe fisse
+  $rows = [
+    'Note' => asList($nota_docente)
+  ];
+  foreach ($rows as $label => $data) {
+    $tbl .= '<tr>';
+    $tbl .= '<td width="25%" style="
                           background-color:#d9eefa;
                           border:1px solid #0057b7;
                           padding:6px 8px;
                           vertical-align:top;">
                         ' . $label . '
                      </td>';
-      $tbl .= '<td width="75%" style="
+    $tbl .= '<td width="75%" style="
                           background-color:#f7fbfe;
                           border:1px solid #0057b7;
                           padding:6px 8px;
                           vertical-align:top;">
                         ' . $data . '
                      </td>';
-      $tbl .= '</tr>';
-    }
+    $tbl .= '</tr>';
+  }
 
-    $tbl .= '</tbody></table>';
-    // un piccolo spazio fra una tabella e l’altra
-    $tbl .= '<div style="height:4mm"></div>';
+  $tbl .= '</tbody></table>';
+  // un piccolo spazio fra una tabella e l’altra
+  $tbl .= '<div style="height:4mm"></div>';
 
-    // 3) scrivo la tabella
-    $pdf->writeHTML($tbl, true, false, true, false, '');
+  // 3) scrivo la tabella
+  $pdf->writeHTML($tbl, true, false, true, false, '');
 
-if ($doMail)
-{
-  $filename = __DIR__  . '/tmp/carenza_id_' . $carenzaId . '.pdf';
-  $pdf->Output($filename, 'F'); // salva il file
+  if ($doMail) {
+    $filename = __DIR__  . '/tmp/carenza_id_' . $carenzaId . '.pdf';
+    $pdf->Output($filename, 'F'); // salva il file
 
     $studente_cognome = $program['stud_cognome'];
     $studente_nome = $program['stud_nome'];
@@ -687,39 +704,60 @@ if ($doMail)
 
     $full_mail_body = file_get_contents("../didattica/template_mail_carenza.html");
 
-    $full_mail_body = str_replace("{titolo}","CARENZA FORMATIVA",$full_mail_body);
-    $full_mail_body = str_replace("{nome}",strtoupper($studente_cognome) . " " . strtoupper($studente_nome),$full_mail_body);
-    $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail perchè hai riportato la carenza formativa a fine anno secondo quanto qui riportato:",$full_mail_body);
-    $full_mail_body = str_replace("{classe}",$program['classe_nome'],$full_mail_body);
-    $full_mail_body = str_replace("{indirizzo}",$program['ind_nome'],$full_mail_body);
-    $full_mail_body = str_replace("{docente}",strtoupper($docente_cognome . " " . $docente_nome),$full_mail_body);
-    $full_mail_body = str_replace("{materia}",$program['materia_nome'],$full_mail_body);
-    $full_mail_body = str_replace("{nota}",$nota_docente,$full_mail_body);
-    $full_mail_body = str_replace("{messaggio_finale}",'In allegato trovi il programma con gli obiettivi minimi da recuperare.',$full_mail_body);
-    $full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
-  
+    $full_mail_body = str_replace("{titolo}", "CARENZA FORMATIVA", $full_mail_body);
+    $full_mail_body = str_replace("{nome}", strtoupper($studente_cognome) . " " . strtoupper($studente_nome), $full_mail_body);
+    $full_mail_body = str_replace("{messaggio}", "hai ricevuto questa mail perchè hai riportato la carenza formativa a fine anno secondo quanto qui riportato:", $full_mail_body);
+    $full_mail_body = str_replace("{classe}", $program['classe_nome'], $full_mail_body);
+    $full_mail_body = str_replace("{indirizzo}", $program['ind_nome'], $full_mail_body);
+    $full_mail_body = str_replace("{docente}", strtoupper($docente_cognome . " " . $docente_nome), $full_mail_body);
+    $full_mail_body = str_replace("{materia}", $program['materia_nome'], $full_mail_body);
+    $full_mail_body = str_replace("{nota}", $nota_docente, $full_mail_body);
+    $full_mail_body = str_replace("{messaggio_finale}", 'Nella tua area riservata su GestOre trovi il programma con gli obiettivi minimi da recuperare.', $full_mail_body);
+    $full_mail_body = str_replace("{nome_istituto}", $__settings->local->nomeIstituto, $full_mail_body);
+
     $to = $studente_email;
     $toName = $studente_nome . " " . $studente_cognome;
-		info("Invio carenza via mail allo studente: ".$to." ".$toName);
-    $mailsubject = 'GestOre - Invio programma carenza formativa - materia '. $program['materia_nome'];
-    sendMailwithAttachment($to,$toName,$mailsubject,$full_mail_body,$filename);
-   	date_default_timezone_set("Europe/Rome");
+    info("Invio carenza via mail allo studente: " . $to . " " . $toName);
+    $mailsubject = 'GestOre - Invio programma carenza formativa - materia ' . $program['materia_nome'];
+    sendMail($to, $toName, $mailsubject, $full_mail_body, $filename);
+    date_default_timezone_set("Europe/Rome");
     $update = date("Y-m-d H-i-s");
-    $query = "UPDATE carenze SET stato = '2', data_invio = '$update' WHERE id = '" . $program['carenza_id'] . "'";
+    $query = "UPDATE carenze SET stato = '3', data_invio = '$update' WHERE id = '" . $program['carenza_id'] . "'";
     dbExec($query);
     info("aggiornata data invio carenza id=" . $program['carenza_id']);
     echo 'sent';
-    exit;
-}
-else
-{
+  } else if ($doGenera) {
+    $token = bin2hex(random_bytes(16)); // link anonimo, sicuro
+    $filename = __DIR__  . '/tmp/carenza_id_' . $carenzaId . '.pdf';
+
+    $pdf->Output($filename, 'F'); // salva il file
+
+    $query = "SELECT COUNT(*) FROM carenze_downloads WHERE student_id='" . $studente_id . "' AND file_path='" . $filePath . "'";
+    $esiste = dbGetValue($query);
+
+    // salva nel DB
+    if ($esiste == 0) {
+      $query = "INSERT INTO carenze_downloads (student_id, file_path, download_token) VALUES ($studente_Id, $filePath, $token)";
+    } else {
+      $query = "UPDATE carenze_downloads SET download_token = '$token'";
+    }
+    dbExec($query);
+
+    date_default_timezone_set("Europe/Rome");
+    $update = date("Y-m-d H-i-s");
+    $query = "UPDATE carenze SET stato = '2' WHERE id = '" . $program['carenza_id'] . "'";
+    dbExec($query);
+    info("generato PDF carenza id=" . $program['carenza_id']);
+    echo 'generato';
+  }
+
   // 4) output
   $pdf->Output($titolo . ' ' . $program['stud_cognome'] . ' ' . $program['stud_nome'] . ' ' . $program['materia_nome'] . '  - Classe ' . $program['classe_nome'] . '° - Indirizzo ' . $program['ind_nome'] . '° - Docente ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.pdf', 'D');
   exit;
 }
-}
-// 7) Altrimenti mostra la preview HTML
 echo $html;
+
+
 
 
 ?>

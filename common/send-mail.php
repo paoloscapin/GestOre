@@ -28,6 +28,7 @@ function sendMail($to, $toName, $subject, $Content)
     $mail->Password = $__settings->local->smtpPassword;
     $mail->SMTPSecure = "ssl";
     $mail->SMTPAutoTLS = false;
+    $mail->CharSet = 'UTF-8';
     $mail->Port = '465';
     $mail->SMTPOptions = array(
         'ssl' => array(
@@ -72,10 +73,14 @@ function sendMailwithAttachment($to, $toName, $subject, $Content,$AttachmentFile
     $mail->SMTPAuth = true;
     $mail->Username = $__settings->local->smtpMail;
     $mail->Password = $__settings->local->smtpPassword;
-    $mail->SMTPSecure = "ssl";
+    $mail->SMTPSecure = "tls";
     $mail->SMTPAutoTLS = false;
-    $mail->Port = '465';
-    $mail->addAttachment($AttachmentFilePath);
+    $mail->CharSet = 'UTF-8';
+    $mail->Port = '587';
+        // Allegato
+        if (!empty($AttachmentFilePath) && file_exists($AttachmentFilePath)) {
+            $mail->addAttachment($AttachmentFilePath);
+        }
     $mail->SMTPOptions = array(
         'ssl' => array(
             'verify_peer' => false,
@@ -102,5 +107,7 @@ function sendMailwithAttachment($to, $toName, $subject, $Content,$AttachmentFile
     }
     info("[send-mail] invio concluso");
     $mail->smtpClose();
+//    mouy esuj uqnh lgoe
+//    A76SibgsUX#W
 }
 ?>

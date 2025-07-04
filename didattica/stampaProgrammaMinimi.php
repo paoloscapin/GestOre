@@ -124,18 +124,15 @@ function asList(string $text): string
   foreach ($items as $item) {
     $trim = ltrim($item);
     // 2) Se è già un blocco <ul> trattalo come sotto‐lista:
+
     if (str_starts_with($trim, '<ul')) {
-      // Rimuovo la chiusura </li> dell'ultimo elemento
-      // e ci incollo dentro la <ul> ... </ul> e poi riaggiungo </li>
-      $html = preg_replace(
-        '/<\/li>$/',
-        $trim . '</li>',
-        $html
-      );
-    } else {
-      // 3) Altrimenti apro un nuovo <li>
-      $html .= '<li>' . $item . '</li>';
-    }
+  // Se è un intero blocco lista, appiattiscilo
+  // rimuove la lista interna e la aggiunge direttamente
+  $html .= $trim;
+} else {
+  $html .= '<li>' . $item . '</li>';
+}
+
   }
   $html .= '</ul>';
   return $html;
@@ -305,6 +302,7 @@ ob_start();
       <form method="post" action="">
         <input type="hidden" name="id" value="<?= $programId ?>">
         <input type="hidden" name="print" value="1">
+        <input type="hidden" name="titolo" value="<?php echo $titolo ?>">
         <button type="submit" style="font-family: Arial, sans-serif; font-size: 16px; font-weight: bold;">Scarica PDF</button>
       </form>
     </div>

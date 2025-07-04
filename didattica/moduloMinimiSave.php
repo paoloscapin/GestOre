@@ -17,7 +17,6 @@ if(isset($_POST)) {
 	$titolo = $_POST['titolo'];
 	$conoscenze = $_POST['conoscenze'];
 	$abilita = $_POST['abilita'];
-	$periodo = $_POST['periodo'];
 
 	$titolo = str_replace("'","''",$titolo);
 	$conoscenze = str_replace("'","''",$conoscenze);

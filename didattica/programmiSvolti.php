@@ -32,6 +32,63 @@ ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
             height: 16px;
             width: 16px;
         }
+
+        .toggle.btn {
+            width: auto !important;
+            min-width: 160px; /* regola a seconda della lunghezza del testo */
+            padding: 0 10px;
+            white-space: nowrap;
+        }
+        .toggle.btn .toggle-on
+        {
+            background-color: blue;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        .toggle.btn .toggle-off {
+            background-color: red;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+          #progressOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* Sfondo semi-trasparente */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+#progressContent {
+  background: white;
+  padding: 20px 30px;
+  border-radius: 10px;
+  text-align: center;
+  width: 300px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+#progressBarContainer {
+  background: #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+  height: 25px;
+  margin-top: 10px;
+}
+
+#progressBar {
+  background: green;
+  width: 0%;
+  height: 100%;
+  color: white;
+  text-align: center;
+  line-height: 25px;
+  transition: width 0.3s;
+}
     </style>
 </head>
 
@@ -91,6 +148,15 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
 ?>
 
 <body>
+    <!-- OVERLAY con progress bar -->
+<div id="progressOverlay" style="display: none;">
+  <div id="progressContent">
+    <p>Invio email in corso...</p>
+    <div id="progressBarContainer">
+      <div id="progressBar">0%</div>
+    </div>
+  </div>
+</div>
     <?php
     if (haRuolo('segreteria didattica'))
     {
@@ -171,6 +237,22 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                         </div>
                     </div>
 
+                    <?php
+                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                        echo '                    
+                                    <div class="col-md-auto text-center">
+                                                                <label class="checkbox-inline">
+                                                <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary"
+                                                    id="daCompletareCheckBox" data-on="Tutti" data-off="Chi non ha completato">
+                                            </label>
+                                    </div>
+                                    <div class="col-md-auto text-center">
+                                        <label id="send_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Invia mail sollecito"><span
+                                        class="glyphicon glyphicon-send" ></span>&emsp;Mail Sollecito</label></div>
+                                    <div class="col-md-auto text-center"></div>
+                                        ';
+                    }
+                    ?>
                     
                     <div class="panel-body">
                         <div class="row" style="margin-bottom:10px;">

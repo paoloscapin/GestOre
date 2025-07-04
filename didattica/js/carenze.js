@@ -14,12 +14,12 @@ var $da_validare_filtro = 0;
 let completati = 0;
 let totale = 0;
 
-$('#daValidareCheckBox').change(function() {
+$('#daValidareCheckBox').change(function () {
     // this si riferisce al checkbox
     if (this.checked) {
-		$da_validare_filtro = 1;
+        $da_validare_filtro = 1;
     } else {
-		$da_validare_filtro = 0;
+        $da_validare_filtro = 0;
     }
     carenzeReadRecords();
 });
@@ -75,100 +75,157 @@ function carenzaDelete(id, materia, studente) {
 }
 
 function carenzaPrint(id_carenza) {
-  // creo form nascosto
-  var form = $('<form>', {
-    action: 'stampaCarenza.php',
-    method: 'POST',
-    target: '_black'    // apre in un nuovo tab
-  });
-  // aggiungo i campi
-  form.append($('<input>', {type:'hidden', name:'id',     value:id_carenza}));
-  form.append($('<input>', {type:'hidden', name:'print',  value:0}));
-  form.append($('<input>', {type:'hidden', name:'mail',  value:0}));
-  form.append($('<input>', {type:'hidden', name:'titolo', value:'Programma carenza formativa'}));
-  // lo “submitto” e lo rimuovo
-  form.appendTo('body').submit().remove();
+    // creo form nascosto
+    var form = $('<form>', {
+        action: 'stampaCarenza.php',
+        method: 'POST',
+        target: '_black'    // apre in un nuovo tab
+    });
+    // aggiungo i campi
+    form.append($('<input>', { type: 'hidden', name: 'id', value: id_carenza }));
+    form.append($('<input>', { type: 'hidden', name: 'print', value: 0 }));
+    form.append($('<input>', { type: 'hidden', name: 'mail', value: 0 }));
+    form.append($('<input>', { type: 'hidden', name: 'genera', value: 0 }));
+    form.append($('<input>', { type: 'hidden', name: 'titolo', value: 'Programma carenza formativa' }));
+    // lo “submitto” e lo rimuovo
+    form.appendTo('body').submit().remove();
 }
 
 function carenzaSend(id_carenza) {
-     $.post("stampaCarenza.php", {
-            id: id_carenza,
-            print: 1,
-            mail: 1,
-            titolo: 'Programma carenza formativa'
-        },
-            function (data, status) {
-                if (data=='sent')
-                {
-                    alert("Carenza spedita alla mail dello studente!");   
-                }
-                else
-                {
-                    alert("Carenza NON spedita!");
-                }
-                carenzeReadRecords();
+    $.post("stampaCarenza.php", {
+        id: id_carenza,
+        print: 1,
+        mail: 1,
+        titolo: 'Programma carenza formativa'
+    },
+        function (data, status) {
+            if (data == 'sent') {
+                alert("Carenza spedita alla mail dello studente!");
             }
-        );
+            else {
+                alert("Carenza NON spedita! " + data);
+            }
+            carenzeReadRecords();
+        }
+    );
 }
 
-function carenzaSendCallback(id_carenza,callback) {
-     $.post("stampaCarenza.php", {
-            id: id_carenza,
-            print: 1,
-            mail: 1,
-            titolo: 'Programma carenza formativa'
-        })
-        .done(function(response) {
-        if (response.trim() === 'sent') {
-            callback(); // Successo
-        } else {
-            console.error(`Errore nella risposta per carenza ID ${id_carenza}: ${response}`);
-            callback(); // Chiamata completata anche se fallita, per avanzare la barra
-        }
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function carenzaSendCallback(id_carenza) {
+    return $.post("stampaCarenza.php", {
+        id: id_carenza,
+        print: 1,
+        mail: 1,
+        titolo: 'Programma carenza formativa'
     })
-    .fail(function(jqXHR, textStatus, errorThrown) {
-        console.error(`Errore AJAX per carenza ID ${id_carenza}: ${textStatus}`, errorThrown);
-        callback(); // Avanza comunque la progress bar
-    });
+        .then(response => {
+            if (response.trim() === 'sent') {
+                console.log(`Email inviata per carenza ID ${id_carenza}`);
+            } else {
+                console.error(`Errore nella risposta per carenza ID ${id_carenza}: ${response}`);
+            }
+        })
+        .catch((jqXHR, textStatus, errorThrown) => {
+            console.error(`Errore AJAX per carenza ID ${id_carenza}: ${textStatus}`, errorThrown);
+        });
 }
 
 function mostraOverlay() {
-  $('#progressOverlay').show();
+    $('#progressOverlay').show();
 }
 
 function nascondiOverlay() {
-  $('#progressOverlay').hide();
+    $('#progressOverlay').hide();
 }
 
 function aggiornaProgressBar() {
-  completati++;
-  const percentuale = Math.round((completati / totale) * 100);
-  $('#progressBar').css('width', percentuale + '%').text(percentuale + '%');
+    completati++;
+    const percentuale = Math.round((completati / totale) * 100);
+    $('#progressBar').css('width', percentuale + '%').text(percentuale + '%');
 
-  if (completati === totale) {
-    setTimeout(() => {
-      nascondiOverlay();
-      alert("Tutte le email sono state inviate!");
-    }, 500);
-  }
+    if (completati === totale) {
+        setTimeout(() => {
+            nascondiOverlay();
+            alert("Tutte le email sono state inviate!");
+        }, 500);
+    }
 }
 
-function invioMassivoCarenze()
-{
-    const stringacarenze = $("#hidden_arraycarenze").val();
-    const arraycarenze = stringacarenze.split(',').filter(id => id !== ""); // evita ID vuoti
-    totale = arraycarenze.length;
-    completati = 0;
-      if (arraycarenze.length > 0)
-    {
-        mostraOverlay();
-        arraycarenze.forEach(id => {
-            carenzaSendCallback(id,aggiornaProgressBar);
-            
-        })
+async function generaCarenze() {
+    const arrayc = $('#hiddencarenzegenera').val();
+    if (!arrayc) {
+        alert("Nessuna carenza da generare!");
+        return;
     }
-    else
-    {
+
+    const arraycarenze = arrayc.split(',').map(id => id.trim()).filter(id => id !== '');
+    const totale = arraycarenze.length;
+    let completati = 0;
+      if (arraycarenze.length > 0)
+      {
+        mostraOverlay();
+
+        for (const id of arraycarenze) {
+            try {
+                const response = await $.post("stampaCarenza.php", {
+                    id_carenze: id,
+                    print: 1,
+                    mail: 0,
+                    genera: 1,
+                    titolo: 'Programma carenze formative'
+                });
+
+                if (response.trim() !== 'generato') {
+                    console.error(`Errore per studente ID ${id}: ${response}`);
+                }
+
+            } catch (err) {
+                console.error(`Errore AJAX per studente ID ${id}:`, err);
+            }
+                        completati++;
+            aggiornaProgressBar(completati, totale);
+
+            // Delay tra 1 e 2 secondi
+            await sleep(Math.floor(Math.random() * 5000) + 1000);
+        }
+
+        nascondiOverlay(); // opzionale: chiudi overlay al termine
+    }
+
+}
+
+async function invioMassivoCarenze() {
+   const carenze = $('#hidden_arraycarenzemail').val();
+    const carenze_array = carenze.split(',');
+
+    totale = carenze_array.length;
+    completati = 0;
+
+    if (totale > 0) {
+        mostraOverlay();
+
+        for (const carenza of carenze_array) {
+            await $.post("stampaCarenza.php", {
+                id_carenze: carenza,
+                print: 1,
+                mail: 1,
+                genera: 0,
+                titolo: 'Programma carenze formative'
+            }).then(response => {
+                if (response.trim() !== 'sent') {
+                    console.error(`Errore per studente ID ${carenza}: ${response}`);
+                }
+            }).catch(err => {
+                console.error(`Errore AJAX per studente ID ${carenza}:`, err);
+            });
+
+            aggiornaProgressBar();
+            await sleep(Math.floor(Math.random() * 5000) + 1000); // tra 1 e 2 secondi
+        }
+    } else {
         alert("Nessuna carenza da inviare!");
     }
 }
@@ -177,13 +234,13 @@ function carenzaValida(id, id_utente, stato) {
     var conf = true;
     var nota_docente = "";
     if (stato == 0) {
-      nota_docente = prompt("Inserisci una nota per lo studente (OPZIONALE - indicazioni materiali da studiare, materiale su classroom, etc..)","Nessuna nota aggiuntiva dal docente");
+        nota_docente = prompt("Inserisci una nota per lo studente (OPZIONALE - indicazioni materiali da studiare, materiale su classroom, etc..)", "Nessuna nota aggiuntiva dal docente");
     }
-    
+
     if (stato == 1) {
         conf = confirm("fConfermi che vuoi togliere la validazione a questa carenza?");
     }
-    if ((conf == true)&&(nota_docente!=null)) {
+    if ((conf == true) && (nota_docente != null)) {
         $.post("../didattica/carenzaValida.php", {
             id: id,
             id_utente: id_utente,

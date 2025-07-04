@@ -292,8 +292,8 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                     </div>
 
                     <div class="col-md-auto text-center">
-                        <label id="send_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Invia massivamente via mail tutte le carenze"><span
-                                class="glyphicon glyphicon-send" ></span>&emsp;Invia Carenze</label></div>
+                        <label id="send_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Invia mail delle carenze"><span
+                                class="glyphicon glyphicon-send" ></span>&emsp;Mail Carenze</label></div>
                     <div class="col-md-auto text-center">
                         <label id="import_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Importa le carenze"><span
                                 class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file"

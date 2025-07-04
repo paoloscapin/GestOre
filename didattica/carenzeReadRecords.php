@@ -112,7 +112,7 @@ if ($da_validare_filtro > 0) {
 	$query .= " AND carenze.stato='0' ";
 }
 
-$query .= " ORDER BY studente.cognome, studente.nome, materia.nome ASC";
+$query .= " ORDER BY studente.cognome DESC";
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
@@ -120,7 +120,8 @@ if ($resultArray == null) {
 }
 
 $ncarenze = 0;
-$array_carenze = '';
+$array_carenze_genera = '';
+$array_carenze_mail = '';
 
 foreach ($resultArray as $row) {
 	$idcarenza = $row['carenza_id'];
@@ -128,15 +129,27 @@ foreach ($resultArray as $row) {
 	$docente_riga_id = $row['doc_id'];
 	if ($row['carenza_stato']==1)
 	{
-		if ($array_carenze == '')
+		if ($array_carenze_genera == '')
 		{
-			$array_carenze .= $idcarenza;
+			$array_carenze_genera .= $idcarenza;
 		}
 		else
 		{
-			$array_carenze .= ', ' . $idcarenza;
+			$array_carenze_genera .= ', ' . $idcarenza;
 		}
 	}
+	if ($row['carenza_stato']==2)
+	{
+		if ($array_carenze_mail == '')
+		{
+			$array_carenze_mail .= $idcarenza;
+		}
+		else
+		{
+			$array_carenze_mail .= ', ' . $idcarenza;
+		}
+	}
+
 	$nota = $row['carenza_nota'];
 	$studente = $row['stud_cognome'] . ' ' . $row['stud_nome'];
 	if ($row['carenza_id_docente'] == 0) {
@@ -159,7 +172,7 @@ foreach ($resultArray as $row) {
 		$data_validazione = 'da validare';
 	}
 
-	if ($stato > 1) {
+	if ($stato > 2) {
 		$data_invio = $row['carenza_invio'];
 		$phpdate = strtotime($data_invio);
 		$data_invio = date('d-m-Y', $phpdate) . " alle ore " . date('H:i:s', $phpdate);
@@ -174,13 +187,17 @@ foreach ($resultArray as $row) {
 
 	$statoMarker = '';
 	if ($stato == 0) {
-		$statoMarker .= '<span class="label label-primary">inserito</span>';
+		$statoMarker .= '<span class="label label-danger">inserito</span>';
 	} else {
-		if ($stato > 1) {
+		if ($stato == 3) {
 			$statoMarker .= '<span class="label label-warning">inviato</span>';
 		} else {
-			if ($stato > 0) {
+			if ($stato == 1) {
 				$statoMarker .= '<span class="label label-success">validato</span>';
+			}
+			else
+ 			{
+				$statoMarker .= '<span class="label label-primary">generato</span>';
 			}
 		}
 	}
@@ -242,6 +259,7 @@ foreach ($resultArray as $row) {
 
 $data .= '</table></div>';
 $data .= '<input type="hidden" id="hidden_nmoduli" value=' . $ncarenze . '>';
-$data .= '<input type="hidden" id="hidden_arraycarenze" value="' . htmlspecialchars($array_carenze) . '">';
+$data .= '<input type="hidden" id="hidden_arraycarenzegenera" value="' . htmlspecialchars($array_carenze_genera) . '">';
+$data .= '<input type="hidden" id="hidden_arraycarenzemail" value="' . htmlspecialchars($array_carenze_mail) . '">';
 
 echo $data;

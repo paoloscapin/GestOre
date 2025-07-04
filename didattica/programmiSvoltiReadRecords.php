@@ -14,6 +14,8 @@ require_once '../common/connect.php';
 $classe_filtro_id = $_GET["classi_id"];
 $materia_filtro_id = $_GET["materia_id"];
 $docenti_filtro_id = $_GET["docenti_id"];
+$da_completare_filtro_id = $_GET["da_completare_id"];
+$sollecito_lista = '';
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -77,6 +79,23 @@ if ($resultArray == null) {
 foreach ($resultArray as $row) { {
 
 		$programma_id = $row['programma_id'];
+
+		$query = "SELECT COUNT(*) from programmi_svolti_moduli WHERE id_programma=" . $programma_id;
+		$nmodulisvolti = dbGetValue($query);
+
+		if (($da_completare_filtro_id == 0)||(($da_completare_filtro_id == 1)&&($nmodulisvolti==0)))
+		{
+			if ($da_completare_filtro_id == 1)
+			{
+				if ($sollecito_lista == '')
+				{
+					$sollecito_lista .= $programma_id;
+				}
+				else
+				{
+					$sollecito_lista .= ',' . $programma_id;
+				}
+			}
 		$classe = $row['classe_nome'];
 		$docente = $row['docente_cognome'].' '.$row['docente_nome'];
 		$materia = $row['materia_nome'];
@@ -100,8 +119,11 @@ foreach ($resultArray as $row) { {
 			<button onclick="programmiSvoltiDelete(' . $programma_id . ', \'' . $materia . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il programma"><span class="glyphicon glyphicon-trash"></button>
 			<button onclick="programmiSvoltiPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma svolto"><span class="glyphicon glyphicon-print"></button>
 			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'true\',\'false\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Duplica il programma per un altra classe"><span class="glyphicon glyphicon-duplicate"></button>
-			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'true\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Condividi il programma con un altro docente"><span class="glyphicon glyphicon-share"></button>
-		';
+			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'true\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Condividi il programma con un altro docente"><span class="glyphicon glyphicon-share"></button>';
+			if ($da_completare_filtro_id == 1)
+			{
+			  $data .= '<button onclick="inviaSollecito(' . $programma_id . ',\'false\',\'true\')" class="btn btn-dark btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia un sollecito al docente"><span class="glyphicon glyphicon-warning-sign"></button>';
+			}
 		} else
 			if (haRuolo('docente')) {
 				if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) {
@@ -120,9 +142,11 @@ foreach ($resultArray as $row) { {
 		<td align="center">' . $autore . '</td>
 		</tr>';
 	}
+	}
 }
 
 $data .= '</table></div>';
+$data .= '<input type="hidden" id="hidden_sollecito" value="' . htmlspecialchars($sollecito_lista) . '">';
 
 echo $data;
 ?>

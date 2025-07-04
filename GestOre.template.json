@@ -35,6 +35,7 @@
         "pianiDiLavoroEstesi": false,
         "programmaMaterie": true,
         "programmiSvolti":true,
+        "programmiMinimi":true,
         "carenze": false,
         "carenzeObiettiviMinimi": false
     },
@@ -115,6 +116,10 @@
     "programmiMaterie": {
         "visibile_docenti": false,
         "docente_puo__modificare": false
+    },
+    "programmiMinimi": {
+        "visibile_docenti": true,
+        "docente_puo_modificare": false
     },
     "programmiSvolti": {
         "visibile_docenti": true
