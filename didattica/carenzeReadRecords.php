@@ -93,7 +93,13 @@ $query = "	SELECT
 				ON carenze.id_classe = classi.id
 				WHERE carenze.id_anno_scolastico=$__anno_scolastico_corrente_id";
 
-if ($docente_id > 0) {
+if ($__utente_ruolo == 'docente')
+{
+	$query .= " AND carenze.id_docente=" . $__docente_id;	
+}
+else 
+if ($docente_id > 0) 
+{
 	$query .= " AND carenze.id_docente=" . $docente_id;
 }
 if ($classe_id > 0) {
@@ -245,8 +251,8 @@ foreach ($resultArray as $row) {
 								<button onclick="hideTooltip(this)" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Non puoi modificare la carenza confermata da un altro docente"><span class="glyphicon glyphicon-ok"></button>';
 								}
 							}
-							// $data .= '
-							// <button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera il PDF della carenza che arriva alla studente"><span class="glyphicon glyphicon-print"></button>';
+							$data .= '
+							<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera il PDF della carenza che arriva alla studente"><span class="glyphicon glyphicon-print"></button>';
 							
 						}
 					}
