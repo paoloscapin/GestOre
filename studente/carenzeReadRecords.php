@@ -70,8 +70,8 @@ foreach ($resultArray as $row) {
 		<td align="center">' . $note . '</td>
 		<td align="center">
 			<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Scarica il PDF del programma della carenza"><span class="glyphicon glyphicon-print"></button>
-<!--			<button onclick="carenzaMail(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia una copia via
-			 mail"><span class="glyphicon glyphicon-envelope"></button> -->
+			<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia una copia via
+			 mail"><span class="glyphicon glyphicon-envelope"></button> 
 		</td>';
 
 		$data .= '</tr>';

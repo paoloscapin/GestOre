@@ -16,20 +16,43 @@ function carenzeReadRecords() {
 }
 
 function carenzaPrint(id_carenza) {
-  // creo form nascosto
-  var form = $('<form>', {
-    action: '../didattica/stampaCarenza.php',
-    method: 'POST',
-    target: '_black'    // apre in un nuovo tab
-  });
-  // aggiungo i campi
-  form.append($('<input>', {type:'hidden', name:'id',     value:id_carenza}));
-  form.append($('<input>', {type:'hidden', name:'print',  value:0}));
-  form.append($('<input>', {type:'hidden', name:'titolo', value:'Programma carenza formativa'}));
-  // lo “submitto” e lo rimuovo
-  form.appendTo('body').submit().remove();
+    // creo form nascosto
+    var form = $('<form>', {
+        action: '../didattica/stampaCarenza.php',
+        method: 'POST',
+        target: '_black'    // apre in un nuovo tab
+    });
+    // aggiungo i campi
+    form.append($('<input>', { type: 'hidden', name: 'id', value: id_carenza }));
+    form.append($('<input>', { type: 'hidden', name: 'print', value: 0 }));
+    form.append($('<input>', { type: 'hidden', name: 'mail', value: 0 }));
+    form.append($('<input>', { type: 'hidden', name: 'genera', value: 0 }));
+        form.append($('<input>', { type: 'hidden', name: 'view', value: 1 }));
+    form.append($('<input>', { type: 'hidden', name: 'titolo', value: 'Programma carenza formativa' }));
+    // lo “submitto” e lo rimuovo
+    form.appendTo('body').submit().remove();
 }
 
+function carenzaSend(id_carenza) {
+    $.post("../didattica/stampaCarenza.php", {
+        id: id_carenza,
+        print: 0,
+        mail: 1,
+        genera: 0,
+        view: 0,
+        titolo: 'Programma carenza formativa'
+    },
+        function (data, status) {
+            if (data == 'sent') {
+                alert("Carenza spedita alla mail dello studente!");
+            }
+            else {
+                alert("Carenza NON spedita! " + data);
+            }
+            carenzeReadRecords();
+        }
+    );
+}
 
 $(document).ready(function () {
     carenzeReadRecords();
