@@ -26,10 +26,10 @@ function sendMail($to, $toName, $subject, $Content)
     $mail->SMTPAuth = true;
     $mail->Username = $__settings->local->smtpMail;
     $mail->Password = $__settings->local->smtpPassword;
-    $mail->SMTPSecure = "ssl";
+    $mail->SMTPSecure = $__settings->local->SMTPSecure;
     $mail->SMTPAutoTLS = false;
     $mail->CharSet = 'UTF-8';
-    $mail->Port = '465';
+    $mail->Port = $__settings->local->Port;
     $mail->SMTPOptions = array(
         'ssl' => array(
             'verify_peer' => false,
@@ -73,10 +73,10 @@ function sendMailwithAttachment($to, $toName, $subject, $Content,$AttachmentFile
     $mail->SMTPAuth = true;
     $mail->Username = $__settings->local->smtpMail;
     $mail->Password = $__settings->local->smtpPassword;
-    $mail->SMTPSecure = "tls";
+    $mail->SMTPSecure = $__settings->local->SMTPSecure;
     $mail->SMTPAutoTLS = false;
     $mail->CharSet = 'UTF-8';
-    $mail->Port = '587';
+    $mail->Port = $__settings->local->Port;
         // Allegato
         if (!empty($AttachmentFilePath) && file_exists($AttachmentFilePath)) {
             $mail->addAttachment($AttachmentFilePath);
