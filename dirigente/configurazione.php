@@ -69,6 +69,10 @@ require_once '../common/importi_load.php';
 			<label class="col-sm-3 control-label" for="ore_fatte_checkbox">Inserimento Ore Fatte
 				<input type="checkbox" class="checkbox-inline col-sm-1" id="ore_fatte_checkbox"  data-toggle="toggle" data-size="small" data-onstyle="success" data-on="Aperto" data-off="Chiuso" <?php if ($__config->getOre_fatte_aperto()) echo 'checked'; ?> >
 			</label>
+
+			<label class="col-sm-3 control-label" for="fuis_docenti_checkbox">Fuis visibile ai docenti
+				<input type="checkbox" class="checkbox-inline col-sm-1" id="fuis_docenti_checkbox"  data-toggle="toggle" data-size="small" data-onstyle="success" data-on="Visibile" data-off="Non visibile" <?php if ($__config->get_fuis_visibile()) echo 'checked'; ?> >
+			</label>
 		</div>
     </div>
 </div>

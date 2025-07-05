@@ -167,6 +167,114 @@ require_once '../common/header-docente.php';
 
 <?php endif; ?>
 
+<!-- pannello fuis per docente -->
+<?php if(($operatore == 'docente') && $__config->get_fuis_visibile()): ?>
+<div class="panel panel-deeporange4">
+<div class="panel-heading container-fluid">
+	<div class="row">
+		<div class="col-md-2">
+			<span class="glyphicon glyphicon-euro"></span>&emsp;FUIS
+		</div>
+		<div class="col-md-2 text-center">
+		</div>
+		<div class="col-md-2 text-center">
+		</div>
+		<div class="col-md-2 text-center">
+		</div>
+		<div class="col-md-2 text-center">
+		</div>
+		<div class="col-md-2 text-right">
+		</div>
+	</div>
+</div>
+<div class="panel-body">
+
+<div class="table-wrapper">
+	<table class="table table-vnocolor-index">
+		<thead>
+			<tr>
+				<th colspan="2" class="col-md-2 text-right">Fuis Docente</th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1"></th>
+				<th class="col-md-1"></th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td class="col-md-1 text-right" ><?php echoLabel('Assegnato');?></td>
+				<td class="col-md-1 text-right" id="fuis_assegnato">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>				
+			</tr>
+			<tr>
+				<td class="col-md-1 text-right" ><?php echoLabel('Ore');?></td>
+				<td class="col-md-1 text-right" id="fuis_ore">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+			</tr>
+			<tr>
+				<td class="col-md-1 text-right" ><?php echoLabel('Diaria Viaggi');?></td>
+				<td class="col-md-1 text-right" id="fuis_diaria">0.00</td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" ></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+			</tr>
+		</tbody>
+		<tfoot>
+			<tr class="deeporange5">
+				<td class="col-md-1 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
+				<td class="col-md-1 text-right" id="fuis_docente_totale"><strong>0.00</strong></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>	
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right"></td>
+			</tr>
+		<tfoot>
+	</table>
+	</div>
+	<div id="fuis_message" class="row" style="margin-bottom:10px;"></div>
+	<div id="fuis_eccesso_message" class="row" style="margin-bottom:10px;"></div>
+</div>
+<!-- <div class="panel-footer"></div> -->
+</div>
+<?php endif; ?>
+
 <!-- pannello riassuntivo -->
 <div class="panel panel-lima4">
 <div class="panel-heading">
