@@ -112,7 +112,7 @@ if ($da_validare_filtro > 0) {
 	$query .= " AND carenze.stato='0' ";
 }
 
-$query .= " ORDER BY studente.cognome DESC";
+$query .= " ORDER BY studente.cognome ASC, studente.nome ASC";
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
@@ -224,8 +224,9 @@ foreach ($resultArray as $row) {
 			}
 			$data .= '
 			<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera il PDF della carenza che arriva alla studente"><span class="glyphicon glyphicon-print"></button>
+			<button onclick="carenzaGenera(\'' . $idcarenza . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera sul server i lPDF della carenzaa"><span class="glyphicon glyphicon-fire"></button>
 			<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia la mail della carenza allo studente"><span class="glyphicon glyphicon-send"></button>';
-		}
+		}	
 	} else
 		if (haRuolo('docente')) {
 			if (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) {

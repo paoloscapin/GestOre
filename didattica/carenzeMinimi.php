@@ -13,14 +13,12 @@ require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_bootstrap-notify.php';
 ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
-	
-if (!getSettingsValue('config','carenzeObiettiviMinimi', false))
-{
+
+if (!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) {
     redirect("/error/unauthorized.php");
 }
 
-if (!getSettingsValue('carenzeObiettiviMinimi','visibile_docenti', false))
-{
+if (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false)) {
     ruoloRichiesto('segreteria-didattica');
 }
 ?>
@@ -50,14 +48,12 @@ if (!getSettingsValue('carenzeObiettiviMinimi','visibile_docenti', false))
 $modificheDisabilitate = "";
 
 $id_docente_utente = 0;
-if ($__utente_ruolo=='docente')
-{
-$query = "SELECT * from docente WHERE docente.username='".$__username."'";
-$result = dbGetFirst($query);
-if ($result != null)
-{
-    $id_docente_utente = $result['id'];
-}
+if ($__utente_ruolo == 'docente') {
+    $query = "SELECT * from docente WHERE docente.username='" . $__username . "'";
+    $result = dbGetFirst($query);
+    if ($result != null) {
+        $id_docente_utente = $result['id'];
+    }
 }
 
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
@@ -95,13 +91,10 @@ $annoOptionList .= '<option value="5">Classi quinte</option>';
 $docentiFiltroOptionList = '<option value="0">Tutti</option>';
 $docentiOptionList = '<option value="0"></option>';
 foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente.cognome ASC ; ") as $docente) {
-    if (($docente['id'])==$id_docente_utente)
-    {
+    if (($docente['id']) == $id_docente_utente) {
         $docentiFiltroOptionList .= '<option value="' . $docente['id'] . '" selected>' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
         $docentiOptionList .= '<option value="' . $docente['id'] . '" selected>' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
-    }
-    else
-    {
+    } else {
         $docentiFiltroOptionList .= '<option value="' . $docente['id'] . '" >' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
         $docentiOptionList .= '<option value="' . $docente['id'] . '" >' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
     }
@@ -119,98 +112,103 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
 
 <body>
     <?php
-    if (haRuolo('segreteria didattica'))
-    {
+    if (haRuolo('segreteria didattica')) {
         require_once '../common/header-didattica.php';
-    }
-    else if (haRuolo('docente'))
-    {
+    } else if (haRuolo('docente')) {
         require_once '../common/header-docente.php';
     }
     ?>
-<style>
-  .col-md-2-custom {
-    width: 20%;
-  }
-  .col-md-1-custom {
-    width: 10%;
-  }
-  .col-md-1-2-custom {
-    width: 12%;
-  }
-  .col-md-1-5-custom {
-    width: 15%;
-  }
-  .col-md-0-5-custom {
-    width: 5%;
-  }
-  #progressOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5); /* Sfondo semi-trasparente */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
+    <style>
+        .col-md-2-custom {
+            width: 20%;
+        }
 
-#progressContent {
-  background: white;
-  padding: 20px 30px;
-  border-radius: 10px;
-  text-align: center;
-  width: 300px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
-}
+        .col-md-1-custom {
+            width: 10%;
+        }
 
-#progressBarContainer {
-  background: #ddd;
-  border-radius: 10px;
-  overflow: hidden;
-  height: 25px;
-  margin-top: 10px;
-}
+        .col-md-1-2-custom {
+            width: 12%;
+        }
 
-#progressBar {
-  background: green;
-  width: 0%;
-  height: 100%;
-  color: white;
-  text-align: center;
-  line-height: 25px;
-  transition: width 0.3s;
-}
+        .col-md-1-5-custom {
+            width: 15%;
+        }
 
-  .toggle.btn {
-    width: auto !important;
-    min-width: 120px; /* regola a seconda della lunghezza del testo */
-    padding: 0 10px;
-    white-space: nowrap;
-  }
-  .toggle.btn .toggle-on
-  {
-    background-color: blue;
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-  .toggle.btn .toggle-off {
-    background-color: red;
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-</style>
-<!-- OVERLAY con progress bar -->
-<div id="progressOverlay" style="display: none;">
-  <div id="progressContent">
-    <p>Invio email in corso...</p>
-    <div id="progressBarContainer">
-      <div id="progressBar">0%</div>
+        .col-md-0-5-custom {
+            width: 5%;
+        }
+
+        #progressOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            /* Sfondo semi-trasparente */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        #progressContent {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            text-align: center;
+            width: 300px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        #progressBarContainer {
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 25px;
+            margin-top: 10px;
+        }
+
+        #progressBar {
+            background: green;
+            width: 0%;
+            height: 100%;
+            color: white;
+            text-align: center;
+            line-height: 25px;
+            transition: width 0.3s;
+        }
+
+        .toggle.btn {
+            width: auto !important;
+            min-width: 120px;
+            /* regola a seconda della lunghezza del testo */
+            padding: 0 10px;
+            white-space: nowrap;
+        }
+
+        .toggle.btn .toggle-on {
+            background-color: blue;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .toggle.btn .toggle-off {
+            background-color: red;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+    </style>
+    <!-- OVERLAY con progress bar -->
+    <div id="progressOverlay" style="display: none;">
+        <div id="progressContent">
+            <p>Operazione in corso...</p>
+            <div id="progressBarContainer">
+                <div id="progressBar">0%</div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
     <div class="container-fluid" style="margin-top:60px">
         <div class="panel panel-lima4">
             <div class="panel-heading">
@@ -223,8 +221,8 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                         <label class="col-sm-12 control-label" for="classe">Classe</label>
                         <div class="text-center">
                             <div class="col-sm-12"><select id="classe_filtro" name="classe_filtro"
-                                    class="classe_filtro selectpicker" data-style="btn-salmon"
-                                    data-live-search="true" data-noneSelectedText="seleziona..."
+                                    class="classe_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
+                                    data-noneSelectedText="seleziona..."
                                     data-width="100%"><?php echo $classiFiltroOptionList ?></select></div>
                         </div>
                     </div>
@@ -232,8 +230,8 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                         <label class="col-sm-8 control-label" for="anno">Anno</label>
                         <div class="text-center">
                             <div class="col-sm-8"><select id="anno_filtro" name="anno_filtro"
-                                    class="anno_filtro selectpicker" data-style="btn-salmon"
-                                    data-live-search="true" data-noneSelectedText="seleziona..."
+                                    class="anno_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
+                                    data-noneSelectedText="seleziona..."
                                     data-width="100%"><?php echo $annoFiltroOptionList ?></select></div>
                         </div>
                     </div>
@@ -241,14 +239,13 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                         <label class="col-sm-12 control-label" for="materia">Materia</label>
                         <div class="text-center">
                             <div class="col-sm-12"><select id="materia_filtro" name="materia_filtro"
-                                    class="mamteria_filtro selectpicker" data-style="btn-salmon"
-                                    data-live-search="true" data-noneSelectedText="seleziona..."
+                                    class="mamteria_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
+                                    data-noneSelectedText="seleziona..."
                                     data-width="100%"><?php echo $materiaFiltroOptionList ?></select></div>
                         </div>
                     </div>
                     <?php
-                    if (haRuolo('segreteria-didattica'))
-                    {
+                    if (haRuolo('segreteria-didattica')) {
                         echo '
                     <div class="col-md-2">
                         <div class="text-center">
@@ -256,8 +253,8 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                             <div class="col-sm-12"><select id="docente_filtro" name="docente_filtro"
                                     class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
                                     data-noneSelectedText="seleziona..." data-width="100%">';
-                                    echo $docentiFiltroOptionList;
-                                    echo '
+                        echo $docentiFiltroOptionList;
+                        echo '
                                 </select></div>
                         </div>
                     </div>
@@ -268,8 +265,8 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                         <div class="text-center">
                             <label class="col-sm-12 control-label" for="materia">Studente</label>
                             <div class="col-sm-12"><select id="studente_filtro" name="studente_filtro"
-                                    class="studente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
-                                    data-noneSelectedText="seleziona..." data-width="100%">
+                                    class="studente_filtro selectpicker" data-style="btn-yellow4"
+                                    data-live-search="true" data-noneSelectedText="seleziona..." data-width="100%">
                                     <?php echo $studentiFiltroOptionList ?>
                                 </select></div>
                         </div>
@@ -283,17 +280,21 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
 
                             <div class="col-md-1 text-center">
                                 <div class="text-center">
-                                    <label class="control-label" for="materia">Aggiungi Carenza</label>
+                                    <label class="control-label" for="materia">Aggiungi</label>
                                     <button class="btn btn-xs btn-lima4" onclick="carenzeGetDetails(-1)"><span
-                                            style="font-size:30px" class="glyphicon glyphicon-plus"></span></button>
+                                            style="font-size:15px" class="glyphicon glyphicon-plus"></span></button>
+                                    <button id="genera_btn" type="button" class="btn btn-xs btn-lima4" data-toggle="tooltip" title="Genera i pdf di tutte le carenze">
+                                        <span class="glyphicon glyphicon-send"></span>&emsp;Genera Carenze
+                                    </button>
+
+                                    <button id="send_btn" type="button" class="btn btn-xs btn-lima4" data-toggle="tooltip" title="Invia mail delle carenze">
+                                        <span class="glyphicon glyphicon-send"></span>&emsp;Mail Carenze
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="col-md-auto text-center">
-                        <label id="send_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Invia mail delle carenze"><span
-                                class="glyphicon glyphicon-send" ></span>&emsp;Mail Carenze</label></div>
                     <div class="col-md-auto text-center">
                         <label id="import_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Importa le carenze"><span
                                 class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file"
@@ -302,8 +303,9 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                     }
                     ?>
                     <div class="col-md-auto text-center">
-                        <label id="export_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Esporta le carenze"><span
-                                id="file_export_id" class="glyphicon glyphicon-download"></span>&emsp;Esporta</label>
+                        <label id="export_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip"
+                            title="Esporta le carenze"><span id="file_export_id"
+                                class="glyphicon glyphicon-download"></span>&emsp;Esporta</label>
                     </div>
                     <?php
                     if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
@@ -340,7 +342,8 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                             <div class="modal-body">
                                 <div class="panel panel-orange4">
                                     <div class="panel-heading">
-                                        <h3 class="modal-title" style="text-align:center" id="myModalLabel">Carenza Studente
+                                        <h3 class="modal-title" style="text-align:center" id="myModalLabel">Carenza
+                                            Studente
                                         </h3>
                                     </div>
                                     <div class="panel-body">
@@ -377,38 +380,35 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
                                             <input type="hidden" id="hidden_carenza_id">
                                         </form>
                                     </div>
-                            </div>
-                            <div class="panel-footer text-center">
-                                <?php
+                                </div>
+                                <div class="panel-footer text-center">
+                                    <?php
 
-                                if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) 
-                                {
-                                    echo '
+                                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                                        echo '
                                     <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                                     <button type="button" class="btn btn-primary" onclick="carenzaSave()">Salva</button>
                                     ';
-                                }
-                                else
-                                if (haRuolo('docente')) 
-                                {
-                                    echo '
+                                    } else
+                                        if (haRuolo('docente')) {
+                                            echo '
                                     <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
                                     ';
-                                }
+                                        }
 
-                                ?>
+                                    ?>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- // Modal - Add/Update Record -->
+
         </div>
-        <!-- // Modal - Add/Update Record -->
 
-    </div>
-
-    <!-- Custom JS file -->
-    <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>"></script>
+        <!-- Custom JS file -->
+        <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 
 </html>

@@ -16,15 +16,12 @@ require_once '../common/vendor/autoload.php';
 require_once '../common/send-mail.php';
 // 1) PARAMETRI POST
 $carenzaId = isset($_POST['id']) ? (int) $_POST['id'] : -1;
+$doView  = isset($_POST['view']) && ($_POST['view'] == '1' || $_POST['view'] === 'true');
 $doPrint = isset($_POST['print']) && ($_POST['print'] == '1' || $_POST['print'] === 'true');
 $doMail = isset($_POST['mail']) && ($_POST['mail'] == '1' || $_POST['mail'] === 'true');
 $titolo = isset($_POST['titolo']) ? $_POST['titolo'] : 'Programma didattico';
 $doGenera = isset($_POST['genera']) && ($_POST['genera'] == '1' || $_POST['genera'] === 'true');
 
-if (!isset($_POST['id_carenze'])) {
-  if ($carenzaId == -1)
-    exit;
-}
 
 // 2) RECUPERO DATI PROGRAMMA
 $query = "SELECT  
@@ -33,6 +30,7 @@ $query = "SELECT
         carenze.id_materia AS materia_id,
         carenze.id_classe AS classe_id,
         carenze.id_docente AS doc_id,
+        carenze.stato AS stato,
         carenze.nota_docente AS nota,
         classi.id AS classi_id,
         classi.classe AS classe_nome,
@@ -70,14 +68,15 @@ $query = "SELECT
 
 $program = dbGetFirst($query);
 
+// se devo inviare solo la mail non mi serve rigenerare la pagina
 
-// 3) RECUPERO MODULI
+//RECUPERO MODULI
 $id_programma_minimi = $program['prog_id'];
 $query = "SELECT * from programma_minimi_moduli WHERE id_programma = $id_programma_minimi";
 $modules = dbGetAll($query);
 $studente_id = $program['studente_id'];
-
 $nota_docente = $program['nota'];
+$carenza_id = $program['carenza_id'];
 
 $base64img = 'data:image/png;base64,' . base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'"));
 
@@ -176,7 +175,7 @@ function asList(string $text): string
   return $html;
 }
 
-// 5) INIZIO OUTPUT HTML IN BUFFER
+// INIZIO OUTPUT HTML IN BUFFER
 ob_start();
 ?>
 <!DOCTYPE html>
@@ -342,7 +341,9 @@ ob_start();
 
 <body>
 
-  <?php if (!$doPrint): ?>
+<!-- // rendo visibile il pulsante scarica PDF -->
+
+<?php if ($doView): ?>
     <div class="print-button">
       <form method="post" action="">
         <input type="hidden" name="id" value="<?= $carenzaId ?>">
@@ -483,9 +484,9 @@ ob_start();
 </html>
 <?php
 
-use TCPDF;
+// use TCPDF;
 
-class MyPDF extends TCPDF
+class MyPDF extends \TCPDF
 {
   /** Testo fisso che vuoi nel footer */
   public $footerText = 'Documento ufficiale – Segreteria Didattica - generato il ';
@@ -530,7 +531,16 @@ class MyPDF extends TCPDF
 // 7) OTTENGO HTML COMPLETO
 $html = ob_get_clean();
 // … dopo ob_get_clean() e la preview HTML …
-if ($doPrint) {
+
+// se devo solo visualizzare la pagina , la stampo ed esco
+if ($doView)
+{
+  echo $html;
+  exit;
+}
+
+if ( $doPrint ||  $doGenera ) 
+{
   // 1) autoloader e setup TCPDF
   require_once __DIR__ . '/../common/vendor/autoload.php';
 
@@ -691,11 +701,62 @@ if ($doPrint) {
 
   // 3) scrivo la tabella
   $pdf->writeHTML($tbl, true, false, true, false, '');
-
-  if ($doMail) {
-    $filename = __DIR__  . '/tmp/carenza_id_' . $carenzaId . '.pdf';
+  ob_end_clean();
+  }
+    // 4) output
+  if ($doPrint)
+  {
+    $pdf->Output($titolo . ' ' . $program['stud_cognome'] . ' ' . $program['stud_nome'] . ' ' . $program['materia_nome'] . '  - Classe ' . $program['classe_nome'] . '° - Indirizzo ' . $program['ind_nome'] . '° - Docente ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.pdf', 'D');
+    exit;
+  }
+  if ($doGenera) {
+    $token = bin2hex(random_bytes(16)); // link anonimo, sicuro
+    $randomFileName = bin2hex(random_bytes(12)) . '.pdf';
+    $filename = __DIR__ . '/tmp/' . $randomFileName;
+    $filePath = 'tmp/' . $randomFileName;
     $pdf->Output($filename, 'F'); // salva il file
+    $created_at = date('Y-m-d H:i:s');
+    $expires_at = date('Y-m-d H:i:s', strtotime('+3 months'));
+    $query = "SELECT COUNT(*) FROM carenze_downloads WHERE student_id='" . $studente_id . "' AND file_path='" . $filePath . "'";
+    $esiste = dbGetValue($query);
+ 
 
+    // salva nel DB
+    if ($esiste == 0) {
+      $query = "INSERT INTO carenze_downloads (student_id, carenza_id, file_path, download_token,created_at,expires_at) VALUES ('$studente_id', '$carenza_id', '$filePath', '$token','$created_at','$expires_at')";
+    } else {
+      $query = "UPDATE carenze_downloads SET download_token = '$token', file_path = '$filePath', created_at = '$created_at', expires_at = '$expires_at', download_count = 0, last_ip='' WHERE student_id = '$studente_id' AND carenza_id = '$carenza_id'";
+    }
+    dbExec($query);
+
+    date_default_timezone_set("Europe/Rome");
+    $update = date("Y-m-d H-i-s");
+    $query = "UPDATE carenze SET stato = '2' WHERE id = '" . $program['carenza_id'] . "'";
+    dbExec($query);
+    info("generato PDF carenza id=" . $program['carenza_id']);
+    if ($esiste=0)
+    { 
+      echo 'generato';
+    } 
+    else 
+    {
+      echo 'aggiornato';
+    }
+    exit;
+  }
+
+if ($doMail) {
+   
+    $query = "SELECT * FROM carenze_downloads WHERE student_id='" . $studente_id . "' AND carenza_id='" . $carenza_id . "'";
+
+    $esiste = dbGetFirst($query);
+    if ($esiste == null)
+    {
+      echo ' File carenza non ancora generato';
+      exit;
+    }
+
+    $download_token = $esiste['download_token'];
     $studente_cognome = $program['stud_cognome'];
     $studente_nome = $program['stud_nome'];
     $studente_email = $program['stud_email'];
@@ -709,53 +770,33 @@ if ($doPrint) {
     $full_mail_body = str_replace("{messaggio}", "hai ricevuto questa mail perchè hai riportato la carenza formativa a fine anno secondo quanto qui riportato:", $full_mail_body);
     $full_mail_body = str_replace("{classe}", $program['classe_nome'], $full_mail_body);
     $full_mail_body = str_replace("{indirizzo}", $program['ind_nome'], $full_mail_body);
-    $full_mail_body = str_replace("{docente}", strtoupper($docente_cognome . " " . $docente_nome), $full_mail_body);
+    $full_mail_body = str_replace("{docente}", strtoupper($docente_cognome . " " .  $docente_nome), $full_mail_body);
     $full_mail_body = str_replace("{materia}", $program['materia_nome'], $full_mail_body);
     $full_mail_body = str_replace("{nota}", $nota_docente, $full_mail_body);
-    $full_mail_body = str_replace("{messaggio_finale}", 'Nella tua area riservata su GestOre trovi il programma con gli obiettivi minimi da recuperare.', $full_mail_body);
     $full_mail_body = str_replace("{nome_istituto}", $__settings->local->nomeIstituto, $full_mail_body);
+
+    $downloadLink = $__http_base_link . '/didattica/downloadCarenza.php?token=' . $download_token;
+
+    $full_mail_body = str_replace("{messaggio_finale}", 
+    'Nella tua area riservata su <a style="color:black" href="' . $__http_base_link . '/">GestOre</a> trovi il programma con gli obiettivi minimi da recuperare.<br><br>
+     <p style="font-weight:bold; font-size: 16px; line-height: 140%; color:red;"> Il programma lo puoi scaricare direttamente da questo 
+     <a href="' . $downloadLink . '">LINK</a></p>', 
+    $full_mail_body);
 
     $to = $studente_email;
     $toName = $studente_nome . " " . $studente_cognome;
     info("Invio carenza via mail allo studente: " . $to . " " . $toName);
     $mailsubject = 'GestOre - Invio programma carenza formativa - materia ' . $program['materia_nome'];
-    sendMail($to, $toName, $mailsubject, $full_mail_body, $filename);
+    sendMail($to, $toName, $mailsubject, $full_mail_body);
     date_default_timezone_set("Europe/Rome");
     $update = date("Y-m-d H-i-s");
     $query = "UPDATE carenze SET stato = '3', data_invio = '$update' WHERE id = '" . $program['carenza_id'] . "'";
     dbExec($query);
     info("aggiornata data invio carenza id=" . $program['carenza_id']);
     echo 'sent';
-  } else if ($doGenera) {
-    $token = bin2hex(random_bytes(16)); // link anonimo, sicuro
-    $filename = __DIR__  . '/tmp/carenza_id_' . $carenzaId . '.pdf';
+    exit;
+  } 
 
-    $pdf->Output($filename, 'F'); // salva il file
-
-    $query = "SELECT COUNT(*) FROM carenze_downloads WHERE student_id='" . $studente_id . "' AND file_path='" . $filePath . "'";
-    $esiste = dbGetValue($query);
-
-    // salva nel DB
-    if ($esiste == 0) {
-      $query = "INSERT INTO carenze_downloads (student_id, file_path, download_token) VALUES ($studente_Id, $filePath, $token)";
-    } else {
-      $query = "UPDATE carenze_downloads SET download_token = '$token'";
-    }
-    dbExec($query);
-
-    date_default_timezone_set("Europe/Rome");
-    $update = date("Y-m-d H-i-s");
-    $query = "UPDATE carenze SET stato = '2' WHERE id = '" . $program['carenza_id'] . "'";
-    dbExec($query);
-    info("generato PDF carenza id=" . $program['carenza_id']);
-    echo 'generato';
-  }
-
-  // 4) output
-  $pdf->Output($titolo . ' ' . $program['stud_cognome'] . ' ' . $program['stud_nome'] . ' ' . $program['materia_nome'] . '  - Classe ' . $program['classe_nome'] . '° - Indirizzo ' . $program['ind_nome'] . '° - Docente ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.pdf', 'D');
-  exit;
-}
-echo $html;
 
 
 

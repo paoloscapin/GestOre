@@ -86,6 +86,7 @@ function carenzaPrint(id_carenza) {
     form.append($('<input>', { type: 'hidden', name: 'print', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'mail', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'genera', value: 0 }));
+        form.append($('<input>', { type: 'hidden', name: 'view', value: 1 }));
     form.append($('<input>', { type: 'hidden', name: 'titolo', value: 'Programma carenza formativa' }));
     // lo “submitto” e lo rimuovo
     form.appendTo('body').submit().remove();
@@ -94,8 +95,10 @@ function carenzaPrint(id_carenza) {
 function carenzaSend(id_carenza) {
     $.post("stampaCarenza.php", {
         id: id_carenza,
-        print: 1,
+        print: 0,
         mail: 1,
+        genera: 0,
+        view: 0,
         titolo: 'Programma carenza formativa'
     },
         function (data, status) {
@@ -110,27 +113,34 @@ function carenzaSend(id_carenza) {
     );
 }
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+function carenzaGenera(id_carenza) {
+    $.post("stampaCarenza.php", {
+        id: id_carenza,
+        print: 0,
+        mail: 0,
+        genera: 1,
+        view: 0,
+        titolo: 'Programma carenza formativa'
+    },
+        function (data, status) {
+            if (data == 'generato') {
+                alert("Carenza generata correttamente!");
+            }
+            else if (data == 'aggiornato') {
+                alert("Carenza aggiornata correttamente!");
+            }
+
+            else 
+            {
+                alert("Carenza NON generata! " + data);
+            }
+            carenzeReadRecords();
+        }
+    );
 }
 
-function carenzaSendCallback(id_carenza) {
-    return $.post("stampaCarenza.php", {
-        id: id_carenza,
-        print: 1,
-        mail: 1,
-        titolo: 'Programma carenza formativa'
-    })
-        .then(response => {
-            if (response.trim() === 'sent') {
-                console.log(`Email inviata per carenza ID ${id_carenza}`);
-            } else {
-                console.error(`Errore nella risposta per carenza ID ${id_carenza}: ${response}`);
-            }
-        })
-        .catch((jqXHR, textStatus, errorThrown) => {
-            console.error(`Errore AJAX per carenza ID ${id_carenza}: ${textStatus}`, errorThrown);
-        });
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function mostraOverlay() {
@@ -149,21 +159,21 @@ function aggiornaProgressBar() {
     if (completati === totale) {
         setTimeout(() => {
             nascondiOverlay();
-            alert("Tutte le email sono state inviate!");
+            alert("Tutte le operazioni sono stato concluse correttamente!");
+            carenzeReadRecords();
         }, 500);
     }
 }
 
 async function generaCarenze() {
-    const arrayc = $('#hiddencarenzegenera').val();
-    if (!arrayc) {
-        alert("Nessuna carenza da generare!");
-        return;
-    }
-
+    const arrayc = $('#hidden_arraycarenzegenera').val();
+if (!arrayc || arrayc.trim() === '' || arrayc.split(',').filter(e => e.trim() !== '').length === 0) {
+    alert("Nessuna carenza da generare!");
+    return;
+}
     const arraycarenze = arrayc.split(',').map(id => id.trim()).filter(id => id !== '');
-    const totale = arraycarenze.length;
-    let completati = 0;
+      totale = arraycarenze.length;
+      completati = 0;
       if (arraycarenze.length > 0)
       {
         mostraOverlay();
@@ -171,35 +181,35 @@ async function generaCarenze() {
         for (const id of arraycarenze) {
             try {
                 const response = await $.post("stampaCarenza.php", {
-                    id_carenze: id,
-                    print: 1,
+                    id: id,
+                    print: 0,
                     mail: 0,
                     genera: 1,
+                    view: 0,
                     titolo: 'Programma carenze formative'
                 });
 
-                if (response.trim() !== 'generato') {
+                if ((response.trim() !== 'generato')&&(response.trim() !== 'aggiornato')) {
                     console.error(`Errore per studente ID ${id}: ${response}`);
                 }
 
             } catch (err) {
                 console.error(`Errore AJAX per studente ID ${id}:`, err);
             }
-                        completati++;
             aggiornaProgressBar(completati, totale);
 
             // Delay tra 1 e 2 secondi
-            await sleep(Math.floor(Math.random() * 5000) + 1000);
+            await sleep(Math.floor(Math.random() * 1000) + 1000);
         }
 
         nascondiOverlay(); // opzionale: chiudi overlay al termine
     }
-
+    carenzeReadRecords();
 }
 
 async function invioMassivoCarenze() {
    const carenze = $('#hidden_arraycarenzemail').val();
-    const carenze_array = carenze.split(',');
+    const carenze_array = carenze.split(',').map(id => id.trim()).filter(id => id !== '');
 
     totale = carenze_array.length;
     completati = 0;
@@ -209,10 +219,11 @@ async function invioMassivoCarenze() {
 
         for (const carenza of carenze_array) {
             await $.post("stampaCarenza.php", {
-                id_carenze: carenza,
-                print: 1,
+                id: carenza,
+                print: 0,
                 mail: 1,
                 genera: 0,
+                view: 0,
                 titolo: 'Programma carenze formative'
             }).then(response => {
                 if (response.trim() !== 'sent') {
@@ -223,11 +234,12 @@ async function invioMassivoCarenze() {
             });
 
             aggiornaProgressBar();
-            await sleep(Math.floor(Math.random() * 5000) + 1000); // tra 1 e 2 secondi
+            await sleep(Math.floor(Math.random() * 5000) + 5000); // tra 5 e 10 secondi
         }
     } else {
         alert("Nessuna carenza da inviare!");
     }
+    carenzeReadRecords();
 }
 
 function carenzaValida(id, id_utente, stato) {
@@ -361,6 +373,10 @@ $(document).ready(function () {
 
     $('#send_btn').on('click', function (e) {
         invioMassivoCarenze();
+    });
+
+    $('#genera_btn').on('click', function (e) {
+        generaCarenze();
     });
 
     $('#file_select_id').change(function (e) {
