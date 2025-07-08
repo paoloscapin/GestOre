@@ -8,6 +8,8 @@ var listaCampi;
 var listaTipi;
 var listaObbligatori;
 var listaValori;
+var invioInCorso = false;
+var invioEffettuato = false;
 
 // checked e unchecked checkbox e radio
 chekboxChecked = '<b><input type="checkbox" value="" style="vertical-align: bottom;" checked></b> ';
@@ -24,7 +26,18 @@ function invia() {
     template_id = $("#hidden_template_id").val();
     documento = aggiornaContenutoDocumento();
     docente_id = $("#hidden_docente_id").val();
-    uuid = generateGuid();
+
+    // controlla che non sia in fase di invio
+    if (invioEffettuato) {
+        bootbox.alert('<b>la richiesta è già stata inviata</b>.<p>Per effettuare un\'altra richiesta tornare alla lista dei moduli.</p>');
+        return;
+    }
+    if (invioInCorso) {
+        $("#modulo_compilato_id").html("<p><b>Il modulo &egrave; in fase di processamento.</b></p><pAttendere...</p>");
+        return;
+    }
+    // per prima cosa disabilita il bottone invia in modo che non possa essere chiamato due volte di seguito
+    invioInCorso = true;
 
     // salva la richiesta ed eventualmente genera l'aggancio per l'approvazione
     $.post("../docente/modulisticaModuloCompilatoSave.php", {
@@ -47,8 +60,11 @@ function invia() {
             approva_id: 0,
             listaValori: JSON.stringify(listaValori)
         }, function (data, status) {
+            invioInCorso = false;
+
             if (data.trim() === '' && status === 'success') {
                 $("#modulo_compilato_id").html("<p><b>Il modulo &egrave; stato inviato.</b></p><p>Una copia della richiesta &egrave; stata inoltrata alla tua casella di email per controllo.</p>");
+                invioEffettuato = true;
             } else {
                 $("#modulo_compilato_id").html(data);
             }
@@ -59,6 +75,7 @@ function invia() {
 function aggiornaContenutoDocumento() {
     documento = $("#hidden_template").val();
     var valore = '';
+    var fileUploadCounter = 0;
 
     // per il controllo dei campi obbligatori
     obbligatoriCompletati = true;
@@ -69,8 +86,8 @@ function aggiornaContenutoDocumento() {
     // sostituisce tutti i campi che trova con i valori inseriti dall'utente
     for(var i = 0; i < listaCampi.length; i++){
         // a seconda del tipo trova il valore
-        if (listaTipi[i] == 1 || listaTipi[i] == 2) {
-            // tipo 1 = testo semplice e tipo 2 = combo box (select option): prende il valore inserito
+        if (listaTipi[i] == 1 || listaTipi[i] == 2 || listaTipi[i] == 6) {
+            // tipo 1 = testo semplice, tipo 2 = combo box (select option), tipo 6 = calendario: prende il valore inserito
             valore = $("#" + listaCampi[i]).val();
             documento = documento.replaceAll('{{' + listaCampi[i] + '}}', valore);
 
@@ -100,6 +117,23 @@ function aggiornaContenutoDocumento() {
                 }
             }
             documento = documento.replaceAll('{{' + listaCampi[i] + '}}', risultato);
+
+        } else if (listaTipi[i] == 7) {
+            // tipo 7 = file upload, servono il path dove è caricato e il nome del file
+            fileNameValueId = '#fileNameValue' + fileUploadCounter;
+            filePathValueId = '#filePathValue' + fileUploadCounter;
+
+            fileName = $(fileNameValueId).val();
+            filePath = $(filePathValueId).val();
+
+            console.log('fileName='+fileName);
+            console.log('filePath='+filePath);
+
+            risultato = fileName;
+            valore = filePath;
+
+            documento = documento.replaceAll('{{' + listaCampi[i] + '}}', risultato);
+            fileUploadCounter++;
         }
 
         // controlla se era obbligatorio e risulta vuoto deve essere riempito
@@ -141,5 +175,60 @@ $(document).ready(function () {
     listaEtichette = JSON.parse($("#hidden_lista_etichette").val());
     listaTipi = JSON.parse($("#hidden_lista_tipi").val());
     listaObbligatori = JSON.parse($("#hidden_lista_obbligatori").val());
+
     $("#inviaBtnId").hide();
+
+    // genera lo uuid che poi viene usato e passato anche per l'upload
+    uuid = generateGuid();
+
+	$('input[type=file]').change(function() {
+        inputName = $(this)[0].name;
+        fileUploadCounter = inputName.substring("fileUploadName".length);
+        fileNameId = '#filename' + fileUploadCounter;
+        fileNameValueId = '#fileNameValue' + fileUploadCounter;
+        filePathValueId = '#filePathValue' + fileUploadCounter;
+        progressBarId = '#progressBar' + fileUploadCounter;
+
+		$(this).simpleUpload("./modulisticaCompilaModuloUpload.php", {
+
+            data: {'uuid': uuid,'inputName': inputName},
+            maxFileSize: 5000000, //5MB in bytes
+
+			start: function(file){
+                console.log('inputName='+inputName);
+                console.log('fileUploadCounter='+fileUploadCounter);
+//                console.log(file);
+                fileName = file.name;
+				//upload started
+				$(fileNameId).html('<b>'+fileName+'</b>');
+                $(progressBarId).show();
+				$(progressBarId).width(0);
+			},
+
+			progress: function(progress){
+				//received progress
+				$(progressBarId).html("Progress: " + Math.round(progress) + "%");
+				$(progressBarId).width(progress + "%");
+			},
+
+			success: function(data){
+                console.log("success: data="+data);
+                filePath = data.trim();
+                $(fileNameValueId).val(fileName);
+                $(filePathValueId).val(filePath);
+
+                //upload successful
+                $(progressBarId).hide();
+				$(fileNameId).html('<b>'+fileName+':</b> caricato con successo.');
+//				$(fileNameId).html('<b>'+fileName+':</b> caricato con successo in path='+filePath);
+			},
+
+			error: function(error){
+				//upload failed
+                $(progressBarId).hide();
+				$(fileNameId).html(fileName + '<b>' + " errore nel caricamento: " + error.name + ':</b>' + ': ' + error.message);
+			}
+		});
+	});
+
 });

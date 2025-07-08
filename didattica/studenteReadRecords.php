@@ -44,8 +44,8 @@ foreach(dbGetAll($query) as $row) {
 	$data .='
 		<td class="text-center">
 		<button onclick="studenteGetDetails('.$row['id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-		<button onclick="studenteDelete('.$row['id'].', \''.$row['cognome'].'\', \''.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-		<button onclick="studenteImpersona('.$row['id'].', \''.$row['cognome'].'\', \''.$row['nome'].'\')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-pawn"></button>
+		<button onclick="studenteDelete('.$row['id'].', \''.str2js($row['cognome']).'\', \''.str2js($row['nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button onclick="studenteImpersona('.$row['id'].', \''.str2js($row['cognome']).'\', \''.str2js($row['nome']).'\')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-pawn"></button>
 		</td>
 		</tr>';
 }

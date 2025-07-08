@@ -50,6 +50,8 @@ $tipoOptionList .= '<optgroup><option data-icon="glyphicon glyphicon-check" valu
 $tipoOptionList .= '<optgroup><option data-icon="glyphicon glyphicon-record" value="4" >radio</option></optgroup>';
 $tipoOptionList .= '<optgroup><option data-icon="glyphicon glyphicon-font" value="5" >text area</option></optgroup>';
 $tipoOptionList .= '<optgroup><option data-icon="glyphicon glyphicon-calendar" value="6" >date</option></optgroup>';
+$tipoOptionList .= '<optgroup><option data-icon="glyphicon glyphicon-open" value="7" >upload</option></optgroup>';
+$tipoOptionList .= '<optgroup><option data-icon="glyphicon glyphicon-header" value="8" >titolo</option></optgroup>';
 ?>
 
 </head>

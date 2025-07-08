@@ -17,6 +17,7 @@ require_once '../common/connect.php';
 require_once '../common/header-common.php';
 require_once '../docente/modulisticaProduciTabella.php';
 
+// invia una notifica via email di approvazione o respingimento della richiesta
 function notifica($to, $toName, $titolo, $stato, $messaggio, $contenutoTabellaCampi = '', $chiudi = false, $richiesta_id = null, $uuid = null) {
 	global $nomeCognomeDocente, $template, $__http_base_link;
 
@@ -66,6 +67,17 @@ function notifica($to, $toName, $titolo, $stato, $messaggio, $contenutoTabellaCa
 	}
 }
 
+/*
+il nome sarebbe meglio aggiorna
+se gia' approvata o respinta o annullata o chiusa, potrebbe essere richiesto solo di inserire un messaggio (quado viene richiesto?)
+se il comando e' chiudi, chiude la richiesta
+in caso di approva, respingi o annulla esegue il comando e aggiorna la richiesta (con eventuale messaggio passato)
+se non ha fatto ancora niente, puo' visualizzare lo stato della richiesta:
+in caso sia respinta o annullata e non ci sia un messaggio, lo richede perche' e' obbligatorio, lo salva e raicarica
+se e' gia' stata approvata o respinta, scrive lo stato e non lascia modificare
+invece se non e' ancora stata approvata, inserisce un bottone per approvarla o respingerla
+in ogni caso, se e' chiusa lo scrive
+*/
 if(! isset($_GET)) {
 	return;
 }
@@ -107,7 +119,7 @@ if (! $giaTrattata) {
 			$promptMessage = 'Inserisci una motivazione';
 		}
 		echo('messaggio = prompt("' . $promptMessage . '");');
-		// richiama lo stesso url sostituendo il valore di richiestaMessaggio con 0 al posto di 1
+		// aggiorna il record con post, poi quando eseguito richiama lo stesso url sostituendo il valore di richiestaMessaggio con 0 al posto di 1
 		echo('$.post("../common/recordUpdate.php", {table: "modulistica_richiesta", id: '.$richiesta_id.', nome: "messaggio", valore: messaggio}, function (data, status) {url=location.href.replace("richiestaMessaggio=1","richiestaMessaggio=0").concat("&messaggio="+messaggio);location.replace(url);});');
 		echo('</script>');
 		echo("</body></html>");
@@ -201,7 +213,7 @@ if(isset($_GET['comando'])) {
 	}
 }
 
-// se arriva qui non ha eseguito comandi per cui può visualizzare lo stato della richiesta
+// se arriva qui non ha eseguito comandi per cui puo' visualizzare lo stato della richiesta
 ?>
 <html><head><style>
 	#campi { font-family: Arial, Helvetica, sans-serif; border-collapse: collapse; width: 100%; }
@@ -254,7 +266,7 @@ if ($template['approva']) {
 	} else {
 		$data .= '<h3 style="text-align: center">La richiesta non &egrave; ancora stata approvata</h3>';
 
-		// invece se non e' ancora stata approvata, inserisce un bottone per approvarla
+		// invece se non e' ancora stata approvata, inserisce un bottone per approvarla o respingerla
 		if ($template['approva']) {
 			$data .= '<div class="form-group" style="text-align: center"><button class="btn-ar btn-approva" onclick="location.href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$uuid.'&comando=approva\'">Approva</button>
 				<button class="btn-ar btn-respingi" onclick="location.href=\''.$__http_base_link.'/docente/modulisticaRichiestaApprova.php?richiesta_id='.$richiesta_id.'&uuid='.$uuid.'&comando=respingi\'">Respingi</button></div>';

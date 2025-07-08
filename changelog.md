@@ -1,3 +1,11 @@
+## Version 1.2.60 - 8 lug 2025
+##### Bug Fixes
+- studente read records problema con apostrofi
+
+##### Improvements
+- modulistica file upload
+- download dei documenti caricati dall'interfaccia segreteria
+
 ## Version 1.2.59 - 8 mag 2025
 ##### Bug Fixes
 - stampa piano di lavoro in pdf: rimossa table a causa di pagine bianche se troppo lunga
