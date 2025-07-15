@@ -158,7 +158,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
   </div>
 </div>
     <?php
-    if (haRuolo('segreteria didattica'))
+    if (haRuolo('segreteria-didattica'))
     {
         require_once '../common/header-didattica.php';
     }
@@ -209,7 +209,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                             <div class="col-sm-12"><select id="docente_filtro" name="docente_filtro"
                                     class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
                                     data-noneSelectedText="seleziona..." 
-                                   <?php if (!(haRuolo("segreteria didattica"))) echo ' disabled '; ?>
+                                   <?php if (!(haRuolo("segreteria-didattica"))) echo ' disabled '; ?>
                                     data-width="100%">
                                     <?php echo $docentiFiltroOptionList ?>
                                 </select></div>

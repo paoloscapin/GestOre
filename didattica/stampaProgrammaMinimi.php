@@ -10,7 +10,7 @@
 $pagina = '';
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('docente', 'dirigente', 'segreteria-docenti');
+ruoloRichiesto('docente', 'dirigente', 'segreteria-didattica');
 // program.php (in testa al file, prima di qualsiasi uso di mPDF)
 require_once '../common/vendor/autoload.php';
 

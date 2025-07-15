@@ -112,7 +112,7 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=
 
 <body>
     <?php
-    if (haRuolo('segreteria didattica')) {
+    if (haRuolo('segreteria-didattica')) {
         require_once '../common/header-didattica.php';
     } else if (haRuolo('docente')) {
         require_once '../common/header-docente.php';

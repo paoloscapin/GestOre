@@ -49,7 +49,7 @@
 			</div>
 		<?php endif; ?>
 		<?php 
-		if (haRuolo('segreteria didattica'))
+		if (haRuolo('segreteria-didattica'))
 		{ 
 			if (getSettingsValue('config','carenzeObiettiviMinimi', false)) 
 			{

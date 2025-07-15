@@ -20,7 +20,7 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-notify.php';
 require_once '../common/__Minuti.php';
-ruoloRichiesto('segreteria-didattica,dirigente');
+ruoloRichiesto('segreteria-didattica','dirigente');
 
 $anno_id = $__anno_scolastico_corrente_id;
 

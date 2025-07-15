@@ -70,7 +70,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
 
 <body>
     <?php
-    if (haRuolo('segreteria didattica'))
+    if (haRuolo('segreteria-didattica'))
     {
         require_once '../common/header-didattica.php';
     }
