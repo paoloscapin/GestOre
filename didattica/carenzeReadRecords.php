@@ -93,12 +93,11 @@ $query = "	SELECT
 				ON carenze.id_classe = classi.id
 				WHERE carenze.id_anno_scolastico=$__anno_scolastico_corrente_id";
 
-if ($__utente_ruolo == 'docente')
+if (($__utente_ruolo == 'docente') && (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false))) 
 {
 	$query .= " AND carenze.id_docente=" . $__docente_id;	
 }
-else 
-if ($docente_id > 0) 
+else if ($docente_id > 0) 
 {
 	$query .= " AND carenze.id_docente=" . $docente_id;
 }

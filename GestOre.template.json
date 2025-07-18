@@ -127,8 +127,9 @@
     "pianiDiLavoroEstesi": {
         "visibile_docenti": false
     },
-        "carenzeObiettiviMinimi": {
+    "carenzeObiettiviMinimi": {
         "visibile_docenti": true,
+        "docente_vede_solo_le_sue": false,
         "visibile_studenti": false,
         "docente_puo__modificare": false
     },
