@@ -15,6 +15,7 @@ class Config {
 	private $voti_recupero_novembre_aperto;
 	private $ore_previsioni_aperto;
 	private $ore_fatte_aperto;
+	private $fuis_visibile;
 	private $bonus_adesione_aperto;
 	private $bonus_rendiconto_aperto;
 	private $email_carenze_aperto;
@@ -31,7 +32,7 @@ class Config {
 		$this->bonus_adesione_aperto = $item['bonus_adesione_aperto'];
 		$this->bonus_rendiconto_aperto = $item['bonus_rendiconto_aperto'];
 		$this->email_carenze_aperto = $item['email_carenze_aperto'];
-
+		$this->fuis_visibile = $item['fuis_visibile_docenti'];
 		$this->loaded = true;
 	}
 
@@ -47,6 +48,7 @@ class Config {
                             `ore_previsioni_aperto`=$this->ore_previsioni_aperto,
                             `bonus_adesione_aperto`=$this->bonus_adesione_aperto,
                             `bonus_rendiconto_aperto`=$this->bonus_rendiconto_aperto,
+							`fuis_visibile_docenti`=$this->fuis_visibile,
                             `email_carenze_aperto`=$this->email_carenze_aperto
                         WHERE
                             id = $this->id
@@ -104,6 +106,13 @@ class Config {
 		return $this->ore_fatte_aperto;
 	}
 	
+	public function get_fuis_visibile() {
+		if (!$this->loaded) {
+			$this->load();
+		}
+		return $this->fuis_visibile;
+	}
+
 	public function getBonus_adesione_aperto() {
 	    if (!$this->loaded) {
 	        $this->load();
@@ -139,6 +148,10 @@ class Config {
 
 	public function setOre_fatte_aperto($ore_fatte_aperto) {
 		$this->ore_fatte_aperto = $ore_fatte_aperto;
+	}
+
+	public function setFuis_visibile_docenti($fuis_visibile) {
+		$this->fuis_visibile = $fuis_visibile;
 	}
 
     public function setBonus_adesione_aperto($bonus_adesione_aperto) {

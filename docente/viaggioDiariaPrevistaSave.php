@@ -16,6 +16,7 @@ if(isset($_POST)) {
 	$descrizione = escapePost('descrizione');
 	$giorni_senza_pernottamento = $_POST['giorni_senza_pernottamento'];
 	$giorni_con_pernottamento = $_POST['giorni_con_pernottamento'];
+	$ore = $_POST['ore'];
 	$commento = escapePost('commento');
 
 	// il dirigente gestisce anche i commenti
@@ -51,12 +52,12 @@ if(isset($_POST)) {
 
 	// in ogni caso aggiorna o inserisce il viaggio
 	if ($id > 0) {
-		dbExec("UPDATE viaggio_diaria_prevista SET descrizione = '$descrizione', giorni_senza_pernottamento = '$giorni_senza_pernottamento', giorni_con_pernottamento	 = '$giorni_con_pernottamento' WHERE id = '$id';");
-		info("aggiornata viaggio_diaria_prevista id=$id descrizione=$descrizione giorni_senza_pernottamento=$giorni_senza_pernottamento giorni_con_pernottamento=$giorni_con_pernottamento docente_id=$docente_id");
+		dbExec("UPDATE viaggio_diaria_prevista SET descrizione = '$descrizione', giorni_senza_pernottamento = '$giorni_senza_pernottamento', giorni_con_pernottamento	 = '$giorni_con_pernottamento', ore	 = '$ore' WHERE id = '$id';");
+		info("aggiornata viaggio_diaria_prevista id=$id descrizione=$descrizione giorni_senza_pernottamento=$giorni_senza_pernottamento giorni_con_pernottamento=$giorni_con_pernottamento ore=$ore docente_id=$docente_id");
 	} else {
-		dbExec("INSERT INTO viaggio_diaria_prevista (descrizione, giorni_senza_pernottamento, giorni_con_pernottamento, docente_id, anno_scolastico_id) VALUES('$descrizione', '$giorni_senza_pernottamento', '$giorni_con_pernottamento', '$docente_id', '$__anno_scolastico_corrente_id');");
+		dbExec("INSERT INTO viaggio_diaria_prevista (descrizione, giorni_senza_pernottamento, giorni_con_pernottamento, ore, docente_id, anno_scolastico_id) VALUES('$descrizione', '$giorni_senza_pernottamento', '$giorni_con_pernottamento', '$ore', '$docente_id', '$__anno_scolastico_corrente_id');");
 		$ore_previste_attivita_id = dblastId();
-		info("aggiunto viaggio_diaria_prevista id=$id descrizione=$descrizione giorni_senza_pernottamento=$giorni_senza_pernottamento giorni_con_pernottamento=$giorni_con_pernottamento docente_id=$docente_id");
+		info("aggiunto viaggio_diaria_prevista id=$id descrizione=$descrizione giorni_senza_pernottamento=$giorni_senza_pernottamento giorni_con_pernottamento=$giorni_con_pernottamento ore=$ore docente_id=$docente_id");
 	}
 }
 

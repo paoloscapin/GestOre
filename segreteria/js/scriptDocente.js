@@ -280,6 +280,22 @@ function docenteUpdateDetails() {
     );
 }
 
+function importFileDocenti(file) {
+    var contenuto = "";
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+        contenuto = event.target.result;
+        $.post("docentiImport.php", {
+            contenuto: contenuto
+        },
+        function (data, status) {
+			$('#result_text').html(data);
+			docenteReadRecords();
+        });
+    });
+    reader.readAsText(file);
+}
+
 function importFile(file) {
     var contenuto = "";
     const reader = new FileReader();
@@ -321,4 +337,9 @@ $(document).ready(function () {
     $('#file_select_id').change(function (e) {
         importFile(e. target. files[0]);
     });
+
+	$('#file_select_doc').change(function (e) {
+        importFileDocenti(e.target.files[0]);
+    });
+
 });

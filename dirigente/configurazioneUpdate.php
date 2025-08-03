@@ -20,6 +20,7 @@ if(isset($_POST)) {
 	$__config->setVoti_recupero_settembre_aperto($_POST['voti_recupero_settembre_aperto']);
 	$__config->setVoti_recupero_novembre_aperto($_POST['voti_recupero_novembre_aperto']);
 	$__config->setEmail_carenze_aperto($_POST['email_carenze_aperto']);
+	$__config->setFuis_visibile_docenti($_POST['fuis_visibile_docenti']);
 
 	$__config->save();
 }

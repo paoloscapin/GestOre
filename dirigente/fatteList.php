@@ -65,13 +65,12 @@ require_once '../common/connect.php';
     <thead>
         <tr>
             <th class="text-center col-md-2">Docente</th>
+            <th class="text-center col-md-1">TOTALE</th>
             <th class="text-center col-md-1">Diaria</th>
             <th class="text-center col-md-1">Assegnato</th>
             <th class="text-center col-md-1">Ore</th>
             <?php if($__settings->config->gestioneClil) : ?>
                 <th class="text-center col-md-1">Clil</th>
-            <?php else: ?>
-                <th class="text-center col-md-1"></th>
             <?php endif; ?>
             <?php if($__settings->config->gestioneOrientamento) : ?>
                 <th class="text-center col-md-1">Orientamento</th>
@@ -114,17 +113,16 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cog
 
     echo '<tr>';
     echo '<td><a href="../docente/attivita.php?docente_id='.$docenteId.'" target="'.$openTabMode.'">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>';
-
-    echo '<td class="text-left">'.importoStampabile($fuisFatto['diariaImporto']).'</td>';
-    echo '<td class="text-left">'.importoStampabile($fuisFatto['fuisAssegnato']).'</td>';
-    echo '<td class="text-left">'.importoStampabile($fuisFatto['fuisOre']).'</td>';
+    $totale_FUIS = $fuisFatto['diariaImporto']+$fuisFatto['fuisAssegnato']+$fuisFatto['fuisOre'];
+    echo '<td class="text-center">'.importoStampabile($totale_FUIS).'</td>';
+    echo '<td class="text-center">'.importoStampabile($fuisFatto['diariaImporto']).'</td>';
+    echo '<td class="text-center">'.importoStampabile($fuisFatto['fuisAssegnato']).'</td>';
+    echo '<td class="text-center">'.importoStampabile($fuisFatto['fuisOre']).'</td>';
     if (getSettingsValue("config", "gestioneClil", false)) {
-        echo '<td class="text-left">'.importoStampabile($fuisFatto['fuisClilFunzionale'] + $fuisFatto['fuisClilConStudenti']).'</td>';
-    } else {
-        echo '<td></td>';
-    }
+        echo '<td class="text-center">'.importoStampabile($fuisFatto['fuisClilFunzionale'] + $fuisFatto['fuisClilConStudenti']).'</td>';
+    } 
     if (getSettingsValue("config", "gestioneOrientamento", false)) {
-        echo '<td class="text-left">'.importoStampabile($fuisFatto['fuisOrientamentoFunzionale'] + $fuisFatto['fuisOrientamentoConStudenti']).'</td>';
+        echo '<td class="text-center">'.importoStampabile($fuisFatto['fuisOrientamentoFunzionale'] + $fuisFatto['fuisOrientamentoConStudenti']).'</td>';
     } else {
         echo '<td></td>';
     }

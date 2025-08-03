@@ -32,7 +32,12 @@
         "sportelli": true,
         "gestioneViaggiSemplificata": true,
         "pianiDiLavoro": false,
-        "carenze": false
+        "pianiDiLavoroEstesi": false,
+        "programmaMaterie": true,
+        "programmiSvolti":true,
+        "programmiMinimi":true,
+        "carenze": false,
+        "carenzeObiettiviMinimi": false
     },
     "interfaccia": {
         "apriDocenteInNuovoTab": true,
@@ -107,6 +112,26 @@
         "note_aggiuntive": true,
         "duplicaTemplateSoloSeFinale": true,
         "stampaEstesa": true
+    },
+    "programmiMaterie": {
+        "visibile_docenti": false,
+        "docente_puo__modificare": false
+    },
+    "programmiMinimi": {
+        "visibile_docenti": true,
+        "docente_puo_modificare": false
+    },
+    "programmiSvolti": {
+        "visibile_docenti": true
+    },
+    "pianiDiLavoroEstesi": {
+        "visibile_docenti": false
+    },
+    "carenzeObiettiviMinimi": {
+        "visibile_docenti": true,
+        "docente_vede_solo_le_sue": false,
+        "visibile_studenti": false,
+        "docente_puo__modificare": false
     },
     "corsiDiRecupero": {
         "corsiDiRecuperoFirmaDocente": true,

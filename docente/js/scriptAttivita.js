@@ -191,6 +191,14 @@ function oreFatteDeleteAttivita(id) {
     }
 }
 
+function oreAttribuiteSommario() {
+	$.get("oreAttribuiteReadSommarioAttivita.php", {}, function (data, status) {
+		$(".sommario_attivita_records_content").html(data);
+	});
+
+	$("#docente_sommario_modal").modal("show");
+}
+
 function oreFatteSommario() {
 	$.get("oreFatteReadSommarioAttivita.php", {}, function (data, status) {
 		$(".sommario_attivita_records_content").html(data);
@@ -416,11 +424,20 @@ function diariaFattaGetDetails(id) {
 	} else {
 		$("#diaria_commento-part").hide();
 	}
-
+    $("#_error-diaria-part").hide();
 	$("#diaria_modal").modal("show");
 }
 
 function diariaSave() {
+
+	if (($("#diaria_ore").val() != "0:00")&&(($("#diaria_giorni_con_pernottamento").val() > 0)||($("#diaria_giorni_con_pernottamento").val() > 0))) {
+        $("#_error-diaria").text("Le ore di recupero, per le uscite in giornata oltre il proprio orario di servizio, possono essere inserite in alternativa alla diaria giornaliera se tali ore non finiscono a FUIS. In tutti gli altri casi va inserita solo la diaria giornaliera.");
+        $("#_error-diaria-part").show();
+        return;
+    }
+    // se tutto bene nasconde il messaggio di errore e prosegue nel save
+    $("#_error-diaria-part").hide();
+
 	$.post("../docente/viaggioDiariaFattaSave.php", {
     	id: $("#hidden_diaria_id").val(),
 		docente_id: $("#hidden_docente_id").val(),

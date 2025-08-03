@@ -461,6 +461,11 @@ $tipoAttivitaOptionList .= '</optgroup>';
                     <div class="col-sm-2"><input type="text" id="diaria_giorni_con_pernottamento" placeholder="" class="form-control"/></div>
                 </div>
 
+				<div class="form-group">
+                    <label class="col-sm-3 control-label" for="diaria_ore">ore recuperate</label>
+                    <div class="col-sm-2"><input type="text" id="diaria_ore" placeholder="" class="form-control"/></div>
+                </div>
+				
                 <div class="form-group" id="diaria_commento-part">
                     <hr>
                     <label class="col-sm-3 control-label" for="diaria_commento">commento</label>
@@ -469,6 +474,12 @@ $tipoAttivitaOptionList .= '</optgroup>';
 
             </div>
             </div>
+			<div class="form-group" id="_error-diaria-part"><strong>
+                    <hr>
+                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                    <div class="col-sm-9" id="_error-diaria"></div>
+				</strong>
+			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
 				<button type="button" class="btn btn-primary" onclick="diariaSave()" >Salva</button>

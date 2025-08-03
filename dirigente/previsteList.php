@@ -7,14 +7,6 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 require_once '../common/checkSession.php';
-?>
-
-<!DOCTYPE html>
-<html>
-<head>
-	<title>Ore Previste</title>
-<?php
-
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
@@ -24,7 +16,12 @@ require_once '../common/importi_load.php';
 ruoloRichiesto('dirigente');
 ?>
 
-<!-- timejs -->
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Ore Previste</title>
+
+    <!-- timejs -->
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/timejs/date-it-IT.js"></script>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-3.css">

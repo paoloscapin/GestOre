@@ -12,72 +12,128 @@
 
 <nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
 	<div class="container-fluid">
-	<?php require_once '../common/header-_logo.php'; ?>
+		<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav">
 
-			<a href="<?php echo $__application_base_path; ?>/docente/index.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Ore </a>
+			<a href="<?php echo $__application_base_path; ?>/docente/index.php"
+				class="btn btn-default navbar-btn btn-lima4" role="button"><span
+					class="glyphicon glyphicon-time"></span>&ensp;Ore </a>
 
-			<?php if($__settings->config->corsiDiRecupero) : ?>
-			<a href="<?php echo $__application_base_path; ?>/docente/corsoDiRecupero.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
+			<?php if ($__settings->config->corsiDiRecupero): ?>
+				<a href="<?php echo $__application_base_path; ?>/docente/corsoDiRecupero.php"
+					class="btn btn-default navbar-btn btn-lightblue4" role="button"><span
+						class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
 			<?php endif; ?>
 
-			<a href="<?php echo $__application_base_path; ?>/docente/previste.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Previste </a>
-			<a href="<?php echo $__application_base_path; ?>/docente/attivita.php" class="btn btn-default navbar-btn btn-teal4" role="button"><span class="glyphicon glyphicon-folder-close"></span>&ensp;Fatte </a>
-			
-			<?php if($__settings->config->bonus) : ?>
-			<a href="<?php echo $__application_base_path; ?>/docente/bonus.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus </a>
+			<a href="<?php echo $__application_base_path; ?>/docente/previste.php"
+				class="btn btn-default navbar-btn btn-orange4" role="button"><span
+					class="glyphicon glyphicon-list-alt"></span>&ensp;Previste </a>
+			<a href="<?php echo $__application_base_path; ?>/docente/attivita.php"
+				class="btn btn-default navbar-btn btn-teal4" role="button"><span
+					class="glyphicon glyphicon-folder-close"></span>&ensp;Fatte </a>
+
+			<?php if ($__settings->config->bonus): ?>
+				<a href="<?php echo $__application_base_path; ?>/docente/bonus.php"
+					class="btn btn-default navbar-btn btn-lima4" role="button"><span
+						class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus </a>
 			<?php endif; ?>
 
-<?php
-require_once '../common/connect.php';
-$num = dbGetValue("SELECT COUNT(id) FROM gruppo WHERE gruppo.dipartimento = false AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id AND gruppo.responsabile_docente_id = $__docente_id;");
-if ($num > 0) {
-	echo '<a href="'.$__application_base_path.'/docente/gruppo.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Gruppi </a>';
-}
-?>
-<!--			<a href="<?php echo $__application_base_path; ?>/docente/index.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;80 Ore</a> -->
-			<a href="<?php echo $__application_base_path; ?>/docente/viaggio.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-picture"></span>&ensp;Uscite</a>
-<?php if(getSettingsValue('config','sportelli', false)) : ?>
-<div class="btn-group">
-	<a href="<?php echo $__application_base_path; ?>/docente/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
-	<button type="button" class="btn btn-default navbar-btn btn-orange4 dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-    <span class="caret"></span>
-    <span class="sr-only">Toggle Dropdown</span>
-  </button>
-  <ul class="dropdown-menu btn-orange4">
-    <li><a href="<?php echo $__application_base_path; ?>/segreteria/sportelloReportEffettuati.php">Report Sportelli Effettuati</a></li>
-  </ul>
-</div>
-<?php endif; ?>
-<?php if(getSettingsValue('config','pianiDiLavoro', false)) : ?>
-	<div class="btn-group">
-	<a href="<?php echo $__application_base_path; ?>/docente/pianoDiLavoro.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
-<?php if(getSettingsValue('config','carenze', false)) : ?>
-	<button type="button" class="btn btn-default navbar-btn btn-lima4 dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-		<span class="caret"></span>
-		<span class="sr-only">Toggle Dropdown</span>
-	</button>
-	<ul class="dropdown-menu btn-lima4">
-		<li><a href="<?php echo $__application_base_path; ?>/docente/carenza.php">Lettere Carenze</a></li>
-	</ul>
-<?php endif; ?>
-	</div>
-<?php endif; ?>
-</ul>
-		<ul class="nav navbar-nav navbar-right top-navbar-nav">
-			<li><a href="<?php echo $__settings->local->helpLinkDocente; ?>" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>
-			<li><a><span class=""></span>
-			<?php if (haRuolo('admin')) echo "(A)" ?>
-			<?php echo $__docente_nome.' '.$__docente_cognome ?></a></li>
-			<li>
+			<?php if (getSettingsValue('programmiMinimi', 'visibile_docenti', false)): ?>
+			<div class="btn-group">
+			<a href="<?php echo $__application_base_path; ?>/didattica/programmaMinimi.php" class="btn btn-default navbar-btn btn-purple" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Obiettivi Minimi </a>
+			</div>
+			<?php endif; ?>
+			<?php if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)): ?>
+				<div class="btn-group">
+					<a href="<?php echo $__application_base_path; ?>/didattica/programmaMaterie.php"
+						class="btn btn-default navbar-btn btn-orange4" role="button"><span
+							class="glyphicon glyphicon-th-large"></span>&ensp;Programma Materie </a>
+				</div>
+			<?php endif; ?>
+		<?php if(getSettingsValue('programmiSvolti','visibile_docenti', false)) : ?>
+			<div class="btn-group">
+			<a href="<?php echo $__application_base_path; ?>/didattica/programmiSvolti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Svolti </a>
+			</div>
+		<?php endif; ?>
+
+		<?php if((getSettingsValue('config','carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi','visibile_docenti', false)))  : ?>
+			<div class="btn-group">
+			<a href="<?php echo $__application_base_path; ?>/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
+			</div>
+		<?php endif; ?>
+
+
 			<?php
-			if (haRuolo('admin')) {
-				echo '<a href='.$__application_base_path.'/admin/index.php><span class="glyphicon glyphicon-log-out"></span></a>';
-			} else {
-				echo '<a href='.$__application_base_path.'/common/logout.php?base=docente><span class="glyphicon glyphicon-log-out"></span></a>';
+			require_once '../common/connect.php';
+			$num = dbGetValue("SELECT COUNT(id) FROM gruppo WHERE gruppo.dipartimento = false AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id AND gruppo.responsabile_docente_id = $__docente_id;");
+			if ($num > 0) {
+				echo '<a href="' . $__application_base_path . '/docente/gruppo.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Gruppi </a>';
 			}
 			?>
+			<!--			<a href="<?php echo $__application_base_path; ?>/docente/index.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;80 Ore</a> -->
+			<a href="<?php echo $__application_base_path; ?>/docente/viaggio.php"
+				class="btn btn-default navbar-btn btn-deeporange4" role="button"><span
+					class="glyphicon glyphicon-picture"></span>&ensp;Uscite</a>
+			<?php if (getSettingsValue('config', 'sportelli', false)): ?>
+				<div class="btn-group">
+					<a href="<?php echo $__application_base_path; ?>/docente/sportello.php"
+						class="btn btn-default navbar-btn btn-orange4" role="button"><span
+							class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
+					<button type="button" class="btn btn-default navbar-btn btn-orange4 dropdown-toggle"
+						data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<span class="caret"></span>
+						<span class="sr-only">Toggle Dropdown</span>
+					</button>
+					<ul class="dropdown-menu btn-orange4">
+						<li><a href="<?php echo $__application_base_path; ?>/segreteria/sportelloReportEffettuati.php">Report
+								Sportelli Effettuati</a></li>
+					</ul>
+				</div>
+			<?php endif; ?>
+			<?php if (getSettingsValue('config', 'pianiDiLavoro', false)): ?>
+				<div class="btn-group">
+					<a href="<?php echo $__application_base_path; ?>/docente/pianoDiLavoro.php"
+						class="btn btn-default navbar-btn btn-lima4" role="button"><span
+							class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
+					<?php if (getSettingsValue('config', 'carenze', false)): ?>
+						<button type="button" class="btn btn-default navbar-btn btn-lima4 dropdown-toggle"
+							data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<span class="caret"></span>
+							<span class="sr-only">Toggle Dropdown</span>
+						</button>
+						<ul class="dropdown-menu btn-lima4">
+							<li><a href="<?php echo $__application_base_path; ?>/docente/carenza.php">Lettere Carenze</a></li>
+						</ul>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
+			<?php if (getSettingsValue('config', 'pianiDiLavoroEstesi', false)): ?>
+				<?php if (getSettingsValue('pianiDiLavoroEstesi', 'visibile_docente', false)): ?>
+					<div class="btn-group">
+						<a href="<?php echo $__application_base_path; ?>/docente/pdl.php"
+							class="btn btn-default navbar-btn btn-lima4" role="button"><span
+								class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
+					</div>
+				<?php endif; ?>
+			<?php endif; ?>
+
+		</ul>
+		<ul class="nav navbar-nav navbar-right top-navbar-nav">
+			<li><a href="<?php echo $__settings->local->helpLinkDocente; ?>" target="_blank"><span
+						class="glyphicon glyphicon-question-sign"></span></a></li>
+			<li><a><span class=""></span>
+					<?php if (haRuolo('admin'))
+						echo "(A)" ?>
+					<?php echo $__docente_nome . ' ' . $__docente_cognome ?></a></li>
+			<li>
+				<?php
+				if (haRuolo('admin')) {
+					echo '<a href=' . $__application_base_path . '/admin/index.php><span class="glyphicon glyphicon-log-out"></span></a>';
+				} else {
+					echo '<a href=' . $__application_base_path . '/common/logout.php?base=docente><span class="glyphicon glyphicon-log-out"></span></a>';
+				}
+				?>
 			</li>
 		</ul>
 	</div>

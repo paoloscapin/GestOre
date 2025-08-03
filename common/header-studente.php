@@ -19,6 +19,12 @@
 			<a href="<?php echo $__application_base_path; ?>/studente/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
 		<?php endif; ?>
 		</ul>
+		<ul class="nav navbar-nav top-navbar-nav">
+		<?php 
+		if((getSettingsValue('config','carenzeObiettiviMinimi', false))&&(getSettingsValue('carenzeObiettiviMinimi','visibile_studenti', false))) :?>
+			<a href="<?php echo $__application_base_path; ?>/studente/carenze.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
+		<?php endif; ?>
+		</ul>
 
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a href="<?php echo $__application_base_path; ?>/help/GestOre - Guida Studenti.pdf" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>
