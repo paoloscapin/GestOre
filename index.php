@@ -45,13 +45,18 @@ require_once __DIR__ . '/common/style.php';
 <style type="text/css">
 	.login-form {
 		width: 340px;
-    	margin: 50px auto;
+    	margin: 40px auto;
 	}
     .login-form form {
-    	margin-bottom: 15px;
+    	margin-bottom: 10px;
         background: #f7f7f7;
         box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.3);
         padding: 30px;
+    }
+    .form-group {
+        margin: 10px auto;
+        width: 70%;
+        text-align: center;
     }
     .login-form h2 {
         margin: 0 0 15px;
@@ -59,6 +64,7 @@ require_once __DIR__ . '/common/style.php';
     .form-control, .btn {
         min-height: 38px;
         border-radius: 2px;
+        margin: 0 auto;
     }
     .btn {
         font-size: 15px;
@@ -69,15 +75,29 @@ require_once __DIR__ . '/common/style.php';
 </head>
 
 <body >
-    <div class="container-fluid" style="margin-top:60px">
+    <div class="container-fluid" style="margin-top:10px">
         <div class="login-form text-center">
             <form action="login-check.php" method="post">
                 <h2 class="text-center">GestOre</h2>
-                <div class="btn-group">
+
                     <a href="<?php echo filter_var($authUrl, FILTER_SANITIZE_URL) ?>" class="btn btn-info btn-block active">
                         <i class="glyphicon glyphicon-log-in" aria-hidden="true"></i> &ensp;Log in with google
                     </a>
-                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <div class="container-fluid" style="margin-top:10px">
+        <div class="login-form text-center" style="margin: 10px auto;">
+            <form action="login-check.php" method="post">
+                <h2 class="text-center">Accesso genitori</h2>
+    			<div class="form-group">
+                    <input type="text" class="form-control" name="username" placeholder="Username" required>
+                    <input type="password" class="form-control" name="password" placeholder="Password" required>
+    			</div>
+   				<button type="submit" class="btn btn-danger btn-block"><i class="glyphicon glyphicon-log-in" aria-hidden="true"></i> &ensp;Log in with MasterCom</button>
+
             </form>
         </div>
     </div>
