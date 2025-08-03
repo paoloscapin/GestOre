@@ -17,31 +17,41 @@ $ancheCancellati = $_GET["ancheCancellati"];
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
-						<th class="text-center col-md-3">Cognome</th>
-						<th class="text-center col-md-3">Nome</th>
-						<th class="text-center col-md-3">email</th>
+						<th class="text-center col-md-2">Cognome</th>
+						<th class="text-center col-md-2">Nome</th>
+						<th class="text-center col-md-2">Codice fiscale</th>
+						<th class="text-center col-md-2">email</th>
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-1">Anno</th>
+						<th class="text-center col-md-1">Attivo</th>
 						<th class="text-center col-md-1"></th>
 					</tr>
 					</thead>';
 
 $query = "SELECT * FROM studente ";
 
-if( ! $ancheCancellati) {
-	$query .= " WHERE studente.classe <> '' ";
-}
+// if( ! $ancheCancellati) {
+// 	$query .= " WHERE studente.attivo = 1 ";
+// }
 $query .= "ORDER BY studente.classe ASC, studente.cognome ASC, studente.nome ASC";
 
 foreach(dbGetAll($query) as $row) {
 
+	$query2 = "SELECT * FROM classi WHERE id = ".$row['id_classe'];
+	$classe = dbGetFirst($query2);
+
 	$data .= '<tr>
-	<td>'.$row['cognome'].'</td>
-	<td>'.$row['nome'].'</td>
-	<td>'.$row['email'].'</td>
-	<td>'.$row['classe'].'</td>
-	<td>'.$row['anno'].'</td>';
-	$data .='
+	<td style="text-align:center">'.ucfirst(strtolower($row['cognome'])).'</td>
+	<td style="text-align:center">'.ucfirst(strtolower($row['nome'])).'</td>
+	<td style="text-align:center">'.strtoupper($row['codice_fiscale']).'</td>
+	<td style="text-align:center">'.strtolower($row['email']).'</td>
+	<td style="text-align:center">'.strtoupper($classe['classe']).'</td>
+	<td style="text-align:center">'.$row['anno'].'</td>
+	<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="attivo" ';
+	if ($row['attivo']) {
+		$data .= 'checked ';
+	}
+	$data .='</td>
 		<td class="text-center">
 		<button onclick="studenteGetDetails('.$row['id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 		<button onclick="studenteDelete('.$row['id'].', \''.$row['cognome'].'\', \''.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
