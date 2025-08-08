@@ -6,19 +6,19 @@
  */
 
 function studenteReadRecords() {
-	$.get("studenteReadRecords.php?ancheCancellati=0", {}, function (data, status) {
-		$(".records_content").html(data);
-	});
+    $.get("studenteReadRecords.php?ancheCancellati=0", {}, function (data, status) {
+        $(".records_content").html(data);
+    });
 }
 
 function studenteDelete(id, cognome, nome) {
     var conf = confirm("Sei sicuro di volere cancellare lo studente " + cognome + " " + nome + " ?");
     if (conf == true) {
         $.post("../common/deleteRecord.php", {
-				id: id,
-				table: 'studente',
-				name: "cognome " + cognome
-            },
+            id: id,
+            table: 'studente',
+            name: "cognome " + cognome
+        },
             function (data, status) {
                 studenteReadRecords();
             }
@@ -35,67 +35,112 @@ function studenteImpersona(id, cognome, nome) {
 }
 
 function studenteSave() {
-    $.post("studenteSave.php", {
-        id: $("#hidden_studente_id").val(),
-		cognome: $("#cognome").val(),
-		nome: $("#nome").val(),
-        email: $("#email").val(),
-        classe: $("#classe").val(),
-        anno: $("#anno").val()
-    }, function (data, status) {
-        $("#studente_modal").modal("hide");
-        studenteReadRecords();
-    });
-}
-
-function studenteGetDetails(studente_id) {
-    $("#hidden_studente_id").val(studente_id);
-
-    if (studente_id > 0) {
-        $.post("../common/readRecordDetails.php", {
-            id: studente_id,
-            table: 'studente'
-        }, function (data, status) {
-
-            console.log("studente_id=" + data);
-            var studente = JSON.parse(data);
-            $("#cognome").val(studente.cognome);
-            $("#nome").val(studente.nome);
-            $("#email").val(studente.email);
-            $("#classe").val(studente.classe);
-            $("#anno").val(studente.anno);
-        });
-    } else {
-        $("#cognome").val("");
-        $("#nome").val("");
-        $("#email").val("");
-        $("#classe").val("");
-        $("#anno").val("");
+    if ($("#classe_filtro").val() <= 0) {
+        $("#_error-classe").text("Devi selezionare una classe per lo studente.");
+        $("#_error-classe-part").show();
+        return;
     }
 
-	$("#studente_modal").modal("show");
-}
+    attivo = $("#attivo").prop('checked') ? 1 : 0;
 
-function importFile(file) {
-    var contenuto = "";
-    const reader = new FileReader();
-    reader.addEventListener('load', (event) => {
-        contenuto = event.target.result;
-        $.post("studenteImport.php", {
-            contenuto: contenuto
-        },
-        function (data, status) {
-            $('#result_text').html(data);
+    if (attivo == 0 && ($("#hidden_attivo").val() == 1)) {
+        var conf = confirm("Sei sicuro di volere disattivare lo studente " + $("#cognome").val() + " " + $("#nome").val() + "?");
+        if (conf == false) {
+            return;
+        }
+    }
+    if (attivo == 1 && ($("#hidden_attivo").val() == 0)) {
+        var conf = confirm("Sei sicuro di volere inserire per quest'anno lo studente " + $("#cognome").val() + " " + $("#nome").val() + "?");
+        if (conf == false) {
+            return;
+        }
+    }
+
+        $("#_error-classe-part").hide();
+        $.post("studenteSave.php", {
+            id: $("#hidden_studente_id").val(),
+            cognome: $("#cognome").val(),
+            nome: $("#nome").val(),
+            email: $("#email").val(),
+            id_classe: $("#classe_filtro").val(),
+            id_anno: $("#hidden_anno_id").val(),
+            attivo: $("#attivo").prop('checked') ? 1 : 0,
+            era_attivo: $("#hidden_attivo").val()
+        }, function (data, status) {
+            $("#studente_modal").modal("hide");
             studenteReadRecords();
         });
-    });
-    reader.readAsText(file);
-}
+    }
 
-$(document).ready(function () {
-	studenteReadRecords();
+    function studenteGetDetails(studente_id) {
+        $("#hidden_studente_id").val(studente_id);
 
-    $('#file_select_id').change(function (e) {
-        importFile(e. target. files[0]);
+        if (studente_id > 0) {
+            $.post("studenteReadDetails.php", {
+                id: studente_id
+            }, function (data, status) {
+
+                var studente = JSON.parse(data);
+
+                $("#cognome").val(studente.cognome);
+                $("#nome").val(studente.nome);
+                $("#email").val(studente.email.toLowerCase());
+                $("#classe_filtro").val(studente.id_classe);
+                $("#classe_filtro").selectpicker('refresh');
+                $('#hidden_anno_id').val(studente.id_anno_scolastico);
+                $("#attivo").prop('checked', studente.attivo != 0 && studente.attivo != null);
+                $('#hidden_attivo').val(studente.attivo != 0 && studente.attivo != null ? 1 : 0);
+                $('#frequenta_table tbody').empty();
+                var markup = '';
+                studente.frequenze.forEach(function (frequenza) {
+
+                    markup = markup +
+                        "<tr>" +
+                        "<td style=\"text-align: center; vertical-align: middle;\">" + frequenza.anno + "</td>" +
+                        "<td style=\"text-align: center; vertical-align: middle;\">" + frequenza.classe + "</td>" +
+                        "</tr>";
+                });
+                $('#frequenta_table > tbody:last-child').append(markup);
+            });
+        } else {
+            $("#cognome").val("");
+            $("#nome").val("");
+            $("#email").val("");
+            $("#classe_filtro").val("0");
+            $("#classe_filtro").selectpicker('refresh');
+            $("#hidden_anno_id").val("-1");
+            $("#attivo").prop('checked', true);
+            $('#hidden_studente_id').val("-1");
+            $('#frequenta_table tbody').empty();
+            $('#btn-save').show();
+        }
+
+        $("#studente_modal").modal("show");
+
+        $("#_error-classe-part").hide();
+    }
+
+    function importFile(file) {
+        var contenuto = "";
+        const reader = new FileReader();
+        reader.addEventListener('load', (event) => {
+            contenuto = event.target.result;
+            $.post("studenteImport.php", {
+                contenuto: contenuto
+            },
+                function (data, status) {
+                    $('#result_text').html(data);
+                    studenteReadRecords();
+                });
+        });
+        reader.readAsText(file);
+    }
+
+    $(document).ready(function () {
+        studenteReadRecords();
+
+        $('#file_select_id').change(function (e) {
+            importFile(e.target.files[0]);
+        });
+
     });
-});

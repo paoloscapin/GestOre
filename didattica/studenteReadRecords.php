@@ -33,12 +33,22 @@ $query = "SELECT * FROM studente ";
 // if( ! $ancheCancellati) {
 // 	$query .= " WHERE studente.attivo = 1 ";
 // }
-$query .= "ORDER BY studente.classe ASC, studente.cognome ASC, studente.nome ASC";
+$query .= "ORDER BY studente.cognome ASC, studente.nome ASC";
 
 foreach(dbGetAll($query) as $row) {
 
-	$query2 = "SELECT * FROM classi WHERE id = ".$row['id_classe'];
+	$query2 = "SELECT * FROM studente_frequenta WHERE id_studente = ".$row['id']." ORDER BY id_anno_scolastico DESC LIMIT 1";
+	$studente = dbGetFirst($query2);
+	if ($studente === null) {
+		// se lo studente non ha mai frequentato, non lo mostro
+		continue;
+	}
+
+	$query2 = "SELECT * FROM classi WHERE id = ".$studente['id_classe'];
 	$classe = dbGetFirst($query2);
+
+	$query2 = "SELECT * FROM anno_scolastico WHERE id = ".$studente['id_anno_scolastico'];
+	$anno = dbGetFirst($query2);
 
 	$data .= '<tr>
 	<td style="text-align:center">'.ucfirst(strtolower($row['cognome'])).'</td>
@@ -46,8 +56,8 @@ foreach(dbGetAll($query) as $row) {
 	<td style="text-align:center">'.strtoupper($row['codice_fiscale']).'</td>
 	<td style="text-align:center">'.strtolower($row['email']).'</td>
 	<td style="text-align:center">'.strtoupper($classe['classe']).'</td>
-	<td style="text-align:center">'.$row['anno'].'</td>
-	<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" id="attivo" ';
+	<td style="text-align:center">'.$anno['anno'].'</td>
+	<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" ';
 	if ($row['attivo']) {
 		$data .= 'checked ';
 	}
