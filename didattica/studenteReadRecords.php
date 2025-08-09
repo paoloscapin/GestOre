@@ -51,8 +51,8 @@ foreach(dbGetAll($query) as $row) {
 	$anno = dbGetFirst($query2);
 
 	$data .= '<tr>
-	<td style="text-align:center">'.ucfirst(strtolower($row['cognome'])).'</td>
-	<td style="text-align:center">'.ucfirst(strtolower($row['nome'])).'</td>
+	<td style="text-align:center">'.ucwords(strtolower($row['cognome'])).'</td>
+	<td style="text-align:center">'.ucwords(strtolower($row['nome'])).'</td>
 	<td style="text-align:center">'.strtoupper($row['codice_fiscale']).'</td>
 	<td style="text-align:center">'.strtolower($row['email']).'</td>
 	<td style="text-align:center">'.strtoupper($classe['classe']).'</td>
