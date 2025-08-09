@@ -19,7 +19,8 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					<tr>
 						<th class="text-center col-md-2">Cognome</th>
 						<th class="text-center col-md-2">Nome</th>
-						<th class="text-center col-md-2">Codice fiscale</th>
+						<th class="text-center col-md-1">Codice fiscale</th>
+						<th class="text-center col-md-1">UserID MasterCom</th>
 						<th class="text-center col-md-2">email</th>
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-1">Anno</th>
@@ -54,6 +55,7 @@ foreach(dbGetAll($query) as $row) {
 	<td style="text-align:center">'.ucwords(strtolower($row['cognome'])).'</td>
 	<td style="text-align:center">'.ucwords(strtolower($row['nome'])).'</td>
 	<td style="text-align:center">'.strtoupper($row['codice_fiscale']).'</td>
+	<td style="text-align:center">'.$row['username'].'</td>
 	<td style="text-align:center">'.strtolower($row['email']).'</td>
 	<td style="text-align:center">'.strtoupper($classe['classe']).'</td>
 	<td style="text-align:center">'.$anno['anno'].'</td>

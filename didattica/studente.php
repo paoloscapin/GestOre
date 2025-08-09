@@ -108,6 +108,16 @@ require_once '../common/checkSession.php';
                                     </div>
 
                                     <div class="form-group">
+                                        <label class="col-sm-2 control-label" for="codice_fiscale">Codice Fiscale</label>
+                                        <div class="col-sm-10"><input type="text" id="codice_fiscale" placeholder="codice_fiscale" class="form-control" readonly /></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-sm-2 control-label" for="userId">UserID MasterCom</label>
+                                        <div class="col-sm-10"><input type="text" id="userId" placeholder="userId" class="form-control" readonly /></div>
+                                    </div>
+
+                                    <div class="form-group">
                                         <label class="col-sm-2 control-label" for="classe"
                                             style="margin:5px 0px 0px 0px;">Classe attuale</label>
                                         <div class="col-sm-5"><select id="classe_filtro" name="classe_filtro"

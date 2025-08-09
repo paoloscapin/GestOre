@@ -97,6 +97,8 @@ function studenteSave() {
                 $("#cognome").val(studente.cognome);
                 $("#nome").val(studente.nome);
                 $("#email").val(studente.email.toLowerCase());
+                $("#codice_fiscale").val(studente.codice_fiscale.toUpperCase());
+                $("#userId").val(studente.username);
                 $("#classe_filtro").val(studente.id_classe);
                 $("#classe_filtro").selectpicker('refresh');
                 $('#hidden_anno_id').val(studente.id_anno_scolastico);
