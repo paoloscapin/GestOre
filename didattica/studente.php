@@ -49,7 +49,15 @@ require_once '../common/checkSession.php';
                     <div class="col-md-4 text-center">
                         <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
                     </div>
-                    <div class="col-md-4 text-right">
+                    <div class="col-md-2">
+                        <div class="text-center" style="margin:5px 0px 0px 0px;">
+                            <label class="checkbox-inline">
+                                <input type="checkbox" checked data-toggle="toggle" data-size="mini"
+                                    data-onstyle="primary" id="soloAttiviCheckBox">Solo attivi
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-right">
                         <div class="pull-right">
                             <button class="btn btn-xs btn-orange4" onclick="studenteGetDetails(-1)"><span class="glyphicon glyphicon-plus"></span></button>
                         </div>

@@ -5,11 +5,23 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+var soloAttivi = 1;
+
 function studenteReadRecords() {
-    $.get("studenteReadRecords.php?ancheCancellati=0", {}, function (data, status) {
+    $.get("studenteReadRecords.php?soloAttivi=" + soloAttivi, {}, function (data, status) {
         $(".records_content").html(data);
     });
 }
+
+$('#soloAttiviCheckBox').change(function () {
+    // this si riferisce al checkbox
+    if (this.checked) {
+        soloAttivi = 1;
+    } else {
+        soloAttivi = 0;
+    }
+    studenteReadRecords();
+});
 
 function studenteDelete(id, cognome, nome) {
     var conf = confirm("Sei sicuro di volere cancellare lo studente " + cognome + " " + nome + " ?");

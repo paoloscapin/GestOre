@@ -11,7 +11,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$ancheCancellati = $_GET["ancheCancellati"];
+$soloAttivi = $_GET["soloAttivi"];
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -30,9 +30,9 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 
 $query = "SELECT * FROM studente ";
 
-// if( ! $ancheCancellati) {
-// 	$query .= " WHERE studente.attivo = 1 ";
-// }
+if( $soloAttivi || $soloAttivi == 'true' ) {
+ 	$query .= " WHERE studente.attivo = 1 ";
+}
 $query .= "ORDER BY studente.cognome ASC, studente.nome ASC";
 
 foreach(dbGetAll($query) as $row) {
