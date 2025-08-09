@@ -6,9 +6,10 @@
  */
 
 var soloAttivi = 1;
+var classe_filtro_id = 0;
 
 function studenteReadRecords() {
-    $.get("studenteReadRecords.php?soloAttivi=" + soloAttivi, {}, function (data, status) {
+    $.get("studenteReadRecords.php?soloAttivi=" + soloAttivi + "&classeFiltroId=" + classe_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
     });
 }
@@ -149,6 +150,12 @@ function studenteSave() {
         });
         reader.readAsText(file);
     }
+    
+    $("#classe_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            classe_filtro_id = this.value;
+            studenteReadRecords();
+        });
 
     $(document).ready(function () {
         studenteReadRecords();
