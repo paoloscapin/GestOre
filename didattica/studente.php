@@ -33,9 +33,12 @@ require_once '../common/checkSession.php';
 
     // prepara l'elenco per il filtro
     $classiOptionList = '<option value="0">scegli classe</option>';
+    $classiFiltroOptionList = '<option value="0">Tutte</option>';
     foreach (dbGetAll("SELECT * FROM classi WHERE attiva = '1' ORDER BY classe ASC") as $classi) {
         $classiOptionList .= ' <option value="' . $classi['id'] . '" >' . $classi['classe'] . '</option> ';
+        $classiFiltroOptionList .= ' <option value="' . $classi['id'] . '" >' . $classi['classe'] . '</option> ';
     }
+
 
     ?>
 
@@ -43,8 +46,19 @@ require_once '../common/checkSession.php';
         <div class="panel panel-orange4">
             <div class="panel-heading">
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-2">
                         <span class="glyphicon glyphicon-pawn"></span>&ensp;Studenti
+                    </div>
+                                        <div class="col-md-2">
+                        <div class="text-right">
+                            <label class="col-sm-2 control-label" for="classe"
+                                style="margin:5px 0px 0px 0px;">Classe</label>
+                            <div class="col-sm-auto"><select id="classe_filtro" name="classe_filtro"
+                                    class="classe_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
+                                    data-noneSelectedText="seleziona..." data-width="50%">
+                                    <?php echo $classiFiltroOptionList ?>
+                                </select></div>
+                        </div>
                     </div>
                     <div class="col-md-4 text-center">
                         <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
