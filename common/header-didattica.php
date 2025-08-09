@@ -18,6 +18,7 @@
 		<?php if(getSettingsValue('config','sportelli', false)) : ?>
 			<a href="<?php echo $__application_base_path; ?>/didattica/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
 			<a href="<?php echo $__application_base_path; ?>/didattica/studente.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Studenti </a>
+			<a href="<?php echo $__application_base_path; ?>/didattica/genitore.php" class="btn btn-default navbar-btn btn-purple" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Genitori </a>
 			<a href="<?php echo $__application_base_path; ?>/didattica/reportSportelli.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Report Sportelli </a>
 		<?php endif; ?>
 		<?php if($__settings->config->corsiDiRecupero) : ?>
