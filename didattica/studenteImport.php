@@ -18,7 +18,6 @@ function startsWith($haystack, $needle) {
 function erroreDiImport($messaggio) {
     global $data;
     global $linePos;
-    global $sqlList;
 
     warning("Errore di import linea $linePos: " . $messaggio);
     $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
@@ -29,7 +28,6 @@ function erroreDiImport($messaggio) {
 
 // setup del src e del risultato (data) e delle istruzioni (sql[])
 $data = '';
-$sqlList = array();
 
 $src = '';
 if(isset($_POST)) {
@@ -39,8 +37,9 @@ $lines_array = explode("\n", $src);
 $lines = array_filter($lines_array, 'trim');
 $linePos = 0;
 
-// la prima istruzione sql rimuove da tutti le classe a cui appartengono
-$sqlList[] = "UPDATE studente SET classe='';";
+// la prima istruzione sql disattiva tutti gli studenti
+$query = "UPDATE studente SET attivo='0'";
+dbExec($query);
 
 // contatori
 $daInserire = 0;
@@ -61,29 +60,40 @@ foreach($lines as $line) {
     $words = array_map('trim', $words);
 
     // ci devono essere nome,cognome,email,classe,anno
-    if (count($words) < 5) {
+    if (count($words) < 7 ) {
         erroreDiImport("numero di argomenti errato (" . count($words) . ")");
         break;
     }
     $cognome = camelCase(escapeString($words[0]));
     $nome = camelCase(escapeString($words[1]));
     $email = escapeString($words[2]);
-    $classe = escapeString($words[3]);
-    $anno = escapeString($words[4]);
+    $username = escapeString($words[3]);
+    $codice_fiscale = escapeString($words[4]);
+    $attivo = escapeString($words[5]);
+    $classe = escapeString($words[6]);
 
     // controlla se l'indirizzo di email e' gia' presente sul database
     $id = dbGetValue("SELECT id FROM studente WHERE email = '$email';");
+    $id_classe = dbGetValue("SELECT id FROM classi WHERE classe = '$classe';");
+        if ($id_classe == null) {
+            erroreDiImport("classe $classe non trovata");
+            continue;
+        }
 
     if ($id == null) {
         // se non lo trova, lo deve inserire
         $daInserire ++;
-        // calcola lo username (precede @ nell'email)
-        $username = strstr($email, '@', true);
-        $sqlList[] = "INSERT INTO studente (cognome,nome,email,classe,anno) VALUES ('$cognome','$nome','$email','$classe','$anno')";
+        $query = "INSERT INTO studente (cognome,nome,email,username,codice_fiscale,attivo) VALUES ('$cognome','$nome','$email','$username','$codice_fiscale','$attivo');";
+        dbExec($query);
+        $id = dblastId();
+        $query = "INSERT INTO studente_frequenta(id_studente,id_anno_scolastico,id_classe) VALUES('$id', '$__anno_scolastico_corrente_id', '$id_classe')";
     } else {
         // se c'era gia', lo aggiorna con i valori trovati della classe
         $daModificare++;
-        $sqlList[] = "UPDATE studente SET classe='$classe', anno='$anno' WHERE id=$id";
+        $query = "UPDATE studente SET cognome='$cognome', nome='$nome', username='$username', codice_fiscale='$codice_fiscale', attivo='$attivo' WHERE id='$id'";
+        dbExec($query);
+        $query = "UPDATE studente_frequenta SET id_classe = '$id_classe' WHERE id_studente = '$id' AND id_anno_scolastico = '$__anno_scolastico_corrente_id'";
+        dbExec($query);
     }
 }
 
@@ -92,17 +102,7 @@ if (empty($data)) {
     debug($data);
 }
 
-// rinomina l'at degli indirizzi di email degli studenti che non hanno piu' accesso
-$sqlList[] = "UPDATE studente SET email = REPLACE(email, '@', '_') WHERE studente.classe = ''";
-
-// esegue la query se non vuota
-if (!empty($sqlList)) {
-    foreach($sqlList as $sql) {
-        dbExec($sql);
-        // debug($sql);
-    }
     info('Import studenti effettuato: ' . $data);
-}
 
 echo '<strong>' . $data .'</strong>';
 ?>
