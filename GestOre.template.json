@@ -21,7 +21,9 @@
         "logIntoAppFolder": true,
         "logFile": "GestOre.log",
         "timeFormat": "%d/%m/%Y - %H:%M:%S",
-        "debug": true
+        "debug": false,
+        "logLoginUsers": true,
+        "logLoginFile": "GestOreLogin.log"
     },
     "config": {
         "gestioneClil": false,

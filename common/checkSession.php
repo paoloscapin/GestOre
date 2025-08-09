@@ -48,6 +48,7 @@ if (!isset($__username) && !$session->has('__username')) {
         $gpUserProfile = $google_oauthV2->userinfo->get();
         $useremail = $gpUserProfile['email'];
         debug("email letta da profilo Google: " . $useremail);
+        infoLogin("utente [" . $useremail . "]: logging in with Google");
         header('Location: ' . filter_var($__redirectURL, FILTER_SANITIZE_URL));
     }
 
@@ -92,6 +93,7 @@ if (! $session->has ( 'utente_id' )) {
     debug ( 'manca in sessione utente_id' );
     $utente = dbGetFirst("SELECT * FROM utente WHERE utente.email = '$__useremail'");
     if ($utente != null) {
+        infoLogin("utente [$utente[username]]: logged in - role=[" . $utente['ruolo'] . "]");
         // lo ho trovato tra gli utenti
         $session->set ( 'utente_id', $utente ['id'] );
         $session->set ( 'username', $utente ['username'] );
@@ -102,38 +104,41 @@ if (! $session->has ( 'utente_id' )) {
         if(!empty($utente ['username'])){
             $__username = $session->get ( 'username' );
             $session->set ( '__username',  $__username);
-            info('utente ' . $utente ['username'] . ': logged in');
+            info('utente [' . $utente['username'] . ']: logged in');
         }
-    } else {
+    } else 
+    {
         // lo cerco tra gli studenti:
         $studente = dbGetFirst("SELECT * FROM studente WHERE studente.email = '$__useremail'");
         if ($studente != null) {
             // lo ho trovato tra gli studenti: utente id = -1
+            infoLogin("utente [" . $studente['nome'] . $studente['cognome'] . "]: logged in - role=[studente]");
             $session->set ( 'utente_id', -1 );
             $session->set ( 'studente_id', $studente ['id'] );
             $session->set ( 'studente_nome', $studente ['nome'] );
             $session->set ( 'studente_cognome', $studente ['cognome'] );
             $session->set ( 'studente_email', $__useremail );
 
-            $session->set ( 'username', $studente ['nome'].$studente ['cognome'] );
+            $session->set ( 'username', $studente ['nome'].".".$studente ['cognome'] );
             $session->set ( 'utente_nome', $studente ['nome'] );
             $session->set ( 'utente_cognome', $studente ['cognome'] );
             $session->set ( 'utente_ruolo', 'studente');
             $session->set ( '__useremail', $__useremail );
-            if(!empty($utente ['username'])){
-                $__username = $session->get ( 'username' );
-                $session->set ( '__username',  $__username);
-                info('studente ' . $utente ['username'] . ': logged in');
-            }
+            $__username = $session->get ( 'username' );
+            $session->set ( '__username',  $__username);
+            info("utente [" . $studente['nome'] . $studente['cognome'] . "]: logged in");
+
         } else {
-            $__message = 'utente non trovato: ' . $__useremail;
+            $__message = 'utente non trovato: [' . $__useremail . ']';
+            infoLogin("utente non trovato: " . $__useremail);
+            // non lo ho trovato tra gli utenti e neanche tra gli studenti  
             warning ($__message);
             redirect ( '/error/error.php?message=' . $__message);
             exit ();
         }
     }
 } else {
-//    debug ( 'esiste utente_id=' . $session->get ( 'utente_id' ) );
+//    debug ( 'esiste utente_id=' . $session->get('utente_id'));
 }
 
 $__utente_id = $session->get ( 'utente_id' );

@@ -21,7 +21,15 @@ if ($__settings->log->logIntoAppFolder) {
 }
 $fileName .= $__settings->log->logFile;
 
+$fileNameLogin = '';
+if ($__settings->log->logIntoAppFolder) {
+    $fileNameLogin = __DIR__ . "/../log/";
+}
+$fileNameLogin .= $__settings->log->logLoginFile;
+
+
 $__logger = Log::factory('file', $fileName, '', array("timeFormat"=>$__settings->log->timeFormat), $__logLevel);
+$__logger_login = Log::factory('file', $fileNameLogin, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
 
 function debug($message) {
     global $__logger;
@@ -35,6 +43,13 @@ function info($message) {
     global $__username;
     $page = basename ( $_SERVER ['PHP_SELF'] );
     $__logger->info("$page: [$__username] $message");
+}
+
+function infoLogin($message) {
+    global $__logger_login;
+    global $__username;
+    $page = basename ( $_SERVER ['PHP_SELF'] );
+    $__logger_login->info("$page: $message");
 }
 
 function warning($message) {
@@ -61,6 +76,17 @@ function rotateLog() {
     rename($fileName, $rotateFileName);
     $__logger->open();
     $__logger->info("old log was saved into $rotateFileName");
+
+    global $fileNameLogin;
+    global $__logger_login;
+    $rotateFileName = $fileNameLogin . date("Y-m-d_H.i.s").'.log';
+    $__logger_login->info("rotating into $rotateFileName");
+    $__logger_login->flush();
+    $__logger_login->close();
+    rename($fileNameLogin, $rotateFileName);
+    $__logger_login->open();
+    $__logger_login->info("old log was saved into $rotateFileName");
+
 }
 
 ?>
