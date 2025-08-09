@@ -21,6 +21,26 @@ if (session_status() == PHP_SESSION_NONE) {
 // configurazione globale
 require_once __DIR__ . '/Config.php';
 
+// Function to get the client IP address
+function get_client_ip() {
+    $ipaddress = '';
+    if (isset($_SERVER['HTTP_CLIENT_IP']))
+        $ipaddress = $_SERVER['HTTP_CLIENT_IP'];
+    else if(isset($_SERVER['HTTP_X_FORWARDED_FOR']))
+        $ipaddress = $_SERVER['HTTP_X_FORWARDED_FOR'];
+    else if(isset($_SERVER['HTTP_X_FORWARDED']))
+        $ipaddress = $_SERVER['HTTP_X_FORWARDED'];
+    else if(isset($_SERVER['HTTP_FORWARDED_FOR']))
+        $ipaddress = $_SERVER['HTTP_FORWARDED_FOR'];
+    else if(isset($_SERVER['HTTP_FORWARDED']))
+        $ipaddress = $_SERVER['HTTP_FORWARDED'];
+    else if(isset($_SERVER['REMOTE_ADDR']))
+        $ipaddress = $_SERVER['REMOTE_ADDR'];
+    else
+        $ipaddress = 'UNKNOWN';
+    return $ipaddress;
+}
+
 // se la session non contiene username, vai alla pagina di login (passando come location la pagina richiesta
 if (!isset($__username) && !$session->has('__username')) {
     if (!isset($__gClient)) {
@@ -48,7 +68,7 @@ if (!isset($__username) && !$session->has('__username')) {
         $gpUserProfile = $google_oauthV2->userinfo->get();
         $useremail = $gpUserProfile['email'];
         debug("email letta da profilo Google: " . $useremail);
-        infoLogin("utente [" . $useremail . "]: logging in with Google");
+        infoLogin("utente [" . $useremail . "]: logging in with Google from IP " . get_client_ip());
         header('Location: ' . filter_var($__redirectURL, FILTER_SANITIZE_URL));
     }
 
