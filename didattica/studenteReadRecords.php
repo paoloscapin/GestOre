@@ -12,6 +12,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 $soloAttivi = $_GET["soloAttivi"];
+$classeFiltroId = $_GET["classeFiltroId"];
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -34,6 +35,7 @@ $query = "SELECT * FROM studente ";
 if( $soloAttivi || $soloAttivi == 'true' ) {
  	$query .= " WHERE studente.attivo = 1 ";
 }
+
 $query .= "ORDER BY studente.cognome ASC, studente.nome ASC";
 
 foreach(dbGetAll($query) as $row) {
@@ -47,6 +49,13 @@ foreach(dbGetAll($query) as $row) {
 
 	$query2 = "SELECT * FROM classi WHERE id = ".$studente['id_classe'];
 	$classe = dbGetFirst($query2);
+
+	if ( $classeFiltroId && $classeFiltroId > 0 ) {
+	if ($studente['id_classe'] != $classeFiltroId){
+		// se la classe non corrisponde al filtro, non lo mostro
+		continue;	
+	}
+   }
 
 	$query2 = "SELECT * FROM anno_scolastico WHERE id = ".$studente['id_anno_scolastico'];
 	$anno = dbGetFirst($query2);
