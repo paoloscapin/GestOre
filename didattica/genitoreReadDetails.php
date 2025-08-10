@@ -10,56 +10,49 @@
 require_once '../common/checkSession.php';
 
 if (isset($_POST['id']) && $_POST['id'] != "") {
-    $studente_id = $_POST['id'];
+    $genitore_id = $_POST['id'];
 
     // Recupero studente
-    $query = "SELECT * FROM studente WHERE id = '$studente_id'";
-    $studente = dbGetFirst($query);
+    $query = "SELECT * FROM genitori WHERE id = '$genitore_id'";
+    $genitore = dbGetFirst($query);
 
-    if (!$studente) {
-        echo json_encode(['error' => 'Studente non trovato']);
+    if (!$genitore) {
+        echo json_encode(['error' => 'Genitore non trovato']);
         exit;
     }
 
-    // Recupero frequenze
-    $query = "SELECT * FROM studente_frequenta WHERE id_studente = '$studente_id' ORDER BY id_anno_scolastico DESC";
-    $frequenze_raw = dbGetAll($query);
-
-    $frequenze = [];
-    $first = true; // Flag per il primo ciclo
-
-    if (!empty($frequenze_raw)) {
-        foreach ($frequenze_raw as $frequenza) {
-            // Recupera nome classe
-            $query = "SELECT classe FROM classi WHERE id = " . intval($frequenza['id_classe']);
-            $classe = dbGetValue($query);
-
-            // Recupera anno scolastico
-            $query = "SELECT anno FROM anno_scolastico WHERE id = " . intval($frequenza['id_anno_scolastico']);
-            $anno = dbGetValue($query);
-
-            // Recupera nome classe
-            $id_classe = intval($frequenza['id_classe']);
-            $id_anno_scolastico = intval($frequenza['id_anno_scolastico']);
-
-            if ($first) {
-                // Se l'anno scolastico è quello corrente, aggiungo anche il nome dell'anno
-                $studente['id_anno_scolastico'] = $id_anno_scolastico;
-                $studente['id_classe'] = $id_classe;
-                $first = false; // Dopo il primo ciclo, non entra più
-            }
-
-            // Aggiungi i dati
-            $frequenza['classe'] = $classe;
-            $frequenza['anno'] = $anno;
-
-            $frequenze[] = $frequenza; // <-- salva nel nuovo array
+    // Recupero studenti associati
+    $query = "SELECT * FROM genitori_studenti WHERE id_genitore = '$genitore_id'";
+    $genitoriStudenti = dbGetAll($query);
+    $genitoriDi = [];
+    foreach ($genitoriStudenti as $genitoreStudente) {
+        $query2 = "SELECT * FROM studente WHERE id = " . $genitoreStudente['id_studente'] . " AND attivo = '1'";
+        $studente = dbGetFirst($query2);
+        if ($studente) {
+            $query2 = "SELECT id_classe FROM studente_frequenta WHERE id_studente = " . $studente['id'] . " AND id_anno_scolastico = '$__anno_scolastico_corrente_id'";
+            $id_classe = dbGetValue($query2);
+            $query2 = "SELECT classe FROM classi WHERE id = '$id_classe'";
+            $classe = dbGetValue($query2);
+            $genitoriDi[] = $studente['cognome'] . ' ' . $studente['nome'] . ' (Classe: ' . $classe . ')';
         }
     }
-
-    // Aggiungi array frequenze allo studente
-    $studente['frequenze'] = $frequenze;
-
+    $relazioni = [];
+    foreach ($genitoriStudenti as $genitoreStudente) {
+        $query2 = "SELECT relazione FROM genitori_relazioni WHERE id = " . $genitoreStudente['id_relazione'];
+        $relazione = dbGetValue($query2);
+        if ($relazione) {
+            $relazioni[] = ucfirst($relazione);
+        }
+    }
+    if ($genitoriDi == []) {
+        $genitoriDi[] = 'Nessuno';
+    } 
+    if ($relazioni == []) {
+        $relazioni[] = 'Nessuna';
+    } 
+    $genitore['genitori_di'] = $genitoriDi;
+    $genitore['relazioni'] = $relazioni;
+   
     // Output
-    echo json_encode($studente);
+    echo json_encode($genitore);
 }

@@ -46,7 +46,7 @@ require_once '../common/checkSession.php';
             <div class="panel-heading">
                 <div class="row">
                     <div class="col-md-2">
-                        <span class="glyphicon glyphicon-pawn"></span>&ensp;Studenti
+                        <span class="glyphicon glyphicon-pawn"></span>&ensp;Genitori
                     </div>
                     <div class="col-md-2">
                         <div class="text-right">
@@ -72,7 +72,7 @@ require_once '../common/checkSession.php';
                     </div>
                     <div class="col-md-2 text-right">
                         <div class="pull-right">
-                            <button class="btn btn-xs btn-orange4" onclick="studenteGetDetails(-1)"><span class="glyphicon glyphicon-plus"></span></button>
+                            <button class="btn btn-xs btn-orange4" onclick="genitoreGetDetails(-1)"><span class="glyphicon glyphicon-plus"></span></button>
                         </div>
                     </div>
                 </div>
@@ -93,13 +93,13 @@ require_once '../common/checkSession.php';
         </div>
 
         <!-- Modal - Add/Update Record -->
-        <div class="modal fade" id="studente_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal fade" id="genitore_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
             <div class="modal-dialog modal-lg" style="width:500px" role="document">
                 <div class="modal-content">
                     <div class="modal-body">
                         <div class="panel panel-lima4">
                             <div class="panel-heading">
-                                <h5 class="modal-title" id="myModalLabel">Studente</h5>
+                                <h5 class="modal-title" id="myModalLabel">genitore</h5>
                             </div>
                             <div class="panel-body">
                                 <form class="form-horizontal">
@@ -122,38 +122,29 @@ require_once '../common/checkSession.php';
 
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="codice_fiscale">Codice Fiscale</label>
-                                        <div class="col-sm-10"><input type="text" id="codice_fiscale" placeholder="codice_fiscale" class="form-control" readonly /></div>
+                                        <div class="col-sm-10"><input type="text" id="codice_fiscale" placeholder="codice_fiscale" class="form-control" /></div>
                                     </div>
 
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="userId">UserID MasterCom</label>
-                                        <div class="col-sm-10"><input type="text" id="userId" placeholder="userId" class="form-control" readonly /></div>
+                                        <div class="col-sm-10"><input type="text" id="userId" placeholder="userId" class="form-control" /></div>
                                     </div>
 
-                                    <div class="form-group">
-                                        <label class="col-sm-2 control-label" for="classe"
-                                            style="margin:5px 0px 0px 0px;">Classe attuale</label>
-                                        <div class="col-sm-5"><select id="classe_filtro" name="classe_filtro"
-                                                class="classe_filtro selectpicker" data-style="btn-teal4" data-live-search="true"
-                                                data-noneSelectedText="seleziona..." data-width="90%">
-                                                <?php echo $classiOptionList ?>
-                                            </select></div>
-                                    </div>
                                     <div class="form-group">
                                         <label for="attivo" class="col-sm-2 control-label">Attivo</label>
                                         <div class="col-sm-1">
                                             <input type="checkbox" id="attivo">
                                         </div>
                                     </div>
-                                    <div class="form-group text-center" id="frequenta-part">
+                                    <div class="form-group text-center" id="relazioni-part">
                                         <hr>
-                                        <label for="frequenta_table">Ha frequentato</label>
+                                        <label for="relazioni_table">Studenti collegati</label>
                                         <div class="table-wrapper">
-                                            <table class="table table-bordered table-striped" id="frequenta_table">
+                                            <table class="table table-bordered table-striped" id="relazioni_table">
                                                 <thead>
                                                     <tr>
-                                                        <th class="text-center">Anno scolastico</th>
-                                                        <th class="text-center">Classe</th>
+                                                        <th class="text-center">Studente</th>
+                                                        <th class="text-center">Relazione</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -168,7 +159,7 @@ require_once '../common/checkSession.php';
                                                 <div class="col-sm-9" id="_error-classe"></div>
                                             </strong></div>
 
-                                        <input type="hidden" id="hidden_studente_id">
+                                        <input type="hidden" id="hidden_genitore_id">
                                         <input type="hidden" id="hidden_attivo">
                                         <input type="hidden" id="hidden_anno_id">
                                 </form>
@@ -176,7 +167,7 @@ require_once '../common/checkSession.php';
                             </div>
                             <div class="panel-footer text-center">
                                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                <button id="btn-save" type="button" class="btn btn-primary" onclick="studenteSave()">Salva</button>
+                                <button id="btn-save" type="button" class="btn btn-primary" onclick="genitoreSave()">Salva</button>
                             </div>
                         </div>
                     </div>
@@ -188,7 +179,7 @@ require_once '../common/checkSession.php';
     </div>
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/studente.js"></script>
+    <script type="text/javascript" src="js/genitore.js"></script>
 </body>
 
 </html>
