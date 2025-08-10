@@ -7,12 +7,23 @@
 
 var soloAttivi = 1;
 var classe_filtro_id = 0;
+var anche_senza_figli = 1; // Variabile per gestire la visualizzazione dei genitori senza figli
 
 function genitoreReadRecords() {
-    $.get("genitoreReadRecords.php?soloAttivi=" + soloAttivi + "&classeFiltroId=" + classe_filtro_id, {}, function (data, status) {
+    $.get("genitoreReadRecords.php?soloAttivi=" + soloAttivi + "&classeFiltroId=" + classe_filtro_id + "&ancheSenzaStudenti=" + anche_senza_figli, {}, function (data, status) {
         $(".records_content").html(data);
     });
 }
+
+$('#ancheSenzaStudentiCheckBox').change(function () {
+    // this si riferisce al checkbox
+    if (this.checked) {
+        anche_senza_figli = 1;
+    } else {
+        anche_senza_figli = 0;
+    }
+    genitoreReadRecords();
+});
 
 $('#soloAttiviCheckBox').change(function () {
     // this si riferisce al checkbox
@@ -25,12 +36,10 @@ $('#soloAttiviCheckBox').change(function () {
 });
 
 function genitoreDelete(id, cognome, nome) {
-    var conf = confirm("Sei sicuro di volere cancellare il genitore " + cognome + " " + nome + " ?");
+    var conf = confirm("Sei sicuro di volere cancellare il genitore " + cognome + " " + nome + " ? In alternativa, puoi disattivarlo.");
     if (conf == true) {
-        $.post("../common/deleteRecord.php", {
-            id: id,
-            table: 'genitore',
-            name: "cognome " + cognome
+        $.post("genitoreDelete.php", {
+            id: id
         },
             function (data, status) {
                 genitoreReadRecords();
@@ -58,7 +67,7 @@ function genitoreSave() {
         }
     }
     if (attivo == 1 && ($("#hidden_attivo").val() == 0)) {
-        var conf = confirm("Sei sicuro di volere inserire per quest'anno lo genitore " + $("#cognome").val() + " " + $("#nome").val() + "?");
+        var conf = confirm("Sei sicuro di volere attivare il genitore " + $("#cognome").val() + " " + $("#nome").val() + "?");
         if (conf == false) {
             return;
         }
@@ -70,8 +79,8 @@ function genitoreSave() {
         cognome: $("#cognome").val(),
         nome: $("#nome").val(),
         email: $("#email").val(),
-        id_classe: $("#classe_filtro").val(),
-        id_anno: $("#hidden_anno_id").val(),
+        codice_fiscale: $("#codice_fiscale").val(),
+        userId: $("#userId").val(),
         attivo: $("#attivo").prop('checked') ? 1 : 0,
         era_attivo: $("#hidden_attivo").val()
     }, function (data, status) {

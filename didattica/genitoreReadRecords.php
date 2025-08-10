@@ -13,6 +13,7 @@ require_once '../common/connect.php';
 
 $soloAttivi = $_GET["soloAttivi"];
 $classeFiltroId = $_GET["classeFiltroId"];
+$ancheSenzaStudenti = $_GET["ancheSenzaStudenti"];
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -43,7 +44,7 @@ foreach(dbGetAll($query) as $row) {
 	$query = "SELECT * FROM genitori_studenti WHERE id_genitore = ".$row['id']." ORDER BY id_studente ASC";
 	$genitoriStudenti = dbGetAll($query);
 
-	if (count($genitoriStudenti) == 0) {
+	if (count($genitoriStudenti) == 0 && !$ancheSenzaStudenti) {
 		// se il genitore non ha figli, non lo mostro
 		continue;
 	}
@@ -91,7 +92,7 @@ foreach(dbGetAll($query) as $row) {
 	}
 
 
-	if ($genitoriDi == '') {
+	if ($genitoriDi == '' && !$ancheSenzaStudenti) {
 		// se il genitore non ha figli, non lo mostro
 		continue;
 	}
