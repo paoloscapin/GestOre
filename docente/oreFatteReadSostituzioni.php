@@ -51,32 +51,4 @@ function oreFatteReadSostituzioni($soloTotale, $docente_id, $operatore, $ultimo_
 	$result = compact('dataSostituzioni', 'sostituzioniOre');
 	return $result;
 }
-/*
-// se viene chiamato con un post, allora ritonna il valore con echo
-if(isset($_GET)) {
-	if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
-		$docente_id = $_GET['docente_id'];
-	} else {
-		$docente_id = $__docente_id;
-	}
-	$soloTotale = json_decode($_GET['soloTotale']);
-
-	if(isset($_GET['operatore']) && $_GET['operatore'] == 'dirigente') {
-		// se vuoi fare il dirigente, devi essere dirigente
-		ruoloRichiesto('dirigente');
-		// agisci quindi come dirigente
-		$operatore = 'dirigente';
-		// il dirigente può sempre fare modifiche
-		$modificabile = true;
-		// devi leggere il timestamp dell'ultimo controllo effettuato
-		$ultimo_controllo = $_PO_GETST['ultimo_controllo'];
-	} else {
-		$operatore = 'docente';
-		$ultimo_controllo = '';
-		$modificabile = $__config->getOre_fatte_aperto();
-	}
-
-	$result = oreFatteReadSostituzioni($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
-	echo json_encode($result);
-}*/
 ?>

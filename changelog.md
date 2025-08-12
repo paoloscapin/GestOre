@@ -1,3 +1,13 @@
+## Version 1.3.1 - 13 ago 2025
+##### Improvements
+- viaggi diaria ora considerata nei totali anche se proviene da versione vecchia (gestione viaggi completa)
+- storico fuis 3 rivisto completamente utilizzando oreFatteAggiorna
+- aggiunta diaria in lettura nelle attivita' ore fatte
+- aggiunta materia nei corsi di recupero tabella
+- nuovo oreFatteReadFuisAssegnato.php per leggere fuis assegnato e tabella da mettere in storico (potrebbe andare in altri posti)
+- oreFatteReadViaggi rivista la query
+- viaggioDiariaFattaReadRecords aggiunta gestione tabella per viaggi vecchio stile
+
 ## Version 1.2.60 - 8 lug 2025
 ##### Bug Fixes
 - studente read records problema con apostrofi

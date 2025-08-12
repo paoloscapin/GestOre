@@ -205,110 +205,6 @@ function creaQuery($docente_id, $clil, $orientamento) {
 			ore_fatte_attivita.ora_inizio";
 }
 
-function oreFatteReadAttivitaVecchio($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile) {
-	global $__anno_scolastico_corrente_id;
-
-	global $attivitaAggiornamento;
-	global $attivitaOreFunzionali;
-	global $attivitaOreConStudenti;
-	global $attivitaClilOreFunzionali;
-	global $attivitaClilOreConStudenti;
-	global $attivitaOrientamentoOreFunzionali;
-	global $attivitaOrientamentoOreConStudenti;
-
-	$attivitaAggiornamento = 0;
-	$attivitaOreFunzionali = 0;
-	$attivitaOreConStudenti = 0;
-	$attivitaClilOreFunzionali = 0;
-	$attivitaClilOreConStudenti = 0;
-	$attivitaOrientamentoOreFunzionali = 0;
-	$attivitaOrientamentoOreConStudenti = 0;
-
-	$dataAttivita = '';
-
-	// controlla se deve restituire solo il totale o anche la tabella html
-	if($soloTotale) {
-		$query = "SELECT ore_fatte_attivita.ore, ore_fatte_attivita.dettaglio, ore_previste_tipo_attivita.categoria, ore_previste_tipo_attivita.funzionali, ore_previste_tipo_attivita.con_studenti, ore_previste_tipo_attivita.clil, ore_previste_tipo_attivita.orientamento
-					FROM ore_fatte_attivita ore_fatte_attivita INNER JOIN ore_previste_tipo_attivita ore_previste_tipo_attivita ON ore_fatte_attivita.ore_previste_tipo_attivita_id = ore_previste_tipo_attivita.id
-					WHERE ore_fatte_attivita.anno_scolastico_id = $__anno_scolastico_corrente_id AND ore_fatte_attivita.docente_id = $docente_id AND COALESCE(ore_fatte_attivita.contestata, 0) = 0;";
-
-		foreach(dbGetAll($query) as $attivita) {
-			// ore di aggiornamento
-			if ($attivita['categoria'] == 'aggiornamento') {
-				$attivitaAggiornamento += $attivita['ore'];
-				// ora consideriamo le attivita' clil (funzionali o con studenti)
-			} elseif ($attivita['clil'] == 1) {
-				if ($attivita['funzionali'] == 1) {
-					$attivitaClilOreFunzionali += $attivita['ore'];
-				} elseif ($roattivitaw['con_studenti'] == 1) {
-					$attivitaClilOreConStudenti += $attivita['ore'];
-				} else {
-					warning('attivita clil non funzionale e non con studenti: id=' . $attivita['ore_previste_tipo_attivita_id']);
-				}
-		
-				// consideriamo quelle di orientamento
-			} elseif ($attivita['orientamento'] == 1) {
-				if ($attivita['funzionali'] == 1) {
-					$attivitaOrientamentoOreFunzionali += $attivita['ore'];
-				} elseif ($attivita['con_studenti'] == 1) {
-					$attivitaOrientamentoOreConStudenti += $attivita['ore'];
-				} else {
-					warning('attivita orientamento non funzionale e non con studenti: id=' . $attivita['ore_previste_tipo_attivita_id']);
-				}
-		
-				// infine le altre attivita'
-			} else {
-				if ($attivita['funzionali'] == 1) {
-					$attivitaOreFunzionali += $attivita['ore'];
-				} elseif ($attivita['con_studenti'] == 1) {
-					$attivitaOreConStudenti += $attivita['ore'];
-				}
-			}
-		}
-
-		$result = compact('dataAttivita', 'attivitaAggiornamento', 'attivitaOreFunzionali', 'attivitaOreConStudenti', 'attivitaClilOreFunzionali', 'attivitaClilOreConStudenti', 'attivitaOrientamentoOreFunzionali', 'attivitaOrientamentoOreConStudenti');
-		return $result;
-	}
-
-	// se non e' solo il totale, disegna la tabella
-	$dataAttivita .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
-							<thead><tr>
-								<th class="col-md-1 text-left">Tipo</th>
-								<th class="col-md-2 text-left">Nome</th>
-								<th class="col-md-5 text-left">Dettaglio</th>
-								<th class="col-md-1 text-center">Data</th>
-								<th class="col-md-1 text-center">Ore</th>
-								<th class="col-md-1 text-center">Registro</th>
-								<th class="col-md-1 text-center"></th>
-							</tr></thead><tbody>';
-
-	$query = creaQuery($docente_id, 1,0);
-	$lista = dbGetAll($query);
-	if (!empty($lista)) {
-		$dataAttivita .= '<thead><tr><th  colspan="7" class="col-md-12 text-center btn-lightblue4">Clil</th></tr></thead><tbody>';
-		foreach($lista as $row) {
-			$dataAttivita .= writeLineAttivita($row, 1, 0, $operatore, $ultimo_controllo, $modificabile);
-		}
-	}
-
-	$query = creaQuery($docente_id, 0,1);
-	$lista = dbGetAll($query);
-	if (!empty($lista)) {
-		$dataAttivita .= '<thead><tr><th  colspan="7" class="col-md-12 text-center btn-beige">Orientamento</th></tr></thead><tbody>';
-		foreach($lista as $row) {
-			$dataAttivita .= writeLineAttivita($row, 0, 1, $operatore, $ultimo_controllo, $modificabile);
-		}
-	}
-
-	$dataAttivita .= '</tbody></table></div>';
-
-	$result = compact('dataAttivita', 'attivitaAggiornamento', 'attivitaOreFunzionali', 'attivitaOreConStudenti', 'attivitaClilOreFunzionali', 'attivitaClilOreConStudenti', 'attivitaOrientamentoOreFunzionali', 'attivitaOrientamentoOreConStudenti');
-	return $result;
-}
-
-
-
-
 function oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile) {
 	global $__anno_scolastico_corrente_id;
 	global $__config;
@@ -419,13 +315,20 @@ function oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_cont
 	$dataAttivita .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 							<thead><tr>
 								<th class="col-md-1 text-left">Tipo</th>
-								<th class="col-md-2 text-left">Nome</th>
-								<th class="col-md-5 text-left">Dettaglio</th>
-								<th class="col-md-1 text-center">Data</th>
-								<th class="col-md-1 text-center">Ore</th>
-								<th class="col-md-1 text-center">Registro</th>
-								<th class="col-md-1 text-center"></th>
-							</tr></thead><tbody>';
+								<th class="col-md-2 text-left">Nome</th>';
+	if ($modificabile) {
+		$dataAttivita .= '<th class="col-md-5 text-left">Dettaglio</th>';
+	} else {
+		$dataAttivita .= '<th class="col-md-6 text-left">Dettaglio</th>';
+	}
+
+	$dataAttivita .= '<th class="col-md-1 text-center">Data</th>
+					  <th class="col-md-1 text-center">Ore</th>';
+	if ($modificabile) {
+			$dataAttivita .= '<th class="col-md-1 text-center">Registro</th>';
+	}
+	
+	$dataAttivita .= '<th class="col-md-1 text-center"></th></tr></thead><tbody>';
 
 	// crea la query
 	debug('FUNZIONE NON SOLO docente_id:'.$docente_id);
@@ -465,19 +368,19 @@ function oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_cont
 	foreach(dbGetAll($query) as $row) {
 		// controlla se iniziano qui gli sportelli clil
 		if ($row['ore_previste_tipo_attivita_clil'] && ! $lastWasClil) {
-			$dataAttivita .= '<tr><th  colspan="7" class="col-md-12 text-center btn-lightblue4" style="padding: 0px">Clil</th></tr><tbody>';
+			$dataAttivita .= '<tr><th colspan="7" class="col-md-12 text-center btn-lightblue4" style="padding: 0px">Clil</th></tr>';
 			$lastWasClil = true;
 		}
 
 		// controlla se iniziano qui gli sportelli orientamento
 		if ($row['ore_previste_tipo_attivita_orientamento'] && ! $lastWasOrientamento) {
-			$dataAttivita .= '<tr><th colspan="7" class="col-md-12 text-center btn-beige" style="padding: 0px">Orientamento</th></tr><tbody>';
+			$dataAttivita .= '<tr><th colspan="7" class="col-md-12 text-center btn-beige" style="padding: 0px">Orientamento</th></tr>';
 			$lastWasOrientamento = true;
 		}
 
 		// controlla se iniziano qui le attivita aggiornamento
 		if ($row['ore_previste_tipo_attivita_aggiornamento'] == 1 && ! $lastWasAggiornamento) {
-			$dataAttivita .= '<tr><th colspan="7" class="col-md-12 text-center btn-purple" style="padding: 0px">Aggiornamento</th></tr><tbody>';
+			$dataAttivita .= '<tr><th colspan="7" class="col-md-12 text-center btn-purple" style="padding: 0px">Aggiornamento</th></tr>';
 			$lastWasAggiornamento = true;
 		}
 
@@ -521,14 +424,18 @@ function oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_cont
 			$dataAttivita .= '<td class="text-center">'.writeOreAttivita($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali']).'</td>';
 	//		$dataAttivita .='<td class="text-center">'.'</td><td class="text-center">'.writeOreAttivita($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali']).'</td>';
 		}
-	
-		$dataAttivita .='<td class="text-center">';
-		// registro per quelle inserite da docente
-		if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
-			$dataAttivita .='<button onclick="oreFatteGetRegistroAttivita('.$row['ore_fatte_attivita_id'].', '.$row['registro_attivita_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>';
+
+		// registro solo se modificabile
+		if ($modificabile) {
+			$dataAttivita .='<td class="text-center">';
+
+			// registro per quelle inserite da docente
+			if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
+				$dataAttivita .='<button onclick="oreFatteGetRegistroAttivita('.$row['ore_fatte_attivita_id'].', '.$row['registro_attivita_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>';
+			}
+			$dataAttivita .='</td>';
 		}
-		$dataAttivita .='</td>';
-	
+
 		$marker = ($row['ore_fatte_attivita_contestata'] == 1)? $contestataMarker : $accettataMarker;
 	//	$dataAttivita .= '<td class="col-md-1 text-center">'.$marker.'</td>';
 	
@@ -599,32 +506,4 @@ function oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_cont
 	$result = compact('dataAttivita', 'attivitaAggiornamento', 'attivitaOreFunzionali', 'attivitaOreConStudenti', 'attivitaClilOreFunzionali', 'attivitaClilOreConStudenti', 'attivitaOrientamentoOreFunzionali', 'attivitaOrientamentoOreConStudenti');
 	return $result;
 }
-/*
-// se viene chiamato con un post, allora ritonna il valore con echo
-if(isset($_POST['richiesta']) && $_POST['richiesta'] == "oreFatteReadAttivita") {
-	if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
-		$docente_id = $_POST['docente_id'];
-	} else {
-		$docente_id = $__docente_id;
-	}
-	$soloTotale = json_decode($_POST['soloTotale']);
-
-	if(isset($_POST['operatore']) && $_POST['operatore'] == 'dirigente') {
-		// se vuoi fare il dirigente, devi essere dirigente
-		ruoloRichiesto('dirigente');
-		// agisci quindi come dirigente
-		$operatore = 'dirigente';
-		// il dirigente può sempre fare modifiche
-		$modificabile = true;
-		// devi leggere il timestamp dell'ultimo controllo effettuato
-		$ultimo_controllo = $_POST['ultimo_controllo'];
-	} else {
-		$operatore = 'docente';
-		$ultimo_controllo = '';
-		$modificabile = $__config->getOre_fatte_aperto();
-	}
-
-	$result = oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
-	echo json_encode($result);
-}*/
 ?>

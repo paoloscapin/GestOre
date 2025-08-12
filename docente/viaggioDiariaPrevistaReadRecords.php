@@ -56,14 +56,22 @@ function viaggioDiariaPrevistaReadRecords($soloTotale, $docente_id, $operatore, 
 	}
 
 	$dataDiaria .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
-							<tr>
-								<th class="col-md-6 text-left">Descrizione</th>
-								<th class="col-md-1 text-center">Senza Pernottamento</th>
+							<tr>';
+	if ($modificabile) {
+		$dataDiaria .=  '<th class="col-md-6 text-left">Descrizione</th>';
+	} else {
+		$dataDiaria .=  '<th class="col-md-7 text-left">Descrizione</th>';
+	}
+							
+	$dataDiaria .=  '<th class="col-md-1 text-center">Senza Pernottamento</th>
 								<th class="col-md-1 text-center">Con Pernottamento</th>
 								<th class="col-md-1 text-center">Importo</th>
-								<th class="col-md-1 text-center">Ore</th>
-								<th class="col-md-1 text-center"></th>
-							</tr>';
+								<th class="col-md-1 text-center">Ore</th>';
+	if ($modificabile) {
+		$dataDiaria .=  '<th class="col-md-1 text-center"></th>';
+	}
+								
+	$dataDiaria .=  '</tr>';
 
 	foreach(dbGetAll("SELECT viaggio_diaria_prevista.id as local_viaggio_diaria_prevista_id, viaggio_diaria_prevista.*, viaggio_diaria_prevista_commento.* FROM viaggio_diaria_prevista LEFT JOIN viaggio_diaria_prevista_commento on viaggio_diaria_prevista_commento.viaggio_diaria_prevista_id = viaggio_diaria_prevista.id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docente_id;") as $row) {
 		// controlla se aggiornata dall'ultima modifica (solo per il dirigente)
@@ -87,15 +95,14 @@ function viaggioDiariaPrevistaReadRecords($soloTotale, $docente_id, $operatore, 
 
 		$dataDiaria .= '<td class="text-center">'.writeOreDiariaPreviste($row['ore'], $row['ore_originali']).'</td>';
 
-		$dataDiaria .='<td class="text-center">';
 		// si possono modificare solo le righe previste da docente: se dirigente lo script non cancella ma propone di mettere le ore a zero
 		if ($modificabile) {
-			$dataDiaria .='
+		$dataDiaria .='<td class="text-center">
 			<button onclick="diariaPrevistaGetDetails('.$row['local_viaggio_diaria_prevista_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 			<button onclick="diariaPrevistaDelete('.$row['local_viaggio_diaria_prevista_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-		';
+			</td>';
 		}
-		$dataDiaria .='</td></tr>';
+		$dataDiaria .='</tr>';
 
 		$diariaGiorniSenzaPernottamento += $row['giorni_senza_pernottamento'];
 		$diariaGiorniConPernottamento += $row['giorni_con_pernottamento'];

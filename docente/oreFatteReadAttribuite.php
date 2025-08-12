@@ -71,7 +71,7 @@ function oreFatteReadAttribuite($soloTotale, $docente_id, $operatore, $ultimo_co
 	<th class="col-md-3 text-left">Nome</th>
 	<th class="col-md-5 text-left">Dettaglio</th>
 	<th class="col-md-1 text-center">ore</th>
-	<th class="col-md-1 text-center"></th>';
+	<th class="col-md-1 text-center"></th></tr>';
 
 	$dataAttribuite .= '</thead><tbody>';
 
@@ -118,17 +118,17 @@ function oreFatteReadAttribuite($soloTotale, $docente_id, $operatore, $ultimo_co
 
 		$ore_con_minuti = oreToDisplay($row['ore_previste_attivita_ore']);
 
-		$dataAttribuite .= '<tr><td class="col-md-1">'.$row['ore_previste_tipo_attivita_categoria'].'</td>';
-		$dataAttribuite .= '<td class="col-md-3">'.$row['ore_previste_tipo_attivita_nome'].'</td>';
+		$dataAttribuite .= '<tr><td>'.$row['ore_previste_tipo_attivita_categoria'].'</td>';
+		$dataAttribuite .= '<td>'.$row['ore_previste_tipo_attivita_nome'].'</td>';
 		$dataAttribuite .= '<td>'.$row['ore_previste_attivita_dettaglio'];
 		if ($row['ore_previste_attivita_commento_commento'] != null && !empty(trim($row['ore_previste_attivita_commento_commento'], " "))) {
 			$dataAttribuite .='</br><span class="text-danger"><strong>'.$row['ore_previste_attivita_commento_commento'].'</strong></span>';
 		}
 		$dataAttribuite .='</td>';
 
-		$dataAttribuite .= '<td class="col-md-1 text-center">'.writeOreAttribuite($row['ore_previste_attivita_ore'], $row['ore_previste_attivita_commento_ore_originali']).'</td>';
+		$dataAttribuite .= '<td class="text-center">'.writeOreAttribuite($row['ore_previste_attivita_ore'], $row['ore_previste_attivita_commento_ore_originali']).'</td>';
 
-		$dataAttribuite .='<td class="col-md-1 text-center">';
+		$dataAttribuite .='<td>';
 		// si possono modificare solo le righe previste da docente: se dirigente lo script non cancella ma propone di mettere le ore a zero
 		if ($operatore == 'dirigente') {
 			$dataAttribuite .='<button onclick="attribuiteGetDetails('.$row['ore_previste_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>';
@@ -173,32 +173,4 @@ function oreFatteReadAttribuite($soloTotale, $docente_id, $operatore, $ultimo_co
 	$result = compact('dataAttribuite', 'attribuiteOreFunzionali', 'attribuiteOreConStudenti', 'attribuiteClilOreFunzionali', 'attribuiteClilOreConStudenti', 'attribuiteOrientamentoOreFunzionali', 'attribuiteOrientamentoOreConStudenti');
 	return $result;
 }
-/*
-// se viene chiamato con un post, allora ritonna il valore con echo
-if(isset($_GET)) {
-	if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
-		$docente_id = $_GET['docente_id'];
-	} else {
-		$docente_id = $__docente_id;
-	}
-	$soloTotale = json_decode($_GET['soloTotale']);
-
-	if(isset($_GET['operatore']) && $_GET['operatore'] == 'dirigente') {
-		// se vuoi fare il dirigente, devi essere dirigente
-		ruoloRichiesto('dirigente');
-		// agisci quindi come dirigente
-		$operatore = 'dirigente';
-		// il dirigente può sempre fare modifiche
-		$modificabile = true;
-		// devi leggere il timestamp dell'ultimo controllo effettuato
-		$ultimo_controllo = $_PO_GETST['ultimo_controllo'];
-	} else {
-		$operatore = 'docente';
-		$ultimo_controllo = '';
-		$modificabile = $__config->getOre_fatte_aperto();
-	}
-
-	$result = oreFatteReadAttribuite($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
-	echo json_encode($result);
-}*/
 ?>

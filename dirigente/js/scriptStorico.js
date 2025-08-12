@@ -16,11 +16,11 @@ function storicoBonusSavePdf(anno_id) {
 
 function storicoFuis() {
 	var anno_id = $("#anno_select").val();
-	window.open("storicoFuis2.php" + "?anno_id=" + anno_id, '_blank');
+	window.open("storicoFuis3.php" + "?anno_id=" + anno_id, '_blank');
 }
 
 function storicoFuisSavePdf(anno_id) {
-    window.open('/GestOre/dirigente/storicoFuis2.php?anno_id=' + anno_id + '&print=true', '_blank');
+    window.open('/GestOre/dirigente/storicoFuis3.php?anno_id=' + anno_id + '&print=true', '_blank');
 }
 
  $(document).ready(function () {
