@@ -49,8 +49,8 @@ function oreFatteReadSportelli($soloTotale, $docente_id, $operatore, $ultimo_con
 	$dataSportelli .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green"><thead><tr>
 	<th class="col-md-2 text-left">Categoria</th>
 	<th class="col-md-2 text-left">Materia</th>
-	<th class="col-md-3 text-left">Note</th>
-	<th class="col-md-1 text-center">Studenti</th>
+	<th class="col-md-2 text-left">Note</th>
+	<th class="col-md-2 text-center">Studenti</th>
 	<th class="col-md-1 text-center">Data</th>
 	<th class="col-md-1 text-center">Ore</th>
 	<th class="col-md-1 text-center"></th>';
@@ -69,13 +69,13 @@ function oreFatteReadSportelli($soloTotale, $docente_id, $operatore, $ultimo_con
 	foreach(dbGetAll($query) as $sportello) {
 		// controlla se iniziano qui gli sportelli clil
 		if ($sportello['sportello_clil'] && ! $lastWasClil) {
-			$dataSportelli .= '<tr><th  colspan="7" class="col-md-12 text-center btn-lightblue4" style="padding: 0px">Clil</th></tr><tbody>';
+			$dataSportelli .= '<tr><th colspan="7" class="col-md-12 text-center btn-lightblue4" style="padding: 0px">Clil</th></tr>';
 			$lastWasClil = true;
 		}
 
 		// controlla se iniziano qui gli sportelli orientamento
 		if ($sportello['sportello_orientamento'] && ! $lastWasOrientamento) {
-			$dataSportelli .= '<tr><th colspan="7" class="col-md-12 text-center btn-beige" style="padding: 0px">Orientamento</th></tr><tbody>';
+			$dataSportelli .= '<tr><th colspan="7" class="col-md-12 text-center btn-beige" style="padding: 0px">Orientamento</th></tr>';
 			$lastWasOrientamento = true;
 		}
 
@@ -119,32 +119,4 @@ function oreFatteReadSportelli($soloTotale, $docente_id, $operatore, $ultimo_con
 	$result = compact('dataSportelli', 'sportelliOre', 'sportelliOreClil', 'sportelliOreOrientamento');
 	return $result;
 }
-/*
-// se viene chiamato con un post, allora ritonna il valore con echo
-if(isset($_GET)) {
-	if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
-		$docente_id = $_GET['docente_id'];
-	} else {
-		$docente_id = $__docente_id;
-	}
-	$soloTotale = json_decode($_GET['soloTotale']);
-
-	if(isset($_GET['operatore']) && $_GET['operatore'] == 'dirigente') {
-		// se vuoi fare il dirigente, devi essere dirigente
-		ruoloRichiesto('dirigente');
-		// agisci quindi come dirigente
-		$operatore = 'dirigente';
-		// il dirigente può sempre fare modifiche
-		$modificabile = true;
-		// devi leggere il timestamp dell'ultimo controllo effettuato
-		$ultimo_controllo = $_PO_GETST['ultimo_controllo'];
-	} else {
-		$operatore = 'docente';
-		$ultimo_controllo = '';
-		$modificabile = $__config->getOre_fatte_aperto();
-	}
-
-	$result = oreFatteReadSportelli($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
-	echo json_encode($result);
-}*/
 ?>

@@ -9,6 +9,8 @@
  */
 
 function produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriSelezionabili) {
+	global $__settings;
+	global $__application_base_path;
 
 	// se la lista dei campi e' vuota non deve produrre nessuna tabella
 	if(count($listaEtichette) <= 0) {
@@ -24,18 +26,18 @@ function produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriS
 	$tableBlock .= '<table id="campi"><tr><th>nome</th><th>valore</th><tr>';
 	for ($i = 0; $i < count($listaEtichette); $i++) {
 		$campo = $listaEtichette[$i];
-		if ($listaTipi[$i] == 1 || $listaTipi[$i] == 2) {
-			// per tipo 1 e 2 mette solo il valore
+		if ($listaTipi[$i] == 1 || $listaTipi[$i] == 2 || $listaTipi[$i] == 6) {
+			// per tipo 1 (text) e 2 (combo) e 6 (data) mette solo il valore
 			$valore = $listaValori[$i];
 		} else  if ($listaTipi[$i] == 5) {
-			// per tipo 5 (textarea) inserisce il "pre")
+			// per tipo 5 (textarea) inserisce il "pre"
 			$valore = '<span  style="white-space: pre-wrap;">' . $listaValori[$i] . '</span>';
 			// debug('ì='.$i.' valore='.$valore);
 		} else  if ($listaTipi[$i] == 3 || $listaTipi[$i] == 4) {
 			// per 3 e 4 la stringa rappresenta le posizioni in cui i checkbox o radio sono settati e i testi vanno presi da lista valori del db
 			// la trasforma in una lista di stringhe esplodendo i :: come separatori
 			$listaBoxChecked = array_map('intval', explode('::', $listaValori[$i]));
-	
+
 			$risultato = '';
 			// prende tutte le diciture dei box
 			$localiValoriSelezionabili = explode('::', $listaValoriSelezionabili[$i]);
@@ -49,8 +51,19 @@ function produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriS
 					$risultato = $risultato . $chekboxUnchecked . $valoreSelezionabile . '</div><br/>';
 				}
 			}
-	
+
 			$valore = $risultato;
+		} else  if ($listaTipi[$i] == 7) {
+			// per tipo 7 (upload): inserisce il link per scaricare il documento
+			$filePath = $listaValori[$i];
+
+			$connection = 'http';
+			if ($__settings->system->https) {
+				$connection = 'https';
+			}
+			// $url = "$connection://$_SERVER[HTTP_HOST]".$__application_base_path . '/segreteria/modulisticaDownload.php?documento=' . $filePath;
+			$url = "$connection://$_SERVER[HTTP_HOST]".$__application_base_path . '/uploads/' . $filePath;
+			$valore = '<span  style="white-space: pre-wrap;">' . '<a target="_blank" href=\''.$url.'\'>' . basename($filePath) .'</a>' . '</span>';
 		} else {
 			$valore = '';
 		}

@@ -37,16 +37,17 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 	// si usano  AND NOT in_itinere
 	// oppure  AND in_itinere = true
 	// intestazione della table
-	$dataCdr .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green"><tr><th>Corso</th><th>Ore Totali</th><th>Recuperate</th><th>Pagamento Extra</th><th></th></tr>';
+	$dataCdr .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green"><thead><tr><th class="col-md-3 text-left">Corso</th><th class="col-md-5 text-left">Materia</th><th class="text-center col-md-1">Ore Totali</th><th class="text-center col-md-1">Recuperate</th><th class="text-center col-md-1">Pagamento Extra</th><th class="text-center col-md-1"></th></tr></thead><tbody>';
 
 	// contatori delle ore recuperate e pagamento extra
 	$ore_recuperate_totale = 0;
 	$ore_pagamento_extra_totale = 0;
 
 	// prima i corsi di recupero che sono stati fatti a settembre (non in_itinere)
-	foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.* FROM corso_di_recupero INNER JOIN lezione_corso_di_recupero on lezione_corso_di_recupero.corso_di_recupero_id=corso_di_recupero.id WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id AND firmato=true AND NOT in_itinere") AS $corso) {
+	foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.*, materia.nome AS materiaNome FROM corso_di_recupero INNER JOIN materia ON corso_di_recupero.materia_id = materia.id INNER JOIN lezione_corso_di_recupero on lezione_corso_di_recupero.corso_di_recupero_id=corso_di_recupero.id WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id AND firmato=true AND NOT in_itinere") AS $corso) {
 		$corsoId = $corso['id'];
 		$corsoCodice = $corso['codice'];
+		$materia = $corso['materiaNome'];
 		// per prima cosa calcola quante ore sono state firmate
 		$ore_firmate = dbGetValue("SELECT COALESCE(SUM(lezione_corso_di_recupero.numero_ore),0) FROM `lezione_corso_di_recupero` WHERE corso_di_recupero_id = $corsoId AND firmato=true;");
 
@@ -62,7 +63,7 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 		// se le mancanti sono > 0 , allora queste ore le devo per forza recuperare e non posso modificarle
 		if ($mancanti_recuperate_totale > 0) {
 			// scrivo le ore e NON metto il bottone di modifica
-			$dataCdr .= '<tr><td class="col-md-7 text-left">1'.$corsoCodice.'</td><td class="col-md-1 text-center">'.$ore_recuperate_calcolate.'</td><td class="col-md-1 text-center">'.$ore_recuperate_calcolate.'</td><td class="col-md-1 text-center">'.'0'.'</td><td class="col-md-1 text-center"></td></tr>';
+			$dataCdr .= '<tr><td>'.$corsoCodice.'</td><td>'.$materia.'</td><td class="text-center">'.$ore_recuperate_calcolate.'</td><td class="text-center">'.$ore_recuperate_calcolate.'</td><td class="text-center">'.'0'.'</td><td></td></tr>';
 
 			// aggiorno il totale delle recuperate
 			$ore_recuperate_totale += $ore_recuperate_calcolate;
@@ -90,16 +91,17 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 		
 		// se sono rimaste delle ore firmate, ore devono essere inserite
 		if ($ore_firmate > 0) {
-			$dataCdr .= '<tr><td class="col-md-7 text-left">2'.$corsoCodice.'</td><td class="col-md-1 text-center">'.$ore_firmate.'</td><td class="col-md-1 text-center">'.$ore_recuperate.'</td><td class="col-md-1 text-center">'.$ore_pagamento_extra.'</td><td class="col-md-1 text-center">';
+			$dataCdr .= '<tr><td>'.$corsoCodice.'</td><td>'.$materia.'</td><td class="text-center">'.$ore_firmate.'</td><td class="text-center">'.$ore_recuperate.'</td><td class="text-center">'.$ore_pagamento_extra.'</td><td>';
 			$dataCdr .= '<button onclick="corsoDiRecuperoPrevisteEdit('.$corsoId.', \''.$corsoCodice.'\', '.$ore_firmate.', '.$ore_recuperate.', '.$ore_pagamento_extra.')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>';
 			$dataCdr .= '</td></tr>';
 		}
 	}
 
 	// adesso aggiungo tutti i corsi in itinere
-	foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.* FROM corso_di_recupero INNER JOIN lezione_corso_di_recupero on lezione_corso_di_recupero.corso_di_recupero_id=corso_di_recupero.id WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id AND in_itinere = true") AS $corso) {
+	foreach(dbGetAll("SELECT DISTINCT corso_di_recupero.*, materia.nome AS materiaNome FROM corso_di_recupero INNER JOIN materia ON corso_di_recupero.materia_id = materia.id INNER JOIN lezione_corso_di_recupero on lezione_corso_di_recupero.corso_di_recupero_id=corso_di_recupero.id WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id AND in_itinere = true") AS $corso) {
 		$corsoId = $corso['id'];
 		$corsoCodice = $corso['codice'];
+		$materia = $corso['materiaNome'];
 		// per prima cosa calcola quante ore sono state firmate
 		$soloFirmatePart = $controllaFirmeInItinere ? '  AND firmato=true ' : '';
 
@@ -117,47 +119,13 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 		// aggiorna il totale da ritornare
 		$corso_di_recupero_ore_in_itinere += $ore_firmate;
 
-		$dataCdr .= '<tr><td class="col-md-7 text-left">'.$corsoCodice.'</td><td class="col-md-1 text-center">'.$ore_firmate.'</td><td class="col-md-1 text-center">'.$ore_recuperate.'</td><td class="col-md-1 text-center">'.$ore_pagamento_extra.'</td><td class="col-md-1 text-center"></td></tr>';
+		$dataCdr .= '<tr><td>'.$corsoCodice.'</td><td>'.$materia.'</td><td class="text-center">'.$ore_firmate.'</td><td class="text-center">'.$ore_recuperate.'</td><td class="text-center">'.$ore_pagamento_extra.'</td><td></td></tr>';
 	}
 
-	$dataCdr .= '</table></div>';
+	$dataCdr .= '</tbody></table></div>';
+	// debug('dataCdr='.$dataCdr);
 
 	$result = compact('dataCdr', 'corso_di_recupero_ore_recuperate', 'corso_di_recupero_ore_pagamento_extra', 'corso_di_recupero_ore_in_itinere');
 	return $result;
 }
-/*
-// se viene chiamato con un post, allora ritonna il valore con echo
-if(isset($_POST['richiesta']) && $_POST['richiesta'] == "corsoDiRecuperoPrevisteReadRecords") {
-	if(isset($_POST['docente_id']) && isset($_POST['docente_id']) != "") {
-		$docente_id = $_POST['docente_id'];
-	} else {
-		$docente_id = $__docente_id;
-	}
-	$soloTotale = json_decode($_POST['soloTotale']);
-
-	if(isset($_POST['operatore']) && $_POST['operatore'] == 'dirigente') {
-		// se vuoi fare il dirigente, devi essere dirigente
-		ruoloRichiesto('dirigente');
-		// agisci quindi come dirigente
-		$operatore = 'dirigente';
-		// il dirigente può sempre fare modifiche
-		$modificabile = true;
-		// devi leggere il timestamp dell'ultimo controllo effettuato
-		$ultimo_controllo = $_POST['ultimo_controllo'];
-	} else {
-		$operatore = 'docente';
-		$ultimo_controllo = '';
-		$modificabile = $__config->getOre_fatte_aperto();
-	}
-
-	// le previste considerano come se tutto fosse stato firmato nel caso di corsi in itinere, ma le fatte no
-	if(isset($_POST['sorgente_richiesta']) && $_POST['sorgente_richiesta'] == 'fatte') {
-		$controllaFirmeInItinere = true;
-	} else {
-		$controllaFirmeInItinere = false;
-	}
-
-	$result = corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile, $controllaFirmeInItinere);
-	echo json_encode($result);
-}*/
 ?>

@@ -20,6 +20,10 @@ function writeGiorni($attuali, $originali) {
 	return '<s style="text-decoration-style: double;"> '.$originali.' </s>&ensp;<span class="text-danger"><strong> '.$attuali.' </strong></span>';
 }
 
+function formatNoZeroDiaria($value) {
+    return ($value != 0) ? number_format($value,2) : ' ';
+}
+
 function writeOreDiaria($attuali, $originali) {
 	// se non ci sono gli originali, scrive solo gli attuali
 	if ($originali == null || $originali == 0) {
@@ -51,20 +55,32 @@ function viaggioDiariaFattaReadRecords($soloTotale, $docente_id, $operatore, $ul
 		$diariaOre = $diaria['ore'];
 		$diariaImporto = $diariaGiorniSenzaPernottamento * $__importo_diaria_senza_pernottamento + $diariaGiorniConPernottamento * $__importo_diaria_con_pernottamento;
 
+		// aggiunge un eventuale importo di diaria proveniente dalla vecchia gestione nella tabella fuis_viaggio_diaria
+		$diaria_importo_extra = dbGetValue ("SELECT COALESCE(SUM(importo) , 0) AS importo FROM fuis_viaggio_diaria INNER JOIN viaggio ON viaggio.id = fuis_viaggio_diaria.viaggio_id WHERE viaggio.docente_id = $docente_id AND viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id;") ;
+		$diariaImporto = $diariaImporto + $diaria_importo_extra;
+
 		$result = compact('dataDiaria', 'diariaGiorniSenzaPernottamento', 'diariaGiorniConPernottamento', 'diariaImporto', 'diariaOre');
 		return $result;
 	}
 
 	$dataDiaria .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 							<tr>
-								<th class="col-md-1 text-left">Data</th>
-								<th class="col-md-5 text-left">Descrizione</th>
-								<th class="col-md-1 text-center">Senza Pernottamento</th>
+								<th class="col-md-1 text-left">Data</th>';
+	if ($modificabile) {
+		$dataDiaria .=  '<th class="col-md-5 text-left">Descrizione</th>';
+	} else {
+		$dataDiaria .=  '<th class="col-md-6 text-left">Descrizione</th>';
+	}
+							
+	$dataDiaria .=  '<th class="col-md-1 text-center">Senza Pernottamento</th>
 								<th class="col-md-1 text-center">Con Pernottamento</th>
 								<th class="col-md-1 text-center">Importo</th>
-								<th class="col-md-1 text-center">Ore</th>
-								<th class="col-md-1 text-center"></th>
-							</tr>';
+								<th class="col-md-1 text-center">Ore</th>';
+	if ($modificabile) {
+		$dataDiaria .=  '<th class="col-md-1 text-center"></th>';
+	}
+
+	$dataDiaria .=  '</tr><tbody>';
 
 	foreach(dbGetAll("SELECT viaggio_diaria_fatta.id as local_viaggio_diaria_fatta_id, viaggio_diaria_fatta.*, viaggio_diaria_fatta_commento.* FROM viaggio_diaria_fatta LEFT JOIN viaggio_diaria_fatta_commento on viaggio_diaria_fatta_commento.viaggio_diaria_fatta_id = viaggio_diaria_fatta.id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docente_id;") as $row) {
 		// controlla se aggiornata dall'ultima modifica (solo per il dirigente)
@@ -89,15 +105,14 @@ function viaggioDiariaFattaReadRecords($soloTotale, $docente_id, $operatore, $ul
 
 		$dataDiaria .= '<td class="text-center">'.writeOreDiaria($row['ore'], $row['ore_originali']).'</td>';
 
-		$dataDiaria .='<td class="text-center">';
 		// si possono modificare solo le righe previste da docente: se dirigente lo script non cancella ma propone di mettere le ore a zero
 		if ($modificabile) {
-			$dataDiaria .='
+			$dataDiaria .='<td class="text-center">
 			<button onclick="diariaFattaGetDetails('.$row['local_viaggio_diaria_fatta_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 			<button onclick="diariaFattaDelete('.$row['local_viaggio_diaria_fatta_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-		';
+		</td>';
 		}
-		$dataDiaria .='</td></tr>';
+		$dataDiaria .='</tr>';
 
 		$diariaGiorniSenzaPernottamento += $row['giorni_senza_pernottamento'];
 		$diariaGiorniConPernottamento += $row['giorni_con_pernottamento'];
@@ -105,7 +120,23 @@ function viaggioDiariaFattaReadRecords($soloTotale, $docente_id, $operatore, $ul
 		$diariaOre += $row['ore'];
 	}
 
-	$dataDiaria .= '</table></div>';
+	// aggiunge non modificabili i viaggi gestiti nel modo vecchio da tabella fuis_viaggio_diaria
+	foreach(dbGetAll("SELECT viaggio.*, fuis_viaggio_diaria.* FROM fuis_viaggio_diaria INNER JOIN viaggio ON viaggio.id = fuis_viaggio_diaria.viaggio_id WHERE viaggio.docente_id = $docente_id AND viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id;") as $row) {
+		$importo = $row['importo'];
+		$dataDiaria .= '<tr><td>'.strftime("%d/%m/%Y", strtotime($row['data_partenza'])).'</td><td>'.$row['destinazione'].' - classe: '.$row['classe'].'</td>';
+		$dataDiaria .= '<td></td>';
+		$dataDiaria .= '<td></td>';
+		$dataDiaria .= '<td class="text-right">'.$importo.' €&ensp;</td>';
+		$dataDiaria .= '<td></td><td></td></tr>';
+	}
+
+	// aggiunge un eventuale importo di diaria proveniente dalla vecchia gestione nella tabella fuis_viaggio_diaria
+	$diaria_importo_extra = dbGetValue ("SELECT COALESCE(SUM(importo) , 0) AS importo FROM fuis_viaggio_diaria INNER JOIN viaggio ON viaggio.id = fuis_viaggio_diaria.viaggio_id WHERE viaggio.docente_id = $docente_id AND viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id;") ;
+	$diariaImporto = $diariaImporto + $diaria_importo_extra;
+
+	$dataDiaria .= '</tbody><tfoot>';
+	$dataDiaria .='<tr><td colspan="4" class="text-right"><strong>Totale:</strong></td><td class="text-right funzionale"><strong>' . formatNoZeroDiaria($diariaImporto) . '</strong></td></tr>';
+	$dataDiaria .='</tfoot></table></div>';
 
 	$result = compact('dataDiaria', 'diariaGiorniSenzaPernottamento', 'diariaGiorniConPernottamento', 'diariaImporto', 'diariaOre');
 	return $result;

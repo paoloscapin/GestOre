@@ -22,6 +22,9 @@ $tipoList[2] = '<span class="glyphicon glyphicon-list"> combo</span>';
 $tipoList[3] = '<span class="glyphicon glyphicon-check"> checkbox</span>';
 $tipoList[4] = '<span class="glyphicon glyphicon-record"> radio</span>';
 $tipoList[5] = '<span class="glyphicon glyphicon-font"> text area</span>';
+$tipoList[6] = '<span class="glyphicon glyphicon-calendar"> calendar</span>';
+$tipoList[7] = '<span class="glyphicon glyphicon-open"> upload</span>';
+$tipoList[8] = '<span class="glyphicon glyphicon-header"> titolo</span>';
 
 $query = "SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $modulistica_template_id ORDER BY modulistica_template_campo.posizione ASC;";
 

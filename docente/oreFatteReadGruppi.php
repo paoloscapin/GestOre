@@ -71,13 +71,13 @@ function oreFatteReadGruppi($soloTotale, $docente_id, $operatore, $ultimo_contro
     foreach(dbGetAll($query) as $gruppo) {
 		// controlla se iniziano qui i gruppi clil
 		if ($gruppo['gruppo_clil'] && ! $lastWasClil) {
-			$dataGruppi .= '<thead><tr><th  colspan="7" class="col-md-12 text-center btn-lightblue4" style="padding: 0px">Clil</th></tr></thead><tbody>';
+			$dataGruppi .= '<thead><tr><th colspan="3" class="col-md-12 text-center btn-lightblue4" style="padding: 0px">Clil</th></tr></thead>';
 			$lastWasClil = true;
 		}
 
 		// controlla se iniziano qui i gruppi orientamento
 		if ($gruppo['gruppo_orientamento'] && ! $lastWasOrientamento) {
-			$dataGruppi .= '<thead><tr><th colspan="7" class="col-md-12 text-center btn-beige" style="padding: 0px">Orientamento</th></tr></thead><tbody>';
+			$dataGruppi .= '<tr><th colspan="3" class="col-md-12 text-center btn-beige" style="padding: 0px">Orientamento</th></tr>';
 			$lastWasOrientamento = true;
 		}
 
@@ -101,32 +101,4 @@ function oreFatteReadGruppi($soloTotale, $docente_id, $operatore, $ultimo_contro
 	$result = compact('dataGruppi', 'gruppiOre', 'gruppiOreClil', 'gruppiOreOrientamento');
 	return $result;
 }
-/*
-// se viene chiamato con un post, allora ritonna il valore con echo
-if(isset($_GET)) {
-	if(isset($_GET['docente_id']) && isset($_GET['docente_id']) != "") {
-		$docente_id = $_GET['docente_id'];
-	} else {
-		$docente_id = $docente_id;
-	}
-	$soloTotale = json_decode($_GET['soloTotale']);
-
-	if(isset($_GET['operatore']) && $_GET['operatore'] == 'dirigente') {
-		// se vuoi fare il dirigente, devi essere dirigente
-		ruoloRichiesto('dirigente');
-		// agisci quindi come dirigente
-		$operatore = 'dirigente';
-		// il dirigente può sempre fare modifiche
-		$modificabile = true;
-		// devi leggere il timestamp dell'ultimo controllo effettuato
-		$ultimo_controllo = $_PO_GETST['ultimo_controllo'];
-	} else {
-		$operatore = 'docente';
-		$ultimo_controllo = '';
-		$modificabile = $__config->getOre_fatte_aperto();
-	}
-
-    $result = oreFatteReadGruppi($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
-    echo json_encode($result);
-}*/
 ?>

@@ -22,41 +22,41 @@ $pagina = '';
 use Dompdf\Dompdf;
 if(! isset($_POST)) {
 	return;
-} else {
-	$template_id = $_POST['template_id'];
-	$richiesta_id = $_POST['richiesta_id'];
-	$documento = $_POST['documento'];
-    $docente_id = $_POST['docente_id'];
-    $approva_id = $_POST['approva_id'];
-	$listaValori = json_decode($_POST['listaValori']);
+}
 
-    $docente_nome = $__docente_nome;
-    $docente_cognome = $__docente_cognome;
-    $docente_email = $__docente_email;
-    $nomeCognomeDocente = $docente_nome . ' ' . $docente_cognome;
-    $anno = date("Y");
+$template_id = $_POST['template_id'];
+$richiesta_id = $_POST['richiesta_id'];
+$documento = $_POST['documento'];
+$docente_id = $_POST['docente_id'];
+$approva_id = $_POST['approva_id'];
+$listaValori = json_decode($_POST['listaValori']);
 
-    // recupera i dati del template e della richiesta
-    $template = dbGetFirst("SELECT * FROM modulistica_template WHERE id = $template_id;");
-    $email_to = $template['email_to'];
-    $email_approva = $template['email_approva'];
-    $email_di_avviso = $template['email_di_avviso'];
-	$produci_pdf = $template['produci_pdf'];
-	$messaggio_approvazione = $template['messaggio_approvazione'];
+$docente_nome = $__docente_nome;
+$docente_cognome = $__docente_cognome;
+$docente_email = $__docente_email;
+$nomeCognomeDocente = $docente_nome . ' ' . $docente_cognome;
+$anno = date("Y");
 
-	$listaEtichette = [];
-	$listaTipi = [];
-	$listaValoriSelezionabili = [];
-	foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $template_id ORDER BY posizione;") as $campo) {
-		$listaEtichette[] = $campo['etichetta'];
-		$listaValoriSelezionabili[] = $campo['lista_valori'];
-		$listaTipi[] = $campo['tipo'];
-	}
+// recupera i dati del template e della richiesta
+$template = dbGetFirst("SELECT * FROM modulistica_template WHERE id = $template_id;");
+$email_to = $template['email_to'];
+$email_approva = $template['email_approva'];
+$email_di_avviso = $template['email_di_avviso'];
+$produci_pdf = $template['produci_pdf'];
+$messaggio_approvazione = $template['messaggio_approvazione'];
 
-	// se deve essere approvata allora legge i dati della richiesta (serve solo lo uuid)
-    if ($template['approva']) {
-        $richiesta = dbGetFirst("SELECT * FROM modulistica_richiesta WHERE id = $richiesta_id;");
-    }
+$listaEtichette = [];
+$listaTipi = [];
+$listaValoriSelezionabili = [];
+foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $template_id ORDER BY posizione;") as $campo) {
+	$listaEtichette[] = $campo['etichetta'];
+	$listaValoriSelezionabili[] = $campo['lista_valori'];
+	$listaTipi[] = $campo['tipo'];
+}
+
+// se deve essere approvata allora legge i dati della richiesta (serve solo lo uuid)
+if ($template['approva']) {
+	$richiesta = dbGetFirst("SELECT * FROM modulistica_richiesta WHERE id = $richiesta_id;");
 }
 
 // ricava il titolo in modo generale

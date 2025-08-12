@@ -34,7 +34,7 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 
 		// per i docenti cambia lo stato in annullato
 		dbExec("UPDATE piano_di_lavoro SET stato = 'annullato' WHERE id = '$id'; ");
-        info("aggiornato piano_di_lavoro id=$id stato=annullato");
+        info("aggiornato carenza id=$id stato=annullato");
 	}
 }
 ?>

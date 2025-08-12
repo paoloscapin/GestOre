@@ -70,11 +70,13 @@ if(isset($_POST)) {
     $nome_indirizzo = dbGetValue("SELECT nome_breve FROM indirizzo WHERE id = $indirizzo_id ;");
     // costruisce il nome della classe
     $nome_classe = $classe . $nome_indirizzo . $sezione;
-    debug("nome classe=$nome_classe");
+    // debug("nome classe=$nome_classe");
 
     // se non e' una carenza non c'e' lo studente
     if ($carenza == 0) {
         $studente_id = null;
+    } else {
+        $obiettivi_minimi = 0;
     }
     
     if ($id > 0) {

@@ -490,7 +490,29 @@ require_once '../common/header-docente.php';
     </div>
 </div>
 
+</div>
+
 <!-- <div class="panel-footer"></div> -->
+
+<!-- solo la diaria in lettura -->
+<div class="panel panel-deeporange4">
+<div class="panel-heading container-fluid">
+	<div class="row">
+		<div class="col-md-2">
+			<span class="glyphicon glyphicon-picture"></span>&emsp;Diaria
+		</div>
+		<div class="col-md-8 text-right">
+		</div>
+		<div class="col-md-2 text-right">
+		</div>
+	</div>
+</div>
+<div class="panel-body">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="diaria_records_content"></div>
+        </div>
+    </div>
 </div>
 
 <!-- gestione viaggi semplificata -->

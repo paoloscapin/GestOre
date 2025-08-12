@@ -29,7 +29,38 @@ $templateTemplate = $template['template'];
 
 <title><?php echo "$templateNome"; ?></title>
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-3.css">
+<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 <!-- Custom JS file moved to the end -->
+
+<style>
+.file-upload {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width:100%;
+    height:100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+#progressBar {
+	background-color: #3E6FAD;
+	color: #ffffff;
+	width: 0px;
+	height: 30px;
+	margin-top: 10px;
+	margin-bottom: 10px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-o-border-radius: 5px;
+	border-radius: 5px;
+	-moz-transition: .25s ease-out;
+	-webkit-transition: .25s ease-out;
+	-o-transition: .25s ease-out;
+	transition: .25s ease-out;
+}
+</style>
+
 </head>
 
 <body >
@@ -69,6 +100,8 @@ $listaValoriDefault = [];
 $listaValoriSelezionabili = [];
 $listaTipi = [];
 $listaObbligatori = [];
+$fileUploadCounter = 0;
+
 foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_template_id = $template_id ORDER BY posizione;") as $campo) {
     $id = $campo['id'];
     $nome = $campo['nome'];
@@ -114,6 +147,46 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
     } else if($tipo == 5) {
         // tipo 5 = text area
         echo('<textarea rows="3" id="'.$nome.'" placeholder="'.$tip.'" class="form-control" ></textarea>');
+    } else if($tipo == 6) {
+        // tipo 6 = calendar, per ora considerato come testo semplice
+        echo('<input type="text" id="'.$nome.'" placeholder="'.$tip.'" class="form-control"');
+        if (array_key_exists($nome, $valoriNoti)) {
+            echo(' value="'. $valoriNoti[$nome] . '"');
+        }
+        echo ('/>');
+    } else if($tipo == 7) {
+        // tipo 7 = file upload
+        $infoValueTest = 'Test' . $fileUploadCounter;
+        $fileUploadName = 'fileUploadName' . $fileUploadCounter;
+        $fileUploadId = 'fileToUpload' . $fileUploadCounter;
+        $fileUploadProgressBar = 'progressBar' . $fileUploadCounter;
+        $fileNameId = 'filename' . $fileUploadCounter;
+
+        $fileUploadFileNameValue = 'fileNameValue' . $fileUploadCounter;
+        $fileUploadFilePathValue = 'filePathValue' . $fileUploadCounter;
+
+        echo('
+            <form id="upload-widget1" method="post" action="modulisticaCompilaModuloUpload.php" enctype="multipart/form-data">
+                <div class="input-group">
+                    <input type="hidden" name="info" value="'.$infoValueTest.'">
+                    <input type="text" class="form-control file-upload-text" disabled placeholder="seleziona il documento da caricare..." />
+                    <span class="input-group-btn">
+                        <button type="button" class="btn btn-info file-upload-btn"><span class="glyphicon glyphicon-folder-open"></span>
+                            <input type="file" class="file-upload" name="'.$fileUploadName.'" id="'.$fileUploadId.'" />&nbsp;&nbsp;Seleziona
+                        </button>
+                        <!-- <button type="submit" class="btn btn-success"><span class="glyphicon glyphicon-open"></span> Carica</button> -->
+                    </span>
+                </div>
+            </form>
+            <div id="'.$fileNameId.'"><b>&nbsp;</b></div>
+            <div id="'.$fileUploadProgressBar.'" hidden="hidden"></div>
+            <div id="'.$fileUploadFileNameValue.'" hidden="hidden"></div>
+            <div id="'.$fileUploadFilePathValue.'" hidden="hidden"></div>
+        ');
+
+        $fileUploadCounter += 1;
+    } else if($tipo == 8) {
+        // tipo 8 = title, non deve fare niente
     }
 
     echo('</div>');
@@ -184,6 +257,8 @@ foreach(dbGetAll("SELECT * FROM modulistica_template_campo WHERE modulistica_tem
 <!-- Custom JS file -->
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/js/_util.js?v=<?php echo $__software_version; ?>"></script>
 <script type="text/javascript" src="js/scriptCompilaModulo.js?v=<?php echo $__software_version; ?>"></script>
+
+<script type="text/javascript" src="../common/simpleUpload-1.1.0/js/simpleUpload.min.js"> </script>
 
 </body>
 </html>

@@ -21,7 +21,7 @@ require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_flatpickr.php';
 require_once '../common/_include_summernote.php';
 require_once '../common/_include_bootstrap-notify.php';
-ruoloRichiesto('docente','dirigente');
+ruoloRichiesto('docente','dirigente','segreteria-didattica');
 ?>
     <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">

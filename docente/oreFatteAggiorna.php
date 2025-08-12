@@ -32,6 +32,7 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	$messaggio = '';
 	$messaggioEccesso = '';
 	$messaggioPreviste = '';
+	$importoFuisAssegnato = 0;
 
 	$oreAggiornamentoPreviste = 0;
 	$oreConStudentiPreviste = 0;
@@ -196,7 +197,14 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	$dataViaggi = $result['dataViaggi'];
 	$totale = $totale + compact('dataViaggi');
 
-	$totale = $totale + compact('oreConStudenti', 'oreFunzionali', 'oreClilConStudenti', 'oreClilFunzionali', 'oreOrientamentoConStudenti', 'oreOrientamentoFunzionali', 'oreSostituzione', 'oreAggiornamento', 'diariaGiorniSenzaPernottamento', 'diariaGiorniConPernottamento', 'diariaImporto');
+	// fuis assegnato
+	require_once '../docente/oreFatteReadFuisAssegnato.php';
+	$result = oreFatteReadFuisAssegnato($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
+	$importoFuisAssegnato = $result['importoFuisAssegnato'];
+	$dataFuisAssegnato = $result['dataFuisAssegnato'];
+	$totale = $totale + compact('dataFuisAssegnato');
+
+	$totale = $totale + compact('oreConStudenti', 'oreFunzionali', 'oreClilConStudenti', 'oreClilFunzionali', 'oreOrientamentoConStudenti', 'oreOrientamentoFunzionali', 'oreSostituzione', 'oreAggiornamento', 'diariaGiorniSenzaPernottamento', 'diariaGiorniConPernottamento', 'diariaImporto', 'importoFuisAssegnato');
 
 	// adesso devo calcolare il fuis: prima le previste
     $bilancioFunzionaliPreviste = $oreFunzionaliPreviste - $oreFunzionaliDovute;
@@ -379,10 +387,11 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	$fuisExtraCorsiDiRecupero = $oreCorsoDiRecuperoExtra * $__importi['importo_ore_corsi_di_recupero'];
 
 	// calcola il totale del fuis assegnato
-    $fuisAssegnato = dbGetValue("SELECT COALESCE(SUM(importo), 0) FROM fuis_assegnato WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
+    $fuisAssegnato = $importoFuisAssegnato;
 
 	$totale = $totale + compact('messaggio', 'messaggioEccesso', 'fuisFunzionale', 'fuisConStudenti', 'fuisOre', 'fuisClilFunzionale', 'fuisClilConStudenti', 'fuisOrientamentoFunzionale', 'fuisOrientamentoConStudenti', 'fuisExtraCorsiDiRecupero', 'fuisAssegnato');
 
+	// debug('TOTALE='.json_encode($totale, JSON_PRETTY_PRINT));
 	return $totale;
 }
 
