@@ -19,12 +19,12 @@ if(isset($_POST)) {
     if ($__importo_id > 0) {
         $query = "UPDATE importo SET fuis = '$__importo_fuis', fuis_clil = '$__importo_fuis_clil', fuis_orientamento = '$__importo_fuis_orientamento', bonus = '$__importo_bonus' WHERE id = '$__importo_id'";
         dbExec($query);
-        info("aggiornato importo id=$id fuis=$__importo_fuis fuis_clil=$__importo_fuis_clil fuis_orientamento=$__importo_fuis_orientamento bonus=$__importo_bonus");
+        info("aggiornato importo id=$__importo_id fuis=$__importo_fuis fuis_clil=$__importo_fuis_clil fuis_orientamento=$__importo_fuis_orientamento bonus=$__importo_bonus");
     } else {
         $query = "INSERT INTO importo (fuis, fuis_clil, fuis_orientamento, bonus, anno_scolastico_id) VALUES ('$__importo_fuis', '$__importo_fuis_clil', '$__importo_fuis_orientamento', '$__importo_bonus', $__anno_scolastico_corrente_id)";
         dbExec($query);
         $id = dblastId();
-        info("inserito importo id=$id fuis=$__importo_fuis fuis_clil=$__importo_fuis_clil fuis_orientamento=$__importo_fuis_orientamento bonus=$__importo_bonus anno_scolastico_id=$__anno_scolastico_corrente_id");
+        info("inserito importo id=$__importo_id fuis=$__importo_fuis fuis_clil=$__importo_fuis_clil fuis_orientamento=$__importo_fuis_orientamento bonus=$__importo_bonus anno_scolastico_id=$__anno_scolastico_corrente_id");
     }
 }
 ?>
