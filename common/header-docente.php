@@ -40,9 +40,9 @@
 			<?php endif; ?>
 
 			<?php if (getSettingsValue('programmiMinimi', 'visibile_docenti', false)): ?>
-			<div class="btn-group">
-			<a href="<?php echo $__application_base_path; ?>/didattica/programmaMinimi.php" class="btn btn-default navbar-btn btn-purple" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Obiettivi Minimi </a>
-			</div>
+				<div class="btn-group">
+					<a href="<?php echo $__application_base_path; ?>/didattica/programmaMinimi.php" class="btn btn-default navbar-btn btn-purple" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Obiettivi Minimi </a>
+				</div>
 			<?php endif; ?>
 			<?php if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)): ?>
 				<div class="btn-group">
@@ -51,24 +51,26 @@
 							class="glyphicon glyphicon-th-large"></span>&ensp;Programma Materie </a>
 				</div>
 			<?php endif; ?>
-		<?php if(getSettingsValue('programmiSvolti','visibile_docenti', false)) : ?>
-			<div class="btn-group">
-			<a href="<?php echo $__application_base_path; ?>/didattica/programmiSvolti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Svolti </a>
-			</div>
-		<?php endif; ?>
+			<?php if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) : ?>
+				<div class="btn-group">
+					<a href="<?php echo $__application_base_path; ?>/didattica/programmiSvolti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Svolti </a>
+				</div>
+			<?php endif; ?>
 
-		<?php if((getSettingsValue('config','carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi','visibile_docenti', false)))  : ?>
-			<div class="btn-group">
-			<a href="<?php echo $__application_base_path; ?>/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
-			</div>
-		<?php endif; ?>
+			<?php if ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false))) : ?>
+				<div class="btn-group">
+					<a href="<?php echo $__application_base_path; ?>/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
+				</div>
+			<?php endif; ?>
 
 
 			<?php
-			require_once '../common/connect.php';
-			$num = dbGetValue("SELECT COUNT(id) FROM gruppo WHERE gruppo.dipartimento = false AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id AND gruppo.responsabile_docente_id = $__docente_id;");
-			if ($num > 0) {
-				echo '<a href="' . $__application_base_path . '/docente/gruppo.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Gruppi </a>';
+			if ($__utente_ruolo == 'docente') {
+				require_once '../common/connect.php';
+				$num = dbGetValue("SELECT COUNT(id) FROM gruppo WHERE gruppo.dipartimento = false AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id AND gruppo.responsabile_docente_id = $__docente_id;");
+				if ($num > 0) {
+					echo '<a href="' . $__application_base_path . '/docente/gruppo.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Gruppi </a>';
+				}
 			}
 			?>
 			<!--			<a href="<?php echo $__application_base_path; ?>/docente/index.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;80 Ore</a> -->

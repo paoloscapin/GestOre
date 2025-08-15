@@ -15,6 +15,7 @@ require_once '../common/checkSession.php';
 <?php
 
 require_once '../common/header-common.php';
+require_once '../common/header-docente.php';
 require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente');
@@ -24,9 +25,6 @@ ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente'
 </head>
 
 <body >
-<?php
-	require_once '../common/header-docente.php';
-?>
 
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
