@@ -103,7 +103,15 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
 // studenti
 $studentiFiltroOptionList = '<option value="0">T</option>';
 $studentiOptionList = '<option value="0">selezionare studente</option>';
-foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id_anno_scolastico=$__anno_scolastico_corrente_id ORDER BY studente.cognome, studente.nome ASC") as $studente) {
+foreach (dbGetAll("
+    SELECT studente.* 
+    FROM studente
+    INNER JOIN studente_frequenta 
+        ON studente.id = studente_frequenta.id_studente
+    WHERE studente.attivo = 1
+      AND studente_frequenta.id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . "
+    ORDER BY studente.cognome, studente.nome ASC
+") as $studente) {
     $studentiFiltroOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - ' . $studente['classe'] . '</option> ';
     $studentiOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - ' . $studente['classe'] . '</option> ';
 }
