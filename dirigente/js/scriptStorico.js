@@ -7,11 +7,11 @@
 
 function storicoBonus() {
 	var anno_id = $("#anno_select").val();
-	window.open("storicoBonus2.php" + "?anno_id=" + anno_id, '_blank');
+	window.open("storicoBonus3.php" + "?anno_id=" + anno_id, '_blank');
 }
 
 function storicoBonusSavePdf(anno_id) {
-    window.open('/GestOre/dirigente/storicoBonus2.php?anno_id=' + anno_id + '&print=true', '_blank');
+    window.open('/GestOre/dirigente/storicoBonus3.php?anno_id=' + anno_id + '&print=true', '_blank');
 }
 
 function storicoFuis() {

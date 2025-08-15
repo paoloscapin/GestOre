@@ -62,7 +62,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico WHERE id <= $__anno_scolastico_
 </div>
 
 <!-- Custom JS file -->
-<script type="text/javascript" src="js/scriptStorico.js"></script>
+<script type="text/javascript" src="js/scriptStorico.js?v=<?php echo $__software_version; ?>"></script>
 
 </body>
 </html>
