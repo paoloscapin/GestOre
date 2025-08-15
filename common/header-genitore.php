@@ -30,7 +30,7 @@
 			<li><a href="<?php echo $__application_base_path; ?>/help/GestOre - Guida Studenti.pdf" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>
 			<li><a><span class=""></span>
 			<?php if (haRuolo('admin')) echo "(A)" ?>
-			<?php echo $__studente_nome.' '.$__studente_cognome ?></a></li>
+			<?php echo $__genitore_nome.' '.$__genitore_cognome ?></a></li>
 			<li>
 			<?php
 			if (haRuolo('admin')) {

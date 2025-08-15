@@ -113,7 +113,7 @@ foreach ($studenti as $studente) {
 
 <body>
     <?php
-    require_once '../common/header-studente.php';
+    require_once '../common/header-genitore.php';
     require_once '../common/connect.php';
     ?>
 
