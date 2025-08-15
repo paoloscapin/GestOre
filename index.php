@@ -25,6 +25,9 @@ else if (haRuolo('segreteria-docenti')) {
 else if (haRuolo('segreteria-didattica')) {
     redirect('/didattica/index.php');
 }
+else if (haRuolo('genitore')) {
+    redirect('/genitore/index.php');
+}
 else if (haRuolo('studente')) {
     redirect('/studente/index.php');
 }
@@ -77,7 +80,7 @@ require_once __DIR__ . '/common/style.php';
 <body >
     <div class="container-fluid" style="margin-top:10px">
         <div class="login-form text-center">
-            <form action="login-check.php" method="post">
+            <form action="checkSession.php" method="post">
                 <h2 class="text-center">GestOre</h2>
 
                     <a href="<?php echo filter_var($authUrl, FILTER_SANITIZE_URL) ?>" class="btn btn-info btn-block active">
@@ -90,7 +93,7 @@ require_once __DIR__ . '/common/style.php';
 
     <div class="container-fluid" style="margin-top:10px">
         <div class="login-form text-center" style="margin: 10px auto;">
-            <form action="login-check.php" method="post">
+            <form action=".\common\checkSession.php" method="post">
                 <h2 class="text-center">Accesso genitori</h2>
     			<div class="form-group">
                     <input type="text" class="form-control" name="username" placeholder="Username" required>

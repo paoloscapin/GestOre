@@ -39,7 +39,8 @@
         "programmiSvolti":true,
         "programmiMinimi":true,
         "carenze": false,
-        "carenzeObiettiviMinimi": false
+        "carenzeObiettiviMinimi": false,
+        "ulrAPIMastercom": "https://buonarroti-tn.registroelettronico.com/mastercom/register_manager.php"
     },
     "interfaccia": {
         "apriDocenteInNuovoTab": true,
