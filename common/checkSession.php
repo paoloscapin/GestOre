@@ -50,8 +50,9 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
     $password = trim($_POST['password']);
 
     // Verifica esistenza nel DB locale
-    $query = "SELECT id FROM genitori WHERE username = '$username'";
-    $esiste_login = (dbGetAll($query) != null);
+    $query = "SELECT * FROM genitori WHERE username = '$username'";
+    $genitore = dbGetFirst($query);
+    $esiste_login = ($genitore != null);
 
     if ($esiste_login) {
         $curl = curl_init();
