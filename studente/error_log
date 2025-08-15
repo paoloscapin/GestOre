@@ -1,0 +1,92 @@
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "log" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 14
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "debug" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 14
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "log" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 19
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "logIntoAppFolder" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 19
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "log" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 22
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "logFile" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 22
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "log" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 24
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "timeFormat" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 24
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "db" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "host" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "db" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "user" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "db" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "password" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "db" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[01-Jul-2025 10:08:01 UTC] PHP Warning:  Attempt to read property "database" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[01-Jul-2025 10:08:01 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user ''@'localhost' (using password: NO) in /home/gvgtcyej/public_html/GestOre/common/connect.php:14
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(14): mysqli->__construct()
+#1 /home/gvgtcyej/public_html/GestOre/common/checkSession.php(12): require_once('/home/gvgtcyej/...')
+#2 /home/gvgtcyej/public_html/GestOre/studente/index.php(9): require_once('/home/gvgtcyej/...')
+#3 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[02-Jul-2025 15:20:39 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '=2 OR carenze.stato ==3)' at line 25 in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/carenzeReadRecords.php(54): dbGetAll()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
+[02-Jul-2025 15:20:41 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '=2 OR carenze.stato ==3)' at line 25 in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/carenzeReadRecords.php(54): dbGetAll()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
+[02-Jul-2025 15:20:44 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '=2 OR carenze.stato ==3)' at line 25 in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/carenzeReadRecords.php(54): dbGetAll()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
+[08-Aug-2025 17:56:37 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'studente.classe' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/sportelloReadRecords.php(100): dbGetAll()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
+[10-Aug-2025 15:20:31 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'studente.classe' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/sportelloReadRecords.php(100): dbGetAll()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
+[10-Aug-2025 15:20:40 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'studente.classe' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/sportelloReadRecords.php(100): dbGetAll()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
+[11-Aug-2025 17:06:30 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'studente.classe' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/sportelloReadRecords.php(100): dbGetAll()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
+[11-Aug-2025 17:06:32 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'studente.classe' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/sportelloReadRecords.php(100): dbGetAll()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
+[12-Aug-2025 14:52:08 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'studente.classe' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/sportelloReadRecords.php(100): dbGetAll()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
+[13-Aug-2025 14:18:06 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'studente.classe' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/sportelloReadRecords.php(100): dbGetAll()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
+[14-Aug-2025 14:03:13 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[14-Aug-2025 15:26:23 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[14-Aug-2025 17:00:04 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[15-Aug-2025 02:37:46 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'studente.classe' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/sportelloReadRecords.php(100): dbGetAll()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81

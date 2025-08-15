@@ -1,9 +1,10 @@
 <?php
 
+
 /**
  *  This file is part of GestOre
- *  @author     Paolo Scapin <paolo.scapin@gmail.com>
- *  @copyright  (C) 2018 Paolo Scapin
+ *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
+ *  @copyright  (C) 2025 Massimo Saiani
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 require_once '../common/checkSession.php';
@@ -111,14 +112,14 @@ foreach (dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ") as $classe
                     <div class="col-md-1" style="padding:10px">
                         <span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli
                     </div>
-                    <div class="col-md-2" style="padding:0px">
+                                        <div class="col-md-2" style="padding:0px">
                         <div class="text-center">
                             <label class="col-sm-2 control-label" for="categoria"
-                                style="margin:10px 0px 0px 0px">Categoria</label>
-                            <div class="col-sm-8" style="padding:0px"><select id="categoria_filtro"
+                                style="margin:10px 0px 0px 0px; text-align:right">Categoria</label>
+                            <div class="col-sm-10" style="padding:0px;text-align:right"><select id="categoria_filtro"
                                     name="categoria_filtro" class="categoria_filtro selectpicker"
                                     data-style="btn-yellow4" data-live-search="true"
-                                    data-noneSelectedText="seleziona..." data-width="70%">
+                                    data-noneSelectedText="seleziona..." data-width="80%">
                                     <?php echo $categoriaFiltroOptionList ?>
                                 </select></div>
                         </div>
@@ -126,10 +127,10 @@ foreach (dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ") as $classe
                     <div class="col-md-2" style="padding:0px">
                         <div class="text-center">
                             <label class="col-sm-2 control-label" for="docente"
-                                style="margin:5px 0px 0px 0px">Docente</label>
-                            <div class="col-sm-8"><select id="docente_filtro" name="docente_filtro"
+                                style="margin:10px 0px 0px 0px; text-align:right">Docente</label>
+                            <div class="col-sm-10" style="padding:0px;text-align:right"><select id="docente_filtro" name="docente_filtro"
                                     class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
-                                    data-noneSelectedText="seleziona..." data-width="90%">
+                                    data-noneSelectedText="seleziona..." data-width="85%">
                                     <?php echo $docenteFiltroOptionList ?>
                                 </select></div>
                         </div>
@@ -137,8 +138,8 @@ foreach (dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ") as $classe
                     <div class="col-md-2" style="padding:0px">
                         <div class="text-center">
                             <label class="col-sm-2 control-label" for="materia"
-                                style="margin:5px 0px 0px 0px">Materia</label>
-                            <div class="col-sm-8"><select id="materia_filtro" name="materia_filtro"
+                                style="margin:10px 0px 0px 0px; text-align:right">Materia</label>
+                            <div class="col-sm-10" style="padding:0px;text-align:right"><select id="materia_filtro" name="materia_filtro"
                                     class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
                                     data-noneSelectedText="seleziona..." data-width="90%">
                                     <?php echo $materiaFiltroOptionList ?>
@@ -148,8 +149,8 @@ foreach (dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ") as $classe
                     <div class="col-md-2" style="padding:0px">
                         <div class="text-center">
                             <label class="col-sm-2 control-label" for="classe"
-                                style="margin:5px 0px 0px 0px">Classe</label>
-                            <div class="col-sm-10"><select id="classe_filtro" name="classe_filtro"
+                                style="margin:10px 0px 0px 0px; text-align:right">Classe</label>
+                            <div class="col-sm-10" style="padding:0px;text-align:right"><select id="classe_filtro" name="classe_filtro"
                                     class="classe_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
                                     data-noneSelectedText="seleziona..." data-width="90%">
                                     <?php echo $classeFiltroOptionList ?>
