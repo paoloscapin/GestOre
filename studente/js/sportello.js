@@ -5,6 +5,15 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+// 🔽 Recupero parametro "d" passato nello <script src=...>
+var scripts = document.getElementsByTagName('script');
+var myScript = scripts[scripts.length - 1];
+var url = new URL(myScript.src);
+var params = new URLSearchParams(url.search);
+var device = params.get("d") || "desktop"; // default "desktop"
+
+console.log("Device:", device);
+
 var soloNuovi=1;
 var soloIscritto=0;
 var ancheCancellati=0;
@@ -44,8 +53,13 @@ $('#ancheCancellatiCheckBox').change(function() {
 });
 
 function sportelloReadRecords() {
-	$.get("sportelloReadRecords.php?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloIscritto=" + soloIscritto + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&categoria_filtro_id=" + categoria_filtro_id, {}, function (data, status) {
-		$(".records_content").html(data);
+        var endpoint = (device === "mobile") 
+        ? "sportelloReadRecords_mobile.php" 
+        : "sportelloReadRecords.php";
+
+	$.get(endpoint+"?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloIscritto=" + soloIscritto + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&categoria_filtro_id=" + categoria_filtro_id, {}, function (data, status) {
+		console.log(data);
+        $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',
             container: 'body'
@@ -108,7 +122,7 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
     var inputOptions = chiediArgomento ? [] : [{text: 'Confermo',value: '1',}];
     var value = chiediArgomento ? [] : ['1'];
 
-    bootbox.prompt({
+    var dialog = bootbox.prompt({
         title: titolo,
         message: messaggio,
         inputType: inputType,
@@ -154,6 +168,9 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
             });
         }
     });
+    dialog.on('shown.bs.modal', function() {
+    $(this).attr('aria-hidden', 'false'); // ora il modal è accessibile
+});
 }
 
 $(document).ready(function () {

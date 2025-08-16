@@ -1,6 +1,6 @@
 <?php
 /**
- *  Mobile header per Genitore
+ *  Mobile header per Studente
  */
 ?>
 
@@ -39,13 +39,13 @@
             <ul class="nav navbar-nav navbar-right">
 
                 <?php if(getSettingsValue('config','sportelli', false)) : ?>
-                    <li><a class="btn btn-orange4" href="<?php echo $__application_base_path; ?>/genitore/sportello.php">
+                    <li><a class="btn btn-orange4" href="<?php echo $__application_base_path; ?>/studente/sportello_mobile.php">
                         <span class="glyphicon glyphicon-blackboard"></span> Sportelli
                     </a></li>
                 <?php endif; ?>
 
                 <?php if((getSettingsValue('config','carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi','visibile_studenti', false))) : ?>
-                    <li><a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/genitore/carenze.php">
+                    <li><a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/studente/carenze.php">
                         <span class="glyphicon glyphicon-film"></span> Carenze
                     </a></li>
                 <?php endif; ?>
@@ -60,7 +60,7 @@
                             <span class="glyphicon glyphicon-log-out"></span> Logout
                         </a>
                     <?php else : ?>
-                        <a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/common/logout.php?base=genitore">
+                        <a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/common/logout.php?base=studente">
                             <span class="glyphicon glyphicon-log-out"></span> Logout
                         </a>
                     <?php endif; ?>

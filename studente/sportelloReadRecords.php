@@ -64,12 +64,11 @@ $query = "	SELECT
 				(	SELECT studente.cognome FROM studente WHERE id = $__studente_id) AS studente_cognome,
 				(	SELECT studente.nome FROM studente WHERE id = $__studente_id) AS studente_nome,
 				(	SELECT studente.email FROM studente WHERE id = $__studente_id) AS studente_email,
-				(	SELECT studente.classe FROM studente WHERE id = $__studente_id) AS studente_classe
+				(	SELECT classi.classe FROM classi WHERE id = (SELECT studente_frequenta.id_classe FROM studente_frequenta WHERE id_studente = $__studente_id AND id_anno_scolastico = $__anno_scolastico_corrente_id)) AS studente_classe
 			FROM sportello sportello
 			INNER JOIN docente docente ON sportello.docente_id = docente.id
 			INNER JOIN materia materia ON sportello.materia_id = materia.id
 			INNER JOIN classe classe ON sportello.classe_id = classe.id
-			INNER JOIN sportello_categoria ON sportello.categoria = sportello_categoria.nome
 			
 			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
 			";
@@ -125,9 +124,8 @@ foreach ($resultArray as $row) {
 
 				studente.cognome AS studente_cognome,
 				studente.nome AS studente_nome,
-				studente.classe AS studente_classe,
-				studente.id AS studente_id
-
+				studente.id AS studente_id,
+				(	SELECT classi.classe FROM classi WHERE id = (SELECT studente_frequenta.id_classe FROM studente_frequenta WHERE id_studente = $__studente_id AND id_anno_scolastico = $__anno_scolastico_corrente_id)) AS studente_classe
 			FROM
 				sportello_studente
 			INNER JOIN studente
@@ -287,40 +285,40 @@ foreach ($resultArray as $row) {
 				$data .= '<div data-toggle="tooltip" data-placement="left"  title="Sportello annullato dal docente"><span class="label label-default">cancellato</span></div>';
 			} else
 				if ($row['iscritto']) {
-					if ($cancellabile) {
-						$data .= '
+				if ($cancellabile) {
+					$data .= '
 						<div data-toggle="tooltip" data-placement="left"  title="Clicca qui per cancellare la prenotazione"><span class="label label-success">Iscritto</span><button onclick="sportelloCancellaIscrizione(' . $row['sportello_id'] . ', \'' . addslashes($row['materia_nome']) . '\', \'' . addslashes($row['sportello_categoria']) . '\', \'' . addslashes($row['sportello_argomento']) . '\',\'' . addslashes($row['sportello_data']) . '\',\'' . addslashes($row['sportello_ora']) . '\',\'' . addslashes($row['sportello_numero_ore']) . '\',\'' . addslashes($row['sportello_luogo']) . '\',\'' . addslashes($row['studente_cognome']) . '\',\'' . addslashes($row['studente_nome']) . '\',\'' . addslashes($row['studente_email']) . '\',\'' . addslashes($row['studente_classe']) . '\',\'' . addslashes($row['docente_cognome']) . '\',\'' . addslashes($row['docente_nome']) . '\',\'' . addslashes($row['docente_email']) . '\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button></div>
 						';
-					} else {
-						$data .= '
+				} else {
+					$data .= '
 						<div data-toggle="tooltip" data-placement="left"  title="Iscrizione non più cancellabile"><span class="label label-success">Iscritto</span></div>
 						';
-					}
-				} else {
-					if ($prenotabile) {
-						$data .= '
+				}
+			} else {
+				if ($prenotabile) {
+					$data .= '
 					<div data-toggle="tooltip" data-placement="left"  title="Clicca qui per iscriverti allo sportello"><span class="label label-primary">Disponibile</span>
 					<button onclick="sportelloIscriviti(' . $row['sportello_id'] . ', \'' . addslashes($row['materia_nome']) . '\', \'' . addslashes($row['sportello_categoria']) . '\', \'' . addslashes($row['sportello_argomento']) . '\',\'' . addslashes($row['sportello_data']) . '\',\'' . addslashes($row['sportello_ora']) . '\',\'' . addslashes($row['sportello_numero_ore']) . '\',\'' . addslashes($row['sportello_luogo']) . '\',\'' . addslashes($row['studente_cognome']) . '\',\'' . addslashes($row['studente_nome']) . '\',\'' . addslashes($row['studente_email']) . '\',\'' . addslashes($row['studente_classe']) . '\',\'' . addslashes($row['docente_cognome']) . '\',\'' . addslashes($row['docente_nome']) . '\',\'' . addslashes($row['docente_email']) . '\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button></div>
 					';
-					} else {
-						if ($posti_disponibili == 0) {
-							$data .= '
+				} else {
+					if ($posti_disponibili == 0) {
+						$data .= '
 					<div data-toggle="tooltip" data-placement="left"  title="Posti disponibili esauriti"><span class="label label-danger">Posti esauriti</span></div>
 					';
-						} else {
-							$tSportello = new DateTime($dataSportello);
-							if ($tSportello <= $today) {
-								$data .= '
+					} else {
+						$tSportello = new DateTime($dataSportello);
+						if ($tSportello <= $today) {
+							$data .= '
 						<div data-toggle="tooltip" data-placement="left"  title="Iscrizioni chiuse"><span span class="label label-danger">Iscrizioni chiuse</span></div>
 						';
-							} else {
-								$data .= '
+						} else {
+							$data .= '
 						<div data-toggle="tooltip" data-placement="left"  title="Prenotabile dal lunedì precedente"><span span class="label label-info">Non ancora prenotabile</span></div>
 						';
-							}
 						}
 					}
 				}
+			}
 		}
 
 		// chiudi l'ultima colonna e la riga
@@ -330,4 +328,3 @@ foreach ($resultArray as $row) {
 $data .= '</table></div>';
 
 echo $data;
-?>

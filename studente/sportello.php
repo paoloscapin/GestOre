@@ -7,7 +7,9 @@
  *  @copyright  (C) 2025 Massimo Saiani
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
+
 require_once '../common/checkSession.php';
+
 ?>
 
 <!DOCTYPE html>
@@ -21,6 +23,8 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_bootstrap-toggle.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
+    info("ruolo attuale: " . $__utente_ruolo);
+    info("utente attuale: " . $__studente_email);
     ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
     ?>
 
@@ -197,7 +201,7 @@ foreach (dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ") as $classe
         value="<?php echo getSettingsValue("sportelli", "unSoloArgomento", true) ? 1 : 0; ?>">
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>"></script>
+    <script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>&d=desktop></script>
 </body>
 
 </html>

@@ -7,6 +7,7 @@
  *  @copyright  (C) 2025 Massimo Saiani
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
+
 require_once '../common/checkSession.php';
 
 ?>
