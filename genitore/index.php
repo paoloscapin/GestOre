@@ -13,20 +13,34 @@ require_once '../common/checkSession.php';
 
 <!DOCTYPE html>
 <html>
+
 <head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>GestOre genitore</title>
-<?php
-require_once '../common/header-common.php';
-require_once '../common/style.php';
-ruoloRichiesto('genitore','segreteria-didattica','dirigente');
-?>
+	<?php
+	require_once '../common/header-common.php';
+	require_once '../common/style.php';
+	ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
+	?>
 </head>
 
-<body >
-<?php require_once '../common/header-genitore.php'; ?>
-<!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
-</div>
+<body>
+	<?php
+	function isMobile()
+	{
+		return preg_match("/Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile|BlackBerry|webOS/i", $_SERVER['HTTP_USER_AGENT']);
+	}
 
+	if (isMobile()) {
+		require_once '../common/header-genitore-mobile.php';
+	} else {
+		require_once '../common/header-genitore.php';
+	}
+	?>
+	<!-- Content Section -->
+	<div class="container-fluid" style="margin-top:60px">
+	</div>
 </body>
+
 </html>
