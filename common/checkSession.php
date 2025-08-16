@@ -107,7 +107,7 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
         }
     } else {
         $__message = 'Genitore non trovato fra gli utenti della scuola: [' . $username . ']';
-        infoLogin("enitore non trovato fra gli utenti della scuola: " . $username);
+        infoLogin("Genitore non trovato fra gli utenti della scuola: " . $username);
         warning($__message);
         redirect('/error/error.php?message=' . $__message);
         exit();
