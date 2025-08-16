@@ -2,38 +2,33 @@
 
 /**
  *  This file is part of GestOre
- *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
- *  @copyright  (C) 2025 Massimo Saiani
+ *  @author     Paolo Scapin <paolo.scapin@gmail.com>
+ *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
 ?>
 
-
-
 <!DOCTYPE html>
 <html>
 <head>
-	<title>GestOre Error</title>
+	<title>Non Autorizzato</title>
 </head>
 
 <body >
 <?php
-	require_once '../common/header-error-min.php';
+require_once '../common/header-error-min.php';
 ?>
 
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
 <div class="panel panel-success">
-<div class="panel-heading">Errore durante l'esecuzione dell'applicazione</div>
+<div class="panel-heading">Non Autorizzato desktop</div>
 <div class="panel-body">
     <div class="row">
         <div class="col-md-12">
-<?php
-if (isset($_GET['message'])) {
-    echo '<h4>' . $_GET['message'] . '</h4>';
-}
-?>
+			<h3>Non hai i diritti per collegarti a questa pagina.</h3>
+			<h5>Non hai i diritti per collegarti a questa pagina.</h5>
         </div>
     </div>
 </div>

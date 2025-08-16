@@ -9,12 +9,10 @@
 
 ?>
 
-
-
 <!DOCTYPE html>
 <html>
 <head>
-	<title>GestOre Error</title>
+	<title>Non Collegato</title>
 </head>
 
 <body >
@@ -25,15 +23,11 @@
 <!-- Content Section -->
 <div class="container-fluid" style="margin-top:60px">
 <div class="panel panel-success">
-<div class="panel-heading">Errore durante l'esecuzione dell'applicazione</div>
+<div class="panel-heading">Non collegato</div>
 <div class="panel-body">
     <div class="row">
         <div class="col-md-12">
-<?php
-if (isset($_GET['message'])) {
-    echo '<h4>' . $_GET['message'] . '</h4>';
-}
-?>
+		<h3>Non hai fatto login: torna alla pagina principale</h3>
         </div>
     </div>
 </div>

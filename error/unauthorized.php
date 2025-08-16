@@ -2,51 +2,22 @@
 
 /**
  *  This file is part of GestOre
- *  @author     Paolo Scapin <paolo.scapin@gmail.com>
- *  @copyright  (C) 2018 Paolo Scapin
+ *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
+ *  @copyright  (C) 2025 Massimo Saiani
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
 ?>
 
-<!DOCTYPE html>
-<html>
-<head>
-	<title>Non Autorizzato</title>
-</head>
+<?php 
+	function isMobile()
+	{
+		return preg_match("/Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile|BlackBerry|webOS/i", $_SERVER['HTTP_USER_AGENT']);
+	}
 
-<body >
-<?php
-require_once '../common/__Util.php';
-require_once '../common/path.php';
-require_once '../common/connect.php';
-//	require_once '../common/checkSession.php';
-require_once '../common/header-common.php';
-require_once '../common/header-error.php';
-?>
-
-<!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-success">
-<div class="panel-heading">Non Autorizzato</div>
-<div class="panel-body">
-    <div class="row">
-        <div class="col-md-12">
-			<h3>Non hai i diritti per collegarti a questa pagina.</h3>
-			<h5>Non hai i diritti per collegarti a questa pagina.</h5>
-        </div>
-    </div>
-</div>
-
-<!-- <div class="panel-footer"></div> -->
-</div>
-</div>
-
-<!-- Bootstrap, jquery etc (css + js) -->
-<?php
-	require_once '../common/style.php';
-?>
-
-<!-- Custom JS file -->
-</body>
-</html>
+	if (isMobile()) {
+		include 'unauthorized_mobile.php';
+	} else {
+		include 'unauthorized_desktop.php';
+	}
+	?>
