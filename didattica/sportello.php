@@ -71,9 +71,11 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY do
 // prepara l'elenco degli studenti per il filtro e per il dialog
 $studenteOptionList = '<option value="0"></option>';
 $studenteFiltroOptionList = '<option value="0">nessuno</option>';
-foreach (dbGetAll("SELECT * FROM studente ORDER BY studente.cognome, studente.nome ASC ; ") as $studente) {
-    $studenteOptionList .= ' <option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - classe ' . $studente['classe'] . '</option>';
-    $studenteFiltroOptionList .= ' <option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - classe ' . $studente['classe'] . '</option> ';
+foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 ORDER BY studente.cognome, studente.nome ASC ; ") as $studente) {
+    $query = "SELECT classi.classe FROM classi WHERE id = (SELECT id_classe FROM studente_frequenta WHERE id_studente = " . $studente['id'] . " AND id_anno_scolastico = " . $__anno_scolastico_corrente_id . ")";
+    $studente_classe = dbGetValue($query);
+    $studenteOptionList .= ' <option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - classe ' . $studente_classe . '</option>';
+    $studenteFiltroOptionList .= ' <option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - classe ' . $studente_classe . '</option> ';
 }
 
 // prepara l'elenco delle categorie per il filtro
