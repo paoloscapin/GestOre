@@ -66,7 +66,7 @@ foreach($lines as $line) {
     }
     $cognome = camelCase(escapeString($words[0]));
     $nome = camelCase(escapeString($words[1]));
-    $email = escapeString($words[2]);
+    $email = strtolower(escapeString($words[2]));
     $username = escapeString($words[3]);
     $codice_fiscale = escapeString($words[4]);
     $attivo = escapeString($words[5]);
@@ -90,9 +90,15 @@ foreach($lines as $line) {
     } else {
         // se c'era gia', lo aggiorna con i valori trovati della classe
         $daModificare++;
-        $query = "UPDATE studente SET cognome='$cognome', nome='$nome', username='$username', codice_fiscale='$codice_fiscale', attivo='$attivo' WHERE id='$id'";
+        $query = "UPDATE studente SET cognome='$cognome', nome='$nome', username='$username', codice_fiscale='$codice_fiscale', email='$email', attivo='$attivo' WHERE id='$id'";
         dbExec($query);
-        $query = "UPDATE studente_frequenta SET id_classe = '$id_classe' WHERE id_studente = '$id' AND id_anno_scolastico = '$__anno_scolastico_corrente_id'";
+        $query = "SELECT * from studente_frequenta WHERE id_studente = '$id' AND id_anno_scolastico = '$__anno_scolastico_corrente_id'";
+        $result = dbGetFirst($query);
+        if ($result == null) {
+            $query = "INSERT INTO studente_frequenta(id_studente,id_anno_scolastico,id_classe) VALUES('$id', '$__anno_scolastico_corrente_id', '$id_classe')";
+        } else {
+            $query = "UPDATE studente_frequenta SET id_classe = '$id_classe' WHERE id_studente = '$id' AND id_anno_scolastico = '$__anno_scolastico_corrente_id'";
+        }
         dbExec($query);
     }
 }
