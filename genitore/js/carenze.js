@@ -12,18 +12,20 @@ var url = new URL(myScript.src);
 var params = new URLSearchParams(url.search);
 var device = params.get("d") || "desktop"; // default "desktop"
 
+var studente_filtro_id = 1;
+
 function carenzeReadRecords() {
     var endpoint = (device === "mobile")
         ? "carenzeReadRecords_mobile.php"
         : "carenzeReadRecords.php";
 
-    $.get(endpoint, {}, function (data, status) {
-		$(".records_content").html(data);
+    $.get(endpoint + "?studente_filtro_id=" + studente_filtro_id, {}, function (data, status) {
+        $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',
             container: 'body'
         });
-	});
+    });
 }
 
 function carenzaPrint(id_carenza) {
@@ -38,7 +40,7 @@ function carenzaPrint(id_carenza) {
     form.append($('<input>', { type: 'hidden', name: 'print', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'mail', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'genera', value: 0 }));
-        form.append($('<input>', { type: 'hidden', name: 'view', value: 1 }));
+    form.append($('<input>', { type: 'hidden', name: 'view', value: 1 }));
     form.append($('<input>', { type: 'hidden', name: 'titolo', value: 'Programma carenza formativa' }));
     // lo “submitto” e lo rimuovo
     form.appendTo('body').submit().remove();
@@ -67,5 +69,10 @@ function carenzaSend(id_carenza) {
 
 $(document).ready(function () {
     carenzeReadRecords();
-    
+
+    $("#studente_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            studente_filtro_id = this.value;
+            carenzeReadRecords();
+        });
 });

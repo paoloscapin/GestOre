@@ -12,10 +12,8 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$query = "SELECT * from genitori_studenti WHERE id_genitore = $__genitore_id";
-$result = dbGetFirst($query);
-
-$__studente_id = $result['id_studente'] ?? null;
+$studente_filtro_id = $_GET["studente_filtro_id"] ?? null;
+$__studente_id = $studente_filtro_id;
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">

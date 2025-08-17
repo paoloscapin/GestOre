@@ -7,6 +7,9 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
+$studente_filtro_id = $_GET["studente_filtro_id"] ?? null;
+$__studente_id = $studente_filtro_id;
+
 $query = "SELECT
             carenze.id AS carenza_id,
             carenze.id_studente AS carenza_id_studente,
