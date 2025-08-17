@@ -39,13 +39,13 @@
             <ul class="nav navbar-nav navbar-right">
 
                 <?php if(getSettingsValue('config','sportelli', false)) : ?>
-                    <li><a class="btn btn-orange4" href="<?php echo $__application_base_path; ?>/genitore/sportello.php">
+                    <li><a class="btn btn-orange4" href="<?php echo $__application_base_path; ?>/genitore/sportello_mobile.php">
                         <span class="glyphicon glyphicon-blackboard"></span> Sportelli
                     </a></li>
                 <?php endif; ?>
 
                 <?php if((getSettingsValue('config','carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi','visibile_studenti', false))) : ?>
-                    <li><a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/genitore/carenze.php">
+                    <li><a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/genitore/carenze_mobile.php">
                         <span class="glyphicon glyphicon-film"></span> Carenze
                     </a></li>
                 <?php endif; ?>

@@ -137,7 +137,7 @@ foreach ($studenti as $studente) {
     </div>
   
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>"></script>
+    <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>&d=desktop"></script>
 </body>
 
 </html>
