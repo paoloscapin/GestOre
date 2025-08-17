@@ -23,8 +23,7 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_bootstrap-toggle.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
-    info("ruolo attuale: " . $__utente_ruolo);
-    info("utente attuale: " . $__studente_email);
+
     ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
     ?>
 

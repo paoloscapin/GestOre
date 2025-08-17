@@ -12,8 +12,6 @@ var url = new URL(myScript.src);
 var params = new URLSearchParams(url.search);
 var device = params.get("d") || "desktop"; // default "desktop"
 
-console.log("Device:", device);
-
 var soloNuovi=1;
 var soloIscritto=0;
 var ancheCancellati=0;
@@ -58,7 +56,6 @@ function sportelloReadRecords() {
         : "sportelloReadRecords.php";
 
 	$.get(endpoint+"?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloIscritto=" + soloIscritto + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&categoria_filtro_id=" + categoria_filtro_id, {}, function (data, status) {
-		console.log(data);
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',
