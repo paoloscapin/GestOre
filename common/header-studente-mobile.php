@@ -45,7 +45,7 @@
                 <?php endif; ?>
 
                 <?php if((getSettingsValue('config','carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi','visibile_studenti', false))) : ?>
-                    <li><a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/studente/carenze.php">
+                    <li><a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/studente/carenze_mobile.php">
                         <span class="glyphicon glyphicon-film"></span> Carenze
                     </a></li>
                 <?php endif; ?>

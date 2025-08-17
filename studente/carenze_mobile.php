@@ -14,6 +14,10 @@ require_once '../common/checkSession.php';
 <html>
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Carenze</title>
+
     <?php
 
     require_once '../common/header-common.php';
@@ -22,7 +26,6 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
     ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
-    
 
 	if((!getSettingsValue('config','carenzeObiettiviMinimi', false))||(!getSettingsValue('carenzeObiettiviMinimi','visibile_studenti', false)))
     {
@@ -33,48 +36,13 @@ require_once '../common/checkSession.php';
     <!-- bootbox notificator -->
     <script type="text/javascript"
         src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
-    <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
-
-    <title>Carenze</title>
-    <style>
-        /* Tooltip */
-        .tooltip>.tooltip-inner {
-            background-color: #73AD21;
-            color: #FFFFFF;
-            border: 1px solid green;
-            padding: 15px;
-            font-size: 20px;
-        }
-
-        .tooltip.top>.tooltip-arrow {
-            border-top: 5px solid green;
-        }
-
-        .tooltip.bottom>.tooltip-arrow {
-            border-bottom: 5px solid blue;
-        }
-
-        .tooltip.left>.tooltip-arrow {
-            border-left: 5px solid red;
-        }
-
-        .tooltip.right>.tooltip-arrow {
-            border-right: 5px solid black;
-        }
-
-        .tooltip-inner {
-            max-width: 450px;
-            /* If max-width does not work, try using width instead */
-            width: 450px;
-            text-align: left;
-        }
-    </style>
+    <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css"> 
 
 </head>
 
 <body>
     <?php
-    require_once '../common/header-studente.php';
+    require_once '../common/header-studente-mobile.php';
     require_once '../common/connect.php';
     ?>
 
@@ -108,7 +76,7 @@ require_once '../common/checkSession.php';
     </div>
   
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>&d=desktop"></script>
+    <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>&d=mobile"></script>
 </body>
 
 </html>
