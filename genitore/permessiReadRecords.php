@@ -103,8 +103,8 @@ foreach ($resultArray as $row) {
 		<td align="center">' . $badge . '</td>
 		<td align="center">
 		<?php if ($stato == 1) { ?>
-			<button onclick="permessoDetails(\'' . $id_permesso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la richiesta"><span class="glyphicon glyphicon-pencil"></span></button>
-			<button onclick="permessoCancella(\'' . $id_permesso . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la richiesta"><span class="glyphicon glyphicon-trash"></span></button>
+			<button onclick="permessiGetDetails(\'' . $id_permesso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la richiesta"><span class="glyphicon glyphicon-pencil"></span></button>
+			<button onclick="permessiCancella(\'' . $id_permesso . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la richiesta"><span class="glyphicon glyphicon-trash"></span></button>
 		</td>';
 
 	$data .= '</tr>';

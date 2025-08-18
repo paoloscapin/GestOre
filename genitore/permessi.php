@@ -104,7 +104,7 @@ foreach ($studenti as $studente) {
                     </div>
                     <div class=" col-md-1">
                         <div class="text-center" style="margin:10px 0px 0px 0px; text-align:right">
-                            <button class="btn btn-xs btn-orange4" onclick="permessoGetDetails(-1)"><span
+                            <button class="btn btn-xs btn-orange4" onclick="permessiGetDetails(-1)"><span
                                     class="glyphicon glyphicon-plus"></span></button>
                         </div>
                     </div>
@@ -142,55 +142,64 @@ foreach ($studenti as $studente) {
     </div>
 
     <!-- Modal - Add/Update Record -->
-    <div class="modal fade" id="genitore_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <!-- Modale Permesso -->
+    <div class="modal fade" id="permesso_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
         <div class="modal-dialog modal-lg" style="width:500px" role="document">
             <div class="modal-content">
                 <div class="modal-body">
                     <div class="panel panel-lima4">
                         <div class="panel-heading">
-                            <h5 class="modal-title" id="myModalLabel">Permesso</h5>
+                            <h5 class="modal-title" style="text-align:center" id="myModalLabel">Permesso di uscita</h5>
                         </div>
                         <div class="panel-body">
                             <form class="form-horizontal">
 
-
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="data">Data</label>
-                                    <div class="col-sm-10"><input type="text" id="data" placeholder="data" class="form-control" /></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="col-sm-2 control-label" for="nome">Ora uscita</label>
-                                    <div class="col-sm-10"><input type="text" id="nome" placeholder="nome" class="form-control" /></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="col-sm-2 control-label" for="email">Motivo</label>
-                                    <div class="col-sm-10"><input type="text" id="email" placeholder="email" class="form-control" /></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="attivo" class="col-sm-2 control-label">Rientro</label>
-                                    <div class="col-sm-1">
-                                        <input type="checkbox" id="attivo">
+                                    <div class="col-sm-10">
+                                        <input type="date" id="data" class="form-control" />
                                     </div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="col-sm-2 control-label" for="codice_fiscale">Ora rientro</label>
-                                    <div class="col-sm-10"><input type="text" id="codice_fiscale" placeholder="codice_fiscale" class="form-control" /></div>
+                                    <label class="col-sm-2 control-label" for="ora_uscita">Ora uscita</label>
+                                    <div class="col-sm-10">
+                                        <input type="time" id="ora_uscita" class="form-control step="60" placeholder="HH:MM" />
+                                    </div>
                                 </div>
 
-                                <div class="form-group" id="_error-classe-part"><strong>
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" for="motivo">Motivo</label>
+                                    <div class="col-sm-10">
+                                        <textarea id="motivo" placeholder="motivo" class="form-control" rows="3"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="rientro" class="col-sm-2 control-label">Rientro</label>
+                                    <div class="col-sm-1">
+                                        <input type="checkbox" id="rientro">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" for="ora_rientro">Ora rientro</label>
+                                    <div class="col-sm-10">
+                                        <input type="time" id="ora_rientro" class="form-control step="60" placeholder="HH:MM"  />
+                                    </div>
+                                </div>
+
+                                <div class="form-group" id="_error-permesso-part">
+                                    <strong>
                                         <hr>
                                         <div class="col-sm-3 text-right text-danger ">Attenzione</div>
                                         <div class="col-sm-9" id="_error-classe"></div>
-                                    </strong></div>
+                                    </strong>
+                                </div>
 
                                 <input type="hidden" id="hidden_permesso_id">
                                 <input type="hidden" id="hidden_rientro">
                             </form>
-
                         </div>
                         <div class="panel-footer text-center">
                             <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
@@ -201,6 +210,18 @@ foreach ($studenti as $studente) {
             </div>
         </div>
     </div>
+
+    <!-- JS per Timepicker -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-timepicker/0.5.2/css/bootstrap-timepicker.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-timepicker/0.5.2/js/bootstrap-timepicker.min.js"></script>
+    <script>
+        $('.timepicker').timepicker({
+            showMeridian: false, // 24h
+            showSeconds: false, // nessun secondo
+            defaultTime: false
+        });
+    </script>
+
     <!-- // Modal - Add/Update Record -->
 
     <!-- Custom JS file -->
