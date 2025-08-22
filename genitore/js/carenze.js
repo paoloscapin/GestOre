@@ -12,7 +12,7 @@ var url = new URL(myScript.src);
 var params = new URLSearchParams(url.search);
 var device = params.get("d") || "desktop"; // default "desktop"
 
-var studente_filtro_id = 1;
+var studente_filtro_id = params.get("id");
 
 function carenzeReadRecords() {
     var endpoint = (device === "mobile")

@@ -79,8 +79,11 @@ $studenteFiltroOptionList = '';
 $studenti = dbGetAll("SELECT * FROM studente WHERE id IN (
     SELECT id_studente FROM genitori_studenti WHERE id_genitore = " . intval($__genitore_id) . "
 )");
-
+$firstId = null; // inizializziamo
 foreach ($studenti as $studente) {
+        if ($firstId === null) {
+        $firstId = $studente['id'];
+    }
     $studenteFiltroOptionList .= '<option value="' . $studente['id'] . '">' 
         . $studente['cognome'] . ' ' . $studente['nome'] . '</option>';
 }
@@ -137,7 +140,7 @@ foreach ($studenti as $studente) {
     </div>
   
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>&d=desktop"></script>
+    <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>&d=desktop&id=<?php echo $firstId ?>"></script>
 </body>
 
 </html>

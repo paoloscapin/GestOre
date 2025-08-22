@@ -19,7 +19,7 @@ $__studente_id = $studente_filtro_id;
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
-						<th class="text-center col-md-2">Materia</th>						
+						<th class="text-center col-md-2">Materia' . $__studente_id .'</th>						
 						<th class="text-center col-md-2">Docente</th>
 						<th class="text-center col-md-1">Data ricezione</th>
 						<th class="text-center col-md-5">Note</th>
