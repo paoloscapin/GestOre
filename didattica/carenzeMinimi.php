@@ -104,7 +104,8 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
 $studentiFiltroOptionList = '<option value="0">T</option>';
 $studentiOptionList = '<option value="0">selezionare studente</option>';
 foreach (dbGetAll("
-    SELECT studente.* 
+    SELECT studente.*,
+           studente_frequenta.id_classe AS id_classe
     FROM studente
     INNER JOIN studente_frequenta 
         ON studente.id = studente_frequenta.id_studente
@@ -112,8 +113,10 @@ foreach (dbGetAll("
       AND studente_frequenta.id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . "
     ORDER BY studente.cognome, studente.nome ASC
 ") as $studente) {
-    $studentiFiltroOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - ' . $studente['classe'] . '</option> ';
-    $studentiOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - ' . $studente['classe'] . '</option> ';
+    $query2="SELECT classe from classi where id=" . $studente['id_classe'];
+    $classe = dbGetValue($query2);
+    $studentiFiltroOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - ' . $classe . '</option> ';
+    $studentiOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - ' . $classe . '</option> ';
 }
 
 ?>

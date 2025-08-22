@@ -118,7 +118,7 @@ foreach ($lines as $line) {
         $esiste = dbGetFirst("SELECT * FROM docente_insegna WHERE id_docente = $docente_id AND id_materia = $id_materia AND id_classe = $classe_id");
         if ($esiste != null) {
             $giaPres++;
-            info("Associazione già presente: $cogn $nome - $materia_nome - $classeSingola");
+            info("Associazione già presente: $cogn $nome - $classeSingola");
             continue;
         }
 
