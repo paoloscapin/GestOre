@@ -14,12 +14,13 @@ require_once '../common/connect.php';
 
 $studente_filtro_id = $_GET["studente_filtro_id"] ?? null;
 $__studente_id = $studente_filtro_id;
+$anni_filtro_id = $_GET["anni_filtro_id"];
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
-						<th class="text-center col-md-2">Materia' . $__studente_id . '</th>						
+						<th class="text-center col-md-2">Materia</th>						
 						<th class="text-center col-md-2">Docente</th>
 						<th class="text-center col-md-1">Data ricezione</th>
 						<th class="text-center col-md-5">Note</th>
@@ -50,10 +51,14 @@ $query = "	SELECT
 				INNER JOIN materia materia
 				ON carenze.id_materia = materia.id
 				INNER JOIN classi classi
-				ON carenze.id_classe = classi.id
-				WHERE (carenze.id_anno_scolastico='$__anno_scolastico_corrente_id' OR carenze.id_ANNO_SCOLASTICO='$__anno_scolastico_scorso_id') AND studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
+				ON carenze.id_classe = classi.id";
 
-
+if ($anni_filtro_id > 0) {
+			$query .= " WHERE carenze.id_anno_scolastico=" . $anni_filtro_id . " AND studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
+}
+else {
+			$query .= " WHERE studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
+}
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
 	$resultArray = [];

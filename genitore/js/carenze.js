@@ -11,6 +11,7 @@ var myScript = scripts[scripts.length - 1];
 var url = new URL(myScript.src);
 var params = new URLSearchParams(url.search);
 var device = params.get("d") || "desktop"; // default "desktop"
+var $anni_filtro_id = params.get("a") || "1"; // default 
 
 var studente_filtro_id = params.get("id");
 
@@ -19,7 +20,7 @@ function carenzeReadRecords() {
         ? "carenzeReadRecords_mobile.php"
         : "carenzeReadRecords.php";
 
-    $.get(endpoint + "?studente_filtro_id=" + studente_filtro_id, {}, function (data, status) {
+    $.get(endpoint + "?studente_filtro_id=" + studente_filtro_id + "&anni_filtro_id=" + $anni_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',
@@ -30,6 +31,7 @@ function carenzeReadRecords() {
 
 function carenzaPrint(id_carenza) {
     // creo form nascosto
+    console.log($anni_filtro_id);
     var form = $('<form>', {
         action: '../didattica/stampaCarenza.php',
         method: 'POST',
@@ -41,6 +43,7 @@ function carenzaPrint(id_carenza) {
     form.append($('<input>', { type: 'hidden', name: 'mail', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'genera', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'view', value: 1 }));
+    form.append($('<input>', { type: 'hidden', name: 'anno', value: $anni_filtro_id }));
     form.append($('<input>', { type: 'hidden', name: 'titolo', value: 'Programma carenza formativa' }));
     // lo “submitto” e lo rimuovo
     form.appendTo('body').submit().remove();
@@ -75,4 +78,11 @@ $(document).ready(function () {
             studente_filtro_id = this.value;
             carenzeReadRecords();
         });
+
+    $("#anni_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            $anni_filtro_id = this.value;
+            carenzeReadRecords();
+        });
+
 });

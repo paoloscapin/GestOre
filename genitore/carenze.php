@@ -22,11 +22,10 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
     ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
-    
 
-	if((!getSettingsValue('config','carenzeObiettiviMinimi', false))||(!getSettingsValue('carenzeObiettiviMinimi','visibile_studenti', false)))
-    {
-      redirect("/error/unauthorized.php");  
+
+    if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) || (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
+        redirect("/error/unauthorized.php");
     }
     ?>
 
@@ -81,11 +80,30 @@ $studenti = dbGetAll("SELECT * FROM studente WHERE id IN (
 )");
 $firstId = null; // inizializziamo
 foreach ($studenti as $studente) {
-        if ($firstId === null) {
+    if ($firstId === null) {
         $firstId = $studente['id'];
     }
-    $studenteFiltroOptionList .= '<option value="' . $studente['id'] . '">' 
+    $studenteFiltroOptionList .= '<option value="' . $studente['id'] . '">'
         . $studente['cognome'] . ' ' . $studente['nome'] . '</option>';
+}
+
+$query = "SELECT COUNT(id) FROM carenze WHERE id_anno_scolastico=" . $__anno_scolastico_corrente_id;
+$count = dbGetValue($query);
+if ($count == 0) {
+    $anno_carenze = $__anno_scolastico_scorso_id;
+} else {
+    $anno_carenze = $__anno_scolastico_corrente_id;
+}
+// anni
+$anniFiltroOptionList = '<option value="0">Tutti</option>';
+$anniOptionList      = '<option value="0">Selezionare anno</option>';
+
+foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
+    $selected = ($anno['id'] == $anno_carenze) ? ' selected' : '';
+    $option   = '<option value="' . htmlspecialchars($anno['id']) . '"' . $selected . '>' . htmlspecialchars($anno['anno']) . '</option>';
+
+    $anniFiltroOptionList .= $option;
+    $anniOptionList      .= $option;
 }
 ?>
 
@@ -102,11 +120,11 @@ foreach ($studenti as $studente) {
                     <div class="col-md-1" style="padding:10px">
                         <span class="glyphicon glyphicon-blackboard"></span>&ensp;Carenze
                     </div>
-                    <div class="col-md-5">
-                    </div>
                     <div class="col-md-4">
                     </div>
-                                        <div class="col-md-2" style="padding:0px">
+                    <div class="col-md-2">
+                    </div>
+                    <div class="col-md-2" style="padding:0px">
                         <div class="text-center">
                             <label class="col-sm-2 control-label" for="studente"
                                 style="margin:10px 0px 0px 0px; text-align:right">Studente</label>
@@ -117,30 +135,42 @@ foreach ($studenti as $studente) {
                                 </select></div>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="panel-body">
-                <div class="row" style="margin-bottom:10px;">
-                    <div class="col-md-6">
-                    </div>
-
-                    <div class="col-md-6">
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="records_content"></div>
+                    <div class="col-md-3" style="padding:0px">
+                        <div class="text-center">
+                            <label class="col-sm-4 control-label" for="anni"
+                                style="margin:10px 0px 0px 0px; text-align:right">Anno Scolastico</label>
+                            <div class="col-sm-4" style="padding:0px;text-align:right"><select id="anni_filtro" name="anni_filtro"
+                                    class="anni_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
+                                    data-noneSelectedText="seleziona..." data-width="85%">
+                                    <?php echo $anniFiltroOptionList ?>
+                                </select></div>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="panel-body">
+            <div class="row" style="margin-bottom:10px;">
+                <div class="col-md-6">
+                </div>
 
-            <!-- <div class="panel-footer"></div> -->
+                <div class="col-md-6">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="records_content"></div>
+                </div>
+            </div>
         </div>
 
+        <!-- <div class="panel-footer"></div> -->
     </div>
-  
+
+    </div>
+
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>&d=desktop&id=<?php echo $firstId ?>"></script>
+    <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>&d=desktop&id=<?php echo $firstId ?>&a=<?php echo $anno_carenze; ?>"></script>
 </body>
 
 </html>
