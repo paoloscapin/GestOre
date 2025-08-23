@@ -134,22 +134,26 @@ function studenteSave() {
 
         $("#_error-classe-part").hide();
     }
+function importFile(file) {
+    var contenuto = "";
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+        contenuto = event.target.result;
+        $.post("studenteImport.php", {
+            contenuto: contenuto
+        },
+            function (data, status) {
+                $('#result_text').html(data);
+                studenteReadRecords();
 
-    function importFile(file) {
-        var contenuto = "";
-        const reader = new FileReader();
-        reader.addEventListener('load', (event) => {
-            contenuto = event.target.result;
-            $.post("studenteImport.php", {
-                contenuto: contenuto
-            },
-                function (data, status) {
-                    $('#result_text').html(data);
-                    studenteReadRecords();
-                });
-        });
-        reader.readAsText(file);
-    }
+                // Dopo 10 secondi svuota il testo
+                setTimeout(function () {
+                    $('#result_text').html('');
+                }, 10000);
+            });
+    });
+    reader.readAsText(file);
+}
     
     $("#classe_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {

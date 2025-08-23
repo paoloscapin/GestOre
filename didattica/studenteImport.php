@@ -8,19 +8,21 @@
  */
 require_once '../common/checkSession.php';
 require_once '../common/__Util.php';
-ruoloRichiesto('dirigente','segreteria-didattica');
+ruoloRichiesto('dirigente', 'segreteria-didattica');
 
-function startsWith($haystack, $needle) {
+function startsWith($haystack, $needle)
+{
     $length = strlen($needle);
     return (substr($haystack, 0, $length) === $needle);
 }
 
-function erroreDiImport($messaggio) {
+function erroreDiImport($messaggio)
+{
     global $data;
     global $linePos;
 
     warning("Errore di import linea $linePos: " . $messaggio);
-    $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
+    $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio . "<br>";
 
     // azzera le istruzioni sql
     $sqlList = '';
@@ -30,8 +32,8 @@ function erroreDiImport($messaggio) {
 $data = '';
 
 $src = '';
-if(isset($_POST)) {
-	$src = trim($_POST['contenuto']);
+if (isset($_POST)) {
+    $src = trim($_POST['contenuto']);
 }
 $lines_array = explode("\n", $src);
 $lines = array_filter($lines_array, 'trim');
@@ -46,12 +48,12 @@ $daInserire = 0;
 $daModificare = 0;
 
 // scorre tutte le linee del csv
-foreach($lines as $line) {
-    $linePos ++;
+foreach ($lines as $line) {
+    $linePos++;
 
     // scompone i csv
     $words = str_getcsv($line);
-    if (startswith( $line, "#") || empty($line)) {
+    if (startswith($line, "#") || empty($line)) {
         debug('Skip line: ' . $line);
         continue;
     }
@@ -60,7 +62,7 @@ foreach($lines as $line) {
     $words = array_map('trim', $words);
 
     // ci devono essere nome,cognome,email,classe,anno
-    if (count($words) < 7 ) {
+    if (count($words) < 7) {
         erroreDiImport("numero di argomenti errato (" . count($words) . ")");
         break;
     }
@@ -72,17 +74,22 @@ foreach($lines as $line) {
     $attivo = escapeString($words[5]);
     $classe = escapeString($words[6]);
 
+    if ($cognome == "") {
+        erroreDiImport("riga vuota");
+        continue;
+    }
+
     // controlla se l'indirizzo di email e' gia' presente sul database
     $id = dbGetValue("SELECT id FROM studente WHERE email = '$email';");
     $id_classe = dbGetValue("SELECT id FROM classi WHERE classe = '$classe';");
-        if ($id_classe == null) {
-            erroreDiImport("classe $classe non trovata");
-            continue;
-        }
+    if ($id_classe == null) {
+        erroreDiImport("classe $classe non trovata");
+        continue;
+    }
 
     if ($id == null) {
         // se non lo trova, lo deve inserire
-        $daInserire ++;
+        $daInserire++;
         $query = "INSERT INTO studente (cognome,nome,email,username,codice_fiscale,attivo) VALUES ('$cognome','$nome','$email','$username','$codice_fiscale','$attivo');";
         dbExec($query);
         $id = dblastId();
@@ -103,12 +110,9 @@ foreach($lines as $line) {
     }
 }
 
-if (empty($data)) {
-    $data = 'nuovi studenti=' . $daInserire . ' modificati=' . $daModificare;
-    debug($data);
-}
+$data .= '<br>nuovi studenti=' . $daInserire . ' modificati=' . $daModificare;
+debug($data);
 
-    info('Import studenti effettuato: ' . $data);
+info('Import studenti effettuato: ' . $data);
 
-echo '<strong>' . $data .'</strong>';
-?>
+echo '<strong>' . $data . '</strong>';

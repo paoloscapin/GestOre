@@ -130,7 +130,6 @@ function genitoreGetDetails(genitore_id) {
 
     $("#_error-classe-part").hide();
 }
-
 function importFile(file) {
     $('#result_text').html("Caricamento in corso... attendere...");
     var contenuto = "";
@@ -143,6 +142,11 @@ function importFile(file) {
             function (data, status) {
                 $('#result_text').html(data);
                 genitoreReadRecords();
+
+                // Dopo 10 secondi cancella il contenuto
+                setTimeout(function () {
+                    $('#result_text').html('');
+                }, 10000);
             });
     });
     reader.readAsText(file);

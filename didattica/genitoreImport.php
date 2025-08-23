@@ -22,7 +22,7 @@ function erroreDiImport($messaggio)
     global $linePos;
 
     warning("Errore di import linea $linePos: " . $messaggio);
-    $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio;
+    $data = $data . "<strong>Errore di import linea $linePos:</strong> " . $messaggio . "<br>";
 }
 
 // setup del src e del risultato (data) 
@@ -95,6 +95,10 @@ foreach ($lines as $line) {
 
     // per abbinare genitore a studente uso la mail di dominio
     $email_studente = escapeString($words[2]);
+    if ($email_studente == '') {
+        erroreDiImport("Riga vuota od incompleta");
+        continue;
+    }
     // controlla se l'indirizzo di email e' gia' presente nel database
     $id_studente = dbGetValue("SELECT id FROM studente WHERE email = '$email_studente' AND attivo='1';");
     if ($id_studente == null) {
@@ -308,7 +312,7 @@ foreach ($lines as $line) {
     }
 }
 
-$data = $data . 'Import genitori effettuato: nuovi=' . $daInserire . ' modificati=' . $daModificare;
+$data = $data . '<br>Import genitori effettuato: nuovi=' . $daInserire . ' modificati=' . $daModificare;
 debug($data);
 
 info('Import studenti effettuato: ' . $data);
