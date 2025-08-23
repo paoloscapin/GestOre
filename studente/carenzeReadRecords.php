@@ -49,7 +49,7 @@ $query = "	SELECT
 				ON carenze.id_materia = materia.id
 				INNER JOIN classi classi
 				ON carenze.id_classe = classi.id
-				WHERE carenze.id_anno_scolastico='$__anno_scolastico_corrente_id' AND studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
+				WHERE (carenze.id_anno_scolastico='$__anno_scolastico_corrente_id' OR carenze.id_ANNO_SCOLASTICO='$__anno_scolastico_scorso_id') AND studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
 
 
 $resultArray = dbGetAll($query);

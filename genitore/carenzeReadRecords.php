@@ -19,7 +19,7 @@ $__studente_id = $studente_filtro_id;
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
-						<th class="text-center col-md-2">Materia' . $__studente_id .'</th>						
+						<th class="text-center col-md-2">Materia' . $__studente_id . '</th>						
 						<th class="text-center col-md-2">Docente</th>
 						<th class="text-center col-md-1">Data ricezione</th>
 						<th class="text-center col-md-5">Note</th>
@@ -51,7 +51,7 @@ $query = "	SELECT
 				ON carenze.id_materia = materia.id
 				INNER JOIN classi classi
 				ON carenze.id_classe = classi.id
-				WHERE carenze.id_anno_scolastico='$__anno_scolastico_corrente_id' AND studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
+				WHERE (carenze.id_anno_scolastico='$__anno_scolastico_corrente_id' OR carenze.id_ANNO_SCOLASTICO='$__anno_scolastico_scorso_id') AND studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
 
 
 $resultArray = dbGetAll($query);
@@ -59,14 +59,14 @@ if ($resultArray == null) {
 	$resultArray = [];
 }
 foreach ($resultArray as $row) {
-		$materia = $row['materia'];
-		// Creazione dell'oggetto DateTime
-		$datf = new DateTime($row['carenza_validazione']);
-		$idcarenza = $row['carenza_id'];
-		// Conversione nel formato desiderato
-		$data_ricezione  = $datf->format('d-m-Y H:i:s');
-		$note = $row['nota'];
-		$data .= '<tr>
+	$materia = $row['materia'];
+	// Creazione dell'oggetto DateTime
+	$datf = new DateTime($row['carenza_validazione']);
+	$idcarenza = $row['carenza_id'];
+	// Conversione nel formato desiderato
+	$data_ricezione  = $datf->format('d-m-Y H:i:s');
+	$note = $row['nota'];
+	$data .= '<tr>
 		<td align="center">' . $materia . '</td>
 		<td align="center">' . $row['doc_cognome'] . ' ' . $row['doc_nome'] . '</td>
 		<td align="center">' . $data_ricezione . '</td>
@@ -77,10 +77,9 @@ foreach ($resultArray as $row) {
 			 mail"><span class="glyphicon glyphicon-envelope"></button> 
 		</td>';
 
-		$data .= '</tr>';
-	}
+	$data .= '</tr>';
+}
 
 $data .= '</table></div>';
 
 echo $data;
-?>
