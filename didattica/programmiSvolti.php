@@ -35,60 +35,64 @@ ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
 
         .toggle.btn {
             width: auto !important;
-            min-width: 160px; /* regola a seconda della lunghezza del testo */
+            min-width: 160px;
+            /* regola a seconda della lunghezza del testo */
             padding: 0 10px;
             white-space: nowrap;
         }
-        .toggle.btn .toggle-on
-        {
+
+        .toggle.btn .toggle-on {
             background-color: blue;
             padding-left: 10px;
             padding-right: 10px;
         }
+
         .toggle.btn .toggle-off {
             background-color: red;
             padding-left: 10px;
             padding-right: 10px;
         }
-          #progressOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5); /* Sfondo semi-trasparente */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
 
-#progressContent {
-  background: white;
-  padding: 20px 30px;
-  border-radius: 10px;
-  text-align: center;
-  width: 300px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
-}
+        #progressOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            /* Sfondo semi-trasparente */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
 
-#progressBarContainer {
-  background: #ddd;
-  border-radius: 10px;
-  overflow: hidden;
-  height: 25px;
-  margin-top: 10px;
-}
+        #progressContent {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            text-align: center;
+            width: 300px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
 
-#progressBar {
-  background: green;
-  width: 0%;
-  height: 100%;
-  color: white;
-  text-align: center;
-  line-height: 25px;
-  transition: width 0.3s;
-}
+        #progressBarContainer {
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 25px;
+            margin-top: 10px;
+        }
+
+        #progressBar {
+            background: green;
+            width: 0%;
+            height: 100%;
+            color: white;
+            text-align: center;
+            line-height: 25px;
+            transition: width 0.3s;
+        }
     </style>
 </head>
 
@@ -101,14 +105,12 @@ ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
 // }
 
 $id_docente_utente = 0;
-if ($__utente_ruolo=='docente')
-{
-$query = "SELECT * from docente WHERE docente.username='".$__username."'";
-$result = dbGetFirst($query);
-if ($result != null)
-{
-    $id_docente_utente = $result['id'];
-}
+if ($__utente_ruolo == 'docente') {
+    $query = "SELECT * from docente WHERE docente.username='" . $__username . "'";
+    $result = dbGetFirst($query);
+    if ($result != null) {
+        $id_docente_utente = $result['id'];
+    }
 }
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
 $modificheDisabilitate = 'disabled';
@@ -119,6 +121,18 @@ $materiaOptionList = '<option value="0"></option>';
 foreach (dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ") as $materia) {
     $materiaFiltroOptionList .= '<option value="' . $materia['id'] . '" >' . $materia['nome'] . '</option> ';
     $materiaOptionList .= '<option value="' . $materia['id'] . '" >' . $materia['nome'] . '</option> ';
+}
+
+// anni
+$anniFiltroOptionList = '<option value="0">Tutti</option>';
+$anniOptionList      = '<option value="0">Selezionare anno</option>';
+
+foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
+    $selected = ($anno['id'] == $__anno_scolastico_corrente_id) ? ' selected' : '';
+    $option   = '<option value="' . htmlspecialchars($anno['id']) . '"' . $selected . '>' . htmlspecialchars($anno['anno']) . '</option>';
+
+    $anniFiltroOptionList .= $option;
+    $anniOptionList      .= $option;
 }
 
 // classi 
@@ -133,13 +147,10 @@ foreach (dbGetAll("SELECT * FROM classi WHERE attiva=1 ORDER BY classi.classe AS
 $docentiFiltroOptionList = '<option value="0">Tutti</option>';
 $docentiOptionList = '<option value="0"></option>';
 foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente.cognome ASC ; ") as $docente) {
-    if (($docente['id'])==$id_docente_utente)
-    {
+    if (($docente['id']) == $id_docente_utente) {
         $docentiFiltroOptionList .= '<option value="' . $docente['id'] . '" selected>' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
         $docentiOptionList .= '<option value="' . $docente['id'] . '" selected>' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
-    }
-    else
-    {
+    } else {
         $docentiFiltroOptionList .= '<option value="' . $docente['id'] . '" >' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
         $docentiOptionList .= '<option value="' . $docente['id'] . '" >' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
     }
@@ -149,27 +160,22 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
 
 <body>
     <!-- OVERLAY con progress bar -->
-<div id="progressOverlay" style="display: none;">
-  <div id="progressContent">
-    <p>Invio email in corso...</p>
-    <div id="progressBarContainer">
-      <div id="progressBar">0%</div>
+    <div id="progressOverlay" style="display: none;">
+        <div id="progressContent">
+            <p>Invio email in corso...</p>
+            <div id="progressBarContainer">
+                <div id="progressBar">0%</div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
     <?php
-    if (haRuolo('segreteria-didattica'))
-    {
+    if (haRuolo('segreteria-didattica')) {
         require_once '../common/header-didattica.php';
-    }
-    else
-    if (haRuolo('docente'))
-    {
+    } else
+    if (haRuolo('docente')) {
         require_once '../common/header-docente.php';
-    }
-    else
-    if (haRuolo('studente'))
-    {
+    } else
+    if (haRuolo('studente')) {
         require_once '../common/header-studente.php';
     }
 
@@ -203,19 +209,19 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                         </div>
                     </div>
 
-                       <div class="col-md-2">
+                    <div class="col-md-2">
                         <div class="text-center">
                             <label class="col-sm-12 control-label" for="docente">Docente</label>
                             <div class="col-sm-12"><select id="docente_filtro" name="docente_filtro"
                                     class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
-                                    data-noneSelectedText="seleziona..." 
-                                   <?php if (!(haRuolo("segreteria-didattica"))) echo ' disabled '; ?>
+                                    data-noneSelectedText="seleziona..."
+                                    <?php if (!(haRuolo("segreteria-didattica"))) echo ' disabled '; ?>
                                     data-width="100%">
                                     <?php echo $docentiFiltroOptionList ?>
                                 </select></div>
                         </div>
-                         </div>
-                       <!-- <div class="col-md-1">
+                    </div>
+                    <!-- <div class="col-md-1">
             <div class="text-center">
                 <label class="checkbox-inline">
                 <strong>
@@ -237,6 +243,22 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                         </div>
                     </div>
 
+                    <div class="col-md-2" style="margin:0;">
+                        <div class="text-center">
+                            <label class="col-sm-10 control-label" style="margin:0;" for="anni_filtro">Anno scolastico</label>
+                            <div class="col-sm-10">
+                                <select id="anni_filtro" style="margin:0;" name="anni_filtro"
+                                    class="anni_filtro selectpicker"
+                                    data-style="btn-yellow4"
+                                    data-live-search="true"
+                                    data-noneSelectedText="Seleziona..."
+                                    data-width="60%">
+                                    <?php echo $anniFiltroOptionList ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <?php
                     if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
                         echo '                    
@@ -253,7 +275,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                         ';
                     }
                     ?>
-                    
+
                     <div class="panel-body">
                         <div class="row" style="margin-bottom:10px;">
                             <div class="col-md-12 text-center" id='result_text'>
@@ -293,9 +315,9 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                         data-width="100%">
                                                         <?php echo $classiOptionList ?>
                                                     </select></div>
-                                            </div>         
-        
-                                                <div class="form-group docente_selector">
+                                            </div>
+
+                                            <div class="form-group docente_selector">
                                                 <label class="col-sm-2 control-label" style="text-align:center"
                                                     for="docente">Docente</label>
                                                 <div class="col-sm-10"><select id="docente" name="docente"
@@ -304,7 +326,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                         data-width="100%">
                                                         <?php echo $docentiOptionList ?>
                                                     </select></div>
-                                                </div>
+                                            </div>
 
                                             <div class="form-group materia_selector">
                                                 <label class="col-sm-2 control-label" style="text-align:center"
@@ -343,11 +365,8 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                             onclick="moduloSvoltiGetDetails(-1)"><span style="font-size:14px"
                                                                 class="glyphicon glyphicon-plus"></span></button>
                                                         ';
-                                                        }
-                                                        else if (haRuolo('docente'))
-                                                        {
-                                                            if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) 
-                                                            {
+                                                        } else if (haRuolo('docente')) {
+                                                            if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
                                                                 echo '
                                                                 <button class="btn btn-xs btn-lima4"
                                                                 onclick="moduloSvoltiGetDetails(-1)"><span style="font-size:14px"
@@ -367,8 +386,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                             onclick="moduliSvoltiImport()"><span style="font-size:14px"
                                                                 class="glyphicon glyphicon-cloud-upload"></span></button>
                                                         ';
-                                                        }
-                                                        else if (haRuolo('docente')){
+                                                        } else if (haRuolo('docente')) {
                                                             if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
                                                                 echo '
                                                                 <button class="btn btn-xs btn-lima4"
@@ -401,8 +419,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                 <       button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
                                 ';
                                     }
-                                }
-                                else
+                                } else
                                 if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
                                     echo '
                                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
@@ -477,18 +494,17 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                     <button type="button" class="btn btn-primary" onclick="moduloSvoltiSave()">Salva</button>';
                                 } else
                                     if (haRuolo('docente')) {
-                                        if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) {
-                                            if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
-                                                echo '
+                                    if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) {
+                                        if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
+                                            echo '
                                                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                                                 <button type="button" class="btn btn-primary" onclick="moduloSvoltiSave()">Salva</button>';
-                                            } else {
-                                                echo '
+                                        } else {
+                                            echo '
                                                 <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>';
-
-                                            }
                                         }
                                     }
+                                }
 
                                 ?>
                             </div>
@@ -502,7 +518,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
     </div>
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/svolti.js?v=<?php echo $__software_version; ?>"></script>
+    <script type="text/javascript" src="js/svolti.js?v=<?php echo $__software_version; ?>&a=<?php echo $__anno_scolastico_corrente_id; ?>"></script>
 </body>
 
 </html>

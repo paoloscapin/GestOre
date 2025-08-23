@@ -15,6 +15,7 @@ $classe_filtro_id = $_GET["classi_id"];
 $materia_filtro_id = $_GET["materia_id"];
 $docenti_filtro_id = $_GET["docenti_id"];
 $da_completare_filtro_id = $_GET["da_completare_id"];
+$anni_filtro_id = $_GET["anni_id"];
 $sollecito_lista = '';
 
 // Design initial table header
@@ -56,8 +57,11 @@ $query = "	SELECT
 			INNER JOIN docente docente
 			ON programmi_svolti.id_docente = docente.id
 			INNER JOIN utente utente
-			ON programmi_svolti.id_utente = utente.id
-			WHERE programmi_svolti.id_anno_scolastico=" . $__anno_scolastico_corrente_id;
+			ON programmi_svolti.id_utente = utente.id";
+
+if ($anni_filtro_id > 0) {
+			$query .= " WHERE programmi_svolti.id_anno_scolastico=" . $anni_filtro_id;
+}
 
 if ($classe_filtro_id > 0) {
 	$query .= "  AND programmi_svolti.id_classe=$classe_filtro_id ";

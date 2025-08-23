@@ -5,6 +5,14 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+// 🔽 Recupero parametro "d" passato nello <script src=...>
+var scripts = document.getElementsByTagName('script');
+var myScript = scripts[scripts.length - 1];
+var url = new URL(myScript.src);
+var params = new URLSearchParams(url.search);
+var $anni_filtro_id = params.get("a") || "1"; // default 
+console.log("anno scolastico corrente: " + $anni_filtro_id);
+
 var $classi_filtro_id = 0;
 var $materia_filtro_id = 0;
 var $docenti_filtro_id = 0;
@@ -26,7 +34,7 @@ $('#daCompletareCheckBox').change(function () {
 function programmiSvoltiReadRecords() {
     if ($("#hidden_docente_id").val() > 0)
         $docenti_filtro_id = $("#hidden_docente_id").val();
-    $.get("programmiSvoltiReadRecords.php?classi_id=" + $classi_filtro_id + "&materia_id=" + $materia_filtro_id + "&docenti_id=" + $docenti_filtro_id + "&da_completare_id=" + $da_completare_filtro_id, {}, function (data, status) {
+    $.get("programmiSvoltiReadRecords.php?classi_id=" + $classi_filtro_id + "&materia_id=" + $materia_filtro_id + "&docenti_id=" + $docenti_filtro_id + "&da_completare_id=" + $da_completare_filtro_id + "&anni_id=" + $anni_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
@@ -436,6 +444,12 @@ $(document).ready(function () {
     $("#classi_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             $classi_filtro_id = this.value;
+            programmiSvoltiReadRecords();
+        });
+
+    $("#anni_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            $anni_filtro_id = this.value;
             programmiSvoltiReadRecords();
         });
 
