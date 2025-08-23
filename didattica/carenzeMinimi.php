@@ -72,6 +72,26 @@ foreach (dbGetAll("SELECT * FROM classi WHERE attiva=1 ORDER BY classi.classe AS
     $classiOptionList .= '<option value="' . $classe['id'] . '" >' . $classe['classe'] . '</option> ';
 }
 
+$query = "SELECT COUNT(id) FROM carenze WHERE id_anno_scolastico=" . $__anno_scolastico_corrente_id;
+$count = dbGetValue($query);
+if ($count == 0) {
+    $anno_carenze = $__anno_scolastico_scorso_id;
+} else {
+    $anno_carenze = $__anno_scolastico_corrente_id;
+}
+
+// anni
+$anniFiltroOptionList = '<option value="0">Tutti</option>';
+$anniOptionList      = '<option value="0">Selezionare anno</option>';
+
+foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
+    $selected = ($anno['id'] == $anno_carenze) ? ' selected' : '';
+    $option   = '<option value="' . htmlspecialchars($anno['id']) . '"' . $selected . '>' . htmlspecialchars($anno['anno']) . '</option>';
+
+    $anniFiltroOptionList .= $option;
+    $anniOptionList      .= $option;
+}
+
 // anno 
 $annoFiltroOptionList = '<option value="0">T</option>';
 $annoOptionList = '<option value="0">selezionare anno</option>';
@@ -103,7 +123,8 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
 // studenti
 $studentiFiltroOptionList = '<option value="0">T</option>';
 $studentiOptionList = '<option value="0">selezionare studente</option>';
-foreach (dbGetAll("
+foreach (
+    dbGetAll("
     SELECT studente.*,
            studente_frequenta.id_classe AS id_classe
     FROM studente
@@ -112,8 +133,9 @@ foreach (dbGetAll("
     WHERE studente.attivo = 1
       AND studente_frequenta.id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . "
     ORDER BY studente.cognome, studente.nome ASC
-") as $studente) {
-    $query2="SELECT classe from classi where id=" . $studente['id_classe'];
+") as $studente
+) {
+    $query2 = "SELECT classe from classi where id=" . $studente['id_classe'];
     $classe = dbGetValue($query2);
     $studentiFiltroOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - ' . $classe . '</option> ';
     $studentiOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - ' . $classe . '</option> ';
@@ -283,6 +305,22 @@ foreach (dbGetAll("
                         </div>
                     </div>
 
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            <label class="col-sm-10 control-label" for="anni_filtro">Anno scolastico</label>
+                            <div class="col-sm-10">
+                                <select id="anni_filtro" style="margin:0;" name="anni_filtro"
+                                    class="anni_filtro selectpicker"
+                                    data-style="btn-yellow4"
+                                    data-live-search="true"
+                                    data-noneSelectedText="Seleziona..."
+                                    data-width="60%">
+                                    <?php echo $anniFiltroOptionList ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <?php
                     if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
                         echo '
@@ -402,10 +440,10 @@ foreach (dbGetAll("
                                     ';
                                     } else
                                         if (haRuolo('docente')) {
-                                            echo '
+                                        echo '
                                     <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
                                     ';
-                                        }
+                                    }
 
                                     ?>
                                 </div>
@@ -419,7 +457,7 @@ foreach (dbGetAll("
         </div>
 
         <!-- Custom JS file -->
-        <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>"></script>
+        <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>&a=<?php echo $anno_carenze; ?>"></script>
 </body>
 
 </html>

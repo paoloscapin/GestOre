@@ -4,6 +4,12 @@
  *  @copyright  (C) 2025 Massimo Saiani
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
+// 🔽 Recupero parametro "d" passato nello <script src=...>
+var scripts = document.getElementsByTagName('script');
+var myScript = scripts[scripts.length - 1];
+var url = new URL(myScript.src);
+var params = new URLSearchParams(url.search);
+var $anni_filtro_id = params.get("a") || "1"; // default 
 
 var $docente_filtro_id = 0;
 var $classe_filtro_id = 0;
@@ -25,7 +31,7 @@ $('#daValidareCheckBox').change(function () {
 });
 
 function carenzeReadRecords() {
-    $.get("carenzeReadRecords.php?anno=" + $anno_filtro_id + "&docente_id=" + $docente_filtro_id + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id + "&da_validare_filtro=" + $da_validare_filtro, {}, function (data, status) {
+    $.get("carenzeReadRecords.php?anno=" + $anno_filtro_id + "&docente_id=" + $docente_filtro_id + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id + "&da_validare_filtro=" + $da_validare_filtro + "&anni_id=" + $anni_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
@@ -76,6 +82,7 @@ function carenzaDelete(id, materia, studente) {
 
 function carenzaPrint(id_carenza) {
     // creo form nascosto
+    console.log($anni_filtro_id)
     var form = $('<form>', {
         action: 'stampaCarenza.php',
         method: 'POST',
@@ -86,10 +93,12 @@ function carenzaPrint(id_carenza) {
     form.append($('<input>', { type: 'hidden', name: 'print', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'mail', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'genera', value: 0 }));
-        form.append($('<input>', { type: 'hidden', name: 'view', value: 1 }));
+    form.append($('<input>', { type: 'hidden', name: 'view', value: 1 }));
+    form.append($('<input>', { type: 'hidden', name: 'anno', value: $anni_filtro_id }));
     form.append($('<input>', { type: 'hidden', name: 'titolo', value: 'Programma carenza formativa' }));
     // lo “submitto” e lo rimuovo
     form.appendTo('body').submit().remove();
+
 }
 
 function carenzaSend(id_carenza) {
@@ -358,6 +367,12 @@ $(document).ready(function () {
     $("#studente_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             $studente_filtro_id = this.value;
+            carenzeReadRecords();
+        });
+        
+    $("#anni_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            $anni_filtro_id = this.value;
             carenzeReadRecords();
         });
 

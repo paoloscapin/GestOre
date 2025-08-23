@@ -20,6 +20,8 @@ $doPrint = isset($_POST['print']) && ($_POST['print'] == '1' || $_POST['print'] 
 $doMail = isset($_POST['mail']) && ($_POST['mail'] == '1' || $_POST['mail'] === 'true');
 $titolo = isset($_POST['titolo']) ? $_POST['titolo'] : 'Programma didattico';
 $doGenera = isset($_POST['genera']) && ($_POST['genera'] == '1' || $_POST['genera'] === 'true');
+$anno = isset($_POST['anno']) ? (int) $_POST['anno'] : 0;
+$anno_scolastico = dbGetValue("SELECT anno FROM anno_scolastico WHERE id = $anno");
 
 
 // 2) RECUPERO DATI PROGRAMMA
@@ -368,7 +370,7 @@ ob_start();
         Indirizzo <?= htmlspecialchars($program['ind_nome']) ?><br>
         Materia <?= htmlspecialchars($program['materia_nome']) ?><br>
         Docente <?= htmlspecialchars($program['doc_cognome'] . ' ' . $program['doc_nome']) ?> | 
-        Anno scolastico <?= $__anno_scolastico_corrente_anno ?></p>
+        Anno scolastico <?= $anno_scolastico ?></p>
     </div>
   </div>
 
@@ -597,7 +599,7 @@ if ($doPrint ||  $doGenera) {
   Indirizzo ' . htmlspecialchars($program['ind_nome']) . '<br>
   Materia ' . htmlspecialchars($program['materia_nome']) . '<br>
   Docente ' . htmlspecialchars($program['doc_cognome'] . ' ' . $program['doc_nome']) . ' | 
-  Anno scolastico ' . $__anno_scolastico_corrente_anno . '</p><br>';
+  Anno scolastico ' . $anno_scolastico . '</p><br>';
 
 
   // scrivo logo+intestazione
