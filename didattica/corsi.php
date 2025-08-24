@@ -1,0 +1,356 @@
+<?php
+
+/**
+ *  This file is part of GestOre
+ *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
+ *  @copyright  (C) 2025 Massimo Saiani
+ *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ */
+require_once '../common/checkSession.php';
+require_once '../common/header-common.php';
+require_once '../common/style.php';
+require_once '../common/_include_bootstrap-toggle.php';
+require_once '../common/_include_bootstrap-select.php';
+require_once '../common/_include_bootstrap-notify.php';
+ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
+
+if (!getSettingsValue('config', 'corsi', false)) {
+    redirect("/error/unauthorized.php");
+}
+
+if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
+    ruoloRichiesto('segreteria-didattica');
+}
+?>
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script type="text/javascript"
+        src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
+    <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
+    <title>Corsi Studenti</title>
+
+    <style>
+        .icon-play {
+            background-image: url('../img/pdf-256.png');
+            background-size: cover;
+            display: inline-block;
+            height: 16px;
+            width: 16px;
+        }
+    </style>
+</head>
+
+<?php
+
+$modificheDisabilitate="";
+
+$id_docente_utente = 0;
+if ($__utente_ruolo == 'docente') {
+    $query = "SELECT * from docente WHERE docente.username='" . $__username . "'";
+    $result = dbGetFirst($query);
+    if ($result != null) {
+        $id_docente_utente = $result['id'];
+    }
+}
+
+// prepara l'elenco delle materie per il filtro e per le materie del dialog
+$materiaFiltroOptionList = '<option value="0">Tutte</option>';
+$materiaOptionList = '<option value="0"></option>';
+foreach (dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ") as $materia) {
+    $materiaFiltroOptionList .= '<option value="' . $materia['id'] . '" >' . $materia['nome'] . '</option> ';
+    $materiaOptionList .= '<option value="' . $materia['id'] . '" >' . $materia['nome'] . '</option> ';
+}
+
+// prepara l'elenco dei docenti
+$docentiFiltroOptionList = '<option value="0">Tutti</option>';
+$docentiOptionList = '<option value="0"></option>';
+foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente.cognome ASC ; ") as $docente) {
+    if (($docente['id']) == $id_docente_utente) {
+        $docentiFiltroOptionList .= '<option value="' . $docente['id'] . '" selected>' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+        $docentiOptionList .= '<option value="' . $docente['id'] . '" selected>' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+    } else {
+        $docentiFiltroOptionList .= '<option value="' . $docente['id'] . '" >' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+        $docentiOptionList .= '<option value="' . $docente['id'] . '" >' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+    }
+}
+
+// anni
+$anniFiltroOptionList = '<option value="0">Tutti</option>';
+$anniOptionList      = '<option value="0">Selezionare anno</option>';
+
+foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
+    $selected = ($anno['id'] == $anno_carenze) ? ' selected' : '';
+    $option   = '<option value="' . htmlspecialchars($anno['id']) . '"' . $selected . '>' . htmlspecialchars($anno['anno']) . '</option>';
+
+    $anniFiltroOptionList .= $option;
+    $anniOptionList      .= $option;
+}
+?>
+
+<body>
+    <?php
+    if (haRuolo('segreteria-didattica')) {
+        require_once '../common/header-didattica.php';
+    } else if (haRuolo('docente')) {
+        require_once '../common/header-docente.php';
+    }
+    ?>
+    <style>
+        .col-md-2-custom {
+            width: 20%;
+        }
+
+        .col-md-1-custom {
+            width: 10%;
+        }
+
+        .col-md-1-2-custom {
+            width: 12%;
+        }
+
+        .col-md-1-5-custom {
+            width: 15%;
+        }
+
+        .col-md-0-5-custom {
+            width: 5%;
+        }
+
+        #progressOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            /* Sfondo semi-trasparente */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        #progressContent {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            text-align: center;
+            width: 300px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        #progressBarContainer {
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 25px;
+            margin-top: 10px;
+        }
+
+        #progressBar {
+            background: green;
+            width: 0%;
+            height: 100%;
+            color: white;
+            text-align: center;
+            line-height: 25px;
+            transition: width 0.3s;
+        }
+
+        .toggle.btn {
+            width: auto !important;
+            min-width: 120px;
+            /* regola a seconda della lunghezza del testo */
+            padding: 0 10px;
+            white-space: nowrap;
+        }
+
+        .toggle.btn .toggle-on {
+            background-color: blue;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .toggle.btn .toggle-off {
+            background-color: red;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+    </style>
+    <!-- OVERLAY con progress bar -->
+    <div id="progressOverlay" style="display: none;">
+        <div id="progressContent">
+            <p>Operazione in corso...</p>
+            <div id="progressBarContainer">
+                <div id="progressBar">0%</div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid" style="margin-top:60px">
+        <div class="panel panel-lima4">
+            <div class="panel-heading">
+                <div class="row">
+                    <div class="col-md-1 text-center">
+                        <span class="glyphicon glyphicon-list-alt"
+                            style="margin:5px"></span><br><b>Elenco<br>Corsi</b>
+                    </div>
+                    
+                    <div class="col-md-3 text-center">
+                        <label class="col-sm-12 control-label" for="materia">Materia</label>
+                        <div class="text-center">
+                            <div class="col-sm-12"><select id="materia_filtro" name="materia_filtro"
+                                    class="mamteria_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
+                                    data-noneSelectedText="seleziona..."
+                                    data-width="100%"><?php echo $materiaFiltroOptionList ?></select></div>
+                        </div>
+                    </div>
+                    <?php
+                    if (haRuolo('segreteria-didattica')) {
+                        echo '
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            <label class="col-sm-12 control-label" for="docente">Docente</label>
+                            <div class="col-sm-12"><select id="docente_filtro" name="docente_filtro"
+                                    class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
+                                    data-noneSelectedText="seleziona..." data-width="100%">';
+                        echo $docentiFiltroOptionList;
+                        echo '
+                                </select></div>
+                        </div>
+                    </div>
+                    ';
+                    }
+                    ?>
+
+                    <?php
+                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                        echo '
+                    <div>
+                        <div>
+
+                            <div class="col-md-1 text-center">
+                                <div class="text-center">
+                                    <label class="control-label" for="corso">Aggiungi</label>
+                                    <button class="btn btn-xs btn-lima4" onclick="corsoGetDetails(-1)"><span
+                                            style="font-size:15px" class="glyphicon glyphicon-plus"></span></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-auto text-center">
+                        <label id="import_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Importa i corsi"><span
+                                class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file"
+                                id="file_select_id" style="display: none;"></label></div>
+                    ';
+                    }
+                    ?>
+
+                    <?php
+                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                        echo '                    
+                                    <div class="col-md-auto text-center">
+                                                                <label class="checkbox-inline">
+                                                <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary"
+                                                    id="soloFuturi" data-on="Tutte" data-off="Solo Futuri">
+                                            </label>
+                                    </div>
+                                        ';
+                    }
+                    ?>
+                    <div class="panel-body">
+                        <div class="row" style="margin-bottom:10px;">
+                            <div class="col-md-12 text-center" id='result_text'>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="records_content"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- <div class="panel-footer"></div> -->
+                </div>
+
+                <!-- Modal - Add/Update Record -->
+                <div class="modal fade" id="corsi_modal" data-backdrop="static" tabindex="-1" role="dialog"
+                    aria-labelledby="myModalLabel">
+                    <div class="modal-dialog modal-lg" style="margin:auto;width:%30" role="document">
+                        <div class="modal-content">
+                            <div class="modal-body">
+                                <div class="panel panel-orange4">
+                                    <div class="panel-heading">
+                                        <h3 class="modal-title" style="text-align:center" id="myModalLabel">Dettagli
+                                            Corso
+                                        </h3>
+                                    </div>
+                                    <div class="panel-body">
+                                        <form class="form-horizontal">
+
+                                            <div class="form-group docente_selector">
+                                                <label class="col-sm-2 control-label" style="text-align:center"
+                                                    for="categoria">Docente</label>
+                                                <div class="col-sm-10"><select id="docente" name="docente"
+                                                        class="docente selectpicker" data-style="btn-yellow4"
+                                                        data-live-search="true" data-noneSelectedText="seleziona..."
+                                                        <?php echo $modificheDisabilitate ?> data-width="100%">
+                                                        <?php echo $docentiFiltroOptionList ?>
+                                                    </select></div>
+                                            </div>
+
+                                            <div class="form-group materia_selector">
+                                                <label class="col-sm-2 control-label" style="text-align:center"
+                                                    accesskey="" for="materia">Materia</label>
+                                                <div class="col-sm-10"><select id="materia" name="materia"
+                                                        class="materia selectpicker" data-style="btn-yellow4"
+                                                        data-live-search="true" data-noneSelectedText="seleziona..."
+                                                        <?php echo $modificheDisabilitate ?> data-width="100%">
+                                                        <?php echo $materiaOptionList ?>
+                                                    </select></div>
+                                            </div>
+
+                                            <div class="form-group" id="_error-corsi-part">
+                                                <strong>
+                                                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                                                    <div class="col-sm-9" id="error-corsi"></div>
+                                                </strong>
+                                            </div>
+                                            <input type="hidden" id="hidden_corsi_id">
+                                        </form>
+                                    </div>
+                                </div>
+                                <div class="panel-footer text-center">
+                                    <?php
+
+                                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                                        echo '
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                                    <button type="button" class="btn btn-primary" onclick="corsiSave()">Salva</button>
+                                    ';
+                                    } else
+                                        if (haRuolo('docente')) {
+                                        echo '
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                                    ';
+                                    }
+
+                                    ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- // Modal - Add/Update Record -->
+
+        </div>
+
+        <!-- Custom JS file -->
+        <script type="text/javascript" src="js/corsi.js?v=<?php echo $__software_version; ?>&a=<?php echo $anno_corsi; ?>"></script>
+</body>
+
+</html>

@@ -52,6 +52,17 @@
 		<?php 
 		if (haRuolo('segreteria-didattica'))
 		{ 
+			if (getSettingsValue('config','corsi', false)) 
+			{
+				echo '
+			<div class="btn-group">
+			<a href="';
+			echo $__application_base_path;
+			echo'/didattica/corsi.php" class="btn btn-default navbar-btn btn-yellow" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Corsi </a>
+			</div>
+			';
+			}
+
 			if (getSettingsValue('config','carenzeObiettiviMinimi', false)) 
 			{
 				echo '

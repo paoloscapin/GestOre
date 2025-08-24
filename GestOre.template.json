@@ -39,6 +39,7 @@
         "programmiSvolti":true,
         "programmiMinimi":true,
         "carenze": false,
+        "corsi": false,
         "carenzeObiettiviMinimi": false,
         "ulrAPIMastercom": "https://buonarroti-tn.registroelettronico.com/mastercom/register_manager.php"
     },
@@ -140,6 +141,12 @@
         "docente_vede_solo_le_sue": false,
         "visibile_studenti": false,
         "docente_puo__modificare": false
+    },
+    "corso": {
+        "visibile_docenti": false,
+        "docente_vede_solo_i_suoi": false,
+        "visibile_studenti": false,
+        "docente_puo_modificare": false
     },
     "corsiDiRecupero": {
         "corsiDiRecuperoFirmaDocente": true,
