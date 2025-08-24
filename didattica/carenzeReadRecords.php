@@ -134,6 +134,7 @@ $array_carenze_mail = '';
 
 foreach ($resultArray as $row) {
 	$idcarenza = $row['carenza_id'];
+	$anno_carenza = $row['carenza_id_anno_scolastico'];
 	$ncarenze++;
 	$docente_riga_id = $row['doc_id'];
 	if ($row['carenza_stato']==1)
@@ -232,8 +233,8 @@ foreach ($resultArray as $row) {
 				<button onclick="carenzaValida(\'' . $idcarenza . '\',\'' . $__utente_id . '\',\'' . $stato . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Rimuovi la conferma della carenza - Nota attualmente inserita - ' . $nota . '"><span class="glyphicon glyphicon-ok"></button>';
 			}
 			$data .= '
-			<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera il PDF della carenza che arriva alla studente"><span class="glyphicon glyphicon-print"></button>
-			<button onclick="carenzaGenera(\'' . $idcarenza . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera sul server i lPDF della carenzaa"><span class="glyphicon glyphicon-fire"></button>
+			<button onclick="carenzaPrint(\'' . $idcarenza . '\',\'' . $anno_carenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera il PDF della carenza che arriva alla studente"><span class="glyphicon glyphicon-print"></button>
+			<button onclick="carenzaGenera(\'' . $idcarenza . '\',\'' . $anno_carenza . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera sul server i lPDF della carenzaa"><span class="glyphicon glyphicon-fire"></button>
 			<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia la mail della carenza allo studente"><span class="glyphicon glyphicon-send"></button>';
 		}	
 	} else
