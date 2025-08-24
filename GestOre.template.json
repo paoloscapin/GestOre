@@ -142,7 +142,7 @@
         "visibile_studenti": false,
         "docente_puo__modificare": false
     },
-    "corso": {
+    "corsi": {
         "visibile_docenti": false,
         "docente_vede_solo_i_suoi": false,
         "visibile_studenti": false,

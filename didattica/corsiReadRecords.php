@@ -38,14 +38,14 @@ $data = '<style>
 <div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
-						<th class="text-center col-md-3">Materia</th>
+						<th class="text-center col-md-2">Materia</th>
 						<th class="text-center col-md-2">Docente</th>
 						<th class="text-center col-md-3">Titolo</th>
 						<th class="text-center col-md-1">Data inizio</th>
 						<th class="text-center col-md-1">Data fine</th>
 						<th class="text-center col-md-1">Studenti iscritti</th>
 						<th class="text-center col-md-1">Stato</th>
-						<th class="text-center col-md-1">Azioni</th>
+						<th class="text-center col-md-2">Azioni</th>
 					</tr>
 					</thead>';
 
@@ -53,12 +53,13 @@ $query = "
 SELECT c.id AS corso_id,
        c.id_materia AS materia_id,
        c.id_docente AS doc_id,
-	   c.titolo AS titolo,
+       c.titolo AS titolo,
        c.id_anno_scolastico AS anno_id,
        m.nome AS materia_nome,
        MIN(cd.data) AS data_inizio,
        MAX(cd.data) AS data_fine,
        CASE
+           WHEN MIN(cd.data) IS NULL THEN 3
            WHEN MIN(cd.data) > CURDATE() THEN 0
            WHEN MAX(cd.data) < CURDATE() THEN 2
            ELSE 1
@@ -68,14 +69,14 @@ INNER JOIN docente d
        ON d.id = c.id_docente
 INNER JOIN materia m 
        ON m.id = c.id_materia
-INNER JOIN corso_date cd 
+LEFT JOIN corso_date cd 
        ON cd.id_corso = c.id
 WHERE c.id_anno_scolastico = $anni_filtro_id
 ";
 
 // filtro opzionale materia
 if ($materia_id > 0) {
-    $query .= " AND c.id_materia = $materia_id";
+	$query .= " AND c.id_materia = $materia_id";
 }
 
 $query .= "
@@ -83,6 +84,7 @@ GROUP BY c.id, c.id_materia, c.id_docente, c.id_anno_scolastico, m.nome
 HAVING ($futuri = 0 OR MAX(cd.data) >= CURDATE())
 ORDER BY m.nome ASC
 ";
+
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
@@ -92,10 +94,10 @@ if ($resultArray == null) {
 foreach ($resultArray as $row) {
 	$idcorso = $row['corso_id'];
 
-	$query2="SELECT nome from materie WHERE id = $materia_id";
+	$query2 = "SELECT nome from materia WHERE id = " . $row['materia_id'];
 	$materia = dbGetValue($query2);
 
-	$query3="SELECT nome,cognome from docenti WHERE id = $docente_id";
+	$query3 = "SELECT nome,cognome from docente WHERE id = " . $row['doc_id'];
 	$docente = dbGetFirst($query3);
 	$nome_docente = $docente['cognome'] . ' ' . $docente['nome'];
 
@@ -110,24 +112,28 @@ foreach ($resultArray as $row) {
 	$studenti_iscritti = dbGetValue($query2);
 
 	$stato = $row['stato'];
-	
+
 	$statoMarker = '';
 	if ($stato == 0) {
-		$statoMarker .= '<span class="label label-danger">Non ancora iniziato</span>';
+		$statoMarker .= '<span class="label label-default">Non ancora iniziato</span>';
 	} else {
 		if ($stato == 1) {
 			$statoMarker .= '<span class="label label-warning">In svolgimento</span>';
 		} else {
 			if ($stato == 2) {
 				$statoMarker .= '<span class="label label-success">Terminato</span>';
+			} else {
+				if ($stato == 3) {
+					$statoMarker .= '<span class="label label-danger">Nessuna data</span>';
+				}
 			}
 		}
 	}
 
 	$data .= '<td align="center">' . $materia . '</td>
 		<td align="center">' . $nome_docente . '</td>
-		<td align="center">' . $$titolo . '</td>
-		<td align="center">' . $$data_inizio . '</td>
+		<td align="center">' . $titolo . '</td>
+		<td align="center">' . $data_inizio . '</td>
 		<td align="center">' . $data_fine . '</td>
 		<td align="center">' . $studenti_iscritti . '</td>
 		<td align="center">' . $statoMarker . '</td>
@@ -135,13 +141,12 @@ foreach ($resultArray as $row) {
 	$data .= '
 		<td class="text-center">';
 
-	if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) 
-		{
-			$data .= '
+	if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+		$data .= '
 			<button onclick="corsiGetDetails(\'' . $idcorso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il corso"><span class="glyphicon glyphicon-pencil"></button>
 			<button onclick="corsiDelete(\'' . $idcorso . '\',\'' . $materia . '\',\'' . $nome_docente . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il corso"><span class="glyphicon glyphicon-trash"></button>';
-		}
-	
+	}
+
 
 	$data .= '</td></tr>';
 }
