@@ -50,6 +50,61 @@ function formatDateTime(dateTimeStr) {
     return giorno + "-" + mese + "-" + anno + " alle ore " + ore + ":" + minuti;
 }
 
+function salvaModificaData() {
+    // Prendi i valori dai campi
+    const idCorso = $('#hidden_data_id').val(); // se serve
+    const dataOra = $('#mod_data').val();
+    const aula = $('#mod_aula').val();
+
+    if (!dataOra || !aula) {
+        $('#error-modifica-data').text('Compila tutti i campi').show();
+        return;
+    }
+
+    // Invia i dati al PHP via AJAX
+    $.ajax({
+        url: 'aggiornaDataCorso.php', // PHP che inserisce la data nel DB
+        type: 'POST',
+        data: {
+            corso_id: idCorso,
+            data_ora: dataOra,
+            aula: aula
+        },
+        success: function(response) {
+            // Se vuoi, puoi controllare response per errori
+            // Chiudi il secondo modale
+            $('#modificaDataModal').modal('hide');
+
+            // Richiama la funzione per aggiornare il corso nel primo modale
+            // Assumendo che idCorso contenga l'ID del corso aperto
+            corsoGetDetails(idCorso);
+        },
+        error: function() {
+            $('#error-modifica-data').text('Errore durante il salvataggio').show();
+        }
+    });
+}
+
+function aggiungiDate() {
+    // Reset dei campi del modale
+    $('#hidden_data_id').val('');
+    $('#mod_aula').val('');
+    $('#error-modifica-data').hide();
+
+    // Imposta data e ora corrente
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+
+    const datetimeLocal = `${year}-${month}-${day}T${hours}:${minutes}`;
+    $('#mod_data').val(datetimeLocal);
+
+    // Apri il modale
+    $('#modificaDataModal').modal('show');
+}
 function modificaData(data_id) {
     var row = res.date.find(d => d.data_id == data_id);
     if(!row) return;
@@ -85,29 +140,24 @@ function salvaModificaData() {
     }
     $('#error-modifica-data').hide();
 
-    $.ajax({
-        url: 'aggiornaDataCorso.php',
-        type: 'POST',
-        data: {
-            data_id: data_id,
+ $.post("../didattica/aggiornaDataCorso.php", {
+                        data_id: data_id,
             corso_data: nuova_data,
             corso_aula: nuova_aula
-        },
-        success: function(response){
+        }, function (data, status) {
             // chiudi la modal
             $('#modificaDataModal').modal('hide');
             // aggiorna la tabella date con le nuove info
             corsiGetDetails(); // supponendo che ricarichi il JSON del corso
         },
-        error: function(){
+        function() {
             $('#error-modifica-data').text("Errore durante il salvataggio").show();
-        }
-    });
+        });
 }
 
 
 function corsiGetDetails(corsi_id) {
-    $("#hidden_corsi_id").val(corsi_id);
+    $("#hidden_corso_id").val(corsi_id);
 
     if (corsi_id > 0) {
         $.post("../didattica/corsiReadDetails.php", {

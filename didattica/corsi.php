@@ -157,6 +157,74 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
         .modal-backdrop.in {
             z-index: 1045;
         }
+
+        .modal-header-orange4 {
+            background-color: hsl(36, 100%, 72%) !important;
+            background-repeat: repeat-x;
+            background-image: linear-gradient(#fffaf4, #ffc570);
+            border-color: #ffc570 #ffc570 hsl(36, 100%, 65.5%);
+            color: #333 !important;
+            /* stesso colore testo della panel-heading */
+            text-align: center;
+            position: relative;
+            text-shadow: 0 1px 1px rgba(255, 255, 255, 0.42);
+        }
+
+        .modal-header-orange4 .modal-title {
+            margin: 0 auto;
+            font-weight: bold;
+        }
+
+        .modal-header-orange4 .close {
+            color: #333;
+            /* come i link e il testo della barra principale */
+            opacity: 1;
+            position: absolute;
+            right: 15px;
+            top: 15px;
+        }
+
+        .modal-footer {
+            text-align: center;
+            /* centra i pulsanti */
+        }
+
+        .modal-header-blu {
+            background-color: #cce5ff;
+            /* fallback */
+            background-repeat: repeat-x;
+            background-image: linear-gradient(#e6f0ff, #3399ff);
+            /* gradiente celeste → blu */
+            border-color: #3399ff #3399ff #2673cc;
+            color: #000;
+            /* testo nero */
+            text-align: center;
+            position: relative;
+            text-shadow: none;
+            /* rimuove ombra bianca */
+        }
+
+        .modal-header-blu .modal-title {
+            margin: 0 auto;
+            font-weight: bold;
+            color: #000;
+            /* assicura che il titolo sia nero */
+        }
+
+        .modal-header-blu .close {
+            color: #000;
+            /* X nera */
+            opacity: 1;
+            position: absolute;
+            right: 15px;
+            top: 15px;
+        }
+
+        /* sposta la modale più in basso */
+        .modal-basso {
+            margin-top: 150px;
+            /* regola a piacere */
+        }
     </style>
 
 </head>
@@ -303,16 +371,16 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
     </div>
 
     <div class="modal fade" id="corsi_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
-        <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-dialog modal-md" role="document">
             <div class="modal-content">
 
-                <div class="modal-header">
-                    <h4 class="modal-title" id="myModalLabel">Dettagli Corso</h4>
+                <div class="modal-header modal-header-orange4">
+                    <h4 class="modal-title w-100 text-center" id="myModalLabel">Dettagli Corso</h4>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
-
                 <div class="modal-body">
                     <form class="form-horizontal">
+                        <input type="hidden" id="hidden_corso_id">
                         <!-- docenti -->
                         <div class="form-group">
                             <label class="col-sm-2 control-label">Docente</label>
@@ -350,6 +418,8 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                                 </thead>
                                 <tbody></tbody>
                             </table>
+                            <!-- Pulsante aggiungi date centrato -->
+                            <button type="button" class="btn btn-success" style="margin: 10px auto; display:block;" onclick="aggiungiDate()">Aggiungi Date</button>
                         </div>
 
                         <!-- studenti -->
@@ -365,6 +435,8 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                                 </thead>
                                 <tbody></tbody>
                             </table>
+                            <!-- Pulsante iscrivi studenti centrato -->
+                            <button type="button" class="btn btn-success" style="margin: 10px auto; display:block;" onclick="iscriviStudenti()">Iscrivi Studenti</button>
                         </div>
 
                     </form>
@@ -382,36 +454,44 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
     <!-- Modal modifica data corso -->
     <div class="modal fade" id="modificaDataModal" tabindex="-1" role="dialog"
         data-backdrop="static" data-keyboard="false" aria-labelledby="modificaDataLabel">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-sm modal-basso" role="document"> <!-- aggiunta classe modal-basso -->
             <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title" id="modificaDataLabel">Modifica Data Corso</h4>
+
+                <div class="modal-header modal-header-blu">
+                    <h4 class="modal-title w-100 text-center" id="modificaDataLabel">Modifica Data</h4>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
+
                 <div class="modal-body">
                     <form id="formModificaData" class="form-horizontal">
                         <input type="hidden" id="hidden_data_id">
 
-                        <div class="form-group">
+                        <div class="form-group text-center">
                             <label for="mod_data" class="control-label">Data e Ora</label>
-                            <input type="datetime-local" id="mod_data" class="form-control">
+                            <input type="datetime-local" id="mod_data" class="form-control" style="max-width:200px; margin:0 auto;">
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group text-center">
                             <label for="mod_aula" class="control-label">Aula</label>
-                            <input type="text" id="mod_aula" class="form-control" placeholder="Inserisci aula">
+                            <input type="text" id="mod_aula" class="form-control" placeholder="Inserisci aula" style="max-width:200px; margin:0 auto;">
                         </div>
 
-                        <div class="form-group text-danger" id="error-modifica-data" style="display:none;"></div>
+                        <div class="form-group text-danger text-center" id="error-modifica-data" style="display:none;"></div>
                     </form>
                 </div>
-                <div class="modal-footer">
+
+                <div class="modal-footer justify-content-center">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                     <button type="button" class="btn btn-primary" onclick="salvaModificaData()">Salva</button>
                 </div>
+
             </div>
         </div>
     </div>
+
+
+
+
 
 
     <!-- Custom JS file -->
