@@ -38,6 +38,7 @@
         "programmaMaterie": true,
         "programmiSvolti":true,
         "programmiMinimi":true,
+        "permessi": true,
         "carenze": false,
         "corsi": false,
         "carenzeObiettiviMinimi": false,
@@ -152,6 +153,11 @@
         "corsiDiRecuperoFirmaDocente": true,
         "corsiDiRecuperoVotoSettembreTuttiIDocenti": true,
         "corsiDiRecuperoPagatiDaProvincia": true
+    },
+    "permessi": {
+        "visibile_docenti": false,
+        "visibile_genitori": false,
+        "visibile_studenti":false
     },
     "label": {
         "ore_funzionali": "funzionali",

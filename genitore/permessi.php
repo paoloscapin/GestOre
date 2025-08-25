@@ -24,7 +24,7 @@ require_once '../common/checkSession.php';
     ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
 
 
-    if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) || (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
+    if (((!getSettingsValue('config', 'permessi', false)) || (!getSettingsValue('permessi', 'visibile_docenti', false)))  && (haRuolo("genitore"))) {
         redirect("/error/unauthorized.php");
     }
     ?>
@@ -95,10 +95,10 @@ foreach ($studenti as $studente) {
         <div class="panel panel-orange4">
             <div class="panel-heading">
                 <div class="row">
-                    <div class="col-md-1" style="padding:10px">
+                    <div class="col-md-2" style="padding:10px">
                         <span class="glyphicon glyphicon-blackboard"></span>&ensp;Permessi di uscita
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                     </div>
                     <div class="col-md-3">
                     </div>

@@ -26,8 +26,10 @@
 		<?php endif; ?>
 		</ul>
 
-		<a href="<?php echo $__application_base_path; ?>/genitore/permessi.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-log-out"></span>&ensp;Permessi di uscita </a>
-
+		<?php 
+		if((getSettingsValue('config','permessi', false))&&(getSettingsValue('permessi','visibile_genitori', false))) :?>
+			<a href="<?php echo $__application_base_path; ?>/genitore/permessi.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-log-out"></span>&ensp;Permessi di uscita </a>
+		<?php endif; ?>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a href="<?php echo $__application_base_path; ?>/help/GestOre - Guida Studenti.pdf" target="_blank" ><span class="glyphicon glyphicon-question-sign"></span></a></li>
 			<li><a><span class=""></span>
