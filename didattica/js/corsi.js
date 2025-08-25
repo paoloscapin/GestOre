@@ -18,7 +18,7 @@ var $futuri = 0;
 $('#futuri').change(function () {
     // this si riferisce al checkbox
     if (this.checked) {
-        $futuri = 1;    
+        $futuri = 1;
     } else {
         $futuri = 0;
     }
@@ -34,6 +34,78 @@ function corsiReadRecords() {
     });
 }
 
+// funzione per formattare le date
+function formatDateTime(dateTimeStr) {
+    // creo oggetto Date a partire dalla stringa
+    var d = new Date(dateTimeStr);
+
+    // estraggo giorno, mese, anno, ora, minuti
+    var giorno = String(d.getDate()).padStart(2, '0');
+    var mese = String(d.getMonth() + 1).padStart(2, '0'); // mesi partono da 0
+    var anno = d.getFullYear();
+
+    var ore = String(d.getHours()).padStart(2, '0');
+    var minuti = String(d.getMinutes()).padStart(2, '0');
+
+    return giorno + "-" + mese + "-" + anno + " alle ore " + ore + ":" + minuti;
+}
+
+function modificaData(data_id) {
+    var row = res.date.find(d => d.data_id == data_id);
+    if(!row) return;
+
+    $('#hidden_data_id').val(row.data_id);
+
+    var d = new Date(row.corso_data);
+    var formatted = d.getFullYear() + '-' +
+                    String(d.getMonth()+1).padStart(2,'0') + '-' +
+                    String(d.getDate()).padStart(2,'0') + 'T' +
+                    String(d.getHours()).padStart(2,'0') + ':' +
+                    String(d.getMinutes()).padStart(2,'0');
+    $('#mod_data').val(formatted);
+    $('#mod_aula').val(row.corso_aula);
+
+    $("#modificaDataModal").modal('show');
+    $('body').addClass('modal-open');  // mantiene la prima modale attiva
+}
+
+$('#modificaDataModal').on('hidden.bs.modal', function () {
+    $('.modal-backdrop').not(':first').remove(); // rimuove backdrop extra
+});
+
+
+function salvaModificaData() {
+    var data_id = $('#hidden_data_id').val();
+    var nuova_data = $('#mod_data').val();
+    var nuova_aula = $('#mod_aula').val();
+
+    if(!nuova_data || !nuova_aula) {
+        $('#error-modifica-data').text("Compila tutti i campi").show();
+        return;
+    }
+    $('#error-modifica-data').hide();
+
+    $.ajax({
+        url: 'aggiornaDataCorso.php',
+        type: 'POST',
+        data: {
+            data_id: data_id,
+            corso_data: nuova_data,
+            corso_aula: nuova_aula
+        },
+        success: function(response){
+            // chiudi la modal
+            $('#modificaDataModal').modal('hide');
+            // aggiorna la tabella date con le nuove info
+            corsiGetDetails(); // supponendo che ricarichi il JSON del corso
+        },
+        error: function(){
+            $('#error-modifica-data').text("Errore durante il salvataggio").show();
+        }
+    });
+}
+
+
 function corsiGetDetails(corsi_id) {
     $("#hidden_corsi_id").val(corsi_id);
 
@@ -41,16 +113,56 @@ function corsiGetDetails(corsi_id) {
         $.post("../didattica/corsiReadDetails.php", {
             corsi_id: corsi_id
         }, function (data, status) {
-            var corsi = JSON.parse(data);
-            $('#classe').selectpicker('val', corsi.corsi_id_classe);
-            $('#materia').selectpicker('val', corsi.corsi_id_materia);
-            $('#docente').selectpicker('val', corsi.corsi_id_docente);
+            console.log(data);
+            var corsi = data;
+            $('#titolo').val(corsi.corso.titolo);
+            $('#materia').selectpicker('val', corsi.corso.materia_id);
+            $('#docente').selectpicker('val', corsi.corso.doc_id);
+
+            // pulisco le tabelle prima di riempirle
+            $('#date_table tbody').empty();
+            $('#iscritti_table tbody').empty();
+
+            // costruzione righe date
+
+            var markupDate = '';
+            corsi.date.forEach(function (d) {
+                markupDate += "<tr>" +
+                    "<td style='text-align:center; vertical-align:middle;'>" + formatDateTime(d.corso_data) + "</td>" +
+                    "<td style='text-align:center; vertical-align:middle;'>" + d.corso_aula + "</td>" +
+                    "<td style='text-align:center; vertical-align:middle;'>" +
+                    "<button class='btn btn-sm btn-warning' onclick='modificaData(" + d.data_id + ")' title='Modifica'>" +
+                    "<span class='glyphicon glyphicon-pencil'></span>" +
+                    "</button> " +
+                    "<button class='btn btn-sm btn-danger' onclick='cancellaData(" + d.data_id + ")' title='Elimina'>" +
+                    "<span class='glyphicon glyphicon-trash'></span>" +
+                    "</button>" +
+                    "</td>" +
+                    "</tr>";
+            });
+            $('#date_table > tbody:last-child').append(markupDate);
+
+            // costruzione righe studenti iscritti
+            var markupStud = '';
+            corsi.studenti.forEach(function (s) {
+                var nominativo = s.stud_cognome + " " + s.stud_nome;
+                markupStud += "<tr>" +
+                    "<td style='text-align:center; vertical-align:middle;'>" + nominativo + "</td>" +
+                    "<td style='text-align:center; vertical-align:middle;'>" + s.classe + "</td>" +
+                    "<td style='text-align:center; vertical-align:middle;'>" +
+                    "<button class='btn btn-sm btn-danger' onclick='cancellaIscritto(" + s.iscrizione_id + ")' title='Elimina'>" +
+                    "<span class='glyphicon glyphicon-trash'></span>" +
+                    "</button>" +
+                    "</td>" +
+                    "</tr>";
+            });
+            $('#iscritti_table > tbody:last-child').append(markupStud);
+
+
         });
-        corsiReadRecords(corsi_id);
     }
     else {
-        $('#classe').val("0");
-        $('#classe').selectpicker('refresh');
+        $('#titolo').val("");
         $('#materia').val("0");
         $('#materia').selectpicker('refresh');
         $('#docente').val("0");
@@ -157,7 +269,7 @@ function hideTooltip(el) {
 
 $(document).ready(function () {
 
-   corsiReadRecords();
+    corsiReadRecords();
 
     $("#docente_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
@@ -170,7 +282,7 @@ $(document).ready(function () {
             $materia_filtro_id = this.value;
             corsiReadRecords();
         });
-       
+
     $("#anni_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             $anni_filtro_id = this.value;

@@ -64,6 +64,101 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
             text-align: left;
         }
     </style>
+    <style>
+        /* Tabella studenti iscritti compatta e centrata */
+        #iscritti_table {
+            width: 50% !important;
+            /* 50% della form */
+            margin: 0 auto;
+            /* centrata */
+        }
+
+        /* Colonna Nominativo più larga */
+        #iscritti_table th:nth-child(1),
+        #iscritti_table td:nth-child(1) {
+            width: 250px;
+            /* puoi regolare */
+        }
+
+        /* Colonna Classe stretta e centrata */
+        #iscritti_table th:nth-child(2),
+        #iscritti_table td:nth-child(2) {
+            width: 80px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* Colonna Azioni stretta e centrata */
+        #iscritti_table th:nth-child(3),
+        #iscritti_table td:nth-child(3) {
+            width: 100px;
+            /* regola secondo necessità */
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* Pulsanti più piccoli e centrati */
+        #iscritti_table td>button {
+            padding: 2px 6px;
+            font-size: 12px;
+            margin: 0 2px;
+        }
+    </style>
+
+
+    <style>
+        /* Tabella date */
+        #date_table {
+            width: 50% !important;
+            margin: 0 auto;
+        }
+
+        /* Colonna Data più stretta (già a posto) */
+        #date_table th:nth-child(1),
+        #date_table td:nth-child(1) {
+            width: 160px;
+            white-space: nowrap;
+        }
+
+        /* Colonna Aula stretta */
+        #date_table th:nth-child(2),
+        #date_table td:nth-child(2) {
+            width: 80px;
+            white-space: nowrap;
+        }
+
+        /* Colonna Azioni stretta */
+        #date_table th:nth-child(3),
+        #date_table td:nth-child(3) {
+            width: 100px;
+            /* puoi regolare tra 80-120px */
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* Pulsanti più piccoli e centrati */
+        #date_table td>button {
+            padding: 2px 6px;
+            font-size: 12px;
+            margin: 0 2px;
+        }
+
+        /* Prima modale */
+        #corsi_modal {
+            z-index: 1050;
+        }
+
+        /* Seconda modale */
+        #modificaDataModal {
+            z-index: 1060;
+        }
+
+        /* Backdrop */
+        .modal-backdrop.in {
+            z-index: 1045;
+        }
+    </style>
+
 </head>
 
 <?php
@@ -207,119 +302,117 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         </div>
     </div>
 
-    <div class="modal fade" id="corsi_modal" data-backdrop="static" tabindex="-1" role="dialog"
-        aria-labelledby="myModalLabel">
-        <div class="modal-dialog modal-lg" style="margin:auto;width:%30" role="document">
+    <div class="modal fade" id="corsi_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
+        <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
+
+                <div class="modal-header">
+                    <h4 class="modal-title" id="myModalLabel">Dettagli Corso</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+
                 <div class="modal-body">
-                    <div class="panel panel-orange4">
-                        <div class="panel-heading">
-                            <h3 class="modal-title" style="text-align:center" id="myModalLabel">Dettagli
-                                Corso
-                            </h3>
-                        </div>
-                        <div class="panel-body">
-                            <form class="form-horizontal">
-
-                                <div class="form-group docente_selector">
-                                    <label class="col-sm-2 control-label" style="text-align:center"
-                                        for="categoria">Docente</label>
-                                    <div class="col-sm-10"><select id="docente" name="docente"
-                                            class="docente selectpicker" data-style="btn-yellow4"
-                                            data-live-search="true" data-noneSelectedText="seleziona..."
-                                            <?php echo $modificheDisabilitate ?> data-width="100%">
-                                            <?php echo $docentiFiltroOptionList ?>
-                                        </select></div>
-                                </div>
-
-                                <div class="form-group materia_selector">
-                                    <label class="col-sm-2 control-label" style="text-align:center"
-                                        accesskey="" for="materia">Materia</label>
-                                    <div class="col-sm-10"><select id="materia" name="materia"
-                                            class="materia selectpicker form-control" data-style="btn-yellow4"
-                                            data-live-search="true" data-noneSelectedText="seleziona..."
-                                            <?php echo $modificheDisabilitate ?> data-width="100%">
-                                            <?php echo $materiaOptionList ?>
-                                        </select></div>
-                                </div>
-
-                                <div class="form-group materia_selector">
-                                    <label class="col-sm-2 control-label" style="text-align:center"
-                                        accesskey="" for="materia">Titolo</label>
-                                    <div class="col-sm-10"><input type="text" id="titolo" placeholder="titolo"
-                                            class="form-control" data-toggle="tooltip" data-placement="top"
-                                            title="Inserisci il titolo del corso" />
-                                    </div>
-                                </div>
-
-                                <div class="form-group text-center" id="date-part">
-                                    <hr>
-                                    <label for="date_table">Date del corso</label>
-                                    <div class="table-wrapper">
-                                        <table class="table table-bordered table-striped" id="date_table">
-                                            <thead>
-                                                <tr>
-                                                    <th class="text-center">Data</th>
-                                                    <th class="text-center">Aula</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                                <div class="form-group text-center" id="date-part">
-                                    <hr>
-                                    <label for="date_table">Studenti iscritti</label>
-                                    <div class="table-wrapper">
-                                        <table class="table table-bordered table-striped" id="date_table">
-                                            <thead>
-                                                <tr>
-                                                    <th class="text-center">Nominativo</th>
-                                                    <th class="text-center">Classe</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                                <div class="form-group" id="_error-corsi-part">
-                                    <strong>
-                                        <div class="col-sm-3 text-right text-danger ">Attenzione</div>
-                                        <div class="col-sm-9" id="error-corsi"></div>
-                                    </strong>
-                                </div>
-                                <input type="hidden" id="hidden_corsi_id">
-                            </form>
+                    <form class="form-horizontal">
+                        <!-- docenti -->
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">Docente</label>
+                            <div class="col-sm-10">
+                                <select id="docente" class="selectpicker form-control" data-live-search="true"><?php echo $docentiFiltroOptionList ?></select>
+                            </div>
                         </div>
 
-                        <div class="panel-footer text-center">
-                            <?php
-
-                            if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
-                                echo '
-                                    <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                    <button type="button" class="btn btn-primary" onclick="corsiSave()">Salva</button>
-                                    ';
-                            } else
-                                        if (haRuolo('docente')) {
-                                echo '
-                                    <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
-                                    ';
-                            }
-
-                            ?>
+                        <!-- materia -->
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">Materia</label>
+                            <div class="col-sm-10">
+                                <select id="materia" class="selectpicker form-control" data-live-search="true"><?php echo $materiaOptionList ?></select>
+                            </div>
                         </div>
-                    </div>
+
+                        <!-- titolo -->
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">Titolo</label>
+                            <div class="col-sm-10">
+                                <input type="text" id="titolo" class="form-control" placeholder="titolo">
+                            </div>
+                        </div>
+
+                        <!-- date -->
+                        <div class="form-group text-center">
+                            <label>Date del corso</label>
+                            <table class="table table-bordered table-striped" id="date_table">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Aula</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+
+                        <!-- studenti -->
+                        <div class="form-group text-center">
+                            <label>Studenti iscritti</label>
+                            <table class="table table-bordered table-striped" id="iscritti_table">
+                                <thead>
+                                    <tr>
+                                        <th>Nominativo</th>
+                                        <th>Classe</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                    <button type="button" class="btn btn-primary" onclick="corsiSave()">Salva</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal modifica data corso -->
+    <div class="modal fade" id="modificaDataModal" tabindex="-1" role="dialog"
+        data-backdrop="static" data-keyboard="false" aria-labelledby="modificaDataLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="modificaDataLabel">Modifica Data Corso</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="formModificaData" class="form-horizontal">
+                        <input type="hidden" id="hidden_data_id">
+
+                        <div class="form-group">
+                            <label for="mod_data" class="control-label">Data e Ora</label>
+                            <input type="datetime-local" id="mod_data" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="mod_aula" class="control-label">Aula</label>
+                            <input type="text" id="mod_aula" class="form-control" placeholder="Inserisci aula">
+                        </div>
+
+                        <div class="form-group text-danger" id="error-modifica-data" style="display:none;"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary" onclick="salvaModificaData()">Salva</button>
                 </div>
             </div>
         </div>
-        <!-- // Modal - Add/Update Record -->
-
     </div>
+
 
     <!-- Custom JS file -->
     <script type="text/javascript" src="js/corsi.js?v=<?php echo $__software_version; ?>&a=<?php echo $anno_corsi; ?>"></script>
