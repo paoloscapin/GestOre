@@ -17,14 +17,15 @@ if (isset($_POST)) {
 	$corso_id = $_POST['id'];
 	$materia_id = $_POST['materia_id'];
 	$titolo = $_POST['titolo'];
+	$carenze = $_POST['carenze'];
 
 	if ($corso_id > 0) {
-		$query = "UPDATE corso SET id_docente = '$docente_id', id_materia = '$materia_id', titolo='$titolo' WHERE id = '$corso_id'";
-		dbExec($query); 
+		$query = "UPDATE corso SET id_docente = '$docente_id', id_materia = '$materia_id', titolo='$titolo', carenze='$carenze' WHERE id = '$corso_id'";
+		dbExec($query);
 		info("aggiornato dati del corso con id $corso_id");
 	} 
 	else {
-		$query = "INSERT INTO corso (id_materia, id_docente, id_anno_scolastico, titolo) VALUES('$materia_id', '$docente_id', '$__anno_scolastico_corrente_id','$titolo')";
+		$query = "INSERT INTO corso (id_materia, id_docente, id_anno_scolastico, titolo, carenze) VALUES('$materia_id', '$docente_id', '$__anno_scolastico_corrente_id','$titolo', '$carenze')";
 		dbExec($query);
 		$lastId = dblastId();
 		info("aggiunto nuovo corso con id $lastId");

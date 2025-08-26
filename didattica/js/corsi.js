@@ -339,12 +339,13 @@ function corsiSave() {
         return;
     }
     $("#_error-corsi-part").hide();
-
+    carenze = $("#carenze").prop('checked');
     $.post("corsiSave.php", {
         id: $("#hidden_corso_id").val(),
         docente_id: $("#docente").val(),
         materia_id: $("#materia").val(),
-        titolo: $("#titolo").val()
+        titolo: $("#titolo").val(),
+        carenze: carenze
     }, function (data, status) {
         $("#corsi_modal").modal("hide");
         corsiReadRecords();
