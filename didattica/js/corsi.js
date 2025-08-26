@@ -117,6 +117,7 @@ function salvaModificaData() {
 
 function corsiGetDetails(corsi_id) {
     $("#hidden_corso_id").val(corsi_id);
+    carenze = $("#carenze").prop('checked');
 
     if (corsi_id > 0) {
         $.post("../didattica/corsiReadDetails.php", { corsi_id: corsi_id }, function (data, status) {
@@ -124,6 +125,8 @@ function corsiGetDetails(corsi_id) {
 
             // Aggiorna campi del corso
             $('#titolo').val(corsi.corso.titolo);
+            $('#titolo').prop('disabled', false);
+
             $('#materia').selectpicker('val', corsi.corso.materia_id);
             $('#docente').selectpicker('val', corsi.corso.doc_id);
 
@@ -196,7 +199,14 @@ function corsiGetDetails(corsi_id) {
     }
     else {
         // Reset campi se corso_id non valido
-        $('#titolo').val("");
+        if (carenze) {
+            $('#titolo').val("Corso recupero carenze");
+            $('#titolo').prop('disabled', true);
+        }
+        else {
+            $('#titolo').val("");
+            $('#titolo').prop('disabled', false);
+        }
         $('#materia').val("0");
         $('#materia').selectpicker('refresh');
         $('#docente').val("0");
@@ -210,7 +220,7 @@ function corsiGetDetails(corsi_id) {
 }
 
 
-function corsiDelete(id, materia, docente, nstudenti,stato) {
+function corsiDelete(id, materia, docente, nstudenti, stato) {
     var conf = confirm("Sei sicuro di volere cancellare il corso di " + materia + " a " + docente + " ?");
     if (!conf) return;
 
@@ -228,241 +238,245 @@ function corsiDelete(id, materia, docente, nstudenti,stato) {
     });
 }
 
-    function aggiornaTabellaDate(corso_id) {
-        $.post("../didattica/corsiReadDetails.php", { corsi_id: corso_id }, function (data) {
-            var tbody = $('#date_table tbody');
-            tbody.empty();
+function aggiornaTabellaDate(corso_id) {
+    $.post("../didattica/corsiReadDetails.php", { corsi_id: corso_id }, function (data) {
+        var tbody = $('#date_table tbody');
+        tbody.empty();
 
-            data.date.forEach(function (d) {
-                var tr = $('<tr>');
-                tr.append($('<td>').text(formatDateTime(d.corso_data)));
-                tr.append($('<td>').text(d.corso_aula));
+        data.date.forEach(function (d) {
+            var tr = $('<tr>');
+            tr.append($('<td>').text(formatDateTime(d.corso_data)));
+            tr.append($('<td>').text(d.corso_aula));
 
-                var tdBtn = $('<td>');
+            var tdBtn = $('<td>');
 
-                // Bottone Modifica
-                var btnMod = $('<button>')
-                    .addClass('btn btn-sm btn-warning')
-                    .html('<span class="glyphicon glyphicon-pencil"></span>')
-                    .on('click', function () { modificaData(d.data_id, corso_id); });
+            // Bottone Modifica
+            var btnMod = $('<button>')
+                .addClass('btn btn-sm btn-warning')
+                .html('<span class="glyphicon glyphicon-pencil"></span>')
+                .on('click', function () { modificaData(d.data_id, corso_id); });
 
-                // Bottone Elimina
-                var btnDel = $('<button>')
-                    .addClass('btn btn-sm btn-danger')
-                    .html('<span class="glyphicon glyphicon-trash"></span>')
-                    .on('click', function () { cancellaData(d.data_id, corso_id); });
+            // Bottone Elimina
+            var btnDel = $('<button>')
+                .addClass('btn btn-sm btn-danger')
+                .html('<span class="glyphicon glyphicon-trash"></span>')
+                .on('click', function () { cancellaData(d.data_id, corso_id); });
 
-                tdBtn.append(btnMod).append(' ').append(btnDel);
-                tr.append(tdBtn);
-                tbody.append(tr);
-            });
+            tdBtn.append(btnMod).append(' ').append(btnDel);
+            tr.append(tdBtn);
+            tbody.append(tr);
         });
+    });
+}
+
+
+function cancellaData(id, corso_id) {
+    // conferma
+    var conf = window.confirm("Sei sicuro di volere cancellare questa data?");
+    if (conf) {
+        $.post("../didattica/corsoCancellaData.php", { id: id }, function (data) {
+            $('#row_' + id).remove();
+        }, 'json');
     }
+}
 
+function aggiornaTabellaStudenti(corso_id) {
+    $.post("../didattica/corsiReadDetails.php", { corsi_id: corso_id }, function (data) {
+        var tbody = $('#iscritti_table tbody');
+        tbody.empty();
 
-    function cancellaData(id, corso_id) {
-        // conferma
-        var conf = window.confirm("Sei sicuro di volere cancellare questa data?");
-        if (conf) {
-            $.post("../didattica/corsoCancellaData.php", { id: id }, function (data) {
-                $('#row_' + id).remove();
-            }, 'json');
+        data.studenti.forEach(function (s) {
+            var tr = $('<tr>').attr('id', 'row_stud_' + s.iscrizione_id);
+
+            tr.append($('<td>').text(s.stud_cognome + " " + s.stud_nome));
+            tr.append($('<td>').text(s.classe));
+
+            var tdBtn = $('<td>');
+
+            // Bottone Elimina
+            var btnDel = $('<button>')
+                .attr('type', 'button')
+                .addClass('btn btn-sm btn-danger')
+                .html('<span class="glyphicon glyphicon-trash"></span>')
+                .on('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    cancellaIscritto(s.iscrizione_id);
+                });
+
+            tdBtn.append(btnDel);
+            tr.append(tdBtn);
+            tbody.append(tr);
+        });
+    }, 'json');
+}
+
+function cancellaIscritto(iscrizione_id) {
+    corsi_id = $("#hidden_corso_id").val();
+    if (!window.confirm("Sei sicuro di volere cancellare questo studente?")) return;
+
+    $.post("../didattica/corsoCancellaIscritto.php", { id: iscrizione_id, corso_id: corsi_id }, function (data) {
+        $('#row_stud_' + iscrizione_id).remove();
+    }, 'json');
+    corsiGetDetails(corsi_id); // supponendo che ricarichi il JSON del corso
+}
+
+function corsiSave() {
+
+    if ($("#docente").val() <= 0) {
+        $("#_error-corsi").text("Devi selezionare un docente");
+        $("#_error-corsi-part").show();
+        return;
+    }
+    if ($("#materia").val() <= 0) {
+        $("#_error-corsi").text("Devi selezionare una materia");
+        $("#_error-corsi-part").show();
+        return;
+    }
+    if ($("#titolo").val() == "") {
+        $("#_error-corsi").text("Devi selezionare un titolo");
+        $("#_error-corsi-part").show();
+        return;
+    }
+    $("#_error-corsi-part").hide();
+
+    $.post("corsiSave.php", {
+        id: $("#hidden_corso_id").val(),
+        docente_id: $("#docente").val(),
+        materia_id: $("#materia").val(),
+        titolo: $("#titolo").val()
+    }, function (data, status) {
+        $("#corsi_modal").modal("hide");
+        corsiReadRecords();
+    });
+
+}
+
+var studentiDisponibili = []; // Popolato via AJAX
+
+function iscriviStudenti() {
+    carenze = $("#carenze").prop('checked');
+    corso_id = $("#hidden_corso_id").val();
+    $('#container_studenti').empty();
+    $('#error-aggiungi-studenti').hide();
+    console.log(carenze);
+    // Recupera elenco studenti disponibili
+    $.getJSON('../didattica/elencoStudentiDisponibili.php', { corso_id: corso_id, carenze: carenze }, function (data) {
+        
+        studentiDisponibili = data.stud; // salviamo globalmente
+        studentiDisponibili = studentiDisponibili.filter((v,i,a)=>a.findIndex(t=>t.studente_id===v.studente_id)===i);
+
+        aggiungiSelectStudente();   // aggiungiamo il primo select
+    });
+
+    $('#aggiungiStudentiModal').modal('show');
+}
+
+// Funzione per creare un nuovo select
+function aggiungiSelectStudente() {
+    var container = $('#container_studenti');
+    var select = $('<select>').addClass('form-control mb-2').css({ maxWidth: '250px', margin: '0 auto' });
+    select.append('<option value="">-- Seleziona uno studente --</option>');
+
+    // Popola con studenti ancora disponibili
+    studentiDisponibili.forEach(function (s) {
+        select.append('<option value="' + s.studente_id + '">' + s.cognome + ' ' + s.nome + ' (' + s.classe + ')</option>');
+    });
+
+    // Al cambiamento del select
+    select.on('change', function () {
+        var val = $(this).val();
+        if (val) {
+            // Rimuovo lo studente selezionato dai select futuri
+            studentiDisponibili = studentiDisponibili.filter(s => s.studente_id != val);
+            // Aggiungo un nuovo select solo se l'ultimo select non è vuoto
+            if ($('#container_studenti select').last().val() != '') {
+                aggiungiSelectStudente();
+            }
         }
+    });
+
+    container.append(select);
+}
+
+
+function salvaNuoviStudenti() {
+    var corso_id = $('#hidden_corso_id').val();
+    var studenti_id = [];
+
+    $('#container_studenti select').each(function () {
+        let val = $(this).val();
+        if (val && val != "" && val != "0") {
+            studenti_id.push(val);
+        }
+    });
+
+    if (studenti_id.length == 0) {
+        $('#error-aggiungi-studenti').text("Seleziona almeno uno studente").show();
+        return;
     }
+    $('#error-aggiungi-studenti').hide();
 
-    function aggiornaTabellaStudenti(corso_id) {
-        $.post("../didattica/corsiReadDetails.php", { corsi_id: corso_id }, function (data) {
-            var tbody = $('#iscritti_table tbody');
-            tbody.empty();
+    $.post('../didattica/corsoAggiungiStudenti.php',
+        { id_corso: corso_id, id_studente: studenti_id },
+        function (data) {
+            if (data.status == 'ok') {
+                aggiornaTabellaStudenti(corso_id);
+                $('#aggiungiStudentiModal').modal('hide');
+            } else {
+                $('#error-aggiungi-studenti').text(data.message || "Errore durante l'aggiunta").show();
+            }
+        }, 'json'
+    );
 
-            data.studenti.forEach(function (s) {
-                var tr = $('<tr>').attr('id', 'row_stud_' + s.iscrizione_id);
+}
 
-                tr.append($('<td>').text(s.stud_cognome + " " + s.stud_nome));
-                tr.append($('<td>').text(s.classe));
 
-                var tdBtn = $('<td>');
-
-                // Bottone Elimina
-                var btnDel = $('<button>')
-                    .attr('type', 'button')
-                    .addClass('btn btn-sm btn-danger')
-                    .html('<span class="glyphicon glyphicon-trash"></span>')
-                    .on('click', function (e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        cancellaIscritto(s.iscrizione_id);
-                    });
-
-                tdBtn.append(btnDel);
-                tr.append(tdBtn);
-                tbody.append(tr);
+function importFile(file) {
+    var contenuto = "";
+    const reader = new FileReader();
+    reader.addEventListener('load', (event) => {
+        contenuto = event.target.result;
+        $.post("carenzeImport.php", {
+            contenuto: contenuto
+        },
+            function (data, status) {
+                $('#result_text').html(data);
+                carenzeReadRecords();
+                setTimeout(function () { $('#result_text').html(""); }, 5000);
             });
-        }, 'json');
-    }
+    });
+    reader.readAsText(file);
+}
 
-    function cancellaIscritto(iscrizione_id) {
-        corsi_id = $("#hidden_corso_id").val();
-        if (!window.confirm("Sei sicuro di volere cancellare questo studente?")) return;
+function hideTooltip(el) {
+    $(el).tooltip('hide');
+}
 
-        $.post("../didattica/corsoCancellaIscritto.php", { id: iscrizione_id, corso_id: corsi_id }, function (data) {
-            $('#row_stud_' + iscrizione_id).remove();
-        }, 'json');
-        corsiGetDetails(corsi_id); // supponendo che ricarichi il JSON del corso
-    }
+$(document).ready(function () {
 
-    function corsiSave() {
+    corsiReadRecords();
 
-        if ($("#docente").val() <= 0) {
-            $("#_error-corsi").text("Devi selezionare un docente");
-            $("#_error-corsi-part").show();
-            return;
-        }
-        if ($("#materia").val() <= 0) {
-            $("#_error-corsi").text("Devi selezionare una materia");
-            $("#_error-corsi-part").show();
-            return;
-        }
-        if ($("#titolo").val() == "") {
-            $("#_error-corsi").text("Devi selezionare un titolo");
-            $("#_error-corsi-part").show();
-            return;
-        }
-        $("#_error-corsi-part").hide();
-
-        $.post("corsiSave.php", {
-            id: $("#hidden_corso_id").val(),
-            docente_id: $("#docente").val(),
-            materia_id: $("#materia").val(),
-            titolo: $("#titolo").val()
-        }, function (data, status) {
-            $("#corsi_modal").modal("hide");
+    $("#docente_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            $docente_filtro_id = this.value;
             corsiReadRecords();
         });
 
-    }
-
-    var studentiDisponibili = []; // Popolato via AJAX
-
-    function iscriviStudenti() {
-        corso_id = $("#hidden_corso_id").val();
-        $('#container_studenti').empty();
-        $('#error-aggiungi-studenti').hide();
-
-        // Recupera elenco studenti disponibili
-        $.getJSON('../didattica/elencoStudentiDisponibili.php', { corso_id: corso_id }, function (data) {
-            studentiDisponibili = data.stud; // salviamo globalmente
-            aggiungiSelectStudente();   // aggiungiamo il primo select
+    $("#materia_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            $materia_filtro_id = this.value;
+            corsiReadRecords();
         });
 
-        $('#aggiungiStudentiModal').modal('show');
-    }
-
-    // Funzione per creare un nuovo select
-    function aggiungiSelectStudente() {
-        var container = $('#container_studenti');
-        var select = $('<select>').addClass('form-control mb-2').css({ maxWidth: '250px', margin: '0 auto' });
-        select.append('<option value="">-- Seleziona uno studente --</option>');
-
-        // Popola con studenti ancora disponibili
-        studentiDisponibili.forEach(function (s) {
-            select.append('<option value="' + s.studente_id + '">' + s.cognome + ' ' + s.nome + ' (' + s.classe + ')</option>');
+    $("#anni_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            $anni_filtro_id = this.value;
+            corsiReadRecords();
         });
 
-        // Al cambiamento del select
-        select.on('change', function () {
-            var val = $(this).val();
-            if (val) {
-                // Rimuovo lo studente selezionato dai select futuri
-                studentiDisponibili = studentiDisponibili.filter(s => s.studente_id != val);
-                // Aggiungo un nuovo select solo se l'ultimo select non è vuoto
-                if ($('#container_studenti select').last().val() != '') {
-                    aggiungiSelectStudente();
-                }
-            }
-        });
+    $('#file_select_id').change(function (e) {
+        importFile(e.target.files[0]);
+    });
 
-        container.append(select);
-    }
-
-
-    function salvaNuoviStudenti() {
-        var corso_id = $('#hidden_corso_id').val();
-        var studenti_id = [];
-
-        $('#container_studenti select').each(function () {
-            let val = $(this).val();
-            if (val && val != "" && val != "0") {
-                studenti_id.push(val);
-            }
-        });
-
-        if (studenti_id.length == 0) {
-            $('#error-aggiungi-studenti').text("Seleziona almeno uno studente").show();
-            return;
-        }
-        $('#error-aggiungi-studenti').hide();
-
-        $.post('../didattica/corsoAggiungiStudenti.php',
-            { id_corso: corso_id, id_studente: studenti_id },
-            function (data) {
-                if (data.status == 'ok') {
-                    aggiornaTabellaStudenti(corso_id);
-                    $('#aggiungiStudentiModal').modal('hide');
-                } else {
-                    $('#error-aggiungi-studenti').text(data.message || "Errore durante l'aggiunta").show();
-                }
-            }, 'json'
-        );
-
-    }
-
-
-    function importFile(file) {
-        var contenuto = "";
-        const reader = new FileReader();
-        reader.addEventListener('load', (event) => {
-            contenuto = event.target.result;
-            $.post("carenzeImport.php", {
-                contenuto: contenuto
-            },
-                function (data, status) {
-                    $('#result_text').html(data);
-                    carenzeReadRecords();
-                    setTimeout(function () { $('#result_text').html(""); }, 5000);
-                });
-        });
-        reader.readAsText(file);
-    }
-
-    function hideTooltip(el) {
-        $(el).tooltip('hide');
-    }
-
-    $(document).ready(function () {
-
-        corsiReadRecords();
-
-        $("#docente_filtro").on("changed.bs.select",
-            function (e, clickedIndex, newValue, oldValue) {
-                $docente_filtro_id = this.value;
-                corsiReadRecords();
-            });
-
-        $("#materia_filtro").on("changed.bs.select",
-            function (e, clickedIndex, newValue, oldValue) {
-                $materia_filtro_id = this.value;
-                corsiReadRecords();
-            });
-
-        $("#anni_filtro").on("changed.bs.select",
-            function (e, clickedIndex, newValue, oldValue) {
-                $anni_filtro_id = this.value;
-                corsiReadRecords();
-            });
-
-        $('#file_select_id').change(function (e) {
-            importFile(e.target.files[0]);
-        });
-
-    });     
+});     

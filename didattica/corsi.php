@@ -334,7 +334,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             </button>
                         </div>
 
-                        <div class="col-md-auto text-center" style="margin-top:20px;">
+                        <div class="col-md-1 text-center" style="margin-top:20px;">
                             <label id="import_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Importa i corsi">
                                 <span class="glyphicon glyphicon-upload"></span>&emsp;Importa
                                 <input type="file" id="file_select_id" style="display: none;">
@@ -344,13 +344,20 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     }
                     ?>
 
-                    <div class="col-md-2 text-center">
+                    <div class="col-md-2 text-center" style="margin-top:20px;">
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
-                            <input type="checkbox" checked data-toggle="toggle" data-size="mini"
-                                data-onstyle="primary" id="soloNuoviCheckBox"> Solo Nuovi
+                            <input type="checkbox" data-toggle="toggle" data-size="mini"
+                                data-onstyle="primary" id="futuri"> Solo Nuovi
                         </label>
                     </div>
 
+
+                    <div class="col-md-2 text-center" style="margin-top:20px;">
+                        <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
+                            <input type="checkbox" checked data-toggle="toggle" data-size="mini"
+                                data-onstyle="primary" id="carenze">Corsi carenze
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="panel-body">
