@@ -41,6 +41,7 @@ if (isset($_POST['corsi_id']) && $_POST['corsi_id'] != "") {
     // 🔹 Studenti iscritti (solo anno scolastico corrente)
     $query = "
         SELECT 
+            i.id AS iscrizione_id,
             s.id AS stud_id,
             s.nome AS stud_nome,
             s.cognome AS stud_cognome,

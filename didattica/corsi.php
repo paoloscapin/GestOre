@@ -67,7 +67,7 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
     <style>
         /* Tabella studenti iscritti compatta e centrata */
         #iscritti_table {
-            width: 50% !important;
+            width: 60% !important;
             /* 50% della form */
             margin: 0 auto;
             /* centrata */
@@ -76,14 +76,14 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
         /* Colonna Nominativo più larga */
         #iscritti_table th:nth-child(1),
         #iscritti_table td:nth-child(1) {
-            width: 250px;
+            width: 600px;
             /* puoi regolare */
         }
 
         /* Colonna Classe stretta e centrata */
         #iscritti_table th:nth-child(2),
         #iscritti_table td:nth-child(2) {
-            width: 80px;
+            width: 100px;
             text-align: center;
             white-space: nowrap;
         }
@@ -329,7 +329,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <div class="col-md-1 text-center">
                             <label class="control-label" for="corso">Aggiungi</label>
                             <button class="btn btn-xs btn-lima4" style="display:block; margin: 5px auto 0;"
-                                    onclick="corsoGetDetails(-1)">
+                                    onclick="corsiGetDetails(-1)">
                                 <span style="font-size:15px" class="glyphicon glyphicon-plus"></span>
                             </button>
                         </div>
@@ -366,7 +366,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
             </div>
 
             <!-- <div class="panel-footer"></div> -->
-
+            <input type="hidden" id="hidden_corso_id">
         </div>
     </div>
 
@@ -380,7 +380,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                 </div>
                 <div class="modal-body">
                     <form class="form-horizontal">
-                        <input type="hidden" id="hidden_corso_id">
+
                         <!-- docenti -->
                         <div class="form-group">
                             <label class="col-sm-2 control-label">Docente</label>
@@ -405,7 +405,11 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             </div>
                         </div>
 
-                        <!-- date -->
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                            <button type="button" class="btn btn-primary" onclick="corsiSave()">Salva</button>
+                        </div>
+                        <hr> <!-- date -->
                         <div class="form-group text-center">
                             <label>Date del corso</label>
                             <table class="table table-bordered table-striped" id="date_table">
@@ -489,6 +493,37 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         </div>
     </div>
 
+    <!-- Modal aggiungi più studenti -->
+    <div class="modal fade" id="aggiungiStudentiModal" tabindex="-1" role="dialog"
+        data-backdrop="static" data-keyboard="false" aria-labelledby="aggiungiStudentiLabel">
+        <div class="modal-dialog modal-sm modal-basso" role="document">
+            <div class="modal-content">
+
+                <div class="modal-header modal-header-blu">
+                    <h4 class="modal-title w-100 text-center" id="aggiungiStudentiLabel">Aggiungi Studenti</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <form id="formAggiungiStudenti" class="form-horizontal">
+                        <input type="hidden" id="hidden_corso_id">
+
+                        <div id="container_studenti">
+                            <!-- Qui appariranno i select dinamici -->
+                        </div>
+
+                        <div class="form-group text-danger text-center" id="error-aggiungi-studenti" style="display:none;"></div>
+                    </form>
+                </div>
+
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary" onclick="salvaNuoviStudenti()">Aggiungi</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
 
 
 
