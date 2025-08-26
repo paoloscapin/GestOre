@@ -15,6 +15,8 @@ $docente_id = $_GET["docente_id"];
 $materia_id = $_GET["materia_id"];
 $anni_filtro_id = $_GET["anni_id"];
 $futuri = $_GET["futuri"];
+$carenze_toggle = isset($_GET['carenze']) ? $_GET['carenze'] : 0;
+
 
 // Design initial table header
 $data = '<style>
@@ -55,6 +57,7 @@ SELECT c.id AS corso_id,
        c.id_docente AS doc_id,
        c.titolo AS titolo,
        c.id_anno_scolastico AS anno_id,
+	   c.carenza AS carenza,
        m.nome AS materia_nome,
        MIN(cd.data) AS data_inizio,
        MAX(cd.data) AS data_fine,
@@ -71,7 +74,7 @@ INNER JOIN materia m
        ON m.id = c.id_materia
 LEFT JOIN corso_date cd 
        ON cd.id_corso = c.id
-WHERE c.id_anno_scolastico = $anni_filtro_id
+WHERE c.id_anno_scolastico = '$anni_filtro_id' AND c.carenza = '$carenze_toggle'
 ";
 
 // filtro opzionale materia

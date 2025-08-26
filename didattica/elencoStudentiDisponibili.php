@@ -9,20 +9,18 @@
 
 require_once '../common/checkSession.php';
 
-if (isset($_GET['corso_id']) && $_GET['corso_id'] != "") 
-{
-    $corso_id = intval($_GET['corso_id']); 
-// sicurezza: forzo a intero
-$carenze = isset($_GET['carenze']) && $_GET['carenze'] === "true";
+if (isset($_GET['corso_id']) && $_GET['corso_id'] != "") {
+    $corso_id = intval($_GET['corso_id']);
+    // sicurezza: forzo a intero
+    $carenze = isset($_GET['carenze']) && $_GET['carenze'] === "true";
     // da dove prendo elenco studenti
     $anno_corrente = intval($__anno_scolastico_corrente_id);
-    $query="";
+    $query = "";
 
 
-if ($carenze)
-{
-// 🔹 Query studenti con carenze e classe
-$query = "
+    if ($carenze) {
+        // 🔹 Query studenti con carenze e classe
+        $query = "
     SELECT 
         c.id AS carenza_id,
         c.id_studente AS studente_id,
@@ -43,10 +41,8 @@ $query = "
     GROUP BY s.id, s.cognome, s.nome, f.id_classe, classi.classe, f.id_anno_scolastico
     ORDER BY s.cognome, s.nome
 ";
-}
-else
-{
-    $query = "SELECT
+    } else {
+        $query = "SELECT
         s.id AS studente_id,
         s.cognome AS cognome,
         s.nome AS nome,
@@ -60,17 +56,15 @@ else
         ON classi.id = f.id_classe
     WHERE f.id_anno_scolastico = $anno_corrente
         ORDER BY s.cognome, s.nome";
-}
+    }
 
     $studenti = dbGetAll($query);
 
-// 🔹 Costruzione della struttura JSON
-$struct_json = [
-    'stud' => $studenti
-];
-}
-else
-{
+    // 🔹 Costruzione della struttura JSON
+    $struct_json = [
+        'stud' => $studenti
+    ];
+} else {
     // nessun corso selezionato
     $struct_json = [
         'stud' => []
@@ -78,5 +72,3 @@ else
 }
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode($struct_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-
-    

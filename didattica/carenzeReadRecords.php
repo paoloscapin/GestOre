@@ -17,7 +17,7 @@ $materia_id = $_GET["materia_id"];
 $studente_id = $_GET["studente_id"];
 $anno = $_GET["anno"];
 $anni_filtro_id = $_GET["anni_id"];
-$da_validare_filtro = $_GET["da_validare_filtro"];
+
 
 // Design initial table header
 $data = '<style>

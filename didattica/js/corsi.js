@@ -13,6 +13,7 @@ var $anni_filtro_id = params.get("a") || "1"; // default
 var $docente_filtro_id = 0;
 var $materia_filtro_id = 0;
 var $futuri = 0;
+var $carenze_toggle = 1;
 
 $('#futuri').change(function () {
     // this si riferisce al checkbox
@@ -24,8 +25,18 @@ $('#futuri').change(function () {
     corsiReadRecords();
 });
 
+$('#carenze').change(function () {
+    // this si riferisce al checkbox
+    if (this.checked) {
+        $carenze_toggle = 1;
+    } else {
+        $carenze_toggle = 0;
+    }
+    corsiReadRecords();
+});
+
 function corsiReadRecords() {
-    $.get("corsiReadRecords.php?anni_id=" + $anni_filtro_id + "&docente_id=" + $docente_filtro_id + "&materia_id=" + $materia_filtro_id + "&futuri=" + $futuri, {}, function (data, status) {
+    $.get("corsiReadRecords.php?anni_id=" + $anni_filtro_id + "&docente_id=" + $docente_filtro_id + "&materia_id=" + $materia_filtro_id + "&futuri=" + $futuri + "&carenze=" + $carenze_toggle, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
