@@ -27,23 +27,32 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_flatpickr.php';
     ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
 
-	if((!getSettingsValue('config','carenzeObiettiviMinimi', false))||(!getSettingsValue('carenzeObiettiviMinimi','visibile_studenti', false)))
-    {
-      redirect("/error/unauthorized.php");  
+    if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) || (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
+        redirect("/error/unauthorized.php");
+    }
+
+    $query = "SELECT COUNT(id) FROM carenze WHERE id_anno_scolastico=" . $__anno_scolastico_corrente_id;
+    $count = dbGetValue($query);
+    if ($count == 0) {
+        $anno_carenze = $__anno_scolastico_scorso_id;
+    } else {
+        $anno_carenze = $__anno_scolastico_corrente_id;
     }
     ?>
 
     <!-- bootbox notificator -->
     <script type="text/javascript"
         src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
-    <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css"> 
-
+    <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
     <?php
     require_once '../common/header-studente-mobile.php';
     require_once '../common/connect.php';
+
     ?>
 
     <div class="container-fluid" style="margin-top:60px">
@@ -53,7 +62,7 @@ require_once '../common/checkSession.php';
                     <div class="col-md-1" style="padding:10px">
                         <span class="glyphicon glyphicon-blackboard"></span>&ensp;Carenze
                     </div>
-                    
+
                 </div>
             </div>
             <div class="panel-body">
@@ -64,8 +73,10 @@ require_once '../common/checkSession.php';
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-12">
-                        <div class="records_content"></div>
+                    <div class="col-12">
+                        <div id="carenze_mobile_container" class="cards-container">
+                            <!-- Qui PHP inserirà le cards -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -74,9 +85,13 @@ require_once '../common/checkSession.php';
         </div>
 
     </div>
-  
+
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>&d=mobile"></script>
+    <script type="text/javascript" src="js/carenze.js?v=<?php echo time(); ?>&d=mobile&a=<?php echo $anno_carenze; ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>
+        eruda.init();
+    </script>
 </body>
 
 </html>

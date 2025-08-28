@@ -1,14 +1,15 @@
 <?php
 /**
- *  Versione MOBILE di GestOre - Carenze
- *  Le informazioni sono mostrate in formato card invece che tabella
+ * Versione MOBILE di GestOre - Carenze
+ * Le informazioni sono mostrate in formato card invece che tabella
  */
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$anni_filtro_id = $_GET["anni_filtro_id"];
+$anni_filtro_id = $_GET["anni_filtro_id"] ?? 0;
 
+// Query per recuperare le carenze dello studente
 $query = "SELECT
             carenze.id AS carenza_id,
             carenze.id_studente AS carenza_id_studente,
@@ -31,50 +32,45 @@ $query = "SELECT
         INNER JOIN classi ON carenze.id_classe = classi.id";
 
 if ($anni_filtro_id > 0) {
-			$query .= " WHERE carenze.id_anno_scolastico=" . $anni_filtro_id . " AND studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
+    $query .= " WHERE carenze.id_anno_scolastico=" . intval($anni_filtro_id) . 
+              " AND studente.id='" . intval($__studente_id) . "' AND (carenze.stato=2 OR carenze.stato=3)";
+} else {
+    $query .= " WHERE studente.id='" . intval($__studente_id) . "' AND (carenze.stato=2 OR carenze.stato=3)";
 }
-else {
-			$query .= " WHERE studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
-}
-
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) $resultArray = [];
 
-$data = '<div class="cards-container">';
+echo '<div id="carenze_mobile_container" class="cards-container">';
 
 foreach ($resultArray as $row) {
-    $materia = $row['materia'];
+    $materia = htmlspecialchars($row['materia']);
+    $docente = htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome']);
+    $note = htmlspecialchars($row['nota']);
     $idcarenza = $row['carenza_id'];
 
-    // Data ricezione
-    $datf = new DateTime($row['carenza_validazione']);
-    $data_ricezione = $datf->format('d-m-Y H:i:s');
-
-    $note = $row['nota'];
-
-    $data .= '<div class="card mb-3 p-2" style="border:1px solid #ddd; border-radius:10px; padding:12px; background:#fff;">';
-    
-    $data .= '<div><strong>Materia:</strong> ' . $materia . '</div>';
-    $data .= '<div><strong>Docente:</strong> ' . $row['doc_cognome'] . ' ' . $row['doc_nome'] . '</div>';
-    $data .= '<div><strong>Data ricezione:</strong> ' . $data_ricezione . '</div>';
-    if (!empty($note)) {
-        $data .= '<div><strong>Note:</strong> ' . $note . '</div>';
+    // Data ricezione, fallback se null
+    $data_ricezione = '';
+    if (!empty($row['carenza_validazione'])) {
+        $datf = new DateTime($row['carenza_validazione']);
+        $data_ricezione = $datf->format('d-m-Y H:i:s');
     }
 
-    $data .= '<div class="mt-2 text-center" style="margin-top:10px;">';
-    $data .= '<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-sm me-1">
-                <span class="glyphicon glyphicon-print"></span> PDF
-              </button>';
-    $data .= '<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-info btn-sm">
-                <span class="glyphicon glyphicon-envelope"></span> Invia
-              </button>';
-    $data .= '</div>';
-
-    $data .= '</div>'; // fine card
+    echo '<div class="card mb-3 p-2" style="border:1px solid #ddd; border-radius:10px; padding:12px; background:#fff;">';
+    echo '<div><strong>Materia:</strong> ' . $materia . '</div>';
+    echo '<div><strong>Docente:</strong> ' . $docente . '</div>';
+    echo '<div><strong>Data ricezione:</strong> ' . $data_ricezione . '</div>';
+    if (!empty($note)) {
+        echo '<div><strong>Note:</strong> ' . $note . '</div>';
+    }
+    echo '<div class="mt-2 text-center" style="margin-top:10px;">';
+    echo '<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-sm me-1">';
+    echo '<span class="glyphicon glyphicon-print"></span> PDF</button> ';
+    echo '<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-info btn-sm">';
+    echo '<span class="glyphicon glyphicon-envelope"></span> Invia</button>';
+    echo '</div>';
+    echo '</div>'; // fine card
 }
 
-$data .= '</div>';
-
-echo $data;
+echo '</div>';
 ?>

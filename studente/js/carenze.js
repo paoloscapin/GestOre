@@ -14,18 +14,29 @@ var device = params.get("d") || "desktop"; // default "desktop"
 var $anni_filtro_id = params.get("a") || "1"; // default 
 
 function carenzeReadRecords() {
-    var endpoint = (device === "mobile")
-        ? "carenzeReadRecords_mobile.php?anni_filtro_id=" + $anni_filtro_id
-        : "carenzeReadRecords.php?anni_filtro_id=" + $anni_filtro_id;
-
-    $.get(endpoint, {}, function (data, status) {
-        $(".records_content").html(data);
-        $('[data-toggle="tooltip"]').tooltip({
-            trigger: 'hover',
-            container: 'body'
+    console.log(device);
+    if (device === "mobile") {
+        $.get("carenzeReadRecords_mobile.php?anni_filtro_id=" + $anni_filtro_id, {}, function (data, status) {
+            $("#carenze_mobile_container").html(data);
+            $('[data-toggle="tooltip"]').tooltip({
+                trigger: 'hover',
+                container: 'body'
+            });
         });
-    });
+    }
+    else {
+
+
+        $.get("carenzeReadRecords.php?anni_filtro_id=" + $anni_filtro_id, {}, function (data, status) {
+            $(".records_content").html(data);
+            $('[data-toggle="tooltip"]').tooltip({
+                trigger: 'hover',
+                container: 'body'
+            });
+        });
+    }
 }
+
 
 function carenzaPrint(id_carenza) {
     // creo form nascosto
@@ -53,15 +64,28 @@ function carenzaSend(id_carenza) {
         mail: 1,
         genera: 0,
         view: 0,
+        anno: $anni_filtro_id,
         titolo: 'Programma carenza formativa'
     },
         function (data, status) {
             if (data == 'sent') {
-                alert("Carenza spedita alla mail dello studente!");
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Inviata!',
+                    text: 'La carenza è stata spedita alla mail dello studente.',
+                    confirmButtonText: 'OK',
+                    timer: 2500,   // si chiude da sola dopo 2.5 sec
+                    timerProgressBar: true
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Errore!',
+                    text: 'Carenza NON spedita. Dettaglio: ' + data,
+                    confirmButtonText: 'Chiudi'
+                });
             }
-            else {
-                alert("Carenza NON spedita! " + data);
-            }
+
             carenzeReadRecords();
         }
     );
