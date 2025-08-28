@@ -29,7 +29,7 @@ function carenzeReadRecords() {
     });
 }
 
-function carenzaPrint(id_carenza) {
+function carenzaPrint(id_carenza,id_anno_carenza) {
     // creo form nascosto
     console.log($anni_filtro_id);
     var form = $('<form>', {
@@ -43,7 +43,7 @@ function carenzaPrint(id_carenza) {
     form.append($('<input>', { type: 'hidden', name: 'mail', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'genera', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'view', value: 1 }));
-    form.append($('<input>', { type: 'hidden', name: 'anno', value: $anni_filtro_id }));
+    form.append($('<input>', { type: 'hidden', name: 'anno', value: id_anno_carenza }));
     form.append($('<input>', { type: 'hidden', name: 'titolo', value: 'Programma carenza formativa' }));
     // lo “submitto” e lo rimuovo
     form.appendTo('body').submit().remove();

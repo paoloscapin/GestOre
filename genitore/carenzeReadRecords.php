@@ -65,6 +65,7 @@ if ($resultArray == null) {
 }
 foreach ($resultArray as $row) {
 	$materia = $row['materia'];
+	$anno_carenza = $row['carenza_id_anno_scolastico'];
 	// Creazione dell'oggetto DateTime
 	$datf = new DateTime($row['carenza_validazione']);
 	$idcarenza = $row['carenza_id'];
@@ -77,8 +78,8 @@ foreach ($resultArray as $row) {
 		<td align="center">' . $data_ricezione . '</td>
 		<td align="center">' . $note . '</td>
 		<td align="center">
-			<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Scarica il PDF del programma della carenza"><span class="glyphicon glyphicon-print"></button>
-			<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia una copia via
+			<button onclick="carenzaPrint(\'' . $idcarenza . '\',\'' . $anno_carenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Scarica il PDF del programma della carenza"><span class="glyphicon glyphicon-print"></button>
+			<button onclick="carenzaSend(\'' . $idcarenza . '\',\'' . $anno_carenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia una copia via
 			 mail"><span class="glyphicon glyphicon-envelope"></button> 
 		</td>';
 

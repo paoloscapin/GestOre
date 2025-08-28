@@ -20,7 +20,7 @@ $doPrint = isset($_POST['print']) && ($_POST['print'] == '1' || $_POST['print'] 
 $doMail = isset($_POST['mail']) && ($_POST['mail'] == '1' || $_POST['mail'] === 'true');
 $titolo = isset($_POST['titolo']) ? $_POST['titolo'] : 'Programma didattico';
 $doGenera = isset($_POST['genera']) && ($_POST['genera'] == '1' || $_POST['genera'] === 'true');
-$anno = isset($_POST['anno']) ? (int) $_POST['anno'] : 0;
+$anno = isset($_POST['anno']) ? (int) $_POST['anno'] : 1;
 $anno_scolastico = dbGetValue("SELECT anno FROM anno_scolastico WHERE id = $anno");
 
 
@@ -185,6 +185,7 @@ ob_start();
 <head>
   <meta charset="UTF-8">
   <title><?php echo $titolo ?></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     @page {
       size: A4 portrait;
@@ -199,24 +200,45 @@ ob_start();
       color: #2c3e50;
     }
 
-    .print-button {
-      position: fixed;
-      /* rispetto al viewport */
-      top: 20px;
-      /* 20px dal bordo superiore */
-      left: 20px;
-      /* 20px dal bordo sinistro */
-      z-index: 9999;
-      /* sopra a tutto (anche all’embed/pdf) */
-      background: #FFA500;
-      /* sfondo bianco per staccarsi dal pdf */
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-weight: 900;
-      font-style: italic;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    }
+.print-button {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 9999;
+  background: #FFA500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 900;
+  font-style: italic;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
 
+.print-button button {
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  background: transparent;
+}
+
+/* Stile specifico per smartphone */
+@media (max-width: 768px) {
+  .print-button {
+    top: auto;          /* disattivo il posizionamento in alto */
+    left: auto;         /* disattivo il posizionamento a sinistra */
+    bottom: 20px;       /* lo metto in basso */
+    right: 20px;        /* lo metto a destra */
+    padding: 14px 20px;
+    border-radius: 50px;
+  }
+
+  .print-button button {
+    font-size: 20px;
+    padding: 18px 28px;
+    background: #ff8800;
+    color: white;
+    border-radius: 8px;
+  }
+}
     /* logo centrato in alto solo sulla prima pagina */
     .first-logo {
       text-align: center;
@@ -786,6 +808,14 @@ if ($doMail) {
      <a href="' . $downloadLink . '">LINK</a></p>',
     $full_mail_body
   );
+  
+  if (($__utente_ruolo == "admin")&&($__studente_id>0)) 
+  {
+    $to = $studente_email;
+    $toName = $studente_nome . " " . $studente_cognome;
+    info("Invio carenza via mail allo studente: " . $to . " " . $toName . " da ruolo admin");
+  }
+  else
   if ($__utente_ruolo == "studente") {
     $to = $studente_email;
     $toName = $studente_nome . " " . $studente_cognome;
