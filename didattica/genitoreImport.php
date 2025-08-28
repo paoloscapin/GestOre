@@ -113,7 +113,7 @@ foreach ($lines as $line) {
     $email = escapeString($words[10]);
     $username = escapeString($words[11]);
 
-    if ($cognome == '' || $nome == '' || $codice_fiscale == '' || $email == '' || $username == '') {
+    if ($cognome == '' || $nome == '' || $codice_fiscale == '' || $username == '') {
         continue;
     }
     // controlla se il padre e' gia' presente nel database
@@ -154,7 +154,7 @@ foreach ($lines as $line) {
     $email = escapeString($words[15]);
     $username = escapeString($words[16]);
 
-    if ($cognome == '' || $nome == '' || $codice_fiscale == '' || $email == '' || $username == '') {
+    if ($cognome == '' || $nome == '' || $codice_fiscale == '' || $username == '') {
         continue;
     }
     // controlla se la madre e' gia' presente nel database
@@ -195,7 +195,7 @@ foreach ($lines as $line) {
     $email = escapeString($words[20]);
     $username = escapeString($words[21]);
 
-    if ($cognome == '' || $nome == '' || $codice_fiscale == '' || $email == '' || $username == '') {
+    if ($cognome == '' || $nome == '' || $codice_fiscale == '' || $username == '') {
         continue;
     }
     // controlla se il tutore e' gia' presente nel database
@@ -236,7 +236,7 @@ foreach ($lines as $line) {
     $email = escapeString($words[25]);
     $username = escapeString($words[26]);
 
-    if ($cognome == '' || $nome == '' || $codice_fiscale == '' || $email == '' || $username == '') {
+    if ($cognome == '' || $nome == '' || $codice_fiscale == '' || $username == '') {
         continue;
     }
     // controlla se l'affidatario e' gia' presente nel database
@@ -277,7 +277,7 @@ foreach ($lines as $line) {
     $email = escapeString($words[30]);
     $username = escapeString($words[31]);
 
-    if ($cognome == '' || $nome == '' || $codice_fiscale == '' || $email == '' || $username == '') {
+    if ($cognome == '' || $nome == '' || $codice_fiscale == '' || $username == '') {
         continue;
     }
     // controlla se l'affidataria e' gia' presente nel database
