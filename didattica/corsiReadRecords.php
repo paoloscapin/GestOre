@@ -11,7 +11,12 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$docente_id = $_GET["docente_id"];
+$docente_id = 0;
+if (haRuolo("docente")) {
+	$docente_id = $__docente_id;
+} else {
+	$docente_id = $_GET["docente_id"];
+}
 $materia_id = $_GET["materia_id"];
 $anni_filtro_id = $_GET["anni_id"];
 $futuri = $_GET["futuri"];
@@ -35,20 +40,27 @@ $data = '<style>
   .col-md-0-5-custom {
     width: 5%;
   }
-
+    .col-azioni   { width: 7%; }   /* più largo */
+    .col-inizio   { width: 12%; }   /* un po’ più stretto */
+    .col-fine     { width: 12%; }   /* un po’ più stretto */
+    .col-materia  { width: 19%; }
+    .col-docente  { width: 16%; }
+    .col-titolo   { width: 20%; }
+    .col-studenti { width: 7%; }
+    .col-stato    { width: 7%; }
 </style>
 <div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
-					<tr>
-						<th class="text-center col-md-2">Materia</th>
-						<th class="text-center col-md-2">Docente</th>
-						<th class="text-center col-md-3">Titolo</th>
-						<th class="text-center col-md-1">Data inizio</th>
-						<th class="text-center col-md-1">Data fine</th>
-						<th class="text-center col-md-1">Studenti iscritti</th>
-						<th class="text-center col-md-1">Stato</th>
-						<th class="text-center col-md-2">Azioni</th>
-					</tr>
+        <tr>
+            <th class="text-center col-materia">Materia</th>
+            <th class="text-center col-docente">Docente</th>
+            <th class="text-center col-titolo">Titolo</th>
+            <th class="text-center col-inizio">Data inizio</th>
+            <th class="text-center col-fine">Data fine</th>
+            <th class="text-center col-studenti">Studenti iscritti</th>
+            <th class="text-center col-stato">Stato</th>
+            <th class="text-center col-azioni">Azioni</th>
+        </tr>
 					</thead>';
 
 $query = "
@@ -82,6 +94,11 @@ if ($materia_id > 0) {
 	$query .= " AND c.id_materia = $materia_id";
 }
 
+// filtro opzionale materia
+if ($docente_id > 0) {
+	$query .= " AND c.id_docente = $docente_id";
+}
+
 $query .= "
 GROUP BY c.id, c.id_materia, c.id_docente, c.id_anno_scolastico, m.nome
 HAVING ($futuri = 0 OR MAX(cd.data) >= CURDATE())
@@ -106,10 +123,21 @@ foreach ($resultArray as $row) {
 
 	$titolo = $row['titolo'];
 
-	$query2 = "SELECT data FROM corso_date WHERE id_corso = $idcorso ORDER BY data ASC";
-	$data_inizio = dbGetValue($query2);
-	$query2 = "SELECT data FROM corso_date WHERE id_corso = $idcorso ORDER BY data DESC";
-	$data_fine = dbGetValue($query2);
+	$query2 = "
+    SELECT MIN(data) AS data_inizio, 
+           MAX(data) AS data_fine
+    FROM corso_date 
+    WHERE id_corso = $idcorso
+";
+	$dateRow = dbGetFirst($query2);
+
+	$data_inizio = $dateRow['data_inizio']
+		? date("d-m-Y \\d\\a\\l\\l\\e \\o\\r\\e H:i", strtotime($dateRow['data_inizio']))
+		: null;
+
+	$data_fine = $dateRow['data_fine']
+		? date("d-m-Y \\a\\l\\l\\e \\o\\r\\e H:i", strtotime($dateRow['data_fine']))
+		: null;
 
 	$query2 = "SELECT COUNT(id) FROM corso_iscritti WHERE id_corso = $idcorso";
 	$studenti_iscritti = dbGetValue($query2);
@@ -149,8 +177,12 @@ foreach ($resultArray as $row) {
 			<button onclick="corsiGetDetails(\'' . $idcorso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il corso"><span class="glyphicon glyphicon-pencil"></button>
 			<button onclick="corsiDelete(\'' . $idcorso . '\',\'' . $materia . '\',\'' . $nome_docente . '\',\'' . $studenti_iscritti . '\',\'' . $stato . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il corso"><span class="glyphicon glyphicon-trash"></button>';
 	}
-
-
+else
+		if (haRuolo('docente')) {
+		$data .= '
+			<button onclick="corsiGetDetails(\'' . $idcorso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il corso"><span class="glyphicon glyphicon-pencil"></button>
+			<button onclick="apriRegistroLezione(\'' . $idcorso . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Gestisci le presenze e gli argomenti"><span class="glyphicon glyphicon-user"></button>';
+	}
 	$data .= '</td></tr>';
 }
 

@@ -73,6 +73,16 @@
 			</div>
 			';
 			}
+			if (getSettingsValue('config','permessi', false)) 
+			{
+				echo '
+			<div class="btn-group">
+			<a href="';
+			echo $__application_base_path;
+			echo'/genitore/permessi.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Permessi </a>
+			</div>
+			';
+			}
 		}
 		else
 		if (haRuolo('docente'))

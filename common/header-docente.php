@@ -39,6 +39,20 @@
 						class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus </a>
 			<?php endif; ?>
 
+			<?php
+			if (getSettingsValue('config', 'corsi', false)) {
+				if (getSettingsValue('corsi', 'visibile_docenti', false)) {
+					echo '
+			<div class="btn-group">
+			<a href="';
+					echo $__application_base_path;
+					echo '/didattica/corsi.php" class="btn btn-default navbar-btn btn-yellow" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;I miei Corsi </a>
+			</div>
+			';
+				}
+			}
+			?>
+
 			<?php if (getSettingsValue('programmiMinimi', 'visibile_docenti', false)): ?>
 				<div class="btn-group">
 					<a href="<?php echo $__application_base_path; ?>/didattica/programmaMinimi.php" class="btn btn-default navbar-btn btn-purple" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Obiettivi Minimi </a>

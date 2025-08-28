@@ -103,6 +103,15 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
             font-size: 12px;
             margin: 0 2px;
         }
+
+        .label-rosso {
+            color: red;
+            font-weight: bold;
+            /* opzionale, per renderlo più visibile */
+            text-align: center;
+            display: block;
+            /* utile per centrare il testo */
+        }
     </style>
 
 
@@ -526,6 +535,68 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                 <div class="modal-footer justify-content-center">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                     <button type="button" class="btn btn-primary" onclick="salvaNuoviStudenti()">Aggiungi</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Registro Lezione -->
+    <div class="modal fade" id="registroLezioneModal" tabindex="-1" role="dialog" aria-labelledby="registroLezioneLabel" data-backdrop="static">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+
+                <div class="modal-header modal-header-orange4">
+                    <h4 class="modal-title w-100 text-center" id="registroLezioneLabel">Registro Lezione</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <form class="form-horizontal">
+
+                        <!-- Select Date del Corso -->
+                        <div class="form-group row justify-content-center">
+                            <label class="col-sm-2 control-label text-center">Data Corso</label>
+                            <div class="col-sm-6"> <!-- leggermente più largo -->
+                                <select id="select_data_corso" class="selectpicker form-control" data-live-search="true">
+                                    <!-- Le date verranno caricate tramite JS -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Tabella studenti -->
+                        <div class="form-group">
+                            <label class="col-sm-12 text-center label-rosso">Studenti Iscritti</label>
+                            <div class="col-sm-12">
+                                <table class="table table-bordered table-striped text-center" id="tabellaStudenti">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center">Studente</th>
+                                            <th class="text-center">Classe</th>
+                                            <th class="text-center">Presente</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Popolato tramite JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Argomenti -->
+                        <div class="form-group">
+                            <label class="col-sm-12 text-center label-rosso">Argomenti Svolti</label>
+                            <div class="col-sm-12">
+                                <textarea id="argomentiLezione" class="form-control" rows="4" placeholder="Inserisci gli argomenti svolti..."></textarea>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                    <button type="button" class="btn btn-primary" onclick="salvaRegistroLezione()">Salva</button>
                 </div>
 
             </div>

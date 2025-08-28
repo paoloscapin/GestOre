@@ -126,17 +126,147 @@ function salvaModificaData() {
     });
 }
 
+// ================================
+// Apertura modal Registro Lezione
+// ================================
+function apriRegistroLezione(corso_id) {
+    // svuota il contenuto precedente
+    $('#registroLezioneModal #select_data_corso').empty();
+    $('#registroLezioneModal #tabellaStudenti tbody').empty();
+    $('#registroLezioneModal #argomentiLezione').val('');
+
+    // Mostra il modal
+    $('#registroLezioneModal').modal('show');
+
+    // Carica le date del corso
+    $.post("../didattica/get_date_corso.php", { corso_id: corso_id }, function(data) {
+        if (data.success) { // ora controlla booleano corretto
+            var $selectData = $('#select_data_corso');
+            
+            if (data.date.length === 0) {
+                $selectData.append('<option value="">Nessuna data disponibile</option>').selectpicker('refresh');
+                $('#tabellaStudenti tbody').html('<tr><td colspan="4" class="text-center text-danger">Nessuna data disponibile</td></tr>');
+            } else {
+                data.date.forEach(function(d) {
+                    // Formatta la data "25-08-2025 alle ore 10:30"
+                    var dt = new Date(d.data);
+                    var giorno = String(dt.getDate()).padStart(2,'0');
+                    var mese = String(dt.getMonth()+1).padStart(2,'0');
+                    var anno = dt.getFullYear();
+                    var ore = String(dt.getHours()).padStart(2,'0');
+                    var minuti = String(dt.getMinutes()).padStart(2,'0');
+                    var formatted = `${giorno}-${mese}-${anno} alle ore ${ore}:${minuti}`;
+
+                    $selectData.append('<option value="'+d.id+'">'+formatted+' - Aula: '+d.aula+'</option>');
+                });
+
+                $selectData.selectpicker('refresh');
+
+                // carica studenti e argomenti per la prima data
+                var firstDataId = data.date[0].id;
+                console.log(firstDataId);
+                $selectData.val(firstDataId).selectpicker('refresh');
+                caricaStudentiEArgomenti(firstDataId);
+            }
+        } else {
+            alert('Errore nel caricamento delle date del corso');
+        }
+    }, 'json');
+}
+
+
+// ================================
+// Carica studenti e argomenti
+// ================================
+function caricaStudentiEArgomenti(data_id) {
+    if (!data_id) return;
+
+    // svuota contenuti precedenti
+    $('#tabellaStudenti tbody').empty();
+    $('#argomentiLezione').val('');
+
+    $.post("../didattica/get_studenti_argomenti.php", { data_id: data_id }, function(data) {
+        if (data.success) {
+            // Popola studenti
+            if (data.studenti.length === 0) {
+                $('#tabellaStudenti tbody').html('<tr><td colspan="4" class="text-center">Nessuno studente iscritto</td></tr>');
+            } else {
+                data.studenti.forEach(function(s) {
+                    var checkedPresente = s.presente ? 'checked' : '';
+                    $('#tabellaStudenti tbody').append(
+                        '<tr>'+
+                            '<td>'+s.nominativo+'</td>'+
+                            '<td>'+s.classe+'</td>'+
+                            '<td class="text-center"><input type="checkbox" class="chkPresente" data-id="'+s.id+'" '+checkedPresente+'></td>'+
+                        '</tr>'
+                    );
+                });
+            }
+
+            // Popola argomenti
+            if (data.argomento) {
+                $('#argomentiLezione').val(data.argomento);
+            }
+        } else {
+            alert('Errore nel caricamento studenti/argomenti');
+        }
+    }, 'json');
+}
+
+// ================================
+// Salva registro lezioni
+// ================================
+function salvaRegistroLezione(corso_id) {
+    var data_id = $('#select_data_corso').val();
+    var argomenti = $('#argomentiLezione').val();
+
+    // raccolta presenze
+    var presenze = [];
+    $('#tabellaStudenti tbody tr').each(function() {
+        var id_studente = $(this).find('.chkPresente').data('id');
+        var presente = $(this).find('.chkPresente').is(':checked') ? 1 : 0;
+        presenze.push({id_studente:id_studente, presente:presente});
+    });
+
+    $.post("../didattica/registro_lezione_salva.php", {
+        data_id: data_id,
+        corso_id: corso_id,
+        argomenti: argomenti,
+        presenze: presenze
+    }, function(data) {
+        if (data.success) {
+            alert('Registro salvato con successo');
+            $('#registroLezioneModal').modal('hide');
+        } else {
+            alert('Errore nel salvataggio');
+        }
+    }, 'json');
+}
+
+// ================================
+// Evento cambio data
+// ================================
+$('#select_data_corso').on('change', function() {
+    var data_id = $(this).val();
+    caricaStudentiEArgomenti(data_id);
+});
+
+
 function corsiGetDetails(corsi_id) {
     $("#hidden_corso_id").val(corsi_id);
     carenze = $("#carenze").prop('checked');
-
     if (corsi_id > 0) {
         $.post("../didattica/corsiReadDetails.php", { corsi_id: corsi_id }, function (data, status) {
             var corsi = data;
 
             // Aggiorna campi del corso
             $('#titolo').val(corsi.corso.titolo);
-            $('#titolo').prop('disabled', false);
+            if (carenze) {
+                $('#titolo').prop('disabled', true);
+            }
+            else {
+                $('#titolo').prop('disabled', false);
+            }
 
             $('#materia').selectpicker('val', corsi.corso.materia_id);
             $('#docente').selectpicker('val', corsi.corso.doc_id);
@@ -374,9 +504,9 @@ function iscriviStudenti() {
     console.log(carenze);
     // Recupera elenco studenti disponibili
     $.getJSON('../didattica/elencoStudentiDisponibili.php', { corso_id: corso_id, carenze: carenze }, function (data) {
-        
+
         studentiDisponibili = data.stud; // salviamo globalmente
-        studentiDisponibili = studentiDisponibili.filter((v,i,a)=>a.findIndex(t=>t.studente_id===v.studente_id)===i);
+        studentiDisponibili = studentiDisponibili.filter((v, i, a) => a.findIndex(t => t.studente_id === v.studente_id) === i);
 
         aggiungiSelectStudente();   // aggiungiamo il primo select
     });
