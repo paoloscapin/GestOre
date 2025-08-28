@@ -22,11 +22,12 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
     ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
-
-
-    if (((!getSettingsValue('config', 'permessi', false)) || (!getSettingsValue('permessi', 'visibile_docenti', false)))  && (haRuolo("genitore"))) {
+    
+    if (!(getSettingsValue('config', 'permessi', false)))
+    {
         redirect("/error/unauthorized.php");
     }
+
     ?>
 
     <!-- bootbox notificator -->
@@ -78,8 +79,12 @@ $studenteFiltroOptionList = '';
 $studenti = dbGetAll("SELECT * FROM studente WHERE id IN (
     SELECT id_studente FROM genitori_studenti WHERE id_genitore = " . intval($__genitore_id) . "
 )");
-
+$firstId="";
 foreach ($studenti as $studente) {
+    if ($firstId=="")
+    {
+        $firstId=$studente['id'];
+    }
     $studenteFiltroOptionList .= '<option value="' . $studente['id'] . '">'
         . $studente['cognome'] . ' ' . $studente['nome'] . '</option>';
 }
@@ -193,11 +198,12 @@ foreach ($studenti as $studente) {
                                     <strong>
                                         <hr>
                                         <div class="col-sm-3 text-right text-danger ">Attenzione</div>
-                                        <div class="col-sm-9" id="_error-classe"></div>
+                                        <div class="col-sm-9" id="_error-permesso"></div>
                                     </strong>
                                 </div>
 
                                 <input type="hidden" id="hidden_permesso_id">
+                                <input type="hidden" id="hidden_studente_id" value="<?php echo $firstId?>">
                                 <input type="hidden" id="hidden_rientro">
                             </form>
                         </div>

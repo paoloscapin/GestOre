@@ -12,14 +12,13 @@ var url = new URL(myScript.src);
 var params = new URLSearchParams(url.search);
 var device = params.get("d") || "desktop"; // default "desktop"
 
-var studente_filtro_id=1;
-
 function permessiReadRecords() {
+    
         var endpoint = (device === "mobile") 
         ? "permessiReadRecords_mobile.php" 
         : "permessiReadRecords.php";
 
-	$.get(endpoint+"?studente_filtro_id=" + studente_filtro_id, {}, function (data, status) {
+	$.get(endpoint+"?studente_filtro_id=" + $('#hidden_studente_id').val(), {}, function (data, status) {
 		$(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',
@@ -43,40 +42,50 @@ function permessiDelete(id) {
     }
 }
 
-function permessiSave() {
-    if ($("#classe_filtro").val() <= 0) {
-        $("#_error-classe").text("Devi selezionare una classe per lo studente.");
-        $("#_error-classe-part").show();
+function permessoSave() {
+    if ($("#data").val() == "") {
+        $("#_error-permesso").text("Devi selezionare una data per il permesso.");
+        $("#_error-permesso-part").show();
+        return;
+    }
+        if ($("#motivo").val() == "") {
+        $("#_error-permesso").text("Devi indicare un motivo per il permesso.");
+        $("#_error-permesso-part").show();
+        return;
+    }
+        if ($("#ora_uscita").val() == "") {
+        $("#_error-permesso").text("Devi selezionare un'ora di uscita per il permesso.");
+        $("#_error-permesso-part").show();
         return;
     }
     rientro = $("#rientro").prop('checked') ? 1 : 0;
 
     if (rientro == 0 && ($("#hidden_rientro").val() == 1)) {
-        var conf = confirm("Sei sicuro di volere disattivare il rientro per lo studente " + $("#cognome").val() + " " + $("#nome").val() + "?");
+        var conf = confirm("Sei sicuro di volere disattivare il rientro per il permesso?");
         if (conf == false) {
             return;
         }
     }
-    if (attivo == 1 && ($("#hidden_attivo").val() == 0)) {
-        var conf = confirm("Sei sicuro di volere inserire per quest'anno lo studente " + $("#cognome").val() + " " + $("#nome").val() + "?");
+    if (rientro == 1 && ($("#hidden_rientro").val() == 0)) {
+        var conf = confirm("Sei sicuro di voler attivare il rientro per il permesso?");
         if (conf == false) {
             return;
         }
     }
 
-        $("#_error-classe-part").hide();
-        $.post("studenteSave.php", {
-            id: $("#hidden_studente_id").val(),
-            cognome: $("#cognome").val(),
-            nome: $("#nome").val(),
-            email: $("#email").val(),
-            id_classe: $("#classe_filtro").val(),
-            id_anno: $("#hidden_anno_id").val(),
-            attivo: $("#attivo").prop('checked') ? 1 : 0,
-            era_attivo: $("#hidden_attivo").val()
+        $("#_error-permessi-part").hide();
+
+        $.post("permessoSave.php", {
+            id: $("#hidden_permesso_id").val(),
+            data: $("#data").val(),
+            ora_uscita: $("#ora_uscita").val(),
+            motivo: $("#motivo").val(),
+            ora_rientro: $("#ora_rientro").val(),
+            rientro: $("#rientro").prop('checked') ? 1 : 0,
+            id_studente:$('#hidden_studente_id').val()
         }, function (data, status) {
-            $("#studente_modal").modal("hide");
-            studenteReadRecords();
+            $("#permesso_modal").modal("hide");
+            permessiReadRecords();
         });
     }
 
@@ -115,7 +124,7 @@ $(document).ready(function () {
 
     $("#studente_filtro").on("changed.bs.select", 
     function(e, clickedIndex, newValue, oldValue) {
-        studente_filtro_id = this.value;
+        $('#hidden_studente_id').val(this.value);
         permessiReadRecords();
     });
     
