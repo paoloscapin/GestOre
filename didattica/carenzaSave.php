@@ -14,8 +14,14 @@ if (isset($_POST)) {
 
 	$id = $_POST['id'];
 	$studente_id = $_POST['studente_id'];
+	$anno_id = $_POST['anno_id'];
 
-	$query = "SELECT id, id_classe FROM studente WHERE id='$studente_id'";
+	$query = "SELECT 
+	s.id_classe, 
+	s.id_studente,
+	s.id_anno_scolastico,
+	FROM studente_frequenta s
+	WHERE s.id_studente='$studente_id' AND s.id_anno_scolastico='$anno_id'";
 	$result = dbGetFirst($query);
 	$classe_id = $result['id_classe'];
 

@@ -15,6 +15,7 @@ $docente_id = $_GET["docente_id"];
 $classe_id = $_GET["classe_id"];
 $materia_id = $_GET["materia_id"];
 $studente_id = $_GET["studente_id"];
+$da_validare_filtro = $_GET["da_validare_filtro"];
 $anno = $_GET["anno"];
 $anni_filtro_id = $_GET["anni_id"];
 

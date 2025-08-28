@@ -41,6 +41,8 @@ function carenzeReadRecords() {
 
 function carenzeGetDetails(carenza_id) {
     $("#hidden_carenza_id").val(carenza_id);
+    $("#hidden_anno_carenza_id").val($anni_filtro_id);
+    
 
     if (carenza_id > 0) {
         $.post("../didattica/carenzeReadDetails.php", {
@@ -102,6 +104,23 @@ function carenzaPrint(id_carenza,id_anno_carenza) {
 }
 
 function carenzaSend(id_carenza) {
+        // creo form nascosto
+    console.log($anni_filtro_id)
+    var form = $('<form>', {
+        action: 'stampaCarenza.php',
+        method: 'POST',
+        target: '_black'    // apre in un nuovo tab
+    });
+    // aggiungo i campi
+    form.append($('<input>', { type: 'hidden', name: 'id', value: id_carenza }));
+    form.append($('<input>', { type: 'hidden', name: 'print', value: 0 }));
+    form.append($('<input>', { type: 'hidden', name: 'mail', value: 1 }));
+    form.append($('<input>', { type: 'hidden', name: 'genera', value: 0 }));
+    form.append($('<input>', { type: 'hidden', name: 'view', value: 0 }));
+    form.append($('<input>', { type: 'hidden', name: 'anno', value: id_anno_carenza }));
+    form.append($('<input>', { type: 'hidden', name: 'titolo', value: 'Programma carenza formativa' }));
+    // lo “submitto” e lo rimuovo
+    form.appendTo('body').submit().remove();
     $.post("stampaCarenza.php", {
         id: id_carenza,
         print: 0,
@@ -301,7 +320,8 @@ function carenzaSave() {
         id: $("#hidden_carenza_id").val(),
         studente_id: $("#studente").val(),
         classe_id: $("#classe").val(),
-        materia_id: $("#materia").val()
+        materia_id: $("#materia").val(),
+        anno_id: $anni_filtro_id
     }, function (data, status) {
         $("#carenza_modal").modal("hide");
         carenzeReadRecords();

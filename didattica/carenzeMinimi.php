@@ -427,6 +427,7 @@ foreach (
                                                 </strong>
                                             </div>
                                             <input type="hidden" id="hidden_carenza_id">
+                                            <input type="hidden" id="hidden_anno_carenza_id">
                                         </form>
                                     </div>
                                 </div>
