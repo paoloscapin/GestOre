@@ -176,12 +176,17 @@ foreach ($resultArray as $row) {
 		$data .= '
 			<button onclick="corsiGetDetails(\'' . $idcorso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il corso"><span class="glyphicon glyphicon-pencil"></button>
 			<button onclick="corsiDelete(\'' . $idcorso . '\',\'' . $materia . '\',\'' . $nome_docente . '\',\'' . $studenti_iscritti . '\',\'' . $stato . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il corso"><span class="glyphicon glyphicon-trash"></button>';
-	}
-else
+	} else
 		if (haRuolo('docente')) {
-		$data .= '
-			<button onclick="corsiGetDetails(\'' . $idcorso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il corso"><span class="glyphicon glyphicon-pencil"></button>
-			<button onclick="apriRegistroLezione(\'' . $idcorso . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Gestisci le presenze e gli argomenti"><span class="glyphicon glyphicon-user"></button>';
+		if (getSettingsValue('config', 'corsi', false)) {
+			if (getSettingsValue('corsi', 'visibile_docenti', false)) {
+				if (getSettingsValue('corsi', 'docente_puo_modificare', false)) {
+					$data .= '
+			<button onclick="corsiGetDetails(\'' . $idcorso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il corso"><span class="glyphicon glyphicon-pencil"></button>';
+				}
+			}
+		}
+		$data .= '<button onclick="apriRegistroLezione(\'' . $idcorso . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Gestisci le presenze e gli argomenti"><span class="glyphicon glyphicon-user"></button>';
 	}
 	$data .= '</td></tr>';
 }
