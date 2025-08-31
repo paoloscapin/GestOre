@@ -8,7 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('segreteria-didattica');
+ruoloRichiesto('docente','admin','segreteria-didattica');
 
 if (isset($_POST)) {
 

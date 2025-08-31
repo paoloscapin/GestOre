@@ -63,8 +63,7 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
             width: 450px;
             text-align: left;
         }
-    </style>
-    <style>
+
         /* Tabella studenti iscritti compatta e centrata */
         #iscritti_table {
             width: 60% !important;
@@ -112,10 +111,7 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
             display: block;
             /* utile per centrare il testo */
         }
-    </style>
 
-
-    <style>
         /* Tabella date */
         #date_table {
             width: 50% !important;
@@ -233,6 +229,23 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
         .modal-basso {
             margin-top: 150px;
             /* regola a piacere */
+        }
+
+        #toastMessage {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #333;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            display: none;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            opacity: 0.95;
         }
     </style>
 
@@ -522,8 +535,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 
                 <div class="modal-body">
                     <form id="formAggiungiStudenti" class="form-horizontal">
-                        <input type="hidden" id="hidden_corso_id">
-
+                        
                         <div id="container_studenti">
                             <!-- Qui appariranno i select dinamici -->
                         </div>
@@ -599,11 +611,23 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     <button type="button" class="btn btn-primary" onclick="salvaRegistroLezione()">Salva</button>
                 </div>
 
+
             </div>
         </div>
     </div>
 
-
+    <div id="toastMessage" style="
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    background: #28a745;
+    color: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    display: none;
+    z-index: 9999;
+"></div>
 
 
 

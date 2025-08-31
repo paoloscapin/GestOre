@@ -106,8 +106,8 @@ function salvaModificaData() {
         return;
     }
     $('#error-modifica-data').hide();
-
-    $.post("../didattica/corsiAggiornaData.php", {
+    // invia dati via AJAX
+    $.post("corsiAggiornaData.php", {
         data_id: data_id,
         corso_id: corso_id,
         corso_data: nuova_data,
@@ -115,7 +115,7 @@ function salvaModificaData() {
     }, function (data, status) {
         // chiudi la modal
         if (data.status = 'ok') {
-            corsiGetDetails(data.id); // supponendo che ricarichi il JSON del corso
+            corsiGetDetails(corso_id); // supponendo che ricarichi il JSON del corso
             $('#modificaDataModal').modal('hide');
             // aggiorna la tabella date con le nuove info
         }
@@ -130,6 +130,7 @@ function salvaModificaData() {
 // Apertura modal Registro Lezione
 // ================================
 function apriRegistroLezione(corso_id) {
+    $("#hidden_corso_id").val(corso_id);
     // svuota il contenuto precedente
     $('#registroLezioneModal #select_data_corso').empty();
     $('#registroLezioneModal #tabellaStudenti tbody').empty();
@@ -164,12 +165,11 @@ function apriRegistroLezione(corso_id) {
 
                 // carica studenti e argomenti per la prima data
                 var firstDataId = data.date[0].id;
-                console.log(firstDataId);
                 $selectData.val(firstDataId).selectpicker('refresh');
                 caricaStudentiEArgomenti(firstDataId);
             }
         } else {
-            alert('Errore nel caricamento delle date del corso');
+            showToast('Errore nel caricamento delle date del corso', true);
         }
     }, 'json');
 }
@@ -185,7 +185,7 @@ function caricaStudentiEArgomenti(data_id) {
     $('#tabellaStudenti tbody').empty();
     $('#argomentiLezione').val('');
 
-    $.post("../didattica/get_studenti_argomenti.php", { data_id: data_id }, function(data) {
+    $.post("corsoGetStudentiArgomenti.php", { data_id: data_id }, function(data) {
         if (data.success) {
             // Popola studenti
             if (data.studenti.length === 0) {
@@ -208,15 +208,22 @@ function caricaStudentiEArgomenti(data_id) {
                 $('#argomentiLezione').val(data.argomento);
             }
         } else {
-            alert('Errore nel caricamento studenti/argomenti');
+            showToast('Errore nel caricamento studenti/argomenti', true);
         }
     }, 'json');
+}
+
+function showToast(message, isError = false, duration = 3000) {
+    var toast = $('#toastMessage');
+    toast.css('background', isError ? '#dc3545' : '#28a745'); // rosso se errore, verde se ok
+    toast.text(message).fadeIn(400).delay(duration).fadeOut(400);
 }
 
 // ================================
 // Salva registro lezioni
 // ================================
-function salvaRegistroLezione(corso_id) {
+function salvaRegistroLezione() {
+    var corso_id = $('#hidden_corso_id').val();
     var data_id = $('#select_data_corso').val();
     var argomenti = $('#argomentiLezione').val();
 
@@ -228,17 +235,17 @@ function salvaRegistroLezione(corso_id) {
         presenze.push({id_studente:id_studente, presente:presente});
     });
 
-    $.post("../didattica/registro_lezione_salva.php", {
+    $.post("corsiSalvaRegistroLezione.php", {
         data_id: data_id,
         corso_id: corso_id,
         argomenti: argomenti,
         presenze: presenze
     }, function(data) {
         if (data.success) {
-            alert('Registro salvato con successo');
+            showToast('Registro salvato con successo');
             $('#registroLezioneModal').modal('hide');
         } else {
-            alert('Errore nel salvataggio');
+            showToast('Errore nel salvataggio: ' + (data.error || ''), true);
         }
     }, 'json');
 }
@@ -501,7 +508,7 @@ function iscriviStudenti() {
     corso_id = $("#hidden_corso_id").val();
     $('#container_studenti').empty();
     $('#error-aggiungi-studenti').hide();
-    console.log(carenze);
+
     // Recupera elenco studenti disponibili
     $.getJSON('../didattica/elencoStudentiDisponibili.php', { corso_id: corso_id, carenze: carenze }, function (data) {
 
@@ -541,9 +548,9 @@ function aggiungiSelectStudente() {
     container.append(select);
 }
 
-
 function salvaNuoviStudenti() {
     var corso_id = $('#hidden_corso_id').val();
+    console.log("Corso ID:", corso_id);
     var studenti_id = [];
 
     $('#container_studenti select').each(function () {
@@ -554,23 +561,29 @@ function salvaNuoviStudenti() {
     });
 
     if (studenti_id.length == 0) {
-        $('#error-aggiungi-studenti').text("Seleziona almeno uno studente").show();
+        showToast("Seleziona almeno uno studente", "error");
         return;
     }
-    $('#error-aggiungi-studenti').hide();
+
+    console.log(corso_id, studenti_id);
 
     $.post('../didattica/corsoAggiungiStudenti.php',
         { id_corso: corso_id, id_studente: studenti_id },
         function (data) {
-            if (data.status == 'ok') {
+            if (data.status === 'ok') {
                 aggiornaTabellaStudenti(corso_id);
                 $('#aggiungiStudentiModal').modal('hide');
+
+                let msg = data.message;
+                if (data.added.length > 0 && data.already.length > 0) {
+                    msg = "Aggiunti: " + data.added.length + ", già presenti: " + data.already.length;
+                }
+                showToast(msg, "success");
             } else {
-                $('#error-aggiungi-studenti').text(data.message || "Errore durante l'aggiunta").show();
+                showToast(data.message || "Errore durante l'aggiunta", "error");
             }
         }, 'json'
     );
-
 }
 
 
@@ -579,12 +592,12 @@ function importFile(file) {
     const reader = new FileReader();
     reader.addEventListener('load', (event) => {
         contenuto = event.target.result;
-        $.post("carenzeImport.php", {
+        $.post("corsiImport.php", {
             contenuto: contenuto
         },
             function (data, status) {
                 $('#result_text').html(data);
-                carenzeReadRecords();
+                corsiReadRecords();
                 setTimeout(function () { $('#result_text').html(""); }, 5000);
             });
     });
