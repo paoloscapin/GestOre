@@ -19,7 +19,7 @@ if ($id_data_corso <= 0) {
 
 // Recupera id_corso dalla data
 $corso_info = dbGetFirst("
-    SELECT id_corso
+    SELECT id_corso, firmato
     FROM corso_date
     WHERE id = $id_data_corso
 ");
@@ -30,6 +30,7 @@ if (!$corso_info) {
 }
 
 $id_corso = $corso_info['id_corso'];
+$firmato = isset($corso_info['firmato']) ? intval($corso_info['firmato']) : 0;
 
 // Usa l'anno scolastico corrente
 global $__anno_scolastico_corrente_id;
@@ -73,5 +74,6 @@ $arg = dbGetValue("
 echo json_encode([
     "success" => true,
     "studenti" => $studenti,
-    "argomento" => $arg
+    "argomento" => $arg,
+    "firmato" => $firmato
 ]);

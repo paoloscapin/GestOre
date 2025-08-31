@@ -184,6 +184,7 @@ function caricaStudentiEArgomenti(data_id) {
     // svuota contenuti precedenti
     $('#tabellaStudenti tbody').empty();
     $('#argomentiLezione').val('');
+    $('#lezioneFirmata').prop('checked', false); // reset checkbox firmato
 
     $.post("corsoGetStudentiArgomenti.php", { data_id: data_id }, function(data) {
         if (data.success) {
@@ -207,6 +208,10 @@ function caricaStudentiEArgomenti(data_id) {
             if (data.argomento) {
                 $('#argomentiLezione').val(data.argomento);
             }
+             // Imposta checkbox FIRMATO se presente nei dati
+            if (data.firmato !== undefined) {
+                $('#lezioneFirmata').prop('checked', data.firmato == 1);
+            }
         } else {
             showToast('Errore nel caricamento studenti/argomenti', true);
         }
@@ -226,7 +231,7 @@ function salvaRegistroLezione() {
     var corso_id = $('#hidden_corso_id').val();
     var data_id = $('#select_data_corso').val();
     var argomenti = $('#argomentiLezione').val();
-
+    var firmato = $('#lezioneFirmata').is(':checked') ? 1 : 0;
     // raccolta presenze
     var presenze = [];
     $('#tabellaStudenti tbody tr').each(function() {
@@ -239,11 +244,13 @@ function salvaRegistroLezione() {
         data_id: data_id,
         corso_id: corso_id,
         argomenti: argomenti,
-        presenze: presenze
+        presenze: presenze,
+        firmato: firmato
     }, function(data) {
         if (data.success) {
             showToast('Registro salvato con successo');
             $('#registroLezioneModal').modal('hide');
+            corsiReadRecords(); // aggiorna tabella corsi
         } else {
             showToast('Errore nel salvataggio: ' + (data.error || ''), true);
         }

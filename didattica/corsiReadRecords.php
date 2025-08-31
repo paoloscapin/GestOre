@@ -69,14 +69,17 @@ SELECT c.id AS corso_id,
        c.id_docente AS doc_id,
        c.titolo AS titolo,
        c.id_anno_scolastico AS anno_id,
-	   c.carenza AS carenza,
+       c.carenza AS carenza,
        m.nome AS materia_nome,
        MIN(cd.data) AS data_inizio,
        MAX(cd.data) AS data_fine,
+       SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) AS lezioni_firmate,
+       COUNT(cd.id) AS lezioni_totali,
        CASE
-           WHEN MIN(cd.data) IS NULL THEN 3
-           WHEN MIN(cd.data) > CURDATE() THEN 0
-           WHEN MAX(cd.data) < CURDATE() THEN 2
+           WHEN COUNT(cd.id) = 0 THEN 3 -- Nessuna data
+           WHEN SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) = 0 AND MIN(cd.data) > CURDATE() THEN 0 -- Non ancora iniziato
+           WHEN SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) < COUNT(cd.id) THEN 1 -- Iniziato
+           WHEN SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) = COUNT(cd.id) THEN 2 -- Terminato
            ELSE 1
        END AS stato
 FROM corso c

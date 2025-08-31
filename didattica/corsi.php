@@ -535,7 +535,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 
                 <div class="modal-body">
                     <form id="formAggiungiStudenti" class="form-horizontal">
-                        
+
                         <div id="container_studenti">
                             <!-- Qui appariranno i select dinamici -->
                         </div>
@@ -606,6 +606,16 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     </form>
                 </div>
 
+                <!-- Checkbox Firmato -->
+                <div class="form-group text-center">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="lezioneFirmata" value="1">
+                        <label class="form-check-label" for="lezioneFirmata">
+                            FIRMA LA LEZIONE
+                        </label>
+                    </div>
+                </div>
+
                 <div class="modal-footer justify-content-center">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
                     <button type="button" class="btn btn-primary" onclick="salvaRegistroLezione()">Salva</button>
@@ -616,10 +626,11 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         </div>
     </div>
 
-    <div id="toastMessage" style="
+<div id="toastMessage" style="
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 50%; /* centro verticale */
+    left: 50%; /* centro orizzontale */
+    transform: translate(-50%, -50%); /* correzione esatta del centro */
     padding: 12px 20px;
     background: #28a745;
     color: white;
@@ -627,8 +638,9 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     display: none;
     z-index: 9999;
+    text-align: center;
+    white-space: nowrap;
 "></div>
-
 
 
     <!-- Custom JS file -->
