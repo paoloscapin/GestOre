@@ -48,7 +48,8 @@ function studenteImpersona(id, cognome, nome) {
 }
 
 function studenteSave() {
-    if ($("#classe_filtro").val() <= 0) {
+    console.log($("#classe_filtro_stud").val());
+    if ($("#classe_filtro_stud").val() <= 0) {
         $("#_error-classe").text("Devi selezionare una classe per lo studente.");
         $("#_error-classe-part").show();
         return;
@@ -75,8 +76,10 @@ function studenteSave() {
             cognome: $("#cognome").val(),
             nome: $("#nome").val(),
             email: $("#email").val(),
-            id_classe: $("#classe_filtro").val(),
+            id_classe: $("#classe_filtro_stud").val(),
             id_anno: $("#hidden_anno_id").val(),
+            codice_fiscale: $("#codice_fiscale").val(),
+            userid: $("#userId").val(),
             attivo: $("#attivo").prop('checked') ? 1 : 0,
             era_attivo: $("#hidden_attivo").val()
         }, function (data, status) {

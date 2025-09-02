@@ -123,19 +123,19 @@ require_once '../common/checkSession.php';
 
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="codice_fiscale">Codice Fiscale</label>
-                                        <div class="col-sm-10"><input type="text" id="codice_fiscale" placeholder="codice_fiscale" class="form-control" readonly /></div>
+                                        <div class="col-sm-10"><input type="text" id="codice_fiscale" placeholder="codice_fiscale" class="form-control" /></div>
                                     </div>
 
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="userId">UserID MasterCom</label>
-                                        <div class="col-sm-10"><input type="text" id="userId" placeholder="userId" class="form-control" readonly /></div>
+                                        <div class="col-sm-10"><input type="text" id="userId" placeholder="userId" class="form-control" /></div>
                                     </div>
 
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="classe"
                                             style="margin:5px 0px 0px 0px;">Classe attuale</label>
-                                        <div class="col-sm-5"><select id="classe_filtro" name="classe_filtro"
-                                                class="classe_filtro selectpicker" data-style="btn-teal4" data-live-search="true"
+                                        <div class="col-sm-5"><select id="classe_filtro_stud" name="classe_filtro_stud"
+                                                class="classe_filtro_stud selectpicker" data-style="btn-teal4" data-live-search="true"
                                                 data-noneSelectedText="seleziona..." data-width="90%">
                                                 <?php echo $classiOptionList ?>
                                             </select></div>
