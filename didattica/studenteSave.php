@@ -20,7 +20,11 @@ if (isset($_POST)) {
     $codice_fiscale = escapePost('codice_fiscale');
     $userId = escapePost('userid');
     $attivo = escapePost('attivo');
+    $esterno = escapePost('esterno');
     $era_attivo = escapePost('era_attivo');
+
+    $query = "SELECT id from classi where classe='EE'";
+    $id_classe_esterno = dbGetValue($query);
     // devo aggiornare tabella frequenza
     if ($id > 0) {
         $query = "UPDATE studente SET cognome = '$cognome', nome = '$nome', email = '$email', username = '$userId', codice_fiscale = '$codice_fiscale', attivo = '$attivo' WHERE id = '$id'";
@@ -33,6 +37,13 @@ if (isset($_POST)) {
         } else {
             $query = "UPDATE studente_frequenta SET id_classe = '$id_classe' WHERE id_studente = '$id' AND id_anno_scolastico = '$id_anno'";
             dbExec($query);
+            if ($esterno) {
+                $id_anno_esterno = $id_anno - 1;
+                $query = "
+                INSERT INTO studente_frequenta(id_studente,id_anno_scolastico,id_classe) VALUES('$id', '$__anno_scolastico_scorso_id', '$id_classe_esterno')
+                ON DUPLICATE KEY UPDATE id_studente = VALUES(id_studente), id_anno_scolastico = VALUES(id_anno_Scolastico), id_classe = VALUES(id_classe)";
+                dbExec($query);
+            }
             info("aggiornato studente id=$id cognome=$cognome nome=$nome email=$email username=$userId codice_fiscale=$codice_fiscale id_classe=$id_classe id_anno_scolastico=$id_anno");
         }
     } else {
@@ -43,6 +54,10 @@ if (isset($_POST)) {
         $studenteId = dblastId();
         $query = "INSERT INTO studente_frequenta(id_studente,id_anno_scolastico,id_classe) VALUES('$studenteId', '$__anno_scolastico_corrente_id', '$id_classe')";
         dbExec($query);
+        if ($esterno) {
+            $query = "INSERT INTO studente_frequenta(id_studente,id_anno_scolastico,id_classe) VALUES('$studenteId', '$__anno_scolastico_scorso_id', '$id_classe_esterno')";
+            dbExec($query);
+        }
         info("aggiunto studente id=$studenteId cognome=$cognome nome=$nome email=$email username=$username codice_fiscale=$codice_fiscale id_classe=$id_classe id_anno=$id_anno attivo=$attivo");
     }
 }

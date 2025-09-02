@@ -146,6 +146,12 @@ require_once '../common/checkSession.php';
                                             <input type="checkbox" id="attivo">
                                         </div>
                                     </div>
+                                    <div class="form-group">
+                                        <label for="esterno" class="col-sm-2 control-label">Esterno</label>
+                                        <div class="col-sm-1">
+                                            <input type="checkbox" id="esterno">
+                                        </div>
+                                    </div>
                                     <div class="form-group text-center" id="frequenta-part">
                                         <hr>
                                         <label for="frequenta_table">Ha frequentato</label>

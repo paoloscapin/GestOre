@@ -81,6 +81,7 @@ function studenteSave() {
             codice_fiscale: $("#codice_fiscale").val(),
             userid: $("#userId").val(),
             attivo: $("#attivo").prop('checked') ? 1 : 0,
+            esterno: $("#esterno").prop('checked') ? 1 : 0,
             era_attivo: $("#hidden_attivo").val()
         }, function (data, status) {
             $("#studente_modal").modal("hide");
@@ -103,8 +104,8 @@ function studenteSave() {
                 $("#email").val(studente.email.toLowerCase());
                 $("#codice_fiscale").val(studente.codice_fiscale.toUpperCase());
                 $("#userId").val(studente.username);
-                $("#classe_filtro").val(studente.id_classe);
-                $("#classe_filtro").selectpicker('refresh');
+                $("#classe_filtro_stud").val(studente.id_classe);
+                $("#classe_filtro_stud").selectpicker('refresh');
                 $('#hidden_anno_id').val(studente.id_anno_scolastico);
                 $("#attivo").prop('checked', studente.attivo != 0 && studente.attivo != null);
                 $('#hidden_attivo').val(studente.attivo != 0 && studente.attivo != null ? 1 : 0);
@@ -124,8 +125,8 @@ function studenteSave() {
             $("#cognome").val("");
             $("#nome").val("");
             $("#email").val("");
-            $("#classe_filtro").val("0");
-            $("#classe_filtro").selectpicker('refresh');
+            $("#classe_filtro_stud").val("0");
+            $("#classe_filtro_stud").selectpicker('refresh');
             $("#hidden_anno_id").val("-1");
             $("#attivo").prop('checked', true);
             $('#hidden_studente_id').val("-1");
