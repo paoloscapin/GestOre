@@ -73,7 +73,7 @@ require_once '../common/checkSession.php';
                     </div>
                     <div class="col-md-2 text-right">
                         <div class="pull-right">
-                            <button class="btn btn-xs btn-orange4" onclick="studenteGetDetails(-1)"><span class="glyphicon glyphicon-plus"></span></button>
+                            <button class="btn btn-xs btn-orange4" onclick="studenteGetDetails(-1,<?php echo $__anno_scolastico_corrente_id?>)"><span class="glyphicon glyphicon-plus"></span></button>
                         </div>
                     </div>
                 </div>

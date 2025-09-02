@@ -89,7 +89,7 @@ function studenteSave() {
         });
     }
 
-    function studenteGetDetails(studente_id) {
+    function studenteGetDetails(studente_id,anno_id) {
         $("#hidden_studente_id").val(studente_id);
 
         if (studente_id > 0) {
@@ -98,7 +98,7 @@ function studenteSave() {
             }, function (data, status) {
 
                 var studente = JSON.parse(data);
-
+                console.log(studente);
                 $("#cognome").val(studente.cognome);
                 $("#nome").val(studente.nome);
                 $("#email").val(studente.email.toLowerCase());
@@ -127,7 +127,9 @@ function studenteSave() {
             $("#email").val("");
             $("#classe_filtro_stud").val("0");
             $("#classe_filtro_stud").selectpicker('refresh');
-            $("#hidden_anno_id").val("-1");
+            $("#codice_fiscale").val("");
+            $("#userId").val("");
+            $("#hidden_anno_id").val(anno_id);
             $("#attivo").prop('checked', true);
             $('#hidden_studente_id').val("-1");
             $('#frequenta_table tbody').empty();
