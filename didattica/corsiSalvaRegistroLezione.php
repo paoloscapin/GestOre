@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$presenze  = isset($_POST['presenze'])  ? $_POST['presenze'] : [];
 	$firmato = isset($_POST['firmato']) ? intval($_POST['firmato']) : 0;
 
+	$argomenti = mysqli_real_escape_string($con, $argomenti);
 	// Se presenze è JSON string, decodifichiamo
 	if (is_string($presenze)) {
 		$presenze = json_decode($presenze, true);

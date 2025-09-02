@@ -315,7 +315,7 @@ function carenzaSave() {
     }
 
     $("#_error-carenza-part").hide();
-
+    console.log("anno id " + $anni_filtro_id);
     $.post("carenzaSave.php", {
         id: $("#hidden_carenza_id").val(),
         studente_id: $("#studente").val(),
