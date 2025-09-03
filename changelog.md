@@ -1,3 +1,10 @@
+## Version 1.3.3 - 3 set 2025
+##### Bug Fixes
+- corso di recupero pnrr ha l'aula
+
+##### Improvements
+- corso di recupero import nomi e cognomi separati con opzione in json
+
 ## Version 1.3.2 - 15 ago 2025
 ##### Improvements
 - viaggi diaria ora considerata nei totali anche se proviene da versione vecchia (gestione viaggi completa)

@@ -94,7 +94,7 @@ if(isset($_POST)) {
         dbExec("INSERT INTO studente_partecipa_lezione_corso_di_recupero (lezione_corso_di_recupero_id, studente_per_corso_di_recupero_id)
         SELECT lezione_corso_di_recupero.id, studente_per_corso_di_recupero.id FROM lezione_corso_di_recupero, studente_per_corso_di_recupero
         WHERE lezione_corso_di_recupero.corso_di_recupero_id = $id AND studente_per_corso_di_recupero.corso_di_recupero_id = $id;");
-        info("Aggiornate le partecipazioni per corso di recupero id=$id codice=$codice"); 
+        info("Aggiornate le partecipazioni per corso di recupero id=$id codice=$codice");
     }
 }
 ?>

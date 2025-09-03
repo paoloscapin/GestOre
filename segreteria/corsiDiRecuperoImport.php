@@ -151,7 +151,7 @@ while ($words[0] == 'CODICE') {
     }
 
     // segue Aula se non in studio individuale
-    if (! $studio_individuale && ! $pnrr) {
+    if (! $studio_individuale) {
         nextWords();
         if (!checkWord('Aula')) {
             erroreDiImport("Aula non specificata per il corso $corso_codice");
@@ -279,21 +279,30 @@ while ($words[0] == 'CODICE') {
     }
     while($words[0] == 'Studenti' || empty(trim($words[0]))) {
         $classe = escapeString($words[1]);
-        $nome_cognome = titlecase($words[2]);
-        $arr = explode(' ', $nome_cognome);
-        $cognome = escapeString($arr[0]);
-        $nome = escapeString(implode(' ', array_slice($arr, 1)));
-        $numero_studenti++;
-        $serve_voto = 1;
-        // il terzo campo e' un commento (oppure il quarto se presente)
+
         $commento = '';
-        if (count($words) > 3) {
-            $commento = escapeString($words[3]);
-            // se e' vuoto il commento potrebbe essere nel quarto
-            if (empty(trim($commento)) && count($words) > 4) {
-                $commento = escapeString($words[4]);
+        if (getSettingsValue('corsiDiRecupero','importCognomiNomiSeparati', false)) {
+            $cognome = escapeString(titlecase($words[2]));
+            $nome = escapeString(titlecase($words[3]));
+            $commentoPos = 4;
+        } else {
+            $nome_cognome = titlecase($words[2]);
+            $arr = explode(' ', $nome_cognome);
+            $cognome = escapeString($arr[0]);
+            $nome = escapeString(implode(' ', array_slice($arr, 1)));
+            $commentoPos = 3;
+        }
+        // il quarto campo e' un commento (oppure il quinto se presente)
+        if (count($words) > $commentoPos) {
+            $commento = escapeString($words[$commentoPos]);
+            // se e' vuoto il commento potrebbe essere nel quinto
+            if (empty(trim($commento)) && count($words) > ($commentoPos + 1)) {
+                $commento = escapeString($words[$commentoPos + 1]);
             }
         }
+
+        $numero_studenti++;
+        $serve_voto = 1;
         // controlla se il commento contiene "uditore"
         if (strpos(strtolower($commento), 'uditore') !== false) {
             $serve_voto = 0;

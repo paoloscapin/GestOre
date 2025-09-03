@@ -104,6 +104,7 @@
         "stampaEstesa": false
     },
     "corsiDiRecupero": {
+        "importCognomiNomiSeparati": false,
         "corsiDiRecuperoFirmaDocente": true,
         "corsiDiRecuperoVotoSettembreTuttiIDocenti": true,
         "corsiDiRecuperoPagatiDaProvincia": true
