@@ -46,6 +46,7 @@ if (isset($_POST['id']) && $_POST['id'] != "") {
     }
     if ($genitoriDi == []) {
         $genitoriDi[] = 'Nessuno';
+        $relazioni = ['Nessuna'];
     } 
     if ($relazioni == []) {
         $relazioni[] = 'Nessuna';

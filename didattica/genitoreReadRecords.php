@@ -53,7 +53,7 @@ foreach(dbGetAll($query) as $row) {
 	$relazioni = '';
 
 	foreach ($genitoriStudenti as $genitoreStudente) {
-		$query2 = "SELECT * FROM studente WHERE id = ".$genitoreStudente['id_studente'];
+		$query2 = "SELECT * FROM studente WHERE id = '".$genitoreStudente['id_studente']."' AND attivo = '1'";
 		$studente = dbGetFirst($query2);
 		if ($studente === null) {
 			continue; // se lo studente non esiste, salto
