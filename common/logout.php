@@ -32,6 +32,14 @@ $session->logout();
 
 unset($_SESSION['token']);
 unset($_SESSION['userData']);
+unset($_SESSION['access_token']);
+unset($_SESSION['oauth_provider']);
+unset($_SESSION['id']);
+unset($_SESSION['username']);
+unset($_SESSION['utente_nome']);
+unset($_SESSION['utente_cognome']);
+unset($_SESSION['utente_ruolo']);
+unset($_SESSION['__useremail']);
 
 //Call Google API
 $gClient = new Google_Client();

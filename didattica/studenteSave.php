@@ -31,7 +31,7 @@ if (isset($_POST)) {
         dbExec($query);
         if ($era_attivo == 0 && $attivo == 1 && $id_anno != $__anno_scolastico_corrente_id) {
             // se era disattivato e ora lo attivo, devo inserire la frequenza per l'anno scolastico corrente
-            $query = "INSERT INTO studente_frequenta(id_studente,id_anno_scolastico,id_classe) VALUES('$id', '$__anno_scolastico_corrente_id)";
+            $query = "INSERT INTO studente_frequenta(id_studente,id_anno_scolastico,id_classe) VALUES ('$id', '$__anno_scolastico_corrente_id', '$id_classe')";
             dbExec($query);
             info("attivato studente per corrente anno scolastico id=$id cognome=$cognome nome=$nome email=$email id_classe=$id_classe id_anno_scolastico=$id_anno");
         } else {
