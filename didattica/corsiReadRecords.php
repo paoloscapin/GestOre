@@ -12,7 +12,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 $docente_id = 0;
-if (haRuolo("docente")) {
+if (impersonaRuolo("docente")) {
 	$docente_id = $__docente_id;
 } else {
 	$docente_id = $_GET["docente_id"];
@@ -175,21 +175,22 @@ foreach ($resultArray as $row) {
 	$data .= '
 		<td class="text-center">';
 
-	if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
-		$data .= '
-			<button onclick="corsiGetDetails(\'' . $idcorso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il corso"><span class="glyphicon glyphicon-pencil"></button>
-			<button onclick="corsiDelete(\'' . $idcorso . '\',\'' . $materia . '\',\'' . $nome_docente . '\',\'' . $studenti_iscritti . '\',\'' . $stato . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il corso"><span class="glyphicon glyphicon-trash"></button>';
-	} else
-		if (haRuolo('docente')) {
+	if (impersonaRuolo('docente')) {
 		if (getSettingsValue('config', 'corsi', false)) {
 			if (getSettingsValue('corsi', 'visibile_docenti', false)) {
 				if (getSettingsValue('corsi', 'docente_puo_modificare', false)) {
 					$data .= '
 			<button onclick="corsiGetDetails(\'' . $idcorso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il corso"><span class="glyphicon glyphicon-pencil"></button>';
 				}
+						$data .= '<button onclick="apriRegistroLezione(\'' . $idcorso . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Gestisci le presenze e gli argomenti"><span class="glyphicon glyphicon-user"></button>';
 			}
+
 		}
-		$data .= '<button onclick="apriRegistroLezione(\'' . $idcorso . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Gestisci le presenze e gli argomenti"><span class="glyphicon glyphicon-user"></button>';
+	} else
+	if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+		$data .= '
+			<button onclick="corsiGetDetails(\'' . $idcorso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il corso"><span class="glyphicon glyphicon-pencil"></button>
+			<button onclick="corsiDelete(\'' . $idcorso . '\',\'' . $materia . '\',\'' . $nome_docente . '\',\'' . $studenti_iscritti . '\',\'' . $stato . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il corso"><span class="glyphicon glyphicon-trash"></button>';
 	}
 	$data .= '</td></tr>';
 }
