@@ -46,6 +46,7 @@ function get_client_ip()
 $newlogin_genitore = false;
 // --- NUOVA GESTIONE LOGIN GENITORI ---
 if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['ruolo'])) {
+    debug("login con username e password genitore");
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
 
@@ -55,6 +56,7 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
     $esiste_login = ($genitore != null);
 
     if ($esiste_login) {
+        debug("trovato genitore con username=$username");
         $curl = curl_init();
         $newpassword = urlencode($password);
         curl_setopt_array($curl, [
@@ -214,6 +216,7 @@ if (! $session->has('utente_id')) {
             $session->set('studente_nome', $studente['nome']);
             $session->set('studente_cognome', $studente['cognome']);
             $session->set('studente_email', $__useremail);
+            $session->set('studente_codice_fiscale', $studente['codice_fiscale']);
 
             $session->set('username', $studente['nome'] . "." . $studente['cognome']);
             $session->set('utente_nome', $studente['nome']);
