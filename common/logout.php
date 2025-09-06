@@ -14,7 +14,7 @@ require_once __DIR__ . '/__Log.php';
 require_once __DIR__ . '/__Util.php';
 require_once '../common/checkSession.php';
 
-$__redirectURL = $__http_base_link . '/index.php';
+$base = $_GET['base'] ?? '';
 
 if (haRuolo('admin'))
 {
@@ -114,6 +114,50 @@ unset($_SESSION['utente_nome']);
 unset($_SESSION['utente_cognome']);
 unset($_SESSION['utente_ruolo']);
 unset($_SESSION['__useremail']);
+
+    if ($base=='docente') 
+        {
+        // se stavo impersonando un docente, torno alla mia sessione
+        unset($_SESSION['docente_id']);
+        unset($_SESSION['docente_nome']);
+        unset($_SESSION['docente_cognome']);
+        unset($_SESSION['docente_email']);
+        $__docente_id = -1;
+        $__docente_nome = '';
+        $__docente_cognome = '';
+        $__docente_email = '';
+        info("Cancellato sessione da docente");
+    }
+    if ($base=='studente') 
+        {
+        // se stavo impersonando un studente, torno alla mia sessione
+        unset($_SESSION['studente_id']);
+        unset($_SESSION['studente_nome']);
+        unset($_SESSION['studente_cognome']);
+        unset($_SESSION['studente_email']);
+        unset($_SESSION['studente_codice_fiscale']);
+        $__studente_id = -1;
+        $__studente_nome = '';
+        $__studente_cognome = '';
+        $__studente_email = '';
+        $__studente_codice_fiscale = '';
+        info("Cancellato sessione da studente");
+    }
+    if ($base=='genitore') 
+        {
+        // se stavo impersonando un genitore, torno alla mia sessione
+        unset($_SESSION['genitore_id']);
+        unset($_SESSION['genitore_nome']);
+        unset($_SESSION['genitore_cognome']);
+        unset($_SESSION['genitore_email']);
+        unset($_SESSION['genitore_codice_fiscale']);
+        $__genitore_id = -1;
+        $__genitore_nome = '';
+        $__genitore_cognome = '';
+        $__genitore_email = '';
+        $__genitore_codice_fiscale = '';
+        info("Cancellato sessione da genitore");
+    }
 
 //Call Google API
 $gClient = new Google_Client();

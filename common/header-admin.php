@@ -33,7 +33,7 @@
 		<li><a href="<?php echo $__settings->local->helpLinkDirigente; ?>" target="_blank" ><span class="glyphicon glyphicon-king"></span></a></li>
 		<li><a href="<?php echo $__settings->local->helpLinkAdmin; ?>" target="_blank" ><span class="glyphicon glyphicon-text-color"></span></a></li>
 			<li><a><span class=""></span><?php echo $__utente_nome.' '.$__utente_cognome ?></a></li>
-			<li><?php echo '<a href='.$__application_base_path.'/common/logout.php?base=segreteria><span class="glyphicon glyphicon-log-out"></span></a>'; ?></li>
+			<li><?php echo '<a href='.$__application_base_path.'/common/logout.php?base=admin><span class="glyphicon glyphicon-log-out"></span></a>'; ?></li>
 		</ul>
 	</div>
 </nav>

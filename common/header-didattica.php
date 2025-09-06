@@ -124,7 +124,7 @@
 			if (haRuolo('admin')) {
 				echo '<a href='.$__application_base_path.'/admin/index.php><span class="glyphicon glyphicon-log-out"></span></a>';
 			} else {
-				echo '<a href='.$__application_base_path.'/common/logout.php?base=studente><span class="glyphicon glyphicon-log-out"></span></a>';
+				echo '<a href='.$__application_base_path.'/common/logout.php?base=didattica><span class="glyphicon glyphicon-log-out"></span></a>';
 			}
 			?>
 			</li>
