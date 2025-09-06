@@ -67,6 +67,30 @@ function haRuolo($ruolo) {
     return false;
 }
 
+function impersonaRuolo($ruolo) {
+    global $__utente_ruolo;
+    global $__docente_id;
+    global $__studente_id;
+    global $__genitore_id;
+    
+    if (empty($__utente_ruolo)) {
+        return false;
+    }
+    if ($__utente_ruolo === $ruolo) {
+        return true;
+    }
+    else if (($ruolo === 'docente')&&($__docente_id>0)) {
+            return true;
+        }
+    else if (($ruolo === 'studente')&&($__studente_id>0)) {
+            return true;
+        }
+    else if (($ruolo === 'genitore')&&($__genitore_id>0)) {
+            return true;
+        }
+    return false;
+}
+
 // rimpiazza i caratteri speciali di una stringa in modo da poterla passare come parametro a js
 function str2js($str) {
     return preg_replace("/\r\n|\r|\n/",'<br/>',str_replace("'", "\'", str_replace("\"", "", $str)));
