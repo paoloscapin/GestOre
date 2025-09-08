@@ -15,8 +15,18 @@ function letteraCarenzeSettembre(id) {
 	window.open(url, "_blank");
 }
 
+function emailCarenzeSettembre(id) {
+	var url = 'letteraCarenzeSettembre.php?id=' + id + '&email=true';
+	window.open(url, "_blank");
+}
+
 function letteraCarenzeNovembre(id) {
 	var url = 'letteraCarenzeNovembre.php?id=' + id;
+	window.open(url, "_blank");
+}
+
+function emailCarenzeNovembre(id) {
+	var url = 'letteraCarenzeNovembre.php?id=' + id + '&email=true';
 	window.open(url, "_blank");
 }
 

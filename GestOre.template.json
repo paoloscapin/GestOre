@@ -105,6 +105,7 @@
     },
     "corsiDiRecupero": {
         "importCognomiNomiSeparati": false,
+        "corsiDiRecuperoEmailRisulato": false,
         "corsiDiRecuperoFirmaDocente": true,
         "corsiDiRecuperoVotoSettembreTuttiIDocenti": true,
         "corsiDiRecuperoPagatiDaProvincia": true

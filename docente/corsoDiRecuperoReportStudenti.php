@@ -141,8 +141,10 @@ foreach($resultArray as $row_classe) {
 						studente_per_corso_di_recupero.nome AS studente_per_corso_di_recupero_nome,
 						studente_per_corso_di_recupero.classe AS studente_per_corso_di_recupero_classe,
 						studente_per_corso_di_recupero.voto_settembre AS studente_per_corso_di_recupero_voto_settembre,
+						studente_per_corso_di_recupero.voto_settembre_notificato AS studente_per_corso_di_recupero_voto_settembre_notificato,
 						studente_per_corso_di_recupero.data_voto_settembre AS studente_per_corso_di_recupero_data_voto_settembre,
 						studente_per_corso_di_recupero.voto_novembre AS studente_per_corso_di_recupero_voto_novembre,
+						studente_per_corso_di_recupero.voto_novembre_notificato AS studente_per_corso_di_recupero_voto_novembre_notificato,
 						studente_per_corso_di_recupero.data_voto_novembre AS studente_per_corso_di_recupero_data_voto_novembre,
 						studente_per_corso_di_recupero.passato AS studente_per_corso_di_recupero_passato,
 						studente_per_corso_di_recupero.serve_voto AS studente_per_corso_di_recupero_serve_voto,
@@ -303,40 +305,37 @@ foreach($resultArray as $row_classe) {
 					if (empty($row_studente['studente_per_corso_di_recupero_data_voto_novembre'])) {
 						$dataNovembre = date('d/m/Y');
 					}
-					$data .= '
-    							<td><input type="text" placeholder="Data" class="form-control dataVotoNovembre" value="'.$dataNovembre.'" /></td>';
+					$data .= '<td><input type="text" placeholder="Data" class="form-control dataVotoNovembre" value="'.$dataNovembre.'" /></td>';
 
-					$data .= '
-									<td><small>'.$row_studente['docente_nov_cognome'].' '.$row_studente['docente_nov_nome'].'</small></td>
-						';
+					$data .= '<td><small>'.$row_studente['docente_nov_cognome'].' '.$row_studente['docente_nov_nome'].'</small></td>';
 				} else {
-					$data .= '
-									<td style="text-align: center;">'.printableVoto($row_studente['studente_per_corso_di_recupero_voto_novembre']).'</td>
-									<td style="text-align: center;">'.printableDate($row_studente['studente_per_corso_di_recupero_data_voto_novembre']).'</td>
-									<td><small>'.$row_studente['docente_nov_cognome'].' '.$row_studente['docente_nov_nome'].'</small></td>
-						';
+					$data .= '	<td style="text-align: center;">'.printableVoto($row_studente['studente_per_corso_di_recupero_voto_novembre']).'</td>
+								<td style="text-align: center;">'.printableDate($row_studente['studente_per_corso_di_recupero_data_voto_novembre']).'</td>
+								<td><small>'.$row_studente['docente_nov_cognome'].' '.$row_studente['docente_nov_nome'].'</small></td>';
 				}
-				$data .= '
-									<td class="col-sm-1 text-center">'.$passatoMarker.'</td>
-						';
+				$data .= '<td class="col-sm-1 text-center">'.$passatoMarker.'</td>';
 
-				// controlla se e' aperto la generazione delle lettere
+				// controlla se e' aperta la generazione delle lettere
 				if ($__config->getEmail_carenze_aperto()) {
-					// se ha i lvoto solo a settembre, deve generare la lettera di settembre
+					// se ha il voto solo a settembre, deve generare la lettera di settembre
 					if (($row_studente['studente_per_corso_di_recupero_voto_settembre'] > 0) && ($row_studente['studente_per_corso_di_recupero_voto_novembre'] <= 0)) {
-						$data .= '
-										<td class="text-center">
-										<button onclick="letteraCarenzeSettembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>
-										</td>
-							';
+						$data .= '<td class="text-center"><button onclick="letteraCarenzeSettembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>';
+
+						// controlla se configurato per inviare le email in automatico
+						if (getSettingsValue("corsiDiRecupero", "corsiDiRecuperoEmailRisulato", false)) {
+							if ($row_studente['studente_per_corso_di_recupero_voto_settembre_notificato']) {
+								$data .= '&nbsp;&nbsp;<span class="label label-success">notificato</span>';
+							} else {
+								$data .= '&nbsp;&nbsp;<button onclick="emailCarenzeSettembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-envelope"></span>&nbsp;email</button>';
+							}
+						}
+						$data .= '</td>';
 					}
-					// se ha i lvoto solo a novembre, deve generare la lettera di novembre
+					// se ha il voto solo a novembre, deve generare la lettera di novembre
 					else if (($row_studente['studente_per_corso_di_recupero_voto_novembre'] > 0) ) {
-						$data .= '
-										<td class="text-center">
-										<button onclick="letteraCarenzeNovembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>
-										</td>
-							';
+						$data .= '<td class="text-center">
+										<button onclick="letteraCarenzeNovembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>';
+						$data .= '</td>';
 					}
 					// altrimenti non deve generare niente
 					else {

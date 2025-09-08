@@ -6,12 +6,16 @@
  *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+require_once '../common/PHPMailer/PHPMailer.php';
+require_once '../common/PHPMailer/Exception.php';
 
 $pagina = '';
 
 require_once '../common/checkSession.php';
 require_once '../common/importi_load.php';
-ruoloRichiesto('docente','dirigente','segreteria-docenti');
+ruoloRichiesto('docente','dirigente','segreteria-docenti','segreteria-didattica');
 require_once '../common/dompdf/autoload.inc.php';
 
 use Dompdf\Dompdf;
@@ -25,6 +29,12 @@ if(! isset($_GET)) {
 		$print = true;
 	} else {
 		$print = false;
+	}
+	// controlla se deve inviare una email
+	if(isset($_GET['email'])) {
+		$email = true;
+	} else {
+		$email = false;
 	}
 }
 
@@ -62,7 +72,8 @@ $cssFileContent = str_replace('Arial', 'Helvetica', $cssFileContent);
 $data = '';
 
 $query = "
-			SELECT studente_per_corso_di_recupero.*,
+			SELECT studente_per_corso_di_recupero.id AS studente_per_corso_di_recupero_id,
+				studente_per_corso_di_recupero.*,
 				docente_voto_settembre.id AS docente_voto_settembre_id,
 				docente_voto_settembre.nome AS docente_voto_settembre_nome,
 				docente_voto_settembre.cognome AS docente_voto_settembre_cognome,
@@ -89,6 +100,11 @@ $query = "
 
 $studente_corso = dbGetFirst($query);
 
+$studenteId = $studente_corso['studente_per_corso_di_recupero_id'];
+$studenteEmail = $studente_corso['email'];
+$studenteNomeCognome = $studente_corso['nome'] . ' ' . $studente_corso['cognome'];
+$materiaNome = $studente_corso['materia_nome'];
+
 $oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
 $dataLettera = utf8_encode( strftime("%d %B %Y", strtotime('today GMT')));
 setlocale(LC_TIME, $oldLocale);
@@ -103,7 +119,7 @@ if ($studente_corso['voto_novembre'] > 0) {
 $luogoIstituto = $__settings->local->luogoIstituto;
 $superata = ($voto >= 6)? '<span class="c39" style="color:#08661a;">superata</span>' : '<span class="c39" style="color:#cc0000;">NON superata</span>';
 
-$title = $studente_corso['cognome'] . ' ' . $studente_corso['nome'] . ' - Lettera Carenza ' . $studente_corso['materia_nome'];
+$title = $studente_corso['cognome'] . ' ' . $studente_corso['nome'] . ' - Lettera Carenza ' . $materiaNome;
 
 $data .= '
 <body class="c13">
@@ -177,7 +193,7 @@ $data .= '
 				</tr>
 				<tr class="c33">
 					<td class="c34" colspan="1" rowspan="1">
-						<p class="c40"><span class="c39">'.$studente_corso['materia_nome'].'</span></p>
+						<p class="c40"><span class="c39">'.$materiaNome.'</span></p>
 					</td>
 					<td class="c35" colspan="1" rowspan="1">
 						<p class="c40"><span class="c39">'.printableDate($data_voto).'</span></p>
@@ -235,7 +251,7 @@ $data .= '</br>
 <p class="c3">
     <span class="c1 c21">
     <strong>CHIEDE</strong> che il/la figlio/a possa sostenere un\'ulteriore verifica
-	per il superamento della carenza in '.$studente_corso['materia_nome'].' entro <strong>novembre</strong>,
+	per il superamento della carenza in '.$materiaNome.' entro <strong>novembre</strong>,
 	da concordare con il docente della classe.
 </p>
 <p class="c3">
@@ -247,26 +263,19 @@ ______________________________________________________________
 </p>';
 
 // adesso viene il momento di produrre la pagina o il pdf
-$pagina .= '<html>
-<head>
+$pagina .= '<html><head>
 <link rel="icon" href="'.$__application_base_path.'/ore-32.png" />
 <link rel="stylesheet" href="'.$__application_base_path.'/css/releaseversion.css?v='. $__software_version.'">
-<link rel="stylesheet" href="'.$__application_base_path.'/css/template-nomina.css?v='. $__software_version.'">
-';
+<link rel="stylesheet" href="'.$__application_base_path.'/css/template-nomina.css?v='. $__software_version.'">';
 
 $pagina .= '<title>' .$title . '</title>';
-$pagina .='
-<meta content="text/html; charset=UTF-8" http-equiv="content-type">
-<style>
-';
+$pagina .='<meta content="text/html; charset=UTF-8" http-equiv="content-type"><style>';
 $pagina .= $cssFileContent;
-$pagina .='
-</style>';
+$pagina .='</style>';
 
 // lo script non deve entrare nel pdf
-if (! $print) {
-	$pagina .='
-	<script type="text/javascript">
+if (! $print && ! $email) {
+	$pagina .='<script type="text/javascript">
 	window.onload = (event) => {
 		var printBtn = document.querySelector(".btn_print");
 		printBtn.onclick = function(event) {
@@ -278,14 +287,11 @@ if (! $print) {
 }
 
 // chiude l'intestazione
-$pagina .='
-	</head>
-	<body>';
+$pagina .='</head><body>';
 
 // bottone di print solo se in visualizzazione
-if (! $print) {
-	$pagina .='
-		<div class="text-center noprint" style="text-align: center;padding: 50px;">
+if (! $print && ! $email) {
+	$pagina .='<div class="text-center noprint" style="text-align: center;padding: 50px;">
 		<button class="btn btn-orange4 btn-xs btn_print"><i class="icon-play"></i>&nbsp;Scarica il pdf</button>
 		</div>';
 }
@@ -296,8 +302,11 @@ $pagina .= $data;
 // chiude la pagina
 $pagina .= '</body></html>';
 
+// produce il nome del file
+$pdfFileName = "$title.pdf";
+
 // decide se visualizzarla o inviarla a pdf
-if (! $print) {
+if (! $print && ! $email) {
 	echo $pagina;
 } else {
 	$dompdf = new Dompdf();
@@ -309,14 +318,48 @@ if (! $print) {
 	// Render html in pdf
 	$dompdf->render();
 
-	// produce il nome del file
-	$pdfFileName = "$title.pdf";
-
 	// richiesta di invio di email
-	if ($print) {
+	if ($email) {
+		// produce il pdf da inviare
+		$outputPdf = $dompdf->output();
+		
+		$mail = new PHPMailer(true);
+
+		// TODO: magari from il docente collegato?
+		$sender = getSettingsValue('local', 'emailNoReplyFrom', '');
+		$mail->setFrom($sender, 'no reply');
+		$mail->addAddress($studenteEmail, $studenteNomeCognome);
+
+		// cc to carenze
+		$cc = getSettingsValue('local', 'emailCarenze', '');
+		if ($cc != '') {
+			$mail->AddCC($cc, 'Carenze Repository');
+		}
+
+		// subject
+		$mail->Subject = "$studenteNomeCognome: Risultato del Corso di Recupero di $materiaNome";
+
+		$mail->isHTML(TRUE);
+		$mail->Body = "<html><body><p><strong>Carenza di $materiaNome</strong></p><p>Gentile $studenteNomeCognome, allegato troverai il risultato del Corso di Recupero di $materiaNome</p></body></html>";
+		$mail->AltBody = "Gentile $studenteNomeCognome, allegato troverai il risultato del Corso di Recupero di $materiaNome";
+
+		// allega il pdf
+		$encoding = 'base64';
+		$type = 'application/pdf';
+		$mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+
+		// send the message
+		if(!$mail->send()){
+			echo 'Message could not be sent.';
+			echo 'Mailer Error: ' . $mail->ErrorInfo;
+		} else {
+			// marca che e' stato notificato
+			dbExec("UPDATE studente_per_corso_di_recupero SET voto_settembre_notificato = true WHERE id = $studenteId;");
+			echo "<script>window.close();</script>";
+		}
+	} else if ($print) {
 		// invia il pdf al browser che fa partire il download in automatico
 		$dompdf->stream($pdfFileName);
 	}
 }
-
 ?>
