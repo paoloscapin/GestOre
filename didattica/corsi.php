@@ -30,7 +30,15 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
     <script type="text/javascript"
         src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
-    <title>Corsi Studenti</title>
+    <?php
+     if (impersonaRuolo('docente'))
+    {
+        echo ' <title>I miei corsi</title>';
+    }
+    else
+    {
+        echo ' <title>Corsi studenti</title>';
+    } ?>
     <style>
         /* Tooltip */
         .tooltip>.tooltip-inner {
@@ -301,10 +309,10 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 
 <body>
     <?php
-    if (haRuolo('segreteria-didattica')) {
-        require_once '../common/header-didattica.php';
-    } else if (haRuolo('docente')) {
+    if (impersonaRuolo('docente')){
         require_once '../common/header-docente.php';
+    } else if (haRuolo('segreteria-didattica')) {
+        require_once '../common/header-segreteria.php';
     }
     ?>
 
@@ -377,7 +385,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     <div class="col-md-2 text-center" style="margin-top:20px;">
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
                             <input type="checkbox" checked data-toggle="toggle" data-size="mini"
-                                data-onstyle="primary" id="carenze">Corsi carenze
+                                data-onstyle="primary" id="carenze">Corsi carenze   
                         </label>
                     </div>
                 </div>
@@ -620,7 +628,6 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
                     <button type="button" class="btn btn-primary" onclick="salvaRegistroLezione()">Salva</button>
                 </div>
-
 
             </div>
         </div>

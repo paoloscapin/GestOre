@@ -21,10 +21,14 @@ if (isset($_POST)) {
         $session->set ( 'studente_nome', $studente ['nome'] );
         $session->set ( 'studente_cognome', $studente ['cognome'] );
         $session->set ( 'studente_email', $__useremail );
+        $session->set ( 'studente_codice_fiscale', $studente ['codice_fiscale'] );
     }
 
     $__studente_id = $session->get ( 'studente_id' );
     $__studente_nome = $session->get ( 'studente_nome' );
     $__studente_cognome = $session->get ( 'studente_cognome' );
     $__studente_email = $session->get ( 'studente_email' );
+    $__studente_codice_fiscale = $session->get ( 'studente_codice_fiscale' );
+    info("Agisco come studente id=$__studente_id, nome=$__studente_nome, cognome=$__studente_cognome, email=$__studente_email");
+
 }
