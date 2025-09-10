@@ -466,6 +466,108 @@ function aggiornaTabellaStudenti(corso_id) {
     }, 'json');
 }
 
+// -------------------------
+// funzione per aprire il modal e modificare una data esistente
+// -------------------------
+function modificaData(data_id, corso_id) {
+    if (!data_id || !corso_id) {
+        showToast("Parametri mancanti per modifica data", true);
+        return;
+    }
+
+    // salva il corso corrente (utile per il salvataggio)
+    $('#hidden_corso_id').val(corso_id);
+
+    // richiedi le date del corso (stesso endpoint usato in apriRegistroLezione)
+    $.post("../didattica/get_date_corso.php", { corso_id: corso_id }, function (resp) {
+        if (!resp || !resp.success) {
+            showToast("Errore nel recupero delle date del corso", true);
+            return;
+        }
+
+        // trova la data corrispondente
+        var found = resp.date.find(function(d) {
+            return String(d.id) === String(data_id) || String(d.id) === String(data_id); // robustezza
+        });
+
+        if (!found) {
+            showToast("Data non trovata", true);
+            return;
+        }
+
+        // assegna hidden id
+        $('#hidden_data_id').val(found.id);
+
+        // costruisci valore per input datetime-local (YYYY-MM-DDTHH:MM)
+        var raw = String(found.data || found.corso_data || found.data_corrente || "");
+        // prova a sostituire spazio con T per compatibilità
+        var iso = raw.replace(' ', 'T').replace(/\.\d+$/, '');
+        var dt = new Date(iso);
+
+        if (isNaN(dt.getTime())) {
+            // fallback: tenta parsing manuale (formato 'YYYY-MM-DD HH:MM:SS')
+            var m = raw.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+            if (m) {
+                dt = new Date(m[1], parseInt(m[2],10)-1, m[3], m[4], m[5]);
+            }
+        }
+
+        var year = dt.getFullYear();
+        var month = String(dt.getMonth() + 1).padStart(2, '0');
+        var day = String(dt.getDate()).padStart(2, '0');
+        var hours = String(dt.getHours()).padStart(2, '0');
+        var minutes = String(dt.getMinutes()).padStart(2, '0');
+        var datetimeLocal = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
+
+        $('#mod_data').val(datetimeLocal);
+        $('#mod_aula').val(found.aula || found.corso_aula || '');
+
+        $('#error-modifica-data').hide();
+        $('#modificaDataModal').modal('show');
+    }, 'json').fail(function() {
+        showToast("Errore di comunicazione durante il caricamento data", true);
+    });
+}
+
+
+// -------------------------
+// salva modifica data (sostituisci la tua versione con questa)
+// -------------------------
+function salvaModificaData() {
+    var corso_id = $('#hidden_corso_id').val();
+    var data_id = $('#hidden_data_id').val();
+    var nuova_data = $('#mod_data').val();
+    var nuova_aula = $('#mod_aula').val();
+
+    if (!nuova_data || !nuova_aula) {
+        $('#error-modifica-data').text("Compila tutti i campi").show();
+        return;
+    }
+    $('#error-modifica-data').hide();
+
+    // invia dati via AJAX
+    $.post("corsiAggiornaData.php", {
+        data_id: data_id,
+        corso_id: corso_id,
+        corso_data: nuova_data,
+        corso_aula: nuova_aula
+    }, function (data, status) {
+        // verifica risposta JSON correttamente
+        if (data && (data.status === 'ok' || data.success === true)) {
+            // ricarica i dettagli del corso per aggiornare UI
+            corsiGetDetails(corso_id);
+            $('#modificaDataModal').modal('hide');
+            showToast('Data aggiornata con successo');
+        } else {
+            $('#error-modifica-data').text("Errore durante il salvataggio").show();
+            showToast('Errore durante il salvataggio', true);
+        }
+    }, 'json').fail(function() {
+        $('#error-modifica-data').text("Errore di comunicazione").show();
+        showToast('Errore di comunicazione', true);
+    });
+}
+
 function cancellaIscritto(iscrizione_id) {
     corsi_id = $("#hidden_corso_id").val();
     if (!window.confirm("Sei sicuro di volere cancellare questo studente?")) return;
