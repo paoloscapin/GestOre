@@ -22,10 +22,15 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
     ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
-    
-    if (!(getSettingsValue('config', 'permessi', false)))
-    {
+
+    if (!(getSettingsValue('config', 'permessi', false))) {
         redirect("/error/unauthorized.php");
+    }
+
+    if (impersonaRuolo('genitore')) {
+            if (!(getSettingsValue('permessi', 'visibile_genitori', false))) {
+        redirect("/error/unauthorized.php");
+            }
     }
 
     ?>
@@ -79,11 +84,10 @@ $studenteFiltroOptionList = '';
 $studenti = dbGetAll("SELECT * FROM studente WHERE id IN (
     SELECT id_studente FROM genitori_studenti WHERE id_genitore = " . intval($__genitore_id) . "
 )");
-$firstId="";
+$firstId = "";
 foreach ($studenti as $studente) {
-    if ($firstId=="")
-    {
-        $firstId=$studente['id'];
+    if ($firstId == "") {
+        $firstId = $studente['id'];
     }
     $studenteFiltroOptionList .= '<option value="' . $studente['id'] . '">'
         . $studente['cognome'] . ' ' . $studente['nome'] . '</option>';
@@ -162,14 +166,17 @@ foreach ($studenti as $studente) {
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="data">Data</label>
                                     <div class="col-sm-10">
-                                        <input type="date" id="data" class="form-control" />
+                                        <input type="date" id="data" class="form-control" readonly />
+                                        <small id="avvisoData" class="text-danger fw-bold" style="display:none;">
+                                            ⚠️ Attenzione: la data del permesso sarà domani.
+                                        </small>
                                     </div>
                                 </div>
 
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="ora_uscita">Ora uscita</label>
                                     <div class="col-sm-10">
-                                        <input type="time" id="ora_uscita" class="form-control step="60" placeholder="HH:MM" />
+                                        <input type="time" id="ora_uscita" class="form-control step=" 60" placeholder="HH:MM" />
                                     </div>
                                 </div>
 
@@ -187,10 +194,10 @@ foreach ($studenti as $studente) {
                                     </div>
                                 </div>
 
-                                <div class="form-group">
+                                <div class="form-group" id="ora_rientro_group" style="display:none;">
                                     <label class="col-sm-2 control-label" for="ora_rientro">Ora rientro</label>
                                     <div class="col-sm-10">
-                                        <input type="time" id="ora_rientro" class="form-control step="60" placeholder="HH:MM"  />
+                                        <input type="time" id="ora_rientro" class="form-control" step="60" placeholder="HH:MM" />
                                     </div>
                                 </div>
 
@@ -203,7 +210,7 @@ foreach ($studenti as $studente) {
                                 </div>
 
                                 <input type="hidden" id="hidden_permesso_id">
-                                <input type="hidden" id="hidden_studente_id" value="<?php echo $firstId?>">
+                                <input type="hidden" id="hidden_studente_id" value="<?php echo $firstId ?>">
                                 <input type="hidden" id="hidden_rientro">
                             </form>
                         </div>

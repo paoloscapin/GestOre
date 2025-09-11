@@ -101,11 +101,16 @@ foreach ($resultArray as $row) {
 		<td align="center">' . $genitore_nome . '</td>
 		<td align="center">' . $motivo . '</td>
 		<td align="center">' . $badge . '</td>
-		<td align="center">
-		<?php if ($stato == 1) { ?>
+		<td align="center">';
+		if ($stato == 1) { 
+			$data .= '
 			<button onclick="permessiGetDetails(\'' . $id_permesso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la richiesta"><span class="glyphicon glyphicon-pencil"></span></button>
-			<button onclick="permessiCancella(\'' . $id_permesso . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la richiesta"><span class="glyphicon glyphicon-trash"></span></button>
+			<button onclick="permessiDelete(\'' . $id_permesso . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la richiesta"><span class="glyphicon glyphicon-trash"></span></button>
 		</td>';
+		}
+		else {
+			$data .= '-</td>';
+		}
 
 	$data .= '</tr>';
 }

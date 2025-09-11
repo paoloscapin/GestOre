@@ -17,7 +17,7 @@ require_once '../common/checkSession.php';
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>GestOre genitore</title>
+	<title>GestOre Genitori</title>
 	<?php
 	require_once '../common/header-common.php';
 	require_once '../common/style.php';
