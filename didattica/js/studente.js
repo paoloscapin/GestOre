@@ -48,7 +48,7 @@ function studenteImpersona(id, cognome, nome) {
 }
 
 function studenteSave() {
-    console.log($("#classe_filtro_stud").val());
+
     if ($("#classe_filtro_stud").val() <= 0) {
         $("#_error-classe").text("Devi selezionare una classe per lo studente.");
         $("#_error-classe-part").show();
@@ -98,7 +98,7 @@ function studenteSave() {
             }, function (data, status) {
 
                 var studente = JSON.parse(data);
-                console.log(studente);
+
                 $("#cognome").val(studente.cognome);
                 $("#nome").val(studente.nome);
                 $("#email").val(studente.email.toLowerCase());
