@@ -27,16 +27,63 @@ function permessiReadRecords() {
 	});
 }
 
+// Dropdown studenti mobile
+$('#studente_filtro').on('change', function(){
+    $('#hidden_studente_id').val(this.value);
+    permessiReadRecords();
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const rientroCheckbox = document.getElementById("rientro");
+    const oraRientroGroup = document.getElementById("ora_rientro_group");
+
+    rientroCheckbox.addEventListener("change", function () {
+        if (this.checked) {
+            oraRientroGroup.style.display = "flex"; // mostro il campo
+        } else {
+            oraRientroGroup.style.display = "none";  // lo nascondo
+            document.getElementById("ora_rientro").value = ""; // pulisco eventuale valore
+        }
+    });
+});
+
+function impostaDataPermesso() {
+    const inputData = document.getElementById("data");
+    const avviso = document.getElementById("avvisoData");
+
+    const now = new Date();
+    const oggi = new Date();
+    const domani = new Date();
+    domani.setDate(oggi.getDate() + 1);
+
+    const ore = now.getHours();
+
+    // Funzione formattazione YYYY-MM-DD
+    function formatDate(date) {
+        return date.toISOString().split("T")[0];
+    }
+
+    if (ore < 9) {
+        // Prima delle 9 -> oggi
+        inputData.value = formatDate(oggi);
+        avviso.style.display = "none";
+    } else {
+        // Dopo le 9 -> domani
+        inputData.value = formatDate(domani);
+        avviso.style.display = "block"; // mostra avviso
+    }
+}
+
+
 function permessiDelete(id) {
     var conf = confirm("Sei sicuro di volere cancellare il permesso ?");
     if (conf == true) {
         $.post("../common/deleteRecord.php", {
             id: id,
-            table: 'studente',
-            name: "cognome " + cognome
+            table: 'permessi_uscita'
         },
             function (data, status) {
-                studenteReadRecords();
+                permessiReadRecords();
             }
         );
     }
@@ -93,26 +140,30 @@ function permessiGetDetails(permesso_id) {
     $("#hidden_permesso_id").val(permesso_id);
 
     if (permesso_id > 0) {
-        $.post("permessiReadDetails.php", {
+        $.post(device === "mobile" ? "permessiReadDetails_mobile.php" : "permessiReadDetails.php", {
             id: permesso_id
         }, function (data, status) {
 
             var permesso = JSON.parse(data);
-            console.log(permesso);
-            $("#data").val(permesso.permesso_data);
-            $("#ora_uscita").val(permesso.permesso_ora_uscita);
-            $("#rientro").val(permesso.permesso_rientro);
-            $("#motivo").val(permesso.permesso_motivo);
-            $("#ora_rientro").val(permesso.permesso_ora_rientro);
+
+            if ($("#data").length) $("#data").val(permesso.permesso_data);
+            if ($("#ora_uscita").length) $("#ora_uscita").val(permesso.permesso_ora_uscita);
+            if ($("#rientro").length) $("#rientro").val(permesso.permesso_rientro);
+            if ($("#motivo").length) $("#motivo").val(permesso.permesso_motivo);
+            if ($("#ora_rientro").length) $("#ora_rientro").val(permesso.permesso_ora_rientro);
         });
-    } else {
-        $("#data").val("");
-        $("#ora_uscita").val("");
-        $("#rientro").val("");
-        $("#motivo").val("");
-        $("#ora_rientro").val("");
-        $('#btn-save').show();
-    }
+} else {
+    // Solo se è nuova aggiunta, azzeriamo ma poi impostiamo automaticamente la data
+    if ($("#ora_uscita").length) $("#ora_uscita").val("");
+    if ($("#rientro").length) $("#rientro").prop('checked', false);
+    if ($("#motivo").length) $("#motivo").val("");
+    if ($("#ora_rientro").length) $("#ora_rientro").val("");
+
+    // Imposta la data automatica SOLO per nuovo permesso
+    impostaDataPermesso();
+
+    $('#btn-save').show();
+}
 
     $("#permesso_modal").modal("show");
 
