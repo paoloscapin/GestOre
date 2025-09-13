@@ -28,11 +28,13 @@ require_once '../common/checkSession.php';
     }
 
     ?>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/it.js"></script>
 
     <!-- bootbox notificator -->
     <script type="text/javascript"
         src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
 
     <title>Permessi di uscita</title>
     <style>
@@ -67,22 +69,63 @@ require_once '../common/checkSession.php';
             width: 450px;
             text-align: left;
         }
+
+        th.sortable {
+            cursor: pointer;
+        }
+
+        th.sorted-asc::after {
+            content: " ▲";
+            font-size: 0.8em;
+        }
+
+        th.sorted-desc::after {
+            content: " ▼";
+            font-size: 0.8em;
+        }
+
+        .date-picker-wrapper {
+            display: inline-flex;
+            align-items: center;
+            background: #f5f5f5;
+            border: 1px solid #ccc;
+            border-radius: 25px;
+            padding: 6px 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .date-picker-wrapper:hover {
+            background: #e9ecef;
+        }
+
+        .date-picker-wrapper i {
+            margin-right: 8px;
+            color: #007bff;
+        }
+
+        .date-picker-wrapper input {
+            border: none;
+            background: transparent;
+            font-weight: 500;
+            width: 100px;
+            text-align: center;
+        }
+
+        .date-picker-wrapper input:focus {
+            outline: none;
+        }
     </style>
 
 </head>
 
 <?php
 // prepara l'elenco degli studenti per il filtro
-$studenteFiltroOptionList = '';
+$studenteFiltroOptionList = '<option value="0">Tutti</option>';
 
-$studenti = dbGetAll("SELECT * FROM studente WHERE id IN (
-    SELECT id_studente FROM genitori_studenti WHERE id_genitore = " . intval($__genitore_id) . "
-)");
-$firstId = "";
+$studenti = dbGetAll("SELECT * FROM studente WHERE attivo=1 ORDER BY cognome, nome ASC");
+
 foreach ($studenti as $studente) {
-    if ($firstId == "") {
-        $firstId = $studente['id'];
-    }
     $studenteFiltroOptionList .= '<option value="' . $studente['id'] . '">'
         . $studente['cognome'] . ' ' . $studente['nome'] . '</option>';
 }
@@ -90,7 +133,7 @@ foreach ($studenti as $studente) {
 
 <body>
     <?php
-    require_once '../common/header-genitore.php';
+    require_once '../common/header-didattica.php';
     require_once '../common/connect.php';
     ?>
 
@@ -103,14 +146,20 @@ foreach ($studenti as $studente) {
                     </div>
                     <div class="col-md-4">
                     </div>
-                    <div class="col-md-3">
-                    </div>
-                    <div class=" col-md-1">
-                        <div class="text-center" style="margin:10px 0px 0px 0px; text-align:right">
-                            <button class="btn btn-xs btn-orange4" onclick="permessiGetDetails(-1)"><span
-                                    class="glyphicon glyphicon-plus"></span></button>
+                    <div class="col-md-2" style="padding:0px; text-align:center">
+                        <div class="checkbox" style="margin-top:10px;">
+                            <label>
+                                <input type="checkbox" id="solo_richiesti" checked> Solo richiesti
+                            </label>
                         </div>
                     </div>
+                    <div class="col-md-2" style="padding:0px">
+                        <div class="date-picker-wrapper">
+                            <i class="glyphicon glyphicon-calendar"></i>
+                            <input type="text" id="data_filtro" readonly>
+                        </div>
+                    </div>
+
                     <div class="col-md-2" style="padding:0px">
                         <div class="text-center">
                             <label class="col-sm-2 control-label" for="studente"
@@ -157,6 +206,29 @@ foreach ($studenti as $studente) {
                         <div class="panel-body">
                             <form class="form-horizontal">
 
+                                <!-- Studente -->
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">Studente</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" id="studente_nome" class="form-control" readonly />
+                                    </div>
+                                </div>
+
+                                <!-- Classe -->
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">Classe</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" id="studente_classe" class="form-control" readonly />
+                                    </div>
+                                </div>
+
+                                <!-- Genitore -->
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">Genitore</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" id="genitore_nome" class="form-control" readonly />
+                                    </div>
+                                </div>
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="data">Data</label>
                                     <div class="col-sm-10">
@@ -195,6 +267,28 @@ foreach ($studenti as $studente) {
                                     </div>
                                 </div>
 
+                                <!-- Stato del permesso -->
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" for="stato">Stato</label>
+                                    <div class="col-sm-10">
+                                        <select id="stato" class="form-control">
+                                            <option value="1">⏳ Richiesto</option>
+                                            <option value="2">✅ Confermato</option>
+                                            <option value="3">🚸 Assente</option>
+                                            <option value="4">❌ Rifiutato</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Note della segreteria -->
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" for="note_segreteria">Note</label>
+                                    <div class="col-sm-10">
+                                        <textarea id="note_segreteria" placeholder="Note della segreteria"
+                                            class="form-control" rows="3"></textarea>
+                                    </div>
+                                </div>
+
                                 <div class="form-group" id="_error-permesso-part">
                                     <strong>
                                         <hr>
@@ -204,7 +298,7 @@ foreach ($studenti as $studente) {
                                 </div>
 
                                 <input type="hidden" id="hidden_permesso_id">
-                                <input type="hidden" id="hidden_studente_id" value="<?php echo $firstId ?>">
+                                <input type="hidden" id="hidden_studente_id">
                                 <input type="hidden" id="hidden_rientro">
                             </form>
                         </div>

@@ -22,6 +22,8 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
             permessi_uscita.rientro as permesso_rientro,
             permessi_uscita.motivo as permesso_motivo,
             permessi_uscita.stato as permesso_stato,
+            permessi_uscita.note_segreteria as permesso_note_segreteria,
+            classi.classe as studente_classe,
             genitori.id as genitore_id,
             genitori.nome AS genitore_nome,
             genitori.cognome AS genitore_cognome,
@@ -34,6 +36,10 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
         ON permessi_uscita.id_genitore = genitori.id
         INNER JOIN studente studente
         ON permessi_uscita.id_studente = studente.id
+        INNER JOIN studente_frequenta
+        ON studente_frequenta.id_studente = studente.id AND studente_frequenta.id_anno_scolastico = '$__anno_scolastico_corrente_id'
+        INNER JOIN classi classi
+        ON classi.id = studente_frequenta.id_classe
         WHERE permessi_uscita.id = '$permesso_id'";
 
     $permesso = dbGetFirst($query);

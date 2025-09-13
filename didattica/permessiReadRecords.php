@@ -13,22 +13,26 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 $studente_filtro_id = $_GET["studente_filtro_id"] ?? null;
-$__studente_id = $studente_filtro_id;
+$data_filtro = $_GET["data_filtro"] ?? null;
+$solo_richiesti = $_GET["solo_richiesti"] ?? 0;
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
-					<thead>
-					<tr>
-						<th class="text-center col-md-1">Data</th>						
-						<th class="text-center col-md-1">Ora uscita</th>
-						<th class="text-center col-md-1">Ora rientro</th>
-						<th class="text-center col-md-2">Studente</th>
-						<th class="text-center col-md-2">Genitore</th>
-						<th class="text-center col-md-3">Motivo</th>
-						<th class="text-center col-md-1">Segreteria</th>
-						<th class="text-center col-md-1">Azioni</th>
-					</tr>
-					</thead>';
+<thead>
+<tr>
+    <th class="text-center col-md-1">Data</th>
+    <th class="text-center col-md-1 sortable" data-sort="classe">Classe</th>
+    <th class="text-center col-md-1 sortable" data-sort="ora_uscita">Ora uscita</th>
+    <th class="text-center col-md-2 sortable" data-sort="studente">Studente</th>
+    <th class="text-center col-md-1">Ora rientro</th>
+    <th class="text-center col-md-2">Genitore</th>
+    <th class="text-center col-md-1">Motivo</th>
+    <th class="text-center col-md-1">Segreteria</th>
+    <th class="text-center col-md-1">Note segreteria</th>
+    <th class="text-center col-md-1">Azioni</th>
+</tr>
+</thead>
+<tbody>';
 
 $query = "	SELECT 
 					permessi_uscita.id,
@@ -40,6 +44,7 @@ $query = "	SELECT
 					permessi_uscita.rientro,
 					permessi_uscita.motivo,
 					permessi_uscita.stato,
+					permessi_uscita.note_segreteria as note_segreteria,
 					genitori.nome AS genitore_nome,
 					genitori.cognome AS genitore_cognome,
 					studente.nome AS studente_nome,
@@ -55,24 +60,40 @@ $query = "	SELECT
 				ON classi.id = studente_frequenta.id_classe
 				INNER JOIN studente studente
 				ON permessi_uscita.id_studente = studente.id
-				WHERE studente.id='$__studente_id'";
+				WHERE 1=1";
+
+if ($studente_filtro_id != 0 && $studente_filtro_id != null) {
+	$query .= " AND permessi_uscita.id_studente = '$studente_filtro_id'";
+}
+if ($data_filtro != null && $data_filtro != "") {
+    $query .= " AND permessi_uscita.data = '$data_filtro'";
+}
+if ($solo_richiesti == 1) {
+    $query .= " AND permessi_uscita.stato = 1";
+}
+$query .= "	ORDER BY permessi_uscita.data ASC, permessi_uscita.ora_uscita ASC, classi.classe ASC, studente.cognome ASC, studente.nome ASC";
 
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
 	$resultArray = [];
 }
-foreach ($resultArray as $row) {
+	function formatName($string) {
+    $string = strtolower($string); // tutto minuscolo
+    return mb_convert_case($string, MB_CASE_TITLE, "UTF-8"); // ogni parola con iniziale maiuscola
+}
+	foreach ($resultArray as $row) {
 	$id_permesso = $row['id'];
 	$id_genitore = $row['id_genitore'];
-	$genitore_nome = $row['genitore_nome'] . ' ' . $row['genitore_cognome'];
-	$studente_nome = $row['studente_nome'] . ' ' . $row['studente_cognome'];
+	$genitore_nome = formatName($row['genitore_nome']) . ' ' . formatName($row['genitore_cognome']);
+	$studente_nome = formatName($row['studente_nome']) . ' ' . formatName($row['studente_cognome']);
 	$id_studente = $row['id_studente'];
 	// Formattazione data e ora
 	$data_it = date('d/m/Y', strtotime($row['data']));
 	$ora_uscita = date('H:i', strtotime($row['ora_uscita']));
 	$ora_rientro = date('H:i', strtotime($row['ora_rientro']));
-
+	$note = $row['note_segreteria'] ?? '';
+	$classe = $row['classe'] ?? '';
 	// Badge per lo stato
 	switch ($row['stato']) {
 		case 1:
@@ -82,10 +103,10 @@ foreach ($resultArray as $row) {
 			$badge = '<span class="badge bg-success" style="background-color: green; color: white;">Confermato</span>';
 			break;
 		case 3:
-			$badge = '<span class="badge bg-danger" style="background-color: red; color: white;">Rifiutato</span>';
+			$badge = '<span class="badge bg-danger" style="background-color: red; color: white;">Assente</span>';
 			break;
 		case 4:
-			$badge = '<span class="badge bg-danger" style="background-color: red; color: white;">Assente</span>';
+			$badge = '<span class="badge bg-danger" style="background-color: red; color: white;">Rifiutato</span>';
 			break;
 		default:
 			$badge = '<span class="badge bg-secondary">Sconosciuto</span>';
@@ -95,26 +116,26 @@ foreach ($resultArray as $row) {
 
 	$data .= '<tr>
 		<td align="center">' . $data_it . '</td>
+		<td align="center">' . $classe . '</td>
 		<td align="center">' . $ora_uscita . '</td>
-		<td align="center">' . $ora_rientro . '</td>
 		<td align="center">' . $studente_nome . '</td>
+		<td align="center">' . $ora_rientro . '</td>
 		<td align="center">' . $genitore_nome . '</td>
 		<td align="center">' . $motivo . '</td>
 		<td align="center">' . $badge . '</td>
-		<td align="center">';
-		if ($stato == 1) { 
-			$data .= '
-			<button onclick="permessiGetDetails(\'' . $id_permesso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la richiesta"><span class="glyphicon glyphicon-pencil"></span></button>
-			<button onclick="permessiDelete(\'' . $id_permesso . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la richiesta"><span class="glyphicon glyphicon-trash"></span></button>
-		</td>';
-		}
-		else {
-			$data .= '-</td>';
-		}
+		<td align="center">' . nl2br(htmlspecialchars($note)) . '</td>
+		<td align="center">
+		<button onclick="permessiGetDetails(\'' . $id_permesso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-placement="top" title="Modifica la richiesta"><span class="glyphicon glyphicon-pencil"></span></button>
+		<button onclick="permessiDelete(\'' . $id_permesso . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-placement="top" title="Cancella la richiesta"><span class="glyphicon glyphicon-trash"></span></button>';
+	if ($stato == 1) {
+		$data .= '
+		<button onclick="permessoConfirm(\'' . $id_permesso . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-placement="top" title="Approva la richiesta"><span class="glyphicon glyphicon-ok"></span></button>';
+	}
+	$data .= '</td>';
 
 	$data .= '</tr>';
 }
 
-$data .= '</table></div>';
+$data .= '</tbody></table></div>';
 
 echo $data;
