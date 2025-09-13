@@ -184,7 +184,9 @@ if (!isset($__useremail)) {
 // deve esserci un utente collegato, altrimenti non va bene
 if (empty($__useremail)) {
     warning('nessun utente collegato!');
-    redirect('/error/notlogged.php');
+    // sessione vuota → torna alla home di login invece che a errore
+    redirect('/index.php');
+    exit();
 }
 
 // anche gli studenti hanno utente_id in sessione (= -1)
