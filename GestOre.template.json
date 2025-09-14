@@ -7,9 +7,11 @@
     "GoogleAuth": {
         "applicationName": "Gestione Ore",
         "clientId": "--- google client id per autenticazione ---",
-        "clientSecret": "--- autenticazione google secrect code ---",
-        "GoogleAppPassword": "--- Google App password generata per Gestore ---",
-        "GoogleAppMail": "--- mail dove è attiva la Google App ---"
+        "clientSecret": "--- autenticazione google secrect code ---"
+    },
+    "MasterComAuth": {
+        "clientId": "gestore",
+        "clientSecret": "Bm6vh6mGfY5Qk3X"
     },
     "db": {
         "host": "--- db host ---", 
