@@ -74,27 +74,6 @@ function aggiungiDate() {
     // Apri il modale
     $('#modificaDataModal').modal('show');
 }
-// function modificaData(data_id) {
-//     var row = res.date.find(d => d.data_id == data_id);
-//     if(!row) return;
-//     $('#hidden_data_id').val(row.data_id);
-//     var d = new Date(row.corso_data);
-//     var formatted = d.getFullYear() + '-' +
-//                     String(d.getMonth()+1).padStart(2,'0') + '-' +
-//                     String(d.getDate()).padStart(2,'0') + 'T' +
-//                     String(d.getHours()).padStart(2,'0') + ':' +
-//                     String(d.getMinutes()).padStart(2,'0');
-//     $('#mod_data').val(formatted);
-//     $('#mod_aula').val(row.corso_aula);
-
-//     $("#modificaDataModal").modal('show');
-//     $('body').addClass('modal-open');  // mantiene la prima modale attiva
-// }
-
-// $('#modificaDataModal').on('hidden.bs.modal', function () {
-//     $('.modal-backdrop').not(':first').remove(); // rimuove backdrop extra
-// });
-
 
 function salvaModificaData() {
     var corso_id = $('#hidden_corso_id').val();
@@ -113,16 +92,18 @@ function salvaModificaData() {
         corso_data: nuova_data,
         corso_aula: nuova_aula
     }, function (data, status) {
-        // chiudi la modal
-        if (data.status = 'ok') {
-            corsiGetDetails(corso_id); // supponendo che ricarichi il JSON del corso
+        // verifica risposta JSON correttamente
+        if (data && (data.status === 'ok' || data.success === true)) {
+            corsiGetDetails(corso_id); // ricarica i dettagli del corso
             $('#modificaDataModal').modal('hide');
-            // aggiorna la tabella date con le nuove info
-        }
-        else {
-
+            showToast('Data aggiornata con successo');
+        } else {
             $('#error-modifica-data').text("Errore durante il salvataggio").show();
-        };
+            showToast('Errore durante il salvataggio', true);
+        }
+    }, 'json').fail(function() {
+        $('#error-modifica-data').text("Errore di comunicazione").show();
+        showToast('Errore di comunicazione', true);
     });
 }
 
@@ -141,15 +122,13 @@ function apriRegistroLezione(corso_id) {
 
     // Carica le date del corso
     $.post("../didattica/get_date_corso.php", { corso_id: corso_id }, function(data) {
-        if (data.success) { // ora controlla booleano corretto
+        if (data.success) {
             var $selectData = $('#select_data_corso');
-            
             if (data.date.length === 0) {
                 $selectData.append('<option value="">Nessuna data disponibile</option>').selectpicker('refresh');
                 $('#tabellaStudenti tbody').html('<tr><td colspan="4" class="text-center text-danger">Nessuna data disponibile</td></tr>');
             } else {
                 data.date.forEach(function(d) {
-                    // Formatta la data "25-08-2025 alle ore 10:30"
                     var dt = new Date(d.data);
                     var giorno = String(dt.getDate()).padStart(2,'0');
                     var mese = String(dt.getMonth()+1).padStart(2,'0');
@@ -157,10 +136,8 @@ function apriRegistroLezione(corso_id) {
                     var ore = String(dt.getHours()).padStart(2,'0');
                     var minuti = String(dt.getMinutes()).padStart(2,'0');
                     var formatted = `${giorno}-${mese}-${anno} alle ore ${ore}:${minuti}`;
-
                     $selectData.append('<option value="'+d.id+'">'+formatted+' - Aula: '+d.aula+'</option>');
                 });
-
                 $selectData.selectpicker('refresh');
 
                 // carica studenti e argomenti per la prima data
@@ -173,7 +150,6 @@ function apriRegistroLezione(corso_id) {
         }
     }, 'json');
 }
-
 
 // ================================
 // Carica studenti e argomenti
@@ -208,7 +184,7 @@ function caricaStudentiEArgomenti(data_id) {
             if (data.argomento) {
                 $('#argomentiLezione').val(data.argomento);
             }
-             // Imposta checkbox FIRMATO se presente nei dati
+            // Imposta checkbox FIRMATO se presente nei dati
             if (data.firmato !== undefined) {
                 $('#lezioneFirmata').prop('checked', data.firmato == 1);
             }
@@ -258,13 +234,12 @@ function salvaRegistroLezione() {
 }
 
 // ================================
-// Evento cambio data
+// Evento cambio data (registro lezione)
 // ================================
 $('#select_data_corso').on('change', function() {
     var data_id = $(this).val();
     caricaStudentiEArgomenti(data_id);
 });
-
 
 function corsiGetDetails(corsi_id) {
     $("#hidden_corso_id").val(corsi_id);
@@ -350,7 +325,7 @@ function corsiGetDetails(corsi_id) {
                 tbodyStud.append(tr);
             });
 
-        }, 'json'); // importante specificare json per evitare parsing manuale
+        }, 'json'); // importante specificare json
     }
     else {
         // Reset campi se corso_id non valido
@@ -373,7 +348,6 @@ function corsiGetDetails(corsi_id) {
     $("#_error-corsi-part").hide();
     $("#corsi_modal").modal("show");
 }
-
 
 function corsiDelete(id, materia, docente, nstudenti, stato) {
     var conf = confirm("Sei sicuro di volere cancellare il corso di " + materia + " a " + docente + " ?");
@@ -423,7 +397,6 @@ function aggiornaTabellaDate(corso_id) {
         });
     });
 }
-
 
 function cancellaData(id, corso_id) {
     // conferma
@@ -487,7 +460,7 @@ function modificaData(data_id, corso_id) {
 
         // trova la data corrispondente
         var found = resp.date.find(function(d) {
-            return String(d.id) === String(data_id) || String(d.id) === String(data_id); // robustezza
+            return String(d.id) === String(data_id) || String(d.id) === String(data_id);
         });
 
         if (!found) {
@@ -500,16 +473,12 @@ function modificaData(data_id, corso_id) {
 
         // costruisci valore per input datetime-local (YYYY-MM-DDTHH:MM)
         var raw = String(found.data || found.corso_data || found.data_corrente || "");
-        // prova a sostituire spazio con T per compatibilità
         var iso = raw.replace(' ', 'T').replace(/\.\d+$/, '');
         var dt = new Date(iso);
 
         if (isNaN(dt.getTime())) {
-            // fallback: tenta parsing manuale (formato 'YYYY-MM-DD HH:MM:SS')
             var m = raw.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
-            if (m) {
-                dt = new Date(m[1], parseInt(m[2],10)-1, m[3], m[4], m[5]);
-            }
+            if (m) dt = new Date(m[1], parseInt(m[2],10)-1, m[3], m[4], m[5]);
         }
 
         var year = dt.getFullYear();
@@ -529,53 +498,14 @@ function modificaData(data_id, corso_id) {
     });
 }
 
-
-// -------------------------
-// salva modifica data (sostituisci la tua versione con questa)
-// -------------------------
-function salvaModificaData() {
-    var corso_id = $('#hidden_corso_id').val();
-    var data_id = $('#hidden_data_id').val();
-    var nuova_data = $('#mod_data').val();
-    var nuova_aula = $('#mod_aula').val();
-
-    if (!nuova_data || !nuova_aula) {
-        $('#error-modifica-data').text("Compila tutti i campi").show();
-        return;
-    }
-    $('#error-modifica-data').hide();
-
-    // invia dati via AJAX
-    $.post("corsiAggiornaData.php", {
-        data_id: data_id,
-        corso_id: corso_id,
-        corso_data: nuova_data,
-        corso_aula: nuova_aula
-    }, function (data, status) {
-        // verifica risposta JSON correttamente
-        if (data && (data.status === 'ok' || data.success === true)) {
-            // ricarica i dettagli del corso per aggiornare UI
-            corsiGetDetails(corso_id);
-            $('#modificaDataModal').modal('hide');
-            showToast('Data aggiornata con successo');
-        } else {
-            $('#error-modifica-data').text("Errore durante il salvataggio").show();
-            showToast('Errore durante il salvataggio', true);
-        }
-    }, 'json').fail(function() {
-        $('#error-modifica-data').text("Errore di comunicazione").show();
-        showToast('Errore di comunicazione', true);
-    });
-}
-
 function cancellaIscritto(iscrizione_id) {
-    corsi_id = $("#hidden_corso_id").val();
+    var corsi_id = $("#hidden_corso_id").val();
     if (!window.confirm("Sei sicuro di volere cancellare questo studente?")) return;
 
     $.post("../didattica/corsoCancellaIscritto.php", { id: iscrizione_id, corso_id: corsi_id }, function (data) {
         $('#row_stud_' + iscrizione_id).remove();
     }, 'json');
-    corsiGetDetails(corsi_id); // supponendo che ricarichi il JSON del corso
+    corsiGetDetails(corsi_id);
 }
 
 function corsiSave() {
@@ -596,7 +526,7 @@ function corsiSave() {
         return;
     }
     $("#_error-corsi-part").hide();
-    carenze = $("#carenze").prop('checked');
+    var carenze = $("#carenze").prop('checked');
     $.post("corsiSave.php", {
         id: $("#hidden_corso_id").val(),
         docente_id: $("#docente").val(),
@@ -613,8 +543,8 @@ function corsiSave() {
 var studentiDisponibili = []; // Popolato via AJAX
 
 function iscriviStudenti() {
-    carenze = $("#carenze").prop('checked');
-    corso_id = $("#hidden_corso_id").val();
+    var carenze = $("#carenze").prop('checked');
+    var corso_id = $("#hidden_corso_id").val();
     $('#container_studenti').empty();
     $('#error-aggiungi-studenti').hide();
 
@@ -659,7 +589,6 @@ function aggiungiSelectStudente() {
 
 function salvaNuoviStudenti() {
     var corso_id = $('#hidden_corso_id').val();
-    console.log("Corso ID:", corso_id);
     var studenti_id = [];
 
     $('#container_studenti select').each(function () {
@@ -670,11 +599,9 @@ function salvaNuoviStudenti() {
     });
 
     if (studenti_id.length == 0) {
-        showToast("Seleziona almeno uno studente", "error");
+        showToast("Seleziona almeno uno studente", true);
         return;
     }
-
-    console.log(corso_id, studenti_id);
 
     $.post('../didattica/corsoAggiungiStudenti.php',
         { id_corso: corso_id, id_studente: studenti_id },
@@ -687,14 +614,13 @@ function salvaNuoviStudenti() {
                 if (data.added.length > 0 && data.already.length > 0) {
                     msg = "Aggiunti: " + data.added.length + ", già presenti: " + data.already.length;
                 }
-                showToast(msg, "success");
+                showToast(msg, false);
             } else {
-                showToast(data.message || "Errore durante l'aggiunta", "error");
+                showToast(data.message || "Errore durante l'aggiunta", true);
             }
         }, 'json'
     );
 }
-
 
 function importFile(file) {
     var contenuto = "";
@@ -715,6 +641,158 @@ function importFile(file) {
 
 function hideTooltip(el) {
     $(el).tooltip('hide');
+}
+
+// ================================
+// Apertura modal Esame (NUOVO)
+// ================================
+function apriEsameModal(corso_id) {
+    $("#hidden_corso_id").val(corso_id);
+
+    // reset campi (non tocco readonly: lo gestisce il PHP in base al ruolo)
+    $('#tabellaEsameStudenti tbody').empty();
+    $('#argomentiEsame').val('');
+    $('#esame_data').val('');
+    $('#esame_ora').val('');
+    $('#esame_aula').val('');
+
+    $('#esameModal').modal('show');
+
+    $.post("../didattica/corsoEsamiReadDetails.php", { corso_id: corso_id }, function (data) {
+        if (data.success) {
+            // Se esiste già una data esame → compila i campi
+            if (data.esami && data.esami.length > 0) {
+                let esame = data.esami[0];
+                if (esame.data_esame) {
+                    // parsing robusto
+                    let raw = String(esame.data_esame);
+                    let dt = new Date(raw.replace(' ', 'T'));
+                    if (!isNaN(dt.getTime())) {
+                        $('#esame_data').val(dt.toISOString().slice(0, 10));  // YYYY-MM-DD
+                        $('#esame_ora').val(
+                            String(dt.getHours()).padStart(2, '0') + ':' +
+                            String(dt.getMinutes()).padStart(2, '0')
+                        ); // HH:MM
+                    }
+                }
+                if (esame.aula) {
+                    $('#esame_aula').val(esame.aula);
+                }
+            }
+
+            // Popola argomenti se esistono (primo studente che li ha salvati)
+            if (data.studenti && data.studenti.length > 0) {
+                let primoConArg = data.studenti.find(s => s.argomenti && String(s.argomenti).trim() !== "");
+                if (primoConArg) {
+                    $('#argomentiEsame').val(primoConArg.argomenti);
+                }
+            }
+
+            // Popola tabella studenti
+            if (data.studenti && data.studenti.length > 0) {
+                data.studenti.forEach(function (s) {
+                    let row = `
+                        <tr>
+                            <td>${s.cognome} ${s.nome}</td>
+                            <td>${s.classe}</td>
+                            <td class="text-center">
+                                <input type="checkbox" class="chk-presente" data-id="${s.stud_id}" ${s.presente == 1 ? 'checked' : ''}>
+                            </td>
+                            <td>
+                                <select class="form-control tipo-prova" data-id="${s.stud_id}">
+                                    <option value="scritto" ${s.tipo_prova === 'scritto' ? 'selected' : ''}>Scritto</option>
+                                    <option value="orale" ${s.tipo_prova === 'orale' ? 'selected' : ''}>Orale</option>
+                                    <option value="pratico" ${s.tipo_prova === 'pratico' ? 'selected' : ''}>Pratico</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control voto-studente" data-id="${s.stud_id}" min="0" max="10" step="0.5" value="${s.voto || ''}">
+                            </td>
+                            <td class="recuperata text-center">
+                                ${s.voto >= 6 ? '✅' : (s.voto ? '❌' : '-')}
+                            </td>
+                        </tr>`;
+                    $('#tabellaEsameStudenti tbody').append(row);
+                });
+
+                // aggiorna colonna "carenza recuperata" al variare del voto
+                $(".voto-studente").on("input", function () {
+                    let voto = parseFloat($(this).val());
+                    let cell = $(this).closest("tr").find(".recuperata");
+                    if (!isNaN(voto)) {
+                        cell.text(voto >= 6 ? "✅" : "❌");
+                    } else {
+                        cell.text("-");
+                    }
+                });
+            } else {
+                $('#tabellaEsameStudenti tbody').html('<tr><td colspan="6" class="text-center text-danger">Nessuno studente iscritto</td></tr>');
+            }
+
+        } else {
+            showToast("Errore nel caricamento dati esame", true);
+        }
+    }, 'json').fail(function () {
+        showToast("Errore di comunicazione col server", true);
+    });
+}
+
+// Alias per compatibilità se il bottone chiama "apriEsame(...)"
+function apriEsame(corso_id) {
+    return apriEsameModal(corso_id);
+}
+
+// ================================
+// Salvataggio Esame (NUOVO)
+// ================================
+function salvaEsame() {
+    var corso_id = $("#hidden_corso_id").val();
+    var argomenti = $('#argomentiEsame').val();
+
+    var studenti = [];
+    $('#tabellaEsameStudenti tbody tr').each(function () {
+        let id = $(this).find('.chk-presente').data('id');
+        if (!id) return;
+
+        let presente = $(this).find('.chk-presente').is(':checked') ? 1 : 0;
+        let tipo = $(this).find('.tipo-prova').val();
+        let voto = $(this).find('.voto-studente').val();
+
+        studenti.push({
+            id_studente: id,
+            presente: presente,
+            tipo: tipo,
+            voto: voto
+        });
+    });
+
+    // recupera anche i campi data/ora/aula
+    var data_esame = $('#esame_data').val();
+    var ora_esame = $('#esame_ora').val();
+    var aula_esame = $('#esame_aula').val();
+    var datetime_esame = null;
+
+    if (data_esame && ora_esame) {
+        datetime_esame = data_esame + " " + ora_esame + ":00";
+    }
+
+    $.post("../didattica/corsoEsamiSave.php", {
+        corso_id: corso_id,
+        argomenti: argomenti,
+        data: datetime_esame,
+        aula: aula_esame,
+        studenti: studenti
+    }, function (data) {
+        if (data.success) {
+            showToast('Esame salvato con successo');
+            $('#esameModal').modal('hide');
+            corsiReadRecords();
+        } else {
+            showToast('Errore nel salvataggio esame: ' + (data.error || ''), true);
+        }
+    }, 'json').fail(function () {
+        showToast("Errore di comunicazione col server", true);
+    });
 }
 
 $(document).ready(function () {
@@ -743,4 +821,4 @@ $(document).ready(function () {
         importFile(e.target.files[0]);
     });
 
-});     
+});

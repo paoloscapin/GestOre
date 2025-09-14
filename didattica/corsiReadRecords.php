@@ -41,11 +41,11 @@ $data = '<style>
     width: 5%;
   }
     .col-azioni   { width: 7%; }   /* più largo */
-    .col-inizio   { width: 12%; }   /* un po’ più stretto */
-    .col-fine     { width: 12%; }   /* un po’ più stretto */
+    .col-inizio   { width: 10%; }   /* un po’ più stretto */
+    .col-fine     { width: 10%; }   /* un po’ più stretto */
     .col-materia  { width: 19%; }
-    .col-docente  { width: 16%; }
-    .col-titolo   { width: 20%; }
+    .col-docente  { width: 10%; }
+    .col-titolo   { width: 17%; }
     .col-studenti { width: 7%; }
     .col-stato    { width: 7%; }
 </style>
@@ -180,18 +180,59 @@ foreach ($resultArray as $row) {
 			if (getSettingsValue('corsi', 'visibile_docenti', false)) {
 				if (getSettingsValue('corsi', 'docente_puo_modificare', false)) {
 					$data .= '
-			<button onclick="corsiGetDetails(\'' . $idcorso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il corso"><span class="glyphicon glyphicon-pencil"></button>';
+                <button onclick="corsiGetDetails(\'' . $idcorso . '\')" 
+                        class="btn btn-warning btn-xs" 
+                        data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+                        title="Modifica il corso">
+                    <span class="glyphicon glyphicon-pencil"></span>
+                </button>';
 				}
-						$data .= '<button onclick="apriRegistroLezione(\'' . $idcorso . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Gestisci le presenze e gli argomenti"><span class="glyphicon glyphicon-user"></button>';
+				$data .= '
+                <button onclick="apriRegistroLezione(\'' . $idcorso . '\')" 
+                        class="btn btn-primary btn-xs" 
+                        data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+                        title="Gestisci le presenze e gli argomenti">
+                    <span class="glyphicon glyphicon-user"></span>
+                </button>';
+				if ($row['carenza'] == 1) {
+					$data .= '
+                <button onclick="apriEsameModal(\'' . $idcorso . '\')" 
+                        class="btn btn-success btn-xs" 
+                        data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+                        title="Esame carenze">
+                    <span class="glyphicon glyphicon-check"></span>
+                </button>';
+				}
 			}
-
 		}
-	} else
-	if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+	} else if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
 		$data .= '
-			<button onclick="corsiGetDetails(\'' . $idcorso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il corso"><span class="glyphicon glyphicon-pencil"></button>
-			<button onclick="corsiDelete(\'' . $idcorso . '\',\'' . $materia . '\',\'' . $nome_docente . '\',\'' . $studenti_iscritti . '\',\'' . $stato . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il corso"><span class="glyphicon glyphicon-trash"></button>';
+        <button onclick="corsiGetDetails(\'' . $idcorso . '\')" 
+                class="btn btn-warning btn-xs" 
+                data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+                title="Modifica il corso">
+            <span class="glyphicon glyphicon-pencil"></span>
+        </button>
+        <button onclick="corsiDelete(\'' . $idcorso . '\',\'' . $materia . '\',\'' . $nome_docente . '\',\'' . $studenti_iscritti . '\',\'' . $stato . '\')" 
+                class="btn btn-danger btn-xs" 
+                data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+                title="Cancella il corso">
+            <span class="glyphicon glyphicon-trash"></span>
+        </button>
+        <button onclick="apriRegistroLezione(\'' . $idcorso . '\')" 
+                class="btn btn-primary btn-xs" 
+                data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+                title="Gestisci le presenze e gli argomenti">
+            <span class="glyphicon glyphicon-user"></span>
+        </button>
+        <button onclick="apriEsameModal(\'' . $idcorso . '\')" 
+                class="btn btn-success btn-xs" 
+                data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+                title="Esame carenze">
+            <span class="glyphicon glyphicon-check"></span>
+        </button>';
 	}
+
 	$data .= '</td></tr>';
 }
 

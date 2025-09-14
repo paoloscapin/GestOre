@@ -31,12 +31,9 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
         src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
     <?php
-     if (impersonaRuolo('docente'))
-    {
+    if (impersonaRuolo('docente')) {
         echo ' <title>I miei corsi</title>';
-    }
-    else
-    {
+    } else {
         echo ' <title>Corsi studenti</title>';
     } ?>
     <style>
@@ -255,6 +252,7 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
             font-size: 16px;
             opacity: 0.95;
         }
+
     </style>
 
 </head>
@@ -309,7 +307,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 
 <body>
     <?php
-    if (impersonaRuolo('docente')){
+    if (impersonaRuolo('docente')) {
         require_once '../common/header-docente.php';
     } else if (haRuolo('segreteria-didattica')) {
         require_once '../common/header-segreteria.php';
@@ -385,7 +383,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     <div class="col-md-2 text-center" style="margin-top:20px;">
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
                             <input type="checkbox" checked data-toggle="toggle" data-size="mini"
-                                data-onstyle="primary" id="carenze">Corsi carenze   
+                                data-onstyle="primary" id="carenze">Corsi carenze
                         </label>
                     </div>
                 </div>
@@ -633,7 +631,95 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         </div>
     </div>
 
-<div id="toastMessage" style="
+    <!-- Modal Esame -->
+    <div class="modal fade" id="esameModal" tabindex="-1" role="dialog" aria-labelledby="esameLabel" data-backdrop="static">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+
+                <div class="modal-header modal-header-orange4">
+                    <h4 class="modal-title w-100 text-center" id="esameLabel">Gestione Esame</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <form class="form-horizontal">
+
+                        <!-- Data, Ora, Aula -->
+                        <div class="form-group row">
+                            <!-- Data -->
+                            <label class="col-sm-2 col-form-label d-flex align-items-center justify-content-end">
+                                Data Esame
+                            </label>
+                            <div class="col-sm-2">
+                                <input type="date" id="esame_data" class="form-control" style="text-align: center;">
+                            </div>
+
+                            <!-- Ora -->
+                            <label class="col-sm-1 col-form-label d-flex align-items-center justify-content-end">
+                                Ora
+                            </label>
+                            <div class="col-sm-2">
+                                <input type="time" id="esame_ora" class="form-control" style="text-align: center;">
+                            </div>
+
+                            <!-- Aula -->
+                            <label class="col-sm-1 col-form-label d-flex align-items-center justify-content-end">
+                                Aula
+                            </label>
+                            <div class="col-sm-2">
+                                <input type="text" id="esame_aula" class="form-control">
+                            </div>
+                        </div>
+
+
+
+                        <!-- Tabella studenti -->
+                        <div class="form-group">
+                            <label class="col-sm-12 text-center label-rosso">Studenti Iscritti</label>
+                            <div class="col-sm-12">
+                                <table class="table table-bordered table-striped text-center" id="tabellaEsameStudenti">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center">Studente</th>
+                                            <th class="text-center">Classe</th>
+                                            <th class="text-center">Presente</th>
+                                            <th class="text-center">Tipo Prova</th>
+                                            <th class="text-center">Voto</th>
+                                            <th class="text-center">Carenza Recuperata</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Popolato da JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Argomenti -->
+                        <div class="form-group">
+                            <label class="col-sm-12 text-center label-rosso">Argomenti della Verifica</label>
+                            <div class="col-sm-12">
+                                <textarea id="argomentiEsame" class="form-control" rows="4"
+                                    placeholder="Inserisci gli argomenti della prova..."
+                                    ></textarea>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+
+                <div class="modal-footer center">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                    <button type="button" class="btn btn-primary" onclick="salvaEsame()">Salva Esame</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+
+    <div id="toastMessage" style="
     position: fixed;
     top: 50%; /* centro verticale */
     left: 50%; /* centro orizzontale */
