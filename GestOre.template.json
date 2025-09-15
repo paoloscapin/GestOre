@@ -106,6 +106,8 @@
     "corsiDiRecupero": {
         "importCognomiNomiSeparati": false,
         "corsiDiRecuperoEmailRisulato": false,
+        "corsiDiRecuperoRichiestaConferma": true,
+        "corsiDiRecuperoLinkRichiestaNovembre": "",
         "corsiDiRecuperoFirmaDocente": true,
         "corsiDiRecuperoVotoSettembreTuttiIDocenti": true,
         "corsiDiRecuperoPagatiDaProvincia": true

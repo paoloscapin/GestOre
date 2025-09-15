@@ -1,3 +1,8 @@
+## Version 1.3.4 - 15 set 2025
+##### Improvements
+- corso di recupero invio per email lettera carenze
+- corso di recupero opzione per richiesta sessione novembre tramite link
+
 ## Version 1.3.3 - 3 set 2025
 ##### Bug Fixes
 - corso di recupero pnrr ha l'aula

@@ -228,39 +228,61 @@ $data .= '
 		</tbody>
     </table>
 </br>
-<div id="scissors">
-    <div></div>
-</div>
-</br>
-<p class="c3">
-    <span class="c1 c21">
-    Il sottoscritto _______________________________________ genitore dello studente/essa '.$studente_corso['cognome'] . " " . $studente_corso['nome'].'
-    della classe ____________ <strong>dichiara</strong> di aver ricevuto in data ____________ comunicazione dell’esito della prova
-    di recupero carenze di '.$studente_corso['materia_nome'].' a.s. scorso.
-</p>
-<p class="c3">
-</br>
-FIRMA (studente maggiorenne o genitore per studente minorenne)
-</br>
-</br>
-______________________________________________________________
-</p>';
 
-if($voto < 6)
-$data .= '</br>
-<p class="c3">
-    <span class="c1 c21">
-    <strong>CHIEDE</strong> che il/la figlio/a possa sostenere un\'ulteriore verifica
-	per il superamento della carenza in '.$materiaNome.' entro <strong>novembre</strong>,
-	da concordare con il docente della classe.
-</p>
-<p class="c3">
-</br>
-FIRMA (studente maggiorenne o genitore per studente minorenne)
-</br>
-</br>
-______________________________________________________________
-</p>';
+';
+if (getSettingsValue('corsiDiRecupero','corsiDiRecuperoRichiestaConferma', true)) {
+	$data .= '<div id="scissors">
+		<div></div>
+		</div>
+		</br>
+		<p class="c3">
+			<span class="c1 c21">
+			Il sottoscritto _______________________________________ genitore dello studente/essa '.$studente_corso['cognome'] . " " . $studente_corso['nome'].'
+			della classe ____________ <strong>dichiara</strong> di aver ricevuto in data ____________ comunicazione dell’esito della prova
+			di recupero carenze di '.$studente_corso['materia_nome'].' a.s. scorso.
+		</p>
+		<p class="c3">
+		</br>
+		FIRMA (studente maggiorenne o genitore per studente minorenne)
+		</br>
+		</br>
+		______________________________________________________________
+		</p>';
+} else {
+	$data .= '<hr>';
+}
+
+if($voto < 6) {
+	$linkRichiestaNovembre = getSettingsValue('corsiDiRecupero','corsiDiRecuperoLinkRichiestaNovembre', '');
+	if (empty($linkRichiestaNovembre)) {
+		debug('empty link richiesta novembre='.$linkRichiestaNovembre);
+		$data .= '</br>
+			<p class="c3">
+				<span class="c1 c21">
+				<strong>CHIEDE</strong> che il/la figlio/a possa sostenere un\'ulteriore verifica
+				per il superamento della carenza in '.$materiaNome.' entro <strong>novembre</strong>,
+				da concordare con il docente della classe.
+			</p>
+			<p class="c3">
+			</br>
+			FIRMA (studente maggiorenne o genitore per studente minorenne)
+			</br>
+			</br>
+			______________________________________________________________
+			</p>';
+	} else {
+		debug('using link richiesta novembre='.$linkRichiestaNovembre);
+		$data .= '</br>
+			<p class="c3">
+				<span class="c1 c21">
+				Per richiedere la possibilità di sostenere un\'ulteriore prova di verifica per il superamento della carenza in '.$materiaNome.' entro il 30 novembre, utilizzare il link qui sotto riportato.
+			</p>
+			</br>
+			<p class="c3">
+			<strong><a href="'.$linkRichiestaNovembre.'">Richiesta ulteriore verifica a novembre</a></strong>,
+			</p>';
+	}
+}
 
 // adesso viene il momento di produrre la pagina o il pdf
 $pagina .= '<html><head>
@@ -354,7 +376,7 @@ if (! $print && ! $email) {
 			echo 'Mailer Error: ' . $mail->ErrorInfo;
 		} else {
 			// marca che e' stato notificato
-			dbExec("UPDATE studente_per_corso_di_recupero SET voto_settembre_notificato = true WHERE id = $studenteId;");
+			// dbExec("UPDATE studente_per_corso_di_recupero SET voto_settembre_notificato = true WHERE id = $studenteId;");
 			echo "<script>window.close();</script>";
 		}
 	} else if ($print) {

@@ -329,7 +329,7 @@ foreach($resultArray as $row_classe) {
 								if ($row_studente['studente_per_corso_di_recupero_voto_settembre_notificato']) {
 									$data .= '&nbsp;&nbsp;<span class="label label-success">notificato</span>';
 								} else {
-									$data .= '&nbsp;&nbsp;<button onclick="emailCarenzeSettembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-deeporange4 btn-xs"><span class="glyphicon glyphicon-envelope"></span>&nbsp;email</button>';
+									$data .= '&nbsp;&nbsp;<button onclick="emailCarenzeSettembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-deeporange4 btn-xs notificaEmailBtn"><span class="glyphicon glyphicon-envelope"></span>&nbsp;email</button>';
 								}
 							} else {
 								$data .= '&nbsp;&nbsp;<span class="label label-warning">no email</span>';

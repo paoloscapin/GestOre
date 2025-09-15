@@ -130,6 +130,11 @@ $(document).ready(function () {
 
 	flatpickr.localize(flatpickr.l10ns.it);
 
+	$(".notificaEmailBtn").on('click', function(e){
+		$(this).html('<span class="label label-success">notificato</span>');
+		$(this).prop('onclick', null);
+	});
+
 	$(".votoSettembre").on('change', function(e){
 			var voto = this.value;
 			// ogni tanto lo chiama due volte una con undefined
