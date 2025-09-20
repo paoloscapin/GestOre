@@ -367,6 +367,9 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                                 <span class="glyphicon glyphicon-upload"></span>&emsp;Importa
                                 <input type="file" id="file_select_id" style="display: none;">
                             </label>
+                            <label id="export_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Esporta esiti esami">
+                                <span class="glyphicon glyphicon-download"></span>&emsp;Esporta esiti
+                           </label>
                         </div>
                     ';
                     }
@@ -737,7 +740,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/corsi.js?v=<?php echo $__software_version; ?>&a=<?php echo $anno_corsi; ?>"></script>
+    <script type="text/javascript" src="js/corsi.js?v=<?php echo time(); ?>&a=<?php echo $anno_corsi; ?>"></script>
 </body>
 
 </html>

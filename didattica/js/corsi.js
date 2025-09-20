@@ -799,6 +799,13 @@ $(document).ready(function () {
 
     corsiReadRecords();
 
+    $("#export_btn").on("click", function (e) {
+        e.preventDefault();
+
+        // Avvio direttamente il download
+        window.location.href = "exportEsami.php";
+    });
+    
     $("#docente_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             $docente_filtro_id = this.value;
