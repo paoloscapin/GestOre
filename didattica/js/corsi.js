@@ -101,7 +101,7 @@ function salvaModificaData() {
             $('#error-modifica-data').text("Errore durante il salvataggio").show();
             showToast('Errore durante il salvataggio', true);
         }
-    }, 'json').fail(function() {
+    }, 'json').fail(function () {
         $('#error-modifica-data').text("Errore di comunicazione").show();
         showToast('Errore di comunicazione', true);
     });
@@ -121,22 +121,22 @@ function apriRegistroLezione(corso_id) {
     $('#registroLezioneModal').modal('show');
 
     // Carica le date del corso
-    $.post("../didattica/get_date_corso.php", { corso_id: corso_id }, function(data) {
+    $.post("../didattica/get_date_corso.php", { corso_id: corso_id }, function (data) {
         if (data.success) {
             var $selectData = $('#select_data_corso');
             if (data.date.length === 0) {
                 $selectData.append('<option value="">Nessuna data disponibile</option>').selectpicker('refresh');
                 $('#tabellaStudenti tbody').html('<tr><td colspan="4" class="text-center text-danger">Nessuna data disponibile</td></tr>');
             } else {
-                data.date.forEach(function(d) {
+                data.date.forEach(function (d) {
                     var dt = new Date(d.data);
-                    var giorno = String(dt.getDate()).padStart(2,'0');
-                    var mese = String(dt.getMonth()+1).padStart(2,'0');
+                    var giorno = String(dt.getDate()).padStart(2, '0');
+                    var mese = String(dt.getMonth() + 1).padStart(2, '0');
                     var anno = dt.getFullYear();
-                    var ore = String(dt.getHours()).padStart(2,'0');
-                    var minuti = String(dt.getMinutes()).padStart(2,'0');
+                    var ore = String(dt.getHours()).padStart(2, '0');
+                    var minuti = String(dt.getMinutes()).padStart(2, '0');
                     var formatted = `${giorno}-${mese}-${anno} alle ore ${ore}:${minuti}`;
-                    $selectData.append('<option value="'+d.id+'">'+formatted+' - Aula: '+d.aula+'</option>');
+                    $selectData.append('<option value="' + d.id + '">' + formatted + ' - Aula: ' + d.aula + '</option>');
                 });
                 $selectData.selectpicker('refresh');
 
@@ -162,19 +162,19 @@ function caricaStudentiEArgomenti(data_id) {
     $('#argomentiLezione').val('');
     $('#lezioneFirmata').prop('checked', false); // reset checkbox firmato
 
-    $.post("corsoGetStudentiArgomenti.php", { data_id: data_id }, function(data) {
+    $.post("corsoGetStudentiArgomenti.php", { data_id: data_id }, function (data) {
         if (data.success) {
             // Popola studenti
             if (data.studenti.length === 0) {
                 $('#tabellaStudenti tbody').html('<tr><td colspan="4" class="text-center">Nessuno studente iscritto</td></tr>');
             } else {
-                data.studenti.forEach(function(s) {
+                data.studenti.forEach(function (s) {
                     var checkedPresente = s.presente ? 'checked' : '';
                     $('#tabellaStudenti tbody').append(
-                        '<tr>'+
-                            '<td>'+s.nominativo+'</td>'+
-                            '<td>'+s.classe+'</td>'+
-                            '<td class="text-center"><input type="checkbox" class="chkPresente" data-id="'+s.id+'" '+checkedPresente+'></td>'+
+                        '<tr>' +
+                        '<td>' + s.nominativo + '</td>' +
+                        '<td>' + s.classe + '</td>' +
+                        '<td class="text-center"><input type="checkbox" class="chkPresente" data-id="' + s.id + '" ' + checkedPresente + '></td>' +
                         '</tr>'
                     );
                 });
@@ -210,10 +210,10 @@ function salvaRegistroLezione() {
     var firmato = $('#lezioneFirmata').is(':checked') ? 1 : 0;
     // raccolta presenze
     var presenze = [];
-    $('#tabellaStudenti tbody tr').each(function() {
+    $('#tabellaStudenti tbody tr').each(function () {
         var id_studente = $(this).find('.chkPresente').data('id');
         var presente = $(this).find('.chkPresente').is(':checked') ? 1 : 0;
-        presenze.push({id_studente:id_studente, presente:presente});
+        presenze.push({ id_studente: id_studente, presente: presente });
     });
 
     $.post("corsiSalvaRegistroLezione.php", {
@@ -222,7 +222,7 @@ function salvaRegistroLezione() {
         argomenti: argomenti,
         presenze: presenze,
         firmato: firmato
-    }, function(data) {
+    }, function (data) {
         if (data.success) {
             showToast('Registro salvato con successo');
             $('#registroLezioneModal').modal('hide');
@@ -236,7 +236,7 @@ function salvaRegistroLezione() {
 // ================================
 // Evento cambio data (registro lezione)
 // ================================
-$('#select_data_corso').on('change', function() {
+$('#select_data_corso').on('change', function () {
     var data_id = $(this).val();
     caricaStudentiEArgomenti(data_id);
 });
@@ -459,7 +459,7 @@ function modificaData(data_id, corso_id) {
         }
 
         // trova la data corrispondente
-        var found = resp.date.find(function(d) {
+        var found = resp.date.find(function (d) {
             return String(d.id) === String(data_id) || String(d.id) === String(data_id);
         });
 
@@ -478,7 +478,7 @@ function modificaData(data_id, corso_id) {
 
         if (isNaN(dt.getTime())) {
             var m = raw.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
-            if (m) dt = new Date(m[1], parseInt(m[2],10)-1, m[3], m[4], m[5]);
+            if (m) dt = new Date(m[1], parseInt(m[2], 10) - 1, m[3], m[4], m[5]);
         }
 
         var year = dt.getFullYear();
@@ -493,7 +493,7 @@ function modificaData(data_id, corso_id) {
 
         $('#error-modifica-data').hide();
         $('#modificaDataModal').modal('show');
-    }, 'json').fail(function() {
+    }, 'json').fail(function () {
         showToast("Errore di comunicazione durante il caricamento data", true);
     });
 }
@@ -796,36 +796,57 @@ function salvaEsame() {
 }
 
 $(document).ready(function () {
-
     corsiReadRecords();
 
-    $("#export_btn").on("click", function (e) {
-        e.preventDefault();
+    $("#btn-invia-esiti").on("click", function () {
+        showToast("Invio in corso...", false, 10000); // toast iniziale
 
-        // Avvio direttamente il download
-        window.location.href = "exportEsami.php";
+        $.post("inviaEsitiCoordinatori.php", {}, function (res) {
+            let risposta = JSON.parse(res);
+            if (risposta.success) {
+                showToast("Invio completato!");
+            } else {
+                showToast("Errore: " + risposta.msg);
+            }
+        }).fail(function () {
+            showToast("Errore nella comunicazione col server");
+        });
     });
-    
-    $("#docente_filtro").on("changed.bs.select",
-        function (e, clickedIndex, newValue, oldValue) {
-            $docente_filtro_id = this.value;
-            corsiReadRecords();
-        });
 
-    $("#materia_filtro").on("changed.bs.select",
-        function (e, clickedIndex, newValue, oldValue) {
-            $materia_filtro_id = this.value;
-            corsiReadRecords();
-        });
+$("#incompleti").on("click", function (e) {
+    e.preventDefault();
 
-    $("#anni_filtro").on("changed.bs.select",
-        function (e, clickedIndex, newValue, oldValue) {
-            $anni_filtro_id = this.value;
-            corsiReadRecords();
-        });
+    // Avvio direttamente il download
+    window.location.href = "corsiIncompleti.php";
+});
 
-    $('#file_select_id').change(function (e) {
-        importFile(e.target.files[0]);
+$("#export_btn").on("click", function (e) {
+    e.preventDefault();
+
+    // Avvio direttamente il download
+    window.location.href = "exportEsami.php";
+});
+
+$("#docente_filtro").on("changed.bs.select",
+    function (e, clickedIndex, newValue, oldValue) {
+        $docente_filtro_id = this.value;
+        corsiReadRecords();
     });
+
+$("#materia_filtro").on("changed.bs.select",
+    function (e, clickedIndex, newValue, oldValue) {
+        $materia_filtro_id = this.value;
+        corsiReadRecords();
+    });
+
+$("#anni_filtro").on("changed.bs.select",
+    function (e, clickedIndex, newValue, oldValue) {
+        $anni_filtro_id = this.value;
+        corsiReadRecords();
+    });
+
+$('#file_select_id').change(function (e) {
+    importFile(e.target.files[0]);
+});
 
 });

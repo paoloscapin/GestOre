@@ -370,6 +370,10 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             <label id="export_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Esporta esiti esami">
                                 <span class="glyphicon glyphicon-download"></span>&emsp;Esporta esiti
                            </label>
+                           <label id="btn-invia-esiti" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Invia esiti ai coordinatori di classe">
+                                <span class="glyphicon glyphicon-envelope"></span>&emsp;Invia esiti
+                           </label>
+                           <div id="stato-invio" style="margin-top:10px; font-weight:bold; color:#333;"></div>
                         </div>
                     ';
                     }
@@ -379,6 +383,9 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
                             <input type="checkbox" data-toggle="toggle" data-size="mini"
                                 data-onstyle="primary" id="futuri"> Solo Nuovi
+                        </label><br>
+                        <label id="incompleti" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Esami incompleti">
+                                <span class="glyphicon glyphicon-download"></span>&emsp;Incompleti
                         </label>
                     </div>
 
