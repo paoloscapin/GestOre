@@ -18,10 +18,10 @@
 		<?php 
 			if (getSettingsValue('config', 'sportelli', false))
 			{
-				if (getSettingsValue('sportelli','visibile_studenti', false))
+				if ((getSettingsValue('sportelli','visibile_studenti', false)) || ($__studente_cognome == "Iscrizioni"))
 				{
 					echo '
-				<a href="<?php echo $__application_base_path; ?>/studente/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>';
+				<a href="../studente/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>';
 				}				
 			}
 		?>
