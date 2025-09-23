@@ -63,6 +63,7 @@
         "helpLinkAdmin": "https://docs.google.com/document/d/17B9ZXTg1WD7IBwZMKuHj47YigVjfPkH3o8gp-fpD9ig/edit?usp=sharing",
         "helpLinkDidattica":  "https://docs.google.com/document/d/17B9ZXTg1WD7IBwZMKuHj47YigVjfPkH3o8gp-fpD9ig/edit?usp=sharing",
         "nomeIstituto": "ITT Buonarroti - Trento",
+        "AppPassword": "xxxx xxxx xxxx xxxx app password 16 caratteri Google per invio mail",
         "smtpHost": "indirizzo del server smtp posta Google della scula",
         "smtpMail": "noreplyGestOre@server-scuola",
         "smtpPassword": "password casella di posta",

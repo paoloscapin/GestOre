@@ -25,7 +25,7 @@ function sendMail($to, $toName, $subject, $Content)
     $mail->Host = $__settings->local->smtpHost;
     $mail->SMTPAuth = true;
     $mail->Username = $__settings->local->smtpMail;
-    $mail->Password = $__settings->local->smtpPassword;
+    $mail->Password = $__settings->local->AppPassword;
     $mail->SMTPSecure = $__settings->local->SMTPSecure;
     $mail->SMTPAutoTLS = false;
     $mail->CharSet = 'UTF-8';
@@ -72,7 +72,7 @@ function sendMailwithAttachment($to, $toName, $subject, $Content,$AttachmentFile
     $mail->Host = $__settings->local->smtpHost;
     $mail->SMTPAuth = true;
     $mail->Username = $__settings->local->smtpMail;
-    $mail->Password = $__settings->local->smtpPassword;
+    $mail->Password = $__settings->local->AppPassword;
     $mail->SMTPSecure = $__settings->local->SMTPSecure;
     $mail->SMTPAutoTLS = false;
     $mail->CharSet = 'UTF-8';
