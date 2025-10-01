@@ -23,9 +23,12 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_flatpickr.php';
     ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
 
-
-    if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) || (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
-        redirect("/error/unauthorized.php");
+    if ($__genitore_cognome == 'GENITORE') {
+        // accesso generico per tutti gli studenti
+    } else {
+        if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) || (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
+            redirect("/error/unauthorized.php");
+        }
     }
     ?>
 
