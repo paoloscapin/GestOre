@@ -243,7 +243,7 @@ foreach ($resultArray as $row) {
                 title="Cancella il corso">
             <span class="glyphicon glyphicon-trash"></span>
         </button>';
-        if ($stato != 4) 
+        if (($stato != 4)&&($stato != 3))
         {
             $data .= '
         <button onclick="apriRegistroLezione(\'' . $idcorso . '\')" 

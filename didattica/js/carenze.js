@@ -70,10 +70,8 @@ function carenzeGetDetails(carenza_id) {
 function carenzaDelete(id, materia, studente) {
     var conf = confirm("Sei sicuro di volere cancellare la carenza di " + materia + " a " + studente + " ?");
     if (conf == true) {
-        $.post("../common/deleteRecord.php", {
-            id: id,
-            table: 'carenze',
-            name: materia + '-' + studente
+        $.post("../didattica/carenzeDelete.php", {
+            id: id
         },
             function (data, status) {
                 carenzeReadRecords();
