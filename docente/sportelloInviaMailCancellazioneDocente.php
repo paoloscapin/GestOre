@@ -32,16 +32,17 @@ $query = "SELECT
             studente.id AS studente_id,
             studente.cognome AS studente_cognome,
             studente.nome AS studente_nome,
-            studente.classe AS studente_classe,
             studente.email AS studente_email,
-            sportello_studente.sportello_id AS sportello_id
+            sportello_studente.sportello_id AS sportello_id,
+            c.classe AS studente_classe
             FROM sportello_studente
-            INNER JOIN studente
-            ON studente.id = studente_id
-            WHERE sportello_studente.sportello_id = $id";
+            INNER JOIN studente ON studente.id = studente_id
+            INNER JOIN studente_frequenta sf ON sf.id_studente = studente.id
+            INNER JOIN classi c ON c.id = sf.id_classe
+            WHERE sportello_studente.sportello_id = $id AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id";
 
 $resultArray = dbGetAll($query);
-$full_mail_body = "";
+$full_mail_body = '';
 
 if ($resultArray == null) {
     // preparo il testo della mail
