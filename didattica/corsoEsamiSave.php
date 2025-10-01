@@ -33,6 +33,7 @@ $corso_id   = intval($_POST['corso_id']);
 $argomenti  = $_POST['argomenti'] ?? '';
 $data_esame = $_POST['data'] ?? null;  // atteso "YYYY-MM-DD HH:MM:SS"
 $aula_esame = $_POST['aula'] ?? null;
+$firmato = $_POST['firmato'] ?? 0;
 $studenti   = $_POST['studenti'] ?? [];
 
 error("POST ricevuto: " . print_r($_POST, true));
@@ -48,13 +49,14 @@ try {
             dbExec(
                 "UPDATE corso_esami_date
                  SET data_esame = " . sqlv($data_esame) . ",
-                     aula = " . sqlv($aula_esame) . "
+                     aula = " . sqlv($aula_esame) . ",
+                     firmato = " . intval($firmato) . "
                  WHERE id = $id_data"
             );
         } else {
             dbExec(
-                "INSERT INTO corso_esami_date (id_corso, data_esame, aula)
-                 VALUES ($corso_id, " . sqlv($data_esame) . ", " . sqlv($aula_esame) . ")"
+                "INSERT INTO corso_esami_date (id_corso, data_esame, aula, firmato)
+                 VALUES ($corso_id, " . sqlv($data_esame) . ", " . sqlv($aula_esame) . ", " . intval($firmato) . ")"
             );
             if (function_exists('dbLastId')) {
                 $id_data = dbLastId();

@@ -19,7 +19,7 @@ $anno_corrente = intval($__anno_scolastico_corrente_id);
 
 // 🔹 Date esame
 $query = "
-    SELECT e.id AS esame_id, e.id_corso, e.data_esame, e.aula
+    SELECT e.id AS esame_id, e.id_corso, e.data_esame, e.aula, e.firmato
     FROM corso_esami_date e
     WHERE e.id_corso = $corso_id
     ORDER BY e.data_esame ASC

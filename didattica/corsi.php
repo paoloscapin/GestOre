@@ -728,6 +728,16 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             </div>
                         </div>
 
+                        <!-- Checkbox Firmato -->
+                        <div class="form-group text-center">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="esameFirmato" value="1">
+                                <label class="form-check-label" for="esameFirmato">
+                                    FIRMA L'ESAME
+                                </label>
+                            </div>
+                        </div>
+
                     </form>
                 </div>
 
