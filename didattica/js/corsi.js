@@ -779,7 +779,7 @@ function apriEsame(corso_id) {
 // ================================
 function salvaEsame() {
     var corso_id = $("#hidden_corso_id").val();
-    var argomenti = $('#argomentiEsame').val();
+    var argomenti = $('#argomentiEsame').val().trim();
     var firmato = $('#esameFirmato').is(':checked') ? 1 : 0;
 
     var studenti = [];
@@ -802,13 +802,32 @@ function salvaEsame() {
     // recupera anche i campi data/ora/aula
     var data_esame = $('#esame_data').val();
     var ora_esame = $('#esame_ora').val();
-    var aula_esame = $('#esame_aula').val();
+    var aula_esame = $('#esame_aula').val().trim();
     var datetime_esame = null;
 
     if (data_esame && ora_esame) {
         datetime_esame = data_esame + " " + ora_esame + ":00";
     }
 
+    // 🔎 VALIDAZIONI
+    if (!argomenti) {
+        showToast("Inserisci gli argomenti della prova", true);
+        return;
+    }
+    if (!firmato) {
+        showToast("Devi firmare l'esame per poterlo salvare", true);
+        return;
+    }
+    if (!data_esame || !ora_esame) {
+        showToast("Inserisci data e ora dell'esame", true);
+        return;
+    }
+    if (!aula_esame) {
+        showToast("Inserisci l'aula dell'esame", true);
+        return;
+    }
+
+    // se tutti i controlli superati → salvo
     $.post("../didattica/corsoEsamiSave.php", {
         corso_id: corso_id,
         argomenti: argomenti,
@@ -828,6 +847,7 @@ function salvaEsame() {
         showToast("Errore di comunicazione col server", true);
     });
 }
+
 
 $(document).ready(function () {
     corsiReadRecords();
