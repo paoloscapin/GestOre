@@ -27,6 +27,9 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_flatpickr.php';
     ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
 
+    if ($__studente_cognome == "Iscrizioni") {
+        // lo lascio accedere
+    } else  
     if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) || (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
         redirect("/error/unauthorized.php");
     }

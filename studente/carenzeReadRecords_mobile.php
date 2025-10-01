@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Versione MOBILE di GestOre - Carenze
+ * Versione MOBILE di GestOre - Carenze con esiti
  * Le informazioni sono mostrate in formato card invece che tabella
  */
 
@@ -9,7 +10,7 @@ require_once '../common/connect.php';
 
 $anni_filtro_id = $_GET["anni_filtro_id"] ?? 0;
 
-// Query per recuperare le carenze dello studente
+// Query principale carenze
 $query = "SELECT
             carenze.id AS carenza_id,
             carenze.id_studente AS carenza_id_studente,
@@ -32,8 +33,8 @@ $query = "SELECT
         INNER JOIN classi ON carenze.id_classe = classi.id";
 
 if ($anni_filtro_id > 0) {
-    $query .= " WHERE carenze.id_anno_scolastico=" . intval($anni_filtro_id) . 
-              " AND studente.id='" . intval($__studente_id) . "' AND (carenze.stato=2 OR carenze.stato=3)";
+    $query .= " WHERE carenze.id_anno_scolastico=" . intval($anni_filtro_id) .
+        " AND studente.id='" . intval($__studente_id) . "' AND (carenze.stato=2 OR carenze.stato=3)";
 } else {
     $query .= " WHERE studente.id='" . intval($__studente_id) . "' AND (carenze.stato=2 OR carenze.stato=3)";
 }
@@ -49,7 +50,7 @@ foreach ($resultArray as $row) {
     $note = htmlspecialchars($row['nota']);
     $idcarenza = $row['carenza_id'];
 
-    // Data ricezione, fallback se null
+    // Data ricezione
     $data_ricezione = '';
     if (!empty($row['carenza_validazione'])) {
         $datf = new DateTime($row['carenza_validazione']);
@@ -63,14 +64,67 @@ foreach ($resultArray as $row) {
     if (!empty($note)) {
         echo '<div><strong>Note:</strong> ' . $note . '</div>';
     }
+
+    // 📌 Sezione Esito Carenza
+    echo '<div style="margin-top:8px; text-align:center;">';
+    echo '<div style="margin-bottom:4px;"><strong>Esito:</strong></div>';
+
+    // Controllo se era in itinere
+    $query = "SELECT co.in_itinere AS in_itinere
+              FROM carenze car
+              INNER JOIN corso co ON co.id_materia = car.id_materia 
+              INNER JOIN corso_iscritti ci ON ci.id_corso = co.id AND ci.id_studente = car.id_studente
+              WHERE car.id = $idcarenza";
+    $itinere = dbGetValue($query);
+
+    // Recupero eventuale esito esame
+    $query = "SELECT 
+                ce.presente AS presente,
+                ce.recuperato AS recuperato,
+                ced.data_esame AS data_esame,
+                ced.firmato AS firmato,
+                ced.aula AS aula_esame
+              FROM carenze car
+              INNER JOIN corso_esiti ce ON ce.id_studente = car.id_studente
+              INNER JOIN corso_iscritti ci ON ci.id_studente = car.id_studente
+              INNER JOIN corso_esami_date ced ON ced.id_corso = ce.id_corso
+              WHERE car.id = $idcarenza";
+    $esito = dbGetFirst($query);
+
+    $firmato = $esito && $esito['firmato'] == 1;
+
+    if ($itinere) {
+        echo '<span class="label label-info">in itinere</span> ';
+    }
+
+    if (!$firmato) {
+        echo '<span class="label label-warning">In attesa esito esame</span>';
+    } else {
+        $tooltip = "Esame il " . (new DateTime($esito['data_esame']))->format('d-m-Y H:i') .
+            " in aula " . $esito['aula_esame'];
+
+        if ($esito['presente']) {
+            echo '<span class="label label-primary" title="' . $tooltip . '">presente</span> ';
+        } else {
+            echo '<span class="label label-default" title="' . $tooltip . '">assente</span> ';
+        }
+        if ($esito['recuperato']) {
+            echo '<span class="label label-success" title="' . $tooltip . '">recuperato</span>';
+        } else {
+            echo '<span class="label label-danger" title="' . $tooltip . '">non recuperato</span>';
+        }
+    }
+    echo '</div>'; // fine esito
+
+    // Pulsanti azioni
     echo '<div class="mt-2 text-center" style="margin-top:10px;">';
     echo '<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-sm me-1">';
     echo '<span class="glyphicon glyphicon-print"></span> PDF</button> ';
     echo '<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-info btn-sm">';
     echo '<span class="glyphicon glyphicon-envelope"></span> Invia</button>';
     echo '</div>';
+
     echo '</div>'; // fine card
 }
 
 echo '</div>';
-?>
