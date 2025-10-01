@@ -15,6 +15,7 @@ var $materia_filtro_id = 0;
 var $futuri = 0;
 var $carenze_toggle = 1;
 var $in_itinere_toggle = 0;
+var $firma_esame = 0; // filtro esame firmato
 
 $('#futuri').change(function () {
     // this si riferisce al checkbox
@@ -22,6 +23,16 @@ $('#futuri').change(function () {
         $futuri = 1;
     } else {
         $futuri = 0;
+    }
+    corsiReadRecords();
+});
+
+$('#esameFirmato').change(function () {
+    // this si riferisce al checkbox
+    if (this.checked) {
+        $firma_esame = 1;
+    } else {
+        $firma_esame = 0;
     }
     corsiReadRecords();
 });
@@ -696,9 +707,12 @@ function apriEsameModal(corso_id) {
                 if (esame.aula) {
                     $('#esame_aula').val(esame.aula);
                 }
+                if (esame.firmato !== undefined) {
+                    $('#esameFirmato').prop('checked', esame.firmato == 1);
+                }
             }
 
-            // Popola argomenti se esistono (primo studente che li ha salvati)
+            // Popola argomenti se esistono 
             if (data.studenti && data.studenti.length > 0) {
                 let primoConArg = data.studenti.find(s => s.argomenti && String(s.argomenti).trim() !== "");
                 if (primoConArg) {
@@ -766,6 +780,7 @@ function apriEsame(corso_id) {
 function salvaEsame() {
     var corso_id = $("#hidden_corso_id").val();
     var argomenti = $('#argomentiEsame').val();
+    var firmato = $('#esameFirmato').is(':checked') ? 1 : 0;
 
     var studenti = [];
     $('#tabellaEsameStudenti tbody tr').each(function () {
@@ -799,6 +814,7 @@ function salvaEsame() {
         argomenti: argomenti,
         data: datetime_esame,
         aula: aula_esame,
+        firmato: firmato,
         studenti: studenti
     }, function (data) {
         if (data.success) {
