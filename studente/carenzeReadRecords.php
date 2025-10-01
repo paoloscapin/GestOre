@@ -81,37 +81,59 @@ foreach ($resultArray as $row) {
 			<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia una copia via
 			 mail"><span class="glyphicon glyphicon-envelope"></button> ';
 	$data .= '</td><td align="center">';
-//	if (getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'studente_vede_esito', false)) {
-		$query = "SELECT 
+	//	if (getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'studente_vede_esito', false)) {
+	$query = "SELECT co.in_itinere AS in_itinere
+							FROM carenze car
+							INNER JOIN corso co ON co.id_materia = car.id_materia 
+							INNER JOIN corso_iscritti ci ON ci.id_corso = co.id AND ci.id_studente = car.id_studente
+							WHERE car.id = $idcarenza";
+	$itinere = dbGetValue($query);
+
+	$query = "SELECT 
 							car.id,
 							car.id_studente AS studente_id, 
-							id_materia AS materia_id,
 							ce.presente AS presente,
 							ce.recuperato AS recuperato,
 							ced.data_esame AS data_esame,
+							ced.firmato AS firmato,
 							ced.aula AS aula_esame
 							FROM carenze car
 							INNER JOIN corso_esiti ce ON ce.id_studente = car.id_studente
 							INNER JOIN corso_iscritti ci ON ci.id_studente = car.id_studente
 							INNER JOIN corso_esami_date ced ON ced.id_corso = ce.id_corso
 							WHERE car.id = $idcarenza";
-		$esito = dbGetFirst($query);
+	$esito = dbGetFirst($query);
+
+	// verifico se il docente ha firmato l'esame e quindi è stato svolto
+	$firmato = $esito && $esito['firmato'] == 1;
+
+	// se era un recupero in itinere lo segnalo
+	if ($itinere) {
+		$tooltip = "Recupero in itinere della carenza entro il 31-10";
+		$data .= '<span class="label label-info data-toggle="tooltip" title="' . $tooltip . '">in itinere</span>&ensp;';
+	}
+	// se l'esame non è stato ancora svolto lo segnalo
+	if (!$firmato) {
+		$data .= '<span class="label label-warning data-toggle="tooltip" title="L\'esame non si è ancora tenuto, o non è ancora stato registrato">In attesa esito esame</span>&ensp;';
+	} else {
+		$tooltip = "L'esame si è tenuto il " . (new DateTime($esito['data_esame']))->format('d-m-Y H:i') . " in aula " . $esito['aula_esame'];
 		if ($esito) {
-			$tooltip = "L'esame si è tenuto il " . (new DateTime($esito['data_esame']))->format('d-m-Y H:i') . " in aula " . $esito['aula_esame'];
+			// mostro se era presente e se ha recuperato
 			if ($esito['presente']) {
-				$data .= '<span class="label label-primary data-toggle="tooltip" title="' . $tooltip .'">presente</span>&ensp;';
+				$data .= '<span class="label label-primary data-toggle="tooltip" title="' . $tooltip . '">presente</span>&ensp;';
 			} else {
-				$data .= '<span class="label label-default data-toggle="tooltip" title="' . $tooltip .'">assente</span>&ensp;';
+				$data .= '<span class="label label-default data-toggle="tooltip" title="' . $tooltip . '">assente</span>&ensp;';
 			}
 			if ($esito['recuperato']) {
-				$data .= '<span class="label label-success data-toggle="tooltip" title="' . $tooltip .'">recuperato</span>&ensp;';
+				$data .= '<span class="label label-success data-toggle="tooltip" title="' . $tooltip . '">recuperato</span>&ensp;';
 			} else {
-				$data .= '<span class="label label-danger data-toggle="tooltip" title="' . $tooltip .'">non recuperato</span>&ensp;';
+				$data .= '<span class="label label-danger data-toggle="tooltip" title="' . $tooltip . '">non recuperato</span>&ensp;';
 			}
 		} else {
-			$data .= '<span class="label label-default data-toggle="tooltip" title="' . $tooltip .'">non ancora esaminato</span>&ensp;';
+			$data .= '<span class="label label-default data-toggle="tooltip" title="' . $tooltip . '">In attesa degli esiti</span>&ensp;';
 		}
-//	}
+	}
+
 
 
 	$data .= '
