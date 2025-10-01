@@ -235,9 +235,14 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
 
                             <div class="col-md-2 text-right">
                                 <div class="text-center">
-                                    <label class="col-sm-12 control-label" for="materia">Aggiungi Programma</label>
-                                    <button class="btn btn-xs btn-lima4" onclick="programmiSvoltiGetDetails(-1,'false','false')"><span
-                                            style="font-size:20px" class="glyphicon glyphicon-plus"></span></button>
+                                    <?php 
+                                                                        if (getSettingsValue('programmiSvolti', 'docente_puo_inserire', false) || (haRuolo('segreteria-didattica')) || (haRuolo('dirigente'))) 
+                                                                        {
+                                                                            echo '
+                                                                        <label class="col-sm-12 control-label" for="materia">Aggiungi Programma</label>
+                                                                        <button class="btn btn-xs btn-lima4" onclick="programmiSvoltiGetDetails(-1,&#39;false&#39;,&#39;false&#39;)"><span
+                                                                                style="font-size:20px" class="glyphicon glyphicon-plus"></span></button>';
+                                                                        } ?>
                                 </div>
                             </div>
                         </div>
@@ -416,7 +421,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                 ';
                                     } else {
                                         echo '
-                                <       button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                                        <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
                                 ';
                                     }
                                 } else
