@@ -138,7 +138,9 @@
         "docente_puo_modificare": false
     },
     "programmiSvolti": {
-        "visibile_docenti": true
+        "visibile_docenti": true,
+        "docente_puo_inserire": false,
+        "docente_puo_modificare": false
     },
     "pianiDiLavoroEstesi": {
         "visibile_docenti": false
