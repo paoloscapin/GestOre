@@ -1,6 +1,6 @@
 <?php
 /**
- *  Versione MOBILE di GestOre - Carenze
+ *  Versione MOBILE di GestOre - Carenze lato genitore con esiti
  *  Le informazioni sono mostrate in formato card invece che tabella
  */
 
@@ -30,47 +30,95 @@ $query = "SELECT
         INNER JOIN studente ON carenze.id_studente = studente.id
         INNER JOIN materia ON carenze.id_materia = materia.id
         INNER JOIN classi ON carenze.id_classe = classi.id
-        WHERE (carenze.id_anno_scolastico='$__anno_scolastico_corrente_id' OR carenze.id_ANNO_SCOLASTICO='$__anno_scolastico_scorso_id') 
+        WHERE (carenze.id_anno_scolastico='$__anno_scolastico_corrente_id' OR carenze.id_anno_scolastico='$__anno_scolastico_scorso_id') 
           AND studente.id = '$__studente_id' 
           AND (carenze.stato = 2 OR carenze.stato = 3)";
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) $resultArray = [];
 
-$data = '<div class="cards-container">';
+echo '<div class="cards-container">';
 
 foreach ($resultArray as $row) {
-    $materia = $row['materia'];
+    $materia = htmlspecialchars($row['materia']);
+    $docente = htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome']);
+    $note = htmlspecialchars($row['nota']);
     $idcarenza = $row['carenza_id'];
 
     // Data ricezione
-    $datf = new DateTime($row['carenza_validazione']);
-    $data_ricezione = $datf->format('d-m-Y H:i:s');
-
-    $note = $row['nota'];
-
-    $data .= '<div class="card mb-3 p-2" style="border:1px solid #ddd; border-radius:10px; padding:12px; background:#fff;">';
-    
-    $data .= '<div><strong>Materia:</strong> ' . $materia . '</div>';
-    $data .= '<div><strong>Docente:</strong> ' . $row['doc_cognome'] . ' ' . $row['doc_nome'] . '</div>';
-    $data .= '<div><strong>Data ricezione:</strong> ' . $data_ricezione . '</div>';
-    if (!empty($note)) {
-        $data .= '<div><strong>Note:</strong> ' . $note . '</div>';
+    $data_ricezione = '';
+    if (!empty($row['carenza_validazione'])) {
+        $datf = new DateTime($row['carenza_validazione']);
+        $data_ricezione = $datf->format('d-m-Y H:i:s');
     }
 
-    $data .= '<div class="mt-2 text-center" style="margin-top:10px;">';
-    $data .= '<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-sm me-1">
-                <span class="glyphicon glyphicon-print"></span> PDF
-              </button>';
-    $data .= '<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-info btn-sm">
-                <span class="glyphicon glyphicon-envelope"></span> Invia
-              </button>';
-    $data .= '</div>';
+    echo '<div class="card mb-3 p-2" style="border:1px solid #ddd; border-radius:10px; padding:12px; background:#fff;">';
+    echo '<div><strong>Materia:</strong> ' . $materia . '</div>';
+    echo '<div><strong>Docente:</strong> ' . $docente . '</div>';
+    echo '<div><strong>Data ricezione:</strong> ' . $data_ricezione . '</div>';
+    if (!empty($note)) {
+        echo '<div><strong>Note:</strong> ' . $note . '</div>';
+    }
 
-    $data .= '</div>'; // fine card
+    // 📌 Sezione Esito Carenza
+    echo '<div style="margin-top:8px; text-align:center;">';
+    echo '<div style="margin-bottom:4px;"><strong>Esito:</strong></div>';
+
+    // Controllo se era in itinere
+    $query = "SELECT co.in_itinere AS in_itinere
+              FROM carenze car
+              INNER JOIN corso co ON co.id_materia = car.id_materia 
+              INNER JOIN corso_iscritti ci ON ci.id_corso = co.id AND ci.id_studente = car.id_studente
+              WHERE car.id = $idcarenza";
+    $itinere = dbGetValue($query);
+
+    // Recupero eventuale esito esame
+    $query = "SELECT 
+                ce.presente AS presente,
+                ce.recuperato AS recuperato,
+                ced.data_esame AS data_esame,
+                ced.firmato AS firmato,
+                ced.aula AS aula_esame
+              FROM carenze car
+              INNER JOIN corso_esiti ce ON ce.id_studente = car.id_studente
+              INNER JOIN corso_iscritti ci ON ci.id_studente = car.id_studente
+              INNER JOIN corso_esami_date ced ON ced.id_corso = ce.id_corso
+              WHERE car.id = $idcarenza";
+    $esito = dbGetFirst($query);
+
+    $firmato = $esito && $esito['firmato'] == 1;
+
+    if ($itinere) {
+        echo '<span class="label label-info">in itinere</span> ';
+    }
+
+    if (!$firmato) {
+        echo '<span class="label label-warning">In attesa esito esame</span>';
+    } else {
+        $tooltip = "Esame il " . (new DateTime($esito['data_esame']))->format('d-m-Y H:i') .
+            " in aula " . $esito['aula_esame'];
+
+        if ($esito['presente']) {
+            echo '<span class="label label-primary" title="' . $tooltip . '">presente</span> ';
+        } else {
+            echo '<span class="label label-default" title="' . $tooltip . '">assente</span> ';
+        }
+        if ($esito['recuperato']) {
+            echo '<span class="label label-success" title="' . $tooltip . '">recuperato</span>';
+        } else {
+            echo '<span class="label label-danger" title="' . $tooltip . '">non recuperato</span>';
+        }
+    }
+    echo '</div>'; // fine esito
+
+    // Pulsanti azioni
+    echo '<div class="mt-2 text-center" style="margin-top:10px;">';
+    echo '<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-sm me-1">';
+    echo '<span class="glyphicon glyphicon-print"></span> PDF</button> ';
+    echo '</div>';
+
+    echo '</div>'; // fine card
 }
 
-$data .= '</div>';
-
-echo $data;
+echo '</div>';
 ?>
