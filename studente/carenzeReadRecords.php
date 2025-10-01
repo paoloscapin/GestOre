@@ -21,8 +21,9 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-2">Materia</th>						
 						<th class="text-center col-md-2">Docente</th>
 						<th class="text-center col-md-1">Data ricezione</th>
-						<th class="text-center col-md-5">Note</th>
+						<th class="text-center col-md-3">Note</th>
 						<th class="text-center col-md-1">Programma Carenza</th>
+						<th class="text-center col-md-2">Esito carenza</th>
 					</tr>
 					</thead>';
 
@@ -52,10 +53,9 @@ $query = "	SELECT
 				ON carenze.id_classe = classi.id";
 
 if ($anni_filtro_id > 0) {
-			$query .= " WHERE carenze.id_anno_scolastico=" . $anni_filtro_id . " AND studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
-}
-else {
-			$query .= " WHERE studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
+	$query .= " WHERE carenze.id_anno_scolastico=" . $anni_filtro_id . " AND studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
+} else {
+	$query .= " WHERE studente.id='$__studente_id' AND (carenze.stato=2 OR carenze.stato=3)";
 }
 
 
@@ -64,14 +64,14 @@ if ($resultArray == null) {
 	$resultArray = [];
 }
 foreach ($resultArray as $row) {
-		$materia = $row['materia'];
-		// Creazione dell'oggetto DateTime
-		$datf = new DateTime($row['carenza_validazione']);
-		$idcarenza = $row['carenza_id'];
-		// Conversione nel formato desiderato
-		$data_ricezione  = $datf->format('d-m-Y H:i:s');
-		$note = $row['nota'];
-		$data .= '<tr>
+	$materia = $row['materia'];
+	// Creazione dell'oggetto DateTime
+	$datf = new DateTime($row['carenza_validazione']);
+	$idcarenza = $row['carenza_id'];
+	// Conversione nel formato desiderato
+	$data_ricezione  = $datf->format('d-m-Y H:i:s');
+	$note = $row['nota'];
+	$data .= '<tr>
 		<td align="center">' . $materia . '</td>
 		<td align="center">' . $row['doc_cognome'] . ' ' . $row['doc_nome'] . '</td>
 		<td align="center">' . $data_ricezione . '</td>
@@ -79,13 +79,47 @@ foreach ($resultArray as $row) {
 		<td align="center">
 			<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Scarica il PDF del programma della carenza"><span class="glyphicon glyphicon-print"></button>
 			<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia una copia via
-			 mail"><span class="glyphicon glyphicon-envelope"></button> 
+			 mail"><span class="glyphicon glyphicon-envelope"></button> ';
+	$data .= '</td><td align="center">';
+//	if (getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'studente_vede_esito', false)) {
+		$query = "SELECT 
+							car.id,
+							car.id_studente AS studente_id, 
+							id_materia AS materia_id,
+							ce.presente AS presente,
+							ce.recuperato AS recuperato,
+							ced.data_esame AS data_esame,
+							ced.aula AS aula_esame
+							FROM carenze car
+							INNER JOIN corso_esiti ce ON ce.id_studente = car.id_studente
+							INNER JOIN corso_iscritti ci ON ci.id_studente = car.id_studente
+							INNER JOIN corso_esami_date ced ON ced.id_corso = ce.id_corso
+							WHERE car.id = $idcarenza";
+		$esito = dbGetFirst($query);
+		if ($esito) {
+			$tooltip = "L'esame si è tenuto il " . (new DateTime($esito['data_esame']))->format('d-m-Y H:i') . " in aula " . $esito['aula_esame'];
+			if ($esito['presente']) {
+				$data .= '<span class="label label-primary data-toggle="tooltip" title="' . $tooltip .'">presente</span>&ensp;';
+			} else {
+				$data .= '<span class="label label-default data-toggle="tooltip" title="' . $tooltip .'">assente</span>&ensp;';
+			}
+			if ($esito['recuperato']) {
+				$data .= '<span class="label label-success data-toggle="tooltip" title="' . $tooltip .'">recuperato</span>&ensp;';
+			} else {
+				$data .= '<span class="label label-danger data-toggle="tooltip" title="' . $tooltip .'">non recuperato</span>&ensp;';
+			}
+		} else {
+			$data .= '<span class="label label-default data-toggle="tooltip" title="' . $tooltip .'">non ancora esaminato</span>&ensp;';
+		}
+//	}
+
+
+	$data .= '
 		</td>';
 
-		$data .= '</tr>';
-	}
+	$data .= '</tr>';
+}
 
 $data .= '</table></div>';
 
 echo $data;
-?>

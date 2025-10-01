@@ -24,7 +24,7 @@ require_once '../common/checkSession.php';
     ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
 
 
-    if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) || (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
+    if (($__studente_cognome != "Iscrizioni") && ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) || (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false)))) {
         redirect("/error/unauthorized.php");
     }
 
