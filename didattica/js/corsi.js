@@ -14,6 +14,7 @@ var $docente_filtro_id = 0;
 var $materia_filtro_id = 0;
 var $futuri = 0;
 var $carenze_toggle = 1;
+var $in_itinere_toggle = 0;
 
 $('#futuri').change(function () {
     // this si riferisce al checkbox
@@ -21,6 +22,16 @@ $('#futuri').change(function () {
         $futuri = 1;
     } else {
         $futuri = 0;
+    }
+    corsiReadRecords();
+});
+
+$('#filtro_itinere').change(function () {
+    // this si riferisce al checkbox
+    if (this.checked) {
+        $in_itinere_toggle = 1;
+    } else {
+        $in_itinere_toggle = 0;
     }
     corsiReadRecords();
 });
@@ -36,7 +47,7 @@ $('#carenze').change(function () {
 });
 
 function corsiReadRecords() {
-    $.get("corsiReadRecords.php?anni_id=" + $anni_filtro_id + "&docente_id=" + $docente_filtro_id + "&materia_id=" + $materia_filtro_id + "&futuri=" + $futuri + "&carenze=" + $carenze_toggle, {}, function (data, status) {
+    $.get("corsiReadRecords.php?anni_id=" + $anni_filtro_id + "&docente_id=" + $docente_filtro_id + "&materia_id=" + $materia_filtro_id + "&futuri=" + $futuri + "&carenze=" + $carenze_toggle + "&itinere=" + $in_itinere_toggle, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
@@ -247,7 +258,11 @@ function corsiGetDetails(corsi_id) {
     if (corsi_id > 0) {
         $.post("../didattica/corsiReadDetails.php", { corsi_id: corsi_id }, function (data, status) {
             var corsi = data;
-
+            if (corsi.corso.in_itinere == 1) {
+                $('#in_itinere').prop('checked', true).change();
+            } else {
+                $('#in_itinere').prop('checked', false).change();
+            }
             // Aggiorna campi del corso
             $('#titolo').val(corsi.corso.titolo);
             if (carenze) {
@@ -527,11 +542,14 @@ function corsiSave() {
     }
     $("#_error-corsi-part").hide();
     var carenze = $("#carenze").prop('checked');
+    var in_itinere = $('#in_itinere').prop('checked') ? 1 : 0;
+    console.log("in_itinere: " + in_itinere);
     $.post("corsiSave.php", {
         id: $("#hidden_corso_id").val(),
         docente_id: $("#docente").val(),
         materia_id: $("#materia").val(),
         titolo: $("#titolo").val(),
+        in_itinere: in_itinere,
         carenze: carenze
     }, function (data, status) {
         $("#corsi_modal").modal("hide");
@@ -813,40 +831,48 @@ $(document).ready(function () {
         });
     });
 
-$("#incompleti").on("click", function (e) {
-    e.preventDefault();
-
-    // Avvio direttamente il download
-    window.location.href = "corsiIncompleti.php";
-});
-
-$("#export_btn").on("click", function (e) {
-    e.preventDefault();
-
-    // Avvio direttamente il download
-    window.location.href = "exportEsami.php";
-});
-
-$("#docente_filtro").on("changed.bs.select",
-    function (e, clickedIndex, newValue, oldValue) {
-        $docente_filtro_id = this.value;
-        corsiReadRecords();
+    $('#in_itinere').change(function () {
+        if ($(this).prop('checked')) {
+            $('#date_section').hide();
+        } else {
+            $('#date_section').show();
+        }
     });
 
-$("#materia_filtro").on("changed.bs.select",
-    function (e, clickedIndex, newValue, oldValue) {
-        $materia_filtro_id = this.value;
-        corsiReadRecords();
+    $("#incompleti").on("click", function (e) {
+        e.preventDefault();
+
+        // Avvio direttamente il download
+        window.location.href = "corsiIncompleti.php";
     });
 
-$("#anni_filtro").on("changed.bs.select",
-    function (e, clickedIndex, newValue, oldValue) {
-        $anni_filtro_id = this.value;
-        corsiReadRecords();
+    $("#export_btn").on("click", function (e) {
+        e.preventDefault();
+
+        // Avvio direttamente il download
+        window.location.href = "exportEsami.php";
     });
 
-$('#file_select_id').change(function (e) {
-    importFile(e.target.files[0]);
-});
+    $("#docente_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            $docente_filtro_id = this.value;
+            corsiReadRecords();
+        });
+
+    $("#materia_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            $materia_filtro_id = this.value;
+            corsiReadRecords();
+        });
+
+    $("#anni_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            $anni_filtro_id = this.value;
+            corsiReadRecords();
+        });
+
+    $('#file_select_id').change(function (e) {
+        importFile(e.target.files[0]);
+    });
 
 });

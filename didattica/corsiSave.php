@@ -17,17 +17,18 @@ if (isset($_POST)) {
 	$corso_id = $_POST['id'];
 	$materia_id = $_POST['materia_id'];
 	$titolo = $_POST['titolo'];
+	$in_itinere = isset($_POST['in_itinere']) ? $_POST['in_itinere'] : 0;
 	$carenze = isset($_POST['carenze']) ? $_POST['carenze'] : 0;
 
 	// Forza il valore a 0 o 1
 	$carenze = ($carenze == "true") ? 1 : 0;
 
 	if ($corso_id > 0) {
-		$query = "UPDATE corso SET id_docente = '$docente_id', id_materia = '$materia_id', titolo='$titolo', carenza='$carenze' WHERE id = '$corso_id'";
+		$query = "UPDATE corso SET id_docente = '$docente_id', in_itinere = '$in_itinere', id_materia = '$materia_id', titolo='$titolo', carenza='$carenze' WHERE id = '$corso_id'";
 		dbExec($query);
 		info("aggiornato dati del corso con id $corso_id");
 	} else {
-		$query = "INSERT INTO corso (id_materia, id_docente, id_anno_scolastico, titolo, carenza) VALUES('$materia_id', '$docente_id', '$__anno_scolastico_corrente_id','$titolo', '$carenze')";
+		$query = "INSERT INTO corso (id_materia, id_docente, id_anno_scolastico, titolo, in_itinere, carenza) VALUES('$materia_id', '$docente_id', '$__anno_scolastico_corrente_id','$titolo', '$in_itinere', '$carenze')";
 		dbExec($query);
 		$lastId = dblastId();
 		info("aggiunto nuovo corso con id $lastId");

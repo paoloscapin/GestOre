@@ -21,7 +21,7 @@ $materia_id = $_GET["materia_id"];
 $anni_filtro_id = $_GET["anni_id"];
 $futuri = $_GET["futuri"];
 $carenze_toggle = isset($_GET['carenze']) ? $_GET['carenze'] : 0;
-
+$in_itinere_toggle = isset($_GET['itinere']) ? $_GET['itinere'] : 0;
 
 // Design initial table header
 $data = '<style>
@@ -70,6 +70,7 @@ SELECT c.id AS corso_id,
        c.titolo AS titolo,
        c.id_anno_scolastico AS anno_id,
        c.carenza AS carenza,
+       c.in_itinere AS in_itinere,
        m.nome AS materia_nome,
        MIN(cd.data) AS data_inizio,
        MAX(cd.data) AS data_fine,
@@ -89,7 +90,7 @@ INNER JOIN materia m
        ON m.id = c.id_materia
 LEFT JOIN corso_date cd 
        ON cd.id_corso = c.id
-WHERE c.id_anno_scolastico = '$anni_filtro_id' AND c.carenza = '$carenze_toggle'
+WHERE c.id_anno_scolastico = '$anni_filtro_id' AND c.carenza = '$carenze_toggle' AND c.in_itinere = '$in_itinere_toggle'
 ";
 
 // filtro opzionale materia
@@ -145,21 +146,44 @@ foreach ($resultArray as $row) {
 	$query2 = "SELECT COUNT(id) FROM corso_iscritti WHERE id_corso = $idcorso";
 	$studenti_iscritti = dbGetValue($query2);
 
-	$stato = $row['stato'];
+    if ($row['in_itinere'] == 1) 
+    {
+        $stato = 4;
+    }
+    else 
+    {
+        $stato = $row['stato'];
+    }
 
 	$statoMarker = '';
-	if ($stato == 0) {
+	if ($stato == 0) 
+    {
 		$statoMarker .= '<span class="label label-default">Non ancora iniziato</span>';
-	} else {
-		if ($stato == 1) {
+	} 
+    else 
+    {
+		if ($stato == 1) 
+        {
 			$statoMarker .= '<span class="label label-warning">In svolgimento</span>';
-		} else {
-			if ($stato == 2) {
+		} 
+        else 
+        {
+			if ($stato == 2) 
+            {
 				$statoMarker .= '<span class="label label-success">Terminato</span>';
-			} else {
-				if ($stato == 3) {
+			} else 
+            {
+				if ($stato == 3) 
+                {
 					$statoMarker .= '<span class="label label-danger">Nessuna data</span>';
 				}
+			  else 
+                {
+				if ($stato == 4) 
+                    {
+					$statoMarker .= '<span class="label label-primary">Recupero in itinere</span>';
+				    }
+                }   
 			}
 		}
 	}
@@ -218,13 +242,18 @@ foreach ($resultArray as $row) {
                 data-toggle="tooltip" data-trigger="hover" data-placement="top" 
                 title="Cancella il corso">
             <span class="glyphicon glyphicon-trash"></span>
-        </button>
+        </button>';
+        if ($stato != 4) 
+        {
+            $data .= '
         <button onclick="apriRegistroLezione(\'' . $idcorso . '\')" 
                 class="btn btn-primary btn-xs" 
                 data-toggle="tooltip" data-trigger="hover" data-placement="top" 
                 title="Gestisci le presenze e gli argomenti">
             <span class="glyphicon glyphicon-user"></span>
-        </button>
+        </button>';
+        }
+        $data .= '
         <button onclick="apriEsameModal(\'' . $idcorso . '\')" 
                 class="btn btn-success btn-xs" 
                 data-toggle="tooltip" data-trigger="hover" data-placement="top" 

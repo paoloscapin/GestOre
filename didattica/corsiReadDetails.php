@@ -19,6 +19,7 @@ if (isset($_POST['corsi_id']) && $_POST['corsi_id'] != "") {
                c.id_materia AS materia_id,
                c.id_docente AS doc_id,
                c.titolo AS titolo,
+               c.in_itinere AS in_itinere,
                c.id_anno_scolastico AS anno_id
         FROM corso c
         WHERE c.id = $corsi_id

@@ -252,7 +252,6 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
             font-size: 16px;
             opacity: 0.95;
         }
-
     </style>
 
 </head>
@@ -385,7 +384,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                                 data-onstyle="primary" id="futuri"> Solo Nuovi
                         </label><br>
                         <label id="incompleti" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Esami incompleti">
-                                <span class="glyphicon glyphicon-download"></span>&emsp;Incompleti
+                            <span class="glyphicon glyphicon-download"></span>&emsp;Incompleti
                         </label>
                     </div>
 
@@ -394,6 +393,10 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
                             <input type="checkbox" checked data-toggle="toggle" data-size="mini"
                                 data-onstyle="primary" id="carenze">Corsi carenze
+                        </label><br>
+                        <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
+                            <input type="checkbox" data-toggle="toggle" data-size="mini"
+                                data-onstyle="primary" id="filtro_itinere">Corsi in itinere
                         </label>
                     </div>
                 </div>
@@ -455,20 +458,31 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             <button type="button" class="btn btn-primary" onclick="corsiSave()">Salva</button>
                         </div>
                         <hr> <!-- date -->
+                        <!-- in_itinere -->
                         <div class="form-group text-center">
-                            <label>Date del corso</label>
-                            <table class="table table-bordered table-striped" id="date_table">
-                                <thead>
-                                    <tr>
-                                        <th>Data</th>
-                                        <th>Aula</th>
-                                        <th>Azioni</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                            <!-- Pulsante aggiungi date centrato -->
-                            <button type="button" class="btn btn-success" style="margin: 10px auto; display:block;" onclick="aggiungiDate()">Aggiungi Date</button>
+                            <label for="in_itinere" class="control-label" style="margin-right:10px;">In itinere</label>
+                            <input type="checkbox" id="in_itinere"
+                                data-toggle="toggle"
+                                data-on="Sì" data-off="No"
+                                data-onstyle="success" data-offstyle="danger">
+                        </div>
+
+                        <div id="date_section">
+                            <hr>
+                            <div class="form-group text-center">
+                                <label>Date del corso</label>
+                                <table class="table table-bordered table-striped" id="date_table">
+                                    <thead>
+                                        <tr>
+                                            <th>Data</th>
+                                            <th>Aula</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                                <button type="button" class="btn btn-success" style="margin: 10px auto; display:block;" onclick="aggiungiDate()">Aggiungi Date</button>
+                            </div>
                         </div>
 
                         <!-- studenti -->
@@ -710,8 +724,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             <label class="col-sm-12 text-center label-rosso">Argomenti della Verifica</label>
                             <div class="col-sm-12">
                                 <textarea id="argomentiEsame" class="form-control" rows="4"
-                                    placeholder="Inserisci gli argomenti della prova..."
-                                    ></textarea>
+                                    placeholder="Inserisci gli argomenti della prova..."></textarea>
                             </div>
                         </div>
 
