@@ -92,7 +92,9 @@
         "chiusuraIscrizioniOra": 24,
         "unSoloArgomento": true,
         "prenotaMaxSettimanaSuccessiva": true,
-        "inseriti_da_docente": false
+        "inseriti_da_docente": false,
+        "indirizzoConfermatoCC": "",
+        "indirizzoAnnullatoCC": ""
     },
     "pianiDiLavoro": {
         "competenze": true,

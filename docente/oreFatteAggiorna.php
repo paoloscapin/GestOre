@@ -85,10 +85,10 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	$oreOrientamentoFunzionaliPreviste = $ore_previste['attivitaOrientamentoOreFunzionali'];
 	$oreOrientamentoConStudentiPreviste = $ore_previste['attivitaOrientamentoOreConStudenti'];
 
-	// previste dei corsi di recupero: per le previste controlla le firme sui corsi in itinere
-	$controllaFirmeInItinere = true;
+	// previste dei corsi di recupero: per le previste non controlla le firme sui corsi in itinere (si prevede che vangano fatte tutte le lezioni)
+	$controllaFirmeInItinere = false;
 	require_once '../docente/corsoDiRecuperoPrevisteReadRecords.php';
-	$result = corsoDiRecuperoPrevisteReadRecords(true, $docente_id, $operatore, $ultimo_controllo, false, false);
+	$result = corsoDiRecuperoPrevisteReadRecords(true, $docente_id, $operatore, $ultimo_controllo, false, $controllaFirmeInItinere);
 	$oreConStudentiPreviste += $result['corso_di_recupero_ore_recuperate'];
 	$oreConStudentiPreviste += $result['corso_di_recupero_ore_in_itinere'];
 

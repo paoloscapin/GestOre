@@ -124,9 +124,19 @@ foreach(dbGetAll($query) as $sportello) {
 	$mail = new PHPMailer(true);
 	$mail->setFrom(getSettingsValue('local', 'emailNoReplyFrom', ''), 'no reply');
 	$mail->addAddress($docenteEmail, $nomeCognome);
+
+	$indirizzoConfermatoCC = getSettingsValue('sportelli', 'indirizzoConfermatoCC', '');
+	$indirizzoAnnullatoCC = getSettingsValue('sportelli', 'indirizzoAnnullatoCC', '');
+
 	if ($sportelloNumeroStudenti > 0) {
+		if (! empty($indirizzoConfermatoCC)) {
+			$mail->addCC($indirizzoConfermatoCC);
+		}
 		$subject = "Conferma $dicituraSportello";
 	} else {
+		if (! empty($indirizzoAnnullatoCC)) {
+			$mail->addCC($indirizzoAnnullatoCC);
+		}
 		$subject = "Annullato $dicituraSportello";
 		$text_msg = "Gentile $nomeCognome, lo sportello $dicituraSportello viene annullato perché non risultano iscritti";
 		$html_msg = "<html><body><p><strong>Annullamento Sportello</strong></p><p>Gentile $nomeCognome, lo sportello $dicituraSportello viene annullato perché non risultano studenti iscritti</p>";

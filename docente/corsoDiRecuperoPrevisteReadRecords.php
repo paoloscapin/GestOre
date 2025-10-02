@@ -20,6 +20,7 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 	$corso_di_recupero_ore_in_itinere = 0;
 	$dataCdr = '';
 
+	/* ELIMINATA QUESTA PARTE: i calcoli vengono sempre fatti nello stesso modo e se richiesto solo il totale la tabella html generata non viene inclusa nel compact che viene ritornato
 	// controlla se deve restituire solo il totale o anche la tabella html
 	if($soloTotale) {
 		$ore_corsi_di_recupero = dbGetFirst("SELECT COALESCE(SUM(corso_di_recupero.ore_recuperate), 0) AS ore_recuperate, COALESCE(SUM(corso_di_recupero.ore_pagamento_extra), 0) AS ore_pagamento_extra FROM corso_di_recupero WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id AND NOT in_itinere;");
@@ -36,6 +37,8 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 	// dbExec("UPDATE corso_di_recupero SET ore_recuperate=$ore_recuperate, ore_pagamento_extra=$ore_pagamento_extra WHERE id = $corsoId;");
 	// si usano  AND NOT in_itinere
 	// oppure  AND in_itinere = true
+	*/
+
 	// intestazione della table
 	$dataCdr .= '<div class="table-wrapper"><table class="table table-bordered table-striped table-green"><thead><tr><th class="col-md-3 text-left">Corso</th><th class="col-md-5 text-left">Materia</th><th class="text-center col-md-1">Ore Totali</th><th class="text-center col-md-1">Recuperate</th><th class="text-center col-md-1">Pagamento Extra</th><th class="text-center col-md-1"></th></tr></thead><tbody>';
 
@@ -125,7 +128,11 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 	$dataCdr .= '</tbody></table></div>';
 	// debug('dataCdr='.$dataCdr);
 
-	$result = compact('dataCdr', 'corso_di_recupero_ore_recuperate', 'corso_di_recupero_ore_pagamento_extra', 'corso_di_recupero_ore_in_itinere');
+	if ($soloTotale) {
+		$result = compact('corso_di_recupero_ore_recuperate', 'corso_di_recupero_ore_pagamento_extra', 'corso_di_recupero_ore_in_itinere');
+	} else {
+		$result = compact('dataCdr', 'corso_di_recupero_ore_recuperate', 'corso_di_recupero_ore_pagamento_extra', 'corso_di_recupero_ore_in_itinere');
+	}
 	return $result;
 }
 ?>
