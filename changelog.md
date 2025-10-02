@@ -1,3 +1,11 @@
+## Version 1.3.5 - 2 ott 2025
+##### Improvements
+- sportello check indirizzo cc per confermato o annullato
+
+##### Bug Fixes
+- corso di recupero previste read record rivisto meccanismo per solo totale
+- oreFatteAggiorna corso di recupero firme in itinere messo a posto
+
 ## Version 1.3.4 - 15 set 2025
 ##### Improvements
 - corso di recupero invio per email lettera carenze
