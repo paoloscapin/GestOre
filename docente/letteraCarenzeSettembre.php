@@ -376,7 +376,7 @@ if (! $print && ! $email) {
 			echo 'Mailer Error: ' . $mail->ErrorInfo;
 		} else {
 			// marca che e' stato notificato
-			// dbExec("UPDATE studente_per_corso_di_recupero SET voto_settembre_notificato = true WHERE id = $studenteId;");
+			dbExec("UPDATE studente_per_corso_di_recupero SET voto_settembre_notificato = true WHERE id = $studenteId;");
 			echo "<script>window.close();</script>";
 		}
 	} else if ($print) {
