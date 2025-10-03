@@ -14,9 +14,25 @@ require_once __DIR__ . '/__Settings.php';
 
 // start session
 if (session_status() == PHP_SESSION_NONE) {
+        ini_set('session.gc_maxlifetime', $__settings->system->durata_sessione);
+    ini_set('session.cookie_lifetime', $__settings->system->durata_sessione);
     session_set_cookie_params($__settings->system->durata_sessione);
     session_start();
 }
+else {
+    // controlla se la sessione e' scaduta      
+
+   if (time() - $_SESSION['LAST_ACTIVITY'] > $_SESSION['EXPIRE_AFTER']) {
+        // Sessione scaduta
+        session_unset();
+        session_destroy();
+        $message = "Sessione scaduta, effettuare nuovamente il login";
+        header("Location: ../error/error.php?message=" . urlencode($message));  
+        exit();
+    }
+}
+
+$_SESSION['LAST_ACTIVITY'] = time(); // refresh
 
 // configurazione globale
 require_once __DIR__ . '/Config.php';
@@ -104,6 +120,8 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
                 $__useremail = $session->get('__useremail');
                 $__username = $session->get('username');
                 $session->set('__username',  $__username);
+                $_SESSION['LAST_ACTIVITY'] = time();  // al login
+                $_SESSION['EXPIRE_AFTER'] = $__settings->system->durata_sessione;   // 3 giorni   
                 info("utente [" . $genitore['nome'] . $genitore['cognome'] . "]: logged in");
             }
         }
@@ -202,6 +220,8 @@ if (! $session->has('utente_id')) {
         $session->set('utente_cognome', $utente['cognome']);
         $session->set('utente_ruolo', $utente['ruolo']);
         $session->set('__useremail', $__useremail);
+        $_SESSION['LAST_ACTIVITY'] = time();  // al login
+        $_SESSION['EXPIRE_AFTER'] = $__settings->system->durata_sessione;   // 3 giorni   
         if (!empty($utente['username'])) {
             $__username = $session->get('username');
             $session->set('__username',  $__username);
@@ -227,6 +247,8 @@ if (! $session->has('utente_id')) {
             $session->set('__useremail', $__useremail);
             $__username = $session->get('username');
             $session->set('__username',  $__username);
+            $_SESSION['LAST_ACTIVITY'] = time();  // al login
+            $_SESSION['EXPIRE_AFTER'] = $__settings->system->durata_sessione;   // 3 giorni   
             info("utente [" . $studente['nome'] . $studente['cognome'] . "]: logged in");
         } else {
             $__message = 'utente non trovato: [' . $__useremail . ']';

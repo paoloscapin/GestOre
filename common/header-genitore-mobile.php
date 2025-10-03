@@ -40,7 +40,7 @@
             <ul class="nav navbar-nav navbar-right">
 
                 <?php 
-                if (($__genitore_cognome == 'GENITORE') || ((getSettingsValue('config','sportelli', false)) && (getSettingsValue('sportelli','visibile_genitori', false))))
+                if (getSettingsValue('config','sportelli', false) && (getSettingsValue('sportelli','visibile_genitori', false)))
                 {                 
                         echo '
                     <li><a class="btn btn-orange4" href="../genitore/sportello_mobile.php">
@@ -50,7 +50,7 @@
             
                 ?>
 
-                <?php if(($__genitore_cognome == 'GENITORE') || ((getSettingsValue('config','carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi','visibile_studenti', false)))) : ?>
+                <?php if ((getSettingsValue('config','carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi','visibile_genitori', false))) : ?>
                     <li><a class="btn btn-lightblue4" href="../genitore/carenze_mobile.php">
                         <span class="glyphicon glyphicon-film"></span> Carenze
                     </a></li>

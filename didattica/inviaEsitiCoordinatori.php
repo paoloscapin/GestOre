@@ -23,7 +23,8 @@ SELECT
     cl.classe                    AS classe_nome,
     
     m.nome                       AS materia_nome,
-    ced.data_esame               AS data_esame,
+    ced.data_inizio_esame        AS data_inizio_esame,
+    ced.data_fine_esame          AS data_fine_esame,
     ce.tipo_prova,
     ce.presente,
     ce.recuperato
@@ -40,7 +41,7 @@ INNER JOIN coordinatori coord   ON coord.id_classe = cl.id
                                  AND coord.id_anno_scolastico = 7
 INNER JOIN docente d            ON d.id = coord.id_docente
 WHERE c.carenza = 1
-ORDER BY coord.id_docente, cl.classe, s.cognome, s.nome, m.nome, ced.data_esame
+ORDER BY coord.id_docente, cl.classe, s.cognome, s.nome, m.nome, ced.data_inizio_esame
 ";
 
 $righe = dbGetAll($sql);
@@ -77,7 +78,8 @@ foreach ($gruppo as $key => $dati) {
     $body .= "<tr>
                 <th>Studente</th>
                 <th>Materia</th>
-                <th>Data esame</th>
+                <th>Data inizio</th>
+                <th>Data fine</th>
                 <th>Tipo prova</th>
                 <th>Presenza</th>
                 <th>Recupero</th>
@@ -88,12 +90,14 @@ foreach ($gruppo as $key => $dati) {
         $recupero = $esito['recuperato'] ? "Recuperato" : "Non recuperato";
 
         // Converto data esame in formato italiano
-        $dataEsameIt = date("d/m/Y H:i", strtotime($esito['data_esame']));
+        $dataInizioEsameIt = date("d/m/Y H:i", strtotime($esito['data_inizio_esame']));
+        $dataFineEsameIt = date("d/m/Y H:i", strtotime($esito['data_fine_esame']));
 
         $body .= "<tr>
                     <td>{$esito['studente_cognome']} {$esito['studente_nome']}</td>
                     <td>{$esito['materia_nome']}</td>
-                    <td>$dataEsameIt</td>
+                    <td>$dataInizioEsameIt</td>
+                    <td>$dataFineEsameIt</td>
                     <td>{$esito['tipo_prova']}</td>
                     <td>$presenza</td>
                     <td>$recupero</td>

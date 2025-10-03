@@ -15,7 +15,8 @@ $query = "
     d.nome            AS docente_nome,
     d.cognome         AS docente_cognome,
     m.nome           AS nome_materia,
-    ced.data_esame    AS data_esame
+    ced.data_inizio_esame    AS data_inizio,
+    ced.data_fine_esame     AS data_fine,
 FROM corso_esiti ce
 JOIN corso c               ON c.id = ce.id_corso
 JOIN materia m             ON m.id = c.id_materia
@@ -23,7 +24,7 @@ JOIN docente d             ON d.id = c.id_docente
 JOIN corso_esami_date ced  ON ced.id = ce.id_esame_data
 WHERE ce.presente = 1
   AND ce.voto IS NULL
-ORDER BY d.cognome, d.nome, m.nome, ced.data_esame;
+ORDER BY d.cognome, d.nome, m.nome, ced.data_inizio_esame;
 ";
 
 $corsi = dbGetAll($query);
@@ -52,7 +53,8 @@ $corsi = dbGetAll($query);
             <thead>
                 <tr>
                     <th>Materia</th>
-                    <th>Data esame</th>
+                    <th>Data-ora inizio</th>
+                    <th>Data-ora fine</th>
                     <th>Docente corso</th>
                 </tr>
             </thead>
@@ -60,7 +62,8 @@ $corsi = dbGetAll($query);
                 <?php foreach ($corsi as $corso): ?>
                     <tr>
                         <td><?= htmlspecialchars($corso['nome_materia']) ?></td>
-                        <td><?= date("d/m/Y H:i", strtotime($corso['data_esame'])) ?></td>
+                        <td><?= date("d/m/Y H:i", strtotime($corso['data_inizio_esame'])) ?></td>
+                        <td><?= date("d/m/Y H:i", strtotime($corso['data_fine_esame'])) ?></td>
                         <td><?= htmlspecialchars($corso['docente_cognome'] . " " . $corso['docente_nome']) ?></td>
                     </tr>
                 <?php endforeach; ?>

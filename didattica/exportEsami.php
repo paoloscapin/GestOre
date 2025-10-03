@@ -23,7 +23,8 @@ $query = "
 SELECT 
     CONCAT (s.cognome, s.nome) AS studente,
     CONCAT (d.cognome, d.nome) AS docente,
-    ced.data_esame,
+    ced.data_inizio_esame,
+    ced.data_fine_esame,
     ced.aula,
     ce.presente,
     ce.tipo_prova,
@@ -52,7 +53,7 @@ $sheet1 = $spreadsheet->getActiveSheet();
 $sheet1->setTitle('Assenti');
 
 // intestazioni
-$sheet1->fromArray(["Studente", "Classe" , "Materia", "Docente", "Data", "Tipo di prova", "Aula"], NULL, "A1");
+$sheet1->fromArray(["Studente", "Classe" , "Materia", "Docente", "Data Inizio", "Data Fine", "Tipo di prova", "Aula"], NULL, "A1");
 
 $rowNum = 2;
 foreach ($records as $row) {
@@ -62,7 +63,8 @@ foreach ($records as $row) {
             $row['classe'], 
             $row['materia'],
             $row['docente'],
-            formattaDataItaliana($row['data_esame']),
+            formattaDataItaliana($row['data_inizio_esame']),
+            formattaDataItaliana($row['data_fine_esame']),
             $row['tipo_prova'],
             $row['aula']
         ], NULL, "A$rowNum");
@@ -73,7 +75,7 @@ foreach ($records as $row) {
 // ---------- FOGLIO 2: Non idonei ----------
 $sheet2 = $spreadsheet->createSheet();
 $sheet2->setTitle('Esito negativo');
-$sheet2->fromArray(["Studente", "Classe" , "Corso", "Docente", "Data", "Tipo di prova", "Aula"], NULL, "A1");
+$sheet2->fromArray(["Studente", "Classe" , "Corso", "Docente", "Data Inizio", "Data Fine", "Tipo di prova", "Aula"], NULL, "A1");
 
 $rowNum = 2;
 foreach ($records as $row) {
@@ -83,7 +85,8 @@ foreach ($records as $row) {
             $row['classe'], 
             $row['materia'],
             $row['docente'],
-            formattaDataItaliana($row['data_esame']),
+            formattaDataItaliana($row['data_inizio_esame']),
+            formattaDataItaliana($row['data_fine_esame']),
             $row['tipo_prova'],
             $row['aula']
         ], NULL, "A$rowNum");
@@ -94,7 +97,7 @@ foreach ($records as $row) {
 // ---------- FOGLIO 3: Idonei ----------
 $sheet3 = $spreadsheet->createSheet();
 $sheet3->setTitle('Esito positivo');
-$sheet3->fromArray(["Studente", "Classe", "Corso", "Docente", "Data", "Tipo di prova", "Aula"], NULL, "A1");
+$sheet3->fromArray(["Studente", "Classe", "Corso", "Docente", "Data Inizio", "Data Fine", "Tipo di prova", "Aula"], NULL, "A1");
 
 $rowNum = 2;
 foreach ($records as $row) {
@@ -104,7 +107,8 @@ foreach ($records as $row) {
             $row['classe'], 
             $row['materia'],
             $row['docente'],
-            formattaDataItaliana($row['data_esame']),
+            formattaDataItaliana($row['data_inizio_esame']),
+            formattaDataItaliana($row['data_fine_esame']),
             $row['tipo_prova'],
             $row['aula']
         ], NULL, "A$rowNum");

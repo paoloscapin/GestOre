@@ -31,7 +31,8 @@ if (empty($_POST['corso_id'])) {
 
 $corso_id   = intval($_POST['corso_id']);
 $argomenti  = $_POST['argomenti'] ?? '';
-$data_esame = $_POST['data'] ?? null;  // atteso "YYYY-MM-DD HH:MM:SS"
+$data_inizio_esame = $_POST['data_inizio'] ?? null;  // atteso "YYYY-MM-DD HH:MM:SS"
+$data_fine_esame = $_POST['data_fine'] ?? null;  // atteso "YYYY-MM-DD HH:MM:SS"
 $aula_esame = $_POST['aula'] ?? null;
 $firmato = $_POST['firmato'] ?? 0;
 $studenti   = $_POST['studenti'] ?? [];
@@ -42,21 +43,22 @@ try {
     // 1) Inserisci o aggiorna la data d'esame in corso_esami_date
     $id_data = null;
 
-    if ($data_esame) {
+    if ($data_inizio_esame) {
         $row = dbGetFirst("SELECT id FROM corso_esami_date WHERE id_corso = $corso_id");
         if ($row) {
             $id_data = intval($row['id']);
             dbExec(
                 "UPDATE corso_esami_date
-                 SET data_esame = " . sqlv($data_esame) . ",
+                 SET data_inizio_esame = " . sqlv($data_inizio_esame) . ",
+                     data_fine_esame = " . sqlv($data_fine_esame) . ",
                      aula = " . sqlv($aula_esame) . ",
                      firmato = " . intval($firmato) . "
                  WHERE id = $id_data"
             );
         } else {
             dbExec(
-                "INSERT INTO corso_esami_date (id_corso, data_esame, aula, firmato)
-                 VALUES ($corso_id, " . sqlv($data_esame) . ", " . sqlv($aula_esame) . ", " . intval($firmato) . ")"
+                "INSERT INTO corso_esami_date (id_corso, data_inizio_esame, data_fine_esame, aula, firmato)
+                 VALUES ($corso_id, " . sqlv($data_inizio_esame) . ", " . sqlv($data_fine_esame) . ", " . sqlv($aula_esame) . ", " . intval($firmato) . ")"
             );
             if (function_exists('dbLastId')) {
                 $id_data = dbLastId();

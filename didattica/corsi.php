@@ -672,18 +672,18 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <div class="form-group row">
                             <!-- Data -->
                             <label class="col-sm-2 col-form-label d-flex align-items-center justify-content-end">
-                                Data Esame
+                                Data
                             </label>
                             <div class="col-sm-2">
-                                <input type="date" id="esame_data" class="form-control" style="text-align: center;">
+                                <input type="date" id="esame_inizio_data" class="form-control" style="text-align: center;">
                             </div>
 
                             <!-- Ora -->
                             <label class="col-sm-1 col-form-label d-flex align-items-center justify-content-end">
-                                Ora
+                                Ora inizio
                             </label>
                             <div class="col-sm-2">
-                                <input type="time" id="esame_ora" class="form-control" style="text-align: center;">
+                                <input type="time" id="esame_inizio_ora" class="form-control" style="text-align: center;">
                             </div>
 
                             <!-- Aula -->
@@ -693,6 +693,25 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             <div class="col-sm-2">
                                 <input type="text" id="esame_aula" class="form-control">
                             </div>
+                        </div>
+                        <div class="form-group row">
+                            <!-- Data -->
+                            <label class="col-sm-2 col-form-label d-flex align-items-center justify-content-end">
+                                Data
+                            </label>
+                            <div class="col-sm-2">
+                                <input type="date" id="esame_fine_data" class="form-control" style="text-align: center;">
+                            </div>
+
+                            <!-- Ora -->
+                            <label class="col-sm-1 col-form-label d-flex align-items-center justify-content-end">
+                                Ora fine
+                            </label>
+                            <div class="col-sm-2">
+                                <input type="time" id="esame_fine_ora" class="form-control" style="text-align: center;">
+                            </div>
+
+
                         </div>
 
 

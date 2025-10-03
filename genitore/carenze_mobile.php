@@ -1,4 +1,5 @@
 <?php
+
 /**
  *  This file is part of GestOre
  *  @author     Massimo Saiani
@@ -23,13 +24,11 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_flatpickr.php';
     ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
 
-    if ($__genitore_cognome == 'GENITORE') {
-        // accesso generico per tutti gli studenti
-    } else {
-        if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) ||
-            (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
-            redirect("/error/unauthorized.php");
-        }
+
+    if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) ||
+        (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))
+    ) {
+        redirect("/error/unauthorized.php");
     }
 
     // --- PREPARAZIONE OPZIONI STUDENTE (come desktop) ---
@@ -59,7 +58,7 @@ require_once '../common/checkSession.php';
     foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         $selected = ($anno['id'] == $anno_carenze) ? ' selected' : '';
         $anniFiltroOptionList .= '<option value="' . htmlspecialchars($anno['id']) . '"' . $selected . '>'
-                              . htmlspecialchars($anno['anno']) . '</option>';
+            . htmlspecialchars($anno['anno']) . '</option>';
     }
     ?>
 
@@ -70,66 +69,71 @@ require_once '../common/checkSession.php';
 
     <style>
         /* migliora compattezza su mobile */
-        .filter-label { display:block; margin:8px 0 4px; font-weight:bold; }
+        .filter-label {
+            display: block;
+            margin: 8px 0 4px;
+            font-weight: bold;
+        }
     </style>
 </head>
 
 <body>
-<?php
-require_once '../common/header-genitore-mobile.php';
-require_once '../common/connect.php';
-?>
+    <?php
+    require_once '../common/header-genitore-mobile.php';
+    require_once '../common/connect.php';
+    ?>
 
-<div class="container-fluid" style="margin-top:60px">
-    <div class="panel panel-orange4">
-        <div class="panel-heading">
-            <div class="row">
-                <div class="col-xs-12" style="padding:10px">
-                    <span class="glyphicon glyphicon-blackboard"></span>&ensp;<b>Carenze</b>
-                </div>
+    <div class="container-fluid" style="margin-top:60px">
+        <div class="panel panel-orange4">
+            <div class="panel-heading">
+                <div class="row">
+                    <div class="col-xs-12" style="padding:10px">
+                        <span class="glyphicon glyphicon-blackboard"></span>&ensp;<b>Carenze</b>
+                    </div>
 
-                <!-- 🔽 Filtri mobile: Studente + Anno -->
-                <div class="col-xs-12">
-                    <label class="filter-label" for="studente_filtro">Studente</label>
-                    <select id="studente_filtro" name="studente_filtro"
+                    <!-- 🔽 Filtri mobile: Studente + Anno -->
+                    <div class="col-xs-12">
+                        <label class="filter-label" for="studente_filtro">Studente</label>
+                        <select id="studente_filtro" name="studente_filtro"
                             class="selectpicker"
                             data-style="btn-yellow4"
                             data-live-search="true"
                             data-noneSelectedText="seleziona..."
                             data-width="100%">
-                        <?php echo $studenteFiltroOptionList; ?>
-                    </select>
-                </div>
+                            <?php echo $studenteFiltroOptionList; ?>
+                        </select>
+                    </div>
 
-                <div class="col-xs-12">
-                    <label class="filter-label" for="anni_filtro">Anno Scolastico</label>
-                    <select id="anni_filtro" name="anni_filtro"
+                    <div class="col-xs-12">
+                        <label class="filter-label" for="anni_filtro">Anno Scolastico</label>
+                        <select id="anni_filtro" name="anni_filtro"
                             class="selectpicker"
                             data-style="btn-yellow4"
                             data-live-search="true"
                             data-noneSelectedText="seleziona..."
                             data-width="100%">
-                        <?php echo $anniFiltroOptionList; ?>
-                    </select>
+                            <?php echo $anniFiltroOptionList; ?>
+                        </select>
+                    </div>
+                    <!-- 🔼 Fine filtri -->
                 </div>
-                <!-- 🔼 Fine filtri -->
             </div>
-        </div>
 
-        <div class="panel-body">
-            <div class="row">
-                <div class="col-xs-12">
-                    <div class="records_content"></div>
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col-xs-12">
+                        <div class="records_content"></div>
+                    </div>
                 </div>
             </div>
+            <!-- <div class="panel-footer"></div> -->
         </div>
-        <!-- <div class="panel-footer"></div> -->
     </div>
-</div>
 
-<!-- Passo anche id studente iniziale e anno come in desktop -->
-<script type="text/javascript"
+    <!-- Passo anche id studente iniziale e anno come in desktop -->
+    <script type="text/javascript"
         src="js/carenze.js?v=<?php echo $__software_version; ?>&d=mobile&id=<?php echo $firstId; ?>&a=<?php echo $anno_carenze; ?>">
-</script>
+    </script>
 </body>
+
 </html>

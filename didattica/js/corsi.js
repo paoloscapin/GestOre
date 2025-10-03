@@ -692,18 +692,31 @@ function apriEsameModal(corso_id) {
             // Se esiste già una data esame → compila i campi
             if (data.esami && data.esami.length > 0) {
                 let esame = data.esami[0];
-                if (esame.data_esame) {
+                if (esame.data_inizio_esame) {
                     // parsing robusto
-                    let raw = String(esame.data_esame);
+                    let raw = String(esame.data_inizio_esame);
                     let dt = new Date(raw.replace(' ', 'T'));
                     if (!isNaN(dt.getTime())) {
-                        $('#esame_data').val(dt.toISOString().slice(0, 10));  // YYYY-MM-DD
-                        $('#esame_ora').val(
+                        $('#esame_inizio_data').val(dt.toISOString().slice(0, 10));  // YYYY-MM-DD
+                        $('#esame_inizio_ora').val(
                             String(dt.getHours()).padStart(2, '0') + ':' +
                             String(dt.getMinutes()).padStart(2, '0')
                         ); // HH:MM
                     }
                 }
+                if (esame.data_fine_esame) {
+                    // parsing robusto
+                    let raw = String(esame.data_fine_esame);
+                    let dt = new Date(raw.replace(' ', 'T'));
+                    if (!isNaN(dt.getTime())) {
+                        $('#esame_fine_data').val(dt.toISOString().slice(0, 10));  // YYYY-MM-DD
+                        $('#esame_fine_ora').val(
+                            String(dt.getHours()).padStart(2, '0') + ':' +
+                            String(dt.getMinutes()).padStart(2, '0')
+                        ); // HH:MM
+                    }
+                }
+
                 if (esame.aula) {
                     $('#esame_aula').val(esame.aula);
                 }
@@ -800,13 +813,18 @@ function salvaEsame() {
     });
 
     // recupera anche i campi data/ora/aula
-    var data_esame = $('#esame_data').val();
-    var ora_esame = $('#esame_ora').val();
+    var data_inizio_esame = $('#esame_inizio_data').val();
+    var ora_inizio_esame = $('#esame_inizio_ora').val();
+    var data_fine_esame = $('#esame_fine_data').val();
+    var ora_fine_esame = $('#esame_fine_ora').val();
     var aula_esame = $('#esame_aula').val().trim();
     var datetime_esame = null;
 
-    if (data_esame && ora_esame) {
-        datetime_esame = data_esame + " " + ora_esame + ":00";
+    if (data_inizio_esame && ora_inizio_esame) {
+        datetime_inizio_esame = data_inizio_esame + " " + ora_inizio_esame + ":00";
+    }
+    if (data_fine_esame && ora_fine_esame) {
+        datetime_fine_esame = data_fine_esame + " " + ora_fine_esame + ":00";
     }
 
     // 🔎 VALIDAZIONI
@@ -818,8 +836,12 @@ function salvaEsame() {
         showToast("Devi firmare l'esame per poterlo salvare", true);
         return;
     }
-    if (!data_esame || !ora_esame) {
-        showToast("Inserisci data e ora dell'esame", true);
+    if (!data_inizio_esame || !ora_inizio_esame) {
+        showToast("Inserisci data e ora di inizio dell'esame", true);
+        return;
+    }
+    if (!data_fine_esame || !ora_fine_esame) {
+        showToast("Inserisci data e ora di fine dell'esame", true);
         return;
     }
     if (!aula_esame) {
@@ -831,7 +853,8 @@ function salvaEsame() {
     $.post("../didattica/corsoEsamiSave.php", {
         corso_id: corso_id,
         argomenti: argomenti,
-        data: datetime_esame,
+        data_inizio: datetime_inizio_esame,
+        data_fine: datetime_fine_esame,
         aula: aula_esame,
         firmato: firmato,
         studenti: studenti

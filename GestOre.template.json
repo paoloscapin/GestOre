@@ -2,7 +2,7 @@
     "name": "GestOre",
     "system": {
         "https": true,
-        "durata_sessione": 31536000
+        "durata_sessione": "259200 - 3 giorni"
     },
     "GoogleAuth": {
         "applicationName": "Gestione Ore",
@@ -149,6 +149,7 @@
         "visibile_docenti": true,
         "docente_vede_solo_le_sue": false,
         "visibile_studenti": false,
+        "visibile_genitori": false,
         "docente_puo__modificare": false
     },
     "corsi": {

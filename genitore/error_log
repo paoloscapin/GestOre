@@ -1,0 +1,263 @@
+[23-Aug-2025 20:28:05 UTC] PHP Parse error:  syntax error, unexpected end of file, expecting variable or "${" or "{$" in /home/gvgtcyej/public_html/GestOre/genitore/carenze.php on line 180
+[23-Aug-2025 20:31:14 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:33:40 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:34:54 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:35:13 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:35:29 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:35:53 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:37:47 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:38:08 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:38:09 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:38:19 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:39:06 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:39:24 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:39:48 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:40:07 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:40:11 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[23-Aug-2025 20:40:13 UTC] PHP Parse error:  Unclosed '{' on line 59 in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php on line 91
+[25-Aug-2025 07:31:25 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[25-Aug-2025 07:31:25 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[25-Aug-2025 07:32:30 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[25-Aug-2025 07:32:31 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[25-Aug-2025 07:33:16 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[25-Aug-2025 07:33:17 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[25-Aug-2025 07:37:31 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[25-Aug-2025 07:37:31 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[25-Aug-2025 07:40:05 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[25-Aug-2025 07:40:08 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[25-Aug-2025 07:40:14 UTC] PHP Warning:  Undefined property: stdClass::$logLoginFile in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[27-Aug-2025 13:31:52 UTC] PHP Warning:  Undefined array key "attivo" in /home/gvgtcyej/public_html/GestOre/common/__Util.php on line 17
+[27-Aug-2025 13:39:11 UTC] PHP Warning:  Undefined array key "attivo" in /home/gvgtcyej/public_html/GestOre/common/__Util.php on line 17
+[08-Sep-2025 05:33:34 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '' at line 1 in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/sportelloReadRecords.php(25): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[09-Sep-2025 18:42:46 UTC] PHP Warning:  Undefined variable $studenti in /home/gvgtcyej/public_html/GestOre/genitore/permessi_mobile.php on line 37
+[09-Sep-2025 18:42:46 UTC] PHP Fatal error:  Uncaught TypeError: count(): Argument #1 ($value) must be of type Countable|array, null given in /home/gvgtcyej/public_html/GestOre/genitore/permessi_mobile.php:37
+Stack trace:
+#0 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/genitore/permessi_mobile.php on line 37
+[09-Sep-2025 18:42:47 UTC] PHP Warning:  Undefined variable $studenti in /home/gvgtcyej/public_html/GestOre/genitore/permessi_mobile.php on line 37
+[09-Sep-2025 18:42:47 UTC] PHP Fatal error:  Uncaught TypeError: count(): Argument #1 ($value) must be of type Countable|array, null given in /home/gvgtcyej/public_html/GestOre/genitore/permessi_mobile.php:37
+Stack trace:
+#0 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/genitore/permessi_mobile.php on line 37
+[09-Sep-2025 18:42:53 UTC] PHP Warning:  Undefined variable $studenti in /home/gvgtcyej/public_html/GestOre/genitore/permessi_mobile.php on line 37
+[09-Sep-2025 18:42:53 UTC] PHP Fatal error:  Uncaught TypeError: count(): Argument #1 ($value) must be of type Countable|array, null given in /home/gvgtcyej/public_html/GestOre/genitore/permessi_mobile.php:37
+Stack trace:
+#0 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/genitore/permessi_mobile.php on line 37
+[09-Sep-2025 18:42:59 UTC] PHP Warning:  Undefined variable $studenti in /home/gvgtcyej/public_html/GestOre/genitore/permessi_mobile.php on line 37
+[09-Sep-2025 18:42:59 UTC] PHP Fatal error:  Uncaught TypeError: count(): Argument #1 ($value) must be of type Countable|array, null given in /home/gvgtcyej/public_html/GestOre/genitore/permessi_mobile.php:37
+Stack trace:
+#0 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/genitore/permessi_mobile.php on line 37
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "log" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 14
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "debug" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 14
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "log" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 19
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "logIntoAppFolder" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 19
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "log" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 22
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "logFile" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 22
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "log" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 25
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "logIntoAppFolder" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 25
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "log" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "logLoginFile" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 28
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "log" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 31
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "timeFormat" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 31
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "log" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 32
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "timeFormat" on null in /home/gvgtcyej/public_html/GestOre/common/__Log.php on line 32
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "db" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "host" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "db" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "user" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "db" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "password" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "db" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[10-Sep-2025 13:12:04 UTC] PHP Warning:  Attempt to read property "database" on null in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[10-Sep-2025 13:12:04 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Access denied for user ''@'localhost' (using password: NO) in /home/gvgtcyej/public_html/GestOre/common/connect.php:14
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(14): mysqli->__construct()
+#1 /home/gvgtcyej/public_html/GestOre/common/checkSession.php(12): require_once('/home/gvgtcyej/...')
+#2 /home/gvgtcyej/public_html/GestOre/genitore/permessiReadDetails_mobile.php(7): require_once('/home/gvgtcyej/...')
+#3 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 14
+[10-Sep-2025 17:02:16 UTC] PHP Parse error:  Unclosed '{' on line 44 in /home/gvgtcyej/public_html/GestOre/common/header-genitore-mobile.php on line 106
+[10-Sep-2025 17:02:20 UTC] PHP Parse error:  Unclosed '{' on line 44 in /home/gvgtcyej/public_html/GestOre/common/header-genitore-mobile.php on line 106
+[10-Sep-2025 17:02:38 UTC] PHP Parse error:  Unclosed '{' on line 44 in /home/gvgtcyej/public_html/GestOre/common/header-genitore-mobile.php on line 102
+[10-Sep-2025 17:02:42 UTC] PHP Parse error:  Unclosed '{' on line 44 in /home/gvgtcyej/public_html/GestOre/common/header-genitore-mobile.php on line 102
+[10-Sep-2025 17:02:46 UTC] PHP Parse error:  Unclosed '{' on line 44 in /home/gvgtcyej/public_html/GestOre/common/header-genitore-mobile.php on line 102
+[10-Sep-2025 17:02:48 UTC] PHP Parse error:  Unclosed '{' on line 44 in /home/gvgtcyej/public_html/GestOre/common/header-genitore-mobile.php on line 102
+[10-Sep-2025 17:03:03 UTC] PHP Parse error:  Unclosed '{' on line 44 in /home/gvgtcyej/public_html/GestOre/common/header-genitore-mobile.php on line 106
+[10-Sep-2025 17:03:11 UTC] PHP Parse error:  Unclosed '{' on line 44 in /home/gvgtcyej/public_html/GestOre/common/header-genitore-mobile.php on line 106
+[10-Sep-2025 17:05:49 UTC] PHP Parse error:  Unclosed '{' on line 20 in /home/gvgtcyej/public_html/GestOre/common/header-genitore.php on line 54
+[10-Sep-2025 17:05:54 UTC] PHP Parse error:  Unclosed '{' on line 20 in /home/gvgtcyej/public_html/GestOre/common/header-genitore.php on line 54
+[10-Sep-2025 17:06:16 UTC] PHP Parse error:  Unclosed '{' on line 20 in /home/gvgtcyej/public_html/GestOre/common/header-genitore.php on line 54
+[22-Sep-2025 13:57:14 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/permessiReadRecords_mobile.php on line 34
+[22-Sep-2025 19:10:30 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/permessiReadRecords_mobile.php on line 34
+[25-Sep-2025 04:44:59 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/permessiReadRecords_mobile.php on line 34
+[25-Sep-2025 04:45:37 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/permessiReadRecords_mobile.php on line 34
+[26-Sep-2025 03:34:21 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/permessiReadRecords_mobile.php on line 34
+[26-Sep-2025 03:34:54 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/permessiReadRecords_mobile.php on line 34
+[26-Sep-2025 05:25:07 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/permessiReadRecords_mobile.php on line 34
+[01-Oct-2025 18:40:02 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/permessiReadRecords_mobile.php on line 34
+[02-Oct-2025 20:36:52 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/permessiReadRecords_mobile.php on line 34
+[03-Oct-2025 08:24:09 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php on line 33
+[03-Oct-2025 08:24:09 UTC] PHP Warning:  Undefined variable $__anno_scolastico_scorso_id in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php on line 33
+[03-Oct-2025 08:24:20 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php on line 33
+[03-Oct-2025 08:24:20 UTC] PHP Warning:  Undefined variable $__anno_scolastico_scorso_id in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php on line 33
+[03-Oct-2025 10:33:44 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php on line 33
+[03-Oct-2025 10:33:44 UTC] PHP Warning:  Undefined variable $__anno_scolastico_scorso_id in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php on line 33
+[03-Oct-2025 10:33:52 UTC] PHP Warning:  Undefined variable $__anno_scolastico_corrente_id in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php on line 33
+[03-Oct-2025 10:33:52 UTC] PHP Warning:  Undefined variable $__anno_scolastico_scorso_id in /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php on line 33
+[03-Oct-2025 14:14:51 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:15:43 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:15:44 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:16:02 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:18:31 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:18:32 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:18:49 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:18:54 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:24:04 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php(96): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:24:20 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php(96): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:24:50 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php(96): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:24:55 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php(96): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:25:53 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php(96): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:25:55 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php(96): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:25:57 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php(96): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:26:20 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords_mobile.php(96): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:32:57 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:33:09 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:34:28 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:35:02 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:35:36 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:36:13 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:36:19 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:36:24 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:36:27 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
+Stack trace:
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/genitore/carenzeReadRecords.php(124): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60

@@ -16,7 +16,7 @@
 
 		<ul class="nav navbar-nav top-navbar-nav">
 			<?php 
-			if (($__genitore_cognome == 'GENITORE') || ((getSettingsValue('config', 'sportelli', false)) && (getSettingsValue('sportelli','visibile_genitori', false))))
+			if ((getSettingsValue('config', 'sportelli', false)) && (getSettingsValue('sportelli','visibile_genitori', false)))
 				{
 				echo '		
 				<a href="../genitore/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>';
@@ -25,7 +25,7 @@
 		</ul>
 		<ul class="nav navbar-nav top-navbar-nav">
 			<?php
-			if (($__genitore_cognome == 'GENITORE') || ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false)))) {
+			if ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_genitori', false))) {
 				?>
 				<a href="../genitore/carenze.php" class="btn btn-default navbar-btn btn-teal4" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
 			<?php } ?>

@@ -1,24 +1,24 @@
-[16-Aug-2025 14:14:30 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'AS studente_classe
-			FROM sportello sportello
-			INNER JOIN docente docente ...' at line 25 in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+[03-Oct-2025 14:27:05 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
 Stack trace:
-#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
-#1 /home/gvgtcyej/public_html/GestOre/studente/sportelloReadRecords.php(99): dbGetAll()
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/carenzeReadRecords.php(112): dbGetFirst()
 #2 {main}
-  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
-[16-Aug-2025 14:16:49 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'studente.classe' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:42:06 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_inizio_fine_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
 Stack trace:
-#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
-#1 /home/gvgtcyej/public_html/GestOre/studente/sportelloReadRecords.php(136): dbGetAll()
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/carenzeReadRecords.php(113): dbGetFirst()
 #2 {main}
-  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
-[16-Aug-2025 14:18:04 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '(	SELECT classi.classe FROM classi WHERE id = (SELECT studente_frequenta.id_c...' at line 10 in /home/gvgtcyej/public_html/GestOre/common/connect.php:81
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:42:09 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_inizio_fine_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
 Stack trace:
-#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(81): mysqli_query()
-#1 /home/gvgtcyej/public_html/GestOre/studente/sportelloReadRecords.php(135): dbGetAll()
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/carenzeReadRecords.php(113): dbGetFirst()
 #2 {main}
-  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 81
-[16-Aug-2025 14:28:07 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function debug() in /home/gvgtcyej/public_html/GestOre/studente/sportello.php:9
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60
+[03-Oct-2025 14:42:10 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'ced.data_inizio_fine_esame' in 'SELECT' in /home/gvgtcyej/public_html/GestOre/common/connect.php:60
 Stack trace:
-#0 {main}
-  thrown in /home/gvgtcyej/public_html/GestOre/studente/sportello.php on line 9
+#0 /home/gvgtcyej/public_html/GestOre/common/connect.php(60): mysqli_query()
+#1 /home/gvgtcyej/public_html/GestOre/studente/carenzeReadRecords.php(113): dbGetFirst()
+#2 {main}
+  thrown in /home/gvgtcyej/public_html/GestOre/common/connect.php on line 60

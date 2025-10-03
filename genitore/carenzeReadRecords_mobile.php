@@ -47,8 +47,8 @@ foreach ($resultArray as $row) {
 
     // Data ricezione
     $data_ricezione = '';
-    if (!empty($row['carenza_validazione'])) {
-        $datf = new DateTime($row['carenza_validazione']);
+    if (!empty($row['carenza_invio'])) {
+        $datf = new DateTime($row['carenza_invio']);
         $data_ricezione = $datf->format('d-m-Y H:i:s');
     }
 
@@ -74,16 +74,26 @@ foreach ($resultArray as $row) {
 
     // Recupero eventuale esito esame
     $query = "SELECT 
-                ce.presente AS presente,
-                ce.recuperato AS recuperato,
-                ced.data_esame AS data_esame,
-                ced.firmato AS firmato,
-                ced.aula AS aula_esame
-              FROM carenze car
-              INNER JOIN corso_esiti ce ON ce.id_studente = car.id_studente
-              INNER JOIN corso_iscritti ci ON ci.id_studente = car.id_studente
-              INNER JOIN corso_esami_date ced ON ced.id_corso = ce.id_corso
-              WHERE car.id = $idcarenza";
+            car.id,
+            car.id_studente AS studente_id,
+            ce.presente AS presente,
+            ce.recuperato AS recuperato,
+            ced.data_inizio_esame AS data_inizio_esame,
+            ced.data_fine_esame AS data_fine_esame,
+            ced.firmato AS firmato,
+            ced.aula AS aula_esame,
+            m.nome AS materia
+        FROM carenze car
+        INNER JOIN corso_esiti ce 
+            ON ce.id_studente = car.id_studente
+        INNER JOIN corso c 
+            ON c.id = ce.id_corso
+        INNER JOIN materia m 
+            ON m.id = car.id_materia 
+        AND m.id = c.id_materia      -- 🔑 questo lega la materia del corso alla materia della carenza
+        INNER JOIN corso_esami_date ced 
+            ON ced.id_corso = ce.id_corso
+        WHERE car.id = $idcarenza";
     $esito = dbGetFirst($query);
 
     $firmato = $esito && $esito['firmato'] == 1;
@@ -95,7 +105,7 @@ foreach ($resultArray as $row) {
     if (!$firmato) {
         echo '<span class="label label-warning">In attesa esito esame</span>';
     } else {
-        $tooltip = "Esame il " . (new DateTime($esito['data_esame']))->format('d-m-Y H:i') .
+        $tooltip = "Esame il " . (new DateTime($esito['data_inizio_esame']))->format('d-m-Y H:i') .
             " in aula " . $esito['aula_esame'];
 
         if ($esito['presente']) {

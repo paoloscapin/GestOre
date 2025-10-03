@@ -40,7 +40,7 @@
             <ul class="nav navbar-nav navbar-right">
 
                 <?php
-                if (((getSettingsValue('config', 'sportelli', false)) && (getSettingsValue('sportelli', 'visibile_studenti', false))) || ($__studente_cognome == "Iscrizioni")) {
+                if (getSettingsValue('config', 'sportelli', false) && getSettingsValue('sportelli', 'visibile_studenti', false)) {
                         echo '<li><a class="btn btn-orange4" href="../studente/sportello_mobile.php">
                         <span class="glyphicon glyphicon-blackboard"></span> Sportelli
                     </a></li>';
@@ -48,7 +48,7 @@
                 ?>
 
                 <?php
-                if ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && ((getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false)) || ($__studente_cognome == "Iscrizioni"))) : ?>
+                if (getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false)) : ?>
                     <li><a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/studente/carenze_mobile.php">
                             <span class="glyphicon glyphicon-film"></span> Carenze
                         </a></li>
