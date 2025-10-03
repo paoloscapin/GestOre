@@ -681,8 +681,10 @@ function apriEsameModal(corso_id) {
     // reset campi (non tocco readonly: lo gestisce il PHP in base al ruolo)
     $('#tabellaEsameStudenti tbody').empty();
     $('#argomentiEsame').val('');
-    $('#esame_data').val('');
-    $('#esame_ora').val('');
+    $('#esame_inizio_data').val('');
+    $('#esame_inizio_ora').val('');
+    $('#esame_fine_data').val('');
+    $('#esame_fine_ora').val('');
     $('#esame_aula').val('');
 
     $('#esameModal').modal('show');
