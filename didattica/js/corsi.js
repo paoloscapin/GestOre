@@ -100,9 +100,10 @@ function aggiungiDate() {
 function salvaModificaData() {
     var corso_id = $('#hidden_corso_id').val();
     var data_id = $('#hidden_data_id').val();
-    var nuova_data = $('#mod_data').val();
+    var nuova_data_inizio = $('#mod_data_inizio').val();
+    var nuova_data_fine = $('#mod_data_fine').val();
     var nuova_aula = $('#mod_aula').val();
-    if (!nuova_data || !nuova_aula) {
+    if (!nuova_data_inizio || !nuova_data_fine || !nuova_aula) {
         $('#error-modifica-data').text("Compila tutti i campi").show();
         return;
     }
@@ -111,7 +112,8 @@ function salvaModificaData() {
     $.post("corsiAggiornaData.php", {
         data_id: data_id,
         corso_id: corso_id,
-        corso_data: nuova_data,
+        corso_data_inizio: nuova_data_inizio,
+        corso_data_fine: nuova_data_fine,
         corso_aula: nuova_aula
     }, function (data, status) {
         // verifica risposta JSON correttamente
@@ -151,7 +153,7 @@ function apriRegistroLezione(corso_id) {
                 $('#tabellaStudenti tbody').html('<tr><td colspan="4" class="text-center text-danger">Nessuna data disponibile</td></tr>');
             } else {
                 data.date.forEach(function (d) {
-                    var dt = new Date(d.data);
+                    var dt = new Date(d.data_inizio);
                     var giorno = String(dt.getDate()).padStart(2, '0');
                     var mese = String(dt.getMonth() + 1).padStart(2, '0');
                     var anno = dt.getFullYear();
@@ -297,7 +299,9 @@ function corsiGetDetails(corsi_id) {
                 var tr = $('<tr>').attr('id', 'row_' + d.data_id);
 
                 tr.append($('<td>').css({ textAlign: 'center', verticalAlign: 'middle' })
-                    .text(formatDateTime(d.corso_data)));
+                    .text(formatDateTime(d.corso_data_inizio)));
+                tr.append($('<td>').css({ textAlign: 'center', verticalAlign: 'middle' })
+                    .text(formatDateTime(d.corso_data_fine)));
                 tr.append($('<td>').css({ textAlign: 'center', verticalAlign: 'middle' })
                     .text(d.corso_aula));
 
@@ -400,7 +404,8 @@ function aggiornaTabellaDate(corso_id) {
 
         data.date.forEach(function (d) {
             var tr = $('<tr>');
-            tr.append($('<td>').text(formatDateTime(d.corso_data)));
+            tr.append($('<td>').text(formatDateTime(d.corso_data_inizio)));
+            tr.append($('<td>').text(formatDateTime(d.corso_data_fine)));
             tr.append($('<td>').text(d.corso_aula));
 
             var tdBtn = $('<td>');
@@ -498,7 +503,7 @@ function modificaData(data_id, corso_id) {
         $('#hidden_data_id').val(found.id);
 
         // costruisci valore per input datetime-local (YYYY-MM-DDTHH:MM)
-        var raw = String(found.data || found.corso_data || found.data_corrente || "");
+        var raw = String(found.data_inizio || found.corso_data_inizio || found.data_corrente || "");
         var iso = raw.replace(' ', 'T').replace(/\.\d+$/, '');
         var dt = new Date(iso);
 
@@ -514,7 +519,26 @@ function modificaData(data_id, corso_id) {
         var minutes = String(dt.getMinutes()).padStart(2, '0');
         var datetimeLocal = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
 
-        $('#mod_data').val(datetimeLocal);
+        $('#mod_data_inizio').val(datetimeLocal);
+
+        // costruisci valore per input datetime-local (YYYY-MM-DDTHH:MM)
+        raw = String(found.data_fine || found.corso_data_fine || found.data_corrente || "");
+        iso = raw.replace(' ', 'T').replace(/\.\d+$/, '');
+        dt = new Date(iso);
+
+        if (isNaN(dt.getTime())) {
+            var m = raw.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+            if (m) dt = new Date(m[1], parseInt(m[2], 10) - 1, m[3], m[4], m[5]);
+        }
+
+        year = dt.getFullYear();
+        month = String(dt.getMonth() + 1).padStart(2, '0');
+        day = String(dt.getDate()).padStart(2, '0');
+        hours = String(dt.getHours()).padStart(2, '0');
+        minutes = String(dt.getMinutes()).padStart(2, '0');
+        datetimeLocal = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
+
+        $('#mod_data_fine').val(datetimeLocal);
         $('#mod_aula').val(found.aula || found.corso_aula || '');
 
         $('#error-modifica-data').hide();

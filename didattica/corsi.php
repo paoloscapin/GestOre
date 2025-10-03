@@ -449,7 +449,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <div class="form-group">
                             <label class="col-sm-2 control-label">Titolo</label>
                             <div class="col-sm-10">
-                                <input type="text" id="titolo" class="form-control" placeholder="titolo">
+                                <input type="text" id="titolo" class="form-control" placeholder="titolo" style="text-align:center;">
                             </div>
                         </div>
 
@@ -474,9 +474,10 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                                 <table class="table table-bordered table-striped" id="date_table">
                                     <thead>
                                         <tr>
-                                            <th>Data</th>
-                                            <th>Aula</th>
-                                            <th>Azioni</th>
+                                            <th style="text-align: center;">Inizio</th>
+                                            <th style="text-align: center;">Fine</th>
+                                            <th style="text-align: center;">Aula</th>
+                                            <th style="text-align: center;">Azioni</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -491,9 +492,9 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             <table class="table table-bordered table-striped" id="iscritti_table">
                                 <thead>
                                     <tr>
-                                        <th>Nominativo</th>
-                                        <th>Classe</th>
-                                        <th>Azioni</th>
+                                        <th style="text-align: center;">Nominativo</th>
+                                        <th style="text-align: center;">Classe</th>
+                                        <th style="text-align: center;">Azioni</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -530,8 +531,13 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <input type="hidden" id="hidden_data_id">
 
                         <div class="form-group text-center">
-                            <label for="mod_data" class="control-label">Data e Ora</label>
-                            <input type="datetime-local" id="mod_data" class="form-control" style="max-width:200px; margin:0 auto;">
+                            <label for="mod_data_inizio" class="control-label">Data e Ora Inizio</label>
+                            <input type="datetime-local" id="mod_data_inizio" class="form-control" style="max-width:200px; margin:0 auto;">
+                        </div>
+
+                        <div class="form-group text-center">
+                            <label for="mod_data_fine" class="control-label">Data e Ora Fine</label>
+                            <input type="datetime-local" id="mod_data_fine" class="form-control" style="max-width:200px; margin:0 auto;">
                         </div>
 
                         <div class="form-group text-center">
@@ -671,7 +677,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <!-- Data, Ora, Aula -->
                         <div class="form-group row">
                             <!-- Data -->
-                            <label class="col-sm-2 col-form-label d-flex align-items-center justify-content-end">
+                            <label class="col-sm-2 col-form-label text-right">
                                 Data
                             </label>
                             <div class="col-sm-2">
@@ -679,7 +685,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             </div>
 
                             <!-- Ora -->
-                            <label class="col-sm-1 col-form-label d-flex align-items-center justify-content-end">
+                            <label class="col-sm-1 col-form-label text-center">
                                 Ora inizio
                             </label>
                             <div class="col-sm-2">
@@ -687,7 +693,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             </div>
 
                             <!-- Aula -->
-                            <label class="col-sm-1 col-form-label d-flex align-items-center justify-content-end">
+                            <label class="col-sm-1 col-form-label text-center">
                                 Aula
                             </label>
                             <div class="col-sm-2">
@@ -696,7 +702,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         </div>
                         <div class="form-group row">
                             <!-- Data -->
-                            <label class="col-sm-2 col-form-label d-flex align-items-center justify-content-end">
+                            <label class="col-sm-2 col-form-label text-right">
                                 Data
                             </label>
                             <div class="col-sm-2">
@@ -704,7 +710,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             </div>
 
                             <!-- Ora -->
-                            <label class="col-sm-1 col-form-label d-flex align-items-center justify-content-end">
+                            <label class="col-sm-1 col-form-label text-center">
                                 Ora fine
                             </label>
                             <div class="col-sm-2">

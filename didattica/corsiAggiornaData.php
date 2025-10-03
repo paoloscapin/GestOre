@@ -14,11 +14,14 @@ if (isset($_POST)) {
 
 	$data_id = $_POST['data_id'];
 	$corso_id = $_POST['corso_id'];
-	$jsDate = $_POST['corso_data'];
+	$jsDateInizio = $_POST['corso_data_inizio'];
+	$jsDateFine = $_POST['corso_data_fine'];
 try {
 	$tz = new DateTimeZone('Europe/Rome');
-	$date = new DateTime($jsDate, $tz);
-    $dbDate = $date->format('Y-m-d H:i:s');
+	$date_inizio = new DateTime($jsDateInizio, $tz);
+	$date_fine = new DateTime($jsDateFine, $tz);
+    $dbDateInizio = $date_inizio->format('Y-m-d H:i:s');
+    $dbDateFine = $date_fine->format('Y-m-d H:i:s');
 
 } catch (Exception $e) {
     die("Data non valida: " . $e->getMessage());
@@ -26,11 +29,11 @@ try {
 	$aula = $_POST['corso_aula'];
 
 	if ($data_id > 0) {
-		$query = "UPDATE corso_date SET data = '$dbDate', aula = '$aula' WHERE id = '$data_id'";
+		$query = "UPDATE corso_date SET data_inizio = '$dbDateInizio', data_fine = '$dbDateFine', aula = '$aula' WHERE id = '$data_id'";
 		dbExec($query);
 		info("aggiornato dati della data con id $lastId del corso con id=$corso_id");
 	} else {
-		$query = "INSERT INTO corso_date(id_corso, data, aula) VALUES('$corso_id', '$dbDate', '$aula')";
+		$query = "INSERT INTO corso_date(id_corso, data_inizio, data_fine, aula) VALUES('$corso_id', '$dbDateInizio' '$dbDateFine', '$aula')";
 		dbExec($query);
 		$lastId = dblastId();
 		info("aggiunta nuova data con id $lastId al corso con id=$corso_id");

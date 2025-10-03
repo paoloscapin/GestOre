@@ -12,7 +12,7 @@ if ($corso_id <= 0) {
 }
 
 try {
-    $query = "SELECT id, data, aula FROM corso_date WHERE id_corso = $corso_id ORDER BY data ASC";
+    $query = "SELECT id, data_inizio, data_fine, aula FROM corso_date WHERE id_corso = $corso_id ORDER BY data_inizio ASC";
     $dates = dbGetAll($query);
 
     if ($dates === null) $dates = [];

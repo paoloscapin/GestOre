@@ -12,7 +12,7 @@ require_once '../common/checkSession.php';
 $corso_id = intval($_POST['corso_id']);
 
 $date = dbGetAll("
-    SELECT id, DATE_FORMAT(data, '%d-%m-%Y %H:%i') as data_format, aula 
+    SELECT id, DATE_FORMAT(data_inizio, '%d-%m-%Y %H:%i') as data_format, DATE_FORMAT(data_fine, '%d-%m-%Y %H:%i') as data_format, aula 
     FROM corso_date 
     WHERE id_corso = $corso_id
     ORDER BY data ASC

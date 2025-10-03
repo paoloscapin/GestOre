@@ -72,13 +72,13 @@ SELECT c.id AS corso_id,
        c.carenza AS carenza,
        c.in_itinere AS in_itinere,
        m.nome AS materia_nome,
-       MIN(cd.data) AS data_inizio,
-       MAX(cd.data) AS data_fine,
+       MIN(cd.data_inizio) AS data_inizio,
+       MAX(cd.data_inizio) AS data_fine,
        SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) AS lezioni_firmate,
        COUNT(cd.id) AS lezioni_totali,
        CASE
            WHEN COUNT(cd.id) = 0 THEN 3 -- Nessuna data
-           WHEN SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) = 0 AND MIN(cd.data) > CURDATE() THEN 0 -- Non ancora iniziato
+           WHEN SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) = 0 AND MIN(cd.data_inizio) > CURDATE() THEN 0 -- Non ancora iniziato
            WHEN SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) < COUNT(cd.id) THEN 1 -- Iniziato
            WHEN SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) = COUNT(cd.id) THEN 2 -- Terminato
            ELSE 1
@@ -105,8 +105,8 @@ if ($docente_id > 0) {
 
 $query .= "
 GROUP BY c.id, c.id_materia, c.id_docente, c.id_anno_scolastico, m.nome
-HAVING ($futuri = 0 OR MAX(cd.data) >= CURDATE())
-ORDER BY m.nome ASC
+HAVING ($futuri = 0 OR MAX(cd.data_inizio) >= CURDATE())
+ORDER BY m.nome ASC, d.cognome ASC, d.nome ASC, c.titolo ASC
 ";
 
 
@@ -128,8 +128,8 @@ foreach ($resultArray as $row) {
 	$titolo = $row['titolo'];
 
 	$query2 = "
-    SELECT MIN(data) AS data_inizio, 
-           MAX(data) AS data_fine
+    SELECT MIN(data_inizio) AS data_inizio, 
+           MAX(data_inizio) AS data_fine
     FROM corso_date 
     WHERE id_corso = $idcorso
 ";

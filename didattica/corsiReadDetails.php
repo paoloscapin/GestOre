@@ -31,11 +31,12 @@ if (isset($_POST['corsi_id']) && $_POST['corsi_id'] != "") {
         SELECT 
             d.id AS data_id,
             d.id_corso AS corso_id,
-            d.data AS corso_data,
+            d.data_inizio AS corso_data_inizio,
+            d.data_fine AS corso_data_fine,
             d.aula AS corso_aula
         FROM corso_date d
         WHERE d.id_corso = $corsi_id
-        ORDER BY d.data
+        ORDER BY d.data_inizio ASC
     ";
     $date = dbGetAll($query);
 

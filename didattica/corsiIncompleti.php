@@ -53,8 +53,8 @@ $corsi = dbGetAll($query);
             <thead>
                 <tr>
                     <th>Materia</th>
-                    <th>Data-ora inizio</th>
-                    <th>Data-ora fine</th>
+                    <th style="text-align: center;">Inizio</th>
+                    <th style="text-align: center;">Fine</th>
                     <th>Docente corso</th>
                 </tr>
             </thead>
