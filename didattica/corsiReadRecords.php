@@ -76,13 +76,14 @@ SELECT c.id AS corso_id,
        MAX(cd.data_inizio) AS data_fine,
        SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) AS lezioni_firmate,
        COUNT(cd.id) AS lezioni_totali,
-       CASE
-           WHEN COUNT(cd.id) = 0 THEN 3 -- Nessuna data
-           WHEN SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) = 0 AND MIN(cd.data_inizio) > CURDATE() THEN 0 -- Non ancora iniziato
-           WHEN SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) < COUNT(cd.id) THEN 1 -- Iniziato
-           WHEN SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) = COUNT(cd.id) THEN 2 -- Terminato
-           ELSE 1
-       END AS stato
+        CASE
+            WHEN COUNT(cd.id) = 0 THEN 3 -- Nessuna data
+            WHEN COUNT(cd.id) > 0 AND SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) = 0 THEN 0 -- Corso non ancora iniziato
+            WHEN SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) < COUNT(cd.id) THEN 1 -- In svolgimento
+            WHEN SUM(CASE WHEN cd.firmato = 1 THEN 1 ELSE 0 END) = COUNT(cd.id) THEN 2 -- Terminato
+        END AS stato
+
+
 FROM corso c
 INNER JOIN docente d 
        ON d.id = c.id_docente
@@ -187,7 +188,12 @@ foreach ($resultArray as $row) {
 			}
 		}
 	}
-
+    if ($row['in_itinere'] == 1) 
+    {
+        $data_inizio = 'in itinere';
+        $data_fine = 'in itinere';
+    }
+    
 	$data .= '<td align="center">' . $materia . '</td>
 		<td align="center">' . $nome_docente . '</td>
 		<td align="center">' . $titolo . '</td>
@@ -211,6 +217,8 @@ foreach ($resultArray as $row) {
                     <span class="glyphicon glyphicon-pencil"></span>
                 </button>';
 				}
+                if ($row['in_itinere'] != 1)
+                {
 				$data .= '
                 <button onclick="apriRegistroLezione(\'' . $idcorso . '\')" 
                         class="btn btn-primary btn-xs" 
@@ -218,6 +226,8 @@ foreach ($resultArray as $row) {
                         title="Gestisci le presenze e gli argomenti">
                     <span class="glyphicon glyphicon-user"></span>
                 </button>';
+                }
+                // Solo se il corso è di carenze
 				if ($row['carenza'] == 1) {
 					$data .= '
                 <button onclick="apriEsameModal(\'' . $idcorso . '\')" 

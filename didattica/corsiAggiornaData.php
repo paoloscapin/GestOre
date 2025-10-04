@@ -33,7 +33,7 @@ try {
 		dbExec($query);
 		info("aggiornato dati della data con id $lastId del corso con id=$corso_id");
 	} else {
-		$query = "INSERT INTO corso_date(id_corso, data_inizio, data_fine, aula) VALUES('$corso_id', '$dbDateInizio' '$dbDateFine', '$aula')";
+		$query = "INSERT INTO corso_date(id_corso, data_inizio, data_fine, aula) VALUES('$corso_id', '$dbDateInizio', '$dbDateFine', '$aula')";
 		dbExec($query);
 		$lastId = dblastId();
 		info("aggiunta nuova data con id $lastId al corso con id=$corso_id");

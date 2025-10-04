@@ -1,59 +1,72 @@
 <?php
 /**
- *  This file is part of GestOre
- *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
- *  @copyright  (C) 2025 Massimo Saiani
- *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ * Restituisce i dettagli degli esami (1° e 2° tentativo) di un corso
+ * {
+ *   success: true,
+ *   esami: [ ... ],
+ *   studenti: [ ... ]
+ * }
  */
 
 require_once '../common/checkSession.php';
 
-if (empty($_POST['corso_id'])) {
-    http_response_code(400);
+header('Content-Type: application/json');
+
+if (!isset($_POST['corso_id'])) {
     echo json_encode(['success' => false, 'error' => 'Parametro corso_id mancante']);
     exit;
 }
 
 $corso_id = intval($_POST['corso_id']);
-$anno_corrente = intval($__anno_scolastico_corrente_id);
 
-// 🔹 Date esame
-$query = "
-    SELECT e.id AS esame_id, e.id_corso, e.data_inizio_esame, e.data_fine_esame, e.aula, e.firmato
-    FROM corso_esami_date e
-    WHERE e.id_corso = $corso_id
-    ORDER BY e.data_inizio_esame ASC
-";
-$esami = dbGetAll($query);
-
-// 🔹 Studenti iscritti al corso con eventuali esiti
-$query = "
+// ============================
+// Recupero le sessioni di esame
+// ============================
+$queryEsami = "
     SELECT 
-        i.id AS iscrizione_id,
+        id,
+        id_corso AS corso_id,
+        tentativo,
+        data_inizio_esame,
+        data_fine_esame,
+        aula,
+        firmato
+    FROM corso_esami_date
+    WHERE id_corso = $corso_id
+    ORDER BY tentativo ASC
+";
+$esami = dbGetAll($queryEsami);
+
+// ============================
+// Recupero studenti con esiti
+// ============================
+$queryStudenti = "
+    SELECT 
         s.id AS stud_id,
         s.cognome,
         s.nome,
         c.classe,
-        es.id AS esito_id,
-        es.id_esame_data,
-        es.presente,
-        es.tipo_prova,
-        es.voto,
-        es.argomenti,
-        es.inviato_registro
-    FROM corso_iscritti i
-    INNER JOIN studente s ON s.id = i.id_studente
-    INNER JOIN studente_frequenta f ON f.id_studente = s.id AND f.id_anno_scolastico = $anno_corrente
-    INNER JOIN classi c ON c.id = f.id_classe
-    LEFT JOIN corso_esiti es ON es.id_studente = s.id AND es.id_corso = i.id_corso
-    WHERE i.id_corso = $corso_id
+        ced.tentativo,
+        ce.presente,
+        ce.tipo_prova,
+        ce.voto,
+        ce.recuperato,
+        ce.argomenti
+    FROM corso_iscritti ci
+    INNER JOIN studente s ON s.id = ci.id_studente
+    INNER JOIN studente_frequenta sf 
+        ON sf.id_studente = s.id 
+       AND sf.id_anno_scolastico = (SELECT MAX(id) FROM anno_scolastico)
+    INNER JOIN classi c ON c.id = sf.id_classe
+    INNER JOIN corso_esiti ce ON ce.id_studente = s.id AND ce.id_corso = ci.id_corso
+    INNER JOIN corso_esami_date ced ON ced.id = ce.id_esame_data
+    WHERE ci.id_corso = $corso_id
     ORDER BY s.cognome, s.nome
 ";
-$studenti = dbGetAll($query);
+$studenti = dbGetAll($queryStudenti);
 
-header('Content-Type: application/json; charset=utf-8');
 echo json_encode([
-    'success'   => true,
-    'esami'     => $esami,
-    'studenti'  => $studenti
-], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    'success'  => true,
+    'esami'    => $esami,
+    'studenti' => $studenti
+]);

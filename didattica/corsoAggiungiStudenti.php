@@ -37,6 +37,17 @@ if (isset($_POST['id_corso'], $_POST['id_studente'])) {
             $query = "INSERT INTO corso_iscritti (id_corso, id_studente) 
                       VALUES ($id_corso, $id_studente)";
             dbExec($query);
+            $carenza = dbGetFirst("SELECT carenza FROM corso WHERE id = $id_corso");
+            if ($carenza['carenza'] == 1) {
+                // Se il corso è di carenze, iscrivo anche in corso_esiti
+                $query = "INSERT INTO corso_esiti (id_corso, id_studente) 
+                          VALUES ($id_corso, $id_studente)";
+                dbExec($query);
+            }
+            $query = "INSERT INTO corso_esiti (id_corso, id_studente) 
+                      VALUES ($id_corso, $id_studente)";
+            dbExec($query);
+
             $added[] = $id_studente;
         } else {
             $already[] = $id_studente;

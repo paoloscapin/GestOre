@@ -268,23 +268,17 @@ $('#select_data_corso').on('change', function () {
 function corsiGetDetails(corsi_id) {
     $("#hidden_corso_id").val(corsi_id);
     carenze = $("#carenze").prop('checked');
+
     if (corsi_id > 0) {
         $.post("../didattica/corsiReadDetails.php", { corsi_id: corsi_id }, function (data, status) {
             var corsi = data;
-            if (corsi.corso.in_itinere == 1) {
-                $('#in_itinere').prop('checked', true).change();
-            } else {
-                $('#in_itinere').prop('checked', false).change();
-            }
-            // Aggiorna campi del corso
-            $('#titolo').val(corsi.corso.titolo);
-            if (carenze) {
-                $('#titolo').prop('disabled', true);
-            }
-            else {
-                $('#titolo').prop('disabled', false);
-            }
 
+            // checkbox in_itinere
+            $('#in_itinere').prop('checked', corsi.corso.in_itinere == 1).change();
+
+            // Campi base
+            $('#titolo').val(corsi.corso.titolo);
+            $('#titolo').prop('disabled', carenze);
             $('#materia').selectpicker('val', corsi.corso.materia_id);
             $('#docente').selectpicker('val', corsi.corso.doc_id);
 
@@ -294,27 +288,20 @@ function corsiGetDetails(corsi_id) {
             tbodyDate.empty();
             tbodyStud.empty();
 
-            // Tabella date
+            // --- Tabella date ---
             corsi.date.forEach(function (d) {
                 var tr = $('<tr>').attr('id', 'row_' + d.data_id);
+                tr.append($('<td>').css({ textAlign: 'center' }).text(formatDateTime(d.corso_data_inizio)));
+                tr.append($('<td>').css({ textAlign: 'center' }).text(formatDateTime(d.corso_data_fine)));
+                tr.append($('<td>').css({ textAlign: 'center' }).text(d.corso_aula));
 
-                tr.append($('<td>').css({ textAlign: 'center', verticalAlign: 'middle' })
-                    .text(formatDateTime(d.corso_data_inizio)));
-                tr.append($('<td>').css({ textAlign: 'center', verticalAlign: 'middle' })
-                    .text(formatDateTime(d.corso_data_fine)));
-                tr.append($('<td>').css({ textAlign: 'center', verticalAlign: 'middle' })
-                    .text(d.corso_aula));
-
-                var tdBtn = $('<td>').css({ textAlign: 'center', verticalAlign: 'middle' });
-
-                // Bottone Modifica
+                var tdBtn = $('<td>').css({ textAlign: 'center' });
                 var btnMod = $('<button>')
                     .attr('type', 'button')
                     .addClass('btn btn-sm btn-warning')
                     .html('<span class="glyphicon glyphicon-pencil"></span>')
                     .on('click', function () { modificaData(d.data_id, corsi_id); });
 
-                // Bottone Elimina
                 var btnDel = $('<button>')
                     .attr('type', 'button')
                     .addClass('btn btn-sm btn-danger')
@@ -330,9 +317,9 @@ function corsiGetDetails(corsi_id) {
                 tbodyDate.append(tr);
             });
 
-            // Tabella studenti
+            // --- Tabella studenti ---
             corsi.studenti.forEach(function (s) {
-                var tr = $('<tr row_stud_>' + s.iscrizione_id);
+                var tr = $('<tr id="row_stud_' + s.iscrizione_id + '">');
 
                 tr.append($('<td>').css({ textAlign: 'center', verticalAlign: 'middle' })
                     .text(s.stud_cognome + " " + s.stud_nome));
@@ -340,6 +327,8 @@ function corsiGetDetails(corsi_id) {
                     .text(s.classe));
 
                 var tdBtn = $('<td>').css({ textAlign: 'center', verticalAlign: 'middle' });
+
+                // Bottone elimina
                 var btnDelStud = $('<button>')
                     .attr('type', 'button')
                     .addClass('btn btn-sm btn-danger')
@@ -349,34 +338,106 @@ function corsiGetDetails(corsi_id) {
                         e.stopPropagation();
                         cancellaIscritto(s.iscrizione_id);
                     });
-
                 tdBtn.append(btnDelStud);
+
+                // --- 🔹 Gestione pulsante secondo tentativo ---
+                if (parseInt(s.ha_esito) === 1 && (parseInt(s.presente) === 0 || parseInt(s.recuperato) === 0)) {
+                    // se l’esame del secondo tentativo è già firmato → nessuna icona
+                    if (parseInt(s.secondo_firmato) === 0) {
+                        if (parseInt(s.secondo_tentativo) === 1) {
+                            // 🔻 Studente già iscritto al secondo tentativo → bottone rosso per cancellare
+                            var btnAnnulla = $('<button>')
+                                .attr('type', 'button')
+                                .addClass('btn btn-sm btn-danger ml-1')
+                                .attr('title', 'Cancella iscrizione secondo tentativo')
+                                .attr('data-toggle', 'tooltip')
+                                .html('<span class="glyphicon glyphicon-remove-circle"></span>')
+                                .on('click', function (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    cancellaSecondoTentativo(s.stud_id, s.iscrizione_id, corsi_id);
+                                });
+                            tdBtn.append(' ').append(btnAnnulla);
+                        } else {
+                            // 🔁 Studente NON iscritto al secondo tentativo → bottone blu per iscrivere
+                            var btnSecondoTent = $('<button>')
+                                .attr('type', 'button')
+                                .addClass('btn btn-sm btn-info ml-1')
+                                .attr('title', 'Iscrivi al secondo tentativo')
+                                .attr('data-toggle', 'tooltip')
+                                .html('<span class="glyphicon glyphicon-repeat"></span>')
+                                .on('click', function (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    iscriviSecondoTentativo(s.stud_id, s.iscrizione_id, corsi_id);
+                                });
+                            tdBtn.append(' ').append(btnSecondoTent);
+                        }
+                    }
+                }
+
                 tr.append(tdBtn);
                 tbodyStud.append(tr);
             });
 
-        }, 'json'); // importante specificare json
-    }
-    else {
-        // Reset campi se corso_id non valido
-        if (carenze) {
-            $('#titolo').val("Corso recupero carenze");
-            $('#titolo').prop('disabled', true);
-        }
-        else {
-            $('#titolo').val("");
-            $('#titolo').prop('disabled', false);
-        }
-        $('#materia').val("0");
-        $('#materia').selectpicker('refresh');
-        $('#docente').val("0");
-        $('#docente').selectpicker('refresh');
+            $('[data-toggle="tooltip"]').tooltip(); // attiva i tooltip
+
+        }, 'json');
+    } else {
+        // Reset campi per nuovo corso
+        $('#titolo').val(carenze ? "Corso recupero carenze" : "").prop('disabled', carenze);
+        $('#materia').val("0").selectpicker('refresh');
+        $('#docente').val("0").selectpicker('refresh');
         $('#date_table tbody').empty();
         $('#iscritti_table tbody').empty();
     }
 
     $("#_error-corsi-part").hide();
     $("#corsi_modal").modal("show");
+}
+
+
+function cancellaSecondoTentativo(id_studente, iscrizione_id, id_corso) {
+    bootbox.confirm({
+        title: "Conferma",
+        message: "Vuoi rimuovere lo studente dal secondo tentativo?",
+        buttons: {
+            cancel: { label: "Annulla", className: "btn-default" },
+            confirm: { label: "Conferma", className: "btn-danger" }
+        },
+        callback: function (result) {
+            if (result) {
+                $.post("../didattica/corsiCancellaSecondoTentativo.php",
+                    { id_corso: id_corso, id_studente: id_studente },
+                    function (data) {
+                        if (data.success) {
+                            showToast("Studente rimosso dal secondo tentativo");
+                            corsiGetDetails(id_corso);
+                        } else {
+                            showToast("Errore: " + data.error, true);
+                        }
+                    }, "json"
+                );
+            }
+        }
+    });
+}
+
+function iscriviSecondoTentativo(stud_id, iscrizione_id, corso_id) {
+    $.post("../didattica/corsiIscriviSecondoTentativo.php", {
+        id_studente: stud_id,
+        iscrizione_id: iscrizione_id,
+        id_corso: corso_id
+    }, function (data) {
+        if (data.success) {
+            showToast("Studente iscritto al secondo tentativo");
+            corsiGetDetails(corso_id); // ricarico i dettagli corso
+        } else {
+            showToast("Errore: " + (data.error || "impossibile iscrivere"), true);
+        }
+    }, "json").fail(function () {
+        showToast("Errore di comunicazione col server", true);
+    });
 }
 
 function corsiDelete(id, materia, docente, nstudenti, stato) {
@@ -702,7 +763,8 @@ function hideTooltip(el) {
 function apriEsameModal(corso_id) {
     $("#hidden_corso_id").val(corso_id);
 
-    // reset campi (non tocco readonly: lo gestisce il PHP in base al ruolo)
+    // reset campi
+    $('#hidden_esame_data_id').val(''); // reset correttamente qui
     $('#tabellaEsameStudenti tbody').empty();
     $('#argomentiEsame').val('');
     $('#esame_inizio_data').val('');
@@ -710,103 +772,218 @@ function apriEsameModal(corso_id) {
     $('#esame_fine_data').val('');
     $('#esame_fine_ora').val('');
     $('#esame_aula').val('');
+    $('#select_tentativo').empty();
 
     $('#esameModal').modal('show');
 
     $.post("../didattica/corsoEsamiReadDetails.php", { corso_id: corso_id }, function (data) {
-        if (data.success) {
-            // Se esiste già una data esame → compila i campi
-            if (data.esami && data.esami.length > 0) {
-                let esame = data.esami[0];
+        if (!data.success) {
+            showToast("Errore nel caricamento dati esame", true);
+            return;
+        }
+
+        if (data.esami && Array.isArray(data.esami) && data.esami.length > 0) {
+
+            // Popola il select tentativo
+            data.esami.forEach(function (esame) {
+                let label = (esame.tentativo == 1 ? "Primo tentativo" : esame.tentativo + "° tentativo");
                 if (esame.data_inizio_esame) {
-                    // parsing robusto
                     let raw = String(esame.data_inizio_esame);
                     let dt = new Date(raw.replace(' ', 'T'));
                     if (!isNaN(dt.getTime())) {
-                        $('#esame_inizio_data').val(dt.toISOString().slice(0, 10));  // YYYY-MM-DD
-                        $('#esame_inizio_ora').val(
-                            String(dt.getHours()).padStart(2, '0') + ':' +
-                            String(dt.getMinutes()).padStart(2, '0')
-                        ); // HH:MM
+                        label += " (" + dt.toLocaleDateString() + ")";
                     }
                 }
-                if (esame.data_fine_esame) {
-                    // parsing robusto
-                    let raw = String(esame.data_fine_esame);
-                    let dt = new Date(raw.replace(' ', 'T'));
-                    if (!isNaN(dt.getTime())) {
-                        $('#esame_fine_data').val(dt.toISOString().slice(0, 10));  // YYYY-MM-DD
-                        $('#esame_fine_ora').val(
-                            String(dt.getHours()).padStart(2, '0') + ':' +
-                            String(dt.getMinutes()).padStart(2, '0')
-                        ); // HH:MM
-                    }
-                }
+                $('#select_tentativo').append(
+                    `<option value="${esame.tentativo}" data-id="${esame.id}">${label}</option>`
+                );
+            });
 
-                if (esame.aula) {
-                    $('#esame_aula').val(esame.aula);
-                }
-                if (esame.firmato !== undefined) {
-                    $('#esameFirmato').prop('checked', esame.firmato == 1);
-                }
-            }
+            // Imposta il valore hidden id con l’id del primo esame
+            $('#hidden_esame_data_id').val(data.esami[0].id);
 
-            // Popola argomenti se esistono 
-            if (data.studenti && data.studenti.length > 0) {
-                let primoConArg = data.studenti.find(s => s.argomenti && String(s.argomenti).trim() !== "");
-                if (primoConArg) {
-                    $('#argomentiEsame').val(primoConArg.argomenti);
-                }
-            }
+            // Mostra subito il primo tentativo
+            caricaDatiTentativo(data, data.esami[0].tentativo);
 
-            // Popola tabella studenti
-            if (data.studenti && data.studenti.length > 0) {
-                data.studenti.forEach(function (s) {
-                    let row = `
-                        <tr>
-                            <td>${s.cognome} ${s.nome}</td>
-                            <td>${s.classe}</td>
-                            <td class="text-center">
-                                <input type="checkbox" class="chk-presente" data-id="${s.stud_id}" ${s.presente == 1 ? 'checked' : ''}>
-                            </td>
-                            <td>
-                                <select class="form-control tipo-prova" data-id="${s.stud_id}">
-                                    <option value="scritto" ${s.tipo_prova === 'scritto' ? 'selected' : ''}>Scritto</option>
-                                    <option value="orale" ${s.tipo_prova === 'orale' ? 'selected' : ''}>Orale</option>
-                                    <option value="pratico" ${s.tipo_prova === 'pratico' ? 'selected' : ''}>Pratico</option>
-                                </select>
-                            </td>
-                            <td>
-                                <input type="number" class="form-control voto-studente" data-id="${s.stud_id}" min="0" max="10" step="0.5" value="${s.voto || ''}">
-                            </td>
-                            <td class="recuperata text-center">
-                                ${s.voto >= 6 ? '✅' : (s.voto ? '❌' : '-')}
-                            </td>
-                        </tr>`;
-                    $('#tabellaEsameStudenti tbody').append(row);
-                });
-
-                // aggiorna colonna "carenza recuperata" al variare del voto
-                $(".voto-studente").on("input", function () {
-                    let voto = parseFloat($(this).val());
-                    let cell = $(this).closest("tr").find(".recuperata");
-                    if (!isNaN(voto)) {
-                        cell.text(voto >= 6 ? "✅" : "❌");
-                    } else {
-                        cell.text("-");
-                    }
-                });
-            } else {
-                $('#tabellaEsameStudenti tbody').html('<tr><td colspan="6" class="text-center text-danger">Nessuno studente iscritto</td></tr>');
-            }
+            // Se cambio tentativo → aggiorna i campi e id nascosto
+            $('#select_tentativo').off('change').on('change', function () {
+                let t = parseInt($(this).val());
+                let selected = data.esami.find(e => e.tentativo == t);
+                if (selected) $('#hidden_esame_data_id').val(selected.id);
+                caricaDatiTentativo(data, t);
+            });
 
         } else {
-            showToast("Errore nel caricamento dati esame", true);
+            $('#select_tentativo').append('<option value="0">Nessun esame programmato</option>');
         }
+
     }, 'json').fail(function () {
         showToast("Errore di comunicazione col server", true);
     });
 }
+
+
+// funzione helper che carica i dati di un tentativo specifico
+function caricaDatiTentativo(data, tentativo) {
+    // reset
+    $('#tabellaEsameStudenti tbody').empty();
+    $('#argomentiEsame').val('');
+    $('#esame_inizio_data').val('');
+    $('#esame_inizio_ora').val('');
+    $('#esame_fine_data').val('');
+    $('#esame_fine_ora').val('');
+    $('#esame_aula').val('');
+    $('#esameFirmato').prop('checked', false);
+
+    let esame = data.esami.find(e => e.tentativo == tentativo);
+    if (esame) {
+        if (esame.data_inizio_esame) {
+            let dt = new Date(esame.data_inizio_esame.replace(' ', 'T'));
+            if (!isNaN(dt.getTime())) {
+                $('#esame_inizio_data').val(dt.toISOString().slice(0, 10));
+                $('#esame_inizio_ora').val(dt.toISOString().slice(11, 16));
+            }
+        }
+        if (esame.data_fine_esame) {
+            let dt = new Date(esame.data_fine_esame.replace(' ', 'T'));
+            if (!isNaN(dt.getTime())) {
+                $('#esame_fine_data').val(dt.toISOString().slice(0, 10));
+                $('#esame_fine_ora').val(dt.toISOString().slice(11, 16));
+            }
+        }
+        if (esame.aula) $('#esame_aula').val(esame.aula);
+        $('#esameFirmato').prop('checked', esame.firmato == 1);
+    }
+
+    // Argomenti → primo con valore
+    let primoConArg = data.studenti.find(s => s.tentativo == tentativo && s.argomenti && String(s.argomenti).trim() !== "");
+    if (primoConArg) {
+        $('#argomentiEsame').val(primoConArg.argomenti);
+    }
+
+    // Studenti iscritti a quel tentativo
+    let studenti = data.studenti.filter(s => s.tentativo == tentativo);
+    if (studenti.length > 0) {
+        studenti.forEach(function (s) {
+            let row = `
+                <tr>
+                    <td>${s.cognome} ${s.nome}</td>
+                    <td>${s.classe}</td>
+                    <td class="text-center">
+                        <input type="checkbox" class="chk-presente" data-id="${s.stud_id}" ${s.presente == 1 ? 'checked' : ''}>
+                    </td>
+                    <td>
+                        <select class="form-control tipo-prova" data-id="${s.stud_id}">
+                            <option value="scritto" ${s.tipo_prova === 'scritto' ? 'selected' : ''}>Scritto</option>
+                            <option value="orale" ${s.tipo_prova === 'orale' ? 'selected' : ''}>Orale</option>
+                            <option value="pratico" ${s.tipo_prova === 'pratico' ? 'selected' : ''}>Pratico</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control voto-studente" data-id="${s.stud_id}" min="0" max="10" step="0.5" value="${s.voto || ''}">
+                    </td>
+                    <td class="recuperata text-center">
+                        ${s.voto >= 6 ? '✅' : (s.voto ? '❌' : '-')}
+                    </td>
+                </tr>`;
+            $('#tabellaEsameStudenti tbody').append(row);
+        });
+
+        $(".voto-studente").on("input", function () {
+            let voto = parseFloat($(this).val());
+            let cell = $(this).closest("tr").find(".recuperata");
+            if (!isNaN(voto)) {
+                cell.text(voto >= 6 ? "✅" : "❌");
+            } else {
+                cell.text("-");
+            }
+        });
+    } else {
+        $('#tabellaEsameStudenti tbody').html('<tr><td colspan="6" class="text-center text-danger">Nessuno studente iscritto</td></tr>');
+    }
+}
+
+
+function caricaDatiSessione(data, sessione) {
+    // reset campi
+    $('#tabellaEsameStudenti tbody').empty();
+    $('#argomentiEsame').val('');
+    $('#esame_inizio_data').val('');
+    $('#esame_inizio_ora').val('');
+    $('#esame_fine_data').val('');
+    $('#esame_fine_ora').val('');
+    $('#esame_aula').val('');
+    $('#esameFirmato').prop('checked', false);
+
+    // trova l'esame relativo alla sessione
+    let esame = data.esami.find(e => String(e.sessione) === String(sessione));
+    if (esame) {
+        if (esame.data_inizio_esame) {
+            let dt = new Date(esame.data_inizio_esame.replace(' ', 'T'));
+            if (!isNaN(dt.getTime())) {
+                $('#esame_inizio_data').val(dt.toISOString().slice(0, 10));
+                $('#esame_inizio_ora').val(dt.toISOString().slice(11, 16));
+            }
+        }
+        if (esame.data_fine_esame) {
+            let dt = new Date(esame.data_fine_esame.replace(' ', 'T'));
+            if (!isNaN(dt.getTime())) {
+                $('#esame_fine_data').val(dt.toISOString().slice(0, 10));
+                $('#esame_fine_ora').val(dt.toISOString().slice(11, 16));
+            }
+        }
+        $('#esame_aula').val(esame.aula || '');
+        $('#esameFirmato').prop('checked', esame.firmato == 1);
+    }
+
+    // studenti solo di quella sessione
+    let studenti = data.studenti.filter(s => String(s.sessione) === String(sessione));
+    if (studenti.length > 0) {
+        studenti.forEach(function (s) {
+            let row = `
+                <tr>
+                    <td>${s.cognome} ${s.nome}</td>
+                    <td>${s.classe}</td>
+                    <td class="text-center">
+                        <input type="checkbox" class="chk-presente" data-id="${s.stud_id}" ${s.presente == 1 ? 'checked' : ''}>
+                    </td>
+                    <td>
+                        <select class="form-control tipo-prova" data-id="${s.stud_id}">
+                            <option value="scritto" ${s.tipo_prova === 'scritto' ? 'selected' : ''}>Scritto</option>
+                            <option value="orale" ${s.tipo_prova === 'orale' ? 'selected' : ''}>Orale</option>
+                            <option value="pratico" ${s.tipo_prova === 'pratico' ? 'selected' : ''}>Pratico</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" class="form-control voto-studente" data-id="${s.stud_id}" min="0" max="10" step="0.5" value="${s.voto || ''}">
+                    </td>
+                    <td class="recuperata text-center">
+                        ${s.voto >= 6 ? '✅' : (s.voto ? '❌' : '-')}
+                    </td>
+                </tr>`;
+            $('#tabellaEsameStudenti tbody').append(row);
+        });
+
+        $(".voto-studente").on("input", function () {
+            let voto = parseFloat($(this).val());
+            let cell = $(this).closest("tr").find(".recuperata");
+            if (!isNaN(voto)) {
+                cell.text(voto >= 6 ? "✅" : "❌");
+            } else {
+                cell.text("-");
+            }
+        });
+
+        // argomenti (prendo il primo disponibile)
+        let primoConArg = studenti.find(s => s.argomenti && String(s.argomenti).trim() !== "");
+        if (primoConArg) {
+            $('#argomentiEsame').val(primoConArg.argomenti);
+        }
+    } else {
+        $('#tabellaEsameStudenti tbody').html('<tr><td colspan="6" class="text-center text-danger">Nessuno studente iscritto</td></tr>');
+    }
+}
+
 
 // Alias per compatibilità se il bottone chiama "apriEsame(...)"
 function apriEsame(corso_id) {
@@ -818,6 +995,7 @@ function apriEsame(corso_id) {
 // ================================
 function salvaEsame() {
     var corso_id = $("#hidden_corso_id").val();
+    var id_esame_data = $("#hidden_esame_data_id").val(); // <-- nuovo campo
     var argomenti = $('#argomentiEsame').val().trim();
     var firmato = $('#esameFirmato').is(':checked') ? 1 : 0;
 
@@ -844,7 +1022,9 @@ function salvaEsame() {
     var data_fine_esame = $('#esame_fine_data').val();
     var ora_fine_esame = $('#esame_fine_ora').val();
     var aula_esame = $('#esame_aula').val().trim();
-    var datetime_esame = null;
+
+    var datetime_inizio_esame = null;
+    var datetime_fine_esame = null;
 
     if (data_inizio_esame && ora_inizio_esame) {
         datetime_inizio_esame = data_inizio_esame + " " + ora_inizio_esame + ":00";
@@ -854,6 +1034,10 @@ function salvaEsame() {
     }
 
     // 🔎 VALIDAZIONI
+    if (!id_esame_data) {
+        showToast("Sessione d’esame non identificata", true);
+        return;
+    }
     if (!argomenti) {
         showToast("Inserisci gli argomenti della prova", true);
         return;
@@ -875,9 +1059,10 @@ function salvaEsame() {
         return;
     }
 
-    // se tutti i controlli superati → salvo
+    // ✅ Invio dei dati
     $.post("../didattica/corsoEsamiSave.php", {
         corso_id: corso_id,
+        id_esame_data: id_esame_data, // <-- aggiunto!
         argomenti: argomenti,
         data_inizio: datetime_inizio_esame,
         data_fine: datetime_fine_esame,
@@ -896,6 +1081,7 @@ function salvaEsame() {
         showToast("Errore di comunicazione col server", true);
     });
 }
+
 
 
 $(document).ready(function () {

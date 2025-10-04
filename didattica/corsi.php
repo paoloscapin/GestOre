@@ -661,119 +661,114 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         </div>
     </div>
 
-    <!-- Modal Esame -->
-    <div class="modal fade" id="esameModal" tabindex="-1" role="dialog" aria-labelledby="esameLabel" data-backdrop="static">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
+<!-- Modal Esame -->
+<div class="modal fade" id="esameModal" tabindex="-1" role="dialog" aria-labelledby="esameLabel" data-backdrop="static">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
 
-                <div class="modal-header modal-header-orange4">
-                    <h4 class="modal-title w-100 text-center" id="esameLabel">Gestione Esame</h4>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                </div>
-
-                <div class="modal-body">
-                    <form class="form-horizontal">
-
-                        <!-- Data, Ora, Aula -->
-                        <div class="form-group row">
-                            <!-- Data -->
-                            <label class="col-sm-2 col-form-label text-right">
-                                Data
-                            </label>
-                            <div class="col-sm-2">
-                                <input type="date" id="esame_inizio_data" class="form-control" style="text-align: center;">
-                            </div>
-
-                            <!-- Ora -->
-                            <label class="col-sm-1 col-form-label text-center">
-                                Ora inizio
-                            </label>
-                            <div class="col-sm-2">
-                                <input type="time" id="esame_inizio_ora" class="form-control" style="text-align: center;">
-                            </div>
-
-                            <!-- Aula -->
-                            <label class="col-sm-1 col-form-label text-center">
-                                Aula
-                            </label>
-                            <div class="col-sm-2">
-                                <input type="text" id="esame_aula" class="form-control">
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <!-- Data -->
-                            <label class="col-sm-2 col-form-label text-right">
-                                Data
-                            </label>
-                            <div class="col-sm-2">
-                                <input type="date" id="esame_fine_data" class="form-control" style="text-align: center;">
-                            </div>
-
-                            <!-- Ora -->
-                            <label class="col-sm-1 col-form-label text-center">
-                                Ora fine
-                            </label>
-                            <div class="col-sm-2">
-                                <input type="time" id="esame_fine_ora" class="form-control" style="text-align: center;">
-                            </div>
-
-
-                        </div>
-
-
-
-                        <!-- Tabella studenti -->
-                        <div class="form-group">
-                            <label class="col-sm-12 text-center label-rosso">Studenti Iscritti</label>
-                            <div class="col-sm-12">
-                                <table class="table table-bordered table-striped text-center" id="tabellaEsameStudenti">
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center">Studente</th>
-                                            <th class="text-center">Classe</th>
-                                            <th class="text-center">Presente</th>
-                                            <th class="text-center">Tipo Prova</th>
-                                            <th class="text-center">Voto</th>
-                                            <th class="text-center">Carenza Recuperata</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Popolato da JS -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Argomenti -->
-                        <div class="form-group">
-                            <label class="col-sm-12 text-center label-rosso">Argomenti della Verifica</label>
-                            <div class="col-sm-12">
-                                <textarea id="argomentiEsame" class="form-control" rows="4"
-                                    placeholder="Inserisci gli argomenti della prova..."></textarea>
-                            </div>
-                        </div>
-
-                        <!-- Checkbox Firmato -->
-                        <div class="form-group text-center">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="esameFirmato" value="1">
-                                <label class="form-check-label" for="esameFirmato">
-                                    FIRMA L'ESAME
-                                </label>
-                            </div>
-                        </div>
-
-                    </form>
-                </div>
-
-                <div class="modal-footer center">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
-                    <button type="button" class="btn btn-primary" onclick="salvaEsame()">Salva Esame</button>
-                </div>
-
+            <div class="modal-header modal-header-orange4">
+                <h4 class="modal-title w-100 text-center" id="esameLabel">Gestione Esame</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
+
+            <div class="modal-body">
+                <form class="form-horizontal">
+
+                    <!-- 🔹 Nuovo selettore tentativo -->
+                    <div class="form-group row">
+                        <label class="col-sm-2 col-form-label text-right">Sessione</label>
+                        <div class="col-sm-4">
+                            <select id="select_tentativo" class="form-control">
+                                <!-- Popolato via JS -->
+                                <!-- <option value="1">Primo tentativo (01/06/2025)</option> -->
+                                <!-- <option value="2">Secondo tentativo (non programmato)</option> -->
+                            </select>
+                        </div>
+                    </div>
+                    <input type="hidden" id="hidden_esame_data_id" value="">
+                    <!-- Data, Ora, Aula -->
+                    <div class="form-group row">
+                        <label class="col-sm-2 col-form-label text-right">Data</label>
+                        <div class="col-sm-2">
+                            <input type="date" id="esame_inizio_data" class="form-control" style="text-align: center;">
+                        </div>
+
+                        <label class="col-sm-1 col-form-label text-center">Ora inizio</label>
+                        <div class="col-sm-2">
+                            <input type="time" id="esame_inizio_ora" class="form-control" style="text-align: center;">
+                        </div>
+
+                        <label class="col-sm-1 col-form-label text-center">Aula</label>
+                        <div class="col-sm-2">
+                            <input type="text" id="esame_aula" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label class="col-sm-2 col-form-label text-right">Data</label>
+                        <div class="col-sm-2">
+                            <input type="date" id="esame_fine_data" class="form-control" style="text-align: center;">
+                        </div>
+
+                        <label class="col-sm-1 col-form-label text-center">Ora fine</label>
+                        <div class="col-sm-2">
+                            <input type="time" id="esame_fine_ora" class="form-control" style="text-align: center;">
+                        </div>
+                    </div>
+
+                    <!-- Tabella studenti -->
+                    <div class="form-group">
+                        <label class="col-sm-12 text-center label-rosso">Studenti Iscritti</label>
+                        <div class="col-sm-12">
+                            <table class="table table-bordered table-striped text-center" id="tabellaEsameStudenti">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center">Studente</th>
+                                        <th class="text-center">Classe</th>
+                                        <th class="text-center">Presente</th>
+                                        <th class="text-center">Tipo Prova</th>
+                                        <th class="text-center">Voto</th>
+                                        <th class="text-center">Carenza Recuperata</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Popolato via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Argomenti -->
+                    <div class="form-group">
+                        <label class="col-sm-12 text-center label-rosso">Argomenti della Verifica</label>
+                        <div class="col-sm-12">
+                            <textarea id="argomentiEsame" class="form-control" rows="4"
+                                placeholder="Inserisci gli argomenti della prova..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Checkbox Firmato -->
+                    <div class="form-group text-center">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="esameFirmato" value="1">
+                            <label class="form-check-label" for="esameFirmato">
+                                FIRMA L'ESAME
+                            </label>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+
+            <div class="modal-footer center">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                <button type="button" class="btn btn-primary" onclick="salvaEsame()">Salva Esame</button>
+            </div>
+
         </div>
     </div>
+</div>
+
 
 
 
