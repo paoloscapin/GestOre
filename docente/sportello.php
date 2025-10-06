@@ -75,15 +75,28 @@ require_once '../common/connect.php';
 <div class="panel panel-orange4">
 <div class="panel-heading">
 	<div class="row">
-		<div class="col-md-4">
+		<div class="col-md-2">
 			<span class="glyphicon glyphicon-object-align-horizontal"></span>&ensp;Sportelli
 		</div>
-		<div class="col-md-4 text-center">
+        <div class="col-md-3">
+            <div class="text-center">
+                <label class="col-sm-2 control-label" for="materia">Materia</label>
+					<div class="col-sm-8"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+                    <?php echo $materiaFiltroOptionList ?>
+					</select></div>
+            </div>
+        </div>
+		<div class="col-md-2 text-center">
             <label class="checkbox-inline">
                 <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox" >Solo Nuovi
             </label>
 		</div>
-		<div class="col-md-4 text-right">
+		<div class="col-md-2 text-center">
+            <label class="checkbox-inline">
+                <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloMieiCheckBox" >Solo Miei
+            </label>
+		</div>
+		<div class="col-md-3 text-right">
 <?php if(getSettingsValue("sportelli", "inseriti_da_docente", false)) : ?>
             <div class="pull-right">
                 <button class="btn btn-xs btn-orange4" onclick="sportelloGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
