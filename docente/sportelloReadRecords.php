@@ -13,6 +13,8 @@ require_once '../common/connect.php';
 
 $ancheCancellati = $_GET["ancheCancellati"];
 $soloNuovi = $_GET["soloNuovi"];
+$soloMiei = $_GET["soloMiei"];
+$materia_filtro_id = $_GET["materia_filtro_id"];
 
 $direzioneOrdinamento="ASC";
 
@@ -50,6 +52,7 @@ $query = "	SELECT
 				materia.nome AS materia_nome,
 				docente.cognome AS docente_cognome,
 				docente.nome AS docente_nome,
+				docente.id AS docente_id,
 				(	SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id) AS numero_studenti
 			FROM sportello sportello
 			INNER JOIN docente docente
@@ -57,11 +60,15 @@ $query = "	SELECT
 			INNER JOIN materia materia
 			ON sportello.materia_id = materia.id
 			WHERE 
-				sportello.docente_id = $__docente_id
-			AND
-				sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
+				sportello.anno_scolastico_id = $__anno_scolastico_corrente_id 
 			";
 
+if( $soloMiei) {
+	$query .= "AND sportello.docente_id = $__docente_id ";
+}
+if( $materia_filtro_id > 0) {
+	$query .= "AND sportello.materia_id = $materia_filtro_id ";
+}
 if( ! $ancheCancellati) {
 	$query .= "AND NOT sportello.cancellato ";
 }
@@ -133,12 +140,12 @@ foreach($resultArray as $row) {
 		<td class="text-center">'.$statoMarker.'</td>
 		<td data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
 		';
-	$data .='
-		<td class="text-center">
-		<button onclick="sportelloGetDetails('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
-		<button onclick="sportelloDelete('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-		</td>
-		</tr>';
+	$data .='<td class="text-center">';
+	if ($row['docente_id'] == $__docente_id) {
+		$data .='<button onclick="sportelloGetDetails('.$row['sportello_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
+				<button onclick="sportelloDelete('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>';
+	}
+	$data .='</td></tr>';
 }
 
 $data .= '</table></div>';

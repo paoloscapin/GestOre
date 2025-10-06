@@ -1,3 +1,7 @@
+## Version 1.3.6 - 6 ott 2025
+##### Improvements
+- sportello soloMiei altrimenti visualizza altri docenti e filtro materie
+
 ## Version 1.3.5 - 2 ott 2025
 ##### Improvements
 - sportello check indirizzo cc per confermato o annullato

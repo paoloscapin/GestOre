@@ -6,6 +6,9 @@
  */
 
 var soloNuovi=1;
+var soloMiei=1;
+var materia_filtro_id=0;
+
 function setDbDateToPickr(pickr, data_str) {
 	var data = Date.parseExact(data_str, 'yyyy-MM-dd');
 	pickr.setDate(data);
@@ -27,8 +30,18 @@ $('#soloNuoviCheckBox').change(function() {
     sportelloReadRecords();
 });
 
+$('#soloMieiCheckBox').change(function() {
+    // this si riferisce al checkbox
+    if (this.checked) {
+		soloMiei = 1;
+    } else {
+		soloMiei = 0;
+    }
+    sportelloReadRecords();
+});
+
 function sportelloReadRecords() {
-	$.get("../docente/sportelloReadRecords.php?ancheCancellati=true&soloNuovi=" + soloNuovi, {}, function (data, status) {
+	$.get("../docente/sportelloReadRecords.php?ancheCancellati=true&soloNuovi=" + soloNuovi + "&soloMiei=" + soloMiei + "&materia_filtro_id=" + materia_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
@@ -207,4 +220,10 @@ $(document).ready(function () {
 	});
 
     sportelloReadRecords();
+    
+    $("#materia_filtro").on("changed.bs.select", 
+    function(e, clickedIndex, newValue, oldValue) {
+        materia_filtro_id = this.value;
+        sportelloReadRecords();
+    });
 });
