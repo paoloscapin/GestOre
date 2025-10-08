@@ -42,6 +42,7 @@ $query = "
         c.nota_docente AS nota,
         d.cognome AS doc_cognome,
         d.nome AS doc_nome,
+        d.id AS doc_id,
         m.nome AS materia
     FROM carenze c
     INNER JOIN docente d ON c.id_docente = d.id
@@ -63,7 +64,11 @@ $carenze = dbGetAll($query) ?: [];
 foreach ($carenze as $row) {
     $idcarenza = intval($row['carenza_id']);
     $materia = htmlspecialchars($row['materia']);
-    $docente = htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome']);
+    if ($row['doc_id'] == 0) {
+        $docente = 'Studente esterno';
+    } else {
+        $docente = htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome']);
+    }
     $note = htmlspecialchars($row['nota']);
     $anno_carenza = intval($row['id_anno_scolastico']);
     $data_ricezione = (new DateTime($row['data_invio']))->format('d-m-Y H:i');

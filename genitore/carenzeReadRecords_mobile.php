@@ -37,7 +37,11 @@ echo '<div class="cards-container">';
 foreach ($carenze as $row) {
     $idcarenza = intval($row['carenza_id']);
     $materia = htmlspecialchars($row['materia']);
-    $docente = htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome']);
+    if ($row['doc_id'] == 0) {
+        $docente = 'Studente esterno';
+    } else {
+        $docente = htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome']);
+    }
     $note = htmlspecialchars($row['nota']);
     $data_ricezione = $row['data_invio'] ? (new DateTime($row['data_invio']))->format('d-m-Y H:i') : '';
 
