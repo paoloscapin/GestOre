@@ -1,4 +1,5 @@
 <?php
+
 /**
  *  This file is part of GestOre
  *  @author     Paolo Scapin <paolo.scapin@gmail.com>
@@ -10,6 +11,7 @@ require_once __DIR__ . '/__Settings.php';
 require_once __DIR__ . '/path.php';
 require_once __DIR__ . '/__Log.php';
 require_once __DIR__ . '/__Util.php';
+require_once __DIR__ . '/checkSession.php';
 
 $base = $_GET['base'] ?? '';
 
@@ -31,17 +33,20 @@ if (haRuolo('admin')) {
     if (impersonaRuolo('docente')) {
         info("Torno dalla sessione docente ad admin");
         unset($_SESSION['docente_id'], $_SESSION['docente_nome'], $_SESSION['docente_cognome'], $_SESSION['docente_email']);
-        redirect('/index.php');
+        echo "<script>window.close();</script>";
+        exit;
     }
     if (impersonaRuolo('studente')) {
         info("Torno dalla sessione studente ad admin");
         unset($_SESSION['studente_id'], $_SESSION['studente_nome'], $_SESSION['studente_cognome'], $_SESSION['studente_email'], $_SESSION['studente_codice_fiscale']);
-        redirect('/index.php');
+        echo "<script>window.close();</script>";
+        exit;
     }
     if (impersonaRuolo('genitore')) {
         info("Torno dalla sessione genitore ad admin");
         unset($_SESSION['genitore_id'], $_SESSION['genitore_nome'], $_SESSION['genitore_cognome'], $_SESSION['genitore_email'], $_SESSION['genitore_codice_fiscale']);
-        redirect('/index.php');
+        echo "<script>window.close();</script>";
+        exit;
     }
 }
 
