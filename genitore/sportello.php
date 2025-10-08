@@ -100,7 +100,7 @@ foreach (dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ") as $classe
 // prepara l'elenco degli studenti per il filtro
 $studenteFiltroOptionList = '';
 
-$studenti = dbGetAll("SELECT * FROM studente WHERE id IN (
+$studenti = dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id IN (
     SELECT id_studente FROM genitori_studenti WHERE id_genitore = " . intval($__genitore_id) . "
 )");
 

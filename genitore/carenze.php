@@ -75,7 +75,7 @@ require_once '../common/checkSession.php';
 // prepara l'elenco degli studenti per il filtro
 $studenteFiltroOptionList = '';
 
-$studenti = dbGetAll("SELECT * FROM studente WHERE id IN (
+$studenti = dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id IN (
     SELECT id_studente FROM genitori_studenti WHERE id_genitore = " . intval($__genitore_id) . "
 )");
 $firstId = null; // inizializziamo

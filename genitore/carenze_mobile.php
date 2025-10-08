@@ -35,7 +35,7 @@ require_once '../common/checkSession.php';
     $studenteFiltroOptionList = '';
     $firstId = 0;
 
-    $studenti = dbGetAll("SELECT * FROM studente WHERE id IN (
+    $studenti = dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id IN (
         SELECT id_studente FROM genitori_studenti WHERE id_genitore = " . intval($__genitore_id) . "
     )");
 

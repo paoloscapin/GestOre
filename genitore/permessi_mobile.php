@@ -12,7 +12,7 @@ ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
 $studenti = dbGetAll("SELECT studente.id, studente.nome, studente.cognome
     FROM studente
     INNER JOIN genitori_studenti gs ON studente.id = gs.id_studente
-    WHERE gs.id_genitore = ".intval($__genitore_id)."
+    WHERE studetne.attivo = 1 AND gs.id_genitore = ".intval($__genitore_id)."
     ORDER BY studente.cognome, studente.nome ASC");
 
 // Imposto il primo studente come selezionato di default
