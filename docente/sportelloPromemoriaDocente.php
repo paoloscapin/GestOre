@@ -8,10 +8,11 @@
  */
 
 // include Database connection file
-//require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/send-mail.php';
 
+$__anno_scolastico = dbGetFirst("SELECT * FROM anno_scolastico_corrente");
+$__anno_scolastico_corrente_id = $__anno_scolastico['anno_scolastico_id'];
 
 $query = "	SELECT
 				sportello.id AS sportello_id,
@@ -37,14 +38,13 @@ $query = "	SELECT
 				WHERE
 				date_format(sportello.data,'%Y%m%d') = CURDATE() + INTERVAL 1 DAY
 				AND NOT sportello.cancellato ";
-				
+
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
 	$resultArray = [];
 }
 
-foreach($resultArray as $row) 
-{
+foreach ($resultArray as $row) {
 	$data = "";
 	$sportello_id = $row['sportello_id'];
 	$sportello_ora = $row['sportello_ora'];
@@ -64,11 +64,13 @@ foreach($resultArray as $row)
 
 	$data .= "ID=" . $sportello_id . " - ORA=" . $sportello_ora . " - CANCELLATO=" . $sportello_cancellato . " - ID DOCENTE=" . $sportello_docente_id . " - NR ISCRITTI=" . $numero_studenti_iscritti;
 
-	
+
 	info("dati promemoria sportello docente da inviare - COGNOME " . $sportello_docente_cognome . " NOME  " . $sportello_docente_nome);
 
-	
-	if ($numero_studenti_iscritti>0)
+	$toName = $sportello_docente_cognome . " " . $sportello_docente_nome;
+	$to = $sportello_docente_email;
+
+	if ($numero_studenti_iscritti > 0)
 	// CI SONO STUDENTI ISCRITTI - INVIO IL PROMEMORIA CON ELENCO STUDENTI AL DOCENTE
 	{
 
@@ -80,14 +82,19 @@ foreach($resultArray as $row)
 
 					studente.cognome AS studente_cognome,
 					studente.nome AS studente_nome,
-					studente.classe AS studente_classe
+					c.classe AS studente_classe
 					FROM sportello_studente
 					INNER JOIN studente
 					ON studente.id = sportello_studente.studente_id
+					INNER JOIN studente_frequenta sf
+					ON sf.id_studente = studente.id
+					AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id
+					INNER JOIN classi c
+					ON c.id = sf.id_classe
 					WHERE
 					sportello_id = " . $sportello_id . "
 					AND sportello_studente.iscritto = 1";
-					
+
 		$resultArray = dbGetAll($query);
 		if ($resultArray == null) {
 			$resultArray = [];
@@ -95,8 +102,7 @@ foreach($resultArray as $row)
 
 		$tabella_html = '';
 
-		foreach($resultArray as $row) 
-		{
+		foreach ($resultArray as $row) {
 			$studente_cognome = $row['studente_cognome'];
 			$studente_nome = $row['studente_nome'];
 			$studente_classe = $row['studente_classe'];
@@ -106,22 +112,22 @@ foreach($resultArray as $row)
 
 			$row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
 			<p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
-			$row_html = str_replace("VALORE",$studente_classe,$row_html);
+			$row_html = str_replace("VALORE", $studente_classe, $row_html);
 			$data_html .= $row_html;
 
 			$row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
 			<p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
-			$row_html = str_replace("VALORE",$studente_cognome,$row_html);
+			$row_html = str_replace("VALORE", $studente_cognome, $row_html);
 			$data_html .= $row_html;
 
 			$row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
 			<p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
-			$row_html = str_replace("VALORE",$studente_nome,$row_html);
+			$row_html = str_replace("VALORE", $studente_nome, $row_html);
 			$data_html .= $row_html;
 
 			$row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
 			<p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
-			$row_html = str_replace("VALORE",$sportello_argomento,$row_html);
+			$row_html = str_replace("VALORE", $sportello_argomento, $row_html);
 			$data_html .= $row_html;
 
 			$data_html .= '</tr>';
@@ -137,29 +143,25 @@ foreach($resultArray as $row)
 		$data_array = explode("-", $sportello_data);
 		$sportello_data = $data_array[2] . "-" . $data_array[1] . "-" . $data_array[0];
 
-		$full_mail_body = str_replace("{titolo}","PROMEMORIA ATTIVITA'<br>".strtoupper($sportello_categoria),$full_mail_body);
-		$full_mail_body = str_replace("{nome}",strtoupper($sportello_docente_cognome) . " " . strtoupper($sportello_docente_nome),$full_mail_body);
-		$full_mail_body = str_replace("{messaggio}","questo è il promemoria per la seguente attività</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($sportello_categoria) . "</center></b></h3>",$full_mail_body);
-		$full_mail_body = str_replace("{data}",$sportello_data,$full_mail_body);
-		$full_mail_body = str_replace("{ora}",$sportello_ora,$full_mail_body);
-		$full_mail_body = str_replace("{docente}",strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome),$full_mail_body);
-		$full_mail_body = str_replace("{materia}",$sportello_materia,$full_mail_body);
-		$full_mail_body = str_replace("{aula}",$sportello_luogo,$full_mail_body);
-		$full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
-		$full_mail_body = str_replace("{codice_html_tabella}",$tabella_html,$full_mail_body);
-		$full_mail_body = str_replace("{messaggio_finale}","", $full_mail_body);
+		$full_mail_body = str_replace("{titolo}", "PROMEMORIA ATTIVITA'<br>" . strtoupper($sportello_categoria), $full_mail_body);
+		$full_mail_body = str_replace("{nome}", strtoupper($sportello_docente_cognome) . " " . strtoupper($sportello_docente_nome), $full_mail_body);
+		$full_mail_body = str_replace("{messaggio}", "questo è il promemoria per la seguente attività</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($sportello_categoria) . "</center></b></h3>", $full_mail_body);
+		$full_mail_body = str_replace("{data}", $sportello_data, $full_mail_body);
+		$full_mail_body = str_replace("{ora}", $sportello_ora, $full_mail_body);
+		$full_mail_body = str_replace("{docente}", strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome), $full_mail_body);
+		$full_mail_body = str_replace("{materia}", $sportello_materia, $full_mail_body);
+		$full_mail_body = str_replace("{aula}", $sportello_luogo, $full_mail_body);
+		$full_mail_body = str_replace("{nome_istituto}", $__settings->local->nomeIstituto, $full_mail_body);
+		$full_mail_body = str_replace("{codice_html_tabella}", $tabella_html, $full_mail_body);
+		$full_mail_body = str_replace("{messaggio_finale}", "", $full_mail_body);
 
-		$to = $sportello_docente_email;
-		$toName = $sportello_docente_nome . " " . $sportello_docente_cognome;
-
-		info("Invio mail al docente: ".$to." ".$toName);
-		echo "Invio mail al docente: ".$to." ".$toName."\n";
+		info("Invio mail al docente per lo sportello id  " . $row['sportello_id'] . ": " . $to . " " . $toName);
+		echo "Invio mail al docente per lo sportello id  " . $row['sportello_id'] . ": " . $to . " " . $toName . "<br>";
 		$mailsubject = 'GestOre - Promemoria attività ' . $sportello_categoria . ' - materia ' . $sportello_materia;
-		sendMail($to,$toName,$mailsubject,$full_mail_body);
-		echo "inviata mail di promemoria per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome;
-		info("inviata mail di promemoria per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
-	}
-	else
+		sendMail($to, $toName, $mailsubject, $full_mail_body);
+		echo "inviata mail di promemoria per lo sportello id  " . $row['sportello_id'] . " del docente  - " . $toName . "<br>";
+		info("inviata mail di promemoria per lo sportello id  " . $row['sportello_id'] . " del docente - " . $toName);
+	} else
 	// NON CI SONO STUDENTI ISCRITTI - SPORTELLO ANNULLATO
 	{
 		// preparo il testo della mail
@@ -169,32 +171,23 @@ foreach($resultArray as $row)
 		$data_array = explode("-", $sportello_data);
 		$sportello_data = $data_array[2] . "-" . $data_array[1] . "-" . $data_array[0];
 
-		$full_mail_body = str_replace("{titolo}","ANNULLAMENTO ATTIVITA'<br>".strtoupper($sportello_categoria),$full_mail_body);
-		$full_mail_body = str_replace("{nome}",strtoupper($sportello_docente_cognome) . " " . strtoupper($sportello_docente_nome),$full_mail_body);
-		$full_mail_body = str_replace("{messaggio}","la seguente attività viene ANNULLATA a causa di mancanza di iscritti</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($sportello_categoria) . "</center></b></h3>",$full_mail_body);
-		$full_mail_body = str_replace("{data}",$sportello_data,$full_mail_body);
-		$full_mail_body = str_replace("{ora}",$sportello_ora,$full_mail_body);
-		$full_mail_body = str_replace("{docente}",strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome),$full_mail_body);
-		$full_mail_body = str_replace("{materia}",$sportello_materia,$full_mail_body);
-		$full_mail_body = str_replace("{aula}",$sportello_luogo,$full_mail_body);
-		$full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
+		$full_mail_body = str_replace("{titolo}", "ANNULLAMENTO ATTIVITA'<br>" . strtoupper($sportello_categoria), $full_mail_body);
+		$full_mail_body = str_replace("{nome}", strtoupper($sportello_docente_cognome) . " " . strtoupper($sportello_docente_nome), $full_mail_body);
+		$full_mail_body = str_replace("{messaggio}", "la seguente attività viene ANNULLATA a causa di mancanza di iscritti</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($sportello_categoria) . "</center></b></h3>", $full_mail_body);
+		$full_mail_body = str_replace("{data}", $sportello_data, $full_mail_body);
+		$full_mail_body = str_replace("{ora}", $sportello_ora, $full_mail_body);
+		$full_mail_body = str_replace("{docente}", strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome), $full_mail_body);
+		$full_mail_body = str_replace("{materia}", $sportello_materia, $full_mail_body);
+		$full_mail_body = str_replace("{aula}", $sportello_luogo, $full_mail_body);
+		$full_mail_body = str_replace("{nome_istituto}", $__settings->local->nomeIstituto, $full_mail_body);
 
-		$to = $sportello_docente_email;
-		$toName = $sportello_docente_nome . " " . $sportello_docente_cognome;
-	
-		info("Invio mail al docente: ".$to." ".$toName);
-		echo "Invio mail al docente: ".$to." ".$toName."\n";
+		info("Invio mail al docente di annullamento sportello id  " . $row['sportello_id'] . ": " . $to . " " . $toName);
+		echo "Invio mail al docente di annullamento sportello id  " . $row['sportello_id'] . ": " . $to . " " . $toName . "<br>";
 
 		$mailsubject = 'GestOre - Annullamento attività ' . $sportello_categoria . ' - materia ' . $sportello_materia;
-		sendMail($to,$toName,$mailsubject,$full_mail_body);
+		sendMail($to, $toName, $mailsubject, $full_mail_body);
 
-		echo "inviata mail di annullamento sportello per mancanza iscritti - " . $sportello_docente_cognome . " " . $sportello_docente_nome;
-		info("inviata mail di annullamento sportello per mancanza iscritti - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
-
-		}
+		echo "inviata mail di annullamento sportello id " . $row['sportello_id'] . " per mancanza iscritti - " . $toName . "<br>";
+		info("inviata mail di annullamento sportello id " . $row['sportello_id'] . " per mancanza iscritti - " . $toName);
+	}
 }
-
-
-
-?>
-
