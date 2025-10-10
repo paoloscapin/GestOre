@@ -20,14 +20,25 @@ if(isset($_POST)) {
 	$ora = $_POST['ora'];
 	$numero_ore = $_POST['numero_ore'];
 	$luogo = $_POST['luogo'];
-	$studente_cognome = $_POST['studente_cognome'];
-	$studente_nome = $_POST['studente_nome'];
-	$studente_email = $_POST['studente_email'];
-	$studente_classe = $_POST['studente_classe'];
-	$docente_cognome = $_POST['docente_cognome'];
-	$docente_nome = $_POST['docente_nome'];
-	$docente_email = $_POST['docente_email'];
-
+	$docente_id = $_POST['docente_id'];
+	$studente = dbGetFirst("SELECT * from studente WHERE id = $__studente_id");
+	$studente_nome = $studente['nome'];
+	$studente_cognome = $studente['cognome'];
+	$studente_email = $studente['email'];
+	$docente = dbGetFirst("SELECT * from docente WHERE id = $docente_id");
+	$docente_nome = $docente['nome'];
+	$docente_cognome = $docente['cognome'];
+	$docente_email = $docente['email'];
+	$genitori = dbGetAll("SELECT email from genitori g
+						  INNER JOIN genitori_studenti gs ON gs.id_studente = $__studente_id
+						  WHERE g.attivo=1 AND gs.id_genitore = g.id");
+	$email_genitori = "";
+	foreach($genitori as $genitore) {
+		if ($email_genitori != "") {
+			$email_genitori = $email_genitori . ", ";
+		}
+		$email_genitori = $email_genitori . $genitore['email'];
+	}
 	dbExec("INSERT INTO sportello_studente(iscritto, argomento, sportello_id, studente_id) VALUES(true, '$argomento', $sportello_id, $__studente_id)");
 	$last_id = dblastId();
 	info("iscritto $__studente_cognome $__studente_nome allo sportello di $materia argomento=$argomento sportello_id=$sportello_id");

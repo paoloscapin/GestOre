@@ -52,59 +52,83 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					</thead>';
 
 $query = "	SELECT
-				sportello.id AS sportello_id,
-				sportello.data AS sportello_data,
-				sportello.ora AS sportello_ora,
-				sportello.numero_ore AS sportello_numero_ore,
-				sportello.argomento AS sportello_argomento,
-				sportello.luogo AS sportello_luogo,
-				sportello.classe AS sportello_classe,
-				sportello.firmato AS sportello_firmato,
-				sportello.cancellato AS sportello_cancellato,
-				sportello.categoria AS sportello_categoria,
-				sportello.online AS sportello_online,
-				sportello.max_iscrizioni AS sportello_max_iscrizioni,
-				materia.nome AS materia_nome,
-				docente.cognome AS docente_cognome,
-				docente.nome AS docente_nome,
-				docente.email AS docente_email,
-				(	SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id) AS numero_studenti,
-				(	SELECT sportello_studente.iscritto FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS iscritto,
-				(	SELECT sportello_studente.presente FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS presente,
-				(	SELECT sportello_studente.argomento FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS argomento,
-				(	SELECT studente.cognome FROM studente WHERE id = $__studente_id) AS studente_cognome,
-				(	SELECT studente.nome FROM studente WHERE id = $__studente_id) AS studente_nome,
-				(	SELECT studente.email FROM studente WHERE id = $__studente_id) AS studente_email,
-				(	SELECT classi.classe FROM classi WHERE id = (SELECT studente_frequenta.id_classe FROM studente_frequenta WHERE id_studente = $__studente_id AND id_anno_scolastico = $__anno_scolastico_corrente_id)) AS studente_classe
-			FROM sportello sportello
-			INNER JOIN docente docente ON sportello.docente_id = docente.id
-			INNER JOIN materia materia ON sportello.materia_id = materia.id
-			INNER JOIN classe classe ON sportello.classe_id = classe.id
-			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
+    s.id                         AS sportello_id,
+    s.data                       AS sportello_data,
+    s.ora                        AS sportello_ora,
+    s.numero_ore                 AS sportello_numero_ore,
+    s.argomento                  AS sportello_argomento,
+    s.luogo                      AS sportello_luogo,
+    s.classe                     AS sportello_classe,
+    s.firmato                    AS sportello_firmato,
+    s.cancellato                 AS sportello_cancellato,
+    s.categoria                  AS sportello_categoria,
+    s.online                     AS sportello_online,
+    s.max_iscrizioni             AS sportello_max_iscrizioni,
+
+    m.nome                       AS materia_nome,
+
+    d.id                         AS docente_id,
+
+    COALESCE(cnt.numero_studenti, 0) AS numero_studenti,
+
+    -- stato dello studente corrente per questo sportello
+    ssu.iscritto                 AS iscritto,
+    ssu.presente                 AS presente,
+    ssu.argomento                AS argomento,
+
+    -- studente selezionato (solo id) e sua classe nell'anno corrente
+    cl.classe                              AS studente_classe
+
+FROM sportello AS s
+INNER JOIN docente  AS d  ON d.id  = s.docente_id
+INNER JOIN materia  AS m  ON m.id  = s.materia_id
+INNER JOIN classe   AS c  ON c.id  = s.classe_id
+
+-- conteggio iscritti per sportello (solo iscritto=1)
+LEFT JOIN (
+    SELECT sportello_id, COUNT(*) AS numero_studenti
+    FROM sportello_studente
+    WHERE iscritto = 1
+    GROUP BY sportello_id
+) AS cnt ON cnt.sportello_id = s.id
+
+-- riga dello studente corrente (se presente) per questo sportello
+LEFT JOIN sportello_studente AS ssu
+       ON ssu.sportello_id = s.id
+      AND ssu.studente_id  = $__studente_id
+
+-- classe dello studente nell'anno scolastico corrente
+LEFT JOIN studente_frequenta AS sf
+       ON sf.id_studente        = $__studente_id
+      AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id
+LEFT JOIN classi AS cl
+       ON cl.id = sf.id_classe
+
+WHERE s.anno_scolastico_id = $__anno_scolastico_corrente_id
 			";
 
 // rimossa riga da query visto che compare già qui sotto AND NOT sportello.cancellato
 
 if ($classe_filtro_id > 0) {
-	$query .= "AND sportello.classe_id = $classe_filtro_id ";
+	$query .= "AND s.classe_id = $classe_filtro_id ";
 }
 if ($materia_filtro_id > 0) {
-	$query .= "AND sportello.materia_id = $materia_filtro_id ";
+	$query .= "AND s.materia_id = $materia_filtro_id ";
 }
 if ($docente_filtro_id > 0) {
-	$query .= "AND sportello.docente_id = $docente_filtro_id ";
+	$query .= "AND s.docente_id = $docente_filtro_id ";
 }
 if ($categoria_filtro_id > 0) {
-	$query .= "AND sportello.categoria = '" . $nome_categoria . "' ";
+	$query .= "AND s.categoria = '" . $nome_categoria . "' ";
 }
 if (!$ancheCancellati) {
-	$query .= "AND NOT sportello.cancellato ";
+	$query .= "AND NOT s.cancellato ";
 }
 if ($soloNuovi) {
-	$query .= "AND sportello.data >= CURDATE() ";
+	$query .= "AND s.data >= CURDATE() ";
 }
 
-$query .= "ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC,docente_nome ASC";
+$query .= "ORDER BY s.data $direzioneOrdinamento, d.cognome ASC,d.nome ASC";
 
 debug("Query principale pronta");
 
@@ -254,7 +278,7 @@ foreach ($resultArray as $row) {
 			// Crea la data dello sportello nel fuso orario corretto
 			$dataSportelloObj = new DateTime($dataSportello, $tz);
 			debug("dataSportelloObj=" . $dataSportelloObj->format('Y-m-d H:i:sP'));
-            $orario = getSettingsValue('sportelli', 'chiusuraOrario', '13');
+			$orario = getSettingsValue('sportelli', 'chiusuraOrario', '13');
 			// Calcola il limite: ore 13:00 del giorno prima
 			$lastDay = clone $dataSportelloObj;
 			$lastDay->modify('-1 day')->setTime($orario, 0, 0);
@@ -303,7 +327,7 @@ foreach ($resultArray as $row) {
 			}
 
 			// la didattica puo' inserire la prenotazione sempre e puo' sempre cancellare
-			if (!(impersonaRuolo('studente'))&&(haRuolo('segreteria-didattica'))) {
+			if (!(impersonaRuolo('studente')) && (haRuolo('segreteria-didattica'))) {
 				$prenotabile = true;
 				$cancellabile = true;
 			}
@@ -319,7 +343,7 @@ foreach ($resultArray as $row) {
 				if ($cancellabile) {
 					debug("UI branch: iscritto & cancellabile");
 					$data .= '
-						<div data-toggle="tooltip" data-placement="left"  title="Clicca qui per cancellare la prenotazione"><span class="label label-success">Iscritto</span><button onclick="sportelloCancellaIscrizione(' . $row['sportello_id'] . ', \'' . addslashes($row['materia_nome']) . '\', \'' . addslashes($row['sportello_categoria']) . '\', \'' . addslashes($row['sportello_argomento']) . '\',\'' . addslashes($row['sportello_data']) . '\',\'' . addslashes($row['sportello_ora']) . '\',\'' . addslashes($row['sportello_numero_ore']) . '\',\'' . addslashes($row['sportello_luogo']) . '\',\'' . addslashes($row['studente_cognome']) . '\',\'' . addslashes($row['studente_nome']) . '\',\'' . addslashes($row['studente_email']) . '\',\'' . addslashes($row['studente_classe']) . '\',\'' . addslashes($row['docente_cognome']) . '\',\'' . addslashes($row['docente_nome']) . '\',\'' . addslashes($row['docente_email']) . '\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button></div>
+						<div data-toggle="tooltip" data-placement="left"  title="Clicca qui per cancellare la prenotazione"><span class="label label-success">Iscritto</span><button onclick="sportelloCancellaIscrizione(' . $row['sportello_id'] . ', \'' . addslashes($row['materia_nome']) . '\', \'' . addslashes($row['sportello_categoria']) . '\', \'' . addslashes($row['sportello_argomento']) . '\',\'' . addslashes($row['sportello_data']) . '\',\'' . addslashes($row['sportello_ora']) . '\',\'' . addslashes($row['sportello_numero_ore']) . '\',\'' . addslashes($row['sportello_luogo']) . '\',\'' . addslashes($row['docente_id']) . '\',\'' . addslashes($__studente_id) . '\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button></div>
 						';
 				} else {
 					debug("UI branch: iscritto & NON cancellabile");
@@ -332,7 +356,7 @@ foreach ($resultArray as $row) {
 					debug("UI branch: NON iscritto & prenotabile => mostra pulsante iscrizione");
 					$data .= '
 					<div data-toggle="tooltip" data-placement="left"  title="Clicca qui per iscriverti allo sportello"><span class="label label-primary">Disponibile</span>
-					<button onclick="sportelloIscriviti(' . $row['sportello_id'] . ', \'' . addslashes($row['materia_nome']) . '\', \'' . addslashes($row['sportello_categoria']) . '\', \'' . addslashes($row['sportello_argomento']) . '\',\'' . addslashes($row['sportello_data']) . '\',\'' . addslashes($row['sportello_ora']) . '\',\'' . addslashes($row['sportello_numero_ore']) . '\',\'' . addslashes($row['sportello_luogo']) . '\',\'' . addslashes($row['studente_cognome']) . '\',\'' . addslashes($row['studente_nome']) . '\',\'' . addslashes($row['studente_email']) . '\',\'' . addslashes($row['studente_classe']) . '\',\'' . addslashes($row['docente_cognome']) . '\',\'' . addslashes($row['docente_nome']) . '\',\'' . addslashes($row['docente_email']) . '\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button></div>
+					<button onclick="sportelloIscriviti(' . $row['sportello_id'] . ', \'' . addslashes($row['materia_nome']) . '\', \'' . addslashes($row['sportello_categoria']) . '\', \'' . addslashes($row['sportello_argomento']) . '\',\'' . addslashes($row['sportello_data']) . '\',\'' . addslashes($row['sportello_ora']) . '\',\'' . addslashes($row['sportello_numero_ore']) . '\',\'' . addslashes($row['sportello_luogo']) . '\',\'' . addslashes($row['docente_id']) . '\',\'' . addslashes($__studente_id) . '\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button></div>
 					';
 				} else {
 					if ($posti_disponibili == 0) {

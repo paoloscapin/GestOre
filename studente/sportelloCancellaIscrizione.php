@@ -19,13 +19,8 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	$ora = $_POST['ora'];
 	$numero_ore = $_POST['numero_ore'];
 	$luogo = $_POST['luogo'];
-	$studente_cognome = $_POST['studente_cognome'];
-	$studente_nome = $_POST['studente_nome'];
-	$studente_email = $_POST['studente_email'];
-	$studente_classe = $_POST['studente_classe'];
-	$docente_cognome = $_POST['docente_cognome'];
-	$docente_nome = $_POST['docente_nome'];
-	$docente_email = $_POST['docente_email'];
+	$studente_id = $_POST['studente_id'];
+	$docente_id = $_POST['docente_id'];
 
 	$date_time = $data . " " . $ora . ":00";
 	$dateT=date_create($date_time , timezone_open("Europe/Rome"));
