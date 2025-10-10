@@ -169,10 +169,11 @@ foreach ($resultArray as $row) {
 		<td class="text-center">' . $statoMarker . '</td>
 		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="' . $studenteTip . '">' . $barrato . $row['numero_studenti'] . '</td>
 		';
+		$materia_clear = mysqli_real_escape_string($con, $row['materia_nome']);
 		$data .= '
 		<td class="text-center">
 		<button onclick="sportelloGetDetails(' . $row['sportello_id'] . ')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-		<button onclick="sportelloDelete(' . $row['sportello_id'] . ', \'' . $row['materia_nome'] . '\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button onclick="sportelloDelete(' . $row['sportello_id'] . ', \'' . $materia_clear . '\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		<button id="selectbutton' . $row['sportello_id'] . '" onclick="sportelloSelect(' . $row['sportello_id'] . ')" class="btn btn-info btn-xs"><span id="selecticon' . $row['sportello_id'] . '" class="glyphicon glyphicon-remove"></button>
 		</td>
 		</tr>';
