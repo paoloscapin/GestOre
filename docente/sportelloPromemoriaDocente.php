@@ -13,8 +13,6 @@ require_once '../common/connect.php';
 require_once '../common/send-mail.php';
 
 
-$today = new DateTime("now");
-
 $query = "	SELECT
 				sportello.id AS sportello_id,
 				sportello.ora AS sportello_ora,
@@ -37,7 +35,7 @@ $query = "	SELECT
 				INNER JOIN materia
 				ON materia.id = sportello.materia_id
 				WHERE
-				date_format(sportello.data,'%Y%m%d') = CURDATE()
+				date_format(sportello.data,'%Y%m%d') = CURDATE() + INTERVAL 1 DAY
 				AND NOT sportello.cancellato ";
 				
 $resultArray = dbGetAll($query);
