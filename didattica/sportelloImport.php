@@ -179,7 +179,8 @@ if (!empty($sqlList)) {
 
 if ($sportelli>0) {
     echo '<strong>Import effettuato: inseriti ' . $sportelli . ' nuovi sportelli</strong>';
-} else {
+}
+if ($dataHtml != '') {
     echo $dataHtml;
 }
 ?>

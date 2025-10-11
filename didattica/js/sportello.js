@@ -348,20 +348,51 @@ function sportelloGetDetails(sportello_id) {
 }
 
 function importFile(file) {
-    var contenuto = "";
+    if (!file) {
+        alert("Nessun file selezionato.");
+        return;
+    }
+
     const reader = new FileReader();
-    reader.addEventListener('load', (event) => {
-        contenuto = event.target.result;
-        $.post("sportelloImport.php", {
-            contenuto: contenuto
-        },
-            function (data, status) {
-                $('#result_text').html(data);
+
+    reader.onload = function(event) {
+        const contenuto = event.target.result;
+
+        $.post("sportelloImport.php", { contenuto: contenuto })
+            .done(function(data) {
+                $('#result_text').stop(true, true).html(data).fadeIn();
+
+                // 🔹 Dopo 10 secondi, nascondi il messaggio
+                setTimeout(function() {
+                    $('#result_text').fadeOut('slow', function() {
+                        $(this).html("");
+                    });
+                }, 10000);
+
                 sportelloReadRecords();
+            })
+            .fail(function(xhr, status, error) {
+                console.error("Errore durante l'import:", error);
+                $('#result_text')
+                    .stop(true, true)
+                    .html("<b style='color:red;'>Errore durante l'importazione del file.</b>")
+                    .fadeIn()
+                    .delay(10000)
+                    .fadeOut('slow', function() {
+                        $(this).html("");
+                    });
             });
-    });
-    reader.readAsText(file);
+    };
+
+    reader.onerror = function(err) {
+        console.error("Errore di lettura file:", err);
+        alert("Errore nella lettura del file. Controlla il formato.");
+    };
+
+    reader.readAsText(file, "UTF-8");
 }
+
+
 
 function importStudents(file, selezione) {
     var contenuto = "";
@@ -425,8 +456,15 @@ $(document).ready(function () {
 
     $('#riga_iscrizioni_sportelli').hide();
 
-    $('#file_select_id').change(function (e) {
-        importFile(e.target.files[0]);
-    });
+$('#file_select_id').change(function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    importFile(file);
+
+    // 🔹 resetta l'input per permettere di riselezionare lo stesso file
+    e.target.value = '';
+});
+
 
 });
