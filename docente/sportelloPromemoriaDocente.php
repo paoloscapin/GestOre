@@ -41,6 +41,8 @@ $query = "	SELECT
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
+	info("nessun sportello programmato per domani");
+	echo "nessun sportello programmato per domani<br>";
 	$resultArray = [];
 }
 

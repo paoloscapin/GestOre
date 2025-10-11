@@ -43,11 +43,13 @@ if(isset($_POST)) {
 	$categoria = dbGetValue("SELECT nome from sportello_categoria WHERE id = ".$categoria_id);
 
 	if ($id > 0) {
+		$last_cancellato = dbGetValue("SELECT cancellato from sportello WHERE id = '$id'");
+
 		$query = "UPDATE sportello SET data = '$data', ora = '$ora', docente_id = '$docente_id', materia_id = '$materia_id', categoria = '$categoria', numero_ore = '$numero_ore', argomento = '$argomento', luogo = '$luogo', classe = '$classe', classe_id = '$classe_id', max_iscrizioni = '$max_iscrizioni', cancellato = $cancellato, firmato = $firmato, online = $online, clil = $clil, orientamento = $orientamento WHERE id = '$id'";
 		dbExec($query);
 		info("aggiornato sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id categoria=$categoria numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online = $online clil = $clil orientamento = $orientamento");
 
-        if ($cancellato)
+        if ($last_cancellato != $cancellato)
         // cancella gli eventuali iscritti
 		{
 			info("invio mail di cancellazione al docente");
