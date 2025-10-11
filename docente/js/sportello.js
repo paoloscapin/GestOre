@@ -258,7 +258,7 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
             sportello_id: sportello_id
         }, function (data, status) {
             //console.log(data);
-            var sportello = JSON.parse(data);
+            var sportello = data;
             var cancellato = sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null;
             var firmato = sportello.sportello_firmato != 0 && sportello.sportello_firmato != null;
             setDbDateToPickr(data_pickr, sportello.sportello_data);

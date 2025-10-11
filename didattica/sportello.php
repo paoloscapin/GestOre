@@ -56,75 +56,39 @@ require_once '../common/checkSession.php';
             width: 450px;
             text-align: left;
         }
-/* =============================
-   🎯 FIX DEFINITIVO MODALE SPORTELLO
+        /* =============================
+   💪 Forzatura effettiva larghezza modale sportello
    ============================= */
 
-/* Riduci la larghezza complessiva del modale */
-#sportello_modal .modal-dialog {
-  max-width: 700px !important;   /* era 800px → più stretto */
-  margin: 2rem auto;
+/* Forza la larghezza del contenitore modale */
+#sportello_modal .modal-dialog,
+#sportello_modal .modal-lg {
+  max-width: 600px !important;   /* Cambia qui il valore a tuo piacere */
+  width: 600px !important;       /* Serve per bloccare la dimensione effettiva */
+  margin: 2rem auto !important;  /* centra */
 }
 
-/* Riduci leggermente anche il contenuto interno */
-#sportello_modal .modal-body .panel {
+/* Restringi anche il contenuto interno */
+#sportello_modal .modal-content {
+  max-width: 580px;
   margin: 0 auto;
-  max-width: 640px;              /* mantiene proporzione coerente */
 }
 
-/* Forza i gruppi di campi ad adattarsi */
-#sportello_modal .form-horizontal .form-group {
-  margin-left: 0;
-  margin-right: 0;
-}
-
-/* Campi input e select pieni ma coerenti */
-#sportello_modal select.selectpicker,
-#sportello_modal input.form-control {
-  width: 100% !important;
-}
-
-/* 🔹 Tabella studenti più stretta e centrata */
+/* Assicurati che la tabella non si allarghi oltre */
 #sportello_modal #studenti_table {
-  width: 85%;                    /* prima 95% → ora centrata e bilanciata */
+  width: 85% !important;
   margin: 10px auto;
-  table-layout: auto;
 }
 
-/* Celle ordinate e leggibili */
-#sportello_modal #studenti_table th,
-#sportello_modal #studenti_table td {
-  text-align: center;
-  vertical-align: middle;
-  padding: 6px 8px;
-}
-
-/* Titolo e sezione studenti centrati */
-#sportello_modal #studenti-part {
-  margin: 0 auto;
-  text-align: center;
-  max-width: 640px;
-}
-
-#sportello_modal #studenti-part label[for="studenti_table"] {
-  display: block;
-  font-weight: 600;
-  font-size: 16px;
-  margin-bottom: 5px;
-}
-
-/* Adatta la finestra su dispositivi piccoli */
+/* Fallback mobile */
 @media (max-width: 768px) {
-  #sportello_modal .modal-dialog {
+  #sportello_modal .modal-dialog,
+  #sportello_modal .modal-lg {
+    width: 95% !important;
     max-width: 95% !important;
   }
-  #sportello_modal .modal-body .panel {
-    max-width: 100%;
-  }
-  #sportello_modal #studenti_table {
-    width: 100%;
-  }
 }
+
 
 
     </style>
@@ -330,7 +294,7 @@ if ($nclassi > 0) {
                                     <div class="col-sm-10"><select id="docente" name="docente"
                                             class="docente selectpicker" data-style="btn-success"
                                             data-live-search="true" data-noneSelectedText="seleziona..."
-                                            data-width="80%">
+                                            data-width="100%">
                                             <?php echo $docenteOptionList ?>
                                         </select></div>
                                 </div>
@@ -340,7 +304,7 @@ if ($nclassi > 0) {
                                     <div class="col-sm-10"><select id="categoria" name="categoria"
                                             class="categoria selectpicker" data-style="btn-yellow4"
                                             data-live-search="true" data-noneSelectedText="seleziona..."
-                                            data-width="80%">
+                                            data-width="100%">
                                             <?php echo $categoriaOptionList ?>
                                         </select></div>
                                 </div>
@@ -350,27 +314,27 @@ if ($nclassi > 0) {
                                     <div class="col-sm-10"><select id="materia" name="materia"
                                             class="materia selectpicker" data-style="btn-yellow4"
                                             data-live-search="true" data-noneSelectedText="seleziona..."
-                                            data-width="80%">
+                                            data-width="100%">
                                             <?php echo $materiaOptionList ?>
                                         </select></div>
                                 </div>
 
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="numero_ore">Numero di ore</label>
-                                    <div class="col-sm-8"><input type="text" id="numero_ore" placeholder="numero ore"
+                                    <div class="col-sm-10"><input type="text" id="numero_ore" placeholder="numero ore"
                                             class="form-control" /></div>
                                 </div>
 
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="argomento">Argomento</label>
-                                    <div class="col-sm-8"><input type="text" id="argomento"
+                                    <div class="col-sm-10"><input type="text" id="argomento"
                                             placeholder="! non inserire se si desidera che siano gli studenti a specificarlo !"
                                             class="form-control" /></div>
                                 </div>
 
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="luogo">Luogo</label>
-                                    <div class="col-sm-8"><input type="text" id="luogo"
+                                    <div class="col-sm-10"><input type="text" id="luogo"
                                             placeholder="aula o laboratorio in cui si svolge lo sportello"
                                             class="form-control" /></div>
                                 </div>
@@ -393,7 +357,9 @@ if ($nclassi > 0) {
                     <input type="hidden" id="hidden_lista_classi" value="lista">
                     <div class="form-group classe_selector">
                         <label class="col-sm-2 control-label" for="classe">Classe</label>
-                        <div class="col-sm-10"><select id="classe" name="classe" class="classe selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="80%" >';
+                        <div class="col-sm-10"><select id="classe" name="classe" class="materia selectpicker" data-style="btn-yellow4"
+                                            data-live-search="true" data-noneSelectedText="seleziona..."
+                                            data-width="100%">"';
                                     echo $classeOptionList;
                                     echo '</select></div>
                     </div>
@@ -404,7 +370,7 @@ if ($nclassi > 0) {
 
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="max_iscrizioni">Max Iscrizioni</label>
-                                    <div class="col-sm-8"><input type="text" id="max_iscrizioni"
+                                    <div class="col-sm-10"><input type="text" id="max_iscrizioni"
                                             placeholder="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>"
                                             class="form-control" /></div>
                                 </div>

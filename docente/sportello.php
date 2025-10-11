@@ -51,6 +51,39 @@ ruoloRichiesto('docente');
     width: 450px;
     text-align: left;
 }
+    /* =============================
+   💪 Forzatura effettiva larghezza modale sportello
+   ============================= */
+
+/* Forza la larghezza del contenitore modale */
+#sportello_modal .modal-dialog,
+#sportello_modal .modal-lg {
+  max-width: 600px !important;   /* Cambia qui il valore a tuo piacere */
+  width: 600px !important;       /* Serve per bloccare la dimensione effettiva */
+  margin: 2rem auto !important;  /* centra */
+}
+
+/* Restringi anche il contenuto interno */
+#sportello_modal .modal-content {
+  max-width: 580px;
+  margin: 0 auto;
+}
+
+/* Assicurati che la tabella non si allarghi oltre */
+#sportello_modal #studenti_table {
+  width: 85% !important;
+  margin: 10px auto;
+}
+
+/* Fallback mobile */
+@media (max-width: 768px) {
+  #sportello_modal .modal-dialog,
+  #sportello_modal .modal-lg {
+    width: 95% !important;
+    max-width: 95% !important;
+  }
+}
+
 </style>
 </head>
 
@@ -155,44 +188,44 @@ echo $modifica_sportelli;
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="data">Data</label>
-					<div class="col-sm-4"><input type="text" value="21/8/2018" id="data" class="form-control" /></div>
+					<div class="col-sm-3"><input type="text" value="21/8/2018" id="data" class="form-control" /></div>
 
                     <label class="col-sm-2 control-label" for="ora">Ora</label>
-                    <div class="col-sm-4"><input type="text" id="ora" class="form-control" /></div>
+                    <div class="col-sm-3"><input type="text" id="ora" class="form-control" /></div>
                 </div>
 
                 <div class="form-group docente_selector">
                     <label class="col-sm-2 control-label" for="docente">Docente</label>
-                    <div class="col-sm-4"><input type="text" id="docente" class="form-control" readonly="readonly" /></div>
+                    <div class="col-sm-10"><input type="text" id="docente" class="form-control" readonly="readonly" /></div>
                 </div>
 
                 <div class="form-group categoria_selector">
                     <label class="col-sm-2 control-label" for="categoria">Categoria</label>
-					<div class="col-sm-8"><select id="categoria" name="categoria" class="categoria selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+					<div class="col-sm-10"><select id="categoria" name="categoria" class="categoria selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="100%" >
                     <?php echo $categoriaOptionList ?>
 					</select></div>
                 </div>
 
                 <div class="form-group materia_selector">
                     <label class="col-sm-2 control-label" for="materia">Materia</label>
-					<div class="col-sm-8"><select id="materia" name="materia" class="materia selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+					<div class="col-sm-10"><select id="materia" name="materia" class="materia selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="100%" >
                     <?php echo $materiaOptionList ?>
 					</select></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="numero_ore">Numero di ore</label>
-                    <div class="col-sm-4"><input type="text" id="numero_ore" class="form-control" /></div>
+                    <div class="col-sm-10"><input type="text" id="numero_ore" class="form-control" /></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="argomento">Argomento</label>
-                    <div class="col-sm-8"><input type="text" id="argomento" class="form-control" placeholder="! non inserire se si desidera che siano gli studenti a specificarlo !" /></div>
+                    <div class="col-sm-10"><input type="text" id="argomento" class="form-control" placeholder="! non inserire se si desidera che siano gli studenti a specificarlo !" /></div>
                 </div>
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="luogo">Luogo</label>
-                    <div class="col-sm-8"><input type="text" id="luogo" class="form-control" placeholder="aula o laboratorio in cui si svolge lo sportello" /></div>
+                    <div class="col-sm-10"><input type="text" id="luogo" class="form-control" placeholder="aula o laboratorio in cui si svolge lo sportello" /></div>
                 </div>
 
                 <?php
@@ -204,7 +237,7 @@ echo $modifica_sportelli;
 
                     <div class="form-group classe_selector">
                     <label class="col-sm-2 control-label" for="classe">Classe</label>
-				    <div class="col-sm-8"><input type="text" id="classe" placeholder="classi a cui è rivolto lo sportello" class="form-control"/></div>
+				    <div class="col-sm-10"><input type="text" id="classe" placeholder="classi a cui è rivolto lo sportello" class="form-control"/></div>
                 	</select></div>
                 </div>';
 
@@ -215,7 +248,7 @@ echo $modifica_sportelli;
                     <input type="hidden" id="hidden_lista_classi" value="lista">
                     <div class="form-group classe_selector">
                         <label class="col-sm-2 control-label" for="classe">Classe</label>
-                        <div class="col-sm-8"><select id="classe" name="classe" class="classe selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >';
+                        <div class="col-sm-10"><select id="classe" name="classe" class="classe selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="100%" >';
                     $txt_echo .= $classeOptionList;
                     $txt_echo .= '</select></div>
                     </div>';
@@ -226,7 +259,7 @@ echo $modifica_sportelli;
 
                 <div class="form-group">
                     <label class="col-sm-2 control-label" for="max_iscrizioni">Max Iscrizioni</label>
-                    <div class="col-sm-8"><input type="text" id="max_iscrizioni" placeholder="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>" class="form-control"/></div>
+                    <div class="col-sm-10"><input type="text" id="max_iscrizioni" placeholder="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>" class="form-control"/></div>
                 </div>
 
                 <?php
