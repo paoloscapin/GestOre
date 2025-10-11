@@ -34,7 +34,6 @@ $full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto
 $to = $docente_email;
 $toName = $docente_nome . " " . $docente_cognome;
 info("Invio mail al docente: ".$to." ".$toName);
-echo "Invio mail al docente: ".$to." ".$toName."\n";
 $mailsubject = 'GestOre - Prenotazione studente attività ' . $categoria . ' - materia '. $materia;
 sendMail($to,$toName,$mailsubject,$full_mail_body);
 

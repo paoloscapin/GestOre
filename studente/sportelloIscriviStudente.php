@@ -8,6 +8,8 @@
  */
 
  require_once '../common/checkSession.php';
+ require_once '../common/connect.php';
+ 
  ruoloRichiesto('studente','segreteria-didattica','dirigente');
 
  
@@ -21,6 +23,8 @@ if(isset($_POST)) {
 	$numero_ore = $_POST['numero_ore'];
 	$luogo = $_POST['luogo'];
 	$docente_id = $_POST['docente_id'];
+	
+	// recupero tutti i dati necessari di studente, docente e genitori
 	$studente = dbGetFirst("SELECT * from studente WHERE id = $__studente_id");
 	$studente_nome = $studente['nome'];
 	$studente_cognome = $studente['cognome'];

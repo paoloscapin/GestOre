@@ -68,6 +68,8 @@ $query = "	SELECT
     m.nome                       AS materia_nome,
 
     d.id                         AS docente_id,
+	d.cognome                    AS docente_cognome,
+	d.nome                       AS docente_nome,
 
     COALESCE(cnt.numero_studenti, 0) AS numero_studenti,
 

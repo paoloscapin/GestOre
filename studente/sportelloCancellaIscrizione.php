@@ -8,6 +8,8 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/connect.php';
+
  ruoloRichiesto('studente','segreteria-didattica','dirigente');
 
 if(isset($_POST['id']) && isset($_POST['id']) != "") {
@@ -21,6 +23,26 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	$luogo = $_POST['luogo'];
 	$studente_id = $_POST['studente_id'];
 	$docente_id = $_POST['docente_id'];
+
+	// recupero tutti i dati necessari di studente, docente e genitori
+	$studente = dbGetFirst("SELECT * from studente WHERE id = $__studente_id");
+	$studente_nome = $studente['nome'];
+	$studente_cognome = $studente['cognome'];
+	$studente_email = $studente['email'];
+	$docente = dbGetFirst("SELECT * from docente WHERE id = $docente_id");
+	$docente_nome = $docente['nome'];
+	$docente_cognome = $docente['cognome'];
+	$docente_email = $docente['email'];
+	$genitori = dbGetAll("SELECT email from genitori g
+						  INNER JOIN genitori_studenti gs ON gs.id_studente = $__studente_id
+						  WHERE g.attivo=1 AND gs.id_genitore = g.id");
+	$email_genitori = "";
+	foreach($genitori as $genitore) {
+		if ($email_genitori != "") {
+			$email_genitori = $email_genitori . ", ";
+		}
+		$email_genitori = $email_genitori . $genitore['email'];
+	}
 
 	$date_time = $data . " " . $ora . ":00";
 	$dateT=date_create($date_time , timezone_open("Europe/Rome"));
@@ -40,7 +62,7 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	$data = $data_array[2] . "-" . $data_array[1] . "-" . $data_array[0];
 	
 	dbExec("DELETE FROM sportello_studente WHERE sportello_id = $sportello_id AND studente_id  = $__studente_id");
-	info("cancellata iscrizione di $__studente_cognome $__studente_nome dallo sportello di $materia sportello_id=$sportello_id");
+	info("cancellata iscrizione dello studente $studente_id dallo sportello di $materia sportello_id=$sportello_id");
 	require 'sportelloMailCancellazioneStudente.php';
 
 	$iscritti = dbGetValue("SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = $sportello_id;");

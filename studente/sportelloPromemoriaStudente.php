@@ -62,7 +62,7 @@ foreach($resultArray as $row)
 	$numero_studenti_iscritti = dbGetValue($query);
 
 	info("dati sportello docente da inviare promemoria agli studenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id);
-	echo "dati sportello docente da inviare promemoria agli studenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id;
+	echo "dati sportello docente da inviare promemoria agli studenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id . "<br>";
 
 	if ($numero_studenti_iscritti>0)
 	// CI SONO STUDENTI ISCRITTI - INVIO IL PROMEMORIA AGLI STUDENTI
@@ -103,6 +103,17 @@ foreach($resultArray as $row)
 			$studente_email = $row['studente_email'];
 			$sportello_argomento = $row['sportello_argomento'];
 
+			$genitori = dbGetAll("SELECT email from genitori g
+								  INNER JOIN genitori_studenti gs ON gs.id_studente = " . $row['sportello_studente_id'] . "
+								  WHERE g.attivo=1 AND gs.id_genitore = g.id");
+			$email_genitori = "";
+			foreach($genitori as $genitore) {
+				if ($email_genitori != "") {
+					$email_genitori = $email_genitori . ", ";
+				}
+				$email_genitori = $email_genitori . $genitore['email'];
+			}
+
 			info("studenti iscritti sportello: COGNOME " . $studente_cognome . " NOME " . $studente_nome . " DATA ". $data);
 
 			// preparo il testo della mail
@@ -119,19 +130,32 @@ foreach($resultArray as $row)
 			$full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
 
 			$to = $studente_email;
+			$toCC = $email_genitori;	
 			$toName = $studente_nome . " " . $studente_cognome;
 
 			info("Invio mail allo studente: ".$to." ".$toName);
-			echo "Invio mail promemoria llo studente: ".$to." ".$toName."\n";
+			echo "Invio mail promemoria allo studente: ".$to." ".$toName."<br>";
 			$mailsubject = 'GestOre - Promemoria attività ' . $sportello_categoria . ' - materia '. $sportello_materia;
-			sendMail($to,$toName,$mailsubject,$full_mail_body);
+
+			if ($toCC != "") {
+				sendMailCC($to,$toName,$toCC,$mailsubject,$full_mail_body);
+				info("mail di promemoria inviata allo studente - email: " . $studente_email);
+				echo "mail di promemoria inviata allo studente - email: " . $studente_email."<br>";
+				info("mail di promemoria inviata anche al genitore - email: " . $toCC);
+				echo "mail di promemoria inviata anche al genitore - email: " . $toCC."<br>";
+			} else {
+				sendMail($to,$toName,$mailsubject,$full_mail_body);
+				info("mail di promemoria inviata allo studente - email: " . $studente_email);
+				echo "mail di promemoria inviata allo studente - email: " . $studente_email."<br>";
+			}
 			info("inviata mail di promemoria agli studenti per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
+			echo "inviata mail di promemoria agli studenti per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome."<br>";
 		}
 	}
 	else
 	{
 		info("NON CI SONO studenti iscritti sportello");
-		echo "NON CI SONO studenti iscritti sportello";
+		echo "NON CI SONO studenti iscritti sportello<br>";
 	}
 	
 }

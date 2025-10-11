@@ -33,13 +33,13 @@ $to = $studente_email;
 $toName = $studente_nome . " " . $studente_cognome;
 $toCC = $email_genitori;
 info("Invio mail al docente: " . $to . " " . $toName);
-echo "Invio mail al docente: " . $to . " " . $toName . "\n";
 $mailsubject = 'GestOre - Prenotazione attività ' . $categoria . ' - materia ' . $materia;
 if ($toCC != "") {
-  sendMail($to, $toName, $mailsubject, $full_mail_body);
-} else {
   sendMailCC($to, $toName, $toCC, $mailsubject, $full_mail_body);
+  info("mail di iscrizione prenotazione inviata anche al genitore - email: " . $toCC);
+} else {
+  sendMail($to, $toName, $mailsubject, $full_mail_body);
+  info("mail di iscrizione prenotazione inviata allo studente - email: " . $studente_email);
 }
 
-info("inviata mail allo studente per iscrizione allo sportello - email: " . $studente_email);
 ?>
