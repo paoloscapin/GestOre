@@ -54,6 +54,7 @@ $query = "SELECT
     sportello.online AS sportello_online,
     sportello.max_iscrizioni AS sportello_max_iscrizioni,
     materia.nome AS materia_nome,
+    docente.id AS docente_id,
     docente.cognome AS docente_cognome,
     docente.nome AS docente_nome,
     docente.email AS docente_email,
@@ -192,7 +193,7 @@ foreach ($resultArray as $row) {
                 if ($cancellabile) {
                     $data .= '<span class="badge badge-success">Iscritto</span> ';
                     $data .= '<button class="btn btn-danger btn-sm" onclick="sportelloCancellaIscrizione('
-                        . $row['sportello_id'] . ', \'' . addslashes($row['materia_nome']) . '\', \'' . addslashes($row['sportello_categoria']) . '\', \'' . addslashes($row['sportello_argomento']) . '\', \'' . addslashes($row['sportello_data']) . '\', \'' . addslashes($row['sportello_ora']) . '\', \'' . addslashes($row['sportello_numero_ore']) . '\', \'' . addslashes($row['sportello_luogo']) . '\', \'' . addslashes($row['studente_cognome']) . '\', \'' . addslashes($row['studente_nome']) . '\', \'' . addslashes($row['studente_email']) . '\', \'' . addslashes($row['studente_classe']) . '\', \'' . addslashes($row['docente_cognome']) . '\', \'' . addslashes($row['docente_nome']) . '\', \'' . addslashes($row['docente_email']) . '\')"><span class="glyphicon glyphicon-trash"></span> Cancellati</button>';
+                        . $row['sportello_id'] . ', \'' . addslashes($row['materia_nome']) . '\', \'' . addslashes($row['sportello_categoria']) . '\', \'' . addslashes($row['sportello_argomento']) . '\', \'' . addslashes($row['sportello_data']) . '\', \'' . addslashes($row['sportello_ora']) . '\', \'' . addslashes($row['sportello_numero_ore']) . '\', \'' . addslashes($row['sportello_luogo']) . '\', \'' . addslashes($row['docente_id']) . '\', \'' . addslashes($row['studente_id']) . '\')"><span class="glyphicon glyphicon-trash"></span> Cancellati</button>';
                 } else {
                     $data .= '<span class="badge badge-success">Iscritto</span>';
                 }
@@ -200,7 +201,7 @@ foreach ($resultArray as $row) {
                 if ($prenotabile) {
                     $data .= '<span class="badge badge-primary">Disponibile</span> ';
                     $data .= '<button class="btn btn-warning btn-sm" onclick="sportelloIscriviti('
-                        . $row['sportello_id'] . ', \'' . addslashes($row['materia_nome']) . '\', \'' . addslashes($row['sportello_categoria']) . '\', \'' . addslashes($row['sportello_argomento']) . '\', \'' . addslashes($row['sportello_data']) . '\', \'' . addslashes($row['sportello_ora']) . '\', \'' . addslashes($row['sportello_numero_ore']) . '\', \'' . addslashes($row['sportello_luogo']) . '\', \'' . addslashes($row['studente_cognome']) . '\', \'' . addslashes($row['studente_nome']) . '\', \'' . addslashes($row['studente_email']) . '\', \'' . addslashes($row['studente_classe']) . '\', \'' . addslashes($row['docente_cognome']) . '\', \'' . addslashes($row['docente_nome']) . '\', \'' . addslashes($row['docente_email']) . '\')"><span class="glyphicon glyphicon-pencil"></span> Iscriviti</button>';
+                        . $row['sportello_id'] . ', \'' . addslashes($row['materia_nome']) . '\', \'' . addslashes($row['sportello_categoria']) . '\', \'' . addslashes($row['sportello_argomento']) . '\', \'' . addslashes($row['sportello_data']) . '\', \'' . addslashes($row['sportello_ora']) . '\', \'' . addslashes($row['sportello_numero_ore']) . '\', \'' . addslashes($row['sportello_luogo']) . '\', \'' . addslashes($row['docente_id']) . '\', \'' . addslashes($row['studente_id']) . '\')"><span class="glyphicon glyphicon-pencil"></span> Iscriviti</button>';
                 } else {
                     if ($posti_disponibili <= 0) {
                         $data .= '<span class="badge badge-danger">Posti esauriti</span>';

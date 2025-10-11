@@ -32,7 +32,7 @@
   info("Invio mail allo studente: ".$to." ".$toName." con CC a: ".$toCC);
 $mailsubject = 'GestOre - Annullamento iscrizione ' . $categoria . " - materia " . $materia;
   if ($toCC != "") {
-    $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail come conferma della cancellazione dalla seguente attività</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3>",$full_mail_body);
+    $full_mail_body = str_replace("{messaggio}","hai ricevuto questa mail come conferma della tua cancellazione dalla seguente attività</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3>",$full_mail_body);
     sendMailCC($to,$toName,$toCC,$mailsubject,$full_mail_body);
     info("mail di cancellazione prenotazione inviata anche al genitore - email: " . $toCC);
   } else {
