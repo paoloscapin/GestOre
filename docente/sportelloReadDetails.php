@@ -75,6 +75,9 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
     $sportello['studenti'] = $studenti;
 
     $struct_json = json_encode($sportello);
-	echo json_encode($sportello);
+    info($struct_json);
+    
+    header('Content-Type: application/json');
+	echo $struct_json;
 }
 ?>

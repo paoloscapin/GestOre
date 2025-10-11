@@ -56,6 +56,77 @@ require_once '../common/checkSession.php';
             width: 450px;
             text-align: left;
         }
+/* =============================
+   🎯 FIX DEFINITIVO MODALE SPORTELLO
+   ============================= */
+
+/* Riduci la larghezza complessiva del modale */
+#sportello_modal .modal-dialog {
+  max-width: 700px !important;   /* era 800px → più stretto */
+  margin: 2rem auto;
+}
+
+/* Riduci leggermente anche il contenuto interno */
+#sportello_modal .modal-body .panel {
+  margin: 0 auto;
+  max-width: 640px;              /* mantiene proporzione coerente */
+}
+
+/* Forza i gruppi di campi ad adattarsi */
+#sportello_modal .form-horizontal .form-group {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Campi input e select pieni ma coerenti */
+#sportello_modal select.selectpicker,
+#sportello_modal input.form-control {
+  width: 100% !important;
+}
+
+/* 🔹 Tabella studenti più stretta e centrata */
+#sportello_modal #studenti_table {
+  width: 85%;                    /* prima 95% → ora centrata e bilanciata */
+  margin: 10px auto;
+  table-layout: auto;
+}
+
+/* Celle ordinate e leggibili */
+#sportello_modal #studenti_table th,
+#sportello_modal #studenti_table td {
+  text-align: center;
+  vertical-align: middle;
+  padding: 6px 8px;
+}
+
+/* Titolo e sezione studenti centrati */
+#sportello_modal #studenti-part {
+  margin: 0 auto;
+  text-align: center;
+  max-width: 640px;
+}
+
+#sportello_modal #studenti-part label[for="studenti_table"] {
+  display: block;
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 5px;
+}
+
+/* Adatta la finestra su dispositivi piccoli */
+@media (max-width: 768px) {
+  #sportello_modal .modal-dialog {
+    max-width: 95% !important;
+  }
+  #sportello_modal .modal-body .panel {
+    max-width: 100%;
+  }
+  #sportello_modal #studenti_table {
+    width: 100%;
+  }
+}
+
+
     </style>
 </head>
 
@@ -108,10 +179,8 @@ if ($nclassi > 0) {
         $classeFiltroOptionList .= ' <option value="' . $classe['id'] . '" >' . $classe['nome'] . '</option> ';
         $classeOptionList .= ' <option value="' . $classe['id'] . '" >' . $classe['nome'] . '</option> ';
     }
-
 } else {
     $classeOptionList .= 'empty';
-
 }
 
 ?>
@@ -248,40 +317,40 @@ if ($nclassi > 0) {
 
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="data">Data</label>
-                                    <div class="col-sm-4"><input type="text" value="21/8/2018" id="data"
+                                    <div class="col-sm-3"><input type="text" value="21/8/2018" id="data"
                                             placeholder="data" class="form-control" /></div>
 
                                     <label class="col-sm-2 control-label" for="ora">Ora</label>
-                                    <div class="col-sm-4"><input type="text" id="ora" placeholder="ora"
+                                    <div class="col-sm-3"><input type="text" id="ora" placeholder="ora"
                                             class="form-control" /></div>
                                 </div>
 
                                 <div class="form-group docente_selector">
                                     <label class="col-sm-2 control-label" for="docente">Docente</label>
-                                    <div class="col-sm-8"><select id="docente" name="docente"
+                                    <div class="col-sm-10"><select id="docente" name="docente"
                                             class="docente selectpicker" data-style="btn-success"
                                             data-live-search="true" data-noneSelectedText="seleziona..."
-                                            data-width="70%">
+                                            data-width="80%">
                                             <?php echo $docenteOptionList ?>
                                         </select></div>
                                 </div>
 
                                 <div class="form-group categoria_selector">
                                     <label class="col-sm-2 control-label" for="categoria">Categoria</label>
-                                    <div class="col-sm-8"><select id="categoria" name="categoria"
+                                    <div class="col-sm-10"><select id="categoria" name="categoria"
                                             class="categoria selectpicker" data-style="btn-yellow4"
                                             data-live-search="true" data-noneSelectedText="seleziona..."
-                                            data-width="70%">
+                                            data-width="80%">
                                             <?php echo $categoriaOptionList ?>
                                         </select></div>
                                 </div>
 
                                 <div class="form-group materia_selector">
                                     <label class="col-sm-2 control-label" for="materia">Materia</label>
-                                    <div class="col-sm-8"><select id="materia" name="materia"
+                                    <div class="col-sm-10"><select id="materia" name="materia"
                                             class="materia selectpicker" data-style="btn-yellow4"
                                             data-live-search="true" data-noneSelectedText="seleziona..."
-                                            data-width="70%">
+                                            data-width="80%">
                                             <?php echo $materiaOptionList ?>
                                         </select></div>
                                 </div>
@@ -315,17 +384,16 @@ if ($nclassi > 0) {
 
                     <div class="form-group classe_selector">
                     <label class="col-sm-2 control-label" for="classe">Classe</label>
-				    <div class="col-sm-8"><input type="text" id="classe" placeholder="classi a cui è rivolto lo sportello" class="form-control"/></div>
+				    <div class="col-sm-10"><input type="text" id="classe" placeholder="classi a cui è rivolto lo sportello" class="form-control"/></div>
                 	</select></div>
                 </div>';
-
                                 } else // altrimenti crea e popola una combobox
                                 {
                                     echo '
                     <input type="hidden" id="hidden_lista_classi" value="lista">
                     <div class="form-group classe_selector">
                         <label class="col-sm-2 control-label" for="classe">Classe</label>
-                        <div class="col-sm-8"><select id="classe" name="classe" class="classe selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >';
+                        <div class="col-sm-10"><select id="classe" name="classe" class="classe selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="80%" >';
                                     echo $classeOptionList;
                                     echo '</select></div>
                     </div>

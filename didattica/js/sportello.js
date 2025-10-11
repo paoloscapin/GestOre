@@ -276,7 +276,8 @@ function sportelloGetDetails(sportello_id) {
         $.post("../docente/sportelloReadDetails.php", {
             sportello_id: sportello_id
         }, function (data, status) {
-            var sportello = JSON.parse(data);
+            console.log(data);
+            var sportello = data;
             setDbDateToPickr(data_pickr, sportello.sportello_data);
             $("#ora").val(sportello.sportello_ora);
             $('#docente').selectpicker('val', sportello.docente_id);
@@ -341,10 +342,8 @@ function sportelloGetDetails(sportello_id) {
         }
         $('#studenti_table tbody').empty();
     }
-
-
     $("#_error-materia-part").hide();
-   
+    $("#sportello_modal").modal("show");
 }
 
 function importFile(file) {
