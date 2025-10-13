@@ -39,15 +39,19 @@ if ($resultArray == null) {
     $studente_nome = $row['studente_nome'];
     $studente_email = $row['studente_email'];
 
-    $genitori = dbGetAll("SELECT email from genitori g
-                          INNER JOIN genitori_studenti gs ON gs.id_studente = " . $row['studente_id'] . "
+    $genitori = dbGetAll("SELECT cognome,nome,email from genitori g
+                          INNER JOIN genitori_studenti gs ON gs.id_studente = " . $__studente_id. "
                           WHERE g.attivo=1 AND gs.id_genitore = g.id");
     $email_genitori = "";
+    $nominativo_genitori = "";
+    
     foreach ($genitori as $genitore) {
       if ($email_genitori != "") {
         $email_genitori = $email_genitori . ", ";
+        $nominativo_genitori = $nominativo_genitori . ", ";
       }
       $email_genitori = $email_genitori . $genitore['email'];
+      $nominativo_genitori = $nominativo_genitori . $genitore['cognome'] . " " . $genitore['nome'];
     }
 
     $full_mail_body = file_get_contents("../docente/template_mail_cancella_studente.html");
@@ -64,6 +68,7 @@ if ($resultArray == null) {
 
     $to = $studente_email;
     $toCC = $email_genitori;
+    $toCCName = $nominativo_genitori;
     $toName = $studente_nome . " " . $studente_cognome;
     info("Invio mail allo studente: " . $to . " " . $toName);
     echo "Invio mail al docente: " . $to . " " . $toName . "\n";
@@ -71,7 +76,7 @@ if ($resultArray == null) {
     if ($toCC != "") {
       $full_mail_body = str_replace("{messaggio}", "hai ricevuto questa mail perchè il docente ha cancellato la seguente attività a cui eri iscritto</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3><p style='font-size: 14px; line-height: 140%;'> Puoi prenotarti ad una della altre attività disponibili", $full_mail_body);
       $mailsubject = 'GestOre - Annullamento attività ' . $categoria . ' - materia ' . $materia;
-      sendMailCC($to, $toName, $toCC, $mailsubject, $full_mail_body);
+      sendMailCC($to, $toName, $toCC, $toCCName, $mailsubject, $full_mail_body);
 
       info("mail di cancellazione dello sportello da parte del docente inviata anche al genitore - " . $studente_cognome . " " . $studente_nome);
     } else {

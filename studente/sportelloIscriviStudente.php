@@ -9,7 +9,7 @@
 
  require_once '../common/checkSession.php';
  require_once '../common/connect.php';
- 
+
  ruoloRichiesto('studente','segreteria-didattica','dirigente');
 
  
@@ -33,16 +33,21 @@ if(isset($_POST)) {
 	$docente_nome = $docente['nome'];
 	$docente_cognome = $docente['cognome'];
 	$docente_email = $docente['email'];
-	$genitori = dbGetAll("SELECT email from genitori g
-						  INNER JOIN genitori_studenti gs ON gs.id_studente = $__studente_id
-						  WHERE g.attivo=1 AND gs.id_genitore = g.id");
-	$email_genitori = "";
-	foreach($genitori as $genitore) {
-		if ($email_genitori != "") {
-			$email_genitori = $email_genitori . ", ";
-		}
-		$email_genitori = $email_genitori . $genitore['email'];
-	}
+
+    $genitori = dbGetAll("SELECT cognome,nome,email from genitori g
+                          INNER JOIN genitori_studenti gs ON gs.id_studente = " . $__studente_id . "
+                          WHERE g.attivo=1 AND gs.id_genitore = g.id");
+    $email_genitori = "";
+    $nominativo_genitori = "";
+    
+    foreach ($genitori as $genitore) {
+      if ($email_genitori != "") {
+        $email_genitori = $email_genitori . ", ";
+        $nominativo_genitori = $nominativo_genitori . ", ";
+      }
+      $email_genitori = $email_genitori . $genitore['email'];
+      $nominativo_genitori = $nominativo_genitori . $genitore['cognome'] . " " . $genitore['nome'];
+    }
 	dbExec("INSERT INTO sportello_studente(iscritto, argomento, sportello_id, studente_id) VALUES(true, '$argomento', $sportello_id, $__studente_id)");
 	$last_id = dblastId();
 	info("iscritto $__studente_cognome $__studente_nome allo sportello di $materia argomento=$argomento sportello_id=$sportello_id");

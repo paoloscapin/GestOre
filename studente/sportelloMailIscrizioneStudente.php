@@ -32,10 +32,11 @@ $full_mail_body = str_replace("{nome_istituto}", $__settings->local->nomeIstitut
 $to = $studente_email;
 $toName = $studente_nome . " " . $studente_cognome;
 $toCC = $email_genitori;
+$toCCName = $nominativo_genitori;
 info("Invio mail al docente: " . $to . " " . $toName);
 $mailsubject = 'GestOre - Prenotazione attività ' . $categoria . ' - materia ' . $materia;
 if ($toCC != "") {
-  sendMailCC($to, $toName, $toCC, $mailsubject, $full_mail_body);
+  sendMailCC($to, $toName, $toCC, $toCCName,$mailsubject, $full_mail_body);
   info("mail di iscrizione prenotazione inviata anche al genitore - email: " . $toCC);
 } else {
   sendMail($to, $toName, $mailsubject, $full_mail_body);

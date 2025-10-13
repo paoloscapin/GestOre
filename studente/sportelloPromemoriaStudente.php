@@ -36,14 +36,13 @@ $query = "	SELECT
 				WHERE
 				date_format(sportello.data,'%Y%m%d') = ADDDATE(CURDATE(),1)
 				AND NOT sportello.cancellato ";
-				
+
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
 	$resultArray = [];
 }
 
-foreach($resultArray as $row) 
-{
+foreach ($resultArray as $row) {
 	$data = "";
 	$sportello_id = $row['sportello_id'];
 	$sportello_ora = $row['sportello_ora'];
@@ -64,7 +63,7 @@ foreach($resultArray as $row)
 	info("dati sportello docente da inviare promemoria agli studenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id);
 	echo "dati sportello docente da inviare promemoria agli studenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id . "<br>";
 
-	if ($numero_studenti_iscritti>0)
+	if ($numero_studenti_iscritti > 0)
 	// CI SONO STUDENTI ISCRITTI - INVIO IL PROMEMORIA AGLI STUDENTI
 	{
 
@@ -83,7 +82,7 @@ foreach($resultArray as $row)
 					WHERE
 					sportello_id = " . $sportello_id . "
 					AND sportello_studente.iscritto = 1";
-					
+
 		$resultArray = dbGetAll($query);
 		if ($resultArray == null) {
 			$resultArray = [];
@@ -96,71 +95,67 @@ foreach($resultArray as $row)
 		$data = "";
 		$tabella_html = '';
 
-		foreach($resultArray as $row) 
-		{
+		foreach ($resultArray as $row) {
 			$studente_cognome = $row['studente_cognome'];
 			$studente_nome = $row['studente_nome'];
 			$studente_email = $row['studente_email'];
 			$sportello_argomento = $row['sportello_argomento'];
 
-			$genitori = dbGetAll("SELECT email from genitori g
-								  INNER JOIN genitori_studenti gs ON gs.id_studente = " . $row['sportello_studente_id'] . "
-								  WHERE g.attivo=1 AND gs.id_genitore = g.id");
+			$genitori = dbGetAll("SELECT cognome,nome,email from genitori g
+                          INNER JOIN genitori_studenti gs ON gs.id_studente = " . $__studente_id . "
+                          WHERE g.attivo=1 AND gs.id_genitore = g.id");
 			$email_genitori = "";
-			foreach($genitori as $genitore) {
+			$nominativo_genitori = "";
+
+			foreach ($genitori as $genitore) {
 				if ($email_genitori != "") {
 					$email_genitori = $email_genitori . ", ";
+					$nominativo_genitori = $nominativo_genitori . ", ";
 				}
 				$email_genitori = $email_genitori . $genitore['email'];
+				$nominativo_genitori = $nominativo_genitori . $genitore['cognome'] . " " . $genitore['nome'];
 			}
 
-			info("studenti iscritti sportello: COGNOME " . $studente_cognome . " NOME " . $studente_nome . " DATA ". $data);
+			info("studenti iscritti sportello: COGNOME " . $studente_cognome . " NOME " . $studente_nome . " DATA " . $data);
 
 			// preparo il testo della mail
 			$full_mail_body = file_get_contents("template_mail_promemoria_studente.html");
 
-			$full_mail_body = str_replace("{titolo}","PROMEMORIA ATTIVITA'<br>".$sportello_categoria,$full_mail_body);
-			$full_mail_body = str_replace("{nome}",strtoupper($studente_cognome) . " " . strtoupper($studente_nome),$full_mail_body);
-			$full_mail_body = str_replace("{messaggio}","questo è il promemoria per l'attività </p><h3 style='background-color:yellow; font-size:20px; text-align:center; font-weight:bold'>" . $sportello_categoria ."</h3>",$full_mail_body);
-			$full_mail_body = str_replace("{data}",$sportello_data,$full_mail_body);
-			$full_mail_body = str_replace("{ora}",$sportello_ora,$full_mail_body);
-			$full_mail_body = str_replace("{docente}",strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome),$full_mail_body);
-			$full_mail_body = str_replace("{materia}",$sportello_materia,$full_mail_body);
-			$full_mail_body = str_replace("{aula}",$sportello_luogo,$full_mail_body);
-			$full_mail_body = str_replace("{nome_istituto}",$__settings->local->nomeIstituto,$full_mail_body);
+			$full_mail_body = str_replace("{titolo}", "PROMEMORIA ATTIVITA'<br>" . $sportello_categoria, $full_mail_body);
+			$full_mail_body = str_replace("{nome}", strtoupper($studente_cognome) . " " . strtoupper($studente_nome), $full_mail_body);
+			$full_mail_body = str_replace("{messaggio}", "questo è il promemoria per l'attività </p><h3 style='background-color:yellow; font-size:20px; text-align:center; font-weight:bold'>" . $sportello_categoria . "</h3>", $full_mail_body);
+			$full_mail_body = str_replace("{data}", $sportello_data, $full_mail_body);
+			$full_mail_body = str_replace("{ora}", $sportello_ora, $full_mail_body);
+			$full_mail_body = str_replace("{docente}", strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome), $full_mail_body);
+			$full_mail_body = str_replace("{materia}", $sportello_materia, $full_mail_body);
+			$full_mail_body = str_replace("{aula}", $sportello_luogo, $full_mail_body);
+			$full_mail_body = str_replace("{nome_istituto}", $__settings->local->nomeIstituto, $full_mail_body);
 
 			$to = $studente_email;
-			$toCC = $email_genitori;	
+			$toCC = $email_genitori;
+			$toCCName = $nominativo_genitori;
 			$toName = $studente_nome . " " . $studente_cognome;
 
-			info("Invio mail allo studente: ".$to." ".$toName);
-			echo "Invio mail promemoria allo studente: ".$to." ".$toName."<br>";
-			$mailsubject = 'GestOre - Promemoria attività ' . $sportello_categoria . ' - materia '. $sportello_materia;
+			info("Invio mail allo studente: " . $to . " " . $toName);
+			echo "Invio mail promemoria allo studente: " . $to . " " . $toName . "<br>";
+			$mailsubject = 'GestOre - Promemoria attività ' . $sportello_categoria . ' - materia ' . $sportello_materia;
 
 			if ($toCC != "") {
-				sendMailCC($to,$toName,$toCC,$mailsubject,$full_mail_body);
+				sendMailCC($to, $toName, $toCC, $toCCName, $mailsubject, $full_mail_body);
 				info("mail di promemoria inviata allo studente - email: " . $studente_email);
-				echo "mail di promemoria inviata allo studente - email: " . $studente_email."<br>";
+				echo "mail di promemoria inviata allo studente - email: " . $studente_email . "<br>";
 				info("mail di promemoria inviata anche al genitore - email: " . $toCC);
-				echo "mail di promemoria inviata anche al genitore - email: " . $toCC."<br>";
+				echo "mail di promemoria inviata anche al genitore - email: " . $toCC . "<br>";
 			} else {
-				sendMail($to,$toName,$mailsubject,$full_mail_body);
+				sendMail($to, $toName, $mailsubject, $full_mail_body);
 				info("mail di promemoria inviata allo studente - email: " . $studente_email);
-				echo "mail di promemoria inviata allo studente - email: " . $studente_email."<br>";
+				echo "mail di promemoria inviata allo studente - email: " . $studente_email . "<br>";
 			}
 			info("inviata mail di promemoria agli studenti per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
-			echo "inviata mail di promemoria agli studenti per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome."<br>";
+			echo "inviata mail di promemoria agli studenti per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome . "<br>";
 		}
-	}
-	else
-	{
+	} else {
 		info("NON CI SONO studenti iscritti sportello");
 		echo "NON CI SONO studenti iscritti sportello<br>";
 	}
-	
 }
-
-
-
-?>
-

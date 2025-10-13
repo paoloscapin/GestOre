@@ -4,7 +4,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
 
-$rdir = str_replace("\\", "/", dirname(__FILE__));          
+$rdir = str_replace("\\", "/", dirname(__FILE__));
 require $rdir . '/PHPMailer-master/src/Exception.php';
 require $rdir . '/PHPMailer-master/src/PHPMailer.php';
 require $rdir . '/PHPMailer-master/src/SMTP.php';
@@ -58,7 +58,7 @@ function sendMail($to, $toName, $subject, $Content)
     $mail->smtpClose();
 }
 
-function sendMailCC($to, $toName, $toCC, $subject, $Content)
+function sendMailCC($to, $toName, $toCC, $toCCName, $subject, $Content)
 {
 
     global $__settings;
@@ -90,7 +90,18 @@ function sendMailCC($to, $toName, $toCC, $subject, $Content)
     $mail->AddReplyTo($__settings->local->emailNoReplyFrom, "GestOre " . $__settings->local->nomeIstituto);
 
     $mail->addBCC($__settings->local->emailSportelli, "Gestione attività GestOre");
-    $mail->addCC($toCC);
+
+    // Dividiamo i valori per la virgola e rimuoviamo eventuali spazi
+    $ccEmails = array_map('trim', explode(',', $toCC));
+    $ccNames  = array_map('trim', explode(',', $toCCName));
+
+    // Cicliamo su tutti gli indirizzi
+    foreach ($ccEmails as $index => $ccEmail) {
+        // Prende il nome corrispondente se esiste, altrimenti stringa vuota
+        $ccName = isset($ccNames[$index]) ? $ccNames[$index] : '';
+        $mail->addCC($ccEmail, $ccName);
+    }
+
     $mail->Subject = $subject;
     $content = $Content;
 
@@ -106,7 +117,7 @@ function sendMailCC($to, $toName, $toCC, $subject, $Content)
     $mail->smtpClose();
 }
 
-function sendMailwithAttachment($to, $toName, $subject, $Content,$AttachmentFilePath)
+function sendMailwithAttachment($to, $toName, $subject, $Content, $AttachmentFilePath)
 {
 
     global $__settings;
@@ -125,10 +136,10 @@ function sendMailwithAttachment($to, $toName, $subject, $Content,$AttachmentFile
     $mail->SMTPAutoTLS = false;
     $mail->CharSet = 'UTF-8';
     $mail->Port = $__settings->local->Port;
-        // Allegato
-        if (!empty($AttachmentFilePath) && file_exists($AttachmentFilePath)) {
-            $mail->addAttachment($AttachmentFilePath);
-        }
+    // Allegato
+    if (!empty($AttachmentFilePath) && file_exists($AttachmentFilePath)) {
+        $mail->addAttachment($AttachmentFilePath);
+    }
     $mail->SMTPOptions = array(
         'ssl' => array(
             'verify_peer' => false,
@@ -155,7 +166,6 @@ function sendMailwithAttachment($to, $toName, $subject, $Content,$AttachmentFile
     }
     info("[send-mail] invio concluso");
     $mail->smtpClose();
-//    mouy esuj uqnh lgoe
-//    A76SibgsUX#W
+    //    mouy esuj uqnh lgoe
+    //    A76SibgsUX#W
 }
-?>

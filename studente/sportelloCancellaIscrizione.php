@@ -33,16 +33,20 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	$docente_nome = $docente['nome'];
 	$docente_cognome = $docente['cognome'];
 	$docente_email = $docente['email'];
-	$genitori = dbGetAll("SELECT email from genitori g
-						  INNER JOIN genitori_studenti gs ON gs.id_studente = $__studente_id
-						  WHERE g.attivo=1 AND gs.id_genitore = g.id");
-	$email_genitori = "";
-	foreach($genitori as $genitore) {
-		if ($email_genitori != "") {
-			$email_genitori = $email_genitori . ", ";
-		}
-		$email_genitori = $email_genitori . $genitore['email'];
-	}
+    $genitori = dbGetAll("SELECT cognome,nome,email from genitori g
+                          INNER JOIN genitori_studenti gs ON gs.id_studente = " . $__studente_id . "
+                          WHERE g.attivo=1 AND gs.id_genitore = g.id");
+    $email_genitori = "";
+    $nominativo_genitori = "";
+    
+    foreach ($genitori as $genitore) {
+      if ($email_genitori != "") {
+        $email_genitori = $email_genitori . ", ";
+        $nominativo_genitori = $nominativo_genitori . ", ";
+      }
+      $email_genitori = $email_genitori . $genitore['email'];
+      $nominativo_genitori = $nominativo_genitori . $genitore['cognome'] . " " . $genitore['nome'];
+    }
 
 	$date_time = $data . " " . $ora . ":00";
 	$dateT=date_create($date_time , timezone_open("Europe/Rome"));
