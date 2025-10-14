@@ -23,6 +23,9 @@ require_once '../common/checkSession.php';
 
     require_once '../common/header-common.php';
     require_once '../common/style.php';
+    require_once '../common/_include_bootstrap-toggle.php';
+    require_once '../common/_include_bootstrap-select.php';
+    require_once '../common/_include_flatpickr.php';
 
     ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
     ?>

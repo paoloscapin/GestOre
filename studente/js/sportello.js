@@ -12,60 +12,59 @@ var url = new URL(myScript.src);
 var params = new URLSearchParams(url.search);
 var device = params.get("d") || "desktop"; // default "desktop"
 
-var soloNuovi=1;
-var soloIscritto=0;
-var ancheCancellati=0;
-var docente_filtro_id=0;
-var materia_filtro_id=0;
-var classe_filtro_id=0;
-var categoria_filtro_id=1; // sportello didattico
+var soloNuovi = 1;
+var soloIscritto = 0;
+var ancheCancellati = 0;
+var docente_filtro_id = 0;
+var materia_filtro_id = 0;
+var classe_filtro_id = 0;
+var categoria_filtro_id = 1; // sportello didattico
 
-$('#soloNuoviCheckBox').change(function() {
+$('#soloNuoviCheckBox').change(function () {
     // this si riferisce al checkbox
     if (this.checked) {
-		soloNuovi = 1;
+        soloNuovi = 1;
     } else {
-		soloNuovi = 0;
+        soloNuovi = 0;
     }
     sportelloReadRecords();
 });
 
-$('#soloIscrittoCheckBox').change(function() {
+$('#soloIscrittoCheckBox').change(function () {
     // this si riferisce al checkbox
     if (this.checked) {
-		soloIscritto = 1;
+        soloIscritto = 1;
     } else {
-		soloIscritto = 0;
+        soloIscritto = 0;
     }
     sportelloReadRecords();
 });
 
-$('#ancheCancellatiCheckBox').change(function() {
+$('#ancheCancellatiCheckBox').change(function () {
     // this si riferisce al checkbox
     if (this.checked) {
-		ancheCancellati = 1;
+        ancheCancellati = 1;
     } else {
-		ancheCancellati = 0;
+        ancheCancellati = 0;
     }
     sportelloReadRecords();
 });
 
 function sportelloReadRecords() {
-        var endpoint = (device === "mobile") 
-        ? "sportelloReadRecords_mobile.php" 
+    var endpoint = (device === "mobile")
+        ? "sportelloReadRecords_mobile.php"
         : "sportelloReadRecords.php";
 
-	$.get(endpoint+"?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloIscritto=" + soloIscritto + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&categoria_filtro_id=" + categoria_filtro_id, {}, function (data, status) {
+    $.get(endpoint + "?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloIscritto=" + soloIscritto + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&categoria_filtro_id=" + categoria_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',
             container: 'body'
         });
-	});
+    });
 }
 
-function sportelloCancellaIscrizione(sportello_id, materia, categoria, argomento, data, ora, numero_ore, luogo, docente_id, studente_id) 
-{
+function sportelloCancellaIscrizione(sportello_id, materia, categoria, argomento, data, ora, numero_ore, luogo, docente_id, studente_id) {
     var conf = confirm("Sei sicuro di volere cancellare la tua iscrizione dallo sportello di " + materia + " ?");
 
 
@@ -83,9 +82,9 @@ function sportelloCancellaIscrizione(sportello_id, materia, categoria, argomento
             docente_id: docente_id,
             studente_id: studente_id
         },
-        function (data, status) {
-            sportelloReadRecords();
-        });
+            function (data, status) {
+                sportelloReadRecords();
+            });
 
     }
 }
@@ -99,7 +98,7 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
     // console.log('primoIscritto=' + primoIscritto);
 
     // per il primo iscritto chiede argomento, oppure anche se gli argomenti possono essere diversi
-    var chiediArgomento = ! unSoloArgomento || primoIscritto;
+    var chiediArgomento = !unSoloArgomento || primoIscritto;
     // console.log('chiediArgomento=' + chiediArgomento);
 
     // ma se era stato già previsto dal docente, allora si puo' solo accettare
@@ -111,7 +110,7 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
     var titolo = "<p>Sportello: " + materia + "</p>";
     var messaggio = chiediArgomento ? "<p>Inserire l\'argomento per lo sportello:</p>" : "<p>Confermare l\'argomento per lo sportello:</p>" + argomento;
     var inputType = chiediArgomento ? 'textarea' : 'checkbox';
-    var inputOptions = chiediArgomento ? [] : [{text: 'Confermo',value: '1',}];
+    var inputOptions = chiediArgomento ? [] : [{ text: 'Confermo', value: '1', }];
     var value = chiediArgomento ? [] : ['1'];
 
     var dialog = bootbox.prompt({
@@ -150,41 +149,35 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
                 docente_id: docente_id,
                 studente_id: studente_id
             },
-            function (data, status) {
-                sportelloReadRecords();
-            });
+                function (data, status) {
+                    sportelloReadRecords();
+                });
         }
     });
-    dialog.on('shown.bs.modal', function() {
-    $(this).attr('aria-hidden', 'false'); // ora il modal è accessibile
-});
+    dialog.on('shown.bs.modal', function () {
+        $(this).attr('aria-hidden', 'false'); // ora il modal è accessibile
+    });
 }
 
 $(document).ready(function () {
+    $(function () {
+        $('.selectpicker').selectpicker(); // inizializza i select
+    });
     sportelloReadRecords();
 
-    $("#categoria_filtro").on("changed.bs.select", 
-        function(e, clickedIndex, newValue, oldValue) {
-            categoria_filtro_id = this.value;
+    function bindFiltro($el, setter) {
+        $el.on("changed.bs.select change", function () {
+            setter(this.value);
             sportelloReadRecords();
         });
+    }
 
-    $("#docente_filtro").on("changed.bs.select", 
-    function(e, clickedIndex, newValue, oldValue) {
-        docente_filtro_id = this.value;
-        sportelloReadRecords();
-    });
- 
-    $("#materia_filtro").on("changed.bs.select", 
-    function(e, clickedIndex, newValue, oldValue) {
-        materia_filtro_id = this.value;
-        sportelloReadRecords();
-    });
+    bindFiltro($("#categoria_filtro"), v => { categoria_filtro_id = v; });
+    bindFiltro($("#docente_filtro"), v => { docente_filtro_id = v; });
+    bindFiltro($("#materia_filtro"), v => { materia_filtro_id = v; });
+    bindFiltro($("#classe_filtro"), v => { classe_filtro_id = v; });
 
-    $("#classe_filtro").on("changed.bs.select", 
-    function(e, clickedIndex, newValue, oldValue) {
-        classe_filtro_id = this.value;
-        sportelloReadRecords();
-    });
-    
+    $('#soloNuoviCheckBox').on('change', function () { soloNuovi = this.checked ? 1 : 0; sportelloReadRecords(); });
+    $('#soloIscrittoCheckBox').on('change', function () { soloIscritto = this.checked ? 1 : 0; sportelloReadRecords(); });
+    $('#ancheCancellatiCheckBox').on('change', function () { ancheCancellati = this.checked ? 1 : 0; sportelloReadRecords(); });
 });

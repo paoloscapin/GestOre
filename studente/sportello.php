@@ -200,7 +200,8 @@ foreach (dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ") as $classe
         value="<?php echo getSettingsValue("sportelli", "unSoloArgomento", true) ? 1 : 0; ?>">
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>&d=desktop></script>
+    <script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>&d=desktop"></script>
+
 </body>
 
 </html>
