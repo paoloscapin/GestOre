@@ -128,10 +128,17 @@ function permessiDelete(id) {
 
 function permessoConfirm(id) {
     hideAllTooltips();
-    $.post("permessoConfirm.php", { id: id }, function (data, status) {
-        permessiReadRecords();
+    $.post("permessoConfirm.php", { id: id }, function (data) {
+        if (data.trim() === "ok") {
+            permessiReadRecords();
+        } else {
+            alert("❌ Errore durante la conferma del permesso.");
+        }
+    }).fail(function() {
+        alert("❌ Errore di connessione al server.");
     });
 }
+
 
 function hideAllTooltips() {
     try { $('[data-toggle="tooltip"]').tooltip('hide'); } catch (e) { }

@@ -11,20 +11,16 @@ require_once '../common/checkSession.php';
 ruoloRichiesto('segreteria-didattica', 'dirigente');
 
 if (!empty($_POST)) {
-    $id = $_POST['id'];
+    $id = intval($_POST['id']);
 
     if ($id > 0) {
-        // 🔄 aggiorno un permesso esistente
-        $query = "
-            UPDATE permessi_uscita 
-            SET 
-                stato = '2'
-            WHERE id = '$id'";
+        $query = "UPDATE permessi_uscita SET stato = '2' WHERE id = '$id'";
         dbExec($query);
         info("aggiornato permesso id=$id");
-        echo json_encode(["success" => true, "id" => $id, "stato" => $stato]);
+        echo "ok";
     } else {
-        error("Parametri non validi (id=$id, stato=$stato)");
-        echo json_encode(["success" => false]);
+        error("Parametri non validi (id=$id)");
+        echo "errore";
     }
 }
+
