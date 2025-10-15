@@ -39,9 +39,11 @@
         "pianiDiLavoroEstesi": false,
         "programmaMaterie": true,
         "programmiSvolti":true,
+        "programmiIniziali": true,
         "programmiMinimi":true,
         "permessi": true,
         "carenze": false,
+        "uscite": false,
         "corsi": false,
         "carenzeObiettiviMinimi": false,
         "ulrAPIMastercom": "https://buonarroti-tn.registroelettronico.com/mastercom/register_manager.php"
@@ -142,6 +144,13 @@
         "visibile_docenti": true,
         "docente_puo_inserire": false,
         "docente_puo_modificare": false
+    },
+    "programmiIniziali": {
+        "visibile_docenti": true,
+        "docente_puo_inserire": false,
+        "docente_puo_modificare": false,
+        "importa_anno_precedente": false,
+        "importa_programma_dipartimento": true        
     },
     "pianiDiLavoroEstesi": {
         "visibile_docenti": false
