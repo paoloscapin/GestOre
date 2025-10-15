@@ -39,7 +39,7 @@ $program = dbGetFirst($query);
 
 // 3) RECUPERO MODULI
 
-$query = "SELECT * from programma_minimi_moduli WHERE id_programma = $programId";
+$query = "SELECT * from programma_minimi_moduli WHERE id_programma = $programId ORDER BY ordine ASC";
 
 $modules = dbGetAll($query);
 

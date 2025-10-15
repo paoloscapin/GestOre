@@ -73,7 +73,7 @@ $program = dbGetFirst($query);
 
 //RECUPERO MODULI
 $id_programma_minimi = $program['prog_id'];
-$query = "SELECT * from programma_minimi_moduli WHERE id_programma = $id_programma_minimi";
+$query = "SELECT * from programma_minimi_moduli WHERE id_programma = $id_programma_minimi ORDER BY ordine ASC";
 $modules = dbGetAll($query);
 $studente_id = $program['studente_id'];
 $nota_docente = $program['nota'];
