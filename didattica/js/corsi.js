@@ -13,7 +13,7 @@ var $anni_filtro_id = params.get("a") || "1"; // default
 var $docente_filtro_id = 0;
 var $materia_filtro_id = 0;
 var $futuri = 0;
-var $carenze_toggle = 1;
+var $carenze_toggle = 0;
 var $in_itinere_toggle = 0;
 var $firma_esame = 0; // filtro esame firmato
 

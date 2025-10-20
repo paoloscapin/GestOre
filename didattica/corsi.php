@@ -391,7 +391,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 
                     <div class="col-md-2 text-center" style="margin-top:20px;">
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
-                            <input type="checkbox" checked data-toggle="toggle" data-size="mini"
+                            <input type="checkbox" data-toggle="toggle" data-size="mini"
                                 data-onstyle="primary" id="carenze">Corsi carenze
                         </label><br>
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
