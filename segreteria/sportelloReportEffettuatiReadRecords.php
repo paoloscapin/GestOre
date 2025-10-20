@@ -107,13 +107,14 @@ foreach($resultArray as $row) {
 
 				studente.cognome AS studente_cognome,
 				studente.nome AS studente_nome,
-				studente.classe AS studente_classe,
+				c.classe AS studente_classe,
 				studente.id AS studente_id
-
 			FROM
 				sportello_studente
 			INNER JOIN studente
 			ON sportello_studente.studente_id = studente.id
+			INNER JOIN studente_frequenta sf ON sf.studente_id = studente.id AND sf.anno_scolastico_id = $__anno_scolastico_corrente_id
+			INNER JOIN classi c ON sf.id_classe = c.id
 			WHERE sportello_studente.sportello_id = '$sportello_id';";
 
 		$studenti = dbGetAll($query2);

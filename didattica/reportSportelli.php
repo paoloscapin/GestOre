@@ -75,7 +75,17 @@ $classe = '';
 $listaNessunoSportello = '';
 
 // cicla gli studenti
-foreach(dbGetAll("SELECT * FROM studente WHERE studente.classe <> '' ORDER BY studente.classe ASC, studente.cognome ASC, studente.nome ASC;") as $studente) {
+foreach(dbGetAll("
+        SELECT 
+        s.id,
+        s.cognome,
+        s.nome,
+        c.classe AS classe 
+        FROM studente s 
+        INNER JOIN studente_frequenta sf ON sf.id_studente=s.id 
+        INNER JOIN classi c ON sf.id_classe=c.id 
+        WHERE sf.id_anno_scolastico=$__anno_scolastico_corrente_id AND s.attivo=1 
+        ORDER BY c.classe ASC, s.cognome ASC, s.nome ASC;") as $studente) {
 
     // anche se non lo salto, controllo se effettivamente ha fatto sportelli
 	$haFattoSportelli = false;
