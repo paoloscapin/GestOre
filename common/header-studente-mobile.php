@@ -5,7 +5,7 @@
  */
 ?>
 
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
+<link rel="stylesheet" href="../css/header-style.css">
 
 <nav class="navbar navbar-default navbar-fixed-top" style="background-color: #f8f8f8; border-color: #ddd;">
     <div class="container-fluid">
@@ -13,7 +13,7 @@
         <div class="navbar-header" style="position:relative; width:100%; display:flex; align-items:center;">
 
             <!-- Logo a sinistra -->
-            <a href="<?php echo $__application_base_path; ?>/index.php" class="navbar-brand top-navbar-brand" style="padding: 5px 15px;">
+            <a href="../index.php" class="navbar-brand top-navbar-brand" style="padding: 5px 15px;">
                 <img style="height: 44px;"
                     src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'logo.png'")); ?>"
                     alt="Logo">
@@ -49,22 +49,22 @@
 
                 <?php
                 if (getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false)) : ?>
-                    <li><a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/studente/carenze_mobile.php">
+                    <li><a class="btn btn-lightblue4" href="../studente/carenze_mobile.php">
                             <span class="glyphicon glyphicon-film"></span> Carenze
                         </a></li>
                 <?php endif; ?>
 
-                <li><a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/help/GestOre - Guida Studenti.pdf" target="_blank">
+                <li><a class="btn btn-lightblue4" href="../help/GestOre - Guida Studenti.pdf" target="_blank">
                         <span class="glyphicon glyphicon-question-sign"></span> Guida
                     </a></li>
 
                 <li>
                     <?php if (haRuolo('admin')) : ?>
-                        <a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/admin/index.php">
+                        <a class="btn btn-lightblue4" href="../admin/index.php">
                             <span class="glyphicon glyphicon-log-out"></span> Logout
                         </a>
                     <?php else : ?>
-                        <a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/common/logout.php?base=studente">
+                        <a class="btn btn-lightblue4" href="../common/logout.php?base=studente">
                             <span class="glyphicon glyphicon-log-out"></span> Logout
                         </a>
                     <?php endif; ?>

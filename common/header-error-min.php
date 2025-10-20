@@ -12,8 +12,8 @@ require_once __DIR__ . '/path.php';
 require_once __DIR__ . '/connect.php';
 ?>
 
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/releaseversion.css">
+<link rel="stylesheet" href="../css/header-style.css">
+<link rel="stylesheet" href="../css/releaseversion.css">
 <nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
 	<div class="container-fluid">
 	
@@ -28,7 +28,7 @@ if (! empty ( $__utente_nome )) {
 	echo "<li><a><span class=\"\"></span>echo $__utente_nome.' '.$__utente_cognome </a></li>";
 }
 ?>
-			<li><?php echo '<a href='.$__application_base_path.'/common/logout.php><span class="glyphicon glyphicon-log-out"></span></a>'; ?></li>
+			<li><?php echo '<a href="../common/logout.php"><span class="glyphicon glyphicon-log-out"></span></a>'; ?></li>
 		</ul>
 	</div>
 </nav>

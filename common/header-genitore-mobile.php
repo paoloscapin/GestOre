@@ -5,7 +5,7 @@
  */
 ?>
 
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
+<link rel="stylesheet" href="../css/header-style.css">
 
 <nav class="navbar navbar-default navbar-fixed-top" style="background-color: #f8f8f8; border-color: #ddd;">
     <div class="container-fluid">
@@ -13,7 +13,7 @@
         <div class="navbar-header" style="position:relative; width:100%; display:flex; align-items:center;">
 
             <!-- Logo a sinistra -->
-            <a href="<?php echo $__application_base_path; ?>/index.php" class="navbar-brand top-navbar-brand" style="padding: 5px 15px;">
+            <a href="../index.php" class="navbar-brand top-navbar-brand" style="padding: 5px 15px;">
                 <img style="height: 44px;"
                      src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'logo.png'")); ?>"
                      alt="Logo">

@@ -8,7 +8,7 @@
  */
 
 ?>
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
+<link rel="stylesheet" href="../css/header-style.css">
 
 <nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
 	<div class="container-fluid">
@@ -41,7 +41,7 @@
 					<?php echo $__genitore_nome . ' ' . $__genitore_cognome ?></a></li>
 			<li>
 				<?php
-				echo '<a href=' . $__application_base_path . '/common/logout.php?base=genitore><span class="glyphicon glyphicon-log-out"></span></a>';
+				echo '<a href="../common/logout.php?base=genitore"><span class="glyphicon glyphicon-log-out"></span></a>';
 				?>
 			</li>
 		</ul>

@@ -8,7 +8,7 @@
  */
 
 ?>
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
+<link rel="stylesheet" href="../css/header-style.css">
 
 <nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
 	<div class="container-fluid">
@@ -16,28 +16,28 @@
 
 		<ul class="nav navbar-nav top-navbar-nav">
 
-			<a href="<?php echo $__application_base_path; ?>/docente/index.php"
+			<a href="../docente/index.php"
 				class="btn btn-default navbar-btn btn-lima4" role="button"  data-toggle="tooltip"
      data-placement="bottom" title="Vedi qui le tue ore da fare"><span
 					class="glyphicon glyphicon-time"></span>&ensp;Ore </a>
 
 			<?php if ($__settings->config->corsiDiRecupero): ?>
-				<a href="<?php echo $__application_base_path; ?>/docente/corsoDiRecupero.php"
+				<a href="../docente/corsoDiRecupero.php"
 					class="btn btn-default navbar-btn btn-lightblue4" role="button"><span
 						class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
 			<?php endif; ?>
 
-			<a href="<?php echo $__application_base_path; ?>/docente/previste.php"
+			<a href="../docente/previste.php"
 				class="btn btn-default navbar-btn btn-orange4" role="button" data-toggle="tooltip"
      data-placement="bottom" title="Gestisci qui le tue ore previste ad inizio anno"><span
 					class="glyphicon glyphicon-list-alt"></span>&ensp;Previste </a>
-			<a href="<?php echo $__application_base_path; ?>/docente/attivita.php"
+			<a href="../docente/attivita.php"
 				class="btn btn-default navbar-btn btn-teal4" role="button" data-toggle="tooltip"
      data-placement="bottom" title="Rendiconta qui le tue ore fatte"><span
 					class="glyphicon glyphicon-folder-close"></span>&ensp;Fatte </a>
 
 			<?php if ($__settings->config->bonus): ?>
-				<a href="<?php echo $__application_base_path; ?>/docente/bonus.php"
+				<a href="../docente/bonus.php"
 					class="btn btn-default navbar-btn btn-lima4" role="button" data-toggle="tooltip"
      data-placement="bottom" title="Gestione della valorizzazione docente"><span
 						class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus </a>
@@ -48,9 +48,7 @@
 				if (getSettingsValue('corsi', 'visibile_docenti', false)) {
 					echo '
 			<div class="btn-group">
-			<a href="';
-					echo $__application_base_path;
-					echo '/didattica/corsi.php" class="btn btn-default navbar-btn btn-yellow" role="button"  data-toggle="tooltip"
+			<a href="../didattica/corsi.php" class="btn btn-default navbar-btn btn-yellow" role="button"  data-toggle="tooltip"
      data-placement="bottom" title="Gestisci i tuoi corsi per le carenze e relativi esami, oppure corsi svolti durante l\'anno"><span class="glyphicon glyphicon-th-list"></span>&ensp;I miei Corsi </a>
 			</div>
 			';
@@ -60,13 +58,13 @@
 
 			<?php if (getSettingsValue('programmiMinimi', 'visibile_docenti', false)): ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/didattica/programmaMinimi.php" class="btn btn-default navbar-btn btn-purple" role="button" data-toggle="tooltip"
+					<a href="../didattica/programmaMinimi.php" class="btn btn-default navbar-btn btn-purple" role="button" data-toggle="tooltip"
      data-placement="bottom"  title="Visualizza gli obiettivi minimi delle materie definiti in dipartimento"><span class="glyphicon glyphicon-th-list"></span>&ensp;Ob.Minimi </a>
 				</div>
 			<?php endif; ?>
 			<?php if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)): ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/didattica/programmaMaterie.php"
+					<a href="../didattica/programmaMaterie.php"
 						class="btn btn-default navbar-btn btn-orange4" role="button" data-toggle="tooltip"
     						 data-placement="bottom" title="Visualizza i programmi delle materie definiti in dipartimento"><span
 							class="glyphicon glyphicon-th-large"></span>&ensp;Programmi </a>
@@ -74,20 +72,20 @@
 			<?php endif; ?>
 			<?php if (getSettingsValue('programmiIniziali', 'visibile_docenti', false)) : ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/didattica/programmiIniziali.php" class="btn btn-default navbar-btn btn-yellow" role="button" data-toggle="tooltip"
+					<a href="../didattica/programmiIniziali.php" class="btn btn-default navbar-btn btn-yellow" role="button" data-toggle="tooltip"
      data-placement="bottom" title="Visualizza ed inserisci i programmi iniziali nei propri corsi"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Iniziali </a>
 				</div>
 			<?php endif; ?>
 			<?php if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) : ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/didattica/programmiSvolti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button" data-toggle="tooltip"
+					<a href="../didattica/programmiSvolti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button" data-toggle="tooltip"
      data-placement="bottom" title="Visualizza ed inserisci i programmi svolti nei propri corsi"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Svolti </a>
 				</div>
 			<?php endif; ?>
 
 			<?php if ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false))) : ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button" data-toggle="tooltip"
+					<a href="../didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button" data-toggle="tooltip"
      data-placement="bottom" title="Visualizza e gestisci le carenze di tua competenza a fine anno"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
 				</div>
 			<?php endif; ?>
@@ -98,19 +96,19 @@
 				require_once '../common/connect.php';
 				$num = dbGetValue("SELECT COUNT(id) FROM gruppo WHERE gruppo.dipartimento = false AND gruppo.anno_scolastico_id = $__anno_scolastico_corrente_id AND gruppo.responsabile_docente_id = $__docente_id;");
 				if ($num > 0) {
-					echo '<a href="' . $__application_base_path . '/docente/gruppo.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Gruppi </a>';
+					echo '<a href="../docente/gruppo.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Gruppi </a>';
 				}
 			}
 			?>
-			<!--<a href="<?php echo $__application_base_path; ?>/docente/index.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;80 Ore</a> -->
+			<!--<a href="../docente/index.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;80 Ore</a> -->
 			<?php if (getSettingsValue('config', 'uscite', false)): ?>
-			<a href="<?php echo $__application_base_path; ?>/docente/viaggio.php"
+			<a href="../docente/viaggio.php"
 				class="btn btn-default navbar-btn btn-deeporange4" role="button"><span
 					class="glyphicon glyphicon-picture"></span>&ensp;Uscite</a>
 			<?php endif; ?>
 			<?php if (getSettingsValue('config', 'sportelli', false)): ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/docente/sportello.php"
+					<a href="../docente/sportello.php"
 						class="btn btn-default navbar-btn btn-orange4" role="button"  data-toggle="tooltip"
      data-placement="bottom" title="Gestisci i tuoi sportelli didattici"><span
 							class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
@@ -120,14 +118,14 @@
 						<span class="sr-only">Toggle Dropdown</span>
 					</button>
 					<ul class="dropdown-menu btn-orange4">
-						<li><a href="<?php echo $__application_base_path; ?>/segreteria/sportelloReportEffettuati.php">Report
+						<li><a href="../segreteria/sportelloReportEffettuati.php">Report
 								Sportelli Effettuati</a></li>
 					</ul>
 				</div>
 			<?php endif; ?>
 			<?php if (getSettingsValue('config', 'pianiDiLavoro', false)): ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/docente/pianoDiLavoro.php"
+					<a href="../docente/pianoDiLavoro.php"
 						class="btn btn-default navbar-btn btn-lima4" role="button"><span
 							class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
 					<?php if (getSettingsValue('config', 'carenze', false)): ?>
@@ -137,7 +135,7 @@
 							<span class="sr-only">Toggle Dropdown</span>
 						</button>
 						<ul class="dropdown-menu btn-lima4">
-							<li><a href="<?php echo $__application_base_path; ?>/docente/carenza.php">Lettere Carenze</a></li>
+							<li><a href="../docente/carenza.php">Lettere Carenze</a></li>
 						</ul>
 					<?php endif; ?>
 				</div>
@@ -145,7 +143,7 @@
 			<?php if (getSettingsValue('config', 'pianiDiLavoroEstesi', false)): ?>
 				<?php if (getSettingsValue('pianiDiLavoroEstesi', 'visibile_docente', false)): ?>
 					<div class="btn-group">
-						<a href="<?php echo $__application_base_path; ?>/docente/pdl.php"
+						<a href="../docente/pdl.php"
 							class="btn btn-default navbar-btn btn-lima4" role="button"><span
 								class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
 					</div>
@@ -162,7 +160,7 @@
 					<?php echo $__docente_nome . ' ' . $__docente_cognome ?></a></li>
 			<li>
 				<?php
-					echo '<a href=' . $__application_base_path . '/common/logout.php?base=docente><span class="glyphicon glyphicon-log-out"></span></a>';
+					echo '<a href="../common/logout.php?base=docente"><span class="glyphicon glyphicon-log-out"></span></a>';
 				?>
 			</li>
 		</ul>

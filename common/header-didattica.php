@@ -8,7 +8,7 @@
  */
 
 ?>
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
+<link rel="stylesheet" href="../css/header-style.css">
 
 <nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
 	<div class="container-fluid">
@@ -16,42 +16,42 @@
 
 		<ul class="nav navbar-nav top-navbar-nav">
 			<?php if (getSettingsValue('config', 'sportelli', false)) : ?>
-				<a href="<?php echo $__application_base_path; ?>/didattica/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
-				<a href="<?php echo $__application_base_path; ?>/didattica/reportSportelli.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Report Sportelli </a>
+				<a href="../didattica/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
+				<a href="../didattica/reportSportelli.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Report Sportelli </a>
 			<?php endif; ?>
-			<a href="<?php echo $__application_base_path; ?>/didattica/studente.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Studenti </a>
-			<a href="<?php echo $__application_base_path; ?>/didattica/genitore.php" class="btn btn-default navbar-btn btn-purple" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Genitori </a>
+			<a href="../didattica/studente.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Studenti </a>
+			<a href="../didattica/genitore.php" class="btn btn-default navbar-btn btn-purple" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Genitori </a>
 			<?php if ($__settings->config->corsiDiRecupero) : ?>
-				<a href="<?php echo $__application_base_path; ?>/docente/corsoDiRecuperoVoti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
+				<a href="../docente/corsoDiRecuperoVoti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
 			<?php endif; ?>
 			<?php if (getSettingsValue('config', 'pianiDiLavoro', false)) : ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/docente/pianoDiLavoro.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
+					<a href="../docente/pianoDiLavoro.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
 				</div>
 			<?php endif; ?>
 			<?php if (getSettingsValue('config', 'pianiDiLavoroEstesi', false)) : ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/docente/pdl.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
+					<a href="../docente/pdl.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
 				</div>
 			<?php endif; ?>
 			<?php if (getSettingsValue('config', 'programmaMaterie', false)) : ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/didattica/programmaMaterie.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Progr.Materie </a>
+					<a href="../didattica/programmaMaterie.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Progr.Materie </a>
 				</div>
 			<?php endif; ?>
 			<?php if (getSettingsValue('config', 'programmiMinimi', false)) : ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/didattica/programmaMinimi.php" class="btn btn-default navbar-btn btn-purple" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Obiett.Minimi </a>
+					<a href="../didattica/programmaMinimi.php" class="btn btn-default navbar-btn btn-purple" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Obiett.Minimi </a>
 				</div>
 			<?php endif; ?>
 			<?php if (getSettingsValue('config', 'programmiIniziali', false)) : ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/didattica/programmiIniziali.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Iniziali </a>
+					<a href="../didattica/programmiIniziali.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Iniziali </a>
 				</div>
 			<?php endif; ?>
 			<?php if (getSettingsValue('config', 'programmiSvolti', false)) : ?>
 				<div class="btn-group">
-					<a href="<?php echo $__application_base_path; ?>/didattica/programmiSvolti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Svolti </a>
+					<a href="../didattica/programmiSvolti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Svolti </a>
 				</div>
 			<?php endif; ?>
 			<?php
@@ -60,8 +60,7 @@
 					echo '
 			<div class="btn-group">
 			<a href="';
-					echo $__application_base_path;
-					echo '/didattica/corsi.php" class="btn btn-default navbar-btn btn-yellow" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Corsi </a>
+					echo '../didattica/corsi.php" class="btn btn-default navbar-btn btn-yellow" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Corsi </a>
 			</div>
 			';
 				}
@@ -70,8 +69,7 @@
 					echo '
 			<div class="btn-group">
 			<a href="';
-					echo $__application_base_path;
-					echo '/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
+					echo '../didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
 			</div>
 			';
 				}
@@ -79,8 +77,7 @@
 					echo '
 			<div class="btn-group">
 			<a href="';
-					echo $__application_base_path;
-					echo '/didattica/permessi.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Permessi </a>
+					echo '../didattica/permessi.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Permessi </a>
 			</div>
 			';
 				}
@@ -90,8 +87,7 @@
 					echo '
 			<div class="btn-group">
 			<a href="';
-					echo $__application_base_path;
-					echo '/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
+					echo'../didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
 			</div>
 			';
 				}
@@ -100,7 +96,7 @@
 				if ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
 					echo '
 			<div class="btn-group">
-			<a href="<?php echo $__application_base_path; ?>/didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Carenze </a>
+			<a href="../didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Carenze </a>
 			</div>
 			';
 				}
@@ -117,9 +113,9 @@
 			<li>
 				<?php
 				if (haRuolo('admin')) {
-					echo '<a href=' . $__application_base_path . '/common/logout.php?base=admin><span class="glyphicon glyphicon-log-out"></span></a>';
+					echo '<a href="../common/logout.php?base=admin"><span class="glyphicon glyphicon-log-out"></span></a>';
 				} else {
-					echo '<a href=' . $__application_base_path . '/common/logout.php?base=didattica><span class="glyphicon glyphicon-log-out"></span></a>';
+					echo '<a href="../common/logout.php?base=didattica"><span class="glyphicon glyphicon-log-out"></span></a>';
 				}
 				?>
 			</li>

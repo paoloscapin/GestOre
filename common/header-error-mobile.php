@@ -4,13 +4,13 @@ require_once __DIR__ . '/connect.php';
 ?>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
+<link rel="stylesheet" href="../css/header-style.css">
 
 <nav class="navbar navbar-expand-lg fixed-top shadow-sm" style="background-color:#f8f8f8; border-bottom:1px solid #ddd;">
     <div class="container-fluid">
 
         <!-- Logo -->
-        <a class="navbar-brand" href="<?php echo $__application_base_path; ?>">
+        <a class="navbar-brand" href="../index.php">
             <img style="height:44px;" 
                  src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'logo.png'")); ?>" 
                  alt="Logo">
@@ -27,14 +27,14 @@ require_once __DIR__ . '/connect.php';
 
                 <!-- Link Home -->
                 <li class="nav-item">
-                    <a class="nav-link text-dark" href="<?php echo $__application_base_path; ?>">
+                    <a class="nav-link text-dark" href="../index.php">
                         <i class="bi bi-house-door"></i> Home
                     </a>
                 </li>
 
                 <!-- Link Logout -->
                 <li class="nav-item">
-                    <a class="nav-link text-dark" href="<?php echo $__application_base_path; ?>/common/logout.php">
+                    <a class="nav-link text-dark" href="../common/logout.php">
                         <i class="bi bi-box-arrow-right"></i> Logout
                     </a>
                 </li>

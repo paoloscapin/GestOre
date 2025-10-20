@@ -13,14 +13,14 @@
 require_once __DIR__ . '/path.php';
 ?>
 
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/header-style.css">
+<link rel="stylesheet" href="../css/header-style.css">
 
 <nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
 	<div class="container-fluid">
 	<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav">
-			<li class="active"><a href="<?php echo $__application_base_path; ?>"><span class="glyphicon glyphicon-home"></span> Home </a></li>
+			<li class="active"><a href="../index.php"><span class="glyphicon glyphicon-home"></span> Home </a></li>
 			<li><a href="#">  </a></li>
 		</ul>
 
@@ -29,7 +29,7 @@ require_once __DIR__ . '/path.php';
 	if (! empty($__utente_nome)) {
 		echo "<li><a><span class=\"\"></span>$__utente_nome $__utente_cognome </a></li>";
 	}
-	echo '<li><a href='.$__application_base_path.'/common/logout.php><span class="glyphicon glyphicon-log-out"></span></a></li>';
+	echo '<li><a href="../common/logout.php"><span class="glyphicon glyphicon-log-out"></span></a></li>';
 ?>
 		</ul>
 	</div>
