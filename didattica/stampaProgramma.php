@@ -100,6 +100,84 @@ function textToJsonArray(string $text): string
 }
 
 /**
+ * Rende una lista UL con al massimo due livelli.
+ * Convenzioni:
+ *  - Livello 1: riga che inizia con "- " o "* "
+ *  - Livello 2: riga indentata (≥2 spazi o \t) prima del trattino, oppure che inizia con "-- " / "** "
+ * Se non trova bullet, usa le righe non vuote come voci di primo livello.
+ */
+function buildTwoLevelListFromText(string $text): string
+{
+    $lines = preg_split('/\R/', $text);
+    $tree = []; // array di ['text'=>..., 'children'=>[...]]
+    $currentParent = null;
+
+    foreach ($lines as $line) {
+        $raw = rtrim($line);
+        if ($raw === '') {
+            continue;
+        }
+
+        // Normalizza tab a 2 spazi per il calcolo del livello
+        $norm = str_replace("\t", "  ", $raw);
+
+        // Pattern: opzionale indent (≥2 spazi), poi 1+ marker -,* e spazio, poi testo
+        if (preg_match('/^(?:( {2,}))?([\-*]{1,})\s+(.+)$/u', $norm, $m)) {
+            $indent  = $m[1] ?? '';
+            $markers = $m[2];
+            $textLi  = trim($m[3]);
+
+            // Determina livello (0 = top, 1 = sotto)
+            $level = 0;
+            if ($indent !== '' || strlen($markers) >= 2) {
+                $level = 1;
+            }
+
+            if ($level === 0) {
+                // nuovo parent
+                $tree[] = ['text' => $textLi, 'children' => []];
+                $currentParent = count($tree) - 1;
+            } else {
+                // figlio: se non c’è un parent aperto, creane uno “vuoto”
+                if ($currentParent === null) {
+                    $tree[] = ['text' => '', 'children' => []];
+                    $currentParent = count($tree) - 1;
+                }
+                $tree[$currentParent]['children'][] = ['text' => $textLi, 'children' => []];
+            }
+        } else {
+            // Nessun bullet su questa riga: trattala come top-level
+            $tree[] = ['text' => trim($raw), 'children' => []];
+            $currentParent = count($tree) - 1;
+        }
+    }
+
+    return renderTwoLevelList($tree);
+}
+
+/** Renderer ricorsivo per massimo due livelli */
+function renderTwoLevelList(array $nodes): string
+{
+    if (empty($nodes)) return '';
+
+    $html = '<ul>';
+    foreach ($nodes as $n) {
+        $html .= '<li>' . htmlspecialchars($n['text'] ?? '', ENT_QUOTES, 'UTF-8');
+        if (!empty($n['children'])) {
+            $html .= '<ul>';
+            foreach ($n['children'] as $c) {
+                $html .= '<li>' . htmlspecialchars($c['text'] ?? '', ENT_QUOTES, 'UTF-8') . '</li>';
+            }
+            $html .= '</ul>';
+        }
+        $html .= '</li>';
+    }
+    $html .= '</ul>';
+
+    return $html;
+}
+
+/**
  * Costruisce il markup HTML di una lista non ordinata.
  *
  * @param array $elements
@@ -110,32 +188,6 @@ function buildListHtml(array $elements): string
   $html = '<ul>';
   foreach ($elements as $li) {
     $html .= '<li>' . htmlspecialchars($li) . '</li>';
-  }
-  $html .= '</ul>';
-  return $html;
-}
-// 4) HELPER PER LISTE (campi JSON → UL)
-function asList(string $text): string
-{
-  // 1) Decodifica l’array JSON
-  $items = json_decode(textToJsonArray($text), true) ?: [];
-
-  $html = '<ul>';
-  foreach ($items as $item) {
-    $trim = ltrim($item);
-    // 2) Se è già un blocco <ul> trattalo come sotto‐lista:
-    if (str_starts_with($trim, '<ul')) {
-      // Rimuovo la chiusura </li> dell'ultimo elemento
-      // e ci incollo dentro la <ul> ... </ul> e poi riaggiungo </li>
-      $html = preg_replace(
-        '/<\/li>$/',
-        $trim . '</li>',
-        $html
-      );
-    } else {
-      // 3) Altrimenti apro un nuovo <li>
-      $html .= '<li>' . $item . '</li>';
-    }
   }
   $html .= '</ul>';
   return $html;
@@ -349,9 +401,9 @@ ob_start();
         </thead>
         <tbody>
           <?php foreach ([
-            'Conoscenze' => asList($m['CONOSCENZE']),
-            'Abilità' => asList($m['ABILITA']),
-            'Competenze' => asList($m['COMPETENZE']),
+            'Conoscenze' => buildTwoLevelListFromText($m['CONOSCENZE']),
+            'Abilità' => buildTwoLevelListFromText($m['ABILITA']),
+            'Competenze' => buildTwoLevelListFromText($m['COMPETENZE']),
             'Periodo' => htmlspecialchars($m['PERIODO']),
           ] as $th => $td): ?>
             <tr>
@@ -514,9 +566,9 @@ if ($doPrint) {
 
     // quattro righe fisse
     $rows = [
-      'Conoscenze' => asList($m['CONOSCENZE']),
-      'Abilità' => asList($m['ABILITA']),
-      'Competenze' => asList($m['COMPETENZE']),
+      'Conoscenze' => buildTwoLevelListFromText($m['CONOSCENZE']),
+      'Abilità' => buildTwoLevelListFromText($m['ABILITA']),
+      'Competenze' => buildTwoLevelListFromText($m['COMPETENZE']),
       'Periodo' => htmlspecialchars($m['PERIODO']),
     ];
     foreach ($rows as $label => $data) {
