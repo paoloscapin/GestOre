@@ -1,3 +1,7 @@
+## Version 1.3.7 - 23 ott 2025
+##### Bug Fixes
+- viaggio nomina email riscritto con la nuova libreria email
+
 ## Version 1.3.6 - 6 ott 2025
 ##### Improvements
 - sportello soloMiei altrimenti visualizza altri docenti e filtro materie

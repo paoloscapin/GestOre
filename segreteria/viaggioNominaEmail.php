@@ -6,12 +6,17 @@
  *  @copyright  (C) 2018 Paolo Scapin
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+require_once '../common/PHPMailer/PHPMailer.php';
+require_once '../common/PHPMailer/Exception.php';
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+
 $viaggio_id = $_POST["viaggio_id"];
-$query = "
-			SELECT
+
+$query = "SELECT
 				viaggio.id AS viaggio_id,
 				viaggio.protocollo AS viaggio_protocollo,
 				viaggio.tipo_viaggio AS viaggio_tipo_viaggio,
@@ -31,70 +36,63 @@ $query = "
 			ON viaggio.docente_id = docente.id
 			WHERE viaggio.id = '$viaggio_id'";
 
-if (!$result = mysqli_query($con, $query)) {
-	exit(mysqli_error($con));
-}
 
-$response = array();
-$row = array();
-if(mysqli_num_rows($result) > 0) {
-	$row = mysqli_fetch_assoc($result);
-}
-else {
-	$response['status'] = 200;
-	$response['message'] = "Data not found!";
-}
+$viaggio = dbGetFirst($query);
 
-$tipoViaggio = "";
-if ($row['viaggio_tipo_viaggio'] === 'Uscita Formativa') {
-	$tipoViaggio = "l'uscita formativa";
-} else if ($row['viaggio_tipo_viaggio'] === 'Visita Guidata') {
-	$tipoViaggio = "la visita guidata";
-} else if ($row['viaggio_tipo_viaggio'] === 'Viaggio di Istruzione') {
-	$tipoViaggio = "il viaggio d'istruzione";
-}
+$tipoViaggio = $viaggio['viaggio_tipo_viaggio'];
 
 $oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
-$dataNomina = utf8_encode( strftime("%d %B %Y", strtotime($row['viaggio_data_nomina'])));
-$dataPartenza = utf8_encode( strftime("%d %B %Y", strtotime($row['viaggio_data_partenza'])));
-$dataRientro = utf8_encode( strftime("%d %B %Y", strtotime($row['viaggio_data_rientro'])));
+$dataNomina = utf8_encode( strftime("%d %B %Y", strtotime($viaggio['viaggio_data_nomina'])));
+$dataPartenza = utf8_encode( strftime("%d %B %Y", strtotime($viaggio['viaggio_data_partenza'])));
+$dataRientro = utf8_encode( strftime("%d %B %Y", strtotime($viaggio['viaggio_data_rientro'])));
 setlocale(LC_TIME, $oldLocale);
 
-$to = $row['docente_email'];
-$subject = 'Incarico '.$row['viaggio_tipo_viaggio'].' a '.$row['viaggio_destinazione'].' del '.$dataPartenza;
-$sender = $__settings->local->emailNoReplyFrom;
+$viaggioDestinazione = $viaggio['viaggio_destinazione'];
 
-$headers = "From: $sender\n";
-$headers .= "MIME-Version: 1.0\n";
-$headers .= "Content-Type: text/html; charset=\"UTF-8\"\n";
-$headers .= "Content-Transfer-Encoding: 8bit\n";
-$headers .= "X-Mailer: PHP " . phpversion();
-
-// Corpi del messaggio nei due formati testo e HTML
-$text_msg = "Incarico";
-
+$docenteNomeCognome = $viaggio['docente_nome'].' '.$viaggio['docente_cognome'];
+$docenteEmail = $viaggio['docente_email'];
+$subject = 'Incarico '.$viaggio['viaggio_tipo_viaggio'].' a '.$viaggio['viaggio_destinazione'].' del '.$dataPartenza;
 $connection = 'http';
 if ($__settings->system->https) {
     $connection = 'https';
 }
 $url = "$connection://$_SERVER[HTTP_HOST]".$__application_base_path . '/index.php';
-$html_msg = '
-<html><body>
-Gentile '.$row['docente_nome'].' '.$row['docente_cognome'].'
-<p>in data '.$dataNomina.' il Dirigente Scolastico le ha conferito l&rsquo;incarico di accompagnatore degli studenti durante '.$tipoViaggio.' a <b>'.$row['viaggio_destinazione'].'</b> del giorno <b>'.$dataPartenza.'</b></p>
-<p>La preghiamo di confermare al pi&ugrave; presto la sua disponibilit&agrave; confermando sul sito di
-<a href=\''.$url.'\'>accettare l&rsquo;incarico</a></p>
-<p>' . $__settings->name . ' ' . $__settings->local->nomeIstituto . '</p>
-</body></html>
-';
 
-// Imposta il Return-Path (funziona solo su hosting Windows)
-ini_set("sendmail_from", $sender);
+// invia la email al docente		
+$mail = new PHPMailer(true);
 
-// Invia il messaggio, il quinto parametro "-f$sender" imposta il Return-Path su hosting Linux
-if (mail($to, $subject, $html_msg, $headers, "-f$sender")) {
-	echo "email inviata correttamente a ".$row['docente_email'];
+$sender = getSettingsValue('local', 'emailNoReplyFrom', '');
+$mail->setFrom($sender, 'no reply');
+$mail->addAddress($docenteEmail, $docenteNomeCognome);
+
+// subject
+$mail->Subject = $subject;
+
+// il testo del messaggio in html
+$html_msg = '<html><body>Gentile '.$docenteNomeCognome.'<p>in data '.$dataNomina.' il Dirigente Scolastico le ha conferito l&rsquo;incarico di accompagnatore degli studenti
+	durante '.$tipoViaggio.' a <b>'.$viaggio['viaggio_destinazione'].'</b> del giorno <b>'.$dataPartenza.'</b></p>
+	<p>La preghiamo di confermare al pi&ugrave; presto la sua disponibilit&agrave; confermando sul sito di <a href=\''.$url.'\'>accettare l&rsquo;incarico</a></p><p>' . $__settings->name . ' ' . $__settings->local->nomeIstituto . '</p></body></html>';
+
+$mail->isHTML(TRUE);
+$mail->Body = $html_msg;
+$mail->AltBody = "Gentile $docenteNomeCognome, il DS ti ha conferito l'incarico per il viaggio a ".$viaggio['viaggio_destinazione']." del giorno ".$dataPartenza;
+
+// allega il pdf
+// $encoding = 'base64';
+// $type = 'application/pdf';
+// $mail->AddStringAttachment($outputPdf,$pdfFileName,$encoding,$type);
+
+// send the message
+$message = "Invio email incarico a $docenteNomeCognome viaggio a $viaggioDestinazione del $dataPartenza: ";
+
+if(!$mail->send()){
+	$message .= "errore nell'invio del messaggio. Errore: ".$mail->ErrorInfo;
+	warning($message);
+	echo $message;
 } else {
-	echo "errore nell'invio della email";
+	$message .= "email inviata correttamente.";
+	info($message);
+	echo $message;
+	// marca che e' stato notificato (non necessario per i viaggi?)
 }
 ?>
