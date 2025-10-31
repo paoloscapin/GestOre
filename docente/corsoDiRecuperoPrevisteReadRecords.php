@@ -128,11 +128,12 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 	$dataCdr .= '</tbody></table></div>';
 	// debug('dataCdr='.$dataCdr);
 
+	// se solo il totale svuota i dati per la tabella che non serve tornare
 	if ($soloTotale) {
-		$result = compact('corso_di_recupero_ore_recuperate', 'corso_di_recupero_ore_pagamento_extra', 'corso_di_recupero_ore_in_itinere');
-	} else {
-		$result = compact('dataCdr', 'corso_di_recupero_ore_recuperate', 'corso_di_recupero_ore_pagamento_extra', 'corso_di_recupero_ore_in_itinere');
+		$dataCdr = '';
 	}
+
+	$result = compact('dataCdr', 'corso_di_recupero_ore_recuperate', 'corso_di_recupero_ore_pagamento_extra', 'corso_di_recupero_ore_in_itinere');
 	return $result;
 }
 ?>
