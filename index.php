@@ -37,6 +37,16 @@ else if (haRuolo('admin')) {
 
 require_once __DIR__ . '/common/header-common.php';
 require_once __DIR__ . '/common/style.php';
+
+$protocollo = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https://" : "http://";
+$url_completo = $protocollo . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+
+if (($url_completo == 'https://www.buonarroti.edu.it/GestOre/') || ($url_completo == 'https://www.buonarroti.edu.it/GestOre/index.php')) 
+{
+    header("Location: https://www.buonarroti.tn.it/GestOre/");
+} 
+
+
 ?>
 <!DOCTYPE html>
 <html>

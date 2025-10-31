@@ -84,8 +84,6 @@ $query .= " ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC, 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) $resultArray = [];
 
-debug("Numero sportelli trovati: " . count($resultArray));
-
 $data = '<div class="cards-container">';
 
 foreach ($resultArray as $row) {
@@ -150,7 +148,6 @@ foreach ($resultArray as $row) {
             $now = new DateTime('now', $tz);
             $dataSportelloRaw = $row['sportello_data'];
 
-            debug("TZ Europe/Rome attivo; now=" . $now->format('Y-m-d H:i:sP') . "; sportello_data=" . $dataSportelloRaw);
             $orario = getSettingsValue('sportelli', 'chiusuraOrario', '13');
             // Data e scadenza iscrizioni
             $dataSportelloObj = new DateTime($dataSportelloRaw, $tz);

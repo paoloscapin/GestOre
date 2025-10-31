@@ -20,6 +20,7 @@ $query = "
         c.nota_docente AS nota,
         d.cognome AS doc_cognome,
         d.nome AS doc_nome,
+        d.id AS doc_id,
         m.nome AS materia
     FROM carenze c
     INNER JOIN docente d ON c.id_docente = d.id
