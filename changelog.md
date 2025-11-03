@@ -1,3 +1,7 @@
+## Version 1.3.9 - 3 nov 2025
+##### ##### Improvements
+- notifica per email carenze novembre
+
 ## Version 1.3.8 - 31 ott 2025
 ##### Bug Fixes
 - previsteReadRcords dataCdr allineato in cdr

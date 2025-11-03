@@ -327,7 +327,7 @@ foreach($resultArray as $row_classe) {
 							// questo solo se lo studente ha l'indirizzo di email inserito
 							if (! empty($row_studente['studente_per_corso_di_recupero_email'])) {
 								if ($row_studente['studente_per_corso_di_recupero_voto_settembre_notificato']) {
-									$data .= '&nbsp;&nbsp;<span class="label label-success">notificato</span>';
+									$data .= '&nbsp;&nbsp;<span class="label label-success">notificato Sett.</span>';
 								} else {
 									$data .= '&nbsp;&nbsp;<button onclick="emailCarenzeSettembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-deeporange4 btn-xs notificaEmailBtn"><span class="glyphicon glyphicon-envelope"></span>&nbsp;email</button>';
 								}
@@ -339,8 +339,21 @@ foreach($resultArray as $row_classe) {
 					}
 					// se ha il voto a novembre, deve generare la lettera di novembre
 					else if (($row_studente['studente_per_corso_di_recupero_voto_novembre'] > 0) ) {
-						$data .= '<td class="text-center">
-										<button onclick="letteraCarenzeNovembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>';
+						$data .= '<td class="text-center"><button onclick="letteraCarenzeNovembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>';
+
+						// controlla se configurato per inviare le email in automatico
+						if (getSettingsValue("corsiDiRecupero", "corsiDiRecuperoEmailRisulato", false)) {
+							// questo solo se lo studente ha l'indirizzo di email inserito
+							if (! empty($row_studente['studente_per_corso_di_recupero_email'])) {
+								if ($row_studente['studente_per_corso_di_recupero_voto_novembre_notificato']) {
+									$data .= '&nbsp;&nbsp;<span class="label label-success">notificato Nov.</span>';
+								} else {
+									$data .= '&nbsp;&nbsp;<button onclick="emailCarenzeNovembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-deeporange4 btn-xs notificaEmailBtn"><span class="glyphicon glyphicon-envelope"></span>&nbsp;email Nov.</button>';
+								}
+							} else {
+								$data .= '&nbsp;&nbsp;<span class="label label-warning">no email</span>';
+							}
+						}
 						$data .= '</td>';
 					}
 					// altrimenti non deve generare niente
