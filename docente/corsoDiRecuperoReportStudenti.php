@@ -166,7 +166,7 @@ foreach($resultArray as $row_classe) {
 					LEFT JOIN docente docente_nov
 					ON studente_per_corso_di_recupero.docente_voto_novembre_id = docente_nov.id
 					WHERE
-						corso_di_recupero.anno_scolastico_id = '$__anno_scolastico_corrente_id'
+						corso_di_recupero.anno_scolastico_id = '$__anno_scolastico_corrente_id'  AND NOT corso_di_recupero.in_itinere
 					AND
 						studente_per_corso_di_recupero.classe='$classe'
 					ORDER BY

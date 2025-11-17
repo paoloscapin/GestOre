@@ -1,3 +1,9 @@
+## Version 1.3.10 - 17 nov 2025
+##### Improvements
+- json corsiDiRecuperoOreObbligatorie non fisso a 10 ore (possono essere anche 0)
+##### Bug Fixes
+- cdr report studenti non visualizza i voti corsi in itinere (sarebbero tutti esenti)
+
 ## Version 1.3.9 - 3 nov 2025
 ##### ##### Improvements
 - notifica per email carenze novembre

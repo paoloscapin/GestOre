@@ -112,7 +112,8 @@
         "corsiDiRecuperoLinkRichiestaNovembre": "",
         "corsiDiRecuperoFirmaDocente": true,
         "corsiDiRecuperoVotoSettembreTuttiIDocenti": true,
-        "corsiDiRecuperoPagatiDaProvincia": true
+        "corsiDiRecuperoPagatiDaProvincia": true,
+        "corsiDiRecuperoOreObbligatorie": 10
     },
     "label": {
         "ore_funzionali": "funzionali",

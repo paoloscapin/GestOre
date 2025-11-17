@@ -58,10 +58,19 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 		$ore_pagamento_extra = $corso['ore_pagamento_extra'];
 
 		// calcola quante sono obbligatorie per chiudere le 10 ore, per quelle non ci deve essere scelta su come pagarle
-		$mancanti_recuperate_totale = 10 - $ore_recuperate_totale;
+		$oreObbligatorie = getSettingsValue('corsiDiRecupero', 'corsiDiRecuperoOreObbligatorie', '10');
+		$mancanti_recuperate_totale = $oreObbligatorie - $ore_recuperate_totale;
 
 		// calcola quantes sono le ore di questo corso che devono per forza essere recuperate (potrebbe anche essere negativo)
 		$ore_recuperate_calcolate = min($ore_firmate, $mancanti_recuperate_totale);
+
+		// debug("ore_firmate=".$ore_firmate);
+		// debug("ore_recuperate=".$ore_recuperate);
+		// debug("ore_pagamento_extra=".$ore_pagamento_extra);
+		// debug("oreObbligatorie=".$oreObbligatorie);
+		// debug("ore_recuperate_totale=".$ore_recuperate_totale);
+		// debug("mancanti_recuperate_totale=".$mancanti_recuperate_totale);
+		// debug("ore_recuperate_calcolate=".$ore_recuperate_calcolate);
 
 		// se le mancanti sono > 0 , allora queste ore le devo per forza recuperare e non posso modificarle
 		if ($mancanti_recuperate_totale > 0) {
@@ -77,7 +86,7 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 			// le ore recuperate che rimangono dopo quelle che ho tolto
 			$ore_recuperate = max($ore_recuperate - $ore_recuperate_calcolate, 0);
 
-			// se restano altre ore non richieste come recuperate, vanno calcolate come extra
+			// se restano altre ore non richieste come recuperate, vanno calcolate come extra: todo: non va bene perche' mi sposta tutto il resto in pagamento extra anche se non vorrrei. Lo posso aggiornare ma appena passa di qui lo rimette in quel modo
 			$ore_pagamento_extra = $ore_firmate - $ore_recuperate;
 
 			// per sicurezza aggiorna la riga sul database per dire quante sono le recuperate
@@ -92,8 +101,14 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 		$corso_di_recupero_ore_recuperate += $ore_recuperate;
 		$corso_di_recupero_ore_pagamento_extra += $ore_pagamento_extra;
 		
-		// se sono rimaste delle ore firmate, ore devono essere inserite
+		// se sono rimaste delle ore firmate, ora devono essere inserite
 		if ($ore_firmate > 0) {
+			// debug("ore_firmate>0=".$ore_firmate);
+			// debug("ore_recuperate>0=".$ore_recuperate);
+			// debug("ore_pagamento_extra>0=".$ore_pagamento_extra);
+
+			// controlla se la somma torna, altrimenti deve essere aggiornato qualcosa?
+
 			$dataCdr .= '<tr><td>'.$corsoCodice.'</td><td>'.$materia.'</td><td class="text-center">'.$ore_firmate.'</td><td class="text-center">'.$ore_recuperate.'</td><td class="text-center">'.$ore_pagamento_extra.'</td><td>';
 			$dataCdr .= '<button onclick="corsoDiRecuperoPrevisteEdit('.$corsoId.', \''.$corsoCodice.'\', '.$ore_firmate.', '.$ore_recuperate.', '.$ore_pagamento_extra.')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>';
 			$dataCdr .= '</td></tr>';
