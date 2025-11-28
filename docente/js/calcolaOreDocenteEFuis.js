@@ -212,7 +212,7 @@ function orePrevisteReloadTables(soloTotale = false) {
 		if (true) {
 			$("#fuis_assegnato").html(number_format(data.fuisAssegnato,2));
 			$("#fuis_ore").html(number_format(data.fuisOrePreviste,2));
-			$("#fuis_diaria").html(number_format(data.diariaImporto,2));
+			$("#fuis_diaria").html(number_format(data.diariaImportoPreviste,2));
 	
 			$("#fuis_clil_funzionali").html(number_format(data.fuisClilFunzionale,2));
 			$("#fuis_clil_con_studenti").html(number_format(data.fuisClilConStudenti,2));
@@ -223,7 +223,7 @@ function orePrevisteReloadTables(soloTotale = false) {
 			$("#fuis_corsi_di_recupero").html(number_format(data.fuisExtraCorsiDiRecupero,2));
 	
 			// totali
-			$("#fuis_docente_totale").html(number_format(parseFloat(data.fuisAssegnato) + parseFloat(data.fuisOre) + parseFloat(data.diariaImporto),2));
+			$("#fuis_docente_totale").html(number_format(parseFloat(data.fuisAssegnato) + parseFloat(data.fuisOrePreviste) + parseFloat(data.diariaImportoPreviste),2));
 			$("#fuis_clil_totale").html(number_format(parseFloat(data.fuisClilFunzionale) + parseFloat(data.fuisClilConStudenti), 2));
 			$("#fuis_orientamento_totale").html(number_format(parseFloat(data.fuisOrientamentoFunzionale) + parseFloat(data.fuisOrientamentoConStudenti), 2));
 			$("#fuis_corsi_di_recupero_totale").html(number_format(data.fuisExtraCorsiDiRecupero,2));

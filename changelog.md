@@ -1,3 +1,7 @@
+## Version 1.3.11 - 28 nov 2025
+##### Bug Fixes
+- calcola ore docente e fuis fix per diaria prevista
+
 ## Version 1.3.10 - 17 nov 2025
 ##### Improvements
 - json corsiDiRecuperoOreObbligatorie non fisso a 10 ore (possono essere anche 0)
