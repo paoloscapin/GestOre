@@ -267,7 +267,9 @@ require_once '../common/header-docente.php';
 		</tbody>
 	</table>
 	</div>
+<?php if(getSettingsValue('fuis','fatteMessaggioDocenteCompensaOre', true)) : ?>
 	<div id="ore_message" class="row" style="margin-bottom:10px;"></div>
+<?php endif; ?>
 	<input type="hidden" id="accetta_con_studenti_per_funzionali" value="<?php if (getSettingsValue('fuis','accetta_con_studenti_per_funzionali', false)) {echo('1');} else {echo('0');} ?>">
 	<input type="hidden" id="accetta_funzionali_per_con_studenti" value="<?php if (getSettingsValue('fuis','accetta_funzionali_per_con_studenti', false)) {echo('1');} else {echo('0');} ?>">
 	<div id="ore_eccesso_message" class="row" style="margin-bottom:10px;"></div>

@@ -1,3 +1,7 @@
+## Version 1.3.12 - 30 nov 2025
+##### ##### Improvements
+- opzione previsteMessaggioDocenteCompensaOre e fatteMessaggioDocenteCompensaOre
+
 ## Version 1.3.11 - 28 nov 2025
 ##### Bug Fixes
 - calcola ore docente e fuis fix per diaria prevista
