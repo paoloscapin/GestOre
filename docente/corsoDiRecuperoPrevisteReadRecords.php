@@ -110,7 +110,9 @@ function corsoDiRecuperoPrevisteReadRecords($soloTotale, $docente_id, $operatore
 			// controlla se la somma torna, altrimenti deve essere aggiornato qualcosa?
 
 			$dataCdr .= '<tr><td>'.$corsoCodice.'</td><td>'.$materia.'</td><td class="text-center">'.$ore_firmate.'</td><td class="text-center">'.$ore_recuperate.'</td><td class="text-center">'.$ore_pagamento_extra.'</td><td>';
-			$dataCdr .= '<button onclick="corsoDiRecuperoPrevisteEdit('.$corsoId.', \''.$corsoCodice.'\', '.$ore_firmate.', '.$ore_recuperate.', '.$ore_pagamento_extra.')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>';
+			if ($modificabile) {
+				$dataCdr .= '<button onclick="corsoDiRecuperoPrevisteEdit('.$corsoId.', \''.$corsoCodice.'\', '.$ore_firmate.', '.$ore_recuperate.', '.$ore_pagamento_extra.')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>';
+			}
 			$dataCdr .= '</td></tr>';
 		}
 	}

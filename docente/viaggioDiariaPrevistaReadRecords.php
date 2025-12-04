@@ -20,6 +20,10 @@ function writeGiorniPrevisti($attuali, $originali) {
 	return '<s style="text-decoration-style: double;"> '.$originali.' </s>&ensp;<span class="text-danger"><strong> '.$attuali.' </strong></span>';
 }
 
+function formatNoZeroDiariaPrevista($value) {
+    return ($value != 0) ? number_format($value,2) : ' ';
+}
+
 function writeOreDiariaPreviste($attuali, $originali) {
 	// se non ci sono gli originali, scrive solo gli attuali
 	if ($originali == null || $originali == 0) {
@@ -71,7 +75,7 @@ function viaggioDiariaPrevistaReadRecords($soloTotale, $docente_id, $operatore, 
 		$dataDiaria .=  '<th class="col-md-1 text-center"></th>';
 	}
 								
-	$dataDiaria .=  '</tr>';
+	$dataDiaria .=  '</tr><tbody>';
 
 	foreach(dbGetAll("SELECT viaggio_diaria_prevista.id as local_viaggio_diaria_prevista_id, viaggio_diaria_prevista.*, viaggio_diaria_prevista_commento.* FROM viaggio_diaria_prevista LEFT JOIN viaggio_diaria_prevista_commento on viaggio_diaria_prevista_commento.viaggio_diaria_prevista_id = viaggio_diaria_prevista.id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $docente_id;") as $row) {
 		// controlla se aggiornata dall'ultima modifica (solo per il dirigente)
@@ -110,7 +114,9 @@ function viaggioDiariaPrevistaReadRecords($soloTotale, $docente_id, $operatore, 
 		$diariaOre += $row['ore'];
 	}
 
-	$dataDiaria .= '</table></div>';
+	$dataDiaria .= '</tbody><tfoot>';
+	$dataDiaria .='<tr><td colspan="3" class="text-right"><strong>Totale:</strong></td><td class="text-right funzionale"><strong>' . formatNoZeroDiariaPrevista($diariaImporto) . '</strong></td></tr>';
+	$dataDiaria .='</tfoot></table></div>';
 
 	$result = compact('dataDiaria', 'diariaGiorniSenzaPernottamento', 'diariaGiorniConPernottamento', 'diariaImporto', 'diariaOre');
 	return $result;

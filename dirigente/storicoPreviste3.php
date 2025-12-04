@@ -22,7 +22,7 @@ $__minuti = getSettingsValue('config','minuti', false);
 require_once '../common/__MinutiFunction.php';
 
 // la funzione per il calcolo delle ore fatte
-require_once '../docente/oreFatteAggiorna.php';
+require_once '../docente/orePrevisteAggiorna.php';
 
 use Dompdf\Dompdf;
 
@@ -71,6 +71,7 @@ $totaleDiariaIstuto = 0;
 $totaleAttivitaIstuto = 0;
 $totaleCorsiDiRecuperoExtraIstituto = 0;
 
+$contatoreLimite = 0;
 // cicla i docenti
 foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER BY docente.cognome ASC, docente.nome ASC;") as $docente) {
 	if ($anno_id == $__anno_scolastico_corrente_id && $docente['attivo'] == 0) {
@@ -78,6 +79,10 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 		continue;
 	}
 
+	$contatoreLimite = $contatoreLimite + 1;
+	if ($contatoreLimite > 10 && $docente['docente_id'] != 120) {
+		continue;
+	}
 	// anche se non lo salto, controllo se effettivamente ci sta qualcosa di significativo
 	$significativo = false;
 	$data = '';
@@ -94,87 +99,75 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 
 	$ultimo_controllo = '';
 
-	// per prima cosa richiede di calcolare le ore fatte
-	$fuisFatto = oreFatteAggiorna(false, $docente_id, 'no-operatore', $ultimo_controllo, false);
-
+	// per prima cosa richiede di calcolare le ore previste
+	$fuisPrevisto = orePrevisteAggiorna(false, $docente_id, 'no-operatore', $ultimo_controllo, false);
+//	debug(json_encode($fuisPrevisto,JSON_PRETTY_PRINT));
 	$data .= '<h2 style="page-break-before: always;text-align: center;">'.$docente['cognome'] . ' ' . $docente['nome'].'</h2>';
 	$data .= '';
 
 	// fuis assegnato
-	$dataFuisAssegnato = $fuisFatto['dataFuisAssegnato'];
+	$dataFuisAssegnato = $fuisPrevisto['dataFuisAssegnato'];
+	$importoFuisAssegnato = $fuisPrevisto['importoFuisAssegnato'];
 
 	if (strpos($dataFuisAssegnato, '<tbody></tbody>') === false) {
 		$dataFuisAssegnato = sostituisciParte($dataFuisAssegnato, '<div class="table-wrapper"><table', '<table');
 		$dataFuisAssegnato = sostituisciParte($dataFuisAssegnato, '</table></div>', '</table>');
 
-		$data .= '<h4 style="text-align: center;background-color: #eacaad !important;"><strong>FUIS Assegnato</strong></h4>';
+		$data .= '<h4 style="text-align: center;background-color: #eacaad !important;"><strong>FUIS Assegnato</strong><span style="float: right;"><strong>'.number_format($importoFuisAssegnato,2).'</strong></span></h4>';
 		$data .= $dataFuisAssegnato;
 		$significativo = true;
 	}
 
 	// diarie viaggio (non le ore)
-	$dataDiaria = $fuisFatto['dataDiaria'];
+	$dataDiaria = $fuisPrevisto['dataDiaria'];
+	$diariaImportoPreviste = $fuisPrevisto['diariaImportoPreviste'];
 
 	if (strpos($dataDiaria, '<tbody></tbody>') === false) {
 		// elimina l'ultima colonna e allarga materia
 		$dataDiaria = sostituisciParte($dataDiaria, '<div class="table-wrapper"><table', '<table');
 		$dataDiaria = sostituisciParte($dataDiaria, '</table></div>', '</table>');
 		$dataDiaria = sostituisciParte($dataDiaria, '<th class="col-md-6 text-left">Descrizione</th>', '<th class="col-md-7 text-left">Descrizione</th>');
-		$dataDiaria = sostituisciParte($dataDiaria, '<th class="col-md-1 text-center">Ore</th></tr>', '</tr>');
+//		$dataDiaria = sostituisciParte($dataDiaria, '<th class="col-md-1 text-center">Ore</th></tr>', '</tr>');
 		$dataDiaria = sostituisciParte($dataDiaria, '<td></td><td></td></tr>', '</tr>');
 
-		$data .= '<h4 style="text-align: center;background-color: #fcaebb !important;"><strong>Diaria Viaggi</strong></h4>';
+		$data .= '<h4 style="text-align: center;background-color: #fcaebb !important;"><strong>Diaria Viaggi</strong><span style="float: right;"><strong>'.number_format($diariaImportoPreviste,2).'</strong></span></h4>';
 		$data .= $dataDiaria;
 		$significativo = true;
 	}
 
+	// per i totali delle attivita' somma clil e orientamento se presenti
+	$oreConStudentiTotale = $fuisPrevisto['oreConStudentiPreviste'] + $fuisPrevisto['oreClilConStudentiPreviste'] + $fuisPrevisto['oreOrientamentoConStudentiPreviste'];
+	$oreFunzionaliTotale = $fuisPrevisto['oreFunzionaliPreviste'] + $fuisPrevisto['oreClilFunzionaliPreviste'] + $fuisPrevisto['oreOrientamentoFunzionaliPreviste'];
+	$fuisFunzionaleTotale = $fuisPrevisto['fuisFunzionale'] + $fuisPrevisto['fuisClilFunzionalePreviste'] + $fuisPrevisto['fuisOrientamentoFunzionalePreviste'];
+	$fuisConStudentiTotale = $fuisPrevisto['fuisConStudenti'] + $fuisPrevisto['fuisClilConStudentiPreviste'] + $fuisPrevisto['fuisOrientamentoConStudentiPreviste'];
+
+	// il totale delle ore e' gia' stato calcolato
+	$totaleAttivitaDocente = $fuisPrevisto['fuisOrePreviste'];
+
 	// attivita'
-	$data .= '<h4 style="text-align: center;background-color: #9be3bf !important;"><strong>Attività</strong></h4>';
+	$data .= '<h4 style="text-align: center;background-color: #9be3bf !important;"><strong>Attività</strong><span style="float: right;"><strong>'.number_format($totaleAttivitaDocente,2).'</strong></span></h4>';
 
 	// Inserite da docente
-	$dataAttivita = $fuisFatto['dataAttivita'];
+	$dataPreviste = $fuisPrevisto['dataPreviste'];
 
-	if (strpos($dataAttivita, '<tbody></tbody>') === false) {
+	if (strpos($dataPreviste, '<tbody></tbody>') === false) {
 		// elimina l'ultima colonna e allarga il dettaglio
-		$dataAttivita = sostituisciParte($dataAttivita, '<div class="table-wrapper"><table', '<table');
-		$dataAttivita = sostituisciParte($dataAttivita, '</table></div>', '</table>');
-		$dataAttivita = sostituisciParte($dataAttivita, '<th colspan="7"', '<th colspan="5"');
-		$dataAttivita = sostituisciParte($dataAttivita, '<th class="col-md-6 text-left">Dettaglio</th>', '<th class="col-md-7 text-left">Dettaglio</th>');
-		$dataAttivita = sostituisciParte($dataAttivita, '<th class="col-md-1 text-center"></th>', '');
-		$dataAttivita = sostituisciParte($dataAttivita, '<td class="text-center"></td></tr>', '</tr>');
-		$data .= '<h4 style="text-align: center;background-color: #97D3CF !important;">Inserite da docente</h4>';
-		$data .= $dataAttivita;
+		$dataPreviste = sostituisciParte($dataPreviste, '<div class="table-wrapper"><table', '<table');
+		$dataPreviste = sostituisciParte($dataPreviste, '</table></div>', '</table>');
+		$dataPreviste = sostituisciParte($dataPreviste, '<th colspan="7"', '<th colspan="5"');
+		$dataPreviste = sostituisciParte($dataPreviste, '<th class="col-md-6 text-left">Dettaglio</th>', '<th class="col-md-7 text-left">Dettaglio</th>');
+		$dataPreviste = sostituisciParte($dataPreviste, '<th class="col-md-1 text-center"></th>', '');
+		$dataPreviste = sostituisciParte($dataPreviste, '<td class="text-center"></td></tr>', '</tr>');
+		$data .= '<h4 style="text-align: center;background-color: #97D3CF !important;">Attività previste inserite da docente</h4>';
+		$data .= $dataPreviste;
 		$significativo = true;
 	}
 
-	// sportelli
-	$dataSportelli = $fuisFatto['dataSportelli'];
-
-	if (strpos($dataSportelli, '<tbody></tbody>') === false) {
-		// elimina l'ultima colonna e allarga materia
-		$dataSportelli = sostituisciParte($dataSportelli, '<div class="table-wrapper"><table', '<table');
-		$dataSportelli = sostituisciParte($dataSportelli, '</table></div>', '</table>');
-		$dataSportelli = sostituisciParte($dataSportelli, '<th colspan="7"', '<th colspan="6"');
-		$dataSportelli = sostituisciParte($dataSportelli, '<th class="col-md-2 text-left">Materia</th>', '<th class="col-md-3 text-left">Materia</th>');
-		$dataSportelli = sostituisciParte($dataSportelli, '<th class="col-md-1 text-center"></th></tr>', '</tr>');
-		$dataSportelli = sostituisciParte($dataSportelli, '<td></td></tr>', '</tr>');
-
-		$data .= '<h4 style="text-align: center;background-color: #FFD290 !important;">Sportelli</h4>';
-		$data .= $dataSportelli;
-		$significativo = true;
-	}
-
-	// gruppi di lavoro (non clil)
-	$dataGruppi = $fuisFatto['dataGruppi'];
-
-	if (strpos($dataGruppi, '<tbody></tbody>') === false) {
-		$data .= '<h4 style="text-align: center;background-color: #93DAFA !important;">Gruppi</h4>';
-		$data .= $dataGruppi;
-		$significativo = true;
-	}
+	// sportelli: nelle previste sono con le attivita'
+	// gruppi di lavoro (non clil): nelle previste sono con le attivita'
 
 	// attribuite
-	$dataAttribuite = $fuisFatto['dataAttribuite'];
+	$dataAttribuite = $fuisPrevisto['dataAttribuite'];
 
 	if (strpos($dataAttribuite, '<tbody></tbody>') === false) {
 		// elimina l'ultima colonna e allarga Tipo
@@ -189,17 +182,10 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 		$significativo = true;
 	}
 
-	// le ore dei viaggi (che vanno con gli studenti)
-	$dataViaggi = $fuisFatto['dataViaggi'];
-
-	if (strpos($dataViaggi, '<tbody></tbody>') === false) {
-		$data .= '<h4 style="text-align: center;background-color: #FFE3DA !important;">Viaggi: ore recuperate</h4>';
-		$data .= $dataViaggi;
-		$significativo = true;
-	}
+	// le ore dei viaggi (che vanno con gli studenti): nelle previste sono con le attivita'
 
 	// eventuali corsi di recupero inizio anno o in itinere
-	$dataCdr = $fuisFatto['dataCdr'];
+	$dataCdr = $fuisPrevisto['dataCdr'];
 
 	if (strpos($dataCdr, '<tbody></tbody>') === false) {
 		// elimina l'ultima colonna e allarga materia
@@ -209,33 +195,30 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 		$dataCdr = sostituisciParte($dataCdr, '<th class="text-center col-md-1"></th></tr>', '</tr>');
 		$dataCdr = sostituisciParte($dataCdr, '<td></td></tr>', '</tr>');
 
-		$data .= '<h4 style="text-align: center;background-color: #B9E6FB !important;">Corsi di recupero</h4>';
+		$fuisExtraCorsiDiRecupero = $fuisPrevisto['fuisExtraCorsiDiRecupero'];
+		$extraPartHeader = ($fuisExtraCorsiDiRecupero > 0) ? '<span style="float: right;">'.number_format($fuisExtraCorsiDiRecupero,2).'</span>' : '';
+
+		$data .= '<h4 style="text-align: center;background-color: #B9E6FB !important;">Corsi di recupero'. $extraPartHeader .'</h4>';
 		$data .= $dataCdr;
 		$significativo = true;
 	}
 
-	// per i totali somma clil e orientamento se presenti
-	$oreConStudentiTotale = $fuisFatto['oreConStudenti'] + $fuisFatto['oreClilConStudenti'] + $fuisFatto['oreOrientamentoConStudenti'];
-	$oreFunzionaliTotale = $fuisFatto['oreFunzionali'] + $fuisFatto['oreClilFunzionali'] + $fuisFatto['oreOrientamentoFunzionali'];
-	$fuisFunzionaleTotale = $fuisFatto['fuisFunzionale'] + $fuisFatto['fuisClilFunzionale'] + $fuisFatto['fuisOrientamentoFunzionale'];
-	$fuisConStudentiTotale = $fuisFatto['fuisConStudenti'] + $fuisFatto['fuisClilConStudenti'] + $fuisFatto['fuisOrientamentoConStudenti'];
-	$totaleAttivitaDocente = $fuisFunzionaleTotale + $fuisConStudentiTotale;
-
 	// eventuali messaggi
-	$messaggio = $fuisFatto['messaggio'];
-	$messaggioEccesso = $fuisFatto['messaggioEccesso'];
+	$messaggio = $fuisPrevisto['messaggio'];
+	$messaggioEccesso = $fuisPrevisto['messaggioEccesso'];
 
-	$oreSostituzioneBilancio = $fuisFatto['oreSostituzione'] - $fuisFatto['oreSostituzioniDovute'];
-	$oreFunzionaliBilancio = $oreFunzionaliTotale - $fuisFatto['oreFunzionaliDovute'];
-	$oreConStudentiBilancio = $oreConStudentiTotale - $fuisFatto['oreConStudentiDovute'];
+	// le sostituzioni non rientrano nelle previste
+	$oreSostituzioneBilancio = 0;
+	$oreFunzionaliBilancio = $oreFunzionaliTotale - $fuisPrevisto['oreFunzionaliDovute'];
+	$oreConStudentiBilancio = $oreConStudentiTotale - $fuisPrevisto['oreConStudentiDovute'];
 
 	// scrive il prospetto riassuntivo delle attivita'
 	$data .= '<h4 style="text-align: center;;background-color: #FFA98F !important;">Totale Ore attività</h4>';
 	$data .= '<table>';
-	$data .= '<thead><tr><th class="col-sd-2 text-left">Tipo</th><th class="col-sd-3 text-center">Dovute</th><th class="col-sd-3 text-center">Fatte</th><th class="col-sd-3 text-center">Bilancio</th><th class="col-sd-1 text-center">Importo</th></tr></thead><tbody>';
-	$data .= '<tr><td class="col-sd-2 text-left">sostituzioni</td><td class="col-sd-3 text-center">'.$fuisFatto['oreSostituzioniDovute'] . '</td><td class="col-sd-3 text-center">' . $fuisFatto['oreSostituzione'] . '</td><td class="col-sd-3 text-center">' . $oreSostituzioneBilancio . '</td><td class="col-sd-1 text-right">' . '' . '</td></tr>';
-	$data .= '<tr><td class="col-sd-2 text-left">funzionali</td><td class="col-sd-3 text-center">'.$fuisFatto['oreFunzionaliDovute'] . '</td><td class="col-sd-3 text-center">' . $oreFunzionaliTotale . '</td><td class="col-sd-3 text-center">' . $oreFunzionaliBilancio . '</td><td class="col-sd-1 text-right">' . number_format($fuisFunzionaleTotale,2) . '</td></tr>';
-	$data .= '<tr><td class="col-sd-2 text-left">con studenti</td><td class="col-sd-3 text-center">'.$fuisFatto['oreConStudentiDovute'] . '</td><td class="col-sd-3 text-center">' . $oreConStudentiTotale . '</td><td class="col-sd-3 text-center">' . $oreConStudentiBilancio . '</td><td class="col-sd-1 text-right">' . number_format($fuisConStudentiTotale,2) . '</td></tr>';
+	$data .= '<thead><tr><th class="col-sd-2 text-left">Tipo</th><th class="col-sd-3 text-center">Dovute</th><th class="col-sd-3 text-center">Previste</th><th class="col-sd-3 text-center">Bilancio</th><th class="col-sd-1 text-center">Importo</th></tr></thead><tbody>';
+	$data .= '<tr><td class="col-sd-2 text-left">sostituzioni</td><td class="col-sd-3 text-center">'.$fuisPrevisto['oreSostituzioniDovute'] . '</td><td class="col-sd-3 text-center">' . '</td><td class="col-sd-3 text-center">' . $oreSostituzioneBilancio . '</td><td class="col-sd-1 text-right">' . '' . '</td></tr>';
+	$data .= '<tr><td class="col-sd-2 text-left">funzionali</td><td class="col-sd-3 text-center">'.$fuisPrevisto['oreFunzionaliDovute'] . '</td><td class="col-sd-3 text-center">' . $oreFunzionaliTotale . '</td><td class="col-sd-3 text-center">' . $oreFunzionaliBilancio . '</td><td class="col-sd-1 text-right">' . number_format($fuisFunzionaleTotale,2) . '</td></tr>';
+	$data .= '<tr><td class="col-sd-2 text-left">con studenti</td><td class="col-sd-3 text-center">'.$fuisPrevisto['oreConStudentiDovute'] . '</td><td class="col-sd-3 text-center">' . $oreConStudentiTotale . '</td><td class="col-sd-3 text-center">' . $oreConStudentiBilancio . '</td><td class="col-sd-1 text-right">' . number_format($fuisConStudentiTotale,2) . '</td></tr>';
 	$data .= '</tbody><tfoot>';
 	// inserisce nel footer eventuali messaggi di compensazione
 	if ( ! empty($messaggio)) {
@@ -249,12 +232,12 @@ foreach(dbGetAll("SELECT docente.id AS docente_id, docente.* FROM docente ORDER 
 	$data .= '<hr>';
 
 	// calcola i totali per questo docente
-	$totaleAssegnatoDocente = $fuisFatto['importoFuisAssegnato'];
-	$totaleDiariaDocente = $fuisFatto['diariaImporto'];
-	$totaleCorsiDiRecuperoExtraDocente = $fuisFatto['fuisExtraCorsiDiRecupero'];
-	$totaleAttivitaDocente = $fuisFatto['fuisOre'];
+	$totaleAssegnatoDocente = $fuisPrevisto['importoFuisAssegnato'];
+	$totaleDiariaDocente = $fuisPrevisto['diariaImportoPreviste'];
+	$totaleCorsiDiRecuperoExtraDocente = $fuisPrevisto['fuisExtraCorsiDiRecupero'];
+	$totaleAttivitaDocente = $fuisPrevisto['fuisOrePreviste'];
 	// aggiunge eventuali clil e orientamento
-	$totaleAttivitaDocente = $totaleAttivitaDocente + $fuisFatto['fuisClilFunzionale'] + $fuisFatto['fuisClilConStudenti'] + $fuisFatto['fuisOrientamentoFunzionale'] + $fuisFatto['fuisOrientamentoConStudenti'];
+	$totaleAttivitaDocente = $totaleAttivitaDocente + $fuisPrevisto['fuisClilFunzionalePreviste'] + $fuisPrevisto['fuisClilConStudentiPreviste'] + $fuisPrevisto['fuisOrientamentoFunzionalePreviste'] + $fuisPrevisto['fuisOrientamentoConStudentiPreviste'];
 
 	// aggiorna i totali di istituto
 	$totaleAssegnatoIstuto = $totaleAssegnatoIstuto + $totaleAssegnatoDocente;
@@ -296,7 +279,7 @@ $dataCopertina .= '<h2 style="text-align: center;">FUIS Docenti anno scolastico 
 
 // titolo
 $annoStampabile = str_replace('/','-',$nome_anno_scolastico);
-$title = 'Storico FUIS ' . $annoStampabile.' - '.getSettingsValue('local','nomeIstituto', '');
+$title = 'Storico Previste ' . $annoStampabile.' - '.getSettingsValue('local','nomeIstituto', '');
 
 // adesso viene il momento di produrre la pagina o il pdf
 $pagina .= '<html>

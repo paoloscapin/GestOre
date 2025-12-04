@@ -170,6 +170,38 @@ require_once '../common/header-docente.php';
 
 <?php endif; ?>
 
+<!-- fuis assegnato per dirigente -->
+<?php if($operatore == 'dirigente') : ?>
+<div class="panel panel-purple">
+<div class="panel-heading">
+	<div class="row">
+		<div class="col-md-4">
+			<span class="glyphicon glyphicon-thumbs-up"></span>&ensp;Fuis Assegnato
+		</div>
+		<div class="col-md-4 text-center">
+		</div>
+		<div class="col-md-4 text-right">
+		</div>
+	</div>
+</div>
+<div class="panel-body">
+    <div class="row"  style="margin-bottom:10px;">
+        <div class="col-md-6">
+        </div>
+        <div class="col-md-6">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="fuis_assegnato_fatte_records_content"></div>
+        </div>
+	</div>
+</div>
+
+<!-- <div class="panel-footer"></div> -->
+</div>
+<?php endif; ?>
+
 <!-- pannello riassuntivo -->
 <div class="panel panel-lima4">
 <div class="panel-heading">

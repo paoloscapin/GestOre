@@ -23,5 +23,14 @@ function storicoFuisSavePdf(anno_id) {
     window.open('/GestOre/dirigente/storicoFuis3.php?anno_id=' + anno_id + '&print=true', '_blank');
 }
 
+function storicoPreviste() {
+	var anno_id = $("#anno_select").val();
+	window.open("storicoPreviste3.php" + "?anno_id=" + anno_id, '_blank');
+}
+
+function storicoPrevisteSavePdf(anno_id) {
+    window.open('/GestOre/dirigente/storicoPreviste3.php?anno_id=' + anno_id + '&print=true', '_blank');
+}
+
  $(document).ready(function () {
 });

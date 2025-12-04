@@ -15,9 +15,10 @@ function oreFatteReloadTables(soloTotale = false) {
 	function (data, status) {
 //		console.log(data);
 		data = JSON.parse(data);
-//		console.log(data);
+		console.log(data);
 
 		if (! soloTotale) {
+			$(".fuis_assegnato_fatte_records_content").html(data.dataFuisAssegnato);
 			$(".corso_di_recupero_records_content").html(data.dataCdr);
 			$(".diaria_records_content").html(data.dataDiaria);
 			$(".attivita_fatte_records_content").html(data.dataAttivita);
