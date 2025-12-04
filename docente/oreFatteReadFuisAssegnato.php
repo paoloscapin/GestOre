@@ -40,7 +40,7 @@ function oreFatteReadFuisAssegnato($soloTotale, $docente_id, $operatore, $ultimo
 
 	if (!empty($assegnatoList)) {
 		foreach($assegnatoList as $assegnato) {
-			$dataFuisAssegnato .= '<tr><td>'.$assegnato['nome'].'</td><td class="text-right funzionale">'.$assegnato['importo'].' €&ensp;</td></tr>';
+			$dataFuisAssegnato .= '<tr><td>'.$assegnato['nome'].'</td><td class="text-right funzionale" style="text-align:right">'.$assegnato['importo'].' €&ensp;</td></tr>';
 			$importoFuisAssegnato = $importoFuisAssegnato + $assegnato['importo'];
 		}
 	}

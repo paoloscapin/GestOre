@@ -1,3 +1,13 @@
+## Version 1.3.13 - 4 dic 2025
+##### ##### Improvements
+- generazione storico per ore previste
+- fuis assegnato in attività (visibile solo a dirigente)
+- fuis assegnato letto in ore previste aggiorna (per storico)
+- totale in diaria prevista
+##### Bug Fixes
+- cdr previste read records bottone solo se modificabile
+- index docente messaggio soo se previsteMessaggioDocenteCompensaOre
+
 ## Version 1.3.12 - 30 nov 2025
 ##### ##### Improvements
 - opzione previsteMessaggioDocenteCompensaOre e fatteMessaggioDocenteCompensaOre

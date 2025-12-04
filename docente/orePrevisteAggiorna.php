@@ -164,10 +164,17 @@ function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_contr
 
 	$fuisExtraCorsiDiRecupero = $oreCorsoDiRecuperoExtra * $__importi['importo_ore_corsi_di_recupero'];
 
-	// calcola il totale del fuis assegnato
-    $fuisAssegnato = dbGetValue("SELECT COALESCE(SUM(importo), 0) FROM fuis_assegnato WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
+	// fuis assegnato
+	require_once '../docente/oreFatteReadFuisAssegnato.php';
+	$result = oreFatteReadFuisAssegnato($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
+	$importoFuisAssegnato = $result['importoFuisAssegnato'];
+	$dataFuisAssegnato = $result['dataFuisAssegnato'];
+	$totale = $totale + compact('dataFuisAssegnato');
 
-	$totale = $totale + compact('messaggio', 'messaggioEccesso', 'fuisFunzionale', 'fuisConStudenti', 'fuisOrePreviste', 'fuisClilFunzionalePreviste', 'fuisClilConStudentiPreviste', 'fuisOrientamentoFunzionalePreviste', 'fuisOrientamentoConStudentiPreviste', 'fuisExtraCorsiDiRecupero', 'fuisAssegnato');
+	// temporaneo per poter essere utilizzato con questo nome nelle previste
+    $fuisAssegnato = $importoFuisAssegnato;
+
+	$totale = $totale + compact('messaggio', 'messaggioEccesso', 'fuisFunzionale', 'fuisConStudenti', 'fuisOrePreviste', 'fuisClilFunzionalePreviste', 'fuisClilConStudentiPreviste', 'fuisOrientamentoFunzionalePreviste', 'fuisOrientamentoConStudentiPreviste', 'fuisExtraCorsiDiRecupero', 'fuisAssegnato', 'importoFuisAssegnato');
 
 	return $totale;
 }

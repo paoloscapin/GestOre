@@ -38,7 +38,7 @@ require_once '../common/header-dirigente.php';
 <div class="panel-body">
 	<div class="form-horizontal">
 		<div class="form-group">
-			<label class="col-sm-2 control-label" for="importo_fuis">anno scolastico</label>
+			<label class="col-sm-1 control-label" for="importo_fuis">anno scolastico</label>
 			<div class="col-sm-2">
             <select title="anno" id="anno_select" >
 <?php
@@ -50,11 +50,14 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico WHERE id <= $__anno_scolastico_
 ?>
             </select>
 			</div>
-			<div class="col-md-4">
+			<div class="col-md-3">
 			<button onclick="storicoBonus()" class="btn btn-lima4"><span class="glyphicon glyphicon-list-alt"> Bonus</button>
 	        </div>
-			<div class="col-md-4">
+			<div class="col-md-3">
 			<button onclick="storicoFuis()" class="btn btn-deeporange4"><span class="glyphicon glyphicon-euro"> Fuis</button>
+	        </div>
+			<div class="col-md-3">
+			<button onclick="storicoPreviste()" class="btn btn-orange4"><span class="glyphicon glyphicon-dashboard"> Previste</button>
 	        </div>
 		</div>
     </div>
