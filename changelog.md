@@ -1,3 +1,7 @@
+## Version 1.3.14 - 13 dic 2025
+##### ##### Improvements
+- corsi di recupero opzione per trasferito a novembre
+
 ## Version 1.3.13 - 4 dic 2025
 ##### ##### Improvements
 - generazione storico per ore previste

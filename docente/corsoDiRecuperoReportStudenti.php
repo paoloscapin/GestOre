@@ -70,6 +70,7 @@ $assenteColor = 'DarkRed';
 $nonRichiestoColor = 'DarkOrange';
 $passatoColor = 'Green';
 $nonPassatoColor = 'FireBrick';
+$trasferitoColor = 'darkgoldenrod';
 
 function printableVoto($voto) {
 	global $assenteColor, $nonRichiestoColor, $passatoColor, $nonPassatoColor;
@@ -196,6 +197,7 @@ foreach($resultArray as $row_classe) {
 ';
 		    $classname = "";
 		    foreach($resultArray2 as $row_studente) {
+				// controlla se e' passato, non passato, esente o trasferito
 				$passatoMarker = '';
 				if ($row_studente['studente_per_corso_di_recupero_passato']) {
 					$passatoMarker = '<span class=\'label label-info\' style=\'background-color: '.$passatoColor.';\'>passato</span>';
@@ -205,6 +207,10 @@ foreach($resultArray as $row_classe) {
 				$esente = (!is_null($row_studente['studente_per_corso_di_recupero_serve_voto'])) && $row_studente['studente_per_corso_di_recupero_serve_voto'] == 0;
 				if ($esente) {
 					$passatoMarker = '<span class=\'label label-info\'>esente</span>';
+				}
+				$trasferito = (!is_null($row_studente['studente_per_corso_di_recupero_voto_novembre'])) && $row_studente['studente_per_corso_di_recupero_voto_novembre'] == 3;
+				if ($trasferito) {
+					$passatoMarker = '<span class=\'label label-info\' style=\'background-color: '.$trasferitoColor.';\'>trasferito</span>';
 				}
 
 				$classname = ($classname==="even_row") ? "odd_row" : "even_row";
@@ -287,6 +293,14 @@ foreach($resultArray as $row_classe) {
 					}
 					$votoNovembreOptionList .= '>'.'Non Richiesto'.'</option>';
 
+					// opzione per Trasferito
+					$bgColor = $trasferitoColor;
+					$votoNovembreOptionList .= '<option value="'.'3'.'" data-content="<span class=\'label label-info\' style=\'background-color: '.$bgColor.';\'>'.'Trasferito'.'</span>"';
+					if ($votoNovembre == 3) {
+						$votoNovembreOptionList .= ' selected ';
+					}
+					$votoNovembreOptionList .= '>'.'Trasferito'.'</option>';
+
 					// voti da 4 a 10
 					for($i = 4; $i<=10; $i++) {
 						$bgColor = ($i <= 5) ? $nonPassatoColor : $passatoColor;
@@ -337,8 +351,8 @@ foreach($resultArray as $row_classe) {
 						}
 						$data .= '</td>';
 					}
-					// se ha il voto a novembre, deve generare la lettera di novembre
-					else if (($row_studente['studente_per_corso_di_recupero_voto_novembre'] > 0) ) {
+					// se ha il voto a novembre (tranne il caso che sia 3, dunque trasferito), deve generare la lettera di novembre
+					else if (($row_studente['studente_per_corso_di_recupero_voto_novembre'] > 0 && $row_studente['studente_per_corso_di_recupero_voto_novembre'] != 3) ) {
 						$data .= '<td class="text-center"><button onclick="letteraCarenzeNovembre('.$row_studente['studente_per_corso_di_recupero_id'].')" class="btn btn-orange4 btn-xs" style="display: inline-flex;align-items: center;"><i class="icon-play"></i>&nbsp;Pdf</button>';
 
 						// controlla se configurato per inviare le email in automatico

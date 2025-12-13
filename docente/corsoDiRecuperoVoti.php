@@ -42,15 +42,18 @@ $assenteColor = 'DarkRed';
 $nonRichiestoColor = 'DarkOrange';
 $passatoColor = 'Green';
 $nonPassatoColor = 'FireBrick';
+$trasferitoColor = 'darkgoldenrod';
 
 function printableVoto($voto) {
-	global $assenteColor, $nonRichiestoColor, $passatoColor, $nonPassatoColor;
+	global $assenteColor, $nonRichiestoColor, $passatoColor, $nonPassatoColor, $trasferitoColor;
 
 	// rosso se non passato
 	if ($voto == 1) {
 		$bgColor = $assenteColor;
 	} elseif ($voto == 2) {
 		$bgColor = $nonRichiestoColor;
+	} elseif ($voto == 3) {
+		$bgColor = $trasferitoColor;
 	} else {
 		$bgColor = ($voto <= 5) ? $nonPassatoColor : $passatoColor;
 	}
