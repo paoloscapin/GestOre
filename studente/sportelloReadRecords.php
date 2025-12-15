@@ -170,7 +170,7 @@ foreach ($resultArray as $row) {
 				studente.cognome AS studente_cognome,
 				studente.nome AS studente_nome,
 				studente.id AS studente_id,
-				(	SELECT classi.classe FROM classi WHERE id = (SELECT studente_frequenta.id_classe FROM studente_frequenta WHERE id_studente = $__studente_id AND id_anno_scolastico = $__anno_scolastico_corrente_id)) AS studente_classe
+				(	SELECT classi.classe FROM classi WHERE id = (SELECT studente_frequenta.id_classe FROM studente_frequenta WHERE id_studente = studente.id AND id_anno_scolastico = $__anno_scolastico_corrente_id)) AS studente_classe
 			FROM
 				sportello_studente
 			INNER JOIN studente

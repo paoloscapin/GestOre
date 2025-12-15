@@ -84,6 +84,8 @@ $query .= " ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC, 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) $resultArray = [];
 
+debug("Numero sportelli trovati: " . count($resultArray));
+
 $data = '<div class="cards-container">';
 
 foreach ($resultArray as $row) {
@@ -98,10 +100,11 @@ foreach ($resultArray as $row) {
         $passato       = ($sportelloDate < $todayDate);
 
         // Data in italiano
-        $oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
-        $dataSportelloDisp = utf8_encode(strftime("%d %B %Y", strtotime($row['sportello_data'])));
-        setlocale(LC_TIME, $oldLocale);
+        $formatter = new IntlDateFormatter('it_IT', IntlDateFormatter::LONG, IntlDateFormatter::NONE);
+        $dataSportelloDisp = $formatter->format(new DateTime($row['sportello_data']));
 
+        //$dataSportelloDisp = utf8_encode(strftime("%d %B %Y", strtotime($row['sportello_data'])));
+        
         // Calcolo capienza
         $max_iscrizioni = $row['sportello_max_iscrizioni'];
         $posti_disponibili = $max_iscrizioni - $row['numero_studenti'];
@@ -148,6 +151,7 @@ foreach ($resultArray as $row) {
             $now = new DateTime('now', $tz);
             $dataSportelloRaw = $row['sportello_data'];
 
+            debug("TZ Europe/Rome attivo; now=" . $now->format('Y-m-d H:i:sP') . "; sportello_data=" . $dataSportelloRaw);
             $orario = getSettingsValue('sportelli', 'chiusuraOrario', '13');
             // Data e scadenza iscrizioni
             $dataSportelloObj = new DateTime($dataSportelloRaw, $tz);

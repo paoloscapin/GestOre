@@ -263,6 +263,7 @@ foreach ($resultArray as $row) {
             <span class="glyphicon glyphicon-user"></span>
         </button>';
         }
+        if ($row['carenza'] == 1) {
         $data .= '
         <button onclick="apriEsameModal(\'' . $idcorso . '\')" 
                 class="btn btn-success btn-xs" 
@@ -271,7 +272,7 @@ foreach ($resultArray as $row) {
             <span class="glyphicon glyphicon-check"></span>
         </button>';
 	}
-
+    }
 	$data .= '</td></tr>';
 }
 

@@ -28,7 +28,7 @@ if (empty($_POST['corso_id'])) {
 }
 
 $corso_id   = intval($_POST['corso_id']);
-$id_esame_data = isset($_POST['id_esame_data']) ? intval($_POST['id_esame_data']) : null;
+$id_esame_data = isset($_POST['id_esame_data']) ? $_POST['id_esame_data'] : null;
 $argomenti  = $_POST['argomenti'] ?? '';
 $data_inizio_esame = $_POST['data_inizio'] ?? null;
 $data_fine_esame   = $_POST['data_fine'] ?? null;
@@ -37,21 +37,62 @@ $firmato           = isset($_POST['firmato']) ? intval($_POST['firmato']) : 0;
 $studenti          = $_POST['studenti'] ?? [];
 
 try {
-    if (!$id_esame_data) {
-        throw new Exception("ID della sessione d’esame non specificato.");
+    // 🔎 Se id_esame_data è mancante o -1 → crea una nuova sessione
+    if (empty($id_esame_data) || intval($id_esame_data) <= 0) {
+        // recupera prossimo numero di tentativo (1, 2, ...)
+        $tentativo = dbGetValue("
+            SELECT IFNULL(MAX(tentativo), 0) + 1 
+            FROM corso_esami_date 
+            WHERE id_corso = $corso_id
+        ");
+
+        dbExec("
+            INSERT INTO corso_esami_date 
+                (id_corso, tentativo, data_inizio_esame, data_fine_esame, aula, firmato, created_at, updated_at)
+            VALUES
+                ($corso_id, $tentativo, 
+                 " . sqlv($data_inizio_esame) . ", 
+                 " . sqlv($data_fine_esame) . ", 
+                 " . sqlv($aula_esame) . ", 
+                 " . intval($firmato) . ", 
+                 NOW(), NOW())
+        ");
+
+        // ottieni il nuovo id
+        $id_esame_data = dblastId();
+
+        // 🔹 Se è il primo tentativo, inserisci tutti gli iscritti del corso in corso_esiti
+    if ($tentativo == 1) {
+        dbExec("
+            INSERT INTO corso_esiti (id_corso, id_esame_data, id_studente, presente, tipo_prova, voto, argomenti, inviato_registro, created_at, updated_at)
+            SELECT 
+                ci.id_corso,
+                $id_esame_data,
+                ci.id_studente,
+                0 AS presente,
+                NULL AS tipo_prova,
+                NULL AS voto,
+                NULL AS argomenti,
+                0 AS inviato_registro,
+                NOW(), NOW()
+            FROM corso_iscritti ci
+            WHERE ci.id_corso = $corso_id
+        ");
+    }
+    } else {
+        // 🔹 Aggiorna la sessione esistente
+        dbExec("
+            UPDATE corso_esami_date
+            SET data_inizio_esame = " . sqlv($data_inizio_esame) . ",
+                data_fine_esame = " . sqlv($data_fine_esame) . ",
+                aula = " . sqlv($aula_esame) . ",
+                firmato = " . intval($firmato) . ",
+                updated_at = NOW()
+            WHERE id = $id_esame_data
+              AND id_corso = $corso_id
+        ");
     }
 
-    // 🔹 Aggiorna solo la data esame esistente
-    dbExec("
-        UPDATE corso_esami_date
-        SET data_inizio_esame = " . sqlv($data_inizio_esame) . ",
-            data_fine_esame = " . sqlv($data_fine_esame) . ",
-            aula = " . sqlv($aula_esame) . ",
-            firmato = " . intval($firmato) . ",
-            updated_at = NOW()
-        WHERE id = $id_esame_data
-          AND id_corso = $corso_id
-    ");
 
     // 🔹 Aggiorna o inserisci gli esiti relativi a quella sessione
     foreach ($studenti as $stud) {

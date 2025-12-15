@@ -838,17 +838,30 @@ function caricaDatiTentativo(data, tentativo) {
     let esame = data.esami.find(e => e.tentativo == tentativo);
     if (esame) {
         if (esame.data_inizio_esame) {
-            let dt = new Date(esame.data_inizio_esame.replace(' ', 'T'));
+            let parts = esame.data_inizio_esame.split(/[- :]/);
+            let dt = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5] || 0);
+
             if (!isNaN(dt.getTime())) {
-                $('#esame_inizio_data').val(dt.toISOString().slice(0, 10));
-                $('#esame_inizio_ora').val(dt.toISOString().slice(11, 16));
+                // Usa l’orario locale, non UTC
+                $('#esame_inizio_data').val(
+                    dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0')
+                );
+                $('#esame_inizio_ora').val(
+                    String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0')
+                );
             }
+
         }
         if (esame.data_fine_esame) {
-            let dt = new Date(esame.data_fine_esame.replace(' ', 'T'));
+            let parts = esame.data_fine_esame.split(/[- :]/);
+            let dt = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5] || 0);
             if (!isNaN(dt.getTime())) {
-                $('#esame_fine_data').val(dt.toISOString().slice(0, 10));
-                $('#esame_fine_ora').val(dt.toISOString().slice(11, 16));
+                $('#esame_fine_data').val(
+                    dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0')
+                );
+                $('#esame_fine_ora').val(
+                    String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0')
+                );
             }
         }
         if (esame.aula) $('#esame_aula').val(esame.aula);
@@ -1035,16 +1048,17 @@ function salvaEsame() {
 
     // 🔎 VALIDAZIONI
     if (!id_esame_data) {
-        showToast("Sessione d’esame non identificata", true);
-        return;
+        id_esame_data = -1; // nuovo esame
     }
-    if (!argomenti) {
-        showToast("Inserisci gli argomenti della prova", true);
-        return;
-    }
-    if (!firmato) {
-        showToast("Devi firmare l'esame per poterlo salvare", true);
-        return;
+    else {
+        if (!argomenti) {
+            showToast("Inserisci gli argomenti della prova", true);
+            return;
+        }
+        if (!firmato) {
+            showToast("Devi firmare l'esame per poterlo salvare", true);
+            return;
+        }
     }
     if (!data_inizio_esame || !ora_inizio_esame) {
         showToast("Inserisci data e ora di inizio dell'esame", true);
