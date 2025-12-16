@@ -52,28 +52,26 @@ function impostaDataPermesso() {
     const avviso = document.getElementById("avvisoData");
 
     const now = new Date();
-    const oggi = new Date();
-    const domani = new Date();
-    domani.setDate(oggi.getDate() + 1);
+    let dataSelezionata = new Date();
 
     const ore = now.getHours();
 
-    // Funzione formattazione YYYY-MM-DD
-    function formatDate(date) {
-        return date.toISOString().split("T")[0];
-    }
-
-    if (ore < 9) {
-        // Prima delle 9 -> oggi
-        inputData.value = formatDate(oggi);
-        avviso.style.display = "none";
+    // Se dopo le 9, parte da domani
+    if (ore >= 9) {
+        dataSelezionata.setDate(dataSelezionata.getDate() + 1);
+        avviso.style.display = "block";
     } else {
-        // Dopo le 9 -> domani
-        inputData.value = formatDate(domani);
-        avviso.style.display = "block"; // mostra avviso
+        avviso.style.display = "none";
     }
-}
 
+    // Salta sabato (6) e domenica (0)
+    while (dataSelezionata.getDay() === 0 || dataSelezionata.getDay() === 6) {
+        dataSelezionata.setDate(dataSelezionata.getDate() + 1);
+    }
+
+    // Formato YYYY-MM-DD
+    inputData.value = dataSelezionata.toISOString().split("T")[0];
+}
 
 function permessiDelete(id) {
     var conf = confirm("Sei sicuro di volere cancellare il permesso ?");
