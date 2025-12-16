@@ -661,6 +661,50 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         </div>
     </div>
 
+<!-- Modal Duplica -->
+<div class="modal fade" id="duplica_corso_modal" tabindex="-1" role="dialog"
+     aria-labelledby="duplicaCorsoLabel" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog modal-sm modal-basso" role="document">
+    <div class="modal-content">
+
+      <div class="modal-header modal-header-orange4">
+        <h4 class="modal-title w-100 text-center" id="duplicaCorsoLabel">Duplica corso</h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <form id="formDuplicaCorso" class="form-horizontal">
+
+        <div class="form-group text-center">
+        <label for="duplica_docente" class="control-label">Nuovo docente</label>
+
+        <div class="row">
+            <div class="col-xs-10 col-xs-offset-1">
+            <select id="duplica_docente"
+                    class="selectpicker form-control"
+                    data-live-search="true"
+                    data-width="100%"
+                    data-noneSelectedText="seleziona...">
+            </select>
+            </div>
+        </div>
+        </div>
+
+          <div class="form-group text-danger text-center" id="duplica_err" style="display:none;"></div>
+
+        </form>
+      </div>
+
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+        <button type="button" class="btn btn-primary" onclick="corsiDuplicaConfirm()">Crea copia</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
 <!-- Modal Esame -->
 <div class="modal fade" id="esameModal" tabindex="-1" role="dialog" aria-labelledby="esameLabel" data-backdrop="static">
     <div class="modal-dialog modal-lg" role="document">

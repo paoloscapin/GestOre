@@ -247,6 +247,12 @@ foreach ($resultArray as $row) {
                 title="Modifica il corso">
             <span class="glyphicon glyphicon-pencil"></span>
         </button>
+        <button onclick="corsiDuplicaOpen(\'' . $idcorso . '\')" 
+                class="btn btn-success btn-xs" 
+                data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+                title="Duplica il corso">
+            <span class="glyphicon glyphicon-duplicate"></span>
+        </button>
         <button onclick="corsiDelete(\'' . $idcorso . '\',\'' . $materia . '\',\'' . $nome_docente . '\',\'' . $studenti_iscritti . '\',\'' . $stato . '\')" 
                 class="btn btn-danger btn-xs" 
                 data-toggle="tooltip" data-trigger="hover" data-placement="top" 

@@ -396,6 +396,47 @@ function corsiGetDetails(corsi_id) {
     $("#corsi_modal").modal("show");
 }
 
+function corsiDuplicaOpen(corsoId) {
+  $("#hidden_corso_id").val(corsoId);
+
+  // Copio le opzioni dal select docente già esistente (se già popolato)
+  var $src = $("#docente");
+  var $dst = $("#duplica_docente");
+  $dst.html($src.html());
+
+  // Preseleziono docente attuale (opzionale) oppure 0
+  $dst.selectpicker('val', $src.val() || "0");
+  $dst.selectpicker('refresh');
+
+  $("#duplica_err").hide().text("");
+  $("#duplica_corso_modal").modal("show");
+}
+
+function corsiDuplicaConfirm() {
+  var corsoId = parseInt($("#hidden_corso_id").val(), 10) || 0;
+  var newDocId = parseInt($("#duplica_docente").val(), 10) || 0;
+
+  if (corsoId <= 0) return;
+  if (newDocId <= 0) {
+    $("#duplica_err").show().text("Seleziona un docente valido.");
+    return;
+  }
+
+  $.post("../didattica/corsiDuplica.php",
+    { corsi_id: corsoId, new_doc_id: newDocId },
+    function (resp) {
+      if (resp && resp.ok && resp.new_corso_id) {
+        $("#duplica_corso_modal").modal("hide");
+        corsiGetDetails(parseInt(resp.new_corso_id, 10));
+      } else {
+        $("#duplica_err").show().text(resp && resp.msg ? resp.msg : "Errore duplicazione.");
+      }
+    },
+    "json"
+  ).fail(function () {
+    $("#duplica_err").show().text("Errore di rete o server.");
+  });
+}
 
 function cancellaSecondoTentativo(id_studente, iscrizione_id, id_corso) {
     bootbox.confirm({
