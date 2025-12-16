@@ -155,6 +155,7 @@ if ($nclassi > 0) {
     ?>
 
     <div class="container-fluid" style="margin-top:60px">
+        <div id="alert-container" style="position: fixed; top: 20px; right: 20px; z-index: 2000;"></div>
         <div class="panel panel-orange4">
             <div class="panel-heading">
                 <div class="row">
@@ -411,6 +412,7 @@ if ($nclassi > 0) {
                                                     <th class="text-center">Studente</th>
                                                     <th class="text-center">Argomento</th>
                                                     <th class="text-center">Presente</th>
+                                                    <th class="text-center">Cancella</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -440,7 +442,6 @@ if ($nclassi > 0) {
         </div>
     </div>
     <!-- // Modal - Add/Update Record -->
-
     </div>
 
 

@@ -37,7 +37,11 @@ if(isset($_POST)) {
 	$online = $_POST['online'];
 	$clil = $_POST['clil'];
 	$orientamento = $_POST['orientamento'];
-	$studentiDaModificareIdList = json_decode($_POST['studentiDaModificareIdList']);
+	$studentiDaModificareIdList = json_decode($_POST['studentiDaModificareIdList'] ?? '[]', true);
+	$studentiDaCancellareIdList = json_decode($_POST['studentiDaCancellareIdList'] ?? '[]', true);
+
+	if (!is_array($studentiDaModificareIdList)) $studentiDaModificareIdList = [];
+	if (!is_array($studentiDaCancellareIdList)) $studentiDaCancellareIdList = [];
 
 	if ($categoria_id != 0) // 
 	{
@@ -67,11 +71,18 @@ if(isset($_POST)) {
 		else
         // aggiorna i partecipanti
 		{
+			info("numero studenti da cancellare: " . count($studentiDaCancellareIdList));
 			foreach($studentiDaModificareIdList as $studente) {
 				$query = "UPDATE sportello_studente SET presente = IF (`presente`, 0, 1) WHERE sportello_studente.id = $studente";
 				dbExec($query);
-				info("aggiornato id=$studente");
+				info("aggiornato studente iscritto con id=$studente");
 			}
+			foreach($studentiDaCancellareIdList as $studente) {
+				$query = "DELETE FROM sportello_studente WHERE sportello_studente.id = $studente";
+				dbExec($query);
+				info("cancellato studente dallo sportello con id=$studente");
+			}
+
 		}
 	} else {
 		$query = "INSERT INTO sportello(data, ora, docente_id, materia_id, categoria, numero_ore, argomento, luogo, classe, classe_id, max_iscrizioni, online, clil, orientamento, anno_scolastico_id) VALUES('$data', '$ora', '$docente_id', '$materia_id', '$categoria', '$numero_ore', '$argomento', '$luogo', '$classe', '$classe_id', '$max_iscrizioni', '$online', '$clil', '$orientamento', $__anno_scolastico_corrente_id)";

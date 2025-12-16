@@ -14,6 +14,8 @@ var materia_filtro_id = 0;
 var classe_filtro_id = 0;
 var selections = [];
 
+window.toastAfterModalClose = null;
+
 function setDbDateToPickr(pickr, data_str) {
     var data = Date.parseExact(data_str, 'yyyy-MM-dd');
     pickr.setDate(data);
@@ -64,7 +66,7 @@ function iscriviStudente(studente_id, selezione) {
         $('#file_select_students').change(function (e) { });
         $("#sportelli_selezionati").html("");
         selections.length = 0;
-        setTimeout(function () { $('#result_text').html("");}, 5000);
+        setTimeout(function () { $('#result_text').html(""); }, 5000);
         sportelloReadRecords();
     });
 }
@@ -92,9 +94,9 @@ function sportelloSelect(id) {
         $("#numero_studenti").html('NUMERO ATTIVITA SELEZIONATE: ' + selections.length);
         $('#file_select_students').change(function (e) {
             importStudents(e.target.files[0], selections);
-          });
-          $('#riga_iscrizioni_sportelli').show();
-   
+        });
+        $('#riga_iscrizioni_sportelli').show();
+
     }
     else {
         $("#numero_studenti").html("");
@@ -118,6 +120,46 @@ function sportelloDelete(id, materia) {
         );
     }
 }
+
+function showSuccessMessage(text, timeout = 3000) {
+
+    let $container = $('#alert-container');
+
+    // se non esiste, lo creo e lo appendo al body
+    if ($container.length === 0) {
+        $container = $('<div id="alert-container"></div>').appendTo('body');
+    }
+
+    // posizione: in basso e centrato
+    $container.css({
+        position: 'fixed',
+        bottom: '40px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 99999,
+        textAlign: 'center'
+    });
+
+    const $msg = $('<div></div>').text(text).css({
+        backgroundColor: '#198754',      // verde Bootstrap "success"
+        color: '#ffffff',
+        padding: '14px 22px',
+        borderRadius: '10px',
+        fontSize: '16px',
+        fontWeight: '500',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+        display: 'inline-block',
+        minWidth: '320px'
+    });
+
+    $container.append($msg);
+    $msg.hide().fadeIn(200);
+
+    setTimeout(function () {
+        $msg.fadeOut(400, function () { $(this).remove(); });
+    }, timeout);
+}
+
 
 function sportelloSave() {
     if ($("#materia").val() <= 0) {
@@ -149,17 +191,41 @@ function sportelloSave() {
 
     // controlla la lista di studenti segnati presenti
     var studentiDaModificareIdList = [];
+    var studentiDaCancellareIdList = [];
+
     $('#studenti_table tbody tr').each(function () {
         var row = $(this);
-        var presenteCheckbox = row.find('input[type="checkbox"]');
+
+        var id = row.children().eq(0).text().trim();
+
+        var presenteCheckbox = row.find('.chk-presenza');
         var presenteOriginal = presenteCheckbox.prop('defaultChecked');
         var presenteCorrente = presenteCheckbox.prop('checked');
-        var id = row.children().eq(0).text();
-        if (presenteCorrente != presenteOriginal) {
+
+        if (presenteCorrente !== presenteOriginal) {
             studentiDaModificareIdList.push(id);
         }
-    });
 
+        // checkbox cancella (se spuntato => da cancellare)
+        var cancellaCheckbox = row.find('.chk-cancella');
+        if (cancellaCheckbox.prop('checked')) {
+            studentiDaCancellareIdList.push(id);
+        }
+
+        // se ci sono cancellazioni, chiedi conferma
+        if (studentiDaCancellareIdList.length > 0) {
+            var ok = confirm(
+                "Stai per cancellare " + studentiDaCancellareIdList.length +
+                " studente/i. Vuoi continuare?"
+            );
+
+            if (!ok) {
+                // interrompi: non proseguire con la chiamata / submit / salvataggio
+                return;
+            }
+        }
+    });
+    window.toastAfterModalClose = "Sportello aggiornato correttamente";
     if ($("#hidden_lista_classi").val() == "testo") // se la classe è una casella di testo
     {
         if ($('#hidden_sezione_online_clil').val() == 'true') {
@@ -182,8 +248,9 @@ function sportelloSave() {
                 clil: $("#clil").is(':checked') ? 1 : 0,
                 orientamento: $("#orientamento").is(':checked') ? 1 : 0,
                 studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
+                studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
             }, function (data, status) {
-                $("#sportello_modal").modal("hide");
+                $('#sportello_modal').modal('hide');
                 sportelloReadRecords();
             });
         }
@@ -208,8 +275,9 @@ function sportelloSave() {
                     clil: 0,
                     orientamento: 0,
                     studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
+                    studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
                 }, function (data, status) {
-                    $("#sportello_modal").modal("hide");
+                $('#sportello_modal').modal('hide');       
                     sportelloReadRecords();
                 });
         }
@@ -236,8 +304,10 @@ function sportelloSave() {
                 clil: $("#clil").is(':checked') ? 1 : 0,
                 orientamento: $("#orientamento").is(':checked') ? 1 : 0,
                 studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
+                studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
             }, function (data, status) {
-                $("#sportello_modal").modal("hide");
+                $('#sportello_modal').modal('hide');
+
                 sportelloReadRecords();
             });
         }
@@ -261,13 +331,14 @@ function sportelloSave() {
                 clil: 0,
                 orientamento: 0,
                 studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
+                studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
             }, function (data, status) {
-                $("#sportello_modal").modal("hide");
+                $('#sportello_modal').modal('hide');
                 sportelloReadRecords();
             });
         }
     }
-}
+ }
 
 function sportelloGetDetails(sportello_id) {
     $("#hidden_sportello_id").val(sportello_id);
@@ -276,7 +347,6 @@ function sportelloGetDetails(sportello_id) {
         $.post("../docente/sportelloReadDetails.php", {
             sportello_id: sportello_id
         }, function (data, status) {
-            console.log(data);
             var sportello = data;
             setDbDateToPickr(data_pickr, sportello.sportello_data);
             $("#ora").val(sportello.sportello_ora);
@@ -299,9 +369,7 @@ function sportelloGetDetails(sportello_id) {
             $('#studenti_table tbody').empty();
             var markup = '';
             // cicla su tutti gli studenti
-            console.log(sportello.studenti);
             sportello.studenti.forEach(function (studenti) {
-                console.log(studenti);
                 markup = markup +
                     "<tr>" +
                     "<td>" + studenti.sportello_studente_id + "</td>" +
@@ -309,9 +377,9 @@ function sportelloGetDetails(sportello_id) {
                     "<td style=\"text-align: left; vertical-align: middle;\">" + studenti.studente_cognome + " " + studenti.studente_nome + "</td>" +
                     "<td style=\"text-align: left; vertical-align: middle;\">" + studenti.sportello_studente_argomento + "</td>" +
                     "<td style=\"text-align: center; vertical-align: middle;\">" +
-                    "<input type=\"checkbox\" name=\"query_myTextEditBox\"" +
+                    "<input type=\"checkbox\" class=\"chk-presenza\" name=\"query_myTextEditBox\"" +
                     ((studenti.sportello_studente_presente == 0 || studenti.sportello_studente_presente == null) ? "" : " checked") +
-                    "></td>" +
+                    "></td><td style=\"text-align: center; vertical-align: middle;\"><input type=\"checkbox\" class=\"chk-cancella\" name=\"cancellare\"></td>" +
                     "</tr>";
             });
             $('#studenti_table > tbody:last-child').append(markup);
@@ -354,44 +422,42 @@ function importFile(file) {
 
     const reader = new FileReader();
 
-    reader.onload = function(event) {
+    reader.onload = function (event) {
         const contenuto = event.target.result;
 
         $.post("sportelloImport.php", { contenuto: contenuto })
-            .done(function(data) {
+            .done(function (data) {
                 $('#result_text').stop(true, true).html(data).fadeIn();
 
                 // 🔹 Dopo 10 secondi, nascondi il messaggio
-                setTimeout(function() {
-                    $('#result_text').fadeOut('slow', function() {
+                setTimeout(function () {
+                    $('#result_text').fadeOut('slow', function () {
                         $(this).html("");
                     });
                 }, 10000);
 
                 sportelloReadRecords();
             })
-            .fail(function(xhr, status, error) {
+            .fail(function (xhr, status, error) {
                 console.error("Errore durante l'import:", error);
                 $('#result_text')
                     .stop(true, true)
                     .html("<b style='color:red;'>Errore durante l'importazione del file.</b>")
                     .fadeIn()
                     .delay(10000)
-                    .fadeOut('slow', function() {
+                    .fadeOut('slow', function () {
                         $(this).html("");
                     });
             });
     };
 
-    reader.onerror = function(err) {
+    reader.onerror = function (err) {
         console.error("Errore di lettura file:", err);
         alert("Errore nella lettura del file. Controlla il formato.");
     };
 
     reader.readAsText(file, "UTF-8");
 }
-
-
 
 function importStudents(file, selezione) {
     var contenuto = "";
@@ -455,15 +521,23 @@ $(document).ready(function () {
 
     $('#riga_iscrizioni_sportelli').hide();
 
-$('#file_select_id').change(function (e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    $('#file_select_id').change(function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    importFile(file);
+        importFile(file);
 
-    // 🔹 resetta l'input per permettere di riselezionare lo stesso file
-    e.target.value = '';
-});
+        // 🔹 resetta l'input per permettere di riselezionare lo stesso file
+        e.target.value = '';
+    });
+
+        // delegato: funziona anche se #sportelloModal viene ricreato
+        $(document).on('hidden.bs.modal', '#sportello_modal', function () {
+            if (window.toastAfterModalClose) {
+                showSuccessMessage(window.toastAfterModalClose);
+                window.toastAfterModalClose = null;
+            }
+        });
 
 
 });
