@@ -10,7 +10,7 @@
 require_once '../common/checkSession.php';
 ruoloRichiesto('segreteria-didattica');
 
-if (isset($_POST)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     $id = $_POST['id'];
     $cognome = escapePost('cognome');
     $nome = escapePost('nome');
@@ -26,27 +26,57 @@ if (isset($_POST)) {
     $query = "SELECT id from classi where classe='EE'";
     $id_classe_esterno = dbGetValue($query);
     // devo aggiornare tabella frequenza
-    if ($id > 0) {
+    if ($id > 0) 
+    {
         $query = "UPDATE studente SET cognome = '$cognome', nome = '$nome', email = '$email', username = '$userId', codice_fiscale = '$codice_fiscale', attivo = '$attivo' WHERE id = '$id'";
         dbExec($query);
+        // aggiorno la classe per uno studente è stato riattivato
         if ($era_attivo == 0 && $attivo == 1 && $id_anno != $__anno_scolastico_corrente_id) {
             // se era disattivato e ora lo attivo, devo inserire la frequenza per l'anno scolastico corrente
             $query = "INSERT INTO studente_frequenta(id_studente,id_anno_scolastico,id_classe) VALUES ('$id', '$__anno_scolastico_corrente_id', '$id_classe')";
             dbExec($query);
             info("attivato studente per corrente anno scolastico id=$id cognome=$cognome nome=$nome email=$email id_classe=$id_classe id_anno_scolastico=$id_anno");
         } else {
-            $query = "UPDATE studente_frequenta SET id_classe = '$id_classe' WHERE id_studente = '$id' AND id_anno_scolastico = '$id_anno'";
-            dbExec($query);
-            if ($esterno) {
-                $id_anno_esterno = $id_anno - 1;
-                $query = "
+            // disattivo uno studente che va via
+            if ($era_attivo == 1 && $attivo == 0) {
+                $query = "UPDATE studente
+                        SET attivo = 0
+                        WHERE id = $id
+                        AND attivo = 1;";
+                dbExec($query);
+                info("Disattivato lo studente id=$id");
+                $query = "UPDATE genitori g
+                        SET g.attivo = 0
+                        WHERE g.id IN (
+                            SELECT DISTINCT gs.id_genitore
+                            FROM genitori_studenti gs
+                            WHERE gs.id_studente = $id
+                        )
+                        AND g.attivo = 1
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM genitori_studenti gs2
+                            JOIN studente s2 ON s2.id = gs2.id_studente
+                            WHERE gs2.id_genitore = g.id
+                            AND s2.attivo = 1
+                            AND s2.id <> $id
+                        )";
+                dbExec($query);
+                info("Disattivo i genitori dello studente id=$id");
+            } else {
+                $query = "UPDATE studente_frequenta SET id_classe = '$id_classe' WHERE id_studente = '$id' AND id_anno_scolastico = '$id_anno'";
+                dbExec($query);
+                if ($esterno) {
+                    $query = "
                 INSERT INTO studente_frequenta(id_studente,id_anno_scolastico,id_classe) VALUES('$id', '$__anno_scolastico_scorso_id', '$id_classe_esterno')
                 ON DUPLICATE KEY UPDATE id_studente = VALUES(id_studente), id_anno_scolastico = VALUES(id_anno_Scolastico), id_classe = VALUES(id_classe)";
-                dbExec($query);
+                    dbExec($query);
+                }
+                info("aggiornato studente id=$id cognome=$cognome nome=$nome email=$email username=$userId codice_fiscale=$codice_fiscale id_classe=$id_classe id_anno_scolastico=$id_anno");
             }
-            info("aggiornato studente id=$id cognome=$cognome nome=$nome email=$email username=$userId codice_fiscale=$codice_fiscale id_classe=$id_classe id_anno_scolastico=$id_anno");
         }
-    } else {
+    } else 
+    {
         $id_anno = $__anno_scolastico_corrente_id; // se non specificato, uso l'anno scolastico corrente
         // devo inserire un nuovo studente
         $query = "INSERT INTO studente(cognome, nome, email, username, codice_fiscale, attivo) VALUES('$cognome', '$nome', '$email', '$userId', '$codice_fiscale', '$attivo')";
@@ -58,6 +88,6 @@ if (isset($_POST)) {
             $query = "INSERT INTO studente_frequenta(id_studente,id_anno_scolastico,id_classe) VALUES('$studenteId', '$__anno_scolastico_scorso_id', '$id_classe_esterno')";
             dbExec($query);
         }
-        info("aggiunto studente id=$studenteId cognome=$cognome nome=$nome email=$email username=$username codice_fiscale=$codice_fiscale id_classe=$id_classe id_anno=$id_anno attivo=$attivo");
+        info("aggiunto studente id=$studenteId cognome=$cognome nome=$nome email=$email username=$userId codice_fiscale=$codice_fiscale id_classe=$id_classe id_anno=$id_anno attivo=$attivo");
     }
 }
