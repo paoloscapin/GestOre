@@ -104,7 +104,7 @@ function genitoreSave() {
 function genitoreGetDetails(genitore_id) {
     $("#hidden_genitore_id").val(genitore_id);
     $("#_error-classe-part").hide();
-
+    $("#hidden_attivo").val(0);
     if (genitore_id > 0) {
         $.post("genitoreReadDetails.php", {
             id: genitore_id
@@ -118,6 +118,7 @@ function genitoreGetDetails(genitore_id) {
             $("#codice_fiscale").val((genitore.codice_fiscale || "").toUpperCase());
             $("#userId").val(genitore.username);
             $("#attivo").prop('checked', genitore.attivo != 0 && genitore.attivo != null);
+            $("#hidden_attivo").val(genitore.attivo);
             $('#relazioni_table tbody').empty();
             var markup = '';
             genitore.genitori_di.forEach(function (genitoreDi, index) {
@@ -170,18 +171,100 @@ $("#classe_filtro").on("changed.bs.select",
     });
 
 $(document).ready(function () {
+    // 1) Carica elenco e (se c'è ?id=) apri subito il dettaglio
     var idFromUrl = getQueryParam('id');
     var openId = (idFromUrl && parseInt(idFromUrl, 10) > 0) ? parseInt(idFromUrl, 10) : null;
 
     genitoreReadRecords(function () {
         if (openId) {
             genitoreGetDetails(openId);
-            // opzionale: pulisci URL
-            history.replaceState(null, '', 'genitore.php');
+            history.replaceState(null, '', 'genitore.php'); // pulisci URL
         }
     });
 
-    $('#file_select_id').change(function (e) {
+    // 2) Import
+    $('#file_select_id').off('change').on('change', function (e) {
         importFile(e.target.files[0]);
     });
+
+    // 3) Apri modal "Collega studente"
+    $("#btn-collega-studente").off("click").on("click", function () {
+        var genitoreId = parseInt($("#hidden_genitore_id").val(), 10);
+
+        if (!genitoreId || genitoreId <= 0) {
+            alert("Salva prima il genitore, poi puoi collegare uno studente.");
+            return;
+        }
+
+        $("#collega_error").hide().find("div").text("");
+
+        // studenti attivi
+        $.get("studenteListAttivi.php", {}, function (data) {
+            var studenti = JSON.parse(data);
+            var $sel = $("#studente_select");
+            $sel.empty().append('<option value=""></option>');
+
+            studenti.forEach(function (s) {
+                $sel.append($("<option>", {
+                    value: s.id,
+                    text: s.cognome + " " + s.nome + (s.classe ? " (" + s.classe + ")" : "")
+                }));
+            });
+
+            $sel.selectpicker("refresh");
+        });
+
+        // relazioni
+        $.get("relazioniList.php", {}, function (data) {
+            var rel = JSON.parse(data);
+            var $r = $("#relazione_select");
+            $r.empty().append('<option value=""></option>');
+
+            rel.forEach(function (x) {
+                $r.append($("<option>", { value: x.id, text: x.nome }));
+            });
+
+            $r.selectpicker("refresh");
+        }).fail(function () {
+            var $r = $("#relazione_select");
+            $r.empty()
+              .append('<option value=""></option>')
+              .append('<option value="1">Padre</option><option value="2">Madre</option><option value="3">Tutore</option>');
+            $r.selectpicker("refresh");
+        });
+
+        $("#collega_studente_modal").modal("show");
+    });
+
+    // 4) Conferma collegamento (INSERT in genitori_studenti)
+    $("#btn-conferma-collega").off("click").on("click", function () {
+        var genitoreId = parseInt($("#hidden_genitore_id").val(), 10);
+        var studenteId = parseInt($("#studente_select").val(), 10);
+        var relazioneId = parseInt($("#relazione_select").val(), 10);
+
+        if (!studenteId) {
+            $("#collega_error").show().find("div").text("Seleziona uno studente.");
+            return;
+        }
+        if (!relazioneId) {
+            $("#collega_error").show().find("div").text("Seleziona una relazione.");
+            return;
+        }
+
+        $.post("genitoreCollegaStudente.php", {
+            id_genitore: genitoreId,
+            id_studente: studenteId,
+            id_relazione: relazioneId
+        }, function (data) {
+            var res = JSON.parse(data);
+            if (res.error) {
+                $("#collega_error").show().find("div").text(res.error);
+                return;
+            }
+
+            $("#collega_studente_modal").modal("hide");
+            genitoreGetDetails(genitoreId); // aggiorna tabella "Studenti collegati"
+        });
+    });
 });
+

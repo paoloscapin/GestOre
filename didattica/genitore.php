@@ -176,6 +176,10 @@ require_once '../common/checkSession.php';
                             <div class="panel-footer text-center">
                                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                                 <button id="btn-save" type="button" class="btn btn-primary" onclick="genitoreSave()">Salva</button>
+                                <button id="btn-collega-studente" type="button" class="btn btn-info">
+                                    <span class="glyphicon glyphicon-link"></span> Collega studente
+                                </button>
+
                             </div>
                         </div>
                     </div>
@@ -183,6 +187,60 @@ require_once '../common/checkSession.php';
             </div>
         </div>
         <!-- // Modal - Add/Update Record -->
+
+        <div class="modal fade" id="collega_studente_modal" data-backdrop="static" tabindex="-1" role="dialog">
+            <div class="modal-dialog" style="width:520px" role="document">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <div class="panel panel-info">
+                            <div class="panel-heading">
+                                <h5 class="modal-title">Collega studente</h5>
+                            </div>
+
+                            <div class="panel-body">
+                                <div class="form-horizontal">
+
+                                    <div class="form-group">
+                                        <label class="col-sm-3 control-label">Studente</label>
+                                        <div class="col-sm-9">
+                                            <select id="studente_select" class="selectpicker"
+                                                data-live-search="true"
+                                                data-noneSelectedText="Seleziona studente..."
+                                                data-width="100%">
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-sm-3 control-label">Relazione</label>
+                                        <div class="col-sm-9">
+                                            <select id="relazione_select" class="selectpicker"
+                                                data-live-search="true"
+                                                data-noneSelectedText="Seleziona relazione..."
+                                                data-width="100%">
+                                                <!-- se hai tabella relazioni, la popoliamo via ajax; altrimenti metti opzioni fisse -->
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group" id="collega_error" style="display:none;">
+                                        <div class="col-sm-12 text-danger text-center"></div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <div class="panel-footer text-center">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                                <button type="button" class="btn btn-primary" id="btn-conferma-collega">
+                                    Collega
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 
