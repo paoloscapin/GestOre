@@ -120,7 +120,44 @@ function studenteSave() {
                         "</tr>";
                 });
                 $('#frequenta_table > tbody:last-child').append(markup);
+
+                var $btnPassa = $("#btn-passa-genitore");
+                // mostra/nasconde bottone
+                if (studente.genitori && studente.genitori.length > 0) {
+                    $btnPassa.show();
+                } else {
+                    $btnPassa.hide();
+                }
+                // Popola selectpicker genitori
+                var $sel = $("#genitore_select");
+                $sel.empty();
+
+                // opzionale: placeholder
+                $sel.append('<option value="">-- Seleziona genitore --</option>');
+
+                if (studente.genitori && studente.genitori.length > 0) {
+                    studente.genitori.forEach(function (g) {
+                        $sel.append(
+                            '<option value="' + g.id + '">' +
+                            (g.cognome || '') + ' ' + (g.nome || '') +
+                            '</option>'
+                        );
+                    });
+                }
+                $sel.val(studente.genitori[0].id);
+                // refresh bootstrap-select
+                $sel.selectpicker('refresh');
+
+                $("#btn-passa-genitore").off("click").on("click", function () {
+                var genitoreId = $("#genitore_select").val(); // se non-multiple => stringa/id
+                if (!genitoreId) return;
+
+                // cambia qui con la tua pagina reale:
+                window.location.href = "genitore.php?id=" + encodeURIComponent(genitoreId);
+                });
             });
+
+
         } else {
             $("#cognome").val("");
             $("#nome").val("");
@@ -133,6 +170,9 @@ function studenteSave() {
             $("#attivo").prop('checked', true);
             $('#hidden_studente_id').val("-1");
             $('#frequenta_table tbody').empty();
+            $("#genitore_select").empty()
+            .append('<option value="">-- Seleziona genitore --</option>')
+            .selectpicker('refresh');
             $('#btn-save').show();
         }
 

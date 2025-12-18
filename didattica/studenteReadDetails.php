@@ -21,6 +21,22 @@ if (isset($_POST['id']) && $_POST['id'] != "") {
         exit;
     }
 
+    // Recupero genitori (JOIN genitori_studenti -> genitori)
+    $query = "
+        SELECT
+            g.id,
+            g.cognome,
+            g.nome
+        FROM genitori_studenti gs
+        JOIN genitori g ON g.id = gs.id_genitore
+        WHERE gs.id_studente = '$studente_id'
+        ORDER BY g.cognome, g.nome
+    ";
+    $genitori = dbGetAll($query);
+
+    // aggiungo i genitori alla struttura JSON
+    $studente['genitori'] = $genitori ?: [];
+
     // Recupero frequenze
     $query = "SELECT * FROM studente_frequenta WHERE id_studente = '$studente_id' ORDER BY id_anno_scolastico DESC";
     $frequenze_raw = dbGetAll($query);

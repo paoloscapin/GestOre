@@ -9,10 +9,22 @@ var soloAttivi = 1;
 var classe_filtro_id = 0;
 var anche_senza_figli = 1; // Variabile per gestire la visualizzazione dei genitori senza figli
 
-function genitoreReadRecords() {
-    $.get("genitoreReadRecords.php?soloAttivi=" + soloAttivi + "&classeFiltroId=" + classe_filtro_id + "&ancheSenzaStudenti=" + anche_senza_figli, {}, function (data, status) {
-        $(".records_content").html(data);
-    });
+function genitoreReadRecords(done) {
+    $.get(
+        "genitoreReadRecords.php?soloAttivi=" + soloAttivi +
+        "&classeFiltroId=" + classe_filtro_id +
+        "&ancheSenzaStudenti=" + anche_senza_figli,
+        {},
+        function (data, status) {
+            $(".records_content").html(data);
+            if (typeof done === "function") done();
+        }
+    );
+}
+
+function getQueryParam(name) {
+    var params = new URLSearchParams(window.location.search);
+    return params.get(name);
 }
 
 $('#ancheSenzaStudentiCheckBox').change(function () {
@@ -91,6 +103,7 @@ function genitoreSave() {
 
 function genitoreGetDetails(genitore_id) {
     $("#hidden_genitore_id").val(genitore_id);
+    $("#_error-classe-part").hide();
 
     if (genitore_id > 0) {
         $.post("genitoreReadDetails.php", {
@@ -101,8 +114,8 @@ function genitoreGetDetails(genitore_id) {
             console.log(genitore);
             $("#cognome").val(genitore.cognome);
             $("#nome").val(genitore.nome);
-            $("#email").val(genitore.email.toLowerCase());
-            $("#codice_fiscale").val(genitore.codice_fiscale.toUpperCase());
+            $("#email").val((genitore.email || "").toLowerCase());
+            $("#codice_fiscale").val((genitore.codice_fiscale || "").toUpperCase());
             $("#userId").val(genitore.username);
             $("#attivo").prop('checked', genitore.attivo != 0 && genitore.attivo != null);
             $('#relazioni_table tbody').empty();
@@ -114,6 +127,7 @@ function genitoreGetDetails(genitore_id) {
                     "</tr>";
             });
             $('#relazioni_table > tbody:last-child').append(markup);
+            $("#genitore_modal").modal("show");
         });
     } else {
         $("#cognome").val("");
@@ -124,11 +138,8 @@ function genitoreGetDetails(genitore_id) {
         $("#attivo").prop('checked', true);
         $('#relazioni_table tbody').empty();
         $('#btn-save').show();
+        $("#genitore_modal").modal("show");
     }
-
-    $("#genitore_modal").modal("show");
-
-    $("#_error-classe-part").hide();
 }
 function importFile(file) {
     $('#result_text').html("Caricamento in corso... attendere...");
@@ -159,10 +170,18 @@ $("#classe_filtro").on("changed.bs.select",
     });
 
 $(document).ready(function () {
-    genitoreReadRecords();
+    var idFromUrl = getQueryParam('id');
+    var openId = (idFromUrl && parseInt(idFromUrl, 10) > 0) ? parseInt(idFromUrl, 10) : null;
+
+    genitoreReadRecords(function () {
+        if (openId) {
+            genitoreGetDetails(openId);
+            // opzionale: pulisci URL
+            history.replaceState(null, '', 'genitore.php');
+        }
+    });
 
     $('#file_select_id').change(function (e) {
         importFile(e.target.files[0]);
     });
-
 });

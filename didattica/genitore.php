@@ -187,7 +187,8 @@ require_once '../common/checkSession.php';
     </div>
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/genitore.js"></script>
+    <script type="text/javascript" src="js/genitore.js?v=<?php echo filemtime(__DIR__ . '/js/genitore.js'); ?>"></script>
+
 </body>
 
 </html>

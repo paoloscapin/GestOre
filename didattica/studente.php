@@ -49,7 +49,7 @@ require_once '../common/checkSession.php';
                     <div class="col-md-2">
                         <span class="glyphicon glyphicon-pawn"></span>&ensp;Studenti
                     </div>
-                                        <div class="col-md-2">
+                    <div class="col-md-2">
                         <div class="text-right">
                             <label class="col-sm-2 control-label" for="classe"
                                 style="margin:5px 0px 0px 0px;">Classe</label>
@@ -73,7 +73,7 @@ require_once '../common/checkSession.php';
                     </div>
                     <div class="col-md-2 text-right">
                         <div class="pull-right">
-                            <button class="btn btn-xs btn-orange4" onclick="studenteGetDetails(-1,<?php echo $__anno_scolastico_corrente_id?>)"><span class="glyphicon glyphicon-plus"></span></button>
+                            <button class="btn btn-xs btn-orange4" onclick="studenteGetDetails(-1,<?php echo $__anno_scolastico_corrente_id ?>)"><span class="glyphicon glyphicon-plus"></span></button>
                         </div>
                     </div>
                 </div>
@@ -140,6 +140,42 @@ require_once '../common/checkSession.php';
                                                 <?php echo $classiOptionList ?>
                                             </select></div>
                                     </div>
+
+                                    <div class="form-group">
+                                        <label class="col-sm-2 control-label" for="genitore_select">Genitore</label>
+
+                                        <div class="col-sm-10">
+                                            <!-- Riga 1: select -->
+                                            <div class="row">
+                                                <div class="col-xs-12">
+                                                    <select id="genitore_select" name="genitore_select"
+                                                        class="selectpicker"
+                                                        data-style="btn-info"
+                                                        data-live-search="true"
+                                                        data-noneSelectedText="Seleziona genitore..."
+                                                        data-width="100%">
+                                                        <!-- Riempito via AJAX -->
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- Riga 2: bottoni (a destra) -->
+                                            <div class="row" style="margin-top:6px;">
+                                                <div class="col-xs-12 text-right">
+                                                    <button type="button" class="btn btn-xs btn-success" id="btn-nuovo-genitore">
+                                                        <span class="glyphicon glyphicon-plus"></span> Nuovo
+                                                    </button>
+
+                                                    <button type="button" class="btn btn-xs btn-primary" id="btn-passa-genitore" style="margin-left:6px;">
+                                                        <span class="glyphicon glyphicon-circle-arrow-right"></span> Passa a
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+
                                     <div class="form-group">
                                         <label for="attivo" class="col-sm-2 control-label">Attivo</label>
                                         <div class="col-sm-1">
