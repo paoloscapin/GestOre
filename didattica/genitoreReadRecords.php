@@ -8,118 +8,121 @@
  */
 
 // include Database connection file
+
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$soloAttivi = $_GET["soloAttivi"];
-$classeFiltroId = $_GET["classeFiltroId"];
-$ancheSenzaStudenti = $_GET["ancheSenzaStudenti"];
+$soloAttivi = isset($_GET["soloAttivi"]) ? $_GET["soloAttivi"] : 0;
+$classeFiltroId = isset($_GET["classeFiltroId"]) ? (int)$_GET["classeFiltroId"] : 0;
+$ancheSenzaStudenti = isset($_GET["ancheSenzaStudenti"]) ? $_GET["ancheSenzaStudenti"] : 1;
 
-// Design initial table header
+$soloAttivi = ($soloAttivi === 1 || $soloAttivi === "1" || $soloAttivi === true || $soloAttivi === "true") ? 1 : 0;
+$ancheSenzaStudenti = ($ancheSenzaStudenti === 1 || $ancheSenzaStudenti === "1" || $ancheSenzaStudenti === true || $ancheSenzaStudenti === "true") ? 1 : 0;
+
+// header tabella
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
-					<thead>
-					<tr>
-						<th class="text-center col-md-1">Cognome</th>
-						<th class="text-center col-md-1">Nome</th>
-						<th class="text-center col-md-1">Codice fiscale</th>
-						<th class="text-center col-md-1">UserID MasterCom</th>
-						<th class="text-center col-md-2">email</th>
-						<th class="text-center col-md-3">Genitore di</th>
-						<th class="text-center col-md-1">Relazione</th>
-						<th class="text-center col-md-1">Attivo</th>
-						<th class="text-center col-md-1"></th>
-					</tr>
-					</thead>';
+<thead>
+<tr>
+  <th class="text-center col-md-1">Cognome</th>
+  <th class="text-center col-md-1">Nome</th>
+  <th class="text-center col-md-1">Codice fiscale</th>
+  <th class="text-center col-md-1">UserID MasterCom</th>
+  <th class="text-center col-md-2">email</th>
+  <th class="text-center col-md-3">Genitore di</th>
+  <th class="text-center col-md-1">Relazione</th>
+  <th class="text-center col-md-1">Attivo</th>
+  <th class="text-center col-md-1"></th>
+</tr>
+</thead>';
 
-$query = "SELECT * FROM genitori ";
-
-if( $soloAttivi || $soloAttivi == 'true' ) {
- 	$query .= " WHERE genitori.attivo = 1 ";
+// costruisco condizioni
+$where = [];
+if ($soloAttivi) {
+    $where[] = "g.attivo = 1";
 }
 
-$query .= "ORDER BY genitori.cognome ASC, genitori.nome ASC";
+// filtro classe: si applica sulle righe figlio (JOIN), ma NON deve eliminare il genitore se ancheSenzaStudenti=1
+// per gestire correttamente: mettiamo il filtro classe nella JOIN su classi (così il GROUP_CONCAT si svuota se non matcha).
+$classeJoinFilter = "";
+if ($classeFiltroId > 0) {
+    $classeJoinFilter = " AND c.id = $classeFiltroId ";
+}
 
-foreach(dbGetAll($query) as $row) {
+$whereSql = "";
+if (!empty($where)) {
+    $whereSql = "WHERE " . implode(" AND ", $where);
+}
 
-	$query = "SELECT * FROM genitori_studenti WHERE id_genitore = ".$row['id']." ORDER BY id_studente ASC";
-	$genitoriStudenti = dbGetAll($query);
+// Query unica: prende genitori + figli attivi che frequentano anno corrente + classe, + relazione
+// GROUP_CONCAT costruisce stringhe con <br> già pronte.
+$query = "
+SELECT
+  g.id,
+  g.cognome,
+  g.nome,
+  g.codice_fiscale,
+  g.username,
+  g.email,
+  g.attivo,
 
-	if (count($genitoriStudenti) == 0 && !$ancheSenzaStudenti) {
-		// se il genitore non ha figli, non lo mostro
-		continue;
-	}
+  GROUP_CONCAT(
+    DISTINCT CONCAT(
+      s.cognome, ' ', s.nome, ' (', UPPER(c.classe), ')'
+    )
+    ORDER BY s.cognome, s.nome SEPARATOR '<br>'
+  ) AS genitoriDi,
 
-	$genitoriDi = '';
-	$relazioni = '';
+  GROUP_CONCAT(
+    DISTINCT CONCAT(
+      UCASE(LEFT(gr.relazione,1)), LCASE(SUBSTRING(gr.relazione,2))
+    )
+    ORDER BY s.cognome, s.nome SEPARATOR '<br>'
+  ) AS relazioni
 
-	foreach ($genitoriStudenti as $genitoreStudente) {
-		$query2 = "SELECT * FROM studente WHERE id = '".$genitoreStudente['id_studente']."' AND attivo = '1'";
-		$studente = dbGetFirst($query2);
-		if ($studente === null) {
-			continue; // se lo studente non esiste, salto
-		}
+FROM genitori g
+LEFT JOIN genitori_studenti gs ON gs.id_genitore = g.id
+LEFT JOIN studente s ON s.id = gs.id_studente AND s.attivo = 1
+LEFT JOIN studente_frequenta sf
+  ON sf.id_studente = s.id
+  AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id
+LEFT JOIN classi c
+  ON c.id = sf.id_classe
+  AND sf.id_classe <> 0
+  $classeJoinFilter
+LEFT JOIN genitori_relazioni gr ON gr.id = gs.id_relazione
 
-		$query2 = "SELECT * FROM studente_frequenta WHERE id_studente = ".$studente['id']." AND id_anno_scolastico = ".$__anno_scolastico_corrente_id;
-		$frequenta = dbGetFirst($query2);
-		if ($frequenta === null) {
-			continue; // se lo studente non frequenta l'anno scolastico corrente, salto
-		}
-		$query2 = "SELECT * FROM classi WHERE id = ".$frequenta['id_classe'];
-		if ($frequenta['id_classe'] == 0) {
-			// se lo studente non ha una classe, salto
-			continue;
-		}
-		$classe = dbGetFirst($query2);
-		if ( $classeFiltroId && $classeFiltroId > 0 ) {
-			if ($classe['id'] != $classeFiltroId) {	
-				// se la classe non corrisponde al filtro, non lo mostro
-				continue;	
-			}
-		}
-		if ($genitoriDi != '') {
-			$genitoriDi .= '<br>';
-		}
-		$genitoriDi .= $studente['cognome'] . ' ' . $studente['nome'] . ' (' . strtoupper($classe['classe']) . ')';
+$whereSql
+GROUP BY g.id
+ORDER BY g.cognome ASC, g.nome ASC
+";
 
-		if ($relazioni != '') {
-			$relazioni .= '<br>';
-		}
-		$query2 = "SELECT relazione FROM genitori_relazioni WHERE id=".$genitoreStudente['id_relazione'];
-		$relazione = dbGetValue($query2);
-		$relazioni .= ucfirst($relazione);
-		info("genitore id=".$row['id']." cognome=".$row['cognome']." nome=".$row['nome']." studente id=".$studente['id']." cognome=".$studente['cognome']." nome=".$studente['nome']." relazione=".$relazioni);
+$rows = dbGetAll($query);
 
-	}
+foreach ($rows as $row) {
+    $genitoriDi = $row['genitoriDi'] ?? '';
+    $relazioni  = $row['relazioni'] ?? '';
 
+    // Se non voglio mostrare genitori senza studenti, filtro qui (dopo la query)
+    if (!$ancheSenzaStudenti && trim($genitoriDi) === '') {
+        continue;
+    }
 
-	if ($genitoriDi == '' && !$ancheSenzaStudenti) {
-		// se il genitore non ha figli, non lo mostro
-		continue;
-	}
-
-	$data .= '<tr>
-	<td style="text-align:center">'.ucwords(strtolower($row['cognome'])).'</td>
-	<td style="text-align:center">'.ucwords(strtolower($row['nome'])).'</td>
-	<td style="text-align:center">'.strtoupper($row['codice_fiscale']).
-	'</td>
-	<td style="text-align:center">'.$row['username'].'</td>
-	<td style="text-align:center">'.strtolower($row['email']).'</td>
-	<td style="text-align:center">'.$genitoriDi.'</td>
-	<td style="text-align:center">'.$relazioni.'</td>
-	<td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" ';
-	if ($row['attivo']) {
-		$data .= 'checked ';
-	}
-	$data .='</td>
-		<td class="text-center">
-		<button onclick="genitoreGetDetails('.$row['id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
-		<button onclick="genitoreDelete('.$row['id'].', \''.$row['cognome'].'\', \''.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></span></button>
-		<button onclick="genitoreImpersona('.$row['id'].', \''.$row['cognome'].'\', \''.$row['nome'].'\')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-pawn"></span></button>
-		</td>
-		</tr>';
-	}
+    $data .= '<tr>
+      <td style="text-align:center">'.ucwords(strtolower($row['cognome'])).'</td>
+      <td style="text-align:center">'.ucwords(strtolower($row['nome'])).'</td>
+      <td style="text-align:center">'.strtoupper($row['codice_fiscale']).'</td>
+      <td style="text-align:center">'.$row['username'].'</td>
+      <td style="text-align:center">'.strtolower($row['email']).'</td>
+      <td style="text-align:center">'.$genitoriDi.'</td>
+      <td style="text-align:center">'.$relazioni.'</td>
+      <td class="text-center"><input type="checkbox" disabled data-toggle="toggle" data-onstyle="primary" '.($row['attivo'] ? 'checked' : '').'></td>
+      <td class="text-center">
+        <button onclick="genitoreGetDetails('.$row['id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
+        <button onclick="genitoreDelete('.$row['id'].', \''.addslashes($row['cognome']).'\', \''.addslashes($row['nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></span></button>
+        <button onclick="genitoreImpersona('.$row['id'].', \''.addslashes($row['cognome']).'\', \''.addslashes($row['nome']).'\')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-pawn"></span></button>
+      </td>
+    </tr>';
+}
 
 $data .= '</table></div>';
-
 echo $data;
-?>
