@@ -121,13 +121,22 @@ function genitoreGetDetails(genitore_id) {
             $("#hidden_attivo").val(genitore.attivo);
             $('#relazioni_table tbody').empty();
             var markup = '';
-            genitore.genitori_di.forEach(function (genitoreDi, index) {
-                markup += "<tr>" +
-                    "<td style=\"text-align: center; vertical-align: middle;\">" + genitoreDi + "</td>" +
-                    "<td style=\"text-align: center; vertical-align: middle;\">" + genitore.relazioni[index] + "</td>" +
-                    "</tr>";
-            });
+
+            if (genitore.studenti && genitore.studenti.length > 0) {
+                genitore.studenti.forEach(function (s) {
+                    markup += "<tr>" +
+                        "<td style=\"text-align:center; vertical-align:middle;\">" +
+                        "<a href=\"studente.php?id=" + encodeURIComponent(s.id) + "\">" + s.label + "</a>" +
+                        "</td>" +
+                        "<td style=\"text-align:center; vertical-align:middle;\">" + (s.relazione || "") + "</td>" +
+                        "</tr>";
+                });
+            } else {
+                markup = "<tr><td class='text-center'>Nessuno</td><td class='text-center'>Nessuna</td></tr>";
+            }
+
             $('#relazioni_table > tbody:last-child').append(markup);
+
             $("#genitore_modal").modal("show");
         });
     } else {
@@ -228,8 +237,8 @@ $(document).ready(function () {
         }).fail(function () {
             var $r = $("#relazione_select");
             $r.empty()
-              .append('<option value=""></option>')
-              .append('<option value="1">Padre</option><option value="2">Madre</option><option value="3">Tutore</option>');
+                .append('<option value=""></option>')
+                .append('<option value="1">Padre</option><option value="2">Madre</option><option value="3">Tutore</option>');
             $r.selectpicker("refresh");
         });
 

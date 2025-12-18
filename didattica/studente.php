@@ -283,7 +283,10 @@ require_once '../common/checkSession.php';
     </div>
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/studente.js"></script>
+<script>
+  window.anno_id_corrente = <?php echo (int)$__anno_scolastico_corrente_id; ?>;
+</script>
+<script type="text/javascript" src="js/studente.js"></script>
 </body>
 
 </html>

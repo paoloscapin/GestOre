@@ -14,6 +14,10 @@ function studenteReadRecords() {
     });
 }
 
+function getQueryParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+}
+
 $('#soloAttiviCheckBox').change(function () {
     // this si riferisce al checkbox
     if (this.checked) {
@@ -70,116 +74,119 @@ function studenteSave() {
         }
     }
 
-        $("#_error-classe-part").hide();
-        $.post("studenteSave.php", {
-            id: $("#hidden_studente_id").val(),
-            cognome: $("#cognome").val(),
-            nome: $("#nome").val(),
-            email: $("#email").val(),
-            id_classe: $("#classe_filtro_stud").val(),
-            id_anno: $("#hidden_anno_id").val(),
-            codice_fiscale: $("#codice_fiscale").val(),
-            userid: $("#userId").val(),
-            attivo: $("#attivo").prop('checked') ? 1 : 0,
-            esterno: $("#esterno").prop('checked') ? 1 : 0,
-            era_attivo: $("#hidden_attivo").val()
+    $("#_error-classe-part").hide();
+    $.post("studenteSave.php", {
+        id: $("#hidden_studente_id").val(),
+        cognome: $("#cognome").val(),
+        nome: $("#nome").val(),
+        email: $("#email").val(),
+        id_classe: $("#classe_filtro_stud").val(),
+        id_anno: $("#hidden_anno_id").val(),
+        codice_fiscale: $("#codice_fiscale").val(),
+        userid: $("#userId").val(),
+        attivo: $("#attivo").prop('checked') ? 1 : 0,
+        esterno: $("#esterno").prop('checked') ? 1 : 0,
+        era_attivo: $("#hidden_attivo").val()
+    }, function (data, status) {
+        $("#studente_modal").modal("hide");
+        studenteReadRecords();
+    });
+}
+
+function studenteGetDetails(studente_id, anno_id) {
+    $("#hidden_studente_id").val(studente_id);
+
+    if (studente_id > 0) {
+        $.post("studenteReadDetails.php", {
+            id: studente_id
         }, function (data, status) {
-            $("#studente_modal").modal("hide");
-            studenteReadRecords();
-        });
-    }
 
-    function studenteGetDetails(studente_id,anno_id) {
-        $("#hidden_studente_id").val(studente_id);
+            var studente = JSON.parse(data);
 
-        if (studente_id > 0) {
-            $.post("studenteReadDetails.php", {
-                id: studente_id
-            }, function (data, status) {
+            $("#cognome").val(studente.cognome);
+            $("#nome").val(studente.nome);
+            $("#email").val(studente.email.toLowerCase());
+            $("#codice_fiscale").val(studente.codice_fiscale.toUpperCase());
+            $("#userId").val(studente.username);
+            $("#classe_filtro_stud").val(studente.id_classe);
+            $("#classe_filtro_stud").selectpicker('refresh');
+            $('#hidden_anno_id').val(studente.id_anno_scolastico);
+            $("#attivo").prop('checked', studente.attivo != 0 && studente.attivo != null);
+            $('#hidden_attivo').val(studente.attivo != 0 && studente.attivo != null ? 1 : 0);
+            $('#frequenta_table tbody').empty();
+            var markup = '';
+            studente.frequenze.forEach(function (frequenza) {
 
-                var studente = JSON.parse(data);
+                markup = markup +
+                    "<tr>" +
+                    "<td style=\"text-align: center; vertical-align: middle;\">" + frequenza.anno + "</td>" +
+                    "<td style=\"text-align: center; vertical-align: middle;\">" + frequenza.classe + "</td>" +
+                    "</tr>";
+            });
+            $('#frequenta_table > tbody:last-child').append(markup);
 
-                $("#cognome").val(studente.cognome);
-                $("#nome").val(studente.nome);
-                $("#email").val(studente.email.toLowerCase());
-                $("#codice_fiscale").val(studente.codice_fiscale.toUpperCase());
-                $("#userId").val(studente.username);
-                $("#classe_filtro_stud").val(studente.id_classe);
-                $("#classe_filtro_stud").selectpicker('refresh');
-                $('#hidden_anno_id').val(studente.id_anno_scolastico);
-                $("#attivo").prop('checked', studente.attivo != 0 && studente.attivo != null);
-                $('#hidden_attivo').val(studente.attivo != 0 && studente.attivo != null ? 1 : 0);
-                $('#frequenta_table tbody').empty();
-                var markup = '';
-                studente.frequenze.forEach(function (frequenza) {
+            var $btnPassa = $("#btn-passa-genitore");
+            // mostra/nasconde bottone
+            if (studente.genitori && studente.genitori.length > 0) {
+                $btnPassa.show();
+            } else {
+                $btnPassa.hide();
+            }
+            // Popola selectpicker genitori
+            var $sel = $("#genitore_select");
+            $sel.empty();
 
-                    markup = markup +
-                        "<tr>" +
-                        "<td style=\"text-align: center; vertical-align: middle;\">" + frequenza.anno + "</td>" +
-                        "<td style=\"text-align: center; vertical-align: middle;\">" + frequenza.classe + "</td>" +
-                        "</tr>";
+            // opzionale: placeholder
+            $sel.append('<option value="">-- Seleziona genitore --</option>');
+
+            if (studente.genitori && studente.genitori.length > 0) {
+                studente.genitori.forEach(function (g) {
+                    $sel.append(
+                        '<option value="' + g.id + '">' +
+                        (g.cognome || '') + ' ' + (g.nome || '') +
+                        '</option>'
+                    );
                 });
-                $('#frequenta_table > tbody:last-child').append(markup);
+            }
+            if (studente.genitori && studente.genitori.length > 0) {
+                $sel.val(String(studente.genitori[0].id));
+            } else {
+                $sel.val(""); // nessuna selezione
+            }
+            $sel.selectpicker('refresh');
 
-                var $btnPassa = $("#btn-passa-genitore");
-                // mostra/nasconde bottone
-                if (studente.genitori && studente.genitori.length > 0) {
-                    $btnPassa.show();
-                } else {
-                    $btnPassa.hide();
-                }
-                // Popola selectpicker genitori
-                var $sel = $("#genitore_select");
-                $sel.empty();
-
-                // opzionale: placeholder
-                $sel.append('<option value="">-- Seleziona genitore --</option>');
-
-                if (studente.genitori && studente.genitori.length > 0) {
-                    studente.genitori.forEach(function (g) {
-                        $sel.append(
-                            '<option value="' + g.id + '">' +
-                            (g.cognome || '') + ' ' + (g.nome || '') +
-                            '</option>'
-                        );
-                    });
-                }
-                $sel.val(studente.genitori[0].id);
-                // refresh bootstrap-select
-                $sel.selectpicker('refresh');
-
-                $("#btn-passa-genitore").off("click").on("click", function () {
+            $("#btn-passa-genitore").off("click").on("click", function () {
                 var genitoreId = $("#genitore_select").val(); // se non-multiple => stringa/id
                 if (!genitoreId) return;
 
                 // cambia qui con la tua pagina reale:
                 window.location.href = "genitore.php?id=" + encodeURIComponent(genitoreId);
-                });
             });
+        });
 
 
-        } else {
-            $("#cognome").val("");
-            $("#nome").val("");
-            $("#email").val("");
-            $("#classe_filtro_stud").val("0");
-            $("#classe_filtro_stud").selectpicker('refresh');
-            $("#codice_fiscale").val("");
-            $("#userId").val("");
-            $("#hidden_anno_id").val(anno_id);
-            $("#attivo").prop('checked', true);
-            $('#hidden_studente_id').val("-1");
-            $('#frequenta_table tbody').empty();
-            $("#genitore_select").empty()
+    } else {
+        $("#cognome").val("");
+        $("#nome").val("");
+        $("#email").val("");
+        $("#classe_filtro_stud").val("0");
+        $("#classe_filtro_stud").selectpicker('refresh');
+        $("#codice_fiscale").val("");
+        $("#userId").val("");
+        $("#hidden_anno_id").val(anno_id);
+        $("#attivo").prop('checked', true);
+        $('#hidden_studente_id').val("-1");
+        $('#frequenta_table tbody').empty();
+        $("#genitore_select").empty()
             .append('<option value="">-- Seleziona genitore --</option>')
             .selectpicker('refresh');
-            $('#btn-save').show();
-        }
-
-        $("#studente_modal").modal("show");
-
-        $("#_error-classe-part").hide();
+        $('#btn-save').show();
     }
+
+    $("#studente_modal").modal("show");
+
+    $("#_error-classe-part").hide();
+}
 function importFile(file) {
     var contenuto = "";
     const reader = new FileReader();
@@ -200,12 +207,12 @@ function importFile(file) {
     });
     reader.readAsText(file);
 }
-    
-    $("#classe_filtro").on("changed.bs.select",
-        function (e, clickedIndex, newValue, oldValue) {
-            classe_filtro_id = this.value;
-            studenteReadRecords();
-        });
+
+$("#classe_filtro").on("changed.bs.select",
+    function (e, clickedIndex, newValue, oldValue) {
+        classe_filtro_id = this.value;
+        studenteReadRecords();
+    });
 
 $(document).ready(function () {
 
@@ -261,8 +268,8 @@ $(document).ready(function () {
             }).fail(function () {
                 var $r = $("#relazione_select_link");
                 $r.empty()
-                  .append('<option value=""></option>')
-                  .append('<option value="1">Padre</option><option value="2">Madre</option><option value="3">Tutore</option>');
+                    .append('<option value=""></option>')
+                    .append('<option value="1">Padre</option><option value="2">Madre</option><option value="3">Tutore</option>');
                 $r.selectpicker("refresh");
             });
 
@@ -307,7 +314,28 @@ $(document).ready(function () {
             var annoId = parseInt($("#hidden_anno_id").val(), 10) || 0;
             studenteGetDetails(studenteId, annoId);
         });
-        
+
     });
+
+// AUTO-OPEN da URL: studente.php?id=123
+try {
+    var idFromUrl = (typeof getQueryParam === "function") ? getQueryParam('id') : null;
+    var openId = (idFromUrl && parseInt(idFromUrl, 10) > 0) ? parseInt(idFromUrl, 10) : null;
+
+    if (openId) {
+        var anno = (typeof window.anno_id_corrente !== "undefined") ? parseInt(window.anno_id_corrente, 10) : 0;
+
+        // esegui dopo un tick, così la pagina è stabile
+        setTimeout(function () {
+            studenteGetDetails(openId, anno);
+        }, 0);
+
+        history.replaceState(null, '', 'studente.php');
+    }
+} catch (e) {
+    console.error("Auto-open studente fallito:", e);
+}
+
+
 
 });
