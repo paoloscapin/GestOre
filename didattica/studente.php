@@ -162,9 +162,6 @@ require_once '../common/checkSession.php';
                                             <!-- Riga 2: bottoni (a destra) -->
                                             <div class="row" style="margin-top:6px;">
                                                 <div class="col-xs-12 text-right">
-                                                    <button type="button" class="btn btn-xs btn-success" id="btn-nuovo-genitore">
-                                                        <span class="glyphicon glyphicon-plus"></span> Nuovo
-                                                    </button>
 
                                                     <button type="button" class="btn btn-xs btn-primary" id="btn-passa-genitore" style="margin-left:6px;">
                                                         <span class="glyphicon glyphicon-circle-arrow-right"></span> Passa a
@@ -220,6 +217,9 @@ require_once '../common/checkSession.php';
                             <div class="panel-footer text-center">
                                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                                 <button id="btn-save" type="button" class="btn btn-primary" onclick="studenteSave()">Salva</button>
+                                <button type="button" class="btn btn-info" id="btn-collega-genitore">
+                                    <span class="glyphicon glyphicon-link"></span> Collega genitore
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -227,6 +227,58 @@ require_once '../common/checkSession.php';
             </div>
         </div>
         <!-- // Modal - Add/Update Record -->
+
+        <div class="modal fade" id="collega_genitore_modal" data-backdrop="static" tabindex="-1" role="dialog">
+            <div class="modal-dialog" style="width:520px" role="document">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <div class="panel panel-info">
+                            <div class="panel-heading">
+                                <h5 class="modal-title">Collega genitore</h5>
+                            </div>
+
+                            <div class="panel-body">
+                                <div class="form-horizontal">
+
+                                    <div class="form-group">
+                                        <label class="col-sm-3 control-label">Genitore</label>
+                                        <div class="col-sm-9">
+                                            <select id="genitore_select_link" class="selectpicker"
+                                                data-live-search="true"
+                                                data-noneSelectedText="Seleziona genitore..."
+                                                data-width="100%"></select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-sm-3 control-label">Relazione</label>
+                                        <div class="col-sm-9">
+                                            <select id="relazione_select_link" class="selectpicker"
+                                                data-live-search="true"
+                                                data-noneSelectedText="Seleziona relazione..."
+                                                data-width="100%"></select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group" id="collega_genitore_error" style="display:none;">
+                                        <div class="col-sm-12 text-danger text-center"></div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <div class="panel-footer text-center">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                                <button type="button" class="btn btn-primary" id="btn-conferma-collega-genitore">
+                                    Collega
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 

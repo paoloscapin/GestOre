@@ -207,11 +207,107 @@ function importFile(file) {
             studenteReadRecords();
         });
 
-    $(document).ready(function () {
-        studenteReadRecords();
+$(document).ready(function () {
 
-        $('#file_select_id').change(function (e) {
-            importFile(e.target.files[0]);
+    studenteReadRecords();
+
+    $('#file_select_id').off('change').on('change', function (e) {
+        importFile(e.target.files[0]);
+    });
+
+    // IMPORTANTISSIMO: il modal di collegamento deve stare sotto <body>
+    $("#collega_genitore_modal").appendTo("body");
+
+    function cleanupBackdrops() {
+        // rimuove QUALSIASI backdrop rimasto
+        $(".modal-backdrop").remove();
+        $("body").removeClass("modal-open").css("padding-right", "");
+    }
+
+    // click: collega genitore
+    $(document).off("click", "#btn-collega-genitore").on("click", "#btn-collega-genitore", function () {
+        var studenteId = parseInt($("#hidden_studente_id").val(), 10);
+        if (!studenteId || studenteId <= 0) {
+            alert("Seleziona prima uno studente esistente.");
+            return;
+        }
+
+        // quando studente_modal è veramente chiuso...
+        $("#studente_modal").one("hidden.bs.modal", function () {
+            cleanupBackdrops();
+
+            $("#collega_genitore_error").hide().find("div").text("");
+
+            // carica genitori attivi
+            $.get("genitoreListAttivi.php", {}, function (data) {
+                var genitori = JSON.parse(data);
+                var $sel = $("#genitore_select_link");
+                $sel.empty().append('<option value=""></option>');
+                genitori.forEach(function (g) {
+                    $sel.append($("<option>", { value: g.id, text: g.cognome + " " + g.nome }));
+                });
+                $sel.selectpicker("refresh");
+            });
+
+            // carica relazioni
+            $.get("relazioniList.php", {}, function (data) {
+                var rel = JSON.parse(data);
+                var $r = $("#relazione_select_link");
+                $r.empty().append('<option value=""></option>');
+                rel.forEach(function (x) {
+                    $r.append($("<option>", { value: x.id, text: x.nome }));
+                });
+                $r.selectpicker("refresh");
+            }).fail(function () {
+                var $r = $("#relazione_select_link");
+                $r.empty()
+                  .append('<option value=""></option>')
+                  .append('<option value="1">Padre</option><option value="2">Madre</option><option value="3">Tutore</option>');
+                $r.selectpicker("refresh");
+            });
+
+            // apri il modal DOPO aver ripulito backdrop
+            setTimeout(function () {
+                $("#collega_genitore_modal").modal({ backdrop: "static", keyboard: false });
+            }, 50);
         });
 
+        // chiudi il modale studente
+        $("#studente_modal").modal("hide");
     });
+
+    // conferma collegamento (puoi lasciare il tuo, ma metto delegato)
+    $(document).off("click", "#btn-conferma-collega-genitore").on("click", "#btn-conferma-collega-genitore", function () {
+        var studenteId = parseInt($("#hidden_studente_id").val(), 10);
+        var genitoreId = parseInt($("#genitore_select_link").val(), 10);
+        var relazioneId = parseInt($("#relazione_select_link").val(), 10);
+
+        if (!genitoreId) {
+            $("#collega_genitore_error").show().find("div").text("Seleziona un genitore.");
+            return;
+        }
+        if (!relazioneId) {
+            $("#collega_genitore_error").show().find("div").text("Seleziona una relazione.");
+            return;
+        }
+
+        $.post("genitoreCollegaStudente.php", {
+            id_genitore: genitoreId,
+            id_studente: studenteId,
+            id_relazione: relazioneId
+        }, function (data) {
+            var res = JSON.parse(data);
+            if (res.error) {
+                $("#collega_genitore_error").show().find("div").text(res.error);
+                return;
+            }
+
+            $("#collega_genitore_modal").modal("hide");
+
+            var annoId = parseInt($("#hidden_anno_id").val(), 10) || 0;
+            studenteGetDetails(studenteId, annoId);
+        });
+        
+    });
+
+});
