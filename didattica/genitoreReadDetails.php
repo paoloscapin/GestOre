@@ -33,7 +33,6 @@ if (isset($_POST['id']) && $_POST['id'] != "") {
         FROM genitori_studenti gs
         JOIN studente s
             ON s.id = gs.id_studente
-            AND s.attivo = 1
         JOIN studente_frequenta sf
             ON sf.id_studente = s.id
             AND sf.id_anno_scolastico = '$__anno_scolastico_corrente_id'

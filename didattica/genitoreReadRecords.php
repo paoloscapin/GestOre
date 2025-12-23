@@ -81,7 +81,7 @@ SELECT
 
 FROM genitori g
 LEFT JOIN genitori_studenti gs ON gs.id_genitore = g.id
-LEFT JOIN studente s ON s.id = gs.id_studente AND s.attivo = 1
+LEFT JOIN studente s ON s.id = gs.id_studente 
 LEFT JOIN studente_frequenta sf
   ON sf.id_studente = s.id
   AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id

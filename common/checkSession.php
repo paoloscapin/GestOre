@@ -96,6 +96,8 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
                 exit();
         } else {
             $array = json_decode($response, true);
+            infoLogin("array valori: " . $response);
+            info("array valori: " . $response);
             if (empty($array["auth"])) // l'utente non esiste su MasterCom
             {
                 $__message = 'utente non trovato su MasterCom: [' . $username . ']';
