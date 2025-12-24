@@ -11,235 +11,274 @@ require_once '../common/checkSession.php';
 
 <!DOCTYPE html>
 <html>
-<head>
-<?php
 
-require_once '../common/header-common.php';
-require_once '../common/style.php';
-require_once '../common/_include_bootstrap-toggle.php';
-require_once '../common/_include_bootstrap-select.php';
-require_once '../common/_include_flatpickr.php';
-require_once '../common/_include_bootstrap-notify.php';
-ruoloRichiesto('docente');
-?>
-	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
-	<title>Sportelli</title>
-<style>
-/* Tooltip */
-.tooltip > .tooltip-inner {
-    background-color: #73AD21; 
-    color: #FFFFFF; 
-    border: 1px solid green; 
-    padding: 15px;
-    font-size: 20px;
-}
-.tooltip.top > .tooltip-arrow {
-    border-top: 5px solid green;
-}
-.tooltip.bottom > .tooltip-arrow {
-    border-bottom: 5px solid blue;
-}
-.tooltip.left > .tooltip-arrow {
-    border-left: 5px solid red;
-}
-.tooltip.right > .tooltip-arrow {
-    border-right: 5px solid black;
-}
-.tooltip-inner {
-    max-width: 450px;
-    /* If max-width does not work, try using width instead */
-    width: 450px;
-    text-align: left;
-}
-    /* =============================
+<head>
+    <?php
+
+    require_once '../common/header-common.php';
+    require_once '../common/style.php';
+    require_once '../common/_include_bootstrap-toggle.php';
+    require_once '../common/_include_bootstrap-select.php';
+    require_once '../common/_include_flatpickr.php';
+    require_once '../common/_include_bootstrap-notify.php';
+    ruoloRichiesto('docente');
+    ?>
+    <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
+    <title>Sportelli</title>
+    <style>
+        /* Tooltip */
+        .tooltip>.tooltip-inner {
+            background-color: #73AD21;
+            color: #FFFFFF;
+            border: 1px solid green;
+            padding: 15px;
+            font-size: 20px;
+        }
+
+        .tooltip.top>.tooltip-arrow {
+            border-top: 5px solid green;
+        }
+
+        .tooltip.bottom>.tooltip-arrow {
+            border-bottom: 5px solid blue;
+        }
+
+        .tooltip.left>.tooltip-arrow {
+            border-left: 5px solid red;
+        }
+
+        .tooltip.right>.tooltip-arrow {
+            border-right: 5px solid black;
+        }
+
+        .tooltip-inner {
+            max-width: 450px;
+            /* If max-width does not work, try using width instead */
+            width: 450px;
+            text-align: left;
+        }
+
+        /* =============================
    💪 Forzatura effettiva larghezza modale sportello
    ============================= */
 
-/* Forza la larghezza del contenitore modale */
-#sportello_modal .modal-dialog,
-#sportello_modal .modal-lg {
-  max-width: 600px !important;   /* Cambia qui il valore a tuo piacere */
-  width: 600px !important;       /* Serve per bloccare la dimensione effettiva */
-  margin: 2rem auto !important;  /* centra */
-}
+        /* Forza la larghezza del contenitore modale */
+        #sportello_modal .modal-dialog,
+        #sportello_modal .modal-lg {
+            max-width: 600px !important;
+            /* Cambia qui il valore a tuo piacere */
+            width: 600px !important;
+            /* Serve per bloccare la dimensione effettiva */
+            margin: 2rem auto !important;
+            /* centra */
+        }
 
-/* Restringi anche il contenuto interno */
-#sportello_modal .modal-content {
-  max-width: 580px;
-  margin: 0 auto;
-}
+        /* Restringi anche il contenuto interno */
+        #sportello_modal .modal-content {
+            max-width: 580px;
+            margin: 0 auto;
+        }
 
-/* Assicurati che la tabella non si allarghi oltre */
-#sportello_modal #studenti_table {
-  width: 85% !important;
-  margin: 10px auto;
-}
+        /* Assicurati che la tabella non si allarghi oltre */
+        #sportello_modal #studenti_table {
+            width: 85% !important;
+            margin: 10px auto;
+        }
 
-/* Fallback mobile */
-@media (max-width: 768px) {
-  #sportello_modal .modal-dialog,
-  #sportello_modal .modal-lg {
-    width: 95% !important;
-    max-width: 95% !important;
-  }
-}
+        /* Fallback mobile */
+        @media (max-width: 768px) {
 
-</style>
+            #sportello_modal .modal-dialog,
+            #sportello_modal .modal-lg {
+                width: 95% !important;
+                max-width: 95% !important;
+            }
+        }
+    </style>
 </head>
 
 <?php
 
 // prepara l'elenco delle categorie per il filtro
-$categoriaOptionList = '<option value="0">tutti</option>';
-foreach(dbGetAll("SELECT * FROM sportello_categoria ORDER BY sportello_categoria.nome ASC ; ")as $categoria) {
-    $categoriaOptionList .= ' <option value="'.$categoria['id'].'" >'.$categoria['nome'].'</option> ';
+$categoriaOptionList = '<option value="0">tutte</option>';
+foreach (dbGetAll("SELECT * FROM sportello_categoria ORDER BY sportello_categoria.nome ASC ; ") as $categoria) {
+    if ($categoria['id']==1)
+        $categoriaOptionList .= ' <option value="' . $categoria['id'] . '" selected >' . $categoria['nome'] . '</option> ';
+    else
+        $categoriaOptionList .= ' <option value="' . $categoria['id'] . '" >' . $categoria['nome'] . '</option> ';
 }
+$categoriaFiltroOptionList = $categoriaOptionList;
 
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
 $materiaOptionList = '<option value="0"></option>';
-foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materia) {
-    $materiaOptionList .= ' <option value="'.$materia['id'].'" >'.$materia['nome'].'</option> ';
+foreach (dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ") as $materia) {
+    $materiaOptionList .= ' <option value="' . $materia['id'] . '" >' . $materia['nome'] . '</option> ';
 }
+$materiaFiltroOptionList = $materiaOptionList;
 
-$nclassi = dbGetValue (" SELECT COUNT(*) FROM classe WHERE classe.attiva=1");
+$nclassi = dbGetValue(" SELECT COUNT(*) FROM classe WHERE classe.attiva=1");
 
 $classeOptionList = "";
 
-if ($nclassi>0)
-{
+if ($nclassi > 0) {
     // prepara l'elenco delle materie per il filtro e per le materie del dialog
     $classeOptionList = '<option value="0"></option>';
-    foreach(dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ")as $classe) {
-        $classeOptionList .= ' <option value="'.$classe['id'].'" >'.$classe['nome'].'</option> ';
+    foreach (dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ") as $classe) {
+        $classeOptionList .= ' <option value="' . $classe['id'] . '" >' . $classe['nome'] . '</option> ';
     }
-}
-else
-{
+} else {
     $classeOptionList .= 'empty';
 }
+$classeFiltroOptionList = $classeOptionList;
 
 $modifica_sportelli = '<input type="hidden" id="hidden_modifica_sportelli" value=' . !$__settings->sportelli->docente_puo_modificare . '>';
 ?>
 
-<body >
-<?php
-require_once '../common/header-docente.php';
-require_once '../common/connect.php';
+<body>
+    <?php
+    require_once '../common/header-docente.php';
+    require_once '../common/connect.php';
 
-echo $modifica_sportelli;
-?>
+    echo $modifica_sportelli;
+    ?>
 
-<div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-orange4">
-<div class="panel-heading">
-	<div class="row">
-		<div class="col-md-4">
-			<span class="glyphicon glyphicon-object-align-horizontal"></span>&ensp;Sportelli
-		</div>
-		<div class="col-md-2 text-center">
-            <label class="checkbox-inline">
-                <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox" >Solo Nuovi
-            </label>
-		</div>
-        <div class="col-md-2">
-            <div class="text-center">
-				<label class="checkbox-inline">
-					<input type="checkbox"  data-toggle="toggle" data-size="mini" data-onstyle="primary" id="ancheCancellatiCheckBox" >Anche cancellati
-				</label>
+    <div class="container-fluid" style="margin-top:60px">
+        <div class="panel panel-orange4">
+            <div class="panel-heading">
+                <div class="row">
+                    <div class="col-md-1">
+                        <span class="glyphicon glyphicon-blackboard"
+                            style="margin:5px 0px 0px 0px;"></span>&ensp;Sportelli
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            <label class="col-sm-3 control-label" style="margin: 5px 0px 0px 0px; padding:0px" for="categoria">Categoria</label>
+                            <div class="col-sm-9"><select id="categoria_filtro" name="categoria_filtro"
+                                    class="categoria_filtro selectpicker" data-style="btn-teal4" data-live-search="true"
+                                    data-noneSelectedText="seleziona..." data-width="90%">
+                                    <?php echo $categoriaFiltroOptionList ?>
+                                </select></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-right">
+                            <label class="col-sm-2 control-label" style="margin: 5px 0px 0px 0px; padding:0px" for="materia"
+                                ">Materia</label>
+                            <div class="col-sm-10"><select id="materia_filtro" name="materia_filtro"
+                                    class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
+                                    data-noneSelectedText="seleziona..." data-width="90%">
+                                    <?php echo $materiaFiltroOptionList ?>
+                                </select></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-right">
+                            <label class="col-sm-3 control-label" style="margin: 5px 0px 0px 0px; padding:0px" for="classe"
+                                >Classe</label>
+                            <div class="col-sm-auto"><select id="classe_filtro" name="classe_filtro"
+                                    class="classe_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
+                                    data-noneSelectedText="seleziona..." data-width="70%">
+                                    <?php echo $classeFiltroOptionList ?>
+                                </select></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="checkbox-inline">
+                            <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox">Solo Nuovi
+                        </label>
+                        <label class="checkbox-inline">
+                            <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="ancheCancellatiCheckBox">Anche cancellati
+                        </label>
+                        <label class="checkbox-inline">
+                            <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloIMieiCheckBox">Solo i miei
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-auto text-right">
+                    <?php if (getSettingsValue("sportelli", "inseriti_da_docente", false)) : ?>
+                        <div class="pull-right">
+                            <button class="btn btn-xs btn-orange4" onclick="sportelloGetDetails(-1)"><span class="glyphicon glyphicon-plus"></span></button>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
-        <div class="col-md-2">
-            <div class="text-center">
-				<label class="checkbox-inline">
-					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloIMieiCheckBox" >Solo i miei
-				</label>
+        <div class="panel-body">
+            <div class="row" style="margin-bottom:10px;">
+                <div class="col-md-6">
+                </div>
+                <div class="col-md-6">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="records_content"></div>
+                </div>
             </div>
         </div>
-		<div class="col-md-4 text-right">
-<?php if(getSettingsValue("sportelli", "inseriti_da_docente", false)) : ?>
-            <div class="pull-right">
-                <button class="btn btn-xs btn-orange4" onclick="sportelloGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
-            </div>
-<?php endif; ?>
-		</div>
-	</div>
-</div>
-<div class="panel-body">
-<div class="row"  style="margin-bottom:10px;">
-        <div class="col-md-6">
-        </div>
-        <div class="col-md-6">
-        </div>
+
+        <!-- <div class="panel-footer"></div> -->
     </div>
-    <div class="row">
-        <div class="col-md-12">
-            <div class="records_content"></div>
-        </div>
-    </div>
-</div>
 
-<!-- <div class="panel-footer"></div> -->
-</div>
+    <!-- Modal - Add/Update Record -->
+    <div class="modal fade" id="sportello_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <div class="panel panel-orange4">
+                        <div class="panel-heading">
+                            <h5 class="modal-title" id="myModalLabel">Sportello</h5>
+                        </div>
+                        <div class="panel-body">
+                            <form class="form-horizontal">
 
-<!-- Modal - Add/Update Record -->
-<div class="modal fade" id="sportello_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-body">
-			<div class="panel panel-orange4">
-			<div class="panel-heading">
-				<h5 class="modal-title" id="myModalLabel">Sportello</h5>
-			</div>
-			<div class="panel-body">
-			<form class="form-horizontal">
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" for="data">Data</label>
+                                    <div class="col-sm-3"><input type="text" value="21/8/2018" id="data" class="form-control" /></div>
 
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="data">Data</label>
-					<div class="col-sm-3"><input type="text" value="21/8/2018" id="data" class="form-control" /></div>
+                                    <label class="col-sm-2 control-label" for="ora">Ora</label>
+                                    <div class="col-sm-3"><input type="text" id="ora" class="form-control" /></div>
+                                </div>
 
-                    <label class="col-sm-2 control-label" for="ora">Ora</label>
-                    <div class="col-sm-3"><input type="text" id="ora" class="form-control" /></div>
-                </div>
+                                <div class="form-group docente_selector">
+                                    <label class="col-sm-2 control-label" for="docente">Docente</label>
+                                    <div class="col-sm-10"><input type="text" id="docente" class="form-control" readonly="readonly" /></div>
+                                </div>
 
-                <div class="form-group docente_selector">
-                    <label class="col-sm-2 control-label" for="docente">Docente</label>
-                    <div class="col-sm-10"><input type="text" id="docente" class="form-control" readonly="readonly" /></div>
-                </div>
+                                <div class="form-group categoria_selector">
+                                    <label class="col-sm-2 control-label" for="categoria">Categoria</label>
+                                    <div class="col-sm-10"><select id="categoria" name="categoria" class="categoria selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="100%">
+                                            <?php echo $categoriaOptionList ?>
+                                        </select></div>
+                                </div>
 
-                <div class="form-group categoria_selector">
-                    <label class="col-sm-2 control-label" for="categoria">Categoria</label>
-					<div class="col-sm-10"><select id="categoria" name="categoria" class="categoria selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="100%" >
-                    <?php echo $categoriaOptionList ?>
-					</select></div>
-                </div>
+                                <div class="form-group materia_selector">
+                                    <label class="col-sm-2 control-label" for="materia">Materia</label>
+                                    <div class="col-sm-10"><select id="materia" name="materia" class="materia selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="100%">
+                                            <?php echo $materiaOptionList ?>
+                                        </select></div>
+                                </div>
 
-                <div class="form-group materia_selector">
-                    <label class="col-sm-2 control-label" for="materia">Materia</label>
-					<div class="col-sm-10"><select id="materia" name="materia" class="materia selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="100%" >
-                    <?php echo $materiaOptionList ?>
-					</select></div>
-                </div>
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" for="numero_ore">Numero di ore</label>
+                                    <div class="col-sm-10"><input type="text" id="numero_ore" class="form-control" /></div>
+                                </div>
 
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="numero_ore">Numero di ore</label>
-                    <div class="col-sm-10"><input type="text" id="numero_ore" class="form-control" /></div>
-                </div>
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" for="argomento">Argomento</label>
+                                    <div class="col-sm-10"><input type="text" id="argomento" class="form-control" placeholder="! non inserire se si desidera che siano gli studenti a specificarlo !" /></div>
+                                </div>
 
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="argomento">Argomento</label>
-                    <div class="col-sm-10"><input type="text" id="argomento" class="form-control" placeholder="! non inserire se si desidera che siano gli studenti a specificarlo !" /></div>
-                </div>
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" for="luogo">Luogo</label>
+                                    <div class="col-sm-10"><input type="text" id="luogo" class="form-control" placeholder="aula o laboratorio in cui si svolge lo sportello" /></div>
+                                </div>
 
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="luogo">Luogo</label>
-                    <div class="col-sm-10"><input type="text" id="luogo" class="form-control" placeholder="aula o laboratorio in cui si svolge lo sportello" /></div>
-                </div>
+                                <?php
 
-                <?php
-
-                if ($classeOptionList == "empty") // se la tabella classe è vuota allora metti una casella di testo
-                {
-                    echo '
+                                if ($classeOptionList == "empty") // se la tabella classe è vuota allora metti una casella di testo
+                                {
+                                    echo '
                     <input type="hidden" id="hidden_lista_classi" value="testo">
 
                     <div class="form-group classe_selector">
@@ -247,32 +286,29 @@ echo $modifica_sportelli;
 				    <div class="col-sm-10"><input type="text" id="classe" placeholder="classi a cui è rivolto lo sportello" class="form-control"/></div>
                 	</select></div>
                 </div>';
-
-                }
-                else // altrimenti crea e popola una combobox
-                {
-                    $txt_echo = '
+                                } else // altrimenti crea e popola una combobox
+                                {
+                                    $txt_echo = '
                     <input type="hidden" id="hidden_lista_classi" value="lista">
                     <div class="form-group classe_selector">
                         <label class="col-sm-2 control-label" for="classe">Classe</label>
                         <div class="col-sm-10"><select id="classe" name="classe" class="classe selectpicker" data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="100%" >';
-                    $txt_echo .= $classeOptionList;
-                    $txt_echo .= '</select></div>
+                                    $txt_echo .= $classeOptionList;
+                                    $txt_echo .= '</select></div>
                     </div>';
-                    echo $txt_echo;
-                }
+                                    echo $txt_echo;
+                                }
 
-                ?>
+                                ?>
 
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="max_iscrizioni">Max Iscrizioni</label>
-                    <div class="col-sm-10"><input type="text" id="max_iscrizioni" placeholder="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>" class="form-control"/></div>
-                </div>
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label" for="max_iscrizioni">Max Iscrizioni</label>
+                                    <div class="col-sm-10"><input type="text" id="max_iscrizioni" placeholder="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>" class="form-control" /></div>
+                                </div>
 
-                <?php
-                if ($__settings->sportelli->sezione_online_clil_orientamento_visibile)
-                {
-                echo '<div class="form-group">
+                                <?php
+                                if ($__settings->sportelli->sezione_online_clil_orientamento_visibile) {
+                                    echo '<div class="form-group">
                     <label for="online" class="col-sm-2 control-label">Online</label>
                     <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
                     <label for="clil" class="col-sm-2 control-label">Clil</label>
@@ -281,73 +317,72 @@ echo $modifica_sportelli;
                     <div class="col-sm-1 "><input type="checkbox" id="orientamento" ></div>
                     <input type="hidden" id="hidden_sezione_online_clil" value="true">
                 </div>';
-                }
-                else
-                {
-                    echo '<input type="hidden" id="hidden_sezione_online_clil" value="false">';
-                }
-                ?>
-                <div class="form-group">
-                    <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
-                    <div class="col-sm-1 "><input type="checkbox" onclick="confermaCancellato()" id="cancellato"></div>
-                </div>
+                                } else {
+                                    echo '<input type="hidden" id="hidden_sezione_online_clil" value="false">';
+                                }
+                                ?>
+                                <div class="form-group">
+                                    <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
+                                    <div class="col-sm-1 "><input type="checkbox" onclick="confermaCancellato()" id="cancellato"></div>
+                                </div>
 
-                <div class="form-group">
-                    <label for="firmato" class="col-sm-2 control-label">Firmato</label>
-                    <div class="col-sm-1 "><input type="checkbox" onclick="confermaFirmato()" id="firmato" ></div>
-                    <!-- <div class="col-sm-1 text-center" id="firma_sportello_button_id">
+                                <div class="form-group">
+                                    <label for="firmato" class="col-sm-2 control-label">Firmato</label>
+                                    <div class="col-sm-1 "><input type="checkbox" onclick="confermaFirmato()" id="firmato"></div>
+                                    <!-- <div class="col-sm-1 text-center" id="firma_sportello_button_id">
                         <button type="button" class="btn btn-success" onclick="sportelloFirma()">Firma lo Sportello</button>
                     </div> -->
+                                </div>
+
+                                <div class="form-group text-center" id="studenti-part">
+                                    <hr>
+                                    <label for="studenti_table">Studenti</label>
+                                    <div class="table-wrapper">
+                                        <table class="table table-bordered table-striped" id="studenti_table">
+                                            <thead>
+                                                <tr>
+                                                    <th>id</th>
+                                                    <th>studenteId</th>
+                                                    <th class="text-center">Studente</th>
+                                                    <th class="text-center">Argomento</th>
+                                                    <th class="text-center">Presente</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div class="form-group" id="_error-materia-part"><strong>
+                                            <hr>
+                                            <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                                            <div class="col-sm-9" id="_error-materia"></div>
+                                        </strong></div>
+
+                                    <input type="hidden" id="hidden_sportello_id">
+                                    <input type="hidden" id="hidden_numero_studenti_iscritti">
+                                    <input type="hidden" id="hidden_max_iscrizioni_default" value="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>">
+                                    <input type="hidden" id="hidden_docente_cognome_nome" value="<?php echo "$__docente_cognome $__docente_nome"; ?>">
+                            </form>
+
+                        </div>
+                        <div class="modal-footer">
+                            <div class="col-sm-12 text-center">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                                <button id="button_save" type="button" class="btn btn-primary" onclick="sportelloSave()">Salva</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="form-group text-center" id="studenti-part">
-                    <hr>
-                    <label for="studenti_table">Studenti</label>
-					<div class="table-wrapper">
-					<table class="table table-bordered table-striped" id="studenti_table">
-						<thead>
-						<tr>
-							<th>id</th>
-							<th>studenteId</th>
-							<th class="text-center">Studente</th>
-							<th class="text-center">Argomento</th>
-							<th class="text-center">Presente</th>
-						</tr>
-						</thead>
-						<tbody>
-						</tbody>
-					</table>
-                </div>
-
-                <div class="form-group" id="_error-materia-part"><strong>
-                    <hr>
-                    <div class="col-sm-3 text-right text-danger ">Attenzione</div>
-                    <div class="col-sm-9" id="_error-materia"></div>
-				</strong></div>
-
-                <input type="hidden" id="hidden_sportello_id">
-                <input type="hidden" id="hidden_numero_studenti_iscritti">
-                <input type="hidden" id="hidden_max_iscrizioni_default" value="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>">
-                <input type="hidden" id="hidden_docente_cognome_nome" value="<?php echo "$__docente_cognome $__docente_nome"; ?>">
-			</form>
-
             </div>
-            <div class="modal-footer">
-			<div class="col-sm-12 text-center">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                <button id="button_save" type="button" class="btn btn-primary" onclick="sportelloSave()">Salva</button>
-            </div>
-            </div>
-			</div>
-			</div>
         </div>
     </div>
-</div>
-<!-- // Modal - Add/Update Record -->
+    <!-- // Modal - Add/Update Record -->
 
-</div>
+    </div>
 
-<!-- Custom JS file -->
-<script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>"></script>
+    <!-- Custom JS file -->
+    <script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>"></script>
 </body>
+
 </html>

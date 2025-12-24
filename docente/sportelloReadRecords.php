@@ -14,6 +14,9 @@ require_once '../common/connect.php';
 $ancheCancellati = (int)($_GET["ancheCancellati"] ?? 0);
 $soloNuovi       = (int)($_GET["soloNuovi"] ?? 0);
 $soloMiei        = (int)($_GET["soloMiei"] ?? 0);
+$categoria_filtro_id = $_GET["categoria_filtro_id"];
+$materia_filtro_id = $_GET["materia_filtro_id"];
+$classe_filtro_id = $_GET["classe_filtro_id"];
 
 $direzioneOrdinamento = "ASC";
 
@@ -70,6 +73,18 @@ $query = "	SELECT
 			INNER JOIN classe classe
 			ON sportello.classe_id = classe.id			
 			";
+if ($categoria_filtro_id > 0) {
+	// todo: trasformare la categoria in id invece che nome: per ora trova il nome della categoria se viene richiesta
+	$categoria_filtro_nome = dbGetValue("SELECT nome FROM sportello_categoria WHERE id='$categoria_filtro_id';");
+	$query .= "AND sportello.categoria = '$categoria_filtro_nome' ";
+}
+
+if ($classe_filtro_id > 0) {
+	$query .= "AND sportello.classe_id = $classe_filtro_id ";
+}
+if ($materia_filtro_id > 0) {
+	$query .= "AND sportello.materia_id = $materia_filtro_id ";
+}			
 if ($soloMiei) {
 	$query .= " WHERE sportello.docente_id = $__docente_id AND sportello.anno_scolastico_id = $__anno_scolastico_corrente_id";
 } else {
