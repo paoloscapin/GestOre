@@ -68,11 +68,10 @@ function sleep(ms) {
 }
 
 async function inviaSollecito(single_id) {
-
     if (single_id > 0) {
         totale = 1;
         completati = 0;
-        await $.post("invioSollecito.php", {
+        await $.post("inviaSollecitoProgrammiIniziali.php", {
             id: single_id
         }).then(response => {
             if (response.trim() !== 'sent') {
@@ -94,7 +93,7 @@ async function inviaSollecito(single_id) {
             mostraOverlay();
 
             for (const soll of sollecito_array) {
-                await $.post("invioSollecito.php", {
+                await $.post("inviaSollecitoProgrammiIniziali.php", {
                     id: soll
                 }).then(response => {
                     if (response.trim() !== 'sent') {
@@ -128,6 +127,7 @@ function programmiInizialiGetDetails(programma_id, duplica, share) {
     $("#hidden_programma_id").val(programma_id);
     $("#hidden_duplica").val(duplica);
     $("#hidden_share").val(share);
+    const isDidattica = ($("#hidden_is_didattica").val() === "1");
     id_docente = $('#docente').val();
     if (duplica == 'true') {
         $("#myModalLabel1").html("Duplica il programma per un altra classe");
@@ -159,19 +159,28 @@ function programmiInizialiGetDetails(programma_id, duplica, share) {
 
             $('#materia').selectpicker('val', programma.programma_idmateria);
 
-            if (duplica == 'false') {
-                $('#classe').attr('disabled', true);
-            }
-            else {
+            // ✅ Disabilitazioni: il dirigente può sempre modificare i select
+            if (!isDidattica) {
+                if (duplica == 'false') {
+                    $('#classe').attr('disabled', true);
+                } else {
+                    $('#classe').attr('disabled', false);
+                }
+
+                if (share == 'false') {
+                    $('#docente').attr('disabled', true);
+                } else {
+                    $('#docente').attr('disabled', false);
+                }
+
+                $('#materia').attr('disabled', true);
+            } else {
+                // didattica: sempre editabili
                 $('#classe').attr('disabled', false);
-            }
-            if (share == 'false') {
-                $('#docente').attr('disabled', true);
-            }
-            else {
                 $('#docente').attr('disabled', false);
+                $('#materia').attr('disabled', false);
             }
-            $('#materia').attr('disabled', true);
+
             $('#classe').selectpicker('refresh');
             $('#materia').selectpicker('refresh');
             $('#docente').selectpicker('refresh');
@@ -180,23 +189,33 @@ function programmiInizialiGetDetails(programma_id, duplica, share) {
     }
     else {
         $('#classe').attr('disabled', false);
-        if (id_docente != 0) {
-            $('#docente').attr('disabled', true);
-        }
-        else {
-            $('#docente').attr('disabled', false);
-        }
-        $('#materia').attr('disabled', false);
-        $('#classe').val("0");
-        $('#classe').selectpicker('refresh');
-        $('#classe').disabled = true;
-        $('#docente').val(id_docente);
-        $('#docente').selectpicker('refresh');
-        $('#materia').val("0");
-        $('#materia').selectpicker('refresh');
+
+        const docenteUtenteId = parseInt($("#hidden_docente_id").val() || "0", 10);
+
+        // Reset nuovo programma
+        $('#classe').selectpicker('val', 0);
+        $('#materia').selectpicker('val', 0);
         $(".moduli_content").html("");
 
+        // Docente: se sono docente loggato -> preimposta e blocca
+        // altrimenti (segreteria/dirigente) -> reset e sblocca
+        if (docenteUtenteId > 0) {
+            $('#docente').selectpicker('val', String(docenteUtenteId));
+            $('#docente').attr('disabled', true);
+        } else {
+            $('#docente').selectpicker('val', 0);      // ✅ evita "ultimo docente visto"
+            $('#docente').attr('disabled', false);
+        }
+
+        // Materia selezionabile nel nuovo
+        $('#materia').attr('disabled', false);
+
+        // Refresh
+        $('#classe').selectpicker('refresh');
+        $('#docente').selectpicker('refresh');
+        $('#materia').selectpicker('refresh');
     }
+
     $("#_error-programma-part").hide();
     $("#programma_modal").modal("show");
 }

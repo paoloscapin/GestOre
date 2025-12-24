@@ -120,7 +120,7 @@ foreach ($resultArray as $row) {
 			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'true\',\'false\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Duplica il programma per un altra classe"><span class="glyphicon glyphicon-duplicate"></button>
 			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'true\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Condividi il programma con un altro docente"><span class="glyphicon glyphicon-share"></button>';
 			if ($da_completare_filtro_id == 1) {
-				$data .= '<button onclick="inviaSollecito(' . $programma_id . ',\'false\',\'true\')" class="btn btn-dark btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia un sollecito al docente"><span class="glyphicon glyphicon-warning-sign"></button>';
+				$data .= '<button onclick="inviaSollecito(' . $programma_id . ')" class="btn btn-dark btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia un sollecito al docente"><span class="glyphicon glyphicon-warning-sign"></button>';
 			}
 		} else
 			if (haRuolo('docente')) {

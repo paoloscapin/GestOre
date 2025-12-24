@@ -180,6 +180,8 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
     }
 
     ?>
+    <input type="hidden" id="hidden_is_didattica" value="<?php echo haRuolo('segreteria-didattica') ? 1 : 0; ?>">
+
     <input type="hidden" id="hidden_docente_id" value="<?php echo $id_docente_utente ?>">
     <div class="container-fluid" style="margin-top:60px">
         <div class="panel panel-lima4">
