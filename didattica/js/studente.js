@@ -96,76 +96,90 @@ function studenteSave() {
 function studenteGetDetails(studente_id, anno_id) {
     $("#hidden_studente_id").val(studente_id);
 
+    // helper: evita "undefined"/null e normalizza
+    function safeStr(v) {
+        return (v === undefined || v === null) ? "" : String(v);
+    }
+
     if (studente_id > 0) {
-        $.post("studenteReadDetails.php", {
-            id: studente_id
-        }, function (data, status) {
+        $.post("studenteReadDetails.php", { id: studente_id }, function (data, status) {
 
             var studente = JSON.parse(data);
 
-            $("#cognome").val(studente.cognome);
-            $("#nome").val(studente.nome);
-            $("#email").val(studente.email.toLowerCase());
-            $("#codice_fiscale").val(studente.codice_fiscale.toUpperCase());
-            $("#userId").val(studente.username);
-            $("#classe_filtro_stud").val(studente.id_classe);
-            $("#classe_filtro_stud").selectpicker('refresh');
-            $('#hidden_anno_id').val(studente.id_anno_scolastico);
-            $("#attivo").prop('checked', studente.attivo != 0 && studente.attivo != null);
-            $('#hidden_attivo').val(studente.attivo != 0 && studente.attivo != null ? 1 : 0);
+            // ✅ RESET preventivo dei campi che possono mancare
+            $("#codice_fiscale").val("");
+            $("#userId").val("");
+            $("#email").val("");
+            $("#genitore_select").empty().append('<option value="">-- Seleziona genitore --</option>');
+            $("#btn-passa-genitore").hide();
             $('#frequenta_table tbody').empty();
-            var markup = '';
-            studente.frequenze.forEach(function (frequenza) {
 
-                markup = markup +
-                    "<tr>" +
-                    "<td style=\"text-align: center; vertical-align: middle;\">" + frequenza.anno + "</td>" +
-                    "<td style=\"text-align: center; vertical-align: middle;\">" + frequenza.classe + "</td>" +
-                    "</tr>";
-            });
+            // Valori base
+            $("#cognome").val(safeStr(studente.cognome));
+            $("#nome").val(safeStr(studente.nome));
+
+            var email = safeStr(studente.email);
+            $("#email").val(email ? email.toLowerCase() : "");
+
+            var cf = safeStr(studente.codice_fiscale);
+            $("#codice_fiscale").val(cf ? cf.toUpperCase() : "");
+
+            $("#userId").val(safeStr(studente.username));
+
+            $("#classe_filtro_stud").val(safeStr(studente.id_classe));
+            $("#classe_filtro_stud").selectpicker('refresh');
+
+            $('#hidden_anno_id').val(safeStr(studente.id_anno_scolastico));
+
+            var attivo = (studente.attivo != 0 && studente.attivo != null);
+            $("#attivo").prop('checked', attivo);
+            $('#hidden_attivo').val(attivo ? 1 : 0);
+
+            // Frequenze (se manca, resta vuoto grazie al reset)
+            var markup = '';
+            if (Array.isArray(studente.frequenze)) {
+                studente.frequenze.forEach(function (frequenza) {
+                    markup +=
+                        "<tr>" +
+                        "<td style=\"text-align: center; vertical-align: middle;\">" + safeStr(frequenza.anno) + "</td>" +
+                        "<td style=\"text-align: center; vertical-align: middle;\">" + safeStr(frequenza.classe) + "</td>" +
+                        "</tr>";
+                });
+            }
             $('#frequenta_table > tbody:last-child').append(markup);
 
+            // Genitori: (se manca, resta placeholder + bottone nascosto grazie al reset)
             var $btnPassa = $("#btn-passa-genitore");
-            // mostra/nasconde bottone
-            if (studente.genitori && studente.genitori.length > 0) {
-                $btnPassa.show();
-            } else {
-                $btnPassa.hide();
-            }
-            // Popola selectpicker genitori
             var $sel = $("#genitore_select");
-            $sel.empty();
 
-            // opzionale: placeholder
-            $sel.append('<option value="">-- Seleziona genitore --</option>');
+            if (Array.isArray(studente.genitori) && studente.genitori.length > 0) {
+                $btnPassa.show();
 
-            if (studente.genitori && studente.genitori.length > 0) {
                 studente.genitori.forEach(function (g) {
                     $sel.append(
-                        '<option value="' + g.id + '">' +
-                        (g.cognome || '') + ' ' + (g.nome || '') +
+                        '<option value="' + safeStr(g.id) + '">' +
+                        (safeStr(g.cognome) + ' ' + safeStr(g.nome)).trim() +
                         '</option>'
                     );
                 });
-            }
-            if (studente.genitori && studente.genitori.length > 0) {
+
                 $sel.val(String(studente.genitori[0].id));
             } else {
-                $sel.val(""); // nessuna selezione
+                $btnPassa.hide();
+                $sel.val("");
             }
+
             $sel.selectpicker('refresh');
 
             $("#btn-passa-genitore").off("click").on("click", function () {
-                var genitoreId = $("#genitore_select").val(); // se non-multiple => stringa/id
+                var genitoreId = $("#genitore_select").val();
                 if (!genitoreId) return;
-
-                // cambia qui con la tua pagina reale:
                 window.location.href = "genitore.php?id=" + encodeURIComponent(genitoreId);
             });
         });
 
-
     } else {
+        // già ok: qui stai facendo reset
         $("#cognome").val("");
         $("#nome").val("");
         $("#email").val("");
@@ -181,12 +195,13 @@ function studenteGetDetails(studente_id, anno_id) {
             .append('<option value="">-- Seleziona genitore --</option>')
             .selectpicker('refresh');
         $('#btn-save').show();
+        $("#btn-passa-genitore").hide(); // ✅ anche qui
     }
 
     $("#studente_modal").modal("show");
-
     $("#_error-classe-part").hide();
 }
+
 function importFile(file) {
     var contenuto = "";
     const reader = new FileReader();
