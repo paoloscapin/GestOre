@@ -7,6 +7,18 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+/**
+ * 
+ * REGOLE
+ * Ogni riga di testo viene generata con un bullet (pallino nero) iniziale.
+ * Ogni volta che c'è un '.' , il punto viene rimosso ed il testo successivo viene messo su una riga successiva
+ * Nel caso di '..' e '...' il punto viene ignorato e rimane nel testo visibile.
+ * Se alla fine di una riga se c'è ';' il simbolo viene rimosso ed il testo va a capo su una nuova riga
+ * Se una riga contiene un testo tutto maiuscolo, oppure inizia con '>>' la riga viene generata senza bullet, in grassetto, seguita da una linea vuota che separa dal testo successivo
+ * Se voglio che una voce di una riga sia un elemento di secondo livello (pallino vuoto con rientranza) il testo deve iniziare con '>' oppure '--'
+ * Se una riga termina con ':' la riga successiva viene generata come elemento di secondo livello (pallino vuoto con rientranza) 
+ */
+
 $pagina = '';
 
 require_once '../common/checkSession.php';
@@ -47,137 +59,6 @@ $modules = dbGetAll($query);
 $base64img = 'data:image/png;base64,'. base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'"));
 
 /**
- * Converte una stringa in un JSON-array.
- * - Spezza su punto (.), tab (\t) o newline.
- * - Raggruppa righe che iniziano con “-” o “*” in un unico elemento HTML <ul><li>…</li></ul>.
- *
- * @param string $text
- * @return string JSON array
- */
-function textToJsonArray(string $text): string
-{
-  // 1) Dividi in righe
-  $lines = preg_split('/\r?\n/', $text);
-  $items = [];
-  $currentList = [];
-
-  foreach ($lines as $line) {
-    $trimmed = trim($line);
-    if ($trimmed === '') {
-      // riga vuota: chiudi eventuale lista
-      if ($currentList) {
-        $items[] = buildListHtml($currentList);
-        $currentList = [];
-      }
-      continue;
-    }
-
-    if (preg_match('/^[\-\*]\s*(.+)$/', $trimmed, $m)) {
-      // riga a list bullet
-      $currentList[] = trim($m[1]);
-    } else {
-      // non è bullet: chiudi lista se aperta
-      if ($currentList) {
-        $items[] = buildListHtml($currentList);
-        $currentList = [];
-      }
-      // spezza la riga su punto o tab
-      $parts = preg_split('/\.\s*|\t+/', $trimmed);
-      foreach ($parts as $p) {
-        $p = trim($p);
-        if ($p !== '') {
-          $items[] = $p;
-        }
-      }
-    }
-  }
-  // chiudi lista rimanente
-  if ($currentList) {
-    $items[] = buildListHtml($currentList);
-  }
-
-  return json_encode(array_values($items), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-}
-
-/**
- * Rende una lista UL con al massimo due livelli.
- * Convenzioni:
- *  - Livello 1: riga che inizia con "- " o "* "
- *  - Livello 2: riga indentata (≥2 spazi o \t) prima del trattino, oppure che inizia con "-- " / "** "
- * Se non trova bullet, usa le righe non vuote come voci di primo livello.
- */
-function buildTwoLevelListFromText(string $text): string
-{
-    $lines = preg_split('/\R/', $text);
-    $tree = []; // array di ['text'=>..., 'children'=>[...]]
-    $currentParent = null;
-
-    foreach ($lines as $line) {
-        $raw = rtrim($line);
-        if ($raw === '') {
-            continue;
-        }
-
-        // Normalizza tab a 2 spazi per il calcolo del livello
-        $norm = str_replace("\t", "  ", $raw);
-
-        // Pattern: opzionale indent (≥2 spazi), poi 1+ marker -,* e spazio, poi testo
-        if (preg_match('/^(?:( {2,}))?([\-*]{1,})\s+(.+)$/u', $norm, $m)) {
-            $indent  = $m[1] ?? '';
-            $markers = $m[2];
-            $textLi  = trim($m[3]);
-
-            // Determina livello (0 = top, 1 = sotto)
-            $level = 0;
-            if ($indent !== '' || strlen($markers) >= 2) {
-                $level = 1;
-            }
-
-            if ($level === 0) {
-                // nuovo parent
-                $tree[] = ['text' => $textLi, 'children' => []];
-                $currentParent = count($tree) - 1;
-            } else {
-                // figlio: se non c’è un parent aperto, creane uno “vuoto”
-                if ($currentParent === null) {
-                    $tree[] = ['text' => '', 'children' => []];
-                    $currentParent = count($tree) - 1;
-                }
-                $tree[$currentParent]['children'][] = ['text' => $textLi, 'children' => []];
-            }
-        } else {
-            // Nessun bullet su questa riga: trattala come top-level
-            $tree[] = ['text' => trim($raw), 'children' => []];
-            $currentParent = count($tree) - 1;
-        }
-    }
-
-    return renderTwoLevelList($tree);
-}
-
-/** Renderer ricorsivo per massimo due livelli */
-function renderTwoLevelList(array $nodes): string
-{
-    if (empty($nodes)) return '';
-
-    $html = '<ul>';
-    foreach ($nodes as $n) {
-        $html .= '<li>' . htmlspecialchars($n['text'] ?? '', ENT_QUOTES, 'UTF-8');
-        if (!empty($n['children'])) {
-            $html .= '<ul>';
-            foreach ($n['children'] as $c) {
-                $html .= '<li>' . htmlspecialchars($c['text'] ?? '', ENT_QUOTES, 'UTF-8') . '</li>';
-            }
-            $html .= '</ul>';
-        }
-        $html .= '</li>';
-    }
-    $html .= '</ul>';
-
-    return $html;
-}
-
-/**
  * Costruisce il markup HTML di una lista non ordinata.
  *
  * @param array $elements
@@ -191,6 +72,172 @@ function buildListHtml(array $elements): string
   }
   $html .= '</ul>';
   return $html;
+}
+
+function isAllUppercase(string $s): bool
+{
+    $s = trim($s);
+    return preg_match('/\p{L}/u', $s) && !preg_match('/\p{Ll}/u', $s);
+}
+
+
+/**
+ * Rende una lista UL con al massimo due livelli.
+ * Convenzioni:
+ *  - Livello 1: riga che inizia con "- " o "* "
+ *  - Livello 2: riga indentata (≥2 spazi o \t) prima del trattino, oppure che inizia con "-- " / "** "
+ * Se non trova bullet, usa le righe non vuote come voci di primo livello.
+ */
+function buildTwoLevelListFromText(string $text): string
+{
+    $lines = preg_split('/\R/u', $text);
+    $tree = [];
+    $currentParent = null;
+
+    // Se true: il PROSSIMO elemento (uno solo) va come child del currentParent
+    $nextIsChild = false;
+
+    foreach ($lines as $line) {
+        $rawLine = rtrim($line);
+        if ($rawLine === '') {
+            $nextIsChild = false;
+            continue;
+        }
+
+        // Ogni '.' crea una nuova riga logica (il '.' sparisce)
+        $segments = preg_split('/(?<!\.)\.(?!\.)\s*/u', $rawLine);
+
+        foreach ($segments as $segment) {
+            $raw = trim($segment);
+            if ($raw === '') continue;
+
+            // HEADING ESPLICITO con prefisso ">>" (top-level, no bullet, grassetto)
+            if (preg_match('/^>>\s*(.+)$/u', $raw, $hm)) {
+                $headingText = trim($hm[1]);
+
+                // togli eventuali ., ; o : finali (come per le righe maiuscole)
+                $headingText = preg_replace('/[.;:]\s*$/u', '', $headingText);
+
+                $tree[] = ['type' => 'heading', 'text' => $headingText, 'children' => []];
+                $currentParent = null;
+                $nextIsChild = false;
+                continue;
+            }
+
+            // Se è tutta maiuscola -> heading (no bullet)
+            if (isAllUppercase($raw)) {
+                // 👇 AGGIUNGI QUESTE DUE RIGHE
+                $raw = preg_replace('/[.;:]\s*$/u', '', $raw);
+
+                $tree[] = ['type' => 'heading', 'text' => $raw, 'children' => []];
+                $currentParent = null;
+                continue;
+            }
+
+
+            // Togli ';' solo se è alla fine
+            $raw = preg_replace('/;\s*$/u', '', $raw);
+
+            // Finisce con ':' ?
+            $endsWithColon = preg_match('/:\s*$/u', $raw) === 1;
+
+            // Normalizza tab
+            $norm = str_replace("\t", "  ", $raw);
+
+            $isBullet = preg_match('/^(?:( {2,}))?([\-*‐-‒–—−]{1,})\s*(.+)$/u', $norm, $m) === 1;
+
+            if ($isBullet) {
+                $indent  = $m[1] ?? '';
+                $markers = $m[2];
+                $textLi  = trim($m[3]);
+
+                // livello naturale
+                $level = 0;
+                if ($indent !== '' || strlen($markers) >= 2) {
+                    $level = 1;
+                }
+
+                // Se il prossimo deve essere child e sarebbe top-level -> forza child
+                if ($nextIsChild && $level === 0 && $currentParent !== null) {
+                    $level = 1;
+                    $nextIsChild = false; // ✅ consuma la modalità
+                }
+
+                if ($level === 0) {
+                    $tree[] = ['text' => $textLi, 'children' => []];
+                    $currentParent = count($tree) - 1;
+                } else {
+                    if ($currentParent === null) {
+                        $tree[] = ['text' => '', 'children' => []];
+                        $currentParent = count($tree) - 1;
+                    }
+                    $tree[$currentParent]['children'][] = ['text' => $textLi, 'children' => []];
+                }
+            } else {
+                // NON è bullet
+                if ($nextIsChild && $currentParent !== null) {
+                    $tree[$currentParent]['children'][] = ['text' => $raw, 'children' => []];
+                    $nextIsChild = false; // ✅ consuma la modalità
+                } else {
+                    $tree[] = ['text' => $raw, 'children' => []];
+                    $currentParent = count($tree) - 1;
+                }
+            }
+
+            // Se questa riga finisce con ':' allora SOLO il prossimo elemento sarà child
+            if ($endsWithColon) {
+                $nextIsChild = true;
+            }
+        }
+    }
+
+    return renderTwoLevelList($tree);
+}
+
+/** Renderer ricorsivo per massimo due livelli */
+/** Renderer per massimo due livelli + headings fuori lista */
+function renderTwoLevelList(array $nodes): string
+{
+    if (empty($nodes)) return '';
+
+    $html = '';
+    $ulOpen = false;
+
+    foreach ($nodes as $n) {
+        $type = $n['type'] ?? 'item';
+
+        // Heading: fuori dalla lista
+        if ($type === 'heading') {
+            if ($ulOpen) {
+                $html .= '</ul>';
+                $ulOpen = false;
+            }
+            $html .= '<p><strong>' . htmlspecialchars($n['text'] ?? '', ENT_QUOTES, 'UTF-8') . '</strong></p>';
+            continue;
+        }
+
+        // Item normale: dentro la lista
+        if (!$ulOpen) {
+            $html .= '<ul>';
+            $ulOpen = true;
+        }
+
+        $html .= '<li>' . htmlspecialchars($n['text'] ?? '', ENT_QUOTES, 'UTF-8');
+
+        if (!empty($n['children'])) {
+            $html .= '<ul>';
+            foreach ($n['children'] as $c) {
+                $html .= '<li>' . htmlspecialchars($c['text'] ?? '', ENT_QUOTES, 'UTF-8') . '</li>';
+            }
+            $html .= '</ul>';
+        }
+
+        $html .= '</li>';
+    }
+
+    if ($ulOpen) $html .= '</ul>';
+
+    return $html;
 }
 
 // 5) INIZIO OUTPUT HTML IN BUFFER
