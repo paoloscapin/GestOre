@@ -114,12 +114,14 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 ORDER BY studente.cogno
 }
 
 // prepara l'elenco delle categorie per il filtro
-$categoriaFiltroOptionList = '<option value="0">tutti</option>';
-$categoriaOptionList = '<option value="0">tutti</option>';
+$categoriaFiltroOptionList = '<option value="0">tutte</option>';
 foreach (dbGetAll("SELECT * FROM sportello_categoria ORDER BY sportello_categoria.nome ASC ; ") as $categoria) {
-    $categoriaFiltroOptionList .= ' <option value="' . $categoria['id'] . '" >' . $categoria['nome'] . '</option> ';
-    $categoriaOptionList .= ' <option value="' . $categoria['id'] . '" >' . $categoria['nome'] . '</option> ';
+        if ($categoria['id']==1)
+        $categoriaFiltroOptionList .= ' <option value="' . $categoria['id'] . '" selected >' . $categoria['nome'] . '</option> ';
+    else
+        $categoriaFiltroOptionList .= ' <option value="' . $categoria['id'] . '" >' . $categoria['nome'] . '</option> ';
 }
+$categoriaOptionList = $categoriaFiltroOptionList;
 
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
 $materiaFiltroOptionList = '<option value="0">tutte</option>';
