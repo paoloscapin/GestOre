@@ -148,6 +148,13 @@ echo $modifica_sportelli;
 				</label>
             </div>
         </div>
+        <div class="col-md-2">
+            <div class="text-center">
+				<label class="checkbox-inline">
+					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloIMieiCheckBox" >Solo i miei
+				</label>
+            </div>
+        </div>
 		<div class="col-md-4 text-right">
 <?php if(getSettingsValue("sportelli", "inseriti_da_docente", false)) : ?>
             <div class="pull-right">

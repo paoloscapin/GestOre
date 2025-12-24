@@ -11,10 +11,11 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$ancheCancellati = $_GET["ancheCancellati"];
-$soloNuovi = $_GET["soloNuovi"];
+$ancheCancellati = (int)($_GET["ancheCancellati"] ?? 0);
+$soloNuovi       = (int)($_GET["soloNuovi"] ?? 0);
+$soloMiei        = (int)($_GET["soloMiei"] ?? 0);
 
-$direzioneOrdinamento="ASC";
+$direzioneOrdinamento = "ASC";
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -23,14 +24,11 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 						<th class="text-center col-md-1">Categoria</th>
 						<th class="text-center col-md-1">Data</th>
 						<th class="text-center col-md-1">Ora</th>';
-if ($__settings->sportelli->unSoloArgomento == true)
-{
+if ($__settings->sportelli->unSoloArgomento == true) {
 	$data .= '			<th class="text-center col-md-2">Materia</th>
 						<th class="text-center col-md-2">Argomento</th>
 						';
-}
-else
-{
+} else {
 	$data .= '			<th class="text-center col-md-3">Materia</th>
 						';
 }
@@ -43,8 +41,8 @@ $data .= '				<th class="text-center col-md-1">Ore</th>
 						<th class="text-center col-md-1">Max prenotazioni</th>
 						<th class="text-center col-md-1"></th>
 					</tr>
-					</thead>';
-					
+					</thead><tbody>';
+
 $query = "	SELECT
 				sportello.id AS sportello_id,
 				sportello.data AS sportello_data,
@@ -71,26 +69,26 @@ $query = "	SELECT
 			ON sportello.materia_id = materia.id
 			INNER JOIN classe classe
 			ON sportello.classe_id = classe.id			
-			WHERE 
-				sportello.docente_id = $__docente_id
-			AND
-				sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
 			";
+if ($soloMiei) {
+	$query .= " WHERE sportello.docente_id = $__docente_id AND sportello.anno_scolastico_id = $__anno_scolastico_corrente_id";
+} else {
+	$query .= " WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id";
+}
 
-if( !$ancheCancellati) {
-	$query .= "AND NOT sportello.cancellato ";
+if (!$ancheCancellati) {
+	$query .= " AND NOT sportello.cancellato ";
 }
-if( $soloNuovi) {
-	$query .= "AND sportello.data >= CURDATE() ";
+if ($soloNuovi) {
+	$query .= " AND sportello.data >= CURDATE() ";
 }
-$query .= "ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC,docente_nome ASC";
+$query .= " ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC,docente_nome ASC";
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
 	$resultArray = [];
 }
-foreach($resultArray as $row) 
-{
+foreach ($resultArray as $row) {
 	$sportello_id = $row['sportello_id'];
 	$sportello_categoria = $row['sportello_categoria'];
 	$sportello_firmato = $row['sportello_firmato'];
@@ -99,38 +97,29 @@ foreach($resultArray as $row)
 	$statoMarker = '';
 	if ($sportello_cancellato) {
 		$statoMarker .= '<span class="label label-default">cancellato</span>';
-	}
-	else
-	{
-		if ($sportello_firmato) 
-		{
+	} else {
+		if ($sportello_firmato) {
 			$statoMarker .= '<span class="label label-primary">firmato</span>';
-		}
-		else
-		{
+		} else {
 			if (($row['sportello_max_iscrizioni']) == ($row['numero_studenti'])) {
 				$statoMarker .= '<span class="label label-danger">posti esauriti</span>';
-			}
-			else
-			{
+			} else {
 				$statoMarker .= '<span class="label label-success">posti disponibili</span>';
 			}
 		}
 	}
-	
+
 	$dt_sportello = $row['sportello_data'];
 	$dt_oggi = date("Y-m-d");
 	$vecchio = 0;
-	if (strtotime($dt_sportello) < strtotime($dt_oggi))
-	{
+	if (strtotime($dt_sportello) < strtotime($dt_oggi)) {
 		$vecchio = 1;
 	}
-	
-	if ($row['sportello_data'])
-	{
-	$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
-	$dataSportello = utf8_encode( strftime("%d %B %Y", strtotime($row['sportello_data'])));
-	setlocale(LC_TIME, $oldLocale);
+	$dataSportello = '';
+	if ($row['sportello_data']) {
+		$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
+		$dataSportello = utf8_encode(strftime("%d %B %Y", strtotime($row['sportello_data'])));
+		setlocale(LC_TIME, $oldLocale);
 	}
 
 	// se ci sono prenotazioni, cerca la lista di studenti che sono prenotati
@@ -153,11 +142,11 @@ foreach($resultArray as $row)
 			INNER JOIN studente_frequenta sf ON sf.id_studente = studente.id AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id
 			INNER JOIN classi c ON sf.id_classe = c.id
 
-			WHERE sportello_studente.sportello_id = '$sportello_id'";
+			WHERE sportello_studente.sportello_id = " . (int)$sportello_id;
 
 		$studenti = dbGetAll($query2);
-		foreach($studenti as $studente) {
-			$studenteTip = $studenteTip . $studente['studente_cognome'] . " " . $studente['studente_nome'] ." " . $studente['studente_classe'] . "</br>";
+		foreach ($studenti as $studente) {
+			$studenteTip = $studenteTip . $studente['studente_cognome'] . " " . $studente['studente_nome'] . " " . $studente['studente_classe'] . "<br>";
 		}
 	}
 
@@ -166,58 +155,58 @@ foreach($resultArray as $row)
 	if ($row['sportello_online']) {
 		$luogo_or_onine_marker = '<span class="label label-danger">online</span>';
 	} else {
-		debug("online=".$row['sportello_online']);
+		debug("online=" . $row['sportello_online']);
 	}
 
 	$barrato = '';
-	if ($sportello_cancellato)
-	{
-		$barrato='<s>';
+	$sbarrato = '';
+	if ($sportello_cancellato) {
+		$barrato = '<s>';
+		$sbarrato = '</s>';
+	}
+
+	$data .= '<tr>
+		<td align="center">' . $barrato . $sportello_categoria . $sbarrato . '</td>
+		<td align="center">' . $barrato . $dataSportello . $sbarrato . '</td>
+		<td align="center">' . $barrato . $row['sportello_ora'] . $sbarrato . '</td>
+		<td>' . $barrato . $row['materia_nome'] . $sbarrato . '</td>';
+	if ($__settings->sportelli->unSoloArgomento == true) {
+		$data .= '<td>' . $barrato . $row['sportello_argomento'] . $sbarrato . '</td>';
 	}
 
 	$data .= '
-		<td align="center">'.$barrato.$sportello_categoria.'</td>
-		<td align="center">'.$barrato.$dataSportello.'</td>
-		<td align="center">'.$barrato.$row['sportello_ora'].'</td>
-		<td>'.$barrato.$row['materia_nome'].'</td>';
-	if ($__settings->sportelli->unSoloArgomento == true)
-	{
-		$data .= '<td>'.$barrato.$row['sportello_argomento'].'</td>';
-	}
-	
-	$data .= '
-		<td align="center">'.$barrato.$row['sportello_numero_ore'].'</td>
-		<td align="center">'.$barrato.$row['sportello_classe'].'</td>
-		<td align="center">'.$barrato.$luogo_or_onine_marker.'</td>
-		<td class="text-center">'.$statoMarker.'</td>
-		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$barrato.$row['numero_studenti'].'</td>
-		<td class="text-center">'.$barrato.$row['sportello_max_iscrizioni'].'</td>
+		<td align="center">' . $barrato . $row['sportello_numero_ore'] . $sbarrato . '</td>
+		<td align="center">' . $barrato . $row['sportello_classe'] . $sbarrato . '</td>
+		<td align="center">' . $barrato . $luogo_or_onine_marker . $sbarrato . '</td>
+		<td class="text-center">' . $statoMarker . '</td>
+		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="' . htmlspecialchars($studenteTip, ENT_QUOTES, 'UTF-8') . '">' . $barrato . $row['numero_studenti'] . $sbarrato . '</td>
+		<td class="text-center">' . $barrato . $row['sportello_max_iscrizioni'] . $sbarrato . '</td>
 		';
-	if ((!$sportello_cancellato)&&(!$sportello_firmato)&&(!$vecchio))
-	{
-		$data .='
+	if ((!$sportello_cancellato) && (!$sportello_firmato) && (!$vecchio)) {
+		$data .= '
 		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Clicca qui per gestire lo sportello">
-		<button onclick="sportelloGetDetails('.$row["sportello_id"].',true,'.$sportello_nstudenti.',\''.$sportello_categoria.'\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>
-		</td>
-		</tr>';
-	}
-	else
-	{
-		$data .='
-		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Sportello non modificabile">
-		<button style="padding: 0;border: none;background: none;" onclick="sportelloGetDetails('.$row["sportello_id"].',false,'.$sportello_nstudenti.',\''.$sportello_categoria.'\')"><span class="btn btn-danger btn-xs glyphicon glyphicon-lock"></span></button>
-		</td>
-		</tr>';
-	}
-	if ($__settings->sportelli->docente_puo_eliminare)
-		{
-		$data .='
-			<button onclick="sportelloDelete('.$row['sportello_id'].', \''.$row['materia_nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button onclick="sportelloGetDetails(' . $row["sportello_id"] . ',true,' . $sportello_nstudenti . ',\'' . $sportello_categoria . '\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>';
+		if ($__settings->sportelli->docente_puo_eliminare) {
+			$data .= '
+			<button onclick="sportelloDelete(' . $row['sportello_id'] . ', \'' . $row['materia_nome'] . '\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></span></button>
 		';
+		}
+		$data .= '
+		</td></tr>';
+	} else {
+		$data .= '
+		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Sportello non modificabile">
+		<button style="padding: 0;border: none;background: none;" onclick="sportelloGetDetails(' . $row["sportello_id"] . ',false,' . $sportello_nstudenti . ',\'' . $sportello_categoria . '\')"><span class="btn btn-danger btn-xs glyphicon glyphicon-lock"></span></button>
+		';
+		if ($__settings->sportelli->docente_puo_eliminare) {
+			$data .= '
+			<button onclick="sportelloDelete(' . $row['sportello_id'] . ', \'' . $row['materia_nome'] . '\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></span></button>
+		';
+		}
+		$data .= '
+		</td></tr>';
 	}
 }
 
-$data .= '</table></div>';
+$data .= '</tbody></table></div>';
 echo $data;
-?>
-

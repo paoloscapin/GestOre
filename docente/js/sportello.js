@@ -7,6 +7,7 @@
 
 var soloNuovi = 1;
 var ancheCancellati = 0;
+var soloIMiei = 1;
 
 function setDbDateToPickr(pickr, data_str) {
     var data = Date.parseExact(data_str, 'yyyy-MM-dd');
@@ -29,6 +30,16 @@ $('#soloNuoviCheckBox').change(function () {
     sportelloReadRecords();
 });
 
+$('#soloIMieiCheckBox').change(function () {
+    // this si riferisce al checkbox
+    if (this.checked) {
+        soloIMiei = 1;
+    } else {
+        soloIMiei = 0;
+    }
+    sportelloReadRecords();
+});
+
 $('#ancheCancellatiCheckBox').change(function () {
     // this si riferisce al checkbox
     if (this.checked) {
@@ -40,7 +51,7 @@ $('#ancheCancellatiCheckBox').change(function () {
 });
 
 function sportelloReadRecords() {
-    $.get("sportelloReadRecords.php?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi, {}, function (data, status) {
+    $.get("sportelloReadRecords.php?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloMiei=" + soloIMiei, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
