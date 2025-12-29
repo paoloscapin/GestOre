@@ -14,29 +14,21 @@ var device = params.get("d") || "desktop"; // default "desktop"
 var $anni_filtro_id = params.get("a") || "1"; // default 
 
 function carenzeReadRecords() {
-    console.log(device);
-    if (device === "mobile") {
-        $.get("carenzeReadRecords_mobile.php?anni_filtro_id=" + $anni_filtro_id, {}, function (data, status) {
-            $("#carenze_mobile_container").html(data);
-            $('[data-toggle="tooltip"]').tooltip({
-                trigger: 'hover',
-                container: 'body'
-            });
-        });
-    }
-    else {
+    var $target = (device === "mobile") ? $("#carenze_mobile_container") : $(".records_content");
 
+    // fallback se manca il target previsto
+    if (!$target.length) $target = $(".records_content");
+    if (!$target.length) $target = $("#carenze_mobile_container");
 
-        $.get("carenzeReadRecords.php?anni_filtro_id=" + $anni_filtro_id, {}, function (data, status) {
-            $(".records_content").html(data);
-            $('[data-toggle="tooltip"]').tooltip({
-                trigger: 'hover',
-                container: 'body'
-            });
-        });
-    }
+    var url = (device === "mobile")
+        ? "carenzeReadRecords_mobile.php?anni_filtro_id=" + $anni_filtro_id
+        : "carenzeReadRecords.php?anni_filtro_id=" + $anni_filtro_id;
+
+    $.get(url, {}, function (data) {
+        $target.html(data);
+        $('[data-toggle="tooltip"]').tooltip({ trigger: 'hover', container: 'body' });
+    });
 }
-
 
 function carenzaPrint(id_carenza) {
     // creo form nascosto

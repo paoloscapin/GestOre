@@ -1,17 +1,10 @@
 <?php
-/**
- * Versione MOBILE di GestOre - Carenze con esiti
- * Aggiornata per mostrare PRIMO e SECONDO tentativo con layout compatto
- */
-
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$anni_filtro_id = $_GET["anni_filtro_id"] ?? 0;
+$anni_filtro_id = isset($_GET["anni_filtro_id"]) ? intval($_GET["anni_filtro_id"]) : 0;
+$anno_corsi_id  = intval($__anno_scolastico_corrente_id); // anno dei corsi (corrente)
 
-// ======================
-// QUERY PRINCIPALE
-// ======================
 $query = "
     SELECT
         c.id AS carenza_id,
@@ -29,36 +22,106 @@ $query = "
     INNER JOIN studente s ON c.id_studente = s.id
     INNER JOIN materia m ON c.id_materia = m.id
     WHERE s.id = '$__studente_id'
-      AND (c.stato = 2 OR c.stato = 3)";
+      AND (c.stato = 2 OR c.stato = 3)
+";
 
 if ($anni_filtro_id > 0) {
     $query .= " AND c.id_anno_scolastico = " . intval($anni_filtro_id);
 }
-
 $query .= " ORDER BY m.nome ASC";
 
 $carenze = dbGetAll($query) ?: [];
 
-echo '<div id="carenze_mobile_container" class="cards-container">';
+// ----------------------
+// helpers
+// ----------------------
+function dtLabel($dt, $aula = '')
+{
+    if (empty($dt)) return '';
+    try {
+        $s = "Esame tenuto il " . (new DateTime($dt))->format('d-m-Y H:i');
+        if (!empty($aula)) $s .= " in aula " . htmlspecialchars($aula);
+        return $s;
+    } catch (Exception $e) {
+        return '';
+    }
+}
 
+
+function badge($cls, $txt, $title = '')
+{
+    $t = $title ? ' title="' . htmlspecialchars($title) . '"' : '';
+    return '<span class="label label-' . $cls . '"' . $t . '>' . $txt . '</span>';
+}
+
+function renderEsame($label, $s, $extraPrefixHtml = '')
+{
+    $html = '<div style="margin-bottom:8px;">';
+    if ($label !== '') $html .= "<strong>{$label}:</strong> ";
+    $html .= $extraPrefixHtml;
+
+    if (!$s) {
+        $html .= badge('warning', 'Nessuna sessione di esame');
+        return $html . '</div>';
+    }
+
+    $firmato = intval($s['firmato'] ?? 0) === 1;
+
+    // testo "Esame il ..." (lo mettiamo visibile sotto ai badge)
+    $info = dtLabel($s['data_inizio_esame'] ?? '', $s['aula'] ?? '');
+
+    if (!$firmato) {
+        $html .= badge('warning', 'In attesa esito');
+        if ($info) $html .= '<div style="margin-top:4px; font-size:12px; opacity:.85;">' . htmlspecialchars($info) . '</div>';
+        return $html . '</div>';
+    }
+
+    $presente = ($s['presente'] !== null) ? intval($s['presente']) : null;
+    $assG     = ($s['assenza_giustificata'] !== null) ? intval($s['assenza_giustificata']) : 0;
+    $rec      = ($s['recuperato'] !== null) ? intval($s['recuperato']) : null;
+
+    if ($presente === null) {
+        $html .= badge('default', 'Esito non registrato');
+        if ($info) $html .= '<div style="margin-top:4px; font-size:12px; opacity:.85;">' . htmlspecialchars($info) . '</div>';
+        return $html . '</div>';
+    }
+
+    if ($presente === 0) {
+        $html .= ($assG === 1)
+            ? badge('default', 'Assente (giust.)')
+            : badge('default', 'Assente');
+        if ($info) $html .= '<div style="margin-top:4px; font-size:12px; opacity:.85;">' . htmlspecialchars($info) . '</div>';
+        return $html . '</div>';
+    }
+
+    $html .= badge('primary', 'Presente') . ' ';
+    $html .= ($rec === 1)
+        ? badge('success', 'Recuperato')
+        : badge('danger', 'Non recuperato');
+
+    if ($info) $html .= '<div style="margin-top:4px; font-size:12px; opacity:.85;">' . htmlspecialchars($info) . '</div>';
+
+    return $html . '</div>';
+}
+
+// ----------------------
+// output: SOLO cards
+// ----------------------
 foreach ($carenze as $row) {
-    $idcarenza   = intval($row['carenza_id']);
-    $idStudente  = intval($row['id_studente']);
-    $idMateria   = intval($row['id_materia']);
-    $materia     = htmlspecialchars($row['materia']);
-    $docente     = htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome']);
-    $note        = htmlspecialchars($row['nota']);
-    $data_ricezione = (new DateTime($row['data_invio']))->format('d-m-Y H:i');
+    $idcarenza  = intval($row['carenza_id']);
+    $idStudente = intval($row['id_studente']);
+    $idMateria  = intval($row['id_materia']);
+
+    $materia        = htmlspecialchars($row['materia']);
+    $docente        = htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome']);
+    $note           = htmlspecialchars($row['nota']);
 
     echo '<div class="card mb-3 p-3 shadow-sm" style="border-radius:12px; background:#fff;">';
     echo "<div><strong>Materia:</strong> {$materia}</div>";
     echo "<div><strong>Docente:</strong> {$docente}</div>";
-    echo "<div><strong>Data ricezione:</strong> {$data_ricezione}</div>";
     if (!empty($note)) echo "<div><strong>Note:</strong> {$note}</div>";
 
-    // ===========================
-    // RECUPERO IN ITINERE
-    // ===========================
+    // itinere
     $itinere = dbGetValue("
         SELECT COALESCE(MAX(co.in_itinere),0)
         FROM carenze car
@@ -70,111 +133,97 @@ foreach ($carenze as $row) {
         ? '<span class="label label-info" style="margin-right:4px;">Recupero in itinere</span>'
         : '';
 
-    // ===========================
-    // CORSI ASSOCIATI ALLA CARENZA
-    // ===========================
-    $corsi = dbGetAll("
+    echo '<div style="margin-top:10px;"><strong>Esiti:</strong><br>';
+
+    // corso1 sessione=1 (anno corsi corrente)
+    $idCorso1 = dbGetValue("
         SELECT co.id
         FROM corso co
         INNER JOIN corso_iscritti ci ON ci.id_corso = co.id
         WHERE ci.id_studente = {$idStudente}
-          AND co.id_materia = {$idMateria}
-    ") ?: [];
+          AND co.id_materia  = {$idMateria}
+          AND co.id_anno_scolastico = {$anno_corsi_id}
+          AND co.carenza = 1
+          AND COALESCE(co.carenza_sessione,1) = 1
+        ORDER BY co.id DESC
+        LIMIT 1
+    ");
+    $idCorso1 = intval($idCorso1);
 
-    echo '<div style="margin-top:10px;"><strong>Esiti:</strong><br>';
+    if ($idCorso1 <= 0) {
+        echo badge('warning', 'Nessuna sessione di esame');
+    } else {
+        $primo = dbGetFirst("
+            SELECT
+                ced.id AS id_esame_data,
+                ced.data_inizio_esame,
+                ced.data_fine_esame,
+                ced.aula,
+                ced.firmato,
+                ce.presente,
+                ce.recuperato,
+                ce.assenza_giustificata
+            FROM corso_esami_date ced
+            LEFT JOIN corso_esiti ce
+                   ON ce.id_esame_data = ced.id
+                  AND ce.id_studente  = {$idStudente}
+            WHERE ced.id_corso = {$idCorso1}
+              AND COALESCE(ced.tentativo,1) = 1
+            ORDER BY ced.data_inizio_esame ASC
+            LIMIT 1
+        ");
 
-    if (count($corsi) === 0) {
-        echo '<span class="label label-warning">Nessuna sessione di esame</span>';
-        echo '</div>';
-        goto AZIONI;
-    }
+        // mapping corso2 (se esiste)
+        $map = dbGetFirst("
+            SELECT ccs.id_corso_secondo, co2.titolo
+            FROM corso_carenze_seconda ccs
+            INNER JOIN corso co2 ON co2.id = ccs.id_corso_secondo
+            WHERE ccs.id_studente = {$idStudente}
+              AND ccs.id_corso_primo = {$idCorso1}
+            LIMIT 1
+        ");
 
-    $corsoIds = implode(',', array_map(fn($r) => intval($r['id']), $corsi));
+        $hasSecondo = ($map && intval($map['id_corso_secondo']) > 0);
+        $labelPrimo = $hasSecondo ? 'Primo tentativo' : '';
 
-    // ===========================
-    // SESSIONI D’ESAME (tentativi)
-    // ===========================
-    $sessioni = dbGetAll("
-        SELECT 
-            ced.id              AS id_esame_data,
-            COALESCE(ced.tentativo, 1) AS tentativo,
-            ced.data_inizio_esame,
-            ced.data_fine_esame,
-            ced.aula,
-            ced.firmato,
-            ce.presente,
-            ce.recuperato
-        FROM corso_esami_date ced
-        LEFT JOIN corso_esiti ce 
-               ON ce.id_esame_data = ced.id
-              AND ce.id_studente = {$idStudente}
-        WHERE ced.id_corso IN ($corsoIds)
-        ORDER BY ced.tentativo ASC, ced.data_inizio_esame ASC
-    ") ?: [];
+        echo renderEsame($labelPrimo, $primo, $badgeInItinere);
 
-    if (count($sessioni) === 0) {
-        echo '<span class="label label-warning">Corso non ancora iniziato</span>';
-        echo '</div>';
-        goto AZIONI;
-    }
+        if ($hasSecondo) {
+            $idCorso2 = intval($map['id_corso_secondo']);
+            $titolo2  = strtolower(trim($map['titolo'] ?? ''));
+            $label2   = (strpos($titolo2, 'recupero assenza') !== false) ? 'Recupero assenza' : 'Seconda sessione';
 
-    // Funzione per render badge tentativo (compatti)
-    $renderTentativo = function($label, $s, $extraBadge = '') {
-        $firmato = intval($s['firmato']) === 1;
-        $tooltip = '';
-        if (!empty($s['data_inizio_esame'])) {
-            $tooltip = "Esame il " . (new DateTime($s['data_inizio_esame']))->format('d-m-Y H:i');
-            if (!empty($s['aula'])) $tooltip .= " in aula " . htmlspecialchars($s['aula']);
-        }
+            $secondo = dbGetFirst("
+                SELECT
+                    ced.id AS id_esame_data,
+                    ced.data_inizio_esame,
+                    ced.data_fine_esame,
+                    ced.aula,
+                    ced.firmato,
+                    ce.presente,
+                    ce.recuperato,
+                    ce.assenza_giustificata
+                FROM corso_esami_date ced
+                LEFT JOIN corso_esiti ce
+                       ON ce.id_esame_data = ced.id
+                      AND ce.id_studente  = {$idStudente}
+                WHERE ced.id_corso = {$idCorso2}
+                  AND COALESCE(ced.tentativo,1) = 1
+                ORDER BY ced.data_inizio_esame ASC
+                LIMIT 1
+            ");
 
-        $html = '<div style="margin-bottom:4px;">';
-        if ($label !== '') $html .= "<strong>{$label}:</strong> ";
-
-        $html .= $extraBadge;
-
-        if (!$firmato) {
-            $html .= '<span class="label label-warning">In attesa esito</span>';
-        } else {
-            if ($s['presente'] !== null) {
-                $html .= ($s['presente']
-                    ? '<span class="label label-primary" title="'.$tooltip.'">Presente</span> '
-                    : '<span class="label label-default" title="'.$tooltip.'">Assente</span> ');
-                $html .= ($s['recuperato']
-                    ? '<span class="label label-success" title="'.$tooltip.'">Recuperato</span>'
-                    : '<span class="label label-danger" title="'.$tooltip.'">Non recuperato</span>');
-            } else {
-                $html .= '<span class="label label-default">Esito non registrato</span>';
+            $extraBadge = '';
+            if ($secondo && intval($secondo['firmato'] ?? 0) === 0) {
+                $extraBadge = '<span class="label label-info" style="margin-right:4px;">Iscritto</span>';
             }
+            echo renderEsame($label2, $secondo, $extraBadge);
         }
-        $html .= '</div>';
-        return $html;
-    };
-
-    $numTentativi = count($sessioni);
-
-    // Primo tentativo
-    $primo = $sessioni[0];
-    $labelPrimo = ($numTentativi > 1) ? 'Primo tentativo' : '';
-    echo $renderTentativo($labelPrimo, $primo, $badgeInItinere);
-
-    // Secondo tentativo (se presente)
-    if ($numTentativi > 1) {
-        $secondo = $sessioni[1];
-        $extraBadge = '';
-
-        if (intval($secondo['firmato']) === 0) {
-            $extraBadge = '<span class="label label-info" style="margin-right:4px;">Iscritto</span>';
-        }
-
-        echo $renderTentativo('Secondo tentativo', $secondo, $extraBadge);
     }
 
-    echo '</div>'; // fine sezione esiti
+    echo '</div>'; // esiti
 
-    // ===========================
-    // PULSANTI AZIONI
-    // ===========================
-    AZIONI:
+    // azioni
     echo '<div class="mt-2 text-center" style="margin-top:10px;">';
     echo '<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-sm me-1">';
     echo '<span class="glyphicon glyphicon-print"></span> PDF</button> ';
@@ -182,7 +231,5 @@ foreach ($carenze as $row) {
     echo '<span class="glyphicon glyphicon-envelope"></span> Invia</button>';
     echo '</div>';
 
-    echo '</div>'; // fine card
+    echo '</div>'; // card
 }
-
-echo '</div>';

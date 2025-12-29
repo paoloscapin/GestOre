@@ -47,6 +47,39 @@ require_once '../common/checkSession.php';
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+  /* margine interno al contenitore */
+  #carenze_mobile_container{
+    padding: 0px 5px;
+  }
+
+  /* card più “staccate” dal bordo e con padding migliore */
+  #carenze_mobile_container .card{
+    padding: 5px 5px !important;
+    margin: 5px 0 !important;
+    border-radius: 12px;
+  }
+
+  /* righe con un po' di respiro */
+  #carenze_mobile_container .card > div{
+    margin: 4px 0;
+  }
+
+  /* badge un po’ distanziati */
+  #carenze_mobile_container .label{
+    display: inline-block;
+    margin: 2px 4px 2px 0;
+  }
+
+  /* aggiunge respiro dentro il pannello (bootstrap 3 safe) */
+.panel.panel-orange4 .panel-body{
+  padding-top: 5px;
+  padding-left: 2px !important;
+  padding-right: 0px !important;
+}
+
+</style>
+
 </head>
 
 <body>
@@ -74,7 +107,7 @@ require_once '../common/checkSession.php';
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-12">
+                    <div class="col-xs-12">
                         <div id="carenze_mobile_container" class="cards-container">
                             <!-- Qui PHP inserirà le cards -->
                         </div>
