@@ -1,11 +1,9 @@
 <?php
 /**
- *  Questo file rimuove l'iscrizione di uno studente dal secondo tentativo d'esame.
- *  Cancella la riga corrispondente nella tabella corso_esiti collegata al tentativo 2.
- * 
- *  @author     Massimo Saiani
- *  @copyright  (C) 2025
- *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ * Rimuove assegnazione alla 2ª sessione:
+ * - trova mapping in corso_carenze_seconda
+ * - blocca se esame corso2 (tentativo=1) firmato
+ * - cancella esiti sul corso2, iscrizione sul corso2, mapping
  */
 
 require_once '../common/checkSession.php';
@@ -13,61 +11,68 @@ require_once '../common/connect.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-// 🔹 Controllo parametri
-if (!isset($_POST['id_corso']) || !isset($_POST['id_studente'])) {
+$id_corso    = intval($_POST['id_corso'] ?? 0);      // corso1
+$id_studente = intval($_POST['id_studente'] ?? 0);
+
+if ($id_corso <= 0 || $id_studente <= 0) {
     echo json_encode(['success' => false, 'error' => 'Parametri mancanti']);
     exit;
 }
 
-$id_corso    = intval($_POST['id_corso']);
-$id_studente = intval($_POST['id_studente']);
-
 try {
-    // --- 🔹 Log diagnostico (facoltativo, se hai una funzione logToFile) ---
-    if (function_exists('logToFile')) {
-        logToFile("corsiCancellaSecondoTentativo.php", "Tentativo di cancellare secondo tentativo per studente $id_studente, corso $id_corso", 'debug');
-    }
+    mysqli_begin_transaction($__con);
 
-    // --- 🔹 Recupero l'id_esame_data del secondo tentativo ---
-    $queryEsame = "
-        SELECT id 
-        FROM corso_esami_date 
-        WHERE id_corso = ? 
-          AND tentativo = 2
+    // 1) mapping corso1 -> corso2 per lo studente
+    $map = dbGetFirst("
+        SELECT id, id_corso_secondo
+        FROM corso_carenze_seconda
+        WHERE id_corso_primo = $id_corso
+          AND id_studente    = $id_studente
         LIMIT 1
-    ";
-    $id_esame_data = dbGetValue($queryEsame, [$id_corso]);
+    ");
 
-    if (!$id_esame_data) {
-        echo json_encode(['success' => false, 'error' => 'Nessun secondo tentativo trovato per questo corso']);
+    if (!$map) {
+        mysqli_commit($__con);
+        echo json_encode(['success' => true, 'msg' => 'Nessuna 2ª sessione da rimuovere']);
         exit;
     }
 
-    // --- 🔹 Cancellazione riga corso_esiti associata ---
-    $queryDelete = "
-        DELETE FROM corso_esiti 
-        WHERE id_corso = ? 
-          AND id_studente = ? 
-          AND id_esame_data = ?
-    ";
+    $id_map    = intval($map['id'] ?? 0);
+    $id_corso2 = intval($map['id_corso_secondo'] ?? 0);
 
-    dbExec($queryDelete, [$id_corso, $id_studente, $id_esame_data]);
-
-    // --- 🔹 Verifica se la cancellazione è avvenuta ---
-    $controllo = dbGetValue("
-        SELECT COUNT(*) 
-        FROM corso_esiti 
-        WHERE id_corso = ? 
-          AND id_studente = ? 
-          AND id_esame_data = ?
-    ", [$id_corso, $id_studente, $id_esame_data]);
-
-    if ($controllo == 0) {
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode(['success' => false, 'error' => 'Cancellazione non riuscita']);
+    if ($id_map <= 0 || $id_corso2 <= 0) {
+        mysqli_rollback($__con);
+        echo json_encode(['success' => false, 'error' => 'Mapping non valido']);
+        exit;
     }
 
+    // 2) blocco se esame corso2 (tentativo=1) firmato
+    $firmato = dbGetValue("
+        SELECT firmato
+        FROM corso_esami_date
+        WHERE id_corso = $id_corso2
+          AND tentativo = 1
+        LIMIT 1
+    ");
+    if (intval($firmato) === 1) {
+        mysqli_rollback($__con);
+        echo json_encode(['success' => false, 'error' => 'Esame del corso collegato già firmato: impossibile rimuovere']);
+        exit;
+    }
+
+    // 3) cancello esiti studente su corso2
+    dbExec("DELETE FROM corso_esiti WHERE id_corso = $id_corso2 AND id_studente = $id_studente");
+
+    // 4) cancello iscrizione su corso2
+    dbExec("DELETE FROM corso_iscritti WHERE id_corso = $id_corso2 AND id_studente = $id_studente");
+
+    // 5) cancello mapping
+    dbExec("DELETE FROM corso_carenze_seconda WHERE id = $id_map LIMIT 1");
+
+    mysqli_commit($__con);
+    echo json_encode(['success' => true]);
+
 } catch (Exception $e) {
+    if (isset($__con)) @mysqli_rollback($__con);
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

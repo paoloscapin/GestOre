@@ -397,7 +397,20 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
                             <input type="checkbox" data-toggle="toggle" data-size="mini"
                                 data-onstyle="primary" id="filtro_itinere">Corsi in itinere
-                        </label>
+                        </label><br>
+                        <div id="carenza_sessione_box" class="text-center" style="margin-top:8px; display:none;">
+                        <label class="col-sm-12 control-label" for="carenza_sessione">Sessione carenze</label>
+                        <div class="col-sm-12">
+                            <select id="carenza_sessione"
+                                    class="selectpicker"
+                                    data-style="btn-salmon"
+                                    data-width="100%">
+                                <option value="0" selected>Tutte</option>
+                                <option value="1">Solo 1ª sessione</option>
+                                <option value="2">Solo 2ª sessione</option>
+                            </select>
+                        </div>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -770,6 +783,8 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                                         <th class="text-center">Studente</th>
                                         <th class="text-center">Classe</th>
                                         <th class="text-center">Presente</th>
+                                        <th class="text-center">Assenza giustificata</th>
+                                        <th class="text-center">Motivo</th>
                                         <th class="text-center">Tipo Prova</th>
                                         <th class="text-center">Voto</th>
                                         <th class="text-center">Carenza Recuperata</th>

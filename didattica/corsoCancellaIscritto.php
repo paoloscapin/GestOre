@@ -11,24 +11,50 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
+header('Content-Type: application/json; charset=utf-8');
+
 // check request
-if(isset($_POST['id']) && isset($_POST['id']) != ""){
-	$id = $_POST['id'];
-	$corso_id = $_POST['corso_id'];
+if (isset($_POST['id']) && $_POST['id'] !== "" && isset($_POST['corso_id']) && $_POST['corso_id'] !== "") {
 
-	// delete record
-    $query = "DELETE FROM corso_iscritti WHERE id = '$id'";
-    dbExec($query);
-    // Crei un array/oggetto in PHP
-	$response = [
-		"status" => "ok"
-	];
-    info("Studente iscritto al corso id $corso_id cancellato");
-	// Lo trasformi in JSON
-	$data = json_encode($response);
-	// Se lo devi stampare come risposta AJAX
-	header('Content-Type: application/json');
-	echo $data;
+    $id = intval($_POST['id']);
+    $corso_id = intval($_POST['corso_id']);
 
+    if ($id <= 0 || $corso_id <= 0) {
+        echo json_encode(["status" => "error", "error" => "Parametri non validi"]);
+        exit;
+    }
+
+    // ricavo id_studente dalla iscrizione (così non mi fido del client)
+    $id_studente = dbGetValue("SELECT id_studente FROM corso_iscritti WHERE id = $id AND id_corso = $corso_id LIMIT 1");
+    $id_studente = intval($id_studente);
+
+    if ($id_studente <= 0) {
+        echo json_encode(["status" => "error", "error" => "Iscrizione non trovata"]);
+        exit;
+    }
+
+    // 1) cancello eventuali esiti dello studente su questo corso
+    dbExec("DELETE FROM corso_esiti WHERE id_corso = $corso_id AND id_studente = $id_studente");
+
+    // 2) cancello iscrizione
+    dbExec("DELETE FROM corso_iscritti WHERE id = $id LIMIT 1");
+
+    // 3) ✅ se questo corso è un corso "secondo tentativo", sgancio il mapping
+    //    (così nel corso di primo tentativo non risulta più "iscritto al secondo tentativo")
+    dbExec("DELETE FROM corso_carenze_seconda WHERE id_corso_secondo = $corso_id AND id_studente = $id_studente");
+
+    $response = [
+        "status" => "ok"
+    ];
+
+    info("Studente id $id_studente iscritto al corso id $corso_id cancellato (e mapping eventuale sganciato)");
+
+    echo json_encode($response);
+    exit;
 }
+
+// fallback
+echo json_encode(["status" => "error", "error" => "Parametri mancanti"]);
+exit;
+
 ?>
