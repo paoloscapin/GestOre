@@ -16,16 +16,16 @@ var $anni_filtro_id = params.get("a") || "1"; // default
 var studente_filtro_id = params.get("id");
 
 function carenzeReadRecords() {
+    var $target = $(".records_content");
+    if (!$target.length) $target = $("#carenze_mobile_container");
+
     var endpoint = (device === "mobile")
         ? "carenzeReadRecords_mobile.php"
         : "carenzeReadRecords.php";
 
-    $.get(endpoint + "?studente_filtro_id=" + studente_filtro_id + "&anni_filtro_id=" + $anni_filtro_id, {}, function (data, status) {
-        $(".records_content").html(data);
-        $('[data-toggle="tooltip"]').tooltip({
-            trigger: 'hover',
-            container: 'body'
-        });
+    $.get(endpoint + "?studente_filtro_id=" + studente_filtro_id + "&anni_filtro_id=" + $anni_filtro_id, {}, function (data) {
+        $target.html(data);
+        $('[data-toggle="tooltip"]').tooltip({ trigger: 'hover', container: 'body' });
     });
 }
 
