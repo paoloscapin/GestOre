@@ -385,7 +385,22 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         </label><br>
                         <label id="incompleti" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Esami incompleti">
                             <span class="glyphicon glyphicon-download"></span>&emsp;Incompleti
+                        </label><br>
+                        <label id="report_carenze_btn"
+                            class="btn btn-xs btn-lima4 btn-file"
+                            data-toggle="tooltip"
+                            title="Scarica elenco corsi carenze senza date esame e/o non firmati CSV"
+                            onclick="
+                            var sess = (document.getElementById('carenza_sessione') ? document.getElementById('carenza_sessione').value : 0);
+                            window.location.href='corsiCarenzeReport.php?format=csv&sessione=' + encodeURIComponent(sess);
+                            ">
+                            <span class="glyphicon glyphicon-list-alt"></span>&emsp;Report carenze CSV
                         </label>
+                        <label class="btn btn-xs btn-lima4"
+                            onclick="window.location.href='corsiCarenzeReport.php?format=pdf'">
+                            <span class="glyphicon glyphicon-file"></span>&emsp;PDF carenze
+                        </label>
+
                     </div>
 
 
@@ -399,18 +414,18 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                                 data-onstyle="primary" id="filtro_itinere">Corsi in itinere
                         </label><br>
                         <div id="carenza_sessione_box" class="text-center" style="margin-top:8px; display:none;">
-                        <label class="col-sm-12 control-label" for="carenza_sessione">Sessione carenze</label>
-                        <div class="col-sm-12">
-                            <select id="carenza_sessione"
+                            <label class="col-sm-12 control-label" for="carenza_sessione">Sessione carenze</label>
+                            <div class="col-sm-12">
+                                <select id="carenza_sessione"
                                     class="selectpicker"
                                     data-style="btn-salmon"
                                     data-width="100%">
-                                <option value="0" selected>Tutte</option>
-                                <option value="1">Solo 1ª sessione</option>
-                                <option value="2">Solo 2ª sessione</option>
-                            </select>
+                                    <option value="0" selected>Tutte</option>
+                                    <option value="1">Solo 1ª sessione</option>
+                                    <option value="2">Solo 2ª sessione</option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
                     </div>
                 </div>
             </div>
@@ -674,159 +689,159 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         </div>
     </div>
 
-<!-- Modal Duplica -->
-<div class="modal fade" id="duplica_corso_modal" tabindex="-1" role="dialog"
-     aria-labelledby="duplicaCorsoLabel" data-backdrop="static" data-keyboard="false">
-  <div class="modal-dialog modal-sm modal-basso" role="document">
-    <div class="modal-content">
+    <!-- Modal Duplica -->
+    <div class="modal fade" id="duplica_corso_modal" tabindex="-1" role="dialog"
+        aria-labelledby="duplicaCorsoLabel" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog modal-sm modal-basso" role="document">
+            <div class="modal-content">
 
-      <div class="modal-header modal-header-orange4">
-        <h4 class="modal-title w-100 text-center" id="duplicaCorsoLabel">Duplica corso</h4>
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
-      </div>
+                <div class="modal-header modal-header-orange4">
+                    <h4 class="modal-title w-100 text-center" id="duplicaCorsoLabel">Duplica corso</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
 
-      <div class="modal-body">
-        <form id="formDuplicaCorso" class="form-horizontal">
+                <div class="modal-body">
+                    <form id="formDuplicaCorso" class="form-horizontal">
 
-        <div class="form-group text-center">
-        <label for="duplica_docente" class="control-label">Nuovo docente</label>
+                        <div class="form-group text-center">
+                            <label for="duplica_docente" class="control-label">Nuovo docente</label>
 
-        <div class="row">
-            <div class="col-xs-10 col-xs-offset-1">
-            <select id="duplica_docente"
-                    class="selectpicker form-control"
-                    data-live-search="true"
-                    data-width="100%"
-                    data-noneSelectedText="seleziona...">
-            </select>
+                            <div class="row">
+                                <div class="col-xs-10 col-xs-offset-1">
+                                    <select id="duplica_docente"
+                                        class="selectpicker form-control"
+                                        data-live-search="true"
+                                        data-width="100%"
+                                        data-noneSelectedText="seleziona...">
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group text-danger text-center" id="duplica_err" style="display:none;"></div>
+
+                    </form>
+                </div>
+
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary" onclick="corsiDuplicaConfirm()">Crea copia</button>
+                </div>
+
             </div>
         </div>
-        </div>
-
-          <div class="form-group text-danger text-center" id="duplica_err" style="display:none;"></div>
-
-        </form>
-      </div>
-
-      <div class="modal-footer justify-content-center">
-        <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-        <button type="button" class="btn btn-primary" onclick="corsiDuplicaConfirm()">Crea copia</button>
-      </div>
-
     </div>
-  </div>
-</div>
 
 
-<!-- Modal Esame -->
-<div class="modal fade" id="esameModal" tabindex="-1" role="dialog" aria-labelledby="esameLabel" data-backdrop="static">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
+    <!-- Modal Esame -->
+    <div class="modal fade" id="esameModal" tabindex="-1" role="dialog" aria-labelledby="esameLabel" data-backdrop="static">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
 
-            <div class="modal-header modal-header-orange4">
-                <h4 class="modal-title w-100 text-center" id="esameLabel">Gestione Esame</h4>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-            </div>
+                <div class="modal-header modal-header-orange4">
+                    <h4 class="modal-title w-100 text-center" id="esameLabel">Gestione Esame</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
 
-            <div class="modal-body">
-                <form class="form-horizontal">
+                <div class="modal-body">
+                    <form class="form-horizontal">
 
-                    <!-- 🔹 Nuovo selettore tentativo -->
-                    <div class="form-group row">
-                        <label class="col-sm-2 col-form-label text-right">Sessione</label>
-                        <div class="col-sm-4">
-                            <select id="select_tentativo" class="form-control">
-                                <!-- Popolato via JS -->
-                                <!-- <option value="1">Primo tentativo (01/06/2025)</option> -->
-                                <!-- <option value="2">Secondo tentativo (non programmato)</option> -->
-                            </select>
-                        </div>
-                    </div>
-                    <input type="hidden" id="hidden_esame_data_id" value="">
-                    <!-- Data, Ora, Aula -->
-                    <div class="form-group row">
-                        <label class="col-sm-2 col-form-label text-right">Data</label>
-                        <div class="col-sm-2">
-                            <input type="date" id="esame_inizio_data" class="form-control" style="text-align: center;">
-                        </div>
-
-                        <label class="col-sm-1 col-form-label text-center">Ora inizio</label>
-                        <div class="col-sm-2">
-                            <input type="time" id="esame_inizio_ora" class="form-control" style="text-align: center;">
-                        </div>
-
-                        <label class="col-sm-1 col-form-label text-center">Aula</label>
-                        <div class="col-sm-2">
-                            <input type="text" id="esame_aula" class="form-control">
-                        </div>
-                    </div>
-
-                    <div class="form-group row">
-                        <label class="col-sm-2 col-form-label text-right">Data</label>
-                        <div class="col-sm-2">
-                            <input type="date" id="esame_fine_data" class="form-control" style="text-align: center;">
-                        </div>
-
-                        <label class="col-sm-1 col-form-label text-center">Ora fine</label>
-                        <div class="col-sm-2">
-                            <input type="time" id="esame_fine_ora" class="form-control" style="text-align: center;">
-                        </div>
-                    </div>
-
-                    <!-- Tabella studenti -->
-                    <div class="form-group">
-                        <label class="col-sm-12 text-center label-rosso">Studenti Iscritti</label>
-                        <div class="col-sm-12">
-                            <table class="table table-bordered table-striped text-center" id="tabellaEsameStudenti">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center">Studente</th>
-                                        <th class="text-center">Classe</th>
-                                        <th class="text-center">Presente</th>
-                                        <th class="text-center">Assenza giustificata</th>
-                                        <th class="text-center">Motivo</th>
-                                        <th class="text-center">Tipo Prova</th>
-                                        <th class="text-center">Voto</th>
-                                        <th class="text-center">Carenza Recuperata</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                        <!-- 🔹 Nuovo selettore tentativo -->
+                        <div class="form-group row">
+                            <label class="col-sm-2 col-form-label text-right">Sessione</label>
+                            <div class="col-sm-4">
+                                <select id="select_tentativo" class="form-control">
                                     <!-- Popolato via JS -->
-                                </tbody>
-                            </table>
+                                    <!-- <option value="1">Primo tentativo (01/06/2025)</option> -->
+                                    <!-- <option value="2">Secondo tentativo (non programmato)</option> -->
+                                </select>
+                            </div>
                         </div>
-                    </div>
+                        <input type="hidden" id="hidden_esame_data_id" value="">
+                        <!-- Data, Ora, Aula -->
+                        <div class="form-group row">
+                            <label class="col-sm-2 col-form-label text-right">Data</label>
+                            <div class="col-sm-2">
+                                <input type="date" id="esame_inizio_data" class="form-control" style="text-align: center;">
+                            </div>
 
-                    <!-- Argomenti -->
-                    <div class="form-group">
-                        <label class="col-sm-12 text-center label-rosso">Argomenti della Verifica</label>
-                        <div class="col-sm-12">
-                            <textarea id="argomentiEsame" class="form-control" rows="4"
-                                placeholder="Inserisci gli argomenti della prova..."></textarea>
+                            <label class="col-sm-1 col-form-label text-center">Ora inizio</label>
+                            <div class="col-sm-2">
+                                <input type="time" id="esame_inizio_ora" class="form-control" style="text-align: center;">
+                            </div>
+
+                            <label class="col-sm-1 col-form-label text-center">Aula</label>
+                            <div class="col-sm-2">
+                                <input type="text" id="esame_aula" class="form-control">
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Checkbox Firmato -->
-                    <div class="form-group text-center">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="esameFirmato" value="1">
-                            <label class="form-check-label" for="esameFirmato">
-                                FIRMA L'ESAME
-                            </label>
+                        <div class="form-group row">
+                            <label class="col-sm-2 col-form-label text-right">Data</label>
+                            <div class="col-sm-2">
+                                <input type="date" id="esame_fine_data" class="form-control" style="text-align: center;">
+                            </div>
+
+                            <label class="col-sm-1 col-form-label text-center">Ora fine</label>
+                            <div class="col-sm-2">
+                                <input type="time" id="esame_fine_ora" class="form-control" style="text-align: center;">
+                            </div>
                         </div>
-                    </div>
 
-                </form>
+                        <!-- Tabella studenti -->
+                        <div class="form-group">
+                            <label class="col-sm-12 text-center label-rosso">Studenti Iscritti</label>
+                            <div class="col-sm-12">
+                                <table class="table table-bordered table-striped text-center" id="tabellaEsameStudenti">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center">Studente</th>
+                                            <th class="text-center">Classe</th>
+                                            <th class="text-center">Presente</th>
+                                            <th class="text-center">Assenza giustificata</th>
+                                            <th class="text-center">Motivo</th>
+                                            <th class="text-center">Tipo Prova</th>
+                                            <th class="text-center">Voto</th>
+                                            <th class="text-center">Carenza Recuperata</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Popolato via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Argomenti -->
+                        <div class="form-group">
+                            <label class="col-sm-12 text-center label-rosso">Argomenti della Verifica</label>
+                            <div class="col-sm-12">
+                                <textarea id="argomentiEsame" class="form-control" rows="4"
+                                    placeholder="Inserisci gli argomenti della prova..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Checkbox Firmato -->
+                        <div class="form-group text-center">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="esameFirmato" value="1">
+                                <label class="form-check-label" for="esameFirmato">
+                                    FIRMA L'ESAME
+                                </label>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+
+                <div class="modal-footer center">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                    <button type="button" class="btn btn-primary" onclick="salvaEsame()">Salva Esame</button>
+                </div>
+
             </div>
-
-            <div class="modal-footer center">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
-                <button type="button" class="btn btn-primary" onclick="salvaEsame()">Salva Esame</button>
-            </div>
-
         </div>
     </div>
-</div>
 
 
 
