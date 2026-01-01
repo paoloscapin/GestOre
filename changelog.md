@@ -1,3 +1,7 @@
+## Version 1.3.15 - 1 gen 2026
+##### ##### Improvements
+- pagina gruppi per dirigente
+
 ## Version 1.3.14 - 13 dic 2025
 ##### ##### Improvements
 - corsi di recupero opzione per trasferito a novembre

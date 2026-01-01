@@ -23,7 +23,7 @@ ruoloRichiesto('dirigente');
 ?>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-3.css">
-<script type="text/javascript" src="js/scriptFiltroFatte.js"></script>
+<script type="text/javascript" src="js/scriptFiltroFatte.js?v=<?php echo $__software_version; ?>"></script>
 
 </head>
 
