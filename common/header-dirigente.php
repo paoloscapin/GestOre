@@ -46,6 +46,7 @@
 
 <?php
 echo ' <a href="'.$__application_base_path.'/dirigente/fuisAssegnato.php" class="btn btn-default navbar-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-euro"></span>&ensp;Fuis Assegnato </a>';
+echo ' <a href="'.$__application_base_path.'/dirigente/reportGruppi.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Gruppi </a>';
 ?>
 
 <?php

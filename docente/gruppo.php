@@ -210,6 +210,6 @@ foreach(dbGetAll($query) as $docenteRow) {
 </div>
 
 <!-- Custom JS file -->
-<script type="text/javascript" src="js/scriptGruppo.js"></script>
+<script type="text/javascript" src="js/scriptGruppo.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 </html>

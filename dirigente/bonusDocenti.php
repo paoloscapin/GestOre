@@ -26,7 +26,7 @@ ruoloRichiesto('dirigente');
 <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/timejs/date-it-IT.js"></script>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-3.css">
-<script type="text/javascript" src="js/scriptBonusDocenti.js"></script>
+<script type="text/javascript" src="js/scriptBonusDocenti.js?v=<?php echo $__software_version; ?>"></script>
 
 </head>
 
