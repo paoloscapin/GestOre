@@ -317,6 +317,11 @@ ORDER BY
                                         <label for="rendiconto_rendiconto">Rendiconto</label>
                                         <textarea class="form-control" rows="5" id="rendiconto_rendiconto" placeholder="rendiconto" readonly="readonly"></textarea>
                                     </div>
+                                    <div class="form-group">
+                                        <label>Allegati</label>
+                                        <div id="bonus_allegati_list" class="well well-sm" style="margin-bottom:0;"></div>
+                                    </div>
+
                                 </div>
                                 <div class="modal-footer">
                                     <div class="col-sm-12 text-center">

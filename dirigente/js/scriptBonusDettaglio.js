@@ -35,7 +35,7 @@ function bonusRivisto() {
 			icon: 'glyphicon glyphicon-ok',
 			title: '<Strong>Bonus</Strong></br>',
 			message: 'Revisione effettuata!'
-		},{
+		}, {
 			placement: { from: "top", align: "center" },
 			delay: 2000,
 			timer: 100,
@@ -50,7 +50,7 @@ function bonusChiudi() {
 		icon: 'glyphicon glyphicon-off',
 		title: '<Strong>Chiusura Bonus</Strong></br>',
 		message: '<Strong>Attenzione:</Strong> la funzionalità non è ancora disponibile!'
-	},{
+	}, {
 		placement: { from: "top", align: "center" },
 		delay: 5000,
 		timer: 100,
@@ -71,6 +71,14 @@ function bonusRendiconto(bonus_docente_id, bonus_codice, bonus_descrittori, bonu
 
 	$("#myModalLabel").text(bonus_codice + ": " + bonus_descrittori);
 	$("#evidenze_text").text(bonus_evidenze);
+	// carica lista allegati (solo lettura per dirigente)
+	$("#bonus_allegati_list").html('<span class="text-muted">Caricamento...</span>');
+	$.get("bonusAllegatiList.php", { bonus_docente_id: bonus_docente_id }, function (html) {
+		$("#bonus_allegati_list").html(html);
+	}).fail(function (xhr) {
+		$("#bonus_allegati_list").html('<span class="text-danger">Errore caricamento allegati</span>');
+	});
+
 	$("#bonus_docente_rendiconto_modal").modal("show");
 }
 
@@ -89,7 +97,7 @@ function calcolaTotaleBonus() {
 	var pendente = 0;
 	var approvato = 0;
 
-	$('#table-docente-bonus tr').each(function() {
+	$('#table-docente-bonus tr').each(function () {
 		var value = parseInt($('td', this).eq(3).text());
 		if (!isNaN(value)) {
 			richiesto += value;
@@ -175,8 +183,8 @@ function registraPunteggioBonus(bonus_docente_id, punteggio, valore_massimo, cod
 		$.notify({
 			icon: 'glyphicon glyphicon-off',
 			title: '<Strong>' + codice + '</Strong></br>',
-			message: '<Strong>Attenzione:</Strong> assegnato ' + punteggio +' punti su ' + valore_massimo
-		},{
+			message: '<Strong>Attenzione:</Strong> assegnato ' + punteggio + ' punti su ' + valore_massimo
+		}, {
 			placement: { from: "top", align: "center" },
 			delay: 4000,
 			timer: 100,
@@ -203,14 +211,14 @@ $(document).ready(function () {
 
 	$('#table-docente-bonus td:nth-child(1)').hide();
 
-	$('#table-docente-bonus :checkbox').change(function() {
+	$('#table-docente-bonus :checkbox').change(function () {
 		var bonus_docente_id = $('td:first', $(this).parents('tr')).text();
 		bonusRegistraApprovazione(bonus_docente_id, this.checked);
 	});
 
 	calcolaTotaleBonus();
 
-	$(".punteggioBonus").on('change', function(e){
+	$(".punteggioBonus").on('change', function (e) {
 		var punteggio = this.value;
 		if (punteggio === undefined) return;
 
