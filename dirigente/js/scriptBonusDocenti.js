@@ -127,6 +127,15 @@ function aggiornaLinkDocentiConAnno() {
 	});
 }
 
+function aggiornaLinkGestisciCriteri() {
+	const anno = $("#anno_scolastico_select").val();
+	const $btn = $("#btn_gestisci_criteri");
+	if ($btn.length) {
+		const href = $btn.attr("href");
+		$btn.attr("href", addOrReplaceQueryParam(href, "anno_scolastico_id", anno));
+	}
+}
+
 function bonusDocentiReadRecords() {
 	let anno = $("#anno_scolastico_select").val();
 
@@ -136,10 +145,22 @@ function bonusDocentiReadRecords() {
 		$('#bonus_docenti_table td:nth-child(1),th:nth-child(1)').hide();
 
 		aggiornaLinkDocentiConAnno();
+		aggiornaLinkGestisciCriteri();   // ✅ aggiungi questa riga
+
 		convertTableNumbersToITWithEuro();
 		aggiornaTotaleERecord();
 	});
 }
+
+$(document).ready(function () {
+	bonusDocentiReadRecords();
+
+	$("#anno_scolastico_select").change(function () {
+		aggiornaLinkGestisciCriteri();   // ✅ aggiorna subito il link
+		bonusDocentiReadRecords();
+	});
+});
+
 
 $(document).ready(function () {
 	bonusDocentiReadRecords();

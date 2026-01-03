@@ -49,6 +49,14 @@ require_once '../common/checkSession.php';
 					</div>
 
 					<div class="col-md-4 text-right">
+						<a id="btn_gestisci_criteri"
+							class="btn btn-primary btn-sm"
+							href="bonusCriteri.php?anno_scolastico_id=<?php echo $__anno_scolastico_corrente_id; ?>">
+							<span class="glyphicon glyphicon-cog"></span>&ensp;Gestisci criteri
+						</a>
+
+						&ensp;
+
 						<select id="anno_scolastico_select" class="form-control" style="display:inline-block; width:auto;">
 							<?php
 							$anni = dbGetAll("SELECT id, anno FROM anno_scolastico ORDER BY anno DESC");
@@ -59,22 +67,21 @@ require_once '../common/checkSession.php';
 							?>
 						</select>
 					</div>
-				</div>
 
-			</div>
-			<div class="panel-body">
-				<div class="row" style="margin-bottom:10px;">
 				</div>
-				<div class="row">
-					<div class="col-md-12">
-						<div class="bonus_docenti_records_content"></div>
+				<div class="panel-body">
+					<div class="row" style="margin-bottom:10px;">
+					</div>
+					<div class="row">
+						<div class="col-md-12">
+							<div class="bonus_docenti_records_content"></div>
+						</div>
 					</div>
 				</div>
-			</div>
 
-			<!-- <div class="panel-footer"></div> -->
+				<!-- <div class="panel-footer"></div> -->
+			</div>
 		</div>
-	</div>
 </body>
 
 </html>
