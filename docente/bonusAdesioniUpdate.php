@@ -1,53 +1,79 @@
 <?php
-
 /**
  *  This file is part of GestOre
- *  @author     Paolo Scapin <paolo.scapin@gmail.com>
- *  @copyright  (C) 2018 Paolo Scapin
- *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-if(isset($_POST)) {
-	require_once '../common/checkSession.php';
-	require_once '../common/connect.php';
+require_once '../common/checkSession.php';
+require_once '../common/connect.php';
+ruoloRichiesto('segreteria-docenti', 'dirigente', 'docente');
 
-	if ((isset($_POST['adesione_id']))&&(isset($_POST['bonus_id'])))
-	{
-		$adesione_id = $_POST['adesione_id'];
-		$bonus_id = $_POST['bonus_id'];
+// anno selezionato dal client (fallback: corrente)
+$anno = isset($_POST['anno_scolastico_id']) ? intval($_POST['anno_scolastico_id']) : intval($__anno_scolastico_corrente_id);
 
-		// se adesione id non viene passato significa che devo inserire una nuova adesione con quel bonus id
-		if ($adesione_id < 0) {
-			$query = "INSERT INTO `bonus_docente`(`approvato`, `docente_id`, `anno_scolastico_id`, `bonus_id`) VALUES (null, $__docente_id, $__anno_scolastico_corrente_id, $bonus_id);";
-			dbExec($query);
-
-			//  devo potere tornare l'id che abbiamo generato
-			echo dblastId();
-		} else {
-			// altrimenti devo cancellarla
-			$query = "DELETE FROM `bonus_docente` WHERE id = $adesione_id;";
-			dbExec($query);
-		}
-	}
-	else
-	if ((isset($_POST['adesioniDaAggiungereIdList']))&&(isset($_POST['adesioniDaTogliereIdList'])))
-	{
-		$adesioniDaAggiungereIdList = json_decode($_POST['adesioniDaAggiungereIdList']);
-		$adesioniDaTogliereIdList = json_decode($_POST['adesioniDaTogliereIdList']);
-		foreach ($adesioniDaTogliereIdList as $adesione )
-		{
-			$query = "DELETE FROM `bonus_docente` WHERE id = $adesione;";
-			dbExec($query);
-		}
-		foreach ($adesioniDaAggiungereIdList as $bonus_id )
-		{
-			$query = "INSERT INTO `bonus_docente`(`approvato`, `docente_id`, `anno_scolastico_id`, `bonus_id`) VALUES (null, $__docente_id, $__anno_scolastico_corrente_id, $bonus_id);";
-			dbExec($query);
-		}
-	}
-	else
-	{
-		error("errore parametri post bonusAdesioniUpdate.php");
-	}
+// 🔒 Regola: il docente può modificare SOLO anno corrente e solo se adesioni aperte
+if (!$__config->getBonus_adesione_aperto()) {
+	http_response_code(403);
+	exit;
 }
-?>
+if ($anno !== intval($__anno_scolastico_corrente_id)) {
+	http_response_code(403);
+	exit;
+}
+
+if (!isset($_POST['adesione_id']) || !isset($_POST['bonus_id'])) {
+	http_response_code(400);
+	exit;
+}
+
+$adesione_id = intval($_POST['adesione_id']);
+$bonus_id = intval($_POST['bonus_id']);
+
+if ($bonus_id <= 0) {
+	http_response_code(400);
+	exit;
+}
+
+// INSERT nuova adesione
+if ($adesione_id < 0) {
+
+	// evita duplicati accidentali (stesso docente+anno+bonus)
+	$exists = dbGetValue("
+		SELECT COUNT(*)
+		FROM bonus_docente
+		WHERE docente_id = $__docente_id
+		  AND anno_scolastico_id = $anno
+		  AND bonus_id = $bonus_id
+	");
+	if (intval($exists) > 0) {
+		// se già esiste, ritorna l'id esistente così la UI si allinea
+		$existingId = dbGetValue("
+			SELECT id
+			FROM bonus_docente
+			WHERE docente_id = $__docente_id
+			  AND anno_scolastico_id = $anno
+			  AND bonus_id = $bonus_id
+			LIMIT 1
+		");
+		echo intval($existingId);
+		exit;
+	}
+
+	$query = "
+		INSERT INTO bonus_docente (approvato, docente_id, anno_scolastico_id, bonus_id)
+		VALUES (NULL, $__docente_id, $anno, $bonus_id);
+	";
+	dbExec($query);
+	echo dblastId();
+	exit;
+}
+
+// DELETE adesione esistente (solo se dell'utente e dell'anno corrente)
+$query = "
+	DELETE FROM bonus_docente
+	WHERE id = $adesione_id
+	  AND docente_id = $__docente_id
+	  AND anno_scolastico_id = $anno
+	LIMIT 1;
+";
+dbExec($query);
+exit;

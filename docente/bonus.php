@@ -2,23 +2,24 @@
 
 /**
  *  This file is part of GestOre
- *  @author     Paolo Scapin <paolo.scapin@gmail.com>
- *  @copyright  (C) 2018 Paolo Scapin
- *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 require_once '../common/checkSession.php';
-?>
+require_once '../common/connect.php';
 
+$anno_scolastico_id = isset($_GET['anno_scolastico_id'])
+	? intval($_GET['anno_scolastico_id'])
+	: $__anno_scolastico_corrente_id;
+
+ruoloRichiesto('segreteria-docenti', 'dirigente', 'docente');
+?>
 <!DOCTYPE html>
 <html>
 
 <head>
 	<?php
-
 	require_once '../common/header-common.php';
 	require_once '../common/style.php';
 	require_once '../common/_include_bootstrap-select.php';
-	ruoloRichiesto('segreteria-docenti', 'dirigente', 'docente');
 	?>
 	<title>Bonus Docente</title>
 </head>
@@ -26,7 +27,6 @@ require_once '../common/checkSession.php';
 <body>
 	<?php
 	require_once '../common/header-docente.php';
-	require_once '../common/connect.php';
 	?>
 
 	<div class="container-fluid" style="margin-top:60px">
@@ -36,26 +36,32 @@ require_once '../common/checkSession.php';
 					<div class="col-md-4">
 						<span class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus
 					</div>
+
 					<div class="col-md-4 text-center">
 					</div>
+
 					<div class="col-md-4 text-right">
+						<select id="anno_scolastico_select" class="form-control" style="display:inline-block; width:auto;">
+							<?php
+							$anni = dbGetAll("SELECT id, anno FROM anno_scolastico ORDER BY anno DESC");
+							foreach ($anni as $a) {
+								$selected = ($a['id'] == $anno_scolastico_id) ? 'selected' : '';
+								echo '<option value="' . $a['id'] . '" ' . $selected . '>' . $a['anno'] . '</option>';
+							}
+							?>
+						</select>
+
 						<?php
-						if ($__config->getBonus_adesione_aperto()) {
-							echo '
-				<button onclick="document.location.href=\'bonusSelection.php\'" class="btn btn-xs btn-lima4"><span class="glyphicon glyphicon-cog"></span>&ensp;Adesioni</button>
-                ';
+						if ($__config->getBonus_adesione_aperto() && $anno_scolastico_id == $__anno_scolastico_corrente_id) {
+							// Adesioni: passa l'anno selezionato
+							echo '&ensp;<button id="btn_adesioni" class="btn btn-xs btn-lima4"><span class="glyphicon glyphicon-cog"></span>&ensp;Adesioni</button>';
 						}
 						?>
 					</div>
 				</div>
 			</div>
+
 			<div class="panel-body">
-				<div class="row" style="margin-bottom:10px;">
-					<div class="col-md-6">
-					</div>
-					<div class="col-md-6">
-					</div>
-				</div>
 				<div class="row">
 					<div class="col-md-12">
 						<div class="table-wrapper">
@@ -72,7 +78,6 @@ require_once '../common/checkSession.php';
 								</thead>
 								<tbody>
 									<?php
-
 									$query = "
 SELECT
 	bonus_docente.id AS bonus_docente_id,
@@ -80,12 +85,9 @@ SELECT
 
 	bonus_area.codice AS bonus_area_codice,
 	bonus_area.descrizione AS bonus_area_descrizione,
-	bonus_area.valore_massimo AS bonus_area_valore_massimo,
-	bonus_area.peso_percentuale AS bonus_area_peso_percentuale,
 
 	bonus_indicatore.codice AS bonus_indicatore_codice,
 	bonus_indicatore.descrizione AS bonus_indicatore_descrizione,
-	bonus_indicatore.valore_massimo AS bonus_indicatore_valore_massimo,
 
 	bonus.codice AS bonus_codice,
 	bonus.descrittori AS bonus_descrittori,
@@ -93,69 +95,56 @@ SELECT
 	bonus.valore_previsto AS bonus_valore_previsto
 
 FROM bonus_docente
-
 INNER JOIN bonus
-ON bonus_docente.bonus_id = bonus.id
-
+	ON bonus_docente.bonus_id = bonus.id
 INNER JOIN bonus_indicatore
-ON bonus.bonus_indicatore_id = bonus_indicatore.id
-
+	ON bonus.bonus_indicatore_id = bonus_indicatore.id
 INNER JOIN bonus_area
-ON bonus_indicatore.bonus_area_id = bonus_area.id
+	ON bonus_indicatore.bonus_area_id = bonus_area.id
 
 WHERE
 	bonus_docente.docente_id = $__docente_id
-AND
-	bonus_docente.anno_scolastico_id = $__anno_scolastico_corrente_id
+AND bonus_docente.anno_scolastico_id = $anno_scolastico_id
 
-ORDER BY
-	bonus.codice;
+ORDER BY bonus.codice;
 ";
 									$resultArray = dbGetAll($query);
+
 									foreach ($resultArray as $bonus) {
 										$bonus_valore = getSettingsValue('bonus', 'punteggio_variabile', false) ? '0 - ' : '';
-										$bonus_valore = $bonus_valore . $bonus['bonus_valore_previsto'];
+										$bonus_valore .= $bonus['bonus_valore_previsto'];
+
 										$bonus_descrittori = js_escape($bonus['bonus_descrittori']);
 										$bonus_evidenze = js_escape($bonus['bonus_evidenze']);
+
 										$data = '
-            <tr>
-                <td class="text-left">' . $bonus['bonus_codice'] . '</td>
-                <td class="text-left"><span style="white-space: pre-line">' . $bonus['bonus_descrittori'] . '</span></td>
-                <td class="text-left"><span style="white-space: pre-line">' . $bonus['bonus_evidenze'] . '</span></td>
-                <td class="text-center">' . $bonus_valore . '</td>
-			';
+								<tr>
+									<td class="text-left">' . htmlspecialchars($bonus['bonus_codice']) . '</td>
+									<td class="text-left"><span style="white-space: pre-line">' . htmlspecialchars($bonus['bonus_descrittori']) . '</span></td>
+									<td class="text-left"><span style="white-space: pre-line">' . htmlspecialchars($bonus['bonus_evidenze']) . '</span></td>
+									<td class="text-center">' . htmlspecialchars($bonus_valore) . '</td>
+								';
 
 										$data .= '
-        		<td class="text-center">
-		';
-										$data .= '
-				<button onclick="bonusRendiconto(' . $bonus['bonus_docente_id'] . ', \'' . $bonus['bonus_codice'] . '\', \'' . $bonus_descrittori . '\', \'' . $bonus_evidenze . '\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
-			';
-										$data .= '
-                </td>
-		';
-										if (getSettingsValue('bonus', 'punteggio_variabile', false)) 
-										{
-											$data .= '<td class="text-left">' . $bonus['bonus_docente_approvato'] . '</td></tr>';
-										} 
-										else 
-										{
-											if ($bonus['bonus_docente_approvato'] != NULL) 
-											{
-												if ($bonus['bonus_docente_approvato'] == 1) 
-												{
-													$data .= '<td class="text-left">' . $bonus_valore . '</td></tr>	';
-												} 
-												else 
-												{
+									<td class="text-center">
+										<button onclick="bonusRendiconto(' . intval($bonus['bonus_docente_id']) . ', \'' . $bonus['bonus_codice'] . '\', \'' . $bonus_descrittori . '\', \'' . $bonus_evidenze . '\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></span></button>
+									</td>
+								';
+
+										if (getSettingsValue('bonus', 'punteggio_variabile', false)) {
+											$data .= '<td class="text-left">' . htmlspecialchars($bonus['bonus_docente_approvato']) . '</td></tr>';
+										} else {
+											if ($bonus['bonus_docente_approvato'] !== NULL) {
+												if (intval($bonus['bonus_docente_approvato']) == 1) {
+													$data .= '<td class="text-left">' . htmlspecialchars($bonus_valore) . '</td></tr>';
+												} else {
 													$data .= '<td class="text-left">0</td></tr>';
 												}
-											}
-											else
-											{
+											} else {
 												$data .= '<td class="text-left"></td></tr>';
 											}
 										}
+
 										echo $data;
 									}
 									?>
@@ -165,13 +154,10 @@ ORDER BY
 					</div>
 				</div>
 			</div>
-
-			<!-- <div class="panel-footer"></div> -->
 		</div>
 
 		<!-- Modal - rendiconto details -->
-		<div class="modal fade" id="bonus_docente_rendiconto_modal" tabindex="-1" role="dialog"
-			aria-labelledby="myModalLabel">
+		<div class="modal fade" id="bonus_docente_rendiconto_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
 			<div class="modal-dialog modal-lg" role="document">
 				<div class="modal-content">
 					<div class="modal-body">
@@ -181,25 +167,24 @@ ORDER BY
 							</div>
 							<div class="panel-body">
 								<div class="form-group">
-									<div class="" id="evidenze_text"></div>
+									<div id="evidenze_text"></div>
 								</div>
 
 								<div class="form-group">
 									<label for="rendiconto_rendiconto">Rendiconto</label>
 									<textarea class="form-control" rows="5" id="rendiconto_rendiconto"
-										placeholder="rendiconto"></textarea>
+										placeholder="rendiconto"
+										<?php echo ($anno_scolastico_id == $__anno_scolastico_corrente_id && $__config->getBonus_rendiconto_aperto()) ? '' : 'readonly="readonly"'; ?>></textarea>
 								</div>
 							</div>
 							<div class="modal-footer">
 								<div class="col-sm-12 text-center">
 									<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-
 									<?php
-									if ($__config->getBonus_rendiconto_aperto()) {
-										echo '
-                <button type="button" class="btn btn-primary" onclick="bonusDocenteRendicontoUpdateDetails()" >Salva</button>
-    ';
+									if ($__config->getBonus_rendiconto_aperto() && $anno_scolastico_id == $__anno_scolastico_corrente_id) {
+										echo '<button type="button" class="btn btn-primary" onclick="bonusDocenteRendicontoUpdateDetails()">Salva</button>';
 									}
+
 									?>
 									<input type="hidden" id="hidden_bonus_docente_id">
 								</div>
@@ -209,13 +194,10 @@ ORDER BY
 				</div>
 			</div>
 		</div>
-		<!-- // Modal - rendiconto details -->
 
 	</div>
 
 	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
-
-	<!-- Custom JS file -->
 	<script type="text/javascript" src="js/scriptBonus.js"></script>
 
 </body>
