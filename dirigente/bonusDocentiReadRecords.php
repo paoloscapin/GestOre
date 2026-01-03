@@ -2,8 +2,8 @@
 
 /**
  *  This file is part of GestOre
- *  @author     Paolo Scapin <paolo.scapin@gmail.com>
- *  @copyright  (C) 2018 Paolo Scapin
+ *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
+ *  @copyright  (C) 2025 Massimo Saiani
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
@@ -122,7 +122,7 @@ foreach ($resultArray as $docente) {
 
     $data .= '<tr>
     			<td>' . $local_docente_id . '</td>
-    			<td><a href="bonusDettaglioDocente.php?id=' . $local_docente_id . '" target="' . $openTabMode . '">&ensp;' . $docenteCognomeNome . ' ' . $marker . ' </a></td>
+    			<td><a href="./bonusDettaglioDocente.php?id=' . $local_docente_id . '" target="' . $openTabMode . '">&ensp;' . $docenteCognomeNome . ' ' . $marker . ' </a></td>
     			<td class="text-right viaggi">' . formatNoZeroNoDecimal($punti_richiesti) . '</td>
     			<td class="text-right assegnato">' . formatNoZeroNoDecimal($punti_approvati) . '</td>
     			<td class="text-right funzionale">' . formatNoZero($importo_approvato) . '</td>

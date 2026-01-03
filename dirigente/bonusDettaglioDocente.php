@@ -2,8 +2,8 @@
 
 /**
  *  This file is part of GestOre
- *  @author     Paolo Scapin <paolo.scapin@gmail.com>
- *  @copyright  (C) 2018 Paolo Scapin
+ *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
+ *  @copyright  (C) 2025 Massimo Saiani
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 require_once '../common/checkSession.php';
@@ -11,111 +11,128 @@ require_once '../common/checkSession.php';
 
 <!DOCTYPE html>
 <html>
+
 <head>
-<?php
+    <?php
 
-require_once '../common/header-common.php';
-require_once '../common/style.php';
-//require_once '../common/_include_bootstrap-toggle.php';
-require_once '../common/_include_bootstrap-select.php';
-require_once '../common/_include_bootstrap-notify.php';
-ruoloRichiesto('dirigente');
-require_once '../common/connect.php';
-if(isset($_GET)) {
-    // get values
-    $docente_id = $_GET['id'];
-    $query = "SELECT * FROM docente WHERE docente.id = $docente_id; ";
-    $docente = dbGetFirst($query);
-    $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
-}
-?>
-	<title><?php echo $docenteCognomeNome; ?></title>
+    require_once '../common/header-common.php';
+    require_once '../common/style.php';
+    //require_once '../common/_include_bootstrap-toggle.php';
+    require_once '../common/_include_bootstrap-select.php';
+    require_once '../common/_include_bootstrap-notify.php';
+    ruoloRichiesto('dirigente');
+    require_once '../common/connect.php';
+    if (isset($_GET)) {
+        // get values
+        $docente_id = $_GET['id'];
+        $query = "SELECT * FROM docente WHERE docente.id = $docente_id; ";
+        $docente = dbGetFirst($query);
+        $docenteCognomeNome = $docente['cognome'] . ' ' . $docente['nome'];
+    }
+    $anno_scolastico_id = isset($_GET['anno_scolastico_id'])
+        ? intval($_GET['anno_scolastico_id'])
+        : $__anno_scolastico_corrente_id;
 
-<!-- timejs -->
-<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/timejs/date-it-IT.js"></script>
+    ?>
+    <title><?php echo $docenteCognomeNome; ?></title>
 
-<!-- bootbox notificator -->
-<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
+    <!-- timejs -->
+    <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/timejs/date-it-IT.js"></script>
 
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-vcolor-index.css">
-<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
+    <!-- bootbox notificator -->
+    <script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
 
-<script type="text/javascript" src="js/scriptBonusDettaglio.js"></script>
+    <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-vcolor-index.css">
+    <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
+
+    <script type="text/javascript" src="js/scriptBonusDettaglio.js"></script>
 
 </head>
 
-<body >
-<?php
-require_once '../common/header-dirigente.php';
-?>
+<body>
+    <?php
+    require_once '../common/header-dirigente.php';
+    ?>
 
-<div class="container-fluid" style="margin-top:60px">
+    <div class="container-fluid" style="margin-top:60px">
 
-<!-- prima il pannello del bonus assegnato -->
-<div class="container-fluid" style="margin-top:60px">
-<div class="panel panel-lima4">
-<div class="panel-heading container-fluid">
-	<div class="row">
-		<div class="col-md-6">
-			<span class="glyphicon glyphicon-education"></span>&emsp;Bonus Assegnato
-		</div>
-        <div class="col-md-6">
-            <div class="pull-right">
-                <button class="btn btn-xs btn-lima4" onclick="bonusAssegnatoGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
-            </div>
-        </div>
-	</div>
-</div>
-<div class="panel-body">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="records_content"></div>
-        </div>
-    </div>
-</div>
+        <!-- prima il pannello del bonus assegnato -->
+        <div class="container-fluid" style="margin-top:60px">
+            <div class="panel panel-lima4">
+                <div class="panel-heading container-fluid">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <span class="glyphicon glyphicon-education"></span>&emsp;Bonus Assegnato
+                        </div>
+                        <div class="col-md-4 text-right">
+                            <select id="anno_scolastico_select" class="form-control" style="display:inline-block; width:auto;">
+                                <?php
+                                $anni = dbGetAll("SELECT id, anno FROM anno_scolastico ORDER BY anno DESC");
+                                foreach ($anni as $a) {
+                                    $selected = ($a['id'] == $anno_scolastico_id) ? 'selected' : '';
+                                    echo '<option value="' . $a['id'] . '" ' . $selected . '>' . $a['anno'] . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
 
-<!-- <div class="panel-footer"></div> -->
-</div>
-
-<!-- Bootstrap Modals -->
-<!-- Modal - Add/Update Record -->
-<div class="modal fade" id="update_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h5 class="modal-title" id="myModalLabel">Bonus Assegnato</h5>
-            </div>
-            <div class="modal-body">
-
-                <div class="form-group">
-                    <label for="commento">Commento</label>
-                    <input type="text" id="commento" placeholder="commento" class="form-control"/>
+                        <div class="col-md-4">
+                            <div class="pull-right">
+                                <button class="btn btn-xs btn-lima4" onclick="bonusAssegnatoGetDetails(-1)"><span class="glyphicon glyphicon-plus"></span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="records_content"></div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="importo">Importo</label>
-                    <input type="text" id="importo" placeholder="importo" class="form-control"/>
+                <!-- <div class="panel-footer"></div> -->
+            </div>
+
+            <!-- Bootstrap Modals -->
+            <!-- Modal - Add/Update Record -->
+            <div class="modal fade" id="update_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                            <h5 class="modal-title" id="myModalLabel">Bonus Assegnato</h5>
+                        </div>
+                        <div class="modal-body">
+
+                            <div class="form-group">
+                                <label for="commento">Commento</label>
+                                <input type="text" id="commento" placeholder="commento" class="form-control" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="importo">Importo</label>
+                                <input type="text" id="importo" placeholder="importo" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                            <button type="button" class="btn btn-primary" onclick="bonusAssegnatoSave()">Salva</button>
+                            <input type="hidden" id="hidden_record_id">
+                            <input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                <button type="button" class="btn btn-primary" onclick="bonusAssegnatoSave()">Salva</button>
-				<input type="hidden" id="hidden_record_id">
-				<input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">
-            </div>
-        </div>
-    </div>
-</div>
-<!-- // Modal - Add/Update Record -->
+            <!-- // Modal - Add/Update Record -->
 
-<?php
+            <?php
 
-$docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
-$data = '';
+            $docenteCognomeNome = $docente['cognome'] . ' ' . $docente['nome'];
+            $data = '';
 
-// disegna il pannello del bonus
-$data .= '
+            // disegna il pannello del bonus
+            $data .= '
     <div class="panel panel-lima4">
         <div class="panel-heading">
             <div class="row">
@@ -124,7 +141,7 @@ $data .= '
                     <a data-toggle="collapse" href="#collapse_bonus">&ensp;Bonus</a>
                 </div>
                 <div class="col-md-4 text-center">
-                    '.$docenteCognomeNome.'
+                    ' . $docenteCognomeNome . '
                 </div>
                 <div class="col-md-4 text-right">
                 </div>
@@ -154,8 +171,8 @@ $data .= '
                                 <tbody>				    
     ';
 
-    // disegna la tabella del bonus     
-$query = "
+            // disegna la tabella del bonus     
+            $query = "
 SELECT
     bonus_docente.id AS bonus_docente_id,
     bonus_docente.approvato AS bonus_docente_approvato,
@@ -188,67 +205,64 @@ INNER JOIN bonus_area
 ON bonus_indicatore.bonus_area_id = bonus_area.id
 
 WHERE
-    bonus_docente.docente_id = ".$docente['id']."
+    bonus_docente.docente_id = " . $docente['id'] . "
 AND
-    bonus_docente.anno_scolastico_id = $__anno_scolastico_corrente_id
+    bonus_docente.anno_scolastico_id = $anno_scolastico_id
     
 ORDER BY
     bonus.codice;
 ";
-$resultArray2 = dbGetAll($query);
-foreach($resultArray2 as $bonus) {
-    $marker = ($bonus['bonus_docente_ultima_modifica'] > $bonus['bonus_docente_ultimo_controllo']) ? '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow">.'. '' .'</span>': '';
-    $data .= '
+            $resultArray2 = dbGetAll($query);
+            foreach ($resultArray2 as $bonus) {
+                $marker = ($bonus['bonus_docente_ultima_modifica'] > $bonus['bonus_docente_ultimo_controllo']) ? '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow">.' . '' . '</span>' : '';
+                $data .= '
         <tr>
-            <td class="text-left">'.$bonus['bonus_docente_id'].' </td>
-            <td class="text-left">'.$bonus['bonus_codice'].' '.$marker.'</td>
-            <td class="text-left">'.$bonus['bonus_descrittori'].'</td>
-            <td class="text-center">'.$bonus['bonus_valore_previsto'].'</td>
+            <td class="text-left">' . $bonus['bonus_docente_id'] . ' </td>
+            <td class="text-left">' . $bonus['bonus_codice'] . ' ' . $marker . '</td>
+            <td class="text-left">' . $bonus['bonus_descrittori'] . '</td>
+            <td class="text-center">' . $bonus['bonus_valore_previsto'] . '</td>
         ';
-        
-        $data .='
+
+                $data .= '
             <td class="text-center">
         ';
-        $data .='
-            <button onclick="bonusRendiconto('.$bonus['bonus_docente_id'].', \''.$bonus['bonus_codice'].'\', \''.$bonus['bonus_descrittori'].'\', \''.$bonus['bonus_evidenze'].'\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
+                $data .= '
+            <button onclick="bonusRendiconto(' . $bonus['bonus_docente_id'] . ', \'' . $bonus['bonus_codice'] . '\', \'' . $bonus['bonus_descrittori'] . '\', \'' . $bonus['bonus_evidenze'] . '\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
         ';
-        $data .='
+                $data .= '
             </td>
         ';
-        if (getSettingsValue('bonus','punteggio_variabile', false)) {
-            
-
-            $maxValue = $bonus['bonus_valore_previsto'];
-
-            $punteggioBonusOptionList = '<select class="punteggioBonus selectpicker" data-noneSelectedText="seleziona..." data-width="50%" ><option value="0"></option>';
+                if (getSettingsValue('bonus', 'punteggio_variabile', false)) {
 
 
-            for($i = 0; $i <= $maxValue; $i++) {
-				$punteggioBonusOptionList .= '<option value="'.$i.'" data-content="<span class=\'label label-info\'\'>'.$i.'</span>"';
-				if ($bonus['bonus_docente_approvato'] !== NULL && $bonus['bonus_docente_approvato'] == $i) {
-					$punteggioBonusOptionList .= ' selected ';
-				}
-				$punteggioBonusOptionList .= '>'.$i.'</option>';
-			}
-			$punteggioBonusOptionList .= '</select>';
+                    $maxValue = $bonus['bonus_valore_previsto'];
 
-			$data .= '<td>'.$punteggioBonusOptionList.'</td>';
+                    $punteggioBonusOptionList = '<select class="punteggioBonus selectpicker" data-noneSelectedText="seleziona..." data-width="50%" ><option value="0"></option>';
 
 
-        } else {
-            $data .= '<td class="text-center"><input type="checkbox" data-toggle="toggle" data-onstyle="primary" id="approvato'.$bonus['bonus_docente_id'].'" ';
-            if ($bonus['bonus_docente_approvato']) {
-                $data .= 'checked ';
+                    for ($i = 0; $i <= $maxValue; $i++) {
+                        $punteggioBonusOptionList .= '<option value="' . $i . '" data-content="<span class=\'label label-info\'\'>' . $i . '</span>"';
+                        if ($bonus['bonus_docente_approvato'] !== NULL && $bonus['bonus_docente_approvato'] == $i) {
+                            $punteggioBonusOptionList .= ' selected ';
+                        }
+                        $punteggioBonusOptionList .= '>' . $i . '</option>';
+                    }
+                    $punteggioBonusOptionList .= '</select>';
+
+                    $data .= '<td>' . $punteggioBonusOptionList . '</td>';
+                } else {
+                    $data .= '<td class="text-center"><input type="checkbox" data-toggle="toggle" data-onstyle="primary" id="approvato' . $bonus['bonus_docente_id'] . '" ';
+                    if ($bonus['bonus_docente_approvato']) {
+                        $data .= 'checked ';
+                    }
+                    $data .= '></td>';
+                }
+
+                $data .= '</tr>';
             }
-            $data .= '></td>';
-        }
 
-        $data .='</tr>';
-            
-}
-
-// chiude il pannello del bonus
-$data .= '
+            // chiude il pannello del bonus
+            $data .= '
                     </tbody>
                 </table>
             </div>
@@ -276,45 +290,46 @@ $data .= '
 </div>
     ';
 
-echo $data;
-?>
+            echo $data;
+            ?>
 
-<input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">
-<input type="hidden" id="hidden_docente_nome" value="<?php echo $docenteCognomeNome; ?>">
+            <input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">
+            <input type="hidden" id="hidden_docente_nome" value="<?php echo $docenteCognomeNome; ?>">
 
-<!-- Modal - rendiconto details -->
-<div class="modal fade" id="bonus_docente_rendiconto_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-body">
-			<div class="panel panel-success">
-			<div class="panel-heading">
-				<h5 class="modal-title" id="myModalLabel">Rendiconto Evidenze</h5>
-			</div>
-			<div class="panel-body">
-                <div class="form-group">
-                    <div class="" id="evidenze_text"></div>
-                </div>
+            <!-- Modal - rendiconto details -->
+            <div class="modal fade" id="bonus_docente_rendiconto_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <div class="panel panel-success">
+                                <div class="panel-heading">
+                                    <h5 class="modal-title" id="myModalLabel">Rendiconto Evidenze</h5>
+                                </div>
+                                <div class="panel-body">
+                                    <div class="form-group">
+                                        <div class="" id="evidenze_text"></div>
+                                    </div>
 
-                <div class="form-group">
-                    <label for="rendiconto_rendiconto">Rendiconto</label>
-                    <textarea class="form-control" rows="5" id="rendiconto_rendiconto" placeholder="rendiconto" readonly="readonly"></textarea>
+                                    <div class="form-group">
+                                        <label for="rendiconto_rendiconto">Rendiconto</label>
+                                        <textarea class="form-control" rows="5" id="rendiconto_rendiconto" placeholder="rendiconto" readonly="readonly"></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <div class="col-sm-12 text-center">
+                                        <button type="button" class="btn btn-default" data-dismiss="modal">Ok</button>
+                                        <input type="hidden" id="hidden_bonus_docente_id">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-			<div class="modal-footer">
-			<div class="col-sm-12 text-center">
-				<button type="button" class="btn btn-default" data-dismiss="modal">Ok</button>
-				<input type="hidden" id="hidden_bonus_docente_id">
-			</div>
-			</div>
-        	</div>
-        	</div>
-    	</div>
-    </div>
-</div>
-<!-- // Modal - rendiconto details -->
+            <!-- // Modal - rendiconto details -->
 
-</div>
+        </div>
 
 </body>
+
 </html>

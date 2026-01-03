@@ -2,10 +2,11 @@
 
 /**
  *  This file is part of GestOre
- *  @author     Paolo Scapin <paolo.scapin@gmail.com>
- *  @copyright  (C) 2018 Paolo Scapin
+ *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
+ *  @copyright  (C) 2025 Massimo Saiani
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
+
 require_once '../common/checkSession.php';
 ruoloRichiesto('dirigente');
 
@@ -44,147 +45,147 @@ function my_str_getcsv($input, $delimiter = ",", $enclosure = '"', $escape = "\\
     fclose($fp);
 }
 
-// setup del src e del risultato (data) e delle istruzioni (sql[])
+// setup
 $lines_array = [];
 $data = '';
 $sqlList = array();
 
 $src = '';
-if(isset($_POST)) {
-	$src = trim($_POST['contenuto']);
+$anno_scolastico_id = $__anno_scolastico_corrente_id;
+
+if (isset($_POST)) {
+    $src = trim($_POST['contenuto']);
+
+    // anno selezionato (se passato), altrimenti anno corrente
+    if (isset($_POST['anno_scolastico_id']) && $_POST['anno_scolastico_id'] !== '') {
+        $anno_scolastico_id = intval($_POST['anno_scolastico_id']);
+    }
 }
 
-// estrae l'array di linee
+// estrae linee CSV
 my_str_getcsv($src);
-
-// traccia il risultato dell'estrazione per debug
-// $res = var_export($the_big_array, true);
-// debug($res);
 
 $linePos = 0;
 
-// la prima istruzione sql disabilita tutti i bonus (area, descrittore e bonus)
+// 1) Aree: NON hanno anno, quindi reset globale valido=0 (come vuoi tu)
 $sqlList[] = "UPDATE bonus_area SET valido='0';";
-$sqlList[] = "UPDATE bonus_indicatore SET valido='0';";
-$sqlList[] = "UPDATE bonus SET valido='0';";
 
-// codice corrente di area, indicatore, descrittore
+// 2) Indicatori e bonus: per anno selezionato
+$sqlList[] = "UPDATE bonus_indicatore SET valido='0' WHERE anno_scolastico_id = $anno_scolastico_id;";
+$sqlList[] = "UPDATE bonus SET valido='0' WHERE anno_scolastico_id = $anno_scolastico_id;";
+
+// contatori
 $areaNumber = 0;
 $areaCode = '';
 $indicatoreNumber = 0;
 $descrittoreNumber = 0;
 
-// scorre tutte le linee del csv: i valori csv sono contenuti nella linea che e' un array lei stessa
-foreach($lines_array as $words) {
-    $linePos ++;
+// per comporre codici
+$indicatoreCode = '';
 
-    // ricostruisce la linea intera
-    $line = join(",",$words);
+foreach ($lines_array as $words) {
+    $linePos++;
 
-    if (empty($words) || startswith( $words[0], "#")) {
+    $line = join(",", $words);
+
+    if (empty($words) || startsWith($words[0], "#")) {
         debug('Skip line ' . $linePos . ': ' . $line);
         continue;
     }
 
-    // trim delle parole
     $words = array_map('trim', $words);
 
-    // sono sempre previste 5 colonne: Area,Indicatore,Descrittore,Evidenze,Valore
+    // 5 colonne: Area,Indicatore,Descrittore,Evidenze,Valore
     if (count($words) < 5) {
         erroreDiImport("numero di argomenti errato (" . count($words) . ")");
         break;
     }
 
-    // se c'e' qualcosa in area, bisogna inserire area
+    // AREA: NON si inserisce. Si riattiva e aggiorna descrizione sull'area esistente (A,B,C...)
     $area = escapeString($words[0]);
     if (!empty($area)) {
-        ++ $areaNumber;
+        ++$areaNumber;
 
-        // azzera gli altri contatori interni all'area
         $indicatoreNumber = 0;
         $descrittoreNumber = 0;
-        
-        // calcola il codice: area parte da 'A' ed e' letterale
+
         $areaCode = chr(ord('A') - 1 + $areaNumber);
 
-        // inserisce l'area nel db e prende il suo codice
-        $sqlList[] = "INSERT INTO bonus_area (codice,descrizione,valido) VALUES ('$areaCode','$area',1);";
-        $sqlList[] = "SET @area_id = LAST_INSERT_ID();";
+        // recupera area esistente
+        $areaRow = dbGetFirst("SELECT id FROM bonus_area WHERE codice = '$areaCode' LIMIT 1;");
+        if (!$areaRow || !isset($areaRow['id'])) {
+            erroreDiImport("Area non trovata in bonus_area per codice '$areaCode'. Crea prima le aree A,B,C in tabella.");
+            break;
+        }
+        $areaId = intval($areaRow['id']);
 
-        // quando trova un'area, la riga e' completa
+        // riattiva e aggiorna descrizione in base al CSV
+        $sqlList[] = "UPDATE bonus_area
+                      SET descrizione = '$area', valido = 1
+                      WHERE id = $areaId;";
+
+        // set variabile per insert successive
+        $sqlList[] = "SET @area_id = $areaId;";
+
         continue;
     }
 
-    // controlla che ci sia almeno un'area
     if ($areaNumber <= 0) {
         erroreDiImport("bisogna che sia definita almeno un'area");
         break;
     }
 
-    // se c'e' qualcosa in indicatore, bisogna inserire indicatore
+    // INDICATORE: si inserisce per l'anno selezionato
     $indicatore = escapeString($words[1]);
     if (!empty($indicatore)) {
-        ++ $indicatoreNumber;
-
-        // azzera il contatore interno dei descrittori
+        ++$indicatoreNumber;
         $descrittoreNumber = 0;
-        
-        // calcola il codice
+
         $indicatoreCode = $areaCode . '.' . $indicatoreNumber;
 
-        // inserisce l'indicatore nel db e prende il suo codice
-        $sqlList[] = "INSERT INTO bonus_indicatore (codice,descrizione,valido, bonus_area_id) VALUES ('$indicatoreCode','$indicatore',1, @area_id);";
+        $sqlList[] = "INSERT INTO bonus_indicatore (codice, descrizione, valido, bonus_area_id, anno_scolastico_id)
+                      VALUES ('$indicatoreCode', '$indicatore', 1, @area_id, $anno_scolastico_id);";
         $sqlList[] = "SET @indicatore_id = LAST_INSERT_ID();";
 
-        // quando trova un indicatore, la riga e' completa
         continue;
     }
 
-    // controlla che ci sia almeno un indicatore
     if ($indicatoreNumber <= 0) {
         erroreDiImport("bisogna che sia definito almeno un indicatore");
         break;
     }
 
-    // controlla se c'e' qualcosa in descrittore,Evidenze,Valore
+    // BONUS (descrittore): si inserisce per l'anno selezionato
     $descrittore = escapeString($words[2]);
     $evidenze = escapeString($words[3]);
     $valore = escapeString($words[4]);
-    if (!empty($descrittore)) {
-        ++ $descrittoreNumber;
 
-        // controlla che ci sia un valore (altrimenti mette 1)
+    if (!empty($descrittore)) {
+        ++$descrittoreNumber;
+
         if (empty($valore)) {
             $valore = 1;
         }
-        
-        // calcola il codice
+
         $descrittoreCode = $indicatoreCode . '.' . $descrittoreNumber;
 
-        // inserisce l'indicatore nel db e prende il suo codice
-        $sqlList[] = "INSERT INTO bonus (codice,descrittori,evidenze,valore_previsto,valido,bonus_indicatore_id) VALUES ('$descrittoreCode','$descrittore','$evidenze','$valore',1, @indicatore_id);";
+        $sqlList[] = "INSERT INTO bonus (codice, descrittori, evidenze, valore_previsto, valido, bonus_indicatore_id, anno_scolastico_id)
+                      VALUES ('$descrittoreCode', '$descrittore', '$evidenze', '$valore', 1, @indicatore_id, $anno_scolastico_id);";
 
-        // quando trova un descrittore, la riga e' completa
         continue;
     }
 
-    // se non c'era nessuna di queste cose, e' un errore
-    if ($indicatoreNumber <= 0) {
-        erroreDiImport("istruzione non riconosciuta");
-        break;
-    }
+    erroreDiImport("istruzione non riconosciuta");
+    break;
 }
 
-if (empty($data)) {
-}
-
-// esegue la query se non vuota
-if (!empty($sqlList)) {
-    foreach($sqlList as $sql) {
+// esegue le query solo se non ci sono errori
+if (!empty($sqlList) && empty($data)) {
+    foreach ($sqlList as $sql) {
         dbExec($sql);
         // debug($sql);
     }
-    info('Import criteri bonus effettuato: ' . $data);
+    info("Import criteri bonus effettuato anno_scolastico_id=$anno_scolastico_id");
 }
 
 echo $data;
