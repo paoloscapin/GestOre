@@ -15,6 +15,86 @@ function gotoSelection() {
 	window.location.href = "bonusSelection.php?anno_scolastico_id=" + encodeURIComponent(anno);
 }
 
+function loadAllegati(bonus_docente_id) {
+	const anno = getAnnoScolasticoId();
+	$("#allegati_list").load("bonusAllegatiList.php?bonus_docente_id=" + encodeURIComponent(bonus_docente_id) +
+		"&anno_scolastico_id=" + encodeURIComponent(anno));
+}
+
+function uploadAllegati() {
+	const bonus_docente_id = $("#hidden_bonus_docente_id").val();
+	const anno = getAnnoScolasticoId();
+	const files = $("#allegati_files")[0].files;
+
+	if (!files || files.length === 0) return;
+
+	const fd = new FormData();
+	fd.append("bonus_docente_id", bonus_docente_id);
+	fd.append("anno_scolastico_id", anno);
+	for (let i = 0; i < files.length; i++) {
+		fd.append("files[]", files[i]);
+	}
+
+	$.ajax({
+		url: "bonusAllegatiUpload.php",
+		method: "POST",
+		data: fd,
+		processData: false,
+		contentType: false,
+		dataType: "json",
+		success: function (r) {
+			if (r.success) {
+				$("#allegati_files").val("");
+				loadAllegati(bonus_docente_id);
+			} else {
+				alert(r.message || "Errore upload");
+			}
+		},
+		error: function (xhr) {
+			console.error(xhr.responseText);
+			alert("Errore upload (controlla console)");
+		}
+	});
+}
+
+$(document).on("click", ".btn-del-allegato", function () {
+	const $btn = $(this);
+	const id = $btn.data("id");
+	const anno = getAnnoScolasticoId();
+	const bonus_docente_id = $("#hidden_bonus_docente_id").val();
+
+	if (!confirm("Eliminare questo allegato?")) return;
+
+	$btn.prop("disabled", true);
+
+	$.ajax({
+		url: "bonusAllegatoDelete.php",
+		method: "POST",
+		data: { id: id, anno_scolastico_id: anno },
+		dataType: "text", // <-- NON json
+		success: function (txt) {
+
+			let r = null;
+			try { r = JSON.parse(txt); } catch (e) { }
+
+			if (!r || r.success !== true) {
+				alert((r && r.message) ? r.message : "Risposta non valida dal server:\n" + txt);
+				return;
+			}
+
+			// rimuove subito dalla UI e ricarica lista
+			$btn.closest("li").remove();
+			loadAllegati(bonus_docente_id);
+		},
+		error: function (xhr, textStatus, errorThrown) {
+			console.error("bonusAllegatoDelete.php error:", xhr.status, textStatus, errorThrown, xhr.responseText);
+			alert("Errore cancellazione (" + xhr.status + ")\n" + (xhr.responseText || "").slice(0, 300));
+		}
+	});
+
+});
+
+
 function bonusRendiconto(bonus_docente_id, bonus_codice, bonus_descrittori, bonus_evidenze) {
 	$("#hidden_bonus_docente_id").val(bonus_docente_id);
 
@@ -27,6 +107,8 @@ function bonusRendiconto(bonus_docente_id, bonus_codice, bonus_descrittori, bonu
 	$("#myModalLabel").text(bonus_codice + ": " + bonus_descrittori);
 	$("#evidenze_text").text(bonus_evidenze);
 	$("#bonus_docente_rendiconto_modal").modal("show");
+	loadAllegati(bonus_docente_id);
+
 }
 
 function bonusDocenteRendicontoUpdateDetails() {
@@ -42,7 +124,7 @@ function bonusDocenteRendicontoUpdateDetails() {
 					icon: 'glyphicon glyphicon-warning-sign',
 					title: '<Strong>Bonus</Strong></br>',
 					message: r.message || 'Operazione non consentita'
-				},{
+				}, {
 					placement: { from: "top", align: "center" },
 					delay: 5000,
 					timer: 100,
@@ -59,6 +141,10 @@ function bonusDocenteRendicontoUpdateDetails() {
 }
 
 $(document).ready(function () {
+
+	$("#btn_upload_allegati").on("click", function () {
+		uploadAllegati();
+	});
 
 	// BONUS.PHP: bottone adesioni (se presente)
 	$("#btn_adesioni").on("click", function () {
@@ -104,7 +190,7 @@ $(document).ready(function () {
 					icon: 'glyphicon glyphicon-info-sign',
 					title: '<Strong>Selezione Bonus</Strong></br>',
 					message: 'Criterio aggiunto. Selezione aggiornata!'
-				},{
+				}, {
 					placement: { from: "top", align: "center" },
 					delay: 3500,
 					timer: 100,
@@ -119,7 +205,7 @@ $(document).ready(function () {
 					icon: 'glyphicon glyphicon-info-sign',
 					title: '<Strong>Selezione Bonus</Strong></br>',
 					message: 'Criterio rimosso. Selezione aggiornata!'
-				},{
+				}, {
 					placement: { from: "top", align: "center" },
 					delay: 3500,
 					timer: 100,
@@ -142,7 +228,7 @@ $(document).ready(function () {
 				icon: 'glyphicon glyphicon-warning-sign',
 				title: '<Strong>Selezione Bonus</Strong></br>',
 				message: 'Modifica non consentita (anno non corrente o adesioni chiuse).'
-			},{
+			}, {
 				placement: { from: "top", align: "center" },
 				delay: 5000,
 				timer: 100,

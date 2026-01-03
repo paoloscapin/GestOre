@@ -175,7 +175,29 @@ ORDER BY bonus.codice;
 									<textarea class="form-control" rows="5" id="rendiconto_rendiconto"
 										placeholder="rendiconto"
 										<?php echo ($anno_scolastico_id == $__anno_scolastico_corrente_id && $__config->getBonus_rendiconto_aperto()) ? '' : 'readonly="readonly"'; ?>></textarea>
+
 								</div>
+								<hr style="margin:10px 0;">
+								<div class="form-group">
+									<label>Allegati (PDF)</label>
+
+									<div id="allegati_list"></div>
+
+									<div style="margin-top:8px;">
+										<input type="file" id="allegati_files" multiple accept="application/pdf" class="form-control">
+									</div>
+
+									<div style="margin-top:8px;">
+										<button type="button" class="btn btn-primary" id="btn_upload_allegati">
+											<span class="glyphicon glyphicon-upload"></span>&ensp;Carica PDF
+										</button>
+									</div>
+
+									<div class="text-muted" style="margin-top:6px;">
+										Puoi caricare uno o più PDF come evidenze. (Solo anno corrente, se il rendiconto è aperto)
+									</div>
+								</div>
+
 							</div>
 							<div class="modal-footer">
 								<div class="col-sm-12 text-center">

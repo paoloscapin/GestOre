@@ -309,6 +309,9 @@ ORDER BY
                                     <div class="form-group">
                                         <div class="" id="evidenze_text"></div>
                                     </div>
+                                    <div class="form-group">
+                                        <div class="" id="allegati_list"></div>
+                                    </div>
 
                                     <div class="form-group">
                                         <label for="rendiconto_rendiconto">Rendiconto</label>

@@ -136,6 +136,8 @@ function bonusAssegnatoGetDetails(id) {
 		$("#importo").val("");
 	}
 	$("#update_modal").modal("show");
+	$("#allegati_list").load("../docente/bonusAllegatiList.php?bonus_docente_id=" + bonus_docente_id + "&anno_scolastico_id=" + anno);
+
 }
 
 function bonusAssegnatoSave() {
