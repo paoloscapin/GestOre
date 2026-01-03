@@ -10,17 +10,22 @@
 require_once '../common/checkSession.php';
 require_once '../common/importi_load.php';
 
+$anno_scolastico_id = isset($_GET['anno_scolastico_id'])
+    ? intval($_GET['anno_scolastico_id'])
+    : $anno_scolastico_id;
 
-function formatNoZero($value) {
-    return ($value != 0) ? number_format($value,2) : ' ';
+function formatNoZero($value)
+{
+    return ($value != 0) ? number_format($value, 2) : ' ';
 }
 
-function formatNoZeroNoDecimal($value) {
-    return ($value != 0) ? number_format($value,0) : ' ';
+function formatNoZeroNoDecimal($value)
+{
+    return ($value != 0) ? number_format($value, 0) : ' ';
 }
 
 // calcola il totale degli assegnati
-$totale_bonus_assegnato = dbGetValue("SELECT SUM(importo) FROM `bonus_assegnato` WHERE anno_scolastico_id = $__anno_scolastico_corrente_id;");
+$totale_bonus_assegnato = dbGetValue("SELECT SUM(importo) FROM `bonus_assegnato` WHERE anno_scolastico_id = $anno_scolastico_id;");
 debug('totale_bonus_assegnato=' . $totale_bonus_assegnato);
 
 // calcola i punti totali delle varie opzioni
@@ -29,10 +34,17 @@ $totale_valore_previsto = dbGetValue($query);
 debug('totale_valore_previsto=' . $totale_valore_previsto);
 
 // calcola il totale in punti finora approvati
-if (getSettingsValue('bonus','punteggio_variabile', false)) {
-    $query = "SELECT COALESCE(SUM(approvato), 0) FROM bonus LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id;";
+if (getSettingsValue('bonus', 'punteggio_variabile', false)) {
+    $query = "SELECT COALESCE(SUM(bonus_docente.approvato), 0)
+          FROM bonus
+          LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id
+          WHERE bonus_docente.anno_scolastico_id = $anno_scolastico_id;";
 } else {
-    $query = "SELECT SUM(valore_previsto) FROM bonus LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND approvato is true;";
+    $query = "SELECT SUM(bonus.valore_previsto)
+          FROM bonus
+          LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id
+          WHERE bonus_docente.anno_scolastico_id = $anno_scolastico_id
+            AND bonus_docente.approvato IS TRUE;";
 }
 $totale_valore_approvato = dbGetValue($query);
 debug('totale_valore_approvato=' . $totale_valore_approvato);
@@ -67,42 +79,56 @@ $data .= '
 // prendi tutti i docenti e per ciascuno il suo bonus
 $query = "	SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ;";
 $resultArray = dbGetAll($query);
-foreach($resultArray as $docente) {
+foreach ($resultArray as $docente) {
     $local_docente_id = $docente['id'];
-    $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
+    $docenteCognomeNome = $docente['cognome'] . ' ' . $docente['nome'];
     // tutti quelli richiesti
-    $query = "SELECT SUM(valore_previsto) FROM bonus LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND bonus_docente.docente_id = $local_docente_id;";
+    $query = "SELECT SUM(bonus.valore_previsto)
+          FROM bonus
+          LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id
+          WHERE bonus_docente.anno_scolastico_id = $anno_scolastico_id
+            AND bonus_docente.docente_id = $local_docente_id;";
+
     $punti_richiesti = dbGetValue($query);
     // solo quelli approvati
-    if (getSettingsValue('bonus','punteggio_variabile', false)) {
-        $query = "SELECT COALESCE(SUM(approvato), 0) FROM bonus LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND bonus_docente.docente_id = $local_docente_id;";
+    if (getSettingsValue('bonus', 'punteggio_variabile', false)) {
+        $query = "SELECT COALESCE(SUM(bonus_docente.approvato), 0)
+          FROM bonus
+          LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id
+          WHERE bonus_docente.anno_scolastico_id = $anno_scolastico_id
+            AND bonus_docente.docente_id = $local_docente_id;";
     } else {
-        $query = "SELECT SUM(valore_previsto) FROM bonus LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND bonus_docente.docente_id = $local_docente_id AND approvato is true;";
+        $query = "SELECT SUM(bonus.valore_previsto)
+          FROM bonus
+          LEFT JOIN bonus_docente ON bonus.id = bonus_docente.bonus_id
+          WHERE bonus_docente.anno_scolastico_id = $anno_scolastico_id
+            AND bonus_docente.docente_id = $local_docente_id
+            AND bonus_docente.approvato IS TRUE;";
     }
     $punti_approvati = dbGetValue($query);
     $importo_approvato = $importo_per_punto * $punti_approvati;
-    $query = "SELECT COUNT(id) FROM bonus_docente WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND docente_id = $local_docente_id AND ultima_modifica > ultimo_controllo;";
+    $query = "SELECT COUNT(id) FROM bonus_docente WHERE anno_scolastico_id = $anno_scolastico_id AND docente_id = $local_docente_id AND ultima_modifica > ultimo_controllo;";
     $numero_modificati = dbGetValue($query);
-    debug('docente='.$docenteCognomeNome.' numero_modificati='.$numero_modificati);
-    $marker = ($numero_modificati == 0) ? '': '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> '. '' .'</span>';
+    debug('docente=' . $docenteCognomeNome . ' numero_modificati=' . $numero_modificati);
+    $marker = ($numero_modificati == 0) ? '' : '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow"> ' . '' . '</span>';
 
-    $query = "SELECT SUM(importo) FROM bonus_assegnato WHERE anno_scolastico_id = $__anno_scolastico_corrente_id AND bonus_assegnato.docente_id = $local_docente_id;";
+    $query = "SELECT SUM(importo) FROM bonus_assegnato WHERE anno_scolastico_id = $anno_scolastico_id AND bonus_assegnato.docente_id = $local_docente_id;";
     $importo_bonus_assegnato = dbGetValue($query);
 
     // il totale da pagare
     $importo_da_pagare = $importo_approvato + $importo_bonus_assegnato;
 
-    $openTabMode = getSettingsValue('interfaccia','apriDocenteInNuovoTab', false) ? '_blank' : '_self';
+    $openTabMode = getSettingsValue('interfaccia', 'apriDocenteInNuovoTab', false) ? '_blank' : '_self';
 
     $data .= '<tr>
-    			<td>'.$local_docente_id.'</td>
-    			<td><a href="bonusDettaglioDocente.php?id='.$local_docente_id.'" target="'.$openTabMode.'">&ensp;'.$docenteCognomeNome.' '.$marker.' </a></td>
-    			<td class="text-right viaggi">'.formatNoZeroNoDecimal($punti_richiesti).'</td>
-    			<td class="text-right assegnato">'.formatNoZeroNoDecimal($punti_approvati).'</td>
-    			<td class="text-right funzionale">'.formatNoZero($importo_approvato).'</td>
-    			<td class="text-right funzionale">'.formatNoZero($importo_bonus_assegnato).'</td>
+    			<td>' . $local_docente_id . '</td>
+    			<td><a href="bonusDettaglioDocente.php?id=' . $local_docente_id . '" target="' . $openTabMode . '">&ensp;' . $docenteCognomeNome . ' ' . $marker . ' </a></td>
+    			<td class="text-right viaggi">' . formatNoZeroNoDecimal($punti_richiesti) . '</td>
+    			<td class="text-right assegnato">' . formatNoZeroNoDecimal($punti_approvati) . '</td>
+    			<td class="text-right funzionale">' . formatNoZero($importo_approvato) . '</td>
+    			<td class="text-right funzionale">' . formatNoZero($importo_bonus_assegnato) . '</td>
 
-    			<td class="text-right totale">'.formatNoZero($importo_da_pagare).'</td>
+    			<td class="text-right totale">' . formatNoZero($importo_da_pagare) . '</td>
     		</tr>';
 }
 $data .= '</tbody>';
@@ -110,4 +136,3 @@ $data .= '</table>
 ';
 $data .= '</div>';
 echo $data;
-?>
