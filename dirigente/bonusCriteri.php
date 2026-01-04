@@ -67,6 +67,14 @@ $anni = dbGetAll("SELECT id, anno FROM anno_scolastico ORDER BY id DESC;");
                     </div>
 
                     <div class="col-md-4 text-right">
+                        <button class="btn btn-default btn-sm" id="btn_export_csv">
+                            <span class="glyphicon glyphicon-download"></span>&ensp;CSV
+                        </button>
+                        &ensp;
+                        <button class="btn btn-default btn-sm" id="btn_print_pdf">
+                            <span class="glyphicon glyphicon-print"></span>&ensp;Stampa PDF
+                        </button>
+                        &ensp;
                         <button class="btn btn-primary btn-sm" id="btn_copy_prev">
                             <span class="glyphicon glyphicon-duplicate"></span>&ensp;Copia da anno precedente
                         </button>
