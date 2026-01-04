@@ -6,11 +6,17 @@
  */
 
 function notifyOk(msg) {
-	$.notify({ icon: 'glyphicon glyphicon-ok', message: msg }, { type: 'success', delay: 2000, placement: { from: "top", align: "center" } });
+	$.notify(
+		{ icon: 'glyphicon glyphicon-ok', message: msg },
+		{ type: 'success', delay: 2000, placement: { from: "top", align: "center" } }
+	);
 }
 
 function notifyErr(msg) {
-	$.notify({ icon: 'glyphicon glyphicon-warning-sign', message: msg }, { type: 'danger', delay: 4000, placement: { from: "top", align: "center" } });
+	$.notify(
+		{ icon: 'glyphicon glyphicon-warning-sign', message: msg },
+		{ type: 'danger', delay: 4000, placement: { from: "top", align: "center" } }
+	);
 }
 
 function getAnno() {
@@ -31,34 +37,32 @@ function copyFromPreviousYear(forceOverwrite) {
 	$.ajax({
 		url: "bonusCriteriCopyFromPrevYear.php",
 		method: "POST",
-		dataType: "json", // ✅ jQuery fa parse JSON
+		dataType: "json",
 		data: {
 			anno_scolastico_id: getAnno(),
 			force: forceOverwrite ? 1 : 0
 		},
 		success: function (r) {
-			if (r.success) {
-				nottifyOk(r.message || "Copia completata");
+			if (r && r.success) {
+				notifyOk(r.message || "Copia completata");
 				loadTree();
 			} else {
-				if (r.code === "already_exists") {
+				if (r && r.code === "already_exists") {
 					if (confirm((r.message || "Esistono già criteri per questo anno.") +
 						"\nVuoi sovrascrivere (valido=0 + nuova copia)?")) {
 						copyFromPreviousYear(true);
 					}
 				} else {
-					notifyErr(r.message || "Errore copia");
+					notifyErr((r && r.message) ? r.message : "Errore copia");
 				}
 			}
 		},
 		error: function (xhr) {
-			// ✅ qui vedi proprio cosa ha risposto il server
-			console.error("Risposta server non JSON:", xhr.responseText);
+			console.error("copyFromPreviousYear error:", xhr.status, xhr.responseText);
 			notifyErr("Risposta non valida dal server. Controlla console (F12) > Network/Console.");
 		}
 	});
 }
-
 
 /* =======================
    INDICATORE MODAL
@@ -80,31 +84,40 @@ function openIndicatoreModal(areaId, indicatore) {
 		$("#indicatore_codice").val(indicatore.codice || "");
 		$("#indicatore_descrizione").val(indicatore.descrizione || "");
 		$("#indicatore_valore_massimo").val(indicatore.valore_massimo || "");
-		$("#indicatore_valido").prop("checked", indicatore.valido === null || indicatore.valido === "1" || indicatore.valido === 1);
+		$("#indicatore_valido").prop("checked",
+			indicatore.valido === null || indicatore.valido === "1" || indicatore.valido === 1
+		);
 	}
 
 	$("#modal_indicatore").modal("show");
 }
 
 function saveIndicatore() {
-	$.post("bonusIndicatoreSave.php", {
-		id: $("#indicatore_id").val(),
-		anno_scolastico_id: getAnno(),
-		bonus_area_id: $("#indicatore_area_id").val(),
-		codice: $("#indicatore_codice").val(),
-		descrizione: $("#indicatore_descrizione").val(),
-		valore_massimo: $("#indicatore_valore_massimo").val(),
-		valido: $("#indicatore_valido").is(":checked") ? 1 : 0
-	}, function (resp) {
-		let r;
-		try { r = JSON.parse(resp); } catch(e) { notifyErr("Risposta non valida dal server"); return; }
-
-		if (r.success) {
-			$("#modal_indicatore").modal("hide");
-			notifyOk(r.message || "Salvato");
-			loadTree();
-		} else {
-			notifyErr(r.message || "Errore salvataggio indicatore");
+	$.ajax({
+		url: "bonusIndicatoreSave.php",
+		method: "POST",
+		dataType: "json",
+		data: {
+			id: $("#indicatore_id").val(),
+			anno_scolastico_id: getAnno(),
+			bonus_area_id: $("#indicatore_area_id").val(),
+			codice: $("#indicatore_codice").val(),
+			descrizione: $("#indicatore_descrizione").val(),
+			valore_massimo: $("#indicatore_valore_massimo").val(),
+			valido: $("#indicatore_valido").is(":checked") ? 1 : 0
+		},
+		success: function (r) {
+			if (r && r.success) {
+				$("#modal_indicatore").modal("hide");
+				notifyOk(r.message || "Salvato");
+				loadTree();
+			} else {
+				notifyErr((r && r.message) ? r.message : "Errore salvataggio indicatore");
+			}
+		},
+		error: function (xhr) {
+			console.error("saveIndicatore error:", xhr.status, xhr.responseText);
+			notifyErr("Errore salvataggio indicatore (server). Vedi console.");
 		}
 	});
 }
@@ -112,18 +125,25 @@ function saveIndicatore() {
 function deleteIndicatore(indicatoreId) {
 	if (!confirm("Vuoi disattivare questo indicatore? (valido=0)")) return;
 
-	$.post("bonusIndicatoreDelete.php", {
-		id: indicatoreId,
-		anno_scolastico_id: getAnno()
-	}, function (resp) {
-		let r;
-		try { r = JSON.parse(resp); } catch(e) { notifyErr("Risposta non valida dal server"); return; }
-
-		if (r.success) {
-			notifyOk(r.message || "Eliminato");
-			loadTree();
-		} else {
-			notifyErr(r.message || "Errore eliminazione indicatore");
+	$.ajax({
+		url: "bonusIndicatoreDelete.php",
+		method: "POST",
+		dataType: "json",
+		data: {
+			id: indicatoreId,
+			anno_scolastico_id: getAnno()
+		},
+		success: function (r) {
+			if (r && r.success) {
+				notifyOk(r.message || "Eliminato");
+				loadTree();
+			} else {
+				notifyErr((r && r.message) ? r.message : "Errore eliminazione indicatore");
+			}
+		},
+		error: function (xhr) {
+			console.error("deleteIndicatore error:", xhr.status, xhr.responseText);
+			notifyErr("Errore eliminazione indicatore (server). Vedi console.");
 		}
 	});
 }
@@ -150,32 +170,41 @@ function openBonusModal(indicatoreId, bonus) {
 		$("#bonus_descrittori").val(bonus.descrittori || "");
 		$("#bonus_evidenze").val(bonus.evidenze || "");
 		$("#bonus_valore_previsto").val(bonus.valore_previsto || "");
-		$("#bonus_valido").prop("checked", bonus.valido === null || bonus.valido === "1" || bonus.valido === 1);
+		$("#bonus_valido").prop("checked",
+			bonus.valido === null || bonus.valido === "1" || bonus.valido === 1
+		);
 	}
 
 	$("#modal_bonus").modal("show");
 }
 
 function saveBonus() {
-	$.post("bonusVoceSave.php", {
-		id: $("#bonus_id").val(),
-		anno_scolastico_id: getAnno(),
-		bonus_indicatore_id: $("#bonus_indicatore_id").val(),
-		codice: $("#bonus_codice").val(),
-		descrittori: $("#bonus_descrittori").val(),
-		evidenze: $("#bonus_evidenze").val(),
-		valore_previsto: $("#bonus_valore_previsto").val(),
-		valido: $("#bonus_valido").is(":checked") ? 1 : 0
-	}, function (resp) {
-		let r;
-		try { r = JSON.parse(resp); } catch(e) { notifyErr("Risposta non valida dal server"); return; }
-
-		if (r.success) {
-			$("#modal_bonus").modal("hide");
-			notifyOk(r.message || "Salvato");
-			loadTree();
-		} else {
-			notifyErr(r.message || "Errore salvataggio bonus");
+	$.ajax({
+		url: "bonusVoceSave.php",
+		method: "POST",
+		dataType: "json",
+		data: {
+			id: $("#bonus_id").val(),
+			anno_scolastico_id: getAnno(),
+			bonus_indicatore_id: $("#bonus_indicatore_id").val(),
+			codice: $("#bonus_codice").val(),
+			descrittori: $("#bonus_descrittori").val(),
+			evidenze: $("#bonus_evidenze").val(),
+			valore_previsto: $("#bonus_valore_previsto").val(),
+			valido: $("#bonus_valido").is(":checked") ? 1 : 0
+		},
+		success: function (r) {
+			if (r && r.success) {
+				$("#modal_bonus").modal("hide");
+				notifyOk(r.message || "Salvato");
+				loadTree();
+			} else {
+				notifyErr((r && r.message) ? r.message : "Errore salvataggio bonus");
+			}
+		},
+		error: function (xhr) {
+			console.error("saveBonus error:", xhr.status, xhr.responseText);
+			notifyErr("Errore salvataggio bonus (server). Vedi console.");
 		}
 	});
 }
@@ -183,18 +212,25 @@ function saveBonus() {
 function deleteBonus(bonusId) {
 	if (!confirm("Vuoi disattivare questo bonus? (valido=0)")) return;
 
-	$.post("bonusVoceDelete.php", {
-		id: bonusId,
-		anno_scolastico_id: getAnno()
-	}, function (resp) {
-		let r;
-		try { r = JSON.parse(resp); } catch(e) { notifyErr("Risposta non valida dal server"); return; }
-
-		if (r.success) {
-			notifyOk(r.message || "Eliminato");
-			loadTree();
-		} else {
-			notifyErr(r.message || "Errore eliminazione bonus");
+	$.ajax({
+		url: "bonusVoceDelete.php",
+		method: "POST",
+		dataType: "json",
+		data: {
+			id: bonusId,
+			anno_scolastico_id: getAnno()
+		},
+		success: function (r) {
+			if (r && r.success) {
+				notifyOk(r.message || "Eliminato");
+				loadTree();
+			} else {
+				notifyErr((r && r.message) ? r.message : "Errore eliminazione bonus");
+			}
+		},
+		error: function (xhr) {
+			console.error("deleteBonus error:", xhr.status, xhr.responseText);
+			notifyErr("Errore eliminazione bonus (server). Vedi console.");
 		}
 	});
 }
@@ -220,10 +256,9 @@ $(document).ready(function () {
 		copyFromPreviousYear(false);
 	});
 
-	$("#btn_save_indicatore").click(saveIndicatore);
-	$("#btn_save_bonus").click(saveBonus);
+	$(document).on("click", "#btn_save_indicatore", saveIndicatore);
+	$(document).on("click", "#btn_save_bonus", saveBonus);
 
-	// Deleghe click dentro tree (creato dinamicamente)
 	$(document).on("click", ".btn-add-indicatore", function () {
 		openIndicatoreModal($(this).data("area-id"), null);
 	});

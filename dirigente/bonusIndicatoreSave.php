@@ -1,4 +1,3 @@
-
 <?php
 
 /**
@@ -15,16 +14,21 @@ require_once '../common/connect.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-$anno = isset($_POST['anno_scolastico_id']) ? intval($_POST['anno_scolastico_id']) : $__anno_scolastico_corrente_id;
+$anno = isset($_POST['anno_scolastico_id']) ? intval($_POST['anno_scolastico_id']) : intval($__anno_scolastico_corrente_id);
 $area_id = isset($_POST['bonus_area_id']) ? intval($_POST['bonus_area_id']) : 0;
 
 $codice = isset($_POST['codice']) ? escapeString($_POST['codice']) : '';
 $descrizione = isset($_POST['descrizione']) ? escapeString($_POST['descrizione']) : '';
-$valore_massimo = isset($_POST['valore_massimo']) && $_POST['valore_massimo'] !== '' ? intval($_POST['valore_massimo']) : 'NULL';
+$valore_massimo = (isset($_POST['valore_massimo']) && $_POST['valore_massimo'] !== '') ? intval($_POST['valore_massimo']) : 'NULL';
 $valido = isset($_POST['valido']) ? intval($_POST['valido']) : 1;
 
 if ($area_id <= 0) {
     echo json_encode(['success' => false, 'message' => 'Area non valida']);
+    exit;
+}
+
+if ($anno <= 0) {
+    echo json_encode(['success' => false, 'message' => 'Anno scolastico non valido']);
     exit;
 }
 
@@ -43,21 +47,28 @@ try {
                 valido = $valido,
                 bonus_area_id = $area_id
             WHERE id = $id
-              AND anno_scolastico_id = $anno;
+              AND anno_scolastico_id = $anno
+            LIMIT 1;
         ";
         dbExec($q);
+
         echo json_encode(['success' => true, 'message' => 'Indicatore aggiornato']);
-    } else {
-        $q = "
-            INSERT INTO bonus_indicatore
-            (valido, codice, descrizione, valore_massimo, bonus_area_id, anno_scolastico_id)
-            VALUES
-            ($valido, '$codice', '$descrizione', $valore_massimo, $area_id, $anno);
-        ";
-        dbExec($q);
-        echo json_encode(['success' => true, 'message' => 'Indicatore creato']);
+        exit;
     }
+
+    $q = "
+        INSERT INTO bonus_indicatore
+        (valido, codice, descrizione, valore_massimo, bonus_area_id, anno_scolastico_id)
+        VALUES
+        ($valido, '$codice', '$descrizione', $valore_massimo, $area_id, $anno);
+    ";
+    dbExec($q);
+
+    echo json_encode(['success' => true, 'message' => 'Indicatore creato']);
+    exit;
+
 } catch (Exception $e) {
-    warning("Errore bonusIndicatoreSave: " . $e->getMessage());
+    warning('Errore bonusIndicatoreSave: ' . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Errore salvataggio indicatore']);
+    exit;
 }
