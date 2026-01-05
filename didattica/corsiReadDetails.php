@@ -8,6 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/connect.php';
 
 if (!isset($_POST['corsi_id']) || $_POST['corsi_id'] === "") {
     header('Content-Type: application/json; charset=utf-8');
@@ -39,6 +40,16 @@ if (!$corso) {
     exit;
 }
 
+// ✅ Docenti associati (tabella corso_docenti)
+$docenti = dbGetAll("
+    SELECT cdn.id_docente, cdn.principale, d.cognome, d.nome
+    FROM corso_docenti cdn
+    INNER JOIN docente d ON d.id = cdn.id_docente
+    WHERE cdn.id_corso = $corsi_id
+    ORDER BY cdn.principale DESC, d.cognome ASC, d.nome ASC
+");
+if (!$docenti) $docenti = [];
+
 // 🔹 Date del corso
 $query = "
     SELECT 
@@ -56,7 +67,6 @@ $date = dbGetAll($query);
 // 🔹 Studenti iscritti
 if (intval($corso['carenza']) === 1) {
 
-    // id esame 1° tentativo del corso corrente (se manca, diventa NULL e non trova esiti)
     $id_esame_t1 = dbGetValue("
         SELECT id
         FROM corso_esami_date
@@ -76,12 +86,10 @@ if (intval($corso['carenza']) === 1) {
             e1.assenza_giustificata,
             e1.assenza_note,
 
-            -- Primo tentativo (esame tentativo=1 del corso corrente)
             IF(e1.id IS NOT NULL, 1, 0) AS ha_esito,
             COALESCE(e1.presente, 0) AS presente,
             COALESCE(e1.recuperato, 0) AS recuperato,
 
-            -- Seconda sessione (nuovo corso agganciato)
             IF(cc2.id IS NOT NULL, 1, 0) AS secondo_tentativo,
             IF(ced2.firmato = 1, 1, 0) AS secondo_firmato,
             cc2.id_corso_secondo AS secondo_corso_id
@@ -114,7 +122,6 @@ if (intval($corso['carenza']) === 1) {
 
 } else {
 
-    // Corsi normali → solo iscritti, senza esiti
     $query = "
         SELECT 
             i.id AS iscrizione_id,
@@ -142,6 +149,7 @@ if ($studenti == null) $studenti = [];
 // 🔹 JSON finale
 $struct_json = [
     'corso' => $corso,
+    'docenti' => $docenti, // ✅ aggiunto
     'date' => $date ? $date : [],
     'studenti' => $studenti
 ];

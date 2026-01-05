@@ -4,7 +4,7 @@ require_once '../common/connect.php';
 
 $docente_id = 0;
 if (impersonaRuolo("docente")) {
-    $docente_id = $__docente_id;
+    $docente_id = intval($__docente_id ?? 0);
 } else {
     $docente_id = intval($_GET["docente_id"] ?? 0);
 }
@@ -64,8 +64,10 @@ SELECT
     c.in_itinere AS in_itinere,
 
     m.nome AS materia_nome,
-    d.cognome AS docente_cognome,
-    d.nome AS docente_nome,
+
+    -- fallback docente principale (se corso_docenti non ancora popolata)
+    dmain.cognome AS docente_cognome,
+    dmain.nome AS docente_nome,
 
     MIN(cd.data_inizio) AS data_inizio,
     MAX(cd.data_inizio) AS data_fine,
@@ -81,14 +83,23 @@ SELECT
 
     (SELECT COUNT(*) FROM corso_iscritti ci WHERE ci.id_corso = c.id) AS studenti_iscritti,
 
+    (
+      SELECT GROUP_CONCAT(CONCAT(dd.cognome,' ',dd.nome)
+                          ORDER BY cdn.principale DESC, dd.cognome, dd.nome
+                          SEPARATOR ', ')
+      FROM corso_docenti cdn
+      JOIN docente dd ON dd.id = cdn.id_docente
+      WHERE cdn.id_corso = c.id
+    ) AS docenti_label,
+
     -- Esame tentativo 1 (per carenze, sia S1 che S2)
     (SELECT id FROM corso_esami_date ed1 WHERE ed1.id_corso=c.id AND ed1.tentativo=1 LIMIT 1) AS esame1_id,
     (SELECT ed1.firmato FROM corso_esami_date ed1 WHERE ed1.id_corso=c.id AND ed1.tentativo=1 LIMIT 1) AS esame1_firmato,
     (SELECT ed1.data_inizio_esame FROM corso_esami_date ed1 WHERE ed1.id_corso=c.id AND ed1.tentativo=1 LIMIT 1) AS esame1_data
 
 FROM corso c
-INNER JOIN docente d ON d.id = c.id_docente
 INNER JOIN materia m ON m.id = c.id_materia
+LEFT JOIN docente dmain ON dmain.id = c.id_docente
 LEFT JOIN corso_date cd ON cd.id_corso = c.id
 
 WHERE c.id_anno_scolastico = $anni_filtro_id
@@ -97,7 +108,15 @@ WHERE c.id_anno_scolastico = $anni_filtro_id
 ";
 
 if ($materia_id > 0) $query .= " AND c.id_materia = $materia_id";
-if ($docente_id > 0) $query .= " AND c.id_docente = $docente_id";
+
+if ($docente_id > 0) {
+    $query .= " AND EXISTS (
+        SELECT 1
+        FROM corso_docenti cdn
+        WHERE cdn.id_corso = c.id
+          AND cdn.id_docente = $docente_id
+    )";
+}
 
 // filtro sessione carenze (solo se carenze=1 e filtro attivo)
 if ($carenze_toggle == 1 && ($carenza_sessione == 1 || $carenza_sessione == 2)) {
@@ -105,9 +124,23 @@ if ($carenze_toggle == 1 && ($carenza_sessione == 1 || $carenza_sessione == 2)) 
 }
 
 $query .= "
-GROUP BY c.id, c.id_materia, c.id_docente, c.id_anno_scolastico, c.carenza, c.carenza_sessione, c.in_itinere, m.nome, d.cognome, d.nome
+GROUP BY
+    c.id,
+    c.id_materia,
+    c.id_docente,
+    c.titolo,
+    c.id_anno_scolastico,
+    c.carenza,
+    c.carenza_sessione,
+    c.in_itinere,
+    m.nome,
+    dmain.cognome,
+    dmain.nome
 HAVING ($futuri = 0 OR COALESCE(MAX(cd.data_inizio), '1970-01-01') >= CURDATE())
-ORDER BY m.nome ASC, d.cognome ASC, d.nome ASC, c.titolo ASC
+ORDER BY
+    m.nome ASC,
+    COALESCE(docenti_label, CONCAT(dmain.cognome,' ',dmain.nome)) ASC,
+    c.titolo ASC
 ";
 
 $rows = dbGetAll($query);
@@ -117,7 +150,10 @@ foreach ($rows as $row) {
     $idcorso = intval($row['corso_id']);
 
     $materia = $row['materia_nome'];
-    $nome_docente = $row['docente_cognome'] . ' ' . $row['docente_nome'];
+
+    $fallbackDoc = trim(($row['docente_cognome'] ?? '') . ' ' . ($row['docente_nome'] ?? ''));
+    $nome_docente = $row['docenti_label'] ? $row['docenti_label'] : $fallbackDoc;
+
     $studenti_iscritti = intval($row['studenti_iscritti']);
 
     $isCarenza = (intval($row['carenza']) === 1);
@@ -125,7 +161,7 @@ foreach ($rows as $row) {
     $isSessione2 = ($isCarenza && $sess === 2);
     $isItinere = (intval($row['in_itinere']) === 1);
 
-    // ----- BADGE NEL TITOLO (solo “umani”) -----
+    // ----- BADGE NEL TITOLO -----
     $titleBadges = '';
 
     if ($isCarenza) {
@@ -134,7 +170,6 @@ foreach ($rows as $row) {
         else $titleBadges .= badge('CARENE', 'default');
     }
 
-    // ITINERE nel titolo SOLO se ti serve, ma non metto dettagli esame
     if ($isItinere) {
         $titleBadges .= badge('ITINERE', 'primary');
     }
@@ -150,58 +185,51 @@ foreach ($rows as $row) {
         $data_fine   = $row['data_fine'] ? fmtDT($row['data_fine']) : '—';
     }
 
-    // ----- STATO (badge principale: UNO SOLO) -----
-// NB: per itinere forzo lo stato “Recupero itinere”
-$stato = $isItinere ? 4 : intval($row['stato']);
+    // ----- STATO -----
+    $stato = $isItinere ? 4 : intval($row['stato']);
 
-$statoMarker = '';
-if ($stato == 0) $statoMarker = badge('Non iniziato', 'default');
-else if ($stato == 1) $statoMarker = badge('In svolgimento', 'warning');
-else if ($stato == 2) $statoMarker = badge('Terminato', 'success');
-else if ($stato == 3) $statoMarker = badge('Nessuna data', 'danger');
-else if ($stato == 4) $statoMarker = badge('Recupero itinere', 'primary');
+    $statoMarker = '';
+    if ($stato == 0) $statoMarker = badge('Non iniziato', 'default');
+    else if ($stato == 1) $statoMarker = badge('In svolgimento', 'warning');
+    else if ($stato == 2) $statoMarker = badge('Terminato', 'success');
+    else if ($stato == 3) $statoMarker = badge('Nessuna data', 'danger');
+    else if ($stato == 4) $statoMarker = badge('Recupero itinere', 'primary');
 
-// ----- BADGE INFO EXTRA (tutti qui, senza doppioni) -----
-
-// 1) Tipo corso: carenze + sessione (S1/S2)
-if ($isCarenza) {
-    if ($sess === 1) $statoMarker .= ' ' . badge('S1', 'info');
-    else if ($sess === 2) $statoMarker .= ' ' . badge('S2', 'primary');
-    else $statoMarker .= ' ' . badge('CARENE', 'default');
-}
-
-// 2) ITINERE come badge extra SOLO se non è già lo stato "Recupero itinere"
-if ($isItinere && $stato != 4) {
-    $statoMarker .= ' ' . badge('ITINERE', 'primary');
-}
-
-// 3) Lezioni firmate/totali (solo se ha date e non è itinere e non è S2)
-$lezTot = intval($row['lezioni_totali']);
-$lezFir = intval($row['lezioni_firmate']);
-if (!$isItinere && !$isSessione2 && $lezTot > 0) {
-    $statoMarker .= ' ' . badge(
-        'L: ' . $lezFir . '/' . $lezTot,
-        ($lezFir === $lezTot ? 'success' : ($lezFir === 0 ? 'default' : 'warning'))
-    );
-}
-
-// 4) Esame (solo carenze): NP / PRG / BOZ / FIR
-if ($isCarenza) {
-    $e1_id = intval($row['esame1_id'] ?? 0);
-    $e1_f  = intval($row['esame1_firmato'] ?? 0);
-    $e1_dt = $row['esame1_data'] ?? null;
-
-    if ($e1_id <= 0) {
-        $statoMarker .= ' ' . badge('Esame NP', 'danger');
-    } else if ($e1_f === 1) {
-        $statoMarker .= ' ' . badge('Esame FIR', 'success');
-    } else if ($e1_dt) {
-        $statoMarker .= ' ' . badge('Esame PRG', 'warning');
-    } else {
-        $statoMarker .= ' ' . badge('Esame BOZ', 'default');
+    // extra badge
+    if ($isCarenza) {
+        if ($sess === 1) $statoMarker .= ' ' . badge('S1', 'info');
+        else if ($sess === 2) $statoMarker .= ' ' . badge('S2', 'primary');
+        else $statoMarker .= ' ' . badge('CARENE', 'default');
     }
-}
 
+    if ($isItinere && $stato != 4) {
+        $statoMarker .= ' ' . badge('ITINERE', 'primary');
+    }
+
+    $lezTot = intval($row['lezioni_totali']);
+    $lezFir = intval($row['lezioni_firmate']);
+    if (!$isItinere && !$isSessione2 && $lezTot > 0) {
+        $statoMarker .= ' ' . badge(
+            'L: ' . $lezFir . '/' . $lezTot,
+            ($lezFir === $lezTot ? 'success' : ($lezFir === 0 ? 'default' : 'warning'))
+        );
+    }
+
+    if ($isCarenza) {
+        $e1_id = intval($row['esame1_id'] ?? 0);
+        $e1_f  = intval($row['esame1_firmato'] ?? 0);
+        $e1_dt = $row['esame1_data'] ?? null;
+
+        if ($e1_id <= 0) {
+            $statoMarker .= ' ' . badge('Esame NP', 'danger');
+        } else if ($e1_f === 1) {
+            $statoMarker .= ' ' . badge('Esame FIR', 'success');
+        } else if ($e1_dt) {
+            $statoMarker .= ' ' . badge('Esame PRG', 'warning');
+        } else {
+            $statoMarker .= ' ' . badge('Esame BOZ', 'default');
+        }
+    }
 
     // ----- ROW -----
     $data .= '<tr>';
@@ -220,31 +248,29 @@ if ($isCarenza) {
 
             if (getSettingsValue('corsi', 'docente_puo_modificare', false)) {
                 $data .= '
-                <button onclick="corsiGetDetails(\'' . $idcorso . '\')" 
-                        class="btn btn-warning btn-xs" 
-                        data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+                <button onclick="corsiGetDetails(\'' . $idcorso . '\')"
+                        class="btn btn-warning btn-xs"
+                        data-toggle="tooltip" data-trigger="hover" data-placement="top"
                         title="Modifica il corso">
                     <span class="glyphicon glyphicon-pencil"></span>
                 </button>';
             }
 
-            // Registro lezioni: solo se NON itinere e NON sessione2
             if (!$isItinere && !$isSessione2) {
                 $data .= '
-                <button onclick="apriRegistroLezione(\'' . $idcorso . '\')" 
-                        class="btn btn-primary btn-xs" 
-                        data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+                <button onclick="apriRegistroLezione(\'' . $idcorso . '\')"
+                        class="btn btn-primary btn-xs"
+                        data-toggle="tooltip" data-trigger="hover" data-placement="top"
                         title="Gestisci le presenze e gli argomenti">
                     <span class="glyphicon glyphicon-user"></span>
                 </button>';
             }
 
-            // Esame: su corsi carenze (S1 e S2)
             if ($isCarenza) {
                 $data .= '
-                <button onclick="apriEsameModal(\'' . $idcorso . '\')" 
-                        class="btn btn-success btn-xs" 
-                        data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+                <button onclick="apriEsameModal(\'' . $idcorso . '\')"
+                        class="btn btn-success btn-xs"
+                        data-toggle="tooltip" data-trigger="hover" data-placement="top"
                         title="Esame carenze">
                     <span class="glyphicon glyphicon-check"></span>
                 </button>';
@@ -254,31 +280,30 @@ if ($isCarenza) {
     } else if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
 
         $data .= '
-        <button onclick="corsiGetDetails(\'' . $idcorso . '\')" 
-                class="btn btn-warning btn-xs" 
-                data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+        <button onclick="corsiGetDetails(\'' . $idcorso . '\')"
+                class="btn btn-warning btn-xs"
+                data-toggle="tooltip" data-trigger="hover" data-placement="top"
                 title="Modifica il corso">
             <span class="glyphicon glyphicon-pencil"></span>
         </button>
-        <button onclick="corsiDuplicaOpen(\'' . $idcorso . '\')" 
-                class="btn btn-success btn-xs" 
-                data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+        <button onclick="corsiDuplicaOpen(\'' . $idcorso . '\')"
+                class="btn btn-success btn-xs"
+                data-toggle="tooltip" data-trigger="hover" data-placement="top"
                 title="Duplica il corso">
             <span class="glyphicon glyphicon-duplicate"></span>
         </button>
-        <button onclick="corsiDelete(\'' . $idcorso . '\',\'' . addslashes($materia) . '\',\'' . addslashes($nome_docente) . '\',\'' . $studenti_iscritti . '\',\'' . $stato . '\')" 
-                class="btn btn-danger btn-xs" 
-                data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+        <button onclick="corsiDelete(\'' . $idcorso . '\',\'' . addslashes($materia) . '\',\'' . addslashes($nome_docente) . '\',\'' . $studenti_iscritti . '\',\'' . $stato . '\')"
+                class="btn btn-danger btn-xs"
+                data-toggle="tooltip" data-trigger="hover" data-placement="top"
                 title="Cancella il corso">
             <span class="glyphicon glyphicon-trash"></span>
         </button>';
 
-        // Registro lezioni: solo se NON itinere e NON sessione2 e non "nessuna data"
         if (!$isItinere && !$isSessione2 && $stato != 3) {
             $data .= '
-            <button onclick="apriRegistroLezione(\'' . $idcorso . '\')" 
-                    class="btn btn-primary btn-xs" 
-                    data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+            <button onclick="apriRegistroLezione(\'' . $idcorso . '\')"
+                    class="btn btn-primary btn-xs"
+                    data-toggle="tooltip" data-trigger="hover" data-placement="top"
                     title="Gestisci le presenze e gli argomenti">
                 <span class="glyphicon glyphicon-user"></span>
             </button>';
@@ -286,9 +311,9 @@ if ($isCarenza) {
 
         if ($isCarenza) {
             $data .= '
-            <button onclick="apriEsameModal(\'' . $idcorso . '\')" 
-                    class="btn btn-success btn-xs" 
-                    data-toggle="tooltip" data-trigger="hover" data-placement="top" 
+            <button onclick="apriEsameModal(\'' . $idcorso . '\')"
+                    class="btn btn-success btn-xs"
+                    data-toggle="tooltip" data-trigger="hover" data-placement="top"
                     title="Esame carenze">
                 <span class="glyphicon glyphicon-check"></span>
             </button>';

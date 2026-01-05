@@ -64,7 +64,6 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
 
         .tooltip-inner {
             max-width: 450px;
-            /* If max-width does not work, try using width instead */
             width: 450px;
             text-align: left;
         }
@@ -72,16 +71,13 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
         /* Tabella studenti iscritti compatta e centrata */
         #iscritti_table {
             width: 60% !important;
-            /* 50% della form */
             margin: 0 auto;
-            /* centrata */
         }
 
         /* Colonna Nominativo più larga */
         #iscritti_table th:nth-child(1),
         #iscritti_table td:nth-child(1) {
             width: 600px;
-            /* puoi regolare */
         }
 
         /* Colonna Classe stretta e centrata */
@@ -96,7 +92,6 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
         #iscritti_table th:nth-child(3),
         #iscritti_table td:nth-child(3) {
             width: 100px;
-            /* regola secondo necessità */
             text-align: center;
             white-space: nowrap;
         }
@@ -111,10 +106,8 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
         .label-rosso {
             color: red;
             font-weight: bold;
-            /* opzionale, per renderlo più visibile */
             text-align: center;
             display: block;
-            /* utile per centrare il testo */
         }
 
         /* Tabella date */
@@ -123,7 +116,7 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
             margin: 0 auto;
         }
 
-        /* Colonna Data più stretta (già a posto) */
+        /* Colonna Data più stretta */
         #date_table th:nth-child(1),
         #date_table td:nth-child(1) {
             width: 160px;
@@ -141,7 +134,6 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
         #date_table th:nth-child(3),
         #date_table td:nth-child(3) {
             width: 100px;
-            /* puoi regolare tra 80-120px */
             text-align: center;
             white-space: nowrap;
         }
@@ -163,6 +155,16 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
             z-index: 1060;
         }
 
+        /* Registro lezione sopra */
+        #registroLezioneModal {
+            z-index: 1070;
+        }
+
+        /* Aggiungi studenti sopra */
+        #aggiungiStudentiModal {
+            z-index: 1080;
+        }
+
         /* Backdrop */
         .modal-backdrop.in {
             z-index: 1045;
@@ -174,7 +176,6 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
             background-image: linear-gradient(#fffaf4, #ffc570);
             border-color: #ffc570 #ffc570 hsl(36, 100%, 65.5%);
             color: #333 !important;
-            /* stesso colore testo della panel-heading */
             text-align: center;
             position: relative;
             text-shadow: 0 1px 1px rgba(255, 255, 255, 0.42);
@@ -187,7 +188,6 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
 
         .modal-header-orange4 .close {
             color: #333;
-            /* come i link e il testo della barra principale */
             opacity: 1;
             position: absolute;
             right: 15px;
@@ -196,44 +196,35 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
 
         .modal-footer {
             text-align: center;
-            /* centra i pulsanti */
         }
 
         .modal-header-blu {
             background-color: #cce5ff;
-            /* fallback */
             background-repeat: repeat-x;
             background-image: linear-gradient(#e6f0ff, #3399ff);
-            /* gradiente celeste → blu */
             border-color: #3399ff #3399ff #2673cc;
             color: #000;
-            /* testo nero */
             text-align: center;
             position: relative;
             text-shadow: none;
-            /* rimuove ombra bianca */
         }
 
         .modal-header-blu .modal-title {
             margin: 0 auto;
             font-weight: bold;
             color: #000;
-            /* assicura che il titolo sia nero */
         }
 
         .modal-header-blu .close {
             color: #000;
-            /* X nera */
             opacity: 1;
             position: absolute;
             right: 15px;
             top: 15px;
         }
 
-        /* sposta la modale più in basso */
         .modal-basso {
             margin-top: 150px;
-            /* regola a piacere */
         }
 
         #toastMessage {
@@ -251,6 +242,23 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
             font-family: Arial, sans-serif;
             font-size: 16px;
             opacity: 0.95;
+        }
+
+        /* Box "Firmato da" - registro lezione */
+        .firme-box {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #5bc0de;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        /* Allinea "Data lezione" al testo di "Firmato da" */
+        #registroLezioneModal .data-lezione-box {
+            padding-left: 31px;
+            /* 15 (bootstrap) + 16 (border+padding firme-box) */
+            padding-right: 15px;
         }
     </style>
 
@@ -318,19 +326,21 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
             <div class="panel-heading">
                 <div class="row align-items-start" style="margin-bottom:10px;">
                     <div class="col-md-1 text-center">
-                        <span class="glyphicon glyphicon-list-alt"
-                            style="margin:5px"></span><br><b>Elenco<br>Corsi</b>
+                        <span class="glyphicon glyphicon-list-alt" style="margin:5px"></span><br><b>Elenco<br>Corsi</b>
                     </div>
 
                     <div class="col-md-3 text-center">
                         <label class="col-sm-12 control-label" for="materia">Materia</label>
                         <div class="text-center">
-                            <div class="col-sm-12"><select id="materia_filtro" name="materia_filtro"
+                            <div class="col-sm-12">
+                                <select id="materia_filtro" name="materia_filtro"
                                     class="mamteria_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
                                     data-noneSelectedText="seleziona..."
-                                    data-width="100%"><?php echo $materiaFiltroOptionList ?></select></div>
+                                    data-width="100%"><?php echo $materiaFiltroOptionList ?></select>
+                            </div>
                         </div>
                     </div>
+
                     <?php
                     if (haRuolo('segreteria-didattica')) {
                         echo '
@@ -403,7 +413,6 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 
                     </div>
 
-
                     <div class="col-md-2 text-center" style="margin-top:20px;">
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
                             <input type="checkbox" data-toggle="toggle" data-size="mini"
@@ -427,12 +436,13 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
+
             <div class="panel-body">
                 <div class="row" style="margin-bottom:10px;">
-                    <div class="col-md-12 text-center" id='result_text'>
-                    </div>
+                    <div class="col-md-12 text-center" id='result_text'></div>
                 </div>
                 <div class="row">
                     <div class="col-md-12">
@@ -441,11 +451,13 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                 </div>
             </div>
 
-            <!-- <div class="panel-footer"></div> -->
             <input type="hidden" id="hidden_corso_id">
         </div>
     </div>
 
+    <!-- ===================== -->
+    <!-- MODALE DETTAGLI CORSO -->
+    <!-- ===================== -->
     <div class="modal fade" id="corsi_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" data-backdrop="static">
         <div class="modal-dialog modal-md" role="document">
             <div class="modal-content">
@@ -454,14 +466,35 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     <h4 class="modal-title w-100 text-center" id="myModalLabel">Dettagli Corso</h4>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
+
                 <div class="modal-body">
                     <form class="form-horizontal">
 
-                        <!-- docenti -->
-                        <div class="form-group">
+                        <!-- ✅ Vecchio docente (compatibilità JS, nascosto) -->
+                        <div class="form-group" style="display:none;">
                             <label class="col-sm-2 control-label">Docente</label>
                             <div class="col-sm-10">
-                                <select id="docente" class="selectpicker form-control" data-live-search="true"><?php echo $docentiFiltroOptionList ?></select>
+                                <select id="docente" class="selectpicker form-control" data-live-search="true">
+                                    <?php echo $docentiFiltroOptionList ?>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- ✅ NUOVO: docenti multipli -->
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">Docenti</label>
+                            <div class="col-sm-10">
+                                <select id="docenti_multi"
+                                    class="selectpicker form-control"
+                                    data-live-search="true"
+                                    data-width="100%"
+                                    multiple
+                                    title="Seleziona uno o più docenti">
+                                    <?php echo $docentiFiltroOptionList ?>
+                                </select>
+                                <small class="text-muted">
+                                    Il primo selezionato viene salvato come docente principale (compatibilità con corso.id_docente).
+                                </small>
                             </div>
                         </div>
 
@@ -469,7 +502,9 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <div class="form-group">
                             <label class="col-sm-2 control-label">Materia</label>
                             <div class="col-sm-10">
-                                <select id="materia" class="selectpicker form-control" data-live-search="true"><?php echo $materiaOptionList ?></select>
+                                <select id="materia" class="selectpicker form-control" data-live-search="true">
+                                    <?php echo $materiaOptionList ?>
+                                </select>
                             </div>
                         </div>
 
@@ -481,11 +516,8 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             </div>
                         </div>
 
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
-                            <button type="button" class="btn btn-primary" onclick="corsiSave()">Salva</button>
-                        </div>
-                        <hr> <!-- date -->
+                        <hr>
+
                         <!-- in_itinere -->
                         <div class="form-group text-center">
                             <label for="in_itinere" class="control-label" style="margin-right:10px;">In itinere</label>
@@ -527,7 +559,6 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                                 </thead>
                                 <tbody></tbody>
                             </table>
-                            <!-- Pulsante iscrivi studenti centrato -->
                             <button type="button" class="btn btn-success" style="margin: 10px auto; display:block;" onclick="iscriviStudenti()">Iscrivi Studenti</button>
                         </div>
 
@@ -543,327 +574,313 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         </div>
     </div>
 
-    <!-- Modal modifica data corso -->
-    <div class="modal fade" id="modificaDataModal" tabindex="-1" role="dialog"
-        data-backdrop="static" data-keyboard="false" aria-labelledby="modificaDataLabel">
-        <div class="modal-dialog modal-sm modal-basso" role="document"> <!-- aggiunta classe modal-basso -->
+    <!-- ===================== -->
+    <!-- MODALE MODIFICA DATA  -->
+    <!-- ===================== -->
+    <div class="modal fade" id="modificaDataModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-md modal-basso" role="document">
             <div class="modal-content">
-
                 <div class="modal-header modal-header-blu">
-                    <h4 class="modal-title w-100 text-center" id="modificaDataLabel">Modifica Data</h4>
+                    <h4 class="modal-title">Modifica data</h4>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
 
                 <div class="modal-body">
-                    <form id="formModificaData" class="form-horizontal">
-                        <input type="hidden" id="hidden_data_id">
 
-                        <div class="form-group text-center">
-                            <label for="mod_data_inizio" class="control-label">Data e Ora Inizio</label>
-                            <input type="datetime-local" id="mod_data_inizio" class="form-control" style="max-width:200px; margin:0 auto;">
-                        </div>
+                    <input type="hidden" id="hidden_data_id" value="-1">
 
-                        <div class="form-group text-center">
-                            <label for="mod_data_fine" class="control-label">Data e Ora Fine</label>
-                            <input type="datetime-local" id="mod_data_fine" class="form-control" style="max-width:200px; margin:0 auto;">
-                        </div>
+                    <div id="error-modifica-data" class="alert alert-danger" style="display:none;"></div>
 
-                        <div class="form-group text-center">
-                            <label for="mod_aula" class="control-label">Aula</label>
-                            <input type="text" id="mod_aula" class="form-control" placeholder="Inserisci aula" style="max-width:200px; margin:0 auto;">
-                        </div>
-
-                        <div class="form-group text-danger text-center" id="error-modifica-data" style="display:none;"></div>
-                    </form>
-                </div>
-
-                <div class="modal-footer justify-content-center">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                    <button type="button" class="btn btn-primary" onclick="salvaModificaData()">Salva</button>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal aggiungi più studenti -->
-    <div class="modal fade" id="aggiungiStudentiModal" tabindex="-1" role="dialog"
-        data-backdrop="static" data-keyboard="false" aria-labelledby="aggiungiStudentiLabel">
-        <div class="modal-dialog modal-sm modal-basso" role="document">
-            <div class="modal-content">
-
-                <div class="modal-header modal-header-blu">
-                    <h4 class="modal-title w-100 text-center" id="aggiungiStudentiLabel">Aggiungi Studenti</h4>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                </div>
-
-                <div class="modal-body">
-                    <form id="formAggiungiStudenti" class="form-horizontal">
-
-                        <div id="container_studenti">
-                            <!-- Qui appariranno i select dinamici -->
-                        </div>
-
-                        <div class="form-group text-danger text-center" id="error-aggiungi-studenti" style="display:none;"></div>
-                    </form>
-                </div>
-
-                <div class="modal-footer justify-content-center">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                    <button type="button" class="btn btn-primary" onclick="salvaNuoviStudenti()">Aggiungi</button>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Registro Lezione -->
-    <div class="modal fade" id="registroLezioneModal" tabindex="-1" role="dialog" aria-labelledby="registroLezioneLabel" data-backdrop="static">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-
-                <div class="modal-header modal-header-orange4">
-                    <h4 class="modal-title w-100 text-center" id="registroLezioneLabel">Registro Lezione</h4>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                </div>
-
-                <div class="modal-body">
-                    <form class="form-horizontal">
-
-                        <!-- Select Date del Corso -->
-                        <div class="form-group row justify-content-center">
-                            <label class="col-sm-2 control-label text-center">Data Corso</label>
-                            <div class="col-sm-6"> <!-- leggermente più largo -->
-                                <select id="select_data_corso" class="selectpicker form-control" data-live-search="true">
-                                    <!-- Le date verranno caricate tramite JS -->
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Tabella studenti -->
-                        <div class="form-group">
-                            <label class="col-sm-12 text-center label-rosso">Studenti Iscritti</label>
-                            <div class="col-sm-12">
-                                <table class="table table-bordered table-striped text-center" id="tabellaStudenti">
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center">Studente</th>
-                                            <th class="text-center">Classe</th>
-                                            <th class="text-center">Presente</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Popolato tramite JS -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Argomenti -->
-                        <div class="form-group">
-                            <label class="col-sm-12 text-center label-rosso">Argomenti Svolti</label>
-                            <div class="col-sm-12">
-                                <textarea id="argomentiLezione" class="form-control" rows="4" placeholder="Inserisci gli argomenti svolti..."></textarea>
-                            </div>
-                        </div>
-
-                    </form>
-                </div>
-
-                <!-- Checkbox Firmato -->
-                <div class="form-group text-center">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="lezioneFirmata" value="1">
-                        <label class="form-check-label" for="lezioneFirmata">
-                            FIRMA LA LEZIONE
-                        </label>
+                    <div class="form-group">
+                        <label>Data inizio</label>
+                        <input type="datetime-local" id="mod_data_inizio" class="form-control">
                     </div>
+
+                    <div class="form-group">
+                        <label>Data fine</label>
+                        <input type="datetime-local" id="mod_data_fine" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Aula</label>
+                        <input type="text" id="mod_aula" class="form-control" placeholder="Aula">
+                    </div>
+
                 </div>
 
-                <div class="modal-footer justify-content-center">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
-                    <button type="button" class="btn btn-primary" onclick="salvaRegistroLezione()">Salva</button>
+                <div class="modal-footer">
+                    <button class="btn btn-default" data-dismiss="modal">Annulla</button>
+                    <button class="btn btn-primary" onclick="salvaModificaData()">Salva</button>
                 </div>
 
             </div>
         </div>
     </div>
 
-    <!-- Modal Duplica -->
-    <div class="modal fade" id="duplica_corso_modal" tabindex="-1" role="dialog"
-        aria-labelledby="duplicaCorsoLabel" data-backdrop="static" data-keyboard="false">
-        <div class="modal-dialog modal-sm modal-basso" role="document">
+    <!-- ============================= -->
+    <!-- MODALE AGGIUNGI STUDENTI      -->
+    <!-- ============================= -->
+    <div class="modal fade" id="aggiungiStudentiModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-md modal-basso" role="document">
             <div class="modal-content">
-
-                <div class="modal-header modal-header-orange4">
-                    <h4 class="modal-title w-100 text-center" id="duplicaCorsoLabel">Duplica corso</h4>
+                <div class="modal-header modal-header-blu">
+                    <h4 class="modal-title">Aggiungi studenti</h4>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
 
                 <div class="modal-body">
-                    <form id="formDuplicaCorso" class="form-horizontal">
-
-                        <div class="form-group text-center">
-                            <label for="duplica_docente" class="control-label">Nuovo docente</label>
-
-                            <div class="row">
-                                <div class="col-xs-10 col-xs-offset-1">
-                                    <select id="duplica_docente"
-                                        class="selectpicker form-control"
-                                        data-live-search="true"
-                                        data-width="100%"
-                                        data-noneSelectedText="seleziona...">
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-group text-danger text-center" id="duplica_err" style="display:none;"></div>
-
-                    </form>
+                    <div id="error-aggiungi-studenti" class="alert alert-danger" style="display:none;"></div>
+                    <div id="container_studenti"></div>
                 </div>
 
-                <div class="modal-footer justify-content-center">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                    <button type="button" class="btn btn-primary" onclick="corsiDuplicaConfirm()">Crea copia</button>
+                <div class="modal-footer">
+                    <button class="btn btn-default" data-dismiss="modal">Annulla</button>
+                    <button class="btn btn-primary" onclick="salvaNuoviStudenti()">Salva</button>
                 </div>
-
             </div>
         </div>
     </div>
 
-
-    <!-- Modal Esame -->
-    <div class="modal fade" id="esameModal" tabindex="-1" role="dialog" aria-labelledby="esameLabel" data-backdrop="static">
+    <!-- ============================= -->
+    <!-- MODALE REGISTRO LEZIONE       -->
+    <!-- ============================= -->
+    <div class="modal fade" id="registroLezioneModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
 
-                <div class="modal-header modal-header-orange4">
-                    <h4 class="modal-title w-100 text-center" id="esameLabel">Gestione Esame</h4>
+                <div class="modal-header modal-header-blu">
+                    <h4 class="modal-title">Registro lezione</h4>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
 
                 <div class="modal-body">
-                    <form class="form-horizontal">
 
-                        <!-- 🔹 Nuovo selettore tentativo -->
-                        <div class="form-group row">
-                            <label class="col-sm-2 col-form-label text-right">Sessione</label>
-                            <div class="col-sm-4">
-                                <select id="select_tentativo" class="form-control">
-                                    <!-- Popolato via JS -->
-                                    <!-- <option value="1">Primo tentativo (01/06/2025)</option> -->
-                                    <!-- <option value="2">Secondo tentativo (non programmato)</option> -->
-                                </select>
-                            </div>
+                    <div class="row" style="margin-bottom:10px;">
+                        <div class="col-md-8 data-lezione-box">
+                            <label>Data lezione</label>
+                            <select id="select_data_corso"
+                                class="selectpicker"
+                                data-live-search="true"
+                                data-width="100%">
+                            </select>
                         </div>
-                        <input type="hidden" id="hidden_esame_data_id" value="">
-                        <!-- Data, Ora, Aula -->
-                        <div class="form-group row">
-                            <label class="col-sm-2 col-form-label text-right">Data</label>
-                            <div class="col-sm-2">
-                                <input type="date" id="esame_inizio_data" class="form-control" style="text-align: center;">
-                            </div>
-
-                            <label class="col-sm-1 col-form-label text-center">Ora inizio</label>
-                            <div class="col-sm-2">
-                                <input type="time" id="esame_inizio_ora" class="form-control" style="text-align: center;">
-                            </div>
-
-                            <label class="col-sm-1 col-form-label text-center">Aula</label>
-                            <div class="col-sm-2">
-                                <input type="text" id="esame_aula" class="form-control">
-                            </div>
+                        <div class="col-md-4 text-center" style="padding-top:25px;">
+                            <label style="margin-right:10px;">Lezione firmata</label>
+                            <input type="checkbox" id="lezioneFirmata"
+                                data-toggle="toggle"
+                                data-on="Sì" data-off="No"
+                                data-onstyle="success" data-offstyle="danger">
+                        </div>
+                        <!-- Box firme (docente) -->
+                        <div class="col-md-12">
+                            <div id="firmeLezioneBox" class="text-muted firme-box" style="display:none;"></div>
                         </div>
 
-                        <div class="form-group row">
-                            <label class="col-sm-2 col-form-label text-right">Data</label>
-                            <div class="col-sm-2">
-                                <input type="date" id="esame_fine_data" class="form-control" style="text-align: center;">
-                            </div>
-
-                            <label class="col-sm-1 col-form-label text-center">Ora fine</label>
-                            <div class="col-sm-2">
-                                <input type="time" id="esame_fine_ora" class="form-control" style="text-align: center;">
-                            </div>
-                        </div>
-
-                        <!-- Tabella studenti -->
-                        <div class="form-group">
-                            <label class="col-sm-12 text-center label-rosso">Studenti Iscritti</label>
-                            <div class="col-sm-12">
-                                <table class="table table-bordered table-striped text-center" id="tabellaEsameStudenti">
+                        <!-- Lista firme docenti (solo segreteria/dirigente/admin) -->
+                        <div class="col-md-12">
+                            <div id="firmeDocentiWrap" style="margin-top:10px; display:none;">
+                                <label>Firme docenti</label>
+                                <table class="table table-bordered table-striped" id="tabellaFirmeDocenti">
                                     <thead>
                                         <tr>
-                                            <th class="text-center">Studente</th>
-                                            <th class="text-center">Classe</th>
-                                            <th class="text-center">Presente</th>
-                                            <th class="text-center">Assenza giustificata</th>
-                                            <th class="text-center">Motivo</th>
-                                            <th class="text-center">Tipo Prova</th>
-                                            <th class="text-center">Voto</th>
-                                            <th class="text-center">Carenza Recuperata</th>
+                                            <th>Docente</th>
+                                            <th class="text-center" style="width:120px;">Firmato</th>
+                                            <th style="width:200px;">Firmato il</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <!-- Popolato via JS -->
-                                    </tbody>
+                                    <tbody></tbody>
                                 </table>
                             </div>
                         </div>
 
-                        <!-- Argomenti -->
-                        <div class="form-group">
-                            <label class="col-sm-12 text-center label-rosso">Argomenti della Verifica</label>
-                            <div class="col-sm-12">
-                                <textarea id="argomentiEsame" class="form-control" rows="4"
-                                    placeholder="Inserisci gli argomenti della prova..."></textarea>
-                            </div>
-                        </div>
+                    </div>
 
-                        <!-- Checkbox Firmato -->
-                        <div class="form-group text-center">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="esameFirmato" value="1">
-                                <label class="form-check-label" for="esameFirmato">
-                                    FIRMA L'ESAME
-                                </label>
-                            </div>
+                    <div class="row" style="margin-bottom:10px;">
+                        <div class="col-md-12">
+                            <label>Argomenti svolti</label>
+                            <textarea id="argomentiLezione" class="form-control" rows="3"
+                                placeholder="Inserisci argomenti..."></textarea>
                         </div>
+                    </div>
 
-                    </form>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label>Presenze</label>
+                            <table class="table table-bordered table-striped" id="tabellaStudenti">
+                                <thead>
+                                    <tr>
+                                        <th>Nominativo</th>
+                                        <th>Classe</th>
+                                        <th class="text-center">Presente</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
 
-                <div class="modal-footer center">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
-                    <button type="button" class="btn btn-primary" onclick="salvaEsame()">Salva Esame</button>
+                <div class="modal-footer">
+                    <button class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                    <button class="btn btn-primary" onclick="salvaRegistroLezione()">Salva</button>
                 </div>
 
             </div>
         </div>
     </div>
 
+    <!-- ============================= -->
+    <!-- MODALE ESAME                  -->
+    <!-- ============================= -->
+    <div class="modal fade" id="esameModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
 
+                <div class="modal-header modal-header-blu">
+                    <h4 class="modal-title">Gestione esame</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
 
+                <div class="modal-body">
+
+                    <input type="hidden" id="hidden_esame_data_id" value="">
+
+                    <div class="row" style="margin-bottom:10px;">
+                        <div class="col-md-6">
+                            <label>Tentativo</label>
+                            <select id="select_tentativo" class="form-control"></select>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom:10px;">
+                        <div class="col-md-3">
+                            <label>Inizio (data)</label>
+                            <input type="date" id="esame_inizio_data" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Inizio (ora)</label>
+                            <input type="time" id="esame_inizio_ora" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Fine (data)</label>
+                            <input type="date" id="esame_fine_data" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Fine (ora)</label>
+                            <input type="time" id="esame_fine_ora" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom:10px;">
+                        <div class="col-md-4">
+                            <label>Aula</label>
+                            <input type="text" id="esame_aula" class="form-control" placeholder="Aula">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label>Studenti</label>
+                            <table class="table table-bordered table-striped" id="tabellaEsameStudenti">
+                                <thead>
+                                    <tr>
+                                        <th>Nominativo</th>
+                                        <th>Classe</th>
+                                        <th class="text-center">Presente</th>
+                                        <th class="text-center">Ass. giust.</th>
+                                        <th>Motivo assenza</th>
+                                        <th>Tipo prova</th>
+                                        <th>Voto</th>
+                                        <th class="text-center">Recuperata</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- DOPO: argomenti + firme (in basso) -->
+                    <div class="row" style="margin-top:10px;">
+                        <div class="col-md-9">
+                            <label>Argomenti</label>
+                            <textarea id="argomentiEsame" class="form-control" rows="3"
+                                placeholder="Inserisci argomenti..."></textarea>
+                        </div>
+
+                        <!-- Toggle (solo docente) -->
+                        <div class="col-md-3 text-center" id="esameFirmatoRow" style="padding-top:25px;">
+                            <label style="margin-right:10px;">Esame firmato</label><br>
+                            <input type="checkbox" id="esameFirmato"
+                                data-toggle="toggle"
+                                data-on="Sì" data-off="No"
+                                data-onstyle="success" data-offstyle="danger">
+                        </div>
+                    </div>
+
+                    <!-- Box firme (docente) -->
+                    <div id="firmeEsameBox" class="text-muted" style="margin-top:8px; display:none;"></div>
+
+                    <!-- Tabella firme docenti (segreteria/dirigente/admin) -->
+                    <div id="firmeDocentiEsameWrap" style="margin-top:10px; display:none;">
+                        <label>Firme docenti</label>
+                        <table class="table table-bordered table-striped" id="tabellaFirmeDocentiEsame">
+                            <thead>
+                                <tr>
+                                    <th>Docente</th>
+                                    <th class="text-center" style="width:120px;">Firmato</th>
+                                    <th style="width:200px;">Firmato il</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                    <button class="btn btn-primary" onclick="salvaEsame()">Salva</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
 
     <div id="toastMessage" style="
-    position: fixed;
-    top: 50%; /* centro verticale */
-    left: 50%; /* centro orizzontale */
-    transform: translate(-50%, -50%); /* correzione esatta del centro */
-    padding: 12px 20px;
-    background: #28a745;
-    color: white;
-    border-radius: 5px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    display: none;
-    z-index: 9999;
-    text-align: center;
-    white-space: nowrap;
-"></div>
-
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 12px 20px;
+        background: #28a745;
+        color: white;
+        border-radius: 5px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        display: none;
+        z-index: 9999;
+        text-align: center;
+        white-space: nowrap;
+    "></div>
 
     <!-- Custom JS file -->
+    <!-- Custom JS file -->
+    <script>
+        window.GESTORE_RUOLO_EFF = <?php
+                                    $ruolo_eff = $__utente_ruolo ?? '';
+                                    if (impersonaRuolo('docente')) $ruolo_eff = 'docente';
+                                    echo json_encode($ruolo_eff);
+                                    ?>;
+
+        window.GESTORE_DOCENTE_ID_EFF = <?php
+                                        $did = 0;
+                                        if (impersonaRuolo('docente')) {
+                                            $did = intval($__docente_id ?? 0);
+                                        }
+                                        echo json_encode($did);
+                                        ?>;
+    </script>
+
     <script type="text/javascript" src="js/corsi.js?v=<?php echo time(); ?>&a=<?php echo $anno_corsi; ?>"></script>
 </body>
 
