@@ -56,13 +56,11 @@ function produciTabella($listaEtichette, $listaValori, $listaTipi, $listaValoriS
 		} else  if ($listaTipi[$i] == 7) {
 			// per tipo 7 (upload): inserisce il link per scaricare il documento
 			$filePath = $listaValori[$i];
-
-			$connection = 'http';
-			if ($__settings->system->https) {
-				$connection = 'https';
-			}
-			// $url = "$connection://$_SERVER[HTTP_HOST]".$__application_base_path . '/segreteria/modulisticaDownload.php?documento=' . $filePath;
-			$url = "$connection://$_SERVER[HTTP_HOST]".$__application_base_path . '/uploads/' . $filePath;
+			$connection = $__settings->system->https ? 'https' : 'http';
+			$uploadLocation = getSettingsValue('config', 'uploadLocation', 'GestOre.uploads');
+			$uploadFileHttpBase = $connection . '://' . $_SERVER['HTTP_HOST'] . '/' . $uploadLocation . '/';
+			$url = $uploadFileHttpBase . $filePath;
+			
 			$valore = '<span  style="white-space: pre-wrap;">' . '<a target="_blank" href=\''.$url.'\'>' . basename($filePath) .'</a>' . '</span>';
 		} else {
 			$valore = '';

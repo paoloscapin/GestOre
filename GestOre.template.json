@@ -31,7 +31,8 @@
         "gestioneViaggiSemplificata": false,
         "pianiDiLavoro": false,
         "carenze": true,
-        "modulisticaDocenti": false
+        "modulisticaDocenti": false,
+        "uploadLocation": "GestOre.upload"
     },
     "interfaccia": {
         "docenteVisualizza80Ore": true,
