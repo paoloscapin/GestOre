@@ -15,18 +15,20 @@ $fileSize = $_FILES[$inputName]['size'];
 $fileTmpName  = $_FILES[$inputName]['tmp_name'];
 $fileType = $_FILES[$inputName]['type'];
 
-// la root directory in cui si trova l'applicazione
-$applicationRoot = $_SERVER['DOCUMENT_ROOT'] . '/' . APPLICATION_NAME;
+// la root directory in cui si trova la directory dell'applicazione
+$applicationRoot = realpath($_SERVER['DOCUMENT_ROOT']);
+
+// la location da configurazione in cui caricare gli upload
+$uploadLocation = getSettingsValue('config', 'uploadLocation', 'GestOre.uploads');
 
 // la directory di base in cui vengono caricati i files sotto le loro directory
-$uploadBaseDirectory = $applicationRoot . '/uploads' . '/';
+$uploadBaseDirectory = $applicationRoot . '/' . $uploadLocation . '/';
 
-// la directory locale di base che si trova sotto la generale directory uploads
+// la directory locale che si deve trovare sotto la generale directory di upload
 $annoScolasticoName = str_replace("/","-",$__anno_scolastico_corrente_anno);
 $uploadLocalDirectory = $annoScolasticoName . '/' . $uuid . '/';
 
-// la directory su cui va caricato il file: se non esiste la crea
-$annoScolasticoName = str_replace("/","-",$__anno_scolastico_corrente_anno);
+// mette tutto insieme per produrre la directory su cui va caricato il file: se non esiste la crea
 $uploadDirectory = $uploadBaseDirectory . $uploadLocalDirectory;
 
 if (!file_exists($uploadDirectory)) {
