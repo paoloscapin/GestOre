@@ -72,6 +72,10 @@ $argomenti         = $_POST['argomenti'] ?? '';
 $data_inizio_esame = $_POST['data_inizio'] ?? null;
 $data_fine_esame   = $_POST['data_fine'] ?? null;
 $aula_esame        = $_POST['aula'] ?? null;
+$force_segreteria = intval($_POST['force_segreteria'] ?? 0);
+if ($force_segreteria === 1) {
+    $is_segreteria = true;
+}
 
 // "firmato" significa: IO ho firmato (se docente)
 $firmato_request   = isset($_POST['firmato']) ? intval($_POST['firmato']) : 0;
@@ -80,6 +84,25 @@ $studenti = $_POST['studenti'] ?? [];
 
 // firme massivo (segreteria)
 $firme_docenti = $_POST['firme_docenti'] ?? null;
+
+/**
+ * ✅ FIX ROBUSTEZZA:
+ * jQuery può inviare firme_docenti come JSON-string (es. "[]") oppure come array.
+ * Se è stringa, provo a decodificare.
+ */
+if (is_string($firme_docenti)) {
+    $tmp = json_decode($firme_docenti, true);
+    if (is_array($tmp)) $firme_docenti = $tmp;
+}
+
+/**
+ * ✅ FIX extra:
+ * Se arriva come struttura tipo firme_docenti[0][id_docente]... ma PHP non la interpreta bene,
+ * qui normalizzo in array.
+ */
+if ($firme_docenti !== null && !is_array($firme_docenti)) {
+    $firme_docenti = [];
+}
 
 // ruolo
 $ruolo = strtolower(strval($__utente_ruolo ?? ''));

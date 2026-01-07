@@ -1592,7 +1592,8 @@ function salvaEsame() {
 
     var argomenti = $('#argomentiEsame').val().trim();
 
-    var ruolo = (window.GESTORE_RUOLO || "").toLowerCase();
+    // ✅ usa ruolo effettivo se disponibile (impersona incluso)
+    var ruolo = (window.GESTORE_RUOLO_EFF || window.GESTORE_RUOLO || "").toLowerCase();
     var vistaDocente = (parseInt(window.GESTORE_VISTA_DOCENTE || 0, 10) === 1);
 
     // ✅ segreteria “operativa” solo se NON sono in vista docente
@@ -1707,13 +1708,11 @@ function salvaEsame() {
     // Validazioni firme
     // =========================
     if (!isSegreteria) {
-        // docente: se firma (toggle) => argomenti obbligatori
         if (firmato === 1 && !argomenti) {
             showToast("Inserisci gli argomenti della prova prima di firmare", true);
             return;
         }
     } else {
-        // segreteria: se sta impostando almeno una firma => argomenti obbligatori
         var anyFirma = false;
         if (Array.isArray(firme_docenti)) {
             anyFirma = firme_docenti.some(x => parseInt(x.firmato, 10) === 1);
@@ -1724,7 +1723,6 @@ function salvaEsame() {
         }
     }
 
-    // assenze giustificate: richiede motivo
     let bad = studenti.find(x =>
         x.presente === 0 &&
         x.assenza_giustificata === 1 &&
@@ -1736,8 +1734,7 @@ function salvaEsame() {
     }
 
     // =========================
-    // Payload: IMPORTANTISSIMO
-    // - firme_docenti va inviato SOLO se segreteria
+    // Payload
     // =========================
     var payload = {
         corso_id: corso_id,
@@ -1746,12 +1743,20 @@ function salvaEsame() {
         data_inizio: datetime_inizio_esame,
         data_fine: datetime_fine_esame,
         aula: aula_esame,
-        firmato: firmato,      // docente: firma mia; segreteria: ignorato lato server (ok)
+        firmato: firmato,
         studenti: studenti
     };
 
     if (isSegreteria) {
-        payload.firme_docenti = firme_docenti;
+        // ✅ INVIA COME JSON STRING (molto più robusto lato PHP)
+        payload.firme_docenti = JSON.stringify(firme_docenti || []);
+        // ✅ flag utile se lato server il ruolo effettivo è "docente" per via di impersona/vista
+        payload.force_segreteria = 1;
+    }
+
+    // ✅ DEBUG: vedi cosa stai inviando davvero
+    if (window.console) {
+        console.log("salvaEsame payload:", payload);
     }
 
     $.post("../didattica/corsoEsamiSave.php", payload, function (data) {
