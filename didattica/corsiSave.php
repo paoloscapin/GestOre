@@ -33,7 +33,7 @@ if (is_string($docenti_multi)) {
 // Se non è array -> forzo array vuoto
 if (!is_array($docenti_multi)) $docenti_multi = [];
 
-// normalizza (compatibile anche con PHP < 7.4: NO fn())
+// normalizza
 $docenti_multi = array_map('intval', $docenti_multi);
 $docenti_multi = array_values(array_unique($docenti_multi));
 $docenti_multi = array_values(array_filter($docenti_multi, function ($x) {
@@ -69,7 +69,24 @@ function fail_sql($con, $msg) {
 }
 
 try {
-    $titolo_sql = mysqli_real_escape_string($con, $titolo);
+    // usa la connessione reale (nel tuo progetto spesso è $__con)
+    $conn = isset($__con) ? $__con : (isset($con) ? $con : null);
+
+    $titolo_sql = mysqli_real_escape_string($conn, $titolo);
+
+    // ✅ GUARDRAIL: se sto aggiornando un corso che è già carenze (o ha carenza_sessione>0),
+    // non permetto che diventi "normale" per colpa del checkbox filtro UI.
+    if ($id > 0) {
+        $old = dbGetFirst("SELECT carenza, carenza_sessione FROM corso WHERE id=$id LIMIT 1");
+        if ($old) {
+            $old_carenza = intval($old['carenza'] ?? 0);
+            $old_sess    = intval($old['carenza_sessione'] ?? 0);
+
+            if ($old_carenza === 1 || $old_sess > 0) {
+                $carenze = 1; // forza sempre
+            }
+        }
+    }
 
     if ($id > 0) {
         // update corso
@@ -88,20 +105,23 @@ try {
 
     } else {
         // insert corso
+        // ✅ se NON è carenze, carenza_sessione deve stare a 0
+        $carenza_sessione = (intval($carenze) === 1) ? 1 : 0;
+
         $sql = "
             INSERT INTO corso
                 (id_materia, id_docente, id_anno_scolastico, titolo, carenza, carenza_sessione, in_itinere)
             VALUES
-                ($materia_id, $docente_principale, $anno_id, '$titolo_sql', " . intval($carenze) . ", 1, " . intval($in_itinere) . ")
+                ($materia_id, $docente_principale, $anno_id, '$titolo_sql', " . intval($carenze) . ", " . intval($carenza_sessione) . ", " . intval($in_itinere) . ")
         ";
         dbExec($sql);
         $corso_id = dblastId();
         if (!$corso_id || intval($corso_id) <= 0) {
-            fail_sql($con, "Impossibile ottenere ID del corso appena creato");
+            fail_sql($conn, "Impossibile ottenere ID del corso appena creato");
         }
     }
 
-    // sync corso_docenti (serve tabella e colonna principale)
+    // sync corso_docenti
     dbExec("DELETE FROM corso_docenti WHERE id_corso = $corso_id");
 
     $pos = 0;
@@ -126,12 +146,10 @@ try {
     exit;
 
 } catch (Throwable $e) {
-    // Throwable prende anche Error (es: parse error runtime, type error) su PHP 7+
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
     exit;
 } catch (Exception $e) {
-    // fallback vecchio (se Throwable non esiste)
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
     exit;

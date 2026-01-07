@@ -363,30 +363,56 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     <?php
                     if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
                         echo '
-                        <div class="col-md-1 text-center">
-                            <label class="control-label" for="corso">Aggiungi</label>
-                            <button class="btn btn-xs btn-lima4" style="display:block; margin: 5px auto 0;"
-                                    onclick="corsiGetDetails(-1)">
-                                <span style="font-size:15px" class="glyphicon glyphicon-plus"></span>
-                            </button>
-                        </div>
+    <div class="col-md-1 text-center">
+        <label class="control-label" for="corso">Aggiungi</label>
+        <button class="btn btn-xs btn-lima4" style="display:block; margin: 5px auto 0;"
+                onclick="corsiGetDetails(-1)">
+            <span style="font-size:15px" class="glyphicon glyphicon-plus"></span>
+        </button>
+    </div>
 
-                        <div class="col-md-1 text-center" style="margin-top:20px;">
-                            <label id="import_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Importa i corsi">
-                                <span class="glyphicon glyphicon-upload"></span>&emsp;Importa
-                                <input type="file" id="file_select_id" style="display: none;">
-                            </label>
-                            <label id="export_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Esporta esiti esami">
-                                <span class="glyphicon glyphicon-download"></span>&emsp;Esporta esiti
-                           </label>
-                           <label id="btn-invia-esiti" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Invia esiti ai coordinatori di classe">
-                                <span class="glyphicon glyphicon-envelope"></span>&emsp;Invia esiti
-                           </label>
-                           <div id="stato-invio" style="margin-top:10px; font-weight:bold; color:#333;"></div>
-                        </div>
-                    ';
+    <div class="col-md-1 text-center" style="margin-top:20px;">
+        <label id="import_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Importa i corsi">
+            <span class="glyphicon glyphicon-upload"></span>&emsp;Importa
+            <input type="file" id="file_select_id" style="display: none;">
+        </label>
+
+        <label id="export_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Esporta esiti esami">
+            <span class="glyphicon glyphicon-download"></span>&emsp;Esporta esiti
+        </label>
+
+        <label id="btn-invia-esiti" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Invia esiti ai coordinatori di classe">
+            <span class="glyphicon glyphicon-envelope"></span>&emsp;Invia esiti
+        </label>
+
+        <label id="report_itinere_csv_btn"
+               class="btn btn-xs btn-lima4 btn-file"
+               data-toggle="tooltip"
+               title="Scarica report iscritti corsi in itinere (CSV)"
+               onclick="
+                 var solo = (document.getElementById(\'carenze\') && document.getElementById(\'carenze\').checked) ? 1 : 0;
+                 window.location.href = \'reportCorsiItinereIscritti.php?format=csv&anno_id=' . intval($anno_corsi) . '&solo_carenze=\' + solo;
+               ">
+            <span class="glyphicon glyphicon-list-alt"></span>&emsp;Report itinere CSV
+        </label>
+
+        <label id="report_itinere_pdf_btn"
+               class="btn btn-xs btn-lima4 btn-file"
+               data-toggle="tooltip"
+               title="Scarica report iscritti corsi in itinere (PDF)"
+               onclick="
+                 var solo = (document.getElementById(\'carenze\') && document.getElementById(\'carenze\').checked) ? 1 : 0;
+                 window.location.href = \'reportCorsiItinereIscritti.php?format=pdf&anno_id=' . intval($anno_corsi) . '&solo_carenze=\' + solo;
+               ">
+            <span class="glyphicon glyphicon-file"></span>&emsp;Report itinere PDF
+        </label>
+
+        <div id="stato-invio" style="margin-top:10px; font-weight:bold; color:#333;"></div>
+    </div>
+    ';
                     }
                     ?>
+
 
                     <div class="col-md-2 text-center" style="margin-top:20px;">
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">

@@ -45,12 +45,31 @@ $esami = dbGetAll("
 if (!$esami) $esami = [];
 
 if (count($esami) === 0) {
-    echo json_encode([
-        'success' => true,
-        'esami' => [],
-        'studenti' => []
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
+    // crea esame bozza tentativo=1 per NON avere modale vuoto
+    $now = date('Y-m-d H:i:s');
+
+    dbExec("
+        INSERT INTO corso_esami_date
+            (id_corso, data_inizio_esame, data_fine_esame, aula, firmato, tentativo)
+        VALUES
+            ($corso_id, '$now', '$now', NULL, 0, 1)
+    ");
+
+    // ricarica
+    $esami = dbGetAll("
+        SELECT 
+            ed.id,
+            ed.id_corso AS corso_id,
+            ed.tentativo,
+            ed.data_inizio_esame,
+            ed.data_fine_esame,
+            ed.aula,
+            ed.firmato AS firmato_any
+        FROM corso_esami_date ed
+        WHERE ed.id_corso = $corso_id
+        ORDER BY ed.tentativo ASC
+    ");
+    if (!$esami) $esami = [];
 }
 
 // carico docenti del corso (per segreteria)

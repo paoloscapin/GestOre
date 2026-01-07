@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Secondo tentativo / recupero
  * - Aggancia a corso esistente (id_corso_secondo)
@@ -60,6 +61,11 @@ try {
         exit;
     }
 
+    // ✅ sessione destinazione:
+    // - recupero assenza = 1ª sessione (recupero prova)
+    // - secondo tentativo = 2ª sessione
+    $sessione_dest = ($recupero_assenza === 1) ? 1 : 2;
+
     // 2) Verifica studente iscritto al corso1
     $iscritto1 = dbGetValue("SELECT COUNT(*) FROM corso_iscritti WHERE id_corso=$id_corso AND id_studente=$id_studente");
     if (intval($iscritto1) <= 0) {
@@ -114,7 +120,7 @@ try {
             exit;
         }
     } else {
-        // Seconda sessione "normale": presente ma non recuperato, oppure assente NON giustificato (se mantenuto)
+        // Seconda sessione "normale": presente ma non recuperato, oppure assente NON giustificato
         $ok_seconda_normale = ($presente === 1 && $recuperato === 0) || ($presente === 0 && $ass_giust === 0);
         if (!$ok_seconda_normale) {
             mysqli_rollback($__con);
@@ -168,10 +174,10 @@ try {
             exit;
         }
 
-        // deve essere sempre una 2ª sessione tecnica (carenza_sessione=2)
-        if (intval($corso2['carenza']) !== 1 || intval($corso2['carenza_sessione']) !== 2) {
+        // deve essere la sessione corretta (1 per recupero assenza, 2 per seconda sessione)
+        if (intval($corso2['carenza_sessione']) !== $sessione_dest) {
             mysqli_rollback($__con);
-            echo json_encode(['success' => false, 'error' => 'Il corso selezionato non è una 2ª sessione carenze']);
+            echo json_encode(['success' => false, 'error' => 'Il corso selezionato non è coerente con la sessione richiesta']);
             exit;
         }
 
@@ -185,7 +191,6 @@ try {
         if ($recupero_assenza === 1) {
             $titolo_att = trim($corso2['titolo'] ?? '');
             if ($new_titolo === '') $new_titolo = "Recupero carenze - recupero assenza";
-            // aggiorno solo se è il titolo standard "2ª sessione" o vuoto (evito di sovrascrivere titoli personalizzati)
             if ($titolo_att === '' || stripos($titolo_att, '2ª sessione') !== false) {
                 $titolo_esc = mysqli_real_escape_string($__con, $new_titolo);
                 mysqli_query($__con, "UPDATE corso SET titolo='$titolo_esc' WHERE id=" . intval($corso2['id']) . " LIMIT 1");
@@ -210,8 +215,9 @@ try {
         }
         $titolo_esc = mysqli_real_escape_string($__con, $new_titolo);
 
-        // ✅ RIUSO: per evitare collisioni tra "2ª sessione" e "recupero assenza",
-        // cerco un corso esistente con titolo coerente col flag.
+        // ✅ (mantengo le righe originali) RIUSO: cerco un corso esistente con titolo coerente col flag.
+        // ⚠️ CORREZIONE: quando l'utente sceglie "Crea nuovo corso + aggancia", NON devo riusare.
+        // Quindi calcolo pure $existing per compatibilità/debug, ma lo ignoro e faccio sempre INSERT.
         $like = ($recupero_assenza === 1)
             ? "%recupero assenza%"
             : "%2ª sessione%";
@@ -224,27 +230,31 @@ try {
             WHERE id_anno_scolastico=$id_anno
               AND id_materia=$id_materia
               AND id_docente=$new_docente_id
-              AND carenza=1
-              AND carenza_sessione=2
+              AND carenza_sessione=$sessione_dest
               AND titolo LIKE '$like_esc'
             LIMIT 1
         ");
 
-        if ($existing && intval($existing['id']) > 0) {
-            $id_corso2 = intval($existing['id']);
-        } else {
-            $qIns = "
-                INSERT INTO corso (id_materia,id_docente,id_anno_scolastico,titolo,carenza,carenza_sessione,in_itinere)
-                VALUES ($id_materia,$new_docente_id,$id_anno,'$titolo_esc',1,2,0)
-            ";
-            $ok = mysqli_query($__con, $qIns);
-            if (!$ok) {
-                throw new Exception("Errore creazione corso: " . mysqli_error($__con));
-            }
-            $id_corso2 = intval(mysqli_insert_id($__con));
-            if ($id_corso2 <= 0) throw new Exception("Impossibile ottenere ID corso creato");
+        // ✅ FIX: non riuso mai qui
+        $qIns = "
+            INSERT INTO corso (id_materia,id_docente,id_anno_scolastico,titolo,carenza,carenza_sessione,in_itinere)
+            VALUES ($id_materia,$new_docente_id,$id_anno,'$titolo_esc',1,$sessione_dest,0)
+        ";
+        $ok = mysqli_query($__con, $qIns);
+        if (!$ok) {
+            throw new Exception("Errore creazione corso: " . mysqli_error($__con));
         }
+        $id_corso2 = intval(mysqli_insert_id($__con));
+        if ($id_corso2 <= 0) throw new Exception("Impossibile ottenere ID corso creato");
     }
+
+    // ✅ HARD FIX: il corso2 deve essere SEMPRE un corso CARENZE della sessione corretta
+    mysqli_query($__con, "
+        UPDATE corso
+        SET carenza=1, carenza_sessione=" . intval($sessione_dest) . "
+        WHERE id=" . intval($id_corso2) . "
+        LIMIT 1
+    ");
 
     // 9) Garantisco esame su corso2 (tentativo=1)
     $esame_id = dbGetValue("

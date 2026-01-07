@@ -10,8 +10,9 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
+header('Content-Type: application/json; charset=utf-8');
+
 if (!isset($_POST['corsi_id']) || $_POST['corsi_id'] === "") {
-    header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'error' => 'Parametro corsi_id mancante']);
     exit;
 }
@@ -35,7 +36,6 @@ $query = "
 $corso = dbGetFirst($query);
 
 if (!$corso) {
-    header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'error' => 'Corso non trovato']);
     exit;
 }
@@ -63,6 +63,7 @@ $query = "
     ORDER BY d.data_inizio ASC
 ";
 $date = dbGetAll($query);
+if (!$date) $date = [];
 
 // 🔹 Studenti iscritti
 if (intval($corso['carenza']) === 1) {
@@ -83,6 +84,7 @@ if (intval($corso['carenza']) === 1) {
             s.cognome AS stud_cognome,
             c.id AS classe_id,
             c.classe AS classe,
+
             e1.assenza_giustificata,
             e1.assenza_note,
 
@@ -92,7 +94,17 @@ if (intval($corso['carenza']) === 1) {
 
             IF(cc2.id IS NOT NULL, 1, 0) AS secondo_tentativo,
             IF(ced2.firmato = 1, 1, 0) AS secondo_firmato,
-            cc2.id_corso_secondo AS secondo_corso_id
+
+            -- compat (vecchio nome)
+            cc2.id_corso_secondo AS secondo_corso_id,
+
+            -- ✅ nuovi campi per UI
+            cc2.id_corso_secondo AS id_corso_secondo,
+            c2.titolo AS titolo_corso_secondo,
+            CASE
+                WHEN c2.id IS NOT NULL AND LOWER(c2.titolo) LIKE '%recupero assenza%' THEN 1
+                ELSE 0
+            END AS recupero_assenza
 
         FROM corso_iscritti i
         INNER JOIN studente s 
@@ -111,6 +123,10 @@ if (intval($corso['carenza']) === 1) {
         LEFT JOIN corso_carenze_seconda cc2
             ON cc2.id_corso_primo = i.id_corso
            AND cc2.id_studente = s.id
+
+        -- ✅ prendo anche titolo del corso 2
+        LEFT JOIN corso c2
+            ON c2.id = cc2.id_corso_secondo
 
         LEFT JOIN corso_esami_date ced2
             ON ced2.id_corso = cc2.id_corso_secondo
@@ -149,10 +165,9 @@ if ($studenti == null) $studenti = [];
 // 🔹 JSON finale
 $struct_json = [
     'corso' => $corso,
-    'docenti' => $docenti, // ✅ aggiunto
-    'date' => $date ? $date : [],
+    'docenti' => $docenti,
+    'date' => $date,
     'studenti' => $studenti
 ];
 
-header('Content-Type: application/json; charset=utf-8');
 echo json_encode($struct_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

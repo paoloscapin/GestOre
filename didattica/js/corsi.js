@@ -6,11 +6,28 @@
  */
 
 // 🔽 Recupero parametro "d" passato nello <script src=...>
-var scripts = document.getElementsByTagName('script');
-var myScript = scripts[scripts.length - 1];
-var url = new URL(myScript.src);
-var params = new URLSearchParams(url.search);
-var $anni_filtro_id = params.get("a") || "1"; // default
+// 🔽 Recupero parametro "a" passato nello <script src=...>
+// Robusto: non deve mai rompere l'esecuzione del file
+var $anni_filtro_id = "1"; // default
+try {
+    var myScript =
+        (document.currentScript) ||
+        (function () {
+            var scripts = document.getElementsByTagName('script');
+            return scripts[scripts.length - 1];
+        })();
+
+    if (myScript && myScript.src) {
+        // base URL = location.href permette di gestire src relativi
+        var url = new URL(myScript.src, window.location.href);
+        var params = new URLSearchParams(url.search);
+        $anni_filtro_id = params.get("a") || "1";
+    }
+} catch (e) {
+    // fallback: resta "1"
+    if (window.console) console.warn("GestOre: impossibile leggere parametro 'a' dallo script src", e);
+}
+
 var $docente_filtro_id = 0;
 var $materia_filtro_id = 0;
 var $futuri = 0;
@@ -392,7 +409,7 @@ $('#select_data_corso').on('change', function () {
 
 function corsiGetDetails(corsi_id) {
     $("#hidden_corso_id").val(corsi_id);
-    carenze = $("#carenze").prop('checked');
+    var carenze = $("#carenze").prop('checked');
 
     if (corsi_id > 0) {
         $.post("../didattica/corsiReadDetails.php", { corsi_id: corsi_id }, function (data, status) {
@@ -474,15 +491,121 @@ function corsiGetDetails(corsi_id) {
                         cancellaIscritto(s.iscrizione_id);
                     });
                 tdBtn.append(btnDelStud);
+                // ============================
+                // Pulsanti recupero/2ª sessione
+                // ============================
 
-                // (il resto della tua logica rimane IDENTICO)
-                // ... NON MODIFICATO ...
+                // FIX: usa valori robusti (se il backend non manda alcuni campi)
+                // NB: se il backend manda sempre ha_esito/presente/recuperato, va bene uguale.
+                var haEsito = parseInt(s.ha_esito ?? 0, 10) === 1;
+                var presente = parseInt(s.presente ?? 0, 10) === 1;
+                var recuperato = parseInt(s.recuperato ?? 0, 10) === 1;
+                var assG = parseInt(s.assenza_giustificata ?? 0, 10) === 1;
+
+                var secondoFirmato = parseInt(s.secondo_firmato ?? 0, 10) === 1;
+                var secondoCreato = parseInt(s.secondo_tentativo ?? 0, 10) === 1;
+
+                // fallback: se non arriva ha_esito ma arriva un voto, considero "ha esito"
+                if (!haEsito && s.voto !== undefined && s.voto !== null && String(s.voto) !== "") {
+                    haEsito = true;
+                    var vv = parseFloat(s.voto);
+                    if (!isNaN(vv)) recuperato = (vv >= 6);
+                }
+
+                // Se ha esito e NON è "OK" (assente oppure non recuperato)
+                if (haEsito && (!presente || !recuperato) && !secondoFirmato) {
+
+                    // Caso A: assenza giustificata -> RECUPERO
+                    var serveRecuperoGiust = (!presente && assG);
+
+                    // Caso B: presente ma non recuperato -> 2° tentativo
+                    var serveSecondoTentativo = (presente && !recuperato);
+
+                    // Caso C: assente non giustificato -> 2° tentativo
+                    var serveSecondoPerAssenzaNonGiust = (!presente && !assG);
+
+                    var serveQualcosa = serveRecuperoGiust || serveSecondoTentativo || serveSecondoPerAssenzaNonGiust;
+
+                    if (serveQualcosa) {
+
+                        if (secondoCreato) {
+
+                            var idCorso2 = parseInt(s.id_corso_secondo || 0, 10) || 0;
+                            var titoloCorso2 = (s.titolo_corso_secondo || "").toString();
+                            var recAss = parseInt(s.recupero_assenza || 0, 10) === 1;
+
+                            var tip = "Iscritto a: " + (idCorso2 > 0 ? ("ID " + idCorso2) : "ID non disponibile");
+                            if (titoloCorso2) tip += " — " + titoloCorso2;
+                            tip += recAss ? " (RECUPERO ASSENZA)" : " (2ª SESSIONE)";
+
+                            // vai al corso 2
+                            var btnApri = $('<button>')
+                                .attr('type', 'button')
+                                .addClass('btn btn-sm btn-success ml-1')
+                                .attr('title', tip)
+                                .attr('data-toggle', 'tooltip')
+                                .html('<span class="glyphicon glyphicon-share-alt"></span>')
+                                .on('click', function (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (idCorso2 > 0) corsiGetDetails(idCorso2);
+                                    else showToast("Manca id_corso_secondo nel backend (corsiReadDetails.php)", true);
+                                });
+
+                            // cancella iscrizione
+                            var btnAnnulla = $('<button>')
+                                .attr('type', 'button')
+                                .addClass('btn btn-sm btn-danger ml-1')
+                                .attr('title', 'Cancella iscrizione')
+                                .attr('data-toggle', 'tooltip')
+                                .html('<span class="glyphicon glyphicon-remove-circle"></span>')
+                                .on('click', function (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    cancellaSecondoTentativo(s.stud_id, s.iscrizione_id, corsi_id);
+                                });
+
+                            tdBtn.append(' ').append(btnApri).append(' ').append(btnAnnulla);
+                        }
+                        else {
+                            // non ancora iscritto => pulsante iscrivi
+                            var isRecuperoAssenza = serveRecuperoGiust ? 1 : 0;
+
+                            var titoloBtn = isRecuperoAssenza
+                                ? 'Recupero (assenza giustificata)'
+                                : 'Iscrivi al secondo tentativo';
+
+                            var icona = isRecuperoAssenza
+                                ? 'glyphicon-calendar'
+                                : 'glyphicon-repeat';
+
+                            var btnSecondoTent = $('<button>')
+                                .attr('type', 'button')
+                                .addClass('btn btn-sm btn-info ml-1')
+                                .attr('title', titoloBtn)
+                                .attr('data-toggle', 'tooltip')
+                                .html('<span class="glyphicon ' + icona + '"></span>')
+                                .on('click', function (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    iscriviSecondoTentativo(
+                                        s.stud_id,
+                                        s.iscrizione_id,
+                                        corsi_id,
+                                        { recupero_assenza: isRecuperoAssenza }
+                                    );
+                                });
+
+                            tdBtn.append(' ').append(btnSecondoTent);
+                        }
+                    }
+                }
 
                 tr.append(tdBtn);
                 tbodyStud.append(tr);
             });
 
-            $('[data-toggle="tooltip"]').tooltip();
+            $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
 
         }, 'json');
     } else {
@@ -582,23 +705,58 @@ function iscriviSecondoTentativo(stud_id, iscrizione_id, corso_id, opts) {
     opts = opts || {};
     var recuperoAssenza = (parseInt(opts.recupero_assenza, 10) === 1) ? 1 : 0;
 
-    $.getJSON("../didattica/corsiSecondaSessioneList.php", {
+    var req = $.getJSON("../didattica/corsiSecondaSessioneList.php", {
         id_corso: corso_id,
         recupero_assenza: recuperoAssenza
-    }, function (resp) {
+    });
 
+    req.done(function (resp) {
         if (!resp || !resp.success) {
             showToast("Errore caricamento corsi", true);
             return;
         }
 
-        var labelCorsi = recuperoAssenza ? "Usa un corso di recupero assenza esistente" : "Usa un corso 2ª sessione esistente";
-        var labelNew = recuperoAssenza ? "Oppure crea un nuovo corso di recupero assenza scegliendo il docente" : "Oppure crea un nuovo corso 2ª sessione scegliendo il docente";
-        var titleDlg = recuperoAssenza ? "Recupero assenza giustificata: scegli corso o crea" : "2ª sessione: scegli corso o crea";
+        var lista = resp.corsi || [];
 
+        var labelCorsi = recuperoAssenza
+            ? "Usa un corso di recupero assenza esistente"
+            : "Usa un corso 2ª sessione esistente";
+
+        var labelNew = recuperoAssenza
+            ? "Oppure crea un nuovo corso di recupero assenza scegliendo il docente"
+            : "Oppure crea un nuovo corso 2ª sessione scegliendo il docente";
+
+        var titleDlg = recuperoAssenza
+            ? "Recupero assenza giustificata: scegli corso o crea"
+            : "2ª sessione: scegli corso o crea";
+
+        // build options corsi esistenti
         var optCorsi = '<option value="0">-- Seleziona corso --</option>';
-        (resp.corsi || []).forEach(function (c) {
-            optCorsi += `<option value="${c.id}">${c.cognome} ${c.nome} - ${c.titolo} (ID:${c.id})</option>`;
+        (lista || []).forEach(function (c) {
+            var badge = recuperoAssenza ? " [RECUPERO ASSENZA]" : " [2ª SESSIONE]";
+
+            // format data/ora esame
+            var when = "";
+            if (c.esame_inizio) {
+                var dt = new Date(String(c.esame_inizio).replace(' ', 'T'));
+                if (!isNaN(dt.getTime())) {
+                    var gg = String(dt.getDate()).padStart(2, '0');
+                    var mm = String(dt.getMonth() + 1).padStart(2, '0');
+                    var aa = dt.getFullYear();
+                    var hh = String(dt.getHours()).padStart(2, '0');
+                    var mi = String(dt.getMinutes()).padStart(2, '0');
+                    when = ` — ${gg}/${mm}/${aa} ${hh}:${mi}`;
+                } else {
+                    when = " — " + String(c.esame_inizio);
+                }
+            } else {
+                when = " — (senza esame)";
+            }
+
+            optCorsi +=
+                '<option value="' + c.id + '">' +
+                (c.cognome || '') + ' ' + (c.nome || '') + ' - ' + (c.titolo || '') +
+                badge + when + ' (ID:' + c.id + ')</option>';
         });
 
         var docOptions = $("#docente").html();
@@ -621,16 +779,13 @@ function iscriviSecondoTentativo(stud_id, iscrizione_id, corso_id, opts) {
 
             bootbox.hideAll();
 
-            // listener "one-shot" per fare sequenza pulita
             $("#corsi_modal")
                 .off("hidden.bs.modal.openCorso2")
                 .on("hidden.bs.modal.openCorso2", function () {
                     $("#corsi_modal").off("hidden.bs.modal.openCorso2");
 
-                    // refresh elenco nella pagina (records_content)
                     corsiReadRecords();
 
-                    // poi apro dettaglio corso2
                     if (idCorso2 > 0) {
                         corsiGetDetails(idCorso2);
                     }
@@ -658,7 +813,7 @@ function iscriviSecondoTentativo(stud_id, iscrizione_id, corso_id, opts) {
                             id_corso: corso_id,
                             id_studente: stud_id,
                             id_corso_secondo: id_corso2,
-                            recupero_assenza: recuperoAssenza // ✅ IMPORTANTISSIMO
+                            recupero_assenza: recuperoAssenza
                         }, function (data) {
                             if (data && data.success) {
                                 showToast(recuperoAssenza ? "Studente assegnato al recupero assenza" : "Studente assegnato alla 2ª sessione");
@@ -666,9 +821,11 @@ function iscriviSecondoTentativo(stud_id, iscrizione_id, corso_id, opts) {
                             } else {
                                 showToast("Errore: " + (data && data.error ? data.error : ""), true);
                             }
-                        }, "json");
+                        }, "json").fail(function () {
+                            showToast("Errore di comunicazione (aggancio corso esistente)", true);
+                        });
 
-                        return false; // non chiudere automaticamente il bootbox
+                        return false;
                     }
                 },
 
@@ -686,7 +843,7 @@ function iscriviSecondoTentativo(stud_id, iscrizione_id, corso_id, opts) {
                             id_corso: corso_id,
                             id_studente: stud_id,
                             new_docente_id: newDoc,
-                            recupero_assenza: recuperoAssenza // ✅ IMPORTANTISSIMO
+                            recupero_assenza: recuperoAssenza
                         }, function (data) {
                             if (data && data.success) {
                                 showToast(recuperoAssenza ? "Creato/agganciato recupero assenza" : "Creato/agganciato corso 2ª sessione");
@@ -694,7 +851,9 @@ function iscriviSecondoTentativo(stud_id, iscrizione_id, corso_id, opts) {
                             } else {
                                 showToast("Errore: " + (data && data.error ? data.error : ""), true);
                             }
-                        }, "json");
+                        }, "json").fail(function () {
+                            showToast("Errore di comunicazione (creazione corso)", true);
+                        });
 
                         return false;
                     }
@@ -702,9 +861,11 @@ function iscriviSecondoTentativo(stud_id, iscrizione_id, corso_id, opts) {
             }
         });
     });
+
+    req.fail(function (xhr) {
+        showToast("Errore caricamento corsi (HTTP " + (xhr && xhr.status ? xhr.status : "?") + ")", true);
+    });
 }
-
-
 
 function corsiDelete(id, materia, docente, nstudenti, stato) {
     var conf = confirm("Sei sicuro di volere cancellare il corso di " + materia + " a " + docente + " ?");
@@ -1034,6 +1195,12 @@ function apriEsameModal(corso_id) {
     $('#esame_aula').val('');
     $('#select_tentativo').empty();
     $('#esameFirmato').prop('checked', false);
+    // reset firme UI (IMPORTANTISSIMO: serve anche quando NON ci sono esami)
+    $('#esameFirmato').prop('checked', false);
+    $('#firmeEsameBox').hide().html('');
+    $('#firmeDocentiEsameWrap').hide();
+    $('#tabellaFirmeDocentiEsame tbody').empty();
+    $('#esameFirmatoRow').show(); // o hide, poi ci pensa la logica ruolo quando arriva il JSON
 
     // helper: label tentativo (E1, E2...) + stato
     function buildTentativoLabel(esame) {
@@ -1062,6 +1229,9 @@ function apriEsameModal(corso_id) {
     $('#esameModal').modal('show');
 
     $.post("../didattica/corsoEsamiReadDetails.php", { corso_id: corso_id }, function (data) {
+        // TEMP DEBUG
+        // console.log("corsoEsamiReadDetails", data);
+
         if (!data || !data.success) {
             showToast("Errore nel caricamento dati esame", true);
             return;
@@ -1072,6 +1242,9 @@ function apriEsameModal(corso_id) {
             $('#tabellaEsameStudenti tbody').html(
                 '<tr><td colspan="8" class="text-center text-danger">Nessun esame programmato</td></tr>'
             );
+            $('#firmeDocentiEsameWrap').hide();
+            $('#tabellaFirmeDocentiEsame tbody').empty();
+            $('#firmeEsameBox').hide().html('');
             return;
         }
 
@@ -1269,14 +1442,53 @@ function caricaDatiTentativo(data, tentativo) {
         }
     }
 
-    // argomenti
-    let primoConArg = (data.studenti || []).find(s =>
-        String(s.tentativo) === String(tentativo) &&
-        s.argomenti && String(s.argomenti).trim() !== ""
+    // ================================
+    // Studenti: filtro robusto (tentativo / id_esame_data / fallback)
+    // ================================
+    let allStud = (data.studenti || []);
+
+    // se il backend manda "tentativo" per studente lo uso, altrimenti fallback su id_esame_data,
+    // altrimenti NON filtro (mostro tutti).
+    let hasTentativo = allStud.some(s =>
+        s.tentativo !== undefined && s.tentativo !== null && String(s.tentativo) !== ""
     );
+
+    let idEsameSel = parseInt($("#hidden_esame_data_id").val(), 10) || 0;
+    let hasIdEsame = allStud.some(s =>
+        s.id_esame_data !== undefined && s.id_esame_data !== null && String(s.id_esame_data) !== ""
+    );
+
+    // argomenti (coerente con lo stesso criterio di filtro)
+    let primoConArg = null;
+
+    if (hasTentativo) {
+        primoConArg = allStud.find(s =>
+            String(s.tentativo) === String(tentativo) &&
+            s.argomenti && String(s.argomenti).trim() !== ""
+        );
+    } else if (hasIdEsame && idEsameSel > 0) {
+        primoConArg = allStud.find(s =>
+            parseInt(s.id_esame_data, 10) === idEsameSel &&
+            s.argomenti && String(s.argomenti).trim() !== ""
+        );
+    } else {
+        primoConArg = allStud.find(s =>
+            s.argomenti && String(s.argomenti).trim() !== ""
+        );
+    }
+
     if (primoConArg) $('#argomentiEsame').val(primoConArg.argomenti);
 
-    let studenti = (data.studenti || []).filter(s => String(s.tentativo) === String(tentativo));
+    // studenti
+    let studenti = [];
+
+    if (hasTentativo) {
+        studenti = allStud.filter(s => String(s.tentativo) === String(tentativo));
+    } else if (hasIdEsame && idEsameSel > 0) {
+        studenti = allStud.filter(s => parseInt(s.id_esame_data, 10) === idEsameSel);
+    } else {
+        studenti = allStud; // fallback: mostra tutti
+    }
 
     if (studenti.length === 0) {
         $('#tabellaEsameStudenti tbody').html(
