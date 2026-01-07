@@ -232,7 +232,7 @@ foreach ($carenze as $row) {
         $hasSecondo = true;
     }
 
-    $labelPrimo = $hasSecondo ? 'Primo tentativo' : '';
+    $labelPrimo = $hasSecondo ? 'Prima sessione' : '';
     $data .= renderEsame($labelPrimo, $primo, $badgeInItinere);
 
     // ===========================

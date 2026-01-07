@@ -184,7 +184,7 @@ foreach ($carenze as $row) {
         ");
 
         $hasSecondo = ($map && intval($map['id_corso_secondo']) > 0);
-        $labelPrimo = $hasSecondo ? 'Primo tentativo' : '';
+        $labelPrimo = $hasSecondo ? 'Prima sessione' : '';
 
         echo renderEsame($labelPrimo, $primo, $badgeInItinere);
 
