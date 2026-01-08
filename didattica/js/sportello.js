@@ -459,6 +459,27 @@ function importFile(file) {
     reader.readAsText(file, "UTF-8");
 }
 
+function sportelloDuplica(id) {
+    // Se vuoi conferma:
+    // if (!confirm("Duplico questo sportello?")) return;
+
+    $.post("sportelloDuplica.php", { sportello_id: id }, function (resp) {
+        if (resp && resp.ok && resp.new_sportello_id) {
+
+            // aggiorna lista per far comparire il nuovo sportello subito
+            sportelloReadRecords();
+
+            // carica subito il nuovo sportello nel modale (il modale resta aperto / si riapre)
+            sportelloGetDetails(parseInt(resp.new_sportello_id, 10));
+
+        } else {
+            alert((resp && resp.msg) ? resp.msg : "Errore duplicazione.");
+        }
+    }, "json").fail(function () {
+        alert("Errore di rete o server durante la duplicazione.");
+    });
+}
+
 function importStudents(file, selezione) {
     var contenuto = "";
     const reader = new FileReader();

@@ -56,41 +56,88 @@ require_once '../common/checkSession.php';
             width: 450px;
             text-align: left;
         }
+
         /* =============================
    💪 Forzatura effettiva larghezza modale sportello
    ============================= */
 
-/* Forza la larghezza del contenitore modale */
-#sportello_modal .modal-dialog,
-#sportello_modal .modal-lg {
-  max-width: 600px !important;   /* Cambia qui il valore a tuo piacere */
-  width: 600px !important;       /* Serve per bloccare la dimensione effettiva */
-  margin: 2rem auto !important;  /* centra */
-}
+        /* Forza la larghezza del contenitore modale */
+        #sportello_modal .modal-dialog,
+        #sportello_modal .modal-lg {
+            max-width: 600px !important;
+            /* Cambia qui il valore a tuo piacere */
+            width: 600px !important;
+            /* Serve per bloccare la dimensione effettiva */
+            margin: 2rem auto !important;
+            /* centra */
+        }
 
-/* Restringi anche il contenuto interno */
-#sportello_modal .modal-content {
-  max-width: 580px;
-  margin: 0 auto;
-}
+        /* Restringi anche il contenuto interno */
+        #sportello_modal .modal-content {
+            max-width: 580px;
+            margin: 0 auto;
+        }
 
-/* Assicurati che la tabella non si allarghi oltre */
-#sportello_modal #studenti_table {
-  width: 85% !important;
-  margin: 10px auto;
-}
+        /* Assicurati che la tabella non si allarghi oltre */
+        #sportello_modal #studenti_table {
+            width: 85% !important;
+            margin: 10px auto;
+        }
 
-/* Fallback mobile */
-@media (max-width: 768px) {
-  #sportello_modal .modal-dialog,
-  #sportello_modal .modal-lg {
-    width: 95% !important;
-    max-width: 95% !important;
-  }
-}
+        /* Fallback mobile */
+        @media (max-width: 768px) {
 
+            #sportello_modal .modal-dialog,
+            #sportello_modal .modal-lg {
+                width: 95% !important;
+                max-width: 95% !important;
+            }
+        }
 
+        /* Compatta ORA / ORE / LUOGO per recuperare spazio */
+        .table-green th:nth-child(3),
+        .table-green td:nth-child(3) {
+            /* Ora */
+            width: 70px;
+            white-space: nowrap;
+        }
 
+        .table-green th:nth-child(6),
+        .table-green td:nth-child(6) {
+            /* Ore */
+            width: 60px;
+            white-space: nowrap;
+        }
+
+        .table-green th:nth-child(8),
+        .table-green td:nth-child(8) {
+            /* Luogo */
+            width: 90px;
+            white-space: nowrap;
+        }
+
+        /* Allarga DATA e DOCENTE */
+        .table-green th:nth-child(2),
+        .table-green td:nth-child(2) {
+            /* Data */
+            width: 160px;
+            white-space: nowrap;
+        }
+
+        .table-green th:nth-child(5),
+        .table-green td:nth-child(5) {
+            /* Docente */
+            width: 180px;
+            white-space: nowrap;
+        }
+
+        /* Rende AZIONI più comoda */
+        .table-green th:nth-child(11),
+        .table-green td:nth-child(11) {
+            /* Azioni */
+            width: 170px;
+            white-space: nowrap;
+        }
     </style>
 </head>
 
@@ -116,7 +163,7 @@ foreach (dbGetAll("SELECT * FROM studente WHERE attivo=1 ORDER BY studente.cogno
 // prepara l'elenco delle categorie per il filtro
 $categoriaFiltroOptionList = '<option value="0">tutte</option>';
 foreach (dbGetAll("SELECT * FROM sportello_categoria ORDER BY sportello_categoria.nome ASC ; ") as $categoria) {
-        if ($categoria['id']==1)
+    if ($categoria['id'] == 1)
         $categoriaFiltroOptionList .= ' <option value="' . $categoria['id'] . '" selected >' . $categoria['nome'] . '</option> ';
     else
         $categoriaFiltroOptionList .= ' <option value="' . $categoria['id'] . '" >' . $categoria['nome'] . '</option> ';

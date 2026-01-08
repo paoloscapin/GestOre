@@ -25,19 +25,20 @@ $direzioneOrdinamento = "ASC";
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
-					<tr>
-						<th class="text-center col-md-1">Categoria</th>
-						<th class="text-center col-md-1">Data</th>
-						<th class="text-center col-md-1">Ora</th>
-						<th class="text-center col-md-2">Materia</th>
-						<th class="text-center col-md-1">Docente</th>
-						<th class="text-center col-md-1">Ore</th>
-						<th class="text-center col-md-1">Classe</th>
-						<th class="text-center col-md-1">Luogo</th>
-						<th class="text-center col-md-1">Stato</th>
-						<th class="text-center col-md-1">Studenti Prenotati</th>
-						<th class="text-center col-md-2">Azioni</th>
-					</tr>
+						<tr>
+							<th class="text-center col-md-1">Categoria</th>
+							<th class="text-center col-md-2">Data</th>
+							<th class="text-center col-md-1">Ora</th>
+							<th class="text-center col-md-2">Materia</th>
+							<th class="text-center col-md-2">Docente</th>
+							<th class="text-center col-md-1">Ore</th>
+							<th class="text-center col-md-1">Classe</th>
+							<th class="text-center col-md-1">Luogo</th>
+							<th class="text-center col-md-1">Stato</th>
+							<th class="text-center col-md-1">Studenti Prenotati</th>
+							<th class="text-center col-md-3">Azioni</th>
+						</tr>
+
 					</thead>';
 
 $query = "	SELECT
@@ -97,8 +98,7 @@ if ($resultArray == null) {
 	$resultArray = [];
 }
 foreach ($resultArray as $row) {
-	if ((($soloPrenotati == 1) && ($row['numero_studenti'] > 0)) || ($soloPrenotati==0)) 
-	{
+	if ((($soloPrenotati == 1) && ($row['numero_studenti'] > 0)) || ($soloPrenotati == 0)) {
 		$sportello_id = $row['sportello_id'];
 		$sportello_categoria = $row['sportello_categoria'];
 		$statoMarker = '';
@@ -172,10 +172,22 @@ foreach ($resultArray as $row) {
 		$materia_clear = mysqli_real_escape_string($con, $row['materia_nome']);
 		$data .= '
 		<td class="text-center">
-		<button onclick="sportelloGetDetails(' . $row['sportello_id'] . ')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-		<button onclick="sportelloDelete(' . $row['sportello_id'] . ', \'' . $materia_clear . '\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
-		<button id="selectbutton' . $row['sportello_id'] . '" onclick="sportelloSelect(' . $row['sportello_id'] . ')" class="btn btn-info btn-xs"><span id="selecticon' . $row['sportello_id'] . '" class="glyphicon glyphicon-remove"></button>
-		</td>
+			<button onclick="sportelloGetDetails(' . $row['sportello_id'] . ')" class="btn btn-warning btn-xs" title="Modifica">
+				<span class="glyphicon glyphicon-pencil"></span>
+			</button>
+
+			<button onclick="sportelloDuplica(' . $row['sportello_id'] . ')" class="btn btn-success btn-xs" title="Duplica">
+				<span class="glyphicon glyphicon-copy"></span>
+			</button>
+
+			<button onclick="sportelloDelete(' . $row['sportello_id'] . ', \'' . $materia_clear . '\')" class="btn btn-danger btn-xs" title="Cancella">
+				<span class="glyphicon glyphicon-trash"></span>
+			</button>
+
+			<button id="selectbutton' . $row['sportello_id'] . '" onclick="sportelloSelect(' . $row['sportello_id'] . ')" class="btn btn-info btn-xs" title="Seleziona">
+				<span id="selecticon' . $row['sportello_id'] . '" class="glyphicon glyphicon-remove"></span>
+			</button>
+		</td>	
 		</tr>';
 	}
 }
@@ -183,4 +195,3 @@ foreach ($resultArray as $row) {
 $data .= '</table></div>';
 
 echo $data;
-?>
