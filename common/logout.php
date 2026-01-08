@@ -54,7 +54,7 @@ if (haRuolo('admin')) {
         unset($_SESSION['impersona_attiva'], $_SESSION['impersona_ruolo'], $_SESSION['impersona_docente_id']);
 
         // fallback: torna in admin (o dove preferisci)
-        close_or_redirect('../index.php');
+        close_or_redirect('/index.php');
     }
 
     if (impersonaRuolo('studente')) {
@@ -63,7 +63,7 @@ if (haRuolo('admin')) {
 
         unset($_SESSION['impersona_attiva'], $_SESSION['impersona_ruolo'], $_SESSION['impersona_studente_id']);
 
-        close_or_redirect('../index.php');
+        close_or_redirect('/index.php');
     }
 
     if (impersonaRuolo('genitore')) {
@@ -72,7 +72,7 @@ if (haRuolo('admin')) {
 
         unset($_SESSION['impersona_attiva'], $_SESSION['impersona_ruolo'], $_SESSION['impersona_genitore_id']);
 
-        close_or_redirect('../index.php');
+        close_or_redirect('/index.php');
     }
 }
 
@@ -86,5 +86,5 @@ info("Logout avviato per utente [$__username]");
 $session->logout();
 
 // Redirect finale
-redirect('../index.php');
+redirect('/index.php');
 exit;

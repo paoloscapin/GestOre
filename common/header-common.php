@@ -11,12 +11,50 @@
 echo '<link rel="icon" href="../ore-32.png" />';
 echo '<link rel="stylesheet" href="../css/releaseversion.css">';
 ?>
+<script src="<?php echo $__application_base_path; ?>/common/jquery-3.3.1-dist/jquery-3.3.1.min.js"></script>
 
 <script>
+
+  (function () {
+
+  // intercetta tutte le chiamate ajax
+  $(document).ajaxSend(function (e, xhr, options) {
+    console.log("[GLOBAL ajaxSend]", options.type, options.url, options.data);
+  });
+
+  $(document).ajaxSuccess(function (e, xhr, options) {
+    console.log("[GLOBAL ajaxSuccess]", options.url, xhr.status, xhr.getResponseHeader("content-type"));
+  });
+
+  $(document).ajaxError(function (e, xhr, options, err) {
+    console.error("[GLOBAL ajaxError]", options.url, xhr.status, err, (xhr.responseText || "").substring(0, 200));
+  });
+
+  // intercetta cambi pagina "strani"
+  const _assign = window.location.assign.bind(window.location);
+  window.location.assign = function (url) {
+    console.warn("[location.assign]", url, new Error().stack);
+    return _assign(url);
+  };
+
+  const _replace = window.location.replace.bind(window.location);
+  window.location.replace = function (url) {
+    console.warn("[location.replace]", url, new Error().stack);
+    return _replace(url);
+  };
+
+  // se qualcuno fa window.location.href = ...
+  // non si può patchare direttamente href, ma logghiamo unload
+  window.addEventListener("beforeunload", function () {
+    console.warn("[beforeunload] leaving page to:", window.location.href);
+  });
+
+})();
+
 (function () {
-  function redirectToLogin() {
-    // porta alla home di login (da te è index.php)
-    window.location.href = "<?php echo $__application_base_path; ?>/index.php";
+  function redirectToLogin(url) {
+    // fallback: index generale dell’app
+    window.location.href = url || ("<?php echo $__application_base_path; ?>/index.php");
   }
 
   function onReady(fn) {
@@ -28,45 +66,42 @@ echo '<link rel="stylesheet" href="../css/releaseversion.css">';
   }
 
   onReady(function () {
-    // Se jQuery non c'è, non facciamo nulla (ma nel tuo progetto c'è)
     if (!window.jQuery) return;
 
-    // intercetta TUTTE le chiamate ajax
-    $(document).ajaxComplete(function (event, xhr) {
+    $(document).ajaxComplete(function (event, xhr, settings) {
       try {
-        // 1) Caso migliore: backend risponde 401 JSON
+        // 1) Caso corretto: sessione scaduta -> 401
         if (xhr && xhr.status === 401) {
-          // se è JSON con redirect
-          try {
-            var r = JSON.parse(xhr.responseText || "{}");
-            if (r && r.redirect) {
-              window.location.href = r.redirect;
-              return;
-            }
-          } catch (e) {}
-          redirectToLogin();
-          return;
+          // se è JSON, prova a leggere redirect
+          var ct = (xhr.getResponseHeader && xhr.getResponseHeader("Content-Type")) ? xhr.getResponseHeader("Content-Type") : "";
+          if (ct.toLowerCase().indexOf("application/json") !== -1) {
+            try {
+              var r = JSON.parse(xhr.responseText || "{}");
+              if (r && r.redirect) return redirectToLogin(r.redirect);
+            } catch(e) {}
+          }
+          return redirectToLogin();
         }
 
-        // 2) Fallback: se torna HTML e contiene form/login (vecchi endpoint / redirect “trasparente”)
-        var ct = (xhr.getResponseHeader && xhr.getResponseHeader("Content-Type")) ? xhr.getResponseHeader("Content-Type") : "";
-        if (ct.indexOf("text/html") !== -1) {
-          var t = (xhr.responseText || "").toLowerCase();
-          if (t.includes("glogin") || t.includes("google") && t.includes("auth") || t.includes("login") || t.includes("password")) {
-            redirectToLogin();
-            return;
-          }
+        // 2) Secondo caso: backend risponde 200 ma JSON indica session expired (difesa extra)
+        var ct2 = (xhr.getResponseHeader && xhr.getResponseHeader("Content-Type")) ? xhr.getResponseHeader("Content-Type") : "";
+        if (ct2.toLowerCase().indexOf("application/json") !== -1) {
+          try {
+            var r2 = (typeof xhr.responseJSON === "object" && xhr.responseJSON) ? xhr.responseJSON : JSON.parse(xhr.responseText || "{}");
+            if (r2 && r2.reason === "SESSION_EXPIRED") {
+              return redirectToLogin(r2.redirect);
+            }
+          } catch(e) {}
         }
+
+        // ❌ STOP: niente euristiche su "login/google/auth" perché generano falsi positivi
       } catch (err) {
-        // in caso di errori strani, fallback soft
+        // non fare redirect in caso di errori di parsing: meglio non interferire
       }
     });
 
-    // opzionale: intercetta errori ajax (es. network)
     $(document).ajaxError(function (event, xhr) {
-      if (xhr && xhr.status === 401) {
-        redirectToLogin();
-      }
+      if (xhr && xhr.status === 401) redirectToLogin();
     });
   });
 })();

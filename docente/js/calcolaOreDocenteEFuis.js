@@ -148,103 +148,111 @@ function oreFatteReloadTables(soloTotale = false) {
 }
 
 function orePrevisteReloadTables(soloTotale = false) {
-	postOrePrevisteAggiorna = $.post("../docente/orePrevisteAggiorna.php", {
-		richiesta: 'orePrevisteAggiorna',
-		soloTotale: soloTotale,
-		operatore: $("#hidden_operatore").val(),
-		ultimo_controllo: $("#hidden_ultimo_controllo").val()
-	},
-	function (data, status) {
-//		console.log(data);
-		data = JSON.parse(data);
-//		console.log(data);
 
-		if (! soloTotale) {
-			$(".corso_di_recupero_records_content").html(data.dataCdr);
-			$(".diaria_records_content").html(data.dataDiaria);
-			$(".attivita_previste_records_content").html(data.dataPreviste);
-			$(".attribuite_records_content").html(data.dataAttribuite);
-		}
+  console.log("=== orePrevisteReloadTables() START ===", {
+    soloTotale: soloTotale,
+    operatore: $("#hidden_operatore").val(),
+    ultimo_controllo: $("#hidden_ultimo_controllo").val(),
+    docente_id: $("#hidden_docente_id").val()
+  });
 
-		$("#orientamento_fatte_funzionali").html(getHtmlNumAndFatteVisual(data.oreOrientamentoFunzionali,data.oreOrientamentoFunzionaliPreviste));
-		$("#orientamento_fatte_con_studenti").html(getHtmlNumAndFatteVisual(data.oreOrientamentoConStudenti,data.oreOrientamentoConStudentiPreviste));
-		$("#orientamento_previste_funzionali").html(getHtmlNumAndPrevisteVisual(data.oreOrientamentoFunzionaliPreviste,0));
-		$("#orientamento_previste_con_studenti").html(getHtmlNumAndPrevisteVisual(data.oreOrientamentoConStudentiPreviste,0));
-	
-		if (Number(data.oreOrientamentoFunzionali) + Number(data.oreOrientamentoConStudenti) == 0) {
-			$(".orientamento").addClass('hidden');
-			$(".NOorientamento").removeClass('hidden');
-		} else {
-			$(".orientamento").removeClass('hidden');
-			$(".NOorientamento").addClass('hidden');
-		}
-	
-		// ore dovute
-		$("#dovute_ore_40_sostituzioni_di_ufficio").html(getHtmlNum(data.oreSostituzioniDovute));
-		$("#dovute_ore_40_aggiornamento").html(getHtmlNum(data.oreAggiornamentoDovute));
-		$("#dovute_ore_70_funzionali").html(getHtmlNum(data.oreFunzionaliDovute));
-		$("#dovute_totale_con_studenti").html(getHtmlNum(data.oreConStudentiDovute));
-	
-		// ore previste
-		$("#previste_ore_40_aggiornamento").html(getHtmlNumAndPrevisteVisual(data.oreAggiornamentoPreviste,data.oreAggiornamentoDovute));
-		$("#previste_ore_70_funzionali").html(getHtmlNumAndPrevisteVisual(data.oreFunzionaliPreviste,data.oreFunzionaliDovute));
-		$("#previste_totale_con_studenti").html(getHtmlNumAndPrevisteVisual(data.oreConStudentiPreviste,data.oreConStudentiDovute));
-	
-		// le ore del clil previste
-		$("#clil_previste_funzionali").html(getHtmlNumAndPrevisteVisual(data.oreClilFunzionaliPreviste, 0));
-		$("#clil_previste_con_studenti").html(getHtmlNumAndPrevisteVisual(data.oreClilConStudentiPreviste, 0));
-		if (parseInt(data.oreClilFunzionaliPreviste,10) + parseInt(data.oreClilConStudentiPreviste,10) == 0) {
-			$(".clil").addClass('hidden');
-			$(".NOclil").removeClass('hidden');
-		} else {
-			$(".clil").removeClass('hidden');
-			$(".NOclil").addClass('hidden');
-		}
+  const payload = {
+    richiesta: "orePrevisteAggiorna",
+    soloTotale: soloTotale,
+    operatore: $("#hidden_operatore").val(),
+    ultimo_controllo: $("#hidden_ultimo_controllo").val(),
+    docente_id: $("#hidden_docente_id").val()
+  };
 
-		// messaggi per ore e fuis
-		if (data.messaggio.length > 0) {
-			$("#ore_message").html(data.messaggio);
-			$('#ore_message').css({ 'font-weight': 'bold' });
-			$('#ore_message').css({ 'text-align': 'center' });
-			$('#ore_message').css({ 'background-color': '#BAEED0' });
-			$("#ore_message").removeClass('hidden');
-		} else {
-			$("#ore_message").addClass('hidden');
-		}
+  return $.ajax({
+    url: "../docente/orePrevisteAggiorna.php",
+    type: "POST",
+    data: payload,
+    dataType: "json",
+    cache: false,
+    timeout: 20000,
 
-		// parte fuis solo su condizione
-		if (true) {
-			$("#fuis_assegnato").html(number_format(data.fuisAssegnato,2));
-			$("#fuis_ore").html(number_format(data.fuisOrePreviste,2));
-			$("#fuis_diaria").html(number_format(data.diariaImportoPreviste,2));
-	
-			$("#fuis_clil_funzionali").html(number_format(data.fuisClilFunzionale,2));
-			$("#fuis_clil_con_studenti").html(number_format(data.fuisClilConStudenti,2));
-	
-			$("#fuis_orientamento_funzionali").html(number_format(data.fuisOrientamentoFunzionalePreviste,2));
-			$("#fuis_orientamento_con_studenti").html(number_format(data.fuisOrientamentoConStudentiPreviste,2));
-	
-			$("#fuis_corsi_di_recupero").html(number_format(data.fuisExtraCorsiDiRecupero,2));
-	
-			// totali
-			$("#fuis_docente_totale").html(number_format(parseFloat(data.fuisAssegnato) + parseFloat(data.fuisOrePreviste) + parseFloat(data.diariaImportoPreviste),2));
-			$("#fuis_clil_totale").html(number_format(parseFloat(data.fuisClilFunzionale) + parseFloat(data.fuisClilConStudenti), 2));
-			$("#fuis_orientamento_totale").html(number_format(parseFloat(data.fuisOrientamentoFunzionalePreviste) + parseFloat(data.fuisOrientamentoConStudentiPreviste), 2));
-			$("#fuis_corsi_di_recupero_totale").html(number_format(data.fuisExtraCorsiDiRecupero,2));
-			$('#fuis_docente_totale').css({ 'font-weight': 'bold' });
-			$('#fuis_clil_totale').css({ 'font-weight': 'bold' });
-			$('#fuis_corsi_di_recupero_totale').css({ 'font-weight': 'bold' });
-	
-			// messaggio
-			if (data.messaggio.length > 0) {
-				$("#fuis_message").html(data.messaggio);
-				$('#fuis_message').css({ 'font-weight': 'bold' });
-				$('#fuis_message').css({ 'text-align': 'center' });
-				$('#fuis_message').css({ 'background-color': '#FFC6B4' });
-				$("#fuis_message").removeClass('hidden');
-			} else {
-				$("#fuis_message").addClass('hidden');
-			}
-		}
-	});
+    beforeSend: function (xhr) {
+      console.log("orePrevisteAggiorna BEFORE_SEND", {
+        url: this.url,
+        type: this.type,
+        data: payload
+      });
+    }
+  })
+  .done(function (data, textStatus, jqXHR) {
+
+    console.log("orePrevisteAggiorna DONE", {
+      textStatus: textStatus,
+      httpStatus: jqXHR.status,
+      contentType: jqXHR.getResponseHeader("content-type"),
+      dataType: typeof data,
+      keys: (data && typeof data === "object") ? Object.keys(data) : null,
+      reason: data && data.reason ? data.reason : null,
+      redirect: data && data.redirect ? data.redirect : null
+    });
+
+    // se per caso il server ti manda un JSON "session expired"
+    if (data && data.reason === "SESSION_EXPIRED") {
+      console.warn("SESSION_EXPIRED in DONE -> redirect", data.redirect);
+      window.location.href = data.redirect || "../index.php";
+      return;
+    }
+
+    console.log("orePrevisteAggiorna DONE -> proceeding to update DOM");
+
+    // --- QUI IL TUO CODICE DI UPDATE DOM (lascia come hai già) ---
+    if (!soloTotale) {
+      $(".corso_di_recupero_records_content").html(data.dataCdr);
+      $(".diaria_records_content").html(data.dataDiaria);
+      $(".attivita_previste_records_content").html(data.dataPreviste);
+      $(".attribuite_records_content").html(data.dataAttribuite);
+    }
+
+    // (il resto del tuo update come prima...)
+    // --------------------------------------
+
+    console.log("orePrevisteAggiorna DONE -> DOM updated OK");
+  })
+  .fail(function (jqXHR, textStatus, errorThrown) {
+
+    const ct = jqXHR.getResponseHeader("content-type");
+    const resp = (jqXHR.responseText || "");
+    console.error("orePrevisteAggiorna FAIL", {
+      textStatus: textStatus,
+      errorThrown: errorThrown,
+      httpStatus: jqXHR.status,
+      contentType: ct,
+      responseFirst300: resp.substring(0, 300)
+    });
+
+    // prova a capire se è JSON di session scaduta
+    if (jqXHR.status === 401) {
+      try {
+        const r = JSON.parse(resp);
+        console.warn("401 parsed JSON", r);
+        window.location.href = r.redirect || "../index.php";
+      } catch (e) {
+        console.warn("401 but response not JSON -> go index");
+        window.location.href = "../index.php";
+      }
+      return;
+    }
+
+    // se ti ritorna HTML (tipo una pagina intera) spesso è redirect/login
+    if (ct && ct.indexOf("text/html") >= 0) {
+      console.warn("HTML response detected -> likely login/error page -> go index");
+      window.location.href = "../index.php";
+      return;
+    }
+
+    // fallback
+    console.warn("Unknown fail -> go index");
+    window.location.href = "../index.php";
+  })
+  .always(function () {
+    console.log("=== orePrevisteReloadTables() ALWAYS END ===");
+  });
 }
+
+

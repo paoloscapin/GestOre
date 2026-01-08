@@ -6,18 +6,26 @@
  */
 
 function agisciComeDocente(docente_id) {
+  // 1) Apri SUBITO la finestra (ancora dentro il gesto utente)
+  const w = window.open('about:blank', '_blank');
+
   $.post("agisciComeDocente.php", { docente_id: docente_id }, null, "json")
     .done(function (res) {
       if (res && res.ok) {
-        window.location.href = '../docente/index.php';
+        // 2) Ora posso puntare la nuova finestra alla pagina docente
+        w.location.href = '../docente/index.php';
       } else {
+        // Se non va, chiudo la finestra vuota e mostro l'errore
+        if (w) w.close();
         alert((res && res.msg) ? res.msg : "Impossibile impersonare il docente");
       }
     })
     .fail(function (xhr) {
+      if (w) w.close();
       alert("Errore impersonificazione (" + xhr.status + ")");
     });
 }
+
 
 function agisciComeDocenteSelezionato() {
   agisciComeDocente($("#docente").val());

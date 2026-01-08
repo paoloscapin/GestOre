@@ -12,46 +12,6 @@ require_once __DIR__ . '/path.php';
 require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/__Settings.php';
 
-// start session
-if (session_status() == PHP_SESSION_NONE) {
-        ini_set('session.gc_maxlifetime', $__settings->system->durata_sessione);
-    ini_set('session.cookie_lifetime', $__settings->system->durata_sessione);
-    session_set_cookie_params($__settings->system->durata_sessione);
-    session_start();
-}
-else {
-    // controlla se la sessione e' scaduta      
-
-   if (time() - $_SESSION['LAST_ACTIVITY'] > $_SESSION['EXPIRE_AFTER']) {
-        // Sessione scaduta
-        session_unset();
-        session_destroy();
-        $message = "Sessione scaduta, effettuare nuovamente il login";
-
-        // ✅ NUOVO: per chiamate AJAX risponde 401+JSON, altrimenti redirect come prima
-        __session_expired_exit($message);    }
-}
-
-$_SESSION['LAST_ACTIVITY'] = time(); // refresh
-
-// configurazione globale
-require_once __DIR__ . '/Config.php';
-
-// ===============================
-// AJAX / JSON session-expired helper
-// ===============================
-function __is_ajax_request(): bool
-{
-    return (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
-}
-
-function __wants_json(): bool
-{
-    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
-    return (stripos($accept, 'application/json') !== false);
-}
-
 /**
  * Se la sessione è scaduta e la richiesta è AJAX/JSON:
  * - risponde 401 + JSON (così il JS può redirigere)
@@ -77,6 +37,50 @@ function __session_expired_exit(string $message): void
 
     header("Location: ../error/error.php?message=" . urlencode($message));
     exit();
+}
+// start session
+if (session_status() == PHP_SESSION_NONE) {
+    ini_set('session.gc_maxlifetime', $__settings->system->durata_sessione);
+    ini_set('session.cookie_lifetime', $__settings->system->durata_sessione);
+    session_set_cookie_params($__settings->system->durata_sessione);
+    session_start();
+}
+
+// ✅ garantisci che EXPIRE_AFTER esista (es. prima richiesta o sessione “strana”)
+if (!isset($_SESSION['EXPIRE_AFTER']) || intval($_SESSION['EXPIRE_AFTER']) <= 0) {
+    $_SESSION['EXPIRE_AFTER'] = intval($__settings->system->durata_sessione);
+}
+
+// ✅ controlla scadenza solo se LAST_ACTIVITY esiste
+if (isset($_SESSION['LAST_ACTIVITY']) && (time() - intval($_SESSION['LAST_ACTIVITY']) > intval($_SESSION['EXPIRE_AFTER']))) {
+    session_unset();
+    session_destroy();
+    $message = "Sessione scaduta, effettuare nuovamente il login";
+
+    // ✅ NUOVO: per chiamate AJAX risponde 401+JSON, altrimenti redirect come prima
+    __session_expired_exit($message);
+}
+
+// refresh
+$_SESSION['LAST_ACTIVITY'] = time();
+
+
+// configurazione globale
+require_once __DIR__ . '/Config.php';
+
+// ===============================
+// AJAX / JSON session-expired helper
+// ===============================
+function __is_ajax_request(): bool
+{
+    return (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+}
+
+function __wants_json(): bool
+{
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    return (stripos($accept, 'application/json') !== false);
 }
 
 // Function to get the client IP address
