@@ -27,15 +27,57 @@ else {
         session_unset();
         session_destroy();
         $message = "Sessione scaduta, effettuare nuovamente il login";
-        header("Location: ../error/error.php?message=" . urlencode($message));  
-        exit();
-    }
+
+        // ✅ NUOVO: per chiamate AJAX risponde 401+JSON, altrimenti redirect come prima
+        __session_expired_exit($message);    }
 }
 
 $_SESSION['LAST_ACTIVITY'] = time(); // refresh
 
 // configurazione globale
 require_once __DIR__ . '/Config.php';
+
+// ===============================
+// AJAX / JSON session-expired helper
+// ===============================
+function __is_ajax_request(): bool
+{
+    return (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+}
+
+function __wants_json(): bool
+{
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    return (stripos($accept, 'application/json') !== false);
+}
+
+/**
+ * Se la sessione è scaduta e la richiesta è AJAX/JSON:
+ * - risponde 401 + JSON (così il JS può redirigere)
+ * Altrimenti:
+ * - fa redirect come prima
+ */
+function __session_expired_exit(string $message): void
+{
+    global $__application_base_path;
+
+    if (__is_ajax_request() || __wants_json()) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok' => false,
+            'reason' => 'SESSION_EXPIRED',
+            'msg' => $message,
+            // fallback ragionevole
+            'redirect' => ($__application_base_path ?? '') . '/index.php'
+        ]);
+        exit();
+    }
+
+    header("Location: ../error/error.php?message=" . urlencode($message));
+    exit();
+}
 
 // Function to get the client IP address
 function get_client_ip()

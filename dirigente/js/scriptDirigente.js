@@ -6,16 +6,22 @@
  */
 
 function agisciComeDocente(docente_id) {
-    $.post("agisciComeDocente.php", {
-        docente_id: docente_id
-    }, function (data, status) {
-		window.location.href = '../docente/index.php';
+  $.post("agisciComeDocente.php", { docente_id: docente_id }, null, "json")
+    .done(function (res) {
+      if (res && res.ok) {
+        window.location.href = '../docente/index.php';
+      } else {
+        alert((res && res.msg) ? res.msg : "Impossibile impersonare il docente");
+      }
+    })
+    .fail(function (xhr) {
+      alert("Errore impersonificazione (" + xhr.status + ")");
     });
 }
 
-function agisciComeDocenteSelezionato(docente_id) {
-	agisciComeDocente($("#docente").val());
-}
+function agisciComeDocenteSelezionato() {
+  agisciComeDocente($("#docente").val());
+}	
 
 $(document).ready(function () {
 //	$('#docente').data('selectpicker').$button.focus();
