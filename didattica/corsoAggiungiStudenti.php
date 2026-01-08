@@ -11,6 +11,8 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 ruoloRichiesto('docente','admin','segreteria-didattica');
 
+header('Content-Type: application/json; charset=utf-8');
+
 if (isset($_POST['id_corso'], $_POST['id_studente'])) {
 
     $id_corso = intval($_POST['id_corso']);
@@ -20,33 +22,45 @@ if (isset($_POST['id_corso'], $_POST['id_studente'])) {
         $id_studenti = [$id_studenti]; // rendi array se singolo studente
     }
 
+    // leggo UNA volta se il corso è carenze
+    $rowC = dbGetFirst("SELECT carenza FROM corso WHERE id = $id_corso LIMIT 1");
+    $isCarenze = ($rowC && intval($rowC['carenza'] ?? 0) === 1);
+
     $added = [];
     $already = [];
 
     foreach ($id_studenti as $id_studente) {
         $id_studente = intval($id_studente);
+        if ($id_studente <= 0) continue;
 
         // Controllo se lo studente è già iscritto
-        $queryCheck = "SELECT COUNT(*) as cnt 
-                       FROM corso_iscritti 
-                       WHERE id_corso = $id_corso AND id_studente = $id_studente";
-        $res = dbGetFirst($queryCheck);
+        $res = dbGetFirst("
+            SELECT COUNT(*) as cnt
+            FROM corso_iscritti
+            WHERE id_corso = $id_corso AND id_studente = $id_studente
+        ");
 
-        if ($res['cnt'] == 0) {
-            // Inserimento
-            $query = "INSERT INTO corso_iscritti (id_corso, id_studente) 
-                      VALUES ($id_corso, $id_studente)";
-            dbExec($query);
-            $carenza = dbGetFirst("SELECT carenza FROM corso WHERE id = $id_corso");
-            if ($carenza['carenza'] == 1) {
-                // Se il corso è di carenze, iscrivo anche in corso_esiti
-                $query = "INSERT INTO corso_esiti (id_corso, id_studente) 
-                          VALUES ($id_corso, $id_studente)";
-                dbExec($query);
+        $cnt = intval($res['cnt'] ?? 0);
+
+        if ($cnt == 0) {
+            // Inserimento iscrizione
+            dbExec("
+                INSERT INTO corso_iscritti (id_corso, id_studente)
+                VALUES ($id_corso, $id_studente)
+            ");
+
+            // Se il corso è di carenze, inserisco anche in corso_esiti (UNA SOLA VOLTA)
+            if ($isCarenze) {
+                // se corso_esiti ha vincoli particolari, qui inseriamo solo le colonne esistenti nella tua tabella
+                dbExec("
+                    INSERT INTO corso_esiti (id_corso, id_studente)
+                    SELECT $id_corso, $id_studente
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM corso_esiti
+                        WHERE id_corso = $id_corso AND id_studente = $id_studente
+                    )
+                ");
             }
-            $query = "INSERT INTO corso_esiti (id_corso, id_studente) 
-                      VALUES ($id_corso, $id_studente)";
-            dbExec($query);
 
             $added[] = $id_studente;
         } else {
@@ -54,21 +68,17 @@ if (isset($_POST['id_corso'], $_POST['id_studente'])) {
         }
     }
 
-    $response = [
-        'status' => 'ok',
-        'added' => $added,
+    echo json_encode([
+        'status'  => 'ok',
+        'added'   => $added,
         'already' => $already,
         'message' => count($added) . " studenti aggiunti, " . count($already) . " già presenti"
-    ];
-
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
 } else {
-    $response = [
-        'status' => 'error',
+
+    echo json_encode([
+        'status'  => 'error',
         'message' => 'Parametri mancanti'
-    ];
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 }

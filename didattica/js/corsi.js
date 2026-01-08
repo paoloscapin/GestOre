@@ -921,33 +921,59 @@ function cancellaData(id, corso_id) {
 }
 
 function aggiornaTabellaStudenti(corso_id) {
-    $.post("../didattica/corsiReadDetails.php", { corsi_id: corso_id }, function (data) {
-        var tbody = $('#iscritti_table tbody');
-        tbody.empty();
+    $.ajax({
+        url: "../didattica/corsiReadDetails.php",
+        method: "POST",
+        dataType: "json",          // ✅ forza JSON
+        data: { corsi_id: corso_id },
+        success: function (data) {
 
-        data.studenti.forEach(function (s) {
-            var tr = $('<tr>').attr('id', 'row_stud_' + s.iscrizione_id);
+            // ✅ fallback: se per qualche motivo arriva stringa
+            try {
+                if (typeof data === "string") data = JSON.parse(data);
+            } catch (e) {}
 
-            tr.append($('<td>').text(s.stud_cognome + " " + s.stud_nome));
-            tr.append($('<td>').text(s.classe));
+            var tbody = $('#iscritti_table tbody');
+            tbody.empty();
 
-            var tdBtn = $('<td>');
+            // ✅ guard
+            if (!data || !Array.isArray(data.studenti)) {
+                console.error("corsiReadDetails.php risposta inattesa:", data);
+                tbody.html('<tr><td colspan="3" class="text-center text-danger">Errore caricamento studenti</td></tr>');
+                showToast("Errore caricamento studenti (risposta non valida)", true);
+                return;
+            }
 
-            var btnDel = $('<button>')
-                .attr('type', 'button')
-                .addClass('btn btn-sm btn-danger')
-                .html('<span class="glyphicon glyphicon-trash"></span>')
-                .on('click', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    cancellaIscritto(s.iscrizione_id);
-                });
+            data.studenti.forEach(function (s) {
+                var tr = $('<tr>').attr('id', 'row_stud_' + s.iscrizione_id);
 
-            tdBtn.append(btnDel);
-            tr.append(tdBtn);
-            tbody.append(tr);
-        });
-    }, 'json');
+                tr.append($('<td>').text(s.stud_cognome + " " + s.stud_nome));
+                tr.append($('<td>').text(s.classe));
+
+                var tdBtn = $('<td>');
+
+                var btnDel = $('<button>')
+                    .attr('type', 'button')
+                    .addClass('btn btn-sm btn-danger')
+                    .html('<span class="glyphicon glyphicon-trash"></span>')
+                    .on('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        cancellaIscritto(s.iscrizione_id);
+                    });
+
+                tdBtn.append(btnDel);
+                tr.append(tdBtn);
+                tbody.append(tr);
+            });
+        },
+        error: function (xhr) {
+            console.error("Errore AJAX corsiReadDetails.php:", xhr && xhr.responseText ? xhr.responseText : xhr);
+            var tbody = $('#iscritti_table tbody');
+            tbody.empty().html('<tr><td colspan="3" class="text-center text-danger">Errore comunicazione server</td></tr>');
+            showToast("Errore comunicazione nel caricamento studenti", true);
+        }
+    });
 }
 
 // -------------------------
