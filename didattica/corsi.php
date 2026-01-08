@@ -873,6 +873,33 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         </div>
     </div>
 
+    <!-- ============================= -->
+    <!-- MODALE DUPLICA CORSO          -->
+    <!-- ============================= -->
+    <div class="modal fade" id="duplica_corso_modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-md modal-basso" role="document">
+            <div class="modal-content">
+
+                <div class="modal-header modal-header-blu">
+                    <h4 class="modal-title">Duplica corso</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <div id="duplica_err" class="alert alert-danger" style="display:none;"></div>
+                    <p>Verrà creato un nuovo corso duplicando <b>docenti (anche multipli), studenti e date</b> del corso corrente.</p>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-default" data-dismiss="modal">Annulla</button>
+                    <button class="btn btn-primary" onclick="corsiDuplicaConfirm()">Duplica</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
     <div id="toastMessage" style="
         position: fixed;
         top: 50%;

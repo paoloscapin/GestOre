@@ -630,11 +630,30 @@ function corsiGetDetails(corsi_id) {
 function corsiDuplicaOpen(corsoId) {
     $("#hidden_corso_id").val(corsoId);
 
-    var $src = $("#docente");
+    // riempio select docenti nella modale duplicazione
+    // preferisco docenti_multi (nuovo), fallback a #docente (compat)
     var $dst = $("#duplica_docente");
-    $dst.html($src.html());
 
-    $dst.selectpicker('val', $src.val() || "0");
+    var htmlOpt = "";
+    if ($("#docenti_multi").length) {
+        htmlOpt = $("#docenti_multi").html();
+    }
+    if (!htmlOpt && $("#docente").length) {
+        htmlOpt = $("#docente").html();
+    }
+    $dst.html(htmlOpt);
+
+    // preselezione: primo docente selezionato in docenti_multi, fallback a #docente
+    var pre = 0;
+    if ($("#docenti_multi").length) {
+        var arr = $("#docenti_multi").val() || [];
+        if (arr && arr.length > 0) pre = parseInt(arr[0], 10) || 0;
+    }
+    if (!pre && $("#docente").length) {
+        pre = parseInt($("#docente").val(), 10) || 0;
+    }
+
+    $dst.selectpicker('val', pre > 0 ? String(pre) : "0");
     $dst.selectpicker('refresh');
 
     $("#duplica_err").hide().text("");
@@ -643,16 +662,10 @@ function corsiDuplicaOpen(corsoId) {
 
 function corsiDuplicaConfirm() {
     var corsoId = parseInt($("#hidden_corso_id").val(), 10) || 0;
-    var newDocId = parseInt($("#duplica_docente").val(), 10) || 0;
-
     if (corsoId <= 0) return;
-    if (newDocId <= 0) {
-        $("#duplica_err").show().text("Seleziona un docente valido.");
-        return;
-    }
 
     $.post("../didattica/corsiDuplica.php",
-        { corsi_id: corsoId, new_doc_id: newDocId },
+        { corsi_id: corsoId }, // ✅ niente new_doc_id: duplica identico
         function (resp) {
             if (resp && resp.ok && resp.new_corso_id) {
                 $("#duplica_corso_modal").modal("hide");
