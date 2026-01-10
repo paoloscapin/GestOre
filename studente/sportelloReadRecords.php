@@ -107,12 +107,24 @@ LEFT JOIN classi AS cl
        ON cl.id = sf.id_classe
 
 WHERE s.anno_scolastico_id = $__anno_scolastico_corrente_id
+
+-- ✅ FILTRO NUOVO: lo sportello è visibile se s.classe_id è in classi_include.into_classe_id
+--    per la classe corrente dello studente (sf.id_classe)
+AND EXISTS (
+    SELECT 1
+    FROM classi_include ci
+    WHERE ci.classi_id = sf.id_classe
+      AND ci.into_classe_id = s.classe_id
+)
 			";
 
 // rimossa riga da query visto che compare già qui sotto AND NOT sportello.cancellato
 
 if ($classe_filtro_id > 0) {
-	$query .= "AND s.classe_id = $classe_filtro_id ";
+	// ✅ NON si usa più il filtro "classe_filtro_id" lato studente:
+	// la visibilità è determinata dalla tabella classi_include in base alla classe dello studente.
+	debug("classe_filtro_id ricevuto (" . intval($classe_filtro_id) . ") ma IGNORATO: filtro classe gestito via classi_include + classe studente");
+	// $query .= "AND s.classe_id = $classe_filtro_id ";
 }
 if ($materia_filtro_id > 0) {
 	$query .= "AND s.materia_id = $materia_filtro_id ";

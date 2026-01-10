@@ -46,8 +46,16 @@ $nome_categoria = $categoria_filtro_id > 0
     : '';
 
 debug("=== SPORTELLI MOBILE: inizio rendering ===");
+debug("Parametri GET: ancheCancellati=" . var_export($ancheCancellati, true) .
+      ", soloNuovi=" . var_export($soloNuovi, true) .
+      ", soloIscritto=" . var_export($soloIscritto, true) .
+      ", docente_filtro_id=" . var_export($docente_filtro_id, true) .
+      ", materia_filtro_id=" . var_export($materia_filtro_id, true) .
+      ", classe_filtro_id=" . var_export($classe_filtro_id, true) .
+      ", categoria_filtro_id=" . var_export($categoria_filtro_id, true));
 
 // --- QUERY PRINCIPALE ---
+// Allineata alla DESKTOP: aggiunti sf + EXISTS su classi_include, e conteggio iscritti iscritto=1
 $query = "SELECT
     sportello.id AS sportello_id,
     sportello.data AS sportello_data,
@@ -66,21 +74,73 @@ $query = "SELECT
     docente.cognome AS docente_cognome,
     docente.nome AS docente_nome,
     docente.email AS docente_email,
-    (SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id) AS numero_studenti,
-    (SELECT sportello_studente.iscritto FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS iscritto,
-    (SELECT sportello_studente.presente FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS presente,
-    (SELECT sportello_studente.argomento FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id) AS argomento,
+
+    -- conteggio iscritti (solo iscritto=1) come desktop
+    (SELECT COUNT(*)
+        FROM sportello_studente
+        WHERE sportello_studente.sportello_id = sportello.id
+          AND sportello_studente.iscritto = 1
+    ) AS numero_studenti,
+
+    (SELECT sportello_studente.iscritto
+        FROM sportello_studente
+        WHERE sportello_studente.sportello_id = sportello.id
+          AND sportello_studente.studente_id = $__studente_id
+    ) AS iscritto,
+
+    (SELECT sportello_studente.presente
+        FROM sportello_studente
+        WHERE sportello_studente.sportello_id = sportello.id
+          AND sportello_studente.studente_id = $__studente_id
+    ) AS presente,
+
+    (SELECT sportello_studente.argomento
+        FROM sportello_studente
+        WHERE sportello_studente.sportello_id = sportello.id
+          AND sportello_studente.studente_id = $__studente_id
+    ) AS argomento,
+
     (SELECT studente.cognome FROM studente WHERE id = $__studente_id) AS studente_cognome,
     (SELECT studente.nome FROM studente WHERE id = $__studente_id) AS studente_nome,
     (SELECT studente.email FROM studente WHERE id = $__studente_id) AS studente_email,
-    (SELECT classi.classe FROM classi WHERE id = (SELECT studente_frequenta.id_classe FROM studente_frequenta WHERE id_studente = $__studente_id AND id_anno_scolastico = $__anno_scolastico_corrente_id)) AS studente_classe
+
+    (SELECT classi.classe
+        FROM classi
+        WHERE id = (
+            SELECT studente_frequenta.id_classe
+            FROM studente_frequenta
+            WHERE id_studente = $__studente_id
+              AND id_anno_scolastico = $__anno_scolastico_corrente_id
+        )
+    ) AS studente_classe
+
 FROM sportello
 INNER JOIN docente ON sportello.docente_id = docente.id
 INNER JOIN materia ON sportello.materia_id = materia.id
-INNER JOIN classe ON sportello.classe_id = classe.id
-WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id";
+INNER JOIN classe  ON sportello.classe_id  = classe.id
 
-if ($classe_filtro_id > 0)    $query .= " AND sportello.classe_id = $classe_filtro_id ";
+-- classe dello studente nell'anno scolastico corrente (come desktop)
+LEFT JOIN studente_frequenta AS sf
+       ON sf.id_studente        = $__studente_id
+      AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id
+
+WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
+
+-- ✅ FILTRO NUOVO: lo sportello è visibile se sportello.classe_id è in classi_include.into_classe_id
+--    per la classe corrente dello studente (sf.id_classe)
+AND EXISTS (
+    SELECT 1
+    FROM classi_include ci
+    WHERE ci.classi_id = sf.id_classe
+      AND ci.into_classe_id = sportello.classe_id
+)";
+
+// --- FILTRI (allineati a desktop) ---
+if ($classe_filtro_id > 0) {
+    debug("classe_filtro_id ricevuto (" . intval($classe_filtro_id) . ") ma IGNORATO: filtro classe gestito via classi_include + classe studente");
+    // NON applicare: $query .= " AND sportello.classe_id = $classe_filtro_id ";
+}
+
 if ($materia_filtro_id > 0)   $query .= " AND sportello.materia_id = $materia_filtro_id ";
 if ($docente_filtro_id > 0)   $query .= " AND sportello.docente_id = $docente_filtro_id ";
 if ($categoria_filtro_id > 0) $query .= " AND sportello.categoria = '" . $nome_categoria . "' ";
@@ -89,6 +149,9 @@ if ($soloNuovi)               $query .= " AND sportello.data >= CURDATE() ";
 
 $query .= " ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC, docente_nome ASC";
 
+debug("Query MOBILE pronta");
+
+// Esecuzione query
 $resultArray = dbGetAll($query);
 if ($resultArray == null) $resultArray = [];
 
@@ -111,8 +174,6 @@ foreach ($resultArray as $row) {
         $formatter = new IntlDateFormatter('it_IT', IntlDateFormatter::LONG, IntlDateFormatter::NONE);
         $dataSportelloDisp = $formatter->format(new DateTime($row['sportello_data']));
 
-        //$dataSportelloDisp = utf8_encode(strftime("%d %B %Y", strtotime($row['sportello_data'])));
-        
         // Calcolo capienza
         $max_iscrizioni = $row['sportello_max_iscrizioni'];
         $posti_disponibili = $max_iscrizioni - $row['numero_studenti'];
@@ -161,6 +222,7 @@ foreach ($resultArray as $row) {
 
             debug("TZ Europe/Rome attivo; now=" . $now->format('Y-m-d H:i:sP') . "; sportello_data=" . $dataSportelloRaw);
             $orario = getSettingsValue('sportelli', 'chiusuraOrario', '13');
+
             // Data e scadenza iscrizioni
             $dataSportelloObj = new DateTime($dataSportelloRaw, $tz);
             $lastDay = clone $dataSportelloObj;
