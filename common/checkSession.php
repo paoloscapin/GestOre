@@ -15,7 +15,8 @@ require_once __DIR__ . '/__Settings.php';
 // =====================================================
 // DEBUG HELPERS (dump completo stato sessione, con masking)
 // =====================================================
-function __dbg_mask($v, $maxLen = 180) {
+function __dbg_mask($v, $maxLen = 180)
+{
     if ($v === null) return 'NULL';
     if (is_bool($v)) return $v ? 'true' : 'false';
     if (is_int($v) || is_float($v)) return (string)$v;
@@ -42,26 +43,45 @@ function __dbg_session_state(string $stage): void
     // elenco chiavi "gestite" (quelle che nel file vengono lette/scritte)
     $keys = [
         // timer scadenza
-        'LAST_ACTIVITY','EXPIRE_AFTER',
+        'LAST_ACTIVITY',
+        'EXPIRE_AFTER',
 
         // google auth
         'token',
 
         // identità utente
-        '__useremail','__username','username',
-        'utente_id','utente_nome','utente_cognome','utente_ruolo',
+        '__useremail',
+        '__username',
+        'username',
+        'utente_id',
+        'utente_nome',
+        'utente_cognome',
+        'utente_ruolo',
 
         // docente
-        'docente_id','docente_nome','docente_cognome','docente_email',
+        'docente_id',
+        'docente_nome',
+        'docente_cognome',
+        'docente_email',
 
         // studente
-        'studente_id','studente_nome','studente_cognome','studente_email','studente_codice_fiscale',
+        'studente_id',
+        'studente_nome',
+        'studente_cognome',
+        'studente_email',
+        'studente_codice_fiscale',
 
         // genitore
-        'genitore_id','genitore_nome','genitore_cognome','genitore_email','genitore_codice_fiscale',
+        'genitore_id',
+        'genitore_nome',
+        'genitore_cognome',
+        'genitore_email',
+        'genitore_codice_fiscale',
 
         // anno scolastico
-        'anno_scolastico_corrente_id','anno_scolastico_corrente_anno','anno_scolastico_scorso_id',
+        'anno_scolastico_corrente_id',
+        'anno_scolastico_corrente_anno',
+        'anno_scolastico_scorso_id',
 
         // eventuali chiavi vecchie
         'ruolo',
@@ -529,25 +549,26 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
 
             __dbg_session_state('AFTER lookup+set utente');
         } else {
-            debug("checkSession: utente NOT found -> lookup studente");
 
-            $studente = dbGetFirst("SELECT * FROM studente WHERE studente.email = '$__useremail'");
-            if ($studente != null) {
-                debug("checkSession: found studente id=" . $studente['id']);
+            debug("checkSession: utente NOT found -> lookup email genitore");
 
-                infoLogin("utente [" . $studente['nome'] . $studente['cognome'] . "]: logged in - role=[studente]");
+            $genitore = dbGetFirst("SELECT * FROM genitori WHERE genitori.email = '$__useremail'");
+            if ($genitore != null) {
+                debug("checkSession: found genitore id=" . $genitore['id']);
+
+                infoLogin("utente [" . $genitore['nome'] . $genitore['cognome'] . "]: logged in - role=[genitore]");
 
                 $session->set('utente_id', -1);
-                $session->set('studente_id', $studente['id']);
-                $session->set('studente_nome', $studente['nome']);
-                $session->set('studente_cognome', $studente['cognome']);
-                $session->set('studente_email', $__useremail);
-                $session->set('studente_codice_fiscale', $studente['codice_fiscale']);
+                $session->set('genitore_id', $genitore['id']);
+                $session->set('genitore_nome', $genitore['nome']);
+                $session->set('genitore_cognome', $genitore['cognome']);
+                $session->set('genitore_email', $__useremail);
+                $session->set('genitore_codice_fiscale', $genitore['codice_fiscale']);
 
-                $session->set('username', $studente['nome'] . "." . $studente['cognome']);
-                $session->set('utente_nome', $studente['nome']);
-                $session->set('utente_cognome', $studente['cognome']);
-                $session->set('utente_ruolo', 'studente');
+                $session->set('username', $genitore['nome'] . "." . $genitore['cognome']);
+                $session->set('utente_nome', $genitore['nome']);
+                $session->set('utente_cognome', $genitore['cognome']);
+                $session->set('utente_ruolo', 'genitore');
                 $session->set('__useremail', $__useremail);
 
                 $__username = $session->get('username');
@@ -556,16 +577,48 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
                 $_SESSION['LAST_ACTIVITY'] = time();
                 $_SESSION['EXPIRE_AFTER'] = intval($__settings->system->durata_sessione);
 
-                info("utente [" . $studente['nome'] . $studente['cognome'] . "]: logged in");
+                info("utente [" . $studente['nome'] . "]: logged in");
 
-                __dbg_session_state('AFTER lookup+set studente');
+                __dbg_session_state('AFTER lookup+set genitore');
             } else {
-                $__message = 'utente non trovato: [' . $__useremail . ']';
-                debug("checkSession: neither utente nor studente found -> redirect error");
-                infoLogin("utente non trovato: " . $__useremail);
-                warning($__message);
-                redirect('/error/error.php?message=' . $__message);
-                exit();
+                debug("checkSession: utente NOT found -> lookup studente");
+
+                $studente = dbGetFirst("SELECT * FROM studente WHERE studente.email = '$__useremail'");
+                if ($studente != null) {
+                    debug("checkSession: found studente id=" . $studente['id']);
+
+                    infoLogin("utente [" . $studente['nome'] . $studente['cognome'] . "]: logged in - role=[studente]");
+
+                    $session->set('utente_id', -1);
+                    $session->set('studente_id', $studente['id']);
+                    $session->set('studente_nome', $studente['nome']);
+                    $session->set('studente_cognome', $studente['cognome']);
+                    $session->set('studente_email', $__useremail);
+                    $session->set('studente_codice_fiscale', $studente['codice_fiscale']);
+
+                    $session->set('username', $studente['nome'] . "." . $studente['cognome']);
+                    $session->set('utente_nome', $studente['nome']);
+                    $session->set('utente_cognome', $studente['cognome']);
+                    $session->set('utente_ruolo', 'studente');
+                    $session->set('__useremail', $__useremail);
+
+                    $__username = $session->get('username');
+                    $session->set('__username', $__username);
+
+                    $_SESSION['LAST_ACTIVITY'] = time();
+                    $_SESSION['EXPIRE_AFTER'] = intval($__settings->system->durata_sessione);
+
+                    info("utente [" . $studente['nome'] . $studente['cognome'] . "]: logged in");
+
+                    __dbg_session_state('AFTER lookup+set studente');
+                } else {
+                    $__message = 'utente non trovato: [' . $__useremail . ']';
+                    debug("checkSession: neither utente nor studente found -> redirect error");
+                    infoLogin("utente non trovato: " . $__useremail);
+                    warning($__message);
+                    redirect('/error/error.php?message=' . $__message);
+                    exit();
+                }
             }
         }
     } else {
