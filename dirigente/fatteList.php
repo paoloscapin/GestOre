@@ -141,10 +141,11 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cog
 }
 
 function importoStampabile($importo) {
-    if ($importo == 0) {
+    if ((float)$importo == 0.0) {
         return "";
     }
-    return number_format($importo, 2);
+
+    return number_format((float)$importo, 2, ",", ".") . " €";
 }
 
 ?>
