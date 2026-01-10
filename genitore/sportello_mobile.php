@@ -62,12 +62,6 @@ foreach (dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC;") as $materi
     $materiaFiltroOptionList .= '<option value="'.$materia['id'].'">'.$materia['nome'].'</option>';
 }
 
-// Classi
-$classeFiltroOptionList = '<option value="0">tutte</option>';
-foreach (dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC;") as $classe) {
-    $classeFiltroOptionList .= '<option value="'.$classe['id'].'">'.$classe['nome'].'</option>';
-}
-
 // Studenti del genitore (menu a tendina FIGLI)
 $studenteFiltroOptionList = '';
 $studenti = dbGetAll("
@@ -118,15 +112,6 @@ foreach ($studenti as $studente) {
                         class="materia_filtro selectpicker form-control"
                         data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona...">
                     <?php echo $materiaFiltroOptionList ?>
-                </select>
-            </div>
-
-            <div class="col-xs-12 col-sm-6 col-md-2" style="padding:5px;">
-                <label for="classe_filtro">Classe</label>
-                <select id="classe_filtro" name="classe_filtro"
-                        class="classe_filtro selectpicker form-control"
-                        data-style="btn-yellow4" data-live-search="true" data-noneSelectedText="seleziona...">
-                    <?php echo $classeFiltroOptionList ?>
                 </select>
             </div>
 

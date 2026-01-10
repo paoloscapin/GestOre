@@ -17,7 +17,6 @@ var soloIscritto=0;
 var ancheCancellati=0;
 var docente_filtro_id=0;
 var materia_filtro_id=0;
-var classe_filtro_id=0;
 var categoria_filtro_id=1; // sportello didattico
 var studente_filtro_id=1;
 
@@ -56,7 +55,7 @@ function sportelloReadRecords() {
         ? "sportelloReadRecords_mobile.php" 
         : "sportelloReadRecords.php";
 
-	$.get(endpoint+"?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloIscritto=" + soloIscritto + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&categoria_filtro_id=" + categoria_filtro_id + "&studente_filtro_id=" + studente_filtro_id, {}, function (data, status) {
+	$.get(endpoint+"?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloIscritto=" + soloIscritto + "&docente_filtro_id=" + docente_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&categoria_filtro_id=" + categoria_filtro_id + "&studente_filtro_id=" + studente_filtro_id, {}, function (data, status) {
 		$(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',
@@ -83,12 +82,6 @@ $(document).ready(function () {
     $("#materia_filtro").on("changed.bs.select", 
     function(e, clickedIndex, newValue, oldValue) {
         materia_filtro_id = this.value;
-        sportelloReadRecords();
-    });
-
-    $("#classe_filtro").on("changed.bs.select", 
-    function(e, clickedIndex, newValue, oldValue) {
-        classe_filtro_id = this.value;
         sportelloReadRecords();
     });
 

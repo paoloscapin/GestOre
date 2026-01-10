@@ -91,12 +91,6 @@ foreach (dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ") as $mate
     $materiaFiltroOptionList .= ' <option value="' . $materia['id'] . '" >' . $materia['nome'] . '</option> ';
 }
 
-// prepara l'elenco delle materie per il filtro e per le materie del dialog
-$classeFiltroOptionList = '<option value="0">tutte</option>';
-foreach (dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ") as $classe) {
-    $classeFiltroOptionList .= ' <option value="' . $classe['id'] . '" >' . $classe['nome'] . '</option> ';
-}
-
 // prepara l'elenco degli studenti per il filtro
 $studenteFiltroOptionList = '';
 
@@ -155,17 +149,6 @@ foreach ($studenti as $studente) {
                                     class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
                                     data-noneSelectedText="seleziona..." data-width="90%">
                                     <?php echo $materiaFiltroOptionList ?>
-                                </select></div>
-                        </div>
-                    </div>
-                    <div class="col-md-2" style="padding:0px">
-                        <div class="text-center">
-                            <label class="col-sm-2 control-label" for="classe"
-                                style="margin:10px 0px 0px 0px; text-align:right">Classe</label>
-                            <div class="col-sm-10" style="padding:0px;text-align:right"><select id="classe_filtro" name="classe_filtro"
-                                    class="classe_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
-                                    data-noneSelectedText="seleziona..." data-width="90%">
-                                    <?php echo $classeFiltroOptionList ?>
                                 </select></div>
                         </div>
                     </div>

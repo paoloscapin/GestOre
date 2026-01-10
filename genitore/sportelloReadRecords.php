@@ -85,6 +85,7 @@ $query = "SELECT
         docente.cognome AS docente_cognome,
         docente.nome AS docente_nome,
         docente.email AS docente_email,
+
         (SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id) AS numero_studenti,
         (SELECT sportello_studente.iscritto FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id LIMIT 1) AS iscritto,
         (SELECT sportello_studente.presente FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id AND sportello_studente.studente_id = $__studente_id LIMIT 1) AS presente,
@@ -93,14 +94,35 @@ $query = "SELECT
         (SELECT studente.nome FROM studente WHERE id = $__studente_id LIMIT 1) AS studente_nome,
         (SELECT studente.email FROM studente WHERE id = $__studente_id LIMIT 1) AS studente_email,
         (SELECT classi.classe FROM classi WHERE id = (SELECT studente_frequenta.id_classe FROM studente_frequenta WHERE id_studente = $__studente_id AND id_anno_scolastico = $__anno_scolastico_corrente_id LIMIT 1) LIMIT 1) AS studente_classe
+
     FROM sportello sportello
     INNER JOIN docente docente ON sportello.docente_id = docente.id
     INNER JOIN materia materia ON sportello.materia_id = materia.id
     INNER JOIN classe  classe  ON sportello.classe_id  = classe.id
+
+    -- ✅ aggiunto: classe dello studente selezionato nell'anno scolastico corrente
+    LEFT JOIN studente_frequenta AS sf
+           ON sf.id_studente        = $__studente_id
+          AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id
+
     WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
+
+    -- ✅ FILTRO NUOVO (come desktop studente): visibile se la classe dello sportello
+    --    è tra quelle consentite per la classe dello studente selezionato (sf.id_classe)
+    AND EXISTS (
+        SELECT 1
+        FROM classi_include ci
+        WHERE ci.classi_id = sf.id_classe
+          AND ci.into_classe_id = sportello.classe_id
+    )
 ";
 
-if ($classe_filtro_id > 0)    $query .= "AND sportello.classe_id = $classe_filtro_id ";
+// NB: non rimuovo nulla, ma rendo coerente con desktop: classe_filtro_id ignorato lato genitore
+if ($classe_filtro_id > 0) {
+    debug("classe_filtro_id ricevuto (" . intval($classe_filtro_id) . ") ma IGNORATO: filtro classe gestito via classi_include + classe studente selezionato");
+    // $query .= "AND sportello.classe_id = $classe_filtro_id ";
+}
+
 if ($materia_filtro_id > 0)   $query .= "AND sportello.materia_id = $materia_filtro_id ";
 if ($docente_filtro_id > 0)   $query .= "AND sportello.docente_id = $docente_filtro_id ";
 if ($categoria_filtro_id > 0) $query .= "AND sportello.categoria = '" . addslashes($nome_categoria) . "' ";

@@ -55,6 +55,14 @@ $nome_categoria = $categoria_filtro_id > 0
     : '';
 
 debug("=== SPORTELLI MOBILE GENITORE: start ===");
+debug("Parametri GET: ancheCancellati=" . var_export($ancheCancellati, true) .
+    ", soloNuovi=" . var_export($soloNuovi, true) .
+    ", soloIscritto=" . var_export($soloIscritto, true) .
+    ", docente_filtro_id=" . var_export($docente_filtro_id, true) .
+    ", materia_filtro_id=" . var_export($materia_filtro_id, true) .
+    ", classe_filtro_id=" . var_export($classe_filtro_id, true) .
+    ", categoria_filtro_id=" . var_export($categoria_filtro_id, true) .
+    ", studente_filtro_id=" . var_export($studente_filtro_id, true));
 
 // --- QUERY PRINCIPALE ---
 $query = "SELECT
@@ -86,9 +94,28 @@ FROM sportello
 INNER JOIN docente ON sportello.docente_id = docente.id
 INNER JOIN materia ON sportello.materia_id = materia.id
 INNER JOIN classe  ON sportello.classe_id  = classe.id
-WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id";
 
-if ($classe_filtro_id > 0)    $query .= " AND sportello.classe_id = $classe_filtro_id ";
+-- ✅ aggiunto: classe dello studente selezionato nell'anno scolastico corrente
+LEFT JOIN studente_frequenta AS sf
+       ON sf.id_studente        = $__studente_id
+      AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id
+
+WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
+
+-- ✅ FILTRO NUOVO: visibile se sportello.classe_id è tra le into_classe_id abilitate
+--    per la classe dello studente selezionato (sf.id_classe)
+AND EXISTS (
+    SELECT 1
+    FROM classi_include ci
+    WHERE ci.classi_id = sf.id_classe
+      AND ci.into_classe_id = sportello.classe_id
+)
+";
+
+if ($classe_filtro_id > 0) {
+    debug("classe_filtro_id ricevuto (" . intval($classe_filtro_id) . ") ma IGNORATO: filtro classe gestito via classi_include + classe studente selezionato");
+    // $query .= " AND sportello.classe_id = $classe_filtro_id ";
+}
 if ($materia_filtro_id > 0)   $query .= " AND sportello.materia_id = $materia_filtro_id ";
 if ($docente_filtro_id > 0)   $query .= " AND sportello.docente_id = $docente_filtro_id ";
 if ($categoria_filtro_id > 0) $query .= " AND sportello.categoria = '" . addslashes($nome_categoria) . "' ";
