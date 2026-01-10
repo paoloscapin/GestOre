@@ -359,7 +359,7 @@ if (!empty($authUrl)) {
                 <!-- COLONNA SINISTRA: GOOGLE -->
                 <div class="col">
                     <div class="cardx">
-                        <span class="tag">Accesso con Google (Buonarroti - Gmail - domini Workspace)</span>
+                        <span class="tag">Accesso con account Google</span>
                         <h2>Accesso rapido</h2>
                         <div class="muted">
                             Accesso con account Google (telefono / PC). Se la mail è presente in GestOre, l’utente viene riconosciuto.
@@ -368,8 +368,8 @@ if (!empty($authUrl)) {
                         <ul class="rolelist">
                             <li><b>Docenti</b>, <b>Dirigente</b>, <b>Amministratori</b></li>
                             <li><b>Studenti</b></li>
-                            <li><b>Genitori</b> (mail @gmail presente in <code>genitori</code>)</li>
-                            <li><b>Esterni</b> (ruolo <code>esterno</code> con account <code>@buonarroti</code>)</li>
+                            <li><b>Genitori</b> (mail <code>Google</code> presente in <code>GestOre</code>)</li>
+                            <li><b>Esterni</b> (con account <code>@buonarroti</code>)</li>
                         </ul>
 
                         <div class="divider"></div>
@@ -377,7 +377,7 @@ if (!empty($authUrl)) {
                         <?php if (!empty($googleButtonHtml)): ?>
                             <?php echo $googleButtonHtml; ?>
                             <div class="help">
-                                Se sei <b>genitore</b> e vuoi usare <code>Google Gmail</code>: devi aver fornito la tua mail @gmail.
+                                Se sei <b>genitore</b> e vuoi usare <code>Google </code> devi aver fornito la tua mail <code>Google</code>.
                             </div>
                         <?php else: ?>
                             <div class="warn">
@@ -424,7 +424,7 @@ if (!empty($authUrl)) {
             </div>
 
             <div class="smallnote">
-                © <?php echo date('Y'); ?> GestOre — Buonarroti
+                © <?php echo date('Y'); ?> GestOre — ITT Buonarroti
             </div>
 
         </div>
