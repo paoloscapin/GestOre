@@ -110,7 +110,7 @@ foreach (dbGetAll("SELECT * FROM sportello_categoria ORDER BY sportello_categori
 $categoriaFiltroOptionList = $categoriaOptionList;
 
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
-$materiaOptionList = '<option value="0"></option>';
+$materiaOptionList = '<option value="0">tutte</option>';
 foreach (dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ") as $materia) {
     $materiaOptionList .= ' <option value="' . $materia['id'] . '" >' . $materia['nome'] . '</option> ';
 }
@@ -122,7 +122,7 @@ $classeOptionList = "";
 
 if ($nclassi > 0) {
     // prepara l'elenco delle materie per il filtro e per le materie del dialog
-    $classeOptionList = '<option value="0"></option>';
+    $classeOptionList = '<option value="0">tutte</option>';
     foreach (dbGetAll("SELECT * FROM classe ORDER BY classe.nome ASC ; ") as $classe) {
         $classeOptionList .= ' <option value="' . $classe['id'] . '" >' . $classe['nome'] . '</option> ';
     }
