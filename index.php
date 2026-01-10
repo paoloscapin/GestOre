@@ -50,7 +50,10 @@ if (($url_completo == 'https://www.buonarroti.edu.it/GestOre/') || ($url_complet
 ?>
 <!DOCTYPE html>
 <html>
-<head></head>
+<head>
+    <link rel="icon" href="/GestOre/ore-32.png" type="image/png">
+    <link rel="shortcut icon" href="/GestOre/ore-32.png" type="image/png">
+</head>
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
