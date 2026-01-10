@@ -1,7 +1,7 @@
 /**
  *  This file is part of GestOre
  *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
- *  @copyright  (C) 2025 Massimo Saiani
+ *  @copyright  (C) 2026 Massimo Saiani
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 // 🔽 Recupero parametro "d" passato nello <script src=...>

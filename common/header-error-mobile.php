@@ -1,4 +1,12 @@
 <?php
+
+/**
+ *  This file is part of GestOre
+ *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
+ *  @copyright  (C) 2026 Massimo Saiani
+ *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ */
+
 require_once __DIR__ . '/path.php';
 require_once __DIR__ . '/connect.php';
 ?>
