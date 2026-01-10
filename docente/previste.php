@@ -59,11 +59,11 @@ $docente_view_cognome = $result['cognome'];
 $ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_previste WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
 debug('ultimo_controllo=' . $ultimo_controllo);
 
-// if ($operatore == 'dirigente') {
-//     require_once '../common/header-dirigente.php';
-// } else {
-     require_once '../common/header-docente.php';
-// }
+if ($operatore == 'dirigente') {
+    require_once '../common/header-dirigente.php';
+} else {
+    require_once '../common/header-docente.php';
+}
 
 ?>
 
