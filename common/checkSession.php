@@ -64,6 +64,12 @@ function __dbg_session_state(string $stage): void
         'docente_cognome',
         'docente_email',
 
+        // esterno
+        'esterno_id',
+        'esterno_nome',
+        'esterno_cognome',
+        'esterno_email',
+
         // studente
         'studente_id',
         'studente_nome',
@@ -306,6 +312,61 @@ function get_client_ip()
     return $ipaddress;
 }
 
+function get_client_ip_single(): string
+{
+    // prende il primo IP valido tra gli header (gestisce X_FORWARDED_FOR con lista)
+    $candidates = [];
+
+    if (!empty($_SERVER['HTTP_CLIENT_IP'])) $candidates[] = $_SERVER['HTTP_CLIENT_IP'];
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) $candidates[] = $_SERVER['HTTP_X_FORWARDED_FOR'];
+    if (!empty($_SERVER['HTTP_X_FORWARDED'])) $candidates[] = $_SERVER['HTTP_X_FORWARDED'];
+    if (!empty($_SERVER['HTTP_FORWARDED_FOR'])) $candidates[] = $_SERVER['HTTP_FORWARDED_FOR'];
+    if (!empty($_SERVER['HTTP_FORWARDED'])) $candidates[] = $_SERVER['HTTP_FORWARDED'];
+    if (!empty($_SERVER['REMOTE_ADDR'])) $candidates[] = $_SERVER['REMOTE_ADDR'];
+
+    foreach ($candidates as $raw) {
+        // X_FORWARDED_FOR può essere "ip1, ip2, ip3"
+        $parts = preg_split('/\s*,\s*/', (string)$raw);
+        foreach ($parts as $ip) {
+            $ip = trim($ip);
+            if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $ip;
+            }
+        }
+    }
+
+    return 'UNKNOWN';
+}
+
+/**
+ * Aggiorna last_login e last_IP per un genitore.
+ * Usa query parametrica (consigliato).
+ */
+function aggiornaLoginGenitore(int $genitore_id): void
+{
+    if ($genitore_id <= 0) {
+        return;
+    }
+
+    $ip = get_client_ip_single();
+
+    // escaping minimo (dbExec NON usa prepared)
+    $ip = addslashes($ip);
+    $genitore_id = intval($genitore_id);
+
+    $query = "
+        UPDATE genitori
+        SET
+            last_login = NOW(),
+            last_IP = '$ip'
+        WHERE id = $genitore_id
+        LIMIT 1
+    ";
+
+    dbExec($query);
+}
+
+
 $newlogin_genitore = false;
 
 debug("checkSession: entering login/genitore+google block");
@@ -376,6 +437,7 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
                 $session->set('genitore_cognome', $genitore['cognome']);
                 $session->set('genitore_email', $genitore['email']);
                 $session->set('genitore_codice_fiscale', $genitore['codice_fiscale']);
+                aggiornaLoginGenitore((int)$genitore['id']);
 
                 $session->set('username', $genitore['nome'] . "." . $genitore['cognome']);
                 $session->set('utente_nome', $genitore['nome']);
@@ -557,13 +619,14 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
                 debug("checkSession: found genitore id=" . $genitore['id']);
 
                 infoLogin("utente [" . $genitore['nome'] . $genitore['cognome'] . "]: logged in - role=[genitore]");
-
+                $newlogin_genitore = true;
                 $session->set('utente_id', -1);
                 $session->set('genitore_id', $genitore['id']);
                 $session->set('genitore_nome', $genitore['nome']);
                 $session->set('genitore_cognome', $genitore['cognome']);
                 $session->set('genitore_email', $__useremail);
                 $session->set('genitore_codice_fiscale', $genitore['codice_fiscale']);
+                aggiornaLoginGenitore((int)$genitore['id']);
 
                 $session->set('username', $genitore['nome'] . "." . $genitore['cognome']);
                 $session->set('utente_nome', $genitore['nome']);
@@ -577,7 +640,7 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
                 $_SESSION['LAST_ACTIVITY'] = time();
                 $_SESSION['EXPIRE_AFTER'] = intval($__settings->system->durata_sessione);
 
-                info("utente [" . $studente['nome'] . "]: logged in");
+                info("utente [" . $genitore['nome'] . "]: logged in");
 
                 __dbg_session_state('AFTER lookup+set genitore');
             } else {
@@ -635,6 +698,14 @@ $__utente_nome = $session->get('utente_nome');
 $__utente_cognome = $session->get('utente_cognome');
 $__utente_ruolo = $session->get('utente_ruolo');
 
+if ($__utente_ruolo === "esterno"){
+    $session->set('esterno_id', $__utente_id);
+    $session->set('esterno_nome', $__utente_nome);
+    $session->set('esterno_cognome', $__utente_cognome);
+    $session->set('esterno_email', $__useremail);
+}
+
+
 debug("checkSession: resolved user -> id=" . ($__utente_id ?? 'NULL')
     . " username=" . ($__username ?? 'NULL')
     . " ruolo=" . ($__utente_ruolo ?? 'NULL'));
@@ -682,6 +753,11 @@ $__genitore_nome = $session->get('genitore_nome');
 $__genitore_cognome = $session->get('genitore_cognome');
 $__genitore_email = $session->get('genitore_email');
 $__genitore_codice_fiscale = $session->get('genitore_codice_fiscale');
+
+$__esterno_id = $session->get('esterno_id');
+$__esterno_nome = $session->get('esterno_nome');
+$__esterno_cognome = $session->get('esterno_cognome');
+$__esterno_email = $session->get('esterno_email');
 
 // =====================================================
 // Anno scolastico
