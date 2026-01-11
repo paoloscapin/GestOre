@@ -14,6 +14,8 @@ if (haRuolo('admin')) {
     redirect('/admin/index.php');
 } else if (haRuolo('docente')) {
     redirect('/docente/index.php');
+} else if (haRuolo('esterno')) {
+    redirect('/esterno/index.php');
 } else if (haRuolo('dirigente')) {
     redirect('/dirigente/index.php');
 } else if (haRuolo('segreteria-docenti')) {
