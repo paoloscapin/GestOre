@@ -12,15 +12,24 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_bootstrap-notify.php';
-ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
+ruoloRichiesto('esterno', 'docente', 'segreteria-didattica', 'dirigente');
 
 if (!getSettingsValue('config', 'corsi', false)) {
     redirect("/error/unauthorized.php");
 }
 
 if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
-    ruoloRichiesto('segreteria-didattica');
+    ruoloRichiesto('segreteria-didattica', 'esterno', 'dirigente');
 }
+
+// ✅ AGGIUNTA: flag vista esterno (robusto)
+// ✅ Esterno SOLO se è la vista/ruolo effettivo (non se è un ruolo "anche presente")
+$ruolo_eff = $__utente_ruolo ?? '';
+if (impersonaRuolo('docente')) $ruolo_eff = 'docente';
+if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
+
+$isEsterno = ($ruolo_eff === 'esterno');
+
 ?>
 
 <!DOCTYPE html>
@@ -31,7 +40,7 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
         src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
     <?php
-    if (impersonaRuolo('docente')) {
+    if ((impersonaRuolo('docente')) || (impersonaRuolo('esterno'))) {
         echo ' <title>I miei corsi</title>';
     } else {
         echo ' <title>Corsi studenti</title>';
@@ -260,6 +269,30 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
             /* 15 (bootstrap) + 16 (border+padding firme-box) */
             padding-right: 15px;
         }
+
+        #prevede_esami_group .toggle {
+            margin-left: 8px;
+        }
+
+        #prevede_esami_forzato_msg {
+            padding: 8px 10px;
+        }
+
+        /* ============================================================
+           ✅ AGGIUNTA: NASCONDO (SOLO UI) BLOCCO HEADER FILTRI/AZIONI
+           quando il ruolo effettivo è ESTERNO.
+           Nascondo le COLONNE intere (così spariscono anche label/spazi).
+           ============================================================ */
+        <?php if ($isEsterno) { ?>#col-filtro-materia,
+        #col-filtro-docente,
+        #col-aggiungi-corso,
+        #col-segreteria-tools,
+        #col-report-1,
+        #col-report-2 {
+            display: none !important;
+        }
+
+        <?php } ?>
     </style>
 
 </head>
@@ -312,10 +345,13 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 }
 ?>
 
-<body>
+<body class="<?php echo $isEsterno ? 'role-esterno' : ''; ?>">
+
     <?php
     if (impersonaRuolo('docente')) {
         require_once '../common/header-docente.php';
+    } else if (impersonaRuolo('esterno')) {
+        require_once '../common/header-esterno.php';
     } else if (haRuolo('segreteria-didattica')) {
         require_once '../common/header-segreteria.php';
     }
@@ -329,7 +365,8 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <span class="glyphicon glyphicon-list-alt" style="margin:5px"></span><br><b>Elenco<br>Corsi</b>
                     </div>
 
-                    <div class="col-md-3 text-center">
+                    <div class="col-md-3 text-center" id="col-filtro-materia">
+
                         <label class="col-sm-12 control-label" for="materia">Materia</label>
                         <div class="text-center">
                             <div class="col-sm-12">
@@ -344,7 +381,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     <?php
                     if (haRuolo('segreteria-didattica')) {
                         echo '
-                    <div class="col-md-2">
+                    <div class="col-md-2" id="col-filtro-docente">
                         <div class="text-center">
                             <label class="col-sm-12 control-label" for="docente">Docente</label>
                             <div class="col-sm-12"><select id="docente_filtro" name="docente_filtro"
@@ -363,7 +400,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     <?php
                     if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
                         echo '
-    <div class="col-md-1 text-center">
+    <div class="col-md-1 text-center" id="col-aggiungi-corso">
         <label class="control-label" for="corso">Aggiungi</label>
         <button class="btn btn-xs btn-lima4" style="display:block; margin: 5px auto 0;"
                 onclick="corsiGetDetails(-1)">
@@ -371,7 +408,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         </button>
     </div>
 
-    <div class="col-md-1 text-center" style="margin-top:20px;">
+    <div class="col-md-1 text-center" style="margin-top:20px;" id="col-segreteria-tools">
         <label id="import_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Importa i corsi">
             <span class="glyphicon glyphicon-upload"></span>&emsp;Importa
             <input type="file" id="file_select_id" style="display: none;">
@@ -414,7 +451,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     ?>
 
 
-                    <div class="col-md-2 text-center" style="margin-top:20px;">
+                    <div class="col-md-2 text-center" style="margin-top:20px;" id="col-report-1">
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
                             <input type="checkbox" data-toggle="toggle" data-size="mini"
                                 data-onstyle="primary" id="futuri"> Solo Nuovi
@@ -439,7 +476,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 
                     </div>
 
-                    <div class="col-md-2 text-center" style="margin-top:20px;">
+                    <div class="col-md-2 text-center" style="margin-top:20px;" id="col-report-2">
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
                             <input type="checkbox" data-toggle="toggle" data-size="mini"
                                 data-onstyle="primary" id="carenze">Corsi carenze
@@ -552,6 +589,21 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                                 data-on="Sì" data-off="No"
                                 data-onstyle="success" data-offstyle="danger">
                         </div>
+
+                        <!-- ✅ NUOVO: prevede esami -->
+                        <div class="form-group text-center" id="prevede_esami_group" style="margin-top:10px;">
+                            <label for="prevede_esami" class="control-label" style="margin-right:10px;">Prevede esame</label>
+                            <input type="checkbox" id="prevede_esami"
+                                data-toggle="toggle"
+                                data-on="Sì" data-off="No"
+                                data-onstyle="success" data-offstyle="danger">
+                        </div>
+
+                        <!-- ✅ Nota: esami forzati (carenze / itinere) -->
+                        <div class="alert alert-info text-center" id="prevede_esami_forzato_msg" style="display:none; margin-top:10px;">
+                            Per i corsi <b>carenze</b> o <b>in itinere</b> l’esame è <b>obbligatorio</b>.
+                        </div>
+
 
                         <div id="date_section">
                             <hr>
@@ -788,6 +840,8 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             <label>Inizio (ora)</label>
                             <input type="time" id="esame_inizio_ora" class="form-control">
                         </div>
+                        <div class="row" style="margin-bottom:10px;">
+                        </div>
                         <div class="col-md-3">
                             <label>Fine (data)</label>
                             <input type="date" id="esame_fine_data" class="form-control">
@@ -922,19 +976,29 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         window.GESTORE_RUOLO_EFF = <?php
                                     $ruolo_eff = $__utente_ruolo ?? '';
                                     if (impersonaRuolo('docente')) $ruolo_eff = 'docente';
+                                    if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
                                     echo json_encode($ruolo_eff);
                                     ?>;
 
         window.GESTORE_DOCENTE_ID_EFF = <?php
                                         $did = 0;
-                                        if (impersonaRuolo('docente')) {
+
+                                        // docente o esterno: prova $__docente_id, fallback username->docente.id
+                                        if (impersonaRuolo('docente') || impersonaRuolo('esterno')) {
                                             $did = intval($__docente_id ?? 0);
+                                            if ($did <= 0) {
+                                                $u = addslashes($__username ?? '');
+                                                $r = dbGetFirst("SELECT id FROM docente WHERE username='$u' LIMIT 1");
+                                                if ($r) $did = intval($r['id']);
+                                            }
                                         }
+
                                         echo json_encode($did);
                                         ?>;
     </script>
-
-    <script type="text/javascript" src="js/corsi.js?v=<?php echo time(); ?>&a=<?php echo $anno_corsi; ?>"></script>
+    <script src="js/corsi.00.core.js?v=<?php echo time(); ?>&a=<?php echo $anno_corsi; ?>"></script>
+    <script src="js/corsi.10.corsi-modal.js?v=<?php echo time(); ?>&a=<?php echo $anno_corsi; ?>"></script>
+    <script src="js/corsi.20.registro-esami.js?v=<?php echo time(); ?>&a=<?php echo $anno_corsi; ?>"></script>
 </body>
 
 </html>

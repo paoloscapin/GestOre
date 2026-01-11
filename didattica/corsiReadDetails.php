@@ -29,7 +29,9 @@ $query = "
            c.in_itinere AS in_itinere,
            c.carenza AS carenza,
            c.carenza_sessione AS carenza_sessione,
-           c.id_anno_scolastico AS anno_id
+           c.id_anno_scolastico AS anno_id,
+           c.prevede_esami AS prevede_esami,
+           c.firma_policy AS firma_policy
     FROM corso c
     WHERE c.id = $corsi_id
 ";
@@ -39,6 +41,10 @@ if (!$corso) {
     echo json_encode(['success' => false, 'error' => 'Corso non trovato']);
     exit;
 }
+
+$corso['prevede_esami'] = (intval($corso['carenza']) === 1 || intval($corso['in_itinere']) === 1)
+    ? 1
+    : intval($corso['prevede_esami'] ?? 0);
 
 // ✅ Docenti associati (tabella corso_docenti)
 $docenti = dbGetAll("

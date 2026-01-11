@@ -25,6 +25,7 @@ $materia_id = intval($_POST['materia_id'] ?? 0);
 $titolo     = trim($_POST['titolo'] ?? '');
 $in_itinere = intval($_POST['in_itinere'] ?? 0);
 $carenze    = intval($_POST['carenze'] ?? 0);
+$prevede_esami = intval($_POST['prevede_esami'] ?? 0);
 
 // compat: docente principale (se arriva)
 $docente_id = intval($_POST['docente_id'] ?? 0);
@@ -65,7 +66,8 @@ $docente_principale = intval($docenti_multi[0]);
 $anno_id = intval($__anno_scolastico_corrente_id);
 
 // helper per errori SQL "umani"
-function fail_sql($con, $msg) {
+function fail_sql($con, $msg)
+{
     http_response_code(500);
     $err = '';
     if ($con) $err = mysqli_error($con);
@@ -96,6 +98,13 @@ try {
         }
     }
 
+    // ✅ Regola: corsi carenze o in itinere => prevedono sempre esami
+    if (intval($carenze) === 1 || intval($in_itinere) === 1) {
+        $prevede_esami = 1;
+    } else {
+        $prevede_esami = ($prevede_esami ? 1 : 0);
+    }
+
     if ($id > 0) {
         // update corso
         $sql = "
@@ -105,12 +114,12 @@ try {
                 id_anno_scolastico = $anno_id,
                 titolo = '$titolo_sql',
                 carenza = " . intval($carenze) . ",
-                in_itinere = " . intval($in_itinere) . "
+                in_itinere = " . intval($in_itinere) . ",
+                prevede_esami = " . intval($prevede_esami) . "
             WHERE id = $id
         ";
         dbExec($sql);
         $corso_id = $id;
-
     } else {
         // insert corso
         // ✅ se NON è carenze, carenza_sessione deve stare a 0
@@ -118,10 +127,11 @@ try {
 
         $sql = "
             INSERT INTO corso
-                (id_materia, id_docente, id_anno_scolastico, titolo, carenza, carenza_sessione, in_itinere)
+                (id_materia, id_docente, id_anno_scolastico, titolo, carenza, carenza_sessione, in_itinere, prevede_esami)
             VALUES
-                ($materia_id, $docente_principale, $anno_id, '$titolo_sql', " . intval($carenze) . ", " . intval($carenza_sessione) . ", " . intval($in_itinere) . ")
+                ($materia_id, $docente_principale, $anno_id, '$titolo_sql', " . intval($carenze) . ", " . intval($carenza_sessione) . ", " . intval($in_itinere) . ", " . intval($prevede_esami) . ")
         ";
+
         dbExec($sql);
         $corso_id = dblastId();
         if (!$corso_id || intval($corso_id) <= 0) {
@@ -152,7 +162,6 @@ try {
 
     echo json_encode(['success' => true, 'corso_id' => intval($corso_id)], JSON_UNESCAPED_UNICODE);
     exit;
-
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);

@@ -11,8 +11,34 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 $docente_id = 0;
-if (impersonaRuolo("docente")) {
+
+/**
+ * ✅ FIX DEFINITIVO:
+ * - "docente/esterno" va deciso sul RUOLO EFFETTIVO (impersona / $__utente_ruolo effettivo)
+ * - NON su haRuolo(), perché admin può avere anche 'esterno' e altrimenti blocchi tutto con AND 1=0
+ */
+$ruolo_eff = $__utente_ruolo ?? '';
+if (impersonaRuolo('docente')) $ruolo_eff = 'docente';
+if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
+
+$isDocenteLike = ($ruolo_eff === 'docente' || $ruolo_eff === 'esterno');
+
+/**
+ * ✅ MODIFICA (senza togliere nulla della logica esistente):
+ * - se ruolo effettivo è docente O esterno => forzo docente_id dal login (sessione)
+ * - altrimenti (segreteria/dirigente/admin) prendo il filtro GET come prima
+ */
+if ($isDocenteLike) {
+
+    // 1) se esiste $__docente_id in sessione
     $docente_id = intval($__docente_id ?? 0);
+
+    // 2) fallback: username -> docente.id (utile per esterni se li mappi in tabella docente)
+    if ($docente_id <= 0) {
+        $u = addslashes($__username ?? '');
+        $r = dbGetFirst("SELECT id FROM docente WHERE username='$u' LIMIT 1");
+        if ($r) $docente_id = intval($r['id']);
+    }
 } else {
     $docente_id = intval($_GET["docente_id"] ?? 0);
 }
@@ -25,27 +51,51 @@ $futuri            = intval($_GET["futuri"] ?? 0);
 $carenze_toggle    = isset($_GET['carenze']) ? intval($_GET['carenze']) : 0;
 $in_itinere_toggle = isset($_GET['itinere']) ? intval($_GET['itinere']) : 0;
 
-function badge($text, $type = 'default') {
+function badge($text, $type = 'default')
+{
     $text = htmlspecialchars($text);
     return '<span class="label label-' . $type . '" style="margin-right:4px; display:inline-block;">' . $text . '</span>';
 }
 
-function fmtDT($dt) {
+function fmtDT($dt)
+{
     if (!$dt) return '—';
     return date("d-m-Y \\a\\l\\l\\e \\o\\r\\e H:i", strtotime($dt));
 }
 
 // header tabella
 $data = '<style>
-  .col-azioni   { width: 9%; }
-  .col-inizio   { width: 10%; }
-  .col-fine     { width: 10%; }
-  .col-materia  { width: 19%; }
-  .col-docente  { width: 10%; }
-  .col-titolo   { width: 24%; }
-  .col-studenti { width: 7%; }
-  .col-stato    { width: 11%; }
+  /* layout stabile: rispetta le width */
+  .table-wrapper table { table-layout: fixed; width: 100%; }
+
+  /* nuove width */
+  .col-azioni   { width: 10%; }  /* + spazio pulsanti */
+  .col-inizio   { width: 13%; }  /* + spazio data/ora */
+  .col-fine     { width: 13%; }  /* + spazio data/ora */
+  .col-materia  { width: 17%; }
+  .col-docente  { width: 12%; }   /* - spazio */
+  .col-titolo   { width: 23%; }
+  .col-studenti { width: 5%; }   /* - spazio */
+  .col-stato    { width: 7%; }   /* leggermente meno */
+
+  /* evita che docente e titolo esplodano in larghezza */
+  td.col-docente, th.col-docente,
+td.col-titolo, th.col-titolo {
+  white-space: normal;        /* consente a capo */
+  word-break: break-word;     /* spezza parole lunghe */
+  overflow-wrap: anywhere;    /* sicurezza per testi lunghi */
+}
+
+  /* date: tienile su una riga */
+  td.col-inizio, th.col-inizio,
+  td.col-fine,   th.col-fine {
+    white-space: nowrap;
+  }
+
+  /* azioni: tieni i bottoni in riga */
+  td.col-azioni { white-space: nowrap; }
 </style>
+
 <div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 <thead>
 <tr>
@@ -70,6 +120,7 @@ SELECT
     c.carenza AS carenza,
     c.carenza_sessione AS carenza_sessione,
     c.in_itinere AS in_itinere,
+    c.prevede_esami AS prevede_esami,
 
     m.nome AS materia_nome,
 
@@ -117,13 +168,32 @@ WHERE c.id_anno_scolastico = $anni_filtro_id
 
 if ($materia_id > 0) $query .= " AND c.id_materia = $materia_id";
 
-if ($docente_id > 0) {
-    $query .= " AND EXISTS (
-        SELECT 1
-        FROM corso_docenti cdn
-        WHERE cdn.id_corso = c.id
-          AND cdn.id_docente = $docente_id
-    )";
+/**
+ * ✅ Se sono docente/esterno devo vedere SOLO i miei corsi:
+ * - se docente_id valido => filtro con EXISTS
+ * - se docente_id NON valido => fail-safe: non mostra nulla
+ */
+if ($isDocenteLike) {
+    if ($docente_id > 0) {
+        $query .= " AND EXISTS (
+            SELECT 1
+            FROM corso_docenti cdn
+            WHERE cdn.id_corso = c.id
+              AND cdn.id_docente = $docente_id
+        )";
+    } else {
+        $query .= " AND 1=0";
+    }
+} else {
+    // segreteria/dirigente/admin: mantengo comportamento originale col filtro docente_id se presente
+    if ($docente_id > 0) {
+        $query .= " AND EXISTS (
+            SELECT 1
+            FROM corso_docenti cdn
+            WHERE cdn.id_corso = c.id
+              AND cdn.id_docente = $docente_id
+        )";
+    }
 }
 
 // filtro sessione carenze (solo se carenze=1 e filtro attivo)
@@ -141,6 +211,7 @@ GROUP BY
     c.carenza,
     c.carenza_sessione,
     c.in_itinere,
+    c.prevede_esami,
     m.nome,
     dmain.cognome,
     dmain.nome
@@ -168,6 +239,13 @@ foreach ($rows as $row) {
     $sess = intval($row['carenza_sessione']);
     $isSessione2 = ($isCarenza && $sess === 2);
     $isItinere = (intval($row['in_itinere']) === 1);
+    $prevedeEsami = (intval($row['prevede_esami'] ?? 0) === 1);
+
+    // regola robusta: carenze o itinere => esami obbligatori
+    if ($isCarenza || $isItinere) $prevedeEsami = true;
+
+    // se vuoi escludere sessione2 dalle azioni (come hai fatto con registro):
+    $showEsameBtn = $prevedeEsami && !$isSessione2;
 
     // ----- BADGE NEL TITOLO -----
     $titleBadges = '';
@@ -175,7 +253,7 @@ foreach ($rows as $row) {
     if ($isCarenza) {
         if ($sess === 1) $titleBadges .= badge('S1', 'info');
         else if ($sess === 2) $titleBadges .= badge('S2', 'primary');
-        else $titleBadges .= badge('CARENE', 'default');
+        else $titleBadges .= badge('CARENZE', 'default');
     }
 
     if ($isItinere) {
@@ -207,7 +285,7 @@ foreach ($rows as $row) {
     if ($isCarenza) {
         if ($sess === 1) $statoMarker .= ' ' . badge('S1', 'info');
         else if ($sess === 2) $statoMarker .= ' ' . badge('S2', 'primary');
-        else $statoMarker .= ' ' . badge('CARENE', 'default');
+        else $statoMarker .= ' ' . badge('CARENZE', 'default');
     }
 
     if ($isItinere && $stato != 4) {
@@ -241,17 +319,19 @@ foreach ($rows as $row) {
 
     // ----- ROW -----
     $data .= '<tr>';
-    $data .= '<td align="center">' . htmlspecialchars($materia) . '</td>';
-    $data .= '<td align="center">' . htmlspecialchars($nome_docente) . '</td>';
-    $data .= '<td align="center">' . $titolo . '</td>';
-    $data .= '<td align="center">' . $data_inizio . '</td>';
-    $data .= '<td align="center">' . $data_fine . '</td>';
-    $data .= '<td align="center">' . $studenti_iscritti . '</td>';
-    $data .= '<td align="center">' . $statoMarker . '</td>';
-    $data .= '<td class="text-center">';
+    $data .= '<td class="text-center col-materia">' . htmlspecialchars($materia) . '</td>';
+    $data .= '<td class="text-center col-docente">' . htmlspecialchars($nome_docente) . '</td>';
+    $data .= '<td class="text-center col-titolo">' . $titolo . '</td>';
+    $data .= '<td class="text-center col-inizio">' . $data_inizio . '</td>';
+    $data .= '<td class="text-center col-fine">' . $data_fine . '</td>';
+    $data .= '<td class="text-center col-studenti">' . $studenti_iscritti . '</td>';
+    $data .= '<td class="text-center col-stato">' . $statoMarker . '</td>';
+    $data .= '<td class="text-center col-azioni">';
 
     // ----- AZIONI -----
-    if (impersonaRuolo('docente')) {
+    // ✅ ramo "docente/esterno" SOLO se ruolo effettivo è docente/esterno
+    if ($isDocenteLike) {
+
         if (getSettingsValue('config', 'corsi', false) && getSettingsValue('corsi', 'visibile_docenti', false)) {
 
             if (getSettingsValue('corsi', 'docente_puo_modificare', false)) {
@@ -274,18 +354,17 @@ foreach ($rows as $row) {
                 </button>';
             }
 
-            if ($isCarenza) {
+            if ($showEsameBtn) {
                 $data .= '
                 <button onclick="apriEsameModal(\'' . $idcorso . '\')"
                         class="btn btn-success btn-xs"
                         data-toggle="tooltip" data-trigger="hover" data-placement="top"
-                        title="Esame carenze">
+                        title="' . ($isCarenza ? 'Esame carenze' : 'Esame') . '">
                     <span class="glyphicon glyphicon-check"></span>
                 </button>';
             }
         }
-
-    } else if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+    } else if (haRuolo('dirigente') || haRuolo('segreteria-didattica') || haRuolo('admin') || (($__utente_ruolo ?? '') === 'admin')) {
 
         $data .= '
         <button onclick="corsiGetDetails(\'' . $idcorso . '\')"
@@ -317,7 +396,7 @@ foreach ($rows as $row) {
             </button>';
         }
 
-        if ($isCarenza) {
+        if ($showEsameBtn) {
             $data .= '
             <button onclick="apriEsameModal(\'' . $idcorso . '\')"
                     class="btn btn-success btn-xs"
