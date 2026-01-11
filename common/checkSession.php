@@ -675,7 +675,7 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
 
                     __dbg_session_state('AFTER lookup+set studente');
                 } else {
-                    $__message = 'utente non trovato: [' . $__useremail . ']';
+                    $__message = 'La mail utilizzata non è presente in anagrafica: [' . $__useremail . ']';
                     debug("checkSession: neither utente nor studente found -> redirect error");
                     infoLogin("utente non trovato: " . $__useremail);
                     warning($__message);

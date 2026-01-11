@@ -292,6 +292,7 @@ if (!empty($authUrl)) {
 
         .help {
             font-size: 13px;
+            text-align: center;
             color: var(--muted);
             line-height: 1.4;
             margin-top: 10px;
@@ -379,7 +380,8 @@ if (!empty($authUrl)) {
                         <?php if (!empty($googleButtonHtml)): ?>
                             <?php echo $googleButtonHtml; ?>
                             <div class="help">
-                                Se sei <b>genitore</b> e vuoi usare <code>Google </code> devi aver fornito la tua mail <code>Google</code>.
+                                Se sei <b>GENITORE</b> e vuoi usare <code>Google </code> devi aver fornito la tua mail <code>Google</code>.<br>
+                                Se non riesci ad accedere con il tuo account <code>Google</code> scrivi a <code><a href="mailto:registroelettronico@buonarroti.tn.it">registroelettronico@buonarroti.tn.it</a></code>.
                             </div>
                         <?php else: ?>
                             <div class="warn">

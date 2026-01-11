@@ -37,6 +37,7 @@ require_once '../common/__Settings.php';
 <?php
 if (isset($_GET['message'])) {
     echo '<h4>' . urldecode($_GET['message']) . '</h4>';
+    echo '<h4><code>Per eventuali segnalazioni, scrivi a <a href="mailto:registroelettronico@buonarroti.tn.it">registroelettronico@buonarroti.tn.it</a></code></h4>';
 }
 ?>
         </div>
