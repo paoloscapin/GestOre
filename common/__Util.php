@@ -72,6 +72,7 @@ function impersonaRuolo($ruolo) {
     global $__docente_id;
     global $__studente_id;
     global $__genitore_id;
+    global $__esterno_id;
     
     if (empty($__utente_ruolo)) {
         return false;
@@ -88,6 +89,9 @@ function impersonaRuolo($ruolo) {
     else if (($ruolo === 'genitore')&&($__genitore_id>0)) {
             return true;
         }
+    else if (($ruolo === 'esterno')&&($__esterno_id>0)) {
+            return true;
+        }        
     return false;
 }
 
