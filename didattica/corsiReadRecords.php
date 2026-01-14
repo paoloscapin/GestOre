@@ -245,7 +245,7 @@ foreach ($rows as $row) {
     if ($isCarenza || $isItinere) $prevedeEsami = true;
 
     // se vuoi escludere sessione2 dalle azioni (come hai fatto con registro):
-    $showEsameBtn = $prevedeEsami && !$isSessione2;
+    $showEsameBtn = $prevedeEsami;
 
     // ----- BADGE NEL TITOLO -----
     $titleBadges = '';
