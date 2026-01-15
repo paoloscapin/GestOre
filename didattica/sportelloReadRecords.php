@@ -18,6 +18,7 @@ $categoria_filtro_id = $_GET["categoria_filtro_id"];
 $docente_filtro_id = $_GET["docente_filtro_id"];
 $materia_filtro_id = $_GET["materia_filtro_id"];
 $classe_filtro_id = $_GET["classe_filtro_id"];
+$bozza_filtro_id = $_GET["bozza_filtro_id"];
 
 $direzioneOrdinamento = "ASC";
 
@@ -55,12 +56,13 @@ $query = "	SELECT
 				sportello.orientamento AS sportello_orientamento,
 				sportello.cancellato AS sportello_cancellato,
 				sportello.max_iscrizioni AS sportello_max_iscrizioni,
+				sportello.attivo AS sportello_attivo,
 				materia.nome AS materia_nome,
 				docente.cognome AS docente_cognome,
 				docente.nome AS docente_nome,
 				(	SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = sportello.id) AS numero_studenti
 			FROM sportello sportello
-			INNER JOIN docente docente
+			LEFT JOIN docente docente
 			ON sportello.docente_id = docente.id
 			INNER JOIN materia materia
 			ON sportello.materia_id = materia.id
@@ -98,6 +100,12 @@ if (!$ancheCancellati) {
 if ($soloNuovi) {
 	$query .= "AND sportello.data >= CURDATE() ";
 }
+if ($bozza_filtro_id == 0) {
+	$query .= "AND sportello.attivo = 1 ";
+}
+else {
+	$query .= "AND sportello.attivo = 0 ";
+}
 
 $query .= "ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC,docente_nome ASC";
 
@@ -122,6 +130,10 @@ foreach ($resultArray as $row) {
 					$statoMarker .= '<span class="label label-success">posti disponibili</span>';
 				}
 			}
+		}
+
+		if ($row['sportello_attivo'] == 0) {
+			$statoMarker = '<span class="label label-default">BOZZA</span>';
 		}
 
 		$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
@@ -165,12 +177,16 @@ foreach ($resultArray as $row) {
 		if ($sportello_cancellato) {
 			$barrato = '<s>';
 		}
+		$doc = trim(($row['docente_nome'] ?? '') . ' ' . ($row['docente_cognome'] ?? ''));
+		if (($doc == '') || ($doc == 'Tutti')) {
+			$doc = '---';
+		}
 		$data .= '<tr>
 		<td align="center">' . $barrato . $sportello_categoria . '</td>
 		<td align="center">' . $barrato . $dataSportello . '</td>
 		<td align="center">' . $barrato . $row['sportello_ora'] . '</td>
 		<td align="center">' . $barrato . $row['materia_nome'] . '</td>
-		<td align="center">' . $barrato . $row['docente_nome'] . ' ' . $row['docente_cognome'] . '</td>
+		<td align="center">' . $barrato . $doc . '</td>
 		<td align="center">' . $barrato . $row['sportello_numero_ore'] . '</td>
 		<td align="center">' . $barrato . $row['sportello_classe'] . '</td>
 		<td class="text-center">' . $barrato . $luogo_or_onine_marker . '</td>

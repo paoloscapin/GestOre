@@ -37,6 +37,7 @@ if(isset($_POST)) {
 	$online = $_POST['online'];
 	$clil = $_POST['clil'];
 	$orientamento = $_POST['orientamento'];
+	$attivo = ($docente_id == 0) ?? 0, 1;
 	$studentiDaModificareIdList = json_decode($_POST['studentiDaModificareIdList'] ?? '[]', true);
 	$studentiDaCancellareIdList = json_decode($_POST['studentiDaCancellareIdList'] ?? '[]', true);
 

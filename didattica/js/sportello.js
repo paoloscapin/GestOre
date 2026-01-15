@@ -12,7 +12,9 @@ var docente_filtro_id = 0;
 var studente_filtro_id = 0;
 var materia_filtro_id = 0;
 var classe_filtro_id = 0;
+var bozza_filtro_id = 0;
 var selections = [];
+var data_pickr = null;
 
 window.toastAfterModalClose = null;
 
@@ -37,6 +39,16 @@ $('#soloNuoviCheckBox').change(function () {
     sportelloReadRecords();
 });
 
+$('#bozzaCheckBox').change(function () {
+    // this si riferisce al checkbox
+    if (this.checked) {
+        bozza_filtro_id = 1;
+    } else {
+        bozza_filtro_id = 0;
+    }
+    sportelloReadRecords();
+});
+
 $('#soloPrenotatiCheckBox').change(function () {
     // this si riferisce al checkbox
     if (this.checked) {
@@ -48,7 +60,7 @@ $('#soloPrenotatiCheckBox').change(function () {
 });
 
 function sportelloReadRecords() {
-    $.get("sportelloReadRecords.php?ancheCancellati=true&soloNuovi=" + soloNuovi + "&soloPrenotati=" + soloPrenotati + "&categoria_filtro_id=" + categoria_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id, {}, function (data, status) {
+    $.get("sportelloReadRecords.php?ancheCancellati=true&soloNuovi=" + soloNuovi + "&soloPrenotati=" + soloPrenotati + "&categoria_filtro_id=" + categoria_filtro_id + "&docente_filtro_id=" + docente_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&bozza_filtro_id=" + bozza_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
@@ -101,7 +113,7 @@ function sportelloSelect(id) {
     else {
         $("#numero_studenti").html("");
         $('#file_select_students').change(function (e) { });
-        $('#select_studente').on("click"), function (e) { };
+        $('#select_studente').on("click",function (e) { });
         $('#riga_iscrizioni_sportelli').hide();
     }
 }
@@ -177,11 +189,11 @@ function sportelloSave() {
         $("#_error-materia-part").show();
         return;
     }
-    if ($("#docente").val() <= 0) {
-        $("#_error-materia").text("Devi selezionare un docente");
-        $("#_error-materia-part").show();
-        return;
-    }
+    // if ($("#docente").val() <= 0) {
+    //     $("#_error-materia").text("Devi selezionare un docente");
+    //     $("#_error-materia-part").show();
+    //     return;
+    // }
     if ($("#numero_ore").val() <= 0) {
         $("#_error-materia").text("Il numero di ore non può essere 0");
         $("#_error-materia-part").show();
@@ -226,6 +238,7 @@ function sportelloSave() {
         }
     });
     window.toastAfterModalClose = "Sportello aggiornato correttamente";
+     var attivo = (docenteId === 0) ? 0 : 1;
     if ($("#hidden_lista_classi").val() == "testo") // se la classe è una casella di testo
     {
         if ($('#hidden_sezione_online_clil').val() == 'true') {
@@ -247,6 +260,7 @@ function sportelloSave() {
                 online: $("#online").is(':checked') ? 1 : 0,
                 clil: $("#clil").is(':checked') ? 1 : 0,
                 orientamento: $("#orientamento").is(':checked') ? 1 : 0,
+                attivo: attivo,
                 studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
                 studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
             }, function (data, status) {
@@ -274,6 +288,7 @@ function sportelloSave() {
                     online: 0,
                     clil: 0,
                     orientamento: 0,
+                    attivo: attivo,
                     studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
                     studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
                 }, function (data, status) {
@@ -303,6 +318,7 @@ function sportelloSave() {
                 online: $("#online").is(':checked') ? 1 : 0,
                 clil: $("#clil").is(':checked') ? 1 : 0,
                 orientamento: $("#orientamento").is(':checked') ? 1 : 0,
+                attivo: attivo,
                 studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
                 studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
             }, function (data, status) {
@@ -330,6 +346,7 @@ function sportelloSave() {
                 online: 0,
                 clil: 0,
                 orientamento: 0,
+                attivo: attivo,
                 studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
                 studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
             }, function (data, status) {

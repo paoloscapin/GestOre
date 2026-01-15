@@ -264,6 +264,10 @@ if ($nclassi > 0) {
                                     data-onstyle="primary" id="soloNuoviCheckBox">Solo Nuovi
                             </label>
                             <label class="checkbox-inline">
+                                <input type="checkbox" data-toggle="toggle" data-size="mini"
+                                    data-onstyle="primary" id="bozzaCheckBox">Bozze
+                            </label>
+                            <label class="checkbox-inline">
                                 <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary"
                                     id="soloPrenotatiCheckBox">Solo Prenotati
                             </label>
