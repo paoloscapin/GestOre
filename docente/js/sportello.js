@@ -11,7 +11,17 @@ var soloIMiei = 1;
 var categoria_filtro_id = 1; // sportello didattico
 var materia_filtro_id = 0;
 var classe_filtro_id = 0;
-var bozza_filtro_id = 1;
+var bozza_filtro_id = 0;
+
+function forceHideTooltips() {
+    // chiude eventuali tooltip aperti
+    $('[data-toggle="tooltip"]').tooltip('hide');
+
+    // bootstrap a volte lascia tooltip "orfani" nel body
+    $('.tooltip').remove();
+}
+
+var data_pickr = null;
 
 function setDbDateToPickr(pickr, data_str) {
     var data = Date.parseExact(data_str, 'yyyy-MM-dd');
@@ -92,6 +102,35 @@ function sportelloDelete(id, materia) {
         );
     }
 }
+function sportelloAssegna(sportello_id) {
+    if (!sportello_id || sportello_id <= 0) return;
+
+    // opzionale: conferma
+    if (!confirm("Vuoi assegnarti questo sportello?")) return;
+
+    $.post("sportelloAssegna.php", { sportello_id: sportello_id }, function (resp) {
+        try { if (typeof resp === "string") resp = JSON.parse(resp); } catch (e) { }
+
+        if (resp && resp.ok) {
+            // aggiorna lista (così sparisce dalla lista bozze / o diventa "mio")
+            sportelloReadRecords();
+
+            // apri dettaglio in modalità modificabile
+            // qui passiamo: modificabile=true, nstudenti=0, categoria=""
+            sportelloGetDetails(sportello_id, true, 0, "");
+
+            // metti focus su aula/luogo e svuota se serve
+            setTimeout(function () {
+                $("#luogo").prop('disabled', false).focus();
+            }, 300);
+        } else {
+            alert(resp && resp.msg ? resp.msg : "Errore durante l'assegnazione dello sportello.");
+        }
+    }, "json").fail(function (xhr) {
+        alert("Errore di rete o server durante l'assegnazione.");
+    });
+}
+
 
 function sportelloSave() {
     // controlla che ci siano la materia ed il numero di ore
@@ -132,6 +171,18 @@ function sportelloSave() {
             studentiDaModificareIdList.push(id);
         }
     });
+
+    // ⚠️ Se non c'è luogo, avviso che tornerà in BOZZA e NON assegnato
+    var luogoTrim = ($("#luogo").val() || "").trim();
+    if (luogoTrim === "") {
+        var ok = confirm(
+            "ATTENZIONE:\n" +
+            "Non hai inserito il luogo/aula.\n\n" +
+            "Se prosegui con il salvataggio, lo sportello tornerà in BOZZA e verrà DE-ASSEGNATO (docente = 0).\n\n" +
+            "Vuoi proseguire?"
+        );
+        if (!ok) return;
+    }
 
     if ($("#hidden_lista_classi").val() == "testo") // se la classe è una casella di testo
     {
@@ -397,6 +448,7 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
         }
     }
     $("#_error-materia-part").hide();
+    forceHideTooltips();
     $("#sportello_modal").modal("show");
 }
 
@@ -408,9 +460,17 @@ $(document).ready(function () {
         dateFormat: 'j/n/Y'
     });
 
+    $('#sportello_modal').on('show.bs.modal', function () {
+        forceHideTooltips();
+    });
+
+    $('#sportello_modal').on('hidden.bs.modal', function () {
+        forceHideTooltips();
+    });
+
     sportelloReadRecords();
 
-        $("#categoria_filtro").on("changed.bs.select",
+    $("#categoria_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             categoria_filtro_id = this.value;
             sportelloReadRecords();

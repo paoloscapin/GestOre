@@ -88,10 +88,10 @@ if ($categoria_filtro_id > 0) {
 }
 
 if ($classe_filtro_id > 0) {
-    $classe_filtro_id = intval($classe_filtro_id);
+	$classe_filtro_id = intval($classe_filtro_id);
 
-    // include anche i sottogruppi definiti in classe_include
-    $query .= "AND sportello.classe_id IN (
+	// include anche i sottogruppi definiti in classe_include
+	$query .= "AND sportello.classe_id IN (
                     SELECT ci.includes_classe_id
                     FROM classe_include ci
                     WHERE ci.classe_id = $classe_filtro_id
@@ -104,8 +104,7 @@ if ($materia_filtro_id > 0) {
 
 if ($bozza_filtro_id == 0) {
 	$where[] = "sportello.attivo = 1";
-}
-else {
+} else {
 	$where[] = "sportello.attivo = 0";
 }
 
@@ -142,6 +141,9 @@ foreach ($resultArray as $row) {
 	$isMioSportello = ($sportello_docente_id === (int)$__docente_id);
 
 	$statoMarker = '';
+	if ($sportello_bozza) {
+		$statoMarker .= '<span class="label label-default">BOZZA</span>';
+	} else
 	if ($sportello_cancellato) {
 		$statoMarker .= '<span class="label label-default">cancellato</span>';
 	} else {
@@ -155,9 +157,7 @@ foreach ($resultArray as $row) {
 			}
 		}
 	}
-	if ($sportello_bozza) {
-		$statoMarker .= '<span class="label label-default">BOZZA</span>';
-	}
+
 	$dt_sportello = $row['sportello_data'];
 	$dt_oggi = date("Y-m-d");
 	$vecchio = 0;
@@ -237,13 +237,16 @@ foreach ($resultArray as $row) {
 	// - non firmato
 	// - non vecchio
 	// - ed è del docente loggato
-	if ($sportello_bozza)
-		{
-			$data .= '
-			<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Clicca qui per assegnarsi lo sportello">
-			<button onclick="sportelloAssegna(' . $sportello_id . ') class="btn btn-primary btn-xs"><span class="glyphicon glyphicon-thumbs-up"></span></button>';
-		}
-		else
+	if ($sportello_bozza) {
+		$data .= '
+			<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Clicca qui per assegnarti lo sportello">
+				<button type="button"
+						onclick="sportelloAssegna(' . $sportello_id . ')"
+						class="btn btn-primary btn-xs">
+					<span class="glyphicon glyphicon-star"></span> ASSEGNA
+				</button>
+			</td></tr>';
+	} else
 		if ((!$sportello_cancellato) && (!$sportello_firmato) && (!$vecchio) && $isMioSportello) {
 		$data .= '
 		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Clicca qui per gestire lo sportello">

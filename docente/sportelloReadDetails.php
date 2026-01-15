@@ -7,9 +7,11 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 require_once '../common/checkSession.php';
+require_once '../common/connect.php';
 
-if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
-	$sportello_id = $_POST['sportello_id'];
+if (isset($_POST['sportello_id']) && $_POST['sportello_id'] !== "") {
+
+    $sportello_id = intval($_POST['sportello_id']);
 
     $query = "SELECT
             sportello.id as sportello_id,
@@ -24,33 +26,39 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
             sportello.cancellato as sportello_cancellato,
             sportello.online as sportello_online,
             sportello.clil AS sportello_clil,
-			sportello.orientamento AS sportello_orientamento,
+            sportello.orientamento AS sportello_orientamento,
             sportello.note as sportello_note,
 
             docente.cognome AS docente_cognome,
             docente.nome AS docente_nome,
-            docente.id AS docente_id,
+            COALESCE(docente.id, 0) AS docente_id,
+
             classe.id AS classe_id,
             materia.nome AS materia_nome,
             materia.id AS materia_id,
             sportello_categoria.id AS categoria_id,
             sportello_categoria.nome AS categoria_nome
 
-        FROM
-            sportello
-        INNER JOIN docente
-        ON sportello.docente_id = docente.id
+        FROM sportello
+        LEFT JOIN docente
+            ON sportello.docente_id = docente.id
         INNER JOIN materia
-        ON sportello.materia_id = materia.id
+            ON sportello.materia_id = materia.id
         INNER JOIN classe
-        ON sportello.classe_id = classe.id
+            ON sportello.classe_id = classe.id
         INNER JOIN sportello_categoria
-        ON sportello.categoria = sportello_categoria.nome
-        WHERE sportello.id = '$sportello_id'";
+            ON sportello.categoria = sportello_categoria.nome
+        WHERE sportello.id = $sportello_id
+        LIMIT 1";
 
     $sportello = dbGetFirst($query);
 
-    $studenti_list = array();
+    // se non trovato, rispondi comunque JSON valido
+    if (!$sportello) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => 'Sportello non trovato']);
+        exit;
+    }
 
     $query = "SELECT
             sportello_studente.id AS sportello_studente_id,
@@ -63,20 +71,17 @@ if(isset($_POST['sportello_id']) && isset($_POST['sportello_id']) != "") {
             studente.nome AS studente_nome,
             studente.id AS studente_id
 
-        FROM
-            sportello_studente
+        FROM sportello_studente
         INNER JOIN studente
-        ON sportello_studente.studente_id = studente.id
-        WHERE sportello_studente.sportello_id = '$sportello_id';";
+            ON sportello_studente.studente_id = studente.id
+        WHERE sportello_studente.sportello_id = $sportello_id";
 
-    $studenti = dbGetAll($query);
-
-    $sportello['studenti'] = $studenti;
+    $sportello['studenti'] = dbGetAll($query) ?: [];
 
     $struct_json = json_encode($sportello);
     info($struct_json);
-    
+
     header('Content-Type: application/json');
-	echo $struct_json;
+    echo $struct_json;
 }
 ?>
