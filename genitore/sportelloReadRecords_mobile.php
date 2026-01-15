@@ -78,6 +78,7 @@ $query = "SELECT
     sportello.categoria AS sportello_categoria,
     sportello.online AS sportello_online,
     sportello.max_iscrizioni AS sportello_max_iscrizioni,
+    sportello.attivo AS sportello_attivo,
     materia.nome AS materia_nome,
     docente.cognome AS docente_cognome,
     docente.nome AS docente_nome,
@@ -100,7 +101,7 @@ LEFT JOIN studente_frequenta AS sf
        ON sf.id_studente        = $__studente_id
       AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id
 
-WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id
+WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id AND sportello.attivo = 1 
 
 -- ✅ FILTRO NUOVO: visibile se sportello.classe_id è tra le into_classe_id abilitate
 --    per la classe dello studente selezionato (sf.id_classe)
