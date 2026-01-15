@@ -17,7 +17,7 @@ $soloMiei            = (int)($_GET["soloMiei"] ?? 0);
 $categoria_filtro_id = (int)($_GET["categoria_filtro_id"] ?? 0);
 $materia_filtro_id   = (int)($_GET["materia_filtro_id"] ?? 0);
 $classe_filtro_id    = (int)($_GET["classe_filtro_id"] ?? 0);
-
+$bozza_filtro_id	 = (int)($_GET["bozza_filtro_id"] ?? 0);
 $direzioneOrdinamento = "ASC";
 
 // Design initial table header
@@ -64,6 +64,7 @@ $query = "	SELECT
 				sportello.clil AS sportello_clil,
 				sportello.orientamento AS sportello_orientamento,
 				sportello.max_iscrizioni AS sportello_max_iscrizioni,
+				sportello.attivo AS sportello_attivo,
 				materia.nome AS materia_nome,
 				docente.cognome AS docente_cognome,
 				docente.nome AS docente_nome,
@@ -101,6 +102,13 @@ if ($materia_filtro_id > 0) {
 	$where[] = "sportello.materia_id = $materia_filtro_id";
 }
 
+if ($bozza_filtro_id == 0) {
+	$where[] = "sportello.attivo = 1";
+}
+else {
+	$where[] = "sportello.attivo = 0";
+}
+
 if ($soloMiei) {
 	$where[] = "sportello.docente_id = $__docente_id";
 }
@@ -126,6 +134,7 @@ foreach ($resultArray as $row) {
 	$sportello_categoria   = $row['sportello_categoria'];
 	$sportello_firmato     = (int)$row['sportello_firmato'];
 	$sportello_cancellato  = (int)$row['sportello_cancellato'];
+	$sportello_bozza	  = (int)$row['sportello_attivo'] === 0;
 	$sportello_nstudenti   = (int)$row['numero_studenti'];
 	$sportello_docente_id  = (int)$row['sportello_docente_id'];
 
@@ -146,7 +155,9 @@ foreach ($resultArray as $row) {
 			}
 		}
 	}
-
+	if ($sportello_bozza) {
+		$statoMarker .= '<span class="label label-default">BOZZA</span>';
+	}
 	$dt_sportello = $row['sportello_data'];
 	$dt_oggi = date("Y-m-d");
 	$vecchio = 0;
@@ -226,7 +237,14 @@ foreach ($resultArray as $row) {
 	// - non firmato
 	// - non vecchio
 	// - ed è del docente loggato
-	if ((!$sportello_cancellato) && (!$sportello_firmato) && (!$vecchio) && $isMioSportello) {
+	if ($sportello_bozza)
+		{
+			$data .= '
+			<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Clicca qui per assegnarsi lo sportello">
+			<button onclick="sportelloAssegna(' . $sportello_id . ') class="btn btn-primary btn-xs"><span class="glyphicon glyphicon-thumbs-up"></span></button>';
+		}
+		else
+		if ((!$sportello_cancellato) && (!$sportello_firmato) && (!$vecchio) && $isMioSportello) {
 		$data .= '
 		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Clicca qui per gestire lo sportello">
 			<button onclick="sportelloGetDetails(' . $sportello_id . ',true,' . $sportello_nstudenti . ',\'' . $sportello_categoria . '\')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></span></button>';

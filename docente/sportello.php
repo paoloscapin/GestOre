@@ -187,6 +187,9 @@ $modifica_sportelli = '<input type="hidden" id="hidden_modifica_sportelli" value
                             <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox">Solo Nuovi
                         </label>
                         <label class="checkbox-inline">
+                            <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="bozzaCheckBox">Bozze
+                        </label>
+                        <label class="checkbox-inline">
                             <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="ancheCancellatiCheckBox">Anche cancellati
                         </label>
                         <label class="checkbox-inline">

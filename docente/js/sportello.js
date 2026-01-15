@@ -11,6 +11,7 @@ var soloIMiei = 1;
 var categoria_filtro_id = 1; // sportello didattico
 var materia_filtro_id = 0;
 var classe_filtro_id = 0;
+var bozza_filtro_id = 1;
 
 function setDbDateToPickr(pickr, data_str) {
     var data = Date.parseExact(data_str, 'yyyy-MM-dd');
@@ -29,6 +30,16 @@ $('#soloNuoviCheckBox').change(function () {
         soloNuovi = 1;
     } else {
         soloNuovi = 0;
+    }
+    sportelloReadRecords();
+});
+
+$('#bozzaCheckBox').change(function () {
+    // this si riferisce al checkbox
+    if (this.checked) {
+        bozza_filtro_id = 1;
+    } else {
+        bozza_filtro_id = 0;
     }
     sportelloReadRecords();
 });
@@ -54,7 +65,7 @@ $('#ancheCancellatiCheckBox').change(function () {
 });
 
 function sportelloReadRecords() {
-    $.get("sportelloReadRecords.php?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloMiei=" + soloIMiei + "&categoria_filtro_id=" + categoria_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id, {}, function (data, status) {
+    $.get("sportelloReadRecords.php?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloMiei=" + soloIMiei + "&categoria_filtro_id=" + categoria_filtro_id + "&classe_filtro_id=" + classe_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&bozza_filtro_id=" + bozza_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
