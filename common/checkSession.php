@@ -10,6 +10,7 @@
 require_once __DIR__ . '/__Util.php';
 require_once __DIR__ . '/path.php';
 require_once __DIR__ . '/connect.php';
+require_once __DIR__ . '/connectMBApp.php';
 require_once __DIR__ . '/__Settings.php';
 
 // =====================================================
