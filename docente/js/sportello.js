@@ -119,10 +119,18 @@ function sportelloAssegna(sportello_id) {
             // qui passiamo: modificabile=true, nstudenti=0, categoria=""
             sportelloGetDetails(sportello_id, true, 0, "");
 
-            // metti focus su aula/luogo e svuota se serve
             setTimeout(function () {
-                $("#luogo").prop('disabled', false).focus();
+                // abilita AULA (select)
+                $("#luogo").prop('disabled', false).selectpicker('refresh');
+
+                // abilita MAX ISCRIZIONI (input)
+                $("#max_iscrizioni").prop('disabled', false).prop('readonly', false);
+
+                // focus sul select (come prima)
+                $(".bootstrap-select[data-id='luogo'] button").focus();
             }, 300);
+
+
         } else {
             alert(resp && resp.msg ? resp.msg : "Errore durante l'assegnazione dello sportello.");
         }
@@ -206,9 +214,42 @@ function sportelloSave() {
                 clil: $("#clil").is(':checked') ? 1 : 0,
                 orientamento: $("#orientamento").is(':checked') ? 1 : 0,
                 studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
-            }, function (data, status) {
-                $("#sportello_modal").modal("hide");
-                sportelloReadRecords();
+            }, function (respSave) {
+
+                // se la risposta arriva come stringa, prova parse
+                if (typeof respSave === "string") {
+                    try { respSave = JSON.parse(respSave); } catch (e) { respSave = null; }
+                }
+
+                if (!respSave || !respSave.ok) {
+                    errorNotify("Errore", "Salvataggio sportello fallito.");
+                    return;
+                }
+
+                // 1) prenota aula (se serve)
+                const req = prenotaAulaPerSportello(respSave);
+
+                // 2) chiudi e aggiorna UI (anche se prenotazione non serve)
+                if (req && typeof req.then === "function") {
+                    req.done(function (respPrenota) {
+                        if (!respPrenota || respPrenota.ok !== true) {
+                            errorNotify("Attenzione", "Sportello salvato ma prenotazione aula NON riuscita.");
+                        } else {
+                            infoNotify("OK", "Sportello salvato e aula prenotata.");
+                        }
+                    }).fail(function () {
+                        errorNotify("Attenzione", "Sportello salvato ma errore di rete nella prenotazione aula.");
+                    }).always(function () {
+                        $("#sportello_modal").modal("hide");
+                        sportelloReadRecords();
+                    });
+                } else {
+                    $("#sportello_modal").modal("hide");
+                    sportelloReadRecords();
+                }
+
+            }, "json").fail(function () {
+                errorNotify("Errore", "Errore di rete o server durante il salvataggio.");
             });
         }
         else {
@@ -231,9 +272,42 @@ function sportelloSave() {
                 clil: 0,
                 orientamento: 0,
                 studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
-            }, function (data, status) {
-                $("#sportello_modal").modal("hide");
-                sportelloReadRecords();
+            }, function (respSave) {
+
+                // se la risposta arriva come stringa, prova parse
+                if (typeof respSave === "string") {
+                    try { respSave = JSON.parse(respSave); } catch (e) { respSave = null; }
+                }
+
+                if (!respSave || !respSave.ok) {
+                    errorNotify("Errore", "Salvataggio sportello fallito.");
+                    return;
+                }
+
+                // 1) prenota aula (se serve)
+                const req = prenotaAulaPerSportello(respSave);
+
+                // 2) chiudi e aggiorna UI (anche se prenotazione non serve)
+                if (req && typeof req.then === "function") {
+                    req.done(function (respPrenota) {
+                        if (!respPrenota || respPrenota.ok !== true) {
+                            errorNotify("Attenzione", "Sportello salvato ma prenotazione aula NON riuscita.");
+                        } else {
+                            infoNotify("OK", "Sportello salvato e aula prenotata.");
+                        }
+                    }).fail(function () {
+                        errorNotify("Attenzione", "Sportello salvato ma errore di rete nella prenotazione aula.");
+                    }).always(function () {
+                        $("#sportello_modal").modal("hide");
+                        sportelloReadRecords();
+                    });
+                } else {
+                    $("#sportello_modal").modal("hide");
+                    sportelloReadRecords();
+                }
+
+            }, "json").fail(function () {
+                errorNotify("Errore", "Errore di rete o server durante il salvataggio.");
             });
         }
     }
@@ -258,9 +332,42 @@ function sportelloSave() {
                 clil: $("#clil").is(':checked') ? 1 : 0,
                 orientamento: $("#orientamento").is(':checked') ? 1 : 0,
                 studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
-            }, function (data, status) {
-                $("#sportello_modal").modal("hide");
-                sportelloReadRecords();
+            }, function (respSave) {
+
+                // se la risposta arriva come stringa, prova parse
+                if (typeof respSave === "string") {
+                    try { respSave = JSON.parse(respSave); } catch (e) { respSave = null; }
+                }
+
+                if (!respSave || !respSave.ok) {
+                    errorNotify("Errore", "Salvataggio sportello fallito.");
+                    return;
+                }
+
+                // 1) prenota aula (se serve)
+                const req = prenotaAulaPerSportello(respSave);
+
+                // 2) chiudi e aggiorna UI (anche se prenotazione non serve)
+                if (req && typeof req.then === "function") {
+                    req.done(function (respPrenota) {
+                        if (!respPrenota || respPrenota.ok !== true) {
+                            errorNotify("Attenzione", "Sportello salvato ma prenotazione aula NON riuscita.");
+                        } else {
+                            infoNotify("OK", "Sportello salvato e aula prenotata.");
+                        }
+                    }).fail(function () {
+                        errorNotify("Attenzione", "Sportello salvato ma errore di rete nella prenotazione aula.");
+                    }).always(function () {
+                        $("#sportello_modal").modal("hide");
+                        sportelloReadRecords();
+                    });
+                } else {
+                    $("#sportello_modal").modal("hide");
+                    sportelloReadRecords();
+                }
+
+            }, "json").fail(function () {
+                errorNotify("Errore", "Errore di rete o server durante il salvataggio.");
             });
         }
         else {
@@ -268,7 +375,7 @@ function sportelloSave() {
                 id: $("#hidden_sportello_id").val(),
                 data: getDbDateFromPickrId("#data"),
                 ora: $("#ora").val(),
-                docente_id: $("docente").val(),
+                docente_id: $("#docente").val(),
                 materia_id: $("#materia").val(),
                 categoria_id: $("#categoria").val(),
                 numero_ore: $("#numero_ore").val(),
@@ -283,9 +390,42 @@ function sportelloSave() {
                 clil: 0,
                 orientamento: 0,
                 studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
-            }, function (data, status) {
-                $("#sportello_modal").modal("hide");
-                sportelloReadRecords();
+            }, function (respSave) {
+
+                // se la risposta arriva come stringa, prova parse
+                if (typeof respSave === "string") {
+                    try { respSave = JSON.parse(respSave); } catch (e) { respSave = null; }
+                }
+
+                if (!respSave || !respSave.ok) {
+                    errorNotify("Errore", "Salvataggio sportello fallito.");
+                    return;
+                }
+
+                // 1) prenota aula (se serve)
+                const req = prenotaAulaPerSportello(respSave);
+
+                // 2) chiudi e aggiorna UI (anche se prenotazione non serve)
+                if (req && typeof req.then === "function") {
+                    req.done(function (respPrenota) {
+                        if (!respPrenota || respPrenota.ok !== true) {
+                            errorNotify("Attenzione", "Sportello salvato ma prenotazione aula NON riuscita.");
+                        } else {
+                            infoNotify("OK", "Sportello salvato e aula prenotata.");
+                        }
+                    }).fail(function () {
+                        errorNotify("Attenzione", "Sportello salvato ma errore di rete nella prenotazione aula.");
+                    }).always(function () {
+                        $("#sportello_modal").modal("hide");
+                        sportelloReadRecords();
+                    });
+                } else {
+                    $("#sportello_modal").modal("hide");
+                    sportelloReadRecords();
+                }
+
+            }, "json").fail(function () {
+                errorNotify("Errore", "Errore di rete o server durante il salvataggio.");
             });
         }
     }
@@ -324,10 +464,107 @@ function confermaFirmato() {
     }
 }
 
+function verificaAulaCorrente() {
+    var data = getDbDateFromPickrId("#data");
+    var ora = $("#ora").val();
+    if (!data || !ora) return;
+
+    var aulaCorrente = $("#luogo").val();
+    console.log("Verifica aula corrente: data=" + data + " ora=" + ora + " aulaCorrente=" + aulaCorrente);
+    $.post("../common/checkAuleLibere.php", {
+        dataGiorno: data,
+        ora: ora,
+        tipo: 'TUTTE'
+    }, function (resp) {
+
+        if (typeof resp === "string") {
+            console.log("Parsing response string");
+            try { resp = JSON.parse(resp); } catch (e) { resp = null; }
+        }
+        console.log("Aule libere ricevute:", resp);
+        $("#luogo").empty();
+
+        if (!resp || resp.status !== "ok" || !resp.data.length) {
+            $("#luogo")
+                .append('<option value="">Nessuna aula disponibile</option>')
+                .selectpicker('refresh');
+            return;
+        }
+
+        var aulaAncoraValida = false;
+
+        resp.data.forEach(function (aula) {
+            var label = aula.nroAula;
+            if (aula.descrizione) {
+                label += " – " + aula.descrizione;
+            }
+
+            if (aula.nroAula === aulaCorrente) {
+                aulaAncoraValida = true;
+            }
+
+            $("#luogo").append(
+                $('<option>', {
+                    value: aula.nroAula,
+                    text: label
+                })
+            );
+        });
+
+        // 🔥 LOGICA RICHIESTA
+        if (aulaCorrente && aulaAncoraValida) {
+            $("#luogo").val(aulaCorrente);
+        } else {
+            $("#luogo").val("");
+        }
+
+        $("#luogo").selectpicker('refresh');
+
+    }, "json");
+}
+
+const ORARI = ["07:50", "08:40", "09:30", "10:30", "11:20", "12:10", "13:00", "13:50", "14:40", "15:30", "16:20", "17:10", "18:00", "18:50", "19:40", "20:30", "21:30", "22:20"];
+
+function calcolaOraFine(oraInizio, numeroOre) {
+    const i = ORARI.indexOf(oraInizio);
+    if (i < 0) return oraInizio; // fallback
+    const j = i + (parseInt(numeroOre, 10) || 1);
+    return ORARI[Math.min(j, ORARI.length - 1)];
+}
+
+function prenotaAulaPerSportello(respSave) {
+    // prenota solo se sportello attivo e aula scelta
+    if (!respSave || !respSave.ok) return;
+    if (parseInt(respSave.attivo, 10) !== 1) return;
+    const aula = (respSave.luogo || "").trim();
+    if (!aula) return;
+    if (parseInt(respSave.cancellato, 10) === 1) return; // se cancellato non prenotare
+
+    const oraFine = calcolaOraFine(respSave.ora, respSave.numero_ore);
+
+    // Facoltativo: descrizione utile nel calendario MBApp
+    const attivita = "SPORTELLO " + respSave.materia;
+    const motivo = "IMPEGNO IN ISTITUTO";
+    const dettagli = "SPORTELLO =" + respSave.materia;
+
+    return $.post("../common/prenotaAula.php", {
+        nroAula: aula,
+        dataInizio: respSave.data,
+        oraInizio: respSave.ora,
+        oraFine: oraFine,
+        attivitaProgetto: attivita,
+        motivo: motivo,
+        dettagli: dettagli
+        // username: non serve se prenotaAula.php lo ricava da sessione; se invece lo richiede, dimmelo e lo aggiungiamo
+    }, null, "json");
+}
+
 function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, categoria) {
     $("#hidden_sportello_id").val(sportello_id);
     //    $("#hidden_numero_studenti_iscritti").val(10);
     $("#hidden_numero_studenti_iscritti").val(sportello_n_studenti);
+    // default: max iscrizioni bloccato (poi lo sblocca solo sportelloAssegna)
+    $("#max_iscrizioni").prop('disabled', true).prop('readonly', true);
 
     if (sportello_id > 0) {
         $.post("../docente/sportelloReadDetails.php", {
@@ -338,13 +575,28 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
             var cancellato = sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null;
             var firmato = sportello.sportello_firmato != 0 && sportello.sportello_firmato != null;
             setDbDateToPickr(data_pickr, sportello.sportello_data);
-            $("#ora").val(sportello.sportello_ora);
-            $("#docente").val(sportello.docente_cognome + ' ' + sportello.docente_nome);
+            $("#ora").selectpicker('val', sportello.sportello_ora).selectpicker('refresh');
+            var docenteNomeDb = ((sportello.docente_cognome || "") + " " + (sportello.docente_nome || "")).trim();
+            if (sportello.docente_id && parseInt(sportello.docente_id, 10) > 0 && docenteNomeDb !== "") {
+                $("#docente").val(docenteNomeDb);
+            } else {
+                // bozza / non assegnato: mostra provvisoriamente il docente loggato
+                $("#docente").val($("#hidden_docente_cognome_nome").val());
+            }
             $('#materia').selectpicker('val', sportello.materia_id);
             $('#categoria').selectpicker('val', sportello.categoria_id);
             $("#numero_ore").val(sportello.sportello_numero_ore);
             $("#argomento").val(sportello.sportello_argomento);
-            $("#luogo").val(sportello.sportello_luogo);
+
+            $("#ora")
+                .selectpicker('val', sportello.sportello_ora || "13:50")
+                .selectpicker('refresh');
+
+            // ⏱️ aspetta che UI sia stabile
+            setTimeout(function () {
+                verificaAulaCorrente();
+            }, 200);
+
             if ($('#hidden_lista_classi').val() == 'testo') {
                 $("#classe").val(sportello.classe);
             }
@@ -425,7 +677,7 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
         });
     } else {
         data_pickr.setDate(Date.today().toString('d/M/yyyy'));
-        $("#ora").val("14");
+        $("#ora").selectpicker('val', "13:50").selectpicker('refresh');
         $('#docente').val($("#hidden_docente_cognome_nome").val());
         $('#docente').selectpicker('refresh');
         $('#materia').val("0");
@@ -449,6 +701,7 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
     }
     $("#_error-materia-part").hide();
     forceHideTooltips();
+    verificaAulaCorrente();
     $("#sportello_modal").modal("show");
 }
 
@@ -457,7 +710,14 @@ $(document).ready(function () {
         locale: {
             firstDayOfWeek: 1
         },
-        dateFormat: 'j/n/Y'
+        dateFormat: 'j/n/Y',
+        onChange: function () {
+            verificaAulaCorrente();
+        }
+    });
+
+    $("#ora").on("change", function () {
+        verificaAulaCorrente();
     });
 
     $('#sportello_modal').on('show.bs.modal', function () {

@@ -210,11 +210,15 @@ foreach ($resultArray as $row) {
 		$sbarrato = '</s>';
 	}
 
-	$docenteLabel = $row['docente_cognome'] . ' ' . $row['docente_nome'];
+	if ($sportello_docente_id === 0) {
+		$docenteLabel = 'Non assegnato';
+	} else {
+		$docenteLabel = $row['docente_cognome'] . ' ' . $row['docente_nome'];
+	}
 
 	$data .= '<tr>
 		<td align="center">' . $barrato . $sportello_categoria . $sbarrato . '</td>
-		<td>' . $barrato . htmlspecialchars($docenteLabel, ENT_QUOTES, 'UTF-8') . $sbarrato . '</td>
+		<td align="center">' . $barrato . htmlspecialchars($docenteLabel, ENT_QUOTES, 'UTF-8') . $sbarrato . '</td>
 		<td align="center">' . $barrato . $dataSportello . $sbarrato . '</td>
 		<td align="center">' . $barrato . $row['sportello_ora'] . $sbarrato . '</td>
 		<td>' . $barrato . $row['materia_nome'] . $sbarrato . '</td>';

@@ -28,7 +28,7 @@ if (isset($_POST['sportello_id']) && $_POST['sportello_id'] !== "") {
             sportello.clil AS sportello_clil,
             sportello.orientamento AS sportello_orientamento,
             sportello.note as sportello_note,
-
+            sportello.docente_id as sportello_docente_id,
             docente.cognome AS docente_cognome,
             docente.nome AS docente_nome,
             COALESCE(docente.id, 0) AS docente_id,

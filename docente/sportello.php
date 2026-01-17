@@ -102,7 +102,7 @@ require_once '../common/checkSession.php';
 // prepara l'elenco delle categorie per il filtro
 $categoriaOptionList = '<option value="0">tutte</option>';
 foreach (dbGetAll("SELECT * FROM sportello_categoria ORDER BY sportello_categoria.nome ASC ; ") as $categoria) {
-    if ($categoria['id']==1)
+    if ($categoria['id'] == 1)
         $categoriaOptionList .= ' <option value="' . $categoria['id'] . '" selected >' . $categoria['nome'] . '</option> ';
     else
         $categoriaOptionList .= ' <option value="' . $categoria['id'] . '" >' . $categoria['nome'] . '</option> ';
@@ -162,65 +162,64 @@ $modifica_sportelli = '<input type="hidden" id="hidden_modifica_sportelli" value
                     </div>
                     <div class="col-md-2">
                         <div class="text-right">
-                            <label class="col-sm-2 control-label" style="margin: 5px 0px 0px 0px; padding:0px" for="materia"
-                                ">Materia</label>
-                            <div class="col-sm-10"><select id="materia_filtro" name="materia_filtro"
+                            <label class="col-sm-2 control-label" style="margin: 5px 0px 0px 0px; padding:0px" for="materia" ">Materia</label>
+                            <div class=" col-sm-10"><select id="materia_filtro" name="materia_filtro"
                                     class="materia_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
                                     data-noneSelectedText="seleziona..." data-width="90%">
                                     <?php echo $materiaFiltroOptionList ?>
-                                </select></div>
+                                </select>
                         </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="text-right">
-                            <label class="col-sm-3 control-label" style="margin: 5px 0px 0px 0px; padding:0px" for="classe"
-                                >Classe</label>
-                            <div class="col-sm-auto"><select id="classe_filtro" name="classe_filtro"
-                                    class="classe_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
-                                    data-noneSelectedText="seleziona..." data-width="70%">
-                                    <?php echo $classeFiltroOptionList ?>
-                                </select></div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="checkbox-inline">
-                            <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox">Solo Nuovi
-                        </label>
-                        <label class="checkbox-inline">
-                            <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="bozzaCheckBox">Bozze
-                        </label>
-                        <label class="checkbox-inline">
-                            <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="ancheCancellatiCheckBox">Anche cancellati
-                        </label>
-                        <label class="checkbox-inline">
-                            <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloIMieiCheckBox">Solo i miei
-                        </label>
                     </div>
                 </div>
-                <div class="col-md-auto text-right">
-                    <?php if (getSettingsValue("sportelli", "inseriti_da_docente", false)) : ?>
-                        <div class="pull-right">
-                            <button class="btn btn-xs btn-orange4" onclick="sportelloGetDetails(-1)"><span class="glyphicon glyphicon-plus"></span></button>
-                        </div>
-                    <?php endif; ?>
+                <div class="col-md-2">
+                    <div class="text-right">
+                        <label class="col-sm-3 control-label" style="margin: 5px 0px 0px 0px; padding:0px" for="classe">Classe</label>
+                        <div class="col-sm-auto"><select id="classe_filtro" name="classe_filtro"
+                                class="classe_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
+                                data-noneSelectedText="seleziona..." data-width="70%">
+                                <?php echo $classeFiltroOptionList ?>
+                            </select></div>
+                    </div>
                 </div>
+                <div class="col-md-4">
+                    <label class="checkbox-inline">
+                        <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloNuoviCheckBox">Solo Nuovi
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="bozzaCheckBox">Bozze
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary" id="ancheCancellatiCheckBox">Anche cancellati
+                    </label>
+                    <label class="checkbox-inline">
+                        <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="soloIMieiCheckBox">Solo i miei
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-auto text-right">
+                <?php if (getSettingsValue("sportelli", "inseriti_da_docente", false)) : ?>
+                    <div class="pull-right">
+                        <button class="btn btn-xs btn-orange4" onclick="sportelloGetDetails(-1)"><span class="glyphicon glyphicon-plus"></span></button>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
-        <div class="panel-body">
-            <div class="row" style="margin-bottom:10px;">
-                <div class="col-md-6">
-                </div>
-                <div class="col-md-6">
-                </div>
+    </div>
+    <div class="panel-body">
+        <div class="row" style="margin-bottom:10px;">
+            <div class="col-md-6">
             </div>
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="records_content"></div>
-                </div>
+            <div class="col-md-6">
             </div>
         </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="records_content"></div>
+            </div>
+        </div>
+    </div>
 
-        <!-- <div class="panel-footer"></div> -->
+    <!-- <div class="panel-footer"></div> -->
     </div>
 
     <!-- Modal - Add/Update Record -->
@@ -240,7 +239,33 @@ $modifica_sportelli = '<input type="hidden" id="hidden_modifica_sportelli" value
                                     <div class="col-sm-3"><input type="text" value="21/8/2018" id="data" class="form-control" /></div>
 
                                     <label class="col-sm-2 control-label" for="ora">Ora</label>
-                                    <div class="col-sm-3"><input type="text" id="ora" class="form-control" /></div>
+                                    <div class="col-sm-3">
+                                        <select id="ora"
+                                            class="selectpicker"
+                                            data-style="btn-info"
+                                            data-live-search="true"
+                                            data-none-selected-text="Seleziona..."
+                                            data-width="100%">
+                                            <option value="07:50">07:50</option>
+                                            <option value="08:40">08:40</option>
+                                            <option value="09:30">09:30</option>
+                                            <option value="10:30">10:30</option>
+                                            <option value="11:20">11:20</option>
+                                            <option value="12:10">12:10</option>
+                                            <option value="13:00">13:00</option>
+                                            <option value="13:50">13:50</option>
+                                            <option value="14:40">14:40</option>
+                                            <option value="15:30">15:30</option>
+                                            <option value="16:20">16:20</option>
+                                            <option value="17:10">17:10</option>
+                                            <option value="18:00">18:00</option>
+                                            <option value="18:50">18:50</option>
+                                            <option value="19:40">19:40</option>
+                                            <option value="20:30">20:30</option>
+                                            <option value="21:30">21:30</option>
+                                            <option value="22:20">22:20</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <div class="form-group docente_selector">
@@ -273,8 +298,16 @@ $modifica_sportelli = '<input type="hidden" id="hidden_modifica_sportelli" value
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="col-sm-2 control-label" for="luogo">Luogo</label>
-                                    <div class="col-sm-10"><input type="text" id="luogo" class="form-control" placeholder="aula o laboratorio in cui si svolge lo sportello" /></div>
+                                    <label class="col-sm-2 control-label" for="luogo">Aula</label>
+                                    <div class="col-sm-10">
+                                        <select id="luogo"
+                                            class="selectpicker"
+                                            data-style="btn-info"
+                                            data-live-search="true"
+                                            data-none-selected-text="Seleziona un'aula..."
+                                            data-width="100%">
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <?php

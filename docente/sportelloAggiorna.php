@@ -126,5 +126,22 @@ if (isset($_POST)) {
         $id = dblastId();
         info("aggiunto sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online=$online clil=$clil orientamento=$orientamento attivo=$attivo");
     }
+    // ... dopo aver fatto UPDATE oppure INSERT e dopo aver assegnato $id
+
+    $materia = dbGetValue("SELECT nome FROM materia WHERE id = " . $materia_id);
+header('Content-Type: application/json; charset=utf-8');
+echo json_encode([
+    'ok' => true,
+    'id' => (int)$id,
+    'materia' => $materia,
+    'data' => $data,
+    'ora' => $ora,
+    'luogo' => $luogo_raw,          // <-- aula selezionata
+    'numero_ore' => (int)$numero_ore,
+    'attivo' => (int)$attivo,
+    'cancellato' => (int)$cancellato
+]);
+exit;
+
 }
 ?>
