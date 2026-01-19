@@ -112,23 +112,87 @@ foreach ($resultArray as $row) {
 
 			$data_html = '<tr>';
 
-			$row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
-			<p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
+			$row_html = '<td style="
+  overflow-wrap:break-word;
+  word-break:break-word;
+  padding:10px 8px;
+  font-family:Lato, Arial, Helvetica, sans-serif;
+  background-color:#ffffff;
+  border-top:1px solid #e7ecef;
+  text-align:center;
+" align="center">
+  <span style="
+    display:block;
+    font-size:12px;
+    line-height:1.35;
+    font-family:Lato, Arial, Helvetica, sans-serif;
+    font-weight:700;
+    color:#293c4b;
+  ">VALORE</span>
+</td>';
 			$row_html = str_replace("VALORE", $studente_classe, $row_html);
 			$data_html .= $row_html;
 
-			$row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
-			<p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
+			$row_html = '<td style="
+			overflow-wrap:break-word;
+			word-break:break-word;
+			padding:10px 8px;
+			font-family:Lato, Arial, Helvetica, sans-serif;
+			background-color:#ffffff;
+			border-top:1px solid #e7ecef;
+			text-align:center;
+			" align="center">
+			<span style="
+				display:block;
+				font-size:12px;
+				line-height:1.35;
+				font-family:Lato, Arial, Helvetica, sans-serif;
+				font-weight:700;
+				color:#293c4b;
+			">VALORE</span>
+			</td>';
 			$row_html = str_replace("VALORE", $studente_cognome, $row_html);
 			$data_html .= $row_html;
 
-			$row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
-			<p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
+			$row_html = '<td style="
+			overflow-wrap:break-word;
+			word-break:break-word;
+			padding:10px 8px;
+			font-family:Lato, Arial, Helvetica, sans-serif;
+			background-color:#ffffff;
+			border-top:1px solid #e7ecef;
+			text-align:center;
+			" align="center">
+			<span style="
+				display:block;
+				font-size:12px;
+				line-height:1.35;
+				font-family:Lato, Arial, Helvetica, sans-serif;
+				font-weight:700;
+				color:#293c4b;
+			">VALORE</span>
+			</td>';
 			$row_html = str_replace("VALORE", $studente_nome, $row_html);
 			$data_html .= $row_html;
 
-			$row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
-			<p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
+			$row_html = '<td style="
+			overflow-wrap:break-word;
+			word-break:break-word;
+			padding:10px 8px;
+			font-family:Lato, Arial, Helvetica, sans-serif;
+			background-color:#ffffff;
+			border-top:1px solid #e7ecef;
+			text-align:center;
+			" align="center">
+			<span style="
+				display:block;
+				font-size:12px;
+				line-height:1.35;
+				font-family:Lato, Arial, Helvetica, sans-serif;
+				font-weight:700;
+				color:#293c4b;
+			">VALORE</span>
+			</td>';
 			$row_html = str_replace("VALORE", $sportello_argomento, $row_html);
 			$data_html .= $row_html;
 

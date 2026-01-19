@@ -34,6 +34,7 @@ $query = "SELECT
             studente.nome AS studente_nome,
             studente.email AS studente_email,
             sportello_studente.sportello_id AS sportello_id,
+            sportello_studente.argomento AS sportello_argomento,
             c.classe AS studente_classe
             FROM sportello_studente
             INNER JOIN studente ON studente.id = studente_id
@@ -58,20 +59,98 @@ if ($resultArray == null) {
         $studente_cognome = $row['studente_cognome'];
         $studente_nome = $row['studente_nome'];
         $studente_classe = $row['studente_classe'];
+        $sportello_argomento = $row['sportello_argomento'];
 
-        $row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
-        <p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
+
+        $row_html = '<td style="
+        overflow-wrap:break-word;
+        word-break:break-word;
+        padding:10px 8px;
+        font-family:Lato, Arial, Helvetica, sans-serif;
+        background-color:#ffffff;
+        border-top:1px solid #e7ecef;
+        border-right:1px solid #e7ecef;
+        text-align:center;
+        " align="center">
+        <span style="
+            display:block;
+            font-size:12px;
+            line-height:1.35;
+            font-family:Lato, Arial, Helvetica, sans-serif;
+            font-weight:700;
+            color:#293c4b;
+        ">VALORE</span>
+        </td>';
+
         $row_html = str_replace("VALORE", $studente_classe, $row_html);
         $data_html .= $row_html;
 
-        $row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
-        <p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
+        $row_html = '<td style="
+        overflow-wrap:break-word;
+        word-break:break-word;
+        padding:10px 8px;
+        font-family:Lato, Arial, Helvetica, sans-serif;
+        background-color:#ffffff;
+        border-top:1px solid #e7ecef;
+        border-right:1px solid #e7ecef;
+        text-align:center;
+        " align="center">
+        <span style="
+            display:block;
+            font-size:12px;
+            line-height:1.35;
+            font-family:Lato, Arial, Helvetica, sans-serif;
+            font-weight:700;
+            color:#293c4b;
+        ">VALORE</span>
+        </td>';
+
         $row_html = str_replace("VALORE", $studente_cognome, $row_html);
         $data_html .= $row_html;
 
-        $row_html = '<td style="overflow-wrap:break-word;word-break:break-word;padding:10px 0px 10px 0px;font-family:arial,helvetica,sans-serif;background-color: rgb(255, 255, 255);"  align="left">
-        <p style="font-size: 12px; line-height: 140%; text-align: center;"><span style="font-size: 12px; line-height: 22.4px; font-family: Lato, sans-serif;"><strong>VALORE</strong></span></p></td>';
+        $row_html = '<td style="
+        overflow-wrap:break-word;
+        word-break:break-word;
+        padding:10px 8px;
+        font-family:Lato, Arial, Helvetica, sans-serif;
+        background-color:#ffffff;
+        border-top:1px solid #e7ecef;
+        border-right:1px solid #e7ecef;
+        text-align:center;
+        " align="center">
+        <span style="
+            display:block;
+            font-size:12px;
+            line-height:1.35;
+            font-family:Lato, Arial, Helvetica, sans-serif;
+            font-weight:700;
+            color:#293c4b;
+        ">VALORE</span>
+        </td>';
+
         $row_html = str_replace("VALORE", $studente_nome, $row_html);
+        $data_html .= $row_html;
+
+
+        $row_html = '<td style="
+        overflow-wrap:break-word;
+        word-break:break-word;
+        padding:10px 8px;
+        font-family:Lato, Arial, Helvetica, sans-serif;
+        background-color:#ffffff;
+        border-top:1px solid #e7ecef;
+        text-align:center;
+        " align="center">
+        <span style="
+            display:block;
+            font-size:12px;
+            line-height:1.35;
+            font-family:Lato, Arial, Helvetica, sans-serif;
+            font-weight:700;
+            color:#293c4b;
+        ">VALORE</span>
+        </td>';
+        $row_html = str_replace("VALORE", $sportello_argomento, $row_html);
         $data_html .= $row_html;
     }
 
@@ -94,18 +173,15 @@ $full_mail_body = str_replace("{nome_istituto}", $__settings->local->nomeIstitut
 
 $full_mail_body = str_replace("{messaggio_finale}", $messaggio_finale, $full_mail_body);
 
-if ($resultArray != null) 
-{
+if ($resultArray != null) {
     $full_mail_body = str_replace("{codice_html_tabella}", $data_html, $full_mail_body);
 }
 
 $to = $docente_email;
 $toName = $docente_nome . " " . $docente_cognome;
-info("Invio mail al docente: ".$to." ".$toName);
-echo "Invio mail al docente: ".$to." ".$toName."\n";
+info("Invio mail al docente: " . $to . " " . $toName);
+echo "Invio mail al docente: " . $to . " " . $toName . "\n";
 $mailsubject = 'GestOre - Annullamento attività ' . $categoria . ' - materia' . $materia;
-sendMail($to,$toName,$mailsubject,$full_mail_body);
+sendMail($to, $toName, $mailsubject, $full_mail_body);
 
 info("inviata mail di cancellazione sportello come richiesto dal docente - " . $docente_cognome . " " . $docente_nome);
-
-?>
