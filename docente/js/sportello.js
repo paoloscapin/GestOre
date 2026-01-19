@@ -12,6 +12,16 @@ var categoria_filtro_id = 1; // sportello didattico
 var materia_filtro_id = 0;
 var classe_filtro_id = 0;
 var bozza_filtro_id = 0;
+var aulaLocked = false;     // true => aula bloccata (sportello già con aula)
+var aulaDbValue = "";       // aula letta da DB
+var autoPickFirstAula = false; // true => se aula vuota, seleziona la prima aula libera
+
+
+function resetAulaState() {
+    aulaLocked = false;
+    aulaDbValue = "";
+    autoPickFirstAula = false;
+}
 
 function forceHideTooltips() {
     // chiude eventuali tooltip aperti
@@ -114,7 +124,7 @@ function sportelloAssegna(sportello_id) {
         if (resp && resp.ok) {
             // aggiorna lista (così sparisce dalla lista bozze / o diventa "mio")
             sportelloReadRecords();
-
+            resetAulaState();
             // apri dettaglio in modalità modificabile
             // qui passiamo: modificabile=true, nstudenti=0, categoria=""
             sportelloGetDetails(sportello_id, true, 0, "");
@@ -122,6 +132,9 @@ function sportelloAssegna(sportello_id) {
             setTimeout(function () {
                 // abilita AULA (select)
                 $("#luogo").prop('disabled', false).selectpicker('refresh');
+
+                // abilita ORA (select)
+                $("#ora").prop('disabled', false).selectpicker('refresh');
 
                 // abilita MAX ISCRIZIONI (input)
                 $("#max_iscrizioni").prop('disabled', false).prop('readonly', false);
@@ -227,16 +240,25 @@ function sportelloSave() {
                 }
 
                 // 1) prenota aula (se serve)
-                const req = prenotaAulaPerSportello(respSave);
+                // ✅ NON prenotare di nuovo se è uno sportello esistente con aula già assegnata (locked)
+let req = null;
+if (!aulaLocked) {
+    req = prenotaAulaPerSportello(respSave);
+}
+
 
                 // 2) chiudi e aggiorna UI (anche se prenotazione non serve)
                 if (req && typeof req.then === "function") {
                     req.done(function (respPrenota) {
                         if (!respPrenota || respPrenota.ok !== true) {
                             errorNotify("Attenzione", "Sportello salvato ma prenotazione aula NON riuscita.");
-                        } else {
-                            infoNotify("OK", "Sportello salvato e aula prenotata.");
+                            return;
                         }
+                        if (respPrenota.skip) {
+                            infoNotify("OK", "Sportello salvato. Prenotazione MBApp già esistente (nessun duplicato).");
+                            return;
+                        }
+                        infoNotify("OK", "Sportello salvato e aula prenotata.");
                     }).fail(function () {
                         errorNotify("Attenzione", "Sportello salvato ma errore di rete nella prenotazione aula.");
                     }).always(function () {
@@ -285,16 +307,25 @@ function sportelloSave() {
                 }
 
                 // 1) prenota aula (se serve)
-                const req = prenotaAulaPerSportello(respSave);
+                // ✅ NON prenotare di nuovo se è uno sportello esistente con aula già assegnata (locked)
+let req = null;
+if (!aulaLocked) {
+    req = prenotaAulaPerSportello(respSave);
+}
+
 
                 // 2) chiudi e aggiorna UI (anche se prenotazione non serve)
                 if (req && typeof req.then === "function") {
                     req.done(function (respPrenota) {
                         if (!respPrenota || respPrenota.ok !== true) {
                             errorNotify("Attenzione", "Sportello salvato ma prenotazione aula NON riuscita.");
-                        } else {
-                            infoNotify("OK", "Sportello salvato e aula prenotata.");
+                            return;
                         }
+                        if (respPrenota.skip) {
+                            infoNotify("OK", "Sportello salvato. Prenotazione MBApp già esistente (nessun duplicato).");
+                            return;
+                        }
+                        infoNotify("OK", "Sportello salvato e aula prenotata.");
                     }).fail(function () {
                         errorNotify("Attenzione", "Sportello salvato ma errore di rete nella prenotazione aula.");
                     }).always(function () {
@@ -345,16 +376,25 @@ function sportelloSave() {
                 }
 
                 // 1) prenota aula (se serve)
-                const req = prenotaAulaPerSportello(respSave);
+                // ✅ NON prenotare di nuovo se è uno sportello esistente con aula già assegnata (locked)
+let req = null;
+if (!aulaLocked) {
+    req = prenotaAulaPerSportello(respSave);
+}
+
 
                 // 2) chiudi e aggiorna UI (anche se prenotazione non serve)
                 if (req && typeof req.then === "function") {
                     req.done(function (respPrenota) {
                         if (!respPrenota || respPrenota.ok !== true) {
                             errorNotify("Attenzione", "Sportello salvato ma prenotazione aula NON riuscita.");
-                        } else {
-                            infoNotify("OK", "Sportello salvato e aula prenotata.");
+                            return;
                         }
+                        if (respPrenota.skip) {
+                            infoNotify("OK", "Sportello salvato. Prenotazione MBApp già esistente (nessun duplicato).");
+                            return;
+                        }
+                        infoNotify("OK", "Sportello salvato e aula prenotata.");
                     }).fail(function () {
                         errorNotify("Attenzione", "Sportello salvato ma errore di rete nella prenotazione aula.");
                     }).always(function () {
@@ -403,16 +443,25 @@ function sportelloSave() {
                 }
 
                 // 1) prenota aula (se serve)
-                const req = prenotaAulaPerSportello(respSave);
+                // ✅ NON prenotare di nuovo se è uno sportello esistente con aula già assegnata (locked)
+let req = null;
+if (!aulaLocked) {
+    req = prenotaAulaPerSportello(respSave);
+}
+
 
                 // 2) chiudi e aggiorna UI (anche se prenotazione non serve)
                 if (req && typeof req.then === "function") {
                     req.done(function (respPrenota) {
                         if (!respPrenota || respPrenota.ok !== true) {
                             errorNotify("Attenzione", "Sportello salvato ma prenotazione aula NON riuscita.");
-                        } else {
-                            infoNotify("OK", "Sportello salvato e aula prenotata.");
+                            return;
                         }
+                        if (respPrenota.skip) {
+                            infoNotify("OK", "Sportello salvato. Prenotazione MBApp già esistente (nessun duplicato).");
+                            return;
+                        }
+                        infoNotify("OK", "Sportello salvato e aula prenotata.");
                     }).fail(function () {
                         errorNotify("Attenzione", "Sportello salvato ma errore di rete nella prenotazione aula.");
                     }).always(function () {
@@ -469,59 +518,100 @@ function verificaAulaCorrente() {
     var ora = $("#ora").val();
     if (!data || !ora) return;
 
-    var aulaCorrente = $("#luogo").val();
-    console.log("Verifica aula corrente: data=" + data + " ora=" + ora + " aulaCorrente=" + aulaCorrente);
+    // aulaCorrente: se locked usa quella DB, altrimenti usa quella selezionata
+    var aulaCorrente = (aulaLocked ? (aulaDbValue || "") : ($("#luogo").val() || "")).trim();
+
+    // includeAula: SOLO se locked (altrimenti deve essere vuoto)
+    var includeAula = (aulaLocked && aulaDbValue) ? aulaDbValue : "";
+
+    console.log("Verifica aule: data=" + data + " ora=" + ora + " aulaCorrente=" + aulaCorrente + " locked=" + aulaLocked + " includeAula=" + includeAula);
+
     $.post("../common/checkAuleLibere.php", {
         dataGiorno: data,
         ora: ora,
-        tipo: 'TUTTE'
+        tipo: 'TUTTE',
+        includeAula: includeAula
     }, function (resp) {
 
+
         if (typeof resp === "string") {
-            console.log("Parsing response string");
             try { resp = JSON.parse(resp); } catch (e) { resp = null; }
         }
-        console.log("Aule libere ricevute:", resp);
-        $("#luogo").empty();
 
-        if (!resp || resp.status !== "ok" || !resp.data.length) {
-            $("#luogo")
-                .append('<option value="">Nessuna aula disponibile</option>')
-                .selectpicker('refresh');
+        $("#luogo").empty();
+        $("#luogo").append('<option value="">Seleziona aula...</option>');
+
+        if (!resp || resp.status !== "ok" || !resp.data || !resp.data.length) {
+            // se locked e ho un'aula, la mostro comunque come unica opzione
+            if (aulaLocked && aulaCorrente) {
+                $("#luogo").empty().append(
+                    $('<option>', { value: aulaCorrente, text: aulaCorrente + " (attuale)" })
+                );
+                $("#luogo").val(aulaCorrente);
+            }
+            $("#luogo").selectpicker('refresh');
             return;
         }
 
-        var aulaAncoraValida = false;
+        var foundCurrent = false;
 
         resp.data.forEach(function (aula) {
             var label = aula.nroAula;
-            if (aula.descrizione) {
-                label += " – " + aula.descrizione;
+            if (aula.descrizione) label += " – " + aula.descrizione;
+            if (parseInt(aula.is_current, 10) === 1) label += " (attuale)";
+            if (aulaCorrente && String(aula.nroAula).trim() === String(aulaCorrente).trim()) {
+                foundCurrent = true;
             }
 
-            if (aula.nroAula === aulaCorrente) {
-                aulaAncoraValida = true;
-            }
 
             $("#luogo").append(
-                $('<option>', {
-                    value: aula.nroAula,
-                    text: label
-                })
+                $('<option>', { value: aula.nroAula, text: label })
             );
         });
 
-        // 🔥 LOGICA RICHIESTA
-        if (aulaCorrente && aulaAncoraValida) {
-            $("#luogo").val(aulaCorrente);
+        // IMPORTANTISSIMO:
+        // - se locked: NON cambiare mai l'aula, forza sempre quella corrente
+        // - se non locked: mantieni la corrente se valida, altrimenti vuota
+        // scegli valore da selezionare
+        if (aulaLocked) {
+            // sportello con aula già assegnata: forza sempre quella
+            if (aulaDbValue) $("#luogo").val(aulaDbValue);
+            $("#luogo").prop('disabled', true);
         } else {
-            $("#luogo").val("");
+            // bozza / senza aula: seleziona prima aula libera SOLO se autoPickFirstAula è true
+            if (autoPickFirstAula) {
+                // prima option utile (escludo "" che è "Seleziona aula...")
+                var first = $("#luogo option").filter(function () { return $(this).val() !== ""; }).first().val() || "";
+                $("#luogo").val(first);
+
+                // dopo che l'hai auto-pickata UNA VOLTA, non sovrascrivere più se l'utente cambia data/ora
+                autoPickFirstAula = false;
+            } else {
+                // comportamento normale: mantieni selezione corrente se ancora presente, altrimenti vuoto
+                var current = ($("#luogo").val() || "").trim();
+                if (current && $("#luogo option[value='" + current.replace(/'/g, "\\'") + "']").length) {
+                    $("#luogo").val(current);
+                } else {
+                    $("#luogo").val("");
+                }
+            }
+
+            // abilita/disabilita in base alla tua logica (qui NON locked)
+            // se vuoi tenerlo abilitato dopo assegna:
+            // $("#luogo").prop('disabled', false);
         }
 
         $("#luogo").selectpicker('refresh');
 
+
+        // se locked, assicurati che resti disabilitato
+        if (aulaLocked) {
+            $("#luogo").prop('disabled', true).selectpicker('refresh');
+        }
+
     }, "json");
 }
+
 
 const ORARI = ["07:50", "08:40", "09:30", "10:30", "11:20", "12:10", "13:00", "13:50", "14:40", "15:30", "16:20", "17:10", "18:00", "18:50", "19:40", "20:30", "21:30", "22:20"];
 
@@ -533,21 +623,25 @@ function calcolaOraFine(oraInizio, numeroOre) {
 }
 
 function prenotaAulaPerSportello(respSave) {
-    // prenota solo se sportello attivo e aula scelta
     if (!respSave || !respSave.ok) return;
+
+    // prenota solo se sportello attivo e aula scelta
     if (parseInt(respSave.attivo, 10) !== 1) return;
     const aula = (respSave.luogo || "").trim();
     if (!aula) return;
-    if (parseInt(respSave.cancellato, 10) === 1) return; // se cancellato non prenotare
+    if (parseInt(respSave.cancellato, 10) === 1) return;
 
     const oraFine = calcolaOraFine(respSave.ora, respSave.numero_ore);
 
-    // Facoltativo: descrizione utile nel calendario MBApp
     const attivita = "SPORTELLO " + respSave.materia;
     const motivo = "IMPEGNO IN ISTITUTO";
-    const dettagli = "SPORTELLO =" + respSave.materia;
+    const dettagli = "SPORTELLO " + respSave.materia;
+
+    // ✅ id sportello: PRENDILO SEMPRE DALL'HIDDEN
+    const idSportello = parseInt($("#hidden_sportello_id").val(), 10) || 0;
 
     return $.post("../common/prenotaAula.php", {
+        idSportello: idSportello,   // ✅ fondamentale
         nroAula: aula,
         dataInizio: respSave.data,
         oraInizio: respSave.ora,
@@ -555,11 +649,13 @@ function prenotaAulaPerSportello(respSave) {
         attivitaProgetto: attivita,
         motivo: motivo,
         dettagli: dettagli
-        // username: non serve se prenotaAula.php lo ricava da sessione; se invece lo richiede, dimmelo e lo aggiungiamo
     }, null, "json");
 }
 
+
 function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, categoria) {
+    resetAulaState();
+
     $("#hidden_sportello_id").val(sportello_id);
     //    $("#hidden_numero_studenti_iscritti").val(10);
     $("#hidden_numero_studenti_iscritti").val(sportello_n_studenti);
@@ -572,6 +668,20 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
         }, function (data, status) {
             //console.log(data);
             var sportello = data;
+
+            // ✅ aula dal DB (salvata nella variabile GLOBALE)
+            aulaDbValue = (sportello.sportello_luogo || "").trim();
+
+            // ✅ lock se esiste già ed ha aula
+            aulaLocked = (sportello_id > 0 && aulaDbValue !== "");
+            // ✅ se NON c'è aula salvata, per il docente vogliamo auto-selezionare la prima libera
+            autoPickFirstAula = (aulaDbValue === "");
+
+            // ✅ pre-imposta subito il select (anche se poi verrà ripopolato)
+            if (aulaDbValue !== "") {
+                $("#luogo").val(aulaDbValue);
+                $("#luogo").selectpicker('refresh');
+            }
             var cancellato = sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null;
             var firmato = sportello.sportello_firmato != 0 && sportello.sportello_firmato != null;
             setDbDateToPickr(data_pickr, sportello.sportello_data);
@@ -587,7 +697,6 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
             $('#categoria').selectpicker('val', sportello.categoria_id);
             $("#numero_ore").val(sportello.sportello_numero_ore);
             $("#argomento").val(sportello.sportello_argomento);
-
             $("#ora")
                 .selectpicker('val', sportello.sportello_ora || "13:50")
                 .selectpicker('refresh');
@@ -640,7 +749,8 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
                 $("#categoria").prop('disabled', $('#hidden_modifica_sportelli').val());
                 $("#numero_ore").prop('disabled', $('#hidden_modifica_sportelli').val());
                 $("#argomento").prop('disabled', $('#hidden_modifica_sportelli').val());
-                $("#luogo").prop('disabled', $('#hidden_modifica_sportelli').val());
+                var baseDisabled = $('#hidden_modifica_sportelli').val(); // tua logica esistente
+                $("#luogo").prop('disabled', baseDisabled || aulaLocked).selectpicker('refresh');
                 $("#classe").prop('disabled', $('#hidden_modifica_sportelli').val());
                 $("#firmato").prop('disabled', false);
                 $("#cancellato").prop('disabled', false);
@@ -676,6 +786,8 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
             $('#studenti_table td:nth-child(1),#studenti_table th:nth-child(1),#studenti_table td:nth-child(2),#studenti_table th:nth-child(2)').hide(); // nasconde la prima colonna con l'id
         });
     } else {
+        resetAulaState();
+        autoPickFirstAula = true;
         data_pickr.setDate(Date.today().toString('d/M/yyyy'));
         $("#ora").selectpicker('val', "13:50").selectpicker('refresh');
         $('#docente').val($("#hidden_docente_cognome_nome").val());
@@ -686,7 +798,10 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
         $('#categoria').selectpicker('refresh');
         $("#numero_ore").val("0");
         $("#argomento").val("");
+        $("#luogo").empty().append('<option value="">Seleziona aula...</option>');
         $("#luogo").val("");
+        $("#luogo").selectpicker('refresh');
+
         $('#classe').val("0");
         $("#classe").selectpicker('refresh');
         $("#max_iscrizioni").val($("#hidden_max_iscrizioni_default").val());
@@ -701,7 +816,6 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
     }
     $("#_error-materia-part").hide();
     forceHideTooltips();
-    verificaAulaCorrente();
     $("#sportello_modal").modal("show");
 }
 

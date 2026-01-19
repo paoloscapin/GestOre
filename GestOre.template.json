@@ -34,6 +34,7 @@
         "corsiDiRecupero": false,
         "minuti": true,
         "sportelli": true,
+        "MBApp": false,
         "gestioneViaggiSemplificata": true,
         "pianiDiLavoro": false,
         "pianiDiLavoroEstesi": false,
@@ -57,6 +58,10 @@
         "docenteVisualizzaFuis": false,
         "visualizzaSostituzioniDocenteInFatte": false,
         "gruppoResponsabileGestiionePartecipanti": true
+    },
+        "MBApp": {
+        "emailPrenotazioniAule": "--- inseire mail a cui arriva la notifica si una prenotazione aula --- ",
+        "destPrenotazioniAule": "--- nome abbinato alla mail di prenotazione aule ---"
     },
     "local": {
         "helpLinkDocente": "https://docs.google.com/document/d/1Ymf4zN6lbeJ-430u-AhgB90TELg4gy1u1QHbDchsrww/edit?usp=sharing",

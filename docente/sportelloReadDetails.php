@@ -15,6 +15,7 @@ if (isset($_POST['sportello_id']) && $_POST['sportello_id'] !== "") {
 
     $query = "SELECT
             sportello.id as sportello_id,
+            sportello.attivo as sportello_attivo,
             sportello.data as sportello_data,
             sportello.ora as sportello_ora,
             sportello.numero_ore as sportello_numero_ore,

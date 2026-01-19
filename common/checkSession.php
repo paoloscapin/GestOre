@@ -10,8 +10,14 @@
 require_once __DIR__ . '/__Util.php';
 require_once __DIR__ . '/path.php';
 require_once __DIR__ . '/connect.php';
-require_once __DIR__ . '/connectMBApp.php';
 require_once __DIR__ . '/__Settings.php';
+
+if ($__settings->features->MBApp !== true) {
+    debug("checkSession: MBApp feature disabled, skipping connectMBApp.php");
+}
+else {
+    require_once __DIR__ . '/connectMBApp.php';
+}
 
 // =====================================================
 // DEBUG HELPERS (dump completo stato sessione, con masking)
