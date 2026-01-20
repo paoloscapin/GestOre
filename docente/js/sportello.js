@@ -139,6 +139,10 @@ function sportelloAssegna(sportello_id) {
                 // abilita MAX ISCRIZIONI (input)
                 $("#max_iscrizioni").prop('disabled', false).prop('readonly', false);
 
+                // abilita NUMERO ORE (select)
+                $("#numero_ore").prop('disabled', false).selectpicker('refresh');
+                $("#numero_ore").selectpicker('val', "1").selectpicker('refresh');
+
                 // focus sul select (come prima)
                 $(".bootstrap-select[data-id='luogo'] button").focus();
             }, 300);
@@ -205,6 +209,91 @@ function sportelloSave() {
         if (!ok) return;
     }
 
+    var numeroOre = parseInt($("#numero_ore").val() || "1", 10);
+    var isSplit2 = (numeroOre === 2);
+
+    // ✅ se split 2 ore: obbligo aula
+    if (isSplit2) {
+        if (luogoTrim === "") {
+            alert("Per fare uno sportello da 2 ore devi prima selezionare un'aula.");
+            return;
+        }
+
+        var ok2 = confirm(
+            "ATTENZIONE:\n" +
+            "Hai scelto uno sportello da 2 ore.\n\n" +
+            "Lo sportello verrà SPEZZATO e inserito come DUE sportelli contigui da 1 ora.\n" +
+            "Anche su MBApp verranno create DUE prenotazioni separate.\n\n" +
+            "Confermi?"
+        );
+        if (!ok2) return;
+
+        var payload = {
+            id: $("#hidden_sportello_id").val(),
+            data: getDbDateFromPickrId("#data"),
+            ora: $("#ora").val(),
+            materia_id: $("#materia").val(),
+            categoria_id: $("#categoria").val(),
+            numero_ore: 2,
+            argomento: $("#argomento").val(),
+            luogo: $("#luogo").val(),
+            max_iscrizioni: $("#max_iscrizioni").val(),
+            cancellato: $("#cancellato").is(':checked') ? 1 : 0,
+            firmato: $("#firmato").is(':checked') ? 1 : 0,
+            studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList)
+            // ⚠️ docente_id: meglio NON mandarlo, lo prende il PHP dalla sessione
+        };
+
+        if ($("#hidden_lista_classi").val() == "testo") {
+            payload.classe = $("#classe").val();
+            payload.classe_id = 0;
+        } else {
+            payload.classe_id = $("#classe").val();
+
+            // ✅ manda anche il testo (retrocompat) invece di ""
+            // con bootstrap-select funziona comunque perché l’option selezionata esiste
+            payload.classe = ($("#classe option:selected").text() || "").trim();
+        }
+
+        if ($('#hidden_sezione_online_clil').val() == 'true') {
+            payload.online = $("#online").is(':checked') ? 1 : 0;
+            payload.clil = $("#clil").is(':checked') ? 1 : 0;
+            payload.orientamento = $("#orientamento").is(':checked') ? 1 : 0;
+        } else {
+            payload.online = 0; payload.clil = 0; payload.orientamento = 0;
+        }
+
+        sportelloSplitDueOre(payload)
+            .done(function (respSplit) {
+                if (typeof respSplit === "string") {
+                    try { respSplit = JSON.parse(respSplit); } catch (e) { respSplit = null; }
+                }
+                if (!respSplit || !respSplit.ok) {
+                    errorNotify("Errore", (respSplit && respSplit.error) ? respSplit.error : "Split 2 ore fallito.");
+                    return;
+                }
+                infoNotify("OK", "Sportello salvato come 2 sportelli contigui da 1 ora.");
+                $("#sportello_modal").modal("hide");
+                sportelloReadRecords();
+            })
+            .fail(function () {
+                errorNotify("Errore", "Errore di rete o server nello split 2 ore.");
+            });
+
+        return;
+    }
+
+    // ✅ NON split: qui ha senso l’avviso bozza se manca l’aula
+    if (luogoTrim === "") {
+        var ok = confirm(
+            "ATTENZIONE:\n" +
+            "Non hai inserito il luogo/aula.\n\n" +
+            "Se prosegui con il salvataggio, lo sportello tornerà in BOZZA e verrà DE-ASSEGNATO (docente = 0).\n\n" +
+            "Vuoi proseguire?"
+        );
+        if (!ok) return;
+    }
+
     if ($("#hidden_lista_classi").val() == "testo") // se la classe è una casella di testo
     {
         if ($('#hidden_sezione_online_clil').val() == 'true') {
@@ -241,10 +330,10 @@ function sportelloSave() {
 
                 // 1) prenota aula (se serve)
                 // ✅ NON prenotare di nuovo se è uno sportello esistente con aula già assegnata (locked)
-let req = null;
-if (!aulaLocked) {
-    req = prenotaAulaPerSportello(respSave);
-}
+                let req = null;
+                if (!aulaLocked) {
+                    req = prenotaAulaPerSportello(respSave);
+                }
 
 
                 // 2) chiudi e aggiorna UI (anche se prenotazione non serve)
@@ -308,10 +397,10 @@ if (!aulaLocked) {
 
                 // 1) prenota aula (se serve)
                 // ✅ NON prenotare di nuovo se è uno sportello esistente con aula già assegnata (locked)
-let req = null;
-if (!aulaLocked) {
-    req = prenotaAulaPerSportello(respSave);
-}
+                let req = null;
+                if (!aulaLocked) {
+                    req = prenotaAulaPerSportello(respSave);
+                }
 
 
                 // 2) chiudi e aggiorna UI (anche se prenotazione non serve)
@@ -377,10 +466,10 @@ if (!aulaLocked) {
 
                 // 1) prenota aula (se serve)
                 // ✅ NON prenotare di nuovo se è uno sportello esistente con aula già assegnata (locked)
-let req = null;
-if (!aulaLocked) {
-    req = prenotaAulaPerSportello(respSave);
-}
+                let req = null;
+                if (!aulaLocked) {
+                    req = prenotaAulaPerSportello(respSave);
+                }
 
 
                 // 2) chiudi e aggiorna UI (anche se prenotazione non serve)
@@ -444,10 +533,10 @@ if (!aulaLocked) {
 
                 // 1) prenota aula (se serve)
                 // ✅ NON prenotare di nuovo se è uno sportello esistente con aula già assegnata (locked)
-let req = null;
-if (!aulaLocked) {
-    req = prenotaAulaPerSportello(respSave);
-}
+                let req = null;
+                if (!aulaLocked) {
+                    req = prenotaAulaPerSportello(respSave);
+                }
 
 
                 // 2) chiudi e aggiorna UI (anche se prenotazione non serve)
@@ -513,10 +602,16 @@ function confermaFirmato() {
     }
 }
 
+function sportelloSplitDueOre(payload) {
+    return $.post("sportelloSplitDueOre.php", payload, null, "json");
+}
+
 function verificaAulaCorrente() {
     var data = getDbDateFromPickrId("#data");
     var ora = $("#ora").val();
     if (!data || !ora) return;
+
+    var durataOre = parseInt($("#numero_ore").val() || "1", 10);
 
     // aulaCorrente: se locked usa quella DB, altrimenti usa quella selezionata
     var aulaCorrente = (aulaLocked ? (aulaDbValue || "") : ($("#luogo").val() || "")).trim();
@@ -530,7 +625,8 @@ function verificaAulaCorrente() {
         dataGiorno: data,
         ora: ora,
         tipo: 'TUTTE',
-        includeAula: includeAula
+        includeAula: includeAula,
+        durataOre: durataOre   // ✅ NUOVO
     }, function (resp) {
 
 
@@ -587,12 +683,18 @@ function verificaAulaCorrente() {
                 // dopo che l'hai auto-pickata UNA VOLTA, non sovrascrivere più se l'utente cambia data/ora
                 autoPickFirstAula = false;
             } else {
-                // comportamento normale: mantieni selezione corrente se ancora presente, altrimenti vuoto
                 var current = ($("#luogo").val() || "").trim();
+
                 if (current && $("#luogo option[value='" + current.replace(/'/g, "\\'") + "']").length) {
+                    // l’aula corrente è ancora valida → tienila
                     $("#luogo").val(current);
                 } else {
-                    $("#luogo").val("");
+                    // aula non più valida → auto-pick prima aula libera
+                    var first = $("#luogo option").filter(function () {
+                        return $(this).val() !== "";
+                    }).first().val() || "";
+
+                    $("#luogo").val(first);
                 }
             }
 
@@ -695,7 +797,7 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
             }
             $('#materia').selectpicker('val', sportello.materia_id);
             $('#categoria').selectpicker('val', sportello.categoria_id);
-            $("#numero_ore").val(sportello.sportello_numero_ore);
+            $("#numero_ore").selectpicker('val', String(sportello.sportello_numero_ore || "1")).selectpicker('refresh');
             $("#argomento").val(sportello.sportello_argomento);
             $("#ora")
                 .selectpicker('val', sportello.sportello_ora || "13:50")
@@ -796,7 +898,7 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
         $('#materia').selectpicker('refresh');
         $('#categoria').val("0");
         $('#categoria').selectpicker('refresh');
-        $("#numero_ore").val("0");
+        $("#numero_ore").selectpicker('val', String(sportello.sportello_numero_ore || "1")).selectpicker('refresh');
         $("#argomento").val("");
         $("#luogo").empty().append('<option value="">Seleziona aula...</option>');
         $("#luogo").val("");
@@ -828,6 +930,10 @@ $(document).ready(function () {
         onChange: function () {
             verificaAulaCorrente();
         }
+    });
+
+    $("#numero_ore").on("change", function () {
+        verificaAulaCorrente();
     });
 
     $("#ora").on("change", function () {
