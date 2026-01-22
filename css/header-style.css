@@ -50,3 +50,7 @@
   color: #FFF;
   background-color: #178ACC;
 }
+
+body{
+  padding-top: var(--header-offset, 70px);
+}

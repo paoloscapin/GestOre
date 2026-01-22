@@ -23,7 +23,7 @@ ruoloRichiesto('dirigente');
 ?>
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 <div class="panel panel-success">
 <div class="panel-heading">Dirigente</div>
 <div class="panel-body">

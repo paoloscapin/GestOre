@@ -54,10 +54,10 @@ require_once '../common/checkSession.php';
     require_once '../common/header-dirigente.php';
     ?>
 
-    <div class="container-fluid" style="margin-top:60px">
+    <div class="container-fluid">
 
         <!-- prima il pannello del bonus assegnato -->
-        <div class="container-fluid" style="margin-top:60px">
+        <div class="container-fluid">
             <div class="panel panel-lima4">
                 <div class="panel-heading container-fluid">
                     <div class="row">

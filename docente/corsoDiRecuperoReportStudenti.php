@@ -60,7 +60,7 @@ ruoloRichiesto('segreteria-didattica','dirigente','docente');
 	require_once '../common/connect.php';
 ?>
 
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 <div class="panel panel-primary">
 
 <?php

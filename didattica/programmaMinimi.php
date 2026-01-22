@@ -86,7 +86,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
     }
     ?>
 
-    <div class="container-fluid" style="margin-top:60px">
+    <div class="container-fluid">
         <div class="panel panel-lima4">
             <div class="panel-heading">
                 <div class="row">

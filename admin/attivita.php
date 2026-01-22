@@ -35,7 +35,7 @@ ruoloRichiesto('dirigente');
 <?php require_once '../common/header-admin.php'; ?>
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 <div class="panel panel-lima4">
 <div class="panel-heading container-fluid">
 	<div class="row">

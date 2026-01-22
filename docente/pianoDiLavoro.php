@@ -138,7 +138,7 @@ foreach(dbGetAll("SELECT * FROM piano_di_lavoro_materiale WHERE attivo IS true O
 require_once '../common/header-docente.php';
 ?>
 
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 <div class="panel panel-lima4">
 <div class="panel-heading">
 	<div class="row">

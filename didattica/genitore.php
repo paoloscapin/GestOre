@@ -41,7 +41,7 @@ ruoloRichiesto('segreteria-didattica', 'dirigente');
 
     ?>
 
-    <div class="container-fluid" style="margin-top:60px">
+    <div class="container-fluid">
         <div class="panel panel-orange4">
             <div class="panel-heading">
                 <div class="row">

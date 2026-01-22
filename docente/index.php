@@ -27,7 +27,7 @@ require_once '../common/header-docente.php';
 require_once '../common/connect.php';
 ?>
 
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 
 <div class="panel panel-lima4">
 <div class="panel-heading">

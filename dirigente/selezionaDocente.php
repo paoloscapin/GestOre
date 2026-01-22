@@ -40,7 +40,7 @@ foreach(dbGetAll($query) as $row) {
 ?>
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 <div class="panel panel-primary">
 <div class="panel-heading container-fluid">
 	<div class="row">

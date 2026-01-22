@@ -38,7 +38,7 @@ echo '<title>Storico FUIS ' . $nome_anno_scolastico.' - '.getSettingsValue('loca
 <body >
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 
 <?php
 

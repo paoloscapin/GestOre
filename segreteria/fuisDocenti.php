@@ -40,7 +40,7 @@ function formatNoZero($value) {
 }
 ?>
 
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 <div class="panel panel-info">
 <div class="panel-heading container-fluid">
 	<div class="row">

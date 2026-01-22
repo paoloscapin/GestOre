@@ -28,7 +28,7 @@ require_once '../common/__Settings.php';
 ?>
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 <div class="panel panel-success">
 <div class="panel-heading">Errore durante l'esecuzione dell'applicazione</div>
 <div class="panel-body">

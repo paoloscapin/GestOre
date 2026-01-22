@@ -106,3 +106,31 @@ echo '<link rel="stylesheet" href="../css/releaseversion.css">';
   });
 })();
 </script>
+<script>
+(function () {
+
+  function updateHeaderOffset() {
+    var header = document.querySelector('.navbar-fixed-top');
+    if (!header) return;
+
+    var h = header.getBoundingClientRect().height;
+
+    // Variabile CSS globale
+    document.documentElement.style.setProperty(
+      '--header-offset',
+      (h + 10) + 'px' // +10px di respiro
+    );
+  }
+
+  // iniziale
+  window.addEventListener('load', updateHeaderOffset);
+
+  // resize (rotazione, ridimensionamento)
+  window.addEventListener('resize', updateHeaderOffset);
+
+  // bootstrap: menu che collassa/si espande
+  document.addEventListener('shown.bs.collapse', updateHeaderOffset);
+  document.addEventListener('hidden.bs.collapse', updateHeaderOffset);
+
+})();
+</script>

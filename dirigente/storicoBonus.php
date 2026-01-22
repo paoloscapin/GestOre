@@ -37,7 +37,7 @@ echo '<title>Storico Bonus ' . $nome_anno_scolastico.' - '.getSettingsValue('loc
 <body >
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 
 <?php
 

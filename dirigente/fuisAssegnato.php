@@ -35,7 +35,7 @@ require_once '../common/header-dirigente.php';
 require_once '../common/connect.php';
 ?>
 
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 
 <!-- pannello Fuis Assegnato (un pannello per ciascun tipo) -->
 <?php

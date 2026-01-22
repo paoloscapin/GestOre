@@ -33,7 +33,7 @@ require_once '../common/connect.php';
 ?>
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
 <?php

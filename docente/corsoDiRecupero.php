@@ -27,7 +27,7 @@ ruoloRichiesto('segreteria-docenti','segreteria-didattica','dirigente','docente'
 <body >
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 <div class="panel panel-lightblue4">
 <div class="panel-heading container-fluid">
 	<div class="row">

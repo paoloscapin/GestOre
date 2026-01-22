@@ -76,7 +76,7 @@ echo '<title>Piano di Lavoro  ' . $nomeClasse . ' - '. $materiaNome . ' - ' . $a
 
 <body >
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 
 <?php
 	require_once '../common/header-docente.php';
@@ -92,7 +92,7 @@ $dataCopertina .= '<h3 style="text-align: center;">stato: ' . $pianoDiLavoro['st
 ?>
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 <div class="panel panel-teal4">
 <div class="panel-heading container-fluid">
 	<div class="row">

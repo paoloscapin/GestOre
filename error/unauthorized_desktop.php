@@ -26,7 +26,7 @@ require_once '../common/header-error-min.php';
 ?>
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 <div class="panel panel-success">
 <div class="panel-heading">Non Autorizzato</div>
 <div class="panel-body">

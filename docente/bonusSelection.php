@@ -26,7 +26,7 @@ $anno_scolastico_id = isset($_GET['anno_scolastico_id'])
     require_once '../common/header-docente.php';
     ?>
 
-    <div class="container-fluid" style="margin-top:60px">
+    <div class="container-fluid">
 
         <div class="row" style="margin-bottom:10px;">
             <div class="col-md-6">

@@ -32,7 +32,7 @@ echo '<title>Storico Sportelli ' . $nome_anno_scolastico.' - '.getSettingsValue(
 <body >
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 
 <?php
 

@@ -36,7 +36,7 @@ require_once '../common/header-dirigente.php';
 require_once '../common/connect.php';
 ?>
 
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 
 <?php
 

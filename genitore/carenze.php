@@ -101,7 +101,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 <body>
     <?php require_once '../common/header-genitore.php'; ?>
 
-    <div class="container-fluid" style="margin-top:60px">
+    <div class="container-fluid">
         <div class="panel panel-orange4">
             <div class="panel-heading">
                 <div class="row">

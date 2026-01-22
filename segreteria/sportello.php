@@ -75,7 +75,7 @@ foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materi
 require_once '../common/header-segreteria.php';
 ?>
 
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 <div class="panel panel-orange4">
 <div class="panel-heading">
 	<div class="row">

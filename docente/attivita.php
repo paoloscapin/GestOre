@@ -55,7 +55,7 @@ debug('ultimo_controllo=' . $ultimo_controllo);
 require_once '../common/header-docente.php';
 ?>
 
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 
 <!-- pannello fuis per dirigente -->
 <?php if($operatore == 'dirigente') : ?>

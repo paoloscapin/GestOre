@@ -72,7 +72,7 @@ $query = "	SELECT
 			FROM sportello sportello
 			INNER JOIN docente docente ON sportello.docente_id = docente.id
 			INNER JOIN materia materia ON sportello.materia_id = materia.id
-			INNER JOIN classi classe ON sportello.classe_id = classe.id
+			LEFT JOIN classi classe ON sportello.classe_id = classe.id
 			";
 
 // filtri: costruiamo una WHERE unica

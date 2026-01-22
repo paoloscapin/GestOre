@@ -24,7 +24,7 @@ ruoloRichiesto('segreteria','segreteria-didattica','dirigente');
 
 <body >
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 
 <?php
 require_once '../common/header-dirigente.php';

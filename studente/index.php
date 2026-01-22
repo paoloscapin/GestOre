@@ -39,7 +39,7 @@ ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
 	?>
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 </div>
 
 </body>

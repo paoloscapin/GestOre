@@ -67,7 +67,7 @@ if ($operatore == 'dirigente') {
 
 ?>
 
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 
 <?php if($operatore == 'dirigente') : ?>
 <!-- pannello fuis per dirigente -->

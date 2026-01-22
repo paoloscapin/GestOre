@@ -50,7 +50,7 @@ require_once '../common/checkSession.php';
 	}
 	?>
 	<!-- Content Section -->
-	<div class="container-fluid" style="margin-top:60px">
+	<div class="container-fluid">
 	</div>
 </body>
 

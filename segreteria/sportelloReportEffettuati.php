@@ -83,7 +83,7 @@ if (! empty($__utente_ruolo) && $__utente_ruolo == 'docente') {
 ?>
 
 <!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
+<div class="container-fluid">
 <div class="panel panel-orange4">
 <div class="panel-heading container-fluid">
 	<div class="row">
