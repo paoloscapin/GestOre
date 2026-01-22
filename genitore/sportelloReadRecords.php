@@ -186,6 +186,9 @@ foreach ($resultArray as $row) {
 		// capienza
 		$max_iscrizioni    = $row['sportello_max_iscrizioni'];
 		$posti_disponibili = $max_iscrizioni - $row['numero_studenti'];
+		if ($posti_disponibili < 0) {
+			$posti_disponibili = 0;
+		}
 		$sportello_cancellato = $row['sportello_cancellato'];
 
 		// riga tabella (come studente)

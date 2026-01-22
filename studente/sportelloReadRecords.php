@@ -211,6 +211,9 @@ foreach ($resultArray as $row) {
 		// calcola il numero di posti disponibili per lo sportello
 		$max_iscrizioni = $row['sportello_max_iscrizioni'];
 		$posti_disponibili = $max_iscrizioni - $row['numero_studenti'];
+		if ($posti_disponibili < 0) {
+			$posti_disponibili = 0;
+		}
 		$sportello_cancellato = $row['sportello_cancellato'];
 
 		debug("capienza: max_iscrizioni=" . var_export($max_iscrizioni, true) . ", numero_studenti=" . $row['numero_studenti'] . ", posti_disponibili=" . $posti_disponibili . ", sportello_cancellato=" . ($sportello_cancellato ? '1' : '0') . ", iscritto_corrente=" . ($row['iscritto'] ? '1' : '0'));

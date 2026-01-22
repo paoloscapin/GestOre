@@ -149,6 +149,9 @@ foreach ($resultArray as $row) {
         // Capienza
         $max_iscrizioni     = $row['sportello_max_iscrizioni'];
         $posti_disponibili  = $max_iscrizioni - $row['numero_studenti'];
+        if ($posti_disponibili < 0) {
+            $posti_disponibili = 0;
+        }
 
         // Marker online
         $luogo_or_online = $row['sportello_online']
