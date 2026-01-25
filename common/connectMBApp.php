@@ -27,6 +27,11 @@ function mb_dblastId() {
 	return mysqli_insert_id($__conMBApp);
 }
 
+function mb_dbAffectedRows() {
+	global $__conMBApp;
+	return mysqli_affected_rows($__conMBApp);
+}
+
 // esegue una query (che non ritorna valori)
 function mb_dbExec($query) {
 	global $__conMBApp;

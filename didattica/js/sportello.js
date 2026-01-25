@@ -18,6 +18,117 @@ var data_pickr = null;
 
 window.toastAfterModalClose = null;
 
+function ensureSelectHasOption($sel, value, label) {
+    value = (value || "").trim();
+    if (!value) return;
+    if ($sel.find("option[value='" + value.replace(/'/g, "\\'") + "']").length === 0) {
+        $sel.append($("<option>", { value: value, text: label || value }));
+    }
+}
+
+function setOraSelect(oraValue) {
+    var ora = (oraValue || "").trim();
+    if (!ora) return;
+
+    var $ora = $("#ora");
+    // se l'ora non è presente nella lista (es: 14:00), la aggiungo
+    ensureSelectHasOption($ora, ora, ora + " (attuale)");
+    $ora.selectpicker('val', ora).selectpicker('refresh');
+}
+
+function verificaAulaCorrenteDidattica(opts) {
+    opts = opts || {};
+    var includiAulaCorrente = !!opts.includiAulaCorrente;
+
+    var data = getDbDateFromPickrId("#data");
+    var ora = ($("#ora").val() || "").trim();
+    if (!data || !ora) {
+        console.log("[verificaAulaCorrenteDidattica] SKIP: manca data/ora", { data: data, ora: ora });
+        return;
+    }
+
+    var aulaCorrente = ($("#luogo").val() || "").trim();
+
+    console.log("[verificaAulaCorrenteDidattica] START", {
+        includiAulaCorrente: includiAulaCorrente,
+        data: data,
+        ora: ora,
+        aulaCorrente: aulaCorrente
+    });
+
+    $.post("../common/checkAuleLibere.php", {
+        dataGiorno: data,
+        ora: ora,
+        tipo: 'TUTTE'
+    }, function (resp) {
+
+        console.log("[verificaAulaCorrenteDidattica] RESPONSE raw=", resp);
+
+        if (typeof resp === "string") {
+            try { resp = JSON.parse(resp); } catch (e) { resp = null; }
+        }
+
+        console.log("[verificaAulaCorrenteDidattica] RESPONSE parsed=", resp);
+
+        var $luogo = $("#luogo");
+        $luogo.empty();
+
+        if (!resp || resp.status !== "ok" || !resp.data || !resp.data.length) {
+            console.log("[verificaAulaCorrenteDidattica] NO aule libere", {
+                includiAulaCorrente: includiAulaCorrente,
+                aulaCorrente: aulaCorrente
+            });
+
+            if (includiAulaCorrente && aulaCorrente) {
+                $luogo.append($("<option>", { value: aulaCorrente, text: aulaCorrente + " (attuale)" }));
+                $luogo.val(aulaCorrente);
+            } else {
+                $luogo.append('<option value="">Nessuna aula disponibile</option>');
+                $luogo.val("");
+            }
+
+            $luogo.selectpicker('refresh');
+
+            console.log("[verificaAulaCorrenteDidattica] FINAL", {
+                options: $("#luogo option").map(function () { return this.value }).get(),
+                selected: $("#luogo").val()
+            });
+
+            return;
+        }
+
+        // aule libere
+        resp.data.forEach(function (aula) {
+            var label = aula.nroAula;
+            if (aula.descrizione) label += " – " + aula.descrizione;
+            $luogo.append($("<option>", { value: aula.nroAula, text: label }));
+        });
+
+        // se richiesto e l'aula corrente non è tra le libere, aggiungila
+        if (includiAulaCorrente && aulaCorrente) {
+            ensureSelectHasOption($luogo, aulaCorrente, aulaCorrente + " (attuale)");
+            $luogo.val(aulaCorrente);
+        } else {
+            if (aulaCorrente && $luogo.find("option[value='" + aulaCorrente.replace(/'/g, "\\'") + "']").length) {
+                $luogo.val(aulaCorrente);
+            } else {
+                $luogo.val("");
+            }
+        }
+
+        $luogo.selectpicker('refresh');
+
+        console.log("[verificaAulaCorrenteDidattica] FINAL", {
+            options: $("#luogo option").map(function () { return this.value }).get(),
+            selected: $("#luogo").val()
+        });
+
+    }, "json").fail(function (xhr, status, err) {
+        console.error("[verificaAulaCorrenteDidattica] AJAX FAIL", status, err, xhr && xhr.responseText);
+    });
+}
+
+
 function setDbDateToPickr(pickr, data_str) {
     var data = Date.parseExact(data_str, 'yyyy-MM-dd');
     pickr.setDate(data);
@@ -113,24 +224,74 @@ function sportelloSelect(id) {
     else {
         $("#numero_studenti").html("");
         $('#file_select_students').change(function (e) { });
-        $('#select_studente').on("click",function (e) { });
+        $('#select_studente').on("click", function (e) { });
         $('#riga_iscrizioni_sportelli').hide();
     }
 }
 
+function showSpinner(msg = "Operazione in corso…") {
+    $("#overlaySpinner div div:last").text(msg);
+    $("#overlaySpinner").css("display", "flex");
+}
+
+function hideSpinner() {
+    $("#overlaySpinner").hide();
+}
+
 function sportelloDelete(id, materia) {
-    var conf = confirm("Sei sicuro di volere cancellare lo sportello di " + materia + " ?");
-    if (conf == true) {
-        $.post("../common/deleteRecord.php", {
-            id: id,
-            table: 'sportello',
-            name: "materia" + materia
-        },
-            function (data, status) {
+
+    Swal.fire({
+        title: 'Eliminare lo sportello?',
+        html: `
+            <b>${materia}</b><br><br>
+            L'operazione è <b>definitiva</b> e rimuove anche
+            eventuali prenotazioni su <b>MBApp</b>.
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sì, elimina',
+        cancelButtonText: 'Annulla',
+        confirmButtonColor: '#d33'
+    }).then((result) => {
+
+        if (!result.isConfirmed) return;
+
+        showSpinner("Eliminazione sportello in corso…");
+
+        $.post(
+            "sportelloDelete.php",
+            { id: id },
+            function (res) {
+                hideSpinner();
+
+                if (!res || res.ok !== true) {
+                    Swal.fire(
+                        'Errore',
+                        res?.error ?? 'Errore durante la cancellazione',
+                        'error'
+                    );
+                    return;
+                }
+
+                Swal.fire(
+                    'Eliminato',
+                    'Lo sportello è stato eliminato correttamente',
+                    'success'
+                );
+
                 sportelloReadRecords();
-            }
-        );
-    }
+            },
+            "json"
+        ).fail(function (xhr) {
+            hideSpinner();
+            Swal.fire(
+                'Errore',
+                'Errore di comunicazione con il server',
+                'error'
+            );
+            console.error(xhr.responseText);
+        });
+    });
 }
 
 function showSuccessMessage(text, timeout = 3000) {
@@ -174,206 +335,241 @@ function showSuccessMessage(text, timeout = 3000) {
 
 
 function sportelloSave() {
-    if ($("#materia").val() <= 0) {
-        $("#_error-materia").text("Devi selezionare una materia");
-        $("#_error-materia-part").show();
-        return;
+  console.log("[sportelloSave] START");
+
+  // Validazioni base
+  if (parseInt($("#materia").val(), 10) <= 0) {
+    $("#_error-materia").text("Devi selezionare una materia");
+    $("#_error-materia-part").show();
+    return;
+  }
+  if (parseInt($("#categoria").val(), 10) <= 0) {
+    $("#_error-materia").text("Devi selezionare una categoria");
+    $("#_error-materia-part").show();
+    return;
+  }
+  if (parseInt($("#classe").val(), 10) <= 0) {
+    $("#_error-materia").text("Devi selezionare una classe");
+    $("#_error-materia-part").show();
+    return;
+  }
+  if (parseInt($("#numero_ore").val(), 10) <= 0) {
+    $("#_error-materia").text("Il numero di ore non può essere 0");
+    $("#_error-materia-part").show();
+    return;
+  }
+  $("#_error-materia-part").hide();
+
+  // Studenti presenti/cancellazioni
+  var studentiDaModificareIdList = [];
+  var studentiDaCancellareIdList = [];
+
+  $('#studenti_table tbody tr').each(function () {
+    var row = $(this);
+    var id = row.children().eq(0).text().trim();
+
+    var presenteCheckbox = row.find('.chk-presenza');
+    var presenteOriginal = presenteCheckbox.prop('defaultChecked');
+    var presenteCorrente = presenteCheckbox.prop('checked');
+    if (presenteCorrente !== presenteOriginal) {
+      studentiDaModificareIdList.push(id);
     }
-    if ($("#categoria").val() <= 0) {
-        $("#_error-materia").text("Devi selezionare una categoria");
-        $("#_error-materia-part").show();
-        return;
+
+    var cancellaCheckbox = row.find('.chk-cancella');
+    if (cancellaCheckbox.prop('checked')) {
+      studentiDaCancellareIdList.push(id);
     }
-    if ($("#classe").val() <= 0) {
-        $("#_error-materia").text("Devi selezionare una classe");
-        $("#_error-materia-part").show();
-        return;
-    }
-    // if ($("#docente").val() <= 0) {
-    //     $("#_error-materia").text("Devi selezionare un docente");
-    //     $("#_error-materia-part").show();
-    //     return;
-    // }
-    if ($("#numero_ore").val() <= 0) {
-        $("#_error-materia").text("Il numero di ore non può essere 0");
-        $("#_error-materia-part").show();
-        return;
-    }
-    $("#_error-materia-part").hide();
+  });
 
-    // controlla la lista di studenti segnati presenti
-    var studentiDaModificareIdList = [];
-    var studentiDaCancellareIdList = [];
+  console.log("[sportelloSave] studenti", {
+    mod: studentiDaModificareIdList.length,
+    del: studentiDaCancellareIdList.length
+  });
 
-    $('#studenti_table tbody tr').each(function () {
-        var row = $(this);
+  if (studentiDaCancellareIdList.length > 0) {
+    var ok = confirm("Stai per cancellare " + studentiDaCancellareIdList.length + " studente/i. Vuoi continuare?");
+    if (!ok) return;
+  }
 
-        var id = row.children().eq(0).text().trim();
+  // Payload
+  var docenteId = parseInt($("#docente").val(), 10) || 0;
+  var luogoTrim = ($("#luogo").val() || "").trim();
+  var attivo = (docenteId > 0 && luogoTrim !== "") ? 1 : 0;
 
-        var presenteCheckbox = row.find('.chk-presenza');
-        var presenteOriginal = presenteCheckbox.prop('defaultChecked');
-        var presenteCorrente = presenteCheckbox.prop('checked');
+  // classe legacy
+  var classeTextLegacy = "";
+  if ($("#hidden_lista_classi").val() == "testo") {
+    classeTextLegacy = ($("#classe").val() || "").trim();
+  } else {
+    classeTextLegacy = ($("#classe option:selected").text() || "").trim();
+  }
 
-        if (presenteCorrente !== presenteOriginal) {
-            studentiDaModificareIdList.push(id);
-        }
+  var payload = {
+    id: $("#hidden_sportello_id").val(),
+    data: getDbDateFromPickrId("#data"),
+    ora: $("#ora").val(),
+    docente_id: $("#docente").val(),
+    materia_id: $("#materia").val(),
+    categoria_id: $("#categoria").val(),
+    numero_ore: $("#numero_ore").val(),
+    argomento: $("#argomento").val(),
+    luogo: $("#luogo").val(),
+    max_iscrizioni: $("#max_iscrizioni").val(),
+    classe: classeTextLegacy,
+    classe_id: ($("#hidden_lista_classi").val() == "testo") ? 0 : $("#classe").val(),
+    cancellato: $("#cancellato").is(':checked') ? 1 : 0,
+    firmato: $("#firmato").is(':checked') ? 1 : 0,
+    online: ($("#online").length && $("#online").is(':checked')) ? 1 : 0,
+    clil: ($("#clil").length && $("#clil").is(':checked')) ? 1 : 0,
+    orientamento: ($("#orientamento").length && $("#orientamento").is(':checked')) ? 1 : 0,
+    attivo: attivo,
+    studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
+    studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
+  };
 
-        // checkbox cancella (se spuntato => da cancellare)
-        var cancellaCheckbox = row.find('.chk-cancella');
-        if (cancellaCheckbox.prop('checked')) {
-            studentiDaCancellareIdList.push(id);
-        }
+  console.log("[sportelloSave] payload", payload);
 
-        // se ci sono cancellazioni, chiedi conferma
-        if (studentiDaCancellareIdList.length > 0) {
-            var ok = confirm(
-                "Stai per cancellare " + studentiDaCancellareIdList.length +
-                " studente/i. Vuoi continuare?"
-            );
+  // Busy lock (sicuro)
+  setSportelloModalBusy(true, "sportelloSave");
 
-            if (!ok) {
-                // interrompi: non proseguire con la chiamata / submit / salvataggio
-                return;
-            }
-        }
-    });
+  $.post("sportelloSave.php", payload, function (data, status) {
+    console.log("[sportelloSave] DONE", { status: status, data: data });
+
+    // chiudi + refresh lista
     window.toastAfterModalClose = "Sportello aggiornato correttamente";
-     var attivo = (docenteId === 0) ? 0 : 1;
-    if ($("#hidden_lista_classi").val() == "testo") // se la classe è una casella di testo
-    {
-        if ($('#hidden_sezione_online_clil').val() == 'true') {
-            $.post("sportelloSave.php", {
-                id: $("#hidden_sportello_id").val(),
-                data: getDbDateFromPickrId("#data"),
-                ora: $("#ora").val(),
-                docente_id: $("#docente").val(),
-                materia_id: $("#materia").val(),
-                categoria_id: $("#categoria").val(),
-                numero_ore: $("#numero_ore").val(),
-                argomento: $("#argomento").val(),
-                luogo: $("#luogo").val(),
-                max_iscrizioni: $("#max_iscrizioni").val(),
-                classe: $("#classe").val(),
-                classe_id: 0,
-                cancellato: $("#cancellato").is(':checked') ? 1 : 0,
-                firmato: $("#firmato").is(':checked') ? 1 : 0,
-                online: $("#online").is(':checked') ? 1 : 0,
-                clil: $("#clil").is(':checked') ? 1 : 0,
-                orientamento: $("#orientamento").is(':checked') ? 1 : 0,
-                attivo: attivo,
-                studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
-                studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
-            }, function (data, status) {
-                $('#sportello_modal').modal('hide');
-                sportelloReadRecords();
-            });
-        }
-        else {
-            $.post("sportelloSave.php",
-                {
-                    id: $("#hidden_sportello_id").val(),
-                    data: getDbDateFromPickrId("#data"),
-                    ora: $("#ora").val(),
-                    docente_id: $("#docente").val(),
-                    materia_id: $("#materia").val(),
-                    categoria_id: $("#categoria").val(),
-                    numero_ore: $("#numero_ore").val(),
-                    argomento: $("#argomento").val(),
-                    luogo: $("#luogo").val(),
-                    max_iscrizioni: $("#max_iscrizioni").val(),
-                    classe: $("#classe").val(),
-                    classe_id: 0,
-                    cancellato: $("#cancellato").is(':checked') ? 1 : 0,
-                    firmato: $("#firmato").is(':checked') ? 1 : 0,
-                    online: 0,
-                    clil: 0,
-                    orientamento: 0,
-                    attivo: attivo,
-                    studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
-                    studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
-                }, function (data, status) {
-                $('#sportello_modal').modal('hide');       
-                    sportelloReadRecords();
-                });
-        }
-    }
-    else                                    // se la classe è scelta da una lista
-    {
-        if ($('#hidden_sezione_online_clil').val() == 'true') {
-            $.post("sportelloSave.php", {
-                id: $("#hidden_sportello_id").val(),
-                data: getDbDateFromPickrId("#data"),
-                ora: $("#ora").val(),
-                docente_id: $("#docente").val(),
-                materia_id: $("#materia").val(),
-                categoria_id: $("#categoria").val(),
-                numero_ore: $("#numero_ore").val(),
-                argomento: $("#argomento").val(),
-                luogo: $("#luogo").val(),
-                max_iscrizioni: $("#max_iscrizioni").val(),
-                classe: "",
-                classe_id: $("#classe").val(),
-                cancellato: $("#cancellato").is(':checked') ? 1 : 0,
-                firmato: $("#firmato").is(':checked') ? 1 : 0,
-                online: $("#online").is(':checked') ? 1 : 0,
-                clil: $("#clil").is(':checked') ? 1 : 0,
-                orientamento: $("#orientamento").is(':checked') ? 1 : 0,
-                attivo: attivo,
-                studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
-                studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
-            }, function (data, status) {
-                $('#sportello_modal').modal('hide');
+    $('#sportello_modal').modal('hide');
+    sportelloReadRecords();
 
-                sportelloReadRecords();
-            });
-        }
-        else {
-            $.post("sportelloSave.php", {
-                id: $("#hidden_sportello_id").val(),
-                data: getDbDateFromPickrId("#data"),
-                ora: $("#ora").val(),
-                docente_id: $("#docente").val(),
-                materia_id: $("#materia").val(),
-                categoria_id: $("#categoria").val(),
-                numero_ore: $("#numero_ore").val(),
-                argomento: $("#argomento").val(),
-                luogo: $("#luogo").val(),
-                max_iscrizioni: $("#max_iscrizioni").val(),
-                classe: "",
-                classe_id: $("#classe").val(),
-                cancellato: $("#cancellato").is(':checked') ? 1 : 0,
-                firmato: $("#firmato").is(':checked') ? 1 : 0,
-                online: 0,
-                clil: 0,
-                orientamento: 0,
-                attivo: attivo,
-                studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
-                studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
-            }, function (data, status) {
-                $('#sportello_modal').modal('hide');
-                sportelloReadRecords();
-            });
-        }
-    }
- }
+  }, "json")
+    .fail(function (xhr, st, err) {
+      console.error("[sportelloSave] FAIL", st, err, xhr && xhr.responseText);
+      alert("Errore salvataggio sportello (vedi console/log).");
+    })
+    .always(function () {
+      console.log("[sportelloSave] ALWAYS -> unlock modal");
+      setSportelloModalBusy(false, "sportelloSave always");
+    });
+
+  console.log("[sportelloSave] END (request sent)");
+}
+
+function setSportelloModalBusy(isBusy, reason) {
+  const $m = $("#sportello_modal");
+  $m.data("busy", isBusy ? 1 : 0);
+
+  console.log("[modalBusy]", { isBusy: !!isBusy, reason: reason || "" });
+
+  // Disabilita solo i campi del form + save, NON i pulsanti di chiusura
+  const $toDisable = $m.find("input, textarea, select, button")
+    .not('[data-dismiss="modal"]')
+    .not('.close')
+    .not('.btn-close');
+
+  $toDisable.prop("disabled", !!isBusy);
+
+  // bootstrap-select refresh
+  $m.find("select.selectpicker").each(function () {
+    const $s = $(this);
+    if ($s.is('[data-dismiss="modal"]')) return;
+    $s.prop("disabled", !!isBusy).selectpicker("refresh");
+  });
+}
+
+function resetSportelloModalEnabledState() {
+  const $m = $("#sportello_modal");
+
+  console.log("[resetSportelloModalEnabledState] BEFORE", {
+    disabled_inputs: $m.find(":input:disabled").length,
+    backdrops: $(".modal-backdrop").length,
+    body_modal_open: $("body").hasClass("modal-open")
+  });
+
+  $m.data("busy", 0);
+
+  // Riabilita tutto
+  $m.find("input, textarea, select, button").prop("disabled", false).removeClass("disabled");
+  $m.find("select.selectpicker").each(function () {
+    $(this).prop("disabled", false).selectpicker("refresh");
+  });
+
+  // Pulisci eventuali backdrops zombie
+  const $b = $(".modal-backdrop");
+  if ($b.length > 1) $b.not(":last").remove();
+
+  console.log("[resetSportelloModalEnabledState] AFTER", {
+    disabled_inputs: $m.find(":input:disabled").length,
+    backdrops: $(".modal-backdrop").length,
+    body_modal_open: $("body").hasClass("modal-open")
+  });
+}
+
+// Aggancia una sola volta (mettilo in document.ready)
+$(document).off("hidden.bs.modal.sportelloFix", "#sportello_modal");
+$(document).on("hidden.bs.modal.sportelloFix", "#sportello_modal", function () {
+  console.log("[sportello_modal] hidden.bs.modal -> force reset enable");
+  resetSportelloModalEnabledState();
+});
+
 
 function sportelloGetDetails(sportello_id) {
+    console.log("[sportelloGetDetails] OPEN sportello_id =", sportello_id);
+
+    // 🔧 FIX CRITICO: resettiamo SEMPRE lo stato del modale prima di usarlo
+    try {
+        resetSportelloModalEnabledState();
+        setSportelloModalBusy(false, "open_reset");
+    } catch (e) {
+        console.warn("[sportelloGetDetails] reset/busy reset error", e);
+    }
+
     $("#hidden_sportello_id").val(sportello_id);
 
     if (sportello_id > 0) {
-        $.post("../docente/sportelloReadDetails.php", {
-            sportello_id: sportello_id
-        }, function (data, status) {
+
+        // (opzionale ma utile) busy mentre carichi
+        try { setSportelloModalBusy(true, "loading_details"); } catch (e) { }
+
+        $.post("../docente/sportelloReadDetails.php", { sportello_id: sportello_id }, function (data, status) {
+
+            console.log("[sportelloGetDetails] ReadDetails OK", { status: status, data: data });
+
             var sportello = data;
+
+            // 🔧 tolgo busy appena ho i dati
+            try { setSportelloModalBusy(false, "details_loaded"); } catch (e) { }
+
             setDbDateToPickr(data_pickr, sportello.sportello_data);
-            $("#ora").val(sportello.sportello_ora);
-            $('#docente').selectpicker('val', sportello.docente_id);
-            $('#materia').selectpicker('val', sportello.materia_id);
-            $('#categoria').selectpicker('val', sportello.categoria_id);
+            setOraSelect(sportello.sportello_ora);
+
+            // selectpicker: dopo val, refresh è buona pratica
+            $('#docente').selectpicker('val', sportello.docente_id).selectpicker('refresh');
+            $('#materia').selectpicker('val', sportello.materia_id).selectpicker('refresh');
+            $('#categoria').selectpicker('val', sportello.categoria_id).selectpicker('refresh');
+
             $("#numero_ore").val(sportello.sportello_numero_ore);
             $("#argomento").val(sportello.sportello_argomento);
-            $("#luogo").val(sportello.sportello_luogo);
-            $('#classe').selectpicker('val', sportello.classe_id);
+
+            // aula attuale
+            var aulaDb = (sportello.sportello_luogo || "").trim();
+            if (aulaDb) {
+                ensureSelectHasOption($("#luogo"), aulaDb, aulaDb + " (attuale)");
+                $("#luogo").val(aulaDb).selectpicker('refresh');
+            } else {
+                $("#luogo").val("").selectpicker('refresh');
+            }
+
+            var isAttivo = (parseInt(sportello.sportello_attivo, 10) === 1);
+            console.log("[sportelloGetDetails] isAttivo =", isAttivo, "aulaDb=", aulaDb);
+
+            // aggiorna lista aule (include aula corrente se attivo)
+            setTimeout(function () {
+                verificaAulaCorrenteDidattica({ includiAulaCorrente: isAttivo });
+            }, 150);
+
+            // classe
+            $('#classe').selectpicker('val', sportello.classe_id).selectpicker('refresh');
+
+            // altri campi
             $("#max_iscrizioni").val(sportello.sportello_max_iscrizioni);
             $("#cancellato").prop('checked', sportello.sportello_cancellato != 0 && sportello.sportello_cancellato != null);
             $("#firmato").prop('checked', sportello.sportello_firmato != 0 && sportello.sportello_firmato != null);
@@ -383,53 +579,101 @@ function sportelloGetDetails(sportello_id) {
                 $("#clil").prop('checked', sportello.sportello_clil != 0 && sportello.sportello_clil != null);
                 $("#orientamento").prop('checked', sportello.sportello_orientamento != 0 && sportello.sportello_orientamento != null);
             }
+
+            // studenti
             $('#studenti_table tbody').empty();
+
             var markup = '';
-            // cicla su tutti gli studenti
-            sportello.studenti.forEach(function (studenti) {
-                markup = markup +
+            (sportello.studenti || []).forEach(function (studenti) {
+                markup +=
                     "<tr>" +
                     "<td>" + studenti.sportello_studente_id + "</td>" +
                     "<td>" + studenti.sportello_studente_presente + "</td>" +
                     "<td style=\"text-align: left; vertical-align: middle;\">" + studenti.studente_cognome + " " + studenti.studente_nome + "</td>" +
                     "<td style=\"text-align: left; vertical-align: middle;\">" + studenti.sportello_studente_argomento + "</td>" +
                     "<td style=\"text-align: center; vertical-align: middle;\">" +
-                    "<input type=\"checkbox\" class=\"chk-presenza\" name=\"query_myTextEditBox\"" +
+                    "<input type=\"checkbox\" class=\"chk-presenza\" " +
                     ((studenti.sportello_studente_presente == 0 || studenti.sportello_studente_presente == null) ? "" : " checked") +
-                    "></td><td style=\"text-align: center; vertical-align: middle;\"><input type=\"checkbox\" class=\"chk-cancella\" name=\"cancellare\"></td>" +
+                    "></td>" +
+                    "<td style=\"text-align: center; vertical-align: middle;\">" +
+                    "<input type=\"checkbox\" class=\"chk-cancella\">" +
+                    "</td>" +
                     "</tr>";
             });
+
             $('#studenti_table > tbody:last-child').append(markup);
-            $('#studenti_table td:nth-child(1),#studenti_table th:nth-child(1),#studenti_table td:nth-child(2),#studenti_table th:nth-child(2)').hide(); // nasconde la prima colonna con l'id
+            $('#studenti_table td:nth-child(1),#studenti_table th:nth-child(1),#studenti_table td:nth-child(2),#studenti_table th:nth-child(2)').hide();
+
+            $("#_error-materia-part").hide();
+
+            console.log("[sportelloGetDetails] SHOW modal with values", {
+                data: $("#data").val(),
+                ora: $("#ora").val(),
+                luogo: $("#luogo").val(),
+                disabled_inputs: $("#sportello_modal :input:disabled").length
+            });
+
+            $("#sportello_modal").modal("show");
+
+            setTimeout(function () {
+                console.log("[sportello_modal] AFTER SHOW", {
+                    disabled_inputs: $("#sportello_modal :input:disabled").length,
+                    backdrops: $(".modal-backdrop").length,
+                    body_modal_open: $("body").hasClass("modal-open")
+                });
+            }, 100);
+
+        }, "json").fail(function (xhr, st, err) {
+            console.error("[sportelloGetDetails] ReadDetails FAIL", st, err, xhr && xhr.responseText);
+            try { setSportelloModalBusy(false, "details_fail"); } catch (e) { }
+            alert("Errore lettura sportello (vedi console).");
         });
-    }
-    else {
+
+    } else {
+
+        console.log("[sportelloGetDetails] NEW sportello init");
+
         data_pickr.setDate(Date.today().toString('d/M/yyyy'));
-        $("#ora").val("14:00");
-        $('#docente').val("0");
-        $('#docente').selectpicker('refresh');
-        $('#materia').val("0");
-        $('#materia').selectpicker('refresh');
-        $('#categoria').val("0");
-        $('#categoria').selectpicker('refresh');
+        $("#ora").selectpicker('val', "13:50").selectpicker('refresh');
+
+        $('#docente').val("0").selectpicker('refresh');
+        $('#materia').val("0").selectpicker('refresh');
+        $('#categoria').val("0").selectpicker('refresh');
+
         $("#numero_ore").val("0");
         $("#argomento").val("");
-        $("#luogo").val("");
-        $('#classe').val("0");
-        $("#classe").selectpicker('refresh');
+
+        $("#luogo").val("").selectpicker('refresh');
+        setTimeout(function () { verificaAulaCorrenteDidattica({ includiAulaCorrente: false }); }, 100);
+
+        $('#classe').val("0").selectpicker('refresh');
+
         $("#max_iscrizioni").val($("#hidden_max_iscrizioni_default").val());
         $("#cancellato").prop('checked', false);
         $("#firmato").prop('checked', false);
+
         if ($('#hidden_sezione_online_clil').val() == 'true') {
-            $("#onine").prop('checked', false);
+            // 🔧 FIX: era "#onine" -> "#online"
+            $("#online").prop('checked', false);
             $("#clil").prop('checked', false);
             $("#orientamento").prop('checked', false);
         }
+
         $('#studenti_table tbody').empty();
+        $("#_error-materia-part").hide();
+
+        $("#sportello_modal").modal("show");
+
+        setTimeout(function () {
+            console.log("[sportello_modal] AFTER SHOW (NEW)", {
+                disabled_inputs: $("#sportello_modal :input:disabled").length,
+                backdrops: $(".modal-backdrop").length,
+                body_modal_open: $("body").hasClass("modal-open")
+            });
+        }, 100);
     }
-    $("#_error-materia-part").hide();
-    $("#sportello_modal").modal("show");
 }
+
 
 function importFile(file) {
     if (!file) {
@@ -477,25 +721,27 @@ function importFile(file) {
 }
 
 function sportelloDuplica(id) {
-    // Se vuoi conferma:
-    // if (!confirm("Duplico questo sportello?")) return;
+    console.log("[sportelloDuplica] START id=", id);
 
     $.post("sportelloDuplica.php", { sportello_id: id }, function (resp) {
+        console.log("[sportelloDuplica] RESPONSE", resp);
+
         if (resp && resp.ok && resp.new_sportello_id) {
 
-            // aggiorna lista per far comparire il nuovo sportello subito
             sportelloReadRecords();
 
-            // carica subito il nuovo sportello nel modale (il modale resta aperto / si riapre)
+            console.log("[sportelloDuplica] OPEN NEW sportello_id=", resp.new_sportello_id);
             sportelloGetDetails(parseInt(resp.new_sportello_id, 10));
 
         } else {
             alert((resp && resp.msg) ? resp.msg : "Errore duplicazione.");
         }
-    }, "json").fail(function () {
+    }, "json").fail(function (xhr, st, err) {
+        console.error("[sportelloDuplica] FAIL", st, err, xhr && xhr.responseText);
         alert("Errore di rete o server durante la duplicazione.");
     });
 }
+
 
 function importStudents(file, selezione) {
     var contenuto = "";
@@ -519,12 +765,51 @@ function importStudents(file, selezione) {
 }
 
 $(document).ready(function () {
-    data_pickr = flatpickr("#data", {
-        locale: {
-            firstDayOfWeek: 1
-        },
-        dateFormat: 'j/n/Y'
+
+    // DEBUG: eventi modale + backdrop
+    $(document).on('shown.bs.modal', '#sportello_modal', function () {
+        console.log("[sportello_modal] SHOWN", {
+            disabled_inputs: $("#sportello_modal :input:disabled").length,
+            backdrop: $(".modal-backdrop").length,
+            body_modal_open: $("body").hasClass("modal-open")
+        });
     });
+
+    $(document).on('hidden.bs.modal', '#sportello_modal', function () {
+        console.log("[sportello_modal] HIDDEN", {
+            backdrop: $(".modal-backdrop").length,
+            body_modal_open: $("body").hasClass("modal-open")
+        });
+    });
+
+    data_pickr = flatpickr("#data", {
+        locale: { firstDayOfWeek: 1 },
+        dateFormat: 'j/n/Y',
+        onChange: function () {
+            // se lo sportello è attivo lo capisci solo quando lo carichi;
+            // per ora: includi aula corrente SOLO se esiste un valore già settato
+            const aulaCorr = ($("#luogo").val() || "").trim();
+            verificaAulaCorrenteDidattica({ includiAulaCorrente: (aulaCorr !== "") });
+        }
+    });
+
+    $(document).on('click', ".bootstrap-select[data-id='luogo'] button", function () {
+        const aulaCorr = ($("#luogo").val() || "").trim();
+        // includi aula corrente (così vedi sempre quella dello sportello)
+        verificaAulaCorrenteDidattica({ includiAulaCorrente: true });
+    });
+
+
+    $('#ora').selectpicker();
+    $('#luogo').selectpicker();
+
+    $("#ora").on("change", function () {
+        // se lo sportello è attivo lo capisci solo quando lo carichi;
+        // per ora: includi aula corrente SOLO se esiste un valore già settato
+        const aulaCorr = ($("#luogo").val() || "").trim();
+        verificaAulaCorrenteDidattica({ includiAulaCorrente: (aulaCorr !== "") });
+    });
+
 
     sportelloReadRecords();
 
@@ -569,13 +854,13 @@ $(document).ready(function () {
         e.target.value = '';
     });
 
-        // delegato: funziona anche se #sportelloModal viene ricreato
-        $(document).on('hidden.bs.modal', '#sportello_modal', function () {
-            if (window.toastAfterModalClose) {
-                showSuccessMessage(window.toastAfterModalClose);
-                window.toastAfterModalClose = null;
-            }
-        });
+    // delegato: funziona anche se #sportelloModal viene ricreato
+    $(document).on('hidden.bs.modal', '#sportello_modal', function () {
+        if (window.toastAfterModalClose) {
+            showSuccessMessage(window.toastAfterModalClose);
+            window.toastAfterModalClose = null;
+        }
+    });
 
 
 });

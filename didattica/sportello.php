@@ -204,7 +204,7 @@ if ($nclassi > 0) {
     require_once '../common/header-didattica.php';
     ?>
 
-    <div class="container-fluid" style="margin-top:60px">
+    <div class="container-fluid">
         <div id="alert-container" style="position: fixed; top: 20px; right: 20px; z-index: 2000;"></div>
         <div class="panel panel-orange4">
             <div class="panel-heading">
@@ -322,141 +322,201 @@ if ($nclassi > 0) {
     </div>
 
     <!-- Modal - Add/Update Record -->
-    <div class="modal fade" id="sportello_modal" data-backdrop="static" tabindex="-1" role="dialog"
-        aria-labelledby="myModalLabel">
+    <div class="modal fade" id="sportello_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-body">
+
                     <div class="panel panel-orange4">
                         <div class="panel-heading">
                             <h5 class="modal-title" id="myModalLabel">Sportello</h5>
                         </div>
+
                         <div class="panel-body">
                             <form class="form-horizontal">
 
+                                <!-- DATA + ORA (UNA SOLA VOLTA) -->
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="data">Data</label>
-                                    <div class="col-sm-3"><input type="text" value="21/8/2018" id="data"
-                                            placeholder="data" class="form-control" /></div>
+                                    <div class="col-sm-3">
+                                        <input type="text" value="21/8/2018" id="data" placeholder="data" class="form-control" />
+                                    </div>
 
                                     <label class="col-sm-2 control-label" for="ora">Ora</label>
-                                    <div class="col-sm-3"><input type="text" id="ora" placeholder="ora"
-                                            class="form-control" /></div>
+                                    <div class="col-sm-3">
+                                        <select id="ora"
+                                            class="selectpicker"
+                                            data-style="btn-info"
+                                            data-live-search="true"
+                                            data-none-selected-text="Seleziona..."
+                                            data-width="100%">
+                                            <option value="07:50">07:50</option>
+                                            <option value="08:40">08:40</option>
+                                            <option value="09:30">09:30</option>
+                                            <option value="10:30">10:30</option>
+                                            <option value="11:20">11:20</option>
+                                            <option value="12:10">12:10</option>
+                                            <option value="13:00">13:00</option>
+                                            <option value="13:50">13:50</option>
+                                            <option value="14:40">14:40</option>
+                                            <option value="15:30">15:30</option>
+                                            <option value="16:20">16:20</option>
+                                            <option value="17:10">17:10</option>
+                                            <option value="18:00">18:00</option>
+                                            <option value="18:50">18:50</option>
+                                            <option value="19:40">19:40</option>
+                                            <option value="20:30">20:30</option>
+                                            <option value="21:30">21:30</option>
+                                            <option value="22:20">22:20</option>
+                                        </select>
+                                    </div>
                                 </div>
 
+                                <!-- DOCENTE -->
                                 <div class="form-group docente_selector">
                                     <label class="col-sm-2 control-label" for="docente">Docente</label>
-                                    <div class="col-sm-10"><select id="docente" name="docente"
-                                            class="docente selectpicker" data-style="btn-success"
-                                            data-live-search="true" data-noneSelectedText="seleziona..."
+                                    <div class="col-sm-10">
+                                        <select id="docente" name="docente"
+                                            class="docente selectpicker"
+                                            data-style="btn-success"
+                                            data-live-search="true"
+                                            data-noneSelectedText="seleziona..."
                                             data-width="100%">
                                             <?php echo $docenteOptionList ?>
-                                        </select></div>
+                                        </select>
+                                    </div>
                                 </div>
 
+                                <!-- CATEGORIA -->
                                 <div class="form-group categoria_selector">
                                     <label class="col-sm-2 control-label" for="categoria">Categoria</label>
-                                    <div class="col-sm-10"><select id="categoria" name="categoria"
-                                            class="categoria selectpicker" data-style="btn-yellow4"
-                                            data-live-search="true" data-noneSelectedText="seleziona..."
+                                    <div class="col-sm-10">
+                                        <select id="categoria" name="categoria"
+                                            class="categoria selectpicker"
+                                            data-style="btn-yellow4"
+                                            data-live-search="true"
+                                            data-noneSelectedText="seleziona..."
                                             data-width="100%">
                                             <?php echo $categoriaOptionList ?>
-                                        </select></div>
+                                        </select>
+                                    </div>
                                 </div>
 
+                                <!-- MATERIA -->
                                 <div class="form-group materia_selector">
                                     <label class="col-sm-2 control-label" for="materia">Materia</label>
-                                    <div class="col-sm-10"><select id="materia" name="materia"
-                                            class="materia selectpicker" data-style="btn-yellow4"
-                                            data-live-search="true" data-noneSelectedText="seleziona..."
+                                    <div class="col-sm-10">
+                                        <select id="materia" name="materia"
+                                            class="materia selectpicker"
+                                            data-style="btn-yellow4"
+                                            data-live-search="true"
+                                            data-noneSelectedText="seleziona..."
                                             data-width="100%">
                                             <?php echo $materiaOptionList ?>
-                                        </select></div>
+                                        </select>
+                                    </div>
                                 </div>
 
+                                <!-- NUMERO ORE -->
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="numero_ore">Numero di ore</label>
-                                    <div class="col-sm-10"><input type="text" id="numero_ore" placeholder="numero ore"
-                                            class="form-control" /></div>
+                                    <div class="col-sm-10">
+                                        <input type="text" id="numero_ore" placeholder="numero ore" class="form-control" />
+                                    </div>
                                 </div>
 
+                                <!-- ARGOMENTO -->
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="argomento">Argomento</label>
-                                    <div class="col-sm-10"><input type="text" id="argomento"
+                                    <div class="col-sm-10">
+                                        <input type="text" id="argomento"
                                             placeholder="! non inserire se si desidera che siano gli studenti a specificarlo !"
-                                            class="form-control" /></div>
+                                            class="form-control" />
+                                    </div>
                                 </div>
 
+                                <!-- LUOGO / AULA (DIDATTICA: input testo come nel tuo file; se vuoi lo trasformiamo in select come docenti) -->
                                 <div class="form-group">
-                                    <label class="col-sm-2 control-label" for="luogo">Luogo</label>
-                                    <div class="col-sm-10"><input type="text" id="luogo"
-                                            placeholder="aula o laboratorio in cui si svolge lo sportello"
-                                            class="form-control" /></div>
+                                    <label class="col-sm-2 control-label" for="luogo">Aula</label>
+                                    <div class="col-sm-10">
+                                        <select id="luogo"
+                                            class="selectpicker"
+                                            data-style="btn-info"
+                                            data-live-search="true"
+                                            data-none-selected-text="Seleziona un'aula..."
+                                            data-width="100%">
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <?php
-
-                                if ($classeOptionList == "empty") // se la tabella classe è vuota allora metti una casella di testo
-                                {
+                                if ($classeOptionList == "empty") {
                                     echo '
-                    <input type="hidden" id="hidden_lista_classi" value="testo">
-
-                    <div class="form-group classe_selector">
+                  <input type="hidden" id="hidden_lista_classi" value="testo">
+                  <div class="form-group classe_selector">
                     <label class="col-sm-2 control-label" for="classe">Classe</label>
-				    <div class="col-sm-10"><input type="text" id="classe" placeholder="classi a cui è rivolto lo sportello" class="form-control"/></div>
-                	</select></div>
-                </div>';
-                                } else // altrimenti crea e popola una combobox
-                                {
-                                    echo '
-                    <input type="hidden" id="hidden_lista_classi" value="lista">
-                    <div class="form-group classe_selector">
-                        <label class="col-sm-2 control-label" for="classe">Classe</label>
-                        <div class="col-sm-10"><select id="classe" name="classe" class="materia selectpicker" data-style="btn-yellow4"
-                                            data-live-search="true" data-noneSelectedText="seleziona..."
-                                            data-width="100%">"';
-                                    echo $classeOptionList;
-                                    echo '</select></div>
+                    <div class="col-sm-10">
+                      <input type="text" id="classe" placeholder="classi a cui è rivolto lo sportello" class="form-control"/>
                     </div>
-                ';
+                  </div>';
+                                } else {
+                                    echo '
+                  <input type="hidden" id="hidden_lista_classi" value="lista">
+                  <div class="form-group classe_selector">
+                    <label class="col-sm-2 control-label" for="classe">Classe</label>
+                    <div class="col-sm-10">
+                      <select id="classe" name="classe" class="classe selectpicker"
+                              data-style="btn-yellow4"
+                              data-live-search="true"
+                              data-noneSelectedText="seleziona..."
+                              data-width="100%">';
+                                    echo $classeOptionList;
+                                    echo '  </select>
+                    </div>
+                  </div>';
                                 }
-
                                 ?>
 
+                                <!-- MAX ISCRIZIONI -->
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="max_iscrizioni">Max Iscrizioni</label>
-                                    <div class="col-sm-10"><input type="text" id="max_iscrizioni"
+                                    <div class="col-sm-10">
+                                        <input type="text" id="max_iscrizioni"
                                             placeholder="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>"
-                                            class="form-control" /></div>
+                                            class="form-control" />
+                                    </div>
                                 </div>
 
                                 <?php
                                 if ($__settings->sportelli->sezione_online_clil_orientamento_visibile) {
                                     echo '<div class="form-group">
-                    <label for="online" class="col-sm-2 control-label">Online</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="online" ></div>
-                    <label for="clil" class="col-sm-2 control-label">Clil</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="clil" ></div>
-                    <label for="orientamento" class="col-sm-2 control-label">Orientamento</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="orientamento" ></div>
-                    </div>
-                    <input type="hidden" id="hidden_sezione_online_clil" value="true">
-                    ';
+                        <label for="online" class="col-sm-2 control-label">Online</label>
+                        <div class="col-sm-1"><input type="checkbox" id="online"></div>
+                        <label for="clil" class="col-sm-2 control-label">Clil</label>
+                        <div class="col-sm-1"><input type="checkbox" id="clil"></div>
+                        <label for="orientamento" class="col-sm-2 control-label">Orientamento</label>
+                        <div class="col-sm-1"><input type="checkbox" id="orientamento"></div>
+                        <input type="hidden" id="hidden_sezione_online_clil" value="true">
+                      </div>';
                                 } else {
                                     echo '<input type="hidden" id="hidden_sezione_online_clil" value="false">';
                                 }
                                 ?>
 
+                                <!-- CANCELLA / FIRMA -->
                                 <div class="form-group">
                                     <label for="cancellato" class="col-sm-2 control-label">Cancellato</label>
-                                    <div class="col-sm-1 "><input type="checkbox" id="cancellato"></div>
+                                    <div class="col-sm-1"><input type="checkbox" id="cancellato"></div>
+
                                     <label for="firmato" class="col-sm-2 control-label">Firmato</label>
-                                    <div class="col-sm-1 "><input type="checkbox" id="firmato"></div>
+                                    <div class="col-sm-1"><input type="checkbox" id="firmato"></div>
                                 </div>
 
+                                <!-- STUDENTI -->
                                 <div class="form-group text-center" id="studenti-part">
                                     <hr>
                                     <label for="studenti_table">Studenti</label>
+
                                     <div class="table-wrapper">
                                         <table class="table table-bordered table-striped" id="studenti_table">
                                             <thead>
@@ -469,37 +529,66 @@ if ($nclassi > 0) {
                                                     <th class="text-center">Cancella</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
-                                            </tbody>
+                                            <tbody></tbody>
                                         </table>
                                     </div>
 
-                                    <div class="form-group" id="_error-materia-part"><strong>
+                                    <div class="form-group" id="_error-materia-part">
+                                        <strong>
                                             <hr>
-                                            <div class="col-sm-3 text-right text-danger ">Attenzione</div>
+                                            <div class="col-sm-3 text-right text-danger">Attenzione</div>
                                             <div class="col-sm-9" id="_error-materia"></div>
-                                        </strong></div>
+                                        </strong>
+                                    </div>
 
                                     <input type="hidden" id="hidden_sportello_id">
                                     <input type="hidden" id="hidden_max_iscrizioni_default"
                                         value="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>">
-                            </form>
+                                </div>
 
+                            </form>
                         </div>
+
                         <div class="panel-footer text-center">
                             <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                             <button type="button" class="btn btn-primary" onclick="sportelloSave()">Salva</button>
                         </div>
+
                     </div>
+
                 </div>
             </div>
         </div>
     </div>
     <!-- // Modal - Add/Update Record -->
+
+    <div id="overlaySpinner" style="
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.35);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
+">
+        <div style="
+        background:#fff;
+        padding:24px 30px;
+        border-radius:12px;
+        text-align:center;
+        box-shadow:0 10px 40px rgba(0,0,0,.25);
+        font-family:system-ui;
+    ">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div style="margin-top:12px;font-weight:600">
+                Operazione in corso…
+            </div>
+        </div>
     </div>
 
-
     <!-- Custom JS file -->
+     <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>"></script>
 
 </body>
