@@ -462,6 +462,19 @@ function getDateYmdFromPickerOrInput() {
     return "";
 }
 
+// ✅ chiusura modale dopo swal
+function closeSportelloModalAfterSwal() {
+    try {
+        $("#sportello_modal").modal("hide");
+        // cleanup extra (bootstrap a volte lascia roba)
+        $(".modal-backdrop").remove();
+        $("body").removeClass("modal-open");
+        $("body").css("padding-right", "");
+    } catch (e) {
+        console.warn("[sportelloSave] close modal error", e);
+    }
+}
+
 function sportelloSave() {
 
     // overlay + disabilita bottone
@@ -524,10 +537,10 @@ function sportelloSave() {
     }
 
     // selectpicker values
-    var docente_id   = parseInt($("#docente").val(), 10) || 0;
-    var materia_id   = parseInt($("#materia").val(), 10) || 0;
+    var docente_id = parseInt($("#docente").val(), 10) || 0;
+    var materia_id = parseInt($("#materia").val(), 10) || 0;
     var categoria_id = parseInt($("#categoria").val(), 10) || 0;
-    var classe_id    = parseInt($("#classe").val(), 10) || 0;
+    var classe_id = parseInt($("#classe").val(), 10) || 0;
 
     var luogoVal = ($("#luogo").val() || "").trim();
 
@@ -636,8 +649,10 @@ function sportelloSave() {
 
         // messaggio MBApp
         var mb = resp.mbapp || null;
+        var mb = resp.mbapp || null;
         if (mb && typeof mb === "object") {
             var text = (mb.action ? ("MBApp: " + mb.action + " — ") : "MBApp: ") + (mb.msg || "");
+
             if (window.Swal) {
                 Swal.fire({
                     icon: (mb.ok ? "success" : "warning"),
@@ -645,20 +660,29 @@ function sportelloSave() {
                     text: text,
                     timer: 1700,
                     showConfirmButton: false
+                }).then(function () {
+                    closeSportelloModalAfterSwal();
                 });
             } else {
                 if (!mb.ok) alert(text);
+                closeSportelloModalAfterSwal();
             }
         } else {
+            // fallback senza mbapp
             if (window.Swal) {
                 Swal.fire({
                     icon: "success",
                     title: "Salvato",
                     timer: 1200,
                     showConfirmButton: false
+                }).then(function () {
+                    closeSportelloModalAfterSwal();
                 });
+            } else {
+                closeSportelloModalAfterSwal();
             }
         }
+
 
     }, "json").fail(function (xhr, st, err) {
 
