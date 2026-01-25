@@ -35,99 +35,114 @@ function setOraSelect(oraValue) {
     ensureSelectHasOption($ora, ora, ora + " (attuale)");
     $ora.selectpicker('val', ora).selectpicker('refresh');
 }
-
 function verificaAulaCorrenteDidattica(opts) {
     opts = opts || {};
     var includiAulaCorrente = !!opts.includiAulaCorrente;
+    var tipoAula = opts.tipoAula || "TUTTE";
+    var includeAula = (opts.includeAula || "").trim();
 
-    var data = getDbDateFromPickrId("#data");
-    var ora = ($("#ora").val() || "").trim();
-    if (!data || !ora) {
-        console.log("[verificaAulaCorrenteDidattica] SKIP: manca data/ora", { data: data, ora: ora });
-        return;
+    // Data/ora/durata correnti UI
+    var dataDb = "";
+    try {
+        dataDb = getDbDateFromPickrId("#data"); // YYYY-MM-DD
+    } catch (e) {
+        dataDb = ($("#data").val() || "").trim();
     }
 
-    var aulaCorrente = ($("#luogo").val() || "").trim();
+    var ora = ($("#ora").val() || "").trim();
+    var durataOre = parseInt($("#numero_ore").val(), 10) || 1;
+    if (durataOre < 1) durataOre = 1;
+    if (durataOre > 2) durataOre = 2;
+
+    // Se devo includere aula corrente e non è stata passata, la prendo dal select
+    if (includiAulaCorrente && !includeAula) {
+        includeAula = ($("#luogo").val() || "").trim();
+    }
 
     console.log("[verificaAulaCorrenteDidattica] START", {
         includiAulaCorrente: includiAulaCorrente,
-        data: data,
+        tipoAula: tipoAula,
+        includeAula: includeAula,
+        dataDb: dataDb,
         ora: ora,
-        aulaCorrente: aulaCorrente
+        durataOre: durataOre
     });
 
+    if (!dataDb || !ora) {
+        console.warn("[verificaAulaCorrenteDidattica] SKIP missing data/ora", { dataDb, ora });
+        return;
+    }
+
+    // (opzionale) disabilita select mentre carica
+    try { $("#luogo").prop("disabled", true).selectpicker("refresh"); } catch (e) { }
+
     $.post("../common/checkAuleLibere.php", {
-        dataGiorno: data,
+        tipo: tipoAula,
+        dataGiorno: dataDb,
         ora: ora,
-        tipo: 'TUTTE'
+        durataOre: durataOre,
+        includeAula: includeAula
     }, function (resp) {
 
-        console.log("[verificaAulaCorrenteDidattica] RESPONSE raw=", resp);
+        console.log("[verificaAulaCorrenteDidattica] RESPONSE", resp);
 
-        if (typeof resp === "string") {
-            try { resp = JSON.parse(resp); } catch (e) { resp = null; }
-        }
-
-        console.log("[verificaAulaCorrenteDidattica] RESPONSE parsed=", resp);
-
-        var $luogo = $("#luogo");
-        $luogo.empty();
-
-        if (!resp || resp.status !== "ok" || !resp.data || !resp.data.length) {
-            console.log("[verificaAulaCorrenteDidattica] NO aule libere", {
-                includiAulaCorrente: includiAulaCorrente,
-                aulaCorrente: aulaCorrente
-            });
-
-            if (includiAulaCorrente && aulaCorrente) {
-                $luogo.append($("<option>", { value: aulaCorrente, text: aulaCorrente + " (attuale)" }));
-                $luogo.val(aulaCorrente);
-            } else {
-                $luogo.append('<option value="">Nessuna aula disponibile</option>');
-                $luogo.val("");
-            }
-
-            $luogo.selectpicker('refresh');
-
-            console.log("[verificaAulaCorrenteDidattica] FINAL", {
-                options: $("#luogo option").map(function () { return this.value }).get(),
-                selected: $("#luogo").val()
-            });
-
+        if (!resp || resp.status !== "ok") {
+            console.warn("[verificaAulaCorrenteDidattica] BAD RESPONSE", resp);
             return;
         }
 
-        // aule libere
-        resp.data.forEach(function (aula) {
-            var label = aula.nroAula;
-            if (aula.descrizione) label += " – " + aula.descrizione;
-            $luogo.append($("<option>", { value: aula.nroAula, text: label }));
-        });
+        var rows = Array.isArray(resp.data) ? resp.data : [];
+        var $sel = $("#luogo");
 
-        // se richiesto e l'aula corrente non è tra le libere, aggiungila
-        if (includiAulaCorrente && aulaCorrente) {
-            ensureSelectHasOption($luogo, aulaCorrente, aulaCorrente + " (attuale)");
-            $luogo.val(aulaCorrente);
-        } else {
-            if (aulaCorrente && $luogo.find("option[value='" + aulaCorrente.replace(/'/g, "\\'") + "']").length) {
-                $luogo.val(aulaCorrente);
-            } else {
-                $luogo.val("");
+        // salvo selezione attuale per ripristino
+        var selectedBefore = ($sel.val() || "").trim();
+
+        // rebuild opzioni
+        $sel.empty();
+        $sel.append('<option value=""></option>');
+
+        // Se includeAula è richiesto, assicurati che sia presente anche se non tornasse dal DB
+        // (es. aula non prenotabile / non presente in tabella aula)
+        if (includeAula) {
+            var found = rows.some(function (r) {
+                return (String(r.nroAula || "").trim() === includeAula);
+            });
+            if (!found) {
+                $sel.append('<option value="' + includeAula + '">' + includeAula + ' (attuale)</option>');
             }
         }
 
-        $luogo.selectpicker('refresh');
+        rows.forEach(function (r) {
+            var nro = (r.nroAula != null) ? String(r.nroAula).trim() : "";
+            if (!nro) return;
 
-        console.log("[verificaAulaCorrenteDidattica] FINAL", {
-            options: $("#luogo option").map(function () { return this.value }).get(),
-            selected: $("#luogo").val()
+            var label = nro;
+            if (parseInt(r.is_current, 10) === 1) label = nro + " (attuale)";
+
+            $sel.append('<option value="' + nro + '">' + label + '</option>');
         });
 
-    }, "json").fail(function (xhr, status, err) {
-        console.error("[verificaAulaCorrenteDidattica] AJAX FAIL", status, err, xhr && xhr.responseText);
-    });
-}
+        // Ripristino selezione:
+        // 1) se avevo scelto qualcosa a mano, mantienilo
+        // 2) altrimenti se includeAula è presente, selezionala
+        var toSelect = selectedBefore || includeAula || "";
+        if (toSelect) $sel.val(toSelect);
 
+        $sel.selectpicker("refresh");
+
+        console.log("[verificaAulaCorrenteDidattica] DONE", {
+            selected: $sel.val(),
+            options: $sel.find("option").length
+        });
+
+    }, "json")
+        .fail(function (xhr, st, err) {
+            console.error("[verificaAulaCorrenteDidattica] FAIL", st, err, xhr && xhr.responseText);
+        })
+        .always(function () {
+            try { $("#luogo").prop("disabled", false).selectpicker("refresh"); } catch (e) { }
+        });
+}
 
 function setDbDateToPickr(pickr, data_str) {
     var data = Date.parseExact(data_str, 'yyyy-MM-dd');
@@ -229,14 +244,32 @@ function sportelloSelect(id) {
     }
 }
 
-function showSpinner(msg = "Operazione in corso…") {
-    $("#overlaySpinner div div:last").text(msg);
-    $("#overlaySpinner").css("display", "flex");
+function showSpinner(msg) {
+    msg = msg || "Operazione in corso...";
+    if ($("#globalSpinner").length) return;
+
+    $("body").append(`
+        <div id="globalSpinner" style="
+            position:fixed; inset:0; z-index:2000;
+            background:rgba(0,0,0,.4);
+            display:flex; align-items:center; justify-content:center;
+        ">
+            <div style="
+                background:#fff; padding:20px 30px;
+                border-radius:12px; font-size:15px;
+                box-shadow:0 10px 40px rgba(0,0,0,.3);
+            ">
+                <div class="spinner-border text-primary" role="status"></div>
+                <div style="margin-top:10px">${msg}</div>
+            </div>
+        </div>
+    `);
 }
 
 function hideSpinner() {
-    $("#overlaySpinner").hide();
+    $("#globalSpinner").remove();
 }
+
 
 function sportelloDelete(id, materia) {
 
@@ -333,181 +366,369 @@ function showSuccessMessage(text, timeout = 3000) {
     }, timeout);
 }
 
+function sportelloRimettiBozza(id, materia) {
+    id = parseInt(id, 10) || 0;
+    materia = materia || "";
 
-function sportelloSave() {
-  console.log("[sportelloSave] START");
-
-  // Validazioni base
-  if (parseInt($("#materia").val(), 10) <= 0) {
-    $("#_error-materia").text("Devi selezionare una materia");
-    $("#_error-materia-part").show();
-    return;
-  }
-  if (parseInt($("#categoria").val(), 10) <= 0) {
-    $("#_error-materia").text("Devi selezionare una categoria");
-    $("#_error-materia-part").show();
-    return;
-  }
-  if (parseInt($("#classe").val(), 10) <= 0) {
-    $("#_error-materia").text("Devi selezionare una classe");
-    $("#_error-materia-part").show();
-    return;
-  }
-  if (parseInt($("#numero_ore").val(), 10) <= 0) {
-    $("#_error-materia").text("Il numero di ore non può essere 0");
-    $("#_error-materia-part").show();
-    return;
-  }
-  $("#_error-materia-part").hide();
-
-  // Studenti presenti/cancellazioni
-  var studentiDaModificareIdList = [];
-  var studentiDaCancellareIdList = [];
-
-  $('#studenti_table tbody tr').each(function () {
-    var row = $(this);
-    var id = row.children().eq(0).text().trim();
-
-    var presenteCheckbox = row.find('.chk-presenza');
-    var presenteOriginal = presenteCheckbox.prop('defaultChecked');
-    var presenteCorrente = presenteCheckbox.prop('checked');
-    if (presenteCorrente !== presenteOriginal) {
-      studentiDaModificareIdList.push(id);
+    if (id <= 0) {
+        alert("ID non valido.");
+        return;
     }
 
-    var cancellaCheckbox = row.find('.chk-cancella');
-    if (cancellaCheckbox.prop('checked')) {
-      studentiDaCancellareIdList.push(id);
+    var doIt = function () {
+        $.post("sportelloRimettiBozza.php", { id: id }, function (resp) {
+            console.log("[sportelloRimettiBozza] RESPONSE", resp);
+
+            if (!resp || !resp.ok) {
+                var msg = (resp && (resp.error || resp.msg)) ? (resp.error || resp.msg) : "Errore: rimessa in bozza non riuscita.";
+                if (window.Swal) Swal.fire({ icon: "error", title: "Errore", text: msg });
+                else alert(msg);
+                return;
+            }
+
+            sportelloReadRecords();
+
+            var mb = resp.mbapp || null;
+            var text = "Sportello rimesso in bozza.";
+            if (mb && typeof mb === "object") {
+                text += " " + (mb.msg || "");
+            }
+
+            if (window.Swal) {
+                Swal.fire({
+                    icon: "success",
+                    title: "OK",
+                    text: text,
+                    timer: 1600,
+                    showConfirmButton: false
+                });
+            } else {
+                alert(text);
+            }
+
+        }, "json").fail(function (xhr, st, err) {
+            console.error("[sportelloRimettiBozza] FAIL", st, err, xhr && xhr.responseText);
+            if (window.Swal) Swal.fire({ icon: "error", title: "Errore", text: "Errore di rete o server." });
+            else alert("Errore di rete o server.");
+        });
+    };
+
+    if (window.Swal) {
+        Swal.fire({
+            icon: "warning",
+            title: "Rimettere in bozza?",
+            text: "Questo azzera docente e aula. Se esiste prenotazione MBApp verrà cancellata.",
+            showCancelButton: true,
+            confirmButtonText: "Sì, rimetti in bozza",
+            cancelButtonText: "Annulla"
+        }).then(function (r) {
+            if (r && r.isConfirmed) doIt();
+        });
+    } else {
+        var conf = confirm("Rimettere in bozza lo sportello di " + materia + "?\nAzzera docente e aula. Se esiste prenotazione MBApp verrà cancellata.");
+        if (conf) doIt();
     }
-  });
-
-  console.log("[sportelloSave] studenti", {
-    mod: studentiDaModificareIdList.length,
-    del: studentiDaCancellareIdList.length
-  });
-
-  if (studentiDaCancellareIdList.length > 0) {
-    var ok = confirm("Stai per cancellare " + studentiDaCancellareIdList.length + " studente/i. Vuoi continuare?");
-    if (!ok) return;
-  }
-
-  // Payload
-  var docenteId = parseInt($("#docente").val(), 10) || 0;
-  var luogoTrim = ($("#luogo").val() || "").trim();
-  var attivo = (docenteId > 0 && luogoTrim !== "") ? 1 : 0;
-
-  // classe legacy
-  var classeTextLegacy = "";
-  if ($("#hidden_lista_classi").val() == "testo") {
-    classeTextLegacy = ($("#classe").val() || "").trim();
-  } else {
-    classeTextLegacy = ($("#classe option:selected").text() || "").trim();
-  }
-
-  var payload = {
-    id: $("#hidden_sportello_id").val(),
-    data: getDbDateFromPickrId("#data"),
-    ora: $("#ora").val(),
-    docente_id: $("#docente").val(),
-    materia_id: $("#materia").val(),
-    categoria_id: $("#categoria").val(),
-    numero_ore: $("#numero_ore").val(),
-    argomento: $("#argomento").val(),
-    luogo: $("#luogo").val(),
-    max_iscrizioni: $("#max_iscrizioni").val(),
-    classe: classeTextLegacy,
-    classe_id: ($("#hidden_lista_classi").val() == "testo") ? 0 : $("#classe").val(),
-    cancellato: $("#cancellato").is(':checked') ? 1 : 0,
-    firmato: $("#firmato").is(':checked') ? 1 : 0,
-    online: ($("#online").length && $("#online").is(':checked')) ? 1 : 0,
-    clil: ($("#clil").length && $("#clil").is(':checked')) ? 1 : 0,
-    orientamento: ($("#orientamento").length && $("#orientamento").is(':checked')) ? 1 : 0,
-    attivo: attivo,
-    studentiDaModificareIdList: JSON.stringify(studentiDaModificareIdList),
-    studentiDaCancellareIdList: JSON.stringify(studentiDaCancellareIdList)
-  };
-
-  console.log("[sportelloSave] payload", payload);
-
-  // Busy lock (sicuro)
-  setSportelloModalBusy(true, "sportelloSave");
-
-  $.post("sportelloSave.php", payload, function (data, status) {
-    console.log("[sportelloSave] DONE", { status: status, data: data });
-
-    // chiudi + refresh lista
-    window.toastAfterModalClose = "Sportello aggiornato correttamente";
-    $('#sportello_modal').modal('hide');
-    sportelloReadRecords();
-
-  }, "json")
-    .fail(function (xhr, st, err) {
-      console.error("[sportelloSave] FAIL", st, err, xhr && xhr.responseText);
-      alert("Errore salvataggio sportello (vedi console/log).");
-    })
-    .always(function () {
-      console.log("[sportelloSave] ALWAYS -> unlock modal");
-      setSportelloModalBusy(false, "sportelloSave always");
-    });
-
-  console.log("[sportelloSave] END (request sent)");
 }
 
+function getDateYmdFromPickerOrInput() {
+    // 1) prova da flatpickr
+    try {
+        if (window.data_pickr && data_pickr.selectedDates && data_pickr.selectedDates.length > 0) {
+            var d = data_pickr.selectedDates[0]; // Date object
+            var yyyy = d.getFullYear();
+            var mm = String(d.getMonth() + 1).padStart(2, "0");
+            var dd = String(d.getDate()).padStart(2, "0");
+            return yyyy + "-" + mm + "-" + dd;
+        }
+    } catch (e) { /* ignore */ }
+
+    // 2) fallback: input #data (potrebbe essere d/m/Y o Y-m-d)
+    var raw = ($("#data").val() || "").trim();
+    if (!raw) return "";
+
+    // già ISO
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+    // d/m/Y o d-m-Y
+    var m = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if (m) {
+        var dd2 = String(parseInt(m[1], 10)).padStart(2, "0");
+        var mm2 = String(parseInt(m[2], 10)).padStart(2, "0");
+        var yyyy2 = m[3];
+        if (yyyy2.length === 2) yyyy2 = "20" + yyyy2; // fallback
+        return yyyy2 + "-" + mm2 + "-" + dd2;
+    }
+
+    return "";
+}
+
+function sportelloSave() {
+
+    // overlay + disabilita bottone
+    $("#sportelloModalLoadingOverlay").show();
+    $("#btnSportelloSave").prop("disabled", true);
+
+    try { setSportelloModalBusy(true, "saving"); } catch (e) { }
+
+    // ✅ ID corretto (0 = nuovo)
+    var id = parseInt($("#hidden_sportello_id").val(), 10) || 0;
+
+    // ✅ costruisco liste studenti (prima di creare payload)
+    var studentiDaModificareIdList = [];
+    var studentiDaCancellareIdList = [];
+
+    try {
+        $("#studenti_table tbody tr").each(function () {
+            var $tr = $(this);
+
+            // 1a colonna = sportello_studente_id (nascosta ma presente)
+            var ssid = parseInt($.trim($tr.find("td:eq(0)").text()), 10) || 0;
+
+            // 2a colonna = presente (0/1) (nascosta ma presente)
+            var presenteOld = parseInt($.trim($tr.find("td:eq(1)").text()), 10) || 0;
+
+            // checkbox presenza
+            var presenteNew = $tr.find(".chk-presenza").is(":checked") ? 1 : 0;
+
+            // checkbox cancella
+            var toDelete = $tr.find(".chk-cancella").is(":checked");
+
+            if (ssid > 0) {
+                if (toDelete) {
+                    studentiDaCancellareIdList.push(ssid);
+                } else {
+                    if (presenteNew !== presenteOld) {
+                        studentiDaModificareIdList.push(ssid);
+                    }
+                }
+            }
+        });
+    } catch (e) {
+        console.warn("[sportelloSave] build studenti lists error", e);
+    }
+
+    // ✅ valori da modal
+    var oraVal = ($("#ora").val() || "").trim();
+
+    // Data: deve essere Y-m-d
+    var dataVal = getDateYmdFromPickerOrInput();
+    if (!dataVal) {
+        $("#sportelloModalLoadingOverlay").hide();
+        $("#btnSportelloSave").prop("disabled", false);
+        try { setSportelloModalBusy(false, "save_invalid_date"); } catch (e) { }
+
+        var msg = "Data non valida: impossibile salvare. (Verifica il datepicker)";
+        if (window.Swal) Swal.fire({ icon: "error", title: "Errore", text: msg });
+        else alert(msg);
+        return;
+    }
+
+    // selectpicker values
+    var docente_id   = parseInt($("#docente").val(), 10) || 0;
+    var materia_id   = parseInt($("#materia").val(), 10) || 0;
+    var categoria_id = parseInt($("#categoria").val(), 10) || 0;
+    var classe_id    = parseInt($("#classe").val(), 10) || 0;
+
+    var luogoVal = ($("#luogo").val() || "").trim();
+
+    var numero_ore = parseInt($("#numero_ore").val(), 10) || 1;
+    if (numero_ore < 1) numero_ore = 1;
+    if (numero_ore > 2) numero_ore = 2;
+
+    // ---------------------------------------------------------
+    // ✅ PATCH 2: VALIDAZIONI (in particolare per NUOVO sportello)
+    // ---------------------------------------------------------
+    var errors = [];
+
+    if (!oraVal) errors.push("Seleziona l'ora.");
+    if (docente_id <= 0) errors.push("Seleziona il docente.");
+    if (materia_id <= 0) errors.push("Seleziona la materia.");
+    if (!luogoVal) errors.push("Seleziona l'aula.");
+    if (!(numero_ore === 1 || numero_ore === 2)) errors.push("Numero ore non valido (1 o 2).");
+
+    // Se vuoi rendere più permissivo sugli update, qui è già “strict”.
+    // Io lo applico sempre, perché mi hai chiesto creazione “completa”.
+    if (errors.length > 0) {
+        $("#sportelloModalLoadingOverlay").hide();
+        $("#btnSportelloSave").prop("disabled", false);
+        try { setSportelloModalBusy(false, "save_validation_fail"); } catch (e) { }
+
+        var msg = errors.join("\n");
+        if (window.Swal) {
+            Swal.fire({
+                icon: "warning",
+                title: "Dati mancanti",
+                text: msg,
+                customClass: { popup: "swal-wide" } // opzionale, se vuoi usare classi custom
+            });
+        } else {
+            alert(msg);
+        }
+        return;
+    }
+
+    // classe testuale (fallback utile per sportelloSave.php che accetta anche "classe")
+    var classeTxt = "";
+    try { classeTxt = ($("#classe option:selected").text() || "").trim(); } catch (e) { classeTxt = ""; }
+
+    // Payload
+    var payload = {
+        id: id,
+        data: dataVal,
+        ora: oraVal,
+
+        categoria_id: categoria_id,
+        materia_id: materia_id,
+        docente_id: docente_id,
+
+        numero_ore: numero_ore,
+        luogo: luogoVal,
+
+        classe_id: classe_id,
+        classe: classeTxt,
+
+        argomento: $("#argomento").val() || "",
+        max_iscrizioni: parseInt($("#max_iscrizioni").val(), 10) || 0,
+
+        cancellato: $("#cancellato").is(":checked") ? 1 : 0,
+        firmato: $("#firmato").is(":checked") ? 1 : 0
+    };
+
+    if ($('#hidden_sezione_online_clil').val() == 'true') {
+        payload.online = $("#online").is(":checked") ? 1 : 0;
+        payload.clil = $("#clil").is(":checked") ? 1 : 0;
+        payload.orientamento = $("#orientamento").is(":checked") ? 1 : 0;
+    } else {
+        payload.online = 0;
+        payload.clil = 0;
+        payload.orientamento = 0;
+    }
+
+    payload.studentiDaModificareIdList = JSON.stringify(studentiDaModificareIdList);
+    payload.studentiDaCancellareIdList = JSON.stringify(studentiDaCancellareIdList);
+
+    console.log("[sportelloSave] PAYLOAD", payload);
+
+    $.post("sportelloSave.php", payload, function (resp) {
+
+        $("#sportelloModalLoadingOverlay").hide();
+        $("#btnSportelloSave").prop("disabled", false);
+        try { setSportelloModalBusy(false, "save_done"); } catch (e) { }
+
+        if (!resp || !resp.ok) {
+            var msg = (resp && (resp.error || resp.msg)) ? (resp.error || resp.msg) : "Errore salvataggio sportello.";
+            console.error("[sportelloSave] FAIL resp=", resp);
+
+            if (window.Swal) Swal.fire({ icon: "error", title: "Errore", text: msg });
+            else alert(msg);
+            return;
+        }
+
+        // aggiorna tabella principale
+        sportelloReadRecords();
+
+        // ✅ PATCH 1: ID “certo” + aggiorna hidden
+        var rid = parseInt((resp && resp.id) ? resp.id : payload.id, 10) || payload.id;
+        $("#hidden_sportello_id").val(rid);
+
+        // ricarico dettaglio (stesso id) così rivedo aule/valori coerenti
+        sportelloGetDetails(rid);
+
+        // messaggio MBApp
+        var mb = resp.mbapp || null;
+        if (mb && typeof mb === "object") {
+            var text = (mb.action ? ("MBApp: " + mb.action + " — ") : "MBApp: ") + (mb.msg || "");
+            if (window.Swal) {
+                Swal.fire({
+                    icon: (mb.ok ? "success" : "warning"),
+                    title: "Salvato",
+                    text: text,
+                    timer: 1700,
+                    showConfirmButton: false
+                });
+            } else {
+                if (!mb.ok) alert(text);
+            }
+        } else {
+            if (window.Swal) {
+                Swal.fire({
+                    icon: "success",
+                    title: "Salvato",
+                    timer: 1200,
+                    showConfirmButton: false
+                });
+            }
+        }
+
+    }, "json").fail(function (xhr, st, err) {
+
+        $("#sportelloModalLoadingOverlay").hide();
+        $("#btnSportelloSave").prop("disabled", false);
+        try { setSportelloModalBusy(false, "save_fail"); } catch (e) { }
+
+        console.error("[sportelloSave] AJAX FAIL", st, err, xhr && xhr.responseText);
+
+        if (window.Swal) Swal.fire({ icon: "error", title: "Errore", text: "Errore di rete o server durante il salvataggio." });
+        else alert("Errore di rete o server durante il salvataggio.");
+    });
+}
+
+
 function setSportelloModalBusy(isBusy, reason) {
-  const $m = $("#sportello_modal");
-  $m.data("busy", isBusy ? 1 : 0);
+    const $m = $("#sportello_modal");
+    $m.data("busy", isBusy ? 1 : 0);
 
-  console.log("[modalBusy]", { isBusy: !!isBusy, reason: reason || "" });
+    console.log("[modalBusy]", { isBusy: !!isBusy, reason: reason || "" });
 
-  // Disabilita solo i campi del form + save, NON i pulsanti di chiusura
-  const $toDisable = $m.find("input, textarea, select, button")
-    .not('[data-dismiss="modal"]')
-    .not('.close')
-    .not('.btn-close');
+    // Disabilita solo i campi del form + save, NON i pulsanti di chiusura
+    const $toDisable = $m.find("input, textarea, select, button")
+        .not('[data-dismiss="modal"]')
+        .not('.close')
+        .not('.btn-close');
 
-  $toDisable.prop("disabled", !!isBusy);
+    $toDisable.prop("disabled", !!isBusy);
 
-  // bootstrap-select refresh
-  $m.find("select.selectpicker").each(function () {
-    const $s = $(this);
-    if ($s.is('[data-dismiss="modal"]')) return;
-    $s.prop("disabled", !!isBusy).selectpicker("refresh");
-  });
+    // bootstrap-select refresh
+    $m.find("select.selectpicker").each(function () {
+        const $s = $(this);
+        if ($s.is('[data-dismiss="modal"]')) return;
+        $s.prop("disabled", !!isBusy).selectpicker("refresh");
+    });
 }
 
 function resetSportelloModalEnabledState() {
-  const $m = $("#sportello_modal");
+    const $m = $("#sportello_modal");
 
-  console.log("[resetSportelloModalEnabledState] BEFORE", {
-    disabled_inputs: $m.find(":input:disabled").length,
-    backdrops: $(".modal-backdrop").length,
-    body_modal_open: $("body").hasClass("modal-open")
-  });
+    console.log("[resetSportelloModalEnabledState] BEFORE", {
+        disabled_inputs: $m.find(":input:disabled").length,
+        backdrops: $(".modal-backdrop").length,
+        body_modal_open: $("body").hasClass("modal-open")
+    });
 
-  $m.data("busy", 0);
+    $m.data("busy", 0);
 
-  // Riabilita tutto
-  $m.find("input, textarea, select, button").prop("disabled", false).removeClass("disabled");
-  $m.find("select.selectpicker").each(function () {
-    $(this).prop("disabled", false).selectpicker("refresh");
-  });
+    // Riabilita tutto
+    $m.find("input, textarea, select, button").prop("disabled", false).removeClass("disabled");
+    $m.find("select.selectpicker").each(function () {
+        $(this).prop("disabled", false).selectpicker("refresh");
+    });
 
-  // Pulisci eventuali backdrops zombie
-  const $b = $(".modal-backdrop");
-  if ($b.length > 1) $b.not(":last").remove();
+    // Pulisci eventuali backdrops zombie
+    const $b = $(".modal-backdrop");
+    if ($b.length > 1) $b.not(":last").remove();
 
-  console.log("[resetSportelloModalEnabledState] AFTER", {
-    disabled_inputs: $m.find(":input:disabled").length,
-    backdrops: $(".modal-backdrop").length,
-    body_modal_open: $("body").hasClass("modal-open")
-  });
+    console.log("[resetSportelloModalEnabledState] AFTER", {
+        disabled_inputs: $m.find(":input:disabled").length,
+        backdrops: $(".modal-backdrop").length,
+        body_modal_open: $("body").hasClass("modal-open")
+    });
 }
 
 // Aggancia una sola volta (mettilo in document.ready)
 $(document).off("hidden.bs.modal.sportelloFix", "#sportello_modal");
 $(document).on("hidden.bs.modal.sportelloFix", "#sportello_modal", function () {
-  console.log("[sportello_modal] hidden.bs.modal -> force reset enable");
-  resetSportelloModalEnabledState();
+    console.log("[sportello_modal] hidden.bs.modal -> force reset enable");
+    resetSportelloModalEnabledState();
 });
 
 
@@ -522,7 +743,14 @@ function sportelloGetDetails(sportello_id) {
         console.warn("[sportelloGetDetails] reset/busy reset error", e);
     }
 
-    $("#hidden_sportello_id").val(sportello_id);
+    // ✅ NEW: se arriva -1 (nuovo) NON deve finire nel hidden come -1
+    // perché sportelloSave.php aggiornato si aspetta id > 0 per UPDATE
+    // e per INSERT deve ricevere id=0.
+    if (sportello_id <= 0) {
+        $("#hidden_sportello_id").val(0);
+    } else {
+        $("#hidden_sportello_id").val(sportello_id);
+    }
 
     if (sportello_id > 0) {
 
@@ -551,6 +779,10 @@ function sportelloGetDetails(sportello_id) {
 
             // aula attuale
             var aulaDb = (sportello.sportello_luogo || "").trim();
+
+            // ✅ memorizzo sempre l’aula “corrente”
+            try { $("#luogo").attr("data-current", aulaDb); } catch (e) { }
+
             if (aulaDb) {
                 ensureSelectHasOption($("#luogo"), aulaDb, aulaDb + " (attuale)");
                 $("#luogo").val(aulaDb).selectpicker('refresh');
@@ -561,9 +793,11 @@ function sportelloGetDetails(sportello_id) {
             var isAttivo = (parseInt(sportello.sportello_attivo, 10) === 1);
             console.log("[sportelloGetDetails] isAttivo =", isAttivo, "aulaDb=", aulaDb);
 
-            // aggiorna lista aule (include aula corrente se attivo)
             setTimeout(function () {
-                verificaAulaCorrenteDidattica({ includiAulaCorrente: isAttivo });
+                verificaAulaCorrenteDidattica({
+                    includiAulaCorrente: isAttivo,
+                    includeAula: (isAttivo ? aulaDb : "")
+                });
             }, 150);
 
             // classe
@@ -633,18 +867,34 @@ function sportelloGetDetails(sportello_id) {
 
         console.log("[sportelloGetDetails] NEW sportello init");
 
+        // ✅ oggi
         data_pickr.setDate(Date.today().toString('d/M/yyyy'));
+
+        // ✅ 13:50
         $("#ora").selectpicker('val', "13:50").selectpicker('refresh');
 
+        // select iniziali
         $('#docente').val("0").selectpicker('refresh');
         $('#materia').val("0").selectpicker('refresh');
         $('#categoria').val("0").selectpicker('refresh');
 
-        $("#numero_ore").val("0");
+        // ✅ numero ore = 1
+        $("#numero_ore").val("1");
         $("#argomento").val("");
 
+        // ✅ reset aula corrente (nuovo sportello)
+        try { $("#luogo").attr("data-current", ""); } catch (e) { }
+
         $("#luogo").val("").selectpicker('refresh');
-        setTimeout(function () { verificaAulaCorrenteDidattica({ includiAulaCorrente: false }); }, 100);
+
+        // ✅ lista aule libere per oggi/13:50/durata 1
+        setTimeout(function () {
+            verificaAulaCorrenteDidattica({
+                includiAulaCorrente: false,
+                includeAula: "",
+                durataOre: 1 // se la tua funzione lo supporta; altrimenti ignora
+            });
+        }, 100);
 
         $('#classe').val("0").selectpicker('refresh');
 
@@ -653,7 +903,6 @@ function sportelloGetDetails(sportello_id) {
         $("#firmato").prop('checked', false);
 
         if ($('#hidden_sezione_online_clil').val() == 'true') {
-            // 🔧 FIX: era "#onine" -> "#online"
             $("#online").prop('checked', false);
             $("#clil").prop('checked', false);
             $("#orientamento").prop('checked', false);
@@ -721,27 +970,68 @@ function importFile(file) {
 }
 
 function sportelloDuplica(id) {
-    console.log("[sportelloDuplica] START id=", id);
 
-    $.post("sportelloDuplica.php", { sportello_id: id }, function (resp) {
-        console.log("[sportelloDuplica] RESPONSE", resp);
+    if (typeof Swal === 'undefined') {
+        // fallback
+        if (!confirm("Vuoi duplicare lo sportello? Il nuovo sportello sarà in bozza (aula vuota).")) return;
+        doDup();
+        return;
+    }
 
-        if (resp && resp.ok && resp.new_sportello_id) {
-
-            sportelloReadRecords();
-
-            console.log("[sportelloDuplica] OPEN NEW sportello_id=", resp.new_sportello_id);
-            sportelloGetDetails(parseInt(resp.new_sportello_id, 10));
-
-        } else {
-            alert((resp && resp.msg) ? resp.msg : "Errore duplicazione.");
-        }
-    }, "json").fail(function (xhr, st, err) {
-        console.error("[sportelloDuplica] FAIL", st, err, xhr && xhr.responseText);
-        alert("Errore di rete o server durante la duplicazione.");
+    Swal.fire({
+        title: 'Duplicare lo sportello?',
+        text: 'Verrà creato un nuovo sportello in BOZZA (aula vuota) e senza collegamenti MBApp.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sì, duplica',
+        cancelButtonText: 'Annulla'
+    }).then((res) => {
+        if (res.isConfirmed) doDup();
     });
-}
 
+    function doDup() {
+        console.log("[sportelloDuplica] START id=", id);
+        showSpinner();
+
+        $.post("sportelloDuplica.php", { sportello_id: id }, function (resp) {
+            console.log("[sportelloDuplica] RESPONSE", resp);
+            hideSpinner();
+
+            if (resp && resp.ok && resp.new_sportello_id) {
+
+                // ricarica lista
+                sportelloReadRecords();
+
+                // apri dettaglio del nuovo sportello
+                console.log("[sportelloDuplica] OPEN NEW sportello_id=", resp.new_sportello_id);
+                sportelloGetDetails(parseInt(resp.new_sportello_id, 10));
+
+                Swal.fire({
+                    title: 'Duplicato!',
+                    text: 'Creato nuovo sportello ID ' + resp.new_sportello_id + ' (aula vuota, bozza).',
+                    icon: 'success',
+                    timer: 1800,
+                    showConfirmButton: false
+                });
+
+            } else {
+                Swal.fire({
+                    title: 'Errore duplicazione',
+                    text: (resp && resp.msg) ? resp.msg : 'Errore duplicazione.',
+                    icon: 'error'
+                });
+            }
+        }, "json").fail(function (xhr, st, err) {
+            hideSpinner();
+            console.error("[sportelloDuplica] FAIL", st, err, xhr && xhr.responseText);
+            Swal.fire({
+                title: 'Errore di rete o server',
+                text: 'Impossibile duplicare lo sportello.',
+                icon: 'error'
+            });
+        });
+    }
+}
 
 function importStudents(file, selezione) {
     var contenuto = "";
@@ -794,9 +1084,9 @@ $(document).ready(function () {
     });
 
     $(document).on('click', ".bootstrap-select[data-id='luogo'] button", function () {
-        const aulaCorr = ($("#luogo").val() || "").trim();
-        // includi aula corrente (così vedi sempre quella dello sportello)
-        verificaAulaCorrenteDidattica({ includiAulaCorrente: true });
+        var aulaCorr = ($("#luogo").attr("data-current") || "").trim() || ($("#luogo").val() || "").trim();
+        verificaAulaCorrenteDidattica({ includiAulaCorrente: (aulaCorr !== ""), includeAula: aulaCorr });
+
     });
 
 
@@ -804,12 +1094,23 @@ $(document).ready(function () {
     $('#luogo').selectpicker();
 
     $("#ora").on("change", function () {
-        // se lo sportello è attivo lo capisci solo quando lo carichi;
-        // per ora: includi aula corrente SOLO se esiste un valore già settato
-        const aulaCorr = ($("#luogo").val() || "").trim();
-        verificaAulaCorrenteDidattica({ includiAulaCorrente: (aulaCorr !== "") });
+        var aulaCorr = ($("#luogo").attr("data-current") || "").trim() || ($("#luogo").val() || "").trim();
+        verificaAulaCorrenteDidattica({ includiAulaCorrente: (aulaCorr !== ""), includeAula: aulaCorr });
+
     });
 
+    $("#numero_ore").on("change", function () {
+        var aulaCorr = ($("#luogo").attr("data-current") || "").trim() || ($("#luogo").val() || "").trim();
+        verificaAulaCorrenteDidattica({ includiAulaCorrente: (aulaCorr !== ""), includeAula: aulaCorr });
+
+    });
+
+    // se anche data cambia:
+    $("#data").on("change", function () {
+        var aulaCorr = ($("#luogo").attr("data-current") || "").trim() || ($("#luogo").val() || "").trim();
+        verificaAulaCorrenteDidattica({ includiAulaCorrente: (aulaCorr !== ""), includeAula: aulaCorr });
+
+    });
 
     sportelloReadRecords();
 

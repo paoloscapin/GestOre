@@ -139,6 +139,26 @@ require_once '../common/checkSession.php';
             width: 170px;
             white-space: nowrap;
         }
+
+        /* Titolo */
+        .swal2-title {
+            font-size: 1.6rem !important;
+            /* default ~1.25rem */
+        }
+
+        /* Testo */
+        .swal2-html-container,
+        .swal2-content {
+            font-size: 1.2rem !important;
+            /* default ~1rem */
+        }
+
+        /* Pulsanti */
+        .swal2-confirm,
+        .swal2-cancel {
+            font-size: 1.1rem !important;
+            padding: 0.6em 1.6em;
+        }
     </style>
 </head>
 
@@ -587,7 +607,7 @@ if ($nclassi > 0) {
     </div>
 
     <!-- Custom JS file -->
-     <!-- SweetAlert2 -->
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>"></script>
 

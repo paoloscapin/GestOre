@@ -8,16 +8,18 @@
  */
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('dirigente','segreteria-didattica');
+ruoloRichiesto('dirigente', 'segreteria-didattica');
 
-function startsWith($haystack, $needle) {
+function startsWith($haystack, $needle)
+{
     $length = strlen($needle);
     return (substr($haystack, 0, $length) === $needle);
 }
 
 $terminatoCorrettamente = true;
 
-function erroreDiImport($messaggio) {
+function erroreDiImport($messaggio)
+{
     global $dataHtml;
     global $linePos;
     global $sqlList;
@@ -25,13 +27,14 @@ function erroreDiImport($messaggio) {
 
     $terminatoCorrettamente = false;
     warning("Errore di import linea $linePos: " . $messaggio);
-    $dataHtml = $dataHtml . "<strong>Errore di import linea $linePos:</strong> " . $messaggio .'<br>';
+    $dataHtml = $dataHtml . "<strong>Errore di import linea $linePos:</strong> " . $messaggio . '<br>';
 
     // azzera le istruzioni sql
-   // $sqlList = array();
+    // $sqlList = array();
 }
 
-function getWordContent($words, $pos) {
+function getWordContent($words, $pos)
+{
     if (count($words) < $pos) {
         return '';
     }
@@ -43,8 +46,8 @@ $dataHtml = '';
 $sqlList = array();
 
 $src = '';
-if(isset($_POST)) {
-	$src = trim($_POST['contenuto']);
+if (isset($_POST)) {
+    $src = trim($_POST['contenuto']);
 }
 $lines_array = explode("\n", $src);
 $lines = array_filter($lines_array, 'trim');
@@ -54,12 +57,12 @@ $linePos = 0;
 $sportelli = 0;
 
 // scorre tutte le linee del csv
-foreach($lines as $line) {
-    $linePos ++;
+foreach ($lines as $line) {
+    $linePos++;
 
     // scompone i csv
     $words = str_getcsv($line);
-    if (startswith( $line, "#") || empty($line)) {
+    if (startswith($line, "#") || empty($line)) {
         debug('Skip line: ' . $line);
         continue;
     }
@@ -73,7 +76,7 @@ foreach($lines as $line) {
         break;
     }
     $categoria = getWordContent($words, 0);
-    $dataCsv = getWordContent($words,1 );
+    $dataCsv = getWordContent($words, 1);
     $ora = getWordContent($words, 2);
     $docente_cognome = getWordContent($words, 3);
     $docente_nome = getWordContent($words, 4);
@@ -89,26 +92,33 @@ foreach($lines as $line) {
 
     // data
     $data = DateTime::createFromFormat('d/m/Y', $dataCsv)->format('Y-m-d');
+    $attivo = 0;
 
-    // docente
-    $query = "SELECT docente.id FROM docente WHERE docente.cognome LIKE '$docente_cognome' COLLATE utf8_general_ci ";
-    if (!empty($docente_nome)) {
-        $query .= " AND docente.nome LIKE '$docente_nome' COLLATE utf8_general_ci ";
+    if ($docente_cognome != "" and $docente_nome != "") {
+        // docente
+        $query = "SELECT docente.id FROM docente WHERE docente.cognome LIKE '$docente_cognome' COLLATE utf8_general_ci ";
+        if (!empty($docente_nome)) {
+            $query .= " AND docente.nome LIKE '$docente_nome' COLLATE utf8_general_ci ";
+        }
+        $query .= " AND docente.attivo = true ";
+        $docente_id_list = dbGetAll($query);
+        // controlla di avere trovato almeno un docente
+        if (count($docente_id_list) == 0) {
+            erroreDiImport("docente non trovato cognome=$docente_cognome nome=$docente_nome");
+            break;
+        }
+        // controlla che non ce ne siano piu' di uno
+        if (count($docente_id_list) > 1) {
+            erroreDiImport("piu' docenti corrispondono alla ricerca cognome=$docente_cognome nome=$docente_nome");
+            break;
+        }
+        // se tutto va bene c'e' un solo valore
+        $docente_id = $docente_id_list[0]['id'];
+        $attivo = 1;
+    } else {
+        $docente_id = 0; // sportello senza docente - BOZZA
     }
-    $query .=" AND docente.attivo = true ";
-    $docente_id_list = dbGetAll($query);
-    // controlla di avere trovato almeno un docente
-    if (count($docente_id_list) == 0) {
-        erroreDiImport("docente non trovato cognome=$docente_cognome nome=$docente_nome");
-        break;
-    }
-    // controlla che non ce ne siano piu' di uno
-    if (count($docente_id_list) > 1) {
-        erroreDiImport("piu' docenti corrispondono alla ricerca cognome=$docente_cognome nome=$docente_nome");
-        break;
-    }
-    // se tutto va bene c'e' un solo valore
-    $docente_id = $docente_id_list[0]['id'];
+
 
     // materia
     $materia_id = dbGetValue("SELECT materia.id FROM materia WHERE materia.nome = '$materia'");
@@ -154,7 +164,7 @@ foreach($lines as $line) {
         $orientamento_value = 1;
     }
 
-    if (!$__settings->sportelli->import_sportelli_docente_stesso_orario) //leggo impostazione file JSON
+    if (!$__settings->sportelli->import_sportelli_docente_stesso_orario && ($docente_id != 0)) //leggo impostazione file JSON
     {
         // prima di accettare controlla che il docente non abbia già uno sportello a quell'ora
         $sportelloPrecedente = dbGetFirst("SELECT * FROM sportello WHERE docente_id = $docente_id AND data = '$data' AND ora = '$ora' AND anno_scolastico_id=$__anno_scolastico_corrente_id;");
@@ -163,25 +173,24 @@ foreach($lines as $line) {
             continue;
         }
     }
-    $insertSportelloSql = "INSERT INTO sportello(categoria, data, ora, docente_id, materia_id, classe_id, numero_ore, max_iscrizioni, argomento, luogo, classe, online, clil, orientamento, anno_scolastico_id) VALUES('$categoria', '$data', '$ora', '$docente_id', '$materia_id', '$classe_id', '$numero_ore', '$max_iscrizioni', '$argomento_opzionale', '$luogo', '$classe', '$online_value', '$clil_value', '$orientamento_value', $__anno_scolastico_corrente_id); ";
+    $insertSportelloSql = "INSERT INTO sportello(categoria, attivo, data, ora, docente_id, materia_id, classe_id, numero_ore, max_iscrizioni, argomento, luogo, classe, online, clil, orientamento, anno_scolastico_id) VALUES('$categoria', '$attivo', '$data', '$ora', '$docente_id', '$materia_id', '$classe_id', '$numero_ore', '$max_iscrizioni', '$argomento_opzionale', '$luogo', '$classe', '$online_value', '$clil_value', '$orientamento_value', $__anno_scolastico_corrente_id); ";
     info("SPORTELLO SQL : " . $insertSportelloSql);
     $sqlList[] = $insertSportelloSql;
-    $sportelli++ ;
+    $sportelli++;
 }
 
 // esegue la query se non vuota
 if (!empty($sqlList)) {
-    foreach($sqlList as $sql) {
+    foreach ($sqlList as $sql) {
         dbExec($sql);
     }
 
     info('Import effettuato: inseriti ' . $sportelli . ' nuovi sportelli');
 }
 
-if ($sportelli>0) {
+if ($sportelli > 0) {
     echo '<strong>Import effettuato: inseriti ' . $sportelli . ' nuovi sportelli</strong>';
 }
 if ($dataHtml != '') {
     echo $dataHtml;
 }
-?>

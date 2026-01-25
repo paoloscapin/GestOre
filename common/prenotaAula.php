@@ -2,6 +2,57 @@
 
 /**
  * prenotaAula.php
+ * 
+ * Handles classroom (aula) booking requests with integration between GestOre and MBApp databases.
+ * 
+ * FUNCTIONALITY:
+ * - Inserts booking data into MBApp (assenze, oralezione, utilizza tables)
+ * - Prevents duplicate bookings via GestOre's sportello_mbapp_link table
+ * - Sends confirmation email notification
+ * - Returns JSON response with booking details and status
+ * 
+ * DATABASE RULES:
+ * - MBApp operations: use mb_dbExec(), mb_dbGetFirst(), mb_dbGetValue() only
+ * - GestOre operations: use dbExec(), dbGetFirst() only
+ * - Anti-duplication: check sportello_mbapp_link before inserting
+ * 
+ * REQUIRED POST PARAMETERS:
+ * - nroAula (string): classroom number
+ * - dataInizio (string): start date
+ * - oraInizio (string): start time
+ * - oraFine (string): end time
+ * - idSportello (int, optional): desk ID for anti-duplication
+ * - motivo (string, optional): booking reason
+ * - dettagli (string, optional): additional details
+ * - attivitaProgetto (string, optional): activity type (default: "sportello")
+ * 
+ * DEPENDENCIES:
+ * - checkSession.php: session validation
+ * - connect.php: GestOre database connection
+ * - connectMBApp.php: MBApp database connection and helpers
+ * - send-mail.php: sendMail() function
+ * 
+ * RESPONSE:
+ * - JSON object with ok status, trace log, and booking IDs
+ * - Includes link save status and mail sent status (non-blocking)
+ * - Fatal errors caught via shutdown handler
+ * 
+ * FLOW:
+ * 1. Validate MBApp is enabled in settings
+ * 2. Check required POST parameters
+ * 3. Verify anti-duplication via sportello_mbapp_link (GestOre)
+ * 4. Insert assenze record (MBApp)
+ * 5. Insert oralezione record (MBApp)
+ * 6. Insert utilizza record (MBApp)
+ * 7. Save link in sportello_mbapp_link (GestOre)
+ * 8. Send confirmation email (non-blocking)
+ * 
+ * SECURITY:
+ * - Uses addslashes() for legacy escaping (minimal protection)
+ * - Validates user session via checkSession.php
+ * - HTML-encodes email content
+ * - Handles all exceptions gracefully
+ *
  * - INSERT su MBApp + invio mail
  * - EVITA DUPLICATI con tabella GestOre: sportello_mbapp_link
  * - Scrive link (idAssenza/idCalendario) in GestOre DB dopo commit
