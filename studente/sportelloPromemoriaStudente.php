@@ -125,7 +125,11 @@ foreach ($resultArray as $row) {
 
 			$full_mail_body = str_replace("{titolo}", "PROMEMORIA ATTIVITA'<br>" . $sportello_categoria, $full_mail_body);
 			$full_mail_body = str_replace("{nome}", strtoupper($studente_cognome) . " " . strtoupper($studente_nome), $full_mail_body);
-			$full_mail_body = str_replace("{messaggio}", "questo è il promemoria per l'attività </p><h3 style='background-color:yellow; font-size:20px; text-align:center; font-weight:bold'>" . $sportello_categoria . "</h3>", $full_mail_body);
+			$full_mail_body = str_replace(
+				"{messaggio}",
+				"Ti ricordiamo l'attività prenotata per domani. Presentati puntuale e controlla i dettagli qui sotto.",
+				$full_mail_body
+			);
 			$full_mail_body = str_replace("{data}", $sportello_data, $full_mail_body);
 			$full_mail_body = str_replace("{ora}", $sportello_ora, $full_mail_body);
 			$full_mail_body = str_replace("{docente}", strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome), $full_mail_body);
