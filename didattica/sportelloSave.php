@@ -198,7 +198,7 @@ try {
                 if ($materiaNome === '') $materiaNome = 'DIDATTICO';
                 if ($docenteNome === '') $docenteNome = 'Segreteria didattica';
 
-                $titoloSportello = "SPORTELLO " . trim($materiaNome);
+                $titoloSportello = "IMPEGNO IN ISTITUTO ";
                 $dettagliTxt = trim(($categoria ?? '') . (trim($argomento) !== '' ? " - " . trim($argomento) : ''));
 
                 $mbapp = mbapp_sync_sportello((int)$id, [
