@@ -31,55 +31,105 @@ function programmaGetDetails(programma_id) {
     $("#hidden_programma_id").val(programma_id);
 
     if (programma_id > 0) {
-        $.post("../didattica/programmaReadDetails.php", {
-            programma_id: programma_id
-        }, function (data, status) {
+        $.post("../didattica/programmaReadDetails.php", { programma_id: programma_id }, function (data, status) {
             var programma = JSON.parse(data);
-            $('#anno').selectpicker('val', programma.programma_anno);
-            $('#indirizzo').selectpicker('val', programma.programma_idindirizzo);
-            $('#materia').selectpicker('val', programma.programma_idmateria);
+
+            $('#anno').selectpicker('val', programma.programma_anno).selectpicker('refresh');
+            $('#indirizzo').selectpicker('val', programma.programma_idindirizzo).selectpicker('refresh');
+            $('#materia').selectpicker('val', programma.programma_idmateria).selectpicker('refresh');
         });
+
         moduliReadRecords(programma_id);
+    } else {
+        $('#anno').val("0").selectpicker('refresh');
+        $('#indirizzo').val("0").selectpicker('refresh');
+        $('#materia').val("0").selectpicker('refresh');
     }
-    else {
-        $('#anno').val("0");
-        $('#anno').selectpicker('refresh');
-        $('#indirizzo').val("0");
-        $('#indirizzo').selectpicker('refresh');
-        $('#materia').val("0");
-        $('#materia').selectpicker('refresh');
-    }
+
     $("#_error-programma-part").hide();
     $("#programma_modal").modal("show");
 }
 
+function setModuloModalEditable(canEdit) {
+    var $modal = $("#modulo_modal");
+
+    // campi
+    var $fields = $modal.find("input:not([type=hidden]), textarea, select");
+    $fields.prop("disabled", !canEdit);
+
+    // selectpicker refresh se presenti
+    try { $modal.find("select.selectpicker").selectpicker("refresh"); } catch (e) {}
+
+    // testo chiudi
+    $("#btnModuloClose").text(canEdit ? "Annulla" : "Chiudi");
+
+    // ✅ bottone salva: esiste sempre (grazie alla patch PHP)
+    if (canEdit) {
+        $("#btnModuloSave").prop("disabled", false).show();
+    } else {
+        $("#btnModuloSave").prop("disabled", true).hide(); // oppure show() ma disabled, a tua scelta
+    }
+}
+
+
 function moduloGetDetails(modulo_id) {
     $("#hidden_modulo_id").val(modulo_id);
-    nmoduli = parseInt($("#hidden_nmoduli").val());
+    var nmoduli = parseInt($("#hidden_nmoduli").val(), 10) || 0;
+
+    // default: apro in read-only e poi eventualmente abilito
+    setModuloModalEditable(false);
+
+    $("#_error-modulo-part").hide();
 
     if (modulo_id > 0) {
-        $.post("../didattica/moduloReadDetails.php", {
-            modulo_id: modulo_id
-        }, function (data, status) {
-            var programma = JSON.parse(data);
-            $('#titolo').val(programma.modulo_nome);
-            $('#ordine').val(programma.modulo_ordine);
-            $('#conoscenze').val(programma.modulo_conoscenze);
-            $('#abilita').val(programma.modulo_abilita);
-            $('#competenze').val(programma.modulo_competenze);
-            $('#periodo').val(programma.modulo_periodo);
+
+        $.ajax({
+            url: "../didattica/moduloReadDetails.php",
+            type: "POST",
+            dataType: "json",
+            data: { modulo_id: modulo_id },
+            success: function (programma) {
+
+                if (!programma || !programma.ok) {
+                    var msg = (programma && programma.error) ? programma.error : "Errore lettura modulo.";
+                    alert(msg);
+                    return;
+                }
+
+                $('#titolo').val(programma.modulo_nome || "");
+                $('#ordine').val(programma.modulo_ordine || "");
+                $('#conoscenze').val(programma.modulo_conoscenze || "");
+                $('#abilita').val(programma.modulo_abilita || "");
+                $('#competenze').val(programma.modulo_competenze || "");
+                $('#periodo').val(programma.modulo_periodo || "");
+                console.log(parseInt(programma.can_edit, 10) === 1);
+                // ✅ qui la parte chiave: abilito se coordinatore (o segreteria/dirigente)
+                setModuloModalEditable(parseInt(programma.can_edit, 10) === 1);
+
+                $("#modulo_modal").modal("show");
+            },
+            error: function (xhr, st, err) {
+                console.error("moduloReadDetails FAIL", st, err, xhr && xhr.responseText);
+                alert("Errore lettura modulo (vedi console).");
+            }
         });
+
+    } else {
+        // nuovo modulo
+        $('#titolo').val("");
+        $('#ordine').val(nmoduli + 1);
+        $('#conoscenze').val("");
+        $('#abilita').val("");
+        $('#competenze').val("");
+        $('#periodo').val("");
+        setModuloModalEditable(true);
+        // ⚠️ per il nuovo modulo serve comunque sapere se può editare:
+        // se il tuo contesto “programma corrente” è noto (es. hidden_programma_id),
+        // allora fai una chiamata a un endpoint che restituisce can_edit per quel programma.
+        // Per ora (patch minima): lo lasciamo in read-only finché non mi dici come recuperi programma_id.
+
+        $("#modulo_modal").modal("show");
     }
-    else {
-            $('#titolo').val("");
-            $('#ordine').val(nmoduli+1);
-            $('#conoscenze').val("");
-            $('#abilita').val("");
-            $('#competenze').val("");
-            $('#periodo').val("");
-    }
-    $("#_error-modulo-part").hide();
-    $("#modulo_modal").modal("show");
 }
 
 function programmaDelete(id, materia) {

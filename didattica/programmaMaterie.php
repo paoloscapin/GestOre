@@ -36,7 +36,8 @@ ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
 </head>
 
 <?php
-if (((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))  || ((haRuolo('docente')) && (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) && (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false))) )
+
+if (((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) || ((haRuolo('docente')) && (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) && (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false))) )
 {
     $modificheDisabilitate = '';
 } else {
@@ -354,24 +355,25 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                     <button type="button" class="btn btn-primary" onclick="moduloSave()">Salva</button>';		
                                 }
                                 else
-                                if (haRuolo('docente')) 
-                                {
-                                    if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) 
-                                    {
-                                        if (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false)) 
-                                                                                {
-                                                echo '
-                                                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                                <button type="button" class="btn btn-primary" onclick="moduloSave()">Salva</button>';				
-                                        } 
-                                    else 
-                                        {
-                                                echo '
-                                                <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>';
-                                                
-                                        }          
+                                    if (haRuolo('segreteria-didattica')) {
+                                        echo '
+                                            <button type="button" class="btn btn-default" data-dismiss="modal" id="btnModuloClose">Annulla</button>
+                                            <button type="button" class="btn btn-primary" onclick="moduloSave()" id="btnModuloSave">Salva</button>';
                                     }
-                                }
+                                    else if (haRuolo('docente')) {
+
+                                        // se NON è visibile ai docenti, non mostrare proprio il modale/edit (come fai già)
+                                        if (getSettingsValue("programmiMaterie", "visibile_docenti", false)) {
+
+                                            // ✅ QUI: mostro SEMPRE il bottone Salva ai docenti,
+                                            // ma lo lascio nascosto/disabled di default.
+                                            echo '
+                                                <button type="button" class="btn btn-default" data-dismiss="modal" id="btnModuloClose">Chiudi</button>
+                                                <button type="button" class="btn btn-primary" onclick="moduloSave()" id="btnModuloSave" style="display:none;" disabled>Salva</button>';
+                                        }
+                                    }
+
+
 
                                 ?>
                             </div>

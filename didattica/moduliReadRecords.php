@@ -25,6 +25,30 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					</tr>
 					</thead>';
 
+$is_coordinatore = false;
+$id_dipartimento = 0;
+
+if ((haRuolo('docente')) && (!haRuolo('admin')) && (!haRuolo('dirigente')) && (!haRuolo('segreteria-didattica'))) {
+	$query = " SELECT * FROM coordinatori_dipartimento WHERE id_anno_scolastico=" . $__anno_scolastico_corrente_id . " AND id_docente=" . $__docente_id;
+	$result = dbGetFirst($query);
+	if ($result != null) {
+		$is_coordinatore = true;
+		$id_dipartimento = $result['id_dipartimento'];
+	}
+	$query = "SELECT id_materia from programma_materie WHERE id=$programma_id";
+	$result = dbGetFirst($query);
+	$id_materia = $result['id_materia'];
+	if ($is_coordinatore) {
+		$query = "SELECT id_dipartimento from materia WHERE id=$id_materia";
+		$result = dbGetFirst($query);
+		$id_dipartimento_materia = $result['id_dipartimento'];
+		if ($id_dipartimento_materia != $id_dipartimento) {
+			// non è coordinatore del dipartimento di questa materia
+			$is_coordinatore = false;
+		}
+	}
+}
+
 $query = "	SELECT
 					programma_moduli.id AS modulo_id,
 					programma_moduli.id_programma AS programma_id,
@@ -70,16 +94,16 @@ foreach ($resultArray as $row) { {
 			';
 		} else
 			if (haRuolo('docente')) {
-				if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
-					if (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false)) {
-						$data .= '
+			if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
+				if (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false) || $is_coordinatore) {
+					$data .= '
   						<button onclick="moduloGetDetails(' . $idmodulo . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la materia"><span class="glyphicon glyphicon-pencil"></button>';
-					} else {
-						$data .= '
+				} else {
+					$data .= '
 						<button onclick="moduloGetDetails(' . $idmodulo . ')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Vedi il dettaglio del modulo"><span class="glyphicon glyphicon-search"></button>';
-					}
 				}
 			}
+		}
 
 		$data .= '
 		</td>
@@ -91,4 +115,3 @@ $data .= '</table></div>';
 $data .= '<input type="hidden" id="hidden_nmoduli" value=' . $nmoduli . '>';
 
 echo $data;
-?>
