@@ -165,12 +165,17 @@ foreach ($resultArray as $row) {
 		$vecchio = 1;
 	}
 
-	$dataSportello = '';
-	if ($row['sportello_data']) {
-		$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
-		$dataSportello = utf8_encode(strftime("%d %B %Y", strtotime($row['sportello_data'])));
-		setlocale(LC_TIME, $oldLocale);
-	}
+	$fmt = new IntlDateFormatter(
+		'it_IT',
+		IntlDateFormatter::FULL,
+		IntlDateFormatter::NONE,
+		'Europe/Rome',
+		IntlDateFormatter::GREGORIAN,
+		'EEE dd/MM/yyyy'
+	);
+
+	$dataSportello = $fmt->format(new DateTime($row['sportello_data']));
+
 
 	// tooltip studenti prenotati
 	$studenteTip = '';

@@ -111,11 +111,11 @@ WHERE s.anno_scolastico_id = $__anno_scolastico_corrente_id AND s.attivo = 1
 
 -- ✅ FILTRO NUOVO: lo sportello è visibile se s.classe_id è in classi_include.into_classe_id
 --    per la classe corrente dello studente (sf.id_classe)
-AND EXISTS (
-    SELECT 1
-    FROM classi_include ci
-    WHERE ci.classi_id = sf.id_classe
-      AND ci.into_classe_id = s.classe_id
+ AND EXISTS (
+     SELECT 1
+     FROM classi_include ci
+     WHERE ci.classi_id = sf.id_classe
+       AND ci.into_classe_id = s.classe_id
 )
 			";
 
@@ -167,9 +167,16 @@ foreach ($resultArray as $row) {
 		$passato = ($sportelloDate < $todayDate);
 		debug("passato=" . ($passato ? 'true' : 'false') . " (sportelloDate=" . $sportelloDate->format('Y-m-d H:i:s') . ", todayDate=" . $todayDate->format('Y-m-d H:i:s') . ")");
 
-		$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
-		$dataSportello = utf8_encode(strftime("%d %B %Y", strtotime($row['sportello_data'])));
-		setlocale(LC_TIME, $oldLocale);
+		$fmt = new IntlDateFormatter(
+			'it_IT',
+			IntlDateFormatter::FULL,
+			IntlDateFormatter::NONE,
+			'Europe/Rome',
+			IntlDateFormatter::GREGORIAN,
+			'EEE dd/MM/yyyy'
+		);
+
+		$dataSportello = $fmt->format(new DateTime($row['sportello_data']));
 
 		// se ci sono prenotazioni, cerca la lista di studenti che sono prenotati
 		$studenteTip = '';

@@ -142,9 +142,17 @@ foreach ($resultArray as $row) {
         $passato       = ($sportelloDate < $todayDate);
 
         // Data in italiano
-        $oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
-        $dataSportelloDisp = utf8_encode(strftime("%d %B %Y", strtotime($row['sportello_data'])));
-        setlocale(LC_TIME, $oldLocale);
+        // Data in italiano
+        $fmt = new IntlDateFormatter(
+            'it_IT',
+            IntlDateFormatter::FULL,
+            IntlDateFormatter::NONE,
+            'Europe/Rome',
+            IntlDateFormatter::GREGORIAN,
+            'EEE dd/MM/yyyy'
+        );
+
+        $dataSportelloDisp = $fmt->format(new DateTime($row['sportello_data']));
 
         // Capienza
         $max_iscrizioni     = $row['sportello_max_iscrizioni'];

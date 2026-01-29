@@ -147,9 +147,17 @@ foreach ($resultArray as $row) {
 		$sportelloDate = new DateTime($row['sportello_data']);
 		$passato       = ($sportelloDate < $todayDate);
 
-		$oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
-		$dataSportello = utf8_encode(strftime("%d %B %Y", strtotime($row['sportello_data'])));
-		setlocale(LC_TIME, $oldLocale);
+        // Data in italiano
+        $fmt = new IntlDateFormatter(
+            'it_IT',
+            IntlDateFormatter::FULL,
+            IntlDateFormatter::NONE,
+            'Europe/Rome',
+            IntlDateFormatter::GREGORIAN,
+            'EEE dd/MM/yyyy'
+        );
+
+        $dataSportello = $fmt->format(new DateTime($row['sportello_data']));
 
 		// elenco studenti prenotati per tooltip (come nella studente)
 		$studenteTip = '';

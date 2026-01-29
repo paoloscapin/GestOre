@@ -1,4 +1,5 @@
 <?php
+
 /**
  *  This file is part of GestOre
  *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
@@ -12,7 +13,7 @@ require_once '../common/connect.php';
 $ancheCancellati    = isset($_GET["ancheCancellati"]) ? $_GET["ancheCancellati"] : "false";
 $soloNuovi          = isset($_GET["soloNuovi"]) ? (int)$_GET["soloNuovi"] : 0;
 $soloPrenotati      = isset($_GET["soloPrenotati"]) ? (int)$_GET["soloPrenotati"] : 0;
-$categoria_filtro_id= isset($_GET["categoria_filtro_id"]) ? (int)$_GET["categoria_filtro_id"] : 0;
+$categoria_filtro_id = isset($_GET["categoria_filtro_id"]) ? (int)$_GET["categoria_filtro_id"] : 0;
 $docente_filtro_id  = isset($_GET["docente_filtro_id"]) ? (int)$_GET["docente_filtro_id"] : 0;
 $materia_filtro_id  = isset($_GET["materia_filtro_id"]) ? (int)$_GET["materia_filtro_id"] : 0;
 $classe_filtro_id   = isset($_GET["classe_filtro_id"]) ? (int)$_GET["classe_filtro_id"] : 0;
@@ -29,10 +30,12 @@ if (is_string($ancheCancellati)) {
 $direzioneOrdinamento = "ASC";
 
 // helper escape (usa mysqli se disponibile, altrimenti fallback)
-function escHtmlAttr($s) {
+function escHtmlAttr($s)
+{
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
-function escSqlLike($s) {
+function escSqlLike($s)
+{
     // per usare in stringhe SQL "semplici" con addslashes (meglio: prepared, ma qui patch minimale)
     return addslashes((string)$s);
 }
@@ -147,9 +150,16 @@ foreach ($resultArray as $row) {
             $statoMarker = '<span class="label label-default">BOZZA</span>';
         }
 
-        $oldLocale = setlocale(LC_TIME, 'ita', 'it_IT');
-        $dataSportello = utf8_encode(strftime("%d %B %Y", strtotime($row['sportello_data'])));
-        setlocale(LC_TIME, $oldLocale);
+        $fmt = new IntlDateFormatter(
+            'it_IT',
+            IntlDateFormatter::FULL,
+            IntlDateFormatter::NONE,
+            'Europe/Rome',
+            IntlDateFormatter::GREGORIAN,
+            'EEE dd/MM/yyyy'
+        );
+
+        $dataSportello = $fmt->format(new DateTime($row['sportello_data']));
 
         // tooltip studenti
         $studenteTip = '';

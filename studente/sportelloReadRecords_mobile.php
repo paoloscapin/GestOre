@@ -26,7 +26,8 @@ echo '<style>
 
 // Funzione debug locale (se non già definita)
 if (!function_exists('debug')) {
-    function debug($msg) {
+    function debug($msg)
+    {
         error_log(date('d/m/Y - H:i:s') . "  [debug] sportelloMobile.php: " . $msg);
     }
 }
@@ -47,12 +48,12 @@ $nome_categoria = $categoria_filtro_id > 0
 
 debug("=== SPORTELLI MOBILE: inizio rendering ===");
 debug("Parametri GET: ancheCancellati=" . var_export($ancheCancellati, true) .
-      ", soloNuovi=" . var_export($soloNuovi, true) .
-      ", soloIscritto=" . var_export($soloIscritto, true) .
-      ", docente_filtro_id=" . var_export($docente_filtro_id, true) .
-      ", materia_filtro_id=" . var_export($materia_filtro_id, true) .
-      ", classe_filtro_id=" . var_export($classe_filtro_id, true) .
-      ", categoria_filtro_id=" . var_export($categoria_filtro_id, true));
+    ", soloNuovi=" . var_export($soloNuovi, true) .
+    ", soloIscritto=" . var_export($soloIscritto, true) .
+    ", docente_filtro_id=" . var_export($docente_filtro_id, true) .
+    ", materia_filtro_id=" . var_export($materia_filtro_id, true) .
+    ", classe_filtro_id=" . var_export($classe_filtro_id, true) .
+    ", categoria_filtro_id=" . var_export($categoria_filtro_id, true));
 
 // --- QUERY PRINCIPALE ---
 // Allineata alla DESKTOP: aggiunti sf + EXISTS su classi_include, e conteggio iscritti iscritto=1
@@ -129,12 +130,12 @@ WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id AND sportell
 
 -- ✅ FILTRO NUOVO: lo sportello è visibile se sportello.classe_id è in classi_include.into_classe_id
 --    per la classe corrente dello studente (sf.id_classe)
-AND EXISTS (
-    SELECT 1
-    FROM classi_include ci
-    WHERE ci.classi_id = sf.id_classe
-      AND ci.into_classe_id = sportello.classe_id
-)";
+ AND EXISTS (
+     SELECT 1
+     FROM classi_include ci
+     WHERE ci.classi_id = sf.id_classe
+       AND ci.into_classe_id = sportello.classe_id
+ )";
 
 // --- FILTRI (allineati a desktop) ---
 if ($classe_filtro_id > 0) {
@@ -172,8 +173,16 @@ foreach ($resultArray as $row) {
         $passato       = ($sportelloDate < $todayDate);
 
         // Data in italiano
-        $formatter = new IntlDateFormatter('it_IT', IntlDateFormatter::LONG, IntlDateFormatter::NONE);
-        $dataSportelloDisp = $formatter->format(new DateTime($row['sportello_data']));
+        $fmt = new IntlDateFormatter(
+            'it_IT',
+            IntlDateFormatter::FULL,
+            IntlDateFormatter::NONE,
+            'Europe/Rome',
+            IntlDateFormatter::GREGORIAN,
+            'EEE dd/MM/yyyy'
+        );
+
+        $dataSportelloDisp = $fmt->format(new DateTime($row['sportello_data']));
 
         // Calcolo capienza
         $max_iscrizioni = $row['sportello_max_iscrizioni'];
@@ -300,4 +309,3 @@ $data .= '</div>';
 
 echo $data;
 debug("=== SPORTELLI MOBILE: fine rendering ===");
-?>
