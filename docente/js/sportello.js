@@ -158,6 +158,39 @@ function sportelloAssegna(sportello_id) {
 
 
 function sportelloSave() {
+
+    if (window.Swal) {
+
+        var aulaVal = ($("#luogo").val() || "").trim();
+        var aulaTxt = ($("#luogo option:selected").text() || "").trim();
+
+        // fallback di sicurezza
+        if (!aulaTxt) {
+            aulaTxt = aulaVal || "NON SELEZIONATA";
+        }
+
+        Swal.fire({
+            icon: "warning",
+            title: "Conferma aula",
+            html:
+                "<b>Verifica attentamente l’aula assegnata</b><br><br>" +
+                "Aula selezionata:<br>" +
+                "<span style='font-size:18px;font-weight:700;color:#b91c1c'>" + aulaTxt + "</span><br><br>" +
+                "Dopo il salvataggio <b>l’aula non sarà più modificabile</b>.",
+            showCancelButton: true,
+            confirmButtonText: "Conferma e salva",
+            cancelButtonText: "Annulla",
+            confirmButtonColor: "#b91c1c",
+            cancelButtonColor: "#6b7280"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                sportelloSaveConfirmed();
+            }
+        });
+
+        return; // ⛔ blocco il save normale
+    }
+
     // controlla che ci siano la materia ed il numero di ore
 
     if ($("#materia").val() <= 0) {

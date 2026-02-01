@@ -423,6 +423,7 @@ $modifica_sportelli = '<input type="hidden" id="hidden_modifica_sportelli" value
     </div>
 
     <!-- Custom JS file -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 
