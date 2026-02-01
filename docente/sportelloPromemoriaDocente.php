@@ -434,8 +434,7 @@ foreach ($result as $row) {
     SELECT idAssenza, idCalendario
     FROM sportello_mbapp_link
     WHERE id_sportello = $sportello_id
-    LIMIT 1
-");
+    LIMIT 1");
 
       $mbInfo = ['ok' => true, 'msg' => 'no link'];
       if ($mbappEnabled && $link) {
@@ -490,7 +489,8 @@ foreach ($result as $row) {
     }
 
     // -------------------------------
-    // 2) Rimetti in BOZZA mantenendo docente_id
+    // 2) Aggiunto sportello in BOZZA per lo sportello annullato
+    //    - data = data + 14 giorni
     //    - attivo = 0
     //    - luogo = '' (svuoto aula)
     //    - cancellato resta 0
@@ -498,13 +498,81 @@ foreach ($result as $row) {
     dbExec("
             UPDATE sportello
             SET
-                attivo = 0,
+                attivo = 1,
                 luogo = ''
             WHERE id = $sportello_id
             LIMIT 1
         ");
-    info("CRON sportello rimesso in BOZZA sportello_id=$sportello_id (docente_id mantenuto=$docente_id, aula svuotata)");
-  }
-}
+    dbExec("
+    INSERT INTO sportello (
+        data,
+        ora,
+        numero_ore,
+        argomento,
+        luogo,
+        classe,
+        classe_id,
+        categoria,
+        materia_id,
+        docente_id,
+        max_iscrizioni,
+        firmato,
+        cancellato,
+        online,
+        clil,
+        orientamento,
+        attivo,
+        anno_scolastico_id
+    )
+    SELECT
+        DATE_ADD(data, INTERVAL 14 DAY) AS data,
+        ora,
+        numero_ore,
+        argomento,
+        ''              AS luogo,
+        classe,
+        classe_id,
+        categoria,
+        materia_id,
+        0               AS docente_id,
+        max_iscrizioni,
+        0               AS firmato,
+        0               AS cancellato,
+        online,
+        clil,
+        orientamento,
+        0               AS attivo,
+        anno_scolastico_id
+    FROM sportello
+    WHERE id = $sportello_id
+    LIMIT 1");
+
+    info("CRON sportello annullato - aggiunto nuovo sportello in BOZZA");
+  } // fine gestione 0 iscritti
+} // fine ciclo sportelli di domani
+
+dbexec("UPDATE sportello s
+SET s.data =
+    DATE_ADD(
+        DATE_ADD(DATE(s.data), INTERVAL 14 DAY),
+        INTERVAL
+            CASE
+                WHEN DATE_ADD(DATE(s.data), INTERVAL 14 DAY) >= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+                    THEN 0
+                ELSE
+                    (CEIL(
+                        DATEDIFF(
+                            DATE_ADD(CURDATE(), INTERVAL 7 DAY),
+                            DATE_ADD(DATE(s.data), INTERVAL 14 DAY)
+                        ) / 7
+                    ) * 7)
+            END
+        DAY
+    )
+WHERE s.attivo = 0
+  AND DATE(s.data) <= DATE_ADD(CURDATE(), INTERVAL 1 DAY)");
+
+// riallinea le date degli sportelli in BOZZA per evitare di accumulare sportelli in date passate
+info("CRON: riallineamento date sportelli in BOZZA completato");
 
 echo "OK cron promemoria sportelli\n";
