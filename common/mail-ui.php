@@ -3,9 +3,39 @@
  * UI helpers per email HTML (GestOre)
  */
 
-function mailWrap($titleHtml, $toName, $introHtml, $contentHtml, $footerHtml = ''): string
+function mailWrap(
+    $titleHtml,
+    $toName,
+    $introHtml,
+    $contentHtml,
+    $footerHtml = '',
+    string $theme = 'default'
+): string
 {
-    $brand  = "#1f5e3b";
+    // 🎨 palette per tipo di mail
+    $themes = [
+        'default' => [
+            'brand' => '#1f5e3b', // verde istituto
+        ],
+        'docente' => [
+            'brand' => '#1d4ed8', // blu
+        ],
+        'studente' => [
+            'brand' => '#0f766e', // verde acqua
+        ],
+        'annullamento' => [
+            'brand' => '#b91c1c', // rosso
+        ],
+        'mbapp' => [
+            'brand' => '#7c3aed', // viola
+        ],
+        'warning' => [
+            'brand' => '#b45309', // arancione
+        ],
+    ];
+
+    $brand  = $themes[$theme]['brand'] ?? $themes['default']['brand'];
+
     $bg     = "#f3f6f8";
     $card   = "#ffffff";
     $txt    = "#1f2937";
@@ -124,3 +154,42 @@ function studentiTableHtml(array $rows): string
       </table>
     </div>';
 }
+
+function mailMbappCancelHtml(string $aula, string $dataIt, string $ora, int $sportello_id, string $categoria, string $materia): string
+{
+    $title = "ANNULLAMENTO PRENOTAZIONE AULA (MBApp)";
+    $intro = "Notifica automatica: la prenotazione aula è stata annullata perché lo sportello è stato annullato.";
+
+    // nome destinatario “ufficio” (se disponibile in $__settings)
+    $toName = 'Prenotazioni aule';
+    if (isset($__GLOBALS['__settings']->MBApp->destPrenotazioniAule) && $__GLOBALS['__settings']->MBApp->destPrenotazioniAule != '') {
+        $toName = (string)$__GLOBALS['__settings']->MBApp->destPrenotazioniAule;
+    }
+
+    $content = '
+      <div style="margin:0 0 12px 0;">
+        ' . badge('PRENOTAZIONE ANNULLATA', '#fee2e2', '#7f1d1d') . '
+      </div>
+
+      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px;margin:0 0 14px 0;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+          ' . kvRow('Aula', ($aula !== '' ? $aula : '—')) . '
+          ' . kvRow('Data', $dataIt) . '
+          ' . kvRow('Ora', $ora) . '
+          ' . kvRow('Motivo', 'Sportello annullato (0 iscritti)') . '
+          ' . kvRow('ID Sportello', (string)$sportello_id) . '
+          ' . kvRow('Attività', $categoria) . '
+          ' . kvRow('Materia', $materia) . '
+        </table>
+      </div>
+
+      <div style="font-size:13.5px;line-height:1.55;color:#374151;">
+        Non è richiesta alcuna azione. Questa email serve solo come tracciamento della modifica.
+      </div>
+    ';
+
+    $footer = "Messaggio automatico: gestione prenotazioni aule (MBApp).";
+
+    return mailWrap($title, $toName, $intro, $content, $footer);
+}
+

@@ -10,6 +10,9 @@
 require_once '../common/connect.php';
 require_once '../common/send-mail.php';
 
+// ✅ UI comune (mailWrap, badge, kvRow, studentiTableHtml)
+require_once '../common/mail-ui.php';
+
 $today = new DateTime("now");
 
 $query = "	SELECT
@@ -57,15 +60,12 @@ foreach ($resultArray as $row) {
 	$sportello_luogo = $row['sportello_luogo'];
 
 	$query = "SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = $sportello_id";
-
 	$numero_studenti_iscritti = dbGetValue($query);
 
 	info("dati sportello docente da inviare promemoria agli studenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id);
 	echo "dati sportello docente da inviare promemoria agli studenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id . "<br>";
 
-	if ($numero_studenti_iscritti > 0)
-	// CI SONO STUDENTI ISCRITTI - INVIO IL PROMEMORIA AGLI STUDENTI
-	{
+	if ($numero_studenti_iscritti > 0) {
 
 		$query = "	SELECT
 					sportello_studente.sportello_id AS sportello_id,
@@ -101,6 +101,7 @@ foreach ($resultArray as $row) {
 			$studente_email = $row['studente_email'];
 			$sportello_argomento = $row['sportello_argomento'];
 
+			// ✅ genitori dello studente corrente (id corretto: sportello_studente_id)
 			$genitori = dbGetAll("SELECT cognome,nome,email from genitori g
                           INNER JOIN genitori_studenti gs ON gs.id_studente = " . $row['sportello_studente_id'] . "
                           WHERE g.attivo=1 AND gs.id_genitore = g.id");
@@ -120,30 +121,45 @@ foreach ($resultArray as $row) {
 
 			info("studenti iscritti sportello: COGNOME " . $studente_cognome . " NOME " . $studente_nome . " DATA " . $data);
 
-			// preparo il testo della mail
-			$full_mail_body = file_get_contents("template_mail_promemoria_studente.html");
+			// ✅ NUOVA GRAFICA (mail-ui.php) — sostituisce template_mail_promemoria_studente.html
+			$title = 'PROMEMORIA ATTIVITÀ<br>' . $sportello_categoria;
+			$intro = "Promemoria automatico per l’attività prenotata per <b>domani</b>.";
+			$toName = $studente_nome . " " . $studente_cognome;
 
-			$full_mail_body = str_replace("{titolo}", "PROMEMORIA ATTIVITA'<br>" . $sportello_categoria, $full_mail_body);
-			$full_mail_body = str_replace("{nome}", strtoupper($studente_cognome) . " " . strtoupper($studente_nome), $full_mail_body);
-			$full_mail_body = str_replace(
-				"{messaggio}",
-				"Ti ricordiamo l'attività prenotata per domani. Presentati puntuale e controlla i dettagli qui sotto.",
-				$full_mail_body
-			);
-			$full_mail_body = str_replace("{data}", $sportello_data, $full_mail_body);
-			$full_mail_body = str_replace("{ora}", $sportello_ora, $full_mail_body);
-			$full_mail_body = str_replace("{docente}", strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome), $full_mail_body);
-			$full_mail_body = str_replace("{materia}", $sportello_materia, $full_mail_body);
-			$full_mail_body = str_replace("{aula}", $sportello_luogo, $full_mail_body);
-			$full_mail_body = str_replace("{nome_istituto}", $__settings->local->nomeIstituto, $full_mail_body);
+			$content = '
+				<div style="margin:0 0 12px 0;">
+					' . badge('PROMEMORIA – attività prenotata', '#dbeafe', '#1e3a8a') . '
+				</div>
+
+				<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px;margin:0 0 14px 0;">
+					<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+						' . kvRow('Attività', $sportello_categoria) . '
+						' . kvRow('Materia', $sportello_materia) . '
+						' . kvRow('Data', $sportello_data) . '
+						' . kvRow('Ora', $sportello_ora) . '
+						' . kvRow('Docente', strtoupper($sportello_docente_cognome . " " . $sportello_docente_nome)) . '
+						' . kvRow('Aula', ($sportello_luogo !== '' ? $sportello_luogo : '—')) . '
+						' . kvRow('Argomento (se inserito)', ($sportello_argomento !== '' ? $sportello_argomento : '—')) . '
+						' . kvRow('ID Sportello', (string)$sportello_id) . '
+					</table>
+				</div>
+
+				<div style="font-size:13.5px;line-height:1.55;color:#374151;">
+					Ti ricordiamo l’attività prenotata per domani. Presentati puntuale e controlla i dettagli qui sopra.
+				</div>
+			';
+
+			$footer = htmlspecialchars((string)$__settings->local->nomeIstituto, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+			$full_mail_body = mailWrap($title, $toName, $intro, $content, $footer,'studente');
 
 			$to = $studente_email;
 			$toCC = $email_genitori;
 			$toCCName = $nominativo_genitori;
-			$toName = $studente_nome . " " . $studente_cognome;
 
 			info("Invio mail allo studente: " . $to . " " . $toName);
 			echo "Invio mail promemoria allo studente: " . $to . " " . $toName . "<br>";
+
 			$mailsubject = 'GestOre - Promemoria attività ' . $sportello_categoria . ' - materia ' . $sportello_materia;
 
 			if ($toCC != "") {
@@ -165,6 +181,7 @@ foreach ($resultArray as $row) {
 					error("Errore invio mail allo studente: " . $e->getMessage() . " - email: " . $studente_email);
 				}
 			}
+
 			info("inviata mail di promemoria agli studenti per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome);
 			echo "inviata mail di promemoria agli studenti per lo sportello del docente - " . $sportello_docente_cognome . " " . $sportello_docente_nome . "<br>";
 		}

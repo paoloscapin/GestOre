@@ -125,7 +125,7 @@ $content = '
 ';
 
 $footer = "Messaggio automatico da GestOre – annullamento attività.";
-$body   = mailWrap($title, $toName, $intro, $content, $footer);
+$body   = mailWrap($title, $toName, $intro, $content, $footer,'annullamento');
 
 $subject = "GestOre - Annullamento attività ($categoria) - $materia - $dataIt $ora";
 
