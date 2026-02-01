@@ -316,7 +316,7 @@ try {
             $materiaNome = trim((string)dbGetValue("SELECT nome FROM materia WHERE id=" . (int)$materia_id . " LIMIT 1"));
             $docenteNome = trim((string)dbGetValue("SELECT CONCAT(cognome,' ',nome) FROM docente WHERE id=" . (int)$docente_id . " LIMIT 1"));
 
-            if ($materiaNome === '') $materiaNome = 'DIDATTICO';
+            if ($materiaNome === '') $materiaNome = 'SPORTLLO DIDATTICO';
             if ($docenteNome === '') $docenteNome = 'Segreteria didattica';
 
             $titoloSportello = "SPORTELLO " . trim($materiaNome);
@@ -331,7 +331,7 @@ try {
 
                 'docente_id' => (int)$docente_id,
                 'docenti' => $docenteNome,
-                'motivo' => $titoloSportello,
+                'motivo' => "IMPEGNO IN ISTITUTO",
                 'dettagli' => $dettagliTxt,
                 'attivitaProgetto' => $titoloSportello,
 
