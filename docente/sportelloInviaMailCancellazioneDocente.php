@@ -3,185 +3,134 @@
 /**
  *  This file is part of GestOre
  *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
- *  @copyright  (C) 2026 Massimo Saiani
+ *  @copyright  (C) 2026
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-
-
 require_once '../common/checkSession.php';
+require_once '../common/connect.php';
 require_once '../common/send-mail.php';
+require_once '../common/mail-ui.php';
+
 ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
 
-// recupero i dati della materia
-$query = "SELECT nome FROM materia WHERE id = '$materia_id'";
+// ------------------------
+// INPUT (da chiamata ajax)
+// ------------------------
+// mi aspetto questi campi (adegua se usi GET)
+$id         = (int)($_POST['sportello_id'] ?? $_POST['id'] ?? 0);
+$docente_id = (int)($_POST['docente_id'] ?? 0);
+$materia_id = (int)($_POST['materia_id'] ?? 0);
 
-$materia = dbGetValue($query);
+$data       = (string)($_POST['data'] ?? '');      // es: 2026-02-01 oppure dd-mm-yyyy, lo normalizzo sotto
+$ora        = (string)($_POST['ora'] ?? '');
+$categoria  = (string)($_POST['categoria'] ?? 'sportello');
+$luogo      = (string)($_POST['luogo'] ?? '');
 
-// recupero i dati del docente
-$query = "SELECT * FROM docente WHERE id = '$docente_id'";
-
-$result = dbGetFirst($query);
-
-$docente_cognome = $result['cognome'];
-$docente_nome = $result['nome'];
-$docente_email = $result['email'];
-
-// recupero l'elenco degli studenti iscritti allo sportello
-$query = "SELECT 
-            studente.id AS studente_id,
-            studente.cognome AS studente_cognome,
-            studente.nome AS studente_nome,
-            studente.email AS studente_email,
-            sportello_studente.sportello_id AS sportello_id,
-            sportello_studente.argomento AS sportello_argomento,
-            c.classe AS studente_classe
-            FROM sportello_studente
-            INNER JOIN studente ON studente.id = studente_id
-            INNER JOIN studente_frequenta sf ON sf.id_studente = studente.id
-            INNER JOIN classi c ON c.id = sf.id_classe
-            WHERE sportello_studente.sportello_id = $id AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id";
-
-$resultArray = dbGetAll($query);
-$full_mail_body = '';
-
-if ($resultArray == null) {
-    // preparo il testo della mail
-    $full_mail_body = file_get_contents("../docente/template_mail_cancella_docente.html");
-    $messaggio_finale = "A questa attività non risultavano studenti iscritti";
-    $resultArray = [];
-} else {
-    // preparo il testo della mail
-    $full_mail_body = file_get_contents("../docente/template_mail_cancella_docente_studenti.html");
-    $data_html = '<tr>';
-    $messaggio_finale = "A questa attività che è stata cancellata erano iscritti i seguenti studenti:";
-    foreach ($resultArray as $row) {
-        $studente_cognome = $row['studente_cognome'];
-        $studente_nome = $row['studente_nome'];
-        $studente_classe = $row['studente_classe'];
-        $sportello_argomento = $row['sportello_argomento'];
-
-
-        $row_html = '<td style="
-        overflow-wrap:break-word;
-        word-break:break-word;
-        padding:10px 8px;
-        font-family:Lato, Arial, Helvetica, sans-serif;
-        background-color:#ffffff;
-        border-top:1px solid #e7ecef;
-        border-right:1px solid #e7ecef;
-        text-align:center;
-        " align="center">
-        <span style="
-            display:block;
-            font-size:12px;
-            line-height:1.35;
-            font-family:Lato, Arial, Helvetica, sans-serif;
-            font-weight:700;
-            color:#293c4b;
-        ">VALORE</span>
-        </td>';
-
-        $row_html = str_replace("VALORE", $studente_classe, $row_html);
-        $data_html .= $row_html;
-
-        $row_html = '<td style="
-        overflow-wrap:break-word;
-        word-break:break-word;
-        padding:10px 8px;
-        font-family:Lato, Arial, Helvetica, sans-serif;
-        background-color:#ffffff;
-        border-top:1px solid #e7ecef;
-        border-right:1px solid #e7ecef;
-        text-align:center;
-        " align="center">
-        <span style="
-            display:block;
-            font-size:12px;
-            line-height:1.35;
-            font-family:Lato, Arial, Helvetica, sans-serif;
-            font-weight:700;
-            color:#293c4b;
-        ">VALORE</span>
-        </td>';
-
-        $row_html = str_replace("VALORE", $studente_cognome, $row_html);
-        $data_html .= $row_html;
-
-        $row_html = '<td style="
-        overflow-wrap:break-word;
-        word-break:break-word;
-        padding:10px 8px;
-        font-family:Lato, Arial, Helvetica, sans-serif;
-        background-color:#ffffff;
-        border-top:1px solid #e7ecef;
-        border-right:1px solid #e7ecef;
-        text-align:center;
-        " align="center">
-        <span style="
-            display:block;
-            font-size:12px;
-            line-height:1.35;
-            font-family:Lato, Arial, Helvetica, sans-serif;
-            font-weight:700;
-            color:#293c4b;
-        ">VALORE</span>
-        </td>';
-
-        $row_html = str_replace("VALORE", $studente_nome, $row_html);
-        $data_html .= $row_html;
-
-
-        $row_html = '<td style="
-        overflow-wrap:break-word;
-        word-break:break-word;
-        padding:10px 8px;
-        font-family:Lato, Arial, Helvetica, sans-serif;
-        background-color:#ffffff;
-        border-top:1px solid #e7ecef;
-        text-align:center;
-        " align="center">
-        <span style="
-            display:block;
-            font-size:12px;
-            line-height:1.35;
-            font-family:Lato, Arial, Helvetica, sans-serif;
-            font-weight:700;
-            color:#293c4b;
-        ">VALORE</span>
-        </td>';
-        $row_html = str_replace("VALORE", $sportello_argomento, $row_html);
-        $data_html .= $row_html;
-    }
-
-    $data_html .= '</tr>';
+if ($id <= 0 || $docente_id <= 0 || $materia_id <= 0) {
+    http_response_code(400);
+    echo "Parametri mancanti o non validi (sportello_id/docente_id/materia_id).";
+    exit;
 }
 
-// inverto format data - giorno con mese
-$data_array = explode("-", $data);
-$data = $data_array[2] . "-" . $data_array[1] . "-" . $data_array[0];
+// ------------------------
+// DATI MATERIA + DOCENTE
+// ------------------------
+$materia = (string)dbGetValue("SELECT nome FROM materia WHERE id = $materia_id");
 
-$full_mail_body = str_replace("{titolo}", "ANNULLAMENTO ATTIVITA'<br>" . strtoupper($categoria), $full_mail_body);
-$full_mail_body = str_replace("{nome}", strtoupper($docente_cognome) . " " . strtoupper($docente_nome), $full_mail_body);
-$full_mail_body = str_replace("{messaggio}", "hai ricevuto questa mail perchè hai cancellato la seguente attività</p><h3 style='background-color:yellow; font-size:20px'><b><center>" . strtoupper($categoria) . "</center></b></h3>", $full_mail_body);
-$full_mail_body = str_replace("{data}", $data, $full_mail_body);
-$full_mail_body = str_replace("{ora}", $ora, $full_mail_body);
-$full_mail_body = str_replace("{docente}", strtoupper($docente_cognome . " " . $docente_nome), $full_mail_body);
-$full_mail_body = str_replace("{materia}", $materia, $full_mail_body);
-$full_mail_body = str_replace("{aula}", $luogo, $full_mail_body);
-$full_mail_body = str_replace("{nome_istituto}", $__settings->local->nomeIstituto, $full_mail_body);
+$doc = dbGetFirst("SELECT cognome, nome, email FROM docente WHERE id = $docente_id");
+$docente_cognome = (string)($doc['cognome'] ?? '');
+$docente_nome    = (string)($doc['nome'] ?? '');
+$docente_email   = (string)($doc['email'] ?? '');
 
-$full_mail_body = str_replace("{messaggio_finale}", $messaggio_finale, $full_mail_body);
-
-if ($resultArray != null) {
-    $full_mail_body = str_replace("{codice_html_tabella}", $data_html, $full_mail_body);
+if ($docente_email === '') {
+    http_response_code(400);
+    echo "Email docente non trovata.";
+    exit;
 }
 
-$to = $docente_email;
-$toName = $docente_nome . " " . $docente_cognome;
-info("Invio mail al docente: " . $to . " " . $toName);
-echo "Invio mail al docente: " . $to . " " . $toName . "\n";
-$mailsubject = 'GestOre - Annullamento attività ' . $categoria . ' - materia' . $materia;
-sendMail($to, $toName, $mailsubject, $full_mail_body);
+$to     = $docente_email;
+$toName = trim($docente_nome . ' ' . $docente_cognome);
 
-info("inviata mail di cancellazione sportello come richiesto dal docente - " . $docente_cognome . " " . $docente_nome);
+// ------------------------
+// NORMALIZZA DATA in dd/mm/yyyy
+// ------------------------
+$dataIt = $data;
+if (preg_match('/^\d{4}-\d{2}-\d{2}/', $data)) {
+    $p = explode('-', substr($data, 0, 10));
+    $dataIt = $p[2] . '/' . $p[1] . '/' . $p[0];
+} elseif (preg_match('/^\d{2}-\d{2}-\d{4}$/', $data)) {
+    // già dd-mm-yyyy
+    $p = explode('-', $data);
+    $dataIt = $p[0] . '/' . $p[1] . '/' . $p[2];
+}
+
+// ------------------------
+// STUDENTI ISCRITTI
+// ------------------------
+$q = "
+    SELECT
+        st.id     AS studente_id,
+        st.cognome AS studente_cognome,
+        st.nome    AS studente_nome,
+        ss.argomento AS sportello_argomento,
+        c.classe   AS studente_classe
+    FROM sportello_studente ss
+    INNER JOIN studente st ON st.id = ss.studente_id
+    INNER JOIN studente_frequenta sf
+        ON sf.id_studente = st.id
+       AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id
+    INNER JOIN classi c ON c.id = sf.id_classe
+    WHERE ss.sportello_id = $id
+      AND ss.iscritto = 1
+    ORDER BY c.classe, st.cognome, st.nome
+";
+
+$studRows = dbGetAll($q);
+if (!$studRows) $studRows = [];
+
+$numero_iscritti = count($studRows);
+
+// ------------------------
+// EMAIL (grafica nuova)
+// ------------------------
+$title = "ANNULLAMENTO ATTIVITÀ<br>" . strtoupper($categoria);
+$intro = "Notifica automatica: hai cancellato l’attività indicata sotto.";
+
+$content = '
+  <div style="margin:0 0 12px 0;">
+    ' . badge('ANNULLATO', '#fee2e2', '#7f1d1d') . '
+    ' . ($numero_iscritti > 0 ? ' ' . badge($numero_iscritti . ' student' . ($numero_iscritti === 1 ? 'e' : 'i') . ' iscritt' . ($numero_iscritti === 1 ? 'o' : 'i'), '#fff7ed', '#9a3412') : '') . '
+  </div>
+
+  <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px;margin:0 0 14px 0;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+      ' . kvRow('Attività', $categoria) . '
+      ' . kvRow('Materia', $materia) . '
+      ' . kvRow('Data', $dataIt) . '
+      ' . kvRow('Ora', $ora) . '
+      ' . kvRow('Aula', ($luogo !== '' ? $luogo : '—')) . '
+      ' . kvRow('ID Sportello', (string)$id) . '
+    </table>
+  </div>
+
+  <div style="font-size:13.5px;line-height:1.55;color:#374151;">
+    ' . ($numero_iscritti > 0
+        ? 'A questa attività risultavano iscritti i seguenti studenti:'
+        : 'A questa attività non risultavano studenti iscritti.'
+    ) . '
+  </div>
+
+  ' . ($numero_iscritti > 0 ? studentiTableHtml($studRows) : '') . '
+';
+
+$footer = "Messaggio automatico da GestOre – annullamento attività.";
+$body   = mailWrap($title, $toName, $intro, $content, $footer);
+
+$subject = "GestOre - Annullamento attività ($categoria) - $materia - $dataIt $ora";
+
+info("Invio mail cancellazione al docente: $to ($toName) sportello_id=$id iscritti=$numero_iscritti");
+sendMail($to, $toName, $subject, $body);
+
+info("Inviata mail di cancellazione sportello come richiesto dal docente - $docente_cognome $docente_nome");
+echo "OK";
