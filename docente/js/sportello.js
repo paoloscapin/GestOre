@@ -183,12 +183,11 @@ function sportelloSave() {
             confirmButtonColor: "#b91c1c",
             cancelButtonColor: "#6b7280"
         }).then((result) => {
-            if (result.isConfirmed) {
-                sportelloSaveConfirmed();
+            if (!result.isConfirmed) {
+                return;// ⛔ blocco il save normale
             }
         });
 
-        return; // ⛔ blocco il save normale
     }
 
     // controlla che ci siano la materia ed il numero di ore
