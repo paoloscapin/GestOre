@@ -12,125 +12,197 @@ require_once '../common/connect.php';
 require_once '../common/send-mail.php';
 require_once '../common/mail-ui.php';
 
-ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
+ruoloRichiesto('docente', 'segreteria-didattica', 'segreteria-docenti', 'dirigente');
 
-// ------------------------
-// INPUT (da chiamata ajax)
-// ------------------------
-// mi aspetto questi campi (adegua se usi GET)
-$id         = (int)($_POST['sportello_id'] ?? $_POST['id'] ?? 0);
-$docente_id = (int)($_POST['docente_id'] ?? 0);
-$materia_id = (int)($_POST['materia_id'] ?? 0);
+/**
+ * True se questo file è eseguito direttamente (URL), false se incluso via require/include.
+ */
+$isStandalone = (isset($_SERVER['SCRIPT_FILENAME']) && realpath($_SERVER['SCRIPT_FILENAME']) === realpath(__FILE__));
 
-$data       = (string)($_POST['data'] ?? '');      // es: 2026-02-01 oppure dd-mm-yyyy, lo normalizzo sotto
-$ora        = (string)($_POST['ora'] ?? '');
-$categoria  = (string)($_POST['categoria'] ?? 'sportello');
-$luogo      = (string)($_POST['luogo'] ?? '');
-
-if ($id <= 0 || $docente_id <= 0 || $materia_id <= 0) {
-    http_response_code(400);
-    echo "Parametri mancanti o non validi (sportello_id/docente_id/materia_id).";
-    exit;
+/**
+ * In modalità include: NON devo rompere la risposta JSON del chiamante.
+ */
+function _silentFail($msg, $extra = [])
+{
+    warning("[sportelloInviaMailCancellazioneDocente] " . $msg . (empty($extra) ? "" : " | " . json_encode($extra, JSON_UNESCAPED_UNICODE)));
+    return false;
+}
+function _silentOk($msg, $extra = [])
+{
+    info("[sportelloInviaMailCancellazioneDocente] " . $msg . (empty($extra) ? "" : " | " . json_encode($extra, JSON_UNESCAPED_UNICODE)));
+    return true;
 }
 
-// ------------------------
-// DATI MATERIA + DOCENTE
-// ------------------------
-$materia = (string)dbGetValue("SELECT nome FROM materia WHERE id = $materia_id");
+/**
+ * Utility: normalizza data in dd/mm/yyyy per subject/body.
+ */
+function _normDateIt($data)
+{
+    $data = trim((string)$data);
+    if ($data === '') return '';
 
-$doc = dbGetFirst("SELECT cognome, nome, email FROM docente WHERE id = $docente_id");
+    // YYYY-mm-dd
+    if (preg_match('/^\d{4}-\d{2}-\d{2}/', $data)) {
+        $p = explode('-', substr($data, 0, 10));
+        return $p[2] . '/' . $p[1] . '/' . $p[0];
+    }
+    // dd-mm-YYYY
+    if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $data)) {
+        $p = explode('-', $data);
+        return $p[0] . '/' . $p[1] . '/' . $p[2];
+    }
+    // dd/mm/YYYY già ok o altro: lascio
+    return $data;
+}
+
+/**
+ * ===== 1) Recupero parametri da:
+ * - variabili già definite nello scope del chiamante
+ * - oppure $_POST
+ */
+$sportello_id = 0;
+
+// priorità: variabili già presenti (quando incluso via require)
+if (isset($sportello_id) && (int)$sportello_id > 0) {
+    $sportello_id = (int)$sportello_id;
+} elseif (isset($id) && (int)$id > 0) {
+    $sportello_id = (int)$id;
+} else {
+    // fallback POST
+    $sportello_id = (int)($_POST['sportello_id'] ?? $_POST['id'] ?? 0);
+}
+
+if ($sportello_id <= 0) {
+    if ($isStandalone) {
+        http_response_code(400);
+        echo "Parametri mancanti: sportello_id/id";
+        exit;
+    }
+    _silentFail("Manca sportello_id (né variabile né POST)");
+    return; // IMPORTANTISSIMO quando incluso
+}
+
+/**
+ * ===== 2) Recupero dati sportello dal DB (fonte di verità)
+ * così funziona anche se non mi passano nulla via POST.
+ */
+$s = dbGetFirst("
+    SELECT
+        id,
+        docente_id,
+        materia_id,
+        data,
+        ora,
+        categoria,
+        luogo
+    FROM sportello
+    WHERE id = " . (int)$sportello_id . "
+    LIMIT 1
+");
+
+if (!$s) {
+    if ($isStandalone) {
+        http_response_code(404);
+        echo "Sportello non trovato (id=$sportello_id)";
+        exit;
+    }
+    _silentFail("Sportello non trovato", ['id' => $sportello_id]);
+    return;
+}
+
+$docente_id = (int)($s['docente_id'] ?? 0);
+$materia_id = (int)($s['materia_id'] ?? 0);
+$data       = (string)($s['data'] ?? '');
+$ora        = (string)($s['ora'] ?? '');
+$categoria  = (string)($s['categoria'] ?? 'sportello');
+$luogo      = (string)($s['luogo'] ?? '');
+
+/**
+ * ===== 3) Docente e materia
+ */
+if ($docente_id <= 0) {
+    // sportello in bozza/non assegnato: non ha senso mandare mail al docente
+    if ($isStandalone) {
+        http_response_code(400);
+        echo "Sportello senza docente assegnato (docente_id=0).";
+        exit;
+    }
+    _silentFail("Sportello senza docente assegnato", ['id' => $sportello_id]);
+    return;
+}
+
+$doc = dbGetFirst("SELECT cognome, nome, email FROM docente WHERE id = " . (int)$docente_id . " LIMIT 1");
 $docente_cognome = (string)($doc['cognome'] ?? '');
 $docente_nome    = (string)($doc['nome'] ?? '');
 $docente_email   = (string)($doc['email'] ?? '');
 
-if ($docente_email === '') {
-    http_response_code(400);
-    echo "Email docente non trovata.";
-    exit;
+if (trim($docente_email) === '') {
+    if ($isStandalone) {
+        http_response_code(400);
+        echo "Email docente non trovata (docente_id=$docente_id).";
+        exit;
+    }
+    _silentFail("Email docente non trovata", ['docente_id' => $docente_id, 'sportello_id' => $sportello_id]);
+    return;
 }
+
+$materia = '';
+if ($materia_id > 0) {
+    $materia = (string)dbGetValue("SELECT nome FROM materia WHERE id = " . (int)$materia_id . " LIMIT 1");
+}
+if (trim($materia) === '') $materia = '—';
 
 $to     = $docente_email;
 $toName = trim($docente_nome . ' ' . $docente_cognome);
 
-// ------------------------
-// NORMALIZZA DATA in dd/mm/yyyy
-// ------------------------
-$dataIt = $data;
-if (preg_match('/^\d{4}-\d{2}-\d{2}/', $data)) {
-    $p = explode('-', substr($data, 0, 10));
-    $dataIt = $p[2] . '/' . $p[1] . '/' . $p[0];
-} elseif (preg_match('/^\d{2}-\d{2}-\d{4}$/', $data)) {
-    // già dd-mm-yyyy
-    $p = explode('-', $data);
-    $dataIt = $p[0] . '/' . $p[1] . '/' . $p[2];
-}
+$dataIt = _normDateIt($data);
 
-// ------------------------
-// STUDENTI ISCRITTI
-// ------------------------
-$q = "
-    SELECT
-        st.id     AS studente_id,
-        st.cognome AS studente_cognome,
-        st.nome    AS studente_nome,
-        ss.argomento AS sportello_argomento,
-        c.classe   AS studente_classe
-    FROM sportello_studente ss
-    INNER JOIN studente st ON st.id = ss.studente_id
-    INNER JOIN studente_frequenta sf
-        ON sf.id_studente = st.id
-       AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id
-    INNER JOIN classi c ON c.id = sf.id_classe
-    WHERE ss.sportello_id = $id
-      AND ss.iscritto = 1
-    ORDER BY c.classe, st.cognome, st.nome
-";
-
-$studRows = dbGetAll($q);
-if (!$studRows) $studRows = [];
-
-$numero_iscritti = count($studRows);
-
-// ------------------------
-// EMAIL (grafica nuova)
-// ------------------------
+/**
+ * ===== 4) Email (solo docente) - messaggio semplice “annullato”
+ */
 $title = "ANNULLAMENTO ATTIVITÀ<br>" . strtoupper($categoria);
-$intro = "Notifica automatica: hai cancellato l’attività indicata sotto.";
+$intro = "Notifica automatica: l’attività indicata sotto è stata annullata.";
 
 $content = '
   <div style="margin:0 0 12px 0;">
     ' . badge('ANNULLATO', '#fee2e2', '#7f1d1d') . '
-    ' . ($numero_iscritti > 0 ? ' ' . badge($numero_iscritti . ' student' . ($numero_iscritti === 1 ? 'e' : 'i') . ' iscritt' . ($numero_iscritti === 1 ? 'o' : 'i'), '#fff7ed', '#9a3412') : '') . '
   </div>
 
   <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px;margin:0 0 14px 0;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
-      ' . kvRow('Attività', $categoria) . '
-      ' . kvRow('Materia', $materia) . '
-      ' . kvRow('Data', $dataIt) . '
-      ' . kvRow('Ora', $ora) . '
-      ' . kvRow('Aula', ($luogo !== '' ? $luogo : '—')) . '
-      ' . kvRow('ID Sportello', (string)$id) . '
+      ' . kvRow('Attività', htmlspecialchars($categoria, ENT_QUOTES, 'UTF-8')) . '
+      ' . kvRow('Materia', htmlspecialchars($materia, ENT_QUOTES, 'UTF-8')) . '
+      ' . kvRow('Data', htmlspecialchars($dataIt, ENT_QUOTES, 'UTF-8')) . '
+      ' . kvRow('Ora', htmlspecialchars($ora, ENT_QUOTES, 'UTF-8')) . '
+      ' . kvRow('Aula', htmlspecialchars(($luogo !== '' ? $luogo : '—'), ENT_QUOTES, 'UTF-8')) . '
+      ' . kvRow('ID Sportello', (string)$sportello_id) . '
     </table>
   </div>
 
   <div style="font-size:13.5px;line-height:1.55;color:#374151;">
-    ' . ($numero_iscritti > 0
-        ? 'A questa attività risultavano iscritti i seguenti studenti:'
-        : 'A questa attività non risultavano studenti iscritti.'
-    ) . '
+    Questa email è stata inviata automaticamente da GestOre.
   </div>
-
-  ' . ($numero_iscritti > 0 ? studentiTableHtml($studRows) : '') . '
 ';
 
 $footer = "Messaggio automatico da GestOre – annullamento attività.";
-$body   = mailWrap($title, $toName, $intro, $content, $footer,'annullamento');
+$body   = mailWrap($title, $toName, $intro, $content, $footer, 'annullamento');
 
 $subject = "GestOre - Annullamento attività ($categoria) - $materia - $dataIt $ora";
 
-info("Invio mail cancellazione al docente: $to ($toName) sportello_id=$id iscritti=$numero_iscritti");
+info("Invio mail annullamento al docente: $to ($toName) sportello_id=$sportello_id");
 sendMail($to, $toName, $subject, $body);
+info("Inviata mail annullamento sportello id=$sportello_id a docente_id=$docente_id");
 
-info("Inviata mail di cancellazione sportello come richiesto dal docente - $docente_cognome $docente_nome");
-echo "OK";
+/**
+ * ===== 5) Output
+ * - standalone: rispondo
+ * - include: NON devo echo/exit
+ */
+if ($isStandalone) {
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "OK";
+    exit;
+}
+
+_silentOk("Mail inviata", ['sportello_id' => $sportello_id, 'docente_id' => $docente_id]);
+return;

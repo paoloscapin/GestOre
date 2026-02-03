@@ -401,6 +401,8 @@ $modifica_sportelli = '<input type="hidden" id="hidden_modifica_sportelli" value
                                         </strong></div>
 
                                     <input type="hidden" id="hidden_sportello_id">
+                                    <input type="hidden" id="hidden_sportello_attivo_original" value="0">
+                                    <input type="hidden" id="hidden_sportello_docente_id_original" value="0">
                                     <input type="hidden" id="hidden_numero_studenti_iscritti">
                                     <input type="hidden" id="hidden_max_iscrizioni_default" value="<?php echo getSettingsValue("sportelli", "numero_max_prenotazioni", 10); ?>">
                                     <input type="hidden" id="hidden_docente_cognome_nome" value="<?php echo "$__docente_cognome $__docente_nome"; ?>">

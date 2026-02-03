@@ -156,39 +156,17 @@ function sportelloAssegna(sportello_id) {
     });
 }
 
+function sportelloUpdateOriginalAfterSave(respSave) {
+    // respSave.attivo arriva dal PHP (nel tuo JSON)
+    $("#hidden_sportello_attivo_original").val(parseInt(respSave.attivo || 0, 10));
 
-function sportelloSave() {
-
-    if (window.Swal) {
-
-        var aulaVal = ($("#luogo").val() || "").trim();
-        var aulaTxt = ($("#luogo option:selected").text() || "").trim();
-
-        // fallback di sicurezza
-        if (!aulaTxt) {
-            aulaTxt = aulaVal || "NON SELEZIONATA";
-        }
-
-        Swal.fire({
-            icon: "warning",
-            title: "Conferma aula",
-            html:
-                "<b>Verifica attentamente l’aula assegnata</b><br><br>" +
-                "Aula selezionata:<br>" +
-                "<span style='font-size:18px;font-weight:700;color:#b91c1c'>" + aulaTxt + "</span><br><br>" +
-                "Dopo il salvataggio <b>l’aula non sarà più modificabile</b>.",
-            showCancelButton: true,
-            confirmButtonText: "Conferma e salva",
-            cancelButtonText: "Annulla",
-            confirmButtonColor: "#b91c1c",
-            cancelButtonColor: "#6b7280"
-        }).then((result) => {
-            if (!result.isConfirmed) {
-                return;// ⛔ blocco il save normale
-            }
-        });
-
+    // se è diventato attivo, sicuramente NON è più "docente=0" (non serve l'id reale)
+    if (parseInt(respSave.attivo || 0, 10) === 1) {
+        $("#hidden_sportello_docente_id_original").val(1);
     }
+}
+
+function sportelloSave_do() {
 
     // controlla che ci siano la materia ed il numero di ore
 
@@ -362,6 +340,9 @@ function sportelloSave() {
 
                 // 1) prenota aula (se serve)
                 // ✅ NON prenotare di nuovo se è uno sportello esistente con aula già assegnata (locked)
+
+                sportelloUpdateOriginalAfterSave(respSave);
+
                 let req = null;
                 if (!aulaLocked) {
                     req = prenotaAulaPerSportello(respSave);
@@ -601,6 +582,52 @@ function sportelloSave() {
     }
 }
 
+
+function sportelloSave() {
+
+    var oldAttivo  = parseInt($("#hidden_sportello_attivo_original").val() || "0", 10);
+    var oldDocente = parseInt($("#hidden_sportello_docente_id_original").val() || "0", 10);
+
+    var primaPresaInCarico = (oldAttivo === 0 && oldDocente === 0);
+
+    var luogoTrim = ($("#luogo").val() || "").trim();
+
+    // ✅ chiedi conferma SOLO quando stai attivando (bozza -> attivo)
+    // cioè: prima presa in carico + aula valorizzata + non lock (se lock non serve confermare)
+    var shouldAskConfirm = primaPresaInCarico && (luogoTrim !== "") && !aulaLocked;
+
+    if (shouldAskConfirm && window.Swal) {
+
+        var aulaTxt = ($("#luogo option:selected").text() || "").trim();
+        if (!aulaTxt) aulaTxt = luogoTrim || "NON SELEZIONATA";
+
+        Swal.fire({
+            icon: "warning",
+            title: "Conferma aula",
+            html:
+                "<b>Verifica attentamente l’aula assegnata</b><br><br>" +
+                "Aula selezionata:<br>" +
+                "<span style='font-size:18px;font-weight:700;color:#b91c1c'>" + aulaTxt + "</span><br><br>" +
+                "Dopo il salvataggio <b>l’aula non sarà più modificabile</b>.",
+            showCancelButton: true,
+            confirmButtonText: "Conferma e salva",
+            cancelButtonText: "Annulla",
+            confirmButtonColor: "#b91c1c",
+            cancelButtonColor: "#6b7280"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                sportelloSave_do(); // ✅ salva davvero solo qui
+            }
+        });
+
+        return; // ✅ FONDAMENTALE: blocca il flusso, altrimenti salva comunque
+    }
+
+    // nessuna conferma richiesta
+    sportelloSave_do();
+}
+
+
 function confermaCancellato() {
     if ($("#cancellato").is(':checked')) {
         if ($("#hidden_numero_studenti_iscritti").val() == 0) {
@@ -803,6 +830,10 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
             //console.log(data);
             var sportello = data;
 
+            // ✅ memorizza stato originale (serve per chiedere conferma solo la 1a volta)
+            $("#hidden_sportello_attivo_original").val(parseInt(sportello.sportello_attivo || 0, 10));
+            $("#hidden_sportello_docente_id_original").val(parseInt(sportello.docente_id || 0, 10));
+
             // ✅ aula dal DB (salvata nella variabile GLOBALE)
             aulaDbValue = (sportello.sportello_luogo || "").trim();
 
@@ -923,6 +954,11 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
         resetAulaState();
         autoPickFirstAula = true;
         data_pickr.setDate(Date.today().toString('d/M/yyyy'));
+
+        // ✅ nuovo sportello: stato originale = BOZZA non assegnato
+        $("#hidden_sportello_attivo_original").val(0);
+        $("#hidden_sportello_docente_id_original").val(0);
+
         $("#ora").selectpicker('val', "13:50").selectpicker('refresh');
         $('#docente').val($("#hidden_docente_cognome_nome").val());
         $('#docente').selectpicker('refresh');
@@ -952,6 +988,7 @@ function sportelloGetDetails(sportello_id, modificabile, sportello_n_studenti, c
     forceHideTooltips();
     $("#sportello_modal").modal("show");
 }
+
 
 $(document).ready(function () {
     data_pickr = flatpickr("#data", {

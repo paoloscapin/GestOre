@@ -53,7 +53,7 @@ if (isset($_POST)) {
         $docente_id = intval($_POST['docente_id'] ?? 0);
     }
 
-    // ✅ REGOLA NUOVA:
+    // ✅ REGOLA:
     // se luogo vuoto => torna NON assegnato (docente_id=0) e BOZZA (attivo=0)
     // altrimenti => assegnato (docente_id presente) e attivo=1
     if ($luogo_raw === '') {
@@ -89,18 +89,36 @@ if (isset($_POST)) {
 
         dbExec($query);
 
-        info("aggiornato sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id categoria=$categoria numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online=$online clil=$clil orientamento=$orientamento attivo=$attivo");
+        info("aggiornato sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id categoria=$categoria numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online=$online clil=$clil orientamento=$orientamento attivo=$attivo cancellato=$cancellato");
 
+        // ✅ se cambia il flag cancellato (0->1 o 1->0)
         if ($last_cancellato != $cancellato) {
-            info("invio mail di cancellazione al docente");
-            require "sportelloInviaMailCancellazioneDocente.php";
-            info("invio mail di cancellazione agli studenti iscritti allo sportello");
-            require "sportelloInviaMailCancellazioneStudente.php";
 
-            $query = "DELETE FROM sportello_studente WHERE sportello_id = '$id'";
-            dbExec($query);
-            info("cancellati gli studenti iscritti allo sportello id=$id");
+            // ✅ se ora è cancellato=1: invia mail + cancella prenotazione MBApp, MA non cancellare sportello_studente
+            if ($cancellato == 1) {
+
+                info("invio mail di cancellazione al docente");
+                require "sportelloInviaMailCancellazioneDocente.php";
+
+                info("invio mail di cancellazione agli studenti iscritti allo sportello");
+                require "sportelloInviaMailCancellazioneStudente.php";
+
+                // ✅ NUOVO: cancella prenotazione aula su MBApp
+                info("cancellazione prenotazione aula su MBApp per sportello id=$id");
+                require "sportelloCancellaPrenotazioneAulaMBApp.php";
+
+                // ✅ NUOVO: NON eliminare più le iscrizioni (storico)
+                $cnt = dbGetValue("SELECT COUNT(*) FROM sportello_studente WHERE sportello_id = '$id'");
+                info("storico mantenuto: iscrizioni NON cancellate (count=$cnt) per sportello id=$id");
+
+            } else {
+                // (opzionale) Se un domani “riattivi” (1->0) non facciamo nulla qui.
+                info("flag cancellato cambiato ma ora cancellato=0: nessuna azione storico/MBApp");
+            }
+
         } else {
+
+            // nessun cambio di cancellato: aggiorna presenze come prima
             if (is_array($studentiDaModificareIdList)) {
                 foreach ($studentiDaModificareIdList as $studente) {
                     $studente = intval($studente);
@@ -124,24 +142,23 @@ if (isset($_POST)) {
 
         dbExec($query);
         $id = dblastId();
-        info("aggiunto sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online=$online clil=$clil orientamento=$orientamento attivo=$attivo");
+        info("aggiunto sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id numero_ore=$numero_ore argomento=$argomento luogo=$luogo classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online=$online clil=$clil orientamento=$orientamento attivo=$attivo cancellato=$cancellato");
     }
-    // ... dopo aver fatto UPDATE oppure INSERT e dopo aver assegnato $id
 
     $materia = dbGetValue("SELECT nome FROM materia WHERE id = " . $materia_id);
-header('Content-Type: application/json; charset=utf-8');
-echo json_encode([
-    'ok' => true,
-    'id' => (int)$id,
-    'materia' => $materia,
-    'data' => $data,
-    'ora' => $ora,
-    'luogo' => $luogo_raw,          // <-- aula selezionata
-    'numero_ore' => (int)$numero_ore,
-    'attivo' => (int)$attivo,
-    'cancellato' => (int)$cancellato
-]);
-exit;
 
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'ok' => true,
+        'id' => (int)$id,
+        'materia' => $materia,
+        'data' => $data,
+        'ora' => $ora,
+        'luogo' => $luogo_raw,
+        'numero_ore' => (int)$numero_ore,
+        'attivo' => (int)$attivo,
+        'cancellato' => (int)$cancellato
+    ]);
+    exit;
 }
 ?>
