@@ -279,9 +279,20 @@ foreach ($resultArray as $row) {
 			if ($row['presente']) {
 				$data .= '<div data-toggle="tooltip" data-placement="left"  title="La tua presenza è stata registrata"><span class="label label-success">Presente</span></div>';
 			} else {
+				if ($sportello_cancellato) {
+					debug("sportello cancellato");
+					$data .= '<div data-toggle="tooltip" data-placement="left"  title="Sportello annullato dal docente"><span class="label label-default">Cancellato</span></div>';
+				}
 				if ($row['iscritto']) {
 					debug('iscritto');
+					if ($sportello_cancellato)
+						{
+					$data .= '<div data-toggle="tooltip" data-placement="left"  title="Eri iscritto a questo sportello"><span class="label label-success">Iscritto</span></div>';
+						}
+						else
+							{
 					$data .= '<div data-toggle="tooltip" data-placement="left"  title="Sei risultato assente ad uno sportello a cui ti eri prenotato"><span class="label label-danger">Assente</span></div>';
+					}
 				} else {
 					$data .= '<div data-toggle="tooltip" data-placement="left"  title="Sportello passato a cui non eri iscritto"><span class="label label-default">Non iscritto</span></div>';
 				}
@@ -362,7 +373,11 @@ foreach ($resultArray as $row) {
 			// per quelli non passati, se sono iscritto lo dice e mi lascia cancellare, altrimenti mi lascia iscrivere se non sono scaduti i termini
 			if ($sportello_cancellato) {
 				debug("UI branch: sportello cancellato");
-				$data .= '<div data-toggle="tooltip" data-placement="left"  title="Sportello annullato dal docente"><span class="label label-default">cancellato</span></div>';
+				$data .= '<div data-toggle="tooltip" data-placement="left"  title="Sportello annullato dal docente"><span class="label label-default">cancellato</span>';
+				if ($row['iscritto']) {
+					$data .= '<br><span class="label label-success">Iscritto</span>';
+				}
+				$data .= '</div>';
 			} else
 				if ($row['iscritto']) {
 				if ($cancellabile) {

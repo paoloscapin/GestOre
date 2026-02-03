@@ -198,9 +198,6 @@ foreach ($resultArray as $row) {
 
         // --- CARD HEADER ---
         $data .= '<div class="card mb-3 p-2" style="border:1px solid #ddd; border-radius:10px; background:#fff; padding:12px;">';
-        if ($sportello_cancellato) {
-            $data .= '<div class="badge badge-secondary mb-2">Sportello annullato</div>';
-        }
 
         // --- CARD BODY ---
         $data .= '<div><strong>Categoria:</strong> ' . htmlspecialchars($sportello_categoria) . '</div>';
@@ -220,10 +217,18 @@ foreach ($resultArray as $row) {
         $data .= '<div class="mt-2 text-center">';
 
         if ($passato) {
+            if ($sportello_cancellato) {
+                $data .= '<span class="badge badge-secondary">Cancellato</span>';
+            }
+            
             if ($row['presente']) {
                 $data .= '<span class="badge badge-success">Presente</span>';
             } elseif ($row['iscritto']) {
-                $data .= '<span class="badge badge-danger">Assente</span>';
+                if ($sportello_cancellato) {
+                    $data .= '<span class="badge badge-success">Iscritto</span>';
+                } else {
+                    $data .= '<span class="badge badge-danger">Assente</span>';
+                }
             } else {
                 $data .= '<span class="badge badge-secondary">Non iscritto</span>';
             }
@@ -273,6 +278,10 @@ foreach ($resultArray as $row) {
             // --- UI finale ---
             if ($sportello_cancellato) {
                 $data .= '<span class="badge badge-secondary">Cancellato</span>';
+                if ($row['iscritto']) {
+                    $data .= '<br><span class="badge badge-success">Iscritto</span>';
+                }
+                $data .= '</div>';
             } elseif ($row['iscritto']) {
                 if ($cancellabile) {
                     $data .= '<span class="badge badge-success">Iscritto</span> ';
