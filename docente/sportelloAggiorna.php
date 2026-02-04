@@ -9,7 +9,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
-ruoloRichiesto('docente','segreteria-docenti','dirigente');
+ruoloRichiesto('docente', 'segreteria-docenti', 'dirigente');
 
 $tableName = "sportello";
 
@@ -111,11 +111,58 @@ if (isset($_POST)) {
                 $cnt = dbGetValue("SELECT COUNT(*) FROM sportello_studente WHERE sportello_id = '$id'");
                 info("storico mantenuto: iscrizioni NON cancellate (count=$cnt) per sportello id=$id");
 
+                // ============================================================
+                // ✅ NUOVO: crea sportello "gemello" +14 giorni in BOZZA
+                // - stessi dati
+                // - data spostata avanti di 14 giorni
+                // - docente_id = 0, attivo = 0, cancellato = 0 (bozza)
+                // ============================================================
+                $twin_id = 0;
+
+                try {
+                    $qTwin = "
+                        INSERT INTO sportello
+                            (data, ora, docente_id, materia_id, categoria,
+                            numero_ore, argomento, luogo,
+                            classe, classe_id,
+                            max_iscrizioni, online, clil, orientamento,
+                            attivo, cancellato, firmato,
+                            anno_scolastico_id)
+                        SELECT
+                            DATE_ADD(data, INTERVAL 14 DAY) AS data,
+                            ora,
+                            0 AS docente_id,
+                            materia_id,
+                            categoria,
+                            numero_ore,
+                            argomento,
+                            luogo,
+                            classe,
+                            classe_id,
+                            max_iscrizioni,
+                            online,
+                            clil,
+                            orientamento,
+                            0 AS attivo,
+                            0 AS cancellato,
+                            0 AS firmato,
+                            anno_scolastico_id
+                        FROM sportello
+                        WHERE id = " . (int)$id . "
+                        LIMIT 1
+                    ";
+                    dbExec($qTwin);
+                    $twin_id = (int)dblastId();
+
+                    info("creato sportello gemello in bozza twin_id=$twin_id da sportello_id=$id (+14 giorni)");
+                } catch (Throwable $e) {
+                    warning("errore creazione sportello gemello da sportello_id=$id: " . $e->getMessage());
+                    // non blocco il salvataggio: è un extra
+                }
             } else {
                 // (opzionale) Se un domani “riattivi” (1->0) non facciamo nulla qui.
                 info("flag cancellato cambiato ma ora cancellato=0: nessuna azione storico/MBApp");
             }
-
         } else {
 
             // nessun cambio di cancellato: aggiorna presenze come prima
@@ -129,7 +176,6 @@ if (isset($_POST)) {
                 }
             }
         }
-
     } else {
 
         $query = "INSERT INTO sportello(
@@ -161,4 +207,3 @@ if (isset($_POST)) {
     ]);
     exit;
 }
-?>
