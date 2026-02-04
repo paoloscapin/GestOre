@@ -143,7 +143,7 @@ if ($soloNuovi) {
 	$query .= "AND s.data >= CURDATE() ";
 }
 
-$query .= "ORDER BY s.data $direzioneOrdinamento, d.cognome ASC,d.nome ASC";
+$query .= "ORDER BY s.data $direzioneOrdinamento, d.cognome ASC,d.nome ASC, s.ora ASC";
 
 debug("Query principale pronta");
 

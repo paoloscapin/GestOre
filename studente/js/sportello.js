@@ -89,74 +89,180 @@ function sportelloCancellaIscrizione(sportello_id, materia, categoria, argomento
 }
 
 function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, ora, numero_ore, luogo, docente_id, studente_id) {
-    var unSoloArgomento = $("#hidden_unSoloArgomento").val() == 0 ? false : true;
-    // console.log('unSoloArgomento=' + unSoloArgomento);
-    // console.log('argomento=' + argomento);
 
-    var primoIscritto = argomento ? false : true;
-    // console.log('primoIscritto=' + primoIscritto);
+    function doPromptAndEnroll(idsArray) {
+        var unSoloArgomento = $("#hidden_unSoloArgomento").val() == 0 ? false : true;
+        // ✅ normalizza ids (evita NaN/null/doppioni)
+        idsArray = (idsArray || [])
+            .map(function (x) { return parseInt(x, 10); })
+            .filter(function (x) { return Number.isFinite(x) && x > 0; });
 
-    // per il primo iscritto chiede argomento, oppure anche se gli argomenti possono essere diversi
-    var chiediArgomento = !unSoloArgomento || primoIscritto;
-    // console.log('chiediArgomento=' + chiediArgomento);
+        // se per errore resta un solo id, comportati come singolo
 
-    // ma se era stato già previsto dal docente, allora si puo' solo accettare
-    if (argomento != null && argomento.length != 0) {
-        chiediArgomento = false;
-    }
-    // console.log('chiediArgomento finale=' + chiediArgomento);
+        var primoIscritto = argomento ? false : true;
+        var chiediArgomento = !unSoloArgomento || primoIscritto;
 
-    var titolo = "<p>Sportello: " + materia + "</p>";
-    var messaggio = chiediArgomento ? "<p>Inserire l\'argomento per lo sportello:</p>" : "<p>Confermare l\'argomento per lo sportello:</p>" + argomento;
-    var inputType = chiediArgomento ? 'textarea' : 'checkbox';
-    var inputOptions = chiediArgomento ? [] : [{ text: 'Confermo', value: '1', }];
-    var value = chiediArgomento ? [] : ['1'];
-
-    var dialog = bootbox.prompt({
-        title: titolo,
-        message: messaggio,
-        inputType: inputType,
-        inputOptions: inputOptions,
-        value: value,
-        required: true,
-
-        callback: function (result) {
-            // console.log('result='+result);
-            // null se cancel
-            if (!result) {
-                // console.log('result is null: ritorno');
-                return;
-            }
-            if (argomento) {
-                // controlla il checkbox
-                if (result != 1) {
-                    // console.log('result='+result + ' ritorno');
-                    return;
-                }
-            } else {
-                argomento = result;
-            }
-            $.post("../studente/sportelloIscriviStudente.php", {
-                id: sportello_id,
-                materia: materia,
-                argomento: argomento,
-                categoria: categoria,
-                data: data,
-                ora: ora,
-                numero_ore: numero_ore,
-                luogo: luogo,
-                docente_id: docente_id,
-                studente_id: studente_id
-            },
-                function (data, status) {
-                    sportelloReadRecords();
-                });
+        if (argomento != null && argomento.length != 0) {
+            chiediArgomento = false;
         }
+
+        var titolo = "<p>Sportello: " + materia + "</p>";
+        var messaggio = chiediArgomento
+            ? "<p>Inserire l'argomento per lo sportello:</p>"
+            : "<p>Confermare l'argomento per lo sportello:</p>" + argomento;
+
+        var inputType = chiediArgomento ? 'textarea' : 'checkbox';
+        var inputOptions = chiediArgomento ? [] : [{ text: 'Confermo', value: '1' }];
+        var value = chiediArgomento ? [] : ['1'];
+
+        var dialog = bootbox.prompt({
+            title: titolo,
+            message: messaggio,
+            inputType: inputType,
+            inputOptions: inputOptions,
+            value: value,
+            required: true,
+            callback: function (result) {
+
+                if (!result) return;
+
+                if (argomento) {
+                    if (result != 1) return; // checkbox non confermato
+                } else {
+                    argomento = result;
+                }
+
+                var payload = {
+                    materia: materia,
+                    argomento: argomento,
+                    categoria: categoria,
+                    docente_id: docente_id,
+                    studente_id: studente_id
+                };
+
+                // ✅ singolo o multiplo
+                // ✅ singolo o multiplo (dopo normalizzazione)
+                if (idsArray.length > 1) {
+                    payload.ids = JSON.stringify(idsArray);
+                } else {
+                    payload.id = idsArray[0] || sportello_id;   // ✅ usa l'id normalizzato
+                    payload.data = data;
+                    payload.ora = ora;
+                    payload.numero_ore = numero_ore;
+                    payload.luogo = luogo;
+                }
+
+                $.post("./sportelloIscriviStudente.php", payload, function (resp) {
+                    // se il php risponde json (con la patch sopra), gestisco errori
+                    try {
+                        if (resp && resp.ok === false) {
+                            bootbox.alert("Errore: " + (resp.error || "iscrizione non riuscita"));
+                            return;
+                        }
+                    } catch (e) { }
+
+                    sportelloReadRecords();
+                }, "json").fail(function (xhr) {
+                    // fallback
+                    console.error("iscrizione fail", xhr && xhr.responseText);
+                    bootbox.alert("Errore durante l'iscrizione.");
+                });
+            }
+        });
+
+        dialog.on('shown.bs.modal', function () {
+            $(this).attr('aria-hidden', 'false');
+        });
+    }
+
+    // ✅ nuova logica: se ora=13:50 controllo esistenza slot 14:40 uguale
+    // ✅ nuova logica GENERICA: controllo slot successivo (se esiste)
+    $.post("./sportelloIscriviStudente.php", {
+        action: "check_adjacent",
+        id: sportello_id
+    }, function (resp) {
+
+        if (!resp || !resp.ok) {
+            doPromptAndEnroll([sportello_id]);
+            return;
+        }
+
+        var prevOk = resp.prev_id && (resp.prev_posti || 0) > 0;
+        var nextOk = resp.next_id && (resp.next_posti || 0) > 0;
+
+        // nessun adiacente utile -> normale
+        if (!prevOk && !nextOk) {
+            doPromptAndEnroll([sportello_id]);
+            return;
+        }
+
+        var oraPrev = (resp.prev_ora || "").trim();
+        var oraNext = (resp.next_ora || "").trim();
+
+        var buttons = {
+            only: {
+                label: "Solo " + (ora || ""),
+                className: "btn-primary",
+                callback: function () { doPromptAndEnroll([sportello_id]); }
+            },
+            cancel: {
+                label: "Annulla",
+                className: "btn-default"
+            }
+        };
+
+        if (prevOk) {
+            buttons.prev = {
+                label: "Questa + ora prima (" + oraPrev + ")",
+                className: "btn-success",
+                callback: function () {
+                    doPromptAndEnroll([resp.prev_id, sportello_id]);
+                }
+            };
+        }
+
+        if (nextOk) {
+            buttons.next = {
+                label: "Questa + ora dopo (" + oraNext + ")",
+                className: "btn-success",
+                callback: function () {
+                    doPromptAndEnroll([sportello_id, resp.next_id]);
+                }
+            };
+        }
+
+        // opzionale: tutte e 3 se esistono entrambe
+        if (prevOk && nextOk) {
+            buttons.all3 = {
+                label: "Tutte e 3 (" + oraPrev + " + " + (ora || "") + " + " + oraNext + ")",
+                className: "btn-warning",
+                callback: function () {
+                    doPromptAndEnroll([resp.prev_id, sportello_id, resp.next_id]);
+                }
+            };
+        }
+
+        bootbox.dialog({
+            title: "Iscrizione",
+            message:
+                "<p>Ho trovato sportelli identici adiacenti:</p>" +
+                (prevOk ? ("<p>• Ora prima: <b>" + oraPrev + "</b></p>") : "") +
+                (nextOk ? ("<p>• Ora dopo: <b>" + oraNext + "</b></p>") : "") +
+                "<p>Come vuoi iscriverti?</p>",
+            buttons: buttons
+        });
+
+    }, "json").fail(function () {
+        doPromptAndEnroll([sportello_id]);
     });
-    dialog.on('shown.bs.modal', function () {
-        $(this).attr('aria-hidden', 'false'); // ora il modal è accessibile
-    });
+
+    return;
+
+
+    // default: comportamento attuale
+    doPromptAndEnroll([sportello_id]);
 }
+
 
 $(document).ready(function () {
     $(function () {
@@ -174,8 +280,4 @@ $(document).ready(function () {
     bindFiltro($("#categoria_filtro"), v => { categoria_filtro_id = v; });
     bindFiltro($("#docente_filtro"), v => { docente_filtro_id = v; });
     bindFiltro($("#materia_filtro"), v => { materia_filtro_id = v; });
-
-    $('#soloNuoviCheckBox').on('change', function () { soloNuovi = this.checked ? 1 : 0; sportelloReadRecords(); });
-    $('#soloIscrittoCheckBox').on('change', function () { soloIscritto = this.checked ? 1 : 0; sportelloReadRecords(); });
-    $('#ancheCancellatiCheckBox').on('change', function () { ancheCancellati = this.checked ? 1 : 0; sportelloReadRecords(); });
 });

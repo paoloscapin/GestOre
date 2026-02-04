@@ -8,29 +8,80 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/connect.php';      // ✅ serve per fallback email da DB
 require_once '../common/send-mail.php';
 require_once '../common/mail-ui.php';
 
 ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
 
-// -------------------------------
-// Link Google Calendar
-// -------------------------------
+/**
+ * =========================================================
+ *  FALLBACK VARIABILI (il file può essere incluso con require)
+ * =========================================================
+ */
+
+// se mancano le variabili attese, provo a rimediare senza “rompere” l’esecuzione
+$studente_nome    = isset($studente_nome) ? (string)$studente_nome : '';
+$studente_cognome = isset($studente_cognome) ? (string)$studente_cognome : '';
+$studente_email   = isset($studente_email) ? trim((string)$studente_email) : '';
+
+$docente_nome     = isset($docente_nome) ? (string)$docente_nome : '';
+$docente_cognome  = isset($docente_cognome) ? (string)$docente_cognome : '';
+
+$materia   = isset($materia) ? (string)$materia : '';
+$categoria = isset($categoria) ? (string)$categoria : '';
+$data      = isset($data) ? (string)$data : '';
+$ora       = isset($ora) ? (string)$ora : '';
+$luogo     = isset($luogo) ? (string)$luogo : '';
+
+$datetime_sportello      = isset($datetime_sportello) ? (string)$datetime_sportello : '';
+$datetime_fine_sportello = isset($datetime_fine_sportello) ? (string)$datetime_fine_sportello : '';
+
+$email_genitori       = isset($email_genitori) ? trim((string)$email_genitori) : '';
+$nominativo_genitori  = isset($nominativo_genitori) ? trim((string)$nominativo_genitori) : '';
+
+/**
+ * =========================================================
+ *  Se email studente vuota -> ricalcolo da DB
+ * =========================================================
+ */
+if ($studente_email === '' && !empty($__studente_id)) {
+    try {
+      debug("prima di dbfirst per email studente");
+      debug("SELECT nome, cognome, email FROM studente WHERE id = " . (int)$__studente_id . " LIMIT 1");
+        $row = dbGetFirst("SELECT nome, cognome, email FROM studente WHERE id = " . (int)$__studente_id . " LIMIT 1");
+        if ($row) {
+            if ($studente_nome === '')    $studente_nome = (string)($row['nome'] ?? '');
+            if ($studente_cognome === '') $studente_cognome = (string)($row['cognome'] ?? '');
+            $studente_email = trim((string)($row['email'] ?? ''));
+        }
+    } catch (Throwable $e) {
+        warning("[sportelloMailIscrizioneStudente] fallback email studente EX: " . $e->getMessage());
+    }
+}
+
+if ($studente_email === '') {
+    // ✅ non invio: evito errore (to) e non sporco output
+    warning("[sportelloMailIscrizioneStudente] email studente VUOTA: impossibile inviare. studente_id=" . (int)($__studente_id ?? 0));
+    return;
+}
+
+/**
+ * =========================================================
+ *  Link Google Calendar
+ * =========================================================
+ */
 $linkCalendar = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
     . '&dates=' . $datetime_sportello . 'Z%2F' . $datetime_fine_sportello . 'Z'
-    . '&details=' . urlencode(
-        "Attività $categoria - materia $materia - Aula $luogo"
-    )
-    . '&location=' . urlencode(
-        'Istituto Tecnico Tecnologico Buonarroti, Via Brigata Acqui, 15, 38122 Trento TN, Italia'
-    )
-    . '&text=' . urlencode(
-        "Attività $categoria - materia $materia - Aula $luogo"
-    );
+    . '&details=' . urlencode("Attività $categoria - materia $materia - Aula $luogo")
+    . '&location=' . urlencode('Istituto Tecnico Tecnologico Buonarroti, Via Brigata Acqui, 15, 38122 Trento TN, Italia')
+    . '&text=' . urlencode("Attività $categoria - materia $materia - Aula $luogo");
 
-// -------------------------------
-// Mail HTML (mail-ui)
-// -------------------------------
+/**
+ * =========================================================
+ *  Mail HTML (mail-ui)
+ * =========================================================
+ */
 $title = "ISCRIZIONE ATTIVITÀ";
 $intro = "Conferma della tua iscrizione all’attività selezionata.";
 
@@ -72,24 +123,32 @@ $body = mailWrap(
     $intro,
     $content,
     $footer,
-    'studente'   // 🎨 tema studente
+    'studente'
 );
 
-// -------------------------------
-// Invio mail
-// -------------------------------
+/**
+ * =========================================================
+ *  Invio mail
+ * =========================================================
+ */
 $to = $studente_email;
-$toName = $studente_nome . " " . $studente_cognome;
+$toName = trim($studente_nome . " " . $studente_cognome);
 $mailsubject = 'GestOre - Iscrizione attività ' . $categoria . ' - materia ' . $materia;
 
 info("Invio mail iscrizione allo studente: $to ($toName)");
 
-if ($email_genitori != "") {
-    sendMailCC($to, $toName, $email_genitori, $nominativo_genitori, $mailsubject, $body);
-    info("Mail iscrizione inviata anche ai genitori: $email_genitori");
-} else {
-    sendMail($to, $toName, $mailsubject, $body);
-    info("Mail iscrizione inviata allo studente: $to");
+try {
+    if ($email_genitori !== "") {
+        sendMailCC($to, $toName, $email_genitori, $nominativo_genitori, $mailsubject, $body);
+        info("Mail iscrizione inviata anche ai genitori: $email_genitori");
+    } else {
+        sendMail($to, $toName, $mailsubject, $body);
+        info("Mail iscrizione inviata allo studente: $to");
+    }
+} catch (Throwable $e) {
+    warning("[sportelloMailIscrizioneStudente] invio mail EX: " . $e->getMessage());
+    // non rilancio: non deve rompere la risposta JSON del chiamante
+    return;
 }
 
-?>
+return;

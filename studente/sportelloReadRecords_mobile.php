@@ -149,7 +149,7 @@ if ($categoria_filtro_id > 0) $query .= " AND sportello.categoria = '" . $nome_c
 if (!$ancheCancellati)        $query .= " AND NOT sportello.cancellato ";
 if ($soloNuovi)               $query .= " AND sportello.data >= CURDATE() ";
 
-$query .= " ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC, docente_nome ASC";
+$query .= " ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC, docente_nome ASC, sportello.ora ASC ";
 
 debug("Query MOBILE pronta");
 
