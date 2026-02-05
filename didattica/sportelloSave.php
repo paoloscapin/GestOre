@@ -193,12 +193,12 @@ try {
             if ($eligible) {
 
                 $materiaNome = trim((string)dbGetValue("SELECT nome FROM materia WHERE id=" . (int)$materia_id . " LIMIT 1"));
-                $docenteNome = trim((string)dbGetValue("SELECT CONCAT(cognome,' ',nome) FROM docente WHERE id=" . (int)$docente_id . " LIMIT 1"));
+                $docenteNome = trim((string)dbGetValue("SELECT username FROM docente WHERE id=" . (int)$docente_id . " LIMIT 1"));
 
                 if ($materiaNome === '') $materiaNome = 'DIDATTICO';
                 if ($docenteNome === '') $docenteNome = 'Segreteria didattica';
 
-                $titoloSportello = "IMPEGNO IN ISTITUTO ";
+                $titoloSportello = "SPORTELLO " . trim($materiaNome);
                 $dettagliTxt = trim(($categoria ?? '') . (trim($argomento) !== '' ? " - " . trim($argomento) : ''));
 
                 $mbapp = mbapp_sync_sportello((int)$id, [
@@ -209,7 +209,7 @@ try {
 
                     'docente_id' => (int)$docente_id,
                     'docenti' => $docenteNome,
-                    'motivo' => $titoloSportello,
+                    'motivo' => "IMPEGNO IN ISTUTITO",
                     'dettagli' => $dettagliTxt,
                     'attivitaProgetto' => $titoloSportello,
 
