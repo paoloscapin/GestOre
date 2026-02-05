@@ -87,17 +87,6 @@ if ($categoria_filtro_id > 0) {
 	}
 }
 
-if ($classe_filtro_id > 0) {
-	$classe_filtro_id = intval($classe_filtro_id);
-
-	// include anche i sottogruppi definiti in classe_include
-	$query .= "AND sportello.classe_id IN (
-                    SELECT ci.includes_classe_id
-                    FROM classe_include ci
-                    WHERE ci.classe_id = $classe_filtro_id
-               ) ";
-}
-
 if ($materia_filtro_id > 0) {
 	$where[] = "sportello.materia_id = $materia_filtro_id";
 }
@@ -121,6 +110,16 @@ if ($soloNuovi) {
 }
 
 $query .= " WHERE " . implode(" AND ", $where);
+if ($classe_filtro_id > 0) {
+	$classe_filtro_id = intval($classe_filtro_id);
+
+	// include anche i sottogruppi definiti in classe_include
+	$query .= "AND sportello.classe_id IN (
+                    SELECT ci.includes_classe_id
+                    FROM classe_include ci
+                    WHERE ci.classe_id = $classe_filtro_id
+               ) ";
+}
 $query .= " ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC, docente_nome ASC";
 
 $resultArray = dbGetAll($query);
