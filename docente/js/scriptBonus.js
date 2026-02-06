@@ -166,75 +166,112 @@ $(document).ready(function () {
 	// BONUSSELECTION.PHP: toggle selezione (delegato, perché bootstrap-toggle può rigenerare DOM)
 	$(document).on("change", ".bonus_selection_table input:checkbox", function () {
 
-		// se disabilitato (anno non corrente o adesioni chiuse), non fare nulla
 		if ($(this).is(":disabled")) return;
 
+		const $cb = $(this);
+		if ($cb.data("busy")) return;
+		$cb.data("busy", true);
+
 		const anno = getAnnoScolasticoId();
-		const row = $(this).closest("tr");
+		const row = $cb.closest("tr");
 
-		const idBonus = row.children().eq(0).text();
-		const idAdesione = row.children().eq(1).text();
-		const checked = $(this).is(":checked");
+		const idBonus = parseInt($.trim(row.children().eq(0).text()), 10);
+		let idAdesione = parseInt($.trim(row.children().eq(1).text()), 10);
+		if (isNaN(idAdesione)) idAdesione = -1;
 
-		$.post("bonusAdesioniUpdate.php", {
-			adesione_id: idAdesione,
-			bonus_id: idBonus,
-			anno_scolastico_id: anno
-		}, function (data) {
+		const checked = $cb.is(":checked");
 
-			// se ho spuntato, il server ritorna l'id della nuova adesione
-			if (checked) {
-				row.children().eq(1).html(data);
+		$.ajax({
+			url: "bonusAdesioniUpdate.php",
+			method: "POST",
+			dataType: "json",
+			data: {
+				adesione_id: idAdesione,
+				bonus_id: idBonus,
+				anno_scolastico_id: anno,
+				checked: checked ? 1 : 0
+			},
+			success: function (r) {
+				// backend deve rispondere {ok:true, action:'insert|exists|delete', id?:123}
+				if (!r || r.ok !== true) {
+					// ripristino UI
+					if (checked) {
+						$cb.bootstrapToggle('off');
+						row.children().eq(1).html(-1);
+
+					} else {
+						$cb.bootstrapToggle('on');
+					}
+					$.notify({
+						icon: 'glyphicon glyphicon-warning-sign',
+						title: '<Strong>Selezione Bonus</Strong></br>',
+						message: (r && (r.error || r.message)) ? (r.error || r.message) : 'Risposta non valida dal server.'
+					}, {
+						placement: { from: "top", align: "center" },
+						delay: 5000,
+						timer: 100,
+						mouse_over: "pause",
+						type: 'danger'
+					});
+					return;
+				}
+
+				if (checked) {
+					if (r.id) row.children().eq(1).html(r.id);   // insert/exists
+					else row.children().eq(1).html(idAdesione);  // fallback
+
+					$.notify({
+						icon: 'glyphicon glyphicon-info-sign',
+						title: '<Strong>Selezione Bonus</Strong></br>',
+						message: 'Criterio aggiunto. Selezione aggiornata!'
+					}, {
+						placement: { from: "top", align: "center" },
+						delay: 3500,
+						timer: 100,
+						mouse_over: "pause",
+						type: 'info'
+					});
+
+				} else {
+					row.children().eq(1).html(-1);
+
+					$.notify({
+						icon: 'glyphicon glyphicon-info-sign',
+						title: '<Strong>Selezione Bonus</Strong></br>',
+						message: 'Criterio rimosso. Selezione aggiornata!'
+					}, {
+						placement: { from: "top", align: "center" },
+						delay: 3500,
+						timer: 100,
+						mouse_over: "pause",
+						type: 'info'
+					});
+				}
+				$cb.data("busy", false);
+			},
+			error: function (xhr) {
+				// ripristino UI
+				if (checked) {
+					$cb.prop("checked", false);
+					row.children().eq(1).html(-1);
+				} else {
+					$cb.prop("checked", true);
+				}
 
 				$.notify({
-					icon: 'glyphicon glyphicon-info-sign',
+					icon: 'glyphicon glyphicon-warning-sign',
 					title: '<Strong>Selezione Bonus</Strong></br>',
-					message: 'Criterio aggiunto. Selezione aggiornata!'
+					message: 'Modifica non consentita (anno non corrente o adesioni chiuse).'
 				}, {
 					placement: { from: "top", align: "center" },
-					delay: 3500,
+					delay: 5000,
 					timer: 100,
 					mouse_over: "pause",
-					type: 'info'
+					type: 'danger'
 				});
-			} else {
-				// se ho deselezionato, adesione torna a -1
-				row.children().eq(1).html(-1);
-
-				$.notify({
-					icon: 'glyphicon glyphicon-info-sign',
-					title: '<Strong>Selezione Bonus</Strong></br>',
-					message: 'Criterio rimosso. Selezione aggiornata!'
-				}, {
-					placement: { from: "top", align: "center" },
-					delay: 3500,
-					timer: 100,
-					mouse_over: "pause",
-					type: 'info'
-				});
+				$cb.data("busy", false);
 			}
-
-		}).fail(function (xhr) {
-			// se backend blocca (403), ripristina lo stato del toggle
-			// (per evitare UI incoerente)
-			if (checked) {
-				$(this).prop("checked", false);
-				row.children().eq(1).html(-1);
-			} else {
-				$(this).prop("checked", true);
-			}
-
-			$.notify({
-				icon: 'glyphicon glyphicon-warning-sign',
-				title: '<Strong>Selezione Bonus</Strong></br>',
-				message: 'Modifica non consentita (anno non corrente o adesioni chiuse).'
-			}, {
-				placement: { from: "top", align: "center" },
-				delay: 5000,
-				timer: 100,
-				mouse_over: "pause",
-				type: 'danger'
-			});
-		}.bind(this));
+		});
 	});
+
 });

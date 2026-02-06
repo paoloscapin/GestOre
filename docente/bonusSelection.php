@@ -1,4 +1,11 @@
 <?php
+
+/**
+ *  This file is part of GestOre
+ *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
+ *  @copyright  (C) 2026 Massimo Saiani
+ *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ */
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
@@ -50,18 +57,18 @@ $anno_scolastico_id = isset($_GET['anno_scolastico_id'])
 
         <?php
         // lista bonus già selezionati per questo docente e anno scelto
-        $bonus_id_array = [];
-        $adesione_id_array = [];
+        $adesioniMap = []; // bonus_id => adesione_id
 
         $query = "SELECT id, bonus_id
           FROM bonus_docente
           WHERE docente_id = $__docente_id
             AND anno_scolastico_id = $anno_scolastico_id";
         $res0 = dbGetAll($query);
-        foreach ($res0 as $bonus_docente) {
-            $bonus_id_array[] = $bonus_docente['bonus_id'];
-            $adesione_id_array[] = $bonus_docente['id'];
+
+        foreach ($res0 as $bd) {
+            $adesioniMap[(int)$bd['bonus_id']] = (int)$bd['id'];
         }
+
 
         // aree (non hanno anno)
         $data = '';
@@ -135,13 +142,9 @@ $anno_scolastico_id = isset($_GET['anno_scolastico_id'])
                     $data .= '<tr>';
                     $data .= '  <td>' . $bonus_id . '</td>';
 
-                    if (in_array($bonus_id, $bonus_id_array)) {
-                        $pos = array_search($bonus_id, $bonus_id_array, true);
-                        $adesione_id = intval($adesione_id_array[$pos]);
-                        $data .= '  <td>' . $adesione_id . '</td>';
-                    } else {
-                        $data .= '  <td>-1</td>';
-                    }
+                    $adesione_id = $adesioniMap[$bonus_id] ?? -1;
+                    $data .= '  <td>' . (int)$adesione_id . '</td>';
+
 
                     $data .= '  <td class="text-center">' . htmlspecialchars($bonus['codice']) . '</td>';
                     $data .= '  <td class="text-left"><span style="white-space: pre-line">' . htmlspecialchars($bonus['descrittori']) . '</span></td>';
@@ -151,10 +154,17 @@ $anno_scolastico_id = isset($_GET['anno_scolastico_id'])
                     $canEdit = $__config->getBonus_adesione_aperto() && ($anno_scolastico_id == $__anno_scolastico_corrente_id);
                     $disabledAttr = $canEdit ? '' : ' disabled ';
 
-                    $data .= '<td class="text-center"><input type="checkbox" data-toggle="toggle" data-onstyle="primary" class="richiesto" ' . $disabledAttr . ' ';
+                    $checkedAttr = ($adesione_id > 0) ? 'checked' : '';
 
-                    if (in_array($bonus_id, $bonus_id_array)) $data .= 'checked ';
-                    $data .= '></td>';
+                    $data .= '<td class="text-center">
+                        <input type="checkbox"
+                                class="richiesto"
+                                data-toggle="toggle"
+                                data-onstyle="primary"
+                                data-bonus-id="' . (int)$bonus_id . '"
+                                data-adesione-id="' . (int)$adesione_id . '"
+                                ' . $disabledAttr . ' ' . $checkedAttr . '>
+                        </td>';
 
                     $data .= '</tr>';
                 }
