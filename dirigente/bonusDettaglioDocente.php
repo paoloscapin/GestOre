@@ -214,6 +214,17 @@ ORDER BY
 ";
             $resultArray2 = dbGetAll($query);
             foreach ($resultArray2 as $bonus) {
+
+$js_codice      = json_encode((string)$bonus['bonus_codice'], JSON_UNESCAPED_UNICODE);
+$js_descrittori = json_encode((string)$bonus['bonus_descrittori'], JSON_UNESCAPED_UNICODE);
+$js_evidenze    = json_encode((string)$bonus['bonus_evidenze'], JSON_UNESCAPED_UNICODE);
+
+// IMPORTANTISSIMO: rendi il JSON sicuro dentro un attributo HTML
+$js_codice_attr      = htmlspecialchars($js_codice, ENT_QUOTES, 'UTF-8');
+$js_descrittori_attr = htmlspecialchars($js_descrittori, ENT_QUOTES, 'UTF-8');
+$js_evidenze_attr    = htmlspecialchars($js_evidenze, ENT_QUOTES, 'UTF-8');
+
+
                 $marker = ($bonus['bonus_docente_ultima_modifica'] > $bonus['bonus_docente_ultimo_controllo']) ? '&ensp;<span class="label label-danger glyphicon glyphicon-star" style="color:yellow">.' . '' . '</span>' : '';
                 $data .= '
         <tr>
@@ -226,9 +237,13 @@ ORDER BY
                 $data .= '
             <td class="text-center">
         ';
-                $data .= '
-            <button onclick="bonusRendiconto(' . $bonus['bonus_docente_id'] . ', \'' . $bonus['bonus_codice'] . '\', \'' . $bonus['bonus_descrittori'] . '\', \'' . $bonus['bonus_evidenze'] . '\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button>
-        ';
+$data .= '
+<button type="button"
+  class="btn btn-success btn-xs"
+  onclick="bonusRendiconto(' . (int)$bonus['bonus_docente_id'] . ', ' . $js_codice_attr . ', ' . $js_descrittori_attr . ', ' . $js_evidenze_attr . ')">
+  <span class="glyphicon glyphicon-list-alt"></span>
+</button>';
+
                 $data .= '
             </td>
         ';
