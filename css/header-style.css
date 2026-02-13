@@ -54,3 +54,30 @@
 body{
   padding-top: var(--header-offset, 70px);
 }
+
+/* "finto pulsante" dentro navbar, con margini come navbar-btn */
+.top-navbar-nav > li > a.nav-btn{
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  border-radius: 4px;
+  line-height: 20px;      /* coerente con BS3 */
+}
+
+/* Pulsanti dentro <ul class="nav navbar-nav ..."> */
+.top-navbar-nav > li > a.nav-btn{
+  display: inline-block;
+  margin: 8px 2px;        /* margine sopra/sotto come navbar-btn */
+  padding: 6px 12px;      /* altezza “da bottone” */
+  line-height: 20px;      /* coerente BS3 */
+  border-radius: 4px;
+  color: #000;            /* come i tuoi bottoni in screenshot */
+}
+
+/* Evita che la regola navbar "spinga" padding/hover sui bottoni */
+.top-navbar-default .top-navbar-nav > li > a.nav-btn:hover,
+.top-navbar-default .top-navbar-nav > li > a.nav-btn:focus{
+  background-color: inherit; /* oppure rimuovi se le tue btn-* gestiscono già */
+  color: #000;
+}
