@@ -209,7 +209,7 @@ try {
 
                     'docente_id' => (int)$docente_id,
                     'docenti' => $docenteNome,
-                    'motivo' => "IMPEGNO IN ISTUTITO",
+                    'motivo' => "IMPEGNO IN ISTITUTO",
                     'dettagli' => $dettagliTxt,
                     'attivitaProgetto' => $titoloSportello,
 
