@@ -88,6 +88,13 @@ function verificaAulaCorrenteDidattica(opts) {
 
         if (!resp || resp.status !== "ok") {
             console.warn("[verificaAulaCorrenteDidattica] BAD RESPONSE", resp);
+
+            const msg = (resp && (resp.message || resp.error)) ? (resp.message || resp.error) : "Errore verifica aule libere";
+            if (window.Swal) {
+                Swal.fire({ icon: "warning", title: "Aule", text: msg });
+            } else {
+                alert(msg);
+            }
             return;
         }
 
