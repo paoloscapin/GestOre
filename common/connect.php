@@ -122,4 +122,33 @@ function dbGetAllValues($query) {
 	return $values;
 }
 
+// escape stringhe per SQL (NO quote incluse)
+function dbEscape($value) {
+	global $__con;
+	return mysqli_real_escape_string($__con, (string)$value);
+}
+
+// ritorna '...'(quoted) o NULL
+function dbQ($value) {
+	if ($value === null) return "NULL";
+	$value = trim((string)$value);
+	if ($value === '') return "NULL";
+	return "'" . dbEscape($value) . "'";
+}
+
+// ritorna intero o NULL
+function dbI($value) {
+	if ($value === null) return "NULL";
+	if ($value === '') return "NULL";
+	return (string)intval($value);
+}
+
+// ritorna float o NULL (con punto)
+function dbF($value) {
+	if ($value === null) return "NULL";
+	$value = str_replace(',', '.', trim((string)$value));
+	if ($value === '') return "NULL";
+	return (string)floatval($value);
+}
+
 ?>
