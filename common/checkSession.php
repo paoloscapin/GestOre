@@ -12,10 +12,9 @@ require_once __DIR__ . '/path.php';
 require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/__Settings.php';
 
-if ($__settings->features->MBApp !== true) {
+if ($__settings->config->MBApp !== true) {
     debug("checkSession: MBApp feature disabled, skipping connectMBApp.php");
-}
-else {
+} else {
     require_once __DIR__ . '/connectMBApp.php';
 }
 
@@ -90,6 +89,12 @@ function __dbg_session_state(string $stage): void
         'genitore_cognome',
         'genitore_email',
         'genitore_codice_fiscale',
+
+        // personale ATA
+        'personale_ata_id',
+        'personale_ata_nome',
+        'personale_ata_cognome',
+        'personale_ata_email',
 
         // anno scolastico
         'anno_scolastico_corrente_id',
@@ -373,7 +378,6 @@ function aggiornaLoginGenitore(int $genitore_id): void
     dbExec($query);
 }
 
-
 $newlogin_genitore = false;
 
 debug("checkSession: entering login/genitore+google block");
@@ -486,7 +490,6 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
     // =====================================================
     // Google Auth Flow - solo se manca __username
     // =====================================================
-    // (nota: questo è quello che “riparte” quando la sessione torna vuota o perde __username)
     $__username = $__username ?? ($_SESSION['__username'] ?? null);
 
     if (empty($__username)) {
@@ -682,12 +685,67 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
 
                     __dbg_session_state('AFTER lookup+set studente');
                 } else {
-                    $__message = 'La mail utilizzata non è presente in anagrafica: [' . $__useremail . ']';
-                    debug("checkSession: neither utente nor studente found -> redirect error");
-                    infoLogin("utente non trovato: " . $__useremail);
-                    warning($__message);
-                    redirect('/error/error.php?message=' . $__message);
-                    exit();
+
+                    // ============================
+                    // TENTATIVO LOGIN PERSONALE ATA
+                    // ============================
+                    // (MODIFICHE SOLO QUI: riallineo $__useremail / $__username e setto personale_ata_*)
+                    $emailEsc = addslashes($__useremail);
+                    $userEsc  = addslashes((string)($session->get('__username') ?? $session->get('username') ?? ''));
+
+                    $ata = dbGetFirst("
+                        SELECT id, nome, cognome, email, username, attivo
+                        FROM personale_ata
+                        WHERE attivo = 1
+                          AND (
+                                email = '$emailEsc'
+                                OR username = '$userEsc'
+                              )
+                        LIMIT 1
+                    ");
+
+                    if ($ata != null) {
+
+                        // Utente applicativo "virtuale"
+                        $session->set('utente_id', -1);
+                        $session->set('utente_nome', $ata['nome']);
+                        $session->set('utente_cognome', $ata['cognome']);
+                        $session->set('utente_ruolo', 'personale-ata');
+
+                        // Username: usa quello in tabella, altrimenti fallback "nome.cognome"
+                        $uname = !empty($ata['username']) ? $ata['username'] : ($ata['nome'] . "." . $ata['cognome']);
+                        $session->set('username', $uname);
+                        $session->set('__username', $uname);
+
+                        // Email coerente
+                        $session->set('__useremail', $ata['email']);
+
+                        // >>> MOD: riallineo anche le variabili PHP locali (non solo sessione)
+                        $__useremail = $ata['email'];
+                        $__username  = $uname;
+
+                        // Session vars ATA dedicate
+                        $session->set('personale_ata_id', (int)$ata['id']);
+                        $session->set('personale_ata_nome', $ata['nome']);
+                        $session->set('personale_ata_cognome', $ata['cognome']);
+                        $session->set('personale_ata_email', $ata['email']);
+
+                        $_SESSION['LAST_ACTIVITY'] = time();
+                        $_SESSION['EXPIRE_AFTER']  = intval($__settings->system->durata_sessione);
+
+                        debug("checkSession: login PERSONALE_ATA OK -> id=" . $ata['id'] . " " . $ata['cognome'] . " " . $ata['nome']);
+                        __dbg_session_state('AFTER lookup+set personale_ata');
+
+                        // ok: non redirect qui (lo gestisce index.php)
+                    } else {
+                        // Nessuna anagrafica trovata
+                        $__message = 'La mail utilizzata non è presente in anagrafica: [' . $__useremail . ']';
+                        debug("checkSession: neither utente nor genitore nor studente nor personale_ata found -> redirect error");
+                        infoLogin("utente non trovato: " . $__useremail);
+                        warning($__message);
+                        redirect('/error/error.php?message=' . $__message);
+                        exit();
+                    }
                 }
             }
         }
@@ -705,19 +763,94 @@ $__utente_nome = $session->get('utente_nome');
 $__utente_cognome = $session->get('utente_cognome');
 $__utente_ruolo = $session->get('utente_ruolo');
 
-if ($__utente_ruolo === "esterno"){
+if ($__utente_ruolo === "esterno") {
     $session->set('esterno_id', $__utente_id);
     $session->set('esterno_nome', $__utente_nome);
     $session->set('esterno_cognome', $__utente_cognome);
     $session->set('esterno_email', $__useremail);
 }
 
-
 debug("checkSession: resolved user -> id=" . ($__utente_id ?? 'NULL')
     . " username=" . ($__username ?? 'NULL')
     . " ruolo=" . ($__utente_ruolo ?? 'NULL'));
 
 __dbg_session_state('AFTER resolved user globals');
+
+// =====================================================
+// Personale ATA mapping (se NON già ruolo "forte")
+// =====================================================
+// Nota: qui "promuoviamo" a personale-ata solo se l'utente non è già:
+// docente / studente / genitore / esterno / segreterie / dirigente / admin
+if (!empty($__useremail)) {
+
+    $ruoloAttuale = (string)($session->get('utente_ruolo') ?? '');
+
+    $ruoliForti = [
+        'docente',
+        'studente',
+        'genitore',
+        'esterno',
+        'segreteria-docenti',
+        'segreteria-ata',
+        'dirigente',
+        'admin'
+    ];
+
+    if (!in_array($ruoloAttuale, $ruoliForti, true)) {
+
+        // >>> MOD: se ho già personale_ata_id in sessione (perché ho già fatto login ATA sopra),
+        //          NON rifaccio query e NON riassegno campi.
+        if (!$session->has('personale_ata_id') || intval($session->get('personale_ata_id')) <= 0) {
+
+            // escape minimale (dbExec/dbGetFirst non usano prepared)
+            $emailEsc = addslashes($__useremail);
+            $userEsc  = addslashes((string)$__username);
+
+            $ata = dbGetFirst("
+                SELECT id, nome, cognome, email, username, attivo
+                FROM personale_ata
+                WHERE attivo = 1
+                  AND (
+                        email = '$emailEsc'
+                        OR username = '$userEsc'
+                      )
+                LIMIT 1
+            ");
+
+            if ($ata != null) {
+
+                // set session ATA
+                $session->set('personale_ata_id', (int)$ata['id']);
+                $session->set('personale_ata_nome', $ata['nome']);
+                $session->set('personale_ata_cognome', $ata['cognome']);
+                $session->set('personale_ata_email', $ata['email']);
+
+                // imposta il ruolo applicativo richiesto
+                $session->set('utente_ruolo', 'personale-ata');
+
+                // riallineo i globals già calcolati
+                $__utente_ruolo = 'personale-ata';
+
+                debug("checkSession: personale_ata recognized -> id=" . $ata['id'] . " " . $ata['cognome'] . " " . $ata['nome']);
+                __dbg_session_state('ATA: after set personale_ata');
+            }
+        } else {
+            // già in sessione -> garantisco ruolo coerente
+            if ($ruoloAttuale !== 'personale-ata') {
+                $session->set('utente_ruolo', 'personale-ata');
+                $__utente_ruolo = 'personale-ata';
+            }
+        }
+    }
+}
+
+// =====================================================
+// Globals Personale ATA
+// =====================================================
+$__ata_id      = $session->get('personale_ata_id');
+$__ata_nome    = $session->get('personale_ata_nome');
+$__ata_cognome = $session->get('personale_ata_cognome');
+$__ata_email   = $session->get('personale_ata_email');
 
 // =====================================================
 // Docente mapping (se ruolo docente)
