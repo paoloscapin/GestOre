@@ -24,8 +24,8 @@
         "logFile": "GestOre.log",
         "timeFormat": "%d/%m/%Y - %H:%M:%S",
         "debug": false,
-        "logLoginUsers": true,
-        "logLoginFile": "GestOreLogin.log"
+        "logLoginFile": "GestOreLogin.log",
+        "logCronFile": "GestOreCron.log"
     },
     "config": {
         "gestioneClil": false,
@@ -34,6 +34,7 @@
         "corsiDiRecupero": false,
         "minuti": true,
         "sportelli": true,
+        "segrata": true,
         "MBApp": false,
         "gestioneViaggiSemplificata": true,
         "pianiDiLavoro": false,
@@ -59,8 +60,13 @@
         "visualizzaSostituzioniDocenteInFatte": false,
         "gruppoResponsabileGestiionePartecipanti": true
     },
-        "MBApp": {
-        "emailPrenotazioniAule": "--- inseire mail a cui arriva la notifica si una prenotazione aula --- ",
+    "segrata": {
+        "emailSegreteria": "--- inserire mail segreteria a cui inviare le richieste di permesso ---",
+        "destinatariEmail": "Segreteria ATA Permessi",
+        "emailNoReplyFrom": "--- deve essere la mail usata per la GoogleApp oppure un alias collegato allo stesso account ---"
+    },
+    "MBApp": {
+        "emailPrenotazioniAule": "--- inserire mail a cui arriva la notifica si una prenotazione aula --- ",
         "destPrenotazioniAule": "--- nome abbinato alla mail di prenotazione aule ---"
     },
     "local": {
