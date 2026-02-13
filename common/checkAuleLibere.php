@@ -5,6 +5,9 @@
  */
 
 require_once __DIR__ . '/checkSession.php';
+require_once __DIR__ . '/connect.php';
+require_once __DIR__ . '/__Settings.php';
+require_once __DIR__ . '/connectMBApp.php';
 
 debug("check aule libere");
 header('Content-Type: application/json; charset=utf-8');
