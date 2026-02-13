@@ -27,9 +27,15 @@ if ($__settings->log->logIntoAppFolder) {
 }
 $fileNameLogin .= $__settings->log->logLoginFile;
 
+$fileNameCron = '';
+if ($__settings->log->logIntoAppFolder) {
+    $fileNameCron = __DIR__ . "/../log/";
+}
+$fileNameCron .= $__settings->log->logCronFile;
 
 $__logger = Log::factory('file', $fileName, '', array("timeFormat"=>$__settings->log->timeFormat), $__logLevel);
 $__logger_login = Log::factory('file', $fileNameLogin, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
+$__logger_cron = Log::factory('file', $fileNameCron, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
 
 function debug($message) {
     global $__logger;
@@ -47,7 +53,6 @@ function info($message) {
 
 function infoLogin($message) {
     global $__logger_login;
-    global $__username;
     $page = basename ( $_SERVER ['PHP_SELF'] );
     $__logger_login->info("$page: $message");
 }
@@ -87,6 +92,40 @@ function rotateLog() {
     $__logger_login->open();
     $__logger_login->info("old log was saved into $rotateFileName");
 
+    global $fileNameCron;
+    global $__logger_cron;
+    $rotateFileName = $fileNameCron . date("Y-m-d_H.i.s").'.log';
+    $__logger_cron->info("rotating into $rotateFileName");
+    $__logger_cron->flush();
+    $__logger_cron->close();
+    rename($fileNameCron, $rotateFileName);
+    $__logger_cron->open();
+    $__logger_cron->info("old log was saved into $rotateFileName");
+
+}
+
+/**
+ * ================================
+ * LOG CRON (wrapper dedicati)
+ * ================================
+ */
+
+function infocron(string $msg): void
+{
+    global $__logger_cron;
+    $__logger_cron->info('[CRON] ' . $msg);
+}
+
+function warningcron(string $msg): void
+{
+    global $__logger_cron;
+    $__logger_cron->warning('[CRON] ' . $msg);
+}
+
+function errorcron(string $msg): void
+{
+    global $__logger_cron;
+    $__logger_cron->err('[CRON] ' . $msg);
 }
 
 ?>
