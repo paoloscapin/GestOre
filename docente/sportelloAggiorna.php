@@ -106,7 +106,7 @@ if ($id > 0) {
 
     } else {
         // regola standard (come prima)
-        if ($luogo_raw === '') {
+        if (($luogo_raw === '')&&($before_luogo === '')){
             $docente_id = 0;
             $attivo = 0;
         } else {

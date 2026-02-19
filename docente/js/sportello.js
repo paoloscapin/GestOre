@@ -191,6 +191,11 @@ function sportelloSave_do() {
         return;
     }
 
+    var oldAttivo  = parseInt($("#hidden_sportello_attivo_original").val() || "0", 10);
+    var oldDocente = parseInt($("#hidden_sportello_docente_id_original").val() || "0", 10);
+    // vedo se sto salvando uno sportello che era in bozza
+    var primaPresaInCarico = (oldAttivo === 0 && oldDocente === 0);
+
     // se tutto bene nasconde il messaggio di errore e prosegue nel save
     $("#_error-materia-part").hide();
 
@@ -208,8 +213,8 @@ function sportelloSave_do() {
     });
 
     // ⚠️ Se non c'è luogo, avviso che tornerà in BOZZA e NON assegnato
-    var luogoTrim = ($("#luogo").val() || "").trim();
-    if (luogoTrim === "") {
+    var luogoTrim = ($("#luogo").val() || "").trim(); // do il messaggio solo se sto assegnando una bozza
+    if ((luogoTrim === "")&&(primaPresaInCarico)) {
         var ok = confirm(
             "ATTENZIONE:\n" +
             "Non hai inserito il luogo/aula.\n\n" +
