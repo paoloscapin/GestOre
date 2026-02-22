@@ -1,0 +1,512 @@
+/* =========================
+   TOOLBAR
+   ========================= */
+.orario-toolbar{
+  display:inline-flex;          /* ✅ shrink-wrap sul contenuto */
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:flex-end;     /* ok anche se shrink-wrappata */
+  width:auto !important;        /* ✅ non 100% */
+  max-width:100%;              /* ✅ se va a capo, non esce dal pannello */
+}
+
+/* toolbar può wrappare, ma i gruppi NO */
+.nav-group{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:nowrap;
+  white-space:nowrap;
+}
+
+/* bootstrap-select: default */
+.orario-toolbar .bootstrap-select{ width:auto !important; }
+
+.orario-toolbar .btn,
+.orario-toolbar .bootstrap-select>.dropdown-toggle{
+  height:34px;
+  padding:4px 10px;
+  line-height:22px;
+}
+
+/* Fix bootstrap-select: testo non sotto la caret */
+.orario-toolbar .bootstrap-select>.dropdown-toggle{
+  padding-right:34px !important;
+}
+.orario-toolbar .bootstrap-select .dropdown-toggle .filter-option{
+  display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:10px;
+}
+.orario-toolbar .bootstrap-select .dropdown-toggle .caret{ right:10px; }
+
+/* evita che input date si restringa troppo */
+.nav-group input[type="date"]{
+  width:auto;
+  min-width:160px;   /* solo un minimo sensato */
+}
+
+/* larghezza di base target (poi JS può cambiarla via data-width e refresh) */
+#wrap_target .bootstrap-select{
+  min-width:260px;
+}
+
+/* =========================
+   SEGMENTED
+   ========================= */
+.seg{
+  display:inline-flex;
+  border:1px solid rgba(0,0,0,.18);
+  border-radius:12px;
+  overflow:hidden;
+  background:#f3f4f6;
+}
+.seg .seg-btn{
+  border:0;
+  background:transparent;
+  padding:7px 12px;
+  line-height:1;
+  font-weight:800;
+  font-size:12px;
+  color:#6b7280;
+  cursor:pointer;
+  outline:none !important;
+}
+.seg .seg-btn + .seg-btn{ border-left:1px solid rgba(0,0,0,.10); }
+.seg .seg-btn.is-active{
+  color:#111827;
+  background:#ffffff;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.08);
+}
+
+/* util */
+.sr-only{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  border:0 !important;
+}
+
+/* =========================================================
+   TOOLBAR THEMES (molto più distinti) + scope-specific
+   ========================================================= */
+
+/* palette più “lontana” */
+:root{
+  --tb-scope-aula:   #0B5FFF;  /* blu forte */
+  --tb-scope-classe: #FF2E63;  /* magenta/rosa acceso */
+  --tb-scope-doc:    #00B894;  /* verde acqua acceso */
+
+  --tb-period:       #7C3AED;  /* viola forte */
+  --tb-week:         #00A3FF;  /* azzurro saturo */
+  --tb-date:         #FF8A00;  /* arancio saturo */
+  --tb-target:       #15B300;  /* verde brillante */
+}
+
+/* base: tutti i gruppi */
+.orario-toolbar .nav-group,
+.orario-toolbar .seg{
+  border-radius:14px;
+  padding:6px;
+  background:#ffffff;
+  border:2px solid rgba(0,0,0,.10);
+}
+
+/* PERIOD sempre visibile (tranne aula+giorno gestito dal JS) */
+.orario-toolbar .seg-period{
+  border-color: color-mix(in srgb, var(--tb-period) 65%, #000 0%);
+  background: color-mix(in srgb, var(--tb-period) 14%, #fff 86%);
+}
+.orario-toolbar .seg-period .seg-btn.is-active{
+  box-shadow:inset 0 -3px 0 color-mix(in srgb, var(--tb-period) 70%, #000 0%);
+}
+
+/* WEEK group */
+.orario-toolbar .nav-week{
+  border-color: color-mix(in srgb, var(--tb-week) 70%, #000 0%);
+  background: color-mix(in srgb, var(--tb-week) 14%, #fff 86%);
+}
+.orario-toolbar .nav-week .btn,
+.orario-toolbar .nav-week .bootstrap-select>.dropdown-toggle{
+  border-color: color-mix(in srgb, var(--tb-week) 70%, #000 0%) !important;
+}
+
+/* DATE group */
+.orario-toolbar .nav-date{
+  border-color: color-mix(in srgb, var(--tb-date) 75%, #000 0%);
+  background: color-mix(in srgb, var(--tb-date) 16%, #fff 84%);
+}
+.orario-toolbar .nav-date .btn{
+  border-color: color-mix(in srgb, var(--tb-date) 75%, #000 0%) !important;
+}
+.orario-toolbar .nav-date #v_date{
+  border:2px solid color-mix(in srgb, var(--tb-date) 75%, #000 0%) !important;
+  border-radius:10px;
+  text-align:center;
+}
+
+/* TARGET group */
+.orario-toolbar .nav-target{
+  border-color: color-mix(in srgb, var(--tb-target) 70%, #000 0%);
+  background: color-mix(in srgb, var(--tb-target) 14%, #fff 86%);
+}
+.orario-toolbar .nav-target .btn,
+.orario-toolbar .nav-target .bootstrap-select>.dropdown-toggle{
+  border-color: color-mix(in srgb, var(--tb-target) 70%, #000 0%) !important;
+}
+
+/* SCOPE segmented: cambia colore in base allo scope selezionato (classi messe dal JS) */
+.orario-toolbar .seg-scope{ background:#fff; }
+.orario-toolbar.scope-AULA .seg-scope{
+  border-color: color-mix(in srgb, var(--tb-scope-aula) 75%, #000 0%);
+  background: color-mix(in srgb, var(--tb-scope-aula) 14%, #fff 86%);
+}
+.orario-toolbar.scope-CLASSE .seg-scope{
+  border-color: color-mix(in srgb, var(--tb-scope-classe) 75%, #000 0%);
+  background: color-mix(in srgb, var(--tb-scope-classe) 14%, #fff 86%);
+}
+.orario-toolbar.scope-DOCENTE .seg-scope{
+  border-color: color-mix(in srgb, var(--tb-scope-doc) 75%, #000 0%);
+  background: color-mix(in srgb, var(--tb-scope-doc) 14%, #fff 86%);
+}
+
+/* sottolineatura attivo nello scope */
+.orario-toolbar.scope-AULA .seg-scope .seg-btn.is-active{
+  box-shadow:inset 0 -3px 0 color-mix(in srgb, var(--tb-scope-aula) 75%, #000 0%);
+}
+.orario-toolbar.scope-CLASSE .seg-scope .seg-btn.is-active{
+  box-shadow:inset 0 -3px 0 color-mix(in srgb, var(--tb-scope-classe) 75%, #000 0%);
+}
+.orario-toolbar.scope-DOCENTE .seg-scope .seg-btn.is-active{
+  box-shadow:inset 0 -3px 0 color-mix(in srgb, var(--tb-scope-doc) 75%, #000 0%);
+}
+
+/* focus */
+.orario-toolbar .btn:focus,
+.orario-toolbar .bootstrap-select>.dropdown-toggle:focus,
+.orario-toolbar #v_date:focus{
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(0,0,0,.10) !important;
+}
+
+
+
+/* in aula giorno lasciamo più spazio */
+.orario-toolbar.scope-AULA.period-GIORNO #wrap_target .bootstrap-select{
+  min-width:320px !important;
+}
+
+/* =========================
+   GRID
+   ========================= */
+.orario-grid{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  font-size:14px;
+}
+.orario-grid th, .orario-grid td{
+  border:1px solid rgba(0,0,0,1);
+  vertical-align:top;
+  padding:6px;
+}
+.orario-grid th{ background:rgba(0,0,0,.04); }
+.orario-grid td{ overflow:visible; }
+.ora-col{
+  width:70px;
+  text-align:center;
+  font-size: 18px;
+  font-weight:600;
+  white-space:nowrap;
+}
+
+/* =========================
+   PALETTE (vivace + curr nero)
+   ========================= */
+:root{
+  --c-curr:#000000;
+  --c-udi:#ff2d55;
+  --c-imp:#00c853;
+  --c-uscC:#ff9100;
+  --c-uscF:#ff1744;
+  --c-pb:#6d28d9;
+  --c-perm:#4b5563;
+  --c-viag:#00b8d4;
+}
+
+/* =========================
+   EVENT CARD
+   ========================= */
+.ev{
+  display:block;
+  width:100%;
+  box-sizing:border-box;
+  padding:6px 8px;
+  margin:2px 0;
+  border-radius:10px;
+  border:1px solid rgba(0,0,0,1);
+  border-left:6px solid transparent;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  line-height:1.15;
+}
+.ev-title{ font-weight:800 !important; }
+.ev-who{ font-weight:800 !important; margin-top:2px; }
+.ev-room{ margin-top:6px; font-size:11px; opacity:.9; font-weight:700; }
+.ev-classi{
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  opacity: .92;
+}
+
+/* =========================
+   ZEBRA (più contrasto) + include anche colonna ORA
+   ========================= */
+.orario-grid tbody tr:nth-child(odd) td{
+  background:#ffffff !important;
+}
+.orario-grid tbody tr:nth-child(even) td{
+  background:#54a384 !important;
+}
+
+/* =========================================================
+   CARD EVENTO: sempre bianca
+   ========================================================= */
+.orario-grid td { background-clip: padding-box; }
+
+.orario-grid .ev{
+  background:#ffffff !important;
+  border:2px solid rgba(0,0,0,1) !important;
+  border-left-width:8px !important;
+  box-shadow:none !important;
+}
+
+/* barretta sinistra per tipo */
+.orario-grid .ev.ev-curr{ border-left-color: var(--c-curr) !important; color:#000 !important; }
+.orario-grid .ev.ev-udi { border-left-color: var(--c-udi)  !important; }
+.orario-grid .ev.ev-imp { border-left-color: var(--c-imp)  !important; }
+.orario-grid .ev.ev-uscC{ border-left-color: var(--c-uscC) !important; }
+.orario-grid .ev.ev-uscF{ border-left-color: var(--c-uscF) !important; }
+.orario-grid .ev.ev-pb  { border-left-color: var(--c-pb)   !important; }
+.orario-grid .ev.ev-perm{ border-left-color: var(--c-perm) !important; }
+.orario-grid .ev.ev-viag{ border-left-color: var(--c-viag) !important; }
+
+/* =========================
+   BADGE (pieno colore)
+   ========================= */
+.ev-badge{
+  display:inline-block;
+  margin-top:6px;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:800 !important;
+  border:1px solid rgba(0,0,0,.12);
+}
+.badge-curr{ background:#000 !important; color:#fff !important; border-color:#000 !important; }
+.badge-udi { background:var(--c-udi);  color:#fff; border-color:var(--c-udi); }
+.badge-imp { background:var(--c-imp);  color:#fff; border-color:var(--c-imp); }
+.badge-uscC{ background:var(--c-uscC); color:#111; border-color:var(--c-uscC); }
+.badge-uscF{ background:var(--c-uscF); color:#fff; border-color:var(--c-uscF); }
+.badge-pb  { background:var(--c-pb);   color:#fff; border-color:var(--c-pb); }
+.badge-perm{ background:var(--c-perm); color:#fff; border-color:var(--c-perm); }
+.badge-viag{ background:var(--c-viag); color:#00323a; border-color:var(--c-viag); }
+
+/* =========================
+   OVERRIDDEN
+   ========================= */
+.ev-overridden{
+  opacity:.45 !important;
+  filter:grayscale(1);
+}
+.ev-overridden .ev-title,
+.ev-overridden .ev-who,
+.ev-overridden .ev-room{
+  text-decoration:line-through;
+}
+
+/* =========================
+   LEGENDA
+   ========================= */
+.legend{
+  display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+  margin:8px 0 10px;
+  font-size:12px;
+}
+.legend .lg{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:3px 8px;
+  border-radius:14px;
+  border:1px solid rgba(0,0,0,.10);
+  background:#fff;
+}
+.legend .dot{
+  width:10px; height:10px; border-radius:50%; display:inline-block;
+}
+.dot-curr{ background:var(--c-curr); }
+.dot-udi { background:var(--c-udi); }
+.dot-imp { background:var(--c-imp); }
+.dot-uscC{ background:var(--c-uscC); }
+.dot-uscF{ background:var(--c-uscF); }
+.dot-pb  { background:var(--c-pb); }
+.dot-perm{ background:var(--c-perm); }
+.dot-viag{ background:var(--c-viag); }
+
+/* =========================
+   ROWSPAN helpers
+   ========================= */
+
+.orario-grid td{
+  position: relative;
+  vertical-align: top;
+}
+
+.orario-grid .slot-sizer{
+  visibility:hidden;
+  pointer-events:none;
+  height:0;
+  display:block;
+}
+
+/* wrapper ABSOLUTE solo quando serve */
+.orario-grid .cell-wrap-abs{
+  position:absolute;
+  top:6px; right:6px; bottom:6px; left:6px;
+  display:flex;
+  flex-direction:column;
+}
+.orario-grid .cell-wrap{
+  display:block;
+}
+.orario-grid .cell-wrap.single .ev{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* quando in AULA+GIORNO mostriamo solo "Settimana" */
+#seg_period.only-week{
+  padding-right:10px;
+}
+.orario-grid td { vertical-align: top; }
+.orario-grid td .cell-wrap { height: 100%; }
+
+/* target più stretto quando scelgo una CLASSE */
+.orario-toolbar.scope-CLASSE #wrap_target .bootstrap-select{
+  min-width: 120px !important;
+  width: 120px !important;
+}
+
+/* ✅ restringe SOLO il select target in vista CLASSE (non tocca v_week) */
+.orario-toolbar.scope-CLASSE #wrap_target .bootstrap-select,
+.orario-toolbar.scope-CLASSE #wrap_target .bootstrap-select > .dropdown-toggle {
+  width: 170px !important;
+}
+
+/* ✅ i gruppi della toolbar non devono allargarsi da soli */
+.orario-toolbar .nav-group{
+  display: inline-flex;
+  align-items: center;
+  width: auto !important;
+  flex: 0 0 auto !important;
+}
+
+/* ✅ in particolare il target (verde) */
+.orario-toolbar #wrap_target{
+  width: auto !important;
+  flex: 0 0 auto !important;
+}
+
+/* =========================================================
+   FIX: i toolbar-item NON devono espandersi (causa riquadri larghi)
+   ========================================================= */
+.orario-toolbar .toolbar-item{
+  flex: 0 0 auto !important;   /* niente grow */
+  width: auto !important;      /* niente 100% */
+  min-width: 0 !important;     /* consenti shrink */
+}
+
+/* il select bootstrap deve restare "contenuto", non block */
+.orario-toolbar #wrap_target .bootstrap-select{
+  display: inline-block !important;
+}
+
+/* (opzionale ma utile) evita che il bordo verde prenda spazio extra */
+.orario-toolbar #wrap_target{
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+.orario-toolbar.scope-CLASSE.period-SETTIMANA #wrap_target .bootstrap-select,
+.orario-toolbar.scope-CLASSE.period-SETTIMANA #wrap_target .bootstrap-select > .dropdown-toggle{
+  width:170px !important;
+}
+
+.ev-who > div { display:block; }
+.ev-who { white-space: normal; }
+
+.ev-who{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start;
+  gap:2px;
+  white-space:normal;
+}
+.ev-who > div{ display:block; }
+
+.ev-who-line.is-absent{
+  opacity: .45;
+}
+
+.ev-who-line.is-absent .who-name{
+  text-decoration: line-through;
+}
+
+.ev-who-line .who-reason{
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none; /* non barrarlo */
+  margin-left: 4px;
+  opacity: .95;
+}
+
+.ev-who-line.is-absent{
+  color:#9a9a9a;
+  text-decoration: line-through;
+  opacity:.9;
+}
+
+.ev.ev-absent-full {
+  opacity: .55;
+  filter: grayscale(1);
+  text-decoration: line-through;
+}
+
+.ev.ev-absent-full .ev-title,
+.ev.ev-absent-full .ev-classi,
+.ev.ev-absent-full .ev-room,
+.ev.ev-absent-full .ev-badge {
+  text-decoration: line-through;
+}
+
+/* celle */
+td.td-pranzo { background: rgba(255, 193, 7, 0.18); }   /* giallino */
+td.td-studio { background: rgba(0, 123, 255, 0.14); }   /* azzurrino */
+
+/* card */
+.ev.ev-pranzo { border-left: 8px solid #ffc107; }
+.ev.ev-studio { border-left: 8px solid #007bff; }
+
+/* badge */
+.ev-badge.badge-pranzo { background: #ffc107; color: #000; }
+.ev-badge.badge-studio { background: #007bff; color: #fff; }
+
+/* pallini legenda */
+.dot.dot-pranzo { background: #ffc107; }
+.dot.dot-studio { background: #007bff; }
