@@ -19,9 +19,60 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_flatpickr.php';
+require_once '../common/importi_load.php';
 ruoloRichiesto('segreteria-docenti','dirigente');
+
+require_once '../common/_include_bootstrap-notify.php';
 ?>
-	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
+
+<!-- bootbox notificator -->
+<script type="text/javascript" src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
+
+<style>
+    .icon-pdf{
+        background-image : url("../img/pdf-256.png");
+        background-size: cover;
+        display: inline-block;
+        height: 16px;
+        width: 16px;
+    }
+    .icon-protocollo{
+        background-image : url("../img/pitre.png");
+        background-size: cover;
+        display: inline-block;
+        height: 16px;
+        width: 16px;
+    }
+    .icon-email{
+        background-image : url("../img/mail.png");
+        background-size: cover;
+        display: inline-block;
+        height: 16px;
+        width: 16px;
+    }
+    .icon-euro{
+        background-image : url("../img/euro-3.png");
+        background-size: cover;
+        display: inline-block;
+        height: 16px;
+        width: 16px;
+    }
+
+    .lineasep {
+        display: flex;
+        flex-direction: row;
+    }
+    
+    .lineasep:before,
+    .lineasep:after {
+        content: "";
+        flex: 1 1;
+        border-bottom: 2px solid #030830ff;
+        margin: auto;
+    }
+</style>
+
+    <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 	<title>Viaggi e Uscite</title>
 </head>
 
@@ -39,15 +90,10 @@ require_once '../common/connect.php';
 			<span class="glyphicon glyphicon-picture"></span>&ensp;Viaggi e Uscite
 		</div>
 		<div class="col-md-4 text-center">
-<!--
-            <label class="checkbox-inline">
-                <input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="ancheChiusiCheckBox" >Anche Chiusi
-            </label>
--->
 		</div>
 		<div class="col-md-4 text-right">
             <div class="pull-right">
-				<button class="btn btn-xs btn-deeporange4" onclick="viaggioNuovo()" ><span class="glyphicon glyphicon-plus"></span></button>
+				<button class="btn btn-xs btn-deeporange4" onclick="viaggioGetDetails(-1)" ><span class="glyphicon glyphicon-plus"></span></button>
             </div>
 		</div>
 	</div>
@@ -89,91 +135,8 @@ if(mysqli_num_rows($result) > 0) {
 }
 ?>
 
-<!-- Modal - Add New Record -->
-<div class="modal fade" id="add_new_record_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-body">
-			<div class="panel panel-deeporange4">
-			<div class="panel-heading">
-				<h5 class="modal-title" id="myModalLabel">Viaggio / Uscita</h5>
-			</div>
-			<div class="panel-body">
-			<form class="form-horizontal">
-
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="data_nomina">Data</label>
-					<div class="col-sm-4"><input type="text" value="21/8/2018" id="data_nomina" placeholder="data" class="form-control" /></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="protocollo">Protocollo</label>
-                    <div class="col-sm-4"><input type="text" id="protocollo" placeholder="protocollo" class="form-control"/></div>
-
-                    <label class="col-sm-2 control-label" for="tipo_viaggio">Tipo</label>
-					<div class="col-sm-4">
-						<select id="tipo_viaggio" name="tipo_viaggio" class="tipo_viaggio selectpicker" data-live-search="true" data-noneSelectedText="seleziona..." >
-						<option value="Visita Guidata" selected >Visita Guidata</option>
-						<option value="Uscita Formativa" >Uscita Formativa</option>
-						<option value="Viaggio di Istruzione" >Viaggio di Istruzione</option>
-						</select>
-					</div>
-                </div>
-
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="data_partenza">Dal</label>
-					<div class="col-sm-4"><input type="text" value="21/8/2018" id="data_partenza" placeholder="data partenza" class="form-control" /></div>
-
-                    <label class="col-sm-2 control-label" for="data_rientro">Al</label>
-					<div class="col-sm-4"><input type="text" value="21/8/2018" id="data_rientro" placeholder="data rientro" class="form-control" /></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="ora_partenza">Partenza</label>
-                    <div class="col-sm-4"><input type="text" id="ora_partenza" placeholder="ora partenza" class="form-control"/></div>
-
-                    <label class="col-sm-2 control-label" for="ora_rientro">Rientro</label>
-                    <div class="col-sm-4"><input type="text" id="ora_rientro" placeholder="ora rientro" class="form-control"/></div>
-                </div>
-
-                <div class="form-group docente_incaricato_selector">
-                    <label class="col-sm-2 control-label" for="docente_incaricato">Docente</label>
-					<div class="col-sm-8"><select id="docente_incaricato" name="docente_incaricato" class="docente_incaricato selectpicker" data-style="btn-success" data-live-search="true"
-					data-noneSelectedText="seleziona..." data-width="70%" >
-<?php echo $docenteOptionList ?>
-					</select></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="destinazione">Destinazione</label>
-                    <div class="col-sm-8"><input type="text" id="destinazione" placeholder="destinazione" class="form-control"/></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="classe">Classe</label>
-                    <div class="col-sm-8"><input type="text" id="classe" placeholder="classe" class="form-control"/></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="col-sm-2 control-label" for="note">Note</label>
-                    <div class="col-sm-8"><input type="text" id="note" placeholder="note" class="form-control"/></div>
-                </div>
-			</form>
-
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                <button type="button" class="btn btn-primary" onclick="viaggioAddRecord()">Salva</button>
-            </div>
-			</div>
-			</div>
-        </div>
-    </div>
-</div>
-<!-- // Modal - Add New Record/viaggio -->
-
 <!-- Modal - Update viaggio details -->
-<div class="modal fade" id="update_record_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="updateMyModalLabel">
+<div class="modal fade" id="viaggio_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="updateMyModalLabel">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-body">
@@ -248,97 +211,22 @@ if(mysqli_num_rows($result) > 0) {
 						<option data-content="<span class='label label-info'>assegnato</span>">assegnato</option>
 						<option data-content="<span class='label label-success'>accettato</span>">accettato</option>
 						<option data-content="<span class='label label-warning'>effettuato</span>">effettuato</option>
-						<option data-content="<span class='label label-primary'>evaso</span>">evaso</option>
+                    <?php if(getSettingsValue('viaggi','protocollo', false)) : ?>
+						<option data-content="<span class='label label-primary'>protocollato</span>">protocollato</option>
+                    <?php endif; ?>
 						<option data-content="<span class='label label-danger'>chiuso</span>">chiuso</option>
 						<option data-content="<span class='label label-danger'>annullato</span>">annullato</option>
 					</select></div>
                 </div>
 			</form>
             </div>
-			<div class="modal-footer">
+			<div class="panel-footer text-center">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-				<button type="button" class="btn btn-primary" onclick="viaggioUpdateDetails()" >Salva</button>
+				<button type="button" class="btn btn-primary" onclick="viaggioSave()" >Salva</button>
 				<input type="hidden" id="hidden_viaggio_id">
 			</div>
 			</div>
 			</div>
-        </div>
-    </div>
-</div>
-
-<!-- // Modal - RIMBORSO -->
-<div class="modal fade" id="rimborso_viaggio_modal" data-backdrop="static" tabindex="3" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-body">
-			<div class="panel panel-lima4">
-			<div class="panel-heading">
-            <div class="row">
-                <div class="col-md-4">
-                    <span class="glyphicon glyphicon-euro"></span>&ensp;Rimborso spese
-                </div>
-                <div class="col-md-4 text-center" id="rimborso_label_docente"></div>
-                <div class="col-md-4 text-right" id="rimborso_label_data"></div>
-                </div>
-            </div>
-			<div class="panel-body">
-			<form class="form-horizontal">
-                <div class="form-group">
-                    <label for="rimborso_destinazione" class="col-sm-2 control-label">Destinazione</label>
-                    <div class="col-sm-4"><p class="form-control-static" id="rimborso_destinazione" ></p></div>
-
-                    <label for="rimborso_classe" class="col-sm-2 control-label">Classe</label>
-                    <div class="col-sm-4"><p class="form-control-static" id="rimborso_classe" ></p></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="rimborso_data_partenza" class="col-sm-2 control-label">Dal</label>
-                    <div class="col-sm-4"><p class="form-control-static" id="rimborso_data_partenza" ></p></div>
-
-                    <label for="rimborso_data_rientro" class="col-sm-2 control-label">Al</label>
-                    <div class="col-sm-4"><p class="form-control-static" id="rimborso_data_rientro" ></p></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="rimborso_ora_partenza" class="col-sm-2 control-label">Partenza</label>
-                    <div class="col-sm-4"><p class="form-control-static" id="rimborso_ora_partenza" ></p></div>
-
-                    <label for="rimborso_ora_rientro" class="col-sm-2 control-label">Rientro</label>
-                    <div class="col-sm-4"><p class="form-control-static" id="rimborso_ora_rientro" ></p></div>
-                </div>
-
-<hr>
-                <div class="form-group">
-                    <label for="rimborso_spese_table">Spese</label>
-					<div class="table-wrapper">
-					<table class="table table-bordered table-striped" id="rimborso_spese_table">
-						<thead>
-						<tr>
-							<th>id</th>
-							<th>data</th>
-							<th>tipo</th>
-							<th>note</th>
-							<th class="text-right">importo</th>
-							<th class="text-center"></th>
-						</tr>
-						</thead>
-						<tbody>
-						</tbody>
-					</table>
-					</div>
-                </div>
-
-			</form>
-            </div>
-			<div class="panel-footer text-center">
-				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-				<button type="button" class="btn btn-success" id="btnRimborsato" onclick="viaggioRimborsato()" >Rimborsato</button>
-				<input type="hidden" id="hidden_rimborso_viaggio_id">
-				<input type="hidden" id="hidden_rimborso_viaggio_docente_id">
-				<input type="hidden" id="hidden_rimborso_viaggio_docente_cognome_e_nome">
-			</div>
-            </div>
-            </div>
         </div>
     </div>
 </div>
@@ -367,7 +255,6 @@ if(mysqli_num_rows($result) > 0) {
                     <label for="chiusura_classe" class="col-sm-2 control-label">Classe</label>
                     <div class="col-sm-4"><p class="form-control-static" id="chiusura_classe" ></p></div>
                 </div>
-
                 <div class="form-group">
                     <label for="chiusura_data_partenza" class="col-sm-2 control-label">Dal</label>
                     <div class="col-sm-4"><p class="form-control-static" id="chiusura_data_partenza" ></p></div>
@@ -375,7 +262,6 @@ if(mysqli_num_rows($result) > 0) {
                     <label for="chiusura_data_rientro" class="col-sm-2 control-label">Al</label>
                     <div class="col-sm-4"><p class="form-control-static" id="chiusura_data_rientro" ></p></div>
                 </div>
-
                 <div class="form-group">
                     <label for="chiusura_ora_partenza" class="col-sm-2 control-label">Partenza</label>
                     <div class="col-sm-4"><p class="form-control-static" id="chiusura_ora_partenza" ></p></div>
@@ -383,23 +269,38 @@ if(mysqli_num_rows($result) > 0) {
                     <label for="chiusura_ora_rientro" class="col-sm-2 control-label">Rientro</label>
                     <div class="col-sm-4"><p class="form-control-static" id="chiusura_ora_rientro" ></p></div>
                 </div>
-                <hr>
-                <hr>
+
+                <hr/>
                 <div class="form-group">
-                    <label class="col-sm-3 control-label" for="chiusura_ore_richieste">Ore con Studenti</label>
-                    <div class="col-sm-8"><input type="text" id="chiusura_ore_richieste" placeholder="0" class="form-control"/></div>
-                </div>
-                <div class="form-group">
-                    <label class="col-sm-3" for="chiusura_idennita_forfettaria">Indennità forfettaria</label>
-                    <div class="col-sm-8"><input type="text" id="chiusura_idennita_forfettaria" placeholder="0" class="form-control"/></div>
-                </div>
+                    <label for="chiusura_ore_richieste" class="col-sm-2 control-label">Ore con Studenti</label>
+                    <div class="col-sm-4"><p class="form-control-static" id="chiusura_ore_richieste" ></p></div>
                 <?php if(getSettingsValue('viaggi','richiesta_diaria', true)) : ?>
-                    <hr>
-                    <label for="chiusura_richiesta_fuis" class="col-sm-3 control-label">Richiesta Diaria</label>
-                    <div class="col-sm-1 "><input type="checkbox" id="chiusura_richiesta_fuis" ></div>
+                    <label for="chiusura_richiesta_fuis" class="col-sm-2 control-label">Richiesta Diaria</label>
+                    <div class="col-sm-1 "><input type="checkbox" id="chiusura_richiesta_fuis" disabled ></div>
 				<?php endif; ?>
                 </div>
-			</form>
+
+                <p class="lineasep">&nbsp;&nbsp;<strong>Approvazione</strong>&nbsp;&nbsp;</p>
+                <div class="form-group"></div>
+                <div class="form-group"></div>
+                <div class="form-group">
+                    <label class="col-sm-8 control-label" for="chiusura_senza_pernottamento">giorni senza pernottamento</label>
+                    <div class="col-sm-2"><input type="text" id="chiusura_senza_pernottamento" placeholder="0" class="form-control"/></div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-8 control-label" for="chiusura_con_pernottamento">giorni con pernottamento</label>
+                    <div class="col-sm-2"><input type="text" id="chiusura_con_pernottamento" placeholder="0" class="form-control"/></div>
+                    <div class="col-sm-2"><button type="button" class="btn btn-success"  onclick="viaggioCalcola()" >Calcola</button></div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-2 control-label" for="chiusura_ore">Ore</label>
+                    <div class="col-sm-2"><input type="text" id="chiusura_ore" placeholder="0" class="form-control"/></div>
+                    <label class="col-sm-2 control-label" for="chiusura_none"></label>
+                    <label class="col-sm-2 control-label" for="chiusura_diaria">Diaria</label>
+                    <div class="col-sm-2"><input type="text" id="chiusura_diaria" placeholder="0" class="form-control"/></div>
+                </div>
+
+            </form>
             
 			<div class="panel-footer text-center">
 				<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
@@ -407,6 +308,8 @@ if(mysqli_num_rows($result) > 0) {
 				<input type="hidden" id="hidden_chiusura_viaggio_id">
 				<input type="hidden" id="hidden_chiusura_viaggio_docente_id">
 				<input type="hidden" id="hidden_chiusura_viaggio_docente_cognome_e_nome">
+                <input type="hidden" id="hidden_chiusura_viaggio_importo_senza_pernottamento" value="<?php echo $__importo_diaria_senza_pernottamento; ?>">
+                <input type="hidden" id="hidden_chiusura_viaggio_importo_con_pernottamento" value="<?php echo $__importo_diaria_con_pernottamento; ?>">
 			</div>
             </div>
             </div>
@@ -417,6 +320,6 @@ if(mysqli_num_rows($result) > 0) {
 </div>
 
 <!-- Custom JS file -->
-<script type="text/javascript" src="js/scriptViaggio.js"></script>
+<script type="text/javascript" src="js/scriptViaggio.js?v=<?php echo $__software_version; ?>"></script>
 </body>
 </html>

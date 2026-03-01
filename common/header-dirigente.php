@@ -63,9 +63,6 @@ echo ' <a href="'.$__application_base_path.'/dirigente/reportGruppi.php" class="
 		<span class="caret"></span>
 		<span class="sr-only">Toggle Dropdown</span>
 	</button>
-	<ul class="dropdown-menu">
-		<li><a href="<?php echo $__application_base_path; ?>/segreteria/viaggioDiaria.php">Diaria</a></li>
-	</ul>
 	</div>
 
 <?php endif; ?>

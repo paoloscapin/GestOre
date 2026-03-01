@@ -55,10 +55,6 @@ function viaggioDiariaFattaReadRecords($soloTotale, $docente_id, $operatore, $ul
 		$diariaOre = $diaria['ore'];
 		$diariaImporto = $diariaGiorniSenzaPernottamento * $__importo_diaria_senza_pernottamento + $diariaGiorniConPernottamento * $__importo_diaria_con_pernottamento;
 
-		// aggiunge un eventuale importo di diaria proveniente dalla vecchia gestione nella tabella fuis_viaggio_diaria
-		$diaria_importo_extra = dbGetValue ("SELECT COALESCE(SUM(importo) , 0) AS importo FROM fuis_viaggio_diaria INNER JOIN viaggio ON viaggio.id = fuis_viaggio_diaria.viaggio_id WHERE viaggio.docente_id = $docente_id AND viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id;") ;
-		$diariaImporto = $diariaImporto + $diaria_importo_extra;
-
 		$result = compact('dataDiaria', 'diariaGiorniSenzaPernottamento', 'diariaGiorniConPernottamento', 'diariaImporto', 'diariaOre');
 		return $result;
 	}
@@ -119,7 +115,7 @@ function viaggioDiariaFattaReadRecords($soloTotale, $docente_id, $operatore, $ul
 		$diariaImporto += $importo;
 		$diariaOre += $row['ore'];
 	}
-
+/*
 	// aggiunge non modificabili i viaggi gestiti nel modo vecchio da tabella fuis_viaggio_diaria
 	foreach(dbGetAll("SELECT viaggio.*, fuis_viaggio_diaria.* FROM fuis_viaggio_diaria INNER JOIN viaggio ON viaggio.id = fuis_viaggio_diaria.viaggio_id WHERE viaggio.docente_id = $docente_id AND viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id;") as $row) {
 		$importo = $row['importo'];
@@ -133,7 +129,7 @@ function viaggioDiariaFattaReadRecords($soloTotale, $docente_id, $operatore, $ul
 	// aggiunge un eventuale importo di diaria proveniente dalla vecchia gestione nella tabella fuis_viaggio_diaria
 	$diaria_importo_extra = dbGetValue ("SELECT COALESCE(SUM(importo) , 0) AS importo FROM fuis_viaggio_diaria INNER JOIN viaggio ON viaggio.id = fuis_viaggio_diaria.viaggio_id WHERE viaggio.docente_id = $docente_id AND viaggio.anno_scolastico_id = $__anno_scolastico_corrente_id;") ;
 	$diariaImporto = $diariaImporto + $diaria_importo_extra;
-
+*/
 	$dataDiaria .= '</tbody><tfoot>';
 	$dataDiaria .='<tr><td colspan="4" class="text-right"><strong>Totale:</strong></td><td class="text-right funzionale"><strong>' . formatNoZeroDiaria($diariaImporto) . '</strong></td></tr>';
 	$dataDiaria .='</tfoot></table></div>';

@@ -71,7 +71,8 @@
     "viaggi": {
         "max_ore": 16,
         "richiesta_diaria": true,
-        "accettazione": true
+        "accettazione": true,
+        "protocollo": false
     },
     "fuis": {
         "rimuovi_sostituzioni_non_fatte": true,
