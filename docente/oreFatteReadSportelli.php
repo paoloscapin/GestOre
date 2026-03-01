@@ -82,20 +82,6 @@ function oreFatteReadSportelli($soloTotale, $docente_id, $operatore, $ultimo_con
 		// marca se online
 		$onlineMarker = (empty($sportello['online'])) ? '' : '<span class=\'label label-danger\'>online</span>';
 
-		$ore_con_minuti = oreToDisplay($sportello['numero_ore']);
-		$dataSportelli .= '<tr><td>'.$sportello['categoria'].'</td>';
-		$dataSportelli .= '<td>'.$sportello['nome'].'</td>';
-		$dataSportelli .= '<td>'.$onlineMarker.$sportello['note'].'</td>';
-		$dataSportelli .= '<td class="text-center">'.$sportello['numero_presenti'].' di '.$sportello['numero_iscritti'].' iscritti</td>';
-		$dataSportelli .= '<td class="text-center">'.strftime("%d/%m/%Y", strtotime($sportello['data'])).'</td>';
-		$dataSportelli .= '<td class="text-center">'.$ore_con_minuti.'</td>';
-		if ($operatore == 'dirigente') {
-			$dataSportelli .='<td class="text-center"><button onclick="sportelloGetDetails('.$sportello['sportello_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button></td>';
-		} else {
-			$dataSportelli .='<td></td>';
-		}
-		$dataSportelli .='</tr>';
-
 		// le ore vengono registrate solo se ci sono studenti, altrimenti viene riconosciuta una sola ora se c'erano iscritti
 		if ($sportello['numero_presenti'] > 0) {
 			$oreSportello = $sportello['numero_ore'];
@@ -112,6 +98,20 @@ function oreFatteReadSportelli($soloTotale, $docente_id, $operatore, $ultimo_con
 		} else {
 			$sportelliOre += $oreSportello;
 		}
+
+		$ore_con_minuti = oreToDisplay($oreSportello);
+		$dataSportelli .= '<tr><td>'.$sportello['categoria'].'</td>';
+		$dataSportelli .= '<td>'.$sportello['nome'].'</td>';
+		$dataSportelli .= '<td>'.$onlineMarker.$sportello['note'].'</td>';
+		$dataSportelli .= '<td class="text-center">'.$sportello['numero_presenti'].' di '.$sportello['numero_iscritti'].' iscritti</td>';
+		$dataSportelli .= '<td class="text-center">'.strftime("%d/%m/%Y", strtotime($sportello['data'])).'</td>';
+		$dataSportelli .= '<td class="text-center">'.$ore_con_minuti.'</td>';
+		if ($operatore == 'dirigente') {
+			$dataSportelli .='<td class="text-center"><button onclick="sportelloGetDetails('.$sportello['sportello_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button></td>';
+		} else {
+			$dataSportelli .='<td></td>';
+		}
+		$dataSportelli .='</tr>';
 	}
 
 	$dataSportelli .= '</tbody></table></div>';

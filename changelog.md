@@ -1,3 +1,16 @@
+## Version 1.3.17 - 1 mar 2026
+##### ##### Improvements
+- rimossa gestione dei rimborsi spese viaggio
+- aggiunto stato protocollato e rimosso stato evaso
+- modificata lista e comportamento viaggio in docente e segreteria
+- aggiornato viaggio nuovo e update a save
+- viaggio nomina pdf e email ricostruiti
+- viaggio inoltra ricostruito
+- viaggio diaria pendente
+- diaria liquidazione segreteria
+- docente visibile per sportelli
+- ore fatte sportelli ore = 0 o 1 se nessuno studente
+
 ## Version 1.3.16 - 3 gen 2026
 ##### ##### Improvements
 - directory di upload configurabile in GestOre.json

@@ -32,7 +32,7 @@ if(isset($_POST)) {
         $id = dblastId();
         info("aggiunto viaggio_ore_recuperate id=$id viaggio_id=$viaggio_id numero_ore=$numero_ore docente_id=$docente_id docente_cognome_e_nome=$docente_cognome_e_nome");
     }
-
+ 
     // chiude il viaggio
     $query = "UPDATE viaggio SET stato = 'chiuso' WHERE id = '$viaggio_id'";
     dbExec($query);

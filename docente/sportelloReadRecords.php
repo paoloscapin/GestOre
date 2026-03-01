@@ -24,12 +24,12 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					<tr>
 						<th class="text-center col-md-1">Data</th>
 						<th class="text-center col-md-1">Ora</th>
-						<th class="text-center col-md-2">Materia</th>
+						<th class="text-center col-md-1">Materia</th>
+						<th class="text-center col-md-2">Docente</th>
 						<th class="text-center col-md-2">Argomento</th>
 						<th class="text-center col-md-1">Ore</th>
 						<th class="text-center col-md-1">Classe</th>
 						<th class="text-center col-md-1">Luogo</th>
-						<th class="text-center col-md-1">Stato</th>
 						<th class="text-center col-md-1">Studenti</th>
 						<th class="text-center col-md-1"></th>
 					</tr>
@@ -95,6 +95,7 @@ foreach($resultArray as $row) {
 	$dataSportello = utf8_encode( strftime("%d %B %Y", strtotime($row['sportello_data'])));
 	setlocale(LC_TIME, $oldLocale);
 
+	$docente = $row['docente_nome'] . ' ' . $row['docente_cognome'];
 	// se ci sono prenotazioni, cerca la lista di studenti che sono prenotati
 	$studenteTip = '';
 	if ($row['numero_studenti'] > 0) {
@@ -131,14 +132,14 @@ foreach($resultArray as $row) {
 
 	$data .= '<tr>
 		<td>'.$dataSportello.'</td>
-		<td>'.$row['sportello_ora'].'</td>
+		<td class="text-center">'.$row['sportello_ora'].'</td>
 		<td>'.$row['materia_nome'].'</td>
+		<td>'.$docente.'</td>
 		<td>'.$row['sportello_argomento'].'</td>
-		<td>'.$row['sportello_numero_ore'].'</td>
+		<td class="text-center">'.$row['sportello_numero_ore'].'</td>
 		<td>'.$row['sportello_classe'].'</td>
 		<td>'.$luogo_or_onine_marker.'</td>
-		<td class="text-center">'.$statoMarker.'</td>
-		<td data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
+		<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="'.$studenteTip.'">'.$row['numero_studenti'].'</td>
 		';
 	$data .='<td class="text-center">';
 	if ($row['docente_id'] == $__docente_id) {

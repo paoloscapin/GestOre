@@ -7,36 +7,20 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-// check request
-if(isset($_POST['id']) && isset($_POST['id']) != "") {
-	// include Database connection file 
-	require_once '../common/connect.php';
+require_once '../common/checkSession.php';
 
-	// get viaggio ID
+if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	$viaggio_id = $_POST['id'];
 
-	// Get Docente Details
 	$query = "SELECT viaggio.*, docente.cognome, docente.nome FROM `viaggio` INNER JOIN docente on viaggio.docente_id = docente.id WHERE viaggio.id='$viaggio_id'";
+	$response = dbGetFirst($query);
 
-	if (!$result = mysqli_query($con, $query)) {
-		exit(mysqli_error($con));
-	}
+	// adesso ricaviamo le ore e l'importo di una eventuale diaria
+	$ore = dbGetValue("SELECT COALESCE( (SELECT ore FROM viaggio_ore_recuperate WHERE viaggio_id = $viaggio_id), 0);");
+	$diaria = dbGetValue("SELECT COALESCE( (SELECT importo FROM fuis_viaggio_diaria WHERE viaggio_id = $viaggio_id), 0);");
 
-	$response = array();
-	if(mysqli_num_rows($result) > 0) {
-		while ($row = mysqli_fetch_assoc($result)) {
-			$response = $row;
-		}
-	}
-	else {
-		$response['status'] = 200;
-		$response['message'] = "Data not found!";
-	}
-	// display JSON data
+	$response['ore'] = $ore;
+	$response['diaria'] = $diaria;
 	echo json_encode($response);
-}
-else {
-	$response['status'] = 200;
-	$response['message'] = "Invalid Request!";
 }
 ?>

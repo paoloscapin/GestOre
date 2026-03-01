@@ -194,6 +194,7 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	require_once '../docente/oreFatteReadViaggi.php';
 	$result = oreFatteReadViaggi($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile);
 	$oreConStudenti += $result['viaggiOre'];
+	$diariaImporto += $result['diariaImporto'];
 	$dataViaggi = $result['dataViaggi'];
 	$totale = $totale + compact('dataViaggi');
 
