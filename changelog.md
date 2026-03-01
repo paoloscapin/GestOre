@@ -1,3 +1,10 @@
+## Version 1.3.18 - 1 mar 2026
+##### ##### Improvements
+- aggiunta la directory collaboratore
+- aggiunto il ruolo collaboratore in index.php
+- aggiunto common/header-collaboratore.php
+- il ruolo di collaboratore permette di visualizzare la lista degli sportelli (ma non prenotarsi) è utile ai bidelli per vedere quali sportelli si svolgono e dove
+
 ## Version 1.3.17 - 1 mar 2026
 ##### ##### Improvements
 - rimossa gestione dei rimborsi spese viaggio
