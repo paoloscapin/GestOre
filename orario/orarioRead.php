@@ -3,7 +3,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/connectMBApp.php';
 
-ruoloRichiesto('personale-ata', 'segreteria-ata', 'docente');
+ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'studente', 'genitore', 'segreteria-docenti', 'segreteria-didattica');
 header('Content-Type: application/json; charset=utf-8');
 
 global $__conMBApp;
@@ -122,6 +122,51 @@ function pickOraFine($a)
   return normOra(trim(h($a['oraFine'] ?? '')));
 }
 
+function getOrarioVisibilityLevel()
+{
+  global $__utente_ruolo;
+
+  $ruoloUp = strtoupper(trim((string)$__utente_ruolo));
+
+  // SEGRETERIE / ADMIN -> FULL
+  if (in_array($ruoloUp, ['ADMIN', 'SEGRETERIA-DIDATTICA', 'SEGRETERIA-ATA', 'PORTINERIA'], true)) {
+    return 'FULL';
+  }
+
+  // DOCENTI + PERSONALE ATA/CS -> STAFF
+  if (in_array($ruoloUp, ['DOCENTE', 'PERSONALE-ATA'], true)) {
+    return 'STAFF';
+  }
+
+  // STUDENTI / GENITORI -> PUBLIC
+  if (in_array($ruoloUp, ['STUDENTE', 'GENITORE'], true)) {
+    return 'PUBLIC';
+  }
+
+  return 'PUBLIC';
+}
+
+$VISIBILITY_LEVEL = getOrarioVisibilityLevel();
+$DEBUG_RUOLI = $_SESSION['ruoli'] ?? ($_SESSION['ruolo'] ?? null);
+
+function enforceScopeByVisibility($scope, $visibilityLevel)
+{
+  $scope = strtoupper(trim((string)$scope));
+
+  if ($visibilityLevel === 'PUBLIC') {
+    // lato pubblico: niente AULA
+    if (!in_array($scope, ['CLASSE', 'DOCENTE'], true)) {
+      return 'CLASSE';
+    }
+  } else {
+    if (!in_array($scope, ['DOCENTE', 'CLASSE', 'AULA'], true)) {
+      return 'DOCENTE';
+    }
+  }
+
+  return $scope;
+}
+
 /* =========================
    ASSENZE: riconosci SOLO queste
    ========================= */
@@ -164,7 +209,6 @@ function getUsernamesByAssenzaId($idAssenza)
   return $out;
 }
 
-/* classi collegate all’assenza (per vista DOCENTE) */
 function getClassiByAssenzaId($idAssenza)
 {
   global $__conMBApp;
@@ -180,7 +224,6 @@ function getClassiByAssenzaId($idAssenza)
   return $out;
 }
 
-/* docenti collegati all’assenza (username -> nomi) */
 function getDocentiNomiByAssenzaId($idAssenza)
 {
   global $__conMBApp;
@@ -208,6 +251,8 @@ function getDocentiNomiByAssenzaId($idAssenza)
 /* ✅ Classifica assenza: SOLO pb/perm/uscita/viaggio, altrimenti NULL */
 function classifyAssenza($a, $scope)
 {
+  global $VISIBILITY_LEVEL;
+
   $mot = strtoupper(trim(h($a['motivo'] ?? '')));
   $detRaw = trim(h($a['dettagli'] ?? ''));
   $det = strtoupper(trim($detRaw));
@@ -225,17 +270,25 @@ function classifyAssenza($a, $scope)
   }
   $docNomi = !empty($docNomiArr) ? implode(", ", $docNomiArr) : "";
 
-  $meta = ($detRaw !== '') ? $detRaw : '';
+  $meta = $detRaw !== '' ? $detRaw : '';
+
+  // origine: se c'è almeno una classe associata lo trattiamo come evento di classe,
+  // altrimenti come assenza docente/personale
+  $origin = !empty($classi) ? 'classe' : 'docente';
+
+  // in FULL mostro anche il dettaglio reale
+  $showFullDetail = ($VISIBILITY_LEVEL === 'FULL');
 
   if (isViaggio($mot, $det)) {
     $title = 'Viaggio di istruzione' . ($meta !== '' ? ' · ' . $meta : '');
     return [
-      'type'  => 'viag',
-      'class' => 'ev ev-viag',
-      'title' => $title,
-      'who'   => $docNomi,
+      'type'   => 'viag',
+      'origin' => $origin,
+      'class'  => 'ev ev-viag',
+      'title'  => $title,
+      'who'    => $docNomi,
       'classi' => $classi,
-      'badge' => 'Viaggio di istruzione'
+      'badge'  => 'Viaggio di istruzione'
     ];
   }
 
@@ -246,34 +299,43 @@ function classifyAssenza($a, $scope)
     $title = $baseTitle . ($meta !== '' ? ' · ' . $meta : '');
 
     return [
-      'type'  => $type,
-      'class' => 'ev ev-' . $type,
-      'title' => $title,
-      'who'   => $docNomi,
+      'type'   => $type,
+      'origin' => $origin,
+      'class'  => 'ev ev-' . $type,
+      'title'  => $title,
+      'who'    => $docNomi,
       'classi' => $classi,
-      'badge' => $baseTitle
+      'badge'  => $baseTitle
     ];
   }
 
   if (isPermessoBreve($mot, $det)) {
+    $baseTitle = 'Permesso breve';
+    $title = ($showFullDetail && $meta !== '') ? ($baseTitle . ' · ' . $meta) : $baseTitle;
+
     return [
-      'type' => 'pb',
-      'class' => 'ev ev-pb',
-      'title' => 'Permesso breve',
-      'who' => $docNomi,
+      'type'   => 'pb',
+      'origin' => 'docente',
+      'class'  => 'ev ev-pb',
+      'title'  => $title,
+      'who'    => $docNomi,
       'classi' => $classi,
-      'badge' => 'Permesso breve'
+      'badge'  => $baseTitle
     ];
   }
 
   if (isPermessoGiorno($mot, $det)) {
+    $baseTitle = 'Permesso (giorno)';
+    $title = ($showFullDetail && $meta !== '') ? ($baseTitle . ' · ' . $meta) : $baseTitle;
+
     return [
-      'type' => 'perm',
-      'class' => 'ev ev-perm',
-      'title' => 'Permesso (giorno)',
-      'who' => $docNomi,          // ✅
+      'type'   => 'perm',
+      'origin' => 'docente',
+      'class'  => 'ev ev-perm',
+      'title'  => $title,
+      'who'    => $docNomi,
       'classi' => $classi,
-      'badge' => 'Permesso (giorno)'
+      'badge'  => $baseTitle
     ];
   }
 
@@ -284,8 +346,10 @@ function classifyAssenza($a, $scope)
 function espandiAssenzaInSlot($a, $ORARI)
 {
   $dataFrom = substr(h($a['dataInizio'] ?? ''), 0, 10);
-  $dataTo   = substr(h($a['dataFine'] ?? ''), 0, 10);
-  if ($dataFrom === '' || $dataTo === '') return [];
+  $dataToRaw = substr(h($a['dataFine'] ?? ''), 0, 10);
+  $dataTo = ($dataToRaw !== '') ? $dataToRaw : $dataFrom;
+
+  if ($dataFrom === '') return [];
 
   $mot = strtoupper(trim(h($a['motivo'] ?? '')));
   $det = strtoupper(trim(h($a['dettagli'] ?? '')));
@@ -337,6 +401,21 @@ function splitClassi($s)
   return splitCsvUnique($s);
 }
 
+function eventIsClassLevelForDocente($ev)
+{
+  $t = (string)($ev['type'] ?? '');
+  return in_array($t, ['imp', 'pranzo', 'studio', 'udi'], true);
+}
+
+function intersectsClassi($eventClassi, $slotClassiMap)
+{
+  if (empty($eventClassi) || empty($slotClassiMap)) return false;
+  foreach ($eventClassi as $c) {
+    if (isset($slotClassiMap[$c])) return true;
+  }
+  return false;
+}
+
 /* costruzione evento oralezione con rooms + classi */
 function classeEventoOralezione($row)
 {
@@ -353,11 +432,6 @@ function classeEventoOralezione($row)
   $SIG_UP  = strtoupper($sig);
   $NOME_UP = strtoupper($nome);
 
-    // =======================
-  // EVENTI SPECIALI AULA (non curricolare)
-  // =======================
-
-  // 1) PRANZO / PAUSA PRANZO STUDENTI
   $isPranzo =
     (strpos($SIG_UP, 'PRANZO') !== false) ||
     (strpos($NOME_UP, 'PAUSA PRANZO') !== false) ||
@@ -368,14 +442,13 @@ function classeEventoOralezione($row)
       'type'  => 'pranzo',
       'class' => 'ev ev-pranzo',
       'title' => 'Pausa pranzo studenti',
-      'who'   => '',                 // niente docenti
+      'who'   => '',
       'classi' => $classi,
       'badge' => 'Aula pausa pranzo',
       'rooms' => $rooms
     ];
   }
 
-  // 2) AULA STUDIO STUDENTI
   $isAulaStudio =
     (strpos($SIG_UP, 'AULA S') !== false) ||
     (strpos($NOME_UP, 'AULA STUDIO') !== false) ||
@@ -386,7 +459,7 @@ function classeEventoOralezione($row)
       'type'  => 'studio',
       'class' => 'ev ev-studio',
       'title' => 'Aula studio studenti',
-      'who'   => '',                 // niente docenti
+      'who'   => '',
       'classi' => $classi,
       'badge' => 'Aula studio',
       'rooms' => $rooms
@@ -447,7 +520,7 @@ if ($target === '') {
   exit;
 }
 
-if (!in_array($scope, ['DOCENTE', 'CLASSE', 'AULA'], true)) $scope = 'DOCENTE';
+$scope = enforceScopeByVisibility($scope, $VISIBILITY_LEVEL);
 if (!in_array($period, ['GIORNO', 'SETTIMANA'], true)) $period = 'SETTIMANA';
 
 if ($period === 'GIORNO') {
@@ -473,15 +546,11 @@ function pushEvUnique(&$grid, $ymd, $ora, $ev)
   $k = $ymd . '|' . $ora;
   if (!isset($grid[$k])) $grid[$k] = [];
 
-  $sig = ($ev['type'] ?? '') . '|' .
-    ($ev['title'] ?? '') . '|' .
-    ($ev['who'] ?? '');
+  $sig = ($ev['type'] ?? '') . '|' . ($ev['title'] ?? '') . '|' . ($ev['who'] ?? '');
 
   foreach ($grid[$k] as $existing) {
-    $sig2 = ($existing['type'] ?? '') . '|' .
-      ($existing['title'] ?? '') . '|' .
-      ($existing['who'] ?? '');
-    if ($sig === $sig2) return; // già presente
+    $sig2 = ($existing['type'] ?? '') . '|' . ($existing['title'] ?? '') . '|' . ($existing['who'] ?? '');
+    if ($sig === $sig2) return;
   }
 
   $grid[$k][] = $ev;
@@ -550,59 +619,122 @@ if ($scope === 'AULA') {
 } else { // DOCENTE
   $u0 = mysqli_real_escape_string($__conMBApp, $target);
 
+  // Mappa slot -> classi del docente in quello slot
+  $slotClasses = [];
+  $allClassiDocente = [];
+
+  $qSlotClassi = "
+    SELECT DISTINCT
+      o.dataGiorno,
+      o.ora,
+      oc.classe
+    FROM oralezione o
+    JOIN utilizza ut2
+      ON ut2.idCalendario = o.idCalendario
+     AND ut2.username = '$u0'
+    JOIN occupa oc
+      ON oc.idCalendario = o.idCalendario
+    WHERE o.dataGiorno BETWEEN '$fromEsc' AND '$toEsc'
+      AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
+      AND oc.classe IS NOT NULL
+      AND oc.classe <> ''
+  ";
+
+  foreach (mb_dbGetAll($qSlotClassi) ?: [] as $r) {
+    $k = substr((string)$r['dataGiorno'], 0, 10) . '|' . normOra($r['ora'] ?? '');
+    $cl = trim((string)($r['classe'] ?? ''));
+    if ($k !== '' && $cl !== '') {
+      if (!isset($slotClasses[$k])) $slotClasses[$k] = [];
+      $slotClasses[$k][$cl] = true;
+      $allClassiDocente[$cl] = true;
+    }
+  }
+
+  // 1) Orario normale del docente
   $q = "
-  SELECT
-    o.idCalendario,
-    o.dataGiorno, o.ora, o.siglaMateria, o.attivitaProgetto,
-    m.nomeMateria,
-
-    /* ✅ tutti i docenti della lezione */
-    GROUP_CONCAT(DISTINCT CONCAT(u.cognome,' ',u.nome) SEPARATOR ', ') AS docenti_nomi,
-
-    GROUP_CONCAT(DISTINCT o.nroAula ORDER BY CAST(o.nroAula AS UNSIGNED), o.nroAula SEPARATOR ', ') AS aule,
-    GROUP_CONCAT(DISTINCT oc.classe ORDER BY oc.classe SEPARATOR ', ') AS classi
-
-  FROM oralezione o
-
-  /* filtro: il docente richiesto deve essere associato alla lezione */
-  JOIN utilizza ut2
-    ON ut2.idCalendario = o.idCalendario
-   AND ut2.username = '$u0'
-
-  /* ✅ recupero: tutti i docenti associati (non solo ut2) */
-  LEFT JOIN utilizza utAll
-    ON utAll.idCalendario = o.idCalendario
-   AND utAll.username IS NOT NULL
-
-  LEFT JOIN utente u
-    ON u.username = utAll.username
-
-  LEFT JOIN materia m
-    ON m.siglaMateria = o.siglaMateria
-
-  LEFT JOIN occupa oc
-    ON oc.idCalendario = o.idCalendario
-
-  WHERE o.dataGiorno BETWEEN '$fromEsc' AND '$toEsc'
-    AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
-
-  GROUP BY
-    o.idCalendario, o.dataGiorno, o.ora, o.siglaMateria, o.attivitaProgetto, m.nomeMateria
-";
+    SELECT
+      o.idCalendario,
+      o.dataGiorno, o.ora, o.siglaMateria, o.attivitaProgetto,
+      m.nomeMateria,
+      GROUP_CONCAT(DISTINCT CONCAT(u.cognome,' ',u.nome) SEPARATOR ', ') AS docenti_nomi,
+      GROUP_CONCAT(DISTINCT o.nroAula ORDER BY CAST(o.nroAula AS UNSIGNED), o.nroAula SEPARATOR ', ') AS aule,
+      GROUP_CONCAT(DISTINCT oc.classe ORDER BY oc.classe SEPARATOR ', ') AS classi
+    FROM oralezione o
+    JOIN utilizza ut2
+      ON ut2.idCalendario = o.idCalendario
+     AND ut2.username = '$u0'
+    LEFT JOIN utilizza utAll
+      ON utAll.idCalendario = o.idCalendario
+     AND utAll.username IS NOT NULL
+    LEFT JOIN utente u
+      ON u.username = utAll.username
+    LEFT JOIN materia m
+      ON m.siglaMateria = o.siglaMateria
+    LEFT JOIN occupa oc
+      ON oc.idCalendario = o.idCalendario
+    WHERE o.dataGiorno BETWEEN '$fromEsc' AND '$toEsc'
+      AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
+    GROUP BY
+      o.idCalendario, o.dataGiorno, o.ora, o.siglaMateria, o.attivitaProgetto, m.nomeMateria
+  ";
 
   foreach (mb_dbGetAll($q) ?: [] as $r) {
     pushEv($grid, $r['dataGiorno'], $r['ora'], classeEventoOralezione($r));
   }
+
+  // 2) Eventi della classe del docente (es. INVALSI, impegni istituto, aula studio, ecc.)
+  if (!empty($allClassiDocente)) {
+    $classiEsc = array_map(function ($c) use ($__conMBApp) {
+      return "'" . mysqli_real_escape_string($__conMBApp, $c) . "'";
+    }, array_keys($allClassiDocente));
+    $inClassi = implode(",", $classiEsc);
+
+    $qEventiClasse = "
+      SELECT
+        o.idCalendario,
+        o.dataGiorno, o.ora, o.siglaMateria, o.attivitaProgetto,
+        m.nomeMateria,
+        GROUP_CONCAT(DISTINCT CONCAT(u.cognome,' ',u.nome) SEPARATOR ', ') AS docenti_nomi,
+        GROUP_CONCAT(DISTINCT o.nroAula ORDER BY CAST(o.nroAula AS UNSIGNED), o.nroAula SEPARATOR ', ') AS aule,
+        GROUP_CONCAT(DISTINCT oc.classe ORDER BY oc.classe SEPARATOR ', ') AS classi
+      FROM oralezione o
+      JOIN occupa oc
+        ON oc.idCalendario = o.idCalendario
+      LEFT JOIN utilizza utAll
+        ON utAll.idCalendario = o.idCalendario
+       AND utAll.username IS NOT NULL
+      LEFT JOIN utente u
+        ON u.username = utAll.username
+      LEFT JOIN materia m
+        ON m.siglaMateria = o.siglaMateria
+      WHERE oc.classe IN ($inClassi)
+        AND o.dataGiorno BETWEEN '$fromEsc' AND '$toEsc'
+        AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
+      GROUP BY
+        o.idCalendario, o.dataGiorno, o.ora, o.siglaMateria, o.attivitaProgetto, m.nomeMateria
+    ";
+
+    foreach (mb_dbGetAll($qEventiClasse) ?: [] as $r) {
+      $ev = classeEventoOralezione($r);
+
+      // in DOCENTE vogliamo solo gli eventi "di classe", non tutte le lezioni della classe
+      if (!eventIsClassLevelForDocente($ev)) continue;
+
+      $slotKey = substr((string)$r['dataGiorno'], 0, 10) . '|' . normOra($r['ora'] ?? '');
+      if (!isset($slotClasses[$slotKey])) continue;
+
+      if (!intersectsClassi($ev['classi'] ?? [], $slotClasses[$slotKey])) continue;
+
+      pushEvUnique($grid, $r['dataGiorno'], $r['ora'], $ev);
+    }
+  }
 }
 
 /* -------------------- 2) ASSENZE collegate (SOLO DOCENTE/CLASSE) -------------------- */
-if ($scope === 'DOCENTE') {
+if ($VISIBILITY_LEVEL !== 'PUBLIC' && $scope === 'DOCENTE') {
 
   $u = mysqli_real_escape_string($__conMBApp, $target);
 
-  /* ===============================
-     2A) Assenze del docente selezionato (già presenti)
-     =============================== */
   $qA = "
     SELECT a.*
     FROM assenze a
@@ -612,7 +744,7 @@ if ($scope === 'DOCENTE') {
       WHERE ut.username = '$u'
         AND ut.IDassenza IS NOT NULL
     )
-      AND DATE(a.dataFine)  >= '$fromEsc'
+      AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$fromEsc'
       AND DATE(a.dataInizio) <= '$toEsc'
   ";
 
@@ -625,11 +757,6 @@ if ($scope === 'DOCENTE') {
     }
   }
 
-  /* ===============================
-     2B) 🔥 Assenze dei COLLEGHI delle stesse lezioni
-     =============================== */
-
-  // 1️⃣ recupero idCalendario dove insegna il docente selezionato
   $qCal = "
     SELECT DISTINCT o.idCalendario
     FROM oralezione o
@@ -641,15 +768,11 @@ if ($scope === 'DOCENTE') {
   ";
 
   $calIds = [];
-  foreach (mb_dbGetAll($qCal) ?: [] as $r) {
-    $calIds[] = (int)$r['idCalendario'];
-  }
+  foreach (mb_dbGetAll($qCal) ?: [] as $r) $calIds[] = (int)$r['idCalendario'];
 
   if (!empty($calIds)) {
-
     $inCal = implode(",", $calIds);
 
-    // 2️⃣ recupero username colleghi (escludendo il docente target)
     $qColleghi = "
       SELECT DISTINCT ut.username
       FROM utilizza ut
@@ -659,15 +782,11 @@ if ($scope === 'DOCENTE') {
     ";
 
     $colleghi = [];
-    foreach (mb_dbGetAll($qColleghi) ?: [] as $r) {
-      $colleghi[] = mysqli_real_escape_string($__conMBApp, $r['username']);
-    }
+    foreach (mb_dbGetAll($qColleghi) ?: [] as $r) $colleghi[] = mysqli_real_escape_string($__conMBApp, $r['username']);
 
     if (!empty($colleghi)) {
-
       $inUser = "'" . implode("','", $colleghi) . "'";
 
-      // 3️⃣ recupero assenze dei colleghi nel periodo
       $qAssCol = "
         SELECT a.*
         FROM assenze a
@@ -677,12 +796,51 @@ if ($scope === 'DOCENTE') {
           WHERE ut.username IN ($inUser)
             AND ut.IDassenza IS NOT NULL
         )
-          AND DATE(a.dataFine)  >= '$fromEsc'
+          AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$fromEsc'
           AND DATE(a.dataInizio) <= '$toEsc'
       ";
 
       foreach (mb_dbGetAll($qAssCol) ?: [] as $a) {
+        $ev = classifyAssenza($a, $scope);
+        if ($ev === null) continue;
 
+        $slots = espandiAssenzaInSlot($a, $ORARI);
+        foreach ($slots as $ymd => $ores) {
+          foreach ($ores as $ora) pushEvUnique($grid, $ymd, $ora, $ev);
+        }
+      }
+    }
+  }
+
+  // 3) Assenze / uscite / viaggi della CLASSE del docente
+  if (!empty($slotClasses)) {
+    $allClassiDocente2 = [];
+    foreach ($slotClasses as $slotMap) {
+      foreach ($slotMap as $cl => $_true) {
+        $allClassiDocente2[$cl] = true;
+      }
+    }
+
+    if (!empty($allClassiDocente2)) {
+      $classiEsc = array_map(function ($c) use ($__conMBApp) {
+        return "'" . mysqli_real_escape_string($__conMBApp, $c) . "'";
+      }, array_keys($allClassiDocente2));
+      $inClassi = implode(",", $classiEsc);
+
+      $qAssClasseDoc = "
+        SELECT a.*
+        FROM assenze a
+        WHERE a.idAssenza IN (
+          SELECT DISTINCT oc.IDassenza
+          FROM occupa oc
+          WHERE oc.classe IN ($inClassi)
+            AND oc.IDassenza IS NOT NULL
+        )
+          AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$fromEsc'
+          AND DATE(a.dataInizio) <= '$toEsc'
+      ";
+
+      foreach (mb_dbGetAll($qAssClasseDoc) ?: [] as $a) {
         $ev = classifyAssenza($a, $scope);
         if ($ev === null) continue;
 
@@ -690,29 +848,32 @@ if ($scope === 'DOCENTE') {
 
         foreach ($slots as $ymd => $ores) {
           foreach ($ores as $ora) {
+            $slotKey = $ymd . '|' . normOra($ora);
+            if (!isset($slotClasses[$slotKey])) continue;
+
+            if (!intersectsClassi($ev['classi'] ?? [], $slotClasses[$slotKey])) continue;
+
             pushEvUnique($grid, $ymd, $ora, $ev);
           }
         }
       }
     }
   }
-} elseif ($scope === 'CLASSE') {
-
+} elseif ($VISIBILITY_LEVEL !== 'PUBLIC' && $scope === 'CLASSE') {
 
   $cl = mysqli_real_escape_string($__conMBApp, $target);
 
-  // slotKey => ['username1'=>true, ...]
   $slotTeachers = [];
 
   $qSlotTeach = "
-  SELECT o.dataGiorno, o.ora, ut.username
-  FROM oralezione o
-  JOIN occupa oc        ON oc.idCalendario = o.idCalendario AND oc.classe = '$cl'
-  JOIN utilizza ut      ON ut.idCalendario = o.idCalendario
-  WHERE o.dataGiorno BETWEEN '$fromEsc' AND '$toEsc'
-    AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
-    AND ut.username IS NOT NULL AND ut.username <> ''
-";
+    SELECT o.dataGiorno, o.ora, ut.username
+    FROM oralezione o
+    JOIN occupa oc        ON oc.idCalendario = o.idCalendario AND oc.classe = '$cl'
+    JOIN utilizza ut      ON ut.idCalendario = o.idCalendario
+    WHERE o.dataGiorno BETWEEN '$fromEsc' AND '$toEsc'
+      AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
+      AND ut.username IS NOT NULL AND ut.username <> ''
+  ";
 
   foreach (mb_dbGetAll($qSlotTeach) ?: [] as $r) {
     $k = substr((string)$r['dataGiorno'], 0, 10) . '|' . normOra($r['ora'] ?? '');
@@ -722,6 +883,7 @@ if ($scope === 'DOCENTE') {
       $slotTeachers[$k][$u] = true;
     }
   }
+
   $qA = "
     SELECT a.*
     FROM assenze a
@@ -731,27 +893,22 @@ if ($scope === 'DOCENTE') {
       WHERE oc.classe = '$cl'
         AND oc.IDassenza IS NOT NULL
     )
-      AND DATE(a.dataFine)  >= '$fromEsc'
+      AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$fromEsc'
       AND DATE(a.dataInizio) <= '$toEsc'
   ";
 
   foreach (mb_dbGetAll($qA) ?: [] as $a) {
     $ev = classifyAssenza($a, $scope);
-    if (!empty($ev['classi']) && !in_array($cl, $ev['classi'], true)) {
-      continue;
-    }
     if ($ev === null) continue;
+
+    if (!empty($ev['classi']) && !in_array($cl, $ev['classi'], true)) continue;
+
     $slots = espandiAssenzaInSlot($a, $ORARI);
     foreach ($slots as $ymd => $ores) {
       foreach ($ores as $ora) pushEvUnique($grid, $ymd, $ora, $ev);
     }
   }
 
-  /* ===============================
-     2B) 🔥 Assenze DOCENTI (utilizza) dei docenti che insegnano alla classe
-     =============================== */
-
-  // 1) docenti (username) che insegnano alla classe nel range
   $qDocClass = "
     SELECT DISTINCT ut.username
     FROM oralezione o
@@ -761,6 +918,7 @@ if ($scope === 'DOCENTE') {
       AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
       AND ut.username IS NOT NULL AND ut.username <> ''
   ";
+
   $user = [];
   foreach (mb_dbGetAll($qDocClass) ?: [] as $r) {
     $u = trim((string)$r['username']);
@@ -772,7 +930,6 @@ if ($scope === 'DOCENTE') {
       return mysqli_real_escape_string($__conMBApp, $x);
     }, $user)) . "'";
 
-    // 2) assenze di quei docenti nel range (via utilizza.IDassenza)
     $qAssDoc = "
       SELECT a.*
       FROM assenze a
@@ -782,19 +939,17 @@ if ($scope === 'DOCENTE') {
         WHERE ut.username IN ($inUser)
           AND ut.IDassenza IS NOT NULL
       )
-        AND DATE(a.dataFine)  >= '$fromEsc'
+        AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$fromEsc'
         AND DATE(a.dataInizio) <= '$toEsc'
     ";
 
     foreach (mb_dbGetAll($qAssDoc) ?: [] as $a) {
-
       $ev = classifyAssenza($a, $scope);
       if ($ev === null) continue;
 
       $idAss = (int)($a['idAssenza'] ?? 0);
       if ($idAss <= 0) continue;
 
-      // docenti coinvolti in questa assenza
       $assUsernames = getUsernamesByAssenzaId($idAss);
       if (empty($assUsernames)) continue;
 
@@ -804,8 +959,6 @@ if ($scope === 'DOCENTE') {
         foreach ($ores as $ora) {
 
           $slotKey = $ymd . '|' . normOra($ora);
-
-          // 🔥 MOSTRA assenza SOLO se quel docente insegna in questo slot
           if (!isset($slotTeachers[$slotKey])) continue;
 
           $presentTeachers = $slotTeachers[$slotKey];
@@ -827,6 +980,123 @@ if ($scope === 'DOCENTE') {
   }
 }
 
+/* =========================================================
+   ✅ NORMALIZZAZIONE TOTALE GRID (anti-crash JS)
+   Garantisce sempre rooms/classi array e campi stringa.
+   ========================================================= */
+function normalizeEventArray(&$ev)
+{
+  if (!is_array($ev)) $ev = [];
+
+  if (!isset($ev['type']))   $ev['type'] = '';
+  if (!isset($ev['origin'])) $ev['origin'] = '';
+  if (!isset($ev['class']))  $ev['class'] = '';
+  if (!isset($ev['title']))  $ev['title'] = '';
+  if (!isset($ev['who']))    $ev['who'] = '';
+  if (!isset($ev['badge']))  $ev['badge'] = '';
+
+  $ev['type']   = (string)$ev['type'];
+  $ev['origin'] = (string)$ev['origin'];
+  $ev['class']  = (string)$ev['class'];
+  $ev['title']  = (string)$ev['title'];
+  $ev['who']    = (string)$ev['who'];
+  $ev['badge']  = (string)$ev['badge'];
+
+  if (!isset($ev['classi']) || !is_array($ev['classi'])) $ev['classi'] = [];
+  $ev['classi'] = array_values(array_filter(array_map('strval', $ev['classi']), function ($x) {
+    return $x !== '';
+  }));
+
+  if (!isset($ev['rooms']) || !is_array($ev['rooms'])) $ev['rooms'] = [];
+  $ev['rooms'] = array_values(array_filter(array_map('strval', $ev['rooms']), function ($x) {
+    return $x !== '';
+  }));
+}
+
+function applyVisibilityToEvent($ev, $scope, $visibilityLevel)
+{
+  if (!is_array($ev)) return null;
+
+  $type   = strtolower(trim((string)($ev['type'] ?? '')));
+  $origin = strtolower(trim((string)($ev['origin'] ?? '')));
+
+  // =========================
+  // FULL: vede tutto
+  // =========================
+  if ($visibilityLevel === 'FULL') {
+    return $ev;
+  }
+
+  // =========================
+  // STAFF: vede tutto, ma assenze docente anonimizzate nel motivo
+  // =========================
+  if ($visibilityLevel === 'STAFF') {
+    if (in_array($type, ['pb', 'perm', 'uscc', 'uscf'], true) && $origin === 'docente') {
+      $ev['title'] = 'Assente';
+      $ev['badge'] = 'Assente';
+      return $ev;
+    }
+
+    if ($type === 'viag' && $origin === 'docente') {
+      $ev['title'] = 'Assente';
+      $ev['badge'] = 'Assente';
+      return $ev;
+    }
+
+    return $ev;
+  }
+
+  // =========================
+  // PUBLIC: nessuna assenza docente
+  // =========================
+  if ($visibilityLevel === 'PUBLIC') {
+    if (in_array($type, ['pb', 'perm', 'uscc', 'uscf'], true) && $origin === 'docente') {
+      return null;
+    }
+
+    if ($type === 'viag' && $origin === 'docente') {
+      return null;
+    }
+
+    return $ev;
+  }
+
+  return $ev;
+}
+
+function applyVisibilityToGrid(&$grid, $scope, $visibilityLevel)
+{
+  foreach ($grid as $k => $arr) {
+    $out = [];
+    foreach ($arr as $ev) {
+      $ev2 = applyVisibilityToEvent($ev, $scope, $visibilityLevel);
+      if ($ev2 !== null) $out[] = $ev2;
+    }
+    $grid[$k] = $out;
+  }
+}
+
+function normalizeGrid(&$grid)
+{
+  if (!is_array($grid)) {
+    $grid = [];
+    return;
+  }
+  foreach ($grid as $k => $arr) {
+    if (!is_array($arr)) {
+      $grid[$k] = [];
+      continue;
+    }
+    foreach ($arr as $i => $ev) {
+      normalizeEventArray($ev);
+      $grid[$k][$i] = $ev;
+    }
+  }
+}
+
+applyVisibilityToGrid($grid, $scope, $VISIBILITY_LEVEL);
+normalizeGrid($grid);
+
 echo json_encode([
   "ok" => true,
   "scope" => $scope,
@@ -834,6 +1104,8 @@ echo json_encode([
   "period" => $period,
   "from" => $from,
   "to" => $to,
+  "visibilityLevel" => $VISIBILITY_LEVEL,
+  "debugRuoli" => $DEBUG_RUOLI,
   "orari" => $ORARI,
   "grid" => $grid
 ], JSON_UNESCAPED_UNICODE);

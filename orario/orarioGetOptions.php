@@ -3,7 +3,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/connectMBApp.php';
 
-ruoloRichiesto('personale-ata','segreteria-ata','docente','dirigente');
+ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'studente', 'genitore', 'segreteria-docenti', 'segreteria-didattica');
 header('Content-Type: application/json; charset=utf-8');
 
 // =====================

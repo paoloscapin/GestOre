@@ -3,7 +3,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/connectMBApp.php';
 
-ruoloRichiesto('personale-ata', 'segreteria-ata', 'docente');
+ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'studente', 'genitore', 'segreteria-docenti', 'segreteria-didattica');
 header('Content-Type: application/json; charset=utf-8');
 
 global $__conMBApp;
@@ -38,11 +38,37 @@ function isIsoDate($d)
   return (bool)preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$d);
 }
 
-function normOra($o)
-{
-  $o = trim((string)$o);
-  if ($o === '') return '';
-  return substr($o, 0, 5);
+function normOra($o) {
+  if ($o === null) return '';
+  $t = (string)$o;
+  $t = trim($t);
+
+  // caso HEX puro (es. 31333A3530 = "13:50")
+  if ($t !== '' && preg_match('/^[0-9A-Fa-f]+$/', $t) && (strlen($t) % 2 === 0) && strlen($t) >= 8) {
+    $decoded = @hex2bin($t);
+    if ($decoded !== false) $t = trim((string)$decoded);
+  }
+
+  // ripulisce byte null / sporcizia
+  $t = str_replace("\0", '', $t);
+  $t = trim($t);
+  if ($t === '') return '';
+
+  // HH:MM o HH:MM:SS
+  if (preg_match('/^\d{1,2}:\d{2}(:\d{2})?$/', $t)) {
+    $hhmm = substr($t, 0, 5);
+    if (preg_match('/^(\d):/', $hhmm)) $hhmm = '0' . $hhmm; // 8:40 -> 08:40
+    return $hhmm;
+  }
+
+  // estrae HH:MM da stringhe più lunghe
+  if (preg_match('/(\d{1,2}:\d{2})/', $t, $m)) {
+    $hhmm = $m[1];
+    if (preg_match('/^(\d):/', $hhmm)) $hhmm = '0' . $hhmm;
+    return $hhmm;
+  }
+
+  return '';
 }
 function mondayOf($iso)
 {
@@ -137,7 +163,37 @@ function getDocentiNomiByAssenzaId($idAssenza)
   $cache[$id] = $out;
   return $out;
 }
-/* riconoscimento SOLO viaggi/uscite */
+
+function getUsernamesByAssenzaId($idAssenza)
+{
+  global $__conMBApp;
+  $id = (int)$idAssenza;
+  if ($id <= 0) return [];
+  $q = "
+    SELECT DISTINCT username
+    FROM utilizza
+    WHERE IDassenza = $id
+      AND username IS NOT NULL
+      AND username <> ''
+  ";
+  $rows = mb_dbGetAll($q) ?: [];
+  $out = [];
+  foreach ($rows as $r) {
+    $u = trim((string)($r['username'] ?? ''));
+    if ($u !== '') $out[] = $u;
+  }
+  return $out;
+}
+
+/* riconoscimento */
+function isPermessoBreve($mot, $det)
+{
+  return (strpos($mot, 'PERMESSO BREVE') !== false) || (strpos($det, 'PERMESSO BREVE') !== false);
+}
+function isPermessoGiorno($mot, $det)
+{
+  return (strpos($mot, 'PERMESSO') !== false || strpos($det, 'PERMESSO') !== false) && !isPermessoBreve($mot, $det);
+}
 function isUscita($mot, $det)
 {
   return (strpos($mot, 'USCITA') !== false) || (strpos($det, 'USCITA') !== false);
@@ -171,8 +227,14 @@ function espandiAssenzaInSlot($a, $ORARI)
   $dataTo   = substr(h($a['dataFine'] ?? ''), 0, 10);
   if ($dataFrom === '' || $dataTo === '') return [];
 
-  // viaggi/uscite = tutto giorno (come tua logica)
-  $forceAllDay = true;
+  $mot = strtoupper(trim(h($a['motivo'] ?? '')));
+  $det = strtoupper(trim(h($a['dettagli'] ?? '')));
+
+  $isV = isViaggio($mot, $det);
+  $isP = isPermessoGiorno($mot, $det);
+
+  // viaggi/permesso giorno = tutto giorno
+  $forceAllDay = $isV || $isP;
 
   $oraDa = pickOraInizio($a);
   $oraA  = pickOraFine($a);
@@ -225,7 +287,7 @@ function addBlocked(&$blockedMap, $slotKey, $classi)
   }
 }
 
-/* evento assenza (solo viag/uscC/uscF) */
+/* evento assenza (usc/viag/perm/pb) */
 function makeEvUscViag($a)
 {
   $mot = strtoupper(trim(h($a['motivo'] ?? '')));
@@ -236,7 +298,6 @@ function makeEvUscViag($a)
 
   $idAss = (int)($a['idAssenza'] ?? 0);
   $docArr = ($idAss > 0) ? getDocentiNomiByAssenzaId($idAss) : [];
-  // meglio con "\n" perché nel render principale tu splitti su newline
   $docNomi = !empty($docArr) ? implode("\n", $docArr) : "";
 
   if (isViaggio($mot, $det)) {
@@ -244,7 +305,7 @@ function makeEvUscViag($a)
       'type'  => 'viag',
       'class' => 'ev ev-viag',
       'title' => 'Viaggio di istruzione' . ($meta !== '' ? ' · ' . $meta : ''),
-      'who'   => $docNomi,          // ✅ QUI
+      'who'   => $docNomi,
       'classi' => [],
       'badge' => 'Viaggio di istruzione'
     ];
@@ -259,9 +320,31 @@ function makeEvUscViag($a)
       'type'  => $type,
       'class' => 'ev ev-' . $type,
       'title' => $base . ($meta !== '' ? ' · ' . $meta : ''),
-      'who'   => $docNomi,          // ✅ QUI
+      'who'   => $docNomi,
       'classi' => [],
       'badge' => $base
+    ];
+  }
+
+  if (isPermessoBreve($mot, $det)) {
+    return [
+      'type'  => 'pb',
+      'class' => 'ev ev-pb',
+      'title' => 'Permesso breve' . ($meta !== '' ? ' · ' . $meta : ''),
+      'who'   => $docNomi,
+      'classi' => [],
+      'badge' => 'Permesso breve'
+    ];
+  }
+
+  if (isPermessoGiorno($mot, $det)) {
+    return [
+      'type'  => 'perm',
+      'class' => 'ev ev-perm',
+      'title' => 'Permesso (giorno)' . ($meta !== '' ? ' · ' . $meta : ''),
+      'who'   => $docNomi,
+      'classi' => [],
+      'badge' => 'Permesso (giorno)'
     ];
   }
 
@@ -304,6 +387,10 @@ if ($period === 'GIORNO') {
 $fromEsc = mysqli_real_escape_string($__conMBApp, $from);
 $toEsc   = mysqli_real_escape_string($__conMBApp, $to);
 $nro = mysqli_real_escape_string($__conMBApp, $target);
+
+/* ✅ INIT OUTPUT SUBITO (prima di usarli) */
+$gridAssenze = [];
+$blockedMap = [];
 
 /* 1) mappa slot -> classi presenti in quell'aula (da oralezione) */
 $aulaSlotClasses = []; // key slot => ['4MMA'=>true,...]
@@ -355,6 +442,7 @@ foreach (mb_dbGetAll($qTeachSlots) ?: [] as $r) {
   if (!isset($aulaSlotTeachers[$k])) $aulaSlotTeachers[$k] = [];
   foreach (splitCsvUnique($r['teachers'] ?? '') as $u) $aulaSlotTeachers[$k][$u] = true;
 }
+
 $qDocInAula = "
   SELECT DISTINCT ut.username
   FROM oralezione o
@@ -370,6 +458,10 @@ foreach (mb_dbGetAll($qDocInAula) ?: [] as $r) {
   if ($u !== '') $docU[] = $u;
 }
 
+/* ===========================
+   2B) ASSENZE DOCENTI (perm/pb/usc/viag) legate ai docenti che stanno in quell'aula
+   Mostra SOLO se il docente assente è presente nello slot (match su username)
+   =========================== */
 if (!empty($docU)) {
   $inUser = "'" . implode("','", array_map(function ($x) use ($__conMBApp) {
     return mysqli_real_escape_string($__conMBApp, $x);
@@ -389,14 +481,15 @@ if (!empty($docU)) {
   ";
 
   foreach (mb_dbGetAll($qAssDoc) ?: [] as $a) {
-    $mot = strtoupper(trim(h($a['motivo'] ?? '')));
-    $det = strtoupper(trim(h($a['dettagli'] ?? '')));
-
-    // se in AULA vuoi solo usc/viag lascia così, altrimenti amplia
-    if (!(isViaggio($mot, $det) || isUscita($mot, $det))) continue;
 
     $ev = makeEvUscViag($a);
     if ($ev === null) continue;
+
+    $idAss = (int)($a['idAssenza'] ?? 0);
+    if ($idAss <= 0) continue;
+
+    $assUsernames = getUsernamesByAssenzaId($idAss);
+    if (empty($assUsernames)) continue;
 
     $slots = espandiAssenzaInSlot($a, $ORARI);
 
@@ -404,28 +497,40 @@ if (!empty($docU)) {
       foreach ($ores as $ora) {
         $oraN = normOra($ora);
         if ($oraN === '') continue;
+
         $slotKey = $ymd . '|' . $oraN;
 
-        // 🔹 mostra l'assenza docente solo se quel docente insegna davvero in aula in quello slot
+        // deve esserci una lezione in quell'aula in quello slot con docenti agganciati
         if (!isset($aulaSlotTeachers[$slotKey]) || empty($aulaSlotTeachers[$slotKey])) continue;
 
-        // who (nomi) già dentro $ev['who'], ma tu sotto lo sovrascrivevi con assenze.docenti:
-        // NON farlo qui: tieni quello calcolato da getDocentiNomiByAssenzaId()
+        // match tra docenti assenti e docenti presenti in aula nello slot
+        $presentTeachers = $aulaSlotTeachers[$slotKey];
+        $match = false;
+        foreach ($assUsernames as $uAss) {
+          if (isset($presentTeachers[$uAss])) {
+            $match = true;
+            break;
+          }
+        }
+        if (!$match) continue;
+
+        // ev['who'] è già NOMI (non usernames) => ok per UI
         pushEv($gridAssenze, $ymd, $oraN, $ev);
       }
     }
   }
 }
-/* output */
-$gridAssenze = [];
-$blockedMap = [];
 
+/* ===========================
+   2A) ASSENZE collegate alle CLASSI in aula (occupa)
+   (qui lasciamo la tua logica, ma estendiamo ai permessi)
+   =========================== */
 foreach (mb_dbGetAll($qA) ?: [] as $a) {
   $mot = strtoupper(trim(h($a['motivo'] ?? '')));
   $det = strtoupper(trim(h($a['dettagli'] ?? '')));
 
-  // SOLO viaggi/uscite
-  if (!(isViaggio($mot, $det) || isUscita($mot, $det))) continue;
+  // ✅ anche permessi
+  if (!(isViaggio($mot, $det) || isUscita($mot, $det) || isPermessoGiorno($mot, $det) || isPermessoBreve($mot, $det))) continue;
 
   $ev = makeEvUscViag($a);
   if ($ev === null) continue;
@@ -453,19 +558,23 @@ foreach (mb_dbGetAll($qA) ?: [] as $a) {
       // deve esserci almeno una classe in aula in quello slot
       if (!isset($aulaSlotClasses[$slotKey]) || empty($aulaSlotClasses[$slotKey])) continue;
 
-      // interezione: solo classi che erano davvero in quell'aula in quello slot
+      // intersezione: solo classi che erano davvero in quell'aula in quello slot
       $inter = [];
       foreach ($cls as $c) if (isset($aulaSlotClasses[$slotKey][$c])) $inter[] = $c;
       if (empty($inter)) continue;
 
       $ev2 = $ev;
 
-      // 🔹 classi reali dell’assenza (non solo intersezione)
+      // classi reali dell’assenza (non solo intersezione)
       $ev2['classi'] = $cls;
 
-      // 🔹 docenti presi dal campo assenze.docenti
+      // docenti (nomi) da campo assenze.docenti se vuoi mantenerlo:
+      // (lasciata la tua logica)
       $docArr = getDocentiNomiFromCsv($a['docenti'] ?? '');
-      $ev2['who'] = !empty($docArr) ? implode("\n", $docArr) : "";
+      if (!empty($docArr)) {
+        $ev2['who'] = implode("\n", $docArr);
+      }
+
       pushEv($gridAssenze, $ymd, $oraN, $ev2);
       addBlocked($blockedMap, $slotKey, $inter);
     }

@@ -3,7 +3,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/connectMBApp.php';
 
-ruoloRichiesto('personale-ata', 'segreteria-ata', 'docente', 'dirigente');
+ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'dirigente');
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -22,8 +22,78 @@ ruoloRichiesto('personale-ata', 'segreteria-ata', 'docente', 'dirigente');
 
 <body>
     <?php
-    // header area
-    require_once '../common/header-segrata.php';
+    require_once '../common/checkSession.php';
+
+    global $__utente_ruolo;
+    $ruolo = strtoupper(trim((string)$__utente_ruolo));
+
+    switch ($ruolo) {
+
+        // =========================
+        // ADMIN
+        // =========================
+        case 'ADMIN':
+            require_once '../common/header-admin.php';
+            break;
+
+        // =========================
+        // SEGRETERIE
+        // =========================
+        case 'SEGRETERIA-DIDATTICA':
+            require_once '../common/header-didattica.php';
+            break;
+
+        case 'SEGRETERIA-ATA':
+            require_once '../common/header-segrata.php';
+            break;
+
+        case 'SEGRETERIA-DOCENTI':
+        case 'SEGRETERIA':
+            require_once '../common/header-segreteria.php';
+            break;
+
+        // =========================
+        // DOCENTE
+        // =========================
+        case 'DOCENTE':
+            require_once '../common/header-docente.php';
+            break;
+
+        // =========================
+        // PERSONALE ATA / CS
+        // =========================
+        case 'PERSONALE-ATA':
+            require_once '../common/header-ata.php';
+            break;
+
+        // =========================
+        // PORTINERIA
+        // =========================
+        case 'PORTINERIA':
+            require_once '../common/header-ata.php';
+            break;
+
+        // =========================
+        // STUDENTI
+        // =========================
+        case 'STUDENTE':
+            require_once '../common/header-studente.php';
+            break;
+
+        // =========================
+        // GENITORI
+        // =========================
+        case 'GENITORE':
+            require_once '../common/header-genitore.php';
+            break;
+
+        // =========================
+        // DEFAULT (sicurezza)
+        // =========================
+        default:
+            require_once '../common/header-docente.php';
+            break;
+    }
     ?>
 
     <div class="container-fluid">
@@ -41,6 +111,8 @@ ruoloRichiesto('personale-ata', 'segreteria-ata', 'docente', 'dirigente');
                                 <option value="AULA">AULA</option>
                                 <option value="CLASSE">CLASSE</option>
                                 <option value="DOCENTE">DOCENTE</option>
+                                <option value="EVENTI">EVENTI</option>
+                                <option value="ASSENZE">ASSENZE</option>
                             </select>
 
                             <select id="v_period" class="selectpicker sr-only" data-width="150px" data-style="btn-default btn-sm">
@@ -53,6 +125,8 @@ ruoloRichiesto('personale-ata', 'segreteria-ata', 'docente', 'dirigente');
                                 <button type="button" class="seg-btn" data-target="#v_scope" data-value="AULA">Aula</button>
                                 <button type="button" class="seg-btn" data-target="#v_scope" data-value="CLASSE">Classe</button>
                                 <button type="button" class="seg-btn" data-target="#v_scope" data-value="DOCENTE">Docente</button>
+                                <button type="button" class="seg-btn" data-target="#v_scope" data-value="EVENTI">Eventi</button>
+                                <button type="button" class="seg-btn" data-target="#v_scope" data-value="ASSENZE">Assenze</button>
                             </div>
 
                             <!-- Segmented: PERIOD (lo nasconderai via JS in GIORNO+AULA) -->
@@ -130,7 +204,8 @@ ruoloRichiesto('personale-ata', 'segreteria-ata', 'docente', 'dirigente');
         </div>
     </div>
 
-    <script src="js/scriptOrario.js"></script>
+    <script src="js/scriptOrario.js?t=<?= time() ?>"></script>
+    <script src="js/scriptAssenze.js?t=<?= time() ?>"></script>
 </body>
 
 </html>

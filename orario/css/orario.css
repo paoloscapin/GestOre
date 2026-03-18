@@ -256,12 +256,20 @@
 }
 .ev-title{ font-weight:800 !important; }
 .ev-who{ font-weight:800 !important; margin-top:2px; }
-.ev-room{ margin-top:6px; font-size:11px; opacity:.9; font-weight:700; }
+.ev-room{
+  margin-top:6px;
+  font-size:16px;
+  opacity:.95;
+  font-weight:800;
+  line-height:1.2;
+}
+
 .ev-classi{
-  margin-top: 4px;
-  font-size: 11px;
-  font-weight: 800;
-  opacity: .92;
+  margin-top:4px;
+  font-size:16px;
+  font-weight:900;
+  opacity:.95;
+  line-height:1.2;
 }
 
 /* =========================
@@ -510,3 +518,92 @@ td.td-studio { background: rgba(0, 123, 255, 0.14); }   /* azzurrino */
 /* pallini legenda */
 .dot.dot-pranzo { background: #ffc107; }
 .dot.dot-studio { background: #007bff; }
+
+/* evidenzia righe in base al tipo (riuso colori badge/ev-*) */
+#tbl_eventi .ev-row td { vertical-align: top; }
+#tbl_eventi .ev-badge { font-size: 12px; }
+
+/* se vuoi un look più simile alle card */
+#tbl_eventi td { background: #fff; }
+#tbl_eventi tr:hover td { background: #f7f7f7; }
+
+#tbl_eventi tr.is-overridden {
+  opacity: .55;
+}
+#tbl_eventi tr.is-overridden td {
+  text-decoration: line-through;
+}
+
+.ev-covered-by-perm td { opacity: .55; text-decoration: line-through; }
+
+.ev.ev-absent-full{
+  opacity:.55;
+  filter:grayscale(100%);
+}
+
+.ev.ev-absent-full .ev-title,
+.ev.ev-absent-full .ev-classi,
+.ev.ev-absent-full .ev-room{
+  text-decoration: line-through;
+}
+
+#tbl_eventi tr.row-in-progress td {
+  box-shadow: inset 0 0 0 9999px rgba(255, 235, 120, 0.72);
+}
+
+#tbl_eventi tr.row-now-flash td {
+  animation: rowNowFlash 2.2s ease;
+}
+
+@keyframes rowNowFlash {
+  0% {
+    box-shadow: inset 0 0 0 9999px rgba(80, 200, 255, 0.95);
+  }
+  35% {
+    box-shadow: inset 0 0 0 9999px rgba(70, 170, 255, 0.72);
+  }
+  100% {
+    box-shadow: inset 0 0 0 9999px rgba(70, 170, 255, 0);
+  }
+}
+
+#tbl_eventi tr.row-ended td {
+  color: #b5b5b5;
+}
+
+#tbl_eventi tr.row-ended td {
+  color: #b5b5b5;
+  opacity: 0.8;
+}
+
+#tbl_eventi tr.row-ended .ev-badge {
+  opacity: 0.7;
+}
+
+#tbl_eventi td,
+#tbl_eventi th {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+#tbl_eventi td:last-child,
+#tbl_eventi th:last-child {
+  min-width: 220px;
+}
+
+#tbl_eventi td:nth-child(5),
+#tbl_eventi th:nth-child(5) {
+  width: 130px;
+}
+
+#tbl_eventi td:nth-child(4),
+#tbl_eventi th:nth-child(4) {
+  width: 70px;
+}
+
+.ass-classi{
+  margin-top:6px;
+  font-size:13px;
+  font-weight:800;
+  color:#1f2937;
+}
