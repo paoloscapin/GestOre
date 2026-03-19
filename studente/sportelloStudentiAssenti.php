@@ -52,6 +52,7 @@ $querySportelli = "
     WHERE DATE(s.data) = CURDATE()
       AND s.attivo = 1
       AND s.cancellato = 0
+      AND s.firmato = 1
 ";
 
 $sportelli = dbGetAll($querySportelli);
