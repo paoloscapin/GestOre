@@ -30,6 +30,9 @@ function refreshTotale() {
   var budgetFuis = Number($("#hidden_fuis_budget").val());
   var diffTotaleFuis = budgetFuis - totaleFuisFatto;
 
+  var totaleFuisFattoDiaria = Number($("#hidden_fuis_totale_fatto_diaria").val());
+  var totaleFuisFattoAssegnato = Number($("#hidden_fuis_totale_fatto_assegnato").val());
+  var totaleFuisFattoOre = Number($("#hidden_fuis_totale_fatto_ore").val());  
   var totaleFuisFattoClil = Number($("#hidden_fuis_totale_fatto_clil").val());
   var budgetClil = Number($("#hidden_fuis_budget_clil").val());
   var diffTotaleFuisClil = budgetClil - totaleFuisFattoClil;
@@ -47,6 +50,13 @@ function refreshTotale() {
   } else {
     totHtml += '<span class="label label-danger">- ' + euro(Math.abs(diffTotaleFuis)) + '</span>';
   }
+
+  var totHtmlDiaria =
+    '<strong>Totale Diaria: ' + euro(totaleFuisFattoDiaria) + '</strong><br>';
+  var totHtmlAssegnato =
+    '<strong>Totale Assegnato: ' + euro(totaleFuisFattoAssegnato) + '</strong><br>';
+  var totHtmlOre =
+    '<strong>Totale Ore: ' + euro(totaleFuisFattoOre) + '</strong><br>';
 
   var totHtmlClil =
     '<strong>Totale CLIL: ' + euro(totaleFuisFattoClil) + '</strong><br>' +
@@ -74,6 +84,9 @@ function refreshTotale() {
       : '(pagato da Provincia)';
 
   $("#totale_fatte").html(totHtml);
+  $("#totale_fatte_diaria").html(totHtmlDiaria);
+  $("#totale_fatte_assegnato").html(totHtmlAssegnato);
+  $("#totale_fatte_fuis_ore").html(totHtmlOre);
   $("#totale_fatte_clil").html(totHtmlClil);
   $("#totale_fatte_orientamento").html(totHtmlOrientamento);
 
@@ -82,56 +95,6 @@ function refreshTotale() {
     euro($("#hidden_fuis_totale_corsi_di_recupero").val()) +
     '</strong><br>' + msgCdr
   );
-}
-
-function refreshPagina() {
-    location.reload();
-}
-
-$(document).ready(function () {
-    refreshTotale();
-});
-
-function refreshTotale() {
-    var totaleFuisFatto = new Number($("#hidden_fuis_totale_fatto").val()).toFixed(2);
-    var diffTotaleFuis = Math.round($("#hidden_fuis_budget").val() - $("#hidden_fuis_totale_fatto").val());
-    var diffTotaleFuisNumber = new Number(diffTotaleFuis).toFixed(2);
-
-    var totaleFuisFattoClil = new Number($("#hidden_fuis_totale_fatto_clil").val()).toFixed(2);
-    var diffTotaleFuisClil = $("#hidden_fuis_budget_clil").val() - $("#hidden_fuis_totale_fatto_clil").val();
-    var diffTotaleFuisClilNumber = new Number(diffTotaleFuisClil).toFixed(2);
-
-    var totaleFuisFattoOrientamento = new Number($("#hidden_fuis_totale_fatto_orientamento").val()).toFixed(2);
-    var diffTotaleFuisOrientamento = $("#hidden_fuis_budget_orientamento").val() - $("#hidden_fuis_totale_fatto_orientamento").val();
-    var diffTotaleFuisOrientamentoNumber = new Number(diffTotaleFuisOrientamento).toFixed(2);
-
-    var totHtml = '<strong>Totale FUIS: ' + totaleFuisFatto + '</strong> </br>(budget: ' + $("#hidden_fuis_budget").val() + ') ';
-    if (diffTotaleFuis > 0) {
-        var totHtml = totHtml + '<span class="label label-success">+ ' + diffTotaleFuisNumber + '</span>';
-    } else {
-        var totHtml = totHtml + '<span class="label label-danger">- ' + (-diffTotaleFuisNumber) + '</span>';
-    }
-
-    var totHtmlClil = '<strong>Totale CLIL: ' + totaleFuisFattoClil + '</strong>  </br>(budget: ' + $("#hidden_fuis_budget_clil").val() + ') ';
-    if (diffTotaleFuisClil > 0) {
-        var totHtmlClil = totHtmlClil + '<span class="label label-success">+ ' + diffTotaleFuisClilNumber + '</span>';
-    } else {
-        var totHtmlClil = totHtmlClil + '<span class="label label-danger">- ' + (-diffTotaleFuisClilNumber) + '</span>';
-    }
-
-    var totHtmlOrientamento = '<strong>Totale Orientamento: ' + totaleFuisFattoOrientamento + '</strong>  </br>(budget: ' + $("#hidden_fuis_budget_orientamento").val() + ') ';
-    if (diffTotaleFuisOrientamento > 0) {
-        var totHtmlOrientamento = totHtmlOrientamento + '<span class="label label-success">+ ' + diffTotaleFuisOrientamentoNumber + '</span>';
-    } else {
-        var totHtmlOrientamento = totHtmlOrientamento + '<span class="label label-danger">- ' + (-diffTotaleFuisOrientamentoNumber) + '</span>';
-    }
-
-    var $messaggioCorsoDiRecuperoExtra = ($("#hidden_corsi_di_recupero_pagati_da_provincia").val() == 0)? '(già incluso nel totale fuis)' : '(pagato da Provincia)';
-
-    $("#totale_fatte").html(totHtml);
-    $("#totale_fatte_clil").html(totHtmlClil);
-    $("#totale_fatte_orientamento").html(totHtmlOrientamento);
-    $("#totale_fatte_corsi_di_recupero").html('<strong>Totale Corsi di Recupero: ' + $("#hidden_fuis_totale_corsi_di_recupero").val() + ': ' + '</strong>  </br>' + $messaggioCorsoDiRecuperoExtra);
 }
 
 function refreshPagina() {
