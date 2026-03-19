@@ -29,6 +29,10 @@ function refreshTotale() {
   var budgetFuis = Number($("#hidden_fuis_budget").val());
   var diffTotaleFuis = budgetFuis - totaleFuisPrevisto;
 
+  var totaleFuisPrevistoDiaria = Number($("#hidden_fuis_totale_previsto_diaria").val());
+  var totaleFuisPrevistoAssegnato = Number($("#hidden_fuis_totale_previsto_assegnato").val());
+  var totaleFuisPrevistoOre = Number($("#hidden_fuis_totale_previsto_ore").val());
+
   var totaleFuisPrevistoClil = Number($("#hidden_fuis_totale_previsto_clil").val());
   var budgetClil = Number($("#hidden_fuis_budget_clil").val());
   var diffTotaleFuisClil = budgetClil - totaleFuisPrevistoClil;
@@ -43,6 +47,10 @@ function refreshTotale() {
   } else {
     totHtml += '<span class="label label-danger">- ' + euro(Math.abs(diffTotaleFuis)) + '</span>';
   }
+
+  var toHtmlDiaria = '<strong>Totale Diaria: ' + euro(totaleFuisPrevistoDiaria) + '</strong>';
+  var toHtmlAssegnato = '<strong>Totale Assegnato: ' + euro(totaleFuisPrevistoAssegnato) + '</strong>';
+  var toHtmlOre = '<strong>Totale Importo: ' + euro(totaleFuisPrevistoOre) + '</strong>';
 
   var totHtmlClil = '<strong>Totale CLIL: ' + euro(totaleFuisPrevistoClil) + '</strong><br>(budget: ' + euro(budgetClil) + ') ';
   if (diffTotaleFuisClil > 0) {
@@ -61,6 +69,9 @@ function refreshTotale() {
   var msgCdr = ($("#hidden_corsi_di_recupero_pagati_da_provincia").val() == 0) ? '(già incluso nel totale fuis)' : '(pagato da Provincia)';
 
   $("#totale_previste").html(totHtml);
+  $("#totale_previste_diaria").html(toHtmlDiaria);
+  $("#totale_previste_assegnato").html(toHtmlAssegnato);
+  $("#totale_previste_fuis_ore").html(toHtmlOre);
   $("#totale_previste_clil").html(totHtmlClil);
   $("#totale_previste_orientamento").html(totHtmlOrientamento);
 

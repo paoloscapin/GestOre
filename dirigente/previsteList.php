@@ -39,16 +39,22 @@ require_once '../common/connect.php';
 <div class="panel panel-orange4">
 <div class="panel-heading container-fluid">
 	<div class="row">
-		<div class="col-md-2">
+		<div class="col-md-1">
 			<span class="glyphicon glyphicon-dashboard"></span>&emsp;<strong>Ore Previste</strong>
 		</div>
 		<div class="col-md-2 text-center" id="totale_previste">
 		</div>
-		<div class="col-md-2 text-center" id="totale_previste_clil">
+		<div class="col-md-1 text-center" id="totale_previste_diaria">
+		</div>
+		<div class="col-md-1 text-center" id="totale_previste_assegnato">
+		</div>
+		<div class="col-md-1 text-center" id="totale_previste_fuis_ore">
+		</div>
+		<div class="col-md-1 text-center" id="totale_previste_clil">
 		</div>
 		<div class="col-md-2 text-center" id="totale_previste_orientamento">
 		</div>
-		<div class="col-md-3 text-center" id="totale_previste_corsi_di_recupero">
+		<div class="col-md-2 text-center" id="totale_previste_corsi_di_recupero">
 		</div>
 		<div class="col-md-1 text-right" id="page_refresh">
             <button onclick="refreshPagina()" class="btn btn-xs btn-orange4"><span class="glyphicon glyphicon-refresh"></span></button>
@@ -64,7 +70,7 @@ require_once '../common/connect.php';
             <th class="text-center col-md-1">Docente</th>
             <th class="text-center col-md-1">Diaria</th>
             <th class="text-center col-md-1">Assegnato</th>
-            <th class="text-center col-md-1">Ore</th>
+            <th class="text-center col-md-1">Importo</th>
             <?php if($__settings->config->gestioneClil) : ?>
                 <th class="text-center col-md-1">Clil</th>
             <?php else: ?>
@@ -86,6 +92,9 @@ $fuis_totale_previsto = 0;
 $fuis_totale_previsto_clil = 0;
 $fuis_totale_previsto_orientamento = 0;
 $fuis_totale_corsi_di_recupero = 0;
+$fuis_totale_diaria = 0;
+$fuis_totale_assegnato = 0;
+$fuis_totale_ore = 0;
 foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cognome,nome;") as $docente) {
     $docenteId = $docente['id'];
     $docenteCognomeNome = $docente['cognome'].' '.$docente['nome'];
@@ -120,6 +129,9 @@ foreach(dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY cog
     }
     echo '<td>'.importoStampabile($fuisPrevisto['fuisExtraCorsiDiRecupero']).'</td>';
 
+    $fuis_totale_diaria = $fuis_totale_diaria + $fuisPrevisto['diariaImportoPreviste'];
+    $fuis_totale_assegnato = $fuis_totale_assegnato + $fuisPrevisto['fuisAssegnato'];
+    $fuis_totale_ore = $fuis_totale_ore + $fuisPrevisto['fuisOrePreviste'];
     $fuis_totale_previsto = $fuis_totale_previsto + $fuisPrevisto['diariaImportoPreviste'] + $fuisPrevisto['fuisAssegnato'] + $fuisPrevisto['fuisOrePreviste'];
     $fuis_totale_previsto_clil = $fuis_totale_previsto_clil + $fuisPrevisto['fuisClilFunzionalePreviste'] + $fuisPrevisto['fuisClilConStudentiPreviste'];
     $fuis_totale_previsto_orientamento = $fuis_totale_previsto_orientamento + $fuisPrevisto['fuisOrientamentoFunzionalePreviste'] + $fuisPrevisto['fuisOrientamentoConStudentiPreviste'];
@@ -152,6 +164,9 @@ function importoStampabile($importo) {
 </div>
 </div>
 <input type="hidden" id="hidden_fuis_totale_previsto" value="<?php echo $fuis_totale_previsto; ?>">
+<input type="hidden" id="hidden_fuis_totale_previsto_diaria" value="<?php echo $fuis_totale_diaria; ?>">
+<input type="hidden" id="hidden_fuis_totale_previsto_assegnato" value="<?php echo $fuis_totale_assegnato; ?>">
+<input type="hidden" id="hidden_fuis_totale_previsto_ore" value="<?php echo $fuis_totale_ore; ?>">
 <input type="hidden" id="hidden_fuis_totale_previsto_clil" value="<?php echo $fuis_totale_previsto_clil; ?>">
 <input type="hidden" id="hidden_fuis_totale_previsto_orientamento" value="<?php echo $fuis_totale_previsto_orientamento; ?>">
 <input type="hidden" id="hidden_fuis_totale_corsi_di_recupero" value="<?php echo $fuis_totale_corsi_di_recupero; ?>">
