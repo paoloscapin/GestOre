@@ -58,6 +58,8 @@ $('#bozzaCheckBox').change(function () {
     // this si riferisce al checkbox
     if (this.checked) {
         bozza_filtro_id = 1;
+        $("#soloIMieiCheckBox").prop('checked', false).trigger('change'); // se filtro bozze, disabilito "solo i miei" perché non ha senso
+        soloIMiei = 0;
     } else {
         bozza_filtro_id = 0;
     }
@@ -112,7 +114,7 @@ function sportelloDelete(id, materia) {
         );
     }
 }
-function sportelloAssegna(sportello_id) {
+function sportelloAssegna(sportello_id, docente_puo_modificare_bozza) {
     if (!sportello_id || sportello_id <= 0) return;
 
     // opzionale: conferma
@@ -130,6 +132,12 @@ function sportelloAssegna(sportello_id) {
             sportelloGetDetails(sportello_id, true, 0, "");
 
             setTimeout(function () {
+
+                if (docente_puo_modificare_bozza) {
+                    $("#data").prop('disabled', false);
+                    $("#classe").prop('disabled', false).selectpicker('refresh');
+                }
+
                 // abilita AULA (select)
                 $("#luogo").prop('disabled', false).selectpicker('refresh');
 

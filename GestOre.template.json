@@ -130,6 +130,7 @@
         "inseriti_da_docente": false,
         "docente_puo_modificare": false,
         "docente_puo_eliminare": false,
+        "docente_puo_modificare_bozza": false,
         "visibile_genitori": false,
         "visibile_studenti": false,
         "visibile_docenti": false

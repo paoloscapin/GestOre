@@ -19,6 +19,7 @@ $materia_filtro_id   = (int)($_GET["materia_filtro_id"] ?? 0);
 $classe_filtro_id    = (int)($_GET["classe_filtro_id"] ?? 0);
 $bozza_filtro_id	 = (int)($_GET["bozza_filtro_id"] ?? 0);
 $direzioneOrdinamento = "ASC";
+$docente_puo_modificare_bozza = $__settings->sportelli->docente_puo_modificare_bozza;
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -249,7 +250,7 @@ foreach ($resultArray as $row) {
 		$data .= '
 			<td class="text-center" data-toggle="tooltip" data-placement="left" data-html="true" title="Clicca qui per assegnarti lo sportello">
 				<button type="button"
-						onclick="sportelloAssegna(' . $sportello_id . ')"
+						onclick="sportelloAssegna(' . $sportello_id . ',' . $docente_puo_modificare_bozza . ')"
 						class="btn btn-primary btn-xs">
 					<span class="glyphicon glyphicon-star"></span> ASSEGNA
 				</button>
