@@ -13,7 +13,7 @@ require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/__Settings.php';
 
 if ($__settings->config->MBApp !== true) {
-    debug("checkSession: MBApp feature disabled, skipping connectMBApp.php");
+    debug("checkSession: MBApp feature disabled, skipping connectMBApp.php ");
 } else {
     require_once __DIR__ . '/connectMBApp.php';
 }
@@ -75,6 +75,12 @@ function __dbg_session_state(string $stage): void
         'esterno_nome',
         'esterno_cognome',
         'esterno_email',
+
+        // portineria
+        'portineria_id',
+        'portineria_nome',
+        'portineria_cognome',
+        'portineria_email',
 
         // studente
         'studente_id',
@@ -770,6 +776,13 @@ if ($__utente_ruolo === "esterno") {
     $session->set('esterno_email', $__useremail);
 }
 
+if ($__utente_ruolo === "portineria") {
+    $session->set('portineria_id', $__utente_id);
+    $session->set('portineria_nome', $__utente_nome);
+    $session->set('portineria_cognome', $__utente_cognome);
+    $session->set('portineria_email', $__useremail);
+}
+
 debug("checkSession: resolved user -> id=" . ($__utente_id ?? 'NULL')
     . " username=" . ($__username ?? 'NULL')
     . " ruolo=" . ($__utente_ruolo ?? 'NULL'));
@@ -790,6 +803,7 @@ if (!empty($__useremail)) {
         'studente',
         'genitore',
         'esterno',
+        'portineria',
         'segreteria-docenti',
         'segreteria-ata',
         'dirigente',
@@ -898,6 +912,11 @@ $__esterno_id = $session->get('esterno_id');
 $__esterno_nome = $session->get('esterno_nome');
 $__esterno_cognome = $session->get('esterno_cognome');
 $__esterno_email = $session->get('esterno_email');
+
+$__portineria_id = $session->get('portineria_id');
+$__portineria_nome = $session->get('portineria_nome');
+$__portineria_cognome = $session->get('portineria_cognome');
+$__portineria_email = $session->get('portineria_email');
 
 // =====================================================
 // Anno scolastico
