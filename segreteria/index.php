@@ -12,7 +12,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Segreteria</title>
+	<title>Segreteria Didattica</title>
 <?php
 require_once '../common/style.php';
 require_once '../common/header-common.php';
