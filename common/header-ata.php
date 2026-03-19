@@ -18,13 +18,26 @@
 			<div class="btn-group">
 
 				<!-- PERMESSI PERSONALI (dipendente ATA – futuro step) -->
-				<a href="../ata/permessi.php"
+				 <?php if (haRuolo('personale-ata')) 
+				 {
+					echo '
+					<a href="../ata/permessi.php"
 				   class="btn btn-default navbar-btn btn-yellow4"
 				   role="button"
 				   data-toggle="tooltip"
 				   data-placement="bottom"
 				   title="Le mie richieste di permesso">
 					<span class="glyphicon glyphicon-th-list"></span>&ensp;I miei permessi
+				</a>
+				';
+				 } ?>
+				<a href="../orario/orario.php"
+				   class="btn btn-default navbar-btn btn-yellow4"
+				   role="button"
+				   data-toggle="tooltip"
+				   data-placement="bottom"
+				   title="Orario ed Eventi">
+					<span class="glyphicon glyphicon-time"></span>&ensp;Orario ed Eventi
 				</a>
 
 			</div>
@@ -34,7 +47,15 @@
 			<li>
 				<a>
 					<?php if (haRuolo('admin')) echo "(A) "; ?>
-					<?php echo $__ata_nome . ' ' . $__ata_cognome; ?>
+					<?php if (haRuolo('portineria')) 
+					{
+						echo '[' . $__portineria_nome . ' ' . $__portineria_cognome . ']'; 
+					}
+					else
+					{
+							echo '[' . $__ata_nome . ' ' . $__ata_cognome . ']'; 
+					}
+					?>
 				</a>
 			</li>
 			<li>

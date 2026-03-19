@@ -17,15 +17,17 @@
 		<ul class="nav navbar-nav top-navbar-nav">
 
 			<li><a href="../dirigente/index.php" class="btn btn-default nav-btn btn-deeporange4" role="button"><span class="glyphicon glyphicon-king"></span>&ensp;Dirigente </a></li>
-			<li><a href="../segreteria/index.php" class="btn btn-default btn-teal4 nav-btn " role="button"><span class="glyphicon glyphicon-tower"></span>&ensp;Segreteria Didattica </a></li>
-			<li><a href="../segrata/index.php" class="btn btn-default btn-teal4 nav-btn" role="button"><span class="glyphicon glyphicon-tower"></span>&ensp;Segreteria ATA </a></li>
+			<li><a href="../segreteria/index.php" class="btn btn-default btn-yellow4 nav-btn " role="button"><span class="glyphicon glyphicon-tower"></span>&ensp;Segr. Docenti </a></li>
+			<li><a href="../segrata/index.php" class="btn btn-default btn-teal4 nav-btn" role="button"><span class="glyphicon glyphicon-tower"></span>&ensp;Segr. ATA </a></li>
 			<li><a href="../dirigente/selezionaDocente.php" class="btn btn-default btn-lightblue4 nav-btn" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Docente </a></li>
-			<li><a href="../didattica/index.php" class="btn btn-default btn-orange4 nav-btn" role="button"><span class="glyphicon glyphicon-knight"></span>&ensp;Didattica </a></li>
+			<li><a href="../didattica/index.php" class="btn btn-default btn-orange4 nav-btn" role="button"><span class="glyphicon glyphicon-knight"></span>&ensp;Segr. Didattica </a></li>
 			<li><a href="../admin/materia.php" class="btn btn-default btn-yellow4 nav-btn" role="button"><span class="glyphicon glyphicon-compressed"></span>&ensp;Materie </a></li>
 			<li><a href="../admin/attivita.php" class="btn btn-default btn-lima4 nav-btn" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Tipo Attività </a></li>
 			<li><a href="../admin/fuisAssegnatoTipo.php" class="btn btn-default btn-lima4 nav-btn" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Tipo FuisAssegnato </a></li>
 			<li><a href="../admin/annoScolastico.php" class="btn btn-default btn-yellow4 nav-btn" role="button"><span class="glyphicon glyphicon-calendar"></span>&ensp;Anno Scolastico </a></li>
 			<li><a href="../admin/utente.php" class="btn btn-default btn-teal4 nav-btn" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Utente </a></li>
+			<li><a href="../orario/orario.php" class="btn btn-default btn-lightblue4 nav-btn" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Orario </a></li>
+			
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 		<li><a href="../help/GestOre - Guida Studenti.pdf" target="_blank" ><span class="glyphicon glyphicon-bishop"></span></a></li>

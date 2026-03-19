@@ -17,8 +17,8 @@
 		<ul class="nav navbar-nav top-navbar-nav">
 
 			<a href="../docente/index.php"
-				class="btn btn-default navbar-btn btn-lima4" role="button"  data-toggle="tooltip"
-     data-placement="bottom" title="Vedi qui le tue ore da fare"><span
+				class="btn btn-default navbar-btn btn-lima4" role="button" data-toggle="tooltip"
+				data-placement="bottom" title="Vedi qui le tue ore da fare"><span
 					class="glyphicon glyphicon-time"></span>&ensp;Ore </a>
 
 			<?php if ($__settings->config->corsiDiRecupero): ?>
@@ -29,17 +29,17 @@
 
 			<a href="../docente/previste.php"
 				class="btn btn-default navbar-btn btn-orange4" role="button" data-toggle="tooltip"
-     data-placement="bottom" title="Gestisci qui le tue ore previste ad inizio anno"><span
+				data-placement="bottom" title="Gestisci qui le tue ore previste ad inizio anno"><span
 					class="glyphicon glyphicon-list-alt"></span>&ensp;Previste </a>
 			<a href="../docente/attivita.php"
 				class="btn btn-default navbar-btn btn-teal4" role="button" data-toggle="tooltip"
-     data-placement="bottom" title="Rendiconta qui le tue ore fatte"><span
+				data-placement="bottom" title="Rendiconta qui le tue ore fatte"><span
 					class="glyphicon glyphicon-folder-close"></span>&ensp;Fatte </a>
 
 			<?php if ($__settings->config->bonus): ?>
 				<a href="../docente/bonus.php"
 					class="btn btn-default navbar-btn btn-lima4" role="button" data-toggle="tooltip"
-     data-placement="bottom" title="Gestione della valorizzazione docente"><span
+					data-placement="bottom" title="Gestione della valorizzazione docente"><span
 						class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus </a>
 			<?php endif; ?>
 
@@ -59,34 +59,34 @@
 			<?php if (getSettingsValue('programmiMinimi', 'visibile_docenti', false)): ?>
 				<div class="btn-group">
 					<a href="../didattica/programmaMinimi.php" class="btn btn-default navbar-btn btn-purple" role="button" data-toggle="tooltip"
-     data-placement="bottom"  title="Visualizza gli obiettivi minimi delle materie definiti in dipartimento"><span class="glyphicon glyphicon-th-list"></span>&ensp;Ob.Minimi </a>
+						data-placement="bottom" title="Visualizza gli obiettivi minimi delle materie definiti in dipartimento"><span class="glyphicon glyphicon-th-list"></span>&ensp;Ob.Minimi </a>
 				</div>
 			<?php endif; ?>
 			<?php if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)): ?>
 				<div class="btn-group">
 					<a href="../didattica/programmaMaterie.php"
 						class="btn btn-default navbar-btn btn-orange4" role="button" data-toggle="tooltip"
-    						 data-placement="bottom" title="Visualizza i programmi delle materie definiti in dipartimento"><span
+						data-placement="bottom" title="Visualizza i programmi delle materie definiti in dipartimento"><span
 							class="glyphicon glyphicon-th-large"></span>&ensp;Programmi </a>
 				</div>
 			<?php endif; ?>
 			<?php if (getSettingsValue('programmiIniziali', 'visibile_docenti', false)) : ?>
 				<div class="btn-group">
 					<a href="../didattica/programmiIniziali.php" class="btn btn-default navbar-btn btn-yellow" role="button" data-toggle="tooltip"
-     data-placement="bottom" title="Visualizza ed inserisci i programmi iniziali nei propri corsi"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Iniziali </a>
+						data-placement="bottom" title="Visualizza ed inserisci i programmi iniziali nei propri corsi"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Iniziali </a>
 				</div>
 			<?php endif; ?>
 			<?php if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) : ?>
 				<div class="btn-group">
 					<a href="../didattica/programmiSvolti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button" data-toggle="tooltip"
-     data-placement="bottom" title="Visualizza ed inserisci i programmi svolti nei propri corsi"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Svolti </a>
+						data-placement="bottom" title="Visualizza ed inserisci i programmi svolti nei propri corsi"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Svolti </a>
 				</div>
 			<?php endif; ?>
 
 			<?php if ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false))) : ?>
 				<div class="btn-group">
 					<a href="../didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button" data-toggle="tooltip"
-     data-placement="bottom" title="Visualizza e gestisci le carenze di tua competenza a fine anno"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
+						data-placement="bottom" title="Visualizza e gestisci le carenze di tua competenza a fine anno"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
 				</div>
 			<?php endif; ?>
 
@@ -102,15 +102,15 @@
 			?>
 			<!--<a href="../docente/index.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;80 Ore</a> -->
 			<?php if (getSettingsValue('config', 'uscite', false)): ?>
-			<a href="../docente/viaggio.php"
-				class="btn btn-default navbar-btn btn-deeporange4" role="button"><span
-					class="glyphicon glyphicon-picture"></span>&ensp;Uscite</a>
+				<a href="../docente/viaggio.php"
+					class="btn btn-default navbar-btn btn-deeporange4" role="button"><span
+						class="glyphicon glyphicon-picture"></span>&ensp;Uscite</a>
 			<?php endif; ?>
 			<?php if (getSettingsValue('config', 'sportelli', false)): ?>
 				<div class="btn-group">
 					<a href="../docente/sportello.php"
-						class="btn btn-default navbar-btn btn-orange4" role="button"  data-toggle="tooltip"
-     data-placement="bottom" title="Gestisci i tuoi sportelli didattici"><span
+						class="btn btn-default navbar-btn btn-orange4" role="button" data-toggle="tooltip"
+						data-placement="bottom" title="Gestisci i tuoi sportelli didattici"><span
 							class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
 					<button type="button" class="btn btn-default navbar-btn btn-orange4 dropdown-toggle"
 						data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -149,7 +149,10 @@
 					</div>
 				<?php endif; ?>
 			<?php endif; ?>
-
+			<div class="btn-group">
+				<a href="../orario/orario.php" class="btn btn-default navbar-btn btn-lightblue4" role="button" data-toggle="tooltip"
+					data-placement="bottom" title="Orario docenti e classi ed eventi"><span class="glyphicon glyphicon-time"></span>&ensp;Orario</a>
+			</div>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a href="<?php echo $__settings->local->helpLinkDocente; ?>" target="_blank"><span
@@ -160,7 +163,7 @@
 					<?php echo $__docente_nome . ' ' . $__docente_cognome ?></a></li>
 			<li>
 				<?php
-					echo '<a href="../common/logout.php?base=docente"><span class="glyphicon glyphicon-log-out"></span></a>';
+				echo '<a href="../common/logout.php?base=docente"><span class="glyphicon glyphicon-log-out"></span></a>';
 				?>
 			</li>
 		</ul>
