@@ -26,6 +26,10 @@ if (haRuolo('admin')) {
     redirect('/genitore/index.php');
 } else if (haRuolo('studente')) {
     redirect('/studente/index.php');
+} else if (haRuolo('personale-ata')) {
+    redirect('/ata/index.php');
+} else if (haRuolo('portineria')) {
+    redirect('/orario/orario.php');
 } else if (haRuolo('esterno')) {
     redirect('/esterno/index.php'); // quando pronta
 }
