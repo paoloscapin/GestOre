@@ -3,7 +3,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/connectMBApp.php';
 
-ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'dirigente');
+ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'dirigente', 'studente', 'genitore');
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -112,7 +112,10 @@ ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'diri
                                 <option value="CLASSE">CLASSE</option>
                                 <option value="DOCENTE">DOCENTE</option>
                                 <option value="EVENTI">EVENTI</option>
+                                <?php if (!$isPublicOrario): ?>
                                 <option value="ASSENZE">ASSENZE</option>
+                                <option value="SOSTITUZIONI">SOSTITUZIONI</option>
+                                <?php endif; ?>
                             </select>
 
                             <select id="v_period" class="selectpicker sr-only" data-width="150px" data-style="btn-default btn-sm">
@@ -120,13 +123,19 @@ ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'diri
                                 <option value="SETTIMANA" selected>SETTIMANA</option>
                             </select>
 
+                            <?php
+$isPublicOrario = in_array($ruolo, ['STUDENTE', 'GENITORE'], true);
+?>
                             <!-- Segmented: SCOPE -->
                             <div class="seg seg-scope" id="seg_scope" role="group" aria-label="Vista">
                                 <button type="button" class="seg-btn" data-target="#v_scope" data-value="AULA">Aula</button>
                                 <button type="button" class="seg-btn" data-target="#v_scope" data-value="CLASSE">Classe</button>
                                 <button type="button" class="seg-btn" data-target="#v_scope" data-value="DOCENTE">Docente</button>
                                 <button type="button" class="seg-btn" data-target="#v_scope" data-value="EVENTI">Eventi</button>
+                                <?php if (!$isPublicOrario): ?>
                                 <button type="button" class="seg-btn" data-target="#v_scope" data-value="ASSENZE">Assenze</button>
+                                <button type="button" class="seg-btn" data-target="#v_scope" data-value="SOSTITUZIONI">Sostituzioni</button>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Segmented: PERIOD (lo nasconderai via JS in GIORNO+AULA) -->
@@ -204,8 +213,8 @@ ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'diri
         </div>
     </div>
 
-    <script src="js/scriptOrario.js?t=<?= time() ?>"></script>
     <script src="js/scriptAssenze.js?t=<?= time() ?>"></script>
-</body>
+    <script src="js/scriptSostituzioni.js?t=<?= time() ?>"></script>
+    <script src="js/scriptOrario.js?t=<?= time() ?>"></script></body>
 
 </html>

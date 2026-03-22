@@ -784,7 +784,7 @@
   function updateToolbarLayout() {
     const scope = ($("#v_scope").val() || "").trim();
     const period = ($("#v_period").val() || "").trim();
-    const isEventi = (scope === "EVENTI" || scope === "ASSENZE");
+    const isEventi = (scope === "EVENTI" || scope === "ASSENZE" || scope === "SOSTITUZIONI");
     const isWeek = (period === "SETTIMANA");
     const isDay = (period === "GIORNO");
     const isAula = (scope === "AULA");
@@ -1037,7 +1037,7 @@
   function loadOptions() {
     const scope = $("#v_scope").val();
 
-    if (["EVENTI", "ASSENZE"].includes(String(scope).toUpperCase())) {
+    if (["EVENTI", "ASSENZE", "SOSTITUZIONI"].includes(String(scope).toUpperCase())) {
       $("#v_target").empty().append(`<option value="">(non usato)</option>`);
       try { $("#v_target").selectpicker("refresh"); } catch (e) { }
 
@@ -1829,7 +1829,7 @@
 
     const scope = ($("#v_scope").val() || "").toString().trim().toUpperCase();
 
-    if (scope !== "EVENTI" && scope !== "ASSENZE") {
+    if (scope !== "EVENTI" && scope !== "ASSENZE" && scope !== "SOSTITUZIONI") {
       return;
     }
 
@@ -1837,7 +1837,7 @@
       const currentScope = ($("#v_scope").val() || "").toString().trim().toUpperCase();
 
       // sicurezza: se nel frattempo l'utente ha cambiato vista, fermo tutto
-      if (currentScope !== "EVENTI" && currentScope !== "ASSENZE") {
+      if (currentScope !== "EVENTI" && currentScope !== "ASSENZE" && currentScope !== "SOSTITUZIONI") {
         clearAutoRefresh();
         return;
       }
@@ -2611,6 +2611,19 @@ ${whoLines.length ? `
       }
 
       window.loadAssenze(date);
+      return;
+    }
+
+    if (scope === "SOSTITUZIONI") {
+      setupAutoRefreshForCurrentScope();
+      if (!date) { showInlineMsg("warning", "Seleziona una data."); return; }
+
+      if (typeof window.loadSostituzioni !== "function") {
+        showInlineMsg("danger", "scriptSostituzioni.js non caricato.");
+        return;
+      }
+
+      window.loadSostituzioni(date);
       return;
     }
 
