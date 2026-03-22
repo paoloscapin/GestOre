@@ -33,9 +33,22 @@ if ($__settings->log->logIntoAppFolder) {
 }
 $fileNameCron .= $__settings->log->logCronFile;
 
+$fileNameImportSostituzioni = '';
+if ($__settings->log->logIntoAppFolder) {
+    $fileNameImportSostituzioni = __DIR__ . "/../log/";
+}
+$fileNameImportSostituzioni .= $__settings->log->logImportSostituzioniFile;
+
 $__logger = Log::factory('file', $fileName, '', array("timeFormat"=>$__settings->log->timeFormat), $__logLevel);
 $__logger_login = Log::factory('file', $fileNameLogin, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
 $__logger_cron = Log::factory('file', $fileNameCron, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
+$__logger_import_sostituzioni = Log::factory(
+    'file',
+    $fileNameImportSostituzioni,
+    '',
+    array("timeFormat" => $__settings->log->timeFormat),
+    PEAR_LOG_INFO
+);
 
 function debug($message) {
     global $__logger;
@@ -126,6 +139,30 @@ function errorcron(string $msg): void
 {
     global $__logger_cron;
     $__logger_cron->err('[CRON] ' . $msg);
+}
+
+/**
+ * ================================
+ * LOG IMPORT SOSTITUZIONI
+ * ================================
+ */
+
+function infoimportsost(string $msg): void
+{
+    global $__logger_import_sostituzioni;
+    $__logger_import_sostituzioni->info('[IMPORT_SOSTITUZIONI] ' . $msg);
+}
+
+function warningimportsost(string $msg): void
+{
+    global $__logger_import_sostituzioni;
+    $__logger_import_sostituzioni->warning('[IMPORT_SOSTITUZIONI] ' . $msg);
+}
+
+function errorimportsost(string $msg): void
+{
+    global $__logger_import_sostituzioni;
+    $__logger_import_sostituzioni->err('[IMPORT_SOSTITUZIONI] ' . $msg);
 }
 
 ?>

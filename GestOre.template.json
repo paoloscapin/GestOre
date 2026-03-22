@@ -25,7 +25,8 @@
         "timeFormat": "%d/%m/%Y - %H:%M:%S",
         "debug": false,
         "logLoginFile": "GestOreLogin.log",
-        "logCronFile": "GestOreCron.log"
+        "logCronFile": "GestOreCron.log",
+        "logImportSostituzioniFile": "import_sostituzioni.log"
     },
     "config": {
         "gestioneClil": false,
@@ -90,6 +91,15 @@
     "importi": {
         "oreConStudenti": 38.5,
         "oreFunzionali": 19.25
+    },
+    "sostituzioni": {
+        "inviaMailDocente": true,
+        "telegramTestMode": true,
+        "telegramTestChatId": ""
+    },
+    "telegram": {
+        "enabled": true,
+        "bot_token": ""
     },
     "ore80": {
         "minuti_ore_con_studenti": 50,
