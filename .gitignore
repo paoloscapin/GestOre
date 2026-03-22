@@ -1,5 +1,9 @@
 /test/
 /log/
+edtagent/error
+edtagent/sent
+edtagent/queue
+edtagent/logs
 /common/__Environment.php
 /GestOre.json
 /.htaccess
@@ -19,3 +23,4 @@ git-cliff/git-cliff-2.11.0/completions/git-cliff.elv
 git-cliff/git-cliff-2.11.0/completions/git-cliff.fish
 git-cliff/git-cliff-2.11.0/man/git-cliff.1
 img/Thumbs.db
+edtagent/config.json
