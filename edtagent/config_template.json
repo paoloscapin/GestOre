@@ -1,0 +1,11 @@
+{
+  "telegram_enabled": true,
+  "telegram_bot_token": "METTI_IL_TOKEN",
+  "telegram_chat_id": "123456789",
+  "send_to_api": true,
+  "api_url": "http://www.buonarroti.tn.it/GestOre/common/importSostituzioni.php",
+  "log_level": "INFO",
+  "log_to_console": true,
+  "log_max_mb": 5,
+  "log_keep_files": 10
+}
