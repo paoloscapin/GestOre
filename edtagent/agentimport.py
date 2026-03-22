@@ -510,7 +510,7 @@ def send_to_gestore(payload):
         API_URL,
         headers=HEADERS,
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        timeout=60
+        timeout=600
     )
     return resp
 
