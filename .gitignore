@@ -4,6 +4,8 @@ edtagent/error
 edtagent/sent
 edtagent/queue
 edtagent/logs
+edtagent/dist   
+edtagent/build
 /common/__Environment.php
 /GestOre.json
 /.htaccess

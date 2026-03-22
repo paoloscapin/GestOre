@@ -2,15 +2,28 @@ import re
 import json
 import time
 import shutil
-from pathlib import Path
+import sys
+import threading
+import os
 from datetime import datetime
+from pathlib import Path
 
 import pdfplumber
 import requests
+import pystray
+from pystray import MenuItem as item
+from PIL import Image
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-BASE_DIR = Path(__file__).resolve().parent
+
+def get_base_dir() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
+
+tray_ref = {"icon": None}
+BASE_DIR = get_base_dir()
 
 # ==============================
 # CONFIG
@@ -31,6 +44,8 @@ QUEUE_DIR = BASE_DIR / "queue"
 SENT_DIR = BASE_DIR / "sent"
 ERROR_DIR = BASE_DIR / "error"
 LOGS_DIR = BASE_DIR / "logs"
+ICON_DIR = BASE_DIR / "icon"
+ICON_PATH = ICON_DIR / "gestore.ico"
 
 API_URL = CONFIG.get("api_url")
 SEND_TO_API = CONFIG.get("send_to_api", True)
@@ -89,7 +104,6 @@ TAIL_RE = re.compile(
 
 DOCENTE_RE = re.compile(r"^[A-ZÀ-Ü'`.\-]+(?:\s+[A-ZÀ-Ü'`.\-]+)+$")
 
-
 LOG_LEVEL = str(CONFIG.get("log_level", "INFO")).upper()
 LOG_TO_CONSOLE = bool(CONFIG.get("log_to_console", True))
 LOG_MAX_MB = float(CONFIG.get("log_max_mb", 5))
@@ -101,7 +115,102 @@ LOG_LEVELS = {
     "ERROR": 30
 }
 
+stop_event = threading.Event()
+observer_ref = {"observer": None}
 
+def tray_status_text(_item):
+    obs = observer_ref.get("observer")
+    if stop_event.is_set():
+        return "🔴 Stato: fermo"
+    if obs is not None:
+        return "🟢 Stato: attivo"
+    return "🟡 Stato: avvio..."
+
+def set_tray_title(text: str):
+    icon = tray_ref.get("icon")
+    if icon is not None:
+        icon.title = text
+
+def tray_open_sent(icon, menu_item):
+    open_folder(SENT_DIR)
+
+def tray_open_error(icon, menu_item):
+    open_folder(ERROR_DIR)
+
+# ==============================
+# TRAY HELPERS
+# ==============================
+def open_folder(path: Path):
+    try:
+        os.startfile(str(path))
+    except Exception as e:
+        log_error(f"Impossibile aprire cartella {path}: {e}")
+
+
+def tray_open_queue(icon, menu_item):
+    open_folder(QUEUE_DIR)
+
+
+def tray_open_logs(icon, menu_item):
+    open_folder(LOGS_DIR)
+
+
+def tray_send_test(icon, menu_item):
+    log_info("Test Telegram richiesto da tray")
+    send_telegram_message("🧪 Test manuale tray GestOre")
+
+
+def tray_quit(icon, menu_item):
+    log_info("Richiesta uscita da tray")
+    send_telegram_message("🛑 Agent import SOSTITUZIONI fermato da tray")
+
+    set_tray_title("🔴 Arresto in corso...")
+
+    stop_event.set()
+
+    obs = observer_ref.get("observer")
+    if obs is not None:
+        try:
+            obs.stop()
+        except Exception:
+            pass
+    time.sleep(1)
+    icon.stop()
+
+
+def create_tray_icon():
+    if not ICON_PATH.exists():
+        raise FileNotFoundError(f"Icona non trovata: {ICON_PATH}")
+    image = Image.open(ICON_PATH)
+
+    menu = pystray.Menu(
+        item("📥 Apri queue (in arrivo)", tray_open_queue, default=True),
+        item("✅ Apri sent (importati)", tray_open_sent),
+        item("❌ Apri error", tray_open_error),
+        item("📝 Apri logs", tray_open_logs),
+
+        pystray.Menu.SEPARATOR,
+
+        item("🧪 Invia test Telegram", tray_send_test),
+
+        item(
+            tray_status_text,
+            lambda icon, item: None,
+            enabled=False
+        ),
+
+        pystray.Menu.SEPARATOR,
+
+        item("⏹ Esci", tray_quit),
+    )
+
+    icon = pystray.Icon("GestOreAgent", image, "GestOre Agent", menu)
+    tray_ref["icon"] = icon
+    return icon
+
+# ==============================
+# LOGGING
+# ==============================
 def current_log_level_value() -> int:
     return LOG_LEVELS.get(LOG_LEVEL, 10)
 
@@ -124,7 +233,6 @@ def rotate_logs_if_needed():
                 rotated = log_path.with_name(f"{log_path.stem}_{stamp}{log_path.suffix}")
                 log_path.rename(rotated)
 
-        # pulizia vecchi log
         files = sorted(LOGS_DIR.glob("agentimport_*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
         for old_file in files[LOG_KEEP_FILES:]:
             try:
@@ -163,9 +271,11 @@ def log_warning(msg: str):
 
 def log_error(msg: str):
     write_log("ERROR", msg)
-    write_log("ERROR", msg)
 
 
+# ==============================
+# TELEGRAM
+# ==============================
 def send_telegram_message(text: str, max_retries: int = 4):
     if not TELEGRAM_ENABLED or not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return False
@@ -240,8 +350,11 @@ def telegram_error_message(file_name: str, error_text: str) -> str:
     )
 
 
+# ==============================
+# FILESYSTEM / PARSER
+# ==============================
 def ensure_dirs():
-    for d in (QUEUE_DIR, SENT_DIR, ERROR_DIR, LOGS_DIR):
+    for d in (QUEUE_DIR, SENT_DIR, ERROR_DIR, LOGS_DIR, ICON_DIR):
         d.mkdir(parents=True, exist_ok=True)
 
 
@@ -497,6 +610,7 @@ def process_pdf(pdf_path: Path):
             log_info(f"API response ok={body.get('ok')} keys={list(body.keys())}")
         else:
             log_info(f"API response text={str(body)[:300]}")
+
         if resp.status_code >= 400:
             raise RuntimeError(f"Errore API HTTP {resp.status_code}: {body}")
 
@@ -511,6 +625,9 @@ def process_pdf(pdf_path: Path):
     }
 
 
+# ==============================
+# WATCHDOG HANDLER
+# ==============================
 class PDFHandler(FileSystemEventHandler):
     def __init__(self):
         super().__init__()
@@ -538,6 +655,8 @@ class PDFHandler(FileSystemEventHandler):
         if path in self.processing:
             return
 
+        set_tray_title(f"📄 Elaboro: {path.name}")
+
         self.processing.add(path)
 
         try:
@@ -560,7 +679,7 @@ class PDFHandler(FileSystemEventHandler):
             moved = move_with_sidecars(path, target_dir)
             for m in moved:
                 log_info(f"Spostato: {m}")
-
+            set_tray_title("🟢 GestOre Agent attivo")
             send_telegram_message(
                 telegram_import_success_message(
                     file_name=path.name,
@@ -570,6 +689,7 @@ class PDFHandler(FileSystemEventHandler):
             )
 
         except Exception as e:
+            set_tray_title("🔴 Errore import")
             err_msg = f"Errore su file {path.name}: {e}"
             log_error(err_msg)
             send_telegram_message(telegram_error_message(path.name, str(e)))
@@ -578,6 +698,7 @@ class PDFHandler(FileSystemEventHandler):
                 for m in moved:
                     log_error(f"Spostato in error: {m}")
             except Exception as e2:
+                set_tray_title("🔴 Errore import")
                 err_move_msg = f"Impossibile spostare in error {path.name}: {e2}"
                 log_error(err_move_msg)
                 send_telegram_message(
@@ -587,6 +708,9 @@ class PDFHandler(FileSystemEventHandler):
             self.processing.discard(path)
 
 
+# ==============================
+# WATCHER
+# ==============================
 def process_existing_pdfs():
     existing = sorted([
         p for p in QUEUE_DIR.iterdir()
@@ -604,13 +728,13 @@ def process_existing_pdfs():
         handler._handle(DummyEvent())
 
 
-def main():
-    ensure_dirs()
+def run_watcher():
     log_info("Config caricata correttamente")
     log_info(
         f"Config log: level={LOG_LEVEL}, console={LOG_TO_CONSOLE}, "
         f"max_mb={LOG_MAX_MB}, keep_files={LOG_KEEP_FILES}, send_to_api={SEND_TO_API}"
     )
+
     start_msg = "🚀 Agent import SOSTITUZIONI avviato e in ascolto sulla cartella queue"
     log_info(start_msg)
     send_telegram_message(start_msg)
@@ -618,29 +742,39 @@ def main():
     process_existing_pdfs()
 
     observer = Observer()
+    observer_ref["observer"] = observer
+
     handler = PDFHandler()
     observer.schedule(handler, str(QUEUE_DIR), recursive=False)
     observer.start()
+    set_tray_title("🟢 GestOre Agent attivo")
 
     try:
-        while True:
+        while not stop_event.is_set():
             time.sleep(1)
-
-    except KeyboardInterrupt:
-        stop_msg = "🛑 Agent import SOSTITUZIONI fermato manualmente"
-        log_info(stop_msg)
-        send_telegram_message(stop_msg)
-        time.sleep(2)
-        observer.stop()
-
     except Exception as e:
+        set_tray_title("🔴 Errore import")
         crash_msg = f"❌ CRASH agent import SOSTITUZIONI\nErrore: {e}"
         log_error(crash_msg)
         send_telegram_message(crash_msg)
-        observer.stop()
-
     finally:
+        try:
+            observer.stop()
+        except Exception:
+            pass
         observer.join()
+        observer_ref["observer"] = None
+        log_info("Watcher terminato")
+        set_tray_title("🔴 GestOre Agent fermo")
+
+def main():
+    ensure_dirs()
+
+    watcher_thread = threading.Thread(target=run_watcher, daemon=True)
+    watcher_thread.start()
+
+    tray_icon = create_tray_icon()
+    tray_icon.run()
 
 
 if __name__ == "__main__":
