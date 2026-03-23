@@ -38,6 +38,195 @@
         );
     }
 
+    function docenteCanManageTelegram() {
+        return !!window.ORARIO_IS_DOCENTE;
+    }
+
+    function telegramToggleHtml(status) {
+        if (!docenteCanManageTelegram()) return "";
+
+        const enabled = !!(status && status.enabled);
+        const hasProfile = !!(status && status.hasTelegramProfile);
+        const errorMsg = window._sostituzioniTelegramError || "";
+
+        if (!hasProfile) {
+            return `
+            <div id="sostituzioni_telegram_box" class="panel panel-default" style="margin:0 0 14px 0; border-radius:12px; overflow:hidden;">
+                <div class="panel-body" style="padding:14px 16px; background:#fafbfc;">
+                    <div style="font-weight:700; font-size:16px; color:#2d3340;">
+                        <span class="glyphicon glyphicon-phone"></span>
+                        Notifiche Telegram sostituzioni
+                    </div>
+
+                    <div style="margin-top:8px;color:#a94442;font-size:12px;line-height:1.45;">
+                        Il tuo account Telegram non è ancora collegato a GestOre.
+                    </div>
+
+                    <div style="margin-top:8px;font-size:12px;color:#555;line-height:1.5;">
+                        Premi il pulsante qui sotto: riceverai una mail sul tuo indirizzo istituzionale con il link per aprire il bot Telegram e completare il collegamento.
+                    </div>
+
+                    <div style="margin-top:12px;">
+                        <button type="button" id="btn_send_telegram_link" class="btn btn-sm btn-primary">
+                            <span class="glyphicon glyphicon-envelope"></span> Inviami il link di collegamento
+                        </button>
+                    </div>
+
+                    ${errorMsg ? `
+                        <div class="alert alert-warning" style="margin-top:12px;margin-bottom:0;">
+                            <strong>Attenzione:</strong> ${escapeHtml(errorMsg)}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        }
+
+        const stateBadge = enabled
+            ? '<span class="label label-success" style="font-size:12px;">Attive</span>'
+            : '<span class="label label-default" style="font-size:12px;">Disattive</span>';
+
+        const btnClass = enabled ? "btn-danger" : "btn-success";
+        const btnIcon = enabled ? "glyphicon glyphicon-bell" : "glyphicon glyphicon-send";
+        const btnText = enabled
+            ? "Disabilita notifiche Telegram"
+            : "Abilita notifiche Telegram";
+
+        return `
+        <div id="sostituzioni_telegram_box" class="panel panel-default" style="margin:0 0 14px 0; border-radius:12px; overflow:hidden;">
+            <div class="panel-body" style="padding:14px 16px; background:#fafbfc;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                    <div>
+                        <div style="font-weight:700; font-size:16px; color:#2d3340;">
+                            <span class="glyphicon glyphicon-phone"></span>
+                            Notifiche Telegram sostituzioni
+                        </div>
+                        <div style="margin-top:6px;">
+                            ${stateBadge}
+                        </div>
+                        <div style="margin-top:6px;color:#6b7280;font-size:12px;">
+                            Ricevi su Telegram gli avvisi relativi alle tue sostituzioni.
+                        </div>
+                    </div>
+
+                    <div>
+                        <button type="button" id="btn_toggle_sostituzioni_telegram" class="btn btn-sm ${btnClass}">
+                            <span class="${btnIcon}"></span> ${btnText}
+                        </button>
+                    </div>
+                </div>
+
+                ${errorMsg ? `
+                    <div class="alert alert-warning" style="margin-top:12px;margin-bottom:0;">
+                        <strong>Attenzione:</strong> ${escapeHtml(errorMsg)}
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    }
+
+    function bindTelegramToggle(status) {
+        if (!docenteCanManageTelegram()) return;
+
+        $("#btn_send_telegram_link").off("click").on("click", function () {
+            const $btn = $(this);
+            $btn.prop("disabled", true).html('<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span> Invio in corso...');
+
+            $.post("sostituzioniTelegramSendLink.php", {}, function (r) {
+                if (!r || r.ok !== true) {
+                    const msg = (r && r.error)
+                        ? r.error
+                        : "Errore invio link Telegram";
+
+                    $.notify(
+                        { message: msg },
+                        { type: "danger", delay: 5000 }
+                    );
+
+                    window._sostituzioniTelegramError = msg;
+                    loadSostituzioni($("#v_date").val() || todayIso());
+                    return;
+                }
+
+                window._sostituzioniTelegramError = null;
+
+                $.notify(
+                    { message: r.message || "Mail inviata correttamente" },
+                    { type: "success", delay: 4000 }
+                );
+
+                loadSostituzioni($("#v_date").val() || todayIso());
+            }, "json").fail(function (xhr) {
+                console.error("[TELEGRAM] errore invio link", xhr && xhr.status, xhr && xhr.responseText);
+
+                let msg = "Errore server invio link Telegram";
+                try {
+                    const r = JSON.parse(xhr.responseText);
+                    if (r && r.error) msg = r.error;
+                } catch (e) { }
+
+                $.notify(
+                    { message: msg },
+                    { type: "danger", delay: 5000 }
+                );
+
+                window._sostituzioniTelegramError = msg;
+                loadSostituzioni($("#v_date").val() || todayIso());
+            });
+        });
+
+        $("#btn_toggle_sostituzioni_telegram").off("click").on("click", function () {
+            const enabledNow = !!(status && status.enabled);
+            const enabledNext = enabledNow ? 0 : 1;
+
+            const $btn = $(this);
+            $btn.prop("disabled", true).text("Salvataggio...");
+
+            $.post("sostituzioniTelegramToggle.php", { enabled: enabledNext }, function (r) {
+                if (!r || r.ok !== true) {
+                    const msg = (r && r.error)
+                        ? r.error
+                        : "Errore aggiornamento notifiche Telegram";
+
+                    $.notify(
+                        { message: msg },
+                        { type: "danger", delay: 5000 }
+                    );
+
+                    window._sostituzioniTelegramError = msg;
+                    loadSostituzioni($("#v_date").val() || todayIso());
+                    return;
+                }
+
+                window._sostituzioniTelegramError = null;
+
+                $.notify(
+                    { message: r.message || "Preferenza aggiornata" },
+                    { type: "success", delay: 2500 }
+                );
+
+                loadSostituzioni($("#v_date").val() || todayIso());
+            }, "json").fail(function (xhr) {
+                console.error("[TELEGRAM] errore toggle", xhr && xhr.status, xhr && xhr.responseText);
+
+                let msg = "Errore server aggiornamento notifiche Telegram";
+                try {
+                    const r = JSON.parse(xhr.responseText);
+                    if (r && r.error) msg = r.error;
+                } catch (e) { }
+
+                $.notify(
+                    { message: msg },
+                    { type: "danger", delay: 5000 }
+                );
+
+                window._sostituzioniTelegramError = msg;
+                loadSostituzioni($("#v_date").val() || todayIso());
+            });
+        });
+    }
+
     function renderSostituzioniList(items, dateIso) {
         const $c = $("#orario_content");
 
@@ -62,6 +251,9 @@
             });
         });
 
+        const telegramStatus = window._sostituzioniTelegramStatus || null;
+        const telegramBox = telegramToggleHtml(telegramStatus);
+
         const topbar = `
             <div class="eventi-topbar" style="display:flex;gap:10px;align-items:center;margin:6px 0 10px 0;flex-wrap:wrap;">
                 <input id="sost_q" class="form-control input-sm" style="max-width:420px;" placeholder="Cerca docente, classe, aula o materia...">
@@ -77,8 +269,8 @@
                         <tr>
                             <th class="th-sort" data-key="oraIn" style="width:90px;cursor:pointer;white-space:nowrap;text-align:center;">Inizio <span class="sort-ind"></span></th>
                             <th class="th-sort" data-key="oraOut" style="width:90px;cursor:pointer;white-space:nowrap;text-align:center;">Fine <span class="sort-ind"></span></th>
-                            <th class="th-sort" data-key="docenteSostituito" style="cursor:pointer;">Docente sostituito <span class="sort-ind"></span></th>
-                            <th class="th-sort" data-key="docenteSostituto" style="cursor:pointer;">Docente sostituto <span class="sort-ind"></span></th>
+                            <th class="th-sort" data-key="docenteSostituito" style="cursor:pointer;">Docente ASSENTE <span class="sort-ind"></span></th>
+                            <th class="th-sort" data-key="docenteSostituto" style="cursor:pointer;">Docente SOSTITUTO <span class="sort-ind"></span></th>
                             <th class="th-sort" data-key="classe" style="width:100px;cursor:pointer;text-align:center;">Classe <span class="sort-ind"></span></th>
                             <th class="th-sort" data-key="aula" style="width:100px;cursor:pointer;text-align:center;">Aula <span class="sort-ind"></span></th>
                             <th class="th-sort" data-key="materia" style="cursor:pointer;">Materia <span class="sort-ind"></span></th>
@@ -89,7 +281,8 @@
             </div>
         `;
 
-        $c.html(topbar + table);
+        $c.html(telegramBox + topbar + table);
+        bindTelegramToggle(telegramStatus);
 
         let sortState = { key: "oraIn", dir: "asc" };
 
@@ -227,7 +420,20 @@
             }
 
             const items = r.items || [];
-            renderSostituzioniList(items, dateIso);
+
+            if (docenteCanManageTelegram()) {
+                $.getJSON("sostituzioniTelegramStatus.php", function (tg) {
+                    window._sostituzioniTelegramStatus = (tg && tg.ok === true) ? tg : null;
+                    renderSostituzioniList(items, dateIso);
+                }).fail(function (xhr) {
+                    console.error("[SOSTITUZIONI][TELEGRAM] errore status", xhr && xhr.status, xhr && xhr.responseText);
+                    window._sostituzioniTelegramStatus = null;
+                    renderSostituzioniList(items, dateIso);
+                });
+            } else {
+                window._sostituzioniTelegramStatus = null;
+                renderSostituzioniList(items, dateIso);
+            }
 
         }).fail(function (xhr) {
             console.error("[SOSTITUZIONI] Errore server sostituzioniRead.php", xhr && xhr.status, xhr && xhr.responseText);

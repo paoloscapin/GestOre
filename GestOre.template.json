@@ -99,6 +99,7 @@
     },
     "telegram": {
         "enabled": true,
+        "bot_username": "ITTGestOreBot",
         "bot_token": ""
     },
     "ore80": {

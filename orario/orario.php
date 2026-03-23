@@ -213,6 +213,11 @@ $isPublicOrario = in_array($ruolo, ['STUDENTE', 'GENITORE'], true);
         </div>
     </div>
 
+    <script>
+    window.ORARIO_USER_ROLE = <?= json_encode($ruolo, JSON_UNESCAPED_UNICODE) ?>;
+    window.ORARIO_IS_DOCENTE = <?= json_encode($ruolo === 'DOCENTE') ?>;
+    </script>
+
     <script src="js/scriptAssenze.js?t=<?= time() ?>"></script>
     <script src="js/scriptSostituzioni.js?t=<?= time() ?>"></script>
     <script src="js/scriptOrario.js?t=<?= time() ?>"></script></body>
