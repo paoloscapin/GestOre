@@ -169,7 +169,7 @@ foreach ($sportelli as $sp) {
                 <br><br>
                 <b>Ricorda:</b> l’assenza ad un’attività prenotata e non giustificata in anticipo può essere considerata ai fini disciplinari.
                 <br>
-                Puoi cancellarti da un’attività fino alla sera precedente.
+                Puoi cancellarti da un’attività fino alle ore ' . $__settings->sportelli->chiusuraOrario . ' del giorno precedente.
             </div>
         ';
 
