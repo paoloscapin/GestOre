@@ -26,3 +26,4 @@ git-cliff/git-cliff-2.11.0/completions/git-cliff.fish
 git-cliff/git-cliff-2.11.0/man/git-cliff.1
 img/Thumbs.db
 edtagent/config.json
+edtagent/agentimport.spec

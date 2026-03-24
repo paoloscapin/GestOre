@@ -114,11 +114,49 @@ function normalizeSpaces($s)
 	return preg_replace('/\s+/u', ' ', $s);
 }
 
+function normalizeLatinChars($s)
+{
+	$s = (string)$s;
+
+	$map = [
+		'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'Å' => 'A',
+		'à' => 'A', 'á' => 'A', 'â' => 'A', 'ã' => 'A', 'ä' => 'A', 'å' => 'A',
+
+		'È' => 'E', 'É' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+		'è' => 'E', 'é' => 'E', 'ê' => 'E', 'ë' => 'E',
+
+		'Ì' => 'I', 'Í' => 'I', 'Î' => 'I', 'Ï' => 'I',
+		'ì' => 'I', 'í' => 'I', 'î' => 'I', 'ï' => 'I',
+
+		'Ò' => 'O', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O',
+		'ò' => 'O', 'ó' => 'O', 'ô' => 'O', 'õ' => 'O', 'ö' => 'O',
+
+		'Ù' => 'U', 'Ú' => 'U', 'Û' => 'U', 'Ü' => 'U',
+		'ù' => 'U', 'ú' => 'U', 'û' => 'U', 'ü' => 'U',
+
+		'Ç' => 'C', 'ç' => 'C',
+		'Ñ' => 'N', 'ñ' => 'N'
+	];
+
+	return strtr($s, $map);
+}
+
 function normalizeTeacherKey($s)
 {
 	$s = normalizeSpaces($s);
+	$s = normalizeLatinChars($s);
 	$s = mb_strtoupper($s, 'UTF-8');
-	$s = str_replace(["’", "`", "´"], "'", $s);
+
+	// uniforma tutti i tipi di apostrofo
+	$s = str_replace(["’", "`", "´", "ʻ", "ʼ"], "'", $s);
+
+	// rimuove del tutto apostrofi, punti e trattini
+	$s = str_replace(["'", ".", "-"], " ", $s);
+
+	// compatta di nuovo gli spazi
+	$s = preg_replace('/\s+/u', ' ', $s);
+	$s = trim($s);
+
 	return $s;
 }
 

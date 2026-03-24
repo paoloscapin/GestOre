@@ -89,21 +89,13 @@ ROW_RE = re.compile(
     re.VERBOSE,
 )
 
-TAIL_RE = re.compile(
-    r"""
-    ^(?P<head>.+?)
-    \s+
-    (?P<materia>.+)
-    \s+
-    (?P<classe>[1-5][A-Z]+(?:[A-Z])?)
-    \s+
-    (?P<aula>[A-Z]?\d+[A-Z]?)$
-    """,
-    re.VERBOSE,
-)
-
-DOCENTE_RE = re.compile(r"^[A-ZÀ-Ü'`.\-]+(?:\s+[A-ZÀ-Ü'`.\-]+)+$")
-
+# Soglie X da adattare se necessario dopo 1-2 test reali
+COL_X_DOCENTE_SOSTITUTO_END = 360
+COL_X_DATA_END = 635
+COL_X_DOCENTE_SOSTITUITO_END = 980
+COL_X_MATERIA_END = 1365
+COL_X_CLASSE_END = 1510
+# da qui in poi = aula
 LOG_LEVEL = str(CONFIG.get("log_level", "INFO")).upper()
 LOG_TO_CONSOLE = bool(CONFIG.get("log_to_console", True))
 LOG_MAX_MB = float(CONFIG.get("log_max_mb", 5))
@@ -380,102 +372,278 @@ def is_skip_line(line: str) -> bool:
 
     return any(line.startswith(p) for p in SKIP_PREFIXES)
 
-
-def split_docente_e_materia(resto: str):
-    m = TAIL_RE.match(resto)
+def parse_data_orario_cell(text: str):
+    text = normalize_space(text)
+    m = re.search(
+        r'(?P<data>\d{2}/\d{2})\s+dalle\s+(?P<ora_in>\d{2}h\d{2})\s+alle\s+(?P<ora_f>\d{2}h\d{2})',
+        text,
+        re.IGNORECASE
+    )
     if not m:
         return None
 
-    head = normalize_space(m.group("head"))
-    materia = normalize_space(m.group("materia"))
-    classe = normalize_space(m.group("classe"))
-    aula = normalize_space(m.group("aula"))
-
-    combined = f"{head} {materia}".strip()
-    parts = combined.split()
-
-    for n in range(min(6, len(parts)), 1, -1):
-        candidato_doc = " ".join(parts[:n])
-        resto_materia = " ".join(parts[n:])
-
-        if DOCENTE_RE.match(candidato_doc) and resto_materia:
-            return {
-                "docente_sostituito": normalize_space(candidato_doc),
-                "materia": normalize_space(resto_materia),
-                "classe": classe,
-                "aula": aula,
-            }
-
-    if DOCENTE_RE.match(head):
-        return {
-            "docente_sostituito": head,
-            "materia": materia,
-            "classe": classe,
-            "aula": aula,
-        }
-
-    return None
+    return {
+        "data": normalize_space(m.group("data")),
+        "ora_inizio": hhmm_from_pdf(m.group("ora_in")),
+        "ora_fine": hhmm_from_pdf(m.group("ora_f")),
+    }
 
 
-def extract_lines_from_pdf(pdf_path: str):
-    righe = []
+def extract_rows_from_pdf_table(pdf_path: str):
+    rows_out = []
+
     with pdfplumber.open(pdf_path) as pdf:
         for page_num, page in enumerate(pdf.pages, start=1):
-            text = page.extract_text() or ""
-            for raw_line in text.splitlines():
-                line = normalize_space(raw_line)
-                if is_skip_line(line):
+            table = page.extract_table()
+
+            if not table:
+                log_warning(f"Nessuna tabella trovata a pagina {page_num}")
+                continue
+
+            for raw_row in table:
+                if not raw_row:
                     continue
-                righe.append((page_num, line))
-    return righe
+
+                # normalizza numero colonne
+                cells = [(normalize_space(c) if c is not None else "") for c in raw_row]
+
+                # ci aspettiamo 6 colonne
+                if len(cells) < 6:
+                    continue
+
+                docente_sostituto = cells[0]
+                data_orario = cells[1]
+                docente_sostituito = cells[2]
+                materia = cells[3]
+                classe = re.sub(r"\s*,\s*", ", ", cells[4])
+                aula = re.sub(r"\s*,\s*", ", ", cells[5])
+
+                full_line = normalize_space(" | ".join(cells))
+
+                # salta intestazioni / righe vuote
+                if (
+                    docente_sostituto in ("", "Docente")
+                    or data_orario in ("", "Data")
+                    or docente_sostituito in ("", "Docente")
+                    or materia in ("", "Materia")
+                    or classe in ("", "Classe")
+                    or aula in ("", "Aula")
+                ):
+                    continue
+
+                parsed_dt = parse_data_orario_cell(data_orario)
+                if not parsed_dt:
+                    rows_out.append({
+                        "error": {
+                            "page": page_num,
+                            "line": full_line,
+                            "reason": "Data/orario non parsabile"
+                        }
+                    })
+                    continue
+
+                rec = {
+                    "page": page_num,
+                    "docente_sostituto": docente_sostituto,
+                    "data": parsed_dt["data"],
+                    "ora_inizio": parsed_dt["ora_inizio"],
+                    "ora_fine": parsed_dt["ora_fine"],
+                    "docente_sostituito": docente_sostituito,
+                    "materia": materia,
+                    "classe": classe,
+                    "aula": aula,
+                }
+
+                rows_out.append({"record": rec})
+
+    return rows_out
+
+def norm_cell_text(parts):
+    return normalize_space(" ".join(parts))
+
+
+def normalize_date_orario_cell(text: str) -> str:
+    text = normalize_space(text)
+    text = text.replace("alleo", "alle 0")
+    text = text.replace("alleO", "alle 0")
+    text = text.replace("dalleO", "dalle 0")
+    return text
+
+
+def group_words_by_row(words, y_tol: float = 3.0):
+    rows = []
+
+    for w in words:
+        txt = normalize_space(w.get("text", ""))
+        if not txt:
+            continue
+
+        top = float(w.get("top", 0))
+
+        found = None
+        for row in rows:
+            if abs(row["top"] - top) <= y_tol:
+                found = row
+                break
+
+        if found is None:
+            found = {"top": top, "words": []}
+            rows.append(found)
+
+        found["words"].append(w)
+
+    rows.sort(key=lambda r: r["top"])
+
+    for row in rows:
+        row["words"].sort(key=lambda x: float(x.get("x0", 0)))
+
+    return rows
+
+
+def parse_row_from_words(page_num: int, words_in_row):
+    col_doc_sostituto = []
+    col_data = []
+    col_doc_sostituito = []
+    col_materia = []
+    col_classe = []
+    col_aula = []
+
+    for w in words_in_row:
+        text = normalize_space(w.get("text", ""))
+        if not text:
+            continue
+
+        x0 = float(w.get("x0", 0))
+
+        if x0 < COL_X_DOCENTE_SOSTITUTO_END:
+            col_doc_sostituto.append(text)
+        elif x0 < COL_X_DATA_END:
+            col_data.append(text)
+        elif x0 < COL_X_DOCENTE_SOSTITUITO_END:
+            col_doc_sostituito.append(text)
+        elif x0 < COL_X_MATERIA_END:
+            col_materia.append(text)
+        elif x0 < COL_X_CLASSE_END:
+            col_classe.append(text)
+        else:
+            col_aula.append(text)
+
+    docente_sostituto = norm_cell_text(col_doc_sostituto)
+    data_orario = normalize_date_orario_cell(norm_cell_text(col_data))
+    docente_sostituito = norm_cell_text(col_doc_sostituito)
+    materia = norm_cell_text(col_materia)
+    classe = re.sub(r"\s*,\s*", ", ", norm_cell_text(col_classe))
+    aula = re.sub(r"\s*,\s*", ", ", norm_cell_text(col_aula))
+
+    if not docente_sostituto and not data_orario and not docente_sostituito:
+        return None
+
+    full_line = normalize_space(
+        f"{docente_sostituto} {data_orario} {docente_sostituito} {materia} {classe} {aula}"
+    )
+
+    if is_skip_line(full_line):
+        return None
+
+    m = ROW_RE.match(f"{docente_sostituto} {data_orario} {docente_sostituito}".strip())
+    if not m:
+        return {
+            "error": {
+                "page": page_num,
+                "line": full_line,
+                "reason": "ROW_RE no match su colonne"
+            }
+        }
+
+    data = normalize_space(m.group("data"))
+    ora_in = hhmm_from_pdf(m.group("ora_in"))
+    ora_f = hhmm_from_pdf(m.group("ora_f"))
+
+    if not materia:
+        return {
+            "error": {
+                "page": page_num,
+                "line": full_line,
+                "reason": "Materia vuota"
+            }
+        }
+
+    if not classe:
+        return {
+            "error": {
+                "page": page_num,
+                "line": full_line,
+                "reason": "Classe vuota"
+            }
+        }
+
+    if not aula:
+        return {
+            "error": {
+                "page": page_num,
+                "line": full_line,
+                "reason": "Aula vuota"
+            }
+        }
+
+    rec = {
+        "page": page_num,
+        "docente_sostituto": docente_sostituto,
+        "data": data,
+        "ora_inizio": ora_in,
+        "ora_fine": ora_f,
+        "docente_sostituito": docente_sostituito,
+        "materia": materia,
+        "classe": classe,
+        "aula": aula,
+    }
+
+    log_info(
+        "ROW COL OK | "
+        f"sostituto=[{docente_sostituto}] | "
+        f"data=[{data}] | ora=[{ora_in}-{ora_f}] | "
+        f"sostituito=[{docente_sostituito}] | "
+        f"materia=[{materia}] | classe=[{classe}] | aula=[{aula}]"
+    )
+
+    return {"record": rec}
+
+def extract_lines_from_pdf(pdf_path: str):
+    rows_out = []
+
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_num, page in enumerate(pdf.pages, start=1):
+            words = page.extract_words(
+                x_tolerance=2,
+                y_tolerance=3,
+                keep_blank_chars=False,
+                use_text_flow=False
+            ) or []
+
+            grouped_rows = group_words_by_row(words, y_tol=3.0)
+
+            for row in grouped_rows:
+                parsed = parse_row_from_words(page_num, row["words"])
+                if parsed is None:
+                    continue
+                rows_out.append(parsed)
+
+    return rows_out
 
 
 def parse_pdf(pdf_path: str):
     records = []
     errors = []
 
-    righe = extract_lines_from_pdf(pdf_path)
+    righe = extract_rows_from_pdf_table(pdf_path)
 
-    for page_num, line in righe:
-        m = ROW_RE.match(line)
-        if not m:
-            errors.append({
-                "page": page_num,
-                "line": line,
-                "reason": "ROW_RE no match"
-            })
-            continue
-
-        sostituto = normalize_space(m.group("sostituto"))
-        data = normalize_space(m.group("data"))
-        ora_in = hhmm_from_pdf(m.group("ora_in"))
-        ora_f = hhmm_from_pdf(m.group("ora_f"))
-        resto = normalize_space(m.group("resto"))
-
-        detail = split_docente_e_materia(resto)
-        if not detail:
-            errors.append({
-                "page": page_num,
-                "line": line,
-                "reason": "split_docente_e_materia failed"
-            })
-            continue
-
-        rec = {
-            "page": page_num,
-            "docente_sostituto": sostituto,
-            "data": data,
-            "ora_inizio": ora_in,
-            "ora_fine": ora_f,
-            "docente_sostituito": detail["docente_sostituito"],
-            "materia": detail["materia"],
-            "classe": detail["classe"],
-            "aula": detail["aula"],
-        }
-        records.append(rec)
+    for item in righe:
+        if "record" in item:
+            records.append(item["record"])
+        elif "error" in item:
+            errors.append(item["error"])
 
     return records, errors
-
 
 def infer_year(ddmm: str) -> int:
     return datetime.today().year
