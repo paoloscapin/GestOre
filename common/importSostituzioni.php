@@ -21,8 +21,6 @@ infoimportsost("==== AVVIO importSostituzioni.php ====");
 $TELEGRAM_BOT_TOKEN       = trim((string)($__settings->telegram->bot_token ?? ''));
 $IS_TELEGRAM_ENABLED      = (bool)($__settings->telegram->enabled ?? false);
 $IS_MAIL_DOCENTE_ENABLED  = (bool)($__settings->sostituzioni->inviaMailDocente ?? false);
-$MAIL_TEST_OVERRIDE       = 'massimo.saiani@buonarroti.tn.it';
-$MAIL_TEST_OVERRIDE_NAME  = 'Massimo Saiani';
 $IS_TELEGRAM_TEST_MODE    = (bool)($__settings->sostituzioni->telegramTestMode ?? false);
 $TELEGRAM_TEST_CHAT_ID    = trim((string)($__settings->sostituzioni->telegramTestChatId ?? ''));
 
@@ -196,7 +194,7 @@ function tableHasColumn($tableName, $columnName)
 	return is_array($rows) && count($rows) > 0;
 }
 
-function buildMailHtmlSostituzione($tipoEvento, $docenteDestinatario, $data, $oraInizio, $oraFine, $docenteSostituito, $classe, $aula, $materia, $testNote = '')
+function buildMailHtmlSostituzione($tipoEvento, $docenteDestinatario, $data, $oraInizio, $oraFine, $docenteSostituito, $classe, $aula, $materia)
 {
 	$titoloTop = ($tipoEvento === 'ANNULLAMENTO')
 		? '❌ ANNULLAMENTO SOSTITUZIONE'
@@ -215,27 +213,6 @@ function buildMailHtmlSostituzione($tipoEvento, $docenteDestinatario, $data, $or
 
 	$badgeBg = ($tipoEvento === 'ANNULLAMENTO') ? '#fef3c7' : '#dff7f4';
 	$badgeText = ($tipoEvento === 'ANNULLAMENTO') ? '#9a3412' : '#0f766e';
-
-	$testHtml = '';
-	if ($testNote !== '') {
-		$testHtml = '
-			<tr>
-				<td colspan="2" style="padding-top:18px;">
-					<div style="
-						background:#fff3cd;
-						border:1px solid #ffe08a;
-						color:#8a5a00;
-						border-radius:10px;
-						padding:12px 14px;
-						font-size:13px;
-						line-height:1.4;
-					">
-						<strong>🧪 TEST MODE</strong><br>' . eh($testNote) . '
-					</div>
-				</td>
-			</tr>
-		';
-	}
 
 	return '
 <!DOCTYPE html>
@@ -306,7 +283,6 @@ function buildMailHtmlSostituzione($tipoEvento, $docenteDestinatario, $data, $or
 						<td style="padding:12px 12px;color:#6b7280;">📚 Materia</td>
 						<td style="padding:12px 12px;font-weight:700;color:#2d3340;">' . eh($materia) . '</td>
 					</tr>
-					' . $testHtml . '
 				</table>
 			</div>
 
@@ -568,7 +544,7 @@ function registraNotificaInviata($idSostituzione, $idDocenteDestinatario, $event
 
 function inviaMailDocente($to, $toName, $subject, $htmlBody)
 {
-	global $IS_MAIL_DOCENTE_ENABLED, $MAIL_TEST_OVERRIDE, $MAIL_TEST_OVERRIDE_NAME;
+	global $IS_MAIL_DOCENTE_ENABLED;
 
 	if (!$IS_MAIL_DOCENTE_ENABLED) {
 		warningimportsost("MAIL disabilitata da config");
@@ -583,22 +559,9 @@ function inviaMailDocente($to, $toName, $subject, $htmlBody)
 		return false;
 	}
 
-	$realTo = $to;
-	$realToName = $toName;
+	infoimportsost("Tentativo invio MAIL to=[$to] subj=[$subject]");
 
-	$to = $MAIL_TEST_OVERRIDE;
-	$toName = $MAIL_TEST_OVERRIDE_NAME;
-
-	$testFooter = '
-        <hr>
-        <p style="font-size:12px;color:#666;">
-            TEST MODE - destinatario reale previsto: ' . eh($realToName) . ' &lt;' . eh($realTo) . '&gt;
-        </p>
-    ';
-
-	infoimportsost("Tentativo invio MAIL TEST to=[$to] realTo=[$realTo] subj=[$subject]");
-
-	return sendMail($to, $toName, $subject, $htmlBody . $testFooter);
+	return sendMail($to, $toName, $subject, $htmlBody);
 }
 
 function buildMessaggioAssegnazione($data, $oraInizio, $oraFine, $docenteSostituito, $classe, $aula, $materia)
@@ -1027,9 +990,8 @@ try {
 				$n['materia']
 			);
 		}
-		$mailTestNote = 'Destinatario reale previsto: ' . $nomeDest . ' <' . trim((string)($doc['email'] ?? '')) . '>';
 
-		$mailHtml = buildMailHtmlSostituzione(
+			$mailHtml = buildMailHtmlSostituzione(
 			$evento,
 			$nomeDest,
 			$n['data'],
@@ -1038,8 +1000,7 @@ try {
 			$n['docenteSostituito'],
 			$n['classe'],
 			$n['aula'],
-			$n['materia'],
-			$mailTestNote
+			$n['materia']
 		);
 
 		/* =======================
