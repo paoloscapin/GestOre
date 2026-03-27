@@ -22,6 +22,8 @@ if (haRuolo('admin')) {
     redirect('/segreteria/index.php');
 } else if (haRuolo('segreteria-didattica')) {
     redirect('/didattica/index.php');
+} else if (haRuolo('segreteria-ata')) {
+    redirect('/segrata/index.php');
 } else if (haRuolo('genitore')) {
     redirect('/genitore/index.php');
 } else if (haRuolo('studente')) {
@@ -30,9 +32,7 @@ if (haRuolo('admin')) {
     redirect('/ata/index.php');
 } else if (haRuolo('portineria')) {
     redirect('/orario/orario.php');
-} else if (haRuolo('esterno')) {
-    redirect('/esterno/index.php'); // quando pronta
-}
+} 
 
 require_once __DIR__ . '/common/header-common.php';
 require_once __DIR__ . '/common/style.php';

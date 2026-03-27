@@ -30,6 +30,12 @@
 					<span class="glyphicon glyphicon-folder-open"></span>&ensp;Permessi ATA
 				</a>
 			</li>
+			<li>
+				<a href="<?php echo $__application_base_path; ?>/orario/orario.php"
+				   class="btn-yellow4 nav-btn">
+					<span class="glyphicon glyphicon-folder-open"></span>&ensp;Orario ed Eventi
+				</a>
+			</li>
 
 		</ul>
 
