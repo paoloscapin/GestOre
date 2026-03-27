@@ -267,6 +267,7 @@ $qAss = "
   FROM assenze a
   WHERE DATE(a.dataInizio) <= '$dateEsc'
     AND DATE(COALESCE(a.dataFine, a.dataInizio)) >= '$dateEsc'
+    AND UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
 ";
 $assRows = mb_dbGetAll($qAss) ?: [];
 
@@ -384,9 +385,14 @@ $qImp = "
   LEFT JOIN utilizza ut ON ut.idCalendario = o.idCalendario
   LEFT JOIN utente u ON u.username = ut.username
   LEFT JOIN occupa oc ON oc.idCalendario = o.idCalendario
+  LEFT JOIN assenze a ON a.idAssenza = o.idAssenza
   WHERE o.dataGiorno = '$dateEsc'
     AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
     AND o.attivitaProgetto IS NOT NULL AND o.attivitaProgetto <> ''
+    AND (
+      o.idAssenza IS NULL
+      OR UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
+    )
   GROUP BY o.idCalendario, o.idAssenza, o.dataGiorno, o.ora, o.nroAula, o.attivitaProgetto
 ";
 

@@ -735,7 +735,8 @@ if ($VISIBILITY_LEVEL !== 'PUBLIC' && $scope === 'DOCENTE') {
 
   $u = mysqli_real_escape_string($__conMBApp, $target);
 
-  $qA = "
+  
+$qA = "
     SELECT a.*
     FROM assenze a
     WHERE a.idAssenza IN (
@@ -746,6 +747,7 @@ if ($VISIBILITY_LEVEL !== 'PUBLIC' && $scope === 'DOCENTE') {
     )
       AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$fromEsc'
       AND DATE(a.dataInizio) <= '$toEsc'
+      AND UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
   ";
 
   foreach (mb_dbGetAll($qA) ?: [] as $a) {
@@ -798,6 +800,7 @@ if ($VISIBILITY_LEVEL !== 'PUBLIC' && $scope === 'DOCENTE') {
         )
           AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$fromEsc'
           AND DATE(a.dataInizio) <= '$toEsc'
+          AND UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
       ";
 
       foreach (mb_dbGetAll($qAssCol) ?: [] as $a) {
@@ -838,6 +841,7 @@ if ($VISIBILITY_LEVEL !== 'PUBLIC' && $scope === 'DOCENTE') {
         )
           AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$fromEsc'
           AND DATE(a.dataInizio) <= '$toEsc'
+          AND UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
       ";
 
       foreach (mb_dbGetAll($qAssClasseDoc) ?: [] as $a) {
@@ -895,6 +899,7 @@ if ($VISIBILITY_LEVEL !== 'PUBLIC' && $scope === 'DOCENTE') {
     )
       AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$fromEsc'
       AND DATE(a.dataInizio) <= '$toEsc'
+      AND UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
   ";
 
   foreach (mb_dbGetAll($qA) ?: [] as $a) {
@@ -941,6 +946,7 @@ if ($VISIBILITY_LEVEL !== 'PUBLIC' && $scope === 'DOCENTE') {
       )
         AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$fromEsc'
         AND DATE(a.dataInizio) <= '$toEsc'
+        AND UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
     ";
 
     foreach (mb_dbGetAll($qAssDoc) ?: [] as $a) {

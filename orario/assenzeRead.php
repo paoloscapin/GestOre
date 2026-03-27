@@ -308,6 +308,7 @@ $q = "
     FROM assenze a
     WHERE DATE(a.dataInizio) <= '$dateEsc'
       AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$dateEsc'
+      AND UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
     ORDER BY a.dataInizio, a.oraInizio, a.idAssenza
 ";
 
