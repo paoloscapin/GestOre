@@ -7,6 +7,7 @@ ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'segr
 header('Content-Type: application/json; charset=utf-8');
 
 global $__utente_ruolo;
+global $__utente_username, $__utente_nome, $__utente_cognome;
 
 set_exception_handler(function ($e) {
     http_response_code(500);
@@ -58,7 +59,50 @@ function getVisibilityLevel()
     return 'PUBLIC';
 }
 
+function isDocenteRole()
+{
+    global $__utente_ruolo;
+    return strtoupper(trim((string)$__utente_ruolo)) === 'DOCENTE';
+}
+
+function getCurrentDocenteId()
+{
+    global $__utente_username, $__utente_nome, $__utente_cognome;
+
+    // 1) se in sessione hai già l'id docente, usa quello
+    if (!empty($_SESSION['idDocente'])) {
+        return (int)$_SESSION['idDocente'];
+    }
+    if (!empty($_SESSION['id_docente'])) {
+        return (int)$_SESSION['id_docente'];
+    }
+
+    // 2) fallback: match per nome/cognome
+    $nome = trim((string)($__utente_nome ?? ''));
+    $cognome = trim((string)($__utente_cognome ?? ''));
+
+    if ($nome !== '' && $cognome !== '') {
+        $q = "
+            SELECT id
+            FROM docente
+            WHERE UPPER(TRIM(nome)) = UPPER(" . dbQ($nome) . ")
+              AND UPPER(TRIM(cognome)) = UPPER(" . dbQ($cognome) . ")
+            LIMIT 1
+        ";
+        $row = dbGetFirst($q);
+        if (is_array($row) && !empty($row['id'])) {
+            return (int)$row['id'];
+        }
+    }
+
+    return 0;
+}
+
 $date = isset($_GET['date']) ? trim((string)$_GET['date']) : date('Y-m-d');
+
+$mineOnly = isset($_GET['mineOnly']) ? (int)$_GET['mineOnly'] : 0;
+$isDocente = isDocenteRole();
+$currentDocenteId = getCurrentDocenteId();
 
 if (!isIsoDate($date)) {
     http_response_code(400);
@@ -71,6 +115,17 @@ if ($visibilityLevel === 'PUBLIC') {
     http_response_code(403);
     echo json_encode(['ok' => false, 'error' => 'Non autorizzato'], JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+$whereExtra = '';
+
+if ($isDocente && $mineOnly === 1 && $currentDocenteId > 0) {
+    $whereExtra .= "
+        AND (
+            s.idDocenteSostituto = " . dbI($currentDocenteId) . "
+            OR s.idDocenteSostituito = " . dbI($currentDocenteId) . "
+        )
+    ";
 }
 
 $q = "
@@ -95,6 +150,7 @@ $q = "
     LEFT JOIN docente ds ON ds.id = s.idDocenteSostituto
     LEFT JOIN docente dd ON dd.id = s.idDocenteSostituito
     WHERE s.data = " . dbQ($date) . "
+    $whereExtra
     ORDER BY s.oraInizio, s.oraFine, dd.cognome, dd.nome, ds.cognome, ds.nome
 ";
 
@@ -143,5 +199,8 @@ echo json_encode([
     'ok' => true,
     'date' => $date,
     'visibilityLevel' => $visibilityLevel,
+    'mineOnly' => $mineOnly,
+    'isDocente' => $isDocente,
+    'currentDocenteId' => $currentDocenteId,
     'items' => $items
 ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);

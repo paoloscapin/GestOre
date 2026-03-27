@@ -227,6 +227,8 @@
         });
     }
 
+    let sostituzioniMineOnly = !!window.ORARIO_IS_DOCENTE;
+
     function renderSostituzioniList(items, dateIso) {
         const $c = $("#orario_content");
 
@@ -254,8 +256,16 @@
         const telegramStatus = window._sostituzioniTelegramStatus || null;
         const telegramBox = telegramToggleHtml(telegramStatus);
 
+        const docenteToggle = docenteCanManageTelegram() ? `
+            <button id="btn_toggle_mie_sostituzioni"
+                    class="btn btn-sm ${sostituzioniMineOnly ? 'btn-primary' : 'btn-default'}">
+                <span class="glyphicon glyphicon-filter"></span>
+                ${sostituzioniMineOnly ? 'SOLO LE MIE SOSTITUZIONI' : 'TUTTE LE SOSTITUZIONI'}
+            </button>
+        ` : '';
         const topbar = `
             <div class="eventi-topbar" style="display:flex;gap:10px;align-items:center;margin:6px 0 10px 0;flex-wrap:wrap;">
+                ${docenteToggle}
                 <input id="sost_q" class="form-control input-sm" style="max-width:420px;" placeholder="Cerca docente, classe, aula o materia...">
                 <div style="opacity:.75;font-size:14px;">${escapeHtml(isoToIt(dateIso))} · ${normItems.length} sostituzioni</div>
             </div>
@@ -283,7 +293,10 @@
 
         $c.html(telegramBox + topbar + table);
         bindTelegramToggle(telegramStatus);
-
+        $("#btn_toggle_mie_sostituzioni").off("click").on("click", function () {
+            sostituzioniMineOnly = !sostituzioniMineOnly;
+            loadSostituzioni($("#v_date").val() || todayIso());
+        });
         let sortState = { key: "oraIn", dir: "asc" };
 
         function norm(s) {
@@ -413,7 +426,10 @@
         $("#orario_title").text(`Sostituzioni docenti · ${isoToIt(dateIso)}`);
         showInlineMsg("info", "Caricamento sostituzioni...");
 
-        $.getJSON("sostituzioniRead.php", { date: dateIso }, function (r) {
+        $.getJSON("sostituzioniRead.php", {
+            date: dateIso,
+            mineOnly: (docenteCanManageTelegram() && sostituzioniMineOnly) ? 1 : 0
+        }, function (r) {
             if (!r || r.ok !== true) {
                 showInlineMsg("danger", (r && r.error) ? r.error : "Errore lettura sostituzioni");
                 return;
