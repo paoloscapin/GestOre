@@ -426,7 +426,6 @@ def extract_rows_from_pdf_table(pdf_path: str):
                     or data_orario in ("", "Data")
                     or docente_sostituito in ("", "Docente")
                     or materia in ("", "Materia")
-                    or classe in ("", "Classe")
                     or aula in ("", "Aula")
                 ):
                     continue
@@ -569,13 +568,10 @@ def parse_row_from_words(page_num: int, words_in_row):
         }
 
     if not classe:
-        return {
-            "error": {
-                "page": page_num,
-                "line": full_line,
-                "reason": "Classe vuota"
-            }
-        }
+        log_warning(
+            f"Classe vuota a pagina {page_num}, riga importata comunque | line=[{full_line}]"
+        )
+        classe = ""
 
     if not aula:
         return {
