@@ -18,17 +18,17 @@ infoimportsost("==== AVVIO importSostituzioni.php ====");
    CONFIG
    ========================================================= */
 
-$TELEGRAM_BOT_TOKEN       = trim((string)($__settings->telegram->bot_token ?? ''));
-$IS_TELEGRAM_ENABLED      = (bool)($__settings->telegram->enabled ?? false);
-$IS_MAIL_DOCENTE_ENABLED  = (bool)($__settings->sostituzioni->inviaMailDocente ?? false);
-$IS_TELEGRAM_TEST_MODE    = (bool)($__settings->sostituzioni->telegramTestMode ?? false);
-$TELEGRAM_TEST_CHAT_ID    = trim((string)($__settings->sostituzioni->telegramTestChatId ?? ''));
+$TELEGRAM_BOT_TOKEN      = trim((string)($__settings->telegram->bot_token ?? ''));
+$IS_TELEGRAM_ENABLED     = (bool)($__settings->telegram->enabled ?? false);
+$IS_MAIL_DOCENTE_ENABLED = (bool)($__settings->sostituzioni->inviaMailDocente ?? false);
+$IS_TELEGRAM_TEST_MODE   = (bool)($__settings->sostituzioni->telegramTestMode ?? false);
+$TELEGRAM_TEST_CHAT_ID   = trim((string)($__settings->sostituzioni->telegramTestChatId ?? ''));
 
 infoimportsost(
-	"CONFIG telegram_enabled=" . ($IS_TELEGRAM_ENABLED ? '1' : '0') .
-		" telegram_test_mode=" . ($IS_TELEGRAM_TEST_MODE ? '1' : '0') .
-		" telegram_test_chat_id=[" . $TELEGRAM_TEST_CHAT_ID . "]" .
-		" mail_enabled=" . ($IS_MAIL_DOCENTE_ENABLED ? '1' : '0')
+    "CONFIG telegram_enabled=" . ($IS_TELEGRAM_ENABLED ? '1' : '0') .
+    " telegram_test_mode=" . ($IS_TELEGRAM_TEST_MODE ? '1' : '0') .
+    " telegram_test_chat_id=[" . $TELEGRAM_TEST_CHAT_ID . "]" .
+    " mail_enabled=" . ($IS_MAIL_DOCENTE_ENABLED ? '1' : '0')
 );
 
 /* =========================================================
@@ -37,184 +37,198 @@ infoimportsost(
 
 function formatDateItLong($ymd)
 {
-	$mesi = [
-		'01' => 'gennaio',
-		'02' => 'febbraio',
-		'03' => 'marzo',
-		'04' => 'aprile',
-		'05' => 'maggio',
-		'06' => 'giugno',
-		'07' => 'luglio',
-		'08' => 'agosto',
-		'09' => 'settembre',
-		'10' => 'ottobre',
-		'11' => 'novembre',
-		'12' => 'dicembre'
-	];
+    $mesi = array(
+        '01' => 'gennaio',
+        '02' => 'febbraio',
+        '03' => 'marzo',
+        '04' => 'aprile',
+        '05' => 'maggio',
+        '06' => 'giugno',
+        '07' => 'luglio',
+        '08' => 'agosto',
+        '09' => 'settembre',
+        '10' => 'ottobre',
+        '11' => 'novembre',
+        '12' => 'dicembre'
+    );
 
-	$ymd = trim((string)$ymd);
-	if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $ymd)) {
-		return $ymd;
-	}
+    $ymd = trim((string)$ymd);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $ymd)) {
+        return $ymd;
+    }
 
-	[$y, $m, $d] = explode('-', $ymd);
-	return ltrim($d, '0') . ' ' . ($mesi[$m] ?? $m) . ' ' . $y;
+    $parts = explode('-', $ymd);
+    $y = $parts[0];
+    $m = $parts[1];
+    $d = $parts[2];
+
+    return ltrim($d, '0') . ' ' . (isset($mesi[$m]) ? $mesi[$m] : $m) . ' ' . $y;
 }
 
 function buildMailSubjectSostituzione($evento, $data, $oraInizio)
 {
-	$dataIt = formatDateItLong($data);
-	$ora = substr((string)$oraInizio, 0, 5);
+    $dataIt = formatDateItLong($data);
+    $ora = substr((string)$oraInizio, 0, 5);
 
-	if ($evento === 'ANNULLAMENTO') {
-		return "GestOre - Notifica annullamento sostituzione delle ore $ora del giorno $dataIt";
-	}
+    if ($evento === 'ANNULLAMENTO') {
+        return "GestOre - Sostituzione annullata delle ore $ora del giorno $dataIt";
+    }
 
-	return "GestOre - Notifica sostituzione assegnata alle ore $ora del giorno $dataIt";
+    if ($evento === 'MODIFICA') {
+        return "GestOre - Sostituzione modificata delle ore $ora del giorno $dataIt";
+    }
+
+    return "GestOre - Nuova sostituzione assegnata alle ore $ora del giorno $dataIt";
 }
 
 function eh($s)
 {
-	return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 function stripEmojiForLog($text)
 {
-	$text = (string)$text;
+    $text = (string)$text;
 
-	// rimuove la maggior parte degli emoji / simboli unicode estesi
-	$text = preg_replace('/[\x{1F000}-\x{1FAFF}]/u', '', $text);
-	$text = preg_replace('/[\x{2600}-\x{27BF}]/u', '', $text);
+    $text = preg_replace('/[\x{1F000}-\x{1FAFF}]/u', '', $text);
+    $text = preg_replace('/[\x{2600}-\x{27BF}]/u', '', $text);
 
-	// pulizia spazi multipli
-	$text = preg_replace('/[ \t]+/u', ' ', $text);
-	$text = preg_replace('/\n{3,}/u', "\n\n", $text);
+    $text = preg_replace('/[ \t]+/u', ' ', $text);
+    $text = preg_replace('/\n{3,}/u', "\n\n", $text);
 
-	return trim($text);
+    return trim($text);
 }
 
-function respond($payload, $httpCode = 200)
+function respond($payload, $httpCode)
 {
-	infoimportsost("Risposta HTTP $httpCode - ok=" . ((!empty($payload['ok'])) ? '1' : '0'));
-	http_response_code($httpCode);
-	echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
-	exit;
+    infoimportsost("Risposta HTTP $httpCode - ok=" . (!empty($payload['ok']) ? '1' : '0'));
+    http_response_code($httpCode);
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
 }
 
 function norm($v)
 {
-	return trim((string)$v);
+    return trim((string)$v);
 }
 
 function normalizeSpaces($s)
 {
-	$s = norm($s);
-	return preg_replace('/\s+/u', ' ', $s);
+    $s = norm($s);
+    return preg_replace('/\s+/u', ' ', $s);
 }
 
 function normalizeLatinChars($s)
 {
-	$s = (string)$s;
+    $s = (string)$s;
 
-	$map = [
-		'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'Å' => 'A',
-		'à' => 'A', 'á' => 'A', 'â' => 'A', 'ã' => 'A', 'ä' => 'A', 'å' => 'A',
+    $map = array(
+        'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'Å' => 'A',
+        'à' => 'A', 'á' => 'A', 'â' => 'A', 'ã' => 'A', 'ä' => 'A', 'å' => 'A',
 
-		'È' => 'E', 'É' => 'E', 'Ê' => 'E', 'Ë' => 'E',
-		'è' => 'E', 'é' => 'E', 'ê' => 'E', 'ë' => 'E',
+        'È' => 'E', 'É' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+        'è' => 'E', 'é' => 'E', 'ê' => 'E', 'ë' => 'E',
 
-		'Ì' => 'I', 'Í' => 'I', 'Î' => 'I', 'Ï' => 'I',
-		'ì' => 'I', 'í' => 'I', 'î' => 'I', 'ï' => 'I',
+        'Ì' => 'I', 'Í' => 'I', 'Î' => 'I', 'Ï' => 'I',
+        'ì' => 'I', 'í' => 'I', 'î' => 'I', 'ï' => 'I',
 
-		'Ò' => 'O', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O',
-		'ò' => 'O', 'ó' => 'O', 'ô' => 'O', 'õ' => 'O', 'ö' => 'O',
+        'Ò' => 'O', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O',
+        'ò' => 'O', 'ó' => 'O', 'ô' => 'O', 'õ' => 'O', 'ö' => 'O',
 
-		'Ù' => 'U', 'Ú' => 'U', 'Û' => 'U', 'Ü' => 'U',
-		'ù' => 'U', 'ú' => 'U', 'û' => 'U', 'ü' => 'U',
+        'Ù' => 'U', 'Ú' => 'U', 'Û' => 'U', 'Ü' => 'U',
+        'ù' => 'U', 'ú' => 'U', 'û' => 'U', 'ü' => 'U',
 
-		'Ç' => 'C', 'ç' => 'C',
-		'Ñ' => 'N', 'ñ' => 'N'
-	];
+        'Ç' => 'C', 'ç' => 'C',
+        'Ñ' => 'N', 'ñ' => 'N'
+    );
 
-	return strtr($s, $map);
+    return strtr($s, $map);
 }
 
 function normalizeTeacherKey($s)
 {
-	$s = normalizeSpaces($s);
-	$s = normalizeLatinChars($s);
-	$s = mb_strtoupper($s, 'UTF-8');
+    $s = normalizeSpaces($s);
+    $s = normalizeLatinChars($s);
+    $s = mb_strtoupper($s, 'UTF-8');
 
-	// uniforma tutti i tipi di apostrofo
-	$s = str_replace(["’", "`", "´", "ʻ", "ʼ"], "'", $s);
+    $s = str_replace(array("’", "`", "´", "ʻ", "ʼ"), "'", $s);
+    $s = str_replace(array("'", ".", "-"), " ", $s);
+    $s = preg_replace('/\s+/u', ' ', $s);
+    $s = trim($s);
 
-	// rimuove del tutto apostrofi, punti e trattini
-	$s = str_replace(["'", ".", "-"], " ", $s);
-
-	// compatta di nuovo gli spazi
-	$s = preg_replace('/\s+/u', ' ', $s);
-	$s = trim($s);
-
-	return $s;
+    return $s;
 }
 
 function isValidDateYmd($s)
 {
-	return (bool)preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$s);
+    return (bool)preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$s);
 }
 
 function normalizeTimeToHms($s)
 {
-	$s = norm($s);
-	if ($s === '') return '';
+    $s = norm($s);
+    if ($s === '') return '';
 
-	if (preg_match('/^\d{2}:\d{2}$/', $s)) {
-		return $s . ':00';
-	}
-	if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $s)) {
-		return $s;
-	}
-	return '';
+    if (preg_match('/^\d{2}:\d{2}$/', $s)) {
+        return $s . ':00';
+    }
+    if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $s)) {
+        return $s;
+    }
+
+    return '';
 }
 
 function normOra($o)
 {
-	$o = trim((string)$o);
-	if ($o === '') return '';
-	return substr($o, 0, 5);
+    $o = trim((string)$o);
+    if ($o === '') return '';
+    return substr($o, 0, 5);
 }
 
 function tableHasColumn($tableName, $columnName)
 {
-	$tableName = dbEscape($tableName);
-	$columnName = dbEscape($columnName);
+    $tableName = dbEscape($tableName);
+    $columnName = dbEscape($columnName);
 
-	$q = "SHOW COLUMNS FROM `$tableName` LIKE '$columnName'";
-	$rows = dbGetAll($q);
-	return is_array($rows) && count($rows) > 0;
+    $q = "SHOW COLUMNS FROM `$tableName` LIKE '$columnName'";
+    $rows = dbGetAll($q);
+    return is_array($rows) && count($rows) > 0;
+}
+
+function valueEq($a, $b)
+{
+    return norm((string)$a) === norm((string)$b);
 }
 
 function buildMailHtmlSostituzione($tipoEvento, $docenteDestinatario, $data, $oraInizio, $oraFine, $docenteSostituito, $classe, $aula, $materia)
 {
-	$titoloTop = ($tipoEvento === 'ANNULLAMENTO')
-		? '❌ ANNULLAMENTO SOSTITUZIONE'
-		: '✅ NUOVA SOSTITUZIONE';
+    $headerBg = '#0f766e';
+    $headerText = '#ffffff';
+    $badgeBg = '#dff7f4';
+    $badgeText = '#0f766e';
 
-	$badge = ($tipoEvento === 'ANNULLAMENTO')
-		? '⚠️ SOSTITUZIONE ANNULLATA'
-		: '📌 SOSTITUZIONE ASSEGNATA';
+    if ($tipoEvento === 'ANNULLAMENTO') {
+        $titoloTop = 'SOSTITUZIONE ANNULLATA';
+        $badge = 'NON PIU DA SVOLGERE';
+        $intro = 'La sostituzione che ti era stata assegnata è stata annullata. Non è più richiesta la tua presenza per questa attività.';
+        $headerBg = '#b45309';
+        $badgeBg = '#fef3c7';
+        $badgeText = '#9a3412';
+    } elseif ($tipoEvento === 'MODIFICA') {
+        $titoloTop = 'SOSTITUZIONE MODIFICATA';
+        $badge = 'VERIFICA I NUOVI DETTAGLI';
+        $intro = 'La sostituzione assegnata è stata modificata. Verifica attentamente i nuovi dettagli riportati qui sotto.';
+        $headerBg = '#1d4ed8';
+        $badgeBg = '#dbeafe';
+        $badgeText = '#1e40af';
+    } else {
+        $titoloTop = 'NUOVA SOSTITUZIONE';
+        $badge = 'SOSTITUZIONE ASSEGNATA';
+        $intro = 'Ti è stata assegnata una nuova sostituzione.';
+    }
 
-	$intro = ($tipoEvento === 'ANNULLAMENTO')
-		? 'La sostituzione precedentemente assegnata è stata annullata o modificata.'
-		: 'Ti è stata assegnata una nuova sostituzione.';
-
-	$headerBg = ($tipoEvento === 'ANNULLAMENTO') ? '#b45309' : '#0f766e';
-	$headerText = '#ffffff';
-
-	$badgeBg = ($tipoEvento === 'ANNULLAMENTO') ? '#fef3c7' : '#dff7f4';
-	$badgeText = ($tipoEvento === 'ANNULLAMENTO') ? '#9a3412' : '#0f766e';
-
-	return '
+    return '
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -222,75 +236,75 @@ function buildMailHtmlSostituzione($tipoEvento, $docenteDestinatario, $data, $or
 <title>' . eh($titoloTop) . '</title>
 </head>
 <body style="margin:0;padding:0;background:#f2f2f2;font-family:Arial,Helvetica,sans-serif;color:#2f3542;">
-	<div style="max-width:920px;margin:0 auto;padding:20px 18px;">
-		<div style="background:' . $headerBg . ';color:' . $headerText . ';border-radius:18px 18px 0 0;padding:22px 26px;font-size:22px;font-weight:700;letter-spacing:.3px;">
-			' . eh($titoloTop) . '
-		</div>
+    <div style="max-width:920px;margin:0 auto;padding:20px 18px;">
+        <div style="background:' . $headerBg . ';color:' . $headerText . ';border-radius:18px 18px 0 0;padding:22px 26px;font-size:22px;font-weight:700;letter-spacing:.3px;">
+            ' . eh($titoloTop) . '
+        </div>
 
-		<div style="background:#f7f7f7;border:1px solid #e3e3e3;border-top:none;border-radius:0 0 18px 18px;padding:22px 26px 18px 26px;">
-			<div style="font-size:18px;font-weight:700;color:#2d3340;margin-bottom:6px;">
-				' . eh($docenteDestinatario) . '
-			</div>
+        <div style="background:#f7f7f7;border:1px solid #e3e3e3;border-top:none;border-radius:0 0 18px 18px;padding:22px 26px 18px 26px;">
+            <div style="font-size:18px;font-weight:700;color:#2d3340;margin-bottom:6px;">
+                ' . eh($docenteDestinatario) . '
+            </div>
 
-			<div style="font-size:16px;color:#6b7280;margin-bottom:20px;">
-				' . eh($intro) . '
-			</div>
+            <div style="font-size:16px;color:#6b7280;margin-bottom:20px;">
+                ' . eh($intro) . '
+            </div>
 
-			<hr style="border:none;border-top:1px solid #d9d9d9;margin:0 0 18px 0;">
+            <hr style="border:none;border-top:1px solid #d9d9d9;margin:0 0 18px 0;">
 
-			<div style="
-				display:inline-block;
-				background:' . $badgeBg . ';
-				color:' . $badgeText . ';
-				font-weight:700;
-				border-radius:20px;
-				padding:10px 18px;
-				font-size:14px;
-				letter-spacing:.4px;
-				margin-bottom:16px;
-			">
-				' . eh($badge) . '
-			</div>
+            <div style="
+                display:inline-block;
+                background:' . $badgeBg . ';
+                color:' . $badgeText . ';
+                font-weight:700;
+                border-radius:20px;
+                padding:10px 18px;
+                font-size:14px;
+                letter-spacing:.4px;
+                margin-bottom:16px;
+            ">
+                ' . eh($badge) . '
+            </div>
 
-			<div style="
-				background:#f1f2f4;
-				border:1px solid #d9dde3;
-				border-radius:18px;
-				padding:18px 18px 10px 18px;
-			">
-				<table role="presentation" style="width:100%;border-collapse:collapse;font-size:16px;">
-					<tr>
-						<td style="width:34%;padding:12px 12px;color:#6b7280;border-bottom:1px solid #d9dde3;">📅 Data</td>
-						<td style="padding:12px 12px;font-weight:700;color:#2d3340;border-bottom:1px solid #d9dde3;">' . eh($data) . '</td>
-					</tr>
-					<tr>
-						<td style="padding:12px 12px;color:#6b7280;border-bottom:1px solid #d9dde3;">🕒 Ora</td>
-						<td style="padding:12px 12px;font-weight:700;color:#2d3340;border-bottom:1px solid #d9dde3;">' . eh($oraInizio . ' - ' . $oraFine) . '</td>
-					</tr>
-					<tr>
-						<td style="padding:12px 12px;color:#6b7280;border-bottom:1px solid #d9dde3;">👤 Docente sostituito</td>
-						<td style="padding:12px 12px;font-weight:700;color:#2d3340;border-bottom:1px solid #d9dde3;">' . eh($docenteSostituito) . '</td>
-					</tr>
-					<tr>
-						<td style="padding:12px 12px;color:#6b7280;border-bottom:1px solid #d9dde3;">🏫 Classe</td>
-						<td style="padding:12px 12px;font-weight:700;color:#2d3340;border-bottom:1px solid #d9dde3;">' . eh($classe) . '</td>
-					</tr>
-					<tr>
-						<td style="padding:12px 12px;color:#6b7280;border-bottom:1px solid #d9dde3;">🚪 Aula</td>
-						<td style="padding:12px 12px;font-weight:700;color:#2d3340;border-bottom:1px solid #d9dde3;">' . eh($aula) . '</td>
-					</tr>
-					<tr>
-						<td style="padding:12px 12px;color:#6b7280;">📚 Materia</td>
-						<td style="padding:12px 12px;font-weight:700;color:#2d3340;">' . eh($materia) . '</td>
-					</tr>
-				</table>
-			</div>
+            <div style="
+                background:#f1f2f4;
+                border:1px solid #d9dde3;
+                border-radius:18px;
+                padding:18px 18px 10px 18px;
+            ">
+                <table role="presentation" style="width:100%;border-collapse:collapse;font-size:16px;">
+                    <tr>
+                        <td style="width:34%;padding:12px 12px;color:#6b7280;border-bottom:1px solid #d9dde3;">Data</td>
+                        <td style="padding:12px 12px;font-weight:700;color:#2d3340;border-bottom:1px solid #d9dde3;">' . eh($data) . '</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:12px 12px;color:#6b7280;border-bottom:1px solid #d9dde3;">Ora</td>
+                        <td style="padding:12px 12px;font-weight:700;color:#2d3340;border-bottom:1px solid #d9dde3;">' . eh($oraInizio . ' - ' . $oraFine) . '</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:12px 12px;color:#6b7280;border-bottom:1px solid #d9dde3;">Docente sostituito</td>
+                        <td style="padding:12px 12px;font-weight:700;color:#2d3340;border-bottom:1px solid #d9dde3;">' . eh($docenteSostituito) . '</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:12px 12px;color:#6b7280;border-bottom:1px solid #d9dde3;">Classe</td>
+                        <td style="padding:12px 12px;font-weight:700;color:#2d3340;border-bottom:1px solid #d9dde3;">' . eh($classe !== '' ? $classe : '-') . '</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:12px 12px;color:#6b7280;border-bottom:1px solid #d9dde3;">Aula</td>
+                        <td style="padding:12px 12px;font-weight:700;color:#2d3340;border-bottom:1px solid #d9dde3;">' . eh($aula !== '' ? $aula : '-') . '</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:12px 12px;color:#6b7280;">Materia</td>
+                        <td style="padding:12px 12px;font-weight:700;color:#2d3340;">' . eh($materia !== '' ? $materia : '-') . '</td>
+                    </tr>
+                </table>
+            </div>
 
-			<div style="margin-top:18px;font-size:15px;color:#4b5563;line-height:1.5;">
-				🤖 Messaggio automatico <strong>GestOre</strong>.
-			</div>
-		</div>
-	</div>
+            <div style="margin-top:18px;font-size:15px;color:#4b5563;line-height:1.5;">
+                Messaggio automatico <strong>GestOre</strong>.
+            </div>
+        </div>
+    </div>
 </body>
 </html>';
 }
@@ -301,76 +315,76 @@ function buildMailHtmlSostituzione($tipoEvento, $docenteDestinatario, $data, $or
 
 function buildDocentiMap()
 {
-	$map = [];
+    $map = array();
 
-	$q = "
+    $q = "
         SELECT id, cognome, nome, attivo, email
         FROM docente
     ";
-	$rows = dbGetAll($q);
+    $rows = dbGetAll($q);
 
-	if (!is_array($rows)) return [];
+    if (!is_array($rows)) return array();
 
-	foreach ($rows as $row) {
-		$id = (int)($row['id'] ?? 0);
-		if ($id <= 0) continue;
+    foreach ($rows as $row) {
+        $id = (int)($row['id'] ?? 0);
+        if ($id <= 0) continue;
 
-		if (isset($row['attivo']) && (string)$row['attivo'] !== '' && (int)$row['attivo'] === 0) {
-			continue;
-		}
+        if (isset($row['attivo']) && (string)$row['attivo'] !== '' && (int)$row['attivo'] === 0) {
+            continue;
+        }
 
-		$cognome = norm($row['cognome'] ?? '');
-		$nome = norm($row['nome'] ?? '');
-		if ($cognome === '' || $nome === '') continue;
+        $cognome = norm($row['cognome'] ?? '');
+        $nome = norm($row['nome'] ?? '');
+        if ($cognome === '' || $nome === '') continue;
 
-		$key = normalizeTeacherKey($cognome . ' ' . $nome);
+        $key = normalizeTeacherKey($cognome . ' ' . $nome);
 
-		if (!isset($map[$key])) $map[$key] = [];
-		$map[$key][] = $id;
-	}
+        if (!isset($map[$key])) $map[$key] = array();
+        $map[$key][] = $id;
+    }
 
-	return $map;
+    return $map;
 }
 
 function findDocenteId($fullNamePdf, $docentiMap)
 {
-	$key = normalizeTeacherKey($fullNamePdf);
+    $key = normalizeTeacherKey($fullNamePdf);
 
-	if ($key === '') {
-		return ['ok' => false, 'reason' => 'Nome docente vuoto', 'id' => null];
-	}
+    if ($key === '') {
+        return array('ok' => false, 'reason' => 'Nome docente vuoto', 'id' => null);
+    }
 
-	if (!isset($docentiMap[$key])) {
-		return ['ok' => false, 'reason' => 'Docente non trovato', 'id' => null];
-	}
+    if (!isset($docentiMap[$key])) {
+        return array('ok' => false, 'reason' => 'Docente non trovato', 'id' => null);
+    }
 
-	$ids = $docentiMap[$key];
-	if (count($ids) > 1) {
-		return ['ok' => false, 'reason' => 'Docente ambiguo', 'id' => null];
-	}
+    $ids = $docentiMap[$key];
+    if (count($ids) > 1) {
+        return array('ok' => false, 'reason' => 'Docente ambiguo', 'id' => null);
+    }
 
-	return ['ok' => true, 'reason' => '', 'id' => (int)$ids[0]];
+    return array('ok' => true, 'reason' => '', 'id' => (int)$ids[0]);
 }
 
 function getDocenteById($idDocente)
 {
-	$idDocente = (int)$idDocente;
-	if ($idDocente <= 0) return null;
+    $idDocente = (int)$idDocente;
+    if ($idDocente <= 0) return null;
 
-	$q = "
+    $q = "
         SELECT id, cognome, nome, email
         FROM docente
         WHERE id = " . dbI($idDocente) . "
         LIMIT 1
     ";
 
-	return dbGetFirst($q);
+    return dbGetFirst($q);
 }
 
 function docenteFullName($doc)
 {
-	if (!$doc) return '';
-	return trim(($doc['cognome'] ?? '') . ' ' . ($doc['nome'] ?? ''));
+    if (!$doc) return '';
+    return trim(($doc['cognome'] ?? '') . ' ' . ($doc['nome'] ?? ''));
 }
 
 /* =========================================================
@@ -379,10 +393,10 @@ function docenteFullName($doc)
 
 function getTelegramProfileByDocenteId($idDocente)
 {
-	$idDocente = (int)$idDocente;
-	if ($idDocente <= 0) return null;
+    $idDocente = (int)$idDocente;
+    if ($idDocente <= 0) return null;
 
-	$q = "
+    $q = "
         SELECT *
         FROM docente_telegram
         WHERE idDocente = " . dbI($idDocente) . "
@@ -391,38 +405,40 @@ function getTelegramProfileByDocenteId($idDocente)
         LIMIT 1
     ";
 
-	return dbGetFirst($q);
+    return dbGetFirst($q);
 }
 
 function updateTelegramLastOk($idDocente)
 {
-	$q = "
+    $q = "
         UPDATE docente_telegram
         SET ultimo_invio_ok = NOW(),
             ultimo_errore = NULL,
             ultimo_errore_data = NULL
         WHERE idDocente = " . dbI($idDocente) . "
     ";
-	dbExec($q);
+    dbExec($q);
 }
 
 function updateTelegramLastError($idDocente, $msg)
 {
-	$q = "
+    $q = "
         UPDATE docente_telegram
         SET ultimo_errore = " . dbQ(mb_substr((string)$msg, 0, 1000, 'UTF-8')) . ",
             ultimo_errore_data = NOW()
         WHERE idDocente = " . dbI($idDocente) . "
     ";
-	dbExec($q);
+    dbExec($q);
 }
 
 function logTelegramEsito($idDocente, $idSostituzione, $tipoEvento, $messaggio, $esito, $rispostaApi)
 {
-	$messaggioLog = stripEmojiForLog($messaggio);
-	$rispostaApiLog = stripEmojiForLog($rispostaApi);
+    $messaggioLog = stripEmojiForLog($messaggio);
+    $rispostaApiLog = stripEmojiForLog($rispostaApi);
 
-	$q = "
+    $idSostituzioneSql = ($idSostituzione > 0) ? dbI($idSostituzione) : 'NULL';
+
+    $q = "
         INSERT INTO docente_telegram_log (
             idDocente,
             idSostituzione,
@@ -433,7 +449,7 @@ function logTelegramEsito($idDocente, $idSostituzione, $tipoEvento, $messaggio, 
             data_invio
         ) VALUES (
             " . dbI($idDocente) . ",
-            " . dbI($idSostituzione) . ",
+            $idSostituzioneSql,
             " . dbQ($tipoEvento) . ",
             " . dbQ($messaggioLog) . ",
             " . dbQ($esito) . ",
@@ -441,66 +457,66 @@ function logTelegramEsito($idDocente, $idSostituzione, $tipoEvento, $messaggio, 
             NOW()
         )
     ";
-	dbExec($q);
+    dbExec($q);
 }
 
-function inviaTelegramDocente($botToken, $chatId, $text, $destDocenteNome = '')
+function inviaTelegramDocente($botToken, $chatId, $text, $destDocenteNome)
 {
-	global $IS_TELEGRAM_TEST_MODE, $TELEGRAM_TEST_CHAT_ID;
+    global $IS_TELEGRAM_TEST_MODE, $TELEGRAM_TEST_CHAT_ID;
 
-	$chatId = trim((string)$chatId);
-	$botToken = trim((string)$botToken);
-	$destDocenteNome = trim((string)$destDocenteNome);
+    $chatId = trim((string)$chatId);
+    $botToken = trim((string)$botToken);
+    $destDocenteNome = trim((string)$destDocenteNome);
 
-	if ($botToken === '') {
-		return ['ok' => false, 'response' => 'bot token mancante'];
-	}
+    if ($botToken === '') {
+        return array('ok' => false, 'response' => 'bot token mancante');
+    }
 
-	if ($IS_TELEGRAM_TEST_MODE) {
-		$realChatId = $chatId;
-		$chatId = $TELEGRAM_TEST_CHAT_ID;
+    if ($IS_TELEGRAM_TEST_MODE) {
+        $realChatId = $chatId;
+        $chatId = $TELEGRAM_TEST_CHAT_ID;
 
-		$prefix = "🧪 TEST MODE - messaggio destinato a: " . ($destDocenteNome !== '' ? $destDocenteNome : 'DOCENTE SCONOSCIUTO');
-		if ($realChatId !== '') {
-			$prefix .= "\n💬 Chat reale prevista: " . $realChatId;
-		}
-		$prefix .= "\n\n";
+        $prefix = "TEST MODE - messaggio destinato a: " . ($destDocenteNome !== '' ? $destDocenteNome : 'DOCENTE SCONOSCIUTO');
+        if ($realChatId !== '') {
+            $prefix .= "\nChat reale prevista: " . $realChatId;
+        }
+        $prefix .= "\n\n";
 
-		$text = $prefix . $text;
-	}
+        $text = $prefix . $text;
+    }
 
-	if ($chatId === '') {
-		return ['ok' => false, 'response' => 'chat_id mancante'];
-	}
+    if ($chatId === '') {
+        return array('ok' => false, 'response' => 'chat_id mancante');
+    }
 
-	$url = "https://api.telegram.org/bot{$botToken}/sendMessage";
+    $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
 
-	$payload = [
-		'chat_id' => $chatId,
-		'text' => $text
-	];
+    $payload = array(
+        'chat_id' => $chatId,
+        'text' => $text
+    );
 
-	$ch = curl_init($url);
-	curl_setopt($ch, CURLOPT_POST, true);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-	curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
-	curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
+    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
 
-	$response = curl_exec($ch);
-	$errno = curl_errno($ch);
-	$error = curl_error($ch);
-	curl_close($ch);
+    $response = curl_exec($ch);
+    $errno = curl_errno($ch);
+    $error = curl_error($ch);
+    curl_close($ch);
 
-	if ($errno) {
-		return ['ok' => false, 'response' => "cURL error: $error"];
-	}
+    if ($errno) {
+        return array('ok' => false, 'response' => "cURL error: $error");
+    }
 
-	$data = json_decode($response, true);
-	if (is_array($data) && !empty($data['ok'])) {
-		return ['ok' => true, 'response' => $response];
-	}
+    $data = json_decode($response, true);
+    if (is_array($data) && !empty($data['ok'])) {
+        return array('ok' => true, 'response' => $response);
+    }
 
-	return ['ok' => false, 'response' => $response ?: 'Risposta Telegram vuota'];
+    return array('ok' => false, 'response' => ($response ? $response : 'Risposta Telegram vuota'));
 }
 
 /* =========================================================
@@ -509,7 +525,7 @@ function inviaTelegramDocente($botToken, $chatId, $text, $destDocenteNome = '')
 
 function notificaGiaInviata($idSostituzione, $idDocenteDestinatario, $evento, $canale)
 {
-	$q = "
+    $q = "
         SELECT idNotifica
         FROM sostituzioni_notifiche
         WHERE idSostituzione = " . dbI($idSostituzione) . "
@@ -518,13 +534,13 @@ function notificaGiaInviata($idSostituzione, $idDocenteDestinatario, $evento, $c
           AND canale = " . dbQ($canale) . "
         LIMIT 1
     ";
-	$row = dbGetFirst($q);
-	return is_array($row) && !empty($row['idNotifica']);
+    $row = dbGetFirst($q);
+    return is_array($row) && !empty($row['idNotifica']);
 }
 
 function registraNotificaInviata($idSostituzione, $idDocenteDestinatario, $evento, $canale)
 {
-	$q = "
+    $q = "
         INSERT IGNORE INTO sostituzioni_notifiche (
             idSostituzione,
             idDocenteDestinatario,
@@ -539,59 +555,94 @@ function registraNotificaInviata($idSostituzione, $idDocenteDestinatario, $event
             NOW()
         )
     ";
-	dbExec($q);
+    dbExec($q);
 }
 
 function inviaMailDocente($to, $toName, $subject, $htmlBody)
 {
-	global $IS_MAIL_DOCENTE_ENABLED;
+    global $IS_MAIL_DOCENTE_ENABLED;
 
-	if (!$IS_MAIL_DOCENTE_ENABLED) {
-		warningimportsost("MAIL disabilitata da config");
-		return false;
-	}
+    if (!$IS_MAIL_DOCENTE_ENABLED) {
+        warningimportsost("MAIL disabilitata da config");
+        return false;
+    }
 
-	$to = trim((string)$to);
-	$toName = trim((string)$toName);
+    $to = trim((string)$to);
+    $toName = trim((string)$toName);
 
-	if ($to === '') {
-		warningimportsost("MAIL non inviata: destinatario vuoto");
-		return false;
-	}
+    if ($to === '') {
+        warningimportsost("MAIL non inviata: destinatario vuoto");
+        return false;
+    }
 
-	infoimportsost("Tentativo invio MAIL to=[$to] subj=[$subject]");
+    infoimportsost("Tentativo invio MAIL to=[$to] subj=[$subject]");
 
-	return sendMail($to, $toName, $subject, $htmlBody);
+    return sendMail($to, $toName, $subject, $htmlBody);
 }
 
 function buildMessaggioAssegnazione($data, $oraInizio, $oraFine, $docenteSostituito, $classe, $aula, $materia)
 {
-	$dataIt = formatDateItLong($data);
+    $dataIt = formatDateItLong($data);
 
-	return
-		"📌 Ti è stata assegnata una sostituzione.\n\n" .
-		"📅 Data: $dataIt\n" .
-		"🕒 Orario: $oraInizio - $oraFine\n" .
-		"👤 Docente sostituito: $docenteSostituito\n" .
-		"🏫 Classe: $classe\n" .
-		"🚪 Aula: $aula\n" .
-		"📚 Materia: $materia\n\n" .
-		"🤖 Messaggio automatico GestOre.";
+    return
+        "NUOVA SOSTITUZIONE ASSEGNATA\n\n" .
+        "Data: $dataIt\n" .
+        "Orario: $oraInizio - $oraFine\n" .
+        "Docente sostituito: $docenteSostituito\n" .
+        "Classe: " . ($classe !== '' ? $classe : '-') . "\n" .
+        "Aula: " . ($aula !== '' ? $aula : '-') . "\n" .
+        "Materia: " . ($materia !== '' ? $materia : '-') . "\n\n" .
+        "Messaggio automatico GestOre.";
 }
 
 function buildMessaggioAnnullamento($data, $oraInizio, $oraFine, $docenteSostituito, $classe, $aula, $materia)
 {
-	$dataIt = formatDateItLong($data);
+    $dataIt = formatDateItLong($data);
 
-	return
-		"⚠️ La sostituzione precedentemente assegnata è stata annullata o modificata.\n\n" .
-		"📅 Data: $dataIt\n" .
-		"🕒 Orario: $oraInizio - $oraFine\n" .
-		"👤 Docente sostituito: $docenteSostituito\n" .
-		"🏫 Classe: $classe\n" .
-		"🚪 Aula: $aula\n" .
-		"📚 Materia: $materia\n\n" .
-		"🤖 Messaggio automatico GestOre.";
+    return
+        "SOSTITUZIONE ANNULLATA\n\n" .
+        "La sostituzione non è più da svolgere.\n\n" .
+        "Data: $dataIt\n" .
+        "Orario: $oraInizio - $oraFine\n" .
+        "Docente sostituito: $docenteSostituito\n" .
+        "Classe: " . ($classe !== '' ? $classe : '-') . "\n" .
+        "Aula: " . ($aula !== '' ? $aula : '-') . "\n" .
+        "Materia: " . ($materia !== '' ? $materia : '-') . "\n\n" .
+        "Non è richiesta la tua presenza.\n\n" .
+        "GestOre";
+}
+
+function buildMessaggioModifica($data, $oraInizio, $oraFine, $docenteSostituito, $classe, $aula, $materia)
+{
+    $dataIt = formatDateItLong($data);
+
+    return
+        "SOSTITUZIONE MODIFICATA\n\n" .
+        "La sostituzione è ancora valida ma sono cambiati alcuni dettagli.\n\n" .
+        "Data: $dataIt\n" .
+        "Orario: $oraInizio - $oraFine\n" .
+        "Docente sostituito: $docenteSostituito\n" .
+        "Classe: " . ($classe !== '' ? $classe : '-') . "\n" .
+        "Aula: " . ($aula !== '' ? $aula : '-') . "\n" .
+        "Materia: " . ($materia !== '' ? $materia : '-') . "\n\n" .
+        "Verifica attentamente le modifiche.\n\n" .
+        "GestOre";
+}
+
+function buildNotificationBody($evento, $data, $oraInizio, $oraFine, $docenteSostituito, $classe, $aula, $materia)
+{
+    $oraInizioShort = substr((string)$oraInizio, 0, 5);
+    $oraFineShort = substr((string)$oraFine, 0, 5);
+
+    if ($evento === 'ANNULLAMENTO') {
+        return buildMessaggioAnnullamento($data, $oraInizioShort, $oraFineShort, $docenteSostituito, $classe, $aula, $materia);
+    }
+
+    if ($evento === 'MODIFICA') {
+        return buildMessaggioModifica($data, $oraInizioShort, $oraFineShort, $docenteSostituito, $classe, $aula, $materia);
+    }
+
+    return buildMessaggioAssegnazione($data, $oraInizioShort, $oraFineShort, $docenteSostituito, $classe, $aula, $materia);
 }
 
 /* =========================================================
@@ -600,29 +651,29 @@ function buildMessaggioAnnullamento($data, $oraInizio, $oraFine, $docenteSostitu
 
 $raw = file_get_contents('php://input');
 if (!$raw) {
-	errorimportsost("Body JSON vuoto");
-	respond([
-		'ok' => false,
-		'error' => 'Body JSON vuoto'
-	], 400);
+    errorimportsost("Body JSON vuoto");
+    respond(array(
+        'ok' => false,
+        'error' => 'Body JSON vuoto'
+    ), 400);
 }
 
 $data = json_decode($raw, true);
 if (!is_array($data)) {
-	errorimportsost("JSON non valido");
-	respond([
-		'ok' => false,
-		'error' => 'JSON non valido'
-	], 400);
+    errorimportsost("JSON non valido");
+    respond(array(
+        'ok' => false,
+        'error' => 'JSON non valido'
+    ), 400);
 }
 
-$items = $data['items'] ?? null;
+$items = isset($data['items']) ? $data['items'] : null;
 if (!is_array($items)) {
-	errorimportsost("Campo items mancante o non valido");
-	respond([
-		'ok' => false,
-		'error' => 'Campo items mancante o non valido'
-	], 400);
+    errorimportsost("Campo items mancante o non valido");
+    respond(array(
+        'ok' => false,
+        'error' => 'Campo items mancante o non valido'
+    ), 400);
 }
 
 infoimportsost("Ricevuti " . count($items) . " item da importare");
@@ -634,11 +685,13 @@ infoimportsost("Ricevuti " . count($items) . " item da importare");
 $hasDocSostPdf = tableHasColumn('sostituzioni', 'docenteSostitutoPdf');
 $hasDocSostituitoPdf = tableHasColumn('sostituzioni', 'docenteSostituitoPdf');
 $hasDataImport = tableHasColumn('sostituzioni', 'dataImport');
+$hasStato = tableHasColumn('sostituzioni', 'stato');
 
 infoimportsost(
-	"Check tabella sostituzioni: hasDocSostPdf=" . ($hasDocSostPdf ? '1' : '0') .
-		" hasDocSostituitoPdf=" . ($hasDocSostituitoPdf ? '1' : '0') .
-		" hasDataImport=" . ($hasDataImport ? '1' : '0')
+    "Check tabella sostituzioni: hasDocSostPdf=" . ($hasDocSostPdf ? '1' : '0') .
+    " hasDocSostituitoPdf=" . ($hasDocSostituitoPdf ? '1' : '0') .
+    " hasDataImport=" . ($hasDataImport ? '1' : '0') .
+    " hasStato=" . ($hasStato ? '1' : '0')
 );
 
 /* =========================================================
@@ -648,14 +701,53 @@ infoimportsost(
 $docentiMap = buildDocentiMap();
 
 if (empty($docentiMap)) {
-	errorimportsost("Nessun docente disponibile o tabella docente non leggibile");
-	respond([
-		'ok' => false,
-		'error' => 'Nessun docente disponibile o tabella docente non leggibile'
-	], 500);
+    errorimportsost("Nessun docente disponibile o tabella docente non leggibile");
+    respond(array(
+        'ok' => false,
+        'error' => 'Nessun docente disponibile o tabella docente non leggibile'
+    ), 500);
 }
 
 infoimportsost("Docenti caricati in mappa: " . count($docentiMap));
+
+/* =========================================================
+   PRECARICO SOSTITUZIONI ATTIVE ESISTENTI
+   ========================================================= */
+
+$whereStatoAttive = $hasStato ? " AND (stato IS NULL OR stato <> 'ANNULLATA') " : "";
+
+$qSostAttive = "
+    SELECT *
+    FROM sostituzioni
+    WHERE 1=1
+    $whereStatoAttive
+";
+$sostituzioniAttiveRows = dbGetAll($qSostAttive);
+if (!is_array($sostituzioniAttiveRows)) $sostituzioniAttiveRows = array();
+
+$existingByNaturalKey = array();
+$existingBySlotDocente = array();
+
+foreach ($sostituzioniAttiveRows as $row) {
+    $idS = (int)($row['idSostituzione'] ?? 0);
+    if ($idS <= 0) continue;
+
+    $dataS = norm($row['data'] ?? '');
+    $oraInS = normalizeTimeToHms($row['oraInizio'] ?? '');
+    $oraFineS = normalizeTimeToHms($row['oraFine'] ?? '');
+    $idDocSostituitoS = (int)($row['idDocenteSostituito'] ?? 0);
+    $classeS = norm($row['classe'] ?? '');
+    $aulaS = norm($row['aula'] ?? '');
+
+    $naturalKey = implode('|', array($dataS, $oraInS, $oraFineS, $idDocSostituitoS, $classeS, $aulaS));
+    $existingByNaturalKey[$naturalKey] = $row;
+
+    $slotKey = implode('|', array($dataS, $oraInS, $oraFineS, $idDocSostituitoS));
+    if (!isset($existingBySlotDocente[$slotKey])) {
+        $existingBySlotDocente[$slotKey] = array();
+    }
+    $existingBySlotDocente[$slotKey][] = $row;
+}
 
 /* =========================================================
    IMPORT
@@ -664,479 +756,509 @@ infoimportsost("Docenti caricati in mappa: " . count($docentiMap));
 $totaleRicevuti = count($items);
 $inseriti = 0;
 $aggiornati = 0;
-$scartati = [];
-$preview = [];
-$notificheDaInviare = [];
-$notificheInviate = [];
-$debugNotifiche = [];
+$annullati = 0;
+$scartati = array();
+$preview = array();
+$notificheDaInviare = array();
+$notificheInviate = array();
+$debugNotifiche = array();
+
+$seenActiveIds = array();
 
 infoimportsost("START TRANSACTION");
 dbExec("START TRANSACTION");
 
 try {
-	foreach ($items as $idx => $item) {
-		$riga = $idx + 1;
+    foreach ($items as $idx => $item) {
+        $riga = $idx + 1;
 
-		$dataVal = norm($item['data'] ?? '');
-		$oraInizio = normalizeTimeToHms($item['oraInizio'] ?? '');
-		$oraFine = normalizeTimeToHms($item['oraFine'] ?? '');
-		$docenteSostitutoPdf = normalizeSpaces($item['docenteSostituto'] ?? '');
-		$docenteSostituitoPdf = normalizeSpaces($item['docenteSostituito'] ?? '');
-		$materia = normalizeSpaces($item['materia'] ?? '');
-		$classe = normalizeSpaces($item['classe'] ?? '');
-		$aula = normalizeSpaces($item['aula'] ?? '');
+        $dataVal = norm($item['data'] ?? '');
+        $oraInizio = normalizeTimeToHms($item['oraInizio'] ?? '');
+        $oraFine = normalizeTimeToHms($item['oraFine'] ?? '');
+        $docenteSostitutoPdf = normalizeSpaces($item['docenteSostituto'] ?? '');
+        $docenteSostituitoPdf = normalizeSpaces($item['docenteSostituito'] ?? '');
+        $materia = normalizeSpaces($item['materia'] ?? '');
+        $classe = normalizeSpaces($item['classe'] ?? '');
+        $aula = normalizeSpaces($item['aula'] ?? '');
 
-		infoimportsost("Riga $riga letta: data=[$dataVal] ora=[$oraInizio-$oraFine] sostituto=[$docenteSostitutoPdf] sostituito=[$docenteSostituitoPdf] classe=[$classe] aula=[$aula] materia=[$materia]");
+        infoimportsost("Riga $riga letta: data=[$dataVal] ora=[$oraInizio-$oraFine] sostituto=[$docenteSostitutoPdf] sostituito=[$docenteSostituitoPdf] classe=[$classe] aula=[$aula] materia=[$materia]");
 
-		if (
-			$dataVal === '' ||
-			$oraInizio === '' ||
-			$oraFine === '' ||
-			$docenteSostitutoPdf === '' ||
-			$docenteSostituitoPdf === ''
-		) {
-			warningimportsost("Riga $riga scartata: campi obbligatori mancanti o orari non validi");
-			$scartati[] = [
-				'riga' => $riga,
-				'motivo' => 'Campi obbligatori mancanti o orari non validi',
-				'item' => $item
-			];
-			continue;
-		}
+        if ($dataVal === '' || $oraInizio === '' || $oraFine === '' || $docenteSostitutoPdf === '' || $docenteSostituitoPdf === '') {
+            warningimportsost("Riga $riga scartata: campi obbligatori mancanti o orari non validi");
+            $scartati[] = array(
+                'riga' => $riga,
+                'motivo' => 'Campi obbligatori mancanti o orari non validi',
+                'item' => $item
+            );
+            continue;
+        }
 
-		if (!isValidDateYmd($dataVal)) {
-			warningimportsost("Riga $riga scartata: data non valida [$dataVal]");
-			$scartati[] = [
-				'riga' => $riga,
-				'motivo' => 'Data non valida, atteso formato YYYY-MM-DD',
-				'item' => $item
-			];
-			continue;
-		}
+        if (!isValidDateYmd($dataVal)) {
+            warningimportsost("Riga $riga scartata: data non valida [$dataVal]");
+            $scartati[] = array(
+                'riga' => $riga,
+                'motivo' => 'Data non valida, atteso formato YYYY-MM-DD',
+                'item' => $item
+            );
+            continue;
+        }
 
-		$matchSostituto = findDocenteId($docenteSostitutoPdf, $docentiMap);
-		if (!$matchSostituto['ok']) {
-			warningimportsost("Riga $riga scartata: docente sostituto non trovato/ambiguo [$docenteSostitutoPdf] motivo=[" . $matchSostituto['reason'] . "]");
-			$scartati[] = [
-				'riga' => $riga,
-				'motivo' => 'Docente sostituto: ' . $matchSostituto['reason'],
-				'docente' => $docenteSostitutoPdf,
-				'item' => $item
-			];
-			continue;
-		}
+        $matchSostituto = findDocenteId($docenteSostitutoPdf, $docentiMap);
+        if (!$matchSostituto['ok']) {
+            warningimportsost("Riga $riga scartata: docente sostituto non trovato/ambiguo [$docenteSostitutoPdf] motivo=[" . $matchSostituto['reason'] . "]");
+            $scartati[] = array(
+                'riga' => $riga,
+                'motivo' => 'Docente sostituto: ' . $matchSostituto['reason'],
+                'docente' => $docenteSostitutoPdf,
+                'item' => $item
+            );
+            continue;
+        }
 
-		$matchSostituito = findDocenteId($docenteSostituitoPdf, $docentiMap);
-		if (!$matchSostituito['ok']) {
-			warningimportsost("Riga $riga scartata: docente sostituito non trovato/ambiguo [$docenteSostituitoPdf] motivo=[" . $matchSostituito['reason'] . "]");
-			$scartati[] = [
-				'riga' => $riga,
-				'motivo' => 'Docente sostituito: ' . $matchSostituito['reason'],
-				'docente' => $docenteSostituitoPdf,
-				'item' => $item
-			];
-			continue;
-		}
+        $matchSostituito = findDocenteId($docenteSostituitoPdf, $docentiMap);
+        if (!$matchSostituito['ok']) {
+            warningimportsost("Riga $riga scartata: docente sostituito non trovato/ambiguo [$docenteSostituitoPdf] motivo=[" . $matchSostituito['reason'] . "]");
+            $scartati[] = array(
+                'riga' => $riga,
+                'motivo' => 'Docente sostituito: ' . $matchSostituito['reason'],
+                'docente' => $docenteSostituitoPdf,
+                'item' => $item
+            );
+            continue;
+        }
 
-		$idDocenteSostituto = (int)$matchSostituto['id'];
-		$idDocenteSostituito = (int)$matchSostituito['id'];
+        $idDocenteSostituto = (int)$matchSostituto['id'];
+        $idDocenteSostituito = (int)$matchSostituito['id'];
 
-		infoimportsost("Riga $riga match docenti: idSostituto=$idDocenteSostituto idSostituito=$idDocenteSostituito");
+        $naturalKey = implode('|', array($dataVal, $oraInizio, $oraFine, $idDocenteSostituito, $classe, $aula));
+        $slotKey = implode('|', array($dataVal, $oraInizio, $oraFine, $idDocenteSostituito));
 
-		$whereKey = "
-            data = " . dbQ($dataVal) . "
-            AND oraInizio = " . dbQ($oraInizio) . "
-            AND oraFine = " . dbQ($oraFine) . "
-            AND idDocenteSostituito = " . dbI($idDocenteSostituito) . "
-            AND classe <=> " . dbQ($classe) . "
-            AND aula <=> " . dbQ($aula);
+        $exists = isset($existingByNaturalKey[$naturalKey]) ? $existingByNaturalKey[$naturalKey] : null;
 
-		$exists = dbGetFirst("
-            SELECT *
-            FROM sostituzioni
-            WHERE $whereKey
-            LIMIT 1
-        ");
+        if ($exists) {
+            $idSostituzione = (int)$exists['idSostituzione'];
+            $seenActiveIds[$idSostituzione] = true;
 
-		if ($exists) {
-			$idSostituzione = (int)$exists['idSostituzione'];
-			$oldIdDocenteSostituto = (int)($exists['idDocenteSostituto'] ?? 0);
+            $oldIdDocenteSostituto = (int)($exists['idDocenteSostituto'] ?? 0);
 
-			$stessaAssegnazione =
-				$oldIdDocenteSostituto === $idDocenteSostituto
-				&& norm($exists['materia'] ?? '') === $materia
-				&& norm($exists['classe'] ?? '') === $classe
-				&& norm($exists['aula'] ?? '') === $aula
-				&& normOra($exists['oraInizio'] ?? '') === substr($oraInizio, 0, 5)
-				&& normOra($exists['oraFine'] ?? '') === substr($oraFine, 0, 5);
+            $stessaAssegnazione =
+                $oldIdDocenteSostituto === $idDocenteSostituto &&
+                valueEq($exists['materia'] ?? '', $materia) &&
+                valueEq($exists['classe'] ?? '', $classe) &&
+                valueEq($exists['aula'] ?? '', $aula) &&
+                normOra($exists['oraInizio'] ?? '') === substr($oraInizio, 0, 5) &&
+                normOra($exists['oraFine'] ?? '') === substr($oraFine, 0, 5);
 
-			infoimportsost("Riga $riga trovata sostituzione esistente id=$idSostituzione oldIdDocenteSostituto=$oldIdDocenteSostituto stessaAssegnazione=" . ($stessaAssegnazione ? '1' : '0'));
+            if (!$stessaAssegnazione) {
+                $fields = array(
+                    "idDocenteSostituto = " . dbI($idDocenteSostituto),
+                    "materia = " . dbQ($materia),
+                    "classe = " . dbQ($classe),
+                    "aula = " . dbQ($aula)
+                );
 
-			if ($stessaAssegnazione) {
-				$notificheDaInviare[] = [
-					'idSostituzione' => $idSostituzione,
-					'idDocente' => $idDocenteSostituto,
-					'evento' => 'ASSEGNAZIONE',
-					'data' => $dataVal,
-					'oraInizio' => $oraInizio,
-					'oraFine' => $oraFine,
-					'docenteSostituito' => $docenteSostituitoPdf,
-					'classe' => $classe,
-					'aula' => $aula,
-					'materia' => $materia
-				];
-				infoimportsost("Riga $riga sostituzione già presente: accodata notifica ASSEGNAZIONE docente=$idDocenteSostituto idSostituzione=$idSostituzione");
-				continue;
-			}
+                if ($hasDocSostPdf) {
+                    $fields[] = "docenteSostitutoPdf = " . dbQ($docenteSostitutoPdf);
+                }
+                if ($hasDocSostituitoPdf) {
+                    $fields[] = "docenteSostituitoPdf = " . dbQ($docenteSostituitoPdf);
+                }
+                if ($hasDataImport) {
+                    $fields[] = "dataImport = NOW()";
+                }
+                if ($hasStato) {
+                    $fields[] = "stato = 'ATTIVA'";
+                }
 
-			$fields = [
-				"idDocenteSostituto = " . dbI($idDocenteSostituto),
-				"materia = " . dbQ($materia),
-				"classe = " . dbQ($classe),
-				"aula = " . dbQ($aula)
-			];
+                $q = "
+                    UPDATE sostituzioni
+                    SET " . implode(",\n", $fields) . "
+                    WHERE idSostituzione = " . dbI($idSostituzione);
 
-			if ($hasDocSostPdf) {
-				$fields[] = "docenteSostitutoPdf = " . dbQ($docenteSostitutoPdf);
-			}
-			if ($hasDocSostituitoPdf) {
-				$fields[] = "docenteSostituitoPdf = " . dbQ($docenteSostituitoPdf);
-			}
-			if ($hasDataImport) {
-				$fields[] = "dataImport = NOW()";
-			}
+                dbExec($q);
+                $aggiornati++;
 
-			$q = "
-                UPDATE sostituzioni
-                SET " . implode(",\n", $fields) . "
-                WHERE idSostituzione = " . dbI($idSostituzione);
+                if ($oldIdDocenteSostituto > 0 && $oldIdDocenteSostituto !== $idDocenteSostituto) {
+                    $notificheDaInviare[] = array(
+                        'idSostituzione' => $idSostituzione,
+                        'idDocente' => $oldIdDocenteSostituto,
+                        'evento' => 'ANNULLAMENTO',
+                        'data' => $dataVal,
+                        'oraInizio' => $oraInizio,
+                        'oraFine' => $oraFine,
+                        'docenteSostituito' => $docenteSostituitoPdf,
+                        'classe' => $classe,
+                        'aula' => $aula,
+                        'materia' => $materia
+                    );
 
-			dbExec($q);
-			$aggiornati++;
-			infoimportsost("Riga $riga aggiornata sostituzione id=$idSostituzione nuovoIdDocenteSostituto=$idDocenteSostituto");
+                    $notificheDaInviare[] = array(
+                        'idSostituzione' => $idSostituzione,
+                        'idDocente' => $idDocenteSostituto,
+                        'evento' => 'ASSEGNAZIONE',
+                        'data' => $dataVal,
+                        'oraInizio' => $oraInizio,
+                        'oraFine' => $oraFine,
+                        'docenteSostituito' => $docenteSostituitoPdf,
+                        'classe' => $classe,
+                        'aula' => $aula,
+                        'materia' => $materia
+                    );
+                } else {
+                    $notificheDaInviare[] = array(
+                        'idSostituzione' => $idSostituzione,
+                        'idDocente' => $idDocenteSostituto,
+                        'evento' => 'MODIFICA',
+                        'data' => $dataVal,
+                        'oraInizio' => $oraInizio,
+                        'oraFine' => $oraFine,
+                        'docenteSostituito' => $docenteSostituitoPdf,
+                        'classe' => $classe,
+                        'aula' => $aula,
+                        'materia' => $materia
+                    );
+                }
+            }
+        } else {
+            $matchedBySlot = null;
+            $slotRows = isset($existingBySlotDocente[$slotKey]) ? $existingBySlotDocente[$slotKey] : array();
 
-			if ($oldIdDocenteSostituto > 0 && $oldIdDocenteSostituto !== $idDocenteSostituto) {
-				$notificheDaInviare[] = [
-					'idSostituzione' => $idSostituzione,
-					'idDocente' => $oldIdDocenteSostituto,
-					'evento' => 'ANNULLAMENTO',
-					'data' => $dataVal,
-					'oraInizio' => $oraInizio,
-					'oraFine' => $oraFine,
-					'docenteSostituito' => $docenteSostituitoPdf,
-					'classe' => $classe,
-					'aula' => $aula,
-					'materia' => $materia
-				];
+            if (!empty($slotRows)) {
+                foreach ($slotRows as $candidate) {
+                    $candidateId = (int)($candidate['idSostituzione'] ?? 0);
+                    if ($candidateId > 0 && !isset($seenActiveIds[$candidateId])) {
+                        $matchedBySlot = $candidate;
+                        break;
+                    }
+                }
+            }
 
-				$notificheDaInviare[] = [
-					'idSostituzione' => $idSostituzione,
-					'idDocente' => $idDocenteSostituto,
-					'evento' => 'ASSEGNAZIONE',
-					'data' => $dataVal,
-					'oraInizio' => $oraInizio,
-					'oraFine' => $oraFine,
-					'docenteSostituito' => $docenteSostituitoPdf,
-					'classe' => $classe,
-					'aula' => $aula,
-					'materia' => $materia
-				];
+            if ($matchedBySlot) {
+                $idSostituzione = (int)$matchedBySlot['idSostituzione'];
+                $seenActiveIds[$idSostituzione] = true;
+                $oldIdDocenteSostituto = (int)($matchedBySlot['idDocenteSostituto'] ?? 0);
 
-				infoimportsost("Riga $riga cambio sostituto: accodate notifiche ANNULLAMENTO docente=$oldIdDocenteSostituto e ASSEGNAZIONE docente=$idDocenteSostituto");
-			}
-		} else {
-			$insertCols = [
-				'data',
-				'oraInizio',
-				'oraFine',
-				'idDocenteSostituto',
-				'idDocenteSostituito',
-				'materia',
-				'classe',
-				'aula'
-			];
+                $fields = array(
+                    "idDocenteSostituto = " . dbI($idDocenteSostituto),
+                    "materia = " . dbQ($materia),
+                    "classe = " . dbQ($classe),
+                    "aula = " . dbQ($aula)
+                );
 
-			$insertVals = [
-				dbQ($dataVal),
-				dbQ($oraInizio),
-				dbQ($oraFine),
-				dbI($idDocenteSostituto),
-				dbI($idDocenteSostituito),
-				dbQ($materia),
-				dbQ($classe),
-				dbQ($aula)
-			];
+                if ($hasDocSostPdf) {
+                    $fields[] = "docenteSostitutoPdf = " . dbQ($docenteSostitutoPdf);
+                }
+                if ($hasDocSostituitoPdf) {
+                    $fields[] = "docenteSostituitoPdf = " . dbQ($docenteSostituitoPdf);
+                }
+                if ($hasDataImport) {
+                    $fields[] = "dataImport = NOW()";
+                }
+                if ($hasStato) {
+                    $fields[] = "stato = 'ATTIVA'";
+                }
 
-			if ($hasDocSostPdf) {
-				$insertCols[] = 'docenteSostitutoPdf';
-				$insertVals[] = dbQ($docenteSostitutoPdf);
-			}
-			if ($hasDocSostituitoPdf) {
-				$insertCols[] = 'docenteSostituitoPdf';
-				$insertVals[] = dbQ($docenteSostituitoPdf);
-			}
-			if ($hasDataImport) {
-				$insertCols[] = 'dataImport';
-				$insertVals[] = 'NOW()';
-			}
+                $q = "
+                    UPDATE sostituzioni
+                    SET " . implode(",\n", $fields) . "
+                    WHERE idSostituzione = " . dbI($idSostituzione);
 
-			$q = "
-                INSERT INTO sostituzioni (" . implode(', ', $insertCols) . ")
-                VALUES (" . implode(', ', $insertVals) . ")
-            ";
+                dbExec($q);
+                $aggiornati++;
 
-			dbExec($q);
-			$idSostituzione = dblastId();
-			$inseriti++;
+                if ($oldIdDocenteSostituto > 0 && $oldIdDocenteSostituto !== $idDocenteSostituto) {
+                    $notificheDaInviare[] = array(
+                        'idSostituzione' => $idSostituzione,
+                        'idDocente' => $oldIdDocenteSostituto,
+                        'evento' => 'ANNULLAMENTO',
+                        'data' => $dataVal,
+                        'oraInizio' => $oraInizio,
+                        'oraFine' => $oraFine,
+                        'docenteSostituito' => $docenteSostituitoPdf,
+                        'classe' => $classe,
+                        'aula' => $aula,
+                        'materia' => $materia
+                    );
 
-			infoimportsost("Riga $riga inserita nuova sostituzione id=$idSostituzione docenteSostituto=$idDocenteSostituto docenteSostituito=$idDocenteSostituito");
+                    $notificheDaInviare[] = array(
+                        'idSostituzione' => $idSostituzione,
+                        'idDocente' => $idDocenteSostituto,
+                        'evento' => 'ASSEGNAZIONE',
+                        'data' => $dataVal,
+                        'oraInizio' => $oraInizio,
+                        'oraFine' => $oraFine,
+                        'docenteSostituito' => $docenteSostituitoPdf,
+                        'classe' => $classe,
+                        'aula' => $aula,
+                        'materia' => $materia
+                    );
+                } else {
+                    $notificheDaInviare[] = array(
+                        'idSostituzione' => $idSostituzione,
+                        'idDocente' => $idDocenteSostituto,
+                        'evento' => 'MODIFICA',
+                        'data' => $dataVal,
+                        'oraInizio' => $oraInizio,
+                        'oraFine' => $oraFine,
+                        'docenteSostituito' => $docenteSostituitoPdf,
+                        'classe' => $classe,
+                        'aula' => $aula,
+                        'materia' => $materia
+                    );
+                }
+            } else {
+                $insertCols = array(
+                    'data',
+                    'oraInizio',
+                    'oraFine',
+                    'idDocenteSostituto',
+                    'idDocenteSostituito',
+                    'materia',
+                    'classe',
+                    'aula'
+                );
 
-			$notificheDaInviare[] = [
-				'idSostituzione' => $idSostituzione,
-				'idDocente' => $idDocenteSostituto,
-				'evento' => 'ASSEGNAZIONE',
-				'data' => $dataVal,
-				'oraInizio' => $oraInizio,
-				'oraFine' => $oraFine,
-				'docenteSostituito' => $docenteSostituitoPdf,
-				'classe' => $classe,
-				'aula' => $aula,
-				'materia' => $materia
-			];
+                $insertVals = array(
+                    dbQ($dataVal),
+                    dbQ($oraInizio),
+                    dbQ($oraFine),
+                    dbI($idDocenteSostituto),
+                    dbI($idDocenteSostituito),
+                    dbQ($materia),
+                    dbQ($classe),
+                    dbQ($aula)
+                );
 
-			infoimportsost("Riga $riga accodata notifica ASSEGNAZIONE docente=$idDocenteSostituto idSostituzione=$idSostituzione");
-		}
+                if ($hasDocSostPdf) {
+                    $insertCols[] = 'docenteSostitutoPdf';
+                    $insertVals[] = dbQ($docenteSostitutoPdf);
+                }
+                if ($hasDocSostituitoPdf) {
+                    $insertCols[] = 'docenteSostituitoPdf';
+                    $insertVals[] = dbQ($docenteSostituitoPdf);
+                }
+                if ($hasDataImport) {
+                    $insertCols[] = 'dataImport';
+                    $insertVals[] = 'NOW()';
+                }
+                if ($hasStato) {
+                    $insertCols[] = 'stato';
+                    $insertVals[] = dbQ('ATTIVA');
+                }
 
-		if (count($preview) < 15) {
-			$preview[] = [
-				'data' => $dataVal,
-				'oraInizio' => $oraInizio,
-				'oraFine' => $oraFine,
-				'idDocenteSostituto' => $idDocenteSostituto,
-				'idDocenteSostituito' => $idDocenteSostituito,
-				'docenteSostituto' => $docenteSostitutoPdf,
-				'docenteSostituito' => $docenteSostituitoPdf,
-				'materia' => $materia,
-				'classe' => $classe,
-				'aula' => $aula
-			];
-		}
-	}
+                $q = "
+                    INSERT INTO sostituzioni (" . implode(', ', $insertCols) . ")
+                    VALUES (" . implode(', ', $insertVals) . ")
+                ";
 
-	dbExec("COMMIT");
-	infoimportsost("COMMIT eseguito: inseriti=$inseriti aggiornati=$aggiornati scartati=" . count($scartati) . " notificheDaInviare=" . count($notificheDaInviare));
+                dbExec($q);
+                $idSostituzione = dblastId();
+                $seenActiveIds[$idSostituzione] = true;
+                $inseriti++;
 
-	foreach ($notificheDaInviare as $n) {
-		$idSostituzione = (int)$n['idSostituzione'];
-		$idDocenteDest = (int)$n['idDocente'];
-		$evento = $n['evento'];
+                $notificheDaInviare[] = array(
+                    'idSostituzione' => $idSostituzione,
+                    'idDocente' => $idDocenteSostituto,
+                    'evento' => 'ASSEGNAZIONE',
+                    'data' => $dataVal,
+                    'oraInizio' => $oraInizio,
+                    'oraFine' => $oraFine,
+                    'docenteSostituito' => $docenteSostituitoPdf,
+                    'classe' => $classe,
+                    'aula' => $aula,
+                    'materia' => $materia
+                );
+            }
+        }
 
-		infoimportsost("Gestione notifica idSostituzione=$idSostituzione idDocenteDest=$idDocenteDest evento=$evento");
+        if (count($preview) < 15) {
+            $preview[] = array(
+                'data' => $dataVal,
+                'oraInizio' => $oraInizio,
+                'oraFine' => $oraFine,
+                'idDocenteSostituto' => $idDocenteSostituto,
+                'idDocenteSostituito' => $idDocenteSostituito,
+                'docenteSostituto' => $docenteSostitutoPdf,
+                'docenteSostituito' => $docenteSostituitoPdf,
+                'materia' => $materia,
+                'classe' => $classe,
+                'aula' => $aula
+            );
+        }
+    }
 
-		$doc = getDocenteById($idDocenteDest);
-		if (!$doc) {
-			warningimportsost("Docente non trovato per notifica: idDocenteDest=$idDocenteDest idSostituzione=$idSostituzione");
-			continue;
-		}
+    foreach ($sostituzioniAttiveRows as $oldRow) {
+        $idSostituzioneOld = (int)($oldRow['idSostituzione'] ?? 0);
+        if ($idSostituzioneOld <= 0) continue;
+        if (isset($seenActiveIds[$idSostituzioneOld])) continue;
 
-		$nomeDest = docenteFullName($doc);
-		$email = trim((string)($doc['email'] ?? ''));
+        $fieldsCancel = array();
 
-		$mailGiaInviata = notificaGiaInviata($idSostituzione, $idDocenteDest, $evento, 'MAIL');
-		$tgGiaInviata   = notificaGiaInviata($idSostituzione, $idDocenteDest, $evento, 'TELEGRAM');
+        if ($hasStato) {
+            $fieldsCancel[] = "stato = 'ANNULLATA'";
+        }
+        if ($hasDataImport) {
+            $fieldsCancel[] = "dataImport = NOW()";
+        }
+        if (empty($fieldsCancel)) {
+            $fieldsCancel[] = "materia = materia";
+        }
 
-		$debugNotifiche[] = [
-			'idSostituzione' => $idSostituzione,
-			'idDocenteDest' => $idDocenteDest,
-			'nomeDest' => $nomeDest,
-			'email' => $email,
-			'evento' => $evento,
-			'mail_enabled' => $IS_MAIL_DOCENTE_ENABLED,
-			'telegram_enabled' => $IS_TELEGRAM_ENABLED,
-			'telegram_test_mode' => $IS_TELEGRAM_TEST_MODE,
-			'telegram_test_chat_id' => $TELEGRAM_TEST_CHAT_ID,
-			'mail_gia_inviata' => $mailGiaInviata,
-			'tg_gia_inviata' => $tgGiaInviata
-		];
+        $q = "
+            UPDATE sostituzioni
+            SET " . implode(", ", $fieldsCancel) . "
+            WHERE idSostituzione = " . dbI($idSostituzioneOld);
 
-		infoimportsost(
-			"Notifica docente=[$nomeDest] email=[$email] evento=[$evento] " .
-				"mail_enabled=" . ($IS_MAIL_DOCENTE_ENABLED ? '1' : '0') .
-				" mail_gia_inviata=" . ($mailGiaInviata ? '1' : '0') .
-				" telegram_enabled=" . ($IS_TELEGRAM_ENABLED ? '1' : '0') .
-				" tg_gia_inviata=" . ($tgGiaInviata ? '1' : '0')
-		);
+        dbExec($q);
+        $annullati++;
 
-		$subject = buildMailSubjectSostituzione($evento, $n['data'], $n['oraInizio']);
+        $idDocenteOld = (int)($oldRow['idDocenteSostituto'] ?? 0);
+        if ($idDocenteOld > 0) {
+            $notificheDaInviare[] = array(
+                'idSostituzione' => $idSostituzioneOld,
+                'idDocente' => $idDocenteOld,
+                'evento' => 'ANNULLAMENTO',
+                'data' => norm($oldRow['data'] ?? ''),
+                'oraInizio' => normalizeTimeToHms($oldRow['oraInizio'] ?? ''),
+                'oraFine' => normalizeTimeToHms($oldRow['oraFine'] ?? ''),
+                'docenteSostituito' => norm($oldRow['docenteSostituitoPdf'] ?? ''),
+                'classe' => norm($oldRow['classe'] ?? ''),
+                'aula' => norm($oldRow['aula'] ?? ''),
+                'materia' => norm($oldRow['materia'] ?? '')
+            );
+        }
+    }
 
-		if ($evento === 'ASSEGNAZIONE') {
-			$body = buildMessaggioAssegnazione(
-				$n['data'],
-				substr($n['oraInizio'], 0, 5),
-				substr($n['oraFine'], 0, 5),
-				$n['docenteSostituito'],
-				$n['classe'],
-				$n['aula'],
-				$n['materia']
-			);
-		} else {
-			$body = buildMessaggioAnnullamento(
-				$n['data'],
-				substr($n['oraInizio'], 0, 5),
-				substr($n['oraFine'], 0, 5),
-				$n['docenteSostituito'],
-				$n['classe'],
-				$n['aula'],
-				$n['materia']
-			);
-		}
+    dbExec("COMMIT");
 
-			$mailHtml = buildMailHtmlSostituzione(
-			$evento,
-			$nomeDest,
-			$n['data'],
-			substr($n['oraInizio'], 0, 5),
-			substr($n['oraFine'], 0, 5),
-			$n['docenteSostituito'],
-			$n['classe'],
-			$n['aula'],
-			$n['materia']
-		);
+    foreach ($notificheDaInviare as $n) {
+        $idSostituzione = (int)$n['idSostituzione'];
+        $idDocenteDest = (int)$n['idDocente'];
+        $evento = $n['evento'];
 
-		/* =======================
-           MAIL
-           ======================= */
-		if ($email !== '' && !$mailGiaInviata) {
-			infoimportsost("Tentativo MAIL docente=[$nomeDest] email=[$email] evento=[$evento] idSostituzione=$idSostituzione");
+        $doc = getDocenteById($idDocenteDest);
+        if (!$doc) continue;
 
-			$mailOk = inviaMailDocente($email, $nomeDest, $subject, $mailHtml);
+        $nomeDest = docenteFullName($doc);
+        $email = trim((string)($doc['email'] ?? ''));
 
-			if ($mailOk) {
-				registraNotificaInviata($idSostituzione, $idDocenteDest, $evento, 'MAIL');
-				infoimportsost("MAIL inviata OK docente=[$nomeDest] evento=[$evento] idSostituzione=$idSostituzione");
-				$notificheInviate[] = [
-					'docente' => $nomeDest,
-					'canale' => 'MAIL',
-					'evento' => $evento
-				];
-			} else {
-				errorimportsost("MAIL fallita docente=[$nomeDest] email=[$email] evento=[$evento] idSostituzione=$idSostituzione");
-				$debugNotifiche[] = [
-					'idSostituzione' => $idSostituzione,
-					'idDocenteDest' => $idDocenteDest,
-					'nomeDest' => $nomeDest,
-					'erroreMail' => 'sendMail ha restituito false'
-				];
-			}
-		} elseif ($email === '') {
-			warningimportsost("MAIL saltata: docente=[$nomeDest] senza email idSostituzione=$idSostituzione");
-		} else {
-			infoimportsost("MAIL già inviata: docente=[$nomeDest] evento=[$evento] idSostituzione=$idSostituzione");
-		}
+        $mailGiaInviata = ($idSostituzione > 0) ? notificaGiaInviata($idSostituzione, $idDocenteDest, $evento, 'MAIL') : false;
+        $tgGiaInviata = ($idSostituzione > 0) ? notificaGiaInviata($idSostituzione, $idDocenteDest, $evento, 'TELEGRAM') : false;
 
-		/* =======================
-           TELEGRAM
-           ======================= */
-		if ($IS_TELEGRAM_ENABLED && !$tgGiaInviata) {
-			infoimportsost("Verifica TELEGRAM docente=[$nomeDest] evento=[$evento] idSostituzione=$idSostituzione");
+        $subject = buildMailSubjectSostituzione($evento, $n['data'], $n['oraInizio']);
+        $body = buildNotificationBody(
+            $evento,
+            $n['data'],
+            $n['oraInizio'],
+            $n['oraFine'],
+            $n['docenteSostituito'],
+            $n['classe'],
+            $n['aula'],
+            $n['materia']
+        );
 
-			$tg = getTelegramProfileByDocenteId($idDocenteDest);
+        $mailHtml = buildMailHtmlSostituzione(
+            $evento,
+            $nomeDest,
+            $n['data'],
+            substr((string)$n['oraInizio'], 0, 5),
+            substr((string)$n['oraFine'], 0, 5),
+            $n['docenteSostituito'],
+            $n['classe'],
+            $n['aula'],
+            $n['materia']
+        );
 
-			$chatIdToUse = '';
-			$canSendTelegram = false;
+        if ($email !== '' && !$mailGiaInviata) {
+            $mailOk = inviaMailDocente($email, $nomeDest, $subject, $mailHtml);
 
-			if ($IS_TELEGRAM_TEST_MODE && $TELEGRAM_TEST_CHAT_ID !== '') {
-				$chatIdToUse = $TELEGRAM_TEST_CHAT_ID;
-				$canSendTelegram = true;
-				infoimportsost("TELEGRAM test mode attivo: uso chat test [$chatIdToUse] docente=[$nomeDest]");
-			} elseif ($tg && !empty($tg['telegram_chat_id'])) {
-				$chatIdToUse = trim((string)$tg['telegram_chat_id']);
-				$canSendTelegram = true;
-				infoimportsost("TELEGRAM profilo reale trovato: chatId=[$chatIdToUse] docente=[$nomeDest]");
-			} else {
-				infoimportsost("TELEGRAM profilo reale assente per docente=[$nomeDest]");
-			}
+            if ($mailOk) {
+                if ($idSostituzione > 0) {
+                    registraNotificaInviata($idSostituzione, $idDocenteDest, $evento, 'MAIL');
+                }
+                $notificheInviate[] = array(
+                    'docente' => $nomeDest,
+                    'canale' => 'MAIL',
+                    'evento' => $evento
+                );
+            }
+        }
 
-			if ($canSendTelegram) {
-				infoimportsost("Tentativo TELEGRAM docente=[$nomeDest] chatId=[$chatIdToUse] evento=[$evento] idSostituzione=$idSostituzione");
+        if ($IS_TELEGRAM_ENABLED && !$tgGiaInviata) {
+            $tg = getTelegramProfileByDocenteId($idDocenteDest);
 
-				$resTg = inviaTelegramDocente(
-					$TELEGRAM_BOT_TOKEN,
-					$chatIdToUse,
-					$body,
-					$nomeDest
-				);
+            $chatIdToUse = '';
+            $canSendTelegram = false;
 
-				infoimportsost("Risposta TELEGRAM docente=[$nomeDest] ok=" . ($resTg['ok'] ? '1' : '0') . " response=[" . mb_substr((string)$resTg['response'], 0, 500, 'UTF-8') . "]");
+            if ($IS_TELEGRAM_TEST_MODE && $TELEGRAM_TEST_CHAT_ID !== '') {
+                $chatIdToUse = $TELEGRAM_TEST_CHAT_ID;
+                $canSendTelegram = true;
+            } elseif ($tg && !empty($tg['telegram_chat_id'])) {
+                $chatIdToUse = trim((string)$tg['telegram_chat_id']);
+                $canSendTelegram = true;
+            }
 
-				logTelegramEsito(
-					$idDocenteDest,
-					$idSostituzione,
-					$evento,
-					$body,
-					$resTg['ok'] ? 'OK' : 'ERRORE',
-					$resTg['response']
-				);
+            if ($canSendTelegram) {
+                $resTg = inviaTelegramDocente(
+                    $TELEGRAM_BOT_TOKEN,
+                    $chatIdToUse,
+                    $body,
+                    $nomeDest
+                );
 
-				if ($resTg['ok']) {
-					registraNotificaInviata($idSostituzione, $idDocenteDest, $evento, 'TELEGRAM');
+                logTelegramEsito(
+                    $idDocenteDest,
+                    $idSostituzione,
+                    $evento,
+                    $body,
+                    ($resTg['ok'] ? 'OK' : 'ERRORE'),
+                    $resTg['response']
+                );
 
-					if ($tg) {
-						updateTelegramLastOk($idDocenteDest);
-					}
+                if ($resTg['ok']) {
+                    if ($idSostituzione > 0) {
+                        registraNotificaInviata($idSostituzione, $idDocenteDest, $evento, 'TELEGRAM');
+                    }
 
-					infoimportsost("TELEGRAM inviato OK docente=[$nomeDest] evento=[$evento] idSostituzione=$idSostituzione");
+                    if ($tg) {
+                        updateTelegramLastOk($idDocenteDest);
+                    }
 
-					$notificheInviate[] = [
-						'docente' => $nomeDest,
-						'canale' => 'TELEGRAM',
-						'evento' => $evento
-					];
-				} else {
-					errorimportsost("TELEGRAM fallito docente=[$nomeDest] evento=[$evento] idSostituzione=$idSostituzione risposta=[" . mb_substr((string)$resTg['response'], 0, 500, 'UTF-8') . "]");
+                    $notificheInviate[] = array(
+                        'docente' => $nomeDest,
+                        'canale' => 'TELEGRAM',
+                        'evento' => $evento
+                    );
+                } else {
+                    if ($tg) {
+                        updateTelegramLastError($idDocenteDest, $resTg['response']);
+                    }
+                }
+            }
+        }
+    }
 
-					if ($tg) {
-						updateTelegramLastError($idDocenteDest, $resTg['response']);
-					}
-				}
-			} else {
-				warningimportsost("TELEGRAM non inviabile docente=[$nomeDest] evento=[$evento] idSostituzione=$idSostituzione canSendTelegram=0");
-				$debugNotifiche[] = [
-					'idSostituzione' => $idSostituzione,
-					'idDocenteDest' => $idDocenteDest,
-					'nomeDest' => $nomeDest,
-					'erroreTelegram' => 'canSendTelegram=false',
-					'tg_profile_found' => $tg ? true : false,
-					'chatIdToUse' => $chatIdToUse
-				];
-			}
-		} elseif (!$IS_TELEGRAM_ENABLED) {
-			warningimportsost("TELEGRAM disabilitato da config docente=[$nomeDest] evento=[$evento] idSostituzione=$idSostituzione");
-		} else {
-			infoimportsost("TELEGRAM già inviato docente=[$nomeDest] evento=[$evento] idSostituzione=$idSostituzione");
-		}
-	}
+    infoimportsost("Import completato: totaleRicevuti=$totaleRicevuti inseriti=$inseriti aggiornati=$aggiornati annullati=$annullati scartati=" . count($scartati) . " notificheInviate=" . count($notificheInviate));
 
-	infoimportsost("Import completato: totaleRicevuti=$totaleRicevuti inseriti=$inseriti aggiornati=$aggiornati scartati=" . count($scartati) . " notificheInviate=" . count($notificheInviate));
-
-	respond([
-		'ok' => true,
-		'totaleRicevuti' => $totaleRicevuti,
-		'inseriti' => $inseriti,
-		'aggiornati' => $aggiornati,
-		'scartati' => count($scartati),
-		'dettaglioScartati' => $scartati,
-		'preview' => $preview,
-		'notificheInviate' => $notificheInviate,
-		'debugNotifiche' => $debugNotifiche
-	]);
+    respond(array(
+        'ok' => true,
+        'totaleRicevuti' => $totaleRicevuti,
+        'inseriti' => $inseriti,
+        'aggiornati' => $aggiornati,
+        'annullati' => $annullati,
+        'scartati' => count($scartati),
+        'dettaglioScartati' => $scartati,
+        'preview' => $preview,
+        'notificheInviate' => $notificheInviate,
+        'debugNotifiche' => $debugNotifiche
+    ), 200);
 } catch (Throwable $e) {
-	dbExec("ROLLBACK");
-	errorimportsost("Eccezione durante import: " . $e->getMessage());
-	errorimportsost("ROLLBACK eseguito");
+    dbExec("ROLLBACK");
+    errorimportsost("Eccezione durante import: " . $e->getMessage());
+    errorimportsost("ROLLBACK eseguito");
 
-	respond([
-		'ok' => false,
-		'error' => 'Eccezione durante import: ' . $e->getMessage()
-	], 500);
+    respond(array(
+        'ok' => false,
+        'error' => 'Eccezione durante import: ' . $e->getMessage()
+    ), 500);
 }

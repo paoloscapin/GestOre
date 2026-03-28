@@ -227,12 +227,13 @@
         });
     }
 
-    let sostituzioniMineOnly = !!window.ORARIO_IS_DOCENTE;
+    let sostituzioniMode = window.ORARIO_IS_DOCENTE ? "mine_today" : "all_today";
 
     function renderSostituzioniList(items, dateIso) {
         const $c = $("#orario_content");
 
         const normItems = (items || []).map(it => {
+            const data = (it.data || "").toString().trim();
             const oraIn = (it.ora || it.oraInizio || "").toString().slice(0, 5);
             const oraOut = (it.oraFine || "").toString().slice(0, 5);
 
@@ -243,6 +244,7 @@
             const aula = (it.aula || "").toString().trim();
 
             return Object.assign({}, it, {
+                dataKey: data,
                 oraIn,
                 oraOut,
                 docenteSostituitoKey: docenteSostituito,
@@ -257,11 +259,22 @@
         const telegramBox = telegramToggleHtml(telegramStatus);
 
         const docenteToggle = docenteCanManageTelegram() ? `
-            <button id="btn_toggle_mie_sostituzioni"
-                    class="btn btn-sm ${sostituzioniMineOnly ? 'btn-primary' : 'btn-default'}">
-                <span class="glyphicon glyphicon-filter"></span>
-                ${sostituzioniMineOnly ? 'SOLO LE MIE SOSTITUZIONI' : 'TUTTE LE SOSTITUZIONI'}
-            </button>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button id="btn_mode_mine_today"
+                        class="btn btn-sm ${sostituzioniMode === 'mine_today' ? 'btn-primary' : 'btn-default'}">
+                    Le mie di oggi
+                </button>
+
+                <button id="btn_mode_all_today"
+                        class="btn btn-sm ${sostituzioniMode === 'all_today' ? 'btn-primary' : 'btn-default'}">
+                    Tutte di oggi
+                </button>
+
+                <button id="btn_mode_mine_year"
+                        class="btn btn-sm ${sostituzioniMode === 'mine_year' ? 'btn-primary' : 'btn-default'}">
+                    Le mie da inizio anno
+                </button>
+            </div>
         ` : '';
         const topbar = `
             <div class="eventi-topbar" style="display:flex;gap:10px;align-items:center;margin:6px 0 10px 0;flex-wrap:wrap;">
@@ -271,12 +284,15 @@
             </div>
         `;
 
-        const table = `
+        const showDateColumn = (sostituzioniMode === "mine_year");
+
+      const table = `
             <div class="table-responsive">
                 <table class="table table-bordered table-hover" id="tbl_sostituzioni"
-                       style="background:#fff;table-layout:auto;width:100%;">
+                    style="background:#fff;table-layout:auto;width:100%;">
                     <thead>
                         <tr>
+                            ${showDateColumn ? `<th class="th-sort" data-key="data" style="width:110px;cursor:pointer;white-space:nowrap;text-align:center;">Data <span class="sort-ind"></span></th>` : ``}
                             <th class="th-sort" data-key="oraIn" style="width:90px;cursor:pointer;white-space:nowrap;text-align:center;">Inizio <span class="sort-ind"></span></th>
                             <th class="th-sort" data-key="oraOut" style="width:90px;cursor:pointer;white-space:nowrap;text-align:center;">Fine <span class="sort-ind"></span></th>
                             <th class="th-sort" data-key="docenteSostituito" style="cursor:pointer;">Docente ASSENTE <span class="sort-ind"></span></th>
@@ -290,11 +306,20 @@
                 </table>
             </div>
         `;
-
         $c.html(telegramBox + topbar + table);
         bindTelegramToggle(telegramStatus);
-        $("#btn_toggle_mie_sostituzioni").off("click").on("click", function () {
-            sostituzioniMineOnly = !sostituzioniMineOnly;
+        $("#btn_mode_mine_today").off("click").on("click", function () {
+            sostituzioniMode = "mine_today";
+            loadSostituzioni($("#v_date").val() || todayIso());
+        });
+
+        $("#btn_mode_all_today").off("click").on("click", function () {
+            sostituzioniMode = "all_today";
+            loadSostituzioni($("#v_date").val() || todayIso());
+        });
+
+        $("#btn_mode_mine_year").off("click").on("click", function () {
+            sostituzioniMode = "mine_year";
             loadSostituzioni($("#v_date").val() || todayIso());
         });
         let sortState = { key: "oraIn", dir: "asc" };
@@ -304,6 +329,7 @@
         }
 
         function getSortVal(it, key) {
+            if (key === "data") return (it.dataKey || "");
             if (key === "oraIn") return (it.oraIn || "");
             if (key === "oraOut") return (it.oraOut || "");
             if (key === "docenteSostituito") return (it.docenteSostituitoKey || "");
@@ -350,6 +376,11 @@
         function rowHtml(it) {
             return `
                 <tr class="ev-row ev-row-sost">
+                    ${showDateColumn ? `
+                        <td style="white-space:nowrap;text-align:center;vertical-align:middle;">
+                            ${escapeHtml(isoToIt(it.dataKey || ""))}
+                        </td>
+                    ` : ``}
                     <td style="font-weight:800;white-space:nowrap;text-align:center;vertical-align:middle;">
                         ${escapeHtml(it.oraIn || "")}
                     </td>
@@ -387,7 +418,8 @@
             const $tb = $("#sostituzioni_tbody");
 
             if (!sorted.length) {
-                $tb.html(`<tr><td colspan="7"><div class="alert alert-info" style="margin:0;">Nessuna sostituzione trovata.</div></td></tr>`);
+                const colspan = showDateColumn ? 8 : 7;
+                $tb.html(`<tr><td colspan="${colspan}"><div class="alert alert-info" style="margin:0;">Nessuna sostituzione trovata.</div></td></tr>`);
                 updateSortIndicators();
                 return;
             }
@@ -428,7 +460,7 @@
 
         $.getJSON("sostituzioniRead.php", {
             date: dateIso,
-            mineOnly: (docenteCanManageTelegram() && sostituzioniMineOnly) ? 1 : 0
+            mode: docenteCanManageTelegram() ? sostituzioniMode : "all_today"
         }, function (r) {
             if (!r || r.ok !== true) {
                 showInlineMsg("danger", (r && r.error) ? r.error : "Errore lettura sostituzioni");

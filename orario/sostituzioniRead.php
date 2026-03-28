@@ -67,9 +67,8 @@ function isDocenteRole()
 
 function getCurrentDocenteId()
 {
-    global $__utente_username, $__utente_nome, $__utente_cognome;
+    global $__utente_nome, $__utente_cognome;
 
-    // 1) se in sessione hai già l'id docente, usa quello
     if (!empty($_SESSION['idDocente'])) {
         return (int)$_SESSION['idDocente'];
     }
@@ -77,7 +76,6 @@ function getCurrentDocenteId()
         return (int)$_SESSION['id_docente'];
     }
 
-    // 2) fallback: match per nome/cognome
     $nome = trim((string)($__utente_nome ?? ''));
     $cognome = trim((string)($__utente_cognome ?? ''));
 
@@ -98,11 +96,48 @@ function getCurrentDocenteId()
     return 0;
 }
 
+function getSchoolYearStartDate($referenceDate)
+{
+    $referenceDate = trim((string)$referenceDate);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $referenceDate)) {
+        $referenceDate = date('Y-m-d');
+    }
+
+    $year = (int)substr($referenceDate, 0, 4);
+    $month = (int)substr($referenceDate, 5, 2);
+
+    if ($month >= 9) {
+        return sprintf('%04d-09-01', $year);
+    }
+
+    return sprintf('%04d-09-01', $year - 1);
+}
+
+function tableHasColumnCompat($tableName, $columnName)
+{
+    $tableName = dbEscape($tableName);
+    $columnName = dbEscape($columnName);
+
+    $q = "SHOW COLUMNS FROM `$tableName` LIKE '$columnName'";
+    $rows = dbGetAll($q);
+    return is_array($rows) && count($rows) > 0;
+}
+
 $date = isset($_GET['date']) ? trim((string)$_GET['date']) : date('Y-m-d');
 
-$mineOnly = isset($_GET['mineOnly']) ? (int)$_GET['mineOnly'] : 0;
+$mode = isset($_GET['mode']) ? trim((string)$_GET['mode']) : '';
+$mineOnly = isset($_GET['mineOnly']) ? (int)$_GET['mineOnly'] : 0; // compatibilità vecchia
 $isDocente = isDocenteRole();
 $currentDocenteId = getCurrentDocenteId();
+$hasStato = tableHasColumnCompat('sostituzioni', 'stato');
+
+if ($mode === '') {
+    if ($isDocente) {
+        $mode = ($mineOnly === 1) ? 'mine_today' : 'all_today';
+    } else {
+        $mode = 'all_today';
+    }
+}
 
 if (!isIsoDate($date)) {
     http_response_code(400);
@@ -117,16 +152,31 @@ if ($visibilityLevel === 'PUBLIC') {
     exit;
 }
 
-$whereExtra = '';
+$whereParts = [];
 
-if ($isDocente && $mineOnly === 1 && $currentDocenteId > 0) {
-    $whereExtra .= "
-        AND (
-            s.idDocenteSostituto = " . dbI($currentDocenteId) . "
-            OR s.idDocenteSostituito = " . dbI($currentDocenteId) . "
-        )
-    ";
+/* escludi le sostituzioni annullate */
+if ($hasStato) {
+    $whereParts[] = "(s.stato IS NULL OR UPPER(TRIM(s.stato)) <> 'ANNULLATA')";
 }
+
+if ($mode === 'mine_year' && $isDocente && $currentDocenteId > 0) {
+    $startYear = getSchoolYearStartDate($date);
+
+    $whereParts[] = "s.data >= " . dbQ($startYear);
+    $whereParts[] = "s.data <= " . dbQ($date);
+
+    // SOLO dove il docente è il sostituto
+    $whereParts[] = "s.idDocenteSostituto = " . dbI($currentDocenteId);
+} else {
+    $whereParts[] = "s.data = " . dbQ($date);
+
+    if ($mode === 'mine_today' && $isDocente && $currentDocenteId > 0) {
+        // SOLO dove il docente è il sostituto
+        $whereParts[] = "s.idDocenteSostituto = " . dbI($currentDocenteId);
+    }
+}
+
+$whereSql = implode("\n      AND ", $whereParts);
 
 $q = "
     SELECT
@@ -136,7 +186,10 @@ $q = "
         s.oraFine,
         s.materia,
         s.classe,
-        s.aula,
+        s.aula" .
+        ($hasStato ? ",
+        s.stato" : ",
+        '' AS stato") . ",
 
         ds.id       AS idDocenteSostituto,
         ds.cognome  AS cognomeSostituto,
@@ -149,9 +202,8 @@ $q = "
     FROM sostituzioni s
     LEFT JOIN docente ds ON ds.id = s.idDocenteSostituto
     LEFT JOIN docente dd ON dd.id = s.idDocenteSostituito
-    WHERE s.data = " . dbQ($date) . "
-    $whereExtra
-    ORDER BY s.oraInizio, s.oraFine, dd.cognome, dd.nome, ds.cognome, ds.nome
+    WHERE $whereSql
+    ORDER BY s.data DESC, s.oraInizio, s.oraFine, dd.cognome, dd.nome, ds.cognome, ds.nome
 ";
 
 $rows = dbGetAll($q);
@@ -175,6 +227,8 @@ foreach ($rows as $r) {
         'badge'              => 'Sostituzione',
 
         'idSostituzione'     => (int)($r['idSostituzione'] ?? 0),
+        'data'               => trim(h($r['data'] ?? '')),
+        'stato'              => trim(h($r['stato'] ?? '')),
 
         'docenteSostituito'  => up($docenteSostituito),
         'docenteSostituto'   => up($docenteSostituto),
@@ -198,9 +252,10 @@ foreach ($rows as $r) {
 echo json_encode([
     'ok' => true,
     'date' => $date,
+    'mode' => $mode,
     'visibilityLevel' => $visibilityLevel,
-    'mineOnly' => $mineOnly,
     'isDocente' => $isDocente,
     'currentDocenteId' => $currentDocenteId,
+    'hasStato' => $hasStato,
     'items' => $items
 ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
