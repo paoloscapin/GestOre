@@ -714,16 +714,31 @@ infoimportsost("Docenti caricati in mappa: " . count($docentiMap));
    PRECARICO SOSTITUZIONI ATTIVE ESISTENTI
    ========================================================= */
 
+function todayYmd()
+{
+    $dt = new DateTime('now', new DateTimeZone('Europe/Rome'));
+    return $dt->format('Y-m-d');
+}
+
+/* =========================================================
+   PRECARICO SOSTITUZIONI ATTIVE ESISTENTI (SOLO OGGI)
+   ========================================================= */
+
+$dataImportOggi = todayYmd();
+
 $whereStatoAttive = $hasStato ? " AND (stato IS NULL OR stato <> 'ANNULLATA') " : "";
 
 $qSostAttive = "
     SELECT *
     FROM sostituzioni
-    WHERE 1=1
+    WHERE data = " . dbQ($dataImportOggi) . "
     $whereStatoAttive
 ";
+
 $sostituzioniAttiveRows = dbGetAll($qSostAttive);
 if (!is_array($sostituzioniAttiveRows)) $sostituzioniAttiveRows = array();
+
+infoimportsost("Precaricate sostituzioni attive del giorno [$dataImportOggi]: " . count($sostituzioniAttiveRows));
 
 $existingByNaturalKey = array();
 $existingBySlotDocente = array();
