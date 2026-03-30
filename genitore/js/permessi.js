@@ -13,22 +13,23 @@ var params = new URLSearchParams(url.search);
 var device = params.get("d") || "desktop"; // default "desktop"
 
 function permessiReadRecords() {
-    
-        var endpoint = (device === "mobile") 
-        ? "permessiReadRecords_mobile.php" 
+    var endpoint = (device === "mobile")
+        ? "permessiReadRecords_mobile.php"
         : "permessiReadRecords.php";
 
-	$.post(endpoint+"?studente_filtro_id=" + $('#hidden_studente_id').val(), {}, function (data, status) {
-		$(".records_content").html(data);
+    $.post(endpoint, {
+        studente_filtro_id: $('#hidden_studente_id').val()
+    }, function (data, status) {
+        $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',
             container: 'body'
         });
-	});
+    });
 }
 
 // Dropdown studenti mobile
-$('#studente_filtro').on('change', function(){
+$('#studente_filtro').on('change', function () {
     $('#hidden_studente_id').val(this.value);
     permessiReadRecords();
 });
@@ -36,13 +37,16 @@ $('#studente_filtro').on('change', function(){
 document.addEventListener("DOMContentLoaded", function () {
     const rientroCheckbox = document.getElementById("rientro");
     const oraRientroGroup = document.getElementById("ora_rientro_group");
+    const oraRientroInput = document.getElementById("ora_rientro");
+
+    if (!rientroCheckbox || !oraRientroGroup || !oraRientroInput) return;
 
     rientroCheckbox.addEventListener("change", function () {
         if (this.checked) {
-            oraRientroGroup.style.display = "flex"; // mostro il campo
+            oraRientroGroup.style.display = "flex";
         } else {
-            oraRientroGroup.style.display = "none";  // lo nascondo
-            document.getElementById("ora_rientro").value = ""; // pulisco eventuale valore
+            oraRientroGroup.style.display = "none";
+            oraRientroInput.value = "";
         }
     });
 });
@@ -74,17 +78,23 @@ function impostaDataPermesso() {
 }
 
 function permessiDelete(id) {
-    var conf = confirm("Sei sicuro di volere cancellare il permesso ?");
-    if (conf == true) {
-        $.post("../common/deleteRecord.php", {
-            id: id,
-            table: 'permessi_uscita'
-        },
-            function (data, status) {
-                permessiReadRecords();
-            }
-        );
-    }
+    var conf = confirm("Sei sicuro di voler cancellare il permesso?");
+    if (!conf) return;
+
+    $.post("permessoDelete.php", {
+        id: id
+    }, function (response) {
+
+        if (response && response.ok) {
+            permessiReadRecords();
+        } else {
+            alert("Errore durante la cancellazione del permesso.");
+        }
+
+    }, 'json')
+        .fail(function () {
+            alert("Errore di comunicazione con il server.");
+        });
 }
 
 function permessoSave() {
@@ -93,17 +103,17 @@ function permessoSave() {
         $("#_error-permesso-part").show();
         return;
     }
-        if ($("#motivo").val() == "") {
+    if ($("#motivo").val() == "") {
         $("#_error-permesso").text("Devi indicare un motivo per il permesso.");
         $("#_error-permesso-part").show();
         return;
     }
-        if ($("#ora_uscita").val() == "") {
+    if ($("#ora_uscita").val() == "") {
         $("#_error-permesso").text("Devi selezionare un'ora di uscita per il permesso.");
         $("#_error-permesso-part").show();
         return;
     }
-    rientro = $("#rientro").prop('checked') ? 1 : 0;
+    let rientro = $("#rientro").prop('checked') ? 1 : 0;
 
     if (rientro == 0 && ($("#hidden_rientro").val() == 1)) {
         var conf = confirm("Sei sicuro di volere disattivare il rientro per il permesso?");
@@ -118,21 +128,27 @@ function permessoSave() {
         }
     }
 
-        $("#_error-permessi-part").hide();
+    $("#_error-permesso-part").hide();
 
-        $.post("permessoSave.php", {
-            id: $("#hidden_permesso_id").val(),
-            data: $("#data").val(),
-            ora_uscita: $("#ora_uscita").val(),
-            motivo: $("#motivo").val(),
-            ora_rientro: $("#ora_rientro").val(),
-            rientro: $("#rientro").prop('checked') ? 1 : 0,
-            id_studente:$('#hidden_studente_id').val()
-        }, function (data, status) {
+    $.post("permessoSave.php", {
+        id: $("#hidden_permesso_id").val(),
+        data: $("#data").val(),
+        ora_uscita: $("#ora_uscita").val(),
+        motivo: $("#motivo").val(),
+        ora_rientro: $("#ora_rientro").val(),
+        rientro: $("#rientro").prop('checked') ? 1 : 0,
+        id_studente: $('#hidden_studente_id').val()
+    }, function (response) {
+        if (response && response.ok) {
             $("#permesso_modal").modal("hide");
             permessiReadRecords();
-        });
-    }
+        } else {
+            alert("Errore durante il salvataggio del permesso.");
+        }
+    }, 'json').fail(function () {
+        alert("Errore di comunicazione con il server.");
+    });
+}
 
 function permessiGetDetails(permesso_id) {
     $("#hidden_permesso_id").val(permesso_id);
@@ -141,40 +157,44 @@ function permessiGetDetails(permesso_id) {
         $.post(device === "mobile" ? "permessiReadDetails_mobile.php" : "permessiReadDetails.php", {
             id: permesso_id
         }, function (data, status) {
+            var permesso = (typeof data === "string") ? JSON.parse(data) : data;
 
-            var permesso = JSON.parse(data);
+            if ($("#data").length) $("#data").val(permesso.permesso_data || "");
+            if ($("#ora_uscita").length) $("#ora_uscita").val(permesso.permesso_ora_uscita || "");
+            if ($("#rientro").length) $("#rientro").prop('checked', Number(permesso.permesso_rientro) === 1);
+            if ($("#motivo").length) $("#motivo").val(permesso.permesso_motivo || "");
+            if ($("#ora_rientro").length) $("#ora_rientro").val(permesso.permesso_ora_rientro || "");
 
-            if ($("#data").length) $("#data").val(permesso.permesso_data);
-            if ($("#ora_uscita").length) $("#ora_uscita").val(permesso.permesso_ora_uscita);
-            if ($("#rientro").length) $("#rientro").val(permesso.permesso_rientro);
-            if ($("#motivo").length) $("#motivo").val(permesso.permesso_motivo);
-            if ($("#ora_rientro").length) $("#ora_rientro").val(permesso.permesso_ora_rientro);
-        });
-} else {
-    // Solo se è nuova aggiunta, azzeriamo ma poi impostiamo automaticamente la data
-    if ($("#ora_uscita").length) $("#ora_uscita").val("");
-    if ($("#rientro").length) $("#rientro").prop('checked', false);
-    if ($("#motivo").length) $("#motivo").val("");
-    if ($("#ora_rientro").length) $("#ora_rientro").val("");
+            if (Number(permesso.permesso_rientro) === 1) {
+                $("#ora_rientro_group").show();
+            } else {
+                $("#ora_rientro_group").hide();
+            }
 
-    // Imposta la data automatica SOLO per nuovo permesso
-    impostaDataPermesso();
-
-    $('#btn-save').show();
-}
+            $("#hidden_rientro").val(permesso.permesso_rientro || 0);
+        }, 'json');
+    } else {
+        if ($("#ora_uscita").length) $("#ora_uscita").val("");
+        if ($("#rientro").length) $("#rientro").prop('checked', false);
+        if ($("#motivo").length) $("#motivo").val("");
+        if ($("#ora_rientro").length) $("#ora_rientro").val("");
+        $("#hidden_rientro").val(0);
+        $("#ora_rientro_group").hide();
+        impostaDataPermesso();
+        $('#btn-save').show();
+    }
 
     $("#permesso_modal").modal("show");
-
     $("#_error-permesso-part").hide();
 }
 
 $(document).ready(function () {
     permessiReadRecords();
 
-    $("#studente_filtro").on("changed.bs.select", 
-    function(e, clickedIndex, newValue, oldValue) {
-        $('#hidden_studente_id').val(this.value);
-        permessiReadRecords();
-    });
-    
+    $("#studente_filtro").on("changed.bs.select",
+        function (e, clickedIndex, newValue, oldValue) {
+            $('#hidden_studente_id').val(this.value);
+            permessiReadRecords();
+        });
+
 });

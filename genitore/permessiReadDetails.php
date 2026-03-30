@@ -8,11 +8,43 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/connect.php';
 
-if(isset($_POST['id']) && isset($_POST['id']) != "") {
-	$permesso_id = $_POST['id'];
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    permessiFailUnauthorized();
+}
 
-    $query = "SELECT
+ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
+
+function permessiFailUnauthorized()
+{
+    redirect("/error/unauthorized.php");
+    exit;
+}
+
+function getPermessoAutorizzato($idPermesso, $idGenitore, $isGenitore)
+{
+    $idPermesso = (int)$idPermesso;
+    $idGenitore = (int)$idGenitore;
+
+    if ($idPermesso <= 0) {
+        return null;
+    }
+
+    $whereExtra = "";
+    if ($isGenitore) {
+        $whereExtra = "
+            AND EXISTS (
+                SELECT 1
+                FROM genitori_studenti gs
+                WHERE gs.id_genitore = " . dbI($idGenitore) . "
+                  AND gs.id_studente = permessi_uscita.id_studente
+            )
+        ";
+    }
+
+    $q = "
+        SELECT
             permessi_uscita.id as permesso_id,
             permessi_uscita.id_genitore as permesso_id_genitore,
             permessi_uscita.id_studente as permesso_id_studente,
@@ -28,17 +60,30 @@ if(isset($_POST['id']) && isset($_POST['id']) != "") {
             studente.id AS studente_id,
             studente.nome AS studente_nome,
             studente.cognome AS studente_cognome
-        FROM
-            permessi_uscita
-        INNER JOIN genitori genitori
-        ON permessi_uscita.id_genitore = genitori.id
-        INNER JOIN studente studente
-        ON permessi_uscita.id_studente = studente.id
-        WHERE permessi_uscita.id = '$permesso_id'";
+        FROM permessi_uscita
+        INNER JOIN genitori
+            ON permessi_uscita.id_genitore = genitori.id
+        INNER JOIN studente
+            ON permessi_uscita.id_studente = studente.id
+        WHERE permessi_uscita.id = " . dbI($idPermesso) . "
+        $whereExtra
+        LIMIT 1
+    ";
 
-    $permesso = dbGetFirst($query);
-
-    $struct_json = json_encode($permesso);
-   echo json_encode($permesso);
+    return dbGetFirst($q);
 }
-?>
+
+$permesso_id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+if ($permesso_id <= 0) {
+    permessiFailUnauthorized();
+}
+
+$isGenitore = impersonaRuolo('genitore');
+$permesso = getPermessoAutorizzato($permesso_id, (int)$__genitore_id, $isGenitore);
+
+if (!$permesso) {
+    permessiFailUnauthorized();
+}
+
+header('Content-Type: application/json; charset=utf-8');
+echo json_encode($permesso, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);

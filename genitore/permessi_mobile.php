@@ -14,7 +14,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
-ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
+ruoloRichiesto('genitore');
 
 // Lista studenti del genitore
 $studenti = dbGetAll("SELECT studente.id, studente.nome, studente.cognome
@@ -41,7 +41,6 @@ $studente_default_id = count($studenti) > 0 ? $studenti[0]['id'] : 0;
     ?>
 
     <script src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
-    <script src="<?php echo $__application_base_path; ?>/genitore/js/permessi.js?v=<?php echo $__software_version; ?>&d=mobile"></script>
 
     <style>
         /* Bottone flottante + */
@@ -74,7 +73,9 @@ $studente_default_id = count($studenti) > 0 ? $studenti[0]['id'] : 0;
                     <?php
                     foreach($studenti as $studente){
                         $selected = ($studente['id'] == $studente_default_id) ? "selected" : "";
-                        echo '<option value="'.$studente['id'].'" '.$selected.'>'.$studente['cognome'].' '.$studente['nome'].'</option>';
+                       echo '<option value="' . (int)$studente['id'] . '" ' . $selected . '>'
+                        . htmlspecialchars($studente['cognome'] . ' ' . $studente['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+                        . '</option>';
                     }
                     ?>
                 </select>
@@ -166,19 +167,7 @@ $studente_default_id = count($studenti) > 0 ? $studenti[0]['id'] : 0;
         <span class="glyphicon glyphicon-plus"></span>
     </button>
 
-    <!-- JS gestione studente -->
-    <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        // Mostro la lista permessi per lo studente selezionato
-        permessiReadRecords();
-
-        // Aggiorno lista quando cambia lo studente
-        document.getElementById("studente_filtro").addEventListener("change", function() {
-            document.getElementById("hidden_studente_id").value = this.value;
-            permessiReadRecords();
-        });
-    });
-    </script>
-
+    <script src="<?php echo $__application_base_path; ?>/genitore/js/permessi.js?v=<?php echo $__software_version; ?>&t=<?php echo time(); ?>&d=mobile"></script>
+    
 </body>
 </html>

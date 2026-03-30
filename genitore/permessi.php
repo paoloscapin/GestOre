@@ -8,6 +8,8 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/connect.php';
+ruoloRichiesto('genitore');
 ?>
 
 <!DOCTYPE html>
@@ -21,7 +23,6 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_bootstrap-toggle.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
-    ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
 
     if (!(getSettingsValue('config', 'permessi', false))) {
         redirect("/error/unauthorized.php");
@@ -89,15 +90,16 @@ foreach ($studenti as $studente) {
     if ($firstId == "") {
         $firstId = $studente['id'];
     }
-    $studenteFiltroOptionList .= '<option value="' . $studente['id'] . '">'
-        . $studente['cognome'] . ' ' . $studente['nome'] . '</option>';
+    $studenteFiltroOptionList .= '<option value="' . (int)$studente['id'] . '">'
+    . htmlspecialchars($studente['cognome'] . ' ' . $studente['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+    . '</option>';
 }
 ?>
 
 <body>
     <?php
     require_once '../common/header-genitore.php';
-    require_once '../common/connect.php';
+
     ?>
 
     <div class="container-fluid">
@@ -176,7 +178,7 @@ foreach ($studenti as $studente) {
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="ora_uscita">Ora uscita</label>
                                     <div class="col-sm-10">
-                                        <input type="time" id="ora_uscita" class="form-control step=" 60" placeholder="HH:MM" />
+                                        <input type="time" id="ora_uscita" class="form-control" step="60" placeholder="HH:MM" />
                                     </div>
                                 </div>
 
@@ -224,21 +226,9 @@ foreach ($studenti as $studente) {
         </div>
     </div>
 
-    <!-- JS per Timepicker -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-timepicker/0.5.2/css/bootstrap-timepicker.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-timepicker/0.5.2/js/bootstrap-timepicker.min.js"></script>
-    <script>
-        $('.timepicker').timepicker({
-            showMeridian: false, // 24h
-            showSeconds: false, // nessun secondo
-            defaultTime: false
-        });
-    </script>
-
     <!-- // Modal - Add/Update Record -->
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/permessi.js?v=<?php echo $__software_version; ?>&d=desktop"></script>
-</body>
+    <script type="text/javascript" src="js/permessi.js?v=<?php echo $__software_version; ?>&t=<?php echo time(); ?>&d=desktop"></script></body>
 
 </html>

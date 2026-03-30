@@ -11,11 +11,44 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    redirect("/error/unauthorized.php");
+ruoloRichiesto('genitore');
+
+function eh($s)
+{
+	return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
-$studente_filtro_id = $_POST["studente_filtro_id"] ?? null;
-$__studente_id = $studente_filtro_id;
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+	redirect("/error/unauthorized.php");
+}
+$studente_filtro_id = isset($_POST['studente_filtro_id']) ? (int)$_POST['studente_filtro_id'] : 0;
+
+if ($studente_filtro_id <= 0) {
+	redirect("/error/unauthorized.php");
+}
+
+$__studente_id = 0;
+
+if (impersonaRuolo('genitore')) {
+	$qCheck = "
+        SELECT id_studente
+        FROM genitori_studenti
+        WHERE id_genitore = " . dbI((int)$__genitore_id) . "
+          AND id_studente = " . dbI($studente_filtro_id) . "
+        LIMIT 1
+    ";
+
+	$rowCheck = dbGetFirst($qCheck);
+
+	if (!$rowCheck) {
+		redirect("/error/unauthorized.php");
+	}
+
+	$__studente_id = $studente_filtro_id;
+} else {
+	// segreteria / dirigente
+	$__studente_id = $studente_filtro_id;
+}
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -32,32 +65,36 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
 					</tr>
 					</thead>';
 
-$query = "	SELECT 
-					permessi_uscita.id,
-					permessi_uscita.id_studente,
-					permessi_uscita.id_genitore,
-					permessi_uscita.data,
-					permessi_uscita.ora_uscita,
-					permessi_uscita.ora_rientro,
-					permessi_uscita.rientro,
-					permessi_uscita.motivo,
-					permessi_uscita.stato,
-					genitori.nome AS genitore_nome,
-					genitori.cognome AS genitore_cognome,
-					studente.nome AS studente_nome,
-					studente.cognome AS studente_cognome,
-					classi.classe AS classe,
-					studente_frequenta.id_classe AS id_classe
-				FROM permessi_uscita
-				INNER JOIN genitori genitori
-				ON permessi_uscita.id_genitore = genitori.id
-				INNER JOIN studente_frequenta
-				ON studente_frequenta.id_studente = permessi_uscita.id_studente AND studente_frequenta.id_anno_scolastico = '$__anno_scolastico_corrente_id'
-				INNER JOIN classi classi
-				ON classi.id = studente_frequenta.id_classe
-				INNER JOIN studente studente
-				ON permessi_uscita.id_studente = studente.id
-				WHERE studente.id='$__studente_id'";
+$query = "
+    SELECT 
+        permessi_uscita.id,
+        permessi_uscita.id_studente,
+        permessi_uscita.id_genitore,
+        permessi_uscita.data,
+        permessi_uscita.ora_uscita,
+        permessi_uscita.ora_rientro,
+        permessi_uscita.rientro,
+        permessi_uscita.motivo,
+        permessi_uscita.stato,
+        genitori.nome AS genitore_nome,
+        genitori.cognome AS genitore_cognome,
+        studente.nome AS studente_nome,
+        studente.cognome AS studente_cognome,
+        classi.classe AS classe,
+        studente_frequenta.id_classe AS id_classe
+    FROM permessi_uscita
+    INNER JOIN genitori genitori
+        ON permessi_uscita.id_genitore = genitori.id
+    INNER JOIN studente_frequenta
+        ON studente_frequenta.id_studente = permessi_uscita.id_studente
+       AND studente_frequenta.id_anno_scolastico = " . dbI($__anno_scolastico_corrente_id) . "
+    INNER JOIN classi classi
+        ON classi.id = studente_frequenta.id_classe
+    INNER JOIN studente studente
+        ON permessi_uscita.id_studente = studente.id
+    WHERE studente.id = " . dbI($__studente_id) . "
+    ORDER BY permessi_uscita.data DESC, permessi_uscita.ora_uscita DESC
+";
 
 
 $resultArray = dbGetAll($query);
@@ -66,10 +103,9 @@ if ($resultArray == null) {
 }
 foreach ($resultArray as $row) {
 	$id_permesso = $row['id'];
-	$id_genitore = $row['id_genitore'];
-	$genitore_nome = $row['genitore_nome'] . ' ' . $row['genitore_cognome'];
-	$studente_nome = $row['studente_nome'] . ' ' . $row['studente_cognome'];
-	$id_studente = $row['id_studente'];
+	$genitore_nome = eh($row['genitore_nome'] . ' ' . $row['genitore_cognome']);
+	$studente_nome = eh($row['studente_nome'] . ' ' . $row['studente_cognome']);
+	$motivo = eh($row['motivo']);
 	// Formattazione data e ora
 	$data_it = date('d/m/Y', strtotime($row['data']));
 	$ora_uscita = date('H:i', strtotime($row['ora_uscita']));
@@ -92,7 +128,6 @@ foreach ($resultArray as $row) {
 		default:
 			$badge = '<span class="badge bg-secondary">Sconosciuto</span>';
 	}
-	$motivo = $row['motivo'];
 	$stato = $row['stato'];
 
 	$data .= '<tr>
@@ -104,15 +139,14 @@ foreach ($resultArray as $row) {
 		<td align="center">' . $motivo . '</td>
 		<td align="center">' . $badge . '</td>
 		<td align="center">';
-		if ($stato == 1) { 
-			$data .= '
+	if ($stato == 1) {
+		$data .= '
 			<button onclick="permessiGetDetails(\'' . $id_permesso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la richiesta"><span class="glyphicon glyphicon-pencil"></span></button>
 			<button onclick="permessiDelete(\'' . $id_permesso . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la richiesta"><span class="glyphicon glyphicon-trash"></span></button>
 		</td>';
-		}
-		else {
-			$data .= '-</td>';
-		}
+	} else {
+		$data .= '-</td>';
+	}
 
 	$data .= '</tr>';
 }
