@@ -10,7 +10,11 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$anni_filtro_id = isset($_GET["anni_filtro_id"]) ? intval($_GET["anni_filtro_id"]) : 0;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    redirect("/error/unauthorized.php");
+}
+
+$anni_filtro_id = isset($_POST["anni_filtro_id"]) ? intval($_POST["anni_filtro_id"]) : 0;
 $anno_corsi_id  = intval($__anno_scolastico_corrente_id); // anno dei corsi (corrente)
 
 $query = "

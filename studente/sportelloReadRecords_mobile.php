@@ -22,6 +22,7 @@ echo '<style>
 .badge-danger { background-color:#dc3545; color:#fff; }
 .badge-info { background-color:#17a2b8; color:#fff; }
 .badge-default { background-color:#6c757d; color:#fff; }
+.badge-secondary { background-color:#6c757d; color:#fff; }
 </style>';
 
 // Funzione debug locale (se non già definita)
@@ -32,15 +33,19 @@ if (!function_exists('debug')) {
     }
 }
 
-// --- PARAMETRI GET ---
-$ancheCancellati     = $_GET["ancheCancellati"];
-$soloNuovi           = $_GET["soloNuovi"];
-$soloIscritto        = $_GET["soloIscritto"];
-$docente_filtro_id   = $_GET["docente_filtro_id"];
-$materia_filtro_id   = $_GET["materia_filtro_id"];
-$classe_filtro_id    = $_GET["classe_filtro_id"];
-$categoria_filtro_id = $_GET["categoria_filtro_id"];
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    redirect("/error/unauthorized.php");
+}
 
+ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
+
+$ancheCancellati     = isset($_POST["ancheCancellati"]) ? (int)$_POST["ancheCancellati"] : 0;
+$soloNuovi           = isset($_POST["soloNuovi"]) ? (int)$_POST["soloNuovi"] : 0;
+$soloIscritto        = isset($_POST["soloIscritto"]) ? (int)$_POST["soloIscritto"] : 0;
+$docente_filtro_id   = isset($_POST["docente_filtro_id"]) ? (int)$_POST["docente_filtro_id"] : 0;
+$materia_filtro_id   = isset($_POST["materia_filtro_id"]) ? (int)$_POST["materia_filtro_id"] : 0;
+$classe_filtro_id    = isset($_POST["classe_filtro_id"]) ? (int)$_POST["classe_filtro_id"] : 0;
+$categoria_filtro_id = isset($_POST["categoria_filtro_id"]) ? (int)$_POST["categoria_filtro_id"] : 0;
 $direzioneOrdinamento = "ASC";
 $nome_categoria = $categoria_filtro_id > 0
     ? dbGetValue("SELECT nome FROM sportello_categoria WHERE id = " . $categoria_filtro_id)
@@ -143,11 +148,21 @@ if ($classe_filtro_id > 0) {
     // NON applicare: $query .= " AND sportello.classe_id = $classe_filtro_id ";
 }
 
-if ($materia_filtro_id > 0)   $query .= " AND sportello.materia_id = $materia_filtro_id ";
-if ($docente_filtro_id > 0)   $query .= " AND sportello.docente_id = $docente_filtro_id ";
-if ($categoria_filtro_id > 0) $query .= " AND sportello.categoria = '" . $nome_categoria . "' ";
-if (!$ancheCancellati)        $query .= " AND NOT sportello.cancellato ";
-if ($soloNuovi)               $query .= " AND sportello.data >= CURDATE() ";
+if ($materia_filtro_id > 0) {
+    $query .= " AND sportello.materia_id = " . dbI($materia_filtro_id) . " ";
+}
+if ($docente_filtro_id > 0) {
+    $query .= " AND sportello.docente_id = " . dbI($docente_filtro_id) . " ";
+}
+if ($categoria_filtro_id > 0) {
+    $query .= " AND sportello.categoria = " . dbQ($nome_categoria) . " ";
+}
+if (!$ancheCancellati) {
+    $query .= " AND NOT sportello.cancellato ";
+}
+if ($soloNuovi) {
+    $query .= " AND sportello.data >= CURDATE() ";
+}
 
 $query .= " ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC, docente_nome ASC, sportello.ora ASC ";
 

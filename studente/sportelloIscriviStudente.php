@@ -234,7 +234,7 @@ try {
 
 		dbExec("INSERT INTO sportello_studente(iscritto, argomento, sportello_id, studente_id)
                 VALUES(1, '$argomento', $sportello_id, $__studente_id)");
-		$last_id = (int)dblastId();
+		$last_id = (int)dbLastId();
 
 		info("iscritto $__studente_cognome $__studente_nome allo sportello id=$sportello_id materia=$materia argomento=$argomento");
 

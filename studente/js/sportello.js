@@ -1,51 +1,32 @@
 /**
  *  This file is part of GestOre
- *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
- *  @copyright  (C) 2026 Massimo Saiani
- *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-// 🔽 Recupero parametro "d" passato nello <script src=...>
 var scripts = document.getElementsByTagName('script');
 var myScript = scripts[scripts.length - 1];
 var url = new URL(myScript.src);
 var params = new URLSearchParams(url.search);
-var device = params.get("d") || "desktop"; // default "desktop"
+var device = params.get("d") || "desktop";
 
 var soloNuovi = 1;
 var soloIscritto = 0;
 var ancheCancellati = 0;
 var docente_filtro_id = 0;
 var materia_filtro_id = 0;
-var categoria_filtro_id = 1; // sportello didattico
+var categoria_filtro_id = 1;
 
 $('#soloNuoviCheckBox').change(function () {
-    // this si riferisce al checkbox
-    if (this.checked) {
-        soloNuovi = 1;
-    } else {
-        soloNuovi = 0;
-    }
+    soloNuovi = this.checked ? 1 : 0;
     sportelloReadRecords();
 });
 
 $('#soloIscrittoCheckBox').change(function () {
-    // this si riferisce al checkbox
-    if (this.checked) {
-        soloIscritto = 1;
-    } else {
-        soloIscritto = 0;
-    }
+    soloIscritto = this.checked ? 1 : 0;
     sportelloReadRecords();
 });
 
 $('#ancheCancellatiCheckBox').change(function () {
-    // this si riferisce al checkbox
-    if (this.checked) {
-        ancheCancellati = 1;
-    } else {
-        ancheCancellati = 0;
-    }
+    ancheCancellati = this.checked ? 1 : 0;
     sportelloReadRecords();
 });
 
@@ -54,7 +35,15 @@ function sportelloReadRecords() {
         ? "sportelloReadRecords_mobile.php"
         : "sportelloReadRecords.php";
 
-    $.get(endpoint + "?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloIscritto=" + soloIscritto + "&docente_filtro_id=" + docente_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&categoria_filtro_id=" + categoria_filtro_id, {}, function (data, status) {
+    $.post(endpoint, {
+        ancheCancellati: ancheCancellati,
+        soloNuovi: soloNuovi,
+        soloIscritto: soloIscritto,
+        docente_filtro_id: docente_filtro_id,
+        materia_filtro_id: materia_filtro_id,
+        categoria_filtro_id: categoria_filtro_id,
+        classe_filtro_id: 0
+    }, function (data) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',
@@ -65,39 +54,27 @@ function sportelloReadRecords() {
 
 function sportelloCancellaIscrizione(sportello_id, materia, categoria, argomento, data, ora, numero_ore, luogo, docente_id, studente_id) {
     var conf = confirm("Sei sicuro di volere cancellare la tua iscrizione dallo sportello di " + materia + " ?");
+    if (!conf) return;
 
-
-    if (conf == true) {
-
-        $.post("../studente/sportelloCancellaIscrizione.php", {
-            id: sportello_id,
-            argomento: argomento,
-            materia: materia,
-            categoria: categoria,
-            data: data,
-            ora: ora,
-            numero_ore: numero_ore,
-            luogo: luogo,
-            docente_id: docente_id,
-            studente_id: studente_id
-        },
-            function (data, status) {
-                sportelloReadRecords();
-            });
-
-    }
+        $.post("./sportelloCancellaIscrizione.php", {...}, function (resp) {
+            if (!resp || resp.ok === false) {
+                bootbox.alert("Errore: " + (resp.error || "cancellazione non riuscita"));
+                return;
+            }
+            sportelloReadRecords();
+        }, "json").fail(function () {
+            bootbox.alert("Errore durante la cancellazione dell'iscrizione.");
+        });
 }
 
 function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, ora, numero_ore, luogo, docente_id, studente_id) {
 
     function doPromptAndEnroll(idsArray) {
         var unSoloArgomento = $("#hidden_unSoloArgomento").val() == 0 ? false : true;
-        // ✅ normalizza ids (evita NaN/null/doppioni)
+
         idsArray = (idsArray || [])
             .map(function (x) { return parseInt(x, 10); })
             .filter(function (x) { return Number.isFinite(x) && x > 0; });
-
-        // se per errore resta un solo id, comportati come singolo
 
         var primoIscritto = argomento ? false : true;
         var chiediArgomento = !unSoloArgomento || primoIscritto;
@@ -127,7 +104,7 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
                 if (!result) return;
 
                 if (argomento) {
-                    if (result != 1) return; // checkbox non confermato
+                    if (result != 1) return;
                 } else {
                     argomento = result;
                 }
@@ -140,12 +117,10 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
                     studente_id: studente_id
                 };
 
-                // ✅ singolo o multiplo
-                // ✅ singolo o multiplo (dopo normalizzazione)
                 if (idsArray.length > 1) {
                     payload.ids = JSON.stringify(idsArray);
                 } else {
-                    payload.id = idsArray[0] || sportello_id;   // ✅ usa l'id normalizzato
+                    payload.id = idsArray[0] || sportello_id;
                     payload.data = data;
                     payload.ora = ora;
                     payload.numero_ore = numero_ore;
@@ -153,18 +128,12 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
                 }
 
                 $.post("./sportelloIscriviStudente.php", payload, function (resp) {
-                    // se il php risponde json (con la patch sopra), gestisco errori
-                    try {
-                        if (resp && resp.ok === false) {
-                            bootbox.alert("Errore: " + (resp.error || "iscrizione non riuscita"));
-                            return;
-                        }
-                    } catch (e) { }
-
+                    if (resp && resp.ok === false) {
+                        bootbox.alert("Errore: " + (resp.error || "iscrizione non riuscita"));
+                        return;
+                    }
                     sportelloReadRecords();
-                }, "json").fail(function (xhr) {
-                    // fallback
-                    console.error("iscrizione fail", xhr && xhr.responseText);
+                }, "json").fail(function () {
                     bootbox.alert("Errore durante l'iscrizione.");
                 });
             }
@@ -175,8 +144,6 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
         });
     }
 
-    // ✅ nuova logica: se ora=13:50 controllo esistenza slot 14:40 uguale
-    // ✅ nuova logica GENERICA: controllo slot successivo (se esiste)
     $.post("./sportelloIscriviStudente.php", {
         action: "check_adjacent",
         id: sportello_id
@@ -190,7 +157,6 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
         var prevOk = resp.prev_id && (resp.prev_posti || 0) > 0;
         var nextOk = resp.next_id && (resp.next_posti || 0) > 0;
 
-        // nessun adiacente utile -> normale
         if (!prevOk && !nextOk) {
             doPromptAndEnroll([sportello_id]);
             return;
@@ -231,7 +197,6 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
             };
         }
 
-        // opzionale: tutte e 3 se esistono entrambe
         if (prevOk && nextOk) {
             buttons.all3 = {
                 label: "Tutte e 3 (" + oraPrev + " + " + (ora || "") + " + " + oraNext + ")",
@@ -255,19 +220,11 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
     }, "json").fail(function () {
         doPromptAndEnroll([sportello_id]);
     });
-
-    return;
-
-
-    // default: comportamento attuale
-    doPromptAndEnroll([sportello_id]);
 }
 
-
 $(document).ready(function () {
-    $(function () {
-        $('.selectpicker').selectpicker(); // inizializza i select
-    });
+    $('.selectpicker').selectpicker();
+
     sportelloReadRecords();
 
     function bindFiltro($el, setter) {
@@ -277,7 +234,7 @@ $(document).ready(function () {
         });
     }
 
-    bindFiltro($("#categoria_filtro"), v => { categoria_filtro_id = v; });
-    bindFiltro($("#docente_filtro"), v => { docente_filtro_id = v; });
-    bindFiltro($("#materia_filtro"), v => { materia_filtro_id = v; });
+    bindFiltro($("#categoria_filtro"), function (v) { categoria_filtro_id = v; });
+    bindFiltro($("#docente_filtro"), function (v) { docente_filtro_id = v; });
+    bindFiltro($("#materia_filtro"), function (v) { materia_filtro_id = v; });
 });

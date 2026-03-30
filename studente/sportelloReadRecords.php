@@ -10,21 +10,31 @@
 // include Database connection file
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
+
+function eh($s)
+{
+    return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
 
 // --- LOG INIZIALE ---
 debug("=== SPORTELLI: inizio rendering tabella ===");
 
-// Lettura parametri GET
-$ancheCancellati   = $_GET["ancheCancellati"];
-$soloNuovi         = $_GET["soloNuovi"];
-$soloIscritto      = $_GET["soloIscritto"];
-$docente_filtro_id = $_GET["docente_filtro_id"];
-$materia_filtro_id = $_GET["materia_filtro_id"];
-$classe_filtro_id  = $_GET["classe_filtro_id"];
-$categoria_filtro_id = $_GET["categoria_filtro_id"];
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    redirect("/error/unauthorized.php");
+}
+
+// Lettura parametri POST
+$ancheCancellati     = isset($_POST["ancheCancellati"]) ? (int)$_POST["ancheCancellati"] : 0;
+$soloNuovi           = isset($_POST["soloNuovi"]) ? (int)$_POST["soloNuovi"] : 0;
+$soloIscritto        = isset($_POST["soloIscritto"]) ? (int)$_POST["soloIscritto"] : 0;
+$docente_filtro_id   = isset($_POST["docente_filtro_id"]) ? (int)$_POST["docente_filtro_id"] : 0;
+$materia_filtro_id   = isset($_POST["materia_filtro_id"]) ? (int)$_POST["materia_filtro_id"] : 0;
+$classe_filtro_id    = isset($_POST["classe_filtro_id"]) ? (int)$_POST["classe_filtro_id"] : 0;
+$categoria_filtro_id = isset($_POST["categoria_filtro_id"]) ? (int)$_POST["categoria_filtro_id"] : 0;
 
 // Log parametri
-debug("Parametri GET: ancheCancellati=" . var_export($ancheCancellati, true) . ", soloNuovi=" . var_export($soloNuovi, true) . ", soloIscritto=" . var_export($soloIscritto, true) . ", docente_filtro_id=" . var_export($docente_filtro_id, true) . ", materia_filtro_id=" . var_export($materia_filtro_id, true) . ", classe_filtro_id=" . var_export($classe_filtro_id, true) . ", categoria_filtro_id=" . var_export($categoria_filtro_id, true));
+debug("Parametri POST: ancheCancellati=" . var_export($ancheCancellati, true) . ", soloNuovi=" . var_export($soloNuovi, true) . ", soloIscritto=" . var_export($soloIscritto, true) . ", docente_filtro_id=" . var_export($docente_filtro_id, true) . ", materia_filtro_id=" . var_export($materia_filtro_id, true) . ", classe_filtro_id=" . var_export($classe_filtro_id, true) . ", categoria_filtro_id=" . var_export($categoria_filtro_id, true));
 
 // Info timezone PHP
 debug("PHP default_timezone=" . date_default_timezone_get());
@@ -128,22 +138,22 @@ if ($classe_filtro_id > 0) {
 	// $query .= "AND s.classe_id = $classe_filtro_id ";
 }
 if ($materia_filtro_id > 0) {
-	$query .= "AND s.materia_id = $materia_filtro_id ";
+	$query .= " AND s.materia_id = " . dbI($materia_filtro_id) . " ";
 }
 if ($docente_filtro_id > 0) {
-	$query .= "AND s.docente_id = $docente_filtro_id ";
+    $query .= " AND s.docente_id = " . dbI($docente_filtro_id) . " ";
 }
 if ($categoria_filtro_id > 0) {
-	$query .= "AND s.categoria = '" . $nome_categoria . "' ";
+    $query .= " AND s.categoria = " . dbQ($nome_categoria) . " ";
 }
 if (!$ancheCancellati) {
-	$query .= "AND NOT s.cancellato ";
+    $query .= " AND NOT s.cancellato ";
 }
 if ($soloNuovi) {
-	$query .= "AND s.data >= CURDATE() ";
+    $query .= " AND s.data >= CURDATE() ";
 }
 
-$query .= "ORDER BY s.data $direzioneOrdinamento, d.cognome ASC,d.nome ASC, s.ora ASC";
+$query .= " ORDER BY s.data $direzioneOrdinamento, d.cognome ASC, d.nome ASC, s.ora ASC";
 
 debug("Query principale pronta");
 
@@ -204,7 +214,7 @@ foreach ($resultArray as $row) {
 				if (getSettingsValue('sportelli', 'nascondiNomeStudenti', false)) {
 					$studenteTip = $studenteTip . '---' . " " . '---' . " " . $studente['studente_classe'] . "</br>";
 				} else {
-					$studenteTip = $studenteTip . $studente['studente_cognome'] . " " . $studente['studente_nome'] . " " . $studente['studente_classe'] . "</br>";
+					$studenteTip = $studenteTip . eh($studente['studente_cognome']) . " " . eh($studente['studente_nome']) . " " . eh($studente['studente_classe']) . "</br>";
 				}
 			}
 		}
@@ -230,30 +240,30 @@ foreach ($resultArray as $row) {
 		<td align="center">' . $sportello_categoria . '</td>
 		<td align="center">' . $dataSportello . '</td>
 		<td align="center">' . $row['sportello_ora'] . ' &nbsp;&nbsp;&nbsp;(' . $row['sportello_numero_ore'] . ($row['sportello_numero_ore'] > 1 ? ' ore)' : ' ora)') . '</td>
-		<td>' . $row['materia_nome'] . '</td>
-		<td align="center">' . $row['docente_nome'] . ' ' . $row['docente_cognome'] . '</td>
+		<td>' . eh($row['materia_nome']) . '</td>
+		<td align="center">' . eh($row['docente_nome']) . ' ' . eh($row['docente_cognome']) . '</td>
 		';
 			if ($row['sportello_argomento'] == "") {
 				if ($row['argomento'] == "") {
 					$data .= '<td></td>';
 				} else {
-					$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento da te indicato.<br><br><b>RICORDA</b><br>Ogni studente iscritto allo sportello<br>indica il proprio argomento.">' . $row['argomento'] . '</td>';
+					$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento da te indicato.<br><br><b>RICORDA</b><br>Ogni studente iscritto allo sportello<br>indica il proprio argomento.">' . eh($row['argomento']) . '</td>';
 				}
 			} else {
-				$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento scelto dal docente<br><br><b>RICORDA</b><br>Per questo tipo di sportello l\'argomento<br>è deciso dal docente">' . $row['sportello_argomento'] . '</td>';
+				$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento scelto dal docente<br><br><b>RICORDA</b><br>Per questo tipo di sportello l\'argomento<br>è deciso dal docente">' . eh($row['sportello_argomento']) . '</td>';
 			}
 			$data .= '
 		<td align="center">' . $luogo_or_onine_marker . '</td>
-		<td align="center">' . $row['sportello_classe'] . '</td>
-		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="' . $studenteTip . '">' . $posti_disponibili . '</td>
+		<td align="center">' . eh($row['sportello_classe']) . '</td>
+		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="' . eh($studenteTip) . '">' . $posti_disponibili . '</td>
 		';
 		} else {
 			$data .= '<tr>
-		<td align="center"><s>' . $sportello_categoria . '</td>
-		<td align="center"><s>' . $dataSportello . '</td>
+		<td align="center"><s>' . eh($sportello_categoria) . '</td>
+		<td align="center"><s>' . eh($dataSportello) . '</td>
 		<td align="center"><s>' . $row['sportello_ora'] . ' &nbsp;&nbsp;&nbsp;(' . $row['sportello_numero_ore'] . ($row['sportello_numero_ore'] > 1 ? ' ore)' : ' ora)') . '</td>
-		<td><s>' . $row['materia_nome'] . '</td>
-		<td align="center"><s>' . $row['docente_nome'] . ' ' . $row['docente_cognome'] . '</td>
+		<td><s>' . eh($row['materia_nome']) . '</td>
+		<td align="center"><s>' . eh($row['docente_nome']) . ' ' . eh($row['docente_cognome']) . '</td>
 		';
 			if ($row['sportello_argomento'] == "") {
 				if ($row['argomento'] == "") {
@@ -265,9 +275,9 @@ foreach ($resultArray as $row) {
 				$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento scelto dal docente<br><br><b>RICORDA</b><br>Per questo tipo di sportello l\'argomento<br>è deciso dal docente">' . $row['sportello_argomento'] . '</td>';
 			}
 			$data .= '
-		<td align="center"><s>' . $luogo_or_onine_marker . '</td>
-		<td align="center"><s>' . $row['sportello_classe'] . '</td>
-		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="<s>' . $studenteTip . '"><s>0</td>
+		<td align="center"><s>' . $luogo_or_onine_marker . '</s></td>
+		<td align="center"><s>' . eh($row['sportello_classe']) . '</s></td>
+		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="' . htmlspecialchars($studenteTip, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><s>0</s></td>
 		';
 		}
 		// apri l'ultima colonna

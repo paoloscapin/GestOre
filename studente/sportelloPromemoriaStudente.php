@@ -37,7 +37,7 @@ $query = "	SELECT
 				INNER JOIN materia
 				ON materia.id = sportello.materia_id
 				WHERE
-				date_format(sportello.data,'%Y%m%d') = ADDDATE(CURDATE(),1)
+				DATE(sportello.data) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)
 				AND NOT sportello.cancellato ";
 
 $resultArray = dbGetAll($query);
@@ -59,7 +59,7 @@ foreach ($resultArray as $row) {
 	$sportello_categoria = strtoupper($row['sportello_categoria']);
 	$sportello_luogo = $row['sportello_luogo'];
 
-	$query = "SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = $sportello_id";
+	$query = "SELECT COUNT(*) FROM sportello_studente WHERE sportello_studente.sportello_id = $sportello_id AND sportello_studente.iscritto = 1";
 	$numero_studenti_iscritti = dbGetValue($query);
 
 	info("dati sportello docente da inviare promemoria agli studenti:  DATA " . $data . " ORA " . $sportello_ora . " ID " . $sportello_id . " DOCENTE-ID " . $sportello_docente_id);
