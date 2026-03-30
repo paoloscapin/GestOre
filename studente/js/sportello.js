@@ -56,15 +56,26 @@ function sportelloCancellaIscrizione(sportello_id, materia, categoria, argomento
     var conf = confirm("Sei sicuro di volere cancellare la tua iscrizione dallo sportello di " + materia + " ?");
     if (!conf) return;
 
-        $.post("./sportelloCancellaIscrizione.php", {...}, function (resp) {
-            if (!resp || resp.ok === false) {
-                bootbox.alert("Errore: " + (resp.error || "cancellazione non riuscita"));
-                return;
-            }
-            sportelloReadRecords();
-        }, "json").fail(function () {
-            bootbox.alert("Errore durante la cancellazione dell'iscrizione.");
-        });
+    $.post("./sportelloCancellaIscrizione.php", {
+        id: sportello_id,
+        argomento: argomento,
+        materia: materia,
+        categoria: categoria,
+        data: data,
+        ora: ora,
+        numero_ore: numero_ore,
+        luogo: luogo,
+        docente_id: docente_id,
+        studente_id: studente_id
+    }, function (resp) {
+        if (!resp || resp.ok === false) {
+            bootbox.alert("Errore: " + ((resp && resp.error) ? resp.error : "cancellazione non riuscita"));
+            return;
+        }
+        sportelloReadRecords();
+    }, "json").fail(function () {
+        bootbox.alert("Errore durante la cancellazione dell'iscrizione.");
+    });
 }
 
 function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, ora, numero_ore, luogo, docente_id, studente_id) {
@@ -79,7 +90,7 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
         var primoIscritto = argomento ? false : true;
         var chiediArgomento = !unSoloArgomento || primoIscritto;
 
-        if (argomento != null && argomento.length != 0) {
+        if (argomento != null && argomento.length !== 0) {
             chiediArgomento = false;
         }
 

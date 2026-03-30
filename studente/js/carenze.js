@@ -4,47 +4,51 @@
  *  @copyright  (C) 2026 Massimo Saiani
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
-// 🔽 Recupero parametro "d" passato nello <script src=...>
+
 var scripts = document.getElementsByTagName('script');
 var myScript = scripts[scripts.length - 1];
 var url = new URL(myScript.src);
 var params = new URLSearchParams(url.search);
-var device = params.get("d") || "desktop"; // default "desktop"
-var $anni_filtro_id = params.get("a") || "1"; // default 
+
+var device = params.get("d") || "desktop";
+var anni_filtro_id = params.get("a") || "0";
 
 function carenzeReadRecords() {
     var $target = (device === "mobile") ? $("#carenze_mobile_container") : $(".records_content");
 
-    // fallback se manca il target previsto
     if (!$target.length) $target = $(".records_content");
     if (!$target.length) $target = $("#carenze_mobile_container");
 
-    var url = (device === "mobile")
-        ? "carenzeReadRecords_mobile.php?anni_filtro_id=" + $anni_filtro_id
-        : "carenzeReadRecords.php?anni_filtro_id=" + $anni_filtro_id;
+    var endpoint = (device === "mobile")
+        ? "carenzeReadRecords_mobile.php"
+        : "carenzeReadRecords.php";
 
-    $.get(url, {}, function (data) {
+    $.post(endpoint, {
+        anni_filtro_id: anni_filtro_id
+    }, function (data) {
         $target.html(data);
-        $('[data-toggle="tooltip"]').tooltip({ trigger: 'hover', container: 'body' });
+        $('[data-toggle="tooltip"]').tooltip({
+            trigger: 'hover',
+            container: 'body'
+        });
     });
 }
 
 function carenzaPrint(id_carenza) {
-    // creo form nascosto
     var form = $('<form>', {
         action: '../didattica/stampaCarenza.php',
         method: 'POST',
-        target: '_black'    // apre in un nuovo tab
+        target: '_blank'
     });
-    // aggiungo i campi
+
     form.append($('<input>', { type: 'hidden', name: 'id', value: id_carenza }));
     form.append($('<input>', { type: 'hidden', name: 'print', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'mail', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'genera', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'view', value: 1 }));
-    form.append($('<input>', { type: 'hidden', name: 'anno', value: $anni_filtro_id }));
+    form.append($('<input>', { type: 'hidden', name: 'anno', value: anni_filtro_id }));
     form.append($('<input>', { type: 'hidden', name: 'titolo', value: 'Programma carenza formativa' }));
-    // lo “submitto” e lo rimuovo
+
     form.appendTo('body').submit().remove();
 }
 
@@ -55,39 +59,38 @@ function carenzaSend(id_carenza) {
         mail: 1,
         genera: 0,
         view: 0,
-        anno: $anni_filtro_id,
+        anno: anni_filtro_id,
         titolo: 'Programma carenza formativa'
-    },
-        function (data, status) {
-            if (data == 'sent') {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Inviata!',
-                    text: 'La carenza è stata spedita alla mail dello studente.',
-                    confirmButtonText: 'OK',
-                    timer: 2500,   // si chiude da sola dopo 2.5 sec
-                    timerProgressBar: true
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Errore!',
-                    text: 'Carenza NON spedita. Dettaglio: ' + data,
-                    confirmButtonText: 'Chiudi'
-                });
-            }
-
-            carenzeReadRecords();
+    }, function (data) {
+        if (data === 'sent') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Inviata',
+                text: 'La carenza è stata spedita alla mail dello studente.',
+                confirmButtonText: 'OK',
+                timer: 2500,
+                timerProgressBar: true
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Errore',
+                text: 'Carenza non spedita. Dettaglio: ' + data,
+                confirmButtonText: 'Chiudi'
+            });
         }
-    );
+
+        carenzeReadRecords();
+    });
 }
 
 $(document).ready(function () {
+    $('.selectpicker').selectpicker();
+
     carenzeReadRecords();
 
-    $("#anni_filtro").on("changed.bs.select",
-        function (e, clickedIndex, newValue, oldValue) {
-            $anni_filtro_id = this.value;
-            carenzeReadRecords();
-        });
+    $("#anni_filtro").on("changed.bs.select change", function () {
+        anni_filtro_id = this.value || "0";
+        carenzeReadRecords();
+    });
 });

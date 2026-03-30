@@ -1,63 +1,58 @@
 <?php
 
-
 /**
  *  This file is part of GestOre
  *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
  *  @copyright  (C) 2026 Massimo Saiani
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
-require_once '../common/checkSession.php';
-?>
 
+require_once '../common/checkSession.php';
+require_once '../common/connect.php';
+
+ruoloRichiesto('studente');
+
+if (!getSettingsValue('config', 'carenzeObiettiviMinimi', false) ||
+    !getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false)) {
+    redirect("/error/unauthorized.php");
+}
+
+function eh($s)
+{
+    return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+$query = "SELECT COUNT(id) FROM carenze WHERE id_anno_scolastico = " . intval($__anno_scolastico_corrente_id);
+$count = (int) dbGetValue($query);
+$anno_carenze = ($count == 0) ? intval($__anno_scolastico_scorso_id) : intval($__anno_scolastico_corrente_id);
+
+// anni
+$anniFiltroOptionList = '<option value="0">Tutti</option>';
+foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
+    $selected = ((int)$anno['id'] === (int)$anno_carenze) ? ' selected' : '';
+    $anniFiltroOptionList .= '<option value="' . (int)$anno['id'] . '"' . $selected . '>' . eh($anno['anno']) . '</option>';
+}
+?>
 <!DOCTYPE html>
 <html>
 
 <head>
     <?php
-
     require_once '../common/header-common.php';
     require_once '../common/style.php';
     require_once '../common/_include_bootstrap-toggle.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
-    ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
-
-
-    if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) || (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
-        redirect("/error/unauthorized.php");
-    }
-
-    $query = "SELECT COUNT(id) FROM carenze WHERE id_anno_scolastico=" . $__anno_scolastico_corrente_id;
-    $count = dbGetValue($query);
-    if ($count == 0) {
-        $anno_carenze = $__anno_scolastico_scorso_id;
-    } else {
-        $anno_carenze = $__anno_scolastico_corrente_id;
-    }
-    // anni
-    $anniFiltroOptionList = '<option value="0">Tutti</option>';
-    $anniOptionList      = '<option value="0">Selezionare anno</option>';
-
-    foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
-        $selected = ($anno['id'] == $anno_carenze) ? ' selected' : '';
-        $option   = '<option value="' . htmlspecialchars($anno['id']) . '"' . $selected . '>' . htmlspecialchars($anno['anno']) . '</option>';
-
-        $anniFiltroOptionList .= $option;
-        $anniOptionList      .= $option;
-    }
-
     ?>
 
-    <!-- bootbox notificator -->
     <script type="text/javascript"
         src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <title>Carenze</title>
+
     <style>
-        /* Tooltip */
         .tooltip>.tooltip-inner {
             background-color: #73AD21;
             color: #FFFFFF;
@@ -84,20 +79,14 @@ require_once '../common/checkSession.php';
 
         .tooltip-inner {
             max-width: 450px;
-            /* If max-width does not work, try using width instead */
             width: 450px;
             text-align: left;
         }
     </style>
-
 </head>
 
-
 <body>
-    <?php
-    require_once '../common/header-studente.php';
-    require_once '../common/connect.php';
-    ?>
+    <?php require_once '../common/header-studente.php'; ?>
 
     <div class="container-fluid">
         <div class="panel panel-orange4">
@@ -106,45 +95,40 @@ require_once '../common/checkSession.php';
                     <div class="col-md-1" style="padding:10px">
                         <span class="glyphicon glyphicon-blackboard"></span>&ensp;Carenze
                     </div>
-                    <div class="col-md-8">
-                    </div>
+
+                    <div class="col-md-8"></div>
+
                     <div class="col-md-3" style="padding:0px">
                         <div class="text-center">
-                            <label class="col-sm-4 control-label" for="anni"
-                                style="margin:10px 0px 0px 0px; text-align:right">Anno Scolastico</label>
-                            <div class="col-sm-4" style="padding:0px;text-align:right"><select id="anni_filtro" name="anni_filtro"
-                                    class="anni_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
-                                    data-noneSelectedText="seleziona..." data-width="85%">
-                                    <?php echo $anniFiltroOptionList ?>
-                                </select></div>
+                            <label class="col-sm-4 control-label" for="anni_filtro"
+                                style="margin:10px 0 0 0; text-align:right">Anno Scolastico</label>
+                            <div class="col-sm-8" style="padding:0px;text-align:right">
+                                <select id="anni_filtro" name="anni_filtro"
+                                    class="anni_filtro selectpicker"
+                                    data-style="btn-yellow4"
+                                    data-live-search="true"
+                                    data-noneSelectedText="seleziona..."
+                                    data-width="100%">
+                                    <?php echo $anniFiltroOptionList; ?>
+                                </select>
+                            </div>
                         </div>
                     </div>
-
                 </div>
             </div>
+
             <div class="panel-body">
-                <div class="row" style="margin-bottom:10px;">
-                    <div class="col-md-6">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="records_content"></div>
                     </div>
-                    <div class="col-md-6">
-                    </div>
-
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="records_content"></div>
                 </div>
             </div>
         </div>
-
-        <!-- <div class="panel-footer"></div> -->
     </div>
 
-    </div>
-
-    <!-- Custom JS file -->
-    <script type="text/javascript" src="js/carenze.js?v=<?php echo $__software_version; ?>&d=desktop&a=<?php echo $anno_carenze; ?>"></script>
+    <script type="text/javascript"
+        src="js/carenze.js?v=<?php echo $__software_version; ?>&t=<?php echo time(); ?>&d=desktop&a=<?php echo (int)$anno_carenze; ?>">
+    </script>
 </body>
-
 </html>

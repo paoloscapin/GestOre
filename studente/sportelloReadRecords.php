@@ -255,7 +255,7 @@ foreach ($resultArray as $row) {
 			$data .= '
 		<td align="center">' . $luogo_or_onine_marker . '</td>
 		<td align="center">' . eh($row['sportello_classe']) . '</td>
-		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="' . eh($studenteTip) . '">' . $posti_disponibili . '</td>
+		<td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="' . htmlspecialchars($studenteTip, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">' . $posti_disponibili . '</td>
 		';
 		} else {
 			$data .= '<tr>
