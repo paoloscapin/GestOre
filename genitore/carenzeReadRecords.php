@@ -17,15 +17,51 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+ruoloRichiesto('genitore');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+function carenzeFailUnauthorized()
+{
     redirect("/error/unauthorized.php");
+    exit;
 }
 
-$studente_filtro_id = $_POST["studente_filtro_id"] ?? 0;
-$__studente_id = intval($studente_filtro_id);
+function canGenitoreAccessStudente($idStudente, $idGenitore)
+{
+    $idStudente = (int)$idStudente;
+    $idGenitore = (int)$idGenitore;
 
-$anni_filtro_id = isset($_POST["anni_filtro_id"]) ? intval($_GET["anni_filtro_id"]) : 0;
+    if ($idStudente <= 0 || $idGenitore <= 0) {
+        return false;
+    }
+
+    $q = "
+        SELECT id_studente
+        FROM genitori_studenti
+        WHERE id_genitore = " . dbI($idGenitore) . "
+          AND id_studente = " . dbI($idStudente) . "
+        LIMIT 1
+    ";
+
+    $row = dbGetFirst($q);
+    return is_array($row) && !empty($row['id_studente']);
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    carenzeFailUnauthorized();
+}
+
+$studente_filtro_id = isset($_POST["studente_filtro_id"]) ? (int)$_POST["studente_filtro_id"] : 0;
+if ($studente_filtro_id <= 0) {
+    carenzeFailUnauthorized();
+}
+
+if (!canGenitoreAccessStudente($studente_filtro_id, (int)$__genitore_id)) {
+    carenzeFailUnauthorized();
+}
+
+$__studente_id = $studente_filtro_id;
+
+$anni_filtro_id = isset($_POST["anni_filtro_id"]) ? intval($_POST["anni_filtro_id"]) : 0;
 $anno_corsi_id  = intval($__anno_scolastico_corrente_id); // anno dei corsi (corrente)
 
 // ======================
@@ -65,7 +101,7 @@ $query = "
     INNER JOIN docente d ON c.id_docente = d.id
     INNER JOIN studente s ON c.id_studente = s.id
     INNER JOIN materia m ON c.id_materia = m.id
-    WHERE s.id = '{$__studente_id}'
+    WHERE s.id = " . dbI($__studente_id) . "
       AND (c.stato = 2 OR c.stato = 3)
 ";
 
@@ -144,12 +180,11 @@ foreach ($carenze as $row) {
     $idMateria   = intval($row['id_materia']);
     $idAnnoCarenza = intval($row['id_anno_scolastico']);
 
-    $materia = htmlspecialchars($row['materia']);
+    $materia = htmlspecialchars($row['materia'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $note    = htmlspecialchars($row['nota'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');    
     $docente = ($row['doc_id'] == 0)
         ? 'Studente esterno'
         : htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome']);
-
-    $note    = htmlspecialchars($row['nota']);
 
     $data .= "<tr>
         <td align='center'>{$materia}</td>

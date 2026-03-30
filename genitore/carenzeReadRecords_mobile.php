@@ -18,12 +18,48 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+ruoloRichiesto('genitore');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+function carenzeFailUnauthorized()
+{
     redirect("/error/unauthorized.php");
+    exit;
 }
 
-$studente_filtro_id = isset($_POST["studente_filtro_id"]) ? intval($_POST["studente_filtro_id"]) : 0;
+function canGenitoreAccessStudente($idStudente, $idGenitore)
+{
+    $idStudente = (int)$idStudente;
+    $idGenitore = (int)$idGenitore;
+
+    if ($idStudente <= 0 || $idGenitore <= 0) {
+        return false;
+    }
+
+    $q = "
+        SELECT id_studente
+        FROM genitori_studenti
+        WHERE id_genitore = " . dbI($idGenitore) . "
+          AND id_studente = " . dbI($idStudente) . "
+        LIMIT 1
+    ";
+
+    $row = dbGetFirst($q);
+    return is_array($row) && !empty($row['id_studente']);
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    carenzeFailUnauthorized();
+}
+
+$studente_filtro_id = isset($_POST["studente_filtro_id"]) ? (int)$_POST["studente_filtro_id"] : 0;
+if ($studente_filtro_id <= 0) {
+    carenzeFailUnauthorized();
+}
+
+if (!canGenitoreAccessStudente($studente_filtro_id, (int)$__genitore_id)) {
+    carenzeFailUnauthorized();
+}
+
 $__studente_id = $studente_filtro_id;
 
 $anni_filtro_id = isset($_POST["anni_filtro_id"]) ? intval($_POST["anni_filtro_id"]) : 0;
@@ -154,9 +190,9 @@ foreach ($carenze as $row) {
     $idMateria     = intval($row['id_materia']);
     $idAnnoCarenza = intval($row['id_anno_scolastico']); // serve al print
 
-    $materia = htmlspecialchars($row['materia']);
+    $materia = htmlspecialchars($row['materia'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $note    = htmlspecialchars($row['nota'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $docente = ($row['doc_id'] == 0) ? 'Studente esterno' : htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome']);
-    $note    = htmlspecialchars($row['nota']);
 
     echo '<div class="card mb-3 p-3 shadow-sm" style="border-radius:12px; background:#fff;">';
     echo "<div><strong>Materia:</strong> {$materia}</div>";

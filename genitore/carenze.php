@@ -7,6 +7,7 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 require_once '../common/checkSession.php';
+ruoloRichiesto('genitore');
 ?>
 
 <!DOCTYPE html>
@@ -19,9 +20,9 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_bootstrap-toggle.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
-    ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
 
-    if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) || (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
+
+    if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) || (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_genitori', false))) {
         redirect("/error/unauthorized.php");
     }
     ?>
@@ -81,7 +82,7 @@ $firstId = null;
 foreach ($studenti as $studente) {
     if ($firstId === null) $firstId = $studente['id'];
     $studenteFiltroOptionList .= '<option value="' . intval($studente['id']) . '">'
-        . htmlspecialchars($studente['cognome'] . ' ' . $studente['nome']) . '</option>';
+        . htmlspecialchars($studente['cognome'] . ' ' . $studente['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</option>';
 }
 
 // anno default carenze
@@ -94,7 +95,7 @@ $anniFiltroOptionList = '<option value="0">Tutti</option>';
 foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
     $selected = ($anno['id'] == $anno_carenze) ? ' selected' : '';
     $anniFiltroOptionList .= '<option value="' . intval($anno['id']) . '"' . $selected . '>'
-        . htmlspecialchars($anno['anno']) . '</option>';
+        . htmlspecialchars($anno['anno'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</option>';
 }
 ?>
 
@@ -162,9 +163,8 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         </div>
     </div>
 
-    <script type="text/javascript"
-        src="js/carenze.js?v=<?php echo $__software_version; ?>&d=desktop&id=<?php echo intval($firstId); ?>&a=<?php echo intval($anno_carenze); ?>">
-    </script>
-</body>
+<script type="text/javascript"
+    src="js/carenze.js?v=<?php echo $__software_version; ?>&t=<?php echo time(); ?>&d=desktop&id=<?php echo intval($firstId); ?>&a=<?php echo intval($anno_carenze); ?>">
+</script></body>
 
 </html>

@@ -12,6 +12,7 @@
  *  Allineata a studente: cards + padding + filtri studente/anno
  */
 require_once '../common/checkSession.php';
+ruoloRichiesto('genitore');
 ?>
 
 <!DOCTYPE html>
@@ -28,10 +29,9 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_bootstrap-toggle.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
-    ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
 
     if ((!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) ||
-        (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))
+        (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_genitori', false))
     ) {
         redirect("/error/unauthorized.php");
     }
@@ -155,9 +155,9 @@ require_once '../common/checkSession.php';
         </div>
     </div>
 
-    <script type="text/javascript"
-        src="js/carenze.js?v=<?php echo $__software_version; ?>&d=mobile&id=<?php echo intval($firstId); ?>&a=<?php echo intval($anno_carenze); ?>">
-    </script>
+<script type="text/javascript"
+    src="js/carenze.js?v=<?php echo $__software_version; ?>&t=<?php echo time(); ?>&d=mobile&id=<?php echo intval($firstId); ?>&a=<?php echo intval($anno_carenze); ?>">
+</script>
 </body>
 
 </html>

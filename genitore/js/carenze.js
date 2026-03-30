@@ -11,7 +11,7 @@ var myScript = scripts[scripts.length - 1];
 var url = new URL(myScript.src);
 var params = new URLSearchParams(url.search);
 var device = params.get("d") || "desktop"; // default "desktop"
-var $anni_filtro_id = params.get("a") || "1"; // default 
+var anni_filtro_id = params.get("a") || "1"; // default 
 
 var studente_filtro_id = params.get("id");
 
@@ -23,7 +23,10 @@ function carenzeReadRecords() {
         ? "carenzeReadRecords_mobile.php"
         : "carenzeReadRecords.php";
 
-    $.post(endpoint + "?studente_filtro_id=" + studente_filtro_id + "&anni_filtro_id=" + $anni_filtro_id, {}, function (data) {
+    $.post(endpoint, {
+        studente_filtro_id: studente_filtro_id,
+        anni_filtro_id: anni_filtro_id
+    }, function (data) {
         $target.html(data);
         $('[data-toggle="tooltip"]').tooltip({ trigger: 'hover', container: 'body' });
     });
@@ -31,11 +34,11 @@ function carenzeReadRecords() {
 
 function carenzaPrint(id_carenza,id_anno_carenza) {
     // creo form nascosto
-    console.log($anni_filtro_id);
+    console.log(anni_filtro_id);
     var form = $('<form>', {
         action: '../didattica/stampaCarenza.php',
         method: 'POST',
-        target: '_black'    // apre in un nuovo tab
+        target: '_blank'    // apre in un nuovo tab
     });
     // aggiungo i campi
     form.append($('<input>', { type: 'hidden', name: 'id', value: id_carenza }));
@@ -81,7 +84,7 @@ $(document).ready(function () {
 
     $("#anni_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
-            $anni_filtro_id = this.value;
+            anni_filtro_id = this.value;
             carenzeReadRecords();
         });
 
