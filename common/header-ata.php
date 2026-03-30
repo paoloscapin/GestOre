@@ -8,62 +8,153 @@
 ?>
 <link rel="stylesheet" href="../css/header-style.css">
 
-<nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
-	<div class="container-fluid">
+<?php
+$currentScript = basename($_SERVER['PHP_SELF'] ?? '');
 
-		<?php require_once '../common/header-_logo.php'; ?>
+function ataIsActive($fileName)
+{
+	global $currentScript;
+	return ($currentScript === $fileName);
+}
 
-		<ul class="nav navbar-nav top-navbar-nav">
+$displayName = '';
+if (haRuolo('portineria')) {
+	$displayName = $__portineria_nome . ' ' . $__portineria_cognome;
+} else {
+	$displayName = $__ata_nome . ' ' . $__ata_cognome;
+}
+?>
+<style>
+	.ata-mobile-header {
+		background: linear-gradient(180deg, #6cc3ea 0%, #14aae2 100%);
+		color: #fff;
+		padding: 10px 12px 12px 12px;
+		margin-bottom: 10px;
+		box-shadow: 0 2px 8px rgba(0,0,0,.10);
+	}
 
-			<div class="btn-group">
+	.ata-mobile-header-top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+	}
 
-				<!-- PERMESSI PERSONALI (dipendente ATA – futuro step) -->
-				 <?php if (haRuolo('personale-ata')) 
-				 {
-					echo '
-					<a href="../ata/permessi.php"
-				   class="btn btn-default navbar-btn btn-yellow4"
-				   role="button"
-				   data-toggle="tooltip"
-				   data-placement="bottom"
-				   title="Le mie richieste di permesso">
-					<span class="glyphicon glyphicon-th-list"></span>&ensp;I miei permessi
-				</a>
-				';
-				 } ?>
-				<a href="../orario/orario.php"
-				   class="btn btn-default navbar-btn btn-yellow4"
-				   role="button"
-				   data-toggle="tooltip"
-				   data-placement="bottom"
-				   title="Orario ed Eventi">
-					<span class="glyphicon glyphicon-time"></span>&ensp;Orario ed Eventi
-				</a>
+	.ata-mobile-logo img {
+		height: 34px;
+		width: auto;
+		display: block;
+	}
 
-			</div>
-		</ul>
+	.ata-mobile-user {
+		flex: 1;
+		text-align: left;
+		font-size: 16px;
+		font-weight: 600;
+		line-height: 1.2;
+		color: #ffffff;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
 
-		<ul class="nav navbar-nav navbar-right top-navbar-nav">
-			<li>
-				<a>
-					<?php if (haRuolo('admin')) echo "(A) "; ?>
-					<?php if (haRuolo('portineria')) 
-					{
-						echo '[' . $__portineria_nome . ' ' . $__portineria_cognome . ']'; 
-					}
-					else
-					{
-							echo '[' . $__ata_nome . ' ' . $__ata_cognome . ']'; 
-					}
-					?>
-				</a>
-			</li>
-			<li>
-				<a href="../common/logout.php?base=ata">
-					<span class="glyphicon glyphicon-log-out"></span>
-				</a>
-			</li>
-		</ul>
+	.ata-mobile-logout {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 42px;
+		height: 42px;
+		border-radius: 12px;
+		background: rgba(255,255,255,.16);
+		color: #fff;
+		text-decoration: none;
+		font-size: 18px;
+	}
 
+	.ata-mobile-logout:hover,
+	.ata-mobile-logout:focus {
+		color: #fff;
+		text-decoration: none;
+		background: rgba(255,255,255,.24);
+	}
+
+	.ata-mobile-nav {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 10px;
+		margin-top: 12px;
+	}
+
+	.ata-mobile-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		min-height: 54px;
+		padding: 12px 14px;
+		border-radius: 16px;
+		background: #f3e58c;
+		color: #2d3340;
+		font-size: 20px;
+		font-weight: 700;
+		text-decoration: none;
+		box-shadow: 0 2px 6px rgba(0,0,0,.10);
+	}
+
+	.ata-mobile-btn:hover,
+	.ata-mobile-btn:focus {
+		text-decoration: none;
+		color: #2d3340;
+		background: #f0df72;
+	}
+
+	.ata-mobile-btn.is-active {
+		background: #e9b04d;
+		color: #fff;
+	}
+
+	.ata-mobile-btn .glyphicon {
+		font-size: 18px;
+	}
+
+	@media (min-width: 768px) {
+		.ata-mobile-nav {
+			grid-template-columns: 1fr 1fr;
+		}
+	}
+</style>
+
+<div class="ata-mobile-header">
+	<div class="ata-mobile-header-top">
+		<div class="ata-mobile-logo">
+			<?php require_once '../common/header-_logo.php'; ?>
+		</div>
+
+		<div class="ata-mobile-user">
+			<?php if (haRuolo('admin')) echo '(A) '; ?>
+			<?php echo htmlspecialchars('[' . $displayName . ']', ENT_QUOTES, 'UTF-8'); ?>
+		</div>
+
+		<a class="ata-mobile-logout"
+		   href="../common/logout.php?base=ata"
+		   title="Esci">
+			<span class="glyphicon glyphicon-log-out"></span>
+		</a>
 	</div>
-</nav>
+
+	<div class="ata-mobile-nav">
+		<a href="../orario/orario.php"
+		   class="ata-mobile-btn <?php echo ataIsActive('orario.php') ? 'is-active' : ''; ?>">
+			<span class="glyphicon glyphicon-time"></span>
+			<span>Orario ed Eventi</span>
+		</a>
+
+		<?php if (haRuolo('personale-ata')): ?>
+			<a href="../ata/permessi.php"
+			   class="ata-mobile-btn <?php echo ataIsActive('permessi.php') ? 'is-active' : ''; ?>">
+				<span class="glyphicon glyphicon-folder-open"></span>
+				<span>I miei permessi</span>
+			</a>
+		<?php endif; ?>
+	</div>
+</div>

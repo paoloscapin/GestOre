@@ -12,17 +12,46 @@
  */
 
 function formatDateIT(ymd) {
-    // ymd = 'YYYY-MM-DD'
     if (!ymd) return "";
     const p = String(ymd).split("-");
     if (p.length !== 3) return ymd;
     return `${p[2]}/${p[1]}/${p[0]}`;
 }
 
+function scrollModalTop() {
+    try {
+        $("#permesso_modal .modal-body").animate({ scrollTop: 0 }, 200);
+    } catch (e) {}
+}
+
+function focusFirstFieldInModal() {
+    setTimeout(function () {
+        $("#permesso_tipo_id").focus();
+    }, 250);
+}
+
+function notifyCentered(type, title, msg, delay) {
+    $.notify(
+        {
+            icon: type === "danger" ? 'glyphicon glyphicon-warning-sign' : 'glyphicon glyphicon-info-sign',
+            title: '<strong>' + title + '</strong><br>',
+            message: msg
+        },
+        {
+            placement: { from: "top", align: "center" },
+            offset: { x: 0, y: 70 },
+            delay: delay || 3500,
+            timer: 100,
+            mouse_over: "pause",
+            type: type,
+            z_index: 9999
+        }
+    );
+}
+
 function updateFeriePeriodoUI() {
     const sottotipo = ($("#ferie_sottotipo").val() || "").toString().trim().toUpperCase();
 
-    // box
     const $box = $("#ferie_periodo_box");
     const $txt = $("#ferie_periodo_testo");
 
@@ -68,20 +97,20 @@ function rigaFerieTemplate(r) {
     const data_da = (r && r.data_da) ? r.data_da : "";
     const data_a = (r && r.data_a) ? r.data_a : "";
     return `
-  <div class="well well-sm ferie-riga" style="margin-bottom:8px;">
+  <div class="well well-sm ferie-riga">
     <div class="row">
-      <div class="col-md-5">
+      <div class="col-md-5 col-sm-5 col-xs-12">
         <label>Dal</label>
         <input type="date" class="form-control input-sm r_data_da" value="${data_da}">
       </div>
-      <div class="col-md-5">
+      <div class="col-md-5 col-sm-5 col-xs-12">
         <label>Al</label>
         <input type="date" class="form-control input-sm r_data_a" value="${data_a}">
       </div>
-      <div class="col-md-2 text-right">
+      <div class="col-md-2 col-sm-2 col-xs-12 text-right">
         <label>&nbsp;</label><br>
-        <button type="button" class="btn btn-xs btn-danger btn_del_ferie">
-          <span class="glyphicon glyphicon-trash"></span>
+        <button type="button" class="btn btn-danger btn_del_ferie">
+          <span class="glyphicon glyphicon-trash"></span> Elimina
         </button>
       </div>
     </div>
@@ -94,7 +123,6 @@ function rigaFerieTemplate(r) {
 function riga104Template(r) {
     const unita = (r && r.unita) ? String(r.unita).toUpperCase() : "GIORNI";
 
-    // Per ORE usiamo data_da come data singola
     const data = (r && (r.data_da || r.data_a)) ? (r.data_da || r.data_a) : "";
     const data_da = (r && r.data_da) ? r.data_da : "";
     const data_a = (r && r.data_a) ? r.data_a : "";
@@ -102,9 +130,9 @@ function riga104Template(r) {
     const ora_a = (r && r.ora_a) ? r.ora_a : "";
 
     return `
-  <div class="well well-sm riga-104" style="margin-bottom:8px;">
+  <div class="well well-sm riga-104">
     <div class="row">
-      <div class="col-md-2">
+      <div class="col-md-2 col-sm-3 col-xs-12">
         <label>Unità</label>
         <select class="form-control input-sm r104_unita">
           <option value="GIORNI" ${unita === "GIORNI" ? "selected" : ""}>GIORNI</option>
@@ -112,35 +140,35 @@ function riga104Template(r) {
         </select>
       </div>
 
-      <div class="col-md-4 r104_block_giorni">
+      <div class="col-md-4 col-sm-4 col-xs-12 r104_block_giorni">
         <label>Dal</label>
         <input type="date" class="form-control input-sm r104_data_da" value="${data_da}">
       </div>
 
-      <div class="col-md-4 r104_block_giorni">
+      <div class="col-md-4 col-sm-4 col-xs-12 r104_block_giorni">
         <label>Al</label>
         <input type="date" class="form-control input-sm r104_data_a" value="${data_a}">
       </div>
 
-      <div class="col-md-3 r104_block_ore" style="display:none;">
+      <div class="col-md-3 col-sm-4 col-xs-12 r104_block_ore" style="display:none;">
         <label>Data</label>
         <input type="date" class="form-control input-sm r104_data" value="${data}">
       </div>
 
-      <div class="col-md-2 r104_block_ore" style="display:none;">
+      <div class="col-md-2 col-sm-4 col-xs-6 r104_block_ore" style="display:none;">
         <label>Ore da</label>
         <input type="time" class="form-control input-sm r104_ora_da" value="${ora_da}">
       </div>
 
-      <div class="col-md-2 r104_block_ore" style="display:none;">
+      <div class="col-md-2 col-sm-4 col-xs-6 r104_block_ore" style="display:none;">
         <label>Ore a</label>
         <input type="time" class="form-control input-sm r104_ora_a" value="${ora_a}">
       </div>
 
-      <div class="col-md-2 text-right">
+      <div class="col-md-2 col-sm-3 col-xs-12 text-right">
         <label>&nbsp;</label><br>
-        <button type="button" class="btn btn-xs btn-danger btn_del_104">
-          <span class="glyphicon glyphicon-trash"></span>
+        <button type="button" class="btn btn-danger btn_del_104">
+          <span class="glyphicon glyphicon-trash"></span> Elimina
         </button>
       </div>
     </div>
@@ -154,7 +182,6 @@ function apply104RowUI($r) {
         $r.find(".r104_block_giorni").show();
         $r.find(".r104_block_ore").hide();
 
-        // pulisco ore
         $r.find(".r104_data").val("");
         $r.find(".r104_ora_da").val("");
         $r.find(".r104_ora_a").val("");
@@ -162,7 +189,6 @@ function apply104RowUI($r) {
         $r.find(".r104_block_giorni").hide();
         $r.find(".r104_block_ore").show();
 
-        // pulisco range giorni
         $r.find(".r104_data_da").val("");
         $r.find(".r104_data_a").val("");
     }
@@ -190,7 +216,6 @@ function applyTipoUI() {
 
     resetBlocks();
 
-    // reset campi specifici fuori tipo
     if (tipo !== "FERIE") {
         $("#ferie_sottotipo").val("");
         $("#righe_ferie_container").empty();
@@ -208,6 +233,8 @@ function applyTipoUI() {
         if ($("#righe_ferie_container .ferie-riga").length === 0) {
             $("#righe_ferie_container").html(rigaFerieTemplate());
         }
+
+        scrollModalTop();
         return;
     }
 
@@ -223,25 +250,28 @@ function applyTipoUI() {
                 apply104RowUI($(this));
             });
         }
+
+        scrollModalTop();
         return;
     }
 
-    // altri tipi: singolo
     $("#block_singolo").show();
 
     if (tipo === "RECUPERO_ORE") {
         $("#block_singolo_ora_da").show();
         $("#block_singolo_ora_a").show();
-        $("#singolo_hint").show().text("Inserisci una sola data e l'intervallo orario (ore da/ore a) obbligatorio.");
+        $("#singolo_hint").show().text("Inserisci una sola data e l'intervallo orario obbligatorio.");
     } else if (tipo === "VISITA_MEDICA" || tipo === "VISITA_SPEC") {
         $("#block_singolo_ora_da").show();
         $("#block_singolo_ora_a").show();
-        $("#singolo_hint").show().text("Inserisci una sola data. Le ore sono facoltative (se vuote = giornata intera).");
+        $("#singolo_hint").show().text("Inserisci una sola data. Le ore sono facoltative.");
     } else {
         $("#block_singolo_ora_da").show();
         $("#block_singolo_ora_a").show();
         $("#singolo_hint").show().text("Inserisci una sola data. Le ore sono facoltative.");
     }
+
+    scrollModalTop();
 }
 
 /* ===========================
@@ -293,7 +323,6 @@ function collectRighe() {
         return righe;
     }
 
-    // singolo
     const data = $("#singolo_data").val();
     const ora_da = $("#singolo_ora_da").val();
     const ora_a = $("#singolo_ora_a").val();
@@ -313,11 +342,7 @@ function permessoHideError() {
 
 function permessoShowError(msg) {
     $("#permesso_alert").text(msg).show();
-
-    // porta l'utente in alto nel modale
-    try {
-        $("#permesso_modal .modal-body").animate({ scrollTop: 0 }, 200);
-    } catch (e) { }
+    scrollModalTop();
 }
 
 /* ===========================
@@ -325,6 +350,7 @@ function permessoShowError(msg) {
  * =========================== */
 function openNewPermesso() {
     permessoHideError();
+
     $("#permesso_id").val("");
     $("#permesso_tipo_id").val("");
     $("#permesso_note").val("");
@@ -341,19 +367,25 @@ function openNewPermesso() {
     resetBlocks();
     updateFeriePeriodoUI();
 
-    $("#permesso_modal").modal("show");
-
     $("#permesso_tipo_id").prop("disabled", false);
     $("#permesso_note").prop("readonly", false);
     $("#btn_save_bozza").prop("disabled", false);
     $("#btn_invia").prop("disabled", false);
+
+    $("#block_singolo :input").prop("disabled", false);
+    $("#block_ferie_multi :input").prop("disabled", false);
+    $("#block_104_multi :input").prop("disabled", false);
+
+    $("#permesso_modal").modal("show");
+    focusFirstFieldInModal();
 }
 
 function permessoGetDetails(id) {
     permessoHideError();
+
     $.post("permessoReadDetails.php", { id: id }, function (r) {
         if (!r || r.ok !== true) {
-            alert("Errore lettura dettagli.");
+            notifyCentered("danger", "Permessi ATA", "Errore lettura dettagli.", 5000);
             return;
         }
 
@@ -414,6 +446,7 @@ function permessoGetDetails(id) {
         }
 
         $("#permesso_modal").modal("show");
+        focusFirstFieldInModal();
     }, "json");
 }
 
@@ -421,10 +454,7 @@ function permessoGetDetails(id) {
  * NOTIFY + SAVE + DELETE
  * =========================== */
 function notifyErr(msg) {
-    $.notify(
-        { icon: 'glyphicon glyphicon-warning-sign', title: '<strong>Permessi</strong><br>', message: msg },
-        { placement: { from: "top", align: "center" }, delay: 5000, timer: 100, mouse_over: "pause", type: 'danger' }
-    );
+    notifyCentered("danger", "Permessi ATA", msg, 5000);
 }
 
 function permessoSave(azione) {
@@ -454,10 +484,7 @@ function permessoSave(azione) {
             if (!r || r.ok !== true) {
                 const msg = (r && r.error) ? r.error : "Errore salvataggio.";
                 permessoShowError(msg);
-
-                // opzionale: anche notify (se funziona)
-                try { notifyErr(msg); } catch (e) { }
-
+                notifyErr(msg);
                 return;
             }
 
@@ -465,21 +492,23 @@ function permessoSave(azione) {
             $("#permesso_modal").modal("hide");
             permessiReadRecords();
 
-            $.notify(
-                { icon: 'glyphicon glyphicon-info-sign', title: '<strong>Permessi</strong><br>', message: (azione === "INVIA") ? 'Richiesta inviata.' : 'Bozza salvata.' },
-                { placement: { from: "top", align: "center" }, delay: 2500, timer: 100, mouse_over: "pause", type: 'info' }
+            notifyCentered(
+                "info",
+                "Permessi ATA",
+                (azione === "INVIA") ? "Richiesta inviata." : "Bozza salvata.",
+                2500
             );
         },
         error: function (xhr) {
             const msg = "Errore server: " + xhr.status;
             permessoShowError(msg);
-            try { notifyErr(msg); } catch (e) { }
+            notifyErr(msg);
         }
     });
 }
 
 function permessoDelete(id) {
-    if (!confirm("Eliminare la richiesta (solo se BOZZA)?")) return;
+    if (!confirm("Vuoi eliminare questa bozza di richiesta?")) return;
 
     $.ajax({
         url: "permessoDelete.php",
@@ -488,10 +517,15 @@ function permessoDelete(id) {
         data: { id: id },
         success: function (r) {
             if (!r || r.ok !== true) {
-                alert((r && r.error) ? r.error : "Errore cancellazione.");
+                notifyErr((r && r.error) ? r.error : "Errore cancellazione.");
                 return;
             }
+
             permessiReadRecords();
+            notifyCentered("info", "Permessi ATA", "Bozza eliminata.", 2200);
+        },
+        error: function (xhr) {
+            notifyErr("Errore server: " + xhr.status);
         }
     });
 }
@@ -517,6 +551,7 @@ $(document).on("change", "#permesso_tipo_id", function () {
 $(document).on("click", "#btn_add_ferie", function () {
     $("#righe_ferie_container").append(rigaFerieTemplate());
 });
+
 $(document).on("click", ".btn_del_ferie", function () {
     const $all = $("#righe_ferie_container .ferie-riga");
     if ($all.length <= 1) {
@@ -531,9 +566,11 @@ $(document).on("click", "#btn_add_104", function () {
     $("#righe_104_container").append(riga104Template({ unita: "GIORNI" }));
     apply104RowUI($("#righe_104_container .riga-104").last());
 });
+
 $(document).on("change", ".riga-104 .r104_unita", function () {
     apply104RowUI($(this).closest(".riga-104"));
 });
+
 $(document).on("click", ".btn_del_104", function () {
     const $all = $("#righe_104_container .riga-104");
     if ($all.length <= 1) {
@@ -547,15 +584,25 @@ $(document).on("click", ".btn_del_104", function () {
 $(document).on("click", "#btn_save_bozza", function () {
     permessoSave("BOZZA");
 });
+
 $(document).on("click", "#btn_invia", function () {
     permessoSave("INVIA");
-});
-
-$(document).ready(function () {
-    permessiReadRecords();
 });
 
 $(document).on("change", "#ferie_sottotipo", function () {
     updateFeriePeriodoUI();
 });
 
+$(document).on("click", ".btn-open-permesso", function () {
+    const id = parseInt($(this).data("id"), 10) || 0;
+    if (id > 0) permessoGetDetails(id);
+});
+
+$(document).on("click", ".btn-delete-permesso", function () {
+    const id = parseInt($(this).data("id"), 10) || 0;
+    if (id > 0) permessoDelete(id);
+});
+
+$(document).ready(function () {
+    permessiReadRecords();
+});
