@@ -18,10 +18,14 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$studente_filtro_id = $_GET["studente_filtro_id"] ?? 0;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    redirect("/error/unauthorized.php");
+}
+
+$studente_filtro_id = $_POST["studente_filtro_id"] ?? 0;
 $__studente_id = intval($studente_filtro_id);
 
-$anni_filtro_id = isset($_GET["anni_filtro_id"]) ? intval($_GET["anni_filtro_id"]) : 0;
+$anni_filtro_id = isset($_POST["anni_filtro_id"]) ? intval($_GET["anni_filtro_id"]) : 0;
 $anno_corsi_id  = intval($__anno_scolastico_corrente_id); // anno dei corsi (corrente)
 
 // ======================

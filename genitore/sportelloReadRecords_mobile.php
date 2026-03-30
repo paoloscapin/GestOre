@@ -17,6 +17,10 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    redirect("/error/unauthorized.php");
+}
+
 date_default_timezone_set('Europe/Rome');
 
 echo '<style>
@@ -37,14 +41,14 @@ if (!function_exists('debug')) {
 }
 
 // --- PARAMETRI GET ---
-$ancheCancellati     = isset($_GET["ancheCancellati"])     ? (int)$_GET["ancheCancellati"]     : 0;
-$soloNuovi           = isset($_GET["soloNuovi"])           ? (int)$_GET["soloNuovi"]           : 0;
-$soloIscritto        = isset($_GET["soloIscritto"])        ? (int)$_GET["soloIscritto"]        : 0;
-$docente_filtro_id   = isset($_GET["docente_filtro_id"])   ? (int)$_GET["docente_filtro_id"]   : 0;
-$materia_filtro_id   = isset($_GET["materia_filtro_id"])   ? (int)$_GET["materia_filtro_id"]   : 0;
-$classe_filtro_id    = isset($_GET["classe_filtro_id"])    ? (int)$_GET["classe_filtro_id"]    : 0;
-$categoria_filtro_id = isset($_GET["categoria_filtro_id"]) ? (int)$_GET["categoria_filtro_id"] : 0;
-$studente_filtro_id  = isset($_GET["studente_filtro_id"])  ? (int)$_GET["studente_filtro_id"]  : 0;
+$ancheCancellati     = isset($_POST["ancheCancellati"])     ? (int)$_POST["ancheCancellati"]     : 0;
+$soloNuovi           = isset($_POST["soloNuovi"])           ? (int)$_POST["soloNuovi"]           : 0;
+$soloIscritto        = isset($_POST["soloIscritto"])        ? (int)$_POST["soloIscritto"]        : 0;
+$docente_filtro_id   = isset($_POST["docente_filtro_id"])   ? (int)$_POST["docente_filtro_id"]   : 0;
+$materia_filtro_id   = isset($_POST["materia_filtro_id"])   ? (int)$_POST["materia_filtro_id"]   : 0;
+$classe_filtro_id    = isset($_POST["classe_filtro_id"])    ? (int)$_POST["classe_filtro_id"]    : 0;
+$categoria_filtro_id = isset($_POST["categoria_filtro_id"]) ? (int)$_POST["categoria_filtro_id"] : 0;
+$studente_filtro_id  = isset($_POST["studente_filtro_id"])  ? (int)$_POST["studente_filtro_id"]  : 0;
 
 // necessarie per le sottoquery
 $__studente_id = $studente_filtro_id;

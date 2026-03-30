@@ -23,7 +23,7 @@ function carenzeReadRecords() {
         ? "carenzeReadRecords_mobile.php"
         : "carenzeReadRecords.php";
 
-    $.get(endpoint + "?studente_filtro_id=" + studente_filtro_id + "&anni_filtro_id=" + $anni_filtro_id, {}, function (data) {
+    $.post(endpoint + "?studente_filtro_id=" + studente_filtro_id + "&anni_filtro_id=" + $anni_filtro_id, {}, function (data) {
         $target.html(data);
         $('[data-toggle="tooltip"]').tooltip({ trigger: 'hover', container: 'body' });
     });

@@ -55,7 +55,7 @@ function sportelloReadRecords() {
         ? "sportelloReadRecords_mobile.php" 
         : "sportelloReadRecords.php";
 
-	$.get(endpoint+"?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloIscritto=" + soloIscritto + "&docente_filtro_id=" + docente_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&categoria_filtro_id=" + categoria_filtro_id + "&studente_filtro_id=" + studente_filtro_id, {}, function (data, status) {
+	$.post(endpoint+"?ancheCancellati=" + ancheCancellati + "&soloNuovi=" + soloNuovi + "&soloIscritto=" + soloIscritto + "&docente_filtro_id=" + docente_filtro_id + "&materia_filtro_id=" + materia_filtro_id + "&categoria_filtro_id=" + categoria_filtro_id + "&studente_filtro_id=" + studente_filtro_id, {}, function (data, status) {
 		$(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',

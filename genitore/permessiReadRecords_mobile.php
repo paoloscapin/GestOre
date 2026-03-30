@@ -14,7 +14,11 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$studente_filtro_id = $_GET["studente_filtro_id"] ?? null;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    redirect("/error/unauthorized.php");
+}
+
+$studente_filtro_id = $_POST["studente_filtro_id"] ?? null;
 $__studente_id = $studente_filtro_id;
 
 // Design iniziale container

@@ -21,21 +21,24 @@ date_default_timezone_set('Europe/Rome');
 
 // --- LOG INIZIALE ---
 debug("=== SPORTELLI GENITORE: inizio rendering tabella ===");
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    redirect("/error/unauthorized.php");
+}
 
 // Lettura parametri GET (forzati a intero dove sensato)
-$ancheCancellati     = isset($_GET["ancheCancellati"])     ? (int)$_GET["ancheCancellati"]     : 0;
-$soloNuovi           = isset($_GET["soloNuovi"])           ? (int)$_GET["soloNuovi"]           : 0;
-$soloIscritto        = isset($_GET["soloIscritto"])        ? (int)$_GET["soloIscritto"]        : 0;
-$docente_filtro_id   = isset($_GET["docente_filtro_id"])   ? (int)$_GET["docente_filtro_id"]   : 0;
-$materia_filtro_id   = isset($_GET["materia_filtro_id"])   ? (int)$_GET["materia_filtro_id"]   : 0;
-$classe_filtro_id    = isset($_GET["classe_filtro_id"])    ? (int)$_GET["classe_filtro_id"]    : 0;
-$categoria_filtro_id = isset($_GET["categoria_filtro_id"]) ? (int)$_GET["categoria_filtro_id"] : 0;
-$studente_filtro_id  = isset($_GET["studente_filtro_id"])  ? (int)$_GET["studente_filtro_id"]  : 0;
+$ancheCancellati     = isset($_POST["ancheCancellati"])     ? (int)$_POST["ancheCancellati"]     : 0;
+$soloNuovi           = isset($_POST["soloNuovi"])           ? (int)$_POST["soloNuovi"]           : 0;
+$soloIscritto        = isset($_POST["soloIscritto"])        ? (int)$_POST["soloIscritto"]        : 0;
+$docente_filtro_id   = isset($_POST["docente_filtro_id"])   ? (int)$_POST["docente_filtro_id"]   : 0;
+$materia_filtro_id   = isset($_POST["materia_filtro_id"])   ? (int)$_POST["materia_filtro_id"]   : 0;
+$classe_filtro_id    = isset($_POST["classe_filtro_id"])    ? (int)$_POST["classe_filtro_id"]    : 0;
+$categoria_filtro_id = isset($_POST["categoria_filtro_id"]) ? (int)$_POST["categoria_filtro_id"] : 0;
+$studente_filtro_id  = isset($_POST["studente_filtro_id"])  ? (int)$_POST["studente_filtro_id"]  : 0;
 
 // per le sottoquery
 $__studente_id = $studente_filtro_id;
 
-debug("Parametri GET: ancheCancellati=" . var_export($ancheCancellati, true) .
+debug("Parametri POST: ancheCancellati=" . var_export($ancheCancellati, true) .
 	", soloNuovi=" . var_export($soloNuovi, true) .
 	", soloIscritto=" . var_export($soloIscritto, true) .
 	", docente_filtro_id=" . var_export($docente_filtro_id, true) .

@@ -18,7 +18,7 @@ function permessiReadRecords() {
         ? "permessiReadRecords_mobile.php" 
         : "permessiReadRecords.php";
 
-	$.get(endpoint+"?studente_filtro_id=" + $('#hidden_studente_id').val(), {}, function (data, status) {
+	$.post(endpoint+"?studente_filtro_id=" + $('#hidden_studente_id').val(), {}, function (data, status) {
 		$(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             trigger: 'hover',
