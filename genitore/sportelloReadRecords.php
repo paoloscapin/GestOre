@@ -17,6 +17,40 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
+ruoloRichiesto('genitore');
+
+function sportelliFailUnauthorized()
+{
+    redirect("/error/unauthorized.php");
+    exit;
+}
+
+function canGenitoreAccessStudente($idStudente, $idGenitore)
+{
+    $idStudente = (int)$idStudente;
+    $idGenitore = (int)$idGenitore;
+
+    if ($idStudente <= 0 || $idGenitore <= 0) {
+        return false;
+    }
+
+    $q = "
+        SELECT id_studente
+        FROM genitori_studenti
+        WHERE id_genitore = " . dbI($idGenitore) . "
+          AND id_studente = " . dbI($idStudente) . "
+        LIMIT 1
+    ";
+
+    $row = dbGetFirst($q);
+    return is_array($row) && !empty($row['id_studente']);
+}
+
+function eh($s)
+{
+    return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 date_default_timezone_set('Europe/Rome');
 
 // --- LOG INIZIALE ---
@@ -33,9 +67,16 @@ $docente_filtro_id   = isset($_POST["docente_filtro_id"])   ? (int)$_POST["docen
 $materia_filtro_id   = isset($_POST["materia_filtro_id"])   ? (int)$_POST["materia_filtro_id"]   : 0;
 $classe_filtro_id    = isset($_POST["classe_filtro_id"])    ? (int)$_POST["classe_filtro_id"]    : 0;
 $categoria_filtro_id = isset($_POST["categoria_filtro_id"]) ? (int)$_POST["categoria_filtro_id"] : 0;
-$studente_filtro_id  = isset($_POST["studente_filtro_id"])  ? (int)$_POST["studente_filtro_id"]  : 0;
+$studente_filtro_id  = isset($_POST["studente_filtro_id"]) ? (int)$_POST["studente_filtro_id"] : 0;
 
-// per le sottoquery
+if ($studente_filtro_id <= 0) {
+    sportelliFailUnauthorized();
+}
+
+if (!canGenitoreAccessStudente($studente_filtro_id, (int)$__genitore_id)) {
+    sportelliFailUnauthorized();
+}
+
 $__studente_id = $studente_filtro_id;
 
 debug("Parametri POST: ancheCancellati=" . var_export($ancheCancellati, true) .
@@ -127,14 +168,23 @@ if ($classe_filtro_id > 0) {
     // $query .= "AND sportello.classe_id = $classe_filtro_id ";
 }
 
-if ($materia_filtro_id > 0)   $query .= "AND sportello.materia_id = $materia_filtro_id ";
-if ($docente_filtro_id > 0)   $query .= "AND sportello.docente_id = $docente_filtro_id ";
-if ($categoria_filtro_id > 0) $query .= "AND sportello.categoria = '" . addslashes($nome_categoria) . "' ";
-if (!$ancheCancellati)        $query .= "AND NOT sportello.cancellato ";
-if ($soloNuovi)               $query .= "AND sportello.data >= CURDATE() ";
+if ($materia_filtro_id > 0) {
+    $query .= " AND sportello.materia_id = " . dbI($materia_filtro_id);
+}
+if ($docente_filtro_id > 0) {
+    $query .= " AND sportello.docente_id = " . dbI($docente_filtro_id);
+}
+if ($categoria_filtro_id > 0) {
+    $query .= " AND sportello.categoria = " . dbQ($nome_categoria);
+}
+if (!$ancheCancellati) {
+    $query .= " AND NOT sportello.cancellato ";
+}
+if ($soloNuovi) {
+    $query .= " AND sportello.data >= CURDATE() ";
+}
 
-$query .= "ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC, docente_nome ASC";
-
+$query .= " ORDER BY sportello.data $direzioneOrdinamento, docente_cognome ASC, docente_nome ASC";
 debug("Query principale pronta");
 
 // Esecuzione query
@@ -164,32 +214,34 @@ foreach ($resultArray as $row) {
 
 		// elenco studenti prenotati per tooltip (come nella studente)
 		$studenteTip = '';
-		if ($row['numero_studenti'] > 0) {
-			$query2 = "SELECT
-                sportello_studente.id AS sportello_studente_id,
-                sportello_studente.iscritto AS sportello_studente_iscritto,
-                sportello_studente.presente AS sportello_studente_presente,
-                sportello_studente.note AS sportello_studente_note,
-                studente.cognome AS studente_cognome,
-                studente.nome AS studente_nome,
-                studente.id AS studente_id,
-                (SELECT classi.classe FROM classi WHERE id = (SELECT studente_frequenta.id_classe FROM studente_frequenta WHERE id_studente = $__studente_id AND id_anno_scolastico = $__anno_scolastico_corrente_id)) AS studente_classe
-            FROM sportello_studente
-            INNER JOIN studente ON sportello_studente.studente_id = studente.id
-            WHERE sportello_studente.sportello_id = '$row[sportello_id]';";
-			$studenti = dbGetAll($query2);
+if ($row['numero_studenti'] > 0) {
+    $query2 = "SELECT
+        sportello_studente.id AS sportello_studente_id,
+        sportello_studente.iscritto AS sportello_studente_iscritto,
+        sportello_studente.presente AS sportello_studente_presente,
+        sportello_studente.note AS sportello_studente_note,
+        studente.cognome AS studente_cognome,
+        studente.nome AS studente_nome,
+        studente.id AS studente_id,
+        (SELECT classi.classe FROM classi WHERE id = (SELECT studente_frequenta.id_classe FROM studente_frequenta WHERE id_studente = $__studente_id AND id_anno_scolastico = $__anno_scolastico_corrente_id)) AS studente_classe
+    FROM sportello_studente
+    INNER JOIN studente ON sportello_studente.studente_id = studente.id
+    WHERE sportello_studente.sportello_id = " . dbI($row['sportello_id']);
 
-			foreach ($studenti as $studente) {
-				if (getSettingsValue('sportelli', 'nascondiNomeStudenti', false)) {
-					$studenteTip .= '--- --- ' . $studente['studente_classe'] . "</br>";
-				} else {
-					$studenteTip .= $studente['studente_cognome'] . " " . $studente['studente_nome'] . " " . $studente['studente_classe'] . "</br>";
-				}
-			}
-		}
+    $studenti = dbGetAll($query2);
+
+    foreach ($studenti as $studente) {
+        if (getSettingsValue('sportelli', 'nascondiNomeStudenti', false)) {
+            $studenteTip .= '--- --- ' . eh($studente['studente_classe']) . '<br>';
+        } else {
+            $studenteTip .= eh($studente['studente_cognome'] . ' ' . $studente['studente_nome'] . ' ' . $studente['studente_classe']) . '<br>';
+        }
+    }
+}
+$studenteTipAttr = str_replace('"', '&quot;', $studenteTip);
 
 		// marker online
-		$luogo_or_onine_marker = $row['sportello_luogo'];
+		$luogo_or_onine_marker = eh($row['sportello_luogo']);
 		if ($row['sportello_online']) {
 			$luogo_or_onine_marker = '<span class="label label-danger">online</span>';
 		}
@@ -204,26 +256,25 @@ foreach ($resultArray as $row) {
 
 		// riga tabella (come studente)
 		$data .= '<tr>
-            <td align="center">' . $row['sportello_categoria'] . '</td>
+            <td align="center">' . eh($row['sportello_categoria']) . '</td>
             <td align="center">' . $dataSportello . '</td>
-            <td align="center">' . $row['sportello_ora'] . ' &nbsp;&nbsp;&nbsp;(' . $row['sportello_numero_ore'] . ($row['sportello_numero_ore'] > 1 ? ' ore)' : ' ora)') . '</td>
-            <td>' . $row['materia_nome'] . '</td>
-            <td align="center">' . $row['docente_nome'] . ' ' . $row['docente_cognome'] . '</td>';
+   			<td align="center">' . eh($row['sportello_ora']) . ' &nbsp;&nbsp;&nbsp;(' . (int)$row['sportello_numero_ore'] . ((int)$row['sportello_numero_ore'] > 1 ? ' ore)' : ' ora)') . '</td>            <td>' . eh($row['materia_nome']) . '</td>
+            <td align="center">' . eh($row['docente_nome']) . ' ' . eh($row['docente_cognome']) . '</td>';
 
 		if ($row['sportello_argomento'] == "") {
 			if ($row['argomento'] == "") {
 				$data .= '<td></td>';
 			} else {
-				$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento indicato dallo studente"><span>' . $row['argomento'] . '</span></td>';
+				$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento indicato dallo studente"><span>' . eh($row['argomento']) . '</span></td>';
 			}
 		} else {
-			$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento scelto dal docente"><span>' . $row['sportello_argomento'] . '</span></td>';
+			$data .= '<td data-toggle="tooltip" data-placement="left" data-html="true" title="Argomento scelto dal docente"><span>' . eh($row['sportello_argomento']) . '</span></td>';
 		}
 
 		$data .= '
-            <td align="center">' . $luogo_or_onine_marker . '</td>
-            <td align="center">' . $row['sportello_classe'] . '</td>
-            <td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="' . $studenteTip . '">' . $posti_disponibili . '</td>
+			<td align="center">' . $luogo_or_onine_marker . '</td>
+            <td align="center">' . eh($row['sportello_classe'])	 . '</td>
+            <td align="center" data-toggle="tooltip" data-placement="left" data-html="true" title="' . $studenteTipAttr . '">' . $posti_disponibili . '</td>
         ';
 
 		// --- COLONNA STATO (GENITORE: SOLO LABEL, NESSUN BOTTONE) ---

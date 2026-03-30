@@ -8,6 +8,17 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/connect.php';
+ruoloRichiesto('genitore');
+if (!(getSettingsValue('config', 'sportelli', false))) {
+    redirect("/error/unauthorized.php");
+    exit;
+}
+
+if (!(getSettingsValue('sportelli', 'visibile_genitori', false))) {
+    redirect("/error/unauthorized.php");
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -21,7 +32,6 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_bootstrap-toggle.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
-    ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
     ?>
 
     <!-- bootbox notificator -->
@@ -72,35 +82,35 @@ require_once '../common/checkSession.php';
 $categoriaFiltroOptionList = '<option value="0">tutti</option>';
 $default = "sportello didattico";
 foreach (dbGetAll("SELECT * FROM sportello_categoria ORDER BY sportello_categoria.nome ASC ; ") as $categoria) {
-    if ($categoria['nome'] == $default)
-        $categoriaFiltroOptionList .= ' <option value="' . $categoria['id'] . '" selected >' . $categoria['nome'] . '</option> ';
-    else
-        $categoriaFiltroOptionList .= ' <option value="' . $categoria['id'] . '" >' . $categoria['nome'] . '</option> ';
+    $selected = ($categoria['nome'] == $default) ? ' selected' : '';
+    $categoriaFiltroOptionList .= '<option value="' . (int)$categoria['id'] . '"' . $selected . '>'
+        . htmlspecialchars($categoria['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+        . '</option>';
 }
 
-// prepara l'elenco dei docenti per il filtro
 $docenteFiltroOptionList = '<option value="0">tutti</option>';
 foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo = true ORDER BY docente.cognome, docente.nome ASC ; ") as $docente) {
-    $docenteFiltroOptionList .= ' <option value="' . $docente['id'] . '" >' . $docente['cognome'] . ' ' . $docente['nome'] . '</option> ';
+    $docenteFiltroOptionList .= '<option value="' . (int)$docente['id'] . '">'
+        . htmlspecialchars($docente['cognome'] . ' ' . $docente['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+        . '</option>';
 }
 
-// prepara l'elenco delle materie per il filtro e per le materie del dialog
 $materiaFiltroOptionList = '<option value="0">tutte</option>';
-
 foreach (dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ") as $materia) {
-    $materiaFiltroOptionList .= ' <option value="' . $materia['id'] . '" >' . $materia['nome'] . '</option> ';
+    $materiaFiltroOptionList .= '<option value="' . (int)$materia['id'] . '">'
+        . htmlspecialchars($materia['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+        . '</option>';
 }
 
-// prepara l'elenco degli studenti per il filtro
 $studenteFiltroOptionList = '';
-
 $studenti = dbGetAll("SELECT * FROM studente WHERE attivo=1 AND id IN (
     SELECT id_studente FROM genitori_studenti WHERE id_genitore = " . intval($__genitore_id) . "
 )");
 
 foreach ($studenti as $studente) {
-    $studenteFiltroOptionList .= '<option value="' . $studente['id'] . '">' 
-        . $studente['cognome'] . ' ' . $studente['nome'] . '</option>';
+    $studenteFiltroOptionList .= '<option value="' . (int)$studente['id'] . '">'
+        . htmlspecialchars($studente['cognome'] . ' ' . $studente['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+        . '</option>';
 }
 
 ?>
@@ -108,7 +118,7 @@ foreach ($studenti as $studente) {
 <body>
     <?php
     require_once '../common/header-genitore.php';
-    require_once '../common/connect.php';
+
     ?>
 
     <div class="container-fluid">
@@ -203,7 +213,7 @@ foreach ($studenti as $studente) {
         value="<?php echo getSettingsValue("sportelli", "unSoloArgomento", true) ? 1 : 0; ?>">
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>&t=<?php echo time(); ?>"></script>
 </body>
 
 </html>

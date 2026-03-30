@@ -8,6 +8,17 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/connect.php';
+ruoloRichiesto('genitore');
+if (!(getSettingsValue('config', 'sportelli', false))) {
+    redirect("/error/unauthorized.php");
+    exit;
+}
+
+if (!(getSettingsValue('sportelli', 'visibile_genitori', false))) {
+    redirect("/error/unauthorized.php");
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -23,13 +34,10 @@ require_once '../common/checkSession.php';
     // allineo agli include del desktop
     require_once '../common/_include_bootstrap-toggle.php';
     require_once '../common/_include_bootstrap-select.php';
-
-    ruoloRichiesto('genitore', 'segreteria-didattica', 'dirigente');
     ?>
 
     <?php
     require_once '../common/header-genitore-mobile.php';
-    require_once '../common/connect.php';
     ?>
     <!-- bootbox notificator -->
     <script type="text/javascript"
@@ -149,7 +157,7 @@ foreach ($studenti as $studente) {
         value="<?php echo getSettingsValue('sportelli', 'unSoloArgomento', true) ? 1 : 0; ?>">
 
     <!-- JS: passa d=mobile per far puntare agli endpoint *_mobile.php e inviare studente_filtro_id -->
-    <script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>&d=mobile"></script>
+<script type="text/javascript" src="js/sportello.js?v=<?php echo $__software_version; ?>&t=<?php echo time(); ?>&d=mobile"></script>
 </body>
 
 </html>

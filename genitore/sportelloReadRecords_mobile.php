@@ -16,6 +16,39 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+ruoloRichiesto('genitore');
+
+function sportelliFailUnauthorized()
+{
+    redirect("/error/unauthorized.php");
+    exit;
+}
+
+function canGenitoreAccessStudente($idStudente, $idGenitore)
+{
+    $idStudente = (int)$idStudente;
+    $idGenitore = (int)$idGenitore;
+
+    if ($idStudente <= 0 || $idGenitore <= 0) {
+        return false;
+    }
+
+    $q = "
+        SELECT id_studente
+        FROM genitori_studenti
+        WHERE id_genitore = " . dbI($idGenitore) . "
+          AND id_studente = " . dbI($idStudente) . "
+        LIMIT 1
+    ";
+
+    $row = dbGetFirst($q);
+    return is_array($row) && !empty($row['id_studente']);
+}
+
+function eh($s)
+{
+    return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect("/error/unauthorized.php");
@@ -40,7 +73,7 @@ if (!function_exists('debug')) {
     }
 }
 
-// --- PARAMETRI GET ---
+// --- PARAMETRI POST ---
 $ancheCancellati     = isset($_POST["ancheCancellati"])     ? (int)$_POST["ancheCancellati"]     : 0;
 $soloNuovi           = isset($_POST["soloNuovi"])           ? (int)$_POST["soloNuovi"]           : 0;
 $soloIscritto        = isset($_POST["soloIscritto"])        ? (int)$_POST["soloIscritto"]        : 0;
@@ -51,7 +84,16 @@ $categoria_filtro_id = isset($_POST["categoria_filtro_id"]) ? (int)$_POST["categ
 $studente_filtro_id  = isset($_POST["studente_filtro_id"])  ? (int)$_POST["studente_filtro_id"]  : 0;
 
 // necessarie per le sottoquery
+if ($studente_filtro_id <= 0) {
+    sportelliFailUnauthorized();
+}
+
+if (!canGenitoreAccessStudente($studente_filtro_id, (int)$__genitore_id)) {
+    sportelliFailUnauthorized();
+}
+
 $__studente_id = $studente_filtro_id;
+
 $direzioneOrdinamento = "ASC";
 
 $nome_categoria = $categoria_filtro_id > 0
@@ -121,9 +163,15 @@ if ($classe_filtro_id > 0) {
     debug("classe_filtro_id ricevuto (" . intval($classe_filtro_id) . ") ma IGNORATO: filtro classe gestito via classi_include + classe studente selezionato");
     // $query .= " AND sportello.classe_id = $classe_filtro_id ";
 }
-if ($materia_filtro_id > 0)   $query .= " AND sportello.materia_id = $materia_filtro_id ";
-if ($docente_filtro_id > 0)   $query .= " AND sportello.docente_id = $docente_filtro_id ";
-if ($categoria_filtro_id > 0) $query .= " AND sportello.categoria = '" . addslashes($nome_categoria) . "' ";
+if ($materia_filtro_id > 0) {
+    $query .= " AND sportello.materia_id = " . dbI($materia_filtro_id);
+}
+if ($docente_filtro_id > 0) {
+    $query .= " AND sportello.docente_id = " . dbI($docente_filtro_id);
+}
+if ($categoria_filtro_id > 0) {
+    $query .= " AND sportello.categoria = " . dbQ($nome_categoria);
+}
 if (!$ancheCancellati)        $query .= " AND NOT sportello.cancellato ";
 if ($soloNuovi)               $query .= " AND sportello.data >= CURDATE() ";
 
