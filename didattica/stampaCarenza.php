@@ -13,8 +13,122 @@ require_once '../common/checkSession.php';
 // program.php (in testa al file, prima di qualsiasi uso di mPDF)
 require_once '../common/vendor/autoload.php';
 require_once '../common/send-mail.php';
+ruoloRichiesto('genitore', 'docente', 'studente', 'segreteria-didattica', 'dirigente');
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    redirect("/error/unauthorized.php");
+    exit;
+}
+
+function carenzeFailUnauthorized()
+{
+    redirect("/error/unauthorized.php");
+    exit;
+}
+
+function canGenitoreAccessStudente($idStudente, $idGenitore)
+{
+    $idStudente = (int)$idStudente;
+    $idGenitore = (int)$idGenitore;
+
+    if ($idStudente <= 0 || $idGenitore <= 0) {
+        return false;
+    }
+
+    $q = "
+        SELECT id_studente
+        FROM genitori_studenti
+        WHERE id_genitore = " . dbI($idGenitore) . "
+          AND id_studente = " . dbI($idStudente) . "
+        LIMIT 1
+    ";
+
+    $row = dbGetFirst($q);
+    return is_array($row) && !empty($row['id_studente']);
+}
+
+function getCarenzaAutorizzata($carenzaId, $utenteRuolo, $genitoreId = 0, $studenteId = 0)
+{
+    $carenzaId = (int)$carenzaId;
+    $genitoreId = (int)$genitoreId;
+    $studenteId = (int)$studenteId;
+
+    if ($carenzaId <= 0) {
+        return null;
+    }
+
+    $whereExtra = "";
+
+    if ($utenteRuolo === 'genitore') {
+        $whereExtra = "
+            AND EXISTS (
+                SELECT 1
+                FROM genitori_studenti gs
+                WHERE gs.id_genitore = " . dbI($genitoreId) . "
+                  AND gs.id_studente = carenze.id_studente
+            )
+        ";
+    } elseif ($utenteRuolo === 'studente') {
+        $whereExtra = "
+            AND carenze.id_studente = " . dbI($studenteId) . "
+        ";
+    }
+
+    $query = "
+        SELECT  
+            carenze.id AS carenza_id,
+            carenze.id_studente AS stud_id,
+            carenze.id_materia AS materia_id,
+            carenze.id_classe AS classe_id,
+            carenze.id_docente AS doc_id,
+            carenze.stato AS stato,
+            carenze.nota_docente AS nota,
+            classi.id AS classi_id,
+            classi.classe AS classe_nome,
+            classi.anno AS classe_anno,
+            classi.id_primo_indirizzo AS classe_primo,
+            classi.id_secondo_indirizzo AS classe_secondo,
+            indirizzo.nome AS ind_nome,
+            materia.id AS mat_id,
+            materia.nome AS materia_nome,
+            studente.id AS studente_id,
+            studente.cognome AS stud_cognome,
+            studente.nome AS stud_nome, 
+            studente.email AS stud_email,
+            docente.id AS docente_id,
+            docente.cognome AS doc_cognome,
+            docente.nome AS doc_nome,
+            programma_minimi.ID AS prog_id,
+            programma_minimi.ID_INDIRIZZO as prog_id_indirizzo,
+            programma_minimi.ID_MATERIA as prog_id_materia,
+            programma_minimi.anno AS prog_anno
+        FROM gvgtcyej_gestione_ore.carenze
+        INNER JOIN gvgtcyej_gestione_ore.classi classi
+            ON classi.id = carenze.id_classe
+        INNER JOIN gvgtcyej_gestione_ore.materia materia
+            ON materia.id = carenze.id_materia
+        INNER JOIN gvgtcyej_gestione_ore.studente studente
+            ON studente.id = carenze.id_studente
+        INNER JOIN gvgtcyej_gestione_ore.docente docente
+            ON docente.id = carenze.id_docente
+        INNER JOIN gvgtcyej_gestione_ore.programma_minimi programma_minimi
+            ON programma_minimi.ANNO = classi.anno
+           AND programma_minimi.ID_MATERIA = materia.id
+           AND (
+                programma_minimi.ID_INDIRIZZO = classi.id_primo_indirizzo
+                OR programma_minimi.ID_INDIRIZZO = classi.id_secondo_indirizzo
+           )
+        INNER JOIN gvgtcyej_gestione_ore.indirizzo indirizzo
+            ON indirizzo.id = classi.id_primo_indirizzo
+        WHERE carenze.id = " . dbI($carenzaId) . "
+        $whereExtra
+        LIMIT 1
+    ";
+
+    return dbGetFirst($query);
+}
+
 // 1) PARAMETRI POST
-$carenzaId = isset($_POST['id']) ? (int) $_POST['id'] : -1;
 $doView  = isset($_POST['view']) && ($_POST['view'] == '1' || $_POST['view'] === 'true');
 $doPrint = isset($_POST['print']) && ($_POST['print'] == '1' || $_POST['print'] === 'true');
 $doMail = isset($_POST['mail']) && ($_POST['mail'] == '1' || $_POST['mail'] === 'true');
@@ -24,55 +138,31 @@ $anno = isset($_POST['anno']) ? (int) $_POST['anno'] : 1;
 $anno_scolastico = dbGetValue("SELECT anno FROM anno_scolastico WHERE id = $anno");
 
 
-// 2) RECUPERO DATI PROGRAMMA
-$query = "SELECT  
-        carenze.id AS carenza_id,
-        carenze.id_studente AS stud_id,
-        carenze.id_materia AS materia_id,
-        carenze.id_classe AS classe_id,
-        carenze.id_docente AS doc_id,
-        carenze.stato AS stato,
-        carenze.nota_docente AS nota,
-        classi.id AS classi_id,
-        classi.classe AS classe_nome,
-        classi.anno AS classe_anno,
-        classi.id_primo_indirizzo AS classe_primo,
-        classi.id_secondo_indirizzo AS classe_secondo,
-        indirizzo.nome AS ind_nome,
-        materia.id AS mat_id,
-        materia.nome AS materia_nome,
-        studente.id AS studente_id,
-        studente.cognome AS stud_cognome,
-        studente.nome AS stud_nome, 
-        studente.email AS stud_email,
-        docente.id AS docente_id,
-        docente.cognome AS doc_cognome,
-        docente.nome AS doc_nome,
-        programma_minimi.ID AS prog_id,
-        programma_minimi.ID_INDIRIZZO as prog_id_indirizzo,
-        programma_minimi.ID_MATERIA as prog_id_materia,
-        programma_minimi.anno AS prog_anno
- FROM gvgtcyej_gestione_ore.carenze
-		INNER JOIN gvgtcyej_gestione_ore.classi classi
-		ON classi.id = carenze.id_classe
-		INNER JOIN gvgtcyej_gestione_ore.materia materia
-		ON materia.id = carenze.id_materia
-		INNER JOIN gvgtcyej_gestione_ore.studente studente
-		ON studente.id = carenze.id_studente
-		INNER JOIN gvgtcyej_gestione_ore.docente docente
-		ON docente.id = carenze.id_docente
-        INNER JOIN gvgtcyej_gestione_ore.programma_minimi programma_minimi
-        ON programma_minimi.ANNO = classi.anno AND programma_minimi.ID_MATERIA = materia.id AND (programma_minimi.ID_INDIRIZZO = classi.id_primo_indirizzo OR programma_minimi.ID_INDIRIZZO = classi.id_secondo_indirizzo)
-		INNER JOIN gvgtcyej_gestione_ore.indirizzo indirizzo
-		ON indirizzo.id = classi.id_primo_indirizzo
-		WHERE carenze.id = $carenzaId";
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    carenzeFailUnauthorized();
+}
 
-$program = dbGetFirst($query);
+$carenzaId = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+if ($carenzaId <= 0) {
+    carenzeFailUnauthorized();
+}
+
+$program = getCarenzaAutorizzata(
+    $carenzaId,
+    $__utente_ruolo,
+    (int)($__genitore_id ?? 0),
+    (int)($__studente_id ?? 0)
+);
+
+if (!$program) {
+    carenzeFailUnauthorized();
+}
 
 // se devo inviare solo la mail non mi serve rigenerare la pagina
 
 //RECUPERO MODULI
 $id_programma_minimi = $program['prog_id'];
+if (!$program) carenzeFailUnauthorized();
 $query = "SELECT * from programma_minimi_moduli WHERE id_programma = $id_programma_minimi ORDER BY ordine ASC";
 $modules = dbGetAll($query);
 $studente_id = $program['studente_id'];
@@ -425,8 +515,9 @@ ob_start();
         <input type="hidden" name="id" value="<?= $carenzaId ?>">
         <input type="hidden" name="print" value="1">
         <input type="hidden" name="titolo" value="Programma carenza formativa">
-        <input type="hidden" name="DoMail" value="0">
-        <input type="hidden" name="DoGenera" value="0">
+        <input type="hidden" name="mail" value="0">
+        <input type="hidden" name="genera" value="0">
+        <input type="hidden" name="anno" value="<?= (int)$anno ?>">
         <button type="submit" style="font-family: Arial, sans-serif; font-size: 16px; font-weight: bold;">Scarica PDF</button>
       </form>
     </div>
@@ -440,11 +531,11 @@ ob_start();
   <div class="header">
     <div class="info">
       <h1><?php echo $titolo ?></h1>
-      <p>Studente <?= htmlspecialchars($program['stud_cognome'] . ' ' . $program['stud_nome']) ?> | 
-        Classe <?= htmlspecialchars($program['classe_nome']) ?> | 
-        Indirizzo <?= htmlspecialchars($program['ind_nome']) ?><br>
-        Materia <?= htmlspecialchars($program['materia_nome']) ?><br>
-        Docente <?= htmlspecialchars($program['doc_cognome'] . ' ' . $program['doc_nome']) ?> | 
+      <p>Studente <?= htmlspecialchars($program['stud_cognome'] . ' ' . $program['stud_nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?> | 
+        Classe <?= htmlspecialchars($program['classe_nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?> | 
+        Indirizzo <?= htmlspecialchars($program['ind_nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?><br>
+        Materia <?= htmlspecialchars($program['materia_nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?><br>
+        Docente <?= htmlspecialchars($program['doc_cognome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ' ' . htmlspecialchars($program['doc_nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?> | 
         Anno scolastico <?= $anno_scolastico ?></p>
     </div>
   </div>
@@ -807,7 +898,7 @@ if ($doGenera) {
   $query = "UPDATE carenze SET stato = '2' WHERE id = '" . $program['carenza_id'] . "'";
   dbExec($query);
   info("generato PDF carenza id=" . $program['carenza_id']);
-  if ($esiste = 0) {
+  if ((int)$esiste == 0) {
     echo 'generato';
   } else {
     echo 'aggiornato';
