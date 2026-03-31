@@ -115,6 +115,11 @@ function permessoSave() {
     }
     let rientro = $("#rientro").prop('checked') ? 1 : 0;
 
+    if (rientro == 1 && $("#ora_rientro").val() == "") {
+    $("#_error-permesso").text("Devi selezionare un'ora di rientro.");
+    $("#_error-permesso-part").show();
+    return;
+    }
     if (rientro == 0 && ($("#hidden_rientro").val() == 1)) {
         var conf = confirm("Sei sicuro di volere disattivare il rientro per il permesso?");
         if (conf == false) {

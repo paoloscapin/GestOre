@@ -73,8 +73,16 @@ $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 $data = escapePost('data');
 $ora_uscita = escapePost('ora_uscita');
 $motivo = escapePost('motivo');
-$ora_rientro = escapePost('ora_rientro');
+$ora_rientro = trim((string)escapePost('ora_rientro'));
 $rientro = isset($_POST['rientro']) ? (int)$_POST['rientro'] : 0;
+
+if ($rientro === 1) {
+    if ($ora_rientro === '') {
+        permessiFailUnauthorized();
+    }
+} else {
+    $ora_rientro = '00:00:00';
+}
 $id_studente = isset($_POST['id_studente']) ? (int)$_POST['id_studente'] : 0;
 
 if ($id_studente <= 0 || $data === '' || $ora_uscita === '' || $motivo === '') {
