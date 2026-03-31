@@ -22,6 +22,7 @@ def get_base_dir() -> Path:
         return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent
 
+
 tray_ref = {"icon": None}
 BASE_DIR = get_base_dir()
 
@@ -110,6 +111,7 @@ LOG_LEVELS = {
 stop_event = threading.Event()
 observer_ref = {"observer": None}
 
+
 def tray_status_text(_item):
     obs = observer_ref.get("observer")
     if stop_event.is_set():
@@ -118,16 +120,20 @@ def tray_status_text(_item):
         return "🟢 Stato: attivo"
     return "🟡 Stato: avvio..."
 
+
 def set_tray_title(text: str):
     icon = tray_ref.get("icon")
     if icon is not None:
         icon.title = text
 
+
 def tray_open_sent(icon, menu_item):
     open_folder(SENT_DIR)
 
+
 def tray_open_error(icon, menu_item):
     open_folder(ERROR_DIR)
+
 
 # ==============================
 # TRAY HELPERS
@@ -199,6 +205,7 @@ def create_tray_icon():
     icon = pystray.Icon("GestOreAgent", image, "GestOre Agent", menu)
     tray_ref["icon"] = icon
     return icon
+
 
 # ==============================
 # LOGGING
@@ -323,12 +330,27 @@ def now_hhmm() -> str:
     return datetime.now().strftime("%H:%M")
 
 
-def telegram_import_success_message(file_name: str, record_count: int, warning_count: int) -> str:
+def telegram_import_success_message(
+    file_name: str,
+    record_count: int,
+    parse_warning_count: int,
+    api_warning_count: int,
+    inseriti: int = 0,
+    aggiornati: int = 0,
+    annullati: int = 0
+) -> str:
+    total_warnings = parse_warning_count + api_warning_count
+
     return (
         "📄 Sostituzioni importate\n"
         f"📎 {file_name}\n"
-        f"✔️ {record_count} record\n"
-        f"⚠️ {warning_count} warning\n"
+        f"✔️ {record_count} record letti dal PDF\n"
+        f"➕ Inseriti: {inseriti}\n"
+        f"✏️ Aggiornati: {aggiornati}\n"
+        f"🚫 Annullati: {annullati}\n"
+        f"⚠️ Warning totali: {total_warnings}\n"
+        f"   • parser PDF: {parse_warning_count}\n"
+        f"   • scartati da GestOre: {api_warning_count}\n"
         f"🕒 {now_hhmm()}"
     )
 
@@ -371,6 +393,7 @@ def is_skip_line(line: str) -> bool:
         return True
 
     return any(line.startswith(p) for p in SKIP_PREFIXES)
+
 
 def parse_data_orario_cell(text: str):
     text = normalize_space(text)
@@ -456,6 +479,7 @@ def extract_rows_from_pdf_table(pdf_path: str):
                 rows_out.append({"record": rec})
 
     return rows_out
+
 
 def norm_cell_text(parts):
     return normalize_space(" ".join(parts))
@@ -604,6 +628,7 @@ def parse_row_from_words(page_num: int, words_in_row):
 
     return {"record": rec}
 
+
 def extract_lines_from_pdf(pdf_path: str):
     rows_out = []
 
@@ -640,6 +665,7 @@ def parse_pdf(pdf_path: str):
             errors.append(item["error"])
 
     return records, errors
+
 
 def infer_year(ddmm: str) -> int:
     return datetime.today().year
@@ -750,7 +776,7 @@ def process_pdf(pdf_path: Path):
     out_parsed, out_errors, out_payload = write_sidecar_files(pdf_path, records, errors, payload)
 
     log_info(f"Record trovati: {len(records)}")
-    log_info(f"Righe con errore: {len(errors)}")
+    log_info(f"Righe con errore parser: {len(errors)}")
     log_info(f"Creati: {out_parsed.name}, {out_errors.name}, {out_payload.name}")
 
     api_result = None
@@ -772,6 +798,13 @@ def process_pdf(pdf_path: Path):
         log_info(f"API HTTP {resp.status_code}")
         if isinstance(body, dict):
             log_info(f"API response ok={body.get('ok')} keys={list(body.keys())}")
+            log_info(
+                "API summary: "
+                f"inseriti={body.get('inseriti', 0)} "
+                f"aggiornati={body.get('aggiornati', 0)} "
+                f"annullati={body.get('annullati', 0)} "
+                f"scartati={body.get('scartati', 0)}"
+            )
         else:
             log_info(f"API response text={str(body)[:300]}")
 
@@ -786,6 +819,27 @@ def process_pdf(pdf_path: Path):
         "errors": errors,
         "payload": payload,
         "api_result": api_result
+    }
+
+
+def extract_api_summary(result: dict) -> dict:
+    api_body = (result.get("api_result") or {}).get("body")
+
+    if not isinstance(api_body, dict):
+        return {
+            "inseriti": 0,
+            "aggiornati": 0,
+            "annullati": 0,
+            "scartati": 0,
+            "dettaglioScartati": []
+        }
+
+    return {
+        "inseriti": int(api_body.get("inseriti", 0) or 0),
+        "aggiornati": int(api_body.get("aggiornati", 0) or 0),
+        "annullati": int(api_body.get("annullati", 0) or 0),
+        "scartati": int(api_body.get("scartati", 0) or 0),
+        "dettaglioScartati": api_body.get("dettaglioScartati", []) or []
     }
 
 
@@ -830,25 +884,45 @@ class PDFHandler(FileSystemEventHandler):
             result = process_pdf(path)
             target_dir = SENT_DIR
 
-            warning_count = len(result["errors"])
+            parse_warning_count = len(result["errors"])
             record_count = len(result["records"])
+
+            api_summary = extract_api_summary(result)
+            api_warning_count = api_summary["scartati"]
+            inseriti = api_summary["inseriti"]
+            aggiornati = api_summary["aggiornati"]
+            annullati = api_summary["annullati"]
+
+            warning_count = parse_warning_count + api_warning_count
 
             if warning_count > 0:
                 log_warning(
-                    f"Import completato con {warning_count} righe non parse per il file {path.name}."
+                    f"Import completato con {warning_count} warning per il file {path.name} "
+                    f"(parser={parse_warning_count}, gestore={api_warning_count})."
                 )
             else:
                 log_info(f"Import completato senza warning per il file {path.name}.")
 
+            if api_warning_count > 0:
+                dettagli = api_summary.get("dettaglioScartati", [])
+                for idx, scarto in enumerate(dettagli[:10], start=1):
+                    log_warning(f"Scarto GestOre {idx}: {json.dumps(scarto, ensure_ascii=False)}")
+
             moved = move_with_sidecars(path, target_dir)
             for m in moved:
                 log_info(f"Spostato: {m}")
+
             set_tray_title("🟢 GestOre Agent attivo")
+
             send_telegram_message(
                 telegram_import_success_message(
                     file_name=path.name,
                     record_count=record_count,
-                    warning_count=warning_count
+                    parse_warning_count=parse_warning_count,
+                    api_warning_count=api_warning_count,
+                    inseriti=inseriti,
+                    aggiornati=aggiornati,
+                    annullati=annullati
                 )
             )
 
@@ -930,6 +1004,7 @@ def run_watcher():
         observer_ref["observer"] = None
         log_info("Watcher terminato")
         set_tray_title("🔴 GestOre Agent fermo")
+
 
 def main():
     ensure_dirs()
