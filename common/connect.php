@@ -151,4 +151,10 @@ function dbF($value) {
 	return (string)floatval($value);
 }
 
+function dbQNotNull($value, $default = '') {
+    if ($value === null) $value = $default;
+    $value = trim((string)$value);
+    if ($value === '') $value = $default;
+    return "'" . dbEscape($value) . "'";
+}
 ?>

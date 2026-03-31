@@ -21,13 +21,9 @@ infoimportsost("==== AVVIO importSostituzioni.php ====");
 $TELEGRAM_BOT_TOKEN      = trim((string)($__settings->telegram->bot_token ?? ''));
 $IS_TELEGRAM_ENABLED     = (bool)($__settings->telegram->enabled ?? false);
 $IS_MAIL_DOCENTE_ENABLED = (bool)($__settings->sostituzioni->inviaMailDocente ?? false);
-$IS_TELEGRAM_TEST_MODE   = (bool)($__settings->sostituzioni->telegramTestMode ?? false);
-$TELEGRAM_TEST_CHAT_ID   = trim((string)($__settings->sostituzioni->telegramTestChatId ?? ''));
 
 infoimportsost(
     "CONFIG telegram_enabled=" . ($IS_TELEGRAM_ENABLED ? '1' : '0') .
-    " telegram_test_mode=" . ($IS_TELEGRAM_TEST_MODE ? '1' : '0') .
-    " telegram_test_chat_id=[" . $TELEGRAM_TEST_CHAT_ID . "]" .
     " mail_enabled=" . ($IS_MAIL_DOCENTE_ENABLED ? '1' : '0')
 );
 
@@ -400,7 +396,7 @@ function docenteFullName($doc)
 }
 
 /* =========================================================
-   TELEGRAM
+   TELEGRAM DOCENTI
    ========================================================= */
 
 function getTelegramProfileByDocenteId($idDocente)
@@ -472,29 +468,13 @@ function logTelegramEsito($idDocente, $idSostituzione, $tipoEvento, $messaggio, 
     dbExec($q);
 }
 
-function inviaTelegramDocente($botToken, $chatId, $text, $destDocenteNome)
+function inviaTelegramDocente($botToken, $chatId, $text)
 {
-    global $IS_TELEGRAM_TEST_MODE, $TELEGRAM_TEST_CHAT_ID;
-
     $chatId = trim((string)$chatId);
     $botToken = trim((string)$botToken);
-    $destDocenteNome = trim((string)$destDocenteNome);
 
     if ($botToken === '') {
         return array('ok' => false, 'response' => 'bot token mancante');
-    }
-
-    if ($IS_TELEGRAM_TEST_MODE) {
-        $realChatId = $chatId;
-        $chatId = $TELEGRAM_TEST_CHAT_ID;
-
-        $prefix = "TEST MODE - messaggio destinato a: " . ($destDocenteNome !== '' ? $destDocenteNome : 'DOCENTE SCONOSCIUTO');
-        if ($realChatId !== '') {
-            $prefix .= "\nChat reale prevista: " . $realChatId;
-        }
-        $prefix .= "\n\n";
-
-        $text = $prefix . $text;
     }
 
     if ($chatId === '') {
@@ -529,6 +509,159 @@ function inviaTelegramDocente($botToken, $chatId, $text, $destDocenteNome)
     }
 
     return array('ok' => false, 'response' => ($response ? $response : 'Risposta Telegram vuota'));
+}
+
+/* =========================================================
+   TELEGRAM ADMIN
+   ========================================================= */
+
+function getAdminTelegramDestinatariSostituzioni()
+{
+    $q = "
+        SELECT DISTINCT
+            telegram_user_id,
+            telegram_chat_id,
+            nome,
+            username
+        FROM admin_telegram
+        WHERE attivo = 1
+          AND notifiche_sostituzioni = 1
+          AND telegram_chat_id IS NOT NULL
+          AND telegram_chat_id <> ''
+        ORDER BY nome
+    ";
+
+    $rows = dbGetAll($q);
+    return is_array($rows) ? $rows : array();
+}
+
+function inviaTelegramChat($botToken, $chatId, $text)
+{
+    $botToken = trim((string)$botToken);
+    $chatId   = trim((string)$chatId);
+    $text     = trim((string)$text);
+
+    if ($botToken === '') {
+        return array('ok' => false, 'response' => 'bot token mancante');
+    }
+    if ($chatId === '') {
+        return array('ok' => false, 'response' => 'chat_id mancante');
+    }
+    if ($text === '') {
+        return array('ok' => false, 'response' => 'testo vuoto');
+    }
+
+    $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
+
+    $payload = array(
+        'chat_id' => $chatId,
+        'text'    => $text
+    );
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
+    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+
+    $response = curl_exec($ch);
+    $errno = curl_errno($ch);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    if ($errno) {
+        return array('ok' => false, 'response' => "cURL error: $error");
+    }
+
+    $data = json_decode($response, true);
+    if (is_array($data) && !empty($data['ok'])) {
+        return array('ok' => true, 'response' => $response);
+    }
+
+    return array('ok' => false, 'response' => ($response ? $response : 'Risposta Telegram vuota'));
+}
+
+function buildAdminImportSummaryMessage($totaleRicevuti, $inseriti, $aggiornati, $annullati, $scartati, $notificheInviate)
+{
+    $lines = array();
+    $lines[] = "IMPORT SOSTITUZIONI";
+    $lines[] = "";
+    $lines[] = "Totale righe ricevute: " . (int)$totaleRicevuti;
+    $lines[] = "Inserite: " . (int)$inseriti;
+    $lines[] = "Aggiornate: " . (int)$aggiornati;
+    $lines[] = "Annullate: " . (int)$annullati;
+    $lines[] = "Scartate: " . count($scartati);
+    $lines[] = "Notifiche inviate a docenti: " . count($notificheInviate);
+
+    if (!empty($scartati)) {
+        $lines[] = "";
+        $lines[] = "Prime righe scartate:";
+        $max = min(5, count($scartati));
+        for ($i = 0; $i < $max; $i++) {
+            $r = $scartati[$i];
+            $riga = (int)($r['riga'] ?? 0);
+            $motivo = trim((string)($r['motivo'] ?? 'Motivo non specificato'));
+            $lines[] = "- Riga {$riga}: {$motivo}";
+        }
+    }
+
+    return implode("\n", $lines);
+}
+
+function buildAdminImportErrorMessage($msg)
+{
+    $msg = trim((string)$msg);
+    if ($msg === '') $msg = 'Errore non specificato';
+
+    return
+        "IMPORT SOSTITUZIONI - ERRORE\n\n" .
+        "Il processo di import si è interrotto.\n" .
+        "Dettaglio:\n" .
+        $msg;
+}
+
+function notificaAdminSostituzioni($botToken, $text)
+{
+    global $IS_TELEGRAM_ENABLED;
+
+    if (!$IS_TELEGRAM_ENABLED) {
+        infoimportsost("Notifiche admin Telegram disabilitate da config telegram.enabled");
+        return array();
+    }
+
+    $text = trim((string)$text);
+    if ($text === '') {
+        return array();
+    }
+
+    $admins = getAdminTelegramDestinatariSostituzioni();
+
+    if (empty($admins)) {
+        infoimportsost("Nessun admin abilitato alle notifiche sostituzioni");
+        return array();
+    }
+
+    $esiti = array();
+
+    foreach ($admins as $admin) {
+        $chatId = trim((string)($admin['telegram_chat_id'] ?? ''));
+        $nome   = trim((string)($admin['nome'] ?? 'Admin'));
+
+        if ($chatId === '') {
+            continue;
+        }
+
+        $res = inviaTelegramChat($botToken, $chatId, $text);
+
+        $esiti[] = array(
+            'destinatario' => $nome,
+            'chat_id' => $chatId,
+            'ok' => !empty($res['ok']),
+            'response' => $res['response'] ?? ''
+        );
+    }
+
+    return $esiti;
 }
 
 /* =========================================================
@@ -1217,10 +1350,7 @@ try {
             $chatIdToUse = '';
             $canSendTelegram = false;
 
-            if ($IS_TELEGRAM_TEST_MODE && $TELEGRAM_TEST_CHAT_ID !== '') {
-                $chatIdToUse = $TELEGRAM_TEST_CHAT_ID;
-                $canSendTelegram = true;
-            } elseif ($tg && !empty($tg['telegram_chat_id'])) {
+            if ($tg && !empty($tg['telegram_chat_id'])) {
                 $chatIdToUse = trim((string)$tg['telegram_chat_id']);
                 $canSendTelegram = true;
             }
@@ -1229,8 +1359,7 @@ try {
                 $resTg = inviaTelegramDocente(
                     $TELEGRAM_BOT_TOKEN,
                     $chatIdToUse,
-                    $body,
-                    $nomeDest
+                    $body
                 );
 
                 logTelegramEsito(
@@ -1265,6 +1394,21 @@ try {
         }
     }
 
+    $msgAdmin = buildAdminImportSummaryMessage(
+        $totaleRicevuti,
+        $inseriti,
+        $aggiornati,
+        $annullati,
+        $scartati,
+        $notificheInviate
+    );
+
+    $esitiAdmin = notificaAdminSostituzioni($TELEGRAM_BOT_TOKEN, $msgAdmin);
+
+    if (!empty($esitiAdmin)) {
+        infoimportsost("Notifiche admin inviate: " . json_encode($esitiAdmin, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
+    }
+
     infoimportsost("Import completato: totaleRicevuti=$totaleRicevuti inseriti=$inseriti aggiornati=$aggiornati annullati=$annullati scartati=" . count($scartati) . " notificheInviate=" . count($notificheInviate));
 
     respond(array(
@@ -1283,6 +1427,13 @@ try {
     dbExec("ROLLBACK");
     errorimportsost("Eccezione durante import: " . $e->getMessage());
     errorimportsost("ROLLBACK eseguito");
+
+    $msgAdminErrore = buildAdminImportErrorMessage($e->getMessage());
+    $esitiAdminErrore = notificaAdminSostituzioni($TELEGRAM_BOT_TOKEN, $msgAdminErrore);
+
+    if (!empty($esitiAdminErrore)) {
+        infoimportsost("Notifiche admin errore inviate: " . json_encode($esitiAdminErrore, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
+    }
 
     respond(array(
         'ok' => false,
