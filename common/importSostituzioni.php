@@ -65,6 +65,17 @@ function formatDateItLong($ymd)
     return ltrim($d, '0') . ' ' . (isset($mesi[$m]) ? $mesi[$m] : $m) . ' ' . $y;
 }
 
+function formatDateIt($ymd)
+{
+    $ymd = trim((string)$ymd);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $ymd)) {
+        return $ymd;
+    }
+
+    $parts = explode('-', $ymd);
+    return $parts[2] . '/' . $parts[1] . '/' . $parts[0];
+}
+
 function buildMailSubjectSostituzione($evento, $data, $oraInizio)
 {
     $dataIt = formatDateItLong($data);
@@ -207,6 +218,7 @@ function buildMailHtmlSostituzione($tipoEvento, $docenteDestinatario, $data, $or
     $headerText = '#ffffff';
     $badgeBg = '#dff7f4';
     $badgeText = '#0f766e';
+    $dataIt = formatDateIt($data);
 
     if ($tipoEvento === 'ANNULLAMENTO') {
         $titoloTop = 'SOSTITUZIONE ANNULLATA';
@@ -275,7 +287,7 @@ function buildMailHtmlSostituzione($tipoEvento, $docenteDestinatario, $data, $or
                 <table role="presentation" style="width:100%;border-collapse:collapse;font-size:16px;">
                     <tr>
                         <td style="width:34%;padding:12px 12px;color:#6b7280;border-bottom:1px solid #d9dde3;">Data</td>
-                        <td style="padding:12px 12px;font-weight:700;color:#2d3340;border-bottom:1px solid #d9dde3;">' . eh($data) . '</td>
+                        <td style="padding:12px 12px;font-weight:700;color:#2d3340;border-bottom:1px solid #d9dde3;">' . eh($dataIt) . '</td>
                     </tr>
                     <tr>
                         <td style="padding:12px 12px;color:#6b7280;border-bottom:1px solid #d9dde3;">Ora</td>
