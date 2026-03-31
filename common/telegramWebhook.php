@@ -366,6 +366,48 @@ function tgUpdateTicketCode($idRelay)
     return $ticketCode;
 }
 
+function tgCopyMessage($botToken, $toChatId, $fromChatId, $messageId, array $extra = [])
+{
+    $botToken   = trim((string)$botToken);
+    $toChatId   = trim((string)$toChatId);
+    $fromChatId = trim((string)$fromChatId);
+    $messageId  = (int)$messageId;
+
+    if ($botToken === '' || $toChatId === '' || $fromChatId === '' || $messageId <= 0) {
+        return ['ok' => false, 'error' => 'Parametri copyMessage mancanti'];
+    }
+
+    $url = "https://api.telegram.org/bot{$botToken}/copyMessage";
+
+    $payload = array_merge([
+        'chat_id'      => $toChatId,
+        'from_chat_id' => $fromChatId,
+        'message_id'   => $messageId
+    ], $extra);
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
+    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+
+    $response = curl_exec($ch);
+    $errno = curl_errno($ch);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    if ($errno) {
+        return ['ok' => false, 'error' => $error];
+    }
+
+    $json = json_decode($response, true);
+    if (is_array($json) && !empty($json['ok'])) {
+        return ['ok' => true, 'response' => $response, 'json' => $json];
+    }
+
+    return ['ok' => false, 'error' => $response ?: 'Risposta Telegram vuota'];
+}
+
 function tgUpdateRelayStatus($idRelay, $newStatus, $adminUserId = null, $adminName = '')
 {
     $idRelay = (int)$idRelay;
@@ -1347,6 +1389,7 @@ $chat = $message['chat'] ?? [];
 $chatId = tgNorm($chat['id'] ?? '');
 $chatType = tgNorm($chat['type'] ?? '');
 $text = tgNorm($message['text'] ?? '');
+$lowerText = mb_strtolower($text, 'UTF-8');
 
 if ($chatId === '') {
     tgRespond(['ok' => true, 'ignored' => 'chatId mancante']);
@@ -1356,15 +1399,6 @@ $from = $message['from'] ?? [];
 $fromName = tgUserDisplayName($from);
 $fromUserId = tgNorm($from['id'] ?? '');
 $fromUsername = tgNorm($from['username'] ?? '');
-
-if ($chatType === 'private' && $fromUserId !== '' && $chatId !== '') {
-    try {
-        tgUpsertAdminTelegram($fromUserId, $chatId, $fromName, $fromUsername);
-        infoimportsost("telegramWebhook: upsert admin ok userId=[$fromUserId] chatId=[$chatId] from=[$fromName]");
-    } catch (Throwable $e) {
-        errorimportsost("telegramWebhook: upsert admin fallito userId=[$fromUserId] chatId=[$chatId] err=[" . $e->getMessage() . "]");
-    }
-}
 
 infoimportsost("telegramWebhook: update ricevuto chatId=[$chatId] chatType=[$chatType] from=[$fromName] text=[" . tgCut($text, 200) . "]");
 
@@ -1390,8 +1424,6 @@ if ($chatId === $TELEGRAM_SERVICE_CHAT_ID) {
         }
     }
 
-    $lowerText = mb_strtolower($text, 'UTF-8');
-
     if ($lowerText === '/notify_sost_on') {
         $existingAdmin = tgFindAdminTelegramByUserId($groupAdminUserId);
 
@@ -1399,7 +1431,7 @@ if ($chatId === $TELEGRAM_SERVICE_CHAT_ID) {
             tgSendMessage(
                 $TELEGRAM_BOT_TOKEN,
                 $chatId,
-                "⚠️ {$groupAdminName}, prima scrivi almeno una volta al bot in chat privata, poi ripeti /notify_sost_on qui nel gruppo."
+                "⚠️ {$groupAdminName}, prima scrivi /admin al bot in chat privata e poi ripeti /notify_sost_on qui nel gruppo."
             );
             tgRespond(['ok' => true, 'handled' => 'notify_sost_on_missing_private_chat']);
         }
@@ -1436,7 +1468,7 @@ if ($chatId === $TELEGRAM_SERVICE_CHAT_ID) {
             tgSendMessage(
                 $TELEGRAM_BOT_TOKEN,
                 $chatId,
-                "ℹ️ {$groupAdminName}, non risulti ancora registrato. Scrivi prima al bot in chat privata."
+                "ℹ️ {$groupAdminName}, non risulti ancora registrato. Scrivi prima /admin in chat privata al bot."
             );
             tgRespond(['ok' => true, 'handled' => 'notify_sost_stato_unknown']);
         }
@@ -1465,8 +1497,12 @@ if ($chatId === $TELEGRAM_SERVICE_CHAT_ID) {
         tgRespond(['ok' => true, 'ignored' => 'nessun relay trovato']);
     }
 
-    if ($text === '') {
-        tgRespond(['ok' => true, 'ignored' => 'testo gruppo vuoto']);
+    if (
+        $text === '' &&
+        empty($message['photo']) &&
+        empty($message['document'])
+    ) {
+        tgRespond(['ok' => true, 'ignored' => 'contenuto gruppo vuoto']);
     }
 
     tgHandleAdminReply($relay, $message, $TELEGRAM_BOT_TOKEN);
@@ -1478,10 +1514,6 @@ if ($chatId === $TELEGRAM_SERVICE_CHAT_ID) {
  */
 if ($chatType !== 'private') {
     tgRespond(['ok' => true, 'ignored' => 'chat non gestita']);
-}
-
-if ($text === '') {
-    tgRespond(['ok' => true, 'ignored' => 'testo vuoto']);
 }
 
 /**
@@ -1499,67 +1531,215 @@ if (preg_match('/^\/start(?:\s+(.+))?$/u', $text, $m)) {
     tgRespond(['ok' => true, 'handled' => 'start']);
 }
 
-if (mb_strtolower($text, 'UTF-8') === '/help') {
+/**
+ * /help
+ */
+if ($lowerText === '/help') {
     tgSendMessage(
         $TELEGRAM_BOT_TOKEN,
         $chatId,
+        "👋 Benvenuto in GestOre Telegram.\n\n" .
         "Comandi disponibili:\n" .
-            "/start TOKEN - collega Telegram a GestOre\n" .
-            "/help - mostra questo messaggio\n\n" .
-            "Se il tuo account è già collegato, puoi scrivere qui le tue richieste e saranno inoltrate al gruppo di servizio GestOre."
+        "/start TOKEN - collega Telegram a GestOre\n" .
+        "/help - mostra questa guida\n" .
+        "/ticket MESSAGGIO - apre un ticket al servizio GestOre\n" .
+        "/admin - registra questa chat privata per le funzioni admin (solo se sei admin del gruppo)\n\n" .
+        "Se hai già un ticket aperto, ogni tuo messaggio normale, foto o documento verrà aggiunto automaticamente a quel ticket."
     );
     tgRespond(['ok' => true, 'handled' => 'help']);
 }
 
-if ($chatType === 'private' && $fromUserId !== '' && $chatId !== '') {
-    if (mb_strtolower($text, 'UTF-8') === '/admin') {
+/**
+ * /admin
+ * diventa admin SOLO se è admin del gruppo
+ */
+if ($fromUserId !== '' && $chatId !== '' && $lowerText === '/admin') {
 
-        // verifica che sia nel gruppo admin
-        $isMember = tgIsUserInGroup(
-            $TELEGRAM_BOT_TOKEN,
-            $TELEGRAM_SERVICE_CHAT_ID,
-            $fromUserId
-        );
+    $isMember = tgIsUserInGroup(
+        $TELEGRAM_BOT_TOKEN,
+        $TELEGRAM_SERVICE_CHAT_ID,
+        $fromUserId
+    );
 
-        if (!$isMember) {
-            tgSendMessage(
-                $TELEGRAM_BOT_TOKEN,
-                $chatId,
-                "❌ Non sei autorizzato.\n" .
-                    "Devi essere membro del gruppo admin GestOre."
-            );
-            tgRespond(['ok' => true, 'handled' => 'admin_denied']);
-        }
-
-        // registrazione admin
-        tgUpsertAdminTelegram($fromUserId, $chatId, $fromName, $fromUsername);
-
+    if (!$isMember) {
         tgSendMessage(
             $TELEGRAM_BOT_TOKEN,
             $chatId,
-            "✅ Chat privata registrata per funzioni admin.\n\n" .
-                "Ora puoi usare nel gruppo:\n" .
-                "/notify_sost_on\n" .
-                "/notify_sost_off\n" .
-                "/notify_sost_stato"
+            "❌ Non sei autorizzato.\nDevi essere amministratore del gruppo admin GestOre."
         );
-
-        tgRespond(['ok' => true, 'handled' => 'admin_register']);
+        tgRespond(['ok' => true, 'handled' => 'admin_denied']);
     }
+
+    tgUpsertAdminTelegram($fromUserId, $chatId, $fromName, $fromUsername);
+
+    tgSendMessage(
+        $TELEGRAM_BOT_TOKEN,
+        $chatId,
+        "✅ Chat privata registrata per funzioni admin.\n\n" .
+        "Ora puoi usare nel gruppo:\n" .
+        "/notify_sost_on\n" .
+        "/notify_sost_off\n" .
+        "/notify_sost_stato"
+    );
+
+    tgRespond(['ok' => true, 'handled' => 'admin_register']);
 }
 
 $doc = tgFindDocenteByChatId($chatId);
 $admin = tgFindAdminTelegramByUserId($fromUserId);
+$openRelay = $doc ? tgFindOpenRelayByDocente((int)($doc['id'] ?? 0)) : null;
 
-if ($doc && !$admin) {
-    tgHandlePrivateTeacherMessage($doc, $message, $TELEGRAM_SERVICE_CHAT_ID, $TELEGRAM_BOT_TOKEN);
-    tgRespond(['ok' => true, 'handled' => 'private_teacher_message']);
+/**
+ * /ticket testo
+ * apre ticket anche se il docente è anche admin
+ */
+if (preg_match('/^\/ticket(?:\s+(.+))?$/uis', $text, $m)) {
+    $ticketText = tgNorm($m[1] ?? '');
+
+    if ($ticketText === '') {
+        tgSendMessage(
+            $TELEGRAM_BOT_TOKEN,
+            $chatId,
+            "⚠️ Per aprire un ticket devi scrivere un messaggio dopo il comando.\n\n" .
+            "Esempio:\n" .
+            "/ticket Non vedo le sostituzioni di oggi"
+        );
+        tgRespond(['ok' => true, 'handled' => 'ticket_empty']);
+    }
+
+    if (!$doc) {
+        tgSendMessage(
+            $TELEGRAM_BOT_TOKEN,
+            $chatId,
+            "❌ Il tuo account Telegram non risulta collegato a un docente GestOre.\nUsa prima il link personale ricevuto via mail."
+        );
+        tgRespond(['ok' => true, 'handled' => 'ticket_no_doc']);
+    }
+
+    tgHandlePrivateTeacherMessage(
+        $doc,
+        array_merge($message, ['text' => $ticketText]),
+        $TELEGRAM_SERVICE_CHAT_ID,
+        $TELEGRAM_BOT_TOKEN
+    );
+    tgRespond(['ok' => true, 'handled' => 'ticket_created']);
 }
 
+/**
+ * Se il docente ha già un ticket aperto:
+ * - testo normale => accoda
+ * - foto/documento => accoda allegato
+ */
+if ($doc && $openRelay) {
+    $idRelay = (int)($openRelay['id'] ?? 0);
+    $ticketCode = tgNorm($openRelay['ticket_code'] ?? '');
+    if ($ticketCode === '') {
+        $ticketCode = tgUpdateTicketCode($idRelay);
+    }
+
+    $serviceChatId = tgNorm($openRelay['service_chat_id'] ?? $TELEGRAM_SERVICE_CHAT_ID);
+    $serviceMessageId = (int)($openRelay['service_message_id'] ?? 0);
+    $teacherMessageId = (int)($message['message_id'] ?? 0);
+
+    // TESTO normale non comando
+    if ($text !== '' && !preg_match('/^\//', $text)) {
+
+        dbExec("
+            UPDATE docente_telegram_relay
+            SET docente_message_id = " . dbI($teacherMessageId) . ",
+                ultimo_testo_docente = " . dbQ($text) . "
+            WHERE id = " . dbI($idRelay) . "
+        ");
+
+        tgSendMessage(
+            $TELEGRAM_BOT_TOKEN,
+            $serviceChatId,
+            "➕ Aggiornamento ticket {$ticketCode}\n\n" .
+            "👤 Docente: " . trim(($doc['cognome'] ?? '') . ' ' . ($doc['nome'] ?? '')) . "\n\n" .
+            "✉️ Nuovo messaggio:\n" . tgCut($text, 3000),
+            ['reply_to_message_id' => $serviceMessageId]
+        );
+
+        tgSendMessage(
+            $TELEGRAM_BOT_TOKEN,
+            $chatId,
+            "✅ Il tuo messaggio è stato aggiunto al ticket {$ticketCode}."
+        );
+
+        tgRespond(['ok' => true, 'handled' => 'append_text_ticket']);
+    }
+
+    // FOTO o DOCUMENTO
+    if (!empty($message['photo']) || !empty($message['document'])) {
+
+        if ($text !== '') {
+            dbExec("
+                UPDATE docente_telegram_relay
+                SET docente_message_id = " . dbI($teacherMessageId) . ",
+                    ultimo_testo_docente = " . dbQ($text) . "
+                WHERE id = " . dbI($idRelay) . "
+            ");
+        } else {
+            dbExec("
+                UPDATE docente_telegram_relay
+                SET docente_message_id = " . dbI($teacherMessageId) . "
+                WHERE id = " . dbI($idRelay) . "
+            ");
+        }
+
+        tgSendMessage(
+            $TELEGRAM_BOT_TOKEN,
+            $serviceChatId,
+            "📎 Nuovo allegato sul ticket {$ticketCode}" .
+            ($text !== '' ? "\n\nMessaggio:\n" . tgCut($text, 3000) : ''),
+            ['reply_to_message_id' => $serviceMessageId]
+        );
+
+        tgCopyMessage(
+            $TELEGRAM_BOT_TOKEN,
+            $serviceChatId,
+            $chatId,
+            $teacherMessageId,
+            ['reply_to_message_id' => $serviceMessageId]
+        );
+
+        tgSendMessage(
+            $TELEGRAM_BOT_TOKEN,
+            $chatId,
+            "✅ Il tuo allegato è stato aggiunto al ticket {$ticketCode}."
+        );
+
+        tgRespond(['ok' => true, 'handled' => 'append_media_ticket']);
+    }
+}
+
+/**
+ * Se è docente ma NON ha ticket aperto:
+ * qualsiasi testo libero mostra la guida
+ */
+if ($doc) {
+    tgSendMessage(
+        $TELEGRAM_BOT_TOKEN,
+        $chatId,
+        "👋 Benvenuto in GestOre Telegram.\n\n" .
+        "Per aprire un ticket scrivi:\n" .
+        "/ticket il tuo messaggio\n\n" .
+        "Esempio:\n" .
+        "/ticket Non vedo le sostituzioni di oggi\n\n" .
+        "Se poi il ticket resta aperto, i messaggi successivi, le foto e i documenti verranno aggiunti automaticamente allo stesso ticket."
+    );
+    tgRespond(['ok' => true, 'handled' => 'teacher_guide']);
+}
+
+/**
+ * Utente non collegato a docente
+ */
 tgSendMessage(
     $TELEGRAM_BOT_TOKEN,
     $chatId,
-    "👋 Ciao. Per collegare il tuo account a GestOre usa il link personale ricevuto via mail."
+    "👋 Ciao. Per collegare il tuo account a GestOre usa il link personale ricevuto via mail.\n\n" .
+    "Dopo il collegamento potrai usare:\n" .
+    "/ticket il tuo messaggio"
 );
 
 tgRespond(['ok' => true, 'handled' => 'default']);
