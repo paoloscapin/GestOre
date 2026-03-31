@@ -84,39 +84,73 @@ function error($message) {
     $__logger->err("$page: [$__username] $message");
 }
 
+function buildRotatedLogFileName($fullPath)
+{
+    $dir = dirname($fullPath);
+    $info = pathinfo($fullPath);
+
+    $filename = isset($info['filename']) ? $info['filename'] : 'log';
+    $extension = isset($info['extension']) && $info['extension'] !== '' ? $info['extension'] : 'log';
+
+    $dt = new DateTime('now', new DateTimeZone('Europe/Rome'));
+    $timestamp = $dt->format('d_m_Y_H_i_s');
+
+    return $dir . '/' . $filename . '_' . $timestamp . '.' . $extension;
+}
+
 function rotateLog() {
     global $fileName;
     global $__logger;
-    $rotateFileName = $fileName . date("Y-m-d_H.i.s").'.log';
+
+    $rotateFileName = buildRotatedLogFileName($fileName);
     $__logger->info("rotating into $rotateFileName");
     $__logger->flush();
     $__logger->close();
-    rename($fileName, $rotateFileName);
+    if (file_exists($fileName)) {
+        rename($fileName, $rotateFileName);
+    }
     $__logger->open();
     $__logger->info("old log was saved into $rotateFileName");
 
     global $fileNameLogin;
     global $__logger_login;
-    $rotateFileName = $fileNameLogin . date("Y-m-d_H.i.s").'.log';
+
+    $rotateFileName = buildRotatedLogFileName($fileNameLogin);
     $__logger_login->info("rotating into $rotateFileName");
     $__logger_login->flush();
     $__logger_login->close();
-    rename($fileNameLogin, $rotateFileName);
+    if (file_exists($fileNameLogin)) {
+        rename($fileNameLogin, $rotateFileName);
+    }
     $__logger_login->open();
     $__logger_login->info("old log was saved into $rotateFileName");
 
     global $fileNameCron;
     global $__logger_cron;
-    $rotateFileName = $fileNameCron . date("Y-m-d_H.i.s").'.log';
+
+    $rotateFileName = buildRotatedLogFileName($fileNameCron);
     $__logger_cron->info("rotating into $rotateFileName");
     $__logger_cron->flush();
     $__logger_cron->close();
-    rename($fileNameCron, $rotateFileName);
+    if (file_exists($fileNameCron)) {
+        rename($fileNameCron, $rotateFileName);
+    }
     $__logger_cron->open();
     $__logger_cron->info("old log was saved into $rotateFileName");
 
-}
+    global $fileNameImportSostituzioni;
+    global $__logger_import_sostituzioni;
 
+    $rotateFileName = buildRotatedLogFileName($fileNameImportSostituzioni);
+    $__logger_import_sostituzioni->info("rotating into $rotateFileName");
+    $__logger_import_sostituzioni->flush();
+    $__logger_import_sostituzioni->close();
+    if (file_exists($fileNameImportSostituzioni)) {
+        rename($fileNameImportSostituzioni, $rotateFileName);
+    }
+    $__logger_import_sostituzioni->open();
+    $__logger_import_sostituzioni->info("old log was saved into $rotateFileName");
+}
 /**
  * ================================
  * LOG CRON (wrapper dedicati)
