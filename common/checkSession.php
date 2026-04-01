@@ -250,6 +250,7 @@ if (session_status() == PHP_SESSION_NONE) {
     debug("checkSession: ini after ini_set gc_maxlifetime=" . ini_get('session.gc_maxlifetime')
         . " cookie_lifetime=" . ini_get('session.cookie_lifetime'));
 
+    @session_name("GESTORESESSID");
     $ok = @session_start();
     debug("checkSession: session_start() -> " . ($ok ? "OK" : "FAIL"));
 } else {

@@ -1,89 +1,61 @@
 <?php
-
 /**
- *  This file is part of GestOre
- *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
- *  @copyright  (C) 2026 Massimo Saiani
- *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
+ * Logout GestOre compatibile con MBApp
+ * Pulisce SOLO le variabili di GestOre e il token Google senza toccare MBApp
+ * Sessione separata tramite session_name("GESTORESESSID")
  */
 
+@session_name("GESTORESESSID"); // nome della sessione GestOre separato da MBApp
+session_start();
+
 require_once __DIR__ . '/__Settings.php';
-require_once __DIR__ . '/path.php';
 require_once __DIR__ . '/__Log.php';
-require_once __DIR__ . '/__Util.php';
 
-$base = $_GET['base'] ?? '';
+$__username = $_SESSION['username'] ?? '(non definito)';
+info("Logout GestOre avviato per utente [$__username]");
 
-// assicuro che la sessione sia attiva
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
+// =============================
+// 1️⃣ Pulizia variabili GestOre e token Google
+// =============================
+$keysToUnset = [
+    // utente applicativo
+    'utente_id', 'utente_nome', 'utente_cognome', 'utente_ruolo',
+    // docente
+    'docente_id', 'docente_nome', 'docente_cognome', 'docente_email',
+    // studente
+    'studente_id', 'studente_nome', 'studente_cognome', 'studente_email', 'studente_codice_fiscale',
+    // genitore
+    'genitore_id', 'genitore_nome', 'genitore_cognome', 'genitore_email', 'genitore_codice_fiscale',
+    // esterno
+    'esterno_id', 'esterno_nome', 'esterno_cognome', 'esterno_email',
+    // portineria
+    'portineria_id', 'portineria_nome', 'portineria_cognome', 'portineria_email',
+    // personale ATA
+    'personale_ata_id', 'personale_ata_nome', 'personale_ata_cognome', 'personale_ata_email',
+    // anno scolastico
+    'anno_scolastico_corrente_id', 'anno_scolastico_corrente_anno', 'anno_scolastico_scorso_id',
+    // impersonamenti
+    'impersona_attiva', 'impersona_ruolo', 'impersona_docente_id', 'impersona_studente_id', 'impersona_genitore_id',
+    // Google OAuth lato GestOre
+    'token', 'access_token', 'refresh_token', 'google_user',
+    // variabili di sessione generali di GestOre
+    'username', '__username', '__useremail', 'LAST_ACTIVITY', 'EXPIRE_AFTER'
+];
+
+// rimuove tutte le variabili indicate
+foreach ($keysToUnset as $k) {
+    unset($_SESSION[$k]);
 }
 
-debug("Ruolo attuale: " . ($__utente_ruolo ?? 'n/d'));
-debug("Username attuale: " . ($__username ?? 'n/d'));
-debug("Docente ID attuale: " . ($__docente_id ?? 'n/d'));
-debug("Studente ID attuale: " . ($__studente_id ?? 'n/d'));
-debug("Genitore ID attuale: " . ($__genitore_id ?? 'n/d'));
+// =============================
+// 2️⃣ NON distruggere la sessione
+// MBApp continua a funzionare perché usa un cookie diverso
+// session_destroy(); // ❌ NON FARLO
+// =============================
 
-function close_or_redirect($fallbackPath) {
-    // Prova a chiudere la finestra (se aperta da popup), altrimenti redirect
-    // NB: niente HTML complicato, ma mettiamo anche un link cliccabile.
-    $fallbackPath = $fallbackPath ?: '/index.php';
-    echo '<!DOCTYPE html><html><head><meta charset="utf-8">';
-    echo '<meta http-equiv="refresh" content="0;url=' . htmlspecialchars($fallbackPath, ENT_QUOTES) . '">';
-    echo '</head><body>';
-    echo '<script>';
-    echo 'try { window.close(); } catch(e) {}';
-    echo 'window.location.href = ' . json_encode($fallbackPath) . ';';
-    echo '</script>';
-    echo '<p>Reindirizzamento in corso... Se non accade, <a href="' . htmlspecialchars($fallbackPath, ENT_QUOTES) . '">clicca qui</a>.</p>';
-    echo '</body></html>';
-    exit;
-}
-
-// -------------------------
-// Gestione impersonamenti
-// -------------------------
-if (haRuolo('admin')) {
-    if (impersonaRuolo('docente')) {
-        info("Torno dalla sessione docente ad admin");
-        unset($_SESSION['docente_id'], $_SESSION['docente_nome'], $_SESSION['docente_cognome'], $_SESSION['docente_email']);
-
-        // ✅ IMPORTANTISSIMO: se hai flag impersona_* (come quelli che ti ho fatto aggiungere)
-        unset($_SESSION['impersona_attiva'], $_SESSION['impersona_ruolo'], $_SESSION['impersona_docente_id']);
-
-        // fallback: torna in admin (o dove preferisci)
-        close_or_redirect('/index.php');
-    }
-
-    if (impersonaRuolo('studente')) {
-        info("Torno dalla sessione studente ad admin");
-        unset($_SESSION['studente_id'], $_SESSION['studente_nome'], $_SESSION['studente_cognome'], $_SESSION['studente_email'], $_SESSION['studente_codice_fiscale']);
-
-        unset($_SESSION['impersona_attiva'], $_SESSION['impersona_ruolo'], $_SESSION['impersona_studente_id']);
-
-        close_or_redirect('/index.php');
-    }
-
-    if (impersonaRuolo('genitore')) {
-        info("Torno dalla sessione genitore ad admin");
-        unset($_SESSION['genitore_id'], $_SESSION['genitore_nome'], $_SESSION['genitore_cognome'], $_SESSION['genitore_email'], $_SESSION['genitore_codice_fiscale']);
-
-        unset($_SESSION['impersona_attiva'], $_SESSION['impersona_ruolo'], $_SESSION['impersona_genitore_id']);
-
-        close_or_redirect('/index.php');
-    }
-}
-
-// -------------------------
-// Logout completo
-// -------------------------
-$__username = $session->get('username');
-info("Logout avviato per utente [$__username]");
-
-// Pulisce TUTTO (variabili + cookie + distrugge sessione)
-$session->logout();
-
-// Redirect finale
-redirect('/index.php');
+// =============================
+// 3️⃣ Redirect finale al login GestOre
+// =============================
+info("Logout GestOre completato per utente [$__username]");
+header('Location: /GestOre/index.php');
 exit;
