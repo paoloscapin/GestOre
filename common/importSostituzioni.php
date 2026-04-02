@@ -24,7 +24,7 @@ $IS_MAIL_DOCENTE_ENABLED = (bool)($__settings->sostituzioni->inviaMailDocente ??
 
 infoimportsost(
     "CONFIG telegram_enabled=" . ($IS_TELEGRAM_ENABLED ? '1' : '0') .
-    " mail_enabled=" . ($IS_MAIL_DOCENTE_ENABLED ? '1' : '0')
+        " mail_enabled=" . ($IS_MAIL_DOCENTE_ENABLED ? '1' : '0')
 );
 
 /* =========================================================
@@ -130,23 +130,61 @@ function normalizeLatinChars($s)
     $s = (string)$s;
 
     $map = array(
-        'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'Å' => 'A',
-        'à' => 'A', 'á' => 'A', 'â' => 'A', 'ã' => 'A', 'ä' => 'A', 'å' => 'A',
+        'À' => 'A',
+        'Á' => 'A',
+        'Â' => 'A',
+        'Ã' => 'A',
+        'Ä' => 'A',
+        'Å' => 'A',
+        'à' => 'A',
+        'á' => 'A',
+        'â' => 'A',
+        'ã' => 'A',
+        'ä' => 'A',
+        'å' => 'A',
 
-        'È' => 'E', 'É' => 'E', 'Ê' => 'E', 'Ë' => 'E',
-        'è' => 'E', 'é' => 'E', 'ê' => 'E', 'ë' => 'E',
+        'È' => 'E',
+        'É' => 'E',
+        'Ê' => 'E',
+        'Ë' => 'E',
+        'è' => 'E',
+        'é' => 'E',
+        'ê' => 'E',
+        'ë' => 'E',
 
-        'Ì' => 'I', 'Í' => 'I', 'Î' => 'I', 'Ï' => 'I',
-        'ì' => 'I', 'í' => 'I', 'î' => 'I', 'ï' => 'I',
+        'Ì' => 'I',
+        'Í' => 'I',
+        'Î' => 'I',
+        'Ï' => 'I',
+        'ì' => 'I',
+        'í' => 'I',
+        'î' => 'I',
+        'ï' => 'I',
 
-        'Ò' => 'O', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O',
-        'ò' => 'O', 'ó' => 'O', 'ô' => 'O', 'õ' => 'O', 'ö' => 'O',
+        'Ò' => 'O',
+        'Ó' => 'O',
+        'Ô' => 'O',
+        'Õ' => 'O',
+        'Ö' => 'O',
+        'ò' => 'O',
+        'ó' => 'O',
+        'ô' => 'O',
+        'õ' => 'O',
+        'ö' => 'O',
 
-        'Ù' => 'U', 'Ú' => 'U', 'Û' => 'U', 'Ü' => 'U',
-        'ù' => 'U', 'ú' => 'U', 'û' => 'U', 'ü' => 'U',
+        'Ù' => 'U',
+        'Ú' => 'U',
+        'Û' => 'U',
+        'Ü' => 'U',
+        'ù' => 'U',
+        'ú' => 'U',
+        'û' => 'U',
+        'ü' => 'U',
 
-        'Ç' => 'C', 'ç' => 'C',
-        'Ñ' => 'N', 'ñ' => 'N'
+        'Ç' => 'C',
+        'ç' => 'C',
+        'Ñ' => 'N',
+        'ñ' => 'N'
     );
 
     return strtr($s, $map);
@@ -470,23 +508,28 @@ function logTelegramEsito($idDocente, $idSostituzione, $tipoEvento, $messaggio, 
 
 function inviaTelegramDocente($botToken, $chatId, $text)
 {
+    infoimportsost("Preparazione invio Telegram a chat_id=[$chatId] con botToken parziale=[" . substr($botToken, 0, 8) . "...]");
+
     $chatId = trim((string)$chatId);
     $botToken = trim((string)$botToken);
 
     if ($botToken === '') {
+        infoimportsost("Telegram non inviato: bot token mancante");
         return array('ok' => false, 'response' => 'bot token mancante');
     }
 
     if ($chatId === '') {
+        infoimportsost("Telegram non inviato: chat_id mancante");
         return array('ok' => false, 'response' => 'chat_id mancante');
     }
 
     $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
-
     $payload = array(
         'chat_id' => $chatId,
         'text' => $text
     );
+
+    infoimportsost("Invio POST a Telegram con payload: " . json_encode($payload, JSON_UNESCAPED_UNICODE));
 
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POST, true);
@@ -500,14 +543,19 @@ function inviaTelegramDocente($botToken, $chatId, $text)
     curl_close($ch);
 
     if ($errno) {
+        infoimportsost("Errore cURL Telegram: $error");
         return array('ok' => false, 'response' => "cURL error: $error");
     }
 
+    infoimportsost("Risposta Telegram raw: $response");
+
     $data = json_decode($response, true);
     if (is_array($data) && !empty($data['ok'])) {
+        infoimportsost("Invio Telegram riuscito per chat_id=[$chatId]");
         return array('ok' => true, 'response' => $response);
     }
 
+    infoimportsost("Invio Telegram fallito per chat_id=[$chatId], risposta: $response");
     return array('ok' => false, 'response' => ($response ? $response : 'Risposta Telegram vuota'));
 }
 
@@ -648,10 +696,13 @@ function notificaAdminSostituzioni($botToken, $text)
         $nome   = trim((string)($admin['nome'] ?? 'Admin'));
 
         if ($chatId === '') {
+            infoimportsost("Admin id={$admin['telegram_user_id']} saltato: chat_id vuoto");
             continue;
         }
 
+        infoimportsost("Invio Telegram admin [$nome] chat_id=[$chatId]");
         $res = inviaTelegramChat($botToken, $chatId, $text);
+        infoimportsost("Esito invio admin [$nome]: " . json_encode($res, JSON_UNESCAPED_UNICODE));
 
         $esiti[] = array(
             'destinatario' => $nome,
@@ -834,9 +885,9 @@ $hasStato = tableHasColumn('sostituzioni', 'stato');
 
 infoimportsost(
     "Check tabella sostituzioni: hasDocSostPdf=" . ($hasDocSostPdf ? '1' : '0') .
-    " hasDocSostituitoPdf=" . ($hasDocSostituitoPdf ? '1' : '0') .
-    " hasDataImport=" . ($hasDataImport ? '1' : '0') .
-    " hasStato=" . ($hasStato ? '1' : '0')
+        " hasDocSostituitoPdf=" . ($hasDocSostituitoPdf ? '1' : '0') .
+        " hasDataImport=" . ($hasDataImport ? '1' : '0') .
+        " hasStato=" . ($hasStato ? '1' : '0')
 );
 
 /* =========================================================
@@ -1345,7 +1396,12 @@ try {
         }
 
         if ($IS_TELEGRAM_ENABLED && !$tgGiaInviata) {
+            infoimportsost("Verifica invio Telegram per docente_id=$idDocenteDest");
+
             $tg = getTelegramProfileByDocenteId($idDocenteDest);
+            if (!$tg) {
+                infoimportsost("Docente id=$idDocenteDest non ha profilo Telegram attivo o consenso mancante");
+            }
 
             $chatIdToUse = '';
             $canSendTelegram = false;
@@ -1353,14 +1409,12 @@ try {
             if ($tg && !empty($tg['telegram_chat_id'])) {
                 $chatIdToUse = trim((string)$tg['telegram_chat_id']);
                 $canSendTelegram = true;
+                infoimportsost("Profilo Telegram trovato per docente_id=$idDocenteDest, chat_id=[$chatIdToUse]");
             }
 
             if ($canSendTelegram) {
-                $resTg = inviaTelegramDocente(
-                    $TELEGRAM_BOT_TOKEN,
-                    $chatIdToUse,
-                    $body
-                );
+                infoimportsost("Inizio invio Telegram per docente_id=$idDocenteDest");
+                $resTg = inviaTelegramDocente($TELEGRAM_BOT_TOKEN, $chatIdToUse, $body);
 
                 logTelegramEsito(
                     $idDocenteDest,
@@ -1372,13 +1426,14 @@ try {
                 );
 
                 if ($resTg['ok']) {
+                    infoimportsost("Telegram inviato con successo a docente_id=$idDocenteDest");
+
                     if ($idSostituzione > 0) {
                         registraNotificaInviata($idSostituzione, $idDocenteDest, $evento, 'TELEGRAM');
+                        infoimportsost("Notifica Telegram registrata nel DB per idSostituzione=$idSostituzione docente_id=$idDocenteDest");
                     }
 
-                    if ($tg) {
-                        updateTelegramLastOk($idDocenteDest);
-                    }
+                    if ($tg) updateTelegramLastOk($idDocenteDest);
 
                     $notificheInviate[] = array(
                         'docente' => $nomeDest,
@@ -1386,10 +1441,11 @@ try {
                         'evento' => $evento
                     );
                 } else {
-                    if ($tg) {
-                        updateTelegramLastError($idDocenteDest, $resTg['response']);
-                    }
+                    infoimportsost("Invio Telegram fallito per docente_id=$idDocenteDest, esito=" . $resTg['response']);
+                    if ($tg) updateTelegramLastError($idDocenteDest, $resTg['response']);
                 }
+            } else {
+                infoimportsost("Invio Telegram saltato per docente_id=$idDocenteDest, nessun chat_id valido");
             }
         }
     }
