@@ -100,7 +100,9 @@
     "telegram": {
         "enabled": true,
         "bot_username": "ITTGestOreBot",
-        "bot_token": ""
+        "bot_token": "",
+        "delete_old_topics": true,
+        "delete_old_topics_after_days": 30
     },
     "ore80": {
         "minuti_ore_con_studenti": 50,
