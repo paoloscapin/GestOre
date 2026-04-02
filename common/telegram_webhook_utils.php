@@ -52,7 +52,7 @@ function tgBuildTicketCode($idRelay) {
     $idRelay = (int)$idRelay;
 
     // Costruisce il codice nel formato TCK-AAAAMMGG-ID
-    return 'TCK-' . date('Ymd') . '-' . $idRelay;
+    return 'TCK-' . date('dmY') . '-' . $idRelay;
 }
 
 // Funzione per aggiornare il ticket_code nel database
