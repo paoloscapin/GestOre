@@ -39,12 +39,25 @@ if ($__settings->log->logIntoAppFolder) {
 }
 $fileNameImportSostituzioni .= $__settings->log->logImportSostituzioniFile;
 
+$fileNameTelegram = '';
+if ($__settings->log->logIntoAppFolder) {
+    $fileNameTelegram = __DIR__ . "/../log/";
+}
+$fileNameTelegram .= $__settings->log->logTelegramFile;
+
 $__logger = Log::factory('file', $fileName, '', array("timeFormat"=>$__settings->log->timeFormat), $__logLevel);
 $__logger_login = Log::factory('file', $fileNameLogin, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
 $__logger_cron = Log::factory('file', $fileNameCron, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
 $__logger_import_sostituzioni = Log::factory(
     'file',
     $fileNameImportSostituzioni,
+    '',
+    array("timeFormat" => $__settings->log->timeFormat),
+    PEAR_LOG_INFO
+);
+$__logger_telegram = Log::factory(
+    'file',
+    $fileNameTelegram,
     '',
     array("timeFormat" => $__settings->log->timeFormat),
     PEAR_LOG_INFO
@@ -150,6 +163,18 @@ function rotateLog() {
     }
     $__logger_import_sostituzioni->open();
     $__logger_import_sostituzioni->info("old log was saved into $rotateFileName");
+
+    global $fileNameTelegram;
+    global $__logger_telegram;
+    $rotateFileName = buildRotatedLogFileName($fileNameTelegram);
+    $__logger_telegram->info("rotating into $rotateFileName");
+    $__logger_telegram->flush();
+    $__logger_telegram->close();
+    if (file_exists($fileNameTelegram)) {
+        rename($fileNameTelegram, $rotateFileName);
+    }
+    $__logger_telegram->open();
+    $__logger_telegram->info("old log was saved into $rotateFileName");
 }
 /**
  * ================================
@@ -199,4 +224,27 @@ function errorimportsost(string $msg): void
     $__logger_import_sostituzioni->err('[IMPORT_SOSTITUZIONI] ' . $msg);
 }
 
+/**
+ * ================================
+ * LOG TELEGRAM
+ * ================================
+ */
+
+function infoTelegram(string $msg): void
+{
+    global $__logger_telegram;
+    $__logger_telegram->info('[TELEGRAM] ' . $msg);
+}
+
+function warningTelegram(string $msg): void
+{
+    global $__logger_telegram;
+    $__logger_telegram->warning('[TELEGRAM] ' . $msg);
+}
+
+function errorTelegram(string $msg): void
+{
+    global $__logger_telegram;
+    $__logger_telegram->err('[TELEGRAM] ' . $msg);
+}
 ?>
