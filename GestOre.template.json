@@ -26,7 +26,8 @@
         "debug": false,
         "logLoginFile": "GestOreLogin.log",
         "logCronFile": "GestOreCron.log",
-        "logImportSostituzioniFile": "import_sostituzioni.log"
+        "logImportSostituzioniFile": "import_sostituzioni.log",
+        "logTelegramFile": "telegram.log"
     },
     "config": {
         "gestioneClil": false,
