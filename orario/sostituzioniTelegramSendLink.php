@@ -99,7 +99,7 @@ function buildTelegramLinkMailHtml($docenteNome, $telegramLink)
 try {
     $username = norm($__username ?? '');
     if ($username === '') {
-        errorimportsost("TelegramSendLink: utente non autenticato");
+        errorTelegram("TelegramSendLink: utente non autenticato");
         respond(['ok' => false, 'error' => 'Utente non autenticato'], 401);
     }
 
@@ -114,7 +114,7 @@ try {
     $doc = dbGetFirst($qDoc);
 
     if (!$doc) {
-        errorimportsost("TelegramSendLink: docente non trovato per username=[$username]");
+        errorTelegram("TelegramSendLink: docente non trovato per username=[$username]");
         respond(['ok' => false, 'error' => 'Docente non trovato'], 404);
     }
 
@@ -123,7 +123,7 @@ try {
     $email = norm($doc['email'] ?? '');
 
     if ($idDocente <= 0) {
-        errorimportsost("TelegramSendLink: id docente non valido per username=[$username]");
+        errorTelegram("TelegramSendLink: id docente non valido per username=[$username]");
         respond(['ok' => false, 'error' => 'Profilo docente non valido'], 500);
     }
 
@@ -136,7 +136,7 @@ try {
     $botUsername = norm($__settings->telegram->bot_username ?? '');
 
     if ($botUsername === '') {
-        errorimportsost("TelegramSendLink: bot_username mancante in GestOre.json");
+        errorTelegram("TelegramSendLink: bot_username mancante in GestOre.json");
         respond(['ok' => false, 'error' => 'Configurazione bot Telegram mancante'], 500);
     }
 
@@ -171,7 +171,7 @@ try {
     $mailOk = sendMail($email, $docenteNome, $subject, $html);
 
     if (!$mailOk) {
-        errorimportsost("TelegramSendLink: invio mail fallito docente id=$idDocente email=[$email]");
+        errorTelegram("TelegramSendLink: invio mail fallito docente id=$idDocente email=[$email]");
         respond(['ok' => false, 'error' => 'Invio mail non riuscito'], 500);
     }
 
@@ -182,7 +182,7 @@ try {
         'message' => 'Ti abbiamo inviato una mail con il link per collegare Telegram.'
     ]);
 } catch (Throwable $e) {
-    errorimportsost("TelegramSendLink: eccezione " . $e->getMessage());
+    errorTelegram("TelegramSendLink: eccezione " . $e->getMessage());
     respond([
         'ok' => false,
         'error' => 'Errore durante l\'invio del link Telegram: ' . $e->getMessage()

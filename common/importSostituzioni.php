@@ -847,7 +847,7 @@ function buildNotificationBody($evento, $data, $oraInizio, $oraFine, $docenteSos
 
 $raw = file_get_contents('php://input');
 if (!$raw) {
-    errorimportsost("Body JSON vuoto");
+    errorTelegram("Body JSON vuoto");
     respond(array(
         'ok' => false,
         'error' => 'Body JSON vuoto'
@@ -856,7 +856,7 @@ if (!$raw) {
 
 $data = json_decode($raw, true);
 if (!is_array($data)) {
-    errorimportsost("JSON non valido");
+    errorTelegram("JSON non valido");
     respond(array(
         'ok' => false,
         'error' => 'JSON non valido'
@@ -865,7 +865,7 @@ if (!is_array($data)) {
 
 $items = isset($data['items']) ? $data['items'] : null;
 if (!is_array($items)) {
-    errorimportsost("Campo items mancante o non valido");
+    errorTelegram("Campo items mancante o non valido");
     respond(array(
         'ok' => false,
         'error' => 'Campo items mancante o non valido'
@@ -897,7 +897,7 @@ infoimportsost(
 $docentiMap = buildDocentiMap();
 
 if (empty($docentiMap)) {
-    errorimportsost("Nessun docente disponibile o tabella docente non leggibile");
+    errorTelegram("Nessun docente disponibile o tabella docente non leggibile");
     respond(array(
         'ok' => false,
         'error' => 'Nessun docente disponibile o tabella docente non leggibile'
@@ -1481,8 +1481,8 @@ try {
     ), 200);
 } catch (Throwable $e) {
     dbExec("ROLLBACK");
-    errorimportsost("Eccezione durante import: " . $e->getMessage());
-    errorimportsost("ROLLBACK eseguito");
+    errorTelegram("Eccezione durante import: " . $e->getMessage());
+    errorTelegram("ROLLBACK eseguito");
 
     $msgAdminErrore = buildAdminImportErrorMessage($e->getMessage());
     $esitiAdminErrore = notificaAdminSostituzioni($TELEGRAM_BOT_TOKEN, $msgAdminErrore);
