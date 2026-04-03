@@ -9,7 +9,7 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>GestOre - I miei ticket</title>
+  <title>GestOre - Mini App</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
@@ -57,6 +57,29 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
       margin: 0;
     }
 
+    .section-switch {
+      display: flex;
+      gap: 8px;
+      margin: 16px 0 12px 0;
+      flex-wrap: wrap;
+    }
+
+    .switch-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .switch-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
     .top-actions {
       margin: 16px 0 10px 0;
       display: flex;
@@ -93,6 +116,14 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
       display: block;
     }
 
+    .section-panel {
+      display: none;
+    }
+
+    .section-panel.active {
+      display: block;
+    }
+
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -115,12 +146,19 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
       font-size: 16px;
     }
 
-    .badge {
-      padding: 5px 10px;
-      border-radius: 999px;
-      font-size: 12px;
+    .sost-title {
       font-weight: 700;
+      font-size: 16px;
+    }
+
+    .badge {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
       color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
     .badge.aperta {
@@ -133,6 +171,14 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
 
     .badge.chiusa {
       background: var(--success)
+    }
+
+    .badge.sostituto {
+      background: #dc2626;
+    }
+
+    .badge.sostituito {
+      background: #f59e0b;
     }
 
     .meta {
@@ -247,25 +293,37 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
 <body>
   <div class="wrap">
     <div class="header">
-      <h1 class="title">I miei ticket GestOre</h1>
+      <h1 class="title" id="pageTitle">I miei ticket GestOre</h1>
       <p class="subtitle" id="docenteInfo">Caricamento...</p>
     </div>
 
+  <div class="section-switch">
+    <button type="button" class="switch-btn active" id="btnSectionSostituzioniOggi" data-section="sostituzioni_oggi">🔄 Sostituzioni di oggi</button>
+    <button type="button" class="switch-btn" id="btnSectionSostituzioniAnno" data-section="sostituzioni_anno">📚 Sostituzioni anno</button>
+    <button type="button" class="switch-btn" id="btnSectionTickets" data-section="tickets">🎫 Ticket</button>
+  </div>
+
     <div class="top-actions">
-      <button type="button" class="btn" id="btnNuovoTicket">➕ Nuovo ticket</button>
+      <button type="button" class="btn" id="btnPrimaryAction">➕ Nuovo ticket</button>
       <button type="button" class="btn secondary" id="btnApriChat">💬 Apri chat</button>
     </div>
 
-    <div class="tabs">
-      <button class="tab active" data-tab="aperti">Aperti</button>
-      <button class="tab" data-tab="chiusi">Chiusi</button>
-    </div>
-
-    <div id="loading" class="loading">Caricamento ticket...</div>
+    <div id="loading" class="loading">Caricamento...</div>
     <div id="error" class="error" style="display:none;"></div>
 
-    <div id="panel-aperti" class="panel active"></div>
-    <div id="panel-chiusi" class="panel"></div>
+    <div id="section-tickets" class="section-panel active">
+      <div class="tabs" id="ticketTabs">
+        <button class="tab active" data-tab="aperti">Aperti</button>
+        <button class="tab" data-tab="chiusi">Chiusi</button>
+      </div>
+
+      <div id="panel-aperti" class="panel active"></div>
+      <div id="panel-chiusi" class="panel"></div>
+    </div>
+
+    <div id="section-sostituzioni" class="section-panel">
+      <div id="panel-sostituzioni"></div>
+    </div>
   </div>
 
   <div id="ticketModal" class="modal-backdrop">
@@ -289,23 +347,36 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
       tg.expand();
     }
 
+    let currentSection = 'sostituzioni_oggi';
+
+    const pageTitleEl = document.getElementById('pageTitle');
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
     const docenteInfoEl = document.getElementById('docenteInfo');
+
+    const sectionTicketsEl = document.getElementById('section-tickets');
+    const sectionSostituzioniEl = document.getElementById('section-sostituzioni');
+
     const panelAperti = document.getElementById('panel-aperti');
     const panelChiusi = document.getElementById('panel-chiusi');
+    const panelSostituzioni = document.getElementById('panel-sostituzioni');
+
+    const btnSectionSostituzioniOggi = document.getElementById('btnSectionSostituzioniOggi');
+    const btnSectionSostituzioniAnno = document.getElementById('btnSectionSostituzioniAnno');
+    const btnSectionTickets = document.getElementById('btnSectionTickets');
+
+    const btnPrimaryAction = document.getElementById('btnPrimaryAction');
+    const btnApriChat = document.getElementById('btnApriChat');
 
     const ticketModal = document.getElementById('ticketModal');
     const ticketText = document.getElementById('ticketText');
-    const btnNuovoTicket = document.getElementById('btnNuovoTicket');
     const btnChiudiModal = document.getElementById('btnChiudiModal');
     const btnInviaTicket = document.getElementById('btnInviaTicket');
-    const btnApriChat = document.getElementById('btnApriChat');
 
     document.querySelectorAll('.tab').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('#section-tickets .panel').forEach(x => x.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
       });
@@ -326,6 +397,12 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
       if (s === 'IN_GESTIONE') return 'in_gestione';
       if (s === 'CHIUSA') return 'chiusa';
       return 'aperta';
+    }
+
+    function sostBadgeClass(ruolo) {
+      const r = (ruolo || '').toLowerCase();
+      if (r === 'sostituito') return 'sostituito';
+      return 'sostituto';
     }
 
     function openBotChat() {
@@ -353,7 +430,51 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
       ticketModal.classList.remove('show');
     }
 
-    btnNuovoTicket.addEventListener('click', openModal);
+    function updateHeaderForSection() {
+      if (currentSection === 'tickets') {
+        pageTitleEl.textContent = 'I miei ticket GestOre';
+        btnPrimaryAction.textContent = '➕ Nuovo ticket';
+        btnPrimaryAction.onclick = openModal;
+      } else if (currentSection === 'sostituzioni_oggi') {
+        pageTitleEl.textContent = 'Le mie sostituzioni di oggi';
+        btnPrimaryAction.textContent = '🔄 Aggiorna';
+        btnPrimaryAction.onclick = () => loadSostituzioni('today');
+      } else {
+        pageTitleEl.textContent = 'Le mie sostituzioni dell’anno';
+        btnPrimaryAction.textContent = '🔄 Aggiorna';
+        btnPrimaryAction.onclick = () => loadSostituzioni('year');
+      }
+    }
+
+    function switchSection(section) {
+      currentSection = section;
+
+      btnSectionSostituzioniOggi.classList.toggle('active', section === 'sostituzioni_oggi');
+      btnSectionSostituzioniAnno.classList.toggle('active', section === 'sostituzioni_anno');
+      btnSectionTickets.classList.toggle('active', section === 'tickets');
+
+      sectionTicketsEl.classList.toggle('active', section === 'tickets');
+      sectionSostituzioniEl.classList.toggle('active', section === 'sostituzioni_oggi' || section === 'sostituzioni_anno');
+
+      errorEl.style.display = 'none';
+      loadingEl.style.display = 'block';
+      loadingEl.textContent = 'Caricamento...';
+
+      updateHeaderForSection();
+
+      if (section === 'tickets') {
+        loadTickets();
+      } else if (section === 'sostituzioni_oggi') {
+        loadSostituzioni('today');
+      } else {
+        loadSostituzioni('year');
+      }
+    }
+
+    btnSectionSostituzioniOggi.addEventListener('click', () => switchSection('sostituzioni_oggi'));
+    btnSectionSostituzioniAnno.addEventListener('click', () => switchSection('sostituzioni_anno'));
+    btnSectionTickets.addEventListener('click', () => switchSection('tickets'));
+
     btnChiudiModal.addEventListener('click', closeModal);
     btnApriChat.addEventListener('click', openBotChat);
 
@@ -390,7 +511,17 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
           })
         });
 
-        const json = await res.json();
+        const rawText = await res.text();
+        if (!rawText) {
+          throw new Error('Risposta vuota dal server');
+        }
+
+        let json;
+        try {
+          json = JSON.parse(rawText);
+        } catch (e) {
+          throw new Error('Risposta non JSON: ' + rawText.substring(0, 300));
+        }
 
         if (!json.ok) {
           throw new Error(json.error || 'Errore creazione ticket');
@@ -399,9 +530,9 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
         closeModal();
         await loadTickets();
 
-        const msg = json.mode === 'append' ?
-          `Messaggio aggiunto al ticket ${json.ticket_code || ''}` :
-          `Ticket creato: ${json.ticket_code || ''}`;
+        const msg = json.mode === 'append'
+          ? `Messaggio aggiunto al ticket ${json.ticket_code || ''}`
+          : `Ticket creato: ${json.ticket_code || ''}`;
 
         alert(msg.trim());
 
@@ -452,6 +583,69 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
       }).join('');
     }
 
+    function renderSostituzioni(container, items, emptyText, scope = 'today') {
+      if (!items || !items.length) {
+        container.innerHTML = `<div class="empty">${escapeHtml(emptyText)}</div>`;
+        return;
+      }
+
+      container.innerHTML = items.map(s => {
+        const ruolo = s.ruolo_docente || 'sostituto';
+        const badgeText = ruolo === 'sostituito' ? 'SEI SOSTITUITO' : 'DEVI SOSTITUIRE';
+        const ora = s.ora_range_fmt || '';
+        const dataSost = s.data_fmt ? `Data: ${s.data_fmt}` : (s.data ? `Data: ${s.data}` : '');
+        const classe = s.classe ? `Classe: ${s.classe}` : '';
+        const aula = s.aula ? `Aula: ${s.aula}` : '';
+        const materia = s.materia ? `Materia: ${s.materia}` : '';
+        const collega = ruolo === 'sostituito'
+          ? (s.docente_sostituto ? `Ti sostituisce: ${s.docente_sostituto}` : '')
+          : (s.docente_sostituito ? `Docente sostituito: ${s.docente_sostituito}` : '');
+
+        return `
+          <div class="card">
+            <div class="row">
+              <div class="sost-title">${escapeHtml(ora || 'Sostituzione')}</div>
+              <div class="badge ${sostBadgeClass(ruolo)}">${escapeHtml(badgeText)}</div>
+            </div>
+
+            <div class="meta">
+              ${scope === 'year' && dataSost ? `<div>${escapeHtml(dataSost)}</div>` : ''}
+              ${classe ? `<div>${escapeHtml(classe)}</div>` : ''}
+              ${aula ? `<div>${escapeHtml(aula)}</div>` : ''}
+              ${materia ? `<div>${escapeHtml(materia)}</div>` : ''}
+              ${collega ? `<div>${escapeHtml(collega)}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function fetchJson(url, payload) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const rawText = await res.text();
+      console.log(url + ' raw response:', rawText);
+
+      if (!rawText) {
+        throw new Error('Risposta vuota dal server');
+      }
+
+      let json;
+      try {
+        json = JSON.parse(rawText);
+      } catch (e) {
+        throw new Error('Risposta non JSON: ' + rawText.substring(0, 300));
+      }
+
+      return json;
+    }
+
     async function loadTickets() {
       try {
         const initData = tg?.initData || '';
@@ -460,19 +654,10 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
         }
 
         errorEl.style.display = 'none';
-        console.log("miniapp_ticket_list: caricamento ticket in corso...");
-        console.log("miniapp_ticket_list: initData=", initData);
-        const res = await fetch('miniapp_ticket_list.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            initData
-          })
-        });
+        loadingEl.style.display = 'block';
+        loadingEl.textContent = 'Caricamento ticket...';
 
-        const json = await res.json();
+        const json = await fetchJson('miniapp_ticket_list.php', { initData });
 
         loadingEl.style.display = 'none';
 
@@ -497,12 +682,75 @@ $BOT_USERNAME = trim((string)($__settings->telegram->bot_username ?? ''));
       }
     }
 
-    loadTickets();
-    setInterval(loadTickets, 10000);
+    async function loadSostituzioni(scope = 'today') {
+      try {
+        const initData = tg?.initData || '';
+        if (!initData) {
+          throw new Error('Mini App aperta fuori da Telegram o initData assente');
+        }
+
+        errorEl.style.display = 'none';
+        loadingEl.style.display = 'block';
+        loadingEl.textContent = scope === 'year'
+          ? 'Caricamento sostituzioni dell’anno...'
+          : 'Caricamento sostituzioni di oggi...';
+
+        const json = await fetchJson('miniapp_sostituzioni_list.php', {
+          initData,
+          scope
+        });
+
+        loadingEl.style.display = 'none';
+
+        if (!json.ok) {
+          throw new Error(json.error || 'Errore nel caricamento sostituzioni');
+        }
+
+        const docente = json.docente || {};
+        const counts = json.counts || {};
+        const items = json.sostituzioni || {};
+
+        if (scope === 'year') {
+          docenteInfoEl.textContent =
+            `${docente.nome || ''} — Sostituzioni anno: ${counts.totale || 0}`;
+          renderSostituzioni(panelSostituzioni, items, 'Nessuna sostituzione nell’anno scolastico.', scope);
+        } else {
+          docenteInfoEl.textContent =
+            `${docente.nome || ''} — Sostituzioni di oggi: ${counts.totale || 0}`;
+          renderSostituzioni(panelSostituzioni, items, 'Nessuna sostituzione per oggi.', scope);
+        }
+
+      } catch (err) {
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.textContent = err.message || 'Errore imprevisto';
+      }
+    }
+
+    updateHeaderForSection();
+    loadSostituzioni('today');
+
+    setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        if (currentSection === 'tickets') {
+          loadTickets();
+        } else if (currentSection === 'sostituzioni_oggi') {
+          loadSostituzioni('today');
+        } else {
+          loadSostituzioni('year');
+        }
+      }
+    }, 30000);
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        loadTickets();
+        if (currentSection === 'tickets') {
+          loadTickets();
+        } else if (currentSection === 'sostituzioni_oggi') {
+          loadSostituzioni('today');
+        } else {
+          loadSostituzioni('year');
+        }
       }
     });
   </script>
