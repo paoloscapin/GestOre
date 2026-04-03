@@ -19,7 +19,7 @@ function tgFindRelayById($idRelay){
     $relay = dbGetFirst("SELECT * FROM docente_telegram_relay WHERE id=".dbI($idRelay)." LIMIT 1");
 
     // Log del risultato per debug
-    infoimportsost("tgFindRelayById: idRelay=$idRelay relay=".json_encode($relay));
+    infoTelegram("tgFindRelayById: idRelay=$idRelay relay=".json_encode($relay));
 
     // Restituisce il record trovato (o null se non esiste)
     return $relay;
@@ -39,11 +39,11 @@ function tgFindRelayByServiceMessage($serviceChatId,$serviceMessageId){
 
     // Query per cercare il ticket associato a quel messaggio nel gruppo
     $query = "SELECT * FROM docente_telegram_relay WHERE service_chat_id=" . dbQ($serviceChatId) . " AND service_message_id=" . dbI($serviceMessageId) . " LIMIT 1";
-    infoimportsost("tgFindRelayByServiceMessage: query=$query");
+    infoTelegram("tgFindRelayByServiceMessage: query=$query");
     $relay = dbGetFirst($query);
 
     // Log del risultato
-    infoimportsost("tgFindRelayByServiceMessage: serviceChatId=$serviceChatId serviceMessageId=$serviceMessageId relay=".json_encode($relay));
+    infoTelegram("tgFindRelayByServiceMessage: serviceChatId=$serviceChatId serviceMessageId=$serviceMessageId relay=".json_encode($relay));
 
     // Restituisce il ticket trovato
     return $relay;
@@ -63,11 +63,11 @@ function tgFindRelayByServiceThread($serviceChatId,$serviceThreadId){
 
     // Query per cercare il ticket associato a quel messaggio nel gruppo
     $query = "SELECT * FROM docente_telegram_relay WHERE service_chat_id=" . dbQ($serviceChatId) . " AND service_thread_id=" . dbI($serviceThreadId) . " LIMIT 1";
-    infoimportsost("tgFindRelayByServiceThread: query=$query");
+    infoTelegram("tgFindRelayByServiceThread: query=$query");
     $relay = dbGetFirst($query);
 
     // Log del risultato
-    infoimportsost("tgFindRelayByServiceThread: serviceChatId=$serviceChatId serviceThreadId=$serviceThreadId relay=".json_encode($relay));
+    infoTelegram("tgFindRelayByServiceThread: serviceChatId=$serviceChatId serviceThreadId=$serviceThreadId relay=".json_encode($relay));
 
     // Restituisce il ticket trovato
     return $relay;
@@ -86,11 +86,11 @@ function tgUpdateRelayStatus($idRelay, $newStatus, $adminUserId=null, $adminName
     $adminName = tgNorm($adminName);
 
     // Log iniziale
-    infoimportsost("tgUpdateRelayStatus: idRelay=$idRelay newStatus=$newStatus adminUserId=$adminUserId adminName=$adminName");
+    infoTelegram("tgUpdateRelayStatus: idRelay=$idRelay newStatus=$newStatus adminUserId=$adminUserId adminName=$adminName");
 
     // Controllo validità parametri
     if($idRelay<=0 || !in_array($newStatus,['APERTA','IN_GESTIONE','CHIUSA'],true)) {
-        warningimportsost("tgUpdateRelayStatus: parametri invalidi");
+        warningTelegram("tgUpdateRelayStatus: parametri invalidi");
         return false;
     }
 
@@ -146,7 +146,7 @@ function tgUpdateRelayStatus($idRelay, $newStatus, $adminUserId=null, $adminName
     $q = "UPDATE docente_telegram_relay SET ".implode(", ",$fields)." WHERE id=".dbI($idRelay);
 
     // Log query
-    infoimportsost("tgUpdateRelayStatus: query=$q");
+    infoTelegram("tgUpdateRelayStatus: query=$q");
 
     // Esegue aggiornamento
     dbExec($q);
@@ -163,7 +163,7 @@ function tgFindOpenRelayByDocente($idDocente){
 
     // Se non valido → log e null
     if($idDocente<=0){
-        infoimportsost("tgFindOpenRelayByDocente: idDocente non valido");
+        infoTelegram("tgFindOpenRelayByDocente: idDocente non valido");
         return null;
     }
 
@@ -174,7 +174,7 @@ function tgFindOpenRelayByDocente($idDocente){
     $relay=dbGetFirst($q);
 
     // Log risultato
-    infoimportsost("tgFindOpenRelayByDocente: query=$q relay=".json_encode($relay));
+    infoTelegram("tgFindOpenRelayByDocente: query=$q relay=".json_encode($relay));
 
     // Restituisce ticket trovato
     return $relay;
@@ -194,7 +194,7 @@ function tgGetDashboardKeyboard()
         ['text' => '👤 I miei ticket', 'callback_data' => 'lista_miei_ticket']
     ];
 
-    infoimportsost("tgGetDashboardKeyboard: keyboard=" . json_encode($keyboard));
+    infoTelegram("tgGetDashboardKeyboard: keyboard=" . json_encode($keyboard));
 
     return ['inline_keyboard' => $keyboard];
 }
@@ -240,11 +240,247 @@ function tgGetTicketKeyboardMinimal(array $relay){
     }
 
     // Log keyboard generata
-    infoimportsost("tgGetTicketKeyboardMinimal: idRelay=$idRelay stato=$stato keyboard=" . json_encode($keyboard));
+    infoTelegram("tgGetTicketKeyboardMinimal: idRelay=$idRelay stato=$stato keyboard=" . json_encode($keyboard));
 
     // Restituisce struttura inline keyboard per Telegram
     return ['inline_keyboard' => $keyboard];
 }
 
+function tgCreateTopic($botToken, $chatId, $name)
+{
+    // Costruisce l'URL dell'endpoint Telegram per creare un topic forum
+    $url = "https://api.telegram.org/bot{$botToken}/createForumTopic";
 
+    // Prepara il payload con chat_id del gruppo/forum e nome del topic da creare
+    $payload = ['chat_id' => $chatId, 'name' => $name];
+
+    // Inizializza una sessione cURL verso l'URL Telegram
+    $ch = curl_init($url);
+
+    // Imposta la richiesta HTTP come POST
+    curl_setopt($ch, CURLOPT_POST, true);
+
+    // Fa restituire la risposta come stringa invece di stamparla direttamente
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    // Invia i parametri POST codificati come query string
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
+
+    // Imposta un timeout massimo di 20 secondi per la chiamata
+    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+
+    // Esegue la chiamata HTTP verso Telegram e salva la risposta
+    $response = curl_exec($ch);
+
+    // Chiude la sessione cURL liberando le risorse
+    curl_close($ch);
+
+    // Decodifica la risposta JSON di Telegram in array associativo
+    $json = json_decode($response, true);
+
+    // Se Telegram ha risposto con ok=true, restituisce il message_thread_id del topic creato; altrimenti restituisce 0
+    return $json['ok'] ? ($json['result']['message_thread_id'] ?? 0) : 0;
+}
+
+function tgCreateOrAppendTicketFromDocente(array $doc, string $text, string $serviceChatId, string $botToken)
+{
+    $text = tgNorm($text);
+    $idDocente = (int)($doc['id'] ?? 0);
+    $teacherChatId = tgNorm($doc['telegram_chat_id'] ?? '');
+    $docenteNome = trim(($doc['cognome'] ?? '') . ' ' . ($doc['nome'] ?? ''));
+
+    if ($idDocente <= 0 || $text === '') {
+        return ['ok' => false, 'error' => 'Dati ticket non validi'];
+    }
+
+    infoTelegram("tgCreateOrAppendTicketFromDocente: idDocente=$idDocente text=[" . tgCut($text, 200) . "]");
+
+    $openRelay = tgFindOpenRelayByDocente($idDocente);
+
+    // =========================================================
+    // TICKET ESISTENTE
+    // =========================================================
+    if ($openRelay) {
+        $idRelay = (int)($openRelay['id'] ?? 0);
+        if ($idRelay <= 0) {
+            return ['ok' => false, 'error' => 'Relay esistente non valido'];
+        }
+
+        $ticketCode = tgNorm($openRelay['ticket_code'] ?? '');
+        if ($ticketCode === '') {
+            $ticketCode = tgUpdateTicketCode($idRelay);
+        }
+
+        $statoLabel = tgBuildStatoLabel($openRelay['stato'] ?? 'APERTA');
+        $threadId = (int)($openRelay['service_thread_id'] ?? 0);
+
+        dbExec("
+            UPDATE docente_telegram_relay
+            SET ultimo_testo_docente = " . dbQ($text) . ",
+                data_aggiornamento = NOW()
+            WHERE id = " . dbI($idRelay) . "
+        ");
+
+        $openRelay = tgFindRelayById($idRelay);
+
+        $serviceText =
+            "➕ Aggiornamento ticket {$ticketCode}\n\n" .
+            "👤 Docente: {$docenteNome}\n" .
+            "📌 Stato attuale: {$statoLabel}\n\n" .
+            "✉️ Nuovo messaggio:\n" . tgCut($text, 3000);
+
+        $sendRes = tgSendMessage(
+            $botToken,
+            $serviceChatId,
+            $serviceText,
+            [
+                'message_thread_id' => $threadId,
+                'reply_markup' => json_encode(
+                    tgGetTicketKeyboardMinimal($openRelay),
+                    JSON_UNESCAPED_UNICODE
+                )
+            ]
+        );
+
+        if (!$sendRes['ok']) {
+            errorTelegram("tgCreateOrAppendTicketFromDocente: errore invio gruppo append " . ($sendRes['error'] ?? ''));
+            return ['ok' => false, 'error' => 'Errore invio messaggio al gruppo di servizio'];
+        }
+
+        // Mostra il testo anche nella chat privata docente
+        if ($teacherChatId !== '') {
+            tgSendMessage(
+                $botToken,
+                $teacherChatId,
+                "📝 Il tuo messaggio:\n" . tgCut($text, 3000)
+            );
+
+            tgSendMessage(
+                $botToken,
+                $teacherChatId,
+                "✅ Il tuo messaggio è stato aggiunto al ticket {$ticketCode}.\nStato corrente: {$statoLabel}."
+            );
+        }
+
+        return [
+            'ok' => true,
+            'mode' => 'append',
+            'idRelay' => $idRelay,
+            'ticket_code' => $ticketCode
+        ];
+    }
+
+    // =========================================================
+    // NUOVO TICKET
+    // =========================================================
+    dbExec("START TRANSACTION");
+
+    try {
+        $q = "
+            INSERT INTO docente_telegram_relay (
+                idDocente,
+                docente_chat_id,
+                docente_message_id,
+                service_chat_id,
+                service_message_id,
+                service_thread_root_message_id,
+                stato,
+                chiusa,
+                ultimo_testo_docente,
+                data_creazione,
+                data_aggiornamento
+            ) VALUES (
+                " . dbI($idDocente) . ",
+                " . dbQ($teacherChatId) . ",
+                0,
+                " . dbQ($serviceChatId) . ",
+                0,
+                0,
+                'APERTA',
+                0,
+                " . dbQ($text) . ",
+                NOW(),
+                NOW()
+            )
+        ";
+
+        dbExec($q);
+
+        $idRelay = (int)dblastId();
+        if ($idRelay <= 0) {
+            throw new Exception("Inserimento relay fallito");
+        }
+
+        $ticketCode = tgUpdateTicketCode($idRelay);
+
+        $serviceThreadId = tgCreateTopic($botToken, $serviceChatId, "Ticket " . $ticketCode);
+
+        dbExec("
+            UPDATE docente_telegram_relay
+            SET service_thread_id = " . dbI($serviceThreadId) . ",
+                thread_topic_name = " . dbQ("Ticket $ticketCode") . "
+            WHERE id = " . dbI($idRelay) . "
+        ");
+
+        $relay = tgFindRelayById($idRelay);
+
+        $sendRes = tgSendMessage(
+            $botToken,
+            $serviceChatId,
+            "📩 Nuovo messaggio da docente\n\n" .
+            "🏷 Ticket: {$ticketCode}\n" .
+            "👤 Docente: {$docenteNome}\n" .
+            "✉️ Messaggio:\n" . tgCut($text, 3000),
+            [
+                'message_thread_id' => $serviceThreadId,
+                'reply_markup' => json_encode(
+                    tgGetTicketKeyboardMinimal($relay),
+                    JSON_UNESCAPED_UNICODE
+                )
+            ]
+        );
+
+        if (!$sendRes['ok']) {
+            throw new Exception("Invio messaggio Telegram al gruppo fallito: " . ($sendRes['error'] ?? ''));
+        }
+
+        $serviceMessageId = (int)($sendRes['message_id'] ?? 0);
+
+        dbExec("
+            UPDATE docente_telegram_relay
+            SET service_message_id = " . dbI($serviceMessageId) . ",
+                service_thread_root_message_id = " . dbI($serviceMessageId) . "
+            WHERE id = " . dbI($idRelay) . "
+        ");
+
+        dbExec("COMMIT");
+
+        // Mostra il testo anche nella chat privata docente
+        if ($teacherChatId !== '') {
+            tgSendMessage(
+                $botToken,
+                $teacherChatId,
+                "📝 La tua richiesta:\n" . tgCut($text, 3000)
+            );
+
+            tgSendMessage(
+                $botToken,
+                $teacherChatId,
+                "✅ Messaggio inviato al gruppo di servizio GestOre.\nTicket: {$ticketCode}\nStato richiesta: APERTA."
+            );
+        }
+
+        return [
+            'ok' => true,
+            'mode' => 'create',
+            'idRelay' => $idRelay,
+            'ticket_code' => $ticketCode
+        ];
+
+    } catch (Throwable $e) {
+        dbExec("ROLLBACK");
+        errorTelegram("tgCreateOrAppendTicketFromDocente: eccezione " . $e->getMessage());
+        return ['ok' => false, 'error' => $e->getMessage()];
+    }
+}
 ?>

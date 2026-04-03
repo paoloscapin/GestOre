@@ -9,13 +9,9 @@ header('Content-Type: application/json; charset=utf-8');
 $TELEGRAM_BOT_TOKEN = trim((string)($__settings->telegram->bot_token ?? ''));
 $TELEGRAM_SERVICE_CHAT_ID = trim((string)($__settings->telegram->chat_id ?? ''));
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 $raw = file_get_contents('php://input');
 $update = json_decode($raw, true);
-file_put_contents(__DIR__ . '/chatid_debug.log', print_r($update, true), FILE_APPEND);
+file_put_contents(__DIR__ . '../log/telegram_chat.log', print_r($update, true), FILE_APPEND);
 
 /**
  * ===========================
@@ -102,12 +98,12 @@ function tgFindDocenteByChatId($chatId)
     $chatId = tgNorm($chatId);
 
     // Scrive nel log che è stata chiamata la ricerca docente per chatId
-    infoimportsost("telegramWebhook: tgFindDocenteByChatId chiamata chatId=[$chatId]");
+    infoTelegram("telegramWebhook: tgFindDocenteByChatId chiamata chatId=[$chatId]");
 
     // Se il chatId è vuoto
     if ($chatId === '') {
         // Scrive nel log un warning
-        warningimportsost("telegramWebhook: tgFindDocenteByChatId - chatId vuoto");
+        warningTelegram("telegramWebhook: tgFindDocenteByChatId - chatId vuoto");
 
         // Restituisce null perché non è possibile cercare il docente
         return null;
@@ -132,7 +128,7 @@ function tgFindDocenteByChatId($chatId)
     ";
 
     // Scrive nel log la query SQL costruita
-    infoimportsost("telegramWebhook: tgFindDocenteByChatId query=[$q]");
+    infoTelegram("telegramWebhook: tgFindDocenteByChatId query=[$q]");
 
     // Esegue la query e recupera la prima riga trovata
     $row = dbGetFirst($q);
@@ -140,10 +136,10 @@ function tgFindDocenteByChatId($chatId)
     // Se non è stato trovato alcun docente
     if (!$row) {
         // Scrive nel log un warning specificando il chatId
-        warningimportsost("telegramWebhook: tgFindDocenteByChatId - nessun docente trovato per chatId=[$chatId]");
+        warningTelegram("telegramWebhook: tgFindDocenteByChatId - nessun docente trovato per chatId=[$chatId]");
     } else {
         // Altrimenti scrive nel log l'id del docente trovato
-        infoimportsost("telegramWebhook: tgFindDocenteByChatId trovato docente id=" . ($row['id'] ?? ''));
+        infoTelegram("telegramWebhook: tgFindDocenteByChatId trovato docente id=" . ($row['id'] ?? ''));
     }
 
     // Restituisce il record docente trovato oppure null
@@ -250,7 +246,7 @@ function tgUpsertAdminTelegram($telegramUserId, $telegramChatId, $nome, $usernam
         ";
 
         // Scrive nel log la query di update
-        errorimportsost("tgUpsertAdminTelegram QUERY: " . $q);
+        errorTelegram("tgUpsertAdminTelegram QUERY: " . $q);
 
         // Esegue l'update
         dbExec($q);
@@ -279,7 +275,7 @@ function tgUpsertAdminTelegram($telegramUserId, $telegramChatId, $nome, $usernam
     ";
 
     // Scrive nel log la query di insert
-    errorimportsost("tgUpsertAdminTelegram QUERY: " . $q);
+    errorTelegram("tgUpsertAdminTelegram QUERY: " . $q);
 
     // Esegue l'inserimento
     dbExec($q);
@@ -752,7 +748,7 @@ function tgHandleStartToken($token, $chatId)
     }
 
     // Scrive nel log che è stato ricevuto un token di start con relativo chatId
-    infoimportsost("telegramWebhook: start token ricevuto token=[$token] chatId=[$chatId]");
+    infoTelegram("telegramWebhook: start token ricevuto token=[$token] chatId=[$chatId]");
 
     // Costruisce la query per cercare il token nella tabella docente_telegram_token
     $qTok = "
@@ -768,7 +764,7 @@ function tgHandleStartToken($token, $chatId)
     // Se il token non esiste nel database
     if (!$tok) {
         // Scrive nel log un warning che segnala token non trovato
-        warningimportsost("telegramWebhook: token non trovato [$token]");
+        warningTelegram("telegramWebhook: token non trovato [$token]");
 
         // Restituisce messaggio di link non valido
         return "❌ Link non valido.\n\nIl token di collegamento non è stato trovato.";
@@ -777,7 +773,7 @@ function tgHandleStartToken($token, $chatId)
     // Se il token risulta già usato
     if ((int)($tok['usato'] ?? 0) === 1) {
         // Scrive nel log un warning che segnala token già usato
-        warningimportsost("telegramWebhook: token già usato idToken=" . (int)$tok['idToken']);
+        warningTelegram("telegramWebhook: token già usato idToken=" . (int)$tok['idToken']);
 
         // Restituisce messaggio che informa che il link è già stato utilizzato
         return "⚠️ Questo link è già stato utilizzato.\n\nSe devi collegare di nuovo Telegram, richiedi una nuova mail da GestOre.";
@@ -789,7 +785,7 @@ function tgHandleStartToken($token, $chatId)
     // Se il token ha una data di scadenza e la scadenza è passata
     if ($dataScadenza !== '' && strtotime($dataScadenza) < time()) {
         // Scrive nel log un warning che segnala token scaduto
-        warningimportsost("telegramWebhook: token scaduto idToken=" . (int)$tok['idToken']);
+        warningTelegram("telegramWebhook: token scaduto idToken=" . (int)$tok['idToken']);
 
         // Restituisce messaggio che informa che il link è scaduto
         return "⏰ Questo link è scaduto.\n\nRichiedi una nuova mail di collegamento da GestOre.";
@@ -801,7 +797,7 @@ function tgHandleStartToken($token, $chatId)
     // Se l'idDocente non è valido
     if ($idDocente <= 0) {
         // Scrive nel log un errore che segnala idDocente non valido
-        errorimportsost("telegramWebhook: idDocente non valido nel token idToken=" . (int)$tok['idToken']);
+        errorTelegram("telegramWebhook: idDocente non valido nel token idToken=" . (int)$tok['idToken']);
 
         // Restituisce messaggio di errore generico di collegamento
         return "❌ Errore di collegamento.\n\nContatta la segreteria o l'amministratore di GestOre.";
@@ -821,7 +817,7 @@ function tgHandleStartToken($token, $chatId)
     // Se il docente non esiste nel database
     if (!$doc) {
         // Scrive nel log un errore che segnala docente non trovato
-        errorimportsost("telegramWebhook: docente non trovato idDocente=$idDocente");
+        errorTelegram("telegramWebhook: docente non trovato idDocente=$idDocente");
 
         // Restituisce messaggio di errore
         return "❌ Docente non trovato.\n\nContatta la segreteria o l'amministratore di GestOre.";
@@ -899,47 +895,11 @@ function tgHandleStartToken($token, $chatId)
         dbExec("ROLLBACK");
 
         // Scrive nel log il messaggio dell'eccezione
-        errorimportsost("telegramWebhook: eccezione " . $e->getMessage());
+        errorTelegram("telegramWebhook: eccezione " . $e->getMessage());
 
         // Restituisce messaggio di errore generico
         return "❌ Errore durante il collegamento Telegram.\n\nContatta la segreteria o l'amministratore di GestOre.";
     }
-}
-
-function tgCreateTopic($botToken, $chatId, $name)
-{
-    // Costruisce l'URL dell'endpoint Telegram per creare un topic forum
-    $url = "https://api.telegram.org/bot{$botToken}/createForumTopic";
-
-    // Prepara il payload con chat_id del gruppo/forum e nome del topic da creare
-    $payload = ['chat_id' => $chatId, 'name' => $name];
-
-    // Inizializza una sessione cURL verso l'URL Telegram
-    $ch = curl_init($url);
-
-    // Imposta la richiesta HTTP come POST
-    curl_setopt($ch, CURLOPT_POST, true);
-
-    // Fa restituire la risposta come stringa invece di stamparla direttamente
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-    // Invia i parametri POST codificati come query string
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
-
-    // Imposta un timeout massimo di 20 secondi per la chiamata
-    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
-
-    // Esegue la chiamata HTTP verso Telegram e salva la risposta
-    $response = curl_exec($ch);
-
-    // Chiude la sessione cURL liberando le risorse
-    curl_close($ch);
-
-    // Decodifica la risposta JSON di Telegram in array associativo
-    $json = json_decode($response, true);
-
-    // Se Telegram ha risposto con ok=true, restituisce il message_thread_id del topic creato; altrimenti restituisce 0
-    return $json['ok'] ? ($json['result']['message_thread_id'] ?? 0) : 0;
 }
 
 function tgHandlePrivateTeacherMessage(array $doc, array $message, string $serviceChatId, string $botToken)
@@ -960,14 +920,14 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
     $docenteNome     = trim(($doc['cognome'] ?? '') . ' ' . ($doc['nome'] ?? ''));
 
     // Scrive nel log l'ingresso nella funzione con i dati principali, senza esporre il token completo
-    infoimportsost("ENTER tgHandlePrivateTeacherMessage: doc=" . json_encode($doc) .
+    infoTelegram("ENTER tgHandlePrivateTeacherMessage: doc=" . json_encode($doc) .
         " message=" . json_encode($message) .
         " serviceChatId=$serviceChatId botToken=TRUNCATED");
 
     // Se mancano dati essenziali (id messaggio, testo o id docente), interrompe la funzione
     if ($teacherMessageId <= 0 || $text === '' || $idDocente <= 0) {
         // Scrive nel log un warning con i dati non validi
-        warningimportsost("tgHandlePrivateTeacherMessage: dati non validi teacherMessageId=$teacherMessageId text=[" . tgCut($text, 50) . "] idDocente=$idDocente");
+        warningTelegram("tgHandlePrivateTeacherMessage: dati non validi teacherMessageId=$teacherMessageId text=[" . tgCut($text, 50) . "] idDocente=$idDocente");
         // Esce dalla funzione senza fare altro
         return;
     }
@@ -975,13 +935,13 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
     // Recupera relay aperto
 
     // Scrive nel log che sta cercando un eventuale ticket aperto del docente
-    infoimportsost("CALL tgFindOpenRelayByDocente idDocente=$idDocente");
+    infoTelegram("CALL tgFindOpenRelayByDocente idDocente=$idDocente");
 
     // Cerca nel database un relay aperto o in gestione associato al docente
     $openRelay = tgFindOpenRelayByDocente($idDocente);
 
     // Scrive nel log il risultato della ricerca relay
-    infoimportsost("RETURN tgFindOpenRelayByDocente: " . json_encode($openRelay));
+    infoTelegram("RETURN tgFindOpenRelayByDocente: " . json_encode($openRelay));
 
     // Se esiste già un relay aperto
     if ($openRelay) {
@@ -996,13 +956,13 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
         // Se il relay non ha ancora un ticket code
         if ($ticketCode === '') {
             // Scrive nel log che sta per generare il ticket code
-            infoimportsost("CALL tgUpdateTicketCode idRelay=$idRelay");
+            infoTelegram("CALL tgUpdateTicketCode idRelay=$idRelay");
 
             // Genera e salva il ticket code nel database
             $ticketCode = tgUpdateTicketCode($idRelay);
 
             // Scrive nel log il ticket code generato
-            infoimportsost("RETURN tgUpdateTicketCode ticketCode=$ticketCode");
+            infoTelegram("RETURN tgUpdateTicketCode ticketCode=$ticketCode");
         }
 
         // Costruisce la label leggibile dello stato corrente del ticket
@@ -1014,7 +974,7 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
         // Aggiorna DB con nuovo messaggio docente
 
         // Scrive nel log che sta aggiornando il relay con l'ultimo messaggio docente
-        infoimportsost("CALL DB UPDATE docente_telegram_relay idRelay=$idRelay ultimo_testo_docente");
+        infoTelegram("CALL DB UPDATE docente_telegram_relay idRelay=$idRelay ultimo_testo_docente");
 
         // Aggiorna il record relay salvando l'id del messaggio docente e il testo più recente
         dbExec("
@@ -1025,7 +985,7 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
         ");
 
         // Scrive nel log che l'update DB è terminato
-        infoimportsost("RETURN DB UPDATE docente_telegram_relay idRelay=$idRelay completato");
+        infoTelegram("RETURN DB UPDATE docente_telegram_relay idRelay=$idRelay completato");
 
         // Ricarica relay aggiornato da DB
 
@@ -1036,12 +996,12 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
         $teacherChatId = tgNorm($openRelay['docente_chat_id'] ?? '');
 
         // Scrive nel log i dati ricaricati del relay
-        infoimportsost("tgHandlePrivateTeacherMessage: relay aggiornato ricaricato idRelay=$idRelay teacherChatId=$teacherChatId");
+        infoTelegram("tgHandlePrivateTeacherMessage: relay aggiornato ricaricato idRelay=$idRelay teacherChatId=$teacherChatId");
 
         // Se la chat Telegram del docente è vuota
         if ($teacherChatId === '') {
             // Scrive nel log un errore perché non è possibile rispondere al docente
-            errorimportsost("tgHandlePrivateTeacherMessage: teacherChatId vuoto per idRelay=$idRelay, abort invio docente");
+            errorTelegram("tgHandlePrivateTeacherMessage: teacherChatId vuoto per idRelay=$idRelay, abort invio docente");
 
             // Esce dalla funzione
             return;
@@ -1051,7 +1011,7 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
         $serviceText = "➕ Aggiornamento ticket {$ticketCode}\n\n👤 Docente: {$docenteNome}\n📌 Stato attuale: {$statoLabel}\n\n✉️ Nuovo messaggio:\n" . tgCut($text, 3000);
 
         // Scrive nel log che sta per inviare l'aggiornamento al gruppo di servizio
-        infoimportsost("CALL tgSendMessage to serviceChatId=$serviceChatId threadId=$threadId text=[" . tgCut($serviceText, 200) . "]");
+        infoTelegram("CALL tgSendMessage to serviceChatId=$serviceChatId threadId=$threadId text=[" . tgCut($serviceText, 200) . "]");
 
         // Invia nel thread del gruppo admin l'aggiornamento del ticket con tastiera aggiornata
         $sendRes = tgSendMessage(
@@ -1062,21 +1022,21 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
         );
 
         // Scrive nel log l'esito dell'invio al gruppo di servizio
-        infoimportsost("RETURN tgSendMessage service result=" . json_encode($sendRes));
+        infoTelegram("RETURN tgSendMessage service result=" . json_encode($sendRes));
 
         // Invia conferma al docente
 
         // Scrive nel log che sta per inviare la conferma al docente
-        infoimportsost("CALL tgSendMessage to teacherChatId=$teacherChatId text=[" . tgCut("✅ Il tuo messaggio è stato aggiunto al ticket {$ticketCode}", 200) . "]");
+        infoTelegram("CALL tgSendMessage to teacherChatId=$teacherChatId text=[" . tgCut("✅ Il tuo messaggio è stato aggiunto al ticket {$ticketCode}", 200) . "]");
 
         // Invia al docente la conferma che il messaggio è stato aggiunto al ticket
         tgSendMessage($botToken, $teacherChatId, "✅ Il tuo messaggio è stato aggiunto al ticket {$ticketCode}.\nStato corrente: {$statoLabel}.");
 
         // Scrive nel log che l'invio al docente è terminato
-        infoimportsost("RETURN tgSendMessage teacher completato idRelay=$idRelay");
+        infoTelegram("RETURN tgSendMessage teacher completato idRelay=$idRelay");
 
         // Scrive nel log l'uscita dalla funzione con ticket aggiornato
-        infoimportsost("EXIT tgHandlePrivateTeacherMessage: ticket aggiornato idRelay=$idRelay ticket=$ticketCode");
+        infoTelegram("EXIT tgHandlePrivateTeacherMessage: ticket aggiornato idRelay=$idRelay ticket=$ticketCode");
 
         // Esce dalla funzione perché il ticket esistente è stato aggiornato
         return;
@@ -1085,7 +1045,7 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
     // Creazione nuovo ticket
 
     // Scrive nel log che non esiste un ticket aperto e ne verrà creato uno nuovo
-    infoimportsost("tgHandlePrivateTeacherMessage: nessun ticket aperto, creo nuovo relay idDocente=$idDocente");
+    infoTelegram("tgHandlePrivateTeacherMessage: nessun ticket aperto, creo nuovo relay idDocente=$idDocente");
 
     // Avvia una transazione database
     dbExec("START TRANSACTION");
@@ -1117,7 +1077,7 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
         ";
 
         // Scrive nel log la query di inserimento del nuovo relay
-        infoimportsost("DB INSERT nuovo relay query=" . trim($q));
+        infoTelegram("DB INSERT nuovo relay query=" . trim($q));
 
         // Esegue l'inserimento del nuovo relay
         dbExec($q);
@@ -1126,19 +1086,19 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
         $idRelay = (int)dblastId();
 
         // Scrive nel log l'id del relay appena inserito
-        infoimportsost("DB INSERT completato idRelay=$idRelay");
+        infoTelegram("DB INSERT completato idRelay=$idRelay");
 
         // Genera e salva il ticket code del nuovo relay
         $ticketCode = tgUpdateTicketCode($idRelay);
 
         // Scrive nel log il ticket code generato
-        infoimportsost("RETURN tgUpdateTicketCode ticketCode=$ticketCode");
+        infoTelegram("RETURN tgUpdateTicketCode ticketCode=$ticketCode");
 
         // Crea un topic/thread nel gruppo di servizio con nome "Ticket CODICE"
         $serviceThreadId = tgCreateTopic($botToken, $serviceChatId, "Ticket " . $ticketCode);
 
         // Scrive nel log il thread id creato
-        infoimportsost("RETURN tgCreateTopic serviceThreadId=$serviceThreadId");
+        infoTelegram("RETURN tgCreateTopic serviceThreadId=$serviceThreadId");
 
         // Aggiorna il relay salvando l'id del thread e il nome del topic
         dbExec("
@@ -1149,7 +1109,7 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
         ");
 
         // Scrive nel log che l'update con i dati del thread è terminato
-        infoimportsost("DB UPDATE relay con thread info completato idRelay=$idRelay");
+        infoTelegram("DB UPDATE relay con thread info completato idRelay=$idRelay");
 
         // Ricarica relay aggiornato per keyboard e chat docente
 
@@ -1179,7 +1139,7 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
         );
 
         // Scrive nel log l'esito dell'invio del nuovo relay
-        infoimportsost("RETURN tgSendMessage nuovo relay: " . json_encode($sendRes));
+        infoTelegram("RETURN tgSendMessage nuovo relay: " . json_encode($sendRes));
 
         // Estrae l'id del messaggio di servizio appena inviato
         $serviceMessageId = (int)($sendRes['message_id'] ?? 0);
@@ -1192,25 +1152,25 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
         ");
 
         // Scrive nel log che l'update service_message_id è terminato
-        infoimportsost("DB UPDATE relay service_message_id completato idRelay=$idRelay");
+        infoTelegram("DB UPDATE relay service_message_id completato idRelay=$idRelay");
 
         // Conferma la transazione DB
         dbExec("COMMIT");
 
         // Scrive nel log che il commit è stato completato
-        infoimportsost("DB COMMIT completato idRelay=$idRelay");
+        infoTelegram("DB COMMIT completato idRelay=$idRelay");
 
         // Invia al docente la conferma di apertura del nuovo ticket
         tgSendMessage($botToken, $teacherChatId, "✅ Messaggio inviato al gruppo di servizio GestOre.\nTicket: {$ticketCode}\nStato richiesta: APERTA.");
 
         // Scrive nel log l'uscita dalla funzione con ticket nuovo creato
-        infoimportsost("EXIT tgHandlePrivateTeacherMessage: nuovo ticket creato idRelay=$idRelay ticket=$ticketCode");
+        infoTelegram("EXIT tgHandlePrivateTeacherMessage: nuovo ticket creato idRelay=$idRelay ticket=$ticketCode");
     } catch (Throwable $e) {
         // In caso di errore annulla la transazione DB
         dbExec("ROLLBACK");
 
         // Scrive nel log il messaggio e lo stack trace dell'eccezione
-        errorimportsost("ECCEZIONE tgHandlePrivateTeacherMessage: " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+        errorTelegram("ECCEZIONE tgHandlePrivateTeacherMessage: " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
 
         // Invia al docente un messaggio di errore generico
         tgSendMessage($botToken, $teacherChatId, "❌ Si è verificato un errore nella registrazione del ticket. Riprova più tardi.");
@@ -1220,7 +1180,7 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
 function tgHandleAdminReply($relay, $message, $botToken)
 {
     // Scrive nel log l'ingresso nella funzione, salvando relay e messaggio ricevuti
-    infoimportsost("tgHandleAdminReply: ENTER relay=" . json_encode($relay) . " message=" . json_encode($message));
+    infoTelegram("tgHandleAdminReply: ENTER relay=" . json_encode($relay) . " message=" . json_encode($message));
 
     // Estrae il testo del messaggio admin e lo normalizza
     $adminText = tgNorm($message['text'] ?? '');
@@ -1244,12 +1204,12 @@ function tgHandleAdminReply($relay, $message, $botToken)
     $threadIdFromMessage = (int)($message['message_thread_id'] ?? 0);
 
     // Logga i dati principali già interpretati dal messaggio admin
-    infoimportsost("tgHandleAdminReply: parsed adminText=[" . tgCut($adminText, 300) . "] adminUserId=[$adminUserId] adminName=[$adminName] groupChatId=[$groupChatId] replyToMessageId=[$replyToMessageId] threadIdFromMessage=[$threadIdFromMessage]");
+    infoTelegram("tgHandleAdminReply: parsed adminText=[" . tgCut($adminText, 300) . "] adminUserId=[$adminUserId] adminName=[$adminName] groupChatId=[$groupChatId] replyToMessageId=[$replyToMessageId] threadIdFromMessage=[$threadIdFromMessage]");
 
     // Se mancano testo, chat o reply al messaggio ticket, interrompe la funzione
     if ($adminText === '' || $groupChatId === '' || $replyToMessageId <= 0) {
         // Logga il motivo dell'uscita anticipata
-        warningimportsost("tgHandleAdminReply: dati insufficienti, uscita. adminTextVuoto=" . ($adminText === '' ? '1' : '0') . " groupChatIdVuoto=" . ($groupChatId === '' ? '1' : '0') . " replyToMessageId=$replyToMessageId");
+        warningTelegram("tgHandleAdminReply: dati insufficienti, uscita. adminTextVuoto=" . ($adminText === '' ? '1' : '0') . " groupChatIdVuoto=" . ($groupChatId === '' ? '1' : '0') . " replyToMessageId=$replyToMessageId");
         // Esce senza fare altro
         return;
     }
@@ -1276,22 +1236,22 @@ function tgHandleAdminReply($relay, $message, $botToken)
     $serviceMessageId = (int)($relay['service_message_id'] ?? 0);
 
     // Logga tutti i campi importanti letti dal relay
-    infoimportsost("tgHandleAdminReply: relay fields idRelay=$idRelay teacherChatId=[$teacherChatId] currentStatus=[$currentStatus] ticketCode=[$ticketCode] serviceThreadId=$serviceThreadId serviceChatId=[$serviceChatId] serviceMessageId=$serviceMessageId");
+    infoTelegram("tgHandleAdminReply: relay fields idRelay=$idRelay teacherChatId=[$teacherChatId] currentStatus=[$currentStatus] ticketCode=[$ticketCode] serviceThreadId=$serviceThreadId serviceChatId=[$serviceChatId] serviceMessageId=$serviceMessageId");
 
     // Se il ticket non ha ancora un codice, prova a generarlo
     if ($ticketCode === '') {
         // Logga che sta per rigenerare il ticket code
-        infoimportsost("tgHandleAdminReply: ticketCode mancante, rigenerazione per idRelay=$idRelay");
+        infoTelegram("tgHandleAdminReply: ticketCode mancante, rigenerazione per idRelay=$idRelay");
         // Genera e salva il codice ticket
         $ticketCode = tgUpdateTicketCode($idRelay);
         // Logga il ticket code ottenuto
-        infoimportsost("tgHandleAdminReply: ticketCode dopo update=[$ticketCode]");
+        infoTelegram("tgHandleAdminReply: ticketCode dopo update=[$ticketCode]");
     }
 
     // Se il relay non è valido o manca la chat del docente, interrompe
     if ($idRelay <= 0 || $teacherChatId === '') {
         // Logga il problema
-        warningimportsost("tgHandleAdminReply: relay non valido, uscita. idRelay=$idRelay teacherChatId=[$teacherChatId]");
+        warningTelegram("tgHandleAdminReply: relay non valido, uscita. idRelay=$idRelay teacherChatId=[$teacherChatId]");
         // Esce
         return;
     }
@@ -1300,7 +1260,7 @@ function tgHandleAdminReply($relay, $message, $botToken)
     $lower = mb_strtolower($adminText, 'UTF-8');
 
     // Logga il comando normalizzato
-    infoimportsost("tgHandleAdminReply: comando normalizzato lower=[$lower]");
+    infoTelegram("tgHandleAdminReply: comando normalizzato lower=[$lower]");
 
     // -------------------------------------------------
     // COMANDI RAPIDI
@@ -1309,19 +1269,19 @@ function tgHandleAdminReply($relay, $message, $botToken)
     // Se l'admin ha scritto /presa oppure /in_gestione
     if (in_array($lower, ['/presa', '/in_gestione'], true)) {
         // Logga il comando
-        infoimportsost("tgHandleAdminReply: comando presa/in_gestione su idRelay=$idRelay");
+        infoTelegram("tgHandleAdminReply: comando presa/in_gestione su idRelay=$idRelay");
 
         // Aggiorna lo stato del ticket a IN_GESTIONE
         $okUpdate = tgUpdateRelayStatus($idRelay, 'IN_GESTIONE', $adminUserId, $adminName);
 
         // Logga l'esito dell'update
-        infoimportsost("tgHandleAdminReply: risultato tgUpdateRelayStatus(IN_GESTIONE)=" . json_encode($okUpdate));
+        infoTelegram("tgHandleAdminReply: risultato tgUpdateRelayStatus(IN_GESTIONE)=" . json_encode($okUpdate));
 
         // Rilegge il relay aggiornato dal database
         $relayAggiornato = tgFindRelayById($idRelay);
 
         // Logga il relay aggiornato
-        infoimportsost("tgHandleAdminReply: relay aggiornato dopo presa=" . json_encode($relayAggiornato));
+        infoTelegram("tgHandleAdminReply: relay aggiornato dopo presa=" . json_encode($relayAggiornato));
 
         // Invia messaggio nel gruppo per confermare la presa in carico
         $resGroup = tgSendMessage($botToken, $groupChatId, "🟡 {$ticketCode} presa in carico da {$adminName}.", ['reply_to_message_id' => $replyToMessageId]);
@@ -1340,27 +1300,27 @@ function tgHandleAdminReply($relay, $message, $botToken)
         );
 
         // Logga l'esito del messaggio nel gruppo
-        infoimportsost("tgHandleAdminReply: send gruppo presa result=" . json_encode($resGroup));
+        infoTelegram("tgHandleAdminReply: send gruppo presa result=" . json_encode($resGroup));
 
         // Invia messaggio al docente per avvisarlo della presa in carico
         $resTeacher = tgSendMessage($botToken, $teacherChatId, "🟡 La tua richiesta {$ticketCode} è stata presa in carico da {$adminName}.");
 
         // Logga l'esito del messaggio al docente
-        infoimportsost("tgHandleAdminReply: send docente presa result=" . json_encode($resTeacher));
+        infoTelegram("tgHandleAdminReply: send docente presa result=" . json_encode($resTeacher));
 
         // Se ci sono dati sufficienti per aggiornare il messaggio principale del ticket
         if ($serviceChatId !== '' && $serviceMessageId > 0 && $relayAggiornato) {
             // Aggiorna la tastiera del messaggio principale
             $editRes = tgEditMessage($botToken, $serviceChatId, $serviceMessageId, "Ticket {$ticketCode} - Stato aggiornato", ['reply_markup' => json_encode(tgGetTicketKeyboardMinimal($relayAggiornato), JSON_UNESCAPED_UNICODE)]);
             // Logga l'esito dell'edit
-            infoimportsost("tgHandleAdminReply: editMessage dopo presa result=" . json_encode($editRes));
+            infoTelegram("tgHandleAdminReply: editMessage dopo presa result=" . json_encode($editRes));
         } else {
             // Logga che l'edit è stato saltato per dati mancanti
-            warningimportsost("tgHandleAdminReply: salto editMessage dopo presa per dati mancanti serviceChatId=[$serviceChatId] serviceMessageId=$serviceMessageId");
+            warningTelegram("tgHandleAdminReply: salto editMessage dopo presa per dati mancanti serviceChatId=[$serviceChatId] serviceMessageId=$serviceMessageId");
         }
 
         // Log finale della variazione di stato
-        infoimportsost("tgHandleAdminReply: relay $idRelay -> IN_GESTIONE da {$adminName}");
+        infoTelegram("tgHandleAdminReply: relay $idRelay -> IN_GESTIONE da {$adminName}");
 
         // Esce dalla funzione
         return;
@@ -1369,19 +1329,19 @@ function tgHandleAdminReply($relay, $message, $botToken)
     // Se l'admin ha scritto /chiudi
     if ($lower === '/chiudi') {
         // Logga il comando
-        infoimportsost("tgHandleAdminReply: comando chiudi su idRelay=$idRelay");
+        infoTelegram("tgHandleAdminReply: comando chiudi su idRelay=$idRelay");
 
         // Aggiorna lo stato a CHIUSA
         $okUpdate = tgUpdateRelayStatus($idRelay, 'CHIUSA', $adminUserId, $adminName);
 
         // Logga l'esito dell'update
-        infoimportsost("tgHandleAdminReply: risultato tgUpdateRelayStatus(CHIUSA)=" . json_encode($okUpdate));
+        infoTelegram("tgHandleAdminReply: risultato tgUpdateRelayStatus(CHIUSA)=" . json_encode($okUpdate));
 
         // Ricarica il relay aggiornato
         $relayAggiornato = tgFindRelayById($idRelay);
 
         // Logga il relay aggiornato
-        infoimportsost("tgHandleAdminReply: relay aggiornato dopo chiusura=" . json_encode($relayAggiornato));
+        infoTelegram("tgHandleAdminReply: relay aggiornato dopo chiusura=" . json_encode($relayAggiornato));
 
         // Invia messaggio nel gruppo per confermare la chiusura
         $resGroup = tgSendMessage($botToken, $groupChatId, "✅ {$ticketCode} chiusa da {$adminName}.", ['reply_to_message_id' => $replyToMessageId]);
@@ -1399,27 +1359,27 @@ function tgHandleAdminReply($relay, $message, $botToken)
             ]
         );
         // Logga l'esito del messaggio nel gruppo
-        infoimportsost("tgHandleAdminReply: send gruppo chiudi result=" . json_encode($resGroup));
+        infoTelegram("tgHandleAdminReply: send gruppo chiudi result=" . json_encode($resGroup));
 
         // Invia messaggio al docente per avvisarlo della chiusura
         $resTeacher = tgSendMessage($botToken, $teacherChatId, "✅ La tua richiesta {$ticketCode} al servizio GestOre è stata chiusa.");
 
         // Logga l'esito del messaggio al docente
-        infoimportsost("tgHandleAdminReply: send docente chiudi result=" . json_encode($resTeacher));
+        infoTelegram("tgHandleAdminReply: send docente chiudi result=" . json_encode($resTeacher));
 
         // Se possibile, aggiorna il messaggio principale del ticket
         if ($serviceChatId !== '' && $serviceMessageId > 0 && $relayAggiornato) {
             // Esegue l'edit del messaggio principale
             $editRes = tgEditMessage($botToken, $serviceChatId, $serviceMessageId, "Ticket {$ticketCode} - Stato aggiornato", ['reply_markup' => json_encode(tgGetTicketKeyboardMinimal($relayAggiornato), JSON_UNESCAPED_UNICODE)]);
             // Logga l'edit
-            infoimportsost("tgHandleAdminReply: editMessage dopo chiusura result=" . json_encode($editRes));
+            infoTelegram("tgHandleAdminReply: editMessage dopo chiusura result=" . json_encode($editRes));
         } else {
             // Logga che l'edit non è stato possibile
-            warningimportsost("tgHandleAdminReply: salto editMessage dopo chiusura per dati mancanti serviceChatId=[$serviceChatId] serviceMessageId=$serviceMessageId");
+            warningTelegram("tgHandleAdminReply: salto editMessage dopo chiusura per dati mancanti serviceChatId=[$serviceChatId] serviceMessageId=$serviceMessageId");
         }
 
         // Log finale
-        infoimportsost("tgHandleAdminReply: relay $idRelay -> CHIUSA da {$adminName}");
+        infoTelegram("tgHandleAdminReply: relay $idRelay -> CHIUSA da {$adminName}");
 
         // Esce
         return;
@@ -1428,19 +1388,19 @@ function tgHandleAdminReply($relay, $message, $botToken)
     // Se l'admin ha scritto /riapri
     if ($lower === '/riapri') {
         // Logga il comando
-        infoimportsost("tgHandleAdminReply: comando riapri su idRelay=$idRelay");
+        infoTelegram("tgHandleAdminReply: comando riapri su idRelay=$idRelay");
 
         // Aggiorna lo stato a APERTA
         $okUpdate = tgUpdateRelayStatus($idRelay, 'APERTA', $adminUserId, $adminName);
 
         // Logga l'esito dell'update
-        infoimportsost("tgHandleAdminReply: risultato tgUpdateRelayStatus(APERTA)=" . json_encode($okUpdate));
+        infoTelegram("tgHandleAdminReply: risultato tgUpdateRelayStatus(APERTA)=" . json_encode($okUpdate));
 
         // Rilegge il relay aggiornato
         $relayAggiornato = tgFindRelayById($idRelay);
 
         // Logga il relay aggiornato
-        infoimportsost("tgHandleAdminReply: relay aggiornato dopo riapertura=" . json_encode($relayAggiornato));
+        infoTelegram("tgHandleAdminReply: relay aggiornato dopo riapertura=" . json_encode($relayAggiornato));
 
         // Invia conferma nel gruppo
         $resGroup = tgSendMessage($botToken, $groupChatId, "🔵 {$ticketCode} riaperta da {$adminName}.", ['reply_to_message_id' => $replyToMessageId]);
@@ -1458,27 +1418,27 @@ function tgHandleAdminReply($relay, $message, $botToken)
             ]
         );
         // Logga l'invio nel gruppo
-        infoimportsost("tgHandleAdminReply: send gruppo riapri result=" . json_encode($resGroup));
+        infoTelegram("tgHandleAdminReply: send gruppo riapri result=" . json_encode($resGroup));
 
         // Invia conferma al docente
         $resTeacher = tgSendMessage($botToken, $teacherChatId, "🔵 La tua richiesta {$ticketCode} è stata riaperta.");
 
         // Logga l'invio al docente
-        infoimportsost("tgHandleAdminReply: send docente riapri result=" . json_encode($resTeacher));
+        infoTelegram("tgHandleAdminReply: send docente riapri result=" . json_encode($resTeacher));
 
         // Se possibile aggiorna il messaggio principale
         if ($serviceChatId !== '' && $serviceMessageId > 0 && $relayAggiornato) {
             // Edit del messaggio principale
             $editRes = tgEditMessage($botToken, $serviceChatId, $serviceMessageId, "Ticket {$ticketCode} - Stato aggiornato", ['reply_markup' => json_encode(tgGetTicketKeyboardMinimal($relayAggiornato), JSON_UNESCAPED_UNICODE)]);
             // Log dell'edit
-            infoimportsost("tgHandleAdminReply: editMessage dopo riapertura result=" . json_encode($editRes));
+            infoTelegram("tgHandleAdminReply: editMessage dopo riapertura result=" . json_encode($editRes));
         } else {
             // Logga il salto edit
-            warningimportsost("tgHandleAdminReply: salto editMessage dopo riapertura per dati mancanti serviceChatId=[$serviceChatId] serviceMessageId=$serviceMessageId");
+            warningTelegram("tgHandleAdminReply: salto editMessage dopo riapertura per dati mancanti serviceChatId=[$serviceChatId] serviceMessageId=$serviceMessageId");
         }
 
         // Log finale
-        infoimportsost("tgHandleAdminReply: relay $idRelay -> APERTA da {$adminName}");
+        infoTelegram("tgHandleAdminReply: relay $idRelay -> APERTA da {$adminName}");
 
         // Esce
         return;
@@ -1487,7 +1447,7 @@ function tgHandleAdminReply($relay, $message, $botToken)
     // Se l'admin ha scritto /stato
     if ($lower === '/stato') {
         // Logga il comando
-        infoimportsost("tgHandleAdminReply: comando stato su idRelay=$idRelay");
+        infoTelegram("tgHandleAdminReply: comando stato su idRelay=$idRelay");
 
         // Costruisce l'etichetta leggibile dello stato
         $statusLabel = tgBuildStatoLabel($currentStatus);
@@ -1514,7 +1474,7 @@ function tgHandleAdminReply($relay, $message, $botToken)
             ]
         );
         // Logga l'esito del messaggio
-        infoimportsost("tgHandleAdminReply: send gruppo stato result=" . json_encode($resGroup));
+        infoTelegram("tgHandleAdminReply: send gruppo stato result=" . json_encode($resGroup));
 
         // Esce
         return;
@@ -1527,37 +1487,37 @@ function tgHandleAdminReply($relay, $message, $botToken)
     // Se il ticket è chiuso, impedisce la risposta normale
     if ($currentStatus === 'CHIUSA') {
         // Logga il blocco
-        infoimportsost("tgHandleAdminReply: ticket chiuso, blocco risposta normale idRelay=$idRelay");
+        infoTelegram("tgHandleAdminReply: ticket chiuso, blocco risposta normale idRelay=$idRelay");
 
         // Invia messaggio nel gruppo per avvisare che va riaperto prima
         $resGroup = tgSendMessage($botToken, $groupChatId, "⚠️ {$ticketCode} risulta chiusa. Usa /riapri in reply per riaprirla prima di rispondere.", ['reply_to_message_id' => $replyToMessageId]);
 
         // Logga l'esito
-        infoimportsost("tgHandleAdminReply: send gruppo ticket chiuso result=" . json_encode($resGroup));
+        infoTelegram("tgHandleAdminReply: send gruppo ticket chiuso result=" . json_encode($resGroup));
 
         // Esce
         return;
     }
 
     // Logga che sta per inviare una risposta normale al docente
-    infoimportsost("tgHandleAdminReply: invio risposta normale al docente idRelay=$idRelay");
+    infoTelegram("tgHandleAdminReply: invio risposta normale al docente idRelay=$idRelay");
 
     // Invia il testo scritto dall'admin al docente
     $sendRes = tgSendMessage($botToken, $teacherChatId, "📬 Risposta GestOre - {$ticketCode}\n\n" . $adminText);
 
     // Logga l'esito dell'invio al docente
-    infoimportsost("tgHandleAdminReply: send docente risposta normale result=" . json_encode($sendRes));
+    infoTelegram("tgHandleAdminReply: send docente risposta normale result=" . json_encode($sendRes));
 
     // Se l'invio al docente fallisce
     if (!$sendRes['ok']) {
         // Logga l'errore
-        errorimportsost("tgHandleAdminReply: errore invio reply admin->docente relay=$idRelay err=[" . ($sendRes['error'] ?? '') . "]");
+        errorTelegram("tgHandleAdminReply: errore invio reply admin->docente relay=$idRelay err=[" . ($sendRes['error'] ?? '') . "]");
 
         // Invia un messaggio nel gruppo per avvisare dell'errore
         $resGroup = tgSendMessage($botToken, $groupChatId, "❌ Errore nell'invio della risposta al docente.", ['reply_to_message_id' => $replyToMessageId]);
 
         // Logga l'esito del messaggio nel gruppo
-        infoimportsost("tgHandleAdminReply: send gruppo errore invio result=" . json_encode($resGroup));
+        infoTelegram("tgHandleAdminReply: send gruppo errore invio result=" . json_encode($resGroup));
 
         // Esce
         return;
@@ -1567,7 +1527,7 @@ function tgHandleAdminReply($relay, $message, $botToken)
     dbExec("START TRANSACTION");
 
     // Logga l'avvio della transazione
-    infoimportsost("tgHandleAdminReply: START TRANSACTION per update risposta admin");
+    infoTelegram("tgHandleAdminReply: START TRANSACTION per update risposta admin");
 
     try {
         // Prepara i campi base da aggiornare nel relay
@@ -1594,7 +1554,7 @@ function tgHandleAdminReply($relay, $message, $botToken)
         $q = "UPDATE docente_telegram_relay SET " . implode(",\n                ", $fields) . " WHERE id = " . dbI($idRelay);
 
         // Logga la query
-        infoimportsost("tgHandleAdminReply: query update risposta admin=$q");
+        infoTelegram("tgHandleAdminReply: query update risposta admin=$q");
 
         // Esegue la query
         dbExec($q);
@@ -1603,52 +1563,52 @@ function tgHandleAdminReply($relay, $message, $botToken)
         dbExec("COMMIT");
 
         // Logga il commit
-        infoimportsost("tgHandleAdminReply: COMMIT eseguito");
+        infoTelegram("tgHandleAdminReply: COMMIT eseguito");
 
         // Ricarica il relay aggiornato
         $relayAggiornato = tgFindRelayById($idRelay);
 
         // Logga il relay aggiornato
-        infoimportsost("tgHandleAdminReply: relay aggiornato dopo risposta admin=" . json_encode($relayAggiornato));
+        infoTelegram("tgHandleAdminReply: relay aggiornato dopo risposta admin=" . json_encode($relayAggiornato));
 
         // Se possibile aggiorna anche il messaggio principale del ticket
         if ($serviceChatId !== '' && $serviceMessageId > 0 && $relayAggiornato) {
             // Esegue l'edit con tastiera aggiornata
             $editRes = tgEditMessage($botToken, $serviceChatId, $serviceMessageId, "🟡 Ticket {$ticketCode} - Thread aggiornato", ['reply_markup' => json_encode(tgGetTicketKeyboardMinimal($relayAggiornato), JSON_UNESCAPED_UNICODE)]);
             // Logga l'esito dell'edit
-            infoimportsost("tgHandleAdminReply: editMessage dopo risposta admin result=" . json_encode($editRes));
+            infoTelegram("tgHandleAdminReply: editMessage dopo risposta admin result=" . json_encode($editRes));
         } else {
             // Logga il motivo per cui l'edit non è stato eseguito
-            warningimportsost("tgHandleAdminReply: salto editMessage dopo risposta admin per dati mancanti serviceChatId=[$serviceChatId] serviceMessageId=$serviceMessageId");
+            warningTelegram("tgHandleAdminReply: salto editMessage dopo risposta admin per dati mancanti serviceChatId=[$serviceChatId] serviceMessageId=$serviceMessageId");
         }
 
         // Invia nel gruppo conferma che la risposta è stata inoltrata
         $resGroup = tgSendMessage($botToken, $groupChatId, "✅ Risposta inviata al docente per {$ticketCode} da {$adminName}.", ['reply_to_message_id' => $replyToMessageId]);
 
         // Logga l'esito della conferma nel gruppo
-        infoimportsost("tgHandleAdminReply: send gruppo conferma risposta result=" . json_encode($resGroup));
+        infoTelegram("tgHandleAdminReply: send gruppo conferma risposta result=" . json_encode($resGroup));
 
         // Log finale di successo
-        infoimportsost("tgHandleAdminReply: risposta admin inoltrata relay=$idRelay admin={$adminName}");
+        infoTelegram("tgHandleAdminReply: risposta admin inoltrata relay=$idRelay admin={$adminName}");
     } catch (Throwable $e) {
         // In caso di errore, annulla la transazione
         dbExec("ROLLBACK");
 
         // Logga l'errore
-        errorimportsost("tgHandleAdminReply: ROLLBACK per errore update relay admin reply: " . $e->getMessage());
+        errorTelegram("tgHandleAdminReply: ROLLBACK per errore update relay admin reply: " . $e->getMessage());
 
         // Invia messaggio nel gruppo per segnalare l'errore
         $resGroup = tgSendMessage($botToken, $groupChatId, "❌ Errore durante l'aggiornamento del ticket {$ticketCode}.", ['reply_to_message_id' => $replyToMessageId]);
 
         // Logga l'esito del messaggio di errore nel gruppo
-        infoimportsost("tgHandleAdminReply: send gruppo errore update result=" . json_encode($resGroup));
+        infoTelegram("tgHandleAdminReply: send gruppo errore update result=" . json_encode($resGroup));
     }
 }
 
 // Se il token del bot Telegram è vuoto
 if ($TELEGRAM_BOT_TOKEN === '') {
     // Scrive nel log un errore che segnala l'assenza del bot token
-    errorimportsost("telegramWebhook: bot token mancante");
+    errorTelegram("telegramWebhook: bot token mancante");
 
     // Restituisce subito una risposta JSON di errore HTTP 500
     tgRespond(['ok' => false, 'error' => 'Bot token mancante'], 500);
@@ -1657,7 +1617,7 @@ if ($TELEGRAM_BOT_TOKEN === '') {
 // Se manca l'ID della chat di servizio/gruppo admin
 if ($TELEGRAM_SERVICE_CHAT_ID === '') {
     // Scrive nel log l'errore relativo al service chat id mancante
-    errorimportsost("telegramWebhook: service chat id mancante");
+    errorTelegram("telegramWebhook: service chat id mancante");
 
     // Restituisce subito una risposta JSON di errore HTTP 500
     tgRespond(['ok' => false, 'error' => 'Service chat id mancante'], 500);
@@ -1669,7 +1629,7 @@ $update = json_decode($raw, true);
 // Se il JSON non è valido o non produce un array
 if (!is_array($update)) {
     // Scrive nel log che il payload JSON non è valido
-    warningimportsost("telegramWebhook: JSON non valido");
+    warningTelegram("telegramWebhook: JSON non valido");
 
     // Restituisce risposta JSON dicendo che l'update viene ignorato
     tgRespond(['ok' => true, 'ignored' => 'json non valido']);
@@ -1682,7 +1642,7 @@ if (!is_array($update)) {
 // Estrae l'eventuale callback_query dall'update Telegram
 $callback = $update['callback_query'] ?? null;
 
-infoimportsost("telegramWebhook: callback_query=" . json_encode($callback));
+infoTelegram("telegramWebhook: callback_query=" . json_encode($callback));
 
 // Se l'update contiene un callback di un pulsante inline
 if ($callback) {
@@ -1694,7 +1654,7 @@ if ($callback) {
     $messageId = (int)($callbackMessage['message_id'] ?? 0);
     $threadId = (int)($callbackMessage['message_thread_id'] ?? 0);
 
-    infoimportsost("telegramWebhook: callback data=[$data] chatId=[$chatId] messageId=$messageId threadId=$threadId");
+    infoTelegram("telegramWebhook: callback data=[$data] chatId=[$chatId] messageId=$messageId threadId=$threadId");
 
     if ($chatId === '' || $messageId <= 0) {
         tgAnswerCallbackQuery($TELEGRAM_BOT_TOKEN, $callback['id'] ?? '', 'Messaggio non valido');
@@ -1745,7 +1705,7 @@ if ($callback) {
         $action = $m[1];
         $idRelay = (int)$m[2];
 
-        infoimportsost("telegramWebhook: callback action=$action idRelay=$idRelay");
+        infoTelegram("telegramWebhook: callback action=$action idRelay=$idRelay");
 
         $relay = tgFindRelayById($idRelay);
 
@@ -1797,7 +1757,7 @@ if ($callback) {
             ]
         ];
 
-        infoimportsost("telegramWebhook: inoltro callback a tgHandleAdminReply command=[$commandText] idRelay=" . (int)($relay['id'] ?? 0));
+        infoTelegram("telegramWebhook: inoltro callback a tgHandleAdminReply command=[$commandText] idRelay=" . (int)($relay['id'] ?? 0));
 
         tgHandleAdminReply($relay, $fakeMessage, $TELEGRAM_BOT_TOKEN);
 
@@ -1852,7 +1812,7 @@ $fromUserId = tgNorm($from['id'] ?? '');
 $fromUsername = tgNorm($from['username'] ?? '');
 
 // Scrive nel log un riepilogo dell'update ricevuto
-infoimportsost("telegramWebhook: update ricevuto chatId=[$chatId] chatType=[$chatType] from=[$fromName] text=[" . tgCut($text, 200) . "]");
+infoTelegram("telegramWebhook: update ricevuto chatId=[$chatId] chatType=[$chatType] from=[$fromName] text=[" . tgCut($text, 200) . "]");
 
 /**
  * GRUPPO ADMIN
@@ -1885,7 +1845,7 @@ if ($chatId === $TELEGRAM_SERVICE_CHAT_ID) {
 
         $res = tgSendGeneralDashboard($TELEGRAM_BOT_TOKEN, $TELEGRAM_SERVICE_CHAT_ID);
 
-        infoimportsost("telegramWebhook: /dashboard result=" . json_encode($res));
+        infoTelegram("telegramWebhook: /dashboard result=" . json_encode($res));
 
         if (!empty($res['ok'])) {
             tgSendMessage(
@@ -2043,7 +2003,7 @@ if ($chatId === $TELEGRAM_SERVICE_CHAT_ID) {
         $relay = dbGetFirst($q);
 
         // Logga l'esito del fallback
-        infoimportsost("telegramWebhook: fallback relay dal threadId=$threadId trovato=" . json_encode($relay));
+        infoTelegram("telegramWebhook: fallback relay dal threadId=$threadId trovato=" . json_encode($relay));
     }
 
     // Se non è stato trovato alcun relay
@@ -2087,7 +2047,7 @@ if (preg_match('/^\/start(?:\s+(.+))?$/u', $text, $m)) {
     // Se l'invio Telegram non è andato a buon fine
     if (!$sendRes['ok']) {
         // Logga l'errore di invio
-        errorimportsost("telegramWebhook: errore invio risposta Telegram chatId=[$chatId] err=[" . ($sendRes['error'] ?? '') . "]");
+        errorTelegram("telegramWebhook: errore invio risposta Telegram chatId=[$chatId] err=[" . ($sendRes['error'] ?? '') . "]");
     }
 
     // Termina segnando /start come gestito
@@ -2207,7 +2167,7 @@ if (preg_match('/^\/ticket(?:\s+(.+))?$/uis', $text, $m)) {
     }
 
     // Logga la chiamata alla funzione di gestione ticket docente
-    infoimportsost("telegramWebhook: chiamata tgHandlePrivateTeacherMessage chatId=[$chatId] testoTicket=[" . tgCut($ticketText, 200) . "]");
+    infoTelegram("telegramWebhook: chiamata tgHandlePrivateTeacherMessage chatId=[$chatId] testoTicket=[" . tgCut($ticketText, 200) . "]");
 
     // Ricalcola il relay aperto del docente
     $openRelay = tgFindOpenRelayByDocente((int)$doc['id']);

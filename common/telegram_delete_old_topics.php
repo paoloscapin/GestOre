@@ -33,17 +33,17 @@ function tgDeleteTopic($botToken, $chatId, $threadId)
     curl_close($ch);
 
     if ($errno) {
-        infoimportsost("cleanupTicket: tgDeleteTopic curl error=$error");
+        infocron("cleanupTicket: tgDeleteTopic curl error=$error");
         return ['ok' => false, 'error' => $error];
     }
 
     $json = json_decode($response, true);
-    infoimportsost("cleanupTicket: tgDeleteTopic response=" . json_encode($json));
+    infocron("cleanupTicket: tgDeleteTopic response=" . json_encode($json));
 
     return is_array($json) ? $json : ['ok' => false, 'error' => $response];
 }
 
-infoimportsost(
+infocron(
     "cleanupTicket: avvio delete_old_topics=" . ($DELETE_OLD_TOPICS ? '1' : '0') .
     " delete_old_topics_after_days=$days"
 );
@@ -60,7 +60,7 @@ $q = "
 $rows = dbGetAll($q);
 
 if (!is_array($rows) || empty($rows)) {
-    infoimportsost("cleanupTicket: nessun ticket da eliminare");
+    infocron("cleanupTicket: nessun ticket da eliminare");
     echo "Nessun ticket da eliminare\n";
     exit;
 }
@@ -75,7 +75,7 @@ foreach ($rows as $r) {
     $chatId = trim((string)($r['service_chat_id'] ?? ''));
     $threadId = (int)($r['service_thread_id'] ?? 0);
 
-    infoimportsost("cleanupTicket: processing id=$id ticketCode=[$ticketCode] chatId=[$chatId] threadId=$threadId");
+    infocron("cleanupTicket: processing id=$id ticketCode=[$ticketCode] chatId=[$chatId] threadId=$threadId");
 
     if ($id <= 0) {
         $skipped++;
@@ -84,7 +84,7 @@ foreach ($rows as $r) {
 
     if ($DELETE_OLD_TOPICS) {
         if ($TELEGRAM_BOT_TOKEN === '') {
-            infoimportsost("cleanupTicket: bot token mancante, skip id=$id");
+            infocron("cleanupTicket: bot token mancante, skip id=$id");
             $errors++;
             continue;
         }
@@ -93,21 +93,21 @@ foreach ($rows as $r) {
             $delRes = tgDeleteTopic($TELEGRAM_BOT_TOKEN, $chatId, $threadId);
 
             if (empty($delRes['ok'])) {
-                infoimportsost("cleanupTicket: deleteForumTopic fallita id=$id ticketCode=[$ticketCode] result=" . json_encode($delRes));
+                infocron("cleanupTicket: deleteForumTopic fallita id=$id ticketCode=[$ticketCode] result=" . json_encode($delRes));
                 $errors++;
                 continue;
             }
         } else {
-            infoimportsost("cleanupTicket: dati topic mancanti id=$id ticketCode=[$ticketCode], cancello solo DB");
+            infocron("cleanupTicket: dati topic mancanti id=$id ticketCode=[$ticketCode], cancello solo DB");
         }
     }
 
     dbExec("DELETE FROM docente_telegram_relay WHERE id = " . dbI($id));
-    infoimportsost("cleanupTicket: eliminato id=$id ticketCode=[$ticketCode]");
+    infocron("cleanupTicket: eliminato id=$id ticketCode=[$ticketCode]");
     $deleted++;
 }
 
-infoimportsost("cleanupTicket: fine deleted=$deleted skipped=$skipped errors=$errors");
+infocron("cleanupTicket: fine deleted=$deleted skipped=$skipped errors=$errors");
 
 echo "Eliminati: $deleted\n";
 echo "Saltati: $skipped\n";

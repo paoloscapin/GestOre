@@ -70,7 +70,7 @@ function tgUpdateTicketCode($idRelay) {
     $q = "UPDATE docente_telegram_relay SET ticket_code = " . dbQ($ticketCode) . " WHERE id = " . dbI($idRelay);
 
     // Log della query per debug
-    infoimportsost("tgUpdateTicketCode: query=$q");
+    infoTelegram("tgUpdateTicketCode: query=$q");
 
     // Esegue la query sul database
     dbExec($q);

@@ -61,7 +61,7 @@ function tgSendMessage($botToken, $chatId, $text, array $extra = []) {
 
     // Se errore cURL → log e ritorno errore
     if ($errno) {
-        errorimportsost("tgSendMessage: curl error=$error");
+        errorTelegram("tgSendMessage: curl error=$error");
         return ['ok'=>false,'error'=>$error];
     }
 
@@ -69,7 +69,7 @@ function tgSendMessage($botToken, $chatId, $text, array $extra = []) {
     $json = json_decode($response,true);
 
     // Log risposta completa
-    infoimportsost("tgSendMessage: chatId=$chatId response=" . json_encode($json));
+    infoTelegram("tgSendMessage: chatId=$chatId response=" . json_encode($json));
 
     // Se risposta valida → ritorna OK con dati utili
     return is_array($json) && !empty($json['ok'])
@@ -135,7 +135,7 @@ function tgEditMessage($botToken, $chatId, $messageId, $text, array $extra = [])
     $json = json_decode($response,true);
 
     // Log
-    infoimportsost("tgEditMessage: chatId=$chatId messageId=$messageId response=" . json_encode($json));
+    infoTelegram("tgEditMessage: chatId=$chatId messageId=$messageId response=" . json_encode($json));
 
     // Ritorno risultato
     return is_array($json) && !empty($json['ok'])
@@ -197,7 +197,7 @@ function tgAnswerCallbackQuery($botToken, $callbackQueryId, $text='') {
     curl_close($ch);
 
     // log debug
-    infoimportsost("tgAnswerCallbackQuery: callbackQueryId=$callbackQueryId text=[".$text."]");
+    infoTelegram("tgAnswerCallbackQuery: callbackQueryId=$callbackQueryId text=[".$text."]");
 }
 
 ?>
