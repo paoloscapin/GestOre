@@ -20,466 +20,512 @@ $finestreFerie = dbGetAll("
 ");
 $finestreMap = [];
 foreach ($finestreFerie as $f) {
-  $cod = strtoupper(trim((string)$f['codice']));
-  $finestreMap[$cod] = [
-    'data_inizio' => $f['data_inizio'],
-    'data_fine'   => $f['data_fine'],
-  ];
+    $cod = strtoupper(trim((string)$f['codice']));
+    $finestreMap[$cod] = [
+        'data_inizio' => $f['data_inizio'],
+        'data_fine'   => $f['data_fine'],
+    ];
 }
 ?>
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Permessi ATA - Le mie richieste</title>
-  <?php
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Permessi ATA - Le mie richieste</title>
+    <?php
     require_once '../common/header-common.php';
     require_once '../common/style.php';
     require_once '../common/_include_bootstrap-notify.php';
-  ?>
-  <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
+    ?>
+    <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 
-  <style>
-    body {
-      background: #f5f6f8;
-    }
+    <style>
+        body {
+            background: #f5f6f8;
+        }
 
-    .permessi-page {
-      max-width: 760px;
-      margin: 0 auto;
-      padding-bottom: 30px;
-    }
+        .permessi-page {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 12px 0 40px 0;
+        }
 
-    .permessi-header-box {
-      background: #fff8dc;
-      border: 1px solid #f1d36b;
-      border-radius: 18px;
-      padding: 14px;
-      margin-bottom: 14px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.05);
-    }
+        .permessi-top-card,
+        .permessi-editor-card,
+        .permessi-records-card {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
+            margin-bottom: 14px;
+            overflow: hidden;
+        }
 
-    .permessi-title {
-      font-size: 26px;
-      font-weight: 700;
-      color: #2d3340;
-      margin-bottom: 6px;
-      line-height: 1.2;
-    }
+        .permessi-top-card {
+            background: #fff8dc;
+            border-color: #edd37a;
+            padding: 16px;
+        }
 
-    .permessi-subtitle {
-      font-size: 15px;
-      color: #6b7280;
-      line-height: 1.4;
-    }
+        .permessi-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #283548;
+            margin-bottom: 6px;
+            line-height: 1.2;
+        }
 
-    .btn-mobile-main {
-      width: 100%;
-      min-height: 56px;
-      font-size: 20px;
-      font-weight: 700;
-      border-radius: 16px;
-      margin-top: 12px;
-    }
+        .permessi-subtitle {
+            font-size: 15px;
+            color: #5f6c7b;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
 
-    .btn-estive-main {
-      background: #ffefb0;
-      border-color: #e7c85f;
-      color: #4b3b05;
-    }
+        .permessi-toolbar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+        }
 
-    .btn-estive-main:hover,
-    .btn-estive-main:focus {
-      background: #ffe486;
-      border-color: #d3b24d;
-      color: #3a2d04;
-    }
+        .permessi-toolbar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+        }
 
-    #permesso_modal .modal-dialog {
-      width: auto;
-      margin: 10px;
-    }
+        .btn-estive-main {
+            background: #ffefb0;
+            border-color: #e7c85f;
+            color: #4b3b05;
+        }
 
-    #permesso_modal .modal-content {
-      border-radius: 18px;
-      overflow: hidden;
-      border: none;
-    }
+        .btn-estive-main:hover,
+        .btn-estive-main:focus {
+            background: #ffe486;
+            border-color: #d3b24d;
+            color: #3a2d04;
+        }
 
-    #permesso_modal .panel {
-      margin-bottom: 0;
-      border: none;
-      box-shadow: none;
-    }
+        .permessi-editor-card {
+            display: none;
+        }
 
-    #permesso_modal .panel-heading {
-      padding: 14px 16px;
-    }
+        .permessi-editor-head {
+            padding: 16px 16px 8px 16px;
+            border-bottom: 1px solid #edf0f3;
+            background: #fff8dc;
+        }
 
-    #permesso_modal .panel-heading .modal-title,
-    #permesso_modal .panel-heading h5 {
-      font-size: 22px;
-      font-weight: 700;
-      margin: 0;
-      color: #2d3340;
-    }
+        .permessi-editor-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #24324a;
+        }
 
-    #permesso_modal .panel-body {
-      padding: 16px;
-    }
+        .permessi-editor-subtitle {
+            margin-top: 6px;
+            color: #5f6c7b;
+            font-size: 15px;
+            line-height: 1.4;
+        }
 
-    #permesso_modal .panel-footer .btn {
-      min-height: 52px;
-      font-size: 18px;
-      border-radius: 12px;
-      margin-bottom: 8px;
-    }
+        .permessi-editor-body {
+            padding: 16px;
+        }
 
-    #permesso_modal label {
-      font-size: 16px;
-      font-weight: 600;
-      color: #2d3340;
-    }
+        .permessi-footer-actions {
+            margin-top: 16px;
+            padding-top: 10px;
+        }
 
-    #permesso_modal .form-group {
-      margin-bottom: 16px;
-    }
+        .permessi-footer-actions .box {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
 
-    #permesso_modal .form-control {
-      min-height: 48px;
-      font-size: 17px;
-      border-radius: 12px;
-      padding: 10px 12px;
-    }
+        .permessi-footer-actions .btn {
+            min-height: 46px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            flex: 1 1 180px;
+        }
 
-    #permesso_modal textarea.form-control {
-      min-height: 100px;
-      resize: vertical;
-    }
+        .permesso-block-card {
+            background: #fafbfc;
+            border: 1px solid #e8ecf1;
+            border-radius: 18px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
 
-    #permesso_alert {
-      border-radius: 12px;
-      font-size: 15px;
-    }
+        .permesso-block-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #24324a;
+            margin-bottom: 10px;
+        }
 
-    .well.well-sm.ferie-riga,
-    .well.well-sm.riga-104 {
-      border-radius: 14px;
-      padding: 12px;
-      margin-bottom: 10px;
-      background: #fafbfc;
-    }
+        #permesso_editor label {
+            font-size: 15px;
+            font-weight: 700;
+            color: #24324a;
+            margin-bottom: 6px;
+        }
 
-    #btn_add_ferie,
-    #btn_add_104 {
-      min-height: 40px;
-      font-size: 14px;
-      border-radius: 10px;
-    }
+        #permesso_editor .form-group {
+            margin-bottom: 16px;
+        }
 
-    #singolo_hint,
-    #ferie_periodo_box,
-    #block_104_multi .alert {
-      border-radius: 12px;
-      font-size: 14px;
-      line-height: 1.5;
-    }
+        #permesso_editor .form-control {
+            min-height: 46px;
+            font-size: 16px;
+            border-radius: 12px;
+            padding: 10px 12px;
+            border: 1px solid #d9dee5;
+            box-shadow: none;
+        }
 
-    .records_content .panel {
-      border-radius: 18px !important;
-    }
+        #permesso_editor .form-control:focus {
+            border-color: #77bde6;
+            box-shadow: 0 0 0 3px rgba(20, 170, 226, .10);
+        }
 
-    .records_content .btn-lg {
-      min-height: 52px;
-      border-radius: 14px;
-      font-size: 20px;
-      font-weight: 700;
-    }
+        #permesso_editor textarea.form-control {
+            min-height: 96px;
+            resize: vertical;
+        }
 
-    .records_content .label {
-      display: inline-block;
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-size: 13px;
-    }
+        #permesso_alert {
+            border-radius: 14px;
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 16px !important;
+        }
 
-    @media (max-width: 767px) {
-      .container-fluid {
-        padding-left: 10px;
-        padding-right: 10px;
-      }
+        #singolo_hint,
+        #ferie_periodo_box,
+        #block_104_multi .alert {
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
 
-      .permessi-page {
-        max-width: 100%;
-      }
+        .well.well-sm.ferie-riga,
+        .well.well-sm.riga-104 {
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 12px;
+            background: #ffffff;
+            border: 1px solid #e6ebf0;
+            box-shadow: none;
+        }
 
-      .permessi-title {
-        font-size: 24px;
-        text-align: center;
-      }
+        #btn_add_ferie,
+        #btn_add_104 {
+            min-height: 42px;
+            font-size: 14px;
+            border-radius: 10px;
+            font-weight: 700;
+        }
 
-      .permessi-subtitle {
-        text-align: center;
-        font-size: 16px;
-      }
+        .btn_del_ferie,
+        .btn_del_104 {
+            min-height: 40px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+        }
 
-      #permesso_modal .modal-dialog {
-        margin: 0;
-        width: 100%;
-        min-height: 100vh;
-      }
+        .records_content .panel {
+            border-radius: 18px !important;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+        }
 
-      #permesso_modal .modal-content {
-        min-height: 100vh;
-        border-radius: 0;
-      }
+        .records_content .btn-lg {
+            min-height: 52px;
+            border-radius: 14px;
+            font-size: 20px;
+            font-weight: 700;
+        }
 
-      #permesso_modal .modal-body {
-        padding: 0;
-      }
+        .records_content .label {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+        }
 
-      #permesso_modal .panel-heading {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        background: #fff4b8;
-        border-bottom: 1px solid #ead98d;
-      }
+        @media (max-width: 767px) {
+            .container-fluid {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
 
-      #permesso_modal .panel-body {
-        padding: 14px 14px 120px 14px;
-      }
+            .permessi-page {
+                max-width: 100%;
+            }
 
-      #permesso_modal .panel-footer {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 30;
-        background: #ffffff;
-        border-top: 1px solid #ddd;
-        padding: 10px;
-      }
+            .permessi-title {
+                font-size: 24px;
+            }
 
-      #permesso_modal .panel-footer.text-center {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
+            .permessi-subtitle {
+                font-size: 16px;
+            }
 
-      #permesso_modal .panel-footer.text-center .btn {
-        width: 100%;
-        margin: 0;
-      }
+            .permessi-editor-title {
+                font-size: 21px;
+            }
 
-      #permesso_modal .close {
-        font-size: 34px;
-        opacity: 1;
-        line-height: 1;
-      }
+            .permessi-editor-body {
+                padding: 14px;
+            }
 
-      #btn_add_ferie,
-      #btn_add_104,
-      .btn_del_ferie,
-      .btn_del_104 {
-        min-height: 44px;
-      }
+            .permessi-footer-actions .box {
+                flex-direction: row;
+                gap: 8px;
+            }
 
-      .well.well-sm.ferie-riga .text-right,
-      .well.well-sm.riga-104 .text-right {
-        text-align: left !important;
-      }
-    }
-  </style>
+            .permessi-footer-actions .btn {
+                flex: 1 1 auto;
+                min-height: 40px;
+                font-size: 14px;
+                padding: 6px 8px;
+                border-radius: 10px;
+            }
+
+            .permessi-footer-actions .btn .glyphicon {
+                font-size: 13px;
+            }
+
+            .permesso-block-card {
+                padding: 12px;
+                border-radius: 16px;
+            }
+
+            .permesso-block-title {
+                font-size: 17px;
+            }
+
+            .well.well-sm.ferie-riga .text-right,
+            .well.well-sm.riga-104 .text-right {
+                text-align: left !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
-<?php require_once '../common/header-ata.php'; ?>
+    <?php require_once '../common/header-ata.php'; ?>
 
-<div class="container-fluid">
-  <div class="permessi-page">
-    <div class="permessi-header-box">
-      <div class="permessi-title">
-        <span class="glyphicon glyphicon-folder-open"></span>
-        Permessi ATA
-      </div>
-      <div class="permessi-subtitle">
-        Consulta le tue richieste oppure inseriscine una nuova.
-      </div>
-
-      <button class="btn btn-warning btn-mobile-main" id="btn_new">
-        <span class="glyphicon glyphicon-plus"></span>&ensp;Nuova richiesta
-      </button>
-
-      <a class="btn btn-estive-main btn-mobile-main" href="ferieEstive.php">
-        <span class="glyphicon glyphicon-calendar"></span>&ensp;Richiesta ferie estive
-      </a>
-    </div>
-
-    <div class="records_content"></div>
-  </div>
-</div>
-
-<!-- MODAL: add/update richiesta -->
-<div class="modal fade" id="permesso_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="permessoModalLabel">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-body">
-
-        <div class="panel panel-yellow4">
-          <div class="panel-heading">
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-            <h5 class="modal-title" id="permessoModalLabel">Richiesta permesso</h5>
-          </div>
-
-          <div class="panel-body">
-            <div id="permesso_alert" class="alert alert-danger" style="display:none; margin-bottom:10px;"></div>
-
-            <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="permesso_tipo_id">Tipo permesso</label>
-                  <select class="form-control" id="permesso_tipo_id">
-                    <option value="">Seleziona...</option>
-                    <?php foreach($tipi as $t): ?>
-                      <option value="<?php echo (int)$t['id']; ?>"
-                              data-codice="<?php echo htmlspecialchars($t['codice']); ?>">
-                        <?php echo htmlspecialchars($t['codice'].' - '.$t['descrizione']); ?>
-                      </option>
-                    <?php endforeach; ?>
-                  </select>
+    <div class="container-fluid">
+        <div class="permessi-page">
+            <div class="permessi-top-card">
+                <div class="permessi-title">
+                    <span class="glyphicon glyphicon-folder-open"></span>
+                    Permessi ATA
                 </div>
-              </div>
-
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label>Stato</label>
-                  <input type="text" class="form-control" id="permesso_stato" readonly value="BOZZA">
+                <div class="permessi-subtitle">
+                    Consulta le tue richieste oppure inseriscine una nuova.
                 </div>
-              </div>
+
+                <div class="permessi-toolbar">
+                    <button class="btn btn-warning" id="btn_new">
+                        <span class="glyphicon glyphicon-plus"></span>&ensp;Nuova richiesta
+                    </button>
+
+                    <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=ESTIVE">
+                        <span class="glyphicon glyphicon-calendar"></span>&ensp;Ferie estive
+                    </a>
+
+                    <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=NATALE">
+                        <span class="glyphicon glyphicon-tree-conifer"></span>&ensp;Ferie Natale
+                    </a>
+
+                    <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=CARNEVALE">
+                        <span class="glyphicon glyphicon-star"></span>&ensp;Ferie Carnevale
+                    </a>
+
+                    <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=PASQUA">
+                        <span class="glyphicon glyphicon-leaf"></span>&ensp;Ferie Pasqua
+                    </a>
+                </div>
             </div>
 
-            <!-- FERIE sottotipo -->
-            <div class="row" id="block_ferie_sottotipo" style="display:none;">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="ferie_sottotipo">Tipologia ferie</label>
-                  <select class="form-control" id="ferie_sottotipo">
-                    <option value="">Seleziona...</option>
-                    <option value="GENERICHE">GENERICHE</option>
-                    <option value="CARNEVALE">CARNEVALE</option>
-                    <option value="PASQUA">PASQUA</option>
-                    <option value="NATALE">NATALE</option>
-                  </select>
-
-                  <div id="ferie_periodo_box" class="text-muted" style="margin-top:6px; display:none;">
-                    <span class="glyphicon glyphicon-calendar"></span>&ensp;
-                    <span id="ferie_periodo_testo"></span>
-                  </div>
-
-                  <div class="alert alert-warning" style="margin-top:8px; border-radius:12px;">
-                    Le <strong>ferie estive</strong> si richiedono dalla pagina dedicata con calendario completo.
-                  </div>
+            <div class="permessi-editor-card" id="permesso_editor">
+                <div class="permessi-editor-head">
+                    <div class="permessi-editor-title" id="permesso_editor_title">Nuova richiesta</div>
+                    <div class="permessi-editor-subtitle">
+                        Compila i campi richiesti e salva in bozza oppure invia la richiesta.
+                    </div>
                 </div>
-              </div>
+
+                <div class="permessi-editor-body">
+                    <div id="permesso_alert" class="alert alert-danger" style="display:none;"></div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="permesso_tipo_id">Tipo permesso</label>
+                                <select class="form-control" id="permesso_tipo_id">
+                                    <option value="">Seleziona...</option>
+                                    <?php foreach ($tipi as $t): ?>
+                                        <?php if (strtoupper(trim((string)$t['codice'])) === 'FERIE') continue; ?>
+                                        <option value="<?php echo (int)$t['id']; ?>"
+                                            data-codice="<?php echo htmlspecialchars($t['codice']); ?>">
+                                            <?php echo htmlspecialchars($t['codice'] . ' - ' . $t['descrizione']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Stato</label>
+                                <input type="text" class="form-control" id="permesso_stato" readonly value="BOZZA">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" id="block_ferie_sottotipo" style="display:none;">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="ferie_sottotipo">Tipologia ferie</label>
+                                <select class="form-control" id="ferie_sottotipo">
+                                    <option value="">Seleziona...</option>
+                                    <option value="GENERICHE">GENERICHE</option>
+                                    <option value="CARNEVALE">CARNEVALE</option>
+                                    <option value="PASQUA">PASQUA</option>
+                                    <option value="NATALE">NATALE</option>
+                                </select>
+
+                                <div id="ferie_periodo_box" class="text-muted" style="margin-top:6px; display:none;">
+                                    <span class="glyphicon glyphicon-calendar"></span>&ensp;
+                                    <span id="ferie_periodo_testo"></span>
+                                </div>
+
+                                <div class="alert alert-warning" style="margin-top:8px; border-radius:12px;">
+                                    Le <strong>ferie estive</strong> si richiedono dalla pagina dedicata con calendario completo.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="permesso_note">Note</label>
+                        <textarea class="form-control" rows="3" id="permesso_note" placeholder="Note (facoltative)"></textarea>
+                    </div>
+
+                    <div id="block_singolo" class="permesso-block-card" style="display:none;">
+                        <div class="permesso-block-title">Dettagli richiesta</div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="singolo_data">Data</label>
+                                    <input type="date" class="form-control" id="singolo_data">
+                                </div>
+                            </div>
+
+                            <div class="col-md-4" id="block_singolo_ora_da" style="display:none;">
+                                <div class="form-group">
+                                    <label for="singolo_ora_da">Ore da</label>
+                                    <input type="time" class="form-control" id="singolo_ora_da">
+                                </div>
+                            </div>
+
+                            <div class="col-md-4" id="block_singolo_ora_a" style="display:none;">
+                                <div class="form-group">
+                                    <label for="singolo_ora_a">Ore a</label>
+                                    <input type="time" class="form-control" id="singolo_ora_a">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-info" id="singolo_hint" style="display:none; padding:8px; margin-bottom:0;"></div>
+                    </div>
+
+                    <div id="block_ferie_multi" class="permesso-block-card" style="display:none;">
+                        <div class="permesso-block-title">Intervalli ferie</div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label>Intervalli ferie (puoi aggiungerne più di uno)</label>
+                            </div>
+                            <div class="col-md-6 text-right">
+                                <button type="button" class="btn btn-default" id="btn_add_ferie">
+                                    <span class="glyphicon glyphicon-plus"></span>&ensp;Aggiungi intervallo
+                                </button>
+                            </div>
+                        </div>
+                        <div id="righe_ferie_container" style="margin-top:10px;"></div>
+                    </div>
+
+                    <div id="block_104_multi" class="permesso-block-card" style="display:none;">
+                        <div class="permesso-block-title">Intervalli Legge 104</div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label>Intervalli LEGGE 104</label>
+                            </div>
+                            <div class="col-md-6 text-right">
+                                <button type="button" class="btn btn-default" id="btn_add_104">
+                                    <span class="glyphicon glyphicon-plus"></span>&ensp;Aggiungi riga
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info" style="padding:8px; margin-top:8px; margin-bottom:8px;">
+                            Puoi inserire:
+                            <ul style="margin:6px 0 0 18px;">
+                                <li><b>GIORNI</b>: dal/al (senza ore)</li>
+                                <li><b>ORE</b>: un solo giorno + fascia oraria (ore da/ore a)</li>
+                            </ul>
+                        </div>
+
+                        <div id="righe_104_container" style="margin-top:10px;"></div>
+                    </div>
+
+                    <div class="permessi-footer-actions">
+                        <div class="box">
+                            <button type="button" class="btn btn-default" id="btn_cancel_permesso">
+                                <span class="glyphicon glyphicon-remove"></span>&ensp;Annulla
+                            </button>
+                            <button type="button" class="btn btn-primary" id="btn_save_bozza">
+                                <span class="glyphicon glyphicon-floppy-disk"></span>&ensp;Salva bozza
+                            </button>
+                            <button type="button" class="btn btn-success" id="btn_invia">
+                                <span class="glyphicon glyphicon-send"></span>&ensp;Invia richiesta
+                            </button>
+
+                            <input type="hidden" id="permesso_id" value="">
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-              <label for="permesso_note">Note</label>
-              <textarea class="form-control" rows="3" id="permesso_note" placeholder="Note (facoltative)"></textarea>
+            <div class="permessi-records-card" id="permessi_records_wrap">
+                <div style="padding:16px;" class="records_content"></div>
             </div>
 
-            <hr style="margin:10px 0;">
-
-            <!-- BLOCCO SINGOLO -->
-            <div id="block_singolo" style="display:none;">
-              <div class="row">
-                <div class="col-md-4">
-                  <div class="form-group">
-                    <label for="singolo_data">Data</label>
-                    <input type="date" class="form-control" id="singolo_data">
-                  </div>
-                </div>
-
-                <div class="col-md-4" id="block_singolo_ora_da" style="display:none;">
-                  <div class="form-group">
-                    <label for="singolo_ora_da">Ore da</label>
-                    <input type="time" class="form-control" id="singolo_ora_da">
-                  </div>
-                </div>
-
-                <div class="col-md-4" id="block_singolo_ora_a" style="display:none;">
-                  <div class="form-group">
-                    <label for="singolo_ora_a">Ore a</label>
-                    <input type="time" class="form-control" id="singolo_ora_a">
-                  </div>
-                </div>
-              </div>
-              <div class="alert alert-info" id="singolo_hint" style="display:none; padding:8px; margin-bottom:0;"></div>
-            </div>
-
-            <!-- FERIE -->
-            <div id="block_ferie_multi" style="display:none;">
-              <div class="row">
-                <div class="col-md-6">
-                  <label>Intervalli ferie (puoi aggiungerne più di uno)</label>
-                </div>
-                <div class="col-md-6 text-right">
-                  <button type="button" class="btn btn-default" id="btn_add_ferie">
-                    <span class="glyphicon glyphicon-plus"></span>&ensp;Aggiungi intervallo
-                  </button>
-                </div>
-              </div>
-              <div id="righe_ferie_container" style="margin-top:10px;"></div>
-            </div>
-
-            <!-- LEGGE 104 -->
-            <div id="block_104_multi" style="display:none;">
-              <div class="row">
-                <div class="col-md-6">
-                  <label>Intervalli LEGGE 104</label>
-                </div>
-                <div class="col-md-6 text-right">
-                  <button type="button" class="btn btn-default" id="btn_add_104">
-                    <span class="glyphicon glyphicon-plus"></span>&ensp;Aggiungi riga
-                  </button>
-                </div>
-              </div>
-
-              <div class="alert alert-info" style="padding:8px; margin-top:8px; margin-bottom:8px;">
-                Puoi inserire:
-                <ul style="margin:6px 0 0 18px;">
-                  <li><b>GIORNI</b>: dal/al (senza ore)</li>
-                  <li><b>ORE</b>: un solo giorno + fascia oraria (ore da/ore a)</li>
-                </ul>
-              </div>
-
-              <div id="righe_104_container" style="margin-top:10px;"></div>
-            </div>
-
-          </div>
-
-          <div class="panel-footer text-center">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-            <button type="button" class="btn btn-primary" id="btn_save_bozza">Salva bozza</button>
-            <button type="button" class="btn btn-success" id="btn_invia">Invia richiesta</button>
-
-            <input type="hidden" id="permesso_id" value="">
-          </div>
+            <div class="records_content"></div>
         </div>
-
-      </div>
     </div>
-  </div>
-</div>
 
-<script>
-  window.__FERIE_FINESTRE = <?php echo json_encode($finestreMap, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
-</script>
+    <script>
+        window.__FERIE_FINESTRE = <?php echo json_encode($finestreMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    </script>
 
-<script type="text/javascript" src="js/scriptPermessiAta.js"></script>
+    <script type="text/javascript" src="js/scriptPermessiAta.js?v=<?php echo time(); ?>"></script>
 </body>
+
 </html>

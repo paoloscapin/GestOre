@@ -7,8 +7,14 @@ ruoloRichiesto('personale-ata');
 header('Content-Type: application/json; charset=utf-8');
 
 $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+$sottotipo = isset($_POST['sottotipo']) ? strtoupper(trim((string)$_POST['sottotipo'])) : '';
+
 if ($id <= 0) {
   echo json_encode(['ok' => false, 'error' => 'ID richiesta non valido.'], JSON_UNESCAPED_UNICODE);
+  exit;
+}
+if ($sottotipo === '') {
+  echo json_encode(['ok' => false, 'error' => 'Sottotipo mancante.'], JSON_UNESCAPED_UNICODE);
   exit;
 }
 
@@ -19,7 +25,7 @@ $head = dbGetFirst("
   WHERE r.id = $id
     AND r.personale_ata_id = $__ata_id
     AND t.codice = 'FERIE'
-    AND r.ferie_sottotipo = 'ESTIVE'
+    AND UPPER(TRIM(r.ferie_sottotipo)) = " . dbQ($sottotipo) . "
   LIMIT 1
 ");
 

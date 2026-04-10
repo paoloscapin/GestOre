@@ -20,8 +20,10 @@ function formatDateIT(ymd) {
 
 function scrollModalTop() {
     try {
-        $("#permesso_modal .modal-body").animate({ scrollTop: 0 }, 200);
-    } catch (e) {}
+        $("html, body").animate({
+            scrollTop: $("#permesso_editor").offset().top - 10
+        }, 200);
+    } catch (e) { }
 }
 
 function focusFirstFieldInModal() {
@@ -345,6 +347,18 @@ function permessoShowError(msg) {
     scrollModalTop();
 }
 
+function showPermessoEditor() {
+    $("#permesso_editor").show();
+    $("#permessi_records_wrap").hide();
+    scrollModalTop();
+}
+
+function hidePermessoEditor() {
+    $("#permesso_editor").hide();
+    $("#permessi_records_wrap").show();
+    permessoHideError();
+}
+
 /* ===========================
  * MODAL OPEN / DETAILS
  * =========================== */
@@ -376,7 +390,8 @@ function openNewPermesso() {
     $("#block_ferie_multi :input").prop("disabled", false);
     $("#block_104_multi :input").prop("disabled", false);
 
-    $("#permesso_modal").modal("show");
+    $("#permesso_editor_title").text("Nuova richiesta");
+    showPermessoEditor();
     focusFirstFieldInModal();
 }
 
@@ -445,7 +460,8 @@ function permessoGetDetails(id) {
             $("#block_104_multi :input").prop("disabled", false);
         }
 
-        $("#permesso_modal").modal("show");
+        $("#permesso_editor_title").text("Modifica richiesta");
+        showPermessoEditor();
         focusFirstFieldInModal();
     }, "json");
 }
@@ -489,7 +505,7 @@ function permessoSave(azione) {
             }
 
             permessoHideError();
-            $("#permesso_modal").modal("hide");
+            hidePermessoEditor();
             permessiReadRecords();
 
             notifyCentered(
@@ -581,6 +597,10 @@ $(document).on("click", ".btn_del_104", function () {
     $(this).closest(".riga-104").remove();
 });
 
+$(document).on("click", "#btn_cancel_permesso", function () {
+    hidePermessoEditor();
+});
+
 $(document).on("click", "#btn_save_bozza", function () {
     permessoSave("BOZZA");
 });
@@ -604,5 +624,6 @@ $(document).on("click", ".btn-delete-permesso", function () {
 });
 
 $(document).ready(function () {
+    hidePermessoEditor();
     permessiReadRecords();
 });

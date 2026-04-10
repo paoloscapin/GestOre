@@ -53,7 +53,7 @@ ruoloRichiesto('personale-ata');
 			padding: 22px 18px;
 			margin: 0 0 14px 0;
 			text-decoration: none !important;
-			box-shadow: 0 2px 10px rgba(0,0,0,.08);
+			box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
 			border: 1px solid #d9dde3;
 			background: #fff;
 			color: #2d3340 !important;
@@ -101,6 +101,12 @@ ruoloRichiesto('personale-ata');
 				max-width: 700px;
 			}
 		}
+
+		@media (max-width: 767px) {
+			.ata-btn-orario {
+				display: none !important;
+			}
+		}
 	</style>
 </head>
 
@@ -128,7 +134,7 @@ ruoloRichiesto('personale-ata');
 				</div>
 			</a>
 
-			<a href="../orario/orario.php" class="ata-big-btn">
+			<a href="../orario/orario.php" class="ata-big-btn ata-btn-orario">
 				<div class="ata-big-btn-icon">
 					<span class="glyphicon glyphicon-time"></span>
 				</div>

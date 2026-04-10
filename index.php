@@ -374,7 +374,8 @@ if (!empty($authUrl)) {
 
                         <ul class="rolelist">
                             <li><b>Docenti</b>, <b>Dirigente</b>, <b>Amministratori</b></li>
-                            <li><b>Studenti</b></li>
+                            <li><b>Personale ATA</b> (con account <code>@buonarroti</code>)</li>
+                            <li><b>Studenti</b> (con account <code>@buonarroti</code>)</li>
                             <li><b>Genitori</b> (mail <code>Google</code> presente in <code>GestOre</code>)</li>
                             <li><b>Esterni</b> (con account <code>@buonarroti</code>)</li>
                         </ul>

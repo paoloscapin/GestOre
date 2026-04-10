@@ -1,13 +1,28 @@
 (function () {
     "use strict";
 
-    const BOOT = window.__FERIE_ESTIVE_BOOTSTRAP || {};
+    const BOOT = window.__FERIE_BOOTSTRAP || {};
     const FERIE_TIPO_ID = parseInt(BOOT.ferie_tipo_id || 0, 10);
     const FINESTRA = BOOT.finestra || {};
     const DATA_INIZIO = (FINESTRA.data_inizio || "").toString();
     const DATA_FINE = (FINESTRA.data_fine || "").toString();
-    const PATRONO_MMDD = (BOOT.patrono_mmdd || "06-26").toString();
+    const PATRONO_MMDD = (BOOT.patrono_mmdd || "").toString();
     const EDIT_ID = parseInt(BOOT.edit_id || 0, 10);
+    const SOTTOTIPO = (BOOT.sottotipo || "ESTIVE").toString();
+    const TITOLO = (BOOT.titolo || "Ferie").toString();
+    const GIORNI_SPECIALI = Array.isArray(BOOT.giorni_speciali) ? BOOT.giorni_speciali : [];
+
+    const specialExcludeMap = {};
+    const specialIncludeMap = {};
+
+    GIORNI_SPECIALI.forEach(function (g) {
+        const data = (g.data || "").toString();
+        const tipo = (g.tipo || "").toString().toUpperCase();
+        if (!data) return;
+
+        if (tipo === "ESCLUDI") specialExcludeMap[data] = g;
+        if (tipo === "INCLUDI") specialIncludeMap[data] = g;
+    });
 
     const MONTH_NAMES = [
         "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
@@ -41,16 +56,6 @@
         return date.getFullYear() + "-" + pad2(date.getMonth() + 1) + "-" + pad2(date.getDate());
     }
 
-    function addDays(date, days) {
-        const d = new Date(date.getTime());
-        d.setDate(d.getDate() + days);
-        return d;
-    }
-
-    function sameMonth(a, b) {
-        return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
-    }
-
     function monthStart(date) {
         return new Date(date.getFullYear(), date.getMonth(), 1, 12, 0, 0, 0);
     }
@@ -66,26 +71,38 @@
     function isWeekend(ymd) {
         const d = parseYmdLocal(ymd);
         if (!d) return false;
-        const jsDow = d.getDay(); // 0 dom, 6 sab
+        const jsDow = d.getDay();
         return jsDow === 0 || jsDow === 6;
     }
 
-    function isPatrono(ymd) {
-        return (ymd || "").slice(5) === PATRONO_MMDD;
+    function isSpecialExcluded(ymd) {
+        return !!specialExcludeMap[ymd];
+    }
+
+    function isSpecialIncluded(ymd) {
+        return !!specialIncludeMap[ymd];
+    }
+
+    function isSelectable(ymd) {
+        if (!inWindow(ymd)) return false;
+
+        if (isSpecialIncluded(ymd)) return true;
+        if (isWeekend(ymd)) return false;
+        if (isSpecialExcluded(ymd)) return false;
+
+        return true;
     }
 
     function inWindow(ymd) {
         return ymd >= DATA_INIZIO && ymd <= DATA_FINE;
     }
 
-    function isSelectable(ymd) {
-        return inWindow(ymd) && !isWeekend(ymd) && !isPatrono(ymd);
-    }
-
     function lockReason(ymd) {
         if (!inWindow(ymd)) return "Fuori periodo";
-        if (isPatrono(ymd)) return "Patrono";
-        if (isWeekend(ymd)) return "Weekend";
+        if (isWeekend(ymd) && !isSpecialIncluded(ymd)) return "Weekend";
+        if (isSpecialExcluded(ymd)) {
+            return specialExcludeMap[ymd].descrizione || "Non disponibile";
+        }
         return "";
     }
 
@@ -126,44 +143,47 @@
     function setReadonly(readonly) {
         isReadOnly = !!readonly;
         $("#ferie_note").prop("readonly", isReadOnly);
-        $("#btn_save_bozza_estive").prop("disabled", isReadOnly);
-        $("#btn_invia_estive").prop("disabled", isReadOnly);
-        $("#btn_clear_selection").prop("disabled", isReadOnly);
-        renderCalendar();
-    }
+        $("#btn_save_bozza_ferie").prop("disabled", isReadOnly);
+        $("#btn_invia_ferie").prop("disabled", isReadOnly);
 
-    function clearSelection() {
-        if (isReadOnly) return;
-        selectedDays = new Set();
+        const currentId = parseInt($("#richiesta_id").val() || "0", 10);
+        const isBozza = (String(currentState || "").toUpperCase() === "BOZZA");
+
+        if (!isReadOnly && currentId > 0 && isBozza) {
+            $("#btn_delete_bozza_ferie").show();
+        } else {
+            $("#btn_delete_bozza_ferie").hide();
+        }
+
         renderCalendar();
     }
 
     function resetEditorToNew() {
-    $("#richiesta_id").val("");
-    $("#ferie_note").val("");
-    currentState = "BOZZA";
-    selectedDays = new Set();
-    $("#editor_title").text("Nuova richiesta ferie estive");
-    setReadonly(false);
-    updateHeaderInfo();
-}
+        $("#richiesta_id").val("");
+        $("#ferie_note").val("");
+        currentState = "BOZZA";
+        selectedDays = new Set();
+        $("#editor_title").text("Nuova richiesta " + TITOLO.toLowerCase());
+        $("#btn_delete_bozza_ferie").hide();
+        setReadonly(false);
+        updateHeaderInfo();
+    }
 
-function cancelEditing() {
-    if (EDIT_ID > 0 || ($("#richiesta_id").val() || "") !== "") {
-        const id = parseInt($("#richiesta_id").val() || EDIT_ID || "0", 10);
-        if (id > 0) {
-            loadRequest(id);
+    function cancelEditing() {
+        const currentId = parseInt($("#richiesta_id").val() || EDIT_ID || "0", 10);
+        if (currentId > 0) {
+            loadRequest(currentId);
             return;
         }
+        resetEditorToNew();
     }
-    resetEditorToNew();
-}
+
     function renderCalendar() {
         const $wrap = $("#months_wrap");
         $wrap.empty();
 
         if (!DATA_INIZIO || !DATA_FINE) {
-            $wrap.html('<div class="alert alert-danger ferie-alert">Finestra ferie estive non configurata.</div>');
+            $wrap.html('<div class="alert alert-danger ferie-alert">Finestra ferie non configurata.</div>');
             return;
         }
 
@@ -179,12 +199,8 @@ function cancelEditing() {
             html += '  <div class="month-head">' + MONTH_NAMES[first.getMonth()] + ' ' + first.getFullYear() + '</div>';
             html += '  <div class="month-grid">';
 
-            //            for (let i = 0; i < DOW_NAMES.length; i++) {
-            //                html += '<div class="dow-cell">' + DOW_NAMES[i] + '</div>';
-            //            }
-
-            let startOffset = first.getDay(); // 0 dom
-            startOffset = (startOffset === 0 ? 7 : startOffset); // 1..7 lun..dom
+            let startOffset = first.getDay();
+            startOffset = (startOffset === 0 ? 7 : startOffset);
             const emptyBefore = startOffset - 1;
 
             for (let i = 0; i < emptyBefore; i++) {
@@ -234,18 +250,17 @@ function cancelEditing() {
         updateHeaderInfo();
     }
 
-function readRecords() {
-    // Non mostriamo più la lista richieste in questa pagina
-}
-
     function loadRequest(id) {
         hideError();
 
         $.ajax({
-            url: "ferieEstiveReadDetails.php",
+            url: "ferieRichiestaReadDetails.php",
             method: "POST",
             dataType: "json",
-            data: { id: id },
+            data: {
+                id: id,
+                sottotipo: SOTTOTIPO
+            },
             success: function (r) {
                 if (!r || r.ok !== true) {
                     showError((r && r.error) ? r.error : "Errore lettura richiesta.");
@@ -264,12 +279,38 @@ function readRecords() {
                     if (g && g.data) selectedDays.add(g.data);
                 });
 
-                $("#editor_title").text("Richiesta ferie estive #" + req.id);
+                $("#editor_title").text(TITOLO + " #" + req.id);
                 setReadonly(currentState !== "BOZZA");
                 updateHeaderInfo();
             },
             error: function (xhr) {
                 showError("Errore server: " + xhr.status);
+            }
+        });
+    }
+
+    function deleteRequest(id) {
+        if (!confirm("Vuoi eliminare questa bozza?")) return;
+
+        $.ajax({
+            url: "ferieRichiestaDelete.php",
+            method: "POST",
+            dataType: "json",
+            data: {
+                id: id,
+                sottotipo: SOTTOTIPO
+            },
+            success: function (r) {
+                if (!r || r.ok !== true) {
+                    notifyCentered("danger", TITOLO, (r && r.error) ? r.error : "Errore eliminazione.", 5000);
+                    return;
+                }
+
+                notifyCentered("info", TITOLO, "Bozza eliminata.", 2200);
+                window.location.href = "ferieRichiesta.php?sottotipo=" + encodeURIComponent(SOTTOTIPO);
+            },
+            error: function (xhr) {
+                notifyCentered("danger", TITOLO, "Errore server: " + xhr.status, 5000);
             }
         });
     }
@@ -293,12 +334,13 @@ function readRecords() {
         }
 
         $.ajax({
-            url: "ferieEstiveSave.php",
+            url: "ferieRichiestaSave.php",
             method: "POST",
             dataType: "json",
             data: {
                 richiesta_id: $("#richiesta_id").val() || "",
                 permesso_tipo_id: FERIE_TIPO_ID,
+                ferie_sottotipo: SOTTOTIPO,
                 note: $("#ferie_note").val() || "",
                 azione: azione,
                 giorni_json: JSON.stringify(giorni)
@@ -306,13 +348,13 @@ function readRecords() {
             success: function (r) {
                 if (!r || r.ok !== true) {
                     showError((r && r.error) ? r.error : "Errore salvataggio.");
-                    notifyCentered("danger", "Ferie estive", (r && r.error) ? r.error : "Errore salvataggio.", 5000);
+                    notifyCentered("danger", TITOLO, (r && r.error) ? r.error : "Errore salvataggio.", 5000);
                     return;
                 }
 
                 $("#richiesta_id").val(r.id || "");
                 currentState = r.stato || currentState;
-                $("#editor_title").text("Richiesta ferie estive #" + (r.id || ""));
+                $("#editor_title").text(TITOLO + " #" + (r.id || ""));
                 updateHeaderInfo();
 
                 if (azione === "INVIA") {
@@ -321,49 +363,17 @@ function readRecords() {
 
                 notifyCentered(
                     "info",
-                    "Ferie estive",
+                    TITOLO,
                     (azione === "INVIA")
-                        ? "Richiesta ferie estive inviata."
-                        : "Bozza ferie estive salvata.",
+                        ? "Richiesta inviata."
+                        : "Bozza salvata.",
                     2600
                 );
             },
             error: function (xhr) {
                 const msg = "Errore server: " + xhr.status;
                 showError(msg);
-                notifyCentered("danger", "Ferie estive", msg, 5000);
-            }
-        });
-    }
-
-    function deleteRequest(id) {
-        if (!confirm("Vuoi eliminare questa bozza di ferie estive?")) return;
-
-        $.ajax({
-            url: "ferieEstiveDelete.php",
-            method: "POST",
-            dataType: "json",
-            data: { id: id },
-            success: function (r) {
-                if (!r || r.ok !== true) {
-                    notifyCentered("danger", "Ferie estive", (r && r.error) ? r.error : "Errore eliminazione.", 5000);
-                    return;
-                }
-
-                if (parseInt($("#richiesta_id").val() || "0", 10) === parseInt(id, 10)) {
-                    $("#richiesta_id").val("");
-                    $("#ferie_note").val("");
-                    currentState = "BOZZA";
-                    $("#editor_title").text("Nuova richiesta ferie estive");
-                    selectedDays = new Set();
-                    setReadonly(false);
-                    updateHeaderInfo();
-                }
-
-                notifyCentered("info", "Ferie estive", "Bozza eliminata.", 2200);
-            },
-            error: function (xhr) {
-                notifyCentered("danger", "Ferie estive", "Errore server: " + xhr.status, 5000);
+                notifyCentered("danger", TITOLO, msg, 5000);
             }
         });
     }
@@ -385,24 +395,27 @@ function readRecords() {
         renderCalendar();
     });
 
-$(document).on("click", "#btn_cancel_estive", function () {
-    cancelEditing();
-});
-
-    $(document).on("click", "#btn_new_estive", function () {
-        window.location.href = "ferieEstive.php";
+    $(document).on("click", "#btn_delete_bozza_ferie", function () {
+        const id = parseInt($("#richiesta_id").val() || "0", 10);
+        if (id > 0) {
+            deleteRequest(id);
+        }
     });
 
-    $(document).on("click", "#btn_save_bozza_estive", function () {
+    $(document).on("click", "#btn_cancel_ferie", function () {
+        cancelEditing();
+    });
+
+    $(document).on("click", "#btn_new_ferie", function () {
+        window.location.href = "ferieRichiesta.php?sottotipo=" + encodeURIComponent(SOTTOTIPO);
+    });
+
+    $(document).on("click", "#btn_save_bozza_ferie", function () {
         saveRequest("BOZZA");
     });
 
-    $(document).on("click", "#btn_invia_estive", function () {
+    $(document).on("click", "#btn_invia_ferie", function () {
         saveRequest("INVIA");
-    });
-
-    $(document).on("click", ".btn-delete-estive", function () {
-        deleteRequest($(this).data("id"));
     });
 
     $(function () {

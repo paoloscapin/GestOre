@@ -4,11 +4,13 @@ require_once '../common/connect.php';
 
 ruoloRichiesto('personale-ata');
 
-function h($s) {
+function h($s)
+{
   return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 }
 
-function statoLabelClass($stato) {
+function statoLabelClass($stato)
+{
   $s = strtoupper(trim((string)$stato));
   if ($s === 'BOZZA') return 'label-default';
   if ($s === 'INVIATA' || $s === 'INVIATO') return 'label-info';
@@ -18,7 +20,8 @@ function statoLabelClass($stato) {
   return 'label-primary';
 }
 
-function formatDateTimeIt($value) {
+function formatDateTimeIt($value)
+{
   $value = trim((string)$value);
   if ($value === '') return '';
 
@@ -28,7 +31,8 @@ function formatDateTimeIt($value) {
   return date('d.m.Y H:i', $ts);
 }
 
-function formatDateIt($value) {
+function formatDateIt($value)
+{
   $value = trim((string)$value);
   if ($value === '') return '';
 
@@ -92,82 +96,84 @@ if (count($rows) === 0) {
       if ($ferieSottotipo === 'ESTIVE') {
         $tipoTitolo = 'Ferie estive';
         $extraInfo .= '<div><strong>Tipologia:</strong> Ferie estive</div>';
-        $extraInfo .= '<div><strong>Giorni selezionati:</strong> '.h((string)$righeCount).'</div>';
+        $extraInfo .= '<div><strong>Giorni selezionati:</strong> ' . h((string)$righeCount) . '</div>';
       } else {
-        $extraInfo .= '<div><strong>Tipologia ferie:</strong> '.h($ferieSottotipo).'</div>';
+        $extraInfo .= '<div><strong>Tipologia ferie:</strong> ' . h($ferieSottotipo) . '</div>';
       }
     }
 
     $stato = trim((string)$row['stato']);
     $statoClass = statoLabelClass($stato);
 
-    $btnEditHref = ($codice === 'FERIE' && $ferieSottotipo === 'ESTIVE')
-      ? 'ferieEstive.php?id='.$id
+    $ferieCalendarioTypes = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA'];
+
+    $btnEditHref = ($codice === 'FERIE' && in_array($ferieSottotipo, $ferieCalendarioTypes, true))
+      ? 'ferieRichiesta.php?sottotipo=' . $ferieSottotipo . '&id=' . $id
       : null;
 
     $btnEdit = $btnEditHref
       ? '
-      <a href="'.$btnEditHref.'" class="btn btn-warning btn-lg btn-block">
+      <a href="' . $btnEditHref . '" class="btn btn-warning btn-lg btn-block">
         <span class="glyphicon glyphicon-pencil"></span>&ensp;Apri
       </a>'
       : '
       <button type="button"
               class="btn btn-warning btn-lg btn-block btn-open-permesso"
-              data-id="'.$id.'">
+              data-id="' . $id . '">
         <span class="glyphicon glyphicon-pencil"></span>&ensp;Apri
       </button>';
 
     $btnDel = (strtoupper($stato) === 'BOZZA')
       ? (
-          $btnEditHref
-          ? '
-          <a href="'.$btnEditHref.'" class="btn btn-danger btn-lg btn-block">
+        $btnEditHref
+        ? '
+          <a href="' . $btnEditHref . '" class="btn btn-danger btn-lg btn-block">
             <span class="glyphicon glyphicon-trash"></span>&ensp;Gestisci
           </a>'
-          : '
+        : '
           <button type="button"
                   class="btn btn-danger btn-lg btn-block btn-delete-permesso"
-                  data-id="'.$id.'">
+                  data-id="' . $id . '">
             <span class="glyphicon glyphicon-trash"></span>&ensp;Elimina
           </button>'
-        )
+      )
       : '';
 
     $html .= '
       <div class="panel panel-default" style="border-radius:18px; overflow:hidden; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,.06); border:1px solid #e5e7eb;">
         <div class="panel-body" style="padding:16px;">
           <div style="font-size:20px; font-weight:700; color:#2d3340; margin-bottom:6px;">
-            '.h($tipoTitolo).'
+            ' . h($tipoTitolo) . '
           </div>
 
           <div style="font-size:14px; color:#6b7280; margin-bottom:10px;">
-            Richiesta '.$numeroVisuale.'
+            Richiesta ' . $numeroVisuale . '
           </div>
 
           <div style="font-size:17px; line-height:1.4; margin-bottom:10px;">
-            <strong>Tipo:</strong><br>'.h($tipoCompleto).'
+            <strong>Tipo:</strong><br>' . h($tipoCompleto) . '
           </div>
 
-          '.($extraInfo !== '' ? '
+          ' . ($extraInfo !== '' ? '
           <div style="font-size:15px; color:#4b5563; line-height:1.5; margin-bottom:10px;">
-            '.$extraInfo.'
-          </div>' : '').'
+            ' . $extraInfo . '
+          </div>' : '') . '
 
           <div style="margin-bottom:12px;">
-            <span class="label '.$statoClass.'" style="font-size:14px; padding:8px 10px;">'.h($stato).'</span>
+            <span class="label ' . $statoClass . '" style="font-size:14px; padding:8px 10px;">' . h($stato) . '</span>
           </div>
 
           <div style="font-size:15px; color:#4b5563; line-height:1.5; margin-bottom:14px;">
-            <div><strong>Creata:</strong> '.h(formatDateTimeIt($row['created_at'])).'</div>
-            <div><strong>Aggiornata:</strong> '.h(formatDateTimeIt($row['updated_at'])).'</div>
+            <div><strong>Creata:</strong> ' . h(formatDateTimeIt($row['created_at'])) . '</div>
+            <div><strong>Aggiornata:</strong> ' . h(formatDateTimeIt($row['updated_at'])) . '</div>
           </div>
 
           <div class="row">
             <div class="col-xs-12 col-sm-6" style="margin-bottom:8px;">
-              '.$btnEdit.'
+              ' . $btnEdit . '
             </div>
             <div class="col-xs-12 col-sm-6" style="margin-bottom:8px;">
-              '.$btnDel.'
+              ' . $btnDel . '
             </div>
           </div>
         </div>

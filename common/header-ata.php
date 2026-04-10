@@ -144,9 +144,31 @@ $isAtaHome = in_array($currentScript, ['index.php'], true);
 		font-size: 18px;
 	}
 
+
 	@media (min-width: 768px) {
+		.ata-mobile-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 16px;
+		}
+
+		.ata-mobile-header-top {
+			flex: 1;
+			min-width: 0;
+		}
+
 		.ata-mobile-nav {
-			grid-template-columns: 1fr 1fr;
+			margin-top: 0;
+			display: flex;
+			justify-content: flex-end;
+			flex: 0 0 auto;
+		}
+
+		.ata-mobile-btn {
+			min-width: 220px;
+			width: auto;
+			white-space: nowrap;
 		}
 	}
 </style>

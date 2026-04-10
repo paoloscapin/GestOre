@@ -11,34 +11,42 @@ $tipo_id      = isset($_POST['permesso_tipo_id']) ? intval($_POST['permesso_tipo
 $note         = isset($_POST['note']) ? trim((string)$_POST['note']) : '';
 $azione       = isset($_POST['azione']) ? strtoupper(trim((string)$_POST['azione'])) : 'BOZZA';
 $giorni_json  = isset($_POST['giorni_json']) ? (string)$_POST['giorni_json'] : '[]';
+$sottotipo    = isset($_POST['ferie_sottotipo']) ? strtoupper(trim((string)$_POST['ferie_sottotipo'])) : '';
 
-function fail($msg) {
+function fail($msg)
+{
   echo json_encode(['ok' => false, 'error' => $msg], JSON_UNESCAPED_UNICODE);
   exit;
 }
 
-function fmtDateIT($ymd) {
+function fmtDateIT($ymd)
+{
   $ymd = trim((string)$ymd);
   if ($ymd === '') return '';
   $ts = strtotime($ymd);
   return $ts ? date('d/m/Y', $ts) : $ymd;
 }
 
-function isValidYmd($ymd) {
+function isValidYmd($ymd)
+{
   if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $ymd)) return false;
   $dt = DateTime::createFromFormat('Y-m-d', $ymd);
   return $dt && $dt->format('Y-m-d') === $ymd;
 }
 
-function isWeekendYmd($ymd) {
+function isWeekendYmd($ymd)
+{
   $ts = strtotime($ymd);
   if ($ts === false) return false;
-  $w = (int)date('N', $ts); // 6 sab, 7 dom
+  $w = (int)date('N', $ts);
   return ($w >= 6);
 }
 
+$allowedSottotipi = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA'];
+
 if ($tipo_id <= 0) fail('Tipo permesso non valido.');
 if (!in_array($azione, ['BOZZA', 'INVIA'], true)) fail('Azione non valida.');
+if (!in_array($sottotipo, $allowedSottotipi, true)) fail('Sottotipo ferie non valido.');
 
 $tipo = dbGetFirst("
   SELECT id, codice
@@ -53,12 +61,35 @@ if (!$tipo) fail('Tipo FERIE non valido.');
 $finestra = dbGetFirst("
   SELECT data_inizio, data_fine
   FROM permesso_ata_ferie_finestra
-  WHERE codice = 'ESTIVE'
+  WHERE UPPER(TRIM(codice)) = " . dbQ($sottotipo) . "
     AND (valido IS NULL OR valido = 1)
   LIMIT 1
 ");
-if (!$finestra) fail('Finestra ferie ESTIVE non configurata.');
+if (!$finestra) fail('Finestra ferie ' . $sottotipo . ' non configurata.');
+$specialRows = dbGetAll("
+  SELECT data_giorno, tipo, descrizione
+  FROM permesso_ata_ferie_giorni_speciali
+  WHERE UPPER(TRIM(sottotipo)) = " . dbQ($sottotipo) . "
+    AND (valido IS NULL OR valido = 1)
+");
 
+$specialExclude = [];
+$specialInclude = [];
+
+if (is_array($specialRows)) {
+  foreach ($specialRows as $r) {
+    $d = (string)$r['data_giorno'];
+    $tipoSpeciale = strtoupper((string)$r['tipo']);
+
+    if ($tipoSpeciale === 'ESCLUDI') {
+      $specialExclude[$d] = (string)($r['descrizione'] ?? '');
+    }
+
+    if ($tipoSpeciale === 'INCLUDI') {
+      $specialInclude[$d] = true;
+    }
+  }
+}
 $giorni = json_decode($giorni_json, true);
 if (!is_array($giorni) || count($giorni) === 0) {
   fail('Seleziona almeno un giorno di ferie.');
@@ -78,15 +109,16 @@ foreach ($giorni as $g) {
   $seen[$data] = true;
 
   if ($data < $finestra['data_inizio'] || $data > $finestra['data_fine']) {
-    fail('La data '.fmtDateIT($data).' è fuori dalla finestra ferie estive.');
+    fail('La data ' . fmtDateIT($data) . ' è fuori dalla finestra ferie.');
   }
 
-  if (isWeekendYmd($data)) {
-    fail('La data '.fmtDateIT($data).' è sabato o domenica e non può essere selezionata.');
+  if (!isset($specialInclude[$data]) && isWeekendYmd($data)) {
+    fail('La data ' . fmtDateIT($data) . ' è sabato o domenica e non può essere selezionata.');
   }
 
-  if (substr($data, 5, 5) === '06-26') {
-    fail('Il giorno 26 giugno non può essere selezionato.');
+  if (isset($specialExclude[$data])) {
+    $desc = trim((string)$specialExclude[$data]);
+    fail('La data ' . fmtDateIT($data) . ' non è selezionabile' . ($desc !== '' ? ' (' . $desc . ')' : '') . '.');
   }
 
   $giorniValidi[] = $data;
@@ -101,8 +133,8 @@ $stato = ($azione === 'INVIA') ? 'INVIATO' : 'BOZZA';
 
 $dettagliRichiesta = [
   'tipo_codice' => 'FERIE',
-  'ferie_sottotipo' => 'ESTIVE',
-  'modo' => 'CALENDARIO_ESTIVO',
+  'ferie_sottotipo' => $sottotipo,
+  'modo' => 'CALENDARIO_FERIE',
   'giorni_richiesti_count' => count($giorniValidi),
   'giorni_approvati_count' => 0,
   'giorni_respinti_count' => 0,
@@ -122,7 +154,7 @@ try {
       WHERE r.id = $richiesta_id
         AND r.personale_ata_id = $__ata_id
         AND t.codice = 'FERIE'
-        AND r.ferie_sottotipo = 'ESTIVE'
+        AND UPPER(TRIM(r.ferie_sottotipo)) = " . dbQ($sottotipo) . "
       LIMIT 1
     ");
 
@@ -134,7 +166,7 @@ try {
     dbExec("
       UPDATE permesso_ata_richiesta
       SET permesso_ata_tipo_id = $tipo_id,
-          ferie_sottotipo = 'ESTIVE',
+          ferie_sottotipo = " . dbQ($sottotipo) . ",
           stato = " . dbQ($stato) . ",
           note_richiedente = " . dbQ($note) . ",
           dettagli_json = " . dbQ($dettagliRichiestaJson) . ",
@@ -150,7 +182,7 @@ try {
       INSERT INTO permesso_ata_richiesta
         (personale_ata_id, permesso_ata_tipo_id, ferie_sottotipo, stato, note_richiedente, dettagli_json, created_at, updated_at)
       VALUES
-        ($__ata_id, $tipo_id, 'ESTIVE', " . dbQ($stato) . ", " . dbQ($note) . ", " . dbQ($dettagliRichiestaJson) . ", NOW(), NOW())
+        ($__ata_id, $tipo_id, " . dbQ($sottotipo) . ", " . dbQ($stato) . ", " . dbQ($note) . ", " . dbQ($dettagliRichiestaJson) . ", NOW(), NOW())
     ");
     $richiesta_id = dblastId();
   }
@@ -158,7 +190,7 @@ try {
   foreach ($giorniValidi as $data) {
     $dettagliRiga = [
       'unita' => 'GIORNI',
-      'modo' => 'CALENDARIO_ESTIVO',
+      'modo' => 'CALENDARIO_FERIE',
       'stato_giorno' => 'RICHIESTO',
       'data_originale' => $data,
       'data_definitiva' => $data,
@@ -189,7 +221,6 @@ try {
     'giorni_count' => count($giorniValidi)
   ], JSON_UNESCAPED_UNICODE);
   exit;
-
 } catch (Exception $e) {
   dbExec("ROLLBACK");
   echo json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);

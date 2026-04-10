@@ -20,16 +20,42 @@ if (!$ferieTipo || !is_array($ferieTipo)) {
     throw new Exception('Tipo permesso FERIE non configurato o query fallita.');
 }
 
-$finestraEstive = dbGetFirst("
+$sottotipo = isset($_GET['sottotipo']) ? strtoupper(trim((string)$_GET['sottotipo'])) : 'ESTIVE';
+$allowedSottotipi = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA'];
+
+if (!in_array($sottotipo, $allowedSottotipi, true)) {
+    throw new Exception('Sottotipo ferie non valido.');
+}
+
+$giorniSpecialiRows = dbGetAll("
+  SELECT data_giorno, tipo, descrizione
+  FROM permesso_ata_ferie_giorni_speciali
+  WHERE UPPER(TRIM(sottotipo)) = " . dbQ($sottotipo) . "
+    AND (valido IS NULL OR valido = 1)
+  ORDER BY data_giorno ASC
+");
+
+$giorniSpeciali = [];
+if (is_array($giorniSpecialiRows)) {
+    foreach ($giorniSpecialiRows as $r) {
+        $giorniSpeciali[] = [
+            'data' => (string)$r['data_giorno'],
+            'tipo' => strtoupper((string)$r['tipo']),
+            'descrizione' => (string)($r['descrizione'] ?? ''),
+        ];
+    }
+}
+
+$finestraFerie = dbGetFirst("
   SELECT data_inizio, data_fine
   FROM permesso_ata_ferie_finestra
-  WHERE codice = 'ESTIVE'
+  WHERE UPPER(TRIM(codice)) = " . dbQ($sottotipo) . "
     AND (valido IS NULL OR valido=1)
   LIMIT 1
 ");
 
-if (!$finestraEstive || !is_array($finestraEstive)) {
-    throw new Exception('Finestra ferie ESTIVE non configurata o query fallita.');
+if (!$finestraFerie || !is_array($finestraFerie)) {
+    throw new Exception('Finestra ferie ' . $sottotipo . ' non configurata o query fallita.');
 }
 
 $editId = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -37,29 +63,39 @@ $editHead = null;
 
 if ($editId > 0) {
     $editHead = dbGetFirst("
-    SELECT r.*, t.codice AS tipo_codice
-    FROM permesso_ata_richiesta r
-    INNER JOIN permesso_ata_tipo t ON t.id = r.permesso_ata_tipo_id
-    WHERE r.id = $editId
-      AND r.personale_ata_id = $__ata_id
-      AND t.codice = 'FERIE'
-      AND r.ferie_sottotipo = 'ESTIVE'
-    LIMIT 1
-  ");
+      SELECT r.*, t.codice AS tipo_codice
+      FROM permesso_ata_richiesta r
+      INNER JOIN permesso_ata_tipo t ON t.id = r.permesso_ata_tipo_id
+      WHERE r.id = $editId
+        AND r.personale_ata_id = $__ata_id
+        AND t.codice = 'FERIE'
+        AND UPPER(TRIM(r.ferie_sottotipo)) = " . dbQ($sottotipo) . "
+      LIMIT 1
+    ");
 
     if (!$editHead) {
         $editId = 0;
     }
 }
 
+$titoli = [
+    'ESTIVE' => 'Ferie estive',
+    'NATALE' => 'Ferie Natale',
+    'CARNEVALE' => 'Ferie Carnevale',
+    'PASQUA' => 'Ferie Pasqua',
+];
+
 $bootstrapData = [
     'ferie_tipo_id' => (int)$ferieTipo['id'],
     'finestra' => [
-        'data_inizio' => (string)$finestraEstive['data_inizio'],
-        'data_fine'   => (string)$finestraEstive['data_fine'],
+        'data_inizio' => (string)$finestraFerie['data_inizio'],
+        'data_fine'   => (string)$finestraFerie['data_fine'],
     ],
-    'patrono_mmdd' => '06-26',
+    'giorni_speciali' => $giorniSpeciali,
+    'patrono_mmdd' => ($sottotipo === 'ESTIVE') ? '06-26' : '',
     'edit_id' => (int)$editId,
+    'sottotipo' => $sottotipo,
+    'titolo' => $titoli[$sottotipo] ?? ('Ferie ' . $sottotipo),
 ];
 ?>
 <!DOCTYPE html>
@@ -68,7 +104,7 @@ $bootstrapData = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ferie estive ATA</title>
+    <title><?php echo htmlspecialchars($bootstrapData['titolo'], ENT_QUOTES, 'UTF-8'); ?> ATA</title>
 
     <?php
     require_once '../common/header-common.php';
@@ -84,12 +120,11 @@ $bootstrapData = [
         .ferie-page {
             max-width: 1180px;
             margin: 0 auto;
-            padding: 12px 0 100px 0;
+            padding: 12px 0 40px 0;
         }
 
         .ferie-top-card,
-        .ferie-editor-card,
-        .ferie-records-card {
+        .ferie-editor-card {
             background: #ffffff;
             border: 1px solid #e5e7eb;
             border-radius: 18px;
@@ -223,14 +258,6 @@ $bootstrapData = [
             box-sizing: border-box;
         }
 
-        .dow-cell {
-            text-align: center;
-            font-size: 13px;
-            font-weight: 700;
-            color: #6b7280;
-            padding: 6px 0;
-        }
-
         .day-cell {
             min-height: 92px;
             border-radius: 16px;
@@ -292,16 +319,12 @@ $bootstrapData = [
         .day-dow {
             font-size: 12px;
             color: #6b7280;
-            text-transform: capitalize;
-            /* opzionale */
         }
 
         .day-day {
             font-size: 22px;
             color: #24324a;
         }
-
-
 
         .day-meta {
             font-size: 12px;
@@ -318,25 +341,6 @@ $bootstrapData = [
         .ferie-footer-actions {
             margin-top: 16px;
             padding-top: 10px;
-        }
-
-        .ferie-footer-actions .box {
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 18px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
-            padding: 10px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .ferie-footer-actions .btn {
-            min-height: 52px;
-            border-radius: 14px;
-            font-size: 17px;
-            font-weight: 700;
-            flex: 1 1 180px;
         }
 
         .ferie-footer-actions .box {
@@ -429,25 +433,20 @@ $bootstrapData = [
 
             .ferie-footer-actions .box {
                 flex-direction: row;
-                /* NON colonna */
                 gap: 8px;
             }
 
             .ferie-footer-actions .btn {
                 flex: 1 1 auto;
                 min-height: 40px;
-                /* più basso */
                 font-size: 14px;
-                /* testo più proporzionato */
                 padding: 6px 8px;
                 border-radius: 10px;
             }
 
-            /* opzionale: icone più piccole */
             .ferie-footer-actions .btn .glyphicon {
                 font-size: 13px;
             }
-
         }
     </style>
 </head>
@@ -460,25 +459,27 @@ $bootstrapData = [
             <div class="ferie-top-card">
                 <div class="ferie-title">
                     <span class="glyphicon glyphicon-calendar"></span>
-                    Richiesta ferie estive
+                    <?php echo htmlspecialchars($bootstrapData['titolo'], ENT_QUOTES, 'UTF-8'); ?>
                 </div>
                 <div class="ferie-subtitle">
-                    Seleziona i giorni desiderati nel calendario. Il conteggio ignora automaticamente sabato, domenica e il 26 giugno.
+                    Seleziona i giorni desiderati nel calendario. Il conteggio ignora automaticamente sabato e domenica<?php echo ($sottotipo === 'ESTIVE') ? ', e il 26 giugno' : ''; ?>.
                 </div>
 
                 <div class="ferie-toolbar">
                     <a href="permessi.php" class="btn btn-default">
                         <span class="glyphicon glyphicon-arrow-left"></span>&ensp;Torna ai permessi
                     </a>
-                    <button type="button" class="btn btn-warning" id="btn_new_estive">
-                        <span class="glyphicon glyphicon-plus"></span>&ensp;Nuova richiesta ferie estive
+                    <button type="button" class="btn btn-warning" id="btn_new_ferie">
+                        <span class="glyphicon glyphicon-plus"></span>&ensp;Nuova richiesta
                     </button>
                 </div>
             </div>
 
             <div class="ferie-editor-card">
                 <div class="ferie-editor-head">
-                    <div style="font-size:22px; font-weight:700; color:#24324a;" id="editor_title">Nuova richiesta ferie estive</div>
+                    <div style="font-size:22px; font-weight:700; color:#24324a;" id="editor_title">
+                        Nuova richiesta <?php echo htmlspecialchars(strtolower($bootstrapData['titolo']), ENT_QUOTES, 'UTF-8'); ?>
+                    </div>
                     <div style="margin-top:6px; color:#5f6c7b; font-size:15px;">
                         Periodo disponibile:
                         <strong id="periodo_testo"></strong>
@@ -491,7 +492,7 @@ $bootstrapData = [
                         </span>
                         <span class="ferie-badge skip">
                             <span class="glyphicon glyphicon-ban-circle"></span>
-                            Esclusi automaticamente: sabati, domeniche, 26 giugno
+                            Esclusi automaticamente: sabati, domeniche<?php echo ($sottotipo === 'ESTIVE') ? ', 26 giugno' : ''; ?>
                         </span>
                         <span class="ferie-badge lock">
                             <span class="glyphicon glyphicon-lock"></span>
@@ -522,13 +523,16 @@ $bootstrapData = [
 
             <div class="ferie-footer-actions">
                 <div class="box">
-                    <button type="button" class="btn btn-default" id="btn_cancel_estive">
+                    <button type="button" class="btn btn-danger" id="btn_delete_bozza_ferie" style="display:none;">
+                        <span class="glyphicon glyphicon-trash"></span>&ensp;Elimina bozza
+                    </button>
+                    <button type="button" class="btn btn-default" id="btn_cancel_ferie">
                         <span class="glyphicon glyphicon-remove"></span>&ensp;Annulla
                     </button>
-                    <button type="button" class="btn btn-primary" id="btn_save_bozza_estive">
+                    <button type="button" class="btn btn-primary" id="btn_save_bozza_ferie">
                         <span class="glyphicon glyphicon-floppy-disk"></span>&ensp;Salva bozza
                     </button>
-                    <button type="button" class="btn btn-success" id="btn_invia_estive">
+                    <button type="button" class="btn btn-success" id="btn_invia_ferie">
                         <span class="glyphicon glyphicon-send"></span>&ensp;Invia richiesta
                     </button>
                 </div>
@@ -537,9 +541,9 @@ $bootstrapData = [
     </div>
 
     <script>
-        window.__FERIE_ESTIVE_BOOTSTRAP = <?php echo json_encode($bootstrapData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        window.__FERIE_BOOTSTRAP = <?php echo json_encode($bootstrapData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     </script>
-    <script type="text/javascript" src="js/scriptFerieEstiveAta.js"></script>
+    <script type="text/javascript" src="js/scriptFerieRichiestaAta.js?v=<?php echo time(); ?>"></script>
 </body>
 
 </html>
