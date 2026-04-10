@@ -142,17 +142,44 @@
 
     function setReadonly(readonly) {
         isReadOnly = !!readonly;
-        $("#ferie_note").prop("readonly", isReadOnly);
-        $("#btn_save_bozza_ferie").prop("disabled", isReadOnly);
-        $("#btn_invia_ferie").prop("disabled", isReadOnly);
 
+        const stato = String(currentState || "").toUpperCase();
         const currentId = parseInt($("#richiesta_id").val() || "0", 10);
-        const isBozza = (String(currentState || "").toUpperCase() === "BOZZA");
 
-        if (!isReadOnly && currentId > 0 && isBozza) {
-            $("#btn_delete_bozza_ferie").show();
+        const isBozza = (stato === "BOZZA");
+        const isInviato = (stato === "INVIATO" || stato === "INVIATA");
+        const isApprovato = (
+            stato === "APPROVATO" ||
+            stato === "APPROVATA" ||
+            stato === "APPROVATO_PARZIALE"
+        );
+
+        $("#ferie_note").prop("readonly", isReadOnly);
+
+        if (isBozza) {
+            $("#btn_delete_bozza_ferie").toggle(currentId > 0);
+            $("#btn_cancel_ferie").show();
+            $("#btn_save_bozza_ferie").show().prop("disabled", false);
+            $("#btn_invia_ferie").show().prop("disabled", false);
+            $("#btn_rimetti_bozza_ferie").hide();
+        } else if (isInviato) {
+            $("#btn_delete_bozza_ferie").hide();
+            $("#btn_cancel_ferie").show();
+            $("#btn_save_bozza_ferie").hide();
+            $("#btn_invia_ferie").hide();
+            $("#btn_rimetti_bozza_ferie").show().prop("disabled", false);
+        } else if (isApprovato) {
+            $("#btn_delete_bozza_ferie").hide();
+            $("#btn_cancel_ferie").show();
+            $("#btn_save_bozza_ferie").hide();
+            $("#btn_invia_ferie").hide();
+            $("#btn_rimetti_bozza_ferie").hide();
         } else {
             $("#btn_delete_bozza_ferie").hide();
+            $("#btn_cancel_ferie").show();
+            $("#btn_save_bozza_ferie").hide();
+            $("#btn_invia_ferie").hide();
+            $("#btn_rimetti_bozza_ferie").hide();
         }
 
         renderCalendar();
@@ -310,6 +337,33 @@
         });
     }
 
+    function rimettiInBozza(id) {
+        if (!confirm("Vuoi rimettere questa richiesta in bozza?")) return;
+
+        $.ajax({
+            url: "ferieRichiestaRimettiBozza.php",
+            method: "POST",
+            dataType: "json",
+            data: {
+                id: id,
+                sottotipo: SOTTOTIPO
+            },
+            success: function (r) {
+                if (!r || r.ok !== true) {
+                    notifyCentered("danger", TITOLO, (r && r.error) ? r.error : "Errore aggiornamento stato.", 5000);
+                    return;
+                }
+
+                notifyCentered("info", TITOLO, "Richiesta rimessa in bozza.", 2200);
+                window.location.href = "ferieRichiesta.php?sottotipo=" + encodeURIComponent(SOTTOTIPO) + "&id=" + encodeURIComponent(id);
+            },
+            error: function (xhr) {
+                console.log("AJAX rimettiInBozza error", xhr.status, xhr.responseText);
+                notifyCentered("danger", TITOLO, "Errore server: " + xhr.status, 5000);
+            }
+        });
+    }
+
     function collectSelectedDays() {
         return Array.from(selectedDays).sort();
     }
@@ -389,6 +443,16 @@
         const id = parseInt($("#richiesta_id").val() || "0", 10);
         if (id > 0) {
             deleteRequest(id);
+        }
+    });
+
+    $(document).on("click", "#btn_rimetti_bozza_ferie", function () {
+        const id = parseInt($("#richiesta_id").val() || "0", 10);
+
+        if (id > 0) {
+            rimettiInBozza(id);
+        } else {
+            console.log("ID richiesta non valido");
         }
     });
 

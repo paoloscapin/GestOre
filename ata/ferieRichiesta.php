@@ -553,6 +553,9 @@ $bootstrapData = [
                     <button type="button" class="btn btn-danger" id="btn_delete_bozza_ferie" style="display:none;">
                         <span class="glyphicon glyphicon-trash"></span>&ensp;Elimina bozza
                     </button>
+                    <button type="button" class="btn btn-warning" id="btn_rimetti_bozza_ferie" style="display:none;">
+                        <span class="glyphicon glyphicon-repeat"></span>&ensp;Rimetti in bozza
+                    </button>
                     <button type="button" class="btn btn-default" id="btn_cancel_ferie">
                         <span class="glyphicon glyphicon-remove"></span>&ensp;Annulla
                     </button>
