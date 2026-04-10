@@ -23,8 +23,57 @@ function personaleAtaExport() {
     window.location.href = "personaleAtaExport.php?" + params;
 }
 
-function personaleAtaImportaPlaceholder() {
-    alert("Pulsante Importa predisposto. Possiamo ora collegarlo a un file CSV/Excel di importazione.");
+function personaleAtaImportaFile() {
+    var fileInput = $("#import_file")[0];
+    if (!fileInput.files || !fileInput.files.length) {
+        alert("Seleziona un file CSV.");
+        return;
+    }
+
+    var fd = new FormData();
+    fd.append("import_file", fileInput.files[0]);
+    fd.append("has_header", $("#import_has_header").is(":checked") ? "1" : "0");
+
+    $("#import_result").html("Importazione in corso...");
+
+    $.ajax({
+        url: "personaleAtaImportProcess.php",
+        type: "POST",
+        data: fd,
+        processData: false,
+        contentType: false,
+        dataType: "json",
+        success: function (resp) {
+            if (!resp || resp.ok === false) {
+                $("#import_result").html('<div class="text-danger">' + ((resp && resp.message) ? resp.message : 'Errore durante l\'importazione.') + '</div>');
+                return;
+            }
+
+            var html = '<div class="text-success"><strong>Import completato.</strong></div>';
+            html += '<div>Inseriti: <strong>' + (resp.inserted || 0) + '</strong></div>';
+            html += '<div>Aggiornati: <strong>' + (resp.updated || 0) + '</strong></div>';
+            html += '<div>Assegnazioni ufficio nuove/modificate: <strong>' + (resp.office_changes || 0) + '</strong></div>';
+
+            if (resp.errors && resp.errors.length) {
+                html += '<hr><div class="text-danger"><strong>Righe con errori:</strong></div><ul style="max-height:180px; overflow:auto;">';
+                for (var i = 0; i < resp.errors.length; i++) {
+                    html += '<li>' + personaleAtaEscapeHtml(resp.errors[i]) + '</li>';
+                }
+                html += '</ul>';
+            }
+
+            $("#import_result").html(html);
+            personaleAtaReadRecords();
+        },
+        error: function (xhr) {
+            var msg = "Errore durante l'importazione.";
+            try {
+                var r = JSON.parse(xhr.responseText);
+                if (r && r.message) msg = r.message;
+            } catch (e) {}
+            $("#import_result").html('<div class="text-danger">' + personaleAtaEscapeHtml(msg) + '</div>');
+        }
+    });
 }
 
 function personaleAtaGetCodiceProfilo(idProfilo) {

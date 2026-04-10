@@ -151,7 +151,7 @@ if (!is_array($profili)) $profili = [];
                                 <span class="glyphicon glyphicon-download-alt"></span> Esporta
                             </button>
 
-                            <button type="button" class="btn btn-xs btn-default" onclick="personaleAtaImportaPlaceholder()">
+                            <button type="button" class="btn btn-xs btn-default" onclick="$('#import_modal').modal('show')">
                                 <span class="glyphicon glyphicon-upload"></span> Importa
                             </button>
 
@@ -536,6 +536,51 @@ if (!is_array($profili)) $profili = [];
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal - Import -->
+        <div class="modal fade" id="import_modal" data-backdrop="static" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <form id="importForm" enctype="multipart/form-data">
+                        <div class="modal-body">
+                            <div class="panel panel-lightblue4">
+                                <div class="panel-heading">
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                    <h5 class="modal-title">Importa personale ATA</h5>
+                                </div>
+
+                                <div class="panel-body">
+                                    <div class="alert alert-info" style="margin-bottom:15px;">
+                                        Importa un file CSV con colonne:
+                                        <strong>cognome, nome, email, username, matricola, tipo_contratto, codice_fiscale, profilo, ufficio</strong>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="import_file">File CSV</label>
+                                        <input type="file" id="import_file" name="import_file" class="form-control" accept=".csv" />
+                                    </div>
+
+                                    <div class="checkbox">
+                                        <label>
+                                            <input type="checkbox" id="import_has_header" checked> Il file contiene intestazione
+                                        </label>
+                                    </div>
+
+                                    <div id="import_result" class="small" style="margin-top:10px;"></div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                                    <button type="button" class="btn btn-primary" onclick="personaleAtaImportaFile()">Importa</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
