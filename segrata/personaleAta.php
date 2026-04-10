@@ -147,6 +147,14 @@ if (!is_array($profili)) $profili = [];
 
                     <div class="col-md-3">
                         <div class="pull-right">
+                            <button type="button" class="btn btn-xs btn-default" onclick="personaleAtaExport()">
+                                <span class="glyphicon glyphicon-download-alt"></span> Esporta
+                            </button>
+
+                            <button type="button" class="btn btn-xs btn-default" onclick="personaleAtaImportaPlaceholder()">
+                                <span class="glyphicon glyphicon-upload"></span> Importa
+                            </button>
+
                             <button class="btn btn-xs btn-lightblue4" data-toggle="modal"
                                 data-target="#add_new_record_modal">
                                 <span class="glyphicon glyphicon-plus"></span> Nuovo dipendente

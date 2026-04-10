@@ -7,6 +7,26 @@ var soloAttivi = 1;
 var orderBy = localStorage.getItem("personaleAta_orderBy") || "cognome";
 var orderDir = localStorage.getItem("personaleAta_orderDir") || "ASC";
 
+function personaleAtaExport() {
+    var filters = personaleAtaGetFilters();
+
+    var params = $.param({
+        soloAttivi: soloAttivi,
+        search: filters.search,
+        id_ufficio: filters.id_ufficio,
+        id_profilo: filters.id_profilo,
+        tipo_contratto: filters.tipo_contratto,
+        order_by: orderBy,
+        order_dir: orderDir
+    });
+
+    window.location.href = "personaleAtaExport.php?" + params;
+}
+
+function personaleAtaImportaPlaceholder() {
+    alert("Pulsante Importa predisposto. Possiamo ora collegarlo a un file CSV/Excel di importazione.");
+}
+
 function personaleAtaGetCodiceProfilo(idProfilo) {
     if (!window.PERSONALE_ATA_PROFILI || !PERSONALE_ATA_PROFILI.length) return "";
 
