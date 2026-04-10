@@ -1,4 +1,5 @@
 <?php
+
 /**
  *  This file is part of GestOre
  *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
@@ -23,14 +24,40 @@ if (haRuolo('portineria')) {
 } else {
 	$displayName = $__ata_nome . ' ' . $__ata_cognome;
 }
+
+/*
+ * Metti qui il nome reale della home ATA se diverso da index.php
+ */
+$isAtaHome = in_array($currentScript, ['index.php'], true);
 ?>
 <style>
+	html,
+	body {
+		margin: 0 !important;
+		padding: 0 !important;
+	}
+
+	body {
+		margin-top: 0 !important;
+		padding-top: 0 !important;
+	}
+
+	.container-fluid {
+		margin-top: 0 !important;
+		padding-top: 0 !important;
+	}
+
+	.ata-mobile-header {
+		margin-top: 0 !important;
+	}
+
 	.ata-mobile-header {
 		background: linear-gradient(180deg, #6cc3ea 0%, #14aae2 100%);
 		color: #fff;
 		padding: 10px 12px 12px 12px;
 		margin-bottom: 10px;
-		box-shadow: 0 2px 8px rgba(0,0,0,.10);
+		margin-top: 0 !important;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, .10);
 	}
 
 	.ata-mobile-header-top {
@@ -65,7 +92,7 @@ if (haRuolo('portineria')) {
 		width: 42px;
 		height: 42px;
 		border-radius: 12px;
-		background: rgba(255,255,255,.16);
+		background: rgba(255, 255, 255, .16);
 		color: #fff;
 		text-decoration: none;
 		font-size: 18px;
@@ -75,7 +102,7 @@ if (haRuolo('portineria')) {
 	.ata-mobile-logout:focus {
 		color: #fff;
 		text-decoration: none;
-		background: rgba(255,255,255,.24);
+		background: rgba(255, 255, 255, .24);
 	}
 
 	.ata-mobile-nav {
@@ -98,7 +125,7 @@ if (haRuolo('portineria')) {
 		font-size: 20px;
 		font-weight: 700;
 		text-decoration: none;
-		box-shadow: 0 2px 6px rgba(0,0,0,.10);
+		box-shadow: 0 2px 6px rgba(0, 0, 0, .10);
 	}
 
 	.ata-mobile-btn:hover,
@@ -136,25 +163,18 @@ if (haRuolo('portineria')) {
 		</div>
 
 		<a class="ata-mobile-logout"
-		   href="../common/logout.php?base=ata"
-		   title="Esci">
+			href="../common/logout.php?base=ata"
+			title="Esci">
 			<span class="glyphicon glyphicon-log-out"></span>
 		</a>
 	</div>
 
-	<div class="ata-mobile-nav">
-		<a href="../orario/orario.php"
-		   class="ata-mobile-btn <?php echo ataIsActive('orario.php') ? 'is-active' : ''; ?>">
-			<span class="glyphicon glyphicon-time"></span>
-			<span>Orario ed Eventi</span>
-		</a>
-
-		<?php if (haRuolo('personale-ata')): ?>
-			<a href="../ata/permessi.php"
-			   class="ata-mobile-btn <?php echo ataIsActive('permessi.php') ? 'is-active' : ''; ?>">
-				<span class="glyphicon glyphicon-folder-open"></span>
-				<span>I miei permessi</span>
+	<?php if (!$isAtaHome): ?>
+		<div class="ata-mobile-nav">
+			<a href="../ata/index.php" class="ata-mobile-btn">
+				<span class="glyphicon glyphicon-home"></span>
+				<span>Torna alla home</span>
 			</a>
-		<?php endif; ?>
-	</div>
+		</div>
+	<?php endif; ?>
 </div>

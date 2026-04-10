@@ -41,6 +41,10 @@ foreach ($finestreFerie as $f) {
   <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 
   <style>
+    body {
+      background: #f5f6f8;
+    }
+
     .permessi-page {
       max-width: 760px;
       margin: 0 auto;
@@ -77,6 +81,19 @@ foreach ($finestreFerie as $f) {
       font-weight: 700;
       border-radius: 16px;
       margin-top: 12px;
+    }
+
+    .btn-estive-main {
+      background: #ffefb0;
+      border-color: #e7c85f;
+      color: #4b3b05;
+    }
+
+    .btn-estive-main:hover,
+    .btn-estive-main:focus {
+      background: #ffe486;
+      border-color: #d3b24d;
+      color: #3a2d04;
     }
 
     #permesso_modal .modal-dialog {
@@ -169,6 +186,24 @@ foreach ($finestreFerie as $f) {
       line-height: 1.5;
     }
 
+    .records_content .panel {
+      border-radius: 18px !important;
+    }
+
+    .records_content .btn-lg {
+      min-height: 52px;
+      border-radius: 14px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .records_content .label {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+
     @media (max-width: 767px) {
       .container-fluid {
         padding-left: 10px;
@@ -257,117 +292,6 @@ foreach ($finestreFerie as $f) {
       }
     }
   </style>
-  <style>
-  body {
-    background: #f5f6f8;
-  }
-
-  .container-fluid {
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-
-  .permessi-hero-card {
-    background: #f6eed2;
-    border: 1px solid #ead8a2;
-    border-radius: 18px;
-    padding: 16px 14px;
-    margin-bottom: 14px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.05);
-  }
-
-  .permessi-hero-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #24324a;
-    text-align: center;
-    margin-bottom: 8px;
-  }
-
-  .permessi-hero-text {
-    font-size: 16px;
-    line-height: 1.45;
-    color: #516079;
-    text-align: center;
-    margin-bottom: 14px;
-  }
-
-  .btn-mobile-main {
-    width: 100%;
-    min-height: 56px;
-    border-radius: 18px;
-    font-size: 18px;
-    font-weight: 700;
-    padding: 12px 16px;
-  }
-
-  .records_content .panel {
-    border-radius: 18px !important;
-  }
-
-  .records_content .btn-lg {
-    min-height: 52px;
-    border-radius: 14px;
-    font-size: 20px;
-    font-weight: 700;
-  }
-
-  .records_content .label {
-    display: inline-block;
-    padding: 8px 12px;
-    border-radius: 10px;
-    font-size: 13px;
-  }
-
-  @media (max-width: 767px) {
-    .modal-dialog {
-      margin: 8px;
-    }
-
-    .modal-content {
-      border-radius: 18px;
-    }
-
-    .panel-heading h5,
-    .modal-title {
-      font-size: 20px;
-      font-weight: 700;
-    }
-
-    .form-control {
-      font-size: 16px;
-      min-height: 46px;
-      border-radius: 12px;
-    }
-
-    textarea.form-control {
-      min-height: 96px;
-    }
-
-    .btn {
-      border-radius: 14px;
-    }
-
-    #btn_save_bozza,
-    #btn_invia {
-      width: 100%;
-      min-height: 50px;
-      font-size: 18px;
-      font-weight: 700;
-      margin-top: 8px;
-    }
-
-    .panel-footer .btn-default {
-      width: 100%;
-      min-height: 46px;
-      margin-bottom: 8px;
-    }
-
-    .well {
-      border-radius: 14px;
-    }
-  }
-</style>
 </head>
 
 <body>
@@ -387,6 +311,10 @@ foreach ($finestreFerie as $f) {
       <button class="btn btn-warning btn-mobile-main" id="btn_new">
         <span class="glyphicon glyphicon-plus"></span>&ensp;Nuova richiesta
       </button>
+
+      <a class="btn btn-estive-main btn-mobile-main" href="ferieEstive.php">
+        <span class="glyphicon glyphicon-calendar"></span>&ensp;Richiesta ferie estive
+      </a>
     </div>
 
     <div class="records_content"></div>
@@ -444,13 +372,16 @@ foreach ($finestreFerie as $f) {
                     <option value="GENERICHE">GENERICHE</option>
                     <option value="CARNEVALE">CARNEVALE</option>
                     <option value="PASQUA">PASQUA</option>
-                    <option value="ESTIVE">ESTIVE</option>
                     <option value="NATALE">NATALE</option>
                   </select>
 
                   <div id="ferie_periodo_box" class="text-muted" style="margin-top:6px; display:none;">
                     <span class="glyphicon glyphicon-calendar"></span>&ensp;
                     <span id="ferie_periodo_testo"></span>
+                  </div>
+
+                  <div class="alert alert-warning" style="margin-top:8px; border-radius:12px;">
+                    Le <strong>ferie estive</strong> si richiedono dalla pagina dedicata con calendario completo.
                   </div>
                 </div>
               </div>
