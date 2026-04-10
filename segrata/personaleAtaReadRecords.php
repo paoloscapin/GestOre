@@ -47,7 +47,6 @@ function sortArrow($field, $currentField, $currentDir) {
 }
 
 $where = [];
-if ($tipoContratto !== '') $where[] = "p.tipo_contratto = '".paEsc($tipoContratto)."'";
 if ($soloAttivi == 1) $where[] = "p.attivo = 1";
 
 if ($search !== '') {
@@ -60,13 +59,34 @@ if ($search !== '') {
         p.matricola LIKE '%$s%' OR
         p.codice_fiscale LIKE '%$s%' OR
         p.tipo_contratto LIKE '%$s%' OR
-        p.ruolo LIKE '%$s%' OR
-        pr.nome LIKE '%$s%'
+        pr.codice LIKE '%$s%' OR
+        pr.nome LIKE '%$s%' OR
+        u.nome LIKE '%$s%'
+    )";
+}
+
+$where = [];
+if ($soloAttivi == 1) $where[] = "p.attivo = 1";
+
+if ($search !== '') {
+    $s = paEsc($search);
+    $where[] = "(
+        p.cognome LIKE '%$s%' OR
+        p.nome LIKE '%$s%' OR
+        p.email LIKE '%$s%' OR
+        p.username LIKE '%$s%' OR
+        p.matricola LIKE '%$s%' OR
+        p.codice_fiscale LIKE '%$s%' OR
+        p.tipo_contratto LIKE '%$s%' OR
+        pr.codice LIKE '%$s%' OR
+        pr.nome LIKE '%$s%' OR
+        u.nome LIKE '%$s%'
     )";
 }
 
 if ($idUfficio > 0) $where[] = "curr.id_ufficio = $idUfficio";
 if ($idProfilo > 0) $where[] = "p.id_profilo = $idProfilo";
+if ($tipoContratto !== '') $where[] = "p.tipo_contratto = '".paEsc($tipoContratto)."'";
 
 $sqlWhere = count($where) ? ("WHERE " . implode(" AND ", $where)) : "";
 
