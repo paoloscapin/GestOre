@@ -587,7 +587,12 @@ if (!is_array($profili)) $profili = [];
 
     </div>
     <script>
-        var PERSONALE_ATA_PROFILI = <?php echo json_encode($profili, JSON_UNESCAPED_UNICODE); ?>;
+        var PERSONALE_ATA_PROFILI = <?php
+                                    echo json_encode(
+                                        $profili,
+                                        JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE
+                                    );
+                                    ?> || [];
     </script>
 
     <script type="text/javascript" src="js/scriptPersonaleAta.js"></script>

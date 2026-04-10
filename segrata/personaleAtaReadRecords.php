@@ -27,7 +27,7 @@ $idProfilo  = isset($_GET["id_profilo"]) && $_GET["id_profilo"] !== '' ? intval(
 $tipoContratto = trim($_GET["tipo_contratto"] ?? '');
 $orderBy  = $_GET['order_by'] ?? 'cognome';
 $orderDir = strtoupper($_GET['order_dir'] ?? 'ASC');
-if (!in_array($orderDir, ['ASC','DESC'])) $orderDir = 'ASC';
+if (!in_array($orderDir, ['ASC', 'DESC'])) $orderDir = 'ASC';
 
 $allowedOrder = [
     'cognome' => 'p.cognome',
@@ -41,7 +41,8 @@ $allowedOrder = [
 
 $orderSql = $allowedOrder[$orderBy] ?? 'p.cognome';
 
-function sortArrow($field, $currentField, $currentDir) {
+function sortArrow($field, $currentField, $currentDir)
+{
     if ($field !== $currentField) return '';
     return $currentDir === 'ASC' ? ' <span style="font-size:11px;">▲</span>' : ' <span style="font-size:11px;">▼</span>';
 }
@@ -86,7 +87,7 @@ if ($search !== '') {
 
 if ($idUfficio > 0) $where[] = "curr.id_ufficio = $idUfficio";
 if ($idProfilo > 0) $where[] = "p.id_profilo = $idProfilo";
-if ($tipoContratto !== '') $where[] = "p.tipo_contratto = '".paEsc($tipoContratto)."'";
+if ($tipoContratto !== '') $where[] = "p.tipo_contratto = '" . paEsc($tipoContratto) . "'";
 
 $sqlWhere = count($where) ? ("WHERE " . implode(" AND ", $where)) : "";
 
@@ -144,13 +145,13 @@ echo '</script>';
 
 echo '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">';
 echo '<tr>
-    <th style="cursor:pointer;" onclick="ordina(\'cognome\')">Cognome'.sortArrow('cognome', $orderBy, $orderDir).'</th>
-    <th style="cursor:pointer;" onclick="ordina(\'nome\')">Nome'.sortArrow('nome', $orderBy, $orderDir).'</th>
-    <th style="cursor:pointer;" onclick="ordina(\'email\')">Email'.sortArrow('email', $orderBy, $orderDir).'</th>
-    <th style="cursor:pointer;" onclick="ordina(\'tipo_contratto\')">Tipo contratto'.sortArrow('tipo_contratto', $orderBy, $orderDir).'</th>
-    <th style="cursor:pointer;" onclick="ordina(\'profilo\')">Profilo'.sortArrow('profilo', $orderBy, $orderDir).'</th>
-    <th style="cursor:pointer;" onclick="ordina(\'ufficio\')">Ufficio'.sortArrow('ufficio', $orderBy, $orderDir).'</th>
-    <th style="cursor:pointer;" onclick="ordina(\'attivo\')" class="text-center">Attivo'.sortArrow('attivo', $orderBy, $orderDir).'</th>
+    <th style="cursor:pointer;" onclick="ordina(\'cognome\')">Cognome' . sortArrow('cognome', $orderBy, $orderDir) . '</th>
+    <th style="cursor:pointer;" onclick="ordina(\'nome\')">Nome' . sortArrow('nome', $orderBy, $orderDir) . '</th>
+    <th style="cursor:pointer;" onclick="ordina(\'email\')">Email' . sortArrow('email', $orderBy, $orderDir) . '</th>
+    <th style="cursor:pointer;" onclick="ordina(\'tipo_contratto\')">Tipo contratto' . sortArrow('tipo_contratto', $orderBy, $orderDir) . '</th>
+    <th style="cursor:pointer;" onclick="ordina(\'profilo\')">Profilo' . sortArrow('profilo', $orderBy, $orderDir) . '</th>
+    <th style="cursor:pointer;" onclick="ordina(\'ufficio\')">Ufficio' . sortArrow('ufficio', $orderBy, $orderDir) . '</th>
+    <th style="cursor:pointer;" onclick="ordina(\'attivo\')" class="text-center">Attivo' . sortArrow('attivo', $orderBy, $orderDir) . '</th>
     <th class="text-center">Azioni</th>
 </tr>';
 
@@ -175,13 +176,13 @@ if (!$rows) {
         }
 
         echo '<td class="text-center">
-            <button onclick="personaleAtaGetDetails(' . intval($row['id']) . ')" class="btn btn-warning btn-xs" title="Apri scheda">
-                <span class="glyphicon glyphicon-pencil"></span>
-            </button>
-            <button onclick="personaleAtaDelete(' . intval($row['id']) . ', ' . json_encode($row['cognome']) . ', ' . json_encode($row['nome']) . ')" class="btn btn-danger btn-xs" title="Elimina">
-                <span class="glyphicon glyphicon-trash"></span>
-            </button>
-        </td>';
+    <button onclick="personaleAtaGetDetails(' . intval($row['id']) . ')" class="btn btn-warning btn-xs" title="Apri scheda">
+        <span class="glyphicon glyphicon-pencil"></span>
+    </button>
+    <button onclick=\'personaleAtaDelete(' . intval($row['id']) . ', ' . json_encode($row['cognome'], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) . ', ' . json_encode($row['nome'], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) . ')\' class="btn btn-danger btn-xs" title="Elimina">
+        <span class="glyphicon glyphicon-trash"></span>
+    </button>
+</td>';
         echo '</tr>';
     }
 }

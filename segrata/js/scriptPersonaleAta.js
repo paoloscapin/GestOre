@@ -145,17 +145,6 @@ function ordina(campo) {
         orderDir = "ASC";
     }
 
-    personaleAtaReadRecords();
-}
-
-function ordina(campo) {
-    if (orderBy === campo) {
-        orderDir = (orderDir === "ASC") ? "DESC" : "ASC";
-    } else {
-        orderBy = campo;
-        orderDir = "ASC";
-    }
-
     localStorage.setItem("personaleAta_orderBy", orderBy);
     localStorage.setItem("personaleAta_orderDir", orderDir);
 
@@ -346,15 +335,29 @@ function personaleAtaUpdateDetails() {
 }
 
 function personaleAtaDelete(id, cognome, nome) {
-    var conf = confirm("Sei sicuro di volere cancellare il personale ATA " + cognome + " " + nome + " ?");
+    var conf = confirm(
+        "Sei sicuro di volere cancellare il personale ATA " +
+        cognome + " " + nome +
+        "?\nVerrà eliminato anche lo storico uffici."
+    );
     if (!conf) return;
 
-    $.post("../common/deleteRecord.php", {
-        id: id,
-        table: 'personale_ata',
-        name: "personale ATA " + cognome + " " + nome
-    }, function () {
+    $.post("personaleAtaDelete.php", {
+        id: id
+    }, function (resp) {
+        if (!resp || resp.ok === false) {
+            alert((resp && resp.message) ? resp.message : "Errore durante l'eliminazione.");
+            return;
+        }
+
         personaleAtaReadRecords();
+    }, "json").fail(function (xhr) {
+        var msg = "Errore durante l'eliminazione.";
+        try {
+            var r = JSON.parse(xhr.responseText);
+            if (r && r.message) msg = r.message;
+        } catch (e) {}
+        alert(msg);
     });
 }
 
