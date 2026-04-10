@@ -83,7 +83,7 @@ function updateFeriePeriodoUI() {
 
 function permessiReadRecords() {
     $.get("permessiReadRecords.php", {}, function (html) {
-        $(".records_content").html(html);
+        $("#records_content").html(html);
     });
 }
 
@@ -389,7 +389,10 @@ function openNewPermesso() {
     $("#block_singolo :input").prop("disabled", false);
     $("#block_ferie_multi :input").prop("disabled", false);
     $("#block_104_multi :input").prop("disabled", false);
-
+    $("#btn_cancel_permesso").show();
+    $("#btn_save_bozza").show();
+    $("#btn_invia").show();
+    $("#btn_rimetti_bozza").hide();
     $("#permesso_editor_title").text("Nuova richiesta");
     showPermessoEditor();
     focusFirstFieldInModal();
@@ -439,16 +442,18 @@ function permessoGetDetails(id) {
             $("#singolo_ora_a").val(rr ? (rr.ora_a || "") : "");
         }
 
-        const editable = ((p.stato || "") === "BOZZA");
+        const stato = String(p.stato || "").toUpperCase();
+        const isBozza = (stato === "BOZZA");
+        const isInviato = (stato === "INVIATO" || stato === "INVIATA");
+        const isApprovato = (stato === "APPROVATO" || stato === "APPROVATA" || stato === "APPROVATO_PARZIALE");
+        const editable = isBozza;
+
         $("#permesso_tipo_id").prop("disabled", !editable);
         $("#permesso_note").prop("readonly", !editable);
         $("#ferie_sottotipo").prop("disabled", !editable);
 
         $("#btn_add_ferie").prop("disabled", !editable || (tipo_codice !== "FERIE"));
         $("#btn_add_104").prop("disabled", !editable || (tipo_codice !== "LEGGE_104"));
-
-        $("#btn_save_bozza").prop("disabled", !editable);
-        $("#btn_invia").prop("disabled", !editable);
 
         if (!editable) {
             $("#block_singolo :input").prop("disabled", true);
@@ -458,6 +463,27 @@ function permessoGetDetails(id) {
             $("#block_singolo :input").prop("disabled", false);
             $("#block_ferie_multi :input").prop("disabled", false);
             $("#block_104_multi :input").prop("disabled", false);
+        }
+
+        /* visibilità pulsanti footer */
+        $("#btn_cancel_permesso").show();
+
+        if (isBozza) {
+            $("#btn_save_bozza").show().prop("disabled", false);
+            $("#btn_invia").show().prop("disabled", false);
+            $("#btn_rimetti_bozza").hide();
+        } else if (isInviato) {
+            $("#btn_save_bozza").hide();
+            $("#btn_invia").hide();
+            $("#btn_rimetti_bozza").show().prop("disabled", false);
+        } else if (isApprovato) {
+            $("#btn_save_bozza").hide();
+            $("#btn_invia").hide();
+            $("#btn_rimetti_bozza").hide();
+        } else {
+            $("#btn_save_bozza").hide();
+            $("#btn_invia").hide();
+            $("#btn_rimetti_bozza").hide();
         }
 
         $("#permesso_editor_title").text("Modifica richiesta");
@@ -546,6 +572,30 @@ function permessoDelete(id) {
     });
 }
 
+function permessoRimettiInBozza(id) {
+    if (!confirm("Vuoi rimettere questa richiesta in bozza?")) return;
+
+    $.ajax({
+        url: "permessoRimettiBozza.php",
+        method: "POST",
+        dataType: "json",
+        data: { id: id },
+        success: function (r) {
+            if (!r || r.ok !== true) {
+                notifyErr((r && r.error) ? r.error : "Errore aggiornamento stato.");
+                return;
+            }
+
+            hidePermessoEditor();
+            permessiReadRecords();
+            notifyCentered("info", "Permessi ATA", "Richiesta rimessa in bozza.", 2200);
+        },
+        error: function (xhr) {
+            notifyErr("Errore server: " + xhr.status);
+        }
+    });
+}
+
 /* ===========================
  * EVENTS
  * =========================== */
@@ -601,6 +651,11 @@ $(document).on("click", "#btn_cancel_permesso", function () {
     hidePermessoEditor();
 });
 
+$(document).on("click", "#btn_rimetti_bozza", function () {
+    const id = parseInt($("#permesso_id").val(), 10) || 0;
+    if (id > 0) permessoRimettiInBozza(id);
+});
+
 $(document).on("click", "#btn_save_bozza", function () {
     permessoSave("BOZZA");
 });
@@ -620,7 +675,40 @@ $(document).on("click", ".btn-open-permesso", function () {
 
 $(document).on("click", ".btn-delete-permesso", function () {
     const id = parseInt($(this).data("id"), 10) || 0;
-    if (id > 0) permessoDelete(id);
+    const codice = String($(this).data("codice") || "").toUpperCase().trim();
+    const ferieSottotipo = String($(this).data("ferie-sottotipo") || "").toUpperCase().trim();
+
+    if (id <= 0) return;
+
+    if (codice === "FERIE" && ferieSottotipo) {
+        if (!confirm("Vuoi eliminare questa bozza di richiesta ferie?")) return;
+
+        $.ajax({
+            url: "ferieRichiestaDelete.php",
+            method: "POST",
+            dataType: "json",
+            data: {
+                id: id,
+                sottotipo: ferieSottotipo
+            },
+            success: function (r) {
+                if (!r || r.ok !== true) {
+                    notifyErr((r && r.error) ? r.error : "Errore cancellazione.");
+                    return;
+                }
+
+                permessiReadRecords();
+                notifyCentered("info", "Permessi ATA", "Bozza eliminata.", 2200);
+            },
+            error: function (xhr) {
+                notifyErr("Errore server: " + xhr.status);
+            }
+        });
+
+        return;
+    }
+
+    permessoDelete(id);
 });
 
 $(document).ready(function () {

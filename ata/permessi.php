@@ -90,12 +90,6 @@ foreach ($finestreFerie as $f) {
             gap: 10px;
         }
 
-        .permessi-toolbar {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 10px;
-        }
-
         .btn-estive-main {
             background: #ffefb0;
             border-color: #e7c85f;
@@ -500,9 +494,15 @@ foreach ($finestreFerie as $f) {
                             <button type="button" class="btn btn-default" id="btn_cancel_permesso">
                                 <span class="glyphicon glyphicon-remove"></span>&ensp;Annulla
                             </button>
+
+                            <button type="button" class="btn btn-warning" id="btn_rimetti_bozza" style="display:none;">
+                                <span class="glyphicon glyphicon-repeat"></span>&ensp;Rimetti in bozza
+                            </button>
+
                             <button type="button" class="btn btn-primary" id="btn_save_bozza">
                                 <span class="glyphicon glyphicon-floppy-disk"></span>&ensp;Salva bozza
                             </button>
+
                             <button type="button" class="btn btn-success" id="btn_invia">
                                 <span class="glyphicon glyphicon-send"></span>&ensp;Invia richiesta
                             </button>
@@ -514,10 +514,8 @@ foreach ($finestreFerie as $f) {
             </div>
 
             <div class="permessi-records-card" id="permessi_records_wrap">
-                <div style="padding:16px;" class="records_content"></div>
+                <div style="padding:16px;" id="records_content"></div>
             </div>
-
-            <div class="records_content"></div>
         </div>
     </div>
 

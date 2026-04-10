@@ -124,19 +124,14 @@ if (count($rows) === 0) {
       </button>';
 
     $btnDel = (strtoupper($stato) === 'BOZZA')
-      ? (
-        $btnEditHref
-        ? '
-          <a href="' . $btnEditHref . '" class="btn btn-danger btn-lg btn-block">
-            <span class="glyphicon glyphicon-trash"></span>&ensp;Gestisci
-          </a>'
-        : '
-          <button type="button"
-                  class="btn btn-danger btn-lg btn-block btn-delete-permesso"
-                  data-id="' . $id . '">
-            <span class="glyphicon glyphicon-trash"></span>&ensp;Elimina
-          </button>'
-      )
+      ? '
+      <button type="button"
+              class="btn btn-danger btn-lg btn-block btn-delete-permesso"
+              data-id="' . $id . '"
+              data-codice="' . h($codice) . '"
+              data-ferie-sottotipo="' . h($ferieSottotipo) . '">
+        <span class="glyphicon glyphicon-trash"></span>&ensp;Elimina
+      </button>'
       : '';
 
     $html .= '
