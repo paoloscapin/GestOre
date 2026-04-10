@@ -287,24 +287,47 @@ $bootstrapData = [
             border: none;
         }
 
+        .day-cell {
+            min-height: 92px;
+            border-radius: 16px;
+            border: 2px solid #d6dde6;
+            background: #ffffff;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all .15s ease;
+            cursor: pointer;
+            user-select: none;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .day-cell:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .06);
+            border-color: #8fc7e8;
+        }
+
         .day-cell.locked {
             cursor: not-allowed;
-            background: #f3f4f6;
-            color: #9ca3af;
-            border-color: #e5e7eb;
+            background: #e5e7eb;
+            color: #6b7280;
+            border-color: #c7ccd4;
             box-shadow: none;
         }
 
         .day-cell.selected {
-            background: #fff7d6;
-            border-color: #efcf5b;
-            color: #533f00;
+            background: #fff200;
+            border-color: #d4b300;
+            color: #2d2400;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35);
         }
 
         .day-cell.readonly-selected {
-            background: #e9f7ef;
-            border-color: #9ad3ac;
-            color: #245c39;
+            background: #b9f6ca;
+            border-color: #4caf50;
+            color: #124a1d;
             cursor: default;
         }
 
@@ -316,26 +339,29 @@ $bootstrapData = [
             line-height: 1.2;
         }
 
-        .day-dow {
-            font-size: 12px;
-            color: #6b7280;
-        }
-
-        .day-day {
-            font-size: 22px;
-            color: #24324a;
-        }
-
         .day-meta {
             font-size: 12px;
             line-height: 1.3;
             min-height: 30px;
         }
 
+        .day-dow {
+            font-size: 12px;
+            color: #4b5563;
+            font-weight: 700;
+        }
+
+        .day-day {
+            font-size: 22px;
+            color: #1f2a44;
+            font-weight: 800;
+        }
+
         .day-lock-reason {
             font-size: 11px;
             line-height: 1.2;
-            color: #6b7280;
+            color: #4b5563;
+            font-weight: 600;
         }
 
         .ferie-footer-actions {
@@ -390,6 +416,7 @@ $bootstrapData = [
                 padding: 4px;
                 min-width: 0;
                 overflow: hidden;
+                border-width: 2px;
             }
 
             .day-num {

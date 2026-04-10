@@ -170,12 +170,7 @@
     }
 
     function cancelEditing() {
-        const currentId = parseInt($("#richiesta_id").val() || EDIT_ID || "0", 10);
-        if (currentId > 0) {
-            loadRequest(currentId);
-            return;
-        }
-        resetEditorToNew();
+        window.location.href = "permessi.php";
     }
 
     function renderCalendar() {
@@ -352,23 +347,18 @@
                     return;
                 }
 
-                $("#richiesta_id").val(r.id || "");
-                currentState = r.stato || currentState;
-                $("#editor_title").text(TITOLO + " #" + (r.id || ""));
-                updateHeaderInfo();
-
-                if (azione === "INVIA") {
-                    setReadonly(true);
-                }
-
                 notifyCentered(
                     "info",
                     TITOLO,
                     (azione === "INVIA")
                         ? "Richiesta inviata."
                         : "Bozza salvata.",
-                    2600
+                    1800
                 );
+
+                setTimeout(function () {
+                    window.location.href = "permessi.php";
+                }, 900);
             },
             error: function (xhr) {
                 const msg = "Errore server: " + xhr.status;
