@@ -1,18 +1,134 @@
 /**
- *  This file is part of GestOre
+ * This file is part of GestOre
  */
 
 var soloAttivi = 1;
+
+var orderBy = localStorage.getItem("personaleAta_orderBy") || "cognome";
+var orderDir = localStorage.getItem("personaleAta_orderDir") || "ASC";
+
+function personaleAtaGetCodiceProfilo(idProfilo) {
+    if (!window.PERSONALE_ATA_PROFILI || !PERSONALE_ATA_PROFILI.length) return "";
+
+    var idStr = String(idProfilo || "");
+    for (var i = 0; i < PERSONALE_ATA_PROFILI.length; i++) {
+        var p = PERSONALE_ATA_PROFILI[i];
+        if (String(p.id) === idStr) {
+            return p.codice || "";
+        }
+    }
+    return "";
+}
+
+function personaleAtaSyncRuoloDaProfilo() {
+    var codice = personaleAtaGetCodiceProfilo($("#id_profilo").val());
+    $("#ruolo").val(codice);
+}
+
+function personaleAtaSyncRuoloDaProfiloUpdate() {
+    var codice = personaleAtaGetCodiceProfilo($("#update_id_profilo").val());
+    $("#update_ruolo").val(codice);
+}
+
+function personaleAtaEscapeHtml(value) {
+    value = (value == null ? '' : '' + value);
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function personaleAtaIsoToIt(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso || "";
+    var parts = iso.split("-");
+    return parts[2] + "/" + parts[1] + "/" + parts[0];
+}
+
+function personaleAtaSetStats(stats) {
+    stats = stats || {};
+    $("#stats_totale").text(stats.totale || 0);
+    $("#stats_attivi").text(stats.attivi || 0);
+    $("#stats_con_ufficio").text(stats.con_ufficio || 0);
+    $("#stats_con_profilo").text(stats.con_profilo || 0);
+}
+
+function personaleAtaGetFilters() {
+    return {
+        search: $("#filter_text").val() || "",
+        id_ufficio: $("#filter_ufficio").val() || "",
+        id_profilo: $("#filter_profilo").val() || "",
+        tipo_contratto: $("#filter_tipo_contratto").val() || ""
+    };
+}
 
 $('#testCheckBox').change(function () {
     soloAttivi = this.checked ? 1 : 0;
     personaleAtaReadRecords();
 });
 
+function ordina(campo) {
+    if (orderBy === campo) {
+        orderDir = (orderDir === "ASC") ? "DESC" : "ASC";
+    } else {
+        orderBy = campo;
+        orderDir = "ASC";
+    }
+
+    personaleAtaReadRecords();
+}
+
+function ordina(campo) {
+    if (orderBy === campo) {
+        orderDir = (orderDir === "ASC") ? "DESC" : "ASC";
+    } else {
+        orderBy = campo;
+        orderDir = "ASC";
+    }
+
+    localStorage.setItem("personaleAta_orderBy", orderBy);
+    localStorage.setItem("personaleAta_orderDir", orderDir);
+
+    personaleAtaReadRecords();
+}
+
 function personaleAtaReadRecords() {
-    $.get("personaleAtaReadRecords.php?soloAttivi=" + soloAttivi, {}, function (data) {
+    var filters = personaleAtaGetFilters();
+
+    $.get("personaleAtaReadRecords.php", {
+        soloAttivi: soloAttivi,
+        search: filters.search,
+        id_ufficio: filters.id_ufficio,
+        id_profilo: filters.id_profilo,
+        tipo_contratto: filters.tipo_contratto,
+        order_by: orderBy,
+        order_dir: orderDir
+    }, function (data) {
         $(".records_content").html(data);
+
+        if (window.personaleAtaStats) {
+            personaleAtaSetStats(window.personaleAtaStats);
+        } else {
+            personaleAtaSetStats({ totale: 0, attivi: 0, con_ufficio: 0, con_profilo: 0 });
+        }
     });
+}
+
+function personaleAtaResetFilters() {
+    $("#filter_text").val("");
+    $("#filter_ufficio").val("");
+    $("#filter_profilo").val("");
+    $("#filter_tipo_contratto").val("");
+    personaleAtaReadRecords();
+}
+
+function personaleAtaClearAddModal() {
+    $("#nome,#cognome,#email,#username,#matricola,#tipo_contratto,#codice_fiscale,#ruolo").val("");
+    $("#id_ufficio").val("");
+    $("#id_profilo").val("");
+    $("#data_inizio_assegnazione").val(new Date().toISOString().slice(0, 10));
+    $("#attivo").prop("checked", true).change();
 }
 
 function personaleAtaAddRecord() {
@@ -22,39 +138,108 @@ function personaleAtaAddRecord() {
         email: $("#email").val(),
         username: $("#username").val(),
         matricola: $("#matricola").val(),
+        tipo_contratto: $("#tipo_contratto").val(),
         codice_fiscale: $("#codice_fiscale").val(),
+        id_profilo: $("#id_profilo").val(),
         ruolo: $("#ruolo").val(),
-        attivo: $("#attivo").is(':checked') ? 1 : 0
-    }, function () {
+        attivo: $("#attivo").is(':checked') ? 1 : 0,
+        id_ufficio: $("#id_ufficio").val(),
+        data_inizio_assegnazione: $("#data_inizio_assegnazione").val()
+    }, function (resp) {
+        if (resp && resp.ok === false) {
+            alert(resp.message || "Errore durante il salvataggio.");
+            return;
+        }
+
         $("#add_new_record_modal").modal("hide");
         personaleAtaReadRecords();
-
-        $("#nome,#cognome,#email,#username,#matricola,#codice_fiscale,#ruolo").val("");
-        $("#attivo").prop("checked", true);
+        personaleAtaClearAddModal();
+    }, "json").fail(function (xhr) {
+        var msg = "Errore durante il salvataggio.";
+        try {
+            var r = JSON.parse(xhr.responseText);
+            if (r && r.message) msg = r.message;
+        } catch (e) { }
+        alert(msg);
     });
+}
+
+function personaleAtaRenderStorico(storico) {
+    if (!storico || !storico.length) {
+        return '<div class="empty-box">Nessuno storico disponibile.</div>';
+    }
+
+    var html = '';
+    for (var i = 0; i < storico.length; i++) {
+        var item = storico[i] || {};
+        var ufficio = item.ufficio_nome ? personaleAtaEscapeHtml(item.ufficio_nome) : '<span class="text-muted">Nessun ufficio</span>';
+        var dal = item.data_inizio ? personaleAtaIsoToIt(item.data_inizio) : '-';
+        var al = item.data_fine ? personaleAtaIsoToIt(item.data_fine) : 'in corso';
+
+        html += ''
+            + '<div class="history-item">'
+            + '  <div class="history-title">' + ufficio + '</div>'
+            + '  <div class="history-dates">Dal ' + dal + ' al ' + al + '</div>'
+            + '</div>';
+    }
+
+    return html;
 }
 
 function personaleAtaGetDetails(id) {
     $("#hidden_id").val(id);
 
-    $.post("personaleAtaReadDetails.php", { id: id }, function (data) {
-        var p = (typeof data === "string") ? JSON.parse(data) : data;
+    $.post("personaleAtaReadDetails.php", { id: id }, function (resp) {
+        if (!resp || resp.ok === false) {
+            alert((resp && resp.message) ? resp.message : "Errore nel caricamento dei dettagli.");
+            return;
+        }
+
+        var p = resp.personale || {};
+        var assegn = resp.assegnazione_corrente || null;
+        var storico = resp.storico || [];
 
         $("#update_nome").val(p.nome || "");
         $("#update_cognome").val(p.cognome || "");
         $("#update_email").val(p.email || "");
         $("#update_username").val(p.username || "");
         $("#update_matricola").val(p.matricola || "");
+        $("#update_tipo_contratto").val(p.tipo_contratto || "");
         $("#update_codice_fiscale").val(p.codice_fiscale || "");
-        $("#update_ruolo").val(p.ruolo || "");
+
+        var profiloVal = "";
+        if (p.id_profilo !== null && p.id_profilo !== undefined && p.id_profilo !== "") {
+            profiloVal = String(p.id_profilo);
+        }
+        $("#update_id_profilo").val(profiloVal);
+        personaleAtaSyncRuoloDaProfiloUpdate();
+
+        $("#current_username_originale").val(p.username || "");
 
         $('#update_attivo').bootstrapToggle((parseInt(p.attivo, 10) === 1) ? 'on' : 'off');
-    });
 
-    $("#update_modal").modal("show");
+        $("#current_assignment_id").val(assegn ? (assegn.id || "") : "");
+        $("#current_assignment_ufficio_id").val(assegn ? (assegn.id_ufficio || "") : "");
+        $("#current_assignment_data_inizio").val(assegn ? (assegn.data_inizio || "") : "");
+        $("#update_id_ufficio").val(assegn && assegn.id_ufficio ? assegn.id_ufficio : "");
+        $("#update_data_inizio_assegnazione").val(new Date().toISOString().slice(0, 10));
+
+        $("#storico_assegnazioni").html(personaleAtaRenderStorico(storico));
+        $("#update_modal").modal("show");
+    }, "json").fail(function () {
+        alert("Errore nel caricamento dei dettagli.");
+    });
 }
 
 function personaleAtaUpdateDetails() {
+    var currentUfficio = $("#current_assignment_ufficio_id").val() || "";
+    var newUfficio = $("#update_id_ufficio").val() || "";
+
+    if (currentUfficio !== newUfficio) {
+        var conferma = confirm("Stai per cambiare l'ufficio assegnato a questo dipendente. Vuoi continuare?");
+        if (!conferma) return;
+    }
+
     $.post("personaleAtaUpdateDetails.php", {
         id: $("#hidden_id").val(),
         nome: $("#update_nome").val(),
@@ -62,12 +247,32 @@ function personaleAtaUpdateDetails() {
         email: $("#update_email").val(),
         username: $("#update_username").val(),
         matricola: $("#update_matricola").val(),
+        tipo_contratto: $("#update_tipo_contratto").val(),
         codice_fiscale: $("#update_codice_fiscale").val(),
+        id_profilo: $("#update_id_profilo").val(),
         ruolo: $("#update_ruolo").val(),
-        attivo: $("#update_attivo").is(':checked') ? 1 : 0
-    }, function () {
+        attivo: $("#update_attivo").is(':checked') ? 1 : 0,
+        username_originale: $("#current_username_originale").val(),
+        current_assignment_id: $("#current_assignment_id").val(),
+        current_assignment_ufficio_id: $("#current_assignment_ufficio_id").val(),
+        current_assignment_data_inizio: $("#current_assignment_data_inizio").val(),
+        id_ufficio: $("#update_id_ufficio").val(),
+        data_inizio_assegnazione: $("#update_data_inizio_assegnazione").val()
+    }, function (resp) {
+        if (resp && resp.ok === false) {
+            alert(resp.message || "Errore durante il salvataggio.");
+            return;
+        }
+
         $("#update_modal").modal("hide");
         personaleAtaReadRecords();
+    }, "json").fail(function (xhr) {
+        var msg = "Errore durante il salvataggio.";
+        try {
+            var r = JSON.parse(xhr.responseText);
+            if (r && r.message) msg = r.message;
+        } catch (e) { }
+        alert(msg);
     });
 }
 
@@ -85,5 +290,21 @@ function personaleAtaDelete(id, cognome, nome) {
 }
 
 $(document).ready(function () {
+    $("#filter_text").on("input", function () {
+        personaleAtaReadRecords();
+    });
+
+    $("#filter_ufficio, #filter_profilo, #filter_tipo_contratto").on("change", function () {
+        personaleAtaReadRecords();
+    });
+
+    $("#id_profilo").on("change", function () {
+        personaleAtaSyncRuoloDaProfilo();
+    });
+
+    $("#update_id_profilo").on("change", function () {
+        personaleAtaSyncRuoloDaProfiloUpdate();
+    });
+
     personaleAtaReadRecords();
 });
