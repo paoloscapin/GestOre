@@ -556,6 +556,261 @@ if (!is_array($ufficiAta)) {
             transition: 0.15s;
             box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
         }
+
+        .records_content .table-responsive {
+            overflow-x: auto;
+        }
+
+        .permessi-table {
+            table-layout: fixed;
+            width: 100%;
+            font-size: 13px;
+        }
+
+        .permessi-table th,
+        .permessi-table td {
+            padding: 8px 10px;
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .permessi-table th:nth-child(1),
+        .permessi-table td:nth-child(1) {
+            width: 70px;
+            /* ID */
+        }
+
+        .permessi-table th:nth-child(2),
+        .permessi-table td:nth-child(2) {
+            width: 210px;
+            /* Dipendente */
+        }
+
+        .permessi-table th:nth-child(3),
+        .permessi-table td:nth-child(3) {
+            width: 120px;
+            /* Matricola */
+        }
+
+        .permessi-table th:nth-child(4),
+        .permessi-table td:nth-child(4) {
+            width: 170px;
+            /* Profilo */
+        }
+
+        .permessi-table th:nth-child(5),
+        .permessi-table td:nth-child(5) {
+            width: 170px;
+            /* Ufficio */
+        }
+
+        .permessi-table th:nth-child(6),
+        .permessi-table td:nth-child(6) {
+            width: 240px;
+            /* Tipo */
+        }
+
+        .permessi-table th:nth-child(7),
+        .permessi-table td:nth-child(7) {
+            width: 120px;
+            /* Stato */
+            text-align: center;
+        }
+
+        .permessi-table th:nth-child(8),
+        .permessi-table td:nth-child(8) {
+            width: 165px;
+            /* Inviato */
+            text-align: center;
+        }
+
+        .permessi-table th:nth-child(9),
+        .permessi-table td:nth-child(9) {
+            width: 90px;
+            /* Azioni */
+            text-align: center;
+        }
+
+        /* desktop medio, tipo portatile 15" */
+        @media (max-width: 1500px) {
+            .permessi-table {
+                font-size: 12px;
+            }
+
+            .permessi-table th,
+            .permessi-table td {
+                padding: 7px 8px;
+            }
+
+            .permessi-table th:nth-child(3),
+            .permessi-table td:nth-child(3) {
+                display: none;
+                /* Matricola */
+            }
+
+            .permessi-table th:nth-child(8),
+            .permessi-table td:nth-child(8) {
+                display: none;
+                /* Inviato */
+            }
+
+            .permessi-table th:nth-child(2),
+            .permessi-table td:nth-child(2) {
+                width: 190px;
+            }
+
+            .permessi-table th:nth-child(4),
+            .permessi-table td:nth-child(4),
+            .permessi-table th:nth-child(5),
+            .permessi-table td:nth-child(5) {
+                width: 150px;
+            }
+
+            .permessi-table th:nth-child(6),
+            .permessi-table td:nth-child(6) {
+                width: 220px;
+            }
+        }
+
+        .records_content .table-responsive {
+            overflow-x: auto;
+        }
+
+        .permessi-table {
+            table-layout: fixed;
+            width: 100%;
+            font-size: 13px;
+        }
+
+        .permessi-table th,
+        .permessi-table td {
+            padding: 8px 10px;
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .permessi-table th:nth-child(1),
+        .permessi-table td:nth-child(1) {
+            width: 70px;
+        }
+
+        .permessi-table th:nth-child(2),
+        .permessi-table td:nth-child(2) {
+            width: 220px;
+        }
+
+        .permessi-table th:nth-child(3),
+        .permessi-table td:nth-child(3) {
+            width: 120px;
+        }
+
+        .permessi-table th:nth-child(4),
+        .permessi-table td:nth-child(4) {
+            width: 170px;
+        }
+
+        .permessi-table th:nth-child(5),
+        .permessi-table td:nth-child(5) {
+            width: 170px;
+        }
+
+        .permessi-table th:nth-child(6),
+        .permessi-table td:nth-child(6) {
+            width: 250px;
+        }
+
+        .permessi-table th:nth-child(7),
+        .permessi-table td:nth-child(7) {
+            width: 120px;
+            text-align: center;
+        }
+
+        .permessi-table th:nth-child(8),
+        .permessi-table td:nth-child(8) {
+            width: 165px;
+            text-align: center;
+        }
+
+        .permessi-table th:nth-child(9),
+        .permessi-table td:nth-child(9) {
+            width: 90px;
+            text-align: center;
+        }
+
+        /* portatili 15" circa */
+        @media (max-width: 1500px) {
+            .permessi-table {
+                font-size: 12px;
+            }
+
+            .permessi-table th,
+            .permessi-table td {
+                padding: 7px 8px;
+            }
+
+            .permessi-table th:nth-child(3),
+            .permessi-table td:nth-child(3) {
+                display: none;
+                /* Matricola */
+            }
+
+            .permessi-table th:nth-child(8),
+            .permessi-table td:nth-child(8) {
+                display: none;
+                /* Inviato */
+            }
+
+            /* Dipendente più stretto */
+            .permessi-table th:nth-child(2),
+            .permessi-table td:nth-child(2) {
+                width: 180px;
+                /* prima era 210/220 */
+            }
+
+            /* Profilo più largo */
+            .permessi-table th:nth-child(4),
+            .permessi-table td:nth-child(4) {
+                width: 220px;
+                /* prima era 150/170 */
+            }
+
+            /* Ufficio leggermente più largo */
+            .permessi-table th:nth-child(5),
+            .permessi-table td:nth-child(5) {
+                width: 190px;
+            }
+
+            .permessi-table th:nth-child(6),
+            .permessi-table td:nth-child(6) {
+                width: 230px;
+            }
+        }
+
+        .permessi-table .label {
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            min-width: 90px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .permessi-table .label {
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 100px;
+            justify-content: center;
+            font-weight: 600;
+        }
     </style>
 </head>
 
@@ -566,11 +821,18 @@ if (!is_array($ufficiAta)) {
         <div class="panel panel-teal4">
             <div class="panel-heading container-fluid">
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <span class="glyphicon glyphicon-th-list"></span>&ensp;Permessi ATA (Segreteria)
+
+                        <a href="ferieDashboard.php"
+                            class="btn btn-warning btn-sm"
+                            style="margin-right:10px; font-weight:600;">
+                            <span class="glyphicon glyphicon-stats"></span>&ensp;Dashboard ferie
+                        </a>
+
                     </div>
 
-                    <div class="col-md-8">
+                    <div class="col-md-9">
                         <div class="pull-right permessi-filters">
                             <select id="f_stato" class="selectpicker" data-width="160px" data-style="btn-default btn-sm">
                                 <option value="" selected>Tutti gli stati</option>
@@ -699,16 +961,6 @@ if (!is_array($ufficiAta)) {
                                 <div class="form-group">
                                     <label>Intervalli / righe</label>
                                     <div id="righe_list"></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Stato</label>
-                                    <select id="p_stato_edit" class="form-control" style="width:auto;">
-                                        <option value="INVIATO">INVIATO</option>
-                                        <option value="APPROVATO">APPROVATO</option>
-                                        <option value="RESPINTO">RESPINTO</option>
-                                        <option value="ANNULLATO">ANNULLATO</option>
-                                    </select>
                                 </div>
 
                                 <input type="hidden" id="hidden_permesso_id" value="">

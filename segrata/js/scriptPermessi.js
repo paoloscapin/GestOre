@@ -1,6 +1,21 @@
 /**
  * Permessi ATA - Segreteria
  */
+function fmtDateTimeIT(dt) {
+  if (!dt) return "";
+
+  // formato: 2026-04-11 10:13:34
+  const parts = dt.split(" ");
+  if (parts.length < 1) return dt;
+
+  const datePart = parts[0];
+  const timePart = parts[1] || "";
+
+  const d = datePart.split("-");
+  if (d.length !== 3) return dt;
+
+  return d[2] + "/" + d[1] + "/" + d[0] + (timePart ? " " + timePart : "");
+}
 
 function safeSelectpickerRefresh(sel) {
   if ($.fn.selectpicker && $(sel).length) {
@@ -515,12 +530,11 @@ function openStandardPermessoModal(r, id) {
 
   $("#p_tipo").text((r.permesso && r.permesso.tipo) || "");
   $("#p_stato").text((r.permesso && r.permesso.stato) || "");
-  $("#p_created").text((r.permesso && r.permesso.created_at) || "");
-  $("#p_updated").text((r.permesso && r.permesso.updated_at) || "");
+  $("#p_created").text(fmtDateTimeIT(r.permesso && r.permesso.created_at));
+  $("#p_updated").text(fmtDateTimeIT(r.permesso && r.permesso.updated_at));
 
   $("#p_note_richiedente").val((r.permesso && r.permesso.note_richiedente) || "");
   $("#p_note_segreteria").val((r.permesso && r.permesso.note_segreteria) || "");
-  $("#p_stato_edit").val((r.permesso && r.permesso.stato) || "INVIATO");
 
   $("#righe_list").load("permessoRigheReadRecords.php?id=" + encodeURIComponent(id), function (response, status) {
     if (status !== "success") {
@@ -562,27 +576,45 @@ function permessoOpen(id) {
 
 function permessoSave(statoOverride) {
   const id = $("#hidden_permesso_id").val();
-  const stato = statoOverride || $("#p_stato_edit").val();
   const note = $("#p_note_segreteria").val();
+
+  const payload = {
+    id: id,
+    note_segreteria: note
+  };
+
+  // SOLO se clicco Approva/Respingi mando lo stato
+  if (statoOverride) {
+    payload.stato = statoOverride;
+  }
 
   $.ajax({
     url: "permessoUpdateSegreteria.php",
     method: "POST",
     dataType: "json",
-    data: { id: id, stato: stato, note_segreteria: note },
+    data: payload,
     success: function (r) {
       if (!r || r.ok !== true) {
-        $.notify({ message: (r && r.error) ? r.error : "Salvataggio fallito" }, { type: "danger" });
+        $.notify({
+          message: (r && r.error) ? r.error : "Salvataggio fallito"
+        }, { type: "danger" });
         return;
       }
+
+      $("#permesso_modal").modal("hide");
 
       $.notify({
         icon: "glyphicon glyphicon-ok",
         title: "<strong>Permessi</strong>&nbsp;",
-        message: "Salvato."
-      }, { type: "success", placement: { from: "top", align: "center" }, delay: 2500 });
+        message: statoOverride
+          ? ("Stato aggiornato a " + statoOverride)
+          : "Note salvate"
+      }, {
+        type: "success",
+        placement: { from: "top", align: "center" },
+        delay: 2500
+      });
 
-      $("#permesso_modal").modal("hide");
       permessiReadRecords();
       dashboardLoad();
     },

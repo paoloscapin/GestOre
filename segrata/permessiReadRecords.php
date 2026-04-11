@@ -5,9 +5,10 @@ error_reporting(E_ALL);
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
-ruoloRichiesto('dirigente','segreteria-ata');
+ruoloRichiesto('dirigente', 'segreteria-ata');
 
-function esc_sql_like(string $s): string {
+function esc_sql_like(string $s): string
+{
   global $__con;
   if (isset($__con) && $__con instanceof mysqli) {
     return mysqli_real_escape_string($__con, $s);
@@ -15,7 +16,8 @@ function esc_sql_like(string $s): string {
   return addslashes($s);
 }
 
-function fmtDateTimeIT($dt): string {
+function fmtDateTimeIT($dt): string
+{
   if (!$dt) return '';
   $ts = strtotime($dt);
   if (!$ts) return (string)$dt;
@@ -102,55 +104,79 @@ $data = '
   <table class="table table-bordered table-hover table-striped table-green permessi-table">
     <thead>
       <tr>
-        <th class="text-center" style="width:70px;">ID</th>
-        <th style="width:220px;">Dipendente</th>
-        <th class="hidden-xs" style="width:120px;">Matricola</th>
-        <th class="hidden-sm hidden-xs" style="width:160px;">Profilo</th>
-        <th class="hidden-sm hidden-xs" style="width:160px;">Ufficio</th>
-        <th style="width:220px;">Tipo</th>
-        <th class="text-center" style="width:120px;">Stato</th>
-        <th class="text-center hidden-xs" style="width:150px;">Inviato</th>
-        <th class="text-center" style="width:90px;">Azioni</th>
+        <th class="text-center">ID</th>
+        <th>Dipendente</th>
+        <th>Matricola</th>
+        <th>Profilo</th>
+        <th>Ufficio</th>
+        <th>Tipo</th>
+        <th class="text-center">Stato</th>
+        <th class="text-center">Inviato</th>
+        <th class="text-center">Azioni</th>
       </tr>
     </thead>
     <tbody>';
 
 foreach ($rows as $r) {
   $id      = intval($r['id']);
-  $dip     = htmlspecialchars(trim(($r['cognome'] ?? '').' '.($r['nome'] ?? '')));
+  $dip     = htmlspecialchars(trim(($r['cognome'] ?? '') . ' ' . ($r['nome'] ?? '')));
   $mat     = htmlspecialchars($r['matricola'] ?? '');
   $profilo = htmlspecialchars($r['profilo_nome'] ?? '');
   $ufficio = htmlspecialchars($r['ufficio_nome'] ?? '');
-  $tipo    = htmlspecialchars(($r['tipo_codice'] ?? '').' - '.($r['tipo_descrizione'] ?? ''));
+  $tipo    = htmlspecialchars(($r['tipo_codice'] ?? '') . ' - ' . ($r['tipo_descrizione'] ?? ''));
   $st      = strtoupper(trim((string)($r['stato'] ?? '')));
   $created = htmlspecialchars(fmtDateTimeIT($r['created_at'] ?? ''));
 
   $badge = '<span class="label label-default">-</span>';
-  if ($st === 'INVIATO')   $badge = '<span class="label label-info">INVIATO</span>';
-  if ($st === 'APPROVATO') $badge = '<span class="label label-success">APPROVATO</span>';
-  if ($st === 'RESPINTO')  $badge = '<span class="label label-danger">RESPINTO</span>';
-  if ($st === 'ANNULLATO') $badge = '<span class="label label-warning">ANNULLATO</span>';
-  if ($st === 'BOZZA')     $badge = '<span class="label label-primary">BOZZA</span>';
+
+  if ($st === 'INVIATO') {
+    $badge = '<span class="label label-info">
+    <span class="glyphicon glyphicon-send"></span> INVIATO
+  </span>';
+  } elseif ($st === 'APPROVATO') {
+    $badge = '<span class="label label-success">
+    <span class="glyphicon glyphicon-ok"></span> APPROVATO
+  </span>';
+  } elseif ($st === 'RESPINTO') {
+    $badge = '<span class="label label-danger">
+    <span class="glyphicon glyphicon-remove"></span> RESPINTO
+  </span>';
+  } elseif ($st === 'ANNULLATO') {
+    $badge = '<span class="label label-warning">
+    <span class="glyphicon glyphicon-ban-circle"></span> ANNULLATO
+  </span>';
+  } elseif ($st === 'BOZZA') {
+    $badge = '<span class="label label-primary">
+    <span class="glyphicon glyphicon-edit"></span> BOZZA
+  </span>';
+  } elseif ($st === 'PARZIALE') {
+    $badge = '<span class="label label-warning" style="background:#f39c12;">
+    <span class="glyphicon glyphicon-adjust"></span> PARZIALE
+  </span>';
+  }
 
   $data .= '
-    <tr>
-      <td class="text-center"><strong>'.$id.'</strong></td>
-      <td>
-        <div><strong>'.$dip.'</strong></div>
-        <div class="visible-xs text-muted small">'.$profilo.' · '.$ufficio.'</div>
-      </td>
-      <td class="hidden-xs">'.$mat.'</td>
-      <td class="hidden-sm hidden-xs">'.$profilo.'</td>
-      <td class="hidden-sm hidden-xs">'.$ufficio.'</td>
-      <td>'.$tipo.'</td>
-      <td class="text-center">'.$badge.'</td>
-      <td class="text-center hidden-xs">'.$created.'</td>
-      <td class="text-center">
-        <button class="btn btn-primary btn-xs" type="button" onclick="permessoOpen('.$id.')" title="Apri dettaglio">
-          <span class="glyphicon glyphicon-eye-open"></span>
-        </button>
-      </td>
-    </tr>';
+  <tr>
+    <td class="text-center"><strong>' . $id . '</strong></td>
+
+  
+<td>
+  <div style="font-weight:600; line-height:1.2;">' . $dip . '</div>
+  <div style="font-size:11px; color:#777;">' . $mat . '</div>
+</td>
+
+    <td>' . $mat . '</td>
+    <td>' . $profilo . '</td>
+    <td>' . $ufficio . '</td>
+    <td title="' . $tipo . '">' . $tipo . '</td>
+    <td class="text-center">' . $badge . '</td>
+    <td class="text-center">' . $created . '</td>
+    <td class="text-center">
+      <button class="btn btn-primary btn-xs" type="button" onclick="permessoOpen(' . $id . ')" title="Apri dettaglio">
+        <span class="glyphicon glyphicon-eye-open"></span>
+      </button>
+    </td>
+  </tr>';
 }
 
 if ($count === 0) {
