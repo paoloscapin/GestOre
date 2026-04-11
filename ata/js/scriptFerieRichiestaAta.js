@@ -6,11 +6,11 @@
     const FINESTRA = BOOT.finestra || {};
     const DATA_INIZIO = (FINESTRA.data_inizio || "").toString();
     const DATA_FINE = (FINESTRA.data_fine || "").toString();
-    const PATRONO_MMDD = (BOOT.patrono_mmdd || "").toString();
     const EDIT_ID = parseInt(BOOT.edit_id || 0, 10);
     const SOTTOTIPO = (BOOT.sottotipo || "ESTIVE").toString();
     const TITOLO = (BOOT.titolo || "Ferie").toString();
     const GIORNI_SPECIALI = Array.isArray(BOOT.giorni_speciali) ? BOOT.giorni_speciali : [];
+    const CALENDAR_STATE_URL = (BOOT.calendar_state_url || "ferieRichiestaReadCalendarState.php").toString();
 
     const specialExcludeMap = {};
     const specialIncludeMap = {};
@@ -34,6 +34,10 @@
     let selectedDays = new Set();
     let currentState = "BOZZA";
     let isReadOnly = false;
+
+    // nuovo: stato storico globale utente
+    let historicalDaysMap = {};
+    let currentDraftDaysMap = {};
 
     function pad2(n) {
         n = parseInt(n, 10);
@@ -83,27 +87,72 @@
         return !!specialIncludeMap[ymd];
     }
 
+    function inWindow(ymd) {
+        return ymd >= DATA_INIZIO && ymd <= DATA_FINE;
+    }
+
+    function getHistoricalInfo(ymd) {
+        return historicalDaysMap[ymd] || null;
+    }
+
+    function isEditableCurrentDraftDay(ymd) {
+        return !!currentDraftDaysMap[ymd];
+    }
+
     function isSelectable(ymd) {
         if (!inWindow(ymd)) return false;
 
+        // giorni già presenti nello storico (altre richieste) NON selezionabili
+        if (getHistoricalInfo(ymd)) return false;
+
+        // giorni speciali inclusi restano selezionabili
         if (isSpecialIncluded(ymd)) return true;
+
         if (isWeekend(ymd)) return false;
         if (isSpecialExcluded(ymd)) return false;
 
         return true;
     }
 
-    function inWindow(ymd) {
-        return ymd >= DATA_INIZIO && ymd <= DATA_FINE;
-    }
-
     function lockReason(ymd) {
         if (!inWindow(ymd)) return "Fuori periodo";
+
+        const hist = getHistoricalInfo(ymd);
+        if (hist) {
+            if (hist.stato === "APPROVATO") return hist.motivo || "Già approvato";
+            if (hist.stato === "RESPINTO") return hist.motivo || "Già respinto";
+            if (hist.stato === "BOZZA") return hist.motivo || "Già presente in altra bozza";
+            return hist.motivo || "Già richiesto";
+        }
+
         if (isWeekend(ymd) && !isSpecialIncluded(ymd)) return "Weekend";
         if (isSpecialExcluded(ymd)) {
             return specialExcludeMap[ymd].descrizione || "Non disponibile";
         }
+
         return "";
+    }
+
+    function historicalCssClass(ymd) {
+        const hist = getHistoricalInfo(ymd);
+        if (!hist) return "";
+
+        const stato = (hist.stato || "").toUpperCase();
+        if (stato === "APPROVATO") return "historical-approved";
+        if (stato === "RESPINTO") return "historical-rejected";
+        if (stato === "BOZZA") return "historical-draft";
+        return "historical-requested";
+    }
+
+    function historicalMetaText(ymd) {
+        const hist = getHistoricalInfo(ymd);
+        if (!hist) return "";
+
+        const stato = (hist.stato || "").toUpperCase();
+        if (stato === "APPROVATO") return "Approvato";
+        if (stato === "RESPINTO") return "Respinto";
+        if (stato === "BOZZA") return "Altra bozza";
+        return "Già richiesto";
     }
 
     function showError(msg) {
@@ -185,21 +234,6 @@
         renderCalendar();
     }
 
-    function resetEditorToNew() {
-        $("#richiesta_id").val("");
-        $("#ferie_note").val("");
-        currentState = "BOZZA";
-        selectedDays = new Set();
-        $("#editor_title").text("Nuova richiesta " + TITOLO.toLowerCase());
-        $("#btn_delete_bozza_ferie").hide();
-        setReadonly(false);
-        updateHeaderInfo();
-    }
-
-    function cancelEditing() {
-        window.location.href = "permessi.php";
-    }
-
     function renderCalendar() {
         const $wrap = $("#months_wrap");
         $wrap.empty();
@@ -235,16 +269,27 @@
 
                 const selectable = isSelectable(ymd);
                 const selected = selectedDays.has(ymd);
+                const hist = getHistoricalInfo(ymd);
                 const classes = ["day-cell"];
-                if (!selectable) classes.push("locked");
+
+                if (!selectable && !selected) classes.push("locked");
+                if (hist) classes.push(historicalCssClass(ymd));
                 if (selected && !isReadOnly) classes.push("selected");
                 if (selected && isReadOnly) classes.push("readonly-selected");
+                if (selected && isEditableCurrentDraftDay(ymd)) classes.push("current-draft");
 
-                const meta = selected
-                    ? '<div class="day-meta"><span class="glyphicon glyphicon-ok"></span> Selezionato</div>'
+                let metaText = "";
+                if (selected) {
+                    metaText = "Selezionato";
+                } else if (hist) {
+                    metaText = historicalMetaText(ymd);
+                }
+
+                const meta = metaText
+                    ? '<div class="day-meta status-meta">' + metaText + '</div>'
                     : '<div class="day-meta"></div>';
 
-                const reason = !selectable
+                const reason = !selectable && !selected
                     ? '<div class="day-lock-reason">' + lockReason(ymd) + '</div>'
                     : '';
 
@@ -270,6 +315,35 @@
         }
 
         updateHeaderInfo();
+    }
+
+    function loadCalendarState(callback) {
+        $.ajax({
+            url: CALENDAR_STATE_URL,
+            method: "GET",
+            dataType: "json",
+            data: {
+                sottotipo: SOTTOTIPO,
+                edit_id: $("#richiesta_id").val() || EDIT_ID || 0
+            },
+            success: function (r) {
+                if (!r || r.ok !== true) {
+                    historicalDaysMap = {};
+                    currentDraftDaysMap = {};
+                    if (callback) callback();
+                    return;
+                }
+
+                historicalDaysMap = r.giorni_storici || {};
+                currentDraftDaysMap = r.giorni_edit_corrente || {};
+                if (callback) callback();
+            },
+            error: function () {
+                historicalDaysMap = {};
+                currentDraftDaysMap = {};
+                if (callback) callback();
+            }
+        });
     }
 
     function loadRequest(id) {
@@ -302,8 +376,11 @@
                 });
 
                 $("#editor_title").text(TITOLO + " #" + req.id);
-                setReadonly(currentState !== "BOZZA");
-                updateHeaderInfo();
+
+                loadCalendarState(function () {
+                    setReadonly(currentState !== "BOZZA");
+                    updateHeaderInfo();
+                });
             },
             error: function (xhr) {
                 showError("Errore server: " + xhr.status);
@@ -358,7 +435,6 @@
                 window.location.href = "ferieRichiesta.php?sottotipo=" + encodeURIComponent(SOTTOTIPO) + "&id=" + encodeURIComponent(id);
             },
             error: function (xhr) {
-                console.log("AJAX rimettiInBozza error", xhr.status, xhr.responseText);
                 notifyCentered("danger", TITOLO, "Errore server: " + xhr.status, 5000);
             }
         });
@@ -404,9 +480,7 @@
                 notifyCentered(
                     "info",
                     TITOLO,
-                    (azione === "INVIA")
-                        ? "Richiesta inviata."
-                        : "Bozza salvata.",
+                    (azione === "INVIA") ? "Richiesta inviata." : "Bozza salvata.",
                     1800
                 );
 
@@ -441,27 +515,16 @@
 
     $(document).on("click", "#btn_delete_bozza_ferie", function () {
         const id = parseInt($("#richiesta_id").val() || "0", 10);
-        if (id > 0) {
-            deleteRequest(id);
-        }
+        if (id > 0) deleteRequest(id);
     });
 
     $(document).on("click", "#btn_rimetti_bozza_ferie", function () {
         const id = parseInt($("#richiesta_id").val() || "0", 10);
-
-        if (id > 0) {
-            rimettiInBozza(id);
-        } else {
-            console.log("ID richiesta non valido");
-        }
+        if (id > 0) rimettiInBozza(id);
     });
 
     $(document).on("click", "#btn_cancel_ferie", function () {
-        cancelEditing();
-    });
-
-    $(document).on("click", "#btn_new_ferie", function () {
-        window.location.href = "ferieRichiesta.php?sottotipo=" + encodeURIComponent(SOTTOTIPO);
+        window.location.href = "permessi.php";
     });
 
     $(document).on("click", "#btn_save_bozza_ferie", function () {
@@ -474,12 +537,14 @@
 
     $(function () {
         updateHeaderInfo();
-        renderCalendar();
 
         if (EDIT_ID > 0) {
             loadRequest(EDIT_ID);
         } else {
-            setReadonly(false);
+            loadCalendarState(function () {
+                renderCalendar();
+                setReadonly(false);
+            });
         }
     });
 })();

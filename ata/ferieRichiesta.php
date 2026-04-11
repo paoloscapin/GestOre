@@ -96,6 +96,7 @@ $bootstrapData = [
     'edit_id' => (int)$editId,
     'sottotipo' => $sottotipo,
     'titolo' => $titoli[$sottotipo] ?? ('Ferie ' . $sottotipo),
+    'calendar_state_url' => 'ferieRichiestaReadCalendarState.php'
 ];
 ?>
 <!DOCTYPE html>
@@ -474,6 +475,46 @@ $bootstrapData = [
             .ferie-footer-actions .btn .glyphicon {
                 font-size: 13px;
             }
+        }
+
+        .day-cell.historical-approved {
+            background: #b9f6ca;
+            border-color: #4caf50;
+            color: #124a1d;
+            cursor: not-allowed;
+        }
+
+        .day-cell.historical-rejected {
+            background: #ffcdd2;
+            border-color: #d32f2f;
+            color: #7f1d1d;
+            cursor: not-allowed;
+        }
+
+        .day-cell.historical-requested {
+            background: #fff3b0;
+            border-color: #d4b300;
+            color: #5a4a00;
+            cursor: not-allowed;
+        }
+
+        .day-cell.historical-draft {
+            background: #dbeafe;
+            border-color: #60a5fa;
+            color: #1e3a8a;
+            cursor: not-allowed;
+        }
+
+        .day-cell.current-draft {
+            background: #fff200;
+            border-color: #d4b300;
+            color: #2d2400;
+        }
+
+        .day-meta.status-meta {
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.2;
         }
     </style>
 </head>

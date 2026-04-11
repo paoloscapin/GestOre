@@ -19,6 +19,16 @@ function fail($msg)
   exit;
 }
 
+function historicalPriorityUserSave($stato)
+{
+  $stato = strtoupper(trim((string)$stato));
+  if ($stato === 'APPROVATO') return 400;
+  if ($stato === 'RICHIESTO') return 300;
+  if ($stato === 'RESPINTO')  return 200;
+  if ($stato === 'BOZZA')     return 100;
+  return 0;
+}
+
 function fmtDateIT($ymd)
 {
   $ymd = trim((string)$ymd);
@@ -127,6 +137,89 @@ foreach ($giorni as $g) {
 sort($giorniValidi);
 if (count($giorniValidi) === 0) {
   fail('Seleziona almeno un giorno valido.');
+}
+
+$storicoRows = dbGetAll("
+  SELECT
+    r.id AS richiesta_id,
+    r.stato AS richiesta_stato,
+    rr.id AS riga_id,
+    rr.data_dal,
+    rr.data_al,
+    rr.dettagli_json
+  FROM permesso_ata_richiesta r
+  INNER JOIN permesso_ata_tipo t ON t.id = r.permesso_ata_tipo_id
+  INNER JOIN permesso_ata_richiesta_riga rr ON rr.permesso_ata_richiesta_id = r.id
+  WHERE r.personale_ata_id = $__ata_id
+    AND t.codice = 'FERIE'
+    AND UPPER(TRIM(r.ferie_sottotipo)) = " . dbQ($sottotipo) . "
+    AND (" . intval($richiesta_id) . " <= 0 OR r.id <> " . intval($richiesta_id) . ")
+");
+
+if (!is_array($storicoRows)) {
+  $storicoRows = [];
+}
+
+$storicoMap = [];
+
+foreach ($storicoRows as $sr) {
+  $det = [];
+  if (!empty($sr['dettagli_json'])) {
+    $tmp = json_decode($sr['dettagli_json'], true);
+    if (is_array($tmp)) $det = $tmp;
+  }
+
+  $statoGiorno = strtoupper(trim((string)($det['stato_giorno'] ?? 'RICHIESTO')));
+  $richiestaStato = strtoupper(trim((string)($sr['richiesta_stato'] ?? '')));
+
+  if ($statoGiorno === 'RICHIESTO' && $richiestaStato === 'BOZZA') {
+    $statoGiorno = 'BOZZA';
+  }
+
+  $from = (string)($sr['data_dal'] ?? '');
+  $to   = (string)($sr['data_al'] ?? '');
+  if ($to === '') $to = $from;
+
+  $range = [];
+  $start = DateTime::createFromFormat('Y-m-d', $from);
+  $end   = DateTime::createFromFormat('Y-m-d', $to);
+  if ($start && $end && $end >= $start) {
+    $cur = clone $start;
+    while ($cur <= $end) {
+      $range[] = $cur->format('Y-m-d');
+      $cur->modify('+1 day');
+    }
+  }
+
+  foreach ($range as $iso) {
+    if (!isset($storicoMap[$iso])) {
+      $storicoMap[$iso] = $statoGiorno;
+    } else {
+      if (historicalPriorityUserSave($statoGiorno) >= historicalPriorityUserSave($storicoMap[$iso])) {
+        $storicoMap[$iso] = $statoGiorno;
+      }
+    }
+  }
+}
+
+foreach ($giorniValidi as $data) {
+  if (!isset($storicoMap[$data])) continue;
+
+  $statoStorico = strtoupper(trim((string)$storicoMap[$data]));
+
+  if ($statoStorico === 'APPROVATO') {
+    fail('La data ' . fmtDateIT($data) . ' è già stata approvata in una richiesta precedente.');
+  }
+
+  if ($statoStorico === 'RESPINTO') {
+    fail('La data ' . fmtDateIT($data) . ' è già stata respinta e non può essere selezionata.');
+  }
+
+  if ($statoStorico === 'BOZZA') {
+    fail('La data ' . fmtDateIT($data) . ' è già presente in un\'altra bozza ferie.');
+  }
+
+  fail('La data ' . fmtDateIT($data) . ' è già presente in una richiesta ferie.');
 }
 
 $stato = ($azione === 'INVIA') ? 'INVIATO' : 'BOZZA';
