@@ -444,6 +444,19 @@ $bootstrapData = [
                 overflow: hidden;
             }
 
+            .day-meta {
+                font-size: 12px;
+                min-height: 18px;
+                font-weight: 700;
+                text-align: center;
+            }
+
+            .day-meta.status-meta {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
             .day-lock-reason {
                 font-size: 8px;
                 line-height: 1.05;

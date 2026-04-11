@@ -64,8 +64,7 @@
     },
     "segrata": {
         "emailSegreteria": "--- inserire mail segreteria a cui inviare le richieste di permesso ---",
-        "destinatariEmail": "Segreteria ATA Permessi",
-        "emailNoReplyFrom": "--- deve essere la mail usata per la GoogleApp oppure un alias collegato allo stesso account ---"
+        "destinatariEmail": "Segreteria ATA Permessi"
     },
     "MBApp": {
         "emailPrenotazioniAule": "--- inserire mail a cui arriva la notifica si una prenotazione aula --- ",

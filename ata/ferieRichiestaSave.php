@@ -1,6 +1,10 @@
 <?php
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/send-mail.php';
+require_once '../common/mail-ui.php';
+require_once '../common/__Log.php';
+require_once '../common/__Settings.php';
 
 ruoloRichiesto('personale-ata');
 
@@ -12,6 +16,7 @@ $note         = isset($_POST['note']) ? trim((string)$_POST['note']) : '';
 $azione       = isset($_POST['azione']) ? strtoupper(trim((string)$_POST['azione'])) : 'BOZZA';
 $giorni_json  = isset($_POST['giorni_json']) ? (string)$_POST['giorni_json'] : '[]';
 $sottotipo    = isset($_POST['ferie_sottotipo']) ? strtoupper(trim((string)$_POST['ferie_sottotipo'])) : '';
+$MAIL_TEST_OVERRIDE = 'massimo.saiani@buonarroti.tn.it';
 
 function fail($msg)
 {
@@ -35,6 +40,128 @@ function fmtDateIT($ymd)
   if ($ymd === '') return '';
   $ts = strtotime($ymd);
   return $ts ? date('d/m/Y', $ts) : $ymd;
+}
+
+function hMail($s): string
+{
+  return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+}
+
+function buildFerieRichiestaMailHtml($nomeCompleto, $sottotipo, array $giorniValidi, $note, $toName = ''): string
+{
+  $rowsHtml = '';
+  foreach ($giorniValidi as $g) {
+    $rowsHtml .= '
+      <tr>
+        <td style="padding:10px;border-bottom:1px solid #f1f5f9;font-weight:800;">' . hMail(fmtDateIT($g)) . '</td>
+      </tr>';
+  }
+
+  $content = '
+    <div style="margin:0 0 12px 0;">
+      ' . badge('RICHIESTA FERIE', '#dcfce7', '#14532d') . '
+    </div>
+
+    <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px;margin:0 0 14px 0;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+        ' . kvRow('Dipendente', $nomeCompleto) . '
+        ' . kvRow('Tipologia ferie', $sottotipo) . '
+        ' . kvRow('Numero giorni', (string)count($giorniValidi)) . '
+      </table>
+    </div>
+
+    <div style="margin-top:14px;">
+      <div style="font-weight:900;font-size:14px;margin:0 0 8px 0;">Giorni richiesti</div>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+        <thead style="background:#f8fafc;">
+          <tr>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;font-size:12.5px;color:#6b7280;">Data</th>
+          </tr>
+        </thead>
+        <tbody>' . $rowsHtml . '</tbody>
+      </table>
+    </div>
+  ';
+
+  if (trim((string)$note) !== '') {
+    $content .= '
+      <div style="margin-top:12px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;">
+        <div style="font-weight:800;color:#111827;margin-bottom:6px;">Note del richiedente</div>
+        <div style="font-size:13.5px;line-height:1.55;color:#374151;">' . nl2br(hMail($note)) . '</div>
+      </div>
+    ';
+  }
+
+  $intro = "La tua richiesta ferie è stata registrata correttamente in <b>GestOre</b>.";
+  $footer = "Messaggio automatico da <b>GestOre</b>.";
+
+  return mailWrap(
+    "RICHIESTA FERIE",
+    $toName !== '' ? $toName : $nomeCompleto,
+    $intro,
+    $content,
+    $footer,
+    'warning'
+  );
+}
+
+function buildFerieRichiestaSegreteriaMailHtml($nomeCompleto, $emailUtente, $sottotipo, array $giorniValidi, $note, $toName = ''): string
+{
+  $rowsHtml = '';
+  foreach ($giorniValidi as $g) {
+    $rowsHtml .= '
+      <tr>
+        <td style="padding:10px;border-bottom:1px solid #f1f5f9;font-weight:800;">' . hMail(fmtDateIT($g)) . '</td>
+      </tr>';
+  }
+
+  $content = '
+    <div style="margin:0 0 12px 0;">
+      ' . badge('NUOVA RICHIESTA FERIE', '#fef3c7', '#92400e') . '
+    </div>
+
+    <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px;margin:0 0 14px 0;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+        ' . kvRow('Dipendente', $nomeCompleto) . '
+        ' . kvRow('Email utente', ($emailUtente !== '' ? $emailUtente : '—')) . '
+        ' . kvRow('Tipologia ferie', $sottotipo) . '
+        ' . kvRow('Numero giorni', (string)count($giorniValidi)) . '
+      </table>
+    </div>
+
+    <div style="margin-top:14px;">
+      <div style="font-weight:900;font-size:14px;margin:0 0 8px 0;">Giorni richiesti</div>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+        <thead style="background:#f8fafc;">
+          <tr>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;font-size:12.5px;color:#6b7280;">Data</th>
+          </tr>
+        </thead>
+        <tbody>' . $rowsHtml . '</tbody>
+      </table>
+    </div>
+  ';
+
+  if (trim((string)$note) !== '') {
+    $content .= '
+      <div style="margin-top:12px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;">
+        <div style="font-weight:800;color:#111827;margin-bottom:6px;">Note del richiedente</div>
+        <div style="font-size:13.5px;line-height:1.55;color:#374151;">' . nl2br(hMail($note)) . '</div>
+      </div>
+    ';
+  }
+
+  $intro = "È stata inviata una <b>nuova richiesta ferie</b> su GestOre e richiede verifica da parte della segreteria.";
+  $footer = "Messaggio automatico da <b>GestOre</b>. Accedere al pannello segreteria per la gestione della richiesta.";
+
+  return mailWrap(
+    "NUOVA RICHIESTA FERIE",
+    $toName !== '' ? $toName : 'Segreteria ATA Permessi',
+    $intro,
+    $content,
+    $footer,
+    'warning'
+  );
 }
 
 function isValidYmd($ymd)
@@ -305,8 +432,53 @@ try {
     ");
   }
 
+  $ata = dbGetFirst("
+  SELECT nome, cognome, email
+  FROM personale_ata
+  WHERE id = $__ata_id
+  LIMIT 1
+");
+
   dbExec("COMMIT");
 
+  if ($stato === 'INVIATO' && $ata && !empty($ata['email'])) {
+    $nomeCompleto = trim((string)($ata['cognome'] ?? '') . ' ' . (string)($ata['nome'] ?? ''));
+    $destinatarioReale = trim((string)($ata['email'] ?? ''));
+    $destinatario = $MAIL_TEST_OVERRIDE ?: $destinatarioReale;
+
+    $subject = "GestOre - Richiesta ferie inviata: " . $sottotipo;
+
+    $body = buildFerieRichiestaMailHtml(
+      $nomeCompleto,
+      $sottotipo,
+      $giorniValidi,
+      $note,
+      $nomeCompleto
+    );
+
+    $mailOk = sendMail($destinatario, $nomeCompleto, $subject, $body);
+    info("ferieRichiestaSave.php: mail invio richiesta id=$richiesta_id to_test=$destinatario to_real=$destinatarioReale esito=" . ($mailOk ? 'OK' : 'KO'));
+
+
+    $segreteriaMail = trim((string)($__settings->segrata->emailSegreteria ?? ''));
+    $segreteriaNome = trim((string)($__settings->segrata->destinatariEmail ?? 'Segreteria ATA Permessi'));
+
+    if ($segreteriaMail !== '') {
+      $subjectSeg = "GestOre - Nuova richiesta ferie da gestire: " . $nomeCompleto . " - " . $sottotipo;
+
+      $bodySeg = buildFerieRichiestaSegreteriaMailHtml(
+        $nomeCompleto,
+        $destinatarioReale,
+        $sottotipo,
+        $giorniValidi,
+        $note,
+        $segreteriaNome
+      );
+
+      $mailSegOk = sendMail($segreteriaMail, $segreteriaNome, $subjectSeg, $bodySeg);
+      info("ferieRichiestaSave.php: mail segreteria id=$richiesta_id to=$segreteriaMail esito=" . ($mailSegOk ? 'OK' : 'KO'));
+    }
+  }
   echo json_encode([
     'ok' => true,
     'id' => $richiesta_id,

@@ -149,10 +149,11 @@
         if (!hist) return "";
 
         const stato = (hist.stato || "").toUpperCase();
-        if (stato === "APPROVATO") return "Approvato";
-        if (stato === "RESPINTO") return "Respinto";
-        if (stato === "BOZZA") return "Altra bozza";
-        return "Già richiesto";
+
+        if (stato === "APPROVATO") return "✓";
+        if (stato === "RESPINTO") return "✕";
+        if (stato === "BOZZA") return "•";
+        return "!";
     }
 
     function showError(msg) {
@@ -280,7 +281,7 @@
 
                 let metaText = "";
                 if (selected) {
-                    metaText = "Selezionato";
+                    metaText = "+";
                 } else if (hist) {
                     metaText = historicalMetaText(ymd);
                 }
