@@ -166,6 +166,41 @@ function buildSelectedDateMap(righe) {
   return selected;
 }
 
+function getOtherDayCellStateClass(otherInfo) {
+  const stato = ((otherInfo && otherInfo.stato_giorno) || "").toUpperCase();
+  if (stato === "APPROVATO") return " other-approved";
+  if (stato === "RESPINTO") return " other-rejected";
+  if (stato === "RICHIESTO") return " other-requested";
+  if (stato === "BOZZA") return " other-draft";
+  return "";
+}
+
+function buildOtherRequestsHtml(otherRequests) {
+  if (!Array.isArray(otherRequests) || !otherRequests.length) {
+    return "";
+  }
+
+  let html = '<div class="alert alert-warning" style="margin-bottom:12px;">' +
+    '<strong>Attenzione:</strong> per questo dipendente esistono già ' +
+    otherRequests.length +
+    ' altra/e richiesta/e ferie nella stessa finestra.' +
+    '</div>';
+
+  html += '<div class="well well-sm" style="margin-bottom:12px;">';
+  html += '<strong>Richieste precedenti:</strong><br>';
+
+  otherRequests.forEach(function (rq) {
+    html +=
+      'Richiesta #' + rq.id +
+      ' · stato ' + (rq.stato || '-') +
+      ' · creata il ' + fmtDateTimeIT(rq.created_at || '') +
+      '<br>';
+  });
+
+  html += '</div>';
+  return html;
+}
+
 function getDayCellStateClass(dayInfo) {
   const stato = ((dayInfo && dayInfo.stato_giorno) || "").toUpperCase();
   if (stato === "APPROVATO") return " day-approved";
@@ -354,7 +389,8 @@ function renderPermessoFerieModal(r) {
   const finestra = r.ferie_finestra || {};
   const giorniSpeciali = Array.isArray(r.giorni_speciali) ? r.giorni_speciali : [];
   const totals = r.totali || { profilo: 0, ufficio: 0 };
-
+  const otherDaysByDate = r.other_days_by_date || {};
+  const otherRequests = Array.isArray(r.other_requests_summary) ? r.other_requests_summary : [];
   $("#fm_hidden_permesso_id").val(perm.id || "");
   $("#fm_title").text(perm.tipo || "Dettaglio ferie");
   $("#fm_subtitle").text("Richiesta ferie di " + (dip.nome || ""));
@@ -369,7 +405,18 @@ function renderPermessoFerieModal(r) {
 
   $("#fm_note_richiedente").val(perm.note_richiedente || "");
   $("#fm_note_segreteria").val(perm.note_segreteria || "");
+  const extraHtml = buildOtherRequestsHtml(otherRequests);
+  $("#fm_other_requests_box").html(extraHtml);
 
+  if (perm.is_additional_request) {
+    $("#fm_subtitle").html(
+      'Richiesta ferie di ' + (dip.nome || "") +
+      ' <span class="label label-warning" style="margin-left:8px;">' +
+      (perm.previous_requests_count + 1) + 'ª richiesta</span>'
+    );
+  } else {
+    $("#fm_subtitle").text("Richiesta ferie di " + (dip.nome || ""));
+  }
   const selectedMap = buildSelectedDateMap(righe);
   $("#fm_count_selected").text(Object.keys(selectedMap).length);
 
@@ -434,6 +481,8 @@ function renderPermessoFerieModal(r) {
       const isExcludedSpecial = !!special && ["ESCLUSO", "ESCLUDI"].includes(special.tipo);
       const isSelected = !!selectedMap[iso];
       const dayInfo = selectedMap[iso] || null;
+      const otherInfo = otherDaysByDate[iso] || null;
+      const hasOtherRequest = !!otherInfo;
       const counts = countsByDate[iso] || { same_profile: 0, same_office: 0 };
       const profCount = parseInt(counts.same_profile || 0, 10);
       const offCount = parseInt(counts.same_office || 0, 10);
@@ -466,13 +515,24 @@ function renderPermessoFerieModal(r) {
       if (!inWindow || isWeekend || isExcludedSpecial) {
         cls += " locked";
       }
+
+      if (hasOtherRequest && !isSelected) {
+        cls += " locked";
+        cls += getOtherDayCellStateClass(otherInfo);
+      }
+
       if (isSelected) {
         cls += " selected";
         cls += getDayCellStateClass(dayInfo);
       }
 
-      const tooltipText = buildFerieTooltip(iso, reason, tooltipByDate, dip)
-        .replace(/&/g, "&amp;")
+      let extraReason = reason;
+      if (otherInfo) {
+        extraReason = (extraReason ? extraReason + " | " : "") +
+          "Altra richiesta #" + otherInfo.richiesta_id + " - " + (otherInfo.label || otherInfo.stato_giorno || "");
+      }
+
+      const tooltipText = buildFerieTooltip(iso, extraReason, tooltipByDate, dip).replace(/&/g, "&amp;")
         .replace(/"/g, "&quot;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");

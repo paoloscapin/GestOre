@@ -19,6 +19,25 @@ if ($id <= 0) {
   exit;
 }
 
+function statoPriorityFerieStorico($stato)
+{
+  $stato = strtoupper(trim((string)$stato));
+  if ($stato === 'APPROVATO') return 400;
+  if ($stato === 'RICHIESTO') return 300;
+  if ($stato === 'RESPINTO')  return 200;
+  if ($stato === 'BOZZA')     return 100;
+  return 0;
+}
+
+function statoLabelStorico($stato)
+{
+  $stato = strtoupper(trim((string)$stato));
+  if ($stato === 'APPROVATO') return 'Approvato';
+  if ($stato === 'RESPINTO')  return 'Respinto';
+  if ($stato === 'BOZZA')     return 'Bozza';
+  return 'Richiesto';
+}
+
 function expandDateRangeIso($from, $to)
 {
   $out = [];
@@ -190,6 +209,99 @@ foreach ($righeDB as $rr) {
 }
 
 /**
+ * Altre richieste FERIE dello stesso utente e stesso sottotipo,
+ * escluse la richiesta attuale.
+ * Servono per:
+ * - capire se questa è una seconda richiesta o successiva
+ * - mostrare nel calendario i giorni già presenti in altre richieste
+ */
+$otherRequestsSummary = [];
+$otherDaysByDate = [];
+
+if (($row['tipo_codice'] ?? '') === 'FERIE' && !empty($row['ferie_sottotipo'])) {
+  $otherRows = dbGetAll("
+    SELECT
+      r.id AS richiesta_id,
+      r.stato AS richiesta_stato,
+      r.created_at,
+      rr.id AS riga_id,
+      rr.data_dal,
+      rr.data_al,
+      rr.dettagli_json
+    FROM permesso_ata_richiesta r
+    JOIN permesso_ata_tipo t
+      ON t.id = r.permesso_ata_tipo_id
+    JOIN permesso_ata_richiesta_riga rr
+      ON rr.permesso_ata_richiesta_id = r.id
+    WHERE r.personale_ata_id = " . intval($row['personale_id']) . "
+      AND t.codice = 'FERIE'
+      AND UPPER(TRIM(r.ferie_sottotipo)) = " . dbQ(strtoupper(trim((string)$row['ferie_sottotipo']))) . "
+      AND r.id <> " . intval($id) . "
+    ORDER BY r.created_at ASC, r.id ASC, rr.data_dal ASC, rr.id ASC
+  ");
+
+  if (!is_array($otherRows)) {
+    $otherRows = [];
+  }
+
+  $otherRequestsMap = [];
+
+  foreach ($otherRows as $or) {
+    $rid = intval($or['richiesta_id']);
+
+    if (!isset($otherRequestsMap[$rid])) {
+      $otherRequestsMap[$rid] = [
+        'id' => $rid,
+        'stato' => strtoupper(trim((string)($or['richiesta_stato'] ?? ''))),
+        'created_at' => (string)($or['created_at'] ?? ''),
+        'giorni' => []
+      ];
+    }
+
+    $det = [];
+    if (!empty($or['dettagli_json'])) {
+      $tmp = json_decode($or['dettagli_json'], true);
+      if (is_array($tmp)) {
+        $det = $tmp;
+      }
+    }
+
+    $statoGiorno = strtoupper(trim((string)($det['stato_giorno'] ?? 'RICHIESTO')));
+    $dataDa = (string)($or['data_dal'] ?? '');
+    $dataA  = (string)($or['data_al'] ?? '');
+    if ($dataA === '') $dataA = $dataDa;
+
+    foreach (expandDateRangeIso($dataDa, $dataA) as $iso) {
+      $otherRequestsMap[$rid]['giorni'][] = [
+        'data' => $iso,
+        'stato_giorno' => $statoGiorno
+      ];
+
+      $candidate = [
+        'richiesta_id' => $rid,
+        'riga_id' => intval($or['riga_id']),
+        'richiesta_stato' => strtoupper(trim((string)($or['richiesta_stato'] ?? ''))),
+        'stato_giorno' => $statoGiorno,
+        'label' => statoLabelStorico($statoGiorno),
+        'created_at' => (string)($or['created_at'] ?? '')
+      ];
+
+      if (!isset($otherDaysByDate[$iso])) {
+        $otherDaysByDate[$iso] = $candidate;
+      } else {
+        $oldP = statoPriorityFerieStorico($otherDaysByDate[$iso]['stato_giorno'] ?? '');
+        $newP = statoPriorityFerieStorico($candidate['stato_giorno'] ?? '');
+        if ($newP >= $oldP) {
+          $otherDaysByDate[$iso] = $candidate;
+        }
+      }
+    }
+  }
+
+  $otherRequestsSummary = array_values($otherRequestsMap);
+}
+
+/**
  * Giorni speciali ferie
  */
 $giorniSpeciali = [];
@@ -345,7 +457,10 @@ $payload = [
     'ferie_sottotipo' => $row['ferie_sottotipo'],
     'note_richiedente' => $row['note_richiedente'],
     'note_segreteria' => $row['note_segreteria'],
-    'dettagli_json' => $row['dettagli_json'] ?? ''
+    'dettagli_json' => $row['dettagli_json'] ?? '',
+
+    'is_additional_request' => (count($otherRequestsSummary) > 0),
+    'previous_requests_count' => count($otherRequestsSummary)
   ],
 
   'dipendente' => [
@@ -373,7 +488,10 @@ $payload = [
   ],
 
   'counts_by_date' => $countsByDate,
-  'tooltip_by_date' => $tooltipByDate
+  'tooltip_by_date' => $tooltipByDate,
+
+  'other_requests_summary' => $otherRequestsSummary,
+  'other_days_by_date' => $otherDaysByDate
 ];
 
 echo json_encode($payload, JSON_UNESCAPED_UNICODE);

@@ -811,6 +811,30 @@ if (!is_array($ufficiAta)) {
             justify-content: center;
             font-weight: 600;
         }
+
+        .ferie-day-cell.other-approved {
+            background: #d8f5dd;
+            border-color: #5cb85c;
+            color: #1f5d2a;
+        }
+
+        .ferie-day-cell.other-rejected {
+            background: #f8d7da;
+            border-color: #d9534f;
+            color: #7a1f26;
+        }
+
+        .ferie-day-cell.other-requested {
+            background: #fff3cd;
+            border-color: #e0b84b;
+            color: #7a5b00;
+        }
+
+        .ferie-day-cell.other-draft {
+            background: #d9ecff;
+            border-color: #5bc0de;
+            color: #1c4f70;
+        }
     </style>
 </head>
 
@@ -1028,6 +1052,7 @@ if (!is_array($ufficiAta)) {
                         <div class="ferie-modal-card">
                             <div class="ferie-modal-card-head"><strong>Calendario ferie</strong></div>
                             <div class="ferie-modal-card-body">
+                                <div id="fm_other_requests_box"></div>
                                 <div id="fm_months_wrap" class="ferie-months-wrap"></div>
                             </div>
                         </div>
