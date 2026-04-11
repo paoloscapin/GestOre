@@ -24,7 +24,7 @@ $rows = dbGetAll("
   ORDER BY data_dal, ora_dal
 ");
 
-if (!$rows || count($rows) === 0) {
+if (!is_array($rows) || count($rows) === 0) {
   echo '<div class="text-muted">Nessun intervallo presente.</div>';
   exit;
 }
@@ -45,8 +45,6 @@ echo '<tr>
 </tr>';
 
 foreach ($rows as $r) {
-
-  // unità da dettagli_json (fallback intelligente)
   $unita = '';
   if (!empty($r['dettagli_json'])) {
     $dj = json_decode($r['dettagli_json'], true);
@@ -55,13 +53,13 @@ foreach ($rows as $r) {
     }
   }
   if ($unita !== 'GIORNI' && $unita !== 'ORE') {
-    $unita = ($r['ora_dal'] || $r['ora_al']) ? 'ORE' : 'GIORNI';
+    $unita = (!empty($r['ora_dal']) || !empty($r['ora_al'])) ? 'ORE' : 'GIORNI';
   }
 
   echo '<tr>';
   echo '<td><strong>'.htmlspecialchars($unita).'</strong></td>';
-  echo '<td>'.fmtDateIT($r['data_dal']).'</td>';
-  echo '<td>'.fmtDateIT($r['data_al']).'</td>';
+  echo '<td>'.htmlspecialchars(fmtDateIT($r['data_dal'] ?? '')).'</td>';
+  echo '<td>'.htmlspecialchars(fmtDateIT($r['data_al'] ?? '')).'</td>';
   echo '<td>'.htmlspecialchars($r['ora_dal'] ?? '').'</td>';
   echo '<td>'.htmlspecialchars($r['ora_al'] ?? '').'</td>';
   echo '</tr>';
