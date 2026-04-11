@@ -21,11 +21,6 @@ if (!$ferieTipo || !is_array($ferieTipo)) {
 }
 
 $sottotipo = isset($_GET['sottotipo']) ? strtoupper(trim((string)$_GET['sottotipo'])) : 'ESTIVE';
-$allowedSottotipi = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA'];
-
-if (!in_array($sottotipo, $allowedSottotipi, true)) {
-    throw new Exception('Sottotipo ferie non valido.');
-}
 
 $giorniSpecialiRows = dbGetAll("
   SELECT data_giorno, tipo, descrizione
@@ -83,7 +78,30 @@ $titoli = [
     'NATALE' => 'Ferie Natale',
     'CARNEVALE' => 'Ferie Carnevale',
     'PASQUA' => 'Ferie Pasqua',
+    'ORDINARIE' => 'Ferie ordinarie',
 ];
+
+$finestreEscluseOrdinarie = [];
+
+if ($sottotipo === 'ORDINARIE') {
+    $rowsEscluse = dbGetAll("
+      SELECT codice, data_inizio, data_fine
+      FROM permesso_ata_ferie_finestra
+      WHERE UPPER(TRIM(codice)) IN ('ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA')
+        AND (valido IS NULL OR valido = 1)
+      ORDER BY data_inizio ASC
+    ");
+
+    if (is_array($rowsEscluse)) {
+        foreach ($rowsEscluse as $r) {
+            $finestreEscluseOrdinarie[] = [
+                'codice' => strtoupper(trim((string)$r['codice'])),
+                'data_inizio' => (string)$r['data_inizio'],
+                'data_fine' => (string)$r['data_fine'],
+            ];
+        }
+    }
+}
 
 $bootstrapData = [
     'ferie_tipo_id' => (int)$ferieTipo['id'],
@@ -95,6 +113,7 @@ $bootstrapData = [
     'patrono_mmdd' => ($sottotipo === 'ESTIVE') ? '06-26' : '',
     'edit_id' => (int)$editId,
     'sottotipo' => $sottotipo,
+    'finestre_escluse_ordinarie' => $finestreEscluseOrdinarie,
     'titolo' => $titoli[$sottotipo] ?? ('Ferie ' . $sottotipo),
     'calendar_state_url' => 'ferieRichiestaReadCalendarState.php'
 ];

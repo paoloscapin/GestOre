@@ -179,7 +179,7 @@ function isWeekendYmd($ymd)
   return ($w >= 6);
 }
 
-$allowedSottotipi = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA'];
+$allowedSottotipi = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA', 'ORDINARIE'];
 
 if ($tipo_id <= 0) fail('Tipo permesso non valido.');
 if (!in_array($azione, ['BOZZA', 'INVIA'], true)) fail('Azione non valida.');
@@ -203,6 +203,22 @@ $finestra = dbGetFirst("
   LIMIT 1
 ");
 if (!$finestra) fail('Finestra ferie ' . $sottotipo . ' non configurata.');
+
+$finestreEscluseOrdinarie = [];
+
+if ($sottotipo === 'ORDINARIE') {
+  $finestreEscluseOrdinarie = dbGetAll("
+    SELECT codice, data_inizio, data_fine
+    FROM permesso_ata_ferie_finestra
+    WHERE UPPER(TRIM(codice)) IN ('ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA')
+      AND (valido IS NULL OR valido = 1)
+  ");
+
+  if (!is_array($finestreEscluseOrdinarie)) {
+    $finestreEscluseOrdinarie = [];
+  }
+}
+
 $specialRows = dbGetAll("
   SELECT data_giorno, tipo, descrizione
   FROM permesso_ata_ferie_giorni_speciali
@@ -247,6 +263,18 @@ foreach ($giorni as $g) {
 
   if ($data < $finestra['data_inizio'] || $data > $finestra['data_fine']) {
     fail('La data ' . fmtDateIT($data) . ' è fuori dalla finestra ferie.');
+  }
+
+  if ($sottotipo === 'ORDINARIE') {
+    foreach ($finestreEscluseOrdinarie as $fw) {
+      $da = (string)($fw['data_inizio'] ?? '');
+      $a  = (string)($fw['data_fine'] ?? '');
+      $cod = strtoupper(trim((string)($fw['codice'] ?? '')));
+
+      if ($da !== '' && $a !== '' && $data >= $da && $data <= $a) {
+        fail('La data ' . fmtDateIT($data) . ' ricade nel periodo ferie ' . $cod . ' e non può essere richiesta come ferie ordinarie.');
+      }
+    }
   }
 
   if (!isset($specialInclude[$data]) && isWeekendYmd($data)) {

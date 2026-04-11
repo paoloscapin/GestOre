@@ -340,21 +340,35 @@ foreach ($finestreFerie as $f) {
                         <span class="glyphicon glyphicon-plus"></span>&ensp;Nuova richiesta
                     </button>
 
-                    <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=ESTIVE">
-                        <span class="glyphicon glyphicon-calendar"></span>&ensp;Ferie estive
-                    </a>
+                    <?php if (isset($finestreMap['ESTIVE'])): ?>
+                        <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=ESTIVE">
+                            <span class="glyphicon glyphicon-calendar"></span>&ensp;Ferie estive
+                        </a>
+                    <?php endif; ?>
 
-                    <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=NATALE">
-                        <span class="glyphicon glyphicon-tree-conifer"></span>&ensp;Ferie Natale
-                    </a>
+                    <?php if (isset($finestreMap['NATALE'])): ?>
+                        <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=NATALE">
+                            <span class="glyphicon glyphicon-tree-conifer"></span>&ensp;Ferie Natale
+                        </a>
+                    <?php endif; ?>
 
-                    <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=CARNEVALE">
-                        <span class="glyphicon glyphicon-star"></span>&ensp;Ferie Carnevale
-                    </a>
+                    <?php if (isset($finestreMap['CARNEVALE'])): ?>
+                        <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=CARNEVALE">
+                            <span class="glyphicon glyphicon-star"></span>&ensp;Ferie Carnevale
+                        </a>
+                    <?php endif; ?>
 
-                    <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=PASQUA">
-                        <span class="glyphicon glyphicon-leaf"></span>&ensp;Ferie Pasqua
-                    </a>
+                    <?php if (isset($finestreMap['PASQUA'])): ?>
+                        <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=PASQUA">
+                            <span class="glyphicon glyphicon-leaf"></span>&ensp;Ferie Pasqua
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (isset($finestreMap['ORDINARIE'])): ?>
+                        <a class="btn btn-estive-main" href="ferieRichiesta.php?sottotipo=ORDINARIE">
+                            <span class="glyphicon glyphicon-briefcase"></span>&ensp;Ferie ordinarie
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -394,30 +408,6 @@ foreach ($finestreFerie as $f) {
                         </div>
                     </div>
 
-                    <div class="row" id="block_ferie_sottotipo" style="display:none;">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="ferie_sottotipo">Tipologia ferie</label>
-                                <select class="form-control" id="ferie_sottotipo">
-                                    <option value="">Seleziona...</option>
-                                    <option value="GENERICHE">GENERICHE</option>
-                                    <option value="CARNEVALE">CARNEVALE</option>
-                                    <option value="PASQUA">PASQUA</option>
-                                    <option value="NATALE">NATALE</option>
-                                </select>
-
-                                <div id="ferie_periodo_box" class="text-muted" style="margin-top:6px; display:none;">
-                                    <span class="glyphicon glyphicon-calendar"></span>&ensp;
-                                    <span id="ferie_periodo_testo"></span>
-                                </div>
-
-                                <div class="alert alert-warning" style="margin-top:8px; border-radius:12px;">
-                                    Le <strong>ferie estive</strong> si richiedono dalla pagina dedicata con calendario completo.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="form-group">
                         <label for="permesso_note">Note</label>
                         <textarea class="form-control" rows="3" id="permesso_note" placeholder="Note (facoltative)"></textarea>
@@ -448,21 +438,6 @@ foreach ($finestreFerie as $f) {
                             </div>
                         </div>
                         <div class="alert alert-info" id="singolo_hint" style="display:none; padding:8px; margin-bottom:0;"></div>
-                    </div>
-
-                    <div id="block_ferie_multi" class="permesso-block-card" style="display:none;">
-                        <div class="permesso-block-title">Intervalli ferie</div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label>Intervalli ferie (puoi aggiungerne più di uno)</label>
-                            </div>
-                            <div class="col-md-6 text-right">
-                                <button type="button" class="btn btn-default" id="btn_add_ferie">
-                                    <span class="glyphicon glyphicon-plus"></span>&ensp;Aggiungi intervallo
-                                </button>
-                            </div>
-                        </div>
-                        <div id="righe_ferie_container" style="margin-top:10px;"></div>
                     </div>
 
                     <div id="block_104_multi" class="permesso-block-card" style="display:none;">

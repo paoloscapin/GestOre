@@ -9,7 +9,7 @@ header('Content-Type: application/json; charset=utf-8');
 $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
 $sottotipo = isset($_POST['sottotipo']) ? strtoupper(trim((string)$_POST['sottotipo'])) : '';
 
-$allowedSottotipi = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA'];
+$allowedSottotipi = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA', 'ORDINARIE'];
 
 if ($id <= 0) {
   echo json_encode(['ok' => false, 'error' => 'ID non valido.'], JSON_UNESCAPED_UNICODE);

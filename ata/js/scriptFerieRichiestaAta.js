@@ -31,6 +31,10 @@
 
     const DOW_NAMES = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
+    const FINESTRE_ESCLUSE_ORDINARIE = Array.isArray(BOOT.finestre_escluse_ordinarie)
+        ? BOOT.finestre_escluse_ordinarie
+        : [];
+
     let selectedDays = new Set();
     let currentState = "BOZZA";
     let isReadOnly = false;
@@ -42,6 +46,18 @@
     function pad2(n) {
         n = parseInt(n, 10);
         return (n < 10 ? "0" : "") + n;
+    }
+
+    function inExcludedOrdinarieWindow(ymd) {
+        if (SOTTOTIPO !== "ORDINARIE") return false;
+
+        for (let i = 0; i < FINESTRE_ESCLUSE_ORDINARIE.length; i++) {
+            const w = FINESTRE_ESCLUSE_ORDINARIE[i] || {};
+            const da = (w.data_inizio || "").toString();
+            const a = (w.data_fine || "").toString();
+            if (da && a && ymd >= da && ymd <= a) return true;
+        }
+        return false;
     }
 
     function formatDateIT(ymd) {
@@ -101,7 +117,7 @@
 
     function isSelectable(ymd) {
         if (!inWindow(ymd)) return false;
-
+        if (inExcludedOrdinarieWindow(ymd)) return false;
         // giorni già presenti nello storico (altre richieste) NON selezionabili
         if (getHistoricalInfo(ymd)) return false;
 
@@ -116,7 +132,7 @@
 
     function lockReason(ymd) {
         if (!inWindow(ymd)) return "Fuori periodo";
-
+        if (inExcludedOrdinarieWindow(ymd)) return "Coperto da altra finestra ferie";
         const hist = getHistoricalInfo(ymd);
         if (hist) {
             if (hist.stato === "APPROVATO") return hist.motivo || "Già approvato";
@@ -244,8 +260,24 @@
             return;
         }
 
-        let cursor = monthStart(parseYmdLocal(DATA_INIZIO));
+        let startDate = parseYmdLocal(DATA_INIZIO);
         const endDate = parseYmdLocal(DATA_FINE);
+
+        if (SOTTOTIPO === "ORDINARIE") {
+            const today = new Date();
+            const currentMonthDate = new Date(
+                today.getFullYear(),
+                today.getMonth(),
+                1,
+                12, 0, 0, 0
+            );
+
+            if (currentMonthDate > startDate) {
+                startDate = currentMonthDate;
+            }
+        }
+
+        let cursor = monthStart(startDate);
 
         while (cursor <= endDate) {
             const first = monthStart(cursor);

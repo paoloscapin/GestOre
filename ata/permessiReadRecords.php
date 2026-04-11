@@ -105,9 +105,7 @@ if (count($rows) === 0) {
     $stato = trim((string)$row['stato']);
     $statoClass = statoLabelClass($stato);
 
-    $ferieCalendarioTypes = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA'];
-
-    $btnEditHref = ($codice === 'FERIE' && in_array($ferieSottotipo, $ferieCalendarioTypes, true))
+    $btnEditHref = ($codice === 'FERIE' && $ferieSottotipo !== '')
       ? 'ferieRichiesta.php?sottotipo=' . $ferieSottotipo . '&id=' . $id
       : null;
 

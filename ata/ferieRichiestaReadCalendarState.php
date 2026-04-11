@@ -9,7 +9,7 @@ header('Content-Type: application/json; charset=utf-8');
 $sottotipo = isset($_GET['sottotipo']) ? strtoupper(trim((string)$_GET['sottotipo'])) : '';
 $editId = isset($_GET['edit_id']) ? intval($_GET['edit_id']) : 0;
 
-$allowedSottotipi = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA'];
+$allowedSottotipi = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA', 'ORDINARIE'];
 if (!in_array($sottotipo, $allowedSottotipi, true)) {
     echo json_encode(['ok' => false, 'error' => 'Sottotipo ferie non valido.'], JSON_UNESCAPED_UNICODE);
     exit;
