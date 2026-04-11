@@ -1,12 +1,272 @@
 <?php
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/send-mail.php';
+require_once '../common/mail-ui.php';
+require_once '../common/__Log.php';
+require_once '../common/__Settings.php';
 
-ruoloRichiesto('dirigente','segreteria-ata');
+ruoloRichiesto('dirigente', 'segreteria-ata');
 
 header('Content-Type: application/json; charset=utf-8');
 
 global $__con;
+$MAIL_TEST_OVERRIDE = 'massimo.saiani@buonarroti.tn.it';
+
+function hMail($s): string
+{
+    return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+}
+
+function fmtDateITMail(?string $ymd): string
+{
+    $ymd = trim((string)$ymd);
+    if ($ymd === '') return '';
+    $dt = DateTime::createFromFormat('Y-m-d', $ymd);
+    if ($dt) return $dt->format('d/m/Y');
+    $ts = strtotime($ymd);
+    return $ts ? date('d/m/Y', $ts) : $ymd;
+}
+
+function buildFerieEsitoMailHtml($nomeCompleto, $sottotipo, $statoRichiesta, array $giorniRows, $noteRichiedente, $notaApprovatore, $toName = ''): string
+{
+    $statoRichiesta = strtoupper(trim((string)$statoRichiesta));
+
+    $headerTitle = 'ESITO RICHIESTA FERIE';
+    $intro = 'La tua richiesta ferie è stata aggiornata in <b>GestOre</b>.';
+    $footer = 'Messaggio automatico da <b>GestOre</b>.';
+    $badgeHtml = badge('AGGIORNATA', '#dbeafe', '#1e3a8a');
+    $theme = 'warning';
+    $esitoLabel = 'Aggiornata';
+
+    if ($statoRichiesta === 'APPROVATO') {
+        $headerTitle = 'FERIE APPROVATE';
+        $intro = 'La tua richiesta ferie è stata <b>approvata</b>.';
+        $footer = 'Messaggio automatico da <b>GestOre</b>.';
+        $badgeHtml = badge('APPROVATA', '#dcfce7', '#14532d');
+        $esitoLabel = 'Approvata';
+    } elseif ($statoRichiesta === 'RESPINTO') {
+        $headerTitle = 'FERIE RESPINTE';
+        $intro = 'La tua richiesta ferie è stata <b>respinta</b>.';
+        $footer = 'Messaggio automatico da <b>GestOre</b>.';
+        $badgeHtml = badge('RESPINTA', '#fee2e2', '#7f1d1d');
+        $theme = 'annullamento';
+        $esitoLabel = 'Respinta';
+    } elseif ($statoRichiesta === 'PARZIALE') {
+        $headerTitle = 'FERIE PARZIALMENTE AGGIORNATE';
+        $intro = 'La tua richiesta ferie è stata <b>aggiornata parzialmente</b>: alcuni giorni risultano approvati o respinti, altri possono essere ancora in attesa.';
+        $footer = 'Messaggio automatico da <b>GestOre</b>. Verifica il dettaglio della richiesta.';
+        $badgeHtml = badge('PARZIALE', '#fef3c7', '#92400e');
+        $theme = 'warning';
+        $esitoLabel = 'Parziale';
+    }
+
+    $rowsHtml = '';
+    $cntRichiesti = 0;
+    $cntApprovati = 0;
+    $cntRespinti = 0;
+
+    foreach ($giorniRows as $r) {
+        $det = [];
+        if (!empty($r['dettagli_json'])) {
+            $tmp = json_decode($r['dettagli_json'], true);
+            if (is_array($tmp)) {
+                $det = $tmp;
+            }
+        }
+
+        $sg = strtoupper((string)($det['stato_giorno'] ?? 'RICHIESTO'));
+        if ($sg === 'APPROVATO') $cntApprovati++;
+        elseif ($sg === 'RESPINTO') $cntRespinti++;
+        else $cntRichiesti++;
+
+        $label = 'Richiesto';
+        if ($sg === 'APPROVATO') $label = 'Approvato';
+        elseif ($sg === 'RESPINTO') $label = 'Respinto';
+
+        $rowsHtml .= '
+          <tr>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;font-weight:800;">' . hMail(fmtDateITMail($r['data_dal'] ?? '')) . '</td>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">' . hMail($label) . '</td>
+          </tr>';
+    }
+
+    $content = '
+      <div style="margin:0 0 12px 0;">
+        ' . $badgeHtml . '
+      </div>
+
+      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px;margin:0 0 14px 0;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+          ' . kvRow('Dipendente', $nomeCompleto) . '
+          ' . kvRow('Tipologia ferie', $sottotipo) . '
+          ' . kvRow('Esito', $esitoLabel) . '
+          ' . kvRow('Giorni approvati', (string)$cntApprovati) . '
+          ' . kvRow('Giorni respinti', (string)$cntRespinti) . '
+          ' . kvRow('Giorni in attesa', (string)$cntRichiesti) . '
+        </table>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div style="font-weight:900;font-size:14px;margin:0 0 8px 0;">Dettaglio giorni</div>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+          <thead style="background:#f8fafc;">
+            <tr>
+              <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;font-size:12.5px;color:#6b7280;">Data</th>
+              <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;font-size:12.5px;color:#6b7280;">Stato giorno</th>
+            </tr>
+          </thead>
+          <tbody>' . $rowsHtml . '</tbody>
+        </table>
+      </div>
+    ';
+
+    if (trim((string)$noteRichiedente) !== '') {
+        $content .= '
+          <div style="margin-top:12px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;">
+            <div style="font-weight:800;color:#111827;margin-bottom:6px;">Note del richiedente</div>
+            <div style="font-size:13.5px;line-height:1.55;color:#374151;">' . nl2br(hMail($noteRichiedente)) . '</div>
+          </div>
+        ';
+    }
+
+    if (trim((string)$notaApprovatore) !== '') {
+        $content .= '
+          <div style="margin-top:12px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;">
+            <div style="font-weight:800;color:#111827;margin-bottom:6px;">Nota della segreteria</div>
+            <div style="font-size:13.5px;line-height:1.55;color:#374151;">' . nl2br(hMail($notaApprovatore)) . '</div>
+          </div>
+        ';
+    }
+
+    return mailWrap(
+        $headerTitle,
+        $toName !== '' ? $toName : $nomeCompleto,
+        $intro,
+        $content,
+        $footer,
+        $theme
+    );
+}
+
+function buildFerieEsitoSegreteriaMailHtml($nomeCompleto, $emailUtente, $sottotipo, $statoRichiesta, array $giorniRows, $noteRichiedente, $notaApprovatore, $toName = ''): string
+{
+    $statoRichiesta = strtoupper(trim((string)$statoRichiesta));
+
+    $headerTitle = 'ESITO RICHIESTA FERIE';
+    $intro = 'Una richiesta ferie è stata aggiornata in <b>GestOre</b>.';
+    $footer = 'Messaggio automatico da <b>GestOre</b>.';
+    $badgeHtml = badge('AGGIORNATA', '#dbeafe', '#1e3a8a');
+    $theme = 'warning';
+    $esitoLabel = 'Aggiornata';
+
+    if ($statoRichiesta === 'APPROVATO') {
+        $headerTitle = 'FERIE APPROVATE';
+        $intro = 'La richiesta ferie è stata <b>approvata</b> dalla segreteria.';
+        $badgeHtml = badge('APPROVATA', '#dcfce7', '#14532d');
+        $esitoLabel = 'Approvata';
+    } elseif ($statoRichiesta === 'RESPINTO') {
+        $headerTitle = 'FERIE RESPINTE';
+        $intro = 'La richiesta ferie è stata <b>respinta</b> dalla segreteria.';
+        $badgeHtml = badge('RESPINTA', '#fee2e2', '#7f1d1d');
+        $theme = 'annullamento';
+        $esitoLabel = 'Respinta';
+    } elseif ($statoRichiesta === 'PARZIALE') {
+        $headerTitle = 'FERIE AGGIORNATE PARZIALMENTE';
+        $intro = 'La richiesta ferie è stata <b>aggiornata parzialmente</b> dalla segreteria.';
+        $badgeHtml = badge('PARZIALE', '#fef3c7', '#92400e');
+        $theme = 'warning';
+        $esitoLabel = 'Parziale';
+    }
+
+    $rowsHtml = '';
+    $cntRichiesti = 0;
+    $cntApprovati = 0;
+    $cntRespinti = 0;
+
+    foreach ($giorniRows as $r) {
+        $det = [];
+        if (!empty($r['dettagli_json'])) {
+            $tmp = json_decode($r['dettagli_json'], true);
+            if (is_array($tmp)) {
+                $det = $tmp;
+            }
+        }
+
+        $sg = strtoupper((string)($det['stato_giorno'] ?? 'RICHIESTO'));
+        if ($sg === 'APPROVATO') $cntApprovati++;
+        elseif ($sg === 'RESPINTO') $cntRespinti++;
+        else $cntRichiesti++;
+
+        $label = 'Richiesto';
+        if ($sg === 'APPROVATO') $label = 'Approvato';
+        elseif ($sg === 'RESPINTO') $label = 'Respinto';
+
+        $rowsHtml .= '
+          <tr>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;font-weight:800;">' . hMail(fmtDateITMail($r['data_dal'] ?? '')) . '</td>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">' . hMail($label) . '</td>
+          </tr>';
+    }
+
+    $content = '
+      <div style="margin:0 0 12px 0;">
+        ' . $badgeHtml . '
+      </div>
+
+      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px;margin:0 0 14px 0;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+          ' . kvRow('Dipendente', $nomeCompleto) . '
+          ' . kvRow('Email utente', ($emailUtente !== '' ? $emailUtente : '—')) . '
+          ' . kvRow('Tipologia ferie', $sottotipo) . '
+          ' . kvRow('Esito', $esitoLabel) . '
+          ' . kvRow('Giorni approvati', (string)$cntApprovati) . '
+          ' . kvRow('Giorni respinti', (string)$cntRespinti) . '
+          ' . kvRow('Giorni in attesa', (string)$cntRichiesti) . '
+        </table>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div style="font-weight:900;font-size:14px;margin:0 0 8px 0;">Dettaglio giorni</div>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+          <thead style="background:#f8fafc;">
+            <tr>
+              <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;font-size:12.5px;color:#6b7280;">Data</th>
+              <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;font-size:12.5px;color:#6b7280;">Stato giorno</th>
+            </tr>
+          </thead>
+          <tbody>' . $rowsHtml . '</tbody>
+        </table>
+      </div>
+    ';
+
+    if (trim((string)$noteRichiedente) !== '') {
+        $content .= '
+          <div style="margin-top:12px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;">
+            <div style="font-weight:800;color:#111827;margin-bottom:6px;">Note del richiedente</div>
+            <div style="font-size:13.5px;line-height:1.55;color:#374151;">' . nl2br(hMail($noteRichiedente)) . '</div>
+          </div>
+        ';
+    }
+
+    if (trim((string)$notaApprovatore) !== '') {
+        $content .= '
+          <div style="margin-top:12px;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#ffffff;">
+            <div style="font-weight:800;color:#111827;margin-bottom:6px;">Nota della segreteria</div>
+            <div style="font-size:13.5px;line-height:1.55;color:#374151;">' . nl2br(hMail($notaApprovatore)) . '</div>
+          </div>
+        ';
+    }
+
+    return mailWrap(
+        $headerTitle,
+        $toName !== '' ? $toName : 'Segreteria ATA Permessi',
+        $intro,
+        $content,
+        $footer,
+        $theme
+    );
+}
 
 if (!isset($_POST['riga_id']) || !isset($_POST['stato_giorno'])) {
     http_response_code(400);
@@ -26,14 +286,20 @@ if ($rigaId <= 0 || !in_array($statoGiorno, $allowed, true)) {
 }
 
 $riga = dbGetFirst("
-    SELECT
-        rr.*,
-        req.id AS richiesta_id,
-        req.dettagli_json AS richiesta_dettagli_json,
-        t.codice AS tipo_codice
+SELECT
+    rr.*,
+    req.id AS richiesta_id,
+    req.dettagli_json AS richiesta_dettagli_json,
+    req.note_richiedente,
+    req.ferie_sottotipo,
+    p.nome,
+    p.cognome,
+    p.email,
+    t.codice AS tipo_codice
     FROM permesso_ata_richiesta_riga rr
     JOIN permesso_ata_richiesta req ON req.id = rr.permesso_ata_richiesta_id
     JOIN permesso_ata_tipo t ON t.id = req.permesso_ata_tipo_id
+    JOIN personale_ata p ON p.id = req.personale_ata_id
     WHERE rr.id = $rigaId
     LIMIT 1
 ");
@@ -79,10 +345,10 @@ if ($ok === false) {
 $richiestaId = intval($riga['richiesta_id']);
 
 $righeRichiesta = dbGetAll("
-    SELECT id, dettagli_json
+    SELECT id, data_dal, dettagli_json
     FROM permesso_ata_richiesta_riga
     WHERE permesso_ata_richiesta_id = $richiestaId
-    ORDER BY id ASC
+    ORDER BY data_dal ASC, id ASC
 ");
 
 if (!is_array($righeRichiesta)) {
@@ -155,6 +421,66 @@ if ($ok === false) {
     http_response_code(500);
     echo json_encode(['ok' => false, 'error' => 'Errore aggiornamento richiesta'], JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+if (in_array($nuovoStato, ['APPROVATO', 'RESPINTO', 'PARZIALE'], true)) {
+    $destinatarioReale = trim((string)($riga['email'] ?? ''));
+    $emailUtente = $MAIL_TEST_OVERRIDE ?: $destinatarioReale;
+    $nomeCompleto = trim((string)($riga['cognome'] ?? '') . ' ' . (string)($riga['nome'] ?? ''));
+
+    if ($emailUtente !== '') {
+        $sottotipo = trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
+
+        $subject = 'GestOre - Esito richiesta ferie: ' . $sottotipo;
+        if ($nuovoStato === 'APPROVATO') {
+            $subject = 'GestOre - Ferie approvate: ' . $sottotipo;
+        } elseif ($nuovoStato === 'RESPINTO') {
+            $subject = 'GestOre - Ferie respinte: ' . $sottotipo;
+        } elseif ($nuovoStato === 'PARZIALE') {
+            $subject = 'GestOre - Ferie aggiornate parzialmente: ' . $sottotipo;
+        }
+
+        $body = buildFerieEsitoMailHtml(
+            $nomeCompleto,
+            $sottotipo,
+            $nuovoStato,
+            $righeRichiesta,
+            (string)($riga['note_richiedente'] ?? ''),
+            $notaApprovatore,
+            $nomeCompleto
+        );
+
+        $mailOk = sendMail($emailUtente, $nomeCompleto, $subject, $body);
+        info("permessoFerieGiornoUpdate.php: mail esito ferie richiesta_id=$richiestaId stato=$nuovoStato to=$emailUtente esito=" . ($mailOk ? 'OK' : 'KO'));
+    }
+
+        $segreteriaMail = trim((string)($__settings->segrata->emailSegreteria ?? ''));
+    $segreteriaNome = trim((string)($__settings->segrata->destinatariEmail ?? 'Segreteria ATA Permessi'));
+
+    if ($segreteriaMail !== '') {
+        $subjectSeg = 'GestOre - Esito richiesta ferie: ' . $nomeCompleto . ' - ' . trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
+        if ($nuovoStato === 'APPROVATO') {
+            $subjectSeg = 'GestOre - Ferie approvate: ' . $nomeCompleto . ' - ' . trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
+        } elseif ($nuovoStato === 'RESPINTO') {
+            $subjectSeg = 'GestOre - Ferie respinte: ' . $nomeCompleto . ' - ' . trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
+        } elseif ($nuovoStato === 'PARZIALE') {
+            $subjectSeg = 'GestOre - Ferie aggiornate parzialmente: ' . $nomeCompleto . ' - ' . trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
+        }
+
+        $bodySeg = buildFerieEsitoSegreteriaMailHtml(
+            $nomeCompleto,
+            $destinatarioReale,
+            trim((string)($riga['ferie_sottotipo'] ?? 'FERIE')),
+            $nuovoStato,
+            $righeRichiesta,
+            (string)($riga['note_richiedente'] ?? ''),
+            $notaApprovatore,
+            $segreteriaNome
+        );
+
+        $mailSegOk = sendMail($segreteriaMail, $segreteriaNome, $subjectSeg, $bodySeg);
+        info("permessoFerieGiornoUpdate.php: mail segreteria ferie richiesta_id=$richiestaId stato=$nuovoStato to=$segreteriaMail esito=" . ($mailSegOk ? 'OK' : 'KO'));
+    }
 }
 
 echo json_encode([

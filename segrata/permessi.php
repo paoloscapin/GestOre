@@ -854,6 +854,12 @@ if (!is_array($ufficiAta)) {
                             <span class="glyphicon glyphicon-stats"></span>&ensp;Dashboard ferie
                         </a>
 
+                        <a href="ferieConfig.php"
+                            class="btn btn-info btn-sm"
+                            style="margin-right:10px; font-weight:600;">
+                            <span class="glyphicon glyphicon-calendar"></span>&ensp;Config ferie
+                        </a>
+
                     </div>
 
                     <div class="col-md-9">
