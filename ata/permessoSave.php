@@ -15,7 +15,6 @@ $tipo_id         = isset($_POST['permesso_tipo_id']) ? intval($_POST['permesso_t
 $note            = isset($_POST['note']) ? trim($_POST['note']) : '';
 $azione          = isset($_POST['azione']) ? strtoupper(trim($_POST['azione'])) : 'BOZZA';
 $righe_json      = isset($_POST['righe_json']) ? $_POST['righe_json'] : '[]';
-$ferie_sottotipo = isset($_POST['ferie_sottotipo']) ? strtoupper(trim($_POST['ferie_sottotipo'])) : '';
 $MAIL_TEST_OVERRIDE = 'massimo.saiani@buonarroti.tn.it';
 
 function hMail($s): string
@@ -44,12 +43,9 @@ function formatDateRangeMail($dataDa, $dataA, $oraDa = null, $oraA = null): stri
   return $txt;
 }
 
-function buildPermessoRichiestaMailHtml($nomeCompleto, $tipoCodice, $tipoDescrizione, $ferieSottotipo, array $righe, $note, $toName = ''): string
+function buildPermessoRichiestaMailHtml($nomeCompleto, $tipoCodice, $tipoDescrizione, $stato, array $righe, $note, $toName = ''): string
 {
   $titolo = $tipoDescrizione !== '' ? $tipoDescrizione : $tipoCodice;
-  if ($tipoCodice === 'FERIE' && $ferieSottotipo !== '') {
-    $titolo .= ' - ' . $ferieSottotipo;
-  }
 
   $theme = 'default';
 
@@ -60,7 +56,24 @@ function buildPermessoRichiestaMailHtml($nomeCompleto, $tipoCodice, $tipoDescriz
   } elseif ($tipoCodice === 'RECUPERO_ORE') {
     $theme = 'mbapp';
   }
+  $stato = strtoupper(trim((string)$stato));
 
+  $headerTitle = "RICHIESTA PERMESSO";
+  $intro = "La tua richiesta è stata registrata correttamente in <b>GestOre</b>.";
+  $footer = "Messaggio automatico da <b>GestOre</b>.";
+  $badgeHtml = badge('RICHIESTA INVIATA', '#dcfce7', '#14532d');
+
+  if ($stato === 'APPROVATO') {
+    $headerTitle = "PERMESSO APPROVATO";
+    $intro = "La tua richiesta è stata <b>approvata automaticamente</b> in base alla configurazione prevista.";
+    $footer = "Messaggio automatico da <b>GestOre</b>. Non è richiesta alcuna ulteriore azione.";
+    $badgeHtml = badge('APPROVATA AUTOMATICAMENTE', '#dcfce7', '#14532d');
+  } elseif ($stato === 'INVIATO') {
+    $headerTitle = "RICHIESTA PERMESSO";
+    $intro = "La tua richiesta è stata registrata correttamente in <b>GestOre</b> ed è in attesa di gestione.";
+    $footer = "Messaggio automatico da <b>GestOre</b>.";
+    $badgeHtml = badge('RICHIESTA INVIATA', '#dcfce7', '#14532d');
+  }
   $rowsHtml = '';
   foreach ($righe as $r) {
     $rowsHtml .= '
@@ -76,9 +89,9 @@ function buildPermessoRichiestaMailHtml($nomeCompleto, $tipoCodice, $tipoDescriz
   }
 
   $content = '
-    <div style="margin:0 0 12px 0;">
-      ' . badge('RICHIESTA INVIATA', '#dcfce7', '#14532d') . '
-    </div>
+  <div style="margin:0 0 12px 0;">
+    ' . $badgeHtml . '
+  </div>
 
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px;margin:0 0 14px 0;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
@@ -114,7 +127,7 @@ function buildPermessoRichiestaMailHtml($nomeCompleto, $tipoCodice, $tipoDescriz
   $footer = "Messaggio automatico da <b>GestOre</b>.";
 
   return mailWrap(
-    "RICHIESTA PERMESSO",
+    $headerTitle,
     $toName !== '' ? $toName : $nomeCompleto,
     $intro,
     $content,
@@ -123,21 +136,30 @@ function buildPermessoRichiestaMailHtml($nomeCompleto, $tipoCodice, $tipoDescriz
   );
 }
 
-function buildPermessoRichiestaSegreteriaMailHtml($nomeCompleto, $emailUtente, $tipoCodice, $tipoDescrizione, $ferieSottotipo, array $righe, $note, $toName = ''): string
+function buildPermessoRichiestaSegreteriaMailHtml($nomeCompleto, $emailUtente, $tipoCodice, $tipoDescrizione, $stato, array $righe, $note, $toName = ''): string
 {
   $titolo = $tipoDescrizione !== '' ? $tipoDescrizione : $tipoCodice;
-  if ($tipoCodice === 'FERIE' && $ferieSottotipo !== '') {
-    $titolo .= ' - ' . $ferieSottotipo;
-  }
 
   $theme = 'default';
 
-  if ($tipoCodice === 'FERIE') {
-    $theme = 'warning';
-  } elseif ($tipoCodice === 'LEGGE_104') {
+  if ($tipoCodice === 'LEGGE_104') {
     $theme = 'docente';
   } elseif ($tipoCodice === 'RECUPERO_ORE') {
     $theme = 'mbapp';
+  }
+
+  $stato = strtoupper(trim((string)$stato));
+
+  $headerTitle = "NUOVA RICHIESTA PERMESSO";
+  $intro = "È stata inviata una <b>nuova richiesta</b> su GestOre e richiede presa visione da parte della segreteria.";
+  $footer = "Messaggio automatico da <b>GestOre</b>. Accedere al pannello segreteria per la gestione della richiesta.";
+  $badgeHtml = badge('NUOVA RICHIESTA', '#fef3c7', '#92400e');
+
+  if ($stato === 'APPROVATO') {
+    $headerTitle = "PERMESSO AUTO-APPROVATO";
+    $intro = "È stata registrata una richiesta su <b>GestOre</b> che risulta <b>approvata automaticamente</b> in base alla configurazione del tipo permesso.";
+    $footer = "Messaggio automatico da <b>GestOre</b>. La richiesta è già stata approvata automaticamente; questa email serve come comunicazione e tracciamento.";
+    $badgeHtml = badge('AUTO-APPROVATO', '#dcfce7', '#14532d');
   }
 
   $rowsHtml = '';
@@ -155,15 +177,16 @@ function buildPermessoRichiestaSegreteriaMailHtml($nomeCompleto, $emailUtente, $
   }
 
   $content = '
-    <div style="margin:0 0 12px 0;">
-      ' . badge('NUOVA RICHIESTA', '#fef3c7', '#92400e') . '
-    </div>
+  <div style="margin:0 0 12px 0;">
+    ' . $badgeHtml . '
+  </div>
 
     <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px;margin:0 0 14px 0;">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
         ' . kvRow('Dipendente', $nomeCompleto) . '
         ' . kvRow('Email utente', ($emailUtente !== '' ? $emailUtente : '—')) . '
         ' . kvRow('Tipologia', $titolo) . '
+        ' . kvRow('Esito iniziale', ($stato === 'APPROVATO' ? 'Approvato automaticamente' : 'In attesa di gestione')) . '
       </table>
     </div>
 
@@ -194,7 +217,7 @@ function buildPermessoRichiestaSegreteriaMailHtml($nomeCompleto, $emailUtente, $
   $footer = "Messaggio automatico da <b>GestOre</b>. Accedere al pannello segreteria per la gestione della richiesta.";
 
   return mailWrap(
-    "NUOVA RICHIESTA PERMESSO",
+    $headerTitle,
     $toName !== '' ? $toName : 'Segreteria ATA Permessi',
     $intro,
     $content,
@@ -230,7 +253,7 @@ if (!is_array($righe) || count($righe) === 0) {
 
 // tipo valido + codice
 $tipo = dbGetFirst("
-  SELECT codice, descrizione
+  SELECT codice, descrizione, approvazione_automatica
   FROM permesso_ata_tipo
   WHERE id = $tipo_id
     AND (valido IS NULL OR valido = 1)
@@ -245,33 +268,11 @@ $tipo_descrizione = trim((string)($tipo['descrizione'] ?? ''));
 if ($tipo_descrizione === '') {
   $tipo_descrizione = $tipo_codice;
 }
-$stato = ($azione === 'INVIA') ? 'INVIATO' : 'BOZZA';
-
-// ferie sottotipo
-$ferie_allowed = ['GENERICHE', 'CARNEVALE', 'PASQUA', 'ESTIVE', 'NATALE'];
-if ($tipo_codice === 'FERIE') {
-  if ($ferie_sottotipo === '' || !in_array($ferie_sottotipo, $ferie_allowed, true)) {
-    echo json_encode(["ok" => false, "error" => "Seleziona la tipologia ferie (GENERICHE/CARNEVALE/PASQUA/ESTIVE/NATALE)."], JSON_UNESCAPED_UNICODE);
-    exit;
-  }
+$approvazioneAutomatica = (int)($tipo['approvazione_automatica'] ?? 0) === 1;
+if ($azione === 'INVIA') {
+  $stato = $approvazioneAutomatica ? 'APPROVATO' : 'INVIATO';
 } else {
-  $ferie_sottotipo = '';
-}
-
-// finestra ferie (solo sottotipi non GENERICHE)
-$finestra = null;
-if ($tipo_codice === 'FERIE' && $ferie_sottotipo !== 'GENERICHE') {
-  $finestra = dbGetFirst("
-    SELECT data_inizio, data_fine
-    FROM permesso_ata_ferie_finestra
-    WHERE codice = " . dbQ($ferie_sottotipo) . "
-      AND (valido IS NULL OR valido=1)
-    LIMIT 1
-  ");
-  if (!$finestra) {
-    echo json_encode(["ok" => false, "error" => "Finestra ferie non configurata per: $ferie_sottotipo."], JSON_UNESCAPED_UNICODE);
-    exit;
-  }
+  $stato = 'BOZZA';
 }
 
 // VALIDAZIONI + NORMALIZZAZIONE
@@ -282,33 +283,7 @@ foreach ($righe as $i => $r) {
   $ora_da  = isset($r['ora_da']) ? trim((string)$r['ora_da']) : '';
   $ora_a   = isset($r['ora_a']) ? trim((string)$r['ora_a']) : '';
 
-  if ($tipo_codice === 'FERIE') {
-
-    $unita = 'GIORNI';
-    if ($data_da === '' || $data_a === '') {
-      echo json_encode(["ok" => false, "error" => "Riga " . ($i + 1) . ": date obbligatorie."], JSON_UNESCAPED_UNICODE);
-      exit;
-    }
-    if ($data_da > $data_a) {
-      echo json_encode(["ok" => false, "error" => "Riga " . ($i + 1) . ": la data DAL non può essere dopo la data AL."], JSON_UNESCAPED_UNICODE);
-      exit;
-    }
-    $ora_da = null;
-    $ora_a  = null;
-
-    if ($finestra) {
-      $win_from = $finestra['data_inizio'];
-      $win_to   = $finestra['data_fine'];
-      if ($data_da < $win_from || $data_a > $win_to) {
-        echo json_encode([
-          "ok" => false,
-          "error" => "Riga " . ($i + 1) . ": intervallo fuori finestra $ferie_sottotipo (" .
-            fmtDateIT($win_from) . " - " . fmtDateIT($win_to) . ")."
-        ], JSON_UNESCAPED_UNICODE);
-        exit;
-      }
-    }
-  } elseif ($tipo_codice === 'RECUPERO_ORE') {
+  if ($tipo_codice === 'RECUPERO_ORE') {
 
     $unita = 'ORE';
     if ($data_da === '' && $data_a !== '') $data_da = $data_a;
@@ -413,10 +388,9 @@ dbExec("START TRANSACTION");
 
 try {
 
-  // dettagli_json richiesta: per ora salvo solo ferie_sottotipo (opzionale)
   $dettagliRichiesta = [
     'tipo_codice' => $tipo_codice,
-    'ferie_sottotipo' => ($tipo_codice === 'FERIE') ? $ferie_sottotipo : null
+    'auto_approvato' => ($stato === 'APPROVATO')
   ];
   $dettagliRichiestaJson = json_encode($dettagliRichiesta, JSON_UNESCAPED_UNICODE);
 
@@ -435,7 +409,7 @@ try {
     dbExec("
       UPDATE permesso_ata_richiesta
       SET permesso_ata_tipo_id = $tipo_id,
-          ferie_sottotipo = " . dbQ($ferie_sottotipo ?: null) . ",
+          ferie_sottotipo = null,
           stato = " . dbQ($stato) . ",
           note_richiedente = " . dbQ($note) . ",
           dettagli_json = " . dbQ($dettagliRichiestaJson) . ",
@@ -452,7 +426,7 @@ try {
       INSERT INTO permesso_ata_richiesta
         (personale_ata_id, permesso_ata_tipo_id, ferie_sottotipo, stato, note_richiedente, dettagli_json, created_at, updated_at)
       VALUES
-        ($__ata_id, $tipo_id, " . dbQ($ferie_sottotipo ?: null) . ", " . dbQ($stato) . ",
+        ($__ata_id, $tipo_id, null, " . dbQ($stato) . ",
          " . dbQ($note) . ", " . dbQ($dettagliRichiestaJson) . ", NOW(), NOW())
     ");
     $richiesta_id = dblastId();
@@ -488,21 +462,22 @@ try {
 ");
 
   dbExec("COMMIT");
-  if ($stato === 'INVIATO' && $ata && !empty($ata['email'])) {
+  if (($stato === 'INVIATO' || $stato === 'APPROVATO') && $ata && !empty($ata['email'])) {
     $nomeCompleto = trim((string)($ata['cognome'] ?? '') . ' ' . (string)($ata['nome'] ?? ''));
     $destinatarioReale = trim((string)($ata['email'] ?? ''));
     $destinatario = $MAIL_TEST_OVERRIDE ?: $destinatarioReale;
 
-    $subject = "GestOre - Richiesta inviata: " . $tipo_descrizione;
-    if ($tipo_codice === 'FERIE' && $ferie_sottotipo !== '') {
-      $subject .= " - " . $ferie_sottotipo;
+    if ($stato === 'APPROVATO') {
+      $subject = "GestOre - Richiesta approvata automaticamente: " . $tipo_descrizione;
+    } else {
+      $subject = "GestOre - Richiesta inviata: " . $tipo_descrizione;
     }
 
     $body = buildPermessoRichiestaMailHtml(
       $nomeCompleto,
       $tipo_codice,
       $tipo_descrizione,
-      $ferie_sottotipo,
+      $stato,
       $righe,
       $note,
       $nomeCompleto
@@ -514,17 +489,17 @@ try {
     $segreteriaNome = trim((string)($__settings->segrata->destinatariEmail ?? 'Segreteria ATA Permessi'));
 
     if ($segreteriaMail !== '') {
-      $subjectSeg = "GestOre - Nuova richiesta da gestire: " . $nomeCompleto . " - " . $tipo_descrizione;
-      if ($tipo_codice === 'FERIE' && $ferie_sottotipo !== '') {
-        $subjectSeg .= " - " . $ferie_sottotipo;
+      if ($stato === 'APPROVATO') {
+        $subjectSeg = "GestOre - Richiesta auto-approvata: " . $nomeCompleto . " - " . $tipo_descrizione;
+      } else {
+        $subjectSeg = "GestOre - Nuova richiesta da gestire: " . $nomeCompleto . " - " . $tipo_descrizione;
       }
-
       $bodySeg = buildPermessoRichiestaSegreteriaMailHtml(
         $nomeCompleto,
         $destinatarioReale,
         $tipo_codice,
         $tipo_descrizione,
-        $ferie_sottotipo,
+        $stato,
         $righe,
         $note,
         $segreteriaNome

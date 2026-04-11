@@ -504,7 +504,6 @@ function permessoSave(azione) {
     const tipo_id = $("#permesso_tipo_id").val();
     const tipo_codice = getTipoCodiceSelezionato();
     const note = $("#permesso_note").val();
-    const ferie_sottotipo = (tipo_codice === "FERIE") ? ($("#ferie_sottotipo").val() || "") : "";
 
     const righe = collectRighe();
 
@@ -516,7 +515,6 @@ function permessoSave(azione) {
             permesso_id: permesso_id,
             permesso_tipo_id: tipo_id,
             note: note,
-            ferie_sottotipo: ferie_sottotipo,
             azione: azione,
             righe_json: JSON.stringify(righe)
         },
