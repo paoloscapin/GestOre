@@ -171,6 +171,12 @@ foreach ($rows as $r) {
       <button class="btn btn-primary btn-xs" type="button" onclick="permessoOpen(' . $id . ')" title="Apri dettaglio">
         <span class="glyphicon glyphicon-eye-open"></span>
       </button>
+      <a href="permessoPdf.php?id=' . $id . '" 
+   class="btn btn-default btn-xs" 
+   target="_blank" 
+   title="Genera PDF">
+  <span class="glyphicon glyphicon-print"></span>
+</a>
     </td>
   </tr>';
 }
