@@ -423,65 +423,66 @@ if ($ok === false) {
     exit;
 }
 
-if (in_array($nuovoStato, ['APPROVATO', 'RESPINTO', 'PARZIALE'], true)) {
-    $destinatarioReale = trim((string)($riga['email'] ?? ''));
-    $emailUtente = $MAIL_TEST_OVERRIDE ?: $destinatarioReale;
-    $nomeCompleto = trim((string)($riga['cognome'] ?? '') . ' ' . (string)($riga['nome'] ?? ''));
+// if (in_array($nuovoStato, ['APPROVATO', 'RESPINTO', 'PARZIALE'], true)) {
+//     $destinatarioReale = trim((string)($riga['email'] ?? ''));
+//     $emailUtente = $MAIL_TEST_OVERRIDE ?: $destinatarioReale;
+//     $nomeCompleto = trim((string)($riga['cognome'] ?? '') . ' ' . (string)($riga['nome'] ?? ''));
 
-    if ($emailUtente !== '') {
-        $sottotipo = trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
+//     if ($emailUtente !== '') {
+//         $sottotipo = trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
 
-        $subject = 'GestOre - Esito richiesta ferie: ' . $sottotipo;
-        if ($nuovoStato === 'APPROVATO') {
-            $subject = 'GestOre - Ferie approvate: ' . $sottotipo;
-        } elseif ($nuovoStato === 'RESPINTO') {
-            $subject = 'GestOre - Ferie respinte: ' . $sottotipo;
-        } elseif ($nuovoStato === 'PARZIALE') {
-            $subject = 'GestOre - Ferie aggiornate parzialmente: ' . $sottotipo;
-        }
+//         $subject = 'GestOre - Esito richiesta ferie: ' . $sottotipo;
+//         if ($nuovoStato === 'APPROVATO') {
+//             $subject = 'GestOre - Ferie approvate: ' . $sottotipo;
+//         } elseif ($nuovoStato === 'RESPINTO') {
+//             $subject = 'GestOre - Ferie respinte: ' . $sottotipo;
+//         } elseif ($nuovoStato === 'PARZIALE') {
+//             $subject = 'GestOre - Ferie aggiornate parzialmente: ' . $sottotipo;
+//         }
 
-        $body = buildFerieEsitoMailHtml(
-            $nomeCompleto,
-            $sottotipo,
-            $nuovoStato,
-            $righeRichiesta,
-            (string)($riga['note_richiedente'] ?? ''),
-            $notaApprovatore,
-            $nomeCompleto
-        );
+//         $body = buildFerieEsitoMailHtml(
+//             $nomeCompleto,
+//             $sottotipo,
+//             $nuovoStato,
+//             $righeRichiesta,
+//             (string)($riga['note_richiedente'] ?? ''),
+//             $notaApprovatore,
+//             $nomeCompleto
+//         );
 
-        $mailOk = sendMail($emailUtente, $nomeCompleto, $subject, $body);
-        info("permessoFerieGiornoUpdate.php: mail esito ferie richiesta_id=$richiestaId stato=$nuovoStato to=$emailUtente esito=" . ($mailOk ? 'OK' : 'KO'));
-    }
+//         $mailOk = sendMail($emailUtente, $nomeCompleto, $subject, $body);
+//         info("permessoFerieGiornoUpdate.php: mail esito ferie richiesta_id=$richiestaId stato=$nuovoStato to=$emailUtente esito=" . ($mailOk ? 'OK' : 'KO'));
+//     }
 
-        $segreteriaMail = trim((string)($__settings->segrata->emailSegreteria ?? ''));
-    $segreteriaNome = trim((string)($__settings->segrata->destinatariEmail ?? 'Segreteria ATA Permessi'));
+//         $segreteriaMail = trim((string)($__settings->segrata->emailSegreteria ?? ''));
+//     $segreteriaNome = trim((string)($__settings->segrata->destinatariEmail ?? 'Segreteria ATA Permessi'));
 
-    if ($segreteriaMail !== '') {
-        $subjectSeg = 'GestOre - Esito richiesta ferie: ' . $nomeCompleto . ' - ' . trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
-        if ($nuovoStato === 'APPROVATO') {
-            $subjectSeg = 'GestOre - Ferie approvate: ' . $nomeCompleto . ' - ' . trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
-        } elseif ($nuovoStato === 'RESPINTO') {
-            $subjectSeg = 'GestOre - Ferie respinte: ' . $nomeCompleto . ' - ' . trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
-        } elseif ($nuovoStato === 'PARZIALE') {
-            $subjectSeg = 'GestOre - Ferie aggiornate parzialmente: ' . $nomeCompleto . ' - ' . trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
-        }
+//     if ($segreteriaMail !== '') {
+//         $subjectSeg = 'GestOre - Esito richiesta ferie: ' . $nomeCompleto . ' - ' . trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
+//         if ($nuovoStato === 'APPROVATO') {
+//             $subjectSeg = 'GestOre - Ferie approvate: ' . $nomeCompleto . ' - ' . trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
+//         } elseif ($nuovoStato === 'RESPINTO') {
+//             $subjectSeg = 'GestOre - Ferie respinte: ' . $nomeCompleto . ' - ' . trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
+//         } elseif ($nuovoStato === 'PARZIALE') {
+//             $subjectSeg = 'GestOre - Ferie aggiornate parzialmente: ' . $nomeCompleto . ' - ' . trim((string)($riga['ferie_sottotipo'] ?? 'FERIE'));
+//         }
 
-        $bodySeg = buildFerieEsitoSegreteriaMailHtml(
-            $nomeCompleto,
-            $destinatarioReale,
-            trim((string)($riga['ferie_sottotipo'] ?? 'FERIE')),
-            $nuovoStato,
-            $righeRichiesta,
-            (string)($riga['note_richiedente'] ?? ''),
-            $notaApprovatore,
-            $segreteriaNome
-        );
+//         $bodySeg = buildFerieEsitoSegreteriaMailHtml(
+//             $nomeCompleto,
+//             $destinatarioReale,
+//             trim((string)($riga['ferie_sottotipo'] ?? 'FERIE')),
+//             $nuovoStato,
+//             $righeRichiesta,
+//             (string)($riga['note_richiedente'] ?? ''),
+//             $notaApprovatore,
+//             $segreteriaNome
+//         );
 
-        $mailSegOk = sendMail($segreteriaMail, $segreteriaNome, $subjectSeg, $bodySeg);
-        info("permessoFerieGiornoUpdate.php: mail segreteria ferie richiesta_id=$richiestaId stato=$nuovoStato to=$segreteriaMail esito=" . ($mailSegOk ? 'OK' : 'KO'));
-    }
-}
+//         $mailSegOk = sendMail($segreteriaMail, $segreteriaNome, $subjectSeg, $bodySeg);
+//         info("permessoFerieGiornoUpdate.php: mail segreteria ferie richiesta_id=$richiestaId stato=$nuovoStato to=$segreteriaMail esito=" . ($mailSegOk ? 'OK' : 'KO'));
+//    }
+// else {
+info("permessoFerieGiornoUpdate.php: richiesta_id=$richiestaId aggiornata a stato=$nuovoStato senza invio mail (giorno aggiornato a stato_giorno=$statoGiorno cntApprovati=$cntApprovati cntRespinti=$cntRespinti cntRichiesti=$cntRichiesti)");
 
 echo json_encode([
     'ok' => true,

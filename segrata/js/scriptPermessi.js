@@ -1,6 +1,12 @@
 /**
  * Permessi ATA - Segreteria
  */
+
+
+let ferieModalInitialSnapshot = null;
+let ferieModalCurrentSnapshot = null;
+let ferieModalKeepDirty = false;
+
 function fmtDateTimeIT(dt) {
   if (!dt) return "";
 
@@ -166,6 +172,41 @@ function buildSelectedDateMap(righe) {
   return selected;
 }
 
+function buildFerieModalSnapshot() {
+  const noteSegreteria = ($("#fm_note_segreteria").val() || "").trim();
+
+  const richiestaId = ($("#fm_hidden_permesso_id").val() || "").toString().trim();
+
+  const selectedMap = window.__FM_SELECTED_DATE_MAP || {};
+  const days = Object.keys(selectedMap).sort().map(function (iso) {
+    const d = selectedMap[iso] || {};
+    return {
+      iso: iso,
+      row_id: String(d.row_id || ""),
+      stato_giorno: String(d.stato_giorno || "RICHIESTO").toUpperCase(),
+      nota_approvatore: String(d.nota_approvatore || "").trim()
+    };
+  });
+
+  return {
+    richiesta_id: richiestaId,
+    note_segreteria: noteSegreteria,
+    days: days
+  };
+}
+
+function ferieSnapshotsEqual(a, b) {
+  return JSON.stringify(a || {}) === JSON.stringify(b || {});
+}
+
+function updateFerieSaveButtonState() {
+  ferieModalCurrentSnapshot = buildFerieModalSnapshot();
+  const changed = !ferieSnapshotsEqual(ferieModalInitialSnapshot, ferieModalCurrentSnapshot);
+
+  $("#fm_btn_save_notes").prop("disabled", !changed);
+  return changed;
+}
+
 function getOtherDayCellStateClass(otherInfo) {
   const stato = ((otherInfo && otherInfo.stato_giorno) || "").toUpperCase();
   if (stato === "APPROVATO") return " other-approved";
@@ -225,22 +266,28 @@ function saveFerieNotesOnly() {
   const id = $("#fm_hidden_permesso_id").val();
   const note = $("#fm_note_segreteria").val();
 
+  if (!updateFerieSaveButtonState()) {
+    return;
+  }
+
   $.ajax({
     url: "permessoUpdateSegreteria.php",
     method: "POST",
     dataType: "json",
     data: {
       id: id,
-      note_segreteria: note
+      note_segreteria: note,
+      finalizza_ferie: 1
     },
     success: function (r) {
       if (!r || r.ok !== true) {
-
         $.notify({
           message: (r && r.error) ? r.error : "Salvataggio note fallito"
         }, { type: "danger" });
         return;
       }
+      ferieModalInitialSnapshot = buildFerieModalSnapshot();
+      updateFerieSaveButtonState();
       $("#permesso_ferie_modal").modal("hide");
       $.notify({
         icon: "glyphicon glyphicon-ok",
@@ -287,6 +334,7 @@ function saveFerieAllDays(statoGiorno) {
       $("#ferie_giorno_modal").modal("hide");
 
       if (richiestaId) {
+        ferieModalKeepDirty = true;
         permessoOpen(richiestaId);
       }
 
@@ -330,6 +378,7 @@ function saveFerieSingleDay(statoOverride) {
 
       const richiestaId = $("#fm_hidden_permesso_id").val();
       if (richiestaId) {
+        ferieModalKeepDirty = true;
         permessoOpen(richiestaId);
       }
 
@@ -391,6 +440,9 @@ function renderPermessoFerieModal(r) {
   const totals = r.totali || { profilo: 0, ufficio: 0 };
   const otherDaysByDate = r.other_days_by_date || {};
   const otherRequests = Array.isArray(r.other_requests_summary) ? r.other_requests_summary : [];
+
+  window.__FM_SELECTED_DATE_MAP = buildSelectedDateMap(righe);
+
   $("#fm_hidden_permesso_id").val(perm.id || "");
   $("#fm_title").text(perm.tipo || "Dettaglio ferie");
   $("#fm_subtitle").text("Richiesta ferie di " + (dip.nome || ""));
@@ -541,8 +593,8 @@ function renderPermessoFerieModal(r) {
         ? `
       <div class="ferie-day-right">
         <div class="ferie-day-meta ferie-day-meta-counts">
-<span class="p-line">P: ${profCount}/${totals.profilo || 0}</span>
-<span class="u-line">U: ${offCount}/${totals.ufficio || 0}</span>
+        <span class="p-line">P: ${profCount}/${totals.profilo || 0}</span>
+          <span class="u-line">U: ${offCount}/${totals.ufficio || 0}</span>
         </div>
       </div>`
         : `<div class="ferie-day-right"></div>`;
@@ -576,6 +628,12 @@ function renderPermessoFerieModal(r) {
     const dayInfo = selectedMap[iso] || null;
     openFerieDayDecisionModal(iso, dayInfo, dip);
   });
+
+  if (!ferieModalKeepDirty || !ferieModalInitialSnapshot) {
+    ferieModalInitialSnapshot = buildFerieModalSnapshot();
+  }
+  ferieModalKeepDirty = false;
+  updateFerieSaveButtonState();
 }
 
 function openStandardPermessoModal(r, id) {
@@ -840,6 +898,10 @@ $(document).ready(function () {
     e.preventDefault();
     e.stopPropagation();
     saveFerieSingleDay("RESPINTO");
+  });
+
+  $(document).off("input", "#fm_note_segreteria").on("input", "#fm_note_segreteria", function () {
+    updateFerieSaveButtonState();
   });
 
   $(document).off("click", "#fg_btn_approve_all").on("click", "#fg_btn_approve_all", function (e) {
