@@ -41,7 +41,7 @@
 
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li>
-				<a href="<?php echo $__settings->local->helpLinkSegreteria; ?>" target="_blank">
+				<a href="<?php echo $__settings->local->helpLinkSegreteriaATA; ?>" target="_blank">
 					<span class="glyphicon glyphicon-question-sign"></span>
 				</a>
 			</li>
