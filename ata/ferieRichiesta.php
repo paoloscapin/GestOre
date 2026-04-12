@@ -548,6 +548,24 @@ $bootstrapData = [
             font-weight: 700;
             line-height: 1.2;
         }
+
+        .status-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.1;
+        }
+
+        .meta-icon {
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .meta-label {
+            font-size: 10px;
+            font-weight: 600;
+            opacity: 0.8;
+        }
     </style>
 </head>
 

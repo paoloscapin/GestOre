@@ -318,6 +318,8 @@ foreach ($finestreFerie as $f) {
                 text-align: left !important;
             }
         }
+
+        
     </style>
 </head>
 

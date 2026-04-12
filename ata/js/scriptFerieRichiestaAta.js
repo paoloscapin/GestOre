@@ -42,6 +42,7 @@
     // nuovo: stato storico globale utente
     let historicalDaysMap = {};
     let currentDraftDaysMap = {};
+    let currentRequestDayStateMap = {};
 
     function pad2(n) {
         n = parseInt(n, 10);
@@ -109,6 +110,10 @@
 
     function getHistoricalInfo(ymd) {
         return historicalDaysMap[ymd] || null;
+    }
+
+    function getCurrentRequestDayInfo(ymd) {
+        return currentRequestDayStateMap[ymd] || null;
     }
 
     function isEditableCurrentDraftDay(ymd) {
@@ -303,23 +308,70 @@
                 const selectable = isSelectable(ymd);
                 const selected = selectedDays.has(ymd);
                 const hist = getHistoricalInfo(ymd);
+                const currentDayInfo = getCurrentRequestDayInfo(ymd);
                 const classes = ["day-cell"];
 
                 if (!selectable && !selected) classes.push("locked");
                 if (hist) classes.push(historicalCssClass(ymd));
-                if (selected && !isReadOnly) classes.push("selected");
-                if (selected && isReadOnly) classes.push("readonly-selected");
-                if (selected && isEditableCurrentDraftDay(ymd)) classes.push("current-draft");
 
-                let metaText = "";
                 if (selected) {
-                    metaText = "+";
+                    const sg = currentDayInfo ? String(currentDayInfo.stato || "").toUpperCase() : "RICHIESTO";
+
+                    if (!isReadOnly) {
+                        classes.push("selected");
+                    } else {
+                        if (sg === "APPROVATO") {
+                            classes.push("historical-approved");
+                        } else if (sg === "RESPINTO") {
+                            classes.push("historical-rejected");
+                        } else if (sg === "BOZZA") {
+                            classes.push("historical-draft");
+                        } else {
+                            classes.push("readonly-selected");
+                        }
+                    }
+                }
+
+                if (selected && !isReadOnly && isEditableCurrentDraftDay(ymd)) classes.push("current-draft");
+                let metaText = "";
+                let metaLabel = "";
+
+                if (selected) {
+                    const sg = currentDayInfo ? String(currentDayInfo.stato || "").toUpperCase() : "RICHIESTO";
+
+                    if (isReadOnly) {
+                        if (sg === "APPROVATO") {
+                            metaText = "✓";
+                            metaLabel = "Approvato";
+                        } else if (sg === "RESPINTO") {
+                            metaText = "✕";
+                            metaLabel = "Respinto";
+                        } else if (sg === "BOZZA") {
+                            metaText = "•";
+                            metaLabel = "Bozza";
+                        } else {
+                            metaText = "!";
+                            metaLabel = "Richiesto";
+                        }
+                    } else {
+                        metaText = "+";
+                        metaLabel = "Selezionato";
+                    }
                 } else if (hist) {
                     metaText = historicalMetaText(ymd);
+
+                    const stato = (hist.stato || "").toUpperCase();
+                    if (stato === "APPROVATO") metaLabel = "Già approvato";
+                    else if (stato === "RESPINTO") metaLabel = "Già respinto";
+                    else if (stato === "BOZZA") metaLabel = "Altra bozza";
+                    else metaLabel = "Già richiesto";
                 }
 
                 const meta = metaText
-                    ? '<div class="day-meta status-meta">' + metaText + '</div>'
+                    ? '<div class="day-meta status-meta">' +
+                    '<div class="meta-icon">' + metaText + '</div>' +
+                    '<div class="meta-label">' + metaLabel + '</div>' +
+                    '</div>'
                     : '<div class="day-meta"></div>';
 
                 const reason = !selectable && !selected
@@ -404,8 +456,19 @@
                 currentState = (req.stato || "BOZZA").toString();
 
                 selectedDays = new Set();
+                currentRequestDayStateMap = {};
+
                 giorni.forEach(function (g) {
-                    if (g && g.data) selectedDays.add(g.data);
+                    if (!g || !g.data) return;
+
+                    const iso = String(g.data);
+                    const stato = String(g.stato_giorno || "RICHIESTO").toUpperCase();
+
+                    selectedDays.add(iso);
+                    currentRequestDayStateMap[iso] = {
+                        stato: stato,
+                        nota_approvatore: String(g.nota_approvatore || "")
+                    };
                 });
 
                 $("#editor_title").text(TITOLO + " #" + req.id);
