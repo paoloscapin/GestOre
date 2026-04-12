@@ -135,21 +135,21 @@ if (!is_array($profili)) $profili = [];
                         <span class="glyphicon glyphicon-user"></span>&emsp;Elenco Personale ATA
                     </div>
 
-                    <div class="col-md-4 text-center">
+                    <div class="col-md-2 text-center">
                         <label class="checkbox-inline">
                             <input type="checkbox" checked data-toggle="toggle" data-size="mini"
                                 data-onstyle="primary" id="testCheckBox">Solo Attivi
                         </label>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-5">
                         <div class="pull-right">
                             <button type="button" class="btn btn-xs btn-default" onclick="personaleAtaExport()">
-                                <span class="glyphicon glyphicon-download-alt"></span> Esporta
+                                <span class="glyphicon glyphicon-download-alt"></span> Esporta XLS
                             </button>
 
                             <button type="button" class="btn btn-xs btn-default" onclick="$('#import_modal').modal('show')">
-                                <span class="glyphicon glyphicon-upload"></span> Importa
+                                <span class="glyphicon glyphicon-upload"></span> Importa CSV
                             </button>
 
                             <button class="btn btn-xs btn-lightblue4" data-toggle="modal"

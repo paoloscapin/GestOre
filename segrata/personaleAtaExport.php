@@ -2,10 +2,19 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/vendor/autoload.php';
 
-ruoloRichiesto('dirigente','segreteria-ata');
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
-function paEsc($s) {
+ruoloRichiesto('dirigente', 'segreteria-ata');
+
+function paEsc($s)
+{
     if (isset($GLOBALS['__conn']) && $GLOBALS['__conn']) {
         return mysqli_real_escape_string($GLOBALS['__conn'], $s);
     }
@@ -57,7 +66,7 @@ if ($search !== '') {
 
 if ($idUfficio > 0) $where[] = "curr.id_ufficio = $idUfficio";
 if ($idProfilo > 0) $where[] = "p.id_profilo = $idProfilo";
-if ($tipoContratto !== '') $where[] = "p.tipo_contratto = '".paEsc($tipoContratto)."'";
+if ($tipoContratto !== '') $where[] = "p.tipo_contratto = '" . paEsc($tipoContratto) . "'";
 
 $sqlWhere = count($where) ? ("WHERE " . implode(" AND ", $where)) : "";
 
@@ -104,49 +113,119 @@ ORDER BY $orderSql $orderDir, p.cognome, p.nome
 $rows = dbGetAll($query);
 if (!is_array($rows)) $rows = [];
 
-$filename = 'personale_ata_' . date('d-m-Y_H-i-s') . '.csv';
+$spreadsheet = new Spreadsheet();
+$sheet = $spreadsheet->getActiveSheet();
+$sheet->setTitle('Personale ATA');
 
-header('Content-Type: text/csv; charset=UTF-8');
-header('Content-Disposition: attachment; filename="' . $filename . '"');
-header('Pragma: no-cache');
-header('Expires: 0');
+/* =========================
+   HEADER
+   ========================= */
 
-$out = fopen('php://output', 'w');
+$headers = [
+    'ID',
+    'Cognome',
+    'Nome',
+    'Email',
+    'Matricola',
+    'Tipo contratto',
+    'Codice fiscale',
+    'Profilo codice',
+    'Profilo nome',
+    'Ufficio'
+];
 
-// BOM UTF-8 per Excel
-echo "\xEF\xBB\xBF";
-
-// intestazioni CSV
-fputcsv($out, [
-    'id',
-    'cognome',
-    'nome',
-    'email',
-    'matricola',
-    'tipo_contratto',
-    'codice_fiscale',
-    'profilo_codice',
-    'profilo_nome',
-    'ufficio_corrente_nome'
-], ';');
-
-foreach ($rows as $r) {
-$cognome = isset($r['cognome']) ? mb_convert_case($r['cognome'], MB_CASE_TITLE, "UTF-8") : '';
-$nome    = isset($r['nome']) ? mb_convert_case($r['nome'], MB_CASE_TITLE, "UTF-8") : '';
-
-fputcsv($out, [
-    $r['id'] ?? '',
-    $cognome,
-    $nome,
-    $r['email'] ?? '',
-    $r['matricola'] ?? '',
-    $r['tipo_contratto'] ?? '',
-    $r['codice_fiscale'] ?? '',
-    $r['profilo_codice'] ?? '',
-    $r['profilo_nome'] ?? '',
-    $r['ufficio_corrente_nome'] ?? ''
-], ';');
+$col = 1;
+foreach ($headers as $h) {
+    $cell = Coordinate::stringFromColumnIndex($col) . '1';
+    $sheet->setCellValue($cell, $h);
+    $col++;
 }
 
-fclose($out);
+/* =========================
+   STILE HEADER
+   ========================= */
+
+$lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+
+$sheet->getStyle("A1:$lastCol" . "1")->applyFromArray([
+    'font' => [
+        'bold' => true,
+        'color' => ['argb' => 'FFFFFFFF'],
+    ],
+    'fill' => [
+        'fillType' => Fill::FILL_SOLID,
+        'startColor' => ['argb' => 'FF1F4E78'],
+    ],
+    'alignment' => [
+        'horizontal' => Alignment::HORIZONTAL_CENTER
+    ]
+]);
+
+/* =========================
+   DATI
+   ========================= */
+
+$rowNum = 2;
+
+foreach ($rows as $r) {
+
+    $cognome = isset($r['cognome']) ? mb_convert_case($r['cognome'], MB_CASE_TITLE, "UTF-8") : '';
+    $nome    = isset($r['nome']) ? mb_convert_case($r['nome'], MB_CASE_TITLE, "UTF-8") : '';
+
+    $values = [
+        $r['id'] ?? '',
+        $cognome,
+        $nome,
+        $r['email'] ?? '',
+        $r['matricola'] ?? '',
+        $r['tipo_contratto'] ?? '',
+        $r['codice_fiscale'] ?? '',
+        $r['profilo_codice'] ?? '',
+        $r['profilo_nome'] ?? '',
+        $r['ufficio_corrente_nome'] ?? ''
+    ];
+
+    $col = 1;
+    foreach ($values as $value) {
+        $cell = Coordinate::stringFromColumnIndex($col) . $rowNum;
+        $sheet->setCellValue($cell, $value);
+        $col++;
+    }
+    $rowNum++;
+}
+
+/* =========================
+   AUTO WIDTH
+   ========================= */
+
+foreach (range('A', $lastCol) as $colLetter) {
+    $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+}
+
+/* =========================
+   BORDI (griglia visibile)
+   ========================= */
+
+$lastRow = $sheet->getHighestRow();
+
+$sheet->getStyle("A1:$lastCol$lastRow")->applyFromArray([
+    'borders' => [
+        'allBorders' => [
+            'borderStyle' => Border::BORDER_THIN,
+            'color' => ['argb' => 'FF9CA3AF'],
+        ],
+    ],
+]);
+
+/* =========================
+   DOWNLOAD
+   ========================= */
+
+$filename = 'personale_ata_' . date('d-m-Y_H-i-s') . '.xlsx';
+
+header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+$writer = new Xlsx($spreadsheet);
+$writer->save('php://output');
 exit;
