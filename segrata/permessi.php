@@ -53,789 +53,609 @@ if (!is_array($ufficiAta)) {
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 
     <style>
-        .permessi-filters {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
+    .permessi-filters {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
 
-        .permessi-filters .bootstrap-select {
-            width: auto !important;
-            min-width: unset !important;
-        }
+    .permessi-filters .bootstrap-select {
+        width: auto !important;
+        min-width: unset !important;
+    }
 
-        .permessi-search {
-            width: 360px;
-            max-width: 100%;
-        }
+    .permessi-search {
+        width: 360px;
+        max-width: 100%;
+    }
 
-        .permessi-filters .btn-sm,
-        .permessi-filters .bootstrap-select>.dropdown-toggle {
-            height: 30px;
-            padding: 4px 10px;
-            line-height: 20px;
-        }
+    .permessi-filters .btn-sm,
+    .permessi-filters .bootstrap-select>.dropdown-toggle {
+        height: 30px;
+        padding: 4px 10px;
+        line-height: 20px;
+    }
 
-        .bootstrap-select>.dropdown-toggle {
-            padding-right: 34px !important;
-        }
+    .bootstrap-select>.dropdown-toggle {
+        padding-right: 34px !important;
+    }
 
-        .bootstrap-select>.dropdown-toggle .caret {
-            right: 10px;
-            margin-top: -2px;
-            position: absolute;
-            top: 50%;
-        }
+    .bootstrap-select>.dropdown-toggle .caret {
+        right: 10px;
+        margin-top: -2px;
+        position: absolute;
+        top: 50%;
+    }
 
+    .dash-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border: 1px solid rgba(0, 0, 0, .12);
+        border-radius: 6px;
+        background: #fff;
+        min-height: 34px;
+    }
+
+    .dash-title {
+        font-weight: 600;
+        margin-right: 6px;
+        white-space: nowrap;
+    }
+
+    .dash-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 16px;
+        font-size: 12px;
+        line-height: 1;
+        border: 1px solid rgba(0, 0, 0, .08);
+        white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .dash-item .badge {
+        margin-left: 2px;
+        font-size: 11px;
+    }
+
+    .dash-item:hover {
+        filter: brightness(0.97);
+    }
+
+    .dash-item.active {
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.10) inset;
+        transform: scale(1.03);
+    }
+
+    .dash-right {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .dash-mini {
+        font-family: monospace;
+        font-size: 12px;
+        opacity: .85;
+    }
+
+    .dash-inviato {
+        background: rgb(219, 248, 5);
+    }
+
+    .dash-approvato {
+        background: rgb(4, 241, 95);
+    }
+
+    .dash-respinto {
+        background: rgba(217, 83, 79, .35);
+    }
+
+    .dash-annullato {
+        background: rgba(240, 173, 78, .35);
+    }
+
+    .dash-bozza {
+        background: rgba(103, 155, 211, 0.83);
+    }
+
+    .dash-parziale {
+        background: rgba(255, 193, 7, .45);
+    }
+
+    .trend-wrap {
+        display: inline-block;
+        vertical-align: middle;
+        margin: 0 6px;
+        white-space: nowrap;
+    }
+
+    .trend-dot {
+        font-size: 18px;
+        margin: 0 1px;
+        line-height: 1;
+        cursor: default;
+    }
+
+    .trend-low {
+        color: #9aa0a6;
+    }
+
+    .trend-mid {
+        color: #f0ad4e;
+    }
+
+    .trend-high {
+        color: #5cb85c;
+    }
+
+    .trend-labels {
+        color: #777;
+        font-size: 12px;
+        vertical-align: middle;
+    }
+
+    .permessi-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    .permessi-table th,
+    .permessi-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .permessi-table td:nth-child(2) {
+        white-space: normal;
+    }
+
+    .ferie-modal-wrap {
+        background: #f5f6f8;
+        border-radius: 18px;
+    }
+
+    .ferie-modal-top {
+        background: #fff8dc;
+        border: 1px solid #edd37a;
+        border-radius: 18px;
+        padding: 16px;
+        margin-bottom: 14px;
+    }
+
+    .ferie-modal-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #283548;
+        margin-bottom: 6px;
+    }
+
+    .ferie-modal-subtitle {
+        font-size: 14px;
+        color: #5f6c7b;
+        margin-bottom: 10px;
+    }
+
+    .ferie-modal-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
+        margin-bottom: 14px;
+        overflow: hidden;
+    }
+
+    .ferie-modal-card-head {
+        padding: 16px 16px 8px 16px;
+        border-bottom: 1px solid #edf0f3;
+    }
+
+    .ferie-modal-card-body {
+        padding: 16px;
+    }
+
+    .ferie-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .ferie-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-weight: 700;
+        background: #f7f8fa;
+        border: 1px solid #e5e7eb;
+        color: #364152;
+    }
+
+    .ferie-badge.selected {
+        background: #fff3cd;
+        border-color: #f0d36b;
+        color: #7a5b00;
+    }
+
+    .ferie-badge.lock {
+        background: #eef2ff;
+        border-color: #cbd5ff;
+        color: #3547a5;
+    }
+
+    .ferie-months-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-top: 10px;
+    }
+
+    .ferie-month-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .ferie-month-head {
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 12px 14px;
+        font-size: 20px;
+        font-weight: 700;
+        color: #24324a;
+    }
+
+    .ferie-month-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .ferie-day-cell {
+        min-height: 84px;
+        border-radius: 14px;
+        border: 2px solid #bfc8d4;
+        background: #ffffff;
+        padding: 8px 10px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: stretch;
+        gap: 8px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .ferie-day-cell.selected {
+        background: #ffe600;
+        border-color: #c9a800;
+        color: #1f1a00;
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08) inset;
+    }
+
+    .ferie-day-cell.locked {
+        background: #cfd5dc;
+        border-color: #9ea7b3;
+        color: #5a6472;
+    }
+
+    .ferie-day-cell.locked.selected {
+        background: #d6c94a;
+        border-color: #9e9230;
+    }
+
+    .ferie-day-left {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        flex: 1;
+    }
+
+    .ferie-day-right {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-end;
+        min-width: 48px;
+    }
+
+    .ferie-day-dow {
+        font-size: 11px;
+        font-weight: 700;
+        color: #4b5563;
+    }
+
+    .ferie-day-num {
+        font-size: 24px;
+        font-weight: 900;
+        color: #1f2a44;
+        line-height: 1.1;
+    }
+
+    .ferie-day-meta {
+        font-size: 11px;
+        line-height: 1.2;
+    }
+
+    .ferie-day-meta-counts {
+        font-size: 15px;
+        font-weight: 800;
+        color: #2f3a4a;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+    }
+
+    .ferie-day-meta-counts .p-line,
+    .ferie-day-meta-counts .u-line {
+        display: block;
+    }
+
+    .ferie-day-meta-reason {
+        font-size: 11px;
+        font-weight: 700;
+        color: #6b7280;
+    }
+
+    .ferie-day-cell.locked .ferie-day-num {
+        color: #4b5563;
+    }
+
+    .ferie-day-cell.locked .ferie-day-dow {
+        color: #6b7280;
+    }
+
+    .ferie-day-cell:not(.locked):hover {
+        transform: scale(1.03);
+        transition: 0.15s;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+    }
+
+    .p-line {
+        color: #1f4ed8;
+    }
+
+    .u-line {
+        color: #047857;
+    }
+
+    .ferie-day-cell.load-50 {
+        background: #ffe08a;
+    }
+
+    .ferie-day-cell.load-75 {
+        background: #ffb84d;
+    }
+
+    .ferie-day-cell.load-100 {
+        background: #ff5c5c;
+        color: #fff;
+    }
+
+    .ferie-day-cell.load-100 .ferie-day-num,
+    .ferie-day-cell.load-100 .ferie-day-dow,
+    .ferie-day-cell.load-100 .ferie-day-meta-counts {
+        color: #fff;
+    }
+
+    .ferie-day-cell.day-requested {
+        background: #fff200;
+        border-color: #d4b300;
+        color: #2d2400;
+    }
+
+    .ferie-day-cell.day-approved {
+        background: #b9f6ca;
+        border-color: #4caf50;
+        color: #124a1d;
+    }
+
+    .ferie-day-cell.day-rejected {
+        background: #ffcdd2;
+        border-color: #d32f2f;
+        color: #7f1d1d;
+    }
+
+    .ferie-day-cell[data-clickable="1"] {
+        cursor: pointer;
+    }
+
+    .ferie-day-cell[data-clickable="1"]:hover {
+        transform: scale(1.03);
+        transition: 0.15s;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+    }
+
+    .records_content .table-responsive {
+        overflow-x: auto;
+    }
+
+    .permessi-table {
+        table-layout: fixed;
+        width: 100%;
+        font-size: 13px;
+    }
+
+    .permessi-table th,
+    .permessi-table td {
+        padding: 8px 10px;
+        vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .permessi-table th:nth-child(1),
+    .permessi-table td:nth-child(1) {
+        width: 70px;
+    }
+
+    .permessi-table th:nth-child(2),
+    .permessi-table td:nth-child(2) {
+        width: 170px;
+    }
+
+    .permessi-table th:nth-child(3),
+    .permessi-table td:nth-child(3) {
+        width: 90px;
+    }
+
+    .permessi-table th:nth-child(4),
+    .permessi-table td:nth-child(4) {
+        width: 200px;
+    }
+
+    .permessi-table th:nth-child(5),
+    .permessi-table td:nth-child(5) {
+        width: 170px;
+    }
+
+    .permessi-table th:nth-child(6),
+    .permessi-table td:nth-child(6) {
+        width: 300px;
+    }
+
+    .permessi-table th:nth-child(7),
+    .permessi-table td:nth-child(7) {
+        width: 120px;
+        text-align: center;
+    }
+
+    .permessi-table th:nth-child(8),
+    .permessi-table td:nth-child(8) {
+        width: 165px;
+        text-align: center;
+    }
+
+    .permessi-table th:nth-child(9),
+    .permessi-table td:nth-child(9) {
+        width: 90px;
+        text-align: center;
+    }
+
+    @media (max-width:768px) {
         .dash-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 10px;
-            border: 1px solid rgba(0, 0, 0, .12);
-            border-radius: 6px;
-            background: #fff;
-            min-height: 34px;
-        }
-
-        .dash-title {
-            font-weight: 600;
-            margin-right: 6px;
-            white-space: nowrap;
-        }
-
-        .dash-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 8px;
-            border-radius: 16px;
-            font-size: 12px;
-            line-height: 1;
-            border: 1px solid rgba(0, 0, 0, .08);
-            white-space: nowrap;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .dash-item .badge {
-            margin-left: 2px;
-            font-size: 11px;
-        }
-
-        .dash-item:hover {
-            filter: brightness(0.97);
-        }
-
-        .dash-item.active {
-            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.10) inset;
-            transform: scale(1.03);
+            flex-wrap: wrap;
         }
 
         .dash-right {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .dash-mini {
-            font-family: monospace;
-            font-size: 12px;
-            opacity: .85;
-        }
-
-        .dash-inviato {
-            background: rgb(219, 248, 5);
-        }
-
-        .dash-approvato {
-            background: rgb(4, 241, 95);
-        }
-
-        .dash-respinto {
-            background: rgba(217, 83, 79, .35);
-        }
-
-        .dash-annullato {
-            background: rgba(240, 173, 78, .35);
-        }
-
-        .dash-bozza {
-            background: rgba(103, 155, 211, 0.83);
-        }
-
-        .trend-wrap {
-            display: inline-block;
-            vertical-align: middle;
-            margin: 0 6px;
-            white-space: nowrap;
-        }
-
-        .trend-dot {
-            font-size: 18px;
-            margin: 0 1px;
-            line-height: 1;
-            cursor: default;
-        }
-
-        .trend-low {
-            color: #9aa0a6;
-        }
-
-        .trend-mid {
-            color: #f0ad4e;
-        }
-
-        .trend-high {
-            color: #5cb85c;
-        }
-
-        .trend-labels {
-            color: #777;
-            font-size: 12px;
-            vertical-align: middle;
-        }
-
-        .permessi-table {
-            table-layout: fixed;
             width: 100%;
+            margin-left: 0;
+            justify-content: flex-end;
+        }
+    }
+
+    @media (max-width: 1500px) {
+        .permessi-table {
+            font-size: 12px;
         }
 
         .permessi-table th,
         .permessi-table td {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .permessi-table td:nth-child(2) {
-            white-space: normal;
-        }
-
-        .ferie-modal-wrap {
-            background: #f5f6f8;
-            border-radius: 18px;
-        }
-
-        .ferie-modal-top {
-            background: #fff8dc;
-            border: 1px solid #edd37a;
-            border-radius: 18px;
-            padding: 16px;
-            margin-bottom: 14px;
-        }
-
-        .ferie-modal-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: #283548;
-            margin-bottom: 6px;
-        }
-
-        .ferie-modal-subtitle {
-            font-size: 14px;
-            color: #5f6c7b;
-            margin-bottom: 10px;
-        }
-
-        .ferie-modal-card {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 18px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
-            margin-bottom: 14px;
-            overflow: hidden;
-        }
-
-        .ferie-modal-card-head {
-            padding: 16px 16px 8px 16px;
-            border-bottom: 1px solid #edf0f3;
-        }
-
-        .ferie-modal-card-body {
-            padding: 16px;
-        }
-
-        .ferie-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .ferie-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            border-radius: 999px;
-            padding: 8px 12px;
-            font-size: 13px;
-            font-weight: 700;
-            background: #f7f8fa;
-            border: 1px solid #e5e7eb;
-            color: #364152;
-        }
-
-        .ferie-badge.selected {
-            background: #fff3cd;
-            border-color: #f0d36b;
-            color: #7a5b00;
-        }
-
-        .ferie-badge.lock {
-            background: #eef2ff;
-            border-color: #cbd5ff;
-            color: #3547a5;
-        }
-
-        .ferie-months-wrap {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            margin-top: 10px;
-        }
-
-        .ferie-month-card {
-            border: 1px solid #e5e7eb;
-            border-radius: 18px;
-            overflow: hidden;
-            background: #fff;
-        }
-
-        .ferie-month-head {
-            background: #f9fafb;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 12px 14px;
-            font-size: 20px;
-            font-weight: 700;
-            color: #24324a;
-        }
-
-        .ferie-month-grid {
-            display: grid;
-            grid-template-columns: repeat(7, minmax(0, 1fr));
-            gap: 8px;
-            padding: 12px;
-        }
-
-
-        .ferie-day-cell {
-            min-height: 78px;
-            border-radius: 14px;
-            border: 2px solid #d6dde6;
-            background: #fff;
-            padding: 8px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .ferie-day-cell.selected {
-            background: #fff200;
-            border-color: #d4b300;
-            color: #2d2400;
-        }
-
-        .ferie-day-cell.locked {
-            background: #e5e7eb;
-            color: #6b7280;
-            border-color: #c7ccd4;
-        }
-
-        .ferie-day-dow {
-            font-size: 11px;
-            font-weight: 700;
-            color: #4b5563;
-        }
-
-        .ferie-day-num {
-            font-size: 22px;
-            font-weight: 800;
-            color: #1f2a44;
-            line-height: 1.1;
-        }
-
-        .ferie-day-meta {
-            font-size: 11px;
-            line-height: 1.2;
-        }
-
-        @media (max-width:768px) {
-            .dash-bar {
-                flex-wrap: wrap;
-            }
-
-            .dash-right {
-                width: 100%;
-                margin-left: 0;
-                justify-content: flex-end;
-            }
-        }
-
-        /* === GIORNI NORMALI (DISPONIBILI) === */
-        .ferie-day-cell {
-            min-height: 84px;
-            border-radius: 14px;
-            border: 2px solid #bfc8d4;
-            background: #ffffff;
-            padding: 8px 10px;
-            display: flex;
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: stretch;
-            gap: 8px;
-
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        }
-
-        /* === GIORNI BLOCCATI (weekend, esclusi) === */
-        .ferie-day-cell.locked {
-            background: #cfd5dc;
-            /* GRIGIO PIÙ SCURO */
-            border-color: #9ea7b3;
-            color: #5a6472;
-        }
-
-        /* === GIORNI SELEZIONATI === */
-        .ferie-day-cell.selected {
-            background: #ffe600;
-            /* GIALLO PIÙ FORTE */
-            border-color: #c9a800;
-            color: #1f1a00;
-
-            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08) inset;
-        }
-
-        /* === BLOCCATI + SELEZIONATI (se capita) === */
-        .ferie-day-cell.locked.selected {
-            background: #d6c94a;
-            /* giallo “spento” */
-            border-color: #9e9230;
-        }
-
-        /* === COLONNE INTERNE === */
-        .ferie-day-left {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            flex: 1;
-        }
-
-        .ferie-day-right {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: flex-end;
-            min-width: 48px;
-        }
-
-        /* === TESTI === */
-        .ferie-day-dow {
-            font-size: 11px;
-            font-weight: 700;
-            color: #4b5563;
-        }
-
-        .ferie-day-num {
-            font-size: 24px;
-            /* PIÙ GRANDE */
-            font-weight: 900;
-            /* PIÙ FORTE */
-            color: #1f2a44;
-        }
-
-        /* contatori P/U */
-        .ferie-day-meta-counts {
-            font-size: 15px;
-            font-weight: 800;
-            color: #2f3a4a;
-
-            display: flex;
-            flex-direction: column;
-            /* <-- verticale */
-            align-items: flex-end;
-            /* allineato a destra */
-            gap: 2px;
-        }
-
-        .ferie-day-meta-counts .p-line,
-        .ferie-day-meta-counts .u-line {
-            display: block;
-        }
-
-        /* motivo (Sabato, Domenica, Patrono) */
-        .ferie-day-meta-reason {
-            font-size: 11px;
-            font-weight: 700;
-            color: #6b7280;
-        }
-
-        /* === COLORI SPECIFICI SU LOCKED === */
-        .ferie-day-cell.locked .ferie-day-num {
-            color: #4b5563;
-        }
-
-        .ferie-day-cell.locked .ferie-day-dow {
-            color: #6b7280;
-        }
-
-        /* === HOVER (opzionale ma bello) === */
-        .ferie-day-cell:not(.locked):hover {
-            transform: scale(1.03);
-            transition: 0.15s;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
-        }
-
-        .ferie-day-meta-counts .p-line,
-        .ferie-day-meta-counts .u-line {
-            display: block;
-        }
-
-        .p-line {
-            color: #1f4ed8;
-        }
-
-        /* blu */
-        .u-line {
-            color: #047857;
-        }
-
-        /* verde */
-
-        /* soglie occupazione */
-        .ferie-day-cell.load-50 {
-            background: #ffe08a;
-            /* arancione chiaro */
-        }
-
-        .ferie-day-cell.load-75 {
-            background: #ffb84d;
-            /* arancione medio */
-        }
-
-        .ferie-day-cell.load-100 {
-            background: #ff5c5c;
-            /* rosso */
-            color: #fff;
-        }
-
-        /* testo su rosso */
-        .ferie-day-cell.load-100 .ferie-day-num,
-        .ferie-day-cell.load-100 .ferie-day-dow,
-        .ferie-day-cell.load-100 .ferie-day-meta-counts {
-            color: #fff;
-        }
-
-        .ferie-day-cell.day-requested {
-            background: #fff200;
-            border-color: #d4b300;
-            color: #2d2400;
-        }
-
-        .ferie-day-cell.day-approved {
-            background: #b9f6ca;
-            border-color: #4caf50;
-            color: #124a1d;
-        }
-
-        .ferie-day-cell.day-rejected {
-            background: #ffcdd2;
-            border-color: #d32f2f;
-            color: #7f1d1d;
-        }
-
-        .ferie-day-cell[data-clickable="1"] {
-            cursor: pointer;
-        }
-
-        .ferie-day-cell[data-clickable="1"]:hover {
-            transform: scale(1.03);
-            transition: 0.15s;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
-        }
-
-        .records_content .table-responsive {
-            overflow-x: auto;
-        }
-
-        .permessi-table {
-            table-layout: fixed;
-            width: 100%;
-            font-size: 13px;
-        }
-
-        .permessi-table th,
-        .permessi-table td {
-            padding: 8px 10px;
-            vertical-align: middle;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .permessi-table th:nth-child(1),
-        .permessi-table td:nth-child(1) {
-            width: 70px;
-            /* ID */
-        }
-
-        .permessi-table th:nth-child(2),
-        .permessi-table td:nth-child(2) {
-            width: 210px;
-            /* Dipendente */
+            padding: 7px 8px;
         }
 
         .permessi-table th:nth-child(3),
         .permessi-table td:nth-child(3) {
-            width: 120px;
-            /* Matricola */
-        }
-
-        .permessi-table th:nth-child(4),
-        .permessi-table td:nth-child(4) {
-            width: 170px;
-            /* Profilo */
-        }
-
-        .permessi-table th:nth-child(5),
-        .permessi-table td:nth-child(5) {
-            width: 170px;
-            /* Ufficio */
-        }
-
-        .permessi-table th:nth-child(6),
-        .permessi-table td:nth-child(6) {
-            width: 240px;
-            /* Tipo */
-        }
-
-        .permessi-table th:nth-child(7),
-        .permessi-table td:nth-child(7) {
-            width: 120px;
-            /* Stato */
-            text-align: center;
+            display: none;
         }
 
         .permessi-table th:nth-child(8),
         .permessi-table td:nth-child(8) {
-            width: 165px;
-            /* Inviato */
-            text-align: center;
-        }
-
-        .permessi-table th:nth-child(9),
-        .permessi-table td:nth-child(9) {
-            width: 90px;
-            /* Azioni */
-            text-align: center;
-        }
-
-        /* desktop medio, tipo portatile 15" */
-        @media (max-width: 1500px) {
-            .permessi-table {
-                font-size: 12px;
-            }
-
-            .permessi-table th,
-            .permessi-table td {
-                padding: 7px 8px;
-            }
-
-            .permessi-table th:nth-child(3),
-            .permessi-table td:nth-child(3) {
-                display: none;
-                /* Matricola */
-            }
-
-            .permessi-table th:nth-child(8),
-            .permessi-table td:nth-child(8) {
-                display: none;
-                /* Inviato */
-            }
-
-            .permessi-table th:nth-child(2),
-            .permessi-table td:nth-child(2) {
-                width: 190px;
-            }
-
-            .permessi-table th:nth-child(4),
-            .permessi-table td:nth-child(4),
-            .permessi-table th:nth-child(5),
-            .permessi-table td:nth-child(5) {
-                width: 150px;
-            }
-
-            .permessi-table th:nth-child(6),
-            .permessi-table td:nth-child(6) {
-                width: 220px;
-            }
-        }
-
-        .records_content .table-responsive {
-            overflow-x: auto;
-        }
-
-        .permessi-table {
-            table-layout: fixed;
-            width: 100%;
-            font-size: 13px;
-        }
-
-        .permessi-table th,
-        .permessi-table td {
-            padding: 8px 10px;
-            vertical-align: middle;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .permessi-table th:nth-child(1),
-        .permessi-table td:nth-child(1) {
-            width: 70px;
+            display: none;
         }
 
         .permessi-table th:nth-child(2),
         .permessi-table td:nth-child(2) {
+            width: 180px;
+        }
+
+        .permessi-table th:nth-child(4),
+        .permessi-table td:nth-child(4) {
             width: 220px;
         }
 
-        .permessi-table th:nth-child(3),
-        .permessi-table td:nth-child(3) {
-            width: 120px;
-        }
-
-        .permessi-table th:nth-child(4),
-        .permessi-table td:nth-child(4) {
-            width: 170px;
-        }
-
         .permessi-table th:nth-child(5),
         .permessi-table td:nth-child(5) {
-            width: 170px;
+            width: 190px;
         }
 
         .permessi-table th:nth-child(6),
         .permessi-table td:nth-child(6) {
-            width: 250px;
+            width: 230px;
         }
+    }
 
-        .permessi-table th:nth-child(7),
-        .permessi-table td:nth-child(7) {
-            width: 120px;
-            text-align: center;
-        }
+    .permessi-table .label {
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 100px;
+        justify-content: center;
+        font-weight: 600;
+    }
 
-        .permessi-table th:nth-child(8),
-        .permessi-table td:nth-child(8) {
-            width: 165px;
-            text-align: center;
-        }
+    .ferie-day-cell.other-approved {
+        background: #d8f5dd;
+        border-color: #5cb85c;
+        color: #1f5d2a;
+    }
 
-        .permessi-table th:nth-child(9),
-        .permessi-table td:nth-child(9) {
-            width: 90px;
-            text-align: center;
-        }
+    .ferie-day-cell.other-rejected {
+        background: #f8d7da;
+        border-color: #d9534f;
+        color: #7a1f26;
+    }
 
-        /* portatili 15" circa */
-        @media (max-width: 1500px) {
-            .permessi-table {
-                font-size: 12px;
-            }
+    .ferie-day-cell.other-requested {
+        background: #fff3cd;
+        border-color: #e0b84b;
+        color: #7a5b00;
+    }
 
-            .permessi-table th,
-            .permessi-table td {
-                padding: 7px 8px;
-            }
+    .ferie-day-cell.other-draft {
+        background: #d9ecff;
+        border-color: #5bc0de;
+        color: #1c4f70;
+    }
 
-            .permessi-table th:nth-child(3),
-            .permessi-table td:nth-child(3) {
-                display: none;
-                /* Matricola */
-            }
+    .permessi-table th:nth-child(2),
+.permessi-table td:nth-child(2) {
+    width: 150px;   /* Dipendente */
+}
 
-            .permessi-table th:nth-child(8),
-            .permessi-table td:nth-child(8) {
-                display: none;
-                /* Inviato */
-            }
+.permessi-table th:nth-child(3),
+.permessi-table td:nth-child(3) {
+    width: 80px;    /* Matricola */
+}
 
-            /* Dipendente più stretto */
-            .permessi-table th:nth-child(2),
-            .permessi-table td:nth-child(2) {
-                width: 180px;
-                /* prima era 210/220 */
-            }
+.permessi-table th:nth-child(4),
+.permessi-table td:nth-child(4) {
+    width: 240px;   /* Profilo */
+}
 
-            /* Profilo più largo */
-            .permessi-table th:nth-child(4),
-            .permessi-table td:nth-child(4) {
-                width: 220px;
-                /* prima era 150/170 */
-            }
-
-            /* Ufficio leggermente più largo */
-            .permessi-table th:nth-child(5),
-            .permessi-table td:nth-child(5) {
-                width: 190px;
-            }
-
-            .permessi-table th:nth-child(6),
-            .permessi-table td:nth-child(6) {
-                width: 230px;
-            }
-        }
-
-        .permessi-table .label {
-            font-size: 12px;
-            padding: 5px 10px;
-            border-radius: 6px;
-            display: inline-block;
-            min-width: 90px;
-            text-align: center;
-            font-weight: 600;
-        }
-
-        .permessi-table .label {
-            font-size: 12px;
-            padding: 6px 10px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            min-width: 100px;
-            justify-content: center;
-            font-weight: 600;
-        }
-
-        .ferie-day-cell.other-approved {
-            background: #d8f5dd;
-            border-color: #5cb85c;
-            color: #1f5d2a;
-        }
-
-        .ferie-day-cell.other-rejected {
-            background: #f8d7da;
-            border-color: #d9534f;
-            color: #7a1f26;
-        }
-
-        .ferie-day-cell.other-requested {
-            background: #fff3cd;
-            border-color: #e0b84b;
-            color: #7a5b00;
-        }
-
-        .ferie-day-cell.other-draft {
-            background: #d9ecff;
-            border-color: #5bc0de;
-            color: #1c4f70;
-        }
-    </style>
+.permessi-table th:nth-child(6),
+.permessi-table td:nth-child(6) {
+    width: 330px;   /* Tipo */
+}
+</style>
 </head>
 
 <body>
@@ -869,6 +689,7 @@ if (!is_array($ufficiAta)) {
                                 <option value="INVIATO">INVIATO</option>
                                 <option value="BOZZA">BOZZA</option>
                                 <option value="APPROVATO">APPROVATO</option>
+                                <option value="PARZIALE">PARZIALE</option>
                                 <option value="RESPINTO">RESPINTO</option>
                                 <option value="ANNULLATO">ANNULLATO</option>
                             </select>
@@ -927,6 +748,8 @@ if (!is_array($ufficiAta)) {
 
                             <span class="dash-item dash-inviato" id="d_inviato" data-stato="INVIATO"><span class="glyphicon glyphicon-send"></span> INVIATI <span class="badge">0</span></span>
                             <span class="dash-item dash-approvato" id="d_approvato" data-stato="APPROVATO"><span class="glyphicon glyphicon-ok"></span> APPROVATI <span class="badge">0</span></span>
+                            <span class="dash-item dash-parziale" id="d_parziale" data-stato="PARZIALE">
+                            <span class="glyphicon glyphicon-adjust"></span> PARZIALI <span class="badge">0</span></span>
                             <span class="dash-item dash-respinto" id="d_respinto" data-stato="RESPINTO"><span class="glyphicon glyphicon-remove"></span> RESPINTI <span class="badge">0</span></span>
                             <span class="dash-item dash-annullato" id="d_annullato" data-stato="ANNULLATO"><span class="glyphicon glyphicon-ban-circle"></span> ANNULLATI <span class="badge">0</span></span>
                             <span class="dash-item dash-bozza" id="d_bozza" data-stato="BOZZA"><span class="glyphicon glyphicon-edit"></span> BOZZE <span class="badge">0</span></span>
