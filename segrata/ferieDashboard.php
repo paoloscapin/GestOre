@@ -477,6 +477,13 @@ $modeDefault = 'APPROVATI_E_RICHIESTI';
                             <button class="btn btn-default btn-sm" id="fd_refresh" type="button">
                                 <span class="glyphicon glyphicon-refresh"></span>&ensp;Aggiorna
                             </button>
+                            <a href="#" class="btn btn-success btn-sm" id="fd_export_heatmap_csv">
+                                <span class="glyphicon glyphicon-download-alt"></span>&ensp;Export heatmap
+                            </a>
+
+                            <a href="#" class="btn btn-primary btn-sm" id="fd_export_persone_csv">
+                                <span class="glyphicon glyphicon-download-alt"></span>&ensp;Export persone
+                            </a>
                         </div>
                     </div>
                 </div>
