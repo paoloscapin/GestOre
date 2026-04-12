@@ -16,7 +16,7 @@
 <?php
 require_once '../common/style.php';
 require_once '../common/header-common.php';
-ruoloRichiesto('dirigente','segreteria-ata');
+ruoloRichiesto('dirigente','segreteria-ata', 'ras');
 ?>
 </head>
 

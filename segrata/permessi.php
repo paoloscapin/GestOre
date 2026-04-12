@@ -6,7 +6,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-ruoloRichiesto('dirigente', 'segreteria-ata');
+ruoloRichiesto('dirigente', 'segreteria-ata', 'ras');
 
 $tipiPermesso = dbGetAll("
     SELECT id, codice, descrizione
