@@ -345,6 +345,8 @@ if ($stato === null) {
     UPDATE permesso_ata_richiesta
     SET
       note_segreteria = '$note_esc',
+      gestito_da_utente_id = $gestito_da,
+      gestito_il = NOW(),
       updated_at = NOW()
     WHERE id = $id
     LIMIT 1

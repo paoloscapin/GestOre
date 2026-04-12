@@ -16,7 +16,7 @@ $note         = isset($_POST['note']) ? trim((string)$_POST['note']) : '';
 $azione       = isset($_POST['azione']) ? strtoupper(trim((string)$_POST['azione'])) : 'BOZZA';
 $giorni_json  = isset($_POST['giorni_json']) ? (string)$_POST['giorni_json'] : '[]';
 $sottotipo    = isset($_POST['ferie_sottotipo']) ? strtoupper(trim((string)$_POST['ferie_sottotipo'])) : '';
-$MAIL_TEST_OVERRIDE = 'massimo.saiani@buonarroti.tn.it';
+$MAIL_TEST_OVERRIDE = '';
 
 function fail($msg)
 {

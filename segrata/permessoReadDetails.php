@@ -2,7 +2,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-ruoloRichiesto('dirigente','segreteria-ata'. 'ras');
+ruoloRichiesto('dirigente', 'segreteria-ata', 'ras');
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -91,8 +91,10 @@ SELECT
     u.nome AS ufficio_nome,
 
     ff.data_inizio AS ferie_win_da,
-    ff.data_fine   AS ferie_win_a
-
+    ff.data_fine   AS ferie_win_a,
+    ug.username AS gestito_username,
+    ug.nome AS gestito_nome,
+    ug.cognome AS gestito_cognome
 FROM permesso_ata_richiesta r
 JOIN permesso_ata_tipo t
   ON t.id = r.permesso_ata_tipo_id
@@ -100,6 +102,8 @@ JOIN personale_ata p
   ON p.id = r.personale_ata_id
 LEFT JOIN personale_ata_profili pr
   ON pr.id = p.id_profilo
+LEFT JOIN utente ug
+  ON ug.id = r.gestito_da_utente_id
 LEFT JOIN personale_ata_assegnazioni pa
   ON pa.username = p.username
  AND pa.attiva = 1
@@ -123,6 +127,22 @@ if (!$row || !is_array($row)) {
   exit;
 }
 
+$gestitoDaLabel = trim(
+  (string)($row['gestito_cognome'] ?? '') . ' ' .
+    (string)($row['gestito_nome'] ?? '')
+);
+
+if ($gestitoDaLabel === '') {
+  $gestitoDaLabel = trim((string)($row['gestito_username'] ?? ''));
+}
+
+$gestitoIlFmt = '';
+if (!empty($row['gestito_il'])) {
+  $ts = strtotime($row['gestito_il']);
+  if ($ts) {
+    $gestitoIlFmt = date('d/m/Y H:i', $ts);
+  }
+}
 /**
  * Totali profilo / ufficio
  */
@@ -342,8 +362,9 @@ $ferieFinestra = [
 ];
 
 if (($row['tipo_codice'] ?? '') === 'FERIE'
-    && !empty($ferieFinestra['data_inizio'])
-    && !empty($ferieFinestra['data_fine'])) {
+  && !empty($ferieFinestra['data_inizio'])
+  && !empty($ferieFinestra['data_fine'])
+) {
 
   $winDa = $ferieFinestra['data_inizio'];
   $winA  = $ferieFinestra['data_fine'];
@@ -458,7 +479,8 @@ $payload = [
     'note_richiedente' => $row['note_richiedente'],
     'note_segreteria' => $row['note_segreteria'],
     'dettagli_json' => $row['dettagli_json'] ?? '',
-
+    'gestito_da_label' => $gestitoDaLabel,
+    'gestito_il_fmt'   => $gestitoIlFmt,
     'is_additional_request' => (count($otherRequestsSummary) > 0),
     'previous_requests_count' => count($otherRequestsSummary)
   ],

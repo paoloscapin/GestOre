@@ -2,7 +2,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-ruoloRichiesto('dirigente','segreteria-ata'. 'ras');
+ruoloRichiesto('dirigente','segreteria-ata', 'ras');
 
 header('Content-Type: application/json; charset=utf-8');
 

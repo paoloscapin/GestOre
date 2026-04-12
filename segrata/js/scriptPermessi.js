@@ -447,7 +447,30 @@ function renderPermessoFerieModal(r) {
   $("#fm_title").text(perm.tipo || "Dettaglio ferie");
   $("#fm_subtitle").text("Richiesta ferie di " + (dip.nome || ""));
   $("#fm_stato_badge").text(perm.stato || "-");
+  const statoPerm = (perm.stato || "").toString().toUpperCase();
+  let gestitoLabel = "Aggiornata da:";
 
+  if (statoPerm === "APPROVATO") gestitoLabel = "Approvata da:";
+  else if (statoPerm === "RESPINTO") gestitoLabel = "Respinta da:";
+  else if (statoPerm === "PARZIALE") gestitoLabel = "Aggiornata da:";
+
+  if (perm.gestito_da_label) {
+    $("#fm_gestito_label").text(gestitoLabel);
+    $("#fm_gestito_da").text(perm.gestito_da_label);
+
+    if (perm.gestito_il_fmt) {
+      $("#fm_gestito_il").text(" il " + perm.gestito_il_fmt);
+    } else {
+      $("#fm_gestito_il").text("");
+    }
+
+    $("#fm_gestito_wrap").show();
+  } else {
+    $("#fm_gestito_label").text("Aggiornata da:");
+    $("#fm_gestito_da").text("");
+    $("#fm_gestito_il").text("");
+    $("#fm_gestito_wrap").hide();
+  }
   $("#fm_nome").text(dip.nome || "");
   $("#fm_email").text(dip.email || "");
   $("#fm_matricola").text(dip.matricola || "");
@@ -650,7 +673,47 @@ function openStandardPermessoModal(r, id) {
   $("#p_stato").text((r.permesso && r.permesso.stato) || "");
   $("#p_created").text(fmtDateTimeIT(r.permesso && r.permesso.created_at));
   $("#p_updated").text(fmtDateTimeIT(r.permesso && r.permesso.updated_at));
+  const perm = r.permesso || {};
 
+  const statoPerm = (perm.stato || "").toString().toUpperCase();
+  let gestitoLabel = "Gestito da:";
+
+  if (statoPerm === "APPROVATO") gestitoLabel = "Approvato da:";
+  else if (statoPerm === "RESPINTO") gestitoLabel = "Respinto da:";
+  else if (statoPerm === "ANNULLATO") gestitoLabel = "Annullato da:";
+  else if (statoPerm === "PARZIALE") gestitoLabel = "Aggiornato da:";
+
+  let det = {};
+  try {
+    det = JSON.parse(perm.dettagli_json || "{}");
+  } catch (e) { }
+
+  if (det.auto_approvato === true) {
+
+    $("#p_gestito_label").text("Esito:");
+    $("#p_gestito_da").text("Auto-approvato");
+
+    if (perm.gestito_il_fmt) {
+      $("#p_gestito_il").text(" il " + perm.gestito_il_fmt);
+    } else {
+      $("#p_gestito_il").text("");
+    }
+
+    $("#p_gestito_wrap").show();
+
+  } else if (perm.gestito_da_label) {
+
+    $("#p_gestito_label").text(gestitoLabel);
+    $("#p_gestito_da").text(perm.gestito_da_label);
+    $("#p_gestito_il").text(perm.gestito_il_fmt ? " il " + perm.gestito_il_fmt : "");
+
+    $("#p_gestito_wrap").show();
+
+  } else {
+
+    $("#p_gestito_wrap").hide();
+
+  }
   $("#p_note_richiedente").val((r.permesso && r.permesso.note_richiedente) || "");
   $("#p_note_segreteria").val((r.permesso && r.permesso.note_segreteria) || "");
 

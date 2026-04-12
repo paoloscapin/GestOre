@@ -15,7 +15,7 @@ $tipo_id         = isset($_POST['permesso_tipo_id']) ? intval($_POST['permesso_t
 $note            = isset($_POST['note']) ? trim($_POST['note']) : '';
 $azione          = isset($_POST['azione']) ? strtoupper(trim($_POST['azione'])) : 'BOZZA';
 $righe_json      = isset($_POST['righe_json']) ? $_POST['righe_json'] : '[]';
-$MAIL_TEST_OVERRIDE = 'massimo.saiani@buonarroti.tn.it';
+$MAIL_TEST_OVERRIDE = '';
 
 function hMail($s): string
 {
