@@ -577,4 +577,23 @@ $(document).ready(function () {
     $("#fd_refresh").on("click", ferieDashboardLoad);
     $("#fd_finestra, #fd_mode").on("change", ferieDashboardLoad);
     ferieDashboardLoad();
+
+    $("#fd_export_heatmap_csv").on("click", function (e) {
+    e.preventDefault();
+    const finestra = $("#fd_finestra").val() || "ESTIVE";
+    const mode = $("#fd_mode").val() || "APPROVATI_E_RICHIESTI";
+    window.location.href =
+        "ferieDashboardExportHeatmapCsv.php?finestra=" + encodeURIComponent(finestra) +
+        "&mode=" + encodeURIComponent(mode);
+});
+
+$("#fd_export_persone_csv").on("click", function (e) {
+    e.preventDefault();
+    const finestra = $("#fd_finestra").val() || "ESTIVE";
+    const mode = $("#fd_mode").val() || "APPROVATI_E_RICHIESTI";
+    window.location.href =
+        "ferieDashboardExportPersoneCsv.php?finestra=" + encodeURIComponent(finestra) +
+        "&mode=" + encodeURIComponent(mode);
+});
+
 });
