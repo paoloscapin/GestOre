@@ -1,27 +1,46 @@
-.releaseversion {
+/* wrapper */
+.logo-tooltip-wrapper {
 	position: relative;
-	display: inline;
+	display: inline-block;
 }
 
-.releaseversion .releaseversiontext {
+/* tooltip nascosto */
+.release-tooltip {
 	visibility: hidden;
-	width: 320px;
-	background-color: #a32e15;
-	color: #fff;
-	text-align: left;
-	border-radius: 4px;
-	padding: 5px 5px 5px 5px;
-	position: absolute;
-	z-index: 1;
-	top: 130%;
-	left: 100%;
-	margin-left: -60px;
-	margin-top: 60px;
 	opacity: 0;
-	transition: opacity 1s;
+
+	position: absolute;
+	top: 60px; /* sotto il logo */
+	left: 0;
+
+	background: #2c3e50;
+	color: #fff;
+	padding: 8px 10px;
+	border-radius: 6px;
+
+	font-size: 12px;
+	line-height: 1.3;
+
+	white-space: nowrap;
+	box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+
+	transition: opacity 0.2s ease;
+	z-index: 1000;
 }
 
-.releaseversion:hover .releaseversiontext {
+/* freccetta (opzionale ma bella) */
+.release-tooltip::before {
+	content: "";
+	position: absolute;
+	top: -6px;
+	left: 10px;
+	border-width: 6px;
+	border-style: solid;
+	border-color: transparent transparent #2c3e50 transparent;
+}
+
+/* hover */
+.logo-tooltip-wrapper:hover .release-tooltip {
 	visibility: visible;
 	opacity: 1;
 }
