@@ -121,6 +121,8 @@ SELECT
   r.stato,
   r.created_at,
   r.updated_at,
+  r.registrato_segreteria,
+  r.registrato_il,
   t.codice AS tipo_codice,
   t.descrizione AS tipo_descrizione,
   p.username,
@@ -180,6 +182,7 @@ $data = '
         <th>Tipo</th>
         <th class="text-center">Stato</th>
         <th class="text-center">Inviato</th>
+        <th class="text-center">Registro</th>
         <th class="text-center">Azioni</th>
       </tr>
     </thead>
@@ -201,6 +204,19 @@ foreach ($rows as $r) {
     'ora_al'   => $r['ora_al_max'] ?? '',
   ]];
 
+  $registrato = intval($r['registrato_segreteria'] ?? 0);
+$registratoIl = htmlspecialchars(fmtDateTimeIT($r['registrato_il'] ?? ''));
+
+$badgeRegistro = '<span class="label label-default">
+  <span class="glyphicon glyphicon-time"></span> DA REGISTRARE
+</span>';
+
+
+if ($registrato === 1) {
+  $badgeRegistro = '<span class="label label-success" title="' . $registratoIl . '">
+    <span class="glyphicon glyphicon-book"></span> REGISTRATO
+  </span>';
+}
   $periodoLabel = buildPermessoPeriodoLabel($righePeriodo, (string)($r['tipo_codice'] ?? ''));
   $periodoHtml = $periodoLabel !== ''
     ? '<div style="font-size:11px; color:#777; line-height:1.25; margin-top:3px;">' . htmlspecialchars($periodoLabel) . '</div>'
@@ -255,6 +271,7 @@ foreach ($rows as $r) {
     </td>
     <td class="text-center">' . $badge . '</td>
     <td class="text-center">' . $created . '</td>
+    <td class="text-center">' . $badgeRegistro . '</td>
     <td class="text-center">
       <button class="btn btn-primary btn-xs" type="button" onclick="permessoOpen(' . $id . ')" title="Apri dettaglio">
         <span class="glyphicon glyphicon-eye-open"></span>

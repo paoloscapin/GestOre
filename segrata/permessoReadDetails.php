@@ -94,7 +94,10 @@ SELECT
     ff.data_fine   AS ferie_win_a,
     ug.username AS gestito_username,
     ug.nome AS gestito_nome,
-    ug.cognome AS gestito_cognome
+    ug.cognome AS gestito_cognome,
+    ur.username AS registrato_username,
+    ur.nome AS registrato_nome,
+    ur.cognome AS registrato_cognome
 FROM permesso_ata_richiesta r
 JOIN permesso_ata_tipo t
   ON t.id = r.permesso_ata_tipo_id
@@ -104,6 +107,8 @@ LEFT JOIN personale_ata_profili pr
   ON pr.id = p.id_profilo
 LEFT JOIN utente ug
   ON ug.id = r.gestito_da_utente_id
+LEFT JOIN utente ur
+  ON ur.id = r.registrato_da_utente_id
 LEFT JOIN personale_ata_assegnazioni pa
   ON pa.username = p.username
  AND pa.attiva = 1
@@ -143,6 +148,24 @@ if (!empty($row['gestito_il'])) {
     $gestitoIlFmt = date('d/m/Y H:i', $ts);
   }
 }
+
+$registratoDaLabel = trim(
+  (string)($row['registrato_cognome'] ?? '') . ' ' .
+  (string)($row['registrato_nome'] ?? '')
+);
+
+if ($registratoDaLabel === '') {
+  $registratoDaLabel = trim((string)($row['registrato_username'] ?? ''));
+}
+
+$registratoIlFmt = '';
+if (!empty($row['registrato_il'])) {
+  $ts = strtotime($row['registrato_il']);
+  if ($ts) {
+    $registratoIlFmt = date('d/m/Y H:i', $ts);
+  }
+}
+
 /**
  * Totali profilo / ufficio
  */
@@ -481,6 +504,9 @@ $payload = [
     'dettagli_json' => $row['dettagli_json'] ?? '',
     'gestito_da_label' => $gestitoDaLabel,
     'gestito_il_fmt'   => $gestitoIlFmt,
+    'registrato_segreteria' => intval($row['registrato_segreteria'] ?? 0),
+    'registrato_da_label'   => $registratoDaLabel,
+    'registrato_il_fmt'     => $registratoIlFmt,
     'is_additional_request' => (count($otherRequestsSummary) > 0),
     'previous_requests_count' => count($otherRequestsSummary)
   ],

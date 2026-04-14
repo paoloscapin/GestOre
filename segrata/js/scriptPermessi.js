@@ -265,6 +265,7 @@ function openFerieDayDecisionModal(iso, dayInfo, dip) {
 function saveFerieNotesOnly() {
   const id = $("#fm_hidden_permesso_id").val();
   const note = $("#fm_note_segreteria").val();
+  const registrato = $("#fm_registrato_segreteria").is(":checked") ? 1 : 0;
 
   if (!updateFerieSaveButtonState()) {
     return;
@@ -277,7 +278,8 @@ function saveFerieNotesOnly() {
     data: {
       id: id,
       note_segreteria: note,
-      finalizza_ferie: 1
+      finalizza_ferie: 1,
+      registrato_segreteria: registrato
     },
     success: function (r) {
       if (!r || r.ok !== true) {
@@ -441,6 +443,17 @@ function renderPermessoFerieModal(r) {
   const otherDaysByDate = r.other_days_by_date || {};
   const otherRequests = Array.isArray(r.other_requests_summary) ? r.other_requests_summary : [];
 
+  $("#fm_registrato_segreteria").prop("checked", String(perm.registrato_segreteria || "0") === "1");
+
+  if (perm.registrato_da_label) {
+    $("#fm_registrato_da").text(perm.registrato_da_label);
+    $("#fm_registrato_il").text(perm.registrato_il_fmt ? (" il " + perm.registrato_il_fmt) : "");
+    $("#fm_registrazione_info").show();
+  } else {
+    $("#fm_registrato_da").text("");
+    $("#fm_registrato_il").text("");
+    $("#fm_registrazione_info").hide();
+  }
   window.__FM_SELECTED_DATE_MAP = buildSelectedDateMap(righe);
 
   $("#fm_hidden_permesso_id").val(perm.id || "");
@@ -674,7 +687,17 @@ function openStandardPermessoModal(r, id) {
   $("#p_created").text(fmtDateTimeIT(r.permesso && r.permesso.created_at));
   $("#p_updated").text(fmtDateTimeIT(r.permesso && r.permesso.updated_at));
   const perm = r.permesso || {};
+  $("#p_registrato_segreteria").prop("checked", String(perm.registrato_segreteria || "0") === "1");
 
+  if (perm.registrato_da_label) {
+    $("#p_registrato_da").text(perm.registrato_da_label);
+    $("#p_registrato_il").text(perm.registrato_il_fmt ? (" il " + perm.registrato_il_fmt) : "");
+    $("#p_registrazione_info").show();
+  } else {
+    $("#p_registrato_da").text("");
+    $("#p_registrato_il").text("");
+    $("#p_registrazione_info").hide();
+  }
   const statoPerm = (perm.stato || "").toString().toUpperCase();
   let gestitoLabel = "Gestito da:";
 
@@ -758,13 +781,14 @@ function permessoOpen(id) {
 function permessoSave(statoOverride) {
   const id = $("#hidden_permesso_id").val();
   const note = $("#p_note_segreteria").val();
+  const registrato = $("#p_registrato_segreteria").is(":checked") ? 1 : 0;
 
   const payload = {
     id: id,
-    note_segreteria: note
+    note_segreteria: note,
+    registrato_segreteria: registrato
   };
 
-  // SOLO se clicco Approva/Respingi mando lo stato
   if (statoOverride) {
     payload.stato = statoOverride;
   }
@@ -789,7 +813,7 @@ function permessoSave(statoOverride) {
         title: "<strong>Permessi</strong>&nbsp;",
         message: statoOverride
           ? ("Stato aggiornato a " + statoOverride)
-          : "Note salvate"
+          : "Salvato"
       }, {
         type: "success",
         placement: { from: "top", align: "center" },
@@ -810,12 +834,18 @@ function permessoSaveFerie(statoOverride) {
   const id = $("#fm_hidden_permesso_id").val();
   const stato = statoOverride || $("#fm_stato_edit").val();
   const note = $("#fm_note_segreteria").val();
+  const registrato = $("#fm_registrato_segreteria").is(":checked") ? 1 : 0;
 
   $.ajax({
     url: "permessoUpdateSegreteria.php",
     method: "POST",
     dataType: "json",
-    data: { id: id, stato: stato, note_segreteria: note },
+    data: {
+      id: id,
+      stato: stato,
+      note_segreteria: note,
+      registrato_segreteria: registrato
+    },
     success: function (r) {
       if (!r || r.ok !== true) {
         $.notify({ message: (r && r.error) ? r.error : "Salvataggio fallito" }, { type: "danger" });

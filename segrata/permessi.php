@@ -495,51 +495,85 @@ if (!is_array($ufficiAta)) {
             white-space: nowrap;
         }
 
+        .permessi-table {
+            table-layout: fixed;
+            width: 100%;
+            font-size: 13px;
+        }
+
+        .permessi-table th,
+        .permessi-table td {
+            padding: 8px 10px;
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Colonne */
         .permessi-table th:nth-child(1),
         .permessi-table td:nth-child(1) {
             width: 70px;
+            text-align: center;
         }
 
+        /* Dipendente */
         .permessi-table th:nth-child(2),
         .permessi-table td:nth-child(2) {
-            width: 170px;
+            width: 150px;
+            white-space: normal;
         }
 
+        /* Matricola */
         .permessi-table th:nth-child(3),
         .permessi-table td:nth-child(3) {
-            width: 90px;
+            width: 80px;
         }
 
+        /* Profilo */
         .permessi-table th:nth-child(4),
         .permessi-table td:nth-child(4) {
-            width: 200px;
+            width: 240px;
         }
 
+        /* Ufficio */
         .permessi-table th:nth-child(5),
         .permessi-table td:nth-child(5) {
             width: 170px;
         }
 
+        /* Tipo */
         .permessi-table th:nth-child(6),
         .permessi-table td:nth-child(6) {
-            width: 300px;
+            width: 330px;
+            white-space: normal;
         }
 
+        /* Stato */
         .permessi-table th:nth-child(7),
         .permessi-table td:nth-child(7) {
             width: 120px;
             text-align: center;
         }
 
+        /* Inviato */
         .permessi-table th:nth-child(8),
         .permessi-table td:nth-child(8) {
             width: 165px;
             text-align: center;
         }
 
+        /* Registro */
         .permessi-table th:nth-child(9),
         .permessi-table td:nth-child(9) {
-            width: 90px;
+            width: 130px;
+            text-align: center;
+        }
+
+        /* Azioni */
+        .permessi-table th:nth-child(10),
+        .permessi-table td:nth-child(10) {
+            width: 110px;
             text-align: center;
         }
 
@@ -565,11 +599,13 @@ if (!is_array($ufficiAta)) {
                 padding: 7px 8px;
             }
 
+            /* nascondo matricola */
             .permessi-table th:nth-child(3),
             .permessi-table td:nth-child(3) {
                 display: none;
             }
 
+            /* nascondo inviato */
             .permessi-table th:nth-child(8),
             .permessi-table td:nth-child(8) {
                 display: none;
@@ -592,7 +628,17 @@ if (!is_array($ufficiAta)) {
 
             .permessi-table th:nth-child(6),
             .permessi-table td:nth-child(6) {
-                width: 230px;
+                width: 240px;
+            }
+
+            .permessi-table th:nth-child(9),
+            .permessi-table td:nth-child(9) {
+                width: 120px;
+            }
+
+            .permessi-table th:nth-child(10),
+            .permessi-table td:nth-child(10) {
+                width: 100px;
             }
         }
 
@@ -813,7 +859,21 @@ if (!is_array($ufficiAta)) {
                                     <label>Note Segreteria</label>
                                     <textarea class="form-control" rows="3" id="p_note_segreteria" placeholder="Note interne / motivazione esito..."></textarea>
                                 </div>
+                                <div class="form-group">
+                                    <label style="display:block;">Registrazione segreteria</label>
 
+                                    <div class="checkbox" style="margin-top:0;">
+                                        <label style="font-weight:600;">
+                                            <input type="checkbox" id="p_registrato_segreteria" value="1">
+                                            Permesso registrato sul registro esterno
+                                        </label>
+                                    </div>
+
+                                    <div id="p_registrazione_info" style="font-size:12px; color:#666; display:none;">
+                                        Registrato da <span id="p_registrato_da"></span>
+                                        <span id="p_registrato_il"></span>
+                                    </div>
+                                </div>
                                 <div class="form-group">
                                     <label>Intervalli / righe</label>
                                     <div id="righe_list"></div>
@@ -885,6 +945,22 @@ if (!is_array($ufficiAta)) {
                             </div>
                         </div>
 
+                        <div class="ferie-modal-card">
+                            <div class="ferie-modal-card-head"><strong>Registrazione segreteria</strong></div>
+                            <div class="ferie-modal-card-body">
+                                <div class="checkbox" style="margin-top:0;">
+                                    <label style="font-weight:600;">
+                                        <input type="checkbox" id="fm_registrato_segreteria" value="1">
+                                        Richiesta registrata sul registro esterno
+                                    </label>
+                                </div>
+
+                                <div id="fm_registrazione_info" style="font-size:12px; color:#666; display:none;">
+                                    Registrato da <span id="fm_registrato_da"></span>
+                                    <span id="fm_registrato_il"></span>
+                                </div>
+                            </div>
+                        </div>
                         <div class="ferie-modal-card">
                             <div class="ferie-modal-card-head"><strong>Calendario ferie</strong></div>
                             <div class="ferie-modal-card-body">

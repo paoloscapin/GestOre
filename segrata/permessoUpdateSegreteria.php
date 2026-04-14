@@ -288,7 +288,13 @@ $id = intval($_POST['id']);
 $note_segr = isset($_POST['note_segreteria']) ? trim((string)$_POST['note_segreteria']) : '';
 $stato = isset($_POST['stato']) ? strtoupper(trim((string)$_POST['stato'])) : null;
 $finalizzaFerie = intval($_POST['finalizza_ferie'] ?? 0) === 1;
+$registratoSegreteria = isset($_POST['registrato_segreteria'])
+  ? intval($_POST['registrato_segreteria'])
+  : null;
 
+if ($registratoSegreteria !== null) {
+  $registratoSegreteria = $registratoSegreteria ? 1 : 0;
+}
 if ($id <= 0) {
   http_response_code(400);
   echo json_encode(['ok' => false, 'error' => 'ID non valido'], JSON_UNESCAPED_UNICODE);
@@ -339,23 +345,18 @@ $gestito_da = (isset($__utente_id) && intval($__utente_id) > 0) ? intval($__uten
 /**
  * CASO 1: SOLO NOTE / SALVATAGGIO FERIE
  */
-if ($stato === null) {
+/**
+ * COSTRUZIONE UPDATE UNIFICATO
+ * - note segreteria sempre salvabili
+ * - stato solo se passato
+ * - registrazione segreteria solo se passato il flag
+ */
+$setParts = [];
+$setParts[] = "note_segreteria = '$note_esc'";
+$setParts[] = "updated_at = NOW()";
 
-  $query = "
-    UPDATE permesso_ata_richiesta
-    SET
-      note_segreteria = '$note_esc',
-      gestito_da_utente_id = $gestito_da,
-      gestito_il = NOW(),
-      updated_at = NOW()
-    WHERE id = $id
-    LIMIT 1
-  ";
-} else {
-
-  /**
-   * CASO 2: STATO + NOTE (MODAL STANDARD)
-   */
+// Se arriva uno stato, aggiorno anche gestione pratica
+if ($stato !== null) {
   $allowed = ['INVIATO', 'APPROVATO', 'RESPINTO', 'ANNULLATO'];
   if (!in_array($stato, $allowed, true)) {
     http_response_code(400);
@@ -364,19 +365,31 @@ if ($stato === null) {
   }
 
   $stato_esc = mysqli_real_escape_string($__con, $stato);
-
-  $query = "
-    UPDATE permesso_ata_richiesta
-    SET
-      stato = '$stato_esc',
-      note_segreteria = '$note_esc',
-      gestito_da_utente_id = $gestito_da,
-      gestito_il = NOW(),
-      updated_at = NOW()
-    WHERE id = $id
-    LIMIT 1
-  ";
+  $setParts[] = "stato = '$stato_esc'";
+  $setParts[] = "gestito_da_utente_id = $gestito_da";
+  $setParts[] = "gestito_il = NOW()";
 }
+
+// Se arriva il flag registrazione, aggiorno lo stato interno segreteria
+if ($registratoSegreteria !== null) {
+  $setParts[] = "registrato_segreteria = " . intval($registratoSegreteria);
+
+  if ($registratoSegreteria === 1) {
+    $setParts[] = "registrato_da_utente_id = $gestito_da";
+    $setParts[] = "registrato_il = NOW()";
+  } else {
+    $setParts[] = "registrato_da_utente_id = NULL";
+    $setParts[] = "registrato_il = NULL";
+  }
+}
+
+$query = "
+  UPDATE permesso_ata_richiesta
+  SET
+    " . implode(",\n    ", $setParts) . "
+  WHERE id = $id
+  LIMIT 1
+";
 
 $ok = dbExec($query);
 
