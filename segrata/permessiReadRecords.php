@@ -20,6 +20,60 @@ function fmtDateTimeIT($dt): string
   return date('d/m/Y H:i', $ts);
 }
 
+function fmtDateIT($d): string
+{
+  if (!$d) return '';
+  $dt = DateTime::createFromFormat('Y-m-d', (string)$d);
+  if ($dt) return $dt->format('d/m/Y');
+
+  $ts = strtotime((string)$d);
+  return $ts ? date('d/m/Y', $ts) : (string)$d;
+}
+
+function fmtOraIT($o): string
+{
+  $o = trim((string)$o);
+  if ($o === '') return '';
+  return substr($o, 0, 5);
+}
+
+function buildPermessoPeriodoLabel(array $righe, string $tipoCodice): string
+{
+  if (count($righe) === 0) return '';
+
+  $tipoCodice = strtoupper(trim($tipoCodice));
+
+  $prima = $righe[0];
+  $ultima = $righe[count($righe) - 1];
+
+  $dataDal = (string)($prima['data_dal'] ?? '');
+  $dataAl  = (string)($ultima['data_al'] ?? '');
+  if ($dataAl === '') $dataAl = $dataDal;
+
+  if ($tipoCodice === 'FERIE') {
+    if ($dataDal !== '' && $dataAl !== '' && $dataDal !== $dataAl) {
+      return 'Dal giorno ' . fmtDateIT($dataDal) . ' al giorno ' . fmtDateIT($dataAl);
+    }
+    return 'Giorno ' . fmtDateIT($dataDal ?: $dataAl);
+  }
+
+  $oraDal = trim((string)($prima['ora_dal'] ?? ''));
+  $oraAl  = trim((string)($prima['ora_al'] ?? ''));
+
+  $testo = '';
+  if ($dataDal !== '' && $dataAl !== '' && $dataDal !== $dataAl) {
+    $testo = 'Dal ' . fmtDateIT($dataDal) . ' al ' . fmtDateIT($dataAl);
+  } else {
+    $testo = fmtDateIT($dataDal ?: $dataAl);
+  }
+
+  if ($oraDal !== '' && $oraAl !== '') {
+    $testo .= ' dalle ' . fmtOraIT($oraDal) . ' alle ' . fmtOraIT($oraAl);
+  }
+
+  return $testo;
+}
+
 $stato      = isset($_GET['stato']) ? trim((string)$_GET['stato']) : '';
 $tipo_id    = isset($_GET['tipo_id']) ? intval($_GET['tipo_id']) : 0;
 $profilo_id = isset($_GET['profilo_id']) ? intval($_GET['profilo_id']) : 0;
@@ -27,6 +81,9 @@ $ufficio_id = isset($_GET['ufficio_id']) ? intval($_GET['ufficio_id']) : 0;
 $search     = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
 
 $where = " WHERE 1=1 ";
+
+// La segreteria NON deve vedere le bozze
+$where .= " AND r.stato <> 'BOZZA' ";
 
 if ($stato !== '') {
   $stato_esc = esc_sql_like($stato);
@@ -73,7 +130,11 @@ SELECT
   p.matricola,
   p.tipo_contratto,
   pr.nome AS profilo_nome,
-  u.nome  AS ufficio_nome
+  u.nome  AS ufficio_nome,
+  rragg.data_dal_min,
+  rragg.data_al_max,
+  rragg.ora_dal_min,
+  rragg.ora_al_max
 FROM permesso_ata_richiesta r
 JOIN permesso_ata_tipo t ON t.id = r.permesso_ata_tipo_id
 JOIN personale_ata p ON p.id = r.personale_ata_id
@@ -84,6 +145,17 @@ LEFT JOIN personale_ata_assegnazioni pa
       AND pa.attiva = 1
 LEFT JOIN personale_ata_uffici u
        ON u.id = pa.id_ufficio
+LEFT JOIN (
+  SELECT
+    permesso_ata_richiesta_id,
+    MIN(data_dal) AS data_dal_min,
+    MAX(COALESCE(NULLIF(data_al, ''), data_dal)) AS data_al_max,
+    MIN(NULLIF(ora_dal, '')) AS ora_dal_min,
+    MAX(NULLIF(ora_al, '')) AS ora_al_max
+  FROM permesso_ata_richiesta_riga
+  GROUP BY permesso_ata_richiesta_id
+) rragg
+  ON rragg.permesso_ata_richiesta_id = r.id
 $where
 ORDER BY r.created_at DESC
 LIMIT 500
@@ -119,7 +191,20 @@ foreach ($rows as $r) {
   $mat     = htmlspecialchars($r['matricola'] ?? '');
   $profilo = htmlspecialchars($r['profilo_nome'] ?? '');
   $ufficio = htmlspecialchars($r['ufficio_nome'] ?? '');
-  $tipo    = htmlspecialchars(($r['tipo_codice'] ?? '') . ' - ' . ($r['tipo_descrizione'] ?? ''));
+  $tipoBase = ($r['tipo_codice'] ?? '') . ' - ' . ($r['tipo_descrizione'] ?? '');
+  $tipo = htmlspecialchars($tipoBase);
+
+  $righePeriodo = [[
+    'data_dal' => $r['data_dal_min'] ?? '',
+    'data_al'  => $r['data_al_max'] ?? '',
+    'ora_dal'  => $r['ora_dal_min'] ?? '',
+    'ora_al'   => $r['ora_al_max'] ?? '',
+  ]];
+
+  $periodoLabel = buildPermessoPeriodoLabel($righePeriodo, (string)($r['tipo_codice'] ?? ''));
+  $periodoHtml = $periodoLabel !== ''
+    ? '<div style="font-size:11px; color:#777; line-height:1.25; margin-top:3px;">' . htmlspecialchars($periodoLabel) . '</div>'
+    : '';
   $st      = strtoupper(trim((string)($r['stato'] ?? '')));
   $created = htmlspecialchars(fmtDateTimeIT($r['created_at'] ?? ''));
 
@@ -164,7 +249,10 @@ foreach ($rows as $r) {
     <td>' . $mat . '</td>
     <td>' . $profilo . '</td>
     <td>' . $ufficio . '</td>
-    <td title="' . $tipo . '">' . $tipo . '</td>
+    <td title="' . htmlspecialchars($tipoBase) . '">
+    <div style="font-weight:600; line-height:1.2;">' . $tipo . '</div>
+    ' . $periodoHtml . '
+    </td>
     <td class="text-center">' . $badge . '</td>
     <td class="text-center">' . $created . '</td>
     <td class="text-center">
