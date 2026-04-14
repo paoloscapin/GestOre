@@ -163,10 +163,6 @@ if (!is_array($ufficiAta)) {
             background: rgba(240, 173, 78, .35);
         }
 
-        .dash-bozza {
-            background: rgba(103, 155, 211, 0.83);
-        }
-
         .dash-parziale {
             background: rgba(255, 193, 7, .45);
         }
@@ -691,7 +687,6 @@ if (!is_array($ufficiAta)) {
                             <select id="f_stato" class="selectpicker" data-width="160px" data-style="btn-default btn-sm">
                                 <option value="" selected>Tutti gli stati</option>
                                 <option value="INVIATO">INVIATO</option>
-                                <option value="BOZZA">BOZZA</option>
                                 <option value="APPROVATO">APPROVATO</option>
                                 <option value="PARZIALE">PARZIALE</option>
                                 <option value="RESPINTO">RESPINTO</option>
@@ -756,7 +751,6 @@ if (!is_array($ufficiAta)) {
                                 <span class="glyphicon glyphicon-adjust"></span> PARZIALI <span class="badge">0</span></span>
                             <span class="dash-item dash-respinto" id="d_respinto" data-stato="RESPINTO"><span class="glyphicon glyphicon-remove"></span> RESPINTI <span class="badge">0</span></span>
                             <span class="dash-item dash-annullato" id="d_annullato" data-stato="ANNULLATO"><span class="glyphicon glyphicon-ban-circle"></span> ANNULLATI <span class="badge">0</span></span>
-                            <span class="dash-item dash-bozza" id="d_bozza" data-stato="BOZZA"><span class="glyphicon glyphicon-edit"></span> BOZZE <span class="badge">0</span></span>
 
                             <span class="dash-right">
                                 <span class="dash-mini" id="d_trend" title="Trend ultimi mesi"></span>

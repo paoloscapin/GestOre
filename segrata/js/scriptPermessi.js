@@ -857,7 +857,7 @@ function dashboardLoad() {
   $.getJSON("permessiDashboard.php", {}, function (r) {
     if (!r || r.ok !== true) return;
 
-    const s = { INVIATO: 0, APPROVATO: 0, PARZIALE: 0, RESPINTO: 0, ANNULLATO: 0, BOZZA: 0 };
+    const s = { INVIATO: 0, APPROVATO: 0, PARZIALE: 0, RESPINTO: 0, ANNULLATO: 0 };
     (r.byStato || []).forEach(x => {
       if (s.hasOwnProperty(x.stato)) s[x.stato] = parseInt(x.n || 0, 10);
     });
@@ -867,7 +867,6 @@ function dashboardLoad() {
     $("#d_parziale .badge").text(s.PARZIALE);
     $("#d_respinto .badge").text(s.RESPINTO);
     $("#d_annullato .badge").text(s.ANNULLATO);
-    $("#d_bozza .badge").text(s.BOZZA);
 
     const mesi = (r.byMese || []).slice(-6);
     const vals = mesi.map(m =>
