@@ -9,7 +9,7 @@
 
 // favicon ref
 echo '<link rel="icon" href="../ore-32.png" />';
-echo '<link rel="stylesheet" href="../css/releaseversion.css">';
+echo '<link rel="stylesheet" href="../css/releaseversion.css?' . time() . '" />';
 ?>
 <script src="<?php echo $__application_base_path; ?>/common/jquery-3.3.1-dist/jquery-3.3.1.min.js"></script>
 
