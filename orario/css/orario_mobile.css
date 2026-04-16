@@ -216,65 +216,196 @@ body {
     box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
 }
 
+/* =========================
+   LIST CARD EVENTI MOBILE
+   ========================= */
+
+.mobile-list-card-event {
+    border-left: 8px solid #9ca3af;
+    border-width: 1px 1px 1px 8px;
+}
+
+/* sfondo più visibile per gli eventi nella lista mobile */
+.mobile-list-card-event.ev-curr {
+    border-left-color: #000000;
+    border-color: rgba(0, 0, 0, 0.20);
+    background: rgba(0, 0, 0, 0.07);
+}
+
+.mobile-list-card-event.ev-udi {
+    border-left-color: #ff2d55;
+    border-color: rgba(255, 45, 85, 0.32);
+    background: rgba(255, 45, 85, 0.22);
+}
+
+.mobile-list-card-event.ev-imp {
+    border-left-color: #00c853;
+    border-color: rgba(0, 200, 83, 0.34);
+    background: rgba(0, 200, 83, 0.24);
+}
+
+.mobile-list-card-event.ev-uscC {
+    border-left-color: #ff9800;
+    border-color: rgba(255, 152, 0, 0.36);
+    background: rgba(255, 152, 0, 0.26);
+}
+
+.mobile-list-card-event.ev-uscF {
+    border-left-color: #ff1744;
+    border-color: rgba(255, 23, 68, 0.38);
+    background: rgba(255, 23, 68, 0.26);
+}
+
+.mobile-list-card-event.ev-viag {
+    border-left-color: #06b6d4;
+    border-color: rgba(6, 182, 212, 0.36);
+    background: rgba(6, 182, 212, 0.24);
+}
+
+.mobile-list-card-event.ev-pb {
+    border-left-color: #7c3aed;
+    border-color: rgba(124, 58, 237, 0.34);
+    background: rgba(124, 58, 237, 0.22);
+}
+
+.mobile-list-card-event.ev-perm {
+    border-left-color: #6b7280;
+    border-color: rgba(107, 114, 128, 0.30);
+    background: rgba(107, 114, 128, 0.18);
+}
+
+.mobile-list-card-event.ev-pranzo {
+    border-left-color: #eab308;
+    border-color: rgba(234, 179, 8, 0.34);
+    background: rgba(234, 179, 8, 0.22);
+}
+
+.mobile-list-card-event.ev-studio {
+    border-left-color: #14b8a6;
+    border-color: rgba(20, 184, 166, 0.34);
+    background: rgba(20, 184, 166, 0.22);
+}
+
+/* badge evento mobile più vivaci */
+.mobile-badge-curr {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border-color: #000000 !important;
+}
+
+.mobile-badge-udi {
+    background: #ff2d55 !important;
+    color: #ffffff !important;
+    border-color: #ff2d55 !important;
+}
+
+.mobile-badge-imp {
+    background: #00c853 !important;
+    color: #ffffff !important;
+    border-color: #00c853 !important;
+}
+
+.mobile-badge-uscC {
+    background: #ff9800 !important;
+    color: #111827 !important;
+    border-color: #ff9800 !important;
+}
+
+.mobile-badge-uscF {
+    background: #ff1744 !important;
+    color: #ffffff !important;
+    border-color: #ff1744 !important;
+}
+
+.mobile-badge-viag {
+    background: #06b6d4 !important;
+    color: #ffffff !important;
+    border-color: #06b6d4 !important;
+}
+
+.mobile-badge-pb {
+    background: #7c3aed !important;
+    color: #ffffff !important;
+    border-color: #7c3aed !important;
+}
+
+.mobile-badge-perm {
+    background: #6b7280 !important;
+    color: #ffffff !important;
+    border-color: #6b7280 !important;
+}
+
+.mobile-badge-pranzo {
+    background: #eab308 !important;
+    color: #111827 !important;
+    border-color: #eab308 !important;
+}
+
+.mobile-badge-studio {
+    background: #14b8a6 !important;
+    color: #ffffff !important;
+    border-color: #14b8a6 !important;
+}
+
 /* sfondo tenue coerente col tipo */
-.mobile-event-card.ev-curr { 
-  border-left-color: #000000;
-  border-color: rgba(0, 0, 0, 0.22);
-  background: rgba(0, 0, 0, 0.08);
+.mobile-event-card.ev-curr {
+    border-left-color: #000000;
+    border-color: rgba(0, 0, 0, 0.22);
+    background: rgba(0, 0, 0, 0.08);
 }
 
-.mobile-event-card.ev-udi  { 
-  border-left-color: #ff2d55;
-  border-color: rgba(255, 45, 85, 0.28);
-  background: rgba(255, 45, 85, 0.18);
+.mobile-event-card.ev-udi {
+    border-left-color: #ff2d55;
+    border-color: rgba(255, 45, 85, 0.28);
+    background: rgba(255, 45, 85, 0.18);
 }
 
-.mobile-event-card.ev-imp  { 
-  border-left-color: #00c853;
-  border-color: rgba(0, 200, 83, 0.28);
-  background: rgba(0, 200, 83, 0.18);
+.mobile-event-card.ev-imp {
+    border-left-color: #00c853;
+    border-color: rgba(0, 200, 83, 0.28);
+    background: rgba(0, 200, 83, 0.18);
 }
 
-.mobile-event-card.ev-uscC { 
-  border-left-color: #ff9100;
-  border-color: rgba(255, 145, 0, 0.32);
-  background: rgba(255, 145, 0, 0.22);
+.mobile-event-card.ev-uscC {
+    border-left-color: #ff9100;
+    border-color: rgba(255, 145, 0, 0.32);
+    background: rgba(255, 145, 0, 0.22);
 }
 
-.mobile-event-card.ev-uscF { 
-  border-left-color: #ff1744;
-  border-color: rgba(255, 23, 68, 0.34);
-  background: rgba(255, 23, 68, 0.20);
+.mobile-event-card.ev-uscF {
+    border-left-color: #ff1744;
+    border-color: rgba(255, 23, 68, 0.34);
+    background: rgba(255, 23, 68, 0.20);
 }
 
-.mobile-event-card.ev-pb   { 
-  border-left-color: #6d28d9;
-  border-color: rgba(109, 40, 217, 0.28);
-  background: rgba(109, 40, 217, 0.18);
+.mobile-event-card.ev-pb {
+    border-left-color: #6d28d9;
+    border-color: rgba(109, 40, 217, 0.28);
+    background: rgba(109, 40, 217, 0.18);
 }
 
-.mobile-event-card.ev-perm { 
-  border-left-color: #4b5563;
-  border-color: rgba(75, 85, 99, 0.28);
-  background: rgba(75, 85, 99, 0.16);
+.mobile-event-card.ev-perm {
+    border-left-color: #4b5563;
+    border-color: rgba(75, 85, 99, 0.28);
+    background: rgba(75, 85, 99, 0.16);
 }
 
-.mobile-event-card.ev-viag { 
-  border-left-color: #00b8d4;
-  border-color: rgba(0, 184, 212, 0.30);
-  background: rgba(0, 184, 212, 0.20);
+.mobile-event-card.ev-viag {
+    border-left-color: #00b8d4;
+    border-color: rgba(0, 184, 212, 0.30);
+    background: rgba(0, 184, 212, 0.20);
 }
 
-.mobile-event-card.ev-pranzo { 
-  border-left-color: #0ea5e9;
-  border-color: rgba(14, 165, 233, 0.28);
-  background: rgba(14, 165, 233, 0.18);
+.mobile-event-card.ev-pranzo {
+    border-left-color: #0ea5e9;
+    border-color: rgba(14, 165, 233, 0.28);
+    background: rgba(14, 165, 233, 0.18);
 }
 
-.mobile-event-card.ev-studio { 
-  border-left-color: #14b8a6;
-  border-color: rgba(20, 184, 166, 0.28);
-  background: rgba(20, 184, 166, 0.18);
+.mobile-event-card.ev-studio {
+    border-left-color: #14b8a6;
+    border-color: rgba(20, 184, 166, 0.28);
+    background: rgba(20, 184, 166, 0.18);
 }
 
 .mobile-event-card:last-child,
@@ -335,16 +466,16 @@ body {
 }
 
 .mobile-badge {
-  display: inline-block;
-  padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-  margin-bottom: 8px;
-  border: 1px solid rgba(0,0,0,.14);
-  background: rgba(255,255,255,.65);
-  color: #1f2937;
-  backdrop-filter: blur(1px);
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    border: 1px solid rgba(0, 0, 0, .14);
+    background: rgba(255, 255, 255, .65);
+    color: #1f2937;
+    backdrop-filter: blur(1px);
 }
 
 .mobile-event-title {

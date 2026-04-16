@@ -792,19 +792,20 @@
                 const classe = Array.isArray(it.classi) ? it.classi.join(", ") : normTxt(it.classi || "");
                 const aula = Array.isArray(it.rooms) ? it.rooms.join(", ") : normTxt(it.aula || it.rooms || "");
                 const badge = normTxt(it.badge || "");
+                const type = normalizeType(it);
 
                 html += `
-                    <div class="mobile-list-card">
-                        <div class="mobile-list-topline">
-                            <div class="mobile-list-time">${escapeHtml(oraIn)}${oraOut ? " - " + escapeHtml(oraOut) : ""}</div>
-                            ${badge ? `<div class="mobile-badge">${escapeHtml(badge)}</div>` : ""}
-                        </div>
-                        <div class="mobile-list-title">${escapeHtml(titolo)}</div>
-                        ${who ? `<div class="mobile-list-meta"><strong>Docente/i:</strong> ${escapeHtml(who)}</div>` : ""}
-                        ${classe ? `<div class="mobile-list-meta"><strong>Classe/i:</strong> ${escapeHtml(classe)}</div>` : ""}
-                        ${aula ? `<div class="mobile-list-meta"><strong>Aula/e:</strong> ${escapeHtml(aula)}</div>` : ""}
-                    </div>
-                `;
+        <div class="mobile-list-card mobile-list-card-event ev-${escapeHtml(type)}">
+            <div class="mobile-list-topline">
+                <div class="mobile-list-time">${escapeHtml(oraIn)}${oraOut ? " - " + escapeHtml(oraOut) : ""}</div>
+                ${badge ? `<div class="mobile-badge mobile-badge-${escapeHtml(type)}">${escapeHtml(badge)}</div>` : ""}
+            </div>
+            <div class="mobile-list-title">${escapeHtml(titolo)}</div>
+            ${who ? `<div class="mobile-list-meta"><strong>Docente/i:</strong> ${escapeHtml(who)}</div>` : ""}
+            ${classe ? `<div class="mobile-list-meta"><strong>Classe/i:</strong> ${escapeHtml(classe)}</div>` : ""}
+            ${aula ? `<div class="mobile-list-meta"><strong>Aula/e:</strong> ${escapeHtml(aula)}</div>` : ""}
+        </div>
+    `;
             }
         });
 

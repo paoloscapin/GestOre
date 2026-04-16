@@ -2440,29 +2440,45 @@
       }
 
       function cellKeyFromGrid(g, ora) {
-        let evs = (g[`${date}|${ora}`] || []).slice();
+        const key = date + "|" + ora;
+        let evs = (g[key] || []).slice();
+
         evs = filterAulaNonDisponibile(evs);
 
-        if (!evs.length) return "__EMPTY__";
+        // IMPORTANTISSIMO:
+        // se dopo il filtro non resta nulla, lo slot è vuoto
+        // e NON deve mai avere firma / rowspan
+        if (!evs.length) return "";
 
-        const merged = mergeSlotEvents(evs, "AULA");
-        return slotSignatureForRowspan(merged, "AULA");
+        return slotSignatureForRowspan(evs, "AULA");
       }
 
       function computeRowspansForCol(col) {
         const out = {};
+
         for (let i = 0; i < ORARI.length; i++) {
           const ora = ORARI[i];
           if (out[ora]) continue;
 
           const key = cellKeyFromGrid(col.grid || {}, ora);
+
+          // slot vuoto: mai rowspan, sempre una riga sola
+          if (!key) {
+            out[ora] = { span: 1, skip: false };
+            continue;
+          }
+
           let span = 1;
 
           for (let j = i + 1; j < ORARI.length; j++) {
+            if (span >= MAX_SPAN) break;
+
             const nextOra = ORARI[j];
             const nextKey = cellKeyFromGrid(col.grid || {}, nextOra);
-            if (nextKey !== key) break;
-            if (span >= MAX_SPAN) break;
+
+            // appena il prossimo slot è vuoto o cambia firma, stop
+            if (!nextKey || nextKey !== key) break;
+
             span++;
           }
 
@@ -2472,6 +2488,7 @@
             out[ORARI[i + k]] = { span: 1, skip: true };
           }
         }
+
         return out;
       }
 
