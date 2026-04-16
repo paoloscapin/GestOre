@@ -1,6 +1,89 @@
 html,
 body {
     background: #f5f7fb;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* =========================
+   TOPBAR MOBILE COMPATTA
+   ========================= */
+.mobile-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: linear-gradient(180deg, #4fb7ea 0%, #27a7df 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .10);
+}
+
+.mobile-topbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    min-height: 58px;
+}
+
+.mobile-topbar-left {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.mobile-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #0b4a7a;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.mobile-topbar-user {
+    margin-top: 2px;
+    color: rgba(255, 255, 255, .96);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mobile-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.mobile-topbar {
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+
+.mobile-topbar+.mobile-orario-shell {
+    margin-top: 0 !important;
+}
+
+.mobile-home-btn {
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 1.1;
+}
+
+.mobile-logout-btn {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .orario-mobile-page {
@@ -10,17 +93,50 @@ body {
 .mobile-orario-shell {
     padding-left: 8px;
     padding-right: 8px;
+    padding-top: 0;
 }
 
 .mobile-panel {
-    margin-top: 10px;
+    margin-top: 0;
     margin-bottom: 16px;
     border-radius: 14px;
     overflow: hidden;
 }
 
 .mobile-panel-heading {
-    padding: 10px 12px;
+    padding: 6px 8px;
+}
+
+.mobile-scope-tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+}
+
+.mobile-scope-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.mobile-scope-tab {
+    flex: 0 0 auto;
+    border: 1px solid rgba(0, 0, 0, .12);
+    background: rgba(255, 255, 255, .92);
+    color: #374151;
+    border-radius: 999px;
+    padding: 6px 9px;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.mobile-scope-tab.is-active {
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+    color: #ffffff;
 }
 
 .mobile-heading-title {
@@ -29,18 +145,18 @@ body {
 }
 
 .mobile-panel-body {
-    padding: 10px;
+    padding: 8px;
 }
 
 .mobile-toolbar {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     position: sticky;
-    top: 0;
+    top: 58px;
     z-index: 30;
     background: #f5f7fb;
-    padding-bottom: 10px;
+    padding-bottom: 8px;
 }
 
 .mobile-toolbar-block {
@@ -529,6 +645,16 @@ body {
     color: #111827;
 }
 
+/* riga evidenza aula + badge per eventi mobile */
+
+.mobile-badge-focus {
+    font-size: 13px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
 .mobile-list-meta {
     margin-top: 6px;
     font-size: 13px;
@@ -722,4 +848,152 @@ body {
 .mobile-event-card.ev-absent-full .mobile-event-rooms,
 .mobile-event-card.ev-absent-full .mobile-badge {
     text-decoration: line-through;
+}
+
+/* layout eventi mobile: sinistra contenuto, destra badge + aula */
+.mobile-event-main-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.mobile-event-main-left {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.mobile-event-main-right {
+    flex: 0 0 auto;
+    min-width: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.mobile-event-main-right .mobile-badge-focus {
+    margin-bottom: 0;
+}
+
+.mobile-event-focus-aula {
+    font-size: 42px;
+    line-height: 1;
+    font-weight: 900;
+    color: #111827;
+    letter-spacing: -0.02em;
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* etichetta sopra numero aula */
+.mobile-event-focus-aula-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.mobile-event-focus-aula-label {
+    font-size: 20px;
+    font-weight: 700;
+    color: #6b7280;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.mobile-event-focus-aula {
+    font-size: 42px;
+    line-height: 1;
+    font-weight: 900;
+    color: #111827;
+    letter-spacing: -0.02em;
+    text-align: right;
+}
+
+/* eventi passati: chiari chiari, come sul desktop */
+.mobile-list-card-event.is-past {
+    opacity: 0.50;
+    filter: saturate(0.45) brightness(1.06);
+}
+
+.mobile-list-card-event.is-past .mobile-list-title,
+.mobile-list-card-event.is-past .mobile-list-time,
+.mobile-list-card-event.is-past .mobile-list-meta,
+.mobile-list-card-event.is-past .mobile-event-focus-aula {
+    color: #6b7280 !important;
+}
+
+.mobile-list-card-event.is-past .mobile-badge {
+    opacity: 0.78;
+}
+
+.mobile-list-card-event.is-past .mobile-event-focus-aula-label {
+    color: #9ca3af !important;
+}
+
+/* layout DATA + CERCA + OGGI */
+.mobile-toolbar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mobile-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mobile-search-inline {
+  width: 120px;
+  min-width: 90px;
+  padding: 4px 6px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+/* riga ricerca sotto DATA */
+.mobile-search-row {
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+.mobile-search-wide {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+.mobile-event-sortbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 6px 0 12px 0;
+}
+
+.mobile-event-sort-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.mobile-event-sort-btn {
+  border: 1px solid rgba(0,0,0,.12);
+  background: #ffffff;
+  color: #374151;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.mobile-event-sort-btn.is-active {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+  color: #ffffff;
 }

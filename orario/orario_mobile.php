@@ -10,6 +10,19 @@ $ruolo = strtoupper(trim((string)$__utente_ruolo));
 
 $isPublicOrario = in_array($ruolo, ['STUDENTE', 'GENITORE'], true);
 
+global $__utente_nome, $__utente_cognome, $__utente_username, $__username;
+
+$displayUser = trim(
+    (string)($__utente_cognome ?? '') . ' ' . (string)($__utente_nome ?? '')
+);
+
+if ($displayUser === '') {
+    $displayUser = trim((string)($__utente_username ?? ''));
+}
+if ($displayUser === '') {
+    $displayUser = trim((string)($__username ?? ''));
+}
+
 function renderOrarioHeaderByRole($ruolo)
 {
     switch ($ruolo) {
@@ -69,21 +82,47 @@ function renderOrarioHeaderByRole($ruolo)
 </head>
 
 <body class="orario-mobile-page">
-    <?php renderOrarioHeaderByRole($ruolo); ?>
+    <div class="mobile-topbar">
+        <div class="mobile-topbar-inner">
+            <div class="mobile-topbar-left">
+                <div class="mobile-topbar-brand">
+                    <span class="glyphicon glyphicon-calendar"></span>
+                    <span>GestOre</span>
+                </div>
+            </div>
+
+            <div class="mobile-topbar-actions">
+                <a href="../index.php" class="btn btn-warning btn-sm mobile-home-btn">
+                    <span class="glyphicon glyphicon-home"></span>
+                    Home
+                </a>
+
+                <a href="../logout.php" class="btn btn-default btn-sm mobile-logout-btn" title="Esci">
+                    <span class="glyphicon glyphicon-log-out"></span>
+                </a>
+            </div>
+        </div>
+    </div>
 
     <div class="container-fluid mobile-orario-shell">
         <div class="panel panel-teal4 mobile-panel">
             <div class="panel-heading mobile-panel-heading">
-                <div class="mobile-heading-title">
-                    <span class="glyphicon glyphicon-phone"></span>
-                    Orario mobile
+                <div class="mobile-scope-tabs" id="mobile_scope_tabs">
+                    <button type="button" class="mobile-scope-tab" data-scope="EVENTI">Eventi</button>
+                    <button type="button" class="mobile-scope-tab" data-scope="AULA">Aule</button>
+                    <button type="button" class="mobile-scope-tab" data-scope="CLASSE">Classi</button>
+                    <button type="button" class="mobile-scope-tab" data-scope="DOCENTE">Docenti</button>
+                    <?php if (!$isPublicOrario): ?>
+                        <button type="button" class="mobile-scope-tab" data-scope="ASSENZE">Assenze</button>
+                        <button type="button" class="mobile-scope-tab" data-scope="SOSTITUZIONI">Sostit.</button>
+                    <?php endif; ?>
                 </div>
             </div>
 
             <div class="panel-body mobile-panel-body">
                 <div class="mobile-toolbar">
 
-                    <div class="mobile-toolbar-block">
+                    <div class="mobile-toolbar-block mobile-toolbar-block-scope-select" style="display:none;">
                         <label class="mobile-label" for="v_scope_mobile">Vista</label>
                         <select id="v_scope_mobile" class="form-control input-sm">
                             <option value="AULA">Aula</option>
@@ -145,9 +184,19 @@ function renderOrarioHeaderByRole($ruolo)
                         </div>
                     </div>
                     <div class="mobile-toolbar-block">
-                        <div class="mobile-label-row">
-                            <label class="mobile-label" for="v_date_mobile">Data</label>
-                            <button type="button" id="btn_today_mobile" class="btn btn-primary btn-xs">Oggi</button>
+                        <div class="mobile-toolbar-title-row">
+                            <label class="mobile-label">Data</label>
+
+                            <button type="button" id="mobile_today_btn" class="btn btn-xs btn-primary">
+                                Oggi
+                            </button>
+                        </div>
+
+                        <div class="mobile-search-row">
+                            <input type="text"
+                                id="mobile_search_input"
+                                class="form-control input-sm mobile-search-wide"
+                                placeholder="Cerca..." />
                         </div>
 
                         <div id="mobile_day_card" class="mobile-day-card" tabindex="0">
@@ -165,13 +214,8 @@ function renderOrarioHeaderByRole($ruolo)
                             </button>
                         </div>
 
-                        <input type="date" id="v_date_mobile" class="form-control input-sm mobile-date-input">
                     </div>
 
-                    <div id="search_block_mobile" class="mobile-toolbar-block">
-                        <label class="mobile-label" for="mobile_search_input">Cerca</label>
-                        <input type="text" id="mobile_search_input" class="form-control input-sm" placeholder="Cerca...">
-                    </div>
                 </div>
 
                 <div id="orario_title_mobile" class="mobile-title"></div>

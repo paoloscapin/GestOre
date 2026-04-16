@@ -11,15 +11,41 @@
 
     const LS_KEY_TARGET_BY_SCOPE = "orario_target_by_scope_mobile_v1";
     const LS_KEY_SCOPE = "orario_mobile_scope_v1";
-
+    const LS_KEY_EVENT_SORT = "orario_mobile_event_sort_v1";
     let state = {
         loading: false,
         options: [],
         grid: {},
         blockedMap: {},
         listItems: [],
-        currentScope: "AULA"
+        currentScope: "AULA",
+        selectedDate: ""
     };
+
+    function getEventSortMode() {
+        try {
+            const v = localStorage.getItem(LS_KEY_EVENT_SORT) || "ORA";
+            return String(v).toUpperCase() === "AULA" ? "AULA" : "ORA";
+        } catch (e) {
+            return "ORA";
+        }
+    }
+
+    function setEventSortMode(mode) {
+        const v = String(mode || "").toUpperCase() === "AULA" ? "AULA" : "ORA";
+        try {
+            localStorage.setItem(LS_KEY_EVENT_SORT, v);
+        } catch (e) { }
+    }
+
+    function syncEventSortButtons() {
+        const mode = getEventSortMode();
+        $(".mobile-event-sort-btn").each(function () {
+            const $b = $(this);
+            const v = String($b.data("sort") || "").toUpperCase();
+            $b.toggleClass("is-active", v === mode);
+        });
+    }
 
     function escapeHtml(s) {
         s = (s == null ? "" : "" + s);
@@ -55,6 +81,103 @@
             day: "2-digit",
             month: "2-digit",
             year: "numeric"
+        });
+    }
+
+    function getCurrentHHMM() {
+        const d = new Date();
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        return `${hh}:${mm}`;
+    }
+
+    function hhmmToMinutes(hhmm) {
+        const s = String(hhmm || "").trim().slice(0, 5);
+        if (!/^\d{2}:\d{2}$/.test(s)) return null;
+        const [h, m] = s.split(":").map(Number);
+        return (h * 60) + m;
+    }
+
+    function compareIsoDate(a, b) {
+        const aa = String(a || "").trim();
+        const bb = String(b || "").trim();
+        return aa.localeCompare(bb);
+    }
+
+    function getEventTimeStateForMobile(it, selectedDateIso) {
+        const sel = String(selectedDateIso || "").trim();
+        const today = todayIso();
+
+        // giorno passato / futuro rispetto a oggi
+        if (sel < today) return "past";
+        if (sel > today) return "future";
+
+        // oggi: confronto sugli orari
+        const nowMin = hhmmToMinutes(getCurrentHHMM());
+        if (nowMin === null) return "future";
+
+        const oraIn = hhmmToMinutes(it.oraIn || it.ora || "");
+        let oraOut = hhmmToMinutes(it.oraOut || it.oraFine || it.fine || "");
+
+        if (oraIn === null) return "future";
+        if (oraOut === null) oraOut = oraIn + 1;
+
+        if (nowMin < oraIn) return "future";
+        if (nowMin >= oraOut) return "past";
+        return "current";
+    }
+
+    function eventStateOrderValue(state) {
+        if (state === "current") return 0;
+        if (state === "future") return 1;
+        return 2; // past in fondo
+    }
+
+    function cmpAulaMobile(a, b) {
+        const aa = String(a.aulaKey || a.aula || "").trim();
+        const bb = String(b.aulaKey || b.aula || "").trim();
+
+        const aEmpty = aa === "";
+        const bEmpty = bb === "";
+
+        // prima chi ha aula, poi chi non ce l'ha (= fuori scuola)
+        if (aEmpty && !bEmpty) return 1;
+        if (!aEmpty && bEmpty) return -1;
+
+        return aa.localeCompare(bb, undefined, { numeric: true, sensitivity: "base" });
+    }
+
+    function sortEventItemsForMobile(items, selectedDateIso) {
+        const mode = getEventSortMode();
+
+        return (items || []).slice().sort((a, b) => {
+            const stateA = getEventTimeStateForMobile(a, selectedDateIso);
+            const stateB = getEventTimeStateForMobile(b, selectedDateIso);
+
+            let c = eventStateOrderValue(stateA) - eventStateOrderValue(stateB);
+            if (c !== 0) return c;
+
+            if (mode === "AULA") {
+                c = cmpAulaMobile(a, b);
+                if (c !== 0) return c;
+
+                c = String(a.oraIn || "").localeCompare(String(b.oraIn || ""));
+                if (c !== 0) return c;
+            } else {
+                c = String(a.oraIn || "").localeCompare(String(b.oraIn || ""));
+                if (c !== 0) return c;
+
+                c = String(a.oraOut || "").localeCompare(String(b.oraOut || ""));
+                if (c !== 0) return c;
+
+                c = cmpAulaMobile(a, b);
+                if (c !== 0) return c;
+            }
+
+            c = String(a.title || a.detail || "").localeCompare(String(b.title || b.detail || ""));
+            if (c !== 0) return c;
+
+            return String(a.who || a.docente || "").localeCompare(String(b.who || b.docente || ""));
         });
     }
 
@@ -358,8 +481,10 @@
     }
 
     function currentDate() {
-        return clampIsoDate($("#v_date_mobile").val() || todayIso());
+        return clampIsoDate(state.selectedDate || todayIso());
     }
+    state.selectedDate = clampIsoDate(todayIso());
+    updateDayLabel();
 
     function currentTarget() {
         return String($("#v_target_mobile").val() || "").trim();
@@ -391,9 +516,17 @@
         }
     }
 
+    function syncMobileScopeTabs() {
+        const scope = currentScope();
+
+        $(".mobile-scope-tab").each(function () {
+            const $b = $(this);
+            $b.toggleClass("is-active", String($b.data("scope") || "").toUpperCase() === scope);
+        });
+    }
+
     function updateDayLabel() {
         const d = currentDate();
-        $("#v_date_mobile").val(d);
         $("#mobile_day_label").text(isoToLongIt(d));
     }
 
@@ -513,7 +646,7 @@
 
     function setDateAndReload(iso) {
         const d = clampIsoDate(iso);
-        $("#v_date_mobile").val(d);
+        state.selectedDate = d;
         updateDayLabel();
         buildTitle();
         loadCurrentView();
@@ -547,14 +680,8 @@
     }
 
     function openDatePicker() {
-        const inp = document.getElementById("v_date_mobile");
-        if (!inp) return;
-        try {
-            inp.showPicker();
-        } catch (e) {
-            inp.focus();
-            inp.click();
-        }
+        // Per ora non usato:
+        // la data si cambia con swipe, frecce e pulsante Oggi.
     }
 
     function renderLegend() {
@@ -727,11 +854,16 @@
     function renderSimpleList(items, scope) {
         const q = normTxt($("#mobile_search_input").val() || "").toLowerCase();
 
-        const filtered = (items || []).filter(it => {
+        let filtered = (items || []).filter(it => {
             if (!q) return true;
             const hay = Object.values(it).join(" ").toLowerCase();
             return hay.includes(q);
         });
+
+        // ordinamento speciale solo per EVENTI
+        if (scope === "EVENTI") {
+            filtered = sortEventItemsForMobile(filtered, currentDate());
+        }
 
         if (!filtered.length) {
             showEmpty("Nessun elemento trovato.");
@@ -739,6 +871,16 @@
         }
 
         let html = `<div class="mobile-filter-summary">${filtered.length} risultato/i</div>`;
+
+        if (scope === "EVENTI") {
+            html += `
+        <div class="mobile-event-sortbar">
+            <span class="mobile-event-sort-label">Ordina:</span>
+            <button type="button" class="mobile-event-sort-btn" data-sort="ORA">Ora</button>
+            <button type="button" class="mobile-event-sort-btn" data-sort="AULA">Aula</button>
+        </div>
+    `;
+        }
         html += `<div class="mobile-list-grid">`;
 
         filtered.forEach(it => {
@@ -794,23 +936,41 @@
                 const badge = normTxt(it.badge || "");
                 const type = normalizeType(it);
 
+                const timeState = getEventTimeStateForMobile(it, currentDate());
+                const pastCls = (timeState === "past") ? " is-past" : "";
+
                 html += `
-        <div class="mobile-list-card mobile-list-card-event ev-${escapeHtml(type)}">
-            <div class="mobile-list-topline">
+    <div class="mobile-list-card mobile-list-card-event ev-${escapeHtml(type)}${pastCls}">
+        <div class="mobile-event-main-row">
+            <div class="mobile-event-main-left">
                 <div class="mobile-list-time">${escapeHtml(oraIn)}${oraOut ? " - " + escapeHtml(oraOut) : ""}</div>
-                ${badge ? `<div class="mobile-badge mobile-badge-${escapeHtml(type)}">${escapeHtml(badge)}</div>` : ""}
+                <div class="mobile-list-title">${escapeHtml(titolo)}</div>
+                ${who ? `<div class="mobile-list-meta"><strong>Docente/i:</strong> ${escapeHtml(who)}</div>` : ""}
+                ${classe ? `<div class="mobile-list-meta"><strong>Classe/i:</strong> ${escapeHtml(classe)}</div>` : ""}
             </div>
-            <div class="mobile-list-title">${escapeHtml(titolo)}</div>
-            ${who ? `<div class="mobile-list-meta"><strong>Docente/i:</strong> ${escapeHtml(who)}</div>` : ""}
-            ${classe ? `<div class="mobile-list-meta"><strong>Classe/i:</strong> ${escapeHtml(classe)}</div>` : ""}
-            ${aula ? `<div class="mobile-list-meta"><strong>Aula/e:</strong> ${escapeHtml(aula)}</div>` : ""}
+
+            ${(badge || aula) ? `
+                <div class="mobile-event-main-right">
+                    ${badge ? `<div class="mobile-badge mobile-badge-${escapeHtml(type)} mobile-badge-focus">${escapeHtml(badge)}</div>` : ""}
+                    ${aula ? `
+                        <div class="mobile-event-focus-aula-wrap">
+                            <div class="mobile-event-focus-aula-label">Aula</div>
+                            <div class="mobile-event-focus-aula">${escapeHtml(aula)}</div>
+                        </div>
+                    ` : ""}
+                </div>
+            ` : ""}
         </div>
-    `;
+    </div>
+`;
             }
         });
 
         html += `</div>`;
         $("#orario_content_mobile").html(html);
+        if (scope === "EVENTI") {
+            syncEventSortButtons();
+        }
     }
 
     function applySearchFilter() {
@@ -1000,7 +1160,20 @@
                 return;
             }
 
-            state.listItems = Array.isArray(r.items) ? r.items : [];
+            state.listItems = (Array.isArray(r.items) ? r.items : []).map(it => {
+                const oraIn = (it.ora || it.oraInizio || "").toString().slice(0, 5);
+                const oraOut = (it.oraFine || it.fine || "").toString().slice(0, 5);
+                const aula = Array.isArray(it.rooms)
+                    ? it.rooms.join(", ")
+                    : ((it.aula || it.rooms || "") + "").trim();
+
+                return Object.assign({}, it, {
+                    oraIn: oraIn,
+                    oraOut: oraOut,
+                    aulaKey: aula
+                });
+            });
+
             renderSimpleList(state.listItems, "EVENTI");
         }).fail(function (xhr) {
             showError((xhr && xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : "Errore server lettura eventi");
@@ -1042,6 +1215,7 @@
         buildTitle();
         updateTargetBlockVisibility();
         updateSearchVisibility();
+        syncMobileScopeTabs();
 
         const done = function () { state.loading = false; };
 
@@ -1117,17 +1291,18 @@
             });
         });
 
+        $(".mobile-scope-tab").on("click", function () {
+            const scope = String($(this).data("scope") || "").toUpperCase();
+            if (!scope) return;
+
+            $("#v_scope_mobile").val(scope).trigger("change");
+        });
+
         $("#v_target_mobile").on("change", function () {
             const scope = currentScope();
             const target = currentTarget();
             if (scope && target) setMemTarget(scope, target);
             updateTargetCard();
-            buildTitle();
-            loadCurrentView();
-        });
-
-        $("#v_date_mobile").on("change", function () {
-            updateDayLabel();
             buildTitle();
             loadCurrentView();
         });
@@ -1138,6 +1313,12 @@
 
         $("#btn_prev_day_mobile").on("click", function () {
             prevDayNav();
+        });
+
+        $(document).off("click", ".mobile-event-sort-btn").on("click", ".mobile-event-sort-btn", function () {
+            const mode = String($(this).data("sort") || "").toUpperCase();
+            setEventSortMode(mode);
+            renderSimpleList(state.listItems || [], "EVENTI");
         });
 
         $("#btn_next_day_mobile").on("click", function () {
@@ -1200,16 +1381,21 @@
 
     function initDefaults() {
         let scope = "EVENTI";
+
         try {
             scope = localStorage.getItem(LS_KEY_SCOPE) || "EVENTI";
         } catch (e) { }
 
         scope = up(scope);
-        const allowed = ["AULA", "CLASSE", "DOCENTE", "EVENTI"].concat(window.ORARIO_IS_PUBLIC ? [] : ["ASSENZE", "SOSTITUZIONI"]);
-        if (!allowed.includes(scope)) scope = "AULA";
+
+        const allowed = ["AULA", "CLASSE", "DOCENTE", "EVENTI"].concat(
+            window.ORARIO_IS_PUBLIC ? [] : ["ASSENZE", "SOSTITUZIONI"]
+        );
+
+        if (!allowed.includes(scope)) scope = "EVENTI";
 
         $("#v_scope_mobile").val(scope);
-        $("#v_date_mobile").val(clampIsoDate(todayIso()));
+        state.selectedDate = clampIsoDate(todayIso());
         updateDayLabel();
         updateTargetBlockVisibility();
         updateSearchVisibility();
