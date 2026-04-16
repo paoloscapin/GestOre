@@ -4,6 +4,24 @@ require_once '../common/connect.php';
 require_once '../common/connectMBApp.php';
 
 ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'dirigente', 'studente', 'genitore');
+
+function isMobileOrarioClient()
+{
+    $ua = strtolower((string)($_SERVER['HTTP_USER_AGENT'] ?? ''));
+
+    if ($ua === '') return false;
+
+    return (strpos($ua, 'android') !== false)
+        || (strpos($ua, 'iphone') !== false)
+        || (strpos($ua, 'ipod') !== false)
+        || (strpos($ua, 'mobile') !== false)
+        || (strpos($ua, 'windows phone') !== false);
+}
+
+if (isMobileOrarioClient()) {
+    require_once __DIR__ . '/orario_mobile.php';
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="it">

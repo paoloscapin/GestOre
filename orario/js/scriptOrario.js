@@ -1880,9 +1880,20 @@
     // -------------------------------------------------------------------------
     function filterAulaNonDisponibile(evs) {
       if (!evs || !evs.length) return evs || [];
-      const hasReal = evs.some(ev => (ev.title || "").toUpperCase().trim() !== "AULA NON DISPONIBILE");
-      if (!hasReal) return evs;
-      return evs.filter(ev => (ev.title || "").toUpperCase().trim() !== "AULA NON DISPONIBILE");
+
+      return evs.filter(ev => {
+        if (!ev) return false;
+
+        const type = normalizeType(ev);
+        const title = String(ev.title || ev.label || "").trim().toUpperCase();
+        const badge = String(ev.badge || "").trim().toUpperCase();
+
+        // evento gestionale da NON mostrare mai
+        if (type === "imp" && title === "AULA NON DISPONIBILE") return false;
+        if (type === "imp" && badge === "AULA NON DISPONIBILE") return false;
+
+        return true;
+      });
     }
 
     function filterDocenteSlotEvents(evsIn, targetKey) {
@@ -2333,233 +2344,242 @@
 
     if (DEBUG.enabled) dbg("multi-aule", { date, selected, visible });
 
-    const calls = visible.map(a => $.getJSON("orarioRead.php", {
-      // stesso endpoint di lettura, ma con target=aulaId e scope=GIORNO per caricare tutte le aule contemporaneamente
-      scope: "AULA", period: "GIORNO", date: date, target: a.id
-    }));
+    const calls = visible.map(a => {
+      return $.when(
+        $.getJSON("orarioRead.php", {
+          scope: "AULA",
+          period: "GIORNO",
+          date: date,
+          target: a.id
+        }),
+        $.getJSON("orarioAulaBlocchi.php", {
+          scope: "AULA",
+          period: "GIORNO",
+          date: date,
+          target: a.id
+        })
+      );
+    });
 
-    $.when.apply($, calls).done(async function () {
-      // quando tutte le chiamate sono complete, questa callback riceve i risultati in arguments (uno per ogni chiamata)
-      const args = (calls.length === 1) ? [arguments] : Array.from(arguments);
-      // se c'è una sola chiamata, arguments è già l'array dei risultati, altrimenti è un array di array [result, status, xhr] per ogni chiamata
+    $.when.apply($, calls).done(function () {
+      let results = Array.prototype.slice.call(arguments);
 
-      const cols = args.map((pack, i) => {
-        // per ogni risultato, prendo il primo elemento (response JSON) e lo associo all'aula corrispondente
-        const data = pack && pack[0] ? pack[0] : null;
-        // estraggo response JSON (o null se formato inatteso)
-        return { aula: visible[i], res: data };
-        // ritorno array di {aula, res} dove res è il risultato della chiamata per quell'aula
-      }).filter(x => x.res && x.res.ok);
-      // filtro solo quelli con risposta valida e ok=true
-
-      if (!cols.length) { showInlineMsg("danger", "Errore lettura orario aule."); return; }
-
-      // aggiungo blocchi per ogni colonna
-      const blocchi = await Promise.all(cols.map(c => fetchAulaBlocchi("GIORNO", date, c.aula.id)));
-      // per ogni colonna, chiedo i blocchi/assenze specifici per quell'aula e quel giorno
-      cols.forEach((c, idx) => {
-        // aggiungo i blocchi alla risposta di ogni colonna
-        c.res.grid = mergeGrids(c.res.grid || {}, blocchi[idx].gridAssenze || {});
-        // unisco la griglia principale con quella delle assenze (che contiene gli slot bloccati per assenza docenti)
-        c.blockedMap = blocchi[idx].blockedMap || {};
-        // memorizzo la mappa dei blocchi (per evidenziare gli eventi overridden in render)
-      });
-
-      // filtro "aula non disponibile" come in render principale
-      function filterAulaNonDisponibile(evs) {
-        if (!evs || !evs.length) return evs || [];
-        // se non ci sono eventi, ritorno array vuoto
-        const hasReal = evs.some(ev => (ev.title || "").toUpperCase().trim() !== "AULA NON DISPONIBILE");
-        // controllo se ci sono eventi reali nello slot (diversi da "aula non disponibile")
-        if (!hasReal) return evs;
-        // se non ci sono eventi reali, mantengo tutto (anche "aula non disponibile")
-        return evs.filter(ev => (ev.title || "").toUpperCase().trim() !== "AULA NON DISPONIBILE");
-        // se ci sono eventi reali, filtro via "aula non disponibile" per evitare di mostrarlo insieme ad altri eventi 
-        // (come in render principale)
+      // se c'è una sola aula, jQuery non restituisce un array di risultati omogeneo
+      if (visible.length === 1) {
+        results = [arguments];
       }
 
-      // firma per slot nella colonna
-      function cellKeyFromGrid(g, ora)
-      // costruisce la firma dello slot per questa ora, usata per calcolare i rowspan 
-      // (se slot consecutivi hanno stessa firma, possono essere uniti) 
-      {
-        const key = date + "|" + ora;
-        // chiave per accedere agli eventi di questo slot nella griglia
-        let evs = g[key] || [];
-        // prendo eventi per questo slot (o array vuoto se non ci sono)
-        if (!evs.length) return "";
-        // se non ci sono eventi, la firma è vuota (slot vuoto)
-        evs = filterAulaNonDisponibile(evs);
-        // filtro eventi "aula non disponibile" se coesistono con altri eventi reali (come in render)
-        return slotSignatureForRowspan(evs, "AULA");
-        // calcolo la firma dello slot, che è una stringa che rappresenta il contenuto dello slot 
-        // (usata per confrontare slot consecutivi e decidere se unire con rowspan)
-      }
+      const cols = [];
 
-      // rowspans per colonna
-      function computeSpansForColumn(g) {
-        const spans = {}; // mappa ora => {span: N, skip: bool} per questa colonna (aula)
-        const MAX_SPAN = 18 // limite massimo di unione (5 ore)
+      results.forEach(function (pair, idx) {
+        const aulaMeta = visible[idx];
 
-        if (DEBUG.enabled && DEBUG.logRowspan) dbgGroup(`ROWSPAN compute column (multi) ${date}`);
+        // con $.when(getJSON1, getJSON2):
+        // pair[0] = risultato prima ajax
+        // pair[1] = risultato seconda ajax
+        const readPack = pair[0];
+        const blocchiPack = pair[1];
 
-        for (let i = 0; i < ORARI.length; i++) {
-          // ciclo sulle ore della giornata
-          const ora = ORARI[i];
-          // ora corrente per cui calcolare rowspan
-          if (spans[ora]?.skip) continue;
-          // se questa ora è già stata assorbita da un rowspan precedente, salto
+        const readResp = Array.isArray(readPack) ? readPack[0] : null;
+        const blocchiResp = Array.isArray(blocchiPack) ? blocchiPack[0] : null;
 
-          const k = cellKeyFromGrid(g, ora);
-          // calcolo la firma dello slot per questa ora (usata per decidere se unire con le ore successive)
-          if (!k) { spans[ora] = { span: 1, skip: false }; continue; }
-          // se slot vuoto, span=1 e non skip (non unisco con le ore successive)
-
-          let span = 1;
-          for (let j = i + 1; j < ORARI.length; j++) {
-            // provo ad allungare la cella finché posso unire con le ore successive
-            if (span >= MAX_SPAN) break;
-            // se supero MAX_SPAN, non unisco più
-            const ora2 = ORARI[j];
-            // ora successiva con cui provo a unire
-            const k2 = cellKeyFromGrid(g, ora2);
-            // firma dello slot dell'ora successiva
-            if (k2 !== k) break;
-            // se cambia firma, non posso unire più (è un altro slot), interrompo
-            span++;
-            // altrimenti posso unire questa ora, incremento span e continuo a provare con le ore successive
-          }
-
-          spans[ora] = { span, skip: false };
-          // memorizzo lo span calcolato per questa ora
-          for (let j = i + 1; j < i + span; j++) spans[ORARI[j]] = { span: 0, skip: true };
-          // tutte le ore successive che fanno parte di questo blocco diventano skip=true (non stampo la cella, è assorbita dallo rowspan)
-          i = i + span - 1;
-          // salto direttamente alla fine del blocco di ore unite
+        if (!readResp || readResp.ok !== true) {
+          cols.push({
+            id: aulaMeta.id,
+            label: aulaMeta.label,
+            grid: {},
+            blockedMap: {}
+          });
+          return;
         }
 
-        if (DEBUG.enabled && DEBUG.logRowspan) dbgGroupEnd();
-        return spans;
-        // ritorno la mappa degli span per questa colonna (aula)
+        let grid = readResp.grid || {};
+        let blockedMap = {};
+
+        if (blocchiResp && blocchiResp.ok === true) {
+          const gridAssenze = blocchiResp.gridAssenze || {};
+          blockedMap = blocchiResp.blockedMap || {};
+          grid = mergeGrids(grid, gridAssenze);
+        }
+
+        cols.push({
+          id: aulaMeta.id,
+          label: aulaMeta.label,
+          grid: grid,
+          blockedMap: blockedMap
+        });
+      });
+
+      // se tutte le colonne sono vuote, messaggio
+      const hasAny = cols.some(col => col.grid && Object.keys(col.grid).length > 0);
+      if (!hasAny) {
+        showInlineMsg("info", "Nessun evento trovato per le aule visibili.");
+        return;
       }
 
-      const spansByCol = cols.map(c => computeSpansForColumn(c.res.grid || {}));
-      // calcolo i rowspans per ogni colonna (aula) in base alla sua griglia di eventi
+      // ==========================================================
+      // RENDER MULTI-AULE GIORNO
+      // ==========================================================
+      const MAX_SPAN = 3;
 
-      // costruzione HTML tabella
-      let html = `<table class="orario-grid"><thead><tr> 
-        <th class="ora-col">Ora</th>
-        ${cols.map(c => `<th>${escapeHtml(c.aula.label || c.aula.id)}</th>`).join("")} 
-      </tr></thead><tbody>`;
-      // header con nome aule
+      function filterAulaNonDisponibile(evs) {
+        if (!evs || !evs.length) return evs || [];
+
+        return evs.filter(ev => {
+          if (!ev) return false;
+
+          const type = normalizeType(ev);
+          const title = String(ev.title || ev.label || "").trim().toUpperCase();
+          const badge = String(ev.badge || "").trim().toUpperCase();
+
+          if (type === "imp" && title === "AULA NON DISPONIBILE") return false;
+          if (type === "imp" && badge === "AULA NON DISPONIBILE") return false;
+
+          return true;
+        });
+      }
+
+      function cellKeyFromGrid(g, ora) {
+        let evs = (g[`${date}|${ora}`] || []).slice();
+        evs = filterAulaNonDisponibile(evs);
+
+        if (!evs.length) return "__EMPTY__";
+
+        const merged = mergeSlotEvents(evs, "AULA");
+        return slotSignatureForRowspan(merged, "AULA");
+      }
+
+      function computeRowspansForCol(col) {
+        const out = {};
+        for (let i = 0; i < ORARI.length; i++) {
+          const ora = ORARI[i];
+          if (out[ora]) continue;
+
+          const key = cellKeyFromGrid(col.grid || {}, ora);
+          let span = 1;
+
+          for (let j = i + 1; j < ORARI.length; j++) {
+            const nextOra = ORARI[j];
+            const nextKey = cellKeyFromGrid(col.grid || {}, nextOra);
+            if (nextKey !== key) break;
+            if (span >= MAX_SPAN) break;
+            span++;
+          }
+
+          out[ora] = { span: span, skip: false };
+
+          for (let k = 1; k < span; k++) {
+            out[ORARI[i + k]] = { span: 1, skip: true };
+          }
+        }
+        return out;
+      }
+
+      function cellHtmlForCol(col, ora, span) {
+        let evs = ((col.grid || {})[`${date}|${ora}`] || []).slice();
+        evs = filterAulaNonDisponibile(evs);
+
+        const blockedSet = slotBlockedSet(col.blockedMap || {}, date, ora);
+
+        if (!evs.length) {
+          return {
+            tdClass: "",
+            html: ""
+          };
+        }
+
+        const merged = mergeSlotEvents(evs, "AULA");
+        const sorted = stableSortSlotEvents(merged);
+        const teacherAbsMap = buildTeacherAbsenceMapForSlot(sorted, ora);
+
+        let domType = "curr";
+        sorted.forEach(ev => {
+          const t = normalizeType(ev);
+          if (priority(t) > priority(domType)) domType = t;
+        });
+
+        const tdClass = `td-${domType}`;
+        const html = sorted.map(ev => {
+          const type = normalizeType(ev);
+          const isOwnAbsenceEvent = isTeacherAbsenceType(type);
+
+          const cls = ["ev", "ev-" + type];
+          if (!isBlocking(type) && eventIsOverriddenByBlockedClasses(ev, blockedSet)) {
+            cls.push("ev-overridden");
+          }
+
+          // barra tutta la card solo per vere lezioni/eventi didattici,
+          // NON per la card di assenza stessa
+          const fullAbsent = isOwnAbsenceEvent ? false : isEventFullyAbsentByTeacher(ev, teacherAbsMap);
+          if (fullAbsent) {
+            cls.push("ev-absent-full");
+          }
+
+          const badge = ev.badge ? `<div class="ev-badge badge-${type}">${escapeHtml(ev.badge)}</div>` : "";
+          const title = ev.title ? `<div class="ev-title">${escapeHtml(ev.title)}</div>` : "";
+
+          const whoArr = uniq(
+            (Array.isArray(ev._whoList) && ev._whoList.length)
+              ? ev._whoList
+              : toArrWho(ev.who || ev.sub || "")
+          ).map(normTxt).filter(Boolean);
+
+          let whoHtml = "";
+          if (whoArr.length) {
+            whoHtml = `
+      <div class="ev-who">
+        ${whoArr.map(w => {
+              // nella card di assenza NON devo ribarrare il docente
+              if (isOwnAbsenceEvent) {
+                return `<div class="ev-who-line">${escapeHtml(w)}</div>`;
+              }
+
+              const abs = teacherAbsMap.get(normPersonName(w));
+              if (!abs) {
+                return `<div class="ev-who-line">${escapeHtml(w)}</div>`;
+              }
+
+              const showAbsReason = (String(col.visibilityLevel || "PUBLIC").toUpperCase() === "FULL");
+              const absNote = showAbsReason
+                ? ` <span class="ev-absence-note">(${escapeHtml(abs.reasonText || "Assente")})</span>`
+                : "";
+
+              return `<div class="ev-who-line is-absent">${escapeHtml(w)}${absNote}</div>`;
+            }).join("")}
+      </div>
+    `;
+          }
+
+          const rooms = roomsHtmlFromEv(ev);
+          const classi = classiHtmlFromEv(ev);
+
+          return `<div class="${cls.join(" ")}">${badge}${title}${whoHtml}${rooms}${classi}</div>`;
+        }).join("");
+
+        return { tdClass, html };
+      }
+
+      const spansByCol = {};
+      cols.forEach(col => {
+        spansByCol[col.id] = computeRowspansForCol(col);
+      });
+
+      let html = `<table class="orario-grid"><thead><tr>
+    <th class="ora-col">Ora</th>
+    ${cols.map(col => `<th>${escapeHtml(col.label || col.id)}</th>`).join("")}
+  </tr></thead><tbody>`;
 
       ORARI.forEach(ora => {
-        // ciclo sulle ore per costruire le righe della tabella
         html += `<tr><td class="ora-col">${ora}</td>`;
 
-        cols.forEach((c, colIdx) => {
-          // per ogni colonna (aula) costruisco la cella corrispondente a questa ora
-          const g = c.res.grid || {};
-          // griglia di eventi per questa colonna (aula)
-          const spans = spansByCol[colIdx] || {};
-          // mappa degli span per questa colonna (aula)
-          const sp = spans[ora] || { span: 1, skip: false };
-          // span e skip per questa ora nella colonna
+        cols.forEach(col => {
+          const sp = spansByCol[col.id]?.[ora] || { span: 1, skip: false };
           if (sp.skip) return;
-          // se skip=true, non stampo la cella (è assorbita dallo rowspan precedente), passo alla colonna successiva
 
+          const cd = cellHtmlForCol(col, ora, sp.span);
           const rs = (sp.span && sp.span > 1) ? ` rowspan="${sp.span}"` : "";
-          // se span>1 aggiungo attributo rowspan
 
-          const key = date + "|" + ora;
-          // chiave per accedere agli eventi di questo slot nella griglia
-          let evs = g[key] || [];
-          // prendo eventi per questo slot (o array vuoto se non ci sono)
-          evs = filterAulaNonDisponibile(evs);
-          // filtro eventi "aula non disponibile" se coesistono con altri eventi reali (come in render principale)
-          evs = stableSortSlotEvents(mergeSlotEvents(evs, scope));
-          // normalizzo eventi: unisco duplicati e ordino per importanza (render)
-
-          if (!evs.length) { html += `<td${rs}></td>`; return; }
-          // se non ci sono eventi, cella vuota (ma con eventuale rowspan), passo alla colonna successiva
-
-          let domType = "curr", domP = -1;
-          // domType = tipo con priorità più alta tra gli eventi dello slot, usato per la classe CSS della cella (td-*)
-          evs.forEach(e => {
-            // calcolo domType e domP (priorità) per questo slot, iterando su tutti gli eventi e prendendo quello con priorità più alta
-            const t = normalizeType(e);
-            // normalizzo il tipo dell'evento (es. "lezione", "viaggio", ecc.)
-            const pr = priority(t);
-            // calcolo la priorità di questo tipo (funzione che assegna un numero a ogni tipo, più alto = più importante)
-            if (pr > domP) { domP = pr; domType = t; }
-            // se questa priorità è più alta di quella finora trovata, aggiorno domType e domP
-          });
-          const tdClass = "td-" + domType;
-          // classe CSS della cella basata sul tipo dell'evento più importante nello slot
-
-          const blockedSet = slotBlockedSet(c.blockedMap, date, ora);
-          // set di classi bloccate per questo slot (usato per evidenziare eventi overridden)
-          const spanPx = (sp.span && sp.span > 1) ? (sp.span * SLOT_MIN_PX) : 0;
-          // calcolo altezza in pixel della cella in caso di rowspan (usato per dare min-height al wrapper degli eventi)
-          const wrapStyle = spanPx
-            ? ` style="min-height:${spanPx}px;min-height:${spanPx}px;display:flex;flex-direction:column;"`
-            : ` style="display:flex;flex-direction:column;"`;
-          // stile del wrapper degli eventi: se c'è rowspan, do min-height per farlo "alto", altrimenti è solo un flex column normale
-          const wrapCls = "cell-wrap" + ((sp.span && sp.span > 1) ? " is-tall" : "");
-          const htmlEv =
-            `<div class="${wrapCls}"${wrapStyle}>` +
-            // wrapper con flex column per mettere gli eventi uno sotto l'altro, e min-height se c'è rowspan
-            evs.map((ev) => {
-              const type = normalizeType(ev);
-
-              // PRIVACY: in multi-aule siamo in AULA -> per perm/pb non mostrare title/badge originali
-              const privacyHide = (type === "perm" || type === "pb");
-
-              const displayTitle = privacyHide
-                ? (type === "perm" ? "Permesso" : "Permesso breve")
-                : String(ev.title || ev.label || "");
-
-              const displayBadge = privacyHide ? "" : String(ev.badge || "");
-
-              // normalizzo tipo evento
-              const title = escapeHtml(displayTitle);
-              // titolo dell'evento (o label, o stringa vuota)
-              const whoRaw = String(ev.who || ev.sub || "");
-
-              // split su newline OPPURE su separatori comuni: , ; / | (con spazi opzionali)
-              const whoLines = whoRaw
-                .split(/\r?\n|[;,/|]\s*/)
-                .map(s => s.trim())
-                .filter(Boolean);
-              // chi è coinvolto nell'evento (es. docente, classe), usato come sottotitolo
-              const badge = escapeHtml(displayBadge);
-              // eventuale badge da mostrare (es. "sostegno", "laboratorio", ecc.)
-
-              const projected = eventIsOverriddenByBlockedClasses(ev, blockedSet);
-              // controllo se questo evento è "proiettato" (riguarda classi che risultano bloccate nello slot)
-              const overridden = (projected && !isBlocking(type) && !isAulaNonDisponibile(ev)) ? " ev-overridden" : "";
-              // se è projected, non è un evento di tipo blocking, e non è "aula non disponibile", 
-              const fillStyle = (sp.span > 1) ? ` style="flex:1 1 0;min-height:0;overflow:hidden;"` : "";
-              const classi = ev.classi ? `<div class="ev-classi">${escapeHtml(Array.isArray(ev.classi) ? ev.classi.join(", ") : String(ev.classi))}</div>` : "";
-              const rooms = (Array.isArray(ev.rooms) && ev.rooms.length) ? `<div class="ev-room">${escapeHtml(ev.rooms.join(", "))}</div>` : "";
-
-              return `
-                <div class="ev ev-${type}${overridden}"${fillStyle}>
-                  <div class="ev-title">${title}</div>
-${whoLines.length ? `
-  <div class="ev-who">
-    ${whoLines.map(w => escapeHtml(w)).join("<br>")}
-  </div>
-` : ``}
-                  ${classi}
-                  ${badge ? `<div><span class="ev-badge badge-${type}">${badge}</span></div>` : ``}
-                  ${rooms}
-                </div>
-              `;
-            }).join("") +
-            `</div>`;
-
-          html += `<td class="${tdClass}"${rs}>${htmlEv}</td>`;
+          html += `<td class="${cd.tdClass}"${rs}>${cd.html}</td>`;
         });
 
         html += `</tr>`;
@@ -2568,7 +2588,6 @@ ${whoLines.length ? `
       html += `</tbody></table>`;
       $("#orario_content").html(renderLegend() + html);
 
-      // DEBUG: analisi tabella multi-aule
       if (DEBUG.enabled && DEBUG.logRender) {
         const $tbl = $("#orario_content").find("table.orario-grid");
         dbg("DOM render stats (multi)", {

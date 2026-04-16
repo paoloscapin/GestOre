@@ -1,0 +1,1230 @@
+(function () {
+    "use strict";
+
+    const ORARI = [
+        "07:50", "08:40", "09:30", "10:30", "11:20", "12:10", "13:00", "13:50",
+        "14:40", "15:30", "16:20", "17:10", "18:00", "18:50", "19:40", "20:30", "21:30", "22:20"
+    ];
+
+    const SCHOOL_START = "2025-09-10";
+    const SCHOOL_END = "2026-06-10";
+
+    const LS_KEY_TARGET_BY_SCOPE = "orario_target_by_scope_mobile_v1";
+    const LS_KEY_SCOPE = "orario_mobile_scope_v1";
+
+    let state = {
+        loading: false,
+        options: [],
+        grid: {},
+        blockedMap: {},
+        listItems: [],
+        currentScope: "AULA"
+    };
+
+    function escapeHtml(s) {
+        s = (s == null ? "" : "" + s);
+        return s.replace(/[&<>"']/g, c => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[c]));
+    }
+
+    function pad2(n) {
+        return (n < 10 ? "0" + n : "" + n);
+    }
+
+    function todayIso() {
+        const d = new Date();
+        return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+    }
+
+    function isoToIt(iso) {
+        if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso || "";
+        const [y, m, d] = iso.split("-");
+        return d + "/" + m + "/" + y;
+    }
+
+    function isoToLongIt(iso) {
+        if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso || "";
+        const d = new Date(iso + "T00:00:00");
+        return d.toLocaleDateString("it-IT", {
+            weekday: "short",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        });
+    }
+
+    function normTxt(s) {
+        return String(s ?? "").replace(/\s+/g, " ").trim();
+    }
+
+    function up(s) {
+        return String(s || "").trim().toUpperCase();
+    }
+
+    function uniq(arr) {
+        const out = [];
+        const seen = new Set();
+        (arr || []).forEach(x => {
+            const v = String(x == null ? "" : x).trim();
+            if (!v || seen.has(v)) return;
+            seen.add(v);
+            out.push(v);
+        });
+        return out;
+    }
+
+    function toArrMaybe(v) {
+        if (!v) return [];
+        if (Array.isArray(v)) return v;
+        return String(v).split(",").map(x => x.trim()).filter(Boolean);
+    }
+
+    function toArrWho(v) {
+        if (!v) return [];
+        if (Array.isArray(v)) return v.map(x => String(x)).map(s => s.trim()).filter(Boolean);
+        return String(v)
+            .replace(/\s+\u00B7\s+/g, "\n")
+            .split(/[\r\n;,|]+/)
+            .map(s => s.trim())
+            .filter(Boolean);
+    }
+
+    function addDays(isoDate, n) {
+        const d = new Date(isoDate + "T00:00:00");
+        d.setDate(d.getDate() + n);
+        return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+    }
+
+    function isWeekend(isoDate) {
+        const d = new Date(isoDate + "T00:00:00");
+        const day = d.getDay();
+        return (day === 0 || day === 6);
+    }
+
+    function addSchoolDay(isoDate, delta) {
+        let cur = isoDate;
+        const step = delta >= 0 ? 1 : -1;
+        let left = Math.abs(delta);
+        while (left > 0) {
+            cur = addDays(cur, step);
+            if (!isWeekend(cur)) left--;
+        }
+        return cur;
+    }
+
+    function clampIsoDate(iso) {
+        const d = String(iso || "").trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return todayIso();
+        if (d < SCHOOL_START) return SCHOOL_START;
+        if (d > SCHOOL_END) return SCHOOL_END;
+        return d;
+    }
+
+    function normalizeType(ev) {
+        let t = (ev && ev.type != null) ? String(ev.type).trim() : "";
+        if (!t) {
+            const cls = (ev && ev.class != null) ? String(ev.class) : "";
+            const m = cls.match(/\bev-(curr|udi|viag|imp|uscC|uscF|pb|perm|pranzo|studio)\b/i);
+            if (m) t = m[1];
+        }
+        return t ? t : "curr";
+    }
+
+    function priority(type) {
+        const p = { uscF: 100, uscC: 90, viag: 80, imp: 50, pranzo: 35, studio: 35, udi: 20, curr: 10 };
+        return p[type] || 0;
+    }
+
+    function isBlocking(type) {
+        return type === "viag" || type === "uscC" || type === "uscF";
+    }
+
+    function isAulaNonDisponibile(ev) {
+        const t = (ev && ev.title != null) ? String(ev.title).trim().toUpperCase() : "";
+        return (normalizeType(ev) === "imp" && t === "AULA NON DISPONIBILE");
+    }
+
+    function evKeyForSort(ev) {
+        const type = normalizeType(ev);
+        const title = normTxt(ev.title || ev.label || "");
+        const who = normTxt(ev.who || ev.sub || "");
+        const badge = normTxt(ev.badge || "");
+        const rooms = uniq(toArrMaybe(ev.rooms)).sort().join(",");
+        const classi = uniq(toArrMaybe(ev.classi)).sort().join(",");
+        return `${priority(type).toString().padStart(3, "0")}|${type}|${title}|${who}|${badge}|${rooms}|${classi}`;
+    }
+
+    function stableSortSlotEvents(evs) {
+        return (evs || []).slice().sort((a, b) => {
+            const ka = evKeyForSort(a);
+            const kb = evKeyForSort(b);
+            if (ka < kb) return 1;
+            if (ka > kb) return -1;
+            return 0;
+        });
+    }
+
+    function mergeSlotEvents(evs, scope) {
+        const map = new Map();
+        const isDocenteView = (up(scope) === "DOCENTE");
+
+        (evs || []).forEach(ev => {
+            const type = normalizeType(ev);
+            const title = normTxt(ev.title || ev.label || "");
+            const badge = normTxt(ev.badge || "");
+            const whoArr = uniq(toArrWho(ev.who || ev.sub)).map(normTxt);
+
+            const isAbs = ["uscc", "uscf", "viag", "perm", "pb"].includes(String(type || "").trim().toLowerCase());
+            const ignoreWhoForThis = (isDocenteView && !isAbs && type === "curr");
+
+            const key = ignoreWhoForThis
+                ? `${type}|||${title}|||${badge}`
+                : `${type}|||${title}|||${whoArr.join(",")}|||${badge}`;
+
+            if (!map.has(key)) {
+                const copy = Object.assign({}, ev);
+                copy.type = type;
+                copy.title = title || copy.title;
+                copy.badge = badge || copy.badge;
+                copy._whoList = uniq(whoArr);
+                copy.who = copy._whoList.join("\n");
+                copy.rooms = uniq(toArrMaybe(ev.rooms));
+                copy.classi = uniq(toArrMaybe(ev.classi));
+                map.set(key, copy);
+            } else {
+                const cur = map.get(key);
+                cur.rooms = uniq((cur.rooms || []).concat(toArrMaybe(ev.rooms)));
+                cur.classi = uniq((cur.classi || []).concat(toArrMaybe(ev.classi)));
+                cur._whoList = uniq((cur._whoList || []).concat(whoArr));
+                cur.who = (cur._whoList || []).join("\n");
+            }
+        });
+
+        return Array.from(map.values());
+    }
+
+    function slotBlockedSet(blockedMap, ymd, ora) {
+        if (!blockedMap) return null;
+        const key = `${ymd}|${ora}`;
+        const arr = blockedMap[key];
+        if (!arr || !arr.length) return null;
+        return new Set(arr.map(x => String(x).trim()).filter(Boolean));
+    }
+
+    function eventIsOverriddenByBlockedClasses(ev, blockedSet) {
+        if (!blockedSet || blockedSet.size === 0) return false;
+        const cl = toArrMaybe(ev.classi);
+        if (!cl.length) return false;
+        return cl.some(c => blockedSet.has(String(c).trim()));
+    }
+
+    function normPersonName(s) {
+        return normTxt(s).toUpperCase();
+    }
+
+    function isTeacherAbsenceType(t) {
+        const x = String(t || "").trim().toLowerCase();
+        return ["uscc", "uscf", "viag", "perm", "pb"].includes(x);
+    }
+
+    function isLessonLikeType(t) {
+        const x = String(t || "").trim().toLowerCase();
+        return ["curr", "udi", "imp", "pranzo", "studio"].includes(x);
+    }
+
+    function teacherAbsencePriority(t) {
+        const x = String(t || "").trim().toLowerCase();
+        const p = { viag: 100, uscf: 90, uscc: 80, perm: 60, pb: 50 };
+        return p[x] || 0;
+    }
+
+    function buildTeacherAbsenceMapForSlot(evs, ora) {
+        const map = new Map();
+
+        (evs || []).forEach(ev => {
+            const t = normalizeType(ev);
+            if (!isTeacherAbsenceType(t)) return;
+
+            const whoLines = uniq(
+                (Array.isArray(ev._whoList) && ev._whoList.length)
+                    ? ev._whoList
+                    : toArrWho(ev.who || ev.sub || "")
+            ).map(normTxt).filter(Boolean);
+
+            if (!whoLines.length) return;
+
+            const title = normTxt(ev.title || ev.label || "");
+            const badge = normTxt(ev.badge || "");
+            const reasonText = badge || title || "Assente";
+            const pr = teacherAbsencePriority(t);
+
+            whoLines.forEach(w => {
+                const key = normPersonName(w);
+                const cur = map.get(key);
+                if (!cur || pr > cur.prio) {
+                    map.set(key, {
+                        type: t,
+                        title,
+                        badge,
+                        reasonText,
+                        ora,
+                        prio: pr
+                    });
+                }
+            });
+        });
+
+        return map;
+    }
+
+    function isEventFullyAbsentByTeacher(ev, teacherAbsMap) {
+        const t = normalizeType(ev);
+
+        if (isTeacherAbsenceType(t)) return false;
+        if (!isLessonLikeType(t)) return false;
+
+        const whoLines = uniq(
+            (Array.isArray(ev._whoList) && ev._whoList.length)
+                ? ev._whoList
+                : toArrWho(ev.who || ev.sub || "")
+        ).map(normTxt).filter(Boolean);
+
+        if (!whoLines.length) return false;
+
+        const absentCount = whoLines.filter(w => teacherAbsMap.has(normPersonName(w))).length;
+        return absentCount === whoLines.length;
+    }
+
+    function loadTargetMem() {
+        try {
+            return JSON.parse(localStorage.getItem(LS_KEY_TARGET_BY_SCOPE) || "{}") || {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveTargetMem(mem) {
+        try {
+            localStorage.setItem(LS_KEY_TARGET_BY_SCOPE, JSON.stringify(mem || {}));
+        } catch (e) { }
+    }
+
+    function getMemTarget(scope) {
+        const s = up(scope);
+        const mem = loadTargetMem();
+        return (mem && mem[s]) ? String(mem[s]) : "";
+    }
+
+    function setMemTarget(scope, targetVal) {
+        const s = up(scope);
+        const v = String(targetVal || "").trim();
+        if (!s) return;
+        const mem = loadTargetMem();
+        if (v) mem[s] = v;
+        else delete mem[s];
+        saveTargetMem(mem);
+    }
+
+    function notifyMsg(type, message) {
+        if (!$.notify) return;
+        $.notify({ message: message }, { type: type || "info", delay: 2500 });
+    }
+
+    function showLoading(msg) {
+        $("#orario_content_mobile").html(
+            `<div class="mobile-loading">${escapeHtml(msg || "Caricamento...")}</div>`
+        );
+    }
+
+    function showError(msg) {
+        $("#orario_content_mobile").html(
+            `<div class="mobile-error alert alert-danger">${escapeHtml(msg || "Errore")}</div>`
+        );
+    }
+
+    function showEmpty(msg) {
+        $("#orario_content_mobile").html(
+            `<div class="mobile-empty alert alert-info">${escapeHtml(msg || "Nessun elemento trovato")}</div>`
+        );
+    }
+
+    function currentScope() {
+        return up($("#v_scope_mobile").val() || "AULA");
+    }
+
+    function currentDate() {
+        return clampIsoDate($("#v_date_mobile").val() || todayIso());
+    }
+
+    function currentTarget() {
+        return String($("#v_target_mobile").val() || "").trim();
+    }
+
+    function isTargetScope(scope) {
+        return ["AULA", "CLASSE", "DOCENTE"].includes(up(scope));
+    }
+
+    function isListScope(scope) {
+        return ["EVENTI", "ASSENZE", "SOSTITUZIONI"].includes(up(scope));
+    }
+
+    function updateSearchVisibility() {
+        const scope = currentScope();
+        if (scope === "EVENTI" || scope === "ASSENZE" || scope === "SOSTITUZIONI") {
+            $("#search_block_mobile").show();
+        } else {
+            $("#search_block_mobile").show();
+        }
+    }
+
+    function updateTargetBlockVisibility() {
+        const scope = currentScope();
+        if (isTargetScope(scope)) {
+            $("#target_block_mobile").show();
+        } else {
+            $("#target_block_mobile").hide();
+        }
+    }
+
+    function updateDayLabel() {
+        const d = currentDate();
+        $("#v_date_mobile").val(d);
+        $("#mobile_day_label").text(isoToLongIt(d));
+    }
+
+    function updateTargetCard() {
+        const scope = currentScope();
+        const target = currentTarget();
+        const label = $("#v_target_mobile option:selected").text() || "Seleziona...";
+        $("#mobile_target_scope_label").text(scope);
+        $("#mobile_target_label").text(target ? label : "Seleziona...");
+    }
+
+    function getCurrentTargetOptions() {
+        return $("#v_target_mobile option").map(function () {
+            const value = String($(this).attr("value") || "").trim();
+            const label = String($(this).text() || "").trim();
+            return { value, label };
+        }).get().filter(x => x.value);
+    }
+
+    function openTargetModal() {
+        const scope = currentScope();
+        if (!isTargetScope(scope)) return;
+
+        $("#mobile_target_modal_scope").text(scope.toLowerCase());
+        $("#mobile_target_search").val("");
+        renderTargetModalList("");
+        $("#mobile_target_modal").show();
+
+        setTimeout(function () {
+            $("#mobile_target_search").focus();
+        }, 50);
+    }
+
+    function closeTargetModal() {
+        $("#mobile_target_modal").hide();
+    }
+
+    function renderTargetModalList(q) {
+        const query = normTxt(q || "").toLowerCase();
+        const current = currentTarget();
+        const items = getCurrentTargetOptions();
+
+        const filtered = items.filter(it => {
+            if (!query) return true;
+            return (it.label || "").toLowerCase().includes(query)
+                || (it.value || "").toLowerCase().includes(query);
+        });
+
+        if (!filtered.length) {
+            $("#mobile_target_list").html(`<div class="mobile-target-empty">Nessun risultato</div>`);
+            return;
+        }
+
+        const html = filtered.map(it => `
+        <button type="button"
+                class="mobile-target-item ${it.value === current ? 'is-active' : ''}"
+                data-value="${escapeHtml(it.value)}">
+            ${escapeHtml(it.label)}
+        </button>
+    `).join("");
+
+        $("#mobile_target_list").html(html);
+    }
+
+    function selectTargetFromModal(value) {
+        const v = String(value || "").trim();
+        if (!v) return;
+
+        $("#v_target_mobile").val(v);
+
+        const scope = currentScope();
+        if (scope && v) setMemTarget(scope, v);
+
+        updateTargetCard();
+        buildTitle();
+        closeTargetModal();
+        loadCurrentView();
+    }
+
+    function buildTitle() {
+        const scope = currentScope();
+        const d = currentDate();
+        if (isTargetScope(scope)) {
+            const lbl = $("#v_target_mobile option:selected").text() || "";
+            $("#orario_title_mobile").html(
+                `<div>${escapeHtml(scope)}</div><div>${escapeHtml(lbl)}</div><div>${escapeHtml(isoToLongIt(d))}</div>`
+            );
+        } else {
+            $("#orario_title_mobile").html(
+                `<div>${escapeHtml(scope)}</div><div>${escapeHtml(isoToLongIt(d))}</div>`
+            );
+        }
+    }
+
+    function shiftTarget(delta) {
+        const scope = currentScope();
+        if (!isTargetScope(scope)) return;
+        const opts = $("#v_target_mobile option").map(function () {
+            return $(this).attr("value");
+        }).get().filter(Boolean);
+
+        if (!opts.length) return;
+
+        const cur = currentTarget();
+        let idx = opts.indexOf(cur);
+        if (idx < 0) idx = 0;
+        idx += delta;
+
+        if (idx < 0) idx = 0;
+        if (idx >= opts.length) idx = opts.length - 1;
+
+        $("#v_target_mobile").val(opts[idx]);
+        setMemTarget(scope, opts[idx]);
+        updateTargetCard();
+        loadCurrentView();
+    }
+
+    function setDateAndReload(iso) {
+        const d = clampIsoDate(iso);
+        $("#v_date_mobile").val(d);
+        updateDayLabel();
+        buildTitle();
+        loadCurrentView();
+    }
+
+    function prevDayNav() {
+        const d = currentDate();
+        setDateAndReload(addSchoolDay(d, -1));
+    }
+
+    function nextDayNav() {
+        const d = currentDate();
+        setDateAndReload(addSchoolDay(d, +1));
+    }
+
+    function openTargetPicker() {
+        const sel = document.getElementById("v_target_mobile");
+        if (!sel) return;
+
+        try {
+            if (typeof sel.showPicker === "function") {
+                sel.showPicker();
+                return;
+            }
+        } catch (e) { }
+
+        try {
+            sel.focus();
+            sel.click();
+        } catch (e) { }
+    }
+
+    function openDatePicker() {
+        const inp = document.getElementById("v_date_mobile");
+        if (!inp) return;
+        try {
+            inp.showPicker();
+        } catch (e) {
+            inp.focus();
+            inp.click();
+        }
+    }
+
+    function renderLegend() {
+        return `
+            <div class="mobile-legend">
+                <span class="mobile-legend-item"><span class="mobile-legend-dot dot-curr"></span>Curricolare</span>
+                <span class="mobile-legend-item"><span class="mobile-legend-dot dot-udi"></span>Udienza</span>
+                <span class="mobile-legend-item"><span class="mobile-legend-dot dot-imp"></span>Impegno</span>
+                <span class="mobile-legend-item"><span class="mobile-legend-dot dot-uscC"></span>Uscita comune</span>
+                <span class="mobile-legend-item"><span class="mobile-legend-dot dot-uscF"></span>Uscita fuori comune</span>
+                <span class="mobile-legend-item"><span class="mobile-legend-dot dot-viag"></span>Viaggio</span>
+            </div>
+        `;
+    }
+
+    function badgeText(ev) {
+        return normTxt(ev.badge || "");
+    }
+
+    function roomsText(ev) {
+        return uniq(toArrMaybe(ev.rooms)).join(", ");
+    }
+
+    function classiText(ev) {
+        return uniq(toArrMaybe(ev.classi)).join(", ");
+    }
+
+    function whoText(ev) {
+        return uniq(toArrWho(ev.who || ev.sub || "")).join(", ");
+    }
+
+    function filterAulaNonDisponibile(evs) {
+        if (!evs || !evs.length) return evs || [];
+
+        return evs.filter(ev => {
+            if (!ev) return false;
+
+            const type = normalizeType(ev);
+            const title = String(ev.title || ev.label || "").trim().toUpperCase();
+            const badge = String(ev.badge || "").trim().toUpperCase();
+
+            if (type === "imp" && title === "AULA NON DISPONIBILE") return false;
+            if (type === "imp" && badge === "AULA NON DISPONIBILE") return false;
+
+            return true;
+        });
+    }
+
+    function eventCardHtml(ev, extraClasses, teacherAbsMap) {
+        const type = normalizeType(ev);
+        const isOwnAbsenceEvent = isTeacherAbsenceType(type);
+
+        const cls = ["mobile-event-card", "ev-" + type].concat(extraClasses || []);
+        const badge = badgeText(ev);
+        const title = normTxt(ev.title || ev.label || "");
+        const rooms = roomsText(ev);
+        const classi = classiText(ev);
+
+        const whoLines = uniq(
+            (Array.isArray(ev._whoList) && ev._whoList.length)
+                ? ev._whoList
+                : toArrWho(ev.who || ev.sub || "")
+        ).map(normTxt).filter(Boolean);
+
+        const absentMap = teacherAbsMap || new Map();
+
+        // barra tutta la card solo per vere lezioni/eventi didattici,
+        // NON per la card che rappresenta l'assenza stessa
+        const fullAbsent = isOwnAbsenceEvent ? false : isEventFullyAbsentByTeacher(ev, absentMap);
+
+        if (fullAbsent) {
+            cls.push("ev-absent-full");
+        }
+
+        let whoHtml = "";
+        if (whoLines.length) {
+            whoHtml = `
+            <div class="mobile-event-who">
+                <strong>Docente/i:</strong><br>
+                ${whoLines.map(w => {
+                // nella card di assenza NON devo ribarrare il docente
+                if (isOwnAbsenceEvent) {
+                    return `<div class="mobile-event-who-line">${escapeHtml(w)}</div>`;
+                }
+
+                const abs = absentMap.get(normPersonName(w));
+                if (!abs) {
+                    return `<div class="mobile-event-who-line">${escapeHtml(w)}</div>`;
+                }
+
+                return `
+                        <div class="mobile-event-who-line is-absent">
+                            ${escapeHtml(w)}
+                            <span class="mobile-event-absence-note">(${escapeHtml(abs.reasonText || "Assente")})</span>
+                        </div>
+                    `;
+            }).join("")}
+            </div>
+        `;
+        }
+
+        return `
+        <div class="${escapeHtml(cls.join(" "))}">
+            ${badge ? `<div class="mobile-badge">${escapeHtml(badge)}</div>` : ""}
+            <div class="mobile-event-title">${escapeHtml(title)}</div>
+            ${whoHtml}
+            ${rooms ? `<div class="mobile-event-rooms"><strong>Aula/e:</strong> ${escapeHtml(rooms)}</div>` : ""}
+            ${classi ? `<div class="mobile-event-classi"><strong>Classe/i:</strong> ${escapeHtml(classi)}</div>` : ""}
+        </div>
+    `;
+    }
+
+    function renderDayGrid(grid, blockedMap) {
+        const dateIso = currentDate();
+        let html = renderLegend();
+        html += `<div class="mobile-slot-list">`;
+
+        let totalEvents = 0;
+
+        ORARI.forEach(ora => {
+            const key = `${dateIso}|${ora}`;
+            let evs = (grid[key] || []).slice();
+            evs = filterAulaNonDisponibile(evs);
+
+            evs = mergeSlotEvents(evs, currentScope());
+            evs = stableSortSlotEvents(evs);
+
+            totalEvents += evs.length;
+
+            const blockedSet = slotBlockedSet(blockedMap, dateIso, ora);
+            const teacherAbsMap = buildTeacherAbsenceMapForSlot(evs, ora);
+            let body = "";
+
+            if (!evs.length) {
+                body = `<div class="mobile-slot-empty">Nessun evento in questo slot</div>`;
+            } else {
+                body = evs.map(ev => {
+                    const extra = [];
+
+                    if (!isBlocking(normalizeType(ev)) && eventIsOverriddenByBlockedClasses(ev, blockedSet)) {
+                        extra.push("ev-overridden");
+                    }
+
+                    return eventCardHtml(ev, extra, teacherAbsMap);
+                }).join("");
+            }
+
+            html += `
+                <div class="mobile-slot">
+                    <div class="mobile-slot-head">
+                        <div class="mobile-slot-time">${escapeHtml(ora)}</div>
+                        <div class="mobile-slot-count">${evs.length ? evs.length + " evento/i" : ""}</div>
+                    </div>
+                    <div class="mobile-slot-body">${body}</div>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+
+        if (totalEvents === 0) {
+            showEmpty("Nessun evento trovato per il giorno selezionato.");
+            return;
+        }
+
+        $("#orario_content_mobile").html(html);
+        applySearchFilter();
+    }
+
+    function renderSimpleList(items, scope) {
+        const q = normTxt($("#mobile_search_input").val() || "").toLowerCase();
+
+        const filtered = (items || []).filter(it => {
+            if (!q) return true;
+            const hay = Object.values(it).join(" ").toLowerCase();
+            return hay.includes(q);
+        });
+
+        if (!filtered.length) {
+            showEmpty("Nessun elemento trovato.");
+            return;
+        }
+
+        let html = `<div class="mobile-filter-summary">${filtered.length} risultato/i</div>`;
+        html += `<div class="mobile-list-grid">`;
+
+        filtered.forEach(it => {
+            if (scope === "ASSENZE") {
+                const oraIn = (it.ora || it.oraInizio || "").toString().slice(0, 5);
+                const oraOut = (it.oraFine || it.fine || "").toString().slice(0, 5);
+                const docente = normTxt(it.docente || it.who || "");
+                const tipo = normTxt(it.badge || it.type || "");
+                const dettaglio = normTxt(it.detail || it.title || "");
+                const classi = Array.isArray(it.classi) ? it.classi.join(", ") : normTxt(it.classi || "");
+
+                html += `
+                    <div class="mobile-list-card">
+                        <div class="mobile-list-topline">
+                            <div class="mobile-list-time">${escapeHtml(oraIn)}${oraOut ? " - " + escapeHtml(oraOut) : ""}</div>
+                            ${tipo ? `<div class="mobile-badge">${escapeHtml(tipo)}</div>` : ""}
+                        </div>
+                        <div class="mobile-list-title">${escapeHtml(docente || "Assenza")}</div>
+                        ${dettaglio ? `<div class="mobile-list-meta"><strong>Dettaglio:</strong> ${escapeHtml(dettaglio)}</div>` : ""}
+                        ${classi ? `<div class="mobile-list-meta"><strong>Classe/i:</strong> ${escapeHtml(classi)}</div>` : ""}
+                    </div>
+                `;
+            } else if (scope === "SOSTITUZIONI") {
+                const data = normTxt(it.data || "");
+                const oraIn = (it.ora || it.oraInizio || "").toString().slice(0, 5);
+                const oraOut = (it.oraFine || "").toString().slice(0, 5);
+                const sostituito = normTxt(it.docenteSostituito || "");
+                const sostituto = normTxt(it.docenteSostituto || "");
+                const materia = normTxt(it.materia || it.detail || "");
+                const classe = normTxt(it.classe || "");
+                const aula = normTxt(it.aula || "");
+
+                html += `
+                    <div class="mobile-list-card">
+                        <div class="mobile-list-topline">
+                            <div class="mobile-list-time">${escapeHtml(oraIn)}${oraOut ? " - " + escapeHtml(oraOut) : ""}</div>
+                            ${data ? `<div class="mobile-list-date">${escapeHtml(isoToIt(data))}</div>` : ""}
+                        </div>
+                        <div class="mobile-list-title">${escapeHtml(sostituito || "Sostituzione")}</div>
+                        ${sostituto ? `<div class="mobile-list-meta"><strong>Sostituto:</strong> ${escapeHtml(sostituto)}</div>` : ""}
+                        ${materia ? `<div class="mobile-list-meta"><strong>Materia:</strong> ${escapeHtml(materia)}</div>` : ""}
+                        ${classe ? `<div class="mobile-list-meta"><strong>Classe:</strong> ${escapeHtml(classe)}</div>` : ""}
+                        ${aula ? `<div class="mobile-list-meta"><strong>Aula:</strong> ${escapeHtml(aula)}</div>` : ""}
+                    </div>
+                `;
+            } else {
+                const oraIn = (it.ora || it.oraInizio || "").toString().slice(0, 5);
+                const oraOut = (it.oraFine || it.fine || "").toString().slice(0, 5);
+                const titolo = normTxt(it.title || it.detail || it.materia || "Evento");
+                const who = normTxt(it.who || it.docente || "");
+                const classe = Array.isArray(it.classi) ? it.classi.join(", ") : normTxt(it.classi || "");
+                const aula = Array.isArray(it.rooms) ? it.rooms.join(", ") : normTxt(it.aula || it.rooms || "");
+                const badge = normTxt(it.badge || "");
+
+                html += `
+                    <div class="mobile-list-card">
+                        <div class="mobile-list-topline">
+                            <div class="mobile-list-time">${escapeHtml(oraIn)}${oraOut ? " - " + escapeHtml(oraOut) : ""}</div>
+                            ${badge ? `<div class="mobile-badge">${escapeHtml(badge)}</div>` : ""}
+                        </div>
+                        <div class="mobile-list-title">${escapeHtml(titolo)}</div>
+                        ${who ? `<div class="mobile-list-meta"><strong>Docente/i:</strong> ${escapeHtml(who)}</div>` : ""}
+                        ${classe ? `<div class="mobile-list-meta"><strong>Classe/i:</strong> ${escapeHtml(classe)}</div>` : ""}
+                        ${aula ? `<div class="mobile-list-meta"><strong>Aula/e:</strong> ${escapeHtml(aula)}</div>` : ""}
+                    </div>
+                `;
+            }
+        });
+
+        html += `</div>`;
+        $("#orario_content_mobile").html(html);
+    }
+
+    function applySearchFilter() {
+        const scope = currentScope();
+        if (isListScope(scope)) {
+            renderSimpleList(state.listItems || [], scope);
+            return;
+        }
+
+        const q = normTxt($("#mobile_search_input").val() || "").toLowerCase();
+        if (!q) {
+            $("#orario_content_mobile .mobile-slot").show();
+            $("#orario_content_mobile .mobile-event-card").show();
+            return;
+        }
+
+        $("#orario_content_mobile .mobile-slot").each(function () {
+            let visibleCount = 0;
+            $(this).find(".mobile-event-card").each(function () {
+                const txt = $(this).text().toLowerCase();
+                const ok = txt.includes(q);
+                $(this).toggle(ok);
+                if (ok) visibleCount++;
+            });
+
+            const hasNoEvents = $(this).find(".mobile-event-card").length === 0;
+            if (hasNoEvents) {
+                const slotText = $(this).text().toLowerCase();
+                $(this).toggle(slotText.includes(q));
+            } else {
+                $(this).toggle(visibleCount > 0);
+            }
+        });
+    }
+
+    function fetchOptions() {
+        const scope = currentScope();
+
+        if (!isTargetScope(scope)) {
+            state.options = [];
+            $("#v_target_mobile").empty().append(`<option value="">(non usato)</option>`);
+            updateTargetCard();
+            return $.Deferred().resolve().promise();
+        }
+
+        const dfd = $.Deferred();
+
+        $.getJSON("orarioGetOptions.php", { scope }, function (r) {
+            if (!r || r.ok !== true) {
+                state.options = [];
+                $("#v_target_mobile").empty().append(`<option value="">Seleziona...</option>`);
+                updateTargetCard();
+                dfd.reject((r && r.error) ? r.error : "Errore caricamento opzioni");
+                return;
+            }
+
+            const items = Array.isArray(r.items) ? r.items : [];
+            state.options = items;
+
+            const $t = $("#v_target_mobile");
+            $t.empty().append(`<option value="">Seleziona...</option>`);
+
+            items.forEach(it => {
+                const value = String(it.id || "").trim();      // <-- QUI era il bug
+                const label = String(it.label || value).trim();
+
+                if (!value) return;
+
+                $t.append(`<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`);
+            });
+
+            let chosen = getMemTarget(scope);
+            if (!chosen || !items.some(x => String(x.id || "").trim() === chosen)) {
+                chosen = items.length ? String(items[0].id || "").trim() : "";
+            }
+
+            $t.val(chosen);
+            if (chosen) setMemTarget(scope, chosen);
+
+            updateTargetCard();
+            dfd.resolve();
+        }).fail(function (xhr) {
+            dfd.reject((xhr && xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : "Errore server caricamento opzioni");
+        });
+
+        return dfd.promise();
+    }
+
+    function fetchAulaBlockedMap(scope, date, target) {
+        const dfd = $.Deferred();
+
+        if (scope !== "AULA") {
+            dfd.resolve({ gridAssenze: {}, blockedMap: {} });
+            return dfd.promise();
+        }
+
+        $.getJSON("orarioAulaBlocchi.php", {
+            scope: scope,
+            period: "GIORNO",
+            date: date,
+            target: target
+        }, function (r) {
+            if (!r || r.ok !== true) {
+                dfd.resolve({ gridAssenze: {}, blockedMap: {} });
+                return;
+            }
+            dfd.resolve({
+                gridAssenze: r.gridAssenze || {},
+                blockedMap: r.blockedMap || {}
+            });
+        }).fail(function () {
+            dfd.resolve({ gridAssenze: {}, blockedMap: {} });
+        });
+
+        return dfd.promise();
+    }
+
+    function mergeGrids(gridBase, gridAdd) {
+        const out = Object.assign({}, gridBase || {});
+        Object.keys(gridAdd || {}).forEach(k => {
+            if (!out[k]) out[k] = [];
+            out[k] = out[k].concat(gridAdd[k] || []);
+        });
+        return out;
+    }
+
+    function loadGridScope() {
+        const scope = currentScope();
+        const date = currentDate();
+        const target = currentTarget();
+
+        if (!target) {
+            showEmpty("Seleziona prima un elemento.");
+            return;
+        }
+
+        showLoading("Caricamento orario...");
+
+        $.getJSON("orarioRead.php", {
+            scope: scope,
+            period: "GIORNO",
+            date: date,
+            target: target
+        }, function (r) {
+            if (!r || r.ok !== true) {
+                showError((r && r.error) ? r.error : "Errore lettura orario");
+                return;
+            }
+
+            let grid = r.grid || {};
+
+            fetchAulaBlockedMap(scope, date, target).done(function (extra) {
+                grid = mergeGrids(grid, extra.gridAssenze || {});
+                state.grid = grid;
+                state.blockedMap = extra.blockedMap || {};
+                renderDayGrid(state.grid, state.blockedMap);
+            });
+        }).fail(function (xhr) {
+            showError((xhr && xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : "Errore server lettura orario");
+        });
+    }
+
+    function loadAssenze() {
+        const date = currentDate();
+        showLoading("Caricamento assenze...");
+
+        $.getJSON("assenzeRead.php", { date: date }, function (r) {
+            if (!r || r.ok !== true) {
+                showError((r && r.error) ? r.error : "Errore lettura assenze");
+                return;
+            }
+
+            state.listItems = Array.isArray(r.items) ? r.items : [];
+            renderSimpleList(state.listItems, "ASSENZE");
+        }).fail(function (xhr) {
+            showError((xhr && xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : "Errore server lettura assenze");
+        });
+    }
+
+    function loadEventi() {
+        const date = currentDate();
+        showLoading("Caricamento eventi...");
+
+        $.getJSON("eventiRead.php", { date: date }, function (r) {
+            if (!r || r.ok !== true) {
+                showError((r && r.error) ? r.error : "Errore lettura eventi");
+                return;
+            }
+
+            state.listItems = Array.isArray(r.items) ? r.items : [];
+            renderSimpleList(state.listItems, "EVENTI");
+        }).fail(function (xhr) {
+            showError((xhr && xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : "Errore server lettura eventi");
+        });
+    }
+
+    function loadSostituzioni() {
+        const date = currentDate();
+        showLoading("Caricamento sostituzioni...");
+
+        $.getJSON("sostituzioniRead.php", { date: date, mode: "all_today" }, function (r) {
+            if (!r || r.ok !== true) {
+                showError((r && r.error) ? r.error : "Errore lettura sostituzioni");
+                return;
+            }
+
+            if (window.ORARIO_IS_DOCENTE) {
+                $.getJSON("sostituzioniTelegramStatus.php", {}, function (tr) {
+                    window._sostituzioniTelegramStatus = tr || null;
+                });
+            }
+
+            state.listItems = Array.isArray(r.items) ? r.items : [];
+            renderSimpleList(state.listItems, "SOSTITUZIONI");
+        }).fail(function (xhr) {
+            showError((xhr && xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : "Errore server lettura sostituzioni");
+        });
+    }
+
+    function loadCurrentView() {
+        if (state.loading) return;
+        state.loading = true;
+
+        const scope = currentScope();
+        state.currentScope = scope;
+
+        updateDayLabel();
+        updateTargetCard();
+        buildTitle();
+        updateTargetBlockVisibility();
+        updateSearchVisibility();
+
+        const done = function () { state.loading = false; };
+
+        if (scope === "ASSENZE") {
+            loadAssenze();
+            done();
+            return;
+        }
+
+        if (scope === "EVENTI") {
+            loadEventi();
+            done();
+            return;
+        }
+
+        if (scope === "SOSTITUZIONI") {
+            loadSostituzioni();
+            done();
+            return;
+        }
+
+        loadGridScope();
+        done();
+    }
+
+    function bindSwipe(el, onLeft, onRight) {
+        if (!el) return;
+
+        let startX = 0;
+        let startY = 0;
+        let active = false;
+
+        el.addEventListener("touchstart", function (e) {
+            if (!e.touches || !e.touches.length) return;
+            const t = e.touches[0];
+            startX = t.clientX;
+            startY = t.clientY;
+            active = true;
+        }, { passive: true });
+
+        el.addEventListener("touchend", function (e) {
+            if (!active || !e.changedTouches || !e.changedTouches.length) return;
+
+            const t = e.changedTouches[0];
+            const dx = t.clientX - startX;
+            const dy = t.clientY - startY;
+
+            active = false;
+
+            if (Math.abs(dx) < 55) return;
+            if (Math.abs(dx) <= Math.abs(dy)) return;
+
+            if (dx < 0) {
+                if (typeof onLeft === "function") onLeft();
+            } else {
+                if (typeof onRight === "function") onRight();
+            }
+        }, { passive: true });
+    }
+
+    function bindEvents() {
+        $("#v_scope_mobile").on("change", function () {
+            const scope = currentScope();
+            try { localStorage.setItem(LS_KEY_SCOPE, scope); } catch (e) { }
+            updateTargetBlockVisibility();
+            updateSearchVisibility();
+            fetchOptions().done(function () {
+                updateTargetCard();
+                buildTitle();
+                loadCurrentView();
+            }).fail(function (err) {
+                showError(err || "Errore caricamento opzioni");
+            });
+        });
+
+        $("#v_target_mobile").on("change", function () {
+            const scope = currentScope();
+            const target = currentTarget();
+            if (scope && target) setMemTarget(scope, target);
+            updateTargetCard();
+            buildTitle();
+            loadCurrentView();
+        });
+
+        $("#v_date_mobile").on("change", function () {
+            updateDayLabel();
+            buildTitle();
+            loadCurrentView();
+        });
+
+        $("#btn_today_mobile").on("click", function () {
+            setDateAndReload(todayIso());
+        });
+
+        $("#btn_prev_day_mobile").on("click", function () {
+            prevDayNav();
+        });
+
+        $("#btn_next_day_mobile").on("click", function () {
+            nextDayNav();
+        });
+
+        $("#btn_prev_target_mobile").on("click", function () {
+            shiftTarget(-1);
+        });
+
+        $("#btn_next_target_mobile").on("click", function () {
+            shiftTarget(+1);
+        });
+
+        $("#btn_open_target_sheet").on("click", function () {
+            openTargetModal();
+        });
+
+        $("#mobile_target_card").on("click", function (e) {
+            if ($(e.target).closest("#btn_prev_target_mobile, #btn_next_target_mobile").length) {
+                return;
+            }
+            openTargetModal();
+        });
+
+        $("#btn_close_target_modal").on("click", function () {
+            closeTargetModal();
+        });
+
+        $("#mobile_target_modal").on("click", function (e) {
+            if (e.target === this) {
+                closeTargetModal();
+            }
+        });
+
+        $("#mobile_target_search").on("input", function () {
+            renderTargetModalList($(this).val() || "");
+        });
+
+        $(document).on("click", ".mobile-target-item", function () {
+            const value = String($(this).data("value") || "").trim();
+            selectTargetFromModal(value);
+        });
+
+        $("#mobile_day_card").on("click", function (e) {
+            if ($(e.target).closest("#btn_prev_day_mobile, #btn_next_day_mobile").length) {
+                return;
+            }
+            openDatePicker();
+        });
+
+        $("#mobile_search_input").on("input", function () {
+            applySearchFilter();
+        });
+
+        bindSwipe(document.getElementById("mobile_day_card"), nextDayNav, prevDayNav);
+        bindSwipe(document.getElementById("orario_content_mobile"), nextDayNav, prevDayNav);
+        bindSwipe(document.getElementById("mobile_target_card"), function () { shiftTarget(+1); }, function () { shiftTarget(-1); });
+    }
+
+    function initDefaults() {
+        let scope = "AULA";
+        try {
+            scope = localStorage.getItem(LS_KEY_SCOPE) || "AULA";
+        } catch (e) { }
+
+        scope = up(scope);
+        const allowed = ["AULA", "CLASSE", "DOCENTE", "EVENTI"].concat(window.ORARIO_IS_PUBLIC ? [] : ["ASSENZE", "SOSTITUZIONI"]);
+        if (!allowed.includes(scope)) scope = "AULA";
+
+        $("#v_scope_mobile").val(scope);
+        $("#v_date_mobile").val(clampIsoDate(todayIso()));
+        updateDayLabel();
+        updateTargetBlockVisibility();
+        updateSearchVisibility();
+    }
+
+    $(function () {
+        initDefaults();
+        bindEvents();
+
+        fetchOptions().done(function () {
+            updateTargetCard();
+            buildTitle();
+            loadCurrentView();
+        }).fail(function (err) {
+            showError(err || "Errore inizializzazione orario mobile");
+        });
+    });
+
+})();

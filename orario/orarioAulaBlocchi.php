@@ -28,6 +28,59 @@ if (!($__conMBApp instanceof mysqli)) {
 /* -------------------- COSTANTI -------------------- */
 $ORARI = ["07:50", "08:40", "09:30", "10:30", "11:20", "12:10", "13:00", "13:50", "14:40", "15:30", "16:20", "17:10", "18:00", "18:50", "19:40", "20:30", "21:30", "22:20"];
 
+function getOrarioVisibilityLevel()
+{
+  global $__utente_ruolo;
+
+  $ruoloUp = strtoupper(trim((string)$__utente_ruolo));
+
+  if (in_array($ruoloUp, ['ADMIN', 'SEGRETERIA-DIDATTICA', 'SEGRETERIA-ATA', 'PORTINERIA'], true)) {
+    return 'FULL';
+  }
+
+  if (in_array($ruoloUp, ['DOCENTE', 'PERSONALE-ATA'], true)) {
+    return 'STAFF';
+  }
+
+  if (in_array($ruoloUp, ['STUDENTE', 'GENITORE'], true)) {
+    return 'PUBLIC';
+  }
+
+  return 'PUBLIC';
+}
+
+function applyVisibilityToTeacherAbsEvent($ev, $visibilityLevel)
+{
+  if (!is_array($ev)) return null;
+
+  $type = strtolower(trim((string)($ev['type'] ?? '')));
+  $origin = strtolower(trim((string)($ev['origin'] ?? '')));
+
+  if ($origin !== 'docente') return $ev;
+
+  if ($visibilityLevel === 'FULL') {
+    return $ev;
+  }
+
+  if ($visibilityLevel === 'STAFF') {
+    if (in_array($type, ['pb', 'perm', 'uscc', 'uscf', 'viag'], true)) {
+      $ev['title'] = 'Assente';
+      $ev['badge'] = 'Assente';
+      return $ev;
+    }
+    return $ev;
+  }
+
+  if ($visibilityLevel === 'PUBLIC') {
+    if (in_array($type, ['pb', 'perm', 'uscc', 'uscf', 'viag'], true)) {
+      return null;
+    }
+    return $ev;
+  }
+
+  return $ev;
+}
+
 /* -------------------- HELPERS -------------------- */
 function h($s)
 {
@@ -38,7 +91,8 @@ function isIsoDate($d)
   return (bool)preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$d);
 }
 
-function normOra($o) {
+function normOra($o)
+{
   if ($o === null) return '';
   $t = (string)$o;
   $t = trim($t);
@@ -387,6 +441,7 @@ if ($period === 'GIORNO') {
 $fromEsc = mysqli_real_escape_string($__conMBApp, $from);
 $toEsc   = mysqli_real_escape_string($__conMBApp, $to);
 $nro = mysqli_real_escape_string($__conMBApp, $target);
+$VISIBILITY_LEVEL = getOrarioVisibilityLevel();
 
 /* ✅ INIT OUTPUT SUBITO (prima di usarli) */
 $gridAssenze = [];
@@ -490,6 +545,16 @@ if (!empty($docU)) {
 
     $assUsernames = getUsernamesByAssenzaId($idAss);
     if (empty($assUsernames)) continue;
+
+    // marca come assenza docente per applicare la visibilità
+    $ev['origin'] = 'docente';
+
+    // applica la privacy:
+    // FULL  -> dettaglio reale
+    // STAFF -> solo "Assente"
+    // PUBLIC -> non mostrare
+    $ev = applyVisibilityToTeacherAbsEvent($ev, $VISIBILITY_LEVEL);
+    if ($ev === null) continue;
 
     $slots = espandiAssenzaInSlot($a, $ORARI);
 
