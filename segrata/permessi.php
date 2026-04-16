@@ -884,6 +884,15 @@ if (!is_array($ufficiAta)) {
 
                             <div class="panel-footer text-center">
                                 <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+
+                                <a id="btn_print_permesso"
+                                    href="#"
+                                    class="btn btn-default"
+                                    target="_blank"
+                                    title="Stampa PDF">
+                                    <span class="glyphicon glyphicon-print"></span>&ensp;Stampa
+                                </a>
+
                                 <button type="button" class="btn btn-primary" id="btn_save_permesso">
                                     <span class="glyphicon glyphicon-floppy-disk"></span>&ensp;Salva
                                 </button>
@@ -988,6 +997,15 @@ if (!is_array($ufficiAta)) {
 
                         <div class="text-center" style="padding-top:8px;">
                             <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+
+                            <a id="fm_btn_print_permesso"
+                                href="#"
+                                class="btn btn-default"
+                                target="_blank"
+                                title="Stampa PDF">
+                                <span class="glyphicon glyphicon-print"></span>&ensp;Stampa
+                            </a>
+
                             <button type="button" class="btn btn-primary" id="fm_btn_save_notes">
                                 <span class="glyphicon glyphicon-floppy-disk"></span>&ensp;Salva note segreteria
                             </button>

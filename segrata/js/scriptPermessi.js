@@ -435,6 +435,9 @@ function buildFerieTooltip(iso, reason, tooltipByDate, dip) {
 
 function renderPermessoFerieModal(r) {
   const perm = r.permesso || {};
+  $("#fm_btn_print_permesso")
+  .attr("href", permessoPdfUrl(perm.id || 0))
+  .attr("target", "_blank");
   const dip = r.dipendente || {};
   const righe = r.righe || [];
   const finestra = r.ferie_finestra || {};
@@ -672,9 +675,16 @@ function renderPermessoFerieModal(r) {
   updateFerieSaveButtonState();
 }
 
+function permessoPdfUrl(id) {
+  id = parseInt(id, 10) || 0;
+  return "permessoPdf.php?id=" + encodeURIComponent(id);
+}
+
 function openStandardPermessoModal(r, id) {
   $("#hidden_permesso_id").val(id);
-
+  $("#btn_print_permesso")
+  .attr("href", permessoPdfUrl(id))
+  .attr("target", "_blank");
   $("#d_nome").text((r.dipendente && r.dipendente.nome) || "");
   $("#d_email").text((r.dipendente && r.dipendente.email) || "");
   $("#d_matricola").text((r.dipendente && r.dipendente.matricola) || "");
