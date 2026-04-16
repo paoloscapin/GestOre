@@ -102,11 +102,11 @@ ruoloRichiesto('personale-ata');
 			}
 		}
 
-		@media (max-width: 767px) {
+		/* @media (max-width: 767px) {
 			.ata-btn-orario {
 				display: none !important;
 			}
-		}
+		} */
 	</style>
 </head>
 
