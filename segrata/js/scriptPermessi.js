@@ -174,7 +174,7 @@ function buildSelectedDateMap(righe) {
 
 function buildFerieModalSnapshot() {
   const noteSegreteria = ($("#fm_note_segreteria").val() || "").trim();
-
+  const registratoSegreteria = $("#fm_registrato_segreteria").is(":checked") ? 1 : 0;
   const richiestaId = ($("#fm_hidden_permesso_id").val() || "").toString().trim();
 
   const selectedMap = window.__FM_SELECTED_DATE_MAP || {};
@@ -191,6 +191,7 @@ function buildFerieModalSnapshot() {
   return {
     richiesta_id: richiestaId,
     note_segreteria: noteSegreteria,
+    registrato_segreteria: registratoSegreteria,
     days: days
   };
 }
@@ -1006,6 +1007,10 @@ $(document).ready(function () {
   $(document).off("input", "#fm_note_segreteria").on("input", "#fm_note_segreteria", function () {
     updateFerieSaveButtonState();
   });
+
+  $(document).off("change", "#fm_registrato_segreteria").on("change", "#fm_registrato_segreteria", function () {
+  updateFerieSaveButtonState();
+});
 
   $(document).off("click", "#fg_btn_approve_all").on("click", "#fg_btn_approve_all", function (e) {
     e.preventDefault();
