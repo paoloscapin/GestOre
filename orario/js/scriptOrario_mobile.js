@@ -1199,9 +1199,9 @@
     }
 
     function initDefaults() {
-        let scope = "AULA";
+        let scope = "EVENTI";
         try {
-            scope = localStorage.getItem(LS_KEY_SCOPE) || "AULA";
+            scope = localStorage.getItem(LS_KEY_SCOPE) || "EVENTI";
         } catch (e) { }
 
         scope = up(scope);
