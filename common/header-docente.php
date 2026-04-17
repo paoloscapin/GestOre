@@ -160,10 +160,16 @@
 			<li><a><span class=""></span>
 					<?php if (haRuolo('admin'))
 						echo "(A)" ?>
-					<?php echo $__docente_nome . ' ' . $__docente_cognome ?></a></li>
+					<?php echo $docente_view_nome . ' ' . $docente_view_cognome ?></a></li>
 			<li>
 				<?php
-				echo '<a href="../common/logout.php?base=docente"><span class="glyphicon glyphicon-log-out"></span></a>';
+				if (haRuolo('admin')) {
+					echo '<a href="#" onclick="window.close(); return false;"><span class="glyphicon glyphicon-log-out"></span></a>';
+				}
+				else
+				{
+					echo '<a href="../common/logout.php?base=docente"><span class="glyphicon glyphicon-log-out"></span></a>';
+				}
 				?>
 			</li>
 		</ul>

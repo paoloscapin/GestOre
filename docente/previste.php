@@ -32,6 +32,8 @@ ruoloRichiesto('segreteria-docenti','dirigente','docente');
 // default opera sul docente connesso e agisce come docente
 $docente_id = $__docente_id;
 $operatore = 'docente';
+$docente_view_nome = '';
+$docente_view_cognome = '';
 
 if(isset($_GET['docente_id']) && $_GET['docente_id'] != "") {
 	// se specificato il docente id nel get, devi essere dirigente
@@ -40,20 +42,20 @@ if(isset($_GET['docente_id']) && $_GET['docente_id'] != "") {
 	// agisci quindi come dirigente
 	$operatore = 'dirigente';
 
-// ✅ NON toccare la sessione: uso variabili locali per visualizzare il docente richiesto
-$docente_id = intval($_GET['docente_id']);
+	// ✅ NON toccare la sessione: uso variabili locali per visualizzare il docente richiesto
+	$docente_id = intval($_GET['docente_id']);
 
-$result = dbGetFirst("SELECT * FROM docente WHERE docente.id = $docente_id");
-if ($result == null) {
-    redirect("/error/error.php?message=" . urlencode("Docente non trovato"));
-    exit();
-}
-    // $__docente_id = $result['id'];
-    // $__docente_nome = $result['nome'];
-    // $__docente_cognome = $result['cognome'];
-// // nome docente solo per intestazioni/pagina (non sessione)
-$docente_view_nome = $result['nome'];
-$docente_view_cognome = $result['cognome'];
+	$result = dbGetFirst("SELECT * FROM docente WHERE docente.id = $docente_id");
+	if ($result == null) {
+		redirect("/error/error.php?message=" . urlencode("Docente non trovato"));
+		exit();
+	}
+		// $__docente_id = $result['id'];
+		// $__docente_nome = $result['nome'];
+		// $__docente_cognome = $result['cognome'];
+	// // nome docente solo per intestazioni/pagina (non sessione)
+	$docente_view_nome = $result['nome'];
+	$docente_view_cognome = $result['cognome'];
 
 }
 $ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_previste WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");

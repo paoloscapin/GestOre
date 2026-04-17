@@ -45,9 +45,8 @@ if(isset($_GET['docente_id']) && $_GET['docente_id'] != "") {
         $session->set('docente_id', $result['id']);
         $session->set('docente_nome', $result['nome']);
 		$session->set('docente_cognome', $result['cognome']);
-		$__docente_id = $result['id'];
-		$__docente_nome = $result['nome'];
-		$__docente_cognome = $result['cognome'];
+		$docente_view_nome = $result['nome'];
+		$docente_view_cognome = $result['cognome'];
 	}
 }
 $ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_fatte WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
