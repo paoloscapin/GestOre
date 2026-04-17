@@ -193,7 +193,7 @@
         const out = [];
         const seen = new Set();
         (arr || []).forEach(x => {
-            const v = String(x == null ? "" : x).trim();
+            const v = String(x == null ? "" : x).trim().toUpperCase();
             if (!v || seen.has(v)) return;
             seen.add(v);
             out.push(v);
@@ -930,9 +930,17 @@
                 const oraIn = (it.ora || it.oraInizio || "").toString().slice(0, 5);
                 const oraOut = (it.oraFine || it.fine || "").toString().slice(0, 5);
                 const titolo = normTxt(it.title || it.detail || it.materia || "Evento");
-                const who = normTxt(it.who || it.docente || "");
+
+                const whoArr = uniq(
+                    toArrWho(it.who || it.docente || "")
+                ).map(s => s.trim()).filter(Boolean);
+
+                const whoHtml = whoArr.length
+                    ? `<div class="mobile-list-meta"><strong>Docente/i:</strong><br>${whoArr.map(x => escapeHtml(x)).join("<br>")}</div>`
+                    : "";
+
                 const classe = Array.isArray(it.classi) ? it.classi.join(", ") : normTxt(it.classi || "");
-                const aula = Array.isArray(it.rooms) ? it.rooms.join(", ") : normTxt(it.aula || it.rooms || "");
+                const aula = normTxt(it.aulaKey || "");
                 const badge = normTxt(it.badge || "");
                 const type = normalizeType(it);
 
@@ -945,7 +953,7 @@
             <div class="mobile-event-main-left">
                 <div class="mobile-list-time">${escapeHtml(oraIn)}${oraOut ? " - " + escapeHtml(oraOut) : ""}</div>
                 <div class="mobile-list-title">${escapeHtml(titolo)}</div>
-                ${who ? `<div class="mobile-list-meta"><strong>Docente/i:</strong> ${escapeHtml(who)}</div>` : ""}
+                ${whoHtml}
                 ${classe ? `<div class="mobile-list-meta"><strong>Classe/i:</strong> ${escapeHtml(classe)}</div>` : ""}
             </div>
 
@@ -1164,8 +1172,8 @@
                 const oraIn = (it.ora || it.oraInizio || "").toString().slice(0, 5);
                 const oraOut = (it.oraFine || it.fine || "").toString().slice(0, 5);
                 const aula = Array.isArray(it.rooms)
-                    ? it.rooms.join(", ")
-                    : ((it.aula || it.rooms || "") + "").trim();
+                    ? it.rooms.join(", ").toUpperCase()
+                    : normTxt(it.aula || it.rooms || "").toUpperCase();
 
                 return Object.assign({}, it, {
                     oraIn: oraIn,
