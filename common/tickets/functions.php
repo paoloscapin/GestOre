@@ -69,6 +69,10 @@ function tribunaRowCount(string $tribuna, array $tickets = []): int
         return 14;
     }
 
+    if (strpos($t, 'tribuna est') !== false) {
+        return 10;
+    }
+
     if ($tickets) {
         return max(10, (int) max(array_column($tickets, 'fila')));
     }
@@ -76,9 +80,13 @@ function tribunaRowCount(string $tribuna, array $tickets = []): int
     return 10;
 }
 
-function tribunaSeatCount(array $tickets): int
+function tribunaSeatCount(array $tickets, array $profile = []): int
 {
-    return $tickets ? max(54, (int) max(array_column($tickets, 'posto'))) : 54;
+    if (!empty($profile['multi_block'])) {
+        return $tickets ? max(54, (int) max(array_column($tickets, 'posto'))) : 54;
+    }
+
+    return $tickets ? max(16, (int) max(array_column($tickets, 'posto'))) : 16;
 }
 
 function groupColor(string $macro, string $group): string
@@ -100,6 +108,26 @@ function groupColor(string $macro, string $group): string
         'studenti' => '#22c55e',
         default => '#6b7280',
     };
+}
+
+function ticketBlockDisplayLabel(array $data): string
+{
+    $tribuna = (string)($data['tribuna'] ?? '');
+    $blockLabel = trim((string)($data['blocco_label'] ?? ($data['settore'] ?? '')));
+    $blocco = (int)($data['blocco'] ?? 0);
+
+    if (function_exists('ticketsVenueIsGradinata') && ticketsVenueIsGradinata($tribuna)) {
+        if ($blockLabel === '' && $blocco >= 1 && $blocco <= 26) {
+            $blockLabel = chr(64 + $blocco);
+        }
+
+        if ($blockLabel !== '') {
+            $blockLabel = strtoupper($blockLabel);
+            return 'Settore ' . $blockLabel;
+        }
+    }
+
+    return $blocco > 0 ? 'Blocco ' . $blocco : '';
 }
 
 function emailToDisplayName(string $email): string
@@ -204,6 +232,117 @@ function parseSeatText(string $text): ?array
     return null;
 }
 
+function parseSeatTextEnhanced(string $text): ?array
+{
+    $venuePattern = '(?P<tribuna>(?:Curva|Tribuna)\s+[A-Za-zÃ€-Ã–Ã˜-Ã¶Ã¸-Ã¿\'`\- ]+?|Gradinata)';
+    $venuePattern = '(?P<tribuna>(?:Curva|Tribuna)\s+[\p{L}\'`\- ]+?|Gradinata)';
+    $seatPattern = '/' . $venuePattern . '\s+(?:Settore\s*(?P<settore>[A-Za-z0-9]+)\s+)?Fila\s*(?P<fila>\d+)\s+Posto\s*(?P<posto>\d+)/iu';
+    $lines = preg_split('/\r\n|\r|\n/u', $text) ?: [];
+
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '') {
+            continue;
+        }
+
+        $line = preg_replace('/\s+/u', ' ', $line) ?? $line;
+
+        if (stripos($line, 'Fila') === false || stripos($line, 'Posto') === false) {
+            continue;
+        }
+
+        if (preg_match($seatPattern, $line, $m)) {
+            return [
+                'tribuna' => normalizeString((string)($m['tribuna'] ?? '')),
+                'settore' => normalizeString((string)($m['settore'] ?? '')),
+                'fila' => (int)($m['fila'] ?? 0),
+                'posto' => (int)($m['posto'] ?? 0),
+                'pattern' => 'line_with_fila_posto_enhanced',
+                'matched_line' => $line,
+            ];
+        }
+    }
+
+    $flat = str_replace(["\r", "\n", "\t"], ' ', $text);
+    $flat = preg_replace('/\s+/u', ' ', $flat) ?? $flat;
+
+    if (preg_match_all($seatPattern, $flat, $matches, PREG_SET_ORDER) && !empty($matches)) {
+        $m = $matches[count($matches) - 1];
+        return [
+            'tribuna' => normalizeString((string)($m['tribuna'] ?? '')),
+            'settore' => normalizeString((string)($m['settore'] ?? '')),
+            'fila' => (int)($m['fila'] ?? 0),
+            'posto' => (int)($m['posto'] ?? 0),
+            'pattern' => 'fallback_flat_last_match_enhanced',
+            'matched_line' => normalizeString((string)($m[0] ?? '')),
+        ];
+    }
+
+    return parseSeatText($text);
+}
+
+function parseSeatTextV2(string $text): ?array
+{
+    $lines = preg_split('/\r\n|\r|\n/u', $text) ?: [];
+    $currentTribuna = '';
+    $fullPattern = '/(?P<tribuna>(?:Curva|Tribuna)\s+[\p{L}\'`\- ]+?|Gradinata)\s+(?:Settore\s*(?P<settore>[A-Za-z0-9]+)\s+)?Fila\s*(?P<fila>\d+)\s+Posto\s*(?P<posto>\d+)/iu';
+    $seatOnlyPattern = '/^(?:Settore\s*(?P<settore>[A-Za-z0-9]+)\s+)?Fila\s*(?P<fila>\d+)\s+Posto\s*(?P<posto>\d+)/iu';
+    $tribunaOnlyPattern = '/^(?:Curva|Tribuna)\s+[\p{L}\'`\- ]+$|^Gradinata$/iu';
+
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '') {
+            continue;
+        }
+
+        $line = preg_replace('/\s+/u', ' ', $line) ?? $line;
+
+        if (preg_match($tribunaOnlyPattern, $line)) {
+            $currentTribuna = normalizeString($line);
+            continue;
+        }
+
+        if (preg_match($fullPattern, $line, $m)) {
+            return [
+                'tribuna' => normalizeString((string)($m['tribuna'] ?? '')),
+                'settore' => normalizeString((string)($m['settore'] ?? '')),
+                'fila' => (int)($m['fila'] ?? 0),
+                'posto' => (int)($m['posto'] ?? 0),
+                'pattern' => 'single_line_v2',
+                'matched_line' => $line,
+            ];
+        }
+
+        if ($currentTribuna !== '' && preg_match($seatOnlyPattern, $line, $m)) {
+            return [
+                'tribuna' => $currentTribuna,
+                'settore' => normalizeString((string)($m['settore'] ?? '')),
+                'fila' => (int)($m['fila'] ?? 0),
+                'posto' => (int)($m['posto'] ?? 0),
+                'pattern' => 'split_lines_v2',
+                'matched_line' => $currentTribuna . ' | ' . $line,
+            ];
+        }
+    }
+
+    $flat = str_replace(["\r", "\n", "\t"], ' ', $text);
+    $flat = preg_replace('/\s+/u', ' ', $flat) ?? $flat;
+
+    if (preg_match_all($fullPattern, $flat, $matches, PREG_SET_ORDER) && !empty($matches)) {
+        $m = $matches[count($matches) - 1];
+        return [
+            'tribuna' => normalizeString((string)($m['tribuna'] ?? '')),
+            'settore' => normalizeString((string)($m['settore'] ?? '')),
+            'fila' => (int)($m['fila'] ?? 0),
+            'posto' => (int)($m['posto'] ?? 0),
+            'pattern' => 'flat_v2',
+            'matched_line' => normalizeString((string)($m[0] ?? '')),
+        ];
+    }
+
+    return parseSeatText($text);
+}
+
 function readUsersCsv(string $csvPath): array
 {
     $fh = fopen($csvPath, 'rb');
@@ -271,13 +410,13 @@ function extractTicketsFromMultiPagePdf(string $pdfPath): array
     foreach ($pages as $idx => $page) {
         $pageNo = $idx + 1;
         $text = $page->getText() ?? '';
-        $seat = parseSeatText($text);
+        $seat = parseSeatTextV2($text);
 
         if (!$seat) {
             continue;
         }
 
-        $key = strtolower($seat['tribuna']) . '|' . $seat['fila'] . '|' . $seat['posto'];
+        $key = strtolower($seat['tribuna']) . '|' . strtolower((string)($seat['settore'] ?? '')) . '|' . $seat['fila'] . '|' . $seat['posto'];
         if (isset($seen[$key])) {
             continue;
         }
@@ -287,6 +426,7 @@ function extractTicketsFromMultiPagePdf(string $pdfPath): array
             'ticket_id' => 'P' . $pageNo,
             'page' => $pageNo,
             'tribuna' => $seat['tribuna'],
+            'settore' => $seat['settore'] ?? '',
             'fila' => (int) $seat['fila'],
             'posto' => (int) $seat['posto'],
             'blocco' => seatBlock((int) $seat['posto']),
@@ -299,9 +439,9 @@ function extractTicketsFromMultiPagePdf(string $pdfPath): array
     usort(
         $tickets,
         fn($a, $b) =>
-        [$a['tribuna'], $a['fila'], $a['blocco'], $a['posto'], $a['page']]
+        [$a['tribuna'], $a['settore'] ?? '', $a['fila'], $a['blocco'], $a['posto'], $a['page']]
             <=>
-            [$b['tribuna'], $b['fila'], $b['blocco'], $b['posto'], $b['page']]
+            [$b['tribuna'], $b['settore'] ?? '', $b['fila'], $b['blocco'], $b['posto'], $b['page']]
     );
 
     return $tickets;
@@ -1607,8 +1747,10 @@ function distributeCandidateToUsers(array $candidate, array $users): array
             'numero_posti' => $user['numero_posti'],
             'affianca' => $user['affianca'],
             'tribuna' => $slice[0]['tribuna'],
+            'settore' => $slice[0]['settore'] ?? '',
             'fila' => $slice[0]['fila'],
             'blocco' => $slice[0]['blocco'],
+            'blocco_label' => $slice[0]['blocco_label'] ?? '',
             'posti' => array_column($slice, 'posto'),
             'pages' => array_column($slice, 'page'),
             'ticket_ids' => array_column($slice, 'ticket_id'),
@@ -1719,51 +1861,66 @@ function buildSeatMapData(array $tickets, array $assignments): array
     $map = [];
 
     foreach ($tickets as $t) {
-        $key = $t['fila'] . '-' . $t['posto'];
+        $blocco = (int)($t['blocco'] ?? 1);
+        $fila   = (int)($t['fila'] ?? 0);
+        $posto  = (int)($t['posto'] ?? 0);
+
+        $key = $blocco . '-' . $fila . '-' . $posto;
+
         $map[$key] = [
-            'fila' => $t['fila'],
-            'posto' => $t['posto'],
-            'tribuna' => $t['tribuna'],
-            'blocco' => $t['blocco'],
-            'ticket_id' => $t['ticket_id'],
-            'page' => $t['page'],
+            'blocco' => $blocco,
+            'fila' => $fila,
+            'posto' => $posto,
+            'tribuna' => (string)($t['tribuna'] ?? ''),
+            'ticket_id' => (string)($t['ticket_id'] ?? ''),
+            'page' => (int)($t['page'] ?? 0),
             'assigned' => false,
+            'assignment_index' => null,
             'display_name' => '',
             'email' => '',
+            'macrogruppo' => '',
+            'gruppo' => '',
             'color' => '',
             'tooltip' => sprintf(
-                'Fila %d - Posto %d - BIGLIETTO PRESENTE - Pagina %d',
-                $t['fila'],
-                $t['posto'],
-                $t['page']
+                'Blocco %d - Fila %d - Posto %d - BIGLIETTO PRESENTE - Pagina %d',
+                $blocco,
+                $fila,
+                $posto,
+                (int)($t['page'] ?? 0)
             ),
         ];
     }
 
     foreach ($assignments as $assignmentIndex => $row) {
-        foreach ($row['posti'] as $i => $posto) {
-            $key = ((int) $row['fila']) . '-' . ((int) $posto);
+        $blocco = (int)($row['blocco'] ?? 1);
+        $fila   = (int)($row['fila'] ?? 0);
+
+        foreach (($row['posti'] ?? []) as $i => $posto) {
+            $posto = (int)$posto;
+            $key = $blocco . '-' . $fila . '-' . $posto;
+
             if (!isset($map[$key])) {
                 continue;
             }
 
             $map[$key]['assigned'] = true;
             $map[$key]['assignment_index'] = $assignmentIndex;
-            $map[$key]['display_name'] = $row['display_name'];
-            $map[$key]['email'] = $row['email'];
-            $map[$key]['macrogruppo'] = $row['macrogruppo'];
-            $map[$key]['gruppo'] = $row['gruppo'];
-            $map[$key]['color'] = $row['color'];
-            $map[$key]['ticket_id'] = $row['ticket_ids'][$i] ?? '';
-            $map[$key]['page'] = $row['pages'][$i] ?? '';
+            $map[$key]['display_name'] = (string)($row['display_name'] ?? '');
+            $map[$key]['email'] = (string)($row['email'] ?? '');
+            $map[$key]['macrogruppo'] = (string)($row['macrogruppo'] ?? '');
+            $map[$key]['gruppo'] = (string)($row['gruppo'] ?? '');
+            $map[$key]['color'] = (string)($row['color'] ?? '');
+            $map[$key]['ticket_id'] = (string)($row['ticket_ids'][$i] ?? '');
+            $map[$key]['page'] = (string)($row['pages'][$i] ?? '');
             $map[$key]['tooltip'] = sprintf(
-                '%s | %s | %s | Fila %d Posto %d | Pagina %s',
-                $row['display_name'],
-                $row['macrogruppo'],
-                $row['gruppo'],
-                (int) $row['fila'],
-                (int) $posto,
-                (string) ($row['pages'][$i] ?? '')
+                '%s | %s | %s | Blocco %d | Fila %d Posto %d | Pagina %s',
+                (string)($row['display_name'] ?? ''),
+                (string)($row['macrogruppo'] ?? ''),
+                (string)($row['gruppo'] ?? ''),
+                $blocco,
+                $fila,
+                $posto,
+                (string)($row['pages'][$i] ?? '')
             );
         }
     }
@@ -1806,7 +1963,7 @@ function swapAssignmentRows(array $assignments, int $idxA, int $idxB): array
         throw new RuntimeException('Puoi scambiare solo assegnazioni con lo stesso numero di posti');
     }
 
-    foreach (['tribuna', 'fila', 'blocco', 'posti', 'pages', 'ticket_ids', 'fila_penalizzata'] as $field) {
+    foreach (['tribuna', 'settore', 'fila', 'blocco', 'blocco_label', 'posti', 'pages', 'ticket_ids', 'fila_penalizzata'] as $field) {
         $tmp = $a[$field];
         $a[$field] = $b[$field];
         $b[$field] = $tmp;
@@ -1816,4 +1973,63 @@ function swapAssignmentRows(array $assignments, int $idxA, int $idxB): array
     $assignments[$idxB] = $b;
 
     return array_values($assignments);
+}
+function seatMapBlocks(array $tickets, string $tribuna = ''): array
+{
+    if (!$tickets) {
+        return [];
+    }
+
+    $tribunaNorm = (string)($tribuna !== '' ? $tribuna : (string)($tickets[0]['tribuna'] ?? ''));
+    $singleContinuousMap = ticketsVenueUsesSegmentedSeatMap($tribunaNorm);
+
+    $blocks = [];
+
+    foreach ($tickets as $t) {
+        $block = (int)($t['blocco'] ?? 1);
+        if ($block <= 0) {
+            $block = 1;
+        }
+
+        if ($singleContinuousMap) {
+            $block = 1;
+        }
+
+        if (!isset($blocks[$block])) {
+            $blocks[$block] = [
+                'block' => $block,
+                'rows' => [],
+                'max_row' => 0,
+                'max_seat' => 0,
+            ];
+        }
+
+        $fila = (int)($t['fila'] ?? 0);
+        $posto = (int)($t['posto'] ?? 0);
+
+        if ($fila > 0 && $posto > 0) {
+            $blocks[$block]['rows'][$fila][$posto] = true;
+            $blocks[$block]['max_row'] = max($blocks[$block]['max_row'], $fila);
+            $blocks[$block]['max_seat'] = max($blocks[$block]['max_seat'], $posto);
+        }
+    }
+
+    ksort($blocks);
+
+    return array_values($blocks);
+}
+
+function seatMapCellIndex(array $seatMap): array
+{
+    $idx = [];
+
+    foreach ($seatMap as $cell) {
+        $block = (int)($cell['blocco'] ?? 1);
+        $fila  = (int)($cell['fila'] ?? 0);
+        $posto = (int)($cell['posto'] ?? 0);
+
+        $idx[$block][$fila][$posto] = $cell;
+    }
+
+    return $idx;
 }

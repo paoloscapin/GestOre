@@ -110,7 +110,7 @@ function createPdfsPerEmail(string $sourcePdf, array $assignments, string $pdfOu
             'email' => $row['email'],
             'path' => $dest,
         ];
-    }MAIL_TEST_OVERRIDE
+    }
 
     return $files;
 }

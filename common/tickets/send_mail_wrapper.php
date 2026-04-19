@@ -18,7 +18,13 @@ function buildMailBody(array $assignment): string
 {
     $posti   = implode(', ', array_map('strval', $assignment['posti'] ?? []));
     $name    = htmlspecialchars((string)($assignment['display_name'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $tribuna = htmlspecialchars((string)($assignment['tribuna'] ?? ''), ENT_QUOTES, 'UTF-8');
+    $blockLabel = ticketBlockDisplayLabel($assignment);
+    $venueLabel = trim((string)($assignment['tribuna'] ?? ''));
+    if ($venueLabel !== '' && $blockLabel !== '' && function_exists('ticketsVenueIsGradinata') && ticketsVenueIsGradinata($venueLabel)) {
+        $venueLabel .= ' - ' . $blockLabel;
+    }
+    $tribuna = htmlspecialchars($venueLabel, ENT_QUOTES, 'UTF-8');
+    $blockLabelHtml = htmlspecialchars($blockLabel, ENT_QUOTES, 'UTF-8');
     $fila    = (int)($assignment['fila'] ?? 0);
     $plural  = count($assignment['posti'] ?? []) > 1;
 
@@ -94,6 +100,12 @@ function buildMailBody(array $assignment): string
         . '                    <td style="padding:8px 14px 8px 0;font-size:15px;font-weight:700;color:#0f172a;width:120px;">Fila</td>'
         . '                    <td style="padding:8px 0;font-size:15px;color:#1f2937;">' . $fila . '</td>'
         . '                  </tr>'
+        . ($blockLabel !== ''
+            ? '                  <tr>'
+            . '                    <td style="padding:8px 14px 8px 0;font-size:15px;font-weight:700;color:#0f172a;">' . (function_exists('ticketsVenueIsGradinata') && ticketsVenueIsGradinata((string)($assignment['tribuna'] ?? '')) ? 'Settore' : 'Blocco') . '</td>'
+            . '                    <td style="padding:8px 0;font-size:15px;color:#1f2937;">' . $blockLabelHtml . '</td>'
+            . '                  </tr>'
+            : '')
         . '                  <tr>'
         . '                    <td style="padding:8px 14px 8px 0;font-size:15px;font-weight:700;color:#0f172a;">Posti</td>'
         . '                    <td style="padding:8px 0;font-size:15px;color:#1f2937;">' . htmlspecialchars($posti, ENT_QUOTES, 'UTF-8') . '</td>'
