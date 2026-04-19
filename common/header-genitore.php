@@ -41,7 +41,13 @@
 					<?php echo $__genitore_nome . ' ' . $__genitore_cognome ?></a></li>
 			<li>
 				<?php
-				echo '<a href="../common/logout.php?base=genitore"><span class="glyphicon glyphicon-log-out"></span></a>';
+				if (haRuolo('admin')) {
+					echo '<a href="#" onclick="window.close(); return false;"><span class="glyphicon glyphicon-log-out"></span></a>';
+				}
+				else
+				{
+					echo '<a href="../common/logout.php?base=genitore"><span class="glyphicon glyphicon-log-out"></span></a>';
+				}
 				?>
 			</li>
 		</ul>

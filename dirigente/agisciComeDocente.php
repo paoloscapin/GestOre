@@ -37,9 +37,22 @@ if (isset($_POST)) {
         $row = mysqli_fetch_assoc($result);
 
         // ✅ come prima
+        $session->set('studente_id', null);
+        $session->set('studente_nome', null);
+        $session->set('studente_cognome', null);
+        $session->set('studente_email', null);
+        $session->set('studente_codice_fiscale', null);
+        $session->set('genitore_id', null);
+        $session->set('genitore_nome', null);
+        $session->set('genitore_cognome', null);
+        $session->set('genitore_email', null);
+        $session->set('genitore_codice_fiscale', null);
+        $session->set('impersona_studente_id', null);
+        $session->set('impersona_genitore_id', null);
         $session->set('docente_id', $row['id']);
         $session->set('docente_nome', $row['nome']);
         $session->set('docente_cognome', $row['cognome']);
+        $session->set('docente_email', $row['email'] ?? null);
 
         // ✅ AGGIUNTA: flag impersonificazione (nomi “generici”)
         // Se nel tuo progetto i nomi sono diversi, li adeguiamo dopo con impersonaRuolo()

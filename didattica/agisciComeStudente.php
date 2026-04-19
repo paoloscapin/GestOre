@@ -17,11 +17,25 @@ if (isset($_POST)) {
     // lo cerco tra gli studenti:
     $studente = dbGetFirst("SELECT * FROM studente WHERE studente.id = '$studente_id'");
     if ($studente != null) {
+        $session->set ( 'docente_id', null );
+        $session->set ( 'docente_nome', null );
+        $session->set ( 'docente_cognome', null );
+        $session->set ( 'docente_email', null );
+        $session->set ( 'genitore_id', null );
+        $session->set ( 'genitore_nome', null );
+        $session->set ( 'genitore_cognome', null );
+        $session->set ( 'genitore_email', null );
+        $session->set ( 'genitore_codice_fiscale', null );
+        $session->set ( 'impersona_docente_id', null );
+        $session->set ( 'impersona_genitore_id', null );
         $session->set ( 'studente_id', $studente ['id'] );
         $session->set ( 'studente_nome', $studente ['nome'] );
         $session->set ( 'studente_cognome', $studente ['cognome'] );
-        $session->set ( 'studente_email', $__useremail );
+        $session->set ( 'studente_email', $studente ['email'] );
         $session->set ( 'studente_codice_fiscale', $studente ['codice_fiscale'] );
+        $session->set ( 'impersona_attiva', 1 );
+        $session->set ( 'impersona_ruolo', 'studente' );
+        $session->set ( 'impersona_studente_id', $studente ['id'] );
     }
 
     $__studente_id = $session->get ( 'studente_id' );
