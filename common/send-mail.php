@@ -15,7 +15,7 @@ $rdir = str_replace("\\", "/", dirname(__FILE__));
 require $rdir . '/PHPMailer-master/src/Exception.php';
 require $rdir . '/PHPMailer-master/src/PHPMailer.php';
 require $rdir . '/PHPMailer-master/src/SMTP.php';
-require_once '../common/connect.php';
+require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/__Settings.php';
 
 function sendMail($to, $toName, $subject, $Content): bool
@@ -23,6 +23,7 @@ function sendMail($to, $toName, $subject, $Content): bool
     global $__settings;
 
     $mail = new PHPMailer(true);
+
     try {
         $mail->CharSet = "utf-8";
         $mail->Encoding = "base64";
@@ -44,6 +45,7 @@ function sendMail($to, $toName, $subject, $Content): bool
                 'allow_self_signed' => true
             ]
         ];
+
         $mail->IsHTML(true);
         $mail->addAddress($to, $toName);
         $mail->setFrom($__settings->local->emailNoReplyFrom, "GestOre " . $__settings->local->nomeIstituto, true);
@@ -55,15 +57,25 @@ function sendMail($to, $toName, $subject, $Content): bool
 
         $ok = $mail->send();
         info("[send-mail] send ok=" . ($ok ? "1" : "0") . " to=$to subj=$subject");
-        $mail->smtpClose();
-        return (bool)$ok;
 
+        try {
+            $mail->smtpClose();
+        } catch (Throwable $e2) {
+        }
+
+        return (bool)$ok;
     } catch (Throwable $e) {
-        error("[send-mail] EXCEPTION: ".$e->getMessage());
-        try { $mail->smtpClose(); } catch(Throwable $e2) {}
+        error("[send-mail] EXCEPTION: " . $e->getMessage());
+
+        try {
+            $mail->smtpClose();
+        } catch (Throwable $e2) {
+        }
+
         return false;
     }
 }
+
 
 
 function sendMailCC($to, $toName, $toCC, $toCCName, $subject, $Content)
@@ -115,14 +127,19 @@ function sendMailCC($to, $toName, $toCC, $toCCName, $subject, $Content)
 
     // Attempt to send the email
     $mail->msgHTML($content);
-    if (!$mail->Send()) {
-        info("[send-mail] Error while sending Email");
-        var_dump($mail);
-    } else {
-        info("[send-mail] Email sent successfully");
+    try {
+        $ok = $mail->send();
+        info("[send-mail] send ok=" . ($ok ? "1" : "0") . " to=$to subj=$subject");
+        $mail->smtpClose();
+        return (bool)$ok;
+    } catch (Throwable $e) {
+        error("[send-mail] EXCEPTION: " . $e->getMessage());
+        try {
+            $mail->smtpClose();
+        } catch (Throwable $e2) {
+        }
+        return false;
     }
-    info("[send-mail] invio concluso");
-    $mail->smtpClose();
 }
 
 function sendMailwithAttachment($to, $toName, $subject, $Content, $AttachmentFilePath)
@@ -145,8 +162,18 @@ function sendMailwithAttachment($to, $toName, $subject, $Content, $AttachmentFil
     $mail->CharSet = 'UTF-8';
     $mail->Port = $__settings->local->Port;
     // Allegato
-    if (!empty($AttachmentFilePath) && file_exists($AttachmentFilePath)) {
-        $mail->addAttachment($AttachmentFilePath);
+    if (!empty($AttachmentFilePath)) {
+        if (is_array($AttachmentFilePath)) {
+            foreach ($AttachmentFilePath as $file) {
+                if (is_file($file)) {
+                    $mail->addAttachment($file);
+                }
+            }
+        } else {
+            if (is_file($AttachmentFilePath)) {
+                $mail->addAttachment($AttachmentFilePath);
+            }
+        }
     }
     $mail->SMTPOptions = array(
         'ssl' => array(
@@ -166,14 +193,18 @@ function sendMailwithAttachment($to, $toName, $subject, $Content, $AttachmentFil
 
     // Attempt to send the email
     $mail->msgHTML($content);
-    if (!$mail->Send()) {
-        info("[send-mail] Error while sending Email");
-        var_dump($mail);
-    } else {
-        info("[send-mail] Email sent successfully");
+    try {
+        $ok = $mail->send();
+        info("[send-mail] send ok=" . ($ok ? "1" : "0") . " to=$to subj=$subject");
+        $mail->smtpClose();
+        return (bool)$ok;
+    } catch (Throwable $e) {
+        error("[send-mail] EXCEPTION: " . $e->getMessage());
+        try {
+            $mail->smtpClose();
+        } catch (Throwable $e2) {
+        }
+        return false;
     }
-    info("[send-mail] invio concluso");
-    $mail->smtpClose();
-    //    mouy esuj uqnh lgoe
-    //    A76SibgsUX#W
+  
 }
