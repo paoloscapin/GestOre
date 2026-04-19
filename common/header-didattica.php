@@ -14,98 +14,83 @@
 	<div class="container-fluid">
 		<?php require_once '../common/header-_logo.php'; ?>
 
-		<ul class="nav navbar-nav top-navbar-nav">
+		<ul class="nav navbar-nav top-navbar-nav admin-navbar-nav">
 			<?php if (getSettingsValue('config', 'sportelli', false)) : ?>
-				<a href="../didattica/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>
-				<a href="../didattica/reportSportelli.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Report Sportelli </a>
+				<li><a href="../didattica/sportello.php" class="btn btn-default nav-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a></li>
+				<li><a href="../didattica/reportSportelli.php" class="btn btn-default nav-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Report Sportelli </a></li>
 			<?php endif; ?>
-			<a href="../didattica/studente.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Studenti </a>
-			<a href="../didattica/genitore.php" class="btn btn-default navbar-btn btn-purple" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Genitori </a>
+
+			<li><a href="../didattica/studente.php" class="btn btn-default nav-btn btn-lima4" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Studenti </a></li>
+			<li><a href="../didattica/genitore.php" class="btn btn-default nav-btn btn-purple" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Genitori </a></li>
+
 			<?php if ($__settings->config->corsiDiRecupero) : ?>
-				<a href="../docente/corsoDiRecuperoVoti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a>
+				<li><a href="../docente/corsoDiRecuperoVoti.php" class="btn btn-default nav-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a></li>
 			<?php endif; ?>
-			<?php if (getSettingsValue('config', 'pianiDiLavoro', false)) : ?>
-				<div class="btn-group">
-					<a href="../docente/pianoDiLavoro.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
-				</div>
+
+			<?php
+			$showProgrammiMenu =
+				getSettingsValue('config', 'pianiDiLavoro', false) ||
+				getSettingsValue('config', 'pianiDiLavoroEstesi', false) ||
+				getSettingsValue('config', 'programmaMaterie', false) ||
+				getSettingsValue('config', 'programmiMinimi', false) ||
+				getSettingsValue('config', 'programmiIniziali', false) ||
+				getSettingsValue('config', 'programmiSvolti', false);
+			?>
+			<?php if ($showProgrammiMenu) : ?>
+				<li class="dropdown">
+					<a href="#" class="btn btn-default btn-lightblue4 nav-btn dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<span class="glyphicon glyphicon-folder-open"></span>&ensp;Programmi <span class="caret"></span>
+					</a>
+					<ul class="dropdown-menu">
+						<?php if (getSettingsValue('config', 'pianiDiLavoro', false)) : ?>
+							<li><a href="../docente/pianoDiLavoro.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro</a></li>
+						<?php endif; ?>
+						<?php if (getSettingsValue('config', 'pianiDiLavoroEstesi', false)) : ?>
+							<li><a href="../docente/pdl.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro Estesi</a></li>
+						<?php endif; ?>
+						<?php if (getSettingsValue('config', 'programmaMaterie', false)) : ?>
+							<li><a href="../didattica/programmaMaterie.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Programmi Materie</a></li>
+						<?php endif; ?>
+						<?php if (getSettingsValue('config', 'programmiIniziali', false)) : ?>
+							<li><a href="../didattica/programmiIniziali.php"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Iniziali</a></li>
+						<?php endif; ?>
+						<?php if (getSettingsValue('config', 'programmiSvolti', false)) : ?>
+							<li><a href="../didattica/programmiSvolti.php"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Svolti</a></li>
+						<?php endif; ?>
+						<?php if (getSettingsValue('config', 'programmiMinimi', false)) : ?>
+							<li><a href="../didattica/programmaMinimi.php"><span class="glyphicon glyphicon-th-list"></span>&ensp;Obiettivi Minimi</a></li>
+						<?php endif; ?>
+					</ul>
+				</li>
 			<?php endif; ?>
-			<?php if (getSettingsValue('config', 'pianiDiLavoroEstesi', false)) : ?>
-				<div class="btn-group">
-					<a href="../docente/pdl.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Piani di Lavoro </a>
-				</div>
-			<?php endif; ?>
-			<?php if (getSettingsValue('config', 'programmaMaterie', false)) : ?>
-				<div class="btn-group">
-					<a href="../didattica/programmaMaterie.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-th-large"></span>&ensp;Progr.Materie </a>
-				</div>
-			<?php endif; ?>
-			<?php if (getSettingsValue('config', 'programmiMinimi', false)) : ?>
-				<div class="btn-group">
-					<a href="../didattica/programmaMinimi.php" class="btn btn-default navbar-btn btn-purple" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Obiett.Minimi </a>
-				</div>
-			<?php endif; ?>
-			<?php if (getSettingsValue('config', 'programmiIniziali', false)) : ?>
-				<div class="btn-group">
-					<a href="../didattica/programmiIniziali.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Iniziali </a>
-				</div>
-			<?php endif; ?>
-			<?php if (getSettingsValue('config', 'programmiSvolti', false)) : ?>
-				<div class="btn-group">
-					<a href="../didattica/programmiSvolti.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Svolti </a>
-				</div>
-			<?php endif; ?>
+
 			<?php
 			if (haRuolo('segreteria-didattica')) {
 				if (getSettingsValue('config', 'corsi', false)) {
-					echo '
-			<div class="btn-group">
-			<a href="';
-					echo '../didattica/corsi.php" class="btn btn-default navbar-btn btn-yellow" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Corsi </a>
-			</div>
-			';
+					echo '<li><a href="../didattica/corsi.php" class="btn btn-default nav-btn btn-yellow" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Corsi </a></li>';
 				}
 
 				if (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) {
-					echo '
-			<div class="btn-group">
-			<a href="';
-					echo '../didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
-			</div>
-			';
+					echo '<li><a href="../didattica/carenzeMinimi.php" class="btn btn-default nav-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a></li>';
 				}
+
 				if (getSettingsValue('config', 'permessi', false)) {
-					echo '
-			<div class="btn-group">
-			<a href="';
-					echo '../didattica/permessi.php" class="btn btn-default navbar-btn btn-lima4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Permessi </a>
-			</div>
-			';
+					echo '<li><a href="../didattica/permessi.php" class="btn btn-default nav-btn btn-lima4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Permessi </a></li>';
 				}
-			} else
-		if (haRuolo('docente')) {
+			} elseif (haRuolo('docente')) {
 				if ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false))) {
-					echo '
-			<div class="btn-group">
-			<a href="';
-					echo'../didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
-			</div>
-			';
+					echo '<li><a href="../didattica/carenzeMinimi.php" class="btn btn-default nav-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a></li>';
 				}
-			} else
-		 if (haRuolo('studente')) {
+			} elseif (haRuolo('studente')) {
 				if ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
-					echo '
-			<div class="btn-group">
-			<a href="../didattica/carenzeMinimi.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Carenze </a>
-			</div>
-			';
+					echo '<li><a href="../didattica/carenzeMinimi.php" class="btn btn-default nav-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Carenze </a></li>';
 				}
 			}
 			?>
 
 		</ul>
 
-		<ul class="nav navbar-nav navbar-right top-navbar-nav">
+		<ul class="nav navbar-nav navbar-right top-navbar-nav admin-navbar-nav-right">
 			<li><a href="<?php echo $__settings->local->helpLinkDidattica; ?>" target="_blank"><span class="glyphicon glyphicon-question-sign"></span></a></li>
 			<li><a><span class=""></span>
 					<?php if (haRuolo('admin')) echo "(A)" ?>
