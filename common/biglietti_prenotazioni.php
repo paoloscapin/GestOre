@@ -66,7 +66,7 @@ if (haRuolo('studente')) {
     <?php require_once __DIR__ . '/style.php'; ?>
     <style>
         .ticket-booking-page {
-            padding-top: var(--header-offset, 90px);
+            padding-top: 0;
             padding-bottom: 24px;
         }
 

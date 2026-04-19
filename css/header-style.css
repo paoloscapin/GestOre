@@ -31,6 +31,24 @@
   white-space: nowrap;
 }
 
+.docente-navbar-nav > li > a.nav-btn{
+  margin: 8px 1px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.docente-navbar-nav > li.dropdown > .dropdown-toggle .caret{
+  margin-left: 4px;
+}
+
+.docente-navbar-nav .dropdown-menu{
+  min-width: 240px;
+}
+
+.docente-navbar-nav .dropdown-menu > li > a{
+  white-space: nowrap;
+}
+
 .top-navbar-default {
      background-color: #2FA4E7; /*  */
      border-color: #1995DC;
