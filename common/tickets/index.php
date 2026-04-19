@@ -414,11 +414,14 @@ try {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= h(APP_TITLE) ?></title>
+    <?php require_once __DIR__ . '/../header-common.php'; ?>
+    <?php require_once __DIR__ . '/../style.php'; ?>
     <link rel="icon" type="image/png" href="icon-ticket.png">
     <link rel="stylesheet" href="tickets.css?v=1">
 </head>
 
 <body>
+    <?php require_once __DIR__ . '/../header-admin.php'; ?>
     <div class="wrap">
         <div class="hero" style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
             <div>

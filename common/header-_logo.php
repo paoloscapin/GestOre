@@ -18,7 +18,7 @@ if (file_exists(__DIR__ . '/../version.php')) {
 	$__software_release_date = 'unknown';
 }
 
-$changeLogLinkBegin = '<a href="../changelog.md" target="_blank" >';
+$changeLogLinkBegin = '<a href="' . $__application_base_path . '/changelog.md" target="_blank" >';
 $changeLogLinkEnd = '</a>';
 
 ?>
@@ -26,7 +26,7 @@ $changeLogLinkEnd = '</a>';
 <div class="navbar-header">
 
 	<div class="logo-tooltip-wrapper">
-		<a href="../index.php" class="navbar-brand top-navbar-brand">
+		<a href="<?php echo $__application_base_path; ?>/index.php" class="navbar-brand top-navbar-brand">
 			<img style="height: 44px; margin-top: -10px;"
 			     src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'logo.png'")); ?>"
 			     alt="Logo">

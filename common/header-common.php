@@ -8,8 +8,8 @@
  */
 
 // favicon ref
-echo '<link rel="icon" href="../ore-32.png" />';
-echo '<link rel="stylesheet" href="../css/releaseversion.css?' . time() . '" />';
+echo '<link rel="icon" href="' . $__application_base_path . '/ore-32.png" />';
+echo '<link rel="stylesheet" href="' . $__application_base_path . '/css/releaseversion.css?' . time() . '" />';
 ?>
 <script src="<?php echo $__application_base_path; ?>/common/jquery-3.3.1-dist/jquery-3.3.1.min.js"></script>
 
