@@ -193,9 +193,20 @@ $isAtaHome = in_array($currentScript, ['index.php'], true);
 
 	<?php if (!$isAtaHome): ?>
 		<div class="ata-mobile-nav">
+			<a href="../common/biglietti_prenotazioni.php" class="ata-mobile-btn<?php echo ataIsActive('biglietti_prenotazioni.php') ? ' is-active' : ''; ?>">
+				<span class="glyphicon glyphicon-barcode"></span>
+				<span>Biglietti</span>
+			</a>
 			<a href="../ata/index.php" class="ata-mobile-btn">
 				<span class="glyphicon glyphicon-home"></span>
 				<span>Torna alla home</span>
+			</a>
+		</div>
+	<?php else: ?>
+		<div class="ata-mobile-nav">
+			<a href="../common/biglietti_prenotazioni.php" class="ata-mobile-btn<?php echo ataIsActive('biglietti_prenotazioni.php') ? ' is-active' : ''; ?>">
+				<span class="glyphicon glyphicon-barcode"></span>
+				<span>Biglietti</span>
 			</a>
 		</div>
 	<?php endif; ?>

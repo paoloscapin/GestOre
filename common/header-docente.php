@@ -82,6 +82,10 @@
 						data-placement="bottom" title="Visualizza ed inserisci i programmi svolti nei propri corsi"><span class="glyphicon glyphicon-th-list"></span>&ensp;Progr.Svolti </a>
 				</div>
 			<?php endif; ?>
+			<div class="btn-group">
+				<a href="../common/biglietti_prenotazioni.php" class="btn btn-default navbar-btn btn-yellow4" role="button" data-toggle="tooltip"
+					data-placement="bottom" title="Prenota i biglietti degli eventi aperti"><span class="glyphicon glyphicon-barcode"></span>&ensp;Biglietti </a>
+			</div>
 
 			<?php if ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false))) : ?>
 				<div class="btn-group">

@@ -32,7 +32,8 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/annoScolastico.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Anno Scolastico</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/utente.php"><span class="glyphicon glyphicon-user"></span>&ensp;Utente</a></li>
 					<li role="separator" class="divider"></li>
-					<li><a href="<?php echo $__application_base_path; ?>/admin/tickets.php"><span class="glyphicon glyphicon-barcode"></span>&ensp;Biglietti</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/biglietti_eventi.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Eventi Biglietti</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/tickets.php"><span class="glyphicon glyphicon-barcode"></span>&ensp;Assegna Biglietti</a></li>
 				</ul>
 			</li>
 			<li><a href="<?php echo $__application_base_path; ?>/orario/orario.php" class="btn btn-default btn-lightblue4 nav-btn" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Orario </a></li>

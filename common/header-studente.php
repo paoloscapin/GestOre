@@ -27,6 +27,9 @@
 		?>
 		</ul>
 		<ul class="nav navbar-nav top-navbar-nav">
+			<a href="../common/biglietti_prenotazioni.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-barcode"></span>&ensp;Biglietti </a>
+		</ul>
+		<ul class="nav navbar-nav top-navbar-nav">
 			<?php
 			if (getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false)) : ?>
 				<a href="../studente/carenze.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
