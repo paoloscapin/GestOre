@@ -13,6 +13,24 @@
      border-radius: 0px;
 }
 
+.admin-navbar-nav > li > a.nav-btn{
+  margin: 8px 1px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.admin-navbar-nav > li.dropdown > .dropdown-toggle .caret{
+  margin-left: 4px;
+}
+
+.admin-navbar-nav .dropdown-menu{
+  min-width: 240px;
+}
+
+.admin-navbar-nav .dropdown-menu > li > a{
+  white-space: nowrap;
+}
+
 .top-navbar-default {
      background-color: #2FA4E7; /*  */
      border-color: #1995DC;
