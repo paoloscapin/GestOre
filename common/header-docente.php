@@ -9,6 +9,21 @@
 
 ?>
 <link rel="stylesheet" href="../css/header-style.css">
+<?php
+$docenteHeaderNome = '';
+$docenteHeaderCognome = '';
+
+if (!empty($docente_view_nome) || !empty($docente_view_cognome)) {
+	$docenteHeaderNome = (string)$docente_view_nome;
+	$docenteHeaderCognome = (string)$docente_view_cognome;
+} elseif (!empty($__docente_nome) || !empty($__docente_cognome)) {
+	$docenteHeaderNome = (string)$__docente_nome;
+	$docenteHeaderCognome = (string)$__docente_cognome;
+} else {
+	$docenteHeaderNome = (string)$__utente_nome;
+	$docenteHeaderCognome = (string)$__utente_cognome;
+}
+?>
 
 <nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
 	<div class="container-fluid">
@@ -125,7 +140,7 @@
 			<li><a><span class=""></span>
 					<?php if (haRuolo('admin'))
 						echo "(A)" ?>
-					<?php echo $docente_view_nome . ' ' . $docente_view_cognome ?></a></li>
+					<?php echo htmlspecialchars(trim($docenteHeaderNome . ' ' . $docenteHeaderCognome), ENT_QUOTES, 'UTF-8'); ?></a></li>
 			<li>
 				<?php
 				if (haRuolo('admin')) {

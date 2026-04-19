@@ -9,7 +9,7 @@ require_once __DIR__ . '/ticket_eventi_lib.php';
 
 ticketEventiEnsureSchema();
 
-if (!haRuolo('studente') && !haRuolo('docente') && !haRuolo('personale-ata') && !haRuolo('admin')) {
+if (!impersonaRuolo('studente') && !impersonaRuolo('docente') && !haRuolo('personale-ata') && !haRuolo('admin')) {
     redirect('/error/unauthorized.php');
     exit();
 }
@@ -48,12 +48,14 @@ $eventi = $actor !== null
     : [];
 
 $headerFile = __DIR__ . '/header-admin.php';
-if (haRuolo('studente')) {
-    $headerFile = __DIR__ . '/header-studente.php';
-} elseif (haRuolo('docente')) {
-    $headerFile = __DIR__ . '/header-docente.php';
-} elseif (haRuolo('personale-ata')) {
-    $headerFile = __DIR__ . '/header-ata.php';
+if ($actor !== null) {
+    if (($actor['ruolo'] ?? '') === 'docente') {
+        $headerFile = __DIR__ . '/header-docente.php';
+    } elseif (($actor['ruolo'] ?? '') === 'studente') {
+        $headerFile = __DIR__ . '/header-studente.php';
+    } elseif (($actor['ruolo'] ?? '') === 'personale-ata') {
+        $headerFile = __DIR__ . '/header-ata.php';
+    }
 }
 ?>
 <!DOCTYPE html>

@@ -63,18 +63,7 @@ function ticketEventiCurrentActor(): ?array
     global $__docente_id, $__docente_nome, $__docente_cognome, $__docente_email;
     global $__ata_id, $__ata_nome, $__ata_cognome, $__ata_email;
 
-    if (haRuolo('studente') && !empty($__studente_id)) {
-        return [
-            'ruolo' => 'studente',
-            'riferimento_id' => (int)$__studente_id,
-            'utente_id' => ($__utente_id !== null ? (int)$__utente_id : -1),
-            'nominativo' => trim((string)$__studente_cognome . ' ' . (string)$__studente_nome),
-            'email' => (string)$__studente_email,
-            'classe_label' => (string)ticketEventiStudenteClasse((int)$__studente_id, (int)$__anno_scolastico_corrente_id),
-        ];
-    }
-
-    if (haRuolo('docente') && !empty($__docente_id)) {
+    if (impersonaRuolo('docente') && !empty($__docente_id)) {
         return [
             'ruolo' => 'docente',
             'riferimento_id' => (int)$__docente_id,
@@ -82,6 +71,17 @@ function ticketEventiCurrentActor(): ?array
             'nominativo' => trim((string)$__docente_cognome . ' ' . (string)$__docente_nome),
             'email' => (string)$__docente_email,
             'classe_label' => '',
+        ];
+    }
+
+    if (impersonaRuolo('studente') && !empty($__studente_id)) {
+        return [
+            'ruolo' => 'studente',
+            'riferimento_id' => (int)$__studente_id,
+            'utente_id' => ($__utente_id !== null ? (int)$__utente_id : -1),
+            'nominativo' => trim((string)$__studente_cognome . ' ' . (string)$__studente_nome),
+            'email' => (string)$__studente_email,
+            'classe_label' => (string)ticketEventiStudenteClasse((int)$__studente_id, (int)$__anno_scolastico_corrente_id),
         ];
     }
 
@@ -294,6 +294,74 @@ function ticketEventiSaveEvent(array $data, int $annoId, int $utenteId): array
     ");
 
     return ['ok' => true, 'message' => 'Evento creato con successo.'];
+}
+
+function ticketEventiUpdateEvent(int $eventoId, array $data, int $annoId, int $utenteId): array
+{
+    $evento = ticketEventiGetEventById($eventoId, $annoId);
+    if (!$evento) {
+        return ['ok' => false, 'message' => 'Evento non trovato.'];
+    }
+
+    $titolo = trim((string)($data['titolo'] ?? ''));
+    $descrizione = trim((string)($data['descrizione'] ?? ''));
+    $luogo = trim((string)($data['luogo'] ?? ''));
+    $dataEvento = ticketEventiNormalizeDateTime((string)($data['data_evento'] ?? ''));
+    $apertura = ticketEventiNormalizeDateTime((string)($data['apertura_prenotazioni'] ?? ''));
+    $chiusura = ticketEventiNormalizeDateTime((string)($data['chiusura_prenotazioni'] ?? ''));
+    $maxPerUtente = max(1, (int)($data['max_posti_per_utente'] ?? 1));
+    $maxTotali = max(0, (int)($data['max_posti_totali'] ?? 0));
+    $visibileStudenti = !empty($data['visibile_studenti']) ? 1 : 0;
+    $visibileDocenti = !empty($data['visibile_docenti']) ? 1 : 0;
+    $visibileAta = !empty($data['visibile_ata']) ? 1 : 0;
+    $stato = (string)($data['stato'] ?? 'bozza');
+
+    if ($titolo === '') {
+        return ['ok' => false, 'message' => 'Inserisci il titolo dell\'evento.'];
+    }
+
+    if ($dataEvento === null) {
+        return ['ok' => false, 'message' => 'Inserisci una data evento valida.'];
+    }
+
+    if ($apertura !== null && $chiusura !== null && strtotime($apertura) > strtotime($chiusura)) {
+        return ['ok' => false, 'message' => 'La chiusura prenotazioni deve essere successiva all\'apertura.'];
+    }
+
+    if ($chiusura !== null && strtotime($chiusura) > strtotime($dataEvento)) {
+        return ['ok' => false, 'message' => 'La chiusura prenotazioni non puo superare la data dell\'evento.'];
+    }
+
+    if (!in_array($stato, ['bozza', 'aperto', 'chiuso'], true)) {
+        $stato = 'bozza';
+    }
+
+    if ($visibileStudenti === 0 && $visibileDocenti === 0 && $visibileAta === 0) {
+        return ['ok' => false, 'message' => 'Seleziona almeno un tipo di utente abilitato alla prenotazione.'];
+    }
+
+    dbExec("
+        UPDATE ticket_evento
+        SET titolo = " . dbQ($titolo) . ",
+            descrizione = " . dbQ($descrizione) . ",
+            luogo = " . dbQ($luogo) . ",
+            data_evento = " . dbQ($dataEvento) . ",
+            apertura_prenotazioni = " . dbQ($apertura) . ",
+            chiusura_prenotazioni = " . dbQ($chiusura) . ",
+            max_posti_per_utente = " . dbI($maxPerUtente) . ",
+            max_posti_totali = " . ($maxTotali > 0 ? dbI($maxTotali) : 'NULL') . ",
+            visibile_studenti = " . dbI($visibileStudenti) . ",
+            visibile_docenti = " . dbI($visibileDocenti) . ",
+            visibile_ata = " . dbI($visibileAta) . ",
+            stato = " . dbQ($stato) . ",
+            aggiornato_da_utente_id = " . ($utenteId > 0 ? dbI($utenteId) : 'NULL') . ",
+            updated_at = NOW()
+        WHERE id = " . dbI($eventoId) . "
+          AND anno_scolastico_id = " . dbI($annoId) . "
+        LIMIT 1
+    ");
+
+    return ['ok' => true, 'message' => 'Evento aggiornato con successo.'];
 }
 
 function ticketEventiUpdateEventStatus(int $eventoId, int $annoId, string $stato, int $utenteId): array

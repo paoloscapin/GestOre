@@ -12,6 +12,7 @@ ticketEventiEnsureSchema();
 
 $flash = null;
 $flashType = 'success';
+$editingEventId = 0;
 
 $formData = [
     'titolo' => '',
@@ -28,10 +29,39 @@ $formData = [
     'stato' => 'bozza',
 ];
 
+if (isset($_GET['edit_id'])) {
+    $editingEventId = (int)$_GET['edit_id'];
+    if ($editingEventId > 0) {
+        $eventoDaModificare = ticketEventiGetEventById($editingEventId, (int)$__anno_scolastico_corrente_id);
+        if ($eventoDaModificare) {
+            $formData = [
+                'titolo' => (string)($eventoDaModificare['titolo'] ?? ''),
+                'descrizione' => (string)($eventoDaModificare['descrizione'] ?? ''),
+                'luogo' => (string)($eventoDaModificare['luogo'] ?? ''),
+                'data_evento' => ticketEventiFormatDateTimeInput((string)($eventoDaModificare['data_evento'] ?? '')),
+                'apertura_prenotazioni' => ticketEventiFormatDateTimeInput((string)($eventoDaModificare['apertura_prenotazioni'] ?? '')),
+                'chiusura_prenotazioni' => ticketEventiFormatDateTimeInput((string)($eventoDaModificare['chiusura_prenotazioni'] ?? '')),
+                'max_posti_per_utente' => (string)($eventoDaModificare['max_posti_per_utente'] ?? '1'),
+                'max_posti_totali' => !empty($eventoDaModificare['max_posti_totali']) ? (string)$eventoDaModificare['max_posti_totali'] : '',
+                'visibile_studenti' => !empty($eventoDaModificare['visibile_studenti']) ? '1' : '',
+                'visibile_docenti' => !empty($eventoDaModificare['visibile_docenti']) ? '1' : '',
+                'visibile_ata' => !empty($eventoDaModificare['visibile_ata']) ? '1' : '',
+                'stato' => (string)($eventoDaModificare['stato'] ?? 'bozza'),
+            ];
+        } else {
+            $editingEventId = 0;
+            $flash = 'Evento da modificare non trovato.';
+            $flashType = 'danger';
+        }
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['form_action'] ?? ''));
+    $postedEventId = (int)($_POST['evento_id'] ?? 0);
 
-    if ($action === 'create_event') {
+    if ($action === 'create_event' || $action === 'update_event') {
+        $editingEventId = $action === 'update_event' ? $postedEventId : 0;
         $formData = [
             'titolo' => trim((string)($_POST['titolo'] ?? '')),
             'descrizione' => trim((string)($_POST['descrizione'] ?? '')),
@@ -47,11 +77,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'stato' => trim((string)($_POST['stato'] ?? 'bozza')),
         ];
 
-        $result = ticketEventiSaveEvent($_POST, (int)$__anno_scolastico_corrente_id, (int)$__utente_id);
+        if ($action === 'update_event' && $postedEventId > 0) {
+            $result = ticketEventiUpdateEvent($postedEventId, $_POST, (int)$__anno_scolastico_corrente_id, (int)$__utente_id);
+        } else {
+            $result = ticketEventiSaveEvent($_POST, (int)$__anno_scolastico_corrente_id, (int)$__utente_id);
+        }
         $flash = (string)$result['message'];
         $flashType = !empty($result['ok']) ? 'success' : 'danger';
 
         if (!empty($result['ok'])) {
+            $editingEventId = 0;
             $formData = [
                 'titolo' => '',
                 'descrizione' => '',
@@ -78,11 +113,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $flashType = !empty($result['ok']) ? 'success' : 'danger';
     } elseif ($action === 'delete_event') {
         $result = ticketEventiDeleteEvent(
-            (int)($_POST['evento_id'] ?? 0),
+            $postedEventId,
             (int)$__anno_scolastico_corrente_id
         );
         $flash = (string)$result['message'];
         $flashType = !empty($result['ok']) ? 'success' : 'danger';
+        if ($editingEventId === $postedEventId) {
+            $editingEventId = 0;
+        }
     }
 }
 
@@ -155,6 +193,38 @@ $eventi = ticketEventiGetEventsForAdmin((int)$__anno_scolastico_corrente_id);
             margin-bottom: 10px;
         }
 
+        .ticket-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .ticket-actions-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .ticket-actions-row .btn,
+        .ticket-actions-row form {
+            margin: 0;
+        }
+
+        .ticket-actions-row .btn {
+            min-width: 96px;
+        }
+
+        .ticket-actions-row.is-secondary .btn {
+            min-width: 120px;
+        }
+
+        .ticket-actions .btn-primary,
+        .ticket-actions .btn-primary:hover,
+        .ticket-actions .btn-primary:focus {
+            color: #fff;
+        }
+
         @media (max-width: 1100px) {
             .ticket-grid {
                 grid-template-columns: 1fr;
@@ -171,7 +241,7 @@ $eventi = ticketEventiGetEventsForAdmin((int)$__anno_scolastico_corrente_id);
             <div class="panel-heading">
                 <div class="ticket-toolbar">
                     <div>
-                        <span class="glyphicon glyphicon-plus-sign"></span>&ensp;Nuovo evento biglietti
+                        <span class="glyphicon glyphicon-<?php echo $editingEventId > 0 ? 'pencil' : 'plus-sign'; ?>"></span>&ensp;<?php echo $editingEventId > 0 ? 'Modifica evento biglietti' : 'Nuovo evento biglietti'; ?>
                     </div>
                     <div class="ticket-muted">
                         Anno scolastico: <?php echo htmlspecialchars((string)$__anno_scolastico_corrente_anno, ENT_QUOTES, 'UTF-8'); ?>
@@ -186,7 +256,8 @@ $eventi = ticketEventiGetEventsForAdmin((int)$__anno_scolastico_corrente_id);
                 <?php endif; ?>
 
                 <form method="post">
-                    <input type="hidden" name="form_action" value="create_event">
+                    <input type="hidden" name="form_action" value="<?php echo $editingEventId > 0 ? 'update_event' : 'create_event'; ?>">
+                    <input type="hidden" name="evento_id" value="<?php echo $editingEventId; ?>">
 
                     <div class="form-group">
                         <label for="titolo">Titolo evento</label>
@@ -277,8 +348,13 @@ $eventi = ticketEventiGetEventsForAdmin((int)$__anno_scolastico_corrente_id);
                     </div>
 
                     <button type="submit" class="btn btn-primary">
-                        <span class="glyphicon glyphicon-floppy-disk"></span>&ensp;Crea evento
+                        <span class="glyphicon glyphicon-floppy-disk"></span>&ensp;<?php echo $editingEventId > 0 ? 'Salva modifiche' : 'Crea evento'; ?>
                     </button>
+                    <?php if ($editingEventId > 0): ?>
+                        <a href="biglietti_eventi.php" class="btn btn-default">
+                            <span class="glyphicon glyphicon-remove"></span>&ensp;Annulla modifica
+                        </a>
+                    <?php endif; ?>
                 </form>
             </div>
         </div>
@@ -357,34 +433,39 @@ $eventi = ticketEventiGetEventsForAdmin((int)$__anno_scolastico_corrente_id);
                                     </span>
                                 </td>
                                 <td style="min-width: 300px;">
-                                    <div class="btn-group btn-group-sm" style="margin-bottom: 8px;">
-                                        <form method="post" style="display: inline;">
-                                            <input type="hidden" name="form_action" value="set_status">
-                                            <input type="hidden" name="evento_id" value="<?php echo (int)$evento['id']; ?>">
-                                            <input type="hidden" name="nuovo_stato" value="bozza">
-                                            <button type="submit" class="btn btn-warning">Bozza</button>
-                                        </form>
-                                        <form method="post" style="display: inline;">
-                                            <input type="hidden" name="form_action" value="set_status">
-                                            <input type="hidden" name="evento_id" value="<?php echo (int)$evento['id']; ?>">
-                                            <input type="hidden" name="nuovo_stato" value="aperto">
-                                            <button type="submit" class="btn btn-success">Apri</button>
-                                        </form>
-                                        <form method="post" style="display: inline;">
-                                            <input type="hidden" name="form_action" value="set_status">
-                                            <input type="hidden" name="evento_id" value="<?php echo (int)$evento['id']; ?>">
-                                            <input type="hidden" name="nuovo_stato" value="chiuso">
-                                            <button type="submit" class="btn btn-default">Chiudi</button>
-                                        </form>
-                                    </div>
-                                    <div>
-                                        <form method="post" style="display: inline;" onsubmit="return confirm('Eliminare questo evento e tutte le prenotazioni collegate?');">
-                                            <input type="hidden" name="form_action" value="delete_event">
-                                            <input type="hidden" name="evento_id" value="<?php echo (int)$evento['id']; ?>">
-                                            <button type="submit" class="btn btn-danger btn-sm">
-                                                <span class="glyphicon glyphicon-trash"></span>&ensp;Elimina
-                                            </button>
-                                        </form>
+                                    <div class="ticket-actions">
+                                        <div class="ticket-actions-row">
+                                            <a href="biglietti_eventi.php?edit_id=<?php echo (int)$evento['id']; ?>" class="btn btn-primary btn-sm">
+                                                <span class="glyphicon glyphicon-pencil"></span>&ensp;Modifica
+                                            </a>
+                                            <form method="post" style="display: inline;">
+                                                <input type="hidden" name="form_action" value="set_status">
+                                                <input type="hidden" name="evento_id" value="<?php echo (int)$evento['id']; ?>">
+                                                <input type="hidden" name="nuovo_stato" value="bozza">
+                                                <button type="submit" class="btn btn-warning btn-sm">Bozza</button>
+                                            </form>
+                                            <form method="post" style="display: inline;">
+                                                <input type="hidden" name="form_action" value="set_status">
+                                                <input type="hidden" name="evento_id" value="<?php echo (int)$evento['id']; ?>">
+                                                <input type="hidden" name="nuovo_stato" value="aperto">
+                                                <button type="submit" class="btn btn-success btn-sm">Apri</button>
+                                            </form>
+                                        </div>
+                                        <div class="ticket-actions-row is-secondary">
+                                            <form method="post" style="display: inline;">
+                                                <input type="hidden" name="form_action" value="set_status">
+                                                <input type="hidden" name="evento_id" value="<?php echo (int)$evento['id']; ?>">
+                                                <input type="hidden" name="nuovo_stato" value="chiuso">
+                                                <button type="submit" class="btn btn-default btn-sm">Chiudi</button>
+                                            </form>
+                                            <form method="post" style="display: inline;" onsubmit="return confirm('Eliminare questo evento e tutte le prenotazioni collegate?');">
+                                                <input type="hidden" name="form_action" value="delete_event">
+                                                <input type="hidden" name="evento_id" value="<?php echo (int)$evento['id']; ?>">
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <span class="glyphicon glyphicon-trash"></span>&ensp;Elimina
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
