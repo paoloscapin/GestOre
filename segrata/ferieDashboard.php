@@ -10,6 +10,8 @@ ruoloRichiesto('dirigente', 'segreteria-ata');
 
 $finestraDefault = 'ESTIVE';
 $modeDefault = 'APPROVATI_E_RICHIESTI';
+$ordinarieDateFromDefault = date('Y-m-01');
+$ordinarieDateToDefault = date('Y-m-t');
 
 ?>
 <!DOCTYPE html>
@@ -36,6 +38,23 @@ $modeDefault = 'APPROVATI_E_RICHIESTI';
 
         .dash-wrap .bootstrap-select {
             min-width: 210px !important;
+        }
+
+        .fd-range-wrap {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .fd-range-wrap.active {
+            display: inline-flex;
+        }
+
+        .fd-range-wrap .form-control {
+            width: 150px;
+            height: 30px;
+            padding: 4px 8px;
         }
 
         .summary-grid {
@@ -466,7 +485,13 @@ $modeDefault = 'APPROVATI_E_RICHIESTI';
                                 <option value="NATALE">Ferie Natale</option>
                                 <option value="CARNEVALE">Ferie Carnevale</option>
                                 <option value="PASQUA">Ferie Pasqua</option>
+                                <option value="ORDINARIE">Ferie ordinarie</option>
                             </select>
+
+                            <div id="fd_range_wrap" class="fd-range-wrap">
+                                <input type="date" id="fd_date_from" class="form-control input-sm" value="<?php echo htmlspecialchars($ordinarieDateFromDefault); ?>">
+                                <input type="date" id="fd_date_to" class="form-control input-sm" value="<?php echo htmlspecialchars($ordinarieDateToDefault); ?>">
+                            </div>
 
                             <select id="fd_mode" class="selectpicker" data-width="260px" data-style="btn-default btn-sm">
                                 <option value="APPROVATI_E_RICHIESTI" selected>Approvati + richiesti</option>

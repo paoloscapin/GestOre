@@ -613,6 +613,7 @@ function renderPermessoFerieModal(r) {
     $("#fm_subtitle").text("Richiesta ferie di " + (dip.nome || ""));
   }
   const selectedMap = buildSelectedDateMap(righe);
+  const selectedDates = Object.keys(selectedMap).sort();
   $("#fm_count_selected").text(Object.keys(selectedMap).length);
 
   const winStart = finestra.data_inizio || perm.ferie_win_da || "";
@@ -644,10 +645,33 @@ function renderPermessoFerieModal(r) {
   const countsByDate = r.counts_by_date || {};
   const tooltipByDate = r.tooltip_by_date || {};
   let html = "";
-  let curMonth = new Date(start.getFullYear(), start.getMonth(), 1);
-  const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+  const isOrdinarie = (perm.ferie_sottotipo || "").toString().trim().toUpperCase() === "ORDINARIE";
+  const monthsToRender = [];
 
-  while (curMonth <= endMonth) {
+  if (isOrdinarie && selectedDates.length) {
+    const seenMonths = {};
+
+    selectedDates.forEach(function (iso) {
+      const dt = parseIsoDate(iso);
+      if (!dt) return;
+
+      const monthKey = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0");
+      if (seenMonths[monthKey]) return;
+
+      seenMonths[monthKey] = true;
+      monthsToRender.push(new Date(dt.getFullYear(), dt.getMonth(), 1));
+    });
+  } else {
+    let curMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+
+    while (curMonth <= endMonth) {
+      monthsToRender.push(new Date(curMonth.getFullYear(), curMonth.getMonth(), 1));
+      curMonth = new Date(curMonth.getFullYear(), curMonth.getMonth() + 1, 1);
+    }
+  }
+
+  monthsToRender.forEach(function (curMonth) {
     const year = curMonth.getFullYear();
     const month = curMonth.getMonth();
 
@@ -762,8 +786,7 @@ function renderPermessoFerieModal(r) {
     }
 
     html += `</div></div>`;
-    curMonth = new Date(year, month + 1, 1);
-  }
+  });
 
   $("#fm_months_wrap").html(html);
   $("#fm_months_wrap .ferie-day-cell[data-clickable='1']").off("click").on("click", function () {

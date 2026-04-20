@@ -41,8 +41,36 @@ function isWeekendIso($iso)
     return ($n === 6 || $n === 7);
 }
 
+function ferieDashboardResolvePeriod(string $finestra, string $dateFrom, string $dateTo): ?array
+{
+    if ($finestra === 'ORDINARIE') {
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+            return null;
+        }
+        if ($dateTo < $dateFrom) {
+            return null;
+        }
+
+        return [
+            'codice' => 'ORDINARIE',
+            'data_inizio' => $dateFrom,
+            'data_fine' => $dateTo
+        ];
+    }
+
+    return dbGetFirst("
+        SELECT id, codice, data_inizio, data_fine
+        FROM permesso_ata_ferie_finestra
+        WHERE UPPER(TRIM(codice)) = " . dbQ($finestra) . "
+          AND (valido IS NULL OR valido = 1)
+        LIMIT 1
+    ");
+}
+
 $finestra = strtoupper(trim((string)($_GET['finestra'] ?? 'ESTIVE')));
 $mode = strtoupper(trim((string)($_GET['mode'] ?? 'APPROVATI_E_RICHIESTI')));
+$dateFrom = trim((string)($_GET['date_from'] ?? ''));
+$dateTo = trim((string)($_GET['date_to'] ?? ''));
 
 $allowedFinestra = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA', 'ORDINARIE'];
 $allowedMode = ['APPROVATI_E_RICHIESTI', 'APPROVATI_ONLY', 'RICHIESTI_ONLY'];
@@ -54,13 +82,7 @@ if (!in_array($mode, $allowedMode, true)) {
     $mode = 'APPROVATI_E_RICHIESTI';
 }
 
-$win = dbGetFirst("
-    SELECT id, codice, data_inizio, data_fine
-    FROM permesso_ata_ferie_finestra
-    WHERE UPPER(TRIM(codice)) = " . dbQ($finestra) . "
-      AND (valido IS NULL OR valido = 1)
-    LIMIT 1
-");
+$win = ferieDashboardResolvePeriod($finestra, $dateFrom, $dateTo);
 
 if (!$win || !is_array($win) || empty($win['data_inizio']) || empty($win['data_fine'])) {
     http_response_code(404);
@@ -85,12 +107,15 @@ foreach ($days as $iso) {
     }
 }
 
-$giorniSpecialiRows = dbGetAll("
-    SELECT data_giorno, tipo, descrizione
-    FROM permesso_ata_ferie_giorni_speciali
-    WHERE UPPER(TRIM(sottotipo)) = " . dbQ($finestra) . "
-      AND (valido IS NULL OR valido = 1)
-");
+$giorniSpecialiRows = [];
+if ($finestra !== 'ORDINARIE') {
+    $giorniSpecialiRows = dbGetAll("
+        SELECT data_giorno, tipo, descrizione
+        FROM permesso_ata_ferie_giorni_speciali
+        WHERE UPPER(TRIM(sottotipo)) = " . dbQ($finestra) . "
+          AND (valido IS NULL OR valido = 1)
+    ");
+}
 
 if (is_array($giorniSpecialiRows)) {
     foreach ($giorniSpecialiRows as $g) {
@@ -189,7 +214,7 @@ foreach ($rows as $r) {
 $offices = array_keys($officeNames);
 sort($offices, SORT_NATURAL | SORT_FLAG_CASE);
 
-$filename = 'ferie_heatmap_uffici_' . strtolower($finestra) . '_' . date('Ymd_His') . '.csv';
+$filename = 'ferie_heatmap_uffici_' . strtolower($finestra) . '_' . $win['data_inizio'] . '_' . $win['data_fine'] . '_' . date('Ymd_His') . '.csv';
 header('Content-Disposition: attachment; filename="' . $filename . '"');
 
 $out = fopen('php://output', 'w');

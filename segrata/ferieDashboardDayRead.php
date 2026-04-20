@@ -17,6 +17,10 @@ if (!$data || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $data)) {
 }
 
 $allowedMode = ['APPROVATI_E_RICHIESTI', 'APPROVATI_ONLY', 'RICHIESTI_ONLY'];
+$allowedFinestra = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA', 'ORDINARIE'];
+if (!in_array($finestra, $allowedFinestra, true)) {
+    $finestra = 'ESTIVE';
+}
 if (!in_array($mode, $allowedMode, true)) {
     $mode = 'APPROVATI_E_RICHIESTI';
 }

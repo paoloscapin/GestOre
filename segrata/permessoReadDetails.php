@@ -385,6 +385,17 @@ $ferieFinestra = [
 ];
 
 if (($row['tipo_codice'] ?? '') === 'FERIE'
+  && strtoupper(trim((string)($row['ferie_sottotipo'] ?? ''))) === 'ORDINARIE'
+  && count($selectedDatesMap) > 0
+) {
+  $selectedDates = array_keys($selectedDatesMap);
+  sort($selectedDates);
+
+  $ferieFinestra['data_inizio'] = (string)$selectedDates[0];
+  $ferieFinestra['data_fine'] = (string)$selectedDates[count($selectedDates) - 1];
+}
+
+if (($row['tipo_codice'] ?? '') === 'FERIE'
   && !empty($ferieFinestra['data_inizio'])
   && !empty($ferieFinestra['data_fine'])
 ) {

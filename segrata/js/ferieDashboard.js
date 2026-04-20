@@ -13,16 +13,34 @@ function fdFmtDateIt(iso) {
     return `${p[2]}/${p[1]}/${p[0]}`;
 }
 
+function fdIsOrdinarie() {
+    return ($("#fd_finestra").val() || "").toString().trim().toUpperCase() === "ORDINARIE";
+}
+
+function fdToggleRangeFilters() {
+    $("#fd_range_wrap").toggleClass("active", fdIsOrdinarie());
+}
+
+function fdBuildParams() {
+    const params = {
+        finestra: $("#fd_finestra").val(),
+        mode: $("#fd_mode").val()
+    };
+
+    if (fdIsOrdinarie()) {
+        params.date_from = ($("#fd_date_from").val() || "").toString();
+        params.date_to = ($("#fd_date_to").val() || "").toString();
+    }
+
+    return params;
+}
+
 function ferieDashboardOpenDay(iso) {
     $.ajax({
         url: "ferieDashboardDayRead.php",
         method: "GET",
         dataType: "json",
-        data: {
-            data: iso,
-            finestra: $("#fd_finestra").val(),
-            mode: $("#fd_mode").val()
-        },
+        data: Object.assign({ data: iso }, fdBuildParams()),
         success: function (r) {
             if (!r || r.ok !== true) {
                 $.notify({ message: (r && r.error) ? r.error : "Errore dettaglio giorno" }, { type: "danger" });
@@ -96,6 +114,31 @@ function fdFmtMode(mode) {
     if (mode === "APPROVATI_ONLY") return "Solo approvati";
     if (mode === "RICHIESTI_ONLY") return "Solo richiesti";
     return "Approvati + richiesti";
+}
+
+function fdFmtFinestra(codice) {
+    const map = {
+        ESTIVE: "Ferie estive",
+        NATALE: "Ferie Natale",
+        CARNEVALE: "Ferie Carnevale",
+        PASQUA: "Ferie Pasqua",
+        ORDINARIE: "Ferie ordinarie"
+    };
+    return map[(codice || "").toString().trim().toUpperCase()] || (codice || "-");
+}
+
+function fdBuildExportUrl(path) {
+    return path + "?" + $.param(fdBuildParams());
+}
+
+function fdApplySummaryMeta(data) {
+    const f = data.finestra || {};
+    $("#fd_meta").text(
+        fdFmtFinestra(f.codice) +
+        " - periodo " + (f.data_inizio_fmt || "-") +
+        " - " + (f.data_fine_fmt || "-") +
+        " - vista " + fdFmtMode(data.mode || "")
+    );
 }
 
 function fdBuildSummary(data) {
@@ -558,33 +601,43 @@ function ferieDashboardLoad() {
     $.ajax({
         url: "ferieDashboardRead.php",
         dataType: "json",
-        data: {
-            finestra: $("#fd_finestra").val(),
-            mode: $("#fd_mode").val()
-        },
+        data: fdBuildParams(),
         success: function (r) {
-            if (!r.ok) return;
+            if (!r || r.ok !== true) {
+                $.notify({ message: (r && r.error) ? r.error : "Errore caricamento dashboard ferie" }, { type: "danger" });
+                return;
+            }
 
             fdBuildSummary(r);
+            fdApplySummaryMeta(r);
             fdRenderChart(r);
             fdRenderOfficeSummary(r);
             fdRenderHeatmap(r);
+        },
+        error: function () {
+            $.notify({ message: "Errore caricamento dashboard ferie" }, { type: "danger" });
         }
     });
 }
 
 $(document).ready(function () {
+    fdToggleRangeFilters();
     $("#fd_refresh").on("click", ferieDashboardLoad);
-    $("#fd_finestra, #fd_mode").on("change", ferieDashboardLoad);
+    $("#fd_finestra").on("change", function () {
+        fdToggleRangeFilters();
+        ferieDashboardLoad();
+    });
+    $("#fd_mode").on("change", ferieDashboardLoad);
+    $("#fd_date_from, #fd_date_to").on("change", function () {
+        if (fdIsOrdinarie()) {
+            ferieDashboardLoad();
+        }
+    });
     ferieDashboardLoad();
 
     $("#fd_export_xls").on("click", function (e) {
         e.preventDefault();
-        const finestra = $("#fd_finestra").val() || "ESTIVE";
-        const mode = $("#fd_mode").val() || "APPROVATI_E_RICHIESTI";
-        window.location.href =
-            "ferieDashboardExportXlsx.php?finestra=" + finestra +
-            "&mode=" + mode;
+        window.location.href = fdBuildExportUrl("ferieDashboardExportXlsx.php");
     });
 
 });

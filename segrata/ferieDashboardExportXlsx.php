@@ -42,23 +42,45 @@ function fmtDate($iso)
     return date('d/m', strtotime($iso));
 }
 
+function ferieDashboardResolvePeriod(string $finestra, string $dateFrom, string $dateTo): ?array
+{
+    if ($finestra === 'ORDINARIE') {
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+            return null;
+        }
+        if ($dateTo < $dateFrom) {
+            return null;
+        }
+
+        return [
+            'codice' => 'ORDINARIE',
+            'data_inizio' => $dateFrom,
+            'data_fine' => $dateTo
+        ];
+    }
+
+    return dbGetFirst("
+        SELECT data_inizio, data_fine
+        FROM permesso_ata_ferie_finestra
+        WHERE UPPER(TRIM(codice)) = " . dbQ($finestra) . "
+        LIMIT 1
+    ");
+}
+
 /* =========================================================
    PARAMETRI
    ========================================================= */
 
 $finestra = strtoupper(trim((string)($_GET['finestra'] ?? 'ESTIVE')));
 $mode = strtoupper(trim((string)($_GET['mode'] ?? 'APPROVATI_E_RICHIESTI')));
+$dateFrom = trim((string)($_GET['date_from'] ?? ''));
+$dateTo = trim((string)($_GET['date_to'] ?? ''));
 
 /* =========================================================
    FINESTRA
    ========================================================= */
 
-$win = dbGetFirst("
-    SELECT data_inizio, data_fine
-    FROM permesso_ata_ferie_finestra
-    WHERE UPPER(TRIM(codice)) = " . dbQ($finestra) . "
-    LIMIT 1
-");
+$win = ferieDashboardResolvePeriod($finestra, $dateFrom, $dateTo);
 
 if (!$win) die("Finestra non trovata");
 
@@ -306,7 +328,7 @@ $sheet2->getStyle('D1:' . $lastCol2 . '1')->getAlignment()
    ========================================================= */
 
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header('Content-Disposition: attachment; filename="ferie_' . strtolower($finestra) . '.xlsx"');
+header('Content-Disposition: attachment; filename="ferie_' . strtolower($finestra) . '_' . $win['data_inizio'] . '_' . $win['data_fine'] . '.xlsx"');
 
 $writer = new Xlsx($spreadsheet);
 $writer->save('php://output');
