@@ -74,11 +74,39 @@ function buildPermessoPeriodoLabel(array $righe, string $tipoCodice): string
   return $testo;
 }
 
+function ferieSottotipoLabel(string $sottotipo): string
+{
+  $map = [
+    'ESTIVE' => 'Ferie estive',
+    'NATALE' => 'Ferie Natale',
+    'CARNEVALE' => 'Ferie Carnevale',
+    'PASQUA' => 'Ferie Pasqua',
+    'ORDINARIE' => 'Ferie ordinarie',
+  ];
+
+  $key = strtoupper(trim($sottotipo));
+  if ($key === '') return '';
+  if (isset($map[$key])) return $map[$key];
+
+  return 'Ferie ' . ucfirst(strtolower($key));
+}
+
 $stato      = isset($_GET['stato']) ? trim((string)$_GET['stato']) : '';
+$statiParam = isset($_GET['stati']) ? $_GET['stati'] : [];
 $tipo_id    = isset($_GET['tipo_id']) ? intval($_GET['tipo_id']) : 0;
 $profilo_id = isset($_GET['profilo_id']) ? intval($_GET['profilo_id']) : 0;
 $ufficio_id = isset($_GET['ufficio_id']) ? intval($_GET['ufficio_id']) : 0;
 $search     = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
+
+$stati = [];
+if (is_array($statiParam)) {
+  foreach ($statiParam as $statoItem) {
+    $stati[] = strtoupper(trim((string)$statoItem));
+  }
+}
+
+$statiValidi = ['INVIATO', 'APPROVATO', 'PARZIALE', 'RESPINTO', 'ANNULLATO'];
+$stati = array_values(array_unique(array_intersect($stati, $statiValidi)));
 
 $where = " WHERE 1=1 ";
 
@@ -88,6 +116,15 @@ $where .= " AND r.stato <> 'BOZZA' ";
 if ($stato !== '') {
   $stato_esc = esc_sql_like($stato);
   $where .= " AND r.stato = '$stato_esc' ";
+} elseif (isset($_GET['stati'])) {
+  if (count($stati) === 0) {
+    $where .= " AND 1=0 ";
+  } else {
+    $statiSql = array_map(function ($statoValido) {
+      return "'" . esc_sql_like($statoValido) . "'";
+    }, $stati);
+    $where .= " AND r.stato IN (" . implode(', ', $statiSql) . ") ";
+  }
 }
 
 if ($tipo_id > 0) {
@@ -121,6 +158,7 @@ SELECT
   r.stato,
   r.created_at,
   r.updated_at,
+  r.ferie_sottotipo,
   r.registrato_segreteria,
   r.registrato_il,
   t.codice AS tipo_codice,
@@ -195,6 +233,12 @@ foreach ($rows as $r) {
   $profilo = htmlspecialchars($r['profilo_nome'] ?? '');
   $ufficio = htmlspecialchars($r['ufficio_nome'] ?? '');
   $tipoBase = ($r['tipo_codice'] ?? '') . ' - ' . ($r['tipo_descrizione'] ?? '');
+  if (strtoupper(trim((string)($r['tipo_codice'] ?? ''))) === 'FERIE') {
+    $sottotipoLabel = ferieSottotipoLabel((string)($r['ferie_sottotipo'] ?? ''));
+    if ($sottotipoLabel !== '') {
+      $tipoBase = ($r['tipo_codice'] ?? '') . ' - ' . $sottotipoLabel;
+    }
+  }
   $tipo = htmlspecialchars($tipoBase);
 
   $righePeriodo = [[

@@ -134,6 +134,15 @@ if (!is_array($ufficiAta)) {
             transform: scale(1.03);
         }
 
+        .dash-item.disabled {
+            opacity: .45;
+            cursor: not-allowed;
+            pointer-events: none;
+            filter: grayscale(.2);
+            box-shadow: none;
+            transform: none;
+        }
+
         .dash-right {
             margin-left: auto;
             display: flex;

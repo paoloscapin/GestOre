@@ -6,6 +6,8 @@
 let ferieModalInitialSnapshot = null;
 let ferieModalCurrentSnapshot = null;
 let ferieModalKeepDirty = false;
+const DASHBOARD_STATI = ["INVIATO", "APPROVATO", "PARZIALE", "RESPINTO", "ANNULLATO"];
+let dashboardSelectedStates = DASHBOARD_STATI.slice();
 
 function fmtDateTimeIT(dt) {
   if (!dt) return "";
@@ -29,24 +31,63 @@ function safeSelectpickerRefresh(sel) {
   }
 }
 
-function setFiltroStato(stato) {
-  $("#f_stato").val(stato);
-  safeSelectpickerRefresh("#f_stato");
+function setDashboardStates(states) {
+  const normalized = Array.isArray(states)
+    ? states
+      .map(function (stato) { return (stato || "").toString().trim().toUpperCase(); })
+      .filter(function (stato, index, arr) {
+        return DASHBOARD_STATI.indexOf(stato) !== -1 && arr.indexOf(stato) === index;
+      })
+    : [];
 
   $(".dash-item").removeClass("active");
-  $('.dash-item[data-stato="' + stato + '"]').addClass("active");
+  normalized.forEach(function (stato) {
+    $('.dash-item[data-stato="' + stato + '"]').addClass("active");
+  });
 
-  permessiReadRecords();
+  dashboardSelectedStates = normalized;
+}
+
+function setDashboardDisabled(disabled) {
+  $(".dash-item").toggleClass("disabled", !!disabled);
+  $(".dash-item").attr("aria-disabled", disabled ? "true" : "false");
+}
+
+function syncDashboardWithStatoFilter() {
+  const stato = ($("#f_stato").val() || "").toString().trim().toUpperCase();
+
+  if (stato) {
+    setDashboardDisabled(true);
+    setDashboardStates([]);
+    return;
+  }
+
+  setDashboardDisabled(false);
+  setDashboardStates(DASHBOARD_STATI);
 }
 
 $(document).on("click", ".dash-item[data-stato]", function () {
+  if ($(this).hasClass("disabled")) return;
+
   const stato = ($(this).data("stato") || "").toString().trim();
   if (!stato) return;
-  setFiltroStato(stato);
+
+  const nextStates = dashboardSelectedStates.slice();
+  const idx = nextStates.indexOf(stato);
+
+  if (idx >= 0) {
+    nextStates.splice(idx, 1);
+  } else {
+    nextStates.push(stato);
+  }
+
+  setDashboardStates(nextStates);
+  permessiReadRecords();
 });
 
 function permessiReadRecords() {
   const stato = ($("#f_stato").val() || "").toString();
+  const stati = stato ? [] : dashboardSelectedStates.slice();
   const tipoId = ($("#f_tipo").val() || "").toString();
   const profiloId = ($("#f_profilo").val() || "").toString();
   const ufficioId = ($("#f_ufficio").val() || "").toString();
@@ -57,6 +98,7 @@ function permessiReadRecords() {
     method: "GET",
     data: {
       stato: stato,
+      stati: stati,
       tipo_id: tipoId,
       profilo_id: profiloId,
       ufficio_id: ufficioId,
@@ -941,6 +983,7 @@ $(document).ready(function () {
     $("#f_stato, #f_tipo, #f_profilo, #f_ufficio").selectpicker();
   }
 
+  syncDashboardWithStatoFilter();
   dashboardLoad();
   permessiReadRecords();
 
@@ -949,17 +992,12 @@ $(document).ready(function () {
     permessiReadRecords();
   });
 
-  $("#f_stato, #f_tipo, #f_profilo, #f_ufficio").on("change", function () {
+  $("#f_tipo, #f_profilo, #f_ufficio").on("change", function () {
     permessiReadRecords();
   });
 
   $("#f_stato").on("change", function () {
-    const stato = ($("#f_stato").val() || "").toString();
-    $(".dash-item").removeClass("active");
-    if (stato) $('.dash-item[data-stato="' + stato + '"]').addClass("active");
-  });
-
-  $(document).on("changed.bs.select", "#f_stato, #f_tipo, #f_profilo, #f_ufficio", function () {
+    syncDashboardWithStatoFilter();
     permessiReadRecords();
   });
 
