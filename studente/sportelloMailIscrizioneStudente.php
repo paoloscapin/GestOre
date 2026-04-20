@@ -30,7 +30,11 @@ $docente_cognome  = isset($docente_cognome) ? (string)$docente_cognome : '';
 
 $materia   = isset($materia) ? (string)$materia : '';
 $categoria = isset($categoria) ? (string)$categoria : '';
-$data      = isset($data) ? (string)$data : '';
+$data = isset($data) ? (string)$data : '';
+
+if ($data) {
+    $data = date('d/m/Y', strtotime($data));
+}
 $ora       = isset($ora) ? (string)$ora : '';
 $luogo     = isset($luogo) ? (string)$luogo : '';
 

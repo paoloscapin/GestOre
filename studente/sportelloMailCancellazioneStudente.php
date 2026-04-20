@@ -18,6 +18,11 @@ ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
 // -------------------------------
 $title = "CANCELLAZIONE ISCRIZIONE";
 $intro = "Conferma: la tua iscrizione all’attività è stata cancellata correttamente.";
+$data = isset($data) ? (string)$data : '';
+
+if ($data) {
+    $data = date('d/m/Y', strtotime($data));
+}
 
 $content = '
   <div style="margin:0 0 12px 0;">
