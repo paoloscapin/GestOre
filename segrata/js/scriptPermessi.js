@@ -7,7 +7,9 @@ let ferieModalInitialSnapshot = null;
 let ferieModalCurrentSnapshot = null;
 let ferieModalKeepDirty = false;
 const DASHBOARD_STATI = ["INVIATO", "APPROVATO", "PARZIALE", "RESPINTO", "ANNULLATO"];
+const DASHBOARD_REGISTRAZIONI = ["DA_REGISTRARE", "REGISTRATO"];
 let dashboardSelectedStates = DASHBOARD_STATI.slice();
+let dashboardSelectedRegistrazioni = DASHBOARD_REGISTRAZIONI.slice();
 
 function fmtDateTimeIT(dt) {
   if (!dt) return "";
@@ -40,7 +42,7 @@ function setDashboardStates(states) {
       })
     : [];
 
-  $(".dash-item").removeClass("active");
+  $(".dash-item[data-stato]").removeClass("active");
   normalized.forEach(function (stato) {
     $('.dash-item[data-stato="' + stato + '"]').addClass("active");
   });
@@ -53,17 +55,36 @@ function setDashboardDisabled(disabled) {
   $(".dash-item").attr("aria-disabled", disabled ? "true" : "false");
 }
 
+function setDashboardRegistrazioni(registrazioni) {
+  const normalized = Array.isArray(registrazioni)
+    ? registrazioni
+      .map(function (item) { return (item || "").toString().trim().toUpperCase(); })
+      .filter(function (item, index, arr) {
+        return DASHBOARD_REGISTRAZIONI.indexOf(item) !== -1 && arr.indexOf(item) === index;
+      })
+    : [];
+
+  $('[data-filter="registrazione"]').removeClass("active");
+  normalized.forEach(function (item) {
+    $('[data-reg-filter="' + item + '"]').addClass("active");
+  });
+
+  dashboardSelectedRegistrazioni = normalized;
+}
+
 function syncDashboardWithStatoFilter() {
   const stato = ($("#f_stato").val() || "").toString().trim().toUpperCase();
 
   if (stato) {
     setDashboardDisabled(true);
     setDashboardStates([]);
+    setDashboardRegistrazioni([]);
     return;
   }
 
   setDashboardDisabled(false);
   setDashboardStates(DASHBOARD_STATI);
+  setDashboardRegistrazioni(DASHBOARD_REGISTRAZIONI);
 }
 
 $(document).on("click", ".dash-item[data-stato]", function () {
@@ -85,9 +106,48 @@ $(document).on("click", ".dash-item[data-stato]", function () {
   permessiReadRecords();
 });
 
+$(document).on("click", "#d_da_registrare", function () {
+  if ($(this).hasClass("disabled")) return;
+
+  const filtro = ($(this).data("regFilter") || "").toString().trim().toUpperCase();
+  if (!filtro) return;
+
+  const nextFilters = dashboardSelectedRegistrazioni.slice();
+  const idx = nextFilters.indexOf(filtro);
+
+  if (idx >= 0) {
+    nextFilters.splice(idx, 1);
+  } else {
+    nextFilters.push(filtro);
+  }
+
+  setDashboardRegistrazioni(nextFilters);
+  permessiReadRecords();
+});
+
+$(document).on("click", "#d_registrato", function () {
+  if ($(this).hasClass("disabled")) return;
+
+  const filtro = ($(this).data("regFilter") || "").toString().trim().toUpperCase();
+  if (!filtro) return;
+
+  const nextFilters = dashboardSelectedRegistrazioni.slice();
+  const idx = nextFilters.indexOf(filtro);
+
+  if (idx >= 0) {
+    nextFilters.splice(idx, 1);
+  } else {
+    nextFilters.push(filtro);
+  }
+
+  setDashboardRegistrazioni(nextFilters);
+  permessiReadRecords();
+});
+
 function permessiReadRecords() {
   const stato = ($("#f_stato").val() || "").toString();
   const stati = stato ? [] : dashboardSelectedStates.slice();
+  const registrazioni = stato ? [] : dashboardSelectedRegistrazioni.slice();
   const tipoId = ($("#f_tipo").val() || "").toString();
   const profiloId = ($("#f_profilo").val() || "").toString();
   const ufficioId = ($("#f_ufficio").val() || "").toString();
@@ -99,6 +159,7 @@ function permessiReadRecords() {
     data: {
       stato: stato,
       stati: stati,
+      registrazioni: registrazioni,
       tipo_id: tipoId,
       profilo_id: profiloId,
       ufficio_id: ufficioId,
@@ -950,6 +1011,8 @@ function dashboardLoad() {
     $("#d_parziale .badge").text(s.PARZIALE);
     $("#d_respinto .badge").text(s.RESPINTO);
     $("#d_annullato .badge").text(s.ANNULLATO);
+    $("#d_da_registrare .badge").text(parseInt(r.daRegistrare || 0, 10));
+    $("#d_registrato .badge").text(parseInt(r.registrato || 0, 10));
 
     const mesi = (r.byMese || []).slice(-6);
     const vals = mesi.map(m =>

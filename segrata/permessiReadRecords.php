@@ -93,6 +93,7 @@ function ferieSottotipoLabel(string $sottotipo): string
 
 $stato      = isset($_GET['stato']) ? trim((string)$_GET['stato']) : '';
 $statiParam = isset($_GET['stati']) ? $_GET['stati'] : [];
+$registrazioniParam = isset($_GET['registrazioni']) ? $_GET['registrazioni'] : [];
 $tipo_id    = isset($_GET['tipo_id']) ? intval($_GET['tipo_id']) : 0;
 $profilo_id = isset($_GET['profilo_id']) ? intval($_GET['profilo_id']) : 0;
 $ufficio_id = isset($_GET['ufficio_id']) ? intval($_GET['ufficio_id']) : 0;
@@ -107,6 +108,16 @@ if (is_array($statiParam)) {
 
 $statiValidi = ['INVIATO', 'APPROVATO', 'PARZIALE', 'RESPINTO', 'ANNULLATO'];
 $stati = array_values(array_unique(array_intersect($stati, $statiValidi)));
+
+$registrazioni = [];
+if (is_array($registrazioniParam)) {
+  foreach ($registrazioniParam as $registrazioneItem) {
+    $registrazioni[] = strtoupper(trim((string)$registrazioneItem));
+  }
+}
+
+$registrazioniValide = ['DA_REGISTRARE', 'REGISTRATO'];
+$registrazioni = array_values(array_unique(array_intersect($registrazioni, $registrazioniValide)));
 
 $where = " WHERE 1=1 ";
 
@@ -124,6 +135,18 @@ if ($stato !== '') {
       return "'" . esc_sql_like($statoValido) . "'";
     }, $stati);
     $where .= " AND r.stato IN (" . implode(', ', $statiSql) . ") ";
+  }
+}
+
+if (isset($_GET['registrazioni'])) {
+  if (count($registrazioni) === 0) {
+    $where .= " AND 1=0 ";
+  } elseif (count($registrazioni) === 1) {
+    if ($registrazioni[0] === 'DA_REGISTRARE') {
+      $where .= " AND COALESCE(r.registrato_segreteria, 0) = 0 ";
+    } elseif ($registrazioni[0] === 'REGISTRATO') {
+      $where .= " AND COALESCE(r.registrato_segreteria, 0) = 1 ";
+    }
   }
 }
 

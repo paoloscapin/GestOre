@@ -33,9 +33,23 @@ $byMese = dbGetAll("
   ORDER BY ym
 ");
 
+$daRegistrare = dbGetFirst("
+  SELECT COUNT(*) AS n
+  FROM permesso_ata_richiesta
+  WHERE COALESCE(registrato_segreteria, 0) = 0
+");
+
+$registrato = dbGetFirst("
+  SELECT COUNT(*) AS n
+  FROM permesso_ata_richiesta
+  WHERE COALESCE(registrato_segreteria, 0) = 1
+");
+
 echo json_encode([
   'ok' => true,
   'byStato' => $byStato,
   'byTipo' => $byTipo,
-  'byMese' => $byMese
+  'byMese' => $byMese,
+  'daRegistrare' => intval($daRegistrare['n'] ?? 0),
+  'registrato' => intval($registrato['n'] ?? 0)
 ], JSON_UNESCAPED_UNICODE);

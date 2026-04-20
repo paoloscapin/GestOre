@@ -118,6 +118,12 @@ if (!is_array($ufficiAta)) {
             white-space: nowrap;
             cursor: pointer;
             user-select: none;
+            opacity: .38;
+            color: #6f7a86;
+            border-color: #c9d1d9;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .7);
+            transform: none;
+            filter: grayscale(.92) saturate(.28) brightness(1.03);
         }
 
         .dash-item .badge {
@@ -130,15 +136,18 @@ if (!is_array($ufficiAta)) {
         }
 
         .dash-item.active {
+            opacity: 1;
             box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.10) inset;
             transform: scale(1.03);
+            color: inherit;
+            filter: none;
         }
 
         .dash-item.disabled {
-            opacity: .45;
+            opacity: .22;
             cursor: not-allowed;
             pointer-events: none;
-            filter: grayscale(.2);
+            filter: grayscale(.75);
             box-shadow: none;
             transform: none;
         }
@@ -174,6 +183,14 @@ if (!is_array($ufficiAta)) {
 
         .dash-parziale {
             background: rgba(255, 193, 7, .45);
+        }
+
+        .dash-da-registrare {
+            background: rgba(91, 192, 222, .28);
+        }
+
+        .dash-registrato {
+            background: rgba(92, 184, 92, .30);
         }
 
         .trend-wrap {
@@ -806,6 +823,8 @@ if (!is_array($ufficiAta)) {
                                 <span class="glyphicon glyphicon-adjust"></span> PARZIALI <span class="badge">0</span></span>
                             <span class="dash-item dash-respinto" id="d_respinto" data-stato="RESPINTO"><span class="glyphicon glyphicon-remove"></span> RESPINTI <span class="badge">0</span></span>
                             <span class="dash-item dash-annullato" id="d_annullato" data-stato="ANNULLATO"><span class="glyphicon glyphicon-ban-circle"></span> ANNULLATI <span class="badge">0</span></span>
+                            <span class="dash-item dash-da-registrare active" id="d_da_registrare" data-filter="registrazione" data-reg-filter="DA_REGISTRARE"><span class="glyphicon glyphicon-book"></span> DA REGISTRARE <span class="badge">0</span></span>
+                            <span class="dash-item dash-registrato active" id="d_registrato" data-filter="registrazione" data-reg-filter="REGISTRATO"><span class="glyphicon glyphicon-folder-open"></span> REGISTRATO <span class="badge">0</span></span>
 
                             <span class="dash-right">
                                 <span class="dash-mini" id="d_trend" title="Trend ultimi mesi"></span>
