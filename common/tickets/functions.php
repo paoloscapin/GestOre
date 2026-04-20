@@ -398,6 +398,72 @@ function readUsersCsv(string $csvPath): array
     return $rows;
 }
 
+function ticketReservationMacroGroup(string $ruolo): string
+{
+    return match (strtolower(trim($ruolo))) {
+        'docente' => 'docenti',
+        'personale-ata' => 'ata',
+        'studente' => 'studenti',
+        default => 'studenti',
+    };
+}
+
+function ticketReservationSubgroup(array $reservation): string
+{
+    $macro = ticketReservationMacroGroup((string)($reservation['ruolo'] ?? ''));
+
+    if ($macro === 'docenti') {
+        $sigla = strtoupper(trim((string)($reservation['dipartimento_sigla'] ?? '')));
+
+        return match ($sigla) {
+            'INFO' => 'info',
+            'CAT' => 'cat',
+            'MECC' => 'mecc',
+            'CHIM' => 'chim',
+            'ELET' => 'elet',
+            default => 'altri',
+        };
+    }
+
+    return $macro;
+}
+
+function ticketReservationDisplayName(array $reservation): string
+{
+    $name = trim((string)($reservation['nominativo'] ?? ''));
+    if ($name !== '') {
+        return $name;
+    }
+
+    $email = trim((string)($reservation['email'] ?? ''));
+    return $email !== '' ? emailToDisplayName($email) : 'Prenotazione';
+}
+
+function ticketReservationsToUsers(array $reservations): array
+{
+    $users = [];
+
+    foreach ($reservations as $reservation) {
+        $email = trim((string)($reservation['email'] ?? ''));
+        $numeroPosti = (int)($reservation['numero_posti'] ?? 0);
+
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $numeroPosti < 1) {
+            continue;
+        }
+
+        $users[] = [
+            'macrogruppo' => ticketReservationMacroGroup((string)($reservation['ruolo'] ?? '')),
+            'gruppo' => ticketReservationSubgroup($reservation),
+            'email' => $email,
+            'display_name' => ticketReservationDisplayName($reservation),
+            'numero_posti' => $numeroPosti,
+            'affianca' => null,
+        ];
+    }
+
+    return $users;
+}
+
 function extractTicketsFromMultiPagePdf(string $pdfPath): array
 {
     $parser = new Parser();
@@ -1743,7 +1809,9 @@ function distributeCandidateToUsers(array $candidate, array $users): array
             'macrogruppo' => $user['macrogruppo'],
             'gruppo' => $user['gruppo'],
             'email' => $user['email'],
-            'display_name' => emailToDisplayName($user['email']),
+            'display_name' => trim((string)($user['display_name'] ?? '')) !== ''
+                ? trim((string)$user['display_name'])
+                : emailToDisplayName($user['email']),
             'numero_posti' => $user['numero_posti'],
             'affianca' => $user['affianca'],
             'tribuna' => $slice[0]['tribuna'],
@@ -1760,6 +1828,99 @@ function distributeCandidateToUsers(array $candidate, array $users): array
     }
 
     return $out;
+}
+
+function assignmentRowToUser(array $assignment): array
+{
+    return [
+        'macrogruppo' => (string)($assignment['macrogruppo'] ?? ''),
+        'gruppo' => (string)($assignment['gruppo'] ?? ''),
+        'email' => (string)($assignment['email'] ?? ''),
+        'display_name' => (string)($assignment['display_name'] ?? ''),
+        'numero_posti' => (int)($assignment['numero_posti'] ?? 0),
+        'affianca' => $assignment['affianca'] ?? null,
+    ];
+}
+
+function ticketIndexById(array $tickets): array
+{
+    $indexed = [];
+
+    foreach ($tickets as $ticket) {
+        $ticketId = (string)($ticket['ticket_id'] ?? '');
+        if ($ticketId !== '') {
+            $indexed[$ticketId] = $ticket;
+        }
+    }
+
+    return $indexed;
+}
+
+function tryRebalanceSingleSeatAssignmentForStudentUnit(
+    array $unit,
+    array &$available,
+    array &$assignments,
+    array $allTickets,
+    ?array $docentiAnchor,
+    array &$warnings
+): ?array {
+    if ((int)($unit['size'] ?? 0) < 2 || !$available || !$assignments) {
+        return null;
+    }
+
+    $ticketById = ticketIndexById($allTickets);
+
+    foreach ($assignments as $assignmentIndex => $assignment) {
+        if ((int)($assignment['numero_posti'] ?? 0) !== 1) {
+            continue;
+        }
+
+        if (strtolower((string)($assignment['macrogruppo'] ?? '')) === 'studenti') {
+            continue;
+        }
+
+        $oldTicketId = (string)($assignment['ticket_ids'][0] ?? '');
+        if ($oldTicketId === '' || !isset($ticketById[$oldTicketId])) {
+            continue;
+        }
+
+        $oldTicket = $ticketById[$oldTicketId];
+        $assignmentUser = assignmentRowToUser($assignment);
+
+        foreach ($available as $targetTicket) {
+            if ((string)($targetTicket['ticket_id'] ?? '') === $oldTicketId) {
+                continue;
+            }
+
+            $movedRows = distributeCandidateToUsers([$targetTicket], [$assignmentUser]);
+            $movedAssignment = $movedRows[0] ?? null;
+            if (!$movedAssignment) {
+                continue;
+            }
+
+            $simulatedAvailable = [];
+            foreach ($available as $freeTicket) {
+                if ((string)($freeTicket['ticket_id'] ?? '') === (string)($targetTicket['ticket_id'] ?? '')) {
+                    continue;
+                }
+                $simulatedAvailable[] = $freeTicket;
+            }
+            $simulatedAvailable[] = $oldTicket;
+
+            $studentCandidate = findBestCandidate($unit, $simulatedAvailable, $docentiAnchor);
+            if (!$studentCandidate) {
+                continue;
+            }
+
+            $assignments[$assignmentIndex] = $movedAssignment;
+            $available = $simulatedAvailable;
+            $warnings[] = 'Ribilanciata un\'assegnazione da 1 posto (' . ($assignment['display_name'] ?? $assignment['email'] ?? 'utente') . ') per liberare posti studenti contigui.';
+
+            return $studentCandidate;
+        }
+    }
+
+    return null;
 }
 
 function allocateTickets(array $tickets, array $users): array
@@ -1799,6 +1960,17 @@ function allocateTickets(array $tickets, array $users): array
     // 3. STUDENTI
     foreach ($studentiUnits as $unit) {
         $candidate = findBestCandidate($unit, $available, $docentiAnchor);
+
+        if (!$candidate) {
+            $candidate = tryRebalanceSingleSeatAssignmentForStudentUnit(
+                $unit,
+                $available,
+                $assignments,
+                $tickets,
+                $docentiAnchor,
+                $warnings
+            );
+        }
 
         if (!$candidate) {
             $who = $unit['affianca'] !== null

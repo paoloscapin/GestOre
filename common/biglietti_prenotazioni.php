@@ -349,10 +349,6 @@ if ($actor !== null) {
                                 </button>
                             <?php endif; ?>
                         </form>
-
-                        <div class="ticket-note" style="margin-top: 10px;">
-                            I dati arrivano dal tuo profilo GestOre. Se servono preferenze piu specifiche, nel prossimo passo possiamo aggiungere campi dedicati.
-                        </div>
                     </div>
                 </div>
             <?php endforeach; ?>

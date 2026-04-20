@@ -11,6 +11,7 @@ ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../ticket_eventi_lib.php';
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/pdf_tools.php';
 require_once __DIR__ . '/send_mail_wrapper.php';
@@ -255,6 +256,17 @@ function resultVenueDisplayTitle(array $result): string
     return $tribuna;
 }
 
+function ticketEventDisplayLabel(array $event): string
+{
+    $title = trim((string)($event['titolo'] ?? 'Evento senza titolo'));
+    $luogo = trim((string)($event['luogo'] ?? ''));
+    $date = trim((string)($event['data_evento'] ?? ''));
+    $dateLabel = $date !== '' ? date('d/m/Y H:i', strtotime($date)) : '';
+
+    $parts = array_filter([$title, $luogo, $dateLabel], fn($value) => trim((string)$value) !== '');
+    return implode(' | ', $parts);
+}
+
 function rebuildResultArtifacts(array &$result, array $assignments): void
 {
     $result['assignments'] = array_values($assignments);
@@ -273,12 +285,17 @@ function rebuildResultArtifacts(array &$result, array $assignments): void
 }
 
 ensureDirs();
+ticketEventiEnsureSchema();
 
 $error = null;
 $result = null;
+$ticketEvents = ticketEventiGetEventsForAdmin((int)$__anno_scolastico_corrente_id);
+$selectedEventId = 0;
 
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $selectedEventId = isset($_POST['evento_id']) ? (int)$_POST['evento_id'] : 0;
+
         if (isset($_POST['action']) && $_POST['action'] === 'swap_assignments') {
             $result = $_SESSION['tickets_last_result'] ?? null;
             $assignments = $_SESSION['tickets_assignments'] ?? [];
@@ -319,7 +336,7 @@ try {
             resetWorkingDirs();
             checkGhostscript();
 
-            if (!isset($_FILES['tickets_pdf'], $_FILES['users_csv'])) {
+            if (!isset($_FILES['tickets_pdf'])) {
                 throw new RuntimeException('File mancanti');
             }
 
@@ -327,23 +344,28 @@ try {
                 throw new RuntimeException('Errore upload PDF biglietti');
             }
 
-            if ($_FILES['users_csv']['error'] !== UPLOAD_ERR_OK) {
-                throw new RuntimeException('Errore upload CSV utenti');
+            if ($selectedEventId <= 0) {
+                throw new RuntimeException('Seleziona un evento con prenotazioni');
             }
 
             $pdfPath = UPLOAD_DIR . '/tickets.pdf';
-            $csvPath = UPLOAD_DIR . '/users.csv';
 
             if (!move_uploaded_file($_FILES['tickets_pdf']['tmp_name'], $pdfPath)) {
                 throw new RuntimeException('Impossibile salvare il PDF biglietti');
             }
 
-            if (!move_uploaded_file($_FILES['users_csv']['tmp_name'], $csvPath)) {
-                throw new RuntimeException('Impossibile salvare il CSV utenti');
+            $selectedEvent = ticketEventiGetEventById($selectedEventId, (int)$__anno_scolastico_corrente_id);
+            if (!$selectedEvent) {
+                throw new RuntimeException('Evento non trovato');
             }
 
             $ticketsRaw = extractTicketsFromMultiPagePdf($pdfPath);
-            $users      = readUsersCsv($csvPath);
+            $reservations = ticketEventiGetReservationsForAllocation($selectedEventId);
+            $users = ticketReservationsToUsers($reservations);
+
+            if (!$users) {
+                throw new RuntimeException('Nessuna prenotazione attiva disponibile per l\'evento selezionato');
+            }
 
             $venueCtx = ticketsVenuePrepareAllocationContext($ticketsRaw);
             $tickets  = $venueCtx['tickets'];
@@ -363,6 +385,10 @@ try {
                 'ticket_count'            => count($tickets),
                 'ticket_count_raw'        => count($ticketsRaw),
                 'excluded_ticket_count'   => count($venueCtx['excluded_tickets'] ?? []),
+                'reservation_count'       => count($reservations),
+                'reservation_event_id'    => $selectedEventId,
+                'reservation_event_title' => (string)($selectedEvent['titolo'] ?? ''),
+                'reservation_event_label' => ticketEventDisplayLabel($selectedEvent),
                 'user_count'              => count($users),
                 'assignment_count'        => count($assignments),
                 'warnings'                => $allocation['warnings'],
@@ -392,11 +418,13 @@ try {
         if (!empty($_SESSION['tickets_last_result'])) {
             $result = hydrateLoadedResult($_SESSION['tickets_last_result']);
             $_SESSION['tickets_last_result'] = $result;
+            $selectedEventId = (int)($result['reservation_event_id'] ?? 0);
         } else {
             $result = loadLastResult();
             if ($result) {
                 $result = hydrateLoadedResult($result);
                 $_SESSION['tickets_last_result'] = $result;
+                $selectedEventId = (int)($result['reservation_event_id'] ?? 0);
                 if (!empty($result['assignments'])) {
                     $_SESSION['tickets_assignments'] = $result['assignments'];
                 }
@@ -446,8 +474,16 @@ try {
                             <input type="file" name="tickets_pdf" accept="application/pdf" required>
                         </div>
                         <div class="form-row">
-                            <label class="label">CSV utenti</label>
-                            <input type="file" name="users_csv" accept=".csv,text/csv" required>
+                            <label class="label">Evento con prenotazioni</label>
+                            <select name="evento_id" required style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;">
+                                <option value="">Seleziona evento</option>
+                                <?php foreach ($ticketEvents as $event): ?>
+                                    <?php $eventId = (int)($event['id'] ?? 0); ?>
+                                    <option value="<?= $eventId ?>" <?= $selectedEventId === $eventId ? 'selected' : '' ?>>
+                                        <?= h(ticketEventDisplayLabel($event)) ?> - prenotazioni: <?= h((string)($event['prenotazioni_attive'] ?? 0)) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         <div class="actions">
                             <button type="submit">Elabora assegnazione</button>
@@ -456,8 +492,9 @@ try {
                 </div>
 
                 <div class="box">
-                    <h3>Formato CSV atteso</h3>
-                    <p><code>macrogruppo,gruppo,email,numero_posti,affianca</code></p>
+                    <h3>Sorgente prenotazioni</h3>
+                    <p>Le assegnazioni usano le prenotazioni attive dell’evento selezionato.</p>
+                    <p class="muted">Per i docenti, il sottogruppo deriva dal dipartimento ricavato da <code>profilo_docente</code> dell’anno corrente.</p>
                     <p class="muted">Invio reale disattivato: il wrapper usa <code>MAIL_TEST_OVERRIDE</code>.</p>
                 </div>
 
@@ -475,6 +512,12 @@ try {
                         ?>
 
                         <div style="margin-top:6px;">
+                            <?php if (!empty($result['reservation_event_label'])): ?>
+                                <div style="margin-bottom:8px;">
+                                    <strong>Evento prenotazioni:</strong>
+                                    <span style="font-weight:600;"><?= h((string)$result['reservation_event_label']) ?></span>
+                                </div>
+                            <?php endif; ?>
                             <div>
                                 <strong>CSV assegnazioni:</strong>
                                 <span style="font-weight:600;"><?= h($csvName) ?></span>
@@ -820,7 +863,7 @@ try {
             </div>
         </div>
 
-        <div class="tooltip" id="seatTooltip"></div>
+        <div class="seat-tooltip" id="seatTooltip"></div>
 
         <form method="post" id="swapForm" style="display:none;">
             <input type="hidden" name="action" value="swap_assignments">

@@ -420,7 +420,7 @@ th{
 .seat.available-ticket{background:var(--avail);color:#fff;border-color:#64748b}
 .seat.no-ticket{background:var(--free);color:#94a3b8}
 
-.tooltip{
+.seat-tooltip{
     position:fixed;
     pointer-events:none;
     background:#111827;
@@ -431,6 +431,8 @@ th{
     max-width:320px;
     z-index:9999;
     display:none;
+    opacity:1;
+    visibility:visible;
     box-shadow:0 12px 22px rgba(0,0,0,.24);
 }
 

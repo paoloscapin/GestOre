@@ -431,6 +431,42 @@ function ticketEventiGetReservationsForEvent(int $eventoId): array
     ") ?: [];
 }
 
+function ticketEventiGetReservationsForAllocation(int $eventoId, ?int $annoId = null): array
+{
+    global $__anno_scolastico_corrente_id;
+
+    $annoId = $annoId !== null ? $annoId : (int)$__anno_scolastico_corrente_id;
+
+    return dbGetAll("
+        SELECT
+            p.*,
+            COALESCE(pd.classe_di_concorso, '') AS classe_di_concorso,
+            COALESCE(UPPER(TRIM(dep.sigla)), '') AS dipartimento_sigla,
+            COALESCE(dep.nome, '') AS dipartimento_nome
+        FROM ticket_prenotazione p
+        LEFT JOIN profilo_docente pd
+            ON pd.id = (
+                SELECT MAX(pd2.id)
+                FROM profilo_docente pd2
+                WHERE pd2.docente_id = p.riferimento_id
+                  AND pd2.anno_scolastico_id = " . dbI($annoId) . "
+            )
+        LEFT JOIN classe_concorso_dipartimento ccd
+            ON TRIM(ccd.classe_di_concorso) = TRIM(pd.classe_di_concorso)
+        LEFT JOIN dipartimenti dep
+            ON dep.id = ccd.dipartimento_id
+        WHERE p.evento_id = " . dbI($eventoId) . "
+          AND p.stato = 'attiva'
+        ORDER BY
+            CASE
+                WHEN p.ruolo = 'docente' THEN 1
+                WHEN p.ruolo = 'personale-ata' THEN 2
+                ELSE 3
+            END,
+            nominativo ASC
+    ") ?: [];
+}
+
 function ticketEventiGetVisibleEventsForActor(array $actor, int $annoId): array
 {
     $visibilityColumn = ticketEventiVisibilityColumn((string)$actor['ruolo']);
