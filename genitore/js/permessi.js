@@ -54,27 +54,51 @@ document.addEventListener("DOMContentLoaded", function () {
 function impostaDataPermesso() {
     const inputData = document.getElementById("data");
     const avviso = document.getElementById("avvisoData");
+    const timezone = "Europe/Rome";
 
-    const now = new Date();
-    let dataSelezionata = new Date();
+    if (!inputData || !avviso) {
+        return;
+    }
 
-    const ore = now.getHours();
+    const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        weekday: "short",
+        hour: "2-digit",
+        hourCycle: "h23"
+    }).formatToParts(new Date()).reduce(function (acc, part) {
+        if (part.type !== "literal") {
+            acc[part.type] = part.value;
+        }
+        return acc;
+    }, {});
 
-    // Se dopo le 9, parte da domani
-    if (ore >= 9) {
-        dataSelezionata.setDate(dataSelezionata.getDate() + 1);
+    let dataSelezionata = new Date(Date.UTC(
+        Number(parts.year),
+        Number(parts.month) - 1,
+        Number(parts.day)
+    ));
+
+    // Dopo le 09:00 ora italiana propone il primo giorno lavorativo successivo.
+    if (Number(parts.hour) >= 9) {
+        dataSelezionata.setUTCDate(dataSelezionata.getUTCDate() + 1);
         avviso.style.display = "block";
     } else {
         avviso.style.display = "none";
     }
 
     // Salta sabato (6) e domenica (0)
-    while (dataSelezionata.getDay() === 0 || dataSelezionata.getDay() === 6) {
-        dataSelezionata.setDate(dataSelezionata.getDate() + 1);
+    while (dataSelezionata.getUTCDay() === 0 || dataSelezionata.getUTCDay() === 6) {
+        dataSelezionata.setUTCDate(dataSelezionata.getUTCDate() + 1);
     }
 
     // Formato YYYY-MM-DD
-    inputData.value = dataSelezionata.toISOString().split("T")[0];
+    const anno = dataSelezionata.getUTCFullYear();
+    const mese = String(dataSelezionata.getUTCMonth() + 1).padStart(2, "0");
+    const giorno = String(dataSelezionata.getUTCDate()).padStart(2, "0");
+    inputData.value = anno + "-" + mese + "-" + giorno;
 }
 
 function permessiDelete(id) {
