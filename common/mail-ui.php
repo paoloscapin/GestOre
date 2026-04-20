@@ -3,6 +3,8 @@
  * UI helpers per email HTML (GestOre)
  */
 
+date_default_timezone_set('Europe/Rome');
+
 function mailWrap(
     $titleHtml,
     $toName,
