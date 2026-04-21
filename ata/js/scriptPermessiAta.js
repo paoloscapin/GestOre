@@ -51,6 +51,41 @@ function notifyCentered(type, title, msg, delay) {
     );
 }
 
+function normalizeAtaTime(value) {
+    value = (value || "").toString().trim().replace(".", ":");
+    if (value === "") return "";
+
+    let h = "";
+    let m = "";
+
+    if (/^\d{1,2}:\d{1,2}$/.test(value)) {
+        const parts = value.split(":");
+        h = parts[0];
+        m = parts[1];
+    } else if (/^\d{3,4}$/.test(value)) {
+        h = value.length === 3 ? value.substring(0, 1) : value.substring(0, 2);
+        m = value.length === 3 ? value.substring(1) : value.substring(2);
+    } else if (/^\d{1,2}$/.test(value)) {
+        h = value;
+        m = "00";
+    } else {
+        return value;
+    }
+
+    const hh = parseInt(h, 10);
+    const mm = parseInt(m, 10);
+
+    if (isNaN(hh) || isNaN(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) {
+        return value;
+    }
+
+    return String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0");
+}
+
+function ataTimeInputHtml(className, value) {
+    return `<input type="text" class="form-control input-sm time-input ${className}" list="ata_time_options" inputmode="numeric" maxlength="5" placeholder="HH:MM" autocomplete="off" value="${value || ""}">`;
+}
+
 function updateFeriePeriodoUI() {
     const sottotipo = ($("#ferie_sottotipo").val() || "").toString().trim().toUpperCase();
 
@@ -159,12 +194,12 @@ function riga104Template(r) {
 
       <div class="col-md-2 col-sm-4 col-xs-6 r104_block_ore" style="display:none;">
         <label>Ore da</label>
-        <input type="time" class="form-control input-sm r104_ora_da" value="${ora_da}">
+        ${ataTimeInputHtml("r104_ora_da", ora_da)}
       </div>
 
       <div class="col-md-2 col-sm-4 col-xs-6 r104_block_ore" style="display:none;">
         <label>Ore a</label>
-        <input type="time" class="form-control input-sm r104_ora_a" value="${ora_a}">
+        ${ataTimeInputHtml("r104_ora_a", ora_a)}
       </div>
 
       <div class="col-md-2 col-sm-3 col-xs-12 text-right">
@@ -317,8 +352,8 @@ function collectRighe() {
                     unita: "ORE",
                     data_da: d,
                     data_a: d,
-                    ora_da: $r.find(".r104_ora_da").val() || null,
-                    ora_a: $r.find(".r104_ora_a").val() || null
+                    ora_da: normalizeAtaTime($r.find(".r104_ora_da").val()) || null,
+                    ora_a: normalizeAtaTime($r.find(".r104_ora_a").val()) || null
                 });
             }
         });
@@ -326,8 +361,8 @@ function collectRighe() {
     }
 
     const data = $("#singolo_data").val();
-    const ora_da = $("#singolo_ora_da").val();
-    const ora_a = $("#singolo_ora_a").val();
+    const ora_da = normalizeAtaTime($("#singolo_ora_da").val());
+    const ora_a = normalizeAtaTime($("#singolo_ora_a").val());
 
     return [{
         unita: "ORE",
@@ -643,6 +678,10 @@ $(document).on("click", ".btn_del_104", function () {
         return;
     }
     $(this).closest(".riga-104").remove();
+});
+
+$(document).on("blur change", ".time-input", function () {
+    $(this).val(normalizeAtaTime($(this).val()));
 });
 
 $(document).on("click", "#btn_cancel_permesso", function () {

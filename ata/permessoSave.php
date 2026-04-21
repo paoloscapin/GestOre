@@ -236,6 +236,12 @@ function fmtDateIT(?string $ymd): string
   return $ts ? date('d/m/Y', $ts) : $ymd;
 }
 
+function isValidAtaTime($time): bool
+{
+  $time = trim((string)$time);
+  return $time === '' || preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $time) === 1;
+}
+
 if ($tipo_id <= 0) {
   echo json_encode(["ok" => false, "error" => "Seleziona il tipo di permesso."], JSON_UNESCAPED_UNICODE);
   exit;
@@ -282,6 +288,11 @@ foreach ($righe as $i => $r) {
   $data_a  = isset($r['data_a']) ? trim((string)$r['data_a']) : '';
   $ora_da  = isset($r['ora_da']) ? trim((string)$r['ora_da']) : '';
   $ora_a   = isset($r['ora_a']) ? trim((string)$r['ora_a']) : '';
+
+  if (!isValidAtaTime($ora_da) || !isValidAtaTime($ora_a)) {
+    echo json_encode(["ok" => false, "error" => "Riga " . ($i + 1) . ": inserisci l'orario nel formato HH:MM."], JSON_UNESCAPED_UNICODE);
+    exit;
+  }
 
   if ($tipo_codice === 'RECUPERO_ORE') {
 

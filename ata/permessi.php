@@ -26,6 +26,13 @@ foreach ($finestreFerie as $f) {
         'data_fine'   => $f['data_fine'],
     ];
 }
+
+$timeOptionsHtml = '';
+for ($h = 7; $h <= 18; $h++) {
+    foreach ([0, 15, 30, 45] as $m) {
+        $timeOptionsHtml .= '<option value="' . sprintf('%02d:%02d', $h, $m) . '"></option>';
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -428,14 +435,14 @@ foreach ($finestreFerie as $f) {
                             <div class="col-md-4" id="block_singolo_ora_da" style="display:none;">
                                 <div class="form-group">
                                     <label for="singolo_ora_da">Ore da</label>
-                                    <input type="time" class="form-control" id="singolo_ora_da">
+                                    <input type="text" class="form-control time-input" id="singolo_ora_da" list="ata_time_options" inputmode="numeric" maxlength="5" placeholder="HH:MM" autocomplete="off">
                                 </div>
                             </div>
 
                             <div class="col-md-4" id="block_singolo_ora_a" style="display:none;">
                                 <div class="form-group">
                                     <label for="singolo_ora_a">Ore a</label>
-                                    <input type="time" class="form-control" id="singolo_ora_a">
+                                    <input type="text" class="form-control time-input" id="singolo_ora_a" list="ata_time_options" inputmode="numeric" maxlength="5" placeholder="HH:MM" autocomplete="off">
                                 </div>
                             </div>
                         </div>
@@ -495,6 +502,10 @@ foreach ($finestreFerie as $f) {
             </div>
         </div>
     </div>
+
+    <datalist id="ata_time_options">
+        <?php echo $timeOptionsHtml; ?>
+    </datalist>
 
     <script>
         window.__FERIE_FINESTRE = <?php echo json_encode($finestreMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
