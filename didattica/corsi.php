@@ -22,6 +22,8 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
     ruoloRichiesto('segreteria-didattica', 'esterno', 'dirigente');
 }
 
+applicaDocenteDaParametroSeAutorizzato();
+
 // ✅ AGGIUNTA: flag vista esterno (robusto)
 // ✅ Esterno SOLO se è la vista/ruolo effettivo (non se è un ruolo "anche presente")
 $ruolo_eff = $__utente_ruolo ?? '';

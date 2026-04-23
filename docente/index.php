@@ -12,6 +12,7 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/__Minuti.php';
 ruoloRichiesto('segreteria-docenti','dirigente','docente','segreteria-didattica');
+applicaDocenteDaParametroSeAutorizzato();
 ?>
 
 <!DOCTYPE html>
@@ -25,9 +26,14 @@ ruoloRichiesto('segreteria-docenti','dirigente','docente','segreteria-didattica'
 <?php
 require_once '../common/header-docente.php';
 require_once '../common/connect.php';
+$docente_id = intval($__docente_id ?? 0);
+$operatore = 'docente';
 ?>
 
 <div class="container-fluid">
+<input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">
+<input type="hidden" id="hidden_operatore" value="<?php echo htmlspecialchars($operatore, ENT_QUOTES, 'UTF-8'); ?>">
+<input type="hidden" id="hidden_ultimo_controllo" value="">
 
 <div class="panel panel-lima4">
 <div class="panel-heading">

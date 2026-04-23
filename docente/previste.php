@@ -42,10 +42,10 @@ if(isset($_GET['docente_id']) && $_GET['docente_id'] != "") {
 	// agisci quindi come dirigente
 	$operatore = 'dirigente';
 
-	// ✅ NON toccare la sessione: uso variabili locali per visualizzare il docente richiesto
+	// Allinea anche la sessione della finestra, cosi' l'header docente resta sull'interpretato.
 	$docente_id = intval($_GET['docente_id']);
 
-	$result = dbGetFirst("SELECT * FROM docente WHERE docente.id = $docente_id");
+	$result = applicaDocenteDaParametroSeAutorizzato();
 	if ($result == null) {
 		redirect("/error/error.php?message=" . urlencode("Docente non trovato"));
 		exit();
@@ -56,6 +56,12 @@ if(isset($_GET['docente_id']) && $_GET['docente_id'] != "") {
 	// // nome docente solo per intestazioni/pagina (non sessione)
 	$docente_view_nome = $result['nome'];
 	$docente_view_cognome = $result['cognome'];
+	$session->set('docente_id', $result['id']);
+	$session->set('docente_nome', $result['nome']);
+	$session->set('docente_cognome', $result['cognome']);
+	$__docente_id = $result['id'];
+	$__docente_nome = $result['nome'];
+	$__docente_cognome = $result['cognome'];
 
 }
 $ultimo_controllo = dbGetValue("SELECT ultimo_controllo FROM ore_previste WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");

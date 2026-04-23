@@ -57,6 +57,40 @@ function ruoloRichiesto(...$ruoli) {
     redirect("/error/unauthorized.php");
 }
 
+function applicaDocenteDaParametroSeAutorizzato($param = 'docente_id') {
+    global $session;
+    global $__docente_id, $__docente_nome, $__docente_cognome, $__docente_email;
+
+    if (!isset($_GET[$param]) || intval($_GET[$param]) <= 0) {
+        return null;
+    }
+
+    // Admin passa da haRuolo('dirigente') per disegno storico dell'app.
+    if (!haRuolo('dirigente')) {
+        return null;
+    }
+
+    $docenteId = intval($_GET[$param]);
+    $docente = dbGetFirst("SELECT * FROM docente WHERE id = $docenteId LIMIT 1");
+    if ($docente == null) {
+        redirect("/error/error.php?message=" . urlencode("Docente non trovato"));
+    }
+
+    $session->set('docente_id', $docente['id']);
+    $session->set('docente_nome', $docente['nome']);
+    $session->set('docente_cognome', $docente['cognome']);
+    if (isset($docente['email'])) {
+        $session->set('docente_email', $docente['email']);
+    }
+
+    $__docente_id = $docente['id'];
+    $__docente_nome = $docente['nome'];
+    $__docente_cognome = $docente['cognome'];
+    $__docente_email = $docente['email'] ?? $__docente_email;
+
+    return $docente;
+}
+
 // Controlla se lo user ha il ruolo specificato
 function haRuolo($ruolo) {
     global $__utente_ruolo;

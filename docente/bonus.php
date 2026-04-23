@@ -14,6 +14,7 @@ $anno_scolastico_id = isset($_GET['anno_scolastico_id'])
 	: $__anno_scolastico_corrente_id;
 
 ruoloRichiesto('segreteria-docenti', 'dirigente', 'docente');
+applicaDocenteDaParametroSeAutorizzato();
 ?>
 <!DOCTYPE html>
 <html>

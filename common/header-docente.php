@@ -12,6 +12,11 @@
 <?php
 $docenteHeaderNome = '';
 $docenteHeaderCognome = '';
+$docenteHeaderId = intval($GLOBALS['__docente_id'] ?? 0);
+
+if (isset($_GET['docente_id']) && intval($_GET['docente_id']) > 0 && haRuolo('dirigente')) {
+	$docenteHeaderId = intval($_GET['docente_id']);
+}
 
 if (!empty($docente_view_nome) || !empty($docente_view_cognome)) {
 	$docenteHeaderNome = (string)$docente_view_nome;
@@ -23,6 +28,14 @@ if (!empty($docente_view_nome) || !empty($docente_view_cognome)) {
 	$docenteHeaderNome = (string)$__utente_nome;
 	$docenteHeaderCognome = (string)$__utente_cognome;
 }
+
+$docenteHeaderQuery = ($docenteHeaderId > 0 && (string)($__utente_ruolo ?? '') !== 'docente')
+	? ('?docente_id=' . urlencode((string)$docenteHeaderId))
+	: '';
+$docenteHeaderJoin = function (string $url) use ($docenteHeaderQuery): string {
+	if ($docenteHeaderQuery === '') return $url;
+	return $url . (strpos($url, '?') === false ? $docenteHeaderQuery : '&' . ltrim($docenteHeaderQuery, '?'));
+};
 ?>
 
 <nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
@@ -30,15 +43,15 @@ if (!empty($docente_view_nome) || !empty($docente_view_cognome)) {
 		<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav docente-navbar-nav">
-			<li><a href="../docente/index.php"
+			<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../docente/index.php'), ENT_QUOTES, 'UTF-8'); ?>"
 				class="btn btn-default btn-lima4 nav-btn" role="button" data-toggle="tooltip"
 				data-placement="bottom" title="Vedi qui le tue ore da fare"><span
 					class="glyphicon glyphicon-time"></span>&ensp;Ore</a></li>
-			<li><a href="../docente/previste.php"
+			<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../docente/previste.php'), ENT_QUOTES, 'UTF-8'); ?>"
 				class="btn btn-default btn-orange4 nav-btn" role="button" data-toggle="tooltip"
 				data-placement="bottom" title="Gestisci qui le tue ore previste ad inizio anno"><span
 					class="glyphicon glyphicon-list-alt"></span>&ensp;Previste</a></li>
-			<li><a href="../docente/attivita.php"
+			<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../docente/attivita.php'), ENT_QUOTES, 'UTF-8'); ?>"
 				class="btn btn-default btn-teal4 nav-btn" role="button" data-toggle="tooltip"
 				data-placement="bottom" title="Rendiconta qui le tue ore fatte"><span
 					class="glyphicon glyphicon-folder-close"></span>&ensp;Fatte</a></li>
@@ -47,7 +60,7 @@ if (!empty($docente_view_nome) || !empty($docente_view_cognome)) {
 				data-placement="bottom" title="Prenota i biglietti degli eventi aperti"><span
 					class="glyphicon glyphicon-barcode"></span>&ensp;Biglietti</a></li>
 			<?php if ($__settings->config->bonus): ?>
-				<li><a href="../docente/bonus.php"
+				<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../docente/bonus.php'), ENT_QUOTES, 'UTF-8'); ?>"
 					class="btn btn-default btn-lima4 nav-btn" role="button" data-toggle="tooltip"
 					data-placement="bottom" title="Gestione della valorizzazione docente"><span
 						class="glyphicon glyphicon-list-alt"></span>&ensp;Bonus</a></li>
@@ -58,8 +71,8 @@ if (!empty($docente_view_nome) || !empty($docente_view_cognome)) {
 						<span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli <span class="caret"></span>
 					</a>
 					<ul class="dropdown-menu">
-						<li><a href="../docente/sportello.php"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Apri sportelli</a></li>
-						<li><a href="../segreteria/sportelloReportEffettuati.php"><span class="glyphicon glyphicon-stats"></span>&ensp;Report sportelli</a></li>
+						<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../docente/sportello.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Apri sportelli</a></li>
+						<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../segreteria/sportelloReportEffettuati.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-stats"></span>&ensp;Report sportelli</a></li>
 					</ul>
 				</li>
 			<?php endif; ?>
@@ -74,7 +87,7 @@ if (!empty($docente_view_nome) || !empty($docente_view_cognome)) {
 				</a>
 				<ul class="dropdown-menu">
 					<?php if (getSettingsValue('config', 'corsi', false) && getSettingsValue('corsi', 'visibile_docenti', false)): ?>
-						<li><a href="../didattica/corsi.php"><span class="glyphicon glyphicon-th-list"></span>&ensp;I miei corsi</a></li>
+						<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../didattica/corsi.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-th-list"></span>&ensp;I miei corsi</a></li>
 					<?php endif; ?>
 					<?php if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)): ?>
 						<li><a href="../didattica/programmaMaterie.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Programmi materie</a></li>
