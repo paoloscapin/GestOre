@@ -42,6 +42,22 @@ function formatDateIt($value)
   return date('d.m.Y', $ts);
 }
 
+function formatPeriodoRichiesta($dataDal, $dataAl)
+{
+  $dataDal = trim((string)$dataDal);
+  $dataAl = trim((string)$dataAl);
+
+  if ($dataDal === '' && $dataAl === '') return '';
+  if ($dataDal === '') $dataDal = $dataAl;
+  if ($dataAl === '') $dataAl = $dataDal;
+
+  if ($dataDal === $dataAl) {
+    return formatDateIt($dataDal);
+  }
+
+  return 'dal ' . formatDateIt($dataDal) . ' al ' . formatDateIt($dataAl);
+}
+
 $html = '<div class="permessi-cards">';
 
 $query = "
@@ -57,7 +73,28 @@ SELECT
     SELECT COUNT(*)
     FROM permesso_ata_richiesta_riga rr
     WHERE rr.permesso_ata_richiesta_id = r.id
-  ) AS righe_count
+  ) AS righe_count,
+  (
+    SELECT COALESCE(SUM(
+      CASE
+        WHEN rr2.data_dal IS NULL OR rr2.data_dal = '' THEN 0
+        WHEN rr2.data_al IS NULL OR rr2.data_al = '' THEN 1
+        ELSE DATEDIFF(rr2.data_al, rr2.data_dal) + 1
+      END
+    ), 0)
+    FROM permesso_ata_richiesta_riga rr2
+    WHERE rr2.permesso_ata_richiesta_id = r.id
+  ) AS ferie_giorni_count,
+  (
+    SELECT MIN(rr3.data_dal)
+    FROM permesso_ata_richiesta_riga rr3
+    WHERE rr3.permesso_ata_richiesta_id = r.id
+  ) AS data_min,
+  (
+    SELECT MAX(COALESCE(NULLIF(rr4.data_al, ''), rr4.data_dal))
+    FROM permesso_ata_richiesta_riga rr4
+    WHERE rr4.permesso_ata_richiesta_id = r.id
+  ) AS data_max
 FROM permesso_ata_richiesta r
 INNER JOIN permesso_ata_tipo t ON t.id = r.permesso_ata_tipo_id
 WHERE r.personale_ata_id = $__ata_id
@@ -84,6 +121,8 @@ if (count($rows) === 0) {
     $descrizione = trim((string)$row['descrizione']);
     $ferieSottotipo = strtoupper(trim((string)$row['ferie_sottotipo']));
     $righeCount = (int)$row['righe_count'];
+    $ferieGiorniCount = (int)$row['ferie_giorni_count'];
+    $periodoRichiesta = formatPeriodoRichiesta($row['data_min'] ?? '', $row['data_max'] ?? '');
 
     $tipoTitolo = $descrizione !== '' ? $descrizione : $codice;
     $tipoCompleto = $codice;
@@ -96,10 +135,13 @@ if (count($rows) === 0) {
       if ($ferieSottotipo === 'ESTIVE') {
         $tipoTitolo = 'Ferie estive';
         $extraInfo .= '<div><strong>Tipologia:</strong> Ferie estive</div>';
-        $extraInfo .= '<div><strong>Giorni selezionati:</strong> ' . h((string)$righeCount) . '</div>';
       } else {
         $extraInfo .= '<div><strong>Tipologia ferie:</strong> ' . h($ferieSottotipo) . '</div>';
       }
+      $extraInfo .= '<div><strong>Giorni selezionati:</strong> ' . h((string)$ferieGiorniCount) . '</div>';
+    }
+    if ($periodoRichiesta !== '') {
+      $extraInfo .= '<div><strong>Periodo:</strong> ' . h($periodoRichiesta) . '</div>';
     }
 
     $stato = trim((string)$row['stato']);
