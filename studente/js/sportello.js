@@ -13,7 +13,7 @@ var soloIscritto = 0;
 var ancheCancellati = 0;
 var docente_filtro_id = 0;
 var materia_filtro_id = 0;
-var categoria_filtro_id = 1;
+var categoria_filtro_id = 0;
 
 $('#soloNuoviCheckBox').change(function () {
     soloNuovi = this.checked ? 1 : 0;
@@ -235,6 +235,10 @@ function sportelloIscriviti(sportello_id, materia, categoria, argomento, data, o
 
 $(document).ready(function () {
     $('.selectpicker').selectpicker();
+
+    categoria_filtro_id = parseInt($("#categoria_filtro").val(), 10) || 0;
+    docente_filtro_id = parseInt($("#docente_filtro").val(), 10) || 0;
+    materia_filtro_id = parseInt($("#materia_filtro").val(), 10) || 0;
 
     sportelloReadRecords();
 

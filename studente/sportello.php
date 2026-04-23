@@ -22,6 +22,33 @@ function eh($s)
 {
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
+
+function studenteFrequentaCorsoSerale(): bool
+{
+    global $__studente_id, $__anno_scolastico_corrente_id;
+
+    $row = dbGetFirst("
+        SELECT c.id
+        FROM studente_frequenta sf
+        INNER JOIN classi c ON c.id = sf.id_classe
+        WHERE sf.id_studente = " . dbI($__studente_id) . "
+          AND sf.id_anno_scolastico = " . dbI($__anno_scolastico_corrente_id) . "
+          AND FIND_IN_SET('30', REPLACE(COALESCE(c.gruppi_classe, ''), ' ', '')) > 0
+        LIMIT 1
+    ");
+
+    return $row != null;
+}
+
+function categoriaSportelloExists(array $categorie, string $nome): bool
+{
+    foreach ($categorie as $categoria) {
+        if (strcasecmp(trim((string)($categoria['nome'] ?? '')), $nome) === 0) {
+            return true;
+        }
+    }
+    return false;
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -75,9 +102,16 @@ function eh($s)
 
 <?php
 $categoriaFiltroOptionList = '<option value="0">tutti</option>';
-$default = "sportello didattico";
-foreach (dbGetAll("SELECT * FROM sportello_categoria ORDER BY sportello_categoria.nome ASC") as $categoria) {
-    $selected = ($categoria['nome'] == $default) ? ' selected' : '';
+$categorieSportello = dbGetAll("SELECT * FROM sportello_categoria ORDER BY sportello_categoria.nome ASC");
+if (!is_array($categorieSportello)) $categorieSportello = [];
+
+$default = studenteFrequentaCorsoSerale() ? "PreOra corsi serali" : "sportello didattico";
+if (!categoriaSportelloExists($categorieSportello, $default)) {
+    $default = "sportello didattico";
+}
+
+foreach ($categorieSportello as $categoria) {
+    $selected = (strcasecmp(trim((string)$categoria['nome']), $default) === 0) ? ' selected' : '';
     $categoriaFiltroOptionList .= '<option value="' . (int)$categoria['id'] . '"' . $selected . '>' . eh($categoria['nome']) . '</option>';
 }
 
