@@ -184,34 +184,37 @@ function renderOrarioHeaderByRole($ruolo)
                         </div>
                     </div>
                     <div class="mobile-toolbar-block">
-                        <div class="mobile-toolbar-title-row">
-                            <label class="mobile-label">Data</label>
-
-                            <button type="button" id="mobile_today_btn" class="btn btn-xs btn-primary">
-                                Oggi
-                            </button>
-                        </div>
-
                         <div class="mobile-search-row">
-                            <input type="text"
+                            <input type="search"
                                 id="mobile_search_input"
                                 class="form-control input-sm mobile-search-wide"
-                                placeholder="Cerca..." />
+                                placeholder="Cerca..."
+                                enterkeyhint="search"
+                                autocomplete="off"
+                                autocapitalize="none"
+                                spellcheck="false" />
                         </div>
 
-                        <div id="mobile_day_card" class="mobile-day-card" tabindex="0">
-                            <button type="button" id="btn_prev_day_mobile" class="btn btn-default btn-sm mobile-day-nav" title="Giorno precedente">
-                                <span class="glyphicon glyphicon-chevron-left"></span>
-                            </button>
+                        <div class="mobile-day-sort-row">
+                            <div id="mobile_day_card" class="mobile-day-card" tabindex="0">
+                                <button type="button" id="btn_prev_day_mobile" class="btn btn-default btn-sm mobile-day-nav" title="Giorno precedente">
+                                    <span class="glyphicon glyphicon-chevron-left"></span>
+                                </button>
 
-                            <div class="mobile-day-center">
-                                <div id="mobile_day_label" class="mobile-day-label">--</div>
-                                <div class="mobile-day-hint">Swipe destra/sinistra per cambiare giorno</div>
+                                <div class="mobile-day-center">
+                                    <div id="mobile_day_label" class="mobile-day-label">--</div>
+                                </div>
+
+                                <button type="button" id="btn_next_day_mobile" class="btn btn-default btn-sm mobile-day-nav" title="Giorno successivo">
+                                    <span class="glyphicon glyphicon-chevron-right"></span>
+                                </button>
                             </div>
 
-                            <button type="button" id="btn_next_day_mobile" class="btn btn-default btn-sm mobile-day-nav" title="Giorno successivo">
-                                <span class="glyphicon glyphicon-chevron-right"></span>
-                            </button>
+                            <div id="mobile_event_sortbar" class="mobile-event-sortbar mobile-event-sortbar-inline">
+                                <span class="mobile-event-sort-label">Ordina:</span>
+                                <button type="button" class="mobile-event-sort-btn" data-sort="ORA">Ora</button>
+                                <button type="button" class="mobile-event-sort-btn" data-sort="AULA">Aula</button>
+                            </div>
                         </div>
 
                     </div>

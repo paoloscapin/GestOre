@@ -11,7 +11,7 @@
 
     const LS_KEY_TARGET_BY_SCOPE = "orario_target_by_scope_mobile_v1";
     const LS_KEY_SCOPE = "orario_mobile_scope_v1";
-    const LS_KEY_EVENT_SORT = "orario_mobile_event_sort_v1";
+    const LS_KEY_EVENT_SORT = "orario_mobile_event_sort_v2";
     let state = {
         loading: false,
         options: [],
@@ -24,10 +24,10 @@
 
     function getEventSortMode() {
         try {
-            const v = localStorage.getItem(LS_KEY_EVENT_SORT) || "ORA";
+            const v = localStorage.getItem(LS_KEY_EVENT_SORT) || "AULA";
             return String(v).toUpperCase() === "AULA" ? "AULA" : "ORA";
         } catch (e) {
-            return "ORA";
+            return "AULA";
         }
     }
 
@@ -500,6 +500,7 @@
 
     function updateSearchVisibility() {
         const scope = currentScope();
+        $("#mobile_event_sortbar").toggle(scope === "EVENTI");
         if (scope === "EVENTI" || scope === "ASSENZE" || scope === "SOSTITUZIONI") {
             $("#search_block_mobile").show();
         } else {
@@ -609,6 +610,11 @@
     function buildTitle() {
         const scope = currentScope();
         const d = currentDate();
+        if (scope === "EVENTI") {
+            $("#orario_title_mobile").empty();
+            return;
+        }
+
         if (isTargetScope(scope)) {
             const lbl = $("#v_target_mobile option:selected").text() || "";
             $("#orario_title_mobile").html(
@@ -871,16 +877,6 @@
         }
 
         let html = `<div class="mobile-filter-summary">${filtered.length} risultato/i</div>`;
-
-        if (scope === "EVENTI") {
-            html += `
-        <div class="mobile-event-sortbar">
-            <span class="mobile-event-sort-label">Ordina:</span>
-            <button type="button" class="mobile-event-sort-btn" data-sort="ORA">Ora</button>
-            <button type="button" class="mobile-event-sort-btn" data-sort="AULA">Aula</button>
-        </div>
-    `;
-        }
         html += `<div class="mobile-list-grid">`;
 
         filtered.forEach(it => {
