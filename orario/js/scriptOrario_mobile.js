@@ -515,7 +515,7 @@
         } else {
             $("#target_block_mobile").hide();
         }
-        $("#target_block_mobile .mobile-label-row").toggle(scope !== "AULA");
+        $("#target_block_mobile .mobile-label-row").toggle(!isTargetScope(scope));
     }
 
     function syncMobileScopeTabs() {
@@ -611,7 +611,7 @@
     function buildTitle() {
         const scope = currentScope();
         const d = currentDate();
-        if (scope === "EVENTI" || scope === "AULA") {
+        if (scope === "EVENTI" || isTargetScope(scope)) {
             $("#orario_title_mobile").empty();
             return;
         }
@@ -692,7 +692,7 @@
     }
 
     function renderLegend() {
-        if (currentScope() === "AULA") return "";
+        if (isTargetScope(currentScope())) return "";
 
         return `
             <div class="mobile-legend">
