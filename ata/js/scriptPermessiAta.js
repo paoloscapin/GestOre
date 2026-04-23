@@ -52,13 +52,13 @@ function notifyCentered(type, title, msg, delay) {
 }
 
 function normalizeAtaTime(value) {
-    value = (value || "").toString().trim().replace(".", ":");
+    value = (value || "").toString().trim().replace(/[.,]/g, ":");
     if (value === "") return "";
 
     let h = "";
     let m = "";
 
-    if (/^\d{1,2}:\d{1,2}$/.test(value)) {
+    if (/^\d{1,2}:\d{1,2}(:\d{1,2})?$/.test(value)) {
         const parts = value.split(":");
         h = parts[0];
         m = parts[1];
@@ -83,7 +83,42 @@ function normalizeAtaTime(value) {
 }
 
 function ataTimeInputHtml(className, value) {
-    return `<input type="text" class="form-control input-sm time-input ${className}" list="ata_time_options" inputmode="numeric" maxlength="5" placeholder="HH:MM" autocomplete="off" value="${value || ""}">`;
+    return `<input type="text" class="form-control input-sm time-input ${className}" list="ata_time_options" inputmode="numeric" maxlength="8" placeholder="HH:MM" autocomplete="off" value="${normalizeAtaTime(value || "")}">`;
+}
+
+function parseAtaOreIntere(value) {
+    const raw = String(value || "").trim();
+    if (!/^\d+$/.test(raw)) return null;
+    const n = parseInt(raw, 10);
+    return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+function addHoursToAtaTime(time, hours) {
+    const t = normalizeAtaTime(time);
+    const n = parseAtaOreIntere(hours);
+    if (!t || !n) return "";
+
+    const parts = t.split(":");
+    const minutes = (parseInt(parts[0], 10) * 60) + parseInt(parts[1], 10) + (n * 60);
+    if (minutes > (23 * 60 + 59)) return "";
+
+    const hh = Math.floor(minutes / 60);
+    const mm = minutes % 60;
+    return String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0");
+}
+
+function diffHoursIntere(oraDa, oraA) {
+    const da = normalizeAtaTime(oraDa);
+    const a = normalizeAtaTime(oraA);
+    if (!da || !a) return "";
+
+    const pDa = da.split(":");
+    const pA = a.split(":");
+    const minDa = (parseInt(pDa[0], 10) * 60) + parseInt(pDa[1], 10);
+    const minA = (parseInt(pA[0], 10) * 60) + parseInt(pA[1], 10);
+    const diff = minA - minDa;
+    if (diff <= 0 || diff % 60 !== 0) return "";
+    return String(diff / 60);
 }
 
 function updateFeriePeriodoUI() {
@@ -165,6 +200,7 @@ function riga104Template(r) {
     const data_a = (r && r.data_a) ? r.data_a : "";
     const ora_da = (r && r.ora_da) ? r.ora_da : "";
     const ora_a = (r && r.ora_a) ? r.ora_a : "";
+    const durata_ore = (r && r.durata_ore) ? r.durata_ore : diffHoursIntere(ora_da, ora_a);
 
     return `
   <div class="well well-sm riga-104">
@@ -193,13 +229,13 @@ function riga104Template(r) {
       </div>
 
       <div class="col-md-2 col-sm-4 col-xs-6 r104_block_ore" style="display:none;">
-        <label>Ore da</label>
+        <label>Dalle ore</label>
         ${ataTimeInputHtml("r104_ora_da", ora_da)}
       </div>
 
       <div class="col-md-2 col-sm-4 col-xs-6 r104_block_ore" style="display:none;">
-        <label>Ore a</label>
-        ${ataTimeInputHtml("r104_ora_a", ora_a)}
+        <label>Per ore</label>
+        <input type="number" class="form-control input-sm r104_durata_ore" min="1" step="1" inputmode="numeric" placeholder="N" value="${durata_ore || ""}">
       </div>
 
       <div class="col-md-2 col-sm-3 col-xs-12 text-right">
@@ -221,7 +257,7 @@ function apply104RowUI($r) {
 
         $r.find(".r104_data").val("");
         $r.find(".r104_ora_da").val("");
-        $r.find(".r104_ora_a").val("");
+        $r.find(".r104_durata_ore").val("");
     } else {
         $r.find(".r104_block_giorni").hide();
         $r.find(".r104_block_ore").show();
@@ -242,6 +278,7 @@ function resetBlocks() {
 
     $("#block_singolo_ora_da").hide();
     $("#block_singolo_ora_a").hide();
+    $("#block_singolo_durata_ore").hide();
     $("#singolo_hint").hide().text("");
 
     $("#btn_add_ferie").prop("disabled", true);
@@ -296,8 +333,8 @@ function applyTipoUI() {
 
     if (tipo === "RECUPERO_ORE") {
         $("#block_singolo_ora_da").show();
-        $("#block_singolo_ora_a").show();
-        $("#singolo_hint").show().text("Inserisci una sola data e l'intervallo orario obbligatorio.");
+        $("#block_singolo_durata_ore").show();
+        $("#singolo_hint").show().text("Inserisci una sola data, l'ora di inizio e il numero intero di ore da recuperare.");
     } else if (tipo === "VISITA_MEDICA" || tipo === "VISITA_SPEC") {
         $("#block_singolo_ora_da").show();
         $("#block_singolo_ora_a").show();
@@ -348,12 +385,15 @@ function collectRighe() {
                 });
             } else {
                 const d = $r.find(".r104_data").val();
+                const durataOre = parseAtaOreIntere($r.find(".r104_durata_ore").val());
+                const oraDa = normalizeAtaTime($r.find(".r104_ora_da").val()) || null;
                 righe.push({
                     unita: "ORE",
                     data_da: d,
                     data_a: d,
-                    ora_da: normalizeAtaTime($r.find(".r104_ora_da").val()) || null,
-                    ora_a: normalizeAtaTime($r.find(".r104_ora_a").val()) || null
+                    ora_da: oraDa,
+                    ora_a: addHoursToAtaTime(oraDa, durataOre) || null,
+                    durata_ore: durataOre
                 });
             }
         });
@@ -363,13 +403,15 @@ function collectRighe() {
     const data = $("#singolo_data").val();
     const ora_da = normalizeAtaTime($("#singolo_ora_da").val());
     const ora_a = normalizeAtaTime($("#singolo_ora_a").val());
+    const durata_ore = parseAtaOreIntere($("#singolo_durata_ore").val());
 
     return [{
         unita: "ORE",
         data_da: data,
         data_a: data,
         ora_da: ora_da ? ora_da : null,
-        ora_a: ora_a ? ora_a : null
+        ora_a: tipo === "RECUPERO_ORE" ? (addHoursToAtaTime(ora_da, durata_ore) || null) : (ora_a ? ora_a : null),
+        durata_ore: tipo === "RECUPERO_ORE" ? durata_ore : null
     }];
 }
 
@@ -409,6 +451,7 @@ function openNewPermesso() {
     $("#singolo_data").val("");
     $("#singolo_ora_da").val("");
     $("#singolo_ora_a").val("");
+    $("#singolo_durata_ore").val("");
 
     $("#righe_ferie_container").empty();
     $("#righe_104_container").empty();
@@ -473,8 +516,9 @@ function permessoGetDetails(id) {
         } else {
             const rr = (r.righe && r.righe.length) ? r.righe[0] : null;
             $("#singolo_data").val(rr ? (rr.data_da || "") : "");
-            $("#singolo_ora_da").val(rr ? (rr.ora_da || "") : "");
-            $("#singolo_ora_a").val(rr ? (rr.ora_a || "") : "");
+            $("#singolo_ora_da").val(rr ? normalizeAtaTime(rr.ora_da || "") : "");
+            $("#singolo_ora_a").val(rr ? normalizeAtaTime(rr.ora_a || "") : "");
+            $("#singolo_durata_ore").val(rr ? (rr.durata_ore || diffHoursIntere(rr.ora_da || "", rr.ora_a || "")) : "");
         }
 
         const stato = String(p.stato || "").toUpperCase();

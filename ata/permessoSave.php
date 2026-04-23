@@ -22,7 +22,7 @@ function hMail($s): string
   return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 }
 
-function formatDateRangeMail($dataDa, $dataA, $oraDa = null, $oraA = null): string
+function formatDateRangeMail($dataDa, $dataA, $oraDa = null, $oraA = null, $durataOre = null): string
 {
   $dataDa = trim((string)$dataDa);
   $dataA  = trim((string)$dataA);
@@ -36,7 +36,11 @@ function formatDateRangeMail($dataDa, $dataA, $oraDa = null, $oraA = null): stri
     $txt = fmtDateIT($dataDa ?: $dataA);
   }
 
-  if ($oraDa !== '' && $oraA !== '') {
+  $durataOre = is_numeric($durataOre) ? (int)$durataOre : 0;
+
+  if ($oraDa !== '' && $durataOre > 0) {
+    $txt .= ' dalle ' . substr($oraDa, 0, 5) . ' per ' . $durataOre . ' ore';
+  } elseif ($oraDa !== '' && $oraA !== '') {
     $txt .= ' dalle ' . substr($oraDa, 0, 5) . ' alle ' . substr($oraA, 0, 5);
   }
 
@@ -83,7 +87,8 @@ function buildPermessoRichiestaMailHtml($nomeCompleto, $tipoCodice, $tipoDescriz
       $r['data_da'] ?? '',
       $r['data_a'] ?? '',
       $r['ora_da'] ?? '',
-      $r['ora_a'] ?? ''
+      $r['ora_a'] ?? '',
+      $r['durata_ore'] ?? null
     )) . '</td>
       </tr>';
   }
@@ -171,7 +176,8 @@ function buildPermessoRichiestaSegreteriaMailHtml($nomeCompleto, $emailUtente, $
       $r['data_da'] ?? '',
       $r['data_a'] ?? '',
       $r['ora_da'] ?? '',
-      $r['ora_a'] ?? ''
+      $r['ora_a'] ?? '',
+      $r['durata_ore'] ?? null
     )) . '</td>
       </tr>';
   }
@@ -236,10 +242,51 @@ function fmtDateIT(?string $ymd): string
   return $ts ? date('d/m/Y', $ts) : $ymd;
 }
 
+function normalizeAtaTimePhp($time): string
+{
+  $time = trim((string)$time);
+  if ($time === '') return '';
+
+  $time = str_replace([',', '.'], ':', $time);
+  if (preg_match('/^(\d{1,2}):(\d{1,2})(?::\d{1,2})?$/', $time, $m)) {
+    $h = (int)$m[1];
+    $min = (int)$m[2];
+  } elseif (preg_match('/^\d{3,4}$/', $time)) {
+    $h = (int)(strlen($time) === 3 ? substr($time, 0, 1) : substr($time, 0, 2));
+    $min = (int)(strlen($time) === 3 ? substr($time, 1) : substr($time, 2));
+  } elseif (preg_match('/^\d{1,2}$/', $time)) {
+    $h = (int)$time;
+    $min = 0;
+  } else {
+    return $time;
+  }
+
+  if ($h < 0 || $h > 23 || $min < 0 || $min > 59) return $time;
+  return sprintf('%02d:%02d', $h, $min);
+}
+
 function isValidAtaTime($time): bool
 {
   $time = trim((string)$time);
   return $time === '' || preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $time) === 1;
+}
+
+function parseDurataOre($value): int
+{
+  $value = trim((string)$value);
+  if ($value === '' || preg_match('/^\d+$/', $value) !== 1) return 0;
+  return (int)$value;
+}
+
+function addHoursToAtaTimePhp(string $oraDa, int $durataOre): string
+{
+  if (!isValidAtaTime($oraDa) || $oraDa === '' || $durataOre <= 0) return '';
+
+  [$h, $m] = array_map('intval', explode(':', $oraDa));
+  $minutes = ($h * 60) + $m + ($durataOre * 60);
+  if ($minutes > (23 * 60 + 59)) return '';
+
+  return sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
 }
 
 if ($tipo_id <= 0) {
@@ -286,8 +333,9 @@ foreach ($righe as $i => $r) {
   $unita   = isset($r['unita']) ? strtoupper(trim((string)$r['unita'])) : '';
   $data_da = isset($r['data_da']) ? trim((string)$r['data_da']) : '';
   $data_a  = isset($r['data_a']) ? trim((string)$r['data_a']) : '';
-  $ora_da  = isset($r['ora_da']) ? trim((string)$r['ora_da']) : '';
-  $ora_a   = isset($r['ora_a']) ? trim((string)$r['ora_a']) : '';
+  $ora_da  = isset($r['ora_da']) ? normalizeAtaTimePhp($r['ora_da']) : '';
+  $ora_a   = isset($r['ora_a']) ? normalizeAtaTimePhp($r['ora_a']) : '';
+  $durata_ore = isset($r['durata_ore']) ? parseDurataOre($r['durata_ore']) : 0;
 
   if (!isValidAtaTime($ora_da) || !isValidAtaTime($ora_a)) {
     echo json_encode(["ok" => false, "error" => "Riga " . ($i + 1) . ": inserisci l'orario nel formato HH:MM."], JSON_UNESCAPED_UNICODE);
@@ -308,12 +356,17 @@ foreach ($righe as $i => $r) {
       echo json_encode(["ok" => false, "error" => "RECUPERO ORE: inserisci una sola data."], JSON_UNESCAPED_UNICODE);
       exit;
     }
-    if ($ora_da === '' || $ora_a === '') {
-      echo json_encode(["ok" => false, "error" => "RECUPERO ORE: ore da/ore a obbligatorie."], JSON_UNESCAPED_UNICODE);
+    if ($ora_da === '') {
+      echo json_encode(["ok" => false, "error" => "RECUPERO ORE: inserisci l'ora di inizio."], JSON_UNESCAPED_UNICODE);
       exit;
     }
-    if ($ora_da >= $ora_a) {
-      echo json_encode(["ok" => false, "error" => "RECUPERO ORE: l'ora 'da' deve essere precedente all'ora 'a'."], JSON_UNESCAPED_UNICODE);
+    if ($durata_ore <= 0) {
+      echo json_encode(["ok" => false, "error" => "RECUPERO ORE: inserisci un numero intero di ore."], JSON_UNESCAPED_UNICODE);
+      exit;
+    }
+    $ora_a = addHoursToAtaTimePhp($ora_da, $durata_ore);
+    if ($ora_a === '') {
+      echo json_encode(["ok" => false, "error" => "RECUPERO ORE: la durata supera la giornata."], JSON_UNESCAPED_UNICODE);
       exit;
     }
   } elseif ($tipo_codice === 'LEGGE_104') {
@@ -346,12 +399,17 @@ foreach ($righe as $i => $r) {
         echo json_encode(["ok" => false, "error" => "Riga " . ($i + 1) . ": per ORE inserisci una sola data."], JSON_UNESCAPED_UNICODE);
         exit;
       }
-      if ($ora_da === '' || $ora_a === '') {
-        echo json_encode(["ok" => false, "error" => "Riga " . ($i + 1) . ": per ORE servono ora da/ora a."], JSON_UNESCAPED_UNICODE);
+      if ($ora_da === '') {
+        echo json_encode(["ok" => false, "error" => "Riga " . ($i + 1) . ": per ORE serve l'ora di inizio."], JSON_UNESCAPED_UNICODE);
         exit;
       }
-      if ($ora_da >= $ora_a) {
-        echo json_encode(["ok" => false, "error" => "Riga " . ($i + 1) . ": l'ora 'da' deve essere precedente all'ora 'a'."], JSON_UNESCAPED_UNICODE);
+      if ($durata_ore <= 0) {
+        echo json_encode(["ok" => false, "error" => "Riga " . ($i + 1) . ": per ORE inserisci un numero intero di ore."], JSON_UNESCAPED_UNICODE);
+        exit;
+      }
+      $ora_a = addHoursToAtaTimePhp($ora_da, $durata_ore);
+      if ($ora_a === '') {
+        echo json_encode(["ok" => false, "error" => "Riga " . ($i + 1) . ": la durata supera la giornata."], JSON_UNESCAPED_UNICODE);
         exit;
       }
     }
@@ -393,6 +451,7 @@ foreach ($righe as $i => $r) {
   $righe[$i]['data_a']  = $data_a;
   $righe[$i]['ora_da']  = $ora_da;
   $righe[$i]['ora_a']   = $ora_a;
+  $righe[$i]['durata_ore'] = $durata_ore > 0 ? $durata_ore : null;
 }
 
 dbExec("START TRANSACTION");
@@ -449,6 +508,9 @@ try {
     $dettagliRiga = [
       'unita' => $r['unita'] // GIORNI/ORE (serve soprattutto per LEGGE_104)
     ];
+    if (!empty($r['durata_ore'])) {
+      $dettagliRiga['durata_ore'] = (int)$r['durata_ore'];
+    }
     $dettagliRigaJson = json_encode($dettagliRiga, JSON_UNESCAPED_UNICODE);
 
     dbExec("

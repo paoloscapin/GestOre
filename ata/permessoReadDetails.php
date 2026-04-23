@@ -37,13 +37,19 @@ foreach ($righeDB as $rr) {
     if (is_array($tmp)) $det = $tmp;
   }
 
+  $fmtTime = function ($t) {
+    $t = trim((string)$t);
+    return $t !== '' ? substr($t, 0, 5) : $t;
+  };
+
   $righe[] = [
     'id'      => (int)$rr['id'],
     'unita'   => strtoupper((string)($det['unita'] ?? '')),
     'data_da' => $rr['data_dal'],
     'data_a'  => $rr['data_al'],
-    'ora_da'  => $rr['ora_dal'],
-    'ora_a'   => $rr['ora_al'],
+    'ora_da'  => $fmtTime($rr['ora_dal']),
+    'ora_a'   => $fmtTime($rr['ora_al']),
+    'durata_ore' => isset($det['durata_ore']) ? (int)$det['durata_ore'] : null,
   ];
 }
 

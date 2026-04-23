@@ -434,7 +434,7 @@ for ($h = 7; $h <= 18; $h++) {
 
                             <div class="col-md-4" id="block_singolo_ora_da" style="display:none;">
                                 <div class="form-group">
-                                    <label for="singolo_ora_da">Ore da</label>
+                                    <label for="singolo_ora_da">Dalle ore</label>
                                     <input type="text" class="form-control time-input" id="singolo_ora_da" list="ata_time_options" inputmode="numeric" maxlength="5" placeholder="HH:MM" autocomplete="off">
                                 </div>
                             </div>
@@ -445,15 +445,20 @@ for ($h = 7; $h <= 18; $h++) {
                                     <input type="text" class="form-control time-input" id="singolo_ora_a" list="ata_time_options" inputmode="numeric" maxlength="5" placeholder="HH:MM" autocomplete="off">
                                 </div>
                             </div>
+
+                            <div class="col-md-4" id="block_singolo_durata_ore" style="display:none;">
+                                <div class="form-group">
+                                    <label for="singolo_durata_ore">Recupero di ore</label>
+                                    <input type="number" class="form-control" id="singolo_durata_ore" min="1" step="1" inputmode="numeric" placeholder="N ore">
+                                </div>
+                            </div>
                         </div>
                         <div class="alert alert-info" id="singolo_hint" style="display:none; padding:8px; margin-bottom:0;"></div>
                     </div>
 
                     <div id="block_104_multi" class="permesso-block-card" style="display:none;">
-                        <div class="permesso-block-title">Intervalli Legge 104</div>
                         <div class="row">
                             <div class="col-md-6">
-                                <label>Intervalli LEGGE 104</label>
                             </div>
                             <div class="col-md-6 text-right">
                                 <button type="button" class="btn btn-default" id="btn_add_104">
@@ -466,7 +471,7 @@ for ($h = 7; $h <= 18; $h++) {
                             Puoi inserire:
                             <ul style="margin:6px 0 0 18px;">
                                 <li><b>GIORNI</b>: dal/al (senza ore)</li>
-                                <li><b>ORE</b>: un solo giorno + fascia oraria (ore da/ore a)</li>
+                                <li><b>ORE</b>: un solo giorno + ora di inizio + numero di ore</li>
                             </ul>
                         </div>
 
