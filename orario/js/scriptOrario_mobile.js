@@ -501,6 +501,8 @@
     function updateSearchVisibility() {
         const scope = currentScope();
         $("#mobile_event_sortbar").toggle(scope === "EVENTI");
+        closeInlineTargetResults();
+        updateSearchPlaceholder();
         if (scope === "EVENTI" || scope === "ASSENZE" || scope === "SOSTITUZIONI") {
             $("#search_block_mobile").show();
         } else {
@@ -548,6 +550,79 @@
         }).get().filter(x => x.value);
     }
 
+    function targetScopeSingularLabel(scope) {
+        scope = up(scope);
+        if (scope === "AULA") return "aula";
+        if (scope === "CLASSE") return "classe";
+        if (scope === "DOCENTE") return "docente";
+        return "elemento";
+    }
+
+    function updateSearchPlaceholder() {
+        const scope = currentScope();
+        if (isTargetScope(scope)) {
+            $("#mobile_search_input").attr("placeholder", "Cerca " + targetScopeSingularLabel(scope) + "...");
+        } else {
+            $("#mobile_search_input").attr("placeholder", "Cerca...");
+        }
+    }
+
+    function closeInlineTargetResults() {
+        $("#mobile_inline_target_results").hide().empty();
+    }
+
+    function targetSearchMatches(item, query) {
+        if (!query) return false;
+        const q = normTxt(query).toLowerCase();
+        const label = normTxt(item.label || "").toLowerCase();
+        const value = normTxt(item.value || "").toLowerCase();
+        return label.includes(q) || value.includes(q);
+    }
+
+    function renderTargetResultItems(containerSelector, q, itemClass) {
+        const query = normTxt(q || "").toLowerCase();
+        const current = currentTarget();
+        const filtered = getCurrentTargetOptions().filter(it => {
+            return query ? targetSearchMatches(it, query) : true;
+        });
+
+        if (!filtered.length) {
+            $(containerSelector).html(`<div class="mobile-target-empty">Nessun risultato</div>`).show();
+            return;
+        }
+
+        const visible = filtered.slice(0, 40);
+        const html = visible.map(it => `
+            <button type="button"
+                    class="mobile-target-item ${itemClass || ""} ${it.value === current ? 'is-active' : ''}"
+                    data-value="${escapeHtml(it.value)}">
+                ${escapeHtml(it.label)}
+            </button>
+        `).join("");
+
+        const more = filtered.length > visible.length
+            ? `<div class="mobile-target-more">Mostrati ${visible.length} di ${filtered.length}: continua a digitare per restringere.</div>`
+            : "";
+
+        $(containerSelector).html(html + more).show();
+    }
+
+    function renderInlineTargetSearchResults() {
+        const scope = currentScope();
+        if (!isTargetScope(scope)) {
+            closeInlineTargetResults();
+            return;
+        }
+
+        const q = $("#mobile_search_input").val() || "";
+        if (!normTxt(q)) {
+            closeInlineTargetResults();
+            return;
+        }
+
+        renderTargetResultItems("#mobile_inline_target_results", q, "mobile-inline-target-item");
+    }
+
     function openTargetModal() {
         const scope = currentScope();
         if (!isTargetScope(scope)) return;
@@ -567,30 +642,7 @@
     }
 
     function renderTargetModalList(q) {
-        const query = normTxt(q || "").toLowerCase();
-        const current = currentTarget();
-        const items = getCurrentTargetOptions();
-
-        const filtered = items.filter(it => {
-            if (!query) return true;
-            return (it.label || "").toLowerCase().includes(query)
-                || (it.value || "").toLowerCase().includes(query);
-        });
-
-        if (!filtered.length) {
-            $("#mobile_target_list").html(`<div class="mobile-target-empty">Nessun risultato</div>`);
-            return;
-        }
-
-        const html = filtered.map(it => `
-        <button type="button"
-                class="mobile-target-item ${it.value === current ? 'is-active' : ''}"
-                data-value="${escapeHtml(it.value)}">
-            ${escapeHtml(it.label)}
-        </button>
-    `).join("");
-
-        $("#mobile_target_list").html(html);
+        renderTargetResultItems("#mobile_target_list", q, "");
     }
 
     function selectTargetFromModal(value) {
@@ -605,6 +657,8 @@
         updateTargetCard();
         buildTitle();
         closeTargetModal();
+        closeInlineTargetResults();
+        $("#mobile_search_input").val("");
         loadCurrentView();
     }
 
@@ -857,7 +911,9 @@
         }
 
         $("#orario_content_mobile").html(html);
-        applySearchFilter();
+        if (!isTargetScope(currentScope())) {
+            applySearchFilter();
+        }
     }
 
     function renderSimpleList(items, scope) {
@@ -982,6 +1038,11 @@
 
     function applySearchFilter() {
         const scope = currentScope();
+        if (isTargetScope(scope)) {
+            renderInlineTargetSearchResults();
+            return;
+        }
+
         if (isListScope(scope)) {
             renderSimpleList(state.listItems || [], scope);
             return;
@@ -1020,6 +1081,7 @@
             state.options = [];
             $("#v_target_mobile").empty().append(`<option value="">(non usato)</option>`);
             updateTargetCard();
+            closeInlineTargetResults();
             return $.Deferred().resolve().promise();
         }
 
@@ -1058,6 +1120,7 @@
             if (chosen) setMemTarget(scope, chosen);
 
             updateTargetCard();
+            renderInlineTargetSearchResults();
             dfd.resolve();
         }).fail(function (xhr) {
             dfd.reject((xhr && xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : "Errore server caricamento opzioni");
@@ -1287,6 +1350,8 @@
         $("#v_scope_mobile").on("change", function () {
             const scope = currentScope();
             try { localStorage.setItem(LS_KEY_SCOPE, scope); } catch (e) { }
+            $("#mobile_search_input").val("");
+            closeInlineTargetResults();
             updateTargetBlockVisibility();
             updateSearchVisibility();
             fetchOptions().done(function () {
@@ -1378,7 +1443,22 @@
         });
 
         $("#mobile_search_input").on("input", function () {
-            applySearchFilter();
+            if (isTargetScope(currentScope())) {
+                renderInlineTargetSearchResults();
+            } else {
+                applySearchFilter();
+            }
+        });
+
+        $("#mobile_search_input").on("focus", function () {
+            if (isTargetScope(currentScope())) {
+                renderInlineTargetSearchResults();
+            }
+        });
+
+        $(document).on("click", function (e) {
+            if ($(e.target).closest("#search_block_mobile").length) return;
+            closeInlineTargetResults();
         });
 
         bindSwipe(document.getElementById("mobile_day_card"), nextDayNav, prevDayNav);

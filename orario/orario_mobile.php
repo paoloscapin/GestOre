@@ -146,6 +146,7 @@ function renderOrarioHeaderByRole($ruolo)
                                 autocomplete="off"
                                 autocapitalize="none"
                                 spellcheck="false" />
+                            <div id="mobile_inline_target_results" class="mobile-inline-target-results" style="display:none;"></div>
                         </div>
                     </div>
 
