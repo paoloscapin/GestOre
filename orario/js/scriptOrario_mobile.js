@@ -515,6 +515,7 @@
         } else {
             $("#target_block_mobile").hide();
         }
+        $("#target_block_mobile .mobile-label-row").toggle(scope !== "AULA");
     }
 
     function syncMobileScopeTabs() {
@@ -610,7 +611,7 @@
     function buildTitle() {
         const scope = currentScope();
         const d = currentDate();
-        if (scope === "EVENTI") {
+        if (scope === "EVENTI" || scope === "AULA") {
             $("#orario_title_mobile").empty();
             return;
         }
@@ -691,6 +692,8 @@
     }
 
     function renderLegend() {
+        if (currentScope() === "AULA") return "";
+
         return `
             <div class="mobile-legend">
                 <span class="mobile-legend-item"><span class="mobile-legend-dot dot-curr"></span>Curricolare</span>

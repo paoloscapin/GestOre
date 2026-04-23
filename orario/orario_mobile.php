@@ -136,6 +136,19 @@ function renderOrarioHeaderByRole($ruolo)
                         </select>
                     </div>
 
+                    <div id="search_block_mobile" class="mobile-toolbar-block">
+                        <div class="mobile-search-row">
+                            <input type="search"
+                                id="mobile_search_input"
+                                class="form-control input-sm mobile-search-wide"
+                                placeholder="Cerca..."
+                                enterkeyhint="search"
+                                autocomplete="off"
+                                autocapitalize="none"
+                                spellcheck="false" />
+                        </div>
+                    </div>
+
                     <div id="target_block_mobile" class="mobile-toolbar-block">
                         <div class="mobile-label-row">
                             <label class="mobile-label" for="v_target_mobile">Elemento</label>
@@ -183,18 +196,8 @@ function renderOrarioHeaderByRole($ruolo)
                             </div>
                         </div>
                     </div>
-                    <div class="mobile-toolbar-block">
-                        <div class="mobile-search-row">
-                            <input type="search"
-                                id="mobile_search_input"
-                                class="form-control input-sm mobile-search-wide"
-                                placeholder="Cerca..."
-                                enterkeyhint="search"
-                                autocomplete="off"
-                                autocapitalize="none"
-                                spellcheck="false" />
-                        </div>
 
+                    <div class="mobile-toolbar-block">
                         <div class="mobile-day-sort-row">
                             <div id="mobile_day_card" class="mobile-day-card" tabindex="0">
                                 <button type="button" id="btn_prev_day_mobile" class="btn btn-default btn-sm mobile-day-nav" title="Giorno precedente">
