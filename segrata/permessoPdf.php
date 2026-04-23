@@ -26,6 +26,12 @@ function fmtDateTimeIT($d): string
   return date('d/m/Y H:i', $ts);
 }
 
+function fmtTimeHHMM($t): string
+{
+  $t = trim((string)$t);
+  return $t !== '' ? substr($t, 0, 5) : '';
+}
+
 function ferieRowStatus(array $r): string
 {
   $dj = [];
@@ -308,8 +314,8 @@ if (($row['tipo_codice'] ?? '') === 'FERIE') {
     $html .= '<tr nobr="true">
       <td style="text-align:center; vertical-align:middle;">' . htmlspecialchars(fmtDateIT($r['data_dal'] ?? '')) . '</td>
       <td style="text-align:center; vertical-align:middle;">' . htmlspecialchars(fmtDateIT($r['data_al'] ?? '')) . '</td>
-      <td style="text-align:center; vertical-align:middle;">' . htmlspecialchars($r['ora_dal'] ?? '') . '</td>
-      <td style="text-align:center; vertical-align:middle;">' . htmlspecialchars($r['ora_al'] ?? '') . '</td>
+      <td style="text-align:center; vertical-align:middle;">' . htmlspecialchars(fmtTimeHHMM($r['ora_dal'] ?? '')) . '</td>
+      <td style="text-align:center; vertical-align:middle;">' . htmlspecialchars(fmtTimeHHMM($r['ora_al'] ?? '')) . '</td>
     </tr>';
   }
 

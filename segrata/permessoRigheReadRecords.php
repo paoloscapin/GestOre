@@ -35,6 +35,12 @@ function fmtDateIT($d) {
   return $dt ? $dt->format('d/m/Y') : $d;
 }
 
+function fmtTimeHHMM($t): string
+{
+  $t = trim((string)$t);
+  return $t !== '' ? substr($t, 0, 5) : '';
+}
+
 echo '<table class="table table-bordered table-condensed">';
 echo '<tr>
   <th>Unità</th>
@@ -60,8 +66,8 @@ foreach ($rows as $r) {
   echo '<td><strong>'.htmlspecialchars($unita).'</strong></td>';
   echo '<td>'.htmlspecialchars(fmtDateIT($r['data_dal'] ?? '')).'</td>';
   echo '<td>'.htmlspecialchars(fmtDateIT($r['data_al'] ?? '')).'</td>';
-  echo '<td>'.htmlspecialchars($r['ora_dal'] ?? '').'</td>';
-  echo '<td>'.htmlspecialchars($r['ora_al'] ?? '').'</td>';
+  echo '<td>'.htmlspecialchars(fmtTimeHHMM($r['ora_dal'] ?? '')).'</td>';
+  echo '<td>'.htmlspecialchars(fmtTimeHHMM($r['ora_al'] ?? '')).'</td>';
   echo '</tr>';
 }
 

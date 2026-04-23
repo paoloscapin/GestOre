@@ -214,6 +214,12 @@ if (!is_array($righeDB)) {
 $righe = [];
 $selectedDatesMap = [];
 
+function fmtTimeHHMM($t): string
+{
+  $t = trim((string)$t);
+  return $t !== '' ? substr($t, 0, 5) : '';
+}
+
 foreach ($righeDB as $rr) {
   $det = [];
   if (!empty($rr['dettagli_json'])) {
@@ -237,8 +243,8 @@ foreach ($righeDB as $rr) {
     'unita'            => $unita,
     'data_da'          => $dataDa,
     'data_a'           => $dataA,
-    'ora_da'           => $rr['ora_dal'] ?? '',
-    'ora_a'            => $rr['ora_al'] ?? '',
+    'ora_da'           => fmtTimeHHMM($rr['ora_dal'] ?? ''),
+    'ora_a'            => fmtTimeHHMM($rr['ora_al'] ?? ''),
     'modo'             => $det['modo'] ?? '',
     'stato_giorno'     => strtoupper((string)($det['stato_giorno'] ?? 'RICHIESTO')),
     'data_originale'   => $det['data_originale'] ?? $dataDa,
