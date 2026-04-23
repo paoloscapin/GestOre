@@ -1078,10 +1078,22 @@
       // ----- ripristino target per-scope -----
       const scopeUp = (scope || "").toString().trim().toUpperCase();
       const remembered = getMemTarget(scopeUp);
+      const defaultScope = String(window.ORARIO_DEFAULT_SCOPE || "").trim().toUpperCase();
+      const defaultTarget = String(window.ORARIO_DEFAULT_TARGET || "").trim();
 
       let restored = false;
 
-      if (remembered) {
+      if (defaultTarget && defaultScope === scopeUp) {
+        const escDefault = cssEscape(defaultTarget);
+        const defaultExists = $t.find(`option[value="${escDefault}"]`).length > 0;
+        if (defaultExists) {
+          try { $t.selectpicker("val", defaultTarget); } catch (e) { $t.val(defaultTarget); }
+          setMemTarget(scopeUp, defaultTarget);
+          restored = true;
+        }
+      }
+
+      if (!restored && remembered) {
         const esc = cssEscape(remembered);
         const exists = $t.find(`option[value="${esc}"]`).length > 0;
         if (exists) {
@@ -2787,11 +2799,14 @@
     $(".selectpicker").selectpicker();
 
     // ✅ default: scope EVENTI
-    $("#v_scope").selectpicker("val", "EVENTI");
+    const defaultScope = String(window.ORARIO_DEFAULT_SCOPE || "EVENTI").trim().toUpperCase();
+    const defaultPeriod = String(window.ORARIO_DEFAULT_PERIOD || "GIORNO").trim().toUpperCase();
+
+    $("#v_scope").selectpicker("val", defaultScope);
     syncSegmented($("#v_scope"));
 
     // ✅ default: period GIORNO (eventi non ha settimana)
-    $("#v_period").selectpicker("val", "GIORNO");
+    $("#v_period").selectpicker("val", defaultPeriod);
     syncSegmented($("#v_period"));
 
     // ✅ default: date oggi

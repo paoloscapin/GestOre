@@ -76,7 +76,7 @@ $docenteHeaderJoin = function (string $url) use ($docenteHeaderQuery): string {
 					</ul>
 				</li>
 			<?php endif; ?>
-			<li><a href="../orario/orario.php"
+			<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../orario/orario.php'), ENT_QUOTES, 'UTF-8'); ?>"
 				class="btn btn-default btn-lightblue4 nav-btn" role="button" data-toggle="tooltip"
 				data-placement="bottom" title="Orario docenti e classi ed eventi"><span
 					class="glyphicon glyphicon-time"></span>&ensp;Orario</a></li>
@@ -90,19 +90,19 @@ $docenteHeaderJoin = function (string $url) use ($docenteHeaderQuery): string {
 						<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../didattica/corsi.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-th-list"></span>&ensp;I miei corsi</a></li>
 					<?php endif; ?>
 					<?php if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)): ?>
-						<li><a href="../didattica/programmaMaterie.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Programmi materie</a></li>
+						<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../didattica/programmaMaterie.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-th-large"></span>&ensp;Programmi materie</a></li>
 					<?php endif; ?>
 					<?php if (getSettingsValue('programmiIniziali', 'visibile_docenti', false)) : ?>
-						<li><a href="../didattica/programmiIniziali.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Programmi iniziali</a></li>
+						<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../didattica/programmiIniziali.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Programmi iniziali</a></li>
 					<?php endif; ?>
 					<?php if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) : ?>
-						<li><a href="../didattica/programmiSvolti.php"><span class="glyphicon glyphicon-list"></span>&ensp;Programmi svolti</a></li>
+						<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../didattica/programmiSvolti.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-list"></span>&ensp;Programmi svolti</a></li>
 					<?php endif; ?>
 					<?php if (getSettingsValue('programmiMinimi', 'visibile_docenti', false)): ?>
-						<li><a href="../didattica/programmaMinimi.php"><span class="glyphicon glyphicon-check"></span>&ensp;Obiettivi minimi</a></li>
+						<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../didattica/programmaMinimi.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-check"></span>&ensp;Obiettivi minimi</a></li>
 					<?php endif; ?>
 					<?php if ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false))) : ?>
-						<li><a href="../didattica/carenzeMinimi.php"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze</a></li>
+						<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../didattica/carenzeMinimi.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze</a></li>
 					<?php endif; ?>
 				</ul>
 			</li>

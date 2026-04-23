@@ -363,6 +363,11 @@ function exportFile() {
 
 $(document).ready(function () {
 
+    const docentePreselezionato = parseInt($("#hidden_docente_id").val() || "0", 10);
+    if (docentePreselezionato > 0) {
+        $docente_filtro_id = docentePreselezionato;
+        $('#docente_filtro').selectpicker('val', String(docentePreselezionato));
+    }
 
     carenzeReadRecords();
 

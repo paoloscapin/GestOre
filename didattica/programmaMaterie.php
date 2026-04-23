@@ -13,6 +13,7 @@ require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_bootstrap-notify.php';
 ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
+applicaDocenteDaParametroSeAutorizzato();
 ?>
 
 <!DOCTYPE html>
@@ -71,6 +72,11 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
 
 <body>
     <?php
+    if (isset($_GET['docente_id']) && intval($_GET['docente_id']) > 0 && intval($__docente_id ?? 0) > 0)
+    {
+        require_once '../common/header-docente.php';
+    }
+    else
     if (haRuolo('segreteria-didattica'))
     {
         require_once '../common/header-didattica.php';

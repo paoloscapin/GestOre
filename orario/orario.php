@@ -4,6 +4,17 @@ require_once '../common/connect.php';
 require_once '../common/connectMBApp.php';
 
 ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'dirigente', 'studente', 'genitore');
+applicaDocenteDaParametroSeAutorizzato();
+
+$orarioDefaultScope = 'EVENTI';
+$orarioDefaultPeriod = 'GIORNO';
+$orarioDefaultTarget = '';
+if (isset($_GET['docente_id']) && intval($_GET['docente_id']) > 0 && intval($__docente_id ?? 0) > 0) {
+    $orarioDefaultScope = 'DOCENTE';
+    $orarioDefaultPeriod = 'SETTIMANA';
+    $docenteIdOrario = intval($__docente_id);
+    $orarioDefaultTarget = (string) dbGetValue("SELECT username FROM docente WHERE id = $docenteIdOrario LIMIT 1");
+}
 
 function isMobileOrarioClient()
 {
@@ -44,6 +55,10 @@ if (isMobileOrarioClient()) {
 
     global $__utente_ruolo;
     $ruolo = strtoupper(trim((string)$__utente_ruolo));
+    if (isset($_GET['docente_id']) && intval($_GET['docente_id']) > 0 && intval($__docente_id ?? 0) > 0) {
+        $ruolo = 'DOCENTE';
+    }
+    $isPublicOrario = in_array($ruolo, ['STUDENTE', 'GENITORE'], true);
 
     switch ($ruolo) {
 
@@ -141,9 +156,6 @@ if (isMobileOrarioClient()) {
                                 <option value="SETTIMANA" selected>SETTIMANA</option>
                             </select>
 
-                            <?php
-$isPublicOrario = in_array($ruolo, ['STUDENTE', 'GENITORE'], true);
-?>
                             <!-- Segmented: SCOPE -->
                             <div class="seg seg-scope" id="seg_scope" role="group" aria-label="Vista">
                                 <button type="button" class="seg-btn" data-target="#v_scope" data-value="AULA">Aula</button>
@@ -234,6 +246,9 @@ $isPublicOrario = in_array($ruolo, ['STUDENTE', 'GENITORE'], true);
     <script>
     window.ORARIO_USER_ROLE = <?= json_encode($ruolo, JSON_UNESCAPED_UNICODE) ?>;
     window.ORARIO_IS_DOCENTE = <?= json_encode($ruolo === 'DOCENTE') ?>;
+    window.ORARIO_DEFAULT_SCOPE = <?= json_encode($orarioDefaultScope, JSON_UNESCAPED_UNICODE) ?>;
+    window.ORARIO_DEFAULT_PERIOD = <?= json_encode($orarioDefaultPeriod, JSON_UNESCAPED_UNICODE) ?>;
+    window.ORARIO_DEFAULT_TARGET = <?= json_encode($orarioDefaultTarget, JSON_UNESCAPED_UNICODE) ?>;
     </script>
 
     <script src="js/scriptAssenze.js?t=<?= time() ?>"></script>
