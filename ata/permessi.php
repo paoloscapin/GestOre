@@ -232,7 +232,8 @@ for ($h = 7; $h <= 18; $h++) {
         }
 
         #btn_add_ferie,
-        #btn_add_104 {
+        #btn_add_104,
+        #btn_add_singolo {
             min-height: 42px;
             font-size: 14px;
             border-radius: 10px;
@@ -240,7 +241,8 @@ for ($h = 7; $h <= 18; $h++) {
         }
 
         .btn_del_ferie,
-        .btn_del_104 {
+        .btn_del_104,
+        .btn_del_singolo {
             min-height: 40px;
             border-radius: 10px;
             font-size: 13px;
@@ -321,7 +323,8 @@ for ($h = 7; $h <= 18; $h++) {
             }
 
             .well.well-sm.ferie-riga .text-right,
-            .well.well-sm.riga-104 .text-right {
+            .well.well-sm.riga-104 .text-right,
+            .well.well-sm.riga-singolo-extra .text-right {
                 text-align: left !important;
             }
         }
@@ -453,20 +456,11 @@ for ($h = 7; $h <= 18; $h++) {
                                 </div>
                             </div>
                         </div>
+                        <div id="righe_singolo_extra_container" style="margin-top:10px;"></div>
                         <div class="alert alert-info" id="singolo_hint" style="display:none; padding:8px; margin-bottom:0;"></div>
                     </div>
 
                     <div id="block_104_multi" class="permesso-block-card" style="display:none;">
-                        <div class="row">
-                            <div class="col-md-6">
-                            </div>
-                            <div class="col-md-6 text-right">
-                                <button type="button" class="btn btn-default" id="btn_add_104">
-                                    <span class="glyphicon glyphicon-plus"></span>&ensp;Aggiungi riga
-                                </button>
-                            </div>
-                        </div>
-
                         <div class="alert alert-info" style="padding:8px; margin-top:8px; margin-bottom:8px;">
                             Puoi inserire:
                             <ul style="margin:6px 0 0 18px;">
@@ -482,6 +476,14 @@ for ($h = 7; $h <= 18; $h++) {
                         <div class="box">
                             <button type="button" class="btn btn-default" id="btn_cancel_permesso">
                                 <span class="glyphicon glyphicon-remove"></span>&ensp;Annulla
+                            </button>
+
+                            <button type="button" class="btn btn-default" id="btn_add_singolo" style="display:none;">
+                                <span class="glyphicon glyphicon-plus"></span>&ensp;Aggiungi riga
+                            </button>
+
+                            <button type="button" class="btn btn-default" id="btn_add_104" style="display:none;">
+                                <span class="glyphicon glyphicon-plus"></span>&ensp;Aggiungi riga
                             </button>
 
                             <button type="button" class="btn btn-warning" id="btn_rimetti_bozza" style="display:none;">

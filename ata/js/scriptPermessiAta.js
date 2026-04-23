@@ -268,6 +268,69 @@ function apply104RowUI($r) {
 }
 
 /* ===========================
+ * TEMPLATE PERMESSI A RIGHE ORARIE
+ * =========================== */
+function singoloExtraTemplate(r) {
+    r = r || {};
+    const data = r.data_da || r.data_a || "";
+    const ora_da = normalizeAtaTime(r.ora_da || "");
+    const ora_a = normalizeAtaTime(r.ora_a || "");
+    const durata_ore = r.durata_ore || diffHoursIntere(ora_da, ora_a);
+
+    return `
+  <div class="well well-sm riga-singolo-extra">
+    <div class="row">
+      <div class="col-md-3 col-sm-4 col-xs-12">
+        <label>Data</label>
+        <input type="date" class="form-control input-sm s_data" value="${data}">
+      </div>
+
+      <div class="col-md-3 col-sm-4 col-xs-12 singolo_extra_ora_da">
+        <label>Dalle ore</label>
+        ${ataTimeInputHtml("s_ora_da", ora_da)}
+      </div>
+
+      <div class="col-md-3 col-sm-4 col-xs-12 singolo_extra_ora_a">
+        <label>Ore a</label>
+        ${ataTimeInputHtml("s_ora_a", ora_a)}
+      </div>
+
+      <div class="col-md-3 col-sm-4 col-xs-12 singolo_extra_durata_ore" style="display:none;">
+        <label>Recupero di ore</label>
+        <input type="number" class="form-control input-sm s_durata_ore" min="1" step="1" inputmode="numeric" placeholder="N ore" value="${durata_ore || ""}">
+      </div>
+
+      <div class="col-md-2 col-sm-3 col-xs-12 text-right">
+        <label>&nbsp;</label><br>
+        <button type="button" class="btn btn-danger btn_del_singolo">
+          <span class="glyphicon glyphicon-trash"></span> Elimina
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function applySingoloExtraRowUI($r) {
+    const tipo = getTipoCodiceSelezionato();
+    const isRecupero = tipo === "RECUPERO_ORE";
+
+    $r.find(".singolo_extra_ora_da").show();
+    $r.find(".singolo_extra_ora_a").toggle(!isRecupero);
+    $r.find(".singolo_extra_durata_ore").toggle(isRecupero);
+
+    if (isRecupero) {
+        $r.find(".s_ora_a").val("");
+    } else {
+        $r.find(".s_durata_ore").val("");
+    }
+}
+
+function appendSingoloExtraRow(r) {
+    $("#righe_singolo_extra_container").append(singoloExtraTemplate(r));
+    applySingoloExtraRowUI($("#righe_singolo_extra_container .riga-singolo-extra").last());
+}
+
+/* ===========================
  * UI SWITCH BY TIPO
  * =========================== */
 function resetBlocks() {
@@ -283,6 +346,8 @@ function resetBlocks() {
 
     $("#btn_add_ferie").prop("disabled", true);
     $("#btn_add_104").prop("disabled", true);
+    $("#btn_add_singolo").prop("disabled", true).hide();
+    $("#btn_add_104").hide();
 }
 
 function applyTipoUI() {
@@ -297,6 +362,14 @@ function applyTipoUI() {
     }
     if (tipo !== "LEGGE_104") {
         $("#righe_104_container").empty();
+    }
+    if (tipo === "FERIE" || tipo === "LEGGE_104") {
+        $("#righe_singolo_extra_container").empty();
+    }
+
+    if (!tipo) {
+        scrollModalTop();
+        return;
     }
 
     if (tipo === "FERIE") {
@@ -314,7 +387,7 @@ function applyTipoUI() {
 
     if (tipo === "LEGGE_104") {
         $("#block_104_multi").show();
-        $("#btn_add_104").prop("disabled", false);
+        $("#btn_add_104").prop("disabled", false).show();
 
         if ($("#righe_104_container .riga-104").length === 0) {
             $("#righe_104_container").html(riga104Template({ unita: "GIORNI" }));
@@ -330,20 +403,25 @@ function applyTipoUI() {
     }
 
     $("#block_singolo").show();
+    $("#btn_add_singolo").prop("disabled", false).show();
 
     if (tipo === "RECUPERO_ORE") {
         $("#block_singolo_ora_da").show();
         $("#block_singolo_durata_ore").show();
-        $("#singolo_hint").show().text("Inserisci una sola data, l'ora di inizio e il numero intero di ore da recuperare.");
+        $("#singolo_hint").show().text("Inserisci una o piu' date, l'ora di inizio e il numero intero di ore da recuperare.");
     } else if (tipo === "VISITA_MEDICA" || tipo === "VISITA_SPEC") {
         $("#block_singolo_ora_da").show();
         $("#block_singolo_ora_a").show();
-        $("#singolo_hint").show().text("Inserisci una sola data. Le ore sono facoltative.");
+        $("#singolo_hint").show().text("Inserisci una o piu' date. Le ore sono facoltative.");
     } else {
         $("#block_singolo_ora_da").show();
         $("#block_singolo_ora_a").show();
-        $("#singolo_hint").show().text("Inserisci una sola data. Le ore sono facoltative.");
+        $("#singolo_hint").show().text("Inserisci una o piu' date. Le ore sono facoltative.");
     }
+
+    $("#righe_singolo_extra_container .riga-singolo-extra").each(function () {
+        applySingoloExtraRowUI($(this));
+    });
 
     scrollModalTop();
 }
@@ -400,19 +478,39 @@ function collectRighe() {
         return righe;
     }
 
+    const righe = [];
     const data = $("#singolo_data").val();
     const ora_da = normalizeAtaTime($("#singolo_ora_da").val());
     const ora_a = normalizeAtaTime($("#singolo_ora_a").val());
     const durata_ore = parseAtaOreIntere($("#singolo_durata_ore").val());
 
-    return [{
+    righe.push({
         unita: "ORE",
         data_da: data,
         data_a: data,
         ora_da: ora_da ? ora_da : null,
         ora_a: tipo === "RECUPERO_ORE" ? (addHoursToAtaTime(ora_da, durata_ore) || null) : (ora_a ? ora_a : null),
         durata_ore: tipo === "RECUPERO_ORE" ? durata_ore : null
-    }];
+    });
+
+    $("#righe_singolo_extra_container .riga-singolo-extra").each(function () {
+        const $r = $(this);
+        const rowData = $r.find(".s_data").val();
+        const rowOraDa = normalizeAtaTime($r.find(".s_ora_da").val());
+        const rowOraA = normalizeAtaTime($r.find(".s_ora_a").val());
+        const rowDurataOre = parseAtaOreIntere($r.find(".s_durata_ore").val());
+
+        righe.push({
+            unita: "ORE",
+            data_da: rowData,
+            data_a: rowData,
+            ora_da: rowOraDa ? rowOraDa : null,
+            ora_a: tipo === "RECUPERO_ORE" ? (addHoursToAtaTime(rowOraDa, rowDurataOre) || null) : (rowOraA ? rowOraA : null),
+            durata_ore: tipo === "RECUPERO_ORE" ? rowDurataOre : null
+        });
+    });
+
+    return righe;
 }
 
 function permessoHideError() {
@@ -455,6 +553,7 @@ function openNewPermesso() {
 
     $("#righe_ferie_container").empty();
     $("#righe_104_container").empty();
+    $("#righe_singolo_extra_container").empty();
 
     resetBlocks();
     updateFeriePeriodoUI();
@@ -467,6 +566,7 @@ function openNewPermesso() {
     $("#block_singolo :input").prop("disabled", false);
     $("#block_ferie_multi :input").prop("disabled", false);
     $("#block_104_multi :input").prop("disabled", false);
+    $("#btn_add_singolo").prop("disabled", false);
     $("#btn_cancel_permesso").show();
     $("#btn_save_bozza").show();
     $("#btn_invia").show();
@@ -514,11 +614,14 @@ function permessoGetDetails(id) {
                 apply104RowUI($(this));
             });
         } else {
-            const rr = (r.righe && r.righe.length) ? r.righe[0] : null;
+            $("#righe_singolo_extra_container").empty();
+            const righe = r.righe || [];
+            const rr = righe.length ? righe[0] : null;
             $("#singolo_data").val(rr ? (rr.data_da || "") : "");
             $("#singolo_ora_da").val(rr ? normalizeAtaTime(rr.ora_da || "") : "");
             $("#singolo_ora_a").val(rr ? normalizeAtaTime(rr.ora_a || "") : "");
             $("#singolo_durata_ore").val(rr ? (rr.durata_ore || diffHoursIntere(rr.ora_da || "", rr.ora_a || "")) : "");
+            righe.slice(1).forEach(extra => appendSingoloExtraRow(extra));
         }
 
         const stato = String(p.stato || "").toUpperCase();
@@ -533,15 +636,18 @@ function permessoGetDetails(id) {
 
         $("#btn_add_ferie").prop("disabled", !editable || (tipo_codice !== "FERIE"));
         $("#btn_add_104").prop("disabled", !editable || (tipo_codice !== "LEGGE_104"));
+        $("#btn_add_singolo").prop("disabled", !editable || tipo_codice === "FERIE" || tipo_codice === "LEGGE_104");
 
         if (!editable) {
             $("#block_singolo :input").prop("disabled", true);
             $("#block_ferie_multi :input").prop("disabled", true);
             $("#block_104_multi :input").prop("disabled", true);
+            $("#righe_singolo_extra_container :input").prop("disabled", true);
         } else {
             $("#block_singolo :input").prop("disabled", false);
             $("#block_ferie_multi :input").prop("disabled", false);
             $("#block_104_multi :input").prop("disabled", false);
+            $("#righe_singolo_extra_container :input").prop("disabled", false);
         }
 
         /* visibilità pulsanti footer */
@@ -684,8 +790,10 @@ $(document).on("change", "#permesso_tipo_id", function () {
     $("#singolo_data").val("");
     $("#singolo_ora_da").val("");
     $("#singolo_ora_a").val("");
+    $("#singolo_durata_ore").val("");
     $("#righe_ferie_container").empty();
     $("#righe_104_container").empty();
+    $("#righe_singolo_extra_container").empty();
     $("#ferie_sottotipo").val("");
     applyTipoUI();
 });
@@ -722,6 +830,15 @@ $(document).on("click", ".btn_del_104", function () {
         return;
     }
     $(this).closest(".riga-104").remove();
+});
+
+/* PERMESSI A RIGHE ORARIE */
+$(document).on("click", "#btn_add_singolo", function () {
+    appendSingoloExtraRow();
+});
+
+$(document).on("click", ".btn_del_singolo", function () {
+    $(this).closest(".riga-singolo-extra").remove();
 });
 
 $(document).on("blur change", ".time-input", function () {
