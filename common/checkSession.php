@@ -569,9 +569,11 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
                 return;
             }
 
-            // pagine interne: redirect automatico a Google
-            debug("checkSession: internal page -> redirect to Google authUrl");
-            header('Location: ' . filter_var($authUrl, FILTER_SANITIZE_URL));
+            // pagine interne: se non c'e' una sessione applicativa valida,
+            // rientra dalla pagina di login invece di lasciare una pagina bianca
+            // in caso di problemi nel passaggio diretto verso Google.
+            debug("checkSession: internal page without app session -> redirect /index.php");
+            redirect('/index.php');
             exit();
         }
     }

@@ -27,17 +27,23 @@ function escapeString($string) {
 function redirect($url) {
     global $__application_base_path;
     $landing = $__application_base_path . $url;
-    ob_start ();
-    header ( 'Location: ' . $landing );
-    ob_end_flush ();
-    die ();
+
+    if (!headers_sent()) {
+        header('Location: ' . $landing);
+        die();
+    }
+
+    $safeLanding = htmlspecialchars($landing, ENT_QUOTES, 'UTF-8');
+    echo '<script>window.location.replace(' . json_encode($landing) . ');</script>';
+    echo '<noscript><meta http-equiv="refresh" content="0;url=' . $safeLanding . '"></noscript>';
+    die();
 }
 
 // assicura che lo user abbia il ruolo richiesto
 function ruoloRichiesto(...$ruoli) {
     global $__utente_ruolo;
     if (empty($__utente_ruolo)) {
-        redirect("/error/unauthorized.php");
+        redirect("/index.php");
     }
     // admin viene sempre autorizzato
     if ($__utente_ruolo === 'admin') {

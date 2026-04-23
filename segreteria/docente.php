@@ -7,6 +7,7 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 require_once '../common/checkSession.php';
+ruoloRichiesto('dirigente', 'segreteria-docenti');
 ?>
 
 <!DOCTYPE html>
@@ -24,7 +25,6 @@ require_once '../common/checkSession.php';
     require_once '../common/style.php';
     require_once '../common/_include_bootstrap-toggle.php';
     require_once '../common/__Minuti.php';
-    ruoloRichiesto('dirigente', 'segreteria-docenti');
     // Leggo la configurazione delle 80 ore
     $ore80 = [
         "ore_max_collegi_docenti" => $__settings->ore80->ore_max_collegi_docenti,
