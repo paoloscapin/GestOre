@@ -13,6 +13,49 @@ require_once '../common/connect.php';
 
 $programma_id = $_GET["programma_id"];
 
+function canEditProgrammaMinimiModulo(int $programmaId): bool
+{
+	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0;
+
+	if ($is_docente_effettivo) {
+		if (!getSettingsValue('programmiMinimi', 'visibile_docenti', false)) {
+			return false;
+		}
+
+		if (getSettingsValue('programmiMinimi', 'docente_puo_modificare', false)) {
+			return true;
+		}
+
+		if (!getSettingsValue('programmiMinimi', 'coordinatore_dipartimento_puo_modificare', false)) {
+			return false;
+		}
+
+		global $__anno_scolastico_corrente_id, $__docente_id;
+
+		$coord = dbGetFirst("SELECT id_dipartimento FROM coordinatori_dipartimento WHERE id_anno_scolastico=" . intval($__anno_scolastico_corrente_id) . " AND id_docente=" . intval($__docente_id));
+		if ($coord == null) {
+			return false;
+		}
+
+		$program = dbGetFirst("SELECT materia.id_dipartimento
+		FROM programma_minimi
+		INNER JOIN materia ON materia.id = programma_minimi.id_materia
+		WHERE programma_minimi.id=" . intval($programmaId));
+
+		if ($program == null) {
+			return false;
+		}
+
+		return intval($program['id_dipartimento']) === intval($coord['id_dipartimento']);
+	}
+
+	if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+		return true;
+	}
+
+	return false;
+}
+
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
@@ -33,9 +76,11 @@ $query = "	SELECT
 					programma_minimi_moduli.nome AS modulo_nome,
 					programma_minimi_moduli.updated AS modulo_updated
 				FROM programma_minimi_moduli
-				WHERE programma_minimi_moduli.id_programma=$programma_id ";
+			WHERE programma_minimi_moduli.id_programma=$programma_id ";
 
 $query .= "ORDER BY programma_minimi_moduli.ordine ASC";
+
+$can_edit_moduli = canEditProgrammaMinimiModulo((int)$programma_id);
 
 $resultArray = dbGetAll($query);
 if ($resultArray == null) {
@@ -70,8 +115,8 @@ foreach ($resultArray as $row) { {
 			';
 		} else
 			if (haRuolo('docente')) {
-				if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
-					if (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false)) {
+				if (getSettingsValue('programmiMinimi', 'visibile_docenti', false)) {
+					if ($can_edit_moduli) {
 						$data .= '
   						<button onclick="moduloGetDetails(' . $idmodulo . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la materia"><span class="glyphicon glyphicon-pencil"></button>';
 					} else {

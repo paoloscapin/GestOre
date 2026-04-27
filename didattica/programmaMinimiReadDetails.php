@@ -9,23 +9,83 @@
 
 require_once '../common/checkSession.php';
 
-if(isset($_POST['programma_id']) && isset($_POST['programma_id']) != "") {
-	$programma_id = $_POST['programma_id'];
+header('Content-Type: application/json; charset=utf-8');
 
-    $query = "SELECT
-            programma_minimi.id as programma_id,
-            programma_minimi.anno as programma_anno,
-            programma_minimi.id_materia as programma_idmateria,
-            programma_minimi.id_indirizzo as programma_idindirizzo,
-            programma_minimi.updated as programma_updated
-
-        FROM
-            programma_minimi
-        WHERE programma_minimi.id = '$programma_id'";
-
-    $programma = dbGetFirst($query);
-
-    $struct_json = json_encode($programma);
-   echo json_encode($programma);
+function out($arr)
+{
+	echo json_encode($arr, JSON_UNESCAPED_UNICODE);
+	exit;
 }
+
+function canEditProgrammaMinimiRecord(int $programmaId): bool
+{
+	global $__docente_id;
+	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0;
+
+	if ($is_docente_effettivo) {
+		if (!getSettingsValue('programmiMinimi', 'visibile_docenti', false)) {
+			return false;
+		}
+
+		if (getSettingsValue('programmiMinimi', 'docente_puo_modificare', false)) {
+			return true;
+		}
+
+		if (!getSettingsValue('programmiMinimi', 'coordinatore_dipartimento_puo_modificare', false)) {
+			return false;
+		}
+
+		global $__anno_scolastico_corrente_id;
+
+		$coord = dbGetFirst("SELECT id_dipartimento FROM coordinatori_dipartimento WHERE id_anno_scolastico=" . intval($__anno_scolastico_corrente_id) . " AND id_docente=" . intval($__docente_id));
+		if ($coord == null) {
+			return false;
+		}
+
+		$program = dbGetFirst("SELECT materia.id_dipartimento
+			FROM programma_minimi
+			INNER JOIN materia ON materia.id = programma_minimi.id_materia
+			WHERE programma_minimi.id=" . intval($programmaId));
+
+		if ($program == null) {
+			return false;
+		}
+
+		return intval($program['id_dipartimento']) === intval($coord['id_dipartimento']);
+	}
+
+	if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+		return true;
+	}
+
+	return false;
+}
+
+if (!isset($_POST['programma_id']) || $_POST['programma_id'] === '') {
+	out(['ok' => false, 'error' => 'programma_id mancante']);
+}
+
+$programma_id = (int)$_POST['programma_id'];
+if ($programma_id <= 0) {
+	out(['ok' => false, 'error' => 'programma_id non valido']);
+}
+
+$query = "SELECT
+		programma_minimi.id as programma_id,
+		programma_minimi.anno as programma_anno,
+		programma_minimi.id_materia as programma_idmateria,
+		programma_minimi.id_indirizzo as programma_idindirizzo,
+		programma_minimi.updated as programma_updated
+	FROM programma_minimi
+	WHERE programma_minimi.id = '" . $programma_id . "'";
+
+$programma = dbGetFirst($query);
+if ($programma == null) {
+	out(['ok' => false, 'error' => 'Programma non trovato']);
+}
+
+$programma['ok'] = true;
+$programma['can_edit'] = canEditProgrammaMinimiRecord($programma_id) ? 1 : 0;
+
+out($programma);
 ?>

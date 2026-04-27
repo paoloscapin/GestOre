@@ -164,7 +164,8 @@
     },
     "programmiMinimi": {
         "visibile_docenti": true,
-        "docente_puo_modificare": false
+        "docente_puo_modificare": false,
+        "coordinatore_dipartimento_puo_modificare": false
     },
     "programmiSvolti": {
         "visibile_docenti": true,

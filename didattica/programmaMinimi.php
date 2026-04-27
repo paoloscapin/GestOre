@@ -37,7 +37,8 @@ applicaDocenteDaParametroSeAutorizzato();
 </head>
 
 <?php
-if (((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))  || ((haRuolo('docente')) && (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) && (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false))) )
+$is_docente_effettivo = impersonaRuolo('docente');
+if (((!$is_docente_effettivo) && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))))  || (($is_docente_effettivo) && (getSettingsValue('programmiMinimi', 'visibile_docenti', false)) && (getSettingsValue('programmiMinimi', 'docente_puo_modificare', false))) )
 {
     $modificheDisabilitate = '';
 } else {
@@ -138,7 +139,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
             </div>
         </div>-->
                     <?php
-                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                    if ((!$is_docente_effettivo) && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                         echo '
                     <div>
                         <div>
@@ -257,15 +258,20 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
 
                             <div class="panel-footer text-center">
                                 <?php
-                                if (haRuolo('docente')) {
+                                if (haRuolo('docente') || isset($_GET['docente_id'])) {
                                     echo '
-                                <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                                <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Chiudi</button>
                                 ';
                                 }
-                                if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                                if ((!$is_docente_effettivo) && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                                     echo '
-                                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                <button type="button" class="btn btn-primary" onclick="programmaSave()">Salva</button>
+                                <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Annulla</button>
+                                <button type="button" class="btn btn-primary" onclick="programmaSave()" id="btnProgrammaSave">Salva</button>
+                                ';
+                                } else if ($is_docente_effettivo && getSettingsValue('programmiMinimi', 'visibile_docenti', false)) {
+                                    echo '
+                                <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Chiudi</button>
+                                <button type="button" class="btn btn-primary" onclick="programmaSave()" id="btnProgrammaSave" style="display:none;" disabled>Salva</button>
                                 ';
                                 }
                                 ?>
@@ -347,20 +353,11 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                 else
                                 if (haRuolo('docente')) 
                                 {
-                                    if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) 
+                                    if (getSettingsValue('programmiMinimi', 'visibile_docenti', false))
                                     {
-                                        if (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false)) 
-                                                                                {
-                                                echo '
-                                                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                                <button type="button" class="btn btn-primary" onclick="moduloSave()">Salva</button>';				
-                                        } 
-                                    else 
-                                        {
-                                                echo '
-                                                <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>';
-                                                
-                                        }          
+                                        echo '
+                                        <button type="button" class="btn btn-default" data-dismiss="modal" id="btnModuloClose">Chiudi</button>
+                                        <button type="button" class="btn btn-primary" onclick="moduloSave()" id="btnModuloSave" style="display:none;" disabled>Salva</button>';
                                     }
                                 }
 

@@ -27,17 +27,54 @@ function moduliReadRecords(programma_id) {
 
 }
 
+function setModuloModalEditable(canEdit) {
+    var $modal = $("#modulo_modal");
+    var $fields = $modal.find("input:not([type=hidden]), textarea, select");
+    $fields.prop("disabled", !canEdit);
+
+    try { $modal.find("select.selectpicker").selectpicker("refresh"); } catch (e) {}
+
+    $("#btnModuloClose").text(canEdit ? "Annulla" : "Chiudi");
+    if (canEdit) {
+        $("#btnModuloSave").prop("disabled", false).show();
+    } else {
+        $("#btnModuloSave").prop("disabled", true).hide();
+    }
+}
+
+function setProgrammaModalEditable(canEdit) {
+    var $modal = $("#programma_modal");
+    var $fields = $modal.find("#anno, #indirizzo, #materia");
+    $fields.prop("disabled", !canEdit);
+
+    try { $modal.find("select.selectpicker").selectpicker("refresh"); } catch (e) {}
+
+    $("#btnProgrammaClose").text(canEdit ? "Annulla" : "Chiudi");
+    if (canEdit) {
+        $("#btnProgrammaSave").prop("disabled", false).show();
+    } else {
+        $("#btnProgrammaSave").prop("disabled", true).hide();
+    }
+}
+
 function programmaGetDetails(programma_id) {
     $("#hidden_programma_id").val(programma_id);
+    setProgrammaModalEditable(false);
 
     if (programma_id > 0) {
         $.post("../didattica/programmaMinimiReadDetails.php", {
             programma_id: programma_id
         }, function (data, status) {
-            var programma = JSON.parse(data);
+            var programma = (typeof data === "string") ? JSON.parse(data) : data;
+            if (!programma || !programma.ok) {
+                alert((programma && programma.error) ? programma.error : "Errore lettura programma.");
+                return;
+            }
             $('#anno').selectpicker('val', programma.programma_anno);
             $('#indirizzo').selectpicker('val', programma.programma_idindirizzo);
             $('#materia').selectpicker('val', programma.programma_idmateria);
+            setProgrammaModalEditable(parseInt(programma.can_edit, 10) === 1);
+            $("#programma_modal").modal("show");
         });
         moduliReadRecords(programma_id);
     }
@@ -48,24 +85,32 @@ function programmaGetDetails(programma_id) {
         $('#indirizzo').selectpicker('refresh');
         $('#materia').val("0");
         $('#materia').selectpicker('refresh');
+        setProgrammaModalEditable(false);
+        $("#programma_modal").modal("show");
     }
     $("#_error-programma-part").hide();
-    $("#programma_modal").modal("show");
 }
 
 function moduloGetDetails(modulo_id) {
     $("#hidden_modulo_id").val(modulo_id);
-    nmoduli = parseInt($("#hidden_nmoduli").val());
+    nmoduli = parseInt($("#hidden_nmoduli").val(), 10) || 0;
+    setModuloModalEditable(false);
 
     if (modulo_id > 0) {
         $.post("../didattica/moduloMinimiReadDetails.php", {
             modulo_id: modulo_id
         }, function (data, status) {
-            var programma = JSON.parse(data);
+            var programma = (typeof data === "string") ? JSON.parse(data) : data;
+            if (!programma || !programma.ok) {
+                alert((programma && programma.error) ? programma.error : "Errore lettura modulo.");
+                return;
+            }
             $('#titolo').val(programma.modulo_nome);
             $('#ordine').val(programma.modulo_ordine);
             $('#conoscenze').val(programma.modulo_conoscenze);
             $('#abilita').val(programma.modulo_abilita);
+            setModuloModalEditable(parseInt(programma.can_edit, 10) === 1);
+            $("#modulo_modal").modal("show");
         });
     }
     else {
@@ -73,18 +118,17 @@ function moduloGetDetails(modulo_id) {
             $('#ordine').val(nmoduli+1);
             $('#conoscenze').val("");
             $('#abilita').val("");
+            setModuloModalEditable(false);
+            $("#modulo_modal").modal("show");
     }
     $("#_error-modulo-part").hide();
-    $("#modulo_modal").modal("show");
 }
 
 function programmaDelete(id, materia) {
     var conf = confirm("Sei sicuro di volere cancellare la materia di " + materia + " ?");
     if (conf == true) {
-        $.post("../common/deleteRecord.php", {
-            id: id,
-            table: 'programma_minimi',
-            name: "materia" + materia
+        $.post("../didattica/programmaMinimiDelete.php", {
+            id: id
         },
             function (data, status) {
                 programmiReadRecords();
@@ -96,10 +140,8 @@ function programmaDelete(id, materia) {
 function moduloDelete(id, id_programma, titolo) {
     var conf = confirm("Sei sicuro di volere cancellare il modulo  " + titolo + " ?");
     if (conf == true) {
-        $.post("../common/deleteRecord.php", {
-            id: id,
-            table: 'programma_minimi_moduli',
-            name: "nome" + titolo
+        $.post("../didattica/moduloMinimiDelete.php", {
+            id: id
         },
             function (data, status) {
                 moduliReadRecords(id_programma);
