@@ -71,7 +71,7 @@ function applicaDocenteDaParametroSeAutorizzato($param = 'docente_id') {
     }
 
     $docenteId = intval($_GET[$param]);
-    $docente = dbGetFirst("SELECT * FROM docente WHERE id = $docenteId LIMIT 1");
+    $docente = dbGetFirst("SELECT * FROM docente WHERE id = $docenteId AND attivo = 1 LIMIT 1");
     if ($docente == null) {
         redirect("/error/error.php?message=" . urlencode("Docente non trovato"));
     }

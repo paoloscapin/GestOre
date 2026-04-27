@@ -403,7 +403,7 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
     debug("checkSession: genitore username=" . $username);
 
     // Verifica esistenza nel DB locale
-    $query = "SELECT * FROM genitori WHERE username = '$username'";
+    $query = "SELECT * FROM genitori WHERE username = '$username' AND attivo = 1";
     debug("checkSession: query genitori=" . $query);
     $genitore = dbGetFirst($query);
     $esiste_login = ($genitore != null);
@@ -633,7 +633,7 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
 
             debug("checkSession: utente NOT found -> lookup email genitore");
 
-            $genitore = dbGetFirst("SELECT * FROM genitori WHERE genitori.email = '$__useremail'");
+            $genitore = dbGetFirst("SELECT * FROM genitori WHERE genitori.email = '$__useremail' AND genitori.attivo = 1");
             if ($genitore != null) {
                 debug("checkSession: found genitore id=" . $genitore['id']);
 
@@ -665,7 +665,7 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
             } else {
                 debug("checkSession: utente NOT found -> lookup studente");
 
-                $studente = dbGetFirst("SELECT * FROM studente WHERE studente.email = '$__useremail'");
+                $studente = dbGetFirst("SELECT * FROM studente WHERE studente.email = '$__useremail' AND studente.attivo = 1");
                 if ($studente != null) {
                     debug("checkSession: found studente id=" . $studente['id']);
 
@@ -876,7 +876,7 @@ if (!$session->has('docente_id') && $session->has('utente_ruolo') && ($session->
     debug('checkSession: manca in sessione docente_id (ruolo docente) -> lookup docente');
     __dbg_session_state('DOCENTE: before lookup docente');
 
-    $docente = dbGetFirst("SELECT * FROM docente WHERE docente.username = '$__username'");
+    $docente = dbGetFirst("SELECT * FROM docente WHERE docente.username = '$__username' AND docente.attivo = 1");
     if ($docente == null) {
         debug("checkSession: docente NOT found -> unauthorized");
         redirect("/error/unauthorized.php");
