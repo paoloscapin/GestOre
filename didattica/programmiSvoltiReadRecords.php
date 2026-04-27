@@ -144,9 +144,11 @@ foreach ($resultArray as $row) {
 		$docente = $row['docente_cognome'] . ' ' . $row['docente_nome'];
 		$materia = $row['materia_nome'];
 		$classe_anno = intval($row['classe_anno']);
+		$row_docente_id = intval($row['docente_id']);
 		$anno_scolastico_id = intval($row['anno_scolastico_id']);
 		$classe_id = intval($row['classe_id']);
 		$is_coordinatore_classe = isset($coordinatore_classi[$classe_id . '_' . $anno_scolastico_id]);
+		$is_programma_proprio = $docente_corrente_id > 0 && $row_docente_id === $docente_corrente_id;
 		$update = $row['ultimo_agg'];
 		$autore = $row['utente_cognome'] . " " . $row['utente_nome'];
 
@@ -167,16 +169,18 @@ foreach ($resultArray as $row) {
 			<button onclick="programmiSvoltiPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma svolto"><span class="glyphicon glyphicon-print"></button>
 			' . (($classe_anno === 5 && $is_coordinatore_classe) ? '<button onclick="programmiSvoltiWordClasse(' . $classe_id . ',' . $anno_scolastico_id . ')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word unico dei programmi svolti della classe quinta"><span class="glyphicon glyphicon-book"></span></button>' : '') . '
 					';
-				if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
-					$data .= '
-  			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'false\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il programma"><span class="glyphicon glyphicon-pencil"></button>
+				if ($is_programma_proprio) {
+					if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
+						$data .= '
+			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'false\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il programma"><span class="glyphicon glyphicon-pencil"></button>
 			<button onclick="programmiSvoltiDelete(' . $programma_id . ', \'' . $materia . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il programma"><span class="glyphicon glyphicon-trash"></button>
 			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'true\',\'false\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Duplica il programma per un altra classe"><span class="glyphicon glyphicon-duplicate"></button>
 			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'true\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Condividi il programma con un altro docente"><span class="glyphicon glyphicon-share"></button>
 						';
-				} else {
-					$data .= '
+					} else {
+						$data .= '
 			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'false\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Vedi il programma"><span class="glyphicon glyphicon-search"></button>';
+					}
 				}
 			}
 		} else if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
