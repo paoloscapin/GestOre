@@ -14,6 +14,51 @@ require_once '../common/connect.php';
 $anno_filtro_id = $_GET["anno_id"];
 $materia_filtro_id = $_GET["materia_id"];
 $indirizzo_filtro_id = $_GET["indirizzo_id"];
+$is_docente_effettivo = impersonaRuolo('docente');
+
+function canEditProgrammaMateriaRecord(int $programmaId): bool
+{
+	global $__docente_id;
+	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0;
+
+	if ($is_docente_effettivo) {
+		if (!getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
+			return false;
+		}
+
+		if (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false)) {
+			return true;
+		}
+
+		if (!getSettingsValue('programmiMaterie', 'coordinatore_dipartimento_puo_modificare', false)) {
+			return false;
+		}
+
+		global $__anno_scolastico_corrente_id;
+
+		$coord = dbGetFirst("SELECT id_dipartimento FROM coordinatori_dipartimento WHERE id_anno_scolastico=" . intval($__anno_scolastico_corrente_id) . " AND id_docente=" . intval($__docente_id));
+		if ($coord == null) {
+			return false;
+		}
+
+		$program = dbGetFirst("SELECT materia.id_dipartimento
+			FROM programma_materie
+			INNER JOIN materia ON materia.id = programma_materie.id_materia
+			WHERE programma_materie.id=" . intval($programmaId));
+
+		if ($program == null) {
+			return false;
+		}
+
+		return intval($program['id_dipartimento']) === intval($coord['id_dipartimento']);
+	}
+
+	if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+		return true;
+	}
+
+	return false;
+}
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -70,6 +115,7 @@ if ($resultArray == null) {
 foreach ($resultArray as $row) { {
 
 		$programma_id = $row['programma_id'];
+		$can_edit_programma = canEditProgrammaMateriaRecord((int)$programma_id);
 		$anno = $row['anno_id'];
 		$indirizzo = $row['indirizzo_nome'];
 		$materia = $row['materia_nome'];
@@ -87,21 +133,27 @@ foreach ($resultArray as $row) { {
 		$data .= '
 		<td class="text-center">';
 
-		if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
-			$data .= '
-  			<button onclick="programmaGetDetails(' . $programma_id . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la materia"><span class="glyphicon glyphicon-pencil"></button>
-			<button onclick="programmaDelete(' . $programma_id . ', \'' . $materia . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la materia"><span class="glyphicon glyphicon-trash"></button>
-			<button onclick="programmaPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma della materia"><span class="glyphicon glyphicon-print"></button>
-		';
-		} else
-			if (haRuolo('docente')) {
-				if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
+		if ($is_docente_effettivo) {
+			if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
+				if ($can_edit_programma) {
+					$data .= '
+						<button onclick="programmaGetDetails(' . $programma_id . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il dettaglio della materia"><span class="glyphicon glyphicon-pencil"></button>
+						<button onclick="programmaPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma della materia"><span class="glyphicon glyphicon-print"></button>
+						';
+				} else {
 					$data .= '
 						<button onclick="programmaGetDetails(' . $programma_id . ')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Visualizza il dettaglio della materia"><span class="glyphicon glyphicon-search"></button>
 						<button onclick="programmaPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma della materia"><span class="glyphicon glyphicon-print"></button>
 						';
 				}
 			}
+		} else if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+			$data .= '
+			<button onclick="programmaGetDetails(' . $programma_id . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la materia"><span class="glyphicon glyphicon-pencil"></button>
+			<button onclick="programmaDelete(' . $programma_id . ', \'' . $materia . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la materia"><span class="glyphicon glyphicon-trash"></button>
+			<button onclick="programmaPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma della materia"><span class="glyphicon glyphicon-print"></button>
+		';
+		}
 		$data .= '
 		</td>
 		<td align="center">' . $update . '</td>

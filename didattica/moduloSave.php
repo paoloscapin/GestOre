@@ -8,7 +8,51 @@
  */
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('segreteria-didattica', 'docente');
+ruoloRichiesto('segreteria-didattica', 'docente', 'dirigente');
+
+function canEditProgrammaMateriaModulo(int $programmaId): bool
+{
+	global $__docente_id;
+	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0;
+
+	if ($is_docente_effettivo) {
+		if (!getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
+			return false;
+		}
+
+		if (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false)) {
+			return true;
+		}
+
+		if (!getSettingsValue('programmiMaterie', 'coordinatore_dipartimento_puo_modificare', false)) {
+			return false;
+		}
+
+		global $__anno_scolastico_corrente_id;
+
+		$coord = dbGetFirst("SELECT id_dipartimento FROM coordinatori_dipartimento WHERE id_anno_scolastico=" . intval($__anno_scolastico_corrente_id) . " AND id_docente=" . intval($__docente_id));
+		if ($coord == null) {
+			return false;
+		}
+
+		$program = dbGetFirst("SELECT materia.id_dipartimento
+			FROM programma_materie
+			INNER JOIN materia ON materia.id = programma_materie.id_materia
+			WHERE programma_materie.id=" . intval($programmaId));
+
+		if ($program == null) {
+			return false;
+		}
+
+		return intval($program['id_dipartimento']) === intval($coord['id_dipartimento']);
+	}
+
+	if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+		return true;
+	}
+
+	return false;
+}
 
 if(isset($_POST)) {
 	$id = $_POST['id'];
@@ -30,6 +74,13 @@ if(isset($_POST)) {
 	$abilita = str_replace('"',"''",$abilita);
 	$competenze = str_replace('"',"''",$competenze);
 	$periodo = str_replace('"',"''",$periodo);
+
+	if (!canEditProgrammaMateriaModulo((int)$id_programma)) {
+		http_response_code(403);
+		echo 'Non autorizzato';
+		exit;
+	}
+
 	date_default_timezone_set("Europe/Rome");
     $update = date("Y-m-d H-i-s");
 	$id_utente = $__utente_id;

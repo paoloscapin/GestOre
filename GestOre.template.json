@@ -160,7 +160,8 @@
     },
     "programmiMaterie": {
         "visibile_docenti": false,
-        "docente_puo__modificare": false
+        "docente_puo_modificare": false,
+        "coordinatore_dipartimento_puo_modificare": false
     },
     "programmiMinimi": {
         "visibile_docenti": true,

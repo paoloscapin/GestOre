@@ -27,16 +27,38 @@ function moduliReadRecords(programma_id) {
 
 }
 
+function setProgrammaModalEditable(canEdit) {
+    var $modal = $("#programma_modal");
+    var $fields = $modal.find("#anno, #indirizzo, #materia");
+    $fields.prop("disabled", !canEdit);
+
+    try { $modal.find("select.selectpicker").selectpicker("refresh"); } catch (e) {}
+
+    $("#btnProgrammaClose").text(canEdit ? "Annulla" : "Chiudi");
+    if (canEdit) {
+        $("#btnProgrammaSave").prop("disabled", false).show();
+    } else {
+        $("#btnProgrammaSave").prop("disabled", true).hide();
+    }
+}
+
 function programmaGetDetails(programma_id) {
     $("#hidden_programma_id").val(programma_id);
+    setProgrammaModalEditable(false);
 
     if (programma_id > 0) {
         $.post("../didattica/programmaReadDetails.php", { programma_id: programma_id }, function (data, status) {
-            var programma = JSON.parse(data);
+            var programma = (typeof data === "string") ? JSON.parse(data) : data;
+            if (!programma || !programma.ok) {
+                alert((programma && programma.error) ? programma.error : "Errore lettura programma.");
+                return;
+            }
 
             $('#anno').selectpicker('val', programma.programma_anno).selectpicker('refresh');
             $('#indirizzo').selectpicker('val', programma.programma_idindirizzo).selectpicker('refresh');
             $('#materia').selectpicker('val', programma.programma_idmateria).selectpicker('refresh');
+            setProgrammaModalEditable(parseInt(programma.can_edit, 10) === 1);
+            $("#programma_modal").modal("show");
         });
 
         moduliReadRecords(programma_id);
@@ -44,10 +66,11 @@ function programmaGetDetails(programma_id) {
         $('#anno').val("0").selectpicker('refresh');
         $('#indirizzo').val("0").selectpicker('refresh');
         $('#materia').val("0").selectpicker('refresh');
+        setProgrammaModalEditable(false);
+        $("#programma_modal").modal("show");
     }
 
     $("#_error-programma-part").hide();
-    $("#programma_modal").modal("show");
 }
 
 function setModuloModalEditable(canEdit) {

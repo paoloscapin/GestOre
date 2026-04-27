@@ -78,7 +78,7 @@ if (haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica'))
 	
 if ($__settings->programmiMaterie->visibile_docenti) {
 	if (haRuolo('docente')) {
-		if ($__settings->programmiMaterie->docente_puo_modificare || $is_coordinatore) {
+		if ($__settings->programmiMaterie->docente_puo_modificare || ($is_coordinatore && ($__settings->programmiMaterie->coordinatore_dipartimento_puo_modificare ?? false))) {
 			$can_edit = true;
 		}
 	}

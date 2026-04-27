@@ -37,8 +37,9 @@ applicaDocenteDaParametroSeAutorizzato();
 </head>
 
 <?php
+$is_docente_effettivo = impersonaRuolo('docente');
 
-if (((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) || ((haRuolo('docente')) && (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) && (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false))) )
+if (((!$is_docente_effettivo) && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) || (($is_docente_effettivo) && (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) && (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false))) )
 {
     $modificheDisabilitate = '';
 } else {
@@ -139,7 +140,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
             </div>
         </div>-->
                     <?php
-                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                    if ((!$is_docente_effettivo) && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                         echo '
                     <div>
                         <div>
@@ -258,15 +259,20 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
 
                             <div class="panel-footer text-center">
                                 <?php
-                                if (haRuolo('docente')) {
+                                if (haRuolo('docente') || isset($_GET['docente_id'])) {
                                     echo '
-                                <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                                <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Chiudi</button>
                                 ';
                                 }
-                                if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                                if ((!$is_docente_effettivo) && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                                     echo '
-                                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                <button type="button" class="btn btn-primary" onclick="programmaSave()">Salva</button>
+                                <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Annulla</button>
+                                <button type="button" class="btn btn-primary" onclick="programmaSave()" id="btnProgrammaSave">Salva</button>
+                                ';
+                                } else if ($is_docente_effettivo && getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
+                                    echo '
+                                <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Chiudi</button>
+                                <button type="button" class="btn btn-primary" onclick="programmaSave()" id="btnProgrammaSave" style="display:none;" disabled>Salva</button>
                                 ';
                                 }
                                 ?>
