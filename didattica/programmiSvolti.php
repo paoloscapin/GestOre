@@ -140,10 +140,10 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 
 // classi 
 $classiFiltroOptionList = '<option value="0">T</option>';
-$classiOptionList = '<option value="0">selezionare classe</option>';
+$classiOptionList = '<option value="0" data-anno="0">selezionare classe</option>';
 foreach (dbGetAll("SELECT * FROM classi WHERE attiva=1 ORDER BY classi.classe ASC ; ") as $classe) {
     $classiFiltroOptionList .= '<option value="' . $classe['id'] . '" >' . $classe['classe'] . '</option> ';
-    $classiOptionList .= '<option value="' . $classe['id'] . '" >' . $classe['classe'] . '</option> ';
+    $classiOptionList .= '<option value="' . $classe['id'] . '" data-anno="' . intval($classe['anno']) . '" >' . $classe['classe'] . '</option> ';
 }
 
 // prepara l'elenco dei docenti
@@ -359,6 +359,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                             <input type="hidden" id="hidden_programma_id">
                                             <input type="hidden" id="hidden_duplica">
                                             <input type="hidden" id="hidden_share">
+                                            <input type="hidden" id="hidden_programma_classe_anno" value="0">
                                         </form>
 
                                     </div>
@@ -480,6 +481,62 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                         <div class="col-sm-10"><textarea id="contenuto" rows="5" placeholder="contenuto"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
                                                 title="Inserisci il contenuto relativo a questo modulo"></textarea>
+                                        </div>
+                                    </div>
+
+                                    <div id="quinta_fields_wrap" style="display:none;">
+                                        <div class="form-group">
+                                            <label class="col-sm-2 control-label" for="competenze_raggiunte">Competenze raggiunte</label>
+                                            <div class="col-sm-10"><textarea id="competenze_raggiunte" rows="4"
+                                                    placeholder="competenze raggiunte"
+                                                    class="form-control" data-toggle="tooltip" data-placement="top"
+                                                    title="Inserisci le competenze raggiunte alla fine dell'anno per la disciplina"></textarea>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-sm-2 control-label" for="contenuti_trattati">Conoscenze / contenuti trattati</label>
+                                            <div class="col-sm-10"><textarea id="contenuti_trattati" rows="5"
+                                                    placeholder="conoscenze o contenuti trattati"
+                                                    class="form-control" data-toggle="tooltip" data-placement="top"
+                                                    title="Inserisci conoscenze o contenuti trattati, anche attraverso UDA o moduli"></textarea>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-sm-2 control-label" for="abilita_quinta">Abilita'</label>
+                                            <div class="col-sm-10"><textarea id="abilita_quinta" rows="4"
+                                                    placeholder="abilita"
+                                                    class="form-control" data-toggle="tooltip" data-placement="top"
+                                                    title="Inserisci le abilita'"></textarea>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-sm-2 control-label" for="metodologie">Metodologie</label>
+                                            <div class="col-sm-10"><textarea id="metodologie" rows="4"
+                                                    placeholder="metodologie"
+                                                    class="form-control" data-toggle="tooltip" data-placement="top"
+                                                    title="Inserisci le metodologie"></textarea>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-sm-2 control-label" for="criteri_valutazione">Criteri di valutazione</label>
+                                            <div class="col-sm-10"><textarea id="criteri_valutazione" rows="4"
+                                                    placeholder="criteri di valutazione"
+                                                    class="form-control" data-toggle="tooltip" data-placement="top"
+                                                    title="Inserisci i criteri di valutazione"></textarea>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-sm-2 control-label" for="testi_materiali">Testi e materiali / strumenti</label>
+                                            <div class="col-sm-10"><textarea id="testi_materiali" rows="4"
+                                                    placeholder="testi e materiali / strumenti adottati"
+                                                    class="form-control" data-toggle="tooltip" data-placement="top"
+                                                    title="Inserisci testi e materiali / strumenti adottati"></textarea>
+                                            </div>
                                         </div>
                                     </div>
 

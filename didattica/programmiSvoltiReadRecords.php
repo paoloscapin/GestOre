@@ -17,6 +17,41 @@ $docenti_filtro_id = $_GET["docenti_id"];
 $da_completare_filtro_id = $_GET["da_completare_id"];
 $anni_filtro_id = $_GET["anni_id"];
 $sollecito_lista = '';
+$coordinatore_classi = [];
+$coordinatore_classi_ids = [];
+$is_docente_effettivo = impersonaRuolo('docente');
+$docente_corrente_id = intval($__docente_id ?? 0);
+
+if ($docente_corrente_id <= 0 && $is_docente_effettivo) {
+	$query_docente = "SELECT id FROM docente WHERE attivo=1";
+	if (!empty($__username) && !empty($__useremail)) {
+		$query_docente .= " AND (username='" . dbEscape($__username) . "' OR email='" . dbEscape($__useremail) . "')";
+	} else if (!empty($__username)) {
+		$query_docente .= " AND username='" . dbEscape($__username) . "'";
+	} else if (!empty($__useremail)) {
+		$query_docente .= " AND email='" . dbEscape($__useremail) . "'";
+	} else {
+		$query_docente .= " AND 1=0";
+	}
+	$result_docente = dbGetFirst($query_docente);
+	if ($result_docente != null) {
+		$docente_corrente_id = intval($result_docente['id']);
+	}
+}
+
+if ($docente_corrente_id > 0) {
+	$query_coord = "SELECT id_classe, id_anno_scolastico FROM coordinatori WHERE id_docente=" . $docente_corrente_id;
+	$result_coord = dbGetAll($query_coord);
+	if ($result_coord == null) {
+		$result_coord = [];
+	}
+	foreach ($result_coord as $coord_row) {
+		$coord_classe_id = intval($coord_row['id_classe']);
+		$coord_key = $coord_classe_id . '_' . intval($coord_row['id_anno_scolastico']);
+		$coordinatore_classi[$coord_key] = true;
+		$coordinatore_classi_ids[$coord_classe_id] = true;
+	}
+}
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -41,6 +76,7 @@ $query = "	SELECT
 				programmi_svolti.updated AS ultimo_agg,
                 classi.id,
                 classi.classe AS classe_nome,
+                classi.anno AS classe_anno,
                 materia.id,
                 materia.nome AS materia_nome,
 				docente.id,
@@ -69,8 +105,17 @@ if ($classe_filtro_id > 0) {
 if ($materia_filtro_id > 0) {
 	$query .= " AND programmi_svolti.id_materia=$materia_filtro_id ";
 }
-if ($docenti_filtro_id > 0) {
+if ($docenti_filtro_id > 0 && !$is_docente_effettivo) {
 	$query .= " AND programmi_svolti.id_docente=$docenti_filtro_id ";
+}
+
+if ($is_docente_effettivo) {
+	$coord_class_ids = array_keys($coordinatore_classi_ids);
+	if ($docente_corrente_id > 0 && count($coord_class_ids) > 0) {
+		$query .= " AND (programmi_svolti.id_docente=" . $docente_corrente_id . " OR programmi_svolti.id_classe IN (" . implode(',', array_map('intval', $coord_class_ids)) . "))";
+	} else if ($docente_corrente_id > 0) {
+		$query .= " AND programmi_svolti.id_docente=" . $docente_corrente_id;
+	}
 }
 
 $query .= " ORDER BY classe_nome ASC, materia_nome ASC";
@@ -98,6 +143,10 @@ foreach ($resultArray as $row) {
 		$classe = $row['classe_nome'];
 		$docente = $row['docente_cognome'] . ' ' . $row['docente_nome'];
 		$materia = $row['materia_nome'];
+		$classe_anno = intval($row['classe_anno']);
+		$anno_scolastico_id = intval($row['anno_scolastico_id']);
+		$classe_id = intval($row['classe_id']);
+		$is_coordinatore_classe = isset($coordinatore_classi[$classe_id . '_' . $anno_scolastico_id]);
 		$update = $row['ultimo_agg'];
 		$autore = $row['utente_cognome'] . " " . $row['utente_nome'];
 
@@ -112,21 +161,11 @@ foreach ($resultArray as $row) {
 		$data .= '
 		<td class="text-center">';
 
-		if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
-			$data .= '
-  			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'false\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il programma"><span class="glyphicon glyphicon-pencil"></button>
-			<button onclick="programmiSvoltiDelete(' . $programma_id . ', \'' . $materia . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il programma"><span class="glyphicon glyphicon-trash"></button>
-			<button onclick="programmiSvoltiPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma svolto"><span class="glyphicon glyphicon-print"></button>
-			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'true\',\'false\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Duplica il programma per un altra classe"><span class="glyphicon glyphicon-duplicate"></button>
-			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'true\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Condividi il programma con un altro docente"><span class="glyphicon glyphicon-share"></button>';
-			if ($da_completare_filtro_id == 1) {
-				$data .= '<button onclick="inviaSollecito(' . $programma_id . ')" class="btn btn-dark btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia un sollecito al docente"><span class="glyphicon glyphicon-warning-sign"></button>';
-			}
-		} else
-			if (haRuolo('docente')) {
+		if ($is_docente_effettivo) {
 			if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) {
 				$data .= '
 			<button onclick="programmiSvoltiPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma svolto"><span class="glyphicon glyphicon-print"></button>
+			' . (($classe_anno === 5 && $is_coordinatore_classe) ? '<button onclick="programmiSvoltiWordClasse(' . $classe_id . ',' . $anno_scolastico_id . ')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word unico dei programmi svolti della classe quinta"><span class="glyphicon glyphicon-book"></span></button>' : '') . '
 					';
 				if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
 					$data .= '
@@ -137,8 +176,20 @@ foreach ($resultArray as $row) {
 						';
 				} else {
 					$data .= '
-  			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'false\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Vedi il programma"><span class="glyphicon glyphicon-search"></button>';
+			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'false\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Vedi il programma"><span class="glyphicon glyphicon-search"></button>';
 				}
+			}
+		} else if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+			$data .= '
+			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'false\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il programma"><span class="glyphicon glyphicon-pencil"></button>
+			<button onclick="programmiSvoltiDelete(' . $programma_id . ', \'' . $materia . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il programma"><span class="glyphicon glyphicon-trash"></button>
+			<button onclick="programmiSvoltiPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma svolto"><span class="glyphicon glyphicon-print"></button>
+			' . ($classe_anno === 5 ? '<button onclick="programmiSvoltiWord(' . $programma_id . ')" class="btn btn-default btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word del programma svolto di quinta"><span class="glyphicon glyphicon-file"></span></button>' : '') . '
+			' . ($classe_anno === 5 ? '<button onclick="programmiSvoltiWordClasse(' . $classe_id . ',' . $anno_scolastico_id . ')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word unico della classe quinta"><span class="glyphicon glyphicon-book"></span></button>' : '') . '
+			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'true\',\'false\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Duplica il programma per un altra classe"><span class="glyphicon glyphicon-duplicate"></button>
+			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'true\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Condividi il programma con un altro docente"><span class="glyphicon glyphicon-share"></button>';
+			if ($da_completare_filtro_id == 1) {
+				$data .= '<button onclick="inviaSollecito(' . $programma_id . ')" class="btn btn-dark btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia un sollecito al docente"><span class="glyphicon glyphicon-warning-sign"></button>';
 			}
 		}
 		$data .= '

@@ -80,6 +80,31 @@ function isAllUppercase(string $s): bool
     return preg_match('/\p{L}/u', $s) && !preg_match('/\p{Ll}/u', $s);
 }
 
+function detectListItemLevel(string $raw, ?int $currentParent): array
+{
+    $normalized = str_replace("\t", "  ", rtrim($raw));
+    $trimmed = ltrim($normalized);
+
+    if (preg_match('/^(?:[•●▪◦◦]\s+|--\s+|>\s+|-\s+|\*\s+)(.+)$/u', $trimmed, $m)) {
+        return [
+            'level' => ($currentParent !== null ? 1 : 0),
+            'text' => trim($m[1]),
+        ];
+    }
+
+    if (preg_match('/^ {2,}(.+)$/u', $normalized, $m)) {
+        return [
+            'level' => ($currentParent !== null ? 1 : 0),
+            'text' => trim($m[1]),
+        ];
+    }
+
+    return [
+        'level' => 0,
+        'text' => trim($trimmed),
+    ];
+}
+
 
 /**
  * Rende una lista UL con al massimo due livelli.
@@ -141,47 +166,24 @@ function buildTwoLevelListFromText(string $text): string
             // Finisce con ':' ?
             $endsWithColon = preg_match('/:\s*$/u', $raw) === 1;
 
-            // Normalizza tab
-            $norm = str_replace("\t", "  ", $raw);
+            $detected = detectListItemLevel($raw, $currentParent);
+            $textLi = $detected['text'];
+            $level = $detected['level'];
 
-            $isBullet = preg_match('/^(?:( {2,}))?([\-*‐-‒–—−]{1,})\s*(.+)$/u', $norm, $m) === 1;
+            if ($nextIsChild && $level === 0 && $currentParent !== null) {
+                $level = 1;
+                $nextIsChild = false; // ✅ consuma la modalità
+            }
 
-            if ($isBullet) {
-                $indent  = $m[1] ?? '';
-                $markers = $m[2];
-                $textLi  = trim($m[3]);
-
-                // livello naturale
-                $level = 0;
-                if ($indent !== '' || strlen($markers) >= 2) {
-                    $level = 1;
-                }
-
-                // Se il prossimo deve essere child e sarebbe top-level -> forza child
-                if ($nextIsChild && $level === 0 && $currentParent !== null) {
-                    $level = 1;
-                    $nextIsChild = false; // ✅ consuma la modalità
-                }
-
-                if ($level === 0) {
-                    $tree[] = ['text' => $textLi, 'children' => []];
-                    $currentParent = count($tree) - 1;
-                } else {
-                    if ($currentParent === null) {
-                        $tree[] = ['text' => '', 'children' => []];
-                        $currentParent = count($tree) - 1;
-                    }
-                    $tree[$currentParent]['children'][] = ['text' => $textLi, 'children' => []];
-                }
+            if ($level === 0) {
+                $tree[] = ['text' => $textLi, 'children' => []];
+                $currentParent = count($tree) - 1;
             } else {
-                // NON è bullet
-                if ($nextIsChild && $currentParent !== null) {
-                    $tree[$currentParent]['children'][] = ['text' => $raw, 'children' => []];
-                    $nextIsChild = false; // ✅ consuma la modalità
-                } else {
-                    $tree[] = ['text' => $raw, 'children' => []];
+                if ($currentParent === null) {
+                    $tree[] = ['text' => '', 'children' => []];
                     $currentParent = count($tree) - 1;
                 }
+                $tree[$currentParent]['children'][] = ['text' => $textLi, 'children' => []];
             }
 
             // Se questa riga finisce con ':' allora SOLO il prossimo elemento sarà child
