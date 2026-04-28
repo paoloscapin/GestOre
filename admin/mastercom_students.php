@@ -6,6 +6,7 @@ require_once '../common/mastercom/admin_lib.php';
 ruoloRichiesto('admin');
 
 $missingTables = mastercomAdminMissingTables(['mastercom_studenti', 'mastercom_classi', 'mastercom_genitori', 'mastercom_genitori_studenti']);
+$hasDescrizioneMateriaIntegrativa = empty($missingTables) && mastercomAdminTableColumnExists('mastercom_studenti', 'descrizione_materia_integrativa');
 $selectedClassId = intval($_GET['class_id'] ?? 0);
 $classRows = empty($missingTables)
     ? dbGetAll("SELECT mastercom_id_classe, nome FROM mastercom_classi ORDER BY nome ASC")
@@ -77,6 +78,9 @@ $rows = empty($missingTables)
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <?php if ($selectedClassId > 0): ?>
+                        <a href="mastercom_presence.php?class_id=<?php echo $selectedClassId; ?>" class="btn btn-info">Snapshot presenze</a>
+                    <?php endif; ?>
                     <a href="mastercom_students.php" class="btn btn-default">Mostra tutti</a>
                 </form>
 
@@ -92,12 +96,14 @@ $rows = empty($missingTables)
                 <table class="table table-striped table-bordered table-condensed">
                     <thead>
                         <tr>
-                            <th>ID MasterCom</th>
+                            <th style="text-align: center;">ID MasterCom</th>
                             <th>Studente</th>
-                            <th>Classe</th>
+                            <th style="text-align: center;">Classe</th>
+                            <th style="text-align: center;">Religione</th>
+                            <th>Attivit&agrave; alternativa</th>
                             <th>Genitori MasterCom</th>
                             <th>GestOre</th>
-                            <th>Esito</th>
+                            <th style="text-align: center;">Esito</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -108,14 +114,69 @@ $rows = empty($missingTables)
                             <?php
                             $linkedParents = mastercomAdminCleanText($row['mastercom_genitori_nomi'] ?? '') ?? '';
                             $linkedParentsCount = intval($row['mastercom_genitori_count'] ?? 0);
+                            $rawStudent = json_decode((string)($row['raw_json'] ?? ''), true);
+                            $rawCsvExport = is_array($rawStudent['_csv_export'] ?? null) ? $rawStudent['_csv_export'] : [];
                             ?>
                             <tr>
-                                <td><?php echo intval($row['mastercom_id_studente']); ?></td>
+                                <td style="text-align: center;"><?php echo intval($row['mastercom_id_studente']); ?></td>
                                 <td>
-                                    <?php echo htmlspecialchars(trim(($row['cognome'] ?? '') . ' ' . ($row['nome'] ?? ''))); ?><br>
-                                    <small><?php echo htmlspecialchars($row['email1'] ?? ''); ?></small>
+                                    <?php
+                                    $photoFile = trim((string)($row['foto'] ?? ''));
+                                    $photoUrl = $photoFile !== ''
+                                        ? ($__application_base_path . '/common/mastercom/photo.php?proxy=1&file=' . urlencode($photoFile))
+                                        : '';
+                                    ?>
+                                    <?php if ($photoUrl !== ''): ?>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <img
+                                                src="<?php echo htmlspecialchars($photoUrl); ?>"
+                                                alt="Foto studente"
+                                                style="width: 42px; height: 42px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;"
+                                                loading="lazy"
+                                            >
+                                            <div>
+                                                <?php echo htmlspecialchars(trim(($row['cognome'] ?? '') . ' ' . ($row['nome'] ?? ''))); ?><br>
+                                                <small><?php echo htmlspecialchars($row['email1'] ?? ''); ?></small>
+                                            </div>
+                                        </div>
+                                    <?php else: ?>
+                                        <?php echo htmlspecialchars(trim(($row['cognome'] ?? '') . ' ' . ($row['nome'] ?? ''))); ?><br>
+                                        <small><?php echo htmlspecialchars($row['email1'] ?? ''); ?></small>
+                                    <?php endif; ?>
                                 </td>
-                                <td><?php echo htmlspecialchars($row['classe_mastercom'] ?? ''); ?></td>
+                                <td style="text-align: center;"><?php echo htmlspecialchars($row['classe_mastercom'] ?? ''); ?></td>
+                                <td style="text-align: center;">
+                                    <?php
+                                    $esoneroReligione = $row['esonero_religione'];
+                                    if (($esoneroReligione === null || $esoneroReligione === '') && array_key_exists('esonero_religione', $rawCsvExport)) {
+                                        $esoneroReligione = $rawCsvExport['esonero_religione'];
+                                    }
+                                    if ($esoneroReligione === null || $esoneroReligione === '') {
+                                        echo '<span class="label label-default">n/d</span>';
+                                    } elseif (intval($esoneroReligione) === 1) {
+                                        echo '<span class="label label-warning">NO</span>';
+                                    } else {
+                                        echo '<span class="label label-success">SI</span>';
+                                    }
+                                    ?>
+                                </td>
+                                <td>
+                                    <?php
+                                    $materiaIntegrativa = $hasDescrizioneMateriaIntegrativa
+                                        ? (mastercomAdminCleanText($row['descrizione_materia_integrativa'] ?? '') ?? '')
+                                        : '';
+                                    if ($materiaIntegrativa === '') {
+                                        $materiaIntegrativa = mastercomAdminCleanText($rawCsvExport['descrizione_materia_integrativa'] ?? '') ?? '';
+                                    }
+                                    ?>
+                                    <?php if ($materiaIntegrativa !== ''): ?>
+                                        <?php echo htmlspecialchars($materiaIntegrativa); ?>
+                                    <?php elseif (($row['esonero_religione'] ?? null) !== null && intval($row['esonero_religione']) === 0): ?>
+                                        <span class="label label-default">non necessaria</span>
+                                    <?php else: ?>
+                                        <span class="label label-default">n/d</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <?php if ($linkedParentsCount > 0): ?>
                                         <strong><?php echo $linkedParentsCount; ?></strong><br>
@@ -140,7 +201,7 @@ $rows = empty($missingTables)
                                         <span class="label label-warning">non collegato</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td style="text-align: center;">
                                     <span class="label label-<?php echo htmlspecialchars($status['class']); ?>">
                                         <?php echo htmlspecialchars($status['label']); ?>
                                     </span>
@@ -151,6 +212,9 @@ $rows = empty($missingTables)
                                 <td>
                                     <a class="btn btn-xs btn-default" href="mastercom_student_compare.php?id=<?php echo intval($row['mastercom_id_studente']); ?>">
                                         Confronta
+                                    </a>
+                                    <a class="btn btn-xs btn-info" href="mastercom_student_absences.php?student_id=<?php echo intval($row['mastercom_id_studente']); ?>">
+                                        Assenze
                                     </a>
                                 </td>
                             </tr>

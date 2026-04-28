@@ -38,10 +38,11 @@ $currentSchoolYear = mastercomAdminCurrentSchoolYear();
                 <table class="table table-striped table-bordered table-condensed">
                     <thead>
                         <tr>
-                            <th>ID MasterCom</th>
-                            <th>Classe</th>
-                            <th>Anno</th>
-                            <th>Collegato GestOre</th>
+                            <th style="text-align: center;">ID MasterCom</th>
+                            <th style="text-align: center;">Classe</th>
+                            <th style="text-align: center;">Anno</th>
+                            <th style="text-align: center;">Collegato GestOre</th>
+                            <th style="text-align: center;"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -54,10 +55,10 @@ $currentSchoolYear = mastercomAdminCurrentSchoolYear();
                             }
                             ?>
                             <tr>
-                                <td><?php echo intval($row['mastercom_id_classe']); ?></td>
-                                <td><?php echo htmlspecialchars($row['nome'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars($effectiveYear); ?></td>
-                                <td>
+                                <td style="text-align: center;"><?php echo intval($row['mastercom_id_classe']); ?></td>
+                                <td style="text-align: center;"><?php echo htmlspecialchars($row['nome'] ?? ''); ?></td>
+                                <td style="text-align: center;"><?php echo htmlspecialchars($effectiveYear); ?></td>
+                                <td style="text-align: center;">
                                     <?php
                                     if (!empty($row['id_classe_gestore'])) {
                                         echo htmlspecialchars($row['gestore_classe'] ?? '');
@@ -67,6 +68,20 @@ $currentSchoolYear = mastercomAdminCurrentSchoolYear();
                                         echo '<span class="label label-warning">non collegata</span>';
                                     }
                                     ?>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a class="btn btn-xs btn-default" href="mastercom_students.php?class_id=<?php echo intval($row['mastercom_id_classe']); ?>">
+                                        Studenti
+                                    </a>
+                                    <a class="btn btn-xs btn-info" href="mastercom_presence.php?class_id=<?php echo intval($row['mastercom_id_classe']); ?>">
+                                        Presenze
+                                    </a>
+                                    <a class="btn btn-xs btn-primary" href="mastercom_calendar.php?class_id=<?php echo intval($row['mastercom_id_classe']); ?>">
+                                        Agenda
+                                    </a>
+                                    <a class="btn btn-xs btn-success" href="mastercom_grades.php?class_id=<?php echo intval($row['mastercom_id_classe']); ?>">
+                                        Voti
+                                    </a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

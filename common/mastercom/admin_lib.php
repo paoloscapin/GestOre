@@ -22,6 +22,18 @@ function mastercomAdminTableExists(string $tableName): bool
     return $value !== null;
 }
 
+function mastercomAdminTableColumnExists(string $tableName, string $columnName): bool
+{
+    $tableName = trim($tableName);
+    $columnName = trim($columnName);
+    if ($tableName === '' || $columnName === '') {
+        return false;
+    }
+
+    $row = dbGetFirst("SHOW COLUMNS FROM `$tableName` LIKE " . dbQ($columnName));
+    return is_array($row) && !empty($row);
+}
+
 function mastercomAdminRequiredTables(): array
 {
     return [
@@ -77,6 +89,366 @@ function mastercomAdminNormCompact(?string $value): string
 function mastercomAdminJson($value): string
 {
     return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+function mastercomAdminNormalizeCsvHeader(string $header): string
+{
+    $header = mastercomAdminNorm($header);
+    $header = str_replace(['/', '\\', '-', '_', '.', ':', ';', ','], ' ', $header);
+    $header = preg_replace('/\s+/', ' ', $header);
+    return trim((string)$header);
+}
+
+function mastercomAdminDetectCsvDelimiter(string $text): string
+{
+    $lines = preg_split("/\r\n|\n|\r/", $text) ?: [];
+    $lines = array_values(array_filter($lines, function ($line) {
+        return trim((string)$line) !== '';
+    }));
+    if (empty($lines)) {
+        return ';';
+    }
+
+    $delimiters = [';', ',', "\t"];
+    $bestDelimiter = ';';
+    $bestCount = -1;
+    $probeLines = array_slice($lines, 0, 12);
+    foreach ($delimiters as $delimiter) {
+        $count = 0;
+        foreach ($probeLines as $line) {
+            $count = max($count, count(str_getcsv($line, $delimiter)));
+        }
+        if ($count > $bestCount) {
+            $bestCount = $count;
+            $bestDelimiter = $delimiter;
+        }
+    }
+
+    return $bestDelimiter;
+}
+
+function mastercomAdminParseCsvRows(string $csvBody): array
+{
+    $csvBody = str_replace("\r\n", "\n", str_replace("\r", "\n", $csvBody));
+    if (substr($csvBody, 0, 3) === "\xEF\xBB\xBF") {
+        $csvBody = substr($csvBody, 3);
+    }
+
+    if (!mb_check_encoding($csvBody, 'UTF-8')) {
+        $csvBody = mb_convert_encoding($csvBody, 'UTF-8', 'Windows-1252,ISO-8859-1,UTF-8');
+    }
+
+    $delimiter = mastercomAdminDetectCsvDelimiter($csvBody);
+    $lines = array_values(array_filter(explode("\n", $csvBody), function ($line) {
+        return trim((string)$line) !== '';
+    }));
+
+    if (empty($lines)) {
+        return [];
+    }
+
+    $headerLineIndex = null;
+    $headers = [];
+    foreach ($lines as $index => $line) {
+        $candidateHeaders = array_map(function ($value) {
+            return mastercomAdminNormalizeCsvHeader((string)$value);
+        }, str_getcsv($line, $delimiter));
+
+        $hasSurname = in_array('COGNOME', $candidateHeaders, true);
+        $hasName = in_array('NOME', $candidateHeaders, true);
+        if ($hasSurname && $hasName) {
+            $headerLineIndex = $index;
+            $headers = $candidateHeaders;
+            break;
+        }
+    }
+
+    if ($headerLineIndex === null) {
+        $headers = array_map(function ($value) {
+            return mastercomAdminNormalizeCsvHeader((string)$value);
+        }, str_getcsv(array_shift($lines), $delimiter));
+    } else {
+        $lines = array_slice($lines, $headerLineIndex + 1);
+    }
+
+    $rows = [];
+    foreach ($lines as $line) {
+        $values = str_getcsv($line, $delimiter);
+        if (empty($values)) {
+            continue;
+        }
+
+        $row = [];
+        foreach ($headers as $index => $header) {
+            if ($header === '') {
+                continue;
+            }
+            $row[$header] = mastercomAdminCleanText($values[$index] ?? null);
+        }
+        if (!empty($row)) {
+            $rows[] = $row;
+        }
+    }
+
+    return $rows;
+}
+
+function mastercomAdminFindCsvValue(array $row, array $aliases): ?string
+{
+    foreach ($aliases as $alias) {
+        $normalizedAlias = mastercomAdminNormalizeCsvHeader($alias);
+        if (array_key_exists($normalizedAlias, $row)) {
+            return mastercomAdminCleanText($row[$normalizedAlias]);
+        }
+    }
+    return null;
+}
+
+function mastercomAdminMapReligionExemptionValue($value): ?int
+{
+    $normalized = mastercomAdminNorm((string)$value);
+    if ($normalized === '') {
+        return null;
+    }
+
+    if (in_array($normalized, ['1', 'NO', 'N', 'FALSE'], true)) {
+        return 1;
+    }
+
+    if (in_array($normalized, ['0', 'SI', 'S', 'TRUE'], true)) {
+        return 0;
+    }
+
+    return null;
+}
+
+function mastercomAdminBuildStudentSupplementalMapForClass(int $classId): array
+{
+    if ($classId <= 0) {
+        return ['ok' => false, 'message' => 'class_id non valido', 'map' => []];
+    }
+
+    $authResult = mastercomAuthenticateService([
+        'profile' => 'MasterComAuth',
+        'method' => 'POST',
+        'timeout' => 60,
+    ]);
+    if (!$authResult['ok']) {
+        return ['ok' => false, 'message' => 'Autenticazione admin MasterCom fallita', 'map' => []];
+    }
+
+    $schoolYear = mastercomAdminCurrentSchoolYear() ?? '';
+    $payload = [
+        'stato_secondario' => 'stampa_elenchi_particolari_update',
+        'form_stato' => 'amministratore',
+        'stato_principale' => 'stampe_principale',
+        'tipo_stampa' => 'elenchi_studenti',
+        'nome_template' => '',
+        'testo_libero_inserito' => '',
+        'nome_campo_personalizzato1' => '',
+        'nome_campo_personalizzato2' => '',
+        'nome_campo_personalizzato3' => '',
+        'cognome' => 1,
+        'nome' => 1,
+        'codice_fiscale' => 1,
+        'esonero_religione' => 1,
+        'descrizione_materia_integrativa' => 1,
+        'voto_condotta_value' => 0,
+        'anno_controllo_esito' => $schoolYear,
+        'filtro_esito_storico' => 'tutte',
+        'periodo_media' => 9,
+        'filtro_media_voti' => 0,
+        'cifre_significative' => 0,
+        'filtro_nazionalita' => 'tutte',
+        'filtro_cittadinanza' => 'tutte',
+        'filtro_sesso' => 'tutte',
+        'filtro_esito' => 'tutte',
+        'filtro_dsa' => 'tutti',
+        'filtro_bes' => 'tutti',
+        'filtro_pei' => 'tutti',
+        'filtro_necessita_alfabetizzazione' => 'tutti',
+        'filtro_qualifica_iefp' => 'tutti',
+        'filtro_religione' => 'tutti',
+        'confronto_data_iscrizione' => 'min',
+        'data_ricerca_iscrizione_Day' => date('d'),
+        'data_ricerca_iscrizione_Month' => date('m'),
+        'data_ricerca_iscrizione_Year' => date('Y'),
+        'filtro_convittore' => 'tutte',
+        'filtro_data_dopo_Day' => 0,
+        'filtro_data_dopo_Month' => 0,
+        'filtro_data_dopo_Year' => 0,
+        'filtro_data_prima_Day' => 0,
+        'filtro_data_prima_Month' => 0,
+        'filtro_data_prima_Year' => 0,
+        'filtro_maggiore_eta' => 'tutti',
+        'confronto_data_ritiro' => 'min',
+        'data_ricerca_ritiro_Day' => date('d'),
+        'data_ricerca_ritiro_Month' => date('m'),
+        'data_ricerca_ritiro_Year' => date('Y'),
+        'filtro_validita' => 'tutti',
+        'permesso_entrata_ritardo' => '',
+        'permesso_uscita_anticipo' => '',
+        'permesso_assenza_pomeriggio' => '',
+        'filtro_non_viventi' => 'SI',
+        'filtro_fratelli' => 'tutti',
+        'nome_campo1' => '',
+        'nome_campo2' => '',
+        'nome_campo3' => '',
+        'mat_classi[]' => $classId,
+        'tipo_file_esportato' => 'csv',
+        'orientamento_pagina' => 'P',
+        'formato_pagina_selezionato' => 'A4',
+        'stampa_intestazione' => 'SI',
+        'anno_scolastico_intestazione' => 'NO',
+        'tipo_stampa_elenco' => 'TABELLA',
+        'altezza_desiderata' => 4,
+        'data_stampa_intestazione' => 'NO',
+        'dimensione_font' => 8,
+        'stampa_statistiche' => 'NO',
+        'bottone.x' => 20,
+        'bottone.y' => 29,
+    ];
+
+    $startedAt = microtime(true);
+    info('MasterCom export CSV classe ' . $classId . ' avvio');
+
+    $csvResult = mastercomSubmitAdminAbsenceAction($authResult, $payload, [
+        'base_url' => mastercomIndexUrl(),
+        'method' => 'POST',
+        'timeout' => 180,
+        'send_in_body' => true,
+    ]);
+    $elapsedSeconds = round(microtime(true) - $startedAt, 2);
+
+    $body = (string)($csvResult['body'] ?? '');
+    if (preg_match("/tmp_xls\/[^'\"<>]+\.csv/i", $body, $matches)) {
+        $csvRelativePath = $matches[0];
+        $csvDownloadUrl = rtrim(dirname(mastercomBaseUrl()), '/') . '/' . ltrim($csvRelativePath, '/');
+        info('MasterCom export CSV classe ' . $classId . ' file generato: ' . $csvRelativePath);
+
+        $downloadStartedAt = microtime(true);
+        $downloadResult = mastercomRawRequest([], [
+            'base_url' => $csvDownloadUrl,
+            'cookie' => implode('; ', array_filter($authResult['cookies'] ?? [])),
+            'method' => 'GET',
+            'timeout' => 180,
+        ]);
+        $downloadElapsedSeconds = round(microtime(true) - $downloadStartedAt, 2);
+
+        if ($downloadResult['ok'] && trim((string)($downloadResult['body'] ?? '')) !== '') {
+            $body = (string)$downloadResult['body'];
+            $csvResult['content_type'] = $downloadResult['content_type'] ?? ($csvResult['content_type'] ?? '');
+            $csvResult['http_code'] = $downloadResult['http_code'] ?? ($csvResult['http_code'] ?? 0);
+            $elapsedSeconds = round($elapsedSeconds + $downloadElapsedSeconds, 2);
+            info('MasterCom export CSV classe ' . $classId . ' download file completato'
+                . ' | elapsed=' . $downloadElapsedSeconds . 's'
+                . ' | http=' . intval($downloadResult['http_code'] ?? 0)
+                . ' | content_type=' . trim((string)($downloadResult['content_type'] ?? '')));
+        } else {
+            $preview = preg_replace('/\s+/u', ' ', trim(substr((string)($downloadResult['body'] ?? ''), 0, 500)));
+            warning('MasterCom export CSV classe ' . $classId . ' download file fallito'
+                . ' | elapsed=' . $downloadElapsedSeconds . 's'
+                . ' | http=' . intval($downloadResult['http_code'] ?? 0)
+                . ' | content_type=' . trim((string)($downloadResult['content_type'] ?? ''))
+                . ($preview !== '' ? ' | body=' . $preview : ''));
+        }
+    }
+
+    if (!$csvResult['ok'] || trim($body) === '') {
+        $preview = preg_replace('/\s+/u', ' ', trim(substr($body, 0, 500)));
+        warning('MasterCom export CSV classe ' . $classId . ' fallito'
+            . ' | elapsed=' . $elapsedSeconds . 's'
+            . ' | http=' . intval($csvResult['http_code'] ?? 0)
+            . ' | content_type=' . trim((string)($csvResult['content_type'] ?? ''))
+            . ($preview !== '' ? ' | body=' . $preview : '')
+        );
+        return [
+            'ok' => false,
+            'message' => 'Esportazione CSV studenti MasterCom fallita',
+            'map' => [],
+            'rows_count' => 0,
+            'elapsed_seconds' => $elapsedSeconds,
+            'http_code' => intval($csvResult['http_code'] ?? 0),
+            'content_type' => trim((string)($csvResult['content_type'] ?? '')),
+            'preview' => $preview,
+        ];
+    }
+
+    $rows = mastercomAdminParseCsvRows($body);
+    if (empty($rows)) {
+        $preview = preg_replace('/\s+/u', ' ', trim(substr($body, 0, 500)));
+        warning('MasterCom export CSV classe ' . $classId . ' senza righe utili'
+            . ' | elapsed=' . $elapsedSeconds . 's'
+            . ' | http=' . intval($csvResult['http_code'] ?? 0)
+            . ' | content_type=' . trim((string)($csvResult['content_type'] ?? ''))
+            . ($preview !== '' ? ' | body=' . $preview : '')
+        );
+    } else {
+        info('MasterCom export CSV classe ' . $classId . ' righe lette: ' . count($rows)
+            . ' | elapsed=' . $elapsedSeconds . 's'
+            . ' | http=' . intval($csvResult['http_code'] ?? 0)
+            . ' | content_type=' . trim((string)($csvResult['content_type'] ?? '')));
+    }
+    $map = [];
+    foreach ($rows as $row) {
+        $surname = mastercomAdminFindCsvValue($row, ['cognome']);
+        $name = mastercomAdminFindCsvValue($row, ['nome']);
+        $cf = mastercomAdminFindCsvValue($row, ['codice fiscale', 'codice_fiscale', 'cf', 'cod fis', 'cod. fis.']);
+        $religionRaw = mastercomAdminFindCsvValue($row, ['esonero religione', 'esonero_religione', 'relig', 'relig.']);
+        $alternativeSubject = mastercomAdminFindCsvValue($row, ['descrizione materia integrativa', 'descrizione_materia_integrativa', 'materia integrativa', 'mat alternativa rel', 'mat. alternativa rel.']);
+
+        $extra = [
+            'cognome' => $surname,
+            'nome' => $name,
+            'codice_fiscale' => $cf,
+            'esonero_religione' => mastercomAdminMapReligionExemptionValue($religionRaw),
+            'descrizione_materia_integrativa' => $alternativeSubject,
+            'raw_csv' => $row,
+        ];
+
+        $cfKey = mastercomAdminNormCompact($cf);
+        if ($cfKey !== '') {
+            $map['CF:' . $cfKey] = $extra;
+        }
+
+        $nameKey = mastercomAdminNormCompact(($surname ?? '') . ' ' . ($name ?? ''));
+        if ($nameKey !== '') {
+            $map['NAME:' . $nameKey] = $extra;
+        }
+    }
+
+    return [
+        'ok' => true,
+        'message' => 'CSV studenti classe caricato',
+        'map' => $map,
+        'rows_count' => count($rows),
+        'elapsed_seconds' => $elapsedSeconds,
+        'http_code' => intval($csvResult['http_code'] ?? 0),
+        'content_type' => trim((string)($csvResult['content_type'] ?? '')),
+        'preview' => preg_replace('/\s+/u', ' ', trim(substr($body, 0, 250))),
+    ];
+}
+
+function mastercomAdminFindStudentSupplementalData(array $supplementalMap, array $masterStudent, array $detail = []): array
+{
+    $cfKey = mastercomAdminNormCompact($detail['cf'] ?? '');
+    if ($cfKey !== '' && isset($supplementalMap['CF:' . $cfKey]) && is_array($supplementalMap['CF:' . $cfKey])) {
+        return $supplementalMap['CF:' . $cfKey];
+    }
+
+    $cfKey = mastercomAdminNormCompact($masterStudent['codice_fiscale'] ?? '');
+    if ($cfKey !== '' && isset($supplementalMap['CF:' . $cfKey]) && is_array($supplementalMap['CF:' . $cfKey])) {
+        return $supplementalMap['CF:' . $cfKey];
+    }
+
+    $nameKey = mastercomAdminNormCompact(
+        ($masterStudent['cognome'] ?? $detail['surname'] ?? '') . ' ' . ($masterStudent['nome'] ?? $detail['first_name'] ?? '')
+    );
+    if ($nameKey !== '' && isset($supplementalMap['NAME:' . $nameKey]) && is_array($supplementalMap['NAME:' . $nameKey])) {
+        return $supplementalMap['NAME:' . $nameKey];
+    }
+
+    return [];
 }
 
 function mastercomAdminFirstRecord($response): ?array
@@ -584,10 +956,16 @@ function mastercomAdminSyncStudentsForClass(int $classId, callable $progress = n
         return $loadResult;
     }
 
-    return mastercomAdminSyncStudentsChunk($classId, $loadResult['records'], 0, count($loadResult['records']), $progress);
+    $supplementalResult = mastercomAdminBuildStudentSupplementalMapForClass($classId);
+    if (!$supplementalResult['ok']) {
+        warning('MasterCom export CSV studenti supplementare non disponibile per classe ' . $classId . ': ' . ($supplementalResult['message'] ?? ''));
+    }
+    $supplementalMap = $supplementalResult['ok'] ? ($supplementalResult['map'] ?? []) : [];
+
+    return mastercomAdminSyncStudentsChunk($classId, $loadResult['records'], 0, count($loadResult['records']), $progress, $supplementalMap);
 }
 
-function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, int $baseOffset = 0, int $overallTotal = 0, callable $progress = null): array
+function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, int $baseOffset = 0, int $overallTotal = 0, callable $progress = null, array $supplementalMap = []): array
 {
     if ($classId <= 0) {
         return ['ok' => false, 'message' => 'class_id non valido'];
@@ -637,7 +1015,10 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
                 $detail = mastercomAdminFirstRecord($detailResult['response'] ?? null) ?? [];
             }
 
-            $merged = array_merge($detail, $masterStudent);
+            $extraData = mastercomAdminFindStudentSupplementalData($supplementalMap, $masterStudent, $detail);
+            $merged = array_merge($detail, $masterStudent, [
+                '_csv_export' => $extraData,
+            ]);
             $localStudent = mastercomAdminFindLocalStudent([
                 'codice_fiscale' => $detail['cf'] ?? '',
                 'email1' => $masterStudent['email1'] ?? $detail['email'] ?? '',
@@ -645,7 +1026,7 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
                 'nome' => $masterStudent['nome'] ?? $detail['first_name'] ?? '',
             ]);
 
-            mastercomAdminUpsertByField('mastercom_studenti', 'mastercom_id_studente', $studentId, [
+            $studentData = [
                 'id_studente_gestore' => $localStudent['id'] ?? null,
                 'mastercom_id_studente' => $studentId,
                 'mastercom_id_classe_corrente' => $classId,
@@ -664,7 +1045,7 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
                 'descrizione_indirizzo' => mastercomAdminCleanText($masterStudent['descrizione_indirizzi'] ?? null),
                 'tipo_indirizzo' => isset($masterStudent['tipo_indirizzo']) ? intval($masterStudent['tipo_indirizzo']) : null,
                 'ordinamento' => isset($masterStudent['ordinamento']) ? intval($masterStudent['ordinamento']) : null,
-                'esonero_religione' => isset($masterStudent['esonero_religione']) ? intval($masterStudent['esonero_religione']) : null,
+                'esonero_religione' => isset($masterStudent['esonero_religione']) ? intval($masterStudent['esonero_religione']) : ($extraData['esonero_religione'] ?? null),
                 'esonero_ed_fisica' => isset($masterStudent['esonero_ed_fisica']) ? intval($masterStudent['esonero_ed_fisica']) : null,
                 'servizio_mensa' => isset($masterStudent['servizio_mensa']) ? intval($masterStudent['servizio_mensa']) : null,
                 'necessita_sostegno' => isset($masterStudent['necessita_sostegno']) ? intval($masterStudent['necessita_sostegno']) : null,
@@ -676,7 +1057,12 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
                 'last_sync_at' => mastercomAdminNow(),
                 'last_seen_at' => mastercomAdminNow(),
                 'raw_json' => mastercomAdminJson($merged),
-            ]);
+            ];
+            if (mastercomAdminTableColumnExists('mastercom_studenti', 'descrizione_materia_integrativa')) {
+                $studentData['descrizione_materia_integrativa'] = mastercomAdminCleanText($extraData['descrizione_materia_integrativa'] ?? null);
+            }
+
+            mastercomAdminUpsertByField('mastercom_studenti', 'mastercom_id_studente', $studentId, $studentData);
 
             mastercomAdminUpsertByField('mastercom_studenti_classi', 'id', dbGetValue("SELECT id FROM mastercom_studenti_classi WHERE mastercom_id_studente = " . $studentId . " AND mastercom_id_classe = " . intval($classId) . " LIMIT 1") ?? 0, [
                 'mastercom_id_studente' => $studentId,

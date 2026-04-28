@@ -175,11 +175,28 @@ if ($entity === 'teachers') {
         if (!$listResult['ok']) {
             $result = $listResult;
         } else {
+            mastercomSyncRenderProgress('Sincronizzazione studenti classe', 'Caricamento CSV dati religione / attività alternativa', 0, count($listResult['records']));
+            $supplementalResult = mastercomAdminBuildStudentSupplementalMapForClass($classId);
             $token = uniqid('students_', true);
             $file = mastercomAdminStudentsSyncFile($token);
-            file_put_contents($file, json_encode(array_values($listResult['records']), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            file_put_contents($file, json_encode([
+                'students' => array_values($listResult['records']),
+                'supplemental_map' => $supplementalResult['ok'] ? ($supplementalResult['map'] ?? []) : [],
+                'supplemental_debug' => [
+                    'ok' => $supplementalResult['ok'] ?? false,
+                    'message' => $supplementalResult['message'] ?? '',
+                    'rows_count' => intval($supplementalResult['rows_count'] ?? 0),
+                    'elapsed_seconds' => $supplementalResult['elapsed_seconds'] ?? 0,
+                    'http_code' => intval($supplementalResult['http_code'] ?? 0),
+                    'content_type' => (string)($supplementalResult['content_type'] ?? ''),
+                    'preview' => (string)($supplementalResult['preview'] ?? ''),
+                ],
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             $total = count($listResult['records']);
-            mastercomSyncRenderProgress('Sincronizzazione studenti classe', 'Elenco studenti caricato', 0, $total);
+            $csvMessage = ($supplementalResult['ok'] ?? false)
+                ? ('CSV extra caricato: ' . intval($supplementalResult['rows_count'] ?? 0) . ' righe in ' . ($supplementalResult['elapsed_seconds'] ?? 0) . 's')
+                : ('CSV extra non disponibile: ' . trim((string)($supplementalResult['message'] ?? 'errore sconosciuto')));
+            mastercomSyncRenderProgress('Sincronizzazione studenti classe', $csvMessage, 0, $total);
             mastercomSyncAutoPost([
                 'entity' => 'students',
                 'class_id' => $classId,
@@ -194,32 +211,57 @@ if ($entity === 'teachers') {
         if (!is_file($file)) {
             $result = ['ok' => false, 'message' => 'Stato sincronizzazione studenti non trovato'];
         } else {
-            $allStudents = json_decode((string)file_get_contents($file), true);
-            if (!is_array($allStudents)) {
+            $payload = json_decode((string)file_get_contents($file), true);
+            if (!is_array($payload)) {
                 @unlink($file);
                 $result = ['ok' => false, 'message' => 'Coda sincronizzazione studenti non valida'];
             } else {
-                $total = count($allStudents);
-                $chunk = array_slice($allStudents, $offset, $limit);
-                mastercomSyncRenderProgress('Sincronizzazione studenti classe', 'Elaborazione blocco studenti', $offset, $total);
-                $result = mastercomAdminSyncStudentsChunk($classId, $chunk, $offset, $total, null);
-                if ($result['ok']) {
-                    $nextOffset = $offset + count($chunk);
-                    if ($nextOffset < $total) {
-                        mastercomSyncRenderProgress('Sincronizzazione studenti classe', 'Blocco completato', $nextOffset, $total);
-                        mastercomSyncAutoPost([
-                            'entity' => 'students',
-                            'class_id' => $classId,
-                            'token' => $token,
-                            'offset' => $nextOffset,
-                            'limit' => $limit,
-                        ]);
-                        exit;
-                    }
+                $allStudents = $payload['students'] ?? $payload;
+                $supplementalMap = is_array($payload['supplemental_map'] ?? null) ? $payload['supplemental_map'] : [];
+                $supplementalDebug = is_array($payload['supplemental_debug'] ?? null) ? $payload['supplemental_debug'] : [];
+                if (!is_array($allStudents)) {
                     @unlink($file);
-                    $result['message'] = 'Studenti sincronizzati per classe ' . $classId . ': ' . $total;
+                    $result = ['ok' => false, 'message' => 'Coda sincronizzazione studenti non valida'];
                 } else {
-                    @unlink($file);
+                    $total = count($allStudents);
+                    $chunk = array_slice($allStudents, $offset, $limit);
+                    $csvDebugText = '';
+                    if (!empty($supplementalDebug)) {
+                        if (!empty($supplementalDebug['ok'])) {
+                            $csvDebugText = ' | CSV extra: ' . intval($supplementalDebug['rows_count'] ?? 0) . ' righe';
+                        } else {
+                            $csvDebugText = ' | CSV extra KO';
+                        }
+                    }
+                    mastercomSyncRenderProgress('Sincronizzazione studenti classe', 'Elaborazione blocco studenti' . $csvDebugText, $offset, $total);
+                    $result = mastercomAdminSyncStudentsChunk($classId, $chunk, $offset, $total, null, $supplementalMap);
+                    if ($result['ok']) {
+                        $nextOffset = $offset + count($chunk);
+                        if ($nextOffset < $total) {
+                            mastercomSyncRenderProgress('Sincronizzazione studenti classe', 'Blocco completato' . $csvDebugText, $nextOffset, $total);
+                            mastercomSyncAutoPost([
+                                'entity' => 'students',
+                                'class_id' => $classId,
+                                'token' => $token,
+                                'offset' => $nextOffset,
+                                'limit' => $limit,
+                            ]);
+                            exit;
+                        }
+                        @unlink($file);
+                        $result['message'] = 'Studenti sincronizzati per classe ' . $classId . ': ' . $total;
+                        if (!empty($supplementalDebug)) {
+                            $result['message'] .= ' | CSV extra '
+                                . (!empty($supplementalDebug['ok']) ? 'OK' : 'KO')
+                                . ' | righe=' . intval($supplementalDebug['rows_count'] ?? 0)
+                                . ' | tempo=' . ($supplementalDebug['elapsed_seconds'] ?? 0) . 's'
+                                . ' | http=' . intval($supplementalDebug['http_code'] ?? 0)
+                                . ($supplementalDebug['content_type'] !== '' ? ' | type=' . $supplementalDebug['content_type'] : '')
+                                . (!empty($supplementalDebug['preview']) ? ' | preview=' . $supplementalDebug['preview'] : '');
+                        }
+                    } else {
+                        @unlink($file);
+                    }
                 }
             }
         }

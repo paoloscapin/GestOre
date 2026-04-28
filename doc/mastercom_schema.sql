@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS `mastercom_studenti` (
   `tipo_indirizzo` INT NULL,
   `ordinamento` INT NULL,
   `esonero_religione` TINYINT(1) NULL,
+  `descrizione_materia_integrativa` VARCHAR(255) NULL,
   `esonero_ed_fisica` TINYINT(1) NULL,
   `servizio_mensa` TINYINT(1) NULL,
   `necessita_sostegno` TINYINT(1) NULL,

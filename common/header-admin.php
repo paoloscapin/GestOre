@@ -46,6 +46,9 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_parents.php"><span class="glyphicon glyphicon-user"></span>&ensp;Genitori</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_teachers.php"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Docenti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_classes.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Classi</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_calendar.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Agenda Classe</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_grades.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Voti</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_presence.php"><span class="glyphicon glyphicon-ok-circle"></span>&ensp;Presence Snapshot</a></li>
 				</ul>
 			</li>
 			<li><a href="<?php echo $__application_base_path; ?>/orario/orario.php" class="btn btn-default btn-lightblue4 nav-btn" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Orario </a></li>

@@ -48,6 +48,16 @@ function mastercomStudentPhotoBaseUrl(): string
     return str_replace('/mastercom/register_manager.php', '/mastercom/foto_studenti/', $url);
 }
 
+function mastercomIndexUrl(): string
+{
+    $url = mastercomBaseUrl();
+    if ($url === '') {
+        return '';
+    }
+
+    return str_replace('/mastercom/register_manager.php', '/mastercom/index.php', $url);
+}
+
 function mastercomConfiguredUsername(): string
 {
     return mastercomConfiguredUsernameByProfile('MasterComAuth');
@@ -556,6 +566,106 @@ function mastercomLoadAbsencesData(array $authResult, int $studentId, int $start
         'current_user' => mastercomCurrentUser($authResult),
         'current_key' => mastercomCurrentKey($authResult),
         'form_id_studente' => $studentId,
+        'form_data_inizio' => $startTs,
+        'form_data_fine' => $endTs,
+    ], array_merge($options, [
+        'base_url' => $options['base_url'] ?? mastercomBaseUrl(),
+        'cookie' => $options['cookie'] ?? implode('; ', array_filter($authResult['cookies'] ?? [])),
+        'method' => $options['method'] ?? 'POST',
+    ]));
+}
+
+function mastercomLoadGradesAvg(array $authResult, int $classId, int $subjectId, int $startTs, int $endTs, array $options = []): array
+{
+    if ($classId <= 0) {
+        return [
+            'ok' => false,
+            'error' => 'ID classe non valido',
+            'response' => null,
+            'raw' => null,
+            'http_code' => 0,
+            'cookies' => [],
+        ];
+    }
+
+    if ($subjectId <= 0) {
+        return [
+            'ok' => false,
+            'error' => 'ID materia non valido',
+            'response' => null,
+            'raw' => null,
+            'http_code' => 0,
+            'cookies' => [],
+        ];
+    }
+
+    if ($startTs <= 0 || $endTs <= 0 || $endTs < $startTs) {
+        return [
+            'ok' => false,
+            'error' => 'Intervallo date non valido',
+            'response' => null,
+            'raw' => null,
+            'http_code' => 0,
+            'cookies' => [],
+        ];
+    }
+
+    return mastercomRequest([
+        'action' => 'get_grades_avg',
+        'current_user' => mastercomCurrentUser($authResult),
+        'current_key' => mastercomCurrentKey($authResult),
+        'form_id_classe' => $classId,
+        'form_id_materia' => $subjectId,
+        'form_data_inizio' => $startTs,
+        'form_data_fine' => $endTs,
+    ], array_merge($options, [
+        'base_url' => $options['base_url'] ?? mastercomBaseUrl(),
+        'cookie' => $options['cookie'] ?? implode('; ', array_filter($authResult['cookies'] ?? [])),
+        'method' => $options['method'] ?? 'POST',
+    ]));
+}
+
+function mastercomLoadGradesData(array $authResult, int $classId, int $subjectId, int $startTs, int $endTs, array $options = []): array
+{
+    if ($classId <= 0) {
+        return [
+            'ok' => false,
+            'error' => 'ID classe non valido',
+            'response' => null,
+            'raw' => null,
+            'http_code' => 0,
+            'cookies' => [],
+        ];
+    }
+
+    if ($subjectId <= 0) {
+        return [
+            'ok' => false,
+            'error' => 'ID materia non valido',
+            'response' => null,
+            'raw' => null,
+            'http_code' => 0,
+            'cookies' => [],
+        ];
+    }
+
+    if ($startTs <= 0 || $endTs <= 0 || $endTs < $startTs) {
+        return [
+            'ok' => false,
+            'error' => 'Intervallo date non valido',
+            'response' => null,
+            'raw' => null,
+            'http_code' => 0,
+            'cookies' => [],
+        ];
+    }
+
+    return mastercomRequest([
+        'action' => 'get_grades_data',
+        'current_user' => mastercomCurrentUser($authResult),
+        'current_key' => mastercomCurrentKey($authResult),
+        'form_id_classe' => $classId,
+        'form_id_materia' => $subjectId,
         'form_data_inizio' => $startTs,
         'form_data_fine' => $endTs,
     ], array_merge($options, [
