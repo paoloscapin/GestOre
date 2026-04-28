@@ -4,6 +4,46 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/connect.php';
 
+function ticketEventiTimeZone(): DateTimeZone
+{
+    static $tz = null;
+    if ($tz === null) {
+        $tz = new DateTimeZone('Europe/Rome');
+    }
+
+    return $tz;
+}
+
+function ticketEventiDateTime(?string $value): ?DateTimeImmutable
+{
+    $value = trim((string)$value);
+    if ($value === '') {
+        return null;
+    }
+
+    $tz = ticketEventiTimeZone();
+    $formats = ['Y-m-d H:i:s', 'Y-m-d\TH:i', 'Y-m-d H:i'];
+
+    foreach ($formats as $format) {
+        $dt = DateTimeImmutable::createFromFormat($format, $value, $tz);
+        if ($dt instanceof DateTimeImmutable) {
+            return $dt;
+        }
+    }
+
+    $ts = strtotime($value);
+    if ($ts === false) {
+        return null;
+    }
+
+    return (new DateTimeImmutable('@' . $ts))->setTimezone($tz);
+}
+
+function ticketEventiNow(): DateTimeImmutable
+{
+    return new DateTimeImmutable('now', ticketEventiTimeZone());
+}
+
 function ticketEventiEnsureSchema(): void
 {
     dbExec("
@@ -135,47 +175,32 @@ function ticketEventiRoleLabel(string $ruolo): string
 
 function ticketEventiNormalizeDateTime(?string $value): ?string
 {
-    $value = trim((string)$value);
-    if ($value === '') {
+    $dt = ticketEventiDateTime($value);
+    if (!$dt) {
         return null;
     }
 
-    $ts = strtotime($value);
-    if ($ts === false) {
-        return null;
-    }
-
-    return date('Y-m-d H:i:s', $ts);
+    return $dt->format('Y-m-d H:i:s');
 }
 
 function ticketEventiFormatDateTime(?string $value): string
 {
-    $value = trim((string)$value);
-    if ($value === '') {
-        return '';
+    $dt = ticketEventiDateTime($value);
+    if (!$dt) {
+        return trim((string)$value);
     }
 
-    $ts = strtotime($value);
-    if ($ts === false) {
-        return $value;
-    }
-
-    return date('d/m/Y H:i', $ts);
+    return $dt->format('d/m/Y H:i');
 }
 
 function ticketEventiFormatDateTimeInput(?string $value): string
 {
-    $value = trim((string)$value);
-    if ($value === '') {
+    $dt = ticketEventiDateTime($value);
+    if (!$dt) {
         return '';
     }
 
-    $ts = strtotime($value);
-    if ($ts === false) {
-        return '';
-    }
-
-    return date('Y-m-d\TH:i', $ts);
+    return $dt->format('Y-m-d\TH:i');
 }
 
 function ticketEventiBookingWindowLabel(array $evento): string
@@ -241,11 +266,11 @@ function ticketEventiSaveEvent(array $data, int $annoId, int $utenteId): array
         return ['ok' => false, 'message' => 'Inserisci una data evento valida.'];
     }
 
-    if ($apertura !== null && $chiusura !== null && strtotime($apertura) > strtotime($chiusura)) {
+    if ($apertura !== null && $chiusura !== null && ticketEventiDateTime($apertura) > ticketEventiDateTime($chiusura)) {
         return ['ok' => false, 'message' => 'La chiusura prenotazioni deve essere successiva all\'apertura.'];
     }
 
-    if ($chiusura !== null && strtotime($chiusura) > strtotime($dataEvento)) {
+    if ($chiusura !== null && ticketEventiDateTime($chiusura) > ticketEventiDateTime($dataEvento)) {
         return ['ok' => false, 'message' => 'La chiusura prenotazioni non puo superare la data dell\'evento.'];
     }
 
@@ -324,11 +349,11 @@ function ticketEventiUpdateEvent(int $eventoId, array $data, int $annoId, int $u
         return ['ok' => false, 'message' => 'Inserisci una data evento valida.'];
     }
 
-    if ($apertura !== null && $chiusura !== null && strtotime($apertura) > strtotime($chiusura)) {
+    if ($apertura !== null && $chiusura !== null && ticketEventiDateTime($apertura) > ticketEventiDateTime($chiusura)) {
         return ['ok' => false, 'message' => 'La chiusura prenotazioni deve essere successiva all\'apertura.'];
     }
 
-    if ($chiusura !== null && strtotime($chiusura) > strtotime($dataEvento)) {
+    if ($chiusura !== null && ticketEventiDateTime($chiusura) > ticketEventiDateTime($dataEvento)) {
         return ['ok' => false, 'message' => 'La chiusura prenotazioni non puo superare la data dell\'evento.'];
     }
 
@@ -507,19 +532,34 @@ function ticketEventiIsBookable(array $evento): bool
         return false;
     }
 
-    $now = time();
-    $apertura = !empty($evento['apertura_prenotazioni']) ? strtotime((string)$evento['apertura_prenotazioni']) : null;
-    $chiusura = !empty($evento['chiusura_prenotazioni']) ? strtotime((string)$evento['chiusura_prenotazioni']) : null;
+    $now = ticketEventiNow();
+    $apertura = !empty($evento['apertura_prenotazioni']) ? ticketEventiDateTime((string)$evento['apertura_prenotazioni']) : null;
+    $chiusura = !empty($evento['chiusura_prenotazioni']) ? ticketEventiDateTime((string)$evento['chiusura_prenotazioni']) : null;
+    $dataEvento = !empty($evento['data_evento']) ? ticketEventiDateTime((string)$evento['data_evento']) : null;
 
-    if ($apertura !== null && $apertura !== false && $now < $apertura) {
+    if ($apertura !== null && $now < $apertura) {
         return false;
     }
 
-    if ($chiusura !== null && $chiusura !== false && $now > $chiusura) {
+    if ($chiusura !== null && $now > $chiusura) {
+        return false;
+    }
+
+    if ($dataEvento !== null && $now > $dataEvento) {
         return false;
     }
 
     return true;
+}
+
+function ticketEventiIsPast(array $evento): bool
+{
+    $dataEvento = !empty($evento['data_evento']) ? ticketEventiDateTime((string)$evento['data_evento']) : null;
+    if ($dataEvento === null) {
+        return false;
+    }
+
+    return ticketEventiNow() > $dataEvento;
 }
 
 function ticketEventiGetEventById(int $eventoId, int $annoId): ?array
