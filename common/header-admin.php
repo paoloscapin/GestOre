@@ -36,6 +36,18 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/tickets.php"><span class="glyphicon glyphicon-barcode"></span>&ensp;Assegna Biglietti</a></li>
 				</ul>
 			</li>
+			<li class="dropdown">
+				<a href="#" class="btn btn-default btn-lightblue4 nav-btn dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					<span class="glyphicon glyphicon-transfer"></span>&ensp;MasterCom <span class="caret"></span>
+				</a>
+				<ul class="dropdown-menu">
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom.php"><span class="glyphicon glyphicon-dashboard"></span>&ensp;Dashboard</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_students.php"><span class="glyphicon glyphicon-education"></span>&ensp;Studenti</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_parents.php"><span class="glyphicon glyphicon-user"></span>&ensp;Genitori</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_teachers.php"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Docenti</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_classes.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Classi</a></li>
+				</ul>
+			</li>
 			<li><a href="<?php echo $__application_base_path; ?>/orario/orario.php" class="btn btn-default btn-lightblue4 nav-btn" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Orario </a></li>
 
 		</ul>
