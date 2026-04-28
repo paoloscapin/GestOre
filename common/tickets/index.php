@@ -291,6 +291,10 @@ $error = null;
 $result = null;
 $ticketEvents = ticketEventiGetEventsForAdmin((int)$__anno_scolastico_corrente_id);
 $selectedEventId = 0;
+$ticketEventsById = [];
+foreach ($ticketEvents as $ticketEventRow) {
+    $ticketEventsById[(int)($ticketEventRow['id'] ?? 0)] = $ticketEventRow;
+}
 
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -434,6 +438,8 @@ try {
 } catch (Throwable $e) {
     $error = $e->getMessage();
 }
+
+$selectedTicketEvent = $selectedEventId > 0 ? ($ticketEventsById[$selectedEventId] ?? null) : null;
 ?>
 <!doctype html>
 <html lang="it">
@@ -475,7 +481,7 @@ try {
                         </div>
                         <div class="form-row">
                             <label class="label">Evento con prenotazioni</label>
-                            <select name="evento_id" required style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;">
+                            <select id="evento_id_select" name="evento_id" required style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;">
                                 <option value="">Seleziona evento</option>
                                 <?php foreach ($ticketEvents as $event): ?>
                                     <?php $eventId = (int)($event['id'] ?? 0); ?>
@@ -485,6 +491,76 @@ try {
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        <div class="form-row" id="evento_summary_box" style="<?= $selectedTicketEvent ? '' : 'display:none;' ?>">
+                            <div style="padding:12px 14px;border:1px solid #dbe3ef;border-radius:12px;background:#f8fbff;">
+                                <div style="font-weight:700;margin-bottom:6px;" id="evento_summary_title">
+                                    <?= h((string)($selectedTicketEvent['titolo'] ?? '')) ?>
+                                </div>
+                                <div class="muted" id="evento_summary_datetime">
+                                    <?php if ($selectedTicketEvent): ?>
+                                        <?= h(ticketEventiFormatDateTime((string)($selectedTicketEvent['data_evento'] ?? ''))) ?>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="muted" id="evento_summary_location">
+                                    <?php if ($selectedTicketEvent): ?>
+                                        <?= h((string)($selectedTicketEvent['luogo'] ?? '')) ?>
+                                    <?php endif; ?>
+                                </div>
+                                <div style="margin-top:6px;font-weight:600;" id="evento_summary_reservations">
+                                    <?php if ($selectedTicketEvent): ?>
+                                        <?= h('Prenotazioni attive: ' . (string)($selectedTicketEvent['prenotazioni_attive'] ?? 0)) ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <script>
+                            (function () {
+                                const select = document.getElementById('evento_id_select');
+                                const box = document.getElementById('evento_summary_box');
+                                const title = document.getElementById('evento_summary_title');
+                                const datetime = document.getElementById('evento_summary_datetime');
+                                const location = document.getElementById('evento_summary_location');
+                                const reservations = document.getElementById('evento_summary_reservations');
+
+                                if (!select) {
+                                    return;
+                                }
+
+                                const eventMap = {
+                                    <?php foreach ($ticketEvents as $event): ?>
+                                    <?= (int)($event['id'] ?? 0) ?>: {
+                                        title: <?= json_encode((string)($event['titolo'] ?? '')) ?>,
+                                        datetime: <?= json_encode(ticketEventiFormatDateTime((string)($event['data_evento'] ?? ''))) ?>,
+                                        location: <?= json_encode((string)($event['luogo'] ?? '')) ?>,
+                                        reservations: <?= json_encode('Prenotazioni attive: ' . (string)($event['prenotazioni_attive'] ?? 0)) ?>
+                                    },
+                                    <?php endforeach; ?>
+                                };
+
+                                function refreshSummary() {
+                                    const eventId = select.value;
+                                    const data = eventMap[eventId];
+
+                                    if (!data) {
+                                        box.style.display = 'none';
+                                        title.textContent = '';
+                                        datetime.textContent = '';
+                                        location.textContent = '';
+                                        reservations.textContent = '';
+                                        return;
+                                    }
+
+                                    box.style.display = '';
+                                    title.textContent = data.title || '';
+                                    datetime.textContent = data.datetime || '';
+                                    location.textContent = data.location || '';
+                                    reservations.textContent = data.reservations || '';
+                                }
+
+                                select.addEventListener('change', refreshSummary);
+                                refreshSummary();
+                            })();
+                        </script>
                         <div class="actions">
                             <button type="submit">Elabora assegnazione</button>
                         </div>

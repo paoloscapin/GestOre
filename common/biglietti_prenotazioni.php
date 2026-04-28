@@ -46,6 +46,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $actor !== null) {
 $eventi = $actor !== null
     ? ticketEventiGetVisibleEventsForActor($actor, (int)$__anno_scolastico_corrente_id)
     : [];
+$showPast = !empty($_GET['show_past']);
+$eventiVisibili = [];
+foreach ($eventi as $evento) {
+    $isPast = ticketEventiIsPast($evento);
+    if (!$showPast && $isPast) {
+        continue;
+    }
+    $eventiVisibili[] = $evento;
+}
 
 $headerFile = __DIR__ . '/header-admin.php';
 if ($actor !== null) {
@@ -236,15 +245,42 @@ if ($actor !== null) {
         <div class="alert alert-warning">
             Il tuo account non e collegato a un profilo studente, docente o ATA. Se vuoi, posso aggiungere anche un profilo admin di test per le prenotazioni.
         </div>
-    <?php elseif (!$eventi): ?>
+    <?php elseif (!$eventiVisibili): ?>
         <div class="alert alert-info">
-            Al momento non ci sono eventi prenotabili per il tuo profilo.
+            <?php if ($showPast): ?>
+                Al momento non ci sono eventi visibili per il tuo profilo.
+            <?php else: ?>
+                Al momento non ci sono eventi futuri aperti per il tuo profilo.
+            <?php endif; ?>
         </div>
     <?php else: ?>
+        <div style="margin-bottom: 14px;">
+            <?php if ($showPast): ?>
+                <a class="btn btn-default" href="biglietti_prenotazioni.php">Nascondi eventi passati/chiusi</a>
+            <?php else: ?>
+                <a class="btn btn-default" href="biglietti_prenotazioni.php?show_past=1">Mostra anche eventi passati o chiusi</a>
+            <?php endif; ?>
+        </div>
         <div class="ticket-booking-grid">
-            <?php foreach ($eventi as $evento): ?>
+            <?php foreach ($eventiVisibili as $evento): ?>
                 <?php
                 $bookable = ticketEventiIsBookable($evento);
+                $aperturaPrenotazioni = ticketEventiDateTime((string)($evento['apertura_prenotazioni'] ?? ''));
+                $dataEvento = ticketEventiDateTime((string)($evento['data_evento'] ?? ''));
+                $nowEvento = ticketEventiNow();
+                $isPast = ticketEventiIsPast($evento);
+                $bookingMessage = 'Le prenotazioni non sono aperte in questo momento.';
+                if (!$bookable) {
+                    if (($evento['stato'] ?? '') !== 'aperto') {
+                        $bookingMessage = 'Le prenotazioni per questo evento non sono ancora attive.';
+                    } elseif ($aperturaPrenotazioni !== null && $nowEvento < $aperturaPrenotazioni) {
+                        $bookingMessage = 'Le prenotazioni apriranno il ' . ticketEventiFormatDateTime($evento['apertura_prenotazioni']) . '.';
+                    } elseif ($isPast || ($dataEvento !== null && $nowEvento > $dataEvento)) {
+                        $bookingMessage = 'Questo evento e gia passato.';
+                    } elseif (!empty($evento['chiusura_prenotazioni'])) {
+                        $bookingMessage = 'Le prenotazioni si sono chiuse il ' . ticketEventiFormatDateTime((string)$evento['chiusura_prenotazioni']) . '.';
+                    }
+                }
                 $maxTotali = (int)($evento['max_posti_totali'] ?? 0);
                 $postiPrenotati = (int)($evento['posti_prenotati'] ?? 0);
                 $postiResidui = $maxTotali > 0 ? max(0, $maxTotali - $postiPrenotati) : null;
@@ -310,7 +346,7 @@ if ($actor !== null) {
 
                         <?php if (!$bookable): ?>
                             <div class="ticket-closed">
-                                Le prenotazioni non sono aperte in questo momento.
+                                <?php echo htmlspecialchars($bookingMessage, ENT_QUOTES, 'UTF-8'); ?>
                             </div>
                         <?php endif; ?>
 
