@@ -115,6 +115,7 @@ function mastercomRequest(array $queryParams, array $options = []): array
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => intval($options['timeout'] ?? 60),
         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_ENCODING => '',
         CURLOPT_CUSTOMREQUEST => strtoupper((string)($options['method'] ?? 'POST')),
         CURLOPT_HTTPHEADER => $headers,
         CURLOPT_HEADER => true,
@@ -218,6 +219,7 @@ function mastercomRawRequest(array $params, array $options = []): array
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => intval($options['timeout'] ?? 60),
         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_ENCODING => '',
         CURLOPT_CUSTOMREQUEST => $method,
         CURLOPT_HTTPHEADER => $headers,
     ];

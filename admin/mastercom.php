@@ -68,6 +68,11 @@ $classRows = empty($missingTables) ? dbGetAll("SELECT * FROM mastercom_classi OR
                                 <input type="hidden" name="entity" value="parents">
                                 <button class="btn btn-primary btn-block" type="submit">Sincronizza genitori</button>
                             </form>
+                            <hr>
+                            <form method="post" action="mastercom_sync.php">
+                                <input type="hidden" name="entity" value="rebuild_parent_student_links">
+                                <button class="btn btn-default btn-block" type="submit">Ricalcola collegamenti genitori-studenti</button>
+                            </form>
                         </div>
                     </div>
                     <div class="col-md-3">

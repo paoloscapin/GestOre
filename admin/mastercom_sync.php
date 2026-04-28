@@ -9,6 +9,11 @@ ruoloRichiesto('admin');
 @set_time_limit(0);
 @ini_set('max_execution_time', '0');
 @ini_set('memory_limit', '512M');
+@ini_set('zlib.output_compression', '0');
+@ini_set('output_buffering', 'off');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('X-Accel-Buffering: no');
 
 function mastercomSyncRenderProgress(string $title, string $message, int $current = 0, int $total = 0): void
 {
@@ -95,6 +100,8 @@ if ($entity === 'teachers') {
     $result = mastercomAdminSyncTeachers($progress);
 } elseif ($entity === 'classes') {
     $result = mastercomAdminSyncClasses($progress);
+} elseif ($entity === 'rebuild_parent_student_links') {
+    $result = mastercomAdminRebuildParentStudentLinks($progress);
 } elseif ($entity === 'parents') {
     $token = trim((string)($_POST['token'] ?? ''));
     $offset = intval($_POST['offset'] ?? 0);
@@ -158,9 +165,9 @@ if ($entity === 'teachers') {
     $classId = intval($_POST['class_id'] ?? 0);
     $token = trim((string)($_POST['token'] ?? ''));
     $offset = intval($_POST['offset'] ?? 0);
-    $limit = intval($_POST['limit'] ?? 25);
+    $limit = intval($_POST['limit'] ?? 5);
     if ($limit <= 0) {
-        $limit = 25;
+        $limit = 5;
     }
 
     if ($token === '') {

@@ -371,6 +371,19 @@ function mastercomAdminStudentsAllSyncFile(string $token): string
     return mastercomAdminSyncCacheDir() . DIRECTORY_SEPARATOR . 'mastercom_sync_students_all_' . preg_replace('/[^A-Za-z0-9_\-]/', '', $token) . '.json';
 }
 
+function mastercomAdminStudentSyncErrorMessage(int $classId, int $studentId, array $masterStudent, string $message): string
+{
+    $label = trim((string)(($masterStudent['cognome'] ?? '') . ' ' . ($masterStudent['nome'] ?? '')));
+    if ($label === '') {
+        $label = 'studente ' . $studentId;
+    }
+
+    return 'Errore sync studenti su classe ' . $classId
+        . ', studente ' . $studentId
+        . ' (' . $label . '): '
+        . $message;
+}
+
 function mastercomAdminProgress(callable $progress = null, string $stage = '', int $current = 0, int $total = 0, string $message = ''): void
 {
     if ($progress !== null) {
@@ -601,67 +614,89 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
         }
         $current = $baseOffset + $index + 1;
         mastercomAdminProgress($progress, 'students_class', $current, $total, 'Classe ' . $classLabel . ' - ' . (($masterStudent['cognome'] ?? '') . ' ' . ($masterStudent['nome'] ?? '')));
+        try {
+            $detailResult = mastercomLoadStudentDetails($authResult, $studentId, [
+                'method' => 'GET',
+                'timeout' => 120,
+            ]);
 
-        $detailResult = mastercomLoadStudentDetails($authResult, $studentId, [
-            'method' => 'GET',
-            'timeout' => 120,
-        ]);
-        $detail = mastercomAdminFirstRecord($detailResult['response'] ?? null) ?? [];
-        $merged = array_merge($detail, $masterStudent);
-        $localStudent = mastercomAdminFindLocalStudent([
-            'codice_fiscale' => $detail['cf'] ?? '',
-            'email1' => $masterStudent['email1'] ?? $detail['email'] ?? '',
-            'cognome' => $masterStudent['cognome'] ?? $detail['surname'] ?? '',
-            'nome' => $masterStudent['nome'] ?? $detail['first_name'] ?? '',
-        ]);
+            if (!$detailResult['ok']) {
+                $rawPreview = trim(substr((string)($detailResult['raw'] ?? ''), 0, 300));
+                error(
+                    mastercomAdminStudentSyncErrorMessage(
+                        $classId,
+                        $studentId,
+                        $masterStudent,
+                        'dettaglio MasterCom non valido'
+                    ) . ' | http=' . intval($detailResult['http_code'] ?? 0)
+                    . ' | error=' . trim((string)($detailResult['error'] ?? ''))
+                    . ($rawPreview !== '' ? ' | raw=' . preg_replace('/\s+/', ' ', $rawPreview) : '')
+                );
+                $detail = [];
+            } else {
+                $detail = mastercomAdminFirstRecord($detailResult['response'] ?? null) ?? [];
+            }
 
-        mastercomAdminUpsertByField('mastercom_studenti', 'mastercom_id_studente', $studentId, [
-            'id_studente_gestore' => $localStudent['id'] ?? null,
-            'mastercom_id_studente' => $studentId,
-            'mastercom_id_classe_corrente' => $classId,
-            'registro_numero' => isset($masterStudent['registro']) ? intval($masterStudent['registro']) : null,
-            'cognome' => mastercomAdminCleanText($masterStudent['cognome'] ?? $detail['surname'] ?? null),
-            'nome' => mastercomAdminCleanText($masterStudent['nome'] ?? $detail['first_name'] ?? null),
-            'codice_fiscale' => mastercomAdminCleanText($detail['cf'] ?? null),
-            'data_nascita_ts' => isset($masterStudent['data_nascita']) ? intval($masterStudent['data_nascita']) : null,
-            'data_nascita' => empty($masterStudent['data_nascita']) ? null : date('Y-m-d', intval($masterStudent['data_nascita'])),
-            'email1' => mastercomAdminCleanText($masterStudent['email1'] ?? $detail['email'] ?? null),
-            'email2' => mastercomAdminCleanText($masterStudent['email2'] ?? null),
-            'foto' => mastercomAdminCleanText($masterStudent['foto'] ?? null),
-            'classe_numero' => isset($masterStudent['classe']) ? intval($masterStudent['classe']) : null,
-            'sezione' => mastercomAdminCleanText($masterStudent['sezione'] ?? null),
-            'codice_indirizzo' => mastercomAdminCleanText($masterStudent['codice_indirizzi'] ?? null),
-            'descrizione_indirizzo' => mastercomAdminCleanText($masterStudent['descrizione_indirizzi'] ?? null),
-            'tipo_indirizzo' => isset($masterStudent['tipo_indirizzo']) ? intval($masterStudent['tipo_indirizzo']) : null,
-            'ordinamento' => isset($masterStudent['ordinamento']) ? intval($masterStudent['ordinamento']) : null,
-            'esonero_religione' => isset($masterStudent['esonero_religione']) ? intval($masterStudent['esonero_religione']) : null,
-            'esonero_ed_fisica' => isset($masterStudent['esonero_ed_fisica']) ? intval($masterStudent['esonero_ed_fisica']) : null,
-            'servizio_mensa' => isset($masterStudent['servizio_mensa']) ? intval($masterStudent['servizio_mensa']) : null,
-            'necessita_sostegno' => isset($masterStudent['necessita_sostegno']) ? intval($masterStudent['necessita_sostegno']) : null,
-            'esito' => mastercomAdminCleanText($masterStudent['esito'] ?? null),
-            'esito_corrente_calcolato' => mastercomAdminCleanText($masterStudent['esito_corrente_calcolato'] ?? null),
-            'data_inizio_partecipazione_ts' => isset($masterStudent['data_inizio_partecipazione']) ? intval($masterStudent['data_inizio_partecipazione']) : null,
-            'data_fine_partecipazione_ts' => isset($masterStudent['data_fine_partecipazione']) ? intval($masterStudent['data_fine_partecipazione']) : null,
-            'attivo_mastercom' => 1,
-            'last_sync_at' => mastercomAdminNow(),
-            'last_seen_at' => mastercomAdminNow(),
-            'raw_json' => mastercomAdminJson($merged),
-        ]);
+            $merged = array_merge($detail, $masterStudent);
+            $localStudent = mastercomAdminFindLocalStudent([
+                'codice_fiscale' => $detail['cf'] ?? '',
+                'email1' => $masterStudent['email1'] ?? $detail['email'] ?? '',
+                'cognome' => $masterStudent['cognome'] ?? $detail['surname'] ?? '',
+                'nome' => $masterStudent['nome'] ?? $detail['first_name'] ?? '',
+            ]);
 
-        mastercomAdminUpsertByField('mastercom_studenti_classi', 'id', dbGetValue("SELECT id FROM mastercom_studenti_classi WHERE mastercom_id_studente = " . $studentId . " AND mastercom_id_classe = " . intval($classId) . " LIMIT 1") ?? 0, [
-            'mastercom_id_studente' => $studentId,
-            'mastercom_id_classe' => $classId,
-            'anno_scolastico' => mastercomAdminCleanText($classRow['anno_scolastico'] ?? null),
-            'classe_numero' => isset($masterStudent['classe']) ? intval($masterStudent['classe']) : null,
-            'sezione' => mastercomAdminCleanText($masterStudent['sezione'] ?? null),
-            'codice_indirizzo' => mastercomAdminCleanText($masterStudent['codice_indirizzi'] ?? null),
-            'descrizione_indirizzo' => mastercomAdminCleanText($masterStudent['descrizione_indirizzi'] ?? null),
-            'esito' => mastercomAdminCleanText($masterStudent['esito'] ?? null),
-            'data_inizio_partecipazione_ts' => isset($masterStudent['data_inizio_partecipazione']) ? intval($masterStudent['data_inizio_partecipazione']) : null,
-            'data_fine_partecipazione_ts' => isset($masterStudent['data_fine_partecipazione']) ? intval($masterStudent['data_fine_partecipazione']) : null,
-            'last_sync_at' => mastercomAdminNow(),
-            'raw_json' => mastercomAdminJson($merged),
-        ]);
+            mastercomAdminUpsertByField('mastercom_studenti', 'mastercom_id_studente', $studentId, [
+                'id_studente_gestore' => $localStudent['id'] ?? null,
+                'mastercom_id_studente' => $studentId,
+                'mastercom_id_classe_corrente' => $classId,
+                'registro_numero' => isset($masterStudent['registro']) ? intval($masterStudent['registro']) : null,
+                'cognome' => mastercomAdminCleanText($masterStudent['cognome'] ?? $detail['surname'] ?? null),
+                'nome' => mastercomAdminCleanText($masterStudent['nome'] ?? $detail['first_name'] ?? null),
+                'codice_fiscale' => mastercomAdminCleanText($detail['cf'] ?? null),
+                'data_nascita_ts' => isset($masterStudent['data_nascita']) ? intval($masterStudent['data_nascita']) : null,
+                'data_nascita' => empty($masterStudent['data_nascita']) ? null : date('Y-m-d', intval($masterStudent['data_nascita'])),
+                'email1' => mastercomAdminCleanText($masterStudent['email1'] ?? $detail['email'] ?? null),
+                'email2' => mastercomAdminCleanText($masterStudent['email2'] ?? null),
+                'foto' => mastercomAdminCleanText($masterStudent['foto'] ?? null),
+                'classe_numero' => isset($masterStudent['classe']) ? intval($masterStudent['classe']) : null,
+                'sezione' => mastercomAdminCleanText($masterStudent['sezione'] ?? null),
+                'codice_indirizzo' => mastercomAdminCleanText($masterStudent['codice_indirizzi'] ?? null),
+                'descrizione_indirizzo' => mastercomAdminCleanText($masterStudent['descrizione_indirizzi'] ?? null),
+                'tipo_indirizzo' => isset($masterStudent['tipo_indirizzo']) ? intval($masterStudent['tipo_indirizzo']) : null,
+                'ordinamento' => isset($masterStudent['ordinamento']) ? intval($masterStudent['ordinamento']) : null,
+                'esonero_religione' => isset($masterStudent['esonero_religione']) ? intval($masterStudent['esonero_religione']) : null,
+                'esonero_ed_fisica' => isset($masterStudent['esonero_ed_fisica']) ? intval($masterStudent['esonero_ed_fisica']) : null,
+                'servizio_mensa' => isset($masterStudent['servizio_mensa']) ? intval($masterStudent['servizio_mensa']) : null,
+                'necessita_sostegno' => isset($masterStudent['necessita_sostegno']) ? intval($masterStudent['necessita_sostegno']) : null,
+                'esito' => mastercomAdminCleanText($masterStudent['esito'] ?? null),
+                'esito_corrente_calcolato' => mastercomAdminCleanText($masterStudent['esito_corrente_calcolato'] ?? null),
+                'data_inizio_partecipazione_ts' => isset($masterStudent['data_inizio_partecipazione']) ? intval($masterStudent['data_inizio_partecipazione']) : null,
+                'data_fine_partecipazione_ts' => isset($masterStudent['data_fine_partecipazione']) ? intval($masterStudent['data_fine_partecipazione']) : null,
+                'attivo_mastercom' => 1,
+                'last_sync_at' => mastercomAdminNow(),
+                'last_seen_at' => mastercomAdminNow(),
+                'raw_json' => mastercomAdminJson($merged),
+            ]);
+
+            mastercomAdminUpsertByField('mastercom_studenti_classi', 'id', dbGetValue("SELECT id FROM mastercom_studenti_classi WHERE mastercom_id_studente = " . $studentId . " AND mastercom_id_classe = " . intval($classId) . " LIMIT 1") ?? 0, [
+                'mastercom_id_studente' => $studentId,
+                'mastercom_id_classe' => $classId,
+                'anno_scolastico' => mastercomAdminCleanText($classRow['anno_scolastico'] ?? null),
+                'classe_numero' => isset($masterStudent['classe']) ? intval($masterStudent['classe']) : null,
+                'sezione' => mastercomAdminCleanText($masterStudent['sezione'] ?? null),
+                'codice_indirizzo' => mastercomAdminCleanText($masterStudent['codice_indirizzi'] ?? null),
+                'descrizione_indirizzo' => mastercomAdminCleanText($masterStudent['descrizione_indirizzi'] ?? null),
+                'esito' => mastercomAdminCleanText($masterStudent['esito'] ?? null),
+                'data_inizio_partecipazione_ts' => isset($masterStudent['data_inizio_partecipazione']) ? intval($masterStudent['data_inizio_partecipazione']) : null,
+                'data_fine_partecipazione_ts' => isset($masterStudent['data_fine_partecipazione']) ? intval($masterStudent['data_fine_partecipazione']) : null,
+                'last_sync_at' => mastercomAdminNow(),
+                'raw_json' => mastercomAdminJson($merged),
+            ]);
+        } catch (Throwable $e) {
+            $errorMessage = mastercomAdminStudentSyncErrorMessage($classId, $studentId, $masterStudent, $e->getMessage());
+            error($errorMessage);
+            return ['ok' => false, 'message' => $errorMessage];
+        }
 
         $updated++;
     }
@@ -826,6 +861,123 @@ function mastercomAdminSyncParentsChunk(array $parents, int $baseOffset = 0, int
     }
 
     return ['ok' => true, 'message' => "Genitori sincronizzati: $updated"];
+}
+
+function mastercomAdminRebuildParentStudentLinks(callable $progress = null): array
+{
+    $parentRows = dbGetAll("SELECT * FROM mastercom_genitori ORDER BY cognome ASC, nome ASC, id ASC");
+    if (empty($parentRows)) {
+        return ['ok' => false, 'message' => 'Nessun genitore MasterCom disponibile. Sincronizza prima i genitori.'];
+    }
+
+    $total = count($parentRows);
+    $processed = 0;
+    $linked = 0;
+    $skippedMissingStudents = 0;
+    $parentsWithoutChildren = 0;
+
+    foreach ($parentRows as $parentRow) {
+        $processed++;
+        $parentId = intval($parentRow['mastercom_id_parente'] ?? 0);
+        $label = trim((string)(($parentRow['cognome'] ?? '') . ' ' . ($parentRow['nome'] ?? '')));
+        if ($label === '') {
+            $label = 'genitore ' . $parentId;
+        }
+
+        mastercomAdminProgress($progress, 'parents', $processed, $total, 'Ricalcolo collegamenti ' . $label);
+
+        if ($parentId <= 0) {
+            continue;
+        }
+
+        $decoded = json_decode((string)($parentRow['raw_json'] ?? ''), true);
+        if (!is_array($decoded)) {
+            continue;
+        }
+
+        $children = $decoded['studenti_abbinati'] ?? [];
+        if (!is_array($children) || empty($children)) {
+            $parentsWithoutChildren++;
+            continue;
+        }
+
+        $localParent = mastercomAdminResolveLocalParent($parentRow);
+        $localParentId = intval($localParent['id'] ?? 0);
+        if ($localParentId > 0 && intval($parentRow['id_genitore_gestore'] ?? 0) !== $localParentId) {
+            dbExec("
+                UPDATE mastercom_genitori
+                SET
+                    id_genitore_gestore = " . $localParentId . ",
+                    last_sync_at = " . dbQ(mastercomAdminNow()) . "
+                WHERE id = " . intval($parentRow['id'])
+            );
+        }
+
+        foreach ($children as $child) {
+            if (!is_array($child)) {
+                continue;
+            }
+
+            $studentMcId = intval($child['id_studente'] ?? 0);
+            if ($studentMcId <= 0) {
+                continue;
+            }
+
+            $studentMirror = dbGetFirst("SELECT * FROM mastercom_studenti WHERE mastercom_id_studente = " . $studentMcId . " LIMIT 1");
+            if ($studentMirror == null) {
+                $skippedMissingStudents++;
+                continue;
+            }
+
+            $existingLinkId = dbGetValue("SELECT id FROM mastercom_genitori_studenti WHERE mastercom_id_parente = " . $parentId . " AND mastercom_id_studente = " . $studentMcId . " LIMIT 1");
+            $studentGestoreId = intval($studentMirror['id_studente_gestore'] ?? 0);
+
+            if ($existingLinkId !== null) {
+                mastercomAdminExec("
+                    UPDATE mastercom_genitori_studenti
+                    SET
+                        id_genitore_gestore = " . dbI($localParentId > 0 ? $localParentId : null) . ",
+                        id_studente_gestore = " . dbI($studentGestoreId > 0 ? $studentGestoreId : null) . ",
+                        source_mastercom = 'mastercom',
+                        last_sync_at = " . dbQ(mastercomAdminNow()) . ",
+                        raw_json = " . dbQ(mastercomAdminJson($child)) . "
+                    WHERE id = " . intval($existingLinkId),
+                    'rebuild parent link update parent_id=' . $parentId . ' student_id=' . $studentMcId
+                );
+            } else {
+                mastercomAdminExec("
+                    INSERT INTO mastercom_genitori_studenti (
+                        mastercom_id_parente,
+                        mastercom_id_studente,
+                        id_genitore_gestore,
+                        id_studente_gestore,
+                        source_mastercom,
+                        last_sync_at,
+                        raw_json
+                    ) VALUES (
+                        " . $parentId . ",
+                        " . $studentMcId . ",
+                        " . dbI($localParentId > 0 ? $localParentId : null) . ",
+                        " . dbI($studentGestoreId > 0 ? $studentGestoreId : null) . ",
+                        'mastercom',
+                        " . dbQ(mastercomAdminNow()) . ",
+                        " . dbQ(mastercomAdminJson($child)) . "
+                    )",
+                    'rebuild parent link insert parent_id=' . $parentId . ' student_id=' . $studentMcId
+                );
+            }
+
+            $linked++;
+        }
+    }
+
+    return [
+        'ok' => true,
+        'message' => 'Collegamenti ricalcolati: ' . $linked
+            . ' link aggiornati/inseriti, '
+            . $skippedMissingStudents . ' link saltati per studenti MasterCom assenti, '
+            . $parentsWithoutChildren . ' genitori senza figli nel dato MasterCom',
+    ];
 }
 
 function mastercomAdminStudentDiffs(array $mirrorRow): array
