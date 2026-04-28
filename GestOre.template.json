@@ -13,6 +13,10 @@
         "clientId": "gestore",
         "clientSecret": "Bm6vh6mGfY5Qk3X"
     },
+    "MasterComDocenteAuth": {
+        "clientId": "--- username mastercom docente tecnico ---",
+        "clientSecret": "--- password mastercom docente tecnico ---"
+    },
     "db": {
         "host": "--- db host ---", 
         "user": "--- db user ---",
