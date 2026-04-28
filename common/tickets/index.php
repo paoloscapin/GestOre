@@ -290,6 +290,18 @@ ticketEventiEnsureSchema();
 $error = null;
 $result = null;
 $ticketEvents = ticketEventiGetEventsForAdmin((int)$__anno_scolastico_corrente_id);
+$ticketEvents = is_array($ticketEvents) ? array_values($ticketEvents) : [];
+usort($ticketEvents, static function (array $left, array $right): int {
+    $leftDate = strtotime((string)($left['data_evento'] ?? '')) ?: 0;
+    $rightDate = strtotime((string)($right['data_evento'] ?? '')) ?: 0;
+    if ($leftDate === $rightDate) {
+        return (int)($right['id'] ?? 0) <=> (int)($left['id'] ?? 0);
+    }
+    return $rightDate <=> $leftDate;
+});
+$requestedEventId = isset($_POST['evento_id'])
+    ? (int)$_POST['evento_id']
+    : (isset($_GET['evento_id']) ? (int)$_GET['evento_id'] : 0);
 $selectedEventId = 0;
 $ticketEventsById = [];
 $ticketEventReservationsById = [];
@@ -425,13 +437,11 @@ try {
         if (!empty($_SESSION['tickets_last_result'])) {
             $result = hydrateLoadedResult($_SESSION['tickets_last_result']);
             $_SESSION['tickets_last_result'] = $result;
-            $selectedEventId = (int)($result['reservation_event_id'] ?? 0);
         } else {
             $result = loadLastResult();
             if ($result) {
                 $result = hydrateLoadedResult($result);
                 $_SESSION['tickets_last_result'] = $result;
-                $selectedEventId = (int)($result['reservation_event_id'] ?? 0);
                 if (!empty($result['assignments'])) {
                     $_SESSION['tickets_assignments'] = $result['assignments'];
                 }
@@ -440,6 +450,14 @@ try {
     }
 } catch (Throwable $e) {
     $error = $e->getMessage();
+}
+
+if ($requestedEventId > 0) {
+    $selectedEventId = $requestedEventId;
+}
+
+if ($selectedEventId <= 0 && !empty($ticketEvents)) {
+    $selectedEventId = (int)($ticketEvents[0]['id'] ?? 0);
 }
 
 $selectedTicketEvent = $selectedEventId > 0 ? ($ticketEventsById[$selectedEventId] ?? null) : null;
@@ -490,7 +508,7 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                                 <?php foreach ($ticketEvents as $event): ?>
                                     <?php $eventId = (int)($event['id'] ?? 0); ?>
                                     <option value="<?= $eventId ?>" <?= $selectedEventId === $eventId ? 'selected' : '' ?>>
-                                        <?= h(ticketEventDisplayLabel($event)) ?> - prenotazioni: <?= h((string)($event['prenotazioni_attive'] ?? 0)) ?>
+                                        <?= h(ticketEventDisplayLabel($event)) ?> - prenotazioni: <?= h((string)($event['prenotazioni_attive'] ?? 0)) ?> - biglietti: <?= h((string)($event['posti_prenotati'] ?? 0)) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -515,6 +533,11 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                                         <?= h('Prenotazioni attive: ' . (string)($selectedTicketEvent['prenotazioni_attive'] ?? 0)) ?>
                                     <?php endif; ?>
                                 </div>
+                                <div style="margin-top:4px;font-weight:600;" id="evento_summary_tickets">
+                                    <?php if ($selectedTicketEvent): ?>
+                                        <?= h('Biglietti prenotati: ' . (string)($selectedTicketEvent['posti_prenotati'] ?? 0)) ?>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                         <script>
@@ -525,6 +548,7 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                                 const datetime = document.getElementById('evento_summary_datetime');
                                 const location = document.getElementById('evento_summary_location');
                                 const reservations = document.getElementById('evento_summary_reservations');
+                                const tickets = document.getElementById('evento_summary_tickets');
 
                                 if (!select) {
                                     return;
@@ -536,7 +560,8 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                                         title: <?= json_encode((string)($event['titolo'] ?? '')) ?>,
                                         datetime: <?= json_encode(ticketEventiFormatDateTime((string)($event['data_evento'] ?? ''))) ?>,
                                         location: <?= json_encode((string)($event['luogo'] ?? '')) ?>,
-                                        reservations: <?= json_encode('Prenotazioni attive: ' . (string)($event['prenotazioni_attive'] ?? 0)) ?>
+                                        reservations: <?= json_encode('Prenotazioni attive: ' . (string)($event['prenotazioni_attive'] ?? 0)) ?>,
+                                        tickets: <?= json_encode('Biglietti prenotati: ' . (string)($event['posti_prenotati'] ?? 0)) ?>
                                     },
                                     <?php endforeach; ?>
                                 };
@@ -551,6 +576,7 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                                         datetime.textContent = '';
                                         location.textContent = '';
                                         reservations.textContent = '';
+                                        tickets.textContent = '';
                                         return;
                                     }
 
@@ -559,6 +585,7 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                                     datetime.textContent = data.datetime || '';
                                     location.textContent = data.location || '';
                                     reservations.textContent = data.reservations || '';
+                                    tickets.textContent = data.tickets || '';
                                 }
 
                                 select.addEventListener('change', refreshSummary);
@@ -719,7 +746,7 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                                                 <th>Ruolo</th>
                                                 <th>Classe</th>
                                                 <th>Email</th>
-                                                <th>Posti</th>
+                                                <th>Posti prenotati</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -795,7 +822,7 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                                 return;
                             }
 
-                            let html = '<div class="table-wrap"><table><thead><tr><th>Nominativo</th><th>Ruolo</th><th>Classe</th><th>Email</th><th>Posti</th></tr></thead><tbody>';
+                            let html = '<div class="table-wrap"><table><thead><tr><th>Nominativo</th><th>Ruolo</th><th>Classe</th><th>Email</th><th>Posti prenotati</th></tr></thead><tbody>';
                             data.rows.forEach(function (row) {
                                 html += '<tr>'
                                     + '<td>' + escapeHtml(row.nominativo) + '</td>'
