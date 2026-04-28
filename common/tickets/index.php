@@ -292,8 +292,11 @@ $result = null;
 $ticketEvents = ticketEventiGetEventsForAdmin((int)$__anno_scolastico_corrente_id);
 $selectedEventId = 0;
 $ticketEventsById = [];
+$ticketEventReservationsById = [];
 foreach ($ticketEvents as $ticketEventRow) {
-    $ticketEventsById[(int)($ticketEventRow['id'] ?? 0)] = $ticketEventRow;
+    $ticketEventId = (int)($ticketEventRow['id'] ?? 0);
+    $ticketEventsById[$ticketEventId] = $ticketEventRow;
+    $ticketEventReservationsById[$ticketEventId] = ticketEventiGetReservationsForEvent($ticketEventId);
 }
 
 try {
@@ -440,6 +443,7 @@ try {
 }
 
 $selectedTicketEvent = $selectedEventId > 0 ? ($ticketEventsById[$selectedEventId] ?? null) : null;
+$selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsById[$selectedEventId] ?? []) : [];
 ?>
 <!doctype html>
 <html lang="it">
@@ -695,6 +699,121 @@ $selectedTicketEvent = $selectedEventId > 0 ? ($ticketEventsById[$selectedEventI
             </div>
 
             <div class="right-main-col">
+                <div class="box">
+                    <h2>Iscritti attuali</h2>
+                    <div id="selected-event-bookings-title" class="muted" style="margin-bottom:10px;">
+                        <?php if ($selectedTicketEvent): ?>
+                            <?= h(ticketEventDisplayLabel($selectedTicketEvent)) ?>
+                        <?php else: ?>
+                            Seleziona un evento per vedere gli iscritti attuali.
+                        <?php endif; ?>
+                    </div>
+                    <div id="selected-event-bookings-wrap">
+                        <?php if ($selectedTicketEvent): ?>
+                            <?php if ($selectedTicketReservations): ?>
+                                <div class="table-wrap">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Nominativo</th>
+                                                <th>Ruolo</th>
+                                                <th>Classe</th>
+                                                <th>Email</th>
+                                                <th>Posti</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($selectedTicketReservations as $prenotazione): ?>
+                                                <tr>
+                                                    <td><?= h((string)($prenotazione['nominativo'] ?? '')) ?></td>
+                                                    <td><?= h(ticketEventiRoleLabel((string)($prenotazione['ruolo'] ?? ''))) ?></td>
+                                                    <td><?= h((string)($prenotazione['classe_label'] ?? '')) ?></td>
+                                                    <td><?= h((string)($prenotazione['email'] ?? '')) ?></td>
+                                                    <td><?= (int)($prenotazione['numero_posti'] ?? 0) ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php else: ?>
+                                <div class="muted">Nessuna prenotazione attiva per questo evento.</div>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <script>
+                    (function () {
+                        const select = document.getElementById('evento_id_select');
+                        const bookingsTitle = document.getElementById('selected-event-bookings-title');
+                        const bookingsWrap = document.getElementById('selected-event-bookings-wrap');
+
+                        if (!select || !bookingsTitle || !bookingsWrap) {
+                            return;
+                        }
+
+                        const reservationsMap = {
+                            <?php foreach ($ticketEvents as $event): ?>
+                            <?= (int)($event['id'] ?? 0) ?>: {
+                                label: <?= json_encode(ticketEventDisplayLabel($event)) ?>,
+                                rows: <?= json_encode(array_map(static function (array $prenotazione): array {
+                                    return [
+                                        'nominativo' => (string)($prenotazione['nominativo'] ?? ''),
+                                        'ruolo' => ticketEventiRoleLabel((string)($prenotazione['ruolo'] ?? '')),
+                                        'classe' => (string)($prenotazione['classe_label'] ?? ''),
+                                        'email' => (string)($prenotazione['email'] ?? ''),
+                                        'posti' => (int)($prenotazione['numero_posti'] ?? 0),
+                                    ];
+                                }, $ticketEventReservationsById[(int)($event['id'] ?? 0)] ?? []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
+                            },
+                            <?php endforeach; ?>
+                        };
+
+                        function escapeHtml(value) {
+                            return String(value || '')
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/"/g, '&quot;')
+                                .replace(/'/g, '&#039;');
+                        }
+
+                        function renderReservations() {
+                            const eventId = select.value;
+                            const data = reservationsMap[eventId];
+
+                            if (!data) {
+                                bookingsTitle.textContent = 'Seleziona un evento per vedere gli iscritti attuali.';
+                                bookingsWrap.innerHTML = '';
+                                return;
+                            }
+
+                            bookingsTitle.textContent = data.label || '';
+
+                            if (!data.rows || data.rows.length === 0) {
+                                bookingsWrap.innerHTML = '<div class="muted">Nessuna prenotazione attiva per questo evento.</div>';
+                                return;
+                            }
+
+                            let html = '<div class="table-wrap"><table><thead><tr><th>Nominativo</th><th>Ruolo</th><th>Classe</th><th>Email</th><th>Posti</th></tr></thead><tbody>';
+                            data.rows.forEach(function (row) {
+                                html += '<tr>'
+                                    + '<td>' + escapeHtml(row.nominativo) + '</td>'
+                                    + '<td>' + escapeHtml(row.ruolo) + '</td>'
+                                    + '<td>' + escapeHtml(row.classe) + '</td>'
+                                    + '<td>' + escapeHtml(row.email) + '</td>'
+                                    + '<td>' + escapeHtml(row.posti) + '</td>'
+                                    + '</tr>';
+                            });
+                            html += '</tbody></table></div>';
+                            bookingsWrap.innerHTML = html;
+                        }
+
+                        select.addEventListener('change', renderReservations);
+                        renderReservations();
+                    })();
+                </script>
+
                 <?php if ($result): ?>
 
                     <div class="top-results-row">
