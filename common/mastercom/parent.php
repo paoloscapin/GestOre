@@ -14,6 +14,15 @@ ruoloRichiesto('segreteria-didattica', 'dirigente');
 
 header('Content-Type: application/json; charset=utf-8');
 
+$parentId = intval($_GET['parent_id'] ?? $_POST['parent_id'] ?? 0);
+if ($parentId <= 0) {
+    echo json_encode([
+        'ok' => false,
+        'message' => 'Parametro parent_id mancante o non valido',
+    ]);
+    exit;
+}
+
 $authResult = mastercomAuthenticateService([
     'method' => 'POST',
     'timeout' => 60,
@@ -29,33 +38,26 @@ if (!$authResult['ok']) {
     exit;
 }
 
-$parentsResult = mastercomLoadParents($authResult, [
-    'method' => 'POST',
+$parentResult = mastercomLoadParentDetails($authResult, $parentId, [
+    'method' => 'GET',
     'timeout' => 120,
 ]);
 
-if ($parentsResult['response'] === null && !empty($parentsResult['raw'])) {
-    $decoded = json_decode($parentsResult['raw'], true);
-    if (is_array($decoded)) {
-        $parentsResult['response'] = $decoded;
-        $parentsResult['ok'] = true;
-        $parentsResult['error'] = '';
-    }
-}
-
-if (!$parentsResult['ok'] || !is_array($parentsResult['response'])) {
+if (!$parentResult['ok'] || !is_array($parentResult['response'])) {
     echo json_encode([
         'ok' => false,
-        'message' => 'Caricamento genitori MasterCom fallito',
-        'error' => $parentsResult['error'] ?? 'LOAD_FAILED',
-        'http_code' => $parentsResult['http_code'] ?? 0,
-        'raw' => $parentsResult['raw'] ?? null,
+        'message' => 'Caricamento genitore MasterCom fallito',
+        'error' => $parentResult['error'] ?? 'LOAD_FAILED',
+        'http_code' => $parentResult['http_code'] ?? 0,
+        'raw' => $parentResult['raw'] ?? null,
     ]);
     exit;
 }
 
 echo json_encode([
     'ok' => true,
-    'count' => count($parentsResult['response']),
-    'records' => $parentsResult['response'],
+    'parent_id' => $parentId,
+    'count' => count($parentResult['response']),
+    'records' => $parentResult['response'],
 ], JSON_UNESCAPED_UNICODE);
+

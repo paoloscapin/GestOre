@@ -14,7 +14,17 @@ ruoloRichiesto('segreteria-didattica', 'dirigente');
 
 header('Content-Type: application/json; charset=utf-8');
 
+$classId = intval($_GET['class_id'] ?? $_POST['class_id'] ?? 0);
+if ($classId <= 0) {
+    echo json_encode([
+        'ok' => false,
+        'message' => 'Parametro class_id mancante o non valido',
+    ]);
+    exit;
+}
+
 $authResult = mastercomAuthenticateService([
+    'profile' => 'MasterComDocenteAuth',
     'method' => 'POST',
     'timeout' => 60,
 ]);
@@ -22,40 +32,33 @@ $authResult = mastercomAuthenticateService([
 if (!$authResult['ok']) {
     echo json_encode([
         'ok' => false,
-        'message' => 'Autenticazione MasterCom fallita',
+        'message' => 'Autenticazione MasterCom docente fallita',
         'error' => $authResult['error'] ?? 'AUTH_FAILED',
         'http_code' => $authResult['http_code'] ?? 0,
     ]);
     exit;
 }
 
-$parentsResult = mastercomLoadParents($authResult, [
+$periodsResult = mastercomLoadPeriodsData($authResult, $classId, [
     'method' => 'POST',
     'timeout' => 120,
 ]);
 
-if ($parentsResult['response'] === null && !empty($parentsResult['raw'])) {
-    $decoded = json_decode($parentsResult['raw'], true);
-    if (is_array($decoded)) {
-        $parentsResult['response'] = $decoded;
-        $parentsResult['ok'] = true;
-        $parentsResult['error'] = '';
-    }
-}
-
-if (!$parentsResult['ok'] || !is_array($parentsResult['response'])) {
+if (!$periodsResult['ok'] || !is_array($periodsResult['response'])) {
     echo json_encode([
         'ok' => false,
-        'message' => 'Caricamento genitori MasterCom fallito',
-        'error' => $parentsResult['error'] ?? 'LOAD_FAILED',
-        'http_code' => $parentsResult['http_code'] ?? 0,
-        'raw' => $parentsResult['raw'] ?? null,
+        'message' => 'Caricamento periodi MasterCom fallito',
+        'error' => $periodsResult['error'] ?? 'LOAD_FAILED',
+        'http_code' => $periodsResult['http_code'] ?? 0,
+        'raw' => $periodsResult['raw'] ?? null,
     ]);
     exit;
 }
 
 echo json_encode([
     'ok' => true,
-    'count' => count($parentsResult['response']),
-    'records' => $parentsResult['response'],
+    'class_id' => $classId,
+    'result' => $periodsResult['response']['result'] ?? null,
+    'error_code' => $periodsResult['response']['error_code'] ?? null,
 ], JSON_UNESCAPED_UNICODE);
+

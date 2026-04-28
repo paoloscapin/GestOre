@@ -15,6 +15,7 @@ ruoloRichiesto('segreteria-didattica', 'dirigente');
 header('Content-Type: application/json; charset=utf-8');
 
 $authResult = mastercomAuthenticateService([
+    'profile' => 'MasterComDocenteAuth',
     'method' => 'POST',
     'timeout' => 60,
 ]);
@@ -22,40 +23,35 @@ $authResult = mastercomAuthenticateService([
 if (!$authResult['ok']) {
     echo json_encode([
         'ok' => false,
-        'message' => 'Autenticazione MasterCom fallita',
+        'message' => 'Autenticazione MasterCom docente fallita',
         'error' => $authResult['error'] ?? 'AUTH_FAILED',
         'http_code' => $authResult['http_code'] ?? 0,
     ]);
     exit;
 }
 
-$parentsResult = mastercomLoadParents($authResult, [
+$usersResult = mastercomLoadUsersList($authResult, [
     'method' => 'POST',
     'timeout' => 120,
 ]);
 
-if ($parentsResult['response'] === null && !empty($parentsResult['raw'])) {
-    $decoded = json_decode($parentsResult['raw'], true);
-    if (is_array($decoded)) {
-        $parentsResult['response'] = $decoded;
-        $parentsResult['ok'] = true;
-        $parentsResult['error'] = '';
-    }
-}
-
-if (!$parentsResult['ok'] || !is_array($parentsResult['response'])) {
+if (!$usersResult['ok'] || !is_array($usersResult['response'])) {
     echo json_encode([
         'ok' => false,
-        'message' => 'Caricamento genitori MasterCom fallito',
-        'error' => $parentsResult['error'] ?? 'LOAD_FAILED',
-        'http_code' => $parentsResult['http_code'] ?? 0,
-        'raw' => $parentsResult['raw'] ?? null,
+        'message' => 'Caricamento utenti MasterCom fallito',
+        'error' => $usersResult['error'] ?? 'LOAD_FAILED',
+        'http_code' => $usersResult['http_code'] ?? 0,
+        'raw' => $usersResult['raw'] ?? null,
     ]);
     exit;
 }
 
+$records = $usersResult['response']['result'] ?? [];
+
 echo json_encode([
     'ok' => true,
-    'count' => count($parentsResult['response']),
-    'records' => $parentsResult['response'],
+    'count' => is_array($records) ? count($records) : 0,
+    'records' => $records,
+    'error_code' => $usersResult['response']['error_code'] ?? null,
 ], JSON_UNESCAPED_UNICODE);
+
