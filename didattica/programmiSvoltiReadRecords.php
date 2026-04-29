@@ -11,6 +11,23 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
+function programmiSvoltiCanExportClasseWord(int $classeId, int $annoScolasticoId, int $docenteCorrenteId): bool
+{
+	if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+		return true;
+	}
+
+	if (!impersonaRuolo('docente') || $docenteCorrenteId <= 0) {
+		return false;
+	}
+
+	$coord = dbGetFirst("SELECT id FROM coordinatori WHERE id_docente=" . intval($docenteCorrenteId) . " AND id_classe=" . intval($classeId) . " AND (id_anno_scolastico=" . intval($annoScolasticoId) . " OR id_anno_scolastico IS NULL OR id_anno_scolastico=0)");
+	if ($coord == null) {
+		$coord = dbGetFirst("SELECT id FROM coordinatori WHERE id_docente=" . intval($docenteCorrenteId) . " AND id_classe=" . intval($classeId) . " LIMIT 1");
+	}
+	return $coord != null;
+}
+
 $classe_filtro_id = $_GET["classi_id"];
 $materia_filtro_id = $_GET["materia_id"];
 $docenti_filtro_id = $_GET["docenti_id"];
@@ -19,6 +36,7 @@ $anni_filtro_id = $_GET["anni_id"];
 $sollecito_lista = '';
 $coordinatore_classi = [];
 $coordinatore_classi_ids = [];
+$coordinatore_classi_by_classe = [];
 $is_docente_effettivo = impersonaRuolo('docente');
 $docente_corrente_id = intval($__docente_id ?? 0);
 
@@ -50,6 +68,7 @@ if ($docente_corrente_id > 0) {
 		$coord_key = $coord_classe_id . '_' . intval($coord_row['id_anno_scolastico']);
 		$coordinatore_classi[$coord_key] = true;
 		$coordinatore_classi_ids[$coord_classe_id] = true;
+		$coordinatore_classi_by_classe[$coord_classe_id] = true;
 	}
 }
 
@@ -147,8 +166,10 @@ foreach ($resultArray as $row) {
 		$row_docente_id = intval($row['docente_id']);
 		$anno_scolastico_id = intval($row['anno_scolastico_id']);
 		$classe_id = intval($row['classe_id']);
-		$is_coordinatore_classe = isset($coordinatore_classi[$classe_id . '_' . $anno_scolastico_id]);
+		$is_coordinatore_classe = isset($coordinatore_classi[$classe_id . '_' . $anno_scolastico_id]) || isset($coordinatore_classi_by_classe[$classe_id]);
 		$is_programma_proprio = $docente_corrente_id > 0 && $row_docente_id === $docente_corrente_id;
+		$can_export_classe_word = programmiSvoltiCanExportClasseWord($classe_id, $anno_scolastico_id, $docente_corrente_id);
+		$can_export_programma_word = ($classe_anno === 5) && ($is_programma_proprio || $can_export_classe_word);
 		$update = $row['ultimo_agg'];
 		$autore = $row['utente_cognome'] . " " . $row['utente_nome'];
 
@@ -167,8 +188,8 @@ foreach ($resultArray as $row) {
 			if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) {
 				$data .= '
 			<button onclick="programmiSvoltiPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma svolto"><span class="glyphicon glyphicon-print"></button>
-			' . (($classe_anno === 5 && ($is_programma_proprio || $is_coordinatore_classe)) ? '<button onclick="programmiSvoltiWord(' . $programma_id . ')" class="btn btn-default btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word del programma svolto di quinta"><span class="glyphicon glyphicon-file"></span></button>' : '') . '
-			' . (($classe_anno === 5 && $is_coordinatore_classe) ? '<button onclick="programmiSvoltiWordClasse(' . $classe_id . ',' . $anno_scolastico_id . ')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word unico dei programmi svolti della classe quinta"><span class="glyphicon glyphicon-book"></span></button>' : '') . '
+			' . ($can_export_programma_word ? '<button onclick="programmiSvoltiWord(' . $programma_id . ')" class="btn btn-default btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word del programma svolto di quinta"><span class="glyphicon glyphicon-file"></span></button>' : '') . '
+			' . (($classe_anno === 5 && $can_export_classe_word) ? '<button onclick="programmiSvoltiWordClasse(' . $classe_id . ',' . $anno_scolastico_id . ')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word unico dei programmi svolti della classe quinta"><span class="glyphicon glyphicon-book"></span></button>' : '') . '
 					';
 				if (!$is_programma_proprio) {
 					$data .= '

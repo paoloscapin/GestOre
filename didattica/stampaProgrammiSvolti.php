@@ -99,10 +99,19 @@ function userCanViewProgram(array $program): bool
         SELECT id
         FROM coordinatori
         WHERE id_docente = " . intval($__docente_id) . "
-          AND id_classe = " . intval($program['classe_id'] ?? $program['svolti_id_classe'] ?? 0) . "
-          AND id_anno_scolastico = " . intval($program['anno_scolastico_id'] ?? 0) . "
+            AND id_classe = " . intval($program['classe_id'] ?? $program['svolti_id_classe'] ?? 0) . "
+            AND (id_anno_scolastico = " . intval($program['anno_scolastico_id'] ?? 0) . " OR id_anno_scolastico IS NULL OR id_anno_scolastico = 0)
         LIMIT 1
     ");
+    if ($coord == null) {
+        $coord = dbGetFirst("
+            SELECT id
+            FROM coordinatori
+            WHERE id_docente = " . intval($__docente_id) . "
+                AND id_classe = " . intval($program['classe_id'] ?? $program['svolti_id_classe'] ?? 0) . "
+            LIMIT 1
+        ");
+    }
 
     return $coord != null;
 }
@@ -138,11 +147,14 @@ function userCanExportClasseDocx(int $classId, int $annoScolasticoId): bool
         return true;
     }
 
-    if (!haRuolo('docente') || intval($__docente_id ?? 0) <= 0) {
+    if (!impersonaRuolo('docente') || intval($__docente_id ?? 0) <= 0) {
         return false;
     }
 
-    $coord = dbGetFirst("SELECT id FROM coordinatori WHERE id_docente=" . intval($__docente_id) . " AND id_classe=" . intval($classId) . " AND id_anno_scolastico=" . intval($annoScolasticoId));
+    $coord = dbGetFirst("SELECT id FROM coordinatori WHERE id_docente=" . intval($__docente_id) . " AND id_classe=" . intval($classId) . " AND (id_anno_scolastico=" . intval($annoScolasticoId) . " OR id_anno_scolastico IS NULL OR id_anno_scolastico=0)");
+    if ($coord == null) {
+        $coord = dbGetFirst("SELECT id FROM coordinatori WHERE id_docente=" . intval($__docente_id) . " AND id_classe=" . intval($classId) . " LIMIT 1");
+    }
     return $coord != null;
 }
 
@@ -437,13 +449,14 @@ function appendSectionBlock(string &$target, string $block): void
     $target .= $block;
 }
 
-function mergeQuintaSections(array &$target, array $source, string $docenteLabel = ''): void
+function mergeQuintaSections(array &$target, array $source, string $docenteLabel = '', array $keysWithoutDocenteLabel = []): void
 {
     foreach ($target as $key => $value) {
         if (!array_key_exists($key, $source)) {
             continue;
         }
-        appendSectionBlock($target[$key], wrapSectionForDocente((string)$source[$key], $docenteLabel));
+        $label = in_array($key, $keysWithoutDocenteLabel, true) ? '' : $docenteLabel;
+        appendSectionBlock($target[$key], wrapSectionForDocente((string)$source[$key], $label));
     }
 }
 
@@ -916,6 +929,12 @@ function exportQuintaClasseDocx(int $classId, int $annoScolasticoId): void
             }
             $singleSections = buildQuintaSections(getModuliProgrammaSvolto(intval($singleProgram['id'])));
             mergeQuintaSections($sections, $singleSections, count($materiaPrograms) > 1 ? $docenteLabel : '');
+            mergeQuintaSections(
+                $sections,
+                getProgramLevelQuintaSections($singleProgram),
+                '',
+                ['metodologie', 'criteri_valutazione', 'testi_materiali']
+            );
         }
 
         $docenti = array_values(array_unique($docenti));
@@ -988,10 +1007,13 @@ if ($format === 'docx') {
     $docentiLabels = getDocentiProgrammaLabels($relatedPrograms);
     foreach ($relatedPrograms as $singleProgram) {
         $singleSections = buildQuintaSections(getModuliProgrammaSvolto(intval($singleProgram['id'] ?? 0)));
-        foreach (getProgramLevelQuintaSections($singleProgram) as $sectionKey => $sectionValue) {
-            appendSectionBlock($singleSections[$sectionKey], (string)$sectionValue);
-        }
         mergeQuintaSections($sections, $singleSections, count($relatedPrograms) > 1 ? getProgramDocenteLabel($singleProgram) : '');
+        mergeQuintaSections(
+            $sections,
+            getProgramLevelQuintaSections($singleProgram),
+            '',
+            ['metodologie', 'criteri_valutazione', 'testi_materiali']
+        );
     }
 
     exportQuintaDocx($program, $sections, $docentiLabels);
@@ -1162,6 +1184,23 @@ ob_start();
     </div>
 
     <?php if ($is_quinta): ?>
+        <?php
+        $combinedProgramSections = [
+            'metodologie' => '',
+            'criteri_valutazione' => '',
+            'testi_materiali' => '',
+        ];
+        foreach ($relatedModulesByProgram as $programEntry) {
+            foreach ($combinedProgramSections as $sectionKey => $sectionValue) {
+                appendSectionBlock($combinedProgramSections[$sectionKey], (string)($programEntry['program_sections'][$sectionKey] ?? ''));
+            }
+        }
+        $combinedProgramRows = [
+            'Metodologie' => buildTwoLevelListFromText($combinedProgramSections['metodologie']),
+            'Criteri di valutazione' => buildTwoLevelListFromText($combinedProgramSections['criteri_valutazione']),
+            'Testi e materiali / strumenti adottati' => buildTwoLevelListFromText($combinedProgramSections['testi_materiali']),
+        ];
+        ?>
         <?php foreach ($relatedModulesByProgram as $programEntry): ?>
             <?php if (count($relatedModulesByProgram) > 1): ?>
                 <div class="module-card">
@@ -1203,28 +1242,28 @@ ob_start();
                     </table>
                 </div>
             <?php endforeach; ?>
-            <?php if (trim(strip_tags(implode('', $programRows))) !== ''): ?>
-                <div class="module-card">
-                    <table class="module">
-                        <thead>
-                            <tr>
-                                <th colspan="2">Sezione generale del programma</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($programRows as $label => $value): ?>
-                                <?php if (trim(strip_tags($value)) !== ''): ?>
-                                    <tr>
-                                        <td class="label-cell"><?= $label ?></td>
-                                        <td class="value-cell"><?= $value ?></td>
-                                    </tr>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php endif; ?>
         <?php endforeach; ?>
+        <?php if (trim(strip_tags(implode('', $combinedProgramRows))) !== ''): ?>
+            <div class="module-card">
+                <table class="module">
+                    <thead>
+                        <tr>
+                            <th colspan="2">Sezione generale del programma</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($combinedProgramRows as $label => $value): ?>
+                            <?php if (trim(strip_tags($value)) !== ''): ?>
+                                <tr>
+                                    <td class="label-cell"><?= $label ?></td>
+                                    <td class="value-cell"><?= $value ?></td>
+                                </tr>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
     <?php else: ?>
         <?php foreach ($relatedModulesByProgram as $programEntry): ?>
             <?php if (count($relatedModulesByProgram) > 1): ?>
@@ -1316,15 +1355,25 @@ if ($doPrint) {
     $pdf->writeHTML($htmlIntro, true, false, true, false, '');
 
     if ($is_quinta) {
+        $combinedProgramSections = [
+            'metodologie' => '',
+            'criteri_valutazione' => '',
+            'testi_materiali' => '',
+        ];
+        foreach ($relatedModulesByProgram as $programEntry) {
+            foreach ($combinedProgramSections as $sectionKey => $sectionValue) {
+                appendSectionBlock($combinedProgramSections[$sectionKey], (string)($programEntry['program_sections'][$sectionKey] ?? ''));
+            }
+        }
+        $combinedProgramRows = [
+            'Metodologie' => buildTwoLevelListFromText($combinedProgramSections['metodologie']),
+            'Criteri di valutazione' => buildTwoLevelListFromText($combinedProgramSections['criteri_valutazione']),
+            'Testi e materiali / strumenti adottati' => buildTwoLevelListFromText($combinedProgramSections['testi_materiali']),
+        ];
         foreach ($relatedModulesByProgram as $programEntry) {
             if (count($relatedModulesByProgram) > 1) {
                 $pdf->writeHTML('<p style="font-weight:bold;text-align:center;">Docente ' . htmlspecialchars($programEntry['docente_label']) . '</p>', true, false, true, false, '');
             }
-            $programRows = [
-                'Metodologie' => buildTwoLevelListFromText((string)($programEntry['program_sections']['metodologie'] ?? '')),
-                'Criteri di valutazione' => buildTwoLevelListFromText((string)($programEntry['program_sections']['criteri_valutazione'] ?? '')),
-                'Testi e materiali / strumenti adottati' => buildTwoLevelListFromText((string)($programEntry['program_sections']['testi_materiali'] ?? '')),
-            ];
             foreach ($programEntry['modules'] as $m) {
                 $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
                 $tbl .= '<thead><tr><th colspan="2" style="background-color:#0057b7;color:#ffffff;font-size:16px;padding:8px;text-align:left;border:2px solid #0057b7;">Modulo ' . ((int)rowField($m, 'ORDINE', 'ordine', 0)) . ': ' . htmlspecialchars((string)rowField($m, 'NOME', 'nome', '')) . '</th></tr></thead><tbody>';
@@ -1342,21 +1391,21 @@ if ($doPrint) {
                 $tbl .= '</tbody></table><div style="height:4mm"></div>';
                 $pdf->writeHTML($tbl, true, false, true, false, '');
             }
-            if (trim(strip_tags(implode('', $programRows))) !== '') {
-                $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
-                $tbl .= '<thead><tr><th colspan="2" style="background-color:#0057b7;color:#ffffff;font-size:16px;padding:8px;text-align:left;border:2px solid #0057b7;">Sezione generale del programma</th></tr></thead><tbody>';
-                foreach ($programRows as $label => $data) {
-                    if (trim(strip_tags($data)) === '') {
-                        continue;
-                    }
-                    $tbl .= '<tr>';
-                    $tbl .= '<td width="25%" style="background-color:#d9eefa;border:1px solid #0057b7;padding:6px 8px;vertical-align:top;">' . $label . '</td>';
-                    $tbl .= '<td width="75%" style="background-color:#f7fbfe;border:1px solid #0057b7;padding:6px 8px;vertical-align:top;">' . $data . '</td>';
-                    $tbl .= '</tr>';
+        }
+        if (trim(strip_tags(implode('', $combinedProgramRows))) !== '') {
+            $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
+            $tbl .= '<thead><tr><th colspan="2" style="background-color:#0057b7;color:#ffffff;font-size:16px;padding:8px;text-align:left;border:2px solid #0057b7;">Sezione generale del programma</th></tr></thead><tbody>';
+            foreach ($combinedProgramRows as $label => $data) {
+                if (trim(strip_tags($data)) === '') {
+                    continue;
                 }
-                $tbl .= '</tbody></table><div style="height:4mm"></div>';
-                $pdf->writeHTML($tbl, true, false, true, false, '');
+                $tbl .= '<tr>';
+                $tbl .= '<td width="25%" style="background-color:#d9eefa;border:1px solid #0057b7;padding:6px 8px;vertical-align:top;">' . $label . '</td>';
+                $tbl .= '<td width="75%" style="background-color:#f7fbfe;border:1px solid #0057b7;padding:6px 8px;vertical-align:top;">' . $data . '</td>';
+                $tbl .= '</tr>';
             }
+            $tbl .= '</tbody></table><div style="height:4mm"></div>';
+            $pdf->writeHTML($tbl, true, false, true, false, '');
         }
     } else {
         foreach ($relatedModulesByProgram as $programEntry) {
