@@ -373,7 +373,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
     </div>
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/minimi.js?v=<?php echo $__software_version; ?>"></script>
+    <script type="text/javascript" src="js/minimi.js?v=<?php echo filemtime(__DIR__ . '/js/minimi.js'); ?>"></script>
 </body>
 
 </html>

@@ -590,7 +590,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
     </div>
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/svolti.js?v=<?php echo $__software_version; ?>&a=<?php echo $__anno_scolastico_corrente_id; ?>"></script>
+    <script type="text/javascript" src="js/svolti.js?v=<?php echo filemtime(__DIR__ . '/js/svolti.js'); ?>&a=<?php echo $__anno_scolastico_corrente_id; ?>"></script>
 </body>
 
 </html>
