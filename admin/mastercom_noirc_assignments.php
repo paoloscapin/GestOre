@@ -33,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $optionalMissingTables = mastercomAdminMissingTables(['mastercom_noirc_docenti_assegnazioni']);
+$extraColumns = mastercomNoIrcAssignmentExtraColumns();
 $teacherRows = mastercomNoIrcLoadTeacherRows();
 $assignments = mastercomAdminTableExists('mastercom_noirc_docenti_assegnazioni')
     ? dbGetAll("
@@ -116,7 +117,7 @@ $hours = mastercomNoIrcOrari();
                                 <div class="form-group">
                                     <label for="giorno_settimana">Giorno</label>
                                     <select class="form-control" name="giorno_settimana" id="giorno_settimana" required>
-                                        <?php for ($weekday = 1; $weekday <= 6; $weekday++): ?>
+                                        <?php for ($weekday = 1; $weekday <= 5; $weekday++): ?>
                                             <option value="<?php echo $weekday; ?>" <?php echo intval($editingAssignment['giorno_settimana'] ?? 1) === $weekday ? 'selected' : ''; ?>>
                                                 <?php echo htmlspecialchars($weekdayLabels[$weekday] ?? (string)$weekday); ?>
                                             </option>
@@ -150,6 +151,28 @@ $hours = mastercomNoIrcOrari();
                                     <input type="text" class="form-control" name="aula" id="aula" value="<?php echo htmlspecialchars($editingAssignment['aula'] ?? ''); ?>" placeholder="Aula dedicata">
                                 </div>
 
+                                <?php if ($extraColumns['gruppo_label']): ?>
+                                    <div class="form-group">
+                                        <label for="gruppo_label">Gruppo</label>
+                                        <input type="text" class="form-control" name="gruppo_label" id="gruppo_label" value="<?php echo htmlspecialchars($editingAssignment['gruppo_label'] ?? 'A'); ?>" placeholder="A, B..." maxlength="20">
+                                    </div>
+                                <?php endif; ?>
+
+                                <?php if ($extraColumns['classi_incluse']): ?>
+                                    <div class="form-group">
+                                        <label for="classi_incluse">Classi incluse</label>
+                                        <input type="text" class="form-control" name="classi_incluse" id="classi_incluse" value="<?php echo htmlspecialchars($editingAssignment['classi_incluse'] ?? ''); ?>" placeholder="Es. 1A 1B 1C">
+                                        <p class="help-block">Lascia vuoto per prendere tutti gli studenti dello slot. Se presenti piu gruppi, indica le classi da mandare in questa aula.</p>
+                                    </div>
+                                <?php endif; ?>
+
+                                <?php if ($extraColumns['capienza_massima']): ?>
+                                    <div class="form-group">
+                                        <label for="capienza_massima">Capienza massima</label>
+                                        <input type="number" class="form-control" name="capienza_massima" id="capienza_massima" min="0" value="<?php echo intval($editingAssignment['capienza_massima'] ?? 0); ?>" placeholder="0 = non impostata">
+                                    </div>
+                                <?php endif; ?>
+
                                 <div class="form-group">
                                     <label for="note">Note</label>
                                     <textarea class="form-control" name="note" id="note" rows="3"><?php echo htmlspecialchars($editingAssignment['note'] ?? ''); ?></textarea>
@@ -176,8 +199,17 @@ $hours = mastercomNoIrcOrari();
                                             <th style="text-align: center;">Docente</th>
                                             <th style="text-align: center;">Giorno</th>
                                             <th style="text-align: center;">Ora</th>
+                                            <?php if ($extraColumns['gruppo_label']): ?>
+                                                <th style="text-align: center;">Gruppo</th>
+                                            <?php endif; ?>
                                             <th style="text-align: center;">Periodo</th>
                                             <th style="text-align: center;">Aula</th>
+                                            <?php if ($extraColumns['classi_incluse']): ?>
+                                                <th style="text-align: center;">Classi incluse</th>
+                                            <?php endif; ?>
+                                            <?php if ($extraColumns['capienza_massima']): ?>
+                                                <th style="text-align: center;">Capienza</th>
+                                            <?php endif; ?>
                                             <th>Note</th>
                                             <th style="text-align: center;">Azioni</th>
                                         </tr>
@@ -188,12 +220,21 @@ $hours = mastercomNoIrcOrari();
                                                 <td style="text-align: center;"><?php echo htmlspecialchars(trim((string)(($assignment['cognome'] ?? '') . ' ' . ($assignment['nome'] ?? '')))); ?></td>
                                                 <td style="text-align: center;"><?php echo htmlspecialchars($weekdayLabels[intval($assignment['giorno_settimana'] ?? 0)] ?? ''); ?></td>
                                                 <td style="text-align: center;"><?php echo htmlspecialchars(trim((string)($assignment['ora'] ?? ''))); ?></td>
+                                                <?php if ($extraColumns['gruppo_label']): ?>
+                                                    <td style="text-align: center;"><?php echo htmlspecialchars(trim((string)($assignment['gruppo_label'] ?? 'A'))); ?></td>
+                                                <?php endif; ?>
                                                 <td style="text-align: center;">
                                                     <?php echo htmlspecialchars((new DateTime((string)$assignment['data_inizio']))->format('d/m/Y')); ?>
                                                     -
                                                     <?php echo htmlspecialchars((new DateTime((string)$assignment['data_fine']))->format('d/m/Y')); ?>
                                                 </td>
                                                 <td style="text-align: center;"><?php echo htmlspecialchars(trim((string)($assignment['aula'] ?? ''))); ?></td>
+                                                <?php if ($extraColumns['classi_incluse']): ?>
+                                                    <td style="text-align: center;"><?php echo htmlspecialchars(trim((string)($assignment['classi_incluse'] ?? '')) ?: 'tutte'); ?></td>
+                                                <?php endif; ?>
+                                                <?php if ($extraColumns['capienza_massima']): ?>
+                                                    <td style="text-align: center;"><?php echo intval($assignment['capienza_massima'] ?? 0) > 0 ? intval($assignment['capienza_massima']) : ''; ?></td>
+                                                <?php endif; ?>
                                                 <td><?php echo htmlspecialchars(trim((string)($assignment['note'] ?? ''))); ?></td>
                                                 <td style="text-align: center; white-space: nowrap;">
                                                     <a class="btn btn-xs btn-warning" href="mastercom_noirc_assignments.php?week_of=<?php echo urlencode($weekContext['reference_date']); ?>&edit_id=<?php echo intval($assignment['id']); ?>">Modifica</a>

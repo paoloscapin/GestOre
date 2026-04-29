@@ -53,7 +53,7 @@ function mastercomNoIrcWeekContext(string $referenceDate): array
 
     $days = [];
     $labels = mastercomNoIrcWeekdayLabels();
-    for ($i = 0; $i < 6; $i++) {
+    for ($i = 0; $i < 5; $i++) {
         $day = clone $monday;
         $day->modify('+' . $i . ' days');
         $weekday = intval($day->format('N'));
@@ -164,6 +164,34 @@ function mastercomNoIrcOptionalTables(): array
         'mastercom_noirc_appelli',
         'mastercom_noirc_appello_studenti',
     ];
+}
+
+function mastercomNoIrcAssignmentExtraColumns(): array
+{
+    return [
+        'gruppo_label' => mastercomAdminTableColumnExists('mastercom_noirc_docenti_assegnazioni', 'gruppo_label'),
+        'classi_incluse' => mastercomAdminTableColumnExists('mastercom_noirc_docenti_assegnazioni', 'classi_incluse'),
+        'capienza_massima' => mastercomAdminTableColumnExists('mastercom_noirc_docenti_assegnazioni', 'capienza_massima'),
+    ];
+}
+
+function mastercomNoIrcParseClassFilter(?string $classiIncluse): array
+{
+    $classiIncluse = trim((string)$classiIncluse);
+    if ($classiIncluse === '') {
+        return [];
+    }
+
+    $parts = preg_split('/[\s,;|]+/', $classiIncluse, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    $values = [];
+    foreach ($parts as $part) {
+        $value = mastercomNoIrcNormalizeClassLabel($part);
+        if ($value !== '') {
+            $values[$value] = true;
+        }
+    }
+
+    return array_values(array_keys($values));
 }
 
 function mastercomNoIrcLoadStudentPoolsByClass(): array
@@ -333,10 +361,17 @@ function mastercomNoIrcLoadAssignments(string $weekStart, string $weekEnd): arra
 
     $weekStart = mastercomNoIrcNormalizeDate($weekStart);
     $weekEnd = mastercomNoIrcNormalizeDate($weekEnd);
+    $extraColumns = mastercomNoIrcAssignmentExtraColumns();
+    $groupSql = $extraColumns['gruppo_label'] ? "a.gruppo_label," : "NULL AS gruppo_label,";
+    $classFilterSql = $extraColumns['classi_incluse'] ? "a.classi_incluse," : "NULL AS classi_incluse,";
+    $capacitySql = $extraColumns['capienza_massima'] ? "a.capienza_massima," : "NULL AS capienza_massima,";
 
     $rows = dbGetAll("
         SELECT
             a.*,
+            $groupSql
+            $classFilterSql
+            $capacitySql
             d.cognome,
             d.nome
         FROM mastercom_noirc_docenti_assegnazioni a
@@ -355,13 +390,21 @@ function mastercomNoIrcLoadAssignments(string $weekStart, string $weekEnd): arra
             $map[$key] = [];
         }
         $teacherName = trim((string)(($row['cognome'] ?? '') . ' ' . ($row['nome'] ?? '')));
+        $groupLabel = trim((string)($row['gruppo_label'] ?? ''));
+        if ($groupLabel === '') {
+            $groupLabel = 'A';
+        }
         $map[$key][] = [
             'id' => intval($row['id'] ?? 0),
+            'group_label' => $groupLabel,
             'teacher_name' => $teacherName,
             'aula' => trim((string)($row['aula'] ?? '')),
             'note' => trim((string)($row['note'] ?? '')),
             'data_inizio' => trim((string)($row['data_inizio'] ?? '')),
             'data_fine' => trim((string)($row['data_fine'] ?? '')),
+            'class_filters' => mastercomNoIrcParseClassFilter((string)($row['classi_incluse'] ?? '')),
+            'class_filters_raw' => trim((string)($row['classi_incluse'] ?? '')),
+            'capienza_massima' => intval($row['capienza_massima'] ?? 0),
         ];
     }
 
@@ -398,6 +441,7 @@ function mastercomNoIrcBuildWeekSlots(string $referenceDate): array
                 'excluded_outside_count' => 0,
                 'unknown_choice_count' => 0,
                 'assignments' => $assignmentsMap[$assignmentKey] ?? [],
+                'group_buckets' => [],
             ];
         }
 
@@ -451,6 +495,74 @@ function mastercomNoIrcBuildWeekSlots(string $referenceDate): array
             $slot['students_by_class'][$classLabel] = $students;
         }
         ksort($slot['students_by_class']);
+
+        $groupBuckets = [];
+        foreach ($slot['assignments'] as $assignment) {
+            $assignmentId = intval($assignment['id'] ?? 0);
+            $bucketKey = $assignmentId > 0 ? ('assignment:' . $assignmentId) : ('group:' . ($assignment['group_label'] ?? 'A'));
+            $groupBuckets[$bucketKey] = [
+                'type' => 'assignment',
+                'group_label' => trim((string)($assignment['group_label'] ?? 'A')),
+                'teacher_name' => trim((string)($assignment['teacher_name'] ?? '')),
+                'aula' => trim((string)($assignment['aula'] ?? '')),
+                'note' => trim((string)($assignment['note'] ?? '')),
+                'class_filters' => array_values($assignment['class_filters'] ?? []),
+                'class_filters_raw' => trim((string)($assignment['class_filters_raw'] ?? '')),
+                'capienza_massima' => intval($assignment['capienza_massima'] ?? 0),
+                'students' => [],
+            ];
+        }
+
+        foreach ($slot['students_by_class'] as $classLabel => $students) {
+            $matchedBucketKey = null;
+            foreach ($slot['assignments'] as $assignment) {
+                $assignmentId = intval($assignment['id'] ?? 0);
+                $bucketKey = $assignmentId > 0 ? ('assignment:' . $assignmentId) : ('group:' . ($assignment['group_label'] ?? 'A'));
+                $classFilters = array_values($assignment['class_filters'] ?? []);
+                if (!empty($classFilters) && in_array($classLabel, $classFilters, true)) {
+                    $matchedBucketKey = $bucketKey;
+                    break;
+                }
+            }
+
+            if ($matchedBucketKey === null && count($slot['assignments']) === 1) {
+                $onlyAssignment = $slot['assignments'][0];
+                $assignmentId = intval($onlyAssignment['id'] ?? 0);
+                $matchedBucketKey = $assignmentId > 0 ? ('assignment:' . $assignmentId) : ('group:' . ($onlyAssignment['group_label'] ?? 'A'));
+            }
+
+            if ($matchedBucketKey === null) {
+                if (!isset($groupBuckets['unassigned'])) {
+                    $groupBuckets['unassigned'] = [
+                        'type' => 'unassigned',
+                        'group_label' => 'Da distribuire',
+                        'teacher_name' => '',
+                        'aula' => '',
+                        'note' => '',
+                        'class_filters' => [],
+                        'class_filters_raw' => '',
+                        'capienza_massima' => 0,
+                        'students' => [],
+                    ];
+                }
+                $matchedBucketKey = 'unassigned';
+            }
+
+            foreach ($students as $student) {
+                $groupBuckets[$matchedBucketKey]['students'][] = $student;
+            }
+        }
+
+        foreach ($groupBuckets as &$bucket) {
+            usort($bucket['students'], function ($left, $right) {
+                $leftKey = ($left['classe'] ?? '') . '|' . ($left['cognome'] ?? '') . '|' . ($left['nome'] ?? '');
+                $rightKey = ($right['classe'] ?? '') . '|' . ($right['cognome'] ?? '') . '|' . ($right['nome'] ?? '');
+                return strnatcasecmp($leftKey, $rightKey);
+            });
+        }
+        unset($bucket);
+
+        $slot['group_buckets'] = array_values($groupBuckets);
     }
     unset($slot);
 
@@ -499,6 +611,9 @@ function mastercomNoIrcValidateAssignmentPayload(array $payload): array
     $endDate = mastercomNoIrcNormalizeDate((string)($payload['data_fine'] ?? ''));
     $aula = trim((string)($payload['aula'] ?? ''));
     $note = trim((string)($payload['note'] ?? ''));
+    $groupLabel = strtoupper(trim((string)($payload['gruppo_label'] ?? 'A')));
+    $classiIncluse = trim((string)($payload['classi_incluse'] ?? ''));
+    $capienzaMassima = max(0, intval($payload['capienza_massima'] ?? 0));
 
     if ($teacherId <= 0) {
         return ['ok' => false, 'error' => 'Seleziona un docente'];
@@ -512,6 +627,9 @@ function mastercomNoIrcValidateAssignmentPayload(array $payload): array
     if ($endDate < $startDate) {
         return ['ok' => false, 'error' => 'La data fine non puo essere precedente alla data inizio'];
     }
+    if ($groupLabel === '') {
+        $groupLabel = 'A';
+    }
 
     return [
         'ok' => true,
@@ -523,6 +641,9 @@ function mastercomNoIrcValidateAssignmentPayload(array $payload): array
             'data_fine' => $endDate,
             'aula' => $aula,
             'note' => $note,
+            'gruppo_label' => $groupLabel,
+            'classi_incluse' => $classiIncluse,
+            'capienza_massima' => $capienzaMassima,
         ],
     ];
 }
@@ -540,8 +661,22 @@ function mastercomNoIrcSaveAssignment(array $payload, int $assignmentId = 0): ar
 
     $data = $validation['data'];
     $assignmentId = intval($assignmentId);
+    $extraColumns = mastercomNoIrcAssignmentExtraColumns();
 
     if ($assignmentId > 0) {
+        $extraSet = '';
+        if ($extraColumns['gruppo_label']) {
+            $extraSet .= ",
+                gruppo_label = " . dbQ($data['gruppo_label']);
+        }
+        if ($extraColumns['classi_incluse']) {
+            $extraSet .= ",
+                classi_incluse = " . dbQ($data['classi_incluse']);
+        }
+        if ($extraColumns['capienza_massima']) {
+            $extraSet .= ",
+                capienza_massima = " . ($data['capienza_massima'] > 0 ? dbI($data['capienza_massima']) : 'NULL');
+        }
         dbExec("
             UPDATE mastercom_noirc_docenti_assegnazioni
             SET id_docente = " . dbI($data['id_docente']) . ",
@@ -550,16 +685,41 @@ function mastercomNoIrcSaveAssignment(array $payload, int $assignmentId = 0): ar
                 data_inizio = " . dbQ($data['data_inizio']) . ",
                 data_fine = " . dbQ($data['data_fine']) . ",
                 aula = " . dbQ($data['aula']) . ",
-                note = " . dbQ($data['note']) . ",
+                note = " . dbQ($data['note']) . $extraSet . ",
                 updated_at = NOW()
             WHERE id = " . $assignmentId . "
         ");
     } else {
+        $columns = ['id_docente', 'giorno_settimana', 'ora', 'data_inizio', 'data_fine', 'aula', 'note', 'attivo', 'created_at', 'updated_at'];
+        $values = [
+            dbI($data['id_docente']),
+            dbI($data['giorno_settimana']),
+            dbQ($data['ora']),
+            dbQ($data['data_inizio']),
+            dbQ($data['data_fine']),
+            dbQ($data['aula']),
+            dbQ($data['note']),
+            '1',
+            'NOW()',
+            'NOW()',
+        ];
+        if ($extraColumns['gruppo_label']) {
+            $columns[] = 'gruppo_label';
+            $values[] = dbQ($data['gruppo_label']);
+        }
+        if ($extraColumns['classi_incluse']) {
+            $columns[] = 'classi_incluse';
+            $values[] = dbQ($data['classi_incluse']);
+        }
+        if ($extraColumns['capienza_massima']) {
+            $columns[] = 'capienza_massima';
+            $values[] = $data['capienza_massima'] > 0 ? dbI($data['capienza_massima']) : 'NULL';
+        }
         dbExec("
             INSERT INTO mastercom_noirc_docenti_assegnazioni
-                (id_docente, giorno_settimana, ora, data_inizio, data_fine, aula, note, attivo, created_at, updated_at)
+                (" . implode(', ', $columns) . ")
             VALUES
-                (" . dbI($data['id_docente']) . ", " . dbI($data['giorno_settimana']) . ", " . dbQ($data['ora']) . ", " . dbQ($data['data_inizio']) . ", " . dbQ($data['data_fine']) . ", " . dbQ($data['aula']) . ", " . dbQ($data['note']) . ", 1, NOW(), NOW())
+                (" . implode(', ', $values) . ")
         ");
         $assignmentId = intval(dblastId());
     }
