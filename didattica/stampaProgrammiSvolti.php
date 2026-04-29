@@ -61,6 +61,58 @@ function getModuliProgrammaSvolto(int $programId): array
     return $modules ?: [];
 }
 
+function userCanViewProgram(array $program): bool
+{
+    global $__docente_id;
+
+    if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+        return true;
+    }
+
+    if (!impersonaRuolo('docente') || intval($__docente_id ?? 0) <= 0) {
+        return false;
+    }
+
+    $programDocenteId = intval($program['doc_id'] ?? $program['svolti_id_docente'] ?? 0);
+    if ($programDocenteId > 0 && $programDocenteId === intval($__docente_id)) {
+        return true;
+    }
+
+    $coord = dbGetFirst("
+        SELECT id
+        FROM coordinatori
+        WHERE id_docente = " . intval($__docente_id) . "
+          AND id_classe = " . intval($program['classe_id'] ?? $program['svolti_id_classe'] ?? 0) . "
+          AND id_anno_scolastico = " . intval($program['anno_scolastico_id'] ?? 0) . "
+        LIMIT 1
+    ");
+
+    return $coord != null;
+}
+
+function getProgrammiSvoltiCorrelati(array $program): array
+{
+    $query = "
+        SELECT programmi_svolti.id
+        FROM programmi_svolti
+        WHERE programmi_svolti.id_classe = " . intval($program['classe_id'] ?? $program['svolti_id_classe'] ?? 0) . "
+          AND programmi_svolti.id_materia = " . intval($program['materia_id'] ?? $program['svolti_id_materia'] ?? 0) . "
+          AND programmi_svolti.id_anno_scolastico = " . intval($program['anno_scolastico_id'] ?? 0) . "
+        ORDER BY programmi_svolti.id_docente ASC, programmi_svolti.id ASC
+    ";
+
+    $rows = dbGetAll($query) ?: [];
+    $programs = [];
+    foreach ($rows as $row) {
+        $singleProgram = getProgrammaSvoltoById(intval($row['id'] ?? 0));
+        if ($singleProgram != null) {
+            $programs[] = $singleProgram;
+        }
+    }
+
+    return $programs;
+}
+
 function userCanExportClasseDocx(int $classId, int $annoScolasticoId): bool
 {
     global $__docente_id;
@@ -88,10 +140,30 @@ if ($programId > 0 && $program == null) {
     exit;
 }
 
+$relatedPrograms = $programId > 0 ? getProgrammiSvoltiCorrelati($program) : [];
+if ($programId > 0 && empty($relatedPrograms) && $program != null) {
+    $relatedPrograms = [$program];
+}
+
+if ($programId > 0 && $program != null && !userCanViewProgram($program)) {
+    http_response_code(403);
+    echo 'Non sei autorizzato a visualizzare questo programma';
+    exit;
+}
+
 $modules = $programId > 0 ? getModuliProgrammaSvolto($programId) : [];
 
 $base64img = 'data:image/png;base64,' . base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'"));
 $is_quinta = intval($program['classe_anno'] ?? 0) === 5;
+$docentiLabelsProgramma = getDocentiProgrammaLabels($relatedPrograms);
+$relatedModulesByProgram = [];
+foreach ($relatedPrograms as $singleProgram) {
+    $relatedModulesByProgram[] = [
+        'program' => $singleProgram,
+        'docente_label' => getProgramDocenteLabel($singleProgram),
+        'modules' => getModuliProgrammaSvolto(intval($singleProgram['id'] ?? 0)),
+    ];
+}
 
 function rowField(array $row, string $upper, string $lower, $default = '')
 {
@@ -303,6 +375,19 @@ function getEmptyQuintaSections(): array
 function getProgramDocenteLabel(array $program): string
 {
     return trim((string)$program['doc_cognome'] . ' ' . (string)$program['doc_nome']);
+}
+
+function getDocentiProgrammaLabels(array $programs): array
+{
+    $docenti = [];
+    foreach ($programs as $singleProgram) {
+        $docenteLabel = getProgramDocenteLabel($singleProgram);
+        if ($docenteLabel !== '') {
+            $docenti[] = $docenteLabel;
+        }
+    }
+
+    return array_values(array_unique($docenti));
 }
 
 function wrapSectionForDocente(string $text, string $docenteLabel): string
@@ -705,7 +790,7 @@ function getWordTemplatePath()
     return false;
 }
 
-function exportQuintaDocx(array $program, array $sections): void
+function exportQuintaDocx(array $program, array $sections, array $docentiLabels = []): void
 {
     $annoScolasticoLabel = getAnnoScolasticoLabel();
     $templatePath = getWordTemplatePath();
@@ -746,7 +831,7 @@ function exportQuintaDocx(array $program, array $sections): void
     $intestazioneLines = buildWordProgramHeader([
         'Classe ' . $program['classe_nome'] . ($annoScolasticoLabel !== '' ? ' a.s. ' . $annoScolasticoLabel : ''),
         'Materia ' . $program['materia_nome'],
-        'Docente ' . trim($program['doc_cognome'] . ' ' . $program['doc_nome']),
+        (count($docentiLabels) > 1 ? 'Docenti ' : 'Docente ') . implode(' / ', !empty($docentiLabels) ? $docentiLabels : [trim($program['doc_cognome'] . ' ' . $program['doc_nome'])]),
     ]);
     $zip->addFromString('word/document.xml', fillWordTemplateXml($xml, $sections, $intestazioneLines));
     $zip->close();
@@ -878,19 +963,20 @@ function exportQuintaClasseDocx(int $classId, int $annoScolasticoId): void
 }
 
 if ($format === 'docx') {
-    if (impersonaRuolo('docente')) {
-        http_response_code(403);
-        echo 'Il docente puo scaricare solo il PDF del proprio programma svolto';
-        exit;
-    }
-
     if (!$is_quinta) {
         http_response_code(400);
         echo 'L\'export Word e disponibile solo per le classi quinte';
         exit;
     }
 
-    exportQuintaDocx($program, buildQuintaSections($modules));
+    $sections = getEmptyQuintaSections();
+    $docentiLabels = getDocentiProgrammaLabels($relatedPrograms);
+    foreach ($relatedPrograms as $singleProgram) {
+        $singleSections = buildQuintaSections(getModuliProgrammaSvolto(intval($singleProgram['id'] ?? 0)));
+        mergeQuintaSections($sections, $singleSections, count($relatedPrograms) > 1 ? getProgramDocenteLabel($singleProgram) : '');
+    }
+
+    exportQuintaDocx($program, $sections, $docentiLabels);
 }
 
 if ($format === 'docx_classe') {
@@ -1052,51 +1138,77 @@ ob_start();
         <div class="info">
             <h1><?php echo htmlspecialchars($titolo); ?></h1>
             <p>Classe <?= htmlspecialchars($program['classe_nome']) ?> | Indirizzo <?= htmlspecialchars($program['indirizzo_nome']) ?><br>
-                Materia <?= htmlspecialchars($program['materia_nome']) ?> | Docente <?= htmlspecialchars($program['doc_cognome'] . ' ' . $program['doc_nome']) ?> |
+                Materia <?= htmlspecialchars($program['materia_nome']) ?> | <?= count($docentiLabelsProgramma) > 1 ? 'Docenti' : 'Docente' ?> <?= htmlspecialchars(implode(' / ', !empty($docentiLabelsProgramma) ? $docentiLabelsProgramma : [trim($program['doc_cognome'] . ' ' . $program['doc_nome'])])) ?> |
                 Anno scolastico <?= $__anno_scolastico_corrente_anno ?></p>
         </div>
     </div>
 
     <?php if ($is_quinta): ?>
-        <?php foreach ($modules as $m): ?>
-            <?php $rows = buildQuintaModuleRows($m); ?>
-            <div class="module-card">
-                <table class="module">
-                    <thead>
-                        <tr>
-                            <th colspan="2">Modulo <?= (int) rowField($m, 'ORDINE', 'ordine', 0) ?>: <?= htmlspecialchars((string)rowField($m, 'NOME', 'nome', '')) ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($rows as $label => $value): ?>
-                            <?php if (trim(strip_tags($value)) !== ''): ?>
-                                <tr>
-                                    <td class="label-cell"><?= $label ?></td>
-                                    <td class="value-cell"><?= $value ?></td>
-                                </tr>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+        <?php foreach ($relatedModulesByProgram as $programEntry): ?>
+            <?php if (count($relatedModulesByProgram) > 1): ?>
+                <div class="module-card">
+                    <table class="module">
+                        <thead>
+                            <tr>
+                                <th colspan="2">Docente <?= htmlspecialchars($programEntry['docente_label']) ?></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            <?php endif; ?>
+            <?php foreach ($programEntry['modules'] as $m): ?>
+                <?php $rows = buildQuintaModuleRows($m); ?>
+                <div class="module-card">
+                    <table class="module">
+                        <thead>
+                            <tr>
+                                <th colspan="2">Modulo <?= (int) rowField($m, 'ORDINE', 'ordine', 0) ?>: <?= htmlspecialchars((string)rowField($m, 'NOME', 'nome', '')) ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($rows as $label => $value): ?>
+                                <?php if (trim(strip_tags($value)) !== ''): ?>
+                                    <tr>
+                                        <td class="label-cell"><?= $label ?></td>
+                                        <td class="value-cell"><?= $value ?></td>
+                                    </tr>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endforeach; ?>
         <?php endforeach; ?>
     <?php else: ?>
-        <?php foreach ($modules as $m): ?>
-            <div class="module-card">
-                <table class="module">
-                    <thead>
-                        <tr>
-                            <th colspan="2">Modulo <?= (int) rowField($m, 'ORDINE', 'ordine', 0) ?>: <?= htmlspecialchars((string)rowField($m, 'NOME', 'nome', '')) ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="label-cell">Conoscenze degli argomenti svolti</td>
-                            <td class="value-cell"><?= buildTwoLevelListFromText((string)rowField($m, 'CONTENUTO', 'contenuto', '')) ?></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <?php foreach ($relatedModulesByProgram as $programEntry): ?>
+            <?php if (count($relatedModulesByProgram) > 1): ?>
+                <div class="module-card">
+                    <table class="module">
+                        <thead>
+                            <tr>
+                                <th colspan="2">Docente <?= htmlspecialchars($programEntry['docente_label']) ?></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            <?php endif; ?>
+            <?php foreach ($programEntry['modules'] as $m): ?>
+                <div class="module-card">
+                    <table class="module">
+                        <thead>
+                            <tr>
+                                <th colspan="2">Modulo <?= (int) rowField($m, 'ORDINE', 'ordine', 0) ?>: <?= htmlspecialchars((string)rowField($m, 'NOME', 'nome', '')) ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="label-cell">Conoscenze degli argomenti svolti</td>
+                                <td class="value-cell"><?= buildTwoLevelListFromText((string)rowField($m, 'CONTENUTO', 'contenuto', '')) ?></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endforeach; ?>
         <?php endforeach; ?>
     <?php endif; ?>
 </body>
@@ -1152,38 +1264,48 @@ if ($doPrint) {
   Classe ' . htmlspecialchars($program['classe_nome']) . ' |
   Indirizzo ' . htmlspecialchars($program['indirizzo_nome']) . '<br>
   Materia ' . htmlspecialchars($program['materia_nome']) . ' |
-  Docente ' . htmlspecialchars($program['doc_cognome'] . ' ' . $program['doc_nome']) . ' |
+  ' . (count($docentiLabelsProgramma) > 1 ? 'Docenti ' : 'Docente ') . htmlspecialchars(implode(' / ', !empty($docentiLabelsProgramma) ? $docentiLabelsProgramma : [trim($program['doc_cognome'] . ' ' . $program['doc_nome'])])) . ' |
   Anno scolastico ' . $__anno_scolastico_corrente_anno . '</p><br>';
 
     $pdf->writeHTML($htmlIntro, true, false, true, false, '');
 
     if ($is_quinta) {
-        foreach ($modules as $m) {
-            $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
-            $tbl .= '<thead><tr><th colspan="2" style="background-color:#0057b7;color:#ffffff;font-size:16px;padding:8px;text-align:left;border:2px solid #0057b7;">Modulo ' . ((int)rowField($m, 'ORDINE', 'ordine', 0)) . ': ' . htmlspecialchars((string)rowField($m, 'NOME', 'nome', '')) . '</th></tr></thead><tbody>';
-
-            foreach (buildQuintaModuleRows($m) as $label => $data) {
-                if (trim(strip_tags($data)) === '') {
-                    continue;
-                }
-                $tbl .= '<tr>';
-                $tbl .= '<td width="25%" style="background-color:#d9eefa;border:1px solid #0057b7;padding:6px 8px;vertical-align:top;">' . $label . '</td>';
-                $tbl .= '<td width="75%" style="background-color:#f7fbfe;border:1px solid #0057b7;padding:6px 8px;vertical-align:top;">' . $data . '</td>';
-                $tbl .= '</tr>';
+        foreach ($relatedModulesByProgram as $programEntry) {
+            if (count($relatedModulesByProgram) > 1) {
+                $pdf->writeHTML('<p style="font-weight:bold;text-align:center;">Docente ' . htmlspecialchars($programEntry['docente_label']) . '</p>', true, false, true, false, '');
             }
+            foreach ($programEntry['modules'] as $m) {
+                $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
+                $tbl .= '<thead><tr><th colspan="2" style="background-color:#0057b7;color:#ffffff;font-size:16px;padding:8px;text-align:left;border:2px solid #0057b7;">Modulo ' . ((int)rowField($m, 'ORDINE', 'ordine', 0)) . ': ' . htmlspecialchars((string)rowField($m, 'NOME', 'nome', '')) . '</th></tr></thead><tbody>';
 
-            $tbl .= '</tbody></table><div style="height:4mm"></div>';
-            $pdf->writeHTML($tbl, true, false, true, false, '');
+                foreach (buildQuintaModuleRows($m) as $label => $data) {
+                    if (trim(strip_tags($data)) === '') {
+                        continue;
+                    }
+                    $tbl .= '<tr>';
+                    $tbl .= '<td width="25%" style="background-color:#d9eefa;border:1px solid #0057b7;padding:6px 8px;vertical-align:top;">' . $label . '</td>';
+                    $tbl .= '<td width="75%" style="background-color:#f7fbfe;border:1px solid #0057b7;padding:6px 8px;vertical-align:top;">' . $data . '</td>';
+                    $tbl .= '</tr>';
+                }
+
+                $tbl .= '</tbody></table><div style="height:4mm"></div>';
+                $pdf->writeHTML($tbl, true, false, true, false, '');
+            }
         }
     } else {
-        foreach ($modules as $m) {
-            $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
-            $tbl .= '<thead><tr><th colspan="2" style="background-color:#0057b7;color:#ffffff;font-size:16px;padding:8px;text-align:left;border:2px solid #0057b7;">Modulo ' . ((int)rowField($m, 'ORDINE', 'ordine', 0)) . ': ' . htmlspecialchars((string)rowField($m, 'NOME', 'nome', '')) . '</th></tr></thead><tbody>';
-            $tbl .= '<tr>';
-            $tbl .= '<td width="25%" valign="middle" style="background-color:#d9eefa;border:1px solid #0057b7;padding:6px 8px;vertical-align:middle;text-align:center;">Conoscenze degli argomenti svolti</td>';
-            $tbl .= '<td width="75%" style="background-color:#f7fbfe;border:1px solid #0057b7;padding:6px 8px;vertical-align:middle;">' . buildTwoLevelListFromText((string)rowField($m, 'CONTENUTO', 'contenuto', '')) . '</td>';
-            $tbl .= '</tr></tbody></table><div style="height:4mm"></div>';
-            $pdf->writeHTML($tbl, true, false, true, false, '');
+        foreach ($relatedModulesByProgram as $programEntry) {
+            if (count($relatedModulesByProgram) > 1) {
+                $pdf->writeHTML('<p style="font-weight:bold;text-align:center;">Docente ' . htmlspecialchars($programEntry['docente_label']) . '</p>', true, false, true, false, '');
+            }
+            foreach ($programEntry['modules'] as $m) {
+                $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
+                $tbl .= '<thead><tr><th colspan="2" style="background-color:#0057b7;color:#ffffff;font-size:16px;padding:8px;text-align:left;border:2px solid #0057b7;">Modulo ' . ((int)rowField($m, 'ORDINE', 'ordine', 0)) . ': ' . htmlspecialchars((string)rowField($m, 'NOME', 'nome', '')) . '</th></tr></thead><tbody>';
+                $tbl .= '<tr>';
+                $tbl .= '<td width="25%" valign="middle" style="background-color:#d9eefa;border:1px solid #0057b7;padding:6px 8px;vertical-align:middle;text-align:center;">Conoscenze degli argomenti svolti</td>';
+                $tbl .= '<td width="75%" style="background-color:#f7fbfe;border:1px solid #0057b7;padding:6px 8px;vertical-align:middle;">' . buildTwoLevelListFromText((string)rowField($m, 'CONTENUTO', 'contenuto', '')) . '</td>';
+                $tbl .= '</tr></tbody></table><div style="height:4mm"></div>';
+                $pdf->writeHTML($tbl, true, false, true, false, '');
+            }
         }
     }
 

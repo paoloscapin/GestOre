@@ -167,8 +167,13 @@ foreach ($resultArray as $row) {
 			if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) {
 				$data .= '
 			<button onclick="programmiSvoltiPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma svolto"><span class="glyphicon glyphicon-print"></button>
+			' . (($classe_anno === 5 && ($is_programma_proprio || $is_coordinatore_classe)) ? '<button onclick="programmiSvoltiWord(' . $programma_id . ')" class="btn btn-default btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word del programma svolto di quinta"><span class="glyphicon glyphicon-file"></span></button>' : '') . '
 			' . (($classe_anno === 5 && $is_coordinatore_classe) ? '<button onclick="programmiSvoltiWordClasse(' . $classe_id . ',' . $anno_scolastico_id . ')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word unico dei programmi svolti della classe quinta"><span class="glyphicon glyphicon-book"></span></button>' : '') . '
 					';
+				if (!$is_programma_proprio) {
+					$data .= '
+			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'false\',\'true\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Vedi il programma"><span class="glyphicon glyphicon-search"></span></button>';
+				}
 				if ($is_programma_proprio) {
 					if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
 						$data .= '

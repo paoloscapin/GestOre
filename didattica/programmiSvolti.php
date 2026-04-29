@@ -359,6 +359,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                             <input type="hidden" id="hidden_programma_id">
                                             <input type="hidden" id="hidden_duplica">
                                             <input type="hidden" id="hidden_share">
+                                            <input type="hidden" id="hidden_readonly" value="false">
                                             <input type="hidden" id="hidden_programma_classe_anno" value="0">
                                         </form>
 
@@ -373,14 +374,14 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                         <?php
                                                         if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
                                                             echo '
-                                                        <button class="btn btn-xs btn-lima4"
+                                                        <button id="btn-modulo-add" class="btn btn-xs btn-lima4"
                                                             onclick="moduloSvoltiGetDetails(-1)"><span style="font-size:14px"
                                                                 class="glyphicon glyphicon-plus"></span></button>
                                                         ';
                                                         } else if (haRuolo('docente')) {
                                                             if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
                                                                 echo '
-                                                                <button class="btn btn-xs btn-lima4"
+                                                                <button id="btn-modulo-add" class="btn btn-xs btn-lima4"
                                                                 onclick="moduloSvoltiGetDetails(-1)"><span style="font-size:14px"
                                                                 class="glyphicon glyphicon-plus"></span></button>
                                                         ';
@@ -394,14 +395,14 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                         <?php
                                                         if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
                                                             echo '
-                                                        <button class="btn btn-xs btn-lima4"
+                                                        <button id="btn-modulo-import" class="btn btn-xs btn-lima4"
                                                             onclick="moduliSvoltiImport()"><span style="font-size:14px"
                                                                 class="glyphicon glyphicon-cloud-upload"></span></button>
                                                         ';
                                                         } else if (haRuolo('docente')) {
                                                             if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
                                                                 echo '
-                                                                <button class="btn btn-xs btn-lima4"
+                                                                <button id="btn-modulo-import" class="btn btn-xs btn-lima4"
                                                                 onclick="moduliSvoltiImport()"><span style="font-size:14px"
                                                                 class="glyphicon glyphicon-cloud-upload"></span></button>
                                                                 ';
@@ -424,7 +425,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                     if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
                                         echo '
                                         <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                        <button type="button" class="btn btn-primary" onclick="programmiSvoltiSave()">Salva</button>
+                                        <button type="button" id="btn-programma-save" class="btn btn-primary" onclick="programmiSvoltiSave()">Salva</button>
                                 ';
                                     } else {
                                         echo '
@@ -435,7 +436,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                 if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
                                     echo '
                                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                <button type="button" class="btn btn-primary" onclick="programmiSvoltiSave()">Salva</button>
+                                <button type="button" id="btn-programma-save" class="btn btn-primary" onclick="programmiSvoltiSave()">Salva</button>
                                 ';
                                 }
                                 ?>
@@ -559,14 +560,14 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                 if (haRuolo('segreteria-didattica')) {
                                     echo '
                                     <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                    <button type="button" class="btn btn-primary" onclick="moduloSvoltiSave()">Salva</button>';
+                                    <button type="button" id="btn-modulo-save" class="btn btn-primary" onclick="moduloSvoltiSave()">Salva</button>';
                                 } else
                                     if (haRuolo('docente')) {
                                     if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) {
                                         if (getSettingsValue('programmiSvolti', 'docente_puo_modificare', false)) {
                                             echo '
                                                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                                <button type="button" class="btn btn-primary" onclick="moduloSvoltiSave()">Salva</button>';
+                                                <button type="button" id="btn-modulo-save" class="btn btn-primary" onclick="moduloSvoltiSave()">Salva</button>';
                                         } else {
                                             echo '
                                                 <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>';
