@@ -50,6 +50,10 @@
                 }
                 ?>
 
+                <li><a class="btn btn-yellow4" href="../common/biglietti_prenotazioni.php">
+                        <span class="glyphicon glyphicon-barcode"></span> Biglietti
+                    </a></li>
+
                 <?php
                 if (getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false)) : ?>
                     <li><a class="btn btn-lightblue4" href="../studente/carenze_mobile.php">
