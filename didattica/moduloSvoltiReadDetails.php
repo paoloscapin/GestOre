@@ -35,9 +35,6 @@ if(isset($_POST['modulo_id']) && isset($_POST['modulo_id']) != "") {
     $modulo['modulo_competenze_raggiunte'] = '';
     $modulo['modulo_contenuti_trattati'] = '';
     $modulo['modulo_abilita_quinta'] = '';
-    $modulo['modulo_metodologie'] = '';
-    $modulo['modulo_criteri_valutazione'] = '';
-    $modulo['modulo_testi_materiali'] = '';
 
     $contenuto = (string)($modulo['modulo_contenuto'] ?? '');
     $decoded = json_decode($contenuto, true);
@@ -46,9 +43,6 @@ if(isset($_POST['modulo_id']) && isset($_POST['modulo_id']) != "") {
         $modulo['modulo_competenze_raggiunte'] = (string)($decoded['competenze_raggiunte'] ?? '');
         $modulo['modulo_contenuti_trattati'] = (string)($decoded['contenuti_trattati'] ?? '');
         $modulo['modulo_abilita_quinta'] = (string)($decoded['abilita'] ?? '');
-        $modulo['modulo_metodologie'] = (string)($decoded['metodologie'] ?? '');
-        $modulo['modulo_criteri_valutazione'] = (string)($decoded['criteri_valutazione'] ?? '');
-        $modulo['modulo_testi_materiali'] = (string)($decoded['testi_materiali'] ?? '');
     }
 
     $struct_json = json_encode($modulo);

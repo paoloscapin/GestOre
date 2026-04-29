@@ -9,8 +9,23 @@
 
 require_once '../common/checkSession.php';
 
+function programmiSvoltiHasProgramField(string $columnName): bool
+{
+    static $cache = [];
+    if (!array_key_exists($columnName, $cache)) {
+        $row = dbGetFirst("SHOW COLUMNS FROM programmi_svolti LIKE '" . dbEscape($columnName) . "'");
+        $cache[$columnName] = ($row != null);
+    }
+
+    return $cache[$columnName];
+}
+
 if(isset($_POST['programma_id']) && isset($_POST['programma_id']) != "") {
 	$programma_id = $_POST['programma_id'];
+
+    $metodologieSql = programmiSvoltiHasProgramField('metodologie') ? "programmi_svolti.metodologie AS programma_metodologie," : "'' AS programma_metodologie,";
+    $criteriSql = programmiSvoltiHasProgramField('criteri_valutazione') ? "programmi_svolti.criteri_valutazione AS programma_criteri_valutazione," : "'' AS programma_criteri_valutazione,";
+    $testiSql = programmiSvoltiHasProgramField('testi_materiali') ? "programmi_svolti.testi_materiali AS programma_testi_materiali," : "'' AS programma_testi_materiali,";
 
 $query = "SELECT
             programmi_svolti.id as programma_id,
@@ -19,6 +34,9 @@ $query = "SELECT
             programmi_svolti.id_materia as programma_idmateria,
             programmi_svolti.id_utente as programma_idutente,
             programmi_svolti.updated as programma_updated,
+            $metodologieSql
+            $criteriSql
+            $testiSql
             classi.anno as programma_classe_anno,
     		utente.id,
 			utente.nome AS utente_nome,

@@ -23,9 +23,6 @@ $contenuto = trim((string)($_POST['contenuto'] ?? ''));
 $competenze_raggiunte = trim((string)($_POST['competenze_raggiunte'] ?? ''));
 $contenuti_trattati = trim((string)($_POST['contenuti_trattati'] ?? ''));
 $abilita_quinta = trim((string)($_POST['abilita_quinta'] ?? ''));
-$metodologie = trim((string)($_POST['metodologie'] ?? ''));
-$criteri_valutazione = trim((string)($_POST['criteri_valutazione'] ?? ''));
-$testi_materiali = trim((string)($_POST['testi_materiali'] ?? ''));
 
 if ($id_programma <= 0 || $ordine <= 0 || $titolo === '') {
     exit;
@@ -48,9 +45,6 @@ if ($is_quinta) {
         'competenze_raggiunte' => $competenze_raggiunte,
         'contenuti_trattati' => $contenuti_trattati,
         'abilita' => $abilita_quinta,
-        'metodologie' => $metodologie,
-        'criteri_valutazione' => $criteri_valutazione,
-        'testi_materiali' => $testi_materiali,
     ], JSON_UNESCAPED_UNICODE);
 }
 

@@ -350,6 +350,35 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                     </select></div>
                                             </div>
 
+                                            <div id="quinta_programma_fields_wrap" style="display:none;">
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label" for="metodologie_programma">Metodologie</label>
+                                                    <div class="col-sm-10"><textarea id="metodologie_programma" rows="4"
+                                                            placeholder="metodologie"
+                                                            class="form-control" data-toggle="tooltip" data-placement="top"
+                                                            title="Inserisci le metodologie dell'intero programma"></textarea>
+                                                    </div>
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label" for="criteri_valutazione_programma">Criteri di valutazione</label>
+                                                    <div class="col-sm-10"><textarea id="criteri_valutazione_programma" rows="4"
+                                                            placeholder="criteri di valutazione"
+                                                            class="form-control" data-toggle="tooltip" data-placement="top"
+                                                            title="Inserisci i criteri di valutazione dell'intero programma"></textarea>
+                                                    </div>
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label class="col-sm-2 control-label" for="testi_materiali_programma">Testi e materiali / strumenti</label>
+                                                    <div class="col-sm-10"><textarea id="testi_materiali_programma" rows="4"
+                                                            placeholder="testi e materiali / strumenti adottati"
+                                                            class="form-control" data-toggle="tooltip" data-placement="top"
+                                                            title="Inserisci testi e materiali / strumenti adottati per l'intero programma"></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             <div class="form-group" id="_error-programma-part"><strong>
 
                                                     <div class="col-sm-3 text-right text-danger ">Attenzione</div>
@@ -513,32 +542,6 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                             </div>
                                         </div>
 
-                                        <div class="form-group">
-                                            <label class="col-sm-2 control-label" for="metodologie">Metodologie</label>
-                                            <div class="col-sm-10"><textarea id="metodologie" rows="4"
-                                                    placeholder="metodologie"
-                                                    class="form-control" data-toggle="tooltip" data-placement="top"
-                                                    title="Inserisci le metodologie"></textarea>
-                                            </div>
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label class="col-sm-2 control-label" for="criteri_valutazione">Criteri di valutazione</label>
-                                            <div class="col-sm-10"><textarea id="criteri_valutazione" rows="4"
-                                                    placeholder="criteri di valutazione"
-                                                    class="form-control" data-toggle="tooltip" data-placement="top"
-                                                    title="Inserisci i criteri di valutazione"></textarea>
-                                            </div>
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label class="col-sm-2 control-label" for="testi_materiali">Testi e materiali / strumenti</label>
-                                            <div class="col-sm-10"><textarea id="testi_materiali" rows="4"
-                                                    placeholder="testi e materiali / strumenti adottati"
-                                                    class="form-control" data-toggle="tooltip" data-placement="top"
-                                                    title="Inserisci testi e materiali / strumenti adottati"></textarea>
-                                            </div>
-                                        </div>
                                     </div>
 
                                     <div class="form-group" id="_error-modulo-part"><strong>

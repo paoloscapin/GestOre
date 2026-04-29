@@ -10,6 +10,17 @@
 require_once '../common/checkSession.php';
 ruoloRichiesto('segreteria-didattica', 'docente');
 
+function programmiSvoltiHasProgramField(string $columnName): bool
+{
+	static $cache = [];
+	if (!array_key_exists($columnName, $cache)) {
+		$row = dbGetFirst("SHOW COLUMNS FROM programmi_svolti LIKE '" . dbEscape($columnName) . "'");
+		$cache[$columnName] = ($row != null);
+	}
+
+	return $cache[$columnName];
+}
+
 if (isset($_POST)) {
 
 	$id = $_POST['id'];
@@ -18,17 +29,45 @@ if (isset($_POST)) {
 	$materia_id = $_POST['materia_id'];
 	$duplica = $_POST['duplica'];
 	$share = $_POST['share'];
+	$metodologie_programma = trim((string)($_POST['metodologie_programma'] ?? ''));
+	$criteri_valutazione_programma = trim((string)($_POST['criteri_valutazione_programma'] ?? ''));
+	$testi_materiali_programma = trim((string)($_POST['testi_materiali_programma'] ?? ''));
+	$extraSet = '';
+	$extraColumns = [];
+	$extraValues = [];
+
+	if (programmiSvoltiHasProgramField('metodologie')) {
+		$extraSet .= ", metodologie = '" . dbEscape($metodologie_programma) . "'";
+		$extraColumns[] = 'metodologie';
+		$extraValues[] = "'" . dbEscape($metodologie_programma) . "'";
+	}
+	if (programmiSvoltiHasProgramField('criteri_valutazione')) {
+		$extraSet .= ", criteri_valutazione = '" . dbEscape($criteri_valutazione_programma) . "'";
+		$extraColumns[] = 'criteri_valutazione';
+		$extraValues[] = "'" . dbEscape($criteri_valutazione_programma) . "'";
+	}
+	if (programmiSvoltiHasProgramField('testi_materiali')) {
+		$extraSet .= ", testi_materiali = '" . dbEscape($testi_materiali_programma) . "'";
+		$extraColumns[] = 'testi_materiali';
+		$extraValues[] = "'" . dbEscape($testi_materiali_programma) . "'";
+	}
 	date_default_timezone_set("Europe/Rome");
 	$update = date("Y-m-d H-i-s");
 	$utente_id = $__utente_id;
 	$data = '';
 	if (($duplica == 'false') && ($share == 'false')) {
 		if ($id > 0) {
-			$query = "UPDATE programmi_svolti SET id_classe = '$classe_id', id_docente = '$docente_id', id_materia = '$materia_id', id_utente = '$utente_id', updated = '$update' WHERE id = '$id'";
+			$query = "UPDATE programmi_svolti SET id_classe = '$classe_id', id_docente = '$docente_id', id_materia = '$materia_id', id_utente = '$utente_id', updated = '$update' $extraSet WHERE id = '$id'";
 			dbExec($query);
 			info("aggiornato programma svolto id=$id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_utente=$utente_id updated=$update");
 		} else {
-			$query = "INSERT INTO programmi_svolti(id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated) VALUES('$classe_id', '$docente_id', '$materia_id', '$__anno_scolastico_corrente_id', '$utente_id', '$update')";
+			$insertColumns = "id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated";
+			$insertValues = "'$classe_id', '$docente_id', '$materia_id', '$__anno_scolastico_corrente_id', '$utente_id', '$update'";
+			if (!empty($extraColumns)) {
+				$insertColumns .= ", " . implode(', ', $extraColumns);
+				$insertValues .= ", " . implode(', ', $extraValues);
+			}
+			$query = "INSERT INTO programmi_svolti($insertColumns) VALUES($insertValues)";
 			dbExec($query);
 			$new_id = dblastId();
 			$data = $new_id;
@@ -48,7 +87,13 @@ if (isset($_POST)) {
 		else
 		{
 			// creo il programma vuoto per la nuova classe
-			$query = "INSERT INTO programmi_svolti(id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated) VALUES('$classe_id', '$docente_id', '$materia_id', '$__anno_scolastico_corrente_id', '$utente_id', '$update')";
+			$insertColumns = "id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated";
+			$insertValues = "'$classe_id', '$docente_id', '$materia_id', '$__anno_scolastico_corrente_id', '$utente_id', '$update'";
+			if (!empty($extraColumns)) {
+				$insertColumns .= ", " . implode(', ', $extraColumns);
+				$insertValues .= ", " . implode(', ', $extraValues);
+			}
+			$query = "INSERT INTO programmi_svolti($insertColumns) VALUES($insertValues)";
 			dbExec($query);
 			$new_id = dblastId();
 			info("aggiunto programma svolto id=$new_id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_anno_scolastico=$__anno_scolastico_corrente_id id_utente=$utente_id updated=$update");
@@ -73,7 +118,13 @@ if (isset($_POST)) {
 		else
 		{
 			// creo il programma vuoto per la nuova classe
-			$query = "INSERT INTO programmi_svolti(id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated) VALUES('$classe_id', '$docente_id', '$materia_id', '$__anno_scolastico_corrente_id', '$utente_id', '$update')";
+			$insertColumns = "id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated";
+			$insertValues = "'$classe_id', '$docente_id', '$materia_id', '$__anno_scolastico_corrente_id', '$utente_id', '$update'";
+			if (!empty($extraColumns)) {
+				$insertColumns .= ", " . implode(', ', $extraColumns);
+				$insertValues .= ", " . implode(', ', $extraValues);
+			}
+			$query = "INSERT INTO programmi_svolti($insertColumns) VALUES($insertValues)";
 			dbExec($query);
 			$new_id = dblastId();
 			info("aggiunto programma svolto id=$new_id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_anno_scolastico=$__anno_scolastico_corrente_id id_utente=$utente_id updated=$update");

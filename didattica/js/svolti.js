@@ -32,9 +32,12 @@ function pulisciCampiQuinta() {
     $('#competenze_raggiunte').val('');
     $('#contenuti_trattati').val('');
     $('#abilita_quinta').val('');
-    $('#metodologie').val('');
-    $('#criteri_valutazione').val('');
-    $('#testi_materiali').val('');
+}
+
+function pulisciCampiProgrammaQuinta() {
+    $('#metodologie_programma').val('');
+    $('#criteri_valutazione_programma').val('');
+    $('#testi_materiali_programma').val('');
 }
 
 function aggiornaCampiModuloPerClasse() {
@@ -48,6 +51,13 @@ function aggiornaCampiModuloPerClasse() {
         $contenutoGroup.show();
         $('#quinta_fields_wrap').hide();
     }
+
+    if (quinta) {
+        $('#quinta_programma_fields_wrap').show();
+    } else {
+        $('#quinta_programma_fields_wrap').hide();
+        pulisciCampiProgrammaQuinta();
+    }
 }
 
 function programmaSvoltoReadonly() {
@@ -60,7 +70,7 @@ function applicaReadonlyProgrammaSvolto() {
     $("#btn-modulo-add").toggle(!readonly);
     $("#btn-modulo-import").toggle(!readonly);
     $("#btn-modulo-save").toggle(!readonly);
-    $("#ordine, #titolo, #contenuto, #competenze_raggiunte, #contenuti_trattati, #abilita_quinta, #metodologie, #criteri_valutazione, #testi_materiali").prop('disabled', readonly);
+    $("#ordine, #titolo, #contenuto, #competenze_raggiunte, #contenuti_trattati, #abilita_quinta, #metodologie_programma, #criteri_valutazione_programma, #testi_materiali_programma").prop('disabled', readonly);
     if (readonly) {
         $("#classe, #docente, #materia").prop('disabled', true);
     }
@@ -225,6 +235,9 @@ function programmiSvoltiGetDetails(programma_id, duplica, share, readonly) {
             }
 
             $('#materia').selectpicker('val', programma.programma_idmateria);
+            $('#metodologie_programma').val(programma.programma_metodologie || '');
+            $('#criteri_valutazione_programma').val(programma.programma_criteri_valutazione || '');
+            $('#testi_materiali_programma').val(programma.programma_testi_materiali || '');
 
             if (duplica == 'false') {
                 $('#classe').attr('disabled', true);
@@ -261,6 +274,7 @@ function programmiSvoltiGetDetails(programma_id, duplica, share, readonly) {
         $('#materia').val("0");
         $('#materia').selectpicker('refresh');
         $(".moduli_content").html("");
+        pulisciCampiProgrammaQuinta();
         aggiornaCampiModuloPerClasse();
         applicaReadonlyProgrammaSvolto();
     }
@@ -364,9 +378,6 @@ async function moduloSvoltiGetDetails(modulo_id) {
             $('#competenze_raggiunte').val(programma.modulo_competenze_raggiunte || '');
             $('#contenuti_trattati').val(programma.modulo_contenuti_trattati || '');
             $('#abilita_quinta').val(programma.modulo_abilita_quinta || '');
-            $('#metodologie').val(programma.modulo_metodologie || '');
-            $('#criteri_valutazione').val(programma.modulo_criteri_valutazione || '');
-            $('#testi_materiali').val(programma.modulo_testi_materiali || '');
         } else {
             pulisciCampiQuinta();
         }
@@ -464,7 +475,10 @@ function programmiSvoltiSave() {
         classe_id: $("#classe").val(),
         materia_id: $("#materia").val(),
         duplica: $("#hidden_duplica").val(),
-        share: $("#hidden_share").val()
+        share: $("#hidden_share").val(),
+        metodologie_programma: $("#metodologie_programma").val(),
+        criteri_valutazione_programma: $("#criteri_valutazione_programma").val(),
+        testi_materiali_programma: $("#testi_materiali_programma").val()
     }, function (data, status) {
         if (String(data).indexOf('Programma') !== -1 && String(data).indexOf('esistente') !== -1) {
             if ($("#hidden_share").val() == 'true') {
@@ -517,9 +531,6 @@ function moduloSvoltiSave() {
         competenze_raggiunte: $("#competenze_raggiunte").val(),
         contenuti_trattati: $("#contenuti_trattati").val(),
         abilita_quinta: $("#abilita_quinta").val(),
-        metodologie: $("#metodologie").val(),
-        criteri_valutazione: $("#criteri_valutazione").val(),
-        testi_materiali: $("#testi_materiali").val()
     }, function (data, status) {
         $("#modulo_modal").modal("hide");
         moduliSvoltiReadRecords($("#hidden_programma_id").val());

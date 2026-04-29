@@ -114,9 +114,6 @@ foreach ($resultArray as $row) {
             'competenze_raggiunte' => (string)fieldValue($row, 'COMPETENZE', 'competenze', ''),
             'contenuti_trattati' => (string)fieldValue($row, 'CONOSCENZE', 'conoscenze', ''),
             'abilita' => (string)fieldValue($row, 'ABILITA', 'abilita', ''),
-            'metodologie' => '',
-            'criteri_valutazione' => '',
-            'testi_materiali' => '',
         ], JSON_UNESCAPED_UNICODE);
     } else {
         $contenuto = (string)fieldValue($row, 'CONOSCENZE', 'conoscenze', '');
