@@ -518,7 +518,7 @@ for ($h = 7; $h <= 18; $h++) {
         window.__FERIE_FINESTRE = <?php echo json_encode($finestreMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     </script>
 
-    <script type="text/javascript" src="js/scriptPermessiAta.js?v=<?php echo time(); ?>"></script>
+    <script type="text/javascript" src="js/scriptPermessiAta.js?v=<?php echo filemtime(__DIR__ . '/js/scriptPermessiAta.js'); ?>"></script>
 </body>
 
 </html>

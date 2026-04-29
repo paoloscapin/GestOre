@@ -514,9 +514,9 @@ $bootstrapData = [
         }
 
         .day-cell.historical-rejected {
-            background: #ffcdd2;
-            border-color: #d32f2f;
-            color: #7f1d1d;
+            background: #fff3b0;
+            border-color: #d4b300;
+            color: #5a4a00;
             cursor: not-allowed;
         }
 
@@ -528,9 +528,9 @@ $bootstrapData = [
         }
 
         .day-cell.historical-draft {
-            background: #dbeafe;
-            border-color: #60a5fa;
-            color: #1e3a8a;
+            background: #fff3b0;
+            border-color: #d4b300;
+            color: #5a4a00;
             cursor: not-allowed;
         }
 
@@ -661,7 +661,7 @@ $bootstrapData = [
     <script>
         window.__FERIE_BOOTSTRAP = <?php echo json_encode($bootstrapData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     </script>
-    <script type="text/javascript" src="js/scriptFerieRichiestaAta.js?v=<?php echo time(); ?>"></script>
+    <script type="text/javascript" src="js/scriptFerieRichiestaAta.js?v=<?php echo filemtime(__DIR__ . '/js/scriptFerieRichiestaAta.js'); ?>"></script>
 </body>
 
 </html>
