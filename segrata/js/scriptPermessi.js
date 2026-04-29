@@ -715,22 +715,7 @@ function renderPermessoFerieModal(r) {
 
       const showCounters = inWindow && !isWeekend && !isExcludedSpecial;
 
-      let loadClass = "";
-      if (showCounters) {
-        const percProfilo = totals.profilo > 0 ? (profCount / totals.profilo) * 100 : 0;
-        const percUfficio = totals.ufficio > 0 ? (offCount / totals.ufficio) * 100 : 0;
-        const perc = Math.max(percProfilo, percUfficio);
-
-        if (perc >= 100) {
-          loadClass = " load-100";
-        } else if (perc >= 75) {
-          loadClass = " load-75";
-        } else if (perc >= 50) {
-          loadClass = " load-50";
-        }
-      }
-
-      let cls = "ferie-day-cell" + loadClass;
+      let cls = "ferie-day-cell";
       if (!inWindow || isWeekend || isExcludedSpecial) {
         cls += " locked";
       }

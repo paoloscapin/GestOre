@@ -590,7 +590,7 @@ $ordinarieDateToDefault = date('Y-m-t');
             </div>
         </div>
     </div>
-    <script src="js/ferieDashboard.js?v=<?php echo time(); ?>"></script>
+    <script src="js/ferieDashboard.js?v=<?php echo filemtime(__DIR__ . '/js/ferieDashboard.js'); ?>"></script>
 </body>
 
 </html>

@@ -592,7 +592,7 @@ if (!is_array($profili)) $profili = [];
                                     ?> || [];
     </script>
 
-    <script type="text/javascript" src="js/scriptPersonaleAta.js"></script>
+    <script type="text/javascript" src="js/scriptPersonaleAta.js?v=<?php echo filemtime(__DIR__ . '/js/scriptPersonaleAta.js'); ?>"></script>
 </body>
 
 </html>

@@ -1110,7 +1110,7 @@ if (!is_array($ufficiAta)) {
         </div>
     </div>
 
-    <script type="text/javascript" src="js/scriptPermessi.js?v=<?php echo time(); ?>"></script>
+    <script type="text/javascript" src="js/scriptPermessi.js?v=<?php echo filemtime(__DIR__ . '/js/scriptPermessi.js'); ?>"></script>
 </body>
 
 </html>

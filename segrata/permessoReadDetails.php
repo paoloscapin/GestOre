@@ -66,6 +66,20 @@ function isoInRange($iso, $from, $to)
   return ($iso >= $from && $iso <= $to);
 }
 
+function statoEffettivoFerieDettaglio($requestStatus, array $dayDetails)
+{
+  $requestStatus = strtoupper(trim((string)$requestStatus));
+  $dayStatus = strtoupper(trim((string)($dayDetails['stato_giorno'] ?? 'RICHIESTO')));
+  if ($dayStatus === '') $dayStatus = 'RICHIESTO';
+
+  if ($requestStatus === 'BOZZA') return 'BOZZA';
+  if ($requestStatus === 'ANNULLATO') return 'ANNULLATO';
+  if ($requestStatus === 'APPROVATO' && $dayStatus === 'RICHIESTO') return 'APPROVATO';
+  if ($requestStatus === 'RESPINTO' && $dayStatus === 'RICHIESTO') return 'RESPINTO';
+
+  return $dayStatus;
+}
+
 /**
  * Richiesta principale
  */
@@ -109,9 +123,15 @@ LEFT JOIN utente ug
   ON ug.id = r.gestito_da_utente_id
 LEFT JOIN utente ur
   ON ur.id = r.registrato_da_utente_id
+LEFT JOIN (
+  SELECT username, MAX(id) AS max_id
+  FROM personale_ata_assegnazioni
+  WHERE attiva = 1
+  GROUP BY username
+) pa_pick
+  ON pa_pick.username = p.username
 LEFT JOIN personale_ata_assegnazioni pa
-  ON pa.username = p.username
- AND pa.attiva = 1
+  ON pa.id = pa_pick.max_id
 LEFT JOIN personale_ata_uffici u
   ON u.id = pa.id_ufficio
 LEFT JOIN permesso_ata_ferie_finestra ff
@@ -184,9 +204,13 @@ if (intval($row['id_profilo'] ?? 0) > 0) {
 if (intval($row['id_ufficio'] ?? 0) > 0) {
   $tmp = dbGetFirst("
     SELECT COUNT(*) AS n
-    FROM personale_ata_assegnazioni
-    WHERE id_ufficio = " . intval($row['id_ufficio']) . "
-      AND attiva = 1
+    FROM (
+      SELECT username
+      FROM personale_ata_assegnazioni
+      WHERE id_ufficio = " . intval($row['id_ufficio']) . "
+        AND attiva = 1
+      GROUP BY username
+    ) x
   ");
   $totUfficio = intval($tmp['n'] ?? 0);
 }
@@ -432,6 +456,7 @@ if (($row['tipo_codice'] ?? '') === 'FERIE'
       rr.id AS riga_id,
       rr.data_dal,
       rr.data_al,
+      rr.dettagli_json,
       p.id_profilo,
       pa.id_ufficio,
       p.cognome,
@@ -443,11 +468,18 @@ if (($row['tipo_codice'] ?? '') === 'FERIE'
       ON rr.permesso_ata_richiesta_id = req.id
     JOIN personale_ata p
       ON p.id = req.personale_ata_id
+    LEFT JOIN (
+      SELECT username, MAX(id) AS max_id
+      FROM personale_ata_assegnazioni
+      WHERE attiva = 1
+      GROUP BY username
+    ) pa_pick
+      ON pa_pick.username = p.username
     LEFT JOIN personale_ata_assegnazioni pa
-      ON pa.username = p.username
-     AND pa.attiva = 1
+      ON pa.id = pa_pick.max_id
     WHERE t.codice = 'FERIE'
       AND req.stato IN ('INVIATO', 'APPROVATO', 'PARZIALE')
+      AND req.id <> " . intval($id) . "
       AND rr.data_dal <= " . dbQ($winA) . "
       AND rr.data_al >= " . dbQ($winDa) . "
   ");
@@ -457,6 +489,18 @@ if (($row['tipo_codice'] ?? '') === 'FERIE'
   }
 
   foreach ($ferieRows as $fr) {
+    $det = [];
+    if (!empty($fr['dettagli_json'])) {
+      $tmp = json_decode($fr['dettagli_json'], true);
+      if (is_array($tmp)) {
+        $det = $tmp;
+      }
+    }
+    $statoEffettivo = statoEffettivoFerieDettaglio($fr['stato'] ?? '', $det);
+    if (!in_array($statoEffettivo, ['APPROVATO', 'RICHIESTO'], true)) {
+      continue;
+    }
+
     $rangeStart = $fr['data_dal'] ?? '';
     $rangeEnd   = $fr['data_al'] ?? '';
     if ($rangeEnd === '') $rangeEnd = $rangeStart;

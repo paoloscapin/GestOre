@@ -6,6 +6,20 @@ ruoloRichiesto('dirigente','segreteria-ata', 'ras');
 
 header('Content-Type: application/json; charset=utf-8');
 
+function ferieDashboardEffectiveDayStatus($requestStatus, array $dayDetails): string
+{
+    $requestStatus = strtoupper(trim((string)$requestStatus));
+    $dayStatus = strtoupper(trim((string)($dayDetails['stato_giorno'] ?? 'RICHIESTO')));
+    if ($dayStatus === '') $dayStatus = 'RICHIESTO';
+
+    if ($requestStatus === 'BOZZA') return 'BOZZA';
+    if ($requestStatus === 'ANNULLATO') return 'ANNULLATO';
+    if ($requestStatus === 'APPROVATO' && $dayStatus === 'RICHIESTO') return 'APPROVATO';
+    if ($requestStatus === 'RESPINTO' && $dayStatus === 'RICHIESTO') return 'RESPINTO';
+
+    return $dayStatus;
+}
+
 $data = trim((string)($_GET['data'] ?? ''));
 $finestra = strtoupper(trim((string)($_GET['finestra'] ?? 'ESTIVE')));
 $mode = strtoupper(trim((string)($_GET['mode'] ?? 'APPROVATI_E_RICHIESTI')));
@@ -28,6 +42,7 @@ if (!in_array($mode, $allowedMode, true)) {
 $rows = dbGetAll("
     SELECT
         req.id AS richiesta_id,
+        req.stato AS stato_richiesta,
         rr.id AS riga_id,
         rr.dettagli_json,
         p.cognome,
@@ -44,9 +59,15 @@ $rows = dbGetAll("
       ON p.id = req.personale_ata_id
     LEFT JOIN personale_ata_profili pr
       ON pr.id = p.id_profilo
+    LEFT JOIN (
+        SELECT username, MAX(id) AS max_id
+        FROM personale_ata_assegnazioni
+        WHERE attiva = 1
+        GROUP BY username
+    ) pa_pick
+      ON pa_pick.username = p.username
     LEFT JOIN personale_ata_assegnazioni pa
-      ON pa.username = p.username
-     AND pa.attiva = 1
+      ON pa.id = pa_pick.max_id
     LEFT JOIN personale_ata_uffici u
       ON u.id = pa.id_ufficio
     WHERE t.codice = 'FERIE'
@@ -72,7 +93,7 @@ foreach ($rows as $r) {
         }
     }
 
-    $statoGiorno = strtoupper(trim((string)($det['stato_giorno'] ?? 'RICHIESTO')));
+    $statoGiorno = ferieDashboardEffectiveDayStatus($r['stato_richiesta'] ?? '', $det);
 
     $countThis = false;
     if ($mode === 'APPROVATI_ONLY') {

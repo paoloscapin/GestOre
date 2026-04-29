@@ -321,7 +321,7 @@ $tipi = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA'];
         </div>
     </div>
 
-    <script src="js/ferieConfig.js?v=<?php echo time(); ?>"></script>
+    <script src="js/ferieConfig.js?v=<?php echo filemtime(__DIR__ . '/js/ferieConfig.js'); ?>"></script>
 </body>
 
 </html>

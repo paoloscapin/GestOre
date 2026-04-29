@@ -42,6 +42,20 @@ function fmtDate($iso)
     return date('d/m', strtotime($iso));
 }
 
+function ferieDashboardEffectiveDayStatus($requestStatus, array $dayDetails): string
+{
+    $requestStatus = strtoupper(trim((string)$requestStatus));
+    $dayStatus = strtoupper(trim((string)($dayDetails['stato_giorno'] ?? 'RICHIESTO')));
+    if ($dayStatus === '') $dayStatus = 'RICHIESTO';
+
+    if ($requestStatus === 'BOZZA') return 'BOZZA';
+    if ($requestStatus === 'ANNULLATO') return 'ANNULLATO';
+    if ($requestStatus === 'APPROVATO' && $dayStatus === 'RICHIESTO') return 'APPROVATO';
+    if ($requestStatus === 'RESPINTO' && $dayStatus === 'RICHIESTO') return 'RESPINTO';
+
+    return $dayStatus;
+}
+
 function ferieDashboardResolvePeriod(string $finestra, string $dateFrom, string $dateTo): ?array
 {
     if ($finestra === 'ORDINARIE') {
@@ -93,6 +107,7 @@ $daySet = array_fill_keys($days, true);
 
 $rows = dbGetAll("
 SELECT
+    req.stato AS stato_richiesta,
     rr.data_dal, rr.data_al, rr.dettagli_json,
     p.username, p.cognome, p.nome,
     pr.codice AS profilo,
@@ -102,7 +117,13 @@ JOIN permesso_ata_tipo t ON t.id = req.permesso_ata_tipo_id
 JOIN permesso_ata_richiesta_riga rr ON rr.permesso_ata_richiesta_id = req.id
 JOIN personale_ata p ON p.id = req.personale_ata_id
 LEFT JOIN personale_ata_profili pr ON pr.id = p.id_profilo
-LEFT JOIN personale_ata_assegnazioni pa ON pa.username = p.username AND pa.attiva = 1
+LEFT JOIN (
+    SELECT username, MAX(id) AS max_id
+    FROM personale_ata_assegnazioni
+    WHERE attiva = 1
+    GROUP BY username
+) pa_pick ON pa_pick.username = p.username
+LEFT JOIN personale_ata_assegnazioni pa ON pa.id = pa_pick.max_id
 LEFT JOIN personale_ata_uffici u ON u.id = pa.id_ufficio
 WHERE t.codice = 'FERIE'
   AND UPPER(TRIM(req.ferie_sottotipo)) = " . dbQ($finestra) . "
@@ -120,7 +141,7 @@ $people = [];
 foreach ($rows as $r) {
 
     $det = json_decode($r['dettagli_json'] ?? '{}', true);
-    $stato = strtoupper(trim((string)($det['stato_giorno'] ?? 'RICHIESTO')));
+    $stato = ferieDashboardEffectiveDayStatus($r['stato_richiesta'] ?? '', is_array($det) ? $det : []);
 
     $ok = false;
     if ($mode === 'APPROVATI_ONLY') $ok = ($stato === 'APPROVATO');
