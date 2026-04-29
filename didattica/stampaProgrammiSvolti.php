@@ -95,6 +95,10 @@ function userCanViewProgram(array $program): bool
         return true;
     }
 
+    if (!getSettingsValue('programmiSvolti', 'coordinatore_vede_programmi_altri_docenti', true)) {
+        return false;
+    }
+
     $coord = dbGetFirst("
         SELECT id
         FROM coordinatori

@@ -37,6 +37,7 @@ $sollecito_lista = '';
 $coordinatore_classi = [];
 $coordinatore_classi_ids = [];
 $coordinatore_classi_by_classe = [];
+$coordinatore_vede_programmi_altri = getSettingsValue('programmiSvolti', 'coordinatore_vede_programmi_altri_docenti', true);
 $is_docente_effettivo = impersonaRuolo('docente');
 $docente_corrente_id = intval($__docente_id ?? 0);
 
@@ -130,7 +131,7 @@ if ($docenti_filtro_id > 0 && !$is_docente_effettivo) {
 
 if ($is_docente_effettivo) {
 	$coord_class_ids = array_keys($coordinatore_classi_ids);
-	if ($docente_corrente_id > 0 && count($coord_class_ids) > 0) {
+	if ($coordinatore_vede_programmi_altri && $docente_corrente_id > 0 && count($coord_class_ids) > 0) {
 		$query .= " AND (programmi_svolti.id_docente=" . $docente_corrente_id . " OR programmi_svolti.id_classe IN (" . implode(',', array_map('intval', $coord_class_ids)) . "))";
 	} else if ($docente_corrente_id > 0) {
 		$query .= " AND programmi_svolti.id_docente=" . $docente_corrente_id;
