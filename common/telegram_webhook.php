@@ -33,6 +33,7 @@ require_once __DIR__ . '/telegram_webhook_api.php';
  * =============================
  */
 require_once __DIR__ . '/telegram_webhook_relay.php';
+require_once __DIR__ . '/ticket_mail_lib.php';
 
 /**
  * ===========================
@@ -1184,6 +1185,10 @@ function tgHandleAdminReply($relay, $message, $botToken)
 
     // Estrae il testo del messaggio admin e lo normalizza
     $adminText = tgNorm($message['text'] ?? '');
+    if ($adminText === '') {
+        $adminText = tgNorm($message['caption'] ?? '');
+    }
+    $hasMedia = !empty($message['photo']) || !empty($message['document']);
 
     // Estrae il blocco dati dell'utente che ha scritto
     $adminFrom = $message['from'] ?? [];
@@ -1206,10 +1211,10 @@ function tgHandleAdminReply($relay, $message, $botToken)
     // Logga i dati principali già interpretati dal messaggio admin
     infoTelegram("tgHandleAdminReply: parsed adminText=[" . tgCut($adminText, 300) . "] adminUserId=[$adminUserId] adminName=[$adminName] groupChatId=[$groupChatId] replyToMessageId=[$replyToMessageId] threadIdFromMessage=[$threadIdFromMessage]");
 
-    // Se mancano testo, chat o reply al messaggio ticket, interrompe la funzione
-    if ($adminText === '' || $groupChatId === '' || $replyToMessageId <= 0) {
+    // Se mancano contenuto, chat o reply al messaggio ticket, interrompe la funzione
+    if (($adminText === '' && !$hasMedia) || $groupChatId === '' || $replyToMessageId <= 0) {
         // Logga il motivo dell'uscita anticipata
-        warningTelegram("tgHandleAdminReply: dati insufficienti, uscita. adminTextVuoto=" . ($adminText === '' ? '1' : '0') . " groupChatIdVuoto=" . ($groupChatId === '' ? '1' : '0') . " replyToMessageId=$replyToMessageId");
+        warningTelegram("tgHandleAdminReply: dati insufficienti, uscita. adminTextVuoto=" . ($adminText === '' ? '1' : '0') . " hasMedia=" . ($hasMedia ? '1' : '0') . " groupChatIdVuoto=" . ($groupChatId === '' ? '1' : '0') . " replyToMessageId=$replyToMessageId");
         // Esce senza fare altro
         return;
     }
@@ -1219,6 +1224,10 @@ function tgHandleAdminReply($relay, $message, $botToken)
 
     // Estrae e normalizza la chat Telegram del docente
     $teacherChatId = tgNorm($relay['docente_chat_id'] ?? '');
+    $emailRiferimento = trim((string)($relay['email_riferimento'] ?? ''));
+    $mailOrigin = function_exists('ticketMailRelayIsMailOrigin') && ticketMailRelayIsMailOrigin($relay);
+    $telegramChannelActive = ($teacherChatId !== '');
+    $mailChannelActive = $mailOrigin && $emailRiferimento !== '';
 
     // Estrae e normalizza lo stato corrente del ticket
     $currentStatus = strtoupper(tgNorm($relay['stato'] ?? 'APERTA'));
@@ -1248,10 +1257,10 @@ function tgHandleAdminReply($relay, $message, $botToken)
         infoTelegram("tgHandleAdminReply: ticketCode dopo update=[$ticketCode]");
     }
 
-    // Se il relay non è valido o manca la chat del docente, interrompe
-    if ($idRelay <= 0 || $teacherChatId === '') {
+    // Se il relay non è valido o non esiste alcun canale di risposta, interrompe
+    if ($idRelay <= 0 || (!$telegramChannelActive && !$mailChannelActive)) {
         // Logga il problema
-        warningTelegram("tgHandleAdminReply: relay non valido, uscita. idRelay=$idRelay teacherChatId=[$teacherChatId]");
+        warningTelegram("tgHandleAdminReply: relay non valido, uscita. idRelay=$idRelay teacherChatId=[$teacherChatId] emailRiferimento=[$emailRiferimento] mailOrigin=" . ($mailOrigin ? '1' : '0'));
         // Esce
         return;
     }
@@ -1302,11 +1311,20 @@ function tgHandleAdminReply($relay, $message, $botToken)
         // Logga l'esito del messaggio nel gruppo
         infoTelegram("tgHandleAdminReply: send gruppo presa result=" . json_encode($resGroup));
 
-        // Invia messaggio al docente per avvisarlo della presa in carico
-        $resTeacher = tgSendMessage($botToken, $teacherChatId, "🟡 La tua richiesta {$ticketCode} è stata presa in carico da {$adminName}.");
+        $resTeacher = ['ok' => false, 'skipped' => true];
+        if ($telegramChannelActive) {
+            $resTeacher = tgSendMessage($botToken, $teacherChatId, "🟡 La tua richiesta {$ticketCode} è stata presa in carico da {$adminName}.");
+            infoTelegram("tgHandleAdminReply: send docente presa result=" . json_encode($resTeacher));
+        }
 
-        // Logga l'esito del messaggio al docente
-        infoTelegram("tgHandleAdminReply: send docente presa result=" . json_encode($resTeacher));
+        if ($mailChannelActive) {
+            $mailRes = ticketMailSendRelayNotification(
+                $relayAggiornato ?: $relay,
+                "Presa in carico ticket {$ticketCode}",
+                "La tua richiesta {$ticketCode} è stata presa in carico da {$adminName}."
+            );
+            infoTelegram("tgHandleAdminReply: send mail presa result=" . json_encode($mailRes));
+        }
 
         // Se ci sono dati sufficienti per aggiornare il messaggio principale del ticket
         if ($serviceChatId !== '' && $serviceMessageId > 0 && $relayAggiornato) {
@@ -1361,11 +1379,20 @@ function tgHandleAdminReply($relay, $message, $botToken)
         // Logga l'esito del messaggio nel gruppo
         infoTelegram("tgHandleAdminReply: send gruppo chiudi result=" . json_encode($resGroup));
 
-        // Invia messaggio al docente per avvisarlo della chiusura
-        $resTeacher = tgSendMessage($botToken, $teacherChatId, "✅ La tua richiesta {$ticketCode} al servizio GestOre è stata chiusa.");
+        $resTeacher = ['ok' => false, 'skipped' => true];
+        if ($telegramChannelActive) {
+            $resTeacher = tgSendMessage($botToken, $teacherChatId, "✅ La tua richiesta {$ticketCode} al servizio GestOre è stata chiusa.");
+            infoTelegram("tgHandleAdminReply: send docente chiudi result=" . json_encode($resTeacher));
+        }
 
-        // Logga l'esito del messaggio al docente
-        infoTelegram("tgHandleAdminReply: send docente chiudi result=" . json_encode($resTeacher));
+        if ($mailChannelActive) {
+            $mailRes = ticketMailSendRelayNotification(
+                $relayAggiornato ?: $relay,
+                "Chiusura ticket {$ticketCode}",
+                "La tua richiesta {$ticketCode} al servizio GestOre è stata chiusa."
+            );
+            infoTelegram("tgHandleAdminReply: send mail chiudi result=" . json_encode($mailRes));
+        }
 
         // Se possibile, aggiorna il messaggio principale del ticket
         if ($serviceChatId !== '' && $serviceMessageId > 0 && $relayAggiornato) {
@@ -1420,11 +1447,20 @@ function tgHandleAdminReply($relay, $message, $botToken)
         // Logga l'invio nel gruppo
         infoTelegram("tgHandleAdminReply: send gruppo riapri result=" . json_encode($resGroup));
 
-        // Invia conferma al docente
-        $resTeacher = tgSendMessage($botToken, $teacherChatId, "🔵 La tua richiesta {$ticketCode} è stata riaperta.");
+        $resTeacher = ['ok' => false, 'skipped' => true];
+        if ($telegramChannelActive) {
+            $resTeacher = tgSendMessage($botToken, $teacherChatId, "🔵 La tua richiesta {$ticketCode} è stata riaperta.");
+            infoTelegram("tgHandleAdminReply: send docente riapri result=" . json_encode($resTeacher));
+        }
 
-        // Logga l'invio al docente
-        infoTelegram("tgHandleAdminReply: send docente riapri result=" . json_encode($resTeacher));
+        if ($mailChannelActive) {
+            $mailRes = ticketMailSendRelayNotification(
+                $relayAggiornato ?: $relay,
+                "Riapertura ticket {$ticketCode}",
+                "La tua richiesta {$ticketCode} è stata riaperta."
+            );
+            infoTelegram("tgHandleAdminReply: send mail riapri result=" . json_encode($mailRes));
+        }
 
         // Se possibile aggiorna il messaggio principale
         if ($serviceChatId !== '' && $serviceMessageId > 0 && $relayAggiornato) {
@@ -1484,6 +1520,101 @@ function tgHandleAdminReply($relay, $message, $botToken)
     // RISPOSTA TESTUALE NORMALE
     // -------------------------------------------------
 
+    if ($hasMedia) {
+        infoTelegram("tgHandleAdminReply: gestione allegato admin relay=$idRelay");
+
+        if ($currentStatus === 'CHIUSA') {
+            $resGroup = tgSendMessage($botToken, $groupChatId, "⚠️ {$ticketCode} risulta chiusa. Usa /riapri in reply per riaprirla prima di inviare allegati.", ['reply_to_message_id' => $replyToMessageId]);
+            infoTelegram("tgHandleAdminReply: send gruppo ticket chiuso con media result=" . json_encode($resGroup));
+            return;
+        }
+
+        $attachmentsForMail = function_exists('ticketMailExtractTelegramAttachmentFromMessage')
+            ? ticketMailExtractTelegramAttachmentFromMessage($message, $botToken)
+            : [];
+
+        $copyRes = ['ok' => false, 'skipped' => true];
+        if ($telegramChannelActive) {
+            $copyRes = tgCopyMessage(
+                $botToken,
+                $teacherChatId,
+                $groupChatId,
+                (int)($message['message_id'] ?? 0)
+            );
+            infoTelegram("tgHandleAdminReply: copy media to teacher result=" . json_encode($copyRes));
+        }
+
+        $mailRes = ['ok' => false, 'skipped' => true];
+        if ($mailChannelActive) {
+            $mailBody = $adminText !== '' ? $adminText : 'E stato inviato un allegato relativo al ticket.';
+            $mailRes = ticketMailSendRelayNotification(
+                $relay,
+                "Allegato ticket {$ticketCode}",
+                $mailBody,
+                array_map(function ($item) {
+                    return $item['path'] ?? '';
+                }, $attachmentsForMail)
+            );
+            infoTelegram("tgHandleAdminReply: send mail media result=" . json_encode($mailRes));
+        }
+
+        foreach ($attachmentsForMail as $attachment) {
+            @unlink((string)($attachment['path'] ?? ''));
+        }
+
+        $hardFail = (!$telegramChannelActive && !$mailChannelActive)
+            || ($mailChannelActive && empty($mailRes['ok']))
+            || (!$mailChannelActive && $telegramChannelActive && empty($copyRes['ok']));
+
+        if ($hardFail) {
+            $resGroup = tgSendMessage($botToken, $groupChatId, "❌ Errore nell'invio dell'allegato al docente.", ['reply_to_message_id' => $replyToMessageId]);
+            infoTelegram("tgHandleAdminReply: send gruppo errore allegato result=" . json_encode($resGroup));
+            return;
+        }
+
+        dbExec("START TRANSACTION");
+        infoTelegram("tgHandleAdminReply: START TRANSACTION per update allegato admin");
+
+        try {
+            $fields = [
+                "ultima_risposta_admin = NOW()"
+            ];
+
+            if ($adminText !== '') {
+                $fields[] = "ultimo_testo_admin = " . dbQ($adminText);
+            }
+
+            if ($currentStatus === 'APERTA') {
+                $fields[] = "stato = 'IN_GESTIONE'";
+                $fields[] = "chiusa = 0";
+                $fields[] = "preso_in_carico_da = " . dbQ($adminUserId);
+                $fields[] = "preso_in_carico_nome = " . dbQ($adminName);
+                $fields[] = "data_presa_in_carico = NOW()";
+            }
+
+            $q = "UPDATE docente_telegram_relay SET " . implode(", ", $fields) . " WHERE id = " . dbI($idRelay);
+            infoTelegram("tgHandleAdminReply: query update allegato admin=$q");
+            dbExec($q);
+            dbExec("COMMIT");
+
+            $relayAggiornato = tgFindRelayById($idRelay);
+            if ($serviceChatId !== '' && $serviceMessageId > 0 && $relayAggiornato) {
+                $editRes = tgEditMessage($botToken, $serviceChatId, $serviceMessageId, "🟡 Ticket {$ticketCode} - Thread aggiornato", ['reply_markup' => json_encode(tgGetTicketKeyboardMinimal($relayAggiornato), JSON_UNESCAPED_UNICODE)]);
+                infoTelegram("tgHandleAdminReply: editMessage dopo allegato admin result=" . json_encode($editRes));
+            }
+
+            $resGroup = tgSendMessage($botToken, $groupChatId, "✅ Allegato inviato per {$ticketCode} da {$adminName}.", ['reply_to_message_id' => $replyToMessageId]);
+            infoTelegram("tgHandleAdminReply: send gruppo conferma allegato result=" . json_encode($resGroup));
+        } catch (Throwable $e) {
+            dbExec("ROLLBACK");
+            errorTelegram("tgHandleAdminReply: errore update relay admin media: " . $e->getMessage());
+            $resGroup = tgSendMessage($botToken, $groupChatId, "❌ Errore durante l'aggiornamento del ticket {$ticketCode}.", ['reply_to_message_id' => $replyToMessageId]);
+            infoTelegram("tgHandleAdminReply: send gruppo errore update media result=" . json_encode($resGroup));
+        }
+
+        return;
+    }
+
     // Se il ticket è chiuso, impedisce la risposta normale
     if ($currentStatus === 'CHIUSA') {
         // Logga il blocco
@@ -1502,16 +1633,30 @@ function tgHandleAdminReply($relay, $message, $botToken)
     // Logga che sta per inviare una risposta normale al docente
     infoTelegram("tgHandleAdminReply: invio risposta normale al docente idRelay=$idRelay");
 
-    // Invia il testo scritto dall'admin al docente
-    $sendRes = tgSendMessage($botToken, $teacherChatId, "📬 Risposta GestOre - {$ticketCode}\n\n" . $adminText);
+    $sendRes = ['ok' => false, 'skipped' => true];
+    if ($telegramChannelActive) {
+        $sendRes = tgSendMessage($botToken, $teacherChatId, "📬 Risposta GestOre - {$ticketCode}\n\n" . $adminText);
+        infoTelegram("tgHandleAdminReply: send docente risposta normale result=" . json_encode($sendRes));
+    }
 
-    // Logga l'esito dell'invio al docente
-    infoTelegram("tgHandleAdminReply: send docente risposta normale result=" . json_encode($sendRes));
+    $mailRes = ['ok' => false, 'skipped' => true];
+    if ($mailChannelActive) {
+        $mailRes = ticketMailSendRelayNotification(
+            $relay,
+            "Risposta ticket {$ticketCode}",
+            "Risposta GestOre - {$ticketCode}\n\n" . $adminText
+        );
+        infoTelegram("tgHandleAdminReply: send mail risposta normale result=" . json_encode($mailRes));
+    }
+
+    $hardFail = (!$telegramChannelActive && !$mailChannelActive)
+        || ($mailChannelActive && empty($mailRes['ok']))
+        || (!$mailChannelActive && $telegramChannelActive && empty($sendRes['ok']));
 
     // Se l'invio al docente fallisce
-    if (!$sendRes['ok']) {
+    if ($hardFail) {
         // Logga l'errore
-        errorTelegram("tgHandleAdminReply: errore invio reply admin->docente relay=$idRelay err=[" . ($sendRes['error'] ?? '') . "]");
+        errorTelegram("tgHandleAdminReply: errore invio reply admin->utente relay=$idRelay errTg=[" . ($sendRes['error'] ?? '') . "] errMail=[" . ($mailRes['error'] ?? '') . "]");
 
         // Invia un messaggio nel gruppo per avvisare dell'errore
         $resGroup = tgSendMessage($botToken, $groupChatId, "❌ Errore nell'invio della risposta al docente.", ['reply_to_message_id' => $replyToMessageId]);

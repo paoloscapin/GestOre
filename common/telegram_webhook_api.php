@@ -200,4 +200,132 @@ function tgAnswerCallbackQuery($botToken, $callbackQueryId, $text='') {
     infoTelegram("tgAnswerCallbackQuery: callbackQueryId=$callbackQueryId text=[".$text."]");
 }
 
+function tgSendDocument($botToken, $chatId, $filePath, $fileName = '', array $extra = []) {
+    $botToken = trim((string)$botToken);
+    $chatId = trim((string)$chatId);
+    $filePath = trim((string)$filePath);
+    $fileName = trim((string)$fileName);
+
+    if ($botToken === '' || $chatId === '' || $filePath === '' || !is_file($filePath)) {
+        return ['ok' => false, 'error' => 'Parametri sendDocument mancanti'];
+    }
+
+    $url = "https://api.telegram.org/bot{$botToken}/sendDocument";
+    $payload = array_merge([
+        'chat_id' => $chatId,
+        'document' => new CURLFile($filePath, mime_content_type($filePath) ?: 'application/octet-stream', $fileName !== '' ? $fileName : basename($filePath))
+    ], $extra);
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    $response = curl_exec($ch);
+    $errno = curl_errno($ch);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    if ($errno) {
+        errorTelegram("tgSendDocument: curl error=$error");
+        return ['ok' => false, 'error' => $error];
+    }
+
+    $json = json_decode($response, true);
+    infoTelegram("tgSendDocument: chatId=$chatId response=" . json_encode($json));
+
+    return is_array($json) && !empty($json['ok'])
+        ? [
+            'ok' => true,
+            'json' => $json,
+            'message_id' => $json['result']['message_id'] ?? 0
+        ]
+        : [
+            'ok' => false,
+            'error' => $response
+        ];
+}
+
+function tgGetFileInfo($botToken, $fileId) {
+    $botToken = trim((string)$botToken);
+    $fileId = trim((string)$fileId);
+
+    if ($botToken === '' || $fileId === '') {
+        return ['ok' => false, 'error' => 'Parametri getFile mancanti'];
+    }
+
+    $url = "https://api.telegram.org/bot{$botToken}/getFile?" . http_build_query([
+        'file_id' => $fileId
+    ]);
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+    $response = curl_exec($ch);
+    $errno = curl_errno($ch);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    if ($errno) {
+        errorTelegram("tgGetFileInfo: curl error=$error");
+        return ['ok' => false, 'error' => $error];
+    }
+
+    $json = json_decode($response, true);
+    infoTelegram("tgGetFileInfo: response=" . json_encode($json));
+
+    return is_array($json) && !empty($json['ok'])
+        ? ['ok' => true, 'json' => $json, 'file_path' => (string)($json['result']['file_path'] ?? '')]
+        : ['ok' => false, 'error' => $response];
+}
+
+function tgDownloadFileToTemp($botToken, $fileId, $suggestedName = '') {
+    $info = tgGetFileInfo($botToken, $fileId);
+    if (empty($info['ok'])) {
+        return $info;
+    }
+
+    $filePath = trim((string)($info['file_path'] ?? ''));
+    if ($filePath === '') {
+        return ['ok' => false, 'error' => 'file_path Telegram mancante'];
+    }
+
+    $url = "https://api.telegram.org/file/bot{$botToken}/{$filePath}";
+    $dir = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR . 'ticket_telegram_attachments';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0777, true);
+    }
+
+    $baseName = trim((string)$suggestedName);
+    if ($baseName === '') {
+        $baseName = basename($filePath);
+    }
+    $baseName = preg_replace('/[^A-Za-z0-9._-]/', '_', $baseName);
+    $localPath = $dir . DIRECTORY_SEPARATOR . uniqid('tg_', true) . '_' . $baseName;
+
+    $ch = curl_init($url);
+    $fp = fopen($localPath, 'wb');
+    curl_setopt($ch, CURLOPT_FILE, $fp);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_exec($ch);
+    $errno = curl_errno($ch);
+    $error = curl_error($ch);
+    curl_close($ch);
+    fclose($fp);
+
+    if ($errno) {
+        @unlink($localPath);
+        errorTelegram("tgDownloadFileToTemp: curl error=$error");
+        return ['ok' => false, 'error' => $error];
+    }
+
+    return [
+        'ok' => true,
+        'path' => $localPath,
+        'filename' => $baseName,
+        'file_path' => $filePath
+    ];
+}
+
 ?>

@@ -173,6 +173,70 @@ function ticketMailTestRead(array $data): array
     ];
 }
 
+function ticketMailTestListMailboxes(array $data): array
+{
+    if (!function_exists('imap_open') || !function_exists('imap_getmailboxes')) {
+        return [
+            'ok' => false,
+            'message' => 'Funzioni IMAP non disponibili in PHP',
+        ];
+    }
+
+    $mailbox = $data['imap_mailbox'];
+    $username = $data['imap_user'];
+    $password = $data['imap_pass'];
+
+    if (!preg_match('/^\{[^}]+\}/', $mailbox, $matches)) {
+        return [
+            'ok' => false,
+            'message' => 'Formato mailbox IMAP non valido',
+            'error' => 'Atteso formato tipo {host:porta/opzioni}INBOX',
+        ];
+    }
+
+    $server = $matches[0];
+    $inbox = @imap_open($mailbox, $username, $password);
+    if ($inbox === false) {
+        return [
+            'ok' => false,
+            'message' => 'Connessione IMAP fallita',
+            'error' => imap_last_error(),
+        ];
+    }
+
+    $mailboxes = @imap_getmailboxes($inbox, $server, '*');
+    if ($mailboxes === false) {
+        imap_close($inbox);
+        return [
+            'ok' => false,
+            'message' => 'Lettura cartelle IMAP fallita',
+            'error' => imap_last_error(),
+        ];
+    }
+
+    $items = [];
+    foreach ($mailboxes as $box) {
+        $name = str_replace($server, '', (string)($box->name ?? ''));
+        $items[] = [
+            'name' => $name,
+            'full' => (string)($box->name ?? ''),
+            'attributes' => (string)($box->attributes ?? ''),
+        ];
+    }
+
+    imap_close($inbox);
+
+    return [
+        'ok' => true,
+        'message' => 'Elenco cartelle IMAP caricato',
+        'detail' => [
+            'server' => $server,
+            'count' => count($items),
+        ],
+        'mailboxes' => $items,
+    ];
+}
+
 $defaultAlias = 'gestore@buonarroti.tn.it';
 $defaultMailboxUser = trim((string)($__settings->local->smtpMail ?? ''));
 $defaultMailboxPass = trim((string)($__settings->local->AppPassword ?? ''));
@@ -198,6 +262,7 @@ $imapForm = [
 
 $sendResult = null;
 $imapResult = null;
+$imapBoxesResult = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = ticketMailTestPostValue('action');
@@ -205,6 +270,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sendResult = ticketMailTestSend($sendForm);
     } elseif ($action === 'read_test') {
         $imapResult = ticketMailTestRead($imapForm);
+    } elseif ($action === 'list_mailboxes') {
+        $imapBoxesResult = ticketMailTestListMailboxes($imapForm);
     }
 }
 ?>
@@ -313,6 +380,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             <?php endif; ?>
 
+                            <?php if ($imapBoxesResult !== null): ?>
+                                <div class="alert alert-<?php echo $imapBoxesResult['ok'] ? 'success' : 'danger'; ?>">
+                                    <?php echo htmlspecialchars($imapBoxesResult['message']); ?>
+                                    <?php if (!empty($imapBoxesResult['error'])): ?>
+                                        <br><small><?php echo htmlspecialchars((string)$imapBoxesResult['error']); ?></small>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+
                             <form method="post">
                                 <input type="hidden" name="action" value="read_test">
                                 <div class="form-group">
@@ -332,6 +408,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <input type="number" min="1" max="20" class="form-control" name="imap_limit" value="<?php echo htmlspecialchars($imapForm['imap_limit']); ?>">
                                 </div>
                                 <button type="submit" class="btn btn-info">Leggi inbox</button>
+                            </form>
+
+                            <form method="post" style="margin-top:10px;">
+                                <input type="hidden" name="action" value="list_mailboxes">
+                                <input type="hidden" name="imap_mailbox" value="<?php echo htmlspecialchars($imapForm['imap_mailbox']); ?>">
+                                <input type="hidden" name="imap_user" value="<?php echo htmlspecialchars($imapForm['imap_user']); ?>">
+                                <input type="hidden" name="imap_pass" value="<?php echo htmlspecialchars($imapForm['imap_pass']); ?>">
+                                <input type="hidden" name="imap_limit" value="<?php echo htmlspecialchars($imapForm['imap_limit']); ?>">
+                                <button type="submit" class="btn btn-default">Elenca cartelle IMAP</button>
                             </form>
 
                             <?php if ($imapResult !== null && !empty($imapResult['detail'])): ?>
@@ -374,6 +459,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                 <td><?php echo htmlspecialchars((string)$message['from']); ?></td>
                                                 <td><?php echo htmlspecialchars((string)$message['subject']); ?></td>
                                                 <td><?php echo htmlspecialchars((string)$message['snippet']); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if ($imapBoxesResult !== null && !empty($imapBoxesResult['mailboxes'])): ?>
+                                <hr>
+                                <h5>Cartelle IMAP</h5>
+                                <div style="max-height: 420px; overflow:auto;">
+                                    <table class="table table-striped table-bordered table-condensed">
+                                        <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Nome completo IMAP</th>
+                                            <th>Attributi</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <?php foreach ($imapBoxesResult['mailboxes'] as $box): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars((string)$box['name']); ?></td>
+                                                <td><?php echo htmlspecialchars((string)$box['full']); ?></td>
+                                                <td><?php echo htmlspecialchars((string)$box['attributes']); ?></td>
                                             </tr>
                                         <?php endforeach; ?>
                                         </tbody>

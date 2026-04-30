@@ -466,7 +466,7 @@ function tgCreateOrAppendTicketFromDocente(array $doc, string $text, string $ser
             tgSendMessage(
                 $botToken,
                 $teacherChatId,
-                "✅ Messaggio inviato al gruppo di servizio GestOre.\nTicket: {$ticketCode}\nStato richiesta: APERTA."
+                "✅ Il tuo messaggio è stato ricevuto.\nTicket: {$ticketCode}\nIl tuo caso sarà preso in carico appena possibile."
             );
         }
 
@@ -480,6 +480,240 @@ function tgCreateOrAppendTicketFromDocente(array $doc, string $text, string $ser
     } catch (Throwable $e) {
         dbExec("ROLLBACK");
         errorTelegram("tgCreateOrAppendTicketFromDocente: eccezione " . $e->getMessage());
+        return ['ok' => false, 'error' => $e->getMessage()];
+    }
+}
+
+function tgCreateOrAppendTicketFromDocenteMail(
+    array $doc,
+    string $subject,
+    string $text,
+    string $fromEmail,
+    string $serviceChatId,
+    string $botToken,
+    ?array $relayByCode = null
+)
+{
+    $subject = tgNorm($subject);
+    $text = tgNorm($text);
+    $fromEmail = tgNorm($fromEmail);
+    $serviceChatId = tgNorm($serviceChatId);
+    $botToken = tgNorm($botToken);
+    $actorType = strtolower(trim((string)($doc['tipo_utente'] ?? 'docente')));
+    $actorId = (int)($doc['id'] ?? 0);
+    $actorLabel = trim((string)($doc['display_label'] ?? ($actorType === 'studente' ? 'Studente' : ($actorType === 'genitore' ? 'Genitore' : 'Docente'))));
+    $actorName = trim((string)($doc['display_name'] ?? (trim(($doc['cognome'] ?? '') . ' ' . ($doc['nome'] ?? '')))));
+    $actorChatId = tgNorm($doc['telegram_chat_id'] ?? '');
+    $actorIdColumn = $actorType === 'studente' ? 'idStudente' : ($actorType === 'genitore' ? 'idGenitore' : 'idDocente');
+
+    if ($actorId <= 0 || $text === '' || $serviceChatId === '' || $botToken === '') {
+        return ['ok' => false, 'error' => 'Dati ticket mail non validi'];
+    }
+
+    infoTelegram("tgCreateOrAppendTicketFromDocenteMail: actorType=$actorType actorId=$actorId fromEmail=[$fromEmail] subject=[" . tgCut($subject, 120) . "]");
+
+    $targetRelay = null;
+    if (is_array($relayByCode) && !empty($relayByCode['id'])) {
+        $targetRelay = $relayByCode;
+    } else {
+        if (function_exists('ticketMailFindOpenMailRelayByActor')) {
+            $targetRelay = ticketMailFindOpenMailRelayByActor($doc);
+        } elseif ($actorType === 'docente' && function_exists('ticketMailFindOpenMailRelayByDocente')) {
+            $targetRelay = ticketMailFindOpenMailRelayByDocente($actorId);
+        } elseif ($actorType === 'docente') {
+            $targetRelay = tgFindOpenRelayByDocente($actorId);
+        }
+    }
+
+    if ($targetRelay) {
+        $idRelay = (int)($targetRelay['id'] ?? 0);
+        if ($idRelay <= 0) {
+            return ['ok' => false, 'error' => 'Relay mail esistente non valido'];
+        }
+
+        $ticketCode = tgNorm($targetRelay['ticket_code'] ?? '');
+        if ($ticketCode === '') {
+            $ticketCode = tgUpdateTicketCode($idRelay);
+        }
+
+        $statoLabel = tgBuildStatoLabel($targetRelay['stato'] ?? 'APERTA');
+        $threadId = (int)($targetRelay['service_thread_id'] ?? 0);
+
+        dbExec("
+            UPDATE docente_telegram_relay
+            SET ultimo_testo_docente = " . dbQ($text) . ",
+                data_aggiornamento = NOW()
+            WHERE id = " . dbI($idRelay) . "
+        ");
+
+        $targetRelay = tgFindRelayById($idRelay);
+
+        $serviceText =
+            "📧 Aggiornamento ticket via email\n\n" .
+            "🏷 Ticket: {$ticketCode}\n" .
+            "👤 {$actorLabel}: {$actorName}\n" .
+            "✉️ Mittente: {$fromEmail}\n" .
+            "📌 Stato attuale: {$statoLabel}\n";
+
+        if ($subject !== '') {
+            $serviceText .= "📝 Oggetto: {$subject}\n";
+        }
+
+        $serviceText .= "\n📨 Messaggio:\n" . tgCut($text, 3000);
+
+        $sendOptions = [
+            'reply_markup' => json_encode(
+                tgGetTicketKeyboardMinimal($targetRelay),
+                JSON_UNESCAPED_UNICODE
+            )
+        ];
+        if ($threadId > 0) {
+            $sendOptions['message_thread_id'] = $threadId;
+        }
+
+        $sendRes = tgSendMessage(
+            $botToken,
+            $serviceChatId,
+            $serviceText,
+            $sendOptions
+        );
+
+        if (!$sendRes['ok']) {
+            errorTelegram("tgCreateOrAppendTicketFromDocenteMail: errore invio gruppo append " . ($sendRes['error'] ?? ''));
+            return ['ok' => false, 'error' => 'Errore invio messaggio email al gruppo di servizio'];
+        }
+
+        return [
+            'ok' => true,
+            'mode' => 'append',
+            'idRelay' => $idRelay,
+            'ticket_code' => $ticketCode
+        ];
+    }
+
+    dbExec("START TRANSACTION");
+
+    try {
+        $insertColumns = [
+            'docente_chat_id',
+            'docente_message_id',
+            'service_chat_id',
+            'service_message_id',
+            'service_thread_root_message_id',
+            'stato',
+            'chiusa',
+            'ultimo_testo_docente',
+            'data_creazione',
+            'data_aggiornamento'
+        ];
+        $insertValues = [
+            dbQ($actorChatId),
+            '0',
+            dbQ($serviceChatId),
+            '0',
+            '0',
+            "'APERTA'",
+            '0',
+            dbQ($text),
+            'NOW()',
+            'NOW()'
+        ];
+
+        if ($actorIdColumn === 'idDocente' || (function_exists('ticketMailColumnExists') && ticketMailColumnExists('docente_telegram_relay', $actorIdColumn))) {
+            array_unshift($insertColumns, $actorIdColumn);
+            array_unshift($insertValues, dbI($actorId));
+        }
+        if (function_exists('ticketMailColumnExists') && ticketMailColumnExists('docente_telegram_relay', 'tipo_utente')) {
+            $insertColumns[] = 'tipo_utente';
+            $insertValues[] = dbQ($actorType);
+        }
+        if (function_exists('ticketMailColumnExists') && ticketMailColumnExists('docente_telegram_relay', 'utente_nome')) {
+            $insertColumns[] = 'utente_nome';
+            $insertValues[] = dbQ((string)($doc['nome'] ?? ''));
+        }
+        if (function_exists('ticketMailColumnExists') && ticketMailColumnExists('docente_telegram_relay', 'utente_cognome')) {
+            $insertColumns[] = 'utente_cognome';
+            $insertValues[] = dbQ((string)($doc['cognome'] ?? ''));
+        }
+        if (function_exists('ticketMailColumnExists') && ticketMailColumnExists('docente_telegram_relay', 'utente_email')) {
+            $insertColumns[] = 'utente_email';
+            $insertValues[] = dbQ((string)($doc['email'] ?? $fromEmail));
+        }
+
+        dbExec("
+            INSERT INTO docente_telegram_relay (
+                " . implode(",\n                ", $insertColumns) . "
+            ) VALUES (
+                " . implode(",\n                ", $insertValues) . "
+            )
+        ");
+
+        $idRelay = (int)dblastId();
+        if ($idRelay <= 0) {
+            throw new Exception("Inserimento relay mail fallito");
+        }
+
+        $ticketCode = tgUpdateTicketCode($idRelay);
+        $serviceThreadId = tgCreateTopic($botToken, $serviceChatId, "Ticket " . $ticketCode);
+
+        dbExec("
+            UPDATE docente_telegram_relay
+            SET service_thread_id = " . dbI($serviceThreadId) . ",
+                thread_topic_name = " . dbQ("Ticket $ticketCode") . "
+            WHERE id = " . dbI($idRelay) . "
+        ");
+
+        $relay = tgFindRelayById($idRelay);
+
+        $serviceText =
+            "📧 Nuovo ticket via email\n\n" .
+            "🏷 Ticket: {$ticketCode}\n" .
+            "👤 {$actorLabel}: {$actorName}\n" .
+            "✉️ Mittente: {$fromEmail}\n";
+
+        if ($subject !== '') {
+            $serviceText .= "📝 Oggetto: {$subject}\n";
+        }
+
+        $serviceText .= "\n📨 Messaggio:\n" . tgCut($text, 3000);
+
+        $sendRes = tgSendMessage(
+            $botToken,
+            $serviceChatId,
+            $serviceText,
+            [
+                'message_thread_id' => $serviceThreadId,
+                'reply_markup' => json_encode(
+                    tgGetTicketKeyboardMinimal($relay),
+                    JSON_UNESCAPED_UNICODE
+                )
+            ]
+        );
+
+        if (!$sendRes['ok']) {
+            throw new Exception("Invio messaggio Telegram mail al gruppo fallito: " . ($sendRes['error'] ?? ''));
+        }
+
+        $serviceMessageId = (int)($sendRes['message_id'] ?? 0);
+
+        dbExec("
+            UPDATE docente_telegram_relay
+            SET service_message_id = " . dbI($serviceMessageId) . ",
+                service_thread_root_message_id = " . dbI($serviceMessageId) . "
+            WHERE id = " . dbI($idRelay) . "
+        ");
+
+        dbExec("COMMIT");
+
+        return [
+            'ok' => true,
+            'mode' => 'create',
+            'idRelay' => $idRelay,
+            'ticket_code' => $ticketCode
+        ];
+    } catch (Throwable $e) {
+        dbExec("ROLLBACK");
+        errorTelegram("tgCreateOrAppendTicketFromDocenteMail: eccezione " . $e->getMessage());
         return ['ok' => false, 'error' => $e->getMessage()];
     }
 }

@@ -208,3 +208,86 @@ function sendMailwithAttachment($to, $toName, $subject, $Content, $AttachmentFil
     }
   
 }
+
+function sendMailCustom($to, $toName, $subject, $Content, array $options = []): bool
+{
+    global $__settings;
+
+    $fromEmail = trim((string)($options['from_email'] ?? $__settings->local->emailNoReplyFrom));
+    $fromName = trim((string)($options['from_name'] ?? ("GestOre " . $__settings->local->nomeIstituto)));
+    $replyToEmail = trim((string)($options['reply_to_email'] ?? $fromEmail));
+    $replyToName = trim((string)($options['reply_to_name'] ?? $fromName));
+    $senderEmail = trim((string)($options['sender_email'] ?? $__settings->local->smtpMail));
+    $senderName = trim((string)($options['sender_name'] ?? $fromName));
+    $attachments = $options['attachments'] ?? [];
+    $addBcc = array_key_exists('add_bcc_default', $options) ? (bool)$options['add_bcc_default'] : false;
+
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->CharSet = "utf-8";
+        $mail->Encoding = "base64";
+        $mail->isSMTP();
+        $mail->Mailer = "smtp";
+        $mail->SMTPDebug = 0;
+        $mail->Host = $__settings->local->smtpHost;
+        $mail->SMTPAuth = true;
+        $mail->Username = $__settings->local->smtpMail;
+        $mail->Password = $__settings->local->AppPassword;
+        $mail->SMTPSecure = $__settings->local->SMTPSecure;
+        $mail->SMTPAutoTLS = false;
+        $mail->CharSet = 'UTF-8';
+        $mail->Port = $__settings->local->Port;
+        $mail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            ]
+        ];
+
+        $mail->IsHTML(true);
+        $mail->addAddress($to, $toName);
+        $mail->setFrom($fromEmail, $fromName, true);
+        $mail->addReplyTo($replyToEmail, $replyToName);
+        if ($senderEmail !== '') {
+            $mail->Sender = $senderEmail;
+            $mail->addCustomHeader('Sender', $senderName !== '' ? sprintf('"%s" <%s>', addslashes($senderName), $senderEmail) : $senderEmail);
+        }
+
+        if ($addBcc && trim((string)$__settings->local->emailSportelli) !== '') {
+            $mail->addBCC($__settings->local->emailSportelli, "Gestione attività GestOre");
+        }
+
+        if (!is_array($attachments)) {
+            $attachments = [$attachments];
+        }
+        foreach ($attachments as $file) {
+            if (is_string($file) && is_file($file)) {
+                $mail->addAttachment($file);
+            }
+        }
+
+        $mail->Subject = $subject;
+        $mail->msgHTML($Content);
+
+        $ok = $mail->send();
+        info("[send-mail] send custom ok=" . ($ok ? "1" : "0") . " to=$to subj=$subject");
+
+        try {
+            $mail->smtpClose();
+        } catch (Throwable $e2) {
+        }
+
+        return (bool)$ok;
+    } catch (Throwable $e) {
+        error("[send-mail] CUSTOM EXCEPTION: " . $e->getMessage());
+
+        try {
+            $mail->smtpClose();
+        } catch (Throwable $e2) {
+        }
+
+        return false;
+    }
+}
