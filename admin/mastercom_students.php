@@ -368,6 +368,9 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                                     <?php if ($compare['local'] != null): ?>
                                         <?php echo htmlspecialchars(trim(($compare['local']['cognome'] ?? '') . ' ' . ($compare['local']['nome'] ?? ''))); ?><br>
                                         <small><?php echo htmlspecialchars($compare['local']['email'] ?? ''); ?></small>
+                                        <?php if (intval($row['gestore_attivo'] ?? 0) === 0): ?>
+                                            <br><span class="label label-default">disattivato in GestOre</span>
+                                        <?php endif; ?>
                                         <?php if (intval($row['genitori_locali_count'] ?? 0) === 0): ?>
                                             <br>
                                             <?php if (intval($row['gestore_attivo'] ?? 0) === 0): ?>

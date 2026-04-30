@@ -550,24 +550,132 @@ function mastercomAdminFindLocalTeacher(array $masterTeacher): ?array
     return dbGetFirst($query);
 }
 
+function mastercomAdminGetLocalStudentById(int $studentId): ?array
+{
+    if ($studentId <= 0) {
+        return null;
+    }
+
+    $query = "
+        SELECT
+            s.*,
+            sf.id_classe AS id_classe_corrente,
+            c.classe AS classe_corrente
+        FROM studente s
+        LEFT JOIN studente_frequenta sf
+            ON sf.id = (
+                SELECT sf2.id
+                FROM studente_frequenta sf2
+                WHERE sf2.id_studente = s.id
+                ORDER BY
+                    CASE
+                        WHEN sf2.id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . " THEN 0
+                        ELSE 1
+                    END,
+                    sf2.id_anno_scolastico DESC,
+                    sf2.id DESC
+                LIMIT 1
+            )
+        LEFT JOIN classi c
+            ON c.id = sf.id_classe
+        WHERE s.id = " . intval($studentId) . "
+        LIMIT 1
+    ";
+
+    return dbGetFirst($query);
+}
+
+function mastercomAdminExpectedLocalClassId(array $masterStudent): ?int
+{
+    $mirrorClassId = intval($masterStudent['mastercom_id_classe_corrente'] ?? 0);
+    if ($mirrorClassId > 0) {
+        $mirrorClass = dbGetFirst("SELECT id_classe_gestore, nome FROM mastercom_classi WHERE mastercom_id_classe = " . $mirrorClassId . " LIMIT 1");
+        if ($mirrorClass != null) {
+            $localClassId = intval($mirrorClass['id_classe_gestore'] ?? 0);
+            if ($localClassId > 0) {
+                return $localClassId;
+            }
+
+            $mirrorClassName = trim((string)($mirrorClass['nome'] ?? ''));
+            if ($mirrorClassName !== '') {
+                return mastercomAdminFindLocalClassIdByName($mirrorClassName);
+            }
+        }
+    }
+
+    $className = trim((string)($masterStudent['classe_mastercom'] ?? $masterStudent['nome'] ?? $masterStudent['classe_label'] ?? ''));
+    if ($className !== '') {
+        return mastercomAdminFindLocalClassIdByName($className);
+    }
+
+    $classeNumero = trim((string)($masterStudent['classe_numero'] ?? $masterStudent['classe'] ?? ''));
+    $sezione = trim((string)($masterStudent['sezione'] ?? ''));
+    if ($classeNumero !== '') {
+        $classLabel = $classeNumero . $sezione;
+        return mastercomAdminFindLocalClassIdByName($classLabel);
+    }
+
+    return null;
+}
+
 function mastercomAdminFindLocalStudent(array $masterStudent): ?array
 {
     global $__anno_scolastico_corrente_id;
 
-    $conditions = [];
     $cf = trim((string)($masterStudent['codice_fiscale'] ?? ''));
     $email = trim((string)($masterStudent['email1'] ?? ''));
     $cognome = trim((string)($masterStudent['cognome'] ?? ''));
     $nome = trim((string)($masterStudent['nome'] ?? ''));
+    $expectedClassId = mastercomAdminExpectedLocalClassId($masterStudent);
 
     if ($cf !== '') {
-        $conditions[] = "LOWER(s.codice_fiscale) = LOWER(" . dbQ($cf) . ")";
+        $query = "
+            SELECT
+                s.*,
+                sf.id_classe AS id_classe_corrente,
+                c.classe AS classe_corrente
+            FROM studente s
+            LEFT JOIN studente_frequenta sf
+                ON sf.id = (
+                    SELECT sf2.id
+                    FROM studente_frequenta sf2
+                    WHERE sf2.id_studente = s.id
+                    ORDER BY
+                        CASE
+                            WHEN sf2.id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . " THEN 0
+                            ELSE 1
+                        END,
+                        sf2.id_anno_scolastico DESC,
+                        sf2.id DESC
+                    LIMIT 1
+                )
+            LEFT JOIN classi c
+                ON c.id = sf.id_classe
+            WHERE LOWER(s.codice_fiscale) = LOWER(" . dbQ($cf) . ")
+            ORDER BY s.attivo DESC, s.id DESC
+        ";
+        $rows = dbGetAll($query) ?: [];
+        if ($expectedClassId !== null) {
+            foreach ($rows as $row) {
+                if (intval($row['id_classe_corrente'] ?? 0) === $expectedClassId) {
+                    return $row;
+                }
+            }
+        }
+        return !empty($rows) ? $rows[0] : null;
     }
+
+    $conditions = [];
     if ($email !== '') {
         $conditions[] = "LOWER(s.email) = LOWER(" . dbQ($email) . ")";
     }
     if ($cognome !== '' && $nome !== '') {
-        $conditions[] = "(LOWER(s.cognome) = LOWER(" . dbQ($cognome) . ") AND LOWER(s.nome) = LOWER(" . dbQ($nome) . "))";
+        $nameCondition = "(LOWER(s.cognome) = LOWER(" . dbQ($cognome) . ") AND LOWER(s.nome) = LOWER(" . dbQ($nome) . "))";
+        if ($expectedClassId !== null) {
+            $conditions[] = "(" . $nameCondition . " AND sf.id_classe = " . intval($expectedClassId) . ")";
+        } else {
+            $conditions[] = $nameCondition;
+        }
     }
 
     if (empty($conditions)) {
@@ -581,8 +689,19 @@ function mastercomAdminFindLocalStudent(array $masterStudent): ?array
             c.classe AS classe_corrente
         FROM studente s
         LEFT JOIN studente_frequenta sf
-            ON sf.id_studente = s.id
-            AND sf.id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . "
+            ON sf.id = (
+                SELECT sf2.id
+                FROM studente_frequenta sf2
+                WHERE sf2.id_studente = s.id
+                ORDER BY
+                    CASE
+                        WHEN sf2.id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . " THEN 0
+                        ELSE 1
+                    END,
+                    sf2.id_anno_scolastico DESC,
+                    sf2.id DESC
+                LIMIT 1
+            )
         LEFT JOIN classi c
             ON c.id = sf.id_classe
         WHERE " . implode(' OR ', $conditions) . "
@@ -635,6 +754,35 @@ function mastercomAdminResolveLocalParent(array $mirrorRow): ?array
     }
 
     $matched = mastercomAdminFindLocalParent($mirrorRow);
+    $mirrorCf = mastercomAdminNormCompact($mirrorRow['codice_fiscale'] ?? '');
+
+    if ($mirrorCf !== '') {
+        if ($matched != null) {
+            return $matched;
+        }
+
+        if ($linked != null && mastercomAdminNormCompact($linked['codice_fiscale'] ?? '') === $mirrorCf) {
+            return $linked;
+        }
+
+        return null;
+    }
+
+    if ($matched != null) {
+        return $matched;
+    }
+
+    return $linked;
+}
+
+function mastercomAdminResolveLocalStudent(array $mirrorRow): ?array
+{
+    $linked = null;
+    if (!empty($mirrorRow['id_studente_gestore'])) {
+        $linked = mastercomAdminGetLocalStudentById(intval($mirrorRow['id_studente_gestore']));
+    }
+
+    $matched = mastercomAdminFindLocalStudent($mirrorRow);
     $mirrorCf = mastercomAdminNormCompact($mirrorRow['codice_fiscale'] ?? '');
 
     if ($mirrorCf !== '') {
@@ -1368,13 +1516,7 @@ function mastercomAdminRebuildParentStudentLinks(callable $progress = null): arr
 
 function mastercomAdminStudentDiffs(array $mirrorRow): array
 {
-    $local = null;
-    if (!empty($mirrorRow['id_studente_gestore'])) {
-        $local = dbGetFirst("SELECT * FROM studente WHERE id = " . intval($mirrorRow['id_studente_gestore']) . " LIMIT 1");
-    }
-    if ($local == null) {
-        $local = mastercomAdminFindLocalStudent($mirrorRow);
-    }
+    $local = mastercomAdminResolveLocalStudent($mirrorRow);
 
     $diffs = [];
     if ($local == null) {
@@ -1393,6 +1535,11 @@ function mastercomAdminStudentDiffs(array $mirrorRow): array
     }
     if (mastercomAdminNormCompact($local['codice_fiscale'] ?? '') !== mastercomAdminNormCompact($mirrorRow['codice_fiscale'] ?? '')) {
         $diffs['codice_fiscale'] = ['gestore' => $local['codice_fiscale'] ?? '', 'mastercom' => $mirrorRow['codice_fiscale'] ?? ''];
+    }
+    $expectedClassId = mastercomAdminExpectedLocalClassId($mirrorRow);
+    if ($expectedClassId !== null && intval($local['id_classe_corrente'] ?? 0) !== $expectedClassId) {
+        $expectedClass = dbGetValue("SELECT classe FROM classi WHERE id = " . intval($expectedClassId) . " LIMIT 1");
+        $diffs['classe'] = ['gestore' => $local['classe_corrente'] ?? '', 'mastercom' => $expectedClass ?? ($mirrorRow['classe_mastercom'] ?? '')];
     }
 
     return ['local' => $local, 'diffs' => $diffs];
@@ -1541,9 +1688,7 @@ function mastercomAdminAlignGestoreStudentFromMastercom(int $mastercomStudentId)
         return ['ok' => false, 'message' => 'Studente MasterCom non trovato'];
     }
 
-    $local = !empty($mirror['id_studente_gestore'])
-        ? dbGetFirst("SELECT * FROM studente WHERE id = " . intval($mirror['id_studente_gestore']) . " LIMIT 1")
-        : mastercomAdminFindLocalStudent($mirror);
+    $local = mastercomAdminResolveLocalStudent($mirror);
 
     if ($local == null) {
         return ['ok' => false, 'message' => 'Studente GestOre non trovato'];
@@ -1559,31 +1704,50 @@ function mastercomAdminAlignGestoreStudentFromMastercom(int $mastercomStudentId)
         WHERE id = " . intval($local['id'])
     );
 
+    $classUpdateMessage = 'classe GestOre non aggiornata';
     if (!empty($mirror['mastercom_id_classe_corrente'])) {
         $classMirror = dbGetFirst("SELECT * FROM mastercom_classi WHERE mastercom_id_classe = " . intval($mirror['mastercom_id_classe_corrente']) . " LIMIT 1");
         $localClassId = intval($classMirror['id_classe_gestore'] ?? 0);
+        if ($localClassId <= 0) {
+            $localClassId = intval(mastercomAdminExpectedLocalClassId($mirror) ?? 0);
+        }
         if ($localClassId > 0) {
-            $freqId = dbGetValue("
+            $oldClassLabel = trim((string)($local['classe_corrente'] ?? ''));
+            $newClassLabel = trim((string)(dbGetValue("SELECT classe FROM classi WHERE id = " . $localClassId . " LIMIT 1") ?? ''));
+
+            $freqIds = dbGetAllValues("
                 SELECT id
                 FROM studente_frequenta
                 WHERE id_studente = " . intval($local['id']) . "
                   AND id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . "
-                LIMIT 1
             ");
-            if ($freqId !== null) {
-                dbExec("UPDATE studente_frequenta SET id_classe = " . $localClassId . " WHERE id = " . intval($freqId));
+
+            if (!empty($freqIds)) {
+                foreach ($freqIds as $freqId) {
+                    dbExec("UPDATE studente_frequenta SET id_classe = " . $localClassId . " WHERE id = " . intval($freqId));
+                }
             } else {
                 dbExec("
                     INSERT INTO studente_frequenta (id_studente, id_classe, id_anno_scolastico)
                     VALUES (" . intval($local['id']) . ", " . $localClassId . ", " . intval($__anno_scolastico_corrente_id) . ")
                 ");
             }
+
+            if ($newClassLabel !== '') {
+                $classUpdateMessage = 'classe GestOre aggiornata'
+                    . ($oldClassLabel !== '' ? ' da ' . $oldClassLabel : '')
+                    . ' a ' . $newClassLabel;
+            } else {
+                $classUpdateMessage = 'classe GestOre aggiornata';
+            }
+        } else {
+            $classUpdateMessage = 'classe MasterCom non collegata a GestOre';
         }
     }
 
     dbExec("UPDATE mastercom_studenti SET id_studente_gestore = " . intval($local['id']) . " WHERE id = " . intval($mirror['id']));
 
-    return ['ok' => true, 'message' => 'Studente GestOre allineato da MasterCom'];
+    return ['ok' => true, 'message' => 'Studente GestOre allineato da MasterCom | ' . $classUpdateMessage];
 }
 
 function mastercomAdminAlignMirrorStudentFromGestore(int $mastercomStudentId): array
@@ -1595,9 +1759,7 @@ function mastercomAdminAlignMirrorStudentFromGestore(int $mastercomStudentId): a
         return ['ok' => false, 'message' => 'Studente MasterCom non trovato'];
     }
 
-    $local = !empty($mirror['id_studente_gestore'])
-        ? dbGetFirst("SELECT * FROM studente WHERE id = " . intval($mirror['id_studente_gestore']) . " LIMIT 1")
-        : mastercomAdminFindLocalStudent($mirror);
+    $local = mastercomAdminResolveLocalStudent($mirror);
 
     if ($local == null) {
         return ['ok' => false, 'message' => 'Studente GestOre non trovato'];
