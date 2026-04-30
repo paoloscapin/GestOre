@@ -643,13 +643,49 @@ function buildAdminImportSummaryMessage($totaleRicevuti, $inseriti, $aggiornati,
 
     if (!empty($scartati)) {
         $lines[] = "";
-        $lines[] = "Prime righe scartate:";
+        $lines[] = "Dettaglio prime righe scartate:";
         $max = min(5, count($scartati));
         for ($i = 0; $i < $max; $i++) {
             $r = $scartati[$i];
             $riga = (int)($r['riga'] ?? 0);
             $motivo = trim((string)($r['motivo'] ?? 'Motivo non specificato'));
-            $lines[] = "- Riga {$riga}: {$motivo}";
+            $docente = trim((string)($r['docente'] ?? ''));
+            $item = is_array($r['item'] ?? null) ? $r['item'] : array();
+            $docenteSostituto = normalizeSpaces($item['docenteSostituto'] ?? '');
+            $docenteSostituito = normalizeSpaces($item['docenteSostituito'] ?? '');
+            $data = trim((string)($item['data'] ?? ''));
+            $oraInizio = trim((string)($item['oraInizio'] ?? ''));
+            $oraFine = trim((string)($item['oraFine'] ?? ''));
+            $classe = normalizeSpaces($item['classe'] ?? '');
+            $aula = normalizeSpaces($item['aula'] ?? '');
+
+            $detailParts = array();
+            if ($docente !== '') {
+                $detailParts[] = "Docente: {$docente}";
+            }
+            if ($docenteSostituto !== '') {
+                $detailParts[] = "Sostituto PDF: {$docenteSostituto}";
+            }
+            if ($docenteSostituito !== '') {
+                $detailParts[] = "Sostituito PDF: {$docenteSostituito}";
+            }
+            if ($data !== '') {
+                $orario = trim($oraInizio . ($oraFine !== '' ? '-' . $oraFine : ''));
+                $detailParts[] = "Quando: {$data}" . ($orario !== '' ? " {$orario}" : '');
+            }
+            if ($classe !== '') {
+                $detailParts[] = "Classe: {$classe}";
+            }
+            if ($aula !== '') {
+                $detailParts[] = "Aula: {$aula}";
+            }
+
+            $detailSuffix = '';
+            if (!empty($detailParts)) {
+                $detailSuffix = " [" . implode(' | ', $detailParts) . "]";
+            }
+
+            $lines[] = "- Riga {$riga}: {$motivo}{$detailSuffix}";
         }
     }
 

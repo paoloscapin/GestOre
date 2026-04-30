@@ -58,6 +58,7 @@ HEADERS = {
 TELEGRAM_ENABLED = CONFIG.get("telegram_enabled", False)
 TELEGRAM_BOT_TOKEN = CONFIG.get("telegram_bot_token")
 TELEGRAM_CHAT_ID = CONFIG.get("telegram_chat_id")
+TELEGRAM_SEND_SUCCESS_SUMMARY = bool(CONFIG.get("telegram_send_success_summary", False))
 
 WATCH_EXTENSIONS = {".pdf"}
 
@@ -914,17 +915,18 @@ class PDFHandler(FileSystemEventHandler):
 
             set_tray_title("🟢 GestOre Agent attivo")
 
-            send_telegram_message(
-                telegram_import_success_message(
-                    file_name=path.name,
-                    record_count=record_count,
-                    parse_warning_count=parse_warning_count,
-                    api_warning_count=api_warning_count,
-                    inseriti=inseriti,
-                    aggiornati=aggiornati,
-                    annullati=annullati
+            if TELEGRAM_SEND_SUCCESS_SUMMARY:
+                send_telegram_message(
+                    telegram_import_success_message(
+                        file_name=path.name,
+                        record_count=record_count,
+                        parse_warning_count=parse_warning_count,
+                        api_warning_count=api_warning_count,
+                        inseriti=inseriti,
+                        aggiornati=aggiornati,
+                        annullati=annullati
+                    )
                 )
-            )
 
         except Exception as e:
             set_tray_title("🔴 Errore import")
