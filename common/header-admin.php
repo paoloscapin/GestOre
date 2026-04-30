@@ -34,6 +34,7 @@
 					<li role="separator" class="divider"></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/biglietti_eventi.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Eventi Biglietti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/tickets.php"><span class="glyphicon glyphicon-barcode"></span>&ensp;Assegna Biglietti</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/ticket_mail_test.php"><span class="glyphicon glyphicon-envelope"></span>&ensp;Test Mail Ticket</a></li>
 				</ul>
 			</li>
 			<li class="dropdown">
