@@ -17,6 +17,7 @@ var $classi_filtro_id = 0;
 var $materia_filtro_id = 0;
 var $docenti_filtro_id = 0;
 var $da_completare_filtro_id = 0;
+var activeProgrammaPreviewField = null;
 
 function getClasseAnnoCorrente() {
     var annoHidden = parseInt($('#hidden_programma_classe_anno').val(), 10) || 0;
@@ -40,6 +41,341 @@ function pulisciCampiProgrammaQuinta() {
     $('#testi_materiali_programma').val('');
 }
 
+function escapeProgrammaPreviewHtml(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function isProgrammaPreviewUppercase(text) {
+    var trimmed = $.trim(text);
+    return /[\p{L}]/u.test(trimmed) && !/[\p{Ll}]/u.test(trimmed);
+}
+
+function detectProgrammaPreviewLevel(raw, currentParent) {
+    var normalized = String(raw || '').replace(/\t/g, '  ').replace(/\s+$/u, '');
+    var trimmed = normalized.replace(/^\s+/u, '');
+
+    var bulletMatch = trimmed.match(/^(?:[•●▪◦◦]\s+|--\s+|>\s+|-\s+|\*\s+)(.+)$/u);
+    if (bulletMatch) {
+        return {
+            level: currentParent !== null ? 1 : 0,
+            text: $.trim(bulletMatch[1] || '')
+        };
+    }
+
+    var indentMatch = normalized.match(/^ {2,}(.+)$/u);
+    if (indentMatch) {
+        return {
+            level: currentParent !== null ? 1 : 0,
+            text: $.trim(indentMatch[1] || '')
+        };
+    }
+
+    return {
+        level: 0,
+        text: $.trim(trimmed)
+    };
+}
+
+function buildProgrammaPreviewTree(text) {
+    var lines = String(text || '').split(/\r\n|\r|\n/u);
+    var tree = [];
+    var currentParent = null;
+    var nextIsChild = false;
+
+    lines.forEach(function (line) {
+        var rawLine = String(line || '').replace(/\s+$/u, '');
+        if (rawLine === '') {
+            nextIsChild = false;
+            return;
+        }
+
+        var literalDotMap = {};
+        var literalDotIndex = 0;
+        rawLine = rawLine.replace(/\.{2,}/g, function (match) {
+            var token = '__GESTORE_LITERAL_DOTS_' + literalDotIndex + '__';
+            literalDotMap[token] = match;
+            literalDotIndex++;
+            return token;
+        });
+        var segments = rawLine.split(/(?<!\.)\.(?!\.)\s*/u);
+        segments.forEach(function (segment) {
+            var restored = String(segment || '');
+            Object.keys(literalDotMap).forEach(function (token) {
+                restored = restored.split(token).join(literalDotMap[token]);
+            });
+            var raw = $.trim(restored);
+            if (raw === '') {
+                return;
+            }
+
+            var headingMatch = raw.match(/^>>\s*(.+)$/u);
+            if (headingMatch) {
+                var headingText = $.trim(String(headingMatch[1] || '').replace(/[.;:]\s*$/u, ''));
+                tree.push({ type: 'heading', text: headingText, children: [] });
+                currentParent = null;
+                nextIsChild = false;
+                return;
+            }
+
+            if (isProgrammaPreviewUppercase(raw)) {
+                tree.push({ type: 'heading', text: raw.replace(/[.;:]\s*$/u, ''), children: [] });
+                currentParent = null;
+                nextIsChild = false;
+                return;
+            }
+
+            raw = raw.replace(/;\s*$/u, '');
+            var endsWithColon = /:\s*$/u.test(raw);
+            var detected = detectProgrammaPreviewLevel(raw, currentParent);
+            var textLi = detected.text;
+            var level = detected.level;
+
+            if (nextIsChild && level === 0 && currentParent !== null) {
+                level = 1;
+                nextIsChild = false;
+            }
+
+            if (level === 0) {
+                tree.push({ type: 'item', text: textLi, children: [] });
+                currentParent = tree.length - 1;
+            } else {
+                if (currentParent === null) {
+                    tree.push({ type: 'item', text: '', children: [] });
+                    currentParent = tree.length - 1;
+                }
+                tree[currentParent].children.push({ text: textLi });
+            }
+
+            if (endsWithColon) {
+                nextIsChild = true;
+            }
+        });
+    });
+
+    return tree;
+}
+
+function renderProgrammaPreviewHtml(text) {
+    var tree = buildProgrammaPreviewTree(text);
+    if (!tree.length) {
+        return '<span class="text-muted">Anteprima non disponibile: inizia a scrivere.</span>';
+    }
+
+    var html = '';
+    var ulOpen = false;
+
+    tree.forEach(function (node) {
+        var type = node.type || 'item';
+        if (type === 'heading') {
+            if (ulOpen) {
+                html += '</ul>';
+                ulOpen = false;
+            }
+            html += '<p><strong>' + escapeProgrammaPreviewHtml(node.text || '') + '</strong></p>';
+            return;
+        }
+
+        if (!ulOpen) {
+            html += '<ul>';
+            ulOpen = true;
+        }
+
+        html += '<li>' + escapeProgrammaPreviewHtml(node.text || '');
+        if (node.children && node.children.length) {
+            html += '<ul>';
+            node.children.forEach(function (child) {
+                html += '<li>' + escapeProgrammaPreviewHtml(child.text || '') + '</li>';
+            });
+            html += '</ul>';
+        }
+        html += '</li>';
+    });
+
+    if (ulOpen) {
+        html += '</ul>';
+    }
+
+    return html;
+}
+
+function renderProgrammaPreviewLinesHtml(text) {
+    var lines = String(text || '').split(/\r\n|\r|\n/u);
+    if (!String(text || '').length) {
+        return '<span class="text-muted">Le righe finiranno con il simbolo ↵.</span>';
+    }
+
+    return lines.map(function (line) {
+        if (line === '') {
+            return '<div class="programma-preview-line programma-preview-line-empty">riga vuota<span class="programma-preview-crlf">↵</span></div>';
+        }
+        return '<div class="programma-preview-line">' + escapeProgrammaPreviewHtml(line) + '<span class="programma-preview-crlf">↵</span></div>';
+    }).join('');
+}
+
+function updateProgrammaFieldPreview(textareaSelector, previewSelector, linesSelector) {
+    var value = $(textareaSelector).val() || '';
+    $(previewSelector).html(renderProgrammaPreviewHtml(value));
+    $(linesSelector).html(renderProgrammaPreviewLinesHtml(value));
+}
+
+function refreshProgrammaAllPreviews() {
+    updateProgrammaFieldPreview('#contenuto', '#contenuto_preview', '#contenuto_lines');
+    updateProgrammaFieldPreview('#competenze_raggiunte', '#competenze_raggiunte_preview', '#competenze_raggiunte_lines');
+    updateProgrammaFieldPreview('#contenuti_trattati', '#contenuti_trattati_preview', '#contenuti_trattati_lines');
+    updateProgrammaFieldPreview('#abilita_quinta', '#abilita_quinta_preview', '#abilita_quinta_lines');
+    updateProgrammaFieldPreview('#metodologie_programma', '#metodologie_programma_preview', '#metodologie_programma_lines');
+    updateProgrammaFieldPreview('#criteri_valutazione_programma', '#criteri_valutazione_programma_preview', '#criteri_valutazione_programma_lines');
+    updateProgrammaFieldPreview('#testi_materiali_programma', '#testi_materiali_programma_preview', '#testi_materiali_programma_lines');
+}
+
+function bindProgrammaPreviewEvents() {
+    $('#contenuto, #competenze_raggiunte, #contenuti_trattati, #abilita_quinta, #metodologie_programma, #criteri_valutazione_programma, #testi_materiali_programma')
+        .off('input.programmaPreview')
+        .on('input.programmaPreview', function () {
+            refreshProgrammaAllPreviews();
+        });
+}
+
+function renderProgrammaPreviewLinesHtml(text, activeLine) {
+    var lines = String(text || '').split(/\r\n|\r|\n/u);
+    if (!String(text || '').length) {
+        return '<span class="text-muted">Qui vedi la riga corrente e quelle vicine, con `↵` a fine riga.</span>';
+    }
+
+    var safeActiveLine = parseInt(activeLine, 10);
+    if (!safeActiveLine || safeActiveLine < 1) {
+        safeActiveLine = 1;
+    }
+
+    var html = [];
+
+    for (var i = 1; i <= lines.length; i++) {
+        var line = lines[i - 1];
+        var classes = 'programma-preview-line';
+        if (i === safeActiveLine) {
+            classes += ' programma-preview-line-active';
+        }
+        if (line === '') {
+            classes += ' programma-preview-line-empty';
+            html.push('<div class="' + classes + '">riga vuota<span class="programma-preview-crlf">↵</span></div>');
+            continue;
+        }
+        html.push('<div class="' + classes + '">' + escapeProgrammaPreviewHtml(line) + '<span class="programma-preview-crlf">↵</span></div>');
+    }
+
+    return html.join('');
+}
+
+function getProgrammaTextareaLine(textarea) {
+    if (!textarea) {
+        return 1;
+    }
+
+    var caret = typeof textarea.selectionStart === 'number' ? textarea.selectionStart : String(textarea.value || '').length;
+    return String(textarea.value || '').slice(0, caret).split(/\r\n|\r|\n/u).length;
+}
+
+function updateProgrammaFieldPreview(textareaSelector, previewSelector, linesSelector, activeLine) {
+    var value = $(textareaSelector).val() || '';
+    $(previewSelector).html(renderProgrammaPreviewHtml(value));
+    $(linesSelector).html(renderProgrammaPreviewLinesHtml(value, activeLine));
+    syncProgrammaPreviewScroll(textareaSelector, previewSelector, activeLine);
+    syncProgrammaPreviewScroll(textareaSelector, linesSelector, activeLine);
+}
+
+function refreshProgrammaAllPreviews() {
+    updateProgrammaFieldPreview('#contenuto', '#contenuto_preview', '#contenuto_lines', 1);
+    updateProgrammaFieldPreview('#competenze_raggiunte', '#competenze_raggiunte_preview', '#competenze_raggiunte_lines', 1);
+    updateProgrammaFieldPreview('#contenuti_trattati', '#contenuti_trattati_preview', '#contenuti_trattati_lines', 1);
+    updateProgrammaFieldPreview('#abilita_quinta', '#abilita_quinta_preview', '#abilita_quinta_lines', 1);
+    updateProgrammaFieldPreview('#metodologie_programma', '#metodologie_programma_preview', '#metodologie_programma_lines', 1);
+    updateProgrammaFieldPreview('#criteri_valutazione_programma', '#criteri_valutazione_programma_preview', '#criteri_valutazione_programma_lines', 1);
+    updateProgrammaFieldPreview('#testi_materiali_programma', '#testi_materiali_programma_preview', '#testi_materiali_programma_lines', 1);
+}
+
+function hideProgrammaFieldPreview() {
+    activeProgrammaPreviewField = null;
+    $('.programma-preview-row').removeClass('is-active');
+    $('.programma-active-edit-group').removeClass('programma-active-edit-group');
+    $('[id$="_preview_top_actions"]').hide();
+    $('#programma_modal, #modulo_modal').removeClass('programma-editing-mode');
+}
+
+function showProgrammaFieldPreview(fieldId) {
+    activeProgrammaPreviewField = fieldId;
+    $('.programma-preview-row').removeClass('is-active');
+    $('.programma-active-edit-group').removeClass('programma-active-edit-group');
+    $('[id$="_preview_top_actions"]').hide();
+    $('#' + fieldId + '_preview_top_actions').show();
+    $('#' + fieldId + '_preview_row').addClass('is-active');
+    $('#' + fieldId).closest('.form-group').addClass('programma-active-edit-group');
+    if ($('#' + fieldId).closest('#programma_modal').length) {
+        $('#programma_modal').addClass('programma-editing-mode');
+        $('#modulo_modal').removeClass('programma-editing-mode');
+    }
+    if ($('#' + fieldId).closest('#modulo_modal').length) {
+        $('#modulo_modal').addClass('programma-editing-mode');
+        $('#programma_modal').removeClass('programma-editing-mode');
+    }
+}
+
+function syncProgrammaFieldPreview(fieldId) {
+    var $textarea = $('#' + fieldId);
+    if (!$textarea.length) {
+        return;
+    }
+    updateProgrammaFieldPreview('#' + fieldId, '#' + fieldId + '_preview', '#' + fieldId + '_lines', getProgrammaTextareaLine($textarea.get(0)));
+}
+
+function syncProgrammaPreviewScroll(textareaSelector, previewSelector, activeLine) {
+    var textarea = $(textareaSelector).get(0);
+    var preview = $(previewSelector).get(0);
+    if (!textarea || !preview) {
+        return;
+    }
+
+    var lines = String($(textareaSelector).val() || '').split(/\r\n|\r|\n/u);
+    var totalLines = Math.max(lines.length, 1);
+    var safeActiveLine = Math.max(1, Math.min(parseInt(activeLine, 10) || 1, totalLines));
+
+    if (preview.scrollHeight <= preview.clientHeight) {
+        preview.scrollTop = 0;
+        return;
+    }
+
+    var ratio = totalLines <= 1 ? 0 : ((safeActiveLine - 1) / (totalLines - 1));
+    var maxScroll = preview.scrollHeight - preview.clientHeight;
+    preview.scrollTop = Math.max(0, Math.round(maxScroll * ratio) - 40);
+}
+
+function bindProgrammaPreviewEvents() {
+    $('#contenuto, #competenze_raggiunte, #contenuti_trattati, #abilita_quinta, #metodologie_programma, #criteri_valutazione_programma, #testi_materiali_programma')
+        .off('.programmaPreview')
+        .on('focus.programmaPreview', function () {
+            showProgrammaFieldPreview(this.id);
+            syncProgrammaFieldPreview(this.id);
+        })
+        .on('input.programmaPreview keyup.programmaPreview click.programmaPreview', function () {
+            showProgrammaFieldPreview(this.id);
+            syncProgrammaFieldPreview(this.id);
+        });
+
+    $('.programma-preview-done')
+        .off('click.programmaPreview')
+        .on('click.programmaPreview', function () {
+            var fieldId = $(this).data('preview-field');
+            hideProgrammaFieldPreview();
+            if (fieldId) {
+                $('#' + fieldId).blur();
+            }
+        });
+}
+
 function aggiornaCampiModuloPerClasse() {
     var quinta = isProgrammaQuinta();
     var $contenutoGroup = $('#contenuto').closest('.form-group');
@@ -58,6 +394,8 @@ function aggiornaCampiModuloPerClasse() {
         $('#quinta_programma_fields_wrap').hide();
         pulisciCampiProgrammaQuinta();
     }
+
+    refreshProgrammaAllPreviews();
 }
 
 function programmaSvoltoReadonly() {
@@ -255,6 +593,7 @@ function programmiSvoltiGetDetails(programma_id, duplica, share, readonly) {
             $('#docente').selectpicker('refresh');
             aggiornaCampiModuloPerClasse();
             applicaReadonlyProgrammaSvolto();
+            hideProgrammaFieldPreview();
         });
         moduliSvoltiReadRecords(programma_id);
     } else {
@@ -277,6 +616,7 @@ function programmiSvoltiGetDetails(programma_id, duplica, share, readonly) {
         pulisciCampiProgrammaQuinta();
         aggiornaCampiModuloPerClasse();
         applicaReadonlyProgrammaSvolto();
+        hideProgrammaFieldPreview();
     }
     $("#_error-programma-part").hide();
     $("#programma_modal").modal("show");
@@ -390,6 +730,7 @@ async function moduloSvoltiGetDetails(modulo_id) {
     }
 
     aggiornaCampiModuloPerClasse();
+    hideProgrammaFieldPreview();
     $("#_error-modulo-part").hide();
     $("#modulo_modal").modal("show");
 }
@@ -538,6 +879,8 @@ function moduloSvoltiSave() {
 }
 
 $(document).ready(function () {
+    bindProgrammaPreviewEvents();
+    hideProgrammaFieldPreview();
     programmiSvoltiReadRecords();
 
     $("#classi_filtro").on("changed.bs.select", function () {
@@ -571,5 +914,6 @@ $(document).ready(function () {
 
     aggiornaCampiModuloPerClasse();
     applicaReadonlyProgrammaSvolto();
+    hideProgrammaFieldPreview();
     $('#send_btn').hide();
 });

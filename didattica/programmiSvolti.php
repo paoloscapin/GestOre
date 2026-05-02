@@ -94,10 +94,264 @@ applicaDocenteDaParametroSeAutorizzato();
             line-height: 25px;
             transition: width 0.3s;
         }
+
+        .programma-preview-row {
+            display: none;
+            margin-top: 8px;
+        }
+
+        .programma-preview-row.is-active {
+            display: block;
+        }
+
+        #programma_modal.programma-editing-mode .classe_selector,
+        #programma_modal.programma-editing-mode .docente_selector,
+        #programma_modal.programma-editing-mode .materia_selector {
+            display: none;
+        }
+
+        #programma_modal.programma-editing-mode form.form-horizontal > .form-group,
+        #programma_modal.programma-editing-mode #quinta_programma_fields_wrap > .form-group,
+        #programma_modal.programma-editing-mode .container-fluid,
+        #programma_modal.programma-editing-mode .panel-footer {
+            display: none;
+        }
+
+        #programma_modal.programma-editing-mode .form-group.programma-active-edit-group,
+        #programma_modal.programma-editing-mode .programma-preview-row.is-active {
+            display: block;
+        }
+
+        #programma_modal.programma-editing-mode #quinta_programma_fields_wrap,
+        #programma_modal.programma-editing-mode #quinta_programma_fields_wrap > .form-group.programma-active-edit-group,
+        #programma_modal.programma-editing-mode #quinta_programma_fields_wrap > .programma-preview-row.is-active {
+            display: block;
+        }
+
+        #modulo_modal.programma-editing-mode .modulo_ordine_group,
+        #modulo_modal.programma-editing-mode .modulo_titolo_group {
+            display: none;
+        }
+
+        #modulo_modal.programma-editing-mode #contenuto_preview_row .col-sm-2 {
+            margin-top: -96px;
+        }
+
+        #modulo_modal.programma-editing-mode #contenuto_preview_top_actions {
+            margin-top: -36px;
+            margin-bottom: 6px;
+        }
+
+        .programma-preview-side {
+            background: #eef5fd;
+            border: 1px solid #d6e4f3;
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 100%;
+        }
+
+        .programma-preview-side .title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #35608d;
+            margin-bottom: 6px;
+            letter-spacing: .4px;
+        }
+
+        .programma-preview-side .hint {
+            font-size: 12px;
+            color: #4e647a;
+            margin-bottom: 0;
+            line-height: 1.5;
+        }
+
+        .programma-guide-example {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #d6e4f3;
+        }
+
+        .programma-guide-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #35608d;
+            margin-bottom: 3px;
+        }
+
+        .programma-guide-code {
+            display: block;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 12px;
+            color: #1f3550;
+            white-space: pre-line;
+        }
+
+        .programma-syntax-box {
+            border: 1px solid #d9e7f5;
+            border-radius: 8px;
+            background: #f8fbff;
+            padding: 10px 12px;
+        }
+
+        .programma-preview-render {
+            background: #fff;
+            border: 1px solid #dbe7f1;
+            border-radius: 6px;
+            padding: 10px 12px;
+            min-height: 44px;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .programma-preview-render p {
+            margin: 0 0 8px 0;
+        }
+
+        .programma-preview-render ul {
+            margin: 0 0 6px 18px;
+            padding-left: 12px;
+        }
+
+        .programma-preview-render li {
+            margin-bottom: 4px;
+        }
+
+        .programma-preview-lines {
+            margin-top: 8px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: #f3f6fa;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 12px;
+            color: #4f5d6b;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .programma-preview-line {
+            white-space: pre-wrap;
+            margin-bottom: 2px;
+        }
+
+        .programma-preview-line-active {
+            background: #e6f2ff;
+            border-radius: 4px;
+            padding: 2px 4px;
+            color: #1d4f80;
+            font-weight: 600;
+        }
+
+        .programma-preview-line-empty {
+            color: #8a97a4;
+            font-style: italic;
+        }
+
+        .programma-preview-crlf {
+            display: inline-block;
+            margin-left: 4px;
+            color: #1f7acc;
+            font-weight: 700;
+        }
+
+        .programma-preview-actions {
+            margin-top: 10px;
+            text-align: right;
+        }
+
+        #programma_modal .modal-dialog,
+        #modulo_modal .modal-dialog {
+            width: 94vw;
+            max-width: 1700px;
+        }
     </style>
 </head>
 
 <?php
+function renderProgrammaSyntaxPreview(string $fieldId, string $previewId, string $linesId): string
+{
+    return '
+        <div id="' . htmlspecialchars($fieldId) . '_preview_row" class="form-group programma-preview-row" data-preview-field="' . htmlspecialchars($fieldId) . '">
+            <div class="col-sm-2">
+                <div class="programma-preview-side">
+                    <div class="title">Sintassi</div>
+                    <div class="hint">Regole applicate:</div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">Titolo senza pallino</div>
+                        <span class="programma-guide-code">>> Metodo scientifico</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">Metodo scientifico</span>
+                    </div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">Titolo automatico se scrivi tutto in maiuscolo</div>
+                        <span class="programma-guide-code">METODO SCIENTIFICO</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">METODO SCIENTIFICO</span>
+                    </div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">Ogni riga nuova crea una voce con pallino</div>
+                        <span class="programma-guide-code">Le coordinate geografiche.
+I moti della Terra.</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">• Le coordinate geografiche
+• I moti della Terra</span>
+                    </div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">Un punto singolo puo separare due voci sulla stessa riga</div>
+                        <span class="programma-guide-code">Sistema Solare. Galassie.</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">• Sistema Solare
+• Galassie</span>
+                    </div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">`..`, `...`, `....` restano punti veri nel testo</div>
+                        <span class="programma-guide-code">A.. Rossi
+ecc...
+approfondimento.... finale</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">• A. Rossi
+• ecc...
+• approfondimento.... finale</span>
+                    </div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">Se una riga finisce con `:` la riga dopo diventa dettaglio</div>
+                        <span class="programma-guide-code">Metodologie:
+lavoro di gruppo</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">• Metodologie:
+  • lavoro di gruppo</span>
+                    </div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">Sottopunti anche con `-`, `*`, `>`, `--` o almeno due spazi</div>
+                        <span class="programma-guide-code">Metodologie:
+- lavoro di gruppo
+  problem solving
+* cooperative learning</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">• Metodologie:
+  • lavoro di gruppo
+  • problem solving
+  • cooperative learning</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-10">
+                <div class="programma-preview-actions" id="' . htmlspecialchars($fieldId) . '_preview_top_actions" style="display:none;">
+                    <button type="button" class="btn btn-default btn-xs programma-preview-done" data-preview-field="' . htmlspecialchars($fieldId) . '">Ho finito di modificare questo campo</button>
+                </div>
+                <div id="' . htmlspecialchars($fieldId) . '_preview_box" class="programma-syntax-box" data-preview-field="' . htmlspecialchars($fieldId) . '">
+                    <div class="title">Anteprima durante la modifica</div>
+                    <div id="' . htmlspecialchars($previewId) . '" class="programma-preview-render"><span class="text-muted">Anteprima non disponibile: inizia a scrivere.</span></div>
+                    <div id="' . htmlspecialchars($linesId) . '" class="programma-preview-lines"><span class="text-muted">Qui vedi la riga corrente e quelle vicine, con `↵` a fine riga.</span></div>
+                    <div class="programma-preview-actions">
+                        <button type="button" class="btn btn-default btn-xs programma-preview-done" data-preview-field="' . htmlspecialchars($fieldId) . '">Ho finito di modificare questo campo</button>
+                    </div>
+                </div>
+            </div>
+        </div>';
+}
+
 // if (((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))  || ((haRuolo('docente')) && (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) && (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false))) )
 // {
 //     $modificheDisabilitate = '';
@@ -305,7 +559,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                 <!-- Modal - Add/Update Record -->
                 <div class="modal fade" id="programma_modal" data-backdrop="static" tabindex="-1" role="dialog"
                     aria-labelledby="myModalLabel1">
-                    <div class="modal-dialog modal-lg" style="margin:auto;width:%40" role="document">
+                    <div class="modal-dialog modal-lg" style="margin:auto;" role="document">
                         <div class="modal-content">
                             <div class="modal-body">
                                 <div class="panel panel-orange4">
@@ -359,6 +613,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                             title="Inserisci le metodologie dell'intero programma"></textarea>
                                                     </div>
                                                 </div>
+                                                <?php echo renderProgrammaSyntaxPreview('metodologie_programma', 'metodologie_programma_preview', 'metodologie_programma_lines'); ?>
 
                                                 <div class="form-group">
                                                     <label class="col-sm-2 control-label" for="criteri_valutazione_programma">Criteri di valutazione</label>
@@ -368,6 +623,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                             title="Inserisci i criteri di valutazione dell'intero programma"></textarea>
                                                     </div>
                                                 </div>
+                                                <?php echo renderProgrammaSyntaxPreview('criteri_valutazione_programma', 'criteri_valutazione_programma_preview', 'criteri_valutazione_programma_lines'); ?>
 
                                                 <div class="form-group">
                                                     <label class="col-sm-2 control-label" for="testi_materiali_programma">Testi e materiali / strumenti</label>
@@ -377,6 +633,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                             title="Inserisci testi e materiali / strumenti adottati per l'intero programma"></textarea>
                                                     </div>
                                                 </div>
+                                                <?php echo renderProgrammaSyntaxPreview('testi_materiali_programma', 'testi_materiali_programma_preview', 'testi_materiali_programma_lines'); ?>
                                             </div>
 
                                             <div class="form-group" id="_error-programma-part"><strong>
@@ -480,7 +737,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
         <!-- Modal - Add/Update Record -->
         <div class="modal fade" id="modulo_modal" data-backdrop="static" tabindex="-1" role="dialog"
             aria-labelledby="myModalLabel">
-            <div class="modal-dialog modal-lg" style="margin:auto;width:%100" role="document">
+            <div class="modal-dialog modal-lg" style="margin:auto;" role="document">
                 <div class="modal-content">
                     <div class="modal-body">
                         <div class="panel panel-orange4">
@@ -491,7 +748,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                             <div class="panel-body">
                                 <form class="form-horizontal">
 
-                                    <div class="form-group">
+                                    <div class="form-group modulo_ordine_group">
                                         <label class="col-sm-2 control-label" for="ordine">Ordine</label>
                                         <div class="col-sm-10"><input type="text" id="ordine" placeholder="ordine"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
@@ -499,7 +756,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                         </div>
                                     </div>
 
-                                    <div class="form-group">
+                                    <div class="form-group modulo_titolo_group">
                                         <label class="col-sm-2 control-label" for="titolo">Titolo</label>
                                         <div class="col-sm-10"><input type="text" id="titolo" placeholder="titolo"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
@@ -511,8 +768,12 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                         <div class="col-sm-10"><textarea id="contenuto" rows="5" placeholder="contenuto"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
                                                 title="Inserisci il contenuto relativo a questo modulo"></textarea>
+                                            <div class="help-block" style="margin-top:6px; color:#4f6b88;">
+                                                Clicca dentro il testo per vedere sotto l'anteprima live di come verra' formattato.
+                                            </div>
                                         </div>
                                     </div>
+                                    <?php echo renderProgrammaSyntaxPreview('contenuto', 'contenuto_preview', 'contenuto_lines'); ?>
 
                                     <div id="quinta_fields_wrap" style="display:none;">
                                         <div class="form-group">
@@ -523,6 +784,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                     title="Inserisci le competenze raggiunte alla fine dell'anno per la disciplina"></textarea>
                                             </div>
                                         </div>
+                                        <?php echo renderProgrammaSyntaxPreview('competenze_raggiunte', 'competenze_raggiunte_preview', 'competenze_raggiunte_lines'); ?>
 
                                         <div class="form-group">
                                             <label class="col-sm-2 control-label" for="contenuti_trattati">Conoscenze / contenuti trattati</label>
@@ -532,6 +794,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                     title="Inserisci conoscenze o contenuti trattati, anche attraverso UDA o moduli"></textarea>
                                             </div>
                                         </div>
+                                        <?php echo renderProgrammaSyntaxPreview('contenuti_trattati', 'contenuti_trattati_preview', 'contenuti_trattati_lines'); ?>
 
                                         <div class="form-group">
                                             <label class="col-sm-2 control-label" for="abilita_quinta">Abilita'</label>
@@ -541,6 +804,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                     title="Inserisci le abilita'"></textarea>
                                             </div>
                                         </div>
+                                        <?php echo renderProgrammaSyntaxPreview('abilita_quinta', 'abilita_quinta_preview', 'abilita_quinta_lines'); ?>
 
                                     </div>
 

@@ -255,10 +255,16 @@ function buildTwoLevelListFromText(string $text): string
             continue;
         }
 
+        $literalDotMap = [];
+        $rawLine = preg_replace_callback('/\.{2,}/u', function ($matches) use (&$literalDotMap) {
+            $token = '__GESTORE_LITERAL_DOTS_' . count($literalDotMap) . '__';
+            $literalDotMap[$token] = $matches[0];
+            return $token;
+        }, $rawLine);
         $segments = preg_split('/(?<!\.)\.(?!\.)\s*/u', $rawLine);
 
         foreach ($segments as $segment) {
-            $raw = trim($segment);
+            $raw = trim(strtr($segment, $literalDotMap));
             if ($raw === '') {
                 continue;
             }
@@ -1211,7 +1217,7 @@ ob_start();
                     <table class="module">
                         <thead>
                             <tr>
-                                <th colspan="2">Docente <?= htmlspecialchars($programEntry['docente_label']) ?></th>
+                                <th colspan="2" style="font-size:18px; font-weight:700; padding:8px 0;">Docente <?= htmlspecialchars($programEntry['docente_label']) ?></th>
                             </tr>
                         </thead>
                     </table>
@@ -1275,7 +1281,7 @@ ob_start();
                     <table class="module">
                         <thead>
                             <tr>
-                                <th colspan="2">Docente <?= htmlspecialchars($programEntry['docente_label']) ?></th>
+                                <th colspan="2" style="font-size:18px; font-weight:700; padding:8px 0;">Docente <?= htmlspecialchars($programEntry['docente_label']) ?></th>
                             </tr>
                         </thead>
                     </table>
@@ -1376,7 +1382,7 @@ if ($doPrint) {
         ];
         foreach ($relatedModulesByProgram as $programEntry) {
             if (count($relatedModulesByProgram) > 1) {
-                $pdf->writeHTML('<p style="font-weight:bold;text-align:center;">Docente ' . htmlspecialchars($programEntry['docente_label']) . '</p>', true, false, true, false, '');
+                $pdf->writeHTML('<p style="font-weight:bold;text-align:center;font-size:18px;line-height:1.25;margin:0 0 3mm;">Docente ' . htmlspecialchars($programEntry['docente_label']) . '</p>', true, false, true, false, '');
             }
             foreach ($programEntry['modules'] as $m) {
                 $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
@@ -1414,7 +1420,7 @@ if ($doPrint) {
     } else {
         foreach ($relatedModulesByProgram as $programEntry) {
             if (count($relatedModulesByProgram) > 1) {
-                $pdf->writeHTML('<p style="font-weight:bold;text-align:center;">Docente ' . htmlspecialchars($programEntry['docente_label']) . '</p>', true, false, true, false, '');
+                $pdf->writeHTML('<p style="font-weight:bold;text-align:center;font-size:18px;line-height:1.25;margin:0 0 3mm;">Docente ' . htmlspecialchars($programEntry['docente_label']) . '</p>', true, false, true, false, '');
             }
             foreach ($programEntry['modules'] as $m) {
                 $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
