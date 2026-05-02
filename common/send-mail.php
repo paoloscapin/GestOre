@@ -220,6 +220,7 @@ function sendMailCustom($to, $toName, $subject, $Content, array $options = []): 
     $senderEmail = trim((string)($options['sender_email'] ?? $__settings->local->smtpMail));
     $senderName = trim((string)($options['sender_name'] ?? $fromName));
     $attachments = $options['attachments'] ?? [];
+    $embeddedImages = $options['embedded_images'] ?? [];
     $addBcc = array_key_exists('add_bcc_default', $options) ? (bool)$options['add_bcc_default'] : false;
 
     $mail = new PHPMailer(true);
@@ -265,6 +266,14 @@ function sendMailCustom($to, $toName, $subject, $Content, array $options = []): 
         foreach ($attachments as $file) {
             if (is_string($file) && is_file($file)) {
                 $mail->addAttachment($file);
+            }
+        }
+
+        if (is_array($embeddedImages)) {
+            foreach ($embeddedImages as $cid => $file) {
+                if (is_string($cid) && is_string($file) && is_file($file)) {
+                    $mail->addEmbeddedImage($file, $cid);
+                }
             }
         }
 
