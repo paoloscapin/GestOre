@@ -94,10 +94,284 @@ applicaDocenteDaParametroSeAutorizzato();
             line-height: 25px;
             transition: width 0.3s;
         }
+
+        .programma-preview-row {
+            display: none;
+            margin-top: 8px;
+        }
+
+        .programma-preview-row.is-active {
+            display: block;
+        }
+
+        #modulo_modal.programma-editing-mode .programma-preview-row.is-active {
+            margin-top: -6px;
+        }
+
+        #modulo_modal.programma-editing-mode .programma-preview-row.is-active .col-sm-2 {
+            margin-top: -82px;
+        }
+
+        #modulo_modal.programma-editing-mode .programma-preview-row [id$="_preview_top_actions"] {
+            margin-top: -36px;
+            margin-bottom: 6px;
+        }
+
+        #modulo_modal.programma-editing-mode .programma-syntax-box .programma-preview-actions {
+            margin-top: 10px;
+            margin-bottom: 0;
+        }
+
+        #modulo_modal.programma-editing-mode .modulo_ordine_group,
+        #modulo_modal.programma-editing-mode .modulo_titolo_group,
+        #modulo_modal.programma-editing-mode .panel-footer {
+            display: none;
+        }
+
+        #modulo_modal.programma-editing-mode form.form-horizontal>.form-group:not(.programma-active-edit-group):not(.programma-preview-row):not(#_error-modulo-part) {
+            display: none;
+        }
+
+        #modulo_modal.programma-editing-mode .form-group.programma-active-edit-group,
+        #modulo_modal.programma-editing-mode .programma-preview-row.is-active,
+        #modulo_modal.programma-editing-mode #_error-modulo-part {
+            display: block;
+        }
+
+        #modulo_modal.programma-editing-mode #conoscenze_preview_row .col-sm-2,
+        #modulo_modal.programma-editing-mode #abilita_preview_row .col-sm-2,
+        #modulo_modal.programma-editing-mode #competenze_preview_row .col-sm-2,
+        #modulo_modal.programma-editing-mode #periodo_preview_row .col-sm-2 {
+            margin-top: -96px;
+        }
+
+        #modulo_modal.programma-editing-mode #conoscenze_preview_top_actions,
+        #modulo_modal.programma-editing-mode #abilita_preview_top_actions,
+        #modulo_modal.programma-editing-mode #competenze_preview_top_actions,
+        #modulo_modal.programma-editing-mode #periodo_preview_top_actions {
+            margin-top: -36px;
+            margin-bottom: 6px;
+        }
+
+        .programma-preview-side {
+            background: #eef5fd;
+            border: 1px solid #d6e4f3;
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 100%;
+        }
+
+        .programma-preview-side .title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #35608d;
+            margin-bottom: 6px;
+            letter-spacing: .4px;
+        }
+
+        .programma-preview-side .hint {
+            font-size: 12px;
+            color: #4e647a;
+            margin-bottom: 0;
+            line-height: 1.5;
+        }
+
+        .programma-guide-example {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #d6e4f3;
+        }
+
+        .programma-guide-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #35608d;
+            margin-bottom: 3px;
+        }
+
+        .programma-guide-code {
+            display: block;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 12px;
+            color: #1f3550;
+            white-space: pre-line;
+        }
+
+        .programma-syntax-box {
+            border: 1px solid #d9e7f5;
+            border-radius: 8px;
+            background: #f8fbff;
+            padding: 10px 12px;
+            position: sticky;
+            top: 10px;
+        }
+
+        .programma-preview-render {
+            background: #fff;
+            border: 1px solid #dbe7f1;
+            border-radius: 6px;
+            padding: 10px 12px;
+            min-height: 44px;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .programma-preview-render p {
+            margin: 0 0 8px 0;
+        }
+
+        .programma-preview-render ul {
+            margin: 0 0 6px 18px;
+            padding-left: 12px;
+        }
+
+        .programma-preview-render li {
+            margin-bottom: 4px;
+        }
+
+        .programma-preview-lines {
+            margin-top: 8px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: #f3f6fa;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 12px;
+            color: #4f5d6b;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .programma-preview-line {
+            white-space: pre-wrap;
+            margin-bottom: 2px;
+        }
+
+        .programma-preview-line-active {
+            background: #e6f2ff;
+            border-radius: 4px;
+            padding: 2px 4px;
+            color: #1d4f80;
+            font-weight: 600;
+        }
+
+        .programma-preview-line-empty {
+            color: #8a97a4;
+            font-style: italic;
+        }
+
+        .programma-preview-crlf {
+            display: inline-block;
+            margin-left: 4px;
+            color: #1f7acc;
+            font-weight: 700;
+        }
+
+        .programma-preview-actions {
+            margin-top: 10px;
+            text-align: right;
+        }
+
+        #programma_modal .modal-dialog,
+        #modulo_modal .modal-dialog {
+            width: 94vw;
+            max-width: 1700px;
+        }
+
+        #modulo_modal.programma-editing-mode .programma-preview-row.is-active {
+            margin-top: -6px;
+        }
+
+        #modulo_modal.programma-editing-mode .programma-preview-inline-actions {
+            float: right;
+            margin-top: -2px;
+        }
+
+        #modulo_modal.programma-editing-mode .programma-active-edit-group [id$="_preview_top_actions"] {
+            margin-top: -2px;
+            margin-bottom: 0;
+        }
     </style>
 </head>
 
 <?php
+function renderProgrammaSintassiPreviewIniziali(string $fieldId, string $previewId, string $linesId): string
+{
+    return '
+
+        <div id="' . htmlspecialchars($fieldId) . '_preview_row" class="form-group programma-preview-row" data-preview-field="' . htmlspecialchars($fieldId) . '">
+            <div class="col-sm-2">
+                <div class="programma-preview-side">
+                    <div class="title">Sintassi</div>
+                    <div class="hint">Regole applicate:</div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">Titolo senza pallino</div>
+                        <span class="programma-guide-code">>> Metodo scientifico</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">Metodo scientifico</span>
+                    </div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">Titolo automatico se scrivi tutto in maiuscolo</div>
+                        <span class="programma-guide-code">METODO SCIENTIFICO</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">METODO SCIENTIFICO</span>
+                    </div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">Ogni riga nuova crea una voce con pallino</div>
+                        <span class="programma-guide-code">Le coordinate geografiche.
+I moti della Terra.</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">&bull; Le coordinate geografiche
+&bull; I moti della Terra</span>
+                    </div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">Un punto singolo puo separare due voci sulla stessa riga</div>
+                        <span class="programma-guide-code">Sistema Solare. Galassie.</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">&bull; Sistema Solare
+&bull; Galassie</span>
+                    </div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">`..`, `...`, `....` restano punti veri nel testo</div>
+                        <span class="programma-guide-code">A.. Rossi
+ecc...
+approfondimento.... finale</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">&bull; A. Rossi
+&bull; ecc...
+&bull; approfondimento.... finale</span>
+                    </div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">Se una riga finisce con `:` la riga dopo diventa dettaglio</div>
+                        <span class="programma-guide-code">Metodologie:
+lavoro di gruppo</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">&bull; Metodologie:
+  &bull; lavoro di gruppo</span>
+                    </div>
+                    <div class="programma-guide-example">
+                        <div class="programma-guide-label">Sottopunti anche con `-`, `*`, `>`, `--` o almeno due spazi</div>
+                        <span class="programma-guide-code">Metodologie:
+- lavoro di gruppo
+  problem solving
+* cooperative learning</span>
+                        <div class="programma-guide-label">Appare</div>
+                        <span class="programma-guide-code">&bull; Metodologie:
+  &bull; lavoro di gruppo
+  &bull; problem solving
+  &bull; cooperative learning</span>
+                    </div>
+                </div>
+            </div>
+<div class="col-sm-10">
+    <div id="' . htmlspecialchars($fieldId) . '_preview_box" class="programma-syntax-box" data-preview-field="' . htmlspecialchars($fieldId) . '">                   <div class="title">Anteprima durante la modifica</div>
+                    <div id="' . htmlspecialchars($previewId) . '" class="programma-preview-render"><span class="text-muted">Anteprima non disponibile: inizia a scrivere.</span></div>
+                    <div id="' . htmlspecialchars($linesId) . '" class="programma-preview-lines"><span class="text-muted">Qui vedi tutto il testo, con `↵` a fine riga.</span></div>
+                </div>
+            </div>
+        </div>';
+}
 // if (((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))  || ((haRuolo('docente')) && (getSettingsValue('programmiMaterie', 'visibile_docenti', false)) && (getSettingsValue('programmiMaterie', 'docente_puo_modificare', false))) )
 // {
 //     $modificheDisabilitate = '';
@@ -392,42 +666,42 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                 </div>
                                                 <div class="col-md-4">
 
-                                                        <?php
-                                                        if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
-                                                            echo '
+                                                    <?php
+                                                    if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+                                                        echo '
                                                                 <h4 style="text-align:center">Programma Dipartimento                                                        <button class="btn btn-xs btn-lima4"
                                                                 data-toggle="tooltip" data-placement="top" title="Importa i moduli del programma di dipartimento"
                                                                 onclick="moduliInizialiImport()"><span style="font-size:14px"
                                                                 class="glyphicon glyphicon-cloud-upload"></span></button>
                                                         ';
-                                                        } else if (haRuolo('docente')) {
-                                                            if (getSettingsValue('programmiIniziali', 'docente_puo_modificare', false)) {
-                                                                if (getSettingsValue('programmiIniziali', 'importa_programma_dipartimento', false)) {
+                                                    } else if (haRuolo('docente')) {
+                                                        if (getSettingsValue('programmiIniziali', 'docente_puo_modificare', false)) {
+                                                            if (getSettingsValue('programmiIniziali', 'importa_programma_dipartimento', false)) {
                                                                 echo '
                                                                 <h4 style="text-align:center">Programma Dipartimento                                                                <button class="btn btn-xs btn-lima4"
                                                                 data-toggle="tooltip" data-placement="top" title="Importa i moduli del programma di dipartimento"
                                                                 onclick="moduliInizialiImport()"><span style="font-size:14px"
                                                                 class="glyphicon glyphicon-cloud-upload"></span></button>
                                                                 ';
-                                                                }
                                                             }
                                                         }
-                                                        ?>
+                                                    }
+                                                    ?>
                                                     </h4>
                                                 </div>
                                                 <div class="col-md-4">
-                                                        <?php
-                                                        if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
-                                                            echo '
+                                                    <?php
+                                                    if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+                                                        echo '
                                                                 <h4 style="text-align:center">Programma Iniziale
                                                                 <button class="btn btn-xs btn-lima4"
                                                                 data-toggle="tooltip" data-placement="top" title="Importa i moduli dal programma iniziale dell\'anno precedente"
                                                                 onclick="moduliInizialiSvoltiImport()"><span style="font-size:14px"
                                                                 class="glyphicon glyphicon-cloud-upload"></span></button>
                                                         ';
-                                                        } else if (haRuolo('docente')) {
-                                                            if (getSettingsValue('programmiIniziali', 'docente_puo_modificare', false)) {
-                                                                if (getSettingsValue('programmiIniziali', 'importa_anno_precedente', false)) {
+                                                    } else if (haRuolo('docente')) {
+                                                        if (getSettingsValue('programmiIniziali', 'docente_puo_modificare', false)) {
+                                                            if (getSettingsValue('programmiIniziali', 'importa_anno_precedente', false)) {
                                                                 echo '
                                                                 <h4 style="text-align:center">Programma Iniziale
                                                                 <button class="btn btn-xs btn-lima4"
@@ -435,10 +709,10 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                                                 onclick="moduliInizialiSvoltiImport()"><span style="font-size:14px"
                                                                 class="glyphicon glyphicon-cloud-upload"></span></button>
                                                                 ';
-                                                                }
                                                             }
                                                         }
-                                                        ?>
+                                                    }
+                                                    ?>
                                                     </h4>
                                                 </div>
                                                 <div class="col-md-2"></div>
@@ -492,7 +766,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                             <div class="panel-body">
                                 <form class="form-horizontal">
 
-                                    <div class="form-group">
+                                    <div class="form-group modulo_ordine_group">
                                         <label class="col-sm-2 control-label" for="ordine">Ordine</label>
                                         <div class="col-sm-10"><input type="text" id="ordine" placeholder="ordine"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
@@ -500,7 +774,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                         </div>
                                     </div>
 
-                                    <div class="form-group">
+                                    <div class="form-group modulo_titolo_group">
                                         <label class="col-sm-2 control-label" for="titolo">Titolo</label>
                                         <div class="col-sm-10"><input type="text" id="titolo" placeholder="titolo"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
@@ -512,32 +786,60 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                         <div class="col-sm-10"><textarea id="conoscenze" rows="5" placeholder="conoscenze"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
                                                 title="Inserisci le conoscenze relative a questo modulo"></textarea>
+                                            <div class="help-block" style="margin-top:6px; color:#4f6b88;">
+                                                Clicca dentro il testo per vedere sotto l'anteprima live di come verra' formattato.
+                                                <span class="programma-preview-inline-actions" id="conoscenze_preview_top_actions" style="display:none;">
+                                                    <button type="button" class="btn btn-default btn-xs programma-preview-done" data-preview-field="conoscenze">Ho finito di modificare questo campo</button>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
+                                    <?php echo renderProgrammaSintassiPreviewIniziali('conoscenze', 'conoscenze_preview', 'conoscenze_lines'); ?>
 
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="abilita">Abilità</label>
                                         <div class="col-sm-10"><textarea id="abilita" rows="5" placeholder="abilita"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
                                                 title="Inserisci le abilita relative a questo modulo"></textarea>
+                                            <div class="help-block" style="margin-top:6px; color:#4f6b88;">
+                                                Clicca dentro il testo per vedere sotto l'anteprima live di come verra' formattato.
+                                                <span class="programma-preview-inline-actions" id="abilita_preview_top_actions" style="display:none;">
+                                                    <button type="button" class="btn btn-default btn-xs programma-preview-done" data-preview-field="abilita">Ho finito di modificare questo campo</button>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
+                                    <?php echo renderProgrammaSintassiPreviewIniziali('abilita', 'abilita_preview', 'abilita_lines'); ?>
 
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="competenze">Competenze</label>
                                         <div class="col-sm-10"><textarea id="competenze" rows="5" placeholder="competenze"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
                                                 title="Inserisci le competenze relative a questo modulo"></textarea>
+                                            <div class="help-block" style="margin-top:6px; color:#4f6b88;">
+                                                Clicca dentro il testo per vedere sotto l'anteprima live di come verra' formattato.
+                                                <span class="programma-preview-inline-actions" id="competenze_preview_top_actions" style="display:none;">
+                                                    <button type="button" class="btn btn-default btn-xs programma-preview-done" data-preview-field="competenze">Ho finito di modificare questo campo</button>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
+                                    <?php echo renderProgrammaSintassiPreviewIniziali('competenze', 'competenze_preview', 'competenze_lines'); ?>
 
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="periodo">Periodo</label>
                                         <div class="col-sm-10"><textarea id="periodo" rows="5" placeholder="periodo"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
                                                 title="Inserisci il periodo relativo a questo modulo"></textarea>
+                                            <div class="help-block" style="margin-top:6px; color:#4f6b88;">
+                                                Clicca dentro il testo per vedere sotto l'anteprima live di come verra' formattato.
+                                                <span class="programma-preview-inline-actions" id="periodo_preview_top_actions" style="display:none;">
+                                                    <button type="button" class="btn btn-default btn-xs programma-preview-done" data-preview-field="periodo">Ho finito di modificare questo campo</button>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
+                                    <?php echo renderProgrammaSintassiPreviewIniziali('periodo', 'periodo_preview', 'periodo_lines'); ?>
 
                                     <div class="form-group" id="_error-modulo-part"><strong>
 

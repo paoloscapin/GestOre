@@ -101,6 +101,89 @@ function buildTwoLevelListFromText(string $text): string
     $lines = preg_split('/\R/u', $text);
     $tree = [];
     $currentParent = null;
+    $nextIsChild = false;
+
+    foreach ($lines as $line) {
+        $rawLine = rtrim((string)$line);
+        if ($rawLine === '') {
+            $nextIsChild = false;
+            continue;
+        }
+
+        $literalDotMap = [];
+        $rawLine = preg_replace_callback('/\.{2,}/u', function ($match) use (&$literalDotMap) {
+            $token = '__GESTORE_LITERAL_DOTS_' . count($literalDotMap) . '__';
+            $literalDotMap[$token] = $match[0];
+            return $token;
+        }, $rawLine);
+
+        $segments = preg_split('/(?<!\.)\.(?!\.)\s*/u', $rawLine);
+        foreach ($segments as $segment) {
+            $raw = trim(strtr((string)$segment, $literalDotMap));
+            if ($raw === '') {
+                continue;
+            }
+
+            if (preg_match('/^>>\s*(.+)$/u', $raw, $hm)) {
+                $headingText = preg_replace('/[.;:]\s*$/u', '', trim($hm[1]));
+                $tree[] = ['type' => 'heading', 'text' => $headingText, 'children' => []];
+                $currentParent = null;
+                $nextIsChild = false;
+                continue;
+            }
+
+            if (isAllUppercase($raw)) {
+                $tree[] = ['type' => 'heading', 'text' => preg_replace('/[.;:]\s*$/u', '', $raw), 'children' => []];
+                $currentParent = null;
+                $nextIsChild = false;
+                continue;
+            }
+
+            $raw = preg_replace('/;\s*$/u', '', $raw);
+            $endsWithColon = preg_match('/:\s*$/u', $raw) === 1;
+            $norm = str_replace("\t", "  ", $raw);
+            $trimmedNorm = preg_replace('/^\s+/u', '', $norm);
+
+            $level = 0;
+            $textLi = trim($trimmedNorm);
+            if (preg_match('/^(?:--\s+|>\s+|-\s+|\*\s+)(.+)$/u', $trimmedNorm, $m)) {
+                $textLi = trim($m[1]);
+                $level = $currentParent !== null ? 1 : 0;
+            } elseif (preg_match('/^ {2,}(.+)$/u', $norm, $indentMatch)) {
+                $textLi = trim($indentMatch[1]);
+                $level = $currentParent !== null ? 1 : 0;
+            }
+
+            if ($nextIsChild && $level === 0 && $currentParent !== null) {
+                $level = 1;
+                $nextIsChild = false;
+            }
+
+            if ($level === 0) {
+                $tree[] = ['text' => $textLi, 'children' => []];
+                $currentParent = count($tree) - 1;
+            } else {
+                if ($currentParent === null) {
+                    $tree[] = ['text' => '', 'children' => []];
+                    $currentParent = count($tree) - 1;
+                }
+                $tree[$currentParent]['children'][] = ['text' => $textLi, 'children' => []];
+            }
+
+            if ($endsWithColon) {
+                $nextIsChild = true;
+            }
+        }
+    }
+
+    return renderTwoLevelList($tree);
+}
+
+function buildTwoLevelListFromTextLegacy(string $text): string
+{
+    $lines = preg_split('/\R/u', $text);
+    $tree = [];
+    $currentParent = null;
 
     // Se true: il PROSSIMO elemento (uno solo) va come child del currentParent
     $nextIsChild = false;
@@ -112,11 +195,18 @@ function buildTwoLevelListFromText(string $text): string
             continue;
         }
 
-        // Ogni '.' crea una nuova riga logica (il '.' sparisce)
+        $literalDotMap = [];
+        $rawLine = preg_replace_callback('/\.{2,}/u', function ($match) use (&$literalDotMap) {
+            $token = '__GESTORE_LITERAL_DOTS_' . count($literalDotMap) . '__';
+            $literalDotMap[$token] = $match[0];
+            return $token;
+        }, $rawLine);
+
+        // Solo il punto singolo separa due voci; "..", "...", "...." restano punti veri.
         $segments = preg_split('/(?<!\.)\.(?!\.)\s*/u', $rawLine);
 
         foreach ($segments as $segment) {
-            $raw = trim($segment);
+            $raw = trim(strtr($segment, $literalDotMap));
             if ($raw === '') continue;
 
             // HEADING ESPLICITO con prefisso ">>" (top-level, no bullet, grassetto)
