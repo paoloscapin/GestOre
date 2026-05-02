@@ -200,6 +200,32 @@ function tgAnswerCallbackQuery($botToken, $callbackQueryId, $text='') {
     infoTelegram("tgAnswerCallbackQuery: callbackQueryId=$callbackQueryId text=[".$text."]");
 }
 
+function tgEditMessageReplyMarkup($botToken, $chatId, $messageId, array $extra = []) {
+
+    $url = "https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup";
+
+    $payload = array_merge([
+        'chat_id' => $chatId,
+        'message_id' => $messageId
+    ], $extra);
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
+    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    $json = json_decode($response, true);
+    infoTelegram("tgEditMessageReplyMarkup: chatId=$chatId messageId=$messageId response=" . json_encode($json));
+
+    return is_array($json) && !empty($json['ok'])
+        ? ['ok' => true, 'json' => $json]
+        : ['ok' => false, 'error' => $response];
+}
+
 function tgSendDocument($botToken, $chatId, $filePath, $fileName = '', array $extra = []) {
     $botToken = trim((string)$botToken);
     $chatId = trim((string)$chatId);

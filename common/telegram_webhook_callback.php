@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 /**
  * ===========================
@@ -10,7 +10,9 @@ function tgHandleCallback(array $update, string $TELEGRAM_BOT_TOKEN)
     $callback = $update['callback_query'] ?? null;
     infoTelegram("tgHandleCallback: raw callback=" . json_encode($callback, JSON_UNESCAPED_UNICODE));
 
-    if (!$callback) return;
+    if (!$callback) {
+        return;
+    }
 
     $callbackId = $callback['id'] ?? '';
     $data = tgNorm($callback['data'] ?? '');
@@ -30,17 +32,14 @@ function tgHandleCallback(array $update, string $TELEGRAM_BOT_TOKEN)
 
         infoTelegram("tgHandleCallback: azione=$action idRelay=$idRelay");
 
-        // Prima prova a recuperare da ID
         $relay = tgFindRelayById($idRelay);
         infoTelegram("tgHandleCallback: relay da ID: " . json_encode($relay));
 
-        // Fallback su service_message_id
         if (!$relay && $messageId > 0) {
             $relay = tgFindRelayByServiceMessage($chatId, $messageId);
             infoTelegram("tgHandleCallback: relay da service_message_id: " . json_encode($relay));
         }
 
-        // Fallback su thread_id
         if (!$relay && $threadId > 0) {
             $q = "SELECT * FROM docente_telegram_relay WHERE service_thread_id = " . dbI($threadId) . " ORDER BY id DESC LIMIT 1";
             $relay = dbGetFirst($q);
@@ -50,32 +49,59 @@ function tgHandleCallback(array $update, string $TELEGRAM_BOT_TOKEN)
         if (!$relay) {
             infoTelegram("tgHandleCallback: RELAY NON TROVATO, rispondo callbackQuery");
             tgAnswerCallbackQuery($TELEGRAM_BOT_TOKEN, $callbackId, 'Ticket non trovato');
-            tgRespond(['ok'=>true,'ignored'=>'relay id non trovato']);
+            tgRespond(['ok' => true, 'ignored' => 'relay id non trovato']);
         }
 
-        // Aggiorna ticket code se vuoto
         $ticketCode = tgNorm($relay['ticket_code'] ?? '');
         if ($ticketCode === '') {
             $ticketCode = tgUpdateTicketCode($idRelay);
             infoTelegram("tgHandleCallback: ticket_code aggiornato a [$ticketCode]");
         }
 
-        // Aggiorna stato
-        $newStatus = strtoupper($action==='chiudi'?'CHIUSA':($action==='presa'?'IN_GESTIONE':'APERTA'));
+        $newStatus = strtoupper($action === 'chiudi' ? 'CHIUSA' : ($action === 'presa' ? 'IN_GESTIONE' : 'APERTA'));
         tgUpdateRelayStatus($idRelay, $newStatus, $adminUserId, $adminName);
         infoTelegram("tgHandleCallback: stato aggiornato a $newStatus");
 
-        // Log relay post update
         $relay = tgFindRelayById($idRelay);
         infoTelegram("tgHandleCallback: relay post-update=" . json_encode($relay));
 
-        // Notifiche Telegram
-        $res1 = tgSendMessage($TELEGRAM_BOT_TOKEN, $chatId, "Operazione $action eseguita su {$ticketCode}", ['reply_to_message_id'=>$messageId]);
-        $res2 = tgSendMessage($TELEGRAM_BOT_TOKEN, $relay['docente_chat_id'], "La tua richiesta {$ticketCode} è stata {$action} da {$adminName}");
-        infoTelegram("tgHandleCallback: sendMessage gruppo=" . json_encode($res1) . " docente=" . json_encode($res2));
+        $resGroup = tgSendMessage($TELEGRAM_BOT_TOKEN, $chatId, "Operazione $action eseguita su {$ticketCode}", ['reply_to_message_id' => $messageId]);
+
+        $resTelegram = ['ok' => false, 'skipped' => true];
+        if (trim((string)($relay['docente_chat_id'] ?? '')) !== '') {
+            $resTelegram = tgSendMessage(
+                $TELEGRAM_BOT_TOKEN,
+                $relay['docente_chat_id'],
+                "La tua richiesta {$ticketCode} è stata {$action} da {$adminName}"
+            );
+        }
+
+        $resMail = ['ok' => false, 'skipped' => true];
+        $relayMail = function_exists('ticketMailResolveRelayRecipientEmail')
+            ? ticketMailResolveRelayRecipientEmail($relay)
+            : trim((string)($relay['email_riferimento'] ?? ''));
+        if (function_exists('ticketMailRelayIsMailOrigin') && ticketMailRelayIsMailOrigin($relay) && $relayMail !== '') {
+            $subject = match ($newStatus) {
+                'IN_GESTIONE' => "Presa in carico ticket {$ticketCode}",
+                'CHIUSA' => "Chiusura ticket {$ticketCode}",
+                default => "Riapertura ticket {$ticketCode}",
+            };
+            $body = match ($newStatus) {
+                'IN_GESTIONE' => "La tua richiesta {$ticketCode} è stata presa in carico da {$adminName}.",
+                'CHIUSA' => "La tua richiesta {$ticketCode} è stata chiusa da {$adminName}.",
+                default => "La tua richiesta {$ticketCode} è stata riaperta da {$adminName}.",
+            };
+            $resMail = ticketMailSendRelayNotification($relay, $subject, $body);
+        }
+
+        infoTelegram(
+            "tgHandleCallback: send gruppo=" . json_encode($resGroup) .
+            " utenteTelegram=" . json_encode($resTelegram) .
+            " utenteMail=" . json_encode($resMail)
+        );
 
         tgAnswerCallbackQuery($TELEGRAM_BOT_TOKEN, $callbackId, 'Operazione eseguita');
-        tgRespond(['ok'=>true,'handled'=>'callback']);
+        tgRespond(['ok' => true, 'handled' => 'callback']);
     }
 }
 

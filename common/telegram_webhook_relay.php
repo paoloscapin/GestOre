@@ -180,6 +180,37 @@ function tgFindOpenRelayByDocente($idDocente){
     return $relay;
 }
 
+function tgFindOpenRelayByActor($actorType, $actorId)
+{
+    $actorType = strtolower(trim((string)$actorType));
+    $actorId = (int)$actorId;
+
+    if ($actorId <= 0) {
+        infoTelegram("tgFindOpenRelayByActor: actorId non valido type=$actorType");
+        return null;
+    }
+
+    if ($actorType === 'docente') {
+        return tgFindOpenRelayByDocente($actorId);
+    }
+
+    $column = $actorType === 'genitore' ? 'idGenitore' : ($actorType === 'studente' ? 'idStudente' : '');
+    if ($column === '') {
+        infoTelegram("tgFindOpenRelayByActor: actorType non supportato type=$actorType");
+        return null;
+    }
+
+    if (function_exists('ticketMailColumnExists') && !ticketMailColumnExists('docente_telegram_relay', $column)) {
+        infoTelegram("tgFindOpenRelayByActor: colonna $column assente nel relay");
+        return null;
+    }
+
+    $q = "SELECT * FROM docente_telegram_relay WHERE {$column}=" . dbI($actorId) . " AND stato IN ('APERTA','IN_GESTIONE') AND (chiusa=0 OR chiusa IS NULL) ORDER BY id DESC LIMIT 1";
+    $relay = dbGetFirst($q);
+    infoTelegram("tgFindOpenRelayByActor: query=$q relay=" . json_encode($relay));
+    return $relay;
+}
+
 function tgGetDashboardKeyboard()
 {
     $keyboard = [];
@@ -229,6 +260,11 @@ function tgGetTicketKeyboardMinimal(array $relay){
             $keyboard[] = [
                 ['text' => '✅ Chiudi', 'callback_data' => "chiudi_relay_{$idRelay}"]
             ];
+            if (trim((string)($relay['preso_in_carico_da'] ?? '')) !== '') {
+                $keyboard[] = [
+                    ['text' => '🔁 Override', 'callback_data' => "override_relay_{$idRelay}"]
+                ];
+            }
             break;
 
         // Se chiuso → mostra "riapri" + "chiudi topic"
@@ -607,7 +643,7 @@ function tgCreateOrAppendTicketFromDocenteMail(
             'data_aggiornamento'
         ];
         $insertValues = [
-            dbQ($actorChatId),
+            dbQNotNull($actorChatId, ''),
             '0',
             dbQ($serviceChatId),
             '0',
@@ -626,6 +662,14 @@ function tgCreateOrAppendTicketFromDocenteMail(
         if (function_exists('ticketMailColumnExists') && ticketMailColumnExists('docente_telegram_relay', 'tipo_utente')) {
             $insertColumns[] = 'tipo_utente';
             $insertValues[] = dbQ($actorType);
+        }
+        if (function_exists('ticketMailColumnExists') && ticketMailColumnExists('docente_telegram_relay', 'canale_apertura')) {
+            $insertColumns[] = 'canale_apertura';
+            $insertValues[] = dbQ('mail');
+        }
+        if (function_exists('ticketMailColumnExists') && ticketMailColumnExists('docente_telegram_relay', 'email_riferimento')) {
+            $insertColumns[] = 'email_riferimento';
+            $insertValues[] = dbQ((string)$fromEmail);
         }
         if (function_exists('ticketMailColumnExists') && ticketMailColumnExists('docente_telegram_relay', 'utente_nome')) {
             $insertColumns[] = 'utente_nome';
