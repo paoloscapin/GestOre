@@ -98,7 +98,7 @@ function buildProgrammaPreviewTree(text) {
         var literalDotIndex = 0;
         rawLine = rawLine.replace(/\.{2,}/g, function (match) {
             var token = '__GESTORE_LITERAL_DOTS_' + literalDotIndex + '__';
-            literalDotMap[token] = match;
+            literalDotMap[token] = match === '..' ? '.' : match;
             literalDotIndex++;
             return token;
         });
