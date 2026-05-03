@@ -420,16 +420,18 @@ function applicaReadonlyProgrammaSvolto() {
     }
 }
 
-function buildProgrammaSvoltoForm(id_programma, format) {
+function buildProgrammaSvoltoForm(id_programma, format, viewScope) {
     var form = $('<form>', {
         action: 'stampaProgrammiSvolti.php',
         method: 'POST',
         target: '_blank'
     });
+    viewScope = viewScope || 'full';
 
     form.append($('<input>', { type: 'hidden', name: 'id', value: id_programma }));
     form.append($('<input>', { type: 'hidden', name: 'print', value: 0 }));
     form.append($('<input>', { type: 'hidden', name: 'format', value: format }));
+    form.append($('<input>', { type: 'hidden', name: 'view_scope', value: viewScope }));
     form.append($('<input>', { type: 'hidden', name: 'titolo', value: 'Programma svolto' }));
 
     return form;
@@ -753,6 +755,10 @@ function programmiSvoltiDelete(id, materia) {
 
 function programmiSvoltiPrint(id_programma) {
     buildProgrammaSvoltoForm(id_programma, 'pdf').appendTo('body').submit().remove();
+}
+
+function programmiSvoltiPrintSolo(id_programma) {
+    buildProgrammaSvoltoForm(id_programma, 'pdf', 'own').appendTo('body').submit().remove();
 }
 
 function programmiSvoltiWord(id_programma) {

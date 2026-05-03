@@ -18,6 +18,8 @@ $annoScolasticoId = isset($_POST['anno_scolastico_id']) ? (int) $_POST['anno_sco
 $doPrint = isset($_POST['print']) && ($_POST['print'] == '1' || $_POST['print'] === 'true');
 $format = isset($_POST['format']) ? strtolower((string)$_POST['format']) : 'pdf';
 $titolo = isset($_POST['titolo']) ? $_POST['titolo'] : 'Programma didattico';
+$viewScope = isset($_POST['view_scope']) ? strtolower((string)$_POST['view_scope']) : 'full';
+$soloProgrammaCorrente = ($viewScope === 'own' || $viewScope === 'solo');
 
 if ($programId <= 0 && !($format === 'docx_classe' && $classId > 0 && $annoScolasticoId > 0)) {
     exit;
@@ -173,7 +175,7 @@ if ($programId > 0 && $program == null) {
     exit;
 }
 
-$relatedPrograms = $programId > 0 ? getProgrammiSvoltiCorrelati($program) : [];
+$relatedPrograms = ($programId > 0 && !$soloProgrammaCorrente) ? getProgrammiSvoltiCorrelati($program) : [];
 if ($programId > 0 && empty($relatedPrograms) && $program != null) {
     $relatedPrograms = [$program];
 }
@@ -1246,6 +1248,7 @@ ob_start();
                 <input type="hidden" name="id" value="<?= $programId ?>">
                 <input type="hidden" name="print" value="1">
                 <input type="hidden" name="format" value="pdf">
+                <input type="hidden" name="view_scope" value="<?= htmlspecialchars($viewScope, ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="titolo" value="<?php echo htmlspecialchars($titolo, ENT_QUOTES, 'UTF-8'); ?>">
                 <button type="submit" style="font-family: Arial, sans-serif; font-size: 16px; font-weight: bold;">Scarica PDF</button>
             </form>
