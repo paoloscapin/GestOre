@@ -88,6 +88,7 @@
         "smtpPassword": "password casella di posta",
         "SMTPSecure": "tls",
         "Port": 587,
+        "watch_secret": "#####",
         "emailNoReplyFrom": "--- deve essere la mail usata per la GoogleApp oppure un alias collegato allo stesso account ---",
         "emailSportelli": "--- mail in BCC a cui viene inviato ogni email degli sportelli ---",
         "emailCarenze": "--- inserire un indirizzo di email a cui inviare in cc le lettere di carenza generate ---",
@@ -222,7 +223,8 @@
     "permessi": {
         "visibile_docenti": false,
         "visibile_genitori": false,
-        "visibile_studenti": false
+        "visibile_studenti": false,
+        "ora_limite_genitori": "09:00"
     },
     "label": {
         "ore_funzionali": "funzionali",
