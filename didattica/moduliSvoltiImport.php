@@ -9,6 +9,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once __DIR__ . '/programmiAutoreUtils.php';
 
 function fieldValue(array $row, string $upper, string $lower, $default = '')
 {
@@ -21,9 +22,36 @@ function fieldValue(array $row, string $upper, string $lower, $default = '')
     return $default;
 }
 
+function importJsonResponse(array $payload, int $status = 200): void
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
+function programmaInizialeImportLabel(array $row): array
+{
+    $docente = trim(($row['docente_cognome'] ?? '') . ' ' . ($row['docente_nome'] ?? ''));
+    $moduli = intval($row['numero_moduli'] ?? 0);
+
+    return [
+        'id' => intval($row['id']),
+        'id_docente' => intval($row['id_docente']),
+        'docente' => ($docente !== '') ? $docente : ('Docente id ' . intval($row['id_docente'])),
+        'updated' => (string)($row['updated'] ?? ''),
+        'numero_moduli' => $moduli,
+    ];
+}
+
 $programma_modulo_id = intval($_POST['programma_modulo_id'] ?? 0);
+$selected_programma_iniziale_id = intval($_POST['programma_iniziale_id'] ?? 0);
+$wants_json = (($_POST['response_format'] ?? '') === 'json');
 
 if ($programma_modulo_id <= 0) {
+    if ($wants_json) {
+        importJsonResponse(['ok' => false, 'message' => 'Programma non valido'], 400);
+    }
     http_response_code(400);
     echo "Programma non valido";
     exit;
@@ -44,6 +72,9 @@ $programma_svolto = dbGetFirst("
 );
 
 if ($programma_svolto == null) {
+    if ($wants_json) {
+        importJsonResponse(['ok' => false, 'message' => 'Programma svolto non trovato'], 404);
+    }
     http_response_code(404);
     echo "Programma svolto non trovato";
     exit;
@@ -56,28 +87,82 @@ $anno_scolastico_id = intval($programma_svolto['id_anno_scolastico']);
 $classe_anno = intval($programma_svolto['classe_anno']);
 $is_quinta = ($classe_anno === 5);
 
-$programma_iniziale = dbGetFirst("
-    SELECT *
+$programma_iniziale_select = "
+    SELECT
+        programmi_iniziali.*,
+        docente.cognome AS docente_cognome,
+        docente.nome AS docente_nome,
+        (
+            SELECT COUNT(*)
+            FROM programmi_iniziali_moduli
+            WHERE programmi_iniziali_moduli.id_programma = programmi_iniziali.id
+        ) AS numero_moduli
     FROM programmi_iniziali
-    WHERE id_classe = $classe_id
-      AND id_materia = $materia_id
-      AND id_anno_scolastico = $anno_scolastico_id
-      AND id_docente = $docente_id
-    ORDER BY updated DESC, id DESC
-");
+    INNER JOIN docente
+    ON docente.id = programmi_iniziali.id_docente
+";
 
-if ($programma_iniziale == null) {
+$programma_iniziale = null;
+
+if ($selected_programma_iniziale_id > 0) {
     $programma_iniziale = dbGetFirst("
-        SELECT *
-        FROM programmi_iniziali
-        WHERE id_classe = $classe_id
-          AND id_materia = $materia_id
-          AND id_anno_scolastico = $anno_scolastico_id
-        ORDER BY updated DESC, id DESC
+        $programma_iniziale_select
+        WHERE programmi_iniziali.id = $selected_programma_iniziale_id
+          AND programmi_iniziali.id_classe = $classe_id
+          AND programmi_iniziali.id_materia = $materia_id
+          AND programmi_iniziali.id_anno_scolastico = $anno_scolastico_id
     ");
+
+    if ($programma_iniziale == null) {
+        if ($wants_json) {
+            importJsonResponse(['ok' => false, 'message' => 'Programma iniziale selezionato non valido'], 400);
+        }
+        http_response_code(400);
+        echo "Programma iniziale selezionato non valido";
+        exit;
+    }
+} else {
+    $programma_iniziale = dbGetFirst("
+        $programma_iniziale_select
+        WHERE programmi_iniziali.id_classe = $classe_id
+          AND programmi_iniziali.id_materia = $materia_id
+          AND programmi_iniziali.id_anno_scolastico = $anno_scolastico_id
+          AND programmi_iniziali.id_docente = $docente_id
+        ORDER BY programmi_iniziali.updated DESC, programmi_iniziali.id DESC
+    ");
+
+    if ($programma_iniziale == null) {
+        $programmi_iniziali_altri_docenti = dbGetAll("
+            $programma_iniziale_select
+            WHERE programmi_iniziali.id_classe = $classe_id
+              AND programmi_iniziali.id_materia = $materia_id
+              AND programmi_iniziali.id_anno_scolastico = $anno_scolastico_id
+            ORDER BY programmi_iniziali.updated DESC, programmi_iniziali.id DESC
+        ");
+
+        if ($programmi_iniziali_altri_docenti != null && count($programmi_iniziali_altri_docenti) > 0) {
+            $programmi = array_map('programmaInizialeImportLabel', $programmi_iniziali_altri_docenti);
+
+            if ($wants_json) {
+                importJsonResponse([
+                    'ok' => false,
+                    'needs_choice' => true,
+                    'message' => 'Esistono programmi iniziali di altri docenti per questa classe e materia. Scegli quale importare.',
+                    'programmi' => $programmi,
+                ]);
+            }
+
+            http_response_code(409);
+            echo "Esistono programmi iniziali di altri docenti per questa classe e materia. Scegli quale importare.";
+            exit;
+        }
+    }
 }
 
 if ($programma_iniziale == null) {
+    if ($wants_json) {
+        importJsonResponse(['ok' => false, 'message' => 'Nessun programma iniziale trovato per classe e materia'], 404);
+    }
     http_response_code(404);
     echo "Nessun programma iniziale trovato per classe e materia";
     exit;
@@ -106,7 +191,7 @@ foreach ($resultArray as $row) {
     $ordine = intval(fieldValue($row, 'ORDINE', 'ordine', $nmoduli));
     $titolo = (string)fieldValue($row, 'NOME', 'nome', '');
     $updated = date("Y-m-d H-i-s");
-    $id_autore = $__utente_id;
+    $id_autore = programmiUtenteAutoreDaDocente($docente_id, intval($__utente_id));
 
     if ($is_quinta) {
         $contenuto = json_encode([
@@ -160,6 +245,16 @@ foreach ($resultArray as $row) {
 
 $data .= '</table></div>';
 $data .= '<input type="hidden" id="hidden_nmoduli" value="' . $nmoduli . '">';
+
+if ($wants_json) {
+    importJsonResponse([
+        'ok' => true,
+        'message' => 'Importazione completata',
+        'programma_iniziale_id' => $programma_iniziale_id,
+        'docente_origine' => programmaInizialeImportLabel($programma_iniziale)['docente'],
+        'moduli_importati' => $nmoduli,
+    ]);
+}
 
 echo $data;
 ?>

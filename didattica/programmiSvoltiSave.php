@@ -9,6 +9,7 @@
 
 require_once '../common/checkSession.php';
 ruoloRichiesto('segreteria-didattica', 'docente');
+require_once __DIR__ . '/programmiAutoreUtils.php';
 
 function programmiSvoltiHasProgramField(string $columnName): bool
 {
@@ -53,7 +54,7 @@ if (isset($_POST)) {
 	}
 	date_default_timezone_set("Europe/Rome");
 	$update = date("Y-m-d H-i-s");
-	$utente_id = $__utente_id;
+	$utente_id = programmiUtenteAutoreDaDocente(intval($docente_id), intval($__utente_id));
 	$data = '';
 	if (($duplica == 'false') && ($share == 'false')) {
 		if ($id > 0) {

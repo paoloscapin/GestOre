@@ -624,6 +624,55 @@ function programmiSvoltiGetDetails(programma_id, duplica, share, readonly) {
     $("#programma_modal").modal("show");
 }
 
+function moduliSvoltiImportRequest(programma_id, programma_iniziale_id) {
+    var requestData = {
+        programma_modulo_id: programma_id,
+        response_format: 'json'
+    };
+
+    if (programma_iniziale_id > 0) {
+        requestData.programma_iniziale_id = programma_iniziale_id;
+    }
+
+    return $.ajax({
+        url: "../didattica/moduliSvoltiImport.php",
+        method: "POST",
+        dataType: "json",
+        data: requestData
+    });
+}
+
+function moduliSvoltiChooseProgrammaIniziale(programmi) {
+    if (!Array.isArray(programmi) || programmi.length === 0) {
+        return 0;
+    }
+
+    var message = "Non ho trovato un programma iniziale intestato a questo docente.\n";
+    message += "Esistono pero programmi iniziali della stessa classe e materia creati da altri docenti.\n\n";
+    message += "Scegli quale importare inserendo il numero:\n\n";
+
+    programmi.forEach(function (programma, index) {
+        var updated = programma.updated ? (" - aggiornato " + programma.updated) : "";
+        var moduli = typeof programma.numero_moduli !== 'undefined' ? (" - moduli " + programma.numero_moduli) : "";
+        message += (index + 1) + ") " + programma.docente + updated + moduli + "\n";
+    });
+
+    var scelta = prompt(message, "1");
+
+    if (scelta === null) {
+        return 0;
+    }
+
+    scelta = parseInt(scelta, 10);
+
+    if (isNaN(scelta) || scelta < 1 || scelta > programmi.length) {
+        alert("Scelta non valida. Importazione annullata.");
+        return 0;
+    }
+
+    return parseInt(programmi[scelta - 1].id, 10);
+}
+
 async function moduliSvoltiImport() {
     let programma_id = $("#hidden_programma_id").val();
 
@@ -648,22 +697,32 @@ async function moduliSvoltiImport() {
     }
 
     if (programma_id > 0) {
-        var conf = confirm("Sei sicuro di volere importare il programma iniziale? Verranno usati prima i moduli dello stesso docente, altrimenti quelli della stessa classe e materia. Eventuali moduli gia presenti saranno sovrascritti.");
+        var conf = confirm("Sei sicuro di volere importare il programma iniziale? Verranno usati prima i moduli dello stesso docente. Se esistono solo programmi di altri docenti, potrai scegliere quale importare. Eventuali moduli gia presenti saranno sovrascritti.");
 
         if (conf == true) {
-            await new Promise((resolve, reject) => {
-                $.post("../didattica/moduliSvoltiImport.php", {
-                    programma_modulo_id: programma_id
-                }, function (data, status) {
-                    console.log("Importazione completata");
-                    moduliSvoltiReadRecords($("#hidden_programma_id").val());
-                    resolve();
-                }).fail(function (jqXHR, textStatus, errorThrown) {
-                    console.error("Errore nell'importazione:", textStatus, errorThrown);
-                    alert(jqXHR.responseText || "Errore durante l'importazione dei moduli");
-                    reject(errorThrown);
-                });
-            });
+            try {
+                var importResponse = await moduliSvoltiImportRequest(programma_id, 0);
+
+                if (importResponse && importResponse.needs_choice) {
+                    var programma_iniziale_id = moduliSvoltiChooseProgrammaIniziale(importResponse.programmi);
+
+                    if (programma_iniziale_id <= 0) {
+                        return;
+                    }
+
+                    importResponse = await moduliSvoltiImportRequest(programma_id, programma_iniziale_id);
+                }
+
+                console.log("Importazione completata", importResponse);
+                moduliSvoltiReadRecords($("#hidden_programma_id").val());
+            } catch (jqXHR) {
+                var responseText = jqXHR && jqXHR.responseJSON && jqXHR.responseJSON.message
+                    ? jqXHR.responseJSON.message
+                    : (jqXHR && jqXHR.responseText ? jqXHR.responseText : "Errore durante l'importazione dei moduli");
+
+                console.error("Errore nell'importazione:", jqXHR);
+                alert(responseText);
+            }
         }
     }
 }

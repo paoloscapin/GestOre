@@ -9,6 +9,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once __DIR__ . '/programmiAutoreUtils.php';
 ruoloRichiesto('segreteria-didattica', 'docente');
 
 if (!isset($_POST)) {
@@ -53,7 +54,7 @@ $contenuto_sql = dbEscape($contenuto);
 
 date_default_timezone_set("Europe/Rome");
 $update = date("Y-m-d H-i-s");
-$id_utente = $__utente_id;
+$id_utente = programmiUtenteAutoreDaProgrammaSvolto($id_programma, intval($__utente_id));
 
 if ($id > 0) {
     $query = "UPDATE programmi_svolti_moduli
