@@ -142,6 +142,7 @@ function ticketMailFindDocenteByEmail(string $email): ?array
            AND dt.attivo = 1
            AND dt.consenso_notifiche = 1
         WHERE LOWER(TRIM(d.email)) = " . dbQ($email) . "
+          AND d.attivo = 1
         ORDER BY d.attivo DESC, d.id DESC
         LIMIT 1
     ";
@@ -160,6 +161,7 @@ function ticketMailFindStudenteByEmail(string $email): ?array
         SELECT s.*
         FROM studente s
         WHERE LOWER(TRIM(s.email)) = " . dbQ($email) . "
+          AND s.attivo = 1
         ORDER BY s.attivo DESC, s.id DESC
         LIMIT 1
     ";
@@ -174,10 +176,25 @@ function ticketMailFindGenitoreByEmail(string $email): ?array
         return null;
     }
 
+    $joinTelegram = '';
+    $selectTelegram = '';
+    if (ticketMailTableExists('genitore_telegram')) {
+        $joinTelegram = "
+            LEFT JOIN genitore_telegram gt
+                ON gt.idGenitore = g.id
+               AND gt.attivo = 1
+               AND gt.consenso_notifiche = 1
+        ";
+        $selectTelegram = ",
+               gt.telegram_chat_id";
+    }
+
     $query = "
-        SELECT g.*
+        SELECT g.*" . $selectTelegram . "
         FROM genitori g
+        " . $joinTelegram . "
         WHERE LOWER(TRIM(g.email)) = " . dbQ($email) . "
+          AND g.attivo = 1
         ORDER BY g.attivo DESC, g.id DESC
         LIMIT 1
     ";
@@ -492,12 +509,22 @@ function ticketMailLogImported(array $data): void
         'NOW()',
     ]);
 
+    $updates = [];
+    foreach ($columns as $column) {
+        if ($column === 'message_uid') {
+            continue;
+        }
+        $updates[] = "{$column}=VALUES({$column})";
+    }
+
     dbExec("
         INSERT INTO ticket_mail_import_log (
             " . implode(",\n            ", $columns) . "
         ) VALUES (
             " . implode(",\n            ", $values) . "
         )
+        ON DUPLICATE KEY UPDATE
+            " . implode(",\n            ", $updates) . "
     ");
 }
 
@@ -672,10 +699,14 @@ function ticketMailSanitizeBody(string $body): string
     $body = preg_replace("/\n[ \t]+/u", "\n", $body);
     $body = preg_replace("/=\n/u", '', $body);
 
+    $forwardedBody = ticketMailExtractForwardedBody($body);
+
+    // taglia risposte normali, ma NON le mail inoltrate
     $inlineReplyMarkers = [
         '/\n\s*Il giorno\b[\s\S]{0,800}?ha scritto:\s*/iu',
         '/\n\s*On\b[\s\S]{0,800}?wrote:\s*/iu',
     ];
+
     foreach ($inlineReplyMarkers as $markerPattern) {
         if (preg_match($markerPattern, $body, $matches, PREG_OFFSET_CAPTURE)) {
             $body = substr($body, 0, $matches[0][1]);
@@ -683,27 +714,15 @@ function ticketMailSanitizeBody(string $body): string
         }
     }
 
-    $cutPatterns = [
-        '/^\s*--\s*$/m',
-        '/^\s*Da:\s.*$/mi',
-        '/^\s*From:\s.*$/mi',
-        '/^\s*Inviato:\s.*$/mi',
-        '/^\s*Sent:\s.*$/mi',
-        '/^\s*A:\s.*$/mi',
-        '/^\s*To:\s.*$/mi',
-        '/^\s*Oggetto:\s.*$/mi',
-        '/^\s*Subject:\s.*$/mi',
-        '/^\s*Il giorno\b[\s\S]{0,400}?ha scritto:\s*$/mi',
-        '/^\s*On .* wrote:$/mi',
-        '/^\s*Avvertenze ai sensi del Regolamento Europeo 2016\/679.*$/mi',
-        '/^\s*La informiamo inoltre che in caso di assenza del destinatario.*$/mi',
-        '/^\s*P\s+Rispetta l\'ambiente:.*$/mi',
-    ];
+    $body = ticketMailStripSignatureAndFooter($body);
 
-    foreach ($cutPatterns as $pattern) {
-        if (preg_match($pattern, $body, $matches, PREG_OFFSET_CAPTURE)) {
-            $body = substr($body, 0, $matches[0][1]);
-            break;
+    if ($forwardedBody !== '') {
+        $body = trim($body);
+
+        if ($body !== '') {
+            $body .= "\n\n--- Messaggio inoltrato ---\n" . $forwardedBody;
+        } else {
+            $body = $forwardedBody;
         }
     }
 
@@ -714,6 +733,74 @@ function ticketMailSanitizeBody(string $body): string
     $body = preg_replace('/^charset=.*$/mi', '', $body);
     $body = preg_replace('/^\s*>.*$/m', '', $body);
     $body = preg_replace("/\n{3,}/", "\n\n", $body);
+
+    return trim($body);
+}
+
+function ticketMailExtractForwardedBody(string $body): string
+{
+    $patterns = [
+        '/^-{2,}\s*Messaggio inoltrato\s*-{2,}\s*$/mi',
+        '/^-{2,}\s*Forwarded message\s*-{2,}\s*$/mi',
+        '/^\s*Da:\s.*$/mi',
+        '/^\s*From:\s.*$/mi',
+    ];
+
+    $offset = null;
+
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $body, $m, PREG_OFFSET_CAPTURE)) {
+            $pos = $m[0][1];
+            if ($offset === null || $pos < $offset) {
+                $offset = $pos;
+            }
+        }
+    }
+
+    if ($offset === null) {
+        return '';
+    }
+
+    $forwarded = substr($body, $offset);
+
+    // rimuove intestazioni della mail inoltrata
+    $forwarded = preg_replace('/^-{2,}\s*(Messaggio inoltrato|Forwarded message)\s*-{2,}\s*$/mi', '', $forwarded);
+    $forwarded = preg_replace('/^\s*(Da|From|Inviato|Sent|A|To|Cc|Oggetto|Subject):\s.*$/mi', '', $forwarded);
+
+    $forwarded = ticketMailStripSignatureAndFooter($forwarded);
+    $forwarded = preg_replace('/^\s*>.*$/m', '', $forwarded);
+    $forwarded = preg_replace("/\n{3,}/", "\n\n", $forwarded);
+
+    return trim($forwarded);
+}
+
+function ticketMailStripSignatureAndFooter(string $body): string
+{
+    $cutPatterns = [
+        '/^\s*--\s*$/m',
+        '/^\s*Avvertenze ai sensi del Regolamento Europeo 2016\/679.*$/mi',
+        '/^\s*La informiamo inoltre che in caso di assenza del destinatario.*$/mi',
+        '/^\s*P\s+Rispetta l\'ambiente:.*$/mi',
+        '/^\s*\*?\s*Segreteria\s+Didattica\s*\*?\s*$/mi',
+        '/^\s*Istituto\s+Tecnico\s+Tecnologico\s*$/mi',
+        '/^\s*\*?\s*M\.\s*BUONARROTI\s*\*?\s*$/mi',
+        '/^\s*Via\s+Brigata\s+Acqui\b.*$/mi',
+        '/^\s*38122\s+Trento\s*$/mi',
+        '/^\s*tel\.\s*\+39\s+0461\s+216811\s*$/mi',
+        '/^\s*www\.buonarroti\.tn\.it\s*$/mi',
+        '/^\s*This e-mail \(including attachments\) is intended only for the recipient\(s\).*$/mi',
+        '/^\s*It may contain confidential or privileged information.*$/mi',
+        '/^\s*If you are not the named recipient.*$/mi',
+        '/^\s*D\.L\.\s*196\/2003\.\s*Print only if necessary\..*$/mi',
+        '/^\s*Print only if necessary\..*$/mi',
+    ];
+
+    foreach ($cutPatterns as $pattern) {
+        if (preg_match($pattern, $body, $matches, PREG_OFFSET_CAPTURE)) {
+            $body = substr($body, 0, $matches[0][1]);
+            break;
+        }
+    }
 
     return trim($body);
 }
@@ -796,7 +883,7 @@ function ticketMailSendRelayNotification(array $relay, string $subject, string $
 {
     global $__settings;
 
-    $toEmail = trim((string)($relay['email_riferimento'] ?? ''));
+    $toEmail = ticketMailResolveRelayRecipientEmail($relay);
     if ($toEmail === '') {
         return ['ok' => false, 'error' => 'email_riferimento mancante'];
     }
@@ -812,7 +899,9 @@ function ticketMailSendRelayNotification(array $relay, string $subject, string $
 
     $ok = sendMailCustom(
         $toEmail,
-        trim((string)(($relay['nome'] ?? '') . ' ' . ($relay['cognome'] ?? ''))),
+        trim((string)(
+            (($relay['utente_nome'] ?? $relay['nome'] ?? '') . ' ' . ($relay['utente_cognome'] ?? $relay['cognome'] ?? ''))
+        )),
         $mailSubject,
         $html,
         [
@@ -828,6 +917,29 @@ function ticketMailSendRelayNotification(array $relay, string $subject, string $
     );
 
     return $ok ? ['ok' => true] : ['ok' => false, 'error' => 'invio mail fallito'];
+}
+
+function ticketMailResolveRelayRecipientEmail(array $relay): string
+{
+    $toEmail = trim((string)($relay['email_riferimento'] ?? ''));
+    if ($toEmail !== '') {
+        return $toEmail;
+    }
+
+    if (!empty($relay['utente_email'])) {
+        return trim((string)$relay['utente_email']);
+    }
+    if (!empty($relay['idDocente'])) {
+        return trim((string)dbGetValue("SELECT email FROM docente WHERE id = " . dbI((int)$relay['idDocente']) . " LIMIT 1"));
+    }
+    if (!empty($relay['idStudente'])) {
+        return trim((string)dbGetValue("SELECT email FROM studente WHERE id = " . dbI((int)$relay['idStudente']) . " LIMIT 1"));
+    }
+    if (!empty($relay['idGenitore'])) {
+        return trim((string)dbGetValue("SELECT email FROM genitori WHERE id = " . dbI((int)$relay['idGenitore']) . " LIMIT 1"));
+    }
+
+    return '';
 }
 
 function ticketMailExtractTelegramAttachmentFromMessage(array $message, string $botToken): array
@@ -1006,6 +1118,15 @@ function ticketMailImportInbox(int $limit = 10, ?bool $markSeen = null, bool $re
         }
 
         $candidateMessages = imap_search($candidateInbox, 'UNSEEN') ?: [];
+        $recentMessages = imap_search($candidateInbox, 'ALL') ?: [];
+        if (!empty($recentMessages)) {
+            rsort($recentMessages, SORT_NUMERIC);
+            $recentMessages = array_slice($recentMessages, 0, max($limit * 5, 25));
+        }
+        if (!empty($candidateMessages) || !empty($recentMessages)) {
+            $candidateMessages = array_values(array_unique(array_merge($candidateMessages, $recentMessages)));
+        }
+
         if (!empty($candidateMessages)) {
             if ($inbox !== false && $inbox !== $candidateInbox) {
                 @imap_close($inbox);
@@ -1062,7 +1183,8 @@ function ticketMailImportInbox(int $limit = 10, ?bool $markSeen = null, bool $re
             'note' => '',
         ];
 
-        if (ticketMailGetImportedRowByUid($uidKey) != null) {
+        $existingImportedRow = ticketMailGetImportedRowByUid($uidKey);
+        if ($existingImportedRow != null && strtoupper(trim((string)($existingImportedRow['esito'] ?? ''))) !== 'ERRORE') {
             $resultRow['note'] = 'mail già importata in precedenza';
             $results[] = $resultRow;
             continue;
