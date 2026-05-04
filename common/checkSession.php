@@ -156,6 +156,26 @@ function __wants_json(): bool
     return (stripos($accept, 'application/json') !== false);
 }
 
+function __current_internal_redirect_after_login(): ?string
+{
+    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+    if (!is_string($requestUri) || $requestUri === '') {
+        return null;
+    }
+
+    // Accetta solo percorsi interni a GestOre: evita open redirect verso domini esterni.
+    if (strpos($requestUri, '/GestOre/') !== 0) {
+        return null;
+    }
+
+    // Non ha senso ricordare la pagina di login come destinazione finale.
+    if (preg_match('~/GestOre/index\.php(?:\?|$)~', $requestUri) === 1) {
+        return null;
+    }
+
+    return $requestUri;
+}
+
 /**
  * Se la sessione è scaduta e la richiesta è AJAX/JSON:
  * - risponde 401 + JSON (così il JS può redirigere)
@@ -237,18 +257,31 @@ if (session_status() == PHP_SESSION_NONE) {
 
     ini_set('session.gc_maxlifetime', $dur);
     ini_set('session.cookie_lifetime', $dur);
+    ini_set('session.cookie_secure', '1');
+    ini_set('session.cookie_httponly', '1');
+    ini_set('session.cookie_samesite', 'Lax');
 
     // forza cookie path "/" (evita cookie “vincolati” a sottocartelle)
     $cookieParams = session_get_cookie_params();
-    $path = '/';
+    $path = !empty($__application_base_path) ? $__application_base_path : '/';
     $domain = $cookieParams['domain'] ?? '';
-    $secure = !empty($cookieParams['secure']);
-    $httponly = !empty($cookieParams['httponly']);
+    $secure = true;
+    $httponly = true;
 
-    session_set_cookie_params($dur, $path, $domain, $secure, $httponly);
+    session_set_cookie_params([
+        'lifetime' => $dur,
+        'path' => $path,
+        'domain' => $domain,
+        'secure' => $secure,
+        'httponly' => $httponly,
+        'samesite' => 'Lax',
+    ]);
 
     debug("checkSession: ini after ini_set gc_maxlifetime=" . ini_get('session.gc_maxlifetime')
-        . " cookie_lifetime=" . ini_get('session.cookie_lifetime'));
+        . " cookie_lifetime=" . ini_get('session.cookie_lifetime')
+        . " cookie_secure=" . ini_get('session.cookie_secure')
+        . " cookie_httponly=" . ini_get('session.cookie_httponly')
+        . " cookie_samesite=" . (ini_get('session.cookie_samesite') ?: ''));
 
     @session_name("GESTORESESSID");
     $ok = @session_start();
@@ -287,11 +320,24 @@ if (isset($_SESSION['LAST_ACTIVITY'])) {
         debug("checkSession: SESSION EXPIRED by app logic (delta=$delta > expire_after=" . intval($_SESSION['EXPIRE_AFTER']) . ")");
         __dbg_session_state('EXPIRY: before destroy');
 
+        $redirectAfterLogin = (!__is_ajax_request() && !__wants_json()) ? __current_internal_redirect_after_login() : null;
+
         session_unset();
         session_destroy();
 
         __dbg_session_state('EXPIRY: after destroy (should be empty)');
         $message = "Sessione scaduta, effettuare nuovamente il login";
+
+        if ($redirectAfterLogin !== null) {
+            debug("checkSession: expired normal request -> preserve redirect_after_login=" . $redirectAfterLogin);
+            @session_start();
+            $_SESSION['redirect_after_login'] = $redirectAfterLogin;
+            $_SESSION['LAST_ACTIVITY'] = time();
+            $_SESSION['EXPIRE_AFTER'] = intval($__settings->system->durata_sessione);
+            redirect('/index.php');
+            exit();
+        }
+
         __session_expired_exit($message);
     } else {
         debug("checkSession: session still valid (delta=$delta <= expire_after=" . intval($_SESSION['EXPIRE_AFTER']) . ")");
@@ -537,9 +583,13 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
             $gpUserProfile = $google_oauthV2->userinfo->get();
             $useremail = $gpUserProfile['email'] ?? null;
             debug("checkSession: Google profile email=" . ($useremail ?? 'NULL'));
-
+            $redirectAfterLogin = $_SESSION['redirect_after_login'] ?? $__redirectURL;
+            unset($_SESSION['redirect_after_login']);
             infoLogin("utente [" . ($useremail ?? 'NULL') . "]: logging in with Google from IP " . get_client_ip());
-            header('Location: ' . filter_var($__redirectURL, FILTER_SANITIZE_URL));
+            if (!is_string($redirectAfterLogin) || strpos($redirectAfterLogin, '/GestOre/') !== 0) {
+                $redirectAfterLogin = $__redirectURL;
+            }
+            header('Location: ' . filter_var($redirectAfterLogin, FILTER_SANITIZE_URL));
             exit();
         }
 
@@ -572,6 +622,7 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
             // pagine interne: se non c'e' una sessione applicativa valida,
             // rientra dalla pagina di login invece di lasciare una pagina bianca
             // in caso di problemi nel passaggio diretto verso Google.
+            $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'] ?? '/index.php';
             debug("checkSession: internal page without app session -> redirect /index.php");
             redirect('/index.php');
             exit();
@@ -594,6 +645,7 @@ if (isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'genitore'
     // deve esserci un utente collegato
     if (empty($__useremail)) {
         warning('nessun utente collegato!');
+        $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'] ?? '/index.php';
         debug("checkSession: EMPTY __useremail -> redirect /index.php");
         redirect('/index.php');
         exit();
