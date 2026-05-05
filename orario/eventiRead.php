@@ -104,6 +104,10 @@ function uniqCaseInsensitive($arr) {
     return $out;
 }
 
+function mergeUniqueStrings($left, $right) {
+    return uniqCaseInsensitive(array_merge((array)$left, (array)$right));
+}
+
 function splitDocentiVisual($csv) {
     $csv = trim((string)$csv);
     if ($csv === '') return [];
@@ -253,6 +257,7 @@ $dateEsc = mysqli_real_escape_string($__conMBApp, $date);
 
 $items = [];
 $itemsByAssenzaImp = []; // idAssenza => index in $items (solo per type='imp' da ASSENZE)
+$itemsByOralezioneAssenza = []; // idAssenza => index in $items (eventi letti da oralezione)
 
 /* ============================================================
    PRECARICO ASSENZE DEL GIORNO (CON CONVERT PER ORARI BINARI)
@@ -409,8 +414,17 @@ foreach (mb_dbGetAll($qImp) ?: [] as $r) {
 
     $oraFine = '';
     if ($idAss > 0 && isset($assById[$idAss])) {
-        if ($oraIn === '') $oraIn = getOraInRow($assById[$idAss]);
-        $oraFine = getOraFineRow($assById[$idAss]);
+        $oraInReale = getOraInRow($assById[$idAss]);
+        $oraFineReale = getOraFineRow($assById[$idAss]);
+
+        // Gli eventi legati ad assenza hanno in oralezione una o piu righe di slot.
+        // Per la card evento va usato l'orario reale dell'assenza, non l'inizio dello slot.
+        if ($oraInReale !== '') {
+            $oraIn = $oraInReale;
+        }
+        if ($oraFineReale !== '') {
+            $oraFine = $oraFineReale;
+        }
     }
 
     if ($oraFine === '' && $oraIn !== '') {
@@ -461,6 +475,35 @@ foreach (mb_dbGetAll($qImp) ?: [] as $r) {
         }
     }
 
+    if ($idAss > 0 && isset($itemsByOralezioneAssenza[$idAss])) {
+        $i = $itemsByOralezioneAssenza[$idAss];
+
+        if ($aula !== '') {
+            $items[$i]['rooms'] = mergeUniqueStrings($items[$i]['rooms'] ?? [], [$aula]);
+            if (trim((string)($items[$i]['aula'] ?? '')) === '') {
+                $items[$i]['aula'] = $aula;
+            }
+        }
+
+        if (!empty($classi)) {
+            $items[$i]['classi'] = mergeUniqueStrings($items[$i]['classi'] ?? [], $classi);
+        }
+
+        if (trim((string)($items[$i]['who'] ?? '')) === '' && trim($who) !== '') {
+            $items[$i]['who'] = upNamesLines($who);
+        }
+
+        if (trim((string)($items[$i]['ora'] ?? '')) === '' && $oraIn !== '') {
+            $items[$i]['ora'] = $oraIn;
+        }
+        if (trim((string)($items[$i]['oraFine'] ?? '')) === '' && $oraFine !== '') {
+            $items[$i]['oraFine'] = $oraFine;
+        }
+
+        continue;
+    }
+
+    $idx = count($items);
     $items[] = [
         'source'    => 'oralezione',
         'type'      => 'imp',
@@ -474,6 +517,10 @@ foreach (mb_dbGetAll($qImp) ?: [] as $r) {
         'oraFine'   => $oraFine,
         'idAssenza' => $idAss ?: null,
     ];
+
+    if ($idAss > 0) {
+        $itemsByOralezioneAssenza[$idAss] = $idx;
+    }
 }
 
 echo json_encode([
