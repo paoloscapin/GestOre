@@ -1570,6 +1570,12 @@ function tgHandleAdminReply($relay, $message, $botToken)
     $telegramChannelActive = ($teacherChatId !== '');
     $mailChannelActive = $mailOrigin && $emailRiferimento !== '';
     $relayUserLabel = function_exists('ticketMailRelayUserLabel') ? ticketMailRelayUserLabel($relay) : 'docente';
+    $relayUserTargetLabel = 'al docente';
+    if ($relayUserLabel === 'studente') {
+        $relayUserTargetLabel = 'allo studente';
+    } elseif ($relayUserLabel === 'genitore') {
+        $relayUserTargetLabel = 'al genitore';
+    }
 
     // Estrae e normalizza lo stato corrente del ticket
     $currentStatus = strtoupper(tgNorm($relay['stato'] ?? 'APERTA'));
@@ -2060,7 +2066,7 @@ function tgHandleAdminReply($relay, $message, $botToken)
         errorTelegram("tgHandleAdminReply: errore invio reply admin->utente relay=$idRelay errTg=[" . ($sendRes['error'] ?? '') . "] errMail=[" . ($mailRes['error'] ?? '') . "]");
 
         // Invia un messaggio nel gruppo per avvisare dell'errore
-        $resGroup = tgSendMessage($botToken, $groupChatId, "❌ Errore nell'invio della risposta al docente.", ['reply_to_message_id' => $replyToMessageId]);
+        $resGroup = tgSendMessage($botToken, $groupChatId, "❌ Errore nell'invio della risposta {$relayUserTargetLabel}.", ['reply_to_message_id' => $replyToMessageId]);
 
         // Logga l'esito del messaggio nel gruppo
         infoTelegram("tgHandleAdminReply: send gruppo errore invio result=" . json_encode($resGroup));
@@ -2129,7 +2135,7 @@ function tgHandleAdminReply($relay, $message, $botToken)
         }
 
         // Invia nel gruppo conferma che la risposta è stata inoltrata
-        $resGroup = tgSendMessage($botToken, $groupChatId, "✅ Risposta inviata al docente per {$ticketCode} da {$adminName}.", [
+        $resGroup = tgSendMessage($botToken, $groupChatId, "✅ Risposta inviata {$relayUserTargetLabel} per {$ticketCode} da {$adminName}.", [
             'reply_to_message_id' => $replyToMessageId,
             'reply_markup' => json_encode(tgGetTicketKeyboardMinimal($relayAggiornato), JSON_UNESCAPED_UNICODE)
         ]);
