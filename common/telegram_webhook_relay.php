@@ -211,6 +211,235 @@ function tgFindOpenRelayByActor($actorType, $actorId)
     return $relay;
 }
 
+function tgFindLatestClosedRelayByActor($actorType, $actorId)
+{
+    $actorType = strtolower(trim((string)$actorType));
+    $actorId = (int)$actorId;
+
+    if ($actorId <= 0) {
+        infoTelegram("tgFindLatestClosedRelayByActor: actorId non valido type=$actorType");
+        return null;
+    }
+
+    if ($actorType === 'docente') {
+        $column = 'idDocente';
+    } elseif ($actorType === 'genitore') {
+        $column = 'idGenitore';
+    } elseif ($actorType === 'studente') {
+        $column = 'idStudente';
+    } else {
+        infoTelegram("tgFindLatestClosedRelayByActor: actorType non supportato type=$actorType");
+        return null;
+    }
+
+    if ($column !== 'idDocente' && function_exists('ticketMailColumnExists') && !ticketMailColumnExists('docente_telegram_relay', $column)) {
+        infoTelegram("tgFindLatestClosedRelayByActor: colonna $column assente nel relay");
+        return null;
+    }
+
+    $q = "SELECT * FROM docente_telegram_relay WHERE {$column}=" . dbI($actorId) . " AND stato = 'CHIUSA' AND chiusa = 1 ORDER BY data_chiusura DESC, id DESC LIMIT 1";
+    $relay = dbGetFirst($q);
+    infoTelegram("tgFindLatestClosedRelayByActor: query=$q relay=" . json_encode($relay));
+    return $relay;
+}
+
+function tgGetClosedTicketFollowupKeyboard(array $relay)
+{
+    $idRelay = (int)($relay['id'] ?? 0);
+    if ($idRelay <= 0) {
+        return ['inline_keyboard' => []];
+    }
+
+    return [
+        'inline_keyboard' => [
+            [
+                ['text' => '🔵 Riapri precedente', 'callback_data' => "riapri_relay_{$idRelay}"],
+                ['text' => '🆕 Apri nuovo ticket', 'callback_data' => "nuovo_relay_{$idRelay}"]
+            ],
+            [
+                ['text' => '📌 Stato', 'callback_data' => "stato_relay_{$idRelay}"]
+            ]
+        ]
+    ];
+}
+
+function tgRelayActorLabel(array $relay)
+{
+    $type = strtolower(trim((string)($relay['tipo_utente'] ?? 'docente')));
+    if ($type === 'studente') {
+        return 'Studente';
+    }
+    if ($type === 'genitore') {
+        return 'Genitore';
+    }
+    return 'Docente';
+}
+
+function tgRelayActorName(array $relay)
+{
+    $name = trim((string)(($relay['utente_cognome'] ?? '') . ' ' . ($relay['utente_nome'] ?? '')));
+    if ($name !== '') {
+        return $name;
+    }
+
+    if (!empty($relay['idDocente'])) {
+        $doc = dbGetFirst("SELECT cognome, nome FROM docente WHERE id = " . dbI((int)$relay['idDocente']) . " LIMIT 1");
+        if ($doc) {
+            return trim((string)(($doc['cognome'] ?? '') . ' ' . ($doc['nome'] ?? '')));
+        }
+    }
+
+    return trim((string)($relay['utente_email'] ?? $relay['email_riferimento'] ?? 'Utente'));
+}
+
+function tgCreateNewTicketFromClosedRelay(array $sourceRelay, string $serviceChatId, string $botToken)
+{
+    $sourceIdRelay = (int)($sourceRelay['id'] ?? 0);
+    $text = tgNorm($sourceRelay['ultimo_testo_docente'] ?? '');
+    $serviceChatId = tgNorm($serviceChatId !== '' ? $serviceChatId : ($sourceRelay['service_chat_id'] ?? ''));
+    $botToken = tgNorm($botToken);
+
+    if ($sourceIdRelay <= 0 || $text === '' || $serviceChatId === '' || $botToken === '') {
+        return ['ok' => false, 'error' => 'Dati insufficienti per aprire nuovo ticket'];
+    }
+
+    dbExec("START TRANSACTION");
+
+    try {
+        $insertColumns = [
+            'docente_chat_id',
+            'docente_message_id',
+            'service_chat_id',
+            'service_message_id',
+            'service_thread_root_message_id',
+            'stato',
+            'chiusa',
+            'ultimo_testo_docente',
+            'data_creazione',
+            'data_aggiornamento'
+        ];
+        $insertValues = [
+            dbQ((string)($sourceRelay['docente_chat_id'] ?? '')),
+            dbI((int)($sourceRelay['docente_message_id'] ?? 0)),
+            dbQ($serviceChatId),
+            '0',
+            '0',
+            "'APERTA'",
+            '0',
+            dbQ($text),
+            'NOW()',
+            'NOW()'
+        ];
+
+        foreach (['idDocente', 'idStudente', 'idGenitore'] as $column) {
+            if (!array_key_exists($column, $sourceRelay) || (int)$sourceRelay[$column] <= 0) {
+                continue;
+            }
+            if ($column !== 'idDocente' && function_exists('ticketMailColumnExists') && !ticketMailColumnExists('docente_telegram_relay', $column)) {
+                continue;
+            }
+            $insertColumns[] = $column;
+            $insertValues[] = dbI((int)$sourceRelay[$column]);
+        }
+
+        foreach (['tipo_utente', 'canale_apertura', 'email_riferimento', 'utente_nome', 'utente_cognome', 'utente_email'] as $column) {
+            if (!array_key_exists($column, $sourceRelay)) {
+                continue;
+            }
+            if (function_exists('ticketMailColumnExists') && !ticketMailColumnExists('docente_telegram_relay', $column)) {
+                continue;
+            }
+            $insertColumns[] = $column;
+            $insertValues[] = dbQ((string)$sourceRelay[$column]);
+        }
+
+        dbExec("
+            INSERT INTO docente_telegram_relay (
+                " . implode(",\n                ", $insertColumns) . "
+            ) VALUES (
+                " . implode(",\n                ", $insertValues) . "
+            )
+        ");
+
+        $idRelay = (int)dblastId();
+        if ($idRelay <= 0) {
+            throw new Exception("Inserimento nuovo ticket da chiuso fallito");
+        }
+
+        $ticketCode = tgUpdateTicketCode($idRelay);
+        $serviceThreadId = tgCreateTopic($botToken, $serviceChatId, "Ticket " . $ticketCode);
+
+        dbExec("
+            UPDATE docente_telegram_relay
+            SET service_thread_id = " . dbI($serviceThreadId) . ",
+                thread_topic_name = " . dbQ("Ticket $ticketCode") . "
+            WHERE id = " . dbI($idRelay) . "
+        ");
+
+        $relay = tgFindRelayById($idRelay);
+        $actorLabel = tgRelayActorLabel($relay ?: $sourceRelay);
+        $actorName = tgRelayActorName($relay ?: $sourceRelay);
+        $oldTicketCode = tgNorm($sourceRelay['ticket_code'] ?? '');
+
+        $serviceText =
+            "🆕 Nuovo ticket aperto da messaggio successivo a ticket chiuso\n\n" .
+            "🏷 Ticket: {$ticketCode}\n" .
+            ($oldTicketCode !== '' ? "🔁 Ticket precedente: {$oldTicketCode}\n" : '') .
+            "👤 {$actorLabel}: {$actorName}\n\n" .
+            "✉️ Messaggio:\n" . tgCut($text, 3000);
+
+        $sendRes = tgSendMessage(
+            $botToken,
+            $serviceChatId,
+            $serviceText,
+            [
+                'message_thread_id' => $serviceThreadId,
+                'reply_markup' => json_encode(tgGetTicketKeyboardMinimal($relay ?: []), JSON_UNESCAPED_UNICODE)
+            ]
+        );
+
+        if (!$sendRes['ok']) {
+            throw new Exception("Invio messaggio nuovo ticket fallito: " . ($sendRes['error'] ?? ''));
+        }
+
+        $serviceMessageId = (int)($sendRes['message_id'] ?? 0);
+        dbExec("
+            UPDATE docente_telegram_relay
+            SET service_message_id = " . dbI($serviceMessageId) . ",
+                service_thread_root_message_id = " . dbI($serviceMessageId) . "
+            WHERE id = " . dbI($idRelay) . "
+        ");
+
+        dbExec("COMMIT");
+
+        $newRelay = tgFindRelayById($idRelay);
+        $recipientChatId = tgNorm(is_array($newRelay) ? ($newRelay['docente_chat_id'] ?? '') : ($sourceRelay['docente_chat_id'] ?? ''));
+        if ($recipientChatId !== '') {
+            tgSendMessage(
+                $botToken,
+                $recipientChatId,
+                "🆕 Il tuo nuovo messaggio è stato registrato come nuovo ticket {$ticketCode}."
+            );
+        } elseif (function_exists('ticketMailSendRelayNotification') && function_exists('ticketMailRelayIsMailOrigin') && ticketMailRelayIsMailOrigin($newRelay ?: $sourceRelay)) {
+            ticketMailSendRelayNotification(
+                $newRelay ?: $sourceRelay,
+                "Ricezione ticket {$ticketCode}",
+                "Il tuo nuovo messaggio è stato registrato come nuovo ticket {$ticketCode}."
+            );
+        }
+
+        return [
+            'ok' => true,
+            'idRelay' => $idRelay,
+            'ticket_code' => $ticketCode
+        ];
+    } catch (Throwable $e) {
+        dbExec("ROLLBACK");
+        errorTelegram("tgCreateNewTicketFromClosedRelay: eccezione " . $e->getMessage());
+        return ['ok' => false, 'error' => $e->getMessage()];
+    }
+}
+
 function tgGetDashboardKeyboard()
 {
     $keyboard = [];
@@ -559,6 +788,9 @@ function tgCreateOrAppendTicketFromDocenteMail(
         } elseif ($actorType === 'docente') {
             $targetRelay = tgFindOpenRelayByDocente($actorId);
         }
+        if (!$targetRelay && function_exists('tgFindLatestClosedRelayByActor')) {
+            $targetRelay = tgFindLatestClosedRelayByActor($actorType, $actorId);
+        }
     }
 
     if ($targetRelay) {
@@ -573,6 +805,7 @@ function tgCreateOrAppendTicketFromDocenteMail(
         }
 
         $statoLabel = tgBuildStatoLabel($targetRelay['stato'] ?? 'APERTA');
+        $isClosedRelay = strtoupper(tgNorm($targetRelay['stato'] ?? '')) === 'CHIUSA' || (int)($targetRelay['chiusa'] ?? 0) === 1;
         $threadId = (int)($targetRelay['service_thread_id'] ?? 0);
 
         dbExec("
@@ -583,6 +816,9 @@ function tgCreateOrAppendTicketFromDocenteMail(
         ");
 
         $targetRelay = tgFindRelayById($idRelay);
+        if (!$targetRelay) {
+            return ['ok' => false, 'error' => 'Relay mail non ricaricato'];
+        }
 
         $serviceText =
             "📧 Aggiornamento ticket via email\n\n" .
@@ -590,6 +826,10 @@ function tgCreateOrAppendTicketFromDocenteMail(
             "👤 {$actorLabel}: {$actorName}\n" .
             "✉️ Mittente: {$fromEmail}\n" .
             "📌 Stato attuale: {$statoLabel}\n";
+
+        if ($isClosedRelay) {
+            $serviceText .= "\n⚠️ Questo messaggio è arrivato su un ticket già chiuso.\nScegli se riaprire il ticket precedente oppure aprire un nuovo ticket.\n";
+        }
 
         if ($subject !== '') {
             $serviceText .= "📝 Oggetto: {$subject}\n";
@@ -599,7 +839,7 @@ function tgCreateOrAppendTicketFromDocenteMail(
 
         $sendOptions = [
             'reply_markup' => json_encode(
-                tgGetTicketKeyboardMinimal($targetRelay),
+                $isClosedRelay ? tgGetClosedTicketFollowupKeyboard($targetRelay) : tgGetTicketKeyboardMinimal($targetRelay),
                 JSON_UNESCAPED_UNICODE
             )
         ];
@@ -621,7 +861,7 @@ function tgCreateOrAppendTicketFromDocenteMail(
 
         return [
             'ok' => true,
-            'mode' => 'append',
+            'mode' => $isClosedRelay ? 'closed_followup' : 'append',
             'idRelay' => $idRelay,
             'ticket_code' => $ticketCode
         ];

@@ -1290,6 +1290,15 @@ function ticketMailImportInbox(int $limit = 10, ?bool $markSeen = null, bool $re
                 if (empty($ackRes['ok'])) {
                     $resultRow['note'] .= ' | conferma mail non inviata';
                 }
+            } elseif (($res['mode'] ?? '') === 'closed_followup' && is_array($relayUpdated) && !empty($relayUpdated)) {
+                $ackRes = ticketMailSendRelayNotification(
+                    $relayUpdated,
+                    "Messaggio ricevuto su ticket " . trim((string)($relayUpdated['ticket_code'] ?? '')),
+                    "Il tuo messaggio è stato ricevuto.\n\nIl ticket " . trim((string)($relayUpdated['ticket_code'] ?? '')) . " risulta chiuso: il servizio GestOre deciderà se riaprirlo o aprire una nuova richiesta."
+                );
+                if (empty($ackRes['ok'])) {
+                    $resultRow['note'] .= ' | conferma mail ticket chiuso non inviata';
+                }
             }
         } else {
             foreach ($attachments as $attachment) {
@@ -1300,7 +1309,7 @@ function ticketMailImportInbox(int $limit = 10, ?bool $markSeen = null, bool $re
         $resultRow['ticket_code'] = trim((string)($res['ticket_code'] ?? $ticketCodeInSubject));
         $resultRow['status'] = !empty($res['ok']) ? 'imported' : 'error';
         $resultRow['note'] = !empty($res['ok'])
-            ? (($res['mode'] ?? '') === 'create' ? 'nuovo ticket creato' : 'ticket aggiornato')
+            ? (($res['mode'] ?? '') === 'create' ? 'nuovo ticket creato' : (($res['mode'] ?? '') === 'closed_followup' ? 'messaggio su ticket chiuso, scelta admin richiesta' : 'ticket aggiornato'))
             : trim((string)($res['error'] ?? 'errore ticket'));
 
         ticketMailLogImported([

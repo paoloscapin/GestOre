@@ -261,6 +261,51 @@ function tgHandlePrivateActorMessage(array $actor, string $actorType, array $mes
         return;
     }
 
+    $closedRelay = function_exists('tgFindLatestClosedRelayByActor') ? tgFindLatestClosedRelayByActor($actorType, $actorId) : null;
+    if ($closedRelay) {
+        $idRelay = (int)($closedRelay['id'] ?? 0);
+        $ticketCode = tgNorm($closedRelay['ticket_code'] ?? '');
+        if ($ticketCode === '') {
+            $ticketCode = tgUpdateTicketCode($idRelay);
+        }
+
+        $threadId = (int)($closedRelay['service_thread_id'] ?? 0);
+        dbExec("
+            UPDATE docente_telegram_relay
+            SET docente_message_id = " . dbI($actorMessageId) . ",
+                ultimo_testo_docente = " . dbQ($text) . ",
+                data_aggiornamento = NOW()
+            WHERE id = " . dbI($idRelay) . "
+        ");
+
+        $closedRelay = tgFindRelayById($idRelay);
+        if (!$closedRelay) {
+            warningTelegram("tgHandlePrivateActorMessage: relay chiuso non ricaricato idRelay=$idRelay");
+            return;
+        }
+        $serviceText =
+            "🔁 Nuovo messaggio su ticket chiuso {$ticketCode}\n\n" .
+            "👤 {$actorLabel}: {$actorName}\n\n" .
+            "⚠️ Il ticket precedente risulta chiuso.\nScegli se riaprirlo oppure aprire un nuovo ticket.\n\n" .
+            "✉️ Messaggio:\n" . tgCut($text, 3000);
+
+        $sendOptions = [
+            'reply_markup' => json_encode(tgGetClosedTicketFollowupKeyboard($closedRelay), JSON_UNESCAPED_UNICODE)
+        ];
+        if ($threadId > 0) {
+            $sendOptions['message_thread_id'] = $threadId;
+        }
+
+        tgSendMessage($botToken, $serviceChatId, $serviceText, $sendOptions);
+        tgSendMessage(
+            $botToken,
+            $actorChatId,
+            "✅ Il tuo messaggio è stato ricevuto.\nIl ticket precedente {$ticketCode} era chiuso: il servizio GestOre deciderà se riaprirlo o aprire una nuova richiesta."
+        );
+        infoTelegram("EXIT tgHandlePrivateActorMessage: messaggio su ticket chiuso idRelay=$idRelay ticket=$ticketCode actorType=$actorType");
+        return;
+    }
+
     dbExec("START TRANSACTION");
 
     try {
@@ -2255,8 +2300,8 @@ if ($callback) {
         tgRespond(['ok' => true, 'handled' => 'callback_lista_chiusi_oggi']);
     }
 
-    // Gestione pulsanti ticket: presa_relay_27 / chiudi_relay_27 / riapri_relay_27 / stato_relay_27 / override_relay_27
-    if (preg_match('/^(presa|chiudi|riapri|stato|override)_relay_(\d+)$/', $data, $m)) {
+    // Gestione pulsanti ticket: presa_relay_27 / chiudi_relay_27 / riapri_relay_27 / stato_relay_27 / override_relay_27 / nuovo_relay_27
+    if (preg_match('/^(presa|chiudi|riapri|stato|override|nuovo)_relay_(\d+)$/', $data, $m)) {
         $action = $m[1];
         $idRelay = (int)$m[2];
 
@@ -2272,6 +2317,32 @@ if ($callback) {
         if (!$relay) {
             tgAnswerCallbackQuery($TELEGRAM_BOT_TOKEN, $callback['id'] ?? '', 'Ticket non trovato');
             tgRespond(['ok' => true, 'ignored' => 'relay non trovato']);
+        }
+
+        if ($action === 'nuovo') {
+            $serviceChatId = tgNorm($relay['service_chat_id'] ?? $chatId);
+            $resNew = tgCreateNewTicketFromClosedRelay($relay, $serviceChatId, $TELEGRAM_BOT_TOKEN);
+            if (empty($resNew['ok'])) {
+                tgAnswerCallbackQuery($TELEGRAM_BOT_TOKEN, $callback['id'] ?? '', 'Errore apertura nuovo ticket');
+                tgSendMessage(
+                    $TELEGRAM_BOT_TOKEN,
+                    $chatId,
+                    "❌ Non sono riuscito ad aprire un nuovo ticket: " . tgCut((string)($resNew['error'] ?? 'errore sconosciuto'), 500),
+                    ['reply_to_message_id' => $messageId]
+                );
+                tgRespond(['ok' => true, 'handled' => 'callback_nuovo_ticket_error']);
+            }
+
+            $newTicketCode = tgNorm($resNew['ticket_code'] ?? '');
+            $oldTicketCode = tgNorm($relay['ticket_code'] ?? '');
+            tgSendMessage(
+                $TELEGRAM_BOT_TOKEN,
+                $chatId,
+                "🆕 Creato nuovo ticket {$newTicketCode}" . ($oldTicketCode !== '' ? " dal messaggio arrivato su {$oldTicketCode}." : "."),
+                ['reply_to_message_id' => $messageId]
+            );
+            tgAnswerCallbackQuery($TELEGRAM_BOT_TOKEN, $callback['id'] ?? '', 'Nuovo ticket creato');
+            tgRespond(['ok' => true, 'handled' => 'callback_nuovo_ticket']);
         }
 
         // Mappa azione callback -> comando testuale che già gestisce tgHandleAdminReply
@@ -2882,6 +2953,22 @@ if ($privateActor && $openRelay) {
  * Se il profilo collegato NON ha ticket aperto:
  * qualsiasi testo libero mostra la guida
  */
+
+if ($privateActor && $text !== '' && !preg_match('/^\//', $text)) {
+    $closedRelay = function_exists('tgFindLatestClosedRelayByActor')
+        ? tgFindLatestClosedRelayByActor($privateActorType, (int)($privateActor['id'] ?? 0))
+        : null;
+    if ($closedRelay) {
+        tgHandlePrivateActorMessage(
+            $privateActor,
+            $privateActorType,
+            $message,
+            $TELEGRAM_SERVICE_CHAT_ID,
+            $TELEGRAM_BOT_TOKEN
+        );
+        tgRespond(['ok' => true, 'handled' => 'closed_ticket_followup_choice']);
+    }
+}
 
 if ($privateActor) {
     // Invia il messaggio guida su come aprire un ticket
