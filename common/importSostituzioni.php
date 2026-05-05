@@ -204,6 +204,40 @@ function normalizeTeacherKey($s)
     return $s;
 }
 
+function teacherNameTokens($s)
+{
+    $key = normalizeTeacherKey($s);
+    if ($key === '') return array();
+    $parts = preg_split('/\s+/u', $key, -1, PREG_SPLIT_NO_EMPTY);
+    return array_values(array_unique($parts));
+}
+
+function teacherTokensCompatible($tokensA, $tokensB)
+{
+    if (empty($tokensA) || empty($tokensB)) return false;
+
+    $a = array_fill_keys($tokensA, true);
+    $b = array_fill_keys($tokensB, true);
+
+    $aInB = true;
+    foreach ($tokensA as $token) {
+        if (!isset($b[$token])) {
+            $aInB = false;
+            break;
+        }
+    }
+
+    $bInA = true;
+    foreach ($tokensB as $token) {
+        if (!isset($a[$token])) {
+            $bInA = false;
+            break;
+        }
+    }
+
+    return $aInB || $bInA;
+}
+
 function isValidDateYmd($s)
 {
     return (bool)preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$s);
@@ -361,7 +395,10 @@ function buildMailHtmlSostituzione($tipoEvento, $docenteDestinatario, $data, $or
 
 function buildDocentiMap()
 {
-    $map = array();
+    $map = array(
+        'byFullName' => array(),
+        'byCognome' => array()
+    );
 
     $q = "
         SELECT id, cognome, nome, attivo, email
@@ -385,8 +422,19 @@ function buildDocentiMap()
 
         $key = normalizeTeacherKey($cognome . ' ' . $nome);
 
-        if (!isset($map[$key])) $map[$key] = array();
-        $map[$key][] = $id;
+        if (!isset($map['byFullName'][$key])) $map['byFullName'][$key] = array();
+        $map['byFullName'][$key][] = $id;
+
+        $cognomeKey = normalizeTeacherKey($cognome);
+        if ($cognomeKey !== '') {
+            if (!isset($map['byCognome'][$cognomeKey])) $map['byCognome'][$cognomeKey] = array();
+            $map['byCognome'][$cognomeKey][] = array(
+                'id' => $id,
+                'cognome' => $cognome,
+                'nome' => $nome,
+                'nomeTokens' => teacherNameTokens($nome)
+            );
+        }
     }
 
     return $map;
@@ -400,16 +448,49 @@ function findDocenteId($fullNamePdf, $docentiMap)
         return array('ok' => false, 'reason' => 'Nome docente vuoto', 'id' => null);
     }
 
-    if (!isset($docentiMap[$key])) {
+    $byFullName = isset($docentiMap['byFullName']) && is_array($docentiMap['byFullName'])
+        ? $docentiMap['byFullName']
+        : $docentiMap;
+
+    if (isset($byFullName[$key])) {
+        $ids = $byFullName[$key];
+        if (count($ids) > 1) {
+            return array('ok' => false, 'reason' => 'Docente ambiguo', 'id' => null);
+        }
+
+        return array('ok' => true, 'reason' => '', 'id' => (int)$ids[0]);
+    }
+
+    $parts = teacherNameTokens($fullNamePdf);
+    if (count($parts) < 2 || !isset($docentiMap['byCognome']) || !is_array($docentiMap['byCognome'])) {
         return array('ok' => false, 'reason' => 'Docente non trovato', 'id' => null);
     }
 
-    $ids = $docentiMap[$key];
-    if (count($ids) > 1) {
-        return array('ok' => false, 'reason' => 'Docente ambiguo', 'id' => null);
+    $cognomeKey = $parts[0];
+    $nomeTokens = array_slice($parts, 1);
+    $candidates = $docentiMap['byCognome'][$cognomeKey] ?? array();
+    $matchedIds = array();
+
+    foreach ($candidates as $candidate) {
+        $candidateId = (int)($candidate['id'] ?? 0);
+        if ($candidateId <= 0) continue;
+
+        $candidateNomeTokens = $candidate['nomeTokens'] ?? array();
+        if (teacherTokensCompatible($nomeTokens, $candidateNomeTokens)) {
+            $matchedIds[$candidateId] = true;
+        }
     }
 
-    return array('ok' => true, 'reason' => '', 'id' => (int)$ids[0]);
+    $ids = array_keys($matchedIds);
+    if (count($ids) === 1) {
+        return array('ok' => true, 'reason' => 'Match per cognome e nome compatibile', 'id' => (int)$ids[0]);
+    }
+
+    if (count($ids) > 1) {
+        return array('ok' => false, 'reason' => 'Docente ambiguo su cognome e nome compatibile', 'id' => null);
+    }
+
+    return array('ok' => false, 'reason' => 'Docente non trovato', 'id' => null);
 }
 
 function getDocenteById($idDocente)
