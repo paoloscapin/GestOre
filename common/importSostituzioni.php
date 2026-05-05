@@ -974,6 +974,7 @@ infoimportsost("Precaricate sostituzioni attive del giorno [$dataImportOggi]: " 
 
 $existingByNaturalKey = array();
 $existingBySlotDocente = array();
+$cancelledByNaturalKey = array();
 
 foreach ($sostituzioniAttiveRows as $row) {
     $idS = (int)($row['idSostituzione'] ?? 0);
@@ -994,6 +995,35 @@ foreach ($sostituzioniAttiveRows as $row) {
         $existingBySlotDocente[$slotKey] = array();
     }
     $existingBySlotDocente[$slotKey][] = $row;
+}
+
+if ($hasStato) {
+    $qSostAnnullate = "
+        SELECT *
+        FROM sostituzioni
+        WHERE data = " . dbQ($dataImportOggi) . "
+          AND UPPER(TRIM(stato)) = 'ANNULLATA'
+    ";
+
+    $sostituzioniAnnullateRows = dbGetAll($qSostAnnullate);
+    if (!is_array($sostituzioniAnnullateRows)) $sostituzioniAnnullateRows = array();
+
+    foreach ($sostituzioniAnnullateRows as $row) {
+        $idS = (int)($row['idSostituzione'] ?? 0);
+        if ($idS <= 0) continue;
+
+        $dataS = norm($row['data'] ?? '');
+        $oraInS = normalizeTimeToHms($row['oraInizio'] ?? '');
+        $oraFineS = normalizeTimeToHms($row['oraFine'] ?? '');
+        $idDocSostituitoS = (int)($row['idDocenteSostituito'] ?? 0);
+        $classeS = norm($row['classe'] ?? '');
+        $aulaS = norm($row['aula'] ?? '');
+
+        $naturalKey = implode('|', array($dataS, $oraInS, $oraFineS, $idDocSostituitoS, $classeS, $aulaS));
+        $cancelledByNaturalKey[$naturalKey] = $row;
+    }
+
+    infoimportsost("Precaricate sostituzioni annullate ripristinabili del giorno [$dataImportOggi]: " . count($cancelledByNaturalKey));
 }
 
 /* =========================================================
@@ -1168,6 +1198,7 @@ try {
             }
         } else {
             $matchedBySlot = null;
+            $cancelledMatch = isset($cancelledByNaturalKey[$naturalKey]) ? $cancelledByNaturalKey[$naturalKey] : null;
             $slotRows = isset($existingBySlotDocente[$slotKey]) ? $existingBySlotDocente[$slotKey] : array();
 
             if (!empty($slotRows)) {
@@ -1253,6 +1284,51 @@ try {
                         'materia' => $materia
                     );
                 }
+            } elseif ($cancelledMatch) {
+                $idSostituzione = (int)$cancelledMatch['idSostituzione'];
+                $seenActiveIds[$idSostituzione] = true;
+
+                $fields = array(
+                    "idDocenteSostituto = " . dbI($idDocenteSostituto),
+                    "idDocenteSostituito = " . dbI($idDocenteSostituito),
+                    "materia = " . dbQ($materia),
+                    "classe = " . dbQ($classe),
+                    "aula = " . dbQ($aula),
+                    "stato = 'ATTIVA'"
+                );
+
+                if ($hasDocSostPdf) {
+                    $fields[] = "docenteSostitutoPdf = " . dbQ($docenteSostitutoPdf);
+                }
+                if ($hasDocSostituitoPdf) {
+                    $fields[] = "docenteSostituitoPdf = " . dbQ($docenteSostituitoPdf);
+                }
+                if ($hasDataImport) {
+                    $fields[] = "dataImport = NOW()";
+                }
+
+                $q = "
+                    UPDATE sostituzioni
+                    SET " . implode(",\n", $fields) . "
+                    WHERE idSostituzione = " . dbI($idSostituzione);
+
+                dbExec($q);
+                $aggiornati++;
+                infoimportsost("Riga $riga: ripristinata sostituzione annullata id=$idSostituzione e rimessa ATTIVA");
+
+                $notificheDaInviare[] = array(
+                    'idSostituzione' => $idSostituzione,
+                    'idDocente' => $idDocenteSostituto,
+                    'evento' => 'ASSEGNAZIONE',
+                    'forzaNotifica' => true,
+                    'data' => $dataVal,
+                    'oraInizio' => $oraInizio,
+                    'oraFine' => $oraFine,
+                    'docenteSostituito' => $docenteSostituitoPdf,
+                    'classe' => $classe,
+                    'aula' => $aula,
+                    'materia' => $materia
+                );
             } else {
                 $insertCols = array(
                     'data',
@@ -1382,6 +1458,7 @@ try {
         $idSostituzione = (int)$n['idSostituzione'];
         $idDocenteDest = (int)$n['idDocente'];
         $evento = $n['evento'];
+        $forzaNotifica = !empty($n['forzaNotifica']);
 
         $doc = getDocenteById($idDocenteDest);
         if (!$doc) continue;
@@ -1389,8 +1466,8 @@ try {
         $nomeDest = docenteFullName($doc);
         $email = trim((string)($doc['email'] ?? ''));
 
-        $mailGiaInviata = ($idSostituzione > 0) ? notificaGiaInviata($idSostituzione, $idDocenteDest, $evento, 'MAIL') : false;
-        $tgGiaInviata = ($idSostituzione > 0) ? notificaGiaInviata($idSostituzione, $idDocenteDest, $evento, 'TELEGRAM') : false;
+        $mailGiaInviata = (!$forzaNotifica && $idSostituzione > 0) ? notificaGiaInviata($idSostituzione, $idDocenteDest, $evento, 'MAIL') : false;
+        $tgGiaInviata = (!$forzaNotifica && $idSostituzione > 0) ? notificaGiaInviata($idSostituzione, $idDocenteDest, $evento, 'TELEGRAM') : false;
 
         $subject = buildMailSubjectSostituzione($evento, $n['data'], $n['oraInizio']);
         $body = buildNotificationBody(
