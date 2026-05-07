@@ -11,6 +11,35 @@ require_once '../common/checkSession.php';
 ruoloRichiesto('segreteria-didattica', 'docente');
 require_once __DIR__ . '/programmiAutoreUtils.php';
 
+function sanitizeProgrammaSvoltoRichHtml(string $html): string
+{
+	$html = trim($html);
+	if ($html === '') {
+		return '';
+	}
+
+	$html = preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is', '', $html);
+	$html = preg_replace_callback('/<ol\b([^>]*)>/i', function ($matches) {
+		$attrs = strtolower($matches[1] ?? '');
+		if (strpos($attrs, 'lower-alpha') !== false || preg_match('/type\s*=\s*["\']?a/i', $attrs)) {
+			return '<ol type="a">';
+		}
+		return '<ol type="1">';
+	}, $html);
+	$html = strip_tags($html, '<p><br><ul><ol><li><strong><b><em><i><u><h4><blockquote>');
+	$html = preg_replace_callback('/<([a-z0-9]+)([^>]*)>/i', function ($matches) {
+		$tag = strtolower($matches[1] ?? '');
+		$attrs = $matches[2] ?? '';
+		if ($tag === 'ol' && preg_match('/type\s*=\s*["\']?([aA1])["\']?/i', $attrs, $typeMatch)) {
+			return '<ol type="' . $typeMatch[1] . '">';
+		}
+		return '<' . $tag . '>';
+	}, $html);
+	$html = str_ireplace(['<b>', '</b>', '<i>', '</i>'], ['<strong>', '</strong>', '<em>', '</em>'], $html);
+
+	return trim($html);
+}
+
 function programmiSvoltiHasProgramField(string $columnName): bool
 {
 	static $cache = [];
@@ -30,9 +59,9 @@ if (isset($_POST)) {
 	$materia_id = $_POST['materia_id'];
 	$duplica = $_POST['duplica'];
 	$share = $_POST['share'];
-	$metodologie_programma = trim((string)($_POST['metodologie_programma'] ?? ''));
-	$criteri_valutazione_programma = trim((string)($_POST['criteri_valutazione_programma'] ?? ''));
-	$testi_materiali_programma = trim((string)($_POST['testi_materiali_programma'] ?? ''));
+	$metodologie_programma = sanitizeProgrammaSvoltoRichHtml((string)($_POST['metodologie_programma'] ?? ''));
+	$criteri_valutazione_programma = sanitizeProgrammaSvoltoRichHtml((string)($_POST['criteri_valutazione_programma'] ?? ''));
+	$testi_materiali_programma = sanitizeProgrammaSvoltoRichHtml((string)($_POST['testi_materiali_programma'] ?? ''));
 	$extraSet = '';
 	$extraColumns = [];
 	$extraValues = [];

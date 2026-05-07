@@ -36,6 +36,40 @@ function programmiSvoltiHasProgramField(string $columnName): bool
     return $cache[$columnName];
 }
 
+function programmaSvoltoLooksLikeHtml(string $text): bool
+{
+    return preg_match('/<\/?(p|br|ul|ol|li|strong|b|em|i|u|h4|blockquote)\b/i', $text) === 1;
+}
+
+function sanitizeProgrammaSvoltoRichHtml(string $html): string
+{
+    $html = trim($html);
+    if ($html === '') {
+        return '';
+    }
+
+    $html = preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is', '', $html);
+    $html = preg_replace_callback('/<ol\b([^>]*)>/i', function ($matches) {
+        $attrs = strtolower($matches[1] ?? '');
+        if (strpos($attrs, 'lower-alpha') !== false || preg_match('/type\s*=\s*["\']?a/i', $attrs)) {
+            return '<ol type="a">';
+        }
+        return '<ol type="1">';
+    }, $html);
+    $html = strip_tags($html, '<p><br><ul><ol><li><strong><b><em><i><u><h4><blockquote>');
+    $html = preg_replace_callback('/<([a-z0-9]+)([^>]*)>/i', function ($matches) {
+        $tag = strtolower($matches[1] ?? '');
+        $attrs = $matches[2] ?? '';
+        if ($tag === 'ol' && preg_match('/type\s*=\s*["\']?([aA1])["\']?/i', $attrs, $typeMatch)) {
+            return '<ol type="' . $typeMatch[1] . '">';
+        }
+        return '<' . $tag . '>';
+    }, $html);
+    $html = str_ireplace(['<b>', '</b>', '<i>', '</i>'], ['<strong>', '</strong>', '<em>', '</em>'], $html);
+
+    return trim($html);
+}
+
 function getProgrammaSvoltoById(int $programId): ?array
 {
     $metodologieSql = programmiSvoltiHasProgramField('metodologie') ? "programmi_svolti.metodologie AS programma_metodologie," : "'' AS programma_metodologie,";
@@ -245,6 +279,10 @@ function detectListItemLevel(string $raw, ?int $currentParent): array
 
 function buildTwoLevelListFromText(string $text): string
 {
+    if (programmaSvoltoLooksLikeHtml($text)) {
+        return sanitizeProgrammaSvoltoRichHtml($text);
+    }
+
     $lines = preg_split('/\R/u', $text);
     $tree = [];
     $currentParent = null;
@@ -408,11 +446,11 @@ function decodeQuintaModulo(array $module): array
     $contenuto = (string)rowField($module, 'CONTENUTO', 'contenuto', '');
     $decoded = json_decode($contenuto, true);
 
-    if (is_array($decoded) && (($decoded['schema'] ?? '') === 'programma_svolto_quinta_v1')) {
+    if (is_array($decoded) && (($decoded['schema'] ?? '') === 'programma_svolto_quinta_v1' || ($decoded['schema'] ?? '') === 'programma_svolto_quinta_v2')) {
         return [
-            'competenze_raggiunte' => (string)($decoded['competenze_raggiunte'] ?? ''),
-            'contenuti_trattati' => (string)($decoded['contenuti_trattati'] ?? ''),
-            'abilita' => (string)($decoded['abilita'] ?? ''),
+            'competenze_raggiunte' => (string)($decoded['competenze_raggiunte_html'] ?? $decoded['competenze_raggiunte'] ?? ''),
+            'contenuti_trattati' => (string)($decoded['contenuti_trattati_html'] ?? $decoded['contenuti_trattati'] ?? ''),
+            'abilita' => (string)($decoded['abilita_html'] ?? $decoded['abilita'] ?? ''),
         ];
     }
 
@@ -439,7 +477,13 @@ function concatSectionText(array &$sections, string $key, string $moduleTitle, s
         return;
     }
 
-    $block = trim($moduleTitle) !== '' ? ("__MODULE_TITLE__" . mb_strtoupper(trim($moduleTitle), 'UTF-8') . "\n" . $value) : $value;
+    if (programmaSvoltoLooksLikeHtml($value)) {
+        $block = trim($moduleTitle) !== ''
+            ? '<h4>' . htmlspecialchars(mb_strtoupper(trim($moduleTitle), 'UTF-8'), ENT_QUOTES, 'UTF-8') . '</h4>' . sanitizeProgrammaSvoltoRichHtml($value)
+            : sanitizeProgrammaSvoltoRichHtml($value);
+    } else {
+        $block = trim($moduleTitle) !== '' ? ("__MODULE_TITLE__" . mb_strtoupper(trim($moduleTitle), 'UTF-8') . "\n" . $value) : $value;
+    }
     if ($sections[$key] !== '') {
         $sections[$key] .= "\n\n";
     }
@@ -485,6 +529,10 @@ function wrapSectionForDocente(string $text, string $docenteLabel): string
     }
     if ($docenteLabel === '') {
         return $text;
+    }
+
+    if (programmaSvoltoLooksLikeHtml($text)) {
+        return '<h4>' . htmlspecialchars(mb_strtoupper($docenteLabel, 'UTF-8'), ENT_QUOTES, 'UTF-8') . '</h4>' . sanitizeProgrammaSvoltoRichHtml($text);
     }
 
     return '__SECTION_HEADING__' . mb_strtoupper($docenteLabel, 'UTF-8') . "\n" . $text;
@@ -600,8 +648,258 @@ function buildParagraphHtmlFromText(string $text): string
     return $html !== '' ? $html : '&nbsp;';
 }
 
+function createWordRunXml(DOMDocument $dom, string $text, bool $bold = false, bool $italic = false, bool $underline = false, int $size = 0): DOMElement
+{
+    $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+    $r = $dom->createElementNS($ns, 'w:r');
+    if ($bold || $italic || $underline || $size > 0) {
+        $rPr = $dom->createElementNS($ns, 'w:rPr');
+        if ($bold) {
+            $rPr->appendChild($dom->createElementNS($ns, 'w:b'));
+            $rPr->appendChild($dom->createElementNS($ns, 'w:bCs'));
+        }
+        if ($italic) {
+            $rPr->appendChild($dom->createElementNS($ns, 'w:i'));
+            $rPr->appendChild($dom->createElementNS($ns, 'w:iCs'));
+        }
+        if ($underline) {
+            $u = $dom->createElementNS($ns, 'w:u');
+            $u->setAttributeNS($ns, 'w:val', 'single');
+            $rPr->appendChild($u);
+        }
+        if ($size > 0) {
+            $sz = $dom->createElementNS($ns, 'w:sz');
+            $sz->setAttributeNS($ns, 'w:val', (string)$size);
+            $szCs = $dom->createElementNS($ns, 'w:szCs');
+            $szCs->setAttributeNS($ns, 'w:val', (string)$size);
+            $rPr->appendChild($sz);
+            $rPr->appendChild($szCs);
+        }
+        $r->appendChild($rPr);
+    }
+
+    $t = $dom->createElementNS($ns, 'w:t');
+    if (preg_match('/^\s|\s$/u', $text)) {
+        $t->setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+    }
+    $t->nodeValue = $text;
+    $r->appendChild($t);
+    return $r;
+}
+
+function appendWordInlineRunsFromHtml(DOMDocument $wordDom, DOMElement $paragraph, DOMNode $node, array $style = []): void
+{
+    $bold = !empty($style['bold']);
+    $italic = !empty($style['italic']);
+    $underline = !empty($style['underline']);
+
+    foreach ($node->childNodes as $child) {
+        if ($child->nodeType === XML_TEXT_NODE) {
+            $text = preg_replace('/\s+/u', ' ', $child->nodeValue ?? '');
+            if ($text !== '') {
+                $paragraph->appendChild(createWordRunXml($wordDom, $text, $bold, $italic, $underline));
+            }
+            continue;
+        }
+
+        if (!$child instanceof DOMElement) {
+            continue;
+        }
+
+        $tag = strtolower($child->tagName);
+        if ($tag === 'br') {
+            $paragraph->appendChild($wordDom->createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'w:br'));
+            continue;
+        }
+        if ($tag === 'strong' || $tag === 'b') {
+            appendWordInlineRunsFromHtml($wordDom, $paragraph, $child, array_merge($style, ['bold' => true]));
+            continue;
+        }
+        if ($tag === 'em' || $tag === 'i') {
+            appendWordInlineRunsFromHtml($wordDom, $paragraph, $child, array_merge($style, ['italic' => true]));
+            continue;
+        }
+        if ($tag === 'u') {
+            appendWordInlineRunsFromHtml($wordDom, $paragraph, $child, array_merge($style, ['underline' => true]));
+            continue;
+        }
+        if ($tag === 'ul' || $tag === 'ol') {
+            continue;
+        }
+        appendWordInlineRunsFromHtml($wordDom, $paragraph, $child, $style);
+    }
+}
+
+function buildWordParagraphFromHtmlElement(DOMDocument $wordDom, DOMElement $element, string $prefix = '', int $level = 0): DOMElement
+{
+    $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+    $paragraph = $wordDom->createElementNS($ns, 'w:p');
+    $pPr = $wordDom->createElementNS($ns, 'w:pPr');
+    $spacing = $wordDom->createElementNS($ns, 'w:spacing');
+    $spacing->setAttributeNS($ns, 'w:before', '0');
+    $spacing->setAttributeNS($ns, 'w:after', '40');
+    $pPr->appendChild($spacing);
+    if ($level > 0) {
+        $ind = $wordDom->createElementNS($ns, 'w:ind');
+        $ind->setAttributeNS($ns, 'w:left', (string)(360 * $level));
+        $pPr->appendChild($ind);
+    }
+    $paragraph->appendChild($pPr);
+
+    $tag = strtolower($element->tagName);
+    if ($prefix !== '') {
+        $paragraph->appendChild(createWordRunXml($wordDom, $prefix, false, false, false));
+    }
+
+    appendWordInlineRunsFromHtml($wordDom, $paragraph, $element, [
+        'bold' => $tag === 'h4',
+    ]);
+
+    return $paragraph;
+}
+
+function buildWordParagraphsFromHtmlXmlLegacy(DOMDocument $wordDom, string $html): array
+{
+    $cleanHtml = sanitizeProgrammaSvoltoRichHtml($html);
+    if ($cleanHtml === '') {
+        return [$wordDom->createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'w:p')];
+    }
+
+    $htmlDom = new DOMDocument();
+    libxml_use_internal_errors(true);
+    $htmlDom->loadHTML('<?xml encoding="UTF-8"><div>' . $cleanHtml . '</div>', LIBXML_HTML_NODEFDTD | LIBXML_HTML_NOIMPLIED);
+    libxml_clear_errors();
+    $root = $htmlDom->getElementsByTagName('div')->item(0);
+    $paragraphs = [];
+
+    $walk = function (DOMNode $container, int $level = 0) use (&$walk, &$paragraphs, $wordDom) {
+        foreach ($container->childNodes as $node) {
+            if ($node->nodeType === XML_TEXT_NODE) {
+                $text = trim($node->nodeValue ?? '');
+                if ($text !== '') {
+                    $fake = new DOMDocument();
+                    $p = $fake->createElement('p', $text);
+                    $paragraphs[] = buildWordParagraphFromHtmlElement($wordDom, $p, '', $level);
+                }
+                continue;
+            }
+            if (!$node instanceof DOMElement) {
+                continue;
+            }
+            $tag = strtolower($node->tagName);
+            if ($tag === 'ul' || $tag === 'ol') {
+                foreach ($node->childNodes as $li) {
+                    if ($li instanceof DOMElement && strtolower($li->tagName) === 'li') {
+                        $paragraphs[] = buildWordParagraphFromHtmlElement($wordDom, $li, ($tag === 'ol' ? '• ' : '• '), $level);
+                        foreach ($li->childNodes as $child) {
+                            if ($child instanceof DOMElement && in_array(strtolower($child->tagName), ['ul', 'ol'], true)) {
+                                $walk($child, $level + 1);
+                            }
+                        }
+                    }
+                }
+                continue;
+            }
+            if ($tag === 'blockquote') {
+                $walk($node, $level + 1);
+                continue;
+            }
+            if (in_array($tag, ['p', 'h4', 'li'], true)) {
+                $paragraphs[] = buildWordParagraphFromHtmlElement($wordDom, $node, $tag === 'li' ? '• ' : '', $level);
+                continue;
+            }
+        }
+    };
+
+    if ($root instanceof DOMElement) {
+        $walk($root, 0);
+    }
+
+    return !empty($paragraphs) ? $paragraphs : [$wordDom->createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'w:p')];
+}
+
+function programmaWordListPrefix(DOMElement $list, int $index): string
+{
+    if (strtolower($list->tagName) !== 'ol') {
+        return '- ';
+    }
+
+    $type = strtolower((string)$list->getAttribute('type'));
+    if ($type === 'a') {
+        return chr(ord('a') + (($index - 1) % 26)) . '. ';
+    }
+
+    return $index . '. ';
+}
+
+function buildWordParagraphsFromHtmlXml(DOMDocument $wordDom, string $html): array
+{
+    $cleanHtml = sanitizeProgrammaSvoltoRichHtml($html);
+    if ($cleanHtml === '') {
+        return [$wordDom->createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'w:p')];
+    }
+
+    $htmlDom = new DOMDocument();
+    libxml_use_internal_errors(true);
+    $htmlDom->loadHTML('<?xml encoding="UTF-8"><div>' . $cleanHtml . '</div>', LIBXML_HTML_NODEFDTD | LIBXML_HTML_NOIMPLIED);
+    libxml_clear_errors();
+    $root = $htmlDom->getElementsByTagName('div')->item(0);
+    $paragraphs = [];
+
+    $walk = function (DOMNode $container, int $level = 0) use (&$walk, &$paragraphs, $wordDom) {
+        foreach ($container->childNodes as $node) {
+            if ($node->nodeType === XML_TEXT_NODE) {
+                $text = trim($node->nodeValue ?? '');
+                if ($text !== '') {
+                    $fake = new DOMDocument();
+                    $p = $fake->createElement('p', $text);
+                    $paragraphs[] = buildWordParagraphFromHtmlElement($wordDom, $p, '', $level);
+                }
+                continue;
+            }
+            if (!$node instanceof DOMElement) {
+                continue;
+            }
+
+            $tag = strtolower($node->tagName);
+            if ($tag === 'ul' || $tag === 'ol') {
+                $listIndex = 1;
+                foreach ($node->childNodes as $li) {
+                    if ($li instanceof DOMElement && strtolower($li->tagName) === 'li') {
+                        $paragraphs[] = buildWordParagraphFromHtmlElement($wordDom, $li, programmaWordListPrefix($node, $listIndex), $level);
+                        $listIndex++;
+                        foreach ($li->childNodes as $child) {
+                            if ($child instanceof DOMElement && in_array(strtolower($child->tagName), ['ul', 'ol'], true)) {
+                                $walk($child, $level + 1);
+                            }
+                        }
+                    }
+                }
+                continue;
+            }
+            if ($tag === 'blockquote') {
+                $walk($node, $level + 1);
+                continue;
+            }
+            if (in_array($tag, ['p', 'h4'], true)) {
+                $paragraphs[] = buildWordParagraphFromHtmlElement($wordDom, $node, '', $level);
+            }
+        }
+    };
+
+    if ($root instanceof DOMElement) {
+        $walk($root, 0);
+    }
+
+    return !empty($paragraphs) ? $paragraphs : [$wordDom->createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'w:p')];
+}
+
 function buildWordParagraphsXml(DOMDocument $dom, string $text): array
 {
+    if (programmaSvoltoLooksLikeHtml($text)) {
+        return buildWordParagraphsFromHtmlXml($dom, $text);
+    }
+
     $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
     $paragraphs = [];
     $lines = preg_split('/\R/u', trim($text));
@@ -712,6 +1010,73 @@ function setWordParagraphText(DOMDocument $dom, DOMXPath $xpath, string $query, 
     $t->nodeValue = $text;
     $r->appendChild($t);
     $paragraph->appendChild($r);
+}
+
+function getWordChildByLocalName(DOMElement $element, string $localName): ?DOMElement
+{
+    foreach ($element->childNodes as $childNode) {
+        if ($childNode instanceof DOMElement && $childNode->localName === $localName) {
+            return $childNode;
+        }
+    }
+
+    return null;
+}
+
+function normalizeWordDocumentFont(string $xml): string
+{
+    $dom = new DOMDocument();
+    $dom->preserveWhiteSpace = false;
+    $dom->formatOutput = false;
+    $dom->loadXML($xml);
+
+    $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+    $xpath = new DOMXPath($dom);
+    $xpath->registerNamespace('w', $ns);
+
+    foreach ($xpath->query('//w:r') as $run) {
+        if (!$run instanceof DOMElement) {
+            continue;
+        }
+
+        $rPr = getWordChildByLocalName($run, 'rPr');
+        if (!$rPr instanceof DOMElement) {
+            $rPr = $dom->createElementNS($ns, 'w:rPr');
+            if ($run->firstChild) {
+                $run->insertBefore($rPr, $run->firstChild);
+            } else {
+                $run->appendChild($rPr);
+            }
+        }
+
+        $rFonts = getWordChildByLocalName($rPr, 'rFonts');
+        if (!$rFonts instanceof DOMElement) {
+            $rFonts = $dom->createElementNS($ns, 'w:rFonts');
+            if ($rPr->firstChild) {
+                $rPr->insertBefore($rFonts, $rPr->firstChild);
+            } else {
+                $rPr->appendChild($rFonts);
+            }
+        }
+        foreach (['ascii', 'hAnsi', 'cs', 'eastAsia'] as $attribute) {
+            $rFonts->setAttributeNS($ns, 'w:' . $attribute, 'Arial');
+        }
+
+        foreach (['sz', 'szCs'] as $sizeTag) {
+            $size = getWordChildByLocalName($rPr, $sizeTag);
+            if (!$size instanceof DOMElement) {
+                $size = $dom->createElementNS($ns, 'w:' . $sizeTag);
+                $rPr->appendChild($size);
+            }
+
+            $currentSize = intval($size->getAttributeNS($ns, 'val'));
+            if ($currentSize <= 20) {
+                $size->setAttributeNS($ns, 'w:val', '22');
+            }
+        }
+    }
+
+    return $dom->saveXML();
 }
 
 function buildWordProgramHeader(array $lines): array
@@ -955,7 +1320,7 @@ function exportQuintaDocx(array $program, array $sections, array $docentiLabels 
         'Materia ' . $program['materia_nome'],
         (count($docentiLabels) > 1 ? 'Docenti ' : 'Docente ') . implode(' / ', !empty($docentiLabels) ? $docentiLabels : [trim($program['doc_cognome'] . ' ' . $program['doc_nome'])]),
     ]);
-    $zip->addFromString('word/document.xml', fillWordTemplateXml($xml, $sections, $intestazioneLines));
+    $zip->addFromString('word/document.xml', normalizeWordDocumentFont(fillWordTemplateXml($xml, $sections, $intestazioneLines)));
     $zip->close();
 
     $fileName = 'Programma svolto quinta - ' . $program['materia_nome'] . ' - Classe ' . $program['classe_nome'] . ' - ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.docx';
@@ -1078,7 +1443,7 @@ function exportQuintaClasseDocx(int $classId, int $annoScolasticoId): void
         exit;
     }
 
-    $zip->addFromString('word/document.xml', buildCombinedWordXml($xml, $programmiData));
+    $zip->addFromString('word/document.xml', normalizeWordDocumentFont(buildCombinedWordXml($xml, $programmiData)));
     $zip->close();
 
     $fileName = 'Programmi svolti quinta - Classe ' . $classeNome . '.docx';

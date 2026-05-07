@@ -18,6 +18,16 @@ var $materia_filtro_id = 0;
 var $docenti_filtro_id = 0;
 var $da_completare_filtro_id = 0;
 var activeProgrammaPreviewField = null;
+var programmaRichTextFields = [
+    'contenuto',
+    'competenze_raggiunte',
+    'contenuti_trattati',
+    'abilita_quinta',
+    'metodologie_programma',
+    'criteri_valutazione_programma',
+    'testi_materiali_programma'
+];
+var programmaEditorSavedRanges = {};
 
 function getClasseAnnoCorrente() {
     var annoHidden = parseInt($('#hidden_programma_classe_anno').val(), 10) || 0;
@@ -33,12 +43,18 @@ function pulisciCampiQuinta() {
     $('#competenze_raggiunte').val('');
     $('#contenuti_trattati').val('');
     $('#abilita_quinta').val('');
+    if (typeof syncProgrammaRichEditorsFromTextareas === 'function') {
+        syncProgrammaRichEditorsFromTextareas();
+    }
 }
 
 function pulisciCampiProgrammaQuinta() {
     $('#metodologie_programma').val('');
     $('#criteri_valutazione_programma').val('');
     $('#testi_materiali_programma').val('');
+    if (typeof syncProgrammaRichEditorsFromTextareas === 'function') {
+        syncProgrammaRichEditorsFromTextareas();
+    }
 }
 
 function escapeProgrammaPreviewHtml(text) {
@@ -48,6 +64,858 @@ function escapeProgrammaPreviewHtml(text) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+function programmaLooksLikeHtml(text) {
+    return /<\/?(p|br|ul|ol|li|strong|b|em|i|u|h4|blockquote)\b/i.test(String(text || ''));
+}
+
+function sanitizeProgrammaRichHtml(html) {
+    var $tmp = $('<div>').html(String(html || ''));
+    $tmp.find('script, style, meta, link, object, iframe').remove();
+    $tmp.find('*').each(function () {
+        var style = String($(this).attr('style') || '').toLowerCase();
+        var inner = $(this).html();
+        if (/font-weight\s*:\s*(bold|[6-9]00)/.test(style)) {
+            inner = '<strong>' + inner + '</strong>';
+        }
+        if (/font-style\s*:\s*italic/.test(style)) {
+            inner = '<em>' + inner + '</em>';
+        }
+        if (/text-decoration[^;]*underline/.test(style)) {
+            inner = '<u>' + inner + '</u>';
+        }
+        if (this.tagName === 'OL') {
+            if (/list-style-type\s*:\s*lower-alpha/.test(style)) {
+                $(this).attr('type', 'a');
+            } else if (/list-style-type\s*:\s*upper-alpha/.test(style)) {
+                $(this).attr('type', 'A');
+            } else {
+                $(this).attr('type', '1');
+            }
+        }
+        $(this).html(inner);
+    });
+
+    function cleanNode(node) {
+        var allowed = ['P', 'BR', 'UL', 'OL', 'LI', 'STRONG', 'B', 'EM', 'I', 'U', 'H4', 'BLOCKQUOTE'];
+        $(node).contents().each(function () {
+            if (this.nodeType === 1) {
+                if (allowed.indexOf(this.tagName) === -1) {
+                    $(this).replaceWith($(this).contents());
+                    return;
+                }
+                var element = this;
+                var keepType = element.tagName === 'OL' && ['1', 'a', 'A'].indexOf(String($(element).attr('type') || '')) !== -1
+                    ? String($(element).attr('type'))
+                    : '';
+                $.each(Array.prototype.slice.call(element.attributes), function () {
+                    if (this && this.name) {
+                        element.removeAttribute(this.name);
+                    }
+                });
+                if (keepType !== '') {
+                    element.setAttribute('type', keepType);
+                }
+                cleanNode(this);
+            }
+        });
+    }
+
+    cleanNode($tmp.get(0));
+    $tmp.find('b').each(function () {
+        $(this).replaceWith($('<strong>').html($(this).html()));
+    });
+    $tmp.find('i').each(function () {
+        $(this).replaceWith($('<em>').html($(this).html()));
+    });
+    $tmp.find('li').each(function () {
+        var li = this;
+        var removed = false;
+        $(li).contents().each(function () {
+            if (removed) {
+                return false;
+            }
+            if (this.nodeType === 3) {
+                var cleaned = String(this.nodeValue || '').replace(/^[\s\u00a0]*[\u2022\u00b7\u25cf\u25e6\u2043\uf0b7\uf0a7\uf076][\s\u00a0]*/u, '');
+                if (cleaned !== this.nodeValue) {
+                    this.nodeValue = cleaned;
+                    removed = true;
+                }
+            } else if (this.nodeType === 1) {
+                var $child = $(this);
+                var cleanedText = String($child.text() || '').replace(/^[\s\u00a0]*[\u2022\u00b7\u25cf\u25e6\u2043\uf0b7\uf0a7\uf076][\s\u00a0]*/u, '');
+                if (cleanedText !== $child.text()) {
+                    $child.text(cleanedText);
+                    removed = true;
+                }
+            }
+        });
+    });
+
+    return $.trim($tmp.html());
+}
+
+function programmaPlainTextToHtml(text) {
+    var lines = String(text || '').split(/\r\n|\r|\n/u);
+    var html = [];
+    lines.forEach(function (line) {
+        if ($.trim(line) === '') {
+            return;
+        }
+        html.push('<p>' + escapeProgrammaPreviewHtml(line) + '</p>');
+    });
+    return html.join('');
+}
+
+function getProgrammaWordListInfo(text) {
+    var trimmed = $.trim(String(text || '').replace(/\u00a0/g, ' '));
+    var match = trimmed.match(/^[\u2022\u00b7\u25cf\u25e6\u2043\uf0b7\uf0a7\uf076]\s*(.+)$/u);
+    if (match) {
+        return { list: 'ul', type: '', text: match[1] };
+    }
+
+    match = trimmed.match(/^(\d+)[\.\)]\s+(.+)$/u);
+    if (match) {
+        return { list: 'ol', type: '1', text: match[2] };
+    }
+
+    match = trimmed.match(/^([a-zA-Z])[\.\)]\s+(.+)$/u);
+    if (match) {
+        return { list: 'ol', type: 'a', text: match[2] };
+    }
+
+    return null;
+}
+
+function programmaBlockHadInlineStyle($block, tagNames) {
+    return $block.is(tagNames) || $block.find(tagNames).length > 0;
+}
+
+function buildProgrammaListItemFromWordBlock($block, info) {
+    var $li = $('<li>');
+    var text = info.text;
+    if (programmaBlockHadInlineStyle($block, 'strong, b')) {
+        text = $('<strong>').text(text);
+    } else if (programmaBlockHadInlineStyle($block, 'em, i')) {
+        text = $('<em>').text(text);
+    } else {
+        text = document.createTextNode(text);
+    }
+
+    $li.append(text);
+    if (programmaBlockHadInlineStyle($block, 'u')) {
+        $li.html('<u>' + $li.html() + '</u>');
+    }
+    return $li;
+}
+
+function normalizeProgrammaWordListText(text) {
+    return $.trim(String(text || '')
+        .replace(/\u00a0/g, ' ')
+        .replace(/^[\u2022\u00b7\u25cf\u25e6\u2043\uf0b7\uf0a7\uf076]\s*/u, '')
+        .replace(/^\d+[\.\)]\s+/u, '')
+        .replace(/^[a-zA-Z][\.\)]\s+/u, ''));
+}
+
+function normalizeProgrammaWordMsoLists(html) {
+    if (!html || !/mso-list|MsoListParagraph/i.test(html)) {
+        return '';
+    }
+
+    var $raw = $('<div>').html(String(html));
+    var $blocks = $raw.find('p, div').filter(function () {
+        var style = String($(this).attr('style') || '');
+        var className = String($(this).attr('class') || '');
+        return /mso-list/i.test(style) || /MsoListParagraph/i.test(className);
+    });
+    if (!$blocks.length) {
+        return '';
+    }
+
+    var $result = $('<div>');
+    var $currentList = null;
+    var converted = false;
+
+    $blocks.each(function () {
+        var $block = $(this).clone();
+        $block.find('span').filter(function () {
+            return /mso-list\s*:\s*Ignore/i.test(String($(this).attr('style') || ''));
+        }).remove();
+
+        var text = normalizeProgrammaWordListText($block.text());
+        if (text === '') {
+            return;
+        }
+
+        if (!$currentList) {
+            $currentList = $('<ul>');
+            $result.append($currentList);
+        }
+
+        var $li = $('<li>');
+        var $content = $('<span>').html(sanitizeProgrammaRichHtml($block.html()));
+        if ($content.text() !== text) {
+            $content.text(text);
+            if (programmaBlockHadInlineStyle($block, 'strong, b')) {
+                $content.wrapInner('<strong></strong>');
+            }
+            if (programmaBlockHadInlineStyle($block, 'em, i')) {
+                $content.wrapInner('<em></em>');
+            }
+            if (programmaBlockHadInlineStyle($block, 'u')) {
+                $content.wrapInner('<u></u>');
+            }
+        }
+        $li.html($content.html());
+        $currentList.append($li);
+        converted = true;
+    });
+
+    return converted ? sanitizeProgrammaRichHtml($result.html()) : '';
+}
+
+function getProgrammaPlainListLineInfo(line) {
+    var raw = String(line || '').replace(/\u00a0/g, ' ');
+    if ($.trim(raw) === '') {
+        return null;
+    }
+
+    var indentMatch = raw.match(/^(\s*)/);
+    var indent = indentMatch ? indentMatch[1].replace(/\t/g, '    ').length : 0;
+    var trimmed = $.trim(raw);
+    var match = trimmed.match(/^[\u2022\u00b7\u25cf\u25e6\u2043\uf0b7\uf0a7\uf076]\s*(.+)$/u);
+    if (match) {
+        return { list: 'ul', type: '', level: indent >= 2 ? 1 : 0, text: $.trim(match[1]) };
+    }
+
+    match = trimmed.match(/^(\d+)[\.\)]\s+(.+)$/u);
+    if (match) {
+        return { list: 'ol', type: '1', level: indent >= 2 ? 1 : 0, text: $.trim(match[2]) };
+    }
+
+    match = trimmed.match(/^([a-zA-Z])[\.\)]\s+(.+)$/u);
+    if (match) {
+        return { list: 'ol', type: 'a', level: indent >= 2 ? 1 : 0, text: $.trim(match[2]) };
+    }
+
+    return null;
+}
+
+function normalizeProgrammaWordPlainLists(text, html) {
+    var lines = String(text || '').split(/\r\n|\r|\n/u);
+    var infos = [];
+    var listLines = 0;
+    lines.forEach(function (line) {
+        var info = getProgrammaPlainListLineInfo(line);
+        infos.push({ line: line, info: info });
+        if (info) {
+            listLines++;
+        }
+    });
+
+    if (listLines < 2) {
+        return '';
+    }
+
+    var htmlText = String(html || '').toLowerCase();
+    var allBold = /<(strong|b)\b/.test(htmlText) || /font-weight\s*:\s*(bold|[6-9]00)/.test(htmlText);
+    var allItalic = /<(em|i)\b/.test(htmlText) || /font-style\s*:\s*italic/.test(htmlText);
+    var allUnderline = /<u\b/.test(htmlText) || /text-decoration[^;]*underline/.test(htmlText);
+    var $root = $('<div>');
+    var lists = {};
+
+    function closeDeeper(level) {
+        Object.keys(lists).forEach(function (key) {
+            if (parseInt(key, 10) > level) {
+                delete lists[key];
+            }
+        });
+    }
+
+    infos.forEach(function (entry) {
+        var info = entry.info;
+        if (!info) {
+            closeDeeper(-1);
+            var textLine = $.trim(entry.line);
+            if (textLine !== '') {
+                $root.append($('<p>').text(textLine));
+            }
+            return;
+        }
+
+        closeDeeper(info.level);
+        var key = String(info.level);
+        var $list = lists[key];
+        if (!$list || $list.prop('tagName').toLowerCase() !== info.list || String($list.attr('type') || '') !== info.type) {
+            $list = $('<' + info.list + '>');
+            if (info.type) {
+                $list.attr('type', info.type);
+            }
+            if (info.level > 0 && lists[String(info.level - 1)] && lists[String(info.level - 1)].children('li').last().length) {
+                lists[String(info.level - 1)].children('li').last().append($list);
+            } else {
+                $root.append($list);
+            }
+            lists[key] = $list;
+        }
+
+        var $li = $('<li>').text(info.text);
+        if (allBold) {
+            $li.wrapInner('<strong></strong>');
+        }
+        if (allItalic) {
+            $li.wrapInner('<em></em>');
+        }
+        if (allUnderline) {
+            $li.wrapInner('<u></u>');
+        }
+        $list.append($li);
+    });
+
+    return sanitizeProgrammaRichHtml($root.html());
+}
+
+function normalizeProgrammaWordPasteHtml(html, text) {
+    var textOnly = String(text || '');
+    if (/^[\s\u00a0]*[\u2022\u00b7\u25cf\u25e6\u2043\uf0b7\uf0a7\uf076]\s*/mu.test(textOnly)) {
+        var htmlText = String(html || '').toLowerCase();
+        var directBold = /<(strong|b)\b/.test(htmlText) || /font-weight\s*:\s*(bold|[6-9]00)/.test(htmlText);
+        var directItalic = /<(em|i)\b/.test(htmlText) || /font-style\s*:\s*italic/.test(htmlText);
+        var directUnderline = /<u\b/.test(htmlText) || /text-decoration[^;]*underline/.test(htmlText);
+        var directList = $('<ul>');
+        textOnly.split(/\r\n|\r|\n/u).forEach(function (line) {
+            var info = getProgrammaPlainListLineInfo(line);
+            if (info && info.list === 'ul') {
+                var $li = $('<li>').text(info.text);
+                if (directBold) {
+                    $li.wrapInner('<strong></strong>');
+                }
+                if (directItalic) {
+                    $li.wrapInner('<em></em>');
+                }
+                if (directUnderline) {
+                    $li.wrapInner('<u></u>');
+                }
+                directList.append($li);
+            }
+        });
+        if (directList.children('li').length >= 2) {
+            return sanitizeProgrammaRichHtml(directList.prop('outerHTML'));
+        }
+    }
+
+    var plainListHtml = normalizeProgrammaWordPlainLists(text, html);
+    if (plainListHtml !== '') {
+        return plainListHtml;
+    }
+
+    var msoListHtml = normalizeProgrammaWordMsoLists(html);
+    if (msoListHtml !== '') {
+        return msoListHtml;
+    }
+
+    var cleanHtml = html ? sanitizeProgrammaRichHtml(html) : programmaPlainTextToHtml(text);
+    var $tmp = $('<div>').html(cleanHtml);
+    var $children = $tmp.children('p, div, h4');
+    if (!$children.length || $tmp.find('ul, ol').length) {
+        return cleanHtml;
+    }
+
+    var $result = $('<div>');
+    var $currentList = null;
+    var currentKey = '';
+    var converted = false;
+
+    $children.each(function () {
+        var $block = $(this);
+        var info = getProgrammaWordListInfo($block.text());
+        if (!info) {
+            $currentList = null;
+            currentKey = '';
+            $result.append($block.clone());
+            return;
+        }
+
+        converted = true;
+        var key = info.list + ':' + info.type;
+        if (!$currentList || key !== currentKey) {
+            $currentList = $('<' + info.list + '>');
+            if (info.type) {
+                $currentList.attr('type', info.type);
+            }
+            $result.append($currentList);
+            currentKey = key;
+        }
+        $currentList.append(buildProgrammaListItemFromWordBlock($block, info));
+    });
+
+    return converted ? sanitizeProgrammaRichHtml($result.html()) : cleanHtml;
+}
+
+function programmaHtmlToPlainText(html) {
+    var $tmp = $('<div>').html(sanitizeProgrammaRichHtml(html));
+    $tmp.find('br').replaceWith('\n');
+    $tmp.find('blockquote').each(function () {
+        $(this).prepend('  ');
+        $(this).append('\n');
+    });
+    $tmp.find('p, li, h4').each(function () {
+        $(this).append('\n');
+    });
+    return $.trim($tmp.text().replace(/\n{3,}/g, '\n\n'));
+}
+
+function getProgrammaFieldValue(fieldId) {
+    var $editor = $('#' + fieldId + '_editor');
+    if ($editor.length) {
+        var editorHtml = $editor.html() || '';
+        if ($editor.data('richMode') === 'html' || programmaLooksLikeHtml(editorHtml)) {
+            return sanitizeProgrammaRichHtml(editorHtml);
+        }
+        return $editor.text();
+    }
+    return $('#' + fieldId).val() || '';
+}
+
+function syncProgrammaRichEditorToTextarea(fieldId) {
+    var $textarea = $('#' + fieldId);
+    var $editor = $('#' + fieldId + '_editor');
+    if (!$textarea.length || !$editor.length) {
+        return;
+    }
+
+    var editorHtml = $editor.html() || '';
+    if ($editor.data('richMode') === 'html' || programmaLooksLikeHtml(editorHtml)) {
+        $textarea.val(sanitizeProgrammaRichHtml(editorHtml));
+    } else {
+        $textarea.val($editor.text());
+    }
+}
+
+function syncProgrammaRichEditorsToTextareas() {
+    programmaRichTextFields.forEach(syncProgrammaRichEditorToTextarea);
+}
+
+function syncProgrammaRichEditorFromTextarea(fieldId) {
+    var $textarea = $('#' + fieldId);
+    var $editor = $('#' + fieldId + '_editor');
+    if (!$textarea.length || !$editor.length) {
+        return;
+    }
+
+    var value = $textarea.val() || '';
+    if (programmaLooksLikeHtml(value)) {
+        $editor.html(sanitizeProgrammaRichHtml(value));
+        $editor.data('richMode', 'html');
+    } else {
+        var migratedHtml = value !== '' ? sanitizeProgrammaRichHtml(renderProgrammaPreviewHtml(value)) : '';
+        if (migratedHtml !== '') {
+            $editor.html(migratedHtml);
+            $textarea.val(migratedHtml);
+            $editor.data('richMode', 'html');
+        } else {
+            $editor.text(value);
+            $editor.data('richMode', 'text');
+        }
+    }
+}
+
+function syncProgrammaRichEditorsFromTextareas() {
+    programmaRichTextFields.forEach(syncProgrammaRichEditorFromTextarea);
+}
+
+function markProgrammaEditorRich(fieldId) {
+    $('#' + fieldId + '_editor').data('richMode', 'html');
+}
+
+function saveProgrammaEditorSelection(fieldId) {
+    var editor = document.getElementById(fieldId + '_editor');
+    var selection = window.getSelection ? window.getSelection() : null;
+    if (!editor || !selection || selection.rangeCount === 0) {
+        return;
+    }
+
+    var range = selection.getRangeAt(0);
+    if (editor.contains(range.commonAncestorContainer)) {
+        programmaEditorSavedRanges[fieldId] = range.cloneRange();
+    }
+}
+
+function restoreProgrammaEditorSelection(fieldId) {
+    var range = programmaEditorSavedRanges[fieldId];
+    var selection = window.getSelection ? window.getSelection() : null;
+    if (!range || !selection) {
+        return;
+    }
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
+function getProgrammaCurrentList(fieldId) {
+    var editor = document.getElementById(fieldId + '_editor');
+    var selection = window.getSelection ? window.getSelection() : null;
+    if (!editor || !selection || selection.rangeCount === 0) {
+        return $();
+    }
+
+    var node = selection.getRangeAt(0).startContainer;
+    return $(node && node.nodeType === 3 ? node.parentNode : node).closest('ol, ul', editor);
+}
+
+function programmaSelectionNode(fieldId) {
+    var editor = document.getElementById(fieldId + '_editor');
+    var selection = window.getSelection ? window.getSelection() : null;
+    if (!editor || !selection || selection.rangeCount === 0) {
+        return null;
+    }
+
+    var node = selection.getRangeAt(0).startContainer;
+    if (node && node.nodeType === 3) {
+        node = node.parentNode;
+    }
+    return editor.contains(node) ? node : null;
+}
+
+function clearProgrammaEditorFormatting(fieldId) {
+    var editor = document.getElementById(fieldId + '_editor');
+    var selection = window.getSelection ? window.getSelection() : null;
+    if (!editor || !selection || selection.rangeCount === 0) {
+        return;
+    }
+
+    var range = selection.getRangeAt(0);
+    if (!editor.contains(range.commonAncestorContainer)) {
+        return;
+    }
+
+    var $blocks = $();
+    if (!range.collapsed) {
+        $(editor).find('li, h4, p, blockquote').each(function () {
+            try {
+                if (range.intersectsNode(this)) {
+                    $blocks = $blocks.add(this);
+                }
+            } catch (e) {
+                // Browser vecchi: se intersectsNode non è disponibile, uso il blocco corrente.
+            }
+        });
+    }
+
+    if (!$blocks.length) {
+        var node = programmaSelectionNode(fieldId);
+        $blocks = $(node).closest('li, h4, p, blockquote', editor);
+    }
+
+    $blocks.each(function () {
+        var $block = $(this);
+        var text = $.trim($block.text());
+        var $p = $('<p>').text(text);
+
+        if ($block.is('li')) {
+            var $list = $block.closest('ol, ul');
+            $list.before($p);
+            $block.remove();
+            if (!$list.children('li').length) {
+                $list.remove();
+            }
+        } else {
+            $block.replaceWith($p);
+        }
+    });
+
+    if (!$blocks.length && !range.collapsed) {
+        document.execCommand('removeFormat', false, null);
+    }
+}
+
+function updateProgrammaToolbarState(fieldId) {
+    var $toolbar = $('.programma-rich-toolbar[data-field="' + fieldId + '"]');
+    var node = programmaSelectionNode(fieldId);
+    if (!$toolbar.length || !node) {
+        return;
+    }
+
+    var $node = $(node);
+    var $list = $node.closest('ol, ul');
+    var listType = $list.is('ol') ? String($list.attr('type') || '1').toLowerCase() : '';
+    var states = {
+        bold: $node.closest('strong, b').length || document.queryCommandState('bold'),
+        italic: $node.closest('em, i').length || document.queryCommandState('italic'),
+        underline: $node.closest('u').length || document.queryCommandState('underline'),
+        h4: $node.closest('h4').length > 0,
+        insertUnorderedList: $list.is('ul'),
+        orderedDecimal: $list.is('ol') && listType !== 'a',
+        orderedAlpha: $list.is('ol') && listType === 'a'
+    };
+
+    $toolbar.find('.programma-rich-btn').removeClass('active');
+    $.each(states, function (command, isActive) {
+        $toolbar.find('[data-command="' + command + '"]').toggleClass('active', !!isActive);
+    });
+}
+
+function placeProgrammaCursorInside(element) {
+    if (!element || !window.getSelection || !document.createRange) {
+        return;
+    }
+
+    var range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(false);
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
+function toggleProgrammaEditorTitle(fieldId) {
+    var editor = document.getElementById(fieldId + '_editor');
+    var node = programmaSelectionNode(fieldId);
+    if (!editor || !node) {
+        return;
+    }
+
+    var $node = $(node);
+    var $title = $node.closest('h4', editor);
+    if ($title.length) {
+        var $pTitle = $('<p>').html($title.html());
+        $title.replaceWith($pTitle);
+        placeProgrammaCursorInside($pTitle.get(0));
+        return;
+    }
+
+    var $li = $node.closest('li', editor);
+    if ($li.length) {
+        var $list = $li.closest('ol, ul');
+        var listTag = $list.prop('tagName').toLowerCase();
+        var listType = $list.attr('type');
+        var $beforeList = $('<' + listTag + '>');
+        var $afterList = $('<' + listTag + '>');
+        if (listType) {
+            $beforeList.attr('type', listType);
+            $afterList.attr('type', listType);
+        }
+        var $h4 = $('<h4>').html($li.html());
+        var found = false;
+
+        $list.children('li').each(function () {
+            var $item = $(this);
+            if ($item.is($li)) {
+                found = true;
+                return;
+            }
+            if (found) {
+                $afterList.append($item.clone());
+            } else {
+                $beforeList.append($item.clone());
+            }
+        });
+
+        if ($beforeList.children('li').length) {
+            $list.before($beforeList);
+        }
+        $list.before($h4);
+        if ($afterList.children('li').length) {
+            $list.before($afterList);
+        }
+        $list.remove();
+        placeProgrammaCursorInside($h4.get(0));
+        return;
+    }
+
+    var $block = $node.closest('p, div, blockquote', editor);
+    if ($block.length && !$block.is(editor)) {
+        var $h4Block = $('<h4>').html($block.html());
+        $block.replaceWith($h4Block);
+        placeProgrammaCursorInside($h4Block.get(0));
+        return;
+    }
+
+    document.execCommand('formatBlock', false, 'h4');
+}
+
+function execProgrammaEditorCommand(fieldId, command) {
+    var editor = document.getElementById(fieldId + '_editor');
+    if (!editor) {
+        return;
+    }
+    editor.focus();
+    restoreProgrammaEditorSelection(fieldId);
+    markProgrammaEditorRich(fieldId);
+
+    if (command === 'h4') {
+        toggleProgrammaEditorTitle(fieldId);
+    } else if (command === 'orderedDecimal' || command === 'orderedAlpha') {
+        document.execCommand('insertOrderedList', false, null);
+        var $list = getProgrammaCurrentList(fieldId);
+        if ($list.length && $list.is('ol')) {
+            $list.attr('type', command === 'orderedAlpha' ? 'a' : '1');
+        }
+    } else if (command === 'clear') {
+        clearProgrammaEditorFormatting(fieldId);
+    } else {
+        document.execCommand(command, false, null);
+    }
+
+    setTimeout(function () {
+        syncProgrammaRichEditorToTextarea(fieldId);
+        syncProgrammaFieldPreview(fieldId);
+        updateProgrammaToolbarState(fieldId);
+    }, 0);
+    saveProgrammaEditorSelection(fieldId);
+}
+
+function pasteProgrammaWordLikeContent(fieldId, event) {
+    var clipboard = event.originalEvent && event.originalEvent.clipboardData ? event.originalEvent.clipboardData : null;
+    if (!clipboard) {
+        return;
+    }
+
+    var html = clipboard.getData('text/html');
+    var text = clipboard.getData('text/plain');
+    if (!html && !text) {
+        return;
+    }
+
+    event.preventDefault();
+    markProgrammaEditorRich(fieldId);
+    var cleanHtml = normalizeProgrammaWordPasteHtml(html, text);
+    document.execCommand('insertHTML', false, cleanHtml);
+    syncProgrammaRichEditorToTextarea(fieldId);
+    syncProgrammaFieldPreview(fieldId);
+}
+
+function setupProgrammaRichEditor(fieldId) {
+    var $textarea = $('#' + fieldId);
+    if (!$textarea.length || $('#' + fieldId + '_editor').length) {
+        return;
+    }
+
+    var $toolbar = $('<div>', { class: 'programma-rich-toolbar', 'data-field': fieldId });
+    [
+        { cmd: 'bold', label: 'B', title: 'Grassetto' },
+        { cmd: 'italic', label: 'I', title: 'Corsivo' },
+        { cmd: 'underline', label: 'U', title: 'Sottolineato' },
+        { cmd: 'insertUnorderedList', label: '• Lista', title: 'Lista puntata' },
+        { cmd: 'indent', label: '↳', title: 'Sottopunto / aumenta rientro' },
+        { cmd: 'outdent', label: '↰', title: 'Riduci rientro' },
+        { cmd: 'h4', label: 'Titolo', title: 'Titolo sezione' },
+        { cmd: 'clear', label: 'Pulisci', title: 'Rimuovi formattazione' }
+    ].forEach(function (button) {
+        $('<button>', {
+            type: 'button',
+            class: 'btn btn-default btn-xs programma-rich-btn',
+            text: button.label,
+            title: button.title,
+            'data-command': button.cmd
+        }).appendTo($toolbar);
+    });
+
+    var $listButton = $toolbar.find('[data-command="insertUnorderedList"]');
+    [
+        { cmd: 'orderedDecimal', label: 'Lista 1.', title: 'Elenco numerato: crea una lista 1, 2, 3' },
+        { cmd: 'orderedAlpha', label: 'Lista a.', title: 'Elenco alfabetico: crea una lista a, b, c' }
+    ].forEach(function (button) {
+        $listButton = $('<button>', {
+            type: 'button',
+            class: 'btn btn-default btn-xs programma-rich-btn',
+            text: button.label,
+            title: button.title,
+            'data-command': button.cmd
+        }).insertAfter($listButton);
+    });
+
+    $toolbar.find('[data-command="bold"]').attr('title', 'Grassetto: rende in grassetto il testo selezionato');
+    $toolbar.find('[data-command="italic"]').attr('title', 'Corsivo: rende in corsivo il testo selezionato');
+    $toolbar.find('[data-command="underline"]').attr('title', 'Sottolineato: sottolinea il testo selezionato');
+    $toolbar.find('[data-command="insertUnorderedList"]').text('Lista puntata').attr('title', 'Elenco puntato: crea o rimuove una lista con pallini');
+    $toolbar.find('[data-command="indent"]').text('Aumenta rientro').attr('title', 'Aumenta rientro: trasforma la voce in sottopunto o aumenta il margine');
+    $toolbar.find('[data-command="outdent"]').text('Riduci rientro').attr('title', 'Riduci rientro: riporta la voce al livello precedente');
+    $toolbar.find('[data-command="h4"]').attr('title', 'Titolo: trasforma la riga corrente in titolo o la riporta a testo normale');
+    $toolbar.find('[data-command="clear"]').attr('title', 'Pulisci formattazione: elimina grassetto, corsivo, sottolineato e formato titolo');
+    if ($.fn.tooltip) {
+        $toolbar.find('[title]').tooltip({ container: 'body' });
+    }
+
+    $toolbar
+        .empty()
+        .addClass('word-like-toolbar');
+    [
+        [
+            { cmd: 'bold', icon: '<span class="word-icon word-icon-bold">B</span>', title: 'Grassetto: rende in grassetto il testo selezionato' },
+            { cmd: 'italic', icon: '<span class="word-icon word-icon-italic">I</span>', title: 'Corsivo: rende in corsivo il testo selezionato' },
+            { cmd: 'underline', icon: '<span class="word-icon word-icon-underline">U</span>', title: 'Sottolineato: sottolinea il testo selezionato' }
+        ],
+        [
+            { cmd: 'insertUnorderedList', icon: '<span class="word-icon word-icon-list">&bull;<br>&bull;<br>&bull;</span>', title: 'Elenco puntato: crea o rimuove una lista con pallini' },
+            { cmd: 'orderedDecimal', icon: '<span class="word-icon word-icon-list">1<br>2<br>3</span>', title: 'Elenco numerato: crea una lista 1, 2, 3' },
+            { cmd: 'orderedAlpha', icon: '<span class="word-icon word-icon-list">a<br>b<br>c</span>', title: 'Elenco alfabetico: crea una lista a, b, c' }
+        ],
+        [
+            { cmd: 'outdent', icon: '<span class="glyphicon glyphicon-indent-right"></span>', title: 'Riduci rientro: riporta la voce al livello precedente' },
+            { cmd: 'indent', icon: '<span class="glyphicon glyphicon-indent-left"></span>', title: 'Aumenta rientro: trasforma la voce in sottopunto o aumenta il margine' }
+        ],
+        [
+            { cmd: 'h4', icon: '<span class="word-icon word-icon-title">T</span>', title: 'Titolo: trasforma la riga corrente in titolo o la riporta a testo normale' },
+            { cmd: 'clear', icon: '<span class="glyphicon glyphicon-erase"></span>', title: 'Pulisci formattazione: elimina grassetto, corsivo, sottolineato e formato titolo' }
+        ]
+    ].forEach(function (group) {
+        var $group = $('<div>', { class: 'btn-group programma-rich-group', role: 'group' }).appendTo($toolbar);
+        group.forEach(function (button) {
+            $('<button>', {
+                type: 'button',
+                class: 'btn btn-default btn-xs programma-rich-btn',
+                title: button.title,
+                'aria-label': button.title,
+                'data-command': button.cmd
+            }).html(button.icon).appendTo($group);
+        });
+    });
+    if ($.fn.tooltip) {
+        $toolbar.find('[title]').tooltip({ container: 'body' });
+    }
+
+    var $editor = $('<div>', {
+        id: fieldId + '_editor',
+        class: 'form-control programma-rich-editor',
+        contenteditable: 'true',
+        'data-field': fieldId
+    });
+
+    $textarea.after($editor);
+    $textarea.after($toolbar);
+    $textarea.addClass('programma-rich-source').hide();
+    syncProgrammaRichEditorFromTextarea(fieldId);
+
+    $toolbar.on('mousedown', '.programma-rich-btn', function (event) {
+        event.preventDefault();
+        execProgrammaEditorCommand(fieldId, $(this).data('command'));
+    });
+
+    $editor
+        .on('focus.programmaRich click.programmaRich mouseup.programmaRich keyup.programmaRich', function () {
+            saveProgrammaEditorSelection(fieldId);
+            showProgrammaFieldPreview(fieldId);
+            syncProgrammaFieldPreview(fieldId);
+            updateProgrammaToolbarState(fieldId);
+        })
+        .on('input.programmaRich keyup.programmaRich', function () {
+            saveProgrammaEditorSelection(fieldId);
+            if (programmaLooksLikeHtml($(this).html() || '')) {
+                markProgrammaEditorRich(fieldId);
+            }
+            syncProgrammaRichEditorToTextarea(fieldId);
+            syncProgrammaFieldPreview(fieldId);
+            updateProgrammaToolbarState(fieldId);
+        })
+        .on('paste.programmaRich', function (event) {
+            pasteProgrammaWordLikeContent(fieldId, event);
+        });
+}
+
+function setupProgrammaRichEditors() {
+    programmaRichTextFields.forEach(setupProgrammaRichEditor);
 }
 
 function isProgrammaPreviewUppercase(text) {
@@ -161,6 +1029,11 @@ function buildProgrammaPreviewTree(text) {
 }
 
 function renderProgrammaPreviewHtml(text) {
+    if (programmaLooksLikeHtml(text)) {
+        var html = sanitizeProgrammaRichHtml(text);
+        return html !== '' ? html : '<span class="text-muted">Anteprima non disponibile: inizia a scrivere.</span>';
+    }
+
     var tree = buildProgrammaPreviewTree(text);
     if (!tree.length) {
         return '<span class="text-muted">Anteprima non disponibile: inizia a scrivere.</span>';
@@ -242,8 +1115,9 @@ function bindProgrammaPreviewEvents() {
 }
 
 function renderProgrammaPreviewLinesHtml(text, activeLine) {
-    var lines = String(text || '').split(/\r\n|\r|\n/u);
-    if (!String(text || '').length) {
+    var plainText = programmaLooksLikeHtml(text) ? programmaHtmlToPlainText(text) : String(text || '');
+    var lines = plainText.split(/\r\n|\r|\n/u);
+    if (!String(plainText || '').length) {
         return '<span class="text-muted">Qui vedi la riga corrente e quelle vicine, con `↵` a fine riga.</span>';
     }
 
@@ -281,7 +1155,8 @@ function getProgrammaTextareaLine(textarea) {
 }
 
 function updateProgrammaFieldPreview(textareaSelector, previewSelector, linesSelector, activeLine) {
-    var value = $(textareaSelector).val() || '';
+    var fieldId = String(textareaSelector || '').replace(/^#/, '');
+    var value = getProgrammaFieldValue(fieldId);
     $(previewSelector).html(renderProgrammaPreviewHtml(value));
     $(linesSelector).html(renderProgrammaPreviewLinesHtml(value, activeLine));
     syncProgrammaPreviewScroll(textareaSelector, previewSelector, activeLine);
@@ -329,6 +1204,7 @@ function syncProgrammaFieldPreview(fieldId) {
     if (!$textarea.length) {
         return;
     }
+    syncProgrammaRichEditorToTextarea(fieldId);
     updateProgrammaFieldPreview('#' + fieldId, '#' + fieldId + '_preview', '#' + fieldId + '_lines', getProgrammaTextareaLine($textarea.get(0)));
 }
 
@@ -409,6 +1285,8 @@ function applicaReadonlyProgrammaSvolto() {
     $("#btn-modulo-import").toggle(!readonly);
     $("#btn-modulo-save").toggle(!readonly);
     $("#ordine, #titolo, #contenuto, #competenze_raggiunte, #contenuti_trattati, #abilita_quinta, #metodologie_programma, #criteri_valutazione_programma, #testi_materiali_programma").prop('disabled', readonly);
+    $('.programma-rich-editor').attr('contenteditable', readonly ? 'false' : 'true').toggleClass('disabled', readonly);
+    $('.programma-rich-btn').prop('disabled', readonly);
     if (readonly) {
         $("#classe, #docente, #materia").prop('disabled', true);
     }
@@ -578,6 +1456,7 @@ function programmiSvoltiGetDetails(programma_id, duplica, share, readonly) {
             $('#metodologie_programma').val(programma.programma_metodologie || '');
             $('#criteri_valutazione_programma').val(programma.programma_criteri_valutazione || '');
             $('#testi_materiali_programma').val(programma.programma_testi_materiali || '');
+            syncProgrammaRichEditorsFromTextareas();
 
             if (duplica == 'false') {
                 $('#classe').attr('disabled', true);
@@ -616,6 +1495,7 @@ function programmiSvoltiGetDetails(programma_id, duplica, share, readonly) {
         $('#materia').selectpicker('refresh');
         $(".moduli_content").html("");
         pulisciCampiProgrammaQuinta();
+        syncProgrammaRichEditorsFromTextareas();
         aggiornaCampiModuloPerClasse();
         applicaReadonlyProgrammaSvolto();
         hideProgrammaFieldPreview();
@@ -776,17 +1656,19 @@ async function moduloSvoltiGetDetails(modulo_id) {
         $('#hidden_programma_classe_anno').val(programma.programma_classe_anno || $('#hidden_programma_classe_anno').val() || 0);
 
         if (parseInt(programma.modulo_is_quinta_structured, 10) === 1) {
-            $('#competenze_raggiunte').val(programma.modulo_competenze_raggiunte || '');
-            $('#contenuti_trattati').val(programma.modulo_contenuti_trattati || '');
-            $('#abilita_quinta').val(programma.modulo_abilita_quinta || '');
+            $('#competenze_raggiunte').val(programma.modulo_competenze_raggiunte_html || programma.modulo_competenze_raggiunte || '');
+            $('#contenuti_trattati').val(programma.modulo_contenuti_trattati_html || programma.modulo_contenuti_trattati || '');
+            $('#abilita_quinta').val(programma.modulo_abilita_quinta_html || programma.modulo_abilita_quinta || '');
         } else {
             pulisciCampiQuinta();
         }
+        syncProgrammaRichEditorsFromTextareas();
     } else {
         $('#titolo').val("");
         $('#ordine').val(parseInt(nmoduli, 10) + 1);
         $('#contenuto').val("");
         pulisciCampiQuinta();
+        syncProgrammaRichEditorsFromTextareas();
         $("#moduli_content").html("");
     }
 
@@ -874,6 +1756,7 @@ function programmiSvoltiSave() {
 
     $("#_error-programma-part").hide();
     $('#hidden_programma_classe_anno').val(parseInt($('#classe option:selected').data('anno'), 10) || $('#hidden_programma_classe_anno').val() || 0);
+    syncProgrammaRichEditorsToTextareas();
 
     $.post("programmiSvoltiSave.php", {
         id: $("#hidden_programma_id").val(),
@@ -904,6 +1787,7 @@ function moduloSvoltiSave() {
         return;
     }
     var quinta = isProgrammaQuinta();
+    syncProgrammaRichEditorsToTextareas();
 
     if ($.trim($("#ordine").val()).length <= 0) {
         $("#_error-modulo").text("Devi indicare l'ordine del modulo, ad es. 1");
@@ -944,6 +1828,7 @@ function moduloSvoltiSave() {
 }
 
 $(document).ready(function () {
+    setupProgrammaRichEditors();
     bindProgrammaPreviewEvents();
     hideProgrammaFieldPreview();
     programmiSvoltiReadRecords();

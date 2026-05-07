@@ -12,6 +12,43 @@ require_once '../common/connect.php';
 require_once __DIR__ . '/programmiAutoreUtils.php';
 ruoloRichiesto('segreteria-didattica', 'docente');
 
+function sanitizeProgrammaSvoltoRichHtml(string $html): string
+{
+    $html = trim($html);
+    if ($html === '') {
+        return '';
+    }
+
+    $html = preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is', '', $html);
+    $html = preg_replace_callback('/<ol\b([^>]*)>/i', function ($matches) {
+        $attrs = strtolower($matches[1] ?? '');
+        if (strpos($attrs, 'lower-alpha') !== false || preg_match('/type\s*=\s*["\']?a/i', $attrs)) {
+            return '<ol type="a">';
+        }
+        return '<ol type="1">';
+    }, $html);
+    $html = strip_tags($html, '<p><br><ul><ol><li><strong><b><em><i><u><h4><blockquote>');
+    $html = preg_replace_callback('/<([a-z0-9]+)([^>]*)>/i', function ($matches) {
+        $tag = strtolower($matches[1] ?? '');
+        $attrs = $matches[2] ?? '';
+        if ($tag === 'ol' && preg_match('/type\s*=\s*["\']?([aA1])["\']?/i', $attrs, $typeMatch)) {
+            return '<ol type="' . $typeMatch[1] . '">';
+        }
+        return '<' . $tag . '>';
+    }, $html);
+    $html = str_ireplace(['<b>', '</b>', '<i>', '</i>'], ['<strong>', '</strong>', '<em>', '</em>'], $html);
+
+    return trim($html);
+}
+
+function programmaSvoltoPlainFromRichHtml(string $value): string
+{
+    $value = sanitizeProgrammaSvoltoRichHtml($value);
+    $value = preg_replace('/<br\s*\/?>/i', "\n", $value);
+    $value = preg_replace('/<\/(p|li|h4)>/i', "\n", $value);
+    return trim(html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+}
+
 if (!isset($_POST)) {
     exit;
 }
@@ -20,10 +57,10 @@ $id = intval($_POST['id'] ?? 0);
 $id_programma = intval($_POST['id_programma'] ?? 0);
 $ordine = intval($_POST['ordine'] ?? 0);
 $titolo = trim((string)($_POST['titolo'] ?? ''));
-$contenuto = trim((string)($_POST['contenuto'] ?? ''));
-$competenze_raggiunte = trim((string)($_POST['competenze_raggiunte'] ?? ''));
-$contenuti_trattati = trim((string)($_POST['contenuti_trattati'] ?? ''));
-$abilita_quinta = trim((string)($_POST['abilita_quinta'] ?? ''));
+$contenuto = sanitizeProgrammaSvoltoRichHtml((string)($_POST['contenuto'] ?? ''));
+$competenze_raggiunte = sanitizeProgrammaSvoltoRichHtml((string)($_POST['competenze_raggiunte'] ?? ''));
+$contenuti_trattati = sanitizeProgrammaSvoltoRichHtml((string)($_POST['contenuti_trattati'] ?? ''));
+$abilita_quinta = sanitizeProgrammaSvoltoRichHtml((string)($_POST['abilita_quinta'] ?? ''));
 
 if ($id_programma <= 0 || $ordine <= 0 || $titolo === '') {
     exit;
@@ -42,10 +79,13 @@ $is_quinta = ($classe_anno === 5);
 
 if ($is_quinta) {
     $contenuto = json_encode([
-        'schema' => 'programma_svolto_quinta_v1',
-        'competenze_raggiunte' => $competenze_raggiunte,
-        'contenuti_trattati' => $contenuti_trattati,
-        'abilita' => $abilita_quinta,
+        'schema' => 'programma_svolto_quinta_v2',
+        'competenze_raggiunte' => programmaSvoltoPlainFromRichHtml($competenze_raggiunte),
+        'contenuti_trattati' => programmaSvoltoPlainFromRichHtml($contenuti_trattati),
+        'abilita' => programmaSvoltoPlainFromRichHtml($abilita_quinta),
+        'competenze_raggiunte_html' => $competenze_raggiunte,
+        'contenuti_trattati_html' => $contenuti_trattati,
+        'abilita_html' => $abilita_quinta,
     ], JSON_UNESCAPED_UNICODE);
 }
 

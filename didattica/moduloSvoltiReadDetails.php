@@ -35,14 +35,20 @@ if(isset($_POST['modulo_id']) && isset($_POST['modulo_id']) != "") {
     $modulo['modulo_competenze_raggiunte'] = '';
     $modulo['modulo_contenuti_trattati'] = '';
     $modulo['modulo_abilita_quinta'] = '';
+    $modulo['modulo_competenze_raggiunte_html'] = '';
+    $modulo['modulo_contenuti_trattati_html'] = '';
+    $modulo['modulo_abilita_quinta_html'] = '';
 
     $contenuto = (string)($modulo['modulo_contenuto'] ?? '');
     $decoded = json_decode($contenuto, true);
-    if (is_array($decoded) && (($decoded['schema'] ?? '') === 'programma_svolto_quinta_v1')) {
+    if (is_array($decoded) && (($decoded['schema'] ?? '') === 'programma_svolto_quinta_v1' || ($decoded['schema'] ?? '') === 'programma_svolto_quinta_v2')) {
         $modulo['modulo_is_quinta_structured'] = 1;
         $modulo['modulo_competenze_raggiunte'] = (string)($decoded['competenze_raggiunte'] ?? '');
         $modulo['modulo_contenuti_trattati'] = (string)($decoded['contenuti_trattati'] ?? '');
         $modulo['modulo_abilita_quinta'] = (string)($decoded['abilita'] ?? '');
+        $modulo['modulo_competenze_raggiunte_html'] = (string)($decoded['competenze_raggiunte_html'] ?? $decoded['competenze_raggiunte'] ?? '');
+        $modulo['modulo_contenuti_trattati_html'] = (string)($decoded['contenuti_trattati_html'] ?? $decoded['contenuti_trattati'] ?? '');
+        $modulo['modulo_abilita_quinta_html'] = (string)($decoded['abilita_html'] ?? $decoded['abilita'] ?? '');
     }
 
     $struct_json = json_encode($modulo);
