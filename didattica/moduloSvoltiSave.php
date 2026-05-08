@@ -49,6 +49,77 @@ function programmaSvoltoPlainFromRichHtml(string $value): string
     return trim(html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 }
 
+function programmaSvoltoLooksLikeHtml(string $text): bool
+{
+    return preg_match('/<\/?(p|br|ul|ol|li|strong|b|em|i|u|h4|blockquote)\b/i', $text) === 1;
+}
+
+function programmaSvoltoLegacyTextToRichHtml(string $text): string
+{
+    $lines = preg_split('/\R/u', str_replace("\t", '  ', $text));
+    if ($lines === false) {
+        return '';
+    }
+
+    $html = '';
+    $listOpen = false;
+
+    $closeList = function () use (&$html, &$listOpen): void {
+        if ($listOpen) {
+            $html .= '</ul>';
+            $listOpen = false;
+        }
+    };
+
+    foreach ($lines as $line) {
+        $raw = (string)$line;
+        $trimmed = trim($raw);
+        if ($trimmed === '') {
+            $closeList();
+            continue;
+        }
+
+        if (preg_match('/^>>\s*(.+)$/u', $trimmed, $m)) {
+            $closeList();
+            $html .= '<h4>' . htmlspecialchars(trim($m[1]), ENT_QUOTES, 'UTF-8') . '</h4>';
+            continue;
+        }
+
+        if (mb_strlen($trimmed, 'UTF-8') <= 90 && preg_match('/\p{L}/u', $trimmed) && !preg_match('/\p{Ll}/u', $trimmed)) {
+            $closeList();
+            $html .= '<h4>' . htmlspecialchars($trimmed, ENT_QUOTES, 'UTF-8') . '</h4>';
+            continue;
+        }
+
+        if (preg_match('/^(?:[•●▪◦\x{F0B7}\x{F0A7}]\s+|--\s+|>\s+|-\s+|\*\s+)(.+)$/u', ltrim($raw), $m)) {
+            if (!$listOpen) {
+                $html .= '<ul>';
+                $listOpen = true;
+            }
+            $html .= '<li>' . htmlspecialchars(trim($m[1]), ENT_QUOTES, 'UTF-8') . '</li>';
+            continue;
+        }
+
+        $closeList();
+        $html .= '<p>' . htmlspecialchars($trimmed, ENT_QUOTES, 'UTF-8') . '</p>';
+    }
+
+    $closeList();
+    return trim($html);
+}
+
+function programmaSvoltoEnsureRichHtml(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+
+    return programmaSvoltoLooksLikeHtml($value)
+        ? sanitizeProgrammaSvoltoRichHtml($value)
+        : sanitizeProgrammaSvoltoRichHtml(programmaSvoltoLegacyTextToRichHtml($value));
+}
+
 if (!isset($_POST)) {
     exit;
 }
@@ -78,6 +149,10 @@ $classe_anno = intval($programma['classe_anno'] ?? 0);
 $is_quinta = ($classe_anno === 5);
 
 if ($is_quinta) {
+    $competenze_raggiunte = programmaSvoltoEnsureRichHtml($competenze_raggiunte);
+    $contenuti_trattati = programmaSvoltoEnsureRichHtml($contenuti_trattati);
+    $abilita_quinta = programmaSvoltoEnsureRichHtml($abilita_quinta);
+
     $contenuto = json_encode([
         'schema' => 'programma_svolto_quinta_v2',
         'competenze_raggiunte' => programmaSvoltoPlainFromRichHtml($competenze_raggiunte),

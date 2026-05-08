@@ -403,8 +403,8 @@ applicaDocenteDaParametroSeAutorizzato();
         }
 
         .programma-rich-editor h4 {
-            margin: 10px 0 7px;
-            font-size: 18px;
+            margin: 6px 0 5px;
+            font-size: 14px;
             font-weight: 800;
             text-transform: uppercase;
             color: #173f68;

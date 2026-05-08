@@ -9,6 +9,60 @@
 
 require_once '../common/checkSession.php';
 
+function programmaSvoltoQuintaLegacyTextToRichHtml(string $text): string
+{
+    $lines = preg_split('/\R/u', str_replace("\t", '  ', $text));
+    if ($lines === false) {
+        return '';
+    }
+
+    $html = '';
+    $listOpen = false;
+
+    $closeList = function () use (&$html, &$listOpen): void {
+        if ($listOpen) {
+            $html .= '</ul>';
+            $listOpen = false;
+        }
+    };
+
+    foreach ($lines as $line) {
+        $raw = (string)$line;
+        $trimmed = trim($raw);
+        if ($trimmed === '') {
+            $closeList();
+            continue;
+        }
+
+        if (preg_match('/^>>\s*(.+)$/u', $trimmed, $m)) {
+            $closeList();
+            $html .= '<h4>' . htmlspecialchars(trim($m[1]), ENT_QUOTES, 'UTF-8') . '</h4>';
+            continue;
+        }
+
+        if (mb_strlen($trimmed, 'UTF-8') <= 90 && preg_match('/\p{L}/u', $trimmed) && !preg_match('/\p{Ll}/u', $trimmed)) {
+            $closeList();
+            $html .= '<h4>' . htmlspecialchars($trimmed, ENT_QUOTES, 'UTF-8') . '</h4>';
+            continue;
+        }
+
+        if (preg_match('/^(?:[•●▪◦\x{F0B7}\x{F0A7}]\s+|--\s+|>\s+|-\s+|\*\s+)(.+)$/u', ltrim($raw), $m)) {
+            if (!$listOpen) {
+                $html .= '<ul>';
+                $listOpen = true;
+            }
+            $html .= '<li>' . htmlspecialchars(trim($m[1]), ENT_QUOTES, 'UTF-8') . '</li>';
+            continue;
+        }
+
+        $closeList();
+        $html .= '<p>' . htmlspecialchars($trimmed, ENT_QUOTES, 'UTF-8') . '</p>';
+    }
+
+    $closeList();
+    return trim($html);
+}
+
 if(isset($_POST['modulo_id']) && isset($_POST['modulo_id']) != "") {
 	$modulo_id = $_POST['modulo_id'];
 
@@ -46,9 +100,9 @@ if(isset($_POST['modulo_id']) && isset($_POST['modulo_id']) != "") {
         $modulo['modulo_competenze_raggiunte'] = (string)($decoded['competenze_raggiunte'] ?? '');
         $modulo['modulo_contenuti_trattati'] = (string)($decoded['contenuti_trattati'] ?? '');
         $modulo['modulo_abilita_quinta'] = (string)($decoded['abilita'] ?? '');
-        $modulo['modulo_competenze_raggiunte_html'] = (string)($decoded['competenze_raggiunte_html'] ?? $decoded['competenze_raggiunte'] ?? '');
-        $modulo['modulo_contenuti_trattati_html'] = (string)($decoded['contenuti_trattati_html'] ?? $decoded['contenuti_trattati'] ?? '');
-        $modulo['modulo_abilita_quinta_html'] = (string)($decoded['abilita_html'] ?? $decoded['abilita'] ?? '');
+        $modulo['modulo_competenze_raggiunte_html'] = (string)($decoded['competenze_raggiunte_html'] ?? programmaSvoltoQuintaLegacyTextToRichHtml($modulo['modulo_competenze_raggiunte']));
+        $modulo['modulo_contenuti_trattati_html'] = (string)($decoded['contenuti_trattati_html'] ?? programmaSvoltoQuintaLegacyTextToRichHtml($modulo['modulo_contenuti_trattati']));
+        $modulo['modulo_abilita_quinta_html'] = (string)($decoded['abilita_html'] ?? programmaSvoltoQuintaLegacyTextToRichHtml($modulo['modulo_abilita_quinta']));
     }
 
     $struct_json = json_encode($modulo);

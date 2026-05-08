@@ -168,6 +168,60 @@ function programmaPlainTextToHtml(text) {
     return html.join('');
 }
 
+function programmaLegacyTextToWordLikeHtml(text) {
+    var lines = String(text || '').replace(/\r\n|\r/u, '\n').split('\n');
+    var $root = $('<div>');
+    var $currentList = null;
+    var currentListKey = '';
+
+    function closeList() {
+        $currentList = null;
+        currentListKey = '';
+    }
+
+    lines.forEach(function (line) {
+        var raw = String(line || '');
+        var trimmed = $.trim(raw);
+        if (trimmed === '') {
+            closeList();
+            return;
+        }
+
+        var titleMatch = trimmed.match(/^>>\s*(.+)$/u);
+        if (titleMatch) {
+            closeList();
+            $root.append($('<h4>').text(titleMatch[1]));
+            return;
+        }
+
+        if (isProgrammaPreviewUppercase(trimmed) && trimmed.length <= 90) {
+            closeList();
+            $root.append($('<h4>').text(trimmed));
+            return;
+        }
+
+        var listInfo = getProgrammaPlainListLineInfo(raw);
+        if (listInfo) {
+            var key = listInfo.list + ':' + (listInfo.type || '');
+            if (!$currentList || currentListKey !== key) {
+                $currentList = $('<' + listInfo.list + '>');
+                if (listInfo.type) {
+                    $currentList.attr('type', listInfo.type);
+                }
+                $root.append($currentList);
+                currentListKey = key;
+            }
+            $currentList.append($('<li>').text(listInfo.text));
+            return;
+        }
+
+        closeList();
+        $root.append($('<p>').text(trimmed));
+    });
+
+    return sanitizeProgrammaRichHtml($root.html());
+}
+
 function getProgrammaWordListInfo(text) {
     var trimmed = $.trim(String(text || '').replace(/\u00a0/g, ' '));
     var match = trimmed.match(/^[\u2022\u00b7\u25cf\u25e6\u2043\uf0b7\uf0a7\uf076]\s*(.+)$/u);
@@ -509,7 +563,7 @@ function syncProgrammaRichEditorFromTextarea(fieldId) {
         $editor.html(sanitizeProgrammaRichHtml(value));
         $editor.data('richMode', 'html');
     } else {
-        var migratedHtml = value !== '' ? sanitizeProgrammaRichHtml(renderProgrammaPreviewHtml(value)) : '';
+        var migratedHtml = value !== '' ? programmaLegacyTextToWordLikeHtml(value) : '';
         if (migratedHtml !== '') {
             $editor.html(migratedHtml);
             $textarea.val(migratedHtml);
@@ -1703,7 +1757,7 @@ function programmiSvoltiPrintSolo(id_programma) {
 }
 
 function programmiSvoltiWord(id_programma) {
-    buildProgrammaSvoltoForm(id_programma, 'docx').appendTo('body').submit().remove();
+    buildProgrammaSvoltoForm(id_programma, 'docx', 'own').appendTo('body').submit().remove();
 }
 
 function programmiSvoltiWordClasse(id_classe, id_anno_scolastico) {

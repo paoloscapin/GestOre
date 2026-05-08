@@ -44,6 +44,60 @@ function programmaInizialeImportLabel(array $row): array
     ];
 }
 
+function programmaSvoltoImportTextToRichHtml(string $text): string
+{
+    $lines = preg_split('/\R/u', str_replace("\t", '  ', $text));
+    if ($lines === false) {
+        return '';
+    }
+
+    $html = '';
+    $listOpen = false;
+
+    $closeList = function () use (&$html, &$listOpen): void {
+        if ($listOpen) {
+            $html .= '</ul>';
+            $listOpen = false;
+        }
+    };
+
+    foreach ($lines as $line) {
+        $raw = (string)$line;
+        $trimmed = trim($raw);
+        if ($trimmed === '') {
+            $closeList();
+            continue;
+        }
+
+        if (preg_match('/^>>\s*(.+)$/u', $trimmed, $m)) {
+            $closeList();
+            $html .= '<h4>' . htmlspecialchars(trim($m[1]), ENT_QUOTES, 'UTF-8') . '</h4>';
+            continue;
+        }
+
+        if (mb_strlen($trimmed, 'UTF-8') <= 90 && preg_match('/\p{L}/u', $trimmed) && !preg_match('/\p{Ll}/u', $trimmed)) {
+            $closeList();
+            $html .= '<h4>' . htmlspecialchars($trimmed, ENT_QUOTES, 'UTF-8') . '</h4>';
+            continue;
+        }
+
+        if (preg_match('/^(?:[•●▪◦\x{F0B7}\x{F0A7}]\s+|--\s+|>\s+|-\s+|\*\s+)(.+)$/u', ltrim($raw), $m)) {
+            if (!$listOpen) {
+                $html .= '<ul>';
+                $listOpen = true;
+            }
+            $html .= '<li>' . htmlspecialchars(trim($m[1]), ENT_QUOTES, 'UTF-8') . '</li>';
+            continue;
+        }
+
+        $closeList();
+        $html .= '<p>' . htmlspecialchars($trimmed, ENT_QUOTES, 'UTF-8') . '</p>';
+    }
+
+    $closeList();
+    return trim($html);
+}
+
 $programma_modulo_id = intval($_POST['programma_modulo_id'] ?? 0);
 $selected_programma_iniziale_id = intval($_POST['programma_iniziale_id'] ?? 0);
 $wants_json = (($_POST['response_format'] ?? '') === 'json');
@@ -194,11 +248,17 @@ foreach ($resultArray as $row) {
     $id_autore = programmiUtenteAutoreDaDocente($docente_id, intval($__utente_id));
 
     if ($is_quinta) {
+        $competenze = (string)fieldValue($row, 'COMPETENZE', 'competenze', '');
+        $conoscenze = (string)fieldValue($row, 'CONOSCENZE', 'conoscenze', '');
+        $abilita = (string)fieldValue($row, 'ABILITA', 'abilita', '');
         $contenuto = json_encode([
-            'schema' => 'programma_svolto_quinta_v1',
-            'competenze_raggiunte' => (string)fieldValue($row, 'COMPETENZE', 'competenze', ''),
-            'contenuti_trattati' => (string)fieldValue($row, 'CONOSCENZE', 'conoscenze', ''),
-            'abilita' => (string)fieldValue($row, 'ABILITA', 'abilita', ''),
+            'schema' => 'programma_svolto_quinta_v2',
+            'competenze_raggiunte' => $competenze,
+            'contenuti_trattati' => $conoscenze,
+            'abilita' => $abilita,
+            'competenze_raggiunte_html' => programmaSvoltoImportTextToRichHtml($competenze),
+            'contenuti_trattati_html' => programmaSvoltoImportTextToRichHtml($conoscenze),
+            'abilita_html' => programmaSvoltoImportTextToRichHtml($abilita),
         ], JSON_UNESCAPED_UNICODE);
     } else {
         $contenuto = (string)fieldValue($row, 'CONOSCENZE', 'conoscenze', '');

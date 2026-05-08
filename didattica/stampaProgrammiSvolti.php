@@ -38,7 +38,7 @@ function programmiSvoltiHasProgramField(string $columnName): bool
 
 function programmaSvoltoLooksLikeHtml(string $text): bool
 {
-    return preg_match('/<\/?(p|br|ul|ol|li|strong|b|em|i|u|h4|blockquote)\b/i', $text) === 1;
+    return preg_match('/<\/?(p|br|ul|ol|li|strong|b|em|i|u|h4|h5|blockquote)\b/i', $text) === 1;
 }
 
 function sanitizeProgrammaSvoltoRichHtml(string $html): string
@@ -56,7 +56,7 @@ function sanitizeProgrammaSvoltoRichHtml(string $html): string
         }
         return '<ol type="1">';
     }, $html);
-    $html = strip_tags($html, '<p><br><ul><ol><li><strong><b><em><i><u><h4><blockquote>');
+    $html = strip_tags($html, '<p><br><ul><ol><li><strong><b><em><i><u><h4><h5><blockquote>');
     $html = preg_replace_callback('/<([a-z0-9]+)([^>]*)>/i', function ($matches) {
         $tag = strtolower($matches[1] ?? '');
         $attrs = $matches[2] ?? '';
@@ -67,6 +67,299 @@ function sanitizeProgrammaSvoltoRichHtml(string $html): string
     }, $html);
     $html = str_ireplace(['<b>', '</b>', '<i>', '</i>'], ['<strong>', '</strong>', '<em>', '</em>'], $html);
 
+    return trim($html);
+}
+
+function renderProgrammaSvoltoRichHtmlForPrint(string $html): string
+{
+    $html = sanitizeProgrammaSvoltoRichHtml($html);
+    if ($html === '') {
+        return '&nbsp;';
+    }
+
+    return renderProgrammaSvoltoRichHtmlAsCompactPdfLines($html);
+}
+
+function renderProgrammaSvoltoRichHtmlAsCompactPdfLines(string $html): string
+{
+    $dom = new DOMDocument();
+    libxml_use_internal_errors(true);
+    $dom->loadHTML('<?xml encoding="UTF-8"><div>' . $html . '</div>', LIBXML_HTML_NODEFDTD | LIBXML_HTML_NOIMPLIED);
+    libxml_clear_errors();
+    $root = $dom->getElementsByTagName('div')->item(0);
+    if (!$root instanceof DOMElement) {
+        return '&nbsp;';
+    }
+
+    $out = '';
+    $appendInline = function (DOMNode $node) use (&$appendInline): string {
+        if ($node->nodeType === XML_TEXT_NODE) {
+            return htmlspecialchars($node->nodeValue ?? '', ENT_QUOTES, 'UTF-8');
+        }
+        if (!$node instanceof DOMElement) {
+            return '';
+        }
+
+        $tag = strtolower($node->tagName);
+        $inner = '';
+        foreach ($node->childNodes as $child) {
+            $inner .= $appendInline($child);
+        }
+
+        if ($tag === 'strong' || $tag === 'b') {
+            return '<strong>' . $inner . '</strong>';
+        }
+        if ($tag === 'em' || $tag === 'i') {
+            return '<em>' . $inner . '</em>';
+        }
+        if ($tag === 'u') {
+            return '<u>' . $inner . '</u>';
+        }
+        return $inner;
+    };
+
+    $walk = function (DOMNode $container, int $level = 0) use (&$walk, &$out, $appendInline): void {
+        foreach ($container->childNodes as $node) {
+            if ($node->nodeType === XML_TEXT_NODE) {
+                $text = trim($node->nodeValue ?? '');
+                if ($text !== '') {
+                    $out .= '<span style="font-size:10px;line-height:1.08;">' . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . '</span><br>';
+                }
+                continue;
+            }
+            if (!$node instanceof DOMElement) {
+                continue;
+            }
+
+            $tag = strtolower($node->tagName);
+            if ($tag === 'h5') {
+                $title = mb_strtoupper(trim(html_entity_decode(strip_tags($node->textContent ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8')), 'UTF-8');
+                if ($title !== '') {
+                    $out .= '<span style="font-size:3px;line-height:3px;"><br></span>'
+                        . '<table width="98%" border="0" cellpadding="2" cellspacing="0" style="margin:0;width:98%;">'
+                        . '<tr><td style="background-color:#c8d0da;text-align:center;font-size:10px;font-weight:bold;color:#173f68;line-height:1.05;">'
+                        . htmlspecialchars($title, ENT_QUOTES, 'UTF-8')
+                        . '</td></tr></table>'
+                        . '<span style="font-size:3px;line-height:3px;"><br></span>';
+                }
+                continue;
+            }
+            if ($tag === 'h4') {
+                $title = mb_strtoupper(trim(html_entity_decode(strip_tags($node->textContent ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8')), 'UTF-8');
+                if ($title !== '') {
+                    $out .= '<span style="font-size:2px;line-height:2px;"><br></span>'
+                        . '<table width="98%" border="0" cellpadding="0" cellspacing="0" style="margin:0;width:98%;">'
+                        . '<tr>'
+                        . '<td width="4%" style="font-size:10.5px;line-height:1;">&nbsp;</td>'
+                        . '<td width="94%" style="font-size:10.5px;font-weight:bold;color:#173f68;line-height:1;">' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</td>'
+                        . '</tr>'
+                        . '</table>'
+                        . '<span style="font-size:2px;line-height:2px;"><br></span>';
+                }
+                continue;
+            }
+
+            if ($tag === 'p') {
+                $text = trim($appendInline($node));
+                if ($text !== '') {
+                    $out .= '<span style="font-size:10px;line-height:1.08;">' . $text . '</span><br>';
+                }
+                continue;
+            }
+
+            if ($tag === 'ul' || $tag === 'ol') {
+                $index = 1;
+                $type = strtolower((string)$node->getAttribute('type'));
+                foreach ($node->childNodes as $li) {
+                    if (!$li instanceof DOMElement || strtolower($li->tagName) !== 'li') {
+                        continue;
+                    }
+                    if ($tag === 'ol') {
+                        if ($type === 'a') {
+                            $prefix = chr(ord('a') + (($index - 1) % 26)) . '.';
+                        } elseif ($type === 'A') {
+                            $prefix = chr(ord('A') + (($index - 1) % 26)) . '.';
+                        } else {
+                            $prefix = $index . '.';
+                        }
+                        $index++;
+                    } else {
+                        $prefix = '&bull;';
+                    }
+
+                    $item = '';
+                    foreach ($li->childNodes as $child) {
+                        if ($child instanceof DOMElement && in_array(strtolower($child->tagName), ['ul', 'ol'], true)) {
+                            continue;
+                        }
+                        $item .= $appendInline($child);
+                    }
+                    $item = trim($item);
+                    if ($item !== '') {
+                        if ($level > 0) {
+                            $nestedPrefix = $tag === 'ol' ? $prefix : '&bull;';
+                            $out .= '<table width="98%" border="0" cellpadding="0" cellspacing="0" style="margin:0;width:98%;">'
+                                . '<tr>'
+                                . '<td width="13%" style="font-size:10px;line-height:1.08;text-align:right;">' . $nestedPrefix . '&nbsp;&nbsp;</td>'
+                                . '<td width="83%" style="font-size:10px;line-height:1.08;">' . $item . '</td>'
+                                . '</tr>'
+                                . '</table>';
+                            foreach ($li->childNodes as $child) {
+                                if ($child instanceof DOMElement && in_array(strtolower($child->tagName), ['ul', 'ol'], true)) {
+                                    $walk($child, $level + 1);
+                                }
+                            }
+                            continue;
+                        }
+                        $leftWidth = $level > 0 ? '12%' : '9%';
+                        $rightWidth = $level > 0 ? '84%' : '87%';
+                        $out .= '<table width="98%" border="0" cellpadding="0" cellspacing="0" style="margin:0;width:98%;">'
+                            . '<tr>'
+                            . '<td width="' . $leftWidth . '" style="font-size:10px;line-height:1.08;text-align:right;">' . $prefix . '&nbsp;&nbsp;</td>'
+                            . '<td width="' . $rightWidth . '" style="font-size:10px;line-height:1.08;">' . $item . '</td>'
+                            . '</tr>'
+                            . '</table>';
+                    }
+                    foreach ($li->childNodes as $child) {
+                        if ($child instanceof DOMElement && in_array(strtolower($child->tagName), ['ul', 'ol'], true)) {
+                            $walk($child, $level + 1);
+                        }
+                    }
+                }
+                continue;
+            }
+
+            if ($tag === 'blockquote') {
+                $walk($node, $level + 1);
+                continue;
+            }
+
+            $walk($node, $level);
+        }
+    };
+
+    $walk($root);
+    return trim($out) !== '' ? $out : '&nbsp;';
+}
+
+function renderProgrammaSvoltoRichHtmlForPrintLegacy(string $html): string
+{
+    $html = preg_replace('/<p>/i', '<p style="margin:0 0 4px 0;line-height:1.35;">', $html);
+    $html = preg_replace_callback('/<h4>(.*?)<\/h4>/is', function ($matches) {
+        $title = htmlspecialchars(
+            mb_strtoupper(trim(strip_tags(html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'))), 'UTF-8'),
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        return '<span class="programma-print-title" style="font-size:10.5px;font-weight:bold;color:#173f68;line-height:1;">&nbsp;&nbsp;&nbsp;' . $title . '</span><br>';
+    }, $html);
+    $html = renderProgrammaPdfListsAsCompactRows($html);
+    $html = preg_replace('/<blockquote>/i', '<blockquote style="margin:0 0 4px 18px;padding-left:8px;border-left:2px solid #c9d8e8;line-height:1.3;">', $html);
+
+    return $html;
+}
+
+function renderProgrammaPdfListsAsCompactRows(string $html): string
+{
+    return preg_replace_callback('/<(ul|ol)([^>]*)>(.*?)<\/\1>/is', function ($matches) {
+        $tag = strtolower($matches[1]);
+        $attrs = (string)$matches[2];
+        $itemsHtml = (string)$matches[3];
+        $type = '1';
+        if (preg_match('/type=["\']?([aA1])["\']?/i', $attrs, $typeMatch)) {
+            $type = $typeMatch[1];
+        }
+
+        $index = 1;
+        return preg_replace_callback('/<li[^>]*>(.*?)<\/li>/is', function ($itemMatch) use ($tag, $type, &$index) {
+            $content = trim((string)$itemMatch[1]);
+            $content = renderProgrammaPdfListsAsCompactRows($content);
+            if ($tag === 'ol') {
+                if ($type === 'a') {
+                    $prefix = chr(ord('a') + (($index - 1) % 26)) . '.';
+                } elseif ($type === 'A') {
+                    $prefix = chr(ord('A') + (($index - 1) % 26)) . '.';
+                } else {
+                    $prefix = $index . '.';
+                }
+                $index++;
+            } else {
+                $prefix = '&bull;';
+            }
+
+            return '<table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0;width:100%;">'
+                . '<tr>'
+                . '<td width="5%" style="font-size:10px;line-height:1.08;text-align:right;">' . $prefix . '&nbsp;</td>'
+                . '<td width="95%" style="font-size:10px;line-height:1.08;">' . $content . '</td>'
+                . '</tr>'
+                . '</table>';
+        }, $itemsHtml);
+    }, $html);
+}
+
+function renderProgrammaSvoltoRichHtmlForPreview(string $html): string
+{
+    $html = sanitizeProgrammaSvoltoRichHtml($html);
+    return $html !== '' ? $html : '&nbsp;';
+}
+
+function normalizeQuintaInternalMarkersToHtml(string $text): string
+{
+    if (strpos($text, '__MODULE_TITLE__') === false && strpos($text, '__SECTION_HEADING__') === false) {
+        return $text;
+    }
+
+    $lines = preg_split('/\R/u', $text);
+    if ($lines === false) {
+        return $text;
+    }
+
+    $html = '';
+    $plainBuffer = [];
+
+    $flushPlain = function () use (&$html, &$plainBuffer): void {
+        $plain = trim(implode("\n", $plainBuffer));
+        if ($plain !== '') {
+            $html .= buildTwoLevelListFromText($plain);
+        }
+        $plainBuffer = [];
+    };
+
+    foreach ($lines as $line) {
+        $trimmed = trim((string)$line);
+        if ($trimmed === '') {
+            $plainBuffer[] = '';
+            continue;
+        }
+
+        if (strpos($trimmed, '__MODULE_TITLE__') === 0) {
+            $flushPlain();
+            $headingText = trim(substr($trimmed, strlen('__MODULE_TITLE__')));
+            if ($headingText !== '') {
+                $html .= '<h4>' . htmlspecialchars($headingText, ENT_QUOTES, 'UTF-8') . '</h4>';
+            }
+            continue;
+        }
+
+        if (strpos($trimmed, '__SECTION_HEADING__') === 0) {
+            $flushPlain();
+            $headingText = trim(substr($trimmed, strlen('__SECTION_HEADING__')));
+            if ($headingText !== '') {
+                $html .= '<h5>' . htmlspecialchars($headingText, ENT_QUOTES, 'UTF-8') . '</h5>';
+            }
+            continue;
+        }
+
+        if (programmaSvoltoLooksLikeHtml($trimmed)) {
+            $flushPlain();
+            $html .= sanitizeProgrammaSvoltoRichHtml($trimmed);
+            continue;
+        }
+
+        $plainBuffer[] = $line;
+    }
+
+    $flushPlain();
     return trim($html);
 }
 
@@ -277,10 +570,17 @@ function detectListItemLevel(string $raw, ?int $currentParent): array
     ];
 }
 
-function buildTwoLevelListFromText(string $text): string
+function buildTwoLevelListFromText(string $text, bool $forPdf = false): string
 {
+    if (strpos($text, '__MODULE_TITLE__') !== false || strpos($text, '__SECTION_HEADING__') !== false) {
+        $normalized = normalizeQuintaInternalMarkersToHtml($text);
+        if ($normalized !== '' && programmaSvoltoLooksLikeHtml($normalized)) {
+            return $forPdf ? renderProgrammaSvoltoRichHtmlForPrint($normalized) : renderProgrammaSvoltoRichHtmlForPreview($normalized);
+        }
+    }
+
     if (programmaSvoltoLooksLikeHtml($text)) {
-        return sanitizeProgrammaSvoltoRichHtml($text);
+        return $forPdf ? renderProgrammaSvoltoRichHtmlForPrint($text) : renderProgrammaSvoltoRichHtmlForPreview($text);
     }
 
     $lines = preg_split('/\R/u', $text);
@@ -532,7 +832,7 @@ function wrapSectionForDocente(string $text, string $docenteLabel): string
     }
 
     if (programmaSvoltoLooksLikeHtml($text)) {
-        return '<h4>' . htmlspecialchars(mb_strtoupper($docenteLabel, 'UTF-8'), ENT_QUOTES, 'UTF-8') . '</h4>' . sanitizeProgrammaSvoltoRichHtml($text);
+        return '<h5>' . htmlspecialchars(mb_strtoupper($docenteLabel, 'UTF-8'), ENT_QUOTES, 'UTF-8') . '</h5>' . sanitizeProgrammaSvoltoRichHtml($text);
     }
 
     return '__SECTION_HEADING__' . mb_strtoupper($docenteLabel, 'UTF-8') . "\n" . $text;
@@ -595,15 +895,15 @@ function buildQuintaMergedSectionsForPrograms(array $programs): array
     return $sections;
 }
 
-function buildQuintaWordStyleRows(array $sections): array
+function buildQuintaWordStyleRows(array $sections, bool $forPdf = false): array
 {
     return [
-        'Competenze raggiunte' => buildTwoLevelListFromText((string)($sections['competenze_raggiunte'] ?? '')),
-        'Conoscenze o contenuti trattati' => buildTwoLevelListFromText((string)($sections['contenuti_trattati'] ?? '')),
-        "Abilita'" => buildTwoLevelListFromText((string)($sections['abilita'] ?? '')),
-        'Metodologie' => buildTwoLevelListFromText((string)($sections['metodologie'] ?? '')),
-        'Criteri di valutazione' => buildTwoLevelListFromText((string)($sections['criteri_valutazione'] ?? '')),
-        'Testi e materiali / strumenti adottati' => buildTwoLevelListFromText((string)($sections['testi_materiali'] ?? '')),
+        'Competenze raggiunte' => buildTwoLevelListFromText((string)($sections['competenze_raggiunte'] ?? ''), $forPdf),
+        'Conoscenze o contenuti trattati' => buildTwoLevelListFromText((string)($sections['contenuti_trattati'] ?? ''), $forPdf),
+        "Abilita'" => buildTwoLevelListFromText((string)($sections['abilita'] ?? ''), $forPdf),
+        'Metodologie' => buildTwoLevelListFromText((string)($sections['metodologie'] ?? ''), $forPdf),
+        'Criteri di valutazione' => buildTwoLevelListFromText((string)($sections['criteri_valutazione'] ?? ''), $forPdf),
+        'Testi e materiali / strumenti adottati' => buildTwoLevelListFromText((string)($sections['testi_materiali'] ?? ''), $forPdf),
     ];
 }
 
@@ -617,15 +917,20 @@ function formatQuintaPdfLabel(string $label): string
     return '&nbsp;&nbsp;' . $escaped;
 }
 
-function buildQuintaModuleRows(array $module): array
+function buildQuintaModuleRows(array $module, bool $forPdf = false): array
 {
     $decoded = decodeQuintaModulo($module);
 
     return [
-        'Conoscenze o contenuti trattati' => buildTwoLevelListFromText($decoded['contenuti_trattati']),
-        "Abilita'" => buildTwoLevelListFromText($decoded['abilita']),
-        'Competenze raggiunte' => buildTwoLevelListFromText($decoded['competenze_raggiunte']),
+        'Conoscenze o contenuti trattati' => buildTwoLevelListFromText($decoded['contenuti_trattati'], $forPdf),
+        "Abilita'" => buildTwoLevelListFromText($decoded['abilita'], $forPdf),
+        'Competenze raggiunte' => buildTwoLevelListFromText($decoded['competenze_raggiunte'], $forPdf),
     ];
+}
+
+function addProgrammaPdfCellBreathingRoom(string $html): string
+{
+    return $html;
 }
 
 function buildParagraphHtmlFromText(string $text): string
@@ -648,35 +953,43 @@ function buildParagraphHtmlFromText(string $text): string
     return $html !== '' ? $html : '&nbsp;';
 }
 
-function createWordRunXml(DOMDocument $dom, string $text, bool $bold = false, bool $italic = false, bool $underline = false, int $size = 0): DOMElement
+function createWordRunXml(DOMDocument $dom, string $text, bool $bold = false, bool $italic = false, bool $underline = false, int $size = 22, string $color = ''): DOMElement
 {
     $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
     $r = $dom->createElementNS($ns, 'w:r');
-    if ($bold || $italic || $underline || $size > 0) {
-        $rPr = $dom->createElementNS($ns, 'w:rPr');
-        if ($bold) {
-            $rPr->appendChild($dom->createElementNS($ns, 'w:b'));
-            $rPr->appendChild($dom->createElementNS($ns, 'w:bCs'));
-        }
-        if ($italic) {
-            $rPr->appendChild($dom->createElementNS($ns, 'w:i'));
-            $rPr->appendChild($dom->createElementNS($ns, 'w:iCs'));
-        }
-        if ($underline) {
-            $u = $dom->createElementNS($ns, 'w:u');
-            $u->setAttributeNS($ns, 'w:val', 'single');
-            $rPr->appendChild($u);
-        }
-        if ($size > 0) {
-            $sz = $dom->createElementNS($ns, 'w:sz');
-            $sz->setAttributeNS($ns, 'w:val', (string)$size);
-            $szCs = $dom->createElementNS($ns, 'w:szCs');
-            $szCs->setAttributeNS($ns, 'w:val', (string)$size);
-            $rPr->appendChild($sz);
-            $rPr->appendChild($szCs);
-        }
-        $r->appendChild($rPr);
+    $rPr = $dom->createElementNS($ns, 'w:rPr');
+    $rFonts = $dom->createElementNS($ns, 'w:rFonts');
+    foreach (['ascii', 'hAnsi', 'cs', 'eastAsia'] as $attribute) {
+        $rFonts->setAttributeNS($ns, 'w:' . $attribute, 'Arial');
     }
+    $rPr->appendChild($rFonts);
+    if ($bold) {
+        $rPr->appendChild($dom->createElementNS($ns, 'w:b'));
+        $rPr->appendChild($dom->createElementNS($ns, 'w:bCs'));
+    }
+    if ($italic) {
+        $rPr->appendChild($dom->createElementNS($ns, 'w:i'));
+        $rPr->appendChild($dom->createElementNS($ns, 'w:iCs'));
+    }
+    if ($underline) {
+        $u = $dom->createElementNS($ns, 'w:u');
+        $u->setAttributeNS($ns, 'w:val', 'single');
+        $rPr->appendChild($u);
+    }
+    if ($color !== '') {
+        $colorNode = $dom->createElementNS($ns, 'w:color');
+        $colorNode->setAttributeNS($ns, 'w:val', $color);
+        $rPr->appendChild($colorNode);
+    }
+    if ($size > 0) {
+        $sz = $dom->createElementNS($ns, 'w:sz');
+        $sz->setAttributeNS($ns, 'w:val', (string)$size);
+        $szCs = $dom->createElementNS($ns, 'w:szCs');
+        $szCs->setAttributeNS($ns, 'w:val', (string)$size);
+        $rPr->appendChild($sz);
+        $rPr->appendChild($szCs);
+    }
+    $r->appendChild($rPr);
 
     $t = $dom->createElementNS($ns, 'w:t');
     if (preg_match('/^\s|\s$/u', $text)) {
@@ -692,12 +1005,18 @@ function appendWordInlineRunsFromHtml(DOMDocument $wordDom, DOMElement $paragrap
     $bold = !empty($style['bold']);
     $italic = !empty($style['italic']);
     $underline = !empty($style['underline']);
+    $size = isset($style['size']) ? intval($style['size']) : 22;
+    $color = isset($style['color']) ? (string)$style['color'] : '';
+    $uppercase = !empty($style['uppercase']);
 
     foreach ($node->childNodes as $child) {
         if ($child->nodeType === XML_TEXT_NODE) {
             $text = preg_replace('/\s+/u', ' ', $child->nodeValue ?? '');
+            if ($uppercase) {
+                $text = mb_strtoupper($text, 'UTF-8');
+            }
             if ($text !== '') {
-                $paragraph->appendChild(createWordRunXml($wordDom, $text, $bold, $italic, $underline));
+                $paragraph->appendChild(createWordRunXml($wordDom, $text, $bold, $italic, $underline, $size, $color));
             }
             continue;
         }
@@ -734,25 +1053,45 @@ function buildWordParagraphFromHtmlElement(DOMDocument $wordDom, DOMElement $ele
 {
     $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
     $paragraph = $wordDom->createElementNS($ns, 'w:p');
+    $tag = strtolower($element->tagName);
     $pPr = $wordDom->createElementNS($ns, 'w:pPr');
     $spacing = $wordDom->createElementNS($ns, 'w:spacing');
-    $spacing->setAttributeNS($ns, 'w:before', '0');
-    $spacing->setAttributeNS($ns, 'w:after', '40');
+    $spacing->setAttributeNS($ns, 'w:before', $tag === 'h5' ? '180' : ($tag === 'h4' ? '60' : '0'));
+    $spacing->setAttributeNS($ns, 'w:after', $tag === 'h5' ? '140' : ($tag === 'h4' ? '40' : '0'));
+    $spacing->setAttributeNS($ns, 'w:line', '240');
+    $spacing->setAttributeNS($ns, 'w:lineRule', 'auto');
     $pPr->appendChild($spacing);
-    if ($level > 0) {
+    if ($tag === 'h5') {
+        $jc = $wordDom->createElementNS($ns, 'w:jc');
+        $jc->setAttributeNS($ns, 'w:val', 'center');
+        $pPr->appendChild($jc);
+        $shd = $wordDom->createElementNS($ns, 'w:shd');
+        $shd->setAttributeNS($ns, 'w:val', 'clear');
+        $shd->setAttributeNS($ns, 'w:color', 'auto');
+        $shd->setAttributeNS($ns, 'w:fill', 'C8D0DA');
+        $pPr->appendChild($shd);
+    }
+    if ($prefix !== '') {
+        $ind = $wordDom->createElementNS($ns, 'w:ind');
+        $ind->setAttributeNS($ns, 'w:left', (string)(180 * ($level + 1)));
+        $ind->setAttributeNS($ns, 'w:hanging', '120');
+        $pPr->appendChild($ind);
+    } else if ($level > 0) {
         $ind = $wordDom->createElementNS($ns, 'w:ind');
         $ind->setAttributeNS($ns, 'w:left', (string)(360 * $level));
         $pPr->appendChild($ind);
     }
     $paragraph->appendChild($pPr);
 
-    $tag = strtolower($element->tagName);
     if ($prefix !== '') {
-        $paragraph->appendChild(createWordRunXml($wordDom, $prefix, false, false, false));
+        $paragraph->appendChild(createWordRunXml($wordDom, $prefix, false, false, false, 22));
     }
 
     appendWordInlineRunsFromHtml($wordDom, $paragraph, $element, [
-        'bold' => $tag === 'h4',
+        'bold' => ($tag === 'h4' || $tag === 'h5'),
+        'size' => 22,
+        'color' => ($tag === 'h4' || $tag === 'h5') ? '173F68' : '',
+        'uppercase' => ($tag === 'h4' || $tag === 'h5'),
     ]);
 
     return $paragraph;
@@ -804,7 +1143,7 @@ function buildWordParagraphsFromHtmlXmlLegacy(DOMDocument $wordDom, string $html
                 $walk($node, $level + 1);
                 continue;
             }
-            if (in_array($tag, ['p', 'h4', 'li'], true)) {
+            if (in_array($tag, ['p', 'h4', 'h5', 'li'], true)) {
                 $paragraphs[] = buildWordParagraphFromHtmlElement($wordDom, $node, $tag === 'li' ? '• ' : '', $level);
                 continue;
             }
@@ -821,7 +1160,7 @@ function buildWordParagraphsFromHtmlXmlLegacy(DOMDocument $wordDom, string $html
 function programmaWordListPrefix(DOMElement $list, int $index): string
 {
     if (strtolower($list->tagName) !== 'ol') {
-        return '- ';
+        return html_entity_decode('&#8226;', ENT_QUOTES, 'UTF-8') . ' ';
     }
 
     $type = strtolower((string)$list->getAttribute('type'));
@@ -834,6 +1173,7 @@ function programmaWordListPrefix(DOMElement $list, int $index): string
 
 function buildWordParagraphsFromHtmlXml(DOMDocument $wordDom, string $html): array
 {
+    $html = normalizeQuintaInternalMarkersToHtml($html);
     $cleanHtml = sanitizeProgrammaSvoltoRichHtml($html);
     if ($cleanHtml === '') {
         return [$wordDom->createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'w:p')];
@@ -881,7 +1221,7 @@ function buildWordParagraphsFromHtmlXml(DOMDocument $wordDom, string $html): arr
                 $walk($node, $level + 1);
                 continue;
             }
-            if (in_array($tag, ['p', 'h4'], true)) {
+            if (in_array($tag, ['p', 'h4', 'h5'], true)) {
                 $paragraphs[] = buildWordParagraphFromHtmlElement($wordDom, $node, '', $level);
             }
         }
@@ -896,6 +1236,13 @@ function buildWordParagraphsFromHtmlXml(DOMDocument $wordDom, string $html): arr
 
 function buildWordParagraphsXml(DOMDocument $dom, string $text): array
 {
+    if (strpos($text, '__MODULE_TITLE__') !== false || strpos($text, '__SECTION_HEADING__') !== false) {
+        $normalizedText = normalizeQuintaInternalMarkersToHtml($text);
+        if ($normalizedText !== '' && programmaSvoltoLooksLikeHtml($normalizedText)) {
+            return buildWordParagraphsFromHtmlXml($dom, $normalizedText);
+        }
+    }
+
     if (programmaSvoltoLooksLikeHtml($text)) {
         return buildWordParagraphsFromHtmlXml($dom, $text);
     }
@@ -1010,6 +1357,103 @@ function setWordParagraphText(DOMDocument $dom, DOMXPath $xpath, string $query, 
     $t->nodeValue = $text;
     $r->appendChild($t);
     $paragraph->appendChild($r);
+}
+
+function setWordTableCellStyle(DOMDocument $dom, DOMElement $cell, string $fill = '', string $borderColor = '0057B7', string $vAlign = 'top', string $width = ''): void
+{
+    $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+    $tcPr = getWordChildByLocalName($cell, 'tcPr');
+    if (!$tcPr instanceof DOMElement) {
+        $tcPr = $dom->createElementNS($ns, 'w:tcPr');
+        if ($cell->firstChild) {
+            $cell->insertBefore($tcPr, $cell->firstChild);
+        } else {
+            $cell->appendChild($tcPr);
+        }
+    }
+
+    foreach (iterator_to_array($tcPr->childNodes) as $childNode) {
+        if ($childNode instanceof DOMElement && in_array($childNode->localName, ['tcBorders', 'shd', 'vAlign', 'tcMar', 'tcW'], true)) {
+            $tcPr->removeChild($childNode);
+        }
+    }
+
+    if ($width !== '') {
+        $tcW = $dom->createElementNS($ns, 'w:tcW');
+        $tcW->setAttributeNS($ns, 'w:w', $width);
+        $tcW->setAttributeNS($ns, 'w:type', 'pct');
+        $tcPr->appendChild($tcW);
+    }
+
+    $borders = $dom->createElementNS($ns, 'w:tcBorders');
+    foreach (['top', 'left', 'bottom', 'right'] as $side) {
+        $border = $dom->createElementNS($ns, 'w:' . $side);
+        $border->setAttributeNS($ns, 'w:val', 'single');
+        $border->setAttributeNS($ns, 'w:sz', '8');
+        $border->setAttributeNS($ns, 'w:space', '0');
+        $border->setAttributeNS($ns, 'w:color', $borderColor);
+        $borders->appendChild($border);
+    }
+    $tcPr->appendChild($borders);
+
+    if ($fill !== '') {
+        $shd = $dom->createElementNS($ns, 'w:shd');
+        $shd->setAttributeNS($ns, 'w:val', 'clear');
+        $shd->setAttributeNS($ns, 'w:color', 'auto');
+        $shd->setAttributeNS($ns, 'w:fill', $fill);
+        $tcPr->appendChild($shd);
+    }
+
+    $vertical = $dom->createElementNS($ns, 'w:vAlign');
+    $vertical->setAttributeNS($ns, 'w:val', $vAlign);
+    $tcPr->appendChild($vertical);
+
+    $margin = $dom->createElementNS($ns, 'w:tcMar');
+    $margins = [
+        'top' => '80',
+        'left' => '100',
+        'bottom' => '60',
+        'right' => '120',
+    ];
+    foreach ($margins as $side => $value) {
+        $node = $dom->createElementNS($ns, 'w:' . $side);
+        $node->setAttributeNS($ns, 'w:w', $value);
+        $node->setAttributeNS($ns, 'w:type', 'dxa');
+        $margin->appendChild($node);
+    }
+    $tcPr->appendChild($margin);
+}
+
+function setWordCellText(DOMDocument $dom, DOMElement $cell, string $text, bool $bold = false, string $color = '', int $size = 22, string $align = 'left'): void
+{
+    $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+    $childrenToRemove = [];
+    foreach ($cell->childNodes as $childNode) {
+        if ($childNode instanceof DOMElement && $childNode->localName === 'tcPr') {
+            continue;
+        }
+        $childrenToRemove[] = $childNode;
+    }
+    foreach ($childrenToRemove as $childNode) {
+        $cell->removeChild($childNode);
+    }
+
+    $paragraph = $dom->createElementNS($ns, 'w:p');
+    $pPr = $dom->createElementNS($ns, 'w:pPr');
+    $spacing = $dom->createElementNS($ns, 'w:spacing');
+    $spacing->setAttributeNS($ns, 'w:before', '0');
+    $spacing->setAttributeNS($ns, 'w:after', '0');
+    $spacing->setAttributeNS($ns, 'w:line', '240');
+    $spacing->setAttributeNS($ns, 'w:lineRule', 'auto');
+    $pPr->appendChild($spacing);
+    if ($align !== 'left') {
+        $jc = $dom->createElementNS($ns, 'w:jc');
+        $jc->setAttributeNS($ns, 'w:val', $align);
+        $pPr->appendChild($jc);
+    }
+    $paragraph->appendChild($pPr);
+    $paragraph->appendChild(createWordRunXml($dom, $text, $bold, false, false, $size, $color));
+    $cell->appendChild($paragraph);
 }
 
 function getWordChildByLocalName(DOMElement $element, string $localName): ?DOMElement
@@ -1163,6 +1607,55 @@ function fillWordTemplateXml(string $xml, array $sections, array $intestazioneLi
     $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
 
     setWordParagraphHeader($dom, $xpath, '(//w:body/w:p)[2]', $intestazioneLines);
+
+    $table = $xpath->query('//w:tbl')->item(0);
+    if ($table instanceof DOMElement) {
+        $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+        $firstRow = $xpath->query('.//w:tr', $table)->item(0);
+        $headerRow = $dom->createElementNS($ns, 'w:tr');
+        $headerCell = $dom->createElementNS($ns, 'w:tc');
+        $headerPr = $dom->createElementNS($ns, 'w:tcPr');
+        $gridSpan = $dom->createElementNS($ns, 'w:gridSpan');
+        $gridSpan->setAttributeNS($ns, 'w:val', '2');
+        $headerPr->appendChild($gridSpan);
+        $headerCell->appendChild($headerPr);
+        setWordTableCellStyle($dom, $headerCell, '0057B7', '0057B7', 'top', '5000');
+        setWordCellText($dom, $headerCell, 'Programma svolto - classe quinta', false, 'FFFFFF', 32, 'left');
+        $headerRow->appendChild($headerCell);
+        if ($firstRow instanceof DOMElement) {
+            $table->insertBefore($headerRow, $firstRow);
+        } else {
+            $table->appendChild($headerRow);
+        }
+
+        $labels = [
+            'Competenze raggiunte',
+            'Conoscenze o contenuti trattati',
+            "Abilita'",
+            'Metodologie',
+            'Criteri di valutazione',
+            'Testi e materiali / strumenti adottati',
+        ];
+        $labelIndex = 0;
+        foreach ($xpath->query('.//w:tr', $table) as $row) {
+            if (!$row instanceof DOMElement) {
+                continue;
+            }
+            $rowCells = [];
+            foreach ($xpath->query('./w:tc', $row) as $rowCell) {
+                if ($rowCell instanceof DOMElement) {
+                    $rowCells[] = $rowCell;
+                }
+            }
+            if (count($rowCells) < 2 || !isset($labels[$labelIndex])) {
+                continue;
+            }
+            setWordTableCellStyle($dom, $rowCells[0], 'D9EEFA', '0057B7', 'top', '1250');
+            setWordTableCellStyle($dom, $rowCells[1], 'F7FBFE', '0057B7', 'top', '3750');
+            setWordCellText($dom, $rowCells[0], $labels[$labelIndex], false, '000000', 22, 'left');
+            $labelIndex++;
+        }
+    }
 
     $cells = $xpath->query('//w:tbl/w:tr/w:tc[position()=2]');
     $values = [
@@ -1602,6 +2095,68 @@ ob_start();
             width: 75%;
             background-color: #f7fbfe;
         }
+
+        .module .value-cell p,
+        .quinta .value-cell p {
+            margin: 0 0 4px 0;
+            line-height: 1.35;
+        }
+
+        .module .value-cell h4,
+        .quinta .value-cell h4 {
+            margin: 4px 0 4px 6px;
+            color: #173f68;
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1.25;
+            text-transform: uppercase;
+        }
+
+        .module .value-cell h5,
+        .quinta .value-cell h5 {
+            margin: 8px 0 6px 0;
+            padding: 3px 6px;
+            background: #c8d0da;
+            color: #173f68;
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1.25;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .module .value-cell .programma-print-title,
+        .quinta .value-cell .programma-print-title {
+            font-size: 13px !important;
+            margin-left: 6px !important;
+        }
+
+        .module .value-cell .programma-print-title-text,
+        .quinta .value-cell .programma-print-title-text {
+            font-size: 13px !important;
+        }
+
+        .module .value-cell ul,
+        .module .value-cell ol,
+        .quinta .value-cell ul,
+        .quinta .value-cell ol {
+            margin: 0 0 4px 18px;
+            padding-left: 14px;
+            line-height: 1.3;
+        }
+
+        .module .value-cell li,
+        .quinta .value-cell li {
+            margin: 0 0 3px 0;
+        }
+
+        .module .value-cell blockquote,
+        .quinta .value-cell blockquote {
+            margin: 0 0 4px 20px;
+            padding-left: 8px;
+            border-left: 2px solid #c9d8e8;
+            line-height: 1.3;
+        }
     </style>
     <link rel="icon" href="../ore-32.png" />
 </head>
@@ -1749,7 +2304,7 @@ if ($doPrint) {
     $pdf->writeHTML($htmlIntro, true, false, true, false, '');
 
     if ($is_quinta) {
-        $quintaRows = buildQuintaWordStyleRows(buildQuintaMergedSectionsForPrograms($relatedPrograms));
+        $quintaRows = buildQuintaWordStyleRows(buildQuintaMergedSectionsForPrograms($relatedPrograms), true);
         if (trim(strip_tags(implode('', $quintaRows))) !== '') {
             $tbl = '<table width="100%" border="0" cellpadding="4" cellspacing="0">';
             $tbl .= '<thead><tr><th colspan="2" style="background-color:#0057b7;color:#ffffff;font-size:16px;padding:8px;text-align:left;border:2px solid #0057b7;">Programma svolto - classe quinta</th></tr></thead><tbody>';
@@ -1759,7 +2314,7 @@ if ($doPrint) {
                 }
                 $tbl .= '<tr>';
                 $tbl .= '<td width="25%" style="background-color:#d9eefa;border:1px solid #0057b7;vertical-align:top;">' . formatQuintaPdfLabel($label) . '</td>';
-                $tbl .= '<td width="75%" style="background-color:#f7fbfe;border:1px solid #0057b7;vertical-align:top;">' . $data . '</td>';
+                $tbl .= '<td width="75%" style="background-color:#f7fbfe;border:1px solid #0057b7;vertical-align:top;padding:4px 12px 2px 6px;">' . addProgrammaPdfCellBreathingRoom($data) . '</td>';
                 $tbl .= '</tr>';
             }
             $tbl .= '</tbody></table><div style="height:4mm"></div>';
@@ -1771,11 +2326,12 @@ if ($doPrint) {
                 $pdf->writeHTML('<p style="font-weight:bold;text-align:center;font-size:18px;line-height:1.25;margin:0 0 3mm;">Docente ' . htmlspecialchars($programEntry['docente_label']) . '</p>', true, false, true, false, '');
             }
             foreach ($programEntry['modules'] as $m) {
-                $tbl = '<table width="100%" border="0" cellpadding="0" cellspacing="0">';
+                $tbl = '<table width="100%" border="0" cellpadding="4" cellspacing="0">';
                 $tbl .= '<thead><tr><th colspan="2" style="background-color:#0057b7;color:#ffffff;font-size:16px;padding:8px;text-align:left;border:2px solid #0057b7;">Modulo ' . ((int)rowField($m, 'ORDINE', 'ordine', 0)) . ': ' . htmlspecialchars((string)rowField($m, 'NOME', 'nome', '')) . '</th></tr></thead><tbody>';
                 $tbl .= '<tr>';
-                $tbl .= '<td width="25%" valign="middle" style="background-color:#d9eefa;border:1px solid #0057b7;padding:6px 8px;vertical-align:middle;text-align:center;">Conoscenze degli argomenti svolti</td>';
-                $tbl .= '<td width="75%" style="background-color:#f7fbfe;border:1px solid #0057b7;padding:6px 8px;vertical-align:middle;">' . buildTwoLevelListFromText((string)rowField($m, 'CONTENUTO', 'contenuto', '')) . '</td>';
+                $tbl .= '<td width="25%" valign="top" style="background-color:#d9eefa;border:1px solid #0057b7;vertical-align:top;text-align:center;">Conoscenze degli argomenti svolti</td>';
+                $contentHtml = buildTwoLevelListFromText((string)rowField($m, 'CONTENUTO', 'contenuto', ''), true);
+                $tbl .= '<td width="75%" style="background-color:#f7fbfe;border:1px solid #0057b7;vertical-align:top;">' . addProgrammaPdfCellBreathingRoom($contentHtml) . '</td>';
                 $tbl .= '</tr></tbody></table><div style="height:4mm"></div>';
                 $pdf->writeHTML($tbl, true, false, true, false, '');
             }
