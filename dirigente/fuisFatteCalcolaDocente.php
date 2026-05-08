@@ -119,10 +119,16 @@ function calcolaFuisDocente($localDocenteId) {
     // possibile controllo se le ore fatte eccedono le previsioni
 	if (getSettingsValue('fuis','rimuovi_fatte_eccedenti_previsione', false)) {
         $pagabiliFunzionali = max($previsteFunzionali - $dovuteFunzionali,0);
+        debug('pagabiliFunzionali='.$pagabiliFunzionali);
         $pagabiliConStudenti = max($previsteConStudenti - $dovuteConStudenti,0);
+        debug('pagabiliConStudenti='.$pagabiliConStudenti);
         if ($bilancioFunzionali > 0 && $bilancioFunzionali > $pagabiliFunzionali) {
+            debug('bilancioFunzionali prima del taglio='.$bilancioFunzionali);
             $bilancioDifferenzaFunzionali = $bilancioFunzionali - $pagabiliFunzionali;
+            debug('bilancioDifferenzaFunzionali='.$bilancioDifferenzaFunzionali);
             $bilancioFunzionali = $pagabiliFunzionali;
+            debug('bilancioFunzionali dopo del taglio='.$bilancioFunzionali);
+            if ( ! empty($messaggioEccesso)) {
             $messaggioEccesso = $messaggioEccesso . $bilancioDifferenzaFunzionali . " ore funzionali non concordate non saranno incluse nel conteggio FUIS: considerate solo ". $bilancioFunzionali .".";
         }
         if ($bilancioConStudenti > 0 && $bilancioConStudenti > $pagabiliConStudenti) {

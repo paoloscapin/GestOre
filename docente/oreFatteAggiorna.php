@@ -266,7 +266,9 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 // ==================================================================================================================
 	// poi le fatte
     $bilancioFunzionali = $oreFunzionali - $oreFunzionaliDovute;
-    $bilancioConStudenti = $oreConStudenti - $oreConStudentiDovute;
+     $bilancioConStudenti = $oreConStudenti - $oreConStudentiDovute;
+    //$bilancioFunzionali = $oreFunzionali - $oreFunzionaliPreviste;
+    //$bilancioConStudenti = $oreConStudenti - $oreConStudentiPreviste;
 
     // le sostituzioni sono da considerare come ore con studenti
 	$bilancioSostituzioni = $oreSostituzione - $oreSostituzioniDovute;
