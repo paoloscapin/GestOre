@@ -38,7 +38,7 @@ if (!$chk) {
 }
 
 $stato = strtoupper(trim((string)$chk['stato']));
-if ($stato !== 'INVIATO' && $stato !== 'INVIATA') {
+if ($stato !== 'INVIATO' && $stato !== 'INVIATA' && $stato !== 'AGGIORNATA') {
   echo json_encode(['ok' => false, 'error' => 'Solo una richiesta inviata può essere rimessa in bozza.'], JSON_UNESCAPED_UNICODE);
   exit;
 }

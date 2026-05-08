@@ -14,6 +14,7 @@ function statoLabelClass($stato)
   $s = strtoupper(trim((string)$stato));
   if ($s === 'BOZZA') return 'label-default';
   if ($s === 'INVIATA' || $s === 'INVIATO') return 'label-info';
+  if ($s === 'AGGIORNATA') return 'label-warning';
   if ($s === 'APPROVATA' || $s === 'APPROVATO') return 'label-success';
   if ($s === 'RESPINTA' || $s === 'RESPINTO') return 'label-danger';
   if ($s === 'APPROVATO_PARZIALE') return 'label-warning';

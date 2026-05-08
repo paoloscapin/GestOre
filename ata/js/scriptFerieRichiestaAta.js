@@ -211,6 +211,16 @@
         $("#badge_stato").text(currentState || "BOZZA");
     }
 
+    function isEditableSentState(stato) {
+        stato = String(stato || "").toUpperCase();
+        return stato === "INVIATO" || stato === "INVIATA" || stato === "AGGIORNATA";
+    }
+
+    function isLockedState(stato) {
+        stato = String(stato || "").toUpperCase();
+        return !(stato === "BOZZA" || isEditableSentState(stato));
+    }
+
     function setReadonly(readonly) {
         isReadOnly = !!readonly;
 
@@ -218,7 +228,7 @@
         const currentId = parseInt($("#richiesta_id").val() || "0", 10);
 
         const isBozza = (stato === "BOZZA");
-        const isInviato = (stato === "INVIATO" || stato === "INVIATA");
+        const isInviato = isEditableSentState(stato);
         const isApprovato = (
             stato === "APPROVATO" ||
             stato === "APPROVATA" ||
@@ -230,13 +240,13 @@
         if (isBozza) {
             $("#btn_delete_bozza_ferie").toggle(currentId > 0);
             $("#btn_cancel_ferie").show();
-            $("#btn_save_bozza_ferie").show().prop("disabled", false);
+            $("#btn_save_bozza_ferie").html('<span class="glyphicon glyphicon-floppy-disk"></span> Salva bozza').show().prop("disabled", false);
             $("#btn_invia_ferie").show().prop("disabled", false);
             $("#btn_rimetti_bozza_ferie").hide();
         } else if (isInviato) {
             $("#btn_delete_bozza_ferie").hide();
             $("#btn_cancel_ferie").show();
-            $("#btn_save_bozza_ferie").hide();
+            $("#btn_save_bozza_ferie").html('<span class="glyphicon glyphicon-floppy-disk"></span> Salva aggiornamento').show().prop("disabled", false);
             $("#btn_invia_ferie").hide();
             $("#btn_rimetti_bozza_ferie").show().prop("disabled", false);
         } else if (isApprovato) {
@@ -319,6 +329,7 @@
 
                     if (!isReadOnly) {
                         classes.push("selected");
+                        if (sg === "AGGIUNTO") classes.push("current-added");
                     } else {
                         if (sg === "APPROVATO") {
                             classes.push("historical-approved");
@@ -464,9 +475,12 @@
                     const iso = String(g.data);
                     const stato = String(g.stato_giorno || "RICHIESTO").toUpperCase();
 
-                    selectedDays.add(iso);
+                    if (stato !== "RIMOSSO") {
+                        selectedDays.add(iso);
+                    }
                     currentRequestDayStateMap[iso] = {
                         stato: stato,
+                        variazione_modifica: String(g.variazione_modifica || "").toUpperCase(),
                         nota_approvatore: String(g.nota_approvatore || "")
                     };
                 });
@@ -474,7 +488,7 @@
                 $("#editor_title").text(TITOLO + " #" + req.id);
 
                 loadCalendarState(function () {
-                    setReadonly(currentState !== "BOZZA");
+                    setReadonly(isLockedState(currentState));
                     updateHeaderInfo();
                 });
             },
@@ -576,7 +590,7 @@
                 notifyCentered(
                     "info",
                     TITOLO,
-                    (azione === "INVIA") ? "Richiesta inviata." : "Bozza salvata.",
+                    (azione === "INVIA") ? "Richiesta inviata." : (azione === "AGGIORNA" ? "Richiesta aggiornata." : "Bozza salvata."),
                     1800
                 );
 
@@ -624,7 +638,7 @@
     });
 
     $(document).on("click", "#btn_save_bozza_ferie", function () {
-        saveRequest("BOZZA");
+        saveRequest(isEditableSentState(currentState) ? "AGGIORNA" : "BOZZA");
     });
 
     $(document).on("click", "#btn_invia_ferie", function () {

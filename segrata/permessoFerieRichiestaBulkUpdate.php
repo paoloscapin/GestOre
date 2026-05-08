@@ -331,6 +331,10 @@ foreach ($righe as $rr) {
         }
     }
 
+    if (strtoupper((string)($det['stato_giorno'] ?? '')) === 'RIMOSSO') {
+        continue;
+    }
+
     $det['stato_giorno'] = $statoGiorno;
     $det['nota_approvatore'] = $notaApprovatore;
 
@@ -375,6 +379,12 @@ foreach ($righeRichiesta as $rr) {
     }
 
     $sg = strtoupper((string)($dj['stato_giorno'] ?? 'RICHIESTO'));
+    if ($sg === 'RIMOSSO') {
+        continue;
+    }
+    if ($sg === 'AGGIUNTO') {
+        $sg = 'RICHIESTO';
+    }
 
     if ($sg === 'APPROVATO') {
         $cntApprovati++;
@@ -402,7 +412,7 @@ if (!empty($richiesta['dettagli_json'])) {
     }
 }
 
-$headDet['giorni_richiesti_count'] = count($righeRichiesta);
+$headDet['giorni_richiesti_count'] = $cntRichiesti + $cntApprovati + $cntRespinti;
 $headDet['giorni_approvati_count'] = $cntApprovati;
 $headDet['giorni_respinti_count'] = $cntRespinti;
 

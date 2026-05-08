@@ -324,6 +324,12 @@ if (!empty($riga['dettagli_json'])) {
     }
 }
 
+if (strtoupper((string)($det['stato_giorno'] ?? '')) === 'RIMOSSO') {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'error' => 'Un giorno rimosso dal dipendente non puo essere approvato o respinto.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 $det['stato_giorno'] = $statoGiorno;
 $det['nota_approvatore'] = $notaApprovatore;
 
@@ -369,6 +375,12 @@ foreach ($righeRichiesta as $rr) {
     }
 
     $sg = strtoupper((string)($dj['stato_giorno'] ?? 'RICHIESTO'));
+    if ($sg === 'RIMOSSO') {
+        continue;
+    }
+    if ($sg === 'AGGIUNTO') {
+        $sg = 'RICHIESTO';
+    }
 
     if ($sg === 'APPROVATO') {
         $cntApprovati++;
@@ -396,7 +408,7 @@ if (!empty($riga['richiesta_dettagli_json'])) {
     }
 }
 
-$headDet['giorni_richiesti_count'] = count($righeRichiesta);
+$headDet['giorni_richiesti_count'] = $cntRichiesti + $cntApprovati + $cntRespinti;
 $headDet['giorni_approvati_count'] = $cntApprovati;
 $headDet['giorni_respinti_count'] = $cntRespinti;
 

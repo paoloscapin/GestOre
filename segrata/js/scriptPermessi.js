@@ -6,7 +6,7 @@
 let ferieModalInitialSnapshot = null;
 let ferieModalCurrentSnapshot = null;
 let ferieModalKeepDirty = false;
-const DASHBOARD_STATI = ["INVIATO", "APPROVATO", "PARZIALE", "RESPINTO", "ANNULLATO"];
+const DASHBOARD_STATI = ["INVIATO", "AGGIORNATA", "APPROVATO", "PARZIALE", "RESPINTO", "ANNULLATO"];
 const DASHBOARD_REGISTRAZIONI = ["DA_REGISTRARE", "REGISTRATO"];
 let dashboardSelectedStates = DASHBOARD_STATI.slice();
 let dashboardSelectedRegistrazioni = DASHBOARD_REGISTRAZIONI.slice();
@@ -258,6 +258,7 @@ function buildSelectedDateMap(righe) {
     const da = r.data_da || r.data_dal;
     const a = r.data_a || r.data_al || da;
     const stato = (r.stato_giorno || "RICHIESTO").toUpperCase();
+    const variazione = (r.variazione_modifica || "").toUpperCase();
     const nota = r.nota_approvatore || "";
 
     if (!da) return;
@@ -268,6 +269,7 @@ function buildSelectedDateMap(righe) {
         row_id: r.id || null,
         unita: r.unita || "",
         stato_giorno: stato,
+        variazione_modifica: variazione,
         nota_approvatore: nota
       };
     });
@@ -314,6 +316,8 @@ function updateFerieSaveButtonState() {
 function getOtherDayCellStateClass(otherInfo) {
   const stato = ((otherInfo && otherInfo.stato_giorno) || "").toUpperCase();
   if (stato === "APPROVATO") return " other-approved";
+  if (stato === "AGGIUNTO") return " other-requested";
+  if (stato === "RIMOSSO") return " other-removed";
   if (stato === "RESPINTO") return " other-rejected";
   if (stato === "RICHIESTO") return " other-requested";
   if (stato === "BOZZA") return " other-draft";
@@ -349,6 +353,8 @@ function buildOtherRequestsHtml(otherRequests) {
 function getDayCellStateClass(dayInfo) {
   const stato = ((dayInfo && dayInfo.stato_giorno) || "").toUpperCase();
   if (stato === "APPROVATO") return " day-approved";
+  if (stato === "AGGIUNTO") return " day-added";
+  if (stato === "RIMOSSO") return " day-removed";
   if (stato === "RESPINTO") return " day-rejected";
   if (stato === "RICHIESTO") return " day-requested";
   return "";
@@ -360,7 +366,10 @@ function openFerieDayDecisionModal(iso, dayInfo, dip) {
   $("#fg_riga_id").val(dayInfo.row_id);
   $("#fg_iso").text(iso);
   $("#fg_dipendente").text((dip && dip.nome) ? dip.nome : "");
-  $("#fg_stato_giorno").val(dayInfo.stato_giorno || "RICHIESTO");
+  const statoGiorno = ((dayInfo.stato_giorno || "RICHIESTO").toString().toUpperCase() === "AGGIUNTO")
+    ? "RICHIESTO"
+    : (dayInfo.stato_giorno || "RICHIESTO");
+  $("#fg_stato_giorno").val(statoGiorno);
   $("#fg_nota_approvatore").val(dayInfo.nota_approvatore || "");
 
   $("#ferie_giorno_modal").modal("show");
@@ -614,7 +623,10 @@ function renderPermessoFerieModal(r) {
   }
   const selectedMap = buildSelectedDateMap(righe);
   const selectedDates = Object.keys(selectedMap).sort();
-  $("#fm_count_selected").text(Object.keys(selectedMap).length);
+  const activeSelectedDates = selectedDates.filter(function (iso) {
+    return ((selectedMap[iso] && selectedMap[iso].stato_giorno) || "").toUpperCase() !== "RIMOSSO";
+  });
+  $("#fm_count_selected").text(activeSelectedDates.length);
 
   const winStart = finestra.data_inizio || perm.ferie_win_da || "";
   const winEnd = finestra.data_fine || perm.ferie_win_a || "";
@@ -712,6 +724,11 @@ function renderPermessoFerieModal(r) {
       } else if (isExcludedSpecial) {
         reason = special.descrizione || "Escluso";
       }
+      if (isSelected && dayInfo) {
+        const statoSel = (dayInfo.stato_giorno || "").toUpperCase();
+        if (statoSel === "AGGIUNTO") reason = "Aggiunto";
+        if (statoSel === "RIMOSSO") reason = "Rimosso";
+      }
 
       const showCounters = inWindow && !isWeekend && !isExcludedSpecial;
 
@@ -751,7 +768,8 @@ function renderPermessoFerieModal(r) {
       </div>`
         : `<div class="ferie-day-right"></div>`;
 
-      const clickableDay = isSelected && inWindow && !isWeekend && !isExcludedSpecial;
+      const clickableDay = isSelected && inWindow && !isWeekend && !isExcludedSpecial &&
+        ((dayInfo && (dayInfo.stato_giorno || "").toUpperCase()) !== "RIMOSSO");
       const clickAttrs = clickableDay
         ? `data-row-id="${dayInfo.row_id}" data-clickable="1"`
         : `data-clickable="0"`;

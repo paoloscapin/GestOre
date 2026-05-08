@@ -28,6 +28,7 @@ function historicalPriorityUserSave($stato)
 {
   $stato = strtoupper(trim((string)$stato));
   if ($stato === 'APPROVATO') return 400;
+  if ($stato === 'AGGIUNTO') return 300;
   if ($stato === 'RICHIESTO') return 300;
   if ($stato === 'RESPINTO')  return 200;
   if ($stato === 'BOZZA')     return 100;
@@ -40,6 +41,44 @@ function fmtDateIT($ymd)
   if ($ymd === '') return '';
   $ts = strtotime($ymd);
   return $ts ? date('d/m/Y', $ts) : $ymd;
+}
+
+function normalizeDateListSave($items)
+{
+  $out = [];
+  if (!is_array($items)) return $out;
+
+  foreach ($items as $item) {
+    $data = trim((string)$item);
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $data)) {
+      $out[$data] = true;
+    }
+  }
+
+  $list = array_keys($out);
+  sort($list);
+  return $list;
+}
+
+function diffDateListsSave(array $base, array $current)
+{
+  $baseMap = array_fill_keys($base, true);
+  $currentMap = array_fill_keys($current, true);
+
+  $added = [];
+  foreach ($current as $data) {
+    if (!isset($baseMap[$data])) $added[] = $data;
+  }
+
+  $removed = [];
+  foreach ($base as $data) {
+    if (!isset($currentMap[$data])) $removed[] = $data;
+  }
+
+  sort($added);
+  sort($removed);
+
+  return [$added, $removed];
 }
 
 function hMail($s): string
@@ -182,7 +221,7 @@ function isWeekendYmd($ymd)
 $allowedSottotipi = ['ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA', 'ORDINARIE'];
 
 if ($tipo_id <= 0) fail('Tipo permesso non valido.');
-if (!in_array($azione, ['BOZZA', 'INVIA'], true)) fail('Azione non valida.');
+if (!in_array($azione, ['BOZZA', 'INVIA', 'AGGIORNA'], true)) fail('Azione non valida.');
 if (!in_array($sottotipo, $allowedSottotipi, true)) fail('Sottotipo ferie non valido.');
 
 $tipo = dbGetFirst("
@@ -327,6 +366,13 @@ foreach ($storicoRows as $sr) {
   $statoGiorno = strtoupper(trim((string)($det['stato_giorno'] ?? 'RICHIESTO')));
   $richiestaStato = strtoupper(trim((string)($sr['richiesta_stato'] ?? '')));
 
+  if ($statoGiorno === 'RIMOSSO') {
+    continue;
+  }
+  if ($statoGiorno === 'AGGIUNTO') {
+    $statoGiorno = 'RICHIESTO';
+  }
+
   if ($statoGiorno === 'RICHIESTO' && $richiestaStato === 'BOZZA') {
     $statoGiorno = 'BOZZA';
   }
@@ -377,26 +423,20 @@ foreach ($giorniValidi as $data) {
   fail('La data ' . fmtDateIT($data) . ' è già presente in una richiesta ferie.');
 }
 
-$stato = ($azione === 'INVIA') ? 'INVIATO' : 'BOZZA';
-
-$dettagliRichiesta = [
-  'tipo_codice' => 'FERIE',
-  'ferie_sottotipo' => $sottotipo,
-  'modo' => 'CALENDARIO_FERIE',
-  'giorni_richiesti_count' => count($giorniValidi),
-  'giorni_approvati_count' => 0,
-  'giorni_respinti_count' => 0,
-  'data_primo_giorno' => $giorniValidi[0],
-  'data_ultimo_giorno' => $giorniValidi[count($giorniValidi) - 1],
-];
-$dettagliRichiestaJson = json_encode($dettagliRichiesta, JSON_UNESCAPED_UNICODE);
+$stato = ($azione === 'INVIA') ? 'INVIATO' : (($azione === 'AGGIORNA') ? 'AGGIORNATA' : 'BOZZA');
 
 dbExec("START TRANSACTION");
 
 try {
+  $isAggiornamentoInviata = false;
+  $giorniOriginali = [];
+  $giorniAggiunti = [];
+  $giorniRimossi = [];
+  $righeDaInserire = [];
+
   if ($richiesta_id > 0) {
     $chk = dbGetFirst("
-      SELECT r.id, r.stato
+      SELECT r.id, r.stato, r.dettagli_json
       FROM permesso_ata_richiesta r
       INNER JOIN permesso_ata_tipo t ON t.id = r.permesso_ata_tipo_id
       WHERE r.id = $richiesta_id
@@ -407,9 +447,138 @@ try {
     ");
 
     if (!$chk) throw new Exception('Richiesta non trovata.');
-    if (strtoupper((string)$chk['stato']) !== 'BOZZA') {
-      throw new Exception('Puoi modificare solo richieste in BOZZA.');
+
+    $statoCorrente = strtoupper(trim((string)$chk['stato']));
+    $detailsCorrenti = [];
+    if (!empty($chk['dettagli_json'])) {
+      $tmp = json_decode((string)$chk['dettagli_json'], true);
+      if (is_array($tmp)) $detailsCorrenti = $tmp;
     }
+
+    if ($statoCorrente === 'BOZZA') {
+      if ($azione === 'AGGIORNA') {
+        throw new Exception('Una bozza va salvata come bozza o inviata.');
+      }
+      if ($azione === 'INVIA') {
+        $giorniOriginali = $giorniValidi;
+      }
+    } elseif (in_array($statoCorrente, ['INVIATO', 'INVIATA', 'AGGIORNATA'], true)) {
+      if ($azione !== 'AGGIORNA') {
+        throw new Exception('Per una richiesta inviata usa Salva aggiornamento oppure Rimetti in bozza.');
+      }
+
+      $isAggiornamentoInviata = true;
+      $giorniOriginali = normalizeDateListSave($detailsCorrenti['giorni_originali'] ?? []);
+
+      if (count($giorniOriginali) === 0) {
+        $existingRows = dbGetAll("
+          SELECT data_dal, data_al, dettagli_json
+          FROM permesso_ata_richiesta_riga
+          WHERE permesso_ata_richiesta_id = $richiesta_id
+          ORDER BY data_dal ASC, id ASC
+        ");
+        if (!is_array($existingRows)) $existingRows = [];
+
+        foreach ($existingRows as $er) {
+          $detEr = [];
+          if (!empty($er['dettagli_json'])) {
+            $tmpEr = json_decode((string)$er['dettagli_json'], true);
+            if (is_array($tmpEr)) $detEr = $tmpEr;
+          }
+
+          $statoEr = strtoupper(trim((string)($detEr['stato_giorno'] ?? 'RICHIESTO')));
+          if ($statoEr === 'RIMOSSO' || $statoEr === 'RESPINTO') continue;
+
+          $fromEr = (string)($er['data_dal'] ?? '');
+          $toEr = (string)($er['data_al'] ?? '');
+          if ($toEr === '') $toEr = $fromEr;
+
+          $startEr = DateTime::createFromFormat('Y-m-d', $fromEr);
+          $endEr = DateTime::createFromFormat('Y-m-d', $toEr);
+          if (!$startEr || !$endEr || $endEr < $startEr) continue;
+
+          $curEr = clone $startEr;
+          while ($curEr <= $endEr) {
+            $giorniOriginali[] = $curEr->format('Y-m-d');
+            $curEr->modify('+1 day');
+          }
+        }
+        $giorniOriginali = normalizeDateListSave($giorniOriginali);
+      }
+
+      [$giorniAggiunti, $giorniRimossi] = diffDateListsSave($giorniOriginali, $giorniValidi);
+    } else {
+      throw new Exception('Questa richiesta non e modificabile.');
+    }
+  } else {
+    if ($azione === 'AGGIORNA') {
+      throw new Exception('Non puoi aggiornare una richiesta non ancora creata.');
+    }
+    if ($azione === 'INVIA') {
+      $giorniOriginali = $giorniValidi;
+    }
+  }
+
+  if ($isAggiornamentoInviata) {
+    $unionMap = [];
+    foreach ($giorniOriginali as $data) $unionMap[$data] = true;
+    foreach ($giorniValidi as $data) $unionMap[$data] = true;
+    $unionDates = array_keys($unionMap);
+    sort($unionDates);
+
+    $aggiuntiMap = array_fill_keys($giorniAggiunti, true);
+    $rimossiMap = array_fill_keys($giorniRimossi, true);
+
+    foreach ($unionDates as $data) {
+      $rowState = 'RICHIESTO';
+      $variazione = '';
+      if (isset($aggiuntiMap[$data])) {
+        $rowState = 'AGGIUNTO';
+        $variazione = 'AGGIUNTO';
+      } elseif (isset($rimossiMap[$data])) {
+        $rowState = 'RIMOSSO';
+        $variazione = 'RIMOSSO';
+      }
+
+      $righeDaInserire[] = [
+        'data' => $data,
+        'stato_giorno' => $rowState,
+        'variazione_modifica' => $variazione
+      ];
+    }
+  } else {
+    foreach ($giorniValidi as $data) {
+      $righeDaInserire[] = [
+        'data' => $data,
+        'stato_giorno' => 'RICHIESTO',
+        'variazione_modifica' => ''
+      ];
+    }
+  }
+
+  $dettagliRichiesta = [
+    'tipo_codice' => 'FERIE',
+    'ferie_sottotipo' => $sottotipo,
+    'modo' => 'CALENDARIO_FERIE',
+    'giorni_richiesti_count' => count($giorniValidi),
+    'giorni_approvati_count' => 0,
+    'giorni_respinti_count' => 0,
+    'giorni_originali' => $giorniOriginali,
+    'giorni_correnti' => $giorniValidi,
+    'giorni_aggiunti' => $giorniAggiunti,
+    'giorni_rimossi' => $giorniRimossi,
+    'giorni_aggiunti_count' => count($giorniAggiunti),
+    'giorni_rimossi_count' => count($giorniRimossi),
+    'ultima_modifica_dopo_invio' => $isAggiornamentoInviata,
+    'data_primo_giorno' => $giorniValidi[0],
+    'data_ultimo_giorno' => $giorniValidi[count($giorniValidi) - 1],
+  ];
+  $dettagliRichiestaJson = json_encode($dettagliRichiesta, JSON_UNESCAPED_UNICODE);
+
+  if ($richiesta_id > 0) {
+    $extraUpdateRegistrazione = $isAggiornamentoInviata
+      ? ", registrato_segreteria = 0, registrato_da_utente_id = NULL, registrato_il = NULL"
+      : "";
 
     dbExec("
       UPDATE permesso_ata_richiesta
@@ -419,6 +588,7 @@ try {
           note_richiedente = " . dbQ($note) . ",
           dettagli_json = " . dbQ($dettagliRichiestaJson) . ",
           updated_at = NOW()
+          $extraUpdateRegistrazione
       WHERE id = $richiesta_id
         AND personale_ata_id = $__ata_id
       LIMIT 1
@@ -435,11 +605,16 @@ try {
     $richiesta_id = dblastId();
   }
 
-  foreach ($giorniValidi as $data) {
+  foreach ($righeDaInserire as $rigaIns) {
+    $data = $rigaIns['data'];
+    $statoGiorno = $rigaIns['stato_giorno'];
+    $variazione = $rigaIns['variazione_modifica'];
+
     $dettagliRiga = [
       'unita' => 'GIORNI',
       'modo' => 'CALENDARIO_FERIE',
-      'stato_giorno' => 'RICHIESTO',
+      'stato_giorno' => $statoGiorno,
+      'variazione_modifica' => $variazione,
       'data_originale' => $data,
       'data_definitiva' => $data,
       'nota_approvatore' => '',

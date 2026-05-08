@@ -53,6 +53,7 @@ foreach ($giorniRows as $rr) {
     'id' => (int)$rr['id'],
     'data' => $rr['data_dal'],
     'stato_giorno' => strtoupper((string)($det['stato_giorno'] ?? 'RICHIESTO')),
+    'variazione_modifica' => strtoupper((string)($det['variazione_modifica'] ?? '')),
     'data_originale' => (string)($det['data_originale'] ?? $rr['data_dal']),
     'data_definitiva' => (string)($det['data_definitiva'] ?? $rr['data_dal']),
     'nota_approvatore' => (string)($det['nota_approvatore'] ?? ''),

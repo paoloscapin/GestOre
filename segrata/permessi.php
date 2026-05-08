@@ -480,6 +480,20 @@ if (!is_array($ufficiAta)) {
             color: #2d2400;
         }
 
+        .ferie-day-cell.day-added {
+            background: #d9f99d;
+            border-color: #65a30d;
+            color: #1f3b08;
+        }
+
+        .ferie-day-cell.day-removed,
+        .ferie-day-cell.other-removed {
+            background: #fed7aa;
+            border-color: #f97316;
+            color: #7c2d12;
+            text-decoration: line-through;
+        }
+
         .ferie-day-cell.day-approved {
             background: #b9f6ca;
             border-color: #4caf50;
@@ -759,6 +773,7 @@ if (!is_array($ufficiAta)) {
                             <select id="f_stato" class="selectpicker" data-width="160px" data-style="btn-default btn-sm">
                                 <option value="" selected>Tutti gli stati</option>
                                 <option value="INVIATO">INVIATO</option>
+                                <option value="AGGIORNATA">AGGIORNATA</option>
                                 <option value="APPROVATO">APPROVATO</option>
                                 <option value="PARZIALE">PARZIALE</option>
                                 <option value="RESPINTO">RESPINTO</option>

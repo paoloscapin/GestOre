@@ -23,6 +23,7 @@ function statoPriorityFerieStorico($stato)
 {
   $stato = strtoupper(trim((string)$stato));
   if ($stato === 'APPROVATO') return 400;
+  if ($stato === 'AGGIUNTO') return 300;
   if ($stato === 'RICHIESTO') return 300;
   if ($stato === 'RESPINTO')  return 200;
   if ($stato === 'BOZZA')     return 100;
@@ -33,6 +34,8 @@ function statoLabelStorico($stato)
 {
   $stato = strtoupper(trim((string)$stato));
   if ($stato === 'APPROVATO') return 'Approvato';
+  if ($stato === 'AGGIUNTO') return 'Aggiunto';
+  if ($stato === 'RIMOSSO') return 'Rimosso';
   if ($stato === 'RESPINTO')  return 'Respinto';
   if ($stato === 'BOZZA')     return 'Bozza';
   return 'Richiesto';
@@ -71,6 +74,8 @@ function statoEffettivoFerieDettaglio($requestStatus, array $dayDetails)
   $requestStatus = strtoupper(trim((string)$requestStatus));
   $dayStatus = strtoupper(trim((string)($dayDetails['stato_giorno'] ?? 'RICHIESTO')));
   if ($dayStatus === '') $dayStatus = 'RICHIESTO';
+  if ($dayStatus === 'AGGIUNTO') $dayStatus = 'RICHIESTO';
+  if ($dayStatus === 'RIMOSSO') return 'RIMOSSO';
 
   if ($requestStatus === 'BOZZA') return 'BOZZA';
   if ($requestStatus === 'ANNULLATO') return 'ANNULLATO';
@@ -271,6 +276,7 @@ foreach ($righeDB as $rr) {
     'ora_a'            => fmtTimeHHMM($rr['ora_al'] ?? ''),
     'modo'             => $det['modo'] ?? '',
     'stato_giorno'     => strtoupper((string)($det['stato_giorno'] ?? 'RICHIESTO')),
+    'variazione_modifica' => strtoupper((string)($det['variazione_modifica'] ?? '')),
     'data_originale'   => $det['data_originale'] ?? $dataDa,
     'data_definitiva'  => $det['data_definitiva'] ?? $dataDa,
     'nota_approvatore' => $det['nota_approvatore'] ?? ''
@@ -340,6 +346,12 @@ if (($row['tipo_codice'] ?? '') === 'FERIE' && !empty($row['ferie_sottotipo'])) 
     }
 
     $statoGiorno = strtoupper(trim((string)($det['stato_giorno'] ?? 'RICHIESTO')));
+    if ($statoGiorno === 'RIMOSSO') {
+      continue;
+    }
+    if ($statoGiorno === 'AGGIUNTO') {
+      $statoGiorno = 'RICHIESTO';
+    }
     $dataDa = (string)($or['data_dal'] ?? '');
     $dataA  = (string)($or['data_al'] ?? '');
     if ($dataA === '') $dataA = $dataDa;
@@ -478,7 +490,7 @@ if (($row['tipo_codice'] ?? '') === 'FERIE'
     LEFT JOIN personale_ata_assegnazioni pa
       ON pa.id = pa_pick.max_id
     WHERE t.codice = 'FERIE'
-      AND req.stato IN ('INVIATO', 'APPROVATO', 'PARZIALE')
+      AND req.stato IN ('INVIATO', 'AGGIORNATA', 'APPROVATO', 'PARZIALE')
       AND req.id <> " . intval($id) . "
       AND rr.data_dal <= " . dbQ($winA) . "
       AND rr.data_al >= " . dbQ($winDa) . "

@@ -47,6 +47,8 @@ function ferieDashboardEffectiveDayStatus($requestStatus, array $dayDetails): st
     $requestStatus = strtoupper(trim((string)$requestStatus));
     $dayStatus = strtoupper(trim((string)($dayDetails['stato_giorno'] ?? 'RICHIESTO')));
     if ($dayStatus === '') $dayStatus = 'RICHIESTO';
+    if ($dayStatus === 'AGGIUNTO') $dayStatus = 'RICHIESTO';
+    if ($dayStatus === 'RIMOSSO') return 'RIMOSSO';
 
     if ($requestStatus === 'BOZZA') return 'BOZZA';
     if ($requestStatus === 'ANNULLATO') return 'ANNULLATO';

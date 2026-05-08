@@ -66,6 +66,7 @@ function priorityStatoStoricoUser($stato)
 {
     switch ($stato) {
         case 'APPROVATO': return 400;
+        case 'AGGIUNTO': return 300;
         case 'RICHIESTO': return 300;
         case 'RESPINTO':  return 200;
         case 'BOZZA':     return 100;
@@ -86,6 +87,12 @@ foreach ($rows as $r) {
     $richiestaId = intval($r['richiesta_id']);
     $richiestaStato = strtoupper(trim((string)($r['richiesta_stato'] ?? '')));
     $statoGiorno = normalizeStatoGiornoUser($det['stato_giorno'] ?? '');
+    if ($statoGiorno === 'RIMOSSO') {
+        continue;
+    }
+    if ($statoGiorno === 'AGGIUNTO') {
+        $statoGiorno = 'RICHIESTO';
+    }
 
     // se il giorno non ha stato_giorno esplicito ma la richiesta è in BOZZA, trattalo come BOZZA
     if ($statoGiorno === 'RICHIESTO' && $richiestaStato === 'BOZZA') {
@@ -101,7 +108,7 @@ foreach ($rows as $r) {
                 'richiesta_id' => $richiestaId,
                 'riga_id' => intval($r['riga_id']),
                 'stato' => $statoGiorno,
-                'motivo' => 'Bozza corrente'
+                'motivo' => ($richiestaStato === 'BOZZA' ? 'Bozza corrente' : 'Richiesta corrente')
             ];
             continue;
         }

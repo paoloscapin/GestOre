@@ -540,6 +540,12 @@ $bootstrapData = [
             color: #2d2400;
         }
 
+        .day-cell.current-added {
+            background: #d9f99d;
+            border-color: #65a30d;
+            color: #1f3b08;
+        }
+
         .day-meta.status-meta {
             font-size: 11px;
             font-weight: 700;

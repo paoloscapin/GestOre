@@ -106,7 +106,7 @@ if (is_array($statiParam)) {
   }
 }
 
-$statiValidi = ['INVIATO', 'APPROVATO', 'PARZIALE', 'RESPINTO', 'ANNULLATO'];
+$statiValidi = ['INVIATO', 'AGGIORNATA', 'APPROVATO', 'PARZIALE', 'RESPINTO', 'ANNULLATO'];
 $stati = array_values(array_unique(array_intersect($stati, $statiValidi)));
 
 $registrazioni = [];
@@ -296,6 +296,10 @@ if ($registrato === 1) {
   if ($st === 'INVIATO') {
     $badge = '<span class="label label-info">
     <span class="glyphicon glyphicon-send"></span> INVIATO
+  </span>';
+  } elseif ($st === 'AGGIORNATA') {
+    $badge = '<span class="label label-warning" style="background:#f59e0b;">
+    <span class="glyphicon glyphicon-refresh"></span> AGGIORNATA
   </span>';
   } elseif ($st === 'APPROVATO') {
     $badge = '<span class="label label-success">
