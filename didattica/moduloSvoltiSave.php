@@ -12,6 +12,82 @@ require_once '../common/connect.php';
 require_once __DIR__ . '/programmiAutoreUtils.php';
 ruoloRichiesto('segreteria-didattica', 'docente');
 
+function isProgrammaSvoltoInternalMarkerTitleCandidate(string $text): bool
+{
+    $letters = preg_replace('/[^\p{L}]/u', '', $text);
+    if ($letters === '') {
+        return true;
+    }
+
+    return mb_strtoupper($letters, 'UTF-8') === $letters;
+}
+
+function splitProgrammaSvoltoInternalMarkerTitle(string $markerType, string $rawText): array
+{
+    $text = trim(html_entity_decode(strip_tags($rawText), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    if ($text === '') {
+        return ['', ''];
+    }
+
+    // Nei testi vecchi puo' capitare "__MODULE_TITLE__TITOLO Testo normale..."
+    // sulla stessa riga: separiamo il titolo solo se la prima parte e' davvero tutta maiuscola.
+    if (preg_match('/^(.{3,90}?)(\s+\p{Lu}?\p{Ll}.*)$/u', $text, $matches)) {
+        $candidateTitle = trim($matches[1]);
+        $rest = trim($matches[2]);
+        if ($candidateTitle !== '' && $rest !== '' && isProgrammaSvoltoInternalMarkerTitleCandidate($candidateTitle)) {
+            return [$candidateTitle, $rest];
+        }
+    }
+
+    return [$text, ''];
+}
+
+function isProgrammaSvoltoHeadingTextPlausible(string $text): bool
+{
+    $text = trim(html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    if ($text === '') {
+        return false;
+    }
+
+    return mb_strlen($text, 'UTF-8') <= 90;
+}
+
+function demoteProgrammaSvoltoLegacyLongHeadings(string $html): string
+{
+    return preg_replace_callback('/<h4>(.*?)<\/h4>/is', function ($matches) {
+        $raw = $matches[1] ?? '';
+        if (isProgrammaSvoltoHeadingTextPlausible($raw)) {
+            return $matches[0];
+        }
+        return '<p>' . trim($raw) . '</p>';
+    }, $html) ?? $html;
+}
+
+function normalizeProgrammaSvoltoInternalMarkers(string $html): string
+{
+    if (strpos($html, '__MODULE_TITLE__') === false && strpos($html, '__SECTION_HEADING__') === false) {
+        return $html;
+    }
+
+    $html = preg_replace('/<\/(p|div|li|h4|h5)>\s*/i', "\n", $html);
+    $html = preg_replace('/<br\s*\/?>/i', "\n", $html);
+    $html = preg_replace('/<[^>]+>\s*(?=__(?:MODULE_TITLE|SECTION_HEADING)__)/i', "\n", $html);
+    $html = preg_replace('/(?<!^)(__(?:MODULE_TITLE|SECTION_HEADING)__)/m', "\n$1", $html);
+
+    return preg_replace_callback('/__(MODULE_TITLE|SECTION_HEADING)__\s*([^\r\n<]+)/u', function ($matches) {
+        $tag = $matches[1] === 'SECTION_HEADING' ? 'h5' : 'h4';
+        [$title, $rest] = splitProgrammaSvoltoInternalMarkerTitle($matches[1], $matches[2]);
+        if ($title === '') {
+            return '';
+        }
+        $html = '<' . $tag . '>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</' . $tag . '>';
+        if ($rest !== '') {
+            $html .= "\n" . htmlspecialchars($rest, ENT_QUOTES, 'UTF-8');
+        }
+        return $html;
+    }, $html);
+}
+
 function sanitizeProgrammaSvoltoRichHtml(string $html): string
 {
     $html = trim($html);
@@ -19,6 +95,12 @@ function sanitizeProgrammaSvoltoRichHtml(string $html): string
         return '';
     }
 
+    // Normalizza residui HTML incollati male, ad esempio "&nbsp" senza punto e virgola.
+    $html = preg_replace('/&nbsp(?!;)/i', '&nbsp;', $html);
+    $html = str_ireplace('&nbsp;', ' ', $html);
+    $html = str_replace("\xc2\xa0", ' ', $html);
+    $html = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', $html);
+    $html = normalizeProgrammaSvoltoInternalMarkers($html);
     $html = preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is', '', $html);
     $html = preg_replace_callback('/<ol\b([^>]*)>/i', function ($matches) {
         $attrs = strtolower($matches[1] ?? '');
@@ -37,6 +119,7 @@ function sanitizeProgrammaSvoltoRichHtml(string $html): string
         return '<' . $tag . '>';
     }, $html);
     $html = str_ireplace(['<b>', '</b>', '<i>', '</i>'], ['<strong>', '</strong>', '<em>', '</em>'], $html);
+    $html = demoteProgrammaSvoltoLegacyLongHeadings($html);
 
     return trim($html);
 }

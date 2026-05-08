@@ -41,6 +41,82 @@ function programmaSvoltoLooksLikeHtml(string $text): bool
     return preg_match('/<\/?(p|br|ul|ol|li|strong|b|em|i|u|h4|h5|blockquote)\b/i', $text) === 1;
 }
 
+function isProgrammaSvoltoInternalMarkerTitleCandidate(string $text): bool
+{
+    $letters = preg_replace('/[^\p{L}]/u', '', $text);
+    if ($letters === '') {
+        return true;
+    }
+
+    return mb_strtoupper($letters, 'UTF-8') === $letters;
+}
+
+function splitProgrammaSvoltoInternalMarkerTitle(string $markerType, string $rawText): array
+{
+    $text = trim(html_entity_decode(strip_tags($rawText), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    if ($text === '') {
+        return ['', ''];
+    }
+
+    // Nei testi vecchi puo' capitare "__MODULE_TITLE__TITOLO Testo normale..."
+    // sulla stessa riga: separiamo il titolo solo se la prima parte e' davvero tutta maiuscola.
+    if (preg_match('/^(.{3,90}?)(\s+\p{Lu}?\p{Ll}.*)$/u', $text, $matches)) {
+        $candidateTitle = trim($matches[1]);
+        $rest = trim($matches[2]);
+        if ($candidateTitle !== '' && $rest !== '' && isProgrammaSvoltoInternalMarkerTitleCandidate($candidateTitle)) {
+            return [$candidateTitle, $rest];
+        }
+    }
+
+    return [$text, ''];
+}
+
+function isProgrammaSvoltoHeadingTextPlausible(string $text): bool
+{
+    $text = trim(html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    if ($text === '') {
+        return false;
+    }
+
+    return mb_strlen($text, 'UTF-8') <= 90;
+}
+
+function demoteProgrammaSvoltoLegacyLongHeadings(string $html): string
+{
+    return preg_replace_callback('/<h4>(.*?)<\/h4>/is', function ($matches) {
+        $raw = $matches[1] ?? '';
+        if (isProgrammaSvoltoHeadingTextPlausible($raw)) {
+            return $matches[0];
+        }
+        return '<p>' . trim($raw) . '</p>';
+    }, $html) ?? $html;
+}
+
+function normalizeProgrammaSvoltoInternalMarkers(string $html): string
+{
+    if (strpos($html, '__MODULE_TITLE__') === false && strpos($html, '__SECTION_HEADING__') === false) {
+        return $html;
+    }
+
+    $html = preg_replace('/<\/(p|div|li|h4|h5)>\s*/i', "\n", $html);
+    $html = preg_replace('/<br\s*\/?>/i', "\n", $html);
+    $html = preg_replace('/<[^>]+>\s*(?=__(?:MODULE_TITLE|SECTION_HEADING)__)/i', "\n", $html);
+    $html = preg_replace('/(?<!^)(__(?:MODULE_TITLE|SECTION_HEADING)__)/m', "\n$1", $html);
+
+    return preg_replace_callback('/__(MODULE_TITLE|SECTION_HEADING)__\s*([^\r\n<]+)/u', function ($matches) {
+        $tag = $matches[1] === 'SECTION_HEADING' ? 'h5' : 'h4';
+        [$title, $rest] = splitProgrammaSvoltoInternalMarkerTitle($matches[1], $matches[2]);
+        if ($title === '') {
+            return '';
+        }
+        $html = '<' . $tag . '>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</' . $tag . '>';
+        if ($rest !== '') {
+            $html .= "\n" . htmlspecialchars($rest, ENT_QUOTES, 'UTF-8');
+        }
+        return $html;
+    }, $html);
+}
+
 function sanitizeProgrammaSvoltoRichHtml(string $html): string
 {
     $html = trim($html);
@@ -48,6 +124,12 @@ function sanitizeProgrammaSvoltoRichHtml(string $html): string
         return '';
     }
 
+    // Normalizza residui HTML incollati male, ad esempio "&nbsp" senza punto e virgola.
+    $html = preg_replace('/&nbsp(?!;)/i', '&nbsp;', $html);
+    $html = str_ireplace('&nbsp;', ' ', $html);
+    $html = str_replace("\xc2\xa0", ' ', $html);
+    $html = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', $html);
+    $html = normalizeProgrammaSvoltoInternalMarkers($html);
     $html = preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is', '', $html);
     $html = preg_replace_callback('/<ol\b([^>]*)>/i', function ($matches) {
         $attrs = strtolower($matches[1] ?? '');
@@ -66,6 +148,7 @@ function sanitizeProgrammaSvoltoRichHtml(string $html): string
         return '<' . $tag . '>';
     }, $html);
     $html = str_ireplace(['<b>', '</b>', '<i>', '</i>'], ['<strong>', '</strong>', '<em>', '</em>'], $html);
+    $html = demoteProgrammaSvoltoLegacyLongHeadings($html);
 
     return trim($html);
 }
@@ -107,23 +190,34 @@ function renderProgrammaSvoltoRichHtmlAsCompactPdfLines(string $html): string
         }
 
         if ($tag === 'strong' || $tag === 'b') {
-            return '<strong>' . $inner . '</strong>';
+            return '<b>' . $inner . '</b>';
         }
         if ($tag === 'em' || $tag === 'i') {
-            return '<em>' . $inner . '</em>';
+            return '<i>' . $inner . '</i>';
         }
         if ($tag === 'u') {
             return '<u>' . $inner . '</u>';
+        }
+        if ($tag === 'br') {
+            return '<br>';
         }
         return $inner;
     };
 
     $walk = function (DOMNode $container, int $level = 0) use (&$walk, &$out, $appendInline): void {
+        $inlineBuffer = '';
+        $flushInlineBuffer = function () use (&$inlineBuffer, &$out): void {
+            $text = trim($inlineBuffer);
+            if ($text !== '') {
+                $out .= '<span style="font-size:10px;line-height:1.08;">' . $text . '</span><br>';
+            }
+            $inlineBuffer = '';
+        };
+
         foreach ($container->childNodes as $node) {
             if ($node->nodeType === XML_TEXT_NODE) {
-                $text = trim($node->nodeValue ?? '');
-                if ($text !== '') {
-                    $out .= '<span style="font-size:10px;line-height:1.08;">' . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . '</span><br>';
+                if (trim($node->nodeValue ?? '') !== '') {
+                    $inlineBuffer .= htmlspecialchars($node->nodeValue ?? '', ENT_QUOTES, 'UTF-8');
                 }
                 continue;
             }
@@ -132,6 +226,12 @@ function renderProgrammaSvoltoRichHtmlAsCompactPdfLines(string $html): string
             }
 
             $tag = strtolower($node->tagName);
+            if (in_array($tag, ['strong', 'b', 'em', 'i', 'u', 'span', 'br'], true)) {
+                $inlineBuffer .= $appendInline($node);
+                continue;
+            }
+
+            $flushInlineBuffer();
             if ($tag === 'h5') {
                 $title = mb_strtoupper(trim(html_entity_decode(strip_tags($node->textContent ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8')), 'UTF-8');
                 if ($title !== '') {
@@ -236,6 +336,8 @@ function renderProgrammaSvoltoRichHtmlAsCompactPdfLines(string $html): string
 
             $walk($node, $level);
         }
+
+        $flushInlineBuffer();
     };
 
     $walk($root);
@@ -305,6 +407,7 @@ function renderProgrammaSvoltoRichHtmlForPreview(string $html): string
 
 function normalizeQuintaInternalMarkersToHtml(string $text): string
 {
+    $text = normalizeProgrammaSvoltoInternalMarkers($text);
     if (strpos($text, '__MODULE_TITLE__') === false && strpos($text, '__SECTION_HEADING__') === false) {
         return $text;
     }
@@ -470,6 +573,38 @@ function getProgrammiSvoltiCorrelati(array $program): array
     }
 
     return $programs;
+}
+
+function mergeSharedProgramLevelQuintaSections(array $baseSections, array $sharedPrograms): array
+{
+    $sharedKeys = ['metodologie', 'criteri_valutazione', 'testi_materiali'];
+    $seen = [];
+
+    foreach ($sharedKeys as $key) {
+        $seen[$key] = [];
+        $baseSections[$key] = trim((string)($baseSections[$key] ?? ''));
+        if ($baseSections[$key] !== '') {
+            $seen[$key][md5($baseSections[$key])] = true;
+        }
+    }
+
+    foreach ($sharedPrograms as $sharedProgram) {
+        $programSections = getProgramLevelQuintaSections($sharedProgram);
+        foreach ($sharedKeys as $key) {
+            $text = trim((string)($programSections[$key] ?? ''));
+            if ($text === '') {
+                continue;
+            }
+            $hash = md5($text);
+            if (isset($seen[$key][$hash])) {
+                continue;
+            }
+            appendSectionBlock($baseSections[$key], $text);
+            $seen[$key][$hash] = true;
+        }
+    }
+
+    return $baseSections;
 }
 
 function userCanExportClasseDocx(int $classId, int $annoScolasticoId): bool
@@ -638,7 +773,7 @@ function buildTwoLevelListFromText(string $text, bool $forPdf = false): string
                 continue;
             }
 
-            if (isAllUppercase($raw)) {
+            if (isAllUppercase($raw) && mb_strlen($raw, 'UTF-8') <= 90) {
                 $raw = preg_replace('/[.;:]\s*$/u', '', $raw);
                 $tree[] = ['type' => 'heading', 'text' => $raw, 'children' => []];
                 $currentParent = null;
@@ -770,6 +905,39 @@ function getProgramLevelQuintaSections(array $program): array
     ];
 }
 
+function renderProgrammaSvoltoPlainTextAsRichHtml(string $text): string
+{
+    $text = trim($text);
+    if ($text === '') {
+        return '';
+    }
+
+    $text = normalizeProgrammaSvoltoInternalMarkers($text);
+    if (programmaSvoltoLooksLikeHtml($text)) {
+        return sanitizeProgrammaSvoltoRichHtml($text);
+    }
+
+    $paragraphs = preg_split('/\R{2,}/u', $text) ?: [$text];
+    $html = '';
+    foreach ($paragraphs as $paragraph) {
+        $paragraph = trim($paragraph);
+        if ($paragraph === '') {
+            continue;
+        }
+        $lines = preg_split('/\R/u', $paragraph) ?: [$paragraph];
+        foreach ($lines as $line) {
+            $line = trim((string)$line);
+            if ($line === '') {
+                continue;
+            }
+            $line = preg_replace('/(?<!\.)\.\.(?!\.)/u', '.', $line);
+            $html .= '<p>' . htmlspecialchars($line, ENT_QUOTES, 'UTF-8') . '</p>';
+        }
+    }
+
+    return $html;
+}
+
 function concatSectionText(array &$sections, string $key, string $moduleTitle, string $value): void
 {
     $value = trim($value);
@@ -782,7 +950,9 @@ function concatSectionText(array &$sections, string $key, string $moduleTitle, s
             ? '<h4>' . htmlspecialchars(mb_strtoupper(trim($moduleTitle), 'UTF-8'), ENT_QUOTES, 'UTF-8') . '</h4>' . sanitizeProgrammaSvoltoRichHtml($value)
             : sanitizeProgrammaSvoltoRichHtml($value);
     } else {
-        $block = trim($moduleTitle) !== '' ? ("__MODULE_TITLE__" . mb_strtoupper(trim($moduleTitle), 'UTF-8') . "\n" . $value) : $value;
+        $block = trim($moduleTitle) !== ''
+            ? '<h4>' . htmlspecialchars(mb_strtoupper(trim($moduleTitle), 'UTF-8'), ENT_QUOTES, 'UTF-8') . '</h4>' . renderProgrammaSvoltoPlainTextAsRichHtml($value)
+            : renderProgrammaSvoltoPlainTextAsRichHtml($value);
     }
     if ($sections[$key] !== '') {
         $sections[$key] .= "\n\n";
@@ -907,6 +1077,16 @@ function buildQuintaWordStyleRows(array $sections, bool $forPdf = false): array
     ];
 }
 
+function normalizeQuintaSectionsForDocx(array $sections): array
+{
+    foreach ($sections as $key => $value) {
+        $text = trim((string)$value);
+        $sections[$key] = $text === '' ? '' : buildTwoLevelListFromText($text, false);
+    }
+
+    return $sections;
+}
+
 function formatQuintaPdfLabel(string $label): string
 {
     $escaped = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
@@ -953,9 +1133,20 @@ function buildParagraphHtmlFromText(string $text): string
     return $html !== '' ? $html : '&nbsp;';
 }
 
+function normalizeWordTextNodeValue(string $text): string
+{
+    $text = preg_replace('/&nbsp(?!;)/i', '&nbsp;', $text) ?? $text;
+    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = str_replace("\xc2\xa0", ' ', $text);
+    $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', $text) ?? $text;
+
+    return $text;
+}
+
 function createWordRunXml(DOMDocument $dom, string $text, bool $bold = false, bool $italic = false, bool $underline = false, int $size = 22, string $color = ''): DOMElement
 {
     $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+    $text = normalizeWordTextNodeValue($text);
     $r = $dom->createElementNS($ns, 'w:r');
     $rPr = $dom->createElementNS($ns, 'w:rPr');
     $rFonts = $dom->createElementNS($ns, 'w:rFonts');
@@ -1088,13 +1279,45 @@ function buildWordParagraphFromHtmlElement(DOMDocument $wordDom, DOMElement $ele
     }
 
     appendWordInlineRunsFromHtml($wordDom, $paragraph, $element, [
-        'bold' => ($tag === 'h4' || $tag === 'h5'),
+        'bold' => ($tag === 'h4' || $tag === 'h5' || $tag === 'strong' || $tag === 'b'),
+        'italic' => ($tag === 'em' || $tag === 'i'),
+        'underline' => ($tag === 'u'),
         'size' => 22,
         'color' => ($tag === 'h4' || $tag === 'h5') ? '173F68' : '',
         'uppercase' => ($tag === 'h4' || $tag === 'h5'),
     ]);
 
     return $paragraph;
+}
+
+function appendProgrammaInlineHtmlToWordBuffer(DOMDocument $htmlDom, DOMNode $node, string &$buffer): void
+{
+    if ($node->nodeType === XML_TEXT_NODE) {
+        $buffer .= htmlspecialchars($node->nodeValue ?? '', ENT_QUOTES, 'UTF-8');
+        return;
+    }
+
+    if ($node instanceof DOMElement) {
+        $buffer .= $htmlDom->saveHTML($node) ?: '';
+    }
+}
+
+function flushProgrammaInlineWordBuffer(DOMDocument $wordDom, string &$buffer, array &$paragraphs, int $level): void
+{
+    if (trim(strip_tags($buffer)) === '') {
+        $buffer = '';
+        return;
+    }
+
+    $fakeDom = new DOMDocument();
+    libxml_use_internal_errors(true);
+    $fakeDom->loadHTML('<?xml encoding="UTF-8"><p>' . $buffer . '</p>', LIBXML_HTML_NODEFDTD | LIBXML_HTML_NOIMPLIED);
+    libxml_clear_errors();
+    $p = $fakeDom->getElementsByTagName('p')->item(0);
+    if ($p instanceof DOMElement) {
+        $paragraphs[] = buildWordParagraphFromHtmlElement($wordDom, $p, '', $level);
+    }
+    $buffer = '';
 }
 
 function buildWordParagraphsFromHtmlXmlLegacy(DOMDocument $wordDom, string $html): array
@@ -1186,14 +1409,12 @@ function buildWordParagraphsFromHtmlXml(DOMDocument $wordDom, string $html): arr
     $root = $htmlDom->getElementsByTagName('div')->item(0);
     $paragraphs = [];
 
-    $walk = function (DOMNode $container, int $level = 0) use (&$walk, &$paragraphs, $wordDom) {
+    $walk = function (DOMNode $container, int $level = 0) use (&$walk, &$paragraphs, $wordDom, $htmlDom) {
+        $inlineBuffer = '';
         foreach ($container->childNodes as $node) {
             if ($node->nodeType === XML_TEXT_NODE) {
-                $text = trim($node->nodeValue ?? '');
-                if ($text !== '') {
-                    $fake = new DOMDocument();
-                    $p = $fake->createElement('p', $text);
-                    $paragraphs[] = buildWordParagraphFromHtmlElement($wordDom, $p, '', $level);
+                if (trim($node->nodeValue ?? '') !== '') {
+                    appendProgrammaInlineHtmlToWordBuffer($htmlDom, $node, $inlineBuffer);
                 }
                 continue;
             }
@@ -1202,6 +1423,12 @@ function buildWordParagraphsFromHtmlXml(DOMDocument $wordDom, string $html): arr
             }
 
             $tag = strtolower($node->tagName);
+            if (in_array($tag, ['strong', 'b', 'em', 'i', 'u', 'span', 'br'], true)) {
+                appendProgrammaInlineHtmlToWordBuffer($htmlDom, $node, $inlineBuffer);
+                continue;
+            }
+
+            flushProgrammaInlineWordBuffer($wordDom, $inlineBuffer, $paragraphs, $level);
             if ($tag === 'ul' || $tag === 'ol') {
                 $listIndex = 1;
                 foreach ($node->childNodes as $li) {
@@ -1225,6 +1452,7 @@ function buildWordParagraphsFromHtmlXml(DOMDocument $wordDom, string $html): arr
                 $paragraphs[] = buildWordParagraphFromHtmlElement($wordDom, $node, '', $level);
             }
         }
+        flushProgrammaInlineWordBuffer($wordDom, $inlineBuffer, $paragraphs, $level);
     };
 
     if ($root instanceof DOMElement) {
@@ -1898,7 +2126,7 @@ function exportQuintaClasseDocx(int $classId, int $annoScolasticoId): void
 
         $programmiData[] = [
             'intestazione_lines' => $intestazioneLines,
-            'sections' => $sections,
+            'sections' => normalizeQuintaSectionsForDocx($sections),
         ];
     }
 
@@ -1956,9 +2184,11 @@ if ($format === 'docx') {
     }
 
     $sections = buildQuintaMergedSectionsForPrograms($relatedPrograms);
+    $sharedPrograms = $soloProgrammaCorrente ? getProgrammiSvoltiCorrelati($program) : $relatedPrograms;
+    $sections = mergeSharedProgramLevelQuintaSections($sections, $sharedPrograms);
     $docentiLabels = getDocentiProgrammaLabels($relatedPrograms);
 
-    exportQuintaDocx($program, $sections, $docentiLabels);
+    exportQuintaDocx($program, normalizeQuintaSectionsForDocx($sections), $docentiLabels);
 }
 
 if ($format === 'docx_classe') {
