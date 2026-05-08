@@ -546,6 +546,12 @@ $bootstrapData = [
             color: #1f3b08;
         }
 
+        .day-cell.current-removed {
+            background: #fed7aa;
+            border-color: #f97316;
+            color: #7c2d12;
+        }
+
         .day-meta.status-meta {
             font-size: 11px;
             font-weight: 700;
@@ -610,6 +616,18 @@ $bootstrapData = [
                         <span class="ferie-badge selected">
                             <span class="glyphicon glyphicon-ok-circle"></span>
                             Giorni selezionati: <span id="count_selected">0</span>
+                        </span>
+                        <span class="ferie-badge selected">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                            Richiesta iniziale / corrente
+                        </span>
+                        <span class="ferie-badge" style="background:#d9f99d;border-color:#65a30d;color:#1f3b08;">
+                            <span class="glyphicon glyphicon-plus"></span>
+                            Aggiunti dopo l'invio
+                        </span>
+                        <span class="ferie-badge" style="background:#fed7aa;border-color:#f97316;color:#7c2d12;">
+                            <span class="glyphicon glyphicon-minus"></span>
+                            Rimossi dopo l'invio
                         </span>
                         <span class="ferie-badge skip">
                             <span class="glyphicon glyphicon-ban-circle"></span>

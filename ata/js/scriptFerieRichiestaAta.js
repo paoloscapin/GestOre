@@ -319,13 +319,16 @@
                 const selected = selectedDays.has(ymd);
                 const hist = getHistoricalInfo(ymd);
                 const currentDayInfo = getCurrentRequestDayInfo(ymd);
+                const currentDayState = currentDayInfo ? String(currentDayInfo.stato || "").toUpperCase() : "";
+                const currentRemoved = !selected && currentDayState === "RIMOSSO";
                 const classes = ["day-cell"];
 
                 if (!selectable && !selected) classes.push("locked");
                 if (hist) classes.push(historicalCssClass(ymd));
+                if (currentRemoved) classes.push("current-removed");
 
                 if (selected) {
-                    const sg = currentDayInfo ? String(currentDayInfo.stato || "").toUpperCase() : "RICHIESTO";
+                    const sg = currentDayState || "RICHIESTO";
 
                     if (!isReadOnly) {
                         classes.push("selected");
@@ -347,8 +350,11 @@
                 let metaText = "";
                 let metaLabel = "";
 
-                if (selected) {
-                    const sg = currentDayInfo ? String(currentDayInfo.stato || "").toUpperCase() : "RICHIESTO";
+                if (currentRemoved) {
+                    metaText = "-";
+                    metaLabel = "Rimosso";
+                } else if (selected) {
+                    const sg = currentDayState || "RICHIESTO";
 
                     if (isReadOnly) {
                         if (sg === "APPROVATO") {
@@ -366,7 +372,13 @@
                         }
                     } else {
                         metaText = "+";
-                        metaLabel = "Selezionato";
+                        if (sg === "AGGIUNTO") {
+                            metaLabel = "Aggiunto";
+                        } else if (currentDayInfo) {
+                            metaLabel = "Iniziale";
+                        } else {
+                            metaLabel = "Selezionato";
+                        }
                     }
                 } else if (hist) {
                     metaText = historicalMetaText(ymd);
@@ -385,7 +397,7 @@
                     '</div>'
                     : '<div class="day-meta"></div>';
 
-                const reason = !selectable && !selected
+                const reason = !selectable && !selected && !currentRemoved
                     ? '<div class="day-lock-reason">' + lockReason(ymd) + '</div>'
                     : '';
 

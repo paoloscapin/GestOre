@@ -87,12 +87,6 @@ foreach ($rows as $r) {
     $richiestaId = intval($r['richiesta_id']);
     $richiestaStato = strtoupper(trim((string)($r['richiesta_stato'] ?? '')));
     $statoGiorno = normalizeStatoGiornoUser($det['stato_giorno'] ?? '');
-    if ($statoGiorno === 'RIMOSSO') {
-        continue;
-    }
-    if ($statoGiorno === 'AGGIUNTO') {
-        $statoGiorno = 'RICHIESTO';
-    }
 
     // se il giorno non ha stato_giorno esplicito ma la richiesta è in BOZZA, trattalo come BOZZA
     if ($statoGiorno === 'RICHIESTO' && $richiestaStato === 'BOZZA') {
@@ -111,6 +105,13 @@ foreach ($rows as $r) {
                 'motivo' => ($richiestaStato === 'BOZZA' ? 'Bozza corrente' : 'Richiesta corrente')
             ];
             continue;
+        }
+
+        if ($statoGiorno === 'RIMOSSO') {
+            continue;
+        }
+        if ($statoGiorno === 'AGGIUNTO') {
+            $statoGiorno = 'RICHIESTO';
         }
 
         $candidate = [
