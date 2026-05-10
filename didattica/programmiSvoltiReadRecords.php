@@ -38,7 +38,7 @@ $coordinatore_classi = [];
 $coordinatore_classi_ids = [];
 $coordinatore_classi_by_classe = [];
 $coordinatore_vede_programmi_altri = getSettingsValue('programmiSvolti', 'coordinatore_vede_programmi_altri_docenti', true);
-$is_docente_effettivo = impersonaRuolo('docente');
+$is_docente_effettivo = ($__utente_ruolo === 'docente');
 $docente_corrente_id = intval($__docente_id ?? 0);
 
 if ($docente_corrente_id <= 0 && $is_docente_effettivo) {
