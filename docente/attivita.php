@@ -86,7 +86,7 @@ require_once '../common/header-docente.php';
 		<thead>
 			<tr>
 				<th colspan="2" class="col-md-2 text-right">Fuis Docente</th>
-				<th class="col-md-1"></th>
+				<th class="col-md-1 text-right">FUIS previsto</th>
 				<th colspan="2" class="col-md-2 text-right">Fuis Clil</th>
 				<th class="col-md-1"></th>
 				<th colspan="2" class="col-md-2 text-right">Fuis Orientamento</th>
@@ -99,7 +99,7 @@ require_once '../common/header-docente.php';
 			<tr>
 				<td class="col-md-1 text-right" ><?php echoLabel('Assegnato');?></td>
 				<td class="col-md-1 text-right" id="fuis_assegnato">0.00</td>
-				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" id="fuis_previsto_assegnato">0.00</td>
 				<td class="col-md-1 text-right" ><?php echoLabel('Funzionali');?></td>
 				<td class="col-md-1 text-right" id="fuis_clil_funzionali">0.00</td>
 				<td class="col-md-1 text-right"></td>
@@ -113,7 +113,7 @@ require_once '../common/header-docente.php';
 			<tr>
 				<td class="col-md-1 text-right" ><?php echoLabel('Ore');?></td>
 				<td class="col-md-1 text-right" id="fuis_ore">0.00</td>
-				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" id="fuis_previsto_ore">0.00</td>
 				<td class="col-md-1 text-right" ><?php echoLabel('Con Studenti');?></td>
 				<td class="col-md-1 text-right" id="fuis_clil_con_studenti">0.00</td>
 				<td class="col-md-1 text-right"></td>
@@ -127,7 +127,7 @@ require_once '../common/header-docente.php';
 			<tr>
 				<td class="col-md-1 text-right" ><?php echoLabel('Diaria Viaggi');?></td>
 				<td class="col-md-1 text-right" id="fuis_diaria">0.00</td>
-				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" id="fuis_previsto_diaria">0.00</td>
 				<td class="col-md-1 text-right" ></td>
 				<td class="col-md-1 text-right"></td>
 				<td class="col-md-1 text-right"></td>
@@ -143,7 +143,7 @@ require_once '../common/header-docente.php';
 			<tr class="deeporange5">
 				<td class="col-md-1 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_docente_totale"><strong>0.00</strong></td>
-				<td class="col-md-1 text-right"></td>
+				<td class="col-md-1 text-right" id="fuis_previsto_totale"><strong>0.00</strong></td>
 				<td class="col-md-1 text-right" ><strong><?php echoLabel('Totale');?></strong></td>
 				<td class="col-md-1 text-right" id="fuis_clil_totale"><strong>0.00</strong></td>
 				<td class="col-md-1 text-right"></td>
@@ -582,6 +582,7 @@ require_once '../common/header-docente.php';
         <div class="col-md-6">
         </div>
     </div>
+    <div id="viaggi_warning_importo" class="row hidden" style="margin-bottom:10px;"></div>
     <div class="row">
         <div class="col-md-12">
             <div class="viaggi_records_content"></div>
@@ -613,6 +614,7 @@ require_once '../common/header-docente.php';
 	</div>
 </div>
 <div class="panel-body">
+    <div id="viaggi_warning_importo" class="row hidden" style="margin-bottom:10px;"></div>
     <div class="row">
         <div class="col-md-12">
             <div class="diaria_records_content"></div>

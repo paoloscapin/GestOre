@@ -5,6 +5,23 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
+function aggiornaWarningImportoViaggi(data) {
+  const importoFatto = parseFloat(data.diariaImporto) || 0;
+  const importoPrevisto = parseFloat(data.diariaImportoPreviste) || 0;
+  const importoExtra = importoFatto - importoPrevisto;
+
+  if (importoExtra > 0.004) {
+    $("#viaggi_warning_importo").html(
+      "Attenzione: l'importo dei viaggi supera quanto previsto di " +
+      number_format(importoExtra, 2) +
+      " euro. La parte eccedente non sar&agrave; pagata perch&eacute; non prevista."
+    ).removeClass("hidden")
+      .css({ "font-weight": "bold", "text-align": "center", "background-color": "#FFC6B4", "padding": "6px" });
+  } else {
+    $("#viaggi_warning_importo").addClass("hidden").html("");
+  }
+}
+
 function oreFatteReloadTables(soloTotale = false) {
 
   const payload = {
@@ -42,6 +59,8 @@ function oreFatteReloadTables(soloTotale = false) {
       $(".viaggi_records_content").html(data.dataViaggi || "");
     }
 
+    aggiornaWarningImportoViaggi(data);
+
     // previste orientamento
     $("#orientamento_previste_funzionali").html(getHtmlNumAndPrevisteVisual(data.oreOrientamentoFunzionaliPreviste, 0));
     $("#orientamento_previste_con_studenti").html(getHtmlNumAndPrevisteVisual(data.oreOrientamentoConStudentiPreviste, 0));
@@ -71,9 +90,9 @@ function oreFatteReloadTables(soloTotale = false) {
 
     // ore fatte
     $("#fatte_ore_40_sostituzioni_di_ufficio").html(getHtmlNumAndFatteVisual(data.oreSostituzione, data.oreSostituzioniDovute));
-    $("#fatte_ore_40_aggiornamento").html(getHtmlNumAndFatteVisual(data.oreAggiornamento, data.oreAggiornamentoDovute));
-    $("#fatte_ore_70_funzionali").html(getHtmlNumAndFatteVisual(data.oreFunzionali, data.oreFunzionaliDovute));
-    $("#fatte_totale_con_studenti").html(getHtmlNumAndFatteVisual(data.oreConStudenti, data.oreConStudentiDovute));
+    $("#fatte_ore_40_aggiornamento").html(getHtmlNumAndFatteVisual(data.oreAggiornamento, data.oreAggiornamentoPreviste));
+    $("#fatte_ore_70_funzionali").html(getHtmlNumAndFatteVisual(data.oreFunzionali, data.oreFunzionaliPreviste));
+    $("#fatte_totale_con_studenti").html(getHtmlNumAndFatteVisual(data.oreConStudenti, data.oreConStudentiPreviste));
 
     // clil (previste + fatte)
     $("#clil_previste_funzionali").html(getHtmlNumAndPrevisteVisual(data.oreClilFunzionaliPreviste, 0));
@@ -113,6 +132,9 @@ function oreFatteReloadTables(soloTotale = false) {
     $("#fuis_assegnato").html(number_format(data.fuisAssegnato, 2));
     $("#fuis_ore").html(number_format(data.fuisOre, 2));
     $("#fuis_diaria").html(number_format(data.diariaImporto, 2));
+    $("#fuis_previsto_assegnato").html(number_format(data.fuisAssegnato, 2));
+    $("#fuis_previsto_ore").html(number_format(data.fuisOrePreviste, 2));
+    $("#fuis_previsto_diaria").html(number_format(data.diariaImportoPreviste, 2));
 
     $("#fuis_clil_funzionali").html(number_format(data.fuisClilFunzionale, 2));
     $("#fuis_clil_con_studenti").html(number_format(data.fuisClilConStudenti, 2));
@@ -125,6 +147,9 @@ function oreFatteReloadTables(soloTotale = false) {
     $("#fuis_docente_totale").html(number_format(
       parseFloat(data.fuisAssegnato) + parseFloat(data.fuisOre) + parseFloat(data.diariaImporto), 2
     ));
+    $("#fuis_previsto_totale").html(number_format(
+      parseFloat(data.fuisAssegnato) + parseFloat(data.fuisOrePreviste) + parseFloat(data.diariaImportoPreviste), 2
+    ));
     $("#fuis_clil_totale").html(number_format(
       parseFloat(data.fuisClilFunzionale) + parseFloat(data.fuisClilConStudenti), 2
     ));
@@ -133,15 +158,12 @@ function oreFatteReloadTables(soloTotale = false) {
     ));
     $("#fuis_corsi_di_recupero_totale").html(number_format(data.fuisExtraCorsiDiRecupero, 2));
 
-    $("#fuis_docente_totale,#fuis_clil_totale,#fuis_orientamento_totale,#fuis_corsi_di_recupero_totale")
+    $("#fuis_docente_totale,#fuis_previsto_totale,#fuis_clil_totale,#fuis_orientamento_totale,#fuis_corsi_di_recupero_totale")
       .css({ "font-weight": "bold" });
 
-    if (data.messaggio && data.messaggio.length > 0) {
-      $("#fuis_message").html(data.messaggio).removeClass("hidden")
-        .css({ "font-weight": "bold", "text-align": "center", "background-color": "#FFC6B4" });
-    } else {
-      $("#fuis_message").addClass("hidden");
-    }
+    // Il messaggio di compensazione tra funzionali/con studenti deve comparire
+    // solo nel prospetto ore, non nel riepilogo FUIS admin.
+    $("#fuis_message").addClass("hidden").html("");
 
     if (data.messaggioEccesso && data.messaggioEccesso.length > 0) {
       $("#fuis_eccesso_message").html(data.messaggioEccesso).removeClass("hidden")
@@ -256,6 +278,9 @@ function orePrevisteReloadTables(soloTotale = false) {
     $("#fuis_assegnato").html(number_format(data.fuisAssegnato, 2));
     $("#fuis_ore").html(number_format(data.fuisOrePreviste, 2));
     $("#fuis_diaria").html(number_format(data.diariaImportoPreviste, 2));
+    $("#fuis_previsto_assegnato").html(number_format(data.fuisAssegnato, 2));
+    $("#fuis_previsto_ore").html(number_format(data.fuisOrePreviste, 2));
+    $("#fuis_previsto_diaria").html(number_format(data.diariaImportoPreviste, 2));
 
     $("#fuis_clil_funzionali").html(number_format(data.fuisClilFunzionalePreviste, 2));
     $("#fuis_clil_con_studenti").html(number_format(data.fuisClilConStudentiPreviste, 2));
@@ -268,6 +293,9 @@ function orePrevisteReloadTables(soloTotale = false) {
     $("#fuis_docente_totale").html(number_format(
       parseFloat(data.fuisAssegnato) + parseFloat(data.fuisOrePreviste) + parseFloat(data.diariaImportoPreviste), 2
     ));
+    $("#fuis_previsto_totale").html(number_format(
+      parseFloat(data.fuisAssegnato) + parseFloat(data.fuisOrePreviste) + parseFloat(data.diariaImportoPreviste), 2
+    ));
     $("#fuis_clil_totale").html(number_format(
       parseFloat(data.fuisClilFunzionalePreviste) + parseFloat(data.fuisClilConStudentiPreviste), 2
     ));
@@ -276,16 +304,12 @@ function orePrevisteReloadTables(soloTotale = false) {
     ));
     $("#fuis_corsi_di_recupero_totale").html(number_format(data.fuisExtraCorsiDiRecupero, 2));
 
-    $("#fuis_docente_totale,#fuis_clil_totale,#fuis_orientamento_totale,#fuis_corsi_di_recupero_totale")
+    $("#fuis_docente_totale,#fuis_previsto_totale,#fuis_clil_totale,#fuis_orientamento_totale,#fuis_corsi_di_recupero_totale")
       .css({ "font-weight": "bold" });
 
-    // messaggio fuis
-    if (data.messaggio && data.messaggio.length > 0) {
-      $("#fuis_message").html(data.messaggio).removeClass("hidden")
-        .css({ "font-weight": "bold", "text-align": "center", "background-color": "#FFC6B4" });
-    } else {
-      $("#fuis_message").addClass("hidden");
-    }
+    // Il messaggio di compensazione tra funzionali/con studenti deve comparire
+    // solo nel prospetto ore, non nel riepilogo FUIS admin.
+    $("#fuis_message").addClass("hidden").html("");
 
   })
   .fail(function (jqXHR) {

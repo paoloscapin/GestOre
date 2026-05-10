@@ -10,6 +10,30 @@
 require_once '../common/checkSession.php';
 require_once '../common/importi_load.php';
 
+function calcolaOreFuisCompensate($oreFunzionali, $oreConStudenti) {
+	$funzionali = max($oreFunzionali, 0);
+	$conStudenti = max($oreConStudenti, 0);
+	$debitoFunzionali = max(-$oreFunzionali, 0);
+	$debitoConStudenti = max(-$oreConStudenti, 0);
+
+	if ($funzionali > 0 && $debitoConStudenti > 0) {
+		$compensazione = min($funzionali, $debitoConStudenti);
+		$funzionali -= $compensazione;
+		$debitoConStudenti -= $compensazione;
+	}
+
+	if ($conStudenti > 0 && $debitoFunzionali > 0) {
+		$compensazione = min($conStudenti, $debitoFunzionali);
+		$conStudenti -= $compensazione;
+		$debitoFunzionali -= $compensazione;
+	}
+
+	return [
+		'funzionali' => $funzionali,
+		'con_studenti' => $conStudenti,
+	];
+}
+
 function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile) {
 	global $__anno_scolastico_corrente_id;
 	global $__docente_id;
@@ -264,13 +288,13 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 // ==================================================================================================================
 // ==================================================================================================================
 // ==================================================================================================================
-	// poi le fatte
-    $bilancioFunzionali = $oreFunzionali - $oreFunzionaliDovute;
-     $bilancioConStudenti = $oreConStudenti - $oreConStudentiDovute;
-    //$bilancioFunzionali = $oreFunzionali - $oreFunzionaliPreviste;
-    //$bilancioConStudenti = $oreConStudenti - $oreConStudentiPreviste;
+	// poi le fatte: prima si compensano eventuali mancanze rispetto alle previsioni
+	// usando le ore eccedenti dell'altra voce. Solo dopo si calcola il FUIS,
+	// conteggiando le ore oltre le dovute ma senza superare le previsioni approvate.
+    $oreFunzionaliCompensate = $oreFunzionali;
+    $oreConStudentiCompensate = $oreConStudenti;
 
-    // le sostituzioni sono da considerare come ore con studenti
+    // le sostituzioni sono da considerare come ore con studenti nel controllo complessivo
 	$bilancioSostituzioni = $oreSostituzione - $oreSostituzioniDovute;
 	// se configuratato per non sottrarre le sostituzioni, ignora questa parte se sono dovute dal docente (mette a 0), mentre la tiene se il docente ne ha fatte oltre le previste
 	if (! getSettingsValue('fuis','rimuovi_sostituzioni_non_fatte', true)) {
@@ -279,72 +303,77 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 		}
 	}
 
-    // a questo punto aggiorna le ore con studenti includendo le sostituzioni
-    $bilancioConStudenti = $bilancioConStudenti + $bilancioSostituzioni;
-    debug('bilancioConStudenti incluse sostituzioni='.$bilancioConStudenti);
+    $oreConStudentiCompensate = $oreConStudentiCompensate + $bilancioSostituzioni;
+    debug('oreConStudentiCompensate incluse sostituzioni='.$oreConStudentiCompensate);
 
 	// se si possono compensare in ore quelle mancanti funzionali con quelle fatte in piu' con studenti lo aggiorna ora
 	if (getSettingsValue('fuis','accetta_con_studenti_per_funzionali', false)) {
-		if ($bilancioFunzionali < 0 && $bilancioConStudenti > 0) {
-			$daSpostare = -$bilancioFunzionali;
+        $oreFunzionaliMancanti = max($oreFunzionaliPreviste - $oreFunzionaliCompensate, 0);
+        $oreConStudentiEccedenti = max($oreConStudentiCompensate - $oreConStudentiPreviste, 0);
+		if ($oreFunzionaliMancanti > 0 && $oreConStudentiEccedenti > 0) {
+			$daSpostare = min($oreFunzionaliMancanti, $oreConStudentiEccedenti);
 			debug('daSpostare='.$daSpostare);
-			// se non ce ne sono abbastanza con studenti, sposta tutte quelle che ci sono
-			if ($bilancioConStudenti < $daSpostare) {
-				$daSpostare = $bilancioConStudenti;
-				debug('daSpostare(in if)='.$daSpostare);
-			}
-			$bilancioConStudenti = $bilancioConStudenti - $daSpostare;
-            $bilancioFunzionali = $bilancioFunzionali + $daSpostare;
+			$oreConStudentiCompensate = $oreConStudentiCompensate - $daSpostare;
+            $oreFunzionaliCompensate = $oreFunzionaliCompensate + $daSpostare;
             $messaggio = $messaggio . $daSpostare ." ore con studenti verranno usate per coprire " . $daSpostare ." ore funzionali mancanti. ";
-            debug('spostate con studenti in funzionali bilancioFunzionali='.$bilancioFunzionali.' bilancioConStudenti='.$bilancioConStudenti);
+            debug('spostate con studenti in funzionali oreFunzionaliCompensate='.$oreFunzionaliCompensate.' oreConStudentiCompensate='.$oreConStudentiCompensate);
 		}
 	}
 
 	// se si possono compensare in ore quelle mancanti con studenti con quelle fatte in piu' funzionali lo aggiorna ora
 	if (getSettingsValue('fuis','accetta_funzionali_per_con_studenti', false)) {
-		if ($bilancioConStudenti < 0 && $bilancioFunzionali > 0) {
-			$daSpostare = -$bilancioConStudenti;
-			// se non ce ne sono abbastanza funzionali, sposta tutte quelle che ci sono
-			if ($bilancioFunzionali < $daSpostare) {
-				$daSpostare = $bilancioFunzionali;
-			}
-			$bilancioFunzionali = $bilancioFunzionali - $daSpostare;
-            $bilancioConStudenti = $bilancioConStudenti + $daSpostare;
+        $oreConStudentiMancanti = max($oreConStudentiPreviste - $oreConStudentiCompensate, 0);
+        $oreFunzionaliEccedenti = max($oreFunzionaliCompensate - $oreFunzionaliPreviste, 0);
+		if ($oreConStudentiMancanti > 0 && $oreFunzionaliEccedenti > 0) {
+			$daSpostare = min($oreConStudentiMancanti, $oreFunzionaliEccedenti);
+			$oreFunzionaliCompensate = $oreFunzionaliCompensate - $daSpostare;
+            $oreConStudentiCompensate = $oreConStudentiCompensate + $daSpostare;
             $messaggio = $messaggio . $daSpostare ." ore funzionali verranno usate per coprire " . $daSpostare ." ore con studenti mancanti. ";
-            debug('spostate funzionali in con studenti bilancioFunzionali='.$bilancioFunzionali.' bilancioConStudenti='.$bilancioConStudenti);
+            debug('spostate funzionali in con studenti oreFunzionaliCompensate='.$oreFunzionaliCompensate.' oreConStudentiCompensate='.$oreConStudentiCompensate);
 		}
     }
 
-    // possibile controllo se le ore fatte eccedono le previsioni
-	if (getSettingsValue('fuis','rimuovi_fatte_eccedenti_previsione', false)) {
-        $pagabiliFunzionali = max($oreFunzionaliPreviste - $oreFunzionaliDovute,0);
-        $pagabiliConStudenti = max($oreConStudentiPreviste - $oreConStudentiDovute,0);
-        if ($bilancioFunzionali > 0 && $bilancioFunzionali > $pagabiliFunzionali) {
-            $bilancioDifferenzaFunzionali = $bilancioFunzionali - $pagabiliFunzionali;
-            $bilancioFunzionali = $pagabiliFunzionali;
-            $messaggioEccesso = $messaggioEccesso . $bilancioDifferenzaFunzionali . " ore funzionali non concordate non saranno incluse nel conteggio FUIS: considerate solo ". $bilancioFunzionali .".";
+    $oreFunzionaliOltrePreviste = max($oreFunzionaliCompensate - $oreFunzionaliPreviste, 0);
+    $oreConStudentiOltrePreviste = max($oreConStudentiCompensate - $oreConStudentiPreviste, 0);
+	$oreFatteOltrePreviste = $oreFunzionaliOltrePreviste + $oreConStudentiOltrePreviste;
+
+    if ($oreFatteOltrePreviste > 0) {
+        if (!empty($messaggioEccesso)) {
+            $messaggioEccesso = $messaggioEccesso . "</br>";
         }
-        if ($bilancioConStudenti > 0 && $bilancioConStudenti > $pagabiliConStudenti) {
-            $bilancioDifferenzaConStudenti = $bilancioConStudenti - $pagabiliConStudenti;
-            $bilancioConStudenti = $pagabiliConStudenti;
-            if ( ! empty($messaggioEccesso)) {
-                $messaggioEccesso = $messaggioEccesso . "</br>";
-            }
-            $messaggioEccesso = $messaggioEccesso . $bilancioDifferenzaConStudenti . " ore con studenti non concordate non saranno incluse nel conteggio FUIS: considerate solo ". $bilancioConStudenti .". ";
+        $messaggioEccesso = $messaggioEccesso . $oreFatteOltrePreviste . " ore oltre le previsioni approvate non saranno incluse nel conteggio FUIS";
+        $dettagliEccesso = [];
+        if ($oreFunzionaliOltrePreviste > 0) {
+            $dettagliEccesso[] = "funzionali " . $oreFunzionaliOltrePreviste;
         }
-        debug('messaggioEccesso=' . $messaggioEccesso);
+        if ($oreConStudentiOltrePreviste > 0) {
+            $dettagliEccesso[] = "con studenti " . $oreConStudentiOltrePreviste;
+        }
+        if (!empty($dettagliEccesso)) {
+            $messaggioEccesso = $messaggioEccesso . ": " . implode(", ", $dettagliEccesso);
+        }
+        $messaggioEccesso = $messaggioEccesso . ".";
     }
 
-	// NB: non deve accadere che manchino delle ore con studenti: in quel caso il DS assegnerebbe altre attivita' o Disposizioni
-	//     In caso siano rimaste in negativo ore con studenti la cosa viene qui ignorata, visto che in ogni caso il fuis non puo' diventare negativo
-	$fuisFunzionale = $bilancioFunzionali * $__importi['importo_ore_funzionali'];
-	$fuisConStudenti = $bilancioConStudenti * $__importi['importo_ore_con_studenti'];
+    $oreFunzionaliValideFuis = min($oreFunzionaliCompensate, $oreFunzionaliPreviste);
+    $oreConStudentiValideFuis = min($oreConStudentiCompensate, $oreConStudentiPreviste);
 
-	// se non configurato per compensare, i valori negativi devono essere azzerati (se ce ne sono...)
-	if (!getSettingsValue('fuis','compensa_in_valore', false)) {
-		$fuisFunzionale = max($fuisFunzionale, 0);
-		$fuisConStudenti = max($fuisConStudenti, 0);
-	}
+	// Le ore pagabili a FUIS sono quelle oltre le dovute, ma il deficit di una voce
+	// assorbe l'eventuale surplus dell'altra. Il tetto massimo resta sempre quanto previsto.
+	$oreFuisMassimeDaPreviste = calcolaOreFuisCompensate(
+		$oreFunzionaliPreviste - $oreFunzionaliDovute,
+		$oreConStudentiPreviste - $oreConStudentiDovute
+	);
+	$oreFuisDaFatte = calcolaOreFuisCompensate(
+		$oreFunzionaliValideFuis - $oreFunzionaliDovute,
+		$oreConStudentiValideFuis - $oreConStudentiDovute
+	);
+
+    $oreFunzionaliFuis = min($oreFuisMassimeDaPreviste['funzionali'], $oreFuisDaFatte['funzionali']);
+    $oreConStudentiFuis = min($oreFuisMassimeDaPreviste['con_studenti'], $oreFuisDaFatte['con_studenti']);
+
+	$fuisFunzionale = $oreFunzionaliFuis * $__importi['importo_ore_funzionali'];
+	$fuisConStudenti = $oreConStudentiFuis * $__importi['importo_ore_con_studenti'];
 
     $fuisOre = $fuisFunzionale + $fuisConStudenti;
     // nessuno deve tornare dei soldi:
@@ -383,7 +412,7 @@ function oreFatteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controll
 	// calcola il totale del fuis assegnato
     $fuisAssegnato = dbGetValue("SELECT COALESCE(SUM(importo), 0) FROM fuis_assegnato WHERE docente_id = $docente_id AND anno_scolastico_id = $__anno_scolastico_corrente_id;");
 
-	$totale = $totale + compact('messaggio', 'messaggioEccesso', 'fuisFunzionale', 'fuisConStudenti', 'fuisOre', 'fuisClilFunzionale', 'fuisClilConStudenti', 'fuisOrientamentoFunzionale', 'fuisOrientamentoConStudenti', 'fuisExtraCorsiDiRecupero', 'fuisAssegnato');
+	$totale = $totale + compact('messaggio', 'messaggioEccesso', 'oreFatteOltrePreviste', 'fuisFunzionale', 'fuisConStudenti', 'fuisOre', 'fuisClilFunzionale', 'fuisClilConStudenti', 'fuisOrientamentoFunzionale', 'fuisOrientamentoConStudenti', 'fuisExtraCorsiDiRecupero', 'fuisAssegnato');
 
 	return $totale;
 }
