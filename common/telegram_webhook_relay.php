@@ -578,10 +578,11 @@ function tgCreateOrAppendTicketFromDocente(array $doc, string $text, string $ser
 
         $statoLabel = tgBuildStatoLabel($openRelay['stato'] ?? 'APERTA');
         $threadId = (int)($openRelay['service_thread_id'] ?? 0);
+        $ticketText = tgAppendTicketUserText($openRelay['ultimo_testo_docente'] ?? '', $text);
 
         dbExec("
             UPDATE docente_telegram_relay
-            SET ultimo_testo_docente = " . dbQ($text) . ",
+            SET ultimo_testo_docente = " . dbQ($ticketText) . ",
                 data_aggiornamento = NOW()
             WHERE id = " . dbI($idRelay) . "
         ");
@@ -807,10 +808,11 @@ function tgCreateOrAppendTicketFromDocenteMail(
         $statoLabel = tgBuildStatoLabel($targetRelay['stato'] ?? 'APERTA');
         $isClosedRelay = strtoupper(tgNorm($targetRelay['stato'] ?? '')) === 'CHIUSA' || (int)($targetRelay['chiusa'] ?? 0) === 1;
         $threadId = (int)($targetRelay['service_thread_id'] ?? 0);
+        $ticketText = tgAppendTicketUserText($targetRelay['ultimo_testo_docente'] ?? '', $text);
 
         dbExec("
             UPDATE docente_telegram_relay
-            SET ultimo_testo_docente = " . dbQ($text) . ",
+            SET ultimo_testo_docente = " . dbQ($ticketText) . ",
                 data_aggiornamento = NOW()
             WHERE id = " . dbI($idRelay) . "
         ");

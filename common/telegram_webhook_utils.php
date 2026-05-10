@@ -22,6 +22,23 @@ function tgCut($text, $maxLen = 3000) {
     return mb_strlen($text, 'UTF-8') <= $maxLen ? $text : mb_substr($text, 0, $maxLen, 'UTF-8') . '…';
 }
 
+function tgAppendTicketUserText($previousText, $newText) {
+    $previousText = tgNorm($previousText);
+    $newText = tgNorm($newText);
+
+    if ($newText === '') {
+        return $previousText;
+    }
+    if ($previousText === '') {
+        return $newText;
+    }
+    if ($previousText === $newText) {
+        return $previousText;
+    }
+
+    return $previousText . "\n\n--- Messaggio successivo ---\n" . $newText;
+}
+
 // Funzione per costruire il nome visualizzato di un utente Telegram
 function tgUserDisplayName(array $from) {
     // Costruisce il nome concatenando first_name e last_name (se presenti)

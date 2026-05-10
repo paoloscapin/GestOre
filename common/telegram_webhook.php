@@ -232,11 +232,12 @@ function tgHandlePrivateActorMessage(array $actor, string $actorType, array $mes
 
         $statoLabel = tgBuildStatoLabel($openRelay['stato'] ?? 'APERTA');
         $threadId = (int)($openRelay['service_thread_id'] ?? 0);
+        $ticketText = tgAppendTicketUserText($openRelay['ultimo_testo_docente'] ?? '', $text);
 
         dbExec("
             UPDATE docente_telegram_relay
             SET docente_message_id = " . dbI($actorMessageId) . ",
-                ultimo_testo_docente = " . dbQ($text) . "
+                ultimo_testo_docente = " . dbQ($ticketText) . "
             WHERE id = " . dbI($idRelay) . "
         ");
 
@@ -1362,10 +1363,12 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
         infoTelegram("CALL DB UPDATE docente_telegram_relay idRelay=$idRelay ultimo_testo_docente");
 
         // Aggiorna il record relay salvando l'id del messaggio docente e il testo più recente
+        $ticketText = tgAppendTicketUserText($openRelay['ultimo_testo_docente'] ?? '', $text);
+
         dbExec("
             UPDATE docente_telegram_relay
             SET docente_message_id = " . dbI($teacherMessageId) . ",
-                ultimo_testo_docente = " . dbQ($text) . "
+                ultimo_testo_docente = " . dbQ($ticketText) . "
             WHERE id = " . dbI($idRelay) . "
         ");
 
@@ -2863,11 +2866,13 @@ if ($privateActor && $openRelay) {
     // Se il messaggio contiene testo e non è un comando
     if ($text !== '' && !preg_match('/^\//', $text)) {
 
+        $ticketText = tgAppendTicketUserText($openRelay['ultimo_testo_docente'] ?? '', $text);
+
         // Aggiorna il relay con ultimo message id e ultimo testo docente
         dbExec("
             UPDATE docente_telegram_relay
             SET docente_message_id = " . dbI($teacherMessageId) . ",
-                ultimo_testo_docente = " . dbQ($text) . "
+                ultimo_testo_docente = " . dbQ($ticketText) . "
             WHERE id = " . dbI($idRelay) . "
         ");
 
@@ -2900,11 +2905,13 @@ if ($privateActor && $openRelay) {
 
         // Se il messaggio ha anche testo
         if ($text !== '') {
+            $ticketText = tgAppendTicketUserText($openRelay['ultimo_testo_docente'] ?? '', $text);
+
             // Aggiorna sia message id che ultimo testo docente
             dbExec("
                 UPDATE docente_telegram_relay
                 SET docente_message_id = " . dbI($teacherMessageId) . ",
-                    ultimo_testo_docente = " . dbQ($text) . "
+                    ultimo_testo_docente = " . dbQ($ticketText) . "
                 WHERE id = " . dbI($idRelay) . "
             ");
         } else {
