@@ -338,6 +338,65 @@ function renderTwoLevelList(array $nodes): string
     return $html;
 }
 
+function programmaInizialeLooksLikeHtml(string $text): bool
+{
+    return preg_match('/<\/?(p|div|ul|ol|li|h[1-6]|strong|b|em|i|u|blockquote|span)\b/i', $text) === 1;
+}
+
+function sanitizeProgrammaInizialeRichHtml(string $html): string
+{
+    $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $html = str_replace("\xc2\xa0", ' ', $html);
+    $html = preg_replace('/&(nbsp|amp;nbsp);/i', ' ', $html);
+    $html = str_replace(['__MODULE_TITLE__', '__SECTION_HEADING__'], '', $html);
+    $html = preg_replace('/<\s*(script|style|meta|link|object|iframe)[^>]*>.*?<\s*\/\s*\1\s*>/is', '', $html);
+    $html = preg_replace('/\s+on[a-z]+\s*=\s*(["\']).*?\1/is', '', $html);
+    $html = preg_replace('/\s+(class|id|style)\s*=\s*(["\']).*?\2/is', '', $html);
+    $html = preg_replace('/<\s*\/?\s*(font)\b[^>]*>/i', '', $html);
+    $html = preg_replace('/<\s*b\b[^>]*>/i', '<strong>', $html);
+    $html = preg_replace('/<\s*\/\s*b\s*>/i', '</strong>', $html);
+    $html = preg_replace('/<\s*i\b[^>]*>/i', '<em>', $html);
+    $html = preg_replace('/<\s*\/\s*i\s*>/i', '</em>', $html);
+    $html = preg_replace('/<\s*h[1-6]\b[^>]*>/i', '<h4>', $html);
+    $html = preg_replace('/<\s*\/\s*h[1-6]\s*>/i', '</h4>', $html);
+    $html = strip_tags($html, '<p><div><br><ul><ol><li><strong><em><u><h4><blockquote><span>');
+    return trim($html);
+}
+
+function renderProgrammaInizialeRichHtml(string $html, bool $forPdf = false): string
+{
+    $html = sanitizeProgrammaInizialeRichHtml($html);
+    if ($html === '') {
+        return '';
+    }
+
+    $html = preg_replace('/<\s*div\b[^>]*>/i', '<p>', $html);
+    $html = preg_replace('/<\s*\/\s*div\s*>/i', '</p>', $html);
+
+    if ($forPdf) {
+        $html = preg_replace('/<p>/i', '<p style="margin:0 0 3px 0;line-height:1.2;">', $html);
+        $html = preg_replace('/<h4>/i', '<h4 style="margin:2px 0 2px 0;font-size:11px;line-height:1.12;font-weight:bold;color:#173f68;">', $html);
+        $html = preg_replace('/<ul>/i', '<ul style="margin:0 0 3px 16px;padding-left:12px;line-height:1.2;">', $html);
+        $html = preg_replace('/<ol>/i', '<ol style="margin:0 0 3px 16px;padding-left:12px;line-height:1.2;">', $html);
+    }
+
+    return $html;
+}
+
+function renderProgrammaInizialeText(string $text, bool $forPdf = false): string
+{
+    $text = html_entity_decode((string)$text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = str_replace("\xc2\xa0", ' ', $text);
+    $text = preg_replace('/&(nbsp|amp;nbsp);/i', ' ', $text);
+    $text = str_replace(['__MODULE_TITLE__', '__SECTION_HEADING__'], '', $text);
+
+    if (programmaInizialeLooksLikeHtml($text)) {
+        return renderProgrammaInizialeRichHtml($text, $forPdf);
+    }
+
+    return buildTwoLevelListFromText($text);
+}
+
 // 5) INIZIO OUTPUT HTML IN BUFFER
 ob_start();
 ?><!DOCTYPE html>
@@ -491,6 +550,26 @@ ob_start();
     .module td {
       background-color: #f7fbfe;
     }
+
+    .module td h4 {
+      margin: 6px 0 4px;
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #173f68;
+    }
+
+    .module td p {
+      margin: 0 0 4px;
+      line-height: 1.3;
+    }
+
+    .module td ul,
+    .module td ol {
+      margin: 0 0 4px 20px;
+      padding-left: 16px;
+    }
   </style>
   <link rel="icon" href="../ore-32.png" />
 </head>
@@ -546,10 +625,10 @@ ob_start();
         </thead>
         <tbody>
           <?php foreach ([
-            'Conoscenze' => buildTwoLevelListFromText($m['conoscenze']),
-            'Abilità' => buildTwoLevelListFromText($m['abilita']),
-            'Competenze' => buildTwoLevelListFromText($m['competenze']),
-            'Periodo' => htmlspecialchars($m['periodo']),
+            'Conoscenze' => renderProgrammaInizialeText($m['conoscenze']),
+            'Abilità' => renderProgrammaInizialeText($m['abilita']),
+            'Competenze' => renderProgrammaInizialeText($m['competenze']),
+            'Periodo' => renderProgrammaInizialeText($m['periodo']),
           ] as $th => $td): ?>
             <tr>
               <td width="25%" style="
@@ -711,10 +790,10 @@ if ($doPrint) {
 
     // quattro righe fisse
     $rows = [
-      'Conoscenze' => buildTwoLevelListFromText($m['conoscenze']),
-      'Abilità' => buildTwoLevelListFromText($m['abilita']),
-      'Competenze' => buildTwoLevelListFromText($m['competenze']),
-      'Periodo' => htmlspecialchars($m['periodo']),
+      'Conoscenze' => renderProgrammaInizialeText($m['conoscenze'], true),
+      'Abilità' => renderProgrammaInizialeText($m['abilita'], true),
+      'Competenze' => renderProgrammaInizialeText($m['competenze'], true),
+      'Periodo' => renderProgrammaInizialeText($m['periodo'], true),
     ];
     foreach ($rows as $label => $data) {
       $tbl .= '<tr>';

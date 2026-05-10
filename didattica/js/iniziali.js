@@ -18,6 +18,332 @@ var $materia_filtro_id = 0;
 var $docenti_filtro_id = 0;
 var $da_completare_filtro_id = 0;
 var activeInizialiPreviewField = null;
+var inizialiRichTextFields = ['conoscenze', 'abilita', 'competenze', 'periodo'];
+
+function inizialiLooksLikeHtml(text) {
+    return /<\/?(p|div|ul|ol|li|h[1-6]|strong|b|em|i|u|blockquote|span)\b/i.test(String(text || ''));
+}
+
+function sanitizeInizialiRichHtml(html) {
+    var $tmp = $('<div>').html(String(html || ''));
+    $tmp.find('script, style, meta, link, object, iframe').remove();
+    $tmp.find('*').each(function () {
+        var el = this;
+        var style = String($(el).attr('style') || '').toLowerCase();
+        var inner = $(el).html();
+        if (/font-weight\s*:\s*(bold|[6-9]00)/.test(style)) {
+            inner = '<strong>' + inner + '</strong>';
+        }
+        if (/font-style\s*:\s*italic/.test(style)) {
+            inner = '<em>' + inner + '</em>';
+        }
+        if (/text-decoration[^;]*underline/.test(style)) {
+            inner = '<u>' + inner + '</u>';
+        }
+        if (el.tagName === 'OL') {
+            if (/list-style-type\s*:\s*lower-alpha/.test(style)) {
+                $(el).attr('type', 'a');
+            } else if (/list-style-type\s*:\s*upper-alpha/.test(style)) {
+                $(el).attr('type', 'A');
+            } else if (!$(el).attr('type')) {
+                $(el).attr('type', '1');
+            }
+        }
+        $(el).html(inner);
+        $.each($.makeArray(el.attributes), function (_, attr) {
+            var name = (attr.name || '').toLowerCase();
+            if (name.indexOf('on') === 0 || name === 'class' || name === 'id' || name === 'style' || (name !== 'type' && name !== 'start')) {
+                el.removeAttribute(attr.name);
+            }
+        });
+    });
+
+    $tmp.find('b').each(function () { $(this).replaceWith($('<strong>').html($(this).html())); });
+    $tmp.find('i').each(function () { $(this).replaceWith($('<em>').html($(this).html())); });
+    $tmp.find('h1,h2,h3,h5,h6').each(function () { $(this).replaceWith($('<h4>').html($(this).html())); });
+    $tmp.find('font').each(function () { $(this).replaceWith($('<span>').html($(this).html())); });
+
+    return $.trim($tmp.html() || '')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/__MODULE_TITLE__/g, '')
+        .replace(/__SECTION_HEADING__/g, '');
+}
+
+function inizialiPlainTextToHtml(text) {
+    return String(text || '').split(/\r\n|\r|\n/u).map(function (line) {
+        return '<p>' + escapeInizialiPreviewHtml(line) + '</p>';
+    }).join('');
+}
+
+function inizialiLegacyTextToWordLikeHtml(text) {
+    var tree = buildInizialiPreviewTree(text);
+    if (!tree.length) {
+        return '';
+    }
+
+    var html = '';
+    var ulOpen = false;
+    tree.forEach(function (node) {
+        if ((node.type || 'item') === 'heading') {
+            if (ulOpen) {
+                html += '</ul>';
+                ulOpen = false;
+            }
+            html += '<h4>' + escapeInizialiPreviewHtml(node.text || '') + '</h4>';
+            return;
+        }
+        if (!ulOpen) {
+            html += '<ul>';
+            ulOpen = true;
+        }
+        html += '<li>' + escapeInizialiPreviewHtml(node.text || '');
+        if (node.children && node.children.length) {
+            html += '<ul>';
+            node.children.forEach(function (child) {
+                html += '<li>' + escapeInizialiPreviewHtml(child.text || '') + '</li>';
+            });
+            html += '</ul>';
+        }
+        html += '</li>';
+    });
+    if (ulOpen) {
+        html += '</ul>';
+    }
+    return sanitizeInizialiRichHtml(html);
+}
+
+function inizialiNormalizeWordPasteHtml(html, text) {
+    var textOnly = String(text || '');
+    if (/^[\s\u00a0]*[\u2022\u00b7\u25cf\u25e6\u2043\uf0b7\uf0a7\uf076]\s*/mu.test(textOnly)) {
+        var htmlText = String(html || '').toLowerCase();
+        var directBold = /<(strong|b)\b/.test(htmlText) || /font-weight\s*:\s*(bold|[6-9]00)/.test(htmlText);
+        var directItalic = /<(em|i)\b/.test(htmlText) || /font-style\s*:\s*italic/.test(htmlText);
+        var directUnderline = /<u\b/.test(htmlText) || /text-decoration[^;]*underline/.test(htmlText);
+        var directList = $('<ul>');
+        textOnly.split(/\r\n|\r|\n/u).forEach(function (line) {
+            var cleaned = $.trim(String(line || '').replace(/^[\s\u00a0]*[\u2022\u00b7\u25cf\u25e6\u2043\uf0b7\uf0a7\uf076]\s*/u, ''));
+            if (cleaned !== '') {
+                var $li = $('<li>').text(cleaned);
+                if (directBold) {
+                    $li.wrapInner('<strong></strong>');
+                }
+                if (directItalic) {
+                    $li.wrapInner('<em></em>');
+                }
+                if (directUnderline) {
+                    $li.wrapInner('<u></u>');
+                }
+                directList.append($li);
+            }
+        });
+        if (directList.children('li').length >= 2) {
+            return sanitizeInizialiRichHtml(directList.prop('outerHTML'));
+        }
+    }
+
+    if (html) {
+        var cleanHtml = sanitizeInizialiRichHtml(html);
+        var $tmp = $('<div>').html(cleanHtml);
+        if ($tmp.find('li').length) {
+            return sanitizeInizialiRichHtml($tmp.html());
+        }
+    }
+
+    var lines = String(text || '').replace(/\r\n|\r/u, '\n').split('\n');
+    var hasBullets = lines.some(function (line) {
+        return /^\s*(?:[•●▪◦]\s+|[-*]\s+|\d+[\.)]\s+)/u.test(line);
+    });
+    if (!hasBullets) {
+        return inizialiPlainTextToHtml(text);
+    }
+
+    var htmlOut = '<ul>';
+    lines.forEach(function (line) {
+        var cleaned = $.trim(String(line || '').replace(/^\s*(?:[•●▪◦]\s+|[-*]\s+|\d+[\.)]\s+)/u, ''));
+        if (cleaned !== '') {
+            htmlOut += '<li>' + escapeInizialiPreviewHtml(cleaned) + '</li>';
+        }
+    });
+    htmlOut += '</ul>';
+    return sanitizeInizialiRichHtml(htmlOut);
+}
+
+function inizialiHtmlToPlainText(html) {
+    var $tmp = $('<div>').html(sanitizeInizialiRichHtml(html));
+    $tmp.find('br').replaceWith('\n');
+    $tmp.find('li').each(function () { $(this).append('\n'); });
+    $tmp.find('p,h4,div').each(function () { $(this).append('\n'); });
+    return $.trim($tmp.text().replace(/\n{3,}/g, '\n\n'));
+}
+
+function getInizialiFieldValue(fieldId) {
+    var $editor = $('#' + fieldId + '_editor');
+    if ($editor.length) {
+        return sanitizeInizialiRichHtml($editor.html() || '');
+    }
+    return $('#' + fieldId).val() || '';
+}
+
+function syncInizialiRichEditorToTextarea(fieldId) {
+    var $textarea = $('#' + fieldId);
+    var $editor = $('#' + fieldId + '_editor');
+    if (!$textarea.length || !$editor.length) {
+        return;
+    }
+    $textarea.val(sanitizeInizialiRichHtml($editor.html() || ''));
+}
+
+function syncInizialiRichEditorsToTextareas() {
+    inizialiRichTextFields.forEach(syncInizialiRichEditorToTextarea);
+}
+
+function syncInizialiRichEditorFromTextarea(fieldId) {
+    var $textarea = $('#' + fieldId);
+    var $editor = $('#' + fieldId + '_editor');
+    if (!$textarea.length || !$editor.length) {
+        return;
+    }
+
+    var value = $textarea.val() || '';
+    var html = '';
+    if (inizialiLooksLikeHtml(value)) {
+        html = sanitizeInizialiRichHtml(value);
+    } else {
+        html = inizialiLegacyTextToWordLikeHtml(value) || inizialiPlainTextToHtml(value);
+        if ($.trim(value) !== '') {
+            $textarea.val(html);
+        }
+    }
+    $editor.html(html);
+}
+
+function syncInizialiRichEditorsFromTextareas() {
+    inizialiRichTextFields.forEach(syncInizialiRichEditorFromTextarea);
+}
+
+function execInizialiEditorCommand(fieldId, command) {
+    var $editor = $('#' + fieldId + '_editor');
+    if (!$editor.length) {
+        return;
+    }
+    $editor.focus();
+
+    if (command === 'h4') {
+        var block = window.getSelection && window.getSelection().anchorNode ? $(window.getSelection().anchorNode).closest('h4,p,div,li', $editor)[0] : null;
+        if (block && block.tagName && block.tagName.toLowerCase() === 'h4') {
+            document.execCommand('formatBlock', false, 'p');
+        } else {
+            document.execCommand('formatBlock', false, 'h4');
+        }
+    } else if (command === 'orderedAlpha') {
+        document.execCommand('insertOrderedList', false, null);
+        var $ol = $(window.getSelection().anchorNode).closest('ol');
+        if ($ol.length) {
+            $ol.attr('type', 'a');
+        }
+    } else if (command === 'clear') {
+        document.execCommand('removeFormat', false, null);
+        document.execCommand('formatBlock', false, 'p');
+    } else {
+        document.execCommand(command, false, null);
+    }
+
+    syncInizialiRichEditorToTextarea(fieldId);
+    syncInizialiFieldPreview(fieldId);
+    updateInizialiToolbarState(fieldId);
+}
+
+function updateInizialiToolbarState(fieldId) {
+    var $toolbar = $('.programma-rich-toolbar[data-field="' + fieldId + '"]');
+    if (!$toolbar.length) {
+        return;
+    }
+    ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList'].forEach(function (command) {
+        var active = false;
+        try {
+            active = document.queryCommandState(command);
+        } catch (e) {
+            active = false;
+        }
+        $toolbar.find('[data-command="' + command + '"]').toggleClass('active', !!active);
+    });
+    var selectionNode = window.getSelection && window.getSelection().anchorNode ? window.getSelection().anchorNode : null;
+    var inTitle = selectionNode ? $(selectionNode).closest('h4', $('#' + fieldId + '_editor')).length > 0 : false;
+    $toolbar.find('[data-command="h4"]').toggleClass('active', inTitle);
+}
+
+function setupInizialiRichEditor(fieldId) {
+    var $textarea = $('#' + fieldId);
+    if (!$textarea.length || $('#' + fieldId + '_editor').length) {
+        return;
+    }
+
+    var $toolbar = $('<div>', { class: 'programma-rich-toolbar word-like-toolbar', 'data-field': fieldId });
+    [
+        { cmd: 'bold', icon: '<span class="word-icon word-icon-bold">B</span>', title: 'Grassetto' },
+        { cmd: 'italic', icon: '<span class="word-icon word-icon-italic">I</span>', title: 'Corsivo' },
+        { cmd: 'underline', icon: '<span class="word-icon word-icon-underline">U</span>', title: 'Sottolineato' },
+        { cmd: 'insertUnorderedList', icon: '<span class="word-icon word-icon-list">•</span>', title: 'Elenco puntato' },
+        { cmd: 'insertOrderedList', icon: '<span class="word-icon word-icon-list">1<br>2</span>', title: 'Elenco numerato' },
+        { cmd: 'orderedAlpha', icon: '<span class="word-icon word-icon-list">a<br>b</span>', title: 'Elenco con lettere' },
+        { cmd: 'outdent', icon: '<span class="glyphicon glyphicon-indent-right"></span>', title: 'Riduci rientro' },
+        { cmd: 'indent', icon: '<span class="glyphicon glyphicon-indent-left"></span>', title: 'Aumenta rientro' },
+        { cmd: 'h4', icon: '<span class="word-icon word-icon-title">T</span>', title: 'Titolo sezione' },
+        { cmd: 'clear', icon: '<span class="glyphicon glyphicon-erase"></span>', title: 'Pulisci formattazione' }
+    ].forEach(function (button) {
+        $('<button>', {
+            type: 'button',
+            class: 'btn btn-default btn-xs programma-rich-btn',
+            title: button.title,
+            'data-command': button.cmd,
+            html: button.icon
+        }).appendTo($toolbar);
+    });
+
+    var $editor = $('<div>', {
+        id: fieldId + '_editor',
+        class: 'form-control programma-rich-editor',
+        contenteditable: 'true',
+        'data-field': fieldId
+    });
+
+    $textarea.after($editor);
+    $editor.before($toolbar);
+    $textarea.addClass('programma-rich-source').hide();
+    syncInizialiRichEditorFromTextarea(fieldId);
+
+    $toolbar.on('mousedown', '.programma-rich-btn', function (event) {
+        event.preventDefault();
+        execInizialiEditorCommand(fieldId, $(this).data('command'));
+    });
+
+    $editor
+        .on('focus click mouseup keyup', function () {
+            showInizialiFieldPreview(fieldId);
+            syncInizialiFieldPreview(fieldId);
+            updateInizialiToolbarState(fieldId);
+        })
+        .on('input keyup', function () {
+            syncInizialiRichEditorToTextarea(fieldId);
+            syncInizialiFieldPreview(fieldId);
+        })
+        .on('paste', function (event) {
+            var clipboard = event.originalEvent && event.originalEvent.clipboardData ? event.originalEvent.clipboardData : null;
+            if (!clipboard) {
+                return;
+            }
+            event.preventDefault();
+            var html = clipboard.getData('text/html');
+            var text = clipboard.getData('text/plain');
+            document.execCommand('insertHTML', false, inizialiNormalizeWordPasteHtml(html, text));
+            syncInizialiRichEditorToTextarea(fieldId);
+            syncInizialiFieldPreview(fieldId);
+        });
+}
+
+function setupInizialiRichEditors() {
+    inizialiRichTextFields.forEach(setupInizialiRichEditor);
+}
 
 function escapeInizialiPreviewHtml(text) {
     return String(text)
@@ -136,6 +462,11 @@ function buildInizialiPreviewTree(text) {
 }
 
 function renderInizialiPreviewHtml(text) {
+    if (inizialiLooksLikeHtml(text)) {
+        var richHtml = sanitizeInizialiRichHtml(text);
+        return richHtml !== '' ? richHtml : '<span class="text-muted">Anteprima non disponibile: inizia a scrivere.</span>';
+    }
+
     var tree = buildInizialiPreviewTree(text);
     if (!tree.length) {
         return '<span class="text-muted">Anteprima non disponibile: inizia a scrivere.</span>';
@@ -179,8 +510,9 @@ function renderInizialiPreviewHtml(text) {
 }
 
 function renderInizialiPreviewLinesHtml(text, activeLine) {
-    var lines = String(text || '').split(/\r\n|\r|\n/u);
-    if (!String(text || '').length) {
+    var plainText = inizialiLooksLikeHtml(text) ? inizialiHtmlToPlainText(text) : String(text || '');
+    var lines = plainText.split(/\r\n|\r|\n/u);
+    if (!String(plainText || '').length) {
         return '<span class="text-muted">Qui vedi tutto il testo, con `↵` a fine riga.</span>';
     }
 
@@ -222,7 +554,9 @@ function syncInizialiPreviewScroll(textareaSelector, previewSelector, activeLine
         return;
     }
 
-    var lines = String($(textareaSelector).val() || '').split(/\r\n|\r|\n/u);
+    var fieldId = String(textareaSelector || '').replace(/^#/, '');
+    var value = getInizialiFieldValue(fieldId);
+    var lines = (inizialiLooksLikeHtml(value) ? inizialiHtmlToPlainText(value) : String(value || '')).split(/\r\n|\r|\n/u);
     var totalLines = Math.max(lines.length, 1);
     var safeActiveLine = Math.max(1, Math.min(parseInt(activeLine, 10) || 1, totalLines));
 
@@ -237,7 +571,7 @@ function syncInizialiPreviewScroll(textareaSelector, previewSelector, activeLine
 }
 
 function updateInizialiFieldPreview(textareaSelector, previewSelector, linesSelector, activeLine) {
-    var value = $(textareaSelector).val() || '';
+    var value = getInizialiFieldValue(String(textareaSelector || '').replace(/^#/, ''));
     $(previewSelector).html(renderInizialiPreviewHtml(value));
     $(linesSelector).html(renderInizialiPreviewLinesHtml(value, activeLine));
     syncInizialiPreviewScroll(textareaSelector, previewSelector, activeLine);
@@ -280,6 +614,7 @@ function syncInizialiFieldPreview(fieldId) {
     if (!$textarea.length) {
         return;
     }
+    syncInizialiRichEditorToTextarea(fieldId);
     updateInizialiFieldPreview('#' + fieldId, '#' + fieldId + '_preview', '#' + fieldId + '_lines', getInizialiTextareaLine($textarea.get(0)));
 }
 
@@ -756,6 +1091,7 @@ async function moduloInizialiGetDetails(modulo_id) {
         $("#moduli_content").html("");
     }
     $("#_error-modulo-part").hide();
+    syncInizialiRichEditorsFromTextareas();
     hideInizialiFieldPreview();
     $("#modulo_modal").modal("show");
     syncInizialiFieldPreview('conoscenze');
@@ -859,6 +1195,7 @@ function programmiInizialiSave() {
 }
 
 function moduloInizialiSave() {
+    syncInizialiRichEditorsToTextareas();
 
     if ($.trim($("#ordine").val()).length <= 0) {
         $("#_error-modulo").text("Devi indicare l'ordine del modulo, ad es. 1");
@@ -912,6 +1249,7 @@ function moduloInizialiSave() {
 
 $(document).ready(function () {
 
+    setupInizialiRichEditors();
     bindInizialiPreviewEvents();
     hideInizialiFieldPreview();
 

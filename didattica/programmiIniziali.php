@@ -273,6 +273,142 @@ applicaDocenteDaParametroSeAutorizzato();
             text-align: right;
         }
 
+        .programma-rich-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 6px;
+            padding: 5px 6px;
+            border: 1px solid #cfd8e3;
+            border-radius: 6px;
+            background: linear-gradient(#fbfcff, #edf3fb);
+        }
+
+        .programma-rich-toolbar .programma-rich-btn {
+            min-width: 34px;
+            height: 30px;
+            padding: 4px 7px;
+            border-color: #b8c4d2;
+            color: #263647;
+            background: linear-gradient(#ffffff, #eef3f8);
+            font-weight: 700;
+        }
+
+        .programma-rich-toolbar .programma-rich-btn:hover,
+        .programma-rich-toolbar .programma-rich-btn:focus,
+        .programma-rich-toolbar .programma-rich-btn.active {
+            border-color: #6aa7e8;
+            background: linear-gradient(#fdfefe, #dceeff);
+            color: #0f4c81;
+        }
+
+        .programma-rich-toolbar .word-icon {
+            display: inline-block;
+            min-width: 16px;
+            line-height: 1;
+            text-align: center;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 16px;
+        }
+
+        .programma-rich-toolbar .word-icon-bold {
+            font-weight: 800;
+        }
+
+        .programma-rich-toolbar .word-icon-italic {
+            font-style: italic;
+        }
+
+        .programma-rich-toolbar .word-icon-underline {
+            text-decoration: underline;
+        }
+
+        .programma-rich-toolbar .word-icon-title {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+        .programma-rich-toolbar .word-icon-list,
+        .programma-guide-button-icon .word-icon-list {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 10px;
+            line-height: 7px;
+            letter-spacing: .5px;
+        }
+
+        .programma-guide-buttons {
+            display: grid;
+            grid-template-columns: 34px 1fr;
+            gap: 6px 8px;
+            align-items: center;
+            margin-top: 6px;
+        }
+
+        .programma-guide-button-icon {
+            display: inline-flex;
+            width: 30px;
+            height: 28px;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #b8c4d2;
+            border-radius: 4px;
+            background: linear-gradient(#ffffff, #eef3f8);
+            color: #263647;
+            font-weight: 700;
+            box-shadow: 0 1px 1px rgba(0,0,0,.06);
+        }
+
+        .programma-guide-button-text {
+            color: #1f3550;
+            font-size: 12px;
+            line-height: 1.25;
+        }
+
+        .programma-rich-editor {
+            height: auto;
+            min-height: 110px;
+            max-height: 260px;
+            overflow-y: auto;
+            line-height: 1.5;
+            white-space: normal;
+        }
+
+        .programma-rich-editor:focus {
+            border-color: #66afe9;
+            outline: 0;
+            box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+        }
+
+        .programma-rich-editor p {
+            margin: 0 0 6px;
+        }
+
+        .programma-rich-editor ul,
+        .programma-rich-editor ol,
+        .programma-preview-render ul,
+        .programma-preview-render ol {
+            margin: 0 0 6px 22px;
+            padding-left: 16px;
+        }
+
+        .programma-rich-editor h4 {
+            margin: 6px 0 5px;
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #173f68;
+        }
+
+        .programma-preview-render h4 {
+            margin: 10px 0 7px;
+            font-size: 18px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #173f68;
+        }
+
         #programma_modal .modal-dialog,
         #modulo_modal .modal-dialog {
             width: 94vw;
@@ -303,64 +439,29 @@ function renderProgrammaSintassiPreviewIniziali(string $fieldId, string $preview
         <div id="' . htmlspecialchars($fieldId) . '_preview_row" class="form-group programma-preview-row" data-preview-field="' . htmlspecialchars($fieldId) . '">
             <div class="col-sm-2">
                 <div class="programma-preview-side">
-                    <div class="title">Sintassi</div>
-                    <div class="hint">Regole applicate:</div>
-                    <div class="programma-guide-example">
-                        <div class="programma-guide-label">Titolo senza pallino</div>
-                        <span class="programma-guide-code">>> Metodo scientifico</span>
-                        <div class="programma-guide-label">Appare</div>
-                        <span class="programma-guide-code">Metodo scientifico</span>
-                    </div>
-                    <div class="programma-guide-example">
-                        <div class="programma-guide-label">Titolo automatico se scrivi tutto in maiuscolo</div>
-                        <span class="programma-guide-code">METODO SCIENTIFICO</span>
-                        <div class="programma-guide-label">Appare</div>
-                        <span class="programma-guide-code">METODO SCIENTIFICO</span>
-                    </div>
-                    <div class="programma-guide-example">
-                        <div class="programma-guide-label">Ogni riga nuova crea una voce con pallino</div>
-                        <span class="programma-guide-code">Le coordinate geografiche.
-I moti della Terra.</span>
-                        <div class="programma-guide-label">Appare</div>
-                        <span class="programma-guide-code">&bull; Le coordinate geografiche
-&bull; I moti della Terra</span>
-                    </div>
-                    <div class="programma-guide-example">
-                        <div class="programma-guide-label">Un punto singolo puo separare due voci sulla stessa riga</div>
-                        <span class="programma-guide-code">Sistema Solare. Galassie.</span>
-                        <div class="programma-guide-label">Appare</div>
-                        <span class="programma-guide-code">&bull; Sistema Solare
-&bull; Galassie</span>
-                    </div>
-                    <div class="programma-guide-example">
-                        <div class="programma-guide-label">`..`, `...`, `....` restano punti veri nel testo</div>
-                        <span class="programma-guide-code">A.. Rossi
-ecc...
-approfondimento.... finale</span>
-                        <div class="programma-guide-label">Appare</div>
-                        <span class="programma-guide-code">&bull; A. Rossi
-&bull; ecc...
-&bull; approfondimento.... finale</span>
-                    </div>
-                    <div class="programma-guide-example">
-                        <div class="programma-guide-label">Se una riga finisce con `:` la riga dopo diventa dettaglio</div>
-                        <span class="programma-guide-code">Metodologie:
-lavoro di gruppo</span>
-                        <div class="programma-guide-label">Appare</div>
-                        <span class="programma-guide-code">&bull; Metodologie:
-  &bull; lavoro di gruppo</span>
-                    </div>
-                    <div class="programma-guide-example">
-                        <div class="programma-guide-label">Sottopunti anche con `-`, `*`, `>`, `--` o almeno due spazi</div>
-                        <span class="programma-guide-code">Metodologie:
-- lavoro di gruppo
-  problem solving
-* cooperative learning</span>
-                        <div class="programma-guide-label">Appare</div>
-                        <span class="programma-guide-code">&bull; Metodologie:
-  &bull; lavoro di gruppo
-  &bull; problem solving
-  &bull; cooperative learning</span>
+                    <div class="title">Editor</div>
+                    <div class="hint">Scrivi come in Word oppure incolla da Word. I testi vecchi vengono convertiti al nuovo formato quando apri e salvi il modulo.</div>
+                    <div class="programma-guide-buttons">
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-bold">B</span></span>
+                        <span class="programma-guide-button-text">Grassetto</span>
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-italic">I</span></span>
+                        <span class="programma-guide-button-text">Corsivo</span>
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-underline">U</span></span>
+                        <span class="programma-guide-button-text">Sottolineato</span>
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-list">&bull;</span></span>
+                        <span class="programma-guide-button-text">Elenco puntato</span>
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-list">1<br>2</span></span>
+                        <span class="programma-guide-button-text">Elenco numerato</span>
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-list">a<br>b</span></span>
+                        <span class="programma-guide-button-text">Elenco con lettere</span>
+                        <span class="programma-guide-button-icon"><span class="glyphicon glyphicon-indent-left"></span></span>
+                        <span class="programma-guide-button-text">Aumenta rientro</span>
+                        <span class="programma-guide-button-icon"><span class="glyphicon glyphicon-indent-right"></span></span>
+                        <span class="programma-guide-button-text">Riduci rientro</span>
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-title">T</span></span>
+                        <span class="programma-guide-button-text">Titolo sezione</span>
+                        <span class="programma-guide-button-icon"><span class="glyphicon glyphicon-erase"></span></span>
+                        <span class="programma-guide-button-text">Pulisci formato</span>
                     </div>
                 </div>
             </div>
