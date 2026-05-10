@@ -240,6 +240,134 @@ function renderTwoLevelList(array $nodes): string
     return $html;
 }
 
+function programmaMinimiLooksLikeHtml(string $text): bool
+{
+    return preg_match('/<\/?(p|div|ul|ol|li|h[1-6]|strong|b|em|i|u|blockquote|span)\b/i', $text) === 1;
+}
+
+function sanitizeProgrammaMinimiRichHtml(string $html): string
+{
+    $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $html = str_replace("\xc2\xa0", ' ', $html);
+    $html = preg_replace('/&(nbsp|amp;nbsp);/i', ' ', $html);
+    $html = str_replace(['__MODULE_TITLE__', '__SECTION_HEADING__'], '', $html);
+    $html = preg_replace('/<\s*(script|style|meta|link|object|iframe)[^>]*>.*?<\s*\/\s*\1\s*>/is', '', $html);
+    $html = preg_replace('/\s+on[a-z]+\s*=\s*(["\']).*?\1/is', '', $html);
+    $html = preg_replace('/\s+(class|id|style)\s*=\s*(["\']).*?\2/is', '', $html);
+    $html = preg_replace('/<\s*\/?\s*(font)\b[^>]*>/i', '', $html);
+    $html = preg_replace('/<\s*b\b[^>]*>/i', '<strong>', $html);
+    $html = preg_replace('/<\s*\/\s*b\s*>/i', '</strong>', $html);
+    $html = preg_replace('/<\s*i\b[^>]*>/i', '<em>', $html);
+    $html = preg_replace('/<\s*\/\s*i\s*>/i', '</em>', $html);
+    $html = preg_replace('/<\s*h[1-6]\b[^>]*>/i', '<h4>', $html);
+    $html = preg_replace('/<\s*\/\s*h[1-6]\s*>/i', '</h4>', $html);
+    $html = strip_tags($html, '<p><div><br><ul><ol><li><strong><em><u><h4><blockquote><span>');
+    return trim($html);
+}
+
+function renderProgrammaMinimiRichHtml(string $html, bool $forPdf = false): string
+{
+    $html = sanitizeProgrammaMinimiRichHtml($html);
+    if ($html === '') {
+        return '';
+    }
+    $html = preg_replace('/<\s*div\b[^>]*>/i', '<p>', $html);
+    $html = preg_replace('/<\s*\/\s*div\s*>/i', '</p>', $html);
+
+    if ($forPdf) {
+        $html = preg_replace('/<p>/i', '<p style="margin:0 0 3px 0;line-height:1.2;">', $html);
+        $html = preg_replace('/<h4>/i', '<h4 style="margin:2px 0 2px 0;font-size:11px;line-height:1.12;font-weight:bold;color:#173f68;">', $html);
+        $html = preg_replace('/<ul>/i', '<ul style="margin:0 0 3px 16px;padding-left:12px;line-height:1.2;">', $html);
+        $html = preg_replace('/<ol>/i', '<ol style="margin:0 0 3px 16px;padding-left:12px;line-height:1.2;">', $html);
+    }
+    return $html;
+}
+
+function programmaMinimiLegacyTextToWordLikeHtml(string $text): string
+{
+    $text = html_entity_decode((string)$text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = str_replace("\xc2\xa0", ' ', $text);
+    $text = preg_replace('/&(nbsp|amp;nbsp);/i', ' ', $text);
+    $text = str_replace(['__MODULE_TITLE__', '__SECTION_HEADING__'], '', $text);
+
+    $lines = preg_split('/\r\n|\r|\n/u', $text);
+    $html = '';
+    $listOpen = false;
+
+    $closeList = function () use (&$html, &$listOpen) {
+        if ($listOpen) {
+            $html .= '</ul>';
+            $listOpen = false;
+        }
+    };
+
+    foreach ($lines as $line) {
+        $trimmed = trim((string)$line);
+        if ($trimmed === '') {
+            $closeList();
+            continue;
+        }
+
+        $titleText = null;
+        if (preg_match('/^>>\s*(.+)$/u', $trimmed, $match)) {
+            $titleText = trim($match[1]);
+        } elseif (isAllUppercase($trimmed) && (function_exists('mb_strlen') ? mb_strlen($trimmed, 'UTF-8') : strlen($trimmed)) <= 120) {
+            $titleText = $trimmed;
+        }
+
+        if ($titleText !== null) {
+            $closeList();
+            $titleText = preg_replace('/[.;:]\s*$/u', '', $titleText);
+            $html .= '<h4>' . htmlspecialchars($titleText, ENT_QUOTES, 'UTF-8') . '</h4>';
+            continue;
+        }
+
+        $isBullet = false;
+        $level = 0;
+        if (preg_match('/^(?:[\x{2022}\x{00b7}\x{25cf}\x{25e6}\x{2043}\x{f0b7}\x{f0a7}\x{f076}]\s+|-\s+|\*\s+|\d+[\.)]\s+|[a-zA-Z][\.)]\s+)(.+)$/u', $trimmed, $match)) {
+            $trimmed = trim($match[1]);
+            $isBullet = true;
+        } elseif (preg_match('/^(?:--\s+|>\s+)(.+)$/u', $trimmed, $match)) {
+            $trimmed = trim($match[1]);
+            $level = 1;
+            $isBullet = true;
+        }
+
+        $safeText = htmlspecialchars($trimmed, ENT_QUOTES, 'UTF-8');
+
+        if ($isBullet) {
+            if (!$listOpen) {
+                $html .= '<ul>';
+                $listOpen = true;
+            }
+            if ($level > 0) {
+                $html .= '<li><ul><li>' . $safeText . '</li></ul></li>';
+            } else {
+                $html .= '<li>' . $safeText . '</li>';
+            }
+        } else {
+            $closeList();
+            $html .= '<p>' . $safeText . '</p>';
+        }
+    }
+
+    $closeList();
+    return sanitizeProgrammaMinimiRichHtml($html);
+}
+
+function renderProgrammaMinimiText(string $text, bool $forPdf = false): string
+{
+    $text = html_entity_decode((string)$text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = str_replace("\xc2\xa0", ' ', $text);
+    $text = preg_replace('/&(nbsp|amp;nbsp);/i', ' ', $text);
+    $text = str_replace(['__MODULE_TITLE__', '__SECTION_HEADING__'], '', $text);
+
+    if (programmaMinimiLooksLikeHtml($text)) {
+        return renderProgrammaMinimiRichHtml($text, $forPdf);
+    }
+    return renderProgrammaMinimiRichHtml(programmaMinimiLegacyTextToWordLikeHtml($text), $forPdf);
+}
+
 // 5) INIZIO OUTPUT HTML IN BUFFER
 ob_start();
 ?><!DOCTYPE html>
@@ -393,6 +521,26 @@ ob_start();
     .module td {
       background-color: #f7fbfe;
     }
+
+    .module td h4 {
+      margin: 6px 0 4px;
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #173f68;
+    }
+
+    .module td p {
+      margin: 0 0 4px;
+      line-height: 1.3;
+    }
+
+    .module td ul,
+    .module td ol {
+      margin: 0 0 4px 20px;
+      padding-left: 16px;
+    }
   </style>
   <link rel="icon" href="../ore-32.png" />
 </head>
@@ -449,8 +597,8 @@ ob_start();
         </thead>
         <tbody>
           <?php foreach ([
-            'Conoscenze' => buildTwoLevelListFromText($m['CONOSCENZE']),
-            'Abilità' => buildTwoLevelListFromText($m['ABILITA']),
+            'Conoscenze' => renderProgrammaMinimiText($m['CONOSCENZE']),
+            'Abilità' => renderProgrammaMinimiText($m['ABILITA']),
           ] as $th => $td): ?>
             <tr>
               <td width="25%" style="
@@ -612,25 +760,13 @@ if ($doPrint) {
 
     // quattro righe fisse
     $rows = [
-      'Conoscenze' => buildTwoLevelListFromText($m['CONOSCENZE']),
-      'Abilità' => buildTwoLevelListFromText($m['ABILITA']),
+      'Conoscenze' => renderProgrammaMinimiText($m['CONOSCENZE'], true),
+      'Abilità' => renderProgrammaMinimiText($m['ABILITA'], true),
     ];
     foreach ($rows as $label => $data) {
       $tbl .= '<tr>';
-      $tbl .= '<td width="25%" style="
-                          background-color:#d9eefa;
-                          border:1px solid #0057b7;
-                          padding:6px 8px;
-                          vertical-align:top;">
-                        ' . $label . '
-                     </td>';
-      $tbl .= '<td width="75%" style="
-                          background-color:#f7fbfe;
-                          border:1px solid #0057b7;
-                          padding:6px 8px;
-                          vertical-align:top;">
-                        ' . $data . '
-                     </td>';
+      $tbl .= '<td width="25%" style="background-color:#d9eefa;border:1px solid #0057b7;padding:6px 8px;vertical-align:top;">' . $label . '</td>';
+      $tbl .= '<td width="75%" style="background-color:#f7fbfe;border:1px solid #0057b7;padding:6px 8px;vertical-align:top;">' . trim($data) . '</td>';
       $tbl .= '</tr>';
     }
 

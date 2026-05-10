@@ -15,7 +15,9 @@ $programma_id = $_GET["programma_id"];
 
 function canEditProgrammaMinimiModulo(int $programmaId): bool
 {
-	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0;
+	global $__anno_scolastico_corrente_id, $__docente_id;
+	$is_admin_effettivo = haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica');
+	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0 && !$is_admin_effettivo;
 
 	if ($is_docente_effettivo) {
 		if (!getSettingsValue('programmiMinimi', 'visibile_docenti', false)) {
@@ -29,8 +31,6 @@ function canEditProgrammaMinimiModulo(int $programmaId): bool
 		if (!getSettingsValue('programmiMinimi', 'coordinatore_dipartimento_puo_modificare', false)) {
 			return false;
 		}
-
-		global $__anno_scolastico_corrente_id, $__docente_id;
 
 		$coord = dbGetFirst("SELECT id_dipartimento FROM coordinatori_dipartimento WHERE id_anno_scolastico=" . intval($__anno_scolastico_corrente_id) . " AND id_docente=" . intval($__docente_id));
 		if ($coord == null) {
@@ -49,7 +49,7 @@ function canEditProgrammaMinimiModulo(int $programmaId): bool
 		return intval($program['id_dipartimento']) === intval($coord['id_dipartimento']);
 	}
 
-	if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+	if ($is_admin_effettivo) {
 		return true;
 	}
 
@@ -108,7 +108,7 @@ foreach ($resultArray as $row) { {
 		$data .= '
 		<td class="text-center">';
 
-		if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+		if (haRuolo('admin') || (haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
 			$data .= '
 			<button onclick="moduloGetDetails(' . $idmodulo . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica il modulo"><span class="glyphicon glyphicon-pencil"></button>
 			<button onclick="moduloDelete(' . $idmodulo . ',\'' . $id_programma . '\',\'' . $titolo . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella il modulo"><span class="glyphicon glyphicon-trash"></button>

@@ -14,12 +14,14 @@ require_once '../common/connect.php';
 $anno_filtro_id = $_GET["anno_id"];
 $materia_filtro_id = $_GET["materia_id"];
 $indirizzo_filtro_id = $_GET["indirizzo_id"];
-$is_docente_effettivo = impersonaRuolo('docente');
+$is_admin_effettivo = haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica');
+$is_docente_effettivo = impersonaRuolo('docente') && !$is_admin_effettivo;
 
 function canEditProgrammaMinimiRecord(int $programmaId): bool
 {
 	global $__docente_id;
-	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0;
+	$is_admin_effettivo = haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica');
+	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0 && !$is_admin_effettivo;
 
 	if ($is_docente_effettivo) {
 		if (!getSettingsValue('programmiMinimi', 'visibile_docenti', false)) {
@@ -53,7 +55,7 @@ function canEditProgrammaMinimiRecord(int $programmaId): bool
 		return intval($program['id_dipartimento']) === intval($coord['id_dipartimento']);
 	}
 
-	if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+	if ($is_admin_effettivo) {
 		return true;
 	}
 
@@ -147,7 +149,7 @@ foreach ($resultArray as $row) { {
 						';
 				}
 			}
-		} else if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+		} else if (haRuolo('admin') || (haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
 			$data .= '
 			<button onclick="programmaGetDetails(' . $programma_id . ')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la materia"><span class="glyphicon glyphicon-pencil"></button>
 			<button onclick="programmaDelete(' . $programma_id . ', \'' . $materia . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la materia"><span class="glyphicon glyphicon-trash"></button>

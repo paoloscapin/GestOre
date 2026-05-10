@@ -33,16 +33,268 @@ applicaDocenteDaParametroSeAutorizzato();
             height: 16px;
             width: 16px;
         }
+
+        .programma-rich-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 6px;
+            padding: 5px 6px;
+            border: 1px solid #cfd8e3;
+            border-radius: 6px;
+            background: linear-gradient(#fbfcff, #edf3fb);
+        }
+
+        .programma-rich-toolbar .programma-rich-btn {
+            min-width: 34px;
+            height: 30px;
+            padding: 4px 7px;
+            border-color: #b8c4d2;
+            color: #263647;
+            background: linear-gradient(#ffffff, #eef3f8);
+            font-weight: 700;
+        }
+
+        .programma-rich-toolbar .word-icon {
+            display: inline-block;
+            min-width: 16px;
+            line-height: 1;
+            text-align: center;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 16px;
+        }
+
+        .programma-rich-toolbar .word-icon-bold {
+            font-weight: 800;
+        }
+
+        .programma-rich-toolbar .word-icon-italic {
+            font-style: italic;
+        }
+
+        .programma-rich-toolbar .word-icon-underline {
+            text-decoration: underline;
+        }
+
+        .programma-rich-toolbar .word-icon-title {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+        .programma-rich-toolbar .word-icon-list {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 10px;
+            line-height: 7px;
+            letter-spacing: .5px;
+        }
+
+        .programma-rich-editor {
+            height: auto;
+            min-height: 120px;
+            max-height: 280px;
+            overflow-y: auto;
+            line-height: 1.5;
+            white-space: normal;
+        }
+
+        .programma-rich-editor.disabled {
+            background: #eee;
+            cursor: not-allowed;
+        }
+
+        .programma-rich-editor p {
+            margin: 0 0 6px;
+        }
+
+        .programma-rich-editor ul,
+        .programma-rich-editor ol,
+        .programma-preview-render ul,
+        .programma-preview-render ol {
+            margin: 0 0 6px 22px;
+            padding-left: 16px;
+        }
+
+        .programma-rich-editor h4,
+        .programma-preview-render h4 {
+            margin: 8px 0 5px;
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #173f68;
+        }
+
+        .programma-preview-row {
+            display: none;
+            margin-top: -5px;
+        }
+
+        .programma-preview-side {
+            background: #eef5fd;
+            border: 1px solid #d6e4f3;
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 100%;
+        }
+
+        .programma-preview-side .title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #35608d;
+            margin-bottom: 6px;
+            letter-spacing: .4px;
+        }
+
+        .programma-preview-side .hint {
+            font-size: 12px;
+            color: #4e647a;
+            margin-bottom: 0;
+            line-height: 1.5;
+        }
+
+        .programma-guide-example {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #d6e4f3;
+        }
+
+        .programma-guide-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #35608d;
+            margin-bottom: 3px;
+        }
+
+        .programma-guide-code {
+            display: block;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 12px;
+            color: #1f3550;
+            white-space: pre-line;
+        }
+
+        .programma-guide-buttons {
+            display: grid;
+            grid-template-columns: 34px 1fr;
+            gap: 6px 8px;
+            align-items: center;
+            margin-top: 6px;
+        }
+
+        .programma-guide-button-icon {
+            display: inline-flex;
+            width: 30px;
+            height: 28px;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #b8c4d2;
+            border-radius: 4px;
+            background: linear-gradient(#ffffff, #eef3f8);
+            color: #263647;
+            font-weight: 700;
+            box-shadow: 0 1px 1px rgba(0,0,0,.06);
+        }
+
+        .programma-guide-button-icon .word-icon-list {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 10px;
+            line-height: 7px;
+            letter-spacing: .5px;
+        }
+
+        .programma-guide-button-text {
+            color: #1f3550;
+            font-size: 12px;
+            line-height: 1.25;
+        }
+
+        .programma-syntax-box {
+            background: #f4f8fc;
+            border: 1px solid #d6e4f3;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+
+        .programma-preview-render {
+            background: #fff;
+            border: 1px solid #d6e4f3;
+            border-radius: 6px;
+            padding: 10px 14px;
+            min-height: 70px;
+        }
+
+        .programma-preview-lines {
+            margin-top: 8px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 12px;
+            color: #52616f;
+            white-space: pre-wrap;
+        }
+
+        #programma_modal .modal-dialog,
+        #modulo_modal .modal-dialog {
+            width: 94vw;
+            max-width: 1700px;
+        }
     </style>
 </head>
 
 <?php
-$is_docente_effettivo = impersonaRuolo('docente');
+$is_admin_effettivo = haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica');
+$is_docente_effettivo = impersonaRuolo('docente') && !$is_admin_effettivo;
 if (((!$is_docente_effettivo) && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))))  || (($is_docente_effettivo) && (getSettingsValue('programmiMinimi', 'visibile_docenti', false)) && (getSettingsValue('programmiMinimi', 'docente_puo_modificare', false))) )
 {
     $modificheDisabilitate = '';
 } else {
     $modificheDisabilitate = ' disabled ';
+}
+
+function renderProgrammaMinimiEditorGuide(): string
+{
+    return '
+        <div class="programma-preview-side">
+            <div class="title">Editor</div>
+            <div class="hint">Puoi scrivere come in Word, usare i pulsanti sopra il testo oppure incollare da Word. GestOre conserva solo formati compatibili e sicuri.</div>
+            <div class="programma-guide-example">
+                <div class="programma-guide-label">Pulsanti principali</div>
+                <div class="programma-guide-buttons">
+                    <span class="programma-guide-button-icon"><span class="word-icon word-icon-bold">B</span></span>
+                    <span class="programma-guide-button-text">grassetto</span>
+                    <span class="programma-guide-button-icon"><span class="word-icon word-icon-italic">I</span></span>
+                    <span class="programma-guide-button-text">corsivo</span>
+                    <span class="programma-guide-button-icon"><span class="word-icon word-icon-underline">U</span></span>
+                    <span class="programma-guide-button-text">sottolineato</span>
+                    <span class="programma-guide-button-icon"><span class="word-icon word-icon-list">&bull;<br>&bull;</span></span>
+                    <span class="programma-guide-button-text">elenco puntato</span>
+                    <span class="programma-guide-button-icon"><span class="word-icon word-icon-list">1<br>2</span></span>
+                    <span class="programma-guide-button-text">elenco numerato</span>
+                    <span class="programma-guide-button-icon"><span class="word-icon word-icon-list">a<br>b</span></span>
+                    <span class="programma-guide-button-text">elenco con lettere</span>
+                </div>
+            </div>
+            <div class="programma-guide-example">
+                <div class="programma-guide-label">Rientri e titolo</div>
+                <div class="programma-guide-buttons">
+                    <span class="programma-guide-button-icon"><span class="glyphicon glyphicon-indent-left"></span></span>
+                    <span class="programma-guide-button-text">aumenta rientro / sottopunto</span>
+                    <span class="programma-guide-button-icon"><span class="glyphicon glyphicon-indent-right"></span></span>
+                    <span class="programma-guide-button-text">riduci rientro</span>
+                    <span class="programma-guide-button-icon"><span class="word-icon word-icon-title">T</span></span>
+                    <span class="programma-guide-button-text">trasforma la riga in titolo</span>
+                    <span class="programma-guide-button-icon"><span class="glyphicon glyphicon-erase"></span></span>
+                    <span class="programma-guide-button-text">pulisce la formattazione</span>
+                </div>
+            </div>
+            <div class="programma-guide-example">
+                <div class="programma-guide-label">Incolla da Word</div>
+                <span class="programma-guide-code">Puoi copiare da Word e incollare qui.
+GestOre prova a mantenere grassetto, corsivo, sottolineato, titoli, elenchi e rientri compatibili.</span>
+            </div>
+        </div>';
 }
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
 $materiaFiltroOptionList = '<option value="0">Tutte</option>';
@@ -139,7 +391,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
             </div>
         </div>-->
                     <?php
-                    if ((!$is_docente_effettivo) && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
+                    if ((!$is_docente_effettivo) && (haRuolo('admin') || (haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                         echo '
                     <div>
                         <div>
@@ -174,7 +426,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                 <!-- Modal - Add/Update Record -->
                 <div class="modal fade" id="programma_modal" data-backdrop="static" tabindex="-1" role="dialog"
                     aria-labelledby="myModalLabel">
-                    <div class="modal-dialog modal-lg" style="margin:auto;width:%40" role="document">
+                    <div class="modal-dialog modal-lg" style="margin:auto;" role="document">
                         <div class="modal-content">
                             <div class="modal-body">
                                 <div class="panel panel-orange4">
@@ -239,7 +491,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                                 <div class="col-md-12">
                                                     <h3 style="text-align:center">Elenco Moduli
                                                         <?php
-                                                        if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+                                                        if (haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
                                                             echo '
                                                         <button class="btn btn-xs btn-lima4"
                                                             onclick="moduloGetDetails(-1)"><span style="font-size:14px"
@@ -263,7 +515,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                 <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Chiudi</button>
                                 ';
                                 }
-                                if ((!$is_docente_effettivo) && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
+                                if ((!$is_docente_effettivo) && (haRuolo('admin') || (haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                                     echo '
                                 <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Annulla</button>
                                 <button type="button" class="btn btn-primary" onclick="programmaSave()" id="btnProgrammaSave">Salva</button>
@@ -286,7 +538,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
         <!-- Modal - Add/Update Record -->
         <div class="modal fade" id="modulo_modal" data-backdrop="static" tabindex="-1" role="dialog"
             aria-labelledby="myModalLabel">
-            <div class="modal-dialog modal-lg" style="margin:auto;width:%100" role="document">
+            <div class="modal-dialog modal-lg" style="margin:auto;" role="document">
                 <div class="modal-content">
                     <div class="modal-body">
                         <div class="panel panel-orange4">
@@ -318,6 +570,19 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                                 placeholder="conoscenze" class="form-control" data-toggle="tooltip"
                                                 data-placement="top" <?php echo $modificheDisabilitate ?>
                                                 title="Inserisci le conoscenze relative a questo modulo"></textarea>
+                                            <div class="help-block" style="margin-top:6px; color:#4f6b88;">
+                                                Scrivi come in Word o incolla da Word: sotto trovi l'anteprima live.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="conoscenze_preview_row" class="form-group programma-preview-row">
+                                        <div class="col-sm-2"><?php echo renderProgrammaMinimiEditorGuide(); ?></div>
+                                        <div class="col-sm-10">
+                                            <div class="programma-syntax-box">
+                                                <div class="title">Anteprima durante la modifica</div>
+                                                <div id="conoscenze_preview" class="programma-preview-render"></div>
+                                                <div id="conoscenze_lines" class="programma-preview-lines"></div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -326,6 +591,17 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                         <div class="col-sm-10"><textarea id="abilita" rows="5" placeholder="abilita"
                                                 class="form-control" data-toggle="tooltip" data-placement="top" <?php echo $modificheDisabilitate ?>
                                                 title="Inserisci le abilità relative a questo modulo"></textarea></div>
+                                    </div>
+
+                                    <div id="abilita_preview_row" class="form-group programma-preview-row">
+                                        <div class="col-sm-2"><?php echo renderProgrammaMinimiEditorGuide(); ?></div>
+                                        <div class="col-sm-10">
+                                            <div class="programma-syntax-box">
+                                                <div class="title">Anteprima durante la modifica</div>
+                                                <div id="abilita_preview" class="programma-preview-render"></div>
+                                                <div id="abilita_lines" class="programma-preview-lines"></div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div class="form-group" id="_error-modulo-part"><strong>
@@ -344,7 +620,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                             <div class="panel-footer text-center">
                                 <?php
 
-                                if (haRuolo('segreteria-didattica'))
+                                if (haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica'))
                                 {
                                     echo '
                                     <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>

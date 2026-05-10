@@ -20,7 +20,8 @@ function out($arr)
 function canEditProgrammaMinimiRecord(int $programmaId): bool
 {
 	global $__docente_id;
-	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0;
+	$is_admin_effettivo = haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica');
+	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0 && !$is_admin_effettivo;
 
 	if ($is_docente_effettivo) {
 		if (!getSettingsValue('programmiMinimi', 'visibile_docenti', false)) {
@@ -54,7 +55,7 @@ function canEditProgrammaMinimiRecord(int $programmaId): bool
 		return intval($program['id_dipartimento']) === intval($coord['id_dipartimento']);
 	}
 
-	if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+	if ($is_admin_effettivo) {
 		return true;
 	}
 

@@ -10,9 +10,20 @@
 require_once '../common/checkSession.php';
 ruoloRichiesto('segreteria-didattica', 'docente', 'dirigente');
 
+function pulisciTestoProgrammaMinimi($testo) {
+	$testo = html_entity_decode((string)$testo, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+	$testo = str_replace("\xc2\xa0", ' ', $testo);
+	$testo = preg_replace('/&(nbsp|amp;nbsp);/i', ' ', $testo);
+	$testo = str_replace(['__MODULE_TITLE__', '__SECTION_HEADING__'], '', $testo);
+	$testo = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', $testo);
+	return $testo;
+}
+
 function canEditProgrammaMinimiModulo(int $programmaId): bool
 {
-	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0;
+	global $__anno_scolastico_corrente_id, $__docente_id;
+	$is_admin_effettivo = haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica');
+	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0 && !$is_admin_effettivo;
 
 	if ($is_docente_effettivo) {
 		if (!getSettingsValue('programmiMinimi', 'visibile_docenti', false)) {
@@ -26,8 +37,6 @@ function canEditProgrammaMinimiModulo(int $programmaId): bool
 		if (!getSettingsValue('programmiMinimi', 'coordinatore_dipartimento_puo_modificare', false)) {
 			return false;
 		}
-
-		global $__anno_scolastico_corrente_id, $__docente_id;
 
 		$coord = dbGetFirst("SELECT id_dipartimento FROM coordinatori_dipartimento WHERE id_anno_scolastico=" . intval($__anno_scolastico_corrente_id) . " AND id_docente=" . intval($__docente_id));
 		if ($coord == null) {
@@ -46,7 +55,7 @@ function canEditProgrammaMinimiModulo(int $programmaId): bool
 		return intval($program['id_dipartimento']) === intval($coord['id_dipartimento']);
 	}
 
-	if (haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+	if ($is_admin_effettivo) {
 		return true;
 	}
 
@@ -58,8 +67,8 @@ if(isset($_POST)) {
 	$id_programma = $_POST['id_programma'];
 	$ordine = $_POST['ordine'];
 	$titolo = $_POST['titolo'];
-	$conoscenze = $_POST['conoscenze'];
-	$abilita = $_POST['abilita'];
+	$conoscenze = pulisciTestoProgrammaMinimi($_POST['conoscenze']);
+	$abilita = pulisciTestoProgrammaMinimi($_POST['abilita']);
 
 	$titolo = str_replace("'","''",$titolo);
 	$conoscenze = str_replace("'","''",$conoscenze);

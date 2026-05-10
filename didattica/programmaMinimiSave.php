@@ -12,8 +12,9 @@ ruoloRichiesto('segreteria-didattica', 'docente', 'dirigente');
 
 function canEditProgrammaMinimiRecord(int $programmaId, int $materiaId = 0): bool
 {
-	global $__docente_id;
-	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0;
+	global $__anno_scolastico_corrente_id, $__docente_id;
+	$is_admin_effettivo = haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica');
+	$is_docente_effettivo = impersonaRuolo('docente') && intval($__docente_id ?? 0) > 0 && !$is_admin_effettivo;
 
 	if ($is_docente_effettivo) {
 		if (!getSettingsValue('programmiMinimi', 'visibile_docenti', false)) {
@@ -27,8 +28,6 @@ function canEditProgrammaMinimiRecord(int $programmaId, int $materiaId = 0): boo
 		if (!getSettingsValue('programmiMinimi', 'coordinatore_dipartimento_puo_modificare', false)) {
 			return false;
 		}
-
-		global $__anno_scolastico_corrente_id;
 
 		$coord = dbGetFirst("SELECT id_dipartimento FROM coordinatori_dipartimento WHERE id_anno_scolastico=" . intval($__anno_scolastico_corrente_id) . " AND id_docente=" . intval($__docente_id));
 		if ($coord == null) {
@@ -51,7 +50,7 @@ function canEditProgrammaMinimiRecord(int $programmaId, int $materiaId = 0): boo
 		return intval($materia['id_dipartimento']) === intval($coord['id_dipartimento']);
 	}
 
-	if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+	if ($is_admin_effettivo) {
 		return true;
 	}
 
