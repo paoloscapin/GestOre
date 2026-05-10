@@ -731,6 +731,11 @@ function buildTwoLevelListFromText(string $text, bool $forPdf = false): string
         }
 
         $literalDotMap = [];
+        $rawLine = preg_replace_callback('/(?:\b\p{L}\.){2,}/u', function ($matches) use (&$literalDotMap) {
+            $token = '__GESTORE_LITERAL_ABBR_' . count($literalDotMap) . '__';
+            $literalDotMap[$token] = $matches[0];
+            return $token;
+        }, $rawLine);
         $rawLine = preg_replace_callback('/\.{2,}/u', function ($matches) use (&$literalDotMap) {
             $token = '__GESTORE_LITERAL_DOTS_' . count($literalDotMap) . '__';
             $literalDotMap[$token] = $matches[0] === '..' ? '.' : $matches[0];
@@ -1836,9 +1841,9 @@ function fillWordTemplateXml(string $xml, array $sections, array $intestazioneLi
 
     setWordParagraphHeader($dom, $xpath, '(//w:body/w:p)[2]', $intestazioneLines);
 
+    $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
     $table = $xpath->query('//w:tbl')->item(0);
     if ($table instanceof DOMElement) {
-        $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
         $firstRow = $xpath->query('.//w:tr', $table)->item(0);
         $headerRow = $dom->createElementNS($ns, 'w:tr');
         $headerCell = $dom->createElementNS($ns, 'w:tc');
@@ -1855,17 +1860,22 @@ function fillWordTemplateXml(string $xml, array $sections, array $intestazioneLi
         } else {
             $table->appendChild($headerRow);
         }
+    }
 
-        $labels = [
-            'Competenze raggiunte',
-            'Conoscenze o contenuti trattati',
-            "Abilita'",
-            'Metodologie',
-            'Criteri di valutazione',
-            'Testi e materiali / strumenti adottati',
-        ];
-        $labelIndex = 0;
-        foreach ($xpath->query('.//w:tr', $table) as $row) {
+    $labels = [
+        'Competenze raggiunte',
+        'Conoscenze o contenuti trattati',
+        "Abilita'",
+        'Metodologie',
+        'Criteri di valutazione',
+        'Testi e materiali / strumenti adottati',
+    ];
+    $labelIndex = 0;
+    foreach ($xpath->query('//w:tbl') as $styleTable) {
+        if (!$styleTable instanceof DOMElement) {
+            continue;
+        }
+        foreach ($xpath->query('./w:tr', $styleTable) as $row) {
             if (!$row instanceof DOMElement) {
                 continue;
             }
