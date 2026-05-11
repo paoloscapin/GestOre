@@ -24,6 +24,24 @@ CREATE TABLE IF NOT EXISTS `mastercom_noirc_docenti_assegnazioni` (
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `mastercom_noirc_aula_classi` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `giorno_settimana` TINYINT NOT NULL,
+  `ora` VARCHAR(5) NOT NULL,
+  `classe_label` VARCHAR(30) NOT NULL,
+  `aula` VARCHAR(50) NOT NULL,
+  `data_inizio` DATE NOT NULL,
+  `data_fine` DATE NOT NULL,
+  `note` VARCHAR(255) NULL,
+  `attivo` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_mastercom_noirc_aula_classi_slot` (`giorno_settimana`, `ora`),
+  KEY `idx_mastercom_noirc_aula_classi_classe` (`classe_label`),
+  KEY `idx_mastercom_noirc_aula_classi_periodo` (`data_inizio`, `data_fine`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `mastercom_noirc_appelli` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `data_giorno` DATE NOT NULL,
