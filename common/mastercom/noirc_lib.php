@@ -110,7 +110,14 @@ function mastercomNoIrcMastercomClassBaseLabel(?string $className): string
     }
 
     $parts = preg_split('/\s+/', $className);
-    return mastercomNoIrcNormalizeClassLabel((string)($parts[0] ?? ''));
+    $first = mastercomNoIrcNormalizeClassLabel((string)($parts[0] ?? ''));
+    $second = mastercomNoIrcNormalizeClassLabel((string)($parts[1] ?? ''));
+
+    if ($first !== '' && preg_match('/^\d+$/', $first) && $second !== '' && preg_match('/^[A-Z]+$/', $second)) {
+        return $first . $second;
+    }
+
+    return $first;
 }
 
 function mastercomNoIrcChoiceCode(?string $choiceDescription): string
@@ -161,9 +168,15 @@ function mastercomNoIrcOptionalTables(): array
 {
     return [
         'mastercom_noirc_docenti_assegnazioni',
+        'mastercom_noirc_aula_classi',
         'mastercom_noirc_appelli',
         'mastercom_noirc_appello_studenti',
     ];
+}
+
+function mastercomNoIrcDefaultRooms(): array
+{
+    return ['246', '128'];
 }
 
 function mastercomNoIrcAssignmentExtraColumns(): array
@@ -194,7 +207,177 @@ function mastercomNoIrcParseClassFilter(?string $classiIncluse): array
     return array_values(array_keys($values));
 }
 
-function mastercomNoIrcLoadStudentPoolsByClass(): array
+function mastercomNoIrcExtractStudentsList(array $studentsResult): array
+{
+    $result = $studentsResult['response']['result'] ?? null;
+    if (!is_array($result)) {
+        return [];
+    }
+
+    if (isset($result['students']) && is_array($result['students'])) {
+        return $result['students'];
+    }
+
+    if (isset($result['studenti']) && is_array($result['studenti'])) {
+        return $result['studenti'];
+    }
+
+    return $result;
+}
+
+function mastercomNoIrcMapLiveReligionExemption(array $student): ?int
+{
+    foreach (['esonero_religione', 'esoneroReligione'] as $key) {
+        if (array_key_exists($key, $student)) {
+            $value = $student[$key];
+            if ($value === null || $value === '') {
+                return null;
+            }
+            if (is_numeric($value)) {
+                return intval($value) === 1 ? 1 : 0;
+            }
+
+            return mastercomAdminMapReligionExemptionValue($value);
+        }
+    }
+
+    foreach (['irc', 'IRC', 'religione', 'Religione', 'relig', 'relig.'] as $key) {
+        if (!array_key_exists($key, $student)) {
+            continue;
+        }
+
+        $normalized = mastercomAdminNorm((string)$student[$key]);
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (in_array($normalized, ['SI', 'S', '1', 'TRUE'], true)) {
+            return 0;
+        }
+
+        if (in_array($normalized, ['NO', 'N', '0', 'FALSE'], true)) {
+            return 1;
+        }
+    }
+
+    return null;
+}
+
+function mastercomNoIrcLoadClassIdsByLabel(array $classLabels): array
+{
+    $wanted = [];
+    foreach ($classLabels as $classLabel) {
+        $classLabel = mastercomNoIrcNormalizeClassLabel($classLabel);
+        if ($classLabel !== '') {
+            $wanted[$classLabel] = true;
+        }
+    }
+
+    if (empty($wanted)) {
+        return [];
+    }
+
+    $rows = dbGetAll("
+        SELECT mastercom_id_classe, nome
+        FROM mastercom_classi
+        WHERE mastercom_id_classe IS NOT NULL
+          AND mastercom_id_classe > 0
+    ") ?: [];
+
+    $map = [];
+    foreach ($rows as $row) {
+        $label = mastercomNoIrcMastercomClassBaseLabel($row['nome'] ?? '');
+        if ($label === '' || !isset($wanted[$label])) {
+            continue;
+        }
+        $map[$label] = intval($row['mastercom_id_classe'] ?? 0);
+    }
+
+    return $map;
+}
+
+function mastercomNoIrcLoadMirrorStudentsByMastercomId(array $classIds): array
+{
+    if (empty($classIds)) {
+        return [];
+    }
+
+    $ids = array_values(array_filter(array_map('intval', $classIds), function ($id) {
+        return $id > 0;
+    }));
+    if (empty($ids)) {
+        return [];
+    }
+
+    $hasAlternativeColumn = mastercomAdminTableColumnExists('mastercom_studenti', 'descrizione_materia_integrativa');
+    $alternativeSql = $hasAlternativeColumn
+        ? "s.descrizione_materia_integrativa AS descrizione_materia_integrativa,"
+        : "NULL AS descrizione_materia_integrativa,";
+
+    $rows = dbGetAll("
+        SELECT
+            s.mastercom_id_studente,
+            s.id_studente_gestore,
+            s.cognome,
+            s.nome,
+            s.registro_numero,
+            s.esonero_religione,
+            $alternativeSql
+            s.raw_json
+        FROM mastercom_studenti s
+        WHERE s.mastercom_id_classe_corrente IN (" . implode(',', $ids) . ")
+    ") ?: [];
+
+    $map = [];
+    foreach ($rows as $row) {
+        $studentId = intval($row['mastercom_id_studente'] ?? 0);
+        if ($studentId > 0) {
+            $map[$studentId] = $row;
+        }
+    }
+
+    return $map;
+}
+
+function mastercomNoIrcAddStudentToPool(array &$pools, string $classLabel, array $student): void
+{
+    if ($classLabel === '') {
+        return;
+    }
+
+    if (!isset($pools[$classLabel])) {
+        $pools[$classLabel] = [
+            'included' => [],
+            'excluded_outside_count' => 0,
+            'unknown_choice_count' => 0,
+        ];
+    }
+
+    if (($student['scelta_descrizione'] ?? '') === '') {
+        $pools[$classLabel]['unknown_choice_count']++;
+    }
+
+    if (!empty($student['scelta_fuori_scuola'])) {
+        $pools[$classLabel]['excluded_outside_count']++;
+        return;
+    }
+
+    $pools[$classLabel]['included'][] = $student;
+}
+
+function mastercomNoIrcSortStudentPools(array &$pools): void
+{
+    foreach ($pools as &$pool) {
+        usort($pool['included'], function ($left, $right) {
+            $leftKey = trim((string)($left['cognome'] ?? '')) . ' ' . trim((string)($left['nome'] ?? ''));
+            $rightKey = trim((string)($right['cognome'] ?? '')) . ' ' . trim((string)($right['nome'] ?? ''));
+            return strnatcasecmp($leftKey, $rightKey);
+        });
+    }
+    unset($pool);
+}
+
+function mastercomNoIrcLoadStudentPoolsByClassFromMirror(): array
 {
     global $__anno_scolastico_corrente_id;
 
@@ -234,10 +417,13 @@ function mastercomNoIrcLoadStudentPoolsByClass(): array
 
     $pools = [];
     foreach ($rows as $row) {
-        $classLabel = mastercomNoIrcNormalizeClassLabel($row['classe_locale'] ?? '');
-        if ($classLabel === '') {
-            $classLabel = mastercomNoIrcMastercomClassBaseLabel($row['classe_mastercom'] ?? '');
+        $localClassLabel = mastercomNoIrcNormalizeClassLabel($row['classe_locale'] ?? '');
+        $mastercomClassLabel = mastercomNoIrcMastercomClassBaseLabel($row['classe_mastercom'] ?? '');
+        if ($localClassLabel !== '' && $mastercomClassLabel !== '' && $localClassLabel !== $mastercomClassLabel) {
+            continue;
         }
+
+        $classLabel = $localClassLabel !== '' ? $localClassLabel : $mastercomClassLabel;
         if ($classLabel === '') {
             continue;
         }
@@ -247,14 +433,6 @@ function mastercomNoIrcLoadStudentPoolsByClass(): array
         $choiceDescription = mastercomAdminCleanText($row['descrizione_materia_integrativa'] ?? '') ?? '';
         if ($choiceDescription === '' && !empty($csvExport)) {
             $choiceDescription = mastercomAdminCleanText($csvExport['descrizione_materia_integrativa'] ?? '') ?? '';
-        }
-
-        if (!isset($pools[$classLabel])) {
-            $pools[$classLabel] = [
-                'included' => [],
-                'excluded_outside_count' => 0,
-                'unknown_choice_count' => 0,
-            ];
         }
 
         $student = [
@@ -269,28 +447,54 @@ function mastercomNoIrcLoadStudentPoolsByClass(): array
             'scelta_fuori_scuola' => mastercomNoIrcIsOutsideSchoolChoice($choiceDescription),
         ];
 
-        if ($student['scelta_descrizione'] === '') {
-            $pools[$classLabel]['unknown_choice_count']++;
-        }
+        mastercomNoIrcAddStudentToPool($pools, $classLabel, $student);
+    }
 
-        if ($student['scelta_fuori_scuola']) {
-            $pools[$classLabel]['excluded_outside_count']++;
+    mastercomNoIrcSortStudentPools($pools);
+
+    return $pools;
+}
+
+function mastercomNoIrcLoadStudentPoolsByClass(array $classLabels = []): array
+{
+    return mastercomNoIrcLoadStudentPoolsByClassFromMirror();
+}
+
+function mastercomNoIrcRefreshStudentMirrorForClasses(array $classLabels): array
+{
+    $classIdsByLabel = mastercomNoIrcLoadClassIdsByLabel($classLabels);
+    if (empty($classIdsByLabel)) {
+        return [
+            'ok' => false,
+            'message' => 'Nessuna classe MasterCom trovata per la settimana selezionata',
+            'updated_classes' => 0,
+        ];
+    }
+
+    $updatedClasses = 0;
+    $updatedStudents = 0;
+    $errors = [];
+
+    foreach ($classIdsByLabel as $classLabel => $classId) {
+        $syncResult = mastercomAdminSyncStudentsForClass(intval($classId));
+        if (empty($syncResult['ok'])) {
+            $errors[] = $classLabel . ': ' . trim((string)($syncResult['message'] ?? 'sincronizzazione fallita'));
             continue;
         }
 
-        $pools[$classLabel]['included'][] = $student;
+        $updatedClasses++;
+        $updatedStudents += intval($syncResult['updated'] ?? 0);
     }
 
-    foreach ($pools as &$pool) {
-        usort($pool['included'], function ($left, $right) {
-            $leftKey = trim((string)($left['cognome'] ?? '')) . ' ' . trim((string)($left['nome'] ?? ''));
-            $rightKey = trim((string)($right['cognome'] ?? '')) . ' ' . trim((string)($right['nome'] ?? ''));
-            return strnatcasecmp($leftKey, $rightKey);
-        });
-    }
-    unset($pool);
-
-    return $pools;
+    return [
+        'ok' => empty($errors),
+        'message' => empty($errors)
+            ? ('Dati NO IRC aggiornati da MasterCom per ' . $updatedClasses . ' classi')
+            : ('Aggiornamento parziale: ' . implode(' | ', $errors)),
+        'updated_classes' => $updatedClasses,
+        'updated_students' => $updatedStudents,
+        'errors' => $errors,
+    ];
 }
 
 function mastercomNoIrcLoadIrcLessons(string $weekStart, string $weekEnd): array
@@ -353,6 +557,21 @@ function mastercomNoIrcLoadIrcLessons(string $weekStart, string $weekEnd): array
     return $lessons;
 }
 
+function mastercomNoIrcClassLabelsFromLessons(array $lessons): array
+{
+    $labels = [];
+    foreach ($lessons as $lesson) {
+        foreach (($lesson['classi'] ?? []) as $classLabel) {
+            $classLabel = mastercomNoIrcNormalizeClassLabel($classLabel);
+            if ($classLabel !== '') {
+                $labels[$classLabel] = true;
+            }
+        }
+    }
+
+    return array_values(array_keys($labels));
+}
+
 function mastercomNoIrcLoadAssignments(string $weekStart, string $weekEnd): array
 {
     if (!mastercomAdminTableExists('mastercom_noirc_docenti_assegnazioni')) {
@@ -411,12 +630,123 @@ function mastercomNoIrcLoadAssignments(string $weekStart, string $weekEnd): arra
     return $map;
 }
 
+function mastercomNoIrcLoadRoomAssignments(string $weekStart, string $weekEnd): array
+{
+    if (!mastercomAdminTableExists('mastercom_noirc_aula_classi')) {
+        return [];
+    }
+
+    $weekStart = mastercomNoIrcNormalizeDate($weekStart);
+    $weekEnd = mastercomNoIrcNormalizeDate($weekEnd);
+
+    $rows = dbGetAll("
+        SELECT *
+        FROM mastercom_noirc_aula_classi
+        WHERE attivo = 1
+          AND data_inizio <= " . dbQ($weekEnd) . "
+          AND data_fine >= " . dbQ($weekStart) . "
+        ORDER BY giorno_settimana ASC, ora ASC, classe_label ASC, data_inizio DESC
+    ") ?: [];
+
+    $map = [];
+    foreach ($rows as $row) {
+        $weekday = intval($row['giorno_settimana'] ?? 0);
+        $hour = mastercomNoIrcNormalizeHour($row['ora'] ?? '');
+        $classLabel = mastercomNoIrcNormalizeClassLabel($row['classe_label'] ?? '');
+        $room = trim((string)($row['aula'] ?? ''));
+        if ($weekday <= 0 || $hour === '' || $classLabel === '' || $room === '') {
+            continue;
+        }
+
+        $key = $weekday . '|' . $hour;
+        if (!isset($map[$key])) {
+            $map[$key] = [];
+        }
+        if (!isset($map[$key][$classLabel])) {
+            $map[$key][$classLabel] = [
+                'aula' => $room,
+                'data_inizio' => trim((string)($row['data_inizio'] ?? '')),
+                'data_fine' => trim((string)($row['data_fine'] ?? '')),
+                'note' => trim((string)($row['note'] ?? '')),
+            ];
+        }
+    }
+
+    return $map;
+}
+
+function mastercomNoIrcSaveRoomSetup(array $payload): array
+{
+    if (!mastercomAdminTableExists('mastercom_noirc_aula_classi')) {
+        return ['ok' => false, 'error' => 'Tabella mastercom_noirc_aula_classi mancante'];
+    }
+
+    $weekday = intval($payload['giorno_settimana'] ?? 0);
+    $hour = mastercomNoIrcNormalizeHour($payload['ora'] ?? '');
+    $startDate = mastercomNoIrcNormalizeDate((string)($payload['data_inizio'] ?? ''));
+    $endDate = mastercomNoIrcNormalizeDate((string)($payload['data_fine'] ?? ''));
+    $roomsByClass = is_array($payload['room_assignments'] ?? null) ? $payload['room_assignments'] : [];
+    $allowedRooms = array_flip(mastercomNoIrcDefaultRooms());
+
+    if ($weekday < 1 || $weekday > 6) {
+        return ['ok' => false, 'error' => 'Giorno non valido'];
+    }
+    if ($hour === '') {
+        return ['ok' => false, 'error' => 'Ora non valida'];
+    }
+    if ($endDate < $startDate) {
+        return ['ok' => false, 'error' => 'La data fine non puo essere precedente alla data inizio'];
+    }
+    if (empty($roomsByClass)) {
+        return ['ok' => false, 'error' => 'Nessuna classe da assegnare'];
+    }
+
+    $normalized = [];
+    foreach ($roomsByClass as $classLabel => $room) {
+        $classLabel = mastercomNoIrcNormalizeClassLabel(rawurldecode((string)$classLabel));
+        $room = trim((string)$room);
+        if ($classLabel === '' || $room === '') {
+            continue;
+        }
+        if (!isset($allowedRooms[$room])) {
+            $room = '246';
+        }
+        $normalized[$classLabel] = $room;
+    }
+
+    if (empty($normalized)) {
+        return ['ok' => false, 'error' => 'Nessuna assegnazione valida'];
+    }
+
+    $classSql = implode(', ', array_map('dbQ', array_keys($normalized)));
+    dbExec("
+        DELETE FROM mastercom_noirc_aula_classi
+        WHERE giorno_settimana = " . dbI($weekday) . "
+          AND ora = " . dbQ($hour) . "
+          AND classe_label IN ($classSql)
+          AND data_inizio <= " . dbQ($endDate) . "
+          AND data_fine >= " . dbQ($startDate) . "
+    ");
+
+    foreach ($normalized as $classLabel => $room) {
+        dbExec("
+            INSERT INTO mastercom_noirc_aula_classi
+                (giorno_settimana, ora, classe_label, aula, data_inizio, data_fine, attivo, created_at, updated_at)
+            VALUES
+                (" . dbI($weekday) . ", " . dbQ($hour) . ", " . dbQ($classLabel) . ", " . dbQ($room) . ", " . dbQ($startDate) . ", " . dbQ($endDate) . ", 1, NOW(), NOW())
+        ");
+    }
+
+    return ['ok' => true, 'count' => count($normalized)];
+}
+
 function mastercomNoIrcBuildWeekSlots(string $referenceDate): array
 {
     $week = mastercomNoIrcWeekContext($referenceDate);
-    $studentPools = mastercomNoIrcLoadStudentPoolsByClass();
     $assignmentsMap = mastercomNoIrcLoadAssignments($week['week_start'], $week['week_end']);
+    $roomAssignmentsMap = mastercomNoIrcLoadRoomAssignments($week['week_start'], $week['week_end']);
     $lessons = mastercomNoIrcLoadIrcLessons($week['week_start'], $week['week_end']);
+    $studentPools = mastercomNoIrcLoadStudentPoolsByClass(mastercomNoIrcClassLabelsFromLessons($lessons));
     $slots = [];
     $hoursUsed = [];
     $distinctStudents = [];
@@ -441,6 +771,7 @@ function mastercomNoIrcBuildWeekSlots(string $referenceDate): array
                 'excluded_outside_count' => 0,
                 'unknown_choice_count' => 0,
                 'assignments' => $assignmentsMap[$assignmentKey] ?? [],
+                'room_setup' => $roomAssignmentsMap[$assignmentKey] ?? [],
                 'group_buckets' => [],
             ];
         }
@@ -497,47 +828,40 @@ function mastercomNoIrcBuildWeekSlots(string $referenceDate): array
         ksort($slot['students_by_class']);
 
         $groupBuckets = [];
-        foreach ($slot['assignments'] as $assignment) {
-            $assignmentId = intval($assignment['id'] ?? 0);
-            $bucketKey = $assignmentId > 0 ? ('assignment:' . $assignmentId) : ('group:' . ($assignment['group_label'] ?? 'A'));
-            $groupBuckets[$bucketKey] = [
-                'type' => 'assignment',
-                'group_label' => trim((string)($assignment['group_label'] ?? 'A')),
-                'teacher_name' => trim((string)($assignment['teacher_name'] ?? '')),
-                'aula' => trim((string)($assignment['aula'] ?? '')),
-                'note' => trim((string)($assignment['note'] ?? '')),
-                'class_filters' => array_values($assignment['class_filters'] ?? []),
-                'class_filters_raw' => trim((string)($assignment['class_filters_raw'] ?? '')),
-                'capienza_massima' => intval($assignment['capienza_massima'] ?? 0),
-                'students' => [],
-            ];
-        }
-
-        foreach ($slot['students_by_class'] as $classLabel => $students) {
-            $matchedBucketKey = null;
-            foreach ($slot['assignments'] as $assignment) {
-                $assignmentId = intval($assignment['id'] ?? 0);
-                $bucketKey = $assignmentId > 0 ? ('assignment:' . $assignmentId) : ('group:' . ($assignment['group_label'] ?? 'A'));
-                $classFilters = array_values($assignment['class_filters'] ?? []);
-                if (!empty($classFilters) && in_array($classLabel, $classFilters, true)) {
-                    $matchedBucketKey = $bucketKey;
-                    break;
+        if (!empty($slot['room_setup'])) {
+            foreach (mastercomNoIrcDefaultRooms() as $room) {
+                $assignmentForRoom = null;
+                foreach ($slot['assignments'] as $assignment) {
+                    if (trim((string)($assignment['aula'] ?? '')) === $room) {
+                        $assignmentForRoom = $assignment;
+                        break;
+                    }
                 }
+                $groupBuckets['room:' . $room] = [
+                    'type' => 'room_setup',
+                    'group_label' => 'Aula ' . $room,
+                    'teacher_name' => $assignmentForRoom !== null ? trim((string)($assignmentForRoom['teacher_name'] ?? '')) : '',
+                    'aula' => $room,
+                    'note' => $assignmentForRoom !== null ? trim((string)($assignmentForRoom['note'] ?? '')) : '',
+                    'class_filters' => [],
+                    'class_filters_raw' => '',
+                    'capienza_massima' => $room === '246' ? 0 : 0,
+                    'students' => [],
+                ];
             }
 
-            if ($matchedBucketKey === null && count($slot['assignments']) === 1) {
-                $onlyAssignment = $slot['assignments'][0];
-                $assignmentId = intval($onlyAssignment['id'] ?? 0);
-                $matchedBucketKey = $assignmentId > 0 ? ('assignment:' . $assignmentId) : ('group:' . ($onlyAssignment['group_label'] ?? 'A'));
-            }
-
-            if ($matchedBucketKey === null) {
-                if (!isset($groupBuckets['unassigned'])) {
-                    $groupBuckets['unassigned'] = [
-                        'type' => 'unassigned',
-                        'group_label' => 'Da distribuire',
+            foreach ($slot['students_by_class'] as $classLabel => $students) {
+                $room = trim((string)($slot['room_setup'][$classLabel]['aula'] ?? '246'));
+                if ($room === '') {
+                    $room = '246';
+                }
+                $bucketKey = 'room:' . $room;
+                if (!isset($groupBuckets[$bucketKey])) {
+                    $groupBuckets[$bucketKey] = [
+                        'type' => 'room_setup',
+                        'group_label' => 'Aula ' . $room,
                         'teacher_name' => '',
-                        'aula' => '',
+                        'aula' => $room,
                         'note' => '',
                         'class_filters' => [],
                         'class_filters_raw' => '',
@@ -545,11 +869,73 @@ function mastercomNoIrcBuildWeekSlots(string $referenceDate): array
                         'students' => [],
                     ];
                 }
-                $matchedBucketKey = 'unassigned';
+                $groupBuckets[$bucketKey]['class_filters'][] = $classLabel;
+                foreach ($students as $student) {
+                    $groupBuckets[$bucketKey]['students'][] = $student;
+                }
             }
 
-            foreach ($students as $student) {
-                $groupBuckets[$matchedBucketKey]['students'][] = $student;
+            foreach ($groupBuckets as &$bucket) {
+                $bucket['class_filters'] = array_values(array_unique($bucket['class_filters']));
+                sort($bucket['class_filters']);
+                $bucket['class_filters_raw'] = implode(' ', $bucket['class_filters']);
+            }
+            unset($bucket);
+        } else {
+            foreach ($slot['assignments'] as $assignment) {
+                $assignmentId = intval($assignment['id'] ?? 0);
+                $bucketKey = $assignmentId > 0 ? ('assignment:' . $assignmentId) : ('group:' . ($assignment['group_label'] ?? 'A'));
+                $groupBuckets[$bucketKey] = [
+                    'type' => 'assignment',
+                    'group_label' => trim((string)($assignment['group_label'] ?? 'A')),
+                    'teacher_name' => trim((string)($assignment['teacher_name'] ?? '')),
+                    'aula' => trim((string)($assignment['aula'] ?? '')),
+                    'note' => trim((string)($assignment['note'] ?? '')),
+                    'class_filters' => array_values($assignment['class_filters'] ?? []),
+                    'class_filters_raw' => trim((string)($assignment['class_filters_raw'] ?? '')),
+                    'capienza_massima' => intval($assignment['capienza_massima'] ?? 0),
+                    'students' => [],
+                ];
+            }
+
+            foreach ($slot['students_by_class'] as $classLabel => $students) {
+                $matchedBucketKey = null;
+                foreach ($slot['assignments'] as $assignment) {
+                    $assignmentId = intval($assignment['id'] ?? 0);
+                    $bucketKey = $assignmentId > 0 ? ('assignment:' . $assignmentId) : ('group:' . ($assignment['group_label'] ?? 'A'));
+                    $classFilters = array_values($assignment['class_filters'] ?? []);
+                    if (!empty($classFilters) && in_array($classLabel, $classFilters, true)) {
+                        $matchedBucketKey = $bucketKey;
+                        break;
+                    }
+                }
+
+                if ($matchedBucketKey === null && count($slot['assignments']) === 1) {
+                    $onlyAssignment = $slot['assignments'][0];
+                    $assignmentId = intval($onlyAssignment['id'] ?? 0);
+                    $matchedBucketKey = $assignmentId > 0 ? ('assignment:' . $assignmentId) : ('group:' . ($onlyAssignment['group_label'] ?? 'A'));
+                }
+
+                if ($matchedBucketKey === null) {
+                    if (!isset($groupBuckets['unassigned'])) {
+                        $groupBuckets['unassigned'] = [
+                            'type' => 'unassigned',
+                            'group_label' => 'Da distribuire',
+                            'teacher_name' => '',
+                            'aula' => '',
+                            'note' => '',
+                            'class_filters' => [],
+                            'class_filters_raw' => '',
+                            'capienza_massima' => 0,
+                            'students' => [],
+                        ];
+                    }
+                    $matchedBucketKey = 'unassigned';
+                }
+
+                foreach ($students as $student) {
+                    $groupBuckets[$matchedBucketKey]['students'][] = $student;
+                }
             }
         }
 
@@ -611,9 +997,7 @@ function mastercomNoIrcValidateAssignmentPayload(array $payload): array
     $endDate = mastercomNoIrcNormalizeDate((string)($payload['data_fine'] ?? ''));
     $aula = trim((string)($payload['aula'] ?? ''));
     $note = trim((string)($payload['note'] ?? ''));
-    $groupLabel = strtoupper(trim((string)($payload['gruppo_label'] ?? 'A')));
-    $classiIncluse = trim((string)($payload['classi_incluse'] ?? ''));
-    $capienzaMassima = max(0, intval($payload['capienza_massima'] ?? 0));
+    $allowedRooms = array_flip(mastercomNoIrcDefaultRooms());
 
     if ($teacherId <= 0) {
         return ['ok' => false, 'error' => 'Seleziona un docente'];
@@ -627,8 +1011,8 @@ function mastercomNoIrcValidateAssignmentPayload(array $payload): array
     if ($endDate < $startDate) {
         return ['ok' => false, 'error' => 'La data fine non puo essere precedente alla data inizio'];
     }
-    if ($groupLabel === '') {
-        $groupLabel = 'A';
+    if (!isset($allowedRooms[$aula])) {
+        return ['ok' => false, 'error' => 'Seleziona una delle aule configurate'];
     }
 
     return [
@@ -641,9 +1025,9 @@ function mastercomNoIrcValidateAssignmentPayload(array $payload): array
             'data_fine' => $endDate,
             'aula' => $aula,
             'note' => $note,
-            'gruppo_label' => $groupLabel,
-            'classi_incluse' => $classiIncluse,
-            'capienza_massima' => $capienzaMassima,
+            'gruppo_label' => '',
+            'classi_incluse' => '',
+            'capienza_massima' => 0,
         ],
     ];
 }

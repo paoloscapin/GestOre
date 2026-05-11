@@ -1193,7 +1193,9 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
                 'descrizione_indirizzo' => mastercomAdminCleanText($masterStudent['descrizione_indirizzi'] ?? null),
                 'tipo_indirizzo' => isset($masterStudent['tipo_indirizzo']) ? intval($masterStudent['tipo_indirizzo']) : null,
                 'ordinamento' => isset($masterStudent['ordinamento']) ? intval($masterStudent['ordinamento']) : null,
-                'esonero_religione' => isset($masterStudent['esonero_religione']) ? intval($masterStudent['esonero_religione']) : ($extraData['esonero_religione'] ?? null),
+                'esonero_religione' => array_key_exists('esonero_religione', $masterStudent)
+                    ? mastercomAdminMapReligionExemptionValue($masterStudent['esonero_religione'])
+                    : ($extraData['esonero_religione'] ?? null),
                 'esonero_ed_fisica' => isset($masterStudent['esonero_ed_fisica']) ? intval($masterStudent['esonero_ed_fisica']) : null,
                 'servizio_mensa' => isset($masterStudent['servizio_mensa']) ? intval($masterStudent['servizio_mensa']) : null,
                 'necessita_sostegno' => isset($masterStudent['necessita_sostegno']) ? intval($masterStudent['necessita_sostegno']) : null,

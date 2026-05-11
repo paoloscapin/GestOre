@@ -10,7 +10,7 @@
 require_once __DIR__ . '/../checkSession.php';
 require_once __DIR__ . '/../__MasterCom.php';
 
-ruoloRichiesto('segreteria-didattica', 'dirigente');
+ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -43,7 +43,7 @@ if (!$authResult['ok']) {
 $submitResult = mastercomSubmitAdminAbsenceAction($authResult, $requestData, [
     'method' => 'POST',
     'timeout' => 120,
-    'send_in_body' => true,
+    'send_in_body' => false,
 ]);
 
 if (!$submitResult['ok']) {
@@ -64,4 +64,3 @@ echo json_encode([
     'stato_principale' => $requestData['stato_principale'] ?? null,
     'stato_secondario' => $requestData['stato_secondario'] ?? null,
 ], JSON_UNESCAPED_UNICODE);
-
