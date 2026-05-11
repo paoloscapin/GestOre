@@ -82,6 +82,117 @@ function mastercomConfiguredPasswordByProfile(string $profile = 'MasterComAuth')
     return trim((string)($__settings->{$profile}->clientSecret ?? ''));
 }
 
+function mastercomAuthCacheAvailable(): bool
+{
+    return session_status() === PHP_SESSION_ACTIVE;
+}
+
+function mastercomAuthCacheKey(string $profile, string $username): string
+{
+    return $profile . ':' . sha1($username);
+}
+
+function mastercomBase64UrlDecode(string $value): string
+{
+    $value = strtr($value, '-_', '+/');
+    $padding = strlen($value) % 4;
+    if ($padding > 0) {
+        $value .= str_repeat('=', 4 - $padding);
+    }
+
+    $decoded = base64_decode($value, true);
+    return $decoded === false ? '' : $decoded;
+}
+
+function mastercomTokenExpiresAt(?string $token): int
+{
+    $token = trim((string)$token);
+    $parts = explode('.', $token);
+    if (count($parts) < 2) {
+        return 0;
+    }
+
+    $payload = json_decode(mastercomBase64UrlDecode($parts[1]), true);
+    if (!is_array($payload)) {
+        return 0;
+    }
+
+    $expiresAt = intval($payload['expiration'] ?? $payload['exp'] ?? 0);
+    return $expiresAt > 0 ? $expiresAt : 0;
+}
+
+function mastercomRememberAuthResult(string $profile, string $username, array $authResult): array
+{
+    $authResult['_mastercom_profile'] = $profile;
+    $authResult['_mastercom_cached'] = false;
+
+    if (!mastercomAuthCacheAvailable() || empty($authResult['ok'])) {
+        return $authResult;
+    }
+
+    $currentKey = mastercomCurrentKey($authResult);
+    $expiresAt = mastercomTokenExpiresAt($currentKey);
+    if ($expiresAt <= 0) {
+        $expiresAt = time() + 1800;
+    }
+
+    if (!isset($_SESSION['mastercom_auth_cache']) || !is_array($_SESSION['mastercom_auth_cache'])) {
+        $_SESSION['mastercom_auth_cache'] = [];
+    }
+
+    $_SESSION['mastercom_auth_cache'][mastercomAuthCacheKey($profile, $username)] = [
+        'profile' => $profile,
+        'username_hash' => sha1($username),
+        'current_key' => $currentKey,
+        'expires_at' => $expiresAt,
+        'auth_result' => $authResult,
+    ];
+
+    return $authResult;
+}
+
+function mastercomCachedAuthResult(string $profile, string $username): ?array
+{
+    if (!mastercomAuthCacheAvailable()) {
+        return null;
+    }
+
+    $cacheKey = mastercomAuthCacheKey($profile, $username);
+    $entry = $_SESSION['mastercom_auth_cache'][$cacheKey] ?? null;
+    if (!is_array($entry) || !isset($entry['auth_result']) || !is_array($entry['auth_result'])) {
+        return null;
+    }
+
+    if (intval($entry['expires_at'] ?? 0) <= time() + 60) {
+        unset($_SESSION['mastercom_auth_cache'][$cacheKey]);
+        return null;
+    }
+
+    $authResult = $entry['auth_result'];
+    $authResult['_mastercom_profile'] = $profile;
+    $authResult['_mastercom_cached'] = true;
+    return $authResult;
+}
+
+function mastercomInvalidateAuthCache(?string $currentKey = null): void
+{
+    if (!mastercomAuthCacheAvailable() || empty($_SESSION['mastercom_auth_cache']) || !is_array($_SESSION['mastercom_auth_cache'])) {
+        return;
+    }
+
+    $currentKey = trim((string)$currentKey);
+    if ($currentKey === '') {
+        $_SESSION['mastercom_auth_cache'] = [];
+        return;
+    }
+
+    foreach ($_SESSION['mastercom_auth_cache'] as $cacheKey => $entry) {
+        if (is_array($entry) && trim((string)($entry['current_key'] ?? '')) === $currentKey) {
+            unset($_SESSION['mastercom_auth_cache'][$cacheKey]);
+        }
+    }
+}
+
 function mastercomRequest(array $queryParams, array $options = []): array
 {
     $baseUrl = trim((string)($options['base_url'] ?? mastercomBaseUrl()));
@@ -181,6 +292,9 @@ function mastercomRequest(array $queryParams, array $options = []): array
 
     $isListResponse = array_keys($decoded) === range(0, count($decoded) - 1);
     $isOk = $isListResponse || !empty($decoded['auth']);
+    if (!$isOk && array_key_exists('auth', $decoded) && $decoded['auth'] === false) {
+        mastercomInvalidateAuthCache($queryParams['current_key'] ?? null);
+    }
 
     return [
         'ok' => $isOk,
@@ -292,7 +406,15 @@ function mastercomAuthenticateService(array $options = []): array
         ];
     }
 
-    return mastercomAuthenticate($username, $password, $options);
+    if (empty($options['force_refresh'])) {
+        $cachedAuth = mastercomCachedAuthResult($profile, $username);
+        if ($cachedAuth !== null) {
+            return $cachedAuth;
+        }
+    }
+
+    $authResult = mastercomAuthenticate($username, $password, $options);
+    return mastercomRememberAuthResult($profile, $username, $authResult);
 }
 
 function mastercomAuthenticatedRequest(array $queryParams, array $authResult, array $options = []): array
@@ -910,13 +1032,19 @@ function mastercomLoadParentDetails(array $authResult, int $parentId, array $opt
 
 function mastercomCurrentKey(array $authResult): ?string
 {
-    return $authResult['response']['result']['current_key'] ?? null;
+    return $authResult['response']['result']['current_key']
+        ?? $authResult['response']['result']['utente']['current_key']
+        ?? null;
 }
 
 function mastercomCurrentUser(array $authResult): ?int
 {
-    if (!isset($authResult['response']['result']['current_user'])) {
+    $currentUser = $authResult['response']['result']['current_user']
+        ?? $authResult['response']['result']['utente']['current_user']
+        ?? null;
+
+    if ($currentUser === null) {
         return null;
     }
-    return intval($authResult['response']['result']['current_user']);
+    return intval($currentUser);
 }
