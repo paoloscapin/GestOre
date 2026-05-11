@@ -23,6 +23,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && trim((string)($_POST['action'] ?? '
         $error = trim((string)($saveResult['error'] ?? 'Errore salvataggio setup aule'));
     }
 }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && trim((string)($_POST['action'] ?? '')) === 'refresh_noirc_students') {
+    $classLabels = [];
+    foreach (($context['slots'] ?? []) as $slot) {
+        foreach (($slot['classi_irc'] ?? []) as $classLabel) {
+            $classLabel = mastercomNoIrcNormalizeClassLabel((string)$classLabel);
+            if ($classLabel !== '') {
+                $classLabels[$classLabel] = true;
+            }
+        }
+    }
+
+    $refreshResult = mastercomNoIrcRefreshStudentMirrorForClasses(array_keys($classLabels));
+    if (!empty($refreshResult['ok'])) {
+        $message = trim((string)($refreshResult['message'] ?? 'Dati NO IRC aggiornati da MasterCom'));
+    } else {
+        $error = trim((string)($refreshResult['message'] ?? 'Aggiornamento dati NO IRC da MasterCom fallito'));
+    }
+    $context = mastercomNoIrcBuildWeekSlots($weekContext['reference_date']);
+}
 
 $missingTables = mastercomAdminMissingTables(['mastercom_noirc_aula_classi']);
 $weekdayLabels = mastercomNoIrcWeekdayLabels();
@@ -123,9 +142,9 @@ function mastercomNoIrcRoomsStudentCount(array $students): int
 <div id="noirc_room_saving_overlay" aria-live="polite" aria-busy="true">
     <div class="noirc-room-saving-card">
         <span class="glyphicon glyphicon-refresh"></span>
-        Salvataggio in corso...
-        <div style="font-size: 13px; font-weight: 400; margin-top: 8px; color: #6b7280;">
-            Attendi la risposta di MasterCom.
+        <span id="noirc_room_overlay_title">Operazione in corso...</span>
+        <div id="noirc_room_overlay_text" style="font-size: 13px; font-weight: 400; margin-top: 8px; color: #6b7280;">
+            Attendi il completamento.
         </div>
     </div>
 </div>
@@ -162,6 +181,18 @@ function mastercomNoIrcRoomsStudentCount(array $students): int
                 </div>
                 <button type="submit" class="btn btn-default" style="margin-left: 10px;">Aggiorna</button>
                 <a href="mastercom_noirc.php?week_of=<?php echo urlencode($weekContext['reference_date']); ?>" class="btn btn-primary" style="margin-left: 10px;">Torna alla settimana NO IRC</a>
+            </form>
+            <form method="post" action="mastercom_noirc_rooms.php" class="form-inline" style="margin-bottom: 15px;">
+                <input type="hidden" name="action" value="refresh_noirc_students">
+                <input type="hidden" name="week_of" value="<?php echo htmlspecialchars($weekContext['reference_date']); ?>">
+                <input type="hidden" name="data_inizio" value="<?php echo htmlspecialchars($periodStart); ?>">
+                <input type="hidden" name="data_fine" value="<?php echo htmlspecialchars($periodEnd); ?>">
+                <button type="submit" class="btn btn-warning" <?php echo !empty($context['slots']) ? '' : 'disabled'; ?>>
+                    <span class="glyphicon glyphicon-refresh"></span> Aggiorna dati studenti da MasterCom
+                </button>
+                <span class="help-block" style="display: inline-block; margin: 0 0 0 10px;">
+                    La pagina usa il database locale. Usa questo pulsante solo quando vuoi risincronizzare gli studenti NO IRC.
+                </span>
             </form>
 
             <div class="alert alert-info">
@@ -269,10 +300,18 @@ function mastercomNoIrcRoomsStudentCount(array $students): int
 <script>
     $(document).on('submit', 'form[action="mastercom_noirc_rooms.php"]', function () {
         var $form = $(this);
-        if ($form.find('input[name="action"]').val() !== 'save_room_setup') {
+        var action = $form.find('input[name="action"]').val();
+        if (action !== 'save_room_setup' && action !== 'refresh_noirc_students') {
             return true;
         }
 
+        if (action === 'refresh_noirc_students') {
+            $('#noirc_room_overlay_title').text('Aggiornamento dati da MasterCom...');
+            $('#noirc_room_overlay_text').text('Sto aggiornando nel database gli studenti delle classi NO IRC della settimana selezionata.');
+        } else {
+            $('#noirc_room_overlay_title').text('Salvataggio in corso...');
+            $('#noirc_room_overlay_text').text('Sto salvando il setup aule.');
+        }
         $('#noirc_room_saving_overlay').fadeIn(120);
         $form.find('button[type="submit"]').prop('disabled', true);
         return true;
