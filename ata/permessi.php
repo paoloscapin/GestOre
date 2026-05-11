@@ -444,7 +444,7 @@ for ($h = 7; $h <= 18; $h++) {
 
                             <div class="col-md-4" id="block_singolo_ora_a" style="display:none;">
                                 <div class="form-group">
-                                    <label for="singolo_ora_a">Ore a</label>
+                                    <label for="singolo_ora_a">Ora rientro</label>
                                     <input type="text" class="form-control time-input" id="singolo_ora_a" list="ata_time_options" inputmode="numeric" maxlength="5" placeholder="HH:MM" autocomplete="off">
                                 </div>
                             </div>

@@ -42,6 +42,8 @@ function formatDateRangeMail($dataDa, $dataA, $oraDa = null, $oraA = null, $dura
     $txt .= ' dalle ' . substr($oraDa, 0, 5) . ' per ' . $durataOre . ' ore';
   } elseif ($oraDa !== '' && $oraA !== '') {
     $txt .= ' dalle ' . substr($oraDa, 0, 5) . ' alle ' . substr($oraA, 0, 5);
+  } elseif ($oraDa !== '') {
+    $txt .= ' dalle ' . substr($oraDa, 0, 5);
   }
 
   return $txt;
@@ -289,6 +291,15 @@ function addHoursToAtaTimePhp(string $oraDa, int $durataOre): string
   return sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
 }
 
+function ataPermessoOraRientroFacoltativa(string $tipoCodice, string $tipoDescrizione = ''): bool
+{
+  $tipoCodice = strtoupper(trim($tipoCodice));
+  $tipoDescrizione = strtoupper(trim($tipoDescrizione));
+  $testoTipo = $tipoCodice . ' ' . $tipoDescrizione;
+  return in_array($tipoCodice, ['VISITA_MEDICA', 'VISITA_SPEC', 'VISITA_SPECIALISTICA', 'PERMESSO_BREVE', 'PERM_BREVE'], true)
+    || strpos($testoTipo, 'BREVE') !== false;
+}
+
 if ($tipo_id <= 0) {
   echo json_encode(["ok" => false, "error" => "Seleziona il tipo di permesso."], JSON_UNESCAPED_UNICODE);
   exit;
@@ -430,18 +441,26 @@ foreach ($righe as $i => $r) {
       exit;
     }
 
-    if (($ora_da !== '' && $ora_a === '') || ($ora_da === '' && $ora_a !== '')) {
+    $oraRientroFacoltativa = ataPermessoOraRientroFacoltativa($tipo_codice, $tipo_descrizione);
+
+    if ($ora_da === '' && $ora_a !== '') {
+      echo json_encode(["ok" => false, "error" => "Se inserisci l'ora di rientro, devi indicare anche l'ora di uscita."], JSON_UNESCAPED_UNICODE);
+      exit;
+    }
+    if (!$oraRientroFacoltativa && $ora_da !== '' && $ora_a === '') {
       echo json_encode(["ok" => false, "error" => "Se inserisci le ore, devi indicare sia 'da' che 'a'."], JSON_UNESCAPED_UNICODE);
       exit;
     }
     if ($ora_da === '' && $ora_a === '') {
       $ora_da = null;
       $ora_a  = null;
-    } else {
+    } elseif ($ora_a !== '') {
       if ($ora_da >= $ora_a) {
         echo json_encode(["ok" => false, "error" => "L'ora 'da' deve essere precedente all'ora 'a'."], JSON_UNESCAPED_UNICODE);
         exit;
       }
+    } else {
+      $ora_a = null;
     }
   }
 

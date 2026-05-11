@@ -291,7 +291,7 @@ function singoloExtraTemplate(r) {
       </div>
 
       <div class="col-md-3 col-sm-4 col-xs-12 singolo_extra_ora_a">
-        <label>Ore a</label>
+        <label>Ora rientro</label>
         ${ataTimeInputHtml("s_ora_a", ora_a)}
       </div>
 
@@ -412,11 +412,11 @@ function applyTipoUI() {
     } else if (tipo === "VISITA_MEDICA" || tipo === "VISITA_SPEC") {
         $("#block_singolo_ora_da").show();
         $("#block_singolo_ora_a").show();
-        $("#singolo_hint").show().text("Inserisci una o piu' date. Le ore sono facoltative.");
+        $("#singolo_hint").show().text("Inserisci una o piu' date. L'ora di rientro e' facoltativa.");
     } else {
         $("#block_singolo_ora_da").show();
         $("#block_singolo_ora_a").show();
-        $("#singolo_hint").show().text("Inserisci una o piu' date. Le ore sono facoltative.");
+        $("#singolo_hint").show().text("Inserisci una o piu' date. Per i permessi brevi l'ora di rientro e' facoltativa.");
     }
 
     $("#righe_singolo_extra_container .riga-singolo-extra").each(function () {
