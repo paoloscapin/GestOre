@@ -328,7 +328,7 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                                     <?php
                                     $esoneroReligione = $row['esonero_religione'];
                                     if (($esoneroReligione === null || $esoneroReligione === '') && array_key_exists('esonero_religione', $rawCsvExport)) {
-                                        $esoneroReligione = $rawCsvExport['esonero_religione'];
+                                        $esoneroReligione = mastercomAdminMapReligionExemptionValue($rawCsvExport['esonero_religione']);
                                     }
                                     if ($esoneroReligione === null || $esoneroReligione === '') {
                                         echo '<span class="label label-default">n/d</span>';
@@ -350,7 +350,7 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                                     ?>
                                     <?php if ($materiaIntegrativa !== ''): ?>
                                         <?php echo htmlspecialchars($materiaIntegrativa); ?>
-                                    <?php elseif (($row['esonero_religione'] ?? null) !== null && intval($row['esonero_religione']) === 0): ?>
+                                    <?php elseif ($esoneroReligione !== null && intval($esoneroReligione) === 0): ?>
                                         <span class="label label-default">non necessaria</span>
                                     <?php else: ?>
                                         <span class="label label-default">n/d</span>
