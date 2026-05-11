@@ -43,6 +43,8 @@ function formatDateRangeMail($dataDa, $dataA, $oraDa = null, $oraA = null): stri
 
   if ($oraDa !== '' && $oraA !== '') {
     $txt .= ' dalle ' . substr($oraDa, 0, 5) . ' alle ' . substr($oraA, 0, 5);
+  } elseif ($oraDa !== '') {
+    $txt .= ' dalle ' . substr($oraDa, 0, 5);
   }
 
   return $txt;

@@ -69,6 +69,8 @@ function buildPermessoPeriodoLabel(array $righe, string $tipoCodice): string
 
   if ($oraDal !== '' && $oraAl !== '') {
     $testo .= ' dalle ' . fmtOraIT($oraDal) . ' alle ' . fmtOraIT($oraAl);
+  } elseif ($oraDal !== '') {
+    $testo .= ' dalle ' . fmtOraIT($oraDal);
   }
 
   return $testo;
