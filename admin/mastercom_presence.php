@@ -264,11 +264,12 @@ function mastercomPresenceNormalizeAppealRow(array $appealRow): array
     $appealRow['eventi'] = mastercomPresenceNormalizeEntries(is_array($appealRow['eventi'] ?? null) ? $appealRow['eventi'] : [], true);
     $appealRow['assenze'] = mastercomPresenceNormalizeEntries(is_array($appealRow['assenze'] ?? null) ? $appealRow['assenze'] : [], true);
 
-    if (
-        !empty($appealRow['entrate']) ||
-        !empty($appealRow['eventi']) ||
-        intval($appealRow['ha_lezione'] ?? 0) === 1
-    ) {
+    $stato = is_array($appealRow['stato'] ?? null) ? $appealRow['stato'] : [];
+    if (!empty($stato['assente']) && is_array($stato['ultimo'] ?? null)) {
+        $appealRow['assenze'] = mastercomPresenceMergeUniqueEntries($appealRow['assenze'], [$stato['ultimo']]);
+    }
+
+    if (!empty($appealRow['entrate']) || !empty($appealRow['eventi'])) {
         $appealRow['assenze'] = [];
     }
 
@@ -282,6 +283,8 @@ function mastercomPresenceClassifyAppealState(array $appealRow): array
     $uscite = is_array($appealRow['uscite'] ?? null) ? $appealRow['uscite'] : [];
     $permessi = is_array($appealRow['permessi'] ?? null) ? $appealRow['permessi'] : [];
     $eventi = is_array($appealRow['eventi'] ?? null) ? $appealRow['eventi'] : [];
+    $stato = is_array($appealRow['stato'] ?? null) ? $appealRow['stato'] : [];
+    $isMarkedAbsent = !empty($stato['assente']);
     $haLezione = intval($appealRow['ha_lezione'] ?? 0) === 1;
 
     $status = 'nessuna_lezione';
@@ -299,7 +302,7 @@ function mastercomPresenceClassifyAppealState(array $appealRow): array
         $status = 'presente_entrato_in_ritardo';
         $presentAtSchool = true;
         $presentInClass = true;
-    } elseif (!empty($assenze)) {
+    } elseif ($isMarkedAbsent || !empty($assenze)) {
         $status = 'assente';
     } elseif ($haLezione) {
         $status = 'presente_in_classe';
@@ -393,6 +396,29 @@ function mastercomPresenceDescribeEntries(array $entries): string
     }
 
     return implode(' | ', $parts);
+}
+
+function mastercomPresenceActionableEntries(array $entries): array
+{
+    $items = [];
+    foreach ($entries as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $absenceId = intval($entry['id_assenza'] ?? 0);
+        $absenceDate = intval($entry['data'] ?? 0);
+        if ($absenceId <= 0 || $absenceDate <= 0) {
+            continue;
+        }
+        $items[] = [
+            'id_assenza' => $absenceId,
+            'data_assenza' => $absenceDate,
+            'tipo_assenza' => intval($entry['tipo'] ?? 0),
+            'orario' => mastercomAdminCleanText($entry['orario'] ?? ''),
+            'label' => mastercomPresenceDescribeEntries([$entry]),
+        ];
+    }
+    return $items;
 }
 
 $missingTables = mastercomAdminMissingTables(['mastercom_classi']);
@@ -506,6 +532,12 @@ if (empty($missingTables) && $selectedClassId > 0) {
                         'uscite' => mastercomPresenceDescribeEntries(is_array($appealRow['uscite'] ?? null) ? $appealRow['uscite'] : []),
                         'permessi' => mastercomPresenceDescribeEntries(is_array($appealRow['permessi'] ?? null) ? $appealRow['permessi'] : []),
                         'eventi' => mastercomPresenceDescribeEntries(is_array($appealRow['eventi'] ?? null) ? $appealRow['eventi'] : []),
+                    ],
+                    'detail_records' => [
+                        'assenze' => mastercomPresenceActionableEntries(is_array($appealRow['assenze'] ?? null) ? $appealRow['assenze'] : []),
+                        'entrate' => mastercomPresenceActionableEntries(is_array($appealRow['entrate'] ?? null) ? $appealRow['entrate'] : []),
+                        'uscite' => mastercomPresenceActionableEntries(is_array($appealRow['uscite'] ?? null) ? $appealRow['uscite'] : []),
+                        'permessi' => mastercomPresenceActionableEntries(is_array($appealRow['permessi'] ?? null) ? $appealRow['permessi'] : []),
                     ],
                     'ha_lezione' => $state['ha_lezione'],
                     'present_at_school' => $state['present_at_school'],
@@ -655,6 +687,45 @@ if (empty($missingTables) && $selectedClassId > 0) {
                                         <?php if (!empty($record['details']['eventi'])): ?>
                                             <div><strong>Eventi:</strong> <?php echo htmlspecialchars($record['details']['eventi']); ?></div>
                                         <?php endif; ?>
+                                        <?php foreach (['assenze' => 'Assenza', 'entrate' => 'Entrata', 'uscite' => 'Uscita', 'permessi' => 'Permesso'] as $detailKey => $detailLabel): ?>
+                                            <?php foreach (($record['detail_records'][$detailKey] ?? []) as $detailRecord): ?>
+                                                <?php
+                                                $editType = intval($detailRecord['tipo_assenza'] ?? 0);
+                                                if ($editType <= 0) {
+                                                    $editType = $detailKey === 'entrate' ? 2 : ($detailKey === 'uscite' ? 3 : 1);
+                                                }
+                                                $editParams = [
+                                                    'student_id' => intval($record['id_studente']),
+                                                    'class_id' => intval($selectedClassId),
+                                                    'classe' => $selectedClassName !== '' ? $selectedClassName : (string)$selectedClassId,
+                                                    'cognome' => (string)($record['cognome'] ?? ''),
+                                                    'nome' => (string)($record['nome'] ?? ''),
+                                                    'id_assenza' => intval($detailRecord['id_assenza']),
+                                                    'data_assenza' => intval($detailRecord['data_assenza']),
+                                                    'tipo_assenza' => $editType,
+                                                ];
+                                                $editTime = trim((string)($detailRecord['orario'] ?? ''));
+                                                if (preg_match('/^\d{1,2}:\d{2}$/', $editTime)) {
+                                                    $editParams['absence_time'] = $editTime;
+                                                }
+                                                ?>
+                                                <a class="btn btn-xs btn-primary" style="margin: 3px 4px 0 0;" href="mastercom_absence_edit.php?<?php echo htmlspecialchars(http_build_query($editParams)); ?>" title="<?php echo htmlspecialchars($detailRecord['label']); ?>">
+                                                    Modifica <?php echo htmlspecialchars($detailLabel); ?>
+                                                </a>
+                                                <form method="post" action="mastercom_absence_delete.php" style="display:inline-block; margin: 3px 4px 0 0;" onsubmit="return confirm('Confermi eliminazione da MasterCom?');">
+                                                    <input type="hidden" name="student_id" value="<?php echo intval($record['id_studente']); ?>">
+                                                    <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
+                                                    <input type="hidden" name="classe" value="<?php echo htmlspecialchars($selectedClassName !== '' ? $selectedClassName : (string)$selectedClassId); ?>">
+                                                    <input type="hidden" name="cognome" value="<?php echo htmlspecialchars((string)($record['cognome'] ?? '')); ?>">
+                                                    <input type="hidden" name="nome" value="<?php echo htmlspecialchars((string)($record['nome'] ?? '')); ?>">
+                                                    <input type="hidden" name="id_assenza" value="<?php echo intval($detailRecord['id_assenza']); ?>">
+                                                    <input type="hidden" name="data_assenza" value="<?php echo intval($detailRecord['data_assenza']); ?>">
+                                                    <button type="submit" class="btn btn-xs btn-danger" title="<?php echo htmlspecialchars($detailRecord['label']); ?>">
+                                                        Elimina <?php echo htmlspecialchars($detailLabel); ?>
+                                                    </button>
+                                                </form>
+                                            <?php endforeach; ?>
+                                        <?php endforeach; ?>
                                         <?php if (
                                             empty($record['details']['assenze']) &&
                                             empty($record['details']['entrate']) &&
@@ -668,6 +739,9 @@ if (empty($missingTables) && $selectedClassId > 0) {
                                     <td>
                                         <a class="btn btn-xs btn-info" href="mastercom_student_absences.php?student_id=<?php echo intval($record['id_studente']); ?>">
                                             Storico assenze
+                                        </a>
+                                        <a class="btn btn-xs btn-warning" href="mastercom_absence_create.php?student_id=<?php echo intval($record['id_studente']); ?>&class_id=<?php echo intval($selectedClassId); ?>&cognome=<?php echo urlencode((string)($record['cognome'] ?? '')); ?>&nome=<?php echo urlencode((string)($record['nome'] ?? '')); ?>&classe=<?php echo urlencode($selectedClassName !== '' ? $selectedClassName : (string)$selectedClassId); ?>" style="margin-top: 4px;">
+                                            Nuova assenza
                                         </a>
                                     </td>
                                 </tr>

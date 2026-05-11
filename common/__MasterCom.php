@@ -760,12 +760,41 @@ function mastercomSubmitAdminAbsenceAction(array $authResult, array $formParams,
 
     $cookieHeader = implode('; ', array_filter($authResult['cookies'] ?? []));
 
-    return mastercomRawRequest($payload, array_merge($options, [
-        'base_url' => $options['base_url'] ?? mastercomBaseUrl(),
+    $submitResult = mastercomRawRequest($payload, array_merge($options, [
+        'base_url' => $options['base_url'] ?? mastercomIndexUrl(),
         'cookie' => $options['cookie'] ?? $cookieHeader,
         'method' => $options['method'] ?? 'POST',
-        'send_in_body' => array_key_exists('send_in_body', $options) ? $options['send_in_body'] : true,
+        'send_in_body' => array_key_exists('send_in_body', $options) ? $options['send_in_body'] : false,
     ]));
+    $submitResult['submitted_url'] = mastercomIndexUrl() . '?' . http_build_query($payload);
+    $submitResult['submitted_payload'] = $payload;
+
+    if (!$submitResult['ok']) {
+        return $submitResult;
+    }
+
+    $body = (string)($submitResult['body'] ?? '');
+    $plainBody = trim(strip_tags(html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+    $normalizedBody = mb_strtoupper(preg_replace('/\s+/', ' ', $plainBody), 'UTF-8');
+    $htmlLooksLikeLogin = preg_match('/<form[^>]+login|name=["\']form_user["\']|name=["\']form_password["\']/i', $body) === 1;
+    $errorTokens = ['ERRORE', 'OPERAZIONE NON CONSENTITA', 'SESSIONE SCADUTA'];
+    if ($htmlLooksLikeLogin) {
+        $errorTokens[] = 'LOGIN_FORM';
+    }
+
+    $warnings = [];
+    foreach ($errorTokens as $errorToken) {
+        $needle = $errorToken === 'LOGIN_FORM' ? 'LOGIN' : $errorToken;
+        if (strpos($normalizedBody, $needle) === false && $errorToken !== 'LOGIN_FORM') {
+            continue;
+        }
+        $warnings[] = 'MASTERCOM_HTML_WARNING_' . str_replace(' ', '_', $errorToken);
+    }
+    if (!empty($warnings)) {
+        $submitResult['html_warnings'] = $warnings;
+    }
+
+    return $submitResult;
 }
 
 function mastercomExtractTeacherUsers(array $usersResult): array

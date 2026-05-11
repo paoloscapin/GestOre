@@ -36,6 +36,7 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/tickets.php"><span class="glyphicon glyphicon-barcode"></span>&ensp;Assegna Biglietti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/ticket_mail_test.php"><span class="glyphicon glyphicon-envelope"></span>&ensp;Test Mail Ticket</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/ticket_mail_import.php"><span class="glyphicon glyphicon-import"></span>&ensp;Import Mail Ticket</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/newsletter.php"><span class="glyphicon glyphicon-bullhorn"></span>&ensp;Newsletter GestOre</a></li>
 				</ul>
 			</li>
 			<li class="dropdown">
@@ -48,11 +49,13 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_parents.php"><span class="glyphicon glyphicon-user"></span>&ensp;Genitori</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_teachers.php"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Docenti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_classes.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Classi</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_teacher_snapshot.php"><span class="glyphicon glyphicon-eye-open"></span>&ensp;Snapshot docenti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_calendar.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Agenda Classe</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_grades.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Voti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_presence.php"><span class="glyphicon glyphicon-ok-circle"></span>&ensp;Presence Snapshot</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc.php"><span class="glyphicon glyphicon-book"></span>&ensp;NO IRC</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc_assignments.php"><span class="glyphicon glyphicon-user"></span>&ensp;NO IRC Docenti</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc_rooms.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;NO IRC Aule</a></li>
 				</ul>
 			</li>
 			<li><a href="<?php echo $__application_base_path; ?>/orario/orario.php" class="btn btn-default btn-lightblue4 nav-btn" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Orario </a></li>

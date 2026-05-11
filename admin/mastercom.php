@@ -106,6 +106,18 @@ $classRows = empty($missingTables) ? dbGetAll("SELECT * FROM mastercom_classi OR
                     </div>
                 </div>
 
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="well">
+                            <h4>Snapshot docenti</h4>
+                            <p>Classi con docenti, materia e fascia oraria corrente da <code>get_user_info</code>.</p>
+                            <a class="btn btn-info btn-block" href="mastercom_teacher_snapshot.php">
+                                <span class="glyphicon glyphicon-eye-open"></span> Apri snapshot docenti
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="alert alert-info">
                     I pulsanti di allineamento "viceversa" in questa prima versione aggiornano la scheda locale <strong>mastercom_*</strong> da GestOre.
                     Non scrivono ancora sui server MasterCom, perché non abbiamo endpoint di scrittura anagrafica confermati.
