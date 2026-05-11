@@ -151,9 +151,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['submit_edit_absence'] ?? '
             $payload = array_merge(
                 [
                     'tipo_assenza' => $selectedType,
+                ],
+                mastercomAbsenceEditTimeParts($selectedTime),
+                mastercomAbsenceEditDateParts($selectedDate),
+                [
                     'esclusione_calcolo_monteore' => intval($_POST['esclusione_calcolo_monteore'] ?? 0),
-                    'x' => '21',
-                    'y' => '19',
+                    'x' => '18',
+                    'y' => '13',
                     'form_stato' => 'amministratore',
                     'stato_principale' => 'assenze_principale',
                     'stato_secondario' => 'modifica_assenze_studente_update',
@@ -181,15 +185,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['submit_edit_absence'] ?? '
                     'parametro_nome_genitore' => '',
                     'parametro_cognome_genitore' => '',
                     'inserimento_diretto' => '',
-                ],
-                mastercomAbsenceEditTimeParts($selectedTime),
-                mastercomAbsenceEditDateParts($selectedDate)
+                ]
             );
 
             $submitResult = mastercomSubmitAdminAbsenceAction($authResult, $payload, [
                 'method' => 'POST',
                 'timeout' => 120,
-                'send_in_body' => false,
+                'send_in_body' => true,
             ]);
 
             if ($submitResult['ok']) {
