@@ -257,11 +257,12 @@ function mcPresenceNormalizeAppealRow(array $appealRow): array
     $appealRow['eventi'] = mcPresenceNormalizeEntries(is_array($appealRow['eventi'] ?? null) ? $appealRow['eventi'] : [], true);
     $appealRow['assenze'] = mcPresenceNormalizeEntries(is_array($appealRow['assenze'] ?? null) ? $appealRow['assenze'] : [], true);
 
-    if (
-        !empty($appealRow['entrate']) ||
-        !empty($appealRow['eventi']) ||
-        intval($appealRow['ha_lezione'] ?? 0) === 1
-    ) {
+    $stato = is_array($appealRow['stato'] ?? null) ? $appealRow['stato'] : [];
+    if (!empty($stato['assente']) && is_array($stato['ultimo'] ?? null)) {
+        $appealRow['assenze'] = mcPresenceMergeUniqueEntries($appealRow['assenze'], [$stato['ultimo']]);
+    }
+
+    if (!empty($appealRow['entrate']) || !empty($appealRow['eventi'])) {
         $appealRow['assenze'] = [];
     }
 
@@ -284,6 +285,8 @@ function classifyAppealState(array $appealRow): array
     $uscite = $appealRow['uscite'] ?? [];
     $permessi = $appealRow['permessi'] ?? [];
     $eventi = $appealRow['eventi'] ?? [];
+    $stato = is_array($appealRow['stato'] ?? null) ? $appealRow['stato'] : [];
+    $isMarkedAbsent = !empty($stato['assente']);
     $haLezione = intval($appealRow['ha_lezione'] ?? 0) === 1;
 
     $status = 'nessuna_lezione';
@@ -301,7 +304,7 @@ function classifyAppealState(array $appealRow): array
         $status = 'presente_entrato_in_ritardo';
         $presentAtSchool = true;
         $presentInClass = true;
-    } elseif (!empty($assenze)) {
+    } elseif ($isMarkedAbsent || !empty($assenze)) {
         $status = 'assente';
     } elseif ($haLezione) {
         $status = 'presente_in_classe';
