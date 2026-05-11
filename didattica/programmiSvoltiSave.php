@@ -134,12 +134,59 @@ function programmiSvoltiHasProgramField(string $columnName): bool
 	return $cache[$columnName];
 }
 
+function aggiornaClassiProgrammaSvolto(int $idProgramma, array $classiProgramma): void
+{
+	if ($idProgramma <= 0) {
+		return;
+	}
+
+	dbExec("DELETE FROM programmi_svolti_classi WHERE id_programma_svolto=" . intval($idProgramma));
+
+	foreach ($classiProgramma as $idClasse) {
+		$idClasse = intval($idClasse);
+		if ($idClasse > 0) {
+			dbExec("
+				INSERT IGNORE INTO programmi_svolti_classi
+					(id_programma_svolto, id_classe)
+				VALUES
+					(" . intval($idProgramma) . ", " . $idClasse . ")
+			");
+		}
+	}
+}
+
 if (isset($_POST)) {
 
 	$id = $_POST['id'];
-	$docente_id = $_POST['docente_id'];
-	$classe_id = $_POST['classe_id'];
-	$materia_id = $_POST['materia_id'];
+	$docente_id = intval($_POST['docente_id']);
+	$classe_id_post = $_POST['classe_id'];
+	$classe_tipo = $_POST['classe_tipo'] ?? 'classe';
+	$classi_collegate_post = $_POST['classi_collegate'] ?? '';
+	$materia_id = intval($_POST['materia_id']);
+
+	$classi_programma = [];
+
+	if ($classe_tipo === 'articolata') {
+		foreach (explode(',', $classi_collegate_post) as $idc) {
+			$idc = intval($idc);
+			if ($idc > 0) {
+				$classi_programma[] = $idc;
+			}
+		}
+
+		$classe_id = count($classi_programma) > 0 ? $classi_programma[0] : 0;
+	} else {
+		$classe_id = intval($classe_id_post);
+		if ($classe_id > 0) {
+			$classi_programma[] = $classe_id;
+		}
+	}
+
+	$classi_programma = array_values(array_unique($classi_programma));
+
+	if ($classe_id <= 0 || count($classi_programma) === 0) {
+		die('Classe non valida');
+	}
 	$duplica = $_POST['duplica'];
 	$share = $_POST['share'];
 	$metodologie_programma = sanitizeProgrammaSvoltoRichHtml((string)($_POST['metodologie_programma'] ?? ''));
@@ -172,6 +219,7 @@ if (isset($_POST)) {
 		if ($id > 0) {
 			$query = "UPDATE programmi_svolti SET id_classe = '$classe_id', id_docente = '$docente_id', id_materia = '$materia_id', id_utente = '$utente_id', updated = '$update' $extraSet WHERE id = '$id'";
 			dbExec($query);
+			aggiornaClassiProgrammaSvolto(intval($id), $classi_programma);
 			info("aggiornato programma svolto id=$id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_utente=$utente_id updated=$update");
 		} else {
 			$insertColumns = "id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated";
@@ -183,22 +231,19 @@ if (isset($_POST)) {
 			$query = "INSERT INTO programmi_svolti($insertColumns) VALUES($insertValues)";
 			dbExec($query);
 			$new_id = dblastId();
+			aggiornaClassiProgrammaSvolto(intval($new_id), $classi_programma);
 			$data = $new_id;
 			info("aggiunto programma svolto id=$new_id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_anno_scolastico=$__anno_scolastico_corrente_id id_utente=$utente_id updated=$update");
 		}
-	} else if ($duplica == 'true')
-	{
+	} else if ($duplica == 'true') {
 
 		// verifico se esiste già la classe su cui voglio duplicare il programma
 		$query = "SELECT * from programmi_svolti WHERE id_classe='$classe_id' AND id_docente='$docente_id' AND id_materia='$materia_id'";
 		$result = dbGetFirst($query);
-		
-		if ($result!=null)
-		{
-		  $data = 'Programma già esistente';	
-		}
-		else
-		{
+
+		if ($result != null) {
+			$data = 'Programma già esistente';
+		} else {
 			// creo il programma vuoto per la nuova classe
 			$insertColumns = "id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated";
 			$insertValues = "'$classe_id', '$docente_id', '$materia_id', '$__anno_scolastico_corrente_id', '$utente_id', '$update'";
@@ -209,6 +254,7 @@ if (isset($_POST)) {
 			$query = "INSERT INTO programmi_svolti($insertColumns) VALUES($insertValues)";
 			dbExec($query);
 			$new_id = dblastId();
+			aggiornaClassiProgrammaSvolto(intval($new_id), $classi_programma);
 			info("aggiunto programma svolto id=$new_id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_anno_scolastico=$__anno_scolastico_corrente_id id_utente=$utente_id updated=$update");
 
 			// duplico i moduli collegati al programma originale
@@ -217,19 +263,14 @@ if (isset($_POST)) {
 			dbExec($query);
 			info("duplicati i moduli del programma svolto id=$id e li ho collegati al nuovo programma svolto id=$new_id");
 		}
-	}
-	else if ($share == 'true')
-	{
+	} else if ($share == 'true') {
 		// verifico se esiste già la classe su cui voglio duplicare il programma
 		$query = "SELECT * from programmi_svolti WHERE id_classe='$classe_id' AND id_docente='$docente_id' AND id_materia='$materia_id'";
 		$result = dbGetFirst($query);
-		
-		if (($result!=null)&&($overwrite!='true'))
-		{
-		  $data = 'Programma già esistente';	
-		}
-		else
-		{
+
+		if (($result != null) && ($overwrite != 'true')) {
+			$data = 'Programma già esistente';
+		} else {
 			// creo il programma vuoto per la nuova classe
 			$insertColumns = "id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated";
 			$insertValues = "'$classe_id', '$docente_id', '$materia_id', '$__anno_scolastico_corrente_id', '$utente_id', '$update'";
@@ -240,6 +281,7 @@ if (isset($_POST)) {
 			$query = "INSERT INTO programmi_svolti($insertColumns) VALUES($insertValues)";
 			dbExec($query);
 			$new_id = dblastId();
+			aggiornaClassiProgrammaSvolto(intval($new_id), $classi_programma);
 			info("aggiunto programma svolto id=$new_id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_anno_scolastico=$__anno_scolastico_corrente_id id_utente=$utente_id updated=$update");
 			// duplico i moduli collegati al programma originale
 			$query = "INSERT INTO programmi_svolti_moduli (ID_PROGRAMMA, ORDINE, NOME, CONTENUTO, ID_UTENTE, UPDATED)
@@ -250,4 +292,3 @@ if (isset($_POST)) {
 	}
 	echo $data;
 }
-?>

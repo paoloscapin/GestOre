@@ -20,6 +20,7 @@ $format = isset($_POST['format']) ? strtolower((string)$_POST['format']) : 'pdf'
 $titolo = isset($_POST['titolo']) ? $_POST['titolo'] : 'Programma didattico';
 $viewScope = isset($_POST['view_scope']) ? strtolower((string)$_POST['view_scope']) : 'full';
 $soloProgrammaCorrente = ($viewScope === 'own' || $viewScope === 'solo');
+$anno_scolastico_corrente_anno_safe = $GLOBALS['__anno_scolastico_corrente_anno'] ?? '';
 
 if ($programId <= 0 && !($format === 'docx_classe' && $classId > 0 && $annoScolasticoId > 0)) {
     exit;
@@ -466,6 +467,57 @@ function normalizeQuintaInternalMarkersToHtml(string $text): string
     return trim($html);
 }
 
+function getClassiCollegateProgrammaSvolto(int $programId): array
+{
+    $rows = dbGetAll("
+        SELECT c.id, c.classe, c.anno, c.id_primo_indirizzo
+        FROM programmi_svolti_classi psc
+        INNER JOIN classi c ON c.id = psc.id_classe
+        WHERE psc.id_programma_svolto = " . intval($programId) . "
+        ORDER BY c.classe ASC
+    ");
+
+    return $rows ?: [];
+}
+
+function getClassiCollegateLabelProgrammaSvolto(int $programId, string $fallback = ''): string
+{
+    $classi = getClassiCollegateProgrammaSvolto($programId);
+    if (count($classi) === 0) {
+        return $fallback;
+    }
+
+    $nomi = [];
+    foreach ($classi as $classe) {
+        $nomi[] = $classe['classe'];
+    }
+
+    return implode(' / ', $nomi);
+}
+
+function getIndirizziCollegatiLabelProgrammaSvolto(int $programId, string $fallback = ''): string
+{
+    $rows = dbGetAll("
+        SELECT DISTINCT i.nome
+        FROM programmi_svolti_classi psc
+        INNER JOIN classi c ON c.id = psc.id_classe
+        INNER JOIN indirizzo i ON i.id = c.id_primo_indirizzo
+        WHERE psc.id_programma_svolto = " . intval($programId) . "
+        ORDER BY i.nome ASC
+    ");
+
+    if ($rows == null || count($rows) === 0) {
+        return $fallback;
+    }
+
+    $nomi = [];
+    foreach ($rows as $row) {
+        $nomi[] = $row['nome'];
+    }
+
+    return implode(' / ', $nomi);
+}
+
 function getProgrammaSvoltoById(int $programId): ?array
 {
     $metodologieSql = programmiSvoltiHasProgramField('metodologie') ? "programmi_svolti.metodologie AS programma_metodologie," : "'' AS programma_metodologie,";
@@ -501,6 +553,13 @@ function getProgrammaSvoltoById(int $programId): ?array
     WHERE programmi_svolti.id = $programId";
 
     $program = dbGetFirst($query);
+
+    if ($program != null) {
+        $program['classi_collegate'] = getClassiCollegateProgrammaSvolto($programId);
+        $program['classe_nome_stampa'] = getClassiCollegateLabelProgrammaSvolto($programId, (string)$program['classe_nome']);
+        $program['indirizzo_nome_stampa'] = getIndirizziCollegatiLabelProgrammaSvolto($programId, (string)$program['indirizzo_nome']);
+    }
+
     return $program ?: null;
 }
 
@@ -532,22 +591,19 @@ function userCanViewProgram(array $program): bool
     }
 
     $coord = dbGetFirst("
-        SELECT id
-        FROM coordinatori
-        WHERE id_docente = " . intval($__docente_id) . "
-            AND id_classe = " . intval($program['classe_id'] ?? $program['svolti_id_classe'] ?? 0) . "
-            AND (id_anno_scolastico = " . intval($program['anno_scolastico_id'] ?? 0) . " OR id_anno_scolastico IS NULL OR id_anno_scolastico = 0)
+        SELECT coord.id
+        FROM coordinatori coord
+        INNER JOIN programmi_svolti_classi psc
+            ON psc.id_classe = coord.id_classe
+        WHERE coord.id_docente = " . intval($__docente_id) . "
+          AND psc.id_programma_svolto = " . intval($program['id'] ?? 0) . "
+          AND (
+                coord.id_anno_scolastico = " . intval($program['anno_scolastico_id'] ?? 0) . "
+                OR coord.id_anno_scolastico IS NULL
+                OR coord.id_anno_scolastico = 0
+          )
         LIMIT 1
     ");
-    if ($coord == null) {
-        $coord = dbGetFirst("
-            SELECT id
-            FROM coordinatori
-            WHERE id_docente = " . intval($__docente_id) . "
-                AND id_classe = " . intval($program['classe_id'] ?? $program['svolti_id_classe'] ?? 0) . "
-            LIMIT 1
-        ");
-    }
 
     return $coord != null;
 }
@@ -555,12 +611,18 @@ function userCanViewProgram(array $program): bool
 function getProgrammiSvoltiCorrelati(array $program): array
 {
     $query = "
-        SELECT programmi_svolti.id
-        FROM programmi_svolti
-        WHERE programmi_svolti.id_classe = " . intval($program['classe_id'] ?? $program['svolti_id_classe'] ?? 0) . "
-          AND programmi_svolti.id_materia = " . intval($program['materia_id'] ?? $program['svolti_id_materia'] ?? 0) . "
-          AND programmi_svolti.id_anno_scolastico = " . intval($program['anno_scolastico_id'] ?? 0) . "
-        ORDER BY programmi_svolti.id_docente ASC, programmi_svolti.id ASC
+        SELECT DISTINCT ps2.id
+        FROM programmi_svolti ps2
+        INNER JOIN programmi_svolti_classi psc2
+            ON psc2.id_programma_svolto = ps2.id
+        WHERE ps2.id_materia = " . intval($program['materia_id'] ?? $program['svolti_id_materia'] ?? 0) . "
+          AND ps2.id_anno_scolastico = " . intval($program['anno_scolastico_id'] ?? 0) . "
+          AND psc2.id_classe IN (
+                SELECT psc1.id_classe
+                FROM programmi_svolti_classi psc1
+                WHERE psc1.id_programma_svolto = " . intval($program['id'] ?? 0) . "
+          )
+        ORDER BY ps2.id_docente ASC, ps2.id ASC
     ";
 
     $rows = dbGetAll($query) ?: [];
@@ -2047,14 +2109,14 @@ function exportQuintaDocx(array $program, array $sections, array $docentiLabels 
     }
 
     $intestazioneLines = buildWordProgramHeader([
-        'Classe ' . $program['classe_nome'] . ($annoScolasticoLabel !== '' ? ' a.s. ' . $annoScolasticoLabel : ''),
-        'Materia ' . $program['materia_nome'],
-        (count($docentiLabels) > 1 ? 'Docenti ' : 'Docente ') . implode(' / ', !empty($docentiLabels) ? $docentiLabels : [trim($program['doc_cognome'] . ' ' . $program['doc_nome'])]),
+        'Classe ' . ($firstProgram['classe_nome_stampa'] ?? $firstProgram['classe_nome']) . ($annoScolasticoLabel !== '' ? ' a.s. ' . $annoScolasticoLabel : ''),
+        'Materia ' . $firstProgram['materia_nome'],
+        (count($docenti) > 1 ? 'Docenti ' : 'Docente ') . implode(' / ', $docenti),
     ]);
     $zip->addFromString('word/document.xml', normalizeWordDocumentFont(fillWordTemplateXml($xml, $sections, $intestazioneLines)));
     $zip->close();
 
-    $fileName = 'Programma svolto quinta - ' . $program['materia_nome'] . ' - Classe ' . $program['classe_nome'] . ' - ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.docx';
+    $fileName = 'Programma svolto quinta - ' . $program['materia_nome'] . ' - Classe ' . ($program['classe_nome_stampa'] ?? $program['classe_nome']) . ' - ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.docx';
     header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     header('Content-Disposition: attachment; filename="' . str_replace('"', '', $fileName) . '"');
     header('Content-Length: ' . filesize($docxPath));
@@ -2074,12 +2136,14 @@ function exportQuintaClasseDocx(int $classId, int $annoScolasticoId): void
     }
 
     $programmi = dbGetAll("
-        SELECT programmi_svolti.id,
+        SELECT DISTINCT programmi_svolti.id,
                programmi_svolti.id_materia
         FROM programmi_svolti
+        INNER JOIN programmi_svolti_classi psc
+            ON psc.id_programma_svolto = programmi_svolti.id
         INNER JOIN classi
-        ON classi.id = programmi_svolti.id_classe
-        WHERE programmi_svolti.id_classe = " . intval($classId) . "
+            ON classi.id = psc.id_classe
+        WHERE psc.id_classe = " . intval($classId) . "
           AND programmi_svolti.id_anno_scolastico = " . intval($annoScolasticoId) . "
           AND classi.anno = 5
         ORDER BY programmi_svolti.id_materia ASC, programmi_svolti.id ASC
@@ -2099,7 +2163,7 @@ function exportQuintaClasseDocx(int $classId, int $annoScolasticoId): void
         if ($singleProgram == null) {
             continue;
         }
-        $classeNome = (string)$singleProgram['classe_nome'];
+        $classeNome = (string)($singleProgram['classe_nome_stampa'] ?? $singleProgram['classe_nome']);
         $materiaKey = intval($singleProgram['materia_id']);
         if (!isset($programmiPerMateria[$materiaKey])) {
             $programmiPerMateria[$materiaKey] = [];
@@ -2129,7 +2193,7 @@ function exportQuintaClasseDocx(int $classId, int $annoScolasticoId): void
 
         $docenti = array_values(array_unique($docenti));
         $intestazioneLines = buildWordProgramHeader([
-            'Classe ' . $firstProgram['classe_nome'] . ($annoScolasticoLabel !== '' ? ' a.s. ' . $annoScolasticoLabel : ''),
+            'Classe ' . ($firstProgram['classe_nome_stampa'] ?? $firstProgram['classe_nome']) . ($annoScolasticoLabel !== '' ? ' a.s. ' . $annoScolasticoLabel : ''),
             'Materia ' . $firstProgram['materia_nome'],
             (count($docenti) > 1 ? 'Docenti ' : 'Docente ') . implode(' / ', $docenti),
         ]);
@@ -2218,7 +2282,8 @@ if ($format === 'docx_classe') {
 }
 
 ob_start();
-?><!DOCTYPE html>
+?>
+<!DOCTYPE html>
 <html lang="it">
 
 <head>
@@ -2422,7 +2487,7 @@ ob_start();
     <div class="header">
         <div class="info">
             <h1><?php echo htmlspecialchars($titolo); ?></h1>
-            <p>Classe <?= htmlspecialchars($program['classe_nome']) ?> | Indirizzo <?= htmlspecialchars($program['indirizzo_nome']) ?><br>
+            <p>Classe <?= htmlspecialchars($program['classe_nome_stampa'] ?? $program['classe_nome']) ?> | Indirizzo <?= htmlspecialchars($program['indirizzo_nome_stampa'] ?? $program['indirizzo_nome']) ?><br>
                 Materia <?= htmlspecialchars($program['materia_nome']) ?> | <?= count($docentiLabelsProgramma) > 1 ? 'Docenti' : 'Docente' ?> <?= htmlspecialchars(implode(' / ', !empty($docentiLabelsProgramma) ? $docentiLabelsProgramma : [trim($program['doc_cognome'] . ' ' . $program['doc_nome'])])) ?> |
                 Anno scolastico <?= $__anno_scolastico_corrente_anno ?></p>
         </div>
@@ -2535,11 +2600,11 @@ if ($doPrint) {
 </div>
 <h1 style="font-family:dejavusans;font-size:24px;text-align:center;margin:0 0 0mm;">' . htmlspecialchars($titolo) . '</h1>
 <p style="text-align:center;margin:0px;font-size:12px">
-  Classe ' . htmlspecialchars($program['classe_nome']) . ' |
-  Indirizzo ' . htmlspecialchars($program['indirizzo_nome']) . '<br>
+  Classe ' . htmlspecialchars($program['classe_nome_stampa'] ?? $program['classe_nome']) . ' |
+  Indirizzo ' . htmlspecialchars($program['indirizzo_nome_stampa'] ?? $program['indirizzo_nome']) . '<br>
   Materia ' . htmlspecialchars($program['materia_nome']) . ' |
   ' . (count($docentiLabelsProgramma) > 1 ? 'Docenti ' : 'Docente ') . htmlspecialchars(implode(' / ', !empty($docentiLabelsProgramma) ? $docentiLabelsProgramma : [trim($program['doc_cognome'] . ' ' . $program['doc_nome'])])) . ' |
-  Anno scolastico ' . $__anno_scolastico_corrente_anno . '</p><br>';
+  Anno scolastico ' . $anno_scolastico_corrente_anno_safe . '</p><br>';
 
     $pdf->writeHTML($htmlIntro, true, false, true, false, '');
 
@@ -2578,7 +2643,7 @@ if ($doPrint) {
         }
     }
 
-    $pdf->Output($titolo . ' ' . $program['materia_nome'] . ' - Classe ' . $program['classe_nome'] . ' - Indirizzo ' . $program['indirizzo_nome'] . ' - Docente ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.pdf', 'D');
+    $pdf->Output($titolo . ' ' . $program['materia_nome'] . ' - Classe ' . ($program['classe_nome_stampa'] ?? $program['classe_nome']) . ' - Indirizzo ' . ($program['indirizzo_nome_stampa'] ?? $program['indirizzo_nome']) . ' - Docente ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.pdf', 'D');
     exit;
 }
 

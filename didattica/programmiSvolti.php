@@ -632,11 +632,49 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 }
 
 // classi 
+// classi
 $classiFiltroOptionList = '<option value="0">T</option>';
-$classiOptionList = '<option value="0" data-anno="0">selezionare classe</option>';
-foreach (dbGetAll("SELECT * FROM classi WHERE attiva=1 ORDER BY classi.classe ASC ; ") as $classe) {
-    $classiFiltroOptionList .= '<option value="' . $classe['id'] . '" >' . $classe['classe'] . '</option> ';
-    $classiOptionList .= '<option value="' . $classe['id'] . '" data-anno="' . intval($classe['anno']) . '" >' . $classe['classe'] . '</option> ';
+$classiOptionList = '<option value="0" data-anno="0" data-tipo="classe">selezionare classe</option>';
+
+foreach (dbGetAll("SELECT * FROM classi WHERE attiva=1 ORDER BY classi.classe ASC") as $classe) {
+    $classiFiltroOptionList .= '<option value="' . intval($classe['id']) . '">' . htmlspecialchars($classe['classe']) . '</option>';
+    $classiOptionList .= '<option value="' . intval($classe['id']) . '" data-tipo="classe" data-anno="' . intval($classe['anno']) . '">' . htmlspecialchars($classe['classe']) . '</option>';
+}
+
+// classi articolate, solo anno scolastico corrente
+$queryArticolate = "
+    SELECT 
+        ca.id,
+        ca.nome,
+        GROUP_CONCAT(c.classe ORDER BY c.classe SEPARATOR ' / ') AS classi_nomi,
+        GROUP_CONCAT(c.id ORDER BY c.classe SEPARATOR ',') AS classi_ids,
+        MAX(c.anno) AS anno_classe
+    FROM classi_articolate ca
+    INNER JOIN classi_articolate_classi cac ON cac.id_articolata = ca.id
+    INNER JOIN classi c ON c.id = cac.id_classe
+    WHERE ca.attiva = 1
+      AND ca.id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . "
+    GROUP BY ca.id, ca.nome
+    ORDER BY classi_nomi
+";
+
+foreach (dbGetAll($queryArticolate) as $art) {
+    $label = 'Art: ' . ($art['nome'] ?: $art['classi_nomi']);
+
+    $classiOptionList .= '<option value="A' . intval($art['id']) . '" 
+        data-tipo="articolata" 
+        data-articolata-id="' . intval($art['id']) . '" 
+        data-classi="' . htmlspecialchars($art['classi_ids'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"
+        data-anno="' . intval($art['anno_classe']) . '">' 
+        . htmlspecialchars($label) . 
+    '</option>';
+    $classiFiltroOptionList .= '<option value="A' . intval($art['id']) . '" 
+        data-tipo="articolata" 
+        data-articolata-id="' . intval($art['id']) . '" 
+        data-classi="' . htmlspecialchars($art['classi_ids'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"
+        data-anno="' . intval($art['anno_classe']) . '">' 
+        . htmlspecialchars($label) . 
+    '</option>';
 }
 
 // prepara l'elenco dei docenti
@@ -886,6 +924,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                             <input type="hidden" id="hidden_share">
                                             <input type="hidden" id="hidden_readonly" value="false">
                                             <input type="hidden" id="hidden_programma_classe_anno" value="0">
+                                            <input type="hidden" id="hidden_admin_programmi" value="<?php echo (haRuolo('dirigente') || haRuolo('segreteria-didattica')) ? '1' : '0'; ?>">
                                         </form>
 
                                     </div>

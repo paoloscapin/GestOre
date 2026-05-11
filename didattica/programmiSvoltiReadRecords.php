@@ -28,20 +28,35 @@ function programmiSvoltiCanExportClasseWord(int $classeId, int $annoScolasticoId
 	return $coord != null;
 }
 
-$classe_filtro_id = $_GET["classi_id"];
-$materia_filtro_id = $_GET["materia_id"];
-$docenti_filtro_id = $_GET["docenti_id"];
-$da_completare_filtro_id = $_GET["da_completare_id"];
-$anni_filtro_id = $_GET["anni_id"];
+$classe_filtro_raw = $_GET["classi_id"] ?? 0;
+$classe_filtro_id = intval($classe_filtro_raw);
+$classe_filtro_articolata_id = 0;
+
+if (is_string($classe_filtro_raw) && strlen($classe_filtro_raw) > 1 && strtoupper(substr($classe_filtro_raw, 0, 1)) === 'A') {
+	$classe_filtro_articolata_id = intval(substr($classe_filtro_raw, 1));
+	$classe_filtro_id = 0;
+}
+
+$materia_filtro_id = intval($_GET["materia_id"] ?? 0);
+$docenti_filtro_id = intval($_GET["docenti_id"] ?? 0);
+$da_completare_filtro_id = intval($_GET["da_completare_id"] ?? 0);
+$anni_filtro_id = intval($_GET["anni_id"] ?? 0);
 $sollecito_lista = '';
 $coordinatore_classi = [];
 $coordinatore_classi_ids = [];
 $coordinatore_classi_by_classe = [];
 $coordinatore_vede_programmi_altri = getSettingsValue('programmiSvolti', 'coordinatore_vede_programmi_altri_docenti', true);
-$is_docente_effettivo = ($__utente_ruolo === 'docente');
-$docente_corrente_id = intval($__docente_id ?? 0);
 
-if ($docente_corrente_id <= 0 && $is_docente_effettivo) {
+$utente_ruolo = $GLOBALS['__utente_ruolo'] ?? '';
+$docente_corrente_id = intval($GLOBALS['__docente_id'] ?? 0);
+
+$is_contesto_docente = (
+	$utente_ruolo === 'docente'
+	|| impersonaRuolo('docente')
+	|| $docente_corrente_id > 0
+);
+
+if ($docente_corrente_id <= 0 && $is_contesto_docente) {
 	$query_docente = "SELECT id FROM docente WHERE attivo=1";
 	if (!empty($__username) && !empty($__useremail)) {
 		$query_docente .= " AND (username='" . dbEscape($__username) . "' OR email='" . dbEscape($__useremail) . "')";
@@ -96,6 +111,12 @@ $query = "	SELECT
 				programmi_svolti.updated AS ultimo_agg,
                 classi.id,
                 classi.classe AS classe_nome,
+				(
+					SELECT GROUP_CONCAT(c2.classe ORDER BY c2.classe SEPARATOR ' / ')
+					FROM programmi_svolti_classi psc2
+					INNER JOIN classi c2 ON c2.id = psc2.id_classe
+					WHERE psc2.id_programma_svolto = programmi_svolti.id
+				) AS classi_collegate_nome,
                 classi.anno AS classe_anno,
                 materia.id,
                 materia.nome AS materia_nome,
@@ -119,20 +140,50 @@ if ($anni_filtro_id > 0) {
 	$query .= " WHERE programmi_svolti.id_anno_scolastico=" . $anni_filtro_id;
 }
 
-if ($classe_filtro_id > 0) {
-	$query .= "  AND programmi_svolti.id_classe=$classe_filtro_id ";
+if ($classe_filtro_articolata_id > 0) {
+	$query .= "
+		AND EXISTS (
+			SELECT 1
+			FROM programmi_svolti_classi psc_filter
+			INNER JOIN classi_articolate_classi cac_filter
+				ON cac_filter.id_classe = psc_filter.id_classe
+			INNER JOIN classi_articolate ca_filter
+				ON ca_filter.id = cac_filter.id_articolata
+			WHERE psc_filter.id_programma_svolto = programmi_svolti.id
+			  AND ca_filter.id = " . intval($classe_filtro_articolata_id) . "
+			  AND ca_filter.attiva = 1
+			  AND ca_filter.id_anno_scolastico = " . intval($anni_filtro_id) . "
+		)
+	";
+} else if ($classe_filtro_id > 0) {
+	$query .= "
+		AND EXISTS (
+			SELECT 1
+			FROM programmi_svolti_classi psc_filter
+			WHERE psc_filter.id_programma_svolto = programmi_svolti.id
+			  AND psc_filter.id_classe = " . intval($classe_filtro_id) . "
+		)
+	";
 }
 if ($materia_filtro_id > 0) {
 	$query .= " AND programmi_svolti.id_materia=$materia_filtro_id ";
 }
-if ($docenti_filtro_id > 0 && !$is_docente_effettivo) {
-	$query .= " AND programmi_svolti.id_docente=$docenti_filtro_id ";
+if ($docenti_filtro_id > 0 && !$is_contesto_docente) {
+	$query .= " AND programmi_svolti.id_docente=" . intval($docenti_filtro_id);
 }
 
-if ($is_docente_effettivo) {
+if ($is_contesto_docente) {
 	$coord_class_ids = array_keys($coordinatore_classi_ids);
 	if ($coordinatore_vede_programmi_altri && $docente_corrente_id > 0 && count($coord_class_ids) > 0) {
-		$query .= " AND (programmi_svolti.id_docente=" . $docente_corrente_id . " OR programmi_svolti.id_classe IN (" . implode(',', array_map('intval', $coord_class_ids)) . "))";
+		$query .= " AND (
+	programmi_svolti.id_docente=" . intval($docente_corrente_id) . "
+			OR EXISTS (
+				SELECT 1
+				FROM programmi_svolti_classi psc_coord
+				WHERE psc_coord.id_programma_svolto = programmi_svolti.id
+				AND psc_coord.id_classe IN (" . implode(',', array_map('intval', $coord_class_ids)) . ")
+			)
+		)";
 	} else if ($docente_corrente_id > 0) {
 		$query .= " AND programmi_svolti.id_docente=" . $docente_corrente_id;
 	}
@@ -160,7 +211,9 @@ foreach ($resultArray as $row) {
 				$sollecito_lista .= ',' . $programma_id;
 			}
 		}
-		$classe = $row['classe_nome'];
+		$classe = !empty($row['classi_collegate_nome'])
+		? $row['classi_collegate_nome']
+		: $row['classe_nome'];
 		$docente = $row['docente_cognome'] . ' ' . $row['docente_nome'];
 		$materia = $row['materia_nome'];
 		$classe_anno = intval($row['classe_anno']);
@@ -185,7 +238,7 @@ foreach ($resultArray as $row) {
 		$data .= '
 		<td class="text-center">';
 
-		if ($is_docente_effettivo) {
+		if ($is_contesto_docente) {
 			if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) {
 				$data .= '
 			<button onclick="programmiSvoltiPrint(' . $programma_id . ')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF con il programma svolto"><span class="glyphicon glyphicon-print"></button>
