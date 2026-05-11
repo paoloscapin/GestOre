@@ -1498,7 +1498,7 @@ function programmiSvoltiGetDetails(programma_id, duplica, share, readonly) {
             if (duplica == 'true') {
                 $('#classe').selectpicker('val', 0);
             } else {
-                $('#classe').selectpicker('val', programma.programma_classe);
+                $('#classe').selectpicker('val', programma.programma_classe_select || programma.programma_classe);
             }
             if (share == 'true') {
                 $('#docente').selectpicker('val', 0);
@@ -1513,7 +1513,11 @@ function programmiSvoltiGetDetails(programma_id, duplica, share, readonly) {
             syncProgrammaRichEditorsFromTextareas();
 
             if (duplica == 'false') {
-                $('#classe').attr('disabled', true);
+                if ($("#hidden_admin_programmi").val() === "1") {
+                    $('#classe').attr('disabled', false);
+                } else {
+                    $('#classe').attr('disabled', true);
+                }
             } else {
                 $('#classe').attr('disabled', false);
             }
@@ -1616,6 +1620,9 @@ async function moduliSvoltiImport() {
                 id: '-1',
                 docente_id: $("#docente").val(),
                 classe_id: $("#classe").val(),
+                classe_tipo: $("#classe option:selected").data("tipo") || "classe",
+                articolata_id: $("#classe option:selected").data("articolata-id") || 0,
+                classi_collegate: $("#classe option:selected").data("classi") || "",
                 materia_id: $("#materia").val(),
                 duplica: 'false',
                 share: 'false',
@@ -1673,6 +1680,9 @@ async function moduloSvoltiGetDetails(modulo_id) {
                 id: '-1',
                 docente_id: $("#docente").val(),
                 classe_id: $("#classe").val(),
+                classe_tipo: $("#classe option:selected").data("tipo") || "classe",
+                articolata_id: $("#classe option:selected").data("articolata-id") || 0,
+                classi_collegate: $("#classe option:selected").data("classi") || "",
                 materia_id: $("#materia").val(),
                 duplica: 'false',
                 share: 'false',
@@ -1816,6 +1826,9 @@ function programmiSvoltiSave() {
         id: $("#hidden_programma_id").val(),
         docente_id: $("#docente").val(),
         classe_id: $("#classe").val(),
+        classe_tipo: $("#classe option:selected").data("tipo") || "classe",
+        articolata_id: $("#classe option:selected").data("articolata-id") || 0,
+        classi_collegate: $("#classe option:selected").data("classi") || "",
         materia_id: $("#materia").val(),
         duplica: $("#hidden_duplica").val(),
         share: $("#hidden_share").val(),
