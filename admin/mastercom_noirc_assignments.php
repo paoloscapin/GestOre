@@ -88,6 +88,7 @@ $hours = mastercomNoIrcOrari();
                 </div>
                 <button type="submit" class="btn btn-default" style="margin-left: 10px;">Aggiorna</button>
                 <a href="mastercom_noirc.php?week_of=<?php echo urlencode($weekContext['reference_date']); ?>" class="btn btn-primary" style="margin-left: 10px;">Torna alla settimana NO IRC</a>
+                <a href="mastercom_noirc_rooms.php?week_of=<?php echo urlencode($weekContext['reference_date']); ?>" class="btn btn-default" style="margin-left: 10px;">Setup aule</a>
             </form>
 
             <div class="row">

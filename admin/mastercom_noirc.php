@@ -91,6 +91,7 @@ function mastercomNoIrcStudentBadge(array $student): string
                 </div>
                 <button type="submit" class="btn btn-primary" style="margin-left: 10px;">Aggiorna</button>
                 <a href="mastercom_noirc_assignments.php?week_of=<?php echo urlencode($context['week']['reference_date']); ?>" class="btn btn-default" style="margin-left: 10px;">Gestisci docenti</a>
+                <a href="mastercom_noirc_rooms.php?week_of=<?php echo urlencode($context['week']['reference_date']); ?>" class="btn btn-default" style="margin-left: 10px;">Setup aule</a>
             </form>
 
             <div class="alert alert-info">
@@ -156,7 +157,11 @@ function mastercomNoIrcStudentBadge(array $student): string
                                                                 ?>
                                                                 <div class="<?php echo $boxClass; ?>">
                                                                     <div class="noirc-group-title">
-                                                                        <strong>Gruppo <?php echo htmlspecialchars(trim((string)($bucket['group_label'] ?? 'A'))); ?></strong>
+                                                                        <strong>
+                                                                            <?php echo htmlspecialchars(($bucket['type'] ?? '') === 'room_setup'
+                                                                                ? trim((string)($bucket['group_label'] ?? 'Aula'))
+                                                                                : ('Gruppo ' . trim((string)($bucket['group_label'] ?? 'A')))); ?>
+                                                                        </strong>
                                                                         <?php if (!empty($groupMeta)): ?>
                                                                             - <?php echo htmlspecialchars(implode(' - ', $groupMeta)); ?>
                                                                         <?php endif; ?>
@@ -228,7 +233,9 @@ function mastercomNoIrcStudentBadge(array $student): string
                                                 <?php foreach ($slot['group_buckets'] as $bucket): ?>
                                                     <?php
                                                     $parts = [];
-                                                    $parts[] = 'Gruppo ' . trim((string)($bucket['group_label'] ?? 'A'));
+                                                    $parts[] = ($bucket['type'] ?? '') === 'room_setup'
+                                                        ? trim((string)($bucket['group_label'] ?? 'Aula'))
+                                                        : ('Gruppo ' . trim((string)($bucket['group_label'] ?? 'A')));
                                                     if (trim((string)($bucket['teacher_name'] ?? '')) !== '') {
                                                         $parts[] = trim((string)$bucket['teacher_name']);
                                                     }
