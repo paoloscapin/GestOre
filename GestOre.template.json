@@ -31,7 +31,9 @@
         "logLoginFile": "GestOreLogin.log",
         "logCronFile": "GestOreCron.log",
         "logImportSostituzioniFile": "import_sostituzioni.log",
-        "logTelegramFile": "telegram.log"
+        "logTelegramFile": "telegram.log",
+        "logGoogleCalendarFile": "google_calendar.log",
+"       logGoogleCalendarMBAppFile": "google_calendar_mbapp.log"
     },
     "config": {
         "gestioneClil": false,
@@ -92,7 +94,20 @@
         "emailNoReplyFrom": "--- deve essere la mail usata per la GoogleApp oppure un alias collegato allo stesso account ---",
         "emailSportelli": "--- mail in BCC a cui viene inviato ogni email degli sportelli ---",
         "emailCarenze": "--- inserire un indirizzo di email a cui inviare in cc le lettere di carenza generate ---",
-        "luogoIstituto": "--- inserire la località per i documenti generati ---"
+        "luogoIstituto": "--- inserire la località per i documenti generati ---",
+        "googleCalendar": {
+            "enabled": false,
+            "applicationName": "GestOre Google Calendar",
+            "clientId": "---",
+            "clientSecret": "----",
+            "accessToken": "ya29.a0AQvPyIMZPybZP7EcHMikd9-IVtGdkyNq8Cfz4VdGzzvy5DaYI34rC7CNZaFJiF9j04s4s6adNS_6RARsBY0gPkEaLQeFHa1fMErYXKMCxRGrSyjyPeX8mTrxCNN7iEupAOiTfuNwkVnyT3f9vwP6iSeENwuCl8c8O4QiaHQ74yo1J8Puciu1KxypJIE7hFO33-TeX08aCgYKAZkSAQ8SFQHGX2MifzlfRrLnGLTCMA9HQaga-w0206",
+            "refreshToken": "1//03TV5eLm3UbY3CgYIARAAGAMSNwF-L9Ir8dEPkOukL44w_UIFRJQTOT4h4qfLRvpftBAHMMZYmXHwSmdE25NC0LL_olTy7QwTtco",
+            "expiresIn": "----",
+            "created": "---",
+            "accountEmail": "noreplygestore@buonarroti.tn.it",
+            "timeZone": "Europe/Rome",
+            "syncSecret": "#####"
+        }
     },
     "importi": {
         "oreConStudenti": 38.5,

@@ -45,6 +45,18 @@ if ($__settings->log->logIntoAppFolder) {
 }
 $fileNameTelegram .= $__settings->log->logTelegramFile;
 
+$fileNameCalendar = '';
+if ($__settings->log->logIntoAppFolder) {
+    $fileNameCalendar = __DIR__ . "/../log/";
+}
+$fileNameCalendar .= $__settings->log->logGoogleCalendarFile;
+
+$fileNameCalendarMBApp = '';
+if ($__settings->log->logIntoAppFolder) {
+    $fileNameCalendarMBApp = __DIR__ . "/../log/";
+}
+$fileNameCalendarMBApp .= $__settings->log->logGoogleCalendarMBAppFile;
+
 $__logger = Log::factory('file', $fileName, '', array("timeFormat"=>$__settings->log->timeFormat), $__logLevel);
 $__logger_login = Log::factory('file', $fileNameLogin, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
 $__logger_cron = Log::factory('file', $fileNameCron, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
@@ -58,6 +70,20 @@ $__logger_import_sostituzioni = Log::factory(
 $__logger_telegram = Log::factory(
     'file',
     $fileNameTelegram,
+    '',
+    array("timeFormat" => $__settings->log->timeFormat),
+    PEAR_LOG_INFO
+);
+$__logger_calendar = Log::factory(
+    'file',
+    $fileNameCalendar,
+    '',
+    array("timeFormat" => $__settings->log->timeFormat),
+    PEAR_LOG_INFO
+);
+$__logger_calendar_mbapp = Log::factory(
+    'file',
+    $fileNameCalendarMBApp,
     '',
     array("timeFormat" => $__settings->log->timeFormat),
     PEAR_LOG_INFO
@@ -175,6 +201,30 @@ function rotateLog() {
     }
     $__logger_telegram->open();
     $__logger_telegram->info("old log was saved into $rotateFileName");
+
+    global $fileNameCalendar;
+    global $__logger_calendar;
+    $rotateFileName = buildRotatedLogFileName($fileNameCalendar);
+    $__logger_calendar->info("rotating into $rotateFileName");
+    $__logger_calendar->flush();
+    $__logger_calendar->close();
+    if (file_exists($fileNameCalendar)) {
+        rename($fileNameCalendar, $rotateFileName);
+    }   
+    $__logger_calendar->open();
+    $__logger_calendar->info("old log was saved into $rotateFileName");
+
+    global $fileNameCalendarMBApp;
+    global $__logger_calendar_mbapp;
+    $rotateFileName = buildRotatedLogFileName($fileNameCalendarMBApp);
+    $__logger_calendar_mbapp->info("rotating into $rotateFileName");
+    $__logger_calendar_mbapp->flush();
+    $__logger_calendar_mbapp->close();
+    if (file_exists($fileNameCalendarMBApp)) {
+        rename($fileNameCalendarMBApp, $rotateFileName);
+    }
+    $__logger_calendar_mbapp->open();
+    $__logger_calendar_mbapp->info("old log was saved into $rotateFileName");
 }
 /**
  * ================================
@@ -247,4 +297,59 @@ function errorTelegram(string $msg): void
     global $__logger_telegram;
     $__logger_telegram->err('[TELEGRAM] ' . $msg);
 }
+
+/**
+ * ================================
+ * LOG GOOGLE CALENDAR
+ * ================================
+ */
+
+function infoGoogleCalendar(string $msg): void
+{
+    global $__logger_calendar;
+    $__logger_calendar->info('[GOOGLE_CALENDAR] ' . $msg);
+}
+
+function warningGoogleCalendar(string $msg): void
+{
+    global $__logger_calendar;
+    $__logger_calendar->warning('[GOOGLE_CALENDAR] ' . $msg);
+}
+
+function errorGoogleCalendar(string $msg): void
+{
+    global $__logger_calendar;
+    $__logger_calendar->err('[GOOGLE_CALENDAR] ' . $msg);
+}
+
+function debugGoogleCalendar(string $msg): void
+{
+    global $__logger_calendar;
+    $__logger_calendar->debug('[GOOGLE_CALENDAR] ' . $msg);
+}
+
+function infoGoogleCalendarMBApp(string $msg): void
+{
+    global $__logger_calendar_mbapp;
+    $__logger_calendar_mbapp->info('[GOOGLE_CALENDAR_MBAPP] ' . $msg);
+}
+
+function warningGoogleCalendarMBApp(string $msg): void
+{
+    global $__logger_calendar_mbapp;
+    $__logger_calendar_mbapp->warning('[GOOGLE_CALENDAR_MBAPP] ' . $msg);
+}
+
+function errorGoogleCalendarMBApp(string $msg): void
+{
+    global $__logger_calendar_mbapp;
+    $__logger_calendar_mbapp->err('[GOOGLE_CALENDAR_MBAPP] ' . $msg);
+}
+
+function debugGoogleCalendarMBApp(string $msg): void
+{
+    global $__logger_calendar_mbapp;
+    $__logger_calendar_mbapp->debug('[GOOGLE_CALENDAR_MBAPP] ' . $msg);
+}
+
 ?>
