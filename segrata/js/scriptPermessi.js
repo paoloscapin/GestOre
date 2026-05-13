@@ -453,12 +453,6 @@ function saveFerieNotesOnly(sendMail) {
           : "Richiesta salvata senza invio mail."
       }, { type: "success", placement: { from: "top", align: "center" }, delay: 2500 });
 
-      const richiestaId = $("#fm_hidden_permesso_id").val();
-      if (richiestaId) {
-        ferieModalKeepDirty = true;
-        permessoOpen(richiestaId);
-      }
-
       permessiReadRecords();
       dashboardLoad();
     },

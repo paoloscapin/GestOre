@@ -164,12 +164,12 @@ function buildFerieEsitoMailHtml($nomeCompleto, $sottotipo, $statoRichiesta, arr
     $theme = 'annullamento';
     $esitoLabel = 'Respinta';
   } elseif ($statoRichiesta === 'PARZIALE') {
-    $headerTitle = 'FERIE PARZIALMENTE AGGIORNATE';
-    $intro = 'La tua richiesta ferie è stata <b>aggiornata parzialmente</b>: alcuni giorni risultano approvati o respinti, altri possono essere ancora in attesa.';
+    $headerTitle = 'FERIE APPROVATE PARZIALMENTE';
+    $intro = 'La tua richiesta ferie è stata <b>approvata parzialmente</b>: alcuni giorni risultano approvati o respinti, altri possono essere ancora in attesa.';
     $footer = 'Messaggio automatico da <b>GestOre</b>. Verifica il dettaglio della richiesta.';
     $badgeHtml = badge('PARZIALE', '#fef3c7', '#92400e');
     $theme = 'warning';
-    $esitoLabel = 'Parziale';
+    $esitoLabel = 'Approvata parzialmente';
   }
 
   $rowsHtml = '';
@@ -558,7 +558,7 @@ if ($sendMail) {
     } elseif ($statoCorrente === 'RESPINTO') {
       $subject = "GestOre - Ferie respinte: " . $sottotipoMail;
     } elseif ($statoCorrente === 'PARZIALE') {
-      $subject = "GestOre - Ferie aggiornate parzialmente: " . $sottotipoMail;
+      $subject = "GestOre - Ferie approvate parzialmente: " . $sottotipoMail;
     } else {
       $subject = "GestOre - Aggiornamento ferie: " . $sottotipoMail;
     }

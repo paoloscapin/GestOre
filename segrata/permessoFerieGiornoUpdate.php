@@ -53,12 +53,12 @@ function buildFerieEsitoMailHtml($nomeCompleto, $sottotipo, $statoRichiesta, arr
         $theme = 'annullamento';
         $esitoLabel = 'Respinta';
     } elseif ($statoRichiesta === 'PARZIALE') {
-        $headerTitle = 'FERIE PARZIALMENTE AGGIORNATE';
-        $intro = 'La tua richiesta ferie è stata <b>aggiornata parzialmente</b>: alcuni giorni risultano approvati o respinti, altri possono essere ancora in attesa.';
+        $headerTitle = 'FERIE APPROVATE PARZIALMENTE';
+        $intro = 'La tua richiesta ferie è stata <b>approvata parzialmente</b>: alcuni giorni risultano approvati o respinti, altri possono essere ancora in attesa.';
         $footer = 'Messaggio automatico da <b>GestOre</b>. Verifica il dettaglio della richiesta.';
         $badgeHtml = badge('PARZIALE', '#fef3c7', '#92400e');
         $theme = 'warning';
-        $esitoLabel = 'Parziale';
+        $esitoLabel = 'Approvata parzialmente';
     }
 
     $rowsHtml = '';
@@ -222,11 +222,11 @@ function buildFerieEsitoSegreteriaMailHtml($nomeCompleto, $emailUtente, $sottoti
         $theme = 'annullamento';
         $esitoLabel = 'Respinta';
     } elseif ($statoRichiesta === 'PARZIALE') {
-        $headerTitle = 'FERIE AGGIORNATE PARZIALMENTE';
-        $intro = 'La richiesta ferie è stata <b>aggiornata parzialmente</b> dalla segreteria.';
+        $headerTitle = 'FERIE APPROVATE PARZIALMENTE';
+        $intro = 'La richiesta ferie è stata <b>approvata parzialmente</b> dalla segreteria.';
         $badgeHtml = badge('PARZIALE', '#fef3c7', '#92400e');
         $theme = 'warning';
-        $esitoLabel = 'Parziale';
+        $esitoLabel = 'Approvata parzialmente';
     }
 
     $rowsHtml = '';
