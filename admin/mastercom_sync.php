@@ -42,6 +42,27 @@ function mastercomSyncAutoPost(array $fields): void
     @flush();
 }
 
+function mastercomSyncStudentsAllMessage(int $completedClasses, int $totalClasses, array $failedClasses): string
+{
+    $message = 'Studenti sincronizzati per tutte le classi: ' . $completedClasses . ' / ' . $totalClasses;
+    if (!empty($failedClasses)) {
+        $labels = [];
+        foreach ($failedClasses as $failedClass) {
+            if (!is_array($failedClass)) {
+                continue;
+            }
+            $label = trim((string)($failedClass['name'] ?? ''));
+            if ($label === '') {
+                $label = 'classe ' . intval($failedClass['class_id'] ?? 0);
+            }
+            $error = trim((string)($failedClass['message'] ?? 'errore non specificato'));
+            $labels[] = $label . ' (' . $error . ')';
+        }
+        $message .= ' | classi non sincronizzate: ' . implode('; ', $labels);
+    }
+    return $message;
+}
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -292,6 +313,8 @@ if ($entity === 'teachers') {
                 'current_student_offset' => 0,
                 'supplemental_map' => [],
                 'supplemental_debug' => [],
+                'completed_classes' => 0,
+                'failed_classes' => [],
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             mastercomSyncRenderProgress('Sincronizzazione studenti tutte le classi', 'Elenco classi caricato', 0, count($classIds));
             mastercomSyncAutoPost([
@@ -314,9 +337,14 @@ if ($entity === 'teachers') {
             } else {
                 $total = count($classIds);
                 $classIndex = intval($state['class_index'] ?? 0);
+                $completedClasses = intval($state['completed_classes'] ?? 0);
+                $failedClasses = is_array($state['failed_classes'] ?? null) ? $state['failed_classes'] : [];
                 if ($classIndex >= $total) {
                     @unlink($file);
-                    $result = ['ok' => true, 'message' => 'Studenti sincronizzati per tutte le classi: ' . $total];
+                    $result = [
+                        'ok' => empty($failedClasses),
+                        'message' => mastercomSyncStudentsAllMessage($completedClasses, $total, $failedClasses),
+                    ];
                 } else {
                     $classId = intval($state['current_class_id'] ?? 0);
                     $currentStudents = is_array($state['current_students'] ?? null) ? $state['current_students'] : [];
@@ -342,8 +370,43 @@ if ($entity === 'teachers') {
 
                         $listResult = mastercomAdminLoadStudentsListForClass($classId);
                         if (!$listResult['ok']) {
+                            $failedClasses[] = [
+                                'class_id' => $classId,
+                                'name' => (string)($className ?: $classId),
+                                'message' => 'caricamento studenti fallito: ' . ($listResult['message'] ?? 'LOAD_FAILED'),
+                            ];
+                            $classIndex++;
+                            $state = [
+                                'class_ids' => $classIds,
+                                'class_index' => $classIndex,
+                                'current_class_id' => 0,
+                                'current_students' => [],
+                                'current_student_offset' => 0,
+                                'supplemental_map' => [],
+                                'supplemental_debug' => [],
+                                'completed_classes' => $completedClasses,
+                                'failed_classes' => $failedClasses,
+                            ];
+                            file_put_contents($file, json_encode($state, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                            mastercomSyncRenderProgress(
+                                'Sincronizzazione studenti tutte le classi',
+                                'Classe saltata per errore MasterCom: ' . ($className ?: $classId),
+                                min($classIndex, $total),
+                                $total
+                            );
+                            if ($classIndex < $total) {
+                                mastercomSyncAutoPost([
+                                    'entity' => 'students_all',
+                                    'token' => $token,
+                                    'limit' => $limit,
+                                ]);
+                                exit;
+                            }
                             @unlink($file);
-                            $result = ['ok' => false, 'message' => 'Errore caricamento studenti sulla classe ' . $classId . ': ' . ($listResult['message'] ?? 'LOAD_FAILED')];
+                            $result = [
+                                'ok' => false,
+                                'message' => mastercomSyncStudentsAllMessage($completedClasses, $total, $failedClasses),
+                            ];
                             goto mastercom_students_all_done;
                         }
 
@@ -368,6 +431,8 @@ if ($entity === 'teachers') {
                             'current_student_offset' => $studentOffset,
                             'supplemental_map' => $supplementalMap,
                             'supplemental_debug' => $supplementalDebug,
+                            'completed_classes' => $completedClasses,
+                            'failed_classes' => $failedClasses,
                         ];
                         file_put_contents($file, json_encode($state, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
                     }
@@ -390,8 +455,44 @@ if ($entity === 'teachers') {
 
                     $classResult = mastercomAdminSyncStudentsChunk($classId, $chunk, $studentOffset, $classStudentsTotal, null, $supplementalMap);
                     if (!$classResult['ok']) {
+                        $failedClasses[] = [
+                            'class_id' => $classId,
+                            'name' => (string)($className ?: $classId),
+                            'message' => $classResult['message'] ?? 'SYNC_FAILED',
+                        ];
+                        $classIndex++;
+                        if ($classIndex < $total) {
+                            $state = [
+                                'class_ids' => $classIds,
+                                'class_index' => $classIndex,
+                                'current_class_id' => 0,
+                                'current_students' => [],
+                                'current_student_offset' => 0,
+                                'supplemental_map' => [],
+                                'supplemental_debug' => [],
+                                'completed_classes' => $completedClasses,
+                                'failed_classes' => $failedClasses,
+                            ];
+                            file_put_contents($file, json_encode($state, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                            mastercomSyncRenderProgress(
+                                'Sincronizzazione studenti tutte le classi',
+                                'Classe saltata per errore sincronizzazione: ' . ($className ?: $classId),
+                                $classIndex,
+                                $total
+                            );
+                            mastercomSyncAutoPost([
+                                'entity' => 'students_all',
+                                'token' => $token,
+                                'limit' => $limit,
+                            ]);
+                            exit;
+                        }
+
                         @unlink($file);
-                        $result = ['ok' => false, 'message' => 'Errore sulla classe ' . $classId . ': ' . ($classResult['message'] ?? 'SYNC_FAILED')];
+                        $result = [
+                            'ok' => false,
+                            'message' => mastercomSyncStudentsAllMessage($completedClasses, $total, $failedClasses),
+                        ];
                     } else {
                         $nextStudentOffset = $studentOffset + count($chunk);
                         if ($nextStudentOffset < $classStudentsTotal) {
@@ -412,6 +513,7 @@ if ($entity === 'teachers') {
                         }
 
                         $classIndex++;
+                        $completedClasses++;
                         if ($classIndex < $total) {
                             $state = [
                                 'class_ids' => $classIds,
@@ -421,6 +523,8 @@ if ($entity === 'teachers') {
                                 'current_student_offset' => 0,
                                 'supplemental_map' => [],
                                 'supplemental_debug' => [],
+                                'completed_classes' => $completedClasses,
+                                'failed_classes' => $failedClasses,
                             ];
                             file_put_contents($file, json_encode($state, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
                             mastercomSyncRenderProgress(
@@ -438,7 +542,10 @@ if ($entity === 'teachers') {
                         }
 
                         @unlink($file);
-                        $result = ['ok' => true, 'message' => 'Studenti sincronizzati per tutte le classi: ' . $total];
+                        $result = [
+                            'ok' => empty($failedClasses),
+                            'message' => mastercomSyncStudentsAllMessage($completedClasses, $total, $failedClasses),
+                        ];
                     }
                 }
             }
