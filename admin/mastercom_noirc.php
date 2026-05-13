@@ -9,6 +9,18 @@ $referenceDate = trim((string)($_GET['week_of'] ?? ''));
 $context = mastercomNoIrcBuildWeekSlots($referenceDate);
 $optionalMissingTables = mastercomAdminMissingTables(mastercomNoIrcOptionalTables());
 
+function mastercomNoIrcChoiceTooltip(string $choice): string
+{
+    $map = [
+        'ASD' => 'Attività di Studio e/o di Ricerche individuali con assistenza di personale docente',
+        'LAS' => 'Libera Attività di Studio e/o ricerca individuale senza assistenza di personale docente',
+        'AES' => 'Allontanarsi o assentarsi da Edificio Scolastico',
+        'n/d' => 'Scelta non definita'
+    ];
+
+    return $map[$choice] ?? $choice;
+}
+
 function mastercomNoIrcStudentBadge(array $student): string
 {
     $choice = trim((string)($student['scelta_sigla'] ?? ''));
@@ -22,7 +34,14 @@ function mastercomNoIrcStudentBadge(array $student): string
         $label .= ' (' . $classLabel . ')';
     }
 
-    return htmlspecialchars($label) . ' <span class="label label-default">' . htmlspecialchars($choice) . '</span>';
+    $tooltip = mastercomNoIrcChoiceTooltip($choice);
+
+    return htmlspecialchars($label)
+        . ' <span class="label label-default" data-toggle="tooltip" data-placement="top" title="'
+        . htmlspecialchars($tooltip)
+        . '">'
+        . htmlspecialchars($choice)
+        . '</span>';
 }
 ?>
 <!DOCTYPE html>
@@ -258,5 +277,14 @@ function mastercomNoIrcStudentBadge(array $student): string
         </div>
     </div>
 </div>
+
+<script>
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip({
+        container: 'body'
+    });
+});
+</script>
+
 </body>
 </html>
