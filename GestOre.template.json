@@ -33,7 +33,7 @@
         "logImportSostituzioniFile": "import_sostituzioni.log",
         "logTelegramFile": "telegram.log",
         "logGoogleCalendarFile": "google_calendar.log",
-"       logGoogleCalendarMBAppFile": "google_calendar_mbapp.log"
+        "logGoogleCalendarMBAppFile": "google_calendar_mbapp.log"
     },
     "config": {
         "gestioneClil": false,
@@ -107,6 +107,17 @@
             "accountEmail": "noreplygestore@buonarroti.tn.it",
             "timeZone": "Europe/Rome",
             "syncSecret": "#####"
+        },
+        "googleDrive": {
+            "enabled": false,
+            "applicationName": "GestOre Google Drive",
+            "clientId": "--- google client id ---",
+            "clientSecret": "--- google client secret ---",
+            "accountEmail": "noreplygestore@buonarroti.tn.it",
+            "logFolderId": "",
+            "logFolderName": "GestOre Log",
+            "syncSecret": "#####",
+            "deleteAfterUpload": true
         }
     },
     "importi": {
