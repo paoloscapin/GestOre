@@ -272,13 +272,12 @@ if ($entity === 'teachers') {
                         @unlink($file);
                         $result['message'] = 'Studenti sincronizzati per classe ' . $classId . ': ' . $total;
                         if (!empty($supplementalDebug)) {
-                            $result['message'] .= ' | CSV extra '
-                                . (!empty($supplementalDebug['ok']) ? 'OK' : 'KO')
-                                . ' | righe=' . intval($supplementalDebug['rows_count'] ?? 0)
-                                . ' | tempo=' . ($supplementalDebug['elapsed_seconds'] ?? 0) . 's'
-                                . ' | http=' . intval($supplementalDebug['http_code'] ?? 0)
-                                . ($supplementalDebug['content_type'] !== '' ? ' | type=' . $supplementalDebug['content_type'] : '')
-                                . (!empty($supplementalDebug['preview']) ? ' | preview=' . $supplementalDebug['preview'] : '');
+                            if (!empty($supplementalDebug['ok'])) {
+                                $result['message'] .= ' | CSV extra OK | righe=' . intval($supplementalDebug['rows_count'] ?? 0);
+                            } else {
+                                $result['message'] .= ' | Warning: CSV extra non disponibile'
+                                    . (trim((string)($supplementalDebug['message'] ?? '')) !== '' ? ' (' . trim((string)$supplementalDebug['message']) . ')' : '');
+                            }
                         }
                     } else {
                         @unlink($file);
@@ -289,6 +288,171 @@ if ($entity === 'teachers') {
     }
 } elseif ($entity === 'students_all') {
     $token = trim((string)($_POST['token'] ?? ''));
+
+    /*
+     * Il sync globale deve usare la stessa routine del sync singola classe.
+     * Il vecchio percorso elaborava studenti/chunk con stato separato: se una
+     * classe restava in uno stato incoerente poteva non aggiornarsi senza un
+     * errore evidente. Qui processiamo una classe per richiesta/autopost, ma
+     * dentro ogni passo richiamiamo mastercomAdminSyncStudentsForClass().
+     */
+    if ($token === '') {
+        $classRows = dbGetAll("
+            SELECT mastercom_id_classe, nome
+            FROM mastercom_classi
+            WHERE mastercom_id_classe IS NOT NULL
+              AND mastercom_id_classe > 0
+            ORDER BY nome ASC
+        ");
+        $classes = [];
+        foreach (is_array($classRows) ? $classRows : [] as $classRow) {
+            $classId = intval($classRow['mastercom_id_classe'] ?? 0);
+            if ($classId <= 0) {
+                continue;
+            }
+            $classes[] = [
+                'id' => $classId,
+                'name' => trim((string)($classRow['nome'] ?? '')),
+            ];
+        }
+
+        if (empty($classes)) {
+            $result = ['ok' => false, 'message' => 'Nessuna classe MasterCom disponibile. Sincronizza prima le classi.'];
+            goto mastercom_students_all_done;
+        }
+
+        $token = uniqid('students_all_', true);
+        $file = mastercomAdminStudentsAllSyncFile($token);
+        file_put_contents($file, json_encode([
+            'classes' => $classes,
+            'class_index' => 0,
+            'completed_classes' => 0,
+            'failed_classes' => [],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        mastercomSyncRenderProgress('Sincronizzazione studenti tutte le classi', 'Elenco classi caricato', 0, count($classes));
+        mastercomSyncAutoPost([
+            'entity' => 'students_all',
+            'token' => $token,
+        ]);
+        exit;
+    }
+
+    $file = mastercomAdminStudentsAllSyncFile($token);
+    if (!is_file($file)) {
+        $result = ['ok' => false, 'message' => 'Stato sincronizzazione studenti tutte le classi non trovato'];
+        goto mastercom_students_all_done;
+    }
+
+    $state = json_decode((string)file_get_contents($file), true);
+    if (!is_array($state)) {
+        @unlink($file);
+        $result = ['ok' => false, 'message' => 'Coda sincronizzazione classi non valida'];
+        goto mastercom_students_all_done;
+    }
+
+    $classes = is_array($state['classes'] ?? null) ? $state['classes'] : [];
+    if (empty($classes) && is_array($state['class_ids'] ?? null)) {
+        foreach ($state['class_ids'] as $classId) {
+            $classId = intval($classId);
+            if ($classId <= 0) {
+                continue;
+            }
+            $classes[] = [
+                'id' => $classId,
+                'name' => (string)(dbGetValue("SELECT nome FROM mastercom_classi WHERE mastercom_id_classe = " . $classId . " LIMIT 1") ?: $classId),
+            ];
+        }
+    }
+
+    if (empty($classes)) {
+        @unlink($file);
+        $result = ['ok' => false, 'message' => 'Coda sincronizzazione classi non valida'];
+        goto mastercom_students_all_done;
+    }
+
+    $total = count($classes);
+    $classIndex = intval($state['class_index'] ?? 0);
+    $completedClasses = intval($state['completed_classes'] ?? 0);
+    $failedClasses = is_array($state['failed_classes'] ?? null) ? $state['failed_classes'] : [];
+
+    if ($classIndex >= $total) {
+        @unlink($file);
+        $result = [
+            'ok' => empty($failedClasses),
+            'message' => mastercomSyncStudentsAllMessage($completedClasses, $total, $failedClasses),
+        ];
+        goto mastercom_students_all_done;
+    }
+
+    $classEntry = is_array($classes[$classIndex] ?? null) ? $classes[$classIndex] : [];
+    $classId = intval($classEntry['id'] ?? 0);
+    $className = trim((string)($classEntry['name'] ?? ''));
+    if ($className === '' && $classId > 0) {
+        $className = (string)(dbGetValue("SELECT nome FROM mastercom_classi WHERE mastercom_id_classe = " . $classId . " LIMIT 1") ?: $classId);
+    }
+
+    if ($classId <= 0) {
+        $failedClasses[] = [
+            'class_id' => $classId,
+            'name' => $className !== '' ? $className : ('indice ' . $classIndex),
+            'message' => 'classe non valida',
+        ];
+    } else {
+        mastercomSyncRenderProgress(
+            'Sincronizzazione studenti tutte le classi',
+            'Sincronizzazione classe ' . $className . ' con la routine della singola classe',
+            $classIndex,
+            $total
+        );
+
+        $classResult = mastercomAdminSyncStudentsForClass($classId, function (string $stage, int $current, int $classTotal, string $message) use ($className, $classIndex, $total): void {
+            mastercomSyncRenderProgress(
+                'Sincronizzazione studenti tutte le classi',
+                'Classe ' . $className . ' | ' . $message . ' (' . $current . '/' . $classTotal . ')',
+                $classIndex,
+                $total
+            );
+        });
+
+        if (empty($classResult['ok'])) {
+            $failedClasses[] = [
+                'class_id' => $classId,
+                'name' => $className !== '' ? $className : (string)$classId,
+                'message' => $classResult['message'] ?? 'SYNC_FAILED',
+            ];
+        } else {
+            $completedClasses++;
+        }
+    }
+
+    $classIndex++;
+    if ($classIndex < $total) {
+        file_put_contents($file, json_encode([
+            'classes' => $classes,
+            'class_index' => $classIndex,
+            'completed_classes' => $completedClasses,
+            'failed_classes' => $failedClasses,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        mastercomSyncRenderProgress(
+            'Sincronizzazione studenti tutte le classi',
+            'Classe completata: ' . ($className !== '' ? $className : $classId),
+            $classIndex,
+            $total
+        );
+        mastercomSyncAutoPost([
+            'entity' => 'students_all',
+            'token' => $token,
+        ]);
+        exit;
+    }
+
+    @unlink($file);
+    $result = [
+        'ok' => empty($failedClasses),
+        'message' => mastercomSyncStudentsAllMessage($completedClasses, $total, $failedClasses),
+    ];
+    goto mastercom_students_all_done;
+
     $limit = intval($_POST['limit'] ?? 5);
     if ($limit <= 0) {
         $limit = 5;
