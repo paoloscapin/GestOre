@@ -287,17 +287,7 @@ function mbappCalendarCreateGoogleEvent($config, $event, $times)
         $titolo = 'Prenotazione da Google Calendar';
     }
     $motivo = 'IMPEGNO IN ISTITUTO';
-    $descrizione = trim((string)($event['description'] ?? ''));
-    $creatorEmail = trim((string)($event['creator']['email'] ?? ''));
-
     $dettagli = $titolo;
-    if ($descrizione !== '') {
-        $dettagli .= "\n\n" . $descrizione;
-    }
-    if ($creatorEmail !== '') {
-        $dettagli .= "\n\nCreatore Google: " . $creatorEmail;
-    }
-    $dettagli .= "\nGoogle event id: " . $googleEventId;
 
     $dataEsc = addslashes($times['data']);
     $oraInizioEsc = addslashes($times['oraInizio']);
@@ -468,13 +458,7 @@ function mbappCalendarUpdateGoogleEvent($config, $event, $sync, $times)
     $motivoEsc = addslashes($motivo);
     $titoloEsc = addslashes($titolo);
     $aulaEsc = addslashes($nroAula);
-    $descrizione = trim((string)($event['description'] ?? ''));
-
     $dettagli = $titolo;
-
-    if ($descrizione !== '') {
-        $dettagli .= "\n\n" . $descrizione;
-    }
 
     $dettagliEsc = addslashes($dettagli);
     // Ricreo le righe oralezione perché cambiando orario può cambiare il numero di ore scolastiche occupate
@@ -532,7 +516,7 @@ function mbappCalendarUpdateGoogleEvent($config, $event, $sync, $times)
             titolo = '" . dbEscape($titolo) . "',
             inizio = '" . dbEscape($times['inizioDb']) . "',
             fine = '" . dbEscape($times['fineDb']) . "',
-            stato = CONFERMATO',
+            stato = 'CONFERMATO',
             ultimo_errore = NULL,
             updated_at = NOW()
         WHERE id = " . intval($sync['id']) . "
@@ -585,19 +569,15 @@ function mbappCalendarCancelGoogleEvent($config, $event, $sync)
 
     if ($idAssenza > 0) {
         mb_dbExec("
-            UPDATE assenze
-            SET stato = 'ANNULLATO'
+            DELETE FROM oralezione
+            WHERE idAssenza = $idAssenza
+        ");
+
+        mb_dbExec("
+            DELETE FROM assenze
             WHERE idAssenza = $idAssenza
             LIMIT 1
         ");
-    }
-
-    if ($idAssenza > 0) {
-        mb_dbExec("
-        UPDATE oralezione
-        SET stato = 'ANNULLATO'
-        WHERE idAssenza = $idAssenza
-    ");
     }
 
     dbExec("
@@ -610,7 +590,7 @@ function mbappCalendarCancelGoogleEvent($config, $event, $sync)
     ");
 
     infoGoogleCalendarMBApp(
-        'CANCEL MBApp da Google OK: ' .
+        'DELETE MBApp da Google OK: ' .
             json_encode([
                 'idAssenza' => $idAssenza,
                 'idCalendario' => $idCalendario,
@@ -620,8 +600,8 @@ function mbappCalendarCancelGoogleEvent($config, $event, $sync)
 
     return [
         'ok' => true,
-        'action' => 'cancel',
-        'msg' => 'Annullato evento MBApp da Google Calendar',
+        'action' => 'delete',
+        'msg' => 'Eliminato evento MBApp da cancellazione Google Calendar',
         'idAssenza' => $idAssenza,
         'idCalendario' => $idCalendario
     ];
