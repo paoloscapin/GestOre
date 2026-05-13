@@ -50,6 +50,45 @@ function formatDateRangeMail($dataDa, $dataA, $oraDa = null, $oraA = null): stri
   return $txt;
 }
 
+function ferieMailDecisionCounts(array $giorniRows): array
+{
+  $counts = [
+    'pending' => 0,
+    'approved' => 0,
+    'rejected' => 0,
+    'active' => 0,
+  ];
+
+  foreach ($giorniRows as $r) {
+    $det = [];
+    if (!empty($r['dettagli_json'])) {
+      $tmp = json_decode($r['dettagli_json'], true);
+      if (is_array($tmp)) {
+        $det = $tmp;
+      }
+    }
+
+    $sg = strtoupper((string)($det['stato_giorno'] ?? 'RICHIESTO'));
+    if ($sg === 'RIMOSSO') {
+      continue;
+    }
+    if ($sg === 'AGGIUNTO') {
+      $sg = 'RICHIESTO';
+    }
+
+    $counts['active']++;
+    if ($sg === 'APPROVATO') {
+      $counts['approved']++;
+    } elseif ($sg === 'RESPINTO') {
+      $counts['rejected']++;
+    } else {
+      $counts['pending']++;
+    }
+  }
+
+  return $counts;
+}
+
 function buildFerieEsitoMailHtml($nomeCompleto, $sottotipo, $statoRichiesta, array $giorniRows, $noteRichiedente, $notaApprovatore, $toName = ''): string
 {
   $statoRichiesta = strtoupper(trim((string)$statoRichiesta));
@@ -430,13 +469,23 @@ $statoCorrente = strtoupper(trim((string)($richiestaAgg['stato'] ?? '')));
 $noteCorrenti = trim((string)($richiestaAgg['note_segreteria'] ?? ''));
 
 $sendMail = false;
+$mailSent = false;
+$mailSkippedReason = '';
 
 /**
  * FERIE:
- * la mail parte solo dal salvataggio finale del modal ferie
+ * la mail parte solo dal pulsante esplicito "Salva e invia mail" e solo se
+ * tutti i giorni attivi sono stati approvati o respinti.
  */
 if ($tipoCodice === 'FERIE' && $finalizzaFerie) {
-  $sendMail = true;
+  $ferieCounts = ferieMailDecisionCounts($righe);
+  if (intval($ferieCounts['active'] ?? 0) <= 0) {
+    $mailSkippedReason = 'Richiesta salvata. Nessun giorno ferie attivo su cui inviare esito.';
+  } elseif (intval($ferieCounts['pending'] ?? 0) > 0) {
+    $mailSkippedReason = 'Richiesta salvata. Mail non inviata: ci sono ancora giorni in attesa.';
+  } else {
+    $sendMail = true;
+  }
 }
 
 /**
@@ -489,10 +538,18 @@ if ($sendMail) {
       $nomeCompleto
     );
   }
-  $mailOk = sendMail($emailUtente, $nomeCompleto, $subject, $body);
+  if ($emailUtente === '') {
+    $mailSkippedReason = 'Richiesta salvata. Mail non inviata: email dipendente mancante.';
+  }
+  $mailOk = $emailUtente !== '' ? sendMail($emailUtente, $nomeCompleto, $subject, $body) : false;
+  $mailSent = $mailOk === true;
   info("permessoUpdateSegreteria.php: mail id=$id tipo=$tipoCodice stato=$statoCorrente finalizzaFerie=" . ($finalizzaFerie ? '1' : '0') . " esito=" . ($mailOk ? 'OK' : 'KO'));
 } else {
-  warning("permessoUpdateSegreteria.php: nessuna mail inviata per id=$id, email utente vuota");
+  info("permessoUpdateSegreteria.php: nessuna mail inviata per id=$id tipo=$tipoCodice finalizzaFerie=" . ($finalizzaFerie ? '1' : '0') . ($mailSkippedReason !== '' ? " motivo=$mailSkippedReason" : ''));
 }
 
-echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+echo json_encode([
+  'ok' => true,
+  'mail_sent' => $mailSent,
+  'mail_skipped_reason' => $mailSkippedReason,
+], JSON_UNESCAPED_UNICODE);

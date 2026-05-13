@@ -161,7 +161,13 @@ if ($profilo_id > 0) {
 }
 
 if ($ufficio_id > 0) {
-  $where .= " AND u.id = $ufficio_id ";
+  $where .= " AND EXISTS (
+      SELECT 1
+      FROM personale_ata_assegnazioni pa_filter
+      WHERE pa_filter.username = p.username
+        AND pa_filter.attiva = 1
+        AND pa_filter.id_ufficio = $ufficio_id
+  ) ";
 }
 
 if ($search !== '') {
@@ -173,7 +179,7 @@ if ($search !== '') {
       p.email     LIKE '%$s%' OR
       p.username  LIKE '%$s%' OR
       pr.nome     LIKE '%$s%' OR
-      u.nome      LIKE '%$s%'
+      uff.ufficio_nome LIKE '%$s%'
   ) ";
 }
 
@@ -195,7 +201,7 @@ SELECT
   p.matricola,
   p.tipo_contratto,
   pr.nome AS profilo_nome,
-  u.nome  AS ufficio_nome,
+  uff.ufficio_nome,
   rragg.data_dal_min,
   rragg.data_al_max,
   rragg.ora_dal_min,
@@ -205,11 +211,17 @@ JOIN permesso_ata_tipo t ON t.id = r.permesso_ata_tipo_id
 JOIN personale_ata p ON p.id = r.personale_ata_id
 LEFT JOIN personale_ata_profili pr
        ON pr.id = p.id_profilo
-LEFT JOIN personale_ata_assegnazioni pa
-       ON pa.username = p.username
-      AND pa.attiva = 1
-LEFT JOIN personale_ata_uffici u
-       ON u.id = pa.id_ufficio
+LEFT JOIN (
+  SELECT
+    pa.username,
+    GROUP_CONCAT(DISTINCT u.nome ORDER BY u.nome SEPARATOR ', ') AS ufficio_nome
+  FROM personale_ata_assegnazioni pa
+  LEFT JOIN personale_ata_uffici u
+         ON u.id = pa.id_ufficio
+  WHERE pa.attiva = 1
+  GROUP BY pa.username
+) uff
+  ON uff.username = p.username
 LEFT JOIN (
   SELECT
     permesso_ata_richiesta_id,
@@ -362,7 +374,7 @@ if ($registrato === 1) {
 if ($count === 0) {
   $data .= '
     <tr>
-      <td colspan="9" class="text-center text-muted" style="padding:25px 10px;">
+      <td colspan="10" class="text-center text-muted" style="padding:25px 10px;">
         Nessuna richiesta trovata
       </td>
     </tr>';

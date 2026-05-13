@@ -310,6 +310,7 @@ function updateFerieSaveButtonState() {
   const changed = !ferieSnapshotsEqual(ferieModalInitialSnapshot, ferieModalCurrentSnapshot);
 
   $("#fm_btn_save_notes").prop("disabled", !changed);
+  $("#fm_btn_save_send_mail").prop("disabled", false);
   return changed;
 }
 
@@ -375,12 +376,13 @@ function openFerieDayDecisionModal(iso, dayInfo, dip) {
   $("#ferie_giorno_modal").modal("show");
 }
 
-function saveFerieNotesOnly() {
+function saveFerieNotesOnly(sendMail) {
   const id = $("#fm_hidden_permesso_id").val();
   const note = $("#fm_note_segreteria").val();
   const registrato = $("#fm_registrato_segreteria").is(":checked") ? 1 : 0;
+  const shouldSendMail = sendMail === true;
 
-  if (!updateFerieSaveButtonState()) {
+  if (!shouldSendMail && !updateFerieSaveButtonState()) {
     return;
   }
 
@@ -391,7 +393,7 @@ function saveFerieNotesOnly() {
     data: {
       id: id,
       note_segreteria: note,
-      finalizza_ferie: 1,
+      finalizza_ferie: shouldSendMail ? 1 : 0,
       registrato_segreteria: registrato
     },
     success: function (r) {
@@ -407,7 +409,9 @@ function saveFerieNotesOnly() {
       $.notify({
         icon: "glyphicon glyphicon-ok",
         title: "<strong>Ferie</strong>&nbsp;",
-        message: "Note segreteria salvate."
+        message: shouldSendMail
+          ? (r.mail_sent ? "Richiesta salvata e mail inviata." : (r.mail_skipped_reason || "Richiesta salvata. Mail non inviata."))
+          : "Richiesta salvata senza invio mail."
       }, { type: "success", placement: { from: "top", align: "center" }, delay: 2500 });
 
       permessiReadRecords();
@@ -415,7 +419,7 @@ function saveFerieNotesOnly() {
     },
     error: function (xhr) {
       console.error("permessoUpdateSegreteria NOTE ERROR", xhr.responseText);
-      $.notify({ message: "Errore salvataggio note segreteria" }, { type: "danger" });
+      $.notify({ message: "Errore salvataggio richiesta ferie" }, { type: "danger" });
     }
   });
 }
@@ -1110,7 +1114,13 @@ $(document).ready(function () {
   $(document).off("click", "#fm_btn_save_notes").on("click", "#fm_btn_save_notes", function (e) {
     e.preventDefault();
     e.stopPropagation();
-    saveFerieNotesOnly();
+    saveFerieNotesOnly(false);
+  });
+
+  $(document).off("click", "#fm_btn_save_send_mail").on("click", "#fm_btn_save_send_mail", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    saveFerieNotesOnly(true);
   });
 
   $(document).off("click", "#fg_btn_save").on("click", "#fg_btn_save", function (e) {

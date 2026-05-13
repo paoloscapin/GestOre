@@ -1050,7 +1050,11 @@ if (!is_array($ufficiAta)) {
                             </a>
 
                             <button type="button" class="btn btn-primary" id="fm_btn_save_notes">
-                                <span class="glyphicon glyphicon-floppy-disk"></span>&ensp;Salva note segreteria
+                                <span class="glyphicon glyphicon-floppy-disk"></span>&ensp;Salva
+                            </button>
+
+                            <button type="button" class="btn btn-success" id="fm_btn_save_send_mail">
+                                <span class="glyphicon glyphicon-envelope"></span>&ensp;Salva e invia mail
                             </button>
                         </div>
                     </div>
