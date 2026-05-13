@@ -314,6 +314,45 @@ function updateFerieSaveButtonState() {
   return changed;
 }
 
+function escapeHtml(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function renderFerieTimeline(perm) {
+  let details = {};
+  try {
+    details = JSON.parse((perm && perm.dettagli_json) || "{}");
+  } catch (e) {
+    details = {};
+  }
+
+  const timeline = Array.isArray(details.timeline) ? details.timeline.slice(-4).reverse() : [];
+  if (!timeline.length) {
+    $("#fm_timeline_wrap").html('<div class="text-muted">Nessuna operazione registrata.</div>');
+    return;
+  }
+
+  const html = '<ul class="ferie-timeline">' + timeline.map(function (item) {
+    const label = item.label || item.action || "Operazione";
+    const at = item.at_fmt || item.at || "";
+    const user = item.user_label || "";
+    const note = item.note || "";
+    const meta = [at, user].filter(Boolean).join(" - ");
+    return '<li>' +
+      '<div class="ferie-timeline-main">' + escapeHtml(label) + '</div>' +
+      (meta ? '<div class="ferie-timeline-meta">' + escapeHtml(meta) + '</div>' : '') +
+      (note ? '<div class="ferie-timeline-meta">' + escapeHtml(note) + '</div>' : '') +
+      '</li>';
+  }).join("") + '</ul>';
+
+  $("#fm_timeline_wrap").html(html);
+}
+
 function getOtherDayCellStateClass(otherInfo) {
   const stato = ((otherInfo && otherInfo.stato_giorno) || "").toUpperCase();
   if (stato === "APPROVATO") return " other-approved";
@@ -413,6 +452,12 @@ function saveFerieNotesOnly(sendMail) {
           ? (r.mail_sent ? "Richiesta salvata e mail inviata." : (r.mail_skipped_reason || "Richiesta salvata. Mail non inviata."))
           : "Richiesta salvata senza invio mail."
       }, { type: "success", placement: { from: "top", align: "center" }, delay: 2500 });
+
+      const richiestaId = $("#fm_hidden_permesso_id").val();
+      if (richiestaId) {
+        ferieModalKeepDirty = true;
+        permessoOpen(richiestaId);
+      }
 
       permessiReadRecords();
       dashboardLoad();
@@ -613,6 +658,7 @@ function renderPermessoFerieModal(r) {
 
   $("#fm_note_richiedente").val(perm.note_richiedente || "");
   $("#fm_note_segreteria").val(perm.note_segreteria || "");
+  renderFerieTimeline(perm);
   const extraHtml = buildOtherRequestsHtml(otherRequests);
   $("#fm_other_requests_box").html(extraHtml);
 

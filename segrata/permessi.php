@@ -718,6 +718,32 @@ if (!is_array($ufficiAta)) {
             color: #1c4f70;
         }
 
+        .ferie-timeline {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .ferie-timeline li {
+            padding: 8px 0;
+            border-bottom: 1px solid #edf0f3;
+        }
+
+        .ferie-timeline li:last-child {
+            border-bottom: 0;
+        }
+
+        .ferie-timeline-main {
+            font-weight: 700;
+            color: #273447;
+        }
+
+        .ferie-timeline-meta {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
         .permessi-table th:nth-child(2),
         .permessi-table td:nth-child(2) {
             width: 150px;
@@ -994,6 +1020,13 @@ if (!is_array($ufficiAta)) {
                                         <div><strong>Ufficio:</strong> <span id="fm_ufficio"></span></div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="ferie-modal-card">
+                            <div class="ferie-modal-card-head"><strong>Ultime operazioni</strong></div>
+                            <div class="ferie-modal-card-body" id="fm_timeline_wrap">
+                                <div class="text-muted">Nessuna operazione registrata.</div>
                             </div>
                         </div>
 

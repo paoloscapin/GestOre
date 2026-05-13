@@ -149,6 +149,56 @@ function buildFerieEsitoMailHtml($nomeCompleto, $sottotipo, $statoRichiesta, arr
     );
 }
 
+function ferieTimelineUserLabel(): string
+{
+    global $__utente_id;
+    $userId = intval($__utente_id ?? 0);
+    if ($userId <= 0) {
+        return '';
+    }
+
+    $row = dbGetFirst("SELECT cognome, nome, username FROM utente WHERE id = $userId LIMIT 1");
+    if (!is_array($row)) {
+        return '';
+    }
+
+    $label = trim((string)($row['cognome'] ?? '') . ' ' . (string)($row['nome'] ?? ''));
+    return $label !== '' ? $label : trim((string)($row['username'] ?? ''));
+}
+
+function ferieAppendTimeline(int $richiestaId, string $action, string $label, string $note = ''): void
+{
+    global $__con;
+
+    $row = dbGetFirst("SELECT dettagli_json FROM permesso_ata_richiesta WHERE id = $richiestaId LIMIT 1");
+    $details = [];
+    if (is_array($row) && !empty($row['dettagli_json'])) {
+        $tmp = json_decode($row['dettagli_json'], true);
+        if (is_array($tmp)) {
+            $details = $tmp;
+        }
+    }
+
+    $timeline = is_array($details['timeline'] ?? null) ? $details['timeline'] : [];
+    $now = date('Y-m-d H:i:s');
+    $timeline[] = [
+        'action' => $action,
+        'label' => $label,
+        'note' => $note,
+        'at' => $now,
+        'at_fmt' => date('d/m/Y H:i', strtotime($now)),
+        'user_id' => intval($GLOBALS['__utente_id'] ?? 0),
+        'user_label' => ferieTimelineUserLabel(),
+    ];
+    if (count($timeline) > 20) {
+        $timeline = array_slice($timeline, -20);
+    }
+    $details['timeline'] = $timeline;
+
+    $json = mysqli_real_escape_string($__con, json_encode($details, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    dbExec("UPDATE permesso_ata_richiesta SET dettagli_json = '$json' WHERE id = $richiestaId LIMIT 1");
+}
+
 function buildFerieEsitoSegreteriaMailHtml($nomeCompleto, $emailUtente, $sottotipo, $statoRichiesta, array $giorniRows, $noteRichiedente, $notaApprovatore, $toName = ''): string
 {
     $statoRichiesta = strtoupper(trim((string)$statoRichiesta));
@@ -438,7 +488,15 @@ if ($ok === false) {
     echo json_encode(['ok' => false, 'error' => 'Errore aggiornamento richiesta'], JSON_UNESCAPED_UNICODE);
     exit;
 }
-    info("permessoFerieRichiestaBulkUpdate.php: richiesta_id=$richiestaId aggiornata a stato=$nuovoStato senza invio mail (giorno aggiornato a stato_giorno=$statoGiorno cntApprovati=$cntApprovati cntRespinti=$cntRespinti cntRichiesti=$cntRichiesti)");
+
+ferieAppendTimeline(
+    $richiestaId,
+    $statoGiorno === 'APPROVATO' ? 'FERIE_APPROVATE' : 'FERIE_RESPINTE',
+    $statoGiorno === 'APPROVATO' ? 'Tutti i giorni ferie approvati' : 'Tutti i giorni ferie respinti',
+    'Stato richiesta: ' . $nuovoStato
+);
+
+info("permessoFerieRichiestaBulkUpdate.php: richiesta_id=$richiestaId aggiornata a stato=$nuovoStato senza invio mail (giorno aggiornato a stato_giorno=$statoGiorno cntApprovati=$cntApprovati cntRespinti=$cntRespinti cntRichiesti=$cntRichiesti)");
 
 echo json_encode([
     'ok' => true,

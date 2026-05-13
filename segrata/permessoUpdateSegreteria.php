@@ -89,6 +89,56 @@ function ferieMailDecisionCounts(array $giorniRows): array
   return $counts;
 }
 
+function ferieTimelineUserLabel(): string
+{
+  global $__utente_id;
+  $userId = intval($__utente_id ?? 0);
+  if ($userId <= 0) {
+    return '';
+  }
+
+  $row = dbGetFirst("SELECT cognome, nome, username FROM utente WHERE id = $userId LIMIT 1");
+  if (!is_array($row)) {
+    return '';
+  }
+
+  $label = trim((string)($row['cognome'] ?? '') . ' ' . (string)($row['nome'] ?? ''));
+  return $label !== '' ? $label : trim((string)($row['username'] ?? ''));
+}
+
+function ferieAppendTimeline(int $richiestaId, string $action, string $label, string $note = ''): void
+{
+  global $__con;
+
+  $row = dbGetFirst("SELECT dettagli_json FROM permesso_ata_richiesta WHERE id = $richiestaId LIMIT 1");
+  $details = [];
+  if (is_array($row) && !empty($row['dettagli_json'])) {
+    $tmp = json_decode($row['dettagli_json'], true);
+    if (is_array($tmp)) {
+      $details = $tmp;
+    }
+  }
+
+  $timeline = is_array($details['timeline'] ?? null) ? $details['timeline'] : [];
+  $now = date('Y-m-d H:i:s');
+  $timeline[] = [
+    'action' => $action,
+    'label' => $label,
+    'note' => $note,
+    'at' => $now,
+    'at_fmt' => date('d/m/Y H:i', strtotime($now)),
+    'user_id' => intval($GLOBALS['__utente_id'] ?? 0),
+    'user_label' => ferieTimelineUserLabel(),
+  ];
+  if (count($timeline) > 20) {
+    $timeline = array_slice($timeline, -20);
+  }
+  $details['timeline'] = $timeline;
+
+  $json = mysqli_real_escape_string($__con, json_encode($details, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+  dbExec("UPDATE permesso_ata_richiesta SET dettagli_json = '$json' WHERE id = $richiestaId LIMIT 1");
+}
+
 function buildFerieEsitoMailHtml($nomeCompleto, $sottotipo, $statoRichiesta, array $giorniRows, $noteRichiedente, $notaApprovatore, $toName = ''): string
 {
   $statoRichiesta = strtoupper(trim((string)$statoRichiesta));
@@ -546,6 +596,19 @@ if ($sendMail) {
   info("permessoUpdateSegreteria.php: mail id=$id tipo=$tipoCodice stato=$statoCorrente finalizzaFerie=" . ($finalizzaFerie ? '1' : '0') . " esito=" . ($mailOk ? 'OK' : 'KO'));
 } else {
   info("permessoUpdateSegreteria.php: nessuna mail inviata per id=$id tipo=$tipoCodice finalizzaFerie=" . ($finalizzaFerie ? '1' : '0') . ($mailSkippedReason !== '' ? " motivo=$mailSkippedReason" : ''));
+}
+
+if ($tipoCodice === 'FERIE') {
+  if ($finalizzaFerie) {
+    ferieAppendTimeline(
+      $id,
+      $mailSent ? 'MAIL_INVIATA' : 'MAIL_NON_INVIATA',
+      $mailSent ? 'Inviata mail esito ferie' : 'Mail esito ferie non inviata',
+      $mailSent ? ('Stato richiesta: ' . $statoCorrente) : $mailSkippedReason
+    );
+  } else {
+    ferieAppendTimeline($id, 'SALVATAGGIO', 'Richiesta salvata senza invio mail');
+  }
 }
 
 echo json_encode([
