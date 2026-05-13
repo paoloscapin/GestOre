@@ -122,13 +122,36 @@ function mastercomNoIrcMastercomClassBaseLabel(?string $className): string
 
 function mastercomNoIrcChoiceCode(?string $choiceDescription): string
 {
-    $choiceDescription = trim((string)$choiceDescription);
-    if ($choiceDescription === '') {
+    $normalized = mastercomAdminNorm($choiceDescription);
+
+    if ($normalized === '') {
         return '';
     }
 
-    if (preg_match('/^([A-Z]{2,4})\b/u', strtoupper($choiceDescription), $matches)) {
-        return trim((string)$matches[1]);
+    if (
+        strpos($normalized, 'LIBERA ATTIVITA DI STUDIO') !== false
+        || (
+            strpos($normalized, 'SENZA ASSISTENZA') !== false
+            && strpos($normalized, 'DOCENTE') !== false
+        )
+    ) {
+        return 'LAS';
+    }
+
+    if (
+        strpos($normalized, 'ATTIVITA DI STUDIO') !== false
+        && strpos($normalized, 'ASSISTENZA') !== false
+        && strpos($normalized, 'DOCENTE') !== false
+    ) {
+        return 'ASD';
+    }
+
+    if (
+        strpos($normalized, 'ALLONTANARSI') !== false
+        || strpos($normalized, 'ASSENTARSI') !== false
+        || strpos($normalized, 'EDIFICIO SCOLASTICO') !== false
+    ) {
+        return 'AES';
     }
 
     return '';
