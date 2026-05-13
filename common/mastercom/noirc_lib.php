@@ -82,7 +82,7 @@ function mastercomNoIrcNormalizeHour(?string $hour): string
     if ($hour === '') {
         return '';
     }
-
+    
     return substr($hour, 0, 5);
 }
 
@@ -694,6 +694,13 @@ function mastercomNoIrcSaveRoomSetup(array $payload): array
     if ($hour === '') {
         return ['ok' => false, 'error' => 'Ora non valida'];
     }
+    if ($startDate === '') {
+        return ['ok' => false, 'error' => 'Seleziona una data inizio valida'];
+    }
+
+    if ($endDate === '') {
+        return ['ok' => false, 'error' => 'Seleziona una data fine valida'];
+    }
     if ($endDate < $startDate) {
         return ['ok' => false, 'error' => 'La data fine non puo essere precedente alla data inizio'];
     }
@@ -1025,7 +1032,7 @@ function mastercomNoIrcValidateAssignmentPayload(array $payload): array
             'data_fine' => $endDate,
             'aula' => $aula,
             'note' => $note,
-            'gruppo_label' => '',
+            'gruppo_label' => 'A',
             'classi_incluse' => '',
             'capienza_massima' => 0,
         ],
@@ -1071,7 +1078,7 @@ function mastercomNoIrcSaveAssignment(array $payload, int $assignmentId = 0): ar
                 aula = " . dbQ($data['aula']) . ",
                 note = " . dbQ($data['note']) . $extraSet . ",
                 updated_at = NOW()
-            WHERE id = " . $assignmentId . "
+            WHERE id = " . dbI($assignmentId) . "
         ");
     } else {
         $columns = ['id_docente', 'giorno_settimana', 'ora', 'data_inizio', 'data_fine', 'aula', 'note', 'attivo', 'created_at', 'updated_at'];
