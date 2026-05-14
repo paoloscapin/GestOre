@@ -1611,31 +1611,75 @@ function moduliSvoltiChooseProgrammaIniziale(programmi) {
     return parseInt(programmi[scelta - 1].id, 10);
 }
 
-async function moduliSvoltiImport() {
-    let programma_id = $("#hidden_programma_id").val();
-
-    if (programma_id < 0) {
-        programma_id = await new Promise((resolve, reject) => {
-            $.post("programmiSvoltiSave.php", {
-                id: '-1',
-                docente_id: $("#docente").val(),
-                classe_id: $("#classe").val(),
-                classe_tipo: $("#classe option:selected").data("tipo") || "classe",
-                articolata_id: $("#classe option:selected").data("articolata-id") || 0,
-                classi_collegate: $("#classe option:selected").data("classi") || "",
-                materia_id: $("#materia").val(),
-                duplica: 'false',
-                share: 'false',
-                overwrite: 'false'
-            }, function (data, status) {
-                $("#hidden_programma_id").val(data);
-                resolve(data);
-            }).fail(function (jqXHR, textStatus, errorThrown) {
-                console.error("Errore nel salvataggio:", textStatus, errorThrown);
-                reject(errorThrown);
-            });
-        });
+function verificaCampiProgrammaSvoltoObbligatori() {
+    if ($("#docente").val() <= 0) {
+        $("#_error-programma").text("Devi selezionare un docente");
+        $("#_error-programma-part").show();
+        return false;
     }
+    if ($("#classe").val() <= 0) {
+        $("#_error-programma").text("Devi selezionare una classe");
+        $("#_error-programma-part").show();
+        return false;
+    }
+    if ($("#materia").val() <= 0) {
+        $("#_error-programma").text("Devi selezionare una materia");
+        $("#_error-programma-part").show();
+        return false;
+    }
+
+    $("#_error-programma-part").hide();
+    return true;
+}
+
+async function assicuratiProgrammaSvoltoSalvato() {
+    if (programmaSvoltoReadonly()) {
+        return 0;
+    }
+    if (!verificaCampiProgrammaSvoltoObbligatori()) {
+        return 0;
+    }
+
+    syncProgrammaRichEditorsToTextareas();
+    $('#hidden_programma_classe_anno').val(parseInt($('#classe option:selected').data('anno'), 10) || $('#hidden_programma_classe_anno').val() || 0);
+
+    let programma_id = parseInt($("#hidden_programma_id").val(), 10);
+    if (!isNaN(programma_id) && programma_id > 0) {
+        return programma_id;
+    }
+
+    const saveResp = await $.ajax({
+        url: "programmiSvoltiSave.php",
+        type: "POST",
+        data: {
+            id: '-1',
+            docente_id: $("#docente").val(),
+            classe_id: $("#classe").val(),
+            classe_tipo: $("#classe option:selected").data("tipo") || "classe",
+            articolata_id: $("#classe option:selected").data("articolata-id") || 0,
+            classi_collegate: $("#classe option:selected").data("classi") || "",
+            materia_id: $("#materia").val(),
+            duplica: 'false',
+            share: 'false',
+            overwrite: 'false',
+            metodologie_programma: $("#metodologie_programma").val(),
+            criteri_valutazione_programma: $("#criteri_valutazione_programma").val(),
+            testi_materiali_programma: $("#testi_materiali_programma").val()
+        }
+    });
+
+    programma_id = parseInt($.trim(String(saveResp)), 10);
+    if (isNaN(programma_id) || programma_id <= 0) {
+        alert("Non riesco a salvare il programma prima di procedere: " + saveResp);
+        return 0;
+    }
+
+    $("#hidden_programma_id").val(programma_id);
+    return programma_id;
+}
+
+async function moduliSvoltiImport() {
+    let programma_id = await assicuratiProgrammaSvoltoSalvato();
 
     if (programma_id > 0) {
         var conf = confirm("Sei sicuro di volere importare il programma iniziale? Verranno usati prima i moduli dello stesso docente. Se esistono solo programmi di altri docenti, potrai scegliere quale importare. Eventuali moduli gia presenti saranno sovrascritti.");
@@ -1672,32 +1716,11 @@ async function moduloSvoltiGetDetails(modulo_id) {
     if (programmaSvoltoReadonly()) {
         return;
     }
-    let programma_id = $("#hidden_programma_id").val();
-
-    if (programma_id < 0) {
-        programma_id = await new Promise((resolve, reject) => {
-            $.post("programmiSvoltiSave.php", {
-                id: '-1',
-                docente_id: $("#docente").val(),
-                classe_id: $("#classe").val(),
-                classe_tipo: $("#classe option:selected").data("tipo") || "classe",
-                articolata_id: $("#classe option:selected").data("articolata-id") || 0,
-                classi_collegate: $("#classe option:selected").data("classi") || "",
-                materia_id: $("#materia").val(),
-                duplica: 'false',
-                share: 'false',
-                overwrite: 'false'
-            }, function (data, status) {
-                $("#hidden_programma_id").val(data);
-                resolve(data);
-            }).fail(function (jqXHR, textStatus, errorThrown) {
-                console.error("Errore nel salvataggio:", textStatus, errorThrown);
-                reject(errorThrown);
-            });
-        });
+    let programma_id = await assicuratiProgrammaSvoltoSalvato();
+    if (programma_id <= 0) {
+        return;
     }
 
-    programma_id = $("#hidden_programma_id").val();
     $("#hidden_modulo_id").val(modulo_id);
     let nmoduli = $("#hidden_nmoduli").val();
 
@@ -1802,23 +1825,11 @@ function programmiSvoltiSave() {
     if (programmaSvoltoReadonly()) {
         return;
     }
-    if ($("#docente").val() <= 0) {
-        $("#_error-programma").text("Devi selezionare un docente");
-        $("#_error-programma-part").show();
-        return;
-    }
-    if ($("#classe").val() <= 0) {
-        $("#_error-programma").text("Devi selezionare una classe");
-        $("#_error-programma-part").show();
-        return;
-    }
-    if ($("#materia").val() <= 0) {
-        $("#_error-programma").text("Devi selezionare una materia");
+    if (!verificaCampiProgrammaSvoltoObbligatori()) {
         $("#_error-programma-part").show();
         return;
     }
 
-    $("#_error-programma-part").hide();
     $('#hidden_programma_classe_anno').val(parseInt($('#classe option:selected').data('anno'), 10) || $('#hidden_programma_classe_anno').val() || 0);
     syncProgrammaRichEditorsToTextareas();
 
