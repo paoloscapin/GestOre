@@ -170,6 +170,8 @@ function mbappCalendarExtractEventTimes($event)
 
 function mbappCalendarSyncFromGoogleEvent($config, $event)
 {
+    setLogChannel('google_calendar_mbapp');
+
     $tipo = strtoupper((string)($config['tipo'] ?? ''));
 
     if ($tipo !== 'AULA') {
@@ -275,6 +277,8 @@ function mbappCalendarSyncFromGoogleEvent($config, $event)
 
 function mbappCalendarCreateGoogleEvent($config, $event, $times)
 {
+    setLogChannel('google_calendar_mbapp');
+
     $googleConfigId = intval($config['id']);
     $nroAula = trim((string)$config['nroAula']);
 
@@ -435,6 +439,8 @@ function mbappCalendarCreateGoogleEvent($config, $event, $times)
 
 function mbappCalendarUpdateGoogleEvent($config, $event, $sync, $times)
 {
+    setLogChannel('google_calendar_mbapp');
+
     $idAssenza = intval($sync['idAssenza']);
     $idCalendario = intval($sync['idCalendario']);
     $nroAula = trim((string)$config['nroAula']);
@@ -546,6 +552,25 @@ function mbappCalendarUpdateGoogleEvent($config, $event, $sync, $times)
 
 function mbappCalendarCancelGoogleEvent($config, $event, $sync)
 {
+    setLogChannel('google_calendar_mbapp');
+
+    if (strtoupper((string)($config['tipo'] ?? '')) !== 'AULA') {
+        warningGoogleCalendarMBApp(
+            'CANCEL Google ignorato: calendario non AULA: ' .
+                json_encode([
+                    'config_id' => $config['id'] ?? 0,
+                    'tipo' => $config['tipo'] ?? '',
+                    'google_event_id' => $event['id'] ?? ''
+                ], JSON_UNESCAPED_UNICODE)
+        );
+
+        return [
+            'ok' => true,
+            'action' => 'skip',
+            'msg' => 'Cancellazione ignorata: calendario non AULA'
+        ];
+    }
+
     $googleEventId = (string)($event['id'] ?? '');
 
     if ($sync == null) {
@@ -565,6 +590,7 @@ function mbappCalendarCancelGoogleEvent($config, $event, $sync)
     }
 
     $idAssenza = intval($sync['idAssenza'] ?? 0);
+
     $idCalendario = intval($sync['idCalendario'] ?? 0);
 
     if ($idAssenza > 0) {
@@ -578,6 +604,13 @@ function mbappCalendarCancelGoogleEvent($config, $event, $sync)
             WHERE idAssenza = $idAssenza
             LIMIT 1
         ");
+    }
+
+    if ($idAssenza > 0) {
+        mbappCalendarDeleteOtherGoogleEventsForAssenza(
+            $idAssenza,
+            intval($sync['id'] ?? 0)
+        );
     }
 
     dbExec("
@@ -605,4 +638,51 @@ function mbappCalendarCancelGoogleEvent($config, $event, $sync)
         'idAssenza' => $idAssenza,
         'idCalendario' => $idCalendario
     ];
+}
+
+function mbappCalendarDeleteOtherGoogleEventsForAssenza($idAssenza, $excludeSyncId = 0)
+{
+    $idAssenza = intval($idAssenza);
+    $excludeSyncId = intval($excludeSyncId);
+
+    if ($idAssenza <= 0) {
+        return;
+    }
+
+    $rows = dbGetAll("
+        SELECT s.*, c.calendar_id, c.nome
+        FROM google_calendar_event_sync s
+        INNER JOIN google_calendar_config c
+            ON c.id = s.google_calendar_config_id
+        WHERE s.idAssenza = $idAssenza
+          AND s.stato <> 'ANNULLATO'
+          AND s.id <> $excludeSyncId
+    ") ?: [];
+
+    foreach ($rows as $row) {
+        $calendarId = trim((string)($row['calendar_id'] ?? ''));
+        $googleEventId = trim((string)($row['google_event_id'] ?? ''));
+
+        if ($calendarId !== '' && $googleEventId !== '') {
+            $url = 'https://www.googleapis.com/calendar/v3/calendars/' .
+                rawurlencode($calendarId) .
+                '/events/' .
+                rawurlencode($googleEventId) .
+                '?sendUpdates=none';
+
+            try {
+                googleCalendarApiRequest('DELETE', $url);
+            } catch (Throwable $e) {
+                // Se già cancellato/non trovato, proseguo comunque
+            }
+        }
+
+        dbExec("
+            UPDATE google_calendar_event_sync
+            SET stato = 'ANNULLATO',
+                updated_at = NOW()
+            WHERE id = " . intval($row['id']) . "
+            LIMIT 1
+        ");
+    }
 }
