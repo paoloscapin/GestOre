@@ -33,7 +33,8 @@
         "logImportSostituzioniFile": "import_sostituzioni.log",
         "logTelegramFile": "telegram.log",
         "logGoogleCalendarFile": "google_calendar.log",
-        "logGoogleCalendarMBAppFile": "google_calendar_mbapp.log"
+        "logGoogleCalendarMBAppFile": "google_calendar_mbapp.log",
+        "logGmailFile": "gmail.log"
     },
     "config": {
         "gestioneClil": false,
@@ -139,10 +140,8 @@
     "ticketMail": {
         "enabled": true,
         "alias_address": "gestore@buonarroti.tn.it",
-        "imap_mailbox": "{imap.gmail.com:993/imap/ssl}[Gmail]/TICKET GESTORE",
-        "imap_fallback_mailboxes": [
-            "{imap.gmail.com:993/imap/ssl}[Gmail]/Tutti i messaggi"
-        ],
+        "imap_mailbox": "{imap.gmail.com:993/imap/ssl}INBOX",
+        "imap_fallback_mailboxes": [],
         "mark_seen_after_import": true,
         "quiet_hours_enabled": true,
         "quiet_hours_start": "20:00",

@@ -986,8 +986,14 @@ function ticketMailMailboxCandidates(array $config): array
 {
     $primary = trim((string)($config['imap_mailbox'] ?? ''));
     $candidates = [];
-    if ($primary !== '') {
+    if ($primary !== '' && stripos($primary, 'All Mail') === false && stripos($primary, 'Tutti i messaggi') === false) {
         $candidates[] = $primary;
+        $labelRootMailbox = ticketMailGmailLabelRootMailbox($primary);
+        if ($labelRootMailbox !== '') {
+            array_unshift($candidates, $labelRootMailbox);
+        }
+    } elseif ($primary !== '' && function_exists('warningGmail')) {
+        warningGmail('mailbox primaria ignorata per import ticket: ' . $primary);
     }
 
     $fallbacks = $config['imap_fallback_mailboxes'] ?? [];
@@ -1000,23 +1006,32 @@ function ticketMailMailboxCandidates(array $config): array
 
     foreach ($fallbacks as $mailbox) {
         $mailbox = trim((string)$mailbox);
-        if ($mailbox !== '') {
+        if ($mailbox !== '' && stripos($mailbox, 'All Mail') === false && stripos($mailbox, 'Tutti i messaggi') === false) {
             $candidates[] = $mailbox;
+        } elseif ($mailbox !== '' && function_exists('warningGmail')) {
+            warningGmail('mailbox fallback ignorata per import ticket: ' . $mailbox);
         }
     }
 
-    if ($primary !== '' && stripos($primary, 'imap.gmail.com') !== false) {
-        $gmailAllMail = str_replace('INBOX', '[Gmail]/All Mail', $primary);
-        $gmailAllMailIt = str_replace('INBOX', '[Gmail]/Tutti i messaggi', $primary);
-        $googleMailAllMail = str_replace('INBOX', '[Google Mail]/All Mail', $primary);
-        $googleMailAllMailIt = str_replace('INBOX', '[Google Mail]/Tutti i messaggi', $primary);
-        $candidates[] = $gmailAllMail;
-        $candidates[] = $gmailAllMailIt;
-        $candidates[] = $googleMailAllMail;
-        $candidates[] = $googleMailAllMailIt;
+    return array_values(array_unique(array_filter($candidates)));
+}
+
+function ticketMailGmailLabelRootMailbox(string $mailbox): string
+{
+    if (stripos($mailbox, 'imap.gmail.com') === false) {
+        return '';
     }
 
-    return array_values(array_unique(array_filter($candidates)));
+    if (!preg_match('/^(\{[^}]+\})\[(?:Gmail|Google Mail)\]\/(.+)$/i', $mailbox, $matches)) {
+        return '';
+    }
+
+    $label = trim((string)$matches[2]);
+    if ($label === '' || stripos($label, 'All Mail') !== false || stripos($label, 'Tutti i messaggi') !== false) {
+        return '';
+    }
+
+    return $matches[1] . $label;
 }
 
 function ticketMailClearImapRuntimeErrors(): void
@@ -1068,11 +1083,18 @@ function ticketMailIsInQuietHours(array $config): bool
     return $now >= $start || $now < $end;
 }
 
-function ticketMailImportInbox(int $limit = 10, ?bool $markSeen = null, bool $respectQuietHours = true): array
+function ticketMailNormalizeMessageId(string $messageId): string
+{
+    return strtolower(trim($messageId, " \t\n\r\0\x0B<>"));
+}
+
+function ticketMailImportInbox(int $limit = 10, ?bool $markSeen = null, bool $respectQuietHours = true, bool $includeRecent = false, array $allowedMessageIds = []): array
 {
     $config = ticketMailConfig();
     $limit = max(1, min(30, $limit));
     $markSeen = $markSeen === null ? $config['mark_seen_after_import'] : $markSeen;
+    $allowedMessageIds = array_values(array_filter(array_map('ticketMailNormalizeMessageId', $allowedMessageIds)));
+    $allowedMessageIdMap = array_fill_keys($allowedMessageIds, true);
 
     if (!$config['enabled']) {
         return ['ok' => false, 'message' => 'Ticket mail disabilitato in configurazione', 'results' => []];
@@ -1118,13 +1140,13 @@ function ticketMailImportInbox(int $limit = 10, ?bool $markSeen = null, bool $re
         }
 
         $candidateMessages = imap_search($candidateInbox, 'UNSEEN') ?: [];
-        $recentMessages = imap_search($candidateInbox, 'ALL') ?: [];
-        if (!empty($recentMessages)) {
-            rsort($recentMessages, SORT_NUMERIC);
-            $recentMessages = array_slice($recentMessages, 0, max($limit * 5, 25));
-        }
-        if (!empty($candidateMessages) || !empty($recentMessages)) {
-            $candidateMessages = array_values(array_unique(array_merge($candidateMessages, $recentMessages)));
+        if ($includeRecent) {
+            $recentMessages = imap_search($candidateInbox, 'ALL') ?: [];
+            if (!empty($recentMessages)) {
+                rsort($recentMessages, SORT_NUMERIC);
+                $recentMessages = array_slice($recentMessages, 0, max($limit * 3, 10));
+                $candidateMessages = array_values(array_unique(array_merge($candidateMessages, $recentMessages)));
+            }
         }
 
         if (!empty($candidateMessages)) {
@@ -1165,6 +1187,10 @@ function ticketMailImportInbox(int $limit = 10, ?bool $markSeen = null, bool $re
 
         $subject = ticketMailDecodeHeaderValue((string)($overview->subject ?? ''));
         $messageId = trim((string)($overview->message_id ?? ''));
+        $normalizedMessageId = ticketMailNormalizeMessageId($messageId);
+        if (!empty($allowedMessageIdMap) && ($normalizedMessageId === '' || empty($allowedMessageIdMap[$normalizedMessageId]))) {
+            continue;
+        }
         $fromAddresses = ticketMailExtractAddressesFromHeaderInfo($headerInfo, 'from');
         $fromEmail = $fromAddresses[0] ?? '';
         $toAddresses = array_unique(array_merge(
@@ -1187,18 +1213,27 @@ function ticketMailImportInbox(int $limit = 10, ?bool $markSeen = null, bool $re
         if ($existingImportedRow != null && strtoupper(trim((string)($existingImportedRow['esito'] ?? ''))) !== 'ERRORE') {
             $resultRow['note'] = 'mail già importata in precedenza';
             $results[] = $resultRow;
+            if ($markSeen) {
+                imap_setflag_full($inbox, (string)$msgNo, '\\Seen');
+            }
             continue;
         }
 
         if (!ticketMailIsAddressedToAlias($headerInfo, $rawHeaders, $config['alias_address'])) {
             $resultRow['note'] = 'destinatario diverso da ' . $config['alias_address'];
             $results[] = $resultRow;
+            if ($markSeen) {
+                imap_setflag_full($inbox, (string)$msgNo, '\\Seen');
+            }
             continue;
         }
 
         if ($fromEmail === '' || preg_match('/^(mailer-daemon|postmaster)@/i', $fromEmail)) {
             $resultRow['note'] = 'mittente automatico o non valido';
             $results[] = $resultRow;
+            if ($markSeen) {
+                imap_setflag_full($inbox, (string)$msgNo, '\\Seen');
+            }
             continue;
         }
 
