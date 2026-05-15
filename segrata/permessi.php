@@ -18,6 +18,42 @@ if (!is_array($tipiPermesso)) {
     $tipiPermesso = [];
 }
 
+$ferieSottotipi = dbGetAll("
+    SELECT DISTINCT UPPER(TRIM(codice)) AS sottotipo
+    FROM permesso_ata_ferie_finestra
+    WHERE codice IS NOT NULL
+      AND TRIM(codice) <> ''
+      AND (valido IS NULL OR valido=1)
+    ORDER BY
+      FIELD(UPPER(TRIM(codice)), 'ORDINARIE', 'ESTIVE', 'NATALE', 'CARNEVALE', 'PASQUA'),
+      UPPER(TRIM(codice))
+");
+if (!is_array($ferieSottotipi)) {
+    $ferieSottotipi = [];
+}
+
+$ferieSottotipiList = ['ORDINARIE'];
+foreach ($ferieSottotipi as $fs) {
+    $sottotipo = strtoupper(trim((string)($fs['sottotipo'] ?? '')));
+    if ($sottotipo !== '' && !in_array($sottotipo, $ferieSottotipiList, true)) {
+        $ferieSottotipiList[] = $sottotipo;
+    }
+}
+
+function ferieSottotipoFilterLabel(string $sottotipo): string
+{
+    $map = [
+        'ORDINARIE' => 'Ferie ordinarie',
+        'ESTIVE' => 'Ferie estive',
+        'NATALE' => 'Ferie Natale',
+        'CARNEVALE' => 'Ferie Carnevale',
+        'PASQUA' => 'Ferie Pasqua',
+    ];
+
+    $key = strtoupper(trim($sottotipo));
+    return $map[$key] ?? ('Ferie ' . ucfirst(strtolower($key)));
+}
+
 $profiliAta = dbGetAll("
     SELECT id, nome
     FROM personale_ata_profili
@@ -812,6 +848,13 @@ if (!is_array($ufficiAta)) {
                                     <option value="<?php echo intval($t['id']); ?>">
                                         <?php echo htmlspecialchars($t['codice'] . ' - ' . $t['descrizione']); ?>
                                     </option>
+                                    <?php if (strtoupper(trim((string)$t['codice'])) === 'FERIE') { ?>
+                                        <?php foreach ($ferieSottotipiList as $sottotipo) { ?>
+                                            <option value="FERIE:<?php echo htmlspecialchars($sottotipo); ?>">
+                                                <?php echo htmlspecialchars('FERIE - ' . ferieSottotipoFilterLabel($sottotipo)); ?>
+                                            </option>
+                                        <?php } ?>
+                                    <?php } ?>
                                 <?php } ?>
                             </select>
 

@@ -148,7 +148,11 @@ function permessiReadRecords() {
   const stato = ($("#f_stato").val() || "").toString();
   const stati = stato ? [] : dashboardSelectedStates.slice();
   const registrazioni = stato ? [] : dashboardSelectedRegistrazioni.slice();
-  const tipoId = ($("#f_tipo").val() || "").toString();
+  const tipoFilter = ($("#f_tipo").val() || "").toString();
+  const tipoId = /^\d+$/.test(tipoFilter) ? tipoFilter : "";
+  const ferieSottotipo = tipoFilter.indexOf("FERIE:") === 0
+    ? tipoFilter.substring("FERIE:".length).toUpperCase()
+    : "";
   const profiloId = ($("#f_profilo").val() || "").toString();
   const ufficioId = ($("#f_ufficio").val() || "").toString();
   const search = ($("#f_search").val() || "").toString();
@@ -161,6 +165,7 @@ function permessiReadRecords() {
       stati: stati,
       registrazioni: registrazioni,
       tipo_id: tipoId,
+      ferie_sottotipo: ferieSottotipo,
       profilo_id: profiloId,
       ufficio_id: ufficioId,
       search: search

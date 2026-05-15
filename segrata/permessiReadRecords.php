@@ -97,6 +97,7 @@ $stato      = isset($_GET['stato']) ? trim((string)$_GET['stato']) : '';
 $statiParam = isset($_GET['stati']) ? $_GET['stati'] : [];
 $registrazioniParam = isset($_GET['registrazioni']) ? $_GET['registrazioni'] : [];
 $tipo_id    = isset($_GET['tipo_id']) ? intval($_GET['tipo_id']) : 0;
+$ferie_sottotipo = isset($_GET['ferie_sottotipo']) ? strtoupper(trim((string)$_GET['ferie_sottotipo'])) : '';
 $profilo_id = isset($_GET['profilo_id']) ? intval($_GET['profilo_id']) : 0;
 $ufficio_id = isset($_GET['ufficio_id']) ? intval($_GET['ufficio_id']) : 0;
 $search     = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
@@ -154,6 +155,15 @@ if (isset($_GET['registrazioni'])) {
 
 if ($tipo_id > 0) {
   $where .= " AND r.permesso_ata_tipo_id = $tipo_id ";
+}
+
+if ($ferie_sottotipo !== '') {
+  if (preg_match('/^[A-Z0-9_]+$/', $ferie_sottotipo)) {
+    $where .= " AND t.codice = 'FERIE' ";
+    $where .= " AND UPPER(TRIM(COALESCE(r.ferie_sottotipo, ''))) = '" . esc_sql_like($ferie_sottotipo) . "' ";
+  } else {
+    $where .= " AND 1=0 ";
+  }
 }
 
 if ($profilo_id > 0) {
