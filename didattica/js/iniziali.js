@@ -352,6 +352,7 @@ function setInizialiModuloEditable(canEdit) {
         .attr('contenteditable', canEdit ? 'true' : 'false')
         .toggleClass('disabled', !canEdit);
     $modal.find('.programma-rich-btn').prop('disabled', !canEdit);
+    $modal.find('.programma-edit-help').toggle(!!canEdit);
 
     if (!canEdit) {
         hideInizialiFieldPreview();

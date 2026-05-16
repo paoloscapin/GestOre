@@ -887,7 +887,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                         <div class="col-sm-10"><textarea id="conoscenze" rows="5" placeholder="conoscenze"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
                                                 title="Inserisci le conoscenze relative a questo modulo"></textarea>
-                                            <div class="help-block" style="margin-top:6px; color:#4f6b88;">
+                                            <div class="help-block programma-edit-help" style="margin-top:6px; color:#4f6b88;">
                                                 Clicca dentro il testo per vedere sotto l'anteprima live di come verra' formattato.
                                                 <span class="programma-preview-inline-actions" id="conoscenze_preview_top_actions" style="display:none;">
                                                     <button type="button" class="btn btn-default btn-xs programma-preview-done" data-preview-field="conoscenze">Ho finito di modificare questo campo</button>
@@ -902,7 +902,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                         <div class="col-sm-10"><textarea id="abilita" rows="5" placeholder="abilita"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
                                                 title="Inserisci le abilita relative a questo modulo"></textarea>
-                                            <div class="help-block" style="margin-top:6px; color:#4f6b88;">
+                                            <div class="help-block programma-edit-help" style="margin-top:6px; color:#4f6b88;">
                                                 Clicca dentro il testo per vedere sotto l'anteprima live di come verra' formattato.
                                                 <span class="programma-preview-inline-actions" id="abilita_preview_top_actions" style="display:none;">
                                                     <button type="button" class="btn btn-default btn-xs programma-preview-done" data-preview-field="abilita">Ho finito di modificare questo campo</button>
@@ -917,7 +917,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                         <div class="col-sm-10"><textarea id="competenze" rows="5" placeholder="competenze"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
                                                 title="Inserisci le competenze relative a questo modulo"></textarea>
-                                            <div class="help-block" style="margin-top:6px; color:#4f6b88;">
+                                            <div class="help-block programma-edit-help" style="margin-top:6px; color:#4f6b88;">
                                                 Clicca dentro il testo per vedere sotto l'anteprima live di come verra' formattato.
                                                 <span class="programma-preview-inline-actions" id="competenze_preview_top_actions" style="display:none;">
                                                     <button type="button" class="btn btn-default btn-xs programma-preview-done" data-preview-field="competenze">Ho finito di modificare questo campo</button>
@@ -932,7 +932,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                         <div class="col-sm-10"><textarea id="periodo" rows="5" placeholder="periodo"
                                                 class="form-control" data-toggle="tooltip" data-placement="top"
                                                 title="Inserisci il periodo relativo a questo modulo"></textarea>
-                                            <div class="help-block" style="margin-top:6px; color:#4f6b88;">
+                                            <div class="help-block programma-edit-help" style="margin-top:6px; color:#4f6b88;">
                                                 Clicca dentro il testo per vedere sotto l'anteprima live di come verra' formattato.
                                                 <span class="programma-preview-inline-actions" id="periodo_preview_top_actions" style="display:none;">
                                                     <button type="button" class="btn btn-default btn-xs programma-preview-done" data-preview-field="periodo">Ho finito di modificare questo campo</button>
