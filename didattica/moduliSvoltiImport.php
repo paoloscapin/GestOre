@@ -44,6 +44,116 @@ function programmaInizialeImportLabel(array $row): array
     ];
 }
 
+function isProgrammaSvoltoImportInternalMarkerTitleCandidate(string $text): bool
+{
+    $letters = preg_replace('/[^\p{L}]/u', '', $text);
+    if ($letters === '') {
+        return true;
+    }
+
+    return mb_strtoupper($letters, 'UTF-8') === $letters;
+}
+
+function splitProgrammaSvoltoImportInternalMarkerTitle(string $rawText): array
+{
+    $text = trim(html_entity_decode(strip_tags($rawText), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    if ($text === '') {
+        return ['', ''];
+    }
+
+    if (preg_match('/^(.{3,90}?)(\s+\p{Lu}?\p{Ll}.*)$/u', $text, $matches)) {
+        $candidateTitle = trim($matches[1]);
+        $rest = trim($matches[2]);
+        if ($candidateTitle !== '' && $rest !== '' && isProgrammaSvoltoImportInternalMarkerTitleCandidate($candidateTitle)) {
+            return [$candidateTitle, $rest];
+        }
+    }
+
+    return [$text, ''];
+}
+
+function normalizeProgrammaSvoltoImportInternalMarkers(string $html): string
+{
+    if (strpos($html, '__MODULE_TITLE__') === false && strpos($html, '__SECTION_HEADING__') === false) {
+        return $html;
+    }
+
+    $html = preg_replace('/<\/(p|div|li|h4|h5)>\s*/i', "\n", $html);
+    $html = preg_replace('/<br\s*\/?>/i', "\n", $html);
+    $html = preg_replace('/<[^>]+>\s*(?=__(?:MODULE_TITLE|SECTION_HEADING)__)/i', "\n", $html);
+    $html = preg_replace('/(?<!^)(__(?:MODULE_TITLE|SECTION_HEADING)__)/m', "\n$1", $html);
+
+    return preg_replace_callback('/__(MODULE_TITLE|SECTION_HEADING)__\s*([^\r\n<]+)/u', function ($matches) {
+        $tag = $matches[1] === 'SECTION_HEADING' ? 'h5' : 'h4';
+        [$title, $rest] = splitProgrammaSvoltoImportInternalMarkerTitle($matches[2]);
+        if ($title === '') {
+            return '';
+        }
+        $out = '<' . $tag . '>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</' . $tag . '>';
+        if ($rest !== '') {
+            $out .= "\n" . htmlspecialchars($rest, ENT_QUOTES, 'UTF-8');
+        }
+        return $out;
+    }, $html);
+}
+
+function isProgrammaSvoltoImportHeadingTextPlausible(string $text): bool
+{
+    $text = trim(html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    return $text !== '' && mb_strlen($text, 'UTF-8') <= 90;
+}
+
+function demoteProgrammaSvoltoImportLegacyLongHeadings(string $html): string
+{
+    return preg_replace_callback('/<h4>(.*?)<\/h4>/is', function ($matches) {
+        $raw = $matches[1] ?? '';
+        if (isProgrammaSvoltoImportHeadingTextPlausible($raw)) {
+            return $matches[0];
+        }
+        return '<p>' . trim($raw) . '</p>';
+    }, $html) ?? $html;
+}
+
+function sanitizeProgrammaSvoltoImportRichHtml(string $html): string
+{
+    $html = trim($html);
+    if ($html === '') {
+        return '';
+    }
+
+    $html = preg_replace('/&nbsp(?!;)/i', '&nbsp;', $html);
+    $html = str_ireplace('&nbsp;', ' ', $html);
+    $html = str_replace("\xc2\xa0", ' ', $html);
+    $html = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', $html);
+    $html = normalizeProgrammaSvoltoImportInternalMarkers($html);
+    $html = preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is', '', $html);
+    $html = preg_replace_callback('/<ol\b([^>]*)>/i', function ($matches) {
+        $attrs = strtolower($matches[1] ?? '');
+        if (strpos($attrs, 'lower-alpha') !== false || preg_match('/type\s*=\s*["\']?a/i', $attrs)) {
+            return '<ol type="a">';
+        }
+        return '<ol type="1">';
+    }, $html);
+    $html = strip_tags($html, '<p><br><ul><ol><li><strong><b><em><i><u><h4><h5><blockquote>');
+    $html = preg_replace_callback('/<([a-z0-9]+)([^>]*)>/i', function ($matches) {
+        $tag = strtolower($matches[1] ?? '');
+        $attrs = $matches[2] ?? '';
+        if ($tag === 'ol' && preg_match('/type\s*=\s*["\']?([aA1])["\']?/i', $attrs, $typeMatch)) {
+            return '<ol type="' . $typeMatch[1] . '">';
+        }
+        return '<' . $tag . '>';
+    }, $html);
+    $html = str_ireplace(['<b>', '</b>', '<i>', '</i>'], ['<strong>', '</strong>', '<em>', '</em>'], $html);
+    $html = demoteProgrammaSvoltoImportLegacyLongHeadings($html);
+
+    return trim($html);
+}
+
+function programmaSvoltoImportLooksLikeHtml(string $text): bool
+{
+    return preg_match('/<\/?(p|br|ul|ol|li|strong|b|em|i|u|h4|h5|blockquote)\b/i', $text) === 1;
+}
+
 function programmaSvoltoImportTextToRichHtml(string $text): string
 {
     $lines = preg_split('/\R/u', str_replace("\t", '  ', $text));
@@ -95,7 +205,19 @@ function programmaSvoltoImportTextToRichHtml(string $text): string
     }
 
     $closeList();
-    return trim($html);
+    return sanitizeProgrammaSvoltoImportRichHtml($html);
+}
+
+function programmaSvoltoImportEnsureRichHtml(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+
+    return programmaSvoltoImportLooksLikeHtml($value)
+        ? sanitizeProgrammaSvoltoImportRichHtml($value)
+        : programmaSvoltoImportTextToRichHtml($value);
 }
 
 $programma_modulo_id = intval($_POST['programma_modulo_id'] ?? 0);
@@ -256,12 +378,12 @@ foreach ($resultArray as $row) {
             'competenze_raggiunte' => $competenze,
             'contenuti_trattati' => $conoscenze,
             'abilita' => $abilita,
-            'competenze_raggiunte_html' => programmaSvoltoImportTextToRichHtml($competenze),
-            'contenuti_trattati_html' => programmaSvoltoImportTextToRichHtml($conoscenze),
-            'abilita_html' => programmaSvoltoImportTextToRichHtml($abilita),
+            'competenze_raggiunte_html' => programmaSvoltoImportEnsureRichHtml($competenze),
+            'contenuti_trattati_html' => programmaSvoltoImportEnsureRichHtml($conoscenze),
+            'abilita_html' => programmaSvoltoImportEnsureRichHtml($abilita),
         ], JSON_UNESCAPED_UNICODE);
     } else {
-        $contenuto = (string)fieldValue($row, 'CONOSCENZE', 'conoscenze', '');
+        $contenuto = programmaSvoltoImportEnsureRichHtml((string)fieldValue($row, 'CONOSCENZE', 'conoscenze', ''));
     }
 
     $titolo_sql = dbEscape($titolo);
