@@ -32,6 +32,35 @@ function googleCalendarDocentiSaianiIsoDate($value)
     return (bool)preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$value);
 }
 
+function googleCalendarDocentiSaianiResolveRange()
+{
+    $range = strtolower(trim((string)googleCalendarDocentiSaianiParam('range', '')));
+    $today = date('Y-m-d');
+
+    if ($range === '' || $range === 'custom') {
+        return [
+            googleCalendarDocentiSaianiParam('from', date('Y-m-d', strtotime('-4 months'))),
+            googleCalendarDocentiSaianiParam('to', date('Y-m-d', strtotime('+4 months')))
+        ];
+    }
+
+    if (in_array($range, ['oggi', 'today'], true)) {
+        return [$today, $today];
+    }
+
+    if (preg_match('/^(\d+)\s*(g|gg|giorni|d|days)$/', $range, $m)) {
+        $days = max(0, intval($m[1]));
+        return [$today, date('Y-m-d', strtotime($today . ' +' . $days . ' days'))];
+    }
+
+    if (preg_match('/^(\d+)\s*(m|mesi|months)$/', $range, $m)) {
+        $months = max(0, intval($m[1]));
+        return [date('Y-m-d', strtotime($today . ' -' . $months . ' months')), date('Y-m-d', strtotime($today . ' +' . $months . ' months'))];
+    }
+
+    throw new Exception('Range non valido. Usa oggi, 7gg, 30gg, 4mesi oppure from/to.');
+}
+
 try {
     $cfg = googleCalendarDocentiConfig();
 
@@ -45,8 +74,7 @@ try {
         }
     }
 
-    $from = googleCalendarDocentiSaianiParam('from', date('Y-m-d', strtotime('-4 months')));
-    $to = googleCalendarDocentiSaianiParam('to', date('Y-m-d', strtotime('+4 months')));
+    [$from, $to] = googleCalendarDocentiSaianiResolveRange();
     $days = intval(googleCalendarDocentiSaianiParam('days', '240'));
     if ($days < 1) $days = 240;
     if ($days > 370) $days = 370;

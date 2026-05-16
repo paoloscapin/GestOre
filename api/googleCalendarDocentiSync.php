@@ -33,6 +33,32 @@ function googleCalendarDocentiIsIsoDate($value)
     return (bool)preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$value);
 }
 
+function googleCalendarDocentiResolveRange(array $payload)
+{
+    $range = strtolower(trim((string)($payload['range'] ?? '')));
+    $today = date('Y-m-d');
+
+    if ($range === '' || $range === 'custom') {
+        return [trim((string)($payload['from'] ?? '')), trim((string)($payload['to'] ?? ''))];
+    }
+
+    if (in_array($range, ['oggi', 'today'], true)) {
+        return [$today, $today];
+    }
+
+    if (preg_match('/^(\d+)\s*(g|gg|giorni|d|days)$/', $range, $m)) {
+        $days = max(0, intval($m[1]));
+        return [$today, date('Y-m-d', strtotime($today . ' +' . $days . ' days'))];
+    }
+
+    if (preg_match('/^(\d+)\s*(m|mesi|months)$/', $range, $m)) {
+        $months = max(0, intval($m[1]));
+        return [date('Y-m-d', strtotime($today . ' -' . $months . ' months')), date('Y-m-d', strtotime($today . ' +' . $months . ' months'))];
+    }
+
+    throw new Exception('Range non valido. Usa oggi, 7gg, 30gg, 4mesi oppure from/to.');
+}
+
 try {
     $cfg = googleCalendarDocentiConfig();
     $payload = googleCalendarDocentiReadPayload();
@@ -46,8 +72,7 @@ try {
     }
 
     $username = trim((string)($payload['username'] ?? ''));
-    $from = trim((string)($payload['from'] ?? ''));
-    $to = trim((string)($payload['to'] ?? ''));
+    [$from, $to] = googleCalendarDocentiResolveRange($payload);
 
     if ($from === '') {
         $from = date('Y-m-d');
@@ -89,4 +114,3 @@ try {
         'error' => $e->getMessage()
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 }
-
