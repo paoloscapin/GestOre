@@ -21,6 +21,7 @@
         currentScope: "AULA",
         selectedDate: ""
     };
+    let pendingJumpTarget = "";
 
     function getEventSortMode() {
         try {
@@ -201,6 +202,19 @@
         return out;
     }
 
+    function uniqPreserve(arr) {
+        const out = [];
+        const seen = new Set();
+        (arr || []).forEach(x => {
+            const raw = String(x == null ? "" : x).trim();
+            const key = raw.toUpperCase();
+            if (!raw || seen.has(key)) return;
+            seen.add(key);
+            out.push(raw);
+        });
+        return out;
+    }
+
     function toArrMaybe(v) {
         if (!v) return [];
         if (Array.isArray(v)) return v;
@@ -252,14 +266,14 @@
         let t = (ev && ev.type != null) ? String(ev.type).trim() : "";
         if (!t) {
             const cls = (ev && ev.class != null) ? String(ev.class) : "";
-            const m = cls.match(/\bev-(curr|udi|viag|imp|uscC|uscF|pb|perm|pranzo|studio)\b/i);
+            const m = cls.match(/\bev-(curr|udi|viag|imp|uscC|uscF|pb|perm|pranzo|studio|sost)\b/i);
             if (m) t = m[1];
         }
         return t ? t : "curr";
     }
 
     function priority(type) {
-        const p = { uscF: 100, uscC: 90, viag: 80, imp: 50, pranzo: 35, studio: 35, udi: 20, curr: 10 };
+        const p = { uscF: 100, uscC: 90, viag: 80, sost: 70, imp: 50, pranzo: 35, studio: 35, udi: 20, curr: 10 };
         return p[type] || 0;
     }
 
@@ -315,6 +329,7 @@
                 copy.title = title || copy.title;
                 copy.badge = badge || copy.badge;
                 copy._whoList = uniq(whoArr);
+                copy.who_usernames = uniqPreserve(toArrMaybe(ev.who_usernames));
                 copy.who = copy._whoList.join("\n");
                 copy.rooms = uniq(toArrMaybe(ev.rooms));
                 copy.classi = uniq(toArrMaybe(ev.classi));
@@ -324,6 +339,7 @@
                 cur.rooms = uniq((cur.rooms || []).concat(toArrMaybe(ev.rooms)));
                 cur.classi = uniq((cur.classi || []).concat(toArrMaybe(ev.classi)));
                 cur._whoList = uniq((cur._whoList || []).concat(whoArr));
+                cur.who_usernames = uniqPreserve((cur.who_usernames || []).concat(toArrMaybe(ev.who_usernames)));
                 cur.who = (cur._whoList || []).join("\n");
             }
         });
@@ -357,7 +373,7 @@
 
     function isLessonLikeType(t) {
         const x = String(t || "").trim().toLowerCase();
-        return ["curr", "udi", "imp", "pranzo", "studio"].includes(x);
+        return ["curr", "udi", "imp", "pranzo", "studio", "sost"].includes(x);
     }
 
     function teacherAbsencePriority(t) {
@@ -416,6 +432,7 @@
                 ? ev._whoList
                 : toArrWho(ev.who || ev.sub || "")
         ).map(normTxt).filter(Boolean);
+        const whoUsernames = uniqPreserve(toArrMaybe(ev.who_usernames));
 
         if (!whoLines.length) return false;
 
@@ -662,6 +679,41 @@
         loadCurrentView();
     }
 
+    function jumpToOrarioMobile(scope, target) {
+        const scopeUp = up(scope);
+        const targetVal = String(target || "").trim();
+        if (!isTargetScope(scopeUp) || !targetVal) return;
+
+        pendingJumpTarget = targetVal;
+        if (currentScope() === scopeUp) {
+            applyPendingJumpTarget();
+        } else {
+            $("#v_scope_mobile").val(scopeUp).trigger("change");
+        }
+    }
+
+    function applyPendingJumpTarget() {
+        const targetVal = String(pendingJumpTarget || "").trim();
+        if (!targetVal) return false;
+
+        const $target = $("#v_target_mobile");
+        const hasValue = $target.find("option").filter(function () {
+            return String($(this).attr("value") || "").trim() === targetVal;
+        }).length > 0;
+
+        if (!hasValue) return false;
+
+        pendingJumpTarget = "";
+        $target.val(targetVal);
+        setMemTarget(currentScope(), targetVal);
+        updateTargetCard();
+        buildTitle();
+        $("#mobile_search_input").val("");
+        closeInlineTargetResults();
+        loadCurrentView();
+        return true;
+    }
+
     function buildTitle() {
         const scope = currentScope();
         const d = currentDate();
@@ -756,6 +808,7 @@
                 <span class="mobile-legend-item"><span class="mobile-legend-dot dot-uscC"></span>Uscita comune</span>
                 <span class="mobile-legend-item"><span class="mobile-legend-dot dot-uscF"></span>Uscita fuori comune</span>
                 <span class="mobile-legend-item"><span class="mobile-legend-dot dot-viag"></span>Viaggio</span>
+                <span class="mobile-legend-item"><span class="mobile-legend-dot dot-sost"></span>Sostituzione</span>
             </div>
         `;
     }
@@ -774,6 +827,56 @@
 
     function whoText(ev) {
         return uniq(toArrWho(ev.who || ev.sub || "")).join(", ");
+    }
+
+    function jumpChipHtml(scope, target, label, kind) {
+        const scopeUp = up(scope);
+        const targetTxt = String(target || "").trim();
+        const labelTxt = normTxt(label);
+        if (!isTargetScope(scopeUp) || !targetTxt || !labelTxt) return "";
+
+        return `<button type="button"
+                    class="mobile-orario-jump mobile-orario-chip mobile-orario-chip-${escapeHtml(kind)}"
+                    data-scope="${escapeHtml(scopeUp)}"
+                    data-target="${escapeHtml(targetTxt)}"
+                    title="Vai all'orario ${escapeHtml(scopeUp.toLowerCase())} ${escapeHtml(labelTxt)}">${escapeHtml(labelTxt)}</button>`;
+    }
+
+    function chipListHtml(values, kind) {
+        const items = uniq(toArrMaybe(values)).map(normTxt).filter(Boolean);
+        if (!items.length) return "";
+        const scope = (kind === "room") ? "AULA" : (kind === "class" ? "CLASSE" : "");
+        return items
+            .map(v => scope
+                ? jumpChipHtml(scope, v, v, kind)
+                : `<span class="mobile-orario-chip mobile-orario-chip-${escapeHtml(kind)}">${escapeHtml(v)}</span>`)
+            .join("");
+    }
+
+    function teacherChipHtml(name, username) {
+        const n = normTxt(name);
+        if (!n) return "";
+        const target = String(username || "").trim();
+        if (!target) return `<span class="mobile-orario-chip mobile-orario-chip-teacher is-static">${escapeHtml(n)}</span>`;
+        return jumpChipHtml("DOCENTE", target, n, "teacher");
+    }
+
+    function sostituzioneHtml(ev) {
+        const s = ev && ev.sostituzione ? ev.sostituzione : null;
+        if (!s) return "";
+
+        const sostituto = normTxt(s.sostituto || ev.who || ev.sub || "");
+        const sostituito = normTxt(s.sostituito || ev.who_originale || "");
+        const materia = normTxt(s.materia || ev.title || ev.label || "");
+
+        return `
+            <div class="mobile-sost-box">
+                <div class="mobile-sost-label">Sostituzione</div>
+                ${sostituto ? `<div class="mobile-sost-main">Sostituto: <strong>${escapeHtml(sostituto)}</strong></div>` : ""}
+                ${sostituito ? `<div class="mobile-sost-sub">Al posto di ${escapeHtml(sostituito)}</div>` : ""}
+                ${materia ? `<div class="mobile-sost-sub">${escapeHtml(materia)}</div>` : ""}
+            </div>
+        `;
     }
 
     function filterAulaNonDisponibile(evs) {
@@ -798,10 +901,15 @@
         const isOwnAbsenceEvent = isTeacherAbsenceType(type);
 
         const cls = ["mobile-event-card", "ev-" + type].concat(extraClasses || []);
+        if (ev && ev.sostituzione) {
+            cls.push("ev-with-sost");
+        }
         const badge = badgeText(ev);
+        const badgeClass = (ev && ev.sostituzione) ? "sost" : type;
         const title = normTxt(ev.title || ev.label || "");
-        const rooms = roomsText(ev);
-        const classi = classiText(ev);
+        const roomsHtml = chipListHtml(ev.rooms, "room");
+        const classiHtml = chipListHtml(ev.classi, "class");
+        const sostHtml = sostituzioneHtml(ev);
 
         const whoLines = uniq(
             (Array.isArray(ev._whoList) && ev._whoList.length)
@@ -824,20 +932,21 @@
             whoHtml = `
             <div class="mobile-event-who">
                 <strong>Docente/i:</strong><br>
-                ${whoLines.map(w => {
+                ${whoLines.map((w, idx) => {
+                const username = whoUsernames[idx] || (whoLines.length === 1 ? whoUsernames[0] : "");
                 // nella card di assenza NON devo ribarrare il docente
                 if (isOwnAbsenceEvent) {
-                    return `<div class="mobile-event-who-line">${escapeHtml(w)}</div>`;
+                    return `<div class="mobile-event-who-line">${teacherChipHtml(w, username)}</div>`;
                 }
 
                 const abs = absentMap.get(normPersonName(w));
                 if (!abs) {
-                    return `<div class="mobile-event-who-line">${escapeHtml(w)}</div>`;
+                    return `<div class="mobile-event-who-line">${teacherChipHtml(w, username)}</div>`;
                 }
 
                 return `
                         <div class="mobile-event-who-line is-absent">
-                            ${escapeHtml(w)}
+                            ${teacherChipHtml(w, username)}
                             <span class="mobile-event-absence-note">(${escapeHtml(abs.reasonText || "Assente")})</span>
                         </div>
                     `;
@@ -848,11 +957,12 @@
 
         return `
         <div class="${escapeHtml(cls.join(" "))}">
-            ${badge ? `<div class="mobile-badge">${escapeHtml(badge)}</div>` : ""}
+            ${badge ? `<div class="mobile-badge mobile-badge-${escapeHtml(badgeClass)}">${escapeHtml(badge)}</div>` : ""}
             <div class="mobile-event-title">${escapeHtml(title)}</div>
             ${whoHtml}
-            ${rooms ? `<div class="mobile-event-rooms"><strong>Aula/e:</strong> ${escapeHtml(rooms)}</div>` : ""}
-            ${classi ? `<div class="mobile-event-classi"><strong>Classe/i:</strong> ${escapeHtml(classi)}</div>` : ""}
+            ${sostHtml}
+            ${roomsHtml ? `<div class="mobile-event-rooms"><strong>Aula/e:</strong><br>${roomsHtml}</div>` : ""}
+            ${classiHtml ? `<div class="mobile-event-classi"><strong>Classe/i:</strong><br>${classiHtml}</div>` : ""}
         </div>
     `;
     }
@@ -969,16 +1079,18 @@
                 const aula = normTxt(it.aula || "");
 
                 html += `
-                    <div class="mobile-list-card">
+                    <div class="mobile-list-card mobile-list-card-event ev-sost">
                         <div class="mobile-list-topline">
                             <div class="mobile-list-time">${escapeHtml(oraIn)}${oraOut ? " - " + escapeHtml(oraOut) : ""}</div>
                             ${data ? `<div class="mobile-list-date">${escapeHtml(isoToIt(data))}</div>` : ""}
                         </div>
-                        <div class="mobile-list-title">${escapeHtml(sostituito || "Sostituzione")}</div>
-                        ${sostituto ? `<div class="mobile-list-meta"><strong>Sostituto:</strong> ${escapeHtml(sostituto)}</div>` : ""}
+                        <div class="mobile-badge mobile-badge-sost">Sostituzione</div>
+                        <div class="mobile-list-title">${escapeHtml(materia || "Sostituzione")}</div>
+                        ${sostituto ? `<div class="mobile-list-meta"><strong>Sostituto:</strong><br>${teacherChipHtml(sostituto)}</div>` : ""}
+                        ${sostituito ? `<div class="mobile-list-meta"><strong>Al posto di:</strong> ${escapeHtml(sostituito)}</div>` : ""}
                         ${materia ? `<div class="mobile-list-meta"><strong>Materia:</strong> ${escapeHtml(materia)}</div>` : ""}
-                        ${classe ? `<div class="mobile-list-meta"><strong>Classe:</strong> ${escapeHtml(classe)}</div>` : ""}
-                        ${aula ? `<div class="mobile-list-meta"><strong>Aula:</strong> ${escapeHtml(aula)}</div>` : ""}
+                        ${classe ? `<div class="mobile-list-meta"><strong>Classe:</strong><br>${chipListHtml(classe, "class")}</div>` : ""}
+                        ${aula ? `<div class="mobile-list-meta"><strong>Aula:</strong><br>${chipListHtml(aula, "room")}</div>` : ""}
                     </div>
                 `;
             } else {
@@ -1111,7 +1223,15 @@
                 $t.append(`<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`);
             });
 
-            let chosen = getMemTarget(scope);
+            const pending = String(pendingJumpTarget || "").trim();
+            let chosen = "";
+            if (pending && items.some(x => String(x.id || "").trim() === pending)) {
+                chosen = pending;
+                pendingJumpTarget = "";
+            }
+            if (!chosen) {
+                chosen = getMemTarget(scope);
+            }
             if (!chosen || !items.some(x => String(x.id || "").trim() === chosen)) {
                 chosen = items.length ? String(items[0].id || "").trim() : "";
             }
