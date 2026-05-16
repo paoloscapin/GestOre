@@ -208,6 +208,62 @@ function programmaSvoltoImportTextToRichHtml(string $text): string
     return sanitizeProgrammaSvoltoImportRichHtml($html);
 }
 
+function programmaSvoltoImportProgrammaInizialeTextToRichHtml(string $text): string
+{
+    $lines = preg_split('/\R/u', str_replace("\t", '  ', $text));
+    if ($lines === false) {
+        return '';
+    }
+
+    $html = '';
+    foreach ($lines as $line) {
+        $rawLine = rtrim((string)$line);
+        if ($rawLine === '') {
+            continue;
+        }
+
+        $literalDotMap = [];
+        $rawLine = preg_replace_callback('/\.{2,}/u', function ($matches) use (&$literalDotMap) {
+            $token = '__GESTORE_LITERAL_DOTS_' . count($literalDotMap) . '__';
+            $literalDotMap[$token] = $matches[0];
+            return $token;
+        }, $rawLine);
+
+        $segments = preg_split('/(?<!\.)\.(?!\.)\s*/u', $rawLine);
+        if ($segments === false) {
+            $segments = [$rawLine];
+        }
+
+        foreach ($segments as $segment) {
+            $raw = trim(strtr((string)$segment, $literalDotMap));
+            if ($raw === '') {
+                continue;
+            }
+
+            if (preg_match('/^>>\s*(.+)$/u', $raw, $m)) {
+                $title = preg_replace('/[.;:]\s*$/u', '', trim($m[1]));
+                $html .= '<h4>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h4>';
+                continue;
+            }
+
+            if (mb_strlen($raw, 'UTF-8') <= 90 && preg_match('/\p{L}/u', $raw) && !preg_match('/\p{Ll}/u', $raw)) {
+                $title = preg_replace('/[.;:]\s*$/u', '', $raw);
+                $html .= '<h4>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h4>';
+                continue;
+            }
+
+            $raw = preg_replace('/;\s*$/u', '', $raw);
+            $raw = preg_replace('/^\s*(?:[\x{2022}\x{00b7}\x{25cf}\x{25e6}\x{2043}\x{f0b7}\x{f0a7}\x{f076}]\s+|--\s+|>\s+|-\s+|\*\s+|\d+[\.)]\s+|[a-zA-Z][\.)]\s+)/u', '', $raw);
+            $raw = trim($raw);
+            if ($raw !== '') {
+                $html .= '<p>' . htmlspecialchars($raw, ENT_QUOTES, 'UTF-8') . '</p>';
+            }
+        }
+    }
+
+    return sanitizeProgrammaSvoltoImportRichHtml($html);
+}
+
 function programmaSvoltoImportEnsureRichHtml(string $value): string
 {
     $value = trim($value);
@@ -218,6 +274,18 @@ function programmaSvoltoImportEnsureRichHtml(string $value): string
     return programmaSvoltoImportLooksLikeHtml($value)
         ? sanitizeProgrammaSvoltoImportRichHtml($value)
         : programmaSvoltoImportTextToRichHtml($value);
+}
+
+function programmaSvoltoImportEnsureRichHtmlFromProgrammaIniziale(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+
+    return programmaSvoltoImportLooksLikeHtml($value)
+        ? sanitizeProgrammaSvoltoImportRichHtml($value)
+        : programmaSvoltoImportProgrammaInizialeTextToRichHtml($value);
 }
 
 $programma_modulo_id = intval($_POST['programma_modulo_id'] ?? 0);
@@ -378,12 +446,12 @@ foreach ($resultArray as $row) {
             'competenze_raggiunte' => $competenze,
             'contenuti_trattati' => $conoscenze,
             'abilita' => $abilita,
-            'competenze_raggiunte_html' => programmaSvoltoImportEnsureRichHtml($competenze),
-            'contenuti_trattati_html' => programmaSvoltoImportEnsureRichHtml($conoscenze),
-            'abilita_html' => programmaSvoltoImportEnsureRichHtml($abilita),
+            'competenze_raggiunte_html' => programmaSvoltoImportEnsureRichHtmlFromProgrammaIniziale($competenze),
+            'contenuti_trattati_html' => programmaSvoltoImportEnsureRichHtmlFromProgrammaIniziale($conoscenze),
+            'abilita_html' => programmaSvoltoImportEnsureRichHtmlFromProgrammaIniziale($abilita),
         ], JSON_UNESCAPED_UNICODE);
     } else {
-        $contenuto = programmaSvoltoImportEnsureRichHtml((string)fieldValue($row, 'CONOSCENZE', 'conoscenze', ''));
+        $contenuto = programmaSvoltoImportEnsureRichHtmlFromProgrammaIniziale((string)fieldValue($row, 'CONOSCENZE', 'conoscenze', ''));
     }
 
     $titolo_sql = dbEscape($titolo);

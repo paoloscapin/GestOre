@@ -345,6 +345,19 @@ function setupInizialiRichEditors() {
     inizialiRichTextFields.forEach(setupInizialiRichEditor);
 }
 
+function setInizialiModuloEditable(canEdit) {
+    var $modal = $('#modulo_modal');
+    $modal.find('input:not([type=hidden]), textarea, select').prop('disabled', !canEdit);
+    $modal.find('.programma-rich-editor')
+        .attr('contenteditable', canEdit ? 'true' : 'false')
+        .toggleClass('disabled', !canEdit);
+    $modal.find('.programma-rich-btn').prop('disabled', !canEdit);
+
+    if (!canEdit) {
+        hideInizialiFieldPreview();
+    }
+}
+
 function escapeInizialiPreviewHtml(text) {
     return String(text)
         .replace(/&/g, '&amp;')
@@ -587,6 +600,10 @@ function hideInizialiFieldPreview() {
 }
 
 function showInizialiFieldPreview(fieldId) {
+    if ($('#' + fieldId + '_editor').attr('contenteditable') === 'false') {
+        return;
+    }
+
     activeInizialiPreviewField = fieldId;
 
     $('.programma-preview-row').removeClass('is-active');
@@ -1093,6 +1110,7 @@ async function moduloInizialiGetDetails(modulo_id) {
     $("#_error-modulo-part").hide();
     syncInizialiRichEditorsFromTextareas();
     hideInizialiFieldPreview();
+    setInizialiModuloEditable($('#modulo_modal .panel-footer .btn-primary').length > 0);
     $("#modulo_modal").modal("show");
     syncInizialiFieldPreview('conoscenze');
     syncInizialiFieldPreview('abilita');

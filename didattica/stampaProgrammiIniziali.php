@@ -25,6 +25,7 @@ require_once '../common/checkSession.php';
 ruoloRichiesto('docente', 'dirigente', 'segreteria-didattica');
 // program.php (in testa al file, prima di qualsiasi uso di mPDF)
 require_once '../common/vendor/autoload.php';
+require_once __DIR__ . '/programmiInizialiWordLikeUtils.php';
 
 // 1) PARAMETRI POST
 $programId = isset($_POST['id']) ? (int) $_POST['id'] : -1;
@@ -385,16 +386,7 @@ function renderProgrammaInizialeRichHtml(string $html, bool $forPdf = false): st
 
 function renderProgrammaInizialeText(string $text, bool $forPdf = false): string
 {
-    $text = html_entity_decode((string)$text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $text = str_replace("\xc2\xa0", ' ', $text);
-    $text = preg_replace('/&(nbsp|amp;nbsp);/i', ' ', $text);
-    $text = str_replace(['__MODULE_TITLE__', '__SECTION_HEADING__'], '', $text);
-
-    if (programmaInizialeLooksLikeHtml($text)) {
-        return renderProgrammaInizialeRichHtml($text, $forPdf);
-    }
-
-    return buildTwoLevelListFromText($text);
+    return renderProgrammaInizialeRichHtml(programmaInizialeWordLikeEnsureHtml($text), $forPdf);
 }
 
 // 5) INIZIO OUTPUT HTML IN BUFFER

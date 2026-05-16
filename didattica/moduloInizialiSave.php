@@ -8,26 +8,18 @@
  */
 
 require_once '../common/checkSession.php';
+require_once __DIR__ . '/programmiInizialiWordLikeUtils.php';
 ruoloRichiesto('segreteria-didattica', 'docente');
-
-function pulisciTestoProgrammaIniziale($testo) {
-	$testo = html_entity_decode((string)$testo, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-	$testo = str_replace("\xc2\xa0", ' ', $testo);
-	$testo = preg_replace('/&(nbsp|amp;nbsp);/i', ' ', $testo);
-	$testo = str_replace(['__MODULE_TITLE__', '__SECTION_HEADING__'], '', $testo);
-	$testo = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', $testo);
-	return $testo;
-}
 
 if(isset($_POST)) {
 	$id = $_POST['id'];
 	$id_programma = $_POST['id_programma'];
 	$ordine = $_POST['ordine'];
 	$titolo = $_POST['titolo'];
-	$conoscenze = pulisciTestoProgrammaIniziale($_POST['conoscenze']);
-	$abilita = pulisciTestoProgrammaIniziale($_POST['abilita']);
-	$competenze = pulisciTestoProgrammaIniziale($_POST['competenze']);
-	$periodo = pulisciTestoProgrammaIniziale($_POST['periodo']);
+	$conoscenze = programmaInizialeWordLikeEnsureHtml($_POST['conoscenze']);
+	$abilita = programmaInizialeWordLikeEnsureHtml($_POST['abilita']);
+	$competenze = programmaInizialeWordLikeEnsureHtml($_POST['competenze']);
+	$periodo = programmaInizialeWordLikeEnsureHtml($_POST['periodo']);
 
 	$titolo = str_replace("'","''",$titolo);
 	$conoscenze = str_replace("'","''",$conoscenze);
