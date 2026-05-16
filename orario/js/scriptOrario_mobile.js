@@ -432,7 +432,6 @@
                 ? ev._whoList
                 : toArrWho(ev.who || ev.sub || "")
         ).map(normTxt).filter(Boolean);
-        const whoUsernames = uniqPreserve(toArrMaybe(ev.who_usernames));
 
         if (!whoLines.length) return false;
 
@@ -866,13 +865,14 @@
         if (!s) return "";
 
         const sostituto = normTxt(s.sostituto || ev.who || ev.sub || "");
+        const sostitutoUsername = String(s.sostituto_username || "").trim();
         const sostituito = normTxt(s.sostituito || ev.who_originale || "");
         const materia = normTxt(s.materia || ev.title || ev.label || "");
 
         return `
             <div class="mobile-sost-box">
                 <div class="mobile-sost-label">Sostituzione</div>
-                ${sostituto ? `<div class="mobile-sost-main">Sostituto: <strong>${escapeHtml(sostituto)}</strong></div>` : ""}
+                ${sostituto ? `<div class="mobile-sost-main">Sostituto: ${teacherChipHtml(sostituto, sostitutoUsername)}</div>` : ""}
                 ${sostituito ? `<div class="mobile-sost-sub">Al posto di ${escapeHtml(sostituito)}</div>` : ""}
                 ${materia ? `<div class="mobile-sost-sub">${escapeHtml(materia)}</div>` : ""}
             </div>
@@ -916,6 +916,7 @@
                 ? ev._whoList
                 : toArrWho(ev.who || ev.sub || "")
         ).map(normTxt).filter(Boolean);
+        const whoUsernames = uniqPreserve(toArrMaybe(ev.who_usernames));
 
         const absentMap = teacherAbsMap || new Map();
 
@@ -1553,6 +1554,12 @@
         $(document).on("click", ".mobile-target-item", function () {
             const value = String($(this).data("value") || "").trim();
             selectTargetFromModal(value);
+        });
+
+        $(document).off("click", ".mobile-orario-jump").on("click", ".mobile-orario-jump", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            jumpToOrarioMobile($(this).data("scope"), $(this).data("target"));
         });
 
         $("#mobile_day_card").on("click", function (e) {
