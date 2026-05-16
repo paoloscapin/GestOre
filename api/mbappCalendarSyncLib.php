@@ -229,13 +229,42 @@ function mbappCalendarSyncFromGoogleEvent($config, $event)
         ];
     }
 
+    $googleIcalUid = (string)($event['iCalUID'] ?? '');
+
     $sync = dbGetFirst("
+    SELECT *
+    FROM google_calendar_event_sync
+    WHERE google_calendar_config_id = " . intval($googleConfigId) . "
+      AND google_event_id = '" . dbEscape($googleEventId) . "'
+    LIMIT 1
+");
+
+
+    if ($sync == null && $googleIcalUid !== '') {
+        $sync = dbGetFirst("
         SELECT *
         FROM google_calendar_event_sync
-        WHERE google_calendar_config_id = " . intval($googleConfigId) . "
-          AND google_event_id = '" . dbEscape($googleEventId) . "'
+        WHERE google_ical_uid = '" . dbEscape($googleIcalUid) . "'
+          AND stato <> 'ANNULLATO'
+        ORDER BY updated_at DESC, id DESC
         LIMIT 1
     ");
+
+        if ($sync != null) {
+            infoGoogleCalendarMBApp(
+                'SYNC trovato tramite iCalUID, probabile cambio calendario/aula: ' .
+                    json_encode([
+                        'old_sync_id' => intval($sync['id']),
+                        'old_config_id' => intval($sync['google_calendar_config_id']),
+                        'new_config_id' => $googleConfigId,
+                        'idAssenza' => intval($sync['idAssenza']),
+                        'old_google_event_id' => $sync['google_event_id'] ?? '',
+                        'new_google_event_id' => $googleEventId,
+                        'google_ical_uid' => $googleIcalUid
+                    ], JSON_UNESCAPED_UNICODE)
+            );
+        }
+    }
 
     if ($status === 'cancelled') {
         return mbappCalendarCancelGoogleEvent($config, $event, $sync);
@@ -268,7 +297,7 @@ function mbappCalendarSyncFromGoogleEvent($config, $event)
         ];
     }
 
-    if ($sync != null && intval($sync['idAssenza'] ?? 0) > 0 && intval($sync['idCalendario'] ?? 0) > 0) {
+    if ($sync != null && intval($sync['idAssenza'] ?? 0) > 0) {
         return mbappCalendarUpdateGoogleEvent($config, $event, $sync, $times);
     }
 
@@ -305,7 +334,7 @@ function mbappCalendarCreateGoogleEvent($config, $event, $times)
     $dettagliEsc = addslashes($dettagli);
     $aulaEsc = addslashes($nroAula);
 
-    $stato = 'CONFERMATO';
+    $stato = 'IN ATTESA';
 
     mb_dbExec("
         INSERT INTO assenze
@@ -467,6 +496,14 @@ function mbappCalendarUpdateGoogleEvent($config, $event, $sync, $times)
     $dettagli = $titolo;
 
     $dettagliEsc = addslashes($dettagli);
+    $statoCorrente = strtoupper(trim((string)mb_dbGetValue("
+        SELECT stato
+        FROM assenze
+        WHERE idAssenza = $idAssenza
+        LIMIT 1
+    ")));
+    $stato = ($statoCorrente === 'CONFERMATO') ? 'CONFERMATO' : 'IN ATTESA';
+    $statoEsc = addslashes($stato);
     // Ricreo le righe oralezione perché cambiando orario può cambiare il numero di ore scolastiche occupate
     mb_dbExec("
     DELETE FROM oralezione
@@ -484,7 +521,7 @@ function mbappCalendarUpdateGoogleEvent($config, $event, $sync, $times)
         INSERT INTO oralezione
             (nroAula, dataGiorno, giorno, ora, attivitaProgetto, stato, idAssenza)
         VALUES
-            ('$aulaEsc', '$dataEsc', '$giornoEsc', '$oraScolasticaEsc', '$titoloEsc', 'CONFERMATO', $idAssenza)
+            ('$aulaEsc', '$dataEsc', '$giornoEsc', '$oraScolasticaEsc', '$titoloEsc', '$statoEsc', $idAssenza)
     ");
 
         if ($idCalendarioNuovo <= 0) {
@@ -508,7 +545,7 @@ function mbappCalendarUpdateGoogleEvent($config, $event, $sync, $times)
         motivo = '$motivoEsc',
         dettagli = '$dettagliEsc',
         note = '$noteEsc',
-        stato = 'CONFERMATO'
+        stato = '$statoEsc'
         WHERE idAssenza = $idAssenza
         LIMIT 1
     ");
@@ -516,6 +553,8 @@ function mbappCalendarUpdateGoogleEvent($config, $event, $sync, $times)
     dbExec("
         UPDATE google_calendar_event_sync
         SET
+            google_calendar_config_id = " . intval($config['id']) . ",
+            google_event_id = '" . dbEscape($googleEventId) . "',
             idCalendario = " . intval($idCalendario) . ",
             google_ical_uid = '" . dbEscape($googleIcalUid) . "',
             google_etag = '" . dbEscape($googleEtag) . "',
