@@ -254,7 +254,18 @@
   word-break:break-word;
   line-height:1.15;
 }
-.ev-title{ font-weight:800 !important; }
+.ev-title{
+  display:inline-block;
+  max-width:100%;
+  margin-bottom:4px;
+  padding:3px 7px;
+  border-radius:5px;
+  background:#eef5ff;
+  border-left:4px solid #0d6efd;
+  color:#000;
+  font-weight:900 !important;
+  line-height:1.12;
+}
 .ev-who{ font-weight:800 !important; margin-top:2px; }
 .ev-room{
   margin-top:6px;
@@ -272,6 +283,56 @@
   line-height:1.2;
 }
 
+.orario-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:auto;
+  max-width:100%;
+  min-height:28px;
+  margin:2px 4px 2px 0;
+  padding:5px 12px;
+  border:0;
+  border-radius:6px;
+  font-size:15px;
+  font-weight:800;
+  line-height:1.1;
+  text-align:center;
+  text-decoration:none !important;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+
+.orario-jump{
+  cursor:pointer;
+}
+
+.orario-jump:hover,
+.orario-jump:focus{
+  filter:brightness(.94);
+  outline:2px solid rgba(0,0,0,.22);
+  outline-offset:1px;
+}
+
+.orario-chip-teacher{
+  background:#0d6efd;
+  color:#fff;
+}
+
+.orario-chip-class{
+  background:#0f8f55;
+  color:#fff;
+}
+
+.orario-chip-room{
+  background:#ffc107;
+  color:#000;
+}
+
+.orario-chip.is-static{
+  cursor:default;
+}
+
 /* =========================
    ZEBRA (più contrasto) + include anche colonna ORA
    ========================= */
@@ -280,6 +341,19 @@
 }
 .orario-grid tbody tr:nth-child(even) td{
   background:#54a384 !important;
+}
+
+.orario-grid th.th-today{
+  background:#fff3bf !important;
+  box-shadow:inset 0 -3px 0 #f0c94a;
+}
+
+.orario-grid tbody tr td.td-today{
+  background:#fff8d8 !important;
+}
+
+.orario-grid tbody tr:nth-child(even) td.td-today{
+  background:#f5e7a6 !important;
 }
 
 /* =========================================================

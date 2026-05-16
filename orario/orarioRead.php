@@ -248,6 +248,27 @@ function getDocentiNomiByAssenzaId($idAssenza)
   return getDocentiNomiByUsernames($usernames);
 }
 
+function getDocentiUsernamesByAssenzaId($idAssenza)
+{
+  $id = (int)$idAssenza;
+  if ($id <= 0) return [];
+
+  $q = "SELECT DISTINCT username
+        FROM utilizza
+        WHERE IDassenza = $id
+          AND username IS NOT NULL
+          AND username <> ''
+        ORDER BY username";
+
+  $rows = mb_dbGetAll($q) ?: [];
+  $out = [];
+  foreach ($rows as $r) {
+    $u = trim((string)($r['username'] ?? ''));
+    if ($u !== '') $out[] = $u;
+  }
+  return $out;
+}
+
 /* ✅ Classifica assenza: SOLO pb/perm/uscita/viaggio, altrimenti NULL */
 function classifyAssenza($a, $scope)
 {
@@ -269,6 +290,7 @@ function classifyAssenza($a, $scope)
     $docNomiArr = getDocentiNomiByAssenzaId($idAss);
   }
   $docNomi = !empty($docNomiArr) ? implode(", ", $docNomiArr) : "";
+  $docUsernamesArr = ($scope === 'DOCENTE' || $scope === 'CLASSE') ? getDocentiUsernamesByAssenzaId($idAss) : [];
 
   $meta = $detRaw !== '' ? $detRaw : '';
 
@@ -287,6 +309,7 @@ function classifyAssenza($a, $scope)
       'class'  => 'ev ev-viag',
       'title'  => $title,
       'who'    => $docNomi,
+      'who_usernames' => $docUsernamesArr,
       'classi' => $classi,
       'badge'  => 'Viaggio di istruzione'
     ];
@@ -304,6 +327,7 @@ function classifyAssenza($a, $scope)
       'class'  => 'ev ev-' . $type,
       'title'  => $title,
       'who'    => $docNomi,
+      'who_usernames' => $docUsernamesArr,
       'classi' => $classi,
       'badge'  => $baseTitle
     ];
@@ -319,6 +343,7 @@ function classifyAssenza($a, $scope)
       'class'  => 'ev ev-pb',
       'title'  => $title,
       'who'    => $docNomi,
+      'who_usernames' => $docUsernamesArr,
       'classi' => $classi,
       'badge'  => $baseTitle
     ];
@@ -334,6 +359,7 @@ function classifyAssenza($a, $scope)
       'class'  => 'ev ev-perm',
       'title'  => $title,
       'who'    => $docNomi,
+      'who_usernames' => $docUsernamesArr,
       'classi' => $classi,
       'badge'  => $baseTitle
     ];
@@ -423,6 +449,7 @@ function classeEventoOralezione($row)
   $sig   = trim(h($row['siglaMateria'] ?? ''));
   $nome  = trim(h($row['nomeMateria'] ?? ''));
   $doc   = trim(h($row['docenti_nomi'] ?? ''));
+  $docUsernames = splitCsvUnique($row['docenti_usernames'] ?? '');
   $auleS = trim(h($row['aule'] ?? ''));
   $classiS = trim(h($row['classi'] ?? ''));
 
@@ -472,6 +499,7 @@ function classeEventoOralezione($row)
       'class' => 'ev ev-imp',
       'title' => $att,
       'who'   => $doc,
+      'who_usernames' => $docUsernames,
       'classi' => $classi,
       'badge' => 'Impegno in istituto',
       'rooms' => $rooms
@@ -485,6 +513,7 @@ function classeEventoOralezione($row)
       'class' => 'ev ev-udi',
       'title' => ($sig ? ($sig . ($nome ? " · $nome" : "")) : "UDIENZA"),
       'who'   => $doc,
+      'who_usernames' => $docUsernames,
       'classi' => $classi,
       'badge' => 'Udienza',
       'rooms' => $rooms
@@ -497,6 +526,7 @@ function classeEventoOralezione($row)
     'class' => 'ev ev-curr',
     'title' => $title,
     'who'   => $doc,
+    'who_usernames' => $docUsernames,
     'classi' => $classi,
     'badge' => 'Lezione curricolare',
     'rooms' => $rooms
@@ -574,7 +604,8 @@ if ($scope === 'AULA') {
       o.idCalendario,
       o.dataGiorno, o.ora, o.siglaMateria, o.attivitaProgetto,
       m.nomeMateria,
-      GROUP_CONCAT(DISTINCT CONCAT(u.cognome,' ',u.nome) SEPARATOR ', ') AS docenti_nomi,
+      GROUP_CONCAT(DISTINCT CONCAT(u.cognome,' ',u.nome) ORDER BY u.cognome, u.nome SEPARATOR ', ') AS docenti_nomi,
+      GROUP_CONCAT(DISTINCT u.username ORDER BY u.cognome, u.nome SEPARATOR ', ') AS docenti_usernames,
       GROUP_CONCAT(DISTINCT o.nroAula ORDER BY CAST(o.nroAula AS UNSIGNED), o.nroAula SEPARATOR ', ') AS aule,
       GROUP_CONCAT(DISTINCT oc.classe ORDER BY oc.classe SEPARATOR ', ') AS classi
     FROM oralezione o
@@ -599,7 +630,8 @@ if ($scope === 'AULA') {
       o.idCalendario,
       o.dataGiorno, o.ora, o.siglaMateria, o.attivitaProgetto,
       m.nomeMateria,
-      GROUP_CONCAT(DISTINCT CONCAT(u.cognome,' ',u.nome) SEPARATOR ', ') AS docenti_nomi,
+      GROUP_CONCAT(DISTINCT CONCAT(u.cognome,' ',u.nome) ORDER BY u.cognome, u.nome SEPARATOR ', ') AS docenti_nomi,
+      GROUP_CONCAT(DISTINCT u.username ORDER BY u.cognome, u.nome SEPARATOR ', ') AS docenti_usernames,
       GROUP_CONCAT(DISTINCT o.nroAula ORDER BY CAST(o.nroAula AS UNSIGNED), o.nroAula SEPARATOR ', ') AS aule,
       GROUP_CONCAT(DISTINCT oc.classe ORDER BY oc.classe SEPARATOR ', ') AS classi
     FROM oralezione o
@@ -656,7 +688,8 @@ if ($scope === 'AULA') {
       o.idCalendario,
       o.dataGiorno, o.ora, o.siglaMateria, o.attivitaProgetto,
       m.nomeMateria,
-      GROUP_CONCAT(DISTINCT CONCAT(u.cognome,' ',u.nome) SEPARATOR ', ') AS docenti_nomi,
+      GROUP_CONCAT(DISTINCT CONCAT(u.cognome,' ',u.nome) ORDER BY u.cognome, u.nome SEPARATOR ', ') AS docenti_nomi,
+      GROUP_CONCAT(DISTINCT u.username ORDER BY u.cognome, u.nome SEPARATOR ', ') AS docenti_usernames,
       GROUP_CONCAT(DISTINCT o.nroAula ORDER BY CAST(o.nroAula AS UNSIGNED), o.nroAula SEPARATOR ', ') AS aule,
       GROUP_CONCAT(DISTINCT oc.classe ORDER BY oc.classe SEPARATOR ', ') AS classi
     FROM oralezione o
@@ -694,7 +727,8 @@ if ($scope === 'AULA') {
         o.idCalendario,
         o.dataGiorno, o.ora, o.siglaMateria, o.attivitaProgetto,
         m.nomeMateria,
-        GROUP_CONCAT(DISTINCT CONCAT(u.cognome,' ',u.nome) SEPARATOR ', ') AS docenti_nomi,
+        GROUP_CONCAT(DISTINCT CONCAT(u.cognome,' ',u.nome) ORDER BY u.cognome, u.nome SEPARATOR ', ') AS docenti_nomi,
+        GROUP_CONCAT(DISTINCT u.username ORDER BY u.cognome, u.nome SEPARATOR ', ') AS docenti_usernames,
         GROUP_CONCAT(DISTINCT o.nroAula ORDER BY CAST(o.nroAula AS UNSIGNED), o.nroAula SEPARATOR ', ') AS aule,
         GROUP_CONCAT(DISTINCT oc.classe ORDER BY oc.classe SEPARATOR ', ') AS classi
       FROM oralezione o
@@ -999,6 +1033,7 @@ function normalizeEventArray(&$ev)
   if (!isset($ev['class']))  $ev['class'] = '';
   if (!isset($ev['title']))  $ev['title'] = '';
   if (!isset($ev['who']))    $ev['who'] = '';
+  if (!isset($ev['who_usernames']) || !is_array($ev['who_usernames'])) $ev['who_usernames'] = [];
   if (!isset($ev['badge']))  $ev['badge'] = '';
 
   $ev['type']   = (string)$ev['type'];
@@ -1006,6 +1041,9 @@ function normalizeEventArray(&$ev)
   $ev['class']  = (string)$ev['class'];
   $ev['title']  = (string)$ev['title'];
   $ev['who']    = (string)$ev['who'];
+  $ev['who_usernames'] = array_values(array_filter(array_map('strval', $ev['who_usernames']), function ($x) {
+    return $x !== '';
+  }));
   $ev['badge']  = (string)$ev['badge'];
 
   if (!isset($ev['classi']) || !is_array($ev['classi'])) $ev['classi'] = [];

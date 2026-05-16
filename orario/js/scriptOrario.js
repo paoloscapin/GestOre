@@ -148,6 +148,7 @@
   //  MEMORIA TARGET PER SCOPE (persistente)
   // =============================================================================
   const LS_KEY_TARGET_BY_SCOPE = "orario_target_by_scope_v1";
+  let pendingJumpTarget = null;
 
   function loadTargetMem() {
     try { return JSON.parse(localStorage.getItem(LS_KEY_TARGET_BY_SCOPE) || "{}") || {}; }
@@ -708,8 +709,7 @@
   function roomsHtmlFromEv(ev) {
     const rooms = ev && ev.rooms;
     if (!Array.isArray(rooms) || rooms.length === 0) return "";
-    const txt = rooms.map(r => escapeHtml(r)).join(", ");
-    return `<div class="ev-room">${txt}</div>`;
+    return `<div class="ev-room">${rooms.map(r => jumpChipHtml("AULA", r, r, "room")).join("")}</div>`;
   }
 
   function classiHtmlFromEv(ev) {
@@ -717,7 +717,38 @@
     if (!c) return "";
     const arr = Array.isArray(c) ? c : String(c).split(",").map(x => x.trim()).filter(Boolean);
     if (!arr.length) return "";
-    return `<div class="ev-classi">${escapeHtml(arr.join(", "))}</div>`;
+    return `<div class="ev-classi">${arr.map(cn => jumpChipHtml("CLASSE", cn, cn, "class")).join("")}</div>`;
+  }
+
+  function jumpChipHtml(scope, target, label, kind) {
+    const targetTxt = normTxt(target);
+    const labelTxt = normTxt(label);
+    if (!targetTxt || !labelTxt) return "";
+
+    return `<button type="button" class="orario-jump orario-chip orario-chip-${kind}"
+      data-scope="${escapeHtml(scope)}"
+      data-target="${escapeHtml(targetTxt)}"
+      title="Vai all'orario ${escapeHtml(scope.toLowerCase())} ${escapeHtml(labelTxt)}">${escapeHtml(labelTxt)}</button>`;
+  }
+
+  function teacherChipHtml(label, username) {
+    const labelTxt = normTxt(label);
+    const usernameTxt = normTxt(username);
+    if (!labelTxt) return "";
+    if (!usernameTxt) return `<span class="orario-chip orario-chip-teacher is-static">${escapeHtml(labelTxt)}</span>`;
+    return jumpChipHtml("DOCENTE", usernameTxt, labelTxt, "teacher");
+  }
+
+  function jumpToOrario(scope, target) {
+    const scopeUp = String(scope || "").trim().toUpperCase();
+    const targetVal = String(target || "").trim();
+    if (!scopeUp || !targetVal) return;
+
+    pendingJumpTarget = targetVal;
+    $("#v_scope").selectpicker("val", scopeUp);
+    syncSegmented($("#v_scope"));
+    updateToolbarLayout();
+    loadOptions();
   }
 
   // =============================================================================
@@ -1080,10 +1111,22 @@
       const remembered = getMemTarget(scopeUp);
       const defaultScope = String(window.ORARIO_DEFAULT_SCOPE || "").trim().toUpperCase();
       const defaultTarget = String(window.ORARIO_DEFAULT_TARGET || "").trim();
+      const pendingTarget = pendingJumpTarget;
 
       let restored = false;
 
-      if (defaultTarget && defaultScope === scopeUp) {
+      if (pendingTarget) {
+        const escPending = cssEscape(pendingTarget);
+        const pendingExists = $t.find(`option[value="${escPending}"]`).length > 0;
+        if (pendingExists) {
+          try { $t.selectpicker("val", pendingTarget); } catch (e) { $t.val(pendingTarget); }
+          setMemTarget(scopeUp, pendingTarget);
+          pendingJumpTarget = null;
+          restored = true;
+        }
+      }
+
+      if (!restored && defaultTarget && defaultScope === scopeUp) {
         const escDefault = cssEscape(defaultTarget);
         const defaultExists = $t.find(`option[value="${escDefault}"]`).length > 0;
         if (defaultExists) {
@@ -2144,10 +2187,22 @@
               ? ev._whoList
               : toArrWho(ev.who || ev.sub || "")
           ).map(normTxt).filter(Boolean);
+          let whoUsernames = Array.isArray(ev.who_usernames) ? ev.who_usernames.map(normTxt) : [];
 
           if (scopeUp === "DOCENTE" && type === "udi") {
             const targetKey = getTargetDocenteKey();
-            if (targetKey) whoLines = whoLines.filter(w => normPersonName(w) === targetKey);
+            if (targetKey) {
+              const filteredNames = [];
+              const filteredUsernames = [];
+              whoLines.forEach((w, idx) => {
+                if (normPersonName(w) === targetKey) {
+                  filteredNames.push(w);
+                  filteredUsernames.push(whoUsernames[idx] || "");
+                }
+              });
+              whoLines = filteredNames;
+              whoUsernames = filteredUsernames;
+            }
           }
 
           const whoForTitle = whoLines.length ? whoLines.join(" · ") : "";
@@ -2203,11 +2258,12 @@
 
           ${whoLines.length ? `
             <div class="ev-who">
-              ${whoLines.map(w => {
+              ${whoLines.map((w, idx) => {
             const canStrike = !isTeacherAbsenceType(type);
             const abs = canStrike ? teacherAbsMap.get(normPersonName(w)) : null;
-            if (!abs) return `<div class="ev-who-line">${escapeHtml(w)}</div>`;
-            return `<div class="ev-who-line is-absent absent-${abs.type}" title="${escapeHtml(abs.reasonText)}">${escapeHtml(w)}</div>`;
+            const teacherHtml = teacherChipHtml(w, whoUsernames[idx] || "");
+            if (!abs) return `<div class="ev-who-line">${teacherHtml}</div>`;
+            return `<div class="ev-who-line is-absent absent-${abs.type}" title="${escapeHtml(abs.reasonText)}">${teacherHtml}</div>`;
           }).join("")}
             </div>
           ` : ``}
@@ -2274,6 +2330,7 @@
     dbgGroup(`RENDER SETTIMANA dateRef=${dateIso} scope=${scope}`);
 
     const mon = getMonday(dateIso);
+    const today = todayIso();
     const days = GIORNI_LABEL.map((lab, i) => ({ lab, iso: addDays(mon, i) }));
 
     const spansByDay = {};
@@ -2281,7 +2338,7 @@
 
     let html = `<table class="orario-grid"><thead><tr>
       <th class="ora-col">Ora</th>
-      ${days.map(d => `<th>${d.lab}<div style="opacity:.75;font-size:16px;">${isoToIt(d.iso)}</div></th>`).join("")}
+      ${days.map(d => `<th class="${d.iso === today ? "th-today" : ""}">${d.lab}<div style="opacity:.75;font-size:16px;">${isoToIt(d.iso)}</div></th>`).join("")}
     </tr></thead><tbody>`;
 
     ORARI.forEach(ora => {
@@ -2298,7 +2355,8 @@
         const hPx = (sp.span && sp.span > 1) ? (sp.span * SLOT_MIN_PX) : SLOT_MIN_PX;
         const tdStyle = ` style="height:${hPx}px;vertical-align:top;"`;
 
-        html += `<td class="${cd.tdClass}"${rs}${tdStyle}>${cd.html}</td>`;
+        const todayClass = d.iso === today ? " td-today" : "";
+        html += `<td class="${cd.tdClass}${todayClass}"${rs}${tdStyle}>${cd.html}</td>`;
         tdAdded++;
       });
 
@@ -2552,20 +2610,22 @@
               ? ev._whoList
               : toArrWho(ev.who || ev.sub || "")
           ).map(normTxt).filter(Boolean);
+          const whoUsernames = Array.isArray(ev.who_usernames) ? ev.who_usernames.map(normTxt) : [];
 
           let whoHtml = "";
           if (whoArr.length) {
             whoHtml = `
       <div class="ev-who">
-        ${whoArr.map(w => {
+        ${whoArr.map((w, idx) => {
+              const teacherHtml = teacherChipHtml(w, whoUsernames[idx] || "");
               // nella card di assenza NON devo ribarrare il docente
               if (isOwnAbsenceEvent) {
-                return `<div class="ev-who-line">${escapeHtml(w)}</div>`;
+                return `<div class="ev-who-line">${teacherHtml}</div>`;
               }
 
               const abs = teacherAbsMap.get(normPersonName(w));
               if (!abs) {
-                return `<div class="ev-who-line">${escapeHtml(w)}</div>`;
+                return `<div class="ev-who-line">${teacherHtml}</div>`;
               }
 
               const showAbsReason = (String(col.visibilityLevel || "PUBLIC").toUpperCase() === "FULL");
@@ -2573,7 +2633,7 @@
                 ? ` <span class="ev-absence-note">(${escapeHtml(abs.reasonText || "Assente")})</span>`
                 : "";
 
-              return `<div class="ev-who-line is-absent">${escapeHtml(w)}${absNote}</div>`;
+              return `<div class="ev-who-line is-absent">${teacherHtml}${absNote}</div>`;
             }).join("")}
       </div>
     `;
@@ -2831,6 +2891,12 @@
     // navigazione aule (solo vista giorno aula)
     $("#btn_prev_aula").off("click").on("click", function (e) { e.preventDefault(); shiftAula(-1); });
     $("#btn_next_aula").off("click").on("click", function (e) { e.preventDefault(); shiftAula(+1); });
+
+    $("#orario_content").off("click", ".orario-jump").on("click", ".orario-jump", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      jumpToOrario($(this).data("scope"), $(this).data("target"));
+    });
 
     // cambio settimana
     $("#v_week").on("changed.bs.select", function () {

@@ -4,6 +4,8 @@ require_once '../common/connect.php';
 require_once '../common/send-mail.php';
 require_once '../common/__Log.php';
 
+setLogChannel('import_sostituzioni');
+
 ruoloRichiesto('docente');
 header('Content-Type: application/json; charset=utf-8');
 
