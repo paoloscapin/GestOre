@@ -319,6 +319,44 @@ if (!empty($authUrl)) {
             font-size: 12px;
         }
 
+        .smallnote a {
+            color: #667085;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .smallnote a:hover,
+        .smallnote a:focus {
+            color: #0ea5e9;
+            text-decoration: underline;
+        }
+
+        .privacy-link-row {
+            margin-top: 18px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .privacy-link-row a {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #0369a1;
+            font-weight: 850;
+            text-decoration: none;
+            background: rgba(14, 165, 233, 0.10);
+            border: 1px solid rgba(14, 165, 233, 0.22);
+            border-radius: 14px;
+            padding: 9px 13px;
+        }
+
+        .privacy-link-row a:hover,
+        .privacy-link-row a:focus {
+            color: #075985;
+            text-decoration: none;
+            background: rgba(14, 165, 233, 0.16);
+        }
+
         /* output legacy (quando checkSession fornisce <a><img glogin.png</a>) */
         .google-output a {
             display: block;
@@ -432,8 +470,16 @@ if (!empty($authUrl)) {
 
             </div>
 
+            <div class="privacy-link-row">
+                <a href="<?php echo $__application_base_path; ?>/privacy.php">
+                    <span class="glyphicon glyphicon-lock" aria-hidden="true"></span>
+                    Privacy e trattamento dati
+                </a>
+            </div>
+
             <div class="smallnote">
-                © <?php echo date('Y'); ?> GestOre — ITT Buonarroti
+                © <?php echo date('Y'); ?> GestOre — ITT Buonarroti &middot;
+                <a href="<?php echo $__application_base_path; ?>/privacy.php">Privacy</a>
             </div>
 
         </div>

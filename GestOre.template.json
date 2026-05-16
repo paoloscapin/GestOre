@@ -96,6 +96,16 @@
         "emailSportelli": "--- mail in BCC a cui viene inviato ogni email degli sportelli ---",
         "emailCarenze": "--- inserire un indirizzo di email a cui inviare in cc le lettere di carenza generate ---",
         "luogoIstituto": "--- inserire la località per i documenti generati ---",
+        "privacy": {
+            "nomeIstituto": "ITT Buonarroti - Trento",
+            "titolareTrattamento": "--- nome completo del titolare del trattamento ---",
+            "indirizzo": "--- indirizzo sede istituto ---",
+            "emailPrivacy": "--- email per richieste privacy ---",
+            "pec": "--- pec istituto ---",
+            "dpo": "--- nome o riferimento RPD/DPO ---",
+            "dpoEmail": "--- email RPD/DPO ---",
+            "ultimoAggiornamento": "17/05/2026"
+        },
         "googleCalendar": {
             "enabled": false,
             "applicationName": "GestOre Google Calendar",

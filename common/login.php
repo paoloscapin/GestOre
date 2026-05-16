@@ -40,6 +40,14 @@
         font-size: 15px;
         font-weight: bold;
     }
+    .privacy-link {
+        text-align: center;
+        font-size: 13px;
+    }
+    .privacy-link a {
+        color: #337ab7;
+        font-weight: bold;
+    }
 </style>
 </head>
     <body>
@@ -50,6 +58,9 @@
     				<button type="submit" class="btn btn-danger btn-block">Log in with google</button>
     			</div>
     		</form>
+            <div class="privacy-link">
+                <a href="../privacy.php">Privacy e trattamento dati</a>
+            </div>
     	</div>
     </body>
 </html>
