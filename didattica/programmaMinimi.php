@@ -509,24 +509,8 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                             </div>
 
                             <div class="panel-footer text-center">
-                                <?php
-                                if (haRuolo('docente') || isset($_GET['docente_id'])) {
-                                    echo '
-                                <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Chiudi</button>
-                                ';
-                                }
-                                if ((!$is_docente_effettivo) && (haRuolo('admin') || (haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
-                                    echo '
-                                <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Annulla</button>
-                                <button type="button" class="btn btn-primary" onclick="programmaSave()" id="btnProgrammaSave">Salva</button>
-                                ';
-                                } else if ($is_docente_effettivo && getSettingsValue('programmiMinimi', 'visibile_docenti', false)) {
-                                    echo '
                                 <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Chiudi</button>
                                 <button type="button" class="btn btn-primary" onclick="programmaSave()" id="btnProgrammaSave" style="display:none;" disabled>Salva</button>
-                                ';
-                                }
-                                ?>
                             </div>
                         </div>
                     </div>
@@ -618,26 +602,8 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
 
                             </div>
                             <div class="panel-footer text-center">
-                                <?php
-
-                                if (haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica'))
-                                {
-                                    echo '
-                                    <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-                                    <button type="button" class="btn btn-primary" onclick="moduloSave()">Salva</button>';		
-                                }
-                                else
-                                if (haRuolo('docente')) 
-                                {
-                                    if (getSettingsValue('programmiMinimi', 'visibile_docenti', false))
-                                    {
-                                        echo '
-                                        <button type="button" class="btn btn-default" data-dismiss="modal" id="btnModuloClose">Chiudi</button>
-                                        <button type="button" class="btn btn-primary" onclick="moduloSave()" id="btnModuloSave" style="display:none;" disabled>Salva</button>';
-                                    }
-                                }
-
-                                ?>
+                                <button type="button" class="btn btn-default" data-dismiss="modal" id="btnModuloClose">Chiudi</button>
+                                <button type="button" class="btn btn-primary" onclick="moduloSave()" id="btnModuloSave" style="display:none;" disabled>Salva</button>
                             </div>
                         </div>
                     </div>
