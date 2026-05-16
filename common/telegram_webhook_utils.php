@@ -39,6 +39,41 @@ function tgAppendTicketUserText($previousText, $newText) {
     return $previousText . "\n\n--- Messaggio successivo ---\n" . $newText;
 }
 
+function tgTicketUserTextSeparator() {
+    return "\n\n--- Messaggio successivo ---\n";
+}
+
+function tgSplitTicketUserText($text) {
+    $text = tgNorm($text);
+    if ($text === '') {
+        return [];
+    }
+
+    $parts = explode(tgTicketUserTextSeparator(), $text);
+    return array_values(array_filter(array_map('tgNorm', $parts), function ($part) {
+        return $part !== '';
+    }));
+}
+
+function tgGetLatestTicketUserText($text) {
+    $parts = tgSplitTicketUserText($text);
+    if (!$parts) {
+        return '';
+    }
+
+    return $parts[count($parts) - 1];
+}
+
+function tgRemoveLatestTicketUserText($text) {
+    $parts = tgSplitTicketUserText($text);
+    if (count($parts) <= 1) {
+        return tgNorm($text);
+    }
+
+    array_pop($parts);
+    return implode(tgTicketUserTextSeparator(), $parts);
+}
+
 // Funzione per costruire il nome visualizzato di un utente Telegram
 function tgUserDisplayName(array $from) {
     // Costruisce il nome concatenando first_name e last_name (se presenti)

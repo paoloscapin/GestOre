@@ -263,6 +263,26 @@ function tgGetClosedTicketFollowupKeyboard(array $relay)
     ];
 }
 
+function tgGetOpenTicketFollowupKeyboard(array $relay)
+{
+    $idRelay = (int)($relay['id'] ?? 0);
+    if ($idRelay <= 0) {
+        return ['inline_keyboard' => []];
+    }
+
+    return [
+        'inline_keyboard' => [
+            [
+                ['text' => 'Unisci al precedente', 'callback_data' => "unisci_relay_{$idRelay}"],
+                ['text' => 'Apri nuovo ticket', 'callback_data' => "nuovo_relay_{$idRelay}"]
+            ],
+            [
+                ['text' => 'Stato', 'callback_data' => "stato_relay_{$idRelay}"]
+            ]
+        ]
+    ];
+}
+
 function tgRelayActorLabel(array $relay)
 {
     $type = strtolower(trim((string)($relay['tipo_utente'] ?? 'docente')));
@@ -295,7 +315,9 @@ function tgRelayActorName(array $relay)
 function tgCreateNewTicketFromClosedRelay(array $sourceRelay, string $serviceChatId, string $botToken)
 {
     $sourceIdRelay = (int)($sourceRelay['id'] ?? 0);
-    $text = tgNorm($sourceRelay['ultimo_testo_docente'] ?? '');
+    $sourceText = tgNorm($sourceRelay['ultimo_testo_docente'] ?? '');
+    $text = function_exists('tgGetLatestTicketUserText') ? tgGetLatestTicketUserText($sourceText) : $sourceText;
+    $remainingText = function_exists('tgRemoveLatestTicketUserText') ? tgRemoveLatestTicketUserText($sourceText) : $sourceText;
     $serviceChatId = tgNorm($serviceChatId !== '' ? $serviceChatId : ($sourceRelay['service_chat_id'] ?? ''));
     $botToken = tgNorm($botToken);
 
@@ -368,6 +390,15 @@ function tgCreateNewTicketFromClosedRelay(array $sourceRelay, string $serviceCha
 
         $ticketCode = tgUpdateTicketCode($idRelay);
         $serviceThreadId = tgCreateTopic($botToken, $serviceChatId, "Ticket " . $ticketCode);
+
+        if ($remainingText !== $sourceText) {
+            dbExec("
+                UPDATE docente_telegram_relay
+                SET ultimo_testo_docente = " . dbQ($remainingText) . ",
+                    data_aggiornamento = NOW()
+                WHERE id = " . dbI($sourceIdRelay) . "
+            ");
+        }
 
         dbExec("
             UPDATE docente_telegram_relay
@@ -577,6 +608,7 @@ function tgCreateOrAppendTicketFromDocente(array $doc, string $text, string $ser
         }
 
         $statoLabel = tgBuildStatoLabel($openRelay['stato'] ?? 'APERTA');
+        $needsMergeChoice = strtoupper(tgNorm($openRelay['stato'] ?? 'APERTA')) === 'APERTA';
         $threadId = (int)($openRelay['service_thread_id'] ?? 0);
         $ticketText = tgAppendTicketUserText($openRelay['ultimo_testo_docente'] ?? '', $text);
 
@@ -589,11 +621,19 @@ function tgCreateOrAppendTicketFromDocente(array $doc, string $text, string $ser
 
         $openRelay = tgFindRelayById($idRelay);
 
+        if ($needsMergeChoice) {
+            $mergeChoiceNotice = "\n\nQuesto messaggio arriva mentre il ticket precedente non e' ancora in gestione.\nScegli se unirlo al ticket precedente oppure aprire un nuovo ticket.";
+        } else {
+            $mergeChoiceNotice = '';
+        }
+
         $serviceText =
             "➕ Aggiornamento ticket {$ticketCode}\n\n" .
             "👤 Docente: {$docenteNome}\n" .
             "📌 Stato attuale: {$statoLabel}\n\n" .
             "✉️ Nuovo messaggio:\n" . tgCut($text, 3000);
+
+        $serviceText .= $mergeChoiceNotice;
 
         $sendRes = tgSendMessage(
             $botToken,
@@ -602,7 +642,7 @@ function tgCreateOrAppendTicketFromDocente(array $doc, string $text, string $ser
             [
                 'message_thread_id' => $threadId,
                 'reply_markup' => json_encode(
-                    tgGetTicketKeyboardMinimal($openRelay),
+                    $needsMergeChoice ? tgGetOpenTicketFollowupKeyboard($openRelay) : tgGetTicketKeyboardMinimal($openRelay),
                     JSON_UNESCAPED_UNICODE
                 )
             ]
@@ -630,7 +670,7 @@ function tgCreateOrAppendTicketFromDocente(array $doc, string $text, string $ser
 
         return [
             'ok' => true,
-            'mode' => 'append',
+            'mode' => $needsMergeChoice ? 'open_followup' : 'append',
             'idRelay' => $idRelay,
             'ticket_code' => $ticketCode
         ];
@@ -807,6 +847,7 @@ function tgCreateOrAppendTicketFromDocenteMail(
 
         $statoLabel = tgBuildStatoLabel($targetRelay['stato'] ?? 'APERTA');
         $isClosedRelay = strtoupper(tgNorm($targetRelay['stato'] ?? '')) === 'CHIUSA' || (int)($targetRelay['chiusa'] ?? 0) === 1;
+        $needsMergeChoice = !$relayByCode && !$isClosedRelay && strtoupper(tgNorm($targetRelay['stato'] ?? 'APERTA')) === 'APERTA';
         $threadId = (int)($targetRelay['service_thread_id'] ?? 0);
         $ticketText = tgAppendTicketUserText($targetRelay['ultimo_testo_docente'] ?? '', $text);
 
@@ -833,6 +874,10 @@ function tgCreateOrAppendTicketFromDocenteMail(
             $serviceText .= "\n⚠️ Questo messaggio è arrivato su un ticket già chiuso.\nScegli se riaprire il ticket precedente oppure aprire un nuovo ticket.\n";
         }
 
+        if ($needsMergeChoice) {
+            $serviceText .= "\nQuesto messaggio arriva mentre il ticket precedente non e' ancora in gestione.\nScegli se unirlo al ticket precedente oppure aprire un nuovo ticket.\n";
+        }
+
         if ($subject !== '') {
             $serviceText .= "📝 Oggetto: {$subject}\n";
         }
@@ -841,7 +886,7 @@ function tgCreateOrAppendTicketFromDocenteMail(
 
         $sendOptions = [
             'reply_markup' => json_encode(
-                $isClosedRelay ? tgGetClosedTicketFollowupKeyboard($targetRelay) : tgGetTicketKeyboardMinimal($targetRelay),
+                $isClosedRelay ? tgGetClosedTicketFollowupKeyboard($targetRelay) : ($needsMergeChoice ? tgGetOpenTicketFollowupKeyboard($targetRelay) : tgGetTicketKeyboardMinimal($targetRelay)),
                 JSON_UNESCAPED_UNICODE
             )
         ];
@@ -863,7 +908,7 @@ function tgCreateOrAppendTicketFromDocenteMail(
 
         return [
             'ok' => true,
-            'mode' => $isClosedRelay ? 'closed_followup' : 'append',
+            'mode' => $isClosedRelay ? 'closed_followup' : ($needsMergeChoice ? 'open_followup' : 'append'),
             'idRelay' => $idRelay,
             'ticket_code' => $ticketCode
         ];

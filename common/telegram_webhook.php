@@ -4,6 +4,8 @@ require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/__Settings.php';
 require_once __DIR__ . '/__Log.php';
 
+setLogChannel('telegram');
+
 header('Content-Type: application/json; charset=utf-8');
 
 $TELEGRAM_BOT_TOKEN = trim((string)($__settings->telegram->bot_token ?? ''));
@@ -231,6 +233,7 @@ function tgHandlePrivateActorMessage(array $actor, string $actorType, array $mes
         }
 
         $statoLabel = tgBuildStatoLabel($openRelay['stato'] ?? 'APERTA');
+        $needsMergeChoice = strtoupper(tgNorm($openRelay['stato'] ?? 'APERTA')) === 'APERTA';
         $threadId = (int)($openRelay['service_thread_id'] ?? 0);
         $ticketText = tgAppendTicketUserText($openRelay['ultimo_testo_docente'] ?? '', $text);
 
@@ -254,7 +257,7 @@ function tgHandlePrivateActorMessage(array $actor, string $actorType, array $mes
             $botToken,
             $serviceChatId,
             $serviceText,
-            ['message_thread_id' => $threadId, 'reply_markup' => json_encode(tgGetTicketKeyboardMinimal($openRelay), JSON_UNESCAPED_UNICODE)]
+            ['message_thread_id' => $threadId, 'reply_markup' => json_encode($needsMergeChoice ? tgGetOpenTicketFollowupKeyboard($openRelay) : tgGetTicketKeyboardMinimal($openRelay), JSON_UNESCAPED_UNICODE)]
         );
 
         tgSendMessage($botToken, $actorChatId, "✅ Il tuo messaggio è stato aggiunto al ticket {$ticketCode}.\nStato corrente: {$statoLabel}.");
@@ -1353,6 +1356,7 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
 
         // Costruisce la label leggibile dello stato corrente del ticket
         $statoLabel = tgBuildStatoLabel($openRelay['stato'] ?? 'APERTA');
+        $needsMergeChoice = strtoupper(tgNorm($openRelay['stato'] ?? 'APERTA')) === 'APERTA';
 
         // Estrae l'id del thread Telegram del gruppo di servizio
         $threadId   = (int)($openRelay['service_thread_id'] ?? 0);
@@ -1406,7 +1410,7 @@ function tgHandlePrivateTeacherMessage(array $doc, array $message, string $servi
             $botToken,
             $serviceChatId,
             $serviceText,
-            ['message_thread_id' => $threadId, 'reply_markup' => json_encode(tgGetTicketKeyboardMinimal($openRelay), JSON_UNESCAPED_UNICODE)]
+            ['message_thread_id' => $threadId, 'reply_markup' => json_encode($needsMergeChoice ? tgGetOpenTicketFollowupKeyboard($openRelay) : tgGetTicketKeyboardMinimal($openRelay), JSON_UNESCAPED_UNICODE)]
         );
 
         // Scrive nel log l'esito dell'invio al gruppo di servizio
@@ -2303,8 +2307,8 @@ if ($callback) {
         tgRespond(['ok' => true, 'handled' => 'callback_lista_chiusi_oggi']);
     }
 
-    // Gestione pulsanti ticket: presa_relay_27 / chiudi_relay_27 / riapri_relay_27 / stato_relay_27 / override_relay_27 / nuovo_relay_27
-    if (preg_match('/^(presa|chiudi|riapri|stato|override|nuovo)_relay_(\d+)$/', $data, $m)) {
+    // Gestione pulsanti ticket: presa_relay_27 / chiudi_relay_27 / riapri_relay_27 / stato_relay_27 / override_relay_27 / unisci_relay_27 / nuovo_relay_27
+    if (preg_match('/^(presa|chiudi|riapri|stato|override|unisci|nuovo)_relay_(\d+)$/', $data, $m)) {
         $action = $m[1];
         $idRelay = (int)$m[2];
 
@@ -2320,6 +2324,21 @@ if ($callback) {
         if (!$relay) {
             tgAnswerCallbackQuery($TELEGRAM_BOT_TOKEN, $callback['id'] ?? '', 'Ticket non trovato');
             tgRespond(['ok' => true, 'ignored' => 'relay non trovato']);
+        }
+
+        if ($action === 'unisci') {
+            $ticketCode = tgNorm($relay['ticket_code'] ?? '');
+            tgAnswerCallbackQuery($TELEGRAM_BOT_TOKEN, $callback['id'] ?? '', 'Messaggio unito al ticket');
+            tgEditMessageReplyMarkup($TELEGRAM_BOT_TOKEN, $chatId, $messageId, [
+                'reply_markup' => json_encode(tgGetTicketKeyboardMinimal($relay), JSON_UNESCAPED_UNICODE)
+            ]);
+            tgSendMessage(
+                $TELEGRAM_BOT_TOKEN,
+                $chatId,
+                "Messaggio mantenuto nel ticket" . ($ticketCode !== '' ? " {$ticketCode}" : "") . ". Ora puoi prenderlo in carico.",
+                ['reply_to_message_id' => $messageId]
+            );
+            tgRespond(['ok' => true, 'handled' => 'callback_unisci_ticket']);
         }
 
         if ($action === 'nuovo') {
@@ -2338,6 +2357,10 @@ if ($callback) {
 
             $newTicketCode = tgNorm($resNew['ticket_code'] ?? '');
             $oldTicketCode = tgNorm($relay['ticket_code'] ?? '');
+            $relayAfterNew = tgFindRelayById($idRelay) ?: $relay;
+            tgEditMessageReplyMarkup($TELEGRAM_BOT_TOKEN, $chatId, $messageId, [
+                'reply_markup' => json_encode(tgGetTicketKeyboardMinimal($relayAfterNew), JSON_UNESCAPED_UNICODE)
+            ]);
             tgSendMessage(
                 $TELEGRAM_BOT_TOKEN,
                 $chatId,
@@ -2854,6 +2877,7 @@ if ($privateActor && $openRelay) {
 
     // Estrae il thread id del relay
     $serviceThreadId = (int)($openRelay['service_thread_id'] ?? 0);
+    $needsMergeChoice = strtoupper(tgNorm($openRelay['stato'] ?? 'APERTA')) === 'APERTA';
 
     // Estrae l'id del messaggio del docente
     $teacherMessageId = (int)($message['message_id'] ?? 0);
@@ -2883,7 +2907,7 @@ if ($privateActor && $openRelay) {
             "➕ Aggiornamento ticket {$ticketCode}\n\n👤 " . tgPrivateActorLabel($privateActorType) . ": " . trim(($privateActor['cognome'] ?? '') . ' ' . ($privateActor['nome'] ?? '')) . "\n\n✉️ Nuovo messaggio:\n" . tgCut($text, 3000),
             [
                 'message_thread_id' => $serviceThreadId,
-                'reply_markup' => json_encode(tgGetTicketKeyboardMinimal($openRelay), JSON_UNESCAPED_UNICODE)
+                'reply_markup' => json_encode($needsMergeChoice ? tgGetOpenTicketFollowupKeyboard($openRelay) : tgGetTicketKeyboardMinimal($openRelay), JSON_UNESCAPED_UNICODE)
             ]
         );
 
@@ -2931,7 +2955,7 @@ if ($privateActor && $openRelay) {
                 ($text !== '' ? "\n\nMessaggio:\n" . tgCut($text, 3000) : ''),
             [
                 'message_thread_id' => $serviceThreadId,
-                'reply_markup' => json_encode(tgGetTicketKeyboardMinimal($openRelay), JSON_UNESCAPED_UNICODE)
+                'reply_markup' => json_encode($needsMergeChoice ? tgGetOpenTicketFollowupKeyboard($openRelay) : tgGetTicketKeyboardMinimal($openRelay), JSON_UNESCAPED_UNICODE)
             ]
         );
 
