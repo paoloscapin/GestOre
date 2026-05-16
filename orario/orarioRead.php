@@ -595,6 +595,209 @@ function pushEv(&$grid, $ymd, $ora, $ev)
   $grid[$k][] = $ev;
 }
 
+function orarioLocalTableHasColumn($tableName, $columnName)
+{
+  static $cache = [];
+  $key = $tableName . '.' . $columnName;
+  if (array_key_exists($key, $cache)) return $cache[$key];
+
+  $row = dbGetFirst("SHOW COLUMNS FROM `" . dbEscape($tableName) . "` LIKE '" . dbEscape($columnName) . "'");
+  $cache[$key] = ($row != null);
+  return $cache[$key];
+}
+
+function orarioUpperName($cognome, $nome)
+{
+  return strtoupper(trim(h($cognome) . ' ' . h($nome)));
+}
+
+function orarioSostituzioneSlots($oraInizio, $oraFine, $ORARI)
+{
+  $oraDa = normOra($oraInizio);
+  $oraA = normOra($oraFine);
+  if ($oraDa === '') return [];
+
+  $slots = [];
+  foreach ($ORARI as $ora) {
+    if ($oraA !== '') {
+      if ($ora >= $oraDa && $ora < $oraA) $slots[] = $ora;
+    } elseif ($ora === $oraDa) {
+      $slots[] = $ora;
+    }
+  }
+  if (empty($slots) && in_array($oraDa, $ORARI, true)) $slots[] = $oraDa;
+  return $slots;
+}
+
+function getSostituzioniOrario($from, $to, $ORARI)
+{
+  $hasStato = orarioLocalTableHasColumn('sostituzioni', 'stato');
+  $where = [
+    "s.data >= " . dbQ($from),
+    "s.data <= " . dbQ($to),
+  ];
+  if ($hasStato) {
+    $where[] = "(s.stato IS NULL OR UPPER(TRIM(s.stato)) <> 'ANNULLATA')";
+  }
+
+  $q = "
+    SELECT
+      s.idSostituzione,
+      s.data,
+      s.oraInizio,
+      s.oraFine,
+      s.materia,
+      s.classe,
+      s.aula,
+      " . ($hasStato ? "s.stato" : "'' AS stato") . ",
+      ds.id AS idDocenteSostituto,
+      ds.username AS usernameSostituto,
+      ds.cognome AS cognomeSostituto,
+      ds.nome AS nomeSostituto,
+      dd.id AS idDocenteSostituito,
+      dd.username AS usernameSostituito,
+      dd.cognome AS cognomeSostituito,
+      dd.nome AS nomeSostituito
+    FROM sostituzioni s
+    LEFT JOIN docente ds ON ds.id = s.idDocenteSostituto
+    LEFT JOIN docente dd ON dd.id = s.idDocenteSostituito
+    WHERE " . implode("\n      AND ", $where) . "
+    ORDER BY s.data, s.oraInizio, s.oraFine, s.classe, s.aula
+  ";
+
+  $out = [];
+  foreach (dbGetAll($q) ?: [] as $r) {
+    $data = substr(trim(h($r['data'] ?? '')), 0, 10);
+    if ($data === '') continue;
+
+    $sost = [
+      'id' => (int)($r['idSostituzione'] ?? 0),
+      'data' => $data,
+      'oraInizio' => normOra($r['oraInizio'] ?? ''),
+      'oraFine' => normOra($r['oraFine'] ?? ''),
+      'materia' => trim(h($r['materia'] ?? '')),
+      'classe' => strtoupper(trim(h($r['classe'] ?? ''))),
+      'aula' => trim(h($r['aula'] ?? '')),
+      'stato' => trim(h($r['stato'] ?? '')),
+      'sostituto' => orarioUpperName($r['cognomeSostituto'] ?? '', $r['nomeSostituto'] ?? ''),
+      'sostituto_username' => trim(h($r['usernameSostituto'] ?? '')),
+      'sostituito' => orarioUpperName($r['cognomeSostituito'] ?? '', $r['nomeSostituito'] ?? ''),
+      'sostituito_username' => trim(h($r['usernameSostituito'] ?? '')),
+    ];
+
+    foreach (orarioSostituzioneSlots($r['oraInizio'] ?? '', $r['oraFine'] ?? '', $ORARI) as $ora) {
+      $key = $data . '|' . $ora;
+      if (!isset($out[$key])) $out[$key] = [];
+      $out[$key][] = $sost;
+    }
+  }
+
+  return $out;
+}
+
+function orarioNamesFromWho($who)
+{
+  $parts = preg_split('/[\r\n;,|]+/', (string)$who, -1, PREG_SPLIT_NO_EMPTY);
+  $out = [];
+  foreach ($parts as $p) {
+    $v = strtoupper(trim(preg_replace('/\s+/', ' ', $p)));
+    if ($v !== '') $out[] = $v;
+  }
+  return $out;
+}
+
+function orarioSostituzioneMatchesEvent($sost, $ev)
+{
+  $classe = trim((string)($sost['classe'] ?? ''));
+  $aula = trim((string)($sost['aula'] ?? ''));
+  $sostituito = strtoupper(trim((string)($sost['sostituito'] ?? '')));
+  $sostituitoUsername = trim((string)($sost['sostituito_username'] ?? ''));
+
+  $eventClassi = array_map('strtoupper', $ev['classi'] ?? []);
+  $eventRooms = array_map('strval', $ev['rooms'] ?? []);
+  $eventUsernames = array_map('strval', $ev['who_usernames'] ?? []);
+  $eventNames = orarioNamesFromWho($ev['who'] ?? '');
+
+  $classOk = ($classe === '' || in_array($classe, $eventClassi, true));
+  $roomOk = ($aula === '' || in_array($aula, $eventRooms, true));
+  $teacherOk = true;
+  if ($sostituitoUsername !== '') {
+    $teacherOk = in_array($sostituitoUsername, $eventUsernames, true);
+    if (!$teacherOk && $sostituito !== '') {
+      $teacherOk = in_array($sostituito, $eventNames, true);
+    }
+  } elseif ($sostituito !== '') {
+    $teacherOk = in_array($sostituito, $eventNames, true);
+  }
+
+  return $classOk && $roomOk && $teacherOk;
+}
+
+function orarioBuildSostituzioneEvent($sost)
+{
+  return [
+    'type' => 'sost',
+    'origin' => 'sostituzione',
+    'class' => 'ev ev-sost',
+    'title' => trim((string)($sost['materia'] ?? '')) !== '' ? trim((string)$sost['materia']) : 'Sostituzione',
+    'who' => trim((string)($sost['sostituto'] ?? '')),
+    'who_usernames' => trim((string)($sost['sostituto_username'] ?? '')) !== '' ? [trim((string)$sost['sostituto_username'])] : [],
+    'classi' => trim((string)($sost['classe'] ?? '')) !== '' ? [trim((string)$sost['classe'])] : [],
+    'rooms' => trim((string)($sost['aula'] ?? '')) !== '' ? [trim((string)$sost['aula'])] : [],
+    'badge' => 'Sostituzione',
+    'sostituzione' => $sost,
+    'is_sostituzione_extra' => true,
+  ];
+}
+
+function applySostituzioniToGrid(&$grid, $sostituzioniBySlot, $scope, $target)
+{
+  $scope = strtoupper(trim((string)$scope));
+  $target = trim((string)$target);
+
+  foreach ($sostituzioniBySlot as $key => $sostList) {
+    if (!isset($grid[$key])) $grid[$key] = [];
+
+    foreach ($grid[$key] as $idx => $ev) {
+      $type = strtolower(trim((string)($ev['type'] ?? '')));
+      if (!in_array($type, ['curr', 'udi', 'imp'], true)) continue;
+
+      foreach ($sostList as $sost) {
+        if (!orarioSostituzioneMatchesEvent($sost, $ev)) continue;
+
+        $ev['sostituzione'] = $sost;
+        $ev['badge_originale'] = $ev['badge'] ?? '';
+        $ev['badge'] = 'Sostituzione';
+        $ev['who_originale'] = $ev['who'] ?? '';
+        $ev['who_usernames_originali'] = $ev['who_usernames'] ?? [];
+        $ev['who'] = $sost['sostituto'] ?? '';
+        $ev['who_usernames'] = !empty($sost['sostituto_username']) ? [$sost['sostituto_username']] : [];
+        $grid[$key][$idx] = $ev;
+        break;
+      }
+    }
+
+    if ($scope === 'DOCENTE') {
+      foreach ($sostList as $sost) {
+        $subUsername = trim((string)($sost['sostituto_username'] ?? ''));
+        if ($subUsername === '' || $subUsername !== $target) continue;
+
+        $alreadyVisible = false;
+        foreach ($grid[$key] as $ev) {
+          $s = $ev['sostituzione'] ?? null;
+          if (is_array($s) && (int)($s['id'] ?? 0) === (int)($sost['id'] ?? 0)) {
+            $alreadyVisible = true;
+            break;
+          }
+        }
+        if (!$alreadyVisible) {
+          $grid[$key][] = orarioBuildSostituzioneEvent($sost);
+        }
+      }
+    }
+  }
+}
+
 /* -------------------- 1) ORALEZIONE -------------------- */
 if ($scope === 'AULA') {
   $nro = mysqli_real_escape_string($__conMBApp, $target);
@@ -1137,6 +1340,9 @@ function normalizeGrid(&$grid)
     }
   }
 }
+
+$sostituzioniBySlot = getSostituzioniOrario($from, $to, $ORARI);
+applySostituzioniToGrid($grid, $sostituzioniBySlot, $scope, $target);
 
 applyVisibilityToGrid($grid, $scope, $VISIBILITY_LEVEL);
 normalizeGrid($grid);

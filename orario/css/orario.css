@@ -235,6 +235,7 @@
   --c-pb:#6d28d9;
   --c-perm:#4b5563;
   --c-viag:#00b8d4;
+  --c-sost:#8b5cf6;
 }
 
 /* =========================
@@ -377,6 +378,8 @@
 .orario-grid .ev.ev-pb  { border-left-color: var(--c-pb)   !important; }
 .orario-grid .ev.ev-perm{ border-left-color: var(--c-perm) !important; }
 .orario-grid .ev.ev-viag{ border-left-color: var(--c-viag) !important; }
+.orario-grid .ev.ev-sost,
+.orario-grid .ev.ev-with-sost{ border-left-color: var(--c-sost) !important; }
 
 /* =========================
    BADGE (pieno colore)
@@ -398,6 +401,7 @@
 .badge-pb  { background:var(--c-pb);   color:#fff; border-color:var(--c-pb); }
 .badge-perm{ background:var(--c-perm); color:#fff; border-color:var(--c-perm); }
 .badge-viag{ background:var(--c-viag); color:#00323a; border-color:var(--c-viag); }
+.badge-sost{ background:var(--c-sost); color:#fff; border-color:var(--c-sost); }
 
 /* =========================
    OVERRIDDEN
@@ -438,6 +442,38 @@
 .dot-pb  { background:var(--c-pb); }
 .dot-perm{ background:var(--c-perm); }
 .dot-viag{ background:var(--c-viag); }
+.dot-sost{ background:var(--c-sost); }
+
+.ev-sost-box{
+  margin-top:6px;
+  padding:6px 8px;
+  border-radius:7px;
+  background:#f3ecff;
+  border:2px solid var(--c-sost);
+  color:#1f1637;
+}
+
+.ev-sost-label{
+  display:inline-block;
+  margin-bottom:4px;
+  padding:2px 8px;
+  border-radius:999px;
+  background:var(--c-sost);
+  color:#fff;
+  font-size:11px;
+  font-weight:900;
+}
+
+.ev-sost-main{
+  font-weight:900;
+}
+
+.ev-sost-sub{
+  margin-top:2px;
+  font-size:12px;
+  font-weight:800;
+  color:#4b3b68;
+}
 
 /* =========================
    ROWSPAN helpers

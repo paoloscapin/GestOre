@@ -377,7 +377,7 @@
     let t = (ev && ev.type != null) ? String(ev.type).trim() : "";
     if (!t) {
       const cls = (ev && ev.class != null) ? String(ev.class) : "";
-      const m = cls.match(/\bev-(curr|udi|viag|imp|uscC|uscF|pb|perm|pranzo|studio)\b/i);
+      const m = cls.match(/\bev-(curr|udi|viag|imp|uscC|uscF|pb|perm|pranzo|studio|sost)\b/i);
       if (m) t = m[1];
     }
     return t ? t : "curr";
@@ -393,7 +393,7 @@
    *  2) ordinare gli eventi in uno slot (prima eventi più importanti)
    */
   function priority(type) {
-    const p = { uscF: 100, uscC: 90, viag: 80, imp: 50, pranzo: 35, studio: 35, udi: 20, curr: 10 };
+    const p = { uscF: 100, uscC: 90, viag: 80, sost: 70, imp: 50, pranzo: 35, studio: 35, udi: 20, curr: 10 };
     return p[type] || 0;
   }
 
@@ -700,6 +700,7 @@
         <span class="lg"><span class="dot dot-uscC"></span> Uscita nel comune</span>
         <span class="lg"><span class="dot dot-uscF"></span> Uscita fuori comune</span>
         <span class="lg"><span class="dot dot-viag"></span> Viaggio di istruzione</span>
+        <span class="lg"><span class="dot dot-sost"></span> Sostituzione</span>
         <span class="lg"><span class="dot dot-pranzo"></span> Aula pausa pranzo</span>
         <span class="lg"><span class="dot dot-studio"></span> Aula studio</span>
       </div>
@@ -737,6 +738,25 @@
     if (!labelTxt) return "";
     if (!usernameTxt) return `<span class="orario-chip orario-chip-teacher is-static">${escapeHtml(labelTxt)}</span>`;
     return jumpChipHtml("DOCENTE", usernameTxt, labelTxt, "teacher");
+  }
+
+  function sostituzioneHtml(ev) {
+    const s = ev && ev.sostituzione;
+    if (!s) return "";
+
+    const sostituto = normTxt(s.sostituto || "");
+    const sostituito = normTxt(s.sostituito || ev.who_originale || "");
+    const ora = [normTxt(s.oraInizio || ""), normTxt(s.oraFine || "")].filter(Boolean).join(" - ");
+    const originalBadge = normTxt(ev.badge_originale || "");
+
+    return `
+      <div class="ev-sost-box">
+        <div class="ev-sost-label">Sostituzione${ora ? ` · ${escapeHtml(ora)}` : ""}</div>
+        ${sostituto ? `<div class="ev-sost-main">In classe: ${teacherChipHtml(sostituto, s.sostituto_username || "")}</div>` : ""}
+        ${sostituito ? `<div class="ev-sost-sub">Sostituisce ${escapeHtml(sostituito)}</div>` : ""}
+        ${originalBadge ? `<div class="ev-sost-sub">${escapeHtml(originalBadge)}</div>` : ""}
+      </div>
+    `;
   }
 
   function jumpToOrario(scope, target) {
@@ -1954,11 +1974,21 @@
     function filterDocenteSlotEvents(evsIn, targetKey) {
       let evs = (evsIn || []).slice();
 
+      function sostituzioneContainsTarget(e) {
+        const s = e && e.sostituzione;
+        if (!s || !targetKey) return false;
+        return [s.sostituto, s.sostituito]
+          .map(normPersonName)
+          .filter(Boolean)
+          .includes(targetKey);
+      }
+
       // docenti presenti nello slot (solo eventi non-assenza)
       const lessonTeacherKeys = new Set();
       evs.forEach(e => {
         const t = normalizeType(e);
         if (isTeacherAbsenceType(t)) return;
+        if (sostituzioneContainsTarget(e)) lessonTeacherKeys.add(targetKey);
 
         const wl = uniq(
           (Array.isArray(e._whoList) && e._whoList.length) ? e._whoList : toArrWho(e.who || e.sub || "")
@@ -1975,6 +2005,7 @@
       evs = evs.filter(e => {
         const t = normalizeType(e);
         if (isTeacherAbsenceType(t)) return true; // assenze dopo
+        if (sostituzioneContainsTarget(e)) return true;
 
         const tl = String(t || "").trim().toLowerCase();
 
@@ -2227,6 +2258,7 @@
 
           const classiHtml = classiHtmlFromEv(ev);
           const roomsHtml = roomsHtmlFromEv(ev);
+          const sostHtml = sostituzioneHtml(ev);
 
           const tooltipText =
             displayTitle +
@@ -2251,8 +2283,10 @@
             ? ` style="flex:1;display:flex;flex-direction:column;min-height:0;"`
             : "";
 
+          const sostCls = ev.sostituzione ? " ev-with-sost" : "";
+
           return `
-        <div class="ev ev-${type}${overridden}${absentCls}"${fillStyle}
+        <div class="ev ev-${type}${sostCls}${overridden}${absentCls}"${fillStyle}
           title="${escapeHtml(tooltipText)}">
           <div class="ev-title">${titleHtml}</div>
 
@@ -2269,7 +2303,8 @@
           ` : ``}
 
           ${classiHtml}
-          ${displayBadge ? `<div><span class="ev-badge badge-${type}">${escapeHtml(displayBadge)}</span></div>` : ``}
+          ${displayBadge ? `<div><span class="ev-badge badge-${ev.sostituzione ? "sost" : type}">${escapeHtml(displayBadge)}</span></div>` : ``}
+          ${sostHtml}
           ${roomsHtml}
         </div>
       `;
@@ -2591,6 +2626,9 @@
           const isOwnAbsenceEvent = isTeacherAbsenceType(type);
 
           const cls = ["ev", "ev-" + type];
+          if (ev.sostituzione) {
+            cls.push("ev-with-sost");
+          }
           if (!isBlocking(type) && eventIsOverriddenByBlockedClasses(ev, blockedSet)) {
             cls.push("ev-overridden");
           }
@@ -2602,7 +2640,7 @@
             cls.push("ev-absent-full");
           }
 
-          const badge = ev.badge ? `<div class="ev-badge badge-${type}">${escapeHtml(ev.badge)}</div>` : "";
+          const badge = ev.badge ? `<div class="ev-badge badge-${ev.sostituzione ? "sost" : type}">${escapeHtml(ev.badge)}</div>` : "";
           const title = ev.title ? `<div class="ev-title">${escapeHtml(ev.title)}</div>` : "";
 
           const whoArr = uniq(
@@ -2641,8 +2679,9 @@
 
           const rooms = roomsHtmlFromEv(ev);
           const classi = classiHtmlFromEv(ev);
+          const sost = sostituzioneHtml(ev);
 
-          return `<div class="${cls.join(" ")}">${badge}${title}${whoHtml}${rooms}${classi}</div>`;
+          return `<div class="${cls.join(" ")}">${badge}${title}${whoHtml}${sost}${rooms}${classi}</div>`;
         }).join("");
 
         return { tdClass, html };
