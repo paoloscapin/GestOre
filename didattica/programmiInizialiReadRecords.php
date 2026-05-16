@@ -11,12 +11,28 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$classe_filtro_id = $_GET["classi_id"];
+$classe_filtro_raw = $_GET["classi_id"] ?? 0;
+$classe_filtro_id = intval($classe_filtro_raw);
+$classe_filtro_articolata_id = 0;
+if (is_string($classe_filtro_raw) && strlen($classe_filtro_raw) > 1 && strtoupper(substr($classe_filtro_raw, 0, 1)) === 'A') {
+	$classe_filtro_articolata_id = intval(substr($classe_filtro_raw, 1));
+	$classe_filtro_id = 0;
+}
 $materia_filtro_id = $_GET["materia_id"];
 $docenti_filtro_id = $_GET["docenti_id"];
 $da_completare_filtro_id = $_GET["da_completare_id"];
 $anni_filtro_id = $_GET["anni_id"];
 $sollecito_lista = '';
+
+dbExec("
+	CREATE TABLE IF NOT EXISTS programmi_iniziali_classi (
+		id INT NOT NULL AUTO_INCREMENT,
+		id_programma_iniziale INT NOT NULL,
+		id_classe INT NOT NULL,
+		PRIMARY KEY (id),
+		UNIQUE KEY uniq_programma_classe (id_programma_iniziale, id_classe)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8
+");
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -41,6 +57,12 @@ $query = "	SELECT
 				programmi_iniziali.updated AS ultimo_agg,
                 classi.id,
                 classi.classe AS classe_nome,
+				(
+					SELECT GROUP_CONCAT(c2.classe ORDER BY c2.classe SEPARATOR ' / ')
+					FROM programmi_iniziali_classi pic2
+					INNER JOIN classi c2 ON c2.id = pic2.id_classe
+					WHERE pic2.id_programma_iniziale = programmi_iniziali.id
+				) AS classi_collegate_nome,
                 materia.id,
                 materia.nome AS materia_nome,
 				docente.id,
@@ -63,8 +85,33 @@ if ($anni_filtro_id > 0) {
 	$query .= " WHERE programmi_iniziali.id_anno_scolastico=" . $anni_filtro_id;
 }
 
-if ($classe_filtro_id > 0) {
-	$query .= "  AND programmi_iniziali.id_classe=$classe_filtro_id ";
+if ($classe_filtro_articolata_id > 0) {
+	$query .= "
+		AND EXISTS (
+			SELECT 1
+			FROM programmi_iniziali_classi pic_filter
+			INNER JOIN classi_articolate_classi cac_filter
+				ON cac_filter.id_classe = pic_filter.id_classe
+			INNER JOIN classi_articolate ca_filter
+				ON ca_filter.id = cac_filter.id_articolata
+			WHERE pic_filter.id_programma_iniziale = programmi_iniziali.id
+			  AND ca_filter.id = " . intval($classe_filtro_articolata_id) . "
+			  AND ca_filter.attiva = 1
+			  AND ca_filter.id_anno_scolastico = " . intval($anni_filtro_id) . "
+		)
+	";
+} else if ($classe_filtro_id > 0) {
+	$query .= "
+		AND (
+			programmi_iniziali.id_classe = " . intval($classe_filtro_id) . "
+			OR EXISTS (
+				SELECT 1
+				FROM programmi_iniziali_classi pic_filter
+				WHERE pic_filter.id_programma_iniziale = programmi_iniziali.id
+				  AND pic_filter.id_classe = " . intval($classe_filtro_id) . "
+			)
+		)
+	";
 }
 if ($materia_filtro_id > 0) {
 	$query .= " AND programmi_iniziali.id_materia=$materia_filtro_id ";
@@ -95,7 +142,9 @@ foreach ($resultArray as $row) {
 				$sollecito_lista .= ',' . $programma_id;
 			}
 		}
-		$classe = $row['classe_nome'];
+		$classe = !empty($row['classi_collegate_nome'])
+			? $row['classi_collegate_nome']
+			: $row['classe_nome'];
 		$docente = $row['docente_cognome'] . ' ' . $row['docente_nome'];
 		$materia = $row['materia_nome'];
 		$update = $row['ultimo_agg'];

@@ -515,10 +515,39 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 
 // classi 
 $classiFiltroOptionList = '<option value="0">T</option>';
-$classiOptionList = '<option value="0">selezionare classe</option>';
+$classiOptionList = '<option value="0" data-anno="0" data-tipo="classe">selezionare classe</option>';
 foreach (dbGetAll("SELECT * FROM classi WHERE attiva=1 ORDER BY classi.classe ASC ; ") as $classe) {
-    $classiFiltroOptionList .= '<option value="' . $classe['id'] . '" >' . $classe['classe'] . '</option> ';
-    $classiOptionList .= '<option value="' . $classe['id'] . '" >' . $classe['classe'] . '</option> ';
+    $classiFiltroOptionList .= '<option value="' . intval($classe['id']) . '" data-tipo="classe" data-anno="' . intval($classe['anno']) . '">' . htmlspecialchars($classe['classe']) . '</option> ';
+    $classiOptionList .= '<option value="' . intval($classe['id']) . '" data-tipo="classe" data-anno="' . intval($classe['anno']) . '">' . htmlspecialchars($classe['classe']) . '</option> ';
+}
+
+$queryArticolate = "
+    SELECT
+        ca.id,
+        ca.nome,
+        GROUP_CONCAT(c.classe ORDER BY c.classe SEPARATOR ' / ') AS classi_nomi,
+        GROUP_CONCAT(c.id ORDER BY c.classe SEPARATOR ',') AS classi_ids,
+        MAX(c.anno) AS anno_classe
+    FROM classi_articolate ca
+    INNER JOIN classi_articolate_classi cac ON cac.id_articolata = ca.id
+    INNER JOIN classi c ON c.id = cac.id_classe
+    WHERE ca.attiva = 1
+      AND ca.id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . "
+    GROUP BY ca.id, ca.nome
+    ORDER BY classi_nomi
+";
+
+foreach (dbGetAll($queryArticolate) as $art) {
+    $label = 'Art: ' . ($art['nome'] ?: $art['classi_nomi']);
+    $option = '<option value="A' . intval($art['id']) . '"
+        data-tipo="articolata"
+        data-articolata-id="' . intval($art['id']) . '"
+        data-classi="' . htmlspecialchars($art['classi_ids'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"
+        data-anno="' . intval($art['anno_classe']) . '">'
+        . htmlspecialchars($label) .
+    '</option>';
+    $classiFiltroOptionList .= $option;
+    $classiOptionList .= $option;
 }
 
 // prepara l'elenco dei docenti

@@ -20,6 +20,31 @@ var $da_completare_filtro_id = 0;
 var activeInizialiPreviewField = null;
 var inizialiRichTextFields = ['conoscenze', 'abilita', 'competenze', 'periodo'];
 
+function getInizialiClasseIdForLookup($select) {
+    var value = String($select.val() || '');
+    var $option = $select.find('option:selected');
+    if (($option.data('tipo') || 'classe') === 'articolata') {
+        var classi = String($option.data('classi') || '').split(',');
+        for (var i = 0; i < classi.length; i++) {
+            var idClasse = parseInt(classi[i], 10);
+            if (idClasse > 0) {
+                return idClasse;
+            }
+        }
+    }
+    return parseInt(value, 10) || 0;
+}
+
+function getInizialiClasseSavePayload() {
+    var $option = $("#classe option:selected");
+    return {
+        classe_id: $("#classe").val(),
+        classe_tipo: $option.data("tipo") || "classe",
+        articolata_id: $option.data("articolata-id") || 0,
+        classi_collegate: $option.data("classi") || ""
+    };
+}
+
 function inizialiLooksLikeHtml(text) {
     return /<\/?(p|div|ul|ol|li|h[1-6]|strong|b|em|i|u|blockquote|span)\b/i.test(String(text || ''));
 }
@@ -803,7 +828,7 @@ function programmiInizialiGetDetails(programma_id, duplica, share) {
                 $('#classe').selectpicker('val', 0);
             }
             else {
-                $('#classe').selectpicker('val', programma.programma_classe);
+                $('#classe').selectpicker('val', programma.programma_classe_select || programma.programma_classe);
             }
             if (share == 'true') {
                 $('#docente').selectpicker('val', 0);
@@ -911,7 +936,7 @@ async function moduliInizialiImport() {
                 data: {
                     id: '-1',
                     docente_id: $("#docente").val(),
-                    classe_id: $("#classe").val(),
+                    ...getInizialiClasseSavePayload(),
                     materia_id: $("#materia").val(),
                     duplica: 'false',
                     share: 'false',
@@ -934,7 +959,7 @@ async function moduliInizialiImport() {
                 dataType: "json",
                 data: {
                     programma_id: programma_id,
-                    classe_id: $('#classe').val(),
+                    classe_id: getInizialiClasseIdForLookup($('#classe')),
                     materia_id: $('#materia').val()
                 }
             });
@@ -1000,7 +1025,7 @@ async function moduliInizialiSvoltiImport() {
                     $.post("programmiInizialiSave.php", {
                         id: '-1',
                         docente_id: $("#docente").val(),
-                        classe_id: $("#classe").val(),
+                        ...getInizialiClasseSavePayload(),
                         materia_id: $("#materia").val(),
                         duplica: 'false',
                         share: 'false',
@@ -1027,7 +1052,7 @@ async function moduliInizialiSvoltiImport() {
             await new Promise((resolve2, reject2) => {
                 $.post("../didattica/moduliInizialiSvoltiImport.php", {
                     programma_id: programma_id,
-                    classe_id: classeImportId, // 👈 classe scelta nel modale
+                    classe_id: getInizialiClasseIdForLookup($("#classeImportSelect")),
                     materia_id: $('#materia').val()
                 }, function (data) {
                     try {
@@ -1073,7 +1098,7 @@ async function moduloInizialiGetDetails(modulo_id) {
             $.post("programmiInizialiSave.php", {
                 id: '-1',
                 docente_id: $("#docente").val(),
-                classe_id: $("#classe").val(),
+                ...getInizialiClasseSavePayload(),
                 materia_id: $("#materia").val(),
                 duplica: 'false',
                 share: 'false',
@@ -1206,7 +1231,7 @@ function programmiInizialiSave() {
     $.post("programmiInizialiSave.php", {
         id: $("#hidden_programma_id").val(),
         docente_id: $("#docente").val(),
-        classe_id: $("#classe").val(),
+        ...getInizialiClasseSavePayload(),
         materia_id: $("#materia").val(),
         duplica: $("#hidden_duplica").val(),
         share: $("#hidden_share").val()
