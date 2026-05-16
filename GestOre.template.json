@@ -109,6 +109,27 @@
             "timeZone": "Europe/Rome",
             "syncSecret": "#####"
         },
+        "googleCalendarDocenti": {
+            "enabled": false,
+            "mode": "service_account_domain_delegation",
+            "applicationName": "GestOre Google Calendar Docenti",
+            "serviceAccountFile": "gestore-486511-eb09e5de6aae.json",
+            "domain": "buonarroti.tn.it",
+            "timeZone": "Europe/Rome",
+            "calendarId": "primary",
+            "calendarName": "GestOre - Attività",
+            "createDedicatedCalendar": true,
+            "eventColors": {
+                "lezione": "",
+                "impegno": "10",
+                "uscita": "11",
+                "sostituzione": "6",
+                "assenza": "4",
+                "lezione_sostituita": "5"
+            },
+            "sendUpdates": "none",
+            "syncSecret": "#####"
+        },
         "googleDrive": {
             "enabled": false,
             "applicationName": "GestOre Google Drive",
