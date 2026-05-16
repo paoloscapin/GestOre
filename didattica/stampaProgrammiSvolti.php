@@ -1891,7 +1891,7 @@ function setWordParagraphHeader(DOMDocument $dom, DOMXPath $xpath, string $query
     $paragraph->appendChild($r);
 }
 
-function fillWordTemplateXml(string $xml, array $sections, array $intestazioneLines): string
+function fillWordTemplateXml(string $xml, array $sections, array $intestazioneLines, bool $includeTopTitle = true): string
 {
     $dom = new DOMDocument();
     $dom->preserveWhiteSpace = false;
@@ -1902,6 +1902,12 @@ function fillWordTemplateXml(string $xml, array $sections, array $intestazioneLi
     $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
 
     setWordParagraphHeader($dom, $xpath, '(//w:body/w:p)[2]', $intestazioneLines);
+    if (!$includeTopTitle) {
+        $topTitle = $xpath->query('(//w:body/w:p)[1]')->item(0);
+        if ($topTitle instanceof DOMElement && $topTitle->parentNode instanceof DOMNode) {
+            $topTitle->parentNode->removeChild($topTitle);
+        }
+    }
 
     $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
     $table = $xpath->query('//w:tbl')->item(0);
@@ -2108,12 +2114,20 @@ function exportQuintaDocx(array $program, array $sections, array $docentiLabels 
         exit;
     }
 
+    $docenti = array_values(array_filter(array_unique($docentiLabels)));
+    if (count($docenti) === 0) {
+        $docenteLabel = getProgramDocenteLabel($program);
+        if ($docenteLabel !== '') {
+            $docenti[] = $docenteLabel;
+        }
+    }
+
     $intestazioneLines = buildWordProgramHeader([
-        'Classe ' . ($firstProgram['classe_nome_stampa'] ?? $firstProgram['classe_nome']) . ($annoScolasticoLabel !== '' ? ' a.s. ' . $annoScolasticoLabel : ''),
-        'Materia ' . $firstProgram['materia_nome'],
+        'Classe ' . ($program['classe_nome_stampa'] ?? $program['classe_nome']) . ($annoScolasticoLabel !== '' ? ' a.s. ' . $annoScolasticoLabel : ''),
+        'Materia ' . $program['materia_nome'],
         (count($docenti) > 1 ? 'Docenti ' : 'Docente ') . implode(' / ', $docenti),
     ]);
-    $zip->addFromString('word/document.xml', normalizeWordDocumentFont(fillWordTemplateXml($xml, $sections, $intestazioneLines)));
+    $zip->addFromString('word/document.xml', normalizeWordDocumentFont(fillWordTemplateXml($xml, $sections, $intestazioneLines, false)));
     $zip->close();
 
     $fileName = 'Programma svolto quinta - ' . $program['materia_nome'] . ' - Classe ' . ($program['classe_nome_stampa'] ?? $program['classe_nome']) . ' - ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.docx';
