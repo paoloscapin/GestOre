@@ -5,6 +5,8 @@ require_once __DIR__ . '/../common/google-client-library/src/Google_Client.php';
 require_once __DIR__ . '/mbappCalendarSyncLib.php';
 require_once __DIR__ . '/../common/__Log.php';
 
+setLogChannel('google_calendar');
+
 function googleCalendarGetConfig()
 {
     global $__settings;
@@ -303,6 +305,15 @@ function googleCalendarStopWatch($channelId, $resourceId)
 
 function googleCalendarProcessWebhookForConfig($config)
 {
+    infoGoogleCalendar(
+    'DEBUG process start: ' .
+    json_encode([
+        'config_id' => intval($config['id'] ?? 0),
+        'nome' => $config['nome'] ?? '',
+        'calendar_id' => $config['calendar_id'] ?? '',
+        'sync_token_presente' => trim((string)($config['sync_token'] ?? '')) !== '' ? 1 : 0
+    ], JSON_UNESCAPED_UNICODE)
+);
     $calendarId = $config['calendar_id'];
     $syncToken = $config['sync_token'] ?? '';
 
@@ -340,12 +351,38 @@ function googleCalendarProcessWebhookForConfig($config)
             $params['pageToken'] = $pageToken;
         }
 
-        try {
-            $res = googleCalendarApiRequest(
-                'GET',
-                googleCalendarBuildEventsListUrl($calendarId, $params)
-            );
-        } catch (Throwable $e) {
+
+           try {
+    $eventsUrl = googleCalendarBuildEventsListUrl($calendarId, $params);
+
+    infoGoogleCalendar(
+        'DEBUG process events request: ' .
+        json_encode([
+            'config_id' => intval($config['id'] ?? 0),
+            'calendar_id' => $calendarId,
+            'syncToken' => $syncToken,
+            'pageToken' => $pageToken,
+            'url' => $eventsUrl
+        ], JSON_UNESCAPED_UNICODE)
+    );
+
+    $res = googleCalendarApiRequest(
+        'GET',
+        $eventsUrl
+    );
+
+    infoGoogleCalendar(
+        'DEBUG process events response: ' .
+        json_encode([
+            'config_id' => intval($config['id'] ?? 0),
+            'items_count' => isset($res['items']) && is_array($res['items']) ? count($res['items']) : -1,
+            'nextPageToken_presente' => isset($res['nextPageToken']) ? 1 : 0,
+            'nextSyncToken_presente' => isset($res['nextSyncToken']) ? 1 : 0,
+            'keys' => is_array($res) ? array_keys($res) : []
+        ], JSON_UNESCAPED_UNICODE)
+    );
+
+} catch (Throwable $e) {
             if (strpos($e->getMessage(), 'HTTP 410') !== false) {
                 $newSyncToken = googleCalendarInitialSyncToken($calendarId);
 
@@ -388,9 +425,28 @@ function googleCalendarProcessWebhookForConfig($config)
         );
     }
 
-    foreach ($changedEvents as $event) {
-        googleCalendarHandleChangedEvent($config, $event);
-    }
+infoGoogleCalendar(
+    'DEBUG changedEvents totali: ' .
+    json_encode([
+        'config_id' => intval($config['id'] ?? 0),
+        'count' => count($changedEvents)
+    ], JSON_UNESCAPED_UNICODE)
+);
+
+foreach ($changedEvents as $event) {
+    infoGoogleCalendar(
+        'DEBUG handle event: ' .
+        json_encode([
+            'config_id' => intval($config['id'] ?? 0),
+            'event_id' => $event['id'] ?? '',
+            'status' => $event['status'] ?? '',
+            'summary' => $event['summary'] ?? '',
+            'updated' => $event['updated'] ?? ''
+        ], JSON_UNESCAPED_UNICODE)
+    );
+
+    googleCalendarHandleChangedEvent($config, $event);
+}
 
     return [
         'ok' => true,

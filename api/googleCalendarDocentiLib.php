@@ -380,6 +380,17 @@ function googleCalendarDocentiMergeUnique(array $a, array $b)
     return $out;
 }
 
+function googleCalendarDocentiPrefixTitleWithClasses($title, array $classi)
+{
+    $title = trim((string)$title);
+    if (empty($classi)) return $title;
+    $classi = googleCalendarDocentiMergeUnique([], $classi);
+    sort($classi, SORT_NATURAL | SORT_FLAG_CASE);
+    $prefix = implode(', ', $classi);
+    if ($prefix === '' || stripos($title, $prefix . ' - ') === 0) return $title;
+    return $prefix . ' - ' . $title;
+}
+
 function googleCalendarDocentiIsUdienza($sigla, $nome)
 {
     $s = strtoupper(trim((string)$sigla));
@@ -555,6 +566,8 @@ function googleCalendarDocentiFetchActivities($username, $from, $to)
     $personalAbsences = googleCalendarDocentiFetchPersonalAbsences($username, $from, $to);
     $personalAbsencesBySlot = googleCalendarDocentiPersonalAbsencesBySlot($personalAbsences);
     $replacementByLessonSlot = googleCalendarDocentiReplacementMapForOriginalTeacher($username, $from, $to);
+    $colleagueNotesBySlot = googleCalendarDocentiColleagueAbsenceNotesBySlot($username, $from, $to);
+    $classNotesBySlot = googleCalendarDocentiClassEventNotesBySlot($username, $from, $to);
 
     foreach (mb_dbGetAll($q) ?: [] as $r) {
         $date = substr((string)($r['dataGiorno'] ?? ''), 0, 10);
@@ -682,6 +695,34 @@ function googleCalendarDocentiFetchActivities($username, $from, $to)
             $lessonsBySlot[$lessonKey]['classi'] = googleCalendarDocentiMergeUnique($lessonsBySlot[$lessonKey]['classi'], $classi);
             $lessonsBySlot[$lessonKey]['aule'] = googleCalendarDocentiMergeUnique($lessonsBySlot[$lessonKey]['aule'], $aule);
             $lessonsBySlot[$lessonKey]['docenti'] = googleCalendarDocentiMergeUnique($lessonsBySlot[$lessonKey]['docenti'], googleCalendarDocentiCsv($r['docenti_nomi'] ?? ''));
+            $colleagueNotes = $colleagueNotesBySlot[$date . '|' . $start] ?? [];
+            $lessonsBySlot[$lessonKey]['notes'] = googleCalendarDocentiMergeUnique(
+                $lessonsBySlot[$lessonKey]['notes'] ?? [],
+                $colleagueNotes
+            );
+            $classNoteKey = googleCalendarDocentiClassNoteKey($date, $start, $classi);
+            $classNotes = $classNotesBySlot[$classNoteKey] ?? [];
+            $lessonsBySlot[$lessonKey]['notes'] = googleCalendarDocentiMergeUnique(
+                $lessonsBySlot[$lessonKey]['notes'] ?? [],
+                $classNotes
+            );
+            if (!empty($lessonsBySlot[$lessonKey]['notes'])) {
+                if (!empty($colleagueNotes)) {
+                    $lessonsBySlot[$lessonKey]['source_type'] = 'lezione_codocente_assente';
+                    if (strpos($lessonsBySlot[$lessonKey]['summary'], '⚠') !== 0) {
+                        $lessonsBySlot[$lessonKey]['summary'] = '⚠ Codocente assente - ' . $lessonsBySlot[$lessonKey]['summary'];
+                    }
+                } elseif (!empty($classNotes)) {
+                    $lessonsBySlot[$lessonKey]['source_type'] = 'lezione_classe_impegnata';
+                    $eventRooms = googleCalendarDocentiClassEventRoomsBySlot($classNoteKey);
+                    if (!empty($eventRooms)) {
+                        $lessonsBySlot[$lessonKey]['aule'] = $eventRooms;
+                    }
+                    if (strpos($lessonsBySlot[$lessonKey]['summary'], '◆') !== 0) {
+                        $lessonsBySlot[$lessonKey]['summary'] = '◆ Classe impegnata - ' . $lessonsBySlot[$lessonKey]['summary'];
+                    }
+                }
+            }
             continue;
         }
 
@@ -709,8 +750,8 @@ function googleCalendarDocentiFetchActivities($username, $from, $to)
         $activities[] = [
             'source_key' => 'lezione-blocco:' . $sourcePart . ':' . $lesson['date'] . ':' . $lesson['start'] . ':' . $lesson['end'],
             'source_type' => (string)($lesson['source_type'] ?? 'lezione'),
-            'summary' => $lesson['summary'],
-            'description' => googleCalendarDocentiDescription($lesson['description_badge'], $lesson['classi'], $lesson['aule'], implode(', ', $lesson['docenti'])),
+            'summary' => googleCalendarDocentiPrefixTitleWithClasses($lesson['summary'], $lesson['classi']),
+            'description' => googleCalendarDocentiDescription($lesson['description_badge'], $lesson['classi'], $lesson['aule'], implode(', ', $lesson['docenti']), $lesson['notes'] ?? []),
             'location' => implode(', ', $lesson['aule']),
             'date' => $lesson['date'],
             'start' => $lesson['start'],
@@ -738,10 +779,76 @@ function googleCalendarDocentiFetchActivities($username, $from, $to)
 
     $activities = array_merge($activities, googleCalendarDocentiFetchSubstitutions($username, $from, $to));
     $activities = array_merge($activities, googleCalendarDocentiPersonalAbsenceActivities($personalAbsences));
+    $activities = array_merge($activities, googleCalendarDocentiFetchAssignedInstituteCommitments($username, $from, $to));
     $activities = array_merge($activities, googleCalendarDocentiFetchDidacticOutings($username, $from, $to));
     $activities = array_merge($activities, googleCalendarDocentiFetchClassDidacticOutings($username, $from, $to));
+    $activities = array_merge($activities, googleCalendarDocentiFetchClassInstituteCommitments($username, $from, $to));
+
+    $activities = googleCalendarDocentiCoalesceConsecutiveClassCommitments($activities);
 
     return googleCalendarDocentiDedupeActivities($activities);
+}
+
+function googleCalendarDocentiCoalesceConsecutiveClassCommitments(array $activities)
+{
+    $groups = [];
+    $others = [];
+
+    foreach ($activities as $activity) {
+        $type = strtolower(trim((string)($activity['source_type'] ?? '')));
+        $summary = trim((string)($activity['summary'] ?? ''));
+        if ($type !== 'impegno' || stripos($summary, 'Classe impegnata') === false) {
+            $others[] = $activity;
+            continue;
+        }
+
+        $classi = isset($activity['classi']) && is_array($activity['classi']) ? $activity['classi'] : [];
+        $aule = isset($activity['aule']) && is_array($activity['aule']) ? $activity['aule'] : [];
+        sort($classi, SORT_NATURAL | SORT_FLAG_CASE);
+        sort($aule, SORT_NATURAL | SORT_FLAG_CASE);
+
+        $key = implode('::', [
+            (string)($activity['date'] ?? ''),
+            strtoupper($summary),
+            implode('|', array_map('strtoupper', $classi)),
+            implode('|', array_map('strtoupper', $aule))
+        ]);
+
+        if (!isset($groups[$key])) $groups[$key] = [];
+        $groups[$key][] = $activity;
+    }
+
+    $out = $others;
+    foreach ($groups as $items) {
+        usort($items, function ($a, $b) {
+            return strcmp((string)($a['start'] ?? ''), (string)($b['start'] ?? ''));
+        });
+
+        $current = null;
+        foreach ($items as $item) {
+            if ($current === null) {
+                $current = $item;
+                continue;
+            }
+
+            $curEnd = (string)($current['end'] ?? '');
+            $nextStart = (string)($item['start'] ?? '');
+            if (googleCalendarDocentiAreContiguous($curEnd, $nextStart) || $curEnd >= $nextStart) {
+                if ((string)($item['end'] ?? '') > (string)($current['end'] ?? '')) {
+                    $current['end'] = $item['end'];
+                }
+                $current['source_key'] = 'class-impegno-merged:' . hash('sha256', (string)$current['source_key'] . '|' . (string)$item['source_key']);
+                continue;
+            }
+
+            $out[] = $current;
+            $current = $item;
+        }
+
+        if ($current !== null) $out[] = $current;
+    }
+
+    return $out;
 }
 
 function googleCalendarDocentiDedupeActivities(array $activities)
@@ -946,6 +1053,261 @@ function googleCalendarDocentiFindReplacementForLesson(array $replacements, arra
     return null;
 }
 
+function googleCalendarDocentiColleagueAbsenceNotesBySlot($username, $from, $to)
+{
+    $u = googleCalendarDocentiMbEsc($username);
+    $fromEsc = googleCalendarDocentiMbEsc($from);
+    $toEsc = googleCalendarDocentiMbEsc($to);
+
+    $q = "
+        SELECT DISTINCT
+            oSelf.dataGiorno,
+            oSelf.ora,
+            utCol.username,
+            CONCAT(uCol.cognome,' ',uCol.nome) AS nome,
+            a.*
+        FROM oralezione oSelf
+        JOIN utilizza utSelf ON utSelf.idCalendario = oSelf.idCalendario AND utSelf.username = '$u'
+        JOIN occupa ocSelf ON ocSelf.idCalendario = oSelf.idCalendario
+        JOIN occupa ocCol ON ocCol.classe = ocSelf.classe
+        JOIN oralezione oCol ON oCol.idCalendario = ocCol.idCalendario
+                          AND oCol.dataGiorno = oSelf.dataGiorno
+                          AND oCol.ora = oSelf.ora
+                          AND (oCol.stato IS NULL OR oCol.stato <> 'CANCELLATO')
+        JOIN utilizza utCol ON utCol.idCalendario = oCol.idCalendario
+                         AND utCol.username IS NOT NULL
+                         AND utCol.username <> ''
+                         AND utCol.username <> '$u'
+        JOIN utente uCol ON uCol.username = utCol.username
+        JOIN utilizza utAss ON utAss.username = utCol.username
+                          AND utAss.IDassenza IS NOT NULL
+        JOIN assenze a ON a.idAssenza = utAss.IDassenza
+        WHERE oSelf.dataGiorno BETWEEN '$fromEsc' AND '$toEsc'
+          AND DATE(COALESCE(NULLIF(NULLIF(a.dataFine,''),'0000-00-00'), a.dataInizio)) >= oSelf.dataGiorno
+          AND DATE(a.dataInizio) <= oSelf.dataGiorno
+          AND UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
+          AND (oSelf.stato IS NULL OR oSelf.stato <> 'CANCELLATO')
+        ORDER BY oSelf.dataGiorno, oSelf.ora, uCol.cognome, uCol.nome
+    ";
+
+    $map = [];
+    foreach (mb_dbGetAll($q) ?: [] as $r) {
+        $date = substr((string)($r['dataGiorno'] ?? ''), 0, 10);
+        $slot = googleCalendarDocentiNormOra($r['ora'] ?? '');
+        if ($date === '' || $slot === '') continue;
+
+        $absenceStart = googleCalendarDocentiPickOraInizio($r);
+        $absenceEnd = googleCalendarDocentiPickOraFine($r);
+        if (!in_array($slot, googleCalendarDocentiSlotsBetween($absenceStart, $absenceEnd), true)) {
+            continue;
+        }
+
+        $nome = trim((string)($r['nome'] ?? $r['username'] ?? 'Codocente'));
+        $motivo = trim((string)($r['motivo'] ?? 'assenza'));
+        $dettagli = trim((string)($r['dettagli'] ?? ''));
+        $tipo = 'assente';
+        if (googleCalendarDocentiIsUscita($motivo, $dettagli) || googleCalendarDocentiIsViaggio($motivo, $dettagli)) {
+            $tipo = 'in uscita didattica';
+        }
+
+        $key = $date . '|' . $slot;
+        if (!isset($map[$key])) $map[$key] = [];
+        $map[$key][] = $nome . ' ' . $tipo;
+    }
+
+    foreach ($map as $key => $notes) {
+        $map[$key] = googleCalendarDocentiMergeUnique([], $notes);
+    }
+
+    return $map;
+}
+
+function googleCalendarDocentiClassNoteKey($date, $slot, array $classi)
+{
+    $classi = array_map('strtoupper', $classi);
+    sort($classi, SORT_NATURAL | SORT_FLAG_CASE);
+    return $date . '|' . $slot . '|' . implode('|', $classi);
+}
+
+function googleCalendarDocentiClassEventNotesBySlot($username, $from, $to)
+{
+    $u = googleCalendarDocentiMbEsc($username);
+    $fromEsc = googleCalendarDocentiMbEsc($from);
+    $toEsc = googleCalendarDocentiMbEsc($to);
+
+    $lessonRows = mb_dbGetAll("
+        SELECT DISTINCT
+            o.dataGiorno,
+            o.ora,
+            oc.classe
+        FROM oralezione o
+        JOIN utilizza ut ON ut.idCalendario = o.idCalendario AND ut.username = '$u'
+        JOIN occupa oc ON oc.idCalendario = o.idCalendario
+        WHERE o.dataGiorno BETWEEN '$fromEsc' AND '$toEsc'
+          AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
+          AND oc.classe IS NOT NULL
+          AND oc.classe <> ''
+    ") ?: [];
+
+    $slotClasses = [];
+    foreach ($lessonRows as $r) {
+        $date = substr((string)($r['dataGiorno'] ?? ''), 0, 10);
+        $slot = googleCalendarDocentiNormOra($r['ora'] ?? '');
+        $classe = strtoupper(trim((string)($r['classe'] ?? '')));
+        if ($date === '' || $slot === '' || $classe === '') continue;
+        $key = $date . '|' . $slot;
+        if (!isset($slotClasses[$key])) $slotClasses[$key] = [];
+        $slotClasses[$key][] = $classe;
+    }
+
+    $map = [];
+    foreach ($slotClasses as $slotKey => $classi) {
+        [$date, $slot] = explode('|', $slotKey, 2);
+        $classi = array_values(array_unique($classi));
+        $notes = googleCalendarDocentiClassAbsenceNotes($date, $slot, $classi);
+        $notes = googleCalendarDocentiMergeUnique($notes, googleCalendarDocentiClassInstituteCommitmentNotes($date, $slot, $classi));
+        if (!empty($notes)) {
+            $noteKey = googleCalendarDocentiClassNoteKey($date, $slot, $classi);
+            $map[$noteKey] = $notes;
+            googleCalendarDocentiClassEventRoomsBySlot($noteKey, googleCalendarDocentiClassInstituteCommitmentRooms($date, $slot, $classi));
+        }
+    }
+
+    return $map;
+}
+
+function googleCalendarDocentiClassEventRoomsBySlot($key, $rooms = null)
+{
+    static $map = [];
+    $key = (string)$key;
+    if (is_array($rooms)) {
+        $map[$key] = googleCalendarDocentiMergeUnique($map[$key] ?? [], $rooms);
+    }
+    return $map[$key] ?? [];
+}
+
+function googleCalendarDocentiClassAbsenceNotes($date, $slot, array $classi)
+{
+    if (empty($classi)) return [];
+    $dateEsc = googleCalendarDocentiMbEsc($date);
+    $inClassi = implode(',', array_map(function ($classe) {
+        return "'" . googleCalendarDocentiMbEsc($classe) . "'";
+    }, $classi));
+
+    $rows = mb_dbGetAll("
+        SELECT DISTINCT
+            a.idAssenza,
+            a.motivo,
+            a.dettagli,
+            a.oraInizio,
+            a.oraFine,
+            a.oraInizioReale,
+            a.oraFineReale,
+            oc.classe
+        FROM assenze a
+        JOIN occupa oc ON oc.IDassenza = a.idAssenza
+        WHERE oc.classe IN ($inClassi)
+          AND DATE(COALESCE(NULLIF(NULLIF(a.dataFine,''),'0000-00-00'), a.dataInizio)) >= '$dateEsc'
+          AND DATE(a.dataInizio) <= '$dateEsc'
+          AND UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
+    ") ?: [];
+
+    $notes = [];
+    foreach ($rows as $r) {
+        $motivo = trim((string)($r['motivo'] ?? ''));
+        $dettagli = trim((string)($r['dettagli'] ?? ''));
+        if (!googleCalendarDocentiIsUscita($motivo, $dettagli) && !googleCalendarDocentiIsViaggio($motivo, $dettagli)) {
+            continue;
+        }
+
+        if (!in_array($slot, googleCalendarDocentiSlotsBetween(
+            googleCalendarDocentiPickOraInizio($r),
+            googleCalendarDocentiPickOraFine($r)
+        ), true)) {
+            continue;
+        }
+
+        $classe = strtoupper(trim((string)($r['classe'] ?? '')));
+        $tipo = googleCalendarDocentiIsViaggio($motivo, $dettagli)
+            ? 'viaggio di istruzione'
+            : (googleCalendarDocentiIsUscitaFuori($motivo, $dettagli) ? 'uscita fuori comune' : 'uscita didattica');
+        $notes[] = 'La classe ' . $classe . ' è in ' . $tipo;
+    }
+
+    return googleCalendarDocentiMergeUnique([], $notes);
+}
+
+function googleCalendarDocentiClassInstituteCommitmentNotes($date, $slot, array $classi)
+{
+    if (empty($classi)) return [];
+    $dateEsc = googleCalendarDocentiMbEsc($date);
+    $slotEsc = googleCalendarDocentiMbEsc($slot);
+    $inClassi = implode(',', array_map(function ($classe) {
+        return "'" . googleCalendarDocentiMbEsc($classe) . "'";
+    }, $classi));
+
+    $rows = mb_dbGetAll("
+        SELECT DISTINCT
+            o.attivitaProgetto,
+            o.nroAula,
+            o.idAssenza,
+            a.dettagli,
+            oc.classe
+        FROM oralezione o
+        JOIN occupa oc ON oc.idCalendario = o.idCalendario
+        LEFT JOIN assenze a ON a.idAssenza = o.idAssenza
+        WHERE o.dataGiorno = '$dateEsc'
+          AND o.ora = '$slotEsc'
+          AND oc.classe IN ($inClassi)
+          AND o.attivitaProgetto IS NOT NULL
+          AND o.attivitaProgetto <> ''
+          AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
+    ") ?: [];
+
+    $notes = [];
+    foreach ($rows as $r) {
+        $classe = strtoupper(trim((string)($r['classe'] ?? '')));
+        $title = trim((string)($r['dettagli'] ?? ''));
+        if ($title === '') $title = trim((string)($r['attivitaProgetto'] ?? 'impegno in istituto'));
+        $aula = trim((string)($r['nroAula'] ?? ''));
+        $notes[] = 'La classe ' . $classe . ' ha impegno in istituto: ' . $title . ($aula !== '' ? ' (aula ' . $aula . ')' : '');
+    }
+
+    return googleCalendarDocentiMergeUnique([], $notes);
+}
+
+function googleCalendarDocentiClassInstituteCommitmentRooms($date, $slot, array $classi)
+{
+    if (empty($classi)) return [];
+    $dateEsc = googleCalendarDocentiMbEsc($date);
+    $slotEsc = googleCalendarDocentiMbEsc($slot);
+    $inClassi = implode(',', array_map(function ($classe) {
+        return "'" . googleCalendarDocentiMbEsc($classe) . "'";
+    }, $classi));
+
+    $rows = mb_dbGetAll("
+        SELECT DISTINCT o.nroAula
+        FROM oralezione o
+        JOIN occupa oc ON oc.idCalendario = o.idCalendario
+        WHERE o.dataGiorno = '$dateEsc'
+          AND o.ora = '$slotEsc'
+          AND oc.classe IN ($inClassi)
+          AND o.attivitaProgetto IS NOT NULL
+          AND o.attivitaProgetto <> ''
+          AND o.nroAula IS NOT NULL
+          AND o.nroAula <> ''
+          AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
+        ORDER BY CAST(o.nroAula AS UNSIGNED), o.nroAula
+    ") ?: [];
+
+    $out = [];
+    foreach ($rows as $r) {
+        $aula = trim((string)($r['nroAula'] ?? ''));
+        if ($aula !== '') $out[] = $aula;
+    }
+    return googleCalendarDocentiMergeUnique([], $out);
+}
+
 function googleCalendarDocentiBuildLessonBlocks(array $lessonsBySlot)
 {
     $groups = [];
@@ -979,6 +1341,7 @@ function googleCalendarDocentiBuildLessonBlocks(array $lessonsBySlot)
                 $current['source_ids'] = googleCalendarDocentiMergeUnique($current['source_ids'], $lesson['source_ids']);
                 $current['docenti'] = googleCalendarDocentiMergeUnique($current['docenti'], $lesson['docenti']);
                 $current['aule'] = googleCalendarDocentiMergeUnique($current['aule'], $lesson['aule']);
+                $current['notes'] = googleCalendarDocentiMergeUnique($current['notes'] ?? [], $lesson['notes'] ?? []);
                 continue;
             }
 
@@ -1056,7 +1419,7 @@ function googleCalendarDocentiFetchDidacticOutings($username, $from, $to)
             $out[] = [
                 'source_key' => 'uscita:' . $idAssenza . ':' . $date,
                 'source_type' => 'uscita',
-                'summary' => $summary,
+                'summary' => googleCalendarDocentiPrefixTitleWithClasses($summary, $classi),
                 'description' => googleCalendarDocentiDescription($base, $classi, [], implode(', ', $docenti)),
                 'location' => '',
                 'date' => $date,
@@ -1096,6 +1459,252 @@ function googleCalendarDocentiFetchClassDidacticOutings($username, $from, $to)
     ";
 
     return googleCalendarDocentiBuildOutingsFromAssenze($q, $from, $to);
+}
+
+function googleCalendarDocentiFetchAssignedInstituteCommitments($username, $from, $to)
+{
+    $u = googleCalendarDocentiMbEsc($username);
+    $fromEsc = googleCalendarDocentiMbEsc($from);
+    $toEsc = googleCalendarDocentiMbEsc($to);
+
+    $q = "
+        SELECT
+            a.idAssenza,
+            a.dataInizio,
+            a.dataFine,
+            a.oraInizio,
+            a.oraFine,
+            a.oraInizioReale,
+            a.oraFineReale,
+            a.motivo,
+            a.dettagli,
+            o.dataGiorno,
+            o.ora,
+            o.attivitaProgetto,
+            GROUP_CONCAT(DISTINCT oc.classe ORDER BY oc.classe SEPARATOR ', ') AS classi,
+            GROUP_CONCAT(DISTINCT o.nroAula ORDER BY CAST(o.nroAula AS UNSIGNED), o.nroAula SEPARATOR ', ') AS aule,
+            GROUP_CONCAT(DISTINCT CONCAT(doc.cognome,' ',doc.nome) ORDER BY doc.cognome, doc.nome SEPARATOR ', ') AS docenti_nomi
+        FROM assenze a
+        JOIN utilizza utSelf ON utSelf.IDassenza = a.idAssenza AND utSelf.username = '$u'
+        LEFT JOIN oralezione o ON o.idAssenza = a.idAssenza
+                            AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
+        LEFT JOIN occupa oc ON oc.idCalendario = o.idCalendario OR oc.IDassenza = a.idAssenza
+        LEFT JOIN utilizza utAll ON utAll.IDassenza = a.idAssenza
+                              AND utAll.username IS NOT NULL
+                              AND utAll.username <> ''
+        LEFT JOIN utente doc ON doc.username = utAll.username
+        WHERE DATE(COALESCE(NULLIF(NULLIF(a.dataFine,''),'0000-00-00'), a.dataInizio)) >= '$fromEsc'
+          AND DATE(a.dataInizio) <= '$toEsc'
+          AND UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
+        GROUP BY
+            a.idAssenza,
+            a.dataInizio,
+            a.dataFine,
+            a.oraInizio,
+            a.oraFine,
+            a.oraInizioReale,
+            a.oraFineReale,
+            a.motivo,
+            a.dettagli,
+            o.dataGiorno,
+            o.ora,
+            o.attivitaProgetto
+        ORDER BY a.dataInizio, a.oraInizio
+    ";
+
+    $byKey = [];
+    foreach (mb_dbGetAll($q) ?: [] as $r) {
+        $motivo = trim((string)($r['motivo'] ?? ''));
+        $dettagli = trim((string)($r['dettagli'] ?? ''));
+        if (googleCalendarDocentiIsUscita($motivo, $dettagli) || googleCalendarDocentiIsViaggio($motivo, $dettagli)) {
+            continue;
+        }
+
+        $idAssenza = intval($r['idAssenza'] ?? 0);
+        if ($idAssenza <= 0) continue;
+
+        $date = substr((string)($r['dataGiorno'] ?? ''), 0, 10);
+        if ($date === '') $date = substr((string)($r['dataInizio'] ?? ''), 0, 10);
+        if ($date === '') continue;
+
+        $title = $dettagli !== '' ? $dettagli : trim((string)($r['attivitaProgetto'] ?? ''));
+        if ($title === '') $title = $motivo !== '' ? $motivo : 'Impegno in istituto';
+        $slot = googleCalendarDocentiNormOra($r['ora'] ?? '');
+        $start = $slot !== '' ? $slot : googleCalendarDocentiPickOraInizio($r);
+        $end = $slot !== '' ? googleCalendarDocentiSlotEnd($slot) : googleCalendarDocentiPickOraFine($r);
+        if ($end <= $start) $end = googleCalendarDocentiSlotEnd($start);
+
+        $classi = googleCalendarDocentiCsv($r['classi'] ?? '');
+        $aule = googleCalendarDocentiCsv($r['aule'] ?? '');
+        $docenti = googleCalendarDocentiCsv($r['docenti_nomi'] ?? '');
+
+        sort($classi, SORT_NATURAL | SORT_FLAG_CASE);
+        sort($aule, SORT_NATURAL | SORT_FLAG_CASE);
+        $key = 'impegno-assegnato:' . hash('sha256', implode('|', [
+            $idAssenza,
+            $date,
+            strtoupper($title),
+            implode(',', array_map('strtoupper', $classi)),
+            implode(',', array_map('strtoupper', $aule))
+        ]));
+
+        if (!isset($byKey[$key])) {
+            $byKey[$key] = [
+                'source_key' => $key,
+                'source_type' => 'impegno',
+                'summary' => 'Classe impegnata - ' . $title,
+                'date' => $date,
+                'start' => $start,
+                'end' => $end,
+                'classi' => [],
+                'aule' => [],
+                'docenti' => []
+            ];
+        }
+
+        $byKey[$key]['classi'] = googleCalendarDocentiMergeUnique($byKey[$key]['classi'], $classi);
+        $byKey[$key]['aule'] = googleCalendarDocentiMergeUnique($byKey[$key]['aule'], $aule);
+        $byKey[$key]['docenti'] = googleCalendarDocentiMergeUnique($byKey[$key]['docenti'], $docenti);
+        if ($start < $byKey[$key]['start']) $byKey[$key]['start'] = $start;
+        if ($end > $byKey[$key]['end']) $byKey[$key]['end'] = $end;
+    }
+
+    $out = [];
+    foreach ($byKey as $event) {
+        $out[] = [
+            'source_key' => $event['source_key'],
+            'source_type' => $event['source_type'],
+            'summary' => googleCalendarDocentiPrefixTitleWithClasses($event['summary'], $event['classi']),
+            'description' => googleCalendarDocentiDescription('Impegno in istituto', $event['classi'], $event['aule'], implode(', ', $event['docenti'])),
+            'location' => implode(', ', $event['aule']),
+            'date' => $event['date'],
+            'start' => $event['start'],
+            'end' => $event['end'],
+            'classi' => $event['classi'],
+            'aule' => $event['aule']
+        ];
+    }
+
+    return $out;
+}
+
+function googleCalendarDocentiFetchClassInstituteCommitments($username, $from, $to)
+{
+    $classi = googleCalendarDocentiClassesForTeacher($username, $from, $to);
+    if (empty($classi)) return [];
+
+    $fromEsc = googleCalendarDocentiMbEsc($from);
+    $toEsc = googleCalendarDocentiMbEsc($to);
+    $inClassi = implode(',', array_map(function ($classe) {
+        return "'" . googleCalendarDocentiMbEsc($classe) . "'";
+    }, $classi));
+
+    $q = "
+        SELECT
+            o.idAssenza,
+            o.dataGiorno,
+            o.ora,
+            o.attivitaProgetto,
+            a.dettagli,
+            a.oraInizio,
+            a.oraFine,
+            a.oraInizioReale,
+            a.oraFineReale,
+            GROUP_CONCAT(DISTINCT oc.classe ORDER BY oc.classe SEPARATOR ', ') AS classi,
+            GROUP_CONCAT(DISTINCT o.nroAula ORDER BY CAST(o.nroAula AS UNSIGNED), o.nroAula SEPARATOR ', ') AS aule,
+            GROUP_CONCAT(DISTINCT CONCAT(u.cognome,' ',u.nome) ORDER BY u.cognome, u.nome SEPARATOR ', ') AS docenti_nomi
+        FROM oralezione o
+        JOIN occupa oc ON oc.idCalendario = o.idCalendario
+        LEFT JOIN utilizza ut ON ut.idCalendario = o.idCalendario AND ut.username IS NOT NULL AND ut.username <> ''
+        LEFT JOIN utente u ON u.username = ut.username
+        LEFT JOIN assenze a ON a.idAssenza = o.idAssenza
+        WHERE o.dataGiorno BETWEEN '$fromEsc' AND '$toEsc'
+          AND oc.classe IN ($inClassi)
+          AND o.attivitaProgetto IS NOT NULL
+          AND o.attivitaProgetto <> ''
+          AND (o.stato IS NULL OR o.stato <> 'CANCELLATO')
+        GROUP BY
+            o.idAssenza,
+            o.dataGiorno,
+            o.ora,
+            o.attivitaProgetto,
+            a.dettagli,
+            a.oraInizio,
+            a.oraFine,
+            a.oraInizioReale,
+            a.oraFineReale
+        ORDER BY o.dataGiorno, o.ora
+    ";
+
+    $byKey = [];
+    foreach (mb_dbGetAll($q) ?: [] as $r) {
+        $date = substr((string)($r['dataGiorno'] ?? ''), 0, 10);
+        $slot = googleCalendarDocentiNormOra($r['ora'] ?? '');
+        if ($date === '' || $slot === '') continue;
+
+        $idAssenza = intval($r['idAssenza'] ?? 0);
+        $title = trim((string)($r['dettagli'] ?? ''));
+        if ($title === '') $title = trim((string)($r['attivitaProgetto'] ?? 'Impegno in istituto'));
+
+        $start = $idAssenza > 0
+            ? googleCalendarDocentiPickOraInizio($r)
+            : $slot;
+        $end = $idAssenza > 0
+            ? googleCalendarDocentiPickOraFine($r)
+            : googleCalendarDocentiSlotEnd($slot);
+        if ($end <= $start) $end = googleCalendarDocentiSlotEnd($start);
+
+        $classiRow = googleCalendarDocentiCsv($r['classi'] ?? '');
+        $auleRow = googleCalendarDocentiCsv($r['aule'] ?? '');
+        sort($classiRow, SORT_NATURAL | SORT_FLAG_CASE);
+        sort($auleRow, SORT_NATURAL | SORT_FLAG_CASE);
+
+        $groupSeed = $idAssenza > 0
+            ? 'assenza:' . $idAssenza
+            : implode('|', [$date, strtoupper($title), implode(',', array_map('strtoupper', $classiRow)), implode(',', array_map('strtoupper', $auleRow))]);
+
+        $key = 'class-impegno:' . hash('sha256', $groupSeed);
+
+        if (!isset($byKey[$key])) {
+            $byKey[$key] = [
+                'source_key' => $key,
+                'source_type' => 'impegno',
+                'summary' => 'Classe impegnata - ' . $title,
+                'description_badge' => 'Impegno in istituto della classe',
+                'date' => $date,
+                'start' => $start,
+                'end' => $end,
+                'classi' => [],
+                'aule' => [],
+                'docenti' => []
+            ];
+        }
+
+        $byKey[$key]['classi'] = googleCalendarDocentiMergeUnique($byKey[$key]['classi'], $classiRow);
+        $byKey[$key]['aule'] = googleCalendarDocentiMergeUnique($byKey[$key]['aule'], $auleRow);
+        $byKey[$key]['docenti'] = googleCalendarDocentiMergeUnique($byKey[$key]['docenti'], googleCalendarDocentiCsv($r['docenti_nomi'] ?? ''));
+        if ($start < $byKey[$key]['start']) $byKey[$key]['start'] = $start;
+        if ($end > $byKey[$key]['end']) $byKey[$key]['end'] = $end;
+    }
+
+    $out = [];
+    foreach ($byKey as $event) {
+        $classPrefix = !empty($event['classi']) ? (implode(', ', $event['classi']) . ' - ') : '';
+        $out[] = [
+            'source_key' => $event['source_key'],
+            'source_type' => $event['source_type'],
+            'summary' => $classPrefix . $event['summary'],
+            'description' => googleCalendarDocentiDescription($event['description_badge'], $event['classi'], $event['aule'], implode(', ', $event['docenti'])),
+            'location' => implode(', ', $event['aule']),
+            'date' => $event['date'],
+            'start' => $event['start'],
+            'end' => $event['end'],
+            'classi' => $event['classi'],
+            'aule' => $event['aule']
+        ];
+    }
+
+    return $out;
 }
 
 function googleCalendarDocentiClassesForTeacher($username, $from, $to)
@@ -1185,6 +1794,8 @@ function googleCalendarDocentiClassiByAssenza($idAssenza)
 {
     $id = intval($idAssenza);
     if ($id <= 0) return [];
+    $out = [];
+
     $rows = mb_dbGetAll("
         SELECT DISTINCT classe
         FROM occupa
@@ -1193,12 +1804,26 @@ function googleCalendarDocentiClassiByAssenza($idAssenza)
           AND classe <> ''
         ORDER BY classe
     ") ?: [];
-    $out = [];
     foreach ($rows as $r) {
         $classe = trim((string)($r['classe'] ?? ''));
         if ($classe !== '') $out[] = $classe;
     }
-    return $out;
+
+    $rows = mb_dbGetAll("
+        SELECT DISTINCT oc.classe
+        FROM oralezione o
+        JOIN occupa oc ON oc.idCalendario = o.idCalendario
+        WHERE o.idAssenza = $id
+          AND oc.classe IS NOT NULL
+          AND oc.classe <> ''
+        ORDER BY oc.classe
+    ") ?: [];
+    foreach ($rows as $r) {
+        $classe = trim((string)($r['classe'] ?? ''));
+        if ($classe !== '') $out[] = $classe;
+    }
+
+    return googleCalendarDocentiMergeUnique([], $out);
 }
 
 function googleCalendarDocentiDocentiByAssenza($idAssenza)
@@ -1289,10 +1914,14 @@ function googleCalendarDocentiTableHasColumn($table, $column)
     return dbGetValue("SHOW COLUMNS FROM `$tableEsc` LIKE '$columnEsc'") !== null;
 }
 
-function googleCalendarDocentiDescription($tipo, array $classi, array $aule, $docenti)
+function googleCalendarDocentiDescription($tipo, array $classi, array $aule, $docenti, array $notes = [])
 {
     $lines = [];
     if (trim($tipo) !== '') $lines[] = $tipo;
+    foreach ($notes as $note) {
+        $note = trim((string)$note);
+        if ($note !== '') $lines[] = 'ATTENZIONE: ' . $note;
+    }
     if (!empty($classi)) $lines[] = 'Classe/i: ' . implode(', ', $classi);
     if (!empty($aule)) $lines[] = 'Aula/e: ' . implode(', ', $aule);
     if (trim((string)$docenti) !== '') $lines[] = 'Docente/i: ' . trim((string)$docenti);
@@ -1312,7 +1941,7 @@ function googleCalendarDocentiBuildGoogleEvent(array $activity)
     $tz = trim((string)($cfg->timeZone ?? 'Europe/Rome')) ?: 'Europe/Rome';
 
     $event = [
-        'summary' => (string)$activity['summary'],
+        'summary' => googleCalendarDocentiSummaryForGoogleEvent($activity),
         'description' => (string)$activity['description'],
         'location' => (string)($activity['location'] ?? ''),
         'start' => [
@@ -1360,7 +1989,9 @@ function googleCalendarDocentiColorId($sourceType)
         'uscita' => '11',
         'sostituzione' => '6',
         'assenza' => '4',
-        'lezione_sostituita' => '5'
+        'lezione_sostituita' => '5',
+        'lezione_codocente_assente' => '5',
+        'lezione_classe_impegnata' => '7'
     ];
 
     $configured = [];
@@ -1372,6 +2003,19 @@ function googleCalendarDocentiColorId($sourceType)
     if ($value === '') return '';
 
     return preg_match('/^\d+$/', $value) ? $value : '';
+}
+
+function googleCalendarDocentiSummaryForGoogleEvent(array $activity)
+{
+    $summary = (string)($activity['summary'] ?? '');
+    $type = strtolower(trim((string)($activity['source_type'] ?? '')));
+    $classi = isset($activity['classi']) && is_array($activity['classi']) ? $activity['classi'] : [];
+
+    if (in_array($type, ['lezione', 'uscita', 'impegno'], true)) {
+        return googleCalendarDocentiPrefixTitleWithClasses($summary, $classi);
+    }
+
+    return $summary;
 }
 
 function googleCalendarDocentiSyncTeacher(array $teacher, $from, $to)

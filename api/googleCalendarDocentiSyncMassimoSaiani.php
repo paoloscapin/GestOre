@@ -46,9 +46,9 @@ try {
     }
 
     $from = googleCalendarDocentiSaianiParam('from', date('Y-m-d', strtotime('-4 months')));
-    $to = googleCalendarDocentiSaianiParam('to', date('Y-m-d'));
-    $days = intval(googleCalendarDocentiSaianiParam('days', '120'));
-    if ($days < 1) $days = 120;
+    $to = googleCalendarDocentiSaianiParam('to', date('Y-m-d', strtotime('+4 months')));
+    $days = intval(googleCalendarDocentiSaianiParam('days', '240'));
+    if ($days < 1) $days = 240;
     if ($days > 370) $days = 370;
 
     if ($to === '') {

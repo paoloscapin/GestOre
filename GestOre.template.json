@@ -125,7 +125,9 @@
                 "uscita": "11",
                 "sostituzione": "6",
                 "assenza": "4",
-                "lezione_sostituita": "5"
+                "lezione_sostituita": "5",
+                "lezione_codocente_assente": "5",
+                "lezione_classe_impegnata": "7"
             },
             "sendUpdates": "none",
             "syncSecret": "#####"
