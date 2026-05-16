@@ -87,16 +87,12 @@ function programmaMinimiSaveLegacyTextToRichHtml(string $text): string
 			continue;
 		}
 
-		if (preg_match('/^(?:[\x{2022}\x{00b7}\x{25cf}\x{25e6}\x{2043}\x{f0b7}\x{f0a7}\x{f076}]\s+|--\s+|>\s+|-\s+|\*\s+|\d+[\.)]\s+|[a-zA-Z][\.)]\s+)(.+)$/u', ltrim($raw), $m)) {
-			if (!$listOpen) {
-				$html .= '<ul>';
-				$listOpen = true;
-			}
-			$html .= '<li>' . htmlspecialchars(trim($m[1]), ENT_QUOTES, 'UTF-8') . '</li>';
+		$closeList();
+		$trimmed = preg_replace('/^(?:[\x{2022}\x{00b7}\x{25cf}\x{25e6}\x{2043}\x{f0b7}\x{f0a7}\x{f076}]\s+|--\s+|>\s+|-\s+|\*\s+|\d+[\.)]\s+|[a-zA-Z][\.)]\s+)/u', '', $trimmed);
+		$trimmed = trim($trimmed);
+		if ($trimmed === '') {
 			continue;
 		}
-
-		$closeList();
 		$html .= '<p>' . htmlspecialchars($trimmed, ENT_QUOTES, 'UTF-8') . '</p>';
 	}
 

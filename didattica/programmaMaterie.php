@@ -33,6 +33,197 @@ applicaDocenteDaParametroSeAutorizzato();
             height: 16px;
             width: 16px;
         }
+
+        .programma-rich-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 6px;
+            padding: 5px 6px;
+            border: 1px solid #cfd8e3;
+            border-radius: 6px;
+            background: linear-gradient(#fbfcff, #edf3fb);
+        }
+
+        .programma-rich-toolbar .programma-rich-btn {
+            min-width: 34px;
+            height: 30px;
+            padding: 4px 7px;
+            border-color: #b8c4d2;
+            color: #263647;
+            background: linear-gradient(#ffffff, #eef3f8);
+            font-weight: 700;
+        }
+
+        .programma-rich-toolbar .programma-rich-btn:hover,
+        .programma-rich-toolbar .programma-rich-btn:focus,
+        .programma-rich-toolbar .programma-rich-btn.active {
+            border-color: #6aa7e8;
+            background: linear-gradient(#fdfefe, #dceeff);
+            color: #0f4c81;
+        }
+
+        .programma-rich-toolbar .word-icon {
+            display: inline-block;
+            min-width: 16px;
+            line-height: 1;
+            text-align: center;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 16px;
+        }
+
+        .programma-rich-toolbar .word-icon-bold {
+            font-weight: 800;
+        }
+
+        .programma-rich-toolbar .word-icon-italic {
+            font-style: italic;
+        }
+
+        .programma-rich-toolbar .word-icon-underline {
+            text-decoration: underline;
+        }
+
+        .programma-rich-toolbar .word-icon-title {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+        .programma-rich-toolbar .word-icon-list,
+        .programma-guide-button-icon .word-icon-list {
+            font-family: Consolas, Monaco, monospace;
+            font-size: 10px;
+            line-height: 7px;
+            letter-spacing: .5px;
+        }
+
+        .programma-rich-editor {
+            height: auto;
+            min-height: 110px;
+            max-height: 260px;
+            overflow-y: auto;
+            line-height: 1.5;
+            white-space: normal;
+        }
+
+        .programma-rich-editor.disabled {
+            background: #eee;
+            cursor: not-allowed;
+        }
+
+        .programma-rich-editor p {
+            margin: 0 0 6px;
+        }
+
+        .programma-rich-editor ul,
+        .programma-rich-editor ol,
+        .programma-preview-render ul,
+        .programma-preview-render ol {
+            margin: 0 0 6px 22px;
+            padding-left: 16px;
+        }
+
+        .programma-rich-editor h4,
+        .programma-preview-render h4 {
+            margin: 8px 0 5px;
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #173f68;
+        }
+
+        .programma-preview-row {
+            display: none;
+            margin-top: -5px;
+        }
+
+        .programma-preview-row.is-active {
+            display: block;
+        }
+
+        .programma-preview-side {
+            background: #eef5fd;
+            border: 1px solid #d6e4f3;
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 100%;
+        }
+
+        .programma-preview-side .title,
+        .programma-syntax-box .title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #35608d;
+            margin-bottom: 6px;
+            letter-spacing: .4px;
+        }
+
+        .programma-preview-side .hint {
+            font-size: 12px;
+            color: #4e647a;
+            margin-bottom: 0;
+            line-height: 1.5;
+        }
+
+        .programma-guide-buttons {
+            display: grid;
+            grid-template-columns: 34px 1fr;
+            gap: 6px 8px;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .programma-guide-button-icon {
+            display: inline-flex;
+            width: 30px;
+            height: 28px;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #b8c4d2;
+            border-radius: 4px;
+            background: linear-gradient(#ffffff, #eef3f8);
+            color: #263647;
+            font-weight: 700;
+        }
+
+        .programma-guide-button-text {
+            color: #1f3550;
+            font-size: 12px;
+            line-height: 1.25;
+        }
+
+        .programma-syntax-box {
+            background: #f4f8fc;
+            border: 1px solid #d6e4f3;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+
+        .programma-preview-render {
+            background: #fff;
+            border: 1px solid #d6e4f3;
+            border-radius: 6px;
+            padding: 10px 14px;
+            min-height: 70px;
+        }
+
+        .programma-preview-lines {
+            margin-top: 8px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 12px;
+            color: #52616f;
+            white-space: pre-wrap;
+        }
+
+        #programma_modal .modal-dialog,
+        #modulo_modal .modal-dialog {
+            width: 94vw;
+            max-width: 1700px;
+        }
     </style>
 </head>
 
@@ -44,6 +235,48 @@ if (((!$is_docente_effettivo) && ((haRuolo('dirigente')) || (haRuolo('segreteria
     $modificheDisabilitate = '';
 } else {
     $modificheDisabilitate = ' disabled ';
+}
+
+function renderProgrammaMateriaEditorPreview(string $fieldId): string
+{
+    return '
+        <div id="' . htmlspecialchars($fieldId) . '_preview_row" class="form-group programma-preview-row" data-preview-field="' . htmlspecialchars($fieldId) . '">
+            <div class="col-sm-2">
+                <div class="programma-preview-side">
+                    <div class="title">Editor</div>
+                    <div class="hint">Scrivi come in Word oppure incolla da Word. I testi vecchi vengono convertiti al nuovo formato quando apri e salvi il modulo.</div>
+                    <div class="programma-guide-buttons">
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-bold">B</span></span>
+                        <span class="programma-guide-button-text">Grassetto</span>
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-italic">I</span></span>
+                        <span class="programma-guide-button-text">Corsivo</span>
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-underline">U</span></span>
+                        <span class="programma-guide-button-text">Sottolineato</span>
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-list">&bull;</span></span>
+                        <span class="programma-guide-button-text">Elenco puntato</span>
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-list">1<br>2</span></span>
+                        <span class="programma-guide-button-text">Elenco numerato</span>
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-list">a<br>b</span></span>
+                        <span class="programma-guide-button-text">Elenco con lettere</span>
+                        <span class="programma-guide-button-icon"><span class="glyphicon glyphicon-indent-left"></span></span>
+                        <span class="programma-guide-button-text">Aumenta rientro</span>
+                        <span class="programma-guide-button-icon"><span class="glyphicon glyphicon-indent-right"></span></span>
+                        <span class="programma-guide-button-text">Riduci rientro</span>
+                        <span class="programma-guide-button-icon"><span class="word-icon word-icon-title">T</span></span>
+                        <span class="programma-guide-button-text">Titolo sezione</span>
+                        <span class="programma-guide-button-icon"><span class="glyphicon glyphicon-erase"></span></span>
+                        <span class="programma-guide-button-text">Pulisci formato</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-10">
+                <div class="programma-syntax-box" data-preview-field="' . htmlspecialchars($fieldId) . '">
+                    <div class="title">Anteprima durante la modifica</div>
+                    <div id="' . htmlspecialchars($fieldId) . '_preview" class="programma-preview-render"></div>
+                    <div id="' . htmlspecialchars($fieldId) . '_lines" class="programma-preview-lines"></div>
+                </div>
+            </div>
+        </div>';
 }
 // prepara l'elenco delle materie per il filtro e per le materie del dialog
 $materiaFiltroOptionList = '<option value="0">Tutte</option>';
@@ -258,24 +491,8 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                             </div>
 
                             <div class="panel-footer text-center">
-                                <?php
-                                if (haRuolo('docente') || isset($_GET['docente_id'])) {
-                                    echo '
-                                <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Chiudi</button>
-                                ';
-                                }
-                                if ((!$is_docente_effettivo) && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
-                                    echo '
-                                <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Annulla</button>
-                                <button type="button" class="btn btn-primary" onclick="programmaSave()" id="btnProgrammaSave">Salva</button>
-                                ';
-                                } else if ($is_docente_effettivo && getSettingsValue('programmiMaterie', 'visibile_docenti', false)) {
-                                    echo '
                                 <button type="button" class="btn btn-default" data-dismiss="modal" id="btnProgrammaClose">Chiudi</button>
                                 <button type="button" class="btn btn-primary" onclick="programmaSave()" id="btnProgrammaSave" style="display:none;" disabled>Salva</button>
-                                ';
-                                }
-                                ?>
                             </div>
                         </div>
                     </div>
@@ -319,15 +536,24 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                                 placeholder="conoscenze" class="form-control" data-toggle="tooltip"
                                                 data-placement="top" <?php echo $modificheDisabilitate ?>
                                                 title="Inserisci le conoscenze relative a questo modulo"></textarea>
+                                            <div class="help-block programma-edit-help" style="margin-top:6px; color:#4f6b88;">
+                                                Scrivi come in Word o incolla da Word: sotto trovi l'anteprima live.
+                                            </div>
                                         </div>
                                     </div>
+                                    <?php echo renderProgrammaMateriaEditorPreview('conoscenze'); ?>
 
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="abilita">Abilità</label>
                                         <div class="col-sm-10"><textarea id="abilita" rows="5" placeholder="abilita"
                                                 class="form-control" data-toggle="tooltip" data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci le abilità relative a questo modulo"></textarea></div>
+                                                title="Inserisci le abilità relative a questo modulo"></textarea>
+                                            <div class="help-block programma-edit-help" style="margin-top:6px; color:#4f6b88;">
+                                                Scrivi come in Word o incolla da Word: sotto trovi l'anteprima live.
+                                            </div>
+                                        </div>
                                     </div>
+                                    <?php echo renderProgrammaMateriaEditorPreview('abilita'); ?>
 
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="competenze">Competenze</label>
@@ -335,15 +561,24 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                                 placeholder="competenze" class="form-control" data-toggle="tooltip"
                                                 data-placement="top" <?php echo $modificheDisabilitate ?>
                                                 title="Inserisci le competenze relative a questo modulo"> </textarea>
+                                            <div class="help-block programma-edit-help" style="margin-top:6px; color:#4f6b88;">
+                                                Scrivi come in Word o incolla da Word: sotto trovi l'anteprima live.
+                                            </div>
                                         </div>
                                     </div>
+                                    <?php echo renderProgrammaMateriaEditorPreview('competenze'); ?>
 
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="periodo">Periodo</label>
-                                        <div class="col-sm-10"><input type="text" id="periodo" placeholder="periodo"
+                                        <div class="col-sm-10"><textarea id="periodo" rows="3" placeholder="periodo"
                                                 class="form-control" data-toggle="tooltip" data-placement="top" <?php echo $modificheDisabilitate ?>
-                                                title="Inserisci il periodo di svolgimento del modulo" /></div>
+                                                title="Inserisci il periodo di svolgimento del modulo"></textarea>
+                                            <div class="help-block programma-edit-help" style="margin-top:6px; color:#4f6b88;">
+                                                Scrivi come in Word o incolla da Word: sotto trovi l'anteprima live.
+                                            </div>
+                                        </div>
                                     </div>
+                                    <?php echo renderProgrammaMateriaEditorPreview('periodo'); ?>
                                     <div class="form-group" id="_error-modulo-part"><strong>
 
                                             <div class="col-sm-3 text-right text-danger ">Attenzione</div>

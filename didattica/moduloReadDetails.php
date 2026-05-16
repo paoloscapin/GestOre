@@ -8,6 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
+require_once __DIR__ . '/programmaMaterieWordLikeUtils.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -42,6 +43,30 @@ $query = "	SELECT
 $query .= "ORDER BY programma_moduli.ordine ASC";
 
 $modulo = dbGetFirst($query);
+if ($modulo == null) {
+	out(['ok' => false, 'error' => 'Modulo non trovato']);
+}
+
+$fields = [
+	'modulo_conoscenze' => 'conoscenze',
+	'modulo_abilita' => 'abilita',
+	'modulo_competenze' => 'competenze',
+	'modulo_periodo' => 'periodo',
+];
+$updates = [];
+foreach ($fields as $jsonKey => $dbColumn) {
+	$original = (string)($modulo[$jsonKey] ?? '');
+	$normalized = programmaMateriaWordLikeEnsureHtml($original);
+	$modulo[$jsonKey] = $normalized;
+	if ($normalized !== trim($original)) {
+		$updates[] = $dbColumn . " = '" . dbEscape($normalized) . "'";
+	}
+}
+
+if (!empty($updates)) {
+	$updates[] = "updated = updated";
+	dbExec("UPDATE programma_moduli SET " . implode(', ', $updates) . " WHERE id = $modulo_id LIMIT 1");
+}
 
 $programma_id = $modulo['programma_id'];
 /* 2) Calcolo permessi dinamici */

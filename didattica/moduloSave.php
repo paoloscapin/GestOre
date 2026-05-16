@@ -8,6 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
+require_once __DIR__ . '/programmaMaterieWordLikeUtils.php';
 ruoloRichiesto('segreteria-didattica', 'docente', 'dirigente');
 
 function canEditProgrammaMateriaModulo(int $programmaId): bool
@@ -59,21 +60,16 @@ if(isset($_POST)) {
 	$id_programma = $_POST['id_programma'];
 	$ordine = $_POST['ordine'];
 	$titolo = $_POST['titolo'];
-	$conoscenze = $_POST['conoscenze'];
-	$abilita = $_POST['abilita'];
-	$competenze = $_POST['competenze'];
-	$periodo = $_POST['periodo'];
+	$conoscenze = programmaMateriaWordLikeEnsureHtml($_POST['conoscenze'] ?? '');
+	$abilita = programmaMateriaWordLikeEnsureHtml($_POST['abilita'] ?? '');
+	$competenze = programmaMateriaWordLikeEnsureHtml($_POST['competenze'] ?? '');
+	$periodo = programmaMateriaWordLikeEnsureHtml($_POST['periodo'] ?? '');
 
-	$titolo = str_replace("'","''",$titolo);
-	$conoscenze = str_replace("'","''",$conoscenze);
-	$abilita = str_replace("'","''",$abilita);
-	$competenze = str_replace("'","''",$competenze);
-	$periodo = str_replace("'","''",$periodo);
-	$titolo = str_replace('"',"''",$titolo);
-	$conoscenze = str_replace('"',"''",$conoscenze);
-	$abilita = str_replace('"',"''",$abilita);
-	$competenze = str_replace('"',"''",$competenze);
-	$periodo = str_replace('"',"''",$periodo);
+	$titolo = dbEscape($titolo);
+	$conoscenze = dbEscape($conoscenze);
+	$abilita = dbEscape($abilita);
+	$competenze = dbEscape($competenze);
+	$periodo = dbEscape($periodo);
 
 	if (!canEditProgrammaMateriaModulo((int)$id_programma)) {
 		http_response_code(403);

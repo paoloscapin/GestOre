@@ -25,6 +25,7 @@ require_once '../common/checkSession.php';
 ruoloRichiesto('docente', 'dirigente', 'segreteria-didattica');
 // program.php (in testa al file, prima di qualsiasi uso di mPDF)
 require_once '../common/vendor/autoload.php';
+require_once __DIR__ . '/programmaMaterieWordLikeUtils.php';
 
 // 1) PARAMETRI POST
 $programId = isset($_POST['id']) ? (int) $_POST['id'] : -1;
@@ -57,6 +58,28 @@ $modules = dbGetAll($query);
 
 
 $base64img = 'data:image/png;base64,'. base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'intestazione.png'"));
+
+function programmaMateriaModuleValue(array $module, string $key): string
+{
+  return (string)($module[$key] ?? $module[strtoupper($key)] ?? '');
+}
+
+function renderProgrammaMateriaRichHtml(string $html): string
+{
+  $html = programmaMateriaWordLikeEnsureHtml($html);
+  if ($html === '') {
+    return '';
+  }
+
+  $html = preg_replace('/<h4\b[^>]*>/i', '<p><strong>', $html);
+  $html = preg_replace('/<\s*\/\s*h4\s*>/i', '</strong></p>', $html);
+  $html = preg_replace('/<p\b[^>]*>/i', '<p style="margin:0 0 4px;">', $html);
+  $html = preg_replace('/<ul\b[^>]*>/i', '<ul style="margin:0 0 4px 18px; padding-left:14px;">', $html);
+  $html = preg_replace('/<ol\b([^>]*)>/i', '<ol$1 style="margin:0 0 4px 18px; padding-left:14px;">', $html);
+  $html = preg_replace('/<li\b[^>]*>/i', '<li style="margin:0 0 3px;">', $html);
+
+  return $html;
+}
 
 /**
  * Costruisce il markup HTML di una lista non ordinata.
@@ -443,17 +466,17 @@ ob_start();
                 text-align:       left;
                 border:           2px solid #0057b7;
               ">
-              Modulo <?= (int) $m['ORDINE'] ?>:
-              <?= htmlspecialchars($m['NOME']) ?>
+              Modulo <?= (int) programmaMateriaModuleValue($m, 'ordine') ?>:
+              <?= htmlspecialchars(programmaMateriaModuleValue($m, 'nome')) ?>
             </th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ([
-            'Conoscenze' => buildTwoLevelListFromText($m['CONOSCENZE']),
-            'Abilità' => buildTwoLevelListFromText($m['ABILITA']),
-            'Competenze' => buildTwoLevelListFromText($m['COMPETENZE']),
-            'Periodo' => htmlspecialchars($m['PERIODO']),
+            'Conoscenze' => renderProgrammaMateriaRichHtml(programmaMateriaModuleValue($m, 'conoscenze')),
+            'Abilità' => renderProgrammaMateriaRichHtml(programmaMateriaModuleValue($m, 'abilita')),
+            'Competenze' => renderProgrammaMateriaRichHtml(programmaMateriaModuleValue($m, 'competenze')),
+            'Periodo' => renderProgrammaMateriaRichHtml(programmaMateriaModuleValue($m, 'periodo')),
           ] as $th => $td): ?>
             <tr>
               <td width="25%" style="
@@ -608,17 +631,17 @@ if ($doPrint) {
                           padding:8px;
                           text-align:left;
                           border:2px solid #0057b7;">
-            Modulo ' . ((int) $m['ORDINE']) . ': ' . htmlspecialchars($m['NOME']) . '
+            Modulo ' . ((int) programmaMateriaModuleValue($m, 'ordine')) . ': ' . htmlspecialchars(programmaMateriaModuleValue($m, 'nome')) . '
           </th>';
     $tbl .= '  </tr>';
     $tbl .= '</thead><tbody>';
 
     // quattro righe fisse
     $rows = [
-      'Conoscenze' => buildTwoLevelListFromText($m['CONOSCENZE']),
-      'Abilità' => buildTwoLevelListFromText($m['ABILITA']),
-      'Competenze' => buildTwoLevelListFromText($m['COMPETENZE']),
-      'Periodo' => htmlspecialchars($m['PERIODO']),
+      'Conoscenze' => renderProgrammaMateriaRichHtml(programmaMateriaModuleValue($m, 'conoscenze')),
+      'Abilità' => renderProgrammaMateriaRichHtml(programmaMateriaModuleValue($m, 'abilita')),
+      'Competenze' => renderProgrammaMateriaRichHtml(programmaMateriaModuleValue($m, 'competenze')),
+      'Periodo' => renderProgrammaMateriaRichHtml(programmaMateriaModuleValue($m, 'periodo')),
     ];
     foreach ($rows as $label => $data) {
       $tbl .= '<tr>';

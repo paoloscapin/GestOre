@@ -76,38 +76,21 @@ function isMinimiUppercase(text) {
 function minimiLegacyTextToWordLikeHtml(text) {
     var lines = String(text || '').replace(/\r\n|\r/u, '\n').split('\n');
     var $root = $('<div>');
-    var $currentList = null;
-
-    function closeList() {
-        $currentList = null;
-    }
 
     lines.forEach(function (line) {
         var raw = String(line || '');
         var trimmed = $.trim(raw);
         if (trimmed === '') {
-            closeList();
             return;
         }
 
         var titleMatch = trimmed.match(/^>>\s*(.+)$/u);
         if (titleMatch || (isMinimiUppercase(trimmed) && trimmed.length <= 90)) {
-            closeList();
             $root.append($('<h4>').text(titleMatch ? titleMatch[1] : trimmed.replace(/[.;:]\s*$/u, '')));
             return;
         }
 
-        var bulletMatch = trimmed.match(/^(?:[\u2022\u00b7\u25cf\u25e6\u2043\uf0b7\uf0a7\uf076]\s+|--\s+|>\s+|-\s+|\*\s+|\d+[\.)]\s+|[a-zA-Z][\.)]\s+)(.+)$/u);
-        if (bulletMatch) {
-            if (!$currentList) {
-                $currentList = $('<ul>');
-                $root.append($currentList);
-            }
-            $currentList.append($('<li>').text($.trim(bulletMatch[1])));
-            return;
-        }
-
-        closeList();
+        trimmed = $.trim(trimmed.replace(/^(?:[\u2022\u00b7\u25cf\u25e6\u2043\uf0b7\uf0a7\uf076]\s+|--\s+|>\s+|-\s+|\*\s+|\d+[\.)]\s+|[a-zA-Z][\.)]\s+)/u, ''));
         $root.append($('<p>').text(trimmed));
     });
 
@@ -269,11 +252,20 @@ function setupMinimiRichEditor(fieldId) {
 
     $editor
         .on('focus click mouseup keyup input', function () {
+            if ($(this).attr('contenteditable') === 'false') {
+                $('#' + fieldId + '_preview_row').hide();
+                return;
+            }
             syncMinimiRichEditorToTextarea(fieldId);
             updateMinimiFieldPreview(fieldId);
             $('#' + fieldId + '_preview_row').show();
         })
         .on('paste', function (event) {
+            if ($(this).attr('contenteditable') === 'false') {
+                event.preventDefault();
+                $('#' + fieldId + '_preview_row').hide();
+                return;
+            }
             var clipboard = event.originalEvent && event.originalEvent.clipboardData ? event.originalEvent.clipboardData : null;
             if (!clipboard) return;
             event.preventDefault();
@@ -310,7 +302,12 @@ function setModuloModalEditable(canEdit) {
     var $fields = $modal.find("input:not([type=hidden]), textarea, select");
     $fields.prop("disabled", !canEdit);
     $modal.find(".programma-rich-editor").attr("contenteditable", canEdit ? "true" : "false").toggleClass("disabled", !canEdit);
+    $modal.find(".programma-rich-toolbar").toggle(!!canEdit);
     $modal.find(".programma-rich-toolbar .programma-rich-btn").prop("disabled", !canEdit);
+    $modal.find(".programma-edit-help").toggle(!!canEdit);
+    if (!canEdit) {
+        $modal.find(".programma-preview-row").hide();
+    }
 
     try { $modal.find("select.selectpicker").selectpicker("refresh"); } catch (e) {}
 

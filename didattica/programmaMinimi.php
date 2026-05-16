@@ -554,7 +554,7 @@ foreach (dbGetAll("SELECT * FROM indirizzo ORDER BY indirizzo.nome_breve ASC ; "
                                                 placeholder="conoscenze" class="form-control" data-toggle="tooltip"
                                                 data-placement="top" <?php echo $modificheDisabilitate ?>
                                                 title="Inserisci le conoscenze relative a questo modulo"></textarea>
-                                            <div class="help-block" style="margin-top:6px; color:#4f6b88;">
+                                            <div class="help-block programma-edit-help" style="margin-top:6px; color:#4f6b88;">
                                                 Scrivi come in Word o incolla da Word: sotto trovi l'anteprima live.
                                             </div>
                                         </div>

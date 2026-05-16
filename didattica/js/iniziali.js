@@ -319,15 +319,28 @@ function setupInizialiRichEditor(fieldId) {
 
     $editor
         .on('focus click mouseup keyup', function () {
+            if ($(this).attr('contenteditable') === 'false') {
+                hideInizialiFieldPreview();
+                return;
+            }
             showInizialiFieldPreview(fieldId);
             syncInizialiFieldPreview(fieldId);
             updateInizialiToolbarState(fieldId);
         })
         .on('input keyup', function () {
+            if ($(this).attr('contenteditable') === 'false') {
+                hideInizialiFieldPreview();
+                return;
+            }
             syncInizialiRichEditorToTextarea(fieldId);
             syncInizialiFieldPreview(fieldId);
         })
         .on('paste', function (event) {
+            if ($(this).attr('contenteditable') === 'false') {
+                event.preventDefault();
+                hideInizialiFieldPreview();
+                return;
+            }
             var clipboard = event.originalEvent && event.originalEvent.clipboardData ? event.originalEvent.clipboardData : null;
             if (!clipboard) {
                 return;
@@ -351,6 +364,7 @@ function setInizialiModuloEditable(canEdit) {
     $modal.find('.programma-rich-editor')
         .attr('contenteditable', canEdit ? 'true' : 'false')
         .toggleClass('disabled', !canEdit);
+    $modal.find('.programma-rich-toolbar').toggle(!!canEdit);
     $modal.find('.programma-rich-btn').prop('disabled', !canEdit);
     $modal.find('.programma-edit-help').toggle(!!canEdit);
 

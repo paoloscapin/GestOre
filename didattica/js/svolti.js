@@ -949,12 +949,20 @@ function setupProgrammaRichEditor(fieldId) {
 
     $editor
         .on('focus.programmaRich click.programmaRich mouseup.programmaRich keyup.programmaRich', function () {
+            if ($(this).attr('contenteditable') === 'false') {
+                hideProgrammaFieldPreview();
+                return;
+            }
             saveProgrammaEditorSelection(fieldId);
             showProgrammaFieldPreview(fieldId);
             syncProgrammaFieldPreview(fieldId);
             updateProgrammaToolbarState(fieldId);
         })
         .on('input.programmaRich keyup.programmaRich', function () {
+            if ($(this).attr('contenteditable') === 'false') {
+                hideProgrammaFieldPreview();
+                return;
+            }
             saveProgrammaEditorSelection(fieldId);
             if (programmaLooksLikeHtml($(this).html() || '')) {
                 markProgrammaEditorRich(fieldId);
@@ -964,6 +972,11 @@ function setupProgrammaRichEditor(fieldId) {
             updateProgrammaToolbarState(fieldId);
         })
         .on('paste.programmaRich', function (event) {
+            if ($(this).attr('contenteditable') === 'false') {
+                event.preventDefault();
+                hideProgrammaFieldPreview();
+                return;
+            }
             pasteProgrammaWordLikeContent(fieldId, event);
         });
 }
@@ -1236,6 +1249,11 @@ function hideProgrammaFieldPreview() {
 }
 
 function showProgrammaFieldPreview(fieldId) {
+    if ($('#' + fieldId + '_editor').attr('contenteditable') === 'false') {
+        hideProgrammaFieldPreview();
+        return;
+    }
+
     activeProgrammaPreviewField = fieldId;
     $('.programma-preview-row').removeClass('is-active');
     $('.programma-active-edit-group').removeClass('programma-active-edit-group');
@@ -1340,8 +1358,10 @@ function applicaReadonlyProgrammaSvolto() {
     $("#btn-modulo-save").toggle(!readonly);
     $("#ordine, #titolo, #contenuto, #competenze_raggiunte, #contenuti_trattati, #abilita_quinta, #metodologie_programma, #criteri_valutazione_programma, #testi_materiali_programma").prop('disabled', readonly);
     $('.programma-rich-editor').attr('contenteditable', readonly ? 'false' : 'true').toggleClass('disabled', readonly);
+    $('.programma-rich-toolbar').toggle(!readonly);
     $('.programma-rich-btn').prop('disabled', readonly);
     if (readonly) {
+        hideProgrammaFieldPreview();
         $("#classe, #docente, #materia").prop('disabled', true);
     }
     $('#classe').selectpicker('refresh');

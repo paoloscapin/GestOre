@@ -292,19 +292,10 @@ function programmaMinimiLegacyTextToWordLikeHtml(string $text): string
 
     $lines = preg_split('/\r\n|\r|\n/u', $text);
     $html = '';
-    $listOpen = false;
-
-    $closeList = function () use (&$html, &$listOpen) {
-        if ($listOpen) {
-            $html .= '</ul>';
-            $listOpen = false;
-        }
-    };
 
     foreach ($lines as $line) {
         $trimmed = trim((string)$line);
         if ($trimmed === '') {
-            $closeList();
             continue;
         }
 
@@ -316,42 +307,18 @@ function programmaMinimiLegacyTextToWordLikeHtml(string $text): string
         }
 
         if ($titleText !== null) {
-            $closeList();
             $titleText = preg_replace('/[.;:]\s*$/u', '', $titleText);
             $html .= '<h4>' . htmlspecialchars($titleText, ENT_QUOTES, 'UTF-8') . '</h4>';
             continue;
         }
 
-        $isBullet = false;
-        $level = 0;
-        if (preg_match('/^(?:[\x{2022}\x{00b7}\x{25cf}\x{25e6}\x{2043}\x{f0b7}\x{f0a7}\x{f076}]\s+|-\s+|\*\s+|\d+[\.)]\s+|[a-zA-Z][\.)]\s+)(.+)$/u', $trimmed, $match)) {
-            $trimmed = trim($match[1]);
-            $isBullet = true;
-        } elseif (preg_match('/^(?:--\s+|>\s+)(.+)$/u', $trimmed, $match)) {
-            $trimmed = trim($match[1]);
-            $level = 1;
-            $isBullet = true;
-        }
-
-        $safeText = htmlspecialchars($trimmed, ENT_QUOTES, 'UTF-8');
-
-        if ($isBullet) {
-            if (!$listOpen) {
-                $html .= '<ul>';
-                $listOpen = true;
-            }
-            if ($level > 0) {
-                $html .= '<li><ul><li>' . $safeText . '</li></ul></li>';
-            } else {
-                $html .= '<li>' . $safeText . '</li>';
-            }
-        } else {
-            $closeList();
-            $html .= '<p>' . $safeText . '</p>';
+        $trimmed = preg_replace('/^(?:[\x{2022}\x{00b7}\x{25cf}\x{25e6}\x{2043}\x{f0b7}\x{f0a7}\x{f076}]\s+|--\s+|>\s+|-\s+|\*\s+|\d+[\.)]\s+|[a-zA-Z][\.)]\s+)/u', '', $trimmed);
+        $trimmed = trim($trimmed);
+        if ($trimmed !== '') {
+            $html .= '<p>' . htmlspecialchars($trimmed, ENT_QUOTES, 'UTF-8') . '</p>';
         }
     }
 
-    $closeList();
     return sanitizeProgrammaMinimiRichHtml($html);
 }
 
