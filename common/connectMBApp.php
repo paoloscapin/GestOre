@@ -36,10 +36,10 @@ function mb_dbAffectedRows() {
 function mb_dbExec($query) {
 	global $__conMBApp;
 
-	debug($query);
+	dbDebug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__conMBApp, $query)) {
-		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__conMBApp));
+		dbError('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__conMBApp));
 		exit('Application Error');
 	}
 }
@@ -48,10 +48,10 @@ function mb_dbExec($query) {
 function mb_dbExecMulti($query) {
 	global $__conMBApp;
 
-	debug($query);
+	dbDebug($query);
 	// esegue la query
 	if (!$result = mysqli_multi_query($__conMBApp, $query)) {
-		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__conMBApp));
+		dbError('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__conMBApp));
 		exit('Application Error');
 	}
 }
@@ -60,16 +60,16 @@ function mb_dbExecMulti($query) {
 function mb_dbGetFirst($query) {
 	global $__conMBApp;
 
-	debug($query);
+	dbDebug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__conMBApp, $query)) {
-		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__conMBApp));
+		dbError('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__conMBApp));
 		return null;
 	}
 
 	// controlla che ci siano dei risultati
 	if(mysqli_num_rows($result) <= 0) {
-		debug('nessun risultato per la query: '.$query);
+		dbDebug('nessun risultato per la query: '.$query);
 		return null;
 	}
 
@@ -81,10 +81,10 @@ function mb_dbGetFirst($query) {
 function mb_dbGetAll($query) {
 	global $__conMBApp;
 
-	debug($query);
+	dbDebug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__conMBApp, $query)) {
-		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__conMBApp));
+		dbError('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__conMBApp));
 		return null;
 	}
 	$value = $result->fetch_all(MYSQLI_ASSOC);
@@ -95,10 +95,10 @@ function mb_dbGetAll($query) {
 function mb_dbGetValue($query) {
 	global $__conMBApp;
 
-	debug($query);
+	dbDebug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__conMBApp, $query)) {
-		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__conMBApp));
+		dbError('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__conMBApp));
 		return null;
 	}
 	$value = $result->fetch_array(MYSQLI_NUM);
@@ -109,10 +109,10 @@ function mb_dbGetValue($query) {
 function mb_dbGetAllValues($query) {
 	global $__conMBApp;
 
-	debug($query);
+	dbDebug($query);
 	// esegue la query
 	if (!$result = mysqli_query($__conMBApp, $query)) {
-		error('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__conMBApp));
+		dbError('errore in esecuzione query.' . PHP_EOL . 'query=' . $query . PHP_EOL . 'error message=' . mysqli_error($__conMBApp));
 		return null;
 	}
 	$valueList = $result->fetch_all(MYSQLI_NUM);

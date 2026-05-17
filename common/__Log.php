@@ -57,6 +57,12 @@ if ($__settings->log->logIntoAppFolder) {
 }
 $fileNameCalendarMBApp .= $__settings->log->logGoogleCalendarMBAppFile;
 
+$fileNameGmail = '';
+if ($__settings->log->logIntoAppFolder) {
+    $fileNameGmail = __DIR__ . "/../log/";
+}
+$fileNameGmail .= ($__settings->log->logGmailFile ?? 'gmail.log');
+
 $__logger = Log::factory('file', $fileName, '', array("timeFormat"=>$__settings->log->timeFormat), $__logLevel);
 $__logger_login = Log::factory('file', $fileNameLogin, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
 $__logger_cron = Log::factory('file', $fileNameCron, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
@@ -88,6 +94,78 @@ $__logger_calendar_mbapp = Log::factory(
     array("timeFormat" => $__settings->log->timeFormat),
     PEAR_LOG_INFO
 );
+$__logger_gmail = Log::factory(
+    'file',
+    $fileNameGmail,
+    '',
+    array("timeFormat" => $__settings->log->timeFormat),
+    $__logLevel
+);
+
+$__logChannel = 'app';
+
+function setLogChannel(string $channel): void
+{
+    global $__logChannel;
+    $channel = strtolower(trim($channel));
+    $__logChannel = $channel !== '' ? $channel : 'app';
+}
+
+function getLogChannel(): string
+{
+    global $__logChannel;
+    return strtolower(trim((string)($__logChannel ?? 'app'))) ?: 'app';
+}
+
+function logChannelLogger(string $channel)
+{
+    global $__logger;
+    global $__logger_cron;
+    global $__logger_import_sostituzioni;
+    global $__logger_telegram;
+    global $__logger_calendar;
+    global $__logger_calendar_mbapp;
+    global $__logger_gmail;
+
+    switch (strtolower(trim($channel))) {
+        case 'cron':
+            return $__logger_cron;
+        case 'import_sostituzioni':
+        case 'sostituzioni':
+            return $__logger_import_sostituzioni;
+        case 'telegram':
+            return $__logger_telegram;
+        case 'google_calendar':
+        case 'calendar':
+            return $__logger_calendar;
+        case 'google_calendar_mbapp':
+        case 'calendar_mbapp':
+            return $__logger_calendar_mbapp;
+        case 'gmail':
+        case 'ticket_mail':
+            return $__logger_gmail;
+        default:
+            return $__logger;
+    }
+}
+
+function dbDebug(string $message): void
+{
+    global $__username;
+    $page = basename($_SERVER['PHP_SELF'] ?? 'cli');
+    $channel = getLogChannel();
+    $logger = logChannelLogger($channel);
+    $logger->debug("$page: [$__username] [DB] $message");
+}
+
+function dbError(string $message): void
+{
+    global $__username;
+    $page = basename($_SERVER['PHP_SELF'] ?? 'cli');
+    $channel = getLogChannel();
+    $logger = logChannelLogger($channel);
+    $logger->err("$page: [$__username] [DB] $message");
+}
 
 function debug($message) {
     global $__logger;
@@ -225,6 +303,18 @@ function rotateLog() {
     }
     $__logger_calendar_mbapp->open();
     $__logger_calendar_mbapp->info("old log was saved into $rotateFileName");
+
+    global $fileNameGmail;
+    global $__logger_gmail;
+    $rotateFileName = buildRotatedLogFileName($fileNameGmail);
+    $__logger_gmail->info("rotating into $rotateFileName");
+    $__logger_gmail->flush();
+    $__logger_gmail->close();
+    if (file_exists($fileNameGmail)) {
+        rename($fileNameGmail, $rotateFileName);
+    }
+    $__logger_gmail->open();
+    $__logger_gmail->info("old log was saved into $rotateFileName");
 }
 /**
  * ================================
@@ -350,6 +440,36 @@ function debugGoogleCalendarMBApp(string $msg): void
 {
     global $__logger_calendar_mbapp;
     $__logger_calendar_mbapp->debug('[GOOGLE_CALENDAR_MBAPP] ' . $msg);
+}
+
+/**
+ * ================================
+ * LOG GMAIL / TICKET MAIL
+ * ================================
+ */
+
+function infoGmail(string $msg): void
+{
+    global $__logger_gmail;
+    $__logger_gmail->info('[GMAIL] ' . $msg);
+}
+
+function warningGmail(string $msg): void
+{
+    global $__logger_gmail;
+    $__logger_gmail->warning('[GMAIL] ' . $msg);
+}
+
+function errorGmail(string $msg): void
+{
+    global $__logger_gmail;
+    $__logger_gmail->err('[GMAIL] ' . $msg);
+}
+
+function debugGmail(string $msg): void
+{
+    global $__logger_gmail;
+    $__logger_gmail->debug('[GMAIL] ' . $msg);
 }
 
 ?>

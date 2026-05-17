@@ -4,6 +4,8 @@ require_once __DIR__ . '/__Settings.php';
 require_once __DIR__ . '/__Log.php';
 require_once __DIR__ . '/google-client-library/src/Google_Client.php';
 
+setLogChannel('gmail');
+
 define('GMAIL_REDIRECT_URI', 'https://www.buonarroti.tn.it/GestOre/api/google_gmail_callback.php');
 
 define('GMAIL_PROJECT_ID', 'gestorembgest');

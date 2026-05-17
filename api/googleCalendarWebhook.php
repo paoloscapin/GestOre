@@ -6,7 +6,7 @@ require_once __DIR__ . '/../common/__Log.php';
 require_once __DIR__ . '/googleCalendarLib.php';
 
 header('Content-Type: application/json; charset=utf-8');
-
+infoGoogleCalendar('VERSIONE WEBHOOK ATTIVA 2026-05-14-TEST');
 $headers = function_exists('getallheaders') ? getallheaders() : [];
 
 $channelId = $_SERVER['HTTP_X_GOOG_CHANNEL_ID'] ?? ($headers['X-Goog-Channel-ID'] ?? '');
@@ -17,12 +17,12 @@ $channelToken = $_SERVER['HTTP_X_GOOG_CHANNEL_TOKEN'] ?? ($headers['X-Goog-Chann
 
 infoGoogleCalendar(
     'Webhook ricevuto: ' .
-    json_encode([
-        'channelId' => $channelId,
-        'resourceId' => $resourceId,
-        'resourceState' => $resourceState,
-        'messageNumber' => $messageNumber
-    ], JSON_UNESCAPED_UNICODE)
+        json_encode([
+            'channelId' => $channelId,
+            'resourceId' => $resourceId,
+            'resourceState' => $resourceState,
+            'messageNumber' => $messageNumber
+        ], JSON_UNESCAPED_UNICODE)
 );
 
 if ($channelId === '' || $resourceId === '') {
@@ -40,7 +40,7 @@ $expectedSecret = googleCalendarGetSyncSecret();
 
 if ($expectedSecret !== '' && $channelToken !== $expectedSecret) {
     warningGoogleCalendar(
-        'Webhook rifiutato: token canale non valido channelId=' . $channelId
+        'Webhook rifiutato: token canale non valido channelId=' . $channelId . ' receivedToken=' . $channelToken . ' expectedToken=' . $expectedSecret
     );
 
     http_response_code(403);
@@ -60,14 +60,24 @@ $config = dbGetFirst("
     LIMIT 1
 ");
 
-if ($config == null) {
-    warningGoogleCalendar(
-        'Calendario non riconosciuto: ' .
+infoGoogleCalendar(
+    'DEBUG config webhook: ' .
         json_encode([
             'channelId' => $channelId,
             'resourceId' => $resourceId,
-            'resourceState' => $resourceState
+            'config_null' => $config == null ? 1 : 0,
+            'config' => $config
         ], JSON_UNESCAPED_UNICODE)
+);
+
+if ($config == null) {
+    warningGoogleCalendar(
+        'Calendario non riconosciuto: ' .
+            json_encode([
+                'channelId' => $channelId,
+                'resourceId' => $resourceId,
+                'resourceState' => $resourceState
+            ], JSON_UNESCAPED_UNICODE)
     );
 
     http_response_code(200);
@@ -82,12 +92,12 @@ if ($config == null) {
 
 infoGoogleCalendar(
     'Config calendario trovata: ' .
-    json_encode([
-        'config_id' => intval($config['id']),
-        'nome' => $config['nome'] ?? '',
-        'calendar_id' => $config['calendar_id'] ?? '',
-        'resourceState' => $resourceState
-    ], JSON_UNESCAPED_UNICODE)
+        json_encode([
+            'config_id' => intval($config['id']),
+            'nome' => $config['nome'] ?? '',
+            'calendar_id' => $config['calendar_id'] ?? '',
+            'resourceState' => $resourceState
+        ], JSON_UNESCAPED_UNICODE)
 );
 
 try {
@@ -106,19 +116,28 @@ try {
 
     infoGoogleCalendar(
         'Avvio processo sync config_id=' . intval($config['id']) .
-        ' resourceState=' . $resourceState
+            ' resourceState=' . $resourceState
+    );
+
+    infoGoogleCalendar(
+        'DEBUG prima process webhook config_id=' . intval($config['id'])
     );
 
     $res = googleCalendarProcessWebhookForConfig($config);
 
     infoGoogleCalendar(
+        'DEBUG dopo process webhook: ' .
+            json_encode($res, JSON_UNESCAPED_UNICODE)
+    );
+
+    infoGoogleCalendar(
         'Processo sync completato: ' .
-        json_encode([
-            'config_id' => intval($config['id']),
-            'nome' => $config['nome'] ?? '',
-            'resourceState' => $resourceState,
-            'result' => $res
-        ], JSON_UNESCAPED_UNICODE)
+            json_encode([
+                'config_id' => intval($config['id']),
+                'nome' => $config['nome'] ?? '',
+                'resourceState' => $resourceState,
+                'result' => $res
+            ], JSON_UNESCAPED_UNICODE)
     );
 
     echo json_encode([
@@ -128,17 +147,16 @@ try {
         'resourceState' => $resourceState,
         'sync' => $res
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-
 } catch (Throwable $e) {
     errorGoogleCalendar(
         'Errore webhook Calendar: ' .
-        json_encode([
-            'config_id' => intval($config['id'] ?? 0),
-            'channelId' => $channelId,
-            'resourceId' => $resourceId,
-            'resourceState' => $resourceState,
-            'error' => $e->getMessage()
-        ], JSON_UNESCAPED_UNICODE)
+            json_encode([
+                'config_id' => intval($config['id'] ?? 0),
+                'channelId' => $channelId,
+                'resourceId' => $resourceId,
+                'resourceState' => $resourceState,
+                'error' => $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE)
     );
 
     http_response_code(500);
