@@ -9,6 +9,9 @@ require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/__Settings.php';
 require_once __DIR__ . '/send-mail.php';
 require_once __DIR__ . '/__Log.php';
+require_once __DIR__ . '/../api/googleCalendarDocentiLib.php';
+
+setLogChannel('import_sostituzioni');
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -1120,6 +1123,8 @@ $preview = array();
 $notificheDaInviare = array();
 $notificheInviate = array();
 $debugNotifiche = array();
+$calendarDocentiDaSync = array();
+$calendarDateDaSync = array();
 
 $seenActiveIds = array();
 
@@ -1187,6 +1192,9 @@ try {
 
         $idDocenteSostituto = (int)$matchSostituto['id'];
         $idDocenteSostituito = (int)$matchSostituito['id'];
+        $calendarDocentiDaSync[$idDocenteSostituto] = true;
+        $calendarDocentiDaSync[$idDocenteSostituito] = true;
+        $calendarDateDaSync[$dataVal] = true;
 
         $naturalKey = implode('|', array($dataVal, $oraInizio, $oraFine, $idDocenteSostituito, $classe, $aula));
         $slotKey = implode('|', array($dataVal, $oraInizio, $oraFine, $idDocenteSostituito));
@@ -1517,12 +1525,17 @@ try {
         $annullati++;
 
         $idDocenteOld = (int)($oldRow['idDocenteSostituto'] ?? 0);
+        $idDocenteSostituitoOld = (int)($oldRow['idDocenteSostituito'] ?? 0);
+        $oldDate = norm($oldRow['data'] ?? '');
+        if ($idDocenteOld > 0) $calendarDocentiDaSync[$idDocenteOld] = true;
+        if ($idDocenteSostituitoOld > 0) $calendarDocentiDaSync[$idDocenteSostituitoOld] = true;
+        if ($oldDate !== '') $calendarDateDaSync[$oldDate] = true;
         if ($idDocenteOld > 0) {
             $notificheDaInviare[] = array(
                 'idSostituzione' => $idSostituzioneOld,
                 'idDocente' => $idDocenteOld,
                 'evento' => 'ANNULLAMENTO',
-                'data' => norm($oldRow['data'] ?? ''),
+                'data' => $oldDate,
                 'oraInizio' => normalizeTimeToHms($oldRow['oraInizio'] ?? ''),
                 'oraFine' => normalizeTimeToHms($oldRow['oraFine'] ?? ''),
                 'docenteSostituito' => norm($oldRow['docenteSostituitoPdf'] ?? ''),
@@ -1534,6 +1547,34 @@ try {
     }
 
     dbExec("COMMIT");
+
+    $calendarSyncDocenti = array();
+    $syncMirataSostituzioniAbilitata = (bool)($__settings->local->googleCalendarDocenti->syncOnImportSostituzioni ?? true);
+    if (!$syncMirataSostituzioniAbilitata) {
+        infoimportsost("Sync Google Calendar docenti post import sostituzioni disabilitata da configurazione.");
+    } elseif (!empty($calendarDocentiDaSync) && !empty($calendarDateDaSync)) {
+        try {
+            $dates = array_keys($calendarDateDaSync);
+            sort($dates);
+            $fromSync = $dates[0];
+            $toSync = $dates[count($dates) - 1];
+            $calendarSyncDocenti = googleCalendarDocentiSyncTeacherIds(array_keys($calendarDocentiDaSync), $fromSync, $toSync);
+            infoimportsost("Sync Google Calendar docenti post import sostituzioni: " . json_encode([
+                'docenti' => array_keys($calendarDocentiDaSync),
+                'from' => $fromSync,
+                'to' => $toSync,
+                'risultati' => count($calendarSyncDocenti)
+            ], JSON_UNESCAPED_UNICODE));
+        } catch (Throwable $eSyncCalendar) {
+            warningimportsost("Sync Google Calendar docenti post import sostituzioni fallito: " . $eSyncCalendar->getMessage());
+            $calendarSyncDocenti = [
+                [
+                    'ok' => false,
+                    'error' => $eSyncCalendar->getMessage()
+                ]
+            ];
+        }
+    }
 
     foreach ($notificheDaInviare as $n) {
         $idSostituzione = (int)$n['idSostituzione'];
@@ -1671,7 +1712,8 @@ try {
         'dettaglioScartati' => $scartati,
         'preview' => $preview,
         'notificheInviate' => $notificheInviate,
-        'debugNotifiche' => $debugNotifiche
+        'debugNotifiche' => $debugNotifiche,
+        'calendarDocentiSync' => $calendarSyncDocenti
     ), 200);
 } catch (Throwable $e) {
     dbExec("ROLLBACK");
