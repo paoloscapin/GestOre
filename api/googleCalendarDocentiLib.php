@@ -438,6 +438,16 @@ function googleCalendarDocentiIsViaggio($motivo, $dettagli)
         strpos($d, 'GITA') !== false;
 }
 
+function googleCalendarDocentiIsInstituteCommitment($motivo, $dettagli)
+{
+    $m = strtoupper(trim((string)$motivo));
+    $d = strtoupper(trim((string)$dettagli));
+    return strpos($m, 'IMPEGNO IN ISTITUTO') !== false ||
+        strpos($d, 'IMPEGNO IN ISTITUTO') !== false ||
+        strpos($m, 'SPORTELLO') !== false ||
+        strpos($d, 'SPORTELLO') !== false;
+}
+
 function googleCalendarDocentiPickOraInizio(array $row)
 {
     $ora = googleCalendarDocentiNormOra($row['oraInizioReale'] ?? '');
@@ -785,8 +795,100 @@ function googleCalendarDocentiFetchActivities($username, $from, $to)
     $activities = array_merge($activities, googleCalendarDocentiFetchClassInstituteCommitments($username, $from, $to));
 
     $activities = googleCalendarDocentiCoalesceConsecutiveClassCommitments($activities);
+    $activities = googleCalendarDocentiCoalesceDuplicateInstituteCommitments($activities);
 
     return googleCalendarDocentiDedupeActivities($activities);
+}
+
+function googleCalendarDocentiNormalizeCommitmentTitle($summary)
+{
+    $summary = trim((string)$summary);
+    $summary = preg_replace('/^\s*(?:[A-Z0-9]+(?:\s*,\s*[A-Z0-9]+)*)\s*-\s*/i', '', $summary);
+    $summary = preg_replace('/^\s*classe\s+impegnata\s*-\s*/i', '', $summary);
+    $summary = preg_replace('/^\s*impegno\s+in\s+istituto\s*-\s*/i', '', $summary);
+    $summary = preg_replace('/\s+/', ' ', (string)$summary);
+    return strtoupper(trim((string)$summary));
+}
+
+function googleCalendarDocentiCoalesceDuplicateInstituteCommitments(array $activities)
+{
+    $groups = [];
+    $others = [];
+
+    foreach ($activities as $activity) {
+        $type = strtolower(trim((string)($activity['source_type'] ?? '')));
+        if ($type !== 'impegno') {
+            $others[] = $activity;
+            continue;
+        }
+
+        $titleKey = googleCalendarDocentiNormalizeCommitmentTitle($activity['summary'] ?? '');
+        if ($titleKey === '') {
+            $others[] = $activity;
+            continue;
+        }
+
+        $classi = isset($activity['classi']) && is_array($activity['classi']) ? $activity['classi'] : [];
+        $aule = isset($activity['aule']) && is_array($activity['aule']) ? $activity['aule'] : [];
+        sort($classi, SORT_NATURAL | SORT_FLAG_CASE);
+        sort($aule, SORT_NATURAL | SORT_FLAG_CASE);
+
+        $keyParts = [
+            (string)($activity['date'] ?? ''),
+            (string)($activity['start'] ?? ''),
+            (string)($activity['end'] ?? ''),
+            $titleKey,
+            implode('|', array_map('strtoupper', $classi))
+        ];
+
+        if (!empty($classi)) {
+            $keyParts[] = implode('|', array_map('strtoupper', $aule));
+        }
+
+        $key = implode('::', $keyParts);
+
+        if (!isset($groups[$key])) $groups[$key] = [];
+        $groups[$key][] = $activity;
+    }
+
+    $out = $others;
+    foreach ($groups as $items) {
+        if (count($items) === 1) {
+            $out[] = $items[0];
+            continue;
+        }
+
+        usort($items, function ($a, $b) {
+            $rankA = googleCalendarDocentiInstituteCommitmentRank($a);
+            $rankB = googleCalendarDocentiInstituteCommitmentRank($b);
+            if ($rankA === $rankB) return strcmp((string)($a['source_key'] ?? ''), (string)($b['source_key'] ?? ''));
+            return $rankB <=> $rankA;
+        });
+
+        $merged = $items[0];
+        foreach (array_slice($items, 1) as $item) {
+            $merged['classi'] = googleCalendarDocentiMergeUnique($merged['classi'] ?? [], $item['classi'] ?? []);
+            $merged['aule'] = googleCalendarDocentiMergeUnique($merged['aule'] ?? [], $item['aule'] ?? []);
+            if (empty($merged['location']) && !empty($item['location'])) $merged['location'] = $item['location'];
+            $merged['source_key'] = 'impegno-dedup:' . hash('sha256', (string)$merged['source_key'] . '|' . (string)$item['source_key']);
+        }
+        $out[] = $merged;
+    }
+
+    return $out;
+}
+
+function googleCalendarDocentiInstituteCommitmentRank(array $activity)
+{
+    $summary = trim((string)($activity['summary'] ?? ''));
+    $classi = isset($activity['classi']) && is_array($activity['classi']) ? $activity['classi'] : [];
+    $aule = isset($activity['aule']) && is_array($activity['aule']) ? $activity['aule'] : [];
+    $hasRoom = !empty($aule) || trim((string)($activity['location'] ?? '')) !== '';
+
+    if (!empty($classi) && stripos($summary, 'Classe impegnata') !== false) return 300 + ($hasRoom ? 10 : 0);
+    if (stripos($summary, 'Classe impegnata') !== false) return 50 + ($hasRoom ? 10 : 0);
+    if (stripos($summary, 'Impegno in istituto') !== false) return 150 + ($hasRoom ? 10 : 0);
+    return 200 + ($hasRoom ? 10 : 0);
 }
 
 function googleCalendarDocentiCoalesceConsecutiveClassCommitments(array $activities)
@@ -890,6 +992,9 @@ function googleCalendarDocentiFetchPersonalAbsences($username, $from, $to)
     foreach (mb_dbGetAll($q) ?: [] as $r) {
         if (googleCalendarDocentiIsUscita($r['motivo'] ?? '', $r['dettagli'] ?? '') ||
             googleCalendarDocentiIsViaggio($r['motivo'] ?? '', $r['dettagli'] ?? '')) {
+            continue;
+        }
+        if (googleCalendarDocentiIsInstituteCommitment($r['motivo'] ?? '', $r['dettagli'] ?? '')) {
             continue;
         }
 
@@ -1541,7 +1646,6 @@ function googleCalendarDocentiFetchAssignedInstituteCommitments($username, $from
         sort($classi, SORT_NATURAL | SORT_FLAG_CASE);
         sort($aule, SORT_NATURAL | SORT_FLAG_CASE);
         $key = 'impegno-assegnato:' . hash('sha256', implode('|', [
-            $idAssenza,
             $date,
             strtoupper($title),
             implode(',', array_map('strtoupper', $classi)),
@@ -1549,10 +1653,12 @@ function googleCalendarDocentiFetchAssignedInstituteCommitments($username, $from
         ]));
 
         if (!isset($byKey[$key])) {
+            $isClassCommitment = !empty($classi);
             $byKey[$key] = [
                 'source_key' => $key,
                 'source_type' => 'impegno',
-                'summary' => 'Classe impegnata - ' . $title,
+                'summary' => $isClassCommitment ? ('Classe impegnata - ' . $title) : $title,
+                'description_badge' => $isClassCommitment ? 'Impegno in istituto della classe' : 'Impegno in istituto',
                 'date' => $date,
                 'start' => $start,
                 'end' => $end,
@@ -1575,7 +1681,7 @@ function googleCalendarDocentiFetchAssignedInstituteCommitments($username, $from
             'source_key' => $event['source_key'],
             'source_type' => $event['source_type'],
             'summary' => googleCalendarDocentiPrefixTitleWithClasses($event['summary'], $event['classi']),
-            'description' => googleCalendarDocentiDescription('Impegno in istituto', $event['classi'], $event['aule'], implode(', ', $event['docenti'])),
+            'description' => googleCalendarDocentiDescription($event['description_badge'], $event['classi'], $event['aule'], implode(', ', $event['docenti'])),
             'location' => implode(', ', $event['aule']),
             'date' => $event['date'],
             'start' => $event['start'],
@@ -2258,4 +2364,63 @@ function googleCalendarDocentiSync($username, $from, $to)
     }
 
     return $results;
+}
+
+function googleCalendarDocentiSyncUsernames(array $usernames, $from, $to)
+{
+    $seen = [];
+    $results = [];
+
+    foreach ($usernames as $username) {
+        $username = trim((string)$username);
+        if ($username === '' || isset($seen[strtolower($username)])) continue;
+        $seen[strtolower($username)] = true;
+
+        $teachers = googleCalendarDocentiGetTeachers($username);
+        if (empty($teachers)) {
+            $results[] = [
+                'username' => $username,
+                'ok' => false,
+                'error' => 'Docente non trovato o non attivo'
+            ];
+            continue;
+        }
+
+        try {
+            $results[] = googleCalendarDocentiSyncTeacher($teachers[0], $from, $to);
+        } catch (Throwable $e) {
+            errorGoogleCalendar('Sync mirato docente fallito per ' . $username . ': ' . $e->getMessage());
+            $results[] = [
+                'username' => $username,
+                'ok' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    return $results;
+}
+
+function googleCalendarDocentiSyncTeacherIds(array $ids, $from, $to)
+{
+    $ids = array_values(array_unique(array_filter(array_map('intval', $ids), function ($id) {
+        return $id > 0;
+    })));
+    if (empty($ids)) return [];
+
+    $rows = dbGetAll("
+        SELECT username
+        FROM docente
+        WHERE id IN (" . implode(',', array_map('intval', $ids)) . ")
+          AND attivo = true
+          AND username IS NOT NULL
+          AND username <> ''
+    ") ?: [];
+
+    $usernames = [];
+    foreach ($rows as $row) {
+        $usernames[] = (string)($row['username'] ?? '');
+    }
+
+    return googleCalendarDocentiSyncUsernames($usernames, $from, $to);
 }

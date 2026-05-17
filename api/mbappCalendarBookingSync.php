@@ -4,6 +4,7 @@ require_once __DIR__ . '/../common/__Settings.php';
 require_once __DIR__ . '/../common/connect.php';
 require_once __DIR__ . '/../common/__Log.php';
 require_once __DIR__ . '/googleCalendarLib.php';
+require_once __DIR__ . '/googleCalendarDocentiLib.php';
 
 setLogChannel('google_calendar_mbapp');
 
@@ -56,11 +57,13 @@ infoGoogleCalendar(
 
     if ($azione === 'ANNULLA') {
         $result = mbappCalendarBookingDeleteFromGoogle($idAssenza);
+        $docentiSync = mbappCalendarBookingSyncDocentiCoinvolti($payload);
 
         echo json_encode([
             'ok' => true,
             'action' => 'ANNULLA',
-            'result' => $result
+            'result' => $result,
+            'calendarDocentiSync' => $docentiSync
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -84,13 +87,15 @@ $event = mbappCalendarBookingBuildGoogleEvent($payload);
         $event,
         $payload
     );
+    $docentiSync = mbappCalendarBookingSyncDocentiCoinvolti($payload);
 
     echo json_encode([
         'ok' => true,
         'action' => $azione,
         'idAssenza' => $idAssenza,
         'calendari_target' => count($calendari),
-        'results' => $results
+        'results' => $results,
+        'calendarDocentiSync' => $docentiSync
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 } catch (Throwable $e) {
     errorGoogleCalendar(
@@ -168,6 +173,56 @@ function mbappCalendarBookingParseList(string $value): array
     }
 
     return array_values(array_unique($out));
+}
+
+function mbappCalendarBookingSyncDocentiCoinvolti(array $payload): array
+{
+    global $__settings;
+
+    if (!(bool)($__settings->local->googleCalendarDocenti->syncOnMbappPrenotazioni ?? true)) {
+        infoGoogleCalendar('Sync Google Calendar docenti post prenotazione MBApp disabilitata da configurazione.');
+        return [];
+    }
+
+    $usernames = mbappCalendarBookingParseList((string)($payload['docenti'] ?? ''));
+    if (empty($usernames)) return [];
+
+    $dataInizio = trim((string)($payload['dataInizio'] ?? ''));
+    $dataFine = trim((string)($payload['dataFine'] ?? ''));
+    if ($dataFine === '') $dataFine = $dataInizio;
+
+    $dataInizio = mbappCalendarBookingNormalizeDateOnly($dataInizio);
+    $dataFine = mbappCalendarBookingNormalizeDateOnly($dataFine);
+    if ($dataInizio === '' || $dataFine === '') return [];
+    if ($dataFine < $dataInizio) $dataFine = $dataInizio;
+
+    try {
+        $results = googleCalendarDocentiSyncUsernames($usernames, $dataInizio, $dataFine);
+        infoGoogleCalendar('Sync Google Calendar docenti post prenotazione MBApp: ' . json_encode([
+            'docenti' => $usernames,
+            'from' => $dataInizio,
+            'to' => $dataFine,
+            'risultati' => count($results)
+        ], JSON_UNESCAPED_UNICODE));
+        return $results;
+    } catch (Throwable $e) {
+        warningGoogleCalendar('Sync Google Calendar docenti post prenotazione MBApp fallito: ' . $e->getMessage());
+        return [[
+            'ok' => false,
+            'error' => $e->getMessage()
+        ]];
+    }
+}
+
+function mbappCalendarBookingNormalizeDateOnly(string $date): string
+{
+    $date = trim($date);
+    if ($date === '') return '';
+    $date = str_replace('/', '-', $date);
+    if (preg_match('/^(\d{2})-(\d{2})-(\d{4})$/', $date, $m)) {
+        $date = $m[3] . '-' . $m[2] . '-' . $m[1];
+    }
+    return preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) ? $date : '';
 }
 
 function mbappCalendarBookingTeacherTitle(string $nome): string

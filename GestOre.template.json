@@ -129,6 +129,8 @@
             "calendarId": "primary",
             "calendarName": "GestOre - Attività",
             "createDedicatedCalendar": true,
+            "syncOnImportSostituzioni": true,
+            "syncOnMbappPrenotazioni": true,
             "eventColors": {
                 "lezione": "",
                 "impegno": "10",
