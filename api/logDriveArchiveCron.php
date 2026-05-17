@@ -46,6 +46,7 @@ function logDriveArchiveActiveLogNames(): array
         'logTelegramFile',
         'logGoogleCalendarFile',
         'logGoogleCalendarMBAppFile',
+        'logGmailFile',
     ];
 
     foreach ($keys as $key) {
@@ -80,11 +81,36 @@ function logDriveArchiveIsRotatedLog(string $fileName, array $activeNames): bool
     return false;
 }
 
+function logDriveArchiveRotatedAt(string $fileName, array $activeNames): ?int
+{
+    foreach ($activeNames as $activeName) {
+        $info = pathinfo($activeName);
+        $base = (string)($info['filename'] ?? '');
+        $ext = (string)($info['extension'] ?? '');
+        if ($base === '' || $ext === '') {
+            continue;
+        }
+
+        if (preg_match('/^' . preg_quote($base, '/') . '_(\d{2})_(\d{2})_(\d{4})_(\d{2})_(\d{2})_(\d{2})\.' . preg_quote($ext, '/') . '$/', $fileName, $m)) {
+            $dt = DateTime::createFromFormat(
+                'd_m_Y_H_i_s',
+                $m[1] . '_' . $m[2] . '_' . $m[3] . '_' . $m[4] . '_' . $m[5] . '_' . $m[6],
+                new DateTimeZone('Europe/Rome')
+            );
+
+            return $dt instanceof DateTime ? $dt->getTimestamp() : null;
+        }
+    }
+
+    return null;
+}
+
 function logDriveArchiveCandidates(): array
 {
     $logDir = logDriveArchiveLogDir();
     $activeNames = logDriveArchiveActiveLogNames();
     $files = [];
+    $todayStart = (new DateTime('today', new DateTimeZone('Europe/Rome')))->getTimestamp();
 
     if (!is_dir($logDir)) {
         return [];
@@ -101,17 +127,22 @@ function logDriveArchiveCandidates(): array
         if (!logDriveArchiveIsRotatedLog($fileName, $activeNames)) {
             continue;
         }
+        $rotatedAt = logDriveArchiveRotatedAt($fileName, $activeNames);
+        if ($rotatedAt === null || $rotatedAt >= $todayStart) {
+            continue;
+        }
 
         $files[] = [
             'path' => $path,
             'name' => $fileName,
             'size' => filesize($path),
             'mtime' => filemtime($path),
+            'rotated_at' => $rotatedAt,
         ];
     }
 
     usort($files, function ($a, $b) {
-        return intval($a['mtime'] ?? 0) <=> intval($b['mtime'] ?? 0);
+        return intval($a['rotated_at'] ?? 0) <=> intval($b['rotated_at'] ?? 0);
     });
 
     return $files;
@@ -119,7 +150,7 @@ function logDriveArchiveCandidates(): array
 
 function logDriveArchiveDriveName(array $file): string
 {
-    $date = date('Y-m-d', intval($file['mtime'] ?? time()));
+    $date = date('Y-m-d', intval($file['rotated_at'] ?? $file['mtime'] ?? time()));
     return $date . ' - ' . (string)$file['name'];
 }
 
