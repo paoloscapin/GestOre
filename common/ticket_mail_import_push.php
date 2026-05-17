@@ -5,6 +5,8 @@ require_once __DIR__ . '/__Settings.php';
 require_once __DIR__ . '/__Log.php';
 require_once __DIR__ . '/ticket_mail_lib.php';
 
+setLogChannel('gmail');
+
 date_default_timezone_set('Europe/Rome');
 
 function ticketMailImportFromPush($limit = 20, bool $includeRecent = false, array $allowedMessageIds = [])
