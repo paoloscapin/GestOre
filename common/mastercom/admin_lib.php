@@ -251,6 +251,7 @@ function mastercomAdminBuildStudentSupplementalMapForClass(int $classId): array
         'cognome' => 1,
         'nome' => 1,
         'codice_fiscale' => 1,
+        'sesso' => 1,
         'esonero_religione' => 1,
         'descrizione_materia_integrativa' => 1,
         'voto_condotta_value' => 0,
@@ -1256,6 +1257,9 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
             ];
             if (mastercomAdminTableColumnExists('mastercom_studenti', 'descrizione_materia_integrativa')) {
                 $studentData['descrizione_materia_integrativa'] = mastercomAdminCleanText($extraData['descrizione_materia_integrativa'] ?? null);
+            }
+            if (mastercomAdminTableColumnExists('mastercom_studenti', 'sesso')) {
+                $studentData['sesso'] = mastercomAdminCleanText($extraData['sesso'] ?? $masterStudent['sesso'] ?? $detail['sesso'] ?? $detail['gender'] ?? null);
             }
 
             mastercomAdminUpsertByField('mastercom_studenti', 'mastercom_id_studente', $studentId, $studentData);

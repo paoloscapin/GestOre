@@ -52,6 +52,8 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_classes.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Classi</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_teacher_snapshot.php"><span class="glyphicon glyphicon-eye-open"></span>&ensp;Snapshot docenti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_calendar.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Agenda Classe</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_events.php"><span class="glyphicon glyphicon-list"></span>&ensp;Eventi</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_event_create.php"><span class="glyphicon glyphicon-plus"></span>&ensp;Nuovo Evento</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_grades.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Voti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_presence.php"><span class="glyphicon glyphicon-ok-circle"></span>&ensp;Presence Snapshot</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc.php"><span class="glyphicon glyphicon-book"></span>&ensp;NO IRC</a></li>
