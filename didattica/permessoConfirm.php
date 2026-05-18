@@ -8,14 +8,21 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/permessi_uscita_lib.php';
 ruoloRichiesto('segreteria-didattica', 'dirigente');
 
 if (!empty($_POST)) {
     $id = intval($_POST['id']);
 
     if ($id > 0) {
+        $old = dbGetFirst("SELECT stato FROM permessi_uscita WHERE id = " . dbI($id) . " LIMIT 1");
         $query = "UPDATE permessi_uscita SET stato = '2' WHERE id = '$id'";
         dbExec($query);
+        permessiUscitaFreezePresence($id);
+        permessiUscitaMarkConfirmedForSync($id);
+        if (!$old || intval($old['stato'] ?? 0) !== 2) {
+            permessiUscitaSendParentMail($id, 'stato');
+        }
         info("aggiornato permesso id=$id");
         echo "ok";
     } else {

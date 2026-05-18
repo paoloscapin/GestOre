@@ -2,6 +2,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/permessi_uscita_lib.php';
 
 ruoloRichiesto('segreteria-didattica', 'dirigente', 'genitore');
 
@@ -147,6 +148,7 @@ if ($id > 0) {
     dbExec($query);
     $id = dbLastId();
     info("inserito nuovo permesso id=$id");
+    permessiUscitaSendParentMail((int)$id, 'creazione');
 }
 
 header('Content-Type: application/json; charset=utf-8');

@@ -29,10 +29,17 @@ ruoloRichiesto('genitore');
     }
 
     if (impersonaRuolo('genitore')) {
-            if (!(getSettingsValue('permessi', 'visibile_genitori', false))) {
-        redirect("/error/unauthorized.php");
-            }
+        if (!(getSettingsValue('permessi', 'visibile_genitori', false))) {
+            redirect("/error/unauthorized.php");
+        }
     }
+
+    $permessiNow = new DateTimeImmutable('now', new DateTimeZone('Europe/Rome'));
+    $permessiJsConfig = [
+        'timezone' => 'Europe/Rome',
+        'serverNowMs' => ((int)$permessiNow->format('U')) * 1000,
+        'oraLimiteGenitori' => (string)getSettingsValue('permessi', 'ora_limite_genitori', '09:00'),
+    ];
 
     ?>
 
@@ -229,6 +236,10 @@ foreach ($studenti as $studente) {
     <!-- // Modal - Add/Update Record -->
 
     <!-- Custom JS file -->
+    <script>
+        window.GESTORE_PERMESSI_CONFIG = <?php echo json_encode($permessiJsConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+        window.GESTORE_PERMESSI_CONFIG.clientLoadedAtMs = Date.now();
+    </script>
     <script type="text/javascript" src="js/permessi.js?v=<?php echo $__software_version; ?>&t=<?php echo time(); ?>&d=desktop"></script></body>
 
 </html>

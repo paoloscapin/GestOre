@@ -9,6 +9,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/permessi_uscita_lib.php';
 
 ruoloRichiesto('segreteria-didattica', 'dirigente', 'genitore');
 
@@ -72,6 +73,11 @@ if ($isGenitore) {
     if ((int)$permesso['stato'] !== 1) {
         permessiFailUnauthorized();
     }
+}
+
+$mailPermesso = permessiUscitaLoad($id);
+if ($mailPermesso) {
+    permessiUscitaSendParentMailFromRow($mailPermesso, 'cancellazione');
 }
 
 $qDelete = "

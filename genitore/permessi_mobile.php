@@ -16,6 +16,13 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 ruoloRichiesto('genitore');
 
+$permessiNow = new DateTimeImmutable('now', new DateTimeZone('Europe/Rome'));
+$permessiJsConfig = [
+    'timezone' => 'Europe/Rome',
+    'serverNowMs' => ((int)$permessiNow->format('U')) * 1000,
+    'oraLimiteGenitori' => (string)getSettingsValue('permessi', 'ora_limite_genitori', '09:00'),
+];
+
 // Lista studenti del genitore
 $studenti = dbGetAll("SELECT studente.id, studente.nome, studente.cognome
     FROM studente
@@ -167,6 +174,10 @@ $studente_default_id = count($studenti) > 0 ? $studenti[0]['id'] : 0;
         <span class="glyphicon glyphicon-plus"></span>
     </button>
 
+    <script>
+        window.GESTORE_PERMESSI_CONFIG = <?php echo json_encode($permessiJsConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+        window.GESTORE_PERMESSI_CONFIG.clientLoadedAtMs = Date.now();
+    </script>
     <script src="<?php echo $__application_base_path; ?>/genitore/js/permessi.js?v=<?php echo $__software_version; ?>&t=<?php echo time(); ?>&d=mobile"></script>
     
 </body>

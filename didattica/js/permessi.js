@@ -58,6 +58,8 @@ function permessiReadRecords() {
                 asc: true
             };
         }
+
+        permessiLoadPresenceBadges();
     });
 }
 
@@ -137,6 +139,174 @@ function permessoConfirm(id) {
     }).fail(function() {
         alert("❌ Errore di connessione al server.");
     });
+}
+
+function permessiMastercomSync(id) {
+    hideAllTooltips();
+    var payload = {
+        data: $("#data_filtro").val()
+    };
+    if (id) {
+        payload.id = id;
+    }
+
+    $("#permessi_sync_status")
+        .removeClass("text-danger text-success")
+        .addClass("text-info")
+        .text("Sync MasterCom in corso...")
+        .show();
+
+    $.post("permessiMastercomSync.php", payload, function (data) {
+        var result = (typeof data === "string") ? JSON.parse(data) : data;
+        if (!result || result.ok === false) {
+            var err = result && (result.error || result.message) ? (result.error || result.message) : "Errore sync MasterCom";
+            $("#permessi_sync_status").removeClass("text-info text-success").addClass("text-danger").text(err);
+            alert(err);
+            return;
+        }
+
+        var message = result.message || ("Sync completato: " + (result.count || 0) + " permessi elaborati.");
+        if (Array.isArray(result.results)) {
+            var errors = result.results.filter(function (r) { return r && r.ok === false; }).length;
+            if (errors > 0) {
+                message += " Errori: " + errors + ".";
+            }
+        }
+        $("#permessi_sync_status").removeClass("text-info text-danger").addClass("text-success").text(message);
+        permessiReadRecords();
+    }).fail(function (xhr) {
+        var msg = "Errore di connessione durante il sync MasterCom.";
+        if (xhr.responseJSON && xhr.responseJSON.error) {
+            msg = xhr.responseJSON.error;
+        }
+        $("#permessi_sync_status").removeClass("text-info text-success").addClass("text-danger").text(msg);
+        alert(msg);
+    });
+}
+
+function permessiPresenceColor(state) {
+    state = String(state || '').toUpperCase();
+    if (state === 'PRESENTE' || state === 'ENTRATA_RITARDO') return 'green';
+    if (state === 'ASSENTE_MASTERCOM' || state === 'USCITA' || state === 'EVENTO' || state === 'PERMESSO') return 'red';
+    return '#777';
+}
+
+function permessiEscape(text) {
+    return $('<div>').text(text || '').html();
+}
+
+function permessiRenderPresence($cell, result) {
+    var label = result && result.label ? result.label : 'Da verificare';
+    var detail = result && result.detail ? result.detail : '';
+    var color = result && result.color ? result.color : permessiPresenceColor(result && result.stato);
+    $cell
+        .css({ backgroundColor: color, color: 'white' })
+        .text(label)
+        .attr('title', detail)
+        .attr('data-original-title', detail);
+}
+
+function permessiPresenceOverlayShow(text, pct) {
+    pct = Math.max(0, Math.min(100, parseInt(pct, 10) || 0));
+    if (!$('#permessi_presence_overlay').length) {
+        $('body').append(
+            '<div id="permessi_presence_overlay" style="display:none;position:fixed;z-index:9999;left:0;top:0;right:0;bottom:0;background:rgba(255,255,255,0.78);align-items:center;justify-content:center;">' +
+            '<div style="min-width:320px;max-width:420px;background:#fff;border:1px solid #d7e3f0;border-radius:8px;box-shadow:0 12px 34px rgba(15,23,42,.18);padding:20px 22px;text-align:center;">' +
+            '<div style="font-weight:800;color:#1f5e3b;margin-bottom:10px;">Caricamento presenze MasterCom</div>' +
+            '<div id="permessi_presence_overlay_text">Preparazione...</div>' +
+            '<div class="progress" style="margin:12px 0 8px 0;"><div id="permessi_presence_overlay_bar" class="progress-bar progress-bar-info" role="progressbar" style="width:0%">0%</div></div>' +
+            '</div></div>'
+        );
+    }
+    $('#permessi_presence_overlay_text').text(text || 'Caricamento...');
+    $('#permessi_presence_overlay_bar').css('width', pct + '%').text(pct + '%');
+    $('#permessi_presence_overlay').css('display', 'flex');
+}
+
+function permessiPresenceOverlayHide() {
+    $('#permessi_presence_overlay').fadeOut(150);
+}
+
+function permessiLoadPresenceBadges() {
+    var $cells = $('.permessi-presence-cell');
+    var dataFiltro = $('#data_filtro').val();
+    if (!$cells.length || !dataFiltro) {
+        $('#permessi_presence_status').hide();
+        permessiPresenceOverlayHide();
+        return;
+    }
+
+    var byClass = {};
+    $cells.each(function () {
+        var $cell = $(this);
+        var classId = String($cell.data('class-id') || '');
+        var studentId = parseInt($cell.data('student-id'), 10) || 0;
+        if (!classId || !studentId) return;
+        if (!byClass[classId]) byClass[classId] = {};
+        byClass[classId][studentId] = {
+            mastercom_id_studente: studentId,
+            mastercom_id_classe_corrente: parseInt(classId, 10) || 0,
+            nome: String($cell.data('nome') || ''),
+            cognome: String($cell.data('cognome') || ''),
+            classe: String($cell.data('classe') || '')
+        };
+    });
+
+    var classIds = Object.keys(byClass);
+    if (!classIds.length) {
+        $('#permessi_presence_status').hide();
+        return;
+    }
+
+    var done = 0;
+    $('#permessi_presence_status').hide().text('');
+    permessiPresenceOverlayShow('Caricamento presenze MasterCom: 0%', 0);
+
+    function next() {
+        if (done >= classIds.length) {
+            $('#permessi_presence_status').hide().text('');
+            permessiPresenceOverlayShow('Presenze MasterCom caricate', 100);
+            setTimeout(permessiPresenceOverlayHide, 350);
+            return;
+        }
+
+        var classId = classIds[done];
+        var students = Object.keys(byClass[classId]).map(function (studentId) {
+            return byClass[classId][studentId];
+        });
+
+        $.post('permessiPresenceStatus.php', {
+            data: dataFiltro,
+            students: JSON.stringify(students)
+        }, function (data) {
+            var result = (typeof data === 'string') ? JSON.parse(data) : data;
+            if (result && result.results) {
+                Object.keys(result.results).forEach(function (studentId) {
+                    $('.permessi-presence-cell[data-student-id="' + permessiEscape(studentId) + '"]').each(function () {
+                        permessiRenderPresence($(this), result.results[studentId]);
+                    });
+                });
+            }
+        }).fail(function () {
+            students.forEach(function (student) {
+                $('.permessi-presence-cell[data-student-id="' + student.mastercom_id_studente + '"]').each(function () {
+                    permessiRenderPresence($(this), {
+                        label: 'Errore',
+                        detail: 'Errore caricamento presenza MasterCom',
+                        color: 'red'
+                    });
+                });
+            });
+        }).always(function () {
+            done++;
+            var pct = Math.round((done / classIds.length) * 100);
+            $('#permessi_presence_status').hide().text('');
+            permessiPresenceOverlayShow('Caricamento presenze MasterCom: ' + pct + '%', pct);
+            next();
+        });
+    }
+
+    next();
 }
 
 

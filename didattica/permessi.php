@@ -115,6 +115,40 @@ require_once '../common/checkSession.php';
         .date-picker-wrapper input:focus {
             outline: none;
         }
+
+        #permessi_presence_overlay {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.78);
+            align-items: center;
+            justify-content: center;
+        }
+
+        #permessi_presence_overlay .presence-box {
+            min-width: 320px;
+            max-width: 420px;
+            background: #ffffff;
+            border: 1px solid #d7e3f0;
+            border-radius: 8px;
+            box-shadow: 0 12px 34px rgba(15, 23, 42, 0.18);
+            padding: 20px 22px;
+            text-align: center;
+        }
+
+        #permessi_presence_overlay .presence-title {
+            font-weight: 800;
+            color: #1f5e3b;
+            margin-bottom: 10px;
+        }
+
+        #permessi_presence_overlay .progress {
+            margin: 12px 0 8px 0;
+        }
     </style>
 
 </head>
@@ -137,6 +171,16 @@ foreach ($studenti as $studente) {
     require_once '../common/connect.php';
     ?>
 
+    <div id="permessi_presence_overlay">
+        <div class="presence-box">
+            <div class="presence-title">Caricamento presenze MasterCom</div>
+            <div id="permessi_presence_overlay_text">Preparazione...</div>
+            <div class="progress">
+                <div id="permessi_presence_overlay_bar" class="progress-bar progress-bar-info" role="progressbar" style="width:0%">0%</div>
+            </div>
+        </div>
+    </div>
+
     <div class="container-fluid">
         <div class="panel panel-orange4">
             <div class="panel-heading">
@@ -145,6 +189,11 @@ foreach ($studenti as $studente) {
                         <span class="glyphicon glyphicon-blackboard"></span>&ensp;Permessi di uscita
                     </div>
                     <div class="col-md-4">
+                        <button type="button" class="btn btn-info btn-sm" style="margin-top:8px;" onclick="permessiMastercomSync()">
+                            <span class="glyphicon glyphicon-refresh"></span> Sync MasterCom
+                        </button>
+                        <span id="permessi_sync_status" style="display:none;margin-left:10px;font-weight:bold;"></span>
+                        <span id="permessi_presence_status" style="display:none;margin-left:10px;font-weight:bold;"></span>
                     </div>
                     <div class="col-md-2" style="padding:0px; text-align:center">
                         <div class="checkbox" style="margin-top:10px;">

@@ -11,10 +11,42 @@
 // include Database connection file
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/permessi_uscita_lib.php';
 
 $studente_filtro_id = $_GET["studente_filtro_id"] ?? null;
 $data_filtro = $_GET["data_filtro"] ?? null;
 $solo_richiesti = $_GET["solo_richiesti"] ?? 0;
+$hasSyncColumns = permessiUscitaColumnExists('mastercom_sync_stato');
+$hasPresenceSnapshotColumns = permessiUscitaColumnExists('mastercom_presence_stato')
+    && permessiUscitaColumnExists('mastercom_presence_label')
+    && permessiUscitaColumnExists('mastercom_presence_detail');
+$hasMastercomStudenti = mastercomAdminTableExists('mastercom_studenti')
+    && mastercomAdminTableColumnExists('mastercom_studenti', 'id_studente_gestore')
+    && mastercomAdminTableColumnExists('mastercom_studenti', 'mastercom_id_studente')
+    && mastercomAdminTableColumnExists('mastercom_studenti', 'mastercom_id_classe_corrente');
+$mastercomSelect = $hasMastercomStudenti ? "
+                    ms.mastercom_id_studente,
+                    ms.mastercom_id_classe_corrente,
+                    ms.nome AS mastercom_nome,
+                    ms.cognome AS mastercom_cognome," : "
+                    NULL AS mastercom_id_studente,
+                    NULL AS mastercom_id_classe_corrente,
+                    NULL AS mastercom_nome,
+                    NULL AS mastercom_cognome,";
+$mastercomJoin = $hasMastercomStudenti ? "
+                LEFT JOIN mastercom_studenti ms
+                ON ms.id_studente_gestore = permessi_uscita.id_studente" : "";
+$syncSelect = $hasSyncColumns ? "
+                    permessi_uscita.mastercom_sync_stato,
+                    permessi_uscita.mastercom_sync_at,
+                    permessi_uscita.mastercom_sync_attempts,
+                    permessi_uscita.mastercom_sync_last_error,
+                    permessi_uscita.mastercom_sync_last_note," : "";
+$presenceSnapshotSelect = $hasPresenceSnapshotColumns ? "
+                    permessi_uscita.mastercom_presence_stato,
+                    permessi_uscita.mastercom_presence_label,
+                    permessi_uscita.mastercom_presence_detail,
+                    permessi_uscita.mastercom_presence_at," : "";
 
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -27,9 +59,11 @@ $data = '<div class="table-wrapper"><table class="table table-bordered table-str
     <th class="text-center col-md-1">Ora rientro</th>
     <th class="text-center col-md-2">Genitore</th>
     <th class="text-center col-md-1">Motivo</th>
+    <th class="text-center col-md-1">Presenza ora</th>
     <th class="text-center col-md-1">Segreteria</th>
+    <th class="text-center col-md-1">MasterCom</th>
     <th class="text-center col-md-1">Note segreteria</th>
-    <th class="text-center col-md-1">Azioni</th>
+    <th class="text-center" style="width:110px; min-width:110px;">Azioni</th>
 </tr>
 </thead>
 <tbody>';
@@ -45,12 +79,16 @@ $query = "	SELECT
 					permessi_uscita.motivo,
 					permessi_uscita.stato,
 					permessi_uscita.note_segreteria as note_segreteria,
+                    $syncSelect
+                    $presenceSnapshotSelect
 					genitori.nome AS genitore_nome,
 					genitori.cognome AS genitore_cognome,
 					studente.nome AS studente_nome,
 					studente.cognome AS studente_cognome,
 					classi.classe AS classe,
-					studente_frequenta.id_classe AS id_classe
+					studente_frequenta.id_classe AS id_classe,
+                    $mastercomSelect
+                    classi.classe AS mastercom_classe
 				FROM permessi_uscita
 				INNER JOIN genitori genitori
 				ON permessi_uscita.id_genitore = genitori.id
@@ -60,6 +98,7 @@ $query = "	SELECT
 				ON classi.id = studente_frequenta.id_classe
 				INNER JOIN studente studente
 				ON permessi_uscita.id_studente = studente.id
+                $mastercomJoin
 				WHERE 1=1";
 
 if ($studente_filtro_id != 0 && $studente_filtro_id != null) {
@@ -78,7 +117,57 @@ $resultArray = dbGetAll($query);
 if ($resultArray == null) {
 	$resultArray = [];
 }
-	function formatName($string) {
+$today = (new DateTime('now', new DateTimeZone('Europe/Rome')))->format('Y-m-d');
+function permessiPresenceColor(string $state): string {
+    $state = strtoupper(trim($state));
+    if (in_array($state, ['PRESENTE', 'ENTRATA_RITARDO'], true)) {
+        return 'green';
+    }
+    if (in_array($state, ['ASSENTE_MASTERCOM', 'USCITA', 'EVENTO', 'PERMESSO', 'NON_COLLEGATO', 'NON_DISPONIBILE'], true)) {
+        return 'red';
+    }
+    return '#777';
+}
+function permessiStaticPresenceBadge(array $row): string {
+    $state = strtoupper(trim((string)($row['mastercom_presence_stato'] ?? '')));
+    $label = trim((string)($row['mastercom_presence_label'] ?? ''));
+    $detail = trim((string)($row['mastercom_presence_detail'] ?? ''));
+    if ($state === '' && $label === '') {
+        return '<span class="badge" style="background-color:#777;color:white;" data-toggle="tooltip" title="Snapshot presenza non disponibile">Snapshot mancante</span>';
+    }
+    if ($label === '') {
+        $label = 'Da verificare';
+    }
+    $title = htmlspecialchars($detail, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return '<span class="badge" style="background-color:' . permessiPresenceColor($state) . ';color:white;" data-toggle="tooltip" title="' . $title . '">' . htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
+}
+function permessiPresenceBadge(array $row, string $dataFiltro, string $today, bool $hasPresenceSnapshotColumns): string {
+    if (intval($row['stato'] ?? 0) !== 1) {
+        return $hasPresenceSnapshotColumns
+            ? permessiStaticPresenceBadge($row)
+            : '<span class="badge" style="background-color:#777;color:white;">Snapshot non configurato</span>';
+    }
+    if ($dataFiltro !== $today) {
+        return '<span class="badge" style="background-color:#ddd;color:#333;">Solo oggi</span>';
+    }
+    $mcStudentId = intval($row['mastercom_id_studente'] ?? 0);
+    $mcClassId = intval($row['mastercom_id_classe_corrente'] ?? 0);
+    if ($mcStudentId <= 0) {
+        return '<span class="badge" style="background-color:red;color:white;">Non collegato</span>';
+    }
+    if ($mcClassId <= 0) {
+        return '<span class="badge" style="background-color:#777;color:white;">Classe MC mancante</span>';
+    }
+
+    return '<span class="badge permessi-presence-cell" style="background-color:#777;color:white;"'
+        . ' data-student-id="' . $mcStudentId . '"'
+        . ' data-class-id="' . $mcClassId . '"'
+        . ' data-nome="' . htmlspecialchars((string)($row['mastercom_nome'] ?? $row['studente_nome'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+        . ' data-cognome="' . htmlspecialchars((string)($row['mastercom_cognome'] ?? $row['studente_cognome'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+        . ' data-classe="' . htmlspecialchars((string)($row['mastercom_classe'] ?? $row['classe'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+        . ' data-toggle="tooltip" title="Caricamento presenza MasterCom">Caricamento...</span>';
+}
+function formatName($string) {
     $string = strtolower($string); // tutto minuscolo
     return mb_convert_case($string, MB_CASE_TITLE, "UTF-8"); // ogni parola con iniziale maiuscola
 }
@@ -113,6 +202,33 @@ if ($resultArray == null) {
 	}
 	$motivo = $row['motivo'];
 	$stato = $row['stato'];
+    $presenceBadge = permessiPresenceBadge($row, (string)$data_filtro, $today, $hasPresenceSnapshotColumns);
+    $mastercomBadge = '<span class="badge" style="background-color:#777;color:white;">Non configurato</span>';
+    if ($hasSyncColumns) {
+        $syncState = strtoupper(trim((string)($row['mastercom_sync_stato'] ?? '')));
+        switch ($syncState) {
+            case 'INVIATO':
+                $mastercomBadge = '<span class="badge" style="background-color:green;color:white;">Inviato</span>';
+                break;
+            case 'DA_INVIARE':
+                $mastercomBadge = '<span class="badge" style="background-color:#f0ad4e;color:white;">Da inviare</span>';
+                break;
+            case 'ASSENTE_ATTESA':
+                $mastercomBadge = '<span class="badge" style="background-color:#f0ad4e;color:white;">Assente, riprova</span>';
+                break;
+            case 'ANNULLATO_ASSENTE':
+                $mastercomBadge = '<span class="badge" style="background-color:red;color:white;">Annullato</span>';
+                break;
+            case 'ERRORE':
+                $err = htmlspecialchars((string)($row['mastercom_sync_last_error'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                $mastercomBadge = '<span class="badge" style="background-color:red;color:white;" data-toggle="tooltip" title="' . $err . '">Errore</span>';
+                break;
+            default:
+                $mastercomBadge = $stato == 2
+                    ? '<span class="badge" style="background-color:#777;color:white;">Non inviato</span>'
+                    : '<span class="badge" style="background-color:#ddd;color:#333;">-</span>';
+        }
+    }
 
 	$data .= '<tr>
 		<td align="center">' . $data_it . '</td>
@@ -122,15 +238,21 @@ if ($resultArray == null) {
 		<td align="center">' . $ora_rientro . '</td>
 		<td align="center">' . $genitore_nome . '</td>
 		<td align="center">' . $motivo . '</td>
+		<td align="center">' . $presenceBadge . '</td>
 		<td align="center">' . $badge . '</td>
+		<td align="center">' . $mastercomBadge . '</td>
 		<td align="center">' . nl2br(htmlspecialchars($note)) . '</td>
-		<td align="center">
+		<td align="center" style="min-width:110px; white-space:nowrap;">
 		<button onclick="permessiGetDetails(\'' . $id_permesso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-placement="top" title="Modifica la richiesta"><span class="glyphicon glyphicon-pencil"></span></button>
 		<button onclick="permessiDelete(\'' . $id_permesso . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-placement="top" title="Cancella la richiesta"><span class="glyphicon glyphicon-trash"></span></button>';
 	if ($stato == 1) {
 		$data .= '
 		<button onclick="permessoConfirm(\'' . $id_permesso . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-placement="top" title="Approva la richiesta"><span class="glyphicon glyphicon-ok"></span></button>';
 	}
+    if ($stato == 2) {
+        $data .= '
+        <button onclick="permessiMastercomSync(\'' . $id_permesso . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-placement="top" title="Invia/riprova su MasterCom"><span class="glyphicon glyphicon-refresh"></span></button>';
+    }
 	$data .= '</td>';
 
 	$data .= '</tr>';

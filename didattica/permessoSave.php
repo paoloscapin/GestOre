@@ -8,44 +8,60 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/permessi_uscita_lib.php';
 ruoloRichiesto('segreteria-didattica', 'dirigente');
 
 if (!empty($_POST)) {
-    $id = $_POST['id'];
+    $id = intval($_POST['id'] ?? 0);
     $data = escapePost('data');
     $ora_uscita = escapePost('ora_uscita');
     $motivo = escapePost('motivo');
     $ora_rientro = escapePost('ora_rientro');
-    $rientro = escapePost('rientro');
-    $id_studente = escapePost('id_studente');
-    $stato = escapePost('stato');
+    $rientro = intval($_POST['rientro'] ?? 0);
+    $id_studente = intval($_POST['id_studente'] ?? 0);
+    $stato = intval($_POST['stato'] ?? 1);
     $note_segreteria = escapePost('note_segreteria');
 
     if ($id > 0) {
-        // 🔄 aggiorno un permesso esistente
+        $old = dbGetFirst("SELECT stato FROM permessi_uscita WHERE id = " . dbI($id) . " LIMIT 1");
         $query = "
-            UPDATE permessi_uscita 
-            SET 
-                data = '$data',
-                ora_uscita = '$ora_uscita',
-                ora_rientro = '$ora_rientro',
-                motivo = '$motivo',
-                rientro = '$rientro',
-                stato = '$stato',
-                note_segreteria = '$note_segreteria'
-            WHERE id = '$id'";
+            UPDATE permessi_uscita
+            SET
+                data = " . dbQ($data) . ",
+                ora_uscita = " . dbQ($ora_uscita) . ",
+                ora_rientro = " . dbQ($ora_rientro) . ",
+                motivo = " . dbQ($motivo) . ",
+                rientro = " . dbI($rientro) . ",
+                stato = " . dbI($stato) . ",
+                note_segreteria = " . dbQ($note_segreteria) . "
+            WHERE id = " . dbI($id) . "
+            LIMIT 1";
         dbExec($query);
+
+        if (!$old || intval($old['stato'] ?? 0) !== $stato) {
+            if (in_array($stato, [2, 3, 4], true)) {
+                permessiUscitaFreezePresence($id);
+            }
+        }
+        if ($stato === 2) {
+            permessiUscitaMarkConfirmedForSync($id);
+        }
+        if (!$old || intval($old['stato'] ?? 0) !== $stato) {
+            permessiUscitaSendParentMail($id, 'stato');
+        }
         info("aggiornato permesso id=$id");
     } else {
-        // ➕ inserisco un nuovo permesso
-        // lato genitore: stato = 0 (Richiesto)
         $query = "
-            INSERT INTO permessi_uscita 
-                (id_genitore, id_studente, data, ora_uscita, ora_rientro, rientro, motivo, stato, note_segreteria) 
-            VALUES 
-                ('$__genitore_id', '$id_studente', '$data', '$ora_uscita', '$ora_rientro', '$rientro', '$motivo', '0', '')";
+            INSERT INTO permessi_uscita
+                (id_genitore, id_studente, data, ora_uscita, ora_rientro, rientro, motivo, stato, note_segreteria)
+            VALUES
+                (" . dbI($__genitore_id ?? 0) . ", " . dbI($id_studente) . ", " . dbQ($data) . ", " . dbQ($ora_uscita) . ", " . dbQ($ora_rientro) . ", " . dbI($rientro) . ", " . dbQ($motivo) . ", " . dbI($stato) . ", " . dbQ($note_segreteria) . ")";
         dbExec($query);
         $id = dbLastId();
+        if ($stato === 2) {
+            permessiUscitaMarkConfirmedForSync((int)$id);
+        }
+        permessiUscitaSendParentMail((int)$id, 'creazione');
         info("inserito nuovo permesso id=$id");
     }
 }
