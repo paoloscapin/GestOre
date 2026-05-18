@@ -10,7 +10,7 @@
 require_once __DIR__ . '/../checkSession.php';
 require_once __DIR__ . '/../__MasterCom.php';
 
-ruoloRichiesto('segreteria-didattica', 'dirigente');
+ruoloRichiesto('admin', 'docente', 'segreteria-didattica', 'dirigente');
 
 $fileName = trim((string)($_GET['file'] ?? $_POST['file'] ?? ''));
 $proxy = intval($_GET['proxy'] ?? $_POST['proxy'] ?? 0) === 1;
@@ -58,4 +58,3 @@ $contentType = $download['content_type'] ?: 'image/jpeg';
 header('Content-Type: ' . $contentType);
 header('Content-Disposition: inline; filename="' . basename($fileName) . '"');
 echo $download['body'];
-
