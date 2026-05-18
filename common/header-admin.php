@@ -58,6 +58,8 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc_registro.php"><span class="glyphicon glyphicon-check"></span>&ensp;NO IRC Registro</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc_assignments.php"><span class="glyphicon glyphicon-user"></span>&ensp;NO IRC Docenti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc_rooms.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;NO IRC Aule</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_l2.php"><span class="glyphicon glyphicon-education"></span>&ensp;L2</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_l2_registro.php"><span class="glyphicon glyphicon-check"></span>&ensp;L2 Registro</a></li>
 				</ul>
 			</li>
 			<li><a href="<?php echo $__application_base_path; ?>/orario/orario.php" class="btn btn-default btn-lightblue4 nav-btn" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Orario </a></li>
