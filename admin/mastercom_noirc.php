@@ -109,6 +109,7 @@ function mastercomNoIrcStudentBadge(array $student): string
                     <input type="date" class="form-control" name="week_of" id="week_of" value="<?php echo htmlspecialchars($context['week']['reference_date']); ?>">
                 </div>
                 <button type="submit" class="btn btn-primary" style="margin-left: 10px;">Aggiorna</button>
+                <a href="mastercom_noirc_registro.php?data_giorno=<?php echo urlencode($context['week']['reference_date']); ?>" class="btn btn-success" style="margin-left: 10px;">Registro appelli</a>
                 <a href="mastercom_noirc_assignments.php?week_of=<?php echo urlencode($context['week']['reference_date']); ?>" class="btn btn-default" style="margin-left: 10px;">Gestisci docenti</a>
                 <a href="mastercom_noirc_rooms.php?week_of=<?php echo urlencode($context['week']['reference_date']); ?>" class="btn btn-default" style="margin-left: 10px;">Setup aule</a>
             </form>

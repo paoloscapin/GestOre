@@ -53,6 +53,7 @@ $currentSchoolYear = mastercomAdminCurrentSchoolYear();
                             if ($effectiveYear === '') {
                                 $effectiveYear = $currentSchoolYear ?? '';
                             }
+                            $isLinkedToGestore = intval($row['id_classe_gestore'] ?? 0) > 0;
                             ?>
                             <tr>
                                 <td style="text-align: center;"><?php echo intval($row['mastercom_id_classe']); ?></td>
@@ -70,18 +71,22 @@ $currentSchoolYear = mastercomAdminCurrentSchoolYear();
                                     ?>
                                 </td>
                                 <td style="text-align: center;">
-                                    <a class="btn btn-xs btn-default" href="mastercom_students.php?class_id=<?php echo intval($row['mastercom_id_classe']); ?>">
-                                        Studenti
-                                    </a>
-                                    <a class="btn btn-xs btn-info" href="mastercom_presence.php?class_id=<?php echo intval($row['mastercom_id_classe']); ?>">
-                                        Presenze
-                                    </a>
-                                    <a class="btn btn-xs btn-primary" href="mastercom_calendar.php?class_id=<?php echo intval($row['mastercom_id_classe']); ?>">
-                                        Agenda
-                                    </a>
-                                    <a class="btn btn-xs btn-success" href="mastercom_grades.php?class_id=<?php echo intval($row['mastercom_id_classe']); ?>">
-                                        Voti
-                                    </a>
+                                    <?php if ($isLinkedToGestore): ?>
+                                        <a class="btn btn-xs btn-default" href="mastercom_students.php?class_id=<?php echo intval($row['mastercom_id_classe']); ?>">
+                                            Studenti
+                                        </a>
+                                        <a class="btn btn-xs btn-info" href="mastercom_presence.php?class_id=<?php echo intval($row['mastercom_id_classe']); ?>">
+                                            Presenze
+                                        </a>
+                                        <a class="btn btn-xs btn-primary" href="mastercom_calendar.php?class_id=<?php echo intval($row['mastercom_id_classe']); ?>">
+                                            Agenda
+                                        </a>
+                                        <a class="btn btn-xs btn-success" href="mastercom_grades.php?class_id=<?php echo intval($row['mastercom_id_classe']); ?>">
+                                            Voti
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="text-muted">esclusa dai menu operativi</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

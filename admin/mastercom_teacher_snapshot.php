@@ -170,7 +170,7 @@ function mastercomSnapshotExtractClasses(array $userInfoResult): array
     $classes = is_array($root) && is_array($root['classi'] ?? null) ? $root['classi'] : [];
     $localClassNames = [];
     if (mastercomAdminTableExists('mastercom_classi')) {
-        foreach (dbGetAll("SELECT mastercom_id_classe, nome FROM mastercom_classi ORDER BY nome ASC") as $row) {
+        foreach (mastercomAdminOperationalClassRows('mastercom_id_classe, nome') as $row) {
             $localClassNames[intval($row['mastercom_id_classe'])] = mastercomSnapshotClean($row['nome'] ?? '');
         }
     }

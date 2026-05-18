@@ -55,6 +55,7 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_grades.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Voti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_presence.php"><span class="glyphicon glyphicon-ok-circle"></span>&ensp;Presence Snapshot</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc.php"><span class="glyphicon glyphicon-book"></span>&ensp;NO IRC</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc_registro.php"><span class="glyphicon glyphicon-check"></span>&ensp;NO IRC Registro</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc_assignments.php"><span class="glyphicon glyphicon-user"></span>&ensp;NO IRC Docenti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc_rooms.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;NO IRC Aule</a></li>
 				</ul>

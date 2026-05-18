@@ -424,8 +424,11 @@ function mastercomPresenceActionableEntries(array $entries): array
 $missingTables = mastercomAdminMissingTables(['mastercom_classi']);
 $selectedClassId = intval($_GET['class_id'] ?? 0);
 $classRows = empty($missingTables)
-    ? dbGetAll("SELECT mastercom_id_classe, nome FROM mastercom_classi ORDER BY nome ASC")
+    ? mastercomAdminOperationalClassRows('mastercom_id_classe, nome')
     : [];
+if ($selectedClassId > 0 && !mastercomAdminIsOperationalClassId($selectedClassId)) {
+    $selectedClassId = 0;
+}
 
 $summary = null;
 $records = [];

@@ -532,6 +532,45 @@ function mastercomAdminFindLocalClassIdByName(string $className): ?int
     return $value !== null ? intval($value) : null;
 }
 
+function mastercomAdminIsOperationalClassId(int $classId): bool
+{
+    if ($classId <= 0 || !mastercomAdminTableExists('mastercom_classi')) {
+        return false;
+    }
+
+    $row = dbGetFirst("SELECT * FROM mastercom_classi WHERE mastercom_id_classe = " . dbI($classId) . " LIMIT 1");
+    return is_array($row) && mastercomAdminResolveLocalClass($row) !== null;
+}
+
+function mastercomAdminOperationalClassRows(string $fields = '*'): array
+{
+    if (!mastercomAdminTableExists('mastercom_classi')) {
+        return [];
+    }
+
+    $rows = dbGetAll("SELECT * FROM mastercom_classi ORDER BY nome ASC") ?: [];
+    $operational = [];
+    foreach ($rows as $row) {
+        if (mastercomAdminResolveLocalClass($row) === null) {
+            continue;
+        }
+
+        if ($fields === '*') {
+            $operational[] = $row;
+        } else {
+            $item = [];
+            foreach (array_map('trim', explode(',', $fields)) as $field) {
+                if ($field !== '') {
+                    $item[$field] = $row[$field] ?? null;
+                }
+            }
+            $operational[] = $item;
+        }
+    }
+
+    return $operational;
+}
+
 function mastercomAdminFindLocalTeacher(array $masterTeacher): ?array
 {
     $name = trim((string)($masterTeacher['name'] ?? $masterTeacher['nome_visualizzato'] ?? ''));
@@ -1099,6 +1138,10 @@ function mastercomAdminSyncClasses(callable $progress = null): array
 
 function mastercomAdminSyncStudentsForClass(int $classId, callable $progress = null): array
 {
+    if (!mastercomAdminIsOperationalClassId($classId)) {
+        return ['ok' => false, 'message' => 'Classe MasterCom non collegata a GestOre: ignorata nella sincronizzazione studenti'];
+    }
+
     $loadResult = mastercomAdminLoadStudentsListForClass($classId);
     if (!$loadResult['ok']) {
         return $loadResult;
@@ -1129,6 +1172,9 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
     }
 
     $classRow = dbGetFirst("SELECT * FROM mastercom_classi WHERE mastercom_id_classe = " . intval($classId) . " LIMIT 1");
+    if (!mastercomAdminIsOperationalClassId($classId)) {
+        return ['ok' => false, 'message' => 'Classe MasterCom non collegata a GestOre: ignorata nella sincronizzazione studenti'];
+    }
     $classLabel = $classRow['nome'] ?? ('classe ' . $classId);
     $total = $overallTotal > 0 ? $overallTotal : count($masterStudents);
     $updated = 0;
@@ -1242,7 +1288,9 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
 
 function mastercomAdminSyncStudentsForAllClasses(callable $progress = null): array
 {
-    $classIds = dbGetAllValues("SELECT mastercom_id_classe FROM mastercom_classi ORDER BY nome ASC");
+    $classIds = array_map(function ($row) {
+        return intval($row['mastercom_id_classe'] ?? 0);
+    }, mastercomAdminOperationalClassRows('mastercom_id_classe'));
     if (empty($classIds)) {
         return ['ok' => false, 'message' => 'Nessuna classe MasterCom disponibile. Sincronizza prima le classi.'];
     }

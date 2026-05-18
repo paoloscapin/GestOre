@@ -38,8 +38,11 @@ $activeFilter = trim((string)($_GET['active_filter'] ?? 'active'));
 $mailFilter = trim((string)($_GET['mail_filter'] ?? 'all'));
 $showMailReport = intval($_GET['mail_report'] ?? 0) === 1;
 $classRows = empty($missingTables)
-    ? dbGetAll("SELECT mastercom_id_classe, nome FROM mastercom_classi ORDER BY nome ASC")
+    ? mastercomAdminOperationalClassRows('mastercom_id_classe, nome')
     : [];
+if ($selectedClassId > 0 && !mastercomAdminIsOperationalClassId($selectedClassId)) {
+    $selectedClassId = 0;
+}
 $classFilterSql = $selectedClassId > 0 ? (" WHERE s.mastercom_id_classe_corrente = " . $selectedClassId . " ") : '';
 $rows = empty($missingTables)
     ? dbGetAll("

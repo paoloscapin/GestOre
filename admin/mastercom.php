@@ -8,7 +8,7 @@ ruoloRichiesto('admin');
 $missingTables = mastercomAdminMissingTables();
 $message = trim((string)($_GET['message'] ?? ''));
 $error = trim((string)($_GET['error'] ?? ''));
-$classRows = empty($missingTables) ? dbGetAll("SELECT * FROM mastercom_classi ORDER BY nome ASC") : [];
+$classRows = empty($missingTables) ? mastercomAdminOperationalClassRows('*') : [];
 ?>
 <!DOCTYPE html>
 <html>

@@ -297,13 +297,7 @@ if ($entity === 'teachers') {
      * dentro ogni passo richiamiamo mastercomAdminSyncStudentsForClass().
      */
     if ($token === '') {
-        $classRows = dbGetAll("
-            SELECT mastercom_id_classe, nome
-            FROM mastercom_classi
-            WHERE mastercom_id_classe IS NOT NULL
-              AND mastercom_id_classe > 0
-            ORDER BY nome ASC
-        ");
+        $classRows = mastercomAdminOperationalClassRows('mastercom_id_classe, nome');
         $classes = [];
         foreach (is_array($classRows) ? $classRows : [] as $classRow) {
             $classId = intval($classRow['mastercom_id_classe'] ?? 0);
@@ -459,7 +453,9 @@ if ($entity === 'teachers') {
     }
 
     if ($token === '') {
-        $classIds = dbGetAllValues("SELECT mastercom_id_classe FROM mastercom_classi ORDER BY nome ASC");
+        $classIds = array_map(function ($row) {
+            return intval($row['mastercom_id_classe'] ?? 0);
+        }, mastercomAdminOperationalClassRows('mastercom_id_classe'));
         $classIds = array_values(array_filter(array_map('intval', is_array($classIds) ? $classIds : []), function ($id) {
             return $id > 0;
         }));

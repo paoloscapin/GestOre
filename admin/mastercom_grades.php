@@ -189,8 +189,11 @@ function mastercomGradesExtractSubjectsFromUserInfo(array $userInfoResult, int $
 }
 
 $missingTables = mastercomAdminMissingTables(['mastercom_classi']);
-$classRows = empty($missingTables) ? dbGetAll("SELECT mastercom_id_classe, nome FROM mastercom_classi ORDER BY nome ASC") : [];
+$classRows = empty($missingTables) ? mastercomAdminOperationalClassRows('mastercom_id_classe, nome') : [];
 $selectedClassId = intval($_GET['class_id'] ?? 0);
+if ($selectedClassId > 0 && !mastercomAdminIsOperationalClassId($selectedClassId)) {
+    $selectedClassId = 0;
+}
 $selectedSubjectId = intval($_GET['subject_id'] ?? 0);
 $range = mastercomGradesSchoolYearRange();
 $startDate = trim((string)($_GET['start_date'] ?? $range['start']));
