@@ -43,6 +43,28 @@ function mastercomNoIrcStudentBadge(array $student): string
         . htmlspecialchars($choice)
         . '</span>';
 }
+
+function mastercomNoIrcBucketMissingSetup(array $bucket): bool
+{
+    return trim((string)($bucket['teacher_name'] ?? '')) === ''
+        || trim((string)($bucket['aula'] ?? '')) === '';
+}
+
+function mastercomNoIrcSlotMissingSetup(array $slot): bool
+{
+    if (empty($slot['students'])) {
+        return false;
+    }
+    if (empty($slot['group_buckets'])) {
+        return true;
+    }
+    foreach ($slot['group_buckets'] as $bucket) {
+        if (!empty($bucket['students']) && mastercomNoIrcBucketMissingSetup($bucket)) {
+            return true;
+        }
+    }
+    return false;
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -81,6 +103,18 @@ function mastercomNoIrcStudentBadge(array $student): string
         .noirc-group-box.unassigned {
             border-color: #f0ad4e;
             background: #fffaf2;
+        }
+        .noirc-missing-setup {
+            background: #fff3cd !important;
+        }
+        .noirc-group-box.noirc-missing-setup {
+            border-color: #f0ad4e;
+        }
+        .noirc-missing-label {
+            display: inline-block;
+            margin-top: 4px;
+            color: #8a6d3b;
+            font-weight: 600;
         }
         .noirc-group-title {
             font-size: 13px;
@@ -140,8 +174,11 @@ function mastercomNoIrcStudentBadge(array $student): string
                                 <tr>
                                     <th style="text-align: center;"><?php echo htmlspecialchars($hour); ?></th>
                                     <?php foreach ($context['days'] as $dayInfo): ?>
-                                        <?php $slot = $context['slots'][$dayInfo['date'] . '|' . $hour] ?? null; ?>
-                                        <td>
+                                        <?php
+                                        $slot = $context['slots'][$dayInfo['date'] . '|' . $hour] ?? null;
+                                        $slotMissingSetup = is_array($slot) && mastercomNoIrcSlotMissingSetup($slot);
+                                        ?>
+                                        <td class="<?php echo $slotMissingSetup ? 'noirc-missing-setup' : ''; ?>">
                                             <?php if ($slot === null): ?>
                                                 <span class="text-muted">Nessun IRC</span>
                                             <?php else: ?>
@@ -156,6 +193,9 @@ function mastercomNoIrcStudentBadge(array $student): string
                                                             <div><strong>Scelta non definita:</strong> <?php echo intval($slot['unknown_choice_count']); ?></div>
                                                         <?php endif; ?>
                                                         <div><strong>Gruppi/Aule:</strong> <?php echo count($slot['group_buckets']); ?></div>
+                                                        <?php if ($slotMissingSetup): ?>
+                                                            <div class="noirc-missing-label">Manca docente o aula</div>
+                                                        <?php endif; ?>
                                                     </div>
                                                     <div class="slot-students">
                                                         <?php if (empty($slot['students'])): ?>
@@ -163,7 +203,11 @@ function mastercomNoIrcStudentBadge(array $student): string
                                                         <?php else: ?>
                                                             <?php foreach ($slot['group_buckets'] as $bucket): ?>
                                                                 <?php
+                                                                $bucketMissingSetup = !empty($bucket['students']) && mastercomNoIrcBucketMissingSetup($bucket);
                                                                 $boxClass = $bucket['type'] === 'unassigned' ? 'noirc-group-box unassigned' : 'noirc-group-box';
+                                                                if ($bucketMissingSetup) {
+                                                                    $boxClass .= ' noirc-missing-setup';
+                                                                }
                                                                 $groupMeta = [];
                                                                 if (trim((string)($bucket['teacher_name'] ?? '')) !== '') {
                                                                     $groupMeta[] = (string)$bucket['teacher_name'];
@@ -186,6 +230,13 @@ function mastercomNoIrcStudentBadge(array $student): string
                                                                             - <?php echo htmlspecialchars(implode(' - ', $groupMeta)); ?>
                                                                         <?php endif; ?>
                                                                     </div>
+                                                                    <?php if ($bucketMissingSetup): ?>
+                                                                        <div class="noirc-missing-label">
+                                                                            <?php echo trim((string)($bucket['teacher_name'] ?? '')) === '' ? 'Docente mancante' : ''; ?>
+                                                                            <?php echo trim((string)($bucket['teacher_name'] ?? '')) === '' && trim((string)($bucket['aula'] ?? '')) === '' ? ' - ' : ''; ?>
+                                                                            <?php echo trim((string)($bucket['aula'] ?? '')) === '' ? 'Aula mancante' : ''; ?>
+                                                                        </div>
+                                                                    <?php endif; ?>
                                                                     <?php if (trim((string)($bucket['class_filters_raw'] ?? '')) !== ''): ?>
                                                                         <div><strong>Classi assegnate:</strong> <?php echo htmlspecialchars(trim((string)$bucket['class_filters_raw'])); ?></div>
                                                                     <?php endif; ?>
@@ -241,7 +292,8 @@ function mastercomNoIrcStudentBadge(array $student): string
                             </thead>
                             <tbody>
                                 <?php foreach ($context['slots'] as $slot): ?>
-                                    <tr>
+                                    <?php $slotMissingSetup = mastercomNoIrcSlotMissingSetup($slot); ?>
+                                    <tr class="<?php echo $slotMissingSetup ? 'noirc-missing-setup' : ''; ?>">
                                         <td style="text-align: center;"><?php echo htmlspecialchars($context['days'][$slot['date']]['label'] ?? $slot['date']); ?></td>
                                         <td style="text-align: center;"><?php echo htmlspecialchars($slot['hour']); ?></td>
                                         <td><?php echo htmlspecialchars(implode(', ', $slot['classi_irc'])); ?></td>
@@ -264,7 +316,16 @@ function mastercomNoIrcStudentBadge(array $student): string
                                                     }
                                                     $parts[] = count($bucket['students']) . ' studenti';
                                                     ?>
-                                                    <div><?php echo htmlspecialchars(implode(' - ', $parts)); ?></div>
+                                                    <div>
+                                                        <?php echo htmlspecialchars(implode(' - ', $parts)); ?>
+                                                        <?php if (!empty($bucket['students']) && mastercomNoIrcBucketMissingSetup($bucket)): ?>
+                                                            <span class="noirc-missing-label">
+                                                                <?php echo trim((string)($bucket['teacher_name'] ?? '')) === '' ? 'Docente mancante' : ''; ?>
+                                                                <?php echo trim((string)($bucket['teacher_name'] ?? '')) === '' && trim((string)($bucket['aula'] ?? '')) === '' ? ' - ' : ''; ?>
+                                                                <?php echo trim((string)($bucket['aula'] ?? '')) === '' ? 'Aula mancante' : ''; ?>
+                                                            </span>
+                                                        <?php endif; ?>
+                                                    </div>
                                                 <?php endforeach; ?>
                                             <?php endif; ?>
                                         </td>
