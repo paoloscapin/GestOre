@@ -1673,7 +1673,102 @@ function mastercomNoIrcSaveAppeal(array $payload, int $createdByUserId, int $cur
     return ['ok' => true, 'id_appello' => $appealId, 'saved' => $saved];
 }
 
-function mastercomNoIrcPresenceClassifyAppealRow(array $appealRow): array
+function mastercomNoIrcPresenceEntryTimeMinutes(array $entry, string $date = ''): int
+{
+    foreach (['orario', 'ora', 'time', 'descrizione', 'titolo', 'nome', 'testo'] as $key) {
+        $value = trim((string)($entry[$key] ?? ''));
+        if ($value !== '' && preg_match('/\b(\d{1,2})[:\.](\d{2})\b/', $value, $matches)) {
+            return (intval($matches[1]) * 60) + intval($matches[2]);
+        }
+    }
+
+    foreach (['data', 'data_ts', 'start_ts', 'data_inizio_ts', 'data_inizio'] as $key) {
+        $value = $entry[$key] ?? null;
+        if ($value === null || $value === '') {
+            continue;
+        }
+
+        $timestamp = is_numeric($value) ? intval($value) : strtotime((string)$value);
+        if ($timestamp <= 0) {
+            continue;
+        }
+
+        if ($date !== '' && mastercomNoIrcPresenceFormatTs($timestamp, 'Y-m-d') !== $date) {
+            continue;
+        }
+
+        $minutes = intval(mastercomNoIrcPresenceFormatTs($timestamp, 'H')) * 60
+            + intval(mastercomNoIrcPresenceFormatTs($timestamp, 'i'));
+        if ($minutes > 0) {
+            return $minutes;
+        }
+    }
+
+    return -1;
+}
+
+function mastercomNoIrcPresenceMovementStateAtHour(array $entrate, array $uscite, string $date, string $hour): string
+{
+    $slotMinute = mastercomNoIrcTimeToMinutes($hour);
+    if ($slotMinute < 0) {
+        return '';
+    }
+
+    $movements = [];
+    foreach ($uscite as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $minute = mastercomNoIrcPresenceEntryTimeMinutes($entry, $date);
+        if ($minute >= 0) {
+            $movements[] = ['type' => 'USCITA', 'minute' => $minute];
+        }
+    }
+    foreach ($entrate as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $minute = mastercomNoIrcPresenceEntryTimeMinutes($entry, $date);
+        if ($minute >= 0) {
+            $movements[] = ['type' => 'ENTRATA_RITARDO', 'minute' => $minute];
+        }
+    }
+
+    usort($movements, function ($left, $right) {
+        if ($left['minute'] === $right['minute']) {
+            return strcmp($left['type'], $right['type']);
+        }
+        return $left['minute'] <=> $right['minute'];
+    });
+
+    if (empty($movements)) {
+        return '';
+    }
+
+    $lastState = '';
+    foreach ($movements as $movement) {
+        if (intval($movement['minute']) > $slotMinute) {
+            break;
+        }
+        $lastState = (string)$movement['type'];
+    }
+
+    if ($lastState !== '') {
+        return $lastState;
+    }
+
+    $firstState = (string)($movements[0]['type'] ?? '');
+    if ($firstState === 'ENTRATA_RITARDO') {
+        return 'ASSENTE_MASTERCOM';
+    }
+    if ($firstState === 'USCITA') {
+        return 'PRESENTE';
+    }
+
+    return '';
+}
+
+function mastercomNoIrcPresenceClassifyAppealRow(array $appealRow, string $date = '', string $hour = ''): array
 {
     $stato = is_array($appealRow['stato'] ?? null) ? $appealRow['stato'] : [];
     $assenze = is_array($appealRow['assenze'] ?? null) ? $appealRow['assenze'] : [];
@@ -1688,6 +1783,21 @@ function mastercomNoIrcPresenceClassifyAppealRow(array $appealRow): array
     }
     if (!empty($permessi)) {
         return ['stato' => 'PERMESSO', 'label' => 'Permesso MasterCom', 'detail' => 'Permesso registrato', 'appeal' => $appealRow];
+    }
+    if ($hour !== '' && (!empty($uscite) || !empty($entrate))) {
+        $movementState = mastercomNoIrcPresenceMovementStateAtHour($entrate, $uscite, $date, $hour);
+        if ($movementState === 'USCITA') {
+            return ['stato' => 'USCITA', 'label' => 'Uscita MasterCom', 'detail' => 'Uscita registrata', 'appeal' => $appealRow];
+        }
+        if ($movementState === 'ENTRATA_RITARDO') {
+            return ['stato' => 'ENTRATA_RITARDO', 'label' => 'Entrata in ritardo', 'detail' => 'Entrata in ritardo registrata', 'appeal' => $appealRow];
+        }
+        if ($movementState === 'ASSENTE_MASTERCOM') {
+            return ['stato' => 'ASSENTE_MASTERCOM', 'label' => 'Assente MasterCom', 'detail' => 'Assente fino a entrata registrata', 'appeal' => $appealRow];
+        }
+        if ($movementState === 'PRESENTE') {
+            return ['stato' => 'PRESENTE', 'label' => 'Presente', 'detail' => 'Presente prima di uscita registrata', 'appeal' => $appealRow];
+        }
     }
     if (!empty($uscite)) {
         return ['stato' => 'USCITA', 'label' => 'Uscita MasterCom', 'detail' => 'Uscita registrata', 'appeal' => $appealRow];
@@ -2033,7 +2143,7 @@ function mastercomNoIrcLoadPresenceMap(array $students, string $date, string $ho
                 );
                 $normalizedAppealRow = mastercomNoIrcPresenceNormalizeAppealRow($normalizedAppealRow, $date);
             }
-            $map[$studentId] = mastercomNoIrcPresenceClassifyAppealRow($normalizedAppealRow);
+            $map[$studentId] = mastercomNoIrcPresenceClassifyAppealRow($normalizedAppealRow, $date, $hour);
         }
     }
 
@@ -2252,6 +2362,16 @@ function mastercomNoIrcPlanMastercomAction(array $student, array $presenceRow, s
             'kind' => 'edit',
             'summary' => 'Modifichera l’assenza esistente in ' . $typeLabels[$type] . ' con orario ' . $hour . '.',
             'payload' => $payload,
+            'type_label' => $typeLabels[$type],
+        ];
+    }
+
+    if ($mcState === 'ENTRATA_RITARDO' && $isNoircAbsent) {
+        $type = $isAfternoon ? 9 : 3;
+        return [
+            'kind' => 'create',
+            'summary' => 'Inserira su MasterCom una ' . $typeLabels[$type] . ' non giustificata con orario ' . $hour . ', mantenendo invariata l’entrata in ritardo gia registrata.',
+            'payload' => mastercomNoIrcBuildAdminAbsencePayload($student, $date, $hour, $type, 'inserisci_assenze_studente_update'),
             'type_label' => $typeLabels[$type],
         ];
     }
