@@ -76,6 +76,23 @@ function mastercomGradesShortTypeLabel(string $type): string
     return $map[$type] ?? mb_substr($type, 0, 1, 'UTF-8');
 }
 
+function mastercomGradesHasValue($value): bool
+{
+    if ($value === null) {
+        return false;
+    }
+    $text = trim((string)$value);
+    if ($text === '' || $text === '-' || preg_match('/^0+(?:[\.,]0+)?$/', $text)) {
+        return false;
+    }
+    return true;
+}
+
+function mastercomGradesFormatAverage($value): string
+{
+    return mastercomGradesHasValue($value) ? (string)$value : '-';
+}
+
 function mastercomGradesDayMonthLabel(int $timestamp): string
 {
     if ($timestamp <= 0) {
@@ -177,15 +194,107 @@ function mastercomGradesExtractSubjectsFromUserInfo(array $userInfoResult, int $
         }, $classSubjects));
     }
 
+    return [];
+}
+
+function mastercomGradesExtractAllSubjectsFromUserInfo(array $userInfoResult): array
+{
+    $root = $userInfoResult['response']['result'] ?? null;
+    if (!is_array($root)) {
+        return [];
+    }
+
+    $subjects = [];
+    mastercomGradesCollectSubjectsFromNode($root, $subjects, null);
     $fallback = [];
-    foreach ($allSubjects as $row) {
-        $fallback[intval($row['mastercom_id_materia'])] = [
-            'mastercom_id_materia' => intval($row['mastercom_id_materia']),
+    foreach (array_values($subjects) as $row) {
+        $subjectId = intval($row['mastercom_id_materia'] ?? 0);
+        if ($subjectId <= 0) {
+            continue;
+        }
+        $fallback[$subjectId] = [
+            'mastercom_id_materia' => $subjectId,
             'materia' => $row['materia'],
         ];
     }
 
     return mastercomGradesSortSubjects(array_values($fallback));
+}
+
+function mastercomGradesExtractClassSubjectsFromHtml(string $html): array
+{
+    if (trim($html) === '') {
+        return [];
+    }
+
+    $subjects = [];
+    if (!preg_match_all('/<select\b[^>]*name=["\']materia\[\]["\'][^>]*>(.*?)<\/select>/is', $html, $selectMatches)) {
+        return [];
+    }
+
+    foreach ($selectMatches[1] as $selectHtml) {
+        if (!preg_match_all('/<option\b([^>]*)>(.*?)<\/option>/is', $selectHtml, $optionMatches, PREG_SET_ORDER)) {
+            continue;
+        }
+
+        foreach ($optionMatches as $optionMatch) {
+            $attributes = (string)($optionMatch[1] ?? '');
+            if (stripos($attributes, 'selected') === false) {
+                continue;
+            }
+
+            if (!preg_match('/\bvalue\s*=\s*(["\']?)(-?\d+)\1/i', $attributes, $valueMatch)) {
+                continue;
+            }
+
+            $subjectId = intval($valueMatch[2] ?? 0);
+            if ($subjectId <= 0) {
+                continue;
+            }
+
+            $subjectName = mastercomGradesCleanText(strip_tags((string)($optionMatch[2] ?? '')));
+            if ($subjectName === '') {
+                $subjectName = 'Materia ' . $subjectId;
+            }
+
+            $subjects[$subjectId] = [
+                'mastercom_id_materia' => $subjectId,
+                'materia' => $subjectName,
+            ];
+        }
+    }
+
+    return mastercomGradesSortSubjects(array_values($subjects));
+}
+
+function mastercomGradesLoadClassSubjectsFromAdmin(array $authResult, int $classId): array
+{
+    if ($classId <= 0) {
+        return [];
+    }
+
+    $response = mastercomRawRequest([
+        'form_stato' => 'amministratore',
+        'stato_principale' => 'impostazioni_principale',
+        'stato_secondario' => 'gestione_classi_indirizzi_display',
+        'id_classe' => $classId,
+        'operazione' => '',
+        'id_indirizzo' => '',
+        'current_user' => mastercomCurrentUser($authResult),
+        'current_key' => mastercomCurrentKey($authResult),
+    ], [
+        'base_url' => mastercomIndexUrl(),
+        'cookie' => implode('; ', array_filter($authResult['cookies'] ?? [])),
+        'method' => 'POST',
+        'send_in_body' => true,
+        'timeout' => 120,
+    ]);
+
+    if (empty($response['ok'])) {
+        return [];
+    }
+
+    return mastercomGradesExtractClassSubjectsFromHtml((string)($response['body'] ?? ''));
 }
 
 $missingTables = mastercomAdminMissingTables(['mastercom_classi']);
@@ -205,22 +314,38 @@ $selectedClassName = '';
 $subjectRows = [];
 $subjectMap = [];
 $subjectsToLoad = [];
+$probeSubjectMap = [];
+$candidateSubjectMap = [];
 $studentMap = [];
+$teacherMap = [];
+$avgMatrixSubjects = [];
+$avgMatrixStudents = [];
+$avgMatrixCells = [];
 $gradeCalendarDates = [];
 $gradeCalendarStudents = [];
 $gradeCalendarCells = [];
 
-if (empty($missingTables) && mastercomAdminTableExists('mastercom_docenti_classi_materie')) {
-    if ($selectedClassId > 0) {
-        $subjectRows = dbGetAll("
-            SELECT DISTINCT
-                mastercom_id_materia,
-                materia
-            FROM mastercom_docenti_classi_materie
-            WHERE mastercom_id_classe = " . intval($selectedClassId) . "
-            ORDER BY materia ASC, mastercom_id_materia ASC
-        ");
+if (empty($missingTables) && $selectedClassId > 0) {
+    $subjectAuthResult = mastercomAuthenticateService([
+        'profile' => 'MasterComAuth',
+        'method' => 'POST',
+        'timeout' => 60,
+    ]);
+
+    if ($subjectAuthResult['ok']) {
+        $subjectRows = mastercomGradesLoadClassSubjectsFromAdmin($subjectAuthResult, $selectedClassId);
     }
+}
+
+if (empty($missingTables) && $selectedClassId > 0 && empty($subjectRows) && mastercomAdminTableExists('mastercom_docenti_classi_materie')) {
+    $subjectRows = dbGetAll("
+        SELECT DISTINCT
+            mastercom_id_materia,
+            materia
+        FROM mastercom_docenti_classi_materie
+        WHERE mastercom_id_classe = " . intval($selectedClassId) . "
+        ORDER BY materia ASC, mastercom_id_materia ASC
+    ");
 }
 
 if (empty($missingTables) && $selectedClassId > 0 && empty($subjectRows)) {
@@ -249,9 +374,6 @@ foreach ($subjectRows as $subjectRow) {
     }
     $subjectMap[$subjectId] = mastercomGradesCleanText($subjectRow['materia'] ?? ('Materia ' . $subjectId));
 }
-if ($selectedSubjectId > 0 && !isset($subjectMap[$selectedSubjectId])) {
-    $selectedSubjectId = 0;
-}
 
 if (empty($missingTables) && $selectedClassId > 0) {
     $selectedClassName = trim((string)(dbGetValue("SELECT nome FROM mastercom_classi WHERE mastercom_id_classe = " . $selectedClassId . " LIMIT 1") ?? ''));
@@ -266,18 +388,46 @@ if (empty($missingTables) && $selectedClassId > 0) {
     }
 }
 
-if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectMap)) {
-    if ($selectedSubjectId > 0) {
-        $subjectsToLoad[$selectedSubjectId] = $subjectMap[$selectedSubjectId] ?? ('Materia ' . $selectedSubjectId);
-    } else {
-        $subjectsToLoad = $subjectMap;
+if (empty($missingTables) && mastercomAdminTableExists('mastercom_docenti')) {
+    $teacherRows = dbGetAll("
+        SELECT
+            m.mastercom_id_user,
+            m.nome_visualizzato,
+            d.cognome,
+            d.nome
+        FROM mastercom_docenti m
+        LEFT JOIN docente d ON d.id = m.id_docente_gestore
+        WHERE m.mastercom_id_user IS NOT NULL
+          AND m.mastercom_id_user > 0
+    ");
+    foreach ($teacherRows as $teacherRow) {
+        $teacherId = intval($teacherRow['mastercom_id_user'] ?? 0);
+        if ($teacherId <= 0) {
+            continue;
+        }
+        $teacherName = trim((string)($teacherRow['cognome'] ?? '') . ' ' . (string)($teacherRow['nome'] ?? ''));
+        if ($teacherName === '') {
+            $teacherName = trim((string)($teacherRow['nome_visualizzato'] ?? ''));
+        }
+        if ($teacherName !== '') {
+            $teacherMap[$teacherId] = $teacherName;
+        }
     }
+}
+
+if (empty($missingTables) && $selectedClassId > 0) {
+    $candidateSubjectMap = $subjectMap;
+    if ($selectedSubjectId > 0 && !isset($candidateSubjectMap[$selectedSubjectId])) {
+        $selectedSubjectId = 0;
+    }
+    $subjectsToLoad = $candidateSubjectMap;
 }
 
 if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
     $startTs = mastercomGradesDayStartTs($startDate);
     $endTs = mastercomGradesDayEndTs($endDate);
     $loadErrors = [];
+    $loadedSubjectIds = [];
 
     if ($startTs <= 0 || $endTs <= 0 || $endTs < $startTs) {
         $errorMessage = 'Intervallo date non valido';
@@ -316,17 +466,30 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
                     if (!is_array($avgRow)) {
                         continue;
                     }
+                    $studentId = intval($studentId);
+                    if (!isset($studentMap[$studentId])) {
+                        continue;
+                    }
 
                     $avgRows[] = [
                         'subject_id' => $subjectId,
                         'subject_name' => $subjectName,
-                        'student_id' => intval($studentId),
-                        'student_name' => $studentMap[intval($studentId)] ?? ('Studente ' . intval($studentId)),
+                        'student_id' => $studentId,
+                        'student_name' => $studentMap[$studentId],
                         'scritto' => $avgRow['scritto'] ?? null,
                         'orale' => $avgRow['orale'] ?? null,
                         'pratico' => $avgRow['pratico'] ?? null,
                         'totale' => $avgRow['totale'] ?? null,
                     ];
+
+                    if (
+                        mastercomGradesHasValue($avgRow['scritto'] ?? null) ||
+                        mastercomGradesHasValue($avgRow['orale'] ?? null) ||
+                        mastercomGradesHasValue($avgRow['pratico'] ?? null) ||
+                        mastercomGradesHasValue($avgRow['totale'] ?? null)
+                    ) {
+                        $loadedSubjectIds[$subjectId] = true;
+                    }
                 }
 
                 $gradeData = is_array($gradesResult['response']['result'] ?? null) ? $gradesResult['response']['result'] : [];
@@ -336,19 +499,70 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
                     }
 
                     $studentId = intval($gradeRow['id_studente'] ?? 0);
+                    if (!isset($studentMap[$studentId])) {
+                        continue;
+                    }
                     $gradeRows[] = [
                         'id_voto' => intval($gradeRow['id_voto'] ?? 0),
                         'subject_id' => $subjectId,
                         'subject_name' => $subjectName,
                         'student_id' => $studentId,
-                        'student_name' => $studentMap[$studentId] ?? ('Studente ' . $studentId),
+                        'student_name' => $studentMap[$studentId],
                         'date_ts' => intval($gradeRow['data'] ?? 0),
                         'date' => mastercomGradesFormatTs(intval($gradeRow['data'] ?? 0)),
                         'tipo' => mastercomGradesTypeLabel($gradeRow['tipo'] ?? 0),
                         'voto' => (string)($gradeRow['voto'] ?? ''),
                         'note' => mastercomAdminCleanText($gradeRow['note'] ?? '') ?? '',
                         'professore' => intval($gradeRow['id_professore'] ?? 0),
+                        'professore_nome' => $teacherMap[intval($gradeRow['id_professore'] ?? 0)] ?? '',
                     ];
+                    if (trim((string)($gradeRow['voto'] ?? '')) !== '') {
+                        $loadedSubjectIds[$subjectId] = true;
+                    }
+                }
+            }
+
+            if (!empty($loadedSubjectIds)) {
+                $avgRows = array_values(array_filter($avgRows, function ($row) use ($loadedSubjectIds) {
+                    return isset($loadedSubjectIds[intval($row['subject_id'] ?? 0)]) && (
+                        mastercomGradesHasValue($row['scritto'] ?? null) ||
+                        mastercomGradesHasValue($row['orale'] ?? null) ||
+                        mastercomGradesHasValue($row['pratico'] ?? null) ||
+                        mastercomGradesHasValue($row['totale'] ?? null)
+                    );
+                }));
+
+                $filteredSubjectRows = [];
+                foreach ($subjectsToLoad as $subjectId => $subjectName) {
+                    $subjectId = intval($subjectId);
+                    if (isset($loadedSubjectIds[$subjectId])) {
+                        $filteredSubjectRows[] = [
+                            'mastercom_id_materia' => $subjectId,
+                            'materia' => $subjectName,
+                        ];
+                    }
+                }
+                if (!empty($filteredSubjectRows)) {
+                    $subjectRows = mastercomGradesSortSubjects($filteredSubjectRows);
+                    $subjectMap = [];
+                    foreach ($subjectRows as $subjectRow) {
+                        $subjectId = intval($subjectRow['mastercom_id_materia'] ?? 0);
+                        if ($subjectId > 0) {
+                            $subjectMap[$subjectId] = mastercomGradesCleanText($subjectRow['materia'] ?? ('Materia ' . $subjectId));
+                        }
+                    }
+                }
+
+                if ($selectedSubjectId > 0 && !isset($loadedSubjectIds[$selectedSubjectId])) {
+                    $selectedSubjectId = 0;
+                }
+                if ($selectedSubjectId > 0) {
+                    $avgRows = array_values(array_filter($avgRows, function ($row) use ($selectedSubjectId) {
+                        return intval($row['subject_id'] ?? 0) === $selectedSubjectId;
+                    }));
+                    $gradeRows = array_values(array_filter($gradeRows, function ($row) use ($selectedSubjectId) {
+                        return intval($row['subject_id'] ?? 0) === $selectedSubjectId;
+                    }));
                 }
             }
 
@@ -362,6 +576,18 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
                     }
                     return strcmp($a['subject_name'] ?? '', $b['subject_name'] ?? '');
                 });
+
+                if ($selectedSubjectId <= 0) {
+                    $avgMatrixSubjects = $subjectMap;
+                    $avgMatrixStudents = $studentMap;
+                    foreach ($avgRows as $row) {
+                        $studentId = intval($row['student_id'] ?? 0);
+                        $subjectId = intval($row['subject_id'] ?? 0);
+                        if ($studentId > 0 && $subjectId > 0) {
+                            $avgMatrixCells[$studentId][$subjectId] = $row;
+                        }
+                    }
+                }
 
                 foreach ($avgRows as $row) {
                     $gradeCalendarStudents[intval($row['student_id'])] = $row['student_name'];
@@ -378,6 +604,7 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
                         'ts' => $dateTs,
                         'label' => mastercomGradesDayMonthLabel($dateTs),
                         'full' => $row['date'],
+                        'period' => intval(date('n', $dateTs)) >= 9 ? 'first' : 'second',
                     ];
 
                     $studentId = intval($row['student_id']);
@@ -396,8 +623,10 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
                         'voto' => $row['voto'],
                         'tipo' => $row['tipo'],
                         'tipo_short' => mastercomGradesShortTypeLabel($row['tipo']),
+                        'tipo_class' => strtolower(preg_replace('/[^a-z0-9]+/i', '-', $row['tipo'])),
                         'note' => $row['note'],
                         'subject_name' => $row['subject_name'] ?? '',
+                        'professore_nome' => $row['professore_nome'] ?? '',
                     ];
                 }
 
@@ -419,12 +648,85 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
     <style>
         .mc-grades-calendar-wrap {
             overflow-x: auto;
+            overflow-y: visible;
+            max-width: 100%;
+            width: 100%;
             border: 1px solid #d8e4ea;
             background: #fff;
         }
 
+        .mc-avg-matrix-wrap {
+            overflow-x: auto;
+            max-width: 100%;
+            width: 100%;
+            border: 1px solid #d8e4ea;
+            background: #fff;
+            margin-bottom: 18px;
+        }
+
+        .mc-avg-matrix {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .mc-avg-matrix th,
+        .mc-avg-matrix td {
+            border-right: 1px solid #d8e4ea;
+            border-bottom: 1px solid #d8e4ea;
+            padding: 7px 8px;
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        .mc-avg-matrix thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #edf6fa;
+            color: #1f3f52;
+            font-size: 12px;
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+        }
+
+        .mc-avg-matrix .mc-student-col {
+            position: sticky;
+            left: 0;
+            z-index: 3;
+            background: #f8fbfc;
+            text-align: left;
+            font-weight: 700;
+            width: 220px;
+            min-width: 220px;
+            max-width: 220px;
+        }
+
+        .mc-avg-matrix thead .mc-student-col {
+            z-index: 4;
+            text-align: center;
+        }
+
+        .mc-avg-cell {
+            display: inline-block;
+            min-width: 46px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            background: #e8f2ff;
+            border: 1px solid #9ec7f5;
+            color: #0d5a7a;
+            font-weight: 800;
+        }
+
+        .mc-avg-cell-empty {
+            color: #98a6ad;
+            font-weight: 700;
+        }
+
         .mc-grades-calendar {
-            min-width: 100%;
+            width: 100%;
+            table-layout: fixed;
             border-collapse: separate;
             border-spacing: 0;
         }
@@ -437,13 +739,23 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
             padding: 6px;
         }
 
+        .mc-grades-calendar th.mc-period-first,
+        .mc-grades-calendar td.mc-period-first {
+            background: #fff8d8;
+        }
+
+        .mc-grades-calendar th.mc-period-second,
+        .mc-grades-calendar td.mc-period-second {
+            background: #eaf7ff;
+        }
+
         .mc-grades-calendar thead th {
             position: sticky;
             top: 0;
             background: #edf6fa;
             z-index: 2;
             text-align: center;
-            min-width: 88px;
+            width: 150px;
         }
 
         .mc-grades-calendar .mc-student-col {
@@ -451,8 +763,9 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
             left: 0;
             z-index: 3;
             background: #f8fbfc;
-            min-width: 240px;
-            max-width: 240px;
+            width: 220px;
+            min-width: 220px;
+            max-width: 220px;
         }
 
         .mc-grades-calendar thead .mc-student-col {
@@ -467,6 +780,22 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
             background: #f2f7f9;
             border: 1px solid #d7e6eb;
             line-height: 1.2;
+            overflow: hidden;
+        }
+
+        .mc-grade-chip.mc-grade-scritto {
+            background: #e8f2ff;
+            border-color: #9ec7f5;
+        }
+
+        .mc-grade-chip.mc-grade-orale {
+            background: #e9f8ed;
+            border-color: #9bd4aa;
+        }
+
+        .mc-grade-chip.mc-grade-pratico {
+            background: #fff0df;
+            border-color: #efbf86;
         }
 
         .mc-grade-chip:last-child {
@@ -493,16 +822,61 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
             margin-top: 3px;
             font-size: 11px;
             color: #5e6d75;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .mc-grade-note-long {
+            max-height: 42px;
+            overflow: hidden;
+        }
+
+        .mc-grade-teacher {
+            display: block;
+            margin-top: 3px;
+            font-size: 10px;
+            font-weight: 700;
+            color: #42515a;
         }
 
         .mc-empty-cell {
-            background: #fbfcfd;
-            min-width: 88px;
+            width: 150px;
+        }
+
+        #mc_grades_loading_overlay {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.78);
+            align-items: center;
+            justify-content: center;
+        }
+
+        #mc_grades_loading_overlay .mc-loading-box {
+            min-width: 300px;
+            background: #ffffff;
+            border: 1px solid #d7e3f0;
+            border-radius: 8px;
+            box-shadow: 0 12px 34px rgba(15, 23, 42, 0.18);
+            padding: 20px 22px;
+            text-align: center;
+            font-weight: 700;
+            color: #0d5a7a;
         }
     </style>
 </head>
 <body>
 <?php require_once '../common/header-admin.php'; ?>
+<div id="mc_grades_loading_overlay">
+    <div class="mc-loading-box">
+        <span class="glyphicon glyphicon-refresh"></span>
+        Caricamento voti MasterCom in corso...
+    </div>
+</div>
 <div class="container-fluid">
     <div class="panel panel-teal4">
         <div class="panel-heading"><span class="glyphicon glyphicon-list-alt"></span>&emsp;Voti Classe / Materia MasterCom</div>
@@ -510,7 +884,7 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
             <?php if (!empty($missingTables)): ?>
                 <div class="alert alert-warning">Mancano tabelle: <?php echo htmlspecialchars(implode(', ', $missingTables)); ?>.</div>
             <?php else: ?>
-                <form method="get" action="mastercom_grades.php" class="form-inline" style="margin-bottom: 15px;">
+                <form method="get" action="mastercom_grades.php" class="form-inline" style="margin-bottom: 15px;" onsubmit="document.getElementById('mc_grades_loading_overlay').style.display='flex';">
                     <div class="form-group">
                         <label for="class_id">Classe&nbsp;</label>
                         <select name="class_id" id="class_id" class="form-control" onchange="this.form.submit()">
@@ -562,47 +936,97 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
                         materia <strong><?php echo $selectedSubjectId > 0 ? htmlspecialchars($subjectMap[$selectedSubjectId] ?? ('Materia ' . $selectedSubjectId)) : 'Tutte le materie'; ?></strong>.
                     </div>
 
-                    <h4><?php echo $selectedSubjectId > 0 ? 'Medie per studente' : 'Medie per studente e materia'; ?></h4>
-                    <table class="table table-striped table-bordered table-condensed">
-                        <thead>
-                            <tr>
-                                <th>Studente</th>
-                                <?php if ($selectedSubjectId <= 0): ?>
-                                    <th>Materia</th>
-                                <?php endif; ?>
-                                <th style="text-align: center;">Scritto</th>
-                                <th style="text-align: center;">Orale</th>
-                                <th style="text-align: center;">Pratico</th>
-                                <th style="text-align: center;">Totale</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($avgRows as $row): ?>
+                    <h4><?php echo $selectedSubjectId > 0 ? 'Medie per studente' : 'Quadro medie per materia'; ?></h4>
+                    <?php if ($selectedSubjectId <= 0): ?>
+                        <?php if (empty($avgMatrixSubjects) || empty($avgMatrixStudents)): ?>
+                            <div class="alert alert-info">Nessuna media trovata nell'intervallo selezionato.</div>
+                        <?php else: ?>
+                            <div class="mc-avg-matrix-wrap">
+                                <table class="table mc-avg-matrix" style="min-width: <?php echo 220 + (max(1, count($avgMatrixSubjects)) * 125); ?>px;">
+                                    <colgroup>
+                                        <col style="width: 220px;">
+                                        <?php foreach ($avgMatrixSubjects as $_subjectId => $_subjectName): ?>
+                                            <col style="width: 125px;">
+                                        <?php endforeach; ?>
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th class="mc-student-col">Studente</th>
+                                            <?php foreach ($avgMatrixSubjects as $subjectName): ?>
+                                                <th><?php echo htmlspecialchars($subjectName); ?></th>
+                                            <?php endforeach; ?>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($avgMatrixStudents as $studentId => $studentName): ?>
+                                            <tr>
+                                                <td class="mc-student-col"><?php echo htmlspecialchars($studentName); ?></td>
+                                                <?php foreach ($avgMatrixSubjects as $subjectId => $subjectName): ?>
+                                                    <?php $avgCell = $avgMatrixCells[intval($studentId)][intval($subjectId)] ?? null; ?>
+                                                    <td>
+                                                        <?php if (is_array($avgCell)): ?>
+                                                            <?php
+                                                            $avgTooltip = $subjectName
+                                                                . ' - Scritto: ' . mastercomGradesFormatAverage($avgCell['scritto'] ?? null)
+                                                                . ' - Orale: ' . mastercomGradesFormatAverage($avgCell['orale'] ?? null)
+                                                                . ' - Pratico: ' . mastercomGradesFormatAverage($avgCell['pratico'] ?? null);
+                                                            ?>
+                                                            <span class="mc-avg-cell" title="<?php echo htmlspecialchars($avgTooltip); ?>">
+                                                                <?php echo htmlspecialchars(mastercomGradesFormatAverage($avgCell['totale'] ?? null)); ?>
+                                                            </span>
+                                                        <?php else: ?>
+                                                            <span class="mc-avg-cell-empty">-</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                <?php endforeach; ?>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <table class="table table-striped table-bordered table-condensed">
+                            <thead>
                                 <tr>
-                                    <td><?php echo htmlspecialchars($row['student_name']); ?></td>
-                                    <?php if ($selectedSubjectId <= 0): ?>
-                                        <td><?php echo htmlspecialchars($row['subject_name'] ?? ''); ?></td>
-                                    <?php endif; ?>
-                                    <td style="text-align: center;"><?php echo htmlspecialchars((string)$row['scritto']); ?></td>
-                                    <td style="text-align: center;"><?php echo htmlspecialchars((string)$row['orale']); ?></td>
-                                    <td style="text-align: center;"><?php echo htmlspecialchars((string)$row['pratico']); ?></td>
-                                    <td style="text-align: center;"><strong><?php echo htmlspecialchars((string)$row['totale']); ?></strong></td>
+                                    <th>Studente</th>
+                                    <th style="text-align: center;">Scritto</th>
+                                    <th style="text-align: center;">Orale</th>
+                                    <th style="text-align: center;">Pratico</th>
+                                    <th style="text-align: center;">Totale</th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($avgRows as $row): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($row['student_name']); ?></td>
+                                        <td style="text-align: center;"><?php echo htmlspecialchars(mastercomGradesFormatAverage($row['scritto'])); ?></td>
+                                        <td style="text-align: center;"><?php echo htmlspecialchars(mastercomGradesFormatAverage($row['orale'])); ?></td>
+                                        <td style="text-align: center;"><?php echo htmlspecialchars(mastercomGradesFormatAverage($row['pratico'])); ?></td>
+                                        <td style="text-align: center;"><strong><?php echo htmlspecialchars(mastercomGradesFormatAverage($row['totale'])); ?></strong></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php endif; ?>
 
                     <h4>Calendario voti</h4>
                     <?php if (empty($gradeCalendarDates) || empty($gradeCalendarStudents)): ?>
                         <div class="alert alert-info">Nessun voto dettagliato trovato nell'intervallo selezionato.</div>
                     <?php else: ?>
                         <div class="mc-grades-calendar-wrap">
-                            <table class="table mc-grades-calendar">
+                            <table class="table mc-grades-calendar" style="min-width: <?php echo 220 + (max(1, count($gradeCalendarDates)) * 150); ?>px;">
+                                <colgroup>
+                                    <col style="width: 220px;">
+                                    <?php foreach ($gradeCalendarDates as $_dateInfo): ?>
+                                        <col style="width: 150px;">
+                                    <?php endforeach; ?>
+                                </colgroup>
                                 <thead>
                                     <tr>
                                         <th class="mc-student-col">Studente</th>
                                         <?php foreach ($gradeCalendarDates as $dateInfo): ?>
-                                            <th>
+                                            <th class="mc-period-<?php echo htmlspecialchars($dateInfo['period'] ?? 'second'); ?>">
                                                 <?php echo htmlspecialchars($dateInfo['label']); ?><br>
                                                 <small><?php echo htmlspecialchars($dateInfo['full']); ?></small>
                                             </th>
@@ -615,7 +1039,7 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
                                             <td class="mc-student-col"><?php echo htmlspecialchars($studentName); ?></td>
                                             <?php foreach ($gradeCalendarDates as $dateKey => $dateInfo): ?>
                                                 <?php $cellEntries = $gradeCalendarCells[intval($studentId)][$dateKey] ?? []; ?>
-                                                <td class="<?php echo empty($cellEntries) ? 'mc-empty-cell' : ''; ?>">
+                                                <td class="<?php echo empty($cellEntries) ? 'mc-empty-cell ' : ''; ?>mc-period-<?php echo htmlspecialchars($dateInfo['period'] ?? 'second'); ?>">
                                                     <?php foreach ($cellEntries as $entry): ?>
                                                         <?php
                                                         $chipTitleParts = [];
@@ -626,15 +1050,21 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
                                                         if ($entry['note'] !== '') {
                                                             $chipTitleParts[] = $entry['note'];
                                                         }
+                                                        if (($entry['professore_nome'] ?? '') !== '') {
+                                                            $chipTitleParts[] = 'Docente: ' . $entry['professore_nome'];
+                                                        }
                                                         ?>
-                                                        <span class="mc-grade-chip" title="<?php echo htmlspecialchars(implode(' - ', $chipTitleParts)); ?>">
+                                                        <span class="mc-grade-chip mc-grade-<?php echo htmlspecialchars($entry['tipo_class'] ?? ''); ?>" title="<?php echo htmlspecialchars(implode(' - ', $chipTitleParts)); ?>">
                                                             <?php if ($selectedSubjectId <= 0 && trim((string)($entry['subject_name'] ?? '')) !== ''): ?>
                                                                 <span class="mc-grade-note"><strong><?php echo htmlspecialchars($entry['subject_name']); ?></strong></span>
                                                             <?php endif; ?>
                                                             <span class="mc-grade-type"><?php echo htmlspecialchars($entry['tipo_short']); ?></span>
                                                             <span class="mc-grade-score"><?php echo htmlspecialchars($entry['voto']); ?></span>
+                                                            <?php if (($entry['professore_nome'] ?? '') !== ''): ?>
+                                                                <span class="mc-grade-teacher"><?php echo htmlspecialchars($entry['professore_nome']); ?></span>
+                                                            <?php endif; ?>
                                                             <?php if ($entry['note'] !== ''): ?>
-                                                                <span class="mc-grade-note"><?php echo htmlspecialchars($entry['note']); ?></span>
+                                                                <span class="mc-grade-note mc-grade-note-long"><?php echo htmlspecialchars($entry['note']); ?></span>
                                                             <?php endif; ?>
                                                         </span>
                                                     <?php endforeach; ?>
@@ -651,5 +1081,24 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.querySelector('form[action="mastercom_grades.php"]');
+    var overlay = document.getElementById('mc_grades_loading_overlay');
+    if (!form || !overlay) {
+        return;
+    }
+    var showOverlay = function () {
+        overlay.style.display = 'flex';
+    };
+    form.addEventListener('submit', showOverlay);
+    ['class_id', 'subject_id'].forEach(function (id) {
+        var field = document.getElementById(id);
+        if (field) {
+            field.addEventListener('change', showOverlay);
+        }
+    });
+});
+</script>
 </body>
 </html>
