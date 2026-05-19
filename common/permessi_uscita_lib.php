@@ -411,6 +411,7 @@ function permessiUscitaSyncOne(int $id): array
         'kind' => 'create',
         'summary' => 'Inserira su MasterCom una ' . ($typeLabels[$type] ?? 'Uscita in Anticipo') . ' con orario ' . $hour . '.',
         'payload' => mastercomNoIrcBuildAdminAbsencePayload($student, $date, $hour, $type, 'inserisci_assenze_studente_update', [
+            'tipo_giustificazione' => 1,
             'motivazione' => 'Permesso di uscita autorizzato da GestOre',
         ]),
         'type_label' => $typeLabels[$type] ?? '',

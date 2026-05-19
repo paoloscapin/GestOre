@@ -192,6 +192,9 @@ foreach ($studenti as $studente) {
                         <button type="button" class="btn btn-info btn-sm" style="margin-top:8px;" onclick="permessiMastercomSync()">
                             <span class="glyphicon glyphicon-refresh"></span> Sync MasterCom
                         </button>
+                        <button type="button" class="btn btn-default btn-sm" style="margin-top:8px;" onclick="permessiRefreshPresence()">
+                            <span class="glyphicon glyphicon-eye-open"></span> Aggiorna presenze
+                        </button>
                         <span id="permessi_sync_status" style="display:none;margin-left:10px;font-weight:bold;"></span>
                         <span id="permessi_presence_status" style="display:none;margin-left:10px;font-weight:bold;"></span>
                     </div>

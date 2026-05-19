@@ -2,6 +2,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/noirc_lib.php';
+require_once '../common/permessi_uscita_lib.php';
 
 ruoloRichiesto('segreteria-didattica', 'dirigente');
 
@@ -13,6 +14,11 @@ $studentsJson = (string)($_POST['students'] ?? '[]');
 $students = json_decode($studentsJson, true);
 if (!is_array($students)) {
     $students = [];
+}
+$permitIdsJson = (string)($_POST['permit_ids'] ?? '[]');
+$permitIds = json_decode($permitIdsJson, true);
+if (!is_array($permitIds)) {
+    $permitIds = [];
 }
 
 $today = (new DateTime('now', new DateTimeZone('Europe/Rome')))->format('Y-m-d');
@@ -71,6 +77,19 @@ foreach ($normalized as $studentId => $student) {
         'detail' => trim((string)($row['detail'] ?? '')),
         'color' => $color,
     ];
+    $permitValue = $permitIds[(string)$studentId] ?? $permitIds[$studentId] ?? [];
+    $permitIdList = is_array($permitValue) ? $permitValue : [$permitValue];
+    foreach ($permitIdList as $permitIdValue) {
+        $permitId = intval($permitIdValue);
+        if ($permitId > 0 && function_exists('permessiUscitaSetPresenceSnapshot')) {
+            permessiUscitaSetPresenceSnapshot(
+                $permitId,
+                $results[$studentId]['stato'],
+                $results[$studentId]['label'],
+                $results[$studentId]['detail']
+            );
+        }
+    }
 }
 
 echo json_encode([

@@ -15,7 +15,8 @@ var device = params.get("d") || "desktop"; // default "desktop"
 // 🔹 Memorizza l’ultima colonna ordinata
 var lastSort = { columnIndex: null, asc: true };
 
-function permessiReadRecords() {
+function permessiReadRecords(forcePresence) {
+    forcePresence = forcePresence === true;
     var endpoint = (device === "mobile")
         ? "permessiReadRecords_mobile.php"
         : "permessiReadRecords.php";
@@ -25,7 +26,12 @@ function permessiReadRecords() {
     var soloRichiesti = $('#solo_richiesti').is(':checked') ? 1 : 0; // nuovo filtro
 
     hideAllTooltips();
-    $.get(endpoint, { studente_filtro_id: studenteId, data_filtro: dataFiltro, solo_richiesti: soloRichiesti}, function (data, status) {
+    $.get(endpoint, {
+        studente_filtro_id: studenteId,
+        data_filtro: dataFiltro,
+        solo_richiesti: soloRichiesti,
+        live_presence: forcePresence ? 1 : 0
+    }, function (data, status) {
         $(".records_content").html(data);
 
         $('[data-toggle="tooltip"]').tooltip({
@@ -59,20 +65,28 @@ function permessiReadRecords() {
             };
         }
 
-        permessiLoadPresenceBadges();
+        if (forcePresence) {
+            permessiLoadPresenceBadges();
+        } else {
+            permessiPresenceOverlayHide();
+        }
     });
+}
+
+function permessiRefreshPresence() {
+    permessiReadRecords(true);
 }
 
 
 // Ricarica quando il checkbox cambia
 $(document).on("change", "#solo_richiesti", function () {
-    permessiReadRecords();
+    permessiReadRecords(false);
 });
 
 // Dropdown studenti mobile
 $('#studente_filtro').on('change', function () {
     $('#hidden_studente_id').val(this.value);
-    permessiReadRecords();
+    permessiReadRecords(false);
 });
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -123,7 +137,7 @@ function permessiDelete(id) {
             id: id,
             table: 'permessi_uscita'
         }, function (data, status) {
-            permessiReadRecords();
+            permessiReadRecords(false);
         });
     }
 }
@@ -132,7 +146,7 @@ function permessoConfirm(id) {
     hideAllTooltips();
     $.post("permessoConfirm.php", { id: id }, function (data) {
         if (data.trim() === "ok") {
-            permessiReadRecords();
+            permessiReadRecords(false);
         } else {
             alert("❌ Errore durante la conferma del permesso.");
         }
@@ -173,7 +187,7 @@ function permessiMastercomSync(id) {
             }
         }
         $("#permessi_sync_status").removeClass("text-info text-danger").addClass("text-success").text(message);
-        permessiReadRecords();
+        permessiReadRecords(false);
     }).fail(function (xhr) {
         var msg = "Errore di connessione durante il sync MasterCom.";
         if (xhr.responseJSON && xhr.responseJSON.error) {
@@ -274,10 +288,21 @@ function permessiLoadPresenceBadges() {
         var students = Object.keys(byClass[classId]).map(function (studentId) {
             return byClass[classId][studentId];
         });
+        var permitMap = {};
+        students.forEach(function (student) {
+            permitMap[String(student.mastercom_id_studente)] = [];
+            $('.permessi-presence-cell[data-student-id="' + student.mastercom_id_studente + '"]').each(function () {
+                var permitId = parseInt($(this).data('permit-id'), 10) || 0;
+                if (permitId > 0 && permitMap[String(student.mastercom_id_studente)].indexOf(permitId) === -1) {
+                    permitMap[String(student.mastercom_id_studente)].push(permitId);
+                }
+            });
+        });
 
         $.post('permessiPresenceStatus.php', {
             data: dataFiltro,
-            students: JSON.stringify(students)
+            students: JSON.stringify(students),
+            permit_ids: JSON.stringify(permitMap)
         }, function (data) {
             var result = (typeof data === 'string') ? JSON.parse(data) : data;
             if (result && result.results) {
@@ -356,7 +381,7 @@ function permessoSave() {
         note_segreteria: $("#note_segreteria").val()
     }, function (data, status) {
         $("#permesso_modal").modal("hide");
-        permessiReadRecords();
+        permessiReadRecords(false);
     });
 }
 
@@ -450,15 +475,15 @@ $(document).ready(function () {
         defaultDate: new Date(),
         locale: "it",
         onChange: function () {
-            permessiReadRecords(); // aggiorna tabella al cambio data
+            permessiReadRecords(false); // aggiorna tabella al cambio data
         }
     });
 
-    permessiReadRecords();
+    permessiReadRecords(true);
 
     $("#studente_filtro").on("changed.bs.select", function (e, clickedIndex, newValue, oldValue) {
         $('#hidden_studente_id').val(this.value);
-        permessiReadRecords();
+        permessiReadRecords(false);
     });
 
 });

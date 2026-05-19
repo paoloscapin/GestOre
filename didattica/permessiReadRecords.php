@@ -16,6 +16,7 @@ require_once '../common/permessi_uscita_lib.php';
 $studente_filtro_id = $_GET["studente_filtro_id"] ?? null;
 $data_filtro = $_GET["data_filtro"] ?? null;
 $solo_richiesti = $_GET["solo_richiesti"] ?? 0;
+$live_presence = intval($_GET["live_presence"] ?? 0) === 1;
 $hasSyncColumns = permessiUscitaColumnExists('mastercom_sync_stato');
 $hasPresenceSnapshotColumns = permessiUscitaColumnExists('mastercom_presence_stato')
     && permessiUscitaColumnExists('mastercom_presence_label')
@@ -141,8 +142,13 @@ function permessiStaticPresenceBadge(array $row): string {
     $title = htmlspecialchars($detail, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     return '<span class="badge" style="background-color:' . permessiPresenceColor($state) . ';color:white;" data-toggle="tooltip" title="' . $title . '">' . htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
 }
-function permessiPresenceBadge(array $row, string $dataFiltro, string $today, bool $hasPresenceSnapshotColumns): string {
+function permessiPresenceBadge(array $row, string $dataFiltro, string $today, bool $hasPresenceSnapshotColumns, bool $livePresence): string {
     if (intval($row['stato'] ?? 0) !== 1) {
+        return $hasPresenceSnapshotColumns
+            ? permessiStaticPresenceBadge($row)
+            : '<span class="badge" style="background-color:#777;color:white;">Snapshot non configurato</span>';
+    }
+    if (!$livePresence) {
         return $hasPresenceSnapshotColumns
             ? permessiStaticPresenceBadge($row)
             : '<span class="badge" style="background-color:#777;color:white;">Snapshot non configurato</span>';
@@ -160,6 +166,7 @@ function permessiPresenceBadge(array $row, string $dataFiltro, string $today, bo
     }
 
     return '<span class="badge permessi-presence-cell" style="background-color:#777;color:white;"'
+        . ' data-permit-id="' . intval($row['id'] ?? 0) . '"'
         . ' data-student-id="' . $mcStudentId . '"'
         . ' data-class-id="' . $mcClassId . '"'
         . ' data-nome="' . htmlspecialchars((string)($row['mastercom_nome'] ?? $row['studente_nome'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
@@ -202,7 +209,7 @@ function formatName($string) {
 	}
 	$motivo = $row['motivo'];
 	$stato = $row['stato'];
-    $presenceBadge = permessiPresenceBadge($row, (string)$data_filtro, $today, $hasPresenceSnapshotColumns);
+    $presenceBadge = permessiPresenceBadge($row, (string)$data_filtro, $today, $hasPresenceSnapshotColumns, $live_presence);
     $mastercomBadge = '<span class="badge" style="background-color:#777;color:white;">Non configurato</span>';
     if ($hasSyncColumns) {
         $syncState = strtoupper(trim((string)($row['mastercom_sync_stato'] ?? '')));

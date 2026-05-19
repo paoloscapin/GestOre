@@ -18,7 +18,6 @@ if (!empty($_POST)) {
         $old = dbGetFirst("SELECT stato FROM permessi_uscita WHERE id = " . dbI($id) . " LIMIT 1");
         $query = "UPDATE permessi_uscita SET stato = '2' WHERE id = '$id'";
         dbExec($query);
-        permessiUscitaFreezePresence($id);
         permessiUscitaMarkConfirmedForSync($id);
         if (!$old || intval($old['stato'] ?? 0) !== 2) {
             permessiUscitaSendParentMail($id, 'stato');
