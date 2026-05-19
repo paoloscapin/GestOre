@@ -205,6 +205,10 @@ if (!is_array($ufficiAta)) {
             background: rgb(219, 248, 5);
         }
 
+        .dash-aggiornata {
+            background: rgba(245, 158, 11, .38);
+        }
+
         .dash-approvato {
             background: rgb(4, 241, 95);
         }
@@ -902,11 +906,11 @@ if (!is_array($ufficiAta)) {
                             </span>
 
                             <span class="dash-item dash-inviato" id="d_inviato" data-stato="INVIATO"><span class="glyphicon glyphicon-send"></span> INVIATI <span class="badge">0</span></span>
+                            <span class="dash-item dash-aggiornata" id="d_aggiornata" data-stato="AGGIORNATA"><span class="glyphicon glyphicon-refresh"></span> AGGIORNATE <span class="badge">0</span></span>
                             <span class="dash-item dash-approvato" id="d_approvato" data-stato="APPROVATO"><span class="glyphicon glyphicon-ok"></span> APPROVATI <span class="badge">0</span></span>
                             <span class="dash-item dash-parziale" id="d_parziale" data-stato="PARZIALE">
                                 <span class="glyphicon glyphicon-adjust"></span> PARZIALI <span class="badge">0</span></span>
                             <span class="dash-item dash-respinto" id="d_respinto" data-stato="RESPINTO"><span class="glyphicon glyphicon-remove"></span> RESPINTI <span class="badge">0</span></span>
-                            <span class="dash-item dash-annullato" id="d_annullato" data-stato="ANNULLATO"><span class="glyphicon glyphicon-ban-circle"></span> ANNULLATI <span class="badge">0</span></span>
                             <span class="dash-item dash-da-registrare active" id="d_da_registrare" data-filter="registrazione" data-reg-filter="DA_REGISTRARE"><span class="glyphicon glyphicon-book"></span> DA REGISTRARE <span class="badge">0</span></span>
                             <span class="dash-item dash-registrato active" id="d_registrato" data-filter="registrazione" data-reg-filter="REGISTRATO"><span class="glyphicon glyphicon-folder-open"></span> REGISTRATO <span class="badge">0</span></span>
 

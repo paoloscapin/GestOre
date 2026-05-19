@@ -95,7 +95,9 @@ function ferieSottotipoLabel(string $sottotipo): string
 
 $stato      = isset($_GET['stato']) ? trim((string)$_GET['stato']) : '';
 $statiParam = isset($_GET['stati']) ? $_GET['stati'] : [];
+$statiFiltroAttivo = isset($_GET['stati_filtro']) && (string)$_GET['stati_filtro'] !== '0';
 $registrazioniParam = isset($_GET['registrazioni']) ? $_GET['registrazioni'] : [];
+$registrazioniFiltroAttivo = isset($_GET['registrazioni_filtro']) && (string)$_GET['registrazioni_filtro'] !== '0';
 $tipo_id    = isset($_GET['tipo_id']) ? intval($_GET['tipo_id']) : 0;
 $ferie_sottotipo = isset($_GET['ferie_sottotipo']) ? strtoupper(trim((string)$_GET['ferie_sottotipo'])) : '';
 $profilo_id = isset($_GET['profilo_id']) ? intval($_GET['profilo_id']) : 0;
@@ -130,7 +132,7 @@ $where .= " AND r.stato <> 'BOZZA' ";
 if ($stato !== '') {
   $stato_esc = esc_sql_like($stato);
   $where .= " AND r.stato = '$stato_esc' ";
-} elseif (isset($_GET['stati'])) {
+} elseif ($statiFiltroAttivo) {
   if (count($stati) === 0) {
     $where .= " AND 1=0 ";
   } else {
@@ -141,7 +143,7 @@ if ($stato !== '') {
   }
 }
 
-if (isset($_GET['registrazioni'])) {
+if ($registrazioniFiltroAttivo) {
   if (count($registrazioni) === 0) {
     $where .= " AND 1=0 ";
   } elseif (count($registrazioni) === 1) {

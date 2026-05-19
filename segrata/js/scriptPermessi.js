@@ -6,7 +6,7 @@
 let ferieModalInitialSnapshot = null;
 let ferieModalCurrentSnapshot = null;
 let ferieModalKeepDirty = false;
-const DASHBOARD_STATI = ["INVIATO", "AGGIORNATA", "APPROVATO", "PARZIALE", "RESPINTO", "ANNULLATO"];
+const DASHBOARD_STATI = ["INVIATO", "AGGIORNATA", "APPROVATO", "PARZIALE", "RESPINTO"];
 const DASHBOARD_REGISTRAZIONI = ["DA_REGISTRARE", "REGISTRATO"];
 let dashboardSelectedStates = DASHBOARD_STATI.slice();
 let dashboardSelectedRegistrazioni = DASHBOARD_REGISTRAZIONI.slice();
@@ -163,7 +163,9 @@ function permessiReadRecords() {
     data: {
       stato: stato,
       stati: stati,
+      stati_filtro: stato ? 0 : 1,
       registrazioni: registrazioni,
+      registrazioni_filtro: stato ? 0 : 1,
       tipo_id: tipoId,
       ferie_sottotipo: ferieSottotipo,
       profilo_id: profiloId,
@@ -1076,22 +1078,23 @@ function dashboardLoad() {
   $.getJSON("permessiDashboard.php", {}, function (r) {
     if (!r || r.ok !== true) return;
 
-    const s = { INVIATO: 0, APPROVATO: 0, PARZIALE: 0, RESPINTO: 0, ANNULLATO: 0 };
+    const s = { INVIATO: 0, AGGIORNATA: 0, APPROVATO: 0, PARZIALE: 0, RESPINTO: 0 };
     (r.byStato || []).forEach(x => {
       if (s.hasOwnProperty(x.stato)) s[x.stato] = parseInt(x.n || 0, 10);
     });
 
     $("#d_inviato .badge").text(s.INVIATO);
+    $("#d_aggiornata .badge").text(s.AGGIORNATA);
     $("#d_approvato .badge").text(s.APPROVATO);
     $("#d_parziale .badge").text(s.PARZIALE);
     $("#d_respinto .badge").text(s.RESPINTO);
-    $("#d_annullato .badge").text(s.ANNULLATO);
     $("#d_da_registrare .badge").text(parseInt(r.daRegistrare || 0, 10));
     $("#d_registrato .badge").text(parseInt(r.registrato || 0, 10));
 
     const mesi = (r.byMese || []).slice(-6);
     const vals = mesi.map(m =>
     (parseInt(m.inviati || 0, 10) +
+      parseInt(m.aggiornate || 0, 10) +
       parseInt(m.approvati || 0, 10) +
       parseInt(m.respinti || 0, 10))
     );
