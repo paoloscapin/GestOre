@@ -203,6 +203,8 @@ $avgRows = [];
 $gradeRows = [];
 $selectedClassName = '';
 $subjectRows = [];
+$subjectMap = [];
+$subjectsToLoad = [];
 $studentMap = [];
 $gradeCalendarDates = [];
 $gradeCalendarStudents = [];
@@ -240,6 +242,17 @@ if (empty($missingTables) && $selectedClassId > 0 && empty($subjectRows)) {
     }
 }
 
+foreach ($subjectRows as $subjectRow) {
+    $subjectId = intval($subjectRow['mastercom_id_materia'] ?? 0);
+    if ($subjectId <= 0) {
+        continue;
+    }
+    $subjectMap[$subjectId] = mastercomGradesCleanText($subjectRow['materia'] ?? ('Materia ' . $subjectId));
+}
+if ($selectedSubjectId > 0 && !isset($subjectMap[$selectedSubjectId])) {
+    $selectedSubjectId = 0;
+}
+
 if (empty($missingTables) && $selectedClassId > 0) {
     $selectedClassName = trim((string)(dbGetValue("SELECT nome FROM mastercom_classi WHERE mastercom_id_classe = " . $selectedClassId . " LIMIT 1") ?? ''));
     $studentsMirror = dbGetAll("
@@ -253,9 +266,18 @@ if (empty($missingTables) && $selectedClassId > 0) {
     }
 }
 
-if (empty($missingTables) && $selectedClassId > 0 && $selectedSubjectId > 0) {
+if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectMap)) {
+    if ($selectedSubjectId > 0) {
+        $subjectsToLoad[$selectedSubjectId] = $subjectMap[$selectedSubjectId] ?? ('Materia ' . $selectedSubjectId);
+    } else {
+        $subjectsToLoad = $subjectMap;
+    }
+}
+
+if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
     $startTs = mastercomGradesDayStartTs($startDate);
     $endTs = mastercomGradesDayEndTs($endDate);
+    $loadErrors = [];
 
     if ($startTs <= 0 || $endTs <= 0 || $endTs < $startTs) {
         $errorMessage = 'Intervallo date non valido';
@@ -269,18 +291,26 @@ if (empty($missingTables) && $selectedClassId > 0 && $selectedSubjectId > 0) {
         if (!$authResult['ok']) {
             $errorMessage = 'Autenticazione MasterCom docente fallita';
         } else {
-            $avgResult = mastercomLoadGradesAvg($authResult, $selectedClassId, $selectedSubjectId, $startTs, $endTs, [
-                'method' => 'POST',
-                'timeout' => 120,
-            ]);
-            $gradesResult = mastercomLoadGradesData($authResult, $selectedClassId, $selectedSubjectId, $startTs, $endTs, [
-                'method' => 'POST',
-                'timeout' => 120,
-            ]);
+            foreach ($subjectsToLoad as $subjectId => $subjectName) {
+                $subjectId = intval($subjectId);
+                if ($subjectId <= 0) {
+                    continue;
+                }
 
-            if (!$avgResult['ok'] || !$gradesResult['ok']) {
-                $errorMessage = 'Caricamento voti MasterCom fallito';
-            } else {
+                $avgResult = mastercomLoadGradesAvg($authResult, $selectedClassId, $subjectId, $startTs, $endTs, [
+                    'method' => 'POST',
+                    'timeout' => 120,
+                ]);
+                $gradesResult = mastercomLoadGradesData($authResult, $selectedClassId, $subjectId, $startTs, $endTs, [
+                    'method' => 'POST',
+                    'timeout' => 120,
+                ]);
+
+                if (!$avgResult['ok'] || !$gradesResult['ok']) {
+                    $loadErrors[] = $subjectName . ' [' . $subjectId . ']';
+                    continue;
+                }
+
                 $avgData = is_array($avgResult['response']['result'] ?? null) ? $avgResult['response']['result'] : [];
                 foreach ($avgData as $studentId => $avgRow) {
                     if (!is_array($avgRow)) {
@@ -288,6 +318,8 @@ if (empty($missingTables) && $selectedClassId > 0 && $selectedSubjectId > 0) {
                     }
 
                     $avgRows[] = [
+                        'subject_id' => $subjectId,
+                        'subject_name' => $subjectName,
                         'student_id' => intval($studentId),
                         'student_name' => $studentMap[intval($studentId)] ?? ('Studente ' . intval($studentId)),
                         'scritto' => $avgRow['scritto'] ?? null,
@@ -306,6 +338,8 @@ if (empty($missingTables) && $selectedClassId > 0 && $selectedSubjectId > 0) {
                     $studentId = intval($gradeRow['id_studente'] ?? 0);
                     $gradeRows[] = [
                         'id_voto' => intval($gradeRow['id_voto'] ?? 0),
+                        'subject_id' => $subjectId,
+                        'subject_name' => $subjectName,
                         'student_id' => $studentId,
                         'student_name' => $studentMap[$studentId] ?? ('Studente ' . $studentId),
                         'date_ts' => intval($gradeRow['data'] ?? 0),
@@ -316,9 +350,17 @@ if (empty($missingTables) && $selectedClassId > 0 && $selectedSubjectId > 0) {
                         'professore' => intval($gradeRow['id_professore'] ?? 0),
                     ];
                 }
+            }
 
+            if (empty($avgRows) && empty($gradeRows) && !empty($loadErrors)) {
+                $errorMessage = 'Caricamento voti MasterCom fallito per: ' . implode(', ', $loadErrors);
+            } else {
                 usort($avgRows, function ($a, $b) {
-                    return strcmp($a['student_name'], $b['student_name']);
+                    $cmp = strcmp($a['student_name'], $b['student_name']);
+                    if ($cmp !== 0) {
+                        return $cmp;
+                    }
+                    return strcmp($a['subject_name'] ?? '', $b['subject_name'] ?? '');
                 });
 
                 foreach ($avgRows as $row) {
@@ -355,6 +397,7 @@ if (empty($missingTables) && $selectedClassId > 0 && $selectedSubjectId > 0) {
                         'tipo' => $row['tipo'],
                         'tipo_short' => mastercomGradesShortTypeLabel($row['tipo']),
                         'note' => $row['note'],
+                        'subject_name' => $row['subject_name'] ?? '',
                     ];
                 }
 
@@ -481,18 +524,20 @@ if (empty($missingTables) && $selectedClassId > 0 && $selectedSubjectId > 0) {
                     </div>
                     <div class="form-group" style="margin-left: 10px;">
                         <label for="subject_id">Materia&nbsp;</label>
-                        <?php if (!empty($subjectRows)): ?>
-                            <select name="subject_id" id="subject_id" class="form-control" onchange="this.form.submit()">
-                                <option value="0">Seleziona una materia</option>
+                        <select name="subject_id" id="subject_id" class="form-control" onchange="this.form.submit()" <?php echo $selectedClassId <= 0 || empty($subjectRows) ? 'disabled' : ''; ?>>
+                            <?php if ($selectedClassId <= 0): ?>
+                                <option value="0">Seleziona prima una classe</option>
+                            <?php elseif (empty($subjectRows)): ?>
+                                <option value="0">Nessuna materia trovata</option>
+                            <?php else: ?>
+                                <option value="0" <?php echo $selectedSubjectId <= 0 ? 'selected' : ''; ?>>Tutte le materie</option>
                                 <?php foreach ($subjectRows as $subjectRow): ?>
                                     <option value="<?php echo intval($subjectRow['mastercom_id_materia']); ?>" <?php echo $selectedSubjectId === intval($subjectRow['mastercom_id_materia']) ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars(($subjectRow['materia'] ?? 'Materia') . ' [' . ($subjectRow['mastercom_id_materia'] ?? '') . ']'); ?>
                                     </option>
                                 <?php endforeach; ?>
-                            </select>
-                        <?php else: ?>
-                            <input type="number" name="subject_id" id="subject_id" class="form-control" value="<?php echo $selectedSubjectId > 0 ? $selectedSubjectId : ''; ?>" placeholder="ID materia MasterCom">
-                        <?php endif; ?>
+                            <?php endif; ?>
+                        </select>
                     </div>
                     <div class="form-group" style="margin-left: 10px;">
                         <label for="start_date">Dal&nbsp;</label>
@@ -505,21 +550,26 @@ if (empty($missingTables) && $selectedClassId > 0 && $selectedSubjectId > 0) {
                     <button type="submit" class="btn btn-primary" style="margin-left: 10px;">Aggiorna</button>
                 </form>
 
-                <?php if ($selectedClassId <= 0 || $selectedSubjectId <= 0): ?>
-                    <div class="alert alert-info">Seleziona classe, materia e intervallo per vedere medie e voti dettagliati.</div>
+                <?php if ($selectedClassId <= 0): ?>
+                    <div class="alert alert-info">Seleziona classe e intervallo per vedere medie e voti dettagliati.</div>
+                <?php elseif (empty($subjectRows)): ?>
+                    <div class="alert alert-warning">Nessuna materia MasterCom trovata per la classe selezionata. Sincronizza docenti/classi/materie oppure verifica i dati MasterCom.</div>
                 <?php elseif ($errorMessage !== ''): ?>
                     <div class="alert alert-danger"><?php echo htmlspecialchars($errorMessage); ?></div>
                 <?php else: ?>
                     <div class="alert alert-info">
                         Classe <strong><?php echo htmlspecialchars($selectedClassName !== '' ? $selectedClassName : (string)$selectedClassId); ?></strong>,
-                        materia <strong><?php echo intval($selectedSubjectId); ?></strong>.
+                        materia <strong><?php echo $selectedSubjectId > 0 ? htmlspecialchars($subjectMap[$selectedSubjectId] ?? ('Materia ' . $selectedSubjectId)) : 'Tutte le materie'; ?></strong>.
                     </div>
 
-                    <h4>Medie per studente</h4>
+                    <h4><?php echo $selectedSubjectId > 0 ? 'Medie per studente' : 'Medie per studente e materia'; ?></h4>
                     <table class="table table-striped table-bordered table-condensed">
                         <thead>
                             <tr>
                                 <th>Studente</th>
+                                <?php if ($selectedSubjectId <= 0): ?>
+                                    <th>Materia</th>
+                                <?php endif; ?>
                                 <th style="text-align: center;">Scritto</th>
                                 <th style="text-align: center;">Orale</th>
                                 <th style="text-align: center;">Pratico</th>
@@ -530,6 +580,9 @@ if (empty($missingTables) && $selectedClassId > 0 && $selectedSubjectId > 0) {
                             <?php foreach ($avgRows as $row): ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($row['student_name']); ?></td>
+                                    <?php if ($selectedSubjectId <= 0): ?>
+                                        <td><?php echo htmlspecialchars($row['subject_name'] ?? ''); ?></td>
+                                    <?php endif; ?>
                                     <td style="text-align: center;"><?php echo htmlspecialchars((string)$row['scritto']); ?></td>
                                     <td style="text-align: center;"><?php echo htmlspecialchars((string)$row['orale']); ?></td>
                                     <td style="text-align: center;"><?php echo htmlspecialchars((string)$row['pratico']); ?></td>
@@ -564,7 +617,20 @@ if (empty($missingTables) && $selectedClassId > 0 && $selectedSubjectId > 0) {
                                                 <?php $cellEntries = $gradeCalendarCells[intval($studentId)][$dateKey] ?? []; ?>
                                                 <td class="<?php echo empty($cellEntries) ? 'mc-empty-cell' : ''; ?>">
                                                     <?php foreach ($cellEntries as $entry): ?>
-                                                        <span class="mc-grade-chip" title="<?php echo htmlspecialchars($entry['tipo'] . ($entry['note'] !== '' ? ' - ' . $entry['note'] : '')); ?>">
+                                                        <?php
+                                                        $chipTitleParts = [];
+                                                        if ($selectedSubjectId <= 0 && trim((string)($entry['subject_name'] ?? '')) !== '') {
+                                                            $chipTitleParts[] = $entry['subject_name'];
+                                                        }
+                                                        $chipTitleParts[] = $entry['tipo'];
+                                                        if ($entry['note'] !== '') {
+                                                            $chipTitleParts[] = $entry['note'];
+                                                        }
+                                                        ?>
+                                                        <span class="mc-grade-chip" title="<?php echo htmlspecialchars(implode(' - ', $chipTitleParts)); ?>">
+                                                            <?php if ($selectedSubjectId <= 0 && trim((string)($entry['subject_name'] ?? '')) !== ''): ?>
+                                                                <span class="mc-grade-note"><strong><?php echo htmlspecialchars($entry['subject_name']); ?></strong></span>
+                                                            <?php endif; ?>
                                                             <span class="mc-grade-type"><?php echo htmlspecialchars($entry['tipo_short']); ?></span>
                                                             <span class="mc-grade-score"><?php echo htmlspecialchars($entry['voto']); ?></span>
                                                             <?php if ($entry['note'] !== ''): ?>
