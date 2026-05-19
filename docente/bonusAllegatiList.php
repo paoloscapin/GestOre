@@ -1,4 +1,5 @@
 <?php
+
 /**
  *  This file is part of GestOre
  *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
@@ -23,7 +24,14 @@ if (!haRuolo('dirigente')) {
 }
 
 $query = "
-SELECT a.id, a.original_name, a.file_size, a.uploaded_at
+SELECT
+    a.id,
+    a.original_name,
+    a.file_size,
+    a.uploaded_at,
+    a.storage_type,
+    a.drive_web_view_link,
+    a.mime_type
 FROM bonus_docente_allegato a
 JOIN bonus_docente bd ON bd.id = a.bonus_docente_id
 WHERE a.bonus_docente_id = $bonus_docente_id
@@ -45,21 +53,48 @@ if (empty($rows)) {
         $sizeKb = round(intval($r['file_size']) / 1024);
         $dt = htmlspecialchars($r['uploaded_at']);
 
+        $isDrive = (($r['storage_type'] ?? 'LOCAL') === 'DRIVE');
+
+        if ($isDrive) {
+            $viewUrl = htmlspecialchars($r['drive_web_view_link'] ?? '');
+            echo '<li class="list-group-item">';
+            $mime = (string)($r['mime_type'] ?? '');
+            $icon = 'glyphicon-file';
+
+            if (strpos($mime, 'video/') === 0) {
+                $icon = 'glyphicon-facetime-video';
+            } elseif (strpos($mime, 'image/') === 0) {
+                $icon = 'glyphicon-picture';
+            } elseif ($mime === 'application/pdf') {
+                $icon = 'glyphicon-file';
+            }
+
+            echo '<span class="glyphicon ' . $icon . '"></span> ';
+            echo '<a href="' . $viewUrl . '" target="_blank">' . $name . '</a>';
+            echo ' <span class="label label-warning">Drive</span>';
+            echo ' <span class="text-muted">(' . $sizeKb . ' KB, ' . $dt . ')</span>';
+
+            if ($canEdit) {
+                echo ' <button class="btn btn-danger btn-xs pull-right btn-del-allegato" data-id="' . $id . '"><span class="glyphicon glyphicon-trash"></span></button>';
+            }
+
+            echo '</li>';
+            continue;
+        }
         echo '<li class="list-group-item">';
         $viewUrl = $__application_base_path . '/docente/bonusAllegatoDownload.php?id=' . $id;
         $downloadUrl = $viewUrl . '&download=1';
 
-        echo '<li class="list-group-item">';
+        echo '<span class="glyphicon glyphicon-file"></span> ';
         echo '<a href="' . $viewUrl . '" target="_blank">' . $name . '</a>';
+        echo ' <span class="label label-primary">PDF</span>';
         echo ' <span class="text-muted">(' . $sizeKb . ' KB, ' . $dt . ')</span>';
         echo ' &nbsp; <a class="btn btn-xs btn-default" href="' . $downloadUrl . '"><span class="glyphicon glyphicon-download"></span></a>';
-        echo '</li>';
-
-        echo ' <span class="text-muted">(' . $sizeKb . ' KB, ' . $dt . ')</span>';
 
         if ($canEdit) {
             echo ' <button class="btn btn-danger btn-xs pull-right btn-del-allegato" data-id="' . $id . '"><span class="glyphicon glyphicon-trash"></span></button>';
         }
+
         echo '</li>';
     }
 }

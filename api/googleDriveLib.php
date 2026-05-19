@@ -46,8 +46,7 @@ function googleDriveCreateClient(bool $refreshExpired = true): Google_Client
     $client->setAccessType('offline');
     $client->setApprovalPrompt('force');
     $client->setScopes([
-        'https://www.googleapis.com/auth/drive.file',
-        'https://www.googleapis.com/auth/drive.metadata.readonly',
+        'https://www.googleapis.com/auth/drive',
     ]);
 
     if (is_file(GOOGLE_DRIVE_TOKEN_FILE)) {
@@ -170,10 +169,22 @@ function googleDriveGetLogFolderId(): string
     return $folderId;
 }
 
-function googleDriveUploadFile(string $path, string $driveName, string $folderId): array
+function googleDriveUploadFile(string $path, string $driveName, string $folderId, string $mimeType = ''): array
 {
     if (!is_file($path)) {
         throw new Exception('File non trovato: ' . $path);
+    }
+
+    if ($mimeType === '') {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo ? finfo_file($finfo, $path) : '';
+        if ($finfo) {
+            finfo_close($finfo);
+        }
+    }
+
+    if ($mimeType === '') {
+        $mimeType = 'application/octet-stream';
     }
 
     $accessToken = googleDriveAccessToken();
@@ -185,19 +196,20 @@ function googleDriveUploadFile(string $path, string $driveName, string $folderId
 
     $ch = curl_init();
     curl_setopt_array($ch, [
-        CURLOPT_URL => 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,size,webViewLink',
+        CURLOPT_URL => 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,size,mimeType,webViewLink',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HEADER => true,
         CURLOPT_POST => true,
         CURLOPT_HTTPHEADER => [
             'Authorization: Bearer ' . $accessToken,
             'Content-Type: application/json; charset=UTF-8',
-            'X-Upload-Content-Type: text/plain',
+            'X-Upload-Content-Type: ' . $mimeType,
             'X-Upload-Content-Length: ' . $size,
         ],
         CURLOPT_POSTFIELDS => json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         CURLOPT_TIMEOUT => 60,
     ]);
+
     $response = curl_exec($ch);
     $httpCode = intval(curl_getinfo($ch, CURLINFO_HTTP_CODE));
     $headerSize = intval(curl_getinfo($ch, CURLINFO_HEADER_SIZE));
@@ -207,25 +219,28 @@ function googleDriveUploadFile(string $path, string $driveName, string $folderId
     if ($curlError) {
         throw new Exception('Errore CURL Google Drive avvio upload: ' . $curlError);
     }
+
     if ($httpCode < 200 || $httpCode >= 300) {
         throw new Exception('Errore Google Drive avvio upload HTTP ' . $httpCode . ': ' . substr((string)$response, $headerSize));
     }
 
     $headersText = substr((string)$response, 0, $headerSize);
     $uploadUrl = '';
+
     foreach (preg_split('/\r\n|\r|\n/', $headersText) as $line) {
         if (stripos($line, 'Location:') === 0) {
             $uploadUrl = trim(substr($line, 9));
             break;
         }
     }
+
     if ($uploadUrl === '') {
         throw new Exception('Google Drive non ha restituito URL resumable upload');
     }
 
     $fh = fopen($path, 'rb');
     if (!$fh) {
-        throw new Exception('Impossibile aprire file log: ' . $path);
+        throw new Exception('Impossibile aprire file: ' . $path);
     }
 
     $ch = curl_init();
@@ -234,7 +249,7 @@ function googleDriveUploadFile(string $path, string $driveName, string $folderId
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CUSTOMREQUEST => 'PUT',
         CURLOPT_HTTPHEADER => [
-            'Content-Type: text/plain',
+            'Content-Type: ' . $mimeType,
             'Content-Length: ' . $size,
         ],
         CURLOPT_UPLOAD => true,
@@ -242,6 +257,7 @@ function googleDriveUploadFile(string $path, string $driveName, string $folderId
         CURLOPT_INFILESIZE => $size,
         CURLOPT_TIMEOUT => 600,
     ]);
+
     $uploadResponse = curl_exec($ch);
     $uploadHttpCode = intval(curl_getinfo($ch, CURLINFO_HTTP_CODE));
     $uploadCurlError = curl_error($ch);
@@ -251,6 +267,7 @@ function googleDriveUploadFile(string $path, string $driveName, string $folderId
     if ($uploadCurlError) {
         throw new Exception('Errore CURL Google Drive upload file: ' . $uploadCurlError);
     }
+
     if ($uploadHttpCode < 200 || $uploadHttpCode >= 300) {
         throw new Exception('Errore Google Drive upload file HTTP ' . $uploadHttpCode . ': ' . $uploadResponse);
     }
@@ -259,4 +276,168 @@ function googleDriveUploadFile(string $path, string $driveName, string $folderId
     return is_array($decoded) ? $decoded : [];
 }
 
-?>
+function googleDriveFindFolderByNameInParent(string $folderName, string $parentId): string
+{
+    $safeName = str_replace("'", "\\'", $folderName);
+
+    $query = "mimeType='application/vnd.google-apps.folder' "
+        . "and trashed=false "
+        . "and name='$safeName' "
+        . "and '$parentId' in parents";
+
+    $url = 'https://www.googleapis.com/drive/v3/files?q=' . urlencode($query) . '&fields=files(id,name)&pageSize=1';
+    $res = googleDriveApiRequest('GET', $url);
+
+    return (string)($res['files'][0]['id'] ?? '');
+}
+
+function googleDriveCreateFolderInParent(string $folderName, string $parentId): string
+{
+    $res = googleDriveApiRequest('POST', 'https://www.googleapis.com/drive/v3/files?fields=id,name', [
+        'name' => $folderName,
+        'mimeType' => 'application/vnd.google-apps.folder',
+        'parents' => [$parentId],
+    ]);
+
+    return (string)($res['id'] ?? '');
+}
+
+function googleDriveGetOrCreateFolderInParent(string $folderName, string $parentId): string
+{
+    $folderId = googleDriveFindFolderByNameInParent($folderName, $parentId);
+
+    if ($folderId === '') {
+        $folderId = googleDriveCreateFolderInParent($folderName, $parentId);
+    }
+
+    if ($folderId === '') {
+        throw new Exception('Impossibile trovare o creare la cartella Drive: ' . $folderName);
+    }
+
+    return $folderId;
+}
+
+function googleDriveDeleteFile(string $fileId): void
+{
+    if ($fileId === '') {
+        return;
+    }
+
+    googleDriveApiRequest(
+        'DELETE',
+        'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId),
+        null,
+        ['Content-Type: application/json']
+    );
+}
+
+function googleDriveStartResumableUpload(string $driveName, string $mimeType, int $size, string $folderId): array
+{
+    $accessToken = googleDriveAccessToken();
+
+    $metadata = [
+        'name' => $driveName,
+        'parents' => [$folderId],
+    ];
+
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,size,mimeType,webViewLink',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HEADER => true,
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . $accessToken,
+            'Content-Type: application/json; charset=UTF-8',
+            'X-Upload-Content-Type: ' . $mimeType,
+            'X-Upload-Content-Length: ' . $size,
+        ],
+        CURLOPT_POSTFIELDS => json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        CURLOPT_TIMEOUT => 60,
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = intval(curl_getinfo($ch, CURLINFO_HTTP_CODE));
+    $headerSize = intval(curl_getinfo($ch, CURLINFO_HEADER_SIZE));
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlError) {
+        throw new Exception('Errore CURL Google Drive avvio upload: ' . $curlError);
+    }
+
+    if ($httpCode < 200 || $httpCode >= 300) {
+        throw new Exception('Errore Google Drive avvio upload HTTP ' . $httpCode . ': ' . substr((string)$response, $headerSize));
+    }
+
+    $headersText = substr((string)$response, 0, $headerSize);
+    $uploadUrl = '';
+
+    foreach (preg_split('/\r\n|\r|\n/', $headersText) as $line) {
+        if (stripos($line, 'Location:') === 0) {
+            $uploadUrl = trim(substr($line, 9));
+            break;
+        }
+    }
+
+    if ($uploadUrl === '') {
+        throw new Exception('Google Drive non ha restituito URL resumable upload');
+    }
+
+    return [
+        'uploadUrl' => $uploadUrl,
+    ];
+}
+
+function googleDriveGetBonusFolderId(): string
+{
+    $cfg = googleDriveGetConfig();
+    $folderId = trim((string)($cfg->bonusFolderId ?? ''));
+
+    if ($folderId === '') {
+        throw new Exception('bonusFolderId mancante in configurazione Google Drive');
+    }
+
+    return $folderId;
+}
+
+function googleDriveFindFileByNameInParent(string $fileName, string $parentId): string
+{
+    $safeName = str_replace("'", "\\'", $fileName);
+
+    $query = "mimeType!='application/vnd.google-apps.folder' "
+        . "and trashed=false "
+        . "and name='$safeName' "
+        . "and '$parentId' in parents";
+
+    $url = 'https://www.googleapis.com/drive/v3/files?q=' . urlencode($query) . '&fields=files(id,name)&pageSize=1';
+    $res = googleDriveApiRequest('GET', $url);
+
+    return (string)($res['files'][0]['id'] ?? '');
+}
+
+function googleDriveListFilesInFolder(string $folderId): array
+{
+    $files = [];
+    $pageToken = '';
+
+    do {
+        $query = "trashed=false and '$folderId' in parents";
+        $url = 'https://www.googleapis.com/drive/v3/files?q=' . urlencode($query)
+            . '&fields=nextPageToken,files(id,name,size,mimeType,createdTime,modifiedTime,webViewLink)'
+            . '&pageSize=1000';
+
+        if ($pageToken !== '') {
+            $url .= '&pageToken=' . urlencode($pageToken);
+        }
+
+        $res = googleDriveApiRequest('GET', $url);
+        foreach (($res['files'] ?? []) as $f) {
+            $files[] = $f;
+        }
+
+        $pageToken = (string)($res['nextPageToken'] ?? '');
+    } while ($pageToken !== '');
+
+    return $files;
+}

@@ -15,6 +15,15 @@ $anno_scolastico_id = isset($_GET['anno_scolastico_id'])
 
 ruoloRichiesto('segreteria-docenti', 'dirigente', 'docente');
 applicaDocenteDaParametroSeAutorizzato();
+$docente_corrente_id = intval($__docente_id ?? 0);
+
+if ($docente_corrente_id <= 0) {
+	$docente_corrente_id = intval($_SESSION['__docente_id'] ?? $_SESSION['docente_id'] ?? 0);
+}
+
+if ($docente_corrente_id <= 0) {
+	die('Docente non identificato');
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -107,7 +116,7 @@ INNER JOIN bonus_area
 	ON bonus_indicatore.bonus_area_id = bonus_area.id
 
 WHERE
-	bonus_docente.docente_id = $__docente_id
+	bonus_docente.docente_id = $docente_corrente_id
 AND bonus_docente.anno_scolastico_id = $anno_scolastico_id
 
 ORDER BY bonus.codice;
@@ -183,48 +192,58 @@ ORDER BY bonus.codice;
 								</div>
 								<hr style="margin:10px 0;">
 								<div class="form-group">
-									<label>Allegati (PDF)</label>
+
+									<label>Allegati</label>
 
 									<div id="allegati_list"></div>
 
 									<div style="margin-top:8px;">
-										<input type="file" id="allegati_files" multiple accept="application/pdf" class="form-control">
+										<input type="file" id="allegati_files" multiple accept="application/pdf,image/*,video/*" class="form-control">
 									</div>
 
 									<div style="margin-top:8px;">
 										<button type="button" class="btn btn-primary" id="btn_upload_allegati">
-											<span class="glyphicon glyphicon-upload"></span>&ensp;Carica PDF
+											<span class="glyphicon glyphicon-upload"></span>&ensp;Carica allegati
 										</button>
 									</div>
 
+									<div id="video_drive_progress_box" style="display:none; margin-top:8px;">
+										<div class="progress">
+											<div id="video_drive_progress" class="progress-bar progress-bar-warning" role="progressbar" style="width:0%;">
+												0%
+											</div>
+										</div>
+									</div>
+
 									<div class="text-muted" style="margin-top:6px;">
-										Puoi caricare uno o più PDF come evidenze. (Solo anno corrente, se il rendiconto è aperto)
+										Puoi caricare PDF, immagini e video. Tutti gli allegati vengono salvati su Google Drive.
 									</div>
 								</div>
-
 							</div>
-							<div class="modal-footer">
-								<div class="col-sm-12 text-center">
-									<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
-									<?php
-									if ($__config->getBonus_rendiconto_aperto() && $anno_scolastico_id == $__anno_scolastico_corrente_id) {
-										echo '<button type="button" class="btn btn-primary" onclick="bonusDocenteRendicontoUpdateDetails()">Salva</button>';
-									}
 
-									?>
-									<input type="hidden" id="hidden_bonus_docente_id">
-								</div>
+						</div>
+						<div class="modal-footer">
+							<div class="col-sm-12 text-center">
+								<button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+								<?php
+								if ($__config->getBonus_rendiconto_aperto() && $anno_scolastico_id == $__anno_scolastico_corrente_id) {
+									echo '<button type="button" class="btn btn-primary" onclick="bonusDocenteRendicontoUpdateDetails()">Salva</button>';
+								}
+
+								?>
+								<input type="hidden" id="hidden_bonus_docente_id">
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
+	</div>
 
 	</div>
 
 	<link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
-	<script type="text/javascript" src="js/scriptBonus.js"></script>
+	<script type="text/javascript" src="js/scriptBonus.js?t=<?php echo time(); ?>"></script>
 
 </body>
 

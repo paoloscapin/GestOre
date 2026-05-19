@@ -35,10 +35,30 @@ $row = dbGetFirst("
 if (!$row) out(false,'Allegato non trovato');
 if (intval($row['anno_scolastico_id']) !== $anno) out(false,'Anno non coerente');
 if (!haRuolo('dirigente') && intval($row['docente_id']) !== intval($__docente_id)) out(false,'Non autorizzato');
-$baseDir = realpath(__DIR__ . '/bonus_upload');
-if ($baseDir) {
-  $path = $baseDir . '/' . $anno . '/' . intval($row['docente_id']) . '/' . intval($row['bonus_docente_id']) . '/' . $row['stored_name'];
-  if (is_file($path)) @unlink($path);
+
+if (($row['storage_type'] ?? 'LOCAL') === 'DRIVE') {
+
+    require_once '../api/googleDriveLib.php';
+
+    try {
+
+        googleDriveDeleteFile((string)($row['drive_file_id'] ?? ''));
+
+    } catch (Throwable $e) {
+
+        out(
+            false,
+            'Errore cancellazione file Drive: ' . $e->getMessage()
+        );
+    }
+
+} else {
+    $baseDir = realpath(__DIR__ . '/bonus_upload');
+    if ($baseDir) {
+        $path = $baseDir . '/' . $anno . '/' . intval($row['docente_id']) . '/' . intval($row['bonus_docente_id']) . '/' . $row['stored_name'];
+        if (is_file($path)) @unlink($path);
+    }
 }
+
 dbExec("DELETE FROM bonus_docente_allegato WHERE id = $id LIMIT 1");
 out(true,'Allegato eliminato');
