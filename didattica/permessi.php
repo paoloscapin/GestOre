@@ -21,7 +21,7 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_bootstrap-toggle.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
-    ruoloRichiesto('segreteria-didattica', 'dirigente');
+    ruoloRichiesto('segreteria-didattica', 'dirigente', 'personale-ata');
 
     if (!(getSettingsValue('config', 'permessi', false))) {
         redirect("/error/unauthorized.php");
@@ -150,15 +150,25 @@ require_once '../common/checkSession.php';
             margin: 12px 0 8px 0;
         }
 
+        .table-wrapper {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
         .permessi-table {
             table-layout: fixed;
             width: 100%;
+            max-width: 100%;
             min-width: 0;
+            box-sizing: border-box;
         }
 
         .permessi-table th,
         .permessi-table td {
             vertical-align: top !important;
+            overflow-wrap: anywhere;
+            word-break: normal;
         }
 
         .permessi-col-date { width: 5.5%; }
@@ -167,11 +177,11 @@ require_once '../common/checkSession.php';
         .permessi-col-student { width: 10%; }
         .permessi-col-parent { width: 9.5%; }
         .permessi-col-reason { width: 12%; }
-        .permessi-col-presence { width: 15%; }
+        .permessi-col-presence { width: 18%; }
         .permessi-col-state { width: 7%; }
         .permessi-col-mastercom { width: 7%; }
-        .permessi-col-notes { width: 10%; }
-        .permessi-col-actions { width: 10%; }
+        .permessi-col-notes { width: 9%; }
+        .permessi-col-actions { width: 8%; }
 
         .permessi-presence-cell,
         .permessi-presence-static {
@@ -214,7 +224,11 @@ foreach ($studenti as $studente) {
 
 <body>
     <?php
-    require_once '../common/header-didattica.php';
+    if (haRuolo('admin')) {
+        require_once '../common/header-admin.php';
+    } else {
+        require_once '../common/header-didattica.php';
+    }
     require_once '../common/connect.php';
     ?>
 

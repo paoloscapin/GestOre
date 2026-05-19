@@ -4,7 +4,7 @@ require_once '../common/checkSession.php';
 require_once '../common/mastercom/noirc_lib.php';
 require_once '../common/permessi_uscita_lib.php';
 
-ruoloRichiesto('segreteria-didattica', 'dirigente');
+ruoloRichiesto('segreteria-didattica', 'dirigente', 'personale-ata');
 
 header('Content-Type: application/json; charset=utf-8');
 

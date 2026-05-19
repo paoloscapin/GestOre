@@ -12,6 +12,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/permessi_uscita_lib.php';
+ruoloRichiesto('segreteria-didattica', 'dirigente', 'personale-ata');
 
 $studente_filtro_id = $_GET["studente_filtro_id"] ?? null;
 $data_filtro = $_GET["data_filtro"] ?? null;

@@ -8,6 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
+ruoloRichiesto('segreteria-didattica', 'dirigente', 'personale-ata');
 
 if(isset($_POST['id']) && isset($_POST['id']) != "") {
 	$permesso_id = $_POST['id'];

@@ -21,8 +21,11 @@ function permessiReadRecords(forcePresence) {
         ? "permessiReadRecords_mobile.php"
         : "permessiReadRecords.php";
 
-    var studenteId = $('#hidden_studente_id').val();
+    var studenteId = $('#studente_filtro').val() || $('#hidden_studente_id').val() || 0;
     var dataFiltro = $('#data_filtro').val(); // nuovo filtro data
+    if (!dataFiltro) {
+        dataFiltro = new Date().toISOString().slice(0, 10);
+    }
     var soloRichiesti = $('#solo_richiesti').is(':checked') ? 1 : 0; // nuovo filtro
 
     hideAllTooltips();
