@@ -31,6 +31,20 @@
   white-space: nowrap;
 }
 
+.admin-navbar-nav .mastercom-dropdown-menu{
+  min-width: 300px;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+}
+
+.admin-navbar-nav .mastercom-dropdown-menu > .dropdown-header{
+  color: #2f5d86;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  padding-top: 8px;
+}
+
 .docente-navbar-nav > li > a.nav-btn{
   margin: 8px 1px;
   padding: 6px 10px;
