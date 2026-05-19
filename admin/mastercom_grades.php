@@ -2,6 +2,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
+require_once '../common/mastercom/grades_cache_lib.php';
 
 ruoloRichiesto('admin');
 
@@ -298,6 +299,7 @@ function mastercomGradesLoadClassSubjectsFromAdmin(array $authResult, int $class
 }
 
 $missingTables = mastercomAdminMissingTables(['mastercom_classi']);
+$cacheMissingTables = mastercomGradesCacheMissingTables();
 $classRows = empty($missingTables) ? mastercomAdminOperationalClassRows('mastercom_id_classe, nome') : [];
 $selectedClassId = intval($_GET['class_id'] ?? 0);
 if ($selectedClassId > 0 && !mastercomAdminIsOperationalClassId($selectedClassId)) {
@@ -307,6 +309,17 @@ $selectedSubjectId = intval($_GET['subject_id'] ?? 0);
 $range = mastercomGradesSchoolYearRange();
 $startDate = trim((string)($_GET['start_date'] ?? $range['start']));
 $endDate = trim((string)($_GET['end_date'] ?? min($range['end'], mastercomGradesRomeToday('Y-m-d'))));
+$todayDate = mastercomGradesRomeToday('Y-m-d');
+$schoolYearSyncStart = $range['start'];
+$schoolYearSyncEnd = min($range['end'], $todayDate);
+$last15SyncStart = (new DateTime('now', new DateTimeZone('Europe/Rome')))->modify('-15 days')->format('Y-m-d');
+$last15SyncEnd = $todayDate;
+$returnUrl = 'mastercom_grades.php?' . http_build_query([
+    'class_id' => $selectedClassId,
+    'subject_id' => $selectedSubjectId,
+    'start_date' => $startDate,
+    'end_date' => $endDate,
+]);
 $errorMessage = '';
 $avgRows = [];
 $gradeRows = [];
@@ -317,6 +330,7 @@ $subjectsToLoad = [];
 $probeSubjectMap = [];
 $candidateSubjectMap = [];
 $studentMap = [];
+$studentPhotoMap = [];
 $teacherMap = [];
 $avgMatrixSubjects = [];
 $avgMatrixStudents = [];
@@ -324,17 +338,10 @@ $avgMatrixCells = [];
 $gradeCalendarDates = [];
 $gradeCalendarStudents = [];
 $gradeCalendarCells = [];
+$lastGradesSync = mastercomGradesCacheLastSyncLabel($selectedClassId > 0 ? $selectedClassId : null, $selectedSubjectId > 0 ? $selectedSubjectId : null);
 
-if (empty($missingTables) && $selectedClassId > 0) {
-    $subjectAuthResult = mastercomAuthenticateService([
-        'profile' => 'MasterComAuth',
-        'method' => 'POST',
-        'timeout' => 60,
-    ]);
-
-    if ($subjectAuthResult['ok']) {
-        $subjectRows = mastercomGradesLoadClassSubjectsFromAdmin($subjectAuthResult, $selectedClassId);
-    }
+if (empty($missingTables) && empty($cacheMissingTables) && $selectedClassId > 0) {
+    $subjectRows = mastercomGradesCacheSubjectRowsForClass($selectedClassId);
 }
 
 if (empty($missingTables) && $selectedClassId > 0 && empty($subjectRows) && mastercomAdminTableExists('mastercom_docenti_classi_materie')) {
@@ -378,13 +385,15 @@ foreach ($subjectRows as $subjectRow) {
 if (empty($missingTables) && $selectedClassId > 0) {
     $selectedClassName = trim((string)(dbGetValue("SELECT nome FROM mastercom_classi WHERE mastercom_id_classe = " . $selectedClassId . " LIMIT 1") ?? ''));
     $studentsMirror = dbGetAll("
-        SELECT mastercom_id_studente, cognome, nome
+        SELECT mastercom_id_studente, cognome, nome, foto
         FROM mastercom_studenti
         WHERE mastercom_id_classe_corrente = " . intval($selectedClassId) . "
         ORDER BY cognome ASC, nome ASC
     ");
     foreach ($studentsMirror as $studentRow) {
-        $studentMap[intval($studentRow['mastercom_id_studente'])] = trim((string)($studentRow['cognome'] ?? '') . ' ' . (string)($studentRow['nome'] ?? ''));
+        $studentId = intval($studentRow['mastercom_id_studente']);
+        $studentMap[$studentId] = trim((string)($studentRow['cognome'] ?? '') . ' ' . (string)($studentRow['nome'] ?? ''));
+        $studentPhotoMap[$studentId] = trim((string)($studentRow['foto'] ?? ''));
     }
 }
 
@@ -426,215 +435,199 @@ if (empty($missingTables) && $selectedClassId > 0) {
 if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
     $startTs = mastercomGradesDayStartTs($startDate);
     $endTs = mastercomGradesDayEndTs($endDate);
-    $loadErrors = [];
     $loadedSubjectIds = [];
 
     if ($startTs <= 0 || $endTs <= 0 || $endTs < $startTs) {
         $errorMessage = 'Intervallo date non valido';
     } else {
-        $authResult = mastercomAuthenticateService([
-            'profile' => 'MasterComDocenteAuth',
-            'method' => 'POST',
-            'timeout' => 60,
-        ]);
+        $subjectFilterSql = $selectedSubjectId > 0 ? (" AND m.mastercom_id_materia = " . dbI($selectedSubjectId)) : '';
+        $avgRowsDb = mastercomAdminTableExists('mastercom_voti_medie') ? dbGetAll("
+            SELECT
+                m.mastercom_id_materia AS subject_id,
+                COALESCE(vm.materia, " . dbQ('') . ") AS subject_name,
+                m.mastercom_id_studente AS student_id,
+                m.scritto,
+                m.orale,
+                m.pratico,
+                m.totale
+            FROM mastercom_voti_medie m
+            LEFT JOIN mastercom_voti_materie vm
+              ON vm.mastercom_id_classe = m.mastercom_id_classe
+             AND vm.mastercom_id_materia = m.mastercom_id_materia
+            WHERE m.mastercom_id_classe = " . dbI($selectedClassId) . "
+              AND m.range_start = " . dbQ($startDate) . "
+              AND m.range_end = " . dbQ($endDate) . "
+              $subjectFilterSql
+        ") : [];
 
-        if (!$authResult['ok']) {
-            $errorMessage = 'Autenticazione MasterCom docente fallita';
-        } else {
-            foreach ($subjectsToLoad as $subjectId => $subjectName) {
-                $subjectId = intval($subjectId);
-                if ($subjectId <= 0) {
-                    continue;
-                }
-
-                $avgResult = mastercomLoadGradesAvg($authResult, $selectedClassId, $subjectId, $startTs, $endTs, [
-                    'method' => 'POST',
-                    'timeout' => 120,
-                ]);
-                $gradesResult = mastercomLoadGradesData($authResult, $selectedClassId, $subjectId, $startTs, $endTs, [
-                    'method' => 'POST',
-                    'timeout' => 120,
-                ]);
-
-                if (!$avgResult['ok'] || !$gradesResult['ok']) {
-                    $loadErrors[] = $subjectName . ' [' . $subjectId . ']';
-                    continue;
-                }
-
-                $avgData = is_array($avgResult['response']['result'] ?? null) ? $avgResult['response']['result'] : [];
-                foreach ($avgData as $studentId => $avgRow) {
-                    if (!is_array($avgRow)) {
-                        continue;
-                    }
-                    $studentId = intval($studentId);
-                    if (!isset($studentMap[$studentId])) {
-                        continue;
-                    }
-
-                    $avgRows[] = [
-                        'subject_id' => $subjectId,
-                        'subject_name' => $subjectName,
-                        'student_id' => $studentId,
-                        'student_name' => $studentMap[$studentId],
-                        'scritto' => $avgRow['scritto'] ?? null,
-                        'orale' => $avgRow['orale'] ?? null,
-                        'pratico' => $avgRow['pratico'] ?? null,
-                        'totale' => $avgRow['totale'] ?? null,
-                    ];
-
-                    if (
-                        mastercomGradesHasValue($avgRow['scritto'] ?? null) ||
-                        mastercomGradesHasValue($avgRow['orale'] ?? null) ||
-                        mastercomGradesHasValue($avgRow['pratico'] ?? null) ||
-                        mastercomGradesHasValue($avgRow['totale'] ?? null)
-                    ) {
-                        $loadedSubjectIds[$subjectId] = true;
-                    }
-                }
-
-                $gradeData = is_array($gradesResult['response']['result'] ?? null) ? $gradesResult['response']['result'] : [];
-                foreach ($gradeData as $gradeRow) {
-                    if (!is_array($gradeRow)) {
-                        continue;
-                    }
-
-                    $studentId = intval($gradeRow['id_studente'] ?? 0);
-                    if (!isset($studentMap[$studentId])) {
-                        continue;
-                    }
-                    $gradeRows[] = [
-                        'id_voto' => intval($gradeRow['id_voto'] ?? 0),
-                        'subject_id' => $subjectId,
-                        'subject_name' => $subjectName,
-                        'student_id' => $studentId,
-                        'student_name' => $studentMap[$studentId],
-                        'date_ts' => intval($gradeRow['data'] ?? 0),
-                        'date' => mastercomGradesFormatTs(intval($gradeRow['data'] ?? 0)),
-                        'tipo' => mastercomGradesTypeLabel($gradeRow['tipo'] ?? 0),
-                        'voto' => (string)($gradeRow['voto'] ?? ''),
-                        'note' => mastercomAdminCleanText($gradeRow['note'] ?? '') ?? '',
-                        'professore' => intval($gradeRow['id_professore'] ?? 0),
-                        'professore_nome' => $teacherMap[intval($gradeRow['id_professore'] ?? 0)] ?? '',
-                    ];
-                    if (trim((string)($gradeRow['voto'] ?? '')) !== '') {
-                        $loadedSubjectIds[$subjectId] = true;
-                    }
-                }
+        foreach ($avgRowsDb as $avgRow) {
+            $studentId = intval($avgRow['student_id'] ?? 0);
+            $subjectId = intval($avgRow['subject_id'] ?? 0);
+            if (!isset($studentMap[$studentId])) {
+                continue;
             }
-
-            if (!empty($loadedSubjectIds)) {
-                $avgRows = array_values(array_filter($avgRows, function ($row) use ($loadedSubjectIds) {
-                    return isset($loadedSubjectIds[intval($row['subject_id'] ?? 0)]) && (
-                        mastercomGradesHasValue($row['scritto'] ?? null) ||
-                        mastercomGradesHasValue($row['orale'] ?? null) ||
-                        mastercomGradesHasValue($row['pratico'] ?? null) ||
-                        mastercomGradesHasValue($row['totale'] ?? null)
-                    );
-                }));
-
-                $filteredSubjectRows = [];
-                foreach ($subjectsToLoad as $subjectId => $subjectName) {
-                    $subjectId = intval($subjectId);
-                    if (isset($loadedSubjectIds[$subjectId])) {
-                        $filteredSubjectRows[] = [
-                            'mastercom_id_materia' => $subjectId,
-                            'materia' => $subjectName,
-                        ];
-                    }
-                }
-                if (!empty($filteredSubjectRows)) {
-                    $subjectRows = mastercomGradesSortSubjects($filteredSubjectRows);
-                    $subjectMap = [];
-                    foreach ($subjectRows as $subjectRow) {
-                        $subjectId = intval($subjectRow['mastercom_id_materia'] ?? 0);
-                        if ($subjectId > 0) {
-                            $subjectMap[$subjectId] = mastercomGradesCleanText($subjectRow['materia'] ?? ('Materia ' . $subjectId));
-                        }
-                    }
-                }
-
-                if ($selectedSubjectId > 0 && !isset($loadedSubjectIds[$selectedSubjectId])) {
-                    $selectedSubjectId = 0;
-                }
-                if ($selectedSubjectId > 0) {
-                    $avgRows = array_values(array_filter($avgRows, function ($row) use ($selectedSubjectId) {
-                        return intval($row['subject_id'] ?? 0) === $selectedSubjectId;
-                    }));
-                    $gradeRows = array_values(array_filter($gradeRows, function ($row) use ($selectedSubjectId) {
-                        return intval($row['subject_id'] ?? 0) === $selectedSubjectId;
-                    }));
-                }
+            $subjectName = trim((string)($avgRow['subject_name'] ?? ''));
+            if ($subjectName === '') {
+                $subjectName = $subjectMap[$subjectId] ?? ('Materia ' . $subjectId);
             }
-
-            if (empty($avgRows) && empty($gradeRows) && !empty($loadErrors)) {
-                $errorMessage = 'Caricamento voti MasterCom fallito per: ' . implode(', ', $loadErrors);
-            } else {
-                usort($avgRows, function ($a, $b) {
-                    $cmp = strcmp($a['student_name'], $b['student_name']);
-                    if ($cmp !== 0) {
-                        return $cmp;
-                    }
-                    return strcmp($a['subject_name'] ?? '', $b['subject_name'] ?? '');
-                });
-
-                if ($selectedSubjectId <= 0) {
-                    $avgMatrixSubjects = $subjectMap;
-                    $avgMatrixStudents = $studentMap;
-                    foreach ($avgRows as $row) {
-                        $studentId = intval($row['student_id'] ?? 0);
-                        $subjectId = intval($row['subject_id'] ?? 0);
-                        if ($studentId > 0 && $subjectId > 0) {
-                            $avgMatrixCells[$studentId][$subjectId] = $row;
-                        }
-                    }
-                }
-
-                foreach ($avgRows as $row) {
-                    $gradeCalendarStudents[intval($row['student_id'])] = $row['student_name'];
-                }
-
-                foreach ($gradeRows as $row) {
-                    $dateTs = intval($row['date_ts'] ?? 0);
-                    if ($dateTs <= 0) {
-                        continue;
-                    }
-
-                    $dateKey = date('Y-m-d', $dateTs);
-                    $gradeCalendarDates[$dateKey] = [
-                        'ts' => $dateTs,
-                        'label' => mastercomGradesDayMonthLabel($dateTs),
-                        'full' => $row['date'],
-                        'period' => intval(date('n', $dateTs)) >= 9 ? 'first' : 'second',
-                    ];
-
-                    $studentId = intval($row['student_id']);
-                    if (!isset($gradeCalendarStudents[$studentId])) {
-                        $gradeCalendarStudents[$studentId] = $row['student_name'];
-                    }
-
-                    if (!isset($gradeCalendarCells[$studentId])) {
-                        $gradeCalendarCells[$studentId] = [];
-                    }
-                    if (!isset($gradeCalendarCells[$studentId][$dateKey])) {
-                        $gradeCalendarCells[$studentId][$dateKey] = [];
-                    }
-
-                    $gradeCalendarCells[$studentId][$dateKey][] = [
-                        'voto' => $row['voto'],
-                        'tipo' => $row['tipo'],
-                        'tipo_short' => mastercomGradesShortTypeLabel($row['tipo']),
-                        'tipo_class' => strtolower(preg_replace('/[^a-z0-9]+/i', '-', $row['tipo'])),
-                        'note' => $row['note'],
-                        'subject_name' => $row['subject_name'] ?? '',
-                        'professore_nome' => $row['professore_nome'] ?? '',
-                    ];
-                }
-
-                uasort($gradeCalendarDates, function ($a, $b) {
-                    return intval($a['ts']) <=> intval($b['ts']);
-                });
+            $avgRows[] = [
+                'subject_id' => $subjectId,
+                'subject_name' => $subjectName,
+                'student_id' => $studentId,
+                'student_name' => $studentMap[$studentId],
+                'scritto' => $avgRow['scritto'] ?? null,
+                'orale' => $avgRow['orale'] ?? null,
+                'pratico' => $avgRow['pratico'] ?? null,
+                'totale' => $avgRow['totale'] ?? null,
+            ];
+            if (
+                mastercomGradesHasValue($avgRow['scritto'] ?? null) ||
+                mastercomGradesHasValue($avgRow['orale'] ?? null) ||
+                mastercomGradesHasValue($avgRow['pratico'] ?? null) ||
+                mastercomGradesHasValue($avgRow['totale'] ?? null)
+            ) {
+                $loadedSubjectIds[$subjectId] = true;
             }
         }
+
+        $gradeRowsDb = mastercomAdminTableExists('mastercom_voti_dettaglio') ? dbGetAll("
+            SELECT
+                d.id_voto,
+                d.mastercom_id_materia AS subject_id,
+                COALESCE(vm.materia, " . dbQ('') . ") AS subject_name,
+                d.mastercom_id_studente AS student_id,
+                d.data_ts,
+                d.tipo,
+                d.voto,
+                d.note,
+                d.mastercom_id_professore AS professore
+            FROM mastercom_voti_dettaglio d
+            LEFT JOIN mastercom_voti_materie vm
+              ON vm.mastercom_id_classe = d.mastercom_id_classe
+             AND vm.mastercom_id_materia = d.mastercom_id_materia
+            WHERE d.mastercom_id_classe = " . dbI($selectedClassId) . "
+              AND d.data_giorno BETWEEN " . dbQ($startDate) . " AND " . dbQ($endDate) . "
+              " . ($selectedSubjectId > 0 ? (" AND d.mastercom_id_materia = " . dbI($selectedSubjectId)) : '') . "
+            ORDER BY d.data_ts ASC, d.id_voto ASC
+        ") : [];
+
+        foreach ($gradeRowsDb as $gradeRow) {
+            $studentId = intval($gradeRow['student_id'] ?? 0);
+            $subjectId = intval($gradeRow['subject_id'] ?? 0);
+            if (!isset($studentMap[$studentId])) {
+                continue;
+            }
+            $subjectName = trim((string)($gradeRow['subject_name'] ?? ''));
+            if ($subjectName === '') {
+                $subjectName = $subjectMap[$subjectId] ?? ('Materia ' . $subjectId);
+            }
+            $teacherId = intval($gradeRow['professore'] ?? 0);
+            $gradeRows[] = [
+                'id_voto' => intval($gradeRow['id_voto'] ?? 0),
+                'subject_id' => $subjectId,
+                'subject_name' => $subjectName,
+                'student_id' => $studentId,
+                'student_name' => $studentMap[$studentId],
+                'date_ts' => intval($gradeRow['data_ts'] ?? 0),
+                'date' => mastercomGradesFormatTs(intval($gradeRow['data_ts'] ?? 0)),
+                'tipo' => mastercomGradesTypeLabel($gradeRow['tipo'] ?? 0),
+                'voto' => (string)($gradeRow['voto'] ?? ''),
+                'note' => mastercomAdminCleanText($gradeRow['note'] ?? '') ?? '',
+                'professore' => $teacherId,
+                'professore_nome' => $teacherMap[$teacherId] ?? '',
+            ];
+            if (trim((string)($gradeRow['voto'] ?? '')) !== '') {
+                $loadedSubjectIds[$subjectId] = true;
+            }
+        }
+
+        if (!empty($loadedSubjectIds)) {
+            $filteredSubjectRows = [];
+            foreach ($subjectsToLoad as $subjectId => $subjectName) {
+                $subjectId = intval($subjectId);
+                if (isset($loadedSubjectIds[$subjectId])) {
+                    $filteredSubjectRows[] = [
+                        'mastercom_id_materia' => $subjectId,
+                        'materia' => $subjectName,
+                    ];
+                }
+            }
+            if (!empty($filteredSubjectRows)) {
+                $subjectRows = mastercomGradesSortSubjects($filteredSubjectRows);
+                $subjectMap = [];
+                foreach ($subjectRows as $subjectRow) {
+                    $subjectId = intval($subjectRow['mastercom_id_materia'] ?? 0);
+                    if ($subjectId > 0) {
+                        $subjectMap[$subjectId] = mastercomGradesCleanText($subjectRow['materia'] ?? ('Materia ' . $subjectId));
+                    }
+                }
+            }
+        }
+
+        usort($avgRows, function ($a, $b) {
+            $cmp = strcmp($a['student_name'], $b['student_name']);
+            if ($cmp !== 0) {
+                return $cmp;
+            }
+            return strcmp($a['subject_name'] ?? '', $b['subject_name'] ?? '');
+        });
+
+        if ($selectedSubjectId <= 0) {
+            $avgMatrixSubjects = $subjectMap;
+            $avgMatrixStudents = $studentMap;
+            foreach ($avgRows as $row) {
+                $studentId = intval($row['student_id'] ?? 0);
+                $subjectId = intval($row['subject_id'] ?? 0);
+                if ($studentId > 0 && $subjectId > 0) {
+                    $avgMatrixCells[$studentId][$subjectId] = $row;
+                }
+            }
+        }
+
+        foreach ($avgRows as $row) {
+            $gradeCalendarStudents[intval($row['student_id'])] = $row['student_name'];
+        }
+
+        foreach ($gradeRows as $row) {
+            $dateTs = intval($row['date_ts'] ?? 0);
+            if ($dateTs <= 0) {
+                continue;
+            }
+
+            $dateKey = date('Y-m-d', $dateTs);
+            $gradeCalendarDates[$dateKey] = [
+                'ts' => $dateTs,
+                'label' => mastercomGradesDayMonthLabel($dateTs),
+                'full' => $row['date'],
+                'period' => intval(date('n', $dateTs)) >= 9 ? 'first' : 'second',
+            ];
+
+            $studentId = intval($row['student_id']);
+            if (!isset($gradeCalendarStudents[$studentId])) {
+                $gradeCalendarStudents[$studentId] = $row['student_name'];
+            }
+
+            if (!isset($gradeCalendarCells[$studentId])) {
+                $gradeCalendarCells[$studentId] = [];
+            }
+            if (!isset($gradeCalendarCells[$studentId][$dateKey])) {
+                $gradeCalendarCells[$studentId][$dateKey] = [];
+            }
+
+            $gradeCalendarCells[$studentId][$dateKey][] = [
+                'voto' => $row['voto'],
+                'tipo' => $row['tipo'],
+                'tipo_short' => mastercomGradesShortTypeLabel($row['tipo']),
+                'tipo_class' => strtolower(preg_replace('/[^a-z0-9]+/i', '-', $row['tipo'])),
+                'note' => $row['note'],
+                'subject_name' => $row['subject_name'] ?? '',
+                'professore_nome' => $row['professore_nome'] ?? '',
+            ];
+        }
+
+        uasort($gradeCalendarDates, function ($a, $b) {
+            return intval($a['ts']) <=> intval($b['ts']);
+        });
     }
 }
 ?>
@@ -735,7 +728,7 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
         .mc-grades-calendar td {
             border-right: 1px solid #d8e4ea;
             border-bottom: 1px solid #d8e4ea;
-            vertical-align: top;
+            vertical-align: middle;
             padding: 6px;
         }
 
@@ -766,10 +759,52 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
             width: 220px;
             min-width: 220px;
             max-width: 220px;
+            text-align: center;
+            vertical-align: middle;
         }
 
         .mc-grades-calendar thead .mc-student-col {
             z-index: 4;
+        }
+
+        .mc-calendar-student {
+            display: flex;
+            min-height: 96px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            text-align: center;
+        }
+
+        .mc-calendar-student-name {
+            font-weight: 700;
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+        }
+
+        .mc-calendar-student-photo {
+            width: 58px;
+            height: 72px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #d7e3f0;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, .12);
+        }
+
+        .mc-calendar-student-photo-placeholder {
+            width: 58px;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            border: 1px dashed #b9c7d3;
+            background: #eef3f7;
+            color: #6b7785;
+            font-size: 11px;
+            font-weight: 700;
         }
 
         .mc-grade-chip {
@@ -923,11 +958,83 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
                     </div>
                     <button type="submit" class="btn btn-primary" style="margin-left: 10px;">Aggiorna</button>
                 </form>
+                <?php if ($selectedClassId > 0): ?>
+                    <div class="well well-sm" style="margin-bottom: 15px;">
+                        <div style="font-weight:700; margin-bottom:8px;">
+                            <span class="glyphicon glyphicon-refresh"></span>
+                            Sincronizzazione manuale voti
+                        </div>
+                        <div class="btn-toolbar" role="toolbar" style="display:flex; flex-wrap:wrap; gap:8px;">
+                            <form method="post" action="mastercom_sync.php" class="form-inline" onsubmit="document.getElementById('mc_grades_loading_overlay').style.display='flex';">
+                                <input type="hidden" name="entity" value="grades">
+                                <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
+                                <input type="hidden" name="subject_id" value="0">
+                                <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($schoolYearSyncStart); ?>">
+                                <input type="hidden" name="end_date" value="<?php echo htmlspecialchars($schoolYearSyncEnd); ?>">
+                                <input type="hidden" name="return_url" value="<?php echo htmlspecialchars($returnUrl); ?>">
+                                <button type="submit" class="btn btn-info">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                    Classe tutto l'anno, tutte le materie
+                                </button>
+                            </form>
+
+                            <form method="post" action="mastercom_sync.php" class="form-inline" onsubmit="document.getElementById('mc_grades_loading_overlay').style.display='flex';">
+                                <input type="hidden" name="entity" value="grades">
+                                <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
+                                <input type="hidden" name="subject_id" value="<?php echo intval($selectedSubjectId); ?>">
+                                <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($schoolYearSyncStart); ?>">
+                                <input type="hidden" name="end_date" value="<?php echo htmlspecialchars($schoolYearSyncEnd); ?>">
+                                <input type="hidden" name="return_url" value="<?php echo htmlspecialchars($returnUrl); ?>">
+                                <button type="submit" class="btn btn-primary" <?php echo $selectedSubjectId <= 0 ? 'disabled title="Seleziona una materia specifica"' : ''; ?>>
+                                    <span class="glyphicon glyphicon-book"></span>
+                                    Materia selezionata tutto l'anno
+                                </button>
+                            </form>
+
+                            <form method="post" action="mastercom_sync.php" class="form-inline" onsubmit="document.getElementById('mc_grades_loading_overlay').style.display='flex';">
+                                <input type="hidden" name="entity" value="grades">
+                                <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
+                                <input type="hidden" name="subject_id" value="0">
+                                <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($last15SyncStart); ?>">
+                                <input type="hidden" name="end_date" value="<?php echo htmlspecialchars($last15SyncEnd); ?>">
+                                <input type="hidden" name="return_url" value="<?php echo htmlspecialchars($returnUrl); ?>">
+                                <button type="submit" class="btn btn-warning">
+                                    <span class="glyphicon glyphicon-time"></span>
+                                    Classe ultimi 15 giorni, tutte le materie
+                                </button>
+                            </form>
+
+                            <form method="post" action="mastercom_sync.php" class="form-inline" onsubmit="document.getElementById('mc_grades_loading_overlay').style.display='flex';">
+                                <input type="hidden" name="entity" value="grades">
+                                <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
+                                <input type="hidden" name="subject_id" value="<?php echo intval($selectedSubjectId); ?>">
+                                <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($last15SyncStart); ?>">
+                                <input type="hidden" name="end_date" value="<?php echo htmlspecialchars($last15SyncEnd); ?>">
+                                <input type="hidden" name="return_url" value="<?php echo htmlspecialchars($returnUrl); ?>">
+                                <button type="submit" class="btn btn-default" <?php echo $selectedSubjectId <= 0 ? 'disabled title="Seleziona una materia specifica"' : ''; ?>>
+                                    <span class="glyphicon glyphicon-time"></span>
+                                    Materia selezionata ultimi 15 giorni
+                                </button>
+                            </form>
+                        </div>
+                        <div class="text-muted" style="margin-top:8px;">
+                            Anno scolastico: <?php echo htmlspecialchars($schoolYearSyncStart); ?> - <?php echo htmlspecialchars($schoolYearSyncEnd); ?>.
+                            Ultimi 15 giorni: <?php echo htmlspecialchars($last15SyncStart); ?> - <?php echo htmlspecialchars($last15SyncEnd); ?>.
+                        </div>
+                        <?php if ($lastGradesSync !== ''): ?>
+                            <div class="text-muted" style="margin-top:4px;">Ultimo sync: <?php echo htmlspecialchars($lastGradesSync); ?></div>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
 
                 <?php if ($selectedClassId <= 0): ?>
                     <div class="alert alert-info">Seleziona classe e intervallo per vedere medie e voti dettagliati.</div>
+                <?php elseif (!empty($cacheMissingTables)): ?>
+                    <div class="alert alert-warning">
+                        Cache voti non pronta. Esegui lo script SQL <code>doc/mastercom_grades_cache.sql</code>.
+                    </div>
                 <?php elseif (empty($subjectRows)): ?>
-                    <div class="alert alert-warning">Nessuna materia MasterCom trovata per la classe selezionata. Sincronizza docenti/classi/materie oppure verifica i dati MasterCom.</div>
+                    <div class="alert alert-warning">Nessuna materia in cache per la classe selezionata. Esegui una sincronizzazione voti da MasterCom.</div>
                 <?php elseif ($errorMessage !== ''): ?>
                     <div class="alert alert-danger"><?php echo htmlspecialchars($errorMessage); ?></div>
                 <?php else: ?>
