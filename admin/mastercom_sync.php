@@ -2,6 +2,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
+require_once '../common/mastercom/grades_cache_lib.php';
 
 ruoloRichiesto('admin');
 
@@ -63,6 +64,11 @@ function mastercomSyncStudentsAllMessage(int $completedClasses, int $totalClasse
     return $message;
 }
 
+$returnUrl = trim((string)($_POST['return_url'] ?? 'mastercom.php'));
+if ($returnUrl === '' || preg_match('/(^[a-z]+:|\/\/)/i', $returnUrl) || !preg_match('/^[A-Za-z0-9_\/?=&.\-%]+$/', $returnUrl)) {
+    $returnUrl = 'mastercom.php';
+}
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -85,7 +91,7 @@ function mastercomSyncStudentsAllMessage(int $completedClasses, int $totalClasse
                 <div id="mc-bar" class="progress-bar progress-bar-info" role="progressbar" style="width:0%">0%</div>
             </div>
             <div id="mc-result"></div>
-            <p><a href="mastercom.php" class="btn btn-default">Torna alla dashboard</a></p>
+            <p><a href="<?php echo htmlspecialchars($returnUrl); ?>" class="btn btn-default">Torna indietro</a></p>
         </div>
     </div>
 </div>
@@ -113,6 +119,7 @@ $progress = function (string $stage, int $current, int $total, string $message):
         'students_class' => 'Sincronizzazione studenti classe',
         'students_all' => 'Sincronizzazione studenti tutte le classi',
         'parents' => 'Sincronizzazione genitori',
+        'grades' => 'Sincronizzazione voti',
     ];
     mastercomSyncRenderProgress($titles[$stage] ?? 'Sincronizzazione MasterCom', $message, $current, $total);
 };
@@ -121,6 +128,14 @@ if ($entity === 'teachers') {
     $result = mastercomAdminSyncTeachers($progress);
 } elseif ($entity === 'classes') {
     $result = mastercomAdminSyncClasses($progress);
+} elseif ($entity === 'grades') {
+    $range = mastercomGradesCacheSchoolYearRange();
+    $result = mastercomGradesCacheSync([
+        'class_id' => intval($_POST['class_id'] ?? 0),
+        'subject_id' => intval($_POST['subject_id'] ?? 0),
+        'start_date' => trim((string)($_POST['start_date'] ?? $range['start'])),
+        'end_date' => trim((string)($_POST['end_date'] ?? min($range['end'], mastercomGradesCacheRomeToday('Y-m-d')))),
+    ], $progress);
 } elseif ($entity === 'rebuild_parent_student_links') {
     $result = mastercomAdminRebuildParentStudentLinks($progress);
 } elseif ($entity === 'parents') {

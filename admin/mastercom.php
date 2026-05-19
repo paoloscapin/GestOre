@@ -2,6 +2,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
+require_once '../common/mastercom/grades_cache_lib.php';
 
 ruoloRichiesto('admin');
 
@@ -9,6 +10,9 @@ $missingTables = mastercomAdminMissingTables();
 $message = trim((string)($_GET['message'] ?? ''));
 $error = trim((string)($_GET['error'] ?? ''));
 $classRows = empty($missingTables) ? mastercomAdminOperationalClassRows('*') : [];
+$gradesRange = mastercomGradesCacheSchoolYearRange();
+$gradesMissingTables = mastercomGradesCacheMissingTables();
+$gradesLastSync = mastercomGradesCacheLastSyncLabel();
 ?>
 <!DOCTYPE html>
 <html>
@@ -114,6 +118,27 @@ $classRows = empty($missingTables) ? mastercomAdminOperationalClassRows('*') : [
                             <a class="btn btn-info btn-block" href="mastercom_teacher_snapshot.php">
                                 <span class="glyphicon glyphicon-eye-open"></span> Apri snapshot docenti
                             </a>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="well">
+                            <h4>Voti</h4>
+                            <?php if (!empty($gradesMissingTables)): ?>
+                                <p class="text-warning">Esegui prima <code>doc/mastercom_grades_cache.sql</code>.</p>
+                            <?php else: ?>
+                                <p>
+                                    Cache locale per consultare voti e medie senza chiamare MasterCom durante il giorno.
+                                    <?php if ($gradesLastSync !== ''): ?>
+                                        <br><small>Ultimo sync: <?php echo htmlspecialchars($gradesLastSync); ?></small>
+                                    <?php endif; ?>
+                                </p>
+                                <form method="post" action="mastercom_sync.php">
+                                    <input type="hidden" name="entity" value="grades">
+                                    <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($gradesRange['start']); ?>">
+                                    <input type="hidden" name="end_date" value="<?php echo htmlspecialchars(min($gradesRange['end'], mastercomGradesCacheRomeToday('Y-m-d'))); ?>">
+                                    <button class="btn btn-primary btn-block" type="submit">Sincronizza voti di tutte le classi</button>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
