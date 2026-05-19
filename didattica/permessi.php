@@ -149,6 +149,53 @@ require_once '../common/checkSession.php';
         #permessi_presence_overlay .progress {
             margin: 12px 0 8px 0;
         }
+
+        .permessi-table {
+            table-layout: fixed;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .permessi-table th,
+        .permessi-table td {
+            vertical-align: top !important;
+        }
+
+        .permessi-col-date { width: 5.5%; }
+        .permessi-col-class { width: 4%; }
+        .permessi-col-time { width: 5%; }
+        .permessi-col-student { width: 10%; }
+        .permessi-col-parent { width: 9.5%; }
+        .permessi-col-reason { width: 12%; }
+        .permessi-col-presence { width: 15%; }
+        .permessi-col-state { width: 7%; }
+        .permessi-col-mastercom { width: 7%; }
+        .permessi-col-notes { width: 10%; }
+        .permessi-col-actions { width: 10%; }
+
+        .permessi-presence-cell,
+        .permessi-presence-static {
+            display: inline-block;
+            max-width: 100%;
+            white-space: normal;
+            line-height: 1.2;
+            padding: 4px 8px;
+        }
+
+        .permessi-notes-cell {
+            text-align: left;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .permessi-actions-cell {
+            white-space: normal;
+            text-align: center;
+        }
+
+        .permessi-actions-cell .btn {
+            margin: 1px;
+        }
     </style>
 
 </head>
@@ -378,7 +425,7 @@ foreach ($studenti as $studente) {
     <!-- // Modal - Add/Update Record -->
 
     <!-- Custom JS file -->
-    <script type="text/javascript" src="js/permessi.js?v=<?php echo $__software_version; ?>&d=desktop"></script>
+    <script type="text/javascript" src="js/permessi.js?v=<?php echo $__software_version; ?>&t=<?php echo time(); ?>&d=desktop"></script>
 </body>
 
 </html>

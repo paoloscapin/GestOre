@@ -216,6 +216,7 @@ function permessiRenderPresence($cell, result) {
     $cell
         .css({ backgroundColor: color, color: 'white' })
         .text(label)
+        .css({ whiteSpace: 'normal', lineHeight: '1.15' })
         .attr('title', detail)
         .attr('data-original-title', detail);
 }
@@ -247,6 +248,9 @@ function permessiLoadPresenceBadges() {
     if (!$cells.length || !dataFiltro) {
         $('#permessi_presence_status').hide();
         permessiPresenceOverlayHide();
+        if (dataFiltro) {
+            alert('Non ci sono permessi richiesti con presenza MasterCom da aggiornare nella tabella corrente.');
+        }
         return;
     }
 
@@ -280,7 +284,10 @@ function permessiLoadPresenceBadges() {
         if (done >= classIds.length) {
             $('#permessi_presence_status').hide().text('');
             permessiPresenceOverlayShow('Presenze MasterCom caricate', 100);
-            setTimeout(permessiPresenceOverlayHide, 350);
+            setTimeout(function () {
+                permessiPresenceOverlayHide();
+                permessiReadRecords(false);
+            }, 350);
             return;
         }
 

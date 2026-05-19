@@ -50,21 +50,35 @@ $presenceSnapshotSelect = $hasPresenceSnapshotColumns ? "
                     permessi_uscita.mastercom_presence_at," : "";
 
 // Design initial table header
-$data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
+$data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green permessi-table">
+<colgroup>
+    <col class="permessi-col-date">
+    <col class="permessi-col-class">
+    <col class="permessi-col-time">
+    <col class="permessi-col-student">
+    <col class="permessi-col-time">
+    <col class="permessi-col-parent">
+    <col class="permessi-col-reason">
+    <col class="permessi-col-presence">
+    <col class="permessi-col-state">
+    <col class="permessi-col-mastercom">
+    <col class="permessi-col-notes">
+    <col class="permessi-col-actions">
+</colgroup>
 <thead>
 <tr>
-    <th class="text-center col-md-1">Data</th>
-    <th class="text-center col-md-1 sortable" data-sort="classe">Classe</th>
-    <th class="text-center col-md-1 sortable" data-sort="ora_uscita">Ora uscita</th>
-    <th class="text-center col-md-2 sortable" data-sort="studente">Studente</th>
-    <th class="text-center col-md-1">Ora rientro</th>
-    <th class="text-center col-md-2">Genitore</th>
-    <th class="text-center col-md-1">Motivo</th>
-    <th class="text-center col-md-1">Presenza ora</th>
-    <th class="text-center col-md-1">Segreteria</th>
-    <th class="text-center col-md-1">MasterCom</th>
-    <th class="text-center col-md-1">Note segreteria</th>
-    <th class="text-center" style="width:110px; min-width:110px;">Azioni</th>
+    <th class="text-center">Data</th>
+    <th class="text-center sortable" data-sort="classe">Classe</th>
+    <th class="text-center sortable" data-sort="ora_uscita">Ora uscita</th>
+    <th class="text-center sortable" data-sort="studente">Studente</th>
+    <th class="text-center">Ora rientro</th>
+    <th class="text-center">Genitore</th>
+    <th class="text-center">Motivo</th>
+    <th class="text-center">Presenza ora</th>
+    <th class="text-center">Segreteria</th>
+    <th class="text-center">MasterCom</th>
+    <th class="text-center">Note segreteria</th>
+    <th class="text-center">Azioni</th>
 </tr>
 </thead>
 <tbody>';
@@ -134,35 +148,30 @@ function permessiStaticPresenceBadge(array $row): string {
     $label = trim((string)($row['mastercom_presence_label'] ?? ''));
     $detail = trim((string)($row['mastercom_presence_detail'] ?? ''));
     if ($state === '' && $label === '') {
-        return '<span class="badge" style="background-color:#777;color:white;" data-toggle="tooltip" title="Snapshot presenza non disponibile">Snapshot mancante</span>';
+        return '<span class="badge permessi-presence-static" style="background-color:#777;color:white;" data-toggle="tooltip" title="Snapshot presenza non disponibile">Snapshot mancante</span>';
     }
     if ($label === '') {
         $label = 'Da verificare';
     }
     $title = htmlspecialchars($detail, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    return '<span class="badge" style="background-color:' . permessiPresenceColor($state) . ';color:white;" data-toggle="tooltip" title="' . $title . '">' . htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
+    return '<span class="badge permessi-presence-static" style="background-color:' . permessiPresenceColor($state) . ';color:white;" data-toggle="tooltip" title="' . $title . '">' . htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
 }
 function permessiPresenceBadge(array $row, string $dataFiltro, string $today, bool $hasPresenceSnapshotColumns, bool $livePresence): string {
-    if (intval($row['stato'] ?? 0) !== 1) {
-        return $hasPresenceSnapshotColumns
-            ? permessiStaticPresenceBadge($row)
-            : '<span class="badge" style="background-color:#777;color:white;">Snapshot non configurato</span>';
-    }
     if (!$livePresence) {
         return $hasPresenceSnapshotColumns
             ? permessiStaticPresenceBadge($row)
-            : '<span class="badge" style="background-color:#777;color:white;">Snapshot non configurato</span>';
+            : '<span class="badge permessi-presence-static" style="background-color:#777;color:white;">Snapshot non configurato</span>';
     }
     if ($dataFiltro !== $today) {
-        return '<span class="badge" style="background-color:#ddd;color:#333;">Solo oggi</span>';
+        return '<span class="badge permessi-presence-static" style="background-color:#ddd;color:#333;">Solo oggi</span>';
     }
     $mcStudentId = intval($row['mastercom_id_studente'] ?? 0);
     $mcClassId = intval($row['mastercom_id_classe_corrente'] ?? 0);
     if ($mcStudentId <= 0) {
-        return '<span class="badge" style="background-color:red;color:white;">Non collegato</span>';
+        return '<span class="badge permessi-presence-static" style="background-color:red;color:white;">Non collegato</span>';
     }
     if ($mcClassId <= 0) {
-        return '<span class="badge" style="background-color:#777;color:white;">Classe MC mancante</span>';
+        return '<span class="badge permessi-presence-static" style="background-color:#777;color:white;">Classe MC mancante</span>';
     }
 
     return '<span class="badge permessi-presence-cell" style="background-color:#777;color:white;"'
@@ -178,6 +187,18 @@ function formatName($string) {
     $string = strtolower($string); // tutto minuscolo
     return mb_convert_case($string, MB_CASE_TITLE, "UTF-8"); // ogni parola con iniziale maiuscola
 }
+
+function permessiFormatSegreteriaNotes($note): string
+{
+    $note = (string)$note;
+    $note = preg_replace_callback('/\[(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2}:\d{2})\]\s*/', function ($matches) {
+        return '[' . $matches[3] . '/' . $matches[2] . '/' . $matches[1] . ' ' . $matches[4] . "]\n";
+    }, $note);
+    $note = preg_replace('/\[(\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2})\]\s*/', "[$1]\n", $note);
+
+    return nl2br(htmlspecialchars($note, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+}
+
 	foreach ($resultArray as $row) {
 	$id_permesso = $row['id'];
 	$id_genitore = $row['id_genitore'];
@@ -248,8 +269,8 @@ function formatName($string) {
 		<td align="center">' . $presenceBadge . '</td>
 		<td align="center">' . $badge . '</td>
 		<td align="center">' . $mastercomBadge . '</td>
-		<td align="center">' . nl2br(htmlspecialchars($note)) . '</td>
-		<td align="center" style="min-width:110px; white-space:nowrap;">
+		<td class="permessi-notes-cell">' . permessiFormatSegreteriaNotes($note) . '</td>
+		<td class="permessi-actions-cell">
 		<button onclick="permessiGetDetails(\'' . $id_permesso . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-placement="top" title="Modifica la richiesta"><span class="glyphicon glyphicon-pencil"></span></button>
 		<button onclick="permessiDelete(\'' . $id_permesso . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-placement="top" title="Cancella la richiesta"><span class="glyphicon glyphicon-trash"></span></button>';
 	if ($stato == 1) {
