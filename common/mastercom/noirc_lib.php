@@ -1779,7 +1779,13 @@ function mastercomNoIrcPresenceClassifyAppealRow(array $appealRow, string $date 
     $haLezione = intval($appealRow['ha_lezione'] ?? 0) === 1;
 
     if (!empty($eventi)) {
-        return ['stato' => 'EVENTO', 'label' => 'Evento MasterCom', 'detail' => 'Risulta in evento', 'appeal' => $appealRow];
+        $eventSummary = mastercomNoIrcPresenceEventsSummary($eventi);
+        return [
+            'stato' => 'EVENTO',
+            'label' => $eventSummary['label'],
+            'detail' => $eventSummary['detail'],
+            'appeal' => $appealRow,
+        ];
     }
     if (!empty($permessi)) {
         return ['stato' => 'PERMESSO', 'label' => 'Permesso MasterCom', 'detail' => 'Permesso registrato', 'appeal' => $appealRow];
@@ -1813,6 +1819,108 @@ function mastercomNoIrcPresenceClassifyAppealRow(array $appealRow, string $date 
     }
 
     return ['stato' => 'NON_VERIFICATO', 'label' => 'Da verificare', 'detail' => 'MasterCom non indica lezione corrente', 'appeal' => $appealRow];
+}
+
+function mastercomNoIrcPresenceEventsSummary(array $events): array
+{
+    $labels = [];
+    $details = [];
+    foreach ($events as $event) {
+        if (!is_array($event)) {
+            continue;
+        }
+        $title = mastercomNoIrcPresenceEventTitle($event);
+        $start = mastercomNoIrcPresenceEventTime($event, ['data_inizio_ts', 'start_ts', 'data_inizio', 'inizio']);
+        $end = mastercomNoIrcPresenceEventTime($event, ['data_fine_ts', 'end_ts', 'data_fine', 'fine']);
+        $time = trim($start . ($start !== '' || $end !== '' ? '-' : '') . $end, '-');
+        $line = $title . ($time !== '' ? ' (' . $time . ')' : '');
+        $labels[$line] = true;
+        $details[$line] = true;
+    }
+
+    $lines = array_keys($labels);
+    if (empty($lines)) {
+        return ['label' => 'Evento MasterCom', 'detail' => 'Risulta in evento MasterCom'];
+    }
+
+    $first = $lines[0];
+    $label = count($lines) === 1 ? $first : ($first . ' +' . (count($lines) - 1));
+    if (mb_strlen($label, 'UTF-8') > 70) {
+        $label = mb_substr($label, 0, 67, 'UTF-8') . '...';
+    }
+
+    return [
+        'label' => $label,
+        'detail' => implode("\n", array_keys($details)),
+    ];
+}
+
+function mastercomNoIrcPresenceEventTitle(array $event): string
+{
+    foreach (['titolo', 'nome', 'descrizione', 'testo', 'oggetto', 'title', 'name', 'text'] as $key) {
+        $value = trim((string)($event[$key] ?? ''));
+        if ($value !== '') {
+            $value = mastercomAdminCleanText($value) ?: $value;
+            return trim(preg_replace('/\s+/u', ' ', $value));
+        }
+    }
+
+    $candidates = [];
+    foreach ($event as $key => $value) {
+        if (is_array($value) || is_object($value)) {
+            continue;
+        }
+        $key = strtolower((string)$key);
+        if (preg_match('/(^id_|_id$|^id$|data|time|ora|timestamp|partecip|classe|student)/', $key)) {
+            continue;
+        }
+        $text = trim((string)$value);
+        if ($text === '' || is_numeric($text)) {
+            continue;
+        }
+        $text = mastercomAdminCleanText($text) ?: $text;
+        $candidates[] = trim(preg_replace('/\s+/u', ' ', $text));
+    }
+
+    return $candidates[0] ?? 'Evento MasterCom';
+}
+
+function mastercomNoIrcPresenceEventTime(array $event, array $keys): string
+{
+    $wantEnd = count(array_intersect($keys, ['data_fine_ts', 'end_ts', 'data_fine', 'fine'])) > 0;
+    foreach ($keys as $key) {
+        if (!array_key_exists($key, $event)) {
+            continue;
+        }
+        $value = $event[$key];
+        if (is_numeric($value) && intval($value) > 0) {
+            return mastercomNoIrcPresenceFormatTs(intval($value), 'H:i');
+        }
+        $value = trim((string)$value);
+        if ($value === '') {
+            continue;
+        }
+        $timestamp = strtotime($value);
+        if ($timestamp !== false) {
+            return mastercomNoIrcPresenceFormatTs(intval($timestamp), 'H:i');
+        }
+        if (preg_match('/(\d{1,2}:\d{2})/', $value, $matches)) {
+            return str_pad($matches[1], 5, '0', STR_PAD_LEFT);
+        }
+    }
+
+    foreach (['orario', 'ora', 'time', 'descrizione', 'titolo', 'nome', 'testo'] as $key) {
+        $value = trim((string)($event[$key] ?? ''));
+        if ($value === '') {
+            continue;
+        }
+        if (preg_match_all('/\b(\d{1,2})[:\.](\d{2})\b/', $value, $matches, PREG_SET_ORDER) && !empty($matches)) {
+            $match = $wantEnd ? end($matches) : $matches[0];
+            return str_pad((string)intval($match[1]), 2, '0', STR_PAD_LEFT) . ':' . str_pad((string)intval($match[2]), 2, '0', STR_PAD_LEFT);
+        }
+    }
+
+    return '';
 }
 
 function mastercomNoIrcPresenceFormatTs(int $timestamp, string $format = 'Y-m-d'): string
