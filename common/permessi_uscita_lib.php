@@ -30,7 +30,7 @@ function permessiUscitaStateLabel($state): string
 
 function permessiUscitaCurrentTimestamp(): string
 {
-    return (new DateTime('now', new DateTimeZone('Europe/Rome')))->format('Y-m-d H:i:s');
+    return (new DateTime('now', new DateTimeZone('Europe/Rome')))->format('d/m/Y H:i:s');
 }
 
 function permessiUscitaLoad(int $id): ?array
