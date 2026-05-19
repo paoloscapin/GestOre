@@ -51,54 +51,165 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-function impostaDataPermesso() {
-    const inputData = document.getElementById("data");
-    const avviso = document.getElementById("avvisoData");
-    const timezone = "Europe/Rome";
+function getPermessiCutoffMinutes() {
+    const config = window.GESTORE_PERMESSI_CONFIG || {};
+    const raw = String(config.oraLimiteGenitori || "09:00").trim();
+    const match = raw.match(/^(\d{1,2})(?::?(\d{2}))?$/);
 
-    if (!inputData || !avviso) {
-        return;
+    if (!match) {
+        return 9 * 60;
     }
 
-    const parts = new Intl.DateTimeFormat("en-CA", {
+    const hours = Math.max(0, Math.min(23, Number(match[1]) || 0));
+    const minutes = Math.max(0, Math.min(59, Number(match[2] || 0) || 0));
+    return hours * 60 + minutes;
+}
+
+function getPermessiNow() {
+    const config = window.GESTORE_PERMESSI_CONFIG || {};
+    const serverNowMs = Number(config.serverNowMs || 0);
+    const clientLoadedAtMs = Number(config.clientLoadedAtMs || 0);
+
+    if (serverNowMs > 0 && clientLoadedAtMs > 0) {
+        return new Date(serverNowMs + (Date.now() - clientLoadedAtMs));
+    }
+
+    return new Date();
+}
+
+function getPermessiTodayParts() {
+    const timezone = (window.GESTORE_PERMESSI_CONFIG && window.GESTORE_PERMESSI_CONFIG.timezone) || "Europe/Rome";
+
+    return new Intl.DateTimeFormat("en-CA", {
         timeZone: timezone,
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
         weekday: "short",
         hour: "2-digit",
+        minute: "2-digit",
         hourCycle: "h23"
-    }).formatToParts(new Date()).reduce(function (acc, part) {
+    }).formatToParts(getPermessiNow()).reduce(function (acc, part) {
         if (part.type !== "literal") {
             acc[part.type] = part.value;
         }
         return acc;
     }, {});
+}
 
-    let dataSelezionata = new Date(Date.UTC(
+function formatPermessiIsoDate(date) {
+    const anno = date.getUTCFullYear();
+    const mese = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const giorno = String(date.getUTCDate()).padStart(2, "0");
+    return anno + "-" + mese + "-" + giorno;
+}
+
+function formatPermessiItalianDate(isoDate) {
+    const parts = String(isoDate).split("-");
+    if (parts.length !== 3) {
+        return isoDate;
+    }
+    return parts[2] + "/" + parts[1] + "/" + parts[0];
+}
+
+function formatPermessiLongItalianDate(isoDate) {
+    const parts = String(isoDate).split("-");
+    if (parts.length !== 3) {
+        return isoDate;
+    }
+
+    const date = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+    return new Intl.DateTimeFormat("it-IT", {
+        timeZone: "UTC",
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+    }).format(date);
+}
+
+function getPermessiSelectableDates() {
+    const config = window.GESTORE_PERMESSI_CONFIG || {};
+    const holidays = new Set(Array.isArray(config.giorniFestivi) ? config.giorniFestivi : []);
+    const maxDates = Math.max(1, Number(config.giorniSelezionabili || 4));
+    const parts = getPermessiTodayParts();
+    const currentMinutes = (Number(parts.hour) * 60) + Number(parts.minute || 0);
+    const cutoffMinutes = getPermessiCutoffMinutes();
+    const today = new Date(Date.UTC(
         Number(parts.year),
         Number(parts.month) - 1,
         Number(parts.day)
     ));
+    const todayIso = formatPermessiIsoDate(today);
+    const dates = [];
+    let cursor = new Date(today.getTime());
 
-    // Dopo le 09:00 ora italiana propone il primo giorno lavorativo successivo.
-    if (Number(parts.hour) >= 9) {
-        dataSelezionata.setUTCDate(dataSelezionata.getUTCDate() + 1);
-        avviso.style.display = "block";
-    } else {
-        avviso.style.display = "none";
+    if (currentMinutes >= cutoffMinutes) {
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
 
-    // Salta sabato (6) e domenica (0)
-    while (dataSelezionata.getUTCDay() === 0 || dataSelezionata.getUTCDay() === 6) {
-        dataSelezionata.setUTCDate(dataSelezionata.getUTCDate() + 1);
+    for (let guard = 0; dates.length < maxDates && guard < 30; guard++) {
+        const iso = formatPermessiIsoDate(cursor);
+        const day = cursor.getUTCDay();
+        if (day !== 0 && day !== 6 && !holidays.has(iso)) {
+            let label = formatPermessiLongItalianDate(iso);
+            if (iso === todayIso) {
+                label = label + " (oggi)";
+            } else {
+                const tomorrow = new Date(today.getTime());
+                tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+                if (iso === formatPermessiIsoDate(tomorrow)) {
+                    label = label + " (domani)";
+                }
+            }
+            dates.push({ value: iso, label: label });
+        }
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
 
-    // Formato YYYY-MM-DD
-    const anno = dataSelezionata.getUTCFullYear();
-    const mese = String(dataSelezionata.getUTCMonth() + 1).padStart(2, "0");
-    const giorno = String(dataSelezionata.getUTCDate()).padStart(2, "0");
-    inputData.value = anno + "-" + mese + "-" + giorno;
+    return {
+        dates: dates,
+        todayAvailable: dates.some(function (item) { return item.value === todayIso; })
+    };
+}
+
+function setPermessiDateSelectValue(value) {
+    const inputData = document.getElementById("data");
+    if (!inputData) {
+        return;
+    }
+    if (value && !Array.prototype.some.call(inputData.options, function (option) { return option.value === value; })) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = formatPermessiItalianDate(value);
+        inputData.appendChild(option);
+    }
+    inputData.value = value || "";
+}
+
+function impostaDataPermesso() {
+    const inputData = document.getElementById("data");
+    const avviso = document.getElementById("avvisoData");
+
+    if (!inputData || !avviso) {
+        return;
+    }
+
+    const selectable = getPermessiSelectableDates();
+    inputData.innerHTML = "";
+    selectable.dates.forEach(function (item) {
+        const option = document.createElement("option");
+        option.value = item.value;
+        option.textContent = item.label;
+        inputData.appendChild(option);
+    });
+
+    avviso.textContent = "Il termine per richiedere permessi per oggi e' scaduto.";
+    avviso.style.display = selectable.todayAvailable ? "none" : "block";
+
+    if (selectable.dates.length > 0) {
+        inputData.value = selectable.dates[0].value;
+    }
 }
 
 function permessiDelete(id) {
@@ -172,7 +283,9 @@ function permessoSave() {
             $("#permesso_modal").modal("hide");
             permessiReadRecords();
         } else {
-            alert("Errore durante il salvataggio del permesso.");
+            const msg = response && response.error ? response.error : "Errore durante il salvataggio del permesso.";
+            $("#_error-permesso").text(msg);
+            $("#_error-permesso-part").show();
         }
     }, 'json').fail(function () {
         alert("Errore di comunicazione con il server.");
@@ -188,7 +301,7 @@ function permessiGetDetails(permesso_id) {
         }, function (data, status) {
             var permesso = (typeof data === "string") ? JSON.parse(data) : data;
 
-            if ($("#data").length) $("#data").val(permesso.permesso_data || "");
+            if ($("#data").length) setPermessiDateSelectValue(permesso.permesso_data || "");
             if ($("#ora_uscita").length) $("#ora_uscita").val(permesso.permesso_ora_uscita || "");
             if ($("#rientro").length) $("#rientro").prop('checked', Number(permesso.permesso_rientro) === 1);
             if ($("#motivo").length) $("#motivo").val(permesso.permesso_motivo || "");

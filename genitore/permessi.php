@@ -35,10 +35,22 @@ ruoloRichiesto('genitore');
     }
 
     $permessiNow = new DateTimeImmutable('now', new DateTimeZone('Europe/Rome'));
+    $permessiGiorniFestivi = getSettingsValue('permessi', 'giorni_festivi', []);
+    if ($permessiGiorniFestivi instanceof stdClass) {
+        $permessiGiorniFestivi = (array)$permessiGiorniFestivi;
+    }
+    if (is_string($permessiGiorniFestivi)) {
+        $permessiGiorniFestivi = preg_split('/\s*,\s*/', $permessiGiorniFestivi, -1, PREG_SPLIT_NO_EMPTY);
+    }
+    if (!is_array($permessiGiorniFestivi)) {
+        $permessiGiorniFestivi = [];
+    }
     $permessiJsConfig = [
         'timezone' => 'Europe/Rome',
         'serverNowMs' => ((int)$permessiNow->format('U')) * 1000,
         'oraLimiteGenitori' => (string)getSettingsValue('permessi', 'ora_limite_genitori', '09:00'),
+        'giorniFestivi' => array_values(array_filter(array_map('strval', $permessiGiorniFestivi))),
+        'giorniSelezionabili' => 4,
     ];
 
     ?>
@@ -175,9 +187,9 @@ foreach ($studenti as $studente) {
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="data">Data</label>
                                     <div class="col-sm-10">
-                                        <input type="date" id="data" class="form-control" readonly />
+                                        <select id="data" class="form-control"></select>
                                         <small id="avvisoData" class="text-danger fw-bold" style="display:none;">
-                                            ⚠️ Attenzione: la data del permesso sarà domani.
+                                            Il termine per richiedere permessi per oggi e' scaduto.
                                         </small>
                                     </div>
                                 </div>

@@ -284,7 +284,8 @@
         "visibile_docenti": false,
         "visibile_genitori": false,
         "visibile_studenti": false,
-        "ora_limite_genitori": "09:00"
+        "ora_limite_genitori": "09:00",
+        "giorni_festivi": []
     },
     "label": {
         "ore_funzionali": "funzionali",

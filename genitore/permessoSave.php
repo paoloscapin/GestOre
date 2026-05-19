@@ -17,6 +17,89 @@ function permessiFailUnauthorized()
     exit;
 }
 
+function permessiFailJson(string $message)
+{
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'ok' => false,
+        'error' => $message
+    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
+function permessiGenitoreGiorniFestivi(): array
+{
+    $raw = getSettingsValue('permessi', 'giorni_festivi', []);
+    if ($raw instanceof stdClass) {
+        $raw = (array)$raw;
+    }
+    if (is_string($raw)) {
+        $raw = preg_split('/\s*,\s*/', $raw, -1, PREG_SPLIT_NO_EMPTY);
+    }
+    if (!is_array($raw)) {
+        return [];
+    }
+
+    return array_values(array_unique(array_filter(array_map('strval', $raw), function ($date) {
+        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $date);
+    })));
+}
+
+function permessiGenitoreIsGiornoRichiedibile(DateTimeImmutable $date, array $holidays): bool
+{
+    if (in_array((int)$date->format('w'), [0, 6], true)) {
+        return false;
+    }
+    return !in_array($date->format('Y-m-d'), $holidays, true);
+}
+
+function permessiGenitoreDateRichiedibili(): array
+{
+    $timezone = new DateTimeZone('Europe/Rome');
+    $now = new DateTimeImmutable('now', $timezone);
+    $limit = trim((string)getSettingsValue('permessi', 'ora_limite_genitori', '09:00'));
+    $holidays = permessiGenitoreGiorniFestivi();
+
+    if (!preg_match('/^\d{1,2}:\d{2}$/', $limit)) {
+        $limit = '09:00';
+    }
+
+    [$limitHour, $limitMinute] = array_map('intval', explode(':', $limit));
+    $cutoff = $now->setTime($limitHour, $limitMinute, 0);
+    $firstDate = $now;
+
+    if ($now >= $cutoff) {
+        $firstDate = $firstDate->modify('+1 day');
+    }
+
+    $dates = [];
+    $cursor = $firstDate;
+    $guard = 0;
+    while (count($dates) < 4 && $guard < 30) {
+        if (permessiGenitoreIsGiornoRichiedibile($cursor, $holidays)) {
+            $dates[] = $cursor->format('Y-m-d');
+        }
+        $cursor = $cursor->modify('+1 day');
+        $guard++;
+    }
+
+    return $dates;
+}
+
+function permessiValidateGenitoreData(string $data): void
+{
+    $selected = DateTimeImmutable::createFromFormat('!Y-m-d', $data, new DateTimeZone('Europe/Rome'));
+    $errors = DateTimeImmutable::getLastErrors();
+    if (!$selected || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+        permessiFailJson('Data del permesso non valida.');
+    }
+
+    $allowedDates = permessiGenitoreDateRichiedibili();
+    if (!in_array($selected->format('Y-m-d'), $allowedDates, true)) {
+        permessiFailJson('La data selezionata non e\' disponibile per la richiesta del permesso.');
+    }
+}
+
 function canGenitoreAccessStudente($idStudente, $idGenitore)
 {
     $idStudente = (int)$idStudente;
@@ -94,6 +177,10 @@ $isGenitore = impersonaRuolo('genitore');
 
 if ($isGenitore && !canGenitoreAccessStudente($id_studente, (int)$__genitore_id)) {
     permessiFailUnauthorized();
+}
+
+if ($isGenitore) {
+    permessiValidateGenitoreData($data);
 }
 
 if ($id > 0) {
