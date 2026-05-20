@@ -328,6 +328,64 @@ function permessiUscitaPermissionDateTime(array $permesso): DateTime
     return $dt;
 }
 
+function permessiUscitaTimeToMinutes(string $time): int
+{
+    $time = permessiUscitaFormatTime($time);
+    if (!preg_match('/^(\d{2}):(\d{2})$/', $time, $matches)) {
+        return -1;
+    }
+    return intval($matches[1]) * 60 + intval($matches[2]);
+}
+
+function permessiUscitaPresenceOverride(array $permesso, ?DateTime $now = null): ?array
+{
+    $syncState = strtoupper(trim((string)($permesso['mastercom_sync_stato'] ?? '')));
+    if ($syncState !== 'INVIATO') {
+        return null;
+    }
+
+    $date = trim((string)($permesso['data'] ?? ''));
+    if ($date === '') {
+        return null;
+    }
+
+    $now = $now ?: new DateTime('now', new DateTimeZone('Europe/Rome'));
+    if ($date !== $now->format('Y-m-d')) {
+        return null;
+    }
+
+    $exitHour = permessiUscitaFormatTime((string)($permesso['ora_uscita'] ?? ''));
+    $exitMinute = permessiUscitaTimeToMinutes($exitHour);
+    $nowMinute = intval($now->format('H')) * 60 + intval($now->format('i'));
+    if ($exitMinute < 0 || $nowMinute < $exitMinute) {
+        return null;
+    }
+
+    $returnHour = permessiUscitaFormatTime((string)($permesso['ora_rientro'] ?? ''));
+    $returnMinute = permessiUscitaTimeToMinutes($returnHour);
+    $hasReturn = intval($permesso['rientro'] ?? 0) === 1
+        && $returnMinute > $exitMinute
+        && $returnHour !== '00:00';
+
+    if ($hasReturn && $nowMinute >= $returnMinute) {
+        $label = 'Uscito con permesso ' . $exitHour . ' - Rientrato alle ' . $returnHour;
+        $detail = 'Permesso di uscita inviato a MasterCom: uscito alle ' . $exitHour . ' e rientrato alle ' . $returnHour . '.';
+    } else {
+        $label = 'Uscito con permesso';
+        $detail = 'Permesso di uscita inviato a MasterCom: uscito alle ' . $exitHour . '.';
+        if ($hasReturn) {
+            $detail .= ' Rientro previsto alle ' . $returnHour . '.';
+        }
+    }
+
+    return [
+        'stato' => 'USCITO_PERMESSO',
+        'label' => $label,
+        'detail' => $detail,
+        'color' => '#337ab7',
+    ];
+}
+
 function permessiUscitaPresenceHasManualExit(array $presence, string $date, string $hour): bool
 {
     if (!is_array($presence['appeal'] ?? null)) {
@@ -339,6 +397,24 @@ function permessiUscitaPresenceHasManualExit(array $presence, string $date, stri
     foreach (['permessi', 'uscite'] as $key) {
         if (is_array($appeal[$key] ?? null)) {
             $entries = array_merge($entries, $appeal[$key]);
+        }
+    }
+    if (is_array($appeal['assenze'] ?? null)) {
+        foreach ($appeal['assenze'] as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $tipo = intval($entry['tipo'] ?? $entry['tipo_assenza'] ?? 0);
+            if (in_array($tipo, [3, 9], true)) {
+                $entries[] = $entry;
+            }
+        }
+    }
+    if (is_array($appeal['stato']['ultimo'] ?? null)) {
+        $entry = $appeal['stato']['ultimo'];
+        $tipo = intval($entry['tipo'] ?? $entry['tipo_assenza'] ?? 0);
+        if (in_array($tipo, [3, 9], true)) {
+            $entries[] = $entry;
         }
     }
     if (empty($entries)) {
@@ -469,6 +545,10 @@ function permessiUscitaSyncOne(int $id): array
                 permessiUscitaSetSyncState($id, 'DA_INVIARE', $message, '');
                 return ['ok' => true, 'id' => $id, 'status' => 'DA_INVIARE', 'message' => $message];
             }
+
+            $message = 'MasterCom non indica una lezione all ora del permesso, ma il permesso e futuro: non viene trattato come assenza e resta da inviare/riprovare piu tardi.';
+            permessiUscitaSetSyncState($id, 'DA_INVIARE', $message, '');
+            return ['ok' => true, 'id' => $id, 'status' => 'DA_INVIARE', 'message' => $message];
         }
 
         if ($now > $permissionDt) {

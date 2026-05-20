@@ -146,6 +146,9 @@ if ($resultArray == null) {
 $today = (new DateTime('now', new DateTimeZone('Europe/Rome')))->format('Y-m-d');
 function permessiPresenceColor(string $state): string {
     $state = strtoupper(trim($state));
+    if ($state === 'USCITO_PERMESSO') {
+        return '#337ab7';
+    }
     if (in_array($state, ['PRESENTE', 'ENTRATA_RITARDO'], true)) {
         return 'green';
     }
@@ -158,6 +161,16 @@ function permessiPresenceColor(string $state): string {
     return '#777';
 }
 function permessiStaticPresenceBadge(array $row): string {
+    if (function_exists('permessiUscitaPresenceOverride')) {
+        $override = permessiUscitaPresenceOverride($row);
+        if (is_array($override)) {
+            $title = htmlspecialchars((string)($override['detail'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $label = htmlspecialchars((string)($override['label'] ?? 'Uscito con permesso'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $color = htmlspecialchars((string)($override['color'] ?? '#337ab7'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            return '<span class="badge permessi-presence-static" style="background-color:' . $color . ';color:white;" data-toggle="tooltip" title="' . $title . '">' . $label . '</span>';
+        }
+    }
+
     $state = strtoupper(trim((string)($row['mastercom_presence_stato'] ?? '')));
     $label = trim((string)($row['mastercom_presence_label'] ?? ''));
     $detail = trim((string)($row['mastercom_presence_detail'] ?? ''));
@@ -249,12 +262,25 @@ function permessiFormatSegreteriaNotes($note): string
     if ($hasSyncColumns) {
         $syncState = strtoupper(trim((string)($row['mastercom_sync_stato'] ?? '')));
         $presenceState = strtoupper(trim((string)($row['mastercom_presence_stato'] ?? '')));
-        if ($syncState === 'ASSENTE_ATTESA' && $presenceState === 'EVENTO') {
+        $syncNote = trim((string)($row['mastercom_sync_last_note'] ?? ''));
+        $isManualMastercom = stripos($syncNote, 'inserito manualmente') !== false
+            || stripos((string)($row['mastercom_presence_detail'] ?? ''), 'inserito manualmente') !== false;
+        $hasMastercomSentNote = $isManualMastercom
+            || stripos($syncNote, 'permesso inviato a mastercom') !== false;
+        if ($hasMastercomSentNote && in_array($syncState, ['', 'DA_INVIARE', 'ASSENTE_ATTESA', 'ERRORE'], true)) {
+            $syncState = 'INVIATO';
+        }
+        if ($syncState === 'ASSENTE_ATTESA' && in_array($presenceState, ['PRESENTE', 'ENTRATA_RITARDO', 'EVENTO'], true)) {
             $syncState = 'DA_INVIARE';
+        }
+        if ($filtro_permessi === 'da_inviare' && $syncState === 'INVIATO') {
+            continue;
         }
         switch ($syncState) {
             case 'INVIATO':
-                $mastercomBadge = '<span class="badge" style="background-color:green;color:white;">Inviato</span>';
+                $mastercomBadge = $isManualMastercom
+                    ? '<span class="badge" style="background-color:green;color:white;">Inserito manualmente</span>'
+                    : '<span class="badge" style="background-color:green;color:white;">Inviato</span>';
                 break;
             case 'DA_INVIARE':
                 $mastercomBadge = '<span class="badge" style="background-color:#f0ad4e;color:white;">Da inviare</span>';

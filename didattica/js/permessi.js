@@ -202,6 +202,7 @@ function permessiMastercomSync(id) {
 
 function permessiPresenceColor(state) {
     state = String(state || '').toUpperCase();
+    if (state === 'USCITO_PERMESSO') return '#337ab7';
     if (state === 'PRESENTE' || state === 'ENTRATA_RITARDO') return 'green';
     if (state === 'EVENTO') return '#5bc0de';
     if (state === 'ASSENTE_MASTERCOM' || state === 'USCITA' || state === 'PERMESSO') return 'red';

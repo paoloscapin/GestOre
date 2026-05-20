@@ -84,17 +84,65 @@ foreach ($normalized as $studentId => $student) {
     foreach ($permitIdList as $permitIdValue) {
         $permitId = intval($permitIdValue);
         if ($permitId > 0 && function_exists('permessiUscitaSetPresenceSnapshot')) {
+            $permesso = function_exists('permessiUscitaLoad') ? permessiUscitaLoad($permitId) : null;
+            $override = is_array($permesso) && function_exists('permessiUscitaPresenceOverride')
+                ? permessiUscitaPresenceOverride($permesso)
+                : null;
+            if (is_array($override)) {
+                $results[$studentId] = [
+                    'stato' => strtoupper(trim((string)($override['stato'] ?? 'USCITO_PERMESSO'))),
+                    'label' => trim((string)($override['label'] ?? 'Uscito con permesso')),
+                    'detail' => trim((string)($override['detail'] ?? '')),
+                    'color' => trim((string)($override['color'] ?? '#337ab7')),
+                ];
+                permessiUscitaSetPresenceSnapshot(
+                    $permitId,
+                    $results[$studentId]['stato'],
+                    $results[$studentId]['label'],
+                    $results[$studentId]['detail']
+                );
+                continue;
+            }
+
+            $permitHour = is_array($permesso) ? permessiUscitaFormatTime((string)($permesso['ora_uscita'] ?? '')) : '';
+            $manualPresenceRow = $row;
+            if ($permitHour !== '' && $permitHour !== $hour) {
+                $manualPresence = mastercomNoIrcLoadPresenceMap([$student], $date, $permitHour);
+                if (is_array($manualPresence['map'][$studentId] ?? null)) {
+                    $manualPresenceRow = $manualPresence['map'][$studentId];
+                }
+            }
+            if ($permitHour !== '' && function_exists('permessiUscitaPresenceHasManualExit') && permessiUscitaPresenceHasManualExit($manualPresenceRow, $date, $permitHour)) {
+                permessiUscitaSetPresenceSnapshot($permitId, 'PERMESSO', 'Permesso MasterCom', 'Permesso gia inserito manualmente su MasterCom.');
+                if (function_exists('permessiUscitaSetSyncState')) {
+                    permessiUscitaSetSyncState($permitId, 'INVIATO', 'Permesso gia inserito manualmente su MasterCom.', '');
+                }
+                continue;
+            }
+
             permessiUscitaSetPresenceSnapshot(
                 $permitId,
                 $results[$studentId]['stato'],
                 $results[$studentId]['label'],
                 $results[$studentId]['detail']
             );
-            if ($state === 'EVENTO' && function_exists('permessiUscitaSetSyncState')) {
+            $syncState = '';
+            if (function_exists('permessiUscitaColumnExists') && permessiUscitaColumnExists('mastercom_sync_stato')) {
+                $syncState = strtoupper(trim((string)dbGetValue('SELECT mastercom_sync_stato FROM permessi_uscita WHERE id = ' . dbI($permitId) . ' LIMIT 1')));
+            }
+            $canResetSync = in_array($syncState, ['ASSENTE_ATTESA', 'ERRORE'], true);
+            if ($state === 'EVENTO' && $canResetSync && function_exists('permessiUscitaSetSyncState')) {
                 permessiUscitaSetSyncState(
                     $permitId,
                     'DA_INVIARE',
                     'Studente in evento MasterCom: non e una assenza, il permesso resta inviabile.',
+                    ''
+                );
+            } elseif (in_array($state, ['PRESENTE', 'ENTRATA_RITARDO'], true) && $canResetSync && function_exists('permessiUscitaSetSyncState')) {
+                permessiUscitaSetSyncState(
+                    $permitId,
+                    'DA_INVIARE',
+                    'Studente presente ora su MasterCom: il permesso resta inviabile.',
                     ''
                 );
             }
