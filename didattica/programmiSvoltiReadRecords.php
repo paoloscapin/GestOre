@@ -10,6 +10,8 @@
 // include Database connection file
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/programmiSvoltiCopertineLib.php';
+require_once '../common/__Settings.php';
 
 function programmiSvoltiCanExportClasseWord(int $classeId, int $annoScolasticoId, int $docenteCorrenteId): bool
 {
@@ -49,6 +51,7 @@ $coordinatore_vede_programmi_altri = getSettingsValue('programmiSvolti', 'coordi
 
 $utente_ruolo = $GLOBALS['__utente_ruolo'] ?? '';
 $docente_corrente_id = intval($GLOBALS['__docente_id'] ?? 0);
+$copertineTableExists = programmiSvoltiCopertineTableExists();
 
 $is_contesto_docente = (
 	$utente_ruolo === 'docente'
@@ -134,10 +137,11 @@ $query = "	SELECT
 			INNER JOIN docente docente
 			ON programmi_svolti.id_docente = docente.id
 			INNER JOIN utente utente
-			ON programmi_svolti.id_utente = utente.id";
+			ON programmi_svolti.id_utente = utente.id
+			WHERE 1=1";
 
 if ($anni_filtro_id > 0) {
-	$query .= " WHERE programmi_svolti.id_anno_scolastico=" . $anni_filtro_id;
+	$query .= " AND programmi_svolti.id_anno_scolastico=" . $anni_filtro_id;
 }
 
 if ($classe_filtro_articolata_id > 0) {
@@ -168,11 +172,14 @@ if ($classe_filtro_articolata_id > 0) {
 if ($materia_filtro_id > 0) {
 	$query .= " AND programmi_svolti.id_materia=$materia_filtro_id ";
 }
-if ($docenti_filtro_id > 0 && !$is_contesto_docente) {
-	$query .= " AND programmi_svolti.id_docente=" . intval($docenti_filtro_id);
-}
-
 if ($is_contesto_docente) {
+	if ($docenti_filtro_id > 0) {
+		if ($docente_corrente_id > 0 && $docenti_filtro_id === $docente_corrente_id) {
+			$query .= " AND programmi_svolti.id_docente=" . intval($docente_corrente_id);
+		} else {
+			$query .= " AND 1=0";
+		}
+	} else {
 	$coord_class_ids = array_keys($coordinatore_classi_ids);
 	if ($coordinatore_vede_programmi_altri && $docente_corrente_id > 0 && count($coord_class_ids) > 0) {
 		$query .= " AND (
@@ -187,6 +194,9 @@ if ($is_contesto_docente) {
 	} else if ($docente_corrente_id > 0) {
 		$query .= " AND programmi_svolti.id_docente=" . $docente_corrente_id;
 	}
+	}
+} else if ($docenti_filtro_id > 0) {
+	$query .= " AND programmi_svolti.id_docente=" . intval($docenti_filtro_id);
 }
 
 $query .= " ORDER BY classe_nome ASC, materia_nome ASC";
@@ -212,8 +222,8 @@ foreach ($resultArray as $row) {
 			}
 		}
 		$classe = !empty($row['classi_collegate_nome'])
-		? $row['classi_collegate_nome']
-		: $row['classe_nome'];
+			? $row['classi_collegate_nome']
+			: $row['classe_nome'];
 		$docente = $row['docente_cognome'] . ' ' . $row['docente_nome'];
 		$materia = $row['materia_nome'];
 		$classe_anno = intval($row['classe_anno']);
@@ -224,6 +234,25 @@ foreach ($resultArray as $row) {
 		$is_programma_proprio = $docente_corrente_id > 0 && $row_docente_id === $docente_corrente_id;
 		$can_export_classe_word = programmiSvoltiCanExportClasseWord($classe_id, $anno_scolastico_id, $docente_corrente_id);
 		$can_export_programma_word = ($classe_anno === 5) && ($is_programma_proprio || $can_export_classe_word);
+		$copertina_button = '';
+		global $__settings;
+		if ($__settings->programmiSvolti->stampa_copertine_verifiche) {
+			$copertina = $copertineTableExists ? programmiSvoltiCopertinaByProgramma($programma_id) : null;
+			$copertina_stato = strtoupper(trim((string)($copertina['stato'] ?? '')));
+			if ($is_programma_proprio) {
+				if (!$copertineTableExists) {
+					$copertina_button = '<button class="btn btn-default btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Tabella copertine non configurata"><span class="glyphicon glyphicon-folder-close"></span></button>';
+				} elseif ($copertina_stato === 'RICHIESTA') {
+					$copertina_button = '<button class="btn btn-default btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Copertina richiesta"><span class="glyphicon glyphicon-folder-open"></span> Copertina richiesta</button>';
+				} elseif ($copertina_stato === 'GENERATA') {
+					$copertina_button = '<button class="btn btn-success btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Copertina generata: ' . htmlspecialchars((string)($copertina['fascicolo_codice'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><span class="glyphicon glyphicon-ok"></span> Copertina generata</button>';
+				} elseif ($copertina_stato === 'STAMPATA') {
+					$copertina_button = '<button class="btn btn-primary btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Copertina stampata: ' . htmlspecialchars((string)($copertina['fascicolo_codice'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><span class="glyphicon glyphicon-print"></span> Copertina stampata</button>';
+				} else {
+					$copertina_button = '<button onclick="programmiSvoltiRichiediCopertina(' . $programma_id . ')" class="btn btn-default btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Richiedi copertina fascicolo verifiche"><span class="glyphicon glyphicon-folder-close"></span> Richiedi copertina</button>';
+				}
+			}
+		}
 		$update = $row['ultimo_agg'];
 		$autore = $row['utente_cognome'] . " " . $row['utente_nome'];
 
@@ -245,6 +274,7 @@ foreach ($resultArray as $row) {
 			' . ($classe_anno === 5 ? '<button onclick="programmiSvoltiPrintSolo(' . $programma_id . ')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF solo di questo docente"><span class="glyphicon glyphicon-user"></span></button>' : '') . '
 			' . ($can_export_programma_word ? '<button onclick="programmiSvoltiWord(' . $programma_id . ')" class="btn btn-default btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word del programma svolto di quinta"><span class="glyphicon glyphicon-file"></span></button>' : '') . '
 			' . (($classe_anno === 5 && $can_export_classe_word) ? '<button onclick="programmiSvoltiWordClasse(' . $classe_id . ',' . $anno_scolastico_id . ')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word unico dei programmi svolti della classe quinta"><span class="glyphicon glyphicon-book"></span></button>' : '') . '
+			' . $copertina_button . '
 					';
 				if (!$is_programma_proprio) {
 					$data .= '
