@@ -1,6 +1,7 @@
 <?php
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../api/googleDriveLib.php';
 
 ruoloRichiesto('segreteria-docenti', 'dirigente', 'docente');
 
@@ -9,6 +10,24 @@ header('Content-Type: application/json; charset=utf-8');
 function outJson($ok, $data = []) {
     echo json_encode(array_merge(['success' => $ok], $data), JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+function bonusDocenteEmailIstituzionale(array $docente): string
+{
+    $email = strtolower(trim((string)($docente['email'] ?? '')));
+    if ($email !== '' && substr($email, -strlen('@buonarroti.tn.it')) === '@buonarroti.tn.it') {
+        return $email;
+    }
+
+    $username = strtolower(trim((string)($docente['username'] ?? '')));
+    if ($username === '') {
+        return '';
+    }
+    if (strpos($username, '@') !== false) {
+        return substr($username, -strlen('@buonarroti.tn.it')) === '@buonarroti.tn.it' ? $username : '';
+    }
+
+    return $username . '@buonarroti.tn.it';
 }
 
 try {
@@ -29,7 +48,18 @@ try {
         outJson(false, ['message' => 'Parametri mancanti']);
     }
 
-    $bd = dbGetFirst("SELECT id, docente_id, anno_scolastico_id FROM bonus_docente WHERE id = $bonus_docente_id");
+    $bd = dbGetFirst("
+        SELECT
+            bd.id,
+            bd.docente_id,
+            bd.anno_scolastico_id,
+            d.email,
+            d.username
+        FROM bonus_docente bd
+        JOIN docente d ON d.id = bd.docente_id
+        WHERE bd.id = $bonus_docente_id
+        LIMIT 1
+    ");
     if (!$bd) {
         outJson(false, ['message' => 'Record bonus non trovato']);
     }
@@ -46,6 +76,18 @@ try {
     $mimeEsc = escapeString($mime);
     $fileIdEsc = escapeString($fileId);
     $linkEsc = escapeString($webViewLink);
+    $shareWarning = '';
+
+    $docenteEmail = bonusDocenteEmailIstituzionale($bd);
+    if ($docenteEmail !== '') {
+        try {
+            googleDriveShareFileWithUser($fileId, $docenteEmail, 'reader');
+        } catch (Throwable $shareError) {
+            $shareWarning = 'Allegato caricato, ma condivisione Drive non riuscita per ' . $docenteEmail . ': ' . $shareError->getMessage();
+        }
+    } else {
+        $shareWarning = 'Allegato caricato, ma non ho trovato una mail istituzionale Buonarroti per il docente.';
+    }
 
     dbExec("
         INSERT INTO bonus_docente_allegato
@@ -78,7 +120,13 @@ try {
         )
     ");
 
-    outJson(true, ['message' => 'Allegato collegato al bonus']);
+    $response = ['message' => 'Allegato collegato al bonus'];
+    if ($shareWarning !== '') {
+        $response['warning'] = $shareWarning;
+        $response['message'] .= '. ' . $shareWarning;
+    }
+
+    outJson(true, $response);
 
 } catch (Throwable $e) {
     outJson(false, ['message' => $e->getMessage()]);

@@ -331,6 +331,53 @@ function googleDriveDeleteFile(string $fileId): void
     );
 }
 
+function googleDriveShareFileWithUser(string $fileId, string $email, string $role = 'reader'): array
+{
+    $fileId = trim($fileId);
+    $email = strtolower(trim($email));
+    $role = trim($role) !== '' ? trim($role) : 'reader';
+
+    if ($fileId === '' || $email === '' || strpos($email, '@') === false) {
+        return [];
+    }
+
+    $listUrl = 'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId)
+        . '/permissions?fields=permissions(id,emailAddress,role,type)&pageSize=100';
+    $existing = googleDriveApiRequest('GET', $listUrl);
+
+    foreach (($existing['permissions'] ?? []) as $permission) {
+        $permissionEmail = strtolower(trim((string)($permission['emailAddress'] ?? '')));
+        if ($permissionEmail === $email) {
+            $currentRole = trim((string)($permission['role'] ?? ''));
+            if ($currentRole === $role || $currentRole === 'writer' || $currentRole === 'owner') {
+                return $permission;
+            }
+
+            $permissionId = (string)($permission['id'] ?? '');
+            if ($permissionId !== '') {
+                return googleDriveApiRequest(
+                    'PATCH',
+                    'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId)
+                        . '/permissions/' . rawurlencode($permissionId)
+                        . '?fields=id,emailAddress,role,type',
+                    ['role' => $role]
+                );
+            }
+        }
+    }
+
+    return googleDriveApiRequest(
+        'POST',
+        'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId)
+            . '/permissions?sendNotificationEmail=false&fields=id,emailAddress,role,type',
+        [
+            'type' => 'user',
+            'role' => $role,
+            'emailAddress' => $email,
+        ]
+    );
+}
+
 function googleDriveStartResumableUpload(string $driveName, string $mimeType, int $size, string $folderId): array
 {
     $accessToken = googleDriveAccessToken();

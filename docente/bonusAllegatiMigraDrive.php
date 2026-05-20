@@ -13,6 +13,24 @@ $anno = intval($_GET['anno_scolastico_id'] ?? $__anno_scolastico_corrente_id);
 
 $bonusRootFolderId = googleDriveGetBonusFolderId();
 
+function bonusMigraDocenteEmailIstituzionale(array $docente): string
+{
+    $email = strtolower(trim((string)($docente['email'] ?? '')));
+    if ($email !== '' && substr($email, -strlen('@buonarroti.tn.it')) === '@buonarroti.tn.it') {
+        return $email;
+    }
+
+    $username = strtolower(trim((string)($docente['username'] ?? '')));
+    if ($username === '') {
+        return '';
+    }
+    if (strpos($username, '@') !== false) {
+        return substr($username, -strlen('@buonarroti.tn.it')) === '@buonarroti.tn.it' ? $username : '';
+    }
+
+    return $username . '@buonarroti.tn.it';
+}
+
 $annoLabel = dbGetValue("SELECT anno FROM anno_scolastico WHERE id = $anno LIMIT 1");
 $annoFolderName = 'AS ' . trim((string)$annoLabel);
 $folderId = googleDriveGetOrCreateFolderInParent($annoFolderName, $bonusRootFolderId);
@@ -22,6 +40,8 @@ $rows = dbGetAll("
         a.*,
         d.cognome,
         d.nome,
+        d.email,
+        d.username,
         b.codice AS bonus_codice
     FROM bonus_docente_allegato a
     JOIN bonus_docente bd ON bd.id = a.bonus_docente_id
@@ -90,6 +110,11 @@ foreach ($rows as $r) {
             $docenteFolderId,
             (string)($r['mime_type'] ?? '')
         );
+
+        $docenteEmail = bonusMigraDocenteEmailIstituzionale($r);
+        if ($docenteEmail !== '') {
+            googleDriveShareFileWithUser((string)($upload['id'] ?? ''), $docenteEmail, 'reader');
+        }
 
         $driveId = escapeString((string)($upload['id'] ?? ''));
         $driveLink = escapeString((string)($upload['webViewLink'] ?? ''));
