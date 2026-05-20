@@ -1707,7 +1707,7 @@ function mastercomNoIrcPresenceEntryTimeMinutes(array $entry, string $date = '')
     return -1;
 }
 
-function mastercomNoIrcPresenceMovementStateAtHour(array $entrate, array $uscite, string $date, string $hour): string
+function mastercomNoIrcPresenceMovementStateAtHour(array $entrate, array $uscite, string $date, string $hour, array $permessi = []): string
 {
     $slotMinute = mastercomNoIrcTimeToMinutes($hour);
     if ($slotMinute < 0) {
@@ -1722,6 +1722,15 @@ function mastercomNoIrcPresenceMovementStateAtHour(array $entrate, array $uscite
         $minute = mastercomNoIrcPresenceEntryTimeMinutes($entry, $date);
         if ($minute >= 0) {
             $movements[] = ['type' => 'USCITA', 'minute' => $minute];
+        }
+    }
+    foreach ($permessi as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $minute = mastercomNoIrcPresenceEntryTimeMinutes($entry, $date);
+        if ($minute >= 0) {
+            $movements[] = ['type' => 'PERMESSO', 'minute' => $minute];
         }
     }
     foreach ($entrate as $entry) {
@@ -1764,6 +1773,9 @@ function mastercomNoIrcPresenceMovementStateAtHour(array $entrate, array $uscite
     if ($firstState === 'USCITA') {
         return 'PRESENTE';
     }
+    if ($firstState === 'PERMESSO') {
+        return 'PRESENTE';
+    }
 
     return '';
 }
@@ -1787,11 +1799,11 @@ function mastercomNoIrcPresenceClassifyAppealRow(array $appealRow, string $date 
             'appeal' => $appealRow,
         ];
     }
-    if (!empty($permessi)) {
-        return ['stato' => 'PERMESSO', 'label' => 'Permesso MasterCom', 'detail' => 'Permesso registrato', 'appeal' => $appealRow];
-    }
-    if ($hour !== '' && (!empty($uscite) || !empty($entrate))) {
-        $movementState = mastercomNoIrcPresenceMovementStateAtHour($entrate, $uscite, $date, $hour);
+    if ($hour !== '' && (!empty($uscite) || !empty($entrate) || !empty($permessi))) {
+        $movementState = mastercomNoIrcPresenceMovementStateAtHour($entrate, $uscite, $date, $hour, $permessi);
+        if ($movementState === 'PERMESSO') {
+            return ['stato' => 'PERMESSO', 'label' => 'Permesso MasterCom', 'detail' => 'Permesso/uscita gia registrato su MasterCom per quest ora', 'appeal' => $appealRow];
+        }
         if ($movementState === 'USCITA') {
             return ['stato' => 'USCITA', 'label' => 'Uscita MasterCom', 'detail' => 'Uscita registrata', 'appeal' => $appealRow];
         }
@@ -1802,8 +1814,11 @@ function mastercomNoIrcPresenceClassifyAppealRow(array $appealRow, string $date 
             return ['stato' => 'ASSENTE_MASTERCOM', 'label' => 'Assente MasterCom', 'detail' => 'Assente fino a entrata registrata', 'appeal' => $appealRow];
         }
         if ($movementState === 'PRESENTE') {
-            return ['stato' => 'PRESENTE', 'label' => 'Presente', 'detail' => 'Presente prima di uscita registrata', 'appeal' => $appealRow];
+            return ['stato' => 'PRESENTE', 'label' => 'Presente', 'detail' => 'Presente prima di uscita/permesso registrato su MasterCom', 'appeal' => $appealRow];
         }
+    }
+    if (!empty($permessi)) {
+        return ['stato' => 'PERMESSO', 'label' => 'Permesso MasterCom', 'detail' => 'Permesso registrato', 'appeal' => $appealRow];
     }
     if (!empty($uscite)) {
         return ['stato' => 'USCITA', 'label' => 'Uscita MasterCom', 'detail' => 'Uscita registrata', 'appeal' => $appealRow];

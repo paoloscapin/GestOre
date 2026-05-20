@@ -68,7 +68,9 @@ foreach ($normalized as $studentId => $student) {
     $color = '#777';
     if (in_array($state, ['PRESENTE', 'ENTRATA_RITARDO'], true)) {
         $color = 'green';
-    } elseif (in_array($state, ['ASSENTE_MASTERCOM', 'USCITA', 'EVENTO', 'PERMESSO'], true)) {
+    } elseif ($state === 'EVENTO') {
+        $color = '#5bc0de';
+    } elseif (in_array($state, ['ASSENTE_MASTERCOM', 'USCITA', 'PERMESSO'], true)) {
         $color = 'red';
     }
     $results[$studentId] = [
@@ -88,6 +90,14 @@ foreach ($normalized as $studentId => $student) {
                 $results[$studentId]['label'],
                 $results[$studentId]['detail']
             );
+            if ($state === 'EVENTO' && function_exists('permessiUscitaSetSyncState')) {
+                permessiUscitaSetSyncState(
+                    $permitId,
+                    'DA_INVIARE',
+                    'Studente in evento MasterCom: non e una assenza, il permesso resta inviabile.',
+                    ''
+                );
+            }
         }
     }
 }

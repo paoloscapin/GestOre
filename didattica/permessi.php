@@ -167,21 +167,55 @@ require_once '../common/checkSession.php';
         .permessi-table th,
         .permessi-table td {
             vertical-align: top !important;
-            overflow-wrap: anywhere;
             word-break: normal;
         }
 
-        .permessi-col-date { width: 5.5%; }
-        .permessi-col-class { width: 4%; }
-        .permessi-col-time { width: 5%; }
+        .permessi-table th {
+            white-space: nowrap;
+            overflow-wrap: normal;
+        }
+
+        .permessi-table td {
+            overflow-wrap: anywhere;
+        }
+
+        .permessi-col-date { width: 6.5%; }
+        .permessi-col-class { width: 5%; }
+        .permessi-col-time { width: 5.5%; }
         .permessi-col-student { width: 10%; }
         .permessi-col-parent { width: 9.5%; }
         .permessi-col-reason { width: 12%; }
-        .permessi-col-presence { width: 18%; }
+        .permessi-col-presence { width: 15%; }
         .permessi-col-state { width: 7%; }
         .permessi-col-mastercom { width: 7%; }
-        .permessi-col-notes { width: 9%; }
-        .permessi-col-actions { width: 8%; }
+        .permessi-col-notes { width: 10%; }
+        .permessi-col-actions { width: 7%; }
+
+        .permessi-toolbar-title {
+            padding: 13px 10px 10px 10px;
+            white-space: nowrap;
+        }
+
+        .permessi-toolbar-actions {
+            padding-top: 8px;
+            white-space: nowrap;
+        }
+
+        .permessi-toolbar-filter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-top: 8px;
+        }
+
+        .permessi-toolbar-filter label {
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        .permessi-toolbar-filter select {
+            min-width: 0;
+        }
 
         .permessi-presence-cell,
         .permessi-presence-static {
@@ -246,25 +280,26 @@ foreach ($studenti as $studente) {
         <div class="panel panel-orange4">
             <div class="panel-heading">
                 <div class="row">
-                    <div class="col-md-2" style="padding:10px">
+                    <div class="col-md-2 permessi-toolbar-title">
                         <span class="glyphicon glyphicon-blackboard"></span>&ensp;Permessi di uscita
                     </div>
-                    <div class="col-md-4">
-                        <button type="button" class="btn btn-info btn-sm" style="margin-top:8px;" onclick="permessiMastercomSync()">
+                    <div class="col-md-4 permessi-toolbar-actions">
+                        <button type="button" class="btn btn-info btn-sm" onclick="permessiMastercomSync()">
                             <span class="glyphicon glyphicon-refresh"></span> Sync MasterCom
                         </button>
-                        <button type="button" class="btn btn-default btn-sm" style="margin-top:8px;" onclick="permessiRefreshPresence()">
+                        <button type="button" class="btn btn-default btn-sm" onclick="permessiRefreshPresence()">
                             <span class="glyphicon glyphicon-eye-open"></span> Aggiorna presenze
                         </button>
                         <span id="permessi_sync_status" style="display:none;margin-left:10px;font-weight:bold;"></span>
                         <span id="permessi_presence_status" style="display:none;margin-left:10px;font-weight:bold;"></span>
                     </div>
-                    <div class="col-md-2" style="padding:0px; text-align:center">
-                        <div class="checkbox" style="margin-top:10px;">
-                            <label>
-                                <input type="checkbox" id="solo_richiesti" checked> Solo richiesti
-                            </label>
-                        </div>
+                    <div class="col-md-2 permessi-toolbar-filter">
+                        <label for="filtro_permessi">Filtro</label>
+                        <select id="filtro_permessi" class="form-control input-sm">
+                            <option value="da_inviare" selected>Da inviare a MasterCom</option>
+                            <option value="richiesti">Richiesti non confermati</option>
+                            <option value="tutti">Tutti i permessi</option>
+                        </select>
                     </div>
                     <div class="col-md-2" style="padding:0px">
                         <div class="date-picker-wrapper">

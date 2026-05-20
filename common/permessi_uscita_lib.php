@@ -328,6 +328,50 @@ function permessiUscitaPermissionDateTime(array $permesso): DateTime
     return $dt;
 }
 
+function permessiUscitaPresenceHasManualExit(array $presence, string $date, string $hour): bool
+{
+    if (!is_array($presence['appeal'] ?? null)) {
+        return false;
+    }
+
+    $appeal = $presence['appeal'];
+    $entries = [];
+    foreach (['permessi', 'uscite'] as $key) {
+        if (is_array($appeal[$key] ?? null)) {
+            $entries = array_merge($entries, $appeal[$key]);
+        }
+    }
+    if (empty($entries)) {
+        return false;
+    }
+
+    if (!function_exists('mastercomNoIrcPresenceEntryTimeMinutes') || !function_exists('mastercomNoIrcTimeToMinutes')) {
+        return true;
+    }
+
+    $permitMinute = mastercomNoIrcTimeToMinutes($hour);
+    if ($permitMinute < 0) {
+        return true;
+    }
+
+    $hasUntimedEntry = false;
+    foreach ($entries as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $entryMinute = mastercomNoIrcPresenceEntryTimeMinutes($entry, $date);
+        if ($entryMinute < 0) {
+            $hasUntimedEntry = true;
+            continue;
+        }
+        if ($entryMinute === $permitMinute) {
+            return true;
+        }
+    }
+
+    return $hasUntimedEntry;
+}
+
 function permessiUscitaSyncOne(int $id): array
 {
     require_once __DIR__ . '/mastercom/noirc_lib.php';
@@ -374,14 +418,22 @@ function permessiUscitaSyncOne(int $id): array
         ? $presenceResult['map'][$student['mastercom_id_studente']]
         : ['stato' => 'NON_VERIFICATO', 'label' => 'Da verificare', 'detail' => 'Snapshot non disponibile'];
 
+    if (permessiUscitaPresenceHasManualExit($presence, $date, $hour)) {
+        $message = 'Permesso gia inserito manualmente su MasterCom.';
+        permessiUscitaSetPresenceSnapshot($id, 'PERMESSO', 'Permesso MasterCom', $message);
+        permessiUscitaSetSyncState($id, 'INVIATO', $message, '');
+        permessiUscitaAppendNote($id, $message);
+        return ['ok' => true, 'id' => $id, 'status' => 'INVIATO', 'message' => $message];
+    }
+
     $mcState = strtoupper(trim((string)($presence['stato'] ?? 'NON_VERIFICATO')));
     $alreadyOut = in_array($mcState, ['USCITA', 'PERMESSO'], true);
-    $isPresent = in_array($mcState, ['PRESENTE', 'ENTRATA_RITARDO'], true);
+    $isPresent = in_array($mcState, ['PRESENTE', 'ENTRATA_RITARDO', 'EVENTO'], true);
     $permissionDt = permessiUscitaPermissionDateTime($permesso);
     $now = new DateTime('now', new DateTimeZone('Europe/Rome'));
 
     if ($alreadyOut) {
-        $message = 'MasterCom indica gia una uscita/permesso per lo studente.';
+        $message = 'Permesso gia inserito manualmente su MasterCom.';
         permessiUscitaSetSyncState($id, 'INVIATO', $message, '');
         permessiUscitaAppendNote($id, $message);
         return ['ok' => true, 'id' => $id, 'status' => 'INVIATO', 'message' => $message];
@@ -389,6 +441,36 @@ function permessiUscitaSyncOne(int $id): array
 
     if (!$isPresent) {
         $detail = trim((string)($presence['detail'] ?? $presence['label'] ?? $mcState));
+        if ($mcState === 'NON_VERIFICATO' && $now < $permissionDt) {
+            $currentHour = $now->format('H:i');
+            $currentPresenceResult = mastercomNoIrcLoadPresenceMap([$student], $date, $currentHour);
+            $currentPresence = is_array($currentPresenceResult['map'][$student['mastercom_id_studente']] ?? null)
+                ? $currentPresenceResult['map'][$student['mastercom_id_studente']]
+                : [];
+            $currentState = strtoupper(trim((string)($currentPresence['stato'] ?? 'NON_VERIFICATO')));
+            if (in_array($currentState, ['PRESENTE', 'ENTRATA_RITARDO', 'EVENTO'], true)) {
+                $currentDetail = trim((string)($currentPresence['detail'] ?? ''));
+                $hasFutureManualPermit = stripos($currentDetail, 'uscita/permesso') !== false
+                    || stripos($currentDetail, 'uscita registrata') !== false
+                    || stripos($currentDetail, 'permesso registrato') !== false;
+                permessiUscitaSetPresenceSnapshot(
+                    $id,
+                    $currentState,
+                    trim((string)($currentPresence['label'] ?? 'Presente')),
+                    $currentDetail !== '' ? $currentDetail : 'Studente presente ora su MasterCom'
+                );
+                if ($hasFutureManualPermit) {
+                    $message = 'Permesso gia inserito manualmente su MasterCom.';
+                    permessiUscitaSetSyncState($id, 'INVIATO', $message, '');
+                    permessiUscitaAppendNote($id, $message);
+                    return ['ok' => true, 'id' => $id, 'status' => 'INVIATO', 'message' => $message];
+                }
+                $message = 'Studente presente ora su MasterCom; l ora del permesso e futura e MasterCom non indica una lezione corrente per quell ora. Il permesso resta da inviare/riprovare piu tardi.';
+                permessiUscitaSetSyncState($id, 'DA_INVIARE', $message, '');
+                return ['ok' => true, 'id' => $id, 'status' => 'DA_INVIARE', 'message' => $message];
+            }
+        }
+
         if ($now > $permissionDt) {
             dbExec("UPDATE permessi_uscita SET stato = 3 WHERE id = " . dbI($id) . " LIMIT 1");
             permessiUscitaSetPresenceSnapshot($id, $mcState, trim((string)($presence['label'] ?? 'Da verificare')), trim((string)($presence['detail'] ?? '')));

@@ -17,6 +17,7 @@ ruoloRichiesto('segreteria-didattica', 'dirigente', 'personale-ata');
 $studente_filtro_id = $_GET["studente_filtro_id"] ?? null;
 $data_filtro = $_GET["data_filtro"] ?? null;
 $solo_richiesti = $_GET["solo_richiesti"] ?? 0;
+$filtro_permessi = trim((string)($_GET["filtro_permessi"] ?? ($solo_richiesti == 1 ? 'richiesti' : 'da_inviare')));
 $live_presence = intval($_GET["live_presence"] ?? 0) === 1;
 $hasSyncColumns = permessiUscitaColumnExists('mastercom_sync_stato');
 $hasPresenceSnapshotColumns = permessiUscitaColumnExists('mastercom_presence_stato')
@@ -123,8 +124,17 @@ if ($studente_filtro_id != 0 && $studente_filtro_id != null) {
 if ($data_filtro != null && $data_filtro != "") {
     $query .= " AND permessi_uscita.data = '$data_filtro'";
 }
-if ($solo_richiesti == 1) {
+if ($filtro_permessi === 'richiesti') {
     $query .= " AND permessi_uscita.stato = 1";
+} elseif ($filtro_permessi === 'da_inviare') {
+    $query .= " AND permessi_uscita.stato = 2";
+    if ($hasSyncColumns) {
+        $query .= " AND (
+            permessi_uscita.mastercom_sync_stato IS NULL
+            OR permessi_uscita.mastercom_sync_stato = ''
+            OR permessi_uscita.mastercom_sync_stato IN ('DA_INVIARE', 'ASSENTE_ATTESA', 'ERRORE')
+        )";
+    }
 }
 $query .= "	ORDER BY permessi_uscita.data ASC, permessi_uscita.ora_uscita ASC, classi.classe ASC, studente.cognome ASC, studente.nome ASC";
 
@@ -139,7 +149,10 @@ function permessiPresenceColor(string $state): string {
     if (in_array($state, ['PRESENTE', 'ENTRATA_RITARDO'], true)) {
         return 'green';
     }
-    if (in_array($state, ['ASSENTE_MASTERCOM', 'USCITA', 'EVENTO', 'PERMESSO', 'NON_COLLEGATO', 'NON_DISPONIBILE'], true)) {
+    if ($state === 'EVENTO') {
+        return '#5bc0de';
+    }
+    if (in_array($state, ['ASSENTE_MASTERCOM', 'USCITA', 'PERMESSO', 'NON_COLLEGATO', 'NON_DISPONIBILE'], true)) {
         return 'red';
     }
     return '#777';
@@ -235,6 +248,10 @@ function permessiFormatSegreteriaNotes($note): string
     $mastercomBadge = '<span class="badge" style="background-color:#777;color:white;">Non configurato</span>';
     if ($hasSyncColumns) {
         $syncState = strtoupper(trim((string)($row['mastercom_sync_stato'] ?? '')));
+        $presenceState = strtoupper(trim((string)($row['mastercom_presence_stato'] ?? '')));
+        if ($syncState === 'ASSENTE_ATTESA' && $presenceState === 'EVENTO') {
+            $syncState = 'DA_INVIARE';
+        }
         switch ($syncState) {
             case 'INVIATO':
                 $mastercomBadge = '<span class="badge" style="background-color:green;color:white;">Inviato</span>';

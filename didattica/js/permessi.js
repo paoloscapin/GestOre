@@ -26,13 +26,15 @@ function permessiReadRecords(forcePresence) {
     if (!dataFiltro) {
         dataFiltro = new Date().toISOString().slice(0, 10);
     }
-    var soloRichiesti = $('#solo_richiesti').is(':checked') ? 1 : 0; // nuovo filtro
+    var filtroPermessi = $('#filtro_permessi').val() || 'da_inviare';
+    var soloRichiesti = $('#solo_richiesti').length && $('#solo_richiesti').is(':checked') ? 1 : 0;
 
     hideAllTooltips();
     $.get(endpoint, {
         studente_filtro_id: studenteId,
         data_filtro: dataFiltro,
         solo_richiesti: soloRichiesti,
+        filtro_permessi: filtroPermessi,
         live_presence: forcePresence ? 1 : 0
     }, function (data, status) {
         $(".records_content").html(data);
@@ -81,8 +83,8 @@ function permessiRefreshPresence() {
 }
 
 
-// Ricarica quando il checkbox cambia
-$(document).on("change", "#solo_richiesti", function () {
+// Ricarica quando cambia il filtro operativo
+$(document).on("change", "#solo_richiesti, #filtro_permessi", function () {
     permessiReadRecords(false);
 });
 
@@ -167,17 +169,14 @@ function permessiMastercomSync(id) {
         payload.id = id;
     }
 
-    $("#permessi_sync_status")
-        .removeClass("text-danger text-success")
-        .addClass("text-info")
-        .text("Sync MasterCom in corso...")
-        .show();
+    $("#permessi_sync_status").hide().text('');
+    permessiMessageOverlayShow("Sync MasterCom in corso...", "info", false);
 
     $.post("permessiMastercomSync.php", payload, function (data) {
         var result = (typeof data === "string") ? JSON.parse(data) : data;
         if (!result || result.ok === false) {
             var err = result && (result.error || result.message) ? (result.error || result.message) : "Errore sync MasterCom";
-            $("#permessi_sync_status").removeClass("text-info text-success").addClass("text-danger").text(err);
+            permessiMessageOverlayShow(err, "danger", true);
             alert(err);
             return;
         }
@@ -189,14 +188,14 @@ function permessiMastercomSync(id) {
                 message += " Errori: " + errors + ".";
             }
         }
-        $("#permessi_sync_status").removeClass("text-info text-danger").addClass("text-success").text(message);
+        permessiMessageOverlayShow(message, "success", true);
         permessiReadRecords(false);
     }).fail(function (xhr) {
         var msg = "Errore di connessione durante il sync MasterCom.";
         if (xhr.responseJSON && xhr.responseJSON.error) {
             msg = xhr.responseJSON.error;
         }
-        $("#permessi_sync_status").removeClass("text-info text-success").addClass("text-danger").text(msg);
+        permessiMessageOverlayShow(msg, "danger", true);
         alert(msg);
     });
 }
@@ -204,7 +203,8 @@ function permessiMastercomSync(id) {
 function permessiPresenceColor(state) {
     state = String(state || '').toUpperCase();
     if (state === 'PRESENTE' || state === 'ENTRATA_RITARDO') return 'green';
-    if (state === 'ASSENTE_MASTERCOM' || state === 'USCITA' || state === 'EVENTO' || state === 'PERMESSO') return 'red';
+    if (state === 'EVENTO') return '#5bc0de';
+    if (state === 'ASSENTE_MASTERCOM' || state === 'USCITA' || state === 'PERMESSO') return 'red';
     return '#777';
 }
 
@@ -243,6 +243,42 @@ function permessiPresenceOverlayShow(text, pct) {
 
 function permessiPresenceOverlayHide() {
     $('#permessi_presence_overlay').fadeOut(150);
+}
+
+function permessiMessageOverlayShow(text, type, autoHide) {
+    type = type || 'info';
+    var title = 'Sync MasterCom';
+    var color = '#1f5e3b';
+    var border = '#d7e3f0';
+    if (type === 'danger') {
+        title = 'Errore Sync MasterCom';
+        color = '#991b1b';
+        border = '#fecaca';
+    } else if (type === 'success') {
+        title = 'Operazione completata';
+        color = '#166534';
+        border = '#bbf7d0';
+    }
+
+    if (!$('#permessi_message_overlay').length) {
+        $('body').append(
+            '<div id="permessi_message_overlay" style="display:none;position:fixed;z-index:10000;left:0;top:0;right:0;bottom:0;background:rgba(255,255,255,0.72);align-items:center;justify-content:center;">' +
+            '<div id="permessi_message_box" style="min-width:320px;max-width:520px;background:#fff;border:1px solid #d7e3f0;border-radius:8px;box-shadow:0 12px 34px rgba(15,23,42,.18);padding:20px 24px;text-align:center;">' +
+            '<div id="permessi_message_title" style="font-weight:800;margin-bottom:10px;"></div>' +
+            '<div id="permessi_message_text" style="line-height:1.35;"></div>' +
+            '</div></div>'
+        );
+    }
+
+    $('#permessi_message_box').css('border-color', border);
+    $('#permessi_message_title').css('color', color).text(title);
+    $('#permessi_message_text').text(text || '');
+    $('#permessi_message_overlay').stop(true, true).css('display', 'flex');
+    if (autoHide) {
+        setTimeout(function () {
+            $('#permessi_message_overlay').fadeOut(250);
+        }, 3200);
+    }
 }
 
 function permessiLoadPresenceBadges() {
