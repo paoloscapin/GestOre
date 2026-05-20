@@ -18,6 +18,13 @@ $studente_filtro_id = $_GET["studente_filtro_id"] ?? null;
 $data_filtro = $_GET["data_filtro"] ?? null;
 $solo_richiesti = $_GET["solo_richiesti"] ?? 0;
 $filtro_permessi = trim((string)($_GET["filtro_permessi"] ?? ($solo_richiesti == 1 ? 'richiesti' : 'da_inviare')));
+$filtro_permessi_values = array_values(array_filter(array_map('trim', explode(',', $filtro_permessi))));
+if (empty($filtro_permessi_values)) {
+    $filtro_permessi_values = ['da_inviare', 'richiesti'];
+}
+$filtro_show_da_inviare = in_array('da_inviare', $filtro_permessi_values, true) || in_array('tutti', $filtro_permessi_values, true);
+$filtro_show_richiesti = in_array('richiesti', $filtro_permessi_values, true) || in_array('tutti', $filtro_permessi_values, true);
+$filtro_show_altri = in_array('altri', $filtro_permessi_values, true) || in_array('tutti', $filtro_permessi_values, true);
 $live_presence = intval($_GET["live_presence"] ?? 0) === 1;
 $hasSyncColumns = permessiUscitaColumnExists('mastercom_sync_stato');
 $hasPresenceSnapshotColumns = permessiUscitaColumnExists('mastercom_presence_stato')
@@ -124,16 +131,16 @@ if ($studente_filtro_id != 0 && $studente_filtro_id != null) {
 if ($data_filtro != null && $data_filtro != "") {
     $query .= " AND permessi_uscita.data = '$data_filtro'";
 }
-if ($filtro_permessi === 'richiesti') {
-    $query .= " AND permessi_uscita.stato = 1";
-} elseif ($filtro_permessi === 'da_inviare') {
-    $query .= " AND permessi_uscita.stato = 2";
-    if ($hasSyncColumns) {
-        $query .= " AND (
-            permessi_uscita.mastercom_sync_stato IS NULL
-            OR permessi_uscita.mastercom_sync_stato = ''
-            OR permessi_uscita.mastercom_sync_stato IN ('DA_INVIARE', 'ASSENTE_ATTESA', 'ERRORE')
-        )";
+if (!$filtro_show_altri) {
+    $whereFilters = [];
+    if ($filtro_show_richiesti) {
+        $whereFilters[] = "permessi_uscita.stato = 1";
+    }
+    if ($filtro_show_da_inviare) {
+        $whereFilters[] = "permessi_uscita.stato = 2";
+    }
+    if (!empty($whereFilters)) {
+        $query .= " AND (" . implode(" OR ", $whereFilters) . ")";
     }
 }
 $query .= "	ORDER BY permessi_uscita.data ASC, permessi_uscita.ora_uscita ASC, classi.classe ASC, studente.cognome ASC, studente.nome ASC";
@@ -273,7 +280,14 @@ function permessiFormatSegreteriaNotes($note): string
         if ($syncState === 'ASSENTE_ATTESA' && in_array($presenceState, ['PRESENTE', 'ENTRATA_RITARDO', 'EVENTO'], true)) {
             $syncState = 'DA_INVIARE';
         }
-        if ($filtro_permessi === 'da_inviare' && $syncState === 'INVIATO') {
+        $isRequestedFilterRow = intval($stato) === 1;
+        $isDaInviareFilterRow = intval($stato) === 2 && !in_array($syncState, ['INVIATO', 'ANNULLATO_ASSENTE'], true);
+        $isOtherFilterRow = !$isRequestedFilterRow && !$isDaInviareFilterRow;
+        if (
+            !($filtro_show_richiesti && $isRequestedFilterRow)
+            && !($filtro_show_da_inviare && $isDaInviareFilterRow)
+            && !($filtro_show_altri && $isOtherFilterRow)
+        ) {
             continue;
         }
         switch ($syncState) {
@@ -299,6 +313,17 @@ function permessiFormatSegreteriaNotes($note): string
                 $mastercomBadge = $stato == 2
                     ? '<span class="badge" style="background-color:#777;color:white;">Non inviato</span>'
                     : '<span class="badge" style="background-color:#ddd;color:#333;">-</span>';
+        }
+    } else {
+        $isRequestedFilterRow = intval($stato) === 1;
+        $isDaInviareFilterRow = intval($stato) === 2;
+        $isOtherFilterRow = !$isRequestedFilterRow && !$isDaInviareFilterRow;
+        if (
+            !($filtro_show_richiesti && $isRequestedFilterRow)
+            && !($filtro_show_da_inviare && $isDaInviareFilterRow)
+            && !($filtro_show_altri && $isOtherFilterRow)
+        ) {
+            continue;
         }
     }
 

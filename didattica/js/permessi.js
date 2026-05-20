@@ -26,7 +26,13 @@ function permessiReadRecords(forcePresence) {
     if (!dataFiltro) {
         dataFiltro = new Date().toISOString().slice(0, 10);
     }
-    var filtroPermessi = $('#filtro_permessi').val() || 'da_inviare';
+    var filtroPermessi = $('.filtro_permessi_toggle:checked').map(function () {
+        return this.value;
+    }).get().join(',');
+    if (!filtroPermessi) {
+        filtroPermessi = 'da_inviare,richiesti';
+        $('.filtro_permessi_toggle[value="da_inviare"], .filtro_permessi_toggle[value="richiesti"]').prop('checked', true).closest('label').addClass('active');
+    }
     var soloRichiesti = $('#solo_richiesti').length && $('#solo_richiesti').is(':checked') ? 1 : 0;
 
     hideAllTooltips();
@@ -84,7 +90,7 @@ function permessiRefreshPresence() {
 
 
 // Ricarica quando cambia il filtro operativo
-$(document).on("change", "#solo_richiesti, #filtro_permessi", function () {
+$(document).on("change", "#solo_richiesti, .filtro_permessi_toggle", function () {
     permessiReadRecords(false);
 });
 

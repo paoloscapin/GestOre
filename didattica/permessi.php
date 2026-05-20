@@ -213,8 +213,15 @@ require_once '../common/checkSession.php';
             white-space: nowrap;
         }
 
-        .permessi-toolbar-filter select {
-            min-width: 0;
+        .permessi-filter-toggles {
+            display: inline-flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .permessi-filter-toggles .btn {
+            font-weight: 700;
+            white-space: nowrap;
         }
 
         .permessi-presence-cell,
@@ -283,7 +290,7 @@ foreach ($studenti as $studente) {
                     <div class="col-md-2 permessi-toolbar-title">
                         <span class="glyphicon glyphicon-blackboard"></span>&ensp;Permessi di uscita
                     </div>
-                    <div class="col-md-4 permessi-toolbar-actions">
+                    <div class="col-md-3 permessi-toolbar-actions">
                         <button type="button" class="btn btn-info btn-sm" onclick="permessiMastercomSync()">
                             <span class="glyphicon glyphicon-refresh"></span> Sync MasterCom
                         </button>
@@ -293,13 +300,19 @@ foreach ($studenti as $studente) {
                         <span id="permessi_sync_status" style="display:none;margin-left:10px;font-weight:bold;"></span>
                         <span id="permessi_presence_status" style="display:none;margin-left:10px;font-weight:bold;"></span>
                     </div>
-                    <div class="col-md-2 permessi-toolbar-filter">
-                        <label for="filtro_permessi">Filtro</label>
-                        <select id="filtro_permessi" class="form-control input-sm">
-                            <option value="da_inviare" selected>Da inviare a MasterCom</option>
-                            <option value="richiesti">Richiesti non confermati</option>
-                            <option value="tutti">Tutti i permessi</option>
-                        </select>
+                    <div class="col-md-3 permessi-toolbar-filter">
+                        <label>Filtro</label>
+                        <div id="filtro_permessi" class="permessi-filter-toggles btn-group" data-toggle="buttons">
+                            <label class="btn btn-default btn-sm active" title="Permessi confermati da inviare o riprovare su MasterCom">
+                                <input type="checkbox" class="filtro_permessi_toggle" value="da_inviare" checked autocomplete="off"> Da inviare
+                            </label>
+                            <label class="btn btn-default btn-sm active" title="Richieste ancora da confermare">
+                                <input type="checkbox" class="filtro_permessi_toggle" value="richiesti" checked autocomplete="off"> Richiesti
+                            </label>
+                            <label class="btn btn-default btn-sm" title="Mostra anche permessi gia inviati, rifiutati o annullati">
+                                <input type="checkbox" class="filtro_permessi_toggle" value="altri" autocomplete="off"> Altri
+                            </label>
+                        </div>
                     </div>
                     <div class="col-md-2" style="padding:0px">
                         <div class="date-picker-wrapper">
