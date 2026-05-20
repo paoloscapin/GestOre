@@ -4,6 +4,10 @@ require_once __DIR__ . '/../common/__Settings.php';
 require_once __DIR__ . '/googleCalendarLib.php';
 require_once __DIR__ . '/../common/__Log.php';
 
+if (function_exists('initCronLog')) {
+    initCronLog('googleCalendarWatchRefreshCron');
+}
+
 header('Content-Type: application/json; charset=utf-8');
 
 global $__settings;

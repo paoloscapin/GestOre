@@ -117,6 +117,38 @@ function getLogChannel(): string
     return strtolower(trim((string)($__logChannel ?? 'app'))) ?: 'app';
 }
 
+function initCronLog(string $name = ''): void
+{
+    static $registered = false;
+    static $startedAt = 0.0;
+    static $cronName = '';
+
+    $cronName = trim($name) !== '' ? trim($name) : basename($_SERVER['PHP_SELF'] ?? 'cli');
+    $startedAt = microtime(true);
+    setLogChannel('cron');
+    infocron("Avvio $cronName");
+
+    if ($registered) {
+        return;
+    }
+
+    $registered = true;
+    register_shutdown_function(function () use (&$startedAt, &$cronName) {
+        $lastError = error_get_last();
+        if (is_array($lastError) && in_array((int)($lastError['type'] ?? 0), [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+            errorcron(
+                "Errore fatale $cronName: " .
+                ($lastError['message'] ?? '') .
+                ' in ' . ($lastError['file'] ?? '') .
+                ':' . ($lastError['line'] ?? '')
+            );
+        }
+
+        $elapsed = $startedAt > 0 ? round(microtime(true) - $startedAt, 3) : 0;
+        infocron("Fine $cronName durata={$elapsed}s");
+    });
+}
+
 function logChannelLogger(string $channel)
 {
     global $__logger;
@@ -168,17 +200,17 @@ function dbError(string $message): void
 }
 
 function debug($message) {
-    global $__logger;
     global $__username;
-    $page = basename ( $_SERVER ['PHP_SELF'] );
-    $__logger->debug("$page: [$__username] $message");
+    $page = basename($_SERVER['PHP_SELF'] ?? 'cli');
+    $logger = logChannelLogger(getLogChannel());
+    $logger->debug("$page: [$__username] $message");
 }
 
 function info($message) {
-    global $__logger;
     global $__username;
-    $page = basename ( $_SERVER ['PHP_SELF'] );
-    $__logger->info("$page: [$__username] $message");
+    $page = basename($_SERVER['PHP_SELF'] ?? 'cli');
+    $logger = logChannelLogger(getLogChannel());
+    $logger->info("$page: [$__username] $message");
 }
 
 function infoLogin($message) {
@@ -188,17 +220,17 @@ function infoLogin($message) {
 }
 
 function warning($message) {
-    global $__logger;
     global $__username;
-    $page = basename ( $_SERVER ['PHP_SELF'] );
-    $__logger->warning("$page: [$__username] $message");
+    $page = basename($_SERVER['PHP_SELF'] ?? 'cli');
+    $logger = logChannelLogger(getLogChannel());
+    $logger->warning("$page: [$__username] $message");
 }
 
 function error($message) {
-    global $__logger;
     global $__username;
-    $page = basename ( $_SERVER ['PHP_SELF'] );
-    $__logger->err("$page: [$__username] $message");
+    $page = basename($_SERVER['PHP_SELF'] ?? 'cli');
+    $logger = logChannelLogger(getLogChannel());
+    $logger->err("$page: [$__username] $message");
 }
 
 function buildRotatedLogFileName($fullPath)

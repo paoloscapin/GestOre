@@ -13,6 +13,10 @@ require_once '../common/send-mail.php';
 // ✅ UI comune (mailWrap, badge, kvRow, studentiTableHtml)
 require_once '../common/mail-ui.php';
 
+if (function_exists('initCronLog')) {
+    initCronLog('sportelloPromemoriaStudente');
+}
+
 $today = new DateTime("now");
 
 $query = "	SELECT

@@ -17,6 +17,10 @@ require_once __DIR__ . '/../common/connect.php';
 require_once __DIR__ . '/../common/send-mail.php';
 require_once __DIR__ . '/../common/mail-ui.php';
 
+if (function_exists('initCronLog')) {
+    initCronLog('sportelliAnnullaPermessiDocenti');
+}
+
 $mbappEnabled = false;
 if (file_exists(__DIR__ . '/../common/connectMBApp.php')) {
     require_once __DIR__ . '/../common/connectMBApp.php';

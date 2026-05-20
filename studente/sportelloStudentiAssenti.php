@@ -13,6 +13,10 @@ require_once '../common/connect.php';
 require_once '../common/send-mail.php';
 require_once '../common/mail-ui.php';   // ✅ nuovo
 
+if (function_exists('initCronLog')) {
+    initCronLog('sportelloStudentiAssenti');
+}
+
 // -------------------------------
 // Helper: format data IT dd/mm/yyyy
 // -------------------------------

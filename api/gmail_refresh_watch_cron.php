@@ -2,6 +2,10 @@
 require_once __DIR__ . '/../common/gmail_api_lib.php';
 require_once __DIR__ . '/../common/__Settings.php';
 
+if (function_exists('initCronLog')) {
+    initCronLog('gmail_refresh_watch_cron');
+}
+
 header('Content-Type: application/json');
 @set_time_limit(60);
 

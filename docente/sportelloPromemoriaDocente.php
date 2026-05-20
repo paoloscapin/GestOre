@@ -21,6 +21,10 @@ require_once '../common/connect.php';
 require_once '../common/send-mail.php';
 require_once '../common/mail-ui.php';
 
+if (function_exists('initCronLog')) {
+    initCronLog('sportelloPromemoriaDocente');
+}
+
 // -------------------------------
 // MBApp connection (optional)
 // -------------------------------
