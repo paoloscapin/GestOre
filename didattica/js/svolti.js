@@ -1828,6 +1828,33 @@ function programmiSvoltiWordClasse(id_classe, id_anno_scolastico) {
     form.appendTo('body').submit().remove();
 }
 
+function programmiSvoltiRichiediCopertina(id_programma) {
+    if (!confirm("Vuoi richiedere la copertina per il fascicolo verifiche di questo programma svolto?")) {
+        return;
+    }
+
+    $.post("programmiSvoltiCopertinaRequest.php", {
+        programma_id: id_programma
+    }, function (response) {
+        var result = typeof response === 'string' ? JSON.parse(response) : response;
+        if (!result || result.ok === false) {
+            alert((result && result.message) ? result.message : "Errore durante la richiesta della copertina.");
+            return;
+        }
+        if ($.notify) {
+            $.notify({ message: result.message || "Copertina richiesta." }, { type: 'success' });
+        } else {
+            alert(result.message || "Copertina richiesta.");
+        }
+        programmiSvoltiReadRecords();
+    }).fail(function (xhr) {
+        var message = xhr.responseJSON && xhr.responseJSON.message
+            ? xhr.responseJSON.message
+            : "Errore di connessione durante la richiesta della copertina.";
+        alert(message);
+    });
+}
+
 function moduloSvoltiDelete(id, id_programma, titolo) {
     var conf = confirm("Sei sicuro di volere cancellare il modulo  " + titolo + " ?");
     if (conf == true) {

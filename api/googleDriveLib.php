@@ -331,6 +331,62 @@ function googleDriveDeleteFile(string $fileId): void
     );
 }
 
+function googleDriveGetFileMetadata(string $fileId): array
+{
+    $fileId = trim($fileId);
+    if ($fileId === '') {
+        return [];
+    }
+
+    return googleDriveApiRequest(
+        'GET',
+        'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId)
+            . '?fields=id,name,size,mimeType,webViewLink'
+    );
+}
+
+function googleDriveDownloadFileContent(string $fileId): array
+{
+    $fileId = trim($fileId);
+    if ($fileId === '') {
+        throw new Exception('ID file Drive mancante');
+    }
+
+    $accessToken = googleDriveAccessToken();
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => 'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId) . '?alt=media',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HEADER => true,
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . $accessToken,
+        ],
+        CURLOPT_TIMEOUT => 600,
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = intval(curl_getinfo($ch, CURLINFO_HTTP_CODE));
+    $headerSize = intval(curl_getinfo($ch, CURLINFO_HEADER_SIZE));
+    $contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlError) {
+        throw new Exception('Errore CURL Google Drive download: ' . $curlError);
+    }
+
+    $body = substr((string)$response, $headerSize);
+    if ($httpCode < 200 || $httpCode >= 300) {
+        throw new Exception('Errore Google Drive download HTTP ' . $httpCode . ': ' . $body);
+    }
+
+    return [
+        'content' => $body,
+        'contentType' => $contentType !== '' ? $contentType : 'application/octet-stream',
+        'size' => strlen($body),
+    ];
+}
+
 function googleDriveShareFileWithUser(string $fileId, string $email, string $role = 'reader'): array
 {
     $fileId = trim($fileId);
