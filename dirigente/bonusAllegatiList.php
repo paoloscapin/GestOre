@@ -10,7 +10,16 @@ $rowBd = dbGetFirst("SELECT docente_id, anno_scolastico_id FROM bonus_docente WH
 if (!$rowBd) { echo ''; exit; }
 
 $allegati = dbGetAll("
-  SELECT id, original_name, file_size, uploaded_at
+  SELECT
+    id,
+    original_name,
+    file_size,
+    uploaded_at,
+    storage_type,
+    drive_web_view_link,
+    drive_file_id,
+    mime_type,
+    drive_mime_type
   FROM bonus_docente_allegato
   WHERE bonus_docente_id = $bonus_docente_id
   ORDER BY uploaded_at DESC, id DESC
@@ -28,12 +37,27 @@ foreach ($allegati as $a) {
   $name = htmlspecialchars($a['original_name']);
   $sizeKb = $a['file_size'] ? round(intval($a['file_size'])/1024) : 0;
   $dt = htmlspecialchars($a['uploaded_at']);
+  $isDrive = (($a['storage_type'] ?? 'LOCAL') === 'DRIVE');
+  $mime = (string)(($a['mime_type'] ?? '') !== '' ? $a['mime_type'] : ($a['drive_mime_type'] ?? ''));
+  $icon = 'glyphicon-file';
+
+  if (strpos($mime, 'video/') === 0) {
+    $icon = 'glyphicon-facetime-video';
+  } elseif (strpos($mime, 'image/') === 0) {
+    $icon = 'glyphicon-picture';
+  }
 
   $viewUrl = $__application_base_path . '/docente/bonusAllegatoDownload.php?id=' . $id;
   $downloadUrl = $viewUrl . '&download=1';
 
   echo '<li class="list-group-item">';
+  echo '  <span class="glyphicon '.$icon.'"></span> ';
   echo '  <a href="'.$viewUrl.'" target="_blank">'.$name.'</a>';
+  if ($isDrive) {
+    echo '  <span class="label label-warning">Drive</span>';
+  } else {
+    echo '  <span class="label label-primary">Locale</span>';
+  }
   echo '  <span class="text-muted"> ('.$sizeKb.' KB, '.$dt.')</span>';
   echo '  <span class="pull-right">';
   echo '    <a class="btn btn-xs btn-default" href="'.$downloadUrl.'" title="Scarica">';

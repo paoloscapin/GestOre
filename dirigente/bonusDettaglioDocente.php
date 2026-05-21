@@ -45,7 +45,7 @@ require_once '../common/checkSession.php';
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-vcolor-index.css">
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 
-    <script type="text/javascript" src="js/scriptBonusDettaglio.js"></script>
+    <script type="text/javascript" src="js/scriptBonusDettaglio.js?t=<?php echo time(); ?>"></script>
 
 </head>
 
@@ -324,10 +324,6 @@ $data .= '
                                     <div class="form-group">
                                         <div class="" id="evidenze_text"></div>
                                     </div>
-                                    <div class="form-group">
-                                        <div class="" id="allegati_list"></div>
-                                    </div>
-
                                     <div class="form-group">
                                         <label for="rendiconto_rendiconto">Rendiconto</label>
                                         <textarea class="form-control" rows="5" id="rendiconto_rendiconto" placeholder="rendiconto" readonly="readonly"></textarea>
