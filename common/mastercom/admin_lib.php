@@ -466,6 +466,226 @@ function mastercomAdminFirstRecord($response): ?array
     return $response;
 }
 
+function mastercomAdminNormalizeJsonKey(string $key): string
+{
+    $key = html_entity_decode($key, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $key = function_exists('mb_strtolower') ? mb_strtolower($key, 'UTF-8') : strtolower($key);
+    $key = strtr($key, [
+        'à' => 'a',
+        'è' => 'e',
+        'é' => 'e',
+        'ì' => 'i',
+        'ò' => 'o',
+        'ù' => 'u',
+    ]);
+    return preg_replace('/[^a-z0-9]/', '', $key);
+}
+
+function mastercomAdminFindValueRecursive($node, array $normalizedKeys)
+{
+    if (!is_array($node)) {
+        return null;
+    }
+
+    foreach ($node as $key => $value) {
+        if (is_array($value)) {
+            continue;
+        }
+        if (in_array(mastercomAdminNormalizeJsonKey((string)$key), $normalizedKeys, true)) {
+            $clean = mastercomAdminCleanText($value);
+            if ($clean !== null && $clean !== '') {
+                return $clean;
+            }
+        }
+    }
+
+    foreach ($node as $value) {
+        if (!is_array($value)) {
+            continue;
+        }
+        $found = mastercomAdminFindValueRecursive($value, $normalizedKeys);
+        if ($found !== null && $found !== '') {
+            return $found;
+        }
+    }
+
+    return null;
+}
+
+function mastercomAdminPickMastercomValue(array $sources, array $keys): ?string
+{
+    $normalizedKeys = array_values(array_unique(array_map('mastercomAdminNormalizeJsonKey', $keys)));
+    foreach ($sources as $source) {
+        if (!is_array($source)) {
+            continue;
+        }
+        $value = mastercomAdminFindValueRecursive($source, $normalizedKeys);
+        if ($value !== null && $value !== '') {
+            return $value;
+        }
+    }
+
+    return null;
+}
+
+function mastercomAdminPickMastercomTimestamp(array $sources, array $keys): ?int
+{
+    $value = mastercomAdminPickMastercomValue($sources, $keys);
+    if ($value === null || $value === '') {
+        return null;
+    }
+    if (is_numeric($value)) {
+        return intval($value);
+    }
+
+    foreach (['Y-m-d', 'd/m/Y', 'd-m-Y'] as $format) {
+        $date = DateTime::createFromFormat($format, $value, new DateTimeZone('Europe/Rome'));
+        if ($date instanceof DateTime) {
+            return $date->getTimestamp();
+        }
+    }
+
+    return null;
+}
+
+function mastercomAdminHtmlAttribute(string $tag, string $attribute): ?string
+{
+    $pattern = '/\b' . preg_quote($attribute, '/') . '\s*=\s*([\'"])(.*?)\1/is';
+    if (!preg_match($pattern, $tag, $matches)) {
+        return null;
+    }
+
+    return mastercomAdminCleanText($matches[2] ?? '');
+}
+
+function mastercomAdminExtractInputValuesByName(string $html): array
+{
+    $values = [];
+    if (preg_match_all('/<input\b[^>]*>/is', $html, $matches)) {
+        foreach ($matches[0] as $tag) {
+            $name = mastercomAdminHtmlAttribute($tag, 'name');
+            if ($name === null || $name === '') {
+                continue;
+            }
+            $value = mastercomAdminHtmlAttribute($tag, 'value');
+            $values[$name] = $value ?? '';
+        }
+    }
+
+    return $values;
+}
+
+function mastercomAdminParseCityProvince(?string $description): array
+{
+    $description = mastercomAdminCleanText($description);
+    if ($description === null || $description === '') {
+        return ['citta' => null, 'provincia' => null];
+    }
+
+    if (preg_match('/^(.*?)\s*\(([A-Z]{2})\)\s*$/u', $description, $matches)) {
+        return [
+            'citta' => mastercomAdminCleanText($matches[1] ?? ''),
+            'provincia' => mastercomAdminCleanText($matches[2] ?? ''),
+        ];
+    }
+
+    return ['citta' => $description, 'provincia' => null];
+}
+
+function mastercomAdminParseParentDetailsFromStudentHtml(string $html): array
+{
+    $inputs = mastercomAdminExtractInputValuesByName($html);
+    $parents = [];
+
+    foreach ($inputs as $name => $value) {
+        if (!preg_match('/^parente_(\d+)_(.+)$/', (string)$name, $matches)) {
+            continue;
+        }
+
+        $parentId = intval($matches[1]);
+        $field = (string)$matches[2];
+        if ($parentId <= 0 || $field === '') {
+            continue;
+        }
+
+        if (!isset($parents[$parentId])) {
+            $parents[$parentId] = ['mastercom_id_parente' => $parentId];
+        }
+        $parents[$parentId][$field] = mastercomAdminCleanText($value);
+    }
+
+    foreach ($parents as $parentId => $fields) {
+        $residenza = mastercomAdminParseCityProvince($fields['residenza_description'] ?? null);
+        $domicilio = mastercomAdminParseCityProvince($fields['domicilio_description'] ?? null);
+
+        $parents[$parentId]['codice_fiscale'] = $fields['codice_fiscale'] ?? null;
+        $parents[$parentId]['cognome'] = $fields['cognome'] ?? null;
+        $parents[$parentId]['nome'] = $fields['nome'] ?? null;
+        $parents[$parentId]['email'] = $fields['email'] ?? null;
+        $parents[$parentId]['telefono'] = $fields['telefono_abitazione'] ?? $fields['telefono_lavoro'] ?? null;
+        $parents[$parentId]['cellulare'] = $fields['telefono_cellulare'] ?? null;
+        $parents[$parentId]['indirizzo'] = $fields['indirizzo'] ?? $fields['domicilio'] ?? null;
+        $parents[$parentId]['cap'] = $fields['cap_residenza'] ?? $fields['cap_domicilio'] ?? null;
+        $parents[$parentId]['citta'] = $residenza['citta'] ?? $domicilio['citta'] ?? null;
+        $parents[$parentId]['provincia'] = $residenza['provincia'] ?? $domicilio['provincia'] ?? null;
+    }
+
+    return $parents;
+}
+
+function mastercomAdminParentDetailsFromLinkedStudents(array $authResult, array $parent, int $parentId, array &$studentAdminParentsCache): array
+{
+    foreach (($parent['studenti_abbinati'] ?? []) as $child) {
+        $studentMcId = intval($child['id_studente'] ?? 0);
+        if ($studentMcId <= 0) {
+            continue;
+        }
+
+        if (!array_key_exists($studentMcId, $studentAdminParentsCache)) {
+            $studentMirror = dbGetFirst("
+                SELECT s.*, c.nome AS mastercom_classe_nome, c.raw_json AS mastercom_classe_raw_json
+                FROM mastercom_studenti s
+                LEFT JOIN mastercom_classi c ON c.mastercom_id_classe = s.mastercom_id_classe_corrente
+                WHERE s.mastercom_id_studente = " . intval($studentMcId) . "
+                LIMIT 1
+            ");
+            $classId = intval($studentMirror['mastercom_id_classe_corrente'] ?? ($child['id_classe'] ?? 0));
+            $className = mastercomAdminCleanText($studentMirror['mastercom_classe_nome'] ?? ($child['classe'] ?? '')) ?? '';
+            $classRaw = json_decode((string)($studentMirror['mastercom_classe_raw_json'] ?? ''), true);
+            $classRaw = is_array($classRaw) ? $classRaw : [];
+            $idIndirizzo = $child['id_indirizzo']
+                ?? $studentMirror['id_indirizzo']
+                ?? $studentMirror['mastercom_id_indirizzo']
+                ?? $classRaw['id_indirizzo']
+                ?? $classRaw['id_indirizzi']
+                ?? '';
+
+            $studentAdminParentsCache[$studentMcId] = [];
+            if ($classId > 0) {
+                $htmlResult = mastercomLoadStudentAdminProfileHtml($authResult, [
+                    'id_studente' => $studentMcId,
+                    'id_classe' => $classId,
+                    'classe' => $className,
+                    'id_indirizzo' => $idIndirizzo,
+                ], [
+                    'timeout' => 120,
+                ]);
+                if (!empty($htmlResult['ok']) && is_string($htmlResult['body'] ?? null)) {
+                    $studentAdminParentsCache[$studentMcId] = mastercomAdminParseParentDetailsFromStudentHtml($htmlResult['body']);
+                } else {
+                    warning('mastercomAdminSyncParents: scheda studente MasterCom non disponibile student_id=' . $studentMcId . ' class_id=' . $classId . ' http=' . intval($htmlResult['http_code'] ?? 0) . ' error=' . (string)($htmlResult['error'] ?? ''));
+                }
+            }
+        }
+
+        if (isset($studentAdminParentsCache[$studentMcId][$parentId]) && is_array($studentAdminParentsCache[$studentMcId][$parentId])) {
+            return $studentAdminParentsCache[$studentMcId][$parentId];
+        }
+    }
+
+    return [];
+}
+
 function mastercomAdminParseClassName(string $name): array
 {
     $name = trim($name);
@@ -1355,6 +1575,7 @@ function mastercomAdminSyncParentsChunk(array $parents, int $baseOffset = 0, int
 
     $total = $overallTotal > 0 ? $overallTotal : count($parents);
     $updated = 0;
+    $studentAdminParentsCache = [];
     foreach ($parents as $index => $parent) {
         $parentId = intval($parent['id_parente'] ?? 0);
         if ($parentId <= 0) {
@@ -1368,34 +1589,118 @@ function mastercomAdminSyncParentsChunk(array $parents, int $baseOffset = 0, int
             'timeout' => 120,
         ]);
         $detail = mastercomAdminFirstRecord($detailResult['response'] ?? null) ?? [];
-        $merged = array_merge($detail, $parent);
+        $htmlDetail = mastercomAdminParentDetailsFromLinkedStudents($authResult, $parent, $parentId, $studentAdminParentsCache);
+        $merged = array_merge($detail, $parent, $htmlDetail);
+        $parentSources = [$htmlDetail, $detail, $parent, $merged];
+        $codiceFiscale = mastercomAdminPickMastercomValue($parentSources, ['codice_fiscale', 'codicefiscale', 'cf', 'fiscal_code', 'tax_code']);
+        $email = mastercomAdminPickMastercomValue($parentSources, ['email', 'mail', 'e_mail', 'indirizzo_email', 'email1']);
+        $cognome = mastercomAdminPickMastercomValue($parentSources, ['cognome', 'surname', 'last_name', 'lastname']);
+        $nome = mastercomAdminPickMastercomValue($parentSources, ['nome', 'first_name', 'firstname']);
+        $telefono = mastercomAdminPickMastercomValue($parentSources, [
+            'telephone',
+            'telefono',
+            'phone',
+            'tel',
+            'telefono_fisso',
+            'telefono_residenza',
+            'numero_telefono',
+            'recapito_telefonico',
+        ]);
+        $cellulare = mastercomAdminPickMastercomValue($parentSources, [
+            'cellphone',
+            'cellulare',
+            'mobile',
+            'cell',
+            'telefono_cellulare',
+            'telefono_mobile',
+            'mobile_phone',
+            'cellulare1',
+            'cell1',
+        ]);
+        $indirizzo = mastercomAdminPickMastercomValue($parentSources, [
+            'address',
+            'indirizzo',
+            'via',
+            'indirizzo_residenza',
+            'residenza_indirizzo',
+            'indirizzo_domicilio',
+            'domicilio_indirizzo',
+            'street',
+            'indirizzo_completo',
+        ]);
+        $cap = mastercomAdminPickMastercomValue($parentSources, [
+            'postal_code',
+            'postalcode',
+            'cap',
+            'zip',
+            'zipcode',
+            'codice_postale',
+            'cap_residenza',
+            'residenza_cap',
+        ]);
+        $citta = mastercomAdminPickMastercomValue($parentSources, [
+            'city',
+            'citta',
+            'città',
+            'comune_residenza',
+            'residenza_comune',
+            'localita',
+            'località',
+        ]);
+        $provincia = mastercomAdminPickMastercomValue($parentSources, [
+            'province',
+            'provincia',
+            'prov',
+            'sigla_provincia',
+            'provincia_residenza',
+            'residenza_provincia',
+        ]);
+        $comuneNascita = mastercomAdminPickMastercomValue($parentSources, [
+            'birth_place',
+            'birthplace',
+            'comune_nascita',
+            'luogo_nascita',
+            'nato_a',
+        ]);
+        $birthTs = mastercomAdminPickMastercomTimestamp($parentSources, [
+            'birth_date',
+            'birthdate',
+            'data_nascita',
+            'nato_il',
+        ]);
+
         $localParent = mastercomAdminFindLocalParent([
-            'codice_fiscale' => $parent['codice_fiscale'] ?? $detail['cf'] ?? '',
-            'email' => $detail['email'] ?? '',
-            'cognome' => $parent['cognome'] ?? $detail['surname'] ?? '',
-            'nome' => $parent['nome'] ?? $detail['first_name'] ?? '',
+            'codice_fiscale' => $codiceFiscale ?? '',
+            'email' => $email ?? '',
+            'cognome' => $cognome ?? '',
+            'nome' => $nome ?? '',
         ]);
 
         mastercomAdminUpsertByField('mastercom_genitori', 'mastercom_id_parente', $parentId, [
             'id_genitore_gestore' => $localParent['id'] ?? null,
             'mastercom_id_parente' => $parentId,
-            'cognome' => mastercomAdminCleanText($parent['cognome'] ?? $detail['surname'] ?? null),
-            'nome' => mastercomAdminCleanText($parent['nome'] ?? $detail['first_name'] ?? null),
-            'codice_fiscale' => mastercomAdminCleanText($parent['codice_fiscale'] ?? $detail['cf'] ?? null),
-            'email' => mastercomAdminCleanText($detail['email'] ?? null),
-            'telefono' => mastercomAdminCleanText($detail['telephone'] ?? null),
-            'cellulare' => mastercomAdminCleanText($detail['cellphone'] ?? null),
-            'indirizzo' => mastercomAdminCleanText($detail['address'] ?? null),
-            'cap' => mastercomAdminCleanText($detail['postal_code'] ?? null),
-            'citta' => mastercomAdminCleanText($detail['city'] ?? null),
-            'provincia' => mastercomAdminCleanText($detail['province'] ?? null),
-            'comune_nascita' => mastercomAdminCleanText($detail['birth_place'] ?? null),
-            'data_nascita_ts' => isset($detail['birth_date']) && is_numeric($detail['birth_date']) ? intval($detail['birth_date']) : null,
-            'data_nascita' => (isset($detail['birth_date']) && is_numeric($detail['birth_date'])) ? date('Y-m-d', intval($detail['birth_date'])) : null,
+            'cognome' => $cognome,
+            'nome' => $nome,
+            'codice_fiscale' => $codiceFiscale,
+            'email' => $email,
+            'telefono' => $telefono,
+            'cellulare' => $cellulare,
+            'indirizzo' => $indirizzo,
+            'cap' => $cap,
+            'citta' => $citta,
+            'provincia' => $provincia,
+            'comune_nascita' => $comuneNascita,
+            'data_nascita_ts' => $birthTs,
+            'data_nascita' => $birthTs !== null ? date('Y-m-d', $birthTs) : null,
             'attivo_mastercom' => 1,
             'last_sync_at' => mastercomAdminNow(),
             'last_seen_at' => mastercomAdminNow(),
-            'raw_json' => mastercomAdminJson($merged),
+            'raw_json' => mastercomAdminJson([
+                'detail' => $detail,
+                'list' => $parent,
+                'student_admin_parent_detail' => $htmlDetail,
+                'merged' => $merged,
+            ]),
         ]);
 
         foreach (($parent['studenti_abbinati'] ?? []) as $child) {

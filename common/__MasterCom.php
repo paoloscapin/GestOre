@@ -1030,6 +1030,53 @@ function mastercomLoadParentDetails(array $authResult, int $parentId, array $opt
     ]));
 }
 
+function mastercomLoadStudentAdminProfileHtml(array $authResult, array $studentContext, array $options = []): array
+{
+    $studentId = intval($studentContext['id_studente'] ?? $studentContext['id_student'] ?? 0);
+    $classId = intval($studentContext['id_classe'] ?? $studentContext['id_class'] ?? 0);
+    if ($studentId <= 0 || $classId <= 0) {
+        return [
+            'ok' => false,
+            'error' => 'ID studente o classe non valido',
+            'body' => null,
+            'http_code' => 0,
+            'content_type' => null,
+        ];
+    }
+
+    $currentUser = mastercomCurrentUser($authResult);
+    $currentKey = mastercomCurrentKey($authResult);
+    if ($currentUser === null || $currentKey === null || $currentKey === '') {
+        return [
+            'ok' => false,
+            'error' => 'Autenticazione MasterCom non valida o incompleta',
+            'body' => null,
+            'http_code' => 0,
+            'content_type' => null,
+        ];
+    }
+
+    $params = [
+        'form_stato' => 'amministratore',
+        'stato_principale' => 'classi_principale',
+        'stato_secondario' => 'visualizza_studente',
+        'indirizzo' => (string)($studentContext['indirizzo'] ?? ''),
+        'classe' => (string)($studentContext['classe'] ?? ''),
+        'id_classe' => $classId,
+        'id_studente' => $studentId,
+        'id_indirizzo' => (string)($studentContext['id_indirizzo'] ?? ''),
+        'current_user' => $currentUser,
+        'current_key' => $currentKey,
+    ];
+
+    return mastercomRawRequest($params, array_merge($options, [
+        'base_url' => $options['base_url'] ?? mastercomIndexUrl(),
+        'cookie' => $options['cookie'] ?? implode('; ', array_filter($authResult['cookies'] ?? [])),
+        'method' => $options['method'] ?? 'POST',
+        'send_in_body' => $options['send_in_body'] ?? true,
+    ]));
+}
+
 function mastercomCurrentKey(array $authResult): ?string
 {
     return $authResult['response']['result']['current_key']
