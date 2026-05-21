@@ -27,6 +27,9 @@ $q = trim((string)($_GET['q'] ?? ''));
             text-align: center;
             width: 110px;
         }
+        .event-participants .label {
+            cursor: help;
+        }
         .event-state {
             display: inline-block;
             margin-right: 5px;
@@ -63,6 +66,24 @@ $q = trim((string)($_GET['q'] ?? ''));
         .event-loading-box .glyphicon {
             margin-right: 8px;
         }
+        .event-loading-progress {
+            background: #e8f1f7;
+            border-radius: 10px;
+            height: 12px;
+            margin-top: 14px;
+            overflow: hidden;
+        }
+        .event-loading-progress-bar {
+            background: #31b0d5;
+            height: 100%;
+            transition: width 0.35s ease;
+            width: 0;
+        }
+        .event-loading-percent {
+            color: #557;
+            font-size: 12px;
+            margin-top: 6px;
+        }
     </style>
 </head>
 <body>
@@ -70,8 +91,12 @@ $q = trim((string)($_GET['q'] ?? ''));
 <div class="event-loading-overlay" id="eventLoadingOverlay">
     <div class="event-loading-box">
         <span class="glyphicon glyphicon-refresh"></span>
-        Caricamento eventi MasterCom in corso...
-        <div class="text-muted" style="font-size:12px;margin-top:6px;">Attendere la risposta di MasterCom.</div>
+        <span id="eventLoadingTitle">Caricamento eventi MasterCom in corso...</span>
+        <div class="text-muted" id="eventLoadingSubtitle" style="font-size:12px;margin-top:6px;">Attendere la risposta di MasterCom.</div>
+        <div class="event-loading-progress" aria-hidden="true">
+            <div class="event-loading-progress-bar" id="eventLoadingProgressBar"></div>
+        </div>
+        <div class="event-loading-percent" id="eventLoadingPercent">0%</div>
     </div>
 </div>
 <div class="container-fluid">
@@ -114,8 +139,47 @@ $q = trim((string)($_GET['q'] ?? ''));
         return $('<div>').text(value == null ? '' : String(value)).html();
     }
 
-    function mastercomEventsShowLoading(show) {
+    var mastercomEventsLoadingTimer = null;
+    var mastercomEventsLoadingPercent = 0;
+
+    function mastercomEventsSetLoadingPercent(percent, text) {
+        mastercomEventsLoadingPercent = Math.max(0, Math.min(100, parseInt(percent || 0, 10)));
+        $('#eventLoadingProgressBar').css('width', mastercomEventsLoadingPercent + '%');
+        $('#eventLoadingPercent').text((text || (mastercomEventsLoadingPercent + '%')));
+    }
+
+    function mastercomEventsShowLoading(show, title, subtitle) {
+        if (mastercomEventsLoadingTimer) {
+            clearInterval(mastercomEventsLoadingTimer);
+            mastercomEventsLoadingTimer = null;
+        }
+
+        if (title) {
+            $('#eventLoadingTitle').text(title);
+        }
+        if (subtitle) {
+            $('#eventLoadingSubtitle').text(subtitle);
+        }
         $('#eventLoadingOverlay').css('display', show ? 'flex' : 'none');
+        if (!show) {
+            mastercomEventsSetLoadingPercent(100, '100%');
+            return;
+        }
+
+        mastercomEventsSetLoadingPercent(5, '5% - richiesta inviata');
+        mastercomEventsLoadingTimer = setInterval(function () {
+            var next = mastercomEventsLoadingPercent;
+            if (next < 35) {
+                next += 5;
+            } else if (next < 70) {
+                next += 3;
+            } else if (next < 90) {
+                next += 1;
+            } else {
+                next = 90;
+            }
+            mastercomEventsSetLoadingPercent(next, next + '% - attendo risposta MasterCom');
+        }, 700);
     }
 
     function mastercomEventsShowMessage(type, text) {
@@ -126,22 +190,31 @@ $q = trim((string)($_GET['q'] ?? ''));
         $('#eventsMessage').html('<div class="alert alert-' + type + '">' + mastercomEventsEscape(text) + '</div>');
     }
 
-    var mastercomParticipantObserver = null;
+    var mastercomEventsShouldLoadParticipants = false;
 
     function mastercomEventsLoadParticipantCount($cell) {
         if (!$cell.length || $cell.data('loaded') || $cell.data('loading')) {
-            return;
+            return $.Deferred().resolve().promise();
         }
         var eventId = parseInt($cell.data('id'), 10);
         if (!eventId) {
             $cell.text('-').data('loaded', true);
-            return;
+            return $.Deferred().resolve().promise();
         }
         $cell.data('loading', true).html('<span class="text-muted">...</span>');
-        $.getJSON('mastercom_events_data.php', { action: 'participant_count', id_evento: eventId })
+        return $.getJSON('mastercom_events_data.php', { action: 'participant_count', id_evento: eventId })
             .done(function (data) {
                 if (data && data.ok) {
-                    $cell.html('<span class="label label-info">' + parseInt(data.count || 0, 10) + '</span>');
+                    var participants = Array.isArray(data.participants) ? data.participants : [];
+                    var tooltip = participants.length
+                        ? participants.map(function (participant) {
+                            return participant.label || '';
+                        }).filter(Boolean).join('\n')
+                        : 'Nessun partecipante trovato';
+                    var $badge = $('<span class="label label-info"></span>')
+                        .text(parseInt(data.count || 0, 10))
+                        .attr('title', tooltip);
+                    $cell.empty().append($badge);
                 } else {
                     $cell.html('<span class="text-danger" title="' + mastercomEventsEscape((data && data.error) ? data.error : 'Errore lettura partecipanti') + '">!</span>');
                 }
@@ -154,33 +227,46 @@ $q = trim((string)($_GET['q'] ?? ''));
             });
     }
 
-    function mastercomEventsObserveParticipantCounts() {
-        if (mastercomParticipantObserver) {
-            mastercomParticipantObserver.disconnect();
-            mastercomParticipantObserver = null;
-        }
-
-        var cells = document.querySelectorAll('.js-participant-count');
-        if (!('IntersectionObserver' in window)) {
-            $('.js-participant-count').each(function () {
-                mastercomEventsLoadParticipantCount($(this));
-            });
+    function mastercomEventsLoadAllParticipantCounts() {
+        var cells = $('.js-participant-count').toArray();
+        var total = cells.length;
+        if (!total) {
             return;
         }
 
-        mastercomParticipantObserver = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry) {
-                if (!entry.isIntersecting) {
-                    return;
-                }
-                mastercomEventsLoadParticipantCount($(entry.target));
-                mastercomParticipantObserver.unobserve(entry.target);
-            });
-        }, { rootMargin: '180px' });
+        var done = 0;
+        var index = 0;
+        var active = 0;
+        var concurrency = 4;
+        mastercomEventsShowLoading(true, 'Caricamento partecipanti...', 'Verifico gli studenti associati agli eventi.');
+        mastercomEventsSetLoadingPercent(0, '0% - 0/' + total);
 
-        Array.prototype.forEach.call(cells, function (cell) {
-            mastercomParticipantObserver.observe(cell);
-        });
+        function updateProgress() {
+            var percent = total > 0 ? Math.round((done / total) * 100) : 100;
+            mastercomEventsSetLoadingPercent(percent, percent + '% - ' + done + '/' + total);
+        }
+
+        function next() {
+            while (active < concurrency && index < total) {
+                var $cell = $(cells[index++]);
+                active++;
+                mastercomEventsLoadParticipantCount($cell).always(function () {
+                    active--;
+                    done++;
+                    updateProgress();
+                    if (done >= total) {
+                        mastercomEventsSetLoadingPercent(100, '100% - partecipanti caricati');
+                        setTimeout(function () {
+                            mastercomEventsShowLoading(false);
+                        }, 350);
+                        return;
+                    }
+                    next();
+                });
+            }
+        }
+
+        next();
     }
 
     function mastercomEventsRender(events) {
@@ -221,11 +307,12 @@ $q = trim((string)($_GET['q'] ?? ''));
                 '</tr>';
             $body.append(row);
         });
-        mastercomEventsObserveParticipantCounts();
+        mastercomEventsShouldLoadParticipants = true;
     }
 
     function mastercomEventsLoad(query) {
-        mastercomEventsShowLoading(true);
+        mastercomEventsShouldLoadParticipants = false;
+        mastercomEventsShowLoading(true, 'Caricamento eventi MasterCom in corso...', 'Attendere la risposta di MasterCom.');
         mastercomEventsShowMessage('', '');
         $.getJSON('mastercom_events_data.php', { q: query || '' })
             .done(function (data) {
@@ -241,7 +328,11 @@ $q = trim((string)($_GET['q'] ?? ''));
                 mastercomEventsRender([]);
             })
             .always(function () {
+                mastercomEventsSetLoadingPercent(100, '100% - elenco caricato');
                 mastercomEventsShowLoading(false);
+                if (mastercomEventsShouldLoadParticipants) {
+                    setTimeout(mastercomEventsLoadAllParticipantCounts, 120);
+                }
             });
     }
 
