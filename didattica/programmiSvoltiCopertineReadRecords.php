@@ -107,6 +107,7 @@ foreach ($rows as $row) {
     if (in_array(strtoupper((string)$row['stato']), ['GENERATA', 'STAMPATA'], true)) {
         $title = strtoupper((string)$row['stato']) === 'STAMPATA' ? 'Ristampa copertina' : 'Stampa copertina';
         echo '<a class="btn btn-primary btn-xs" target="_blank" href="programmiSvoltiCopertinePrint.php?id=' . intval($row['id']) . '" data-toggle="tooltip" title="' . htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><span class="glyphicon glyphicon-print"></span></a>';
+        echo ' <button type="button" class="btn btn-warning btn-xs" onclick="programmiSvoltiCopertineRegenerate(' . intval($row['id']) . ')" data-toggle="tooltip" title="Rigenera e sostituisci il PDF su Drive"><span class="glyphicon glyphicon-repeat"></span></button>';
     } else {
         echo '-';
     }

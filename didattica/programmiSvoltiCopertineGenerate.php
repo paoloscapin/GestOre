@@ -41,9 +41,14 @@ try {
         copertineGenerateOut(false, ['message' => 'Tabella programmi_svolti_copertine non presente.']);
     }
 
-    $rows = dbGetAll("SELECT * FROM programmi_svolti_copertine WHERE stato IN ('RICHIESTA', 'ERRORE') ORDER BY requested_at ASC, id ASC");
+    $regenerateId = intval($_POST['id'] ?? 0);
+    if ($regenerateId > 0) {
+        $rows = dbGetAll("SELECT * FROM programmi_svolti_copertine WHERE id=" . intval($regenerateId) . " LIMIT 1");
+    } else {
+        $rows = dbGetAll("SELECT * FROM programmi_svolti_copertine WHERE stato IN ('RICHIESTA', 'ERRORE') ORDER BY requested_at ASC, id ASC");
+    }
     if (!$rows) {
-        copertineGenerateOut(true, ['message' => 'Nessuna copertina richiesta da generare.', 'generated' => 0]);
+        copertineGenerateOut(true, ['message' => $regenerateId > 0 ? 'Copertina non trovata.' : 'Nessuna copertina richiesta da generare.', 'generated' => 0]);
     }
 
     $rootFolderId = copertineDriveRootFolderId();
@@ -87,8 +92,24 @@ try {
             $upload = googleDriveUploadFile($pdfPath, $fileName, $annoFolderId, 'application/pdf');
             @unlink($pdfPath);
 
+            $oldDriveFileId = trim((string)($row['drive_file_id'] ?? ''));
+            if ($regenerateId > 0 && $oldDriveFileId !== '') {
+                try {
+                    googleDriveDeleteFile($oldDriveFileId);
+                } catch (Throwable $deleteError) {
+                    $messages[] = 'Vecchio file Drive non eliminato: ' . $deleteError->getMessage();
+                }
+            }
+
             $driveFileId = dbEscape((string)($upload['id'] ?? ''));
             $driveLink = dbEscape((string)($upload['webViewLink'] ?? ''));
+            $printedReset = '';
+            if (programmiSvoltiCopertinaColumnExists('printed_by_user_id')) {
+                $printedReset .= ", printed_by_user_id=NULL";
+            }
+            if (programmiSvoltiCopertinaColumnExists('printed_at')) {
+                $printedReset .= ", printed_at=NULL";
+            }
             dbExec("UPDATE programmi_svolti_copertine
                 SET stato='GENERATA',
                     fascicolo_codice='" . dbEscape($codice) . "',
@@ -101,6 +122,7 @@ try {
                     generated_at=NOW(),
                     error_message=NULL,
                     updated_at=NOW()
+                    $printedReset
                 WHERE id=$coverId");
             $generated++;
         } catch (Throwable $e) {
@@ -114,7 +136,7 @@ try {
         }
     }
 
-    $message = "Copertine generate: $generated.";
+    $message = $regenerateId > 0 ? "Copertina rigenerata." : "Copertine generate: $generated.";
     if ($errors > 0) {
         $message .= " Errori: $errors.";
     }

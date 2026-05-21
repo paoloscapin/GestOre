@@ -187,9 +187,9 @@ function copertinePdfAddTemplatePage(TCPDF $pdf, array $programma, string $codic
     $pdf->SetMargins(0, 0, 0);
 
     // Il modello Word usa un A3 orizzontale a due colonne: la copertina va nella colonna destra.
-    $x = 227.5;
+    $x = 217.5;
     $y = 18.0;
-    $w = 187.0;
+    $w = 197.0;
     $col1 = 56.0;
     $col2 = $w - $col1;
 
@@ -212,14 +212,14 @@ function copertinePdfAddTemplatePage(TCPDF $pdf, array $programma, string $codic
     copertinePdfCell($pdf, $x + $col1, $y, $col2, 22.0, 'ELABORATI STUDENTI', 22, false);
     $y += 22.0;
 
+    copertinePdfPercorsoCell($pdf, $x, $y, $w, 46.0, $percorso);
+    $y += 46.0;
+
     copertinePdfMateriaCell($pdf, $x, $y, $w, 56.0, $materia);
     $y += 56.0;
 
     copertinePdfDocenteCell($pdf, $x, $y, $w, 51.0, $docente);
     $y += 51.0;
-
-    copertinePdfPercorsoCell($pdf, $x, $y, $w, 46.0, $percorso);
-    $y += 46.0;
 
     copertinePdfCell($pdf, $x, $y, $col1, 34.0, "CLASSE\n" . $classe, 27, true, 'C', 'M', 13);
     copertinePdfEstremiCell($pdf, $x + $col1, $y, $col2, 34.0, $annoLabel);

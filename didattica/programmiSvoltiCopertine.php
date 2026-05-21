@@ -136,6 +136,29 @@ function programmiSvoltiCopertineGenerate() {
     });
 }
 
+function programmiSvoltiCopertineRegenerate(id) {
+    if (!confirm('Rigenerare questa copertina e sostituire il PDF archiviato su Drive? Lo stato tornera a generato.')) {
+        return;
+    }
+    programmiSvoltiCopertineOverlay('Rigenero la copertina e sostituisco il PDF su Drive...');
+    $.post('programmiSvoltiCopertineGenerate.php', { id: id }, function (response) {
+        var result = typeof response === 'string' ? JSON.parse(response) : response;
+        programmiSvoltiCopertineOverlayHide();
+        if (!result || result.ok === false) {
+            alert((result && result.message) ? result.message : 'Errore durante la rigenerazione.');
+            programmiSvoltiCopertineReadRecords();
+            return;
+        }
+        alert(result.message || 'Copertina rigenerata.');
+        programmiSvoltiCopertineReadRecords();
+    }).fail(function (xhr) {
+        programmiSvoltiCopertineOverlayHide();
+        var message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Errore di connessione.';
+        alert(message);
+        programmiSvoltiCopertineReadRecords();
+    });
+}
+
 $(document).ready(function () {
     programmiSvoltiCopertineReadRecords();
 });
