@@ -94,6 +94,87 @@ function mastercomGradesFormatAverage($value): string
     return mastercomGradesHasValue($value) ? (string)$value : '-';
 }
 
+function mastercomGradesNumericValue($value): ?float
+{
+    $text = str_replace(',', '.', trim((string)$value));
+    if ($text === '' || !is_numeric($text)) {
+        return null;
+    }
+
+    $number = floatval($text);
+    return $number > 0 ? $number : null;
+}
+
+function mastercomGradesFormatComputedAverage(?float $value): string
+{
+    if ($value === null) {
+        return '';
+    }
+
+    return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
+}
+
+function mastercomGradesAverageValue(array $values): ?float
+{
+    $numbers = array_values(array_filter($values, function ($value) {
+        return is_float($value) || is_int($value);
+    }));
+    if (empty($numbers)) {
+        return null;
+    }
+
+    return array_sum($numbers) / count($numbers);
+}
+
+function mastercomGradesBuildAverageRowsFromDetails(array $gradeRows): array
+{
+    $buckets = [];
+    foreach ($gradeRows as $gradeRow) {
+        $studentId = intval($gradeRow['student_id'] ?? 0);
+        $subjectId = intval($gradeRow['subject_id'] ?? 0);
+        $value = mastercomGradesNumericValue($gradeRow['voto'] ?? null);
+        if ($studentId <= 0 || $subjectId <= 0 || $value === null) {
+            continue;
+        }
+
+        $key = $studentId . ':' . $subjectId;
+        if (!isset($buckets[$key])) {
+            $buckets[$key] = [
+                'subject_id' => $subjectId,
+                'subject_name' => trim((string)($gradeRow['subject_name'] ?? '')),
+                'student_id' => $studentId,
+                'student_name' => trim((string)($gradeRow['student_name'] ?? '')),
+                'values' => [],
+                'Scritto' => [],
+                'Orale' => [],
+                'Pratico' => [],
+            ];
+        }
+
+        $type = trim((string)($gradeRow['tipo'] ?? ''));
+        if (isset($buckets[$key][$type]) && is_array($buckets[$key][$type])) {
+            $buckets[$key][$type][] = $value;
+        }
+        $buckets[$key]['values'][] = $value;
+    }
+
+    $rows = [];
+    foreach ($buckets as $bucket) {
+        $rows[] = [
+            'subject_id' => intval($bucket['subject_id']),
+            'subject_name' => $bucket['subject_name'],
+            'student_id' => intval($bucket['student_id']),
+            'student_name' => $bucket['student_name'],
+            'scritto' => mastercomGradesFormatComputedAverage(mastercomGradesAverageValue($bucket['Scritto'])),
+            'orale' => mastercomGradesFormatComputedAverage(mastercomGradesAverageValue($bucket['Orale'])),
+            'pratico' => mastercomGradesFormatComputedAverage(mastercomGradesAverageValue($bucket['Pratico'])),
+            'totale' => mastercomGradesFormatComputedAverage(mastercomGradesAverageValue($bucket['values'])),
+        ];
+    }
+
+    return $rows;
+}
+
 function mastercomGradesDayMonthLabel(int $timestamp): string
 {
     if ($timestamp <= 0) {
@@ -538,6 +619,35 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
             ];
             if (trim((string)($gradeRow['voto'] ?? '')) !== '') {
                 $loadedSubjectIds[$subjectId] = true;
+            }
+        }
+
+        if (!empty($gradeRows)) {
+            $avgRows = array_values(array_filter($avgRows, function ($avgRow) {
+                return mastercomGradesHasValue($avgRow['scritto'] ?? null)
+                    || mastercomGradesHasValue($avgRow['orale'] ?? null)
+                    || mastercomGradesHasValue($avgRow['pratico'] ?? null)
+                    || mastercomGradesHasValue($avgRow['totale'] ?? null);
+            }));
+            $computedAvgRows = mastercomGradesBuildAverageRowsFromDetails($gradeRows);
+            $existingAvgKeys = [];
+            foreach ($avgRows as $avgRow) {
+                $studentId = intval($avgRow['student_id'] ?? 0);
+                $subjectId = intval($avgRow['subject_id'] ?? 0);
+                if ($studentId > 0 && $subjectId > 0) {
+                    $existingAvgKeys[$studentId . ':' . $subjectId] = true;
+                }
+            }
+
+            foreach ($computedAvgRows as $computedAvgRow) {
+                $studentId = intval($computedAvgRow['student_id'] ?? 0);
+                $subjectId = intval($computedAvgRow['subject_id'] ?? 0);
+                $key = $studentId . ':' . $subjectId;
+                if ($studentId <= 0 || $subjectId <= 0 || isset($existingAvgKeys[$key])) {
+                    continue;
+                }
+                $avgRows[] = $computedAvgRow;
+                $existingAvgKeys[$key] = true;
             }
         }
 
