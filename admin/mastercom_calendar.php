@@ -39,12 +39,126 @@ function mastercomCalendarCurrentWeekDates(): array
     $start = clone $today;
     $start->modify('monday this week');
     $end = clone $start;
-    $end->modify('+6 days');
+    $end->modify('+4 days');
 
     return [
         'start' => $start->format('Y-m-d'),
         'end' => $end->format('Y-m-d'),
     ];
+}
+
+function mastercomCalendarWeekDays(string $startDate, string $endDate): array
+{
+    $start = DateTime::createFromFormat('Y-m-d H:i:s', trim($startDate) . ' 00:00:00', new DateTimeZone('Europe/Rome'));
+    $end = DateTime::createFromFormat('Y-m-d H:i:s', trim($endDate) . ' 00:00:00', new DateTimeZone('Europe/Rome'));
+    if (!$start instanceof DateTime || !$end instanceof DateTime || $end < $start) {
+        return [];
+    }
+
+    $days = [];
+    $cursor = clone $start;
+    while ($cursor <= $end) {
+        if (intval($cursor->format('N')) > 5) {
+            $cursor->modify('+1 day');
+            continue;
+        }
+        $days[] = [
+            'date' => $cursor->format('Y-m-d'),
+            'label' => mastercomCalendarItalianDayLabel($cursor),
+            'start_ts' => (clone $cursor)->setTime(0, 0, 0)->getTimestamp(),
+            'end_ts' => (clone $cursor)->setTime(23, 59, 59)->getTimestamp(),
+        ];
+        $cursor->modify('+1 day');
+    }
+
+    return $days;
+}
+
+function mastercomCalendarItalianDayLabel(DateTime $date): string
+{
+    $days = [
+        1 => 'Lunedi',
+        2 => 'Martedi',
+        3 => 'Mercoledi',
+        4 => 'Giovedi',
+        5 => 'Venerdi',
+        6 => 'Sabato',
+        7 => 'Domenica',
+    ];
+
+    return ($days[intval($date->format('N'))] ?? $date->format('D')) . ' ' . $date->format('d/m');
+}
+
+function mastercomCalendarEventTimeLabelForDay(array $row, array $day): string
+{
+    $startTs = intval($row['data_inizio'] ?? 0);
+    $endTs = intval($row['data_fine'] ?? 0);
+    if ($startTs <= 0 && $endTs <= 0) {
+        return '';
+    }
+
+    $startsBeforeDay = $startTs > 0 && $startTs < intval($day['start_ts']);
+    $endsAfterDay = $endTs > 0 && $endTs > intval($day['end_ts']);
+    $startLabel = $startsBeforeDay ? 'inizio giornata' : mastercomCalendarFormatTs($startTs, 'H:i');
+    $endLabel = $endsAfterDay ? 'fine giornata' : mastercomCalendarFormatTs($endTs, 'H:i');
+
+    if ($startLabel === '' && $endLabel === '') {
+        return '';
+    }
+    if ($endLabel === '' || $startLabel === $endLabel) {
+        return $startLabel;
+    }
+
+    return $startLabel . '-' . $endLabel;
+}
+
+function mastercomCalendarTypeClass(array $row): string
+{
+    if (!empty($row['evento'])) {
+        return 'agenda-week-event-evento';
+    }
+    if (!empty($row['colloquio'])) {
+        return 'agenda-week-event-colloquio';
+    }
+
+    return 'agenda-week-event-nota';
+}
+
+function mastercomCalendarDisplayTitle($title, $detail): string
+{
+    $cleanTitle = trim((string)(mastercomAdminCleanText($title) ?? ''));
+    $cleanDetail = trim((string)(mastercomAdminCleanText($detail) ?? ''));
+    $normalizedTitle = mb_strtolower($cleanTitle, 'UTF-8');
+
+    if ($cleanTitle === '' || $normalizedTitle === '(senza titolo)' || $normalizedTitle === 'senza titolo') {
+        return $cleanDetail !== '' ? $cleanDetail : '(senza titolo)';
+    }
+
+    return $cleanTitle;
+}
+
+function mastercomCalendarPickAuthor(array $note, array $eventDebug): ?string
+{
+    foreach ([
+        $note['autore'] ?? null,
+        $note['docente'] ?? null,
+        $note['professore'] ?? null,
+        $eventDebug['autore'] ?? null,
+        $eventDebug['docente'] ?? null,
+        $eventDebug['professore'] ?? null,
+        $eventDebug['nome_docente'] ?? null,
+        $eventDebug['docente_nome'] ?? null,
+    ] as $value) {
+        $clean = mastercomAdminCleanText($value ?? '');
+        if ($clean !== null && $clean !== '') {
+            return $clean;
+        }
+    }
+
+    $nome = mastercomAdminCleanText($eventDebug['nome_professore'] ?? $note['nome_professore'] ?? '');
+    $cognome = mastercomAdminCleanText($eventDebug['cognome_professore'] ?? $note['cognome_professore'] ?? '');
+    $fullName = trim((string)$nome . ' ' . (string)$cognome);
+    return $fullName !== '' ? $fullName : null;
 }
 
 function mastercomCalendarBuildDebugMap(array $response): array
@@ -78,6 +192,7 @@ $startDate = trim((string)($_GET['start_date'] ?? $weekDates['start']));
 $endDate = trim((string)($_GET['end_date'] ?? $weekDates['end']));
 $errorMessage = '';
 $rows = [];
+$weekDays = mastercomCalendarWeekDays($startDate, $endDate);
 $selectedClassName = '';
 
 if (empty($missingTables) && $selectedClassId > 0) {
@@ -124,8 +239,11 @@ if (empty($missingTables) && $selectedClassId > 0) {
                         }
                     }
 
-                    $title = mastercomAdminCleanText($note['titolo'] ?? '') ?: mastercomAdminCleanText($eventDebug['nome'] ?? '') ?: '(senza titolo)';
                     $text = mastercomAdminCleanText($note['testo'] ?? '') ?: mastercomAdminCleanText($eventDebug['descrizione'] ?? '');
+                    $title = mastercomCalendarDisplayTitle(
+                        mastercomAdminCleanText($note['titolo'] ?? '') ?: mastercomAdminCleanText($eventDebug['nome'] ?? ''),
+                        $text
+                    );
 
                     $rows[] = [
                         'id' => $noteId,
@@ -133,13 +251,16 @@ if (empty($missingTables) && $selectedClassId > 0) {
                         'testo' => $text,
                         'data_inizio' => intval($note['data_inizio'] ?? $eventDebug['data_inizio'] ?? 0),
                         'data_fine' => intval($note['data_fine'] ?? $eventDebug['data_fine'] ?? 0),
-                        'autore' => mastercomAdminCleanText($note['autore'] ?? ''),
+                        'autore' => mastercomCalendarPickAuthor($note, $eventDebug),
                         'evento' => intval($note['evento'] ?? 0) === 1,
                         'colloquio' => intval($note['colloquio'] ?? 0) === 1,
                         'participants_count' => count($participantsList),
                         'participants' => $participantsList,
                     ];
                 }
+                usort($rows, function (array $a, array $b): int {
+                    return intval($a['data_inizio'] ?? 0) <=> intval($b['data_inizio'] ?? 0);
+                });
             }
         }
     }
@@ -152,6 +273,65 @@ if (empty($missingTables) && $selectedClassId > 0) {
     <meta charset="UTF-8">
     <?php require_once '../common/header-common.php'; ?>
     <?php require_once '../common/style.php'; ?>
+    <style>
+        .agenda-week-wrap {
+            margin-bottom: 18px;
+            overflow-x: auto;
+        }
+        .agenda-week-table {
+            table-layout: fixed;
+            min-width: 900px;
+            width: 100%;
+        }
+        .agenda-week-table th {
+            background: #eef7f7;
+            text-align: center;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        .agenda-week-table td {
+            background: #fbfefe;
+            height: 170px;
+            min-width: 140px;
+            vertical-align: top;
+        }
+        .agenda-week-event {
+            border-radius: 5px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+            color: #1f2933;
+            display: block;
+            font-size: 12px;
+            line-height: 1.25;
+            margin-bottom: 6px;
+            padding: 6px 7px;
+        }
+        .agenda-week-event-evento {
+            background: #d9edf7;
+            border-left: 5px solid #31708f;
+        }
+        .agenda-week-event-colloquio {
+            background: #fcf8e3;
+            border-left: 5px solid #8a6d3b;
+        }
+        .agenda-week-event-nota {
+            background: #eeeeee;
+            border-left: 5px solid #777777;
+        }
+        .agenda-week-event-title {
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+        .agenda-week-event-meta {
+            color: #52616b;
+            font-size: 11px;
+        }
+        .agenda-week-empty {
+            color: #9aa5b1;
+            font-size: 12px;
+            padding: 6px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 <?php require_once '../common/header-admin.php'; ?>
@@ -194,6 +374,65 @@ if (empty($missingTables) && $selectedClassId > 0) {
                         Classe <strong><?php echo htmlspecialchars($selectedClassName !== '' ? $selectedClassName : (string)$selectedClassId); ?></strong>.
                         Eventi/note trovati: <strong><?php echo count($rows); ?></strong>
                     </div>
+
+                    <?php if (!empty($weekDays)): ?>
+                        <h4>Calendario settimanale</h4>
+                        <div class="agenda-week-wrap">
+                            <table class="table table-bordered agenda-week-table">
+                                <thead>
+                                    <tr>
+                                        <?php foreach ($weekDays as $day): ?>
+                                            <th><?php echo htmlspecialchars($day['label']); ?></th>
+                                        <?php endforeach; ?>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <?php foreach ($weekDays as $day): ?>
+                                            <?php
+                                            $dayEvents = [];
+                                            foreach ($rows as $row) {
+                                                $start = intval($row['data_inizio'] ?? 0);
+                                                $end = intval($row['data_fine'] ?? 0);
+                                                if ($start <= 0 && $end <= 0) {
+                                                    continue;
+                                                }
+                                                if ($end <= 0) {
+                                                    $end = $start;
+                                                }
+                                                if ($start <= intval($day['end_ts']) && $end >= intval($day['start_ts'])) {
+                                                    $dayEvents[] = $row;
+                                                }
+                                            }
+                                            ?>
+                                            <td>
+                                                <?php if (empty($dayEvents)): ?>
+                                                    <div class="agenda-week-empty">Nessun evento</div>
+                                                <?php else: ?>
+                                                    <?php foreach ($dayEvents as $event): ?>
+                                                        <div class="agenda-week-event <?php echo htmlspecialchars(mastercomCalendarTypeClass($event)); ?>">
+                                                            <div class="agenda-week-event-title"><?php echo htmlspecialchars($event['titolo']); ?></div>
+                                                            <div class="agenda-week-event-meta">
+                                                                <?php echo htmlspecialchars(mastercomCalendarEventTimeLabelForDay($event, $day)); ?>
+                                                                <?php if (!empty($event['participants_count'])): ?>
+                                                                    &middot; <?php echo intval($event['participants_count']); ?> partecipanti
+                                                                <?php endif; ?>
+                                                            </div>
+                                                            <?php if (!empty($event['autore'])): ?>
+                                                                <div class="agenda-week-event-meta">
+                                                                    Docente: <?php echo htmlspecialchars($event['autore']); ?>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </td>
+                                        <?php endforeach; ?>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
 
                     <table class="table table-striped table-bordered table-condensed">
                         <thead>
