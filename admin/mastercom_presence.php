@@ -157,6 +157,37 @@ function mastercomPresenceMergeUniqueEntries(array $baseEntries, array $extraEnt
     return $merged;
 }
 
+function mastercomPresenceAbsenceRecordKind(array $record): string
+{
+    $code = strtoupper(trim((string)($record['codice'] ?? '')));
+    $tipo = intval($record['tipo'] ?? 0);
+
+    if ($code === 'E' || $tipo === 2) {
+        return 'entrata';
+    }
+    if ($code === 'U' || $tipo === 3) {
+        return 'uscita';
+    }
+    if ($code === 'P') {
+        return 'permesso';
+    }
+
+    $text = mastercomAdminNorm(implode(' ', [
+        (string)($record['descrizione'] ?? ''),
+        (string)($record['nome'] ?? ''),
+        (string)($record['titolo'] ?? ''),
+        (string)($record['testo'] ?? ''),
+    ]));
+    if (strpos($text, 'USCITA') !== false) {
+        return 'uscita';
+    }
+    if (strpos($text, 'ENTRATA') !== false || strpos($text, 'RITARDO') !== false) {
+        return 'entrata';
+    }
+
+    return 'assenza';
+}
+
 function mastercomPresenceMergeTodayAbsencesIntoAppealRow(array $appealRow, array $absenceRecords): array
 {
     $extraAssenze = [];
@@ -169,14 +200,12 @@ function mastercomPresenceMergeTodayAbsencesIntoAppealRow(array $appealRow, arra
             continue;
         }
 
-        $code = strtoupper(trim((string)($record['codice'] ?? '')));
-        $tipo = intval($record['tipo'] ?? 0);
-
-        if ($code === 'E' || $tipo === 2) {
+        $kind = mastercomPresenceAbsenceRecordKind($record);
+        if ($kind === 'entrata') {
             $extraEntrate[] = $record;
-        } elseif ($code === 'U' || $tipo === 3) {
+        } elseif ($kind === 'uscita') {
             $extraUscite[] = $record;
-        } elseif ($code === 'P') {
+        } elseif ($kind === 'permesso') {
             $extraPermessi[] = $record;
         } else {
             $extraAssenze[] = $record;
@@ -184,6 +213,39 @@ function mastercomPresenceMergeTodayAbsencesIntoAppealRow(array $appealRow, arra
     }
 
     $appealRow['assenze'] = mastercomPresenceMergeUniqueEntries(is_array($appealRow['assenze'] ?? null) ? $appealRow['assenze'] : [], $extraAssenze);
+    $appealRow['entrate'] = mastercomPresenceMergeUniqueEntries(is_array($appealRow['entrate'] ?? null) ? $appealRow['entrate'] : [], $extraEntrate);
+    $appealRow['uscite'] = mastercomPresenceMergeUniqueEntries(is_array($appealRow['uscite'] ?? null) ? $appealRow['uscite'] : [], $extraUscite);
+    $appealRow['permessi'] = mastercomPresenceMergeUniqueEntries(is_array($appealRow['permessi'] ?? null) ? $appealRow['permessi'] : [], $extraPermessi);
+
+    return $appealRow;
+}
+
+function mastercomPresenceRedistributeAbsenceEntries(array $appealRow): array
+{
+    $assenze = is_array($appealRow['assenze'] ?? null) ? $appealRow['assenze'] : [];
+    $realAssenze = [];
+    $extraEntrate = [];
+    $extraUscite = [];
+    $extraPermessi = [];
+
+    foreach ($assenze as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+
+        $kind = mastercomPresenceAbsenceRecordKind($entry);
+        if ($kind === 'entrata') {
+            $extraEntrate[] = $entry;
+        } elseif ($kind === 'uscita') {
+            $extraUscite[] = $entry;
+        } elseif ($kind === 'permesso') {
+            $extraPermessi[] = $entry;
+        } else {
+            $realAssenze[] = $entry;
+        }
+    }
+
+    $appealRow['assenze'] = $realAssenze;
     $appealRow['entrate'] = mastercomPresenceMergeUniqueEntries(is_array($appealRow['entrate'] ?? null) ? $appealRow['entrate'] : [], $extraEntrate);
     $appealRow['uscite'] = mastercomPresenceMergeUniqueEntries(is_array($appealRow['uscite'] ?? null) ? $appealRow['uscite'] : [], $extraUscite);
     $appealRow['permessi'] = mastercomPresenceMergeUniqueEntries(is_array($appealRow['permessi'] ?? null) ? $appealRow['permessi'] : [], $extraPermessi);
@@ -266,8 +328,19 @@ function mastercomPresenceNormalizeAppealRow(array $appealRow): array
 
     $stato = is_array($appealRow['stato'] ?? null) ? $appealRow['stato'] : [];
     if (!empty($stato['assente']) && is_array($stato['ultimo'] ?? null)) {
-        $appealRow['assenze'] = mastercomPresenceMergeUniqueEntries($appealRow['assenze'], [$stato['ultimo']]);
+        $lastKind = mastercomPresenceAbsenceRecordKind($stato['ultimo']);
+        if ($lastKind === 'entrata') {
+            $appealRow['entrate'] = mastercomPresenceMergeUniqueEntries($appealRow['entrate'], [$stato['ultimo']]);
+        } elseif ($lastKind === 'uscita') {
+            $appealRow['uscite'] = mastercomPresenceMergeUniqueEntries($appealRow['uscite'], [$stato['ultimo']]);
+        } elseif ($lastKind === 'permesso') {
+            $appealRow['permessi'] = mastercomPresenceMergeUniqueEntries($appealRow['permessi'], [$stato['ultimo']]);
+        } else {
+            $appealRow['assenze'] = mastercomPresenceMergeUniqueEntries($appealRow['assenze'], [$stato['ultimo']]);
+        }
     }
+
+    $appealRow = mastercomPresenceRedistributeAbsenceEntries($appealRow);
 
     if (!empty($appealRow['entrate']) || !empty($appealRow['eventi'])) {
         $appealRow['assenze'] = [];
