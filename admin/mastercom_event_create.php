@@ -169,6 +169,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($missingTables)) {
             overflow: auto;
             padding-left: 20px;
         }
+        .participants-summary .participant-summary-item {
+            align-items: center;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-start;
+            padding: 2px 0;
+        }
+        .participants-summary .participant-summary-label {
+            min-width: 0;
+        }
+        .participants-summary .participant-remove {
+            align-items: center;
+            background: #d9534f !important;
+            border: 1px solid #c9302c !important;
+            border-radius: 50%;
+            color: #ffffff !important;
+            display: inline-flex;
+            flex: 0 0 auto;
+            font-size: 14px;
+            font-weight: 800;
+            height: 22px;
+            justify-content: center;
+            line-height: 1;
+            margin-right: 6px;
+            padding: 0;
+            text-decoration: none;
+            width: 22px;
+        }
+        .participants-summary .participant-remove .glyphicon {
+            font-size: 10px;
+            line-height: 1;
+            margin: 0;
+        }
+        .participants-summary .participant-remove:hover,
+        .participants-summary .participant-remove:focus {
+            background: #c9302c !important;
+            color: #ffffff !important;
+            text-decoration: none;
+        }
         .event-loading-overlay {
             align-items: center;
             background: rgba(255, 255, 255, 0.78);
@@ -379,33 +418,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($missingTables)) {
     </div>
 </div>
 <script>
-    function mastercomEventCreateSelectedLabels(selector) {
+    function mastercomEventCreateSelectedItems(selector) {
         return $(selector + ' option:selected').map(function () {
-            return $(this).text().replace(/\s+/g, ' ').trim();
+            return {
+                value: String($(this).val()),
+                label: $(this).text().replace(/\s+/g, ' ').trim()
+            };
         }).get();
     }
 
-    function mastercomEventCreateRenderList(target, values, emptyText) {
+    function mastercomEventCreateRenderList(target, values, emptyText, selectSelector) {
         var $target = $(target);
         $target.empty();
         if (!values.length) {
             $('<li>').addClass('text-muted').text(emptyText).appendTo($target);
             return;
         }
-        values.forEach(function (value) {
-            $('<li>').text(value).appendTo($target);
+        values.forEach(function (item) {
+            var $row = $('<li>').addClass('participant-summary-item');
+            $('<button>')
+                .attr('type', 'button')
+                .attr('title', 'Togli dalla selezione')
+                .attr('aria-label', 'Togli dalla selezione')
+                .attr('data-target-select', selectSelector)
+                .attr('data-value', item.value)
+                .addClass('participant-remove')
+                .html('<span class="glyphicon glyphicon-remove" aria-hidden="true"></span>')
+                .appendTo($row);
+            $('<span>').addClass('participant-summary-label').text(item.label).appendTo($row);
+            $row.appendTo($target);
         });
     }
 
     function mastercomEventCreateUpdateSummary() {
-        var classes = mastercomEventCreateSelectedLabels('#classi');
-        var students = mastercomEventCreateSelectedLabels('#studenti');
+        var classes = mastercomEventCreateSelectedItems('#classi');
+        var students = mastercomEventCreateSelectedItems('#studenti');
         var hasParticipants = classes.length > 0 || students.length > 0;
 
         $('#participantsEmpty').toggle(!hasParticipants);
         $('#participantsContent').toggle(hasParticipants);
-        mastercomEventCreateRenderList('#participantsClasses', classes, 'Nessuna classe intera selezionata.');
-        mastercomEventCreateRenderList('#participantsStudents', students, 'Nessuno studente singolo selezionato.');
+        mastercomEventCreateRenderList('#participantsClasses', classes, 'Nessuna classe intera selezionata.', '#classi');
+        mastercomEventCreateRenderList('#participantsStudents', students, 'Nessuno studente singolo selezionato.', '#studenti');
     }
 
     function mastercomEventCreateSubmit() {
@@ -419,6 +472,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($missingTables)) {
     $(function () {
         $('.selectpicker').selectpicker();
         $('#classi, #studenti').on('changed.bs.select change', mastercomEventCreateUpdateSummary);
+        $('#participantsSummary').on('click', '.participant-remove', function () {
+            var selectSelector = $(this).attr('data-target-select');
+            var value = String($(this).attr('data-value'));
+            $(selectSelector + ' option').filter(function () {
+                return String($(this).val()) === value;
+            }).prop('selected', false);
+            $(selectSelector).selectpicker('refresh');
+            mastercomEventCreateUpdateSummary();
+        });
         mastercomEventCreateUpdateSummary();
     });
 </script>
