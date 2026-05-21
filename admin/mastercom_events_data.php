@@ -86,6 +86,58 @@ function mastercomEventsDataEnrich(array $events): array
     return $events;
 }
 
+function mastercomEventsDataParticipants(array $studentIds): array
+{
+    $ids = [];
+    foreach ($studentIds as $studentId) {
+        $studentId = intval($studentId);
+        if ($studentId > 0) {
+            $ids[$studentId] = $studentId;
+        }
+    }
+
+    if (empty($ids) || !mastercomAdminTableExists('mastercom_studenti')) {
+        return [];
+    }
+
+    $classJoin = mastercomAdminTableExists('mastercom_classi')
+        ? ' LEFT JOIN mastercom_classi c ON c.mastercom_id_classe = s.mastercom_id_classe_corrente '
+        : '';
+    $classSelect = mastercomAdminTableExists('mastercom_classi')
+        ? ' COALESCE(c.nome, ' . dbQ('') . ') AS classe_nome, '
+        : ' ' . dbQ('') . ' AS classe_nome, ';
+
+    $rows = dbGetAll("
+        SELECT
+            s.mastercom_id_studente,
+            s.cognome,
+            s.nome,
+            $classSelect
+            s.mastercom_id_classe_corrente
+        FROM mastercom_studenti s
+        $classJoin
+        WHERE s.mastercom_id_studente IN (" . implode(',', array_map('intval', array_values($ids))) . ")
+        ORDER BY classe_nome ASC, s.cognome ASC, s.nome ASC
+    ") ?: [];
+
+    $participants = [];
+    foreach ($rows as $row) {
+        $studentName = trim((string)($row['cognome'] ?? '') . ' ' . (string)($row['nome'] ?? ''));
+        $className = trim((string)($row['classe_nome'] ?? ''));
+        if ($className === '') {
+            $className = 'Classe ' . intval($row['mastercom_id_classe_corrente'] ?? 0);
+        }
+        $participants[] = [
+            'id_studente' => intval($row['mastercom_id_studente'] ?? 0),
+            'nome' => $studentName !== '' ? $studentName : ('Studente #' . intval($row['mastercom_id_studente'] ?? 0)),
+            'classe' => $className,
+            'label' => trim($className . ' - ' . ($studentName !== '' ? $studentName : ('Studente #' . intval($row['mastercom_id_studente'] ?? 0))), ' -'),
+        ];
+    }
+
+    return $participants;
+}
+
 $action = trim((string)($_POST['action'] ?? $_GET['action'] ?? 'list'));
 
 if ($action === 'delete') {
@@ -118,10 +170,12 @@ if ($action === 'participant_count') {
     }
 
     $detail = is_array($detailResult['event_detail'] ?? null) ? $detailResult['event_detail'] : [];
+    $participants = mastercomEventsDataParticipants(is_array($detail['studenti'] ?? null) ? $detail['studenti'] : []);
     mastercomEventsDataJson([
         'ok' => true,
         'id_evento' => $eventId,
         'count' => count($detail['studenti'] ?? []),
+        'participants' => $participants,
     ]);
 }
 

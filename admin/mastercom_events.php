@@ -238,13 +238,6 @@ $q = trim((string)($_GET['q'] ?? ''));
         var index = 0;
         var active = 0;
         var concurrency = 4;
-        mastercomEventsShowLoading(true, 'Caricamento partecipanti...', 'Verifico gli studenti associati agli eventi.');
-        mastercomEventsSetLoadingPercent(0, '0% - 0/' + total);
-
-        function updateProgress() {
-            var percent = total > 0 ? Math.round((done / total) * 100) : 100;
-            mastercomEventsSetLoadingPercent(percent, percent + '% - ' + done + '/' + total);
-        }
 
         function next() {
             while (active < concurrency && index < total) {
@@ -253,12 +246,7 @@ $q = trim((string)($_GET['q'] ?? ''));
                 mastercomEventsLoadParticipantCount($cell).always(function () {
                     active--;
                     done++;
-                    updateProgress();
                     if (done >= total) {
-                        mastercomEventsSetLoadingPercent(100, '100% - partecipanti caricati');
-                        setTimeout(function () {
-                            mastercomEventsShowLoading(false);
-                        }, 350);
                         return;
                     }
                     next();
