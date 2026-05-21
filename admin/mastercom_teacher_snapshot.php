@@ -120,6 +120,122 @@ function mastercomSnapshotTimeSlot(array $row): string
     return '';
 }
 
+function mastercomSnapshotOperationalClassNames(): array
+{
+    $rows = mastercomAdminOperationalClassRows('*') ?: [];
+    $classes = [];
+    foreach ($rows as $row) {
+        $classId = intval($row['mastercom_id_classe'] ?? 0);
+        $localClass = mastercomAdminResolveLocalClass($row);
+        $className = is_array($localClass) ? mastercomSnapshotClean($localClass['classe'] ?? '') : '';
+        if ($classId <= 0 || $className === '') {
+            continue;
+        }
+        if (!preg_match('/^\d+[A-Z]/i', $className)) {
+            continue;
+        }
+        $classes[$classId] = $className;
+    }
+    return $classes;
+}
+
+function mastercomSnapshotCalendarBuildDebugMap(array $response): array
+{
+    $map = [];
+    $debug = $response['debug_code'] ?? [];
+    if (!is_array($debug)) {
+        return $map;
+    }
+
+    foreach ($debug as $group) {
+        if (!is_array($group)) {
+            continue;
+        }
+        foreach ($group as $eventId => $eventData) {
+            $map[intval($eventId)] = is_array($eventData) ? $eventData : [];
+        }
+    }
+
+    return $map;
+}
+
+function mastercomSnapshotFormatEventTime(int $timestamp): string
+{
+    if ($timestamp <= 0) {
+        return '';
+    }
+    $dt = new DateTime('@' . $timestamp);
+    $dt->setTimezone(new DateTimeZone('Europe/Rome'));
+    return $dt->format('H:i');
+}
+
+function mastercomSnapshotEventKind(string $title): string
+{
+    $normalized = mb_strtolower(trim($title), 'UTF-8');
+    if ($normalized === '') {
+        return '';
+    }
+    if (strpos($normalized, 'viaggio') !== false || strpos($normalized, 'istruzione') !== false) {
+        return 'viaggio di istruzione';
+    }
+    if (strpos($normalized, 'uscita') !== false) {
+        return 'uscita didattica';
+    }
+    return '';
+}
+
+function mastercomSnapshotActiveClassEvent(array $authResult, int $classId, DateTime $now): ?array
+{
+    $dayStart = clone $now;
+    $dayStart->setTime(0, 0, 0);
+    $dayEnd = clone $now;
+    $dayEnd->setTime(23, 59, 59);
+    $nowTs = $now->getTimestamp();
+
+    $calendarResult = mastercomLoadCalendarNotes($authResult, $classId, $dayStart->getTimestamp(), $dayEnd->getTimestamp(), [
+        'method' => 'POST',
+        'timeout' => 60,
+    ]);
+    if (!$calendarResult['ok'] || !is_array($calendarResult['response'] ?? null)) {
+        return null;
+    }
+
+    $debugMap = mastercomSnapshotCalendarBuildDebugMap($calendarResult['response']);
+    $notes = is_array($calendarResult['response']['result'] ?? null) ? $calendarResult['response']['result'] : [];
+    foreach ($notes as $note) {
+        if (!is_array($note)) {
+            continue;
+        }
+        $noteId = intval($note['id_annotazione_agenda'] ?? 0);
+        $eventDebug = $debugMap[$noteId] ?? [];
+        $isEvent = intval($note['evento'] ?? $eventDebug['evento'] ?? 0) === 1 || intval($eventDebug['id_evento'] ?? 0) > 0;
+        if (!$isEvent) {
+            continue;
+        }
+
+        $startTs = intval($note['data_inizio'] ?? $eventDebug['data_inizio'] ?? 0);
+        $endTs = intval($note['data_fine'] ?? $eventDebug['data_fine'] ?? 0);
+        if ($startTs <= 0 || $endTs <= 0 || $startTs > $nowTs || $endTs < $nowTs) {
+            continue;
+        }
+
+        $title = mastercomSnapshotClean($note['titolo'] ?? '') ?: mastercomSnapshotClean($eventDebug['nome'] ?? '') ?: 'Evento agenda classe';
+        $kind = mastercomSnapshotEventKind($title);
+        if ($kind === '') {
+            continue;
+        }
+
+        return [
+            'kind' => $kind,
+            'title' => $title,
+            'start' => mastercomSnapshotFormatEventTime($startTs),
+            'end' => mastercomSnapshotFormatEventTime($endTs),
+        ];
+    }
+
+    return null;
+}
+
 function mastercomSnapshotIsAssociative(array $array): bool
 {
     return array_keys($array) !== range(0, count($array) - 1);
@@ -168,30 +284,18 @@ function mastercomSnapshotExtractClasses(array $userInfoResult): array
 {
     $root = $userInfoResult['response']['result'] ?? [];
     $classes = is_array($root) && is_array($root['classi'] ?? null) ? $root['classi'] : [];
-    $localClassNames = [];
-    if (mastercomAdminTableExists('mastercom_classi')) {
-        foreach (mastercomAdminOperationalClassRows('mastercom_id_classe, nome') as $row) {
-            $localClassNames[intval($row['mastercom_id_classe'])] = mastercomSnapshotClean($row['nome'] ?? '');
-        }
-    }
+    $localClassNames = mastercomSnapshotOperationalClassNames();
 
     $rowsByClass = [];
-    foreach ($classes as $classRow) {
-        if (!is_array($classRow)) {
-            continue;
-        }
-
-        $classId = mastercomSnapshotClassId($classRow);
-        $className = mastercomSnapshotClassName($classRow);
-        if ($classId > 0 && !empty($localClassNames[$classId])) {
-            $className = $localClassNames[$classId];
-        }
-
+    foreach ($localClassNames as $classId => $className) {
         $rowsByClass[$classId] = [
             'id_classe' => $classId,
             'classe' => $className,
             'docenti' => [],
         ];
+    }
+    if (empty($rowsByClass)) {
+        return [];
     }
 
     $currentLessons = $root['sostituzioni']['principali'] ?? [];
@@ -213,11 +317,11 @@ function mastercomSnapshotExtractClasses(array $userInfoResult): array
                 if ($classId <= 0) {
                     continue;
                 }
-
-                $className = mastercomSnapshotFirstValue($lessonRow, ['csi', 'classe_nome', 'nome_classe']);
-                if ($className === '' && !empty($localClassNames[$classId])) {
-                    $className = $localClassNames[$classId];
+                if (!empty($localClassNames) && empty($localClassNames[$classId])) {
+                    continue;
                 }
+
+                $className = $localClassNames[$classId] ?? mastercomSnapshotFirstValue($lessonRow, ['csi', 'classe_nome', 'nome_classe']);
                 if ($className === '') {
                     $className = 'Classe ' . $classId;
                 }
@@ -274,6 +378,33 @@ function mastercomSnapshotExtractClasses(array $userInfoResult): array
     return $rows;
 }
 
+function mastercomSnapshotApplyClassEvents(array $rows, array $authResult, DateTime $now): array
+{
+    $eventsByClass = [];
+    foreach ($rows as &$row) {
+        if (empty($row['docenti'])) {
+            continue;
+        }
+
+        $classId = intval($row['id_classe'] ?? 0);
+        if ($classId <= 0) {
+            continue;
+        }
+
+        if (!array_key_exists($classId, $eventsByClass)) {
+            $eventsByClass[$classId] = mastercomSnapshotActiveClassEvent($authResult, $classId, $now);
+        }
+
+        if (is_array($eventsByClass[$classId])) {
+            $row['evento_classe'] = $eventsByClass[$classId];
+            $row['docenti'] = [];
+        }
+    }
+    unset($row);
+
+    return $rows;
+}
+
 $now = mastercomSnapshotRomeNow();
 $errorMessage = '';
 $snapshotRows = [];
@@ -296,12 +427,14 @@ if (!$authResult['ok']) {
         $errorMessage = 'Caricamento get_user_info MasterCom fallito: ' . ($userInfoResult['error'] ?? 'LOAD_FAILED');
     } else {
         $snapshotRows = mastercomSnapshotExtractClasses($userInfoResult);
+        $snapshotSource = 'result.sostituzioni.principali + agenda classe';
+        $snapshotRows = mastercomSnapshotApplyClassEvents($snapshotRows, $authResult, $now);
         $root = $userInfoResult['response']['result'] ?? [];
         $debugInfo = [
             'root_keys' => is_array($root) ? implode(', ', array_slice(array_keys($root), 0, 20)) : '',
             'classi_count' => count($snapshotRows),
             'fasce' => is_array($root['fasce'] ?? null) ? implode(', ', $root['fasce']) : '',
-            'source' => 'result.sostituzioni.principali',
+            'source' => $snapshotSource,
         ];
     }
 }
@@ -330,6 +463,25 @@ if (!$authResult['ok']) {
         }
         .snapshot-slot {
             color: #777;
+        }
+        .snapshot-class-event {
+            color: #a94442;
+            font-weight: 700;
+        }
+        .snapshot-class-event-title {
+            color: #333;
+            font-weight: 600;
+        }
+        .snapshot-filter-row {
+            margin: 10px 0 15px;
+        }
+        .snapshot-filter-count {
+            color: #666;
+            margin-left: 10px;
+        }
+        .snapshot-class-link {
+            font-weight: 700;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -363,7 +515,15 @@ if (!$authResult['ok']) {
                     <?php endif; ?>
                 </div>
             <?php else: ?>
-                <table class="table table-striped table-bordered table-condensed">
+                <div class="snapshot-filter-row form-inline">
+                    <div class="form-group">
+                        <label for="snapshotTeacherFilter">Cerca docente&nbsp;</label>
+                        <input type="text" id="snapshotTeacherFilter" class="form-control" placeholder="Scrivi nome o cognome docente">
+                    </div>
+                    <span id="snapshotTeacherFilterCount" class="snapshot-filter-count"></span>
+                </div>
+
+                <table id="snapshotTeacherTable" class="table table-striped table-bordered table-condensed">
                     <thead>
                         <tr>
                             <th style="width: 90px; text-align: center;">ID</th>
@@ -375,18 +535,41 @@ if (!$authResult['ok']) {
                     <tbody>
                         <?php foreach ($snapshotRows as $row): ?>
                             <?php
+                            $classEvent = is_array($row['evento_classe'] ?? null) ? $row['evento_classe'] : null;
                             $rowSlots = [];
-                            foreach ($row['docenti'] as $teacher) {
-                                if ($teacher['fascia'] !== '') {
-                                    $rowSlots[$teacher['fascia']] = $teacher['fascia'];
+                            if ($classEvent !== null) {
+                                $eventSlot = trim(($classEvent['start'] ?? '') . ' - ' . ($classEvent['end'] ?? ''), ' -');
+                                if ($eventSlot !== '') {
+                                    $rowSlots[$eventSlot] = $eventSlot;
+                                }
+                            } else {
+                                foreach ($row['docenti'] as $teacher) {
+                                    if ($teacher['fascia'] !== '') {
+                                        $rowSlots[$teacher['fascia']] = $teacher['fascia'];
+                                    }
                                 }
                             }
                             ?>
-                            <tr>
+                            <tr class="snapshot-row">
                                 <td style="text-align: center;"><?php echo intval($row['id_classe']); ?></td>
-                                <td><strong><?php echo htmlspecialchars($row['classe']); ?></strong></td>
                                 <td>
-                                    <?php if (empty($row['docenti'])): ?>
+                                    <a
+                                        class="snapshot-class-link"
+                                        href="mastercom_presence.php?class_id=<?php echo intval($row['id_classe']); ?>"
+                                        title="Apri lo snapshot studenti della classe <?php echo htmlspecialchars($row['classe']); ?>"
+                                    >
+                                        <?php echo htmlspecialchars($row['classe']); ?>
+                                    </a>
+                                </td>
+                                <td>
+                                    <?php if ($classEvent !== null): ?>
+                                        <div class="snapshot-class-event">
+                                            Classe in <?php echo htmlspecialchars($classEvent['kind']); ?>
+                                            <?php if (!empty($classEvent['title'])): ?>
+                                                <span class="snapshot-class-event-title"> - <?php echo htmlspecialchars($classEvent['title']); ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php elseif (empty($row['docenti'])): ?>
                                         <span class="snapshot-empty">Nessun docente indicato nella fascia corrente</span>
                                     <?php else: ?>
                                         <?php foreach ($row['docenti'] as $teacher): ?>
@@ -421,5 +604,36 @@ if (!$authResult['ok']) {
         </div>
     </div>
 </div>
+<script>
+(function () {
+    var filterInput = document.getElementById('snapshotTeacherFilter');
+    var filterCount = document.getElementById('snapshotTeacherFilterCount');
+    var table = document.getElementById('snapshotTeacherTable');
+    if (!filterInput || !filterCount || !table) {
+        return;
+    }
+
+    var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr.snapshot-row'));
+    function normalize(value) {
+        return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function applyFilter() {
+        var needle = normalize(filterInput.value);
+        var visible = 0;
+        rows.forEach(function (row) {
+            var haystack = normalize(row.textContent);
+            var show = needle === '' || haystack.indexOf(needle) !== -1;
+            row.style.display = show ? '' : 'none';
+            if (show) {
+                visible++;
+            }
+        });
+        filterCount.textContent = needle === '' ? '' : visible + ' classi visualizzate';
+    }
+
+    filterInput.addEventListener('input', applyFilter);
+})();
+</script>
 </body>
 </html>
