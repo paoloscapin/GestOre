@@ -90,11 +90,11 @@ if (empty($students)) {
     $index = 1;
     foreach ($students as $student) {
         $studentRowsHtml .= '<tr>'
-            . '<td class="center">' . $index . '</td>'
-            . '<td>' . mastercomEventPdfH($student['classe'] ?? '') . '</td>'
-            . '<td class="center">' . mastercomEventPdfH($student['registro_numero'] ?? '') . '</td>'
-            . '<td>' . mastercomEventPdfH(trim((string)($student['cognome'] ?? '') . ' ' . (string)($student['nome'] ?? ''))) . '</td>'
-            . '<td class="center">' . mastercomEventPdfH($student['mastercom_id_studente'] ?? '') . '</td>'
+            . '<td class="center" width="7%">' . $index . '</td>'
+            . '<td width="18%">' . mastercomEventPdfH($student['classe'] ?? '') . '</td>'
+            . '<td class="center" width="12%">' . mastercomEventPdfH($student['registro_numero'] ?? '') . '</td>'
+            . '<td width="43%">' . mastercomEventPdfH(trim((string)($student['cognome'] ?? '') . ' ' . (string)($student['nome'] ?? ''))) . '</td>'
+            . '<td class="center" width="20%">' . mastercomEventPdfH($student['mastercom_id_studente'] ?? '') . '</td>'
             . '</tr>';
         $index++;
     }
@@ -180,11 +180,11 @@ $html = '<!DOCTYPE html>
     <table>
         <thead>
             <tr>
-                <th class="center" style="width: 38px;">#</th>
-                <th style="width: 90px;">Classe</th>
-                <th class="center" style="width: 55px;">Registro</th>
-                <th>Studente</th>
-                <th class="center" style="width: 80px;">ID</th>
+                <th class="center" width="7%">#</th>
+                <th width="18%">Classe</th>
+                <th class="center" width="12%">Registro</th>
+                <th width="43%">Studente</th>
+                <th class="center" width="20%">ID</th>
             </tr>
         </thead>
         <tbody>' . $studentRowsHtml . '</tbody>
