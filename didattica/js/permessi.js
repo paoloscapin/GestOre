@@ -17,6 +17,9 @@ var lastSort = { columnIndex: null, asc: true };
 
 function permessiReadRecords(forcePresence) {
     forcePresence = forcePresence === true;
+    if (forcePresence) {
+        permessiPresenceOverlayShow('Caricamento elenco permessi e preparazione sync MasterCom...', 0);
+    }
     var endpoint = (device === "mobile")
         ? "permessiReadRecords_mobile.php"
         : "permessiReadRecords.php";
@@ -155,13 +158,17 @@ function permessiDelete(id) {
 
 function permessoConfirm(id) {
     hideAllTooltips();
+    permessiMessageOverlayShow("Conferma permesso e invio mail al genitore in corso...", "info", false, "Invio mail");
     $.post("permessoConfirm.php", { id: id }, function (data) {
         if (data.trim() === "ok") {
+            permessiMessageOverlayShow("Permesso confermato. Mail inviata al genitore.", "success", true, "Invio mail");
             permessiReadRecords(false);
         } else {
+            permessiMessageOverlayShow("Errore durante la conferma del permesso.", "danger", true, "Invio mail");
             alert("❌ Errore durante la conferma del permesso.");
         }
     }).fail(function() {
+        permessiMessageOverlayShow("Errore di connessione durante la conferma del permesso.", "danger", true, "Invio mail");
         alert("❌ Errore di connessione al server.");
     });
 }
@@ -252,17 +259,17 @@ function permessiPresenceOverlayHide() {
     $('#permessi_presence_overlay').fadeOut(150);
 }
 
-function permessiMessageOverlayShow(text, type, autoHide) {
+function permessiMessageOverlayShow(text, type, autoHide, customTitle) {
     type = type || 'info';
-    var title = 'Sync MasterCom';
+    var title = customTitle || 'Sync MasterCom';
     var color = '#1f5e3b';
     var border = '#d7e3f0';
     if (type === 'danger') {
-        title = 'Errore Sync MasterCom';
+        title = customTitle || 'Errore Sync MasterCom';
         color = '#991b1b';
         border = '#fecaca';
     } else if (type === 'success') {
-        title = 'Operazione completata';
+        title = customTitle || 'Operazione completata';
         color = '#166534';
         border = '#bbf7d0';
     }
@@ -324,7 +331,7 @@ function permessiLoadPresenceBadges() {
 
     var done = 0;
     $('#permessi_presence_status').hide().text('');
-    permessiPresenceOverlayShow('Caricamento presenze MasterCom: 0%', 0);
+    permessiPresenceOverlayShow('Caricamento presenze MasterCom: 0% - classe 1 di ' + classIds.length, 0);
 
     function next() {
         if (done >= classIds.length) {
@@ -379,7 +386,11 @@ function permessiLoadPresenceBadges() {
             done++;
             var pct = Math.round((done / classIds.length) * 100);
             $('#permessi_presence_status').hide().text('');
-            permessiPresenceOverlayShow('Caricamento presenze MasterCom: ' + pct + '%', pct);
+            var nextClass = Math.min(done + 1, classIds.length);
+            var overlayText = done >= classIds.length
+                ? 'Caricamento presenze MasterCom completato: 100%'
+                : 'Caricamento presenze MasterCom: ' + pct + '% - classe ' + nextClass + ' di ' + classIds.length;
+            permessiPresenceOverlayShow(overlayText, pct);
             next();
         });
     }
