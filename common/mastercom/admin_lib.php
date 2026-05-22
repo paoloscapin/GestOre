@@ -575,6 +575,47 @@ function mastercomAdminExtractInputValuesByName(string $html): array
     return $values;
 }
 
+function mastercomAdminExtractFormValuesByName(string $html): array
+{
+    $values = mastercomAdminExtractInputValuesByName($html);
+
+    if (preg_match_all('/<textarea\b([^>]*)>(.*?)<\/textarea>/is', $html, $matches, PREG_SET_ORDER)) {
+        foreach ($matches as $match) {
+            $name = mastercomAdminHtmlAttribute($match[1] ?? '', 'name');
+            if ($name === null || $name === '') {
+                continue;
+            }
+            $values[$name] = mastercomAdminCleanText(html_entity_decode($match[2] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8')) ?? '';
+        }
+    }
+
+    if (preg_match_all('/<select\b([^>]*)>(.*?)<\/select>/is', $html, $matches, PREG_SET_ORDER)) {
+        foreach ($matches as $match) {
+            $name = mastercomAdminHtmlAttribute($match[1] ?? '', 'name');
+            if ($name === null || $name === '') {
+                continue;
+            }
+
+            $selected = '';
+            if (preg_match('/<option\b([^>]*\bselected\b[^>]*)>(.*?)<\/option>/is', $match[2] ?? '', $optionMatch)) {
+                $selected = mastercomAdminHtmlAttribute($optionMatch[1] ?? '', 'value');
+                if ($selected === null) {
+                    $selected = mastercomAdminCleanText($optionMatch[2] ?? '') ?? '';
+                }
+            } elseif (preg_match('/<option\b([^>]*)>(.*?)<\/option>/is', $match[2] ?? '', $optionMatch)) {
+                $selected = mastercomAdminHtmlAttribute($optionMatch[1] ?? '', 'value');
+                if ($selected === null) {
+                    $selected = mastercomAdminCleanText($optionMatch[2] ?? '') ?? '';
+                }
+            }
+
+            $values[$name] = $selected;
+        }
+    }
+
+    return $values;
+}
+
 function mastercomAdminParseCityProvince(?string $description): array
 {
     $description = mastercomAdminCleanText($description);
@@ -711,6 +752,16 @@ function mastercomAdminParseClassName(string $name): array
         $parsed['sezione'] = $matches[2];
         if (isset($parts[1])) {
             $parsed['codice_indirizzo'] = $parts[1];
+        }
+        return $parsed;
+    }
+
+    if (isset($parts[0], $parts[1]) && preg_match('/^\d+$/', $parts[0]) && preg_match('/^[A-Z]+$/u', $parts[1])) {
+        $parsed['classe_label'] = $parts[0] . $parts[1];
+        $parsed['classe_numero'] = intval($parts[0]);
+        $parsed['sezione'] = $parts[1];
+        if (isset($parts[2])) {
+            $parsed['codice_indirizzo'] = $parts[2];
         }
         return $parsed;
     }
