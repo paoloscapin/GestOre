@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 $mastercomId = intval($_GET['id'] ?? 0);
 $mirror = dbGetFirst("SELECT * FROM mastercom_studenti WHERE mastercom_id_studente = " . $mastercomId . " LIMIT 1");

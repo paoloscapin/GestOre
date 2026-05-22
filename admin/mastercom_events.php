@@ -2,7 +2,7 @@
 
 require_once '../common/checkSession.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 function mastercomEventsH($value): string
 {

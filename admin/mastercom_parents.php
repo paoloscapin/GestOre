@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 $filter = trim((string)($_GET['filter'] ?? 'all'));
 $allowedFilters = ['all', 'aligned', 'missing', 'issues', 'low', 'medium', 'high'];
@@ -84,6 +84,8 @@ $visibleCount = 0;
                         <tr>
                             <th>ID MasterCom</th>
                             <th>Genitore</th>
+                            <th>Contatti MasterCom</th>
+                            <th>Residenza MasterCom</th>
                             <th>Studenti MasterCom</th>
                             <th>GestOre</th>
                             <th>Esito</th>
@@ -102,6 +104,12 @@ $visibleCount = 0;
                                 (string)(mastercomAdminCleanText($row['nome'] ?? '') ?? '')
                             );
                             $mirrorEmail = mastercomAdminCleanText($row['email'] ?? '') ?? '';
+                            $mirrorPhone = mastercomAdminCleanText($row['telefono'] ?? '') ?? '';
+                            $mirrorMobile = mastercomAdminCleanText($row['cellulare'] ?? '') ?? '';
+                            $mirrorAddress = mastercomAdminCleanText($row['indirizzo'] ?? '') ?? '';
+                            $mirrorZip = mastercomAdminCleanText($row['cap'] ?? '') ?? '';
+                            $mirrorCity = mastercomAdminCleanText($row['citta'] ?? '') ?? '';
+                            $mirrorProvince = mastercomAdminCleanText($row['provincia'] ?? '') ?? '';
                             $linkedStudents = mastercomAdminCleanText($row['mastercom_studenti_nomi'] ?? '') ?? '';
                             $linkedStudentsCount = intval($row['mastercom_studenti_count'] ?? 0);
                             ?>
@@ -110,6 +118,20 @@ $visibleCount = 0;
                                 <td>
                                     <?php echo htmlspecialchars($mirrorFullName); ?><br>
                                     <small><?php echo htmlspecialchars($mirrorEmail); ?></small>
+                                </td>
+                                <td>
+                                    <div><strong>Mail:</strong> <?php echo htmlspecialchars($mirrorEmail !== '' ? $mirrorEmail : '-'); ?></div>
+                                    <div><strong>Telefono:</strong> <?php echo htmlspecialchars($mirrorPhone !== '' ? $mirrorPhone : '-'); ?></div>
+                                    <div><strong>Cellulare:</strong> <?php echo htmlspecialchars($mirrorMobile !== '' ? $mirrorMobile : '-'); ?></div>
+                                </td>
+                                <td>
+                                    <div><?php echo htmlspecialchars($mirrorAddress !== '' ? $mirrorAddress : '-'); ?></div>
+                                    <small>
+                                        <?php
+                                        $place = trim($mirrorZip . ' ' . $mirrorCity . ($mirrorProvince !== '' ? ' (' . $mirrorProvince . ')' : ''));
+                                        echo htmlspecialchars($place !== '' ? $place : '-');
+                                        ?>
+                                    </small>
                                 </td>
                                 <td>
                                     <?php if ($linkedStudentsCount > 0): ?>

@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/noirc_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 $weekOf = trim((string)($_GET['week_of'] ?? $_POST['week_of'] ?? ''));
 $context = mastercomNoIrcBuildWeekSlots($weekOf);

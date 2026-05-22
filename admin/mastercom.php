@@ -4,7 +4,7 @@ require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
 require_once '../common/mastercom/grades_cache_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 $missingTables = mastercomAdminMissingTables();
 $message = trim((string)($_GET['message'] ?? ''));
@@ -145,7 +145,7 @@ $gradesLastSync = mastercomGradesCacheLastSyncLabel();
 
                 <div class="alert alert-info">
                     I pulsanti di allineamento "viceversa" in questa prima versione aggiornano la scheda locale <strong>mastercom_*</strong> da GestOre.
-                    Non scrivono ancora sui server MasterCom, perché non abbiamo endpoint di scrittura anagrafica confermati.
+                    Non scrivono ancora sui server MasterCom, perchÃ© non abbiamo endpoint di scrittura anagrafica confermati.
                 </div>
             <?php endif; ?>
         </div>

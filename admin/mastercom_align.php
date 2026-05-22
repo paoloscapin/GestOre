@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 $type = trim((string)($_POST['type'] ?? ''));
 $direction = trim((string)($_POST['direction'] ?? ''));

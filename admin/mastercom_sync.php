@@ -4,7 +4,7 @@ require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
 require_once '../common/mastercom/grades_cache_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 @ignore_user_abort(true);
 @set_time_limit(0);
@@ -211,7 +211,7 @@ if ($entity === 'teachers') {
         if (!$listResult['ok']) {
             $result = $listResult;
         } else {
-            mastercomSyncRenderProgress('Sincronizzazione studenti classe', 'Caricamento CSV dati religione / attività alternativa', 0, count($listResult['records']));
+            mastercomSyncRenderProgress('Sincronizzazione studenti classe', 'Caricamento CSV dati religione / attivitÃ  alternativa', 0, count($listResult['records']));
             $supplementalResult = mastercomAdminBuildStudentSupplementalMapForClass($classId);
             $token = uniqid('students_', true);
             $file = mastercomAdminStudentsSyncFile($token);

@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 function mastercomStudentsIsDefaultSchoolMail(?string $email): bool
 {
@@ -99,6 +99,7 @@ if (empty($missingTables)) {
 }
 
 $mailUpdateRows = [];
+$parentsByStudent = [];
 if (empty($missingTables)) {
     foreach ($rows as $row) {
         $mastercomEmail = trim((string)($row['email1'] ?? ''));
@@ -116,6 +117,49 @@ if (empty($missingTables)) {
             'mastercom_email' => $mastercomEmail,
             'gestore_email' => $gestoreEmail,
         ];
+    }
+
+    $studentIds = [];
+    foreach ($rows as $row) {
+        $studentId = intval($row['mastercom_id_studente'] ?? 0);
+        if ($studentId > 0) {
+            $studentIds[$studentId] = $studentId;
+        }
+    }
+
+    if (!empty($studentIds)) {
+        $parentRows = dbGetAll("
+            SELECT
+                gs.mastercom_id_studente,
+                g.mastercom_id_parente,
+                g.cognome,
+                g.nome,
+                g.email,
+                g.telefono,
+                g.cellulare
+            FROM mastercom_genitori_studenti gs
+            INNER JOIN mastercom_genitori g
+                ON g.mastercom_id_parente = gs.mastercom_id_parente
+            WHERE gs.mastercom_id_studente IN (" . implode(',', array_map('intval', array_values($studentIds))) . ")
+            ORDER BY g.cognome ASC, g.nome ASC
+        ") ?: [];
+
+        foreach ($parentRows as $parentRow) {
+            $studentId = intval($parentRow['mastercom_id_studente'] ?? 0);
+            if ($studentId <= 0) {
+                continue;
+            }
+            if (!isset($parentsByStudent[$studentId])) {
+                $parentsByStudent[$studentId] = [];
+            }
+            $parentsByStudent[$studentId][] = [
+                'id' => intval($parentRow['mastercom_id_parente'] ?? 0),
+                'nome' => trim((string)($parentRow['cognome'] ?? '') . ' ' . (string)($parentRow['nome'] ?? '')),
+                'email' => trim((string)($parentRow['email'] ?? '')),
+                'telefono' => trim((string)($parentRow['telefono'] ?? '')),
+                'cellulare' => trim((string)($parentRow['cellulare'] ?? '')),
+            ];
+        }
     }
 }
 
@@ -163,6 +207,14 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
     <meta charset="UTF-8">
     <?php require_once '../common/header-common.php'; ?>
     <?php require_once '../common/style.php'; ?>
+    <style>
+        .mc-parent-name {
+            cursor: help;
+            border-bottom: 1px dotted #777;
+            display: inline-block;
+            margin: 1px 0;
+        }
+    </style>
 </head>
 <body>
 <?php require_once '../common/header-admin.php'; ?>
@@ -360,9 +412,34 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                                     <?php endif; ?>
                                 </td>
                                 <td>
+                                    <?php $linkedParentRows = $parentsByStudent[intval($row['mastercom_id_studente'] ?? 0)] ?? []; ?>
                                     <?php if ($linkedParentsCount > 0): ?>
                                         <strong><?php echo $linkedParentsCount; ?></strong><br>
-                                        <small><?php echo htmlspecialchars($linkedParents); ?></small>
+                                        <small>
+                                            <?php if (!empty($linkedParentRows)): ?>
+                                                <?php foreach ($linkedParentRows as $parentIndex => $parentRow): ?>
+                                                    <?php
+                                                    $parentTooltipParts = [];
+                                                    $parentTooltipParts[] = 'Email: ' . ($parentRow['email'] !== '' ? $parentRow['email'] : 'non presente');
+                                                    $phoneParts = [];
+                                                    if ($parentRow['telefono'] !== '') {
+                                                        $phoneParts[] = 'Tel. ' . $parentRow['telefono'];
+                                                    }
+                                                    if ($parentRow['cellulare'] !== '') {
+                                                        $phoneParts[] = 'Cell. ' . $parentRow['cellulare'];
+                                                    }
+                                                    $parentTooltipParts[] = 'Telefono: ' . (!empty($phoneParts) ? implode(' - ', $phoneParts) : 'non presente');
+                                                    ?>
+                                                    <?php if ($parentIndex > 0): ?> | <?php endif; ?>
+                                                    <span
+                                                        class="mc-parent-name"
+                                                        title="<?php echo htmlspecialchars(implode("\n", $parentTooltipParts)); ?>"
+                                                    ><?php echo htmlspecialchars($parentRow['nome'] !== '' ? $parentRow['nome'] : ('Genitore #' . intval($parentRow['id']))); ?></span>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <?php echo htmlspecialchars($linkedParents); ?>
+                                            <?php endif; ?>
+                                        </small>
                                     <?php else: ?>
                                         <span class="label label-default">nessun genitore collegato</span>
                                     <?php endif; ?>

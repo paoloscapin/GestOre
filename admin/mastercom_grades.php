@@ -4,7 +4,7 @@ require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
 require_once '../common/mastercom/grades_cache_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 function mastercomGradesRomeToday(string $format = 'Y-m-d'): string
 {

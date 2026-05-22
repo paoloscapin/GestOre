@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/events_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 function mastercomEventCreateH($value): string
 {
@@ -164,10 +164,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($missingTables)) {
             margin-top: 0;
         }
         .participants-summary ul {
+            list-style: none;
             margin-bottom: 0;
             max-height: 220px;
             overflow: auto;
-            padding-left: 20px;
+            padding-left: 0;
         }
         .participants-summary .participant-summary-item {
             align-items: center;
@@ -187,12 +188,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($missingTables)) {
             color: #ffffff !important;
             display: inline-flex;
             flex: 0 0 auto;
+            float: none !important;
             font-size: 14px;
             font-weight: 800;
             height: 22px;
             justify-content: center;
             line-height: 1;
             margin-right: 6px;
+            order: 0;
             padding: 0;
             text-decoration: none;
             width: 22px;
@@ -201,6 +204,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($missingTables)) {
             font-size: 10px;
             line-height: 1;
             margin: 0;
+        }
+        .participants-summary .participant-summary-label {
+            order: 1;
         }
         .participants-summary .participant-remove:hover,
         .participants-summary .participant-remove:focus {

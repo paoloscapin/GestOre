@@ -4,7 +4,7 @@ require_once '../common/checkSession.php';
 require_once '../common/mastercom/events_lib.php';
 require_once '../common/vendor/autoload.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 function mastercomEventPdfH($value): string
 {

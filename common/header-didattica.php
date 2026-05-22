@@ -56,6 +56,9 @@
 						<?php endif; ?>
 						<?php if (getSettingsValue('config', 'programmiSvolti', false)) : ?>
 							<li><a href="../didattica/programmiSvolti.php"><span class="glyphicon glyphicon-th-list"></span>&ensp;Programmi Svolti</a></li>
+							<?php if (haRuolo('segreteria-didattica') || haRuolo('dirigente') || haRuolo('admin')) : ?>
+								<li><a href="../didattica/programmiSvoltiCopertine.php"><span class="glyphicon glyphicon-folder-open"></span>&ensp;Gestione Copertine</a></li>
+							<?php endif; ?>
 						<?php endif; ?>
 						<?php if (getSettingsValue('config', 'programmiMinimi', false)) : ?>
 							<li><a href="../didattica/programmaMinimi.php"><span class="glyphicon glyphicon-th-list"></span>&ensp;Obiettivi Minimi</a></li>
@@ -64,8 +67,43 @@
 				</li>
 			<?php endif; ?>
 
+			<?php if (haRuolo('segreteria-didattica') || haRuolo('admin')) : ?>
+				<li class="dropdown">
+					<a href="#" class="btn btn-default btn-lightblue4 nav-btn dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<span class="glyphicon glyphicon-transfer"></span>&ensp;MasterCom <span class="caret"></span>
+					</a>
+					<ul class="dropdown-menu mastercom-dropdown-menu">
+						<li><a href="../admin/mastercom.php"><span class="glyphicon glyphicon-dashboard"></span>&ensp;Dashboard</a></li>
+						<li role="separator" class="divider"></li>
+						<li class="dropdown-header">Anagrafiche e collegamenti</li>
+						<li><a href="../admin/mastercom_students.php"><span class="glyphicon glyphicon-education"></span>&ensp;Studenti</a></li>
+						<li><a href="../admin/mastercom_parents.php"><span class="glyphicon glyphicon-user"></span>&ensp;Genitori</a></li>
+						<li><a href="../admin/mastercom_teachers.php"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Docenti</a></li>
+						<li><a href="../admin/mastercom_classes.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Classi</a></li>
+						<li role="separator" class="divider"></li>
+						<li class="dropdown-header">Rilevazioni</li>
+						<li><a href="../admin/mastercom_teacher_snapshot.php"><span class="glyphicon glyphicon-eye-open"></span>&ensp;Docenti in classe adesso</a></li>
+						<li><a href="../admin/mastercom_presence.php"><span class="glyphicon glyphicon-ok-circle"></span>&ensp;Presenze studenti adesso</a></li>
+						<li role="separator" class="divider"></li>
+						<li class="dropdown-header">Agenda, eventi e voti</li>
+						<li><a href="../admin/mastercom_calendar.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Agenda classe</a></li>
+						<li><a href="../admin/mastercom_events.php"><span class="glyphicon glyphicon-list"></span>&ensp;Eventi</a></li>
+						<li><a href="../admin/mastercom_event_create.php"><span class="glyphicon glyphicon-plus"></span>&ensp;Nuovo evento</a></li>
+						<li><a href="../admin/mastercom_grades.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Voti</a></li>
+						<li role="separator" class="divider"></li>
+						<li class="dropdown-header">Registri speciali</li>
+						<li><a href="../admin/mastercom_noirc.php"><span class="glyphicon glyphicon-book"></span>&ensp;NO IRC - Configurazione</a></li>
+						<li><a href="../admin/mastercom_noirc_registro.php"><span class="glyphicon glyphicon-check"></span>&ensp;NO IRC - Registro</a></li>
+						<li><a href="../admin/mastercom_noirc_assignments.php"><span class="glyphicon glyphicon-user"></span>&ensp;NO IRC - Docenti</a></li>
+						<li><a href="../admin/mastercom_noirc_rooms.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;NO IRC - Aule</a></li>
+						<li><a href="../admin/mastercom_l2.php"><span class="glyphicon glyphicon-education"></span>&ensp;L2 - Configurazione</a></li>
+						<li><a href="../admin/mastercom_l2_registro.php"><span class="glyphicon glyphicon-check"></span>&ensp;L2 - Registro</a></li>
+					</ul>
+				</li>
+			<?php endif; ?>
+
 			<?php
-			if (haRuolo('segreteria-didattica')) {
+			if (haRuolo('segreteria-didattica') || haRuolo('personale-ata') || haRuolo('admin')) {
 				if (getSettingsValue('config', 'corsi', false)) {
 					echo '<li><a href="../didattica/corsi.php" class="btn btn-default nav-btn btn-yellow" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Corsi </a></li>';
 				}

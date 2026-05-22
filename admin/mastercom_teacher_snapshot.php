@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 function mastercomSnapshotRomeNow(): DateTime
 {
@@ -126,15 +126,20 @@ function mastercomSnapshotOperationalClassNames(): array
     $classes = [];
     foreach ($rows as $row) {
         $classId = intval($row['mastercom_id_classe'] ?? 0);
-        $localClass = mastercomAdminResolveLocalClass($row);
-        $className = is_array($localClass) ? mastercomSnapshotClean($localClass['classe'] ?? '') : '';
-        if ($classId <= 0 || $className === '') {
+        $mastercomName = mastercomSnapshotClean($row['nome'] ?? '');
+        $parsed = mastercomAdminParseClassName($mastercomName);
+        $classLabel = mastercomSnapshotClean($parsed['classe_label'] ?? '');
+        if ($classId <= 0 || $mastercomName === '' || $classLabel === '') {
             continue;
         }
-        if (!preg_match('/^\d+[A-Z]/i', $className)) {
+        if (!preg_match('/^\d+[A-Z]+$/i', $classLabel)) {
             continue;
         }
-        $classes[$classId] = $className;
+        $displayName = $classLabel;
+        if (!empty($parsed['codice_indirizzo'])) {
+            $displayName .= ' ' . mastercomSnapshotClean($parsed['codice_indirizzo']);
+        }
+        $classes[$classId] = $displayName;
     }
     return $classes;
 }
@@ -359,7 +364,7 @@ function mastercomSnapshotExtractClasses(array $userInfoResult): array
         }
     }
 
-    $rows = array_values(array_map(function ($row) {
+    $rows = array_values(array_filter(array_map(function ($row) {
         $row['docenti'] = array_values($row['docenti']);
         usort($row['docenti'], function ($a, $b) {
             $teacherCompare = strnatcasecmp((string)$a['docente'], (string)$b['docente']);
@@ -369,7 +374,10 @@ function mastercomSnapshotExtractClasses(array $userInfoResult): array
             return strnatcasecmp((string)$a['materia'], (string)$b['materia']);
         });
         return $row;
-    }, $rowsByClass));
+    }, $rowsByClass), function ($row) {
+        $parsed = mastercomAdminParseClassName((string)($row['classe'] ?? ''));
+        return preg_match('/^\d+[A-Z]+$/i', (string)($parsed['classe_label'] ?? '')) === 1;
+    }));
 
     usort($rows, function ($a, $b) {
         return strnatcasecmp((string)$a['classe'], (string)$b['classe']);

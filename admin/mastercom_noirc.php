@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/noirc_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 $referenceDate = trim((string)($_GET['week_of'] ?? ''));
 $context = mastercomNoIrcBuildWeekSlots($referenceDate);
@@ -12,8 +12,8 @@ $optionalMissingTables = mastercomAdminMissingTables(mastercomNoIrcOptionalTable
 function mastercomNoIrcChoiceTooltip(string $choice): string
 {
     $map = [
-        'ASD' => 'Attività di Studio e/o di Ricerche individuali con assistenza di personale docente',
-        'LAS' => 'Libera Attività di Studio e/o ricerca individuale senza assistenza di personale docente',
+        'ASD' => 'AttivitÃ  di Studio e/o di Ricerche individuali con assistenza di personale docente',
+        'LAS' => 'Libera AttivitÃ  di Studio e/o ricerca individuale senza assistenza di personale docente',
         'AES' => 'Allontanarsi o assentarsi da Edificio Scolastico',
         'n/d' => 'Scelta non definita'
     ];

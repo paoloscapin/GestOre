@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 $missingTables = mastercomAdminMissingTables(['mastercom_docenti']);
 $filter = trim((string)($_GET['filter'] ?? 'all'));
@@ -82,7 +82,7 @@ foreach ($rows as $row) {
                                         ? htmlspecialchars(trim(($row['gestore_cognome'] ?? '') . ' ' . ($row['gestore_nome'] ?? '') . ' [' . ($row['gestore_username'] ?? '') . ']'))
                                         : '<span class="label label-warning">non collegato</span>'; ?>
                                     <?php if (!empty($row['id_docente_gestore'])): ?>
-                                        <br><small>attivo GestOre: <?php echo intval($row['gestore_attivo'] ?? 0) === 1 ? 'sì' : 'no'; ?></small>
+                                        <br><small>attivo GestOre: <?php echo intval($row['gestore_attivo'] ?? 0) === 1 ? 'sÃ¬' : 'no'; ?></small>
                                     <?php endif; ?>
                                     <br>
                                     <span class="label label-<?php echo htmlspecialchars($status['class']); ?>">

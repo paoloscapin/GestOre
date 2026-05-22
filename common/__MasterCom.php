@@ -1077,6 +1077,36 @@ function mastercomLoadStudentAdminProfileHtml(array $authResult, array $studentC
     ]));
 }
 
+function mastercomSubmitStudentAdminProfile(array $authResult, array $formParams, array $options = []): array
+{
+    $currentUser = mastercomCurrentUser($authResult);
+    $currentKey = mastercomCurrentKey($authResult);
+    if ($currentUser === null || $currentKey === null || $currentKey === '') {
+        return [
+            'ok' => false,
+            'error' => 'Autenticazione MasterCom non valida o incompleta',
+            'body' => null,
+            'http_code' => 0,
+            'content_type' => null,
+        ];
+    }
+
+    $payload = array_merge($formParams, [
+        'form_stato' => 'amministratore',
+        'stato_principale' => 'classi_principale',
+        'stato_secondario' => 'studente_update',
+        'current_user' => $currentUser,
+        'current_key' => $currentKey,
+    ]);
+
+    return mastercomRawRequest($payload, array_merge($options, [
+        'base_url' => $options['base_url'] ?? mastercomIndexUrl(),
+        'cookie' => $options['cookie'] ?? implode('; ', array_filter($authResult['cookies'] ?? [])),
+        'method' => $options['method'] ?? 'POST',
+        'send_in_body' => $options['send_in_body'] ?? true,
+    ]));
+}
+
 function mastercomCurrentKey(array $authResult): ?string
 {
     return $authResult['response']['result']['current_key']
