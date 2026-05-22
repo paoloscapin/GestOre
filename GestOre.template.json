@@ -291,6 +291,11 @@
         "ora_limite_genitori": "09:00",
         "giorni_festivi": []
     },
+    "profiloGenitore": {
+        "visibile_genitori": false,
+        "sincronizza_mastercom": true,
+        "email_segreteria_didattica": "segr.didattica@buonarroti.tn.it"
+    },
     "label": {
         "ore_funzionali": "funzionali",
         "dovute": "pianificate"

@@ -35,6 +35,10 @@
 		if ((getSettingsValue('config', 'permessi', false)) && (getSettingsValue('permessi', 'visibile_genitori', false)))
 			echo '<a href="../genitore/permessi.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-log-out"></span>&ensp;Permessi di uscita </a>';
 		?>
+		<?php
+		if ((getSettingsValue('config', 'profiloGenitore', false)) && (getSettingsValue('profiloGenitore', 'visibile_genitori', false)))
+			echo '<a href="../genitore/profilo.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Profilo </a>';
+		?>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a><span class=""></span>
 					<?php if (haRuolo('admin')) echo "(A)" ?>
