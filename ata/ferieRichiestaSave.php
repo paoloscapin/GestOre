@@ -81,6 +81,35 @@ function diffDateListsSave(array $base, array $current)
   return [$added, $removed];
 }
 
+function formatDateListITSave(array $dates)
+{
+  $out = [];
+  foreach ($dates as $date) {
+    $out[] = fmtDateIT($date);
+  }
+  return $out;
+}
+
+function appendTimelineSave(array $details, string $action, string $label, string $note = '')
+{
+  $timeline = is_array($details['timeline'] ?? null) ? $details['timeline'] : [];
+  $now = date('Y-m-d H:i:s');
+  $timeline[] = [
+    'action' => $action,
+    'label' => $label,
+    'note' => $note,
+    'at' => $now,
+    'at_fmt' => date('d/m/Y H:i', strtotime($now)),
+    'user_id' => intval($GLOBALS['__utente_id'] ?? 0),
+    'user_label' => trim((string)($GLOBALS['__utente_cognome'] ?? '') . ' ' . (string)($GLOBALS['__utente_nome'] ?? '')),
+  ];
+  if (count($timeline) > 20) {
+    $timeline = array_slice($timeline, -20);
+  }
+  $details['timeline'] = $timeline;
+  return $details;
+}
+
 function hMail($s): string
 {
   return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
@@ -429,14 +458,18 @@ dbExec("START TRANSACTION");
 
 try {
   $isAggiornamentoInviata = false;
+  $isModificaDopoApprovazione = false;
+  $statoCorrente = '';
+  $detailsCorrenti = [];
   $giorniOriginali = [];
   $giorniAggiunti = [];
   $giorniRimossi = [];
   $righeDaInserire = [];
+  $statiGiorniCorrenti = [];
 
   if ($richiesta_id > 0) {
     $chk = dbGetFirst("
-      SELECT r.id, r.stato, r.dettagli_json
+      SELECT r.id, r.stato, r.dettagli_json, r.registrato_segreteria
       FROM permesso_ata_richiesta r
       INNER JOIN permesso_ata_tipo t ON t.id = r.permesso_ata_tipo_id
       WHERE r.id = $richiesta_id
@@ -462,49 +495,52 @@ try {
       if ($azione === 'INVIA') {
         $giorniOriginali = $giorniValidi;
       }
-    } elseif (in_array($statoCorrente, ['INVIATO', 'INVIATA', 'AGGIORNATA'], true)) {
+    } elseif (in_array($statoCorrente, ['INVIATO', 'INVIATA', 'AGGIORNATA', 'MODIFICATA', 'APPROVATO', 'APPROVATA', 'APPROVATO_PARZIALE', 'PARZIALE'], true)) {
       if ($azione !== 'AGGIORNA') {
-        throw new Exception('Per una richiesta inviata usa Salva aggiornamento oppure Rimetti in bozza.');
+        throw new Exception('Per una richiesta gia inviata usa Salva aggiornamento.');
       }
 
       $isAggiornamentoInviata = true;
-      $giorniOriginali = normalizeDateListSave($detailsCorrenti['giorni_originali'] ?? []);
-
-      if (count($giorniOriginali) === 0) {
-        $existingRows = dbGetAll("
+      $isModificaDopoApprovazione = in_array($statoCorrente, ['APPROVATO', 'APPROVATA', 'APPROVATO_PARZIALE', 'PARZIALE', 'MODIFICATA'], true)
+        || intval($chk['registrato_segreteria'] ?? 0) === 1
+        || !empty($detailsCorrenti['ultima_modifica_da_approvata']);
+      $stato = $isModificaDopoApprovazione ? 'MODIFICATA' : 'AGGIORNATA';
+      $existingRows = dbGetAll("
           SELECT data_dal, data_al, dettagli_json
           FROM permesso_ata_richiesta_riga
           WHERE permesso_ata_richiesta_id = $richiesta_id
           ORDER BY data_dal ASC, id ASC
         ");
-        if (!is_array($existingRows)) $existingRows = [];
+      if (!is_array($existingRows)) $existingRows = [];
 
-        foreach ($existingRows as $er) {
-          $detEr = [];
-          if (!empty($er['dettagli_json'])) {
-            $tmpEr = json_decode((string)$er['dettagli_json'], true);
-            if (is_array($tmpEr)) $detEr = $tmpEr;
-          }
-
-          $statoEr = strtoupper(trim((string)($detEr['stato_giorno'] ?? 'RICHIESTO')));
-          if ($statoEr === 'RIMOSSO' || $statoEr === 'RESPINTO') continue;
-
-          $fromEr = (string)($er['data_dal'] ?? '');
-          $toEr = (string)($er['data_al'] ?? '');
-          if ($toEr === '') $toEr = $fromEr;
-
-          $startEr = DateTime::createFromFormat('Y-m-d', $fromEr);
-          $endEr = DateTime::createFromFormat('Y-m-d', $toEr);
-          if (!$startEr || !$endEr || $endEr < $startEr) continue;
-
-          $curEr = clone $startEr;
-          while ($curEr <= $endEr) {
-            $giorniOriginali[] = $curEr->format('Y-m-d');
-            $curEr->modify('+1 day');
-          }
+      foreach ($existingRows as $er) {
+        $detEr = [];
+        if (!empty($er['dettagli_json'])) {
+          $tmpEr = json_decode((string)$er['dettagli_json'], true);
+          if (is_array($tmpEr)) $detEr = $tmpEr;
         }
-        $giorniOriginali = normalizeDateListSave($giorniOriginali);
+
+        $statoEr = strtoupper(trim((string)($detEr['stato_giorno'] ?? 'RICHIESTO')));
+
+        $fromEr = (string)($er['data_dal'] ?? '');
+        $toEr = (string)($er['data_al'] ?? '');
+        if ($toEr === '') $toEr = $fromEr;
+
+        $startEr = DateTime::createFromFormat('Y-m-d', $fromEr);
+        $endEr = DateTime::createFromFormat('Y-m-d', $toEr);
+        if (!$startEr || !$endEr || $endEr < $startEr) continue;
+
+        $curEr = clone $startEr;
+        while ($curEr <= $endEr) {
+          $dataEr = $curEr->format('Y-m-d');
+          $statiGiorniCorrenti[$dataEr] = $statoEr;
+          if ($statoEr !== 'RIMOSSO') {
+            $giorniOriginali[] = $dataEr;
+          }
+          $curEr->modify('+1 day');
+        }
       }
+      $giorniOriginali = normalizeDateListSave($giorniOriginali);
 
       [$giorniAggiunti, $giorniRimossi] = diffDateListsSave($giorniOriginali, $giorniValidi);
     } else {
@@ -530,7 +566,10 @@ try {
     $rimossiMap = array_fill_keys($giorniRimossi, true);
 
     foreach ($unionDates as $data) {
-      $rowState = 'RICHIESTO';
+      $rowState = strtoupper(trim((string)($statiGiorniCorrenti[$data] ?? 'RICHIESTO')));
+      if (!in_array($rowState, ['RICHIESTO', 'AGGIUNTO', 'APPROVATO', 'RESPINTO'], true)) {
+        $rowState = 'RICHIESTO';
+      }
       $variazione = '';
       if (isset($aggiuntiMap[$data])) {
         $rowState = 'AGGIUNTO';
@@ -556,7 +595,8 @@ try {
     }
   }
 
-  $dettagliRichiesta = [
+  $dettagliRichiesta = is_array($detailsCorrenti) ? $detailsCorrenti : [];
+  $dettagliRichiesta = array_merge($dettagliRichiesta, [
     'tipo_codice' => 'FERIE',
     'ferie_sottotipo' => $sottotipo,
     'modo' => 'CALENDARIO_FERIE',
@@ -570,9 +610,21 @@ try {
     'giorni_aggiunti_count' => count($giorniAggiunti),
     'giorni_rimossi_count' => count($giorniRimossi),
     'ultima_modifica_dopo_invio' => $isAggiornamentoInviata,
+    'ultima_modifica_da_approvata' => $isModificaDopoApprovazione,
     'data_primo_giorno' => $giorniValidi[0],
     'data_ultimo_giorno' => $giorniValidi[count($giorniValidi) - 1],
-  ];
+  ]);
+
+  if ($isAggiornamentoInviata) {
+    $noteTimeline = 'Aggiunti: ' . (count($giorniAggiunti) ? implode(', ', formatDateListITSave($giorniAggiunti)) : 'nessuno')
+      . ' | Rimossi: ' . (count($giorniRimossi) ? implode(', ', formatDateListITSave($giorniRimossi)) : 'nessuno');
+    $dettagliRichiesta = appendTimelineSave(
+      $dettagliRichiesta,
+      $isModificaDopoApprovazione ? 'FERIE_MODIFICATA_DOPO_APPROVAZIONE' : 'FERIE_AGGIORNATA',
+      $isModificaDopoApprovazione ? 'Richiesta ferie modificata dopo approvazione/registrazione' : 'Richiesta ferie aggiornata dal dipendente',
+      $noteTimeline
+    );
+  }
   $dettagliRichiestaJson = json_encode($dettagliRichiesta, JSON_UNESCAPED_UNICODE);
 
   if ($richiesta_id > 0) {

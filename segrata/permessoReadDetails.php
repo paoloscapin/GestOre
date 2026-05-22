@@ -490,7 +490,7 @@ if (($row['tipo_codice'] ?? '') === 'FERIE'
     LEFT JOIN personale_ata_assegnazioni pa
       ON pa.id = pa_pick.max_id
     WHERE t.codice = 'FERIE'
-      AND req.stato IN ('INVIATO', 'AGGIORNATA', 'APPROVATO', 'PARZIALE')
+      AND req.stato IN ('INVIATO', 'AGGIORNATA', 'MODIFICATA', 'APPROVATO', 'PARZIALE', 'APPROVATO_PARZIALE')
       AND req.id <> " . intval($id) . "
       AND rr.data_dal <= " . dbQ($winA) . "
       AND rr.data_al >= " . dbQ($winDa) . "

@@ -199,6 +199,26 @@ function ferieAppendTimeline(int $richiestaId, string $action, string $label, st
     dbExec("UPDATE permesso_ata_richiesta SET dettagli_json = '$json' WHERE id = $richiestaId LIMIT 1");
 }
 
+function appendTimelineToDetails(array $details, string $action, string $label, string $note = ''): array
+{
+    $timeline = is_array($details['timeline'] ?? null) ? $details['timeline'] : [];
+    $now = date('Y-m-d H:i:s');
+    $timeline[] = [
+        'action' => $action,
+        'label' => $label,
+        'note' => $note,
+        'at' => $now,
+        'at_fmt' => date('d/m/Y H:i', strtotime($now)),
+        'user_id' => intval($GLOBALS['__utente_id'] ?? 0),
+        'user_label' => ferieTimelineUserLabel(),
+    ];
+    if (count($timeline) > 20) {
+        $timeline = array_slice($timeline, -20);
+    }
+    $details['timeline'] = $timeline;
+    return $details;
+}
+
 function buildFerieEsitoSegreteriaMailHtml($nomeCompleto, $emailUtente, $sottotipo, $statoRichiesta, array $giorniRows, $noteRichiedente, $notaApprovatore, $toName = ''): string
 {
     $statoRichiesta = strtoupper(trim((string)$statoRichiesta));
@@ -339,6 +359,7 @@ $riga = dbGetFirst("
 SELECT
     rr.*,
     req.id AS richiesta_id,
+    req.stato AS richiesta_stato,
     req.dettagli_json AS richiesta_dettagli_json,
     req.note_richiedente,
     req.ferie_sottotipo,
@@ -461,6 +482,13 @@ if (!empty($riga['richiesta_dettagli_json'])) {
 $headDet['giorni_richiesti_count'] = $cntRichiesti + $cntApprovati + $cntRespinti;
 $headDet['giorni_approvati_count'] = $cntApprovati;
 $headDet['giorni_respinti_count'] = $cntRespinti;
+$logNote = 'Data ' . fmtDateITMail($riga['data_dal'] ?? '') . ': ' . strtolower($statoGiorno);
+$headDet = appendTimelineToDetails(
+    $headDet,
+    'GIORNO_' . $statoGiorno,
+    $statoGiorno === 'APPROVATO' ? 'Giorno ferie approvato dalla segreteria' : ($statoGiorno === 'RESPINTO' ? 'Giorno ferie respinto dalla segreteria' : 'Giorno ferie riportato in attesa'),
+    $logNote
+);
 
 $headDetJsonEsc = mysqli_real_escape_string($__con, json_encode($headDet, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 $nuovoStatoEsc = mysqli_real_escape_string($__con, $nuovoStato);
@@ -484,22 +512,6 @@ if ($ok === false) {
     echo json_encode(['ok' => false, 'error' => 'Errore aggiornamento richiesta'], JSON_UNESCAPED_UNICODE);
     exit;
 }
-
-$timelineLabel = 'Giorno ferie aggiornato';
-if ($statoGiorno === 'APPROVATO') {
-    $timelineLabel = 'Giorno ferie approvato';
-} elseif ($statoGiorno === 'RESPINTO') {
-    $timelineLabel = 'Giorno ferie respinto';
-} elseif ($statoGiorno === 'RICHIESTO') {
-    $timelineLabel = 'Giorno ferie riportato in attesa';
-}
-
-ferieAppendTimeline(
-    $richiestaId,
-    'GIORNO_' . $statoGiorno,
-    $timelineLabel,
-    'Data: ' . fmtDateITMail($riga['data_dal'] ?? '') . ' | Stato richiesta: ' . $nuovoStato
-);
 
 info("permessoFerieGiornoUpdate.php: richiesta_id=$richiestaId aggiornata a stato=$nuovoStato senza invio mail (giorno aggiornato a stato_giorno=$statoGiorno cntApprovati=$cntApprovati cntRespinti=$cntRespinti cntRichiesti=$cntRichiesti)");
 

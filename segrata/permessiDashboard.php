@@ -28,6 +28,7 @@ $byMese = dbGetAll("
   SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym,
          SUM(stato='INVIATO') AS inviati,
          SUM(stato='AGGIORNATA') AS aggiornate,
+         SUM(stato='MODIFICATA') AS modificate,
          SUM(stato='APPROVATO') AS approvati,
          SUM(stato='RESPINTO') AS respinti
   FROM permesso_ata_richiesta

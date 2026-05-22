@@ -14,7 +14,7 @@ function statoLabelClass($stato)
   $s = strtoupper(trim((string)$stato));
   if ($s === 'BOZZA') return 'label-default';
   if ($s === 'INVIATA' || $s === 'INVIATO') return 'label-info';
-  if ($s === 'AGGIORNATA') return 'label-warning';
+  if ($s === 'AGGIORNATA' || $s === 'MODIFICATA') return 'label-warning';
   if ($s === 'APPROVATA' || $s === 'APPROVATO') return 'label-success';
   if ($s === 'RESPINTA' || $s === 'RESPINTO') return 'label-danger';
   if ($s === 'APPROVATO_PARZIALE') return 'label-warning';
@@ -152,10 +152,14 @@ if (count($rows) === 0) {
       ? 'ferieRichiesta.php?sottotipo=' . $ferieSottotipo . '&id=' . $id
       : null;
 
+    $btnEditLabel = ($codice === 'FERIE' && in_array(strtoupper($stato), ['APPROVATO', 'APPROVATA', 'APPROVATO_PARZIALE', 'PARZIALE', 'MODIFICATA'], true))
+      ? 'Modifica'
+      : 'Apri';
+
     $btnEdit = $btnEditHref
       ? '
       <a href="' . $btnEditHref . '" class="btn btn-warning btn-lg btn-block">
-        <span class="glyphicon glyphicon-pencil"></span>&ensp;Apri
+        <span class="glyphicon glyphicon-pencil"></span>&ensp;' . h($btnEditLabel) . '
       </a>'
       : '
       <button type="button"

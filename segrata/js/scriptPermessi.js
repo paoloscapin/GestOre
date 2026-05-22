@@ -6,7 +6,7 @@
 let ferieModalInitialSnapshot = null;
 let ferieModalCurrentSnapshot = null;
 let ferieModalKeepDirty = false;
-const DASHBOARD_STATI = ["INVIATO", "AGGIORNATA", "APPROVATO", "PARZIALE", "RESPINTO"];
+const DASHBOARD_STATI = ["INVIATO", "AGGIORNATA", "MODIFICATA", "APPROVATO", "PARZIALE", "RESPINTO"];
 const DASHBOARD_REGISTRAZIONI = ["DA_REGISTRARE", "REGISTRATO"];
 let dashboardSelectedStates = DASHBOARD_STATI.slice();
 let dashboardSelectedRegistrazioni = DASHBOARD_REGISTRAZIONI.slice();
@@ -259,8 +259,15 @@ function dateRangeDays(startIso, endIso) {
   return out;
 }
 
-function buildSelectedDateMap(righe) {
+function buildSelectedDateMap(righe, requestState) {
   const selected = {};
+  const statoRichiesta = String(requestState || "").toUpperCase();
+  const hasPendingDays = (righe || []).some(function (r) {
+    const stato = String((r && r.stato_giorno) || "RICHIESTO").toUpperCase();
+    return stato === "RICHIESTO" || stato === "AGGIUNTO";
+  });
+  const showRemoved = ["INVIATO", "AGGIORNATA", "MODIFICATA"].indexOf(statoRichiesta) !== -1 ||
+    (statoRichiesta === "PARZIALE" && hasPendingDays);
   (righe || []).forEach(r => {
     const da = r.data_da || r.data_dal;
     const a = r.data_a || r.data_al || da;
@@ -269,6 +276,7 @@ function buildSelectedDateMap(righe) {
     const nota = r.nota_approvatore || "";
 
     if (!da) return;
+    if (stato === "RIMOSSO" && !showRemoved) return;
 
     dateRangeDays(da, a).forEach(iso => {
       selected[iso] = {
@@ -338,7 +346,7 @@ function renderFerieTimeline(perm) {
     details = {};
   }
 
-  const timeline = Array.isArray(details.timeline) ? details.timeline.slice(-4).reverse() : [];
+  const timeline = Array.isArray(details.timeline) ? details.timeline.slice(-6).reverse() : [];
   if (!timeline.length) {
     $("#fm_timeline_wrap").html('<div class="text-muted">Nessuna operazione registrata.</div>');
     return;
@@ -620,7 +628,7 @@ function renderPermessoFerieModal(r) {
     $("#fm_registrato_il").text("");
     $("#fm_registrazione_info").hide();
   }
-  window.__FM_SELECTED_DATE_MAP = buildSelectedDateMap(righe);
+  window.__FM_SELECTED_DATE_MAP = buildSelectedDateMap(righe, perm.stato || "");
 
   $("#fm_hidden_permesso_id").val(perm.id || "");
   $("#fm_title").text(perm.tipo || "Dettaglio ferie");
@@ -672,7 +680,7 @@ function renderPermessoFerieModal(r) {
   } else {
     $("#fm_subtitle").text("Richiesta ferie di " + (dip.nome || ""));
   }
-  const selectedMap = buildSelectedDateMap(righe);
+  const selectedMap = buildSelectedDateMap(righe, perm.stato || "");
   const selectedDates = Object.keys(selectedMap).sort();
   const activeSelectedDates = selectedDates.filter(function (iso) {
     return ((selectedMap[iso] && selectedMap[iso].stato_giorno) || "").toUpperCase() !== "RIMOSSO";
@@ -1078,13 +1086,14 @@ function dashboardLoad() {
   $.getJSON("permessiDashboard.php", {}, function (r) {
     if (!r || r.ok !== true) return;
 
-    const s = { INVIATO: 0, AGGIORNATA: 0, APPROVATO: 0, PARZIALE: 0, RESPINTO: 0 };
+    const s = { INVIATO: 0, AGGIORNATA: 0, MODIFICATA: 0, APPROVATO: 0, PARZIALE: 0, RESPINTO: 0 };
     (r.byStato || []).forEach(x => {
       if (s.hasOwnProperty(x.stato)) s[x.stato] = parseInt(x.n || 0, 10);
     });
 
     $("#d_inviato .badge").text(s.INVIATO);
     $("#d_aggiornata .badge").text(s.AGGIORNATA);
+    $("#d_modificata .badge").text(s.MODIFICATA);
     $("#d_approvato .badge").text(s.APPROVATO);
     $("#d_parziale .badge").text(s.PARZIALE);
     $("#d_respinto .badge").text(s.RESPINTO);
@@ -1095,6 +1104,7 @@ function dashboardLoad() {
     const vals = mesi.map(m =>
     (parseInt(m.inviati || 0, 10) +
       parseInt(m.aggiornate || 0, 10) +
+      parseInt(m.modificate || 0, 10) +
       parseInt(m.approvati || 0, 10) +
       parseInt(m.respinti || 0, 10))
     );

@@ -111,7 +111,7 @@ if (is_array($statiParam)) {
   }
 }
 
-$statiValidi = ['INVIATO', 'AGGIORNATA', 'APPROVATO', 'PARZIALE', 'RESPINTO', 'ANNULLATO'];
+$statiValidi = ['INVIATO', 'AGGIORNATA', 'MODIFICATA', 'APPROVATO', 'PARZIALE', 'RESPINTO', 'ANNULLATO'];
 $stati = array_values(array_unique(array_intersect($stati, $statiValidi)));
 
 $registrazioni = [];
@@ -246,7 +246,7 @@ LEFT JOIN (
 ) rragg
   ON rragg.permesso_ata_richiesta_id = r.id
 $where
-ORDER BY r.created_at DESC
+ORDER BY COALESCE(r.registrato_segreteria, 0) ASC, r.created_at DESC
 LIMIT 500
 ";
 
@@ -326,6 +326,10 @@ if ($registrato === 1) {
   } elseif ($st === 'AGGIORNATA') {
     $badge = '<span class="label label-warning" style="background:#f59e0b;">
     <span class="glyphicon glyphicon-refresh"></span> AGGIORNATA
+  </span>';
+  } elseif ($st === 'MODIFICATA') {
+    $badge = '<span class="label label-warning" style="background:#d97706;">
+    <span class="glyphicon glyphicon-edit"></span> MODIFICATA
   </span>';
   } elseif ($st === 'APPROVATO') {
     $badge = '<span class="label label-success">

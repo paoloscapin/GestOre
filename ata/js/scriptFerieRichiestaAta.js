@@ -43,6 +43,7 @@
     let historicalDaysMap = {};
     let currentDraftDaysMap = {};
     let currentRequestDayStateMap = {};
+    let currentTimeline = [];
 
     function pad2(n) {
         n = parseInt(n, 10);
@@ -211,9 +212,55 @@
         $("#badge_stato").text(currentState || "BOZZA");
     }
 
+    function escapeHtml(s) {
+        return String(s || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function renderTimeline() {
+        const $wrap = $("#ferie_timeline");
+        if (!$wrap.length) return;
+
+        const items = Array.isArray(currentTimeline) ? currentTimeline.slice() : [];
+        if (!items.length) {
+            $wrap.html('<div class="ferie-timeline-empty">Nessuna operazione registrata.</div>');
+            return;
+        }
+
+        let html = '';
+        items.forEach(function (item) {
+            const when = item.at_fmt || item.at || "";
+            const who = item.user_label || "";
+            const note = item.note || "";
+            html += ''
+                + '<div class="ferie-timeline-item">'
+                + '  <div class="ferie-timeline-dot"></div>'
+                + '  <div class="ferie-timeline-body">'
+                + '    <div class="ferie-timeline-title">' + escapeHtml(item.label || item.action || "Operazione") + '</div>'
+                + '    <div class="ferie-timeline-meta">' + escapeHtml(when) + (who ? ' - ' + escapeHtml(who) : '') + '</div>'
+                + (note ? '    <div class="ferie-timeline-note">' + escapeHtml(note) + '</div>' : '')
+                + '  </div>'
+                + '</div>';
+        });
+        $wrap.html(html);
+    }
+
     function isEditableSentState(stato) {
         stato = String(stato || "").toUpperCase();
-        return stato === "INVIATO" || stato === "INVIATA" || stato === "AGGIORNATA";
+        return [
+            "INVIATO",
+            "INVIATA",
+            "AGGIORNATA",
+            "MODIFICATA",
+            "APPROVATO",
+            "APPROVATA",
+            "APPROVATO_PARZIALE",
+            "PARZIALE"
+        ].indexOf(stato) !== -1;
     }
 
     function isLockedState(stato) {
@@ -229,11 +276,7 @@
 
         const isBozza = (stato === "BOZZA");
         const isInviato = isEditableSentState(stato);
-        const isApprovato = (
-            stato === "APPROVATO" ||
-            stato === "APPROVATA" ||
-            stato === "APPROVATO_PARZIALE"
-        );
+        const canRimettiBozza = ["INVIATO", "INVIATA", "AGGIORNATA"].indexOf(stato) !== -1;
 
         $("#ferie_note").prop("readonly", isReadOnly);
 
@@ -246,15 +289,9 @@
         } else if (isInviato) {
             $("#btn_delete_bozza_ferie").hide();
             $("#btn_cancel_ferie").show();
-            $("#btn_save_bozza_ferie").html('<span class="glyphicon glyphicon-floppy-disk"></span> Salva aggiornamento').show().prop("disabled", false);
+            $("#btn_save_bozza_ferie").html('<span class="glyphicon glyphicon-floppy-disk"></span> Salva modifica').show().prop("disabled", false);
             $("#btn_invia_ferie").hide();
-            $("#btn_rimetti_bozza_ferie").show().prop("disabled", false);
-        } else if (isApprovato) {
-            $("#btn_delete_bozza_ferie").hide();
-            $("#btn_cancel_ferie").show();
-            $("#btn_save_bozza_ferie").hide();
-            $("#btn_invia_ferie").hide();
-            $("#btn_rimetti_bozza_ferie").hide();
+            $("#btn_rimetti_bozza_ferie").toggle(canRimettiBozza).prop("disabled", false);
         } else {
             $("#btn_delete_bozza_ferie").hide();
             $("#btn_cancel_ferie").show();
@@ -264,6 +301,13 @@
         }
 
         renderCalendar();
+    }
+
+    function currentRequestHasPendingDays() {
+        return Object.keys(currentRequestDayStateMap || {}).some(function (iso) {
+            const stato = String((currentRequestDayStateMap[iso] || {}).stato || "").toUpperCase();
+            return ["RICHIESTO", "AGGIUNTO"].indexOf(stato) !== -1;
+        });
     }
 
     function renderCalendar() {
@@ -320,19 +364,29 @@
                 const hist = getHistoricalInfo(ymd);
                 const currentDayInfo = getCurrentRequestDayInfo(ymd);
                 const currentDayState = currentDayInfo ? String(currentDayInfo.stato || "").toUpperCase() : "";
-                const currentRemoved = !selected && currentDayState === "RIMOSSO";
+                const requestState = String(currentState || "").toUpperCase();
+                const showRemovedInCurrentEdit = ["INVIATO", "INVIATA", "AGGIORNATA", "MODIFICATA"].indexOf(requestState) !== -1
+                    || (requestState === "PARZIALE" && currentRequestHasPendingDays());
+                const currentRemoved = !selected && currentDayState === "RIMOSSO" && showRemovedInCurrentEdit;
                 const classes = ["day-cell"];
 
                 if (!selectable && !selected) classes.push("locked");
-                if (hist) classes.push(historicalCssClass(ymd));
                 if (currentRemoved) classes.push("current-removed");
 
                 if (selected) {
                     const sg = currentDayState || "RICHIESTO";
 
                     if (!isReadOnly) {
-                        classes.push("selected");
-                        if (sg === "AGGIUNTO") classes.push("current-added");
+                        if (sg === "APPROVATO") {
+                            classes.push("historical-approved");
+                            classes.push("current-editable-state");
+                        } else if (sg === "RESPINTO") {
+                            classes.push("historical-rejected");
+                            classes.push("current-editable-state");
+                        } else {
+                            classes.push("selected");
+                            if (sg === "AGGIUNTO") classes.push("current-added");
+                        }
                     } else {
                         if (sg === "APPROVATO") {
                             classes.push("historical-approved");
@@ -344,9 +398,19 @@
                             classes.push("readonly-selected");
                         }
                     }
+                } else if (hist) {
+                    classes.push(historicalCssClass(ymd));
                 }
 
-                if (selected && !isReadOnly && isEditableCurrentDraftDay(ymd)) classes.push("current-draft");
+                if (
+                    selected
+                    && !isReadOnly
+                    && isEditableCurrentDraftDay(ymd)
+                    && currentDayState !== "APPROVATO"
+                    && currentDayState !== "RESPINTO"
+                ) {
+                    classes.push("current-draft");
+                }
                 let metaText = "";
                 let metaLabel = "";
 
@@ -371,12 +435,20 @@
                             metaLabel = "Richiesto";
                         }
                     } else {
-                        metaText = "+";
                         if (sg === "AGGIUNTO") {
+                            metaText = "+";
                             metaLabel = "Aggiunto";
+                        } else if (sg === "APPROVATO") {
+                            metaText = "OK";
+                            metaLabel = "Approvato";
+                        } else if (sg === "RESPINTO") {
+                            metaText = "NO";
+                            metaLabel = "Respinto";
                         } else if (currentDayInfo) {
+                            metaText = "+";
                             metaLabel = "Iniziale";
                         } else {
+                            metaText = "+";
                             metaLabel = "Selezionato";
                         }
                     }
@@ -473,6 +545,7 @@
 
                 const req = r.richiesta || {};
                 const giorni = Array.isArray(r.giorni) ? r.giorni : [];
+                currentTimeline = Array.isArray(r.timeline) ? r.timeline : [];
 
                 $("#richiesta_id").val(req.id || "");
                 $("#ferie_note").val(req.note || "");
@@ -485,7 +558,13 @@
                     if (!g || !g.data) return;
 
                     const iso = String(g.data);
-                    const stato = String(g.stato_giorno || "RICHIESTO").toUpperCase();
+                    let stato = String(g.stato_giorno || "RICHIESTO").toUpperCase();
+                    const richiestaStato = String(currentState || "").toUpperCase();
+                    if (["APPROVATO", "APPROVATA"].indexOf(richiestaStato) !== -1 && stato !== "RESPINTO" && stato !== "RIMOSSO") {
+                        stato = "APPROVATO";
+                    } else if (richiestaStato === "RESPINTO" && stato !== "APPROVATO" && stato !== "RIMOSSO") {
+                        stato = "RESPINTO";
+                    }
 
                     if (stato !== "RIMOSSO") {
                         selectedDays.add(iso);
@@ -498,6 +577,7 @@
                 });
 
                 $("#editor_title").text(TITOLO + " #" + req.id);
+                renderTimeline();
 
                 loadCalendarState(function () {
                     setReadonly(isLockedState(currentState));
@@ -659,6 +739,7 @@
 
     $(function () {
         updateHeaderInfo();
+        renderTimeline();
 
         if (EDIT_ID > 0) {
             loadRequest(EDIT_ID);

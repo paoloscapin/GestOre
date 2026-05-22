@@ -840,6 +840,7 @@ if (!is_array($ufficiAta)) {
                                 <option value="" selected>Tutti gli stati</option>
                                 <option value="INVIATO">INVIATO</option>
                                 <option value="AGGIORNATA">AGGIORNATA</option>
+                                <option value="MODIFICATA">MODIFICATA</option>
                                 <option value="APPROVATO">APPROVATO</option>
                                 <option value="PARZIALE">PARZIALE</option>
                                 <option value="RESPINTO">RESPINTO</option>
@@ -907,6 +908,7 @@ if (!is_array($ufficiAta)) {
 
                             <span class="dash-item dash-inviato" id="d_inviato" data-stato="INVIATO"><span class="glyphicon glyphicon-send"></span> INVIATI <span class="badge">0</span></span>
                             <span class="dash-item dash-aggiornata" id="d_aggiornata" data-stato="AGGIORNATA"><span class="glyphicon glyphicon-refresh"></span> AGGIORNATE <span class="badge">0</span></span>
+                            <span class="dash-item dash-aggiornata" id="d_modificata" data-stato="MODIFICATA"><span class="glyphicon glyphicon-edit"></span> MODIFICATE <span class="badge">0</span></span>
                             <span class="dash-item dash-approvato" id="d_approvato" data-stato="APPROVATO"><span class="glyphicon glyphicon-ok"></span> APPROVATI <span class="badge">0</span></span>
                             <span class="dash-item dash-parziale" id="d_parziale" data-stato="PARZIALE">
                                 <span class="glyphicon glyphicon-adjust"></span> PARZIALI <span class="badge">0</span></span>

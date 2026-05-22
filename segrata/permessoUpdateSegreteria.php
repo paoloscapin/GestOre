@@ -448,7 +448,7 @@ $setParts[] = "updated_at = NOW()";
 
 // Se arriva uno stato, aggiorno anche gestione pratica
 if ($stato !== null) {
-  $allowed = ['INVIATO', 'APPROVATO', 'RESPINTO', 'ANNULLATO'];
+  $allowed = ['INVIATO', 'AGGIORNATA', 'MODIFICATA', 'APPROVATO', 'PARZIALE', 'RESPINTO', 'ANNULLATO'];
   if (!in_array($stato, $allowed, true)) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'Stato non valido'], JSON_UNESCAPED_UNICODE);

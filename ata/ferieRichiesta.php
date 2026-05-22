@@ -514,9 +514,9 @@ $bootstrapData = [
         }
 
         .day-cell.historical-rejected {
-            background: #fff3b0;
-            border-color: #d4b300;
-            color: #5a4a00;
+            background: #ffcdd2;
+            border-color: #d32f2f;
+            color: #7f1d1d;
             cursor: not-allowed;
         }
 
@@ -541,9 +541,17 @@ $bootstrapData = [
         }
 
         .day-cell.current-added {
-            background: #d9f99d;
-            border-color: #65a30d;
-            color: #1f3b08;
+            background: #fff200;
+            border-color: #d4b300;
+            color: #2d2400;
+        }
+
+        .day-cell.historical-approved.current-draft,
+        .day-cell.historical-approved.current-added,
+        .day-cell.historical-approved.current-editable-state {
+            background: #b9f6ca;
+            border-color: #4caf50;
+            color: #124a1d;
         }
 
         .day-cell.current-removed {
@@ -552,10 +560,63 @@ $bootstrapData = [
             color: #7c2d12;
         }
 
+        .day-cell.current-editable-state {
+            cursor: pointer;
+        }
+
         .day-meta.status-meta {
             font-size: 11px;
             font-weight: 700;
             line-height: 1.2;
+        }
+
+        .ferie-log-card {
+            margin: 12px 0 16px;
+            padding: 12px 14px;
+            border: 1px solid #dbeafe;
+            border-radius: 14px;
+            background: #f8fbff;
+        }
+
+        .ferie-log-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #1f3b63;
+            margin-bottom: 8px;
+        }
+
+        .ferie-timeline-item {
+            display: flex;
+            gap: 10px;
+            padding: 8px 0;
+            border-top: 1px solid #e5edf8;
+        }
+
+        .ferie-timeline-item:first-child {
+            border-top: 0;
+            padding-top: 0;
+        }
+
+        .ferie-timeline-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2563eb;
+            margin-top: 5px;
+            flex: 0 0 auto;
+        }
+
+        .ferie-timeline-title {
+            font-weight: 800;
+            color: #1f2937;
+        }
+
+        .ferie-timeline-meta,
+        .ferie-timeline-note,
+        .ferie-timeline-empty {
+            font-size: 13px;
+            color: #4b5563;
+            line-height: 1.35;
         }
 
         .status-meta {
@@ -621,7 +682,15 @@ $bootstrapData = [
                             <span class="glyphicon glyphicon-calendar"></span>
                             Richiesta iniziale / corrente
                         </span>
-                        <span class="ferie-badge" style="background:#d9f99d;border-color:#65a30d;color:#1f3b08;">
+                        <span class="ferie-badge" style="background:#b9f6ca;border-color:#4caf50;color:#124a1d;">
+                            <span class="glyphicon glyphicon-ok"></span>
+                            Giorni approvati
+                        </span>
+                        <span class="ferie-badge" style="background:#ffcdd2;border-color:#d32f2f;color:#7f1d1d;">
+                            <span class="glyphicon glyphicon-remove"></span>
+                            Giorni respinti
+                        </span>
+                        <span class="ferie-badge" style="background:#fff200;border-color:#d4b300;color:#2d2400;">
                             <span class="glyphicon glyphicon-plus"></span>
                             Aggiunti dopo l'invio
                         </span>
@@ -652,6 +721,14 @@ $bootstrapData = [
 
                     <div class="alert alert-info ferie-alert">
                         Tocca o clicca i giorni disponibili per selezionarli o deselezionarli.
+                    </div>
+
+                    <div class="ferie-log-card" id="ferie_log_card">
+                        <div class="ferie-log-title">
+                            <span class="glyphicon glyphicon-time"></span>
+                            Storico richiesta
+                        </div>
+                        <div id="ferie_timeline" class="ferie-timeline-empty">Nessuna operazione registrata.</div>
                     </div>
 
                     <div id="months_wrap" class="months-wrap"></div>
