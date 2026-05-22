@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
 
-ruoloRichiesto('admin');
+ruoloRichiesto('admin', 'segreteria-didattica');
 
 function mastercomAdminRomeToday(string $format = 'Y-m-d'): string
 {
@@ -64,6 +64,20 @@ function mastercomAdminDayEndTs(string $date): int
     return $dt instanceof DateTime ? $dt->getTimestamp() : 0;
 }
 
+function mastercomAdminBoolLabel($value): bool
+{
+    if (is_bool($value)) {
+        return $value;
+    }
+
+    if (is_numeric($value)) {
+        return intval($value) !== 0;
+    }
+
+    $normalized = strtoupper(trim((string)$value));
+    return in_array($normalized, ['1', 'SI', 'S', 'YES', 'TRUE', 'GIUSTIFICATA', 'GIUSTIFICATO'], true);
+}
+
 $missingTables = mastercomAdminMissingTables(['mastercom_studenti']);
 $studentId = intval($_GET['student_id'] ?? 0);
 $mirrorRow = empty($missingTables) && $studentId > 0
@@ -117,6 +131,13 @@ if (empty($missingTables) && $studentId > 0) {
     <meta charset="UTF-8">
     <?php require_once '../common/header-common.php'; ?>
     <?php require_once '../common/style.php'; ?>
+    <style>
+        .mastercom-student-absences-table th,
+        .mastercom-student-absences-table td {
+            text-align: center;
+            vertical-align: middle !important;
+        }
+    </style>
 </head>
 <body>
 <?php require_once '../common/header-admin.php'; ?>
@@ -155,7 +176,7 @@ if (empty($missingTables) && $studentId > 0) {
                 <?php else: ?>
                     <div class="alert alert-info">Eventi trovati: <strong><?php echo count($records); ?></strong></div>
 
-                    <table class="table table-striped table-bordered table-condensed">
+                    <table class="table table-striped table-bordered table-condensed mastercom-student-absences-table">
                         <thead>
                             <tr>
                                 <th>Data</th>
@@ -170,17 +191,14 @@ if (empty($missingTables) && $studentId > 0) {
                                 <?php
                                 $ts = intval($record['data'] ?? 0);
                                 $dateLabel = mastercomAdminRomeFormatTs($ts, 'd/m/Y');
+                                $isGiustificata = mastercomAdminBoolLabel($record['giustificata'] ?? null);
                                 ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($dateLabel); ?></td>
                                     <td><?php echo htmlspecialchars((string)($record['codice'] ?? '')); ?></td>
                                     <td><?php echo htmlspecialchars(trim((string)($record['orario'] ?? ''))); ?></td>
                                     <td>
-                                        <?php if (!empty($record['giustificata'])): ?>
-                                            <span class="label label-success">sì</span>
-                                        <?php else: ?>
-                                            <span class="label label-danger">no</span>
-                                        <?php endif; ?>
+                                        <?php echo $isGiustificata ? '<span class="label label-success">SI</span>' : '<span class="label label-danger">NO</span>'; ?>
                                     </td>
                                     <td><?php echo htmlspecialchars((string)($record['descrizione'] ?? '')); ?></td>
                                 </tr>
