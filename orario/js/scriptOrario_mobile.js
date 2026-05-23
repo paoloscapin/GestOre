@@ -801,8 +801,24 @@
     }
 
     function openDatePicker() {
-        // Per ora non usato:
-        // la data si cambia con swipe, frecce e pulsante Oggi.
+        const $p = $("#mobile_date_picker");
+        if (!$p.length) return;
+
+        $p.val(currentDate());
+
+        const el = $p[0];
+
+        try {
+            if (typeof el.showPicker === "function") {
+                el.showPicker();
+                return;
+            }
+        } catch (e) { }
+
+        try {
+            el.focus();
+            el.click();
+        } catch (e) { }
     }
 
     function renderLegend() {
@@ -1576,6 +1592,12 @@
                 return;
             }
             openDatePicker();
+        });
+
+        $("#mobile_date_picker").on("change", function () {
+            const v = String($(this).val() || "").trim();
+            if (!v) return;
+            setDateAndReload(v);
         });
 
         $("#mobile_search_input").on("input", function () {

@@ -1194,3 +1194,10 @@ body {
   border-color: #0ea5e9;
   color: #ffffff;
 }
+
+.mobile-date-picker-hidden{
+    position:absolute;
+    left:-99999px;
+    opacity:0;
+    pointer-events:none;
+}

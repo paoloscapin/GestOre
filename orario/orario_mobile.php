@@ -207,6 +207,10 @@ function renderOrarioHeaderByRole($ruolo)
 
                                 <div class="mobile-day-center">
                                     <div id="mobile_day_label" class="mobile-day-label">--</div>
+                                    <input type="date"
+                                        id="mobile_date_picker"
+                                        class="mobile-date-picker-hidden"
+                                        value="<?= date('Y-m-d') ?>">
                                 </div>
 
                                 <button type="button" id="btn_next_day_mobile" class="btn btn-default btn-sm mobile-day-nav" title="Giorno successivo">
