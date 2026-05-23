@@ -143,6 +143,8 @@
                 "lezione_classe_impegnata": "7"
             },
             "sendUpdates": "none",
+            "aggiungiDirigenteAEventiOrganiCollegiali": true,
+            "emailDirigenteEventiOrganiCollegiali": "nome.cognome@buonarroti.tn.it",
             "syncSecret": "#####"
         },
         "googleDrive": {
