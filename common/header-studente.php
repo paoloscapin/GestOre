@@ -26,9 +26,11 @@
 			}
 		?>
 		</ul>
-		<ul class="nav navbar-nav top-navbar-nav">
-			<a href="../common/biglietti_prenotazioni.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-barcode"></span>&ensp;Biglietti </a>
-		</ul>
+		<?php if (getSettingsValue('config', 'biglietti', true)): ?>
+			<ul class="nav navbar-nav top-navbar-nav">
+				<a href="../common/biglietti_prenotazioni.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-barcode"></span>&ensp;Biglietti </a>
+			</ul>
+		<?php endif; ?>
 		<ul class="nav navbar-nav top-navbar-nav">
 			<?php
 			if (getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false)) : ?>

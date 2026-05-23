@@ -53,6 +53,7 @@
         "programmiIniziali": true,
         "programmiMinimi": true,
         "permessi": true,
+        "biglietti": true,
         "carenze": false,
         "uscite": false,
         "corsi": false,

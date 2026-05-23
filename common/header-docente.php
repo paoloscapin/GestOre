@@ -55,10 +55,12 @@ $docenteHeaderJoin = function (string $url) use ($docenteHeaderQuery): string {
 				class="btn btn-default btn-teal4 nav-btn" role="button" data-toggle="tooltip"
 				data-placement="bottom" title="Rendiconta qui le tue ore fatte"><span
 					class="glyphicon glyphicon-folder-close"></span>&ensp;Fatte</a></li>
-			<li><a href="../common/biglietti_prenotazioni.php"
-				class="btn btn-default btn-yellow4 nav-btn" role="button" data-toggle="tooltip"
-				data-placement="bottom" title="Prenota i biglietti degli eventi aperti"><span
-					class="glyphicon glyphicon-barcode"></span>&ensp;Biglietti</a></li>
+			<?php if (getSettingsValue('config', 'biglietti', true)): ?>
+				<li><a href="../common/biglietti_prenotazioni.php"
+					class="btn btn-default btn-yellow4 nav-btn" role="button" data-toggle="tooltip"
+					data-placement="bottom" title="Prenota i biglietti degli eventi aperti"><span
+						class="glyphicon glyphicon-barcode"></span>&ensp;Biglietti</a></li>
+			<?php endif; ?>
 			<?php if ($__settings->config->bonus): ?>
 				<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../docente/bonus.php'), ENT_QUOTES, 'UTF-8'); ?>"
 					class="btn btn-default btn-lima4 nav-btn" role="button" data-toggle="tooltip"

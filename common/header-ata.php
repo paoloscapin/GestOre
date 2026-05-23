@@ -29,6 +29,7 @@ if (haRuolo('portineria')) {
  * Metti qui il nome reale della home ATA se diverso da index.php
  */
 $isAtaHome = in_array($currentScript, ['index.php'], true);
+$bigliettiVisibili = getSettingsValue('config', 'biglietti', true);
 ?>
 <style>
 	html,
@@ -193,21 +194,25 @@ $isAtaHome = in_array($currentScript, ['index.php'], true);
 
 	<?php if (!$isAtaHome): ?>
 		<div class="ata-mobile-nav">
-			<a href="../common/biglietti_prenotazioni.php" class="ata-mobile-btn<?php echo ataIsActive('biglietti_prenotazioni.php') ? ' is-active' : ''; ?>">
-				<span class="glyphicon glyphicon-barcode"></span>
-				<span>Biglietti</span>
-			</a>
+			<?php if ($bigliettiVisibili): ?>
+				<a href="../common/biglietti_prenotazioni.php" class="ata-mobile-btn<?php echo ataIsActive('biglietti_prenotazioni.php') ? ' is-active' : ''; ?>">
+					<span class="glyphicon glyphicon-barcode"></span>
+					<span>Biglietti</span>
+				</a>
+			<?php endif; ?>
 			<a href="../ata/index.php" class="ata-mobile-btn">
 				<span class="glyphicon glyphicon-home"></span>
 				<span>Torna alla home</span>
 			</a>
 		</div>
 	<?php else: ?>
-		<div class="ata-mobile-nav">
-			<a href="../common/biglietti_prenotazioni.php" class="ata-mobile-btn<?php echo ataIsActive('biglietti_prenotazioni.php') ? ' is-active' : ''; ?>">
-				<span class="glyphicon glyphicon-barcode"></span>
-				<span>Biglietti</span>
-			</a>
-		</div>
+		<?php if ($bigliettiVisibili): ?>
+			<div class="ata-mobile-nav">
+				<a href="../common/biglietti_prenotazioni.php" class="ata-mobile-btn<?php echo ataIsActive('biglietti_prenotazioni.php') ? ' is-active' : ''; ?>">
+					<span class="glyphicon glyphicon-barcode"></span>
+					<span>Biglietti</span>
+				</a>
+			</div>
+		<?php endif; ?>
 	<?php endif; ?>
 </div>
