@@ -209,6 +209,31 @@ function getUsernamesByAssenzaId($idAssenza)
   return $out;
 }
 
+function getAuleByAssenzaId($idAssenza)
+{
+  $id = (int)$idAssenza;
+  if ($id <= 0) return [];
+
+  $q = "
+    SELECT DISTINCT nroAula
+    FROM oralezione
+    WHERE idAssenza = $id
+      AND nroAula IS NOT NULL
+      AND nroAula <> ''
+    ORDER BY CAST(nroAula AS UNSIGNED), nroAula
+  ";
+
+  $rows = mb_dbGetAll($q) ?: [];
+
+  $out = [];
+  foreach ($rows as $r) {
+    $aula = trim((string)($r['nroAula'] ?? ''));
+    if ($aula !== '') $out[] = $aula;
+  }
+
+  return $out;
+}
+
 function getClassiByAssenzaId($idAssenza)
 {
   global $__conMBApp;
@@ -407,8 +432,19 @@ function espandiAssenzaInSlot($a, $ORARI)
     }
 
     $slots = [];
-    foreach ($ORARI as $o) {
-      if ($o >= $oraDa && $o < $oraA) $slots[] = $o;
+    for ($i = 0; $i < count($ORARI); $i++) {
+      $slotStart = $ORARI[$i];
+      $slotEnd = $ORARI[$i + 1] ?? '';
+
+      if ($slotEnd === '') {
+        continue;
+      }
+
+      // include lo slot se c'è sovrapposizione reale
+      // es. 14:00-15:15 sovrappone sia 13:50-14:40 sia 14:40-15:30
+      if ($slotStart < $oraA && $slotEnd > $oraDa) {
+        $slots[] = $slotStart;
+      }
     }
     if (empty($slots) && in_array($oraDa, $ORARI, true)) $slots[] = $oraDa;
 
@@ -965,6 +1001,98 @@ if ($scope === 'AULA') {
       pushEvUnique($grid, $r['dataGiorno'], $r['ora'], $ev);
     }
   }
+  // 3) Consigli di classe senza docenti agganciati:
+  // se in assenze.motivo = "CONSIGLIO DI CLASSE"
+  // e in dettagli c'è "CC 1A", lo mostro ai docenti che insegnano in 1A
+  $docenteLocale = dbGetFirst("
+    SELECT id
+    FROM docente
+    WHERE username = " . dbQ($target) . "
+    LIMIT 1
+  ");
+
+  $idDocenteLocale = (int)($docenteLocale['id'] ?? 0);
+
+  if ($idDocenteLocale > 0) {
+
+    $classiDocenteDaGestore = dbGetAll("
+      SELECT DISTINCT c.classe AS classe
+      FROM docente_insegna di
+      JOIN classi c ON c.id = di.id_classe
+      WHERE di.id_docente = " . dbI($idDocenteLocale) . "
+        AND c.classe IS NOT NULL
+        AND c.classe <> ''
+    ") ?: [];
+
+    $classiCdc = [];
+    foreach ($classiDocenteDaGestore as $r) {
+      $cl = strtoupper(trim((string)($r['classe'] ?? '')));
+      if ($cl !== '') {
+        $classiCdc[$cl] = true;
+      }
+    }
+
+    if (!empty($classiCdc)) {
+
+      // 3) Consigli di classe: classe letta da dettagli, docenti da docente_insegna
+      $qCdc = "
+  SELECT a.*
+  FROM assenze a
+  WHERE UPPER(TRIM(COALESCE(a.motivo, ''))) = 'CONSIGLIO DI CLASSE'
+    AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$fromEsc'
+    AND DATE(a.dataInizio) <= '$toEsc'
+    AND UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
+";
+
+      foreach (mb_dbGetAll($qCdc) ?: [] as $a) {
+
+        $det = strtoupper(trim((string)($a['dettagli'] ?? '')));
+
+        $classeCdc = '';
+        if (preg_match('/\bCC\s+([0-9][A-Z]{1,4})\b/u', $det, $m)) {
+          $classeCdc = strtoupper(trim($m[1]));
+        } elseif (preg_match('/\b([0-9][A-Z]{1,4})\b/u', $det, $m)) {
+          $classeCdc = strtoupper(trim($m[1]));
+        }
+
+        if ($classeCdc === '') continue;
+
+        $qTargetInClasse = "
+    SELECT COUNT(*) AS n
+    FROM docente_insegna di
+    JOIN docente d ON d.id = di.id_docente
+    JOIN classi c ON c.id = di.id_classe
+    WHERE d.username = " . dbQ($target) . "
+      AND UPPER(TRIM(c.classe)) = " . dbQ($classeCdc) . "
+  ";
+
+        $isDocenteClasse = (int)(dbGetValue($qTargetInClasse) ?? 0);
+
+        if ($isDocenteClasse <= 0) {
+          continue;
+        }
+
+        $ev = [
+          'type'   => 'imp',
+          'origin' => 'classe',
+          'class'  => 'ev ev-imp',
+          'title'  => 'Consiglio di classe · ' . $classeCdc,
+          'who'    => '',
+          'classi' => [$classeCdc],
+          'rooms'  => getAuleByAssenzaId((int)($a['idAssenza'] ?? 0)),
+          'badge'  => 'Consiglio di classe'
+        ];
+
+        $slots = espandiAssenzaInSlot($a, $ORARI);
+
+        foreach ($slots as $ymd => $ores) {
+          foreach ($ores as $ora) {
+            pushEvUnique($grid, $ymd, $ora, $ev);
+          }
+        }
+      }
+    }
+  }
 }
 
 /* -------------------- 2) ASSENZE collegate (SOLO DOCENTE/CLASSE) -------------------- */
@@ -972,8 +1100,8 @@ if ($VISIBILITY_LEVEL !== 'PUBLIC' && $scope === 'DOCENTE') {
 
   $u = mysqli_real_escape_string($__conMBApp, $target);
 
-  
-$qA = "
+
+  $qA = "
     SELECT a.*
     FROM assenze a
     WHERE a.idAssenza IN (

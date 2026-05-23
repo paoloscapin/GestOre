@@ -318,8 +318,17 @@
 
             const isAbs = ["uscc", "uscf", "viag", "perm", "pb"].includes(String(type || "").trim().toLowerCase());
             const ignoreWhoForThis = (isDocenteView && !isAbs && type === "curr");
+            const titleUp = String(title || ev.title || ev.label || "").trim().toUpperCase();
+            const badgeUp = String(badge || ev.badge || "").trim().toUpperCase();
 
-            const key = ignoreWhoForThis
+            const isConsiglioClasse =
+                isDocenteView &&
+                type === "imp" &&
+                (
+                    titleUp.includes("CONSIGLIO DI CLASSE") ||
+                    badgeUp.includes("CONSIGLIO DI CLASSE")
+                );
+            const key = (ignoreWhoForThis || isConsiglioClasse)
                 ? `${type}|||${title}|||${badge}`
                 : `${type}|||${title}|||${whoArr.join(",")}|||${badge}`;
 

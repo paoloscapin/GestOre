@@ -169,18 +169,34 @@ function isExcludedSpecial($text) {
 function getDocentiNomiByAssenzaId($idAssenza) {
     $id = (int)$idAssenza;
     if ($id <= 0) return [];
-    $q = "SELECT DISTINCT CONCAT(u.cognome,' ',u.nome) AS nom
-          FROM utilizza ut
-          JOIN utente u ON u.username = ut.username
-          WHERE ut.IDassenza = $id
-            AND ut.username IS NOT NULL AND ut.username <> ''
-          ORDER BY nom";
+
+    $q = "
+        SELECT DISTINCT CONCAT(u.cognome,' ',u.nome) AS nom
+        FROM utilizza ut
+        JOIN utente u ON u.username = ut.username
+        WHERE ut.IDassenza = $id
+          AND ut.username IS NOT NULL AND ut.username <> ''
+
+        UNION
+
+        SELECT DISTINCT CONCAT(u.cognome,' ',u.nome) AS nom
+        FROM oralezione o
+        JOIN utilizza ut ON ut.idCalendario = o.idCalendario
+        JOIN utente u ON u.username = ut.username
+        WHERE o.idAssenza = $id
+          AND ut.username IS NOT NULL AND ut.username <> ''
+
+        ORDER BY nom
+    ";
+
     $rows = mb_dbGetAll($q) ?: [];
     $out = [];
+
     foreach ($rows as $r) {
         $n = trim((string)($r['nom'] ?? ''));
         if ($n !== '') $out[] = $n;
     }
+
     return $out;
 }
 
@@ -211,6 +227,39 @@ function upNamesLines($s) {
     $lines = preg_split("/\r\n|\n|\r/", $s);
     $lines = array_map('upName', $lines);
     return trim(implode("\n", array_filter($lines, fn($x) => $x !== '')));
+}
+
+function getDocentiNomiFromUsernamesCsv($csv) {
+    global $__conMBApp;
+
+    $usernames = splitCsvUnique($csv);
+    if (empty($usernames)) return [];
+
+    $safe = [];
+    foreach ($usernames as $u) {
+        $u = trim((string)$u);
+        if ($u === '') continue;
+        $safe[] = "'" . mysqli_real_escape_string($__conMBApp, $u) . "'";
+    }
+
+    if (empty($safe)) return [];
+
+    $q = "
+        SELECT DISTINCT CONCAT(cognome, ' ', nome) AS nom
+        FROM utente
+        WHERE username IN (" . implode(',', $safe) . ")
+        ORDER BY nom
+    ";
+
+    $rows = mb_dbGetAll($q) ?: [];
+    $out = [];
+
+    foreach ($rows as $r) {
+        $n = trim((string)($r['nom'] ?? ''));
+        if ($n !== '') $out[] = $n;
+    }
+
+    return $out;
 }
 
 function getOraInRow($a) {
@@ -302,10 +351,11 @@ foreach ($assRows as $a) {
     $title = $baseTitle . ($detRaw !== '' ? ' · ' . $detRaw : '');
 
     $whoArr = getDocentiNomiByAssenzaId($idAss);
-    if (!$whoArr || count($whoArr) === 0) {
-        $docField = trim(h($a['docenti'] ?? ''));
-        $whoArr = splitDocentiVisual($docField);
-    }
+
+    $docField = trim(h($a['docenti'] ?? ''));
+    $whoFromAssenze = getDocentiNomiFromUsernamesCsv($docField);
+
+    $whoArr = mergeUniqueStrings($whoArr, $whoFromAssenze);
 
     $classi = getClassiByAssenzaId($idAss);
 

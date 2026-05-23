@@ -574,7 +574,15 @@
 
       // ✅ DOCENTE: ignora who SOLO per curr (così non fondi le UDI di docenti diversi)
       const ignoreWhoForThis = (isDocenteView && !isAbs && type === "curr");
-
+      // CONSIGLI DI CLASSE:
+      // in vista docente mostra comunque gli impegni anche senza who
+      if (
+        isDocenteView &&
+        type === "imp" &&
+        (!ev.who || !String(ev.who).trim())
+      ) {
+        ev.who = "__DOCENTE_IMPLICITO__";
+      }
       const key = ignoreWhoForThis
         ? `${type}|||${title}|||${badge}`
         : `${type}|||${title}|||${whoArr.join(",")}|||${badge}`;
@@ -2015,6 +2023,18 @@
 
         const keys = wl.map(normPersonName);
 
+        const titleUp = String(e.title || e.label || "").trim().toUpperCase();
+        const badgeUp = String(e.badge || "").trim().toUpperCase();
+
+        if (
+          tl === "imp" &&
+          (
+            titleUp.includes("CONSIGLIO DI CLASSE") ||
+            badgeUp.includes("CONSIGLIO DI CLASSE")
+          )
+        ) {
+          return true;
+        }
         // eventi di classe senza docente esplicito
         if (["imp", "pranzo", "studio"].includes(tl) && keys.length === 0) {
           return hasTargetInSlot;
