@@ -595,7 +595,10 @@ if ($period === 'GIORNO') {
 } else {
   $mon  = mondayOf($date);
   $from = $mon;
-  $to   = addDaysIso($mon, 4);
+
+  // A giugno includo anche il sabato: lunedì -> sabato
+  $month = (int)substr($date, 5, 2);
+  $to = ($month === 6) ? addDaysIso($mon, 5) : addDaysIso($mon, 4);
 }
 
 $fromEsc = mysqli_real_escape_string($__conMBApp, $from);

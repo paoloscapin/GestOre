@@ -131,7 +131,16 @@
    * Etichette colonne per vista settimanale.
    * Nella tabella settimanale avrai 5 colonne (lun..ven).
    */
-  const GIORNI_LABEL = ["LUN", "MAR", "MER", "GIO", "VEN"];
+  const GIORNI_LABEL_BASE = ["LUN", "MAR", "MER", "GIO", "VEN"];
+  const GIORNI_LABEL_GIUGNO = ["LUN", "MAR", "MER", "GIO", "VEN", "SAB"];
+
+  function isJuneDate(iso) {
+    return String(iso || "").slice(5, 7) === "06";
+  }
+
+  function giorniLabelForDate(iso) {
+    return isJuneDate(iso) ? GIORNI_LABEL_GIUGNO : GIORNI_LABEL_BASE;
+  }
 
   /** Fine anno scolastico: usato per popolare l'elenco di settimane nel select */
   const SCHOOL_START = "2025-09-10";
@@ -816,14 +825,33 @@
     return (day === 0 || day === 6);
   }
 
+  function isJuneDate(iso) {
+    return String(iso || "").slice(5, 7) === "06";
+  }
+
+  function isSkipDayForMobile(isoDate) {
+    const d = new Date(isoDate + "T00:00:00");
+    const day = d.getDay();
+
+    // Domenica sempre saltata
+    if (day === 0) return true;
+
+    // Sabato saltato solo fuori giugno
+    if (day === 6 && !isJuneDate(isoDate)) return true;
+
+    return false;
+  }
+
   function addSchoolDay(isoDate, delta) {
     let cur = isoDate;
     const step = delta >= 0 ? 1 : -1;
     let left = Math.abs(delta);
+
     while (left > 0) {
       cur = addDays(cur, step);
-      if (!isWeekend(cur)) left--;
+      if (!isSkipDayForMobile(cur)) left--;
     }
+
     return cur;
   }
 
@@ -950,8 +978,8 @@
   // =============================================================================
 
   function buildWeekLabel(monIso) {
-    const venIso = addDays(monIso, 4);
-    return `${isoToIt(monIso)} → ${isoToIt(venIso)}`;
+    const endIso = isJuneDate(monIso) ? addDays(monIso, 5) : addDays(monIso, 4);
+    return `${isoToIt(monIso)} → ${isoToIt(endIso)}`;
   }
 
   function fillWeekSelect() {
@@ -2386,8 +2414,8 @@
 
     const mon = getMonday(dateIso);
     const today = todayIso();
-    const days = GIORNI_LABEL.map((lab, i) => ({ lab, iso: addDays(mon, i) }));
-
+    const giorniLabel = giorniLabelForDate(dateIso);
+    const days = giorniLabel.map((lab, i) => ({ lab, iso: addDays(mon, i) }));
     const spansByDay = {};
     days.forEach(d => { spansByDay[d.iso] = computeRowspansForDay(d.iso); });
 
