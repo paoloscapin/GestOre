@@ -11,6 +11,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/programmiSvoltiCopertineLib.php';
+require_once '../common/programmiSvoltiVerificheDigitaliLib.php';
 require_once '../common/__Settings.php';
 
 function programmiSvoltiCanExportClasseWord(int $classeId, int $annoScolasticoId, int $docenteCorrenteId): bool
@@ -95,12 +96,12 @@ if ($docente_corrente_id > 0) {
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<thead>
 					<tr>
-						<th class="text-center col-md-1">Classe</th>
-						<th class="text-center col-md-2">Docente</th>
-						<th class="text-center col-md-3">Materia</th>
-						<th class="text-center col-md-2">Azioni</th>
-						<th class="text-center col-md-2">Ultimo aggiornamento</th>
-						<th class="text-center col-md-2">Autore ultimo aggiornamento</th>
+						<th class="text-center" style="width:6%;">Classe</th>
+						<th class="text-center" style="width:13%;">Docente</th>
+						<th class="text-center" style="width:27%;">Materia</th>
+						<th class="text-center" style="width:23%;">Azioni</th>
+						<th class="text-center" style="width:15%;">Ultimo aggiornamento</th>
+						<th class="text-center" style="width:16%;">Autore ultimo aggiornamento</th>
 					</tr>
 					</thead>';
 
@@ -235,7 +236,11 @@ foreach ($resultArray as $row) {
 		$can_export_classe_word = programmiSvoltiCanExportClasseWord($classe_id, $anno_scolastico_id, $docente_corrente_id);
 		$can_export_programma_word = ($classe_anno === 5) && ($is_programma_proprio || $can_export_classe_word);
 		$copertina_button = '';
+		$verifiche_digitali_button = '';
 		global $__settings;
+		if (getSettingsValue('programmiSvolti', 'verifiche_digitali_drive', true) && ($is_programma_proprio || haRuolo('dirigente') || haRuolo('segreteria-didattica'))) {
+			$verifiche_digitali_button = '<button onclick="programmiSvoltiVerificheDigitaliOpen(' . $programma_id . ')" class="btn btn-default btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Carica e gestisci verifiche digitali in formato ZIP"><span class="glyphicon glyphicon-compressed"></span></button>';
+		}
 		if ($__settings->programmiSvolti->stampa_copertine_verifiche) {
 			$copertina = $copertineTableExists ? programmiSvoltiCopertinaByProgramma($programma_id) : null;
 			$copertina_stato = strtoupper(trim((string)($copertina['stato'] ?? '')));
@@ -243,13 +248,13 @@ foreach ($resultArray as $row) {
 				if (!$copertineTableExists) {
 					$copertina_button = '<button class="btn btn-default btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Tabella copertine non configurata"><span class="glyphicon glyphicon-folder-close"></span></button>';
 				} elseif ($copertina_stato === 'RICHIESTA') {
-					$copertina_button = '<button class="btn btn-default btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Copertina richiesta"><span class="glyphicon glyphicon-folder-open"></span> Copertina richiesta</button>';
+					$copertina_button = '<button class="btn btn-default btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Copertina richiesta"><span class="glyphicon glyphicon-folder-open"></span></button>';
 				} elseif ($copertina_stato === 'GENERATA') {
-					$copertina_button = '<button class="btn btn-success btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Copertina generata: ' . htmlspecialchars((string)($copertina['fascicolo_codice'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><span class="glyphicon glyphicon-ok"></span> Copertina generata</button>';
+					$copertina_button = '<button class="btn btn-success btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Copertina generata: ' . htmlspecialchars((string)($copertina['fascicolo_codice'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><span class="glyphicon glyphicon-ok"></span></button>';
 				} elseif ($copertina_stato === 'STAMPATA') {
-					$copertina_button = '<button class="btn btn-primary btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Copertina stampata: ' . htmlspecialchars((string)($copertina['fascicolo_codice'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><span class="glyphicon glyphicon-print"></span> Copertina stampata</button>';
+					$copertina_button = '<button class="btn btn-primary btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Copertina stampata: ' . htmlspecialchars((string)($copertina['fascicolo_codice'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><span class="glyphicon glyphicon-print"></span></button>';
 				} else {
-					$copertina_button = '<button onclick="programmiSvoltiRichiediCopertina(' . $programma_id . ')" class="btn btn-default btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Richiedi copertina fascicolo verifiche"><span class="glyphicon glyphicon-folder-close"></span> Richiedi copertina</button>';
+					$copertina_button = '<button onclick="programmiSvoltiRichiediCopertina(' . $programma_id . ')" class="btn btn-default btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Richiedi copertina fascicolo verifiche"><span class="glyphicon glyphicon-folder-close"></span></button>';
 				}
 			}
 		}
@@ -265,7 +270,7 @@ foreach ($resultArray as $row) {
 		<td align="center">' . $materia . '</td>
 		';
 		$data .= '
-		<td class="text-center">';
+		<td class="text-center" style="white-space:nowrap;">';
 
 		if ($is_contesto_docente) {
 			if (getSettingsValue('programmiSvolti', 'visibile_docenti', false)) {
@@ -274,7 +279,6 @@ foreach ($resultArray as $row) {
 			' . ($classe_anno === 5 ? '<button onclick="programmiSvoltiPrintSolo(' . $programma_id . ')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera PDF solo di questo docente"><span class="glyphicon glyphicon-user"></span></button>' : '') . '
 			' . ($can_export_programma_word ? '<button onclick="programmiSvoltiWord(' . $programma_id . ')" class="btn btn-default btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word del programma svolto di quinta"><span class="glyphicon glyphicon-file"></span></button>' : '') . '
 			' . (($classe_anno === 5 && $can_export_classe_word) ? '<button onclick="programmiSvoltiWordClasse(' . $classe_id . ',' . $anno_scolastico_id . ')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Esporta Word unico dei programmi svolti della classe quinta"><span class="glyphicon glyphicon-book"></span></button>' : '') . '
-			' . $copertina_button . '
 					';
 				if (!$is_programma_proprio) {
 					$data .= '
@@ -293,6 +297,10 @@ foreach ($resultArray as $row) {
 			<button onclick="programmiSvoltiGetDetails(' . $programma_id . ',\'false\',\'false\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Vedi il programma"><span class="glyphicon glyphicon-search"></button>';
 					}
 				}
+				$data .= '
+			' . $copertina_button . '
+			' . $verifiche_digitali_button . '
+					';
 			}
 		} else if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
 			$data .= '
@@ -307,6 +315,10 @@ foreach ($resultArray as $row) {
 			if ($da_completare_filtro_id == 1) {
 				$data .= '<button onclick="inviaSollecito(' . $programma_id . ')" class="btn btn-dark btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia un sollecito al docente"><span class="glyphicon glyphicon-warning-sign"></button>';
 			}
+			$data .= '
+			' . $copertina_button . '
+			' . $verifiche_digitali_button . '
+					';
 		}
 		$data .= '
 		</td>

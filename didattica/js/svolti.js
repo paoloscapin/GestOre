@@ -1855,6 +1855,234 @@ function programmiSvoltiRichiediCopertina(id_programma) {
     });
 }
 
+function programmiSvoltiVerificheDigitaliNotify(message, type) {
+    type = type || 'info';
+    if ($.notify) {
+        $.notify({ message: message }, { type: type });
+    } else {
+        alert(message);
+    }
+}
+
+function programmiSvoltiVerificheDigitaliOpen(id_programma) {
+    $("#programmi_svolti_verifiche_programma_id").val(id_programma);
+    $("#programmi_svolti_verifiche_files").val("");
+    programmiSvoltiVerificheDigitaliSetProgress(0, false);
+    $("#programmi_svolti_verifiche_folder_name").text("caricamento...");
+    $("#programmi_svolti_verifiche_list").html('<div class="text-muted">Caricamento...</div>');
+    $("#programmi_svolti_verifiche_modal").modal("show");
+    programmiSvoltiVerificheDigitaliLoad();
+}
+
+function programmiSvoltiVerificheDigitaliLoad() {
+    var idProgramma = parseInt($("#programmi_svolti_verifiche_programma_id").val(), 10) || 0;
+    if (idProgramma <= 0) {
+        return;
+    }
+
+    $.getJSON("programmiSvoltiVerificheDigitaliRead.php", {
+        programma_id: idProgramma
+    }, function (response) {
+        if (!response || response.success === false) {
+            $("#programmi_svolti_verifiche_list").html('<div class="alert alert-danger">' + ((response && response.message) ? response.message : 'Errore nel caricamento dei file.') + '</div>');
+            return;
+        }
+        $("#programmi_svolti_verifiche_folder_name").text(response.folderName || "");
+        $("#programmi_svolti_verifiche_list").html(response.html || "");
+        if (response.title) {
+            $("#programmiSvoltiVerificheLabel").text("Verifiche digitali - " + response.title);
+        }
+    }).fail(function () {
+        $("#programmi_svolti_verifiche_list").html('<div class="alert alert-danger">Errore di connessione durante il caricamento dei file.</div>');
+    });
+}
+
+function programmiSvoltiVerificheDigitaliSetProgress(percent, visible) {
+    percent = Math.max(0, Math.min(100, Math.round(percent || 0)));
+    $("#programmi_svolti_verifiche_progress_box").toggle(!!visible);
+    $("#programmi_svolti_verifiche_progress").css("width", percent + "%").text(percent + "%");
+}
+
+function programmiSvoltiVerificheDigitaliUpload() {
+    var idProgramma = parseInt($("#programmi_svolti_verifiche_programma_id").val(), 10) || 0;
+    var files = Array.prototype.slice.call($("#programmi_svolti_verifiche_files")[0].files || []);
+
+    if (idProgramma <= 0) {
+        programmiSvoltiVerificheDigitaliNotify("Programma svolto non indicato.", "danger");
+        return;
+    }
+    if (files.length === 0) {
+        programmiSvoltiVerificheDigitaliNotify("Seleziona almeno un file ZIP da caricare.", "warning");
+        return;
+    }
+    for (var i = 0; i < files.length; i++) {
+        if (!/\.zip$/i.test(files[i].name || "")) {
+            programmiSvoltiVerificheDigitaliNotify("Puoi caricare solo file ZIP. Controlla: " + files[i].name, "warning");
+            return;
+        }
+    }
+
+    $("#programmi_svolti_verifiche_upload_btn").prop("disabled", true);
+    programmiSvoltiVerificheDigitaliSetProgress(0, true);
+    programmiSvoltiVerificheDigitaliUploadSequenziale(files, 0, 0);
+}
+
+function programmiSvoltiVerificheDigitaliUploadSequenziale(files, index, completedPercent) {
+    if (index >= files.length) {
+        $("#programmi_svolti_verifiche_upload_btn").prop("disabled", false);
+        $("#programmi_svolti_verifiche_files").val("");
+        programmiSvoltiVerificheDigitaliSetProgress(100, true);
+        programmiSvoltiVerificheDigitaliNotify("File ZIP caricati su Drive.", "success");
+        programmiSvoltiVerificheDigitaliLoad();
+        programmiSvoltiReadRecords();
+        setTimeout(function () {
+            programmiSvoltiVerificheDigitaliSetProgress(0, false);
+        }, 1200);
+        return;
+    }
+
+    var file = files[index];
+    var basePercent = completedPercent || 0;
+    var fileQuota = 100 / files.length;
+    programmiSvoltiVerificheDigitaliUploadFile(file, function (filePercent) {
+        programmiSvoltiVerificheDigitaliSetProgress(basePercent + (filePercent * fileQuota / 100), true);
+    }, function () {
+        programmiSvoltiVerificheDigitaliUploadSequenziale(files, index + 1, basePercent + fileQuota);
+    }, function (message) {
+        $("#programmi_svolti_verifiche_upload_btn").prop("disabled", false);
+        programmiSvoltiVerificheDigitaliNotify(message || ("Errore nel caricamento di " + file.name), "danger");
+    });
+}
+
+function programmiSvoltiVerificheDigitaliUploadFile(file, onProgress, onDone, onError) {
+    var idProgramma = parseInt($("#programmi_svolti_verifiche_programma_id").val(), 10) || 0;
+    $.ajax({
+        url: "programmiSvoltiVerificheDigitaliUploadStart.php",
+        method: "POST",
+        dataType: "json",
+        data: {
+            programma_id: idProgramma,
+            name: file.name,
+            mime: file.type || "application/zip",
+            size: file.size
+        }
+    }).done(function (startResponse) {
+        if (!startResponse || startResponse.success === false || !startResponse.uploadUrl) {
+            onError((startResponse && startResponse.message) ? startResponse.message : "Non riesco ad avviare il caricamento su Drive.");
+            return;
+        }
+        programmiSvoltiVerificheDigitaliUploadChunks(file, startResponse, onProgress, function (driveFile) {
+            programmiSvoltiVerificheDigitaliComplete(file, startResponse, driveFile, onDone, onError);
+        }, onError);
+    }).fail(function (xhr) {
+        var response = xhr.responseJSON || {};
+        onError(response.message || "Errore durante l'avvio del caricamento su Drive.");
+    });
+}
+
+function programmiSvoltiVerificheDigitaliUploadChunks(file, startResponse, onProgress, onDone, onError) {
+    var chunkSize = 8 * 1024 * 1024;
+    var offset = 0;
+
+    function sendNextChunk() {
+        var end = Math.min(offset + chunkSize, file.size);
+        var chunk = file.slice(offset, end);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("PUT", "programmiSvoltiVerificheDigitaliUploadChunk.php", true);
+        xhr.setRequestHeader("X-Drive-Upload-Url", startResponse.uploadUrl);
+        xhr.setRequestHeader("X-File-Size", file.size);
+        xhr.setRequestHeader("Content-Type", file.type || "application/zip");
+        xhr.setRequestHeader("Content-Range", "bytes " + offset + "-" + (end - 1) + "/" + file.size);
+
+        xhr.onload = function () {
+            if (xhr.status === 308) {
+                offset = end;
+                onProgress(file.size > 0 ? (offset / file.size) * 95 : 95);
+                sendNextChunk();
+                return;
+            }
+
+            if (xhr.status !== 200 && xhr.status !== 201) {
+                onError("Errore upload Drive HTTP " + xhr.status + ": " + xhr.responseText);
+                return;
+            }
+
+            var parsed = {};
+            try {
+                parsed = JSON.parse(xhr.responseText || "{}");
+            } catch (e) { }
+            offset = end;
+            onProgress(file.size > 0 ? (offset / file.size) * 95 : 95);
+            onDone(parsed);
+        };
+
+        xhr.onerror = function () {
+            onError("Errore di rete durante il trasferimento del file a Drive.");
+        };
+
+        xhr.upload.onprogress = function (e) {
+            if (e.lengthComputable) {
+                onProgress(file.size > 0 ? ((offset + e.loaded) / file.size) * 95 : 95);
+            }
+        };
+
+        xhr.send(chunk);
+    }
+
+    sendNextChunk();
+}
+
+function programmiSvoltiVerificheDigitaliComplete(file, startResponse, driveFile, onDone, onError) {
+    var idProgramma = parseInt($("#programmi_svolti_verifiche_programma_id").val(), 10) || 0;
+    $.ajax({
+        url: "programmiSvoltiVerificheDigitaliUploadComplete.php",
+        method: "POST",
+        dataType: "json",
+        data: {
+            programma_id: idProgramma,
+            folder_id: startResponse.folderId || "",
+            file_id: driveFile.id || "",
+            web_view_link: driveFile.webViewLink || "",
+            name: file.name,
+            drive_name: startResponse.driveName || file.name,
+            mime: driveFile.mimeType || file.type || "application/zip",
+            size: driveFile.size || file.size
+        }
+    }).done(function (response) {
+        if (!response || response.success === false) {
+            onError((response && response.message) ? response.message : "File caricato, ma non registrato in GestOre.");
+            return;
+        }
+        onDone();
+    }).fail(function (xhr) {
+        var response = xhr.responseJSON || {};
+        onError(response.message || "Errore durante la registrazione del file in GestOre.");
+    });
+}
+
+function programmiSvoltiVerificheDigitaliDelete(id) {
+    if (!confirm("Vuoi eliminare questo file ZIP da Drive?")) {
+        return;
+    }
+
+    $.post("programmiSvoltiVerificheDigitaliDelete.php", {
+        id: id
+    }, function (response) {
+        var result = typeof response === "string" ? JSON.parse(response || "{}") : response;
+        if (!result || result.success === false) {
+            programmiSvoltiVerificheDigitaliNotify((result && result.message) ? result.message : "Errore durante l'eliminazione.", "danger");
+            return;
+        }
+        programmiSvoltiVerificheDigitaliNotify("File eliminato.", "success");
+        programmiSvoltiVerificheDigitaliLoad();
+        programmiSvoltiReadRecords();
+    }, "json").fail(function (xhr) {
+        var response = xhr.responseJSON || {};
+        programmiSvoltiVerificheDigitaliNotify(response.message || "Errore durante l'eliminazione.", "danger");
+    });
+}
+
 function moduloSvoltiDelete(id, id_programma, titolo) {
     var conf = confirm("Sei sicuro di volere cancellare il modulo  " + titolo + " ?");
     if (conf == true) {

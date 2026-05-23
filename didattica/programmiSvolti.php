@@ -1129,6 +1129,58 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
         </div>
         <!-- // Modal - Add/Update Record -->
 
+        <div class="modal fade" id="programmi_svolti_verifiche_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="programmiSvoltiVerificheLabel">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <div class="panel panel-info" style="margin-bottom:0;">
+                            <div class="panel-heading">
+                                <h3 class="modal-title" id="programmiSvoltiVerificheLabel" style="text-align:center">Verifiche digitali</h3>
+                            </div>
+                            <div class="panel-body">
+                                <input type="hidden" id="programmi_svolti_verifiche_programma_id" value="0">
+
+                                <div class="alert alert-info">
+                                    <strong>Come preparare i file:</strong>
+                                    raggruppa ogni verifica in una cartella separata e comprimi la cartella in un file ZIP.
+                                    In alternativa puoi inserire tutte le cartelle delle verifiche in un'unica cartella e comprimere quella cartella in un file ZIP.
+                                    Puoi caricare uno o piu file ZIP.
+                                </div>
+
+                                <div class="well well-sm">
+                                    <strong>Cartella Drive:</strong>
+                                    <span id="programmi_svolti_verifiche_folder_name" class="text-muted">caricamento...</span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="programmi_svolti_verifiche_files">File ZIP da caricare</label>
+                                    <input type="file" id="programmi_svolti_verifiche_files" class="form-control" accept=".zip,application/zip,application/x-zip-compressed" multiple>
+                                </div>
+
+                                <div id="programmi_svolti_verifiche_progress_box" class="progress" style="display:none;">
+                                    <div id="programmi_svolti_verifiche_progress" class="progress-bar progress-bar-success" role="progressbar" style="width:0%;">0%</div>
+                                </div>
+
+                                <div class="text-right" style="margin-bottom:12px;">
+                                    <button type="button" class="btn btn-primary" id="programmi_svolti_verifiche_upload_btn" onclick="programmiSvoltiVerificheDigitaliUpload()">
+                                        <span class="glyphicon glyphicon-cloud-upload"></span> Carica ZIP
+                                    </button>
+                                </div>
+
+                                <h4>File caricati</h4>
+                                <div id="programmi_svolti_verifiche_list">
+                                    <div class="text-muted">Caricamento...</div>
+                                </div>
+                            </div>
+                            <div class="panel-footer text-center">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Custom JS file -->
