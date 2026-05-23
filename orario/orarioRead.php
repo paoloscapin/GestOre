@@ -1096,6 +1096,45 @@ if ($scope === 'AULA') {
       }
     }
   }
+
+  // 4) Collegio docenti: evento visibile a TUTTI i docenti
+  // MBApp: motivo = IMPEGNO IN ISTITUTO, dettagli contiene "Collegio Docenti"
+  $qCollegio = "
+  SELECT a.*
+  FROM assenze a
+  WHERE UPPER(TRIM(COALESCE(a.motivo, ''))) = 'IMPEGNO IN ISTITUTO'
+    AND UPPER(TRIM(COALESCE(a.dettagli, ''))) LIKE '%COLLEGIO DOCENTI%'
+    AND DATE(COALESCE(NULLIF(a.dataFine,''), a.dataInizio)) >= '$fromEsc'
+    AND DATE(a.dataInizio) <= '$toEsc'
+    AND UPPER(TRIM(COALESCE(a.stato, ''))) = 'CONFERMATO'
+";
+
+  foreach (mb_dbGetAll($qCollegio) ?: [] as $a) {
+
+    $ev = [
+      'type'   => 'imp',
+      'origin' => 'classe',
+      'class'  => 'ev ev-imp',
+      'title'  => 'Collegio Docenti',
+      'who'    => '',
+      'classi' => [],
+      'rooms'  => getAuleByAssenzaId((int)($a['idAssenza'] ?? 0)),
+      'badge'  => 'Collegio Docenti'
+    ];
+
+    // Se per qualche motivo non trova l'aula da oralezione, imposto 221
+    if (empty($ev['rooms'])) {
+      $ev['rooms'] = ['221'];
+    }
+
+    $slots = espandiAssenzaInSlot($a, $ORARI);
+
+    foreach ($slots as $ymd => $ores) {
+      foreach ($ores as $ora) {
+        pushEvUnique($grid, $ymd, $ora, $ev);
+      }
+    }
+  }
 }
 
 /* -------------------- 2) ASSENZE collegate (SOLO DOCENTE/CLASSE) -------------------- */

@@ -326,7 +326,9 @@
                 type === "imp" &&
                 (
                     titleUp.includes("CONSIGLIO DI CLASSE") ||
-                    badgeUp.includes("CONSIGLIO DI CLASSE")
+                    badgeUp.includes("CONSIGLIO DI CLASSE") ||
+                    titleUp.includes("COLLEGIO DOCENTI") ||
+                    badgeUp.includes("COLLEGIO DOCENTI")
                 );
             const key = (ignoreWhoForThis || isConsiglioClasse)
                 ? `${type}|||${title}|||${badge}`
