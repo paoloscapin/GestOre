@@ -1,4 +1,5 @@
 <?php
+
 /**
  *  This file is part of GestOre
  *  @author     Massimo Saiani <massimo.saiani@buonarroti.tn.it>
@@ -190,10 +191,40 @@ function mbapp_sync_sportello(int $sportello_id, array $p): array
         mb_dbExec($sqlA);
         $affA = (int)mb_dbAffectedRows();
 
+        $affUdel = 0;
+        $affUins = 0;
+
+        $docente_id = (int)($p['docente_id'] ?? 0);
+        $usernameMB = $docente_id > 0 ? mbapp_username_from_docente_id($docente_id) : '';
+
+        if ($usernameMB !== '') {
+            $uEsc = addslashes($usernameMB);
+
+            mb_dbExec("
+                DELETE FROM utilizza
+                WHERE idCalendario = $idCal
+                AND IDassenza = $idAss
+            ");
+            $affUdel = (int)mb_dbAffectedRows();
+
+            mb_dbExec("
+                INSERT INTO utilizza (idCalendario, username, IDassenza)
+                VALUES ($idCal, '$uEsc', $idAss)
+            ");
+            $affUins = (int)mb_dbAffectedRows();
+
+            mb_dbExec("
+                UPDATE assenze
+                SET docenti = '$uEsc'
+                WHERE idAssenza = $idAss
+                LIMIT 1
+            ");
+        }
+
         return [
             'ok' => true,
             'action' => 'update',
-            'msg' => "MBApp aggiornata (oralezione:$affO, assenze:$affA) preserve_text_fields=" . ($preserve ? 'true' : 'false'),
+            'msg' => "MBApp aggiornata (oralezione:$affO, assenze:$affA, utilizza del:$affUdel ins:$affUins) preserve_text_fields=" . ($preserve ? 'true' : 'false'),
             'idAssenza' => $idAss,
             'idCalendario' => $idCal
         ];
