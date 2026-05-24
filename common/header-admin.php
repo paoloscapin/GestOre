@@ -35,6 +35,7 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/biglietti_eventi.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Eventi Biglietti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/tickets.php"><span class="glyphicon glyphicon-barcode"></span>&ensp;Assegna Biglietti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/newsletter.php"><span class="glyphicon glyphicon-bullhorn"></span>&ensp;Newsletter GestOre</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/gestore_config.php"><span class="glyphicon glyphicon-cog"></span>&ensp;Configurazione JSON</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/googleCalendarDocenti.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Google Calendar Docenti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/googleCalendarIstituto.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Google Calendar Istituto</a></li>
 				</ul>
