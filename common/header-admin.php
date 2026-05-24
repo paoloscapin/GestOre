@@ -50,6 +50,7 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_parents.php"><span class="glyphicon glyphicon-user"></span>&ensp;Genitori</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_teachers.php"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Docenti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_classes.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Classi</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_docente_insegna_sync.php"><span class="glyphicon glyphicon-link"></span>&ensp;Docenti - classi/materie</a></li>
 					<li role="separator" class="divider"></li>
 					<li class="dropdown-header">Rilevazioni</li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_teacher_snapshot.php"><span class="glyphicon glyphicon-eye-open"></span>&ensp;Docenti in classe adesso</a></li>
