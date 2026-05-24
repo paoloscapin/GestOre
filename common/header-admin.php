@@ -36,6 +36,7 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/tickets.php"><span class="glyphicon glyphicon-barcode"></span>&ensp;Assegna Biglietti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/newsletter.php"><span class="glyphicon glyphicon-bullhorn"></span>&ensp;Newsletter GestOre</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/googleCalendarDocenti.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Google Calendar Docenti</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/googleCalendarIstituto.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Google Calendar Istituto</a></li>
 				</ul>
 			</li>
 			<li class="dropdown">

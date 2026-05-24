@@ -10,7 +10,7 @@ require_once __DIR__ . '/googleCalendarDocentiLib.php';
 setLogChannel('google_calendar_mbapp');
 
 $isCli = (PHP_SAPI === 'cli');
-if (!$isCli) {
+if (!$isCli && !defined('GESTORE_CDC_COLLEGIO_SYNC_LIBRARY')) {
     header('Content-Type: application/json; charset=utf-8');
 }
 
@@ -37,6 +37,17 @@ function cdcMbEsc($v)
 {
     global $__conMBApp;
     return mysqli_real_escape_string($__conMBApp, (string)$v);
+}
+
+function cdcAnnoScolasticoCorrenteId()
+{
+    global $__anno_scolastico_corrente_id;
+
+    if (isset($__anno_scolastico_corrente_id) && intval($__anno_scolastico_corrente_id) > 0) {
+        return intval($__anno_scolastico_corrente_id);
+    }
+
+    return intval(dbGetValue('SELECT anno_scolastico_id FROM anno_scolastico_corrente LIMIT 1'));
 }
 
 function cdcExtractClasse($dettagli)
@@ -170,6 +181,11 @@ function cdcDocentiRowsToAttendees($rows)
 function cdcDocentiByClasse($classe)
 {
     $classeEsc = dbEscape($classe);
+    $idAnnoScolastico = cdcAnnoScolasticoCorrenteId();
+
+    if ($idAnnoScolastico <= 0) {
+        throw new Exception('Anno scolastico corrente non determinato');
+    }
 
     $rows = dbGetAll("
         SELECT DISTINCT d.username, d.email, d.cognome, d.nome
@@ -178,8 +194,10 @@ function cdcDocentiByClasse($classe)
         JOIN classi c ON c.id = di.id_classe
         WHERE UPPER(TRIM(c.classe)) = UPPER(TRIM('$classeEsc'))
           AND d.attivo = TRUE
+          AND c.attiva = 1
           AND d.username IS NOT NULL
           AND d.username <> ''
+          AND di.id_anno_scolastico = " . dbI($idAnnoScolastico) . "
         ORDER BY d.cognome, d.nome
     ") ?: [];
 
@@ -335,6 +353,8 @@ function cdcUpsertGoogleEvent($calendarConfig, $item, $dryRun = false)
             'idAssenza' => $idAssenza,
             'calendar_config_id' => $configId,
             'calendar_nome' => $calendarConfig['nome'] ?? '',
+            'google_event_id' => $sync ? (string)($sync['google_event_id'] ?? '') : '',
+            'titolo' => (string)($event['summary'] ?? ''),
             'attendees_count' => $item['attendees_count'],
             'event' => $event
         ];
@@ -430,26 +450,13 @@ function cdcUpsertGoogleEvent($calendarConfig, $item, $dryRun = false)
         'calendar_config_id' => $configId,
         'calendar_nome' => $calendarConfig['nome'] ?? '',
         'google_event_id' => $googleEventId,
+        'titolo' => $titolo,
         'attendees_count' => $item['attendees_count']
     ];
 }
 
-try {
-    global $__settings;
-
-    $token = cdcParam('token');
-    $expected = (string)($__settings->local->googleCalendar->syncSecret ?? '');
-
-    if (!$isCli && ($expected === '' || !hash_equals($expected, $token))) {
-        http_response_code(403);
-        echo json_encode(['ok' => false, 'error' => 'Token non valido'], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-
-    $from = cdcParam('from', date('Y-m-d'));
-    $to = cdcParam('to', date('Y-m-d', strtotime('+30 days')));
-    $dryRun = in_array(strtolower(cdcParam('dry_run', '0')), ['1', 'true', 'yes'], true);
-
+function cdcRunSync($from, $to, $dryRun = false)
+{
     if (!cdcIsIsoDate($from) || !cdcIsIsoDate($to)) {
         throw new Exception('Date non valide: usare from/to in formato YYYY-MM-DD');
     }
@@ -468,18 +475,39 @@ try {
         $results[] = cdcUpsertGoogleEvent($calendarConfig, $item, $dryRun);
     }
 
-    echo json_encode([
+    return [
         'ok' => true,
         'from' => $from,
         'to' => $to,
         'dry_run' => $dryRun,
+        'id_anno_scolastico' => cdcAnnoScolasticoCorrenteId(),
         'calendar_config_id' => intval($calendarConfig['id']),
         'calendar_nome' => $calendarConfig['nome'] ?? '',
         'calendar_id' => $calendarConfig['calendar_id'] ?? '',
         'found' => count($rows),
         'processed' => count($results),
         'results' => $results
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    ];
+}
+
+if (!defined('GESTORE_CDC_COLLEGIO_SYNC_LIBRARY')) {
+try {
+    global $__settings;
+
+    $token = cdcParam('token');
+    $expected = (string)($__settings->local->googleCalendar->syncSecret ?? '');
+
+    if (!$isCli && ($expected === '' || !hash_equals($expected, $token))) {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'error' => 'Token non valido'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $from = cdcParam('from', date('Y-m-d'));
+    $to = cdcParam('to', date('Y-m-d', strtotime('+30 days')));
+    $dryRun = in_array(strtolower(cdcParam('dry_run', '0')), ['1', 'true', 'yes'], true);
+
+    echo json_encode(cdcRunSync($from, $to, $dryRun), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
     if ($isCli) echo PHP_EOL;
 
@@ -496,4 +524,5 @@ try {
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
     if ($isCli) echo PHP_EOL;
+}
 }
