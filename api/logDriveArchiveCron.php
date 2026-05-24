@@ -158,7 +158,29 @@ function logDriveArchiveDriveName(array $file): string
     return $date . ' - ' . (string)$file['name'];
 }
 
-$providedSecret = trim((string)($_GET['secret'] ?? $_POST['secret'] ?? ''));
+function logDriveArchiveRequestValue(string $key, string $default = ''): string
+{
+    if (isset($_GET[$key])) {
+        return trim((string)$_GET[$key]);
+    }
+    if (isset($_POST[$key])) {
+        return trim((string)$_POST[$key]);
+    }
+    if (php_sapi_name() === 'cli') {
+        global $argv;
+        foreach (($argv ?? []) as $arg) {
+            if (strpos($arg, $key . '=') === 0) {
+                return trim(substr($arg, strlen($key) + 1));
+            }
+            if (strpos($arg, '--' . $key . '=') === 0) {
+                return trim(substr($arg, strlen($key) + 3));
+            }
+        }
+    }
+    return $default;
+}
+
+$providedSecret = logDriveArchiveRequestValue('secret');
 $expectedSecret = logDriveArchiveSecret();
 if ($expectedSecret === '' || !hash_equals($expectedSecret, $providedSecret)) {
     http_response_code(403);

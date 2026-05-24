@@ -10,8 +10,30 @@ header('Content-Type: application/json');
 @set_time_limit(60);
 
 global $__settings;
+
+function gmailRefreshWatchRequestValue(string $key, string $default = ''): string
+{
+    if (isset($_GET[$key])) {
+        return trim((string)$_GET[$key]);
+    }
+    if (isset($_POST[$key])) {
+        return trim((string)$_POST[$key]);
+    }
+    if (php_sapi_name() === 'cli') {
+        global $argv;
+        foreach (($argv ?? []) as $arg) {
+            if (strpos($arg, $key . '=') === 0) {
+                return trim(substr($arg, strlen($key) + 1));
+            }
+            if (strpos($arg, '--' . $key . '=') === 0) {
+                return trim(substr($arg, strlen($key) + 3));
+            }
+        }
+    }
+    return $default;
+}
 // 🔐 protezione semplice
-$secret = $_GET['secret'] ?? '';
+$secret = gmailRefreshWatchRequestValue('secret');
 $configSecret = $__settings->local->watch_secret ?? '';
 
 if ($secret !== $configSecret) {
