@@ -4,8 +4,8 @@
  *
  * CRON (ore 08:00):
  * - prende gli sportelli ATTIVI di OGGI con studenti iscritti
- * - legge assenze MBApp con motivo PERMESSO / PERMESSO BREVE che coprono oggi (data + fascia oraria)
- * - se un docente risulta in permesso durante l'orario dello sportello:
+ * - legge assenze/impegni MBApp del docente che coprono oggi (data + fascia oraria)
+ * - se un docente risulta assente o impegnato durante l'orario dello sportello:
  *      - ANNULLA sportello in GestOre
  *      - invia mail a docente + studenti (DRY-RUN: mostra cosa invierebbe)
  *      - cancella prenotazione aula su MBApp (DRY-RUN: mostra le query)
@@ -153,11 +153,11 @@ function mbapp_getUtenteByUsername(string $username): ?array {
 }
 
 /** =========================
- * MBApp: carica permessi di oggi (PERMESSO / PERMESSO BREVE)
+ * MBApp: carica assenze/impegni docente di oggi che bloccano lo sportello.
  * ========================= */
 function mbapp_loadPermessiOggi(string $oggiYmd): array {
-    // carichiamo tutte le assenze che includono oggi, motivo permesso
-    // poi filtriamo/indiciamo per docente
+    // carichiamo tutte le assenze/impegni che includono oggi e possono rendere
+    // il docente non disponibile per lo sportello, poi filtriamo/indiciamo per docente
     $oggiEsc = mysqli_real_escape_string($GLOBALS['__conMBApp'], $oggiYmd);
 
     $sql = "
@@ -167,13 +167,22 @@ function mbapp_loadPermessiOggi(string $oggiYmd): array {
             oraInizio, oraFine,
             oraInizioReale, oraFineReale
         FROM assenze
-        WHERE (UPPER(motivo) LIKE 'PERMESSO%' OR UPPER(dettagli) LIKE 'PERMESSO%')
+        WHERE (
+              UPPER(motivo) LIKE 'PERMESSO%'
+           OR UPPER(dettagli) LIKE 'PERMESSO%'
+           OR UPPER(motivo) LIKE 'USCITA NEL COMUNE%'
+           OR UPPER(motivo) LIKE 'USCITA FUORI COMUNE%'
+           OR UPPER(motivo) LIKE 'VIAGGIO%ISTRUZIONE%'
+           OR UPPER(dettagli) LIKE 'USCITA NEL COMUNE%'
+           OR UPPER(dettagli) LIKE 'USCITA FUORI COMUNE%'
+           OR UPPER(dettagli) LIKE 'VIAGGIO%ISTRUZIONE%'
+        )
           AND DATE(dataInizio) <= DATE('$oggiEsc')
           AND DATE(dataFine)   >= DATE('$oggiEsc')
     ";
 
-    cron_info("Carico permessi MBApp per oggi=$oggiYmd");
-    out("MBAPP: SELECT permessi di oggi", $sql);
+    cron_info("Carico assenze/impegni docente MBApp per oggi=$oggiYmd");
+    out("MBAPP: SELECT assenze/impegni docente di oggi", $sql);
 
     $rows = mb_dbGetAll($sql);
     if (!$rows) $rows = [];
@@ -305,9 +314,9 @@ if (!count($sportelli)) {
     exit;
 }
 
-/** 2) permessi MBApp di oggi indicizzati per docente username (nome.cognome) */
+/** 2) assenze/impegni MBApp di oggi indicizzati per docente username (nome.cognome) */
 $permessiByDocente = mbapp_loadPermessiOggi($oggi);
-out("Permessi MBApp indicizzati", "docenti con permesso oggi: " . count($permessiByDocente));
+out("Assenze/impegni MBApp indicizzati", "docenti con assenza/impegno oggi: " . count($permessiByDocente));
 
 /** 3) per ogni sportello: verifica conflitto */
 foreach ($sportelli as $s) {
@@ -369,7 +378,7 @@ foreach ($sportelli as $s) {
 
     // Conflitto trovato
     $p0 = $conflitti[0];
-    cron_warn("CONFLITTO: sportello_id=$sportello_id docente=$guessUsername permesso {$p0['oraDa']}-{$p0['oraA']} motivo={$p0['motivo']}");
+    cron_warn("CONFLITTO: sportello_id=$sportello_id docente=$guessUsername assenza/impegno {$p0['oraDa']}-{$p0['oraA']} motivo={$p0['motivo']}");
 
     out("CONFLITTO sportello_id=$sportello_id", json_encode([
         'sportello' => [
@@ -381,7 +390,7 @@ foreach ($sportelli as $s) {
             'docente' => $docenteNome,
             'username_guess' => $guessUsername,
         ],
-        'permesso' => $p0,
+        'assenza_impegno' => $p0,
         'conflitti_count' => count($conflitti)
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 
@@ -395,7 +404,7 @@ foreach ($sportelli as $s) {
     }
 
     /** 3.2) annulla sportello in GestOre */
-    $whyUpd = "ANNULLA sportello per permesso docente (sportello_id=$sportello_id)";
+    $whyUpd = "ANNULLA sportello per assenza/impegno docente (sportello_id=$sportello_id)";
     $sqlUpd = "
         UPDATE sportello
         SET cancellato = 1,
