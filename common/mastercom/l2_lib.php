@@ -201,6 +201,16 @@ function mastercomL2DisplayDbHour($value): string
     return substr(mastercomL2NormHour((string)$value), 0, 5);
 }
 
+function mastercomL2StudentHoursTableAvailable(): bool
+{
+    return mastercomAdminTableExists('mastercom_l2_studente_ore');
+}
+
+function mastercomL2StudentHourKey(int $weekday, string $hour): string
+{
+    return intval($weekday) . '|' . mastercomL2NormHour($hour);
+}
+
 function mastercomL2Exec(string $query): array
 {
     global $__con;
@@ -876,6 +886,164 @@ function mastercomL2LoadStudentsForClass(int $l2ClassId): array
     ") ?: [];
 }
 
+function mastercomL2LoadScheduleSlotsForClass(int $l2ClassId, string $weekOf = ''): array
+{
+    if ($l2ClassId <= 0) {
+        return [];
+    }
+
+    $week = mastercomL2WeekContext($weekOf);
+    $slots = [];
+    foreach (mastercomL2LoadLessons($week['week_start'], $week['week_end'], 0) as $lesson) {
+        if (intval($lesson['id_l2_classe'] ?? 0) !== $l2ClassId) {
+            continue;
+        }
+
+        $date = mastercomL2NormDate((string)($lesson['date'] ?? ''));
+        $hour = mastercomL2NormHour($lesson['hour'] ?? '');
+        if ($date === '' || $hour === '') {
+            continue;
+        }
+
+        $weekday = intval((new DateTime($date))->format('N'));
+        $key = mastercomL2StudentHourKey($weekday, $hour);
+        $slots[$key] = [
+            'key' => $key,
+            'weekday' => $weekday,
+            'weekday_label' => mastercomL2WeekdayLabels()[$weekday] ?? '',
+            'date' => $date,
+            'hour' => $hour,
+            'end_hour' => mastercomL2SlotEnd($hour),
+        ];
+    }
+
+    usort($slots, function ($left, $right) {
+        $leftValue = sprintf('%d %s', intval($left['weekday'] ?? 0), (string)($left['hour'] ?? ''));
+        $rightValue = sprintf('%d %s', intval($right['weekday'] ?? 0), (string)($right['hour'] ?? ''));
+        return strcmp($leftValue, $rightValue);
+    });
+    return $slots;
+}
+
+function mastercomL2LoadStudentHourConfig(int $l2ClassId): array
+{
+    if ($l2ClassId <= 0 || !mastercomL2StudentHoursTableAvailable()) {
+        return [];
+    }
+
+    $rows = dbGetAll("
+        SELECT mastercom_id_studente, giorno_settimana, ora_inizio, attivo
+        FROM mastercom_l2_studente_ore
+        WHERE id_l2_classe_mbapp = " . dbI($l2ClassId) . "
+    ") ?: [];
+
+    $map = [];
+    foreach ($rows as $row) {
+        $studentId = intval($row['mastercom_id_studente'] ?? 0);
+        $weekday = intval($row['giorno_settimana'] ?? 0);
+        $hour = mastercomL2DisplayDbHour($row['ora_inizio'] ?? '');
+        if ($studentId <= 0 || $weekday <= 0 || $hour === '') {
+            continue;
+        }
+        if (!isset($map[$studentId])) {
+            $map[$studentId] = [
+                'configured' => true,
+                'hours' => [],
+            ];
+        }
+        $map[$studentId]['hours'][mastercomL2StudentHourKey($weekday, $hour)] = intval($row['attivo'] ?? 0) === 1;
+    }
+
+    return $map;
+}
+
+function mastercomL2StudentExpectedForHour(array $studentHourConfig, int $studentId, string $date, string $hour): bool
+{
+    $studentConfig = $studentHourConfig[$studentId] ?? null;
+    if (!is_array($studentConfig) || empty($studentConfig['configured'])) {
+        return true;
+    }
+
+    $weekday = intval((new DateTime(mastercomL2NormDate($date)))->format('N'));
+    $key = mastercomL2StudentHourKey($weekday, $hour);
+    return !empty($studentConfig['hours'][$key]);
+}
+
+function mastercomL2StudentExpectedForAnyHour(array $studentHourConfig, int $studentId, string $date, array $hours): bool
+{
+    foreach ($hours as $hour) {
+        if (mastercomL2StudentExpectedForHour($studentHourConfig, $studentId, $date, (string)$hour)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function mastercomL2SaveStudentHourConfig(int $l2ClassId, array $post, array $scheduleSlots): array
+{
+    if ($l2ClassId <= 0) {
+        return ['ok' => false, 'error' => 'Seleziona una classe L2'];
+    }
+    if (!mastercomL2StudentHoursTableAvailable()) {
+        return ['ok' => false, 'error' => 'Manca la tabella mastercom_l2_studente_ore. Esegui doc/mastercom_l2_studente_ore_migration.sql.'];
+    }
+    if (empty($scheduleSlots)) {
+        return ['ok' => false, 'error' => 'Non trovo ore L2 nell\'orario della settimana selezionata.'];
+    }
+
+    $studentIds = [];
+    foreach (($post['configured_students'] ?? []) as $studentId) {
+        $studentId = intval($studentId);
+        if ($studentId > 0) {
+            $studentIds[$studentId] = true;
+        }
+    }
+    if (empty($studentIds)) {
+        return ['ok' => false, 'error' => 'Nessuno studente da configurare.'];
+    }
+
+    $slotByKey = [];
+    foreach ($scheduleSlots as $slot) {
+        $key = trim((string)($slot['key'] ?? ''));
+        if ($key !== '') {
+            $slotByKey[$key] = $slot;
+        }
+    }
+
+    $postedHours = is_array($post['student_hours'] ?? null) ? $post['student_hours'] : [];
+    foreach (array_keys($studentIds) as $studentId) {
+        $exec = mastercomL2Exec("
+            DELETE FROM mastercom_l2_studente_ore
+            WHERE id_l2_classe_mbapp = " . dbI($l2ClassId) . "
+              AND mastercom_id_studente = " . dbI($studentId) . "
+        ");
+        if (empty($exec['ok'])) {
+            return ['ok' => false, 'error' => 'Errore pulizia ore studente L2: ' . ($exec['error'] ?? '')];
+        }
+
+        $studentPosted = is_array($postedHours[$studentId] ?? null) ? $postedHours[$studentId] : [];
+        foreach ($slotByKey as $key => $slot) {
+            $weekday = intval($slot['weekday'] ?? 0);
+            $hour = mastercomL2NormHour($slot['hour'] ?? '');
+            if ($weekday <= 0 || $hour === '') {
+                continue;
+            }
+            $active = !empty($studentPosted[$key]) ? 1 : 0;
+            $exec = mastercomL2Exec("
+                INSERT INTO mastercom_l2_studente_ore
+                    (id_l2_classe_mbapp, mastercom_id_studente, giorno_settimana, ora_inizio, attivo, created_at, updated_at)
+                VALUES
+                    (" . dbI($l2ClassId) . ", " . dbI($studentId) . ", " . dbI($weekday) . ", " . dbQ(mastercomL2DbHourValue($hour, 'ora_inizio')) . ", " . dbI($active) . ", NOW(), NOW())
+            ");
+            if (empty($exec['ok'])) {
+                return ['ok' => false, 'error' => 'Errore salvataggio ore studente L2: ' . ($exec['error'] ?? '')];
+            }
+        }
+    }
+
+    return ['ok' => true, 'count' => count($studentIds)];
+}
+
 function mastercomL2LoadPresenceMaps(array $students, string $date, array $hours): array
 {
     $maps = [];
@@ -1368,6 +1536,7 @@ function mastercomL2SaveAppeal(array $post, int $docenteId = 0): array
     $allowed = ['PRESENTE', 'ASSENTE', 'RITARDO', 'USCITA'];
     $studentColumns = mastercomL2TableColumns('mastercom_l2_appello_studenti');
     $studentHourColumn = mastercomL2Column($studentColumns, ['ora_inizio', 'ora'], '');
+    $studentHourConfig = mastercomL2LoadStudentHourConfig($l2ClassId);
     foreach (($post['stato'] ?? []) as $studentId => $stateOrHours) {
         $studentId = intval($studentId);
         if ($studentId <= 0) {
@@ -1377,6 +1546,9 @@ function mastercomL2SaveAppeal(array $post, int $docenteId = 0): array
         $statesByHour = is_array($stateOrHours) ? $stateOrHours : ['' => $stateOrHours];
         foreach ($statesByHour as $hour => $state) {
             $hour = mastercomL2NormHour((string)$hour);
+            if ($hour !== '' && !mastercomL2StudentExpectedForHour($studentHourConfig, $studentId, $date, $hour)) {
+                continue;
+            }
             $state = strtoupper(trim((string)$state));
             if (!in_array($state, $allowed, true)) {
                 continue;

@@ -37,22 +37,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mastercom_apply'])) {
         if ($studentToSync === null) {
             $error = 'Studente non trovato nel gruppo L2 selezionato.';
         } else {
-            $postedStates = is_array($_POST['stato'] ?? null) ? $_POST['stato'] : [];
-            $selectedL2State = strtoupper(trim((string)($postedStates[$postStudentId][$postSyncHour] ?? '')));
-            if (!in_array($selectedL2State, ['PRESENTE', 'ASSENTE', 'RITARDO', 'USCITA'], true)) {
-                $selectedL2State = 'PRESENTE';
-            }
-            $presenceByHour = mastercomL2LoadPresenceMaps([$studentToSync], $postDate, [$postSyncHour]);
-            $presenceRow = is_array($presenceByHour[$postSyncHour][$postStudentId] ?? null)
-                ? $presenceByHour[$postSyncHour][$postStudentId]
-                : ['stato' => 'NON_VERIFICATO'];
-            $plan = mastercomL2PlanMastercomAction($studentToSync, $presenceRow, $selectedL2State, $postDate, $postSyncHour);
-            $executeResult = mastercomL2ExecuteMastercomAction($plan);
-            if (!empty($executeResult['ok'])) {
-                $studentLabel = trim((string)($studentToSync['cognome'] ?? '') . ' ' . (string)($studentToSync['nome'] ?? ''));
-                $message = 'Azione MasterCom inviata per ' . $studentLabel . ': ' . trim((string)($plan['summary'] ?? ''));
+            $studentHourConfig = mastercomL2LoadStudentHourConfig($postClassId);
+            if (!mastercomL2StudentExpectedForHour($studentHourConfig, $postStudentId, $postDate, $postSyncHour)) {
+                $error = 'Lo studente non e configurato per questa ora L2.';
             } else {
-                $error = trim((string)($executeResult['error'] ?? 'Azione MasterCom non riuscita'));
+                $postedStates = is_array($_POST['stato'] ?? null) ? $_POST['stato'] : [];
+                $selectedL2State = strtoupper(trim((string)($postedStates[$postStudentId][$postSyncHour] ?? '')));
+                if (!in_array($selectedL2State, ['PRESENTE', 'ASSENTE', 'RITARDO', 'USCITA'], true)) {
+                    $selectedL2State = 'PRESENTE';
+                }
+                $presenceByHour = mastercomL2LoadPresenceMaps([$studentToSync], $postDate, [$postSyncHour]);
+                $presenceRow = is_array($presenceByHour[$postSyncHour][$postStudentId] ?? null)
+                    ? $presenceByHour[$postSyncHour][$postStudentId]
+                    : ['stato' => 'NON_VERIFICATO'];
+                $plan = mastercomL2PlanMastercomAction($studentToSync, $presenceRow, $selectedL2State, $postDate, $postSyncHour);
+                $executeResult = mastercomL2ExecuteMastercomAction($plan);
+                if (!empty($executeResult['ok'])) {
+                    $studentLabel = trim((string)($studentToSync['cognome'] ?? '') . ' ' . (string)($studentToSync['nome'] ?? ''));
+                    $message = 'Azione MasterCom inviata per ' . $studentLabel . ': ' . trim((string)($plan['summary'] ?? ''));
+                } else {
+                    $error = trim((string)($executeResult['error'] ?? 'Azione MasterCom non riuscita'));
+                }
             }
         }
     }
@@ -110,6 +115,12 @@ $hasPerHourStudentAppeal = mastercomAdminTableColumnExists('mastercom_l2_appello
 $selectedBlockHours = is_array($selectedLesson['hours'] ?? null) && !empty($selectedLesson['hours'])
     ? array_values($selectedLesson['hours'])
     : [$selectedHour];
+$studentHourConfig = mastercomL2LoadStudentHourConfig($selectedClassId);
+if ($selectedClassId > 0 && $selectedHour !== '' && !empty($students)) {
+    $students = array_values(array_filter($students, function ($student) use ($studentHourConfig, $selectedDate, $selectedBlockHours) {
+        return mastercomL2StudentExpectedForAnyHour($studentHourConfig, intval($student['mastercom_id_studente'] ?? 0), $selectedDate, $selectedBlockHours);
+    }));
+}
 $mastercomPresenceByHour = $selectedClassId > 0 && !empty($students) && !empty($selectedBlockHours)
     ? mastercomL2LoadPresenceMaps($students, $selectedDate, $selectedBlockHours)
     : [];
@@ -473,7 +484,7 @@ $baseWeekUrl = $l2ActionUrl . '?' . http_build_query(array_merge($baseQueryParts
                             <?php endif; ?>
 
                             <?php if (empty($students)): ?>
-                                <div class="alert alert-warning">Nessuno studente abbinato a questa classe L2.</div>
+                                <div class="alert alert-warning">Nessuno studente previsto per questa ora L2.</div>
                             <?php else: ?>
                                 <table class="table table-bordered table-striped">
                                     <thead>
@@ -495,10 +506,14 @@ $baseWeekUrl = $l2ActionUrl . '?' . http_build_query(array_merge($baseQueryParts
                                         <?php foreach ($students as $student): ?>
                                             <?php
                                             $studentId = intval($student['mastercom_id_studente'] ?? 0);
+                                            $studentExpectedHours = array_values(array_filter($selectedBlockHours, function ($blockHour) use ($studentHourConfig, $studentId, $selectedDate) {
+                                                return mastercomL2StudentExpectedForHour($studentHourConfig, $studentId, $selectedDate, (string)$blockHour);
+                                            }));
+                                            $studentNoteHour = $studentExpectedHours[0] ?? ($selectedBlockHours[0] ?? '');
                                             $studentAppealRows = $appealRows[$studentId] ?? [];
                                             $legacyRow = isset($studentAppealRows['stato']) ? $studentAppealRows : null;
-                                            $firstHourRow = is_array($studentAppealRows) && isset($studentAppealRows[$selectedBlockHours[0] ?? ''])
-                                                ? $studentAppealRows[$selectedBlockHours[0]]
+                                            $firstHourRow = is_array($studentAppealRows) && isset($studentAppealRows[$studentNoteHour])
+                                                ? $studentAppealRows[$studentNoteHour]
                                                 : $legacyRow;
                                             $studentNote = trim((string)($firstHourRow['note'] ?? ''));
                                             ?>
@@ -518,6 +533,9 @@ $baseWeekUrl = $l2ActionUrl . '?' . http_build_query(array_merge($baseQueryParts
                                                     'USCITA' => 'Uscita',
                                                 ];
                                                 foreach ($selectedBlockHours as $blockHour) {
+                                                    if (!mastercomL2StudentExpectedForHour($studentHourConfig, $studentId, $selectedDate, $blockHour)) {
+                                                        continue;
+                                                    }
                                                     $row = is_array($studentAppealRows) && isset($studentAppealRows[$blockHour])
                                                         ? $studentAppealRows[$blockHour]
                                                         : $legacyRow;
@@ -599,6 +617,7 @@ $baseWeekUrl = $l2ActionUrl . '?' . http_build_query(array_merge($baseQueryParts
                                                 </td>
                                                 <?php foreach ($selectedBlockHours as $blockHour): ?>
                                                     <?php
+                                                    $hourExpected = mastercomL2StudentExpectedForHour($studentHourConfig, $studentId, $selectedDate, $blockHour);
                                                     $row = is_array($studentAppealRows) && isset($studentAppealRows[$blockHour])
                                                         ? $studentAppealRows[$blockHour]
                                                         : $legacyRow;
@@ -611,6 +630,9 @@ $baseWeekUrl = $l2ActionUrl . '?' . http_build_query(array_merge($baseQueryParts
                                                     $hourEditable = $canEdit && !empty($hourEditableMap[$blockHour]);
                                                     ?>
                                                     <td>
+                                                        <?php if (!$hourExpected): ?>
+                                                            <span class="label label-default">Non prevista</span>
+                                                        <?php else: ?>
                                                         <select
                                                             class="form-control l2-hour-state"
                                                             name="stato[<?php echo $studentId; ?>][<?php echo htmlspecialchars($blockHour); ?>]"
@@ -653,9 +675,10 @@ $baseWeekUrl = $l2ActionUrl . '?' . http_build_query(array_merge($baseQueryParts
                                                                 <span class="label label-default">Nessuna azione</span>
                                                             <?php endif; ?>
                                                         </div>
+                                                        <?php endif; ?>
                                                     </td>
                                                 <?php endforeach; ?>
-                                                <td><input class="form-control" type="text" name="note_studente[<?php echo $studentId; ?>][<?php echo htmlspecialchars($selectedBlockHours[0] ?? ''); ?>]" value="<?php echo htmlspecialchars($studentNote); ?>" <?php echo ($canEdit && $hasEditableHour) ? '' : 'disabled'; ?>></td>
+                                                <td><input class="form-control" type="text" name="note_studente[<?php echo $studentId; ?>][<?php echo htmlspecialchars($studentNoteHour); ?>]" value="<?php echo htmlspecialchars($studentNote); ?>" <?php echo ($canEdit && $hasEditableHour) ? '' : 'disabled'; ?>></td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>

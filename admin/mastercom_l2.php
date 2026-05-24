@@ -8,6 +8,7 @@ ruoloRichiesto('admin', 'segreteria-didattica');
 $message = '';
 $error = '';
 $selectedL2ClassId = intval($_GET['id_l2_classe'] ?? $_POST['id_l2_classe'] ?? 0);
+$weekOf = trim((string)($_GET['week_of'] ?? $_POST['week_of'] ?? ''));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['action'] ?? ''));
@@ -52,6 +53,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $error = trim((string)($result['error'] ?? 'Errore rimozione studente L2'));
         }
+    } elseif ($action === 'save_student_hours') {
+        $selectedL2ClassId = intval($_POST['id_l2_classe'] ?? 0);
+        $weekOf = trim((string)($_POST['week_of'] ?? ''));
+        $scheduleSlots = mastercomL2LoadScheduleSlotsForClass($selectedL2ClassId, $weekOf);
+        $result = mastercomL2SaveStudentHourConfig($selectedL2ClassId, $_POST, $scheduleSlots);
+        if (!empty($result['ok'])) {
+            $message = 'Ore L2 per studente aggiornate.';
+        } else {
+            $error = trim((string)($result['error'] ?? 'Errore salvataggio ore L2 per studente'));
+        }
     }
 }
 
@@ -76,6 +87,13 @@ $selectedStudents = array_values(array_filter($students, function ($student) {
 $availableStudents = array_values(array_filter($students, function ($student) {
     return intval($student['l2_attivo'] ?? 0) !== 1;
 }));
+$week = mastercomL2WeekContext($weekOf);
+$scheduleSlots = empty($missingL2Tables) && $selectedL2ClassId > 0
+    ? mastercomL2LoadScheduleSlotsForClass($selectedL2ClassId, $week['reference_date'])
+    : [];
+$studentHourConfig = empty($missingL2Tables) && $selectedL2ClassId > 0
+    ? mastercomL2LoadStudentHourConfig($selectedL2ClassId)
+    : [];
 ?>
 <!DOCTYPE html>
 <html>
@@ -112,6 +130,12 @@ $availableStudents = array_values(array_filter($students, function ($student) {
                 <div class="alert alert-info">
                     In questa fase GestOre gestisce classi L2, studenti e appelli. La generazione automatica degli eventi su MasterCom verra aggiunta nello step successivo.
                 </div>
+                <?php if (!mastercomL2StudentHoursTableAvailable()): ?>
+                    <div class="alert alert-warning">
+                        La configurazione delle ore per singolo studente richiede la tabella <code>mastercom_l2_studente_ore</code>.
+                        Esegui <code>doc/mastercom_l2_studente_ore_migration.sql</code>. Nel frattempo ogni studente resta previsto in tutte le ore del gruppo.
+                    </div>
+                <?php endif; ?>
                 <div class="row">
                     <div class="col-md-4">
                         <div class="panel panel-default">
@@ -183,6 +207,7 @@ $availableStudents = array_values(array_filter($students, function ($student) {
                                                 <?php endforeach; ?>
                                             </select>
                                         </div>
+                                        <input type="hidden" name="week_of" value="<?php echo htmlspecialchars($week['reference_date']); ?>">
                                         <noscript><button class="btn btn-default" type="submit">Apri</button></noscript>
                                     </form>
                                     <div class="panel panel-info">
@@ -221,6 +246,83 @@ $availableStudents = array_values(array_filter($students, function ($student) {
                                                         <?php endforeach; ?>
                                                     </tbody>
                                                 </table>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+
+                                    <div class="panel panel-warning">
+                                        <div class="panel-heading">
+                                            <strong>Ore da seguire per studente</strong>
+                                        </div>
+                                        <div class="panel-body">
+                                            <form method="get" action="mastercom_l2.php" class="form-inline" style="margin-bottom: 12px;">
+                                                <input type="hidden" name="id_l2_classe" value="<?php echo intval($selectedL2ClassId); ?>">
+                                                <div class="form-group">
+                                                    <label for="week_of">Settimana orario&nbsp;</label>
+                                                    <input type="date" class="form-control" name="week_of" id="week_of" value="<?php echo htmlspecialchars($week['reference_date']); ?>">
+                                                </div>
+                                                <button type="submit" class="btn btn-default">Carica ore</button>
+                                            </form>
+
+                                            <?php if (!mastercomL2StudentHoursTableAvailable()): ?>
+                                                <div class="alert alert-warning">Configurazione non disponibile: manca la tabella dedicata.</div>
+                                            <?php elseif (empty($selectedStudents)): ?>
+                                                <div class="alert alert-info">Aggiungi almeno uno studente al gruppo per configurarne le ore.</div>
+                                            <?php elseif (empty($scheduleSlots)): ?>
+                                                <div class="alert alert-info">Nessuna ora L2 trovata nell'orario della settimana selezionata per questo gruppo.</div>
+                                            <?php else: ?>
+                                                <form method="post" action="mastercom_l2.php">
+                                                    <input type="hidden" name="action" value="save_student_hours">
+                                                    <input type="hidden" name="id_l2_classe" value="<?php echo intval($selectedL2ClassId); ?>">
+                                                    <input type="hidden" name="week_of" value="<?php echo htmlspecialchars($week['reference_date']); ?>">
+                                                    <div class="table-responsive" style="max-height: 520px; overflow: auto;">
+                                                        <table class="table table-bordered table-condensed table-striped">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th style="min-width: 220px;">Studente</th>
+                                                                    <th style="width: 110px;">Classe</th>
+                                                                    <?php foreach ($scheduleSlots as $slot): ?>
+                                                                        <th style="min-width: 118px; text-align: center;">
+                                                                            <?php echo htmlspecialchars(($slot['weekday_label'] ?? '') . ' ' . ($slot['hour'] ?? '')); ?>
+                                                                            <br><small><?php echo htmlspecialchars(($slot['hour'] ?? '') . ' - ' . ($slot['end_hour'] ?? '')); ?></small>
+                                                                        </th>
+                                                                    <?php endforeach; ?>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <?php foreach ($selectedStudents as $student): ?>
+                                                                    <?php
+                                                                    $studentId = intval($student['mastercom_id_studente'] ?? 0);
+                                                                    $studentConfig = is_array($studentHourConfig[$studentId] ?? null) ? $studentHourConfig[$studentId] : [];
+                                                                    $studentConfigured = !empty($studentConfig['configured']);
+                                                                    $studentHours = is_array($studentConfig['hours'] ?? null) ? $studentConfig['hours'] : [];
+                                                                    ?>
+                                                                    <tr>
+                                                                        <td>
+                                                                            <input type="hidden" name="configured_students[]" value="<?php echo $studentId; ?>">
+                                                                            <strong><?php echo htmlspecialchars(trim((string)(($student['cognome'] ?? '') . ' ' . ($student['nome'] ?? '')))); ?></strong>
+                                                                        </td>
+                                                                        <td><?php echo htmlspecialchars($student['classe_mastercom'] ?? ''); ?></td>
+                                                                        <?php foreach ($scheduleSlots as $slot): ?>
+                                                                            <?php
+                                                                            $slotKey = trim((string)($slot['key'] ?? ''));
+                                                                            $checked = !$studentConfigured || !empty($studentHours[$slotKey]);
+                                                                            ?>
+                                                                            <td style="text-align: center;">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    name="student_hours[<?php echo $studentId; ?>][<?php echo htmlspecialchars($slotKey); ?>]"
+                                                                                    value="1"
+                                                                                    <?php echo $checked ? 'checked' : ''; ?>>
+                                                                            </td>
+                                                                        <?php endforeach; ?>
+                                                                    </tr>
+                                                                <?php endforeach; ?>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-warning">Salva ore studenti</button>
+                                                </form>
                                             <?php endif; ?>
                                         </div>
                                     </div>
