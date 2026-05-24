@@ -96,6 +96,42 @@ body {
     padding-top: 0;
 }
 
+.mobile-calendar-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 10px;
+    border: 1px solid rgba(0, 0, 0, .15);
+    border-left: 4px solid #999;
+    background: #f8f9fa;
+}
+
+.mobile-calendar-box.is-enabled {
+    border-left-color: #00a65a;
+}
+
+.mobile-calendar-box.is-busy {
+    opacity: .75;
+}
+
+.mobile-calendar-status {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.mobile-calendar-status span {
+    color: #666;
+    font-size: 12px;
+}
+
+.mobile-calendar-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .mobile-panel {
     margin-top: 0;
     margin-bottom: 16px;

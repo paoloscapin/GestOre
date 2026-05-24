@@ -40,7 +40,8 @@ try {
     }
 
     $username = googleCalendarDocentiCronParam('username', '');
-    $days = intval(googleCalendarDocentiCronParam('days', '15'));
+    $defaultDays = googleCalendarDocentiIntConfig('cronFutureDays', 15, 1, 60);
+    $days = intval(googleCalendarDocentiCronParam('days', (string)$defaultDays));
     if ($days < 1) $days = 15;
     if ($days > 60) $days = 60;
 
@@ -54,7 +55,11 @@ try {
         'days' => $days
     ], JSON_UNESCAPED_UNICODE));
 
-    $results = googleCalendarDocentiSync($username, $from, $to);
+    if ($username === '' && googleCalendarDocentiBoolConfig('cronOnlyEnabledTeachers', true)) {
+        $results = googleCalendarDocentiSyncEnabledTeachers($from, $to, 'cron');
+    } else {
+        $results = googleCalendarDocentiSync($username, $from, $to);
+    }
 
     echo json_encode([
         'ok' => true,

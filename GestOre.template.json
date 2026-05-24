@@ -132,6 +132,12 @@
             "calendarId": "primary",
             "calendarName": "GestOre - Attività",
             "createDedicatedCalendar": true,
+            "teacherSelfServiceEnabled": false,
+            "teacherInitialSyncOnEnable": true,
+            "teacherManualSyncPastDays": 15,
+            "teacherManualSyncFutureDays": 120,
+            "cronOnlyEnabledTeachers": true,
+            "cronFutureDays": 15,
             "syncOnImportSostituzioni": true,
             "syncOnMbappPrenotazioni": true,
             "eventColors": {

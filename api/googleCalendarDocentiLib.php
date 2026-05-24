@@ -250,6 +250,182 @@ function googleCalendarDocentiEnsureTables()
             KEY idx_google_event (google_event_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8
     ");
+
+    dbExec("
+        CREATE TABLE IF NOT EXISTS google_calendar_docenti_pref (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            docente_id INT NULL,
+            username VARCHAR(190) NOT NULL,
+            enabled TINYINT(1) NOT NULL DEFAULT 0,
+            enabled_at DATETIME NULL,
+            disabled_at DATETIME NULL,
+            initial_sync_at DATETIME NULL,
+            last_manual_sync_at DATETIME NULL,
+            last_cron_sync_at DATETIME NULL,
+            last_sync_from DATE NULL,
+            last_sync_to DATE NULL,
+            last_error TEXT NULL,
+            updated_at DATETIME NOT NULL,
+            UNIQUE KEY uq_docente_pref_username (username),
+            KEY idx_docente_pref_enabled (enabled)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+    ");
+}
+
+function googleCalendarDocentiBoolConfig($name, $default = false)
+{
+    $cfg = googleCalendarDocentiConfig();
+    if (!isset($cfg->{$name})) {
+        return (bool)$default;
+    }
+
+    return (bool)$cfg->{$name};
+}
+
+function googleCalendarDocentiIntConfig($name, $default, $min = null, $max = null)
+{
+    $cfg = googleCalendarDocentiConfig();
+    $value = intval($cfg->{$name} ?? $default);
+    if ($min !== null) $value = max(intval($min), $value);
+    if ($max !== null) $value = min(intval($max), $value);
+    return $value;
+}
+
+function googleCalendarDocentiTeacherSelfServiceEnabled()
+{
+    return googleCalendarDocentiBoolConfig('teacherSelfServiceEnabled', false);
+}
+
+function googleCalendarDocentiCurrentSchoolYearStart()
+{
+    global $__anno_scolastico_corrente_anno;
+
+    $year = trim((string)($__anno_scolastico_corrente_anno ?? ''));
+    if ($year === '') {
+        $row = dbGetFirst("SELECT anno FROM anno_scolastico_corrente LIMIT 1");
+        $year = trim((string)($row['anno'] ?? ''));
+    }
+
+    if (preg_match('/(\d{4})/', $year, $matches)) {
+        return $matches[1] . '-09-01';
+    }
+
+    $currentYear = intval(date('n')) >= 9 ? intval(date('Y')) : intval(date('Y')) - 1;
+    return $currentYear . '-09-01';
+}
+
+function googleCalendarDocentiToday()
+{
+    return (new DateTime('now', new DateTimeZone('Europe/Rome')))->format('Y-m-d');
+}
+
+function googleCalendarDocentiPreference($username)
+{
+    googleCalendarDocentiEnsureTables();
+
+    $username = trim((string)$username);
+    if ($username === '') {
+        return null;
+    }
+
+    return dbGetFirst("
+        SELECT *
+        FROM google_calendar_docenti_pref
+        WHERE username = " . dbQ($username) . "
+        LIMIT 1
+    ");
+}
+
+function googleCalendarDocentiUpsertPreference($username, array $values)
+{
+    googleCalendarDocentiEnsureTables();
+
+    $username = trim((string)$username);
+    if ($username === '') {
+        throw new Exception('Username docente vuoto');
+    }
+
+    $teacher = googleCalendarDocentiGetTeachers($username)[0] ?? null;
+    $docenteId = intval($teacher['id'] ?? 0);
+    $existing = googleCalendarDocentiPreference($username);
+
+    $enabled = array_key_exists('enabled', $values)
+        ? (intval($values['enabled']) ? 1 : 0)
+        : intval($existing['enabled'] ?? 0);
+    $enabledAt = array_key_exists('enabled_at', $values) ? $values['enabled_at'] : ($existing['enabled_at'] ?? null);
+    $disabledAt = array_key_exists('disabled_at', $values) ? $values['disabled_at'] : ($existing['disabled_at'] ?? null);
+    $initialSyncAt = array_key_exists('initial_sync_at', $values) ? $values['initial_sync_at'] : ($existing['initial_sync_at'] ?? null);
+    $lastManualSyncAt = array_key_exists('last_manual_sync_at', $values) ? $values['last_manual_sync_at'] : ($existing['last_manual_sync_at'] ?? null);
+    $lastCronSyncAt = array_key_exists('last_cron_sync_at', $values) ? $values['last_cron_sync_at'] : ($existing['last_cron_sync_at'] ?? null);
+    $lastSyncFrom = array_key_exists('last_sync_from', $values) ? $values['last_sync_from'] : ($existing['last_sync_from'] ?? null);
+    $lastSyncTo = array_key_exists('last_sync_to', $values) ? $values['last_sync_to'] : ($existing['last_sync_to'] ?? null);
+    $lastError = array_key_exists('last_error', $values) ? $values['last_error'] : ($existing['last_error'] ?? null);
+
+    dbExec("
+        INSERT INTO google_calendar_docenti_pref
+            (docente_id, username, enabled, enabled_at, disabled_at, initial_sync_at, last_manual_sync_at, last_cron_sync_at, last_sync_from, last_sync_to, last_error, updated_at)
+        VALUES
+            (" . ($docenteId > 0 ? dbI($docenteId) : "NULL") . ",
+             " . dbQ($username) . ",
+             " . dbI($enabled) . ",
+             " . dbQ($enabledAt) . ",
+             " . dbQ($disabledAt) . ",
+             " . dbQ($initialSyncAt) . ",
+             " . dbQ($lastManualSyncAt) . ",
+             " . dbQ($lastCronSyncAt) . ",
+             " . dbQ($lastSyncFrom) . ",
+             " . dbQ($lastSyncTo) . ",
+             " . dbQ($lastError) . ",
+             NOW())
+        ON DUPLICATE KEY UPDATE
+            docente_id = VALUES(docente_id),
+            enabled = VALUES(enabled),
+            enabled_at = VALUES(enabled_at),
+            disabled_at = VALUES(disabled_at),
+            initial_sync_at = VALUES(initial_sync_at),
+            last_manual_sync_at = VALUES(last_manual_sync_at),
+            last_cron_sync_at = VALUES(last_cron_sync_at),
+            last_sync_from = VALUES(last_sync_from),
+            last_sync_to = VALUES(last_sync_to),
+            last_error = VALUES(last_error),
+            updated_at = NOW()
+    ");
+
+    return googleCalendarDocentiPreference($username);
+}
+
+function googleCalendarDocentiSetTeacherEnabled($username, $enabled)
+{
+    $pref = googleCalendarDocentiPreference($username);
+    $values = [
+        'enabled' => $enabled ? 1 : 0,
+        'last_error' => null,
+    ];
+
+    if ($enabled) {
+        $values['enabled_at'] = $pref['enabled_at'] ?? date('Y-m-d H:i:s');
+        $values['disabled_at'] = null;
+    } else {
+        $values['disabled_at'] = date('Y-m-d H:i:s');
+    }
+
+    return googleCalendarDocentiUpsertPreference($username, $values);
+}
+
+function googleCalendarDocentiEnabledTeacherUsernames()
+{
+    googleCalendarDocentiEnsureTables();
+
+    return dbGetAllValues("
+        SELECT p.username
+        FROM google_calendar_docenti_pref p
+        INNER JOIN docente d ON d.username = p.username
+        WHERE p.enabled = 1
+          AND d.attivo = true
+          AND d.username IS NOT NULL
+          AND d.username <> ''
+        ORDER BY d.cognome, d.nome
+    ") ?: [];
 }
 
 function googleCalendarDocentiCalendarId($userEmail)
@@ -483,7 +659,7 @@ function googleCalendarDocentiGetTeachers($username = '')
     }
 
     $rows = dbGetAll("
-        SELECT username, cognome, nome, email
+        SELECT id, username, cognome, nome, email
         FROM docente
         WHERE $where
         ORDER BY cognome, nome
@@ -495,6 +671,7 @@ function googleCalendarDocentiGetTeachers($username = '')
         if ($u === '') continue;
         $email = googleCalendarDocentiTeacherEmail($r);
         $out[] = [
+            'id' => intval($r['id'] ?? 0),
             'username' => $u,
             'email' => $email,
             'nome' => trim((string)($r['cognome'] ?? '') . ' ' . (string)($r['nome'] ?? ''))
@@ -2529,15 +2706,31 @@ function googleCalendarDocentiSync($username, $from, $to)
     return $results;
 }
 
-function googleCalendarDocentiSyncUsernames(array $usernames, $from, $to)
+function googleCalendarDocentiSyncUsernames(array $usernames, $from, $to, $onlyEnabled = false)
 {
     $seen = [];
     $results = [];
+    $enabledSet = [];
+    if ($onlyEnabled) {
+        foreach (googleCalendarDocentiEnabledTeacherUsernames() as $enabledUsername) {
+            $enabledSet[strtolower(trim((string)$enabledUsername))] = true;
+        }
+    }
 
     foreach ($usernames as $username) {
         $username = trim((string)$username);
         if ($username === '' || isset($seen[strtolower($username)])) continue;
         $seen[strtolower($username)] = true;
+
+        if ($onlyEnabled && !isset($enabledSet[strtolower($username)])) {
+            $results[] = [
+                'username' => $username,
+                'ok' => true,
+                'skipped' => true,
+                'reason' => 'Sync Google Calendar non abilitato dal docente'
+            ];
+            continue;
+        }
 
         $teachers = googleCalendarDocentiGetTeachers($username);
         if (empty($teachers)) {
@@ -2564,7 +2757,37 @@ function googleCalendarDocentiSyncUsernames(array $usernames, $from, $to)
     return $results;
 }
 
-function googleCalendarDocentiSyncTeacherIds(array $ids, $from, $to)
+function googleCalendarDocentiSyncEnabledTeachers($from, $to, $syncKind = 'cron')
+{
+    $usernames = googleCalendarDocentiEnabledTeacherUsernames();
+    if (empty($usernames)) {
+        return [];
+    }
+
+    $results = googleCalendarDocentiSyncUsernames($usernames, $from, $to);
+    foreach ($results as $result) {
+        $username = trim((string)($result['username'] ?? ''));
+        if ($username === '') {
+            continue;
+        }
+
+        $values = [
+            'last_sync_from' => $from,
+            'last_sync_to' => $to,
+            'last_error' => empty($result['error']) ? null : (string)$result['error'],
+        ];
+        if ($syncKind === 'manual') {
+            $values['last_manual_sync_at'] = date('Y-m-d H:i:s');
+        } else {
+            $values['last_cron_sync_at'] = date('Y-m-d H:i:s');
+        }
+        googleCalendarDocentiUpsertPreference($username, $values);
+    }
+
+    return $results;
+}
+
+function googleCalendarDocentiSyncTeacherIds(array $ids, $from, $to, $onlyEnabled = false)
 {
     $ids = array_values(array_unique(array_filter(array_map('intval', $ids), function ($id) {
         return $id > 0;
@@ -2585,5 +2808,5 @@ function googleCalendarDocentiSyncTeacherIds(array $ids, $from, $to)
         $usernames[] = (string)($row['username'] ?? '');
     }
 
-    return googleCalendarDocentiSyncUsernames($usernames, $from, $to);
+    return googleCalendarDocentiSyncUsernames($usernames, $from, $to, $onlyEnabled);
 }

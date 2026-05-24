@@ -6,6 +6,10 @@ require_once '../common/connectMBApp.php';
 ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'dirigente', 'studente', 'genitore');
 applicaDocenteDaParametroSeAutorizzato();
 
+$orarioGoogleCalendarDocentiCfg = $__settings->local->googleCalendarDocenti ?? null;
+$orarioGoogleCalendarDocentiSelfService = !empty($orarioGoogleCalendarDocentiCfg->enabled)
+    && !empty($orarioGoogleCalendarDocentiCfg->teacherSelfServiceEnabled);
+
 $orarioDefaultScope = 'EVENTI';
 $orarioDefaultPeriod = 'GIORNO';
 $orarioDefaultTarget = '';
@@ -237,6 +241,25 @@ if (isMobileOrarioClient()) {
             </div>
 
             <div class="panel-body">
+                <?php if ($ruolo === 'DOCENTE' && $orarioGoogleCalendarDocentiSelfService): ?>
+                <div id="google_calendar_docenti_box" class="orario-calendar-box">
+                    <div class="orario-calendar-status">
+                        <strong>Google Calendar</strong>
+                        <span id="google_calendar_docenti_status" class="text-muted">Verifica stato...</span>
+                    </div>
+                    <div class="orario-calendar-actions">
+                        <button type="button" class="btn btn-success btn-sm" id="btn_google_calendar_docenti_enable">
+                            <span class="glyphicon glyphicon-ok"></span>&ensp;Abilita sync
+                        </button>
+                        <button type="button" class="btn btn-warning btn-sm" id="btn_google_calendar_docenti_disable">
+                            <span class="glyphicon glyphicon-remove"></span>&ensp;Disabilita sync
+                        </button>
+                        <button type="button" class="btn btn-info btn-sm" id="btn_google_calendar_docenti_force">
+                            <span class="glyphicon glyphicon-refresh"></span>&ensp;Sync ultimi 15 giorni
+                        </button>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <div id="orario_title" style="margin-bottom:10px;font-weight:600; font-size:24px"></div>
                 <div id="orario_content"></div>
             </div>
@@ -249,10 +272,14 @@ if (isMobileOrarioClient()) {
     window.ORARIO_DEFAULT_SCOPE = <?= json_encode($orarioDefaultScope, JSON_UNESCAPED_UNICODE) ?>;
     window.ORARIO_DEFAULT_PERIOD = <?= json_encode($orarioDefaultPeriod, JSON_UNESCAPED_UNICODE) ?>;
     window.ORARIO_DEFAULT_TARGET = <?= json_encode($orarioDefaultTarget, JSON_UNESCAPED_UNICODE) ?>;
+    window.ORARIO_GOOGLE_CALENDAR_DOCENTI_SELF_SERVICE = <?= json_encode($orarioGoogleCalendarDocentiSelfService && $ruolo === 'DOCENTE') ?>;
     </script>
 
     <script src="js/scriptAssenze.js?t=<?= time() ?>"></script>
     <script src="js/scriptSostituzioni.js?t=<?= time() ?>"></script>
+    <?php if ($orarioGoogleCalendarDocentiSelfService && $ruolo === 'DOCENTE'): ?>
+    <script src="js/googleCalendarDocentiSelfService.js?t=<?= time() ?>"></script>
+    <?php endif; ?>
     <script src="js/scriptOrario.js?t=<?= time() ?>"></script></body>
 
 </html>

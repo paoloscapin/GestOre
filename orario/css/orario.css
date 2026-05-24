@@ -199,6 +199,36 @@
   min-width:320px !important;
 }
 
+.orario-calendar-box{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+  padding:10px 12px;
+  border:1px solid rgba(0,0,0,.15);
+  border-left:4px solid #999;
+  background:#f8f9fa;
+}
+.orario-calendar-box.is-enabled{
+  border-left-color:#00a65a;
+}
+.orario-calendar-box.is-busy{
+  opacity:.75;
+}
+.orario-calendar-status{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.orario-calendar-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
 /* =========================
    GRID
    ========================= */

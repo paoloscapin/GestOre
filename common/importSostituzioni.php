@@ -1558,7 +1558,7 @@ try {
             sort($dates);
             $fromSync = $dates[0];
             $toSync = $dates[count($dates) - 1];
-            $calendarSyncDocenti = googleCalendarDocentiSyncTeacherIds(array_keys($calendarDocentiDaSync), $fromSync, $toSync);
+            $calendarSyncDocenti = googleCalendarDocentiSyncTeacherIds(array_keys($calendarDocentiDaSync), $fromSync, $toSync, true);
             infoimportsost("Sync Google Calendar docenti post import sostituzioni: " . json_encode([
                 'docenti' => array_keys($calendarDocentiDaSync),
                 'from' => $fromSync,

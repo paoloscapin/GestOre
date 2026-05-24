@@ -9,6 +9,9 @@ global $__utente_ruolo;
 $ruolo = strtoupper(trim((string)$__utente_ruolo));
 
 $isPublicOrario = in_array($ruolo, ['STUDENTE', 'GENITORE'], true);
+$orarioGoogleCalendarDocentiCfg = $__settings->local->googleCalendarDocenti ?? null;
+$orarioGoogleCalendarDocentiSelfService = !empty($orarioGoogleCalendarDocentiCfg->enabled)
+    && !empty($orarioGoogleCalendarDocentiCfg->teacherSelfServiceEnabled);
 
 global $__utente_nome, $__utente_cognome, $__utente_username, $__username;
 
@@ -229,6 +232,25 @@ function renderOrarioHeaderByRole($ruolo)
 
                 </div>
 
+                <?php if ($ruolo === 'DOCENTE' && $orarioGoogleCalendarDocentiSelfService): ?>
+                <div id="google_calendar_docenti_box" class="mobile-calendar-box">
+                    <div class="mobile-calendar-status">
+                        <strong>Google Calendar</strong>
+                        <span id="google_calendar_docenti_status">Verifica stato...</span>
+                    </div>
+                    <div class="mobile-calendar-actions">
+                        <button type="button" class="btn btn-success btn-sm" id="btn_google_calendar_docenti_enable">
+                            <span class="glyphicon glyphicon-ok"></span> Abilita
+                        </button>
+                        <button type="button" class="btn btn-warning btn-sm" id="btn_google_calendar_docenti_disable">
+                            <span class="glyphicon glyphicon-remove"></span> Disabilita
+                        </button>
+                        <button type="button" class="btn btn-info btn-sm" id="btn_google_calendar_docenti_force">
+                            <span class="glyphicon glyphicon-refresh"></span> Sync 15 giorni
+                        </button>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <div id="orario_title_mobile" class="mobile-title"></div>
                 <div id="orario_content_mobile" class="mobile-content"></div>
             </div>
@@ -239,8 +261,12 @@ function renderOrarioHeaderByRole($ruolo)
         window.ORARIO_USER_ROLE = <?= json_encode($ruolo, JSON_UNESCAPED_UNICODE) ?>;
         window.ORARIO_IS_DOCENTE = <?= json_encode($ruolo === 'DOCENTE') ?>;
         window.ORARIO_IS_PUBLIC = <?= json_encode($isPublicOrario) ?>;
+        window.ORARIO_GOOGLE_CALENDAR_DOCENTI_SELF_SERVICE = <?= json_encode($orarioGoogleCalendarDocentiSelfService && $ruolo === 'DOCENTE') ?>;
     </script>
 
+    <?php if ($orarioGoogleCalendarDocentiSelfService && $ruolo === 'DOCENTE'): ?>
+    <script src="js/googleCalendarDocentiSelfService.js?t=<?= time() ?>"></script>
+    <?php endif; ?>
     <script src="js/scriptOrario_mobile.js?t=<?= time() ?>"></script>
 </body>
 

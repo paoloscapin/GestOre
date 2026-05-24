@@ -197,7 +197,7 @@ function mbappCalendarBookingSyncDocentiCoinvolti(array $payload): array
     if ($dataFine < $dataInizio) $dataFine = $dataInizio;
 
     try {
-        $results = googleCalendarDocentiSyncUsernames($usernames, $dataInizio, $dataFine);
+        $results = googleCalendarDocentiSyncUsernames($usernames, $dataInizio, $dataFine, true);
         infoGoogleCalendar('Sync Google Calendar docenti post prenotazione MBApp: ' . json_encode([
             'docenti' => $usernames,
             'from' => $dataInizio,
