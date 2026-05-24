@@ -118,6 +118,8 @@
             "created": "---",
             "accountEmail": "noreplygestore@buonarroti.tn.it",
             "timeZone": "Europe/Rome",
+            "calendarIstitutoConfigId": 4,
+            "calendarIstitutoUpdateExisting": true,
             "syncSecret": "#####"
         },
         "googleCalendarDocenti": {

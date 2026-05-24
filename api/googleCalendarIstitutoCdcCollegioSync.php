@@ -50,19 +50,94 @@ function cdcAnnoScolasticoCorrenteId()
     return intval(dbGetValue('SELECT anno_scolastico_id FROM anno_scolastico_corrente LIMIT 1'));
 }
 
-function cdcExtractClasse($dettagli)
+function cdcExpandClasseToken($token)
+{
+    $token = strtoupper(trim((string)$token));
+    $token = preg_replace('/\s+/', '', $token);
+    if ($token === '') {
+        return [];
+    }
+
+    $parts = array_values(array_filter(explode('-', $token), 'strlen'));
+    if (empty($parts)) {
+        return [];
+    }
+
+    $defaultYear = '';
+    $defaultSuffix = '';
+
+    foreach ($parts as $part) {
+        if (preg_match('/^([0-9])([A-Z]{1,4})$/u', $part, $m)) {
+            if ($defaultYear === '') {
+                $defaultYear = $m[1];
+            }
+            if ($defaultSuffix === '') {
+                $defaultSuffix = $m[2];
+            }
+        }
+    }
+
+    $out = [];
+    foreach ($parts as $part) {
+        $classe = '';
+
+        if (preg_match('/^([0-9])([A-Z]{1,4})$/u', $part)) {
+            $classe = $part;
+        } elseif (preg_match('/^[A-Z]{1,4}$/u', $part) && $defaultYear !== '') {
+            $classe = $defaultYear . $part;
+        } elseif (preg_match('/^[0-9]$/u', $part) && $defaultSuffix !== '') {
+            $classe = $part . $defaultSuffix;
+        }
+
+        if ($classe !== '' && !in_array($classe, $out, true)) {
+            $out[] = $classe;
+        }
+    }
+
+    return $out;
+}
+
+function cdcExtractClassiCdc($dettagli)
 {
     $det = strtoupper(trim((string)$dettagli));
+    $det = preg_replace('/\s*-\s*/', '-', $det);
+    $token = '';
 
-    if (preg_match('/\bCC\s+([0-9][A-Z]{1,4})\b/u', $det, $m)) {
-        return strtoupper(trim($m[1]));
+    if (preg_match('/\bCC\s+([0-9A-Z]+(?:-[0-9A-Z]+)*)\b/u', $det, $m)) {
+        $token = strtoupper(trim($m[1]));
+    } elseif (preg_match('/\b([0-9][A-Z]{1,4}(?:-[0-9A-Z]+)*)\b/u', $det, $m)) {
+        $token = strtoupper(trim($m[1]));
     }
 
-    if (preg_match('/\b([0-9][A-Z]{1,4})\b/u', $det, $m)) {
-        return strtoupper(trim($m[1]));
+    $classi = cdcExpandClasseToken($token);
+
+    return [
+        'label' => $token,
+        'classi' => $classi
+    ];
+}
+
+function cdcExtractClasse($dettagli)
+{
+    $data = cdcExtractClassiCdc($dettagli);
+    return (string)($data['label'] ?? '');
+}
+
+function cdcMergeAttendees(array $a, array $b)
+{
+    $out = [];
+    $seen = [];
+
+    foreach (array_merge($a, $b) as $attendee) {
+        $email = strtolower(trim((string)($attendee['email'] ?? '')));
+        if ($email === '') continue;
+        if (isset($seen[$email])) continue;
+
+        $seen[$email] = true;
+        $out[] = $attendee;
     }
 
-    return '';
+    return $out;
 }
 
 function cdcNormalizeDateTime($date, $time)
@@ -85,14 +160,97 @@ function cdcDateTimeForDb($dateTime)
     return $dt->format('Y-m-d H:i:s');
 }
 
+function cdcGoogleEventsListUrl($calendarId, array $params)
+{
+    $url = 'https://www.googleapis.com/calendar/v3/calendars/' .
+        rawurlencode((string)$calendarId) .
+        '/events';
+
+    $query = [];
+    foreach ($params as $key => $value) {
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                $query[] = rawurlencode((string)$key) . '=' . rawurlencode((string)$item);
+            }
+        } else {
+            $query[] = rawurlencode((string)$key) . '=' . rawurlencode((string)$value);
+        }
+    }
+
+    return $url . (empty($query) ? '' : '?' . implode('&', $query));
+}
+
+function cdcFindExistingGoogleEvent($calendarId, $idAssenza, array $event)
+{
+    $start = (string)($event['start']['dateTime'] ?? '');
+    if ($start === '') {
+        return null;
+    }
+
+    $day = new DateTime($start);
+    $day->setTimezone(new DateTimeZone('Europe/Rome'));
+    $startDay = clone $day;
+    $startDay->setTime(0, 0, 0);
+    $endDay = clone $day;
+    $endDay->setTime(23, 59, 59);
+    $timeMin = $startDay->format('c');
+    $timeMax = $endDay->format('c');
+
+    $url = cdcGoogleEventsListUrl($calendarId, [
+        'singleEvents' => 'true',
+        'showDeleted' => 'false',
+        'timeMin' => $timeMin,
+        'timeMax' => $timeMax,
+        'maxResults' => 10,
+        'privateExtendedProperty' => [
+            'source=GESTORE_CDC_COLLEGIO',
+            'idAssenza=' . intval($idAssenza)
+        ]
+    ]);
+
+    $response = googleCalendarApiRequest('GET', $url);
+    foreach (($response['items'] ?? []) as $item) {
+        if (($item['status'] ?? '') === 'cancelled') {
+            continue;
+        }
+        if (trim((string)($item['id'] ?? '')) !== '') {
+            return $item;
+        }
+    }
+
+    return null;
+}
+
 function cdcCalendarioIstituto()
 {
+    global $__settings;
+
+    $preferredConfigId = intval($__settings->local->googleCalendar->calendarIstitutoConfigId ?? 0);
+    if ($preferredConfigId > 0) {
+        $row = dbGetFirst("
+            SELECT *
+            FROM google_calendar_config
+            WHERE id = " . dbI($preferredConfigId) . "
+              AND attivo = 1
+              AND tipo = 'ISTITUTO'
+            LIMIT 1
+        ");
+
+        if ($row) {
+            return $row;
+        }
+    }
+
     $row = dbGetFirst("
-        SELECT *
-        FROM google_calendar_config
-        WHERE attivo = 1
-          AND tipo = 'ISTITUTO'
-        ORDER BY id ASC
+        SELECT c.*
+        FROM google_calendar_config c
+        LEFT JOIN google_calendar_event_sync s
+            ON s.google_calendar_config_id = c.id
+           AND s.stato <> 'ANNULLATO'
+        WHERE c.attivo = 1
+          AND c.tipo = 'ISTITUTO'
+        GROUP BY c.id
+        ORDER BY COUNT(s.id) DESC, c.id ASC
         LIMIT 1
     ");
 
@@ -204,6 +362,17 @@ function cdcDocentiByClasse($classe)
     return cdcDocentiRowsToAttendees($rows);
 }
 
+function cdcDocentiByClassi(array $classi)
+{
+    $attendees = [];
+
+    foreach ($classi as $classe) {
+        $attendees = cdcMergeAttendees($attendees, cdcDocentiByClasse($classe));
+    }
+
+    return $attendees;
+}
+
 function cdcTuttiDocenti()
 {
     $rows = dbGetAll("
@@ -265,12 +434,13 @@ function cdcBuildGoogleEvent($a)
     $aule = cdcAuleByAssenza($idAssenza);
 
     if ($isCdc) {
-        $classe = cdcExtractClasse($dettagli);
-        if ($classe === '') return null;
+        $classiCdc = cdcExtractClassiCdc($dettagli);
+        $classe = (string)($classiCdc['label'] ?? '');
+        $classi = $classiCdc['classi'] ?? [];
+        if ($classe === '' || empty($classi)) return null;
 
         $summary = 'Consiglio di classe ' . $classe;
-        $classi = [$classe];
-        $attendees = cdcMaybeAddDirigenteAttendee(cdcDocentiByClasse($classe));
+        $attendees = cdcMaybeAddDirigenteAttendee(cdcDocentiByClassi($classi));
     } else {
         $summary = 'Collegio Docenti';
         $classi = [];
@@ -330,12 +500,13 @@ function cdcBuildGoogleEvent($a)
     ];
 }
 
-function cdcUpsertGoogleEvent($calendarConfig, $item, $dryRun = false)
+function cdcUpsertGoogleEvent($calendarConfig, $item, $dryRun = false, array $options = [])
 {
     $configId = intval($calendarConfig['id']);
     $calendarId = (string)$calendarConfig['calendar_id'];
     $idAssenza = intval($item['idAssenza']);
     $event = $item['event'];
+    $updateExisting = array_key_exists('update_existing', $options) ? (bool)$options['update_existing'] : true;
 
     $sync = dbGetFirst("
         SELECT *
@@ -346,22 +517,74 @@ function cdcUpsertGoogleEvent($calendarConfig, $item, $dryRun = false)
         LIMIT 1
     ");
 
+    if (!$sync) {
+        $sync = dbGetFirst("
+            SELECT s.*, c.calendar_id AS sync_calendar_id, c.nome AS sync_calendar_nome
+            FROM google_calendar_event_sync s
+            INNER JOIN google_calendar_config c ON c.id = s.google_calendar_config_id
+            WHERE s.idAssenza = $idAssenza
+              AND s.stato <> 'ANNULLATO'
+              AND c.attivo = 1
+              AND c.tipo = 'ISTITUTO'
+            ORDER BY s.updated_at DESC, s.id DESC
+            LIMIT 1
+        ");
+    }
+
+    if ($sync && intval($sync['google_calendar_config_id'] ?? 0) !== $configId) {
+        $configId = intval($sync['google_calendar_config_id']);
+        $calendarId = (string)($sync['sync_calendar_id'] ?? $calendarId);
+        $calendarConfig['id'] = $configId;
+        if (!empty($sync['sync_calendar_nome'])) {
+            $calendarConfig['nome'] = $sync['sync_calendar_nome'];
+        }
+    }
+
+    $existingGoogleEvent = null;
+    if (!$sync) {
+        $existingGoogleEvent = cdcFindExistingGoogleEvent($calendarId, $idAssenza, $event);
+    }
+
     if ($dryRun) {
+        $action = 'would_insert';
+        $googleEventId = '';
+        if ($sync) {
+            $action = $updateExisting ? 'would_update' : 'would_skip_existing';
+            $googleEventId = (string)($sync['google_event_id'] ?? '');
+        } elseif ($existingGoogleEvent) {
+            $action = $updateExisting ? 'would_adopt_update' : 'would_skip_existing';
+            $googleEventId = (string)($existingGoogleEvent['id'] ?? '');
+        }
+
         return [
             'ok' => true,
-            'action' => $sync ? 'would_update' : 'would_insert',
+            'action' => $action,
             'idAssenza' => $idAssenza,
             'calendar_config_id' => $configId,
             'calendar_nome' => $calendarConfig['nome'] ?? '',
-            'google_event_id' => $sync ? (string)($sync['google_event_id'] ?? '') : '',
+            'google_event_id' => $googleEventId,
             'titolo' => (string)($event['summary'] ?? ''),
             'attendees_count' => $item['attendees_count'],
             'event' => $event
         ];
     }
 
-    if ($sync && trim((string)($sync['google_event_id'] ?? '')) !== '') {
-        $googleEventId = (string)$sync['google_event_id'];
+    if (($sync && trim((string)($sync['google_event_id'] ?? '')) !== '') || $existingGoogleEvent) {
+        if (!$updateExisting) {
+            return [
+                'ok' => true,
+                'action' => 'skip_existing',
+                'idAssenza' => $idAssenza,
+                'calendar_config_id' => $configId,
+                'calendar_nome' => $calendarConfig['nome'] ?? '',
+                'google_event_id' => $sync ? (string)($sync['google_event_id'] ?? '') : (string)($existingGoogleEvent['id'] ?? ''),
+                'titolo' => (string)($event['summary'] ?? ''),
+                'attendees_count' => $item['attendees_count'],
+                'event' => $event
+            ];
+        }
+
+        $googleEventId = $sync ? (string)$sync['google_event_id'] : (string)($existingGoogleEvent['id'] ?? '');
 
         $url = 'https://www.googleapis.com/calendar/v3/calendars/' .
             rawurlencode($calendarId) .
@@ -370,7 +593,7 @@ function cdcUpsertGoogleEvent($calendarConfig, $item, $dryRun = false)
             '?sendUpdates=none';
 
         $response = googleCalendarApiRequest('PUT', $url, $event);
-        $action = 'update';
+        $action = $sync ? 'update' : 'adopt_update';
     } else {
         $url = 'https://www.googleapis.com/calendar/v3/calendars/' .
             rawurlencode($calendarId) .
@@ -451,11 +674,12 @@ function cdcUpsertGoogleEvent($calendarConfig, $item, $dryRun = false)
         'calendar_nome' => $calendarConfig['nome'] ?? '',
         'google_event_id' => $googleEventId,
         'titolo' => $titolo,
-        'attendees_count' => $item['attendees_count']
+        'attendees_count' => $item['attendees_count'],
+        'event' => $event
     ];
 }
 
-function cdcRunSync($from, $to, $dryRun = false)
+function cdcRunSync($from, $to, $dryRun = false, array $options = [])
 {
     if (!cdcIsIsoDate($from) || !cdcIsIsoDate($to)) {
         throw new Exception('Date non valide: usare from/to in formato YYYY-MM-DD');
@@ -467,12 +691,18 @@ function cdcRunSync($from, $to, $dryRun = false)
 
     $calendarConfig = cdcCalendarioIstituto();
     $rows = cdcFetchAssenze($from, $to);
+    $onlyIdAssenza = intval($options['idAssenza'] ?? 0);
+    if ($onlyIdAssenza > 0) {
+        $rows = array_values(array_filter($rows, function ($row) use ($onlyIdAssenza) {
+            return intval($row['idAssenza'] ?? 0) === $onlyIdAssenza;
+        }));
+    }
 
     $results = [];
     foreach ($rows as $a) {
         $item = cdcBuildGoogleEvent($a);
         if (!$item) continue;
-        $results[] = cdcUpsertGoogleEvent($calendarConfig, $item, $dryRun);
+        $results[] = cdcUpsertGoogleEvent($calendarConfig, $item, $dryRun, $options);
     }
 
     return [
@@ -480,6 +710,8 @@ function cdcRunSync($from, $to, $dryRun = false)
         'from' => $from,
         'to' => $to,
         'dry_run' => $dryRun,
+        'update_existing' => array_key_exists('update_existing', $options) ? (bool)$options['update_existing'] : true,
+        'idAssenza' => $onlyIdAssenza > 0 ? $onlyIdAssenza : null,
         'id_anno_scolastico' => cdcAnnoScolasticoCorrenteId(),
         'calendar_config_id' => intval($calendarConfig['id']),
         'calendar_nome' => $calendarConfig['nome'] ?? '',
@@ -506,8 +738,14 @@ try {
     $from = cdcParam('from', date('Y-m-d'));
     $to = cdcParam('to', date('Y-m-d', strtotime('+30 days')));
     $dryRun = in_array(strtolower(cdcParam('dry_run', '0')), ['1', 'true', 'yes'], true);
+    $defaultUpdateExisting = !empty($__settings->local->googleCalendar->calendarIstitutoUpdateExisting);
+    $updateExisting = !in_array(strtolower(cdcParam('update_existing', $defaultUpdateExisting ? '1' : '0')), ['0', 'false', 'no'], true);
+    $idAssenza = intval(cdcParam('idAssenza', '0'));
 
-    echo json_encode(cdcRunSync($from, $to, $dryRun), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    echo json_encode(cdcRunSync($from, $to, $dryRun, [
+        'update_existing' => $updateExisting,
+        'idAssenza' => $idAssenza
+    ]), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
     if ($isCli) echo PHP_EOL;
 
