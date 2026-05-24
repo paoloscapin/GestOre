@@ -323,7 +323,7 @@ function mastercomRawRequest(array $params, array $options = []): array
     $sendInBody = !empty($options['send_in_body']);
     $url = $baseUrl;
     if (!($sendInBody && $method === 'POST')) {
-        $url .= '?' . http_build_query($params);
+        $url .= '?' . mastercomBuildQueryString($params);
     }
 
     $headers = [
@@ -349,7 +349,7 @@ function mastercomRawRequest(array $params, array $options = []): array
     ];
 
     if ($sendInBody && $method === 'POST') {
-        $curlOptions[CURLOPT_POSTFIELDS] = http_build_query($params);
+        $curlOptions[CURLOPT_POSTFIELDS] = mastercomBuildQueryString($params);
         $headers[] = 'Content-Type: application/x-www-form-urlencoded';
         $curlOptions[CURLOPT_HTTPHEADER] = $headers;
     }
@@ -379,6 +379,26 @@ function mastercomRawRequest(array $params, array $options = []): array
         'http_code' => $httpCode,
         'content_type' => $contentType,
     ];
+}
+
+function mastercomBuildQueryString(array $params): string
+{
+    $pairs = [];
+    foreach ($params as $key => $value) {
+        if (is_array($value) && substr((string)$key, -2) === '[]') {
+            foreach ($value as $item) {
+                $pairs[] = rawurlencode((string)$key) . '=' . rawurlencode((string)$item);
+            }
+            continue;
+        }
+
+        $query = http_build_query([$key => $value]);
+        if ($query !== '') {
+            $pairs[] = $query;
+        }
+    }
+
+    return implode('&', $pairs);
 }
 
 function mastercomAuthenticate(string $username, string $password, array $options = []): array
@@ -888,7 +908,7 @@ function mastercomSubmitAdminAbsenceAction(array $authResult, array $formParams,
         'method' => $options['method'] ?? 'POST',
         'send_in_body' => array_key_exists('send_in_body', $options) ? $options['send_in_body'] : false,
     ]));
-    $submitResult['submitted_url'] = mastercomIndexUrl() . '?' . http_build_query($payload);
+    $submitResult['submitted_url'] = mastercomIndexUrl() . '?' . mastercomBuildQueryString($payload);
     $submitResult['submitted_payload'] = $payload;
 
     if (!$submitResult['ok']) {

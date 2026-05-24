@@ -96,6 +96,7 @@ $docenteHeaderJoin = function (string $url) use ($docenteHeaderQuery): string {
 					<?php endif; ?>
 					<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../docente/noircRegistro.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-check"></span>&ensp;Registro NO IRC</a></li>
 					<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../docente/l2Registro.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-education"></span>&ensp;Registro L2</a></li>
+					<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../didattica/stampaTag.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-tags"></span>&ensp;Stampa TAG</a></li>
 					<?php if (getSettingsValue('programmiIniziali', 'visibile_docenti', false)) : ?>
 						<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../didattica/programmiIniziali.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Programmi iniziali</a></li>
 					<?php endif; ?>

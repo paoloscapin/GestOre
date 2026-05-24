@@ -60,6 +60,7 @@
 					<li role="separator" class="divider"></li>
 					<li class="dropdown-header">Agenda, eventi e voti</li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_calendar.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Agenda classe</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/didattica/stampaTag.php"><span class="glyphicon glyphicon-tags"></span>&ensp;Stampa TAG</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_events.php"><span class="glyphicon glyphicon-list"></span>&ensp;Eventi</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_event_create.php"><span class="glyphicon glyphicon-plus"></span>&ensp;Nuovo evento</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_grades.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Voti</a></li>
