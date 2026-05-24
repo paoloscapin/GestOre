@@ -142,9 +142,9 @@
     return isJuneDate(iso) ? GIORNI_LABEL_GIUGNO : GIORNI_LABEL_BASE;
   }
 
-  /** Fine anno scolastico: usato per popolare l'elenco di settimane nel select */
+  /** Intervallo di navigazione: include il periodo post lezioni per CDC/scrutini/eventi. */
   const SCHOOL_START = "2025-09-10";
-  const SCHOOL_END = "2026-06-10";
+  const SCHOOL_END = "2026-08-31";
 
   /**
    * Altezza minima "per slot" in px.

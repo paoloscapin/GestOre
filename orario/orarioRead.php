@@ -463,6 +463,63 @@ function splitClassi($s)
   return splitCsvUnique($s);
 }
 
+function orarioExpandClasseCdcToken($token)
+{
+  $token = strtoupper(trim((string)$token));
+  $token = preg_replace('/\s+/', '', $token);
+  if ($token === '') return [];
+
+  $parts = array_values(array_filter(explode('-', $token), 'strlen'));
+  if (empty($parts)) return [];
+
+  $defaultYear = '';
+  $defaultSuffix = '';
+
+  foreach ($parts as $part) {
+    if (preg_match('/^([0-9])([A-Z]{1,4})$/u', $part, $m)) {
+      if ($defaultYear === '') $defaultYear = $m[1];
+      if ($defaultSuffix === '') $defaultSuffix = $m[2];
+    }
+  }
+
+  $out = [];
+  foreach ($parts as $part) {
+    $classe = '';
+
+    if (preg_match('/^([0-9])([A-Z]{1,4})$/u', $part)) {
+      $classe = $part;
+    } elseif (preg_match('/^[A-Z]{1,4}$/u', $part) && $defaultYear !== '') {
+      $classe = $defaultYear . $part;
+    } elseif (preg_match('/^[0-9]$/u', $part) && $defaultSuffix !== '') {
+      $classe = $part . $defaultSuffix;
+    }
+
+    if ($classe !== '' && !in_array($classe, $out, true)) {
+      $out[] = $classe;
+    }
+  }
+
+  return $out;
+}
+
+function orarioExtractClassiCdc($dettagli)
+{
+  $det = strtoupper(trim((string)$dettagli));
+  $det = preg_replace('/\s*-\s*/', '-', $det);
+  $token = '';
+
+  if (preg_match('/\bCC\s+([0-9A-Z]+(?:-[0-9A-Z]+)*)\b/u', $det, $m)) {
+    $token = strtoupper(trim($m[1]));
+  } elseif (preg_match('/\b([0-9][A-Z]{1,4}(?:-[0-9A-Z]+)*)\b/u', $det, $m)) {
+    $token = strtoupper(trim($m[1]));
+  }
+
+  return [
+    'label' => $token,
+    'classi' => orarioExpandClasseCdcToken($token)
+  ];
+}
+
 function eventIsClassLevelForDocente($ev)
 {
   $t = (string)($ev['type'] ?? '');
@@ -1049,29 +1106,21 @@ if ($scope === 'AULA') {
 
       foreach (mb_dbGetAll($qCdc) ?: [] as $a) {
 
-        $det = strtoupper(trim((string)($a['dettagli'] ?? '')));
+        $cdcData = orarioExtractClassiCdc($a['dettagli'] ?? '');
+        $classeCdcLabel = strtoupper(trim((string)($cdcData['label'] ?? '')));
+        $classiEventoCdc = $cdcData['classi'] ?? [];
 
-        $classeCdc = '';
-        if (preg_match('/\bCC\s+([0-9][A-Z]{1,4})\b/u', $det, $m)) {
-          $classeCdc = strtoupper(trim($m[1]));
-        } elseif (preg_match('/\b([0-9][A-Z]{1,4})\b/u', $det, $m)) {
-          $classeCdc = strtoupper(trim($m[1]));
+        if ($classeCdcLabel === '' || empty($classiEventoCdc)) continue;
+
+        $isDocenteClasse = false;
+        foreach ($classiEventoCdc as $classeEvento) {
+          if (isset($classiCdc[strtoupper(trim((string)$classeEvento))])) {
+            $isDocenteClasse = true;
+            break;
+          }
         }
 
-        if ($classeCdc === '') continue;
-
-        $qTargetInClasse = "
-    SELECT COUNT(*) AS n
-    FROM docente_insegna di
-    JOIN docente d ON d.id = di.id_docente
-    JOIN classi c ON c.id = di.id_classe
-    WHERE d.username = " . dbQ($target) . "
-      AND UPPER(TRIM(c.classe)) = " . dbQ($classeCdc) . "
-  ";
-
-        $isDocenteClasse = (int)(dbGetValue($qTargetInClasse) ?? 0);
-
-        if ($isDocenteClasse <= 0) {
+        if (!$isDocenteClasse) {
           continue;
         }
 
@@ -1079,9 +1128,10 @@ if ($scope === 'AULA') {
           'type'   => 'imp',
           'origin' => 'classe',
           'class'  => 'ev ev-imp',
-          'title'  => 'Consiglio di classe · ' . $classeCdc,
+          'title'  => 'Consiglio di classe - ' . $classeCdcLabel,
           'who'    => '',
-          'classi' => [$classeCdc],
+          'classi' => $classiEventoCdc,
+          'classi_label' => $classeCdcLabel,
           'rooms'  => getAuleByAssenzaId((int)($a['idAssenza'] ?? 0)),
           'badge'  => 'Consiglio di classe'
         ];

@@ -7,7 +7,7 @@
     ];
 
     const SCHOOL_START = "2025-09-10";
-    const SCHOOL_END = "2026-06-10";
+    const SCHOOL_END = "2026-08-31";
 
     const LS_KEY_TARGET_BY_SCOPE = "orario_target_by_scope_mobile_v1";
     const LS_KEY_SCOPE = "orario_mobile_scope_v1";
