@@ -1000,6 +1000,14 @@ body {
     opacity: .95;
 }
 
+.mobile-event-who-line.is-absent .mobile-orario-chip-teacher {
+    background: #bdbdbd !important;
+    color: #ffffff !important;
+    border-color: #bdbdbd !important;
+    text-decoration: line-through !important;
+    filter: grayscale(1);
+}
+
 .mobile-event-absence-note {
     margin-left: 4px;
     font-size: 11px;

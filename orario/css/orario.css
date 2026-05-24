@@ -586,6 +586,14 @@
   text-decoration: line-through;
 }
 
+.ev-who-line.is-absent .orario-chip-teacher{
+  background:#bdbdbd !important;
+  color:#ffffff !important;
+  border-color:#bdbdbd !important;
+  text-decoration:line-through !important;
+  filter:grayscale(1);
+}
+
 .ev-who-line .who-reason{
   font-size: 11px;
   font-weight: 800;
