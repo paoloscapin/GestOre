@@ -184,7 +184,7 @@ ORDER BY bonus.codice;
 								</div>
 
 								<div class="form-group">
-									<label for="rendiconto_rendiconto">Rendiconto</label>
+									<label for="rendiconto_rendiconto">Rendiconto (max.4000 caratteri)</label>
 									<textarea class="form-control" rows="5" id="rendiconto_rendiconto"
 										placeholder="rendiconto"
 										<?php echo ($anno_scolastico_id == $__anno_scolastico_corrente_id && $__config->getBonus_rendiconto_aperto()) ? '' : 'readonly="readonly"'; ?>></textarea>
