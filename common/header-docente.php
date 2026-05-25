@@ -91,6 +91,7 @@ $docenteHeaderJoin = function (string $url) use ($docenteHeaderQuery): string {
 					<?php if (getSettingsValue('config', 'corsi', false) && getSettingsValue('corsi', 'visibile_docenti', false)): ?>
 						<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../didattica/corsi.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-th-list"></span>&ensp;I miei corsi</a></li>
 					<?php endif; ?>
+					<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../didattica/geometri.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-education"></span>&ensp;Esami CAT</a></li>
 					<?php if (getSettingsValue('programmiMaterie', 'visibile_docenti', false)): ?>
 						<li><a href="<?php echo htmlspecialchars($docenteHeaderJoin('../didattica/programmaMaterie.php'), ENT_QUOTES, 'UTF-8'); ?>"><span class="glyphicon glyphicon-th-large"></span>&ensp;Programmi materie</a></li>
 					<?php endif; ?>

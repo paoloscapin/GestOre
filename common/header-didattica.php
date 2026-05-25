@@ -110,6 +110,8 @@
 					echo '<li><a href="../didattica/corsi.php" class="btn btn-default nav-btn btn-yellow" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Corsi </a></li>';
 				}
 
+				echo '<li><a href="../didattica/geometri.php" class="btn btn-default nav-btn btn-lima4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Esami CAT </a></li>';
+
 				if (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) {
 					echo '<li><a href="../didattica/carenzeMinimi.php" class="btn btn-default nav-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a></li>';
 				}

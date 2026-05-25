@@ -18,6 +18,10 @@
 			<a href="../didattica/corsi.php" class="btn btn-default navbar-btn btn-yellow" role="button"  data-toggle="tooltip"
      		data-placement="bottom" title="Gestisci i tuoi corsi e relativi esami"><span class="glyphicon glyphicon-th-list"></span>&ensp;I miei Corsi </a>
 			</div>
+			<div class="btn-group">
+			<a href="../didattica/geometri.php" class="btn btn-default navbar-btn btn-lima4" role="button"  data-toggle="tooltip"
+     		data-placement="bottom" title="Gestisci le sessioni degli esami CAT Geometri"><span class="glyphicon glyphicon-education"></span>&ensp;Esami CAT </a>
+			</div>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a><span class=""></span>
