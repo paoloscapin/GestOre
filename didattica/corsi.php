@@ -79,6 +79,32 @@ $isEsterno = ($ruolo_eff === 'esterno');
             text-align: left;
         }
 
+        #col-segreteria-tools label.btn,
+        #col-report-1 label.btn-file,
+        #col-report-1 label.btn-lima4 {
+            display: block;
+            width: 150px;
+            max-width: 100%;
+            margin: 0 auto 4px;
+            padding-left: 7px;
+            padding-right: 7px;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #col-segreteria-tools {
+            padding-left: 6px;
+            padding-right: 6px;
+        }
+
+        #col-report-1 .toggle {
+            width: auto !important;
+            max-width: none !important;
+            margin-bottom: 0;
+        }
+
         /* Tabella studenti iscritti compatta e centrata */
         #iscritti_table {
             width: 60% !important;
@@ -367,7 +393,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <span class="glyphicon glyphicon-list-alt" style="margin:5px"></span><br><b>Elenco<br>Corsi</b>
                     </div>
 
-                    <div class="col-md-3 text-center" id="col-filtro-materia">
+                    <div class="<?php echo haRuolo('segreteria-didattica') ? 'col-md-2' : 'col-md-3'; ?> text-center" id="col-filtro-materia">
 
                         <label class="col-sm-12 control-label" for="materia">Materia</label>
                         <div class="text-center">
@@ -410,7 +436,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
         </button>
     </div>
 
-    <div class="col-md-1 text-center" style="margin-top:20px;" id="col-segreteria-tools">
+    <div class="col-md-2 text-center" style="margin-top:20px;" id="col-segreteria-tools">
         <label id="import_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Importa i corsi">
             <span class="glyphicon glyphicon-upload"></span>&emsp;Importa
             <input type="file" id="file_select_id" style="display: none;">
@@ -458,6 +484,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             <input type="checkbox" data-toggle="toggle" data-size="mini"
                                 data-onstyle="primary" id="futuri"> Solo Nuovi
                         </label><br>
+                        <?php if (!impersonaRuolo('docente') && (haRuolo('segreteria-didattica') || haRuolo('dirigente') || haRuolo('admin'))) { ?>
                         <label id="incompleti" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Esami incompleti">
                             <span class="glyphicon glyphicon-download"></span>&emsp;Incompleti
                         </label><br>
@@ -475,6 +502,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             onclick="window.location.href='corsiCarenzeReport.php?format=pdf'">
                             <span class="glyphicon glyphicon-file"></span>&emsp;PDF carenze
                         </label>
+                        <?php } ?>
 
                     </div>
 
@@ -646,6 +674,12 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                 </div>
 
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-lima4" data-toggle="tooltip" title="Scarica riepilogo corso PDF" onclick="esportaRiepilogoCorso('pdf')">
+                        <img src="../img/pdf-256.png" alt="PDF" style="width:18px;height:18px;vertical-align:middle;"> PDF riepilogo
+                    </button>
+                    <button type="button" class="btn btn-lima4" data-toggle="tooltip" title="Scarica riepilogo corso Excel" onclick="esportaRiepilogoCorso('xlsx')">
+                        <img src="../img/excel_256.png" alt="Excel" style="width:18px;height:18px;vertical-align:middle;"> Excel riepilogo
+                    </button>
                     <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
                     <button type="button" class="btn btn-primary" onclick="corsiSave()">Salva</button>
                 </div>

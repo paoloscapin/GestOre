@@ -92,6 +92,18 @@ function corsiReadRecords() {
     );
 }
 
+function esportaRiepilogoCorso(format, corsoId) {
+    var id = parseInt(corsoId || $("#hidden_corso_id").val(), 10) || 0;
+    var fmt = (format === "xlsx") ? "xlsx" : "pdf";
+
+    if (id <= 0) {
+        showToast("Seleziona prima un corso salvato", true);
+        return;
+    }
+
+    window.location.href = "corsoRiepilogoExport.php?format=" + encodeURIComponent(fmt) + "&corso_id=" + encodeURIComponent(id);
+}
+
 // funzione per formattare le date
 function formatDateTime(dateTimeStr) {
     var d = new Date(dateTimeStr);

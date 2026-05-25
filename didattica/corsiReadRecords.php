@@ -69,14 +69,14 @@ $data = '<style>
   .table-wrapper table { table-layout: fixed; width: 100%; }
 
   /* nuove width */
-  .col-azioni   { width: 10%; }  /* + spazio pulsanti */
-  .col-inizio   { width: 13%; }  /* + spazio data/ora */
-  .col-fine     { width: 13%; }  /* + spazio data/ora */
-  .col-materia  { width: 17%; }
-  .col-docente  { width: 12%; }   /* - spazio */
-  .col-titolo   { width: 23%; }
-  .col-studenti { width: 5%; }   /* - spazio */
-  .col-stato    { width: 7%; }   /* leggermente meno */
+  .col-materia  { width: 16%; }
+  .col-docente  { width: 11%; }
+  .col-titolo   { width: 20%; }
+  .col-inizio   { width: 12%; }
+  .col-fine     { width: 12%; }
+  .col-studenti { width: 5%; }
+  .col-stato    { width: 6%; }
+  .col-azioni   { width: 18%; }
 
   /* evita che docente e titolo esplodano in larghezza */
   td.col-docente, th.col-docente,
@@ -92,8 +92,19 @@ td.col-titolo, th.col-titolo {
     white-space: nowrap;
   }
 
-  /* azioni: tieni i bottoni in riga */
-  td.col-azioni { white-space: nowrap; }
+  /* azioni: compatte, con eventuale seconda riga ordinata */
+  td.col-azioni { white-space: normal; overflow: visible; line-height: 1.7; }
+  td.col-azioni .btn {
+    padding: 1px 4px;
+    margin: 0 1px 2px 0;
+    line-height: 1.2;
+    vertical-align: middle;
+  }
+  .corso-export-icon img {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
 </style>
 
 <div class="table-wrapper"><table class="table table-bordered table-striped table-green">
@@ -363,6 +374,20 @@ foreach ($rows as $row) {
                     <span class="glyphicon glyphicon-check"></span>
                 </button>';
             }
+
+            $data .= '
+            <button onclick="esportaRiepilogoCorso(\'pdf\', \'' . $idcorso . '\')"
+                    class="btn btn-default btn-xs corso-export-icon"
+                    data-toggle="tooltip" data-trigger="hover" data-placement="top"
+                    title="Scarica riepilogo corso PDF">
+                <img src="../img/pdf-256.png" alt="PDF">
+            </button>
+            <button onclick="esportaRiepilogoCorso(\'xlsx\', \'' . $idcorso . '\')"
+                    class="btn btn-default btn-xs corso-export-icon"
+                    data-toggle="tooltip" data-trigger="hover" data-placement="top"
+                    title="Scarica riepilogo corso Excel">
+                <img src="../img/excel_256.png" alt="Excel">
+            </button>';
         }
     } else if (haRuolo('dirigente') || haRuolo('segreteria-didattica') || haRuolo('admin') || (($__utente_ruolo ?? '') === 'admin')) {
 
@@ -405,6 +430,20 @@ foreach ($rows as $row) {
                 <span class="glyphicon glyphicon-check"></span>
             </button>';
         }
+
+        $data .= '
+        <button onclick="esportaRiepilogoCorso(\'pdf\', \'' . $idcorso . '\')"
+                class="btn btn-default btn-xs corso-export-icon"
+                data-toggle="tooltip" data-trigger="hover" data-placement="top"
+                title="Scarica riepilogo corso PDF">
+            <img src="../img/pdf-256.png" alt="PDF">
+        </button>
+        <button onclick="esportaRiepilogoCorso(\'xlsx\', \'' . $idcorso . '\')"
+                class="btn btn-default btn-xs corso-export-icon"
+                data-toggle="tooltip" data-trigger="hover" data-placement="top"
+                title="Scarica riepilogo corso Excel">
+            <img src="../img/excel_256.png" alt="Excel">
+        </button>';
     }
 
     $data .= '</td></tr>';
