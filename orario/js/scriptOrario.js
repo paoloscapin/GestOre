@@ -2021,6 +2021,7 @@
 
       // docenti presenti nello slot (solo eventi non-assenza)
       const lessonTeacherKeys = new Set();
+      const lessonClassSet = new Set();
       evs.forEach(e => {
         const t = normalizeType(e);
         if (isTeacherAbsenceType(t)) return;
@@ -2031,9 +2032,26 @@
         ).map(normTxt).filter(Boolean);
 
         wl.forEach(n => lessonTeacherKeys.add(normPersonName(n)));
+
+        const keys = wl.map(normPersonName);
+        if (keys.includes(targetKey) || sostituzioneContainsTarget(e)) {
+          toArrMaybe(e.classi).forEach(c => {
+            const v = String(c).trim();
+            if (v) lessonClassSet.add(v);
+          });
+        }
       });
 
       const hasTargetInSlot = lessonTeacherKeys.has(targetKey);
+
+      function isClassBlockingForTarget(e) {
+        const t = String(normalizeType(e) || "").trim().toLowerCase();
+        if (!["viag", "uscc", "uscf"].includes(t)) return false;
+        if (!hasTargetInSlot || lessonClassSet.size === 0) return false;
+        const origin = String(e.origin || "").trim().toLowerCase();
+        if (origin === "docente") return false;
+        return toArrMaybe(e.classi).some(c => lessonClassSet.has(String(c).trim()));
+      }
 
       // 1) Eventi "normali" (curr/udi/imp/...) 
       // - curr/udi con docente esplicito: solo se contengono il docente target
@@ -2081,6 +2099,8 @@
 
         const tl = String(t || "").trim().toLowerCase();
 
+        if (isClassBlockingForTarget(e)) return true;
+
         const absWho = uniq(
           (Array.isArray(e._whoList) && e._whoList.length) ? e._whoList : toArrWho(e.who || e.sub || "")
         ).map(normTxt).filter(Boolean);
@@ -2108,6 +2128,8 @@
         const tl = String(t || "").trim().toLowerCase();
 
         if (!["viag", "uscc", "uscf"].includes(tl)) return true;
+
+        if (isClassBlockingForTarget(e)) return true;
 
         const whoLines = uniq(
           (Array.isArray(e._whoList) && e._whoList.length) ? e._whoList : toArrWho(e.who || e.sub || "")
@@ -2294,6 +2316,8 @@
 
           const projectedByBlocking = (scopeUp === "CLASSE")
             ? eventIntersectsClassSet(ev, blockingClassSet)
+            : (scopeUp === "DOCENTE")
+              ? eventIntersectsClassSet(ev, blockingClassSet)
             : false;
 
           const projected = projectedAula || projectedByBlocking;

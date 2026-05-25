@@ -373,6 +373,26 @@
         return cl.some(c => blockedSet.has(String(c).trim()));
     }
 
+    function classesSetFromEvents(evs, onlyBlocking) {
+        const set = new Set();
+        (evs || []).forEach(ev => {
+            const t = normalizeType(ev);
+            if (onlyBlocking && !isBlocking(t)) return;
+            toArrMaybe(ev.classi).forEach(c => {
+                const v = String(c).trim();
+                if (v) set.add(v);
+            });
+        });
+        return set;
+    }
+
+    function eventIntersectsClassSet(ev, classSet) {
+        if (!classSet || classSet.size === 0) return false;
+        const cl = toArrMaybe(ev.classi);
+        if (!cl.length) return false;
+        return cl.some(c => classSet.has(String(c).trim()));
+    }
+
     function normPersonName(s) {
         return normTxt(s).toUpperCase();
     }
@@ -1014,6 +1034,7 @@
 
             const blockedSet = slotBlockedSet(blockedMap, dateIso, ora);
             const teacherAbsMap = buildTeacherAbsenceMapForSlot(evs, ora);
+            const blockingClassSet = classesSetFromEvents(evs, true);
             let body = "";
 
             if (!evs.length) {
@@ -1022,7 +1043,13 @@
                 body = evs.map(ev => {
                     const extra = [];
 
-                    if (!isBlocking(normalizeType(ev)) && eventIsOverriddenByBlockedClasses(ev, blockedSet)) {
+                    const type = normalizeType(ev);
+                    const projectedByAula = eventIsOverriddenByBlockedClasses(ev, blockedSet);
+                    const projectedByClass = ["CLASSE", "DOCENTE"].includes(currentScope())
+                        ? eventIntersectsClassSet(ev, blockingClassSet)
+                        : false;
+
+                    if (!isBlocking(type) && (projectedByAula || projectedByClass)) {
                         extra.push("ev-overridden");
                     }
 
