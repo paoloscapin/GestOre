@@ -91,7 +91,7 @@ try {
 
         if (empty($pref['initial_sync_at']) && googleCalendarDocentiBoolConfig('teacherInitialSyncOnEnable', true)) {
             $from = googleCalendarDocentiCurrentSchoolYearStart();
-            $to = googleCalendarDocentiToday();
+            $to = googleCalendarDocentiCurrentSchoolYearEnd();
             $result = googleCalendarDocentiSyncUsernames([$username], $from, $to);
             $syncResult = $result[0] ?? null;
             $error = trim((string)($syncResult['error'] ?? ''));

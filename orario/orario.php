@@ -50,7 +50,7 @@ if (isMobileOrarioClient()) {
     require_once '../common/_include_bootstrap-notify.php';
     require_once '../common/_include_bootstrap-select.php';
     ?>
-    <link rel="stylesheet" href="./css/orario.css">
+    <link rel="stylesheet" href="./css/orario.css?t=<?= filemtime(__DIR__ . '/css/orario.css') ?>">
 </head>
 
 <body>

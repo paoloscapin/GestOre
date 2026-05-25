@@ -314,6 +314,28 @@ function googleCalendarDocentiCurrentSchoolYearStart()
     return $currentYear . '-09-01';
 }
 
+function googleCalendarDocentiCurrentSchoolYearEnd()
+{
+    global $__anno_scolastico_corrente_anno;
+
+    $year = trim((string)($__anno_scolastico_corrente_anno ?? ''));
+    if ($year === '') {
+        $row = dbGetFirst("SELECT anno FROM anno_scolastico_corrente LIMIT 1");
+        $year = trim((string)($row['anno'] ?? ''));
+    }
+
+    if (preg_match('/^\s*(\d{4})\s*\/\s*(\d{4})\s*$/', $year, $matches)) {
+        return $matches[2] . '-08-31';
+    }
+
+    if (preg_match('/(\d{4})/', $year, $matches)) {
+        return (intval($matches[1]) + 1) . '-08-31';
+    }
+
+    $currentYear = intval(date('n')) >= 9 ? intval(date('Y')) : intval(date('Y')) - 1;
+    return ($currentYear + 1) . '-08-31';
+}
+
 function googleCalendarDocentiToday()
 {
     return (new DateTime('now', new DateTimeZone('Europe/Rome')))->format('Y-m-d');

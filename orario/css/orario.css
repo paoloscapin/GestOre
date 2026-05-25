@@ -229,6 +229,65 @@
   flex-wrap:wrap;
 }
 
+.calendar-sync-overlay{
+  position:fixed;
+  z-index:10050;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(0,0,0,.35);
+}
+.calendar-sync-dialog{
+  width:min(460px, 100%);
+  padding:22px 24px;
+  border:1px solid rgba(0,0,0,.18);
+  border-radius:6px;
+  background:#fff;
+  box-shadow:0 18px 45px rgba(0,0,0,.28);
+  text-align:center;
+}
+.calendar-sync-title{
+  margin-bottom:8px;
+  color:#0b5c7c;
+  font-size:22px;
+  font-weight:700;
+}
+.calendar-sync-message{
+  margin-bottom:16px;
+  font-size:15px;
+}
+.calendar-sync-progress{
+  height:24px;
+  overflow:hidden;
+  border-radius:4px;
+  background:#e9ecef;
+}
+.calendar-sync-progress-bar{
+  width:0;
+  height:100%;
+  color:#fff;
+  font-weight:700;
+  line-height:24px;
+  background:#1687b1;
+  transition:width .35s ease;
+}
+.calendar-sync-dialog.is-done .calendar-sync-progress-bar{
+  background:#00a65a;
+}
+.calendar-sync-dialog.is-error .calendar-sync-progress-bar{
+  background:#d9534f;
+}
+.calendar-sync-detail{
+  min-height:22px;
+  margin-top:12px;
+  color:#555;
+}
+.calendar-sync-close{
+  margin-top:12px;
+}
+
 /* =========================
    GRID
    ========================= */
