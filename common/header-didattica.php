@@ -22,6 +22,7 @@
 
 			<li><a href="../didattica/studente.php" class="btn btn-default nav-btn btn-lima4" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Studenti </a></li>
 			<li><a href="../didattica/genitore.php" class="btn btn-default nav-btn btn-purple" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Genitori </a></li>
+			<li><a href="../orario/orario.php" class="btn btn-default nav-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Orario </a></li>
 
 			<?php if ($__settings->config->corsiDiRecupero) : ?>
 				<li><a href="../docente/corsoDiRecuperoVoti.php" class="btn btn-default nav-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a></li>
