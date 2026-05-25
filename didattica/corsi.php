@@ -105,6 +105,36 @@ $isEsterno = ($ruolo_eff === 'esterno');
             margin-bottom: 0;
         }
 
+        #col-filtro-materia .anno-filter-wrap {
+            margin-bottom: 6px;
+        }
+
+        .docente-filter-row {
+            display: flex;
+            gap: 18px;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .docente-filter-row .docente-filter-item {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .docente-filter-row .control-label {
+            display: block;
+            padding: 0;
+        }
+
+        #col-report-1.docente-toolbar,
+        #col-report-2.docente-toolbar {
+            margin-top: 34px !important;
+        }
+
+        #col-report-2.docente-toolbar {
+            text-align: left;
+        }
+
         /* Tabella studenti iscritti compatta e centrata */
         #iscritti_table {
             width: 60% !important;
@@ -361,7 +391,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
 
 // anni
 $anno_corsi = $__anno_scolastico_corrente_id;
-$anniFiltroOptionList = '<option value="0">Tutti</option>';
+$anniFiltroOptionList = '';
 $anniOptionList      = '<option value="0">Selezionare anno</option>';
 
 foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
@@ -393,15 +423,31 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <span class="glyphicon glyphicon-list-alt" style="margin:5px"></span><br><b>Elenco<br>Corsi</b>
                     </div>
 
-                    <div class="<?php echo haRuolo('segreteria-didattica') ? 'col-md-2' : 'col-md-3'; ?> text-center" id="col-filtro-materia">
+                    <div class="<?php echo haRuolo('segreteria-didattica') ? 'col-md-2' : 'col-md-5'; ?> text-center" id="col-filtro-materia">
 
-                        <label class="col-sm-12 control-label" for="materia">Materia</label>
-                        <div class="text-center">
-                            <div class="col-sm-12">
-                                <select id="materia_filtro" name="materia_filtro"
-                                    class="mamteria_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
-                                    data-noneSelectedText="seleziona..."
-                                    data-width="100%"><?php echo $materiaFiltroOptionList ?></select>
+                        <div class="<?php echo impersonaRuolo('docente') ? 'docente-filter-row' : ''; ?>">
+                            <div class="<?php echo impersonaRuolo('docente') ? 'docente-filter-item' : ''; ?>">
+                                <label class="col-sm-12 control-label" for="anni_filtro">Anno scolastico</label>
+                                <div class="text-center anno-filter-wrap">
+                                    <div class="col-sm-12">
+                                        <select id="anni_filtro" name="anni_filtro"
+                                            class="anni_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
+                                            data-noneSelectedText="seleziona..."
+                                            data-width="100%"><?php echo $anniFiltroOptionList ?></select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="<?php echo impersonaRuolo('docente') ? 'docente-filter-item' : ''; ?>">
+                                <label class="col-sm-12 control-label" for="materia">Materia</label>
+                                <div class="text-center">
+                                    <div class="col-sm-12">
+                                        <select id="materia_filtro" name="materia_filtro"
+                                            class="mamteria_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
+                                            data-noneSelectedText="seleziona..."
+                                            data-width="100%"><?php echo $materiaFiltroOptionList ?></select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -456,7 +502,8 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                title="Scarica report iscritti corsi in itinere (CSV)"
                onclick="
                  var solo = (document.getElementById(\'carenze\') && document.getElementById(\'carenze\').checked) ? 1 : 0;
-                 window.location.href = \'reportCorsiItinereIscritti.php?format=csv&anno_id=' . intval($anno_corsi) . '&solo_carenze=\' + solo;
+                 var anno = (document.getElementById(\'anni_filtro\') ? document.getElementById(\'anni_filtro\').value : ' . intval($anno_corsi) . ');
+                 window.location.href = \'reportCorsiItinereIscritti.php?format=csv&anno_id=\' + encodeURIComponent(anno) + \'&solo_carenze=\' + solo;
                ">
             <span class="glyphicon glyphicon-list-alt"></span>&emsp;Report itinere CSV
         </label>
@@ -467,7 +514,8 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                title="Scarica report iscritti corsi in itinere (PDF)"
                onclick="
                  var solo = (document.getElementById(\'carenze\') && document.getElementById(\'carenze\').checked) ? 1 : 0;
-                 window.location.href = \'reportCorsiItinereIscritti.php?format=pdf&anno_id=' . intval($anno_corsi) . '&solo_carenze=\' + solo;
+                 var anno = (document.getElementById(\'anni_filtro\') ? document.getElementById(\'anni_filtro\').value : ' . intval($anno_corsi) . ');
+                 window.location.href = \'reportCorsiItinereIscritti.php?format=pdf&anno_id=\' + encodeURIComponent(anno) + \'&solo_carenze=\' + solo;
                ">
             <span class="glyphicon glyphicon-file"></span>&emsp;Report itinere PDF
         </label>
@@ -479,7 +527,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     ?>
 
 
-                    <div class="col-md-2 text-center" style="margin-top:20px;" id="col-report-1">
+                    <div class="col-md-2 text-center <?php echo impersonaRuolo('docente') ? 'docente-toolbar' : ''; ?>" style="margin-top:20px;" id="col-report-1">
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
                             <input type="checkbox" data-toggle="toggle" data-size="mini"
                                 data-onstyle="primary" id="futuri"> Solo Nuovi
@@ -494,19 +542,23 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                             title="Scarica elenco corsi carenze senza date esame e/o non firmati CSV"
                             onclick="
                             var sess = (document.getElementById('carenza_sessione') ? document.getElementById('carenza_sessione').value : 0);
-                            window.location.href='corsiCarenzeReport.php?format=csv&sessione=' + encodeURIComponent(sess);
+                            var anno = (document.getElementById('anni_filtro') ? document.getElementById('anni_filtro').value : <?php echo intval($anno_corsi); ?>);
+                            window.location.href='corsiCarenzeReport.php?format=csv&anno_id=' + encodeURIComponent(anno) + '&sessione=' + encodeURIComponent(sess);
                             ">
                             <span class="glyphicon glyphicon-list-alt"></span>&emsp;Report carenze CSV
                         </label>
                         <label class="btn btn-xs btn-lima4"
-                            onclick="window.location.href='corsiCarenzeReport.php?format=pdf'">
+                            onclick="
+                            var anno = (document.getElementById('anni_filtro') ? document.getElementById('anni_filtro').value : <?php echo intval($anno_corsi); ?>);
+                            window.location.href='corsiCarenzeReport.php?format=pdf&anno_id=' + encodeURIComponent(anno);
+                            ">
                             <span class="glyphicon glyphicon-file"></span>&emsp;PDF carenze
                         </label>
                         <?php } ?>
 
                     </div>
 
-                    <div class="col-md-2 text-center" style="margin-top:20px;" id="col-report-2">
+                    <div class="col-md-2 text-center <?php echo impersonaRuolo('docente') ? 'docente-toolbar' : ''; ?>" style="margin-top:20px;" id="col-report-2">
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
                             <input type="checkbox" data-toggle="toggle" data-size="mini"
                                 data-onstyle="primary" id="carenze">Corsi carenze
