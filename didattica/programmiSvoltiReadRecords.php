@@ -53,6 +53,9 @@ $coordinatore_vede_programmi_altri = getSettingsValue('programmiSvolti', 'coordi
 $utente_ruolo = $GLOBALS['__utente_ruolo'] ?? '';
 $docente_corrente_id = intval($GLOBALS['__docente_id'] ?? 0);
 $copertineTableExists = programmiSvoltiCopertineTableExists();
+if ($copertineTableExists) {
+	programmiSvoltiCopertineEnsureConsegnaColumns();
+}
 
 $is_contesto_docente = (
 	$utente_ruolo === 'docente'
@@ -235,6 +238,7 @@ foreach ($resultArray as $row) {
 		$is_programma_proprio = $docente_corrente_id > 0 && $row_docente_id === $docente_corrente_id;
 		$can_export_classe_word = programmiSvoltiCanExportClasseWord($classe_id, $anno_scolastico_id, $docente_corrente_id);
 		$can_export_programma_word = ($classe_anno === 5) && ($is_programma_proprio || $can_export_classe_word);
+		$can_manage_copertina = $is_programma_proprio || haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica');
 		$copertina_button = '';
 		$verifiche_digitali_button = '';
 		global $__settings;
@@ -244,7 +248,7 @@ foreach ($resultArray as $row) {
 		if ($__settings->programmiSvolti->stampa_copertine_verifiche) {
 			$copertina = $copertineTableExists ? programmiSvoltiCopertinaByProgramma($programma_id) : null;
 			$copertina_stato = strtoupper(trim((string)($copertina['stato'] ?? '')));
-			if ($is_programma_proprio) {
+			if ($can_manage_copertina) {
 				if (!$copertineTableExists) {
 					$copertina_button = '<button class="btn btn-default btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Tabella copertine non configurata"><span class="glyphicon glyphicon-folder-close"></span></button>';
 				} elseif ($copertina_stato === 'RICHIESTA') {
@@ -255,6 +259,13 @@ foreach ($resultArray as $row) {
 					$copertina_button = '<button class="btn btn-primary btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Copertina stampata: ' . htmlspecialchars((string)($copertina['fascicolo_codice'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><span class="glyphicon glyphicon-print"></span></button>';
 				} else {
 					$copertina_button = '<button onclick="programmiSvoltiRichiediCopertina(' . $programma_id . ')" class="btn btn-default btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Richiedi copertina fascicolo verifiche"><span class="glyphicon glyphicon-folder-close"></span></button>';
+				}
+				if ($copertina && intval($copertina['verifiche_consegnate'] ?? 0) === 1) {
+					$consegnaTitle = 'Verifiche consegnate in segreteria';
+					if (!empty($copertina['verifiche_consegnate_at'])) {
+						$consegnaTitle .= ' il ' . date('d/m/Y H:i', strtotime((string)$copertina['verifiche_consegnate_at']));
+					}
+					$copertina_button .= ' <button class="btn btn-success btn-xs" disabled data-toggle="tooltip" data-trigger="hover" data-placement="top" title="' . htmlspecialchars($consegnaTitle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><span class="glyphicon glyphicon-check"></span></button>';
 				}
 			}
 		}

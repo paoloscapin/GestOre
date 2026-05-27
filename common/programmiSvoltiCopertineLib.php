@@ -21,17 +21,38 @@ function programmiSvoltiCopertinaByProgramma(int $programmaId): ?array
     return $row ?: null;
 }
 
-function programmiSvoltiCopertinaColumnExists(string $columnName): bool
+function programmiSvoltiCopertinaColumnExists(string $columnName, bool $refresh = false): bool
 {
     static $cache = [];
     $columnName = trim($columnName);
     if ($columnName === '') {
         return false;
     }
-    if (!array_key_exists($columnName, $cache)) {
+    if ($refresh || !array_key_exists($columnName, $cache)) {
         $cache[$columnName] = dbGetFirst("SHOW COLUMNS FROM programmi_svolti_copertine LIKE '" . dbEscape($columnName) . "'") != null;
     }
     return (bool)$cache[$columnName];
+}
+
+function programmiSvoltiCopertineEnsureConsegnaColumns(): void
+{
+    if (!programmiSvoltiCopertineTableExists()) {
+        return;
+    }
+
+    if (!programmiSvoltiCopertinaColumnExists('verifiche_consegnate')) {
+        $afterColumn = programmiSvoltiCopertinaColumnExists('printed_at') ? 'printed_at' : 'updated_at';
+        dbExec("ALTER TABLE programmi_svolti_copertine ADD COLUMN verifiche_consegnate TINYINT(1) NOT NULL DEFAULT 0 AFTER " . $afterColumn);
+        programmiSvoltiCopertinaColumnExists('verifiche_consegnate', true);
+    }
+    if (!programmiSvoltiCopertinaColumnExists('verifiche_consegnate_at')) {
+        dbExec("ALTER TABLE programmi_svolti_copertine ADD COLUMN verifiche_consegnate_at DATETIME NULL AFTER verifiche_consegnate");
+        programmiSvoltiCopertinaColumnExists('verifiche_consegnate_at', true);
+    }
+    if (!programmiSvoltiCopertinaColumnExists('verifiche_consegnate_by_user_id')) {
+        dbExec("ALTER TABLE programmi_svolti_copertine ADD COLUMN verifiche_consegnate_by_user_id INT NULL AFTER verifiche_consegnate_at");
+        programmiSvoltiCopertinaColumnExists('verifiche_consegnate_by_user_id', true);
+    }
 }
 
 function programmiSvoltiCopertineAnnoFine(string $annoLabel): int
@@ -108,7 +129,7 @@ function programmiSvoltiCopertinaLoadProgramma(int $programmaId): ?array
 
 function programmiSvoltiCopertinaUserCanRequest(array $programma, int $docenteId): bool
 {
-    if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
+    if (haRuolo('admin') || haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
         return true;
     }
     return $docenteId > 0 && intval($programma['id_docente'] ?? 0) === $docenteId;
@@ -119,6 +140,7 @@ function programmiSvoltiCopertinaRequest(int $programmaId, int $utenteId): array
     if (!programmiSvoltiCopertineTableExists()) {
         return ['ok' => false, 'message' => 'Tabella programmi_svolti_copertine non presente. Esegui la migrazione SQL.'];
     }
+    programmiSvoltiCopertineEnsureConsegnaColumns();
 
     $programma = programmiSvoltiCopertinaLoadProgramma($programmaId);
     if (!$programma) {
@@ -150,6 +172,37 @@ function programmiSvoltiCopertinaRequest(int $programmaId, int $utenteId): array
     }
 
     return ['ok' => true, 'message' => 'Copertina richiesta.'];
+}
+
+function programmiSvoltiCopertinaSetVerificheConsegnate(int $copertinaId, bool $consegnata, int $utenteId): array
+{
+    if (!programmiSvoltiCopertineTableExists()) {
+        return ['ok' => false, 'message' => 'Tabella programmi_svolti_copertine non presente.'];
+    }
+    programmiSvoltiCopertineEnsureConsegnaColumns();
+
+    $row = dbGetFirst("SELECT id, stato FROM programmi_svolti_copertine WHERE id=" . intval($copertinaId) . " LIMIT 1");
+    if (!$row) {
+        return ['ok' => false, 'message' => 'Copertina non trovata.'];
+    }
+
+    if ($consegnata) {
+        dbExec("UPDATE programmi_svolti_copertine
+            SET verifiche_consegnate=1,
+                verifiche_consegnate_at=NOW(),
+                verifiche_consegnate_by_user_id=" . intval($utenteId) . ",
+                updated_at=NOW()
+            WHERE id=" . intval($copertinaId));
+        return ['ok' => true, 'message' => 'Verifiche segnate come consegnate.'];
+    }
+
+    dbExec("UPDATE programmi_svolti_copertine
+        SET verifiche_consegnate=0,
+            verifiche_consegnate_at=NULL,
+            verifiche_consegnate_by_user_id=NULL,
+            updated_at=NOW()
+        WHERE id=" . intval($copertinaId));
+    return ['ok' => true, 'message' => 'Consegna verifiche rimossa.'];
 }
 
 function programmiSvoltiCopertinaNextCode(int $annoFine): array

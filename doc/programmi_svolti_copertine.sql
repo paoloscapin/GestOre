@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS `programmi_svolti_copertine` (
   `generated_at` DATETIME NULL,
   `printed_by_user_id` INT NULL,
   `printed_at` DATETIME NULL,
+  `verifiche_consegnate` TINYINT(1) NOT NULL DEFAULT 0,
+  `verifiche_consegnate_at` DATETIME NULL,
+  `verifiche_consegnate_by_user_id` INT NULL,
   `error_message` TEXT NULL,
   `created_at` DATETIME NOT NULL,
   `updated_at` DATETIME NOT NULL,
@@ -29,3 +32,8 @@ CREATE TABLE IF NOT EXISTS `programmi_svolti_copertine` (
 ALTER TABLE `programmi_svolti_copertine`
   ADD COLUMN IF NOT EXISTS `printed_by_user_id` INT NULL AFTER `generated_at`,
   ADD COLUMN IF NOT EXISTS `printed_at` DATETIME NULL AFTER `printed_by_user_id`;
+
+ALTER TABLE `programmi_svolti_copertine`
+  ADD COLUMN IF NOT EXISTS `verifiche_consegnate` TINYINT(1) NOT NULL DEFAULT 0 AFTER `printed_at`,
+  ADD COLUMN IF NOT EXISTS `verifiche_consegnate_at` DATETIME NULL AFTER `verifiche_consegnate`,
+  ADD COLUMN IF NOT EXISTS `verifiche_consegnate_by_user_id` INT NULL AFTER `verifiche_consegnate_at`;

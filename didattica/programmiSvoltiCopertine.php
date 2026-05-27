@@ -159,6 +159,31 @@ function programmiSvoltiCopertineRegenerate(id) {
     });
 }
 
+function programmiSvoltiCopertineConsegna(id, consegnata) {
+    var testo = consegnata
+        ? 'Segnare che il plico verifiche e stato consegnato in segreteria?'
+        : 'Rimuovere la spunta di consegna verifiche?';
+    if (!confirm(testo)) {
+        return;
+    }
+    programmiSvoltiCopertineOverlay(consegnata ? 'Registro la consegna del plico...' : 'Rimuovo la consegna del plico...');
+    $.post('programmiSvoltiCopertinaConsegna.php', { id: id, consegnata: consegnata ? 1 : 0 }, function (response) {
+        var result = typeof response === 'string' ? JSON.parse(response) : response;
+        programmiSvoltiCopertineOverlayHide();
+        if (!result || result.ok === false) {
+            alert((result && result.message) ? result.message : 'Errore durante il salvataggio.');
+            programmiSvoltiCopertineReadRecords();
+            return;
+        }
+        programmiSvoltiCopertineReadRecords();
+    }).fail(function (xhr) {
+        programmiSvoltiCopertineOverlayHide();
+        var message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Errore di connessione.';
+        alert(message);
+        programmiSvoltiCopertineReadRecords();
+    });
+}
+
 $(document).ready(function () {
     programmiSvoltiCopertineReadRecords();
 });
