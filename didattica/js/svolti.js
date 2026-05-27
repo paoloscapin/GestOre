@@ -2096,7 +2096,7 @@ function moduloSvoltiDelete(id, id_programma, titolo) {
     }
 }
 
-function programmiSvoltiSave() {
+function programmiSvoltiSave(overwrite) {
     if (programmaSvoltoReadonly()) {
         return;
     }
@@ -2118,13 +2118,16 @@ function programmiSvoltiSave() {
         materia_id: $("#materia").val(),
         duplica: $("#hidden_duplica").val(),
         share: $("#hidden_share").val(),
+        overwrite: overwrite === true ? 'true' : 'false',
         metodologie_programma: $("#metodologie_programma").val(),
         criteri_valutazione_programma: $("#criteri_valutazione_programma").val(),
         testi_materiali_programma: $("#testi_materiali_programma").val()
     }, function (data, status) {
         if (String(data).indexOf('Programma') !== -1 && String(data).indexOf('esistente') !== -1) {
             if ($("#hidden_share").val() == 'true') {
-                alert("Non puoi condividere il programma con il docente, perche ha gia un programma presente!");
+                if (confirm("Il docente ha gia un programma presente per questa classe e materia. Vuoi sovrascriverlo con questo programma?")) {
+                    programmiSvoltiSave(true);
+                }
             } else {
                 alert("Esiste gia il programma nella classe di destinazione!");
             }

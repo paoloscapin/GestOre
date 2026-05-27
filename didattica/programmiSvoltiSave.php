@@ -189,6 +189,7 @@ if (isset($_POST)) {
 	}
 	$duplica = $_POST['duplica'];
 	$share = $_POST['share'];
+	$overwrite = $_POST['overwrite'] ?? 'false';
 	$metodologie_programma = sanitizeProgrammaSvoltoRichHtml((string)($_POST['metodologie_programma'] ?? ''));
 	$criteri_valutazione_programma = sanitizeProgrammaSvoltoRichHtml((string)($_POST['criteri_valutazione_programma'] ?? ''));
 	$testi_materiali_programma = sanitizeProgrammaSvoltoRichHtml((string)($_POST['testi_materiali_programma'] ?? ''));
@@ -244,6 +245,18 @@ if (isset($_POST)) {
 		if ($result != null) {
 			$data = 'Programma già esistente';
 		} else {
+			if (($result != null) && ($overwrite == 'true')) {
+				$new_id = intval($result['id']);
+				if ($new_id === intval($id)) {
+					$data = 'Programma giÃ  esistente';
+				} else {
+					$query = "UPDATE programmi_svolti SET id_classe = '$classe_id', id_docente = '$docente_id', id_materia = '$materia_id', id_utente = '$utente_id', updated = '$update' $extraSet WHERE id = '$new_id'";
+					dbExec($query);
+					aggiornaClassiProgrammaSvolto(intval($new_id), $classi_programma);
+					dbExec("DELETE FROM programmi_svolti_moduli WHERE id_programma = " . intval($new_id));
+					info("sovrascritto programma svolto id=$new_id con copia del programma svolto id=$id per docente id=$docente_id");
+				}
+			} else {
 			// creo il programma vuoto per la nuova classe
 			$insertColumns = "id_classe, id_docente, id_materia, id_anno_scolastico, id_utente, updated";
 			$insertValues = "'$classe_id', '$docente_id', '$materia_id', '$__anno_scolastico_corrente_id', '$utente_id', '$update'";
@@ -259,16 +272,28 @@ if (isset($_POST)) {
 
 			// duplico i moduli collegati al programma originale
 			$query = "INSERT INTO programmi_svolti_moduli (ID_PROGRAMMA, ORDINE, NOME, CONTENUTO, ID_UTENTE, UPDATED)
-			SELECT $new_id AS ID_PROGRAMMA, ORDINE, NOME, CONTENUTO, ID_UTENTE, NOW() AS UPDATED FROM programmi_svolti_moduli WHERE ID_PROGRAMMA = $id";
+			SELECT $new_id AS ID_PROGRAMMA, ORDINE, NOME, CONTENUTO, $utente_id AS ID_UTENTE, NOW() AS UPDATED FROM programmi_svolti_moduli WHERE ID_PROGRAMMA = $id";
 			dbExec($query);
 			info("duplicati i moduli del programma svolto id=$id e li ho collegati al nuovo programma svolto id=$new_id");
+		}
 		}
 	} else if ($share == 'true') {
 		// verifico se esiste già la classe su cui voglio duplicare il programma
 		$query = "SELECT * from programmi_svolti WHERE id_classe='$classe_id' AND id_docente='$docente_id' AND id_materia='$materia_id'";
 		$result = dbGetFirst($query);
 
-		if (($result != null) && ($overwrite != 'true')) {
+		if (($result != null) && ($overwrite == 'true')) {
+			$new_id = intval($result['id']);
+			if ($new_id === intval($id)) {
+				$data = 'Programma gia esistente';
+			} else {
+				$query = "UPDATE programmi_svolti SET id_classe = '$classe_id', id_docente = '$docente_id', id_materia = '$materia_id', id_utente = '$utente_id', updated = '$update' $extraSet WHERE id = '$new_id'";
+				dbExec($query);
+				aggiornaClassiProgrammaSvolto(intval($new_id), $classi_programma);
+				dbExec("DELETE FROM programmi_svolti_moduli WHERE id_programma = " . intval($new_id));
+				info("sovrascritto programma svolto id=$new_id con copia del programma svolto id=$id per docente id=$docente_id");
+			}
+		} else if (($result != null) && ($overwrite != 'true')) {
 			$data = 'Programma già esistente';
 		} else {
 			// creo il programma vuoto per la nuova classe
@@ -283,12 +308,14 @@ if (isset($_POST)) {
 			$new_id = dblastId();
 			aggiornaClassiProgrammaSvolto(intval($new_id), $classi_programma);
 			info("aggiunto programma svolto id=$new_id  id_classe=$classe_id id_docente=$docente_id id_materia=$materia_id id_anno_scolastico=$__anno_scolastico_corrente_id id_utente=$utente_id updated=$update");
-			// duplico i moduli collegati al programma originale
-			$query = "INSERT INTO programmi_svolti_moduli (ID_PROGRAMMA, ORDINE, NOME, CONTENUTO, ID_UTENTE, UPDATED)
-			SELECT $new_id AS ID_PROGRAMMA, ORDINE, NOME, CONTENUTO, ID_UTENTE, NOW() AS UPDATED FROM programmi_svolti_moduli WHERE ID_PROGRAMMA = $id";
-			dbExec($query);
-			info("duplicati per il docente id=$docente_id i moduli del programma svolto id=$id e li ho collegati al nuovo programma svolto id=$new_id");
+			}
+			if ($data === '') {
+				// duplico i moduli collegati al programma originale
+				$query = "INSERT INTO programmi_svolti_moduli (ID_PROGRAMMA, ORDINE, NOME, CONTENUTO, ID_UTENTE, UPDATED)
+				SELECT $new_id AS ID_PROGRAMMA, ORDINE, NOME, CONTENUTO, $utente_id AS ID_UTENTE, NOW() AS UPDATED FROM programmi_svolti_moduli WHERE ID_PROGRAMMA = $id";
+				dbExec($query);
+				info("duplicati per il docente id=$docente_id i moduli del programma svolto id=$id e li ho collegati al nuovo programma svolto id=$new_id");
+			}
 		}
-	}
 	echo $data;
 }
