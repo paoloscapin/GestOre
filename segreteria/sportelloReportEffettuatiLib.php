@@ -143,7 +143,7 @@ function sportelloReportEffettuatiTotals(array $rows)
         'ore_saltate' => 0,
     ];
     foreach ($rows as $row) {
-        if (intval($row['numero_presenti'] ?? 0) > 0) {
+        if (!empty($row['sportello_firmato'])) {
             $totals['sportelli_fatti']++;
             $totals['ore_fatte'] += floatval($row['sportello_numero_ore'] ?? 0);
         } else {
