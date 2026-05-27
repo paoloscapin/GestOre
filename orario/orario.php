@@ -3,7 +3,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/connectMBApp.php';
 
-ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'dirigente', 'studente', 'genitore');
+ruoloRichiesto('admin', 'personale-ata', 'portineria', 'segreteria-ata', 'segreteria-didattica', 'segreteria-docenti', 'docente', 'dirigente', 'studente', 'genitore');
 applicaDocenteDaParametroSeAutorizzato();
 
 $orarioGoogleCalendarDocentiCfg = $__settings->local->googleCalendarDocenti ?? null;
@@ -50,7 +50,7 @@ if (isMobileOrarioClient()) {
     require_once '../common/_include_bootstrap-notify.php';
     require_once '../common/_include_bootstrap-select.php';
     ?>
-    <link rel="stylesheet" href="./css/orario.css?t=<?= filemtime(__DIR__ . '/css/orario.css') ?>">
+    <link rel="stylesheet" href="./css/orario.css?t=<?= time() ?>">
 </head>
 
 <body>

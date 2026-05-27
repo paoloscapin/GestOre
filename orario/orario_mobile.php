@@ -3,7 +3,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/connectMBApp.php';
 
-ruoloRichiesto('personale-ata', 'portineria', 'segreteria-ata', 'docente', 'dirigente', 'studente', 'genitore');
+ruoloRichiesto('admin', 'personale-ata', 'portineria', 'segreteria-ata', 'segreteria-didattica', 'segreteria-docenti', 'docente', 'dirigente', 'studente', 'genitore');
 
 global $__utente_ruolo;
 $ruolo = strtoupper(trim((string)$__utente_ruolo));

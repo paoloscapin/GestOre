@@ -590,6 +590,21 @@
 .orario-grid .cell-wrap{
   display:block;
 }
+.orario-grid .cell-wrap.is-tall{
+  position:absolute;
+  top:6px;
+  right:6px;
+  bottom:6px;
+  left:6px;
+  display:flex;
+  flex-direction:column;
+  height:auto !important;
+  min-height:0 !important;
+}
+.orario-grid .cell-wrap.is-tall .ev{
+  min-height:0;
+  flex-shrink:0;
+}
 .orario-grid .cell-wrap.single .ev{
   flex: 1;
   display: flex;
