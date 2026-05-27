@@ -1,3 +1,11 @@
+## Version 1.3.19 - 27 mag 2026
+##### ##### Improvements
+- corso di recupero gestione Lezioni
+- corso di recupero gestione Studenti
+##### Bug Fixes
+- ruolo richiesto per report sportelli e viaggio save
+- container di troppo per piano di lavoro documento
+
 ## Version 1.3.18 - 1 mar 2026
 ##### ##### Improvements
 - aggiunta la directory collaboratore

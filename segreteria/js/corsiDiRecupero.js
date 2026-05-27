@@ -142,6 +142,14 @@ function corsiDiRecuperoDelete(id, nome) {
     }
 }
 
+function corsiDiRecuperoLezioni(id) {
+    window.open('/GestOre/docente/corsoDiRecuperoLezioni.php?corso_di_recupero_id=' + id, '_blank');
+}
+
+function corsiDiRecuperoStudenti(id) {
+    window.open('/GestOre/docente/corsoDiRecuperoStudenti.php?corso_di_recupero_id=' + id, '_blank');
+}
+
 function corsiDiRecuperoImport() {
     var selectDialogueLink = $('<a href="">Select files</a>');
     var fileSelector = $('<input type="file">');

@@ -75,8 +75,6 @@ echo '<title>Piano di Lavoro  ' . $nomeClasse . ' - '. $materiaNome . ' - ' . $a
 </head>
 
 <body >
-<!-- Content Section -->
-<div class="container-fluid" style="margin-top:60px">
 
 <?php
 	require_once '../common/header-docente.php';

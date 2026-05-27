@@ -14,12 +14,13 @@ $inItinere = $_GET["inItinere"];
 // Design initial table header
 $data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
 					<tr>
-						<th>Codice</th>
-						<th>Materia</th>
-						<th>Aula</th>
-						<th>Docente</th>
-						<th>Ore</th>
-						<th></th>
+						<th class="col-md-3 text-left">Codice</th>
+						<th class="col-md-2 text-left">Materia</th>
+						<th class="col-md-1 text-left">Aula</th>
+						<th class="col-md-2 text-left">Docente</th>
+						<th class="col-md-1 text-left">Ore</th>
+						<th class="col-md-2 text-left"></th>
+						<th class="col-md-1 text-left"></th>
 					</tr>';
 
 $query = "	SELECT
@@ -47,6 +48,11 @@ foreach(dbGetAll($query) as $row) {
 		<td>'.$row['docente_cognome'].' '.$row['docente_nome'].'</td>
         <td>'.$row['corso_di_recupero_numero_ore'].'</td>       
 		';
+	$data .='
+		<td class="text-center">
+		<button onclick="corsiDiRecuperoLezioni('.$row['corso_di_recupero_id'].')" class="btn btn-teal4 btn-xs"><span class="glyphicon glyphicon-list-alt"> Lezioni</button>
+		<button onclick="corsiDiRecuperoStudenti('.$row['corso_di_recupero_id'].', \''.$row['corso_di_recupero_codice'].'\')" class="btn btn-orange4 btn-xs"><span class="glyphicon glyphicon-pawn"> Studenti</button>
+		</td>';
 	$data .='
 		<td class="text-center">
 		<button onclick="corsiDiRecuperoGetDetails('.$row['corso_di_recupero_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>

@@ -8,7 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('segreteria');
+ruoloRichiesto('segreteria-docenti');
 
 if(isset($_POST)) {
 	$viaggio_id = $_POST['viaggio_id'];
