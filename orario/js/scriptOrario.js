@@ -2259,9 +2259,13 @@
 
       const blockedSet = (scopeUp === "AULA") ? slotBlockedSet(blockedMap, ymd, ora) : null;
       const blockingClassSet = classesSetFromEvents(evs, true);
+      const fillableCount = evs.filter(e => !isTeacherAbsenceType(normalizeType(e))).length;
+      const hasTeacherAbsenceEvent = evs.some(e => isTeacherAbsenceType(normalizeType(e)));
+      const hasMixedLessonAndAbsence = fillableCount > 0 && hasTeacherAbsenceEvent;
+      const canStretchSlot = fillableCount <= 1 && !hasMixedLessonAndAbsence;
 
       const spanPx = (span && span > 1) ? (span * SLOT_MIN_PX) : 0;
-      const wrapCls = "cell-wrap" + ((span && span > 1) ? " is-tall" : "");
+      const wrapCls = "cell-wrap" + ((span && span > 1 && canStretchSlot) ? " is-tall" : "");
       const wrapStyle = ` style="display:flex;flex-direction:column;height:100%;${spanPx ? `min-height:${spanPx}px;` : ``}"`;
 
       let filledOnce = false;
@@ -2340,7 +2344,7 @@
             (displayBadge ? " - " + displayBadge : "");
 
           let canFill = false;
-          if (span && span >= 1) {
+          if (span && span >= 1 && canStretchSlot) {
             if (scopeUp === "AULA") {
               canFill = true;
             } else if (scopeUp === "DOCENTE") {
@@ -2687,6 +2691,10 @@
         const merged = mergeSlotEvents(evs, "AULA");
         const sorted = stableSortSlotEvents(merged);
         const teacherAbsMap = buildTeacherAbsenceMapForSlot(sorted, ora);
+        const fillableCount = sorted.filter(ev => !isTeacherAbsenceType(normalizeType(ev))).length;
+        const hasTeacherAbsenceEvent = sorted.some(ev => isTeacherAbsenceType(normalizeType(ev)));
+        const hasMixedLessonAndAbsence = fillableCount > 0 && hasTeacherAbsenceEvent;
+        const canStretchSlot = fillableCount <= 1 && !hasMixedLessonAndAbsence;
 
         let domType = "curr";
         sorted.forEach(ev => {
@@ -2695,7 +2703,12 @@
         });
 
         const tdClass = `td-${domType}`;
-        const html = sorted.map(ev => {
+        const spanPx = (span && span > 1) ? (span * SLOT_MIN_PX) : 0;
+        const wrapCls = "cell-wrap" + ((span && span > 1 && canStretchSlot) ? " is-tall" : "");
+        const wrapStyle = ` style="display:flex;flex-direction:column;height:100%;${spanPx ? `min-height:${spanPx}px;` : ``}"`;
+        let filledOnce = false;
+
+        const html = `<div class="${wrapCls}"${wrapStyle}>` + sorted.map(ev => {
           const type = normalizeType(ev);
           const isOwnAbsenceEvent = isTeacherAbsenceType(type);
 
@@ -2754,9 +2767,13 @@
           const rooms = roomsHtmlFromEv(ev);
           const classi = classiHtmlFromEv(ev);
           const sost = sostituzioneHtml(ev);
+          let canFill = !isOwnAbsenceEvent && canStretchSlot;
+          if (canFill && filledOnce) canFill = false;
+          if (canFill) filledOnce = true;
+          const fillStyle = canFill ? ' style="flex:1;display:flex;flex-direction:column;min-height:0;"' : '';
 
-          return `<div class="${cls.join(" ")}">${badge}${title}${whoHtml}${sost}${rooms}${classi}</div>`;
-        }).join("");
+          return `<div class="${cls.join(" ")}"${fillStyle}>${badge}${title}${whoHtml}${sost}${rooms}${classi}</div>`;
+        }).join("") + `</div>`;
 
         return { tdClass, html };
       }
@@ -2780,8 +2797,10 @@
 
           const cd = cellHtmlForCol(col, ora, sp.span);
           const rs = (sp.span && sp.span > 1) ? ` rowspan="${sp.span}"` : "";
+          const hPx = (sp.span && sp.span > 1) ? (sp.span * SLOT_MIN_PX) : SLOT_MIN_PX;
+          const tdStyle = ` style="height:${hPx}px;vertical-align:top;"`;
 
-          html += `<td class="${cd.tdClass}"${rs}>${cd.html}</td>`;
+          html += `<td class="${cd.tdClass}"${rs}${tdStyle}>${cd.html}</td>`;
         });
 
         html += `</tr>`;
