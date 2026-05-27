@@ -8,11 +8,14 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/connect.php';
 
-$passati = $_GET["passati"];
-$docente_filtro_id = $_GET["docente_filtro_id"];
-$materia_filtro_id = $_GET["materia_filtro_id"];
-$materiaNome = dbGetValue("SELECT nome FROM materia WHERE id=$materia_filtro_id;");
+ruoloRichiesto('admin', 'dirigente', 'segreteria-docenti', 'segreteria-didattica', 'docente');
+
+$passati = intval($_GET["passati"] ?? 1);
+$docente_filtro_id = intval($_GET["docente_filtro_id"] ?? 0);
+$materia_filtro_id = intval($_GET["materia_filtro_id"] ?? 0);
+$materiaNome = $materia_filtro_id > 0 ? dbGetValue("SELECT nome FROM materia WHERE id=" . dbI($materia_filtro_id) . ";") : 'Tutte le materie';
 
 // testo da scrivere per intestazione
 if ($passati) {
@@ -65,10 +68,10 @@ $query = "	SELECT
 			WHERE sportello.anno_scolastico_id = $__anno_scolastico_corrente_id AND NOT sportello.cancellato ";
 
 if( $docente_filtro_id > 0) {
-	$query .= "AND sportello.docente_id = $docente_filtro_id ";
+	$query .= "AND sportello.docente_id = " . dbI($docente_filtro_id) . " ";
 }
 if( $materia_filtro_id > 0) {
-	$query .= "AND sportello.materia_id = $materia_filtro_id ";
+	$query .= "AND sportello.materia_id = " . dbI($materia_filtro_id) . " ";
 }
 if( $passati) {
 	$query .= "AND sportello.data <= CURDATE() ";
@@ -113,7 +116,7 @@ foreach($resultArray as $row) {
 				sportello_studente
 			INNER JOIN studente
 			ON sportello_studente.studente_id = studente.id
-			INNER JOIN studente_frequenta sf ON sf.studente_id = studente.id AND sf.anno_scolastico_id = $__anno_scolastico_corrente_id
+			INNER JOIN studente_frequenta sf ON sf.id_studente = studente.id AND sf.id_anno_scolastico = $__anno_scolastico_corrente_id
 			INNER JOIN classi c ON sf.id_classe = c.id
 			WHERE sportello_studente.sportello_id = '$sportello_id';";
 

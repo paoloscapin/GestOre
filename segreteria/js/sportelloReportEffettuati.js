@@ -40,4 +40,6 @@ $(document).ready(function () {
         docente_filtro_id = this.value;
         sportelloReportEffettuatiReadRecords();
     });
+
+    sportelloReportEffettuatiReadRecords();
 });

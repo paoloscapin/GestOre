@@ -23,7 +23,8 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_flatpickr.php';
-ruoloRichiesto('dirigente','segreteria-docenti','docente');
+require_once '../common/connect.php';
+ruoloRichiesto('admin', 'dirigente', 'segreteria-docenti', 'segreteria-didattica', 'docente');
 ?>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
@@ -77,6 +78,10 @@ foreach(dbGetAll("SELECT * FROM materia ORDER BY materia.nome ASC ; ")as $materi
 <?php
 if (! empty($__utente_ruolo) && $__utente_ruolo == 'docente') {
     require_once '../common/header-docente.php';
+} elseif (! empty($__utente_ruolo) && $__utente_ruolo == 'admin') {
+    require_once '../common/header-admin.php';
+} elseif (! empty($__utente_ruolo) && $__utente_ruolo == 'segreteria-didattica') {
+    require_once '../common/header-didattica.php';
 } else {
     require_once '../common/header-segreteria.php';
 }
