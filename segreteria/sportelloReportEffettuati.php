@@ -57,6 +57,100 @@ ruoloRichiesto('admin', 'dirigente', 'segreteria-docenti', 'segreteria-didattica
     width: 450px;
     text-align: left;
 }
+.sportelli-report-heading {
+    padding: 14px 18px;
+}
+.sportelli-report-toolbar {
+    display: grid;
+    grid-template-columns: minmax(210px, 1.15fr) repeat(5, minmax(150px, 1fr)) auto;
+    gap: 12px 16px;
+    align-items: end;
+}
+.sportelli-report-title {
+    align-self: center;
+    font-weight: 700;
+    color: #1f2f3a;
+    white-space: nowrap;
+}
+.sportelli-report-title .glyphicon {
+    margin-right: 8px;
+}
+.sportelli-report-field label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    line-height: 1;
+    text-transform: uppercase;
+    color: #243746;
+}
+.sportelli-report-field .bootstrap-select,
+.sportelli-report-field .bootstrap-select > .dropdown-toggle {
+    width: 100% !important;
+}
+.sportelli-report-actions {
+    align-self: end;
+    white-space: nowrap;
+}
+.sportelli-report-actions .btn {
+    min-width: 58px;
+}
+#sportelliReportExportOverlay {
+    position: fixed;
+    z-index: 99999;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, .42);
+}
+#sportelliReportExportOverlay .export-wait-box {
+    width: min(420px, calc(100vw - 32px));
+    padding: 24px 28px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, .28);
+    text-align: center;
+}
+#sportelliReportExportOverlay .export-title {
+    margin-bottom: 10px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #263747;
+}
+#sportelliReportExportOverlay .export-detail {
+    margin-bottom: 14px;
+    color: #52616e;
+}
+#sportelliReportExportOverlay .export-percent {
+    margin-bottom: 10px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #1f6f9f;
+}
+#sportelliReportExportOverlay .progress {
+    margin-bottom: 0;
+}
+@media (max-width: 1200px) {
+    .sportelli-report-toolbar {
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
+    }
+    .sportelli-report-title,
+    .sportelli-report-actions {
+        grid-column: span 3;
+    }
+}
+@media (max-width: 768px) {
+    .sportelli-report-toolbar {
+        grid-template-columns: 1fr;
+    }
+    .sportelli-report-title,
+    .sportelli-report-actions {
+        grid-column: auto;
+    }
+}
 </style>
 </head>
 
@@ -90,35 +184,58 @@ if (! empty($__utente_ruolo) && $__utente_ruolo == 'docente') {
 <!-- Content Section -->
 <div class="container-fluid">
 <div class="panel panel-orange4">
-<div class="panel-heading container-fluid">
-	<div class="row">
-		<div class="col-md-3">
-			<span class="glyphicon glyphicon-retweet"></span>&emsp;Report Sportelli Effettuati
-		</div>
-        <div class="col-md-3">
-            <div class="text-center">
-                <label class="col-sm-2 control-label" for="materia">Materia</label>
-					<div class="col-sm-8"><select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-lima4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
-                    <?php echo $materiaFiltroOptionList ?>
-					</select></div>
-            </div>
+<div class="panel-heading sportelli-report-heading">
+    <div class="sportelli-report-toolbar">
+        <div class="sportelli-report-title">
+            <span class="glyphicon glyphicon-retweet"></span>Report sportelli effettuati
         </div>
-        <div class="col-md-3">
-            <label class="col-sm-2 control-label" for="docente">Docente</label>
-                <div class="col-sm-8"><select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="70%" >
+        <div class="sportelli-report-field">
+            <label for="materia_filtro">Materia</label>
+            <select id="materia_filtro" name="materia_filtro" class="materia_filtro selectpicker" data-style="btn-lima4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="100%">
+                <?php echo $materiaFiltroOptionList ?>
+            </select>
+        </div>
+        <div class="sportelli-report-field">
+            <label for="docente_filtro">Docente</label>
+            <select id="docente_filtro" name="docente_filtro" class="docente_filtro selectpicker" data-style="btn-lightblue4" data-live-search="true" data-noneSelectedText="seleziona..." data-width="100%">
                 <?php echo $docenteFiltroOptionList ?>
-                </select></div>
+            </select>
         </div>
-        <div class="col-md-2">
-        <div class="text-center">
-				<label class="checkbox-inline">
-					<input type="checkbox" checked data-toggle="toggle" data-size="mini" data-onstyle="primary" id="passatiCheckBox" >Passati
-				</label>
+        <div class="sportelli-report-field">
+            <label for="periodo_filtro">Periodo</label>
+            <select id="periodo_filtro" class="selectpicker" data-style="btn-yellow4" data-width="100%">
+                <option value="tutti">Tutti</option>
+                <option value="futuri">Solo futuri</option>
+                <option value="passati">Solo passati</option>
+            </select>
+        </div>
+        <div class="sportelli-report-field">
+            <label for="iscritti_filtro">Iscritti</label>
+            <select id="iscritti_filtro" class="selectpicker" data-style="btn-yellow4" data-width="100%">
+                <option value="tutti">Tutti</option>
+                <option value="con_iscritti">Con studenti iscritti</option>
+                <option value="senza_iscritti">Senza studenti iscritti</option>
+            </select>
+        </div>
+        <div class="sportelli-report-field">
+            <label for="firmato_filtro">Firma</label>
+            <select id="firmato_filtro" class="selectpicker" data-style="btn-salmon" data-width="100%">
+                <option value="tutti">Tutti</option>
+                <option value="firmati">Firmati</option>
+                <option value="non_firmati">Non firmati</option>
+            </select>
+        </div>
+        <div class="sportelli-report-actions">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Esporta report sportelli">
+                <button type="button" class="btn btn-danger" onclick="sportelloReportEffettuatiExport('pdf')" data-toggle="tooltip" title="Esporta PDF">
+                    <span class="glyphicon glyphicon-file"></span> PDF
+                </button>
+                <button type="button" class="btn btn-success" onclick="sportelloReportEffettuatiExport('xlsx')" data-toggle="tooltip" title="Esporta Excel">
+                    <span class="glyphicon glyphicon-list-alt"></span> XLS
+                </button>
             </div>
         </div>
-        <div class="col-md-1">
-        </div>
-	</div>
+    </div>
 </div>
 <div class="panel-body">
     <div class="row"  style="margin-bottom:10px;">
@@ -133,9 +250,19 @@ if (! empty($__utente_ruolo) && $__utente_ruolo == 'docente') {
 <!-- <div class="panel-footer"></div> -->
 </div>
 </div>
+<div id="sportelliReportExportOverlay">
+    <div class="export-wait-box">
+        <div class="export-title">Preparazione export</div>
+        <div class="export-detail" id="sportelliReportExportDetail">Sto generando il file. Attendi qualche istante...</div>
+        <div class="export-percent" id="sportelliReportExportPercent">0%</div>
+        <div class="progress progress-striped active">
+            <div id="sportelliReportExportProgress" class="progress-bar progress-bar-info" style="width:0%;">0%</div>
+        </div>
+    </div>
+</div>
 
 <!-- Custom JS file MUST be here because of toggle -->
-<script type="text/javascript" src="js/sportelloReportEffettuati.js?v=<?php echo $__software_version; ?>"></script>
+<script type="text/javascript" src="js/sportelloReportEffettuati.js?v=<?php echo filemtime(__DIR__ . '/js/sportelloReportEffettuati.js'); ?>&r=export-inline"></script>
 
 </body>
 </html>
