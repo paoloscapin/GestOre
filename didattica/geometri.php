@@ -13,7 +13,7 @@ require_once '../common/style.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_bootstrap-notify.php';
 
-ruoloRichiesto('esterno', 'docente', 'segreteria-didattica', 'dirigente');
+ruoloRichiesto('admin', 'esterno', 'docente', 'segreteria-didattica', 'dirigente');
 
 $anno_geometri = intval($__anno_scolastico_corrente_id);
 
@@ -163,7 +163,7 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
                             <?php echo str_replace('<option value="0">Seleziona esame</option>', '', $esamiOptionList); ?>
                         </select>
                     </div>
-                    <?php if (haRuolo('segreteria-didattica') || haRuolo('dirigente')) { ?>
+                    <?php if (haRuolo('admin') || haRuolo('segreteria-didattica') || haRuolo('dirigente')) { ?>
                         <div class="col-md-2 text-center" style="padding-top:22px;">
                             <button class="btn btn-xs btn-lima4" onclick="geometriGetDetails(-1)" data-toggle="tooltip" title="Crea sessione esame">
                                 <span class="glyphicon glyphicon-plus"></span>&emsp;Sessione
@@ -175,7 +175,7 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
             <div class="panel-body">
                 <ul class="nav nav-tabs" role="tablist">
                     <li role="presentation" class="active"><a href="#tab-sessioni" aria-controls="tab-sessioni" role="tab" data-toggle="tab">Sessioni</a></li>
-                    <?php if (haRuolo('segreteria-didattica') || haRuolo('dirigente')) { ?>
+                    <?php if (haRuolo('admin') || haRuolo('segreteria-didattica') || haRuolo('dirigente')) { ?>
                         <li role="presentation"><a href="#tab-catalogo" aria-controls="tab-catalogo" role="tab" data-toggle="tab">Catalogo esami</a></li>
                         <li role="presentation"><a href="#tab-libretti" aria-controls="tab-libretti" role="tab" data-toggle="tab">Libretti formativi</a></li>
                     <?php } ?>
@@ -185,7 +185,7 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
                     <div role="tabpanel" class="tab-pane active" id="tab-sessioni">
                         <div class="records_content"></div>
                     </div>
-                    <?php if (haRuolo('segreteria-didattica') || haRuolo('dirigente')) { ?>
+                    <?php if (haRuolo('admin') || haRuolo('segreteria-didattica') || haRuolo('dirigente')) { ?>
                         <div role="tabpanel" class="tab-pane" id="tab-catalogo">
                             <div class="text-right" style="margin-bottom:10px;">
                                 <button class="btn btn-xs btn-lima4" onclick="geometriEsameGetDetails(-1)">
@@ -372,7 +372,7 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
     <div id="toastMessage"></div>
 
     <script>
-        var GEOMETRI_CAN_EDIT = <?php echo (haRuolo('segreteria-didattica') || haRuolo('dirigente')) ? 'true' : 'false'; ?>;
+        var GEOMETRI_CAN_EDIT = <?php echo (haRuolo('admin') || haRuolo('segreteria-didattica') || haRuolo('dirigente')) ? 'true' : 'false'; ?>;
 
         function geometriToast(message, isError) {
             var $t = $('#toastMessage');
@@ -381,9 +381,10 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
         }
 
         function geometriReadRecords() {
-            $.get('geometriReadRecords.php', {
+            return $.get('geometriReadRecords.php', {
                 anno_id: $('#anno_filtro').val(),
-                esame_id: $('#esame_filtro').val()
+                esame_id: $('#esame_filtro').val(),
+                _: new Date().getTime()
             }, function(html) {
                 $('.records_content').html(html);
                 $('[data-toggle="tooltip"]').tooltip({
@@ -394,7 +395,9 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
 
         function geometriCatalogoReadRecords() {
             if (!GEOMETRI_CAN_EDIT) return;
-            $.get('geometriEsamiReadRecords.php', {}, function(html) {
+            return $.get('geometriEsamiReadRecords.php', {
+                _: new Date().getTime()
+            }, function(html) {
                 $('.catalogo_content').html(html);
                 $('[data-toggle="tooltip"]').tooltip({
                     container: 'body'
@@ -404,14 +407,27 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
 
         function geometriLibrettoStudentiRead() {
             if (!GEOMETRI_CAN_EDIT) return;
-            $.getJSON('geometriLibrettoStudentiOptions.php', {}, function(res) {
+            var selected = $('#libretto_studente').val() || '0';
+            return $.getJSON('geometriLibrettoStudentiOptions.php', {
+                _: new Date().getTime()
+            }, function(res) {
                 if (!res || !res.success) return;
                 var options = '<option value="0">Seleziona studente</option>';
+                var foundSelected = false;
                 (res.studenti || []).forEach(function(s) {
+                    if (String(s.id) === String(selected)) foundSelected = true;
                     options += '<option value="' + s.id + '">' + $('<div>').text(s.label).html() + '</option>';
                 });
                 $('#libretto_studente').html(options).selectpicker('refresh');
+                $('#libretto_studente').selectpicker('val', foundSelected ? selected : '0');
+                $('#libretto_studente').selectpicker('refresh');
             });
+        }
+
+        function geometriRefreshLists() {
+            geometriReadRecords();
+            geometriLibrettoStudentiRead();
+            geometriReloadStudentiRecuperoSelect($('#anno_filtro').val(), $('#id_esame').val(), $('#studenti_recupero').val() || []);
         }
 
         function geometriLibrettoPrint() {
@@ -560,7 +576,7 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
                 if (res && res.success) {
                     $('#geometri_modal').modal('hide');
                     geometriToast('Sessione salvata');
-                    geometriReadRecords();
+                    geometriRefreshLists();
                 } else {
                     geometriToast((res && res.error) ? res.error : 'Errore salvataggio', true);
                 }
@@ -577,7 +593,7 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
                 }, function(res) {
                     if (res && res.success) {
                         geometriToast('Sessione cancellata');
-                        geometriReadRecords();
+                        geometriRefreshLists();
                     } else {
                         geometriToast((res && res.error) ? res.error : 'Errore cancellazione', true);
                     }
@@ -688,7 +704,7 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
                 if (res && res.success) {
                     $('#geometri_esiti_modal').modal('hide');
                     geometriToast('Esiti salvati');
-                    geometriReadRecords();
+                    geometriRefreshLists();
                 } else {
                     geometriToast((res && res.error) ? res.error : 'Errore salvataggio esiti', true);
                 }

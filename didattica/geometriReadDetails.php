@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-ruoloRichiesto('esterno', 'docente', 'segreteria-didattica', 'dirigente');
+ruoloRichiesto('admin', 'esterno', 'docente', 'segreteria-didattica', 'dirigente');
 
 header('Content-Type: application/json; charset=utf-8');
 

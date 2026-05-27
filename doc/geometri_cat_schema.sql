@@ -15,6 +15,21 @@ CREATE TABLE IF NOT EXISTS `geometri_esami` (
   KEY `idx_geometri_esami_attivo` (`attivo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+INSERT INTO `geometri_esami` (`codice`, `titolo`, `descrizione`, `anno_corso`, `ordine`, `attivo`) VALUES
+('CAD2D', 'CAD 2D', 'Riproduzione di un elaborato progettuale in formato CAD 2D costituito da piante, prospetti e sezione completi di quote e impaginazione.', 3, 10, 1),
+('CAD3D', 'CAD 3D', 'Riproduzione di un modello progettuale in formato CAD 3D partendo da piante, prospetti e sezione completi di quote e impaginazione.', 3, 20, 1),
+('BIM', 'BIM', 'Riproduzione di un modello progettuale in formato Revit e gestione della modellazione in 3D.', 3, 30, 1),
+('CATASTO', 'CATASTO', 'Conoscenze in ambito catastale, sistema catastale Trentino e Nazionale, lettura della mappa e delle visure catastali.', 4, 10, 1),
+('PREGEO', 'PREGEO', 'Conoscenze del software Pregeo, libretto, prospetto di divisione, rilievo di campagna e produzione di documento catastale.', 4, 20, 1),
+('DOCFA4', 'DOCFA 4', 'Riproduzione di un elaborato DOCFA partendo da una pianta CAD suddividendo l''immobile in U.I.U.', 5, 10, 1),
+('PLATAV', 'PLATAV', 'Riproduzione di un elaborato PLATAV partendo da una pianta CAD suddividendo l''immobile in Porzioni Materiali.', 5, 20, 1)
+ON DUPLICATE KEY UPDATE
+  `titolo` = VALUES(`titolo`),
+  `descrizione` = VALUES(`descrizione`),
+  `anno_corso` = VALUES(`anno_corso`),
+  `ordine` = VALUES(`ordine`),
+  `attivo` = VALUES(`attivo`);
+
 CREATE TABLE IF NOT EXISTS `geometri_sessioni` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `id_esame` INT NOT NULL,

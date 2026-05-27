@@ -4,7 +4,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 header('Content-Type: application/json; charset=utf-8');
-ruoloRichiesto('segreteria-didattica', 'dirigente');
+ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
 
 $rows = dbGetAll("
     SELECT DISTINCT
@@ -41,4 +41,3 @@ foreach ($rows ?: [] as $row) {
 }
 
 echo json_encode(['success' => true, 'studenti' => $studenti], JSON_UNESCAPED_UNICODE);
-

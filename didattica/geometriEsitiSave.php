@@ -4,7 +4,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 header('Content-Type: application/json; charset=utf-8');
-ruoloRichiesto('esterno', 'docente', 'segreteria-didattica', 'dirigente');
+ruoloRichiesto('admin', 'esterno', 'docente', 'segreteria-didattica', 'dirigente');
 
 function geometri_esiti_fail($message, $code = 400)
 {

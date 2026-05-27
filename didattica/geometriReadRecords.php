@@ -3,7 +3,7 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-ruoloRichiesto('esterno', 'docente', 'segreteria-didattica', 'dirigente');
+ruoloRichiesto('admin', 'esterno', 'docente', 'segreteria-didattica', 'dirigente');
 
 $anno_id = intval($_GET['anno_id'] ?? $__anno_scolastico_corrente_id);
 $esame_id = intval($_GET['esame_id'] ?? 0);
@@ -14,7 +14,7 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
 
 $docente_id = intval($__docente_id ?? 0);
 $esterno_id = intval($__utente_id ?? 0);
-$canEdit = (haRuolo('segreteria-didattica') || haRuolo('dirigente'));
+$canEdit = (haRuolo('admin') || haRuolo('segreteria-didattica') || haRuolo('dirigente'));
 
 function g_h($value)
 {

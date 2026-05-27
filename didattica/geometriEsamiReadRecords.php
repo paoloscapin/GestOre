@@ -2,8 +2,11 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once 'geometriCatalogoDefaults.php';
 
-ruoloRichiesto('segreteria-didattica', 'dirigente');
+ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
+
+geometriEnsureDefaultExams();
 
 function ge_h($value)
 {
