@@ -29,7 +29,7 @@ function geometri_dt($value)
     $value = trim((string)$value);
     if ($value === '') return null;
     try {
-        return (new DateTime($value, new DateTimeZone('Europe/Rome')))->format('Y-m-d H:i:s');
+        return (new DateTime($value, new DateTimeZone('Europe/Rome')))->format('Y-m-d 00:00:00');
     } catch (Exception $e) {
         geometri_fail('Data non valida');
     }

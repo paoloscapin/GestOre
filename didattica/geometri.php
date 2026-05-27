@@ -235,7 +235,7 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
                         </div>
                         <div class="col-md-3">
                             <label>Data</label>
-                            <input type="datetime-local" id="data_inizio" class="form-control">
+                            <input type="date" id="data_inizio" class="form-control">
                         </div>
                     </div>
 
@@ -262,6 +262,9 @@ if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
                     <div class="row" style="margin-top:10px;">
                         <div class="col-md-12">
                             <label>Studenti recupero / sessione ad hoc</label>
+                            <p class="help-block" style="margin:0 0 6px;">
+                                Gli studenti selezionati partecipano a questa stessa sessione: data ed esito si gestiscono da <b>Esiti sessione</b>.
+                            </p>
                             <select id="studenti_recupero" class="selectpicker form-control" multiple data-live-search="true" data-width="100%"></select>
                         </div>
                     </div>

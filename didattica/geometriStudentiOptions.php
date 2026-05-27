@@ -4,7 +4,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
 header('Content-Type: application/json; charset=utf-8');
-ruoloRichiesto('esterno', 'docente', 'segreteria-didattica', 'dirigente');
+ruoloRichiesto('admin', 'esterno', 'docente', 'segreteria-didattica', 'dirigente');
 
 $anno_id = intval($_GET['anno_id'] ?? $__anno_scolastico_corrente_id);
 if ($anno_id <= 0) $anno_id = intval($__anno_scolastico_corrente_id);
@@ -91,4 +91,3 @@ echo json_encode([
     'success' => true,
     'studenti' => array_values($studenti),
 ], JSON_UNESCAPED_UNICODE);
-

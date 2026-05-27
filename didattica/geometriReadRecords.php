@@ -25,7 +25,7 @@ function g_dt($value)
 {
     if (!$value) return '';
     try {
-        return (new DateTime((string)$value))->format('d/m/Y H:i');
+        return (new DateTime((string)$value))->format('d/m/Y');
     } catch (Exception $e) {
         return (string)$value;
     }
@@ -72,7 +72,8 @@ $rows = dbGetAll("
         GROUP_CONCAT(DISTINCT c.classe ORDER BY c.classe SEPARATOR ', ') AS classi,
         GROUP_CONCAT(DISTINCT CONCAT(d.cognome, ' ', d.nome) ORDER BY d.cognome, d.nome SEPARATOR ', ') AS docenti,
         GROUP_CONCAT(DISTINCT TRIM(CONCAT(COALESCE(u.cognome,''), ' ', COALESCE(u.nome,''))) ORDER BY u.cognome, u.nome, u.username SEPARATOR ', ') AS esterni,
-        COUNT(DISTINCT es.id) AS esiti_compilati
+        COUNT(DISTINCT es.id) AS esiti_compilati,
+        COUNT(DISTINCT ss.id_studente) AS recuperi_count
     FROM geometri_sessioni s
     INNER JOIN geometri_esami e ON e.id = s.id_esame
     INNER JOIN anno_scolastico a ON a.id = s.id_anno_scolastico
@@ -83,6 +84,7 @@ $rows = dbGetAll("
     LEFT JOIN geometri_sessioni_esterni se ON se.id_sessione = s.id
     LEFT JOIN utente u ON u.id = se.id_utente
     LEFT JOIN geometri_esiti es ON es.id_sessione = s.id
+    LEFT JOIN geometri_sessioni_studenti ss ON ss.id_sessione = s.id
     $where
     GROUP BY s.id, s.data, s.stato, e.titolo, e.anno_corso, a.anno
     ORDER BY s.data DESC, e.anno_corso ASC, e.ordine ASC
@@ -94,10 +96,11 @@ $html = '
 <table class="table table-bordered table-striped table-green">
 <thead>
 <tr>
-    <th class="text-center" style="width:9%;">Anno corso</th>
-    <th class="text-center" style="width:22%;">Esame</th>
-    <th class="text-center" style="width:14%;">Data</th>
-    <th class="text-center" style="width:17%;">Classi</th>
+    <th class="text-center" style="width:8%;">Anno corso</th>
+    <th class="text-center" style="width:20%;">Esame</th>
+    <th class="text-center" style="width:10%;">A.S.</th>
+    <th class="text-center" style="width:12%;">Data</th>
+    <th class="text-center" style="width:17%;">Classi / recuperi</th>
     <th class="text-center" style="width:16%;">Abilitati</th>
     <th class="text-center" style="width:7%;">Stato</th>
     <th class="text-center" style="width:8%;">Azioni</th>
@@ -106,7 +109,7 @@ $html = '
 <tbody>';
 
 if (count($rows) === 0) {
-    $html .= '<tr><td colspan="7" class="text-center text-muted">Nessuna sessione trovata</td></tr>';
+    $html .= '<tr><td colspan="8" class="text-center text-muted">Nessuna sessione trovata</td></tr>';
 }
 
 foreach ($rows as $row) {
@@ -115,12 +118,18 @@ foreach ($rows as $row) {
     $abilitati = trim((string)($row['docenti'] ?? ''));
     $esterni = trim((string)($row['esterni'] ?? ''));
     if ($esterni !== '') $abilitati .= ($abilitati ? '<br>' : '') . '<b>Esterni:</b> ' . g_h($esterni);
+    $classi = g_h(trim((string)($row['classi'] ?? '')));
+    $recuperiCount = intval($row['recuperi_count'] ?? 0);
+    if ($recuperiCount > 0) {
+        $classi .= ($classi !== '' ? '<br>' : '') . '<span class="label label-warning">Recuperi: ' . $recuperiCount . '</span>';
+    }
 
     $html .= '<tr>';
     $html .= '<td class="text-center">' . intval($row['anno_corso']) . '</td>';
     $html .= '<td>' . g_h($row['esame_titolo']) . '</td>';
+    $html .= '<td class="text-center">' . g_h($row['anno_scolastico']) . '</td>';
     $html .= '<td class="text-center">' . g_h(g_dt($row['data'])) . '</td>';
-    $html .= '<td class="text-center">' . g_h($row['classi']) . '</td>';
+    $html .= '<td class="text-center">' . ($classi !== '' ? $classi : '&mdash;') . '</td>';
     $html .= '<td>' . ($abilitati ?: '&mdash;') . '</td>';
     $html .= '<td class="text-center">' . $badge . '<br><small>Esiti: ' . intval($row['esiti_compilati']) . '</small></td>';
     $html .= '<td class="text-center geometri-actions">';

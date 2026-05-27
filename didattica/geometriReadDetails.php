@@ -51,7 +51,7 @@ function g_local_dt($value)
 {
     if (!$value) return '';
     try {
-        return (new DateTime((string)$value))->format('Y-m-d\TH:i');
+        return (new DateTime((string)$value))->format('Y-m-d');
     } catch (Exception $e) {
         return '';
     }

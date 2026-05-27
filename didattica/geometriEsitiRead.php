@@ -113,7 +113,7 @@ $studenti = dbGetAll("
 ");
 
 try {
-    $data_label = (new DateTime((string)$sessione['data']))->format('d/m/Y H:i');
+    $data_label = (new DateTime((string)$sessione['data']))->format('d/m/Y');
 } catch (Exception $e) {
     $data_label = (string)($sessione['data'] ?? '');
 }
