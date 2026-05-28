@@ -9,36 +9,73 @@
 
 require_once '../common/checkSession.php';
 
+function materiaReadH($value): string
+{
+	return htmlspecialchars((string)($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function materiaReadTableExists(string $tableName): bool
+{
+	return dbGetValue("SHOW TABLES LIKE " . dbQ($tableName)) !== null;
+}
+
+function materiaReadColumnExists(string $tableName, string $columnName): bool
+{
+	$row = dbGetFirst("SHOW COLUMNS FROM `$tableName` LIKE " . dbQ($columnName));
+	return is_array($row) && !empty($row);
+}
+
+$hasDipartimento = materiaReadTableExists('dipartimenti') && materiaReadColumnExists('materia', 'id_dipartimento');
+
 // Design initial table header
-$data = '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">
+$data = '<style>
+	.materia-table.table-green thead th:last-child,
+	.materia-table.table-green tbody td:last-child {
+		border: 1px solid #ddd !important;
+	}
+	.materia-table.table-green tbody td:last-child {
+		border-left: 1px solid #c7ecc7 !important;
+	}
+	.materia-table.table-green tbody tr:hover td:last-child {
+		border-color: #ffff0f !important;
+	}
+</style>
+<div class="table-wrapper"><table class="table table-bordered table-striped table-green materia-table">
+					<thead>
 					<tr>
-						<th>Nome</th>
 						<th>codice</th>
-						<th>Modifica</th>
-					</tr>';
+						<th>Nome</th>
+						' . ($hasDipartimento ? '<th>Dipartimento</th>' : '') . '
+						<th class="text-center">Modifica</th>
+					</tr>
+					</thead>
+					<tbody>';
 
 $query = "	SELECT
 				materia.id AS local_id,
-				materia.*
+				materia.*" . ($hasDipartimento ? ",
+				dipartimenti.nome AS dipartimento_nome" : "") . "
 			FROM materia
+			" . ($hasDipartimento ? "LEFT JOIN dipartimenti ON dipartimenti.id = materia.id_dipartimento" : "") . "
 			";
 
 $query .= "order by nome";
 
 foreach(dbGetAll($query) as $row) {
 	$data .= '<tr>
-		<td>'.$row['nome'].'</td>
-		<td>'.$row['codice'].'</td>
+		<td>'.materiaReadH($row['codice']).'</td>
+		<td>'.materiaReadH($row['nome']).'</td>
+		' . ($hasDipartimento ? '<td>'.materiaReadH($row['dipartimento_nome'] ?? '').'</td>' : '') . '
 		';
 	$data .='
-		<td>
+		<td class="text-center" style="white-space:nowrap;">
 		<button onclick="materiaGetDetails('.$row['local_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
-		<button onclick="materiaDelete('.$row['local_id'].', \''.$row['nome'].'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
+		<button onclick="materiaDelete('.$row['local_id'].', \''.addslashes((string)$row['nome']).'\')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>
 		</td>
 		</tr>';
 }
 
-$data .= '</table></div>';
+$data .= '</tbody></table></div>';
 echo $data;
 ?>
 

@@ -21,11 +21,33 @@ require_once '../common/checkSession.php';
 require_once '../common/header-common.php';
 require_once '../common/style.php';
 ruoloRichiesto('dirigente');
+
+function materiaAdminTableExists(string $tableName): bool
+{
+    return dbGetValue("SHOW TABLES LIKE " . dbQ($tableName)) !== null;
+}
+
+function materiaAdminColumnExists(string $tableName, string $columnName): bool
+{
+    $row = dbGetFirst("SHOW COLUMNS FROM `$tableName` LIKE " . dbQ($columnName));
+    return is_array($row) && !empty($row);
+}
+
+$materiaDipartimentiEnabled = materiaAdminTableExists('dipartimenti');
+if ($materiaDipartimentiEnabled && !materiaAdminColumnExists('materia', 'id_dipartimento')) {
+    dbExec("ALTER TABLE materia ADD COLUMN id_dipartimento INT NULL AFTER codice");
+}
+$dipartimentoOptions = '<option value="0">Nessun dipartimento</option>';
+if ($materiaDipartimentiEnabled) {
+    foreach (dbGetAll("SELECT id, nome FROM dipartimenti ORDER BY nome ASC") ?: [] as $dipRow) {
+        $dipartimentoOptions .= '<option value="' . intval($dipRow['id']) . '">' . htmlspecialchars((string)$dipRow['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</option>';
+    }
+}
 ?>
 
 <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green.css">
 
-<script type="text/javascript" src="js/materia.js"></script>
+<script type="text/javascript" src="js/materia.js?v=<?php echo filemtime(__DIR__ . '/js/materia.js'); ?>"></script>
 </head>
 
 <body >
@@ -77,6 +99,17 @@ ruoloRichiesto('dirigente');
                     <label for="codice">Codice</label>
                     <input type="text" id="codice" placeholder="codice" class="form-control"/>
                 </div>
+
+                <?php if ($materiaDipartimentiEnabled) : ?>
+                <div class="form-group">
+                    <label for="id_dipartimento">Dipartimento</label>
+                    <select id="id_dipartimento" class="form-control">
+                        <?php echo $dipartimentoOptions; ?>
+                    </select>
+                </div>
+                <?php else : ?>
+                <div class="alert alert-warning">Tabella dipartimenti non configurata.</div>
+                <?php endif; ?>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>

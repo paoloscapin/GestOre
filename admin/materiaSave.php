@@ -10,21 +10,34 @@
 require_once '../common/checkSession.php';
 ruoloRichiesto('admin');
 
+function materiaSaveColumnExists(string $tableName, string $columnName): bool
+{
+    $row = dbGetFirst("SHOW COLUMNS FROM `$tableName` LIKE " . dbQ($columnName));
+    return is_array($row) && !empty($row);
+}
+
 $tableName = "materia";
 if(isset($_POST)) {
-	$id = $_POST['id'];
-    $nome = $_POST['nome'];
-	$codice = $_POST['codice'];
+	$id = intval($_POST['id'] ?? 0);
+    $nome = trim((string)($_POST['nome'] ?? ''));
+	$codice = trim((string)($_POST['codice'] ?? ''));
+    $idDipartimento = intval($_POST['id_dipartimento'] ?? 0);
+    $hasDipartimento = materiaSaveColumnExists($tableName, 'id_dipartimento');
 
     if ($id > 0) {
-        $query = "UPDATE $tableName SET nome = '$nome', codice = '$codice' WHERE id = '$id'";
+        $setDipartimento = $hasDipartimento ? ", id_dipartimento = " . ($idDipartimento > 0 ? dbI($idDipartimento) : "NULL") : "";
+        $query = "UPDATE $tableName SET nome = " . dbQ($nome) . ", codice = " . dbQ($codice) . "$setDipartimento WHERE id = " . dbI($id);
         dbExec($query);
-        info("aggiornato $tableName id=$id nome=$nome codice=$codice");
+        info("aggiornato $tableName id=$id nome=$nome codice=$codice id_dipartimento=$idDipartimento");
     } else {
-        $query = "INSERT INTO $tableName(nome, codice) VALUES('$nome', '$codice')";
+        if ($hasDipartimento) {
+            $query = "INSERT INTO $tableName(nome, codice, id_dipartimento) VALUES(" . dbQ($nome) . ", " . dbQ($codice) . ", " . ($idDipartimento > 0 ? dbI($idDipartimento) : "NULL") . ")";
+        } else {
+            $query = "INSERT INTO $tableName(nome, codice) VALUES(" . dbQ($nome) . ", " . dbQ($codice) . ")";
+        }
         dbExec($query);
         $id = dblastId();
-        info("aggiunto $tableName id=$id nome=$nome codice=$codice");    
+        info("aggiunto $tableName id=$id nome=$nome codice=$codice id_dipartimento=$idDipartimento");
     }
 }
 ?>

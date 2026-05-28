@@ -37,10 +37,12 @@ function materiaGetDetails(id) {
 			var record = JSON.parse(data);
 			$("#nome").val(record.nome);
 			$("#codice").val(record.codice);
+			$("#id_dipartimento").val(record.id_dipartimento || 0);
 		});
     } else {
         $("#nome").val("");
         $("#codice").val("");
+        $("#id_dipartimento").val(0);
     }
 	$("#update_modal").modal("show");
 }
@@ -49,7 +51,8 @@ function materiaSave() {
     $.post("materiaSave.php", {
         id: $("#hidden_record_id").val(),
         nome: $("#nome").val(),
-        codice: $("#codice").val()
+        codice: $("#codice").val(),
+        id_dipartimento: $("#id_dipartimento").length ? $("#id_dipartimento").val() : 0
     },
     function (data, status) {
         $("#update_modal").modal("hide");
