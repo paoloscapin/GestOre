@@ -30,6 +30,8 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/attivita.php"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Tipo Attivita</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/fuisAssegnatoTipo.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Tipo FuisAssegnato</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/annoScolastico.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Anno Scolastico</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/classi.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Classi GestOre</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/dipartimenti.php"><span class="glyphicon glyphicon-list"></span>&ensp;Dipartimenti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/utente.php"><span class="glyphicon glyphicon-user"></span>&ensp;Utente</a></li>
 					<li role="separator" class="divider"></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/biglietti_eventi.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Eventi Biglietti</a></li>
@@ -65,6 +67,7 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_events.php"><span class="glyphicon glyphicon-list"></span>&ensp;Eventi</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_event_create.php"><span class="glyphicon glyphicon-plus"></span>&ensp;Nuovo evento</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_grades.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Voti</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_grade_insert.php"><span class="glyphicon glyphicon-pencil"></span>&ensp;Inserisci voti</a></li>
 					<li role="separator" class="divider"></li>
 					<li class="dropdown-header">Registri speciali</li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc.php"><span class="glyphicon glyphicon-book"></span>&ensp;NO IRC - Configurazione</a></li>

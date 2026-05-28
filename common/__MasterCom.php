@@ -939,6 +939,67 @@ function mastercomSubmitAdminAbsenceAction(array $authResult, array $formParams,
     return $submitResult;
 }
 
+function mastercomSubmitAdminGradeAction(array $authResult, array $formParams, array $options = []): array
+{
+    $currentUser = mastercomCurrentUser($authResult);
+    $currentKey = mastercomCurrentKey($authResult);
+    if ($currentUser === null || $currentKey === null || $currentKey === '') {
+        return [
+            'ok' => false,
+            'error' => 'Autenticazione MasterCom non valida o incompleta',
+            'body' => null,
+            'http_code' => 0,
+            'content_type' => null,
+        ];
+    }
+
+    unset($formParams['current_user'], $formParams['current_key']);
+    $payload = array_merge($formParams, [
+        'form_stato' => 'amministratore',
+        'stato_principale' => 'voti_principale',
+        'stato_secondario' => 'inserisci_voti_studente_update',
+        'current_user' => $currentUser,
+        'current_key' => $currentKey,
+    ]);
+
+    $cookieHeader = implode('; ', array_filter($authResult['cookies'] ?? []));
+    $submitResult = mastercomRawRequest($payload, array_merge($options, [
+        'base_url' => $options['base_url'] ?? mastercomIndexUrl(),
+        'cookie' => $options['cookie'] ?? $cookieHeader,
+        'method' => $options['method'] ?? 'POST',
+        'send_in_body' => array_key_exists('send_in_body', $options) ? $options['send_in_body'] : true,
+    ]));
+    $submitResult['submitted_url'] = mastercomIndexUrl() . '?' . mastercomBuildQueryString($payload);
+    $submitResult['submitted_payload'] = $payload;
+
+    if (!$submitResult['ok']) {
+        return $submitResult;
+    }
+
+    $body = (string)($submitResult['body'] ?? '');
+    $plainBody = trim(strip_tags(html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+    $normalizedBody = mb_strtoupper(preg_replace('/\s+/', ' ', $plainBody), 'UTF-8');
+    $htmlLooksLikeLogin = preg_match('/<form[^>]+login|name=["\']form_user["\']|name=["\']form_password["\']/i', $body) === 1;
+    $errorTokens = ['ERRORE', 'OPERAZIONE NON CONSENTITA', 'SESSIONE SCADUTA'];
+    if ($htmlLooksLikeLogin) {
+        $errorTokens[] = 'LOGIN_FORM';
+    }
+
+    $warnings = [];
+    foreach ($errorTokens as $errorToken) {
+        $needle = $errorToken === 'LOGIN_FORM' ? 'LOGIN' : $errorToken;
+        if (strpos($normalizedBody, $needle) === false && $errorToken !== 'LOGIN_FORM') {
+            continue;
+        }
+        $warnings[] = 'MASTERCOM_HTML_WARNING_' . str_replace(' ', '_', $errorToken);
+    }
+    if (!empty($warnings)) {
+        $submitResult['html_warnings'] = $warnings;
+    }
+
+    return $submitResult;
+}
+
 function mastercomExtractTeacherUsers(array $usersResult): array
 {
     $records = $usersResult['response']['result'] ?? [];

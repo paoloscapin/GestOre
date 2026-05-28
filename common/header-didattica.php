@@ -78,6 +78,8 @@
 						<li role="separator" class="divider"></li>
 						<li class="dropdown-header">Anagrafiche e collegamenti</li>
 						<li><a href="../admin/mastercom_students.php"><span class="glyphicon glyphicon-education"></span>&ensp;Studenti</a></li>
+						<li><a href="../admin/classi.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Classi GestOre</a></li>
+						<li><a href="../admin/dipartimenti.php"><span class="glyphicon glyphicon-list"></span>&ensp;Dipartimenti</a></li>
 						<li><a href="../admin/mastercom_parents.php"><span class="glyphicon glyphicon-user"></span>&ensp;Genitori</a></li>
 						<li><a href="../admin/mastercom_teachers.php"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Docenti</a></li>
 						<li><a href="../admin/mastercom_classes.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Classi</a></li>
@@ -93,6 +95,7 @@
 						<li><a href="../admin/mastercom_events.php"><span class="glyphicon glyphicon-list"></span>&ensp;Eventi</a></li>
 						<li><a href="../admin/mastercom_event_create.php"><span class="glyphicon glyphicon-plus"></span>&ensp;Nuovo evento</a></li>
 						<li><a href="../admin/mastercom_grades.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Voti</a></li>
+						<li><a href="../admin/mastercom_grade_insert.php"><span class="glyphicon glyphicon-pencil"></span>&ensp;Inserisci voti</a></li>
 						<li role="separator" class="divider"></li>
 						<li class="dropdown-header">Registri speciali</li>
 						<li><a href="../admin/mastercom_noirc.php"><span class="glyphicon glyphicon-book"></span>&ensp;NO IRC - Configurazione</a></li>

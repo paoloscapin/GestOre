@@ -37,6 +37,23 @@ $selectedClassId = intval($_GET['class_id'] ?? 0);
 $activeFilter = trim((string)($_GET['active_filter'] ?? 'active'));
 $mailFilter = trim((string)($_GET['mail_filter'] ?? 'all'));
 $showMailReport = intval($_GET['mail_report'] ?? 0) === 1;
+$message = '';
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($missingTables)) {
+    $action = trim((string)($_POST['action'] ?? ''));
+    if ($action === 'create_gestore_student') {
+        $mastercomStudentId = intval($_POST['mastercom_student_id'] ?? 0);
+        $localClassId = intval($_POST['local_class_id'] ?? 0);
+        $result = mastercomAdminCreateGestoreStudentFromMastercom($mastercomStudentId, $localClassId);
+        if (!empty($result['ok'])) {
+            $message = $result['message'] ?? 'Studente creato.';
+        } else {
+            $error = $result['message'] ?? 'Creazione studente non riuscita.';
+        }
+    }
+}
+
 $classRows = empty($missingTables)
     ? mastercomAdminOperationalClassRows('mastercom_id_classe, nome')
     : [];
@@ -83,6 +100,9 @@ $rows = empty($missingTables)
 
 if (empty($missingTables)) {
     $rows = array_values(array_filter($rows, function ($row) use ($mailFilter, $activeFilter) {
+        if ($activeFilter === 'missing') {
+            return intval($row['id_studente_gestore'] ?? 0) <= 0 && intval($row['gestore_attivo'] ?? 0) !== 1;
+        }
         if ($activeFilter === 'active' && intval($row['gestore_attivo'] ?? 0) !== 1) {
             return false;
         }
@@ -97,6 +117,8 @@ if (empty($missingTables)) {
         return true;
     }));
 }
+
+$localClassRows = dbGetAll("SELECT id, classe FROM classi ORDER BY classe ASC") ?: [];
 
 $mailUpdateRows = [];
 $parentsByStudent = [];
@@ -225,6 +247,8 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
             <?php if (!empty($missingTables)): ?>
                 <div class="alert alert-warning">Mancano tabelle: <?php echo htmlspecialchars(implode(', ', $missingTables)); ?>.</div>
             <?php else: ?>
+                <?php if ($message !== ''): ?><div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div><?php endif; ?>
+                <?php if ($error !== ''): ?><div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
                 <form method="get" action="mastercom_students.php" class="form-inline" style="margin-bottom: 15px;">
                     <div class="form-group">
                         <label for="class_id">Classe&nbsp;</label>
@@ -241,6 +265,7 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                         <label for="active_filter">Studenti&nbsp;</label>
                         <select name="active_filter" id="active_filter" class="form-control" onchange="this.form.submit()">
                             <option value="active" <?php echo $activeFilter === 'active' ? 'selected' : ''; ?>>Solo attivi</option>
+                            <option value="missing" <?php echo $activeFilter === 'missing' ? 'selected' : ''; ?>>Solo non collegati a GestOre</option>
                             <option value="all" <?php echo $activeFilter === 'all' ? 'selected' : ''; ?>>Tutti</option>
                         </select>
                     </div>
@@ -475,8 +500,34 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                                     <a class="btn btn-xs btn-default" href="mastercom_student_compare.php?id=<?php echo intval($row['mastercom_id_studente']); ?>">
                                         Confronta
                                     </a>
+                                    <?php if ($compare['local'] == null): ?>
+                                        <?php $expectedClassId = intval(mastercomAdminExpectedLocalClassId($row) ?? 0); ?>
+                                        <form method="post" action="mastercom_students.php?<?php echo htmlspecialchars(http_build_query([
+                                            'class_id' => $selectedClassId > 0 ? $selectedClassId : null,
+                                            'active_filter' => $activeFilter,
+                                            'mail_filter' => $mailFilter,
+                                            'mail_report' => $showMailReport ? 1 : null,
+                                        ])); ?>" style="display:inline-block; margin-top:3px;" onsubmit="return confirm('Creare questo studente in GestOre e collegarlo a MasterCom?');">
+                                            <input type="hidden" name="action" value="create_gestore_student">
+                                            <input type="hidden" name="mastercom_student_id" value="<?php echo intval($row['mastercom_id_studente']); ?>">
+                                            <select name="local_class_id" class="input-sm" style="max-width:120px;">
+                                                <option value="0">Classe...</option>
+                                                <?php foreach ($localClassRows as $classRow): ?>
+                                                    <option value="<?php echo intval($classRow['id']); ?>" <?php echo intval($classRow['id']) === $expectedClassId ? 'selected' : ''; ?>>
+                                                        <?php echo htmlspecialchars($classRow['classe'] ?? ''); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <button type="submit" class="btn btn-xs btn-success">
+                                                Crea GestOre
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
                                     <a class="btn btn-xs btn-info" href="mastercom_student_absences.php?student_id=<?php echo intval($row['mastercom_id_studente']); ?>">
                                         Assenze
+                                    </a>
+                                    <a class="btn btn-xs btn-warning" href="mastercom_absence_bulk.php?student_id=<?php echo intval($row['mastercom_id_studente']); ?>&class_id=<?php echo intval($row['mastercom_id_classe_corrente'] ?? 0); ?>">
+                                        Assenze periodo
                                     </a>
                                 </td>
                             </tr>

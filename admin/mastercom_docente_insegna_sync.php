@@ -53,6 +53,7 @@ $to = docenteInsegnaSyncParam('to', $defaultTo);
 $removeObsolete = docenteInsegnaMbappSyncBool(docenteInsegnaSyncParam('rimuovi_obsoleti', '1'), true);
 $action = docenteInsegnaSyncParam('action', '');
 $apply = $_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'sync';
+$preview = $_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'preview';
 $gestioneAnnoId = intval(docenteInsegnaSyncParam('gestione_anno_id', (string)docenteInsegnaMbappCurrentAnnoId()));
 $gestioneDocenteId = intval(docenteInsegnaSyncParam('gestione_docente_id', '0'));
 $gestioneClasseId = intval(docenteInsegnaSyncParam('gestione_classe_id', '0'));
@@ -111,16 +112,18 @@ try {
     $crudError = $e->getMessage();
 }
 
-try {
-    $result = docenteInsegnaMbappSync([
-        'from' => $from,
-        'to' => $to,
-        'apply' => $apply,
-        'rimuovi_obsoleti' => $removeObsolete,
-        'preserva_se_vuoto' => true,
-    ]);
-} catch (Throwable $e) {
-    $error = $e->getMessage();
+if ($preview || $apply) {
+    try {
+        $result = docenteInsegnaMbappSync([
+            'from' => $from,
+            'to' => $to,
+            'apply' => $apply,
+            'rimuovi_obsoleti' => $removeObsolete,
+            'preserva_se_vuoto' => true,
+        ]);
+    } catch (Throwable $e) {
+        $error = $e->getMessage();
+    }
 }
 
 $summary = [
@@ -191,7 +194,7 @@ $mappingRows = dbGetAll($mappingsQuery) ?: [];
             right: 0;
             bottom: 0;
             background: rgba(255,255,255,.78);
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
         }
@@ -254,7 +257,8 @@ $mappingRows = dbGetAll($mappingsQuery) ?: [];
                 </div>
             <?php endif; ?>
 
-            <form method="get" action="mastercom_docente_insegna_sync.php" class="form-inline docente-insegna-wait-form" data-wait-text="Aggiorno la preview della sincronizzazione..." style="margin-bottom: 15px;">
+            <form method="get" action="mastercom_docente_insegna_sync.php" class="form-inline docente-insegna-wait-form" data-wait-text="Aggiorno la preview della sincronizzazione..." style="margin-bottom: 15px;" onsubmit="docenteInsegnaSyncWait('Aggiorno la preview della sincronizzazione...');">
+                <input type="hidden" name="action" value="preview">
                 <div class="form-group">
                     <label for="from">Dal</label>
                     <input type="date" class="form-control" id="from" name="from" value="<?php echo docenteInsegnaSyncH($from); ?>">
@@ -275,6 +279,12 @@ $mappingRows = dbGetAll($mappingsQuery) ?: [];
                 </button>
             </form>
 
+            <?php if (!is_array($result)): ?>
+                <div class="alert alert-info">
+                    La preview MBApp non viene caricata automaticamente. Usa <strong>Preview</strong> per controllare gli abbinamenti da inserire/rimuovere, oppure filtra e modifica manualmente la tabella sotto.
+                </div>
+            <?php endif; ?>
+
             <?php if (is_array($result)): ?>
                 <div class="row sync-summary">
                     <div class="col-md-2"><div class="well"><strong>Periodo</strong><br><?php echo docenteInsegnaSyncH($result['from']); ?> - <?php echo docenteInsegnaSyncH($result['to']); ?></div></div>
@@ -291,7 +301,7 @@ $mappingRows = dbGetAll($mappingsQuery) ?: [];
                 </p>
 
                 <?php if (!$apply): ?>
-                    <form method="post" action="mastercom_docente_insegna_sync.php" class="docente-insegna-wait-form" data-wait-text="Sincronizzazione in corso..." style="margin-bottom: 20px;" onsubmit="return confirm('Eseguire la sincronizzazione docente_insegna con questi dati?');">
+                    <form method="post" action="mastercom_docente_insegna_sync.php" class="docente-insegna-wait-form" data-wait-text="Sincronizzazione in corso..." style="margin-bottom: 20px;" onsubmit="if (!confirm('Eseguire la sincronizzazione docente_insegna con questi dati?')) { return false; } docenteInsegnaSyncWait('Sincronizzazione in corso...'); return true;">
                         <input type="hidden" name="action" value="sync">
                         <input type="hidden" name="from" value="<?php echo docenteInsegnaSyncH($from); ?>">
                         <input type="hidden" name="to" value="<?php echo docenteInsegnaSyncH($to); ?>">
