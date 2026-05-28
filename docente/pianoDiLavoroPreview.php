@@ -14,7 +14,7 @@ require_once '../common/PHPMailer/Exception.php';
 $pagina = '';
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('docente','dirigente','segreteria-docenti','segreteria-didattica');
+ruoloRichiesto('docente','dirigente','segreteria-docenti','segreteria-didattica','studente');
 require_once '../common/connect.php';
 require_once '../common/dompdf/autoload.inc.php';
 

@@ -1,3 +1,7 @@
+## Version 1.3.20 - 28 mag 2026
+##### ##### Improvements
+- gli studenti possono scaricare il piano di lavoro della loro classe
+
 ## Version 1.3.19 - 27 mag 2026
 ##### ##### Improvements
 - corso di recupero gestione Lezioni
