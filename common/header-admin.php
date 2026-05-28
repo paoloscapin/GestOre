@@ -57,6 +57,7 @@
 					<li class="dropdown-header">Rilevazioni</li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_teacher_snapshot.php"><span class="glyphicon glyphicon-eye-open"></span>&ensp;Docenti in classe adesso</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_presence.php"><span class="glyphicon glyphicon-ok-circle"></span>&ensp;Presenze studenti adesso</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_absence_bulk.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Assenze studente per periodo</a></li>
 					<li role="separator" class="divider"></li>
 					<li class="dropdown-header">Agenda, eventi e voti</li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_calendar.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Agenda classe</a></li>
