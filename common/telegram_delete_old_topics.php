@@ -4,6 +4,10 @@ require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/__Settings.php';
 require_once __DIR__ . '/__Log.php';
 
+if (function_exists('initCronLog')) {
+    initCronLog('telegram_delete_old_topics');
+}
+
 header('Content-Type: text/plain; charset=utf-8');
 
 $TELEGRAM_BOT_TOKEN = trim((string)($__settings->telegram->bot_token ?? ''));
