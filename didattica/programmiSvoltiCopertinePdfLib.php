@@ -122,10 +122,22 @@ function copertinePdfDocenteCell(TCPDF $pdf, float $x, float $y, float $w, float
     $pdf->SetXY($x + 4, $y + 5);
     $pdf->Cell($w - 8, 8, 'docente', 0, 1, 'C');
 
-    $fit = copertinePdfFitFont($pdf, $docente, $w - 14, 41, 22);
+    $docente = copertinePdfWrapText($pdf, $docente, $w - 14, 38, 2);
+    $docenteLines = array_values(array_filter(array_map('trim', preg_split('/\R/u', $docente) ?: []), 'strlen'));
+    if (empty($docenteLines)) {
+        $docenteLines = [''];
+    }
+
+    $fit = copertinePdfFitFont($pdf, implode("\n", $docenteLines), $w - 14, 38, 20);
     $pdf->SetFont('times', 'B', $fit);
-    $pdf->SetXY($x + 7, $y + 17);
-    $pdf->MultiCell($w - 14, 15, $docente, 0, 'C', false, 1, '', '', true, 0, false, true, 25, 'M');
+
+    $lineHeight = count($docenteLines) > 1 ? 10.5 : 13.0;
+    $blockHeight = count($docenteLines) * $lineHeight;
+    $startY = $y + 17 + max(0, (27 - $blockHeight) / 2);
+    foreach ($docenteLines as $index => $line) {
+        $pdf->SetXY($x + 7, $startY + ($index * $lineHeight));
+        $pdf->Cell($w - 14, $lineHeight, $line, 0, 1, 'C');
+    }
 }
 
 function copertinePdfPercorsoCell(TCPDF $pdf, float $x, float $y, float $w, float $h, string $percorso): void
