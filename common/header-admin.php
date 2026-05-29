@@ -68,6 +68,7 @@
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_event_create.php"><span class="glyphicon glyphicon-plus"></span>&ensp;Nuovo evento</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_grades.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Voti</a></li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_grade_insert.php"><span class="glyphicon glyphicon-pencil"></span>&ensp;Inserisci voti</a></li>
+					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_debts.php"><span class="glyphicon glyphicon-alert"></span>&ensp;Carenze</a></li>
 					<li role="separator" class="divider"></li>
 					<li class="dropdown-header">Registri speciali</li>
 					<li><a href="<?php echo $__application_base_path; ?>/admin/mastercom_noirc.php"><span class="glyphicon glyphicon-book"></span>&ensp;NO IRC - Configurazione</a></li>

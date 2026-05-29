@@ -2160,6 +2160,75 @@ function mastercomAdminAlignGestoreStudentFromMastercom(int $mastercomStudentId)
     return ['ok' => true, 'message' => 'Studente GestOre allineato da MasterCom | ' . $classUpdateMessage];
 }
 
+function mastercomAdminCreateGestoreStudentFromMastercom(int $mastercomStudentId, int $localClassId = 0): array
+{
+    global $__anno_scolastico_corrente_id;
+
+    $mirror = dbGetFirst("SELECT * FROM mastercom_studenti WHERE mastercom_id_studente = " . intval($mastercomStudentId) . " LIMIT 1");
+    if ($mirror == null) {
+        return ['ok' => false, 'message' => 'Studente MasterCom non trovato'];
+    }
+
+    $local = mastercomAdminResolveLocalStudent($mirror);
+    if ($local != null) {
+        return mastercomAdminAlignGestoreStudentFromMastercom($mastercomStudentId);
+    }
+
+    if ($localClassId <= 0) {
+        $localClassId = intval(mastercomAdminExpectedLocalClassId($mirror) ?? 0);
+    }
+    if ($localClassId <= 0) {
+        return ['ok' => false, 'needs_class' => true, 'message' => 'Classe GestOre non determinata: selezionare la classe di destinazione'];
+    }
+
+    $classExists = dbGetValue("SELECT id FROM classi WHERE id = " . intval($localClassId) . " LIMIT 1");
+    if ($classExists === null) {
+        return ['ok' => false, 'needs_class' => true, 'message' => 'Classe GestOre selezionata non valida'];
+    }
+
+    $cognome = mastercomAdminCleanText($mirror['cognome'] ?? '') ?? '';
+    $nome = mastercomAdminCleanText($mirror['nome'] ?? '') ?? '';
+    if ($cognome === '' || $nome === '') {
+        return ['ok' => false, 'message' => 'Cognome e nome MasterCom non sufficienti per creare lo studente'];
+    }
+
+    $email = mastercomAdminCleanText($mirror['email1'] ?? '') ?? '';
+    $codiceFiscale = mastercomAdminCleanText($mirror['codice_fiscale'] ?? '') ?? '';
+    $username = $email;
+
+    dbExec("
+        INSERT INTO studente (cognome, nome, email, username, codice_fiscale, attivo)
+        VALUES (" . dbQ($cognome) . ", " . dbQ($nome) . ", " . dbQ($email) . ", " . dbQ($username) . ", " . dbQ($codiceFiscale) . ", 1)
+    ");
+    $newStudentId = intval(dblastId());
+
+    $existingFreqId = dbGetValue("
+        SELECT id
+        FROM studente_frequenta
+        WHERE id_studente = " . intval($newStudentId) . "
+          AND id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . "
+        LIMIT 1
+    ");
+    if ($existingFreqId !== null) {
+        dbExec("UPDATE studente_frequenta SET id_classe = " . intval($localClassId) . " WHERE id = " . intval($existingFreqId));
+    } else {
+        dbExec("
+            INSERT INTO studente_frequenta (id_studente, id_anno_scolastico, id_classe)
+            VALUES (" . intval($newStudentId) . ", " . intval($__anno_scolastico_corrente_id) . ", " . intval($localClassId) . ")
+        ");
+    }
+
+    dbExec("
+        UPDATE mastercom_studenti
+        SET id_studente_gestore = " . intval($newStudentId) . ",
+            last_sync_at = " . dbQ(mastercomAdminNow()) . "
+        WHERE id = " . intval($mirror['id']) . "
+    ");
+
+    $classLabel = trim((string)(dbGetValue("SELECT classe FROM classi WHERE id = " . intval($localClassId) . " LIMIT 1") ?? ''));
+    return ['ok' => true, 'message' => 'Studente creato in GestOre e collegato a MasterCom' . ($classLabel !== '' ? ' | classe ' . $classLabel : '')];
+}
+
 function mastercomAdminAlignMirrorStudentFromGestore(int $mastercomStudentId): array
 {
     global $__anno_scolastico_corrente_id;
