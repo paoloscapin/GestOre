@@ -12,6 +12,70 @@ if (!programmiSvoltiCopertineTableExists()) {
 }
 programmiSvoltiCopertineEnsureConsegnaColumns();
 
+$q = trim((string)($_GET['q'] ?? ''));
+$consegna = trim((string)($_GET['consegna'] ?? ''));
+$generazione = trim((string)($_GET['generazione'] ?? ''));
+$sort = trim((string)($_GET['sort'] ?? 'stato'));
+$order = strtolower(trim((string)($_GET['order'] ?? 'asc'))) === 'desc' ? 'DESC' : 'ASC';
+$hasPrintedAt = programmiSvoltiCopertinaColumnExists('printed_at');
+$hasPrintedBy = programmiSvoltiCopertinaColumnExists('printed_by_user_id');
+
+$where = [];
+if ($q !== '') {
+    $like = "'%" . dbEscape($q) . "%'";
+    $where[] = "(
+        c.stato LIKE $like
+        OR c.fascicolo_codice LIKE $like
+        OR c.file_name LIKE $like
+        OR materia.nome LIKE $like
+        OR docente.cognome LIKE $like
+        OR docente.nome LIKE $like
+        OR CONCAT(docente.cognome, ' ', docente.nome) LIKE $like
+        OR classi.classe LIKE $like
+        OR anno_scolastico.anno LIKE $like
+        OR EXISTS (
+            SELECT 1
+            FROM programmi_svolti_classi psc_search
+            INNER JOIN classi c_search ON c_search.id = psc_search.id_classe
+            WHERE psc_search.id_programma_svolto = ps.id
+              AND c_search.classe LIKE $like
+        )
+    )";
+}
+if ($consegna === 'consegnate') {
+    $where[] = "c.verifiche_consegnate = 1";
+} elseif ($consegna === 'non_consegnate') {
+    $where[] = "COALESCE(c.verifiche_consegnate, 0) = 0";
+}
+if ($generazione === 'da_generare') {
+    $where[] = "c.stato IN ('RICHIESTA', 'ERRORE')";
+} elseif ($generazione === 'generate') {
+    $where[] = "c.stato IN ('GENERATA', 'STAMPATA')";
+}
+$whereSql = empty($where) ? '' : ' WHERE ' . implode(' AND ', $where);
+
+$sortMap = [
+    'stato' => ["FIELD(c.stato, 'RICHIESTA', 'ERRORE', 'GENERATA', 'STAMPATA', 'ANNULLATA')"],
+    'fascicolo' => ['c.fascicolo_codice'],
+    'classe' => ['classi.classe'],
+    'materia' => ['materia.nome'],
+    'docente' => ['docente.cognome', 'docente.nome'],
+    'richiesta' => ['c.requested_at'],
+    'generazione' => ['c.generated_at'],
+    'stampa' => [$hasPrintedAt ? 'c.printed_at' : 'c.updated_at'],
+    'consegna' => ['c.verifiche_consegnate', 'c.verifiche_consegnate_at'],
+    'file' => ['c.file_name'],
+];
+$orderExprs = $sortMap[$sort] ?? $sortMap['stato'];
+$orderParts = array_map(function ($expr) use ($order) {
+    return $expr . ' ' . $order;
+}, $orderExprs);
+$orderParts[] = 'classi.classe ASC';
+$orderParts[] = 'materia.nome ASC';
+$orderParts[] = 'c.requested_at ASC';
+$orderParts[] = 'c.id ASC';
+$orderSql = ' ORDER BY ' . implode(', ', $orderParts);
+
 $rows = dbGetAll("SELECT
         c.*,
         ps.id AS programma_id,
@@ -26,10 +90,10 @@ $rows = dbGetAll("SELECT
         u_gen.nome AS generated_nome,
         u_cons.cognome AS consegna_cognome,
         u_cons.nome AS consegna_nome" .
-        (programmiSvoltiCopertinaColumnExists('printed_at') ? ",
+        ($hasPrintedAt ? ",
         c.printed_at AS printed_at" : ",
         NULL AS printed_at") .
-        (programmiSvoltiCopertinaColumnExists('printed_by_user_id') ? ",
+        ($hasPrintedBy ? ",
         u_print.cognome AS printed_cognome,
         u_print.nome AS printed_nome" : ",
         NULL AS printed_cognome,
@@ -49,17 +113,23 @@ $rows = dbGetAll("SELECT
     LEFT JOIN utente u_req ON u_req.id = c.requested_by_user_id
     LEFT JOIN utente u_gen ON u_gen.id = c.generated_by_user_id
     LEFT JOIN utente u_cons ON u_cons.id = c.verifiche_consegnate_by_user_id" .
-    (programmiSvoltiCopertinaColumnExists('printed_by_user_id') ? "
+    ($hasPrintedBy ? "
     LEFT JOIN utente u_print ON u_print.id = c.printed_by_user_id" : "") . "
-    ORDER BY
-        FIELD(c.stato, 'RICHIESTA', 'ERRORE', 'GENERATA', 'STAMPATA', 'ANNULLATA'),
-        c.requested_at ASC,
-        classi.classe ASC,
-        materia.nome ASC");
+    $whereSql
+    $orderSql");
 
 if (!$rows) {
-    echo '<div class="alert alert-info">Nessuna copertina richiesta.</div>';
+    echo '<div class="alert alert-info">Nessuna copertina trovata con i filtri selezionati.</div>';
     exit;
+}
+
+function copertineSortLink(string $key, string $label, string $currentSort, string $currentOrder): string
+{
+    $icon = '';
+    if ($key === $currentSort) {
+        $icon = $currentOrder === 'DESC' ? ' <span class="glyphicon glyphicon-triangle-bottom"></span>' : ' <span class="glyphicon glyphicon-triangle-top"></span>';
+    }
+    return '<a href="#" class="copertine-sort" onclick="programmiSvoltiCopertineSort(\'' . htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '\'); return false;">' . htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . $icon . '</a>';
 }
 
 function copertineBadge(string $stato): string
@@ -82,16 +152,16 @@ function copertineBadge(string $stato): string
 
 echo '<div class="table-wrapper"><table class="table table-bordered table-striped table-green">';
 echo '<thead><tr>';
-echo '<th class="text-center" style="width:6%;">Stato</th>';
-echo '<th class="text-center" style="width:8%;">Fascicolo</th>';
-echo '<th class="text-center" style="width:7%;">Classe</th>';
-echo '<th style="width:15%;">Materia</th>';
-echo '<th class="text-center" style="width:11%;">Docente</th>';
-echo '<th class="text-center" style="width:11%;">Richiesta</th>';
-echo '<th class="text-center" style="width:12%;">Generazione</th>';
-echo '<th class="text-center" style="width:12%;">Stampa</th>';
-echo '<th class="text-center" style="width:7%;">Consegna verifiche</th>';
-echo '<th style="width:7%;">File</th>';
+echo '<th class="text-center" style="width:6%;">' . copertineSortLink('stato', 'Stato', $sort, $order) . '</th>';
+echo '<th class="text-center" style="width:8%;">' . copertineSortLink('fascicolo', 'Fascicolo', $sort, $order) . '</th>';
+echo '<th class="text-center" style="width:7%;">' . copertineSortLink('classe', 'Classe', $sort, $order) . '</th>';
+echo '<th style="width:15%;">' . copertineSortLink('materia', 'Materia', $sort, $order) . '</th>';
+echo '<th class="text-center" style="width:11%;">' . copertineSortLink('docente', 'Docente', $sort, $order) . '</th>';
+echo '<th class="text-center" style="width:11%;">' . copertineSortLink('richiesta', 'Richiesta', $sort, $order) . '</th>';
+echo '<th class="text-center" style="width:12%;">' . copertineSortLink('generazione', 'Generazione', $sort, $order) . '</th>';
+echo '<th class="text-center" style="width:12%;">' . copertineSortLink('stampa', 'Stampa', $sort, $order) . '</th>';
+echo '<th class="text-center" style="width:7%;">' . copertineSortLink('consegna', 'Consegna verifiche', $sort, $order) . '</th>';
+echo '<th style="width:7%;">' . copertineSortLink('file', 'File', $sort, $order) . '</th>';
 echo '<th class="text-center" style="width:4%;">Azioni</th>';
 echo '<th class="text-center" style="width:4%;">Errore</th>';
 echo '</tr></thead><tbody>';

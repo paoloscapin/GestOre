@@ -41,6 +41,22 @@ ruoloRichiesto('segreteria-didattica', 'dirigente');
         .copertine-actions {
             white-space: nowrap;
         }
+        .copertine-filter-bar {
+            background: #f7fbff;
+            border: 1px solid #d7e3f0;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+        .copertine-sort {
+            color: inherit;
+            text-decoration: none;
+        }
+        .copertine-sort:hover,
+        .copertine-sort:focus {
+            color: inherit;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -79,17 +95,80 @@ ruoloRichiesto('segreteria-didattica', 'dirigente');
                     Tabella <code>programmi_svolti_copertine</code> non presente. Esegui la migrazione SQL prima di usare la gestione copertine.
                 </div>
             <?php endif; ?>
+            <div class="copertine-filter-bar">
+                <div class="row">
+                    <div class="col-sm-4">
+                        <label for="copertine_q">Cerca</label>
+                        <input type="text" class="form-control" id="copertine_q" placeholder="Classe, materia, docente, fascicolo, file">
+                    </div>
+                    <div class="col-sm-3">
+                        <label for="copertine_consegna">Consegna verifiche</label>
+                        <select class="form-control" id="copertine_consegna">
+                            <option value="">Tutte</option>
+                            <option value="consegnate">Consegnate</option>
+                            <option value="non_consegnate">Non consegnate</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-3">
+                        <label for="copertine_generazione">Generazione</label>
+                        <select class="form-control" id="copertine_generazione">
+                            <option value="">Tutte</option>
+                            <option value="da_generare">Da generare</option>
+                            <option value="generate">Gia generate</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-2">
+                        <label>&nbsp;</label>
+                        <button type="button" class="btn btn-default btn-block" onclick="programmiSvoltiCopertineResetFilters()">
+                            <span class="glyphicon glyphicon-remove"></span> Pulisci
+                        </button>
+                    </div>
+                </div>
+            </div>
             <div class="records_content"></div>
         </div>
     </div>
 </div>
 
 <script>
+var copertineSort = 'stato';
+var copertineOrder = 'asc';
+var copertineSearchTimer = null;
+
+function programmiSvoltiCopertineParams() {
+    return {
+        q: $('#copertine_q').val() || '',
+        consegna: $('#copertine_consegna').val() || '',
+        generazione: $('#copertine_generazione').val() || '',
+        sort: copertineSort,
+        order: copertineOrder
+    };
+}
+
 function programmiSvoltiCopertineReadRecords() {
-    $.get('programmiSvoltiCopertineReadRecords.php', {}, function (data) {
+    $.get('programmiSvoltiCopertineReadRecords.php', programmiSvoltiCopertineParams(), function (data) {
         $('.records_content').html(data);
         $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
     });
+}
+
+function programmiSvoltiCopertineSort(sort) {
+    if (copertineSort === sort) {
+        copertineOrder = copertineOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        copertineSort = sort;
+        copertineOrder = 'asc';
+    }
+    programmiSvoltiCopertineReadRecords();
+}
+
+function programmiSvoltiCopertineResetFilters() {
+    $('#copertine_q').val('');
+    $('#copertine_consegna').val('');
+    $('#copertine_generazione').val('');
+    copertineSort = 'stato';
+    copertineOrder = 'asc';
+    programmiSvoltiCopertineReadRecords();
 }
 
 function programmiSvoltiCopertineOverlay(text) {
@@ -185,6 +264,15 @@ function programmiSvoltiCopertineConsegna(id, consegnata) {
 }
 
 $(document).ready(function () {
+    $('#copertine_consegna, #copertine_generazione').on('change', function () {
+        programmiSvoltiCopertineReadRecords();
+    });
+    $('#copertine_q').on('keyup', function () {
+        clearTimeout(copertineSearchTimer);
+        copertineSearchTimer = setTimeout(function () {
+            programmiSvoltiCopertineReadRecords();
+        }, 250);
+    });
     programmiSvoltiCopertineReadRecords();
 });
 </script>
