@@ -24,6 +24,7 @@ $dataGiorno_raw   = (string)$_POST['dataGiorno'];
 $ora_raw          = (string)$_POST['ora'];
 $includeAula_raw  = isset($_POST['includeAula']) ? trim((string)$_POST['includeAula']) : '';
 $durataOre_raw    = isset($_POST['durataOre']) ? (int)$_POST['durataOre'] : 1;
+$excludeSportelloId = (int)($_POST['excludeSportelloId'] ?? 0);
 
 $durataOre = (int)$durataOre_raw;
 if ($durataOre < 1) $durataOre = 1;
@@ -58,6 +59,37 @@ $ora         = mysqli_real_escape_string($__conMBApp, $ora_raw);
 $ora2        = mysqli_real_escape_string($__conMBApp, $ora2_raw);
 $includeAula = mysqli_real_escape_string($__conMBApp, $includeAula_raw);
 
+$excludeCalendari = [];
+if ($excludeSportelloId > 0) {
+    $excludeSportelloIds = [$excludeSportelloId];
+    $secondaOraIds = dbGetAllValues("
+        SELECT id
+        FROM sportello
+        WHERE id <> " . dbI($excludeSportelloId) . "
+          AND note LIKE " . dbQ("%sportello $excludeSportelloId)%") . "
+          AND cancellato = 0
+    ") ?: [];
+    foreach ($secondaOraIds as $secondaOraId) {
+        $secondaOraId = (int)$secondaOraId;
+        if ($secondaOraId > 0) {
+            $excludeSportelloIds[] = $secondaOraId;
+        }
+    }
+
+    $excludeCalendari = dbGetAllValues("
+        SELECT idCalendario
+        FROM sportello_mbapp_link
+        WHERE id_sportello IN (" . implode(',', array_unique($excludeSportelloIds)) . ")
+          AND idCalendario IS NOT NULL
+          AND idCalendario <> 0
+    ") ?: [];
+    $excludeCalendari = array_values(array_filter(array_map('intval', $excludeCalendari), function ($id) {
+        return $id > 0;
+    }));
+}
+$excludeCalendarioSql1 = !empty($excludeCalendari) ? ' AND o.idCalendario NOT IN (' . implode(',', $excludeCalendari) . ')' : '';
+$excludeCalendarioSql2 = !empty($excludeCalendari) ? ' AND o2.idCalendario NOT IN (' . implode(',', $excludeCalendari) . ')' : '';
+
 // filtro "libera a ora" oppure "libera a ora e ora2"
 $condLibera1 = "
     NOT EXISTS (
@@ -65,6 +97,7 @@ $condLibera1 = "
         WHERE o.nroAula = a.nroAula
           AND o.dataGiorno = '$dataGiorno'
           AND o.ora = '$ora'
+          $excludeCalendarioSql1
     )
 ";
 
@@ -76,6 +109,7 @@ if ($durataOre === 2) {
           WHERE o2.nroAula = a.nroAula
             AND o2.dataGiorno = '$dataGiorno'
             AND o2.ora = '$ora2'
+            $excludeCalendarioSql2
       )
     ";
 }
@@ -100,13 +134,15 @@ if ($tipoAula === 'TUTTE') {
     ";
 }
 
-// query aula corrente (includila sempre se passata, anche se occupata)
+// query aula corrente, se resta disponibile dopo aver escluso le prenotazioni dello sportello in modifica
 if ($includeAula !== '') {
     $qCurrent = "
         SELECT a.nroAula, a.tipo, a.descrizione, 1 AS is_current
         FROM aula a
         WHERE a.prenotabile = 'SI'
           AND a.nroAula = '$includeAula'
+          AND $condLibera1
+          $condLibera2
     ";
     if ($tipoAula !== 'TUTTE') {
         $qCurrent .= " AND a.tipo = '$tipoAula' ";
@@ -131,7 +167,7 @@ debug("query aule libere: " . preg_replace('/\s+/', ' ', trim($query)));
 $result = mb_dbGetAll($query);
 if ($result === null) $result = [];
 
-$message = "recupero lista aule libere per tipo=$tipoAula_raw dataGiorno=$dataGiorno_raw ora=$ora_raw durataOre=$durataOre includeAula=$includeAula_raw";
+$message = "recupero lista aule libere per tipo=$tipoAula_raw dataGiorno=$dataGiorno_raw ora=$ora_raw durataOre=$durataOre includeAula=$includeAula_raw excludeSportelloId=$excludeSportelloId";
 info($message);
 
 echo json_encode([

@@ -441,7 +441,10 @@ if ($nclassi > 0) {
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label" for="numero_ore">Numero di ore</label>
                                     <div class="col-sm-10">
-                                        <input type="text" id="numero_ore" placeholder="numero ore" class="form-control" />
+                                        <select id="numero_ore" class="selectpicker" data-width="100%">
+                                            <option value="1">1 ora</option>
+                                            <option value="2">2 ore</option>
+                                        </select>
                                     </div>
                                 </div>
 

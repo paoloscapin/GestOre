@@ -57,6 +57,147 @@ function normDateYmd(string $s): string
     return $s; // ultimo fallback
 }
 
+function sportelloNextOraSlot(string $ora): string
+{
+    $orari = ["07:50","08:40","09:30","10:30","11:20","12:10","13:00","13:50","14:40","15:30","16:20","17:10","18:00","18:50","19:40","20:30","21:30","22:20"];
+    $idx = array_search(trim($ora), $orari, true);
+    return ($idx !== false && isset($orari[$idx + 1])) ? $orari[$idx + 1] : '';
+}
+
+function sportelloMbappIdsForSportelli(array $sportelloIds): array
+{
+    $ids = array_values(array_filter(array_map('intval', $sportelloIds), function ($id) {
+        return $id > 0;
+    }));
+    if (empty($ids)) {
+        return [];
+    }
+
+    $values = dbGetAllValues("
+        SELECT idCalendario
+        FROM sportello_mbapp_link
+        WHERE id_sportello IN (" . implode(',', $ids) . ")
+          AND idCalendario IS NOT NULL
+          AND idCalendario <> 0
+    ") ?: [];
+
+    return array_values(array_filter(array_map('intval', $values), function ($id) {
+        return $id > 0;
+    }));
+}
+
+function sportelloEnsureAulaLiberaDueOre(string $data, string $ora1, string $ora2, string $luogo, array $excludeSportelloIds = []): void
+{
+    global $__settings, $__conMBApp;
+
+    if (empty($__settings->config->MBApp) || trim($luogo) === '') {
+        return;
+    }
+
+    require_once __DIR__ . '/../common/connectMBApp.php';
+
+    if (!($__conMBApp instanceof mysqli)) {
+        throw new Exception('Connessione MBApp non disponibile per verificare le aule.');
+    }
+
+    $excludeCalendari = sportelloMbappIdsForSportelli($excludeSportelloIds);
+    $excludeSql = '';
+    if (!empty($excludeCalendari)) {
+        $excludeSql = ' AND idCalendario NOT IN (' . implode(',', $excludeCalendari) . ')';
+    }
+
+    $aula = mysqli_real_escape_string($__conMBApp, $luogo);
+    $dataEsc = mysqli_real_escape_string($__conMBApp, $data);
+    $ora1Esc = mysqli_real_escape_string($__conMBApp, $ora1);
+    $ora2Esc = mysqli_real_escape_string($__conMBApp, $ora2);
+
+    $busy = (int)mb_dbGetValue("
+        SELECT COUNT(*)
+        FROM oralezione
+        WHERE nroAula = '$aula'
+          AND dataGiorno = '$dataEsc'
+          AND ora IN ('$ora1Esc', '$ora2Esc')
+          $excludeSql
+    ");
+
+    if ($busy > 0) {
+        throw new Exception("Aula $luogo non libera per due ore consecutive ($ora1 e $ora2).");
+    }
+}
+
+function sportelloFindSecondaOraId(int $sportelloId, ?array $old, string $newData, string $newOra2, string $categoria): int
+{
+    if ($sportelloId <= 0) {
+        return 0;
+    }
+
+    $noteLike = "%sportello $sportelloId)%";
+    $id = (int)dbGetValue("
+        SELECT id
+        FROM sportello
+        WHERE id <> " . dbI($sportelloId) . "
+          AND note LIKE " . dbQ($noteLike) . "
+          AND cancellato = 0
+        ORDER BY id DESC
+        LIMIT 1
+    ");
+    if ($id > 0) {
+        return $id;
+    }
+
+    if ($old) {
+        $oldOra2 = sportelloNextOraSlot((string)($old['ora'] ?? ''));
+        if ($oldOra2 !== '') {
+            $id = (int)dbGetValue("
+                SELECT id
+                FROM sportello
+                WHERE id <> " . dbI($sportelloId) . "
+                  AND data = " . dbQ($old['data'] ?? '') . "
+                  AND ora = " . dbQ($oldOra2) . "
+                  AND docente_id = " . dbI($old['docente_id'] ?? 0) . "
+                  AND materia_id = " . dbI($old['materia_id'] ?? 0) . "
+                  AND categoria = " . dbQ($old['categoria'] ?? '') . "
+                  AND luogo = " . dbQ($old['luogo'] ?? '') . "
+                  AND cancellato = 0
+                ORDER BY id ASC
+                LIMIT 1
+            ");
+            if ($id > 0) {
+                return $id;
+            }
+        }
+    }
+
+    return 0;
+}
+
+function sportelloSyncMbappUnaOra(int $sportelloId, string $data, string $ora, string $luogo, int $docenteId, int $materiaId, string $categoria, string $argomento): array
+{
+    if ($sportelloId <= 0 || trim($luogo) === '' || $docenteId <= 0) {
+        return ['ok' => true, 'action' => 'skip', 'msg' => 'Non eligible (bozza/no aula/no docente)'];
+    }
+
+    require_once __DIR__ . '/../common/mbappSyncSportello.php';
+
+    $materiaNome = trim((string)dbGetValue("SELECT nome FROM materia WHERE id=" . dbI($materiaId) . " LIMIT 1"));
+    $docenteNome = trim((string)dbGetValue("SELECT username FROM docente WHERE id=" . dbI($docenteId) . " LIMIT 1"));
+    if ($materiaNome === '') $materiaNome = 'DIDATTICO';
+    if ($docenteNome === '') $docenteNome = 'Segreteria didattica';
+
+    return mbapp_sync_sportello($sportelloId, [
+        'data' => $data,
+        'ora' => $ora,
+        'luogo' => $luogo,
+        'numero_ore' => 1,
+        'docente_id' => $docenteId,
+        'docenti' => $docenteNome,
+        'motivo' => 'IMPEGNO IN ISTITUTO',
+        'dettagli' => trim($categoria . (trim($argomento) !== '' ? ' - ' . trim($argomento) : '')),
+        'attivitaProgetto' => 'SPORTELLO ' . trim($materiaNome),
+        'preserve_text_fields' => true
+    ]);
+}
+
 $id = (int)($_POST['id'] ?? 0);
 $old = null;
 
@@ -98,6 +239,7 @@ if ($categoria_id > 0) {
 } else {
     $categoria = "sportello didattico";
 }
+$categoria_raw = $categoria;
 $categoria = addslashes($categoria);
 
 // Classe legacy testo + classe_id
@@ -144,6 +286,18 @@ try {
         info("sportelloSave UPDATE id=$id old=" . json_encode($old, JSON_UNESCAPED_UNICODE));
         info("sportelloSave NEW data=$data ora=$ora luogo_raw=$luogo_raw attivo=$attivo cancellato=$cancellato docente_id=$docente_id materia_id=$materia_id categoria_id=$categoria_id numero_ore=$numero_ore");
 
+        $numero_ore_salvato = ($numero_ore === 2) ? 1 : $numero_ore;
+        $secondOra = '';
+        $secondSportelloId = 0;
+        if ($numero_ore === 2 && !$cancellato && $attivo === 1) {
+            $secondOra = sportelloNextOraSlot($ora);
+            if ($secondOra === '') {
+                jsonOut(false, ['error' => "Non esiste uno slot successivo a $ora per creare lo sportello da 2 ore."]);
+            }
+            $secondSportelloId = sportelloFindSecondaOraId($id, $old, $data, $secondOra, $categoria_raw);
+            sportelloEnsureAulaLiberaDueOre($data, $ora, $secondOra, $luogo_raw, [$id, $secondSportelloId]);
+        }
+
         // UPDATE sportello
         $query = "
             UPDATE sportello
@@ -154,7 +308,7 @@ try {
                 docente_id = $docente_id,
                 materia_id = $materia_id,
                 categoria = '$categoria',
-                numero_ore = $numero_ore,
+                numero_ore = $numero_ore_salvato,
                 argomento = '$argomento',
                 luogo = '$luogo',
                 classe = '$classe',
@@ -170,7 +324,56 @@ try {
         ";
         dbExec($query);
 
-        info("aggiornato sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id categoria=$categoria numero_ore=$numero_ore argomento=$argomento luogo=$luogo_raw classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online=$online clil=$clil orientamento=$orientamento attivo=$attivo cancellato=$cancellato");
+        info("aggiornato sportello id=$id data=$data ora=$ora docente_id=$docente_id materia_id=$materia_id categoria=$categoria numero_ore=$numero_ore_salvato argomento=$argomento luogo=$luogo_raw classe=$classe classe_id=$classe_id max_iscrizioni=$max_iscrizioni online=$online clil=$clil orientamento=$orientamento attivo=$attivo cancellato=$cancellato");
+
+        if ($numero_ore === 2 && !$cancellato && $attivo === 1) {
+            if ($secondSportelloId > 0) {
+                dbExec("
+                    UPDATE sportello
+                    SET
+                        data = '$data',
+                        ora = '$secondOra',
+                        attivo = $attivo,
+                        docente_id = $docente_id,
+                        materia_id = $materia_id,
+                        categoria = '$categoria',
+                        numero_ore = 1,
+                        argomento = '$argomento',
+                        luogo = '$luogo',
+                        classe = '$classe',
+                        classe_id = $classe_id,
+                        max_iscrizioni = $max_iscrizioni,
+                        cancellato = $cancellato,
+                        firmato = 0,
+                        online = $online,
+                        clil = $clil,
+                        orientamento = $orientamento
+                    WHERE id = $secondSportelloId
+                    LIMIT 1
+                ");
+                info("aggiornata seconda ora sportello id=$secondSportelloId da sportello id=$id ora=$secondOra");
+            } else {
+                dbExec("
+                    INSERT INTO sportello
+                        (data, ora, docente_id, materia_id, categoria,
+                         numero_ore, argomento, luogo,
+                         classe, classe_id,
+                         max_iscrizioni, online, clil, orientamento,
+                         attivo, cancellato, firmato,
+                         note, anno_scolastico_id)
+                    VALUES
+                        ('$data', '$secondOra', $docente_id, $materia_id, '$categoria',
+                         1, '$argomento', '$luogo',
+                         '$classe', $classe_id,
+                         $max_iscrizioni, $online, $clil, $orientamento,
+                         $attivo, 0, 0,
+                         'Creato automaticamente da sportello admin 2 ore (sportello $id)',
+                         " . (int)$__anno_scolastico_corrente_id . ")
+                ");
+                $secondSportelloId = (int)dblastId();
+                info("creata seconda ora sportello id=$secondSportelloId da sportello id=$id ora=$secondOra");
+            }
+        }
 
         // ===== SYNC MBApp (come già avevi) =====
         try {
@@ -182,13 +385,13 @@ try {
             $oldOre   = (int)($old['numero_ore'] ?? 1);
 
             $newLuogo = $luogo_raw;
-            $changed = ($oldData !== $data) || ($oldOra !== $ora) || ($oldLuogo !== $newLuogo) || ($oldOre !== $numero_ore);
+            $changed = ($oldData !== $data) || ($oldOra !== $ora) || ($oldLuogo !== $newLuogo) || ($oldOre !== $numero_ore_salvato);
 
             $eligible = (!$cancellato && (int)$attivo === 1 && trim($newLuogo) !== '');
 
             debug("[sportelloSave] MBApp eligible=" . ($eligible ? 1 : 0) .
                   " changed=" . ($changed ? 1 : 0) .
-                  " old=($oldData $oldOra $oldLuogo ore:$oldOre) new=($data $ora $newLuogo ore:$numero_ore)");
+                  " old=($oldData $oldOra $oldLuogo ore:$oldOre) new=($data $ora $newLuogo ore:$numero_ore_salvato)");
 
             if ($eligible) {
 
@@ -205,7 +408,7 @@ try {
                     'data' => $data,
                     'ora' => $ora,
                     'luogo' => $newLuogo,
-                    'numero_ore' => (int)$numero_ore,
+                    'numero_ore' => 1,
 
                     'docente_id' => (int)$docente_id,
                     'docenti' => $docenteNome,
@@ -224,6 +427,11 @@ try {
             } else {
                 $mbapp = ['ok' => true, 'action' => 'skip', 'msg' => 'Non eligible (bozza/cancellato/no aula/no docente)'];
                 debug("[sportelloSave] MBApp sync SKIP: non eligible");
+            }
+
+            if ($numero_ore === 2 && $secondSportelloId > 0 && !$cancellato && (int)$attivo === 1) {
+                $mbappSecond = sportelloSyncMbappUnaOra($secondSportelloId, $data, $secondOra, $luogo_raw, $docente_id, $materia_id, $categoria_raw, $argomento);
+                $mbapp['seconda_ora'] = $mbappSecond;
             }
 
         } catch (Throwable $e) {
@@ -263,6 +471,7 @@ try {
 
         jsonOut(true, [
             'id' => $id,
+            'second_id' => $secondSportelloId ?? 0,
             'attivo' => $attivo,
             'cancellato' => $cancellato,
             'mbapp' => $mbapp
@@ -278,6 +487,16 @@ try {
 
     // anno scolastico corrente (già disponibile nel tuo progetto)
     $anno = (int)$__anno_scolastico_corrente_id;
+    $numero_ore_salvato = ($numero_ore === 2) ? 1 : $numero_ore;
+    $secondOra = '';
+
+    if ($numero_ore === 2 && !$cancellato && $attivo === 1) {
+        $secondOra = sportelloNextOraSlot($ora);
+        if ($secondOra === '') {
+            jsonOut(false, ['error' => "Non esiste uno slot successivo a $ora per creare lo sportello da 2 ore."]);
+        }
+        sportelloEnsureAulaLiberaDueOre($data, $ora, $secondOra, $luogo_raw, []);
+    }
 
     // Inserisco sportello (cancellato di default 0; firmato 0)
     $qIns = "
@@ -290,7 +509,7 @@ try {
              anno_scolastico_id)
         VALUES
             ('$data', '$ora', $docente_id, $materia_id, '$categoria',
-             $numero_ore, '$argomento', '$luogo',
+             $numero_ore_salvato, '$argomento', '$luogo',
              '$classe', $classe_id,
              $max_iscrizioni, $online, $clil, $orientamento,
              $attivo, 0, 0,
@@ -305,6 +524,29 @@ try {
 
     info("sportelloSave INSERT OK newId=$newId");
 
+    $secondSportelloId = 0;
+    if ($numero_ore === 2 && !$cancellato && $attivo === 1) {
+        dbExec("
+            INSERT INTO sportello
+                (data, ora, docente_id, materia_id, categoria,
+                 numero_ore, argomento, luogo,
+                 classe, classe_id,
+                 max_iscrizioni, online, clil, orientamento,
+                 attivo, cancellato, firmato,
+                 note, anno_scolastico_id)
+            VALUES
+                ('$data', '$secondOra', $docente_id, $materia_id, '$categoria',
+                 1, '$argomento', '$luogo',
+                 '$classe', $classe_id,
+                 $max_iscrizioni, $online, $clil, $orientamento,
+                 $attivo, 0, 0,
+                 'Creato automaticamente da sportello admin 2 ore (sportello $newId)',
+                 $anno)
+        ");
+        $secondSportelloId = (int)dblastId();
+        info("sportelloSave INSERT seconda ora OK secondSportelloId=$secondSportelloId ora=$secondOra da newId=$newId");
+    }
+
     // SYNC MBApp solo se eligible
     try {
         require_once __DIR__ . '/../common/mbappSyncSportello.php';
@@ -316,7 +558,7 @@ try {
             $materiaNome = trim((string)dbGetValue("SELECT nome FROM materia WHERE id=" . (int)$materia_id . " LIMIT 1"));
             $docenteNome = trim((string)dbGetValue("SELECT username FROM docente WHERE id=" . (int)$docente_id . " LIMIT 1"));
 
-            if ($materiaNome === '') $materiaNome = 'SPORTLLO DIDATTICO';
+            if ($materiaNome === '') $materiaNome = 'SPORTELLO DIDATTICO';
             if ($docenteNome === '') $docenteNome = 'Segreteria didattica';
 
             $titoloSportello = "SPORTELLO " . trim($materiaNome);
@@ -327,7 +569,7 @@ try {
                 'data' => $data,
                 'ora' => $ora,
                 'luogo' => $luogo_raw,
-                'numero_ore' => (int)$numero_ore,
+                'numero_ore' => 1,
 
                 'docente_id' => (int)$docente_id,
                 'docenti' => $docenteNome,
@@ -343,6 +585,11 @@ try {
             } else {
                 warning("MBApp sync (INSERT) FAIL: " . ($mbapp['action'] ?? '') . " - " . ($mbapp['msg'] ?? ''));
             }
+
+            if ($numero_ore === 2 && $secondSportelloId > 0) {
+                $mbappSecond = sportelloSyncMbappUnaOra($secondSportelloId, $data, $secondOra, $luogo_raw, $docente_id, $materia_id, $categoria_raw, $argomento);
+                $mbapp['seconda_ora'] = $mbappSecond;
+            }
         } else {
             $mbapp = ['ok' => true, 'action' => 'skip', 'msg' => 'Creato in bozza (no MBApp)'];
         }
@@ -356,6 +603,7 @@ try {
 
     jsonOut(true, [
         'id' => $newId,
+        'second_id' => $secondSportelloId,
         'attivo' => $attivo,
         'cancellato' => 0,
         'mbapp' => $mbapp

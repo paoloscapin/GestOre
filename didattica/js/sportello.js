@@ -81,7 +81,8 @@ function verificaAulaCorrenteDidattica(opts) {
         dataGiorno: dataDb,
         ora: ora,
         durataOre: durataOre,
-        includeAula: includeAula
+        includeAula: includeAula,
+        excludeSportelloId: parseInt($("#hidden_sportello_id").val(), 10) || 0
     }, function (resp) {
 
         console.log("[verificaAulaCorrenteDidattica] RESPONSE", resp);
@@ -805,7 +806,7 @@ function sportelloGetDetails(sportello_id) {
             $('#materia').selectpicker('val', sportello.materia_id).selectpicker('refresh');
             $('#categoria').selectpicker('val', sportello.categoria_id).selectpicker('refresh');
 
-            $("#numero_ore").val(sportello.sportello_numero_ore);
+            $("#numero_ore").val(sportello.sportello_numero_ore).selectpicker('refresh');
             $("#argomento").val(sportello.sportello_argomento);
 
             // aula attuale
@@ -910,7 +911,7 @@ function sportelloGetDetails(sportello_id) {
         $('#categoria').val("0").selectpicker('refresh');
 
         // ✅ numero ore = 1
-        $("#numero_ore").val("1");
+        $("#numero_ore").val("1").selectpicker('refresh');
         $("#argomento").val("");
 
         // ✅ reset aula corrente (nuovo sportello)
@@ -1123,6 +1124,7 @@ $(document).ready(function () {
 
     $('#ora').selectpicker();
     $('#luogo').selectpicker();
+    $('#numero_ore').selectpicker();
 
     $("#ora").on("change", function () {
         var aulaCorr = ($("#luogo").attr("data-current") || "").trim() || ($("#luogo").val() || "").trim();
