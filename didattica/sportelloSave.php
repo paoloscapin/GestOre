@@ -457,6 +457,22 @@ try {
         if ($cancellato) {
             info("sportello cancellato id=$id: salto modifiche/cancellazioni manuali iscrizioni");
         } else {
+            $oldDataForMail = (string)($old['data'] ?? '');
+            $oldOraForMail = (string)($old['ora'] ?? '');
+            $oldLuogoForMail = trim((string)($old['luogo'] ?? ''));
+            if ($oldDataForMail !== $data || $oldOraForMail !== $ora || $oldLuogoForMail !== $luogo_raw) {
+                $cntIscritti = (int)dbGetValue("SELECT COUNT(*) FROM sportello_studente WHERE sportello_id = " . (int)$id);
+                if ($cntIscritti > 0) {
+                    $sportello_update_old = [
+                        'data' => $oldDataForMail,
+                        'ora' => $oldOraForMail,
+                        'luogo' => $oldLuogoForMail
+                    ];
+                    info("sportelloSave: invio mail aggiornamento studenti sportello id=$id iscritti=$cntIscritti");
+                    require "../docente/sportelloInviaMailAggiornamentoStudente.php";
+                }
+            }
+
             info("numero studenti da modificare: " . count($studentiDaModificareIdList));
             foreach ($studentiDaModificareIdList as $ssid) {
                 $ssid = (int)$ssid;

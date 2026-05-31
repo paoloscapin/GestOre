@@ -74,7 +74,7 @@ if ($id > 0) {
 
     // stato prima (fondamentale per logica cancellazione)
     $before = dbGetFirst("
-        SELECT docente_id, attivo, cancellato, luogo
+        SELECT docente_id, attivo, cancellato, luogo, data, ora
         FROM sportello
         WHERE id = " . (int)$id . "
         LIMIT 1
@@ -84,6 +84,8 @@ if ($id > 0) {
     $before_docente  = (int)($before['docente_id'] ?? 0);
     $before_luogo    = trim((string)($before['luogo'] ?? ''));
     $before_attivo   = (int)($before['attivo'] ?? 0);
+    $before_data      = (string)($before['data'] ?? '');
+    $before_ora       = (string)($before['ora'] ?? '');
 
     // ---------------------------------------
     // REGOLA ATTIVO/DOCENTE:
@@ -245,6 +247,19 @@ if ($id > 0) {
         }
 
     } else {
+        if ((int)$cancellato === 0 && ($before_data !== $data || $before_ora !== $ora || $before_luogo !== $luogo_raw)) {
+            $cntIscritti = (int)dbGetValue("SELECT COUNT(*) FROM sportello_studente WHERE sportello_id = " . (int)$id);
+            if ($cntIscritti > 0) {
+                $sportello_update_old = [
+                    'data' => $before_data,
+                    'ora' => $before_ora,
+                    'luogo' => $before_luogo
+                ];
+                info("sportelloAggiorna: invio mail aggiornamento studenti sportello id=$id iscritti=$cntIscritti");
+                require "sportelloInviaMailAggiornamentoStudente.php";
+            }
+        }
+
         // nessun cambio cancellato: aggiorna presenze come prima
         foreach ($studentiDaModificareIdList as $studente) {
             $studente = intval($studente);
