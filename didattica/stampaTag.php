@@ -15,7 +15,7 @@ ruoloRichiesto('docente', 'segreteria-didattica', 'admin');
 $docenteDaParametro = applicaDocenteDaParametroSeAutorizzato();
 
 $docenteId = intval($__docente_id ?? 0);
-$docenteScopeActive = $docenteId > 0 && ($docenteDaParametro !== null || impersonaRuolo('docente'));
+$docenteScopeActive = $docenteId > 0 && ($docenteDaParametro !== null || ($__utente_ruolo ?? '') === 'docente');
 $adminMode = (haRuolo('admin') || haRuolo('segreteria-didattica')) && !$docenteScopeActive;
 $range = mastercomTagPrintSchoolYearRange();
 $today = mastercomTagPrintToday();

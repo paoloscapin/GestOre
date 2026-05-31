@@ -13,7 +13,7 @@ require_once '../common/_include_bootstrap-toggle.php';
 require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_bootstrap-notify.php';
 ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
-applicaDocenteDaParametroSeAutorizzato();
+$programmaInizialiDocenteDaParametro = applicaDocenteDaParametroSeAutorizzato();
 ?>
 
 <!DOCTYPE html>
@@ -481,7 +481,7 @@ function renderProgrammaSintassiPreviewIniziali(string $fieldId, string $preview
 // }
 
 $id_docente_utente = 0;
-if (intval($__docente_id ?? 0) > 0) {
+if ($programmaInizialiDocenteDaParametro != null && intval($__docente_id ?? 0) > 0) {
     $id_docente_utente = intval($__docente_id);
 } elseif ($__utente_ruolo == 'docente') {
     $query = "SELECT * from docente WHERE docente.username='" . $__username . "'";
@@ -576,7 +576,7 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
         </div>
     </div>
     <?php
-    if (isset($_GET['docente_id']) && intval($_GET['docente_id']) > 0 && intval($__docente_id ?? 0) > 0) {
+    if ($programmaInizialiDocenteDaParametro != null && intval($__docente_id ?? 0) > 0) {
         require_once '../common/header-docente.php';
     } else
     if (haRuolo('segreteria-didattica')) {
