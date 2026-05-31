@@ -440,15 +440,22 @@ try {
         }
 
         // Post-save studenti + cancellazione (lato docente)
-        if ($cancellato) {
+        $lastCancellato = (int)($old['cancellato'] ?? 0);
+        if ($cancellato && $lastCancellato !== 1) {
             info("invio mail di cancellazione al docente");
             require "../docente/sportelloInviaMailCancellazioneDocente.php";
 
             info("invio mail di cancellazione agli studenti iscritti allo sportello");
             require "../docente/sportelloInviaMailCancellazioneStudente.php";
 
-            dbExec("DELETE FROM sportello_studente WHERE sportello_id = $id");
-            info("cancellati gli studenti iscritti allo sportello id=$id");
+            info("cancello prenotazione MBApp sportello id=$id");
+            require "../docente/sportelloCancellaPrenotazioneAulaMBApp.php";
+
+            info("cancellazione sportello id=$id: iscrizioni studenti mantenute come storico");
+        }
+
+        if ($cancellato) {
+            info("sportello cancellato id=$id: salto modifiche/cancellazioni manuali iscrizioni");
         } else {
             info("numero studenti da modificare: " . count($studentiDaModificareIdList));
             foreach ($studentiDaModificareIdList as $ssid) {

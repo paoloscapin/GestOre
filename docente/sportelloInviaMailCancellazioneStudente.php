@@ -16,6 +16,40 @@ require_once '../common/mail-ui.php';
 
 ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
 
+$id = (int)($id ?? $_POST['sportello_id'] ?? $_POST['id'] ?? 0);
+if ($id <= 0) {
+    warning("sportelloInviaMailCancellazioneStudente: sportello_id/id mancante");
+    return;
+}
+
+$sportelloMailData = dbGetFirst("
+    SELECT
+        s.id,
+        s.materia_id,
+        s.data,
+        s.ora,
+        s.categoria,
+        s.luogo,
+        d.cognome AS docente_cognome,
+        d.nome AS docente_nome
+    FROM sportello s
+    LEFT JOIN docente d ON d.id = s.docente_id
+    WHERE s.id = " . (int)$id . "
+    LIMIT 1
+");
+if (!$sportelloMailData) {
+    warning("sportelloInviaMailCancellazioneStudente: sportello non trovato id=" . (int)$id);
+    return;
+}
+
+$materia_id = (int)($sportelloMailData['materia_id'] ?? ($materia_id ?? 0));
+$data = (string)($sportelloMailData['data'] ?? ($data ?? ''));
+$ora = (string)($sportelloMailData['ora'] ?? ($ora ?? ''));
+$categoria = (string)($sportelloMailData['categoria'] ?? ($categoria ?? 'sportello'));
+$luogo = (string)($sportelloMailData['luogo'] ?? ($luogo ?? ''));
+$docente_cognome = (string)($sportelloMailData['docente_cognome'] ?? ($docente_cognome ?? ''));
+$docente_nome = (string)($sportelloMailData['docente_nome'] ?? ($docente_nome ?? ''));
+
 // -------------------------------
 // DATI necessari (assunti già disponibili nel contesto che include questo file):
 // $materia_id, $id (sportello_id), $categoria, $data, $ora, $docente_cognome, $docente_nome, $luogo
