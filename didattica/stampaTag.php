@@ -9,6 +9,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/tag_print_lib.php';
+require_once '../common/mastercom/tag_report_lib.php';
 
 ruoloRichiesto('docente', 'segreteria-didattica', 'admin');
 applicaDocenteDaParametroSeAutorizzato();
@@ -54,16 +55,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $contentType = 'application/vnd.ms-excel; charset=Windows-1252';
                 }
 
-                header('Content-Type: ' . $contentType);
-                header('Content-Disposition: attachment; filename="' . $filename . '"');
-                header('Content-Length: ' . strlen((string)$exportResult['body']));
-                echo (string)$exportResult['body'];
-                exit;
+                try {
+                    $classLabels = [];
+                    foreach ($selectedClasses as $classId) {
+                        $classRow = $classMap[$classId] ?? [];
+                        $classLabels[] = trim((string)($classRow['gestore_classe'] ?? $classRow['nome'] ?? $classId));
+                    }
+                    $tagLabels = [];
+                    foreach ($selectedTags as $tagId) {
+                        $tagLabels[] = $tagOptions[$tagId] ?? (string)$tagId;
+                    }
+
+                    $importResult = mastercomTagReportImportFromBinary((string)$exportResult['body'], $filename, [
+                        'data_inizio' => $startDate,
+                        'data_fine' => $endDate,
+                        'classi_label' => implode(', ', array_filter($classLabels)),
+                        'docente_label' => 'TUTTI',
+                        'tag_label' => implode(' - ', $tagLabels),
+                    ]);
+
+                    info('MasterCom stampa TAG importata in GestOre stampa_id=' . intval($importResult['stampa_id']) . ' righe=' . intval($importResult['rows']));
+                    header('Location: stampaTagDettaglio.php?id=' . intval($importResult['stampa_id']));
+                    exit;
+                } catch (Throwable $e) {
+                    warning('MasterCom stampa TAG import GestOre fallito | errore=' . $e->getMessage());
+                    $errorMessage = 'MasterCom ha generato il file, ma GestOre non e riuscito a importarlo: ' . $e->getMessage();
+                }
             }
 
-            $errorMessage = $exportResult['message'] ?? 'Esportazione tag MasterCom fallita.';
-            if (!empty($exportResult['preview'])) {
-                $errorMessage .= ' ' . $exportResult['preview'];
+            if ($errorMessage === '') {
+                $errorMessage = $exportResult['message'] ?? 'Esportazione tag MasterCom fallita.';
+                if (!empty($exportResult['preview'])) {
+                    $errorMessage .= ' ' . $exportResult['preview'];
+                }
             }
         }
     }
@@ -162,7 +186,7 @@ if (haRuolo('docente') && !$adminMode) {
                     <div class="form-group">
                         <div class="col-sm-offset-2 col-sm-10">
                             <button type="submit" class="btn btn-primary">
-                                <span class="glyphicon glyphicon-download-alt"></span>&ensp;Esporta Excel
+                                <span class="glyphicon glyphicon-import"></span>&ensp;Importa in GestOre
                             </button>
                         </div>
                     </div>
