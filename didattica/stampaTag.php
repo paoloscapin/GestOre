@@ -12,10 +12,11 @@ require_once '../common/mastercom/tag_print_lib.php';
 require_once '../common/mastercom/tag_report_lib.php';
 
 ruoloRichiesto('docente', 'segreteria-didattica', 'admin');
-applicaDocenteDaParametroSeAutorizzato();
+$docenteDaParametro = applicaDocenteDaParametroSeAutorizzato();
 
-$adminMode = haRuolo('admin') || haRuolo('segreteria-didattica');
 $docenteId = intval($__docente_id ?? 0);
+$docenteScopeActive = $docenteId > 0 && ($docenteDaParametro !== null || impersonaRuolo('docente'));
+$adminMode = (haRuolo('admin') || haRuolo('segreteria-didattica')) && !$docenteScopeActive;
 $range = mastercomTagPrintSchoolYearRange();
 $today = mastercomTagPrintToday();
 $defaultEnd = min($range['end'], $today);
