@@ -67,6 +67,124 @@ function mastercomTagPrintDateParts(string $value): array
     ];
 }
 
+function mastercomTagPrintExtractExportPath(string $body): ?string
+{
+    $decodedBody = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $decodedBody = str_replace('\\/', '/', $decodedBody);
+
+    if (preg_match("~(?:href|src|action)\s*=\s*['\"]([^'\"]*tmp_xls/[^'\"]+\.(xls|xlsx|csv)(?:\?[^'\"]*)?)['\"]~i", $decodedBody, $matches)) {
+        return trim($matches[1]);
+    }
+
+    if (preg_match("~['\"]([^'\"]*tmp_xls/[^'\"]+\.(xls|xlsx|csv)(?:\?[^'\"]*)?)['\"]~i", $decodedBody, $matches)) {
+        return trim($matches[1]);
+    }
+
+    if (!preg_match("~(?:https?://[^'\"<>\s]+|/[^'\"<>\s]*)?tmp_xls/[^'\"<>\s]+\.(xls|xlsx|csv)~i", $decodedBody, $matches)) {
+        return null;
+    }
+
+    return $matches[0];
+}
+
+function mastercomTagPrintBuildDownloadUrl(string $relativePath): string
+{
+    $urls = mastercomTagPrintBuildDownloadUrls($relativePath);
+    return $urls[0] ?? '';
+}
+
+function mastercomTagPrintBuildDownloadUrls(string $exportPath): array
+{
+    $exportPath = trim($exportPath);
+    if ($exportPath === '') {
+        return [];
+    }
+
+    if (preg_match('~^https?://~i', $exportPath)) {
+        return [$exportPath];
+    }
+
+    $indexUrl = mastercomIndexUrl();
+    $baseUrl = mastercomBaseUrl();
+    $indexParts = parse_url($indexUrl);
+    $origin = '';
+    if (is_array($indexParts) && !empty($indexParts['scheme']) && !empty($indexParts['host'])) {
+        $origin = $indexParts['scheme'] . '://' . $indexParts['host'] . (!empty($indexParts['port']) ? ':' . $indexParts['port'] : '');
+    }
+
+    $candidates = [];
+    if ($origin !== '' && substr($exportPath, 0, 1) === '/') {
+        $candidates[] = rtrim($origin, '/') . $exportPath;
+    }
+
+    if ($indexUrl !== '') {
+        $candidates[] = rtrim(dirname($indexUrl), '/') . '/' . ltrim($exportPath, '/');
+    }
+
+    if ($baseUrl !== '') {
+        $candidates[] = rtrim(dirname($baseUrl), '/') . '/' . ltrim($exportPath, '/');
+    }
+
+    if ($origin !== '') {
+        $candidates[] = rtrim($origin, '/') . '/' . ltrim($exportPath, '/');
+    }
+
+    return array_values(array_unique(array_filter($candidates)));
+}
+
+function mastercomTagPrintFilenameFromPath(string $relativePath): string
+{
+    $filename = basename($relativePath);
+    $filename = preg_replace('/[^A-Za-z0-9_.-]/', '_', $filename);
+    return $filename !== '' ? $filename : 'elenco_tag_' . date('Y-m-d_H-i-s') . '.xls';
+}
+
+function mastercomTagPrintDownloadGeneratedFile(array $downloadUrls, array $authResult): array
+{
+    $cookieHeader = implode('; ', array_filter($authResult['cookies'] ?? []));
+    $attempts = [];
+    $lastUrl = '';
+    $lastResult = null;
+    $delays = [0, 250000, 750000, 1500000];
+
+    foreach ($delays as $delay) {
+        if ($delay > 0) {
+            usleep($delay);
+        }
+
+        foreach ($downloadUrls as $candidateUrl) {
+            $lastUrl = $candidateUrl;
+            $lastResult = mastercomRawRequest([], [
+                'base_url' => $candidateUrl,
+                'cookie' => $cookieHeader,
+                'method' => 'GET',
+                'timeout' => 180,
+            ]);
+            $attempts[] = $candidateUrl . ' => HTTP ' . intval($lastResult['http_code'] ?? 0);
+            if (!empty($lastResult['ok']) && trim((string)($lastResult['body'] ?? '')) !== '') {
+                return [
+                    'ok' => true,
+                    'url' => $candidateUrl,
+                    'result' => $lastResult,
+                    'attempts' => $attempts,
+                ];
+            }
+        }
+    }
+
+    return [
+        'ok' => false,
+        'url' => $lastUrl,
+        'result' => $lastResult ?? [
+            'ok' => false,
+            'body' => null,
+            'http_code' => 0,
+            'content_type' => null,
+        ],
+        'attempts' => $attempts,
+    ];
+}
+
 function mastercomTagPrintClassRowsForUser(int $docenteId, bool $adminMode): array
 {
     global $__anno_scolastico_corrente_id;
@@ -185,19 +303,31 @@ function mastercomTagPrintExport(string $startDate, string $endDate, array $tagI
         ];
     }
 
-    if (preg_match("/tmp_xls\/[^'\"<>]+\.(xls|xlsx|csv)/i", $body, $matches)) {
-        $relativePath = $matches[0];
-        $downloadUrl = rtrim(dirname(mastercomBaseUrl()), '/') . '/' . ltrim($relativePath, '/');
-        $downloadResult = mastercomRawRequest([], [
-            'base_url' => $downloadUrl,
-            'cookie' => implode('; ', array_filter($authResult['cookies'] ?? [])),
-            'method' => 'GET',
-            'timeout' => 180,
-        ]);
+    $filename = 'elenco_tag_' . date('Y-m-d_H-i-s') . '.xls';
+    $relativePath = mastercomTagPrintExtractExportPath($body);
+    if ($relativePath !== null) {
+        $downloadUrls = mastercomTagPrintBuildDownloadUrls($relativePath);
+        $download = mastercomTagPrintDownloadGeneratedFile($downloadUrls, $authResult);
+        $downloadResult = $download['result'];
 
-        if (!empty($downloadResult['ok']) && trim((string)($downloadResult['body'] ?? '')) !== '') {
+        if (!empty($download['ok'])) {
             $body = (string)$downloadResult['body'];
             $submitResult['content_type'] = $downloadResult['content_type'] ?? ($submitResult['content_type'] ?? '');
+            $submitResult['http_code'] = $downloadResult['http_code'] ?? ($submitResult['http_code'] ?? 0);
+            unset($submitResult['html_warnings']);
+            $filename = mastercomTagPrintFilenameFromPath($relativePath);
+        } else {
+            warning('MasterCom stampa TAG download file fallito'
+                . ' | path=' . $relativePath
+                . ' | attempts=' . implode(' ; ', $download['attempts']));
+            return [
+                'ok' => false,
+                'message' => 'MasterCom ha generato il file Excel della stampa TAG, ma GestOre non e riuscito a scaricarlo',
+                'http_code' => intval($downloadResult['http_code'] ?? 0),
+                'preview' => trim(strip_tags(substr((string)($downloadResult['body'] ?? ''), 0, 500))),
+                'download_url' => $download['url'],
+                'download_attempts' => $download['attempts'],
+            ];
         }
     }
 
@@ -214,6 +344,6 @@ function mastercomTagPrintExport(string $startDate, string $endDate, array $tagI
         'ok' => true,
         'body' => $body,
         'content_type' => trim((string)($submitResult['content_type'] ?? 'application/vnd.ms-excel')),
-        'filename' => 'elenco_tag_' . date('Y-m-d_H-i-s') . '.xls',
+        'filename' => $filename,
     ];
 }

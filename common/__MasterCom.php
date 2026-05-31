@@ -322,7 +322,7 @@ function mastercomRawRequest(array $params, array $options = []): array
     $method = strtoupper((string)($options['method'] ?? 'POST'));
     $sendInBody = !empty($options['send_in_body']);
     $url = $baseUrl;
-    if (!($sendInBody && $method === 'POST')) {
+    if (!empty($params) && !($sendInBody && $method === 'POST')) {
         $url .= '?' . mastercomBuildQueryString($params);
     }
 
