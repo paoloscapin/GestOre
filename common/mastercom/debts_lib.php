@@ -200,8 +200,10 @@ function mastercomDebtsCanonicalSubject(string $value): string
         'TEC' => 'TECNICHE',
         'TECN' => 'TECNICHE',
         'SIST' => 'SISTEMI',
+        'SIS' => 'SISTEMI',
         'INF' => 'INFORMATICI',
         'TEL' => 'TELECOMUNICAZIONI',
+        'PROF' => 'PROGETTAZIONE',
         'RAPPR' => 'RAPPRESENTAZIONE',
         'GRAF' => 'GRAFICA',
         'PROG' => 'PROGETTAZIONE',
@@ -209,6 +211,8 @@ function mastercomDebtsCanonicalSubject(string $value): string
         'IMP' => 'IMPIANTI',
         'IND' => 'INDUSTRIALE',
         'ELETTROT' => 'ELETTROTECNICA',
+        'EL' => 'ELETTRICI',
+        'ELET' => 'ELETTRONICI',
         'MEC' => 'MECCANICA',
         'MAC' => 'MACCHINE',
         'FISIOL' => 'FISIOLOGIA',
@@ -251,8 +255,10 @@ function mastercomDebtsCanonicalSubjectTokens(string $value): array
         'TEC' => 'TECNICHE',
         'TECN' => 'TECNICHE',
         'SIST' => 'SISTEMI',
+        'SIS' => 'SISTEMI',
         'INF' => 'INFORMATICI',
         'TEL' => 'TELECOMUNICAZIONI',
+        'PROF' => 'PROGETTAZIONE',
         'RAPPR' => 'RAPPRESENTAZIONE',
         'GRAF' => 'GRAFICA',
         'PROG' => 'PROGETTAZIONE',
@@ -260,6 +266,8 @@ function mastercomDebtsCanonicalSubjectTokens(string $value): array
         'IMP' => 'IMPIANTI',
         'IND' => 'INDUSTRIALE',
         'ELETTROT' => 'ELETTROTECNICA',
+        'EL' => 'ELETTRICI',
+        'ELET' => 'ELETTRONICI',
         'MEC' => 'MECCANICA',
         'MAC' => 'MACCHINE',
         'FISIOL' => 'FISIOLOGIA',
@@ -367,11 +375,30 @@ function mastercomDebtsResolveSubjectIdByClassRule(string $subjectName, string $
     return null;
 }
 
+function mastercomDebtsResolveSubjectIdBySubjectRule(string $subjectName): ?int
+{
+    $subjectKey = mastercomDebtsCanonicalSubject($subjectName);
+
+    if ($subjectKey === 'TECNICHEPROGETTAZIONESISTEMIELETTRICIELETTRONICI') {
+        return mastercomDebtsFindSubjectIdByNames([
+            'Tecnologie e progettazione di sistemi elettrici ed elettronici',
+            'Tecnologie e progettazione di sistemi elettrici e elettronici',
+        ]);
+    }
+
+    return null;
+}
+
 function mastercomDebtsResolveSubjectId(string $subjectName, string $className = ''): ?int
 {
     $subjectName = mastercomAdminCleanText($subjectName) ?? '';
     if ($subjectName === '') {
         return null;
+    }
+
+    $subjectRuleId = mastercomDebtsResolveSubjectIdBySubjectRule($subjectName);
+    if ($subjectRuleId !== null && $subjectRuleId > 0) {
+        return $subjectRuleId;
     }
 
     if ($className !== '') {
@@ -646,7 +673,7 @@ function mastercomDebtsParseHtml(string $html, int $mastercomClassId, string $cl
         $debtText = str_replace("\xc2\xa0", ' ', $debtText);
         $debtText = preg_replace('/\s+/u', ' ', $debtText);
 
-        preg_match_all('/A\.S\.\s*(\d{4}\s*\/\s*\d{4})\s*--\s*(.*?)\s*Debito\s+(non\s+recuperato|recuperato)\s*--\s*\(Tipo\s+debito\s*:\s*([^)]+)\)/iu', $debtText, $matches, PREG_SET_ORDER);
+        preg_match_all('/A\.S\.\s*(\d{4}\s*\/\s*\d{4})\s*--\s*(.*?)\s*(?:Debito|Carenza)\s+(non\s+recuperat[oa]|recuperat[oa]|non\s+superat[oa]|superat[oa])\s*--\s*\(Tipo\s+debito\s*:\s*([^)]+)\)?/iu', $debtText, $matches, PREG_SET_ORDER);
         foreach ($matches as $match) {
             $yearLabel = str_replace(' ', '', (string)$match[1]);
             $subject = mastercomAdminCleanText((string)$match[2]) ?? '';
@@ -663,7 +690,7 @@ function mastercomDebtsParseHtml(string $html, int $mastercomClassId, string $cl
                 'studente_nome' => $studentName,
                 'anno_label' => $yearLabel,
                 'materia' => $subject,
-                'recuperato_mastercom' => $status === 'RECUPERATO' ? 1 : 0,
+                'recuperato_mastercom' => in_array($status, ['RECUPERATO', 'RECUPERATA', 'SUPERATO', 'SUPERATA'], true) ? 1 : 0,
                 'tipo_debito' => $type,
                 'raw_text' => mastercomAdminCleanText((string)$match[0]) ?? '',
             ];
@@ -680,11 +707,24 @@ function mastercomDebtsUpsertRows(array $rows, int $mastercomClassId, string $cl
     $localClassId = mastercomDebtsLocalClassIdByMastercom($mastercomClassId, $className);
     $stats = [
         'parsed' => count($rows),
+        'deleted_stale' => 0,
         'saved' => 0,
         'without_student' => 0,
         'without_subject' => 0,
         'without_year' => 0,
     ];
+
+    if ($mastercomClassId > 0) {
+        $stats['deleted_stale'] = intval(dbGetValue("
+            SELECT COUNT(*)
+            FROM mastercom_carenze
+            WHERE mastercom_id_classe = " . dbI($mastercomClassId) . "
+        ") ?? 0);
+        dbExec("
+            DELETE FROM mastercom_carenze
+            WHERE mastercom_id_classe = " . dbI($mastercomClassId) . "
+        ");
+    }
 
     foreach ($rows as $row) {
         $localStudent = mastercomDebtsLocalStudentByMastercom(intval($row['mastercom_id_studente'] ?? 0), (string)($row['studente_nome'] ?? ''), $localClassId);
@@ -769,6 +809,7 @@ function mastercomDebtsFetchAndStoreAllClasses(): array
     $stats = [
         'classes' => 0,
         'saved' => 0,
+        'deleted_stale' => 0,
         'without_student' => 0,
         'without_subject' => 0,
         'without_year' => 0,
@@ -792,6 +833,7 @@ function mastercomDebtsFetchAndStoreAllClasses(): array
         $classStats = $result['stats'] ?? [];
         $stats['classes']++;
         $stats['saved'] += intval($classStats['saved'] ?? 0);
+        $stats['deleted_stale'] += intval($classStats['deleted_stale'] ?? 0);
         $stats['without_student'] += intval($classStats['without_student'] ?? 0);
         $stats['without_subject'] += intval($classStats['without_subject'] ?? 0);
         $stats['without_year'] += intval($classStats['without_year'] ?? 0);
@@ -801,6 +843,7 @@ function mastercomDebtsFetchAndStoreAllClasses(): array
         'ok' => $stats['classes'] > 0,
         'message' => 'Lettura globale completata: classi ' . intval($stats['classes'])
             . ', carenze salvate ' . intval($stats['saved'])
+            . ', cache precedente ' . intval($stats['deleted_stale'])
             . ', errori classi ' . intval($stats['errors']) . '.',
         'stats' => $stats,
         'errors' => $messages,

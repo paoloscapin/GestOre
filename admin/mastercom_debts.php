@@ -102,6 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!empty($result['ok'])) {
                 $stats = $result['stats'] ?? [];
                 $message = ($result['message'] ?? 'Lettura completata')
+                    . ' Cache precedente ' . intval($stats['deleted_stale'] ?? 0) . '.'
                     . ' Non abbinate: studenti ' . intval($stats['without_student'] ?? 0)
                     . ', materie ' . intval($stats['without_subject'] ?? 0)
                     . ', anni ' . intval($stats['without_year'] ?? 0) . '.';
@@ -114,6 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stats = $result['stats'] ?? [];
         if (!empty($result['ok'])) {
             $message = ($result['message'] ?? 'Lettura globale completata')
+                . ' Cache precedente ' . intval($stats['deleted_stale'] ?? 0) . '.'
                 . ' Non abbinate: studenti ' . intval($stats['without_student'] ?? 0)
                 . ', materie ' . intval($stats['without_subject'] ?? 0)
                 . ', anni ' . intval($stats['without_year'] ?? 0) . '.';
