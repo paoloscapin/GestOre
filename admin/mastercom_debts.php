@@ -85,6 +85,10 @@ $message = '';
 $error = '';
 $selectedClassId = intval($_REQUEST['class_id'] ?? 0);
 $selectedYearId = intval($_REQUEST['school_year_id'] ?? ($__anno_scolastico_corrente_id ?? 0));
+$selectedIssueFilter = trim((string)($_REQUEST['issue_filter'] ?? 'all'));
+if (!in_array($selectedIssueFilter, ['all', 'problems', 'check'], true)) {
+    $selectedIssueFilter = 'all';
+}
 $classRows = mastercomAdminOperationalClassRows('mastercom_id_classe, nome');
 $schoolYears = mastercomDebtsSchoolYears();
 
@@ -137,6 +141,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 mastercomDebtsRefreshMissingSubjectMatches();
 mastercomDebtsRefreshCachedClassMatches();
 $reportRows = mastercomDebtsReportRows($selectedYearId, $selectedClassId);
+if ($selectedIssueFilter === 'check') {
+    $reportRows = array_values(array_filter($reportRows, function ($row) {
+        return (string)($row['confronto'] ?? '') === 'Da verificare';
+    }));
+} elseif ($selectedIssueFilter === 'problems') {
+    $reportRows = array_values(array_filter($reportRows, function ($row) {
+        return (string)($row['confronto'] ?? '') !== 'OK';
+    }));
+}
 
 if (isset($_GET['export']) && $_GET['export'] === 'xls') {
     $fileName = mastercomDebtsExportFileName('carenze_mastercom', 'xls');
@@ -209,9 +222,13 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
             flex: 0 1 260px;
             min-width: 160px;
         }
+        .mcd-toolbar .mcd-filter-issue {
+            flex: 0 1 230px;
+            min-width: 150px;
+        }
         .mcd-toolbar .mcd-actions {
             flex: 1 0 auto;
-            min-width: 600px;
+            min-width: 520px;
             white-space: nowrap;
         }
         .mcd-toolbar .mcd-actions .btn {
@@ -229,6 +246,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                 min-width: 190px;
             }
             .mcd-toolbar .mcd-filter-year {
+                flex-basis: 190px;
+                min-width: 140px;
+            }
+            .mcd-toolbar .mcd-filter-issue {
                 flex-basis: 190px;
                 min-width: 140px;
             }
@@ -358,6 +379,14 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <div class="mcd-filter-issue">
+                        <label for="issue_filter">Confronto</label>
+                        <select id="issue_filter" name="issue_filter" class="form-control">
+                            <option value="all" <?php echo $selectedIssueFilter === 'all' ? 'selected' : ''; ?>>Tutte le righe</option>
+                            <option value="problems" <?php echo $selectedIssueFilter === 'problems' ? 'selected' : ''; ?>>Solo problemi</option>
+                            <option value="check" <?php echo $selectedIssueFilter === 'check' ? 'selected' : ''; ?>>Solo Da verificare</option>
+                        </select>
+                    </div>
                     <div class="mcd-actions">
                         <label>&nbsp;</label><br>
                         <button type="submit" class="btn btn-primary">
@@ -372,10 +401,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                         <button type="submit" form="mcdSaveForm" class="btn btn-success" onclick="mcdSyncHiddenForms(); mcdShowWait('Aggiornamento GestOre', 'Sto salvando lo stato delle carenze in GestOre.');">
                             <span class="glyphicon glyphicon-floppy-disk"></span> <span class="mcd-btn-text">Salva in GestOre</span>
                         </button>
-                        <a class="btn btn-danger" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&export=pdf">
+                        <a class="btn btn-danger" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&issue_filter=<?php echo urlencode($selectedIssueFilter); ?>&export=pdf">
                             <span class="glyphicon glyphicon-file"></span> <span class="mcd-btn-text">PDF</span>
                         </a>
-                        <a class="btn btn-success" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&export=xls">
+                        <a class="btn btn-success" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&issue_filter=<?php echo urlencode($selectedIssueFilter); ?>&export=xls">
                             <span class="glyphicon glyphicon-list-alt"></span> <span class="mcd-btn-text">XLS</span>
                         </a>
                     </div>
@@ -386,16 +415,19 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                 <input type="hidden" name="action" value="fetch_mastercom">
                 <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
                 <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
+                <input type="hidden" name="issue_filter" value="<?php echo mcd_h($selectedIssueFilter); ?>">
             </form>
             <form id="mcdFetchAllForm" method="post" style="display:none;">
                 <input type="hidden" name="action" value="fetch_mastercom_all">
                 <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
                 <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
+                <input type="hidden" name="issue_filter" value="<?php echo mcd_h($selectedIssueFilter); ?>">
             </form>
             <form id="mcdSaveForm" method="post" style="display:none;">
                 <input type="hidden" name="action" value="save_gestore">
                 <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
                 <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
+                <input type="hidden" name="issue_filter" value="<?php echo mcd_h($selectedIssueFilter); ?>">
             </form>
 
             <div class="alert alert-info">
@@ -426,8 +458,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
     function mcdSyncHiddenForms() {
         var classId = document.getElementById('class_id').value;
         var yearId = document.getElementById('school_year_id').value;
+        var issueFilter = document.getElementById('issue_filter').value;
         document.querySelectorAll('input[name="class_id"]').forEach(function (input) { input.value = classId; });
         document.querySelectorAll('input[name="school_year_id"]').forEach(function (input) { input.value = yearId; });
+        document.querySelectorAll('input[name="issue_filter"]').forEach(function (input) { input.value = issueFilter; });
     }
     function mcdExportWait(link) {
         mcdShowWait('Preparazione export', 'Il download partira appena il file sara pronto.');

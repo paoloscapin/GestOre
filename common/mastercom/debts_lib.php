@@ -41,6 +41,7 @@ function mastercomDebtsEnsureTables(): void
     ");
 
     mastercomDebtsEnsureCarenzeColumns();
+    mastercomDebtsNormalizeStoredDebtTypes();
 }
 
 function mastercomDebtsEnsureCarenzeColumns(): void
@@ -57,6 +58,96 @@ function mastercomDebtsEnsureCarenzeColumns(): void
             dbExec($query);
         }
     }
+}
+
+function mastercomDebtsNormalizeDebtType(string $value): string
+{
+    $clean = mastercomAdminCleanText($value) ?? '';
+    $norm = mastercomAdminNorm($clean);
+    $norm = preg_replace('/\s+/u', ' ', trim((string)$norm));
+
+    if ($norm === 'CON VERIFICA') {
+        return 'CARENZA CON VERIFICA';
+    }
+    if ($norm === 'GRAVE CON VERIFICA' || $norm === 'CARENZA GRAVE') {
+        return 'CARENZA GRAVE CON VERIFICA';
+    }
+
+    return $clean;
+}
+
+function mastercomDebtsNormalizeStoredDebtTypes(): void
+{
+    static $running = false;
+    if ($running) {
+        return;
+    }
+    $running = true;
+
+    $rows = dbGetAll("
+        SELECT *
+        FROM mastercom_carenze
+        WHERE tipo_debito IN ('CON VERIFICA', 'GRAVE CON VERIFICA', 'CARENZA GRAVE')
+    ") ?: [];
+
+    foreach ($rows as $row) {
+        $canonicalType = mastercomDebtsNormalizeDebtType((string)($row['tipo_debito'] ?? ''));
+        if ($canonicalType === '' || $canonicalType === (string)($row['tipo_debito'] ?? '')) {
+            continue;
+        }
+
+        $duplicate = dbGetFirst("
+            SELECT id
+            FROM mastercom_carenze
+            WHERE mastercom_id_classe = " . dbI($row['mastercom_id_classe'] ?? 0) . "
+              AND mastercom_id_studente = " . dbI($row['mastercom_id_studente'] ?? 0) . "
+              AND anno_label = " . dbQ($row['anno_label'] ?? '') . "
+              AND materia = " . dbQ($row['materia'] ?? '') . "
+              AND tipo_debito = " . dbQ($canonicalType) . "
+              AND id <> " . dbI($row['id'] ?? 0) . "
+            LIMIT 1
+        ");
+
+        if ($duplicate) {
+            dbExec("
+                UPDATE mastercom_carenze
+                SET id_classe_gestore = COALESCE(" . dbI($row['id_classe_gestore'] ?? null) . ", id_classe_gestore),
+                    classe = COALESCE(" . dbQ($row['classe'] ?? '') . ", classe),
+                    id_studente_gestore = COALESCE(" . dbI($row['id_studente_gestore'] ?? null) . ", id_studente_gestore),
+                    studente_nome = COALESCE(" . dbQ($row['studente_nome'] ?? '') . ", studente_nome),
+                    id_anno_scolastico = COALESCE(" . dbI($row['id_anno_scolastico'] ?? null) . ", id_anno_scolastico),
+                    id_materia_gestore = COALESCE(" . dbI($row['id_materia_gestore'] ?? null) . ", id_materia_gestore),
+                    recuperato_mastercom = " . dbI($row['recuperato_mastercom'] ?? 0) . ",
+                    raw_text = " . dbQ($row['raw_text'] ?? '') . ",
+                    raw_json = " . dbQ($row['raw_json'] ?? '') . ",
+                    imported_at = " . dbQ($row['imported_at'] ?? date('Y-m-d H:i:s')) . "
+                WHERE id = " . dbI($duplicate['id'] ?? 0) . "
+            ");
+            dbExec("DELETE FROM mastercom_carenze WHERE id = " . dbI($row['id'] ?? 0));
+            continue;
+        }
+
+        dbExec("
+            UPDATE mastercom_carenze
+            SET tipo_debito = " . dbQ($canonicalType) . "
+            WHERE id = " . dbI($row['id'] ?? 0) . "
+        ");
+    }
+
+    if (mastercomAdminTableExists('carenze') && mastercomAdminTableColumnExists('carenze', 'mastercom_tipo_debito')) {
+        dbExec("
+            UPDATE carenze
+            SET mastercom_tipo_debito = 'CARENZA CON VERIFICA'
+            WHERE mastercom_tipo_debito = 'CON VERIFICA'
+        ");
+        dbExec("
+            UPDATE carenze
+            SET mastercom_tipo_debito = 'CARENZA GRAVE CON VERIFICA'
+            WHERE mastercom_tipo_debito IN ('GRAVE CON VERIFICA', 'CARENZA GRAVE')
+        ");
+    }
+
+    $running = false;
 }
 
 function mastercomDebtsNormalizeSubject(string $value): string
@@ -560,7 +651,7 @@ function mastercomDebtsParseHtml(string $html, int $mastercomClassId, string $cl
             $yearLabel = str_replace(' ', '', (string)$match[1]);
             $subject = mastercomAdminCleanText((string)$match[2]) ?? '';
             $status = mastercomAdminNorm((string)$match[3]);
-            $type = mastercomAdminCleanText((string)$match[4]) ?? '';
+            $type = mastercomDebtsNormalizeDebtType((string)$match[4]);
             if ($yearLabel === '' || $subject === '') {
                 continue;
             }
@@ -630,7 +721,7 @@ function mastercomDebtsUpsertRows(array $rows, int $mastercomClassId, string $cl
                 " . dbQ($row['materia'] ?? '') . ",
                 " . dbI($localSubjectId) . ",
                 " . dbI($row['recuperato_mastercom'] ?? 0) . ",
-                " . dbQ($row['tipo_debito'] ?? '') . ",
+                " . dbQ(mastercomDebtsNormalizeDebtType((string)($row['tipo_debito'] ?? ''))) . ",
                 " . dbQ($row['raw_text'] ?? '') . ",
                 " . dbQ(mastercomAdminJson($row)) . ",
                 NOW()
@@ -827,7 +918,7 @@ function mastercomDebtsSaveToGestoreCarenze(int $schoolYearId, int $mastercomCla
             dbExec("
                 UPDATE carenze
                 SET mastercom_recuperato = " . dbI($row['recuperato_mastercom'] ?? 0) . ",
-                    mastercom_tipo_debito = " . dbQ($row['tipo_debito'] ?? '') . ",
+                    mastercom_tipo_debito = " . dbQ(mastercomDebtsNormalizeDebtType((string)($row['tipo_debito'] ?? ''))) . ",
                     mastercom_last_sync_at = NOW(),
                     mastercom_raw_text = " . dbQ($row['raw_text'] ?? '') . "
                 WHERE id = " . dbI($existingId) . "
@@ -849,7 +940,7 @@ function mastercomDebtsSaveToGestoreCarenze(int $schoolYearId, int $mastercomCla
                 " . dbI($schoolYearId) . ",
                 0,
                 " . dbI($row['recuperato_mastercom'] ?? 0) . ",
-                " . dbQ($row['tipo_debito'] ?? '') . ",
+                " . dbQ(mastercomDebtsNormalizeDebtType((string)($row['tipo_debito'] ?? ''))) . ",
                 NOW(),
                 " . dbQ($row['raw_text'] ?? '') . ",
                 NOW(),
