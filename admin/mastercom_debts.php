@@ -32,7 +32,15 @@ function mcd_report_table_html(array $rows, bool $forExport = false): string
         $comparison = (string)($row['confronto'] ?? '');
         $class = '';
         if ($comparison === 'Da verificare') {
-            $class = ' class="danger"';
+            $class = ' class="mcd-row-check"';
+        } elseif (($row['corso_recuperato'] ?? null) !== null && intval($row['corso_recuperato']) === 0) {
+            $class = ' class="mcd-row-not-recovered"';
+        } elseif (($row['corso_recuperato'] ?? null) !== null && intval($row['corso_recuperato']) === 1 && intval($row['corso_appello'] ?? 0) >= 2) {
+            $class = ' class="mcd-row-second-appeal"';
+        } elseif (($row['corso_recuperato'] ?? null) !== null && intval($row['corso_recuperato']) === 1) {
+            $class = ' class="mcd-row-first-appeal"';
+        } elseif (intval($row['recuperato_mastercom'] ?? 0) === 1 && ($row['corso_recuperato'] ?? null) === null) {
+            $class = ' class="mcd-row-mastercom-only"';
         } elseif ($comparison === 'Da abbinare') {
             $class = ' class="warning"';
         } elseif ($comparison === 'OK') {
@@ -63,6 +71,7 @@ function mcd_report_table_html(array $rows, bool $forExport = false): string
 
     if ($forExport) {
         $html = str_replace([' class="table table-bordered table-condensed mcd-table"', ' class="text-center"', ' class="danger"', ' class="warning"', ' class="success"'], ['', '', '', '', ''], $html);
+        $html = str_replace([' class="mcd-row-not-recovered"', ' class="mcd-row-second-appeal"', ' class="mcd-row-first-appeal"', ' class="mcd-row-mastercom-only"', ' class="mcd-row-check"'], ['', '', '', '', ''], $html);
     }
 
     return $html;
@@ -96,9 +105,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = $result['message'] ?? 'Lettura MasterCom non riuscita.';
             }
         }
+    } elseif ($action === 'fetch_mastercom_all') {
+        $result = mastercomDebtsFetchAndStoreAllClasses();
+        $stats = $result['stats'] ?? [];
+        if (!empty($result['ok'])) {
+            $message = ($result['message'] ?? 'Lettura globale completata')
+                . ' Non abbinate: studenti ' . intval($stats['without_student'] ?? 0)
+                . ', materie ' . intval($stats['without_subject'] ?? 0)
+                . ', anni ' . intval($stats['without_year'] ?? 0) . '.';
+            if (!empty($result['errors'])) {
+                $message .= ' Classi con errore: ' . implode(' | ', array_slice((array)$result['errors'], 0, 8));
+                if (count((array)$result['errors']) > 8) {
+                    $message .= ' ...';
+                }
+            }
+        } else {
+            $error = $result['message'] ?? 'Lettura globale MasterCom non riuscita.';
+        }
     } elseif ($action === 'save_gestore') {
         if ($selectedYearId <= 0) {
-            $error = 'Seleziona un anno scolastico valido.';
+            $error = 'Per salvare in GestOre seleziona un anno scolastico specifico.';
         } else {
             $stats = mastercomDebtsSaveToGestoreCarenze($selectedYearId, $selectedClassId);
             $message = 'Aggiornamento GestOre completato: inserite ' . intval($stats['inserted'])
@@ -108,7 +134,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$reportRows = $selectedYearId > 0 ? mastercomDebtsReportRows($selectedYearId, $selectedClassId) : [];
+mastercomDebtsRefreshMissingSubjectMatches();
+mastercomDebtsRefreshCachedClassMatches();
+$reportRows = mastercomDebtsReportRows($selectedYearId, $selectedClassId);
 
 if (isset($_GET['export']) && $_GET['export'] === 'xls') {
     $fileName = mastercomDebtsExportFileName('carenze_mastercom', 'xls');
@@ -167,6 +195,54 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
             padding: 14px;
             margin-bottom: 16px;
         }
+        .mcd-toolbar .row {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            flex-wrap: nowrap;
+        }
+        .mcd-toolbar .mcd-filter-class {
+            flex: 0 1 420px;
+            min-width: 210px;
+        }
+        .mcd-toolbar .mcd-filter-year {
+            flex: 0 1 260px;
+            min-width: 160px;
+        }
+        .mcd-toolbar .mcd-actions {
+            flex: 1 0 auto;
+            min-width: 600px;
+            white-space: nowrap;
+        }
+        .mcd-toolbar .mcd-actions .btn {
+            margin-bottom: 3px;
+        }
+        @media (max-width: 1200px) {
+            .mcd-toolbar {
+                padding: 10px;
+            }
+            .mcd-toolbar .row {
+                gap: 6px;
+            }
+            .mcd-toolbar .mcd-filter-class {
+                flex-basis: 310px;
+                min-width: 190px;
+            }
+            .mcd-toolbar .mcd-filter-year {
+                flex-basis: 190px;
+                min-width: 140px;
+            }
+            .mcd-toolbar .mcd-actions {
+                min-width: 470px;
+            }
+            .mcd-toolbar .mcd-actions .btn {
+                padding-left: 7px;
+                padding-right: 7px;
+            }
+            .mcd-toolbar .mcd-actions .mcd-btn-text {
+                display: none;
+            }
+        }
         .mcd-table th,
         .mcd-table td {
             vertical-align: middle !important;
@@ -177,6 +253,42 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
         .mcd-table th:nth-child(7),
         .mcd-table th:nth-child(9) {
             text-align: center;
+        }
+        .mcd-table tbody tr.mcd-row-first-appeal > td {
+            background-color: #c7ebc1 !important;
+            border-color: #9ac990 !important;
+        }
+        .mcd-table tbody tr.mcd-row-second-appeal > td {
+            background-color: #ffd98a !important;
+            border-color: #e2a842 !important;
+        }
+        .mcd-table tbody tr.mcd-row-not-recovered > td {
+            background-color: #f4b4ad !important;
+            border-color: #d77c72 !important;
+        }
+        .mcd-table tbody tr.mcd-row-mastercom-only > td {
+            background-color: #cfe6ff !important;
+            border-color: #87b8e8 !important;
+        }
+        .mcd-table tbody tr.mcd-row-check > td {
+            background-color: #fff200 !important;
+            border-color: #d8c900 !important;
+            font-weight: 600;
+        }
+        .mcd-table tbody tr.mcd-row-first-appeal > td:first-child {
+            border-left: 7px solid #2f8f2f !important;
+        }
+        .mcd-table tbody tr.mcd-row-second-appeal > td:first-child {
+            border-left: 7px solid #d98200 !important;
+        }
+        .mcd-table tbody tr.mcd-row-not-recovered > td:first-child {
+            border-left: 7px solid #b7322c !important;
+        }
+        .mcd-table tbody tr.mcd-row-mastercom-only > td:first-child {
+            border-left: 7px solid #2b73b9 !important;
+        }
+        .mcd-table tbody tr.mcd-row-check > td:first-child {
+            border-left: 7px solid #111 !important;
         }
         #mcdWaitOverlay {
             position: fixed;
@@ -224,7 +336,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
 
             <form method="get" class="mcd-toolbar">
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="mcd-filter-class">
                         <label for="class_id">Classe</label>
                         <select id="class_id" name="class_id" class="form-control">
                             <option value="0">Tutte le classi caricate</option>
@@ -235,9 +347,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="mcd-filter-year">
                         <label for="school_year_id">Anno scolastico</label>
                         <select id="school_year_id" name="school_year_id" class="form-control">
+                            <option value="0" <?php echo $selectedYearId === 0 ? 'selected' : ''; ?>>Tutti gli anni</option>
                             <?php foreach ($schoolYears as $year): ?>
                                 <option value="<?php echo intval($year['id']); ?>" <?php echo intval($year['id']) === $selectedYearId ? 'selected' : ''; ?>>
                                     <?php echo mcd_h($year['anno']); ?>
@@ -245,22 +358,25 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-md-5">
+                    <div class="mcd-actions">
                         <label>&nbsp;</label><br>
                         <button type="submit" class="btn btn-primary">
-                            <span class="glyphicon glyphicon-search"></span> Visualizza
+                            <span class="glyphicon glyphicon-search"></span> <span class="mcd-btn-text">Visualizza</span>
                         </button>
                         <button type="submit" form="mcdFetchForm" class="btn btn-info" onclick="mcdSyncHiddenForms(); mcdShowWait('Lettura MasterCom', 'Sto leggendo le carenze della classe da MasterCom.');">
-                            <span class="glyphicon glyphicon-cloud-download"></span> Leggi da MasterCom
+                            <span class="glyphicon glyphicon-cloud-download"></span> <span class="mcd-btn-text">Leggi da MasterCom</span>
+                        </button>
+                        <button type="submit" form="mcdFetchAllForm" class="btn btn-warning" onclick="mcdSyncHiddenForms(); return confirm('Leggere le carenze da MasterCom per tutte le classi? Operazione lunga: puo richiedere diversi minuti.') && (mcdShowWait('Lettura globale MasterCom', 'Sto leggendo le carenze di tutte le classi da MasterCom.'), true);">
+                            <span class="glyphicon glyphicon-cloud-download"></span> <span class="mcd-btn-text">Leggi tutte</span>
                         </button>
                         <button type="submit" form="mcdSaveForm" class="btn btn-success" onclick="mcdSyncHiddenForms(); mcdShowWait('Aggiornamento GestOre', 'Sto salvando lo stato delle carenze in GestOre.');">
-                            <span class="glyphicon glyphicon-floppy-disk"></span> Salva in GestOre
+                            <span class="glyphicon glyphicon-floppy-disk"></span> <span class="mcd-btn-text">Salva in GestOre</span>
                         </button>
                         <a class="btn btn-danger" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&export=pdf">
-                            <span class="glyphicon glyphicon-file"></span> PDF
+                            <span class="glyphicon glyphicon-file"></span> <span class="mcd-btn-text">PDF</span>
                         </a>
                         <a class="btn btn-success" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&export=xls">
-                            <span class="glyphicon glyphicon-list-alt"></span> XLS
+                            <span class="glyphicon glyphicon-list-alt"></span> <span class="mcd-btn-text">XLS</span>
                         </a>
                     </div>
                 </div>
@@ -268,6 +384,11 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
 
             <form id="mcdFetchForm" method="post" style="display:none;">
                 <input type="hidden" name="action" value="fetch_mastercom">
+                <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
+                <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
+            </form>
+            <form id="mcdFetchAllForm" method="post" style="display:none;">
+                <input type="hidden" name="action" value="fetch_mastercom_all">
                 <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
                 <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
             </form>

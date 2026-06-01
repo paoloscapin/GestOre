@@ -804,6 +804,22 @@ function mastercomAdminFindLocalClassIdByName(string $className): ?int
     return $value !== null ? intval($value) : null;
 }
 
+function mastercomAdminIsWithdrawnClassName(?string $className): bool
+{
+    $normalized = mastercomAdminNorm((string)$className);
+    $normalized = str_replace(['.', '-'], ' ', $normalized);
+    $normalized = preg_replace('/\s+/', ' ', $normalized);
+    $normalized = trim((string)$normalized);
+
+    return preg_match('/^1RIT\b/', $normalized) === 1
+        || preg_match('/^1RR\b/', $normalized) === 1;
+}
+
+function mastercomAdminStudentExpectedActive(array $mirrorRow): int
+{
+    return mastercomAdminIsWithdrawnClassName($mirrorRow['classe_mastercom'] ?? '') ? 0 : 1;
+}
+
 function mastercomAdminIsOperationalClassId(int $classId): bool
 {
     if ($classId <= 0 || !mastercomAdminTableExists('mastercom_classi')) {
@@ -1927,11 +1943,21 @@ function mastercomAdminRebuildParentStudentLinks(callable $progress = null): arr
 function mastercomAdminStudentDiffs(array $mirrorRow): array
 {
     $local = mastercomAdminResolveLocalStudent($mirrorRow);
+    $expectedActive = mastercomAdminStudentExpectedActive($mirrorRow);
 
     $diffs = [];
     if ($local == null) {
-        $diffs['studente_gestore'] = 'non collegato';
+        if ($expectedActive === 1) {
+            $diffs['studente_gestore'] = 'non collegato';
+        }
         return ['local' => null, 'diffs' => $diffs];
+    }
+
+    if (intval($local['attivo'] ?? 0) !== $expectedActive) {
+        $diffs['attivo'] = [
+            'gestore' => intval($local['attivo'] ?? 0) === 1 ? 'attivo' : 'non attivo',
+            'mastercom' => $expectedActive === 1 ? 'deve essere attivo' : 'ritirato: deve essere disattivato',
+        ];
     }
 
     if (mastercomAdminNorm($local['cognome'] ?? '') !== mastercomAdminNorm($mirrorRow['cognome'] ?? '')) {
@@ -1958,11 +1984,21 @@ function mastercomAdminStudentDiffs(array $mirrorRow): array
 function mastercomAdminParentDiffs(array $mirrorRow): array
 {
     $local = mastercomAdminResolveLocalParent($mirrorRow);
+    $expectedActive = intval($mirrorRow['expected_gestore_attivo'] ?? 1);
 
     $diffs = [];
     if ($local == null) {
-        $diffs['genitore_gestore'] = 'non collegato';
+        if ($expectedActive === 1) {
+            $diffs['genitore_gestore'] = 'non collegato';
+        }
         return ['local' => null, 'diffs' => $diffs];
+    }
+
+    if (intval($local['attivo'] ?? 0) !== $expectedActive) {
+        $diffs['attivo'] = [
+            'gestore' => intval($local['attivo'] ?? 0) === 1 ? 'attivo' : 'non attivo',
+            'mastercom' => $expectedActive === 1 ? 'deve essere attivo' : 'solo figli ritirati: deve essere disattivato',
+        ];
     }
 
     if (mastercomAdminNorm($local['cognome'] ?? '') !== mastercomAdminNorm($mirrorRow['cognome'] ?? '')) {
@@ -1986,6 +2022,14 @@ function mastercomAdminDiffStatus(array $compareResult): array
     $local = $compareResult['local'] ?? null;
     $diffs = $compareResult['diffs'] ?? [];
     $count = is_array($diffs) ? count($diffs) : 0;
+
+    if ($local == null && $count === 0) {
+        return [
+            'key' => 'aligned',
+            'label' => 'assente in GestOre (ok)',
+            'class' => 'success',
+        ];
+    }
 
     if ($local == null) {
         return [
@@ -2075,6 +2119,9 @@ function mastercomAdminParentMatchesFilter(array $compareResult, string $filter)
     }
     if ($filter === 'issues') {
         return in_array($key, ['low', 'medium', 'high'], true);
+    }
+    if ($filter === 'active_mismatch') {
+        return isset($compareResult['diffs']['attivo']);
     }
     if ($filter === 'low') {
         return $key === 'low';
