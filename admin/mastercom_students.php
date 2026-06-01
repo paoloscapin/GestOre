@@ -35,6 +35,9 @@ $missingTables = mastercomAdminMissingTables(['mastercom_studenti', 'mastercom_c
 $hasDescrizioneMateriaIntegrativa = empty($missingTables) && mastercomAdminTableColumnExists('mastercom_studenti', 'descrizione_materia_integrativa');
 $selectedClassId = intval($_GET['class_id'] ?? 0);
 $activeFilter = trim((string)($_GET['active_filter'] ?? 'active'));
+if (!in_array($activeFilter, ['active', 'missing', 'active_mismatch', 'all'], true)) {
+    $activeFilter = 'active';
+}
 $mailFilter = trim((string)($_GET['mail_filter'] ?? 'all'));
 $showMailReport = intval($_GET['mail_report'] ?? 0) === 1;
 $message = '';
@@ -100,8 +103,20 @@ $rows = empty($missingTables)
 
 if (empty($missingTables)) {
     $rows = array_values(array_filter($rows, function ($row) use ($mailFilter, $activeFilter) {
+        $expectedActive = mastercomAdminStudentExpectedActive($row);
+        $compareForActive = mastercomAdminStudentDiffs($row);
+        $localForActive = $compareForActive['local'] ?? null;
+        $linkedToGestore = $localForActive != null;
+        $gestoreActive = $linkedToGestore ? intval($localForActive['attivo'] ?? 0) : 0;
+
         if ($activeFilter === 'missing') {
-            return intval($row['id_studente_gestore'] ?? 0) <= 0 && intval($row['gestore_attivo'] ?? 0) !== 1;
+            return $expectedActive === 1 && !$linkedToGestore;
+        }
+        if ($activeFilter === 'active_mismatch') {
+            if ($expectedActive === 0) {
+                return $linkedToGestore && $gestoreActive === 1;
+            }
+            return !$linkedToGestore || $gestoreActive !== 1;
         }
         if ($activeFilter === 'active' && intval($row['gestore_attivo'] ?? 0) !== 1) {
             return false;
@@ -266,6 +281,7 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                         <select name="active_filter" id="active_filter" class="form-control" onchange="this.form.submit()">
                             <option value="active" <?php echo $activeFilter === 'active' ? 'selected' : ''; ?>>Solo attivi</option>
                             <option value="missing" <?php echo $activeFilter === 'missing' ? 'selected' : ''; ?>>Solo non collegati a GestOre</option>
+                            <option value="active_mismatch" <?php echo $activeFilter === 'active_mismatch' ? 'selected' : ''; ?>>Incongruenze attivo</option>
                             <option value="all" <?php echo $activeFilter === 'all' ? 'selected' : ''; ?>>Tutti</option>
                         </select>
                     </div>
@@ -371,6 +387,7 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                             <?php $compare = mastercomAdminStudentDiffs($row); ?>
                             <?php $status = mastercomAdminDiffStatus($compare); ?>
                             <?php
+                            $expectedActive = mastercomAdminStudentExpectedActive($row);
                             $linkedParents = mastercomAdminCleanText($row['mastercom_genitori_nomi'] ?? '') ?? '';
                             $linkedParentsCount = intval($row['mastercom_genitori_count'] ?? 0);
                             $rawStudent = json_decode((string)($row['raw_json'] ?? ''), true);
@@ -403,7 +420,12 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                                         <small><?php echo htmlspecialchars($row['email1'] ?? ''); ?></small>
                                     <?php endif; ?>
                                 </td>
-                                <td style="text-align: center;"><?php echo htmlspecialchars($row['classe_mastercom'] ?? ''); ?></td>
+                                <td style="text-align: center;">
+                                    <?php echo htmlspecialchars($row['classe_mastercom'] ?? ''); ?>
+                                    <?php if ($expectedActive === 0): ?>
+                                        <br><span class="label label-default">ritirato</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td style="text-align: center;">
                                     <?php
                                     $esoneroReligione = $row['esonero_religione'];
@@ -473,7 +495,12 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                                     <?php if ($compare['local'] != null): ?>
                                         <?php echo htmlspecialchars(trim(($compare['local']['cognome'] ?? '') . ' ' . ($compare['local']['nome'] ?? ''))); ?><br>
                                         <small><?php echo htmlspecialchars($compare['local']['email'] ?? ''); ?></small>
-                                        <?php if (intval($row['gestore_attivo'] ?? 0) === 0): ?>
+                                        <?php if ($expectedActive === 0 && intval($compare['local']['attivo'] ?? 0) === 1): ?>
+                                            <br><span class="label label-danger">ritirato: da disattivare</span>
+                                        <?php elseif ($expectedActive === 1 && intval($compare['local']['attivo'] ?? 0) !== 1): ?>
+                                            <br><span class="label label-danger">da riattivare</span>
+                                        <?php endif; ?>
+                                        <?php if (intval($compare['local']['attivo'] ?? 0) === 0): ?>
                                             <br><span class="label label-default">disattivato in GestOre</span>
                                         <?php endif; ?>
                                         <?php if (intval($row['genitori_locali_count'] ?? 0) === 0): ?>
@@ -485,7 +512,11 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                                             <?php endif; ?>
                                         <?php endif; ?>
                                     <?php else: ?>
-                                        <span class="label label-warning">non collegato</span>
+                                        <?php if ($expectedActive === 0): ?>
+                                            <span class="label label-success">assente in GestOre (ok)</span>
+                                        <?php else: ?>
+                                            <span class="label label-warning">non collegato</span>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </td>
                                 <td style="text-align: center;">
