@@ -19,13 +19,13 @@ function mcd_report_table_html(array $rows, bool $forExport = false): string
 {
     $html = '<table class="table table-bordered table-condensed mcd-table">';
     $html .= '<thead><tr>';
-    foreach (['Classe', 'Studente', 'Materia', 'A.S.', 'Tipo debito', 'MasterCom', 'GestOre', 'Corso recupero', 'Confronto'] as $head) {
+    foreach (['Classe', 'Studente', 'Materia', 'A.S.', 'Tipo debito', 'MasterCom', 'GestOre', 'Corso recupero', 'Data recupero', 'Confronto'] as $head) {
         $html .= '<th>' . mcd_h($head) . '</th>';
     }
     $html .= '</tr></thead><tbody>';
 
     if (empty($rows)) {
-        $html .= '<tr><td colspan="9" class="text-center">Nessuna carenza caricata per i filtri selezionati.</td></tr>';
+        $html .= '<tr><td colspan="10" class="text-center">Nessuna carenza caricata per i filtri selezionati.</td></tr>';
     }
 
     foreach ($rows as $row) {
@@ -63,6 +63,7 @@ function mcd_report_table_html(array $rows, bool $forExport = false): string
         $html .= '<td class="text-center">' . mcd_h(mcd_state_label($row['recuperato_mastercom'])) . '</td>';
         $html .= '<td class="text-center">' . mcd_h($gestore) . '</td>';
         $html .= '<td>' . mcd_h($row['corso_label'] ?? '') . '</td>';
+        $html .= '<td class="text-center">' . mcd_h($row['data_recupero'] ?? '') . '</td>';
         $html .= '<td class="text-center">' . mcd_h($comparison) . '</td>';
         $html .= '</tr>';
     }
@@ -88,6 +89,10 @@ $selectedYearId = intval($_REQUEST['school_year_id'] ?? ($__anno_scolastico_corr
 $selectedIssueFilter = trim((string)($_REQUEST['issue_filter'] ?? 'all'));
 if (!in_array($selectedIssueFilter, ['all', 'problems', 'check'], true)) {
     $selectedIssueFilter = 'all';
+}
+$selectedRecoveryFilter = trim((string)($_REQUEST['recovery_filter'] ?? 'all'));
+if (!in_array($selectedRecoveryFilter, ['all', 'recovered', 'not_recovered'], true)) {
+    $selectedRecoveryFilter = 'all';
 }
 $classRows = mastercomAdminOperationalClassRows('mastercom_id_classe, nome');
 $schoolYears = mastercomDebtsSchoolYears();
@@ -150,6 +155,15 @@ if ($selectedIssueFilter === 'check') {
 } elseif ($selectedIssueFilter === 'problems') {
     $reportRows = array_values(array_filter($reportRows, function ($row) {
         return (string)($row['confronto'] ?? '') !== 'OK';
+    }));
+}
+if ($selectedRecoveryFilter === 'recovered') {
+    $reportRows = array_values(array_filter($reportRows, function ($row) {
+        return intval($row['recuperato_mastercom'] ?? 0) === 1;
+    }));
+} elseif ($selectedRecoveryFilter === 'not_recovered') {
+    $reportRows = array_values(array_filter($reportRows, function ($row) {
+        return intval($row['recuperato_mastercom'] ?? 0) !== 1;
     }));
 }
 
@@ -228,9 +242,13 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
             flex: 0 1 230px;
             min-width: 150px;
         }
+        .mcd-toolbar .mcd-filter-recovery {
+            flex: 0 1 210px;
+            min-width: 145px;
+        }
         .mcd-toolbar .mcd-actions {
             flex: 1 0 auto;
-            min-width: 520px;
+            min-width: 430px;
             white-space: nowrap;
         }
         .mcd-toolbar .mcd-actions .btn {
@@ -252,11 +270,15 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                 min-width: 140px;
             }
             .mcd-toolbar .mcd-filter-issue {
-                flex-basis: 190px;
+                flex-basis: 170px;
+                min-width: 130px;
+            }
+            .mcd-toolbar .mcd-filter-recovery {
+                flex-basis: 165px;
                 min-width: 140px;
             }
             .mcd-toolbar .mcd-actions {
-                min-width: 470px;
+                min-width: 390px;
             }
             .mcd-toolbar .mcd-actions .btn {
                 padding-left: 7px;
@@ -274,7 +296,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
         .mcd-table th:nth-child(4),
         .mcd-table th:nth-child(6),
         .mcd-table th:nth-child(7),
-        .mcd-table th:nth-child(9) {
+        .mcd-table th:nth-child(9),
+        .mcd-table th:nth-child(10) {
             text-align: center;
         }
         .mcd-table tbody tr.mcd-row-first-appeal > td {
@@ -357,7 +380,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                 <div class="alert alert-danger"><?php echo mcd_h($error); ?></div>
             <?php endif; ?>
 
-            <form method="get" class="mcd-toolbar">
+            <form method="get" class="mcd-toolbar" id="mcdFilterForm">
                 <div class="row">
                     <div class="mcd-filter-class">
                         <label for="class_id">Classe</label>
@@ -389,11 +412,16 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                             <option value="check" <?php echo $selectedIssueFilter === 'check' ? 'selected' : ''; ?>>Solo Da verificare</option>
                         </select>
                     </div>
+                    <div class="mcd-filter-recovery">
+                        <label for="recovery_filter">MasterCom</label>
+                        <select id="recovery_filter" name="recovery_filter" class="form-control">
+                            <option value="all" <?php echo $selectedRecoveryFilter === 'all' ? 'selected' : ''; ?>>Tutti</option>
+                            <option value="recovered" <?php echo $selectedRecoveryFilter === 'recovered' ? 'selected' : ''; ?>>Recuperato</option>
+                            <option value="not_recovered" <?php echo $selectedRecoveryFilter === 'not_recovered' ? 'selected' : ''; ?>>Non recuperato</option>
+                        </select>
+                    </div>
                     <div class="mcd-actions">
                         <label>&nbsp;</label><br>
-                        <button type="submit" class="btn btn-primary">
-                            <span class="glyphicon glyphicon-search"></span> <span class="mcd-btn-text">Visualizza</span>
-                        </button>
                         <button type="submit" form="mcdFetchForm" class="btn btn-info" onclick="mcdSyncHiddenForms(); mcdShowWait('Lettura MasterCom', 'Sto leggendo le carenze della classe da MasterCom.');">
                             <span class="glyphicon glyphicon-cloud-download"></span> <span class="mcd-btn-text">Leggi da MasterCom</span>
                         </button>
@@ -403,10 +431,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                         <button type="submit" form="mcdSaveForm" class="btn btn-success" onclick="mcdSyncHiddenForms(); mcdShowWait('Aggiornamento GestOre', 'Sto salvando lo stato delle carenze in GestOre.');">
                             <span class="glyphicon glyphicon-floppy-disk"></span> <span class="mcd-btn-text">Salva in GestOre</span>
                         </button>
-                        <a class="btn btn-danger" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&issue_filter=<?php echo urlencode($selectedIssueFilter); ?>&export=pdf">
+                        <a class="btn btn-danger" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&issue_filter=<?php echo urlencode($selectedIssueFilter); ?>&recovery_filter=<?php echo urlencode($selectedRecoveryFilter); ?>&export=pdf">
                             <span class="glyphicon glyphicon-file"></span> <span class="mcd-btn-text">PDF</span>
                         </a>
-                        <a class="btn btn-success" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&issue_filter=<?php echo urlencode($selectedIssueFilter); ?>&export=xls">
+                        <a class="btn btn-success" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&issue_filter=<?php echo urlencode($selectedIssueFilter); ?>&recovery_filter=<?php echo urlencode($selectedRecoveryFilter); ?>&export=xls">
                             <span class="glyphicon glyphicon-list-alt"></span> <span class="mcd-btn-text">XLS</span>
                         </a>
                     </div>
@@ -418,18 +446,21 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                 <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
                 <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
                 <input type="hidden" name="issue_filter" value="<?php echo mcd_h($selectedIssueFilter); ?>">
+                <input type="hidden" name="recovery_filter" value="<?php echo mcd_h($selectedRecoveryFilter); ?>">
             </form>
             <form id="mcdFetchAllForm" method="post" style="display:none;">
                 <input type="hidden" name="action" value="fetch_mastercom_all">
                 <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
                 <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
                 <input type="hidden" name="issue_filter" value="<?php echo mcd_h($selectedIssueFilter); ?>">
+                <input type="hidden" name="recovery_filter" value="<?php echo mcd_h($selectedRecoveryFilter); ?>">
             </form>
             <form id="mcdSaveForm" method="post" style="display:none;">
                 <input type="hidden" name="action" value="save_gestore">
                 <input type="hidden" name="class_id" value="<?php echo intval($selectedClassId); ?>">
                 <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
                 <input type="hidden" name="issue_filter" value="<?php echo mcd_h($selectedIssueFilter); ?>">
+                <input type="hidden" name="recovery_filter" value="<?php echo mcd_h($selectedRecoveryFilter); ?>">
             </form>
 
             <div class="alert alert-info">
@@ -461,10 +492,17 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
         var classId = document.getElementById('class_id').value;
         var yearId = document.getElementById('school_year_id').value;
         var issueFilter = document.getElementById('issue_filter').value;
+        var recoveryFilter = document.getElementById('recovery_filter').value;
         document.querySelectorAll('input[name="class_id"]').forEach(function (input) { input.value = classId; });
         document.querySelectorAll('input[name="school_year_id"]').forEach(function (input) { input.value = yearId; });
         document.querySelectorAll('input[name="issue_filter"]').forEach(function (input) { input.value = issueFilter; });
+        document.querySelectorAll('input[name="recovery_filter"]').forEach(function (input) { input.value = recoveryFilter; });
     }
+    document.querySelectorAll('#mcdFilterForm select').forEach(function (select) {
+        select.addEventListener('change', function () {
+            document.getElementById('mcdFilterForm').submit();
+        });
+    });
     function mcdExportWait(link) {
         mcdShowWait('Preparazione export', 'Il download partira appena il file sara pronto.');
         window.location.href = link.href;

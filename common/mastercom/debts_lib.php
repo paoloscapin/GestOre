@@ -1051,10 +1051,23 @@ function mastercomDebtsRecoveryAttemptLabel(int $attempt): string
     return 'appello non indicato';
 }
 
+function mastercomDebtsFormatRecoveryDate($value): string
+{
+    if (empty($value)) {
+        return '';
+    }
+
+    try {
+        return (new DateTime((string)$value))->format('d/m/Y');
+    } catch (Exception $e) {
+        return (string)$value;
+    }
+}
+
 function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int $schoolYearId): array
 {
     if ($studentId <= 0 || $subjectId <= 0 || $schoolYearId <= 0) {
-        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Non confrontabile'];
+        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Non confrontabile', 'data_recupero' => ''];
     }
 
     global $__anno_scolastico_corrente_id;
@@ -1063,7 +1076,7 @@ function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int 
     $subjectIds = mastercomDebtsEquivalentCourseSubjectIds($subjectId);
     $subjectIdsSql = implode(',', array_map('dbI', $subjectIds));
     if ($subjectIdsSql === '') {
-        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Non confrontabile'];
+        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Non confrontabile', 'data_recupero' => ''];
     }
 
     $rows = dbGetAll("
@@ -1090,7 +1103,7 @@ function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int 
     ") ?: [];
 
     if (empty($rows)) {
-        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Nessun esito corso'];
+        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Nessun esito corso', 'data_recupero' => ''];
     }
 
     $row = $rows[0];
@@ -1115,6 +1128,7 @@ function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int 
         'recuperato' => $recovered ? 1 : 0,
         'appello' => $attempt,
         'label' => ($recovered ? 'Recuperato' : 'Non recuperato') . ' al ' . $attemptLabel,
+        'data_recupero' => $recovered ? mastercomDebtsFormatRecoveryDate($row['data_inizio_esame'] ?? '') : '',
         'corsi' => implode(' | ', array_values(array_unique($courseLabels))),
     ];
 }
@@ -1164,6 +1178,7 @@ function mastercomDebtsReportRows(int $schoolYearId, int $mastercomClassId = 0):
         $row['corso_label'] = $course['label'];
         $row['corso_recuperato'] = $course['recuperato'];
         $row['corso_appello'] = $course['appello'] ?? null;
+        $row['data_recupero'] = $course['data_recupero'] ?? '';
         $row['corso_corsi'] = $course['corsi'] ?? '';
 
         if (intval($row['id_studente_gestore'] ?? 0) <= 0 || intval($row['id_materia_gestore'] ?? 0) <= 0) {
