@@ -737,6 +737,12 @@ function verificaAulaCorrente() {
             );
         });
 
+        if (aulaLocked && aulaCorrente && !foundCurrent) {
+            $("#luogo").append(
+                $('<option>', { value: aulaCorrente, text: aulaCorrente + " (attuale)" })
+            );
+        }
+
         // IMPORTANTISSIMO:
         // - se locked: NON cambiare mai l'aula, forza sempre quella corrente
         // - se non locked: mantieni la corrente se valida, altrimenti vuota
