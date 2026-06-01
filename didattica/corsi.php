@@ -22,15 +22,13 @@ if (!getSettingsValue('corsi', 'visibile_docenti', false)) {
     ruoloRichiesto('segreteria-didattica', 'esterno', 'dirigente');
 }
 
-applicaDocenteDaParametroSeAutorizzato();
+$corsiDocenteDaParametro = applicaDocenteDaParametroSeAutorizzato();
 
 // ✅ AGGIUNTA: flag vista esterno (robusto)
 // ✅ Esterno SOLO se è la vista/ruolo effettivo (non se è un ruolo "anche presente")
-$ruolo_eff = $__utente_ruolo ?? '';
-if (impersonaRuolo('docente')) $ruolo_eff = 'docente';
-if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
-
-$isEsterno = ($ruolo_eff === 'esterno');
+$corsiRuoloEffettivo = $__utente_ruolo ?? '';
+$corsiVistaDocente = in_array($corsiRuoloEffettivo, ['docente', 'esterno'], true) || $corsiDocenteDaParametro != null;
+$isEsterno = ($corsiRuoloEffettivo === 'esterno');
 
 ?>
 
@@ -42,7 +40,7 @@ $isEsterno = ($ruolo_eff === 'esterno');
         src="<?php echo $__application_base_path; ?>/common/bootbox-4.4.0/js/bootbox.min.js"></script>
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
     <?php
-    if ((impersonaRuolo('docente')) || (impersonaRuolo('esterno'))) {
+    if ($corsiVistaDocente) {
         echo ' <title>I miei corsi</title>';
     } else {
         echo ' <title>Corsi studenti</title>';
@@ -360,7 +358,9 @@ $isEsterno = ($ruolo_eff === 'esterno');
 $modificheDisabilitate = "";
 
 $id_docente_utente = 0;
-if ($__utente_ruolo == 'docente') {
+if ($corsiDocenteDaParametro != null && intval($__docente_id ?? 0) > 0) {
+    $id_docente_utente = intval($__docente_id);
+} elseif ($corsiRuoloEffettivo === 'docente') {
     $query = "SELECT * from docente WHERE docente.username='" . $__username . "'";
     $result = dbGetFirst($query);
     if ($result != null) {
@@ -389,6 +389,42 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
     }
 }
 
+// tutti gli studenti GestOre, per il filtro rapido in elenco corsi
+$studentiCorsoFiltroOptionList = '<option value="0">Tutti</option>';
+foreach (dbGetAll("
+    SELECT
+        s.id,
+        s.cognome,
+        s.nome,
+        s.attivo,
+        COALESCE(cl_corr.classe, cl_ultima.classe, '') AS classe
+    FROM studente s
+    LEFT JOIN studente_frequenta sf_corr
+        ON sf_corr.id_studente = s.id
+       AND sf_corr.id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . "
+    LEFT JOIN classi cl_corr ON cl_corr.id = sf_corr.id_classe
+    LEFT JOIN (
+        SELECT id_studente, MAX(id_anno_scolastico) AS id_anno_scolastico
+        FROM studente_frequenta
+        GROUP BY id_studente
+    ) sf_max ON sf_max.id_studente = s.id
+    LEFT JOIN studente_frequenta sf_ultima
+        ON sf_ultima.id_studente = s.id
+       AND sf_ultima.id_anno_scolastico = sf_max.id_anno_scolastico
+    LEFT JOIN classi cl_ultima ON cl_ultima.id = sf_ultima.id_classe
+    GROUP BY s.id, s.cognome, s.nome, s.attivo, cl_corr.classe, cl_ultima.classe
+    ORDER BY s.cognome ASC, s.nome ASC
+") as $studente) {
+    $classeStudente = trim((string)($studente['classe'] ?? ''));
+    $labelStudente = trim((string)$studente['cognome'] . ' ' . (string)$studente['nome']);
+    if ($classeStudente !== '') {
+        $labelStudente .= ' - ' . $classeStudente;
+    }
+    if (intval($studente['attivo'] ?? 1) === 0) {
+        $labelStudente .= ' - disattivato';
+    }
+    $studentiCorsoFiltroOptionList .= '<option value="' . intval($studente['id']) . '">' . htmlspecialchars($labelStudente) . '</option> ';
+}
 // anni
 $anno_corsi = $__anno_scolastico_corrente_id;
 $anniFiltroOptionList = '';
@@ -406,9 +442,9 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 <body class="<?php echo $isEsterno ? 'role-esterno' : ''; ?>">
 
     <?php
-    if (impersonaRuolo('docente')) {
+    if ($corsiVistaDocente && !$isEsterno) {
         require_once '../common/header-docente.php';
-    } else if (impersonaRuolo('esterno')) {
+    } else if ($isEsterno) {
         require_once '../common/header-esterno.php';
     } else if (haRuolo('segreteria-didattica')) {
         require_once '../common/header-segreteria.php';
@@ -425,8 +461,8 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 
                     <div class="<?php echo haRuolo('segreteria-didattica') ? 'col-md-2' : 'col-md-5'; ?> text-center" id="col-filtro-materia">
 
-                        <div class="<?php echo impersonaRuolo('docente') ? 'docente-filter-row' : ''; ?>">
-                            <div class="<?php echo impersonaRuolo('docente') ? 'docente-filter-item' : ''; ?>">
+                        <div class="<?php echo $corsiVistaDocente ? 'docente-filter-row' : ''; ?>">
+                            <div class="<?php echo $corsiVistaDocente ? 'docente-filter-item' : ''; ?>">
                                 <label class="col-sm-12 control-label" for="anni_filtro">Anno scolastico</label>
                                 <div class="text-center anno-filter-wrap">
                                     <div class="col-sm-12">
@@ -438,7 +474,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                                 </div>
                             </div>
 
-                            <div class="<?php echo impersonaRuolo('docente') ? 'docente-filter-item' : ''; ?>">
+                            <div class="<?php echo $corsiVistaDocente ? 'docente-filter-item' : ''; ?>">
                                 <label class="col-sm-12 control-label" for="materia">Materia</label>
                                 <div class="text-center">
                                     <div class="col-sm-12">
@@ -527,12 +563,12 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     ?>
 
 
-                    <div class="col-md-2 text-center <?php echo impersonaRuolo('docente') ? 'docente-toolbar' : ''; ?>" style="margin-top:20px;" id="col-report-1">
+                    <div class="col-md-2 text-center <?php echo $corsiVistaDocente ? 'docente-toolbar' : ''; ?>" style="margin-top:20px;" id="col-report-1">
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
                             <input type="checkbox" data-toggle="toggle" data-size="mini"
                                 data-onstyle="primary" id="futuri"> Solo Nuovi
                         </label><br>
-                        <?php if (!impersonaRuolo('docente') && (haRuolo('segreteria-didattica') || haRuolo('dirigente') || haRuolo('admin'))) { ?>
+                        <?php if (!$corsiVistaDocente && (haRuolo('segreteria-didattica') || haRuolo('dirigente') || haRuolo('admin'))) { ?>
                         <label id="incompleti" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Esami incompleti">
                             <span class="glyphicon glyphicon-download"></span>&emsp;Incompleti
                         </label><br>
@@ -558,7 +594,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
 
                     </div>
 
-                    <div class="col-md-2 text-center <?php echo impersonaRuolo('docente') ? 'docente-toolbar' : ''; ?>" style="margin-top:20px;" id="col-report-2">
+                    <div class="col-md-2 text-center <?php echo $corsiVistaDocente ? 'docente-toolbar' : ''; ?>" style="margin-top:20px;" id="col-report-2">
                         <label class="checkbox-inline mb-0" style="line-height: 1; vertical-align: top;">
                             <input type="checkbox" data-toggle="toggle" data-size="mini"
                                 data-onstyle="primary" id="carenze">Corsi carenze
@@ -578,6 +614,17 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                                     <option value="1">Solo 1ª sessione</option>
                                     <option value="2">Solo 2ª sessione</option>
                                 </select>
+                            </div>
+                        </div>
+                        <div class="text-center" style="margin-top:8px;">
+                            <label class="col-sm-12 control-label" for="studente_corso_filtro">Studente</label>
+                            <div class="col-sm-12">
+                                <select id="studente_corso_filtro"
+                                    class="selectpicker"
+                                    data-style="btn-yellow4"
+                                    data-live-search="true"
+                                    data-noneSelectedText="seleziona..."
+                                    data-width="100%"><?php echo $studentiCorsoFiltroOptionList; ?></select>
                             </div>
                         </div>
                     </div>
@@ -1061,18 +1108,13 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
     <!-- Custom JS file -->
     <!-- Custom JS file -->
     <script>
-        window.GESTORE_RUOLO_EFF = <?php
-                                    $ruolo_eff = $__utente_ruolo ?? '';
-                                    if (impersonaRuolo('docente')) $ruolo_eff = 'docente';
-                                    if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
-                                    echo json_encode($ruolo_eff);
-                                    ?>;
+        window.GESTORE_RUOLO_EFF = <?php echo json_encode($corsiVistaDocente ? ($isEsterno ? 'esterno' : 'docente') : $corsiRuoloEffettivo); ?>;
 
         window.GESTORE_DOCENTE_ID_EFF = <?php
                                         $did = 0;
 
-                                        // docente o esterno: prova $__docente_id, fallback username->docente.id
-                                        if (impersonaRuolo('docente') || impersonaRuolo('esterno')) {
+                                        // docente/esterno reali o vista docente esplicita: prova $__docente_id, fallback username->docente.id
+                                        if ($corsiVistaDocente) {
                                             $did = intval($__docente_id ?? 0);
                                             if ($did <= 0) {
                                                 $u = addslashes($__username ?? '');

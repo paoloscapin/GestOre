@@ -1013,6 +1013,11 @@ $(document).ready(function () {
         corsiReadRecords();
     });
 
+    $("#studente_corso_filtro").on("changed.bs.select", function () {
+        $studente_corso_filtro = parseInt($(this).val(), 10) || 0;
+        corsiReadRecords();
+    });
+
     $('#file_select_id').change(function (e) {
         importFile(e.target.files[0]);
     });
@@ -1022,6 +1027,7 @@ $(document).ready(function () {
     });
 
     $("#carenza_sessione").selectpicker();
+    $("#studente_corso_filtro").selectpicker();
     $("#carenza_sessione_box").hide();
     $("#carenza_sessione").prop("disabled", true).selectpicker("refresh");
 });

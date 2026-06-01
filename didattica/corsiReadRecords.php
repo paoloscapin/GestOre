@@ -18,8 +18,6 @@ $docente_id = 0;
  * - NON su haRuolo(), perché admin può avere anche 'esterno' e altrimenti blocchi tutto con AND 1=0
  */
 $ruolo_eff = $__utente_ruolo ?? '';
-if (impersonaRuolo('docente')) $ruolo_eff = 'docente';
-if (impersonaRuolo('esterno')) $ruolo_eff = 'esterno';
 
 $isDocenteLike = ($ruolo_eff === 'docente' || $ruolo_eff === 'esterno');
 
@@ -50,6 +48,7 @@ $anni_filtro_id    = intval($_GET["anni_id"] ?? 0);
 $futuri            = intval($_GET["futuri"] ?? 0);
 $carenze_toggle    = isset($_GET['carenze']) ? intval($_GET['carenze']) : 0;
 $in_itinere_toggle = isset($_GET['itinere']) ? intval($_GET['itinere']) : 0;
+$studente_filtro_id = intval($_GET['studente_id'] ?? 0);
 
 function badge($text, $type = 'default')
 {
@@ -178,6 +177,16 @@ WHERE c.id_anno_scolastico = $anni_filtro_id
 ";
 
 if ($materia_id > 0) $query .= " AND c.id_materia = $materia_id";
+
+if ($studente_filtro_id > 0) {
+    $query .= "
+        AND EXISTS (
+            SELECT 1
+            FROM corso_iscritti cis
+            WHERE cis.id_corso = c.id
+              AND cis.id_studente = $studente_filtro_id
+        )";
+}
 
 /**
  * ✅ Se sono docente/esterno devo vedere SOLO i miei corsi:

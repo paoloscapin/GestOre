@@ -34,6 +34,7 @@ var $carenze_toggle = 0;
 var $in_itinere_toggle = 0;
 var $firma_esame = 0; // filtro esame firmato (se usato)
 var $carenza_sessione = 0; // 0=tutte, 1=S1, 2=S2
+var $studente_corso_filtro = 0;
 
 // ================================
 // DEBUG helper (abilita/disabilita qui)
@@ -43,7 +44,19 @@ window.GESTORE_DEBUG_FIRME = true;
 // ================================
 // Read Records
 // ================================
+function corsiHideTooltips() {
+    $('[data-toggle="tooltip"]').each(function () {
+        try {
+            $(this).tooltip('hide').tooltip('destroy');
+        } catch (e) {
+            // Bootstrap puo' non avere ancora inizializzato il tooltip.
+        }
+    });
+    $('.tooltip').remove();
+}
+
 function corsiReadRecords() {
+    corsiHideTooltips();
     $.get(
         "corsiReadRecords.php?anni_id=" + $anni_filtro_id +
         "&docente_id=" + $docente_filtro_id +
@@ -51,9 +64,11 @@ function corsiReadRecords() {
         "&futuri=" + $futuri +
         "&carenze=" + $carenze_toggle +
         "&itinere=" + $in_itinere_toggle +
-        "&carenza_sessione=" + $carenza_sessione,
+        "&carenza_sessione=" + $carenza_sessione +
+        "&studente_id=" + encodeURIComponent($studente_corso_filtro),
         {},
         function (data, status) {
+            corsiHideTooltips();
             $(".records_content").html(data);
             $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
         }
@@ -104,7 +119,12 @@ function escapeHtml(str) {
 }
 
 function hideTooltip(el) {
-    $(el).tooltip('hide');
+    try {
+        $(el).tooltip('hide');
+    } catch (e) {
+        // noop
+    }
+    $('.tooltip').remove();
 }
 
 /**

@@ -171,6 +171,7 @@ try {
 
     $id_anno    = intval($corso1['id_anno_scolastico']);
     $id_materia = intval($corso1['id_materia']);
+    $in_itinere_dest = intval($corso1['in_itinere'] ?? 0);
 
     // 8) Determino/creo corso2
     if ($id_corso_secondo > 0) {
@@ -194,11 +195,21 @@ try {
             exit;
         }
 
+        if (intval($corso2['in_itinere'] ?? 0) !== $in_itinere_dest) {
+            mysqli_rollback($__con);
+            echo json_encode(['success' => false, 'error' => 'Il corso selezionato non e coerente con il tipo carenza/in itinere del corso di partenza']);
+            exit;
+        }
+
         // Se è recupero assenza e voglio "aggiustare" il titolo del corso selezionato, fallo solo se vuoto o standard
         if ($recupero_assenza === 1) {
             $titolo_att = trim($corso2['titolo'] ?? '');
-            if ($new_titolo === '') $new_titolo = "Recupero carenze - recupero assenza";
-            if ($titolo_att === '' || stripos($titolo_att, '2ª sessione') !== false) {
+            if ($new_titolo === '') {
+                $new_titolo = ($in_itinere_dest === 1)
+                    ? "Recupero in itinere - recupero assenza"
+                    : "Recupero carenze - recupero assenza";
+            }
+            if ($titolo_att === '' || stripos($titolo_att, '2ª sessione') !== false || stripos($titolo_att, '2a sessione') !== false) {
                 $titolo_esc = mysqli_real_escape_string($__con, $new_titolo);
                 mysqli_query($__con, "UPDATE corso SET titolo='$titolo_esc' WHERE id=" . intval($corso2['id']) . " LIMIT 1");
             }
@@ -216,18 +227,26 @@ try {
 
         // ✅ titolo predefinito diverso a seconda del caso
         if ($new_titolo === '') {
-            $new_titolo = ($recupero_assenza === 1)
-                ? "Recupero carenze - recupero assenza"
-                : "Recupero carenze - 2ª sessione";
+            if ($recupero_assenza === 1) {
+                $new_titolo = ($in_itinere_dest === 1)
+                    ? "Recupero in itinere - recupero assenza"
+                    : "Recupero carenze - recupero assenza";
+            } else {
+                $new_titolo = ($in_itinere_dest === 1)
+                    ? "Recupero in itinere - 2a sessione"
+                    : "Recupero carenze - 2a sessione";
+            }
         }
         $titolo_esc = mysqli_real_escape_string($__con, $new_titolo);
 
         // ✅ (mantengo le righe originali) RIUSO: cerco un corso esistente con titolo coerente col flag.
         // ⚠️ CORREZIONE: quando l'utente sceglie "Crea nuovo corso + aggancia", NON devo riusare.
         // Quindi calcolo pure $existing per compatibilità/debug, ma lo ignoro e faccio sempre INSERT.
-        $like = ($recupero_assenza === 1)
-            ? "%recupero assenza%"
-            : "%2ª sessione%";
+        if ($recupero_assenza === 1) {
+            $like = "%recupero assenza%";
+        } else {
+            $like = "%2%sessione%";
+        }
 
         $like_esc = mysqli_real_escape_string($__con, $like);
 
@@ -245,7 +264,7 @@ try {
         // ✅ FIX: non riuso mai qui
         $qIns = "
             INSERT INTO corso (id_materia,id_docente,id_anno_scolastico,titolo,carenza,carenza_sessione,in_itinere)
-            VALUES ($id_materia,$new_docente_id,$id_anno,'$titolo_esc',1,$sessione_dest,0)
+            VALUES ($id_materia,$new_docente_id,$id_anno,'$titolo_esc',1,$sessione_dest,$in_itinere_dest)
         ";
         $ok = mysqli_query($__con, $qIns);
         if (!$ok) {
@@ -258,7 +277,9 @@ try {
     // ✅ HARD FIX: il corso2 deve essere SEMPRE un corso CARENZE della sessione corretta
     mysqli_query($__con, "
         UPDATE corso
-        SET carenza=1, carenza_sessione=" . intval($sessione_dest) . "
+        SET carenza=1,
+            carenza_sessione=" . intval($sessione_dest) . ",
+            in_itinere=" . intval($in_itinere_dest) . "
         WHERE id=" . intval($id_corso2) . "
         LIMIT 1
     ");
