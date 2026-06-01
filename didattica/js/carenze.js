@@ -31,8 +31,22 @@ $('#daValidareCheckBox').change(function () {
 });
 
 function carenzeReadRecords() {
-    $.get("carenzeReadRecords.php?anno=" + $anno_filtro_id + "&docente_id=" + $docente_filtro_id + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id + "&da_validare_filtro=" + $da_validare_filtro + "&anni_id=" + $anni_filtro_id, {}, function (data, status) {
+    var vistaDocente = (parseInt($("#hidden_docente_id").val() || "0", 10) > 0) ? 1 : 0;
+    $.get("carenzeReadRecords.php?anno=" + $anno_filtro_id + "&docente_id=" + $docente_filtro_id + "&vista_docente=" + vistaDocente + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id + "&da_validare_filtro=" + $da_validare_filtro + "&anni_id=" + $anni_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
+        $('[data-toggle="tooltip"]').tooltip({
+            container: 'body'
+        });
+    });
+}
+
+function carenzeCoordinatoreReadRecords() {
+    if ($(".coordinatore_records_content").length === 0) return;
+
+    var docenteId = parseInt($("#hidden_docente_id").val() || "0", 10) || 0;
+    var vistaDocente = docenteId > 0 ? 1 : 0;
+    $.get("carenzeCoordinatoreReadRecords.php?docente_id=" + encodeURIComponent(docenteId) + "&vista_docente=" + vistaDocente + "&classe_id=" + encodeURIComponent($classe_filtro_id) + "&materia_id=" + encodeURIComponent($materia_filtro_id) + "&studente_id=" + encodeURIComponent($studente_filtro_id) + "&anno=" + encodeURIComponent($anno_filtro_id) + "&anni_id=" + encodeURIComponent($anni_filtro_id), {}, function (data, status) {
+        $(".coordinatore_records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
         });
@@ -361,6 +375,21 @@ function exportFile() {
     window.open(url, '_blank');
 };
 
+function exportCoordinatore(format) {
+    var docenteId = parseInt($("#hidden_docente_id").val() || "0", 10) || 0;
+    var vistaDocente = docenteId > 0 ? 1 : 0;
+    const url = "carenzeCoordinatoreExport.php"
+        + "?format=" + encodeURIComponent(format)
+        + "&docente_id=" + encodeURIComponent(docenteId)
+        + "&vista_docente=" + encodeURIComponent(vistaDocente)
+        + "&classe_id=" + encodeURIComponent($classe_filtro_id)
+        + "&materia_id=" + encodeURIComponent($materia_filtro_id)
+        + "&studente_id=" + encodeURIComponent($studente_filtro_id)
+        + "&anno=" + encodeURIComponent($anno_filtro_id)
+        + "&anni_id=" + encodeURIComponent($anni_filtro_id);
+    window.open(url, '_blank');
+}
+
 $(document).ready(function () {
 
     const docentePreselezionato = parseInt($("#hidden_docente_id").val() || "0", 10);
@@ -370,6 +399,7 @@ $(document).ready(function () {
     }
 
     carenzeReadRecords();
+    carenzeCoordinatoreReadRecords();
 
     $("#docente_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
@@ -381,34 +411,47 @@ $(document).ready(function () {
         function (e, clickedIndex, newValue, oldValue) {
             $classe_filtro_id = this.value;
             carenzeReadRecords();
+            carenzeCoordinatoreReadRecords();
         });
 
     $("#materia_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             $materia_filtro_id = this.value;
             carenzeReadRecords();
+            carenzeCoordinatoreReadRecords();
         });
 
     $("#studente_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             $studente_filtro_id = this.value;
             carenzeReadRecords();
+            carenzeCoordinatoreReadRecords();
         });
         
     $("#anni_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             $anni_filtro_id = this.value;
             carenzeReadRecords();
+            carenzeCoordinatoreReadRecords();
         });
 
     $("#anno_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             $anno_filtro_id = this.value;
             carenzeReadRecords();
+            carenzeCoordinatoreReadRecords();
         });
 
     $('#export_btn').on('click', function (e) {
         exportFile();
+    });
+
+    $('#coord_export_pdf_btn').on('click', function (e) {
+        exportCoordinatore('pdf');
+    });
+
+    $('#coord_export_xlsx_btn').on('click', function (e) {
+        exportCoordinatore('xlsx');
     });
 
     $('#send_btn').on('click', function (e) {
