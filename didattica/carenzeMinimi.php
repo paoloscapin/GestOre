@@ -14,6 +14,8 @@ require_once '../common/_include_bootstrap-select.php';
 require_once '../common/_include_bootstrap-notify.php';
 ruoloRichiesto('docente', 'segreteria-didattica', 'dirigente');
 $carenzeMinimiDocenteDaParametro = applicaDocenteDaParametroSeAutorizzato();
+$carenzeMinimiRuoloEffettivo = $__utente_ruolo ?? '';
+$carenzeMinimiVistaDocente = in_array($carenzeMinimiRuoloEffettivo, ['docente'], true) || $carenzeMinimiDocenteDaParametro != null;
 
 if (!getSettingsValue('config', 'carenzeObiettiviMinimi', false)) {
     redirect("/error/unauthorized.php");
@@ -149,13 +151,10 @@ foreach (
 <body>
     <input type="hidden" id="hidden_docente_id" value="<?php echo $id_docente_utente ?>">
     <?php
-    if ($carenzeMinimiDocenteDaParametro != null && intval($__docente_id ?? 0) > 0) {
+    if ($carenzeMinimiVistaDocente) {
         require_once '../common/header-docente.php';
-    } else
-    if (haRuolo('segreteria-didattica')) {
+    } else if (haRuolo('segreteria-didattica')) {
         require_once '../common/header-didattica.php';
-    } else if (haRuolo('docente')) {
-        require_once '../common/header-docente.php';
     }
     ?>
     <style>
@@ -239,6 +238,40 @@ foreach (
             padding-left: 10px;
             padding-right: 10px;
         }
+
+        .carenze-docente-tabs {
+            margin-bottom: 12px;
+        }
+
+        .carenze-coord-actions {
+            margin: 10px 0;
+            text-align: right;
+        }
+
+        .carenze-coord-summary {
+            background: #eef8fc;
+            border: 1px solid #b9ddeb;
+            border-radius: 4px;
+            color: #0b4f71;
+            margin: 8px 0 12px;
+            padding: 9px 12px;
+        }
+
+        .carenze-coord-table > tbody > tr.carenze-coord-success > td {
+            background: #dff3d7;
+        }
+
+        .carenze-coord-table > tbody > tr.carenze-coord-warning > td {
+            background: #fff0b8;
+        }
+
+        .carenze-coord-table > tbody > tr.carenze-coord-danger > td {
+            background: #ffd8d8;
+        }
+
+        .carenze-coord-table > tbody > tr.carenze-coord-info > td {
+            background: #d9edf7;
+        }
     </style>
     <!-- OVERLAY con progress bar -->
     <div id="progressOverlay" style="display: none;">
@@ -285,7 +318,7 @@ foreach (
                         </div>
                     </div>
                     <?php
-                    if (haRuolo('segreteria-didattica')) {
+                    if (!$carenzeMinimiVistaDocente && haRuolo('segreteria-didattica')) {
                         echo '
                     <div class="col-md-2">
                         <div class="text-center">
@@ -329,7 +362,7 @@ foreach (
                     </div>
 
                     <?php
-                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                    if (!$carenzeMinimiVistaDocente && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                         echo '
                     <div>
                         <div>
@@ -364,7 +397,7 @@ foreach (
                                 class="glyphicon glyphicon-download"></span>&emsp;Esporta</label>
                     </div>
                     <?php
-                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                    if (!$carenzeMinimiVistaDocente && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                         echo '                    
                                     <div class="col-md-auto text-center">
                                                                 <label class="checkbox-inline">
@@ -382,7 +415,38 @@ foreach (
                         </div>
                         <div class="row">
                             <div class="col-md-12">
-                                <div class="records_content"></div>
+                                <?php if ($carenzeMinimiVistaDocente) { ?>
+                                    <ul class="nav nav-tabs carenze-docente-tabs" role="tablist">
+                                        <li role="presentation" class="active">
+                                            <a href="#tab-carenze-docente" aria-controls="tab-carenze-docente" role="tab" data-toggle="tab">
+                                                Carenze docente
+                                            </a>
+                                        </li>
+                                        <li role="presentation">
+                                            <a href="#tab-carenze-coordinatore" aria-controls="tab-carenze-coordinatore" role="tab" data-toggle="tab">
+                                                Classe coordinata
+                                            </a>
+                                        </li>
+                                    </ul>
+                                    <div class="tab-content">
+                                        <div role="tabpanel" class="tab-pane active" id="tab-carenze-docente">
+                                            <div class="records_content"></div>
+                                        </div>
+                                        <div role="tabpanel" class="tab-pane" id="tab-carenze-coordinatore">
+                                            <div class="carenze-coord-actions">
+                                                <button type="button" class="btn btn-danger btn-sm" id="coord_export_pdf_btn">
+                                                    <span class="glyphicon glyphicon-file"></span> PDF
+                                                </button>
+                                                <button type="button" class="btn btn-success btn-sm" id="coord_export_xlsx_btn">
+                                                    <span class="glyphicon glyphicon-list-alt"></span> XLS
+                                                </button>
+                                            </div>
+                                            <div class="coordinatore_records_content"></div>
+                                        </div>
+                                    </div>
+                                <?php } else { ?>
+                                    <div class="records_content"></div>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -441,13 +505,12 @@ foreach (
                                 <div class="panel-footer text-center">
                                     <?php
 
-                                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                                    if (!$carenzeMinimiVistaDocente && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                                         echo '
                                     <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
                                     <button type="button" class="btn btn-primary" onclick="carenzaSave()">Salva</button>
                                     ';
-                                    } else
-                                        if (haRuolo('docente')) {
+                                    } else if ($carenzeMinimiVistaDocente) {
                                         echo '
                                     <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
                                     ';

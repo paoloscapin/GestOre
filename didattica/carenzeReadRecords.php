@@ -11,13 +11,16 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$docente_id = $_GET["docente_id"];
-$classe_id = $_GET["classe_id"];
-$materia_id = $_GET["materia_id"];
-$studente_id = $_GET["studente_id"];
-$da_validare_filtro = $_GET["da_validare_filtro"];
-$anno = $_GET["anno"];
-$anni_filtro_id = $_GET["anni_id"];
+$docente_id = intval($_GET["docente_id"] ?? 0);
+$classe_id = intval($_GET["classe_id"] ?? 0);
+$materia_id = intval($_GET["materia_id"] ?? 0);
+$studente_id = intval($_GET["studente_id"] ?? 0);
+$da_validare_filtro = intval($_GET["da_validare_filtro"] ?? 0);
+$anno = intval($_GET["anno"] ?? 0);
+$anni_filtro_id = intval($_GET["anni_id"] ?? 0);
+$vistaDocente = intval($_GET["vista_docente"] ?? 0) === 1;
+$isAdminView = !$vistaDocente && (haRuolo('dirigente') || haRuolo('segreteria-didattica'));
+$isDocenteView = $vistaDocente || (($__utente_ruolo ?? '') === 'docente');
 
 
 // Design initial table header
@@ -63,7 +66,7 @@ $query = " SELECT utente.id AS utente_id,
 			ON ((docente.cognome = utente.cognome) AND (docente.nome = utente.nome))
 			WHERE utente.id = '$__utente_id'";
 $result = dbGetFirst($query);
-$id_docente_attuale = $result['doc_id'];
+$id_docente_attuale = $vistaDocente && $docente_id > 0 ? $docente_id : intval($result['doc_id'] ?? 0);
 
 $query = "	SELECT
 					carenze.id AS carenza_id,
@@ -98,9 +101,9 @@ if ($anni_filtro_id > 0) {
 			$query .= " WHERE carenze.id_anno_scolastico=" . $anni_filtro_id;
 }
 
-if (($__utente_ruolo == 'docente') && (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false))) 
+if ($isDocenteView && (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false)))
 {
-	$query .= " AND carenze.id_docente=" . $__docente_id;	
+	$query .= " AND carenze.id_docente=" . intval($id_docente_attuale);
 }
 else if ($docente_id > 0) 
 {
@@ -221,7 +224,7 @@ foreach ($resultArray as $row) {
 	$data .= '
 		<td class="text-center">';
 
-	if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+	if ($isAdminView) {
 		$data .= '
 			<button onclick="carenzeGetDetails(\'' . $idcarenza . '\')" class="btn btn-warning btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Modifica la carenza"><span class="glyphicon glyphicon-pencil"></button>
 			<button onclick="carenzaDelete(\'' . $idcarenza . '\',\'' . $materia . '\',\'' . $studente . '\')" class="btn btn-danger btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Cancella la carenza"><span class="glyphicon glyphicon-trash"></button>';
@@ -239,7 +242,7 @@ foreach ($resultArray as $row) {
 			<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia la mail della carenza allo studente"><span class="glyphicon glyphicon-send"></button>';
 		}	
 	} else
-		if (haRuolo('docente')) {
+		if ($isDocenteView) {
 			if (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) {
 				if (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false)) {
 					if (getSettingsValue('carenzeObiettiviMinimi', 'docente_puo_modificare', false)) {
