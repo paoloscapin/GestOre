@@ -19,7 +19,8 @@ $docente_id = 0;
  */
 $ruolo_eff = $__utente_ruolo ?? '';
 
-$isDocenteLike = ($ruolo_eff === 'docente' || $ruolo_eff === 'esterno');
+$vistaDocente = intval($_GET['vista_docente'] ?? 0) === 1;
+$isDocenteLike = ($ruolo_eff === 'docente' || $ruolo_eff === 'esterno' || $vistaDocente);
 
 /**
  * ✅ MODIFICA (senza togliere nulla della logica esistente):
@@ -30,6 +31,9 @@ if ($isDocenteLike) {
 
     // 1) se esiste $__docente_id in sessione
     $docente_id = intval($__docente_id ?? 0);
+    if ($docente_id <= 0 && $vistaDocente) {
+        $docente_id = intval($_GET["docente_id"] ?? 0);
+    }
 
     // 2) fallback: username -> docente.id (utile per esterni se li mappi in tabella docente)
     if ($docente_id <= 0) {
@@ -353,36 +357,6 @@ foreach ($rows as $row) {
     if ($isDocenteLike) {
 
         if (getSettingsValue('config', 'corsi', false) && getSettingsValue('corsi', 'visibile_docenti', false)) {
-
-            if (getSettingsValue('corsi', 'docente_puo_modificare', false)) {
-                $data .= '
-                <button onclick="corsiGetDetails(\'' . $idcorso . '\')"
-                        class="btn btn-warning btn-xs"
-                        data-toggle="tooltip" data-trigger="hover" data-placement="top"
-                        title="Modifica il corso">
-                    <span class="glyphicon glyphicon-pencil"></span>
-                </button>';
-            }
-
-            if (!$isItinere && !$isSessione2) {
-                $data .= '
-                <button onclick="apriRegistroLezione(\'' . $idcorso . '\')"
-                        class="btn btn-primary btn-xs"
-                        data-toggle="tooltip" data-trigger="hover" data-placement="top"
-                        title="Gestisci le presenze e gli argomenti">
-                    <span class="glyphicon glyphicon-user"></span>
-                </button>';
-            }
-
-            if ($showEsameBtn) {
-                $data .= '
-                <button onclick="apriEsameModal(\'' . $idcorso . '\')"
-                        class="btn btn-success btn-xs"
-                        data-toggle="tooltip" data-trigger="hover" data-placement="top"
-                        title="' . ($isCarenza ? 'Esame carenze' : 'Esame') . '">
-                    <span class="glyphicon glyphicon-check"></span>
-                </button>';
-            }
 
             $data .= '
             <button onclick="esportaRiepilogoCorso(\'pdf\', \'' . $idcorso . '\')"

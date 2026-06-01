@@ -459,7 +459,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                         <span class="glyphicon glyphicon-list-alt" style="margin:5px"></span><br><b>Elenco<br>Corsi</b>
                     </div>
 
-                    <div class="<?php echo haRuolo('segreteria-didattica') ? 'col-md-2' : 'col-md-5'; ?> text-center" id="col-filtro-materia">
+                    <div class="<?php echo (!$corsiVistaDocente && haRuolo('segreteria-didattica')) ? 'col-md-2' : 'col-md-5'; ?> text-center" id="col-filtro-materia">
 
                         <div class="<?php echo $corsiVistaDocente ? 'docente-filter-row' : ''; ?>">
                             <div class="<?php echo $corsiVistaDocente ? 'docente-filter-item' : ''; ?>">
@@ -489,7 +489,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     </div>
 
                     <?php
-                    if (haRuolo('segreteria-didattica')) {
+                    if (!$corsiVistaDocente && haRuolo('segreteria-didattica')) {
                         echo '
                     <div class="col-md-2" id="col-filtro-docente">
                         <div class="text-center">
@@ -508,7 +508,7 @@ foreach (dbGetAll("SELECT * FROM anno_scolastico ORDER BY id DESC;") as $anno) {
                     ?>
 
                     <?php
-                    if ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica'))) {
+                    if (!$corsiVistaDocente && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                         echo '
     <div class="col-md-1 text-center" id="col-aggiungi-corso">
         <label class="control-label" for="corso">Aggiungi</label>

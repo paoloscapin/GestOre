@@ -40,11 +40,24 @@ function setPrevedeEsamiUI(value, locked) {
     else $('#prevede_esami_forzato_msg').hide();
 }
 
+function setToggleChecked(selector, value) {
+    var $toggle = $(selector);
+    if (!$toggle.length) return;
+
+    $toggle.prop('checked', !!value);
+
+    if ($.fn.bootstrapToggle) {
+        try { $toggle.bootstrapToggle(!!value ? 'on' : 'off'); } catch (e) { }
+    }
+
+    $toggle.change();
+}
+
     function syncPrevedeEsamiByFlags() {
         // carenze: deriva dal filtro elenco (#carenze) e/o dal corso letto
-        // itinere: deriva dal toggle in modale
+        // itinere: deriva dal toggle in modale e/o dal filtro elenco
         var carenze = $("#carenze").prop('checked') ? 1 : 0;
-        var in_itinere = $('#in_itinere').prop('checked') ? 1 : 0;
+        var in_itinere = ($('#in_itinere').prop('checked') || $('#filtro_itinere').prop('checked')) ? 1 : 0;
 
         // regola: carenze o itinere => esami obbligatori
         if (carenze === 1 || in_itinere === 1) {
@@ -562,6 +575,14 @@ function setPrevedeEsamiUI(value, locked) {
 
             }, 'json');
         } else {
+            var filtroItinere = $('#filtro_itinere').prop('checked') ? 1 : 0;
+
+            if (filtroItinere === 1) {
+                setToggleChecked('#in_itinere', true);
+            } else {
+                setToggleChecked('#in_itinere', false);
+            }
+
             $('#titolo').val(carenze ? "Corso recupero carenze" : "").prop('disabled', carenze);
             $('#materia').val("0").selectpicker('refresh');
 
@@ -608,8 +629,9 @@ function setPrevedeEsamiUI(value, locked) {
         }
         $("#_error-corsi-part").hide();
 
-        var carenze = $("#carenze").prop('checked');
-        var in_itinere = $('#in_itinere').prop('checked') ? 1 : 0;
+        var nuovoCorso = (parseInt($("#hidden_corso_id").val(), 10) || 0) <= 0;
+        var carenze = ($("#carenze").prop('checked') || (nuovoCorso && $carenze_toggle === 1)) ? 1 : 0;
+        var in_itinere = ($('#in_itinere').prop('checked') || (nuovoCorso && $('#filtro_itinere').prop('checked'))) ? 1 : 0;
         var prevede_esami = $('#prevede_esami').prop('checked') ? 1 : 0;
 
         // compat: docente principale = primo selezionato

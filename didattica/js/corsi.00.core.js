@@ -27,7 +27,9 @@ try {
     if (window.console) console.warn("GestOre: impossibile leggere parametro 'a' dallo script src", e);
 }
 
-var $docente_filtro_id = 0;
+var $docente_filtro_id = ((window.GESTORE_RUOLO_EFF || "").toLowerCase() === "docente")
+    ? (parseInt(window.GESTORE_DOCENTE_ID_EFF || 0, 10) || 0)
+    : 0;
 var $materia_filtro_id = 0;
 var $futuri = 0;
 var $carenze_toggle = 0;
@@ -57,9 +59,11 @@ function corsiHideTooltips() {
 
 function corsiReadRecords() {
     corsiHideTooltips();
+    var vistaDocente = ((window.GESTORE_RUOLO_EFF || "").toLowerCase() === "docente") ? 1 : 0;
     $.get(
         "corsiReadRecords.php?anni_id=" + $anni_filtro_id +
         "&docente_id=" + $docente_filtro_id +
+        "&vista_docente=" + vistaDocente +
         "&materia_id=" + $materia_filtro_id +
         "&futuri=" + $futuri +
         "&carenze=" + $carenze_toggle +
