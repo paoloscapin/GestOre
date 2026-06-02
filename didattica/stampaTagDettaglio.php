@@ -155,23 +155,23 @@ if (haRuolo('docente') && !(haRuolo('admin') || haRuolo('segreteria-didattica'))
     <div class="row">
         <div class="col-md-8">
             <div class="tag-filter-panel">
-                <form method="get" class="row">
+                <form method="get" class="row" id="tagReportFilterForm">
                     <input type="hidden" name="id" value="<?php echo intval($stampaId); ?>">
                     <div class="col-sm-2">
                         <label>Tag</label>
-                        <select name="tag" class="form-control input-sm"><?php echo st_option_list($stampaId, 'tag', $filters['tag']); ?></select>
+                        <select name="tag" class="form-control input-sm tag-auto-filter"><?php echo st_option_list($stampaId, 'tag', $filters['tag']); ?></select>
                     </div>
                     <div class="col-sm-2">
                         <label>Docente</label>
-                        <select name="docente" class="form-control input-sm"><?php echo st_option_list($stampaId, 'docente', $filters['docente']); ?></select>
+                        <select name="docente" class="form-control input-sm tag-auto-filter"><?php echo st_option_list($stampaId, 'docente', $filters['docente']); ?></select>
                     </div>
                     <div class="col-sm-2">
                         <label>Materia</label>
-                        <select name="materia" class="form-control input-sm"><?php echo st_option_list($stampaId, 'materia', $filters['materia']); ?></select>
+                        <select name="materia" class="form-control input-sm tag-auto-filter"><?php echo st_option_list($stampaId, 'materia', $filters['materia']); ?></select>
                     </div>
                     <div class="col-sm-2">
                         <label>Classe</label>
-                        <select name="classe" class="form-control input-sm"><?php echo st_option_list($stampaId, 'classe', $filters['classe']); ?></select>
+                        <select name="classe" class="form-control input-sm tag-auto-filter"><?php echo st_option_list($stampaId, 'classe', $filters['classe']); ?></select>
                     </div>
                     <div class="col-sm-3">
                         <label>Cerca</label>
@@ -233,5 +233,12 @@ if (haRuolo('docente') && !(haRuolo('admin') || haRuolo('segreteria-didattica'))
         </table>
     </div>
 </div>
+<script>
+    document.querySelectorAll('#tagReportFilterForm .tag-auto-filter').forEach(function (select) {
+        select.addEventListener('change', function () {
+            document.getElementById('tagReportFilterForm').submit();
+        });
+    });
+</script>
 </body>
 </html>
