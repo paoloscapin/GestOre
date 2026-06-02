@@ -10,7 +10,16 @@
 require_once __DIR__ . '/common/checkSession.php';
 
 // Se la session contiene il ruolo, vai alla home corrispondente
-if (haRuolo('admin')) {
+$impersonaAttiva = isset($session) && intval($session->get('impersona_attiva') ?? 0) === 1;
+$impersonaRuolo = $impersonaAttiva ? (string)($session->get('impersona_ruolo') ?? '') : '';
+
+if ($impersonaRuolo === 'docente') {
+    redirect('/docente/index.php');
+} else if ($impersonaRuolo === 'studente') {
+    redirect('/studente/index.php');
+} else if ($impersonaRuolo === 'genitore') {
+    redirect('/genitore/index.php');
+} else if (haRuolo('admin')) {
     redirect('/admin/index.php');
 } else if (haRuolo('docente')) {
     redirect('/docente/index.php');
