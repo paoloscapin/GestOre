@@ -90,6 +90,20 @@ function mcds_group_label(array $classMeta, string $groupBy): string
     return (string)($classMeta['classe'] ?? '');
 }
 
+function mcds_selected_genders(string $genderMode, string $genderFilter): array
+{
+    if ($genderMode !== 'split') {
+        return ['T'];
+    }
+    if ($genderFilter === 'M') {
+        return ['M'];
+    }
+    if ($genderFilter === 'F') {
+        return ['F'];
+    }
+    return ['M', 'F'];
+}
+
 function mcds_empty_group(string $key, string $label, string $gender): array
 {
     return [
@@ -103,12 +117,13 @@ function mcds_empty_group(string $key, string $label, string $gender): array
         'second_attempt' => 0,
         'not_recovered' => 0,
         'no_outcome' => 0,
+        'empty_gender_note' => '',
         'sort_grade' => 0,
         'sort_label' => $label,
     ];
 }
 
-function mcds_build_stats(int $schoolYearId, string $groupBy, int $gradeFilter, int $addressId, string $genderMode): array
+function mcds_build_stats(int $schoolYearId, string $groupBy, int $gradeFilter, int $addressId, string $genderMode, string $genderFilter): array
 {
     if ($schoolYearId <= 0) {
         return ['rows' => [], 'totals' => null];
@@ -142,10 +157,11 @@ function mcds_build_stats(int $schoolYearId, string $groupBy, int $gradeFilter, 
             $addressSelect
             $addressNameSelect
             sf.id_studente,
-            ms.sesso
+            COALESCE(NULLIF(st.sesso, ''), ms.sesso) AS sesso
         FROM studente_frequenta sf
         INNER JOIN classi c ON c.id = sf.id_classe
         $addressJoin
+        LEFT JOIN studente st ON st.id = sf.id_studente
         LEFT JOIN mastercom_studenti ms ON ms.id_studente_gestore = sf.id_studente
         WHERE $classWhereSql
         ORDER BY c.classe ASC
@@ -154,6 +170,7 @@ function mcds_build_stats(int $schoolYearId, string $groupBy, int $gradeFilter, 
     $classMeta = [];
     $studentGender = [];
     $groups = [];
+    $selectedGenders = mcds_selected_genders($genderMode, $genderFilter);
 
     foreach ($classRows as $row) {
         $classId = intval($row['class_id'] ?? 0);
@@ -181,9 +198,12 @@ function mcds_build_stats(int $schoolYearId, string $groupBy, int $gradeFilter, 
 
         $baseKey = mcds_group_key($classMeta[$classId], $groupBy);
         $baseLabel = mcds_group_label($classMeta[$classId], $groupBy);
-        $targetGenders = $genderMode === 'split' ? [$gender] : ['T'];
+        $targetGenders = $genderMode === 'split' ? $selectedGenders : ['T'];
 
         foreach ($targetGenders as $targetGender) {
+            if ($genderMode === 'split' && $gender !== $targetGender) {
+                continue;
+            }
             $key = $baseKey . '|' . $targetGender;
             if (!isset($groups[$key])) {
                 $groups[$key] = mcds_empty_group($key, $baseLabel, $targetGender);
@@ -191,6 +211,21 @@ function mcds_build_stats(int $schoolYearId, string $groupBy, int $gradeFilter, 
                 $groups[$key]['sort_label'] = $baseLabel;
             }
             $groups[$key]['student_ids'][$studentId] = true;
+        }
+    }
+
+    if ($genderMode === 'split') {
+        foreach ($classMeta as $meta) {
+            $baseKey = mcds_group_key($meta, $groupBy);
+            $baseLabel = mcds_group_label($meta, $groupBy);
+            foreach ($selectedGenders as $targetGender) {
+                $key = $baseKey . '|' . $targetGender;
+                if (!isset($groups[$key])) {
+                    $groups[$key] = mcds_empty_group($key, $baseLabel, $targetGender);
+                    $groups[$key]['sort_grade'] = intval($meta['grade'] ?? 0);
+                    $groups[$key]['sort_label'] = $baseLabel;
+                }
+            }
         }
     }
 
@@ -206,9 +241,12 @@ function mcds_build_stats(int $schoolYearId, string $groupBy, int $gradeFilter, 
         $baseKey = mcds_group_key($meta, $groupBy);
         $baseLabel = mcds_group_label($meta, $groupBy);
         $gender = $studentGender[$studentId] ?? 'ND';
-        $targetGenders = $genderMode === 'split' ? [$gender] : ['T'];
+        $targetGenders = $genderMode === 'split' ? $selectedGenders : ['T'];
 
         foreach ($targetGenders as $targetGender) {
+            if ($genderMode === 'split' && $gender !== $targetGender) {
+                continue;
+            }
             $key = $baseKey . '|' . $targetGender;
             if (!isset($groups[$key])) {
                 $groups[$key] = mcds_empty_group($key, $baseLabel, $targetGender);
@@ -255,6 +293,12 @@ function mcds_build_stats(int $schoolYearId, string $groupBy, int $gradeFilter, 
         $group['debt_percent'] = mcds_percent($studentsWithDebt, $totalStudents);
         $group['one_debt_percent'] = mcds_percent($oneDebt, $totalStudents);
         $group['multi_debt_percent'] = mcds_percent($multiDebt, $totalStudents);
+        if ($genderMode === 'split' && $totalStudents === 0) {
+            $emptyGroupLabel = $groupBy === 'class' ? 'in questa classe' : 'nel gruppo selezionato';
+            $group['empty_gender_note'] = (string)($group['gender'] ?? '') === 'F'
+                ? 'Nessuna femmina ' . $emptyGroupLabel
+                : 'Nessun maschio ' . $emptyGroupLabel;
+        }
         $rows[] = $group;
 
         foreach ($group['student_ids'] as $studentId => $_) {
@@ -336,7 +380,12 @@ function mcds_table_html(array $rows, ?array $totals, bool $splitGender, bool $f
 
     foreach ($rows as $row) {
         $html .= '<tr>';
-        $html .= '<td>' . mcds_h($row['label'] ?? '') . '</td>';
+        $emptyGenderNote = trim((string)($row['empty_gender_note'] ?? ''));
+        $html .= '<td>' . mcds_h($row['label'] ?? '');
+        if ($emptyGenderNote !== '') {
+            $html .= $forExport ? ' - ' . mcds_h($emptyGenderNote) : '<br><span class="mcds-empty-note">' . mcds_h($emptyGenderNote) . '</span>';
+        }
+        $html .= '</td>';
         if ($splitGender) {
             $html .= '<td>' . mcds_h(mcds_gender_label((string)($row['gender'] ?? 'ND'))) . '</td>';
         }
@@ -407,8 +456,13 @@ function mcds_chart_html(array $rows): string
     $html .= '<div class="mcds-chart"><h4>Studenti con almeno una carenza</h4>';
     foreach ($rows as $row) {
         $percent = max(0, min(100, (float)($row['debt_percent'] ?? 0)));
+        $emptyGenderNote = trim((string)($row['empty_gender_note'] ?? ''));
+        $rowLabel = ($row['label'] ?? '') . (((string)($row['gender'] ?? 'T') !== 'T') ? ' - ' . mcds_gender_label((string)$row['gender']) : '');
+        if ($emptyGenderNote !== '') {
+            $rowLabel .= ' (' . $emptyGenderNote . ')';
+        }
         $html .= '<div class="mcds-bar-row">';
-        $html .= '<div class="mcds-bar-label">' . mcds_h(($row['label'] ?? '') . (((string)($row['gender'] ?? 'T') !== 'T') ? ' - ' . mcds_gender_label((string)$row['gender']) : '')) . '</div>';
+        $html .= '<div class="mcds-bar-label">' . mcds_h($rowLabel) . '</div>';
         $html .= '<div class="mcds-bar-track"><div class="mcds-bar mcds-bar-blue" style="width:' . $percent . '%"></div></div>';
         $html .= '<div class="mcds-bar-value">' . number_format($percent, 1, ',', '.') . '%</div>';
         $html .= '</div>';
@@ -422,10 +476,15 @@ function mcds_chart_html(array $rows): string
         $badCount = intval($row['not_recovered'] ?? 0);
         $noneCount = intval($row['no_outcome'] ?? 0);
         $total = $firstCount + $secondCount + $badCount + $noneCount;
+        $emptyGenderNote = trim((string)($row['empty_gender_note'] ?? ''));
+        $rowLabel = ($row['label'] ?? '') . (((string)($row['gender'] ?? 'T') !== 'T') ? ' - ' . mcds_gender_label((string)$row['gender']) : '');
+        if ($emptyGenderNote !== '') {
+            $rowLabel .= ' (' . $emptyGenderNote . ')';
+        }
         if ($total <= 0) {
             $html .= '<div class="mcds-stack-row">';
-            $html .= '<div class="mcds-bar-label">' . mcds_h(($row['label'] ?? '') . (((string)($row['gender'] ?? 'T') !== 'T') ? ' - ' . mcds_gender_label((string)$row['gender']) : '')) . '</div>';
-            $html .= '<div class="mcds-stack mcds-stack-empty"><span>Nessun esito</span></div>';
+            $html .= '<div class="mcds-bar-label">' . mcds_h($rowLabel) . '</div>';
+            $html .= '<div class="mcds-stack mcds-stack-empty"><span>' . mcds_h($emptyGenderNote !== '' ? $emptyGenderNote : 'Nessun esito') . '</span></div>';
             $html .= '</div>';
             continue;
         }
@@ -434,7 +493,7 @@ function mcds_chart_html(array $rows): string
         $bad = ($badCount * 100) / $total;
         $none = max(0, 100 - $first - $second - $bad);
         $html .= '<div class="mcds-stack-row">';
-        $html .= '<div class="mcds-bar-label">' . mcds_h(($row['label'] ?? '') . (((string)($row['gender'] ?? 'T') !== 'T') ? ' - ' . mcds_gender_label((string)$row['gender']) : '')) . '</div>';
+        $html .= '<div class="mcds-bar-label">' . mcds_h($rowLabel) . '</div>';
         $html .= '<div class="mcds-stack">';
         $html .= '<span class="mcds-stack-first" title="Recuperata al primo appello: ' . $firstCount . '" style="width:' . round($first, 4) . '%"></span>';
         $html .= '<span class="mcds-stack-second" title="Recuperata al secondo appello: ' . $secondCount . '" style="width:' . round($second, 4) . '%"></span>';
@@ -449,6 +508,7 @@ function mcds_chart_html(array $rows): string
 }
 
 mastercomDebtsEnsureTables();
+gestoreEnsureStudenteSessoColumn();
 mastercomDebtsRefreshMissingSubjectMatches();
 mastercomDebtsRefreshCachedClassMatches();
 
@@ -473,8 +533,15 @@ $genderMode = (string)($_GET['gender_mode'] ?? 'combined');
 if (!in_array($genderMode, ['combined', 'split'], true)) {
     $genderMode = 'combined';
 }
+$genderFilter = strtoupper((string)($_GET['gender_filter'] ?? 'both'));
+if (!in_array($genderFilter, ['BOTH', 'M', 'F'], true)) {
+    $genderFilter = 'BOTH';
+}
+if ($genderMode !== 'split') {
+    $genderFilter = 'BOTH';
+}
 
-$stats = mcds_build_stats($selectedYearId, $groupBy, $gradeFilter, $addressId, $genderMode);
+$stats = mcds_build_stats($selectedYearId, $groupBy, $gradeFilter, $addressId, $genderMode, $genderFilter);
 $rows = $stats['rows'];
 $totals = $stats['totals'];
 $addressRows = mcds_address_rows();
@@ -486,6 +553,7 @@ $currentParams = [
     'grade' => $gradeFilter,
     'address_id' => $addressId,
     'gender_mode' => $genderMode,
+    'gender_filter' => $genderFilter,
 ];
 
 if (isset($_GET['export']) && $_GET['export'] === 'xls') {
@@ -598,6 +666,11 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
         }
         .mcds-table td {
             vertical-align: middle !important;
+        }
+        .mcds-empty-note {
+            color: #8a5a00;
+            font-size: 12px;
+            font-weight: 700;
         }
         .mcds-total-row {
             background: #e8f3fb;
@@ -781,6 +854,14 @@ if (haRuolo('admin')) {
                         <select id="gender_mode" name="gender_mode" class="form-control">
                             <option value="combined" <?php echo $genderMode === 'combined' ? 'selected' : ''; ?>>Uniti</option>
                             <option value="split" <?php echo $genderMode === 'split' ? 'selected' : ''; ?>>Separati</option>
+                        </select>
+                    </div>
+                    <div class="mcds-filter" id="gender_filter_part" style="<?php echo $genderMode === 'split' ? '' : 'display:none;'; ?>">
+                        <label for="gender_filter">Filtro sesso</label>
+                        <select id="gender_filter" name="gender_filter" class="form-control">
+                            <option value="BOTH" <?php echo $genderFilter === 'BOTH' ? 'selected' : ''; ?>>Entrambi</option>
+                            <option value="M" <?php echo $genderFilter === 'M' ? 'selected' : ''; ?>>Solo maschi</option>
+                            <option value="F" <?php echo $genderFilter === 'F' ? 'selected' : ''; ?>>Solo femmine</option>
                         </select>
                     </div>
                     <div class="mcds-actions">
