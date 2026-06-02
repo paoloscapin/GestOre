@@ -15,6 +15,7 @@
 .table-green th, 
 .table-green td {
 	padding: 7px 17px;
+	vertical-align: middle !important;
 }
 .table-green caption {
 	margin: 7px;

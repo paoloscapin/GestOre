@@ -44,7 +44,7 @@ ruoloRichiesto('segreteria-didattica', 'dirigente');
     <div class="container-fluid">
         <div class="panel panel-orange4">
             <div class="panel-heading">
-                <div class="row">
+                <div class="row" style="display:flex;align-items:center;">
                     <div class="col-md-2">
                         <span class="glyphicon glyphicon-pawn"></span>&ensp;Genitori
                     </div>
@@ -59,8 +59,14 @@ ruoloRichiesto('segreteria-didattica', 'dirigente');
                                 </select></div>
                         </div>
                     </div>
-                    <div class="col-md-2 text-center">
-                        <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
+                    <div class="col-md-2">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+                            <input type="text" id="records_text_filter" class="form-control" placeholder="Cerca">
+                        </div>
+                    </div>
+                    <div class="col-md-1 text-center">
+                        <label id="import_btn" class="btn btn-xs btn-lima4 btn-file" style="margin-bottom:0;"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
                     </div>
                     <div class="col-md-2">
                         <div class="text-center" style="margin:5px 0px 0px 0px;">
@@ -78,7 +84,7 @@ ruoloRichiesto('segreteria-didattica', 'dirigente');
                             </label>
                         </div>
                     </div>
-                    <div class="col-md-2 text-right">
+                    <div class="col-md-1 text-right">
                         <div class="pull-right">
                             <button class="btn btn-xs btn-orange4" onclick="genitoreGetDetails(-1)"><span class="glyphicon glyphicon-plus"></span></button>
                         </div>

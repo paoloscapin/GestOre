@@ -20,8 +20,9 @@ require_once '../common/checkSession.php';
     require_once '../common/_include_bootstrap-toggle.php';
     require_once '../common/_include_bootstrap-select.php';
     require_once '../common/_include_flatpickr.php';
-    ruoloRichiesto('segreteria-didattica', 'dirigente');
+    ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
     ?>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
     <title>Studenti</title>
 </head>
@@ -47,7 +48,7 @@ require_once '../common/checkSession.php';
     <div class="container-fluid">
         <div class="panel panel-orange4">
             <div class="panel-heading">
-                <div class="row">
+                <div class="row" style="display:flex;align-items:center;">
                     <div class="col-md-2">
                         <span class="glyphicon glyphicon-pawn"></span>&ensp;Studenti
                     </div>
@@ -62,8 +63,14 @@ require_once '../common/checkSession.php';
                                 </select></div>
                         </div>
                     </div>
-                    <div class="col-md-4 text-center">
-                        <label id="import_btn" class="btn btn-xs btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
+                    <div class="col-md-2">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+                            <input type="text" id="records_text_filter" class="form-control" placeholder="Cerca">
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-center">
+                        <label id="import_btn" class="btn btn-xs btn-lima4 btn-file" style="margin-bottom:0;"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file" id="file_select_id" style="display: none;"></label>
                     </div>
                     <div class="col-md-2">
                         <div class="text-center" style="margin:5px 0px 0px 0px;">
@@ -97,7 +104,7 @@ require_once '../common/checkSession.php';
 
         <!-- Modal - Add/Update Record -->
         <div class="modal fade" id="studente_modal" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-            <div class="modal-dialog modal-lg" style="width:500px" role="document">
+            <div class="modal-dialog modal-lg" style="width:760px" role="document">
                 <div class="modal-content">
                     <div class="modal-body">
                         <div class="panel panel-lima4">
@@ -111,6 +118,49 @@ require_once '../common/checkSession.php';
                                         <label class="col-sm-2 control-label">Foto</label>
                                         <div class="col-sm-10">
                                             <img id="foto_mastercom" src="" alt="Foto studente MasterCom" style="width:165px;height:220px;object-fit:contain;border-radius:6px;border:1px solid #aaa;background:#f7f7f7;box-shadow:0 1px 4px rgba(0,0,0,.18);">
+                                            <div style="margin-top:6px;">
+                                                <button type="button" class="btn btn-xs btn-info" onclick="studenteFotoApriCamera()">
+                                                    <span class="glyphicon glyphicon-camera"></span> Scatta foto
+                                                </button>
+                                                <button type="button" class="btn btn-xs btn-danger" onclick="studenteFotoElimina()">
+                                                    <span class="glyphicon glyphicon-trash"></span> Elimina foto
+                                                </button>
+                                            </div>
+                                            <div id="foto_studente_msg" class="text-muted" style="margin-top:6px;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group" id="foto_studente_camera_part" style="display:none;">
+                                        <label class="col-sm-2 control-label">Webcam</label>
+                                        <div class="col-sm-10">
+                                            <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;">
+                                                <div>
+                                                    <div style="position:relative;width:320px;height:240px;">
+                                                        <video id="foto_studente_video" autoplay playsinline muted style="width:320px;height:240px;background:#222;border-radius:4px;border:1px solid #999;object-fit:cover;"></video>
+                                                        <div style="position:absolute;left:0;top:0;width:320px;height:240px;pointer-events:none;">
+                                                            <div style="position:absolute;left:108px;top:30px;width:104px;height:128px;border:2px solid rgba(255,255,255,.9);border-radius:52px 52px 44px 44px;box-shadow:0 0 0 1px rgba(0,0,0,.35);"></div>
+                                                            <div style="position:absolute;left:78px;top:92px;width:164px;border-top:2px dashed rgba(35,175,255,.95);box-shadow:0 1px 0 rgba(0,0,0,.35);"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div style="margin-top:6px;">
+                                                        <button type="button" class="btn btn-xs btn-primary" onclick="studenteFotoScatta()">
+                                                            <span class="glyphicon glyphicon-camera"></span> Scatta
+                                                        </button>
+                                                        <button type="button" class="btn btn-xs btn-default" onclick="studenteFotoChiudiCamera()">Chiudi webcam</button>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <canvas id="foto_studente_canvas" width="900" height="1200" style="width:180px;height:240px;background:#fff;border-radius:4px;border:1px solid #999;"></canvas>
+                                                    <div style="margin-top:6px;">
+                                                        <button type="button" class="btn btn-xs btn-success" id="foto_studente_salva_btn" onclick="studenteFotoSalva()" disabled>
+                                                            <span class="glyphicon glyphicon-floppy-disk"></span> Salva foto
+                                                        </button>
+                                                        <button type="button" class="btn btn-xs btn-danger" onclick="studenteFotoElimina()">
+                                                            <span class="glyphicon glyphicon-trash"></span> Elimina foto
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 

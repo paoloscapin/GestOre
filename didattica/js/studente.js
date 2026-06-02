@@ -7,6 +7,10 @@
 
 var soloAttivi = 1;
 var classe_filtro_id = 0;
+var studenteFotoStream = null;
+var studenteFotoDataUrl = "";
+var studenteSelfieSegmentation = null;
+var studenteFotoSegmentationError = "";
 
 function studenteSessoDaCodiceFiscale(cf) {
     cf = String(cf || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -35,7 +39,12 @@ function studenteSetFotoMastercom(file) {
     file = String(file || '').trim();
     if (!file) {
         $("#foto_mastercom").attr("src", "");
-        $("#foto_mastercom_part").hide();
+        $("#foto_mastercom_part").show();
+        return;
+    }
+    if (/^(https?:)?\/\//.test(file) || file.indexOf("uploads/") === 0) {
+        $("#foto_mastercom").attr("src", file);
+        $("#foto_mastercom_part").show();
         return;
     }
     $("#foto_mastercom")
@@ -43,9 +52,331 @@ function studenteSetFotoMastercom(file) {
     $("#foto_mastercom_part").show();
 }
 
+function studenteFotoSetMsg(message, isError) {
+    $("#foto_studente_msg")
+        .toggleClass("text-danger", !!isError)
+        .toggleClass("text-muted", !isError)
+        .text(message || "");
+}
+
+function studenteFotoReset() {
+    studenteFotoDataUrl = "";
+    $("#foto_studente_salva_btn").prop("disabled", true);
+    var canvas = document.getElementById("foto_studente_canvas");
+    if (canvas) {
+        var ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
+async function studenteFotoApriCamera() {
+    if (!$("#hidden_studente_id").val() || parseInt($("#hidden_studente_id").val(), 10) <= 0) {
+        $("#foto_studente_camera_part").show();
+        studenteFotoSetMsg("Salva prima lo studente, poi puoi scattare la foto.", true);
+        return;
+    }
+    try {
+        studenteFotoReset();
+        $("#foto_studente_camera_part").show();
+        studenteFotoStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+            audio: false
+        });
+        document.getElementById("foto_studente_video").srcObject = studenteFotoStream;
+        studenteFotoSetMsg("Webcam attiva. Posiziona il volto e premi Scatta.", false);
+    } catch (e) {
+        studenteFotoSetMsg("Impossibile aprire la webcam: " + (e && e.message ? e.message : e), true);
+    }
+}
+
+function studenteFotoChiudiCamera() {
+    if (studenteFotoStream) {
+        studenteFotoStream.getTracks().forEach(function (track) { track.stop(); });
+        studenteFotoStream = null;
+    }
+    $("#foto_studente_camera_part").hide();
+}
+
+async function studenteFotoDetectFace(canvas) {
+    if (!("FaceDetector" in window)) return null;
+    try {
+        var detector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+        var faces = await detector.detect(canvas);
+        return faces && faces.length ? faces[0].boundingBox : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function studenteFotoCropBox(sourceWidth, sourceHeight, face) {
+    var targetRatio = 3 / 4;
+    var cropH;
+    var cx;
+    var cy;
+
+    if (face) {
+        cx = face.x + face.width / 2;
+        cy = face.y + face.height * 1.06;
+        cropH = Math.max(face.height * 3.75, sourceHeight * 0.74);
+    } else {
+        cx = sourceWidth / 2;
+        cy = sourceHeight * 0.56;
+        cropH = sourceHeight * 0.94;
+    }
+
+    cropH = Math.min(cropH, sourceHeight);
+    var cropW = cropH * targetRatio;
+    if (cropW > sourceWidth) {
+        cropW = sourceWidth;
+        cropH = cropW / targetRatio;
+    }
+
+    var x = Math.max(0, Math.min(sourceWidth - cropW, cx - cropW / 2));
+    var y = Math.max(0, Math.min(sourceHeight - cropH, cy - cropH * 0.50));
+    return { x: x, y: y, width: cropW, height: cropH };
+}
+
+function studenteFotoAutoTono(canvas) {
+    var ctx = canvas.getContext("2d");
+    var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    var data = img.data;
+    var count = 0;
+    var sumR = 0;
+    var sumG = 0;
+    var sumB = 0;
+    var sumL = 0;
+    var minL = 255;
+    var maxL = 0;
+
+    for (var i = 0; i < data.length; i += 4) {
+        var r = data[i];
+        var g = data[i + 1];
+        var b = data[i + 2];
+        if (r > 246 && g > 246 && b > 246) continue;
+        var l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        if (l < 18 || l > 245) continue;
+        sumR += r;
+        sumG += g;
+        sumB += b;
+        sumL += l;
+        minL = Math.min(minL, l);
+        maxL = Math.max(maxL, l);
+        count++;
+    }
+
+    if (count < 200) return;
+
+    var avgR = sumR / count;
+    var avgG = sumG / count;
+    var avgB = sumB / count;
+    var avgL = sumL / count;
+    var gray = (avgR + avgG + avgB) / 3;
+    var gainR = Math.max(0.92, Math.min(1.08, gray / Math.max(1, avgR)));
+    var gainG = Math.max(0.92, Math.min(1.08, gray / Math.max(1, avgG)));
+    var gainB = Math.max(0.92, Math.min(1.08, gray / Math.max(1, avgB)));
+    var brightness = Math.max(-12, Math.min(16, 132 - avgL));
+    var contrast = Math.max(1.02, Math.min(1.16, 1 + (150 - Math.min(150, maxL - minL)) / 900));
+
+    for (var j = 0; j < data.length; j += 4) {
+        var rr = data[j];
+        var gg = data[j + 1];
+        var bb = data[j + 2];
+        if (rr > 248 && gg > 248 && bb > 248) {
+            data[j] = data[j + 1] = data[j + 2] = 255;
+            continue;
+        }
+        data[j] = Math.max(0, Math.min(255, ((rr * gainR - 128) * contrast + 128) + brightness));
+        data[j + 1] = Math.max(0, Math.min(255, ((gg * gainG - 128) * contrast + 128) + brightness));
+        data[j + 2] = Math.max(0, Math.min(255, ((bb * gainB - 128) * contrast + 128) + brightness));
+    }
+
+    ctx.putImageData(img, 0, 0);
+}
+
+function studenteFotoSegmentaSfondo(inputCanvas, outputCanvas) {
+    return new Promise(function (resolve) {
+        studenteFotoSegmentationError = "";
+        if (typeof SelfieSegmentation === "undefined") {
+            studenteFotoSegmentationError = "MediaPipe Selfie Segmentation non caricato.";
+            resolve(false);
+            return;
+        }
+
+        try {
+            if (!studenteSelfieSegmentation) {
+                studenteSelfieSegmentation = new SelfieSegmentation({
+                    locateFile: function (file) {
+                        return "https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/" + file;
+                    }
+                });
+                studenteSelfieSegmentation.setOptions({ modelSelection: 0, selfieMode: true });
+            }
+
+            studenteSelfieSegmentation.onResults(function (results) {
+                var ctx = outputCanvas.getContext("2d");
+                try {
+                    var maskCanvas = document.createElement("canvas");
+                    var imageCanvas = document.createElement("canvas");
+                    maskCanvas.width = imageCanvas.width = outputCanvas.width;
+                    maskCanvas.height = imageCanvas.height = outputCanvas.height;
+
+                    var maskCtx = maskCanvas.getContext("2d");
+                    var imageCtx = imageCanvas.getContext("2d");
+                    maskCtx.filter = "blur(7px)";
+                    maskCtx.drawImage(results.segmentationMask, 0, 0, outputCanvas.width, outputCanvas.height);
+                    maskCtx.filter = "none";
+                    imageCtx.drawImage(results.image, 0, 0, outputCanvas.width, outputCanvas.height);
+
+                    var mask = maskCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
+                    var image = imageCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
+                    var out = ctx.createImageData(outputCanvas.width, outputCanvas.height);
+                    for (var i = 0; i < image.data.length; i += 4) {
+                        var alpha = Math.max(mask.data[i], mask.data[i + 1], mask.data[i + 2], mask.data[i + 3]) / 255;
+                        alpha = Math.max(0, Math.min(1, (alpha - 0.05) / 0.90));
+                        alpha = alpha * alpha * (3 - 2 * alpha);
+                        out.data[i] = Math.round(image.data[i] * alpha + 255 * (1 - alpha));
+                        out.data[i + 1] = Math.round(image.data[i + 1] * alpha + 255 * (1 - alpha));
+                        out.data[i + 2] = Math.round(image.data[i + 2] * alpha + 255 * (1 - alpha));
+                        out.data[i + 3] = 255;
+                    }
+                    ctx.putImageData(out, 0, 0);
+                    resolve(true);
+                } catch (e) {
+                    ctx.save();
+                    ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+                    ctx.drawImage(results.segmentationMask, 0, 0, outputCanvas.width, outputCanvas.height);
+                    ctx.globalCompositeOperation = "source-in";
+                    ctx.drawImage(results.image, 0, 0, outputCanvas.width, outputCanvas.height);
+                    ctx.globalCompositeOperation = "destination-over";
+                    ctx.fillStyle = "#fff";
+                    ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+                    ctx.restore();
+                    resolve(true);
+                }
+            });
+            var sendResult = studenteSelfieSegmentation.send({ image: inputCanvas });
+            if (sendResult && typeof sendResult.catch === "function") {
+                sendResult.catch(function (e) {
+                    studenteFotoSegmentationError = e && e.message ? e.message : "Errore MediaPipe durante la segmentazione.";
+                    resolve(false);
+                });
+            }
+        } catch (e) {
+            studenteFotoSegmentationError = e && e.message ? e.message : "Errore MediaPipe durante la segmentazione.";
+            resolve(false);
+        }
+    });
+}
+
+async function studenteFotoScatta() {
+    var video = document.getElementById("foto_studente_video");
+    var outputCanvas = document.getElementById("foto_studente_canvas");
+    if (!video || !video.videoWidth || !video.videoHeight) {
+        studenteFotoSetMsg("La webcam non e ancora pronta.", true);
+        return;
+    }
+
+    studenteFotoSetMsg("Elaborazione foto in corso...", false);
+    var sourceCanvas = document.createElement("canvas");
+    sourceCanvas.width = video.videoWidth;
+    sourceCanvas.height = video.videoHeight;
+    sourceCanvas.getContext("2d").drawImage(video, 0, 0, sourceCanvas.width, sourceCanvas.height);
+
+    var face = await studenteFotoDetectFace(sourceCanvas);
+    var crop = studenteFotoCropBox(sourceCanvas.width, sourceCanvas.height, face);
+    var cropCanvas = document.createElement("canvas");
+    cropCanvas.width = outputCanvas.width;
+    cropCanvas.height = outputCanvas.height;
+    var cropCtx = cropCanvas.getContext("2d");
+    cropCtx.fillStyle = "#fff";
+    cropCtx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+    cropCtx.drawImage(sourceCanvas, crop.x, crop.y, crop.width, crop.height, 0, 0, cropCanvas.width, cropCanvas.height);
+
+    var segmented = await studenteFotoSegmentaSfondo(cropCanvas, outputCanvas);
+    if (!segmented) {
+        outputCanvas.getContext("2d").drawImage(cropCanvas, 0, 0);
+    }
+
+    studenteFotoAutoTono(outputCanvas);
+    studenteFotoDataUrl = outputCanvas.toDataURL("image/jpeg", 0.92);
+    $("#foto_studente_salva_btn").prop("disabled", false);
+    studenteFotoSetMsg(segmented ? "Foto pronta: ritaglio 3:4 e sfondo bianco applicati." : ("Foto pronta: ritaglio 3:4 applicato. Sfondo non rimosso" + (studenteFotoSegmentationError ? ": " + studenteFotoSegmentationError : ".")).replace("..", "."), false);
+}
+
+function studenteFotoElimina() {
+    var studenteId = parseInt($("#hidden_studente_id").val(), 10);
+    if (!studenteId || studenteId <= 0) {
+        studenteFotoSetMsg("Seleziona prima uno studente esistente.", true);
+        return;
+    }
+    if (!confirm("Eliminare la foto dello studente?")) {
+        return;
+    }
+
+    studenteFotoSetMsg("Eliminazione foto in corso...", false);
+    $.post("studenteFotoDelete.php", {
+        studente_id: studenteId
+    }, function (response) {
+        if (typeof response === "string") {
+            response = JSON.parse(response);
+        }
+        if (!response.ok) {
+            studenteFotoSetMsg(response.message || "Eliminazione foto fallita.", true);
+            return;
+        }
+        studenteSetFotoMastercom("");
+        studenteFotoReset();
+        studenteFotoSetMsg(response.message || "Foto eliminata.", !response.mastercom_delete || !response.mastercom_delete.ok);
+        studenteReadRecords();
+    }).fail(function () {
+        studenteFotoSetMsg("Eliminazione foto fallita.", true);
+    });
+}
+
+function studenteFotoSalva() {
+    if (!studenteFotoDataUrl) {
+        studenteFotoSetMsg("Scatta prima una foto.", true);
+        return;
+    }
+
+    $("#foto_studente_salva_btn").prop("disabled", true);
+    studenteFotoSetMsg("Salvataggio foto in corso...", false);
+    $.post("studenteFotoUpload.php", {
+        studente_id: $("#hidden_studente_id").val(),
+        image: studenteFotoDataUrl
+    }, function (response) {
+        if (typeof response === "string") {
+            response = JSON.parse(response);
+        }
+        if (!response.ok) {
+            studenteFotoSetMsg(response.message || "Salvataggio foto fallito.", true);
+            $("#foto_studente_salva_btn").prop("disabled", false);
+            return;
+        }
+        if (response.local_url) {
+            studenteSetFotoMastercom(response.local_url);
+        }
+        studenteFotoSetMsg(response.message || "Foto salvata.", !response.mastercom_upload || !response.mastercom_upload.ok);
+        studenteReadRecords();
+    }).fail(function () {
+        studenteFotoSetMsg("Salvataggio foto fallito.", true);
+        $("#foto_studente_salva_btn").prop("disabled", false);
+    });
+}
+
 function studenteReadRecords() {
     $.get("studenteReadRecords.php?soloAttivi=" + soloAttivi + "&classeFiltroId=" + classe_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
+        recordsTextFilterApply();
+    });
+}
+
+function recordsTextFilterApply() {
+    var filter = String($("#records_text_filter").val() || "").toLowerCase().trim();
+    $(".records_content table tbody tr").each(function () {
+        var text = $(this).text().toLowerCase();
+        $(this).toggle(filter === "" || text.indexOf(filter) !== -1);
     });
 }
 
@@ -147,6 +478,8 @@ function studenteGetDetails(studente_id, anno_id) {
             $("#sesso").val("");
             $("#userId").val("");
             studenteSetFotoMastercom("");
+            studenteFotoChiudiCamera();
+            studenteFotoReset();
             $("#email").val("");
             $("#genitore_select").empty().append('<option value="">-- Seleziona genitore --</option>');
             $("#btn-passa-genitore").hide();
@@ -164,7 +497,7 @@ function studenteGetDetails(studente_id, anno_id) {
             $("#sesso").val(studenteNormalizzaSesso(studente.sesso) || studenteSessoDaCodiceFiscale(cf));
 
             $("#userId").val(safeStr(studente.username));
-            studenteSetFotoMastercom(studente.mastercom_foto);
+            studenteSetFotoMastercom(safeStr(studente.gestore_foto_url) || studente.mastercom_foto);
 
             $("#classe_filtro_stud").val(safeStr(studente.id_classe));
             $("#classe_filtro_stud").selectpicker('refresh');
@@ -229,6 +562,8 @@ function studenteGetDetails(studente_id, anno_id) {
         $("#sesso").val("");
         $("#userId").val("");
         studenteSetFotoMastercom("");
+        studenteFotoChiudiCamera();
+        studenteFotoReset();
         $("#hidden_anno_id").val(anno_id);
         $("#attivo").prop('checked', true);
         $('#hidden_studente_id').val("-1");
@@ -279,12 +614,19 @@ $(document).ready(function () {
         studenteAggiornaSessoDaCodiceFiscale(false);
     });
 
+    $("#records_text_filter").on("input", recordsTextFilterApply);
+
     $('#file_select_id').off('change').on('change', function (e) {
         importFile(e.target.files[0]);
     });
 
     // IMPORTANTISSIMO: il modal di collegamento deve stare sotto <body>
     $("#collega_genitore_modal").appendTo("body");
+
+    $("#studente_modal").on("hidden.bs.modal", function () {
+        studenteFotoChiudiCamera();
+        studenteFotoReset();
+    });
 
     function cleanupBackdrops() {
         // rimuove QUALSIASI backdrop rimasto

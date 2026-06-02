@@ -9,6 +9,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/mastercom/admin_lib.php';
+require_once '../common/student_photo.php';
 
 if (isset($_POST['id']) && $_POST['id'] != "") {
     $studente_id = $_POST['id'];
@@ -38,6 +39,7 @@ if (isset($_POST['id']) && $_POST['id'] != "") {
     // aggiungo i genitori alla struttura JSON
     $studente['genitori'] = $genitori ?: [];
 
+    $studente['gestore_foto_url'] = gestoreStudentPhotoUrl(intval($studente_id));
     $studente['mastercom_foto'] = '';
     if (mastercomAdminTableExists('mastercom_studenti')
         && mastercomAdminTableColumnExists('mastercom_studenti', 'foto')

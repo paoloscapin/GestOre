@@ -17,9 +17,18 @@ function genitoreReadRecords(done) {
         {},
         function (data, status) {
             $(".records_content").html(data);
+            recordsTextFilterApply();
             if (typeof done === "function") done();
         }
     );
+}
+
+function recordsTextFilterApply() {
+    var filter = String($("#records_text_filter").val() || "").toLowerCase().trim();
+    $(".records_content table tbody tr").each(function () {
+        var text = $(this).text().toLowerCase();
+        $(this).toggle(filter === "" || text.indexOf(filter) !== -1);
+    });
 }
 
 function getQueryParam(name) {
@@ -195,6 +204,8 @@ $(document).ready(function () {
     $('#file_select_id').off('change').on('change', function (e) {
         importFile(e.target.files[0]);
     });
+
+    $("#records_text_filter").on("input", recordsTextFilterApply);
 
     // 3) Apri modal "Collega studente"
     $("#btn-collega-studente").off("click").on("click", function () {

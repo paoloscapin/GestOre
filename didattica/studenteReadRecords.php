@@ -12,6 +12,7 @@ require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 require_once '../common/student_gender.php';
 require_once '../common/mastercom/admin_lib.php';
+require_once '../common/student_photo.php';
 gestoreEnsureStudenteSessoColumn();
 
 $soloAttivi = $_GET["soloAttivi"];
@@ -86,15 +87,19 @@ foreach(dbGetAll($query) as $row) {
 
 	$query2 = "SELECT * FROM anno_scolastico WHERE id = ".$studente['id_anno_scolastico'];
 	$anno = dbGetFirst($query2);
+	$fotoLocale = gestoreStudentPhotoUrl(intval($row['id']));
 	$foto = $photoByStudentId[intval($row['id'])] ?? '';
+	$fotoClick = 'onclick="studenteGetDetails('.intval($row['id']).')" title="Apri scheda studente"';
 	$fotoHtml = '<span class="text-muted">-</span>';
-	if ($foto !== '') {
+	if ($fotoLocale !== '') {
+		$fotoHtml = '<img src="'.$fotoLocale.'" alt="Foto studente" loading="lazy" style="width:54px;height:72px;object-fit:contain;border-radius:4px;border:1px solid #ccc;background:#f7f7f7;cursor:pointer;">';
+	} elseif ($foto !== '') {
 		$fotoUrl = '../common/mastercom/photo.php?proxy=1&file=' . urlencode($foto);
-		$fotoHtml = '<img src="'.$fotoUrl.'" alt="Foto studente" loading="lazy" style="width:54px;height:72px;object-fit:contain;border-radius:4px;border:1px solid #ccc;background:#f7f7f7;">';
+		$fotoHtml = '<img src="'.$fotoUrl.'" alt="Foto studente" loading="lazy" style="width:54px;height:72px;object-fit:contain;border-radius:4px;border:1px solid #ccc;background:#f7f7f7;cursor:pointer;">';
 	}
 
 	$data .= '<tr>
-	<td style="text-align:center;width:92px;">'.$fotoHtml.'</td>
+	<td style="text-align:center;width:92px;cursor:pointer;" '.$fotoClick.'>'.$fotoHtml.'</td>
 	<td style="text-align:center;width:150px;white-space:nowrap;">'.ucwords(strtolower($row['cognome'])).'</td>
 	<td style="text-align:center;width:150px;white-space:nowrap;">'.ucwords(strtolower($row['nome'])).'</td>
 	<td style="text-align:center">'.strtoupper($row['codice_fiscale']).'</td>
