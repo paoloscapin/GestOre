@@ -163,7 +163,7 @@ $docenteHeaderJoin = function (string $url) use ($docenteHeaderQuery): string {
 			<li>
 				<?php
 				if (haRuolo('admin')) {
-					echo '<a href="#" onclick="window.close(); return false;"><span class="glyphicon glyphicon-log-out"></span></a>';
+					echo '<a href="../common/logout.php?impersona=stop&close=1"><span class="glyphicon glyphicon-log-out"></span></a>';
 				}
 				else
 				{

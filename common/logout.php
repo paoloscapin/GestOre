@@ -17,6 +17,32 @@ info("Logout GestOre avviato per utente [$__username]");
 // =============================
 // 1️⃣ Pulizia variabili GestOre e token Google
 // =============================
+if (isset($_GET['impersona']) && $_GET['impersona'] === 'stop') {
+    $keysToUnset = [
+        'docente_id', 'docente_nome', 'docente_cognome', 'docente_email',
+        'studente_id', 'studente_nome', 'studente_cognome', 'studente_email', 'studente_codice_fiscale',
+        'genitore_id', 'genitore_nome', 'genitore_cognome', 'genitore_email', 'genitore_codice_fiscale',
+        'esterno_id', 'esterno_nome', 'esterno_cognome', 'esterno_email',
+        'impersona_attiva', 'impersona_ruolo', 'impersona_docente_id', 'impersona_studente_id', 'impersona_genitore_id',
+    ];
+    foreach ($keysToUnset as $k) {
+        unset($_SESSION[$k]);
+    }
+
+    info("Impersonamento GestOre terminato per utente [$__username]");
+
+    if (isset($_GET['close']) && $_GET['close'] === '1') {
+        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Impersonamento terminato</title></head><body>';
+        echo '<script>window.close(); window.setTimeout(function(){ window.location.href="/GestOre/admin/index.php"; }, 700);</script>';
+        echo '<p>Impersonamento terminato. Puoi chiudere questa scheda o tornare alla <a href="/GestOre/admin/index.php">home admin</a>.</p>';
+        echo '</body></html>';
+        exit;
+    }
+
+    header('Location: /GestOre/admin/index.php');
+    exit;
+}
+
 $keysToUnset = [
     // utente applicativo
     'utente_id', 'utente_nome', 'utente_cognome', 'utente_ruolo',
