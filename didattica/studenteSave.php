@@ -8,9 +8,12 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/student_gender.php';
 ruoloRichiesto('segreteria-didattica');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
+    gestoreEnsureStudenteSessoColumn();
+
     $id = $_POST['id'];
     $cognome = escapePost('cognome');
     $nome = escapePost('nome');
@@ -18,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     $id_classe = escapePost('id_classe');
     $id_anno = escapePost('id_anno');
     $codice_fiscale = escapePost('codice_fiscale');
+    $sesso = gestoreSessoDaInputOCodiceFiscale($_POST['sesso'] ?? null, $codice_fiscale);
     $userId = escapePost('userid');
     $attivo = escapePost('attivo');
     $esterno = escapePost('esterno');
@@ -28,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     // devo aggiornare tabella frequenza
     if ($id > 0) 
     {
-        $query = "UPDATE studente SET cognome = '$cognome', nome = '$nome', email = '$email', username = '$userId', codice_fiscale = '$codice_fiscale', attivo = '$attivo' WHERE id = '$id'";
+        $query = "UPDATE studente SET cognome = '$cognome', nome = '$nome', email = '$email', username = '$userId', codice_fiscale = '$codice_fiscale', sesso = " . dbQ($sesso) . ", attivo = '$attivo' WHERE id = '$id'";
         dbExec($query);
         // aggiorno la classe per uno studente è stato riattivato
         if ($era_attivo == 0 && $attivo == 1 && $id_anno != $__anno_scolastico_corrente_id) {
@@ -79,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     {
         $id_anno = $__anno_scolastico_corrente_id; // se non specificato, uso l'anno scolastico corrente
         // devo inserire un nuovo studente
-        $query = "INSERT INTO studente(cognome, nome, email, username, codice_fiscale, attivo) VALUES('$cognome', '$nome', '$email', '$userId', '$codice_fiscale', '$attivo')";
+        $query = "INSERT INTO studente(cognome, nome, email, username, codice_fiscale, sesso, attivo) VALUES('$cognome', '$nome', '$email', '$userId', '$codice_fiscale', " . dbQ($sesso) . ", '$attivo')";
         dbExec($query);
         $studenteId = dblastId();
         $query = "INSERT INTO studente_frequenta(id_studente,id_anno_scolastico,id_classe) VALUES('$studenteId', '$__anno_scolastico_corrente_id', '$id_classe')";

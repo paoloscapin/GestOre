@@ -9,7 +9,9 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/__Util.php';
+require_once '../common/student_gender.php';
 ruoloRichiesto('dirigente', 'segreteria-didattica');
+gestoreEnsureStudenteSessoColumn();
 
 function startsWith($haystack, $needle)
 {
@@ -72,6 +74,7 @@ foreach ($lines as $line) {
     $email = strtolower(escapeString($words[2]));
     $username = escapeString($words[3]);
     $codice_fiscale = escapeString($words[4]);
+    $sesso = gestoreSessoDaCodiceFiscale($codice_fiscale);
     $attivo = escapeString($words[5]);
     $classe = escapeString($words[6]);
 
@@ -91,14 +94,14 @@ foreach ($lines as $line) {
     if ($id == null) {
         // se non lo trova, lo deve inserire
         $daInserire++;
-        $query = "INSERT INTO studente (cognome,nome,email,username,codice_fiscale,attivo) VALUES ('$cognome','$nome','$email','$username','$codice_fiscale','$attivo');";
+        $query = "INSERT INTO studente (cognome,nome,email,username,codice_fiscale,sesso,attivo) VALUES ('$cognome','$nome','$email','$username','$codice_fiscale'," . dbQ($sesso) . ",'$attivo');";
         dbExec($query);
         $id = dblastId();
         $query = "INSERT INTO studente_frequenta(id_studente,id_anno_scolastico,id_classe) VALUES('$id', '$__anno_scolastico_corrente_id', '$id_classe')";
     } else {
         // se c'era gia', lo aggiorna con i valori trovati della classe
         $daModificare++;
-        $query = "UPDATE studente SET cognome='$cognome', nome='$nome', username='$username', codice_fiscale='$codice_fiscale', email='$email', attivo='$attivo' WHERE id='$id'";
+        $query = "UPDATE studente SET cognome='$cognome', nome='$nome', username='$username', codice_fiscale='$codice_fiscale', sesso=" . dbQ($sesso) . ", email='$email', attivo='$attivo' WHERE id='$id'";
         dbExec($query);
         $query = "SELECT * from studente_frequenta WHERE id_studente = '$id' AND id_anno_scolastico = '$__anno_scolastico_corrente_id'";
         $result = dbGetFirst($query);

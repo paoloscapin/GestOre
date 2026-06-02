@@ -30,6 +30,8 @@ require_once '../common/checkSession.php';
     <?php
     require_once '../common/header-didattica.php';
     require_once '../common/connect.php';
+    require_once '../common/student_gender.php';
+    gestoreEnsureStudenteSessoColumn();
 
     // prepara l'elenco per il filtro
     $classiOptionList = '<option value="0">scegli classe</option>';
@@ -105,6 +107,13 @@ require_once '../common/checkSession.php';
                             <div class="panel-body">
                                 <form class="form-horizontal">
 
+                                    <div class="form-group" id="foto_mastercom_part" style="display:none;">
+                                        <label class="col-sm-2 control-label">Foto</label>
+                                        <div class="col-sm-10">
+                                            <img id="foto_mastercom" src="" alt="Foto studente MasterCom" style="width:165px;height:220px;object-fit:contain;border-radius:6px;border:1px solid #aaa;background:#f7f7f7;box-shadow:0 1px 4px rgba(0,0,0,.18);">
+                                        </div>
+                                    </div>
+
 
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="cognome">Cognome</label>
@@ -124,6 +133,17 @@ require_once '../common/checkSession.php';
                                     <div class="form-group">
                                         <label class="col-sm-2 control-label" for="codice_fiscale">Codice Fiscale</label>
                                         <div class="col-sm-10"><input type="text" id="codice_fiscale" placeholder="codice_fiscale" class="form-control" /></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="col-sm-2 control-label" for="sesso">Sesso</label>
+                                        <div class="col-sm-10">
+                                            <select id="sesso" class="form-control">
+                                                <option value="">Calcolato da codice fiscale</option>
+                                                <option value="M">Maschio</option>
+                                                <option value="F">Femmina</option>
+                                            </select>
+                                        </div>
                                     </div>
 
                                     <div class="form-group">

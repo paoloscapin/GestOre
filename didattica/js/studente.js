@@ -8,6 +8,41 @@
 var soloAttivi = 1;
 var classe_filtro_id = 0;
 
+function studenteSessoDaCodiceFiscale(cf) {
+    cf = String(cf || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (cf.length < 11) return '';
+    var day = parseInt(cf.substr(9, 2), 10);
+    if (day >= 1 && day <= 31) return 'M';
+    if (day >= 41 && day <= 71) return 'F';
+    return '';
+}
+
+function studenteAggiornaSessoDaCodiceFiscale(force) {
+    var $sesso = $("#sesso");
+    if (!$sesso.length) return;
+    if (!force && $sesso.val()) return;
+    $sesso.val(studenteSessoDaCodiceFiscale($("#codice_fiscale").val()));
+}
+
+function studenteNormalizzaSesso(value) {
+    value = String(value || '').trim().toUpperCase();
+    if (value === 'MASCHIO' || value === 'MASCHILE') return 'M';
+    if (value === 'FEMMINA' || value === 'FEMMINILE') return 'F';
+    return (value === 'M' || value === 'F') ? value : '';
+}
+
+function studenteSetFotoMastercom(file) {
+    file = String(file || '').trim();
+    if (!file) {
+        $("#foto_mastercom").attr("src", "");
+        $("#foto_mastercom_part").hide();
+        return;
+    }
+    $("#foto_mastercom")
+        .attr("src", "../common/mastercom/photo.php?proxy=1&file=" + encodeURIComponent(file));
+    $("#foto_mastercom_part").show();
+}
+
 function studenteReadRecords() {
     $.get("studenteReadRecords.php?soloAttivi=" + soloAttivi + "&classeFiltroId=" + classe_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
@@ -83,6 +118,7 @@ function studenteSave() {
         id_classe: $("#classe_filtro_stud").val(),
         id_anno: $("#hidden_anno_id").val(),
         codice_fiscale: $("#codice_fiscale").val(),
+        sesso: $("#sesso").val(),
         userid: $("#userId").val(),
         attivo: $("#attivo").prop('checked') ? 1 : 0,
         esterno: $("#esterno").prop('checked') ? 1 : 0,
@@ -108,7 +144,9 @@ function studenteGetDetails(studente_id, anno_id) {
 
             // ✅ RESET preventivo dei campi che possono mancare
             $("#codice_fiscale").val("");
+            $("#sesso").val("");
             $("#userId").val("");
+            studenteSetFotoMastercom("");
             $("#email").val("");
             $("#genitore_select").empty().append('<option value="">-- Seleziona genitore --</option>');
             $("#btn-passa-genitore").hide();
@@ -123,8 +161,10 @@ function studenteGetDetails(studente_id, anno_id) {
 
             var cf = safeStr(studente.codice_fiscale);
             $("#codice_fiscale").val(cf ? cf.toUpperCase() : "");
+            $("#sesso").val(studenteNormalizzaSesso(studente.sesso) || studenteSessoDaCodiceFiscale(cf));
 
             $("#userId").val(safeStr(studente.username));
+            studenteSetFotoMastercom(studente.mastercom_foto);
 
             $("#classe_filtro_stud").val(safeStr(studente.id_classe));
             $("#classe_filtro_stud").selectpicker('refresh');
@@ -186,7 +226,9 @@ function studenteGetDetails(studente_id, anno_id) {
         $("#classe_filtro_stud").val("0");
         $("#classe_filtro_stud").selectpicker('refresh');
         $("#codice_fiscale").val("");
+        $("#sesso").val("");
         $("#userId").val("");
+        studenteSetFotoMastercom("");
         $("#hidden_anno_id").val(anno_id);
         $("#attivo").prop('checked', true);
         $('#hidden_studente_id').val("-1");
@@ -232,6 +274,10 @@ $("#classe_filtro").on("changed.bs.select",
 $(document).ready(function () {
 
     studenteReadRecords();
+
+    $("#codice_fiscale").on("input change", function () {
+        studenteAggiornaSessoDaCodiceFiscale(false);
+    });
 
     $('#file_select_id').off('change').on('change', function (e) {
         importFile(e.target.files[0]);

@@ -1511,6 +1511,7 @@ CREATE TABLE IF NOT EXISTS `studente` (
   `nome` VARCHAR(45) NULL,
   `email` VARCHAR(200) NULL,
   `username` VARCHAR(45) NULL,
+  `sesso` CHAR(1) NULL,
   `classe` VARCHAR(45) NULL,
   `anno` VARCHAR(45) NULL,
   PRIMARY KEY (`id`),

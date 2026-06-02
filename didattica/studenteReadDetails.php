@@ -8,6 +8,7 @@
  */
 
 require_once '../common/checkSession.php';
+require_once '../common/mastercom/admin_lib.php';
 
 if (isset($_POST['id']) && $_POST['id'] != "") {
     $studente_id = $_POST['id'];
@@ -36,6 +37,28 @@ if (isset($_POST['id']) && $_POST['id'] != "") {
 
     // aggiungo i genitori alla struttura JSON
     $studente['genitori'] = $genitori ?: [];
+
+    $studente['mastercom_foto'] = '';
+    if (mastercomAdminTableExists('mastercom_studenti')
+        && mastercomAdminTableColumnExists('mastercom_studenti', 'foto')
+        && mastercomAdminTableColumnExists('mastercom_studenti', 'id_studente_gestore')) {
+        $photoWhere = ["id_studente_gestore = " . intval($studente_id)];
+        if (mastercomAdminTableColumnExists('mastercom_studenti', 'codice_fiscale') && trim((string)($studente['codice_fiscale'] ?? '')) !== '') {
+            $photoWhere[] = "LOWER(codice_fiscale) = LOWER(" . dbQ(trim((string)$studente['codice_fiscale'])) . ")";
+        }
+        if (mastercomAdminTableColumnExists('mastercom_studenti', 'mastercom_id_studente') && ctype_digit(trim((string)($studente['username'] ?? '')))) {
+            $photoWhere[] = "mastercom_id_studente = " . dbI(intval($studente['username']));
+        }
+        $studente['mastercom_foto'] = trim((string)(dbGetValue("
+            SELECT foto
+            FROM mastercom_studenti
+            WHERE (" . implode(' OR ', $photoWhere) . ")
+              AND foto IS NOT NULL
+              AND foto <> ''
+            ORDER BY last_seen_at DESC, last_sync_at DESC
+            LIMIT 1
+        ") ?? ''));
+    }
 
     // Recupero frequenze
     $query = "SELECT * FROM studente_frequenta WHERE id_studente = '$studente_id' ORDER BY id_anno_scolastico DESC";
