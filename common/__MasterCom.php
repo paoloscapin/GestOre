@@ -880,6 +880,163 @@ function mastercomDownloadStudentPhoto(string $fileName, array $options = []): a
     ];
 }
 
+function mastercomUploadStudentPhoto(array $authResult, int $mastercomStudentId, int $mastercomClassId, string $className, string $filePath, array $options = []): array
+{
+    $url = mastercomIndexUrl();
+    if ($url === '') {
+        return ['ok' => false, 'error' => 'URL MasterCom non configurato', 'http_code' => 0, 'raw' => ''];
+    }
+    if ($mastercomStudentId <= 0 || $mastercomClassId <= 0) {
+        return ['ok' => false, 'error' => 'Studente o classe MasterCom non validi', 'http_code' => 0, 'raw' => ''];
+    }
+    if (!is_file($filePath)) {
+        return ['ok' => false, 'error' => 'File foto non trovato', 'http_code' => 0, 'raw' => ''];
+    }
+
+    $currentUser = mastercomCurrentUser($authResult);
+    $currentKey = mastercomCurrentKey($authResult);
+    if (empty($currentUser) || empty($currentKey)) {
+        return ['ok' => false, 'error' => 'Autenticazione MasterCom non valida', 'http_code' => 0, 'raw' => ''];
+    }
+
+    $fileName = basename($filePath);
+    $postFields = [
+        'form_stato' => 'amministratore',
+        'stato_principale' => 'classi_principale',
+        'stato_secondario' => 'multi_immagine',
+        'indirizzo' => (string)($options['indirizzo'] ?? ''),
+        'id_indirizzo' => (string)($options['id_indirizzo'] ?? ''),
+        'classe' => $className,
+        'id_classe' => (string)$mastercomClassId,
+        'stato' => 'upload',
+        'stampa_elenco_foto' => 'SI',
+        'docpath' => 'foto_studenti/',
+        'upload_avvenuto' => 'SI',
+        'MAX_FILE_SIZE' => '10000000',
+        'current_user' => (string)$currentUser,
+        'current_key' => (string)$currentKey,
+        'conferma.x' => '20',
+        'conferma.y' => '20',
+        'ruota_' . $mastercomStudentId => '0',
+        (string)$mastercomStudentId => new CURLFile($filePath, 'image/jpeg', $fileName),
+    ];
+
+    $headers = [
+        'User-Agent: GestOreMasterCom/1.0',
+        'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    ];
+    $cookieHeader = implode('; ', array_filter($authResult['cookies'] ?? []));
+    if ($cookieHeader !== '') {
+        $headers[] = 'Cookie: ' . $cookieHeader;
+    }
+
+    $curl = curl_init();
+    curl_setopt_array($curl, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => intval($options['timeout'] ?? 120),
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $postFields,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_HEADER => true,
+        CURLOPT_COOKIEFILE => '',
+        CURLOPT_COOKIEJAR => '',
+    ]);
+
+    $raw = curl_exec($curl);
+    $err = curl_error($curl);
+    $httpCode = intval(curl_getinfo($curl, CURLINFO_HTTP_CODE));
+    curl_close($curl);
+
+    if ($err) {
+        return ['ok' => false, 'error' => $err, 'http_code' => $httpCode, 'raw' => ''];
+    }
+
+    return [
+        'ok' => $httpCode >= 200 && $httpCode < 300,
+        'error' => ($httpCode >= 200 && $httpCode < 300) ? '' : ('HTTP_' . $httpCode),
+        'http_code' => $httpCode,
+        'raw' => (string)$raw,
+    ];
+}
+
+function mastercomDeleteStudentPhoto(array $authResult, int $mastercomStudentId, int $mastercomClassId, string $className, array $options = []): array
+{
+    $url = mastercomIndexUrl();
+    if ($url === '') {
+        return ['ok' => false, 'error' => 'URL MasterCom non configurato', 'http_code' => 0, 'raw' => ''];
+    }
+    if ($mastercomStudentId <= 0 || $mastercomClassId <= 0) {
+        return ['ok' => false, 'error' => 'Studente o classe MasterCom non validi', 'http_code' => 0, 'raw' => ''];
+    }
+
+    $currentUser = mastercomCurrentUser($authResult);
+    $currentKey = mastercomCurrentKey($authResult);
+    if (empty($currentUser) || empty($currentKey)) {
+        return ['ok' => false, 'error' => 'Autenticazione MasterCom non valida', 'http_code' => 0, 'raw' => ''];
+    }
+
+    $postFields = [
+        'form_stato' => 'amministratore',
+        'stato_principale' => 'classi_principale',
+        'stato_secondario' => 'multi_immagine',
+        'indirizzo' => (string)($options['indirizzo'] ?? ''),
+        'id_indirizzo' => (string)($options['id_indirizzo'] ?? ''),
+        'classe' => $className,
+        'id_classe' => (string)$mastercomClassId,
+        'stato' => 'upload',
+        'stampa_elenco_foto' => 'SI',
+        'docpath' => 'foto_studenti/',
+        'upload_avvenuto' => 'SI',
+        'current_user' => (string)$currentUser,
+        'current_key' => (string)$currentKey,
+        'conferma.x' => '20',
+        'conferma.y' => '20',
+        'ruota_' . $mastercomStudentId => '0',
+        'delete_' . $mastercomStudentId => '1',
+    ];
+
+    $headers = [
+        'User-Agent: GestOreMasterCom/1.0',
+        'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    ];
+    $cookieHeader = implode('; ', array_filter($authResult['cookies'] ?? []));
+    if ($cookieHeader !== '') {
+        $headers[] = 'Cookie: ' . $cookieHeader;
+    }
+
+    $curl = curl_init();
+    curl_setopt_array($curl, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => intval($options['timeout'] ?? 120),
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $postFields,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_HEADER => true,
+        CURLOPT_COOKIEFILE => '',
+        CURLOPT_COOKIEJAR => '',
+    ]);
+
+    $raw = curl_exec($curl);
+    $err = curl_error($curl);
+    $httpCode = intval(curl_getinfo($curl, CURLINFO_HTTP_CODE));
+    curl_close($curl);
+
+    if ($err) {
+        return ['ok' => false, 'error' => $err, 'http_code' => $httpCode, 'raw' => ''];
+    }
+
+    return [
+        'ok' => $httpCode >= 200 && $httpCode < 300,
+        'error' => ($httpCode >= 200 && $httpCode < 300) ? '' : ('HTTP_' . $httpCode),
+        'http_code' => $httpCode,
+        'raw' => (string)$raw,
+    ];
+}
+
 function mastercomSubmitAdminAbsenceAction(array $authResult, array $formParams, array $options = []): array
 {
     $currentUser = mastercomCurrentUser($authResult);
