@@ -10,6 +10,7 @@
 require_once __DIR__ . '/../connect.php';
 require_once __DIR__ . '/../__MasterCom.php';
 require_once __DIR__ . '/../__Log.php';
+require_once __DIR__ . '/../student_gender.php';
 
 function mastercomAdminTableExists(string $tableName): bool
 {
@@ -1501,8 +1502,13 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
             $merged = array_merge($detail, $masterStudent, [
                 '_csv_export' => $extraData,
             ]);
+            $codiceFiscale = mastercomAdminCleanText($detail['cf'] ?? null);
+            $studentSesso = gestoreSessoDaInputOCodiceFiscale(
+                $extraData['sesso'] ?? $masterStudent['sesso'] ?? $detail['sesso'] ?? $detail['gender'] ?? null,
+                $codiceFiscale
+            );
             $localStudent = mastercomAdminFindLocalStudent([
-                'codice_fiscale' => $detail['cf'] ?? '',
+                'codice_fiscale' => $codiceFiscale ?? '',
                 'email1' => $masterStudent['email1'] ?? $detail['email'] ?? '',
                 'cognome' => $masterStudent['cognome'] ?? $detail['surname'] ?? '',
                 'nome' => $masterStudent['nome'] ?? $detail['first_name'] ?? '',
@@ -1515,7 +1521,7 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
                 'registro_numero' => isset($masterStudent['registro']) ? intval($masterStudent['registro']) : null,
                 'cognome' => mastercomAdminCleanText($masterStudent['cognome'] ?? $detail['surname'] ?? null),
                 'nome' => mastercomAdminCleanText($masterStudent['nome'] ?? $detail['first_name'] ?? null),
-                'codice_fiscale' => mastercomAdminCleanText($detail['cf'] ?? null),
+                'codice_fiscale' => $codiceFiscale,
                 'data_nascita_ts' => isset($masterStudent['data_nascita']) ? intval($masterStudent['data_nascita']) : null,
                 'data_nascita' => empty($masterStudent['data_nascita']) ? null : date('Y-m-d', intval($masterStudent['data_nascita'])),
                 'email1' => mastercomAdminCleanText($masterStudent['email1'] ?? $detail['email'] ?? null),
@@ -1546,10 +1552,19 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
                 $studentData['descrizione_materia_integrativa'] = mastercomAdminCleanText($extraData['descrizione_materia_integrativa'] ?? null);
             }
             if (mastercomAdminTableColumnExists('mastercom_studenti', 'sesso')) {
-                $studentData['sesso'] = mastercomAdminCleanText($extraData['sesso'] ?? $masterStudent['sesso'] ?? $detail['sesso'] ?? $detail['gender'] ?? null);
+                $studentData['sesso'] = $studentSesso;
             }
 
             mastercomAdminUpsertByField('mastercom_studenti', 'mastercom_id_studente', $studentId, $studentData);
+
+            if (!empty($localStudent['id'])) {
+                gestoreEnsureStudenteSessoColumn();
+                dbExec("
+                    UPDATE studente
+                    SET sesso = COALESCE(" . dbQ($studentSesso) . ", sesso)
+                    WHERE id = " . intval($localStudent['id']) . "
+                ");
+            }
 
             mastercomAdminUpsertByField('mastercom_studenti_classi', 'id', dbGetValue("SELECT id FROM mastercom_studenti_classi WHERE mastercom_id_studente = " . $studentId . " AND mastercom_id_classe = " . intval($classId) . " LIMIT 1") ?? 0, [
                 'mastercom_id_studente' => $studentId,
@@ -2151,13 +2166,16 @@ function mastercomAdminAlignGestoreStudentFromMastercom(int $mastercomStudentId)
         return ['ok' => false, 'message' => 'Studente GestOre non trovato'];
     }
 
+    gestoreEnsureStudenteSessoColumn();
+    $sesso = gestoreSessoDaInputOCodiceFiscale($mirror['sesso'] ?? null, $mirror['codice_fiscale'] ?? '');
     dbExec("
         UPDATE studente
         SET
             cognome = " . dbQ($mirror['cognome']) . ",
             nome = " . dbQ($mirror['nome']) . ",
             email = " . dbQ($mirror['email1']) . ",
-            codice_fiscale = " . dbQ($mirror['codice_fiscale']) . "
+            codice_fiscale = " . dbQ($mirror['codice_fiscale']) . ",
+            sesso = COALESCE(" . dbQ($sesso) . ", sesso)
         WHERE id = " . intval($local['id'])
     );
 
@@ -2241,11 +2259,13 @@ function mastercomAdminCreateGestoreStudentFromMastercom(int $mastercomStudentId
 
     $email = mastercomAdminCleanText($mirror['email1'] ?? '') ?? '';
     $codiceFiscale = mastercomAdminCleanText($mirror['codice_fiscale'] ?? '') ?? '';
+    $sesso = gestoreSessoDaInputOCodiceFiscale($mirror['sesso'] ?? null, $codiceFiscale);
     $username = $email;
+    gestoreEnsureStudenteSessoColumn();
 
     dbExec("
-        INSERT INTO studente (cognome, nome, email, username, codice_fiscale, attivo)
-        VALUES (" . dbQ($cognome) . ", " . dbQ($nome) . ", " . dbQ($email) . ", " . dbQ($username) . ", " . dbQ($codiceFiscale) . ", 1)
+        INSERT INTO studente (cognome, nome, email, username, codice_fiscale, sesso, attivo)
+        VALUES (" . dbQ($cognome) . ", " . dbQ($nome) . ", " . dbQ($email) . ", " . dbQ($username) . ", " . dbQ($codiceFiscale) . ", " . dbQ($sesso) . ", 1)
     ");
     $newStudentId = intval(dblastId());
 
@@ -2304,6 +2324,9 @@ function mastercomAdminAlignMirrorStudentFromGestore(int $mastercomStudentId): a
         $classMirrorId = dbGetValue("SELECT mastercom_id_classe FROM mastercom_classi WHERE id_classe_gestore = " . intval($localClass['id']) . " LIMIT 1");
     }
 
+    $sessoUpdate = mastercomAdminTableColumnExists('mastercom_studenti', 'sesso')
+        ? "sesso = " . dbQ(gestoreSessoDaInputOCodiceFiscale($local['sesso'] ?? null, $local['codice_fiscale'] ?? '')) . ","
+        : "";
     dbExec("
         UPDATE mastercom_studenti
         SET
@@ -2313,6 +2336,7 @@ function mastercomAdminAlignMirrorStudentFromGestore(int $mastercomStudentId): a
             nome = " . dbQ($local['nome'] ?? '') . ",
             email1 = " . dbQ($local['email'] ?? '') . ",
             codice_fiscale = " . dbQ($local['codice_fiscale'] ?? '') . ",
+            $sessoUpdate
             last_sync_at = " . dbQ(mastercomAdminNow()) . "
         WHERE id = " . intval($mirror['id'])
     );
