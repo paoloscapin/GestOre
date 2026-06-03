@@ -54,18 +54,32 @@ function permessiUscitaLoad(int $id): ?array
             g.email AS genitore_email,
             s.nome AS studente_nome,
             s.cognome AS studente_cognome,
+            s.codice_fiscale AS studente_codice_fiscale,
+            sf.id_classe AS studente_id_classe,
             c.classe AS studente_classe,
+            ms.id_studente_gestore AS mastercom_id_studente_gestore,
             ms.mastercom_id_studente,
             ms.mastercom_id_classe_corrente,
             ms.nome AS mastercom_nome,
             ms.cognome AS mastercom_cognome,
+            ms.codice_fiscale AS mastercom_codice_fiscale,
+            mc.id_classe_gestore AS mastercom_id_classe_gestore,
             mc.nome AS mastercom_classe
         FROM permessi_uscita pu
         INNER JOIN genitori g ON g.id = pu.id_genitore
         INNER JOIN studente s ON s.id = pu.id_studente
         LEFT JOIN studente_frequenta sf ON sf.id_studente = pu.id_studente $annoJoin
         LEFT JOIN classi c ON c.id = sf.id_classe
-        LEFT JOIN mastercom_studenti ms ON ms.id_studente_gestore = pu.id_studente
+        LEFT JOIN mastercom_studenti ms
+            ON ms.id_studente_gestore = pu.id_studente
+           AND (
+                sf.id_classe IS NULL
+                OR ms.mastercom_id_classe_corrente IN (
+                    SELECT mc_match.mastercom_id_classe
+                    FROM mastercom_classi mc_match
+                    WHERE mc_match.id_classe_gestore = sf.id_classe
+                )
+           )
         LEFT JOIN mastercom_classi mc ON mc.mastercom_id_classe = ms.mastercom_id_classe_corrente
         WHERE pu.id = " . dbI($id) . "
         LIMIT 1
@@ -298,6 +312,27 @@ function permessiUscitaMastercomStudent(array $permesso): ?array
     $studentId = intval($permesso['mastercom_id_studente'] ?? 0);
     $classId = intval($permesso['mastercom_id_classe_corrente'] ?? 0);
     if ($studentId <= 0 || $classId <= 0) {
+        return null;
+    }
+
+    $linkedLocalId = intval($permesso['mastercom_id_studente_gestore'] ?? 0);
+    $localId = intval($permesso['id_studente'] ?? 0);
+    if ($localId > 0 && $linkedLocalId > 0 && $linkedLocalId !== $localId) {
+        return null;
+    }
+
+    $localCf = mastercomAdminNormCompact($permesso['studente_codice_fiscale'] ?? '');
+    $mastercomCf = mastercomAdminNormCompact($permesso['mastercom_codice_fiscale'] ?? '');
+    if ($localCf === '' || $mastercomCf === '') {
+        return null;
+    }
+    if ($localCf !== '' && $mastercomCf !== '' && $localCf !== $mastercomCf) {
+        return null;
+    }
+
+    $localClassId = intval($permesso['studente_id_classe'] ?? 0);
+    $mastercomLocalClassId = intval($permesso['mastercom_id_classe_gestore'] ?? 0);
+    if ($localClassId > 0 && $mastercomLocalClassId > 0 && $localClassId !== $mastercomLocalClassId) {
         return null;
     }
 
