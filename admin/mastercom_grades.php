@@ -419,6 +419,7 @@ $avgMatrixCells = [];
 $gradeCalendarDates = [];
 $gradeCalendarStudents = [];
 $gradeCalendarCells = [];
+$lastGlobalGradesSync = mastercomGradesCacheLastSyncLabel(null, null);
 $lastGradesSync = mastercomGradesCacheLastSyncLabel($selectedClassId > 0 ? $selectedClassId : null, $selectedSubjectId > 0 ? $selectedSubjectId : null);
 
 if (empty($missingTables) && empty($cacheMissingTables) && $selectedClassId > 0) {
@@ -1068,11 +1069,53 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
                     </div>
                     <button type="submit" class="btn btn-primary" style="margin-left: 10px;">Aggiorna</button>
                 </form>
+                <?php if (empty($cacheMissingTables)): ?>
+                    <div class="well well-sm" style="margin-bottom: 15px;">
+                        <div style="font-weight:700; margin-bottom:8px;">
+                            <span class="glyphicon glyphicon-refresh"></span>
+                            Sincronizzazione globale voti
+                        </div>
+                        <div class="btn-toolbar" role="toolbar" style="display:flex; flex-wrap:wrap; gap:8px;">
+                            <form method="post" action="mastercom_sync.php" class="form-inline" onsubmit="document.getElementById('mc_grades_loading_overlay').style.display='flex';">
+                                <input type="hidden" name="entity" value="grades">
+                                <input type="hidden" name="class_id" value="0">
+                                <input type="hidden" name="subject_id" value="0">
+                                <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($last15SyncStart); ?>">
+                                <input type="hidden" name="end_date" value="<?php echo htmlspecialchars($last15SyncEnd); ?>">
+                                <input type="hidden" name="return_url" value="<?php echo htmlspecialchars($returnUrl); ?>">
+                                <button type="submit" class="btn btn-warning">
+                                    <span class="glyphicon glyphicon-time"></span>
+                                    Tutte le classi ultimi 15 giorni
+                                </button>
+                            </form>
+
+                            <form method="post" action="mastercom_sync.php" class="form-inline" onsubmit="document.getElementById('mc_grades_loading_overlay').style.display='flex';">
+                                <input type="hidden" name="entity" value="grades">
+                                <input type="hidden" name="class_id" value="0">
+                                <input type="hidden" name="subject_id" value="0">
+                                <input type="hidden" name="start_date" value="<?php echo htmlspecialchars($schoolYearSyncStart); ?>">
+                                <input type="hidden" name="end_date" value="<?php echo htmlspecialchars($schoolYearSyncEnd); ?>">
+                                <input type="hidden" name="return_url" value="<?php echo htmlspecialchars($returnUrl); ?>">
+                                <button type="submit" class="btn btn-default">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                    Tutte le classi tutto l'anno
+                                </button>
+                            </form>
+                        </div>
+                        <div class="text-muted" style="margin-top:8px;">
+                            Per il cron giornaliero conviene sincronizzare una finestra recente; il sync di tutto l'anno resta disponibile per riallineamenti completi.
+                        </div>
+                        <?php if ($lastGlobalGradesSync !== ''): ?>
+                            <div class="text-muted" style="margin-top:4px;">Ultimo sync globale: <?php echo htmlspecialchars($lastGlobalGradesSync); ?></div>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+
                 <?php if ($selectedClassId > 0): ?>
                     <div class="well well-sm" style="margin-bottom: 15px;">
                         <div style="font-weight:700; margin-bottom:8px;">
                             <span class="glyphicon glyphicon-refresh"></span>
-                            Sincronizzazione manuale voti
+                            Sincronizzazione manuale classe
                         </div>
                         <div class="btn-toolbar" role="toolbar" style="display:flex; flex-wrap:wrap; gap:8px;">
                             <form method="post" action="mastercom_sync.php" class="form-inline" onsubmit="document.getElementById('mc_grades_loading_overlay').style.display='flex';">
