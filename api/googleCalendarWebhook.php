@@ -36,21 +36,6 @@ if ($channelId === '' || $resourceId === '') {
     exit;
 }
 
-$expectedSecret = googleCalendarGetSyncSecret();
-
-if ($expectedSecret !== '' && $channelToken !== $expectedSecret) {
-    warningGoogleCalendar(
-        'Webhook rifiutato: token canale non valido channelId=' . $channelId . ' receivedToken=' . $channelToken . ' expectedToken=' . $expectedSecret
-    );
-
-    http_response_code(403);
-    echo json_encode([
-        'ok' => false,
-        'error' => 'Token canale non valido'
-    ]);
-    exit;
-}
-
 $config = dbGetFirst("
     SELECT *
     FROM google_calendar_config
@@ -69,6 +54,28 @@ infoGoogleCalendar(
             'config' => $config
         ], JSON_UNESCAPED_UNICODE)
 );
+
+$expectedSecret = $config != null
+    ? trim((string)($config['watch_token'] ?? ''))
+    : trim((string)googleCalendarGetSyncSecret());
+if ($expectedSecret === '') {
+    $expectedSecret = trim((string)googleCalendarGetSyncSecret());
+}
+
+if ($expectedSecret !== '' && $channelToken !== $expectedSecret) {
+    warningGoogleCalendar(
+        'Webhook rifiutato: token canale non valido channelId=' . $channelId .
+        ' config_id=' . intval($config['id'] ?? 0) .
+        ' receivedTokenPresent=' . ($channelToken !== '' ? 'YES' : 'NO')
+    );
+
+    http_response_code(403);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Token canale non valido'
+    ]);
+    exit;
+}
 
 if ($config == null) {
     warningGoogleCalendar(

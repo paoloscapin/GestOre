@@ -2,6 +2,9 @@
 
 require_once __DIR__ . '/../common/__Settings.php';
 require_once __DIR__ . '/../common/__Log.php';
+
+initCronLog('googleCalendarDocentiCron');
+
 require_once __DIR__ . '/googleCalendarDocentiLib.php';
 
 setLogChannel('google_calendar');
@@ -30,9 +33,11 @@ try {
     $cfg = googleCalendarDocentiConfig();
 
     if (!$isCli) {
-        $token = googleCalendarDocentiCronParam('token');
+        $token = googleCalendarDocentiCronParam('token', googleCalendarDocentiCronParam('secret'));
         $expected = trim((string)($cfg->syncSecret ?? ''));
         if ($expected === '' || !hash_equals($expected, $token)) {
+            warningGoogleCalendar('Cron sync calendari docenti rifiutato: token non valido o mancante');
+            warningcron('googleCalendarDocentiCron rifiutato: token non valido o mancante');
             http_response_code(403);
             echo json_encode(['ok' => false, 'error' => 'Token non valido'], JSON_UNESCAPED_UNICODE);
             exit;
@@ -60,6 +65,39 @@ try {
     } else {
         $results = googleCalendarDocentiSync($username, $from, $to);
     }
+
+    $okCount = 0;
+    $errorCount = 0;
+    $skippedCount = 0;
+    $totalCreated = 0;
+    $totalUpdated = 0;
+    $totalUnchanged = 0;
+    $totalDeleted = 0;
+    foreach (($results ?: []) as $resultRow) {
+        if (!empty($resultRow['skipped'])) {
+            $skippedCount++;
+        } elseif (!empty($resultRow['error']) || (isset($resultRow['ok']) && empty($resultRow['ok']))) {
+            $errorCount++;
+        } else {
+            $okCount++;
+        }
+        $stats = is_array($resultRow['stats'] ?? null) ? $resultRow['stats'] : [];
+        $totalCreated += intval($stats['created'] ?? 0);
+        $totalUpdated += intval($stats['updated'] ?? 0);
+        $totalUnchanged += intval($stats['unchanged'] ?? 0);
+        $totalDeleted += intval($stats['deleted'] ?? 0);
+    }
+    $summary = 'googleCalendarDocentiCron risultati=' . count($results ?: []) .
+        ' ok=' . $okCount .
+        ' errori=' . $errorCount .
+        ' saltati=' . $skippedCount .
+        ' created=' . $totalCreated .
+        ' updated=' . $totalUpdated .
+        ' unchanged=' . $totalUnchanged .
+        ' deleted=' . $totalDeleted .
+        ' periodo=' . $from . '/' . $to;
+    infoGoogleCalendar($summary);
+    infocron($summary);
 
     echo json_encode([
         'ok' => true,

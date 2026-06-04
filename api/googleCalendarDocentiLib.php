@@ -336,6 +336,17 @@ function googleCalendarDocentiCurrentSchoolYearEnd()
     return ($currentYear + 1) . '-08-31';
 }
 
+function googleCalendarDocentiCurrentSchoolYearId()
+{
+    global $__anno_scolastico_corrente_id;
+
+    if (isset($__anno_scolastico_corrente_id) && intval($__anno_scolastico_corrente_id) > 0) {
+        return intval($__anno_scolastico_corrente_id);
+    }
+
+    return intval(dbGetValue('SELECT anno_scolastico_id FROM anno_scolastico_corrente LIMIT 1'));
+}
+
 function googleCalendarDocentiToday()
 {
     return (new DateTime('now', new DateTimeZone('Europe/Rome')))->format('Y-m-d');
@@ -720,6 +731,10 @@ function googleCalendarDocentiTeacherEmail(array $row)
 function googleCalendarDocentiClassesForTeacherFromGestore($username)
 {
     $u = googleCalendarDocentiLocalEsc($username);
+    $annoId = googleCalendarDocentiCurrentSchoolYearId();
+    if ($annoId <= 0) {
+        return [];
+    }
 
     $rows = dbGetAll("
         SELECT DISTINCT UPPER(TRIM(c.classe)) AS classe
@@ -727,6 +742,7 @@ function googleCalendarDocentiClassesForTeacherFromGestore($username)
         JOIN docente d ON d.id = di.id_docente
         JOIN classi c ON c.id = di.id_classe
         WHERE d.username = '$u'
+          AND di.id_anno_scolastico = " . dbI($annoId) . "
           AND c.classe IS NOT NULL
           AND c.classe <> ''
         ORDER BY c.classe
@@ -2576,6 +2592,7 @@ function googleCalendarDocentiSyncTeacher(array $teacher, $from, $to)
     $stats['deleted'] += $orphanDeleted;
 
     return [
+        'ok' => true,
         'username' => $username,
         'email' => $userEmail,
         'calendarId' => $calendarId,
@@ -2782,6 +2799,10 @@ function googleCalendarDocentiSyncUsernames(array $usernames, $from, $to, $onlyE
 function googleCalendarDocentiSyncEnabledTeachers($from, $to, $syncKind = 'cron')
 {
     $usernames = googleCalendarDocentiEnabledTeacherUsernames();
+    infoGoogleCalendar('Docenti con sync Google Calendar abilitato: ' . count($usernames));
+    if (function_exists('infocron')) {
+        infocron('googleCalendarDocentiSyncEnabledTeachers docenti_abilitati=' . count($usernames));
+    }
     if (empty($usernames)) {
         return [];
     }
