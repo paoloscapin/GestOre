@@ -239,7 +239,7 @@ if (isset($_POST)) {
 	} else if ($duplica == 'true') {
 
 		// verifico se esiste già la classe su cui voglio duplicare il programma
-		$query = "SELECT * from programmi_svolti WHERE id_classe='$classe_id' AND id_docente='$docente_id' AND id_materia='$materia_id'";
+		$query = "SELECT * from programmi_svolti WHERE id_classe='$classe_id' AND id_docente='$docente_id' AND id_materia='$materia_id' AND id_anno_scolastico='$__anno_scolastico_corrente_id'";
 		$result = dbGetFirst($query);
 
 		if ($result != null) {
@@ -279,7 +279,7 @@ if (isset($_POST)) {
 		}
 	} else if ($share == 'true') {
 		// verifico se esiste già la classe su cui voglio duplicare il programma
-		$query = "SELECT * from programmi_svolti WHERE id_classe='$classe_id' AND id_docente='$docente_id' AND id_materia='$materia_id'";
+		$query = "SELECT * from programmi_svolti WHERE id_classe='$classe_id' AND id_docente='$docente_id' AND id_materia='$materia_id' AND id_anno_scolastico='$__anno_scolastico_corrente_id'";
 		$result = dbGetFirst($query);
 
 		if (($result != null) && ($overwrite == 'true')) {
