@@ -12,6 +12,13 @@ require_once '../common/mastercom/tag_report_lib.php';
 
 ruoloRichiesto('docente', 'segreteria-didattica', 'admin');
 
+$impersonaDocenteAttiva = isset($session)
+    && intval($session->get('impersona_attiva') ?? 0) === 1
+    && (string)($session->get('impersona_ruolo') ?? '') === 'docente'
+    && intval($__docente_id ?? 0) > 0;
+$mostraHeaderDocente = $impersonaDocenteAttiva
+    || (($__utente_ruolo ?? '') === 'docente' && !(haRuolo('admin') || haRuolo('segreteria-didattica')));
+
 $stampaId = intval($_GET['id'] ?? 0);
 $stampa = $stampaId > 0 ? mastercomTagReportLoadStampa($stampaId) : null;
 if (!$stampa) {
@@ -115,7 +122,7 @@ function st_export_query(int $stampaId, array $filters, string $format): string
 </head>
 <body>
 <?php
-if (haRuolo('docente') && !(haRuolo('admin') || haRuolo('segreteria-didattica'))) {
+if ($mostraHeaderDocente) {
     require_once '../common/header-docente.php';
 } elseif (haRuolo('admin')) {
     require_once '../common/header-admin.php';

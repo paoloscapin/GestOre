@@ -15,7 +15,11 @@ ruoloRichiesto('docente', 'segreteria-didattica', 'admin');
 $docenteDaParametro = applicaDocenteDaParametroSeAutorizzato();
 
 $docenteId = intval($__docente_id ?? 0);
-$docenteScopeActive = $docenteId > 0 && ($docenteDaParametro !== null || ($__utente_ruolo ?? '') === 'docente');
+$impersonaDocenteAttiva = isset($session)
+    && intval($session->get('impersona_attiva') ?? 0) === 1
+    && (string)($session->get('impersona_ruolo') ?? '') === 'docente'
+    && $docenteId > 0;
+$docenteScopeActive = $docenteId > 0 && ($docenteDaParametro !== null || ($__utente_ruolo ?? '') === 'docente' || $impersonaDocenteAttiva);
 $adminMode = (haRuolo('admin') || haRuolo('segreteria-didattica')) && !$docenteScopeActive;
 $range = mastercomTagPrintSchoolYearRange();
 $today = mastercomTagPrintToday();
@@ -106,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 <?php
-if (haRuolo('docente') && !$adminMode) {
+if ((($__utente_ruolo ?? '') === 'docente' || $impersonaDocenteAttiva) && !$adminMode) {
     require_once '../common/header-docente.php';
 } elseif (haRuolo('admin')) {
     require_once '../common/header-admin.php';
@@ -187,7 +191,7 @@ if (haRuolo('docente') && !$adminMode) {
                     <div class="form-group">
                         <div class="col-sm-offset-2 col-sm-10">
                             <button type="submit" class="btn btn-primary">
-                                <span class="glyphicon glyphicon-import"></span>&ensp;Importa in GestOre
+                                <span class="glyphicon glyphicon-import"></span>&ensp;Genera stampa TAG
                             </button>
                         </div>
                     </div>
