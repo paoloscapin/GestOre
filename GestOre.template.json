@@ -155,6 +155,12 @@
             "emailDirigenteEventiOrganiCollegiali": "nome.cognome@buonarroti.tn.it",
             "syncSecret": "#####"
         },
+        "mastercomGradesSync": {
+            "syncSecret": "xxx"
+        },
+        ".mastercomDebtsSync": {
+            "syncSecret": "xxx"
+        },
         "googleDrive": {
             "enabled": false,
             "applicationName": "GestOre Google Drive",
