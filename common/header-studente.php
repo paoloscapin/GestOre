@@ -10,6 +10,12 @@
 ?>
 <link rel="stylesheet" href="../css/header-style.css">
 
+<?php
+$studenteImpersonato = isset($session)
+	&& intval($session->get('impersona_attiva') ?? 0) === 1
+	&& (string)($session->get('impersona_ruolo') ?? '') === 'studente';
+?>
+
 <nav class="navbar navbar-default navbar-fixed-top top-navbar top-navbar-default">
 	<div class="container-fluid">
 		<?php require_once '../common/header-_logo.php'; ?>
@@ -45,8 +51,8 @@
 					<?php echo '[' . $__studente_id . '] ' . $__studente_nome . ' ' . $__studente_cognome ?></a></li>
 			<li> 
 				<?php
-				if (haRuolo('admin')) {
-					echo '<a href="#" onclick="window.close(); return false;"><span class="glyphicon glyphicon-log-out"></span></a>';
+				if ($studenteImpersonato) {
+					echo '<a href="../common/logout.php?impersona=stop&close=1"><span class="glyphicon glyphicon-log-out"></span></a>';
 				}
 				else
 				{

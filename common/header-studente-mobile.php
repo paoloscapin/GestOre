@@ -10,6 +10,12 @@
 
 <link rel="stylesheet" href="../css/header-style.css">
 
+<?php
+$studenteImpersonato = isset($session)
+    && intval($session->get('impersona_attiva') ?? 0) === 1
+    && (string)($session->get('impersona_ruolo') ?? '') === 'studente';
+?>
+
 <nav class="navbar navbar-default navbar-fixed-top" style="background-color: #f8f8f8; border-color: #ddd;">
     <div class="container-fluid">
 
@@ -68,8 +74,8 @@
                     </a></li>
 
                 <li>
-                    <?php if (haRuolo('admin')) : ?>
-                        <a class="btn btn-lightblue4" href="../admin/index.php">
+                    <?php if ($studenteImpersonato) : ?>
+                        <a class="btn btn-lightblue4" href="../common/logout.php?impersona=stop&close=1">
                             <span class="glyphicon glyphicon-log-out"></span> Logout
                         </a>
                     <?php else : ?>
