@@ -1064,15 +1064,38 @@ function mastercomDebtsFormatRecoveryDate($value): string
     }
 }
 
+function mastercomDebtsNextSchoolYearId(int $schoolYearId): int
+{
+    if ($schoolYearId <= 0) {
+        return 0;
+    }
+
+    $yearLabel = trim((string)(dbGetValue("SELECT anno FROM anno_scolastico WHERE id = " . dbI($schoolYearId) . " LIMIT 1") ?? ''));
+    if (preg_match('/^(\d{4})\s*\/\s*(\d{4})$/', $yearLabel, $matches)) {
+        $nextLabel = intval($matches[1]) + 1 . '/' . (intval($matches[2]) + 1);
+        return intval(dbGetValue("SELECT id FROM anno_scolastico WHERE anno = " . dbQ($nextLabel) . " LIMIT 1") ?? 0);
+    }
+
+    return intval(dbGetValue("
+        SELECT id
+        FROM anno_scolastico
+        WHERE id > " . dbI($schoolYearId) . "
+        ORDER BY id ASC
+        LIMIT 1
+    ") ?? 0);
+}
+
 function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int $schoolYearId): array
 {
     if ($studentId <= 0 || $subjectId <= 0 || $schoolYearId <= 0) {
         return ['has_esito' => false, 'recuperato' => null, 'label' => 'Non confrontabile', 'data_recupero' => ''];
     }
 
-    global $__anno_scolastico_corrente_id;
+    $courseYearId = mastercomDebtsNextSchoolYearId($schoolYearId);
+    if ($courseYearId <= 0) {
+        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Nessun corso abbinato', 'data_recupero' => ''];
+    }
 
-    $courseYearId = intval($__anno_scolastico_corrente_id ?? $schoolYearId);
     $subjectIds = mastercomDebtsEquivalentCourseSubjectIds($subjectId);
     $subjectIdsSql = implode(',', array_map('dbI', $subjectIds));
     if ($subjectIdsSql === '') {
@@ -1095,7 +1118,7 @@ function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int 
         LEFT JOIN materia m ON m.id = co.id_materia
         WHERE co.carenza = 1
           AND co.id_materia IN ($subjectIdsSql)
-          AND co.id_anno_scolastico IN (" . dbI($schoolYearId) . ", " . dbI($courseYearId) . ")
+          AND co.id_anno_scolastico = " . dbI($courseYearId) . "
         ORDER BY COALESCE(ce.recuperato, 0) DESC,
                  GREATEST(COALESCE(NULLIF(co.carenza_sessione, 0), 1), COALESCE(NULLIF(ced.tentativo, 0), 1)) DESC,
                  ced.data_inizio_esame DESC,
@@ -1103,7 +1126,7 @@ function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int 
     ") ?: [];
 
     if (empty($rows)) {
-        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Nessun esito corso', 'data_recupero' => ''];
+        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Nessun corso abbinato', 'data_recupero' => ''];
     }
 
     $row = $rows[0];
@@ -1184,7 +1207,7 @@ function mastercomDebtsReportRows(int $schoolYearId, int $mastercomClassId = 0):
         if (intval($row['id_studente_gestore'] ?? 0) <= 0 || intval($row['id_materia_gestore'] ?? 0) <= 0) {
             $row['confronto'] = 'Da abbinare';
         } elseif ($course['recuperato'] === null) {
-            $row['confronto'] = 'Senza esito corso';
+            $row['confronto'] = ($course['label'] ?? '') === 'Nessun corso abbinato' ? 'Nessun corso abbinato' : 'Senza esito corso';
         } elseif (intval($row['recuperato_mastercom'] ?? 0) === intval($course['recuperato'])) {
             $row['confronto'] = 'OK';
         } else {
