@@ -177,7 +177,11 @@ $bigliettiVisibili = getSettingsValue('config', 'biglietti', true);
 <div class="ata-mobile-header">
 	<div class="ata-mobile-header-top">
 		<div class="ata-mobile-logo">
-			<?php require_once '../common/header-_logo.php'; ?>
+			<a href="../ata/index.php" class="top-navbar-brand">
+				<img style="height: 34px;"
+					src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'logo.png'")); ?>"
+					alt="Logo">
+			</a>
 		</div>
 
 		<div class="ata-mobile-user">

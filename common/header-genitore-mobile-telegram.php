@@ -10,12 +10,6 @@
 
 <link rel="stylesheet" href="../css/header-style.css">
 
-<?php
-$genitoreImpersonato = isset($session)
-    && intval($session->get('impersona_attiva') ?? 0) === 1
-    && (string)($session->get('impersona_ruolo') ?? '') === 'genitore';
-?>
-
 <nav class="navbar navbar-default navbar-fixed-top" style="background-color: #f8f8f8; border-color: #ddd;">
     <div class="container-fluid">
 
@@ -72,16 +66,17 @@ $genitoreImpersonato = isset($session)
                     </a></li>';
                 ?>
 
-                <?php
-                if ((getSettingsValue('config', 'profiloGenitore', false)) && (getSettingsValue('profiloGenitore', 'visibile_genitori', false)))
-                    echo '<li><a class="btn btn-lightblue4" href="../genitore/profilo.php">
-                        <span class="glyphicon glyphicon-user"></span> Profilo
-                    </a></li>';
-                ?>
+                <li><a class="btn btn-lightblue4" href="../genitore/profilo.php">
+                    <span class="glyphicon glyphicon-user"></span> Profilo
+                </a></li>
+
+                <li><a class="btn btn-teal4" href="../genitore/telegram.php">
+                    <span class="glyphicon glyphicon-send"></span> Telegram
+                </a></li>
 
                 <li>
-                    <?php if ($genitoreImpersonato) : ?>
-                        <a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/common/logout.php?impersona=stop&close=1">
+                    <?php if (haRuolo('admin')) : ?>
+                        <a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/admin/index.php">
                             <span class="glyphicon glyphicon-log-out"></span> Logout
                         </a>
                     <?php else : ?>
