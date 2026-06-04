@@ -257,7 +257,7 @@ $mappingRows = dbGetAll($mappingsQuery) ?: [];
                 </div>
             <?php endif; ?>
 
-            <form method="get" action="mastercom_docente_insegna_sync.php" class="form-inline docente-insegna-wait-form" data-wait-text="Aggiorno la preview della sincronizzazione..." style="margin-bottom: 15px;" onsubmit="docenteInsegnaSyncWait('Aggiorno la preview della sincronizzazione...');">
+            <form method="get" action="mastercom_docente_insegna_sync.php" class="form-inline docente-insegna-wait-form docente-insegna-filter-form" data-wait-text="Aggiorno la preview della sincronizzazione..." style="margin-bottom: 15px;">
                 <input type="hidden" name="action" value="preview">
                 <div class="form-group">
                     <label for="from">Dal</label>
@@ -348,7 +348,7 @@ $mappingRows = dbGetAll($mappingsQuery) ?: [];
             <hr>
             <h3><span class="glyphicon glyphicon-edit"></span> Gestione manuale abbinamenti</h3>
 
-            <form method="get" action="mastercom_docente_insegna_sync.php" class="form-inline docente-insegna-wait-form" data-wait-text="Filtro gli abbinamenti..." style="margin-bottom: 15px;">
+            <form method="get" action="mastercom_docente_insegna_sync.php" class="form-inline docente-insegna-wait-form docente-insegna-filter-form" data-wait-text="Filtro gli abbinamenti..." style="margin-bottom: 15px;">
                 <input type="hidden" name="from" value="<?php echo docenteInsegnaSyncH($from); ?>">
                 <input type="hidden" name="to" value="<?php echo docenteInsegnaSyncH($to); ?>">
                 <input type="hidden" name="rimuovi_obsoleti" value="<?php echo $removeObsolete ? '1' : '0'; ?>">
@@ -484,6 +484,15 @@ function docenteInsegnaSyncWait(text) {
     $('#docenteInsegnaWaitOverlay').css('display', 'flex');
 }
 
+function docenteInsegnaSyncSubmitWithWait(form, text) {
+    docenteInsegnaSyncWait(text || $(form).data('wait-text') || 'Caricamento in corso...');
+    window.setTimeout(function () {
+        if (typeof form.submit === 'function') {
+            form.submit();
+        }
+    }, 60);
+}
+
 function docenteInsegnaSyncWaitHide() {
     $('#docenteInsegnaWaitOverlay').fadeOut(120);
 }
@@ -504,6 +513,17 @@ $(window).on('load', function () {
 
 $(document).on('submit', '.docente-insegna-wait-form', function () {
     docenteInsegnaSyncWait($(this).data('wait-text') || 'Operazione in corso...');
+});
+
+$(document).on('submit', '.docente-insegna-filter-form', function (event) {
+    if ($(this).data('wait-submitting')) {
+        return true;
+    }
+
+    event.preventDefault();
+    $(this).data('wait-submitting', true);
+    docenteInsegnaSyncSubmitWithWait(this, $(this).data('wait-text') || 'Caricamento filtri...');
+    return false;
 });
 
 $(document).on('click', 'a[href*="mastercom_docente_insegna_sync.php"]', function () {
