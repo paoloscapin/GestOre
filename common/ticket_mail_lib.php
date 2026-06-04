@@ -1343,8 +1343,15 @@ function ticketMailImportInbox(int $limit = 10, ?bool $markSeen = null, bool $re
 
         $resultRow['ticket_code'] = trim((string)($res['ticket_code'] ?? $ticketCodeInSubject));
         $resultRow['status'] = !empty($res['ok']) ? 'imported' : 'error';
+        $mode = (string)($res['mode'] ?? '');
         $resultRow['note'] = !empty($res['ok'])
-            ? (($res['mode'] ?? '') === 'create' ? 'nuovo ticket creato' : (($res['mode'] ?? '') === 'closed_followup' ? 'messaggio su ticket chiuso, scelta admin richiesta' : 'ticket aggiornato'))
+            ? ($mode === 'create'
+                ? 'nuovo ticket creato'
+                : ($mode === 'closed_followup'
+                    ? 'messaggio su ticket chiuso, scelta admin richiesta'
+                    : ($mode === 'open_followup'
+                        ? 'messaggio su ticket aperto, scelta admin richiesta'
+                        : 'ticket aggiornato')))
             : trim((string)($res['error'] ?? 'errore ticket'));
 
         ticketMailLogImported([

@@ -283,6 +283,20 @@ function tgGetOpenTicketFollowupKeyboard(array $relay)
     ];
 }
 
+function tgExtractFollowupTextFromServiceMessage(array $message): string
+{
+    $text = tgNorm($message['text'] ?? $message['caption'] ?? '');
+    if ($text === '') {
+        return '';
+    }
+
+    if (preg_match('/Messaggio:\s*(.+)\z/us', $text, $matches)) {
+        return tgNorm($matches[1] ?? '');
+    }
+
+    return '';
+}
+
 function tgRelayActorLabel(array $relay)
 {
     $type = strtolower(trim((string)($relay['tipo_utente'] ?? 'docente')));
@@ -411,9 +425,14 @@ function tgCreateNewTicketFromClosedRelay(array $sourceRelay, string $serviceCha
         $actorLabel = tgRelayActorLabel($relay ?: $sourceRelay);
         $actorName = tgRelayActorName($relay ?: $sourceRelay);
         $oldTicketCode = tgNorm($sourceRelay['ticket_code'] ?? '');
+        $sourceWasClosed = strtoupper(tgNorm($sourceRelay['stato'] ?? '')) === 'CHIUSA'
+            || (int)($sourceRelay['chiusa'] ?? 0) === 1;
+        $newTicketReason = $sourceWasClosed
+            ? 'messaggio successivo a ticket chiuso'
+            : 'messaggio distinto da ticket aperto';
 
         $serviceText =
-            "🆕 Nuovo ticket aperto da messaggio successivo a ticket chiuso\n\n" .
+            "🆕 Nuovo ticket aperto da {$newTicketReason}\n\n" .
             "🏷 Ticket: {$ticketCode}\n" .
             ($oldTicketCode !== '' ? "🔁 Ticket precedente: {$oldTicketCode}\n" : '') .
             "👤 {$actorLabel}: {$actorName}\n\n" .
@@ -849,14 +868,16 @@ function tgCreateOrAppendTicketFromDocenteMail(
         $isClosedRelay = strtoupper(tgNorm($targetRelay['stato'] ?? '')) === 'CHIUSA' || (int)($targetRelay['chiusa'] ?? 0) === 1;
         $needsMergeChoice = !$relayByCode && !$isClosedRelay && strtoupper(tgNorm($targetRelay['stato'] ?? 'APERTA')) === 'APERTA';
         $threadId = (int)($targetRelay['service_thread_id'] ?? 0);
-        $ticketText = tgAppendTicketUserText($targetRelay['ultimo_testo_docente'] ?? '', $text);
+        if (!$needsMergeChoice) {
+            $ticketText = tgAppendTicketUserText($targetRelay['ultimo_testo_docente'] ?? '', $text);
 
-        dbExec("
-            UPDATE docente_telegram_relay
-            SET ultimo_testo_docente = " . dbQ($ticketText) . ",
-                data_aggiornamento = NOW()
-            WHERE id = " . dbI($idRelay) . "
-        ");
+            dbExec("
+                UPDATE docente_telegram_relay
+                SET ultimo_testo_docente = " . dbQ($ticketText) . ",
+                    data_aggiornamento = NOW()
+                WHERE id = " . dbI($idRelay) . "
+            ");
+        }
 
         $targetRelay = tgFindRelayById($idRelay);
         if (!$targetRelay) {

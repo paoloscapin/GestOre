@@ -2328,6 +2328,19 @@ if ($callback) {
 
         if ($action === 'unisci') {
             $ticketCode = tgNorm($relay['ticket_code'] ?? '');
+            $followupText = function_exists('tgExtractFollowupTextFromServiceMessage')
+                ? tgExtractFollowupTextFromServiceMessage($callbackMessage)
+                : '';
+            if ($followupText !== '') {
+                $ticketText = tgAppendTicketUserText($relay['ultimo_testo_docente'] ?? '', $followupText);
+                dbExec("
+                    UPDATE docente_telegram_relay
+                    SET ultimo_testo_docente = " . dbQ($ticketText) . ",
+                        data_aggiornamento = NOW()
+                    WHERE id = " . dbI((int)($relay['id'] ?? 0)) . "
+                ");
+                $relay = tgFindRelayById((int)($relay['id'] ?? 0)) ?: $relay;
+            }
             tgAnswerCallbackQuery($TELEGRAM_BOT_TOKEN, $callback['id'] ?? '', 'Messaggio unito al ticket');
             tgEditMessageReplyMarkup($TELEGRAM_BOT_TOKEN, $chatId, $messageId, [
                 'reply_markup' => json_encode(tgGetTicketKeyboardMinimal($relay), JSON_UNESCAPED_UNICODE)
@@ -2343,7 +2356,14 @@ if ($callback) {
 
         if ($action === 'nuovo') {
             $serviceChatId = tgNorm($relay['service_chat_id'] ?? $chatId);
-            $resNew = tgCreateNewTicketFromClosedRelay($relay, $serviceChatId, $TELEGRAM_BOT_TOKEN);
+            $followupText = function_exists('tgExtractFollowupTextFromServiceMessage')
+                ? tgExtractFollowupTextFromServiceMessage($callbackMessage)
+                : '';
+            $sourceRelayForNew = $relay;
+            if ($followupText !== '') {
+                $sourceRelayForNew['ultimo_testo_docente'] = $followupText;
+            }
+            $resNew = tgCreateNewTicketFromClosedRelay($sourceRelayForNew, $serviceChatId, $TELEGRAM_BOT_TOKEN);
             if (empty($resNew['ok'])) {
                 tgAnswerCallbackQuery($TELEGRAM_BOT_TOKEN, $callback['id'] ?? '', 'Errore apertura nuovo ticket');
                 tgSendMessage(
