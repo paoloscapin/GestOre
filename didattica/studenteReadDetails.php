@@ -32,6 +32,7 @@ if (isset($_POST['id']) && $_POST['id'] != "") {
         FROM genitori_studenti gs
         JOIN genitori g ON g.id = gs.id_genitore
         WHERE gs.id_studente = '$studente_id'
+          AND g.attivo = 1
         ORDER BY g.cognome, g.nome
     ";
     $genitori = dbGetAll($query);
