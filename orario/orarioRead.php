@@ -58,6 +58,17 @@ function addDaysIso($iso, $days)
   return $dt->format('Y-m-d');
 }
 
+function orarioAnnoScolasticoCorrenteId()
+{
+  global $__anno_scolastico_corrente_id;
+
+  if (isset($__anno_scolastico_corrente_id) && intval($__anno_scolastico_corrente_id) > 0) {
+    return intval($__anno_scolastico_corrente_id);
+  }
+
+  return intval(dbGetValue('SELECT anno_scolastico_id FROM anno_scolastico_corrente LIMIT 1'));
+}
+
 function splitCsvUnique($csv)
 {
   $csv = trim((string)$csv);
@@ -1072,14 +1083,16 @@ if ($scope === 'AULA') {
   ");
 
   $idDocenteLocale = (int)($docenteLocale['id'] ?? 0);
+  $idAnnoScolasticoCorrente = orarioAnnoScolasticoCorrenteId();
 
-  if ($idDocenteLocale > 0) {
+  if ($idDocenteLocale > 0 && $idAnnoScolasticoCorrente > 0) {
 
     $classiDocenteDaGestore = dbGetAll("
       SELECT DISTINCT c.classe AS classe
       FROM docente_insegna di
       JOIN classi c ON c.id = di.id_classe
       WHERE di.id_docente = " . dbI($idDocenteLocale) . "
+        AND di.id_anno_scolastico = " . dbI($idAnnoScolasticoCorrente) . "
         AND c.classe IS NOT NULL
         AND c.classe <> ''
     ") ?: [];

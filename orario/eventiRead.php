@@ -108,6 +108,37 @@ function mergeUniqueStrings($left, $right) {
     return uniqCaseInsensitive(array_merge((array)$left, (array)$right));
 }
 
+function eventiReadIsPublicRole() {
+    global $__utente_ruolo, $session;
+
+    $ruolo = strtolower(trim((string)($__utente_ruolo ?? '')));
+    if (in_array($ruolo, ['studente', 'genitore'], true)) {
+        return true;
+    }
+
+    if (isset($session)
+        && intval($session->get('impersona_attiva') ?? 0) === 1
+        && in_array((string)($session->get('impersona_ruolo') ?? ''), ['studente', 'genitore'], true)) {
+        return true;
+    }
+
+    return false;
+}
+
+function eventiReadHasClassi($item) {
+    $classi = $item['classi'] ?? [];
+    if (is_array($classi)) {
+        foreach ($classi as $classe) {
+            if (trim((string)$classe) !== '') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    return trim((string)$classi) !== '';
+}
+
 function splitDocentiVisual($csv) {
     $csv = trim((string)$csv);
     if ($csv === '') return [];
@@ -571,6 +602,10 @@ foreach (mb_dbGetAll($qImp) ?: [] as $r) {
     if ($idAss > 0) {
         $itemsByOralezioneAssenza[$idAss] = $idx;
     }
+}
+
+if (eventiReadIsPublicRole()) {
+    $items = array_values(array_filter($items, 'eventiReadHasClassi'));
 }
 
 echo json_encode([
