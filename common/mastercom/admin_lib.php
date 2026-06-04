@@ -880,6 +880,8 @@ function mastercomAdminFindLocalTeacher(array $masterTeacher): ?array
 
 function mastercomAdminGetLocalStudentById(int $studentId): ?array
 {
+    global $__anno_scolastico_corrente_id;
+
     if ($studentId <= 0) {
         return null;
     }
@@ -951,62 +953,9 @@ function mastercomAdminFindLocalStudent(array $masterStudent): ?array
     global $__anno_scolastico_corrente_id;
 
     $cf = trim((string)($masterStudent['codice_fiscale'] ?? ''));
-    $email = trim((string)($masterStudent['email1'] ?? ''));
-    $cognome = trim((string)($masterStudent['cognome'] ?? ''));
-    $nome = trim((string)($masterStudent['nome'] ?? ''));
     $expectedClassId = mastercomAdminExpectedLocalClassId($masterStudent);
 
-    if ($cf !== '') {
-        $query = "
-            SELECT
-                s.*,
-                sf.id_classe AS id_classe_corrente,
-                c.classe AS classe_corrente
-            FROM studente s
-            LEFT JOIN studente_frequenta sf
-                ON sf.id = (
-                    SELECT sf2.id
-                    FROM studente_frequenta sf2
-                    WHERE sf2.id_studente = s.id
-                    ORDER BY
-                        CASE
-                            WHEN sf2.id_anno_scolastico = " . intval($__anno_scolastico_corrente_id) . " THEN 0
-                            ELSE 1
-                        END,
-                        sf2.id_anno_scolastico DESC,
-                        sf2.id DESC
-                    LIMIT 1
-                )
-            LEFT JOIN classi c
-                ON c.id = sf.id_classe
-            WHERE LOWER(s.codice_fiscale) = LOWER(" . dbQ($cf) . ")
-            ORDER BY s.attivo DESC, s.id DESC
-        ";
-        $rows = dbGetAll($query) ?: [];
-        if ($expectedClassId !== null) {
-            foreach ($rows as $row) {
-                if (intval($row['id_classe_corrente'] ?? 0) === $expectedClassId) {
-                    return $row;
-                }
-            }
-        }
-        return !empty($rows) ? $rows[0] : null;
-    }
-
-    $conditions = [];
-    if ($email !== '') {
-        $conditions[] = "LOWER(s.email) = LOWER(" . dbQ($email) . ")";
-    }
-    if ($cognome !== '' && $nome !== '') {
-        $nameCondition = "(LOWER(s.cognome) = LOWER(" . dbQ($cognome) . ") AND LOWER(s.nome) = LOWER(" . dbQ($nome) . "))";
-        if ($expectedClassId !== null) {
-            $conditions[] = "(" . $nameCondition . " AND sf.id_classe = " . intval($expectedClassId) . ")";
-        } else {
-            $conditions[] = $nameCondition;
-        }
-    }
-
-    if (empty($conditions)) {
+    if ($cf === '') {
         return null;
     }
 
@@ -1032,12 +981,19 @@ function mastercomAdminFindLocalStudent(array $masterStudent): ?array
             )
         LEFT JOIN classi c
             ON c.id = sf.id_classe
-        WHERE " . implode(' OR ', $conditions) . "
+        WHERE LOWER(s.codice_fiscale) = LOWER(" . dbQ($cf) . ")
         ORDER BY s.attivo DESC, s.id DESC
-        LIMIT 1
     ";
+    $rows = dbGetAll($query) ?: [];
+    if ($expectedClassId !== null) {
+        foreach ($rows as $row) {
+            if (intval($row['id_classe_corrente'] ?? 0) === $expectedClassId) {
+                return $row;
+            }
+        }
+    }
 
-    return dbGetFirst($query);
+    return count($rows) === 1 ? $rows[0] : null;
 }
 
 function mastercomAdminFindLocalParent(array $masterParent): ?array
@@ -1129,7 +1085,17 @@ function mastercomAdminResolveLocalStudent(array $mirrorRow): ?array
         return $matched;
     }
 
-    return $linked;
+    if ($linked != null) {
+        $expectedClassId = mastercomAdminExpectedLocalClassId($mirrorRow);
+        $sameClass = $expectedClassId === null || intval($linked['id_classe_corrente'] ?? 0) === $expectedClassId;
+        $sameName = mastercomAdminNorm($linked['cognome'] ?? '') === mastercomAdminNorm($mirrorRow['cognome'] ?? '')
+            && mastercomAdminNorm($linked['nome'] ?? '') === mastercomAdminNorm($mirrorRow['nome'] ?? '');
+        if ($sameClass && $sameName) {
+            return $linked;
+        }
+    }
+
+    return null;
 }
 
 function mastercomAdminUpsertByField(string $tableName, string $keyField, $keyValue, array $data): int
@@ -1512,6 +1478,9 @@ function mastercomAdminSyncStudentsChunk(int $classId, array $masterStudents, in
                 'email1' => $masterStudent['email1'] ?? $detail['email'] ?? '',
                 'cognome' => $masterStudent['cognome'] ?? $detail['surname'] ?? '',
                 'nome' => $masterStudent['nome'] ?? $detail['first_name'] ?? '',
+                'mastercom_id_classe_corrente' => $classId,
+                'classe_numero' => $masterStudent['classe'] ?? null,
+                'sezione' => $masterStudent['sezione'] ?? null,
             ]);
 
             $studentData = [
