@@ -1,0 +1,76 @@
+.mobile-home {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 10px 6px 30px 6px;
+}
+
+.mobile-home-title {
+    color: #2d3340;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 8px 0 6px 0;
+    text-align: center;
+}
+
+.mobile-home-subtitle {
+    color: #6b7280;
+    font-size: 16px;
+    line-height: 1.4;
+    margin-bottom: 18px;
+    text-align: center;
+}
+
+.mobile-home-user {
+    color: #4b5563;
+    font-size: 15px;
+    margin: 8px 0 20px 0;
+    text-align: center;
+}
+
+.mobile-home-card {
+    background: #fff;
+    border: 1px solid #d9dde3;
+    border-radius: 18px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
+    color: #2d3340 !important;
+    display: block;
+    margin: 0 0 14px 0;
+    padding: 22px 18px;
+    text-decoration: none !important;
+    width: 100%;
+}
+
+.mobile-home-card:active,
+.mobile-home-card:focus,
+.mobile-home-card:hover {
+    background: #f8fafc;
+    text-decoration: none !important;
+}
+
+.mobile-home-card-icon {
+    display: block;
+    font-size: 34px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.mobile-home-card-title {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.mobile-home-card-desc {
+    color: #6b7280;
+    font-size: 16px;
+    line-height: 1.4;
+    text-align: center;
+}
+
+@media (min-width: 768px) {
+    .mobile-home {
+        max-width: 700px;
+    }
+}

@@ -22,17 +22,41 @@
 $pagina = '';
 
 require_once '../common/checkSession.php';
-ruoloRichiesto('docente', 'dirigente', 'segreteria-didattica');
+ruoloRichiesto('admin', 'docente', 'dirigente', 'segreteria-didattica', 'studente', 'genitore');
 // program.php (in testa al file, prima di qualsiasi uso di mPDF)
 require_once '../common/vendor/autoload.php';
+require_once __DIR__ . '/../common/programmiPubbliciLib.php';
 
 // 1) PARAMETRI POST
-$programId = isset($_POST['id']) ? (int) $_POST['id'] : -1;
-$doPrint = isset($_POST['print']) && ($_POST['print'] == '1' || $_POST['print'] === 'true');
-$titolo = isset($_POST['titolo']) ? $_POST['titolo'] : 'Programma didattico';
+$programId = isset($_REQUEST['id']) ? (int) $_REQUEST['id'] : -1;
+$doPrint = isset($_REQUEST['print']) && ($_REQUEST['print'] == '1' || $_REQUEST['print'] === 'true');
+$titolo = isset($_REQUEST['titolo']) ? $_REQUEST['titolo'] : 'Programma didattico';
 
 if ($programId==-1)
   exit;
+
+if (haRuolo('genitore') || impersonaRuolo('genitore')) {
+  if (!programmiPubbliciVisibleForRole('minimi', 'genitore')) {
+    http_response_code(403);
+    exit('Programma non disponibile per i genitori.');
+  }
+  $publicStudentId = intval($_REQUEST['public_student_id'] ?? 0);
+  if (!programmiPubbliciGenitoreCanAccessStudent(intval($__genitore_id ?? 0), $publicStudentId)
+    || !programmiPubbliciCanAccessProgram('minimi', $programId, $publicStudentId)) {
+    http_response_code(403);
+    exit('Programma non disponibile per questo studente.');
+  }
+} elseif (haRuolo('studente') || impersonaRuolo('studente')) {
+  if (!programmiPubbliciVisibleForRole('minimi', 'studente')) {
+    http_response_code(403);
+    exit('Programma non disponibile per gli studenti.');
+  }
+  $publicStudentId = intval($__studente_id ?? 0);
+  if (!programmiPubbliciCanAccessProgram('minimi', $programId, $publicStudentId)) {
+    http_response_code(403);
+    exit('Programma non disponibile per questo studente.');
+  }
+}
 
 // 2) RECUPERO DATI PROGRAMMA
 $query = "SELECT  programma_minimi.id,

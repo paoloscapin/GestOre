@@ -8,104 +8,190 @@
  */
 ?>
 
-<link rel="stylesheet" href="../css/header-style.css">
+<link rel="stylesheet" href="../css/header-style.css?v=<?php echo @filemtime(__DIR__ . '/../css/header-style.css') ?: time(); ?>">
 
 <?php
+require_once __DIR__ . '/programmiPubbliciLib.php';
+
+$currentScript = basename($_SERVER['PHP_SELF'] ?? '');
+$isGenitoreHome = ($currentScript === 'index.php');
+
 $genitoreImpersonato = isset($session)
     && intval($session->get('impersona_attiva') ?? 0) === 1
     && (string)($session->get('impersona_ruolo') ?? '') === 'genitore';
+
+$logoutHref = $genitoreImpersonato
+    ? $__application_base_path . '/common/logout.php?impersona=stop&close=1'
+    : $__application_base_path . '/common/logout.php?base=genitore';
 ?>
 
-<nav class="navbar navbar-default navbar-fixed-top" style="background-color: #f8f8f8; border-color: #ddd;">
-    <div class="container-fluid">
-
-        <div class="navbar-header" style="position:relative; width:100%; display:flex; align-items:center;">
-
-            <!-- Logo a sinistra -->
-            <a href="../index.php" class="navbar-brand top-navbar-brand" style="padding: 5px 15px;">
-                <img style="height: 44px;"
-                     src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'logo.png'")); ?>"
-                     alt="Logo">
+<div class="mobile-role-header">
+    <div class="mobile-role-header-top">
+        <div class="mobile-role-logo">
+            <a href="../genitore/index.php" class="top-navbar-brand">
+                <img src="data:image/png;base64,<?php echo base64_encode(dbGetValue("SELECT src FROM immagine WHERE nome = 'logo.png'")); ?>" alt="Logo">
             </a>
+        </div>
 
-            <!-- Nome utente centrato -->
-            <div class="navbar-center" style="position:absolute; left:50%; transform:translateX(-50%); font-weight:bold; color:#333; white-space:nowrap;">
-                <?php if (haRuolo('admin')) echo "(A) "; ?>
-                <?php echo $__genitore_nome . ' ' . $__genitore_cognome ?>
+        <div class="mobile-role-user">
+            <div class="mobile-role-label">
+                <?php if (haRuolo('admin')): ?><span class="mobile-role-admin">Admin</span><?php endif; ?>
+                <span>Genitore</span>
             </div>
-
-            <!-- Hamburger a destra -->
-            <button type="button" class="navbar-toggle collapsed navbar-toggle-right"
-                    data-toggle="collapse" data-target="#mobile-navbar" aria-expanded="false">
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
-
+            <div class="mobile-role-name">
+                <?php echo htmlspecialchars($__genitore_nome . ' ' . $__genitore_cognome, ENT_QUOTES, 'UTF-8'); ?>
+            </div>
         </div>
 
-        <!-- Menu Mobile -->
-        <div class="collapse navbar-collapse" id="mobile-navbar">
-            <ul class="nav navbar-nav navbar-right">
-
-                <?php 
-                if (getSettingsValue('config','sportelli', false) && (getSettingsValue('sportelli','visibile_genitori', false)))
-                {                 
-                        echo '
-                    <li><a class="btn btn-orange4" href="../genitore/sportello_mobile.php">
-                        <span class="glyphicon glyphicon-blackboard"></span> Sportelli
-                    </a></li>';
-                    }
-            
-                ?>
-
-                <?php if ((getSettingsValue('config','carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi','visibile_genitori', false))) : ?>
-                    <li><a class="btn btn-lightblue4" href="../genitore/carenze_mobile.php">
-                        <span class="glyphicon glyphicon-film"></span> Carenze
-                    </a></li>
-                <?php endif; ?>
-
-                <?php
-                if ((getSettingsValue('config', 'permessi', false)) && (getSettingsValue('permessi', 'visibile_genitori', false)))
-                    echo '<li><a class="btn btn-yellow4" href="../genitore/permessi_mobile.php">
-                        <span class="glyphicon glyphicon-log-out"></span> Permessi di uscita
-                    </a></li>';
-                ?>
-
-                <?php
-                if ((getSettingsValue('config', 'profiloGenitore', false)) && (getSettingsValue('profiloGenitore', 'visibile_genitori', false)))
-                    echo '<li><a class="btn btn-lightblue4" href="../genitore/profilo.php">
-                        <span class="glyphicon glyphicon-user"></span> Profilo
-                    </a></li>';
-                ?>
-
-                <li>
-                    <?php if ($genitoreImpersonato) : ?>
-                        <a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/common/logout.php?impersona=stop&close=1">
-                            <span class="glyphicon glyphicon-log-out"></span> Logout
-                        </a>
-                    <?php else : ?>
-                        <a class="btn btn-lightblue4" href="<?php echo $__application_base_path; ?>/common/logout.php?base=genitore">
-                            <span class="glyphicon glyphicon-log-out"></span> Logout
-                        </a>
-                    <?php endif; ?>
-                </li>
-
-            </ul>
-        </div>
-
+        <a class="mobile-role-logout" href="<?php echo htmlspecialchars($logoutHref, ENT_QUOTES, 'UTF-8'); ?>" title="Esci">
+            <span class="glyphicon glyphicon-log-out"></span>
+        </a>
     </div>
-</nav>
+
+    <?php if (!$isGenitoreHome): ?>
+        <div class="mobile-role-nav">
+            <a href="../genitore/index.php" class="mobile-role-btn">
+                <span class="glyphicon glyphicon-home"></span>
+                <span>Torna alla home</span>
+            </a>
+        </div>
+    <?php endif; ?>
+</div>
 
 <style>
-    /* hamburger a destra */
-    .navbar-toggle.navbar-toggle-right {
-        float: none !important;
-        margin-left: auto;
-        margin-right: 15px;
+    html,
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
-    .navbar-toggle {
-        margin-right: 0 !important;
+    body {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    .container-fluid {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    .mobile-role-header {
+        background: linear-gradient(180deg, #6cc3ea 0%, #14aae2 100%);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .10);
+        color: #fff;
+        margin-bottom: 10px;
+        padding: 12px 14px;
+    }
+
+    .mobile-role-header-top {
+        align-items: center;
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+    }
+
+    .mobile-role-logo img {
+        display: block;
+        height: 36px;
+        width: auto;
+    }
+
+    .mobile-role-logo a {
+        align-items: center;
+        background: rgba(255, 255, 255, .14);
+        border-radius: 12px;
+        display: inline-flex;
+        height: 48px;
+        justify-content: center;
+        padding: 6px;
+        width: 48px;
+    }
+
+    .mobile-role-user {
+        color: #fff;
+        flex: 1;
+        line-height: 1.2;
+        min-width: 0;
+        overflow: hidden;
+        text-align: left;
+    }
+
+    .mobile-role-label {
+        align-items: center;
+        color: rgba(255, 255, 255, .82);
+        display: flex;
+        font-size: 12px;
+        font-weight: 600;
+        gap: 6px;
+        letter-spacing: .2px;
+        margin-bottom: 3px;
+        text-transform: uppercase;
+    }
+
+    .mobile-role-admin {
+        background: rgba(255, 255, 255, .22);
+        border-radius: 999px;
+        color: #fff;
+        padding: 2px 7px;
+        text-transform: none;
+    }
+
+    .mobile-role-name {
+        color: #fff;
+        font-size: 18px;
+        font-weight: 700;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mobile-role-logout {
+        align-items: center;
+        background: rgba(255, 255, 255, .16);
+        border-radius: 12px;
+        color: #fff;
+        display: inline-flex;
+        font-size: 18px;
+        height: 42px;
+        justify-content: center;
+        text-decoration: none;
+        width: 42px;
+    }
+
+    .mobile-role-logout:hover,
+    .mobile-role-logout:focus {
+        background: rgba(255, 255, 255, .24);
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .mobile-role-nav {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 1fr;
+        margin-top: 12px;
+    }
+
+    .mobile-role-btn {
+        align-items: center;
+        background: #f3e58c;
+        border-radius: 16px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, .10);
+        color: #2d3340;
+        display: flex;
+        font-size: 20px;
+        font-weight: 700;
+        gap: 10px;
+        justify-content: center;
+        min-height: 54px;
+        padding: 12px 14px;
+        text-decoration: none;
+    }
+
+    .mobile-role-btn:hover,
+    .mobile-role-btn:focus {
+        background: #f0df72;
+        color: #2d3340;
+        text-decoration: none;
     }
 </style>

@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="../css/header-style.css">
 
 <?php
+require_once __DIR__ . '/programmiPubbliciLib.php';
+
 $studenteImpersonato = isset($session)
 	&& intval($session->get('impersona_attiva') ?? 0) === 1
 	&& (string)($session->get('impersona_ruolo') ?? '') === 'studente';
@@ -20,27 +22,21 @@ $studenteImpersonato = isset($session)
 	<div class="container-fluid">
 		<?php require_once '../common/header-_logo.php'; ?>
 
-		<ul class="nav navbar-nav top-navbar-nav">
-		<?php 
-			if (getSettingsValue('config', 'sportelli', false))
-			{
-				if (getSettingsValue('sportelli','visibile_studenti', false))
-				{
-					echo '
-				<a href="../studente/sportello.php" class="btn btn-default navbar-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a>';
-				}				
-			}
-		?>
-		</ul>
-		<?php if (getSettingsValue('config', 'biglietti', true)): ?>
-			<ul class="nav navbar-nav top-navbar-nav">
-				<a href="../common/biglietti_prenotazioni.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-barcode"></span>&ensp;Biglietti </a>
-			</ul>
-		<?php endif; ?>
-		<ul class="nav navbar-nav top-navbar-nav">
-			<?php
-			if (getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false)) : ?>
-				<a href="../studente/carenze.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a>
+		<ul class="nav navbar-nav top-navbar-nav studente-navbar-nav">
+			<?php if (getSettingsValue('config', 'sportelli', false) && getSettingsValue('sportelli', 'visibile_studenti', false)): ?>
+				<li><a href="../studente/sportello.php" class="nav-btn btn btn-default btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli</a></li>
+			<?php endif; ?>
+			<?php if (getSettingsValue('config', 'biglietti', true)): ?>
+				<li><a href="../common/biglietti_prenotazioni.php" class="nav-btn btn btn-default btn-yellow4" role="button"><span class="glyphicon glyphicon-barcode"></span>&ensp;Biglietti</a></li>
+			<?php endif; ?>
+			<?php if (getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false)): ?>
+				<li><a href="../studente/carenze.php" class="nav-btn btn btn-default btn-lightblue4" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze</a></li>
+			<?php endif; ?>
+			<?php if (programmiPubbliciVisibleForRole('materie', 'studente')): ?>
+				<li><a href="../studente/programmi.php" class="nav-btn btn btn-default btn-teal4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Programmi didattica</a></li>
+			<?php endif; ?>
+			<?php if (programmiPubbliciVisibleForRole('minimi', 'studente')): ?>
+				<li><a href="../studente/programmiMinimi.php" class="nav-btn btn btn-default btn-teal4" role="button"><span class="glyphicon glyphicon-check"></span>&ensp;Programmi obiettivi minimi</a></li>
 			<?php endif; ?>
 		</ul>
 

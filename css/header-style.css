@@ -63,6 +63,19 @@
   white-space: nowrap;
 }
 
+.genitore-navbar-nav > li > a.nav-btn,
+.studente-navbar-nav > li > a.nav-btn{
+  margin: 8px 3px;
+  padding: 6px 12px;
+  white-space: nowrap;
+  min-height: 34px;
+}
+
+.genitore-navbar-nav > li > a.nav-btn .glyphicon,
+.studente-navbar-nav > li > a.nav-btn .glyphicon{
+  top: 2px;
+}
+
 .top-navbar-default {
      background-color: #2FA4E7; /*  */
      border-color: #1995DC;
@@ -132,3 +145,37 @@ body{
   color: #000;
 }
 
+@media (max-width: 767px) {
+  #mobile-navbar {
+    border-top: 1px solid #d7d7d7;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  #mobile-navbar .navbar-nav {
+    margin: 0 -15px;
+  }
+
+  #mobile-navbar .navbar-nav > li > a.btn {
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    display: block;
+    font-size: 14px;
+    line-height: 22px;
+    margin: 0;
+    padding: 9px 12px;
+    text-align: center;
+    width: 100%;
+  }
+
+  #mobile-navbar .navbar-nav > li > a.btn .glyphicon {
+    margin-right: 4px;
+    top: 2px;
+  }
+
+  button.navbar-toggle.navbar-toggle-right,
+  button.navbar-toggle[data-target="#mobile-navbar"] {
+    display: none !important;
+  }
+}

@@ -1,0 +1,278 @@
+.programmi-pubblici-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.programmi-pubblici-context {
+    color: #36546c;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-bottom: 14px;
+}
+
+.programmi-pubblici-context > span {
+    display: inline-flex;
+    gap: 5px;
+}
+
+.programmi-pubblici-table th,
+.programmi-pubblici-table td {
+    vertical-align: middle !important;
+}
+
+.programmi-pubblici-table th:nth-child(3),
+.programmi-pubblici-table th:nth-child(5),
+.programmi-pubblici-table th:nth-child(6) {
+    text-align: center;
+}
+
+.programmi-pubblici-number {
+    width: 48px;
+}
+
+.programmi-pubblici-cards {
+    display: none;
+}
+
+@media (max-width: 991px) {
+    html,
+    body.programmi-pubblici-page {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .programmi-pubblici-page {
+        background: #f6f9fb;
+        width: 100%;
+    }
+
+    .programmi-pubblici-page *,
+    .programmi-pubblici-page *::before,
+    .programmi-pubblici-page *::after {
+        box-sizing: border-box;
+    }
+
+    .programmi-pubblici-page .container-fluid,
+    .programmi-pubblici-page .panel,
+    .programmi-pubblici-page .panel-body,
+    .programmi-pubblici-toolbar,
+    .programmi-pubblici-context,
+    .programmi-pubblici-cards,
+    .programmi-pubblici-card {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .programmi-pubblici-page .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .programmi-pubblici-page .panel {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        margin-bottom: 18px;
+    }
+
+    .programmi-pubblici-page .panel-heading {
+        background: transparent !important;
+        border: 0;
+        color: #263246 !important;
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.2;
+        padding: 12px 2px 4px 2px;
+        text-align: center;
+    }
+
+    .programmi-pubblici-page .panel-body {
+        padding: 8px 0 16px 0;
+    }
+
+    .programmi-pubblici-toolbar {
+        background: #fff;
+        border: 1px solid #dfe7ef;
+        border-radius: 14px;
+        box-shadow: 0 1px 7px rgba(38, 50, 70, .06);
+        display: block;
+        margin-bottom: 10px;
+        padding: 12px;
+    }
+
+    .programmi-pubblici-toolbar label {
+        color: #5f6d7c;
+        display: block;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .2px;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+
+    .programmi-pubblici-toolbar .bootstrap-select,
+    .programmi-pubblici-toolbar select {
+        max-width: 100%;
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
+    .programmi-pubblici-toolbar .bootstrap-select > .dropdown-toggle,
+    .programmi-pubblici-toolbar .bootstrap-select .dropdown-menu,
+    .programmi-pubblici-toolbar .dropdown-menu {
+        max-width: 100%;
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
+    .programmi-pubblici-toolbar .bootstrap-select .filter-option,
+    .programmi-pubblici-toolbar .bootstrap-select .dropdown-menu li a span.text {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .programmi-pubblici-context {
+        background: #edf8ff;
+        border: 1px solid #c8e6f6;
+        border-radius: 14px;
+        box-shadow: 0 1px 7px rgba(38, 50, 70, .05);
+        display: grid;
+        gap: 8px;
+        line-height: 1.3;
+        margin-bottom: 12px;
+        padding: 12px;
+    }
+
+    .programmi-pubblici-context > span {
+        align-items: baseline;
+        display: grid;
+        gap: 3px;
+        grid-template-columns: 82px minmax(0, 1fr);
+    }
+
+    .programmi-pubblici-context > span > span {
+        color: #557185;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .2px;
+        text-transform: uppercase;
+    }
+
+    .programmi-pubblici-context strong {
+        color: #263246;
+        font-size: 14px;
+        font-weight: 700;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .programmi-pubblici-page h4 {
+        color: #0b4f73;
+        font-size: 16px;
+        font-weight: 700;
+        margin-top: 16px;
+    }
+
+    .programmi-pubblici-table-wrap {
+        display: none;
+    }
+
+    .programmi-pubblici-cards {
+        display: grid;
+        gap: 10px;
+    }
+
+    .programmi-pubblici-card {
+        background: #fff;
+        border: 1px solid #dfe7ef;
+        border-radius: 16px;
+        box-shadow: 0 2px 10px rgba(38, 50, 70, .08);
+        overflow: hidden;
+        padding: 0;
+    }
+
+    .programmi-pubblici-card-title {
+        align-items: flex-start;
+        color: #263246;
+        display: flex;
+        font-size: 17px;
+        gap: 10px;
+        font-weight: 800;
+        line-height: 1.25;
+        padding: 14px 14px 10px 14px;
+    }
+
+    .programmi-pubblici-card-title > span:last-child {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .programmi-pubblici-card-number {
+        background: #14aae2;
+        border-radius: 999px;
+        box-shadow: 0 2px 5px rgba(20, 170, 226, .25);
+        color: #fff;
+        flex: 0 0 auto;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 26px;
+        min-width: 26px;
+        text-align: center;
+    }
+
+    .programmi-pubblici-card-meta {
+        display: grid;
+        gap: 7px;
+        font-size: 13px;
+        padding: 0 14px 12px 14px;
+    }
+
+    .programmi-pubblici-card-meta-item {
+        align-items: baseline;
+        background: #f6f9fb;
+        border: 1px solid #edf1f5;
+        border-radius: 10px;
+        display: grid;
+        gap: 4px;
+        grid-template-columns: 86px minmax(0, 1fr);
+        padding: 8px 10px;
+    }
+
+    .programmi-pubblici-card-meta-item > span:last-child {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .programmi-pubblici-card-label {
+        color: #6b7a8a;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .2px;
+        text-transform: uppercase;
+    }
+
+    .programmi-pubblici-card .btn {
+        border-radius: 0 0 16px 16px;
+        font-size: 15px;
+        font-weight: 800;
+        margin-top: 0;
+        padding: 11px 12px;
+        width: 100%;
+    }
+
+    .programmi-pubblici-card-action .glyphicon {
+        margin-right: 5px;
+        top: 2px;
+    }
+
+    .programmi-pubblici-page .alert {
+        border-radius: 14px;
+        line-height: 1.4;
+    }
+}
