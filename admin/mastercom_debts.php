@@ -458,6 +458,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                         <a class="btn btn-primary" href="mastercom_debts_stats.php?school_year_id=<?php echo intval($selectedYearId); ?>">
                             <span class="glyphicon glyphicon-stats"></span> <span class="mcd-btn-text">Statistiche</span>
                         </a>
+                        <a class="btn btn-default" href="mastercom_debts_plan.php?school_year_id=<?php echo intval($selectedYearId); ?>">
+                            <span class="glyphicon glyphicon-calendar"></span> <span class="mcd-btn-text">Pianifica</span>
+                        </a>
                         <a class="btn btn-danger" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&issue_filter=<?php echo urlencode($selectedIssueFilter); ?>&recovery_filter=<?php echo urlencode($selectedRecoveryFilter); ?>&appeal_filter=<?php echo urlencode($selectedAppealFilter); ?>&export=pdf">
                             <span class="glyphicon glyphicon-file"></span> <span class="mcd-btn-text">PDF</span>
                         </a>
