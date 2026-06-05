@@ -210,6 +210,32 @@ if ($id > 0) {
     dbExec($query);
     info("aggiornato permesso id=$id");
 } else {
+    $existingDuplicate = dbGetFirst("
+        SELECT id
+        FROM permessi_uscita
+        WHERE id_genitore = " . dbI((int)$__genitore_id) . "
+          AND id_studente = " . dbI($id_studente) . "
+          AND data = " . dbQ($data) . "
+          AND TIME_FORMAT(ora_uscita, '%H:%i') = " . dbQ(permessiUscitaFormatTime($ora_uscita)) . "
+          AND rientro = " . dbI($rientro) . "
+          AND TIME_FORMAT(ora_rientro, '%H:%i') = " . dbQ(permessiUscitaFormatTime($ora_rientro)) . "
+          AND stato IN (1, 2)
+        ORDER BY id ASC
+        LIMIT 1
+    ");
+
+    if ($existingDuplicate) {
+        $id = (int)$existingDuplicate['id'];
+        info("permesso duplicato ignorato, uso id esistente=$id");
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok' => true,
+            'id' => $id,
+            'duplicate' => true
+        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
+
     $query = "
         INSERT INTO permessi_uscita (
             id_genitore,

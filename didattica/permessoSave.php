@@ -51,6 +51,25 @@ if (!empty($_POST)) {
         }
         info("aggiornato permesso id=$id");
     } else {
+        $existingDuplicate = dbGetFirst("
+            SELECT id
+            FROM permessi_uscita
+            WHERE id_studente = " . dbI($id_studente) . "
+              AND data = " . dbQ($data) . "
+              AND TIME_FORMAT(ora_uscita, '%H:%i') = " . dbQ(permessiUscitaFormatTime($ora_uscita)) . "
+              AND rientro = " . dbI($rientro) . "
+              AND TIME_FORMAT(ora_rientro, '%H:%i') = " . dbQ(permessiUscitaFormatTime($ora_rientro)) . "
+              AND stato IN (1, 2)
+            ORDER BY id ASC
+            LIMIT 1
+        ");
+        if ($existingDuplicate) {
+            $id = (int)$existingDuplicate['id'];
+            info("permesso duplicato ignorato lato segreteria, uso id esistente=$id");
+            echo "ok";
+            return;
+        }
+
         $query = "
             INSERT INTO permessi_uscita
                 (id_genitore, id_studente, data, ora_uscita, ora_rientro, rientro, motivo, stato, note_segreteria)

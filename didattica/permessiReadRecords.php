@@ -45,7 +45,15 @@ $mastercomSelect = $hasMastercomStudenti ? "
                     NULL AS mastercom_cognome,";
 $mastercomJoin = $hasMastercomStudenti ? "
                 LEFT JOIN mastercom_studenti ms
-                ON ms.id_studente_gestore = permessi_uscita.id_studente" : "";
+                ON ms.id_studente_gestore = permessi_uscita.id_studente
+               AND (
+                    studente_frequenta.id_classe IS NULL
+                    OR ms.mastercom_id_classe_corrente IN (
+                        SELECT mc_match.mastercom_id_classe
+                        FROM mastercom_classi mc_match
+                        WHERE mc_match.id_classe_gestore = studente_frequenta.id_classe
+                    )
+               )" : "";
 $syncSelect = $hasSyncColumns ? "
                     permessi_uscita.mastercom_sync_stato,
                     permessi_uscita.mastercom_sync_at,
@@ -150,6 +158,53 @@ $resultArray = dbGetAll($query);
 if ($resultArray == null) {
 	$resultArray = [];
 }
+
+function permessiReadRecordsDuplicateRank(array $row): int
+{
+    $syncState = strtoupper(trim((string)($row['mastercom_sync_stato'] ?? '')));
+    $syncNote = trim((string)($row['mastercom_sync_last_note'] ?? ''));
+    $presenceDetail = trim((string)($row['mastercom_presence_detail'] ?? ''));
+    $isGestoreEcho = stripos($syncNote, 'permesso inviato a mastercom') !== false
+        || stripos($syncNote, 'invio gestore') !== false
+        || stripos($syncNote, 'duplicato gia inviato') !== false
+        || stripos($presenceDetail, 'invio gestore') !== false;
+    $isManual = !$isGestoreEcho && (
+        stripos($syncNote, 'inserito manualmente') !== false
+        || stripos($presenceDetail, 'inserito manualmente') !== false
+    );
+
+    if (intval($row['stato'] ?? 0) === 2 && $syncState === 'INVIATO' && !$isManual) {
+        return 10;
+    }
+    if (intval($row['stato'] ?? 0) === 2 && in_array($syncState, ['DA_INVIARE', 'ASSENTE_ATTESA', 'ERRORE'], true)) {
+        return 20;
+    }
+    if (intval($row['stato'] ?? 0) === 1) {
+        return 30;
+    }
+    if ($isManual) {
+        return 90;
+    }
+    return 50;
+}
+
+function permessiReadRecordsDuplicateKey(array $row): string
+{
+    return permessiUscitaDuplicateKey($row);
+}
+
+$dedupedResultArray = [];
+$dedupedRankByKey = [];
+foreach ($resultArray as $row) {
+    $key = permessiReadRecordsDuplicateKey($row);
+    $rank = permessiReadRecordsDuplicateRank($row);
+    if (!isset($dedupedResultArray[$key]) || $rank < $dedupedRankByKey[$key]) {
+        $dedupedResultArray[$key] = $row;
+        $dedupedRankByKey[$key] = $rank;
+    }
+}
+$resultArray = array_values($dedupedResultArray);
+
 $today = (new DateTime('now', new DateTimeZone('Europe/Rome')))->format('Y-m-d');
 function permessiPresenceColor(string $state): string {
     $state = strtoupper(trim($state));
@@ -270,8 +325,15 @@ function permessiFormatSegreteriaNotes($note): string
         $syncState = strtoupper(trim((string)($row['mastercom_sync_stato'] ?? '')));
         $presenceState = strtoupper(trim((string)($row['mastercom_presence_stato'] ?? '')));
         $syncNote = trim((string)($row['mastercom_sync_last_note'] ?? ''));
-        $isManualMastercom = stripos($syncNote, 'inserito manualmente') !== false
-            || stripos((string)($row['mastercom_presence_detail'] ?? ''), 'inserito manualmente') !== false;
+        $presenceDetail = (string)($row['mastercom_presence_detail'] ?? '');
+        $isGestoreEcho = stripos($syncNote, 'permesso inviato a mastercom') !== false
+            || stripos($syncNote, 'invio gestore') !== false
+            || stripos($syncNote, 'duplicato gia inviato') !== false
+            || stripos($presenceDetail, 'invio gestore') !== false;
+        $isManualMastercom = !$isGestoreEcho && (
+            stripos($syncNote, 'inserito manualmente') !== false
+            || stripos($presenceDetail, 'inserito manualmente') !== false
+        );
         $hasMastercomSentNote = $isManualMastercom
             || stripos($syncNote, 'permesso inviato a mastercom') !== false;
         if ($hasMastercomSentNote && in_array($syncState, ['', 'DA_INVIARE', 'ASSENTE_ATTESA', 'ERRORE'], true)) {

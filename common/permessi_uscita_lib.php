@@ -103,6 +103,52 @@ function permessiUscitaFormatTime(string $time): string
     return $time;
 }
 
+function permessiUscitaDuplicateKey(array $permesso): string
+{
+    return implode('|', [
+        trim((string)($permesso['data'] ?? '')),
+        intval($permesso['id_studente'] ?? 0),
+        permessiUscitaFormatTime((string)($permesso['ora_uscita'] ?? '')),
+        intval($permesso['rientro'] ?? 0),
+        permessiUscitaFormatTime((string)($permesso['ora_rientro'] ?? '')),
+    ]);
+}
+
+function permessiUscitaFindAlreadySentDuplicate(array $permesso): ?array
+{
+    if (!permessiUscitaColumnExists('mastercom_sync_stato')) {
+        return null;
+    }
+
+    $id = intval($permesso['id'] ?? 0);
+    $idStudente = intval($permesso['id_studente'] ?? 0);
+    $date = trim((string)($permesso['data'] ?? ''));
+    $exitHour = permessiUscitaFormatTime((string)($permesso['ora_uscita'] ?? ''));
+    $returnHour = permessiUscitaFormatTime((string)($permesso['ora_rientro'] ?? ''));
+    $rientro = intval($permesso['rientro'] ?? 0);
+
+    if ($idStudente <= 0 || $date === '' || $exitHour === '') {
+        return null;
+    }
+
+    $row = dbGetFirst("
+        SELECT id, mastercom_sync_stato, mastercom_sync_last_note
+        FROM permessi_uscita
+        WHERE id <> " . dbI($id) . "
+          AND id_studente = " . dbI($idStudente) . "
+          AND data = " . dbQ($date) . "
+          AND TIME_FORMAT(ora_uscita, '%H:%i') = " . dbQ($exitHour) . "
+          AND rientro = " . dbI($rientro) . "
+          AND TIME_FORMAT(ora_rientro, '%H:%i') = " . dbQ($returnHour) . "
+          AND stato = 2
+          AND mastercom_sync_stato = 'INVIATO'
+        ORDER BY id ASC
+        LIMIT 1
+    ");
+
+    return is_array($row) ? $row : null;
+}
+
 function permessiUscitaMailHtml(array $permesso, string $title, string $intro, string $reason = ''): string
 {
     $student = trim((string)($permesso['studente_nome'] ?? '') . ' ' . (string)($permesso['studente_cognome'] ?? ''));
@@ -298,6 +344,13 @@ function permessiUscitaAppendNote(int $id, string $line): void
     if ($id <= 0 || $line === '') {
         return;
     }
+
+    $currentNote = (string)dbGetValue("SELECT note_segreteria FROM permessi_uscita WHERE id = " . dbI($id) . " LIMIT 1");
+    $lastLine = trim((string)preg_replace('/^.*\[(\d{2}\/\d{2}\/\d{4}|\d{4}-\d{2}-\d{2}) \d{2}:\d{2}:\d{2}\]\s*/s', '', $currentNote));
+    if ($lastLine === $line) {
+        return;
+    }
+
     $stamp = '[' . permessiUscitaCurrentTimestamp() . '] ' . $line;
     dbExec("
         UPDATE permessi_uscita
@@ -529,6 +582,25 @@ function permessiUscitaSyncOne(int $id): array
         ? $presenceResult['map'][$student['mastercom_id_studente']]
         : ['stato' => 'NON_VERIFICATO', 'label' => 'Da verificare', 'detail' => 'Snapshot non disponibile'];
 
+    $currentSyncState = strtoupper(trim((string)($permesso['mastercom_sync_stato'] ?? '')));
+    $currentSyncNote = trim((string)($permesso['mastercom_sync_last_note'] ?? ''));
+    $wasSentByGestore = $currentSyncState === 'INVIATO'
+        || stripos($currentSyncNote, 'permesso inviato a mastercom') !== false;
+
+    if ($wasSentByGestore && permessiUscitaPresenceHasManualExit($presence, $date, $hour)) {
+        $message = 'Permesso gia presente su MasterCom per invio GestOre.';
+        permessiUscitaSetPresenceSnapshot($id, 'USCITO_PERMESSO', 'Uscito con permesso', $message);
+        permessiUscitaSetSyncState($id, 'INVIATO', $message, '');
+        return ['ok' => true, 'id' => $id, 'status' => 'INVIATO', 'message' => $message];
+    }
+
+    $sentDuplicate = permessiUscitaFindAlreadySentDuplicate($permesso);
+    if ($sentDuplicate !== null) {
+        $message = 'Permesso duplicato gia inviato da GestOre con richiesta #' . intval($sentDuplicate['id']) . ': ignorato per evitare doppio invio.';
+        permessiUscitaSetSyncState($id, 'INVIATO', $message, '');
+        return ['ok' => true, 'id' => $id, 'status' => 'DUPLICATO_GESTORE', 'message' => $message];
+    }
+
     if (permessiUscitaPresenceHasManualExit($presence, $date, $hour)) {
         $message = 'Permesso gia inserito manualmente su MasterCom.';
         permessiUscitaSetPresenceSnapshot($id, 'PERMESSO', 'Permesso MasterCom', $message);
@@ -544,6 +616,12 @@ function permessiUscitaSyncOne(int $id): array
     $now = new DateTime('now', new DateTimeZone('Europe/Rome'));
 
     if ($alreadyOut) {
+        if ($wasSentByGestore) {
+            $message = 'Permesso gia presente su MasterCom per invio GestOre.';
+            permessiUscitaSetPresenceSnapshot($id, 'USCITO_PERMESSO', 'Uscito con permesso', $message);
+            permessiUscitaSetSyncState($id, 'INVIATO', $message, '');
+            return ['ok' => true, 'id' => $id, 'status' => 'INVIATO', 'message' => $message];
+        }
         $message = 'Permesso gia inserito manualmente su MasterCom.';
         permessiUscitaSetSyncState($id, 'INVIATO', $message, '');
         permessiUscitaAppendNote($id, $message);
