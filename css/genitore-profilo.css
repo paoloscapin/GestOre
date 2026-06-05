@@ -1,0 +1,224 @@
+.genitore-profilo-page {
+    background: #f6f9fb;
+}
+
+.genitore-profilo-shell {
+    margin: 0 auto;
+    max-width: 1120px;
+}
+
+.genitore-profilo-hero {
+    background: linear-gradient(135deg, #0b7fb0 0%, #14aae2 100%);
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(20, 170, 226, .18);
+    color: #fff;
+    margin: 12px 0 16px;
+    padding: 18px 20px;
+}
+
+.genitore-profilo-hero-title {
+    align-items: center;
+    display: flex;
+    font-size: 26px;
+    font-weight: 800;
+    gap: 10px;
+    line-height: 1.2;
+    margin: 0 0 6px;
+}
+
+.genitore-profilo-hero-subtitle {
+    color: rgba(255, 255, 255, .88);
+    font-size: 15px;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.genitore-profilo-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: minmax(0, 4fr) minmax(320px, 5fr);
+}
+
+.genitore-profilo-card {
+    background: #fff;
+    border: 1px solid #dfe7ef;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(38, 50, 70, .06);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.genitore-profilo-card-heading {
+    align-items: center;
+    background: #f8fbfd;
+    border-bottom: 1px solid #e8eef4;
+    color: #263246;
+    display: flex;
+    font-size: 17px;
+    font-weight: 800;
+    gap: 8px;
+    padding: 12px 14px;
+}
+
+.genitore-profilo-card-body {
+    padding: 14px;
+}
+
+.genitore-profilo-dl {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+}
+
+.genitore-profilo-dl-row {
+    background: #f6f9fb;
+    border: 1px solid #edf1f5;
+    border-radius: 8px;
+    display: grid;
+    gap: 4px;
+    grid-template-columns: 130px minmax(0, 1fr);
+    padding: 9px 10px;
+}
+
+.genitore-profilo-dl dt {
+    color: #657589;
+    font-size: 12px;
+    letter-spacing: .2px;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.genitore-profilo-dl dd {
+    color: #263246;
+    font-weight: 700;
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.genitore-profilo-help {
+    color: #617286;
+    line-height: 1.45;
+    margin: 0 0 14px;
+}
+
+.genitore-profilo-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.genitore-profilo-student-list {
+    display: grid;
+    gap: 8px;
+}
+
+.genitore-profilo-student {
+    align-items: center;
+    background: #f6fff8;
+    border: 1px solid #d8efd9;
+    border-radius: 8px;
+    display: grid;
+    gap: 4px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 10px 12px;
+}
+
+.genitore-profilo-student-name {
+    color: #263246;
+    font-weight: 800;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.genitore-profilo-student-class {
+    color: #4f6b52;
+    font-size: 13px;
+}
+
+.genitore-profilo-student-status {
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 4px 8px;
+}
+
+.genitore-profilo-student-status.is-active {
+    background: #dff6e6;
+    color: #1f7a3e;
+}
+
+.genitore-profilo-student-status.is-inactive {
+    background: #f5e8e8;
+    color: #9a3030;
+}
+
+@media (max-width: 991px) {
+    html,
+    body.genitore-profilo-page {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .genitore-profilo-page *,
+    .genitore-profilo-page *::before,
+    .genitore-profilo-page *::after {
+        box-sizing: border-box;
+    }
+
+    .genitore-profilo-page .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .genitore-profilo-hero {
+        border-radius: 16px;
+        margin: 10px 0 12px;
+        padding: 16px;
+        text-align: center;
+    }
+
+    .genitore-profilo-hero-title {
+        font-size: 24px;
+        justify-content: center;
+    }
+
+    .genitore-profilo-grid {
+        display: block;
+    }
+
+    .genitore-profilo-card {
+        border-radius: 16px;
+        margin-bottom: 12px;
+    }
+
+    .genitore-profilo-card-heading {
+        font-size: 18px;
+        padding: 13px 14px;
+    }
+
+    .genitore-profilo-dl-row,
+    .genitore-profilo-student {
+        grid-template-columns: 1fr;
+    }
+
+    .genitore-profilo-student-status {
+        justify-self: start;
+    }
+
+    .genitore-profilo-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .genitore-profilo-actions .btn,
+    .genitore-profilo-card .btn[type="submit"] {
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 800;
+        padding: 11px 12px;
+        width: 100%;
+    }
+}

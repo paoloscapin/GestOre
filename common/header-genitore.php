@@ -32,14 +32,14 @@ $genitoreImpersonato = isset($session)
 			<?php if ((getSettingsValue('config', 'permessi', false)) && (getSettingsValue('permessi', 'visibile_genitori', false))): ?>
 				<li><a href="../genitore/permessi.php" class="nav-btn btn btn-default btn-yellow4" role="button"><span class="glyphicon glyphicon-log-out"></span>&ensp;Permessi di uscita</a></li>
 			<?php endif; ?>
-			<?php if ((getSettingsValue('config', 'profiloGenitore', false)) && (getSettingsValue('profiloGenitore', 'visibile_genitori', false))): ?>
-				<li><a href="../genitore/profilo.php" class="nav-btn btn btn-default btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Profilo</a></li>
-			<?php endif; ?>
 			<?php if (programmiPubbliciVisibleForRole('materie', 'genitore')): ?>
 				<li><a href="../genitore/programmi.php" class="nav-btn btn btn-default btn-lightblue4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Programmi didattica</a></li>
 			<?php endif; ?>
 			<?php if (programmiPubbliciVisibleForRole('minimi', 'genitore')): ?>
 				<li><a href="../genitore/programmiMinimi.php" class="nav-btn btn btn-default btn-lightblue4" role="button"><span class="glyphicon glyphicon-check"></span>&ensp;Programmi obiettivi minimi</a></li>
+			<?php endif; ?>
+			<?php if ((getSettingsValue('config', 'profiloGenitore', false)) && (getSettingsValue('profiloGenitore', 'visibile_genitori', false))): ?>
+				<li><a href="../genitore/profilo.php" class="nav-btn btn btn-default btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Profilo</a></li>
 			<?php endif; ?>
 		</ul>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">

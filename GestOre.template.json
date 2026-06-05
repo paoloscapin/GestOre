@@ -317,8 +317,10 @@
     },
     "profiloGenitore": {
         "visibile_genitori": false,
+        "visibile_telegram": false,
         "sincronizza_mastercom": true,
-        "email_segreteria_didattica": "segr.didattica@buonarroti.tn.it"
+        "email_segreteria_didattica": "segr.didattica@buonarroti.tn.it",
+        "annulla_cambio_email_ore": 48
     },
     "label": {
         "ore_funzionali": "funzionali",

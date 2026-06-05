@@ -36,7 +36,9 @@
 			echo '<a href="../genitore/permessi.php" class="btn btn-default navbar-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-log-out"></span>&ensp;Permessi di uscita </a>';
 		?>
 		<a href="../genitore/profilo.php" class="btn btn-default navbar-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Profilo </a>
-		<a href="../genitore/telegram.php" class="btn btn-default navbar-btn btn-teal4" role="button"><span class="glyphicon glyphicon-send"></span>&ensp;Telegram </a>
+		<?php if (getSettingsValue('profiloGenitore', 'visibile_telegram', false)): ?>
+			<a href="../genitore/telegram.php" class="btn btn-default navbar-btn btn-teal4" role="button"><span class="glyphicon glyphicon-send"></span>&ensp;Telegram </a>
+		<?php endif; ?>
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
 			<li><a><span class=""></span>
 					<?php if (haRuolo('admin')) echo "(A)" ?>
