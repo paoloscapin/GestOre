@@ -468,7 +468,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['submit_bulk_absence'] ?? '
     </style>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div id="mcBulkWaitOverlay">
     <div class="mc-bulk-wait-box">
         <div id="mcBulkWaitPercent">0%</div>

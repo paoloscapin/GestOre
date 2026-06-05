@@ -221,7 +221,7 @@ $mappingRows = dbGetAll($mappingsQuery) ?: [];
     </style>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div id="docenteInsegnaWaitOverlay">
     <div class="wait-box">
         <div class="wait-title">Caricamento abbinamenti</div>

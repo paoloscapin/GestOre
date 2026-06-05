@@ -138,7 +138,7 @@ function mastercomNoIrcRoomsStudentCount(array $students): int
     </style>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div id="noirc_room_saving_overlay" aria-live="polite" aria-busy="true">
     <div class="noirc-room-saving-card">
         <span class="glyphicon glyphicon-refresh"></span>

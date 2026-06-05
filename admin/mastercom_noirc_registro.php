@@ -18,7 +18,7 @@ $noircActionUrl = 'mastercom_noirc_registro.php';
     <?php require_once '../common/style.php'; ?>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div class="container-fluid">
     <?php require '../common/mastercom/noirc_registro_content.php'; ?>
 </div>

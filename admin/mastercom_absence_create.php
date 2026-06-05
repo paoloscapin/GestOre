@@ -206,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['submit_absence'] ?? '') ==
     </style>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div class="container-fluid">
     <?php if ($submitOk): ?>
         <div class="mc-success-center">

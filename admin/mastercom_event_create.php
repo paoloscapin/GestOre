@@ -243,7 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($missingTables)) {
     </style>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div class="event-loading-overlay" id="eventLoadingOverlay">
     <div class="event-loading-box">
         <span class="glyphicon glyphicon-refresh"></span>

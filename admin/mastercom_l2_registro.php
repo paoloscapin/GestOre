@@ -18,7 +18,7 @@ $l2ActionUrl = 'mastercom_l2_registro.php';
     <?php require_once '../common/style.php'; ?>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div class="container-fluid">
     <?php require '../common/mastercom/l2_registro_content.php'; ?>
 </div>

@@ -532,7 +532,7 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
     </style>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div class="container-fluid">
     <div class="panel panel-lightblue4">
         <div class="panel-heading">

@@ -796,11 +796,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
 </head>
 <body>
 <?php
-if (haRuolo('admin')) {
-    require_once '../common/header-admin.php';
-} else {
-    require_once '../common/header-didattica.php';
-}
+require_once headerAdminDidatticaPath('../common');
 ?>
 <div class="container-fluid">
     <div class="panel panel-lightblue4">

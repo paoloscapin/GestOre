@@ -20,7 +20,7 @@ $error = trim((string)($_GET['error'] ?? ''));
     <?php require_once '../common/style.php'; ?>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div class="container-fluid">
     <div class="panel panel-teal4">
         <div class="panel-heading"><span class="glyphicon glyphicon-education"></span>&emsp;Confronto studente</div>

@@ -125,6 +125,7 @@
 						<li><a href="../admin/mastercom_grades.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Voti</a></li>
 						<li><a href="../admin/mastercom_grade_insert.php"><span class="glyphicon glyphicon-pencil"></span>&ensp;Inserisci voti</a></li>
 						<li><a href="../admin/mastercom_debts.php"><span class="glyphicon glyphicon-alert"></span>&ensp;Carenze</a></li>
+						<li><a href="../admin/mastercom_debts_plan.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Pianifica carenze</a></li>
 						<li role="separator" class="divider"></li>
 						<li class="dropdown-header">Registri speciali</li>
 						<li><a href="../admin/mastercom_noirc.php"><span class="glyphicon glyphicon-book"></span>&ensp;NO IRC - Configurazione</a></li>

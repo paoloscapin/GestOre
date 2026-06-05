@@ -494,7 +494,7 @@ if (!$authResult['ok']) {
     </style>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div class="container-fluid">
     <div class="panel panel-teal4">
         <div class="panel-heading">

@@ -373,7 +373,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
     </style>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div id="mcdWaitOverlay">
     <div class="box">
         <h4 id="mcdWaitTitle">Operazione in corso</h4>

@@ -295,7 +295,7 @@ $gradeOptions = mcGradeGradeOptions();
     </style>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div id="mc_grade_wait"><div class="box"><span class="glyphicon glyphicon-refresh"></span> Inserimento voti in MasterCom...</div></div>
 <div class="container-fluid">
     <div class="panel panel-teal4">

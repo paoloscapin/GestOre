@@ -1016,7 +1016,7 @@ if (empty($missingTables) && $selectedClassId > 0 && !empty($subjectsToLoad)) {
     </style>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div id="mc_grades_loading_overlay">
     <div class="mc-loading-box">
         <span class="glyphicon glyphicon-refresh"></span>

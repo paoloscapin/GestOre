@@ -140,7 +140,7 @@ if (empty($missingTables) && $studentId > 0) {
     </style>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div class="container-fluid">
     <div class="panel panel-teal4">
         <div class="panel-heading"><span class="glyphicon glyphicon-calendar"></span>&emsp;Storico assenze MasterCom</div>

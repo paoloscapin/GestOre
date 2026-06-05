@@ -50,7 +50,7 @@ function ruoloRichiesto(...$ruoli) {
         return;
     }
     foreach ($ruoli as $ruolo) {
-        if ($__utente_ruolo === $ruolo) {
+        if ($__utente_ruolo === $ruolo || impersonaRuolo($ruolo)) {
             return;
         }
     }
@@ -105,6 +105,10 @@ function haRuolo($ruolo) {
         return true;
     }
     return false;
+}
+
+function headerAdminDidatticaPath($commonPath = '../common') {
+    return haRuolo('admin') ? $commonPath . '/header-admin.php' : $commonPath . '/header-didattica.php';
 }
 
 function impersonaRuolo($ruolo) {

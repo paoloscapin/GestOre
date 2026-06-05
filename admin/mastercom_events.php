@@ -87,7 +87,7 @@ $q = trim((string)($_GET['q'] ?? ''));
     </style>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div class="event-loading-overlay" id="eventLoadingOverlay">
     <div class="event-loading-box">
         <span class="glyphicon glyphicon-refresh"></span>

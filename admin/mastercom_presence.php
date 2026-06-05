@@ -633,7 +633,7 @@ if (empty($missingTables) && $selectedClassId > 0) {
     <?php require_once '../common/style.php'; ?>
 </head>
 <body>
-<?php require_once '../common/header-admin.php'; ?>
+<?php require_once headerAdminDidatticaPath('../common'); ?>
 <div class="container-fluid">
     <div class="panel panel-teal4">
         <div class="panel-heading"><span class="glyphicon glyphicon-ok-circle"></span>&emsp;Presence Snapshot MasterCom</div>
