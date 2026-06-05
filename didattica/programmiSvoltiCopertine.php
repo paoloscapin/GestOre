@@ -263,6 +263,28 @@ function programmiSvoltiCopertineConsegna(id, consegnata) {
     });
 }
 
+function programmiSvoltiCopertineDelete(id) {
+    if (!confirm('Annullare questa richiesta di copertina? Il programma tornera allo stato iniziale e il docente potra richiederla di nuovo.')) {
+        return;
+    }
+    programmiSvoltiCopertineOverlay('Annullamento richiesta copertina...');
+    $.post('programmiSvoltiCopertinaDelete.php', { id: id }, function (response) {
+        var result = typeof response === 'string' ? JSON.parse(response) : response;
+        programmiSvoltiCopertineOverlayHide();
+        if (!result || result.ok === false) {
+            alert((result && result.message) ? result.message : 'Errore durante annullamento.');
+            programmiSvoltiCopertineReadRecords();
+            return;
+        }
+        programmiSvoltiCopertineReadRecords();
+    }).fail(function (xhr) {
+        programmiSvoltiCopertineOverlayHide();
+        var message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Errore di connessione.';
+        alert(message);
+        programmiSvoltiCopertineReadRecords();
+    });
+}
+
 $(document).ready(function () {
     $('#copertine_consegna, #copertine_generazione').on('change', function () {
         programmiSvoltiCopertineReadRecords();

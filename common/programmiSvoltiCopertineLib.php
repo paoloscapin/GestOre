@@ -205,10 +205,42 @@ function programmiSvoltiCopertinaSetVerificheConsegnate(int $copertinaId, bool $
     return ['ok' => true, 'message' => 'Consegna verifiche rimossa.'];
 }
 
+function programmiSvoltiCopertinaDeleteRequest(int $copertinaId): array
+{
+    if (!programmiSvoltiCopertineTableExists()) {
+        return ['ok' => false, 'message' => 'Tabella programmi_svolti_copertine non presente.'];
+    }
+
+    $row = dbGetFirst("SELECT id, stato FROM programmi_svolti_copertine WHERE id=" . intval($copertinaId) . " LIMIT 1");
+    if (!$row) {
+        return ['ok' => false, 'message' => 'Copertina non trovata.'];
+    }
+
+    dbExec("DELETE FROM programmi_svolti_copertine WHERE id=" . intval($copertinaId) . " LIMIT 1");
+    return ['ok' => true, 'message' => 'Richiesta copertina annullata. Il programma torna allo stato iniziale.'];
+}
+
 function programmiSvoltiCopertinaNextCode(int $annoFine): array
 {
-    $max = dbGetValue("SELECT MAX(fascicolo_numero) FROM programmi_svolti_copertine WHERE fascicolo_anno=" . intval($annoFine));
-    $next = intval($max) + 1;
+    $usedRows = dbGetAll("SELECT fascicolo_numero
+        FROM programmi_svolti_copertine
+        WHERE fascicolo_anno=" . intval($annoFine) . "
+          AND fascicolo_numero IS NOT NULL
+          AND fascicolo_numero > 0
+        ORDER BY fascicolo_numero ASC");
+
+    $next = 1;
+    foreach ($usedRows as $row) {
+        $numero = intval($row['fascicolo_numero'] ?? 0);
+        if ($numero < $next) {
+            continue;
+        }
+        if ($numero > $next) {
+            break;
+        }
+        $next++;
+    }
+
     return [
         'numero' => $next,
         'anno' => $annoFine,

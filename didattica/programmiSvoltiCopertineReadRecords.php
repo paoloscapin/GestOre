@@ -205,9 +205,8 @@ foreach ($rows as $row) {
         $title = strtoupper((string)$row['stato']) === 'STAMPATA' ? 'Ristampa copertina' : 'Stampa copertina';
         echo '<a class="btn btn-primary btn-xs" target="_blank" href="programmiSvoltiCopertinePrint.php?id=' . intval($row['id']) . '" data-toggle="tooltip" title="' . htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><span class="glyphicon glyphicon-print"></span></a>';
         echo ' <button type="button" class="btn btn-warning btn-xs" onclick="programmiSvoltiCopertineRegenerate(' . intval($row['id']) . ')" data-toggle="tooltip" title="Rigenera e sostituisci il PDF su Drive"><span class="glyphicon glyphicon-repeat"></span></button>';
-    } else {
-        echo '-';
     }
+    echo ' <button type="button" class="btn btn-danger btn-xs" onclick="programmiSvoltiCopertineDelete(' . intval($row['id']) . ')" data-toggle="tooltip" title="Annulla richiesta e riporta allo stato iniziale"><span class="glyphicon glyphicon-trash"></span></button>';
     echo '</td>';
     echo '<td class="text-center">' . htmlspecialchars((string)($row['error_message'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</td>';
     echo '</tr>';
