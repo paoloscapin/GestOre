@@ -15,17 +15,45 @@
 		<?php require_once '../common/header-_logo.php'; ?>
 
 		<ul class="nav navbar-nav top-navbar-nav admin-navbar-nav">
-			<?php if (getSettingsValue('config', 'sportelli', false)) : ?>
-				<li><a href="../didattica/sportello.php" class="btn btn-default nav-btn btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli </a></li>
-				<li><a href="../didattica/reportSportelli.php" class="btn btn-default nav-btn btn-yellow4" role="button"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Report Sportelli </a></li>
-			<?php endif; ?>
-
-			<li><a href="../didattica/studente.php" class="btn btn-default nav-btn btn-lima4" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Studenti </a></li>
-			<li><a href="../didattica/genitore.php" class="btn btn-default nav-btn btn-purple" role="button"><span class="glyphicon glyphicon-pawn"></span>&ensp;Genitori </a></li>
 			<li><a href="../orario/orario.php" class="btn btn-default nav-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Orario </a></li>
 
-			<?php if ($__settings->config->corsiDiRecupero) : ?>
-				<li><a href="../docente/corsoDiRecuperoVoti.php" class="btn btn-default nav-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero </a></li>
+			<?php if (haRuolo('segreteria-didattica') || haRuolo('personale-ata') || haRuolo('admin')) : ?>
+				<li class="dropdown">
+					<a href="#" class="btn btn-default btn-lima4 nav-btn dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<span class="glyphicon glyphicon-briefcase"></span>&ensp;Segreteria <span class="caret"></span>
+					</a>
+					<ul class="dropdown-menu">
+						<li><a href="../didattica/studente.php"><span class="glyphicon glyphicon-education"></span>&ensp;Studenti</a></li>
+						<li><a href="../didattica/genitore.php"><span class="glyphicon glyphicon-user"></span>&ensp;Genitori</a></li>
+						<?php if (getSettingsValue('config', 'permessi', false)) : ?>
+							<li><a href="../didattica/permessi.php"><span class="glyphicon glyphicon-time"></span>&ensp;Permessi</a></li>
+						<?php endif; ?>
+						<li><a href="../didattica/creditiFormativi.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Crediti formativi</a></li>
+					</ul>
+				</li>
+
+				<li class="dropdown">
+					<a href="#" class="btn btn-default btn-yellow4 nav-btn dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<span class="glyphicon glyphicon-th-list"></span>&ensp;Attività <span class="caret"></span>
+					</a>
+					<ul class="dropdown-menu">
+						<?php if (getSettingsValue('config', 'sportelli', false)) : ?>
+							<li><a href="../didattica/sportello.php"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli</a></li>
+							<li><a href="../didattica/reportSportelli.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Report Sportelli</a></li>
+							<li role="separator" class="divider"></li>
+						<?php endif; ?>
+						<?php if (getSettingsValue('config', 'corsi', false)) : ?>
+							<li><a href="../didattica/corsi.php"><span class="glyphicon glyphicon-th-list"></span>&ensp;Corsi</a></li>
+						<?php endif; ?>
+						<?php if ($__settings->config->corsiDiRecupero) : ?>
+							<li><a href="../docente/corsoDiRecuperoVoti.php"><span class="glyphicon glyphicon-repeat"></span>&ensp;Corsi di Recupero</a></li>
+						<?php endif; ?>
+						<?php if (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) : ?>
+							<li><a href="../didattica/carenzeMinimi.php"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze</a></li>
+						<?php endif; ?>
+						<li><a href="../didattica/geometri.php"><span class="glyphicon glyphicon-education"></span>&ensp;Esami CAT</a></li>
+					</ul>
+				</li>
 			<?php endif; ?>
 
 			<?php
@@ -110,25 +138,12 @@
 			<?php endif; ?>
 
 			<?php
-			if (haRuolo('segreteria-didattica') || haRuolo('personale-ata') || haRuolo('admin')) {
-				if (getSettingsValue('config', 'corsi', false)) {
-					echo '<li><a href="../didattica/corsi.php" class="btn btn-default nav-btn btn-yellow" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Corsi </a></li>';
-				}
-
-				echo '<li><a href="../didattica/geometri.php" class="btn btn-default nav-btn btn-lima4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Esami CAT </a></li>';
-
-				if (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) {
-					echo '<li><a href="../didattica/carenzeMinimi.php" class="btn btn-default nav-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a></li>';
-				}
-
-				if (getSettingsValue('config', 'permessi', false)) {
-					echo '<li><a href="../didattica/permessi.php" class="btn btn-default nav-btn btn-lima4" role="button"><span class="glyphicon glyphicon-time"></span>&ensp;Permessi </a></li>';
-				}
-			} elseif (haRuolo('docente')) {
+			$showCarenzeStandalone = !haRuolo('segreteria-didattica') && !haRuolo('personale-ata') && !haRuolo('admin');
+			if ($showCarenzeStandalone && haRuolo('docente')) {
 				if ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false))) {
 					echo '<li><a href="../didattica/carenzeMinimi.php" class="btn btn-default nav-btn btn-beige" role="button"><span class="glyphicon glyphicon-film"></span>&ensp;Carenze </a></li>';
 				}
-			} elseif (haRuolo('studente')) {
+			} elseif ($showCarenzeStandalone && haRuolo('studente')) {
 				if ((getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_studenti', false))) {
 					echo '<li><a href="../didattica/carenzeMinimi.php" class="btn btn-default nav-btn btn-lightblue4" role="button"><span class="glyphicon glyphicon-th-list"></span>&ensp;Carenze </a></li>';
 				}
