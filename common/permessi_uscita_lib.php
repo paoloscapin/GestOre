@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/mastercom/admin_lib.php';
+require_once __DIR__ . '/notifichePreferenzeLib.php';
 
 function permessiUscitaColumnExists(string $columnName): bool
 {
@@ -101,6 +102,31 @@ function permessiUscitaFormatTime(string $time): string
         return $matches[1];
     }
     return $time;
+}
+
+function permessiUscitaTelegramH($value): string
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function permessiUscitaTelegramIcon(array $permesso, string $reason): string
+{
+    if ($reason === 'creazione') {
+        return '📝';
+    }
+    if ($reason === 'cancellazione') {
+        return '🗑️';
+    }
+
+    switch (intval($permesso['stato'] ?? 0)) {
+        case 2:
+            return '✅';
+        case 3:
+        case 4:
+            return '❌';
+        default:
+            return '🔔';
+    }
 }
 
 function permessiUscitaDuplicateKey(array $permesso): string
@@ -205,13 +231,12 @@ function permessiUscitaMailHtml(array $permesso, string $title, string $intro, s
 
 function permessiUscitaSendParentMailFromRow(array $permesso, string $reason): bool
 {
-    require_once __DIR__ . '/send-mail.php';
     require_once __DIR__ . '/mail-ui.php';
 
-    $email = trim((string)($permesso['genitore_email'] ?? ''));
-    if ($email === '') {
+    $genitoreId = intval($permesso['id_genitore'] ?? 0);
+    if ($genitoreId <= 0) {
         $id = intval($permesso['id'] ?? 0);
-        info("permessi_uscita: mail non inviata per permesso id=$id, email genitore mancante");
+        info("permessi_uscita: notifica non inviata per permesso id=$id, id genitore mancante");
         return false;
     }
 
@@ -233,9 +258,28 @@ function permessiUscitaSendParentMailFromRow(array $permesso, string $reason): b
         $intro = 'Lo stato della richiesta di permesso di uscita per ' . $student . ' e stato aggiornato.';
     }
 
-    $ok = sendMail($email, $toName, $subject, permessiUscitaMailHtml($permesso, $title, $intro, $reason));
+    $mailHtml = permessiUscitaMailHtml($permesso, $title, $intro, $reason);
+    $class = trim((string)($permesso['studente_classe'] ?? ''));
+    $date = permessiUscitaFormatDate((string)($permesso['data'] ?? ''));
+    $exitTime = permessiUscitaFormatTime((string)($permesso['ora_uscita'] ?? ''));
+    $returnTime = intval($permesso['rientro'] ?? 0) === 1 ? permessiUscitaFormatTime((string)($permesso['ora_rientro'] ?? '')) : '';
+    $motivo = trim((string)($permesso['motivo'] ?? ''));
+    $telegramIcon = permessiUscitaTelegramIcon($permesso, $reason);
+
+    $telegramText = $telegramIcon . ' <b>' . permessiUscitaTelegramH($title) . '</b>' . "\n"
+        . permessiUscitaTelegramH($intro) . "\n\n"
+        . '👤 <b>Studente</b>: ' . permessiUscitaTelegramH($student !== '' ? $student : '-') . "\n"
+        . '🏫 <b>Classe</b>: ' . permessiUscitaTelegramH($class !== '' ? $class : '-') . "\n"
+        . '📅 <b>Data</b>: ' . permessiUscitaTelegramH($date) . "\n"
+        . '🕒 <b>Ora uscita</b>: ' . permessiUscitaTelegramH($exitTime !== '' ? $exitTime : '-') . "\n"
+        . ($returnTime !== '' ? '↩️ <b>Ora rientro</b>: ' . permessiUscitaTelegramH($returnTime) . "\n" : '')
+        . $telegramIcon . ' <b>Stato</b>: ' . permessiUscitaTelegramH($state)
+        . ($motivo !== '' ? "\n" . '💬 <b>Motivo</b>: ' . permessiUscitaTelegramH($motivo) : '');
+
+    $result = notifichePreferenzeInviaGenitore($genitoreId, 'permessi', $subject, $mailHtml, $telegramText, [], ['parse_mode' => 'HTML']);
+    $ok = !empty($result['ok']);
     $id = intval($permesso['id'] ?? 0);
-    info("permessi_uscita: mail reason=$reason id=$id ok=" . ($ok ? '1' : '0'));
+    info("permessi_uscita: notifica reason=$reason id=$id ok=" . ($ok ? '1' : '0') . " channels=" . json_encode($result['channels'] ?? []));
     return $ok;
 }
 
