@@ -56,6 +56,17 @@
 				</li>
 			<?php endif; ?>
 
+			<?php if (haRuolo('segreteria-didattica') || haRuolo('admin')) : ?>
+				<li class="dropdown">
+					<a href="#" class="btn btn-default btn-deeporange4 nav-btn dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<span class="glyphicon glyphicon-road"></span>&ensp;Viaggi <span class="caret"></span>
+					</a>
+					<ul class="dropdown-menu">
+						<li><a href="../viaggi/index.php"><span class="glyphicon glyphicon-credit-card"></span>&ensp;Pagamenti pagoPA</a></li>
+					</ul>
+				</li>
+			<?php endif; ?>
+
 			<?php
 			$showProgrammiMenu =
 				getSettingsValue('config', 'pianiDiLavoro', false) ||
