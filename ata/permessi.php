@@ -270,6 +270,167 @@ for ($h = 7; $h <= 18; $h++) {
             font-size: 13px;
         }
 
+        .ferie-summary-modal .modal-content {
+            border-radius: 20px;
+            overflow: hidden;
+            border: 0;
+            box-shadow: 0 18px 50px rgba(15, 23, 42, .25);
+        }
+
+        .ferie-summary-modal .modal-header {
+            background: linear-gradient(135deg, #0f766e 0%, #22a8cf 100%);
+            color: #fff;
+            border-bottom: 0;
+            padding: 18px 20px;
+        }
+
+        .ferie-summary-modal .modal-title {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        .ferie-summary-modal .close {
+            color: #fff;
+            opacity: .9;
+            text-shadow: none;
+        }
+
+        .ferie-summary-body {
+            background: #f8fafc;
+            padding: 16px;
+        }
+
+        .ferie-summary-cards {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .ferie-summary-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 12px;
+            min-height: 76px;
+        }
+
+        .ferie-summary-card span {
+            display: block;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .ferie-summary-card strong {
+            display: block;
+            color: #1e293b;
+            font-size: 24px;
+            line-height: 1.1;
+            margin-top: 7px;
+        }
+
+        .ferie-summary-ranges {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 16px;
+            color: #7c2d12;
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .ferie-summary-month {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 13px;
+            margin-bottom: 12px;
+        }
+
+        .ferie-summary-month-title {
+            color: #0f172a;
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .ferie-summary-days {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+            gap: 8px;
+        }
+
+        .ferie-summary-day {
+            border: 1px solid #cbd5e1;
+            border-radius: 14px;
+            padding: 8px 6px;
+            min-height: 68px;
+            text-align: center;
+            background: #f8fafc;
+        }
+
+        .ferie-summary-day .weekday {
+            display: block;
+            font-size: 12px;
+            font-weight: 800;
+            color: #475569;
+        }
+
+        .ferie-summary-day .number {
+            display: block;
+            font-size: 24px;
+            font-weight: 900;
+            color: #0f172a;
+            line-height: 1;
+            margin: 3px 0 4px;
+        }
+
+        .ferie-summary-day .state {
+            display: block;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .ferie-summary-day.APPROVATO {
+            background: #dcfce7;
+            border-color: #86efac;
+        }
+
+        .ferie-summary-day.RESPINTO {
+            background: #fee2e2;
+            border-color: #fca5a5;
+        }
+
+        .ferie-summary-day.AGGIUNTO,
+        .ferie-summary-day.RICHIESTO {
+            background: #fef9c3;
+            border-color: #fde047;
+        }
+
+        .ferie-summary-day.BOZZA {
+            background: #e0f2fe;
+            border-color: #7dd3fc;
+        }
+
+        .ferie-summary-day.current {
+            box-shadow: inset 0 0 0 2px #0ea5e9;
+        }
+
+        .ferie-summary-empty {
+            background: #fff;
+            border: 1px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 18px;
+            color: #64748b;
+            text-align: center;
+            font-size: 15px;
+        }
+
         @media (max-width: 767px) {
             .container-fluid {
                 padding-left: 10px;
@@ -326,6 +487,22 @@ for ($h = 7; $h <= 18; $h++) {
             .well.well-sm.riga-104 .text-right,
             .well.well-sm.riga-singolo-extra .text-right {
                 text-align: left !important;
+            }
+
+            .ferie-summary-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .ferie-summary-days {
+                grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+            }
+
+            .ferie-summary-day {
+                min-height: 62px;
+            }
+
+            .ferie-summary-day .number {
+                font-size: 21px;
             }
         }
 
@@ -506,6 +683,23 @@ for ($h = 7; $h <= 18; $h++) {
 
             <div class="permessi-records-card" id="permessi_records_wrap">
                 <div style="padding:16px;" id="records_content"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade ferie-summary-modal" id="ferie_summary_modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Chiudi"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title"><span class="glyphicon glyphicon-calendar"></span> Riepilogo ferie</h4>
+                </div>
+                <div class="ferie-summary-body" id="ferie_summary_content">
+                    <div class="ferie-summary-empty">Caricamento riepilogo...</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default btn-lg" data-dismiss="modal">Chiudi</button>
+                </div>
             </div>
         </div>
     </div>

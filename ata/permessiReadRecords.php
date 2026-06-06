@@ -168,6 +168,16 @@ if (count($rows) === 0) {
         <span class="glyphicon glyphicon-pencil"></span>&ensp;Apri
       </button>';
 
+    $btnSummary = ($codice === 'FERIE' && $ferieSottotipo !== '')
+      ? '
+      <button type="button"
+              class="btn btn-info btn-lg btn-block btn-ferie-riepilogo"
+              data-id="' . $id . '"
+              data-sottotipo="' . h($ferieSottotipo) . '">
+        <span class="glyphicon glyphicon-list-alt"></span>&ensp;Riepilogo
+      </button>'
+      : '';
+
     $btnDel = (strtoupper($stato) === 'BOZZA')
       ? '
       <button type="button"
@@ -209,6 +219,10 @@ if (count($rows) === 0) {
           </div>
 
           <div class="row">
+            ' . ($btnSummary !== '' ? '
+            <div class="col-xs-12 col-sm-6" style="margin-bottom:8px;">
+              ' . $btnSummary . '
+            </div>' : '') . '
             <div class="col-xs-12 col-sm-6" style="margin-bottom:8px;">
               ' . $btnEdit . '
             </div>

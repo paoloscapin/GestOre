@@ -157,6 +157,114 @@ function permessiReadRecords() {
     });
 }
 
+function escapeHtmlAta(value) {
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function renderFerieSummary(data) {
+    if (!data || data.ok !== true) {
+        return '<div class="ferie-summary-empty">Riepilogo non disponibile.</div>';
+    }
+
+    const months = Array.isArray(data.months) ? data.months : [];
+    const ranges = Array.isArray(data.ranges) ? data.ranges : [];
+    const counts = data.state_counts || {};
+    const totalDays = parseInt(data.total_days || 0, 10) || 0;
+    const requestCount = parseInt(data.request_count || 0, 10) || 0;
+    const clickedDays = parseInt(data.clicked_days || 0, 10) || 0;
+    const title = escapeHtmlAta(data.title || "Ferie");
+    const windowLabel = escapeHtmlAta(data.window && data.window.label ? data.window.label : "-");
+
+    let html = `
+        <div class="ferie-summary-cards">
+            <div class="ferie-summary-card">
+                <span>Totale giorni</span>
+                <strong>${totalDays}</strong>
+            </div>
+            <div class="ferie-summary-card">
+                <span>Richieste considerate</span>
+                <strong>${requestCount}</strong>
+            </div>
+            <div class="ferie-summary-card">
+                <span>Giorni richiesta aperta</span>
+                <strong>${clickedDays}</strong>
+            </div>
+        </div>
+        <div class="ferie-summary-ranges">
+            <strong>${title}</strong><br>
+            Finestra: ${windowLabel}<br>
+            Periodi: ${ranges.length ? ranges.map(escapeHtmlAta).join(", ") : "nessun giorno attivo"}<br>
+            Approvati: ${parseInt(counts.APPROVATO || 0, 10) || 0}
+            &middot; Richiesti/aggiunti: ${(parseInt(counts.RICHIESTO || 0, 10) || 0) + (parseInt(counts.AGGIUNTO || 0, 10) || 0)}
+            &middot; Respinti: ${parseInt(counts.RESPINTO || 0, 10) || 0}
+            &middot; Bozza: ${parseInt(counts.BOZZA || 0, 10) || 0}
+        </div>
+    `;
+
+    if (months.length === 0) {
+        html += '<div class="ferie-summary-empty">Non ci sono giorni ferie attivi per questa tipologia.</div>';
+        return html;
+    }
+
+    for (const month of months) {
+        const days = Array.isArray(month.days) ? month.days : [];
+        html += `
+            <div class="ferie-summary-month">
+                <div class="ferie-summary-month-title">${escapeHtmlAta(month.label || "")}</div>
+                <div class="ferie-summary-days">
+        `;
+
+        for (const day of days) {
+            const state = String(day.state || "RICHIESTO").toUpperCase().replace(/[^A-Z_]/g, "");
+            html += `
+                <div class="ferie-summary-day ${state} ${day.current ? "current" : ""}">
+                    <span class="weekday">${escapeHtmlAta(day.weekday || "")}</span>
+                    <span class="number">${escapeHtmlAta(day.day || "")}</span>
+                    <span class="state">${escapeHtmlAta(day.state_label || "")}</span>
+                </div>
+            `;
+        }
+
+        html += `
+                </div>
+            </div>
+        `;
+    }
+
+    return html;
+}
+
+function openFerieSummary(id, sottotipo) {
+    $("#ferie_summary_content").html('<div class="ferie-summary-empty">Caricamento riepilogo...</div>');
+    $("#ferie_summary_modal").modal("show");
+
+    $.ajax({
+        url: "ferieRiepilogoRead.php",
+        method: "POST",
+        dataType: "json",
+        data: {
+            id: id,
+            sottotipo: sottotipo
+        },
+        success: function (response) {
+            if (!response || response.ok !== true) {
+                $("#ferie_summary_content").html('<div class="ferie-summary-empty">' + escapeHtmlAta((response && response.error) ? response.error : "Errore lettura riepilogo.") + '</div>');
+                return;
+            }
+
+            $("#ferie_summary_content").html(renderFerieSummary(response));
+        },
+        error: function (xhr) {
+            $("#ferie_summary_content").html('<div class="ferie-summary-empty">Errore server: ' + escapeHtmlAta(xhr.status) + '</div>');
+        }
+    });
+}
+
 function getTipoCodiceSelezionato() {
     const $opt = $("#permesso_tipo_id option:selected");
     return ($opt.data("codice") || "").toString().trim();
@@ -869,6 +977,12 @@ $(document).on("change", "#ferie_sottotipo", function () {
 $(document).on("click", ".btn-open-permesso", function () {
     const id = parseInt($(this).data("id"), 10) || 0;
     if (id > 0) permessoGetDetails(id);
+});
+
+$(document).on("click", ".btn-ferie-riepilogo", function () {
+    const id = parseInt($(this).data("id"), 10) || 0;
+    const sottotipo = String($(this).data("sottotipo") || "").toUpperCase().trim();
+    if (id > 0 && sottotipo) openFerieSummary(id, sottotipo);
 });
 
 $(document).on("click", ".btn-delete-permesso", function () {
