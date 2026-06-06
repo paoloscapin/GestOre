@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../checkSession.php';
+require_once __DIR__ . '/../connect.php';
 
 ruoloRichiesto('admin');
 
@@ -142,9 +143,18 @@ function hydrateLoadedResult(array $result): array
         $result['seat_count'] = tribunaSeatCount($tickets, $profile);
         $result['seat_map'] = buildSeatMapData($tickets, $assignments);
         $result['debug_zones'] = debugZones($tickets);
+        $usedTicketIds = [];
+        foreach ($assignments as $row) {
+            foreach (($row['ticket_ids'] ?? []) as $ticketId) {
+                if ((string)$ticketId !== '') {
+                    $usedTicketIds[(string)$ticketId] = true;
+                }
+            }
+        }
+
         $result['unassigned_ticket_count'] = max(
             0,
-            count($tickets) - array_sum(array_map(fn($row) => (int)($row['numero_posti'] ?? 0), $assignments))
+            count($tickets) - count($usedTicketIds)
         );
     }
 
@@ -196,22 +206,22 @@ function writeAssignmentsCsv(array $assignments, string $outPath): void
 }
 
 function seatMapHasGapAfter(int $seat, string $tribuna): bool
-  {
-        if (ticketsVenueUsesSegmentedSeatMap($tribuna)) {
-            return in_array($seat, [12, 42], true);
-        }
-
-        return false;
+{
+    if (ticketsVenueUsesSegmentedSeatMap($tribuna)) {
+        return in_array($seat, [12, 42], true);
     }
+
+    return false;
+}
 
 function seatMapFixedSeatRange(string $tribuna): ?array
-    {
-        if (ticketsVenueUsesSegmentedSeatMap($tribuna)) {
-            return [1, 54];
-        }
-
-        return null;
+{
+    if (ticketsVenueUsesSegmentedSeatMap($tribuna)) {
+        return [1, 54];
     }
+
+    return null;
+}
 
 function seatMapGapAfterSeats(string $tribuna): array
 {
@@ -271,7 +281,19 @@ function rebuildResultArtifacts(array &$result, array $assignments): void
 {
     $result['assignments'] = array_values($assignments);
     $result['assignment_count'] = count($assignments);
-    $result['unassigned_ticket_count'] = max(0, (int)($result['ticket_count'] ?? 0) - array_sum(array_map(fn($r) => (int)($r['numero_posti'] ?? 0), $assignments)));
+    $usedTicketIds = [];
+    foreach ($result['assignments'] as $row) {
+        foreach (($row['ticket_ids'] ?? []) as $ticketId) {
+            if ((string)$ticketId !== '') {
+                $usedTicketIds[(string)$ticketId] = true;
+            }
+        }
+    }
+
+    $result['unassigned_ticket_count'] = max(
+        0,
+        (int)($result['ticket_count'] ?? 0) - count($usedTicketIds)
+    );
     $result['seat_map'] = buildSeatMapData($result['parsed_tickets'] ?? [], $result['assignments']);
 
     if (!empty($result['assignments_csv'])) {
@@ -282,6 +304,186 @@ function rebuildResultArtifacts(array &$result, array $assignments): void
     if (is_file($pdfPath)) {
         $result['pdf_files'] = createPdfsPerEmail($pdfPath, $result['assignments'], PDF_OUT_DIR, TEMP_PDF_DIR);
     }
+}
+
+function saveSeatMapToDb(int $eventoId, array $seatMap): void
+{
+    if ($eventoId <= 0) {
+        return;
+    }
+
+    dbExec("DELETE FROM ticket_eventi_assegnazione_posto WHERE evento_id = " . dbI($eventoId));
+
+    foreach ($seatMap as $seat) {
+        if (empty($seat['assigned'])) {
+            continue;
+        }
+
+        $ticketId = (string)($seat['ticket_id'] ?? '');
+        if ($ticketId === '') {
+            continue;
+        }
+
+        $query = "
+            INSERT INTO ticket_eventi_assegnazione_posto
+            (
+                evento_id,
+                ticket_id,
+                page,
+                tribuna,
+                settore,
+                fila,
+                blocco,
+                blocco_label,
+                posto,
+                email,
+                display_name,
+                macrogruppo,
+                gruppo,
+                affianca,
+                color
+            )
+            VALUES
+            (
+                " . dbI($eventoId) . ",
+                " . dbQ($ticketId) . ",
+                " . dbI($seat['page'] ?? null) . ",
+                " . dbQ($seat['tribuna'] ?? null) . ",
+                " . dbQ($seat['settore'] ?? null) . ",
+                " . dbI($seat['fila'] ?? null) . ",
+                " . dbI($seat['blocco'] ?? null) . ",
+                " . dbQ($seat['blocco_label'] ?? null) . ",
+                " . dbI($seat['posto'] ?? null) . ",
+                " . dbQ($seat['email'] ?? null) . ",
+                " . dbQ($seat['display_name'] ?? null) . ",
+                " . dbQ($seat['macrogruppo'] ?? null) . ",
+                " . dbQ($seat['gruppo'] ?? null) . ",
+                " . dbI($seat['affianca'] ?? null) . ",
+                " . dbQ($seat['color'] ?? null) . "
+            )
+        ";
+
+        dbExec($query);
+    }
+}
+
+function loadSeatMapFromDb(int $eventoId, array $tickets): array
+{
+    global $__con;
+
+    $seatMap = buildSeatMapData($tickets, []);
+
+    if ($eventoId <= 0) {
+        return $seatMap;
+    }
+
+    $rows = dbGetAll("
+        SELECT *
+        FROM ticket_eventi_assegnazione_posto
+        WHERE evento_id = " . (int)$eventoId . "
+    ");
+
+    $byTicket = [];
+    foreach ($rows as $row) {
+        $byTicket[(string)$row['ticket_id']] = $row;
+    }
+
+    foreach ($seatMap as &$seat) {
+        $ticketId = (string)($seat['ticket_id'] ?? '');
+
+        if ($ticketId === '' || !isset($byTicket[$ticketId])) {
+            continue;
+        }
+
+        $row = $byTicket[$ticketId];
+
+        $seat['assigned'] = true;
+        $seat['display_name'] = (string)($row['display_name'] ?? '');
+        $seat['email'] = (string)($row['email'] ?? '');
+        $seat['macrogruppo'] = (string)($row['macrogruppo'] ?? '');
+        $seat['gruppo'] = (string)($row['gruppo'] ?? '');
+        $seat['affianca'] = $row['affianca'] ?? null;
+        $seat['color'] = (string)($row['color'] ?? '');
+        $seat['tooltip'] = sprintf(
+            '%s | %s | %s | Blocco %d | Fila %d Posto %d | Pagina %s',
+            $seat['display_name'],
+            $seat['macrogruppo'],
+            $seat['gruppo'],
+            (int)$seat['blocco'],
+            (int)$seat['fila'],
+            (int)$seat['posto'],
+            (string)$seat['page']
+        );
+    }
+    unset($seat);
+
+    return $seatMap;
+}
+
+function assignmentsFromSeatMap(array $seatMap): array
+{
+    $byEmail = [];
+
+    foreach ($seatMap as $seat) {
+        if (empty($seat['assigned'])) {
+            continue;
+        }
+
+        $email = (string)($seat['email'] ?? '');
+        if ($email === '') {
+            continue;
+        }
+
+        if (!isset($byEmail[$email])) {
+            $byEmail[$email] = [
+                'macrogruppo' => (string)($seat['macrogruppo'] ?? ''),
+                'gruppo' => (string)($seat['gruppo'] ?? ''),
+                'email' => $email,
+                'display_name' => (string)($seat['display_name'] ?? ''),
+                'numero_posti' => 0,
+                'affianca' => $seat['affianca'] ?? null,
+                'tribuna' => (string)($seat['tribuna'] ?? ''),
+                'settore' => (string)($seat['settore'] ?? ''),
+                'fila' => (int)($seat['fila'] ?? 0),
+                'blocco' => (int)($seat['blocco'] ?? 0),
+                'blocco_label' => (string)($seat['blocco_label'] ?? ''),
+                'posti' => [],
+                'pages' => [],
+                'ticket_ids' => [],
+                'fila_penalizzata' => 0,
+                'color' => (string)($seat['color'] ?? ''),
+            ];
+        }
+
+        $byEmail[$email]['numero_posti']++;
+        $byEmail[$email]['posti'][] = (int)($seat['posto'] ?? 0);
+        $byEmail[$email]['pages'][] = (int)($seat['page'] ?? 0);
+        $byEmail[$email]['ticket_ids'][] = (string)($seat['ticket_id'] ?? '');
+    }
+
+    return array_values($byEmail);
+}
+
+function applySavedSeatMapFromDb(int $eventoId, array &$result): void
+{
+    if ($eventoId <= 0 || empty($result['parsed_tickets'])) {
+        return;
+    }
+
+    $count = (int) dbGetValue(
+        "
+        SELECT COUNT(*)
+        FROM ticket_eventi_assegnazione_posto
+        WHERE evento_id = " . dbI($eventoId)
+    );
+
+    if ($count <= 0) {
+        return;
+    }
+
+    $result['seat_map'] = loadSeatMapFromDb($eventoId, $result['parsed_tickets']);
+    $result['assignments'] = assignmentsFromSeatMap($result['seat_map']);
+    rebuildResultArtifacts($result, $result['assignments']);
 }
 
 ensureDirs();
@@ -316,20 +518,72 @@ try {
         $selectedEventId = isset($_POST['evento_id']) ? (int)$_POST['evento_id'] : 0;
 
         if (isset($_POST['action']) && $_POST['action'] === 'swap_assignments') {
-            $result = $_SESSION['tickets_last_result'] ?? null;
-            $assignments = $_SESSION['tickets_assignments'] ?? [];
+            global $__con;
 
-            if (!$result || !$assignments) {
-                throw new RuntimeException('Nessuna elaborazione disponibile per lo scambio');
+            $ticketA = trim((string)($_POST['swap_ticket_a'] ?? ''));
+            $ticketB = trim((string)($_POST['swap_ticket_b'] ?? ''));
+
+            if ($selectedEventId <= 0 || $ticketA === '' || $ticketB === '' || $ticketA === $ticketB) {
+                throw new RuntimeException('Posti da scambiare non validi');
             }
 
-            $idxA = isset($_POST['swap_a']) ? (int) $_POST['swap_a'] : -1;
-            $idxB = isset($_POST['swap_b']) ? (int) $_POST['swap_b'] : -1;
-            $assignments = swapAssignmentRows($assignments, $idxA, $idxB);
+            $rows = dbGetAll("
+        SELECT *
+        FROM ticket_eventi_assegnazione_posto
+        WHERE evento_id = " . (int)$selectedEventId . "
+          AND ticket_id IN ('" . mysqli_real_escape_string($__con, $ticketA) . "', '" . mysqli_real_escape_string($__con, $ticketB) . "')
+    ");
 
-            $_SESSION['tickets_assignments'] = $assignments;
-            rebuildResultArtifacts($result, $assignments);
+            if (count($rows) !== 2) {
+                throw new RuntimeException('Devi selezionare due posti già assegnati');
+            }
+
+            $byTicket = [];
+            foreach ($rows as $row) {
+                $byTicket[(string)$row['ticket_id']] = $row;
+            }
+
+            $a = $byTicket[$ticketA];
+            $b = $byTicket[$ticketB];
+
+            $fields = ['email', 'display_name', 'macrogruppo', 'gruppo', 'affianca', 'color'];
+
+            $setA = [];
+            $setB = [];
+
+            foreach ($fields as $field) {
+                $setA[] = "`$field` = '" . mysqli_real_escape_string($__con, (string)($b[$field] ?? '')) . "'";
+                $setB[] = "`$field` = '" . mysqli_real_escape_string($__con, (string)($a[$field] ?? '')) . "'";
+            }
+
+            dbExec("
+        UPDATE ticket_eventi_assegnazione_posto
+        SET " . implode(', ', $setA) . "
+        WHERE evento_id = " . (int)$selectedEventId . "
+          AND ticket_id = '" . mysqli_real_escape_string($__con, $ticketA) . "'
+    ");
+
+            dbExec("
+        UPDATE ticket_eventi_assegnazione_posto
+        SET " . implode(', ', $setB) . "
+        WHERE evento_id = " . (int)$selectedEventId . "
+          AND ticket_id = '" . mysqli_real_escape_string($__con, $ticketB) . "'
+    ");
+
+            $result = $_SESSION['tickets_last_result'] ?? loadLastResult();
+            $result = is_array($result) ? hydrateLoadedResult($result) : null;
+
+            if (!$result) {
+                throw new RuntimeException('Nessuna elaborazione disponibile');
+            }
+
+            $result['seat_map'] = loadSeatMapFromDb($selectedEventId, $result['parsed_tickets'] ?? []);
+            $result['assignments'] = assignmentsFromSeatMap($result['seat_map']);
+            rebuildResultArtifacts($result, $result['assignments']);
+            saveSeatMapToDb($selectedEventId, $result['seat_map'] ?? []);
+
             $_SESSION['tickets_last_result'] = $result;
+            saveLastResult($result);
         }
 
         if (isset($_POST['action']) && $_POST['action'] === 'send_emails') {
@@ -339,8 +593,14 @@ try {
                 throw new RuntimeException('Nessuna elaborazione disponibile da inviare');
             }
 
-            $emailResults = sendAllEmails($lastResult['assignments'], PDF_OUT_DIR);
-
+            $emailResults = sendAllEmails(
+                $lastResult['assignments'],
+                PDF_OUT_DIR,
+                [
+                    'titolo' => $lastResult['reservation_event_title'] ?? '',
+                    'label' => $lastResult['reservation_event_label'] ?? '',
+                ]
+            );
             $lastResult['email_results'] = $emailResults;
             $lastResult['last_email_send'] = date('Y-m-d H:i:s');
 
@@ -430,21 +690,27 @@ try {
             $_SESSION['tickets_assignments'] = $assignments;
             $_SESSION['tickets_last_result'] = $lastResult;
             saveLastResult($lastResult);
-
+            saveSeatMapToDb($selectedEventId, $lastResult['seat_map'] ?? []);
             $result = $lastResult;
         }
     } else {
         if (!empty($_SESSION['tickets_last_result'])) {
             $result = hydrateLoadedResult($_SESSION['tickets_last_result']);
+
+            applySavedSeatMapFromDb($selectedEventId, $result);
+
             $_SESSION['tickets_last_result'] = $result;
+            $_SESSION['tickets_assignments'] = $result['assignments'] ?? [];
         } else {
             $result = loadLastResult();
+
             if ($result) {
                 $result = hydrateLoadedResult($result);
+
+                applySavedSeatMapFromDb($selectedEventId, $result);
+
                 $_SESSION['tickets_last_result'] = $result;
-                if (!empty($result['assignments'])) {
-                    $_SESSION['tickets_assignments'] = $result['assignments'];
-                }
+                $_SESSION['tickets_assignments'] = $result['assignments'] ?? [];
             }
         }
     }
@@ -541,7 +807,7 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                             </div>
                         </div>
                         <script>
-                            (function () {
+                            (function() {
                                 const select = document.getElementById('evento_id_select');
                                 const box = document.getElementById('evento_summary_box');
                                 const title = document.getElementById('evento_summary_title');
@@ -556,13 +822,13 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
 
                                 const eventMap = {
                                     <?php foreach ($ticketEvents as $event): ?>
-                                    <?= (int)($event['id'] ?? 0) ?>: {
-                                        title: <?= json_encode((string)($event['titolo'] ?? '')) ?>,
-                                        datetime: <?= json_encode(ticketEventiFormatDateTime((string)($event['data_evento'] ?? ''))) ?>,
-                                        location: <?= json_encode((string)($event['luogo'] ?? '')) ?>,
-                                        reservations: <?= json_encode('Prenotazioni attive: ' . (string)($event['prenotazioni_attive'] ?? 0)) ?>,
-                                        tickets: <?= json_encode('Biglietti prenotati: ' . (string)($event['posti_prenotati'] ?? 0)) ?>
-                                    },
+                                        <?= (int)($event['id'] ?? 0) ?>: {
+                                            title: <?= json_encode((string)($event['titolo'] ?? '')) ?>,
+                                            datetime: <?= json_encode(ticketEventiFormatDateTime((string)($event['data_evento'] ?? ''))) ?>,
+                                            location: <?= json_encode((string)($event['luogo'] ?? '')) ?>,
+                                            reservations: <?= json_encode('Prenotazioni attive: ' . (string)($event['prenotazioni_attive'] ?? 0)) ?>,
+                                            tickets: <?= json_encode('Biglietti prenotati: ' . (string)($event['posti_prenotati'] ?? 0)) ?>
+                                        },
                                     <?php endforeach; ?>
                                 };
 
@@ -770,7 +1036,7 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                 </div>
 
                 <script>
-                    (function () {
+                    (function() {
                         const select = document.getElementById('evento_id_select');
                         const bookingsTitle = document.getElementById('selected-event-bookings-title');
                         const bookingsWrap = document.getElementById('selected-event-bookings-wrap');
@@ -781,18 +1047,18 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
 
                         const reservationsMap = {
                             <?php foreach ($ticketEvents as $event): ?>
-                            <?= (int)($event['id'] ?? 0) ?>: {
-                                label: <?= json_encode(ticketEventDisplayLabel($event)) ?>,
-                                rows: <?= json_encode(array_map(static function (array $prenotazione): array {
-                                    return [
-                                        'nominativo' => (string)($prenotazione['nominativo'] ?? ''),
-                                        'ruolo' => ticketEventiRoleLabel((string)($prenotazione['ruolo'] ?? '')),
-                                        'classe' => (string)($prenotazione['classe_label'] ?? ''),
-                                        'email' => (string)($prenotazione['email'] ?? ''),
-                                        'posti' => (int)($prenotazione['numero_posti'] ?? 0),
-                                    ];
-                                }, $ticketEventReservationsById[(int)($event['id'] ?? 0)] ?? []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
-                            },
+                                <?= (int)($event['id'] ?? 0) ?>: {
+                                    label: <?= json_encode(ticketEventDisplayLabel($event)) ?>,
+                                    rows: <?= json_encode(array_map(static function (array $prenotazione): array {
+                                                return [
+                                                    'nominativo' => (string)($prenotazione['nominativo'] ?? ''),
+                                                    'ruolo' => ticketEventiRoleLabel((string)($prenotazione['ruolo'] ?? '')),
+                                                    'classe' => (string)($prenotazione['classe_label'] ?? ''),
+                                                    'email' => (string)($prenotazione['email'] ?? ''),
+                                                    'posti' => (int)($prenotazione['numero_posti'] ?? 0),
+                                                ];
+                                            }, $ticketEventReservationsById[(int)($event['id'] ?? 0)] ?? []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
+                                },
                             <?php endforeach; ?>
                         };
 
@@ -823,14 +1089,14 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                             }
 
                             let html = '<div class="table-wrap"><table><thead><tr><th>Nominativo</th><th>Ruolo</th><th>Classe</th><th>Email</th><th>Posti prenotati</th></tr></thead><tbody>';
-                            data.rows.forEach(function (row) {
-                                html += '<tr>'
-                                    + '<td>' + escapeHtml(row.nominativo) + '</td>'
-                                    + '<td>' + escapeHtml(row.ruolo) + '</td>'
-                                    + '<td>' + escapeHtml(row.classe) + '</td>'
-                                    + '<td>' + escapeHtml(row.email) + '</td>'
-                                    + '<td>' + escapeHtml(row.posti) + '</td>'
-                                    + '</tr>';
+                            data.rows.forEach(function(row) {
+                                html += '<tr>' +
+                                    '<td>' + escapeHtml(row.nominativo) + '</td>' +
+                                    '<td>' + escapeHtml(row.ruolo) + '</td>' +
+                                    '<td>' + escapeHtml(row.classe) + '</td>' +
+                                    '<td>' + escapeHtml(row.email) + '</td>' +
+                                    '<td>' + escapeHtml(row.posti) + '</td>' +
+                                    '</tr>';
                             });
                             html += '</tbody></table></div>';
                             bookingsWrap.innerHTML = html;
@@ -936,28 +1202,28 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                                 <div style="display:flex; flex-wrap:wrap; gap:18px; align-items:flex-start;">
                                     <?php foreach ($blocks as $blockInfo): ?>
                                         <?php
-                                    $block = (int)$blockInfo['block'];
-                                    $rowCount = (int)($result['row_count'] ?? 10);
+                                        $block = (int)$blockInfo['block'];
+                                        $rowCount = (int)($result['row_count'] ?? 10);
 
-                                    $fixedRange = seatMapFixedSeatRange((string)($result['tribuna'] ?? ''));
-                                    if ($fixedRange !== null) {
-                                        [$seatStart, $seatEnd] = $fixedRange;
-                                    } else {
-                                        $seatStart = max(1, (int)($blockInfo['min_seat'] ?? 1));
-                                        $seatEnd = max($seatStart, (int)($blockInfo['max_seat'] ?? 1));
-                                    }
+                                        $fixedRange = seatMapFixedSeatRange((string)($result['tribuna'] ?? ''));
+                                        if ($fixedRange !== null) {
+                                            [$seatStart, $seatEnd] = $fixedRange;
+                                        } else {
+                                            $seatStart = max(1, (int)($blockInfo['min_seat'] ?? 1));
+                                            $seatEnd = max($seatStart, (int)($blockInfo['max_seat'] ?? 1));
+                                        }
 
-                                    $displaySeats = seatMapDisplaySeats($seatStart, $seatEnd);
-                                    $seatCount = count($displaySeats);
-                                    $gapCount = count(array_filter(
-                                        $gapAfterSeats,
-                                        fn($gapSeat) => $gapSeat >= $seatStart && $gapSeat < $seatEnd
-                                    ));
-                                    $gridTemplate = '66px ' . implode(' ', array_fill(0, $seatCount, 'minmax(24px, 1fr)'));
-                                    if ($gapCount > 0) {
-                                        $gridTemplate .= ' ' . implode(' ', array_fill(0, $gapCount, '18px'));
-                                    }
-                                    $blockLabel = 'Blocco ' . $block;
+                                        $displaySeats = seatMapDisplaySeats($seatStart, $seatEnd);
+                                        $seatCount = count($displaySeats);
+                                        $gapCount = count(array_filter(
+                                            $gapAfterSeats,
+                                            fn($gapSeat) => $gapSeat >= $seatStart && $gapSeat < $seatEnd
+                                        ));
+                                        $gridTemplate = '66px ' . implode(' ', array_fill(0, $seatCount, 'minmax(24px, 1fr)'));
+                                        if ($gapCount > 0) {
+                                            $gridTemplate .= ' ' . implode(' ', array_fill(0, $gapCount, '18px'));
+                                        }
+                                        $blockLabel = 'Blocco ' . $block;
                                         ?>
 
                                         <div style="border:1px solid #dbe3ef; border-radius:16px; padding:12px; background:#fff;">
@@ -985,16 +1251,16 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
 
                                                     <?php foreach ($displaySeats as $seatIndex => $seat): ?>
                                                         <?php
-                                                            $tribunaNow = (string)($result['tribuna'] ?? '');
+                                                        $tribunaNow = (string)($result['tribuna'] ?? '');
 
-                                                            if (ticketsVenueUsesSegmentedSeatMap($tribunaNow)) {
-                                                                $seatBlockForMap = seatBlock((int)$seat);
-                                                            } else {
-                                                                $seatBlockForMap = $block;
-                                                            }
+                                                        if (ticketsVenueUsesSegmentedSeatMap($tribunaNow)) {
+                                                            $seatBlockForMap = seatBlock((int)$seat);
+                                                        } else {
+                                                            $seatBlockForMap = $block;
+                                                        }
 
-                                                            $cell = $seatMapIndexed[$seatBlockForMap][$fila][$seat] ?? null;
-                                                            ?>
+                                                        $cell = $seatMapIndexed[$seatBlockForMap][$fila][$seat] ?? null;
+                                                        ?>
 
                                                         <?php if ($cell): ?>
                                                             <?php
@@ -1010,7 +1276,7 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                                                                 style="<?= !empty($cell['assigned']) ? 'background:' . h($cell['color']) . ';' : '' ?>"
                                                                 data-tooltip="<?= h($cell['tooltip']) ?>"
                                                                 <?php if (!empty($cell['assigned'])): ?>
-                                                                data-assignment-index="<?= (int)($cell['assignment_index'] ?? -1) ?>"
+                                                                data-ticket-id="<?= h((string)($cell['ticket_id'] ?? '')) ?>"
                                                                 data-display-name="<?= h($cell['display_name'] ?? '') ?>"
                                                                 <?php endif; ?>><?= $seat ?></div>
                                                         <?php else: ?>
@@ -1089,8 +1355,9 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
 
         <form method="post" id="swapForm" style="display:none;">
             <input type="hidden" name="action" value="swap_assignments">
-            <input type="hidden" name="swap_a" id="swapA" value="">
-            <input type="hidden" name="swap_b" id="swapB" value="">
+            <input type="hidden" name="evento_id" value="<?= (int)$selectedEventId ?>">
+            <input type="hidden" name="swap_ticket_a" id="swapA" value="">
+            <input type="hidden" name="swap_ticket_b" id="swapB" value="">
         </form>
 
         <div id="seatMenu" style="display:none; position:fixed; z-index:10000; background:#fff; border:1px solid #dbe3ef; border-radius:12px; box-shadow:0 10px 24px rgba(15,23,42,.18); min-width:220px; overflow:hidden;">
@@ -1127,7 +1394,7 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                         tooltip.style.display = 'none';
                     });
 
-                    if (seat.dataset.assignmentIndex !== undefined) {
+                    if (seat.dataset.ticketId !== undefined && seat.dataset.ticketId !== '') {
                         seat.style.cursor = 'pointer';
                         seat.addEventListener('click', function(e) {
                             e.preventDefault();
@@ -1138,7 +1405,7 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
                 });
 
                 document.addEventListener('click', function(e) {
-                    if (!seatMenu.contains(e.target) && !e.target.closest('.seat[data-assignment-index]')) {
+                    if (!seatMenu.contains(e.target) && !e.target.closest('.seat[data-ticket-id]')) {
                         closeMenu();
                     }
                 });
@@ -1153,7 +1420,7 @@ $selectedTicketReservations = $selectedEventId > 0 ? ($ticketEventReservationsBy
 
                 function openMenu(seat, x, y) {
                     currentSeat = seat;
-                    const idx = Number(seat.dataset.assignmentIndex);
+                    const idx = seat.dataset.ticketId;
                     const name = seat.dataset.displayName || 'Assegnazione';
                     seatMenuTitle.textContent = name;
 

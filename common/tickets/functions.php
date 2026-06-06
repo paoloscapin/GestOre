@@ -609,19 +609,19 @@ function rowPriorityForDocenti(array $availableTickets): array
     usort($rows, function (array $a, array $b): int {
         // 1. prima il filotto massimo più lungo
         if ($a['max_run'] !== $b['max_run']) {
-            return $b['max_run'] <=> $a['max_run'];
+            return $a['max_run'] <=> $b['max_run'];
         }
 
         // 2. poi la fila con più posti liberi totali
         if ($a['total_free'] !== $b['total_free']) {
-            return $b['total_free'] <=> $a['total_free'];
+            return $a['total_free'] <=> $b['total_free'];
         }
 
         // 3. solo dopo preferisci la fila più bassa numero? NO.
         // Nel tuo caso vuoi davvero seguire la lunghezza del filotto.
         // Quindi come spareggio tieni la fila numericamente più alta.
         if ($a['fila'] !== $b['fila']) {
-            return $b['fila'] <=> $a['fila'];
+            return $a['fila'] <=> $b['fila'];
         }
 
         return abs($a['blocco'] - 2) <=> abs($b['blocco'] - 2);
@@ -733,11 +733,63 @@ function allocateDocentiByRows(array $docentiUnits, array &$available, array &$w
         }
 
         if (!$placed) {
+            $candidate = findAnyAvailableTicketsCandidate($unit, $available, null);
+
+            if ($candidate) {
+                foreach (distributeCandidateToUsers($candidate, $unit['users']) as $row) {
+                    $assignments[] = $row;
+                }
+
+                foreach ($candidate as $ticket) {
+                    $docentiAssignedTickets[] = $ticket;
+                }
+
+                $used = array_flip(array_column($candidate, 'ticket_id'));
+                $available = array_values(array_filter(
+                    $available,
+                    fn($t) => !isset($used[$t['ticket_id']])
+                ));
+
+                $placed = true;
+
+                $warnings[] = 'Assegnazione forzata docenti su posti non consecutivi: '
+                    . ($unit['affianca'] !== null ? 'affianca=' . $unit['affianca'] : 'unit=' . $unit['unit_id'])
+                    . ' (' . (int)$unit['size'] . ' posti).';
+            }
+        }
+
+        if (!$placed) {
+            $candidate = findAnyAvailableTicketsCandidate($unit, $available, null);
+
+            if ($candidate) {
+                foreach (distributeCandidateToUsers($candidate, $unit['users']) as $row) {
+                    $assignments[] = $row;
+                }
+
+                foreach ($candidate as $ticket) {
+                    $docentiAssignedTickets[] = $ticket;
+                }
+
+                $used = array_flip(array_column($candidate, 'ticket_id'));
+                $available = array_values(array_filter(
+                    $available,
+                    fn($t) => !isset($used[$t['ticket_id']])
+                ));
+
+                $placed = true;
+
+                $warnings[] = 'Assegnazione forzata docenti su posti non consecutivi: '
+                    . ($unit['affianca'] !== null ? 'affianca=' . $unit['affianca'] : 'unit=' . $unit['unit_id'])
+                    . ' (' . (int)$unit['size'] . ' posti).';
+            }
+        }
+
+        if (!$placed) {
             $who = $unit['affianca'] !== null
                 ? 'affianca=' . $unit['affianca']
                 : 'unit=' . $unit['unit_id'];
 
-            $warnings[] = 'Nessun blocco docenti trovato per ' . $who
+            $warnings[] = 'Nessun posto disponibile per docente ' . $who
                 . ' (' . $unit['macrogruppo']
                 . ' / ' . $unit['gruppo']
                 . ' / ' . $unit['size']
@@ -1236,7 +1288,6 @@ function nearbyRowWindows(array $zones, int $size): array
 {
     $candidates = [];
 
-    // indicizza per tribuna|blocco|fila
     $byKey = [];
     foreach ($zones as $zoneKey => $zoneTickets) {
         $parts = explode('|', $zoneKey);
@@ -1248,7 +1299,6 @@ function nearbyRowWindows(array $zones, int $size): array
         $byKey[$tribuna . '|' . $blocco . '|' . $fila] = $zoneTickets;
     }
 
-    // cerca coppie di file adiacenti
     foreach ($zones as $zoneKey => $zoneTickets) {
         $parts = explode('|', $zoneKey);
         if (count($parts) !== 3) {
@@ -1257,58 +1307,54 @@ function nearbyRowWindows(array $zones, int $size): array
 
         [$tribuna, $fila, $blocco] = $parts;
         $fila = (int)$fila;
-        $keyNext = $tribuna . '|' . $blocco . '|' . ($fila + 1);
-        $keyPrev = $tribuna . '|' . $blocco . '|' . ($fila - 1);
 
-        foreach ([$keyPrev, $keyNext] as $otherKey) {
+        $map1 = [];
+        foreach ($zoneTickets as $t) {
+            $map1[(int)$t['posto']] = $t;
+        }
+
+        foreach ([$fila - 1, $fila + 1] as $otherFila) {
+            $otherKey = $tribuna . '|' . $blocco . '|' . $otherFila;
+
             if (!isset($byKey[$otherKey])) {
                 continue;
             }
 
-            $otherTickets = $byKey[$otherKey];
-
-            // mappa posto => ticket
-            $map1 = [];
-            foreach ($zoneTickets as $t) {
-                $map1[(int)$t['posto']] = $t;
-            }
-
             $map2 = [];
-            foreach ($otherTickets as $t) {
+            foreach ($byKey[$otherKey] as $t) {
                 $map2[(int)$t['posto']] = $t;
             }
 
             $commonSeats = array_values(array_intersect(array_keys($map1), array_keys($map2)));
-            sort($commonSeats);
+            sort($commonSeats, SORT_NUMERIC);
 
-            if (count($commonSeats) >= $size) {
-                for ($i = 0; $i <= count($commonSeats) - $size; $i++) {
-                    $slice = array_slice($commonSeats, $i, $size);
+            if (count($commonSeats) < 1) {
+                continue;
+            }
 
-                    $ok = true;
-                    for ($j = 1; $j < count($slice); $j++) {
-                        if ($slice[$j] !== $slice[$j - 1] + 1) {
-                            $ok = false;
-                            break;
-                        }
-                    }
+            for ($start = 0; $start < count($commonSeats); $start++) {
+                $candidate = [];
 
-                    if (!$ok) {
-                        continue;
-                    }
+                for ($i = $start; $i < count($commonSeats); $i++) {
+                    $seatNo = (int)$commonSeats[$i];
 
-                    $candidate = [];
-                    foreach ($slice as $seatNo) {
-                        // alterna fila principale e fila vicina
+                    if (isset($map1[$seatNo]) && count($candidate) < $size) {
                         $candidate[] = $map1[$seatNo];
                     }
 
-                    $candidates[] = [
-                        'mode' => 'nearby_row_same_seat',
-                        'tickets' => $candidate,
-                        'anchor_row' => $fila,
-                        'other_row' => (int)explode('|', $otherKey)[2],
-                    ];
+                    if (isset($map2[$seatNo]) && count($candidate) < $size) {
+                        $candidate[] = $map2[$seatNo];
+                    }
+
+                    if (count($candidate) >= $size) {
+                        $candidates[] = [
+                            'mode' => 'nearby_row_same_seat',
+                            'tickets' => array_slice($candidate, 0, $size),
+                            'anchor_row' => $fila,
+                            'other_row' => $otherFila,
+                        ];
+                        break;
+                    }
                 }
             }
         }
@@ -1923,6 +1969,40 @@ function tryRebalanceSingleSeatAssignmentForStudentUnit(
     return null;
 }
 
+function findAnyAvailableTicketsCandidate(array $unit, array $availableTickets, ?array $docentiAnchor): ?array
+{
+    $needed = (int)($unit['size'] ?? 0);
+
+    if ($needed <= 0 || count($availableTickets) < $needed) {
+        return null;
+    }
+
+    $tickets = array_values($availableTickets);
+
+    usort($tickets, function (array $a, array $b) use ($unit, $docentiAnchor): int {
+        $scoreA = candidateScore($unit, [$a], $docentiAnchor);
+        $scoreB = candidateScore($unit, [$b], $docentiAnchor);
+
+        if ($scoreA !== $scoreB) {
+            return $scoreB <=> $scoreA;
+        }
+
+        return [
+            (string)$a['tribuna'],
+            (int)$a['fila'],
+            (int)$a['blocco'],
+            (int)$a['posto'],
+        ] <=> [
+            (string)$b['tribuna'],
+            (int)$b['fila'],
+            (int)$b['blocco'],
+            (int)$b['posto'],
+        ];
+    });
+
+    return array_slice($tickets, 0, $needed);
+}
+
 function allocateTickets(array $tickets, array $users): array
 {
     $units = buildAssignmentUnits($users);
@@ -1973,11 +2053,21 @@ function allocateTickets(array $tickets, array $users): array
         }
 
         if (!$candidate) {
+            $candidate = findAnyAvailableTicketsCandidate($unit, $available, $docentiAnchor);
+
+            if ($candidate) {
+                $warnings[] = 'Assegnazione studenti effettuata con posti non consecutivi per evitare biglietti non assegnati: '
+                    . ($unit['affianca'] !== null ? 'affianca=' . $unit['affianca'] : 'unit=' . $unit['unit_id'])
+                    . ' (' . (int)$unit['size'] . ' posti).';
+            }
+        }
+
+        if (!$candidate) {
             $who = $unit['affianca'] !== null
                 ? 'affianca=' . $unit['affianca']
                 : 'unit=' . $unit['unit_id'];
 
-            $warnings[] = 'Nessun blocco studenti trovato per ' . $who
+            $warnings[] = 'Nessun posto disponibile per ' . $who
                 . ' (' . $unit['macrogruppo']
                 . ' / ' . $unit['gruppo']
                 . ' / ' . $unit['size']
@@ -2031,11 +2121,13 @@ function allocateTickets(array $tickets, array $users): array
 function buildSeatMapData(array $tickets, array $assignments): array
 {
     $map = [];
+    $ticketIdToKey = [];
 
     foreach ($tickets as $t) {
         $blocco = (int)($t['blocco'] ?? 1);
         $fila   = (int)($t['fila'] ?? 0);
         $posto  = (int)($t['posto'] ?? 0);
+        $ticketId = (string)($t['ticket_id'] ?? '');
 
         $key = $blocco . '-' . $fila . '-' . $posto;
 
@@ -2044,7 +2136,7 @@ function buildSeatMapData(array $tickets, array $assignments): array
             'fila' => $fila,
             'posto' => $posto,
             'tribuna' => (string)($t['tribuna'] ?? ''),
-            'ticket_id' => (string)($t['ticket_id'] ?? ''),
+            'ticket_id' => $ticketId,
             'page' => (int)($t['page'] ?? 0),
             'assigned' => false,
             'assignment_index' => null,
@@ -2061,19 +2153,21 @@ function buildSeatMapData(array $tickets, array $assignments): array
                 (int)($t['page'] ?? 0)
             ),
         ];
+
+        if ($ticketId !== '') {
+            $ticketIdToKey[$ticketId] = $key;
+        }
     }
 
     foreach ($assignments as $assignmentIndex => $row) {
-        $blocco = (int)($row['blocco'] ?? 1);
-        $fila   = (int)($row['fila'] ?? 0);
+        foreach (($row['ticket_ids'] ?? []) as $i => $ticketId) {
+            $ticketId = (string)$ticketId;
 
-        foreach (($row['posti'] ?? []) as $i => $posto) {
-            $posto = (int)$posto;
-            $key = $blocco . '-' . $fila . '-' . $posto;
-
-            if (!isset($map[$key])) {
+            if ($ticketId === '' || !isset($ticketIdToKey[$ticketId])) {
                 continue;
             }
+
+            $key = $ticketIdToKey[$ticketId];
 
             $map[$key]['assigned'] = true;
             $map[$key]['assignment_index'] = $assignmentIndex;
@@ -2082,17 +2176,16 @@ function buildSeatMapData(array $tickets, array $assignments): array
             $map[$key]['macrogruppo'] = (string)($row['macrogruppo'] ?? '');
             $map[$key]['gruppo'] = (string)($row['gruppo'] ?? '');
             $map[$key]['color'] = (string)($row['color'] ?? '');
-            $map[$key]['ticket_id'] = (string)($row['ticket_ids'][$i] ?? '');
-            $map[$key]['page'] = (string)($row['pages'][$i] ?? '');
+
             $map[$key]['tooltip'] = sprintf(
                 '%s | %s | %s | Blocco %d | Fila %d Posto %d | Pagina %s',
                 (string)($row['display_name'] ?? ''),
                 (string)($row['macrogruppo'] ?? ''),
                 (string)($row['gruppo'] ?? ''),
-                $blocco,
-                $fila,
-                $posto,
-                (string)($row['pages'][$i] ?? '')
+                (int)$map[$key]['blocco'],
+                (int)$map[$key]['fila'],
+                (int)$map[$key]['posto'],
+                (string)($map[$key]['page'] ?? '')
             );
         }
     }

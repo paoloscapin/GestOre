@@ -4,17 +4,23 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../send-mail.php';
 
-const MAIL_TEST_OVERRIDE = 'massimo.saiani@buonarroti.tn.it'; // se non vuota, tutte le mail saranno inviate a questo indirizzo (utile per test)
+//const MAIL_TEST_OVERRIDE = 'massimo.saiani@buonarroti.tn.it'; // se non vuota, tutte le mail saranno inviate a questo indirizzo (utile per test)
+const MAIL_TEST_OVERRIDE = ''; // se non vuota, tutte le mail saranno inviate a questo indirizzo (utile per test)
 const EVENTI_FROM_NAME = 'Il Team Eventi';
 
-function buildMailSubject(array $assignment): string
+function buildMailSubject(array $assignment, array $eventInfo = []): string
 {
-    return count($assignment['posti']) > 1
-        ? 'I tuoi biglietti per l’evento'
-        : 'Il tuo biglietto per l’evento';
+    $eventoLabel = trim((string)($eventInfo['label'] ?? ''));
+    if ($eventoLabel === '') {
+        $eventoLabel = trim((string)($eventInfo['titolo'] ?? 'evento'));
+    }
+
+    return count($assignment['posti'] ?? []) > 1
+        ? 'I tuoi biglietti per ' . $eventoLabel
+        : 'Il tuo biglietto per ' . $eventoLabel;
 }
 
-function buildMailBody(array $assignment): string
+function buildMailBody(array $assignment, array $eventInfo = []): string
 {
     $posti   = implode(', ', array_map('strval', $assignment['posti'] ?? []));
     $name    = htmlspecialchars((string)($assignment['display_name'] ?? ''), ENT_QUOTES, 'UTF-8');
@@ -38,7 +44,12 @@ function buildMailBody(array $assignment): string
     $headerIcon = 'https://www.buonarroti.tn.it/GestOre/common/tickets/icon-header.png';
     $ticketIcon = 'https://www.buonarroti.tn.it/GestOre/common/tickets/icon-ticket.png';
     $trentinoVolleyLogo = TRENTINO_VOLLEY_LOGO_URL;
+    $eventoLabel = trim((string)($eventInfo['label'] ?? ''));
+    if ($eventoLabel === '') {
+        $eventoLabel = trim((string)($eventInfo['titolo'] ?? 'evento'));
+    }
 
+    $eventoHtml = htmlspecialchars($eventoLabel, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     return ''
         . '<div style="margin:0;padding:24px 0;background-color:#f3f6fb;">'
         . '  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">'
@@ -46,23 +57,23 @@ function buildMailBody(array $assignment): string
         . '      <td align="left" style="padding:0 16px;">'
         . '        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:760px;border-collapse:separate;border-spacing:0;background:#ffffff;border:1px solid #dbe4f0;border-radius:18px;overflow:hidden;">'
 
-                . '          <tr>'
-                . '            <td style="padding:0;background:linear-gradient(135deg,#1d4ed8 0%,#60a5fa 100%);">'
-                . '              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">'
-                . '                <tr>'
-                . '                  <td style="padding:22px 18px 22px 26px;width:84px;vertical-align:middle;">'
-                . '                    <img src="' . htmlspecialchars($headerIcon, ENT_QUOTES, 'UTF-8') . '" alt="" width="58" height="58" style="display:block;border:0;outline:none;text-decoration:none;">'
-                . '                  </td>'
-                . '                  <td style="padding:22px 10px 22px 0;vertical-align:middle;">'
-                . '                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;line-height:1.2;color:#ffffff;">GestOre ITT Buonarroti</div>'
-                . '                  </td>'
-                . '                  <td style="padding:18px 26px 18px 10px;vertical-align:middle;text-align:right;width:140px;">'
-                . '                    <img src="' . htmlspecialchars($trentinoVolleyLogo, ENT_QUOTES, 'UTF-8') . '" alt="Trentino Volley" style="display:inline-block;max-height:52px;width:auto;background:#ffffff;border-radius:10px;padding:5px;border:0;outline:none;text-decoration:none;">'
-                . '                  </td>'
-                . '                </tr>'
-                . '              </table>'
-                . '            </td>'
-                . '          </tr>'
+        . '          <tr>'
+        . '            <td style="padding:0;background:linear-gradient(135deg,#1d4ed8 0%,#60a5fa 100%);">'
+        . '              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">'
+        . '                <tr>'
+        . '                  <td style="padding:22px 18px 22px 26px;width:84px;vertical-align:middle;">'
+        . '                    <img src="' . htmlspecialchars($headerIcon, ENT_QUOTES, 'UTF-8') . '" alt="" width="58" height="58" style="display:block;border:0;outline:none;text-decoration:none;">'
+        . '                  </td>'
+        . '                  <td style="padding:22px 10px 22px 0;vertical-align:middle;">'
+        . '                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;line-height:1.2;color:#ffffff;">GestOre ITT Buonarroti</div>'
+        . '                  </td>'
+        . '                  <td style="padding:18px 26px 18px 10px;vertical-align:middle;text-align:right;width:140px;">'
+        . '                    <img src="' . htmlspecialchars($trentinoVolleyLogo, ENT_QUOTES, 'UTF-8') . '" alt="Trentino Volley" style="display:inline-block;max-height:52px;width:auto;background:#ffffff;border-radius:10px;padding:5px;border:0;outline:none;text-decoration:none;">'
+        . '                  </td>'
+        . '                </tr>'
+        . '              </table>'
+        . '            </td>'
+        . '          </tr>'
         . '              </table>'
         . '            </td>'
         . '          </tr>'
@@ -70,7 +81,7 @@ function buildMailBody(array $assignment): string
         . '            <td style="padding:34px 38px 36px 38px;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">'
         . '              <p style="margin:0 0 18px 0;font-size:16px;line-height:1.65;">Buongiorno' . ($name !== '' ? ' <strong>' . $name . '</strong>' : '') . ',</p>'
         . '              <p style="margin:0 0 14px 0;font-size:16px;line-height:1.7;">' . $introBiglietto . '</p>'
-        . '              <p style="margin:0 0 14px 0;font-size:16px;line-height:1.7;">in allegato il biglietto per la partita <strong>domenica 19 APRILE ore 18.00</strong> con accesso al palazzetto dalle ore <strong>17:10</strong>.</p>'
+        . '              <p style="margin:0 0 14px 0;font-size:16px;line-height:1.7;">in allegato il biglietto per <strong>' . $eventoHtml . '</strong>.</p>'
         . '              <p style="margin:0 0 22px 0;font-size:16px;line-height:1.7;">Si ricorda che la partita è presso la <strong>BTS Arena</strong>:<br>'
         . '                <a href="' . htmlspecialchars($mapsUrl, ENT_QUOTES, 'UTF-8') . '" style="color:#2563eb;text-decoration:none;font-weight:700;">' . htmlspecialchars($mapsUrl, ENT_QUOTES, 'UTF-8') . '</a>'
         . '              </p>'
@@ -141,7 +152,7 @@ function sendTicketMail(string $to, string $toName, string $subject, string $bod
     return (bool) sendMailwithAttachment($destinatario, $destinatarioNome, $subject, $body, $attachmentPath);
 }
 
-function sendAllEmails(array $assignments, string $pdfOutDir): array
+function sendAllEmails(array $assignments, string $pdfOutDir, array $eventInfo = []): array
 {
     $results = [];
 
@@ -153,8 +164,8 @@ function sendAllEmails(array $assignments, string $pdfOutDir): array
             $ok = sendTicketMail(
                 $row['email'],
                 $row['display_name'],
-                buildMailSubject($row),
-                buildMailBody($row),
+                buildMailSubject($row, $eventInfo),
+                buildMailBody($row, $eventInfo),
                 $attachment
             );
 
