@@ -135,6 +135,27 @@ var copertineSort = 'stato';
 var copertineOrder = 'asc';
 var copertineSearchTimer = null;
 
+function programmiSvoltiCopertineHideTooltips() {
+    try {
+        $('[data-toggle="tooltip"]').tooltip('hide');
+        $('.tooltip').remove();
+    } catch (e) {
+        $('.tooltip').remove();
+    }
+}
+
+function programmiSvoltiCopertineInitTooltips() {
+    programmiSvoltiCopertineHideTooltips();
+    $('[data-toggle="tooltip"]').tooltip({
+        container: 'body',
+        trigger: 'hover',
+        delay: { show: 120, hide: 0 }
+    }).on('mouseleave blur click', function () {
+        $(this).tooltip('hide');
+        $('.tooltip').remove();
+    });
+}
+
 function programmiSvoltiCopertineParams() {
     return {
         q: $('#copertine_q').val() || '',
@@ -146,13 +167,16 @@ function programmiSvoltiCopertineParams() {
 }
 
 function programmiSvoltiCopertineReadRecords() {
+    programmiSvoltiCopertineHideTooltips();
     $.get('programmiSvoltiCopertineReadRecords.php', programmiSvoltiCopertineParams(), function (data) {
+        programmiSvoltiCopertineHideTooltips();
         $('.records_content').html(data);
-        $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
+        programmiSvoltiCopertineInitTooltips();
     });
 }
 
 function programmiSvoltiCopertineSort(sort) {
+    programmiSvoltiCopertineHideTooltips();
     if (copertineSort === sort) {
         copertineOrder = copertineOrder === 'asc' ? 'desc' : 'asc';
     } else {
@@ -163,6 +187,7 @@ function programmiSvoltiCopertineSort(sort) {
 }
 
 function programmiSvoltiCopertineResetFilters() {
+    programmiSvoltiCopertineHideTooltips();
     $('#copertine_q').val('');
     $('#copertine_consegna').val('');
     $('#copertine_generazione').val('');
@@ -172,6 +197,7 @@ function programmiSvoltiCopertineResetFilters() {
 }
 
 function programmiSvoltiCopertineOverlay(text) {
+    programmiSvoltiCopertineHideTooltips();
     $('#copertine_overlay_text').text(text || 'Operazione in corso...');
     $('#copertine_overlay').css('display', 'flex');
 }
@@ -181,6 +207,7 @@ function programmiSvoltiCopertineOverlayHide() {
 }
 
 function programmiSvoltiCopertinePrintGenerated() {
+    programmiSvoltiCopertineHideTooltips();
     if (!confirm('Stampare in blocco tutte le copertine generate non ancora stampate? Lo stato passera a stampato.')) {
         return;
     }
@@ -193,6 +220,7 @@ function programmiSvoltiCopertinePrintGenerated() {
 }
 
 function programmiSvoltiCopertineGenerate() {
+    programmiSvoltiCopertineHideTooltips();
     if (!confirm('Generare e archiviare su Drive tutte le copertine richieste?')) {
         return;
     }
@@ -216,6 +244,7 @@ function programmiSvoltiCopertineGenerate() {
 }
 
 function programmiSvoltiCopertineRegenerate(id) {
+    programmiSvoltiCopertineHideTooltips();
     if (!confirm('Rigenerare questa copertina e sostituire il PDF archiviato su Drive? Lo stato tornera a generato.')) {
         return;
     }
@@ -239,6 +268,7 @@ function programmiSvoltiCopertineRegenerate(id) {
 }
 
 function programmiSvoltiCopertineConsegna(id, consegnata) {
+    programmiSvoltiCopertineHideTooltips();
     var testo = consegnata
         ? 'Segnare che il plico verifiche e stato consegnato in segreteria?'
         : 'Rimuovere la spunta di consegna verifiche?';
@@ -264,6 +294,7 @@ function programmiSvoltiCopertineConsegna(id, consegnata) {
 }
 
 function programmiSvoltiCopertineDelete(id) {
+    programmiSvoltiCopertineHideTooltips();
     if (!confirm('Annullare questa richiesta di copertina? Il programma tornera allo stato iniziale e il docente potra richiederla di nuovo.')) {
         return;
     }
@@ -287,14 +318,19 @@ function programmiSvoltiCopertineDelete(id) {
 
 $(document).ready(function () {
     $('#copertine_consegna, #copertine_generazione').on('change', function () {
+        programmiSvoltiCopertineHideTooltips();
         programmiSvoltiCopertineReadRecords();
     });
+    $('#copertine_q').on('focus', programmiSvoltiCopertineHideTooltips);
     $('#copertine_q').on('keyup', function () {
+        programmiSvoltiCopertineHideTooltips();
         clearTimeout(copertineSearchTimer);
         copertineSearchTimer = setTimeout(function () {
             programmiSvoltiCopertineReadRecords();
         }, 250);
     });
+    $(document).on('scroll wheel click keydown', programmiSvoltiCopertineHideTooltips);
+    $('.records_content').on('mouseleave', '[data-toggle="tooltip"]', programmiSvoltiCopertineHideTooltips);
     programmiSvoltiCopertineReadRecords();
 });
 </script>
