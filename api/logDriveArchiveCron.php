@@ -51,6 +51,7 @@ function logDriveArchiveActiveLogNames(): array
         'logGoogleCalendarFile',
         'logGoogleCalendarMBAppFile',
         'logGmailFile',
+        'logProfiliFile',
     ];
 
     foreach ($keys as $key) {

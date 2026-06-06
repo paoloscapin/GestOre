@@ -63,6 +63,12 @@ if ($__settings->log->logIntoAppFolder) {
 }
 $fileNameGmail .= ($__settings->log->logGmailFile ?? 'gmail.log');
 
+$fileNameProfili = '';
+if ($__settings->log->logIntoAppFolder) {
+    $fileNameProfili = __DIR__ . "/../log/";
+}
+$fileNameProfili .= ($__settings->log->logProfiliFile ?? 'profili.log');
+
 $__logger = Log::factory('file', $fileName, '', array("timeFormat"=>$__settings->log->timeFormat), $__logLevel);
 $__logger_login = Log::factory('file', $fileNameLogin, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
 $__logger_cron = Log::factory('file', $fileNameCron, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
@@ -347,6 +353,24 @@ function rotateLog() {
     }
     $__logger_gmail->open();
     $__logger_gmail->info("old log was saved into $rotateFileName");
+
+    global $fileNameProfili;
+    $rotateFileName = buildRotatedLogFileName($fileNameProfili);
+    if (file_exists($fileNameProfili)) {
+        rename($fileNameProfili, $rotateFileName);
+        @file_put_contents(
+            $fileNameProfili,
+            json_encode([
+                'ts' => date('Y-m-d H:i:s'),
+                'level' => 'info',
+                'page' => basename((string)($_SERVER['PHP_SELF'] ?? 'cli')),
+                'action' => 'profilo_log_rotated',
+                'details' => ['saved_into' => basename($rotateFileName)],
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL,
+            FILE_APPEND | LOCK_EX
+        );
+        infocron("old profili log was saved into $rotateFileName");
+    }
 }
 /**
  * ================================

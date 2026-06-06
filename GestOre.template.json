@@ -34,7 +34,8 @@
         "logTelegramFile": "telegram.log",
         "logGoogleCalendarFile": "google_calendar.log",
         "logGoogleCalendarMBAppFile": "google_calendar_mbapp.log",
-        "logGmailFile": "gmail.log"
+        "logGmailFile": "gmail.log",
+        "logProfiliFile": "profili.log"
     },
     "config": {
         "gestioneClil": false,
@@ -232,6 +233,104 @@
     "bonus": {
         "punteggio_variabile": false
     },
+    "notifiche": {
+        "vapid": {
+            "publicKey": "",
+            "privateKey": ""
+        },
+        "genitori": {
+            "sportelli": {
+                "obbligatoria": false,
+                "almeno_un_canale": false,
+                "canale_obbligatorio": "",
+                "canali": {
+                    "telegram": true
+                },
+                "default": {
+                    "telegram": false
+                }
+            },
+            "permessi": {
+                "obbligatoria": true,
+                "almeno_un_canale": true,
+                "canale_obbligatorio": "",
+                "canali": {
+                    "telegram": true
+                },
+                "default": {
+                    "telegram": false
+                }
+            },
+            "carenze": {
+                "obbligatoria": true,
+                "almeno_un_canale": true,
+                "canale_obbligatorio": "",
+                "canali": {
+                    "telegram": true
+                },
+                "default": {
+                    "telegram": false
+                }
+            },
+            "comunicazioni": {
+                "obbligatoria": false,
+                "almeno_un_canale": false,
+                "canale_obbligatorio": "",
+                "canali": {
+                    "telegram": true
+                },
+                "default": {
+                    "telegram": false
+                }
+            }
+        },
+        "studenti": {
+            "sportelli": {
+                "obbligatoria": false,
+                "almeno_un_canale": false,
+                "canale_obbligatorio": "",
+                "canali": {
+                    "telegram": false
+                },
+                "default": {
+                    "telegram": false
+                }
+            },
+            "permessi": {
+                "obbligatoria": true,
+                "almeno_un_canale": true,
+                "canale_obbligatorio": "",
+                "canali": {
+                    "telegram": false
+                },
+                "default": {
+                    "telegram": false
+                }
+            },
+            "carenze": {
+                "obbligatoria": true,
+                "almeno_un_canale": true,
+                "canale_obbligatorio": "",
+                "canali": {
+                    "telegram": false
+                },
+                "default": {
+                    "telegram": false
+                }
+            },
+            "comunicazioni": {
+                "obbligatoria": false,
+                "almeno_un_canale": false,
+                "canale_obbligatorio": "",
+                "canali": {
+                    "telegram": false
+                },
+                "default": {
+                    "telegram": false
+                }
+            }
+        }
+    },
     "sportelli": {
         "numero_max_prenotazioni": 10,
         "nascondiNomeStudenti": false,
@@ -317,7 +416,7 @@
     },
     "profiloGenitore": {
         "visibile_genitori": false,
-        "visibile_telegram": false,
+        "visibile_telegram": true,
         "sincronizza_mastercom": true,
         "email_segreteria_didattica": "segr.didattica@buonarroti.tn.it",
         "annulla_cambio_email_ore": 48
