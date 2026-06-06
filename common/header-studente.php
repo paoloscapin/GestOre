@@ -26,6 +26,9 @@ $studenteImpersonato = isset($session)
 			<?php if (getSettingsValue('config', 'sportelli', false) && getSettingsValue('sportelli', 'visibile_studenti', false)): ?>
 				<li><a href="../studente/sportello.php" class="nav-btn btn btn-default btn-orange4" role="button"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Sportelli</a></li>
 			<?php endif; ?>
+			<?php if (getSettingsValue('config', 'permessi', false) && getSettingsValue('permessi', 'visibile_studenti', false)): ?>
+				<li><a href="../studente/permessi.php" class="nav-btn btn btn-default btn-yellow4" role="button"><span class="glyphicon glyphicon-log-out"></span>&ensp;Permessi di uscita</a></li>
+			<?php endif; ?>
 			<?php if (getSettingsValue('config', 'biglietti', true)): ?>
 				<li><a href="../common/biglietti_prenotazioni.php" class="nav-btn btn btn-default btn-yellow4" role="button"><span class="glyphicon glyphicon-barcode"></span>&ensp;Biglietti</a></li>
 			<?php endif; ?>
@@ -41,7 +44,8 @@ $studenteImpersonato = isset($session)
 		</ul>
 
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">
-			<li><a href="../help/GestOre - Guida Studenti.pdf" target="_blank"><span class="glyphicon glyphicon-question-sign"></span></a></li>
+			<li><a href="../studente/profilo.php"><span class="glyphicon glyphicon-user"></span>&ensp;Profilo</a></li>
+			<li><a href="../help/GestOre - Guida Studenti.pdf" target="_blank"><span class="glyphicon glyphicon-question-sign"></span>&ensp;Guida</a></li>
 			<li><a><span class=""></span>
 					<?php if (haRuolo('admin')) echo "(A)" ?>
 					<?php echo '[' . $__studente_id . '] ' . $__studente_nome . ' ' . $__studente_cognome ?></a></li>

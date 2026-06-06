@@ -5,6 +5,7 @@ require_once '../common/send-mail.php';
 require_once '../common/mail-ui.php';
 require_once '../common/__MasterCom.php';
 require_once '../common/mastercom/admin_lib.php';
+require_once '../common/profiloLogLib.php';
 
 function gea_h($value): string
 {
@@ -130,6 +131,7 @@ gea_ensure_table();
 
 if ($token === '' || strlen($token) !== 64) {
     $message = 'Link di annullamento non valido.';
+    profiloLogWrite('email_rollback_token_non_valido', 'genitore', 0, [], 'warning');
 } else {
     $tokenHash = hash('sha256', $token);
     $row = dbGetFirst("
@@ -142,10 +144,19 @@ if ($token === '' || strlen($token) !== 64) {
 
     if (!$row) {
         $message = 'Link di annullamento non valido o gia utilizzato.';
+        profiloLogWrite('email_rollback_token_non_trovato', 'genitore', 0, [], 'warning');
     } elseif (!empty($row['used_at'])) {
         $message = 'Questo link di annullamento e gia stato utilizzato.';
+        profiloLogWrite('email_rollback_token_gia_usato', 'genitore', (int)($row['id_genitore'] ?? 0), [
+            'token_id' => (int)($row['id'] ?? 0),
+            'used_at' => (string)($row['used_at'] ?? ''),
+        ], 'warning');
     } elseif (strtotime((string)$row['expires_at']) < time()) {
         $message = 'Questo link di annullamento e scaduto.';
+        profiloLogWrite('email_rollback_token_scaduto', 'genitore', (int)($row['id_genitore'] ?? 0), [
+            'token_id' => (int)($row['id'] ?? 0),
+            'expires_at' => (string)($row['expires_at'] ?? ''),
+        ], 'warning');
     } else {
         $genitoreId = intval($row['id_genitore']);
         $oldEmail = trim((string)$row['old_email']);
@@ -160,6 +171,12 @@ if ($token === '' || strlen($token) !== 64) {
             ");
             $message = 'Il profilo non usa piu la mail indicata dal cambio: annullamento non applicato.';
             $type = 'warning';
+            profiloLogWrite('email_rollback_non_applicato_email_diversa', 'genitore', $genitoreId, [
+                'token_id' => (int)($row['id'] ?? 0),
+                'current_email' => $currentEmail,
+                'expected_email' => $newEmail,
+                'old_email' => $oldEmail,
+            ], 'warning');
         } else {
             dbExec("
                 UPDATE genitori
@@ -180,6 +197,11 @@ if ($token === '' || strlen($token) !== 64) {
                 ");
                 if (!$mastercomOk) {
                     info('Annulla cambio email genitore: sync MasterCom non riuscito per id_genitore=' . $genitoreId);
+                    profiloLogWrite('email_rollback_sync_mastercom_fallito', 'genitore', $genitoreId, [
+                        'token_id' => (int)($row['id'] ?? 0),
+                        'old_email' => $oldEmail,
+                        'new_email' => $newEmail,
+                    ], 'error');
                 }
             }
 
@@ -201,6 +223,12 @@ if ($token === '' || strlen($token) !== 64) {
 
             $message = 'Cambio email annullato correttamente. Il profilo e tornato alla mail precedente.';
             $type = 'success';
+            profiloLogWrite('email_rollback_applicato', 'genitore', $genitoreId, [
+                'token_id' => (int)($row['id'] ?? 0),
+                'old_email' => $oldEmail,
+                'new_email' => $newEmail,
+                'mastercom_sync_ok' => !isset($mastercomOk) || !empty($mastercomOk),
+            ]);
         }
     }
 }

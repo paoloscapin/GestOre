@@ -2803,24 +2803,89 @@ $genitoreTg = tgFindGenitoreByChatId($chatId);
 // Cerca l'eventuale admin associato al Telegram user id corrente
 $admin = tgFindAdminTelegramByUserId($fromUserId);
 
+$privateActors = [];
+if ($doc) {
+    $privateActors['docente'] = $doc;
+}
+if ($genitoreTg) {
+    $privateActors['genitore'] = $genitoreTg;
+}
+
 $privateActor = null;
 $privateActorType = '';
-if ($doc) {
-    $privateActor = $doc;
-    $privateActorType = 'docente';
-} elseif ($genitoreTg) {
-    $privateActor = $genitoreTg;
-    $privateActorType = 'genitore';
+if (count($privateActors) === 1) {
+    $privateActorType = array_key_first($privateActors);
+    $privateActor = $privateActors[$privateActorType];
 }
 
 $openRelay = ($privateActor && function_exists('tgFindOpenRelayByActor'))
     ? tgFindOpenRelayByActor($privateActorType, (int)($privateActor['id'] ?? 0))
     : null;
 
+if (!$privateActor && count($privateActors) > 1 && function_exists('tgFindOpenRelayByActor')) {
+    $openRelayCandidates = [];
+    foreach ($privateActors as $actorType => $actor) {
+        $relay = tgFindOpenRelayByActor($actorType, (int)($actor['id'] ?? 0));
+        if ($relay) {
+            $openRelayCandidates[$actorType] = $relay;
+        }
+    }
+    if (count($openRelayCandidates) === 1) {
+        $privateActorType = array_key_first($openRelayCandidates);
+        $privateActor = $privateActors[$privateActorType];
+        $openRelay = $openRelayCandidates[$privateActorType];
+    } elseif (count($openRelayCandidates) > 1 && $text !== '' && !preg_match('/^\//', $text)) {
+        tgSendMessage(
+            $TELEGRAM_BOT_TOKEN,
+            $chatId,
+            "Il tuo Telegram e collegato sia come docente sia come genitore e hai ticket aperti su piu profili.\n\n" .
+            "Usa un comando esplicito:\n" .
+            "/ticket_docente il tuo messaggio\n" .
+            "/ticket_genitore il tuo messaggio"
+        );
+        tgRespond(['ok' => true, 'handled' => 'multi_actor_open_relays']);
+    }
+}
+
 /**
  * /ticket testo
  * apre ticket anche se il docente è anche admin
  */
+
+if (preg_match('/^\/ticket_(docente|genitore)(?:\s+(.+))?$/uis', $text, $m)) {
+    $requestedActorType = strtolower(trim((string)($m[1] ?? '')));
+    $ticketText = tgNorm($m[2] ?? '');
+
+    if ($ticketText === '') {
+        tgSendMessage(
+            $TELEGRAM_BOT_TOKEN,
+            $chatId,
+            "Per aprire un ticket devi scrivere un messaggio dopo il comando.\n\n" .
+            "Esempio:\n" .
+            "/ticket_{$requestedActorType} Non vedo una funzione"
+        );
+        tgRespond(['ok' => true, 'handled' => 'ticket_explicit_empty']);
+    }
+
+    if (empty($privateActors[$requestedActorType])) {
+        tgSendMessage(
+            $TELEGRAM_BOT_TOKEN,
+            $chatId,
+            "Questo account Telegram non risulta collegato a un profilo {$requestedActorType} GestOre."
+        );
+        tgRespond(['ok' => true, 'handled' => 'ticket_explicit_no_actor']);
+    }
+
+    tgHandlePrivateActorMessage(
+        $privateActors[$requestedActorType],
+        $requestedActorType,
+        array_merge($message, ['text' => $ticketText]),
+        $TELEGRAM_SERVICE_CHAT_ID,
+        $TELEGRAM_BOT_TOKEN
+    );
+
+    tgRespond(['ok' => true, 'handled' => 'ticket_explicit_created']);
+}
 
 // Se il messaggio corrisponde al comando /ticket con eventuale testo
 if (preg_match('/^\/ticket(?:\s+(.+))?$/uis', $text, $m)) {
@@ -2842,6 +2907,18 @@ if (preg_match('/^\/ticket(?:\s+(.+))?$/uis', $text, $m)) {
     }
 
     // Se l'utente non è collegato a un profilo valido
+    if (count($privateActors) > 1) {
+        tgSendMessage(
+            $TELEGRAM_BOT_TOKEN,
+            $chatId,
+            "Il tuo account Telegram e collegato a piu profili GestOre.\n\n" .
+            "Scegli con quale profilo aprire il ticket:\n" .
+            "/ticket_docente {$ticketText}\n" .
+            "/ticket_genitore {$ticketText}"
+        );
+        tgRespond(['ok' => true, 'handled' => 'ticket_multi_actor_choice']);
+    }
+
     if (!$privateActor) {
         // Invia messaggio che richiede il collegamento tramite link mail
         tgSendMessage(
@@ -3019,6 +3096,29 @@ if ($privateActor && $text !== '' && !preg_match('/^\//', $text)) {
         );
         tgRespond(['ok' => true, 'handled' => 'closed_ticket_followup_choice']);
     }
+    if ($privateActorType === 'genitore') {
+        tgHandlePrivateActorMessage(
+            $privateActor,
+            $privateActorType,
+            $message,
+            $TELEGRAM_SERVICE_CHAT_ID,
+            $TELEGRAM_BOT_TOKEN
+        );
+        tgRespond(['ok' => true, 'handled' => 'parent_text_ticket_created']);
+    }
+}
+
+if (!$privateActor && count($privateActors) > 1) {
+    tgSendMessage(
+        $TELEGRAM_BOT_TOKEN,
+        $chatId,
+        "Il tuo account Telegram e collegato sia come docente sia come genitore.\n\n" .
+        "Per aprire un ticket scegli il profilo:\n" .
+        "/ticket_docente il tuo messaggio\n" .
+        "/ticket_genitore il tuo messaggio\n\n" .
+        "Se hai un ticket aperto su un solo profilo, i messaggi successivi verranno aggiunti automaticamente a quel ticket."
+    );
+    tgRespond(['ok' => true, 'handled' => 'multi_actor_guide']);
 }
 
 if ($privateActor) {

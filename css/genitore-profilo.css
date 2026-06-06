@@ -110,6 +110,84 @@
     margin-top: 12px;
 }
 
+.notifiche-preferenze-list {
+    display: grid;
+    gap: 12px;
+}
+
+.notifiche-preferenze-row {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%);
+    border: 1px solid #d9e6f0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(38, 50, 70, .05);
+    display: grid;
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 14px;
+}
+
+.notifiche-preferenze-title {
+    color: #263246;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.notifiche-preferenze-desc {
+    color: #617286;
+    font-size: 13px;
+    line-height: 1.35;
+    margin-top: 3px;
+}
+
+.notifiche-preferenze-rule {
+    align-items: center;
+    background: #fff7df;
+    border: 1px solid #f1dfaa;
+    border-radius: 999px;
+    color: #875100;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.25;
+    margin-top: 6px;
+    padding: 4px 8px;
+}
+
+.notifiche-preferenze-channels {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.notifiche-preferenze-channel {
+    align-items: center;
+    background: #eef7fb;
+    border: 1px solid #d7e3f0;
+    border-radius: 999px;
+    color: #234154;
+    display: inline-flex;
+    font-weight: 700;
+    gap: 8px;
+    margin: 0;
+    min-height: 36px;
+    padding: 7px 12px;
+    white-space: nowrap;
+}
+
+.notifiche-preferenze-channel input {
+    accent-color: #2f80c2;
+    height: 16px;
+    margin: 0;
+    width: 16px;
+}
+
+.notifiche-preferenze-channel input:disabled + span {
+    color: #5a6b7c;
+}
+
 .genitore-profilo-student-list {
     display: grid;
     gap: 8px;
@@ -199,9 +277,70 @@
         padding: 13px 14px;
     }
 
+    .notifiche-preferenze-card .genitore-profilo-card-body {
+        padding: 12px;
+    }
+
+    .notifiche-preferenze-card .genitore-profilo-help {
+        background: #eef7fb;
+        border: 1px solid #d5ebf5;
+        border-radius: 12px;
+        color: #456274;
+        font-size: 14px;
+        line-height: 1.4;
+        margin-bottom: 12px;
+        padding: 10px 12px;
+    }
+
     .genitore-profilo-dl-row,
-    .genitore-profilo-student {
+    .genitore-profilo-student,
+    .notifiche-preferenze-row {
         grid-template-columns: 1fr;
+    }
+
+    .notifiche-preferenze-row {
+        border-radius: 14px;
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .notifiche-preferenze-title {
+        font-size: 18px;
+    }
+
+    .notifiche-preferenze-desc {
+        font-size: 14px;
+        line-height: 1.35;
+    }
+
+    .notifiche-preferenze-rule {
+        border-radius: 10px;
+        display: flex;
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+
+    .notifiche-preferenze-channels {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: 1fr;
+        justify-content: stretch;
+    }
+
+    .notifiche-preferenze-channel {
+        border-radius: 12px;
+        justify-content: space-between;
+        min-height: 42px;
+        padding: 9px 11px;
+        width: 100%;
+    }
+
+    .notifiche-preferenze-channel input {
+        order: 2;
+    }
+
+    .notifiche-preferenze-channel span {
+        order: 1;
     }
 
     .genitore-profilo-student-status {

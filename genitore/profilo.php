@@ -6,6 +6,8 @@ require_once '../common/send-mail.php';
 require_once '../common/mail-ui.php';
 require_once '../common/__MasterCom.php';
 require_once '../common/mastercom/admin_lib.php';
+require_once '../common/notifichePreferenzeLib.php';
+require_once '../common/profiloLogLib.php';
 
 ruoloRichiesto('genitore');
 
@@ -22,6 +24,16 @@ function genitoreProfiloH($value): string
 function genitoreProfiloCleanPhone(string $value): string
 {
     return trim(preg_replace('/[^\d+()\s.\-]/', '', $value) ?? '');
+}
+
+function genitoreProfiloCleanCodiceFiscale(string $value): string
+{
+    return strtoupper(preg_replace('/[^A-Z0-9]/i', '', $value) ?? '');
+}
+
+function genitoreProfiloCodiceFiscaleValido(string $value): bool
+{
+    return preg_match('/^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]$/', $value) === 1;
 }
 
 function genitoreProfiloEnsureEmailTokenTable(): void
@@ -131,7 +143,7 @@ function genitoreProfiloStudentContext(int $mastercomParentId): ?array
     return is_array($row) ? $row : null;
 }
 
-function genitoreProfiloSyncMasterCom(array $mirror, string $email, string $telefono, string $cellulare): array
+function genitoreProfiloSyncMasterCom(array $mirror, string $email, string $telefono, string $cellulare, string $codiceFiscale): array
 {
     if (!getSettingsValue('profiloGenitore', 'sincronizza_mastercom', true)) {
         return ['ok' => true, 'skipped' => true, 'message' => 'Sincronizzazione MasterCom disabilitata.'];
@@ -162,6 +174,7 @@ function genitoreProfiloSyncMasterCom(array $mirror, string $email, string $tele
     $form[$prefix . 'email'] = $email;
     $form[$prefix . 'telefono_abitazione'] = $telefono;
     $form[$prefix . 'telefono_cellulare'] = $cellulare;
+    $form[$prefix . 'codice_fiscale'] = $codiceFiscale;
     $form['id_studente'] = (string)($studentContext['id_studente'] ?? '');
     $form['studente_id_studente'] = (string)($studentContext['id_studente'] ?? '');
     $form['id_classe'] = (string)($studentContext['id_classe'] ?? '');
@@ -176,13 +189,14 @@ function genitoreProfiloSyncMasterCom(array $mirror, string $email, string $tele
     return ['ok' => true, 'message' => 'Anagrafica aggiornata anche su MasterCom.'];
 }
 
-function genitoreProfiloSendMails(array $genitore, string $oldEmail, string $email, string $telefono, string $cellulare, ?string $rollbackToken): void
+function genitoreProfiloSendMails(array $genitore, string $oldEmail, string $email, string $telefono, string $cellulare, string $codiceFiscale, ?string $rollbackToken): void
 {
     $toName = trim((string)($genitore['nome'] ?? '') . ' ' . (string)($genitore['cognome'] ?? ''));
     $content = '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">'
         . kvRow('Email', $email)
         . kvRow('Telefono', $telefono !== '' ? $telefono : '-')
         . kvRow('Cellulare', $cellulare !== '' ? $cellulare : '-')
+        . kvRow('Codice fiscale', $codiceFiscale !== '' ? $codiceFiscale : '-')
         . '</table>';
     $html = mailWrap('Profilo genitore aggiornato', $toName, 'I dati di contatto del tuo profilo sono stati aggiornati.', $content, 'Se non hai richiesto tu questa modifica, contatta la segreteria didattica.', 'default');
     sendMail($email, $toName !== '' ? $toName : $email, 'GestOre - profilo genitore aggiornato', $html);
@@ -216,6 +230,7 @@ function genitoreProfiloIsMobile(): bool
 $message = '';
 $messageType = 'info';
 $profiloTelegramVisibile = (bool)getSettingsValue('profiloGenitore', 'visibile_telegram', false);
+$profiloAction = trim((string)($_POST['profilo_action'] ?? 'contatti'));
 
 $genitore = dbGetFirst("
     SELECT id, nome, cognome, email, codice_fiscale
@@ -225,15 +240,34 @@ $genitore = dbGetFirst("
 ");
 $mirror = genitoreProfiloMirror((int)$__genitore_id);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $profiloAction === 'notifiche') {
+    $saveResult = notifichePreferenzeSaveFromPost('genitore', (int)$__genitore_id, $_POST);
+    $message = (string)($saveResult['message'] ?? 'Preferenze notifiche salvate.');
+    $messageType = !empty($saveResult['ok']) ? 'success' : 'danger';
+    profiloLogWrite('notifiche_salvate', 'genitore', (int)$__genitore_id, [
+        'ok' => !empty($saveResult['ok']),
+        'message' => $message,
+        'preferenze' => profiloLogNotificationPrefsFromPost($_POST),
+    ], !empty($saveResult['ok']) ? 'info' : 'warning');
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim((string)($_POST['email'] ?? ''));
     $telefono = genitoreProfiloCleanPhone((string)($_POST['telefono'] ?? ''));
     $cellulare = genitoreProfiloCleanPhone((string)($_POST['cellulare'] ?? ''));
+    $codiceFiscale = genitoreProfiloCleanCodiceFiscale((string)($_POST['codice_fiscale'] ?? ''));
     $oldEmail = trim((string)($genitore['email'] ?? ''));
 
     if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $message = 'Inserisci un indirizzo email valido.';
         $messageType = 'danger';
+        profiloLogWrite('contatti_rifiutati_email_non_valida', 'genitore', (int)$__genitore_id, [
+            'email_inserita' => $email,
+        ], 'warning');
+    } elseif ($codiceFiscale === '' || !genitoreProfiloCodiceFiscaleValido($codiceFiscale)) {
+        $message = 'Inserisci un codice fiscale valido.';
+        $messageType = 'danger';
+        profiloLogWrite('contatti_rifiutati_codice_fiscale_non_valido', 'genitore', (int)$__genitore_id, [
+            'codice_fiscale_inserito' => $codiceFiscale,
+        ], 'warning');
     } else {
         $existing = dbGetFirst("
             SELECT id
@@ -246,54 +280,107 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($existing) {
             $message = 'Questa mail e gia associata a un altro profilo genitore.';
             $messageType = 'warning';
+            profiloLogWrite('contatti_rifiutati_email_duplicata', 'genitore', (int)$__genitore_id, [
+                'email_inserita' => $email,
+                'genitore_esistente_id' => (int)($existing['id'] ?? 0),
+            ], 'warning');
         } else {
-            $oldTelefono = genitoreProfiloCleanPhone((string)($mirror['telefono'] ?? ''));
-            $oldCellulare = genitoreProfiloCleanPhone((string)($mirror['cellulare'] ?? ''));
-            $hasChanges =
-                strcasecmp($oldEmail, $email) !== 0 ||
-                $oldTelefono !== $telefono ||
-                $oldCellulare !== $cellulare;
+            $existingCf = dbGetFirst("
+                SELECT id
+                FROM genitori
+                WHERE UPPER(REPLACE(TRIM(codice_fiscale), ' ', '')) = " . dbQ($codiceFiscale) . "
+                  AND id <> " . dbI((int)$__genitore_id) . "
+                LIMIT 1
+            ");
 
-            if (!$hasChanges) {
-                $message = 'Nessuna modifica da salvare.';
-                $messageType = 'info';
+            if ($existingCf) {
+                $message = 'Questo codice fiscale e gia associato a un altro profilo genitore.';
+                $messageType = 'warning';
+                profiloLogWrite('contatti_rifiutati_codice_fiscale_duplicato', 'genitore', (int)$__genitore_id, [
+                    'codice_fiscale_inserito' => $codiceFiscale,
+                    'genitore_esistente_id' => (int)($existingCf['id'] ?? 0),
+                ], 'warning');
             } else {
-                $syncResult = $mirror ? genitoreProfiloSyncMasterCom($mirror, $email, $telefono, $cellulare) : ['ok' => true, 'skipped' => true];
+                $oldTelefono = genitoreProfiloCleanPhone((string)($mirror['telefono'] ?? ''));
+                $oldCellulare = genitoreProfiloCleanPhone((string)($mirror['cellulare'] ?? ''));
+                $oldCodiceFiscale = genitoreProfiloCleanCodiceFiscale((string)($genitore['codice_fiscale'] ?? ($mirror['codice_fiscale'] ?? '')));
+                $changes = profiloLogChangedFields(
+                    ['email' => $oldEmail, 'telefono' => $oldTelefono, 'cellulare' => $oldCellulare, 'codice_fiscale' => $oldCodiceFiscale],
+                    ['email' => $email, 'telefono' => $telefono, 'cellulare' => $cellulare, 'codice_fiscale' => $codiceFiscale]
+                );
+                $hasChanges =
+                    strcasecmp($oldEmail, $email) !== 0 ||
+                    $oldTelefono !== $telefono ||
+                    $oldCellulare !== $cellulare ||
+                    $oldCodiceFiscale !== $codiceFiscale;
 
-                if (empty($syncResult['ok'])) {
-                    $message = $syncResult['message'] ?? 'Aggiornamento MasterCom non riuscito.';
-                    $messageType = 'danger';
+                if (!$hasChanges) {
+                    $message = 'Nessuna modifica da salvare.';
+                    $messageType = 'info';
+                    profiloLogWrite('contatti_nessuna_modifica', 'genitore', (int)$__genitore_id, [
+                        'email' => $email,
+                    ]);
                 } else {
-                    $emailChanged = strcasecmp($oldEmail, $email) !== 0;
-                    $rollbackToken = $emailChanged ? genitoreProfiloCreateEmailRollbackToken((int)$__genitore_id, $oldEmail, $email, $telefono, $cellulare) : null;
+                    $syncResult = $mirror ? genitoreProfiloSyncMasterCom($mirror, $email, $telefono, $cellulare, $codiceFiscale) : ['ok' => true, 'skipped' => true];
 
-                    dbExec("
-                        UPDATE genitori
-                        SET email = " . dbQ($email) . "
-                        WHERE id = " . dbI((int)$__genitore_id) . "
-                    ");
+                    if (empty($syncResult['ok'])) {
+                        $message = $syncResult['message'] ?? 'Aggiornamento MasterCom non riuscito.';
+                        $messageType = 'danger';
+                        profiloLogWrite('contatti_sync_mastercom_fallito', 'genitore', (int)$__genitore_id, [
+                            'changes' => $changes,
+                            'message' => $message,
+                        ], 'error');
+                    } else {
+                        $emailChanged = strcasecmp($oldEmail, $email) !== 0;
+                        $isImpersonatingProfile = profiloLogIsImpersonatingTarget('genitore');
+                        $rollbackToken = ($emailChanged && !$isImpersonatingProfile) ? genitoreProfiloCreateEmailRollbackToken((int)$__genitore_id, $oldEmail, $email, $telefono, $cellulare) : null;
 
-                    if ($mirror && mastercomAdminTableExists('mastercom_genitori')) {
                         dbExec("
-                            UPDATE mastercom_genitori
+                            UPDATE genitori
                             SET email = " . dbQ($email) . ",
-                                telefono = " . dbQ($telefono) . ",
-                                cellulare = " . dbQ($cellulare) . ",
-                                last_sync_at = NOW()
-                            WHERE id = " . dbI((int)$mirror['id']) . "
+                                codice_fiscale = " . dbQ($codiceFiscale) . "
+                            WHERE id = " . dbI((int)$__genitore_id) . "
                         ");
+
+                        if ($mirror && mastercomAdminTableExists('mastercom_genitori')) {
+                            dbExec("
+                                UPDATE mastercom_genitori
+                                SET email = " . dbQ($email) . ",
+                                    telefono = " . dbQ($telefono) . ",
+                                    cellulare = " . dbQ($cellulare) . ",
+                                    codice_fiscale = " . dbQ($codiceFiscale) . ",
+                                    last_sync_at = NOW()
+                                WHERE id = " . dbI((int)$mirror['id']) . "
+                            ");
+                        }
+
+                        $_SESSION['genitore_email'] = $email;
+                        $_SESSION['genitore_codice_fiscale'] = $codiceFiscale;
+                        $_SESSION['__useremail'] = $email;
+                        $GLOBALS['__genitore_email'] = $email;
+                        $GLOBALS['__genitore_codice_fiscale'] = $codiceFiscale;
+                        $genitore['email'] = $email;
+                        $genitore['codice_fiscale'] = $codiceFiscale;
+                        $mirror = genitoreProfiloMirror((int)$__genitore_id);
+
+                        if (!$isImpersonatingProfile) {
+                            genitoreProfiloSendMails($genitore ?: [], $oldEmail, $email, $telefono, $cellulare, $codiceFiscale, $rollbackToken);
+                        }
+
+                        $message = 'Profilo aggiornato correttamente.' . (!empty($syncResult['skipped']) ? '' : ' ' . ($syncResult['message'] ?? ''));
+                        $messageType = 'success';
+                        profiloLogWrite('contatti_salvati', 'genitore', (int)$__genitore_id, [
+                            'changes' => $changes,
+                            'email_changed' => $emailChanged,
+                            'rollback_token_created' => $rollbackToken !== null,
+                            'impersonamento' => $isImpersonatingProfile,
+                            'mail_profilo_inviate' => !$isImpersonatingProfile,
+                            'mastercom_sync' => [
+                                'skipped' => !empty($syncResult['skipped']),
+                                'message' => (string)($syncResult['message'] ?? ''),
+                            ],
+                        ]);
                     }
-
-                    $_SESSION['genitore_email'] = $email;
-                    $_SESSION['__useremail'] = $email;
-                    $GLOBALS['__genitore_email'] = $email;
-                    $genitore['email'] = $email;
-                    $mirror = genitoreProfiloMirror((int)$__genitore_id);
-
-                    genitoreProfiloSendMails($genitore ?: [], $oldEmail, $email, $telefono, $cellulare, $rollbackToken);
-
-                    $message = 'Profilo aggiornato correttamente.' . (!empty($syncResult['skipped']) ? '' : ' ' . ($syncResult['message'] ?? ''));
-                    $messageType = 'success';
                 }
             }
         }
@@ -433,10 +520,19 @@ if (genitoreProfiloIsMobile()) {
                             Email, telefono e cellulare vengono usati per le comunicazioni GestOre e, quando possibile, sono sincronizzati anche con l'anagrafica MasterCom.
                         </p>
                         <form method="post">
+                            <input type="hidden" name="profilo_action" value="contatti">
                             <div class="form-group">
                                 <label for="email">Indirizzo email</label>
                                 <input type="email" class="form-control" id="email" name="email" required
                                        value="<?php echo genitoreProfiloH($genitore['email'] ?? ''); ?>">
+                            </div>
+                            <div class="form-group">
+                                <label for="codice_fiscale">Codice fiscale</label>
+                                <input type="text" class="form-control" id="codice_fiscale" name="codice_fiscale" required
+                                       maxlength="16" pattern="[A-Za-z]{6}[0-9LMNPQRSTUVlmnpqrstuv]{2}[ABCDEHLMPRSTabcdehlmprst][0-9LMNPQRSTUVlmnpqrstuv]{2}[A-Za-z][0-9LMNPQRSTUVlmnpqrstuv]{3}[A-Za-z]"
+                                       style="text-transform: uppercase;"
+                                       oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')"
+                                       value="<?php echo genitoreProfiloH(genitoreProfiloCleanCodiceFiscale((string)($genitore['codice_fiscale'] ?? ''))); ?>">
                             </div>
                             <div class="form-group">
                                 <label for="telefono">Telefono</label>
@@ -453,12 +549,6 @@ if (genitoreProfiloIsMobile()) {
                                     <span class="glyphicon glyphicon-floppy-disk"></span>
                                     Salva profilo
                                 </button>
-                                <?php if ($profiloTelegramVisibile): ?>
-                                    <a href="telegram.php" class="btn btn-default">
-                                        <span class="glyphicon glyphicon-send"></span>
-                                        Gestisci Telegram
-                                    </a>
-                                <?php endif; ?>
                             </div>
                         </form>
                         <?php if (!$mirror): ?>
@@ -468,6 +558,8 @@ if (genitoreProfiloIsMobile()) {
                         <?php endif; ?>
                     </div>
                 </section>
+
+                <?php echo notifichePreferenzeRenderSection('genitore', (int)$__genitore_id); ?>
 
                 <?php if ($profiloTelegramVisibile): ?>
                     <section class="genitore-profilo-card">

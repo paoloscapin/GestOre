@@ -58,6 +58,14 @@ ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
 				</a>
 			<?php endif; ?>
 
+			<?php if (getSettingsValue('config', 'permessi', false) && getSettingsValue('permessi', 'visibile_studenti', false)): ?>
+				<a href="../studente/permessi_mobile.php" class="mobile-home-card">
+					<div class="mobile-home-card-icon"><span class="glyphicon glyphicon-log-out"></span></div>
+					<div class="mobile-home-card-title">Permessi di uscita</div>
+					<div class="mobile-home-card-desc">Consulta i permessi richiesti dai genitori</div>
+				</a>
+			<?php endif; ?>
+
 			<?php if (getSettingsValue('config', 'biglietti', true)): ?>
 				<a href="../common/biglietti_prenotazioni.php" class="mobile-home-card">
 					<div class="mobile-home-card-icon"><span class="glyphicon glyphicon-barcode"></span></div>
@@ -89,6 +97,12 @@ ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
 					<div class="mobile-home-card-desc">Consulta e scarica i programmi degli obiettivi minimi</div>
 				</a>
 			<?php endif; ?>
+
+			<a href="../studente/profilo.php" class="mobile-home-card">
+				<div class="mobile-home-card-icon"><span class="glyphicon glyphicon-user"></span></div>
+				<div class="mobile-home-card-title">Profilo</div>
+				<div class="mobile-home-card-desc">Gestisci le preferenze delle notifiche</div>
+			</a>
 
 			<a href="../help/GestOre - Guida Studenti.pdf" target="_blank" class="mobile-home-card">
 				<div class="mobile-home-card-icon"><span class="glyphicon glyphicon-question-sign"></span></div>

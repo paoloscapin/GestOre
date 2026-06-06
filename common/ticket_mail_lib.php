@@ -7,6 +7,7 @@ require_once __DIR__ . '/send-mail.php';
 require_once __DIR__ . '/telegram_webhook_utils.php';
 require_once __DIR__ . '/telegram_webhook_api.php';
 require_once __DIR__ . '/telegram_webhook_relay.php';
+require_once __DIR__ . '/notifichePreferenzeLib.php';
 
 function ticketMailConfig(): array
 {
@@ -234,7 +235,7 @@ function ticketMailResolveActorByEmail(string $email): array
             'cognome' => trim((string)($gen['cognome'] ?? '')),
             'email' => trim((string)($gen['email'] ?? $email)),
             'attivo' => (int)($gen['attivo'] ?? 0),
-            'telegram_chat_id' => '',
+            'telegram_chat_id' => trim((string)($gen['telegram_chat_id'] ?? '')),
             'raw' => $gen,
         ];
     }
@@ -884,10 +885,6 @@ function ticketMailSendRelayNotification(array $relay, string $subject, string $
     global $__settings;
 
     $toEmail = ticketMailResolveRelayRecipientEmail($relay);
-    if ($toEmail === '') {
-        return ['ok' => false, 'error' => 'email_riferimento mancante'];
-    }
-
     $config = ticketMailConfig();
     $ticketCode = trim((string)($relay['ticket_code'] ?? ''));
     $mailSubject = trim($subject);
@@ -897,26 +894,61 @@ function ticketMailSendRelayNotification(array $relay, string $subject, string $
 
     $html = ticketMailBuildHtmlMessage($relay, $subject, $body);
 
-    $ok = sendMailCustom(
-        $toEmail,
-        trim((string)(
-            (($relay['utente_nome'] ?? $relay['nome'] ?? '') . ' ' . ($relay['utente_cognome'] ?? $relay['cognome'] ?? ''))
-        )),
-        $mailSubject,
-        $html,
-        [
-            'from_email' => trim((string)($config['reply_visible_from'] ?? $config['alias_address'] ?? $__settings->local->emailNoReplyFrom ?? '')),
-            'from_name' => 'GestOre ' . trim((string)($__settings->local->nomeIstituto ?? '')),
-            'sender_email' => trim((string)($__settings->local->smtpMail ?? '')),
-            'sender_name' => 'GestOre ' . trim((string)($__settings->local->nomeIstituto ?? '')),
-            'reply_to_email' => trim((string)($config['reply_visible_from'] ?? $config['alias_address'] ?? '')),
-            'reply_to_name' => 'GestOre Ticket',
-            'attachments' => $attachments,
-            'add_bcc_default' => false,
-        ]
-    );
+    $channels = [];
+    $errors = [];
+    if ($toEmail !== '') {
+        $okMail = sendMailCustom(
+            $toEmail,
+            trim((string)(
+                (($relay['utente_nome'] ?? $relay['nome'] ?? '') . ' ' . ($relay['utente_cognome'] ?? $relay['cognome'] ?? ''))
+            )),
+            $mailSubject,
+            $html,
+            [
+                'from_email' => trim((string)($config['reply_visible_from'] ?? $config['alias_address'] ?? $__settings->local->emailNoReplyFrom ?? '')),
+                'from_name' => 'GestOre ' . trim((string)($__settings->local->nomeIstituto ?? '')),
+                'sender_email' => trim((string)($__settings->local->smtpMail ?? '')),
+                'sender_name' => 'GestOre ' . trim((string)($__settings->local->nomeIstituto ?? '')),
+                'reply_to_email' => trim((string)($config['reply_visible_from'] ?? $config['alias_address'] ?? '')),
+                'reply_to_name' => 'GestOre Ticket',
+                'attachments' => $attachments,
+                'add_bcc_default' => false,
+            ]
+        );
+        $channels['mail'] = $okMail;
+        if (!$okMail) {
+            $errors[] = 'invio mail fallito';
+        }
+    } else {
+        $errors[] = 'email_riferimento mancante';
+    }
 
-    return $ok ? ['ok' => true] : ['ok' => false, 'error' => 'invio mail fallito'];
+    $idGenitore = (int)($relay['idGenitore'] ?? 0);
+    if ($idGenitore > 0 && notifichePreferenzeChannelAllowed('genitore', $idGenitore, 'comunicazioni', 'telegram')) {
+        $chatId = notifichePreferenzeGenitoreTelegramChatId($idGenitore);
+        $botToken = trim((string)($__settings->telegram->bot_token ?? ''));
+        if ($chatId !== '' && $botToken !== '') {
+            $telegramText = trim($subject) . "\n\n" . trim($body);
+            if ($ticketCode !== '') {
+                $telegramText = "Ticket {$ticketCode}\n" . $telegramText;
+            }
+            $tgRes = tgSendMessage($botToken, $chatId, tgCut($telegramText, 3500));
+            $channels['telegram'] = !empty($tgRes['ok']);
+            if (empty($tgRes['ok'])) {
+                $errors[] = 'invio telegram fallito';
+            }
+        } else {
+            $channels['telegram'] = false;
+            $errors[] = 'telegram genitore non collegato';
+        }
+    }
+
+    $ok = false;
+    foreach ($channels as $sent) {
+        $ok = $ok || !empty($sent);
+    }
+
+    return $ok ? ['ok' => true, 'channels' => $channels] : ['ok' => false, 'error' => implode('; ', $errors), 'channels' => $channels];
 }
 
 function ticketMailResolveRelayRecipientEmail(array $relay): string
