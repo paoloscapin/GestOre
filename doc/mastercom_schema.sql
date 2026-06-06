@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS `mastercom_studenti` (
   `codice_fiscale` VARCHAR(32) NULL,
   `data_nascita_ts` INT NULL,
   `data_nascita` DATE NULL,
+  `sesso` VARCHAR(10) NULL,
   `email1` VARCHAR(255) NULL,
   `email2` VARCHAR(255) NULL,
   `foto` VARCHAR(255) NULL,

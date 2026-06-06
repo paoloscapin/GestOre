@@ -48,11 +48,13 @@ CREATE TABLE IF NOT EXISTS `mastercom_noirc_appelli` (
   `giorno_settimana` TINYINT NOT NULL,
   `ora` VARCHAR(5) NOT NULL,
   `id_assegnazione` INT NULL,
+  `aula` VARCHAR(50) NULL,
   `created_by_user_id` INT NULL,
   `note` VARCHAR(255) NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_mastercom_noirc_appelli_slot` (`data_giorno`, `ora`),
+  KEY `idx_mastercom_noirc_appelli_aula` (`aula`),
   KEY `idx_mastercom_noirc_appelli_assegnazione` (`id_assegnazione`),
   CONSTRAINT `fk_mastercom_noirc_appelli_assegnazione`
     FOREIGN KEY (`id_assegnazione`) REFERENCES `mastercom_noirc_docenti_assegnazioni` (`id`)
