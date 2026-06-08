@@ -7,8 +7,12 @@ const studentsCount = document.getElementById('studentsCount');
 const logTime = document.getElementById('logTime');
 const closeTopBtn = document.getElementById('closeTopBtn');
 const closeBottomBtn = document.getElementById('closeBottomBtn');
+const stopTopBtn = document.getElementById('stopTopBtn');
+const stopBottomBtn = document.getElementById('stopBottomBtn');
 
-function log(msg) {
+function log(msg, options = {}) {
+    const shouldSendRemote = options.remote !== false;
+
     logEl.textContent += msg + "\n";
     logEl.scrollTop = logEl.scrollHeight;
     window.scrollTo({
@@ -19,6 +23,10 @@ function log(msg) {
         hour: '2-digit',
         minute: '2-digit'
     });
+
+    if (shouldSendRemote) {
+        sendLogToGestOre(msg);
+    }
 }
 
 function setStatus(kind, text) {
@@ -29,6 +37,11 @@ function setStatus(kind, text) {
 function setCloseButtonsVisible(visible) {
     closeTopBtn.classList.toggle('hidden', !visible);
     closeBottomBtn.classList.toggle('hidden', !visible);
+}
+
+function setStopButtonsVisible(visible) {
+    stopTopBtn.classList.toggle('hidden', !visible);
+    stopBottomBtn.classList.toggle('hidden', !visible);
 }
 
 function closePopup() {
@@ -60,18 +73,70 @@ function formatDateItalian(value) {
     return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
 }
 
-function logTrace(trace) {
+function logTrace(trace, options = {}) {
     if (!Array.isArray(trace) || trace.length === 0) {
         return;
     }
 
     for (const item of trace) {
-        log(item);
+        log(item, options);
     }
 }
 
 let activeRunId = null;
 let streamedLogCount = 0;
+let importRunning = false;
+let cancelRequested = false;
+
+function sendRuntimeMessage(message) {
+    if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+        return Promise.resolve(null);
+    }
+
+    return chrome.runtime.sendMessage(message).catch(() => null);
+}
+
+function getGestoreLogEndpoint() {
+    const endpoint = document.getElementById('gestoreEndpoint')?.value || '';
+
+    if (!endpoint) {
+        return '';
+    }
+
+    return endpoint.replace(/importaPagopa\.php(?:\?.*)?$/i, 'importaPagopaExtensionLog.php');
+}
+
+function sendLogToGestOre(message) {
+    const endpoint = getGestoreLogEndpoint();
+
+    if (!endpoint || !message) {
+        return;
+    }
+
+    fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            source: 'EXTENSION',
+            runId: activeRunId || '',
+            at: new Date().toISOString(),
+            message: String(message)
+        })
+    }).catch(() => {
+        // Il log a video deve restare fluido anche se il log remoto non risponde.
+    });
+}
+
+window.addEventListener('beforeunload', (event) => {
+    if (!importRunning) {
+        return;
+    }
+
+    event.preventDefault();
+    event.returnValue = '';
+});
 
 chrome.runtime.onMessage.addListener((message) => {
     if (!message || message.type !== 'pagopa-import-log' || message.runId !== activeRunId) {
@@ -79,7 +144,9 @@ chrome.runtime.onMessage.addListener((message) => {
     }
 
     streamedLogCount++;
-    log(message.message);
+    log(message.message, {
+        remote: false
+    });
 });
 
 function schoolYearDefault() {
@@ -147,9 +214,28 @@ async function mergeStudentRegistryCache(updates) {
 }
 
 async function getActiveTab() {
+    if (chrome.storage && chrome.storage.session) {
+        const stored = await chrome.storage.session.get([
+            'isirelSourceTabId',
+            'isirelSourceTabUrl'
+        ]);
+
+        if (stored.isirelSourceTabId) {
+            try {
+                const sourceTab = await chrome.tabs.get(stored.isirelSourceTabId);
+
+                if (sourceTab && sourceTab.url && sourceTab.url.startsWith('https://istruzione.cloud.provincia.tn.it/')) {
+                    return sourceTab;
+                }
+            } catch {
+                // La scheda ISIREL memorizzata non esiste piu: si passa al fallback.
+            }
+        }
+    }
+
     const [tab] = await chrome.tabs.query({
         active: true,
-        currentWindow: true
+        lastFocusedWindow: true
     });
 
     return tab;
@@ -173,6 +259,25 @@ async function runImportInPage(args) {
                 trace.push(message);
 
                 try {
+                    if (args.gestoreLogEndpoint) {
+                        fetch(args.gestoreLogEndpoint, {
+                            method: 'POST',
+                            headers: {
+                                'content-type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                source: 'ISIREL_PAGE',
+                                runId: args.runId || '',
+                                at: new Date().toISOString(),
+                                message: String(message)
+                            })
+                        }).catch(() => {});
+                    }
+                } catch (e) {
+                    // Il log remoto non deve interrompere l'importazione.
+                }
+
+                try {
                     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
                         chrome.runtime.sendMessage({
                             type: 'pagopa-import-log',
@@ -182,6 +287,27 @@ async function runImportInPage(args) {
                     }
                 } catch (e) {
                     // Il trace resta disponibile nel risultato finale anche se il messaggio live fallisce.
+                }
+            }
+
+            async function throwIfCanceled() {
+                if (!args.runId || typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+                    return;
+                }
+
+                let result = null;
+
+                try {
+                    result = await chrome.runtime.sendMessage({
+                        type: 'pagopa-is-canceled',
+                        runId: args.runId
+                    });
+                } catch (e) {
+                    result = null;
+                }
+
+                if (result && result.canceled) {
+                    throw new Error('Importazione interrotta dall utente');
                 }
             }
 
@@ -242,6 +368,7 @@ async function runImportInPage(args) {
                 }
 
                 async function apiGet(path) {
+                    await throwIfCanceled();
                     const r = await fetch(API_BASE + path, {
                         method: 'GET',
                         credentials: 'include',
@@ -252,10 +379,12 @@ async function runImportInPage(args) {
                         throw new Error(`GET ${path} -> HTTP ${r.status}`);
                     }
 
+                    await throwIfCanceled();
                     return await r.json();
                 }
 
                 async function apiPost(path, body) {
+                    await throwIfCanceled();
                     const r = await fetch(API_BASE + path, {
                         method: 'POST',
                         credentials: 'include',
@@ -267,10 +396,12 @@ async function runImportInPage(args) {
                         throw new Error(`POST ${path} -> HTTP ${r.status}`);
                     }
 
+                    await throwIfCanceled();
                     return await r.json();
                 }
 
                 async function sendToGestore(endpoint, payload) {
+                    await throwIfCanceled();
                     const r = await fetch(endpoint, {
                         method: 'POST',
                         headers: {
@@ -295,41 +426,29 @@ async function runImportInPage(args) {
                         throw new Error(`GestOre HTTP ${r.status}: ${text}`);
                     }
 
+                    await throwIfCanceled();
                     return json;
                 }
 
-                function fileNameFromDisposition(disposition, fallback) {
-                    const text = String(disposition || '');
-                    const starMatch = text.match(/filename\*=UTF-8''([^;]+)/i);
+                async function downloadPdfViaBrowser(pdfUrl, fallbackName) {
+                    await throwIfCanceled();
 
-                    if (starMatch && starMatch[1]) {
-                        try {
-                            return decodeURIComponent(starMatch[1].replace(/"/g, '').trim());
-                        } catch {
-                            return starMatch[1].replace(/"/g, '').trim();
-                        }
+                    if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+                        throw new Error('Background estensione non disponibile per scaricare il PDF');
                     }
 
-                    const match = text.match(/filename="?([^";]+)"?/i);
+                    const result = await chrome.runtime.sendMessage({
+                        type: 'pagopa-download-pdf-tab',
+                        url: pdfUrl,
+                        fallbackName
+                    });
 
-                    if (match && match[1]) {
-                        return match[1].trim();
+                    if (!result || result.ok !== true) {
+                        throw new Error((result && result.error) ? result.error : 'Download PDF non riuscito');
                     }
 
-                    return fallback;
-                }
-
-                async function blobToBase64(blob) {
-                    const buffer = await blob.arrayBuffer();
-                    const bytes = new Uint8Array(buffer);
-                    const chunkSize = 0x8000;
-                    let binary = '';
-
-                    for (let i = 0; i < bytes.length; i += chunkSize) {
-                        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
-                    }
-
-                    return btoa(binary);
+                    await throwIfCanceled();
+                    return result;
                 }
 
                 async function archiveAvailablePdfs(activities) {
@@ -344,16 +463,48 @@ async function runImportInPage(args) {
                         };
                     }
 
+                    function isRecipientPaid(recipient) {
+                        const state = String(recipient && recipient.paymentState ? recipient.paymentState : '').toUpperCase();
+                        return state === 'PAGOPA_PAYMENT_VERIFICATION_OK'
+                            || state === 'PAGATO'
+                            || state === 'PAID'
+                            || state.indexOf('PAYMENT_VERIFICATION_OK') !== -1;
+                    }
+
+                    function pdfJobLabel(job) {
+                        const recipient = job.recipient || {};
+                        const activity = job.activity || {};
+                        const student = recipient.student || {};
+                        const studentName = `${student.lastName || ''} ${student.firstName || ''}`.trim() || `idStudent ${recipient.idStudent || '-'}`;
+                        const activityText = shortText(activity.causal || activity.description || '-', 70);
+
+                        return `recipient ${recipient.idRecipient || '-'} | stato=${recipient.paymentState || '-'} | studente=${studentName} | idClass=${recipient.idClass || '-'} | attivita=${activity.id || '-'} | viaggio=${activityText}`;
+                    }
+
                     const jobs = [];
+                    let paidSkipped = 0;
+                    let cancelledCandidates = 0;
+                    let noLinkSkipped = 0;
 
                     for (const activity of activities) {
+                        await throwIfCanceled();
                         const recipients = Array.isArray(activity.recipients) ? activity.recipients : [];
 
                         for (const recipient of recipients) {
+                            if (isRecipientPaid(recipient)) {
+                                paidSkipped++;
+                                continue;
+                            }
+
                             const link = recipient && recipient.paymentLink ? String(recipient.paymentLink) : '';
 
                             if (!link) {
+                                noLinkSkipped++;
                                 continue;
+                            }
+
+                            if (recipient.cancelled === true || recipient.cancelled === 1 || recipient.cancelled === '1') {
+                                cancelledCandidates++;
                             }
 
                             jobs.push({
@@ -372,13 +523,15 @@ async function runImportInPage(args) {
                     };
 
                     if (jobs.length === 0) {
-                        traceLog('   Nessun link PDF disponibile negli avvisi letti.');
+                        traceLog(`   Nessun PDF da archiviare. Gia pagati saltati: ${paidSkipped}; senza link: ${noLinkSkipped}.`);
                         return stats;
                     }
 
-                    traceLog(`   PDF disponibili da archiviare: ${jobs.length}`);
+                    traceLog(`   PDF disponibili da verificare: ${jobs.length}. Gia pagati saltati: ${paidSkipped}; annullati con link da verificare: ${cancelledCandidates}; senza link: ${noLinkSkipped}.`);
+                    let consecutiveBlockedDownloads = 0;
 
                     for (let i = 0; i < jobs.length; i++) {
+                        await throwIfCanceled();
                         const job = jobs[i];
                         const recipient = job.recipient;
                         const activity = job.activity;
@@ -397,32 +550,10 @@ async function runImportInPage(args) {
                             }
 
                             const pdfUrl = new URL(job.link, API_BASE).toString();
-                            const response = await fetch(pdfUrl, {
-                                method: 'GET',
-                                credentials: 'include',
-                                headers: isirelHeaders({
-                                    accept: 'application/pdf,application/octet-stream,*/*'
-                                })
-                            });
-
-                            if (!response.ok) {
-                                throw new Error(`ISIREL HTTP ${response.status}`);
-                            }
-
-                            const blob = await response.blob();
-                            const contentType = response.headers.get('content-type') || blob.type || 'application/pdf';
-
-                            if (!blob || blob.size < 20) {
-                                throw new Error('PDF vuoto');
-                            }
-
-                            if (!/pdf|octet-stream/i.test(contentType)) {
-                                throw new Error(`contenuto non PDF (${contentType})`);
-                            }
-
-                            const base64 = await blobToBase64(blob);
-                            const fileName = fileNameFromDisposition(
-                                response.headers.get('content-disposition'),
+                            const label = pdfJobLabel(job);
+                            traceLog(`   PDF ${i + 1}/${jobs.length}: ${label} | url=${pdfUrl}`);
+                            const pdf = await downloadPdfViaBrowser(
+                                pdfUrl,
                                 `avviso_pagopa_${recipient.idRecipient || 'isirel'}.pdf`
                             );
 
@@ -432,10 +563,10 @@ async function runImportInPage(args) {
                                 idRecipientIsirel: recipient.idRecipient,
                                 idStudentIsirel: recipient.idStudent,
                                 paymentIuv: recipient.paymentIuv || null,
-                                fileName,
-                                contentType,
+                                fileName: pdf.fileName || `avviso_pagopa_${recipient.idRecipient || 'isirel'}.pdf`,
+                                contentType: pdf.contentType || 'application/pdf',
                                 sourceUrl: pdfUrl,
-                                base64
+                                base64: pdf.base64
                             });
 
                             if (result.skipped) {
@@ -443,13 +574,28 @@ async function runImportInPage(args) {
                             } else {
                                 stats.saved++;
                             }
+                            consecutiveBlockedDownloads = 0;
                         } catch (e) {
-                            stats.errors++;
-                            traceLog(`   PDF ${i + 1}/${jobs.length} non archiviato: recipient ${recipient.idRecipient || '-'} - ${e.message || String(e)}`);
+                            const errorMessage = e.message || String(e);
+
+                            if (/HTTP\s+418/i.test(errorMessage)) {
+                                stats.skipped++;
+                                consecutiveBlockedDownloads++;
+                                traceLog(`   PDF ${i + 1}/${jobs.length} non disponibile su MyPay: ${pdfJobLabel(job)} - HTTP 418`);
+
+                                if (consecutiveBlockedDownloads >= 5) {
+                                    traceLog('   Download PDF sospeso: MyPay ha risposto HTTP 418 per 5 PDF consecutivi.');
+                                    break;
+                                }
+                            } else {
+                                stats.errors++;
+                                traceLog(`   PDF ${i + 1}/${jobs.length} non archiviato: ${pdfJobLabel(job)} - ${errorMessage}`);
+                                consecutiveBlockedDownloads = 0;
+                            }
                         }
 
                         if (i === 0 || i === jobs.length - 1 || (i + 1) % 25 === 0) {
-                            traceLog(`   PDF ${i + 1}/${jobs.length}: salvati ${stats.saved}, gia presenti ${stats.skipped}, errori ${stats.errors}.`);
+                            traceLog(`   PDF ${i + 1}/${jobs.length}: salvati ${stats.saved}, gia presenti/saltati ${stats.skipped}, errori ${stats.errors}.`);
                         }
                     }
 
@@ -459,6 +605,7 @@ async function runImportInPage(args) {
                 traceLog('');
                 traceLog('1. Lettura elenco avvisi da ISIREL');
                 traceLog(`   Periodo: ${formatDateItalianInPage(args.startDate)} -> ${formatDateItalianInPage(args.endDate)}`);
+                await throwIfCanceled();
                 const list = await apiGet(
                     `/services/mie/api/v1/paymentRequests/byPeriodAndCurrentUser?startDate=${encodeURIComponent(args.startDate)}&endDate=${encodeURIComponent(args.endDate)}`
                 );
@@ -476,6 +623,7 @@ async function runImportInPage(args) {
                 let recipientCount = 0;
 
                 for (const item of list) {
+                    await throwIfCanceled();
                     if (!item || !item.id) {
                         continue;
                     }
@@ -525,6 +673,7 @@ async function runImportInPage(args) {
                     traceLog(`   Caricamento in ${totalBatches} blocchi da massimo ${batchSize} studenti.`);
 
                     for (let i = 0; i < missingIds.length; i += batchSize) {
+                        await throwIfCanceled();
                         const batch = missingIds.slice(i, i + batchSize);
                         const batchIndex = Math.floor(i / batchSize) + 1;
                         const students = await apiPost('/services/rel/api/v1/person-registry/list', batch);
@@ -552,6 +701,7 @@ async function runImportInPage(args) {
                 traceLog('4. Preparazione dati per GestOre');
                 traceLog('   Associazione anagrafiche studenti agli avvisi.');
                 for (const activity of activities) {
+                    await throwIfCanceled();
                     const recipients = Array.isArray(activity.recipients) ? activity.recipients : [];
 
                     for (const r of recipients) {
@@ -569,12 +719,14 @@ async function runImportInPage(args) {
                 traceLog('');
                 traceLog('5. Invio dati a GestOre');
                 traceLog(`   Invio ${activities.length} attivita e ${recipientCount} avvisi studenti.`);
+                await throwIfCanceled();
                 const gestoreResult = await sendToGestore(args.gestoreEndpoint, payload);
                 traceLog(`   Risposta GestOre OK: ${gestoreResult.activities ?? activities.length} attivita, ${gestoreResult.recipients ?? recipientCount} avvisi, ${gestoreResult.mappedStudents ?? 0} studenti mappati.`);
                 traceLog('');
                 traceLog('6. Archivio PDF disponibili');
+                await throwIfCanceled();
                 const pdfArchive = await archiveAvailablePdfs(activities);
-                traceLog(`   Archivio PDF: ${pdfArchive.saved} salvati, ${pdfArchive.skipped} gia presenti, ${pdfArchive.errors} errori.`);
+                traceLog(`   Archivio PDF: ${pdfArchive.saved} salvati, ${pdfArchive.skipped} gia presenti/saltati, ${pdfArchive.errors} errori.`);
                 traceLog('');
                 traceLog('Importazione conclusa correttamente.');
 
@@ -624,17 +776,48 @@ document.addEventListener('DOMContentLoaded', setDefaultDates);
 closeTopBtn.addEventListener('click', closePopup);
 closeBottomBtn.addEventListener('click', closePopup);
 
+async function requestStopImport() {
+    if (!importRunning || !activeRunId || cancelRequested) {
+        return;
+    }
+
+    cancelRequested = true;
+    stopTopBtn.disabled = true;
+    stopBottomBtn.disabled = true;
+    setStatus('error', 'Interruzione richiesta');
+    log('Interruzione richiesta: attendo la fine della chiamata corrente e poi fermo il sync.');
+
+    await sendRuntimeMessage({
+        type: 'pagopa-cancel-import',
+        runId: activeRunId
+    });
+}
+
+stopTopBtn.addEventListener('click', requestStopImport);
+stopBottomBtn.addEventListener('click', requestStopImport);
+
 importBtn.addEventListener('click', async () => {
     logEl.textContent = '';
     activitiesCount.textContent = '-';
     studentsCount.textContent = '-';
     setCloseButtonsVisible(false);
+    setStopButtonsVisible(true);
+    stopTopBtn.disabled = false;
+    stopBottomBtn.disabled = false;
     streamedLogCount = 0;
     activeRunId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    importRunning = true;
+    cancelRequested = false;
     importBtn.disabled = true;
     setStatus('running', 'Importazione in corso');
 
     try {
+        await sendRuntimeMessage({
+            type: 'pagopa-import-state',
+            running: true,
+            runId: activeRunId
+        });
+
         const args = {
             startDate: document.getElementById('startDate').value,
             endDate: document.getElementById('endDate').value,
@@ -644,6 +827,7 @@ importBtn.addEventListener('click', async () => {
         };
 
         args.gestorePdfEndpoint = args.gestoreEndpoint.replace(/importaPagopa\.php(?:\?.*)?$/i, 'importaPagopaPdf.php');
+        args.gestoreLogEndpoint = args.gestoreEndpoint.replace(/importaPagopa\.php(?:\?.*)?$/i, 'importaPagopaExtensionLog.php');
 
         const bearerInfo = await getStoredBearerInfo();
         args.bearerToken = bearerInfo.isirelBearerToken || '';
@@ -665,7 +849,9 @@ importBtn.addEventListener('click', async () => {
 
         const res = await runImportInPage(args);
         if (streamedLogCount === 0) {
-            logTrace(res.trace);
+            logTrace(res.trace, {
+                remote: false
+            });
         }
 
         const cachedUpdates = await mergeStudentRegistryCache(res.studentCacheUpdates);
@@ -679,12 +865,13 @@ importBtn.addEventListener('click', async () => {
         log(`- Avvisi salvati in GestOre: ${res.gestore && res.gestore.recipients !== undefined ? res.gestore.recipients : '-'}`);
         log(`- Studenti mappati in GestOre: ${res.gestore && res.gestore.mappedStudents !== undefined ? res.gestore.mappedStudents : '-'}`);
         if (res.pdfArchive) {
-            log(`- PDF archiviati: ${res.pdfArchive.saved} salvati, ${res.pdfArchive.skipped} gia presenti, ${res.pdfArchive.errors} errori`);
+        log(`- PDF archiviati: ${res.pdfArchive.saved} salvati, ${res.pdfArchive.skipped} gia presenti/saltati, ${res.pdfArchive.errors} errori`);
         }
 
         activitiesCount.textContent = String(res.activities);
         studentsCount.textContent = String(res.students);
         setStatus('ok', 'Import completato');
+        setStopButtonsVisible(false);
         setCloseButtonsVisible(true);
         scrollPopupToBottom();
 
@@ -692,12 +879,25 @@ importBtn.addEventListener('click', async () => {
         if (streamedLogCount === 0) {
             logTrace(e.trace);
         }
-        log('ERRORE: ' + (e.message || String(e)));
-        setStatus('error', 'Errore');
+        if (cancelRequested || /interrotta/i.test(e.message || '')) {
+            log('Importazione interrotta.');
+            setStatus('error', 'Interrotto');
+        } else {
+            log('ERRORE: ' + (e.message || String(e)));
+            setStatus('error', 'Errore');
+        }
+        setStopButtonsVisible(false);
         setCloseButtonsVisible(true);
         scrollPopupToBottom();
     } finally {
+        await sendRuntimeMessage({
+            type: 'pagopa-import-state',
+            running: false,
+            runId: activeRunId
+        });
         activeRunId = null;
+        importRunning = false;
+        cancelRequested = false;
         importBtn.disabled = false;
     }
 });

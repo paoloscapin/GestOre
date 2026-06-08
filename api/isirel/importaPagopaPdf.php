@@ -37,6 +37,11 @@ function outJson($ok, $extra = [], $status = 200) {
     exit;
 }
 
+function pagopaPdfLog($message) {
+    $file = __DIR__ . '/../../log/isirel_pagopa_pdf.log';
+    @file_put_contents($file, date('Y-m-d H:i:s') . ' - ' . $message . PHP_EOL, FILE_APPEND | LOCK_EX);
+}
+
 function sqlExecOrThrowPdf($query) {
     global $__con;
 
@@ -117,6 +122,95 @@ function sanitizePdfName($name) {
     return substr($name, 0, 180);
 }
 
+function pagopaPdfUrlAllowed($url) {
+    $parts = parse_url((string)$url);
+    $host = strtolower((string)($parts['host'] ?? ''));
+    $scheme = strtolower((string)($parts['scheme'] ?? ''));
+
+    return $scheme === 'https' && in_array($host, [
+        'mypay.provincia.tn.it',
+        'istruzione.cloud.provincia.tn.it',
+    ], true);
+}
+
+function pagopaPdfDownloadFromUrl($url) {
+    $url = trim((string)$url);
+
+    if ($url === '' || !pagopaPdfUrlAllowed($url)) {
+        throw new Exception('URL PDF non consentito');
+    }
+
+    pagopaPdfLog('download url=' . $url);
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_CONNECTTIMEOUT => 15,
+            CURLOPT_TIMEOUT => 45,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/pdf,application/octet-stream,*/*',
+            ],
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
+            CURLOPT_REFERER => 'https://istruzione.cloud.provincia.tn.it/',
+        ]);
+
+        $body = curl_exec($ch);
+        $error = curl_error($ch);
+        $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        curl_close($ch);
+
+        if ($body === false || $status < 200 || $status >= 300) {
+            pagopaPdfLog('download fallito http=' . $status . ' error=' . $error);
+            throw new Exception('Download PDF fallito HTTP ' . $status . ($error !== '' ? ' - ' . $error : ''));
+        }
+
+        return [
+            'bytes' => $body,
+            'content_type' => $contentType !== '' ? $contentType : 'application/pdf',
+        ];
+    }
+
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'header' => implode("\r\n", [
+                'Accept: application/pdf,application/octet-stream,*/*',
+                'Referer: https://istruzione.cloud.provincia.tn.it/',
+                'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
+            ]),
+            'timeout' => 45,
+            'ignore_errors' => true,
+        ],
+    ]);
+
+    $body = @file_get_contents($url, false, $context);
+    $status = 0;
+    $contentType = 'application/pdf';
+
+    foreach (($http_response_header ?? []) as $header) {
+        if (preg_match('/^HTTP\/\S+\s+(\d+)/i', $header, $m)) {
+            $status = (int)$m[1];
+        } elseif (stripos($header, 'Content-Type:') === 0) {
+            $contentType = trim(substr($header, 13));
+        }
+    }
+
+    if ($body === false || $status < 200 || $status >= 300) {
+        pagopaPdfLog('download fallito http=' . $status . ' via file_get_contents');
+        throw new Exception('Download PDF fallito HTTP ' . $status);
+    }
+
+    return [
+        'bytes' => $body,
+        'content_type' => $contentType,
+    ];
+}
+
 try {
     $data = readJsonBodyPdf();
 
@@ -128,12 +222,13 @@ try {
     $idActivity = intval($data['idIsirelActivity'] ?? 0);
     $base64 = (string)($data['base64'] ?? '');
     $checkOnly = !empty($data['checkOnly']);
+    $sourceUrl = trim((string)($data['sourceUrl'] ?? ''));
 
     if ($idRecipient <= 0 || $idActivity <= 0) {
         outJson(false, ['error' => 'Identificativi avviso mancanti'], 400);
     }
 
-    if ($base64 === '' && !$checkOnly) {
+    if ($base64 === '' && $sourceUrl === '' && !$checkOnly) {
         outJson(false, ['error' => 'PDF mancante'], 400);
     }
 
@@ -174,13 +269,18 @@ try {
         outJson(true, ['skipped' => false, 'message' => 'PDF non ancora archiviato']);
     }
 
-    $bytes = base64_decode($base64, true);
+    if ($base64 !== '') {
+        $bytes = base64_decode($base64, true);
+        $contentType = trim((string)($data['contentType'] ?? 'application/pdf'));
+    } else {
+        $downloaded = pagopaPdfDownloadFromUrl($sourceUrl);
+        $bytes = $downloaded['bytes'];
+        $contentType = trim((string)($downloaded['content_type'] ?? 'application/pdf'));
+    }
 
     if ($bytes === false || strlen($bytes) < 20) {
         outJson(false, ['error' => 'PDF non valido'], 400);
     }
-
-    $contentType = trim((string)($data['contentType'] ?? 'application/pdf'));
 
     if (stripos($contentType, 'pdf') === false && substr($bytes, 0, 4) !== '%PDF') {
         outJson(false, ['error' => 'Il file scaricato non sembra un PDF'], 400);
@@ -203,9 +303,11 @@ try {
             pdf_content_type = " . dbQ($contentType) . ",
             pdf_size = " . dbI(strlen($bytes)) . ",
             pdf_saved_at = CURRENT_TIMESTAMP,
-            pdf_source_url = " . dbQ($data['sourceUrl'] ?? null) . "
+            pdf_source_url = " . dbQ($sourceUrl !== '' ? $sourceUrl : ($data['sourceUrl'] ?? null)) . "
         WHERE id = " . dbI($row['id']) . "
     ");
+
+    pagopaPdfLog('salvato activity=' . $idActivity . ' recipient=' . $idRecipient . ' file=' . $storedName . ' size=' . strlen($bytes));
 
     outJson(true, [
         'saved' => true,
@@ -214,5 +316,6 @@ try {
     ]);
 
 } catch (Throwable $e) {
+    pagopaPdfLog('errore ' . $e->getMessage());
     outJson(false, ['error' => $e->getMessage()], 500);
 }

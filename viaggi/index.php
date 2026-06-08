@@ -65,6 +65,9 @@ function percentValue($part, $total) {
 }
 
 function getSummary($q) {
+    global $__anno_scolastico_corrente_id;
+
+    $annoCorrente = intval($__anno_scolastico_corrente_id ?? 0);
     $where = '';
     if ($q !== '') {
         $where = "
@@ -90,9 +93,52 @@ function getSummary($q) {
             SUM(CASE WHEN p.cancelled = 1 THEN 1 ELSE 0 END) AS annullati,
             SUM(COALESCE(p.payment_amount, 0)) AS totale_richiesto,
             SUM(CASE WHEN p.payment_state = 'PAGOPA_PAYMENT_VERIFICATION_OK' THEN COALESCE(p.payment_amount, 0) ELSE 0 END) AS totale_pagato,
+            GROUP_CONCAT(
+                CASE
+                    WHEN p.id IS NOT NULL
+                     AND COALESCE(p.cancelled, 0) = 0
+                     AND (p.payment_state IS NULL OR p.payment_state <> 'PAGOPA_PAYMENT_VERIFICATION_OK')
+                    THEN CONCAT(
+                        COALESCE(s.cognome, p.cognome, ''),
+                        ' ',
+                        COALESCE(s.nome, p.nome, ''),
+                        CASE WHEN c.classe IS NOT NULL AND c.classe <> '' THEN CONCAT(' (', c.classe, ')') ELSE '' END,
+                        CASE WHEN s.id IS NOT NULL AND COALESCE(s.attivo, 1) = 0 THEN ' - disattivo' ELSE '' END
+                    )
+                    ELSE NULL
+                END
+                ORDER BY COALESCE(s.cognome, p.cognome), COALESCE(s.nome, p.nome)
+                SEPARATOR '||'
+            ) AS non_paganti_nomi,
+            GROUP_CONCAT(
+                CASE
+                    WHEN p.id IS NOT NULL
+                     AND COALESCE(p.cancelled, 0) = 1
+                    THEN CONCAT(
+                        COALESCE(s.cognome, p.cognome, ''),
+                        ' ',
+                        COALESCE(s.nome, p.nome, ''),
+                        CASE WHEN c.classe IS NOT NULL AND c.classe <> '' THEN CONCAT(' (', c.classe, ')') ELSE '' END,
+                        CASE WHEN s.id IS NOT NULL AND COALESCE(s.attivo, 1) = 0 THEN ' - disattivo' ELSE '' END
+                    )
+                    ELSE NULL
+                END
+                ORDER BY COALESCE(s.cognome, p.cognome), COALESCE(s.nome, p.nome)
+                SEPARATOR '||'
+            ) AS annullati_nomi,
             MAX(a.updated_at) AS updated_at
         FROM pagopa_attivita a
         LEFT JOIN pagopa_avvisi_studenti p ON p.id_attivita = a.id
+        LEFT JOIN studente s ON s.id = p.id_studente_gestore
+        LEFT JOIN studente_frequenta sf ON sf.id = (
+            SELECT sf2.id
+            FROM studente_frequenta sf2
+            WHERE sf2.id_studente = s.id
+              AND sf2.id_anno_scolastico = " . dbI($annoCorrente) . "
+            ORDER BY sf2.id DESC
+            LIMIT 1
+        )
+        LEFT JOIN classi c ON c.id = sf.id_classe
         $where
         GROUP BY
             a.id,
@@ -116,8 +162,12 @@ function getActivity($id) {
     ");
 }
 
-function getRecipients($id, $soloProblemi) {
+function getRecipients($id, $soloProblemi, $soloNonPagati) {
+    global $__anno_scolastico_corrente_id;
+
+    $annoCorrente = intval($__anno_scolastico_corrente_id ?? 0);
     $whereProblem = $soloProblemi ? "AND p.id_studente_gestore IS NULL" : "";
+    $whereNotPaid = $soloNonPagati ? "AND COALESCE(p.cancelled, 0) = 0 AND (p.payment_state IS NULL OR p.payment_state <> 'PAGOPA_PAYMENT_VERIFICATION_OK')" : "";
     return dbGetAll("
         SELECT
             p.*,
@@ -126,13 +176,22 @@ function getRecipients($id, $soloProblemi) {
             s.nome AS gestore_nome,
             s.email AS gestore_email,
             s.username AS gestore_username,
+            s.attivo AS gestore_attivo,
             c.classe AS gestore_classe
         FROM pagopa_avvisi_studenti p
         LEFT JOIN studente s ON s.id = p.id_studente_gestore
-        LEFT JOIN studente_frequenta sf ON sf.id_studente = s.id
-        LEFT JOIN classi c ON c.id = sf.id_classe AND c.attiva = 1
+        LEFT JOIN studente_frequenta sf ON sf.id = (
+            SELECT sf2.id
+            FROM studente_frequenta sf2
+            WHERE sf2.id_studente = s.id
+              AND sf2.id_anno_scolastico = " . dbI($annoCorrente) . "
+            ORDER BY sf2.id DESC
+            LIMIT 1
+        )
+        LEFT JOIN classi c ON c.id = sf.id_classe
         WHERE p.id_attivita = " . dbI($id) . "
         $whereProblem
+        $whereNotPaid
         ORDER BY COALESCE(s.cognome, p.cognome), COALESCE(s.nome, p.nome), p.id
     ") ?: [];
 }
@@ -140,6 +199,7 @@ function getRecipients($id, $soloProblemi) {
 $idAttivita = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $q = trim((string)($_GET['q'] ?? ''));
 $soloProblemi = isset($_GET['problemi']) ? 1 : 0;
+$soloNonPagati = isset($_GET['non_pagati']) ? 1 : 0;
 $repairMsg = null;
 
 if (isset($_POST['repair_mapping'])) {
@@ -156,7 +216,7 @@ if (isset($_POST['repair_mapping'])) {
 }
 
 $activity = $idAttivita > 0 ? getActivity($idAttivita) : null;
-$rows = $activity ? getRecipients($idAttivita, $soloProblemi) : [];
+$rows = $activity ? getRecipients($idAttivita, $soloProblemi, $soloNonPagati) : [];
 $summary = !$activity ? getSummary($q) : [];
 
 $stats = [
@@ -187,8 +247,8 @@ foreach ($summary as $r) {
             background: #f4fafb;
         }
         .pagopa-page {
-            margin-top: 58px;
-            padding-top: 18px;
+            margin-top: 0;
+            padding-top: 10px;
             padding-bottom: 28px;
         }
         .pagopa-hero {
@@ -264,6 +324,7 @@ foreach ($summary as $r) {
             color: #fff;
             border-color: #0b4452 !important;
             vertical-align: middle !important;
+            text-align: center;
             font-size: 13px;
             padding: 12px 10px !important;
             white-space: nowrap;
@@ -275,12 +336,50 @@ foreach ($summary as $r) {
         }
         .pagopa-table tbody tr:nth-child(even) { background: #f7fcfc; }
         .pagopa-table tbody tr:hover { background: #eaf8fb; }
+        .pagopa-table tbody tr.pagopa-row-cancelled,
+        .pagopa-table tbody tr.pagopa-row-cancelled:nth-child(even) {
+            background: #fff7a8;
+            box-shadow: inset 6px 0 0 #facc15;
+        }
+        .pagopa-table tbody tr.pagopa-row-cancelled:hover {
+            background: #fff38a;
+        }
+        .pagopa-col-causale { width: 38%; }
+        .pagopa-col-actions { width: 92px; }
         .pagopa-activity-title { font-weight: 700; color: #0f4f5f; }
         .pagopa-muted { color: #64748b; font-size: 12px; }
+        .pagopa-missing-list {
+            margin-top: 7px;
+            color: #991b1b;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+        .pagopa-missing-list div {
+            margin-top: 2px;
+        }
+        .pagopa-cancelled-list {
+            margin-top: 7px;
+            color: #7f1d1d;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+        .pagopa-cancelled-list div {
+            margin-top: 2px;
+        }
         .pagopa-status { display: inline-block; padding: 3px 8px; border-radius: 999px; font-weight: 700; font-size: 12px; }
         .pagopa-status-ok { background: #dcfce7; color: #166534; }
         .pagopa-status-warn { background: #fef3c7; color: #92400e; }
         .pagopa-status-bad { background: #fee2e2; color: #991b1b; }
+        .pagopa-status-cancelled {
+            background: #facc15;
+            color: #3f2f00;
+            border: 1px solid #b45309;
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, .28);
+        }
         .pagopa-progress { height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 7px; width: 150px; max-width: 100%; }
         .pagopa-progress span { display: block; height: 100%; background: #16a34a; }
         .pagopa-alert { border-left: 4px solid #16a34a; background: #ecfdf5; padding: 10px 12px; margin-bottom: 14px; border-radius: 6px; }
@@ -359,7 +458,7 @@ if (haRuolo('segreteria-docenti') && !haRuolo('segreteria-didattica') && !haRuol
                 <table class="table table-bordered pagopa-table">
                     <thead>
                     <tr>
-                        <th>Data invio</th><th>Scadenza</th><th>Viaggio / causale</th><th>Tipo</th><th>Importo</th><th>Avvisi</th><th>Mapping</th><th>Pagati</th><th></th>
+                        <th>Data invio</th><th>Scadenza</th><th class="pagopa-col-causale">Viaggio / causale</th><th>Tipo</th><th>Importo</th><th>Avvisi</th><th>Mapping</th><th>Pagati</th><th class="pagopa-col-actions"></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -372,7 +471,12 @@ if (haRuolo('segreteria-docenti') && !haRuolo('segreteria-didattica') && !haRuol
                         $mappati = intval($r['mappati'] ?? 0);
                         $nonMappati = intval($r['non_mappati'] ?? 0);
                         $pagati = intval($r['pagati'] ?? 0);
-                        $paidPerc = percentValue($pagati, $numAvvisi);
+                        $annullati = intval($r['annullati'] ?? 0);
+                        $pagabili = max(0, $numAvvisi - $annullati);
+                        $paidPerc = percentValue($pagati, $pagabili);
+                        $nonPagati = max(0, $pagabili - $pagati);
+                        $nonPagantiNomi = array_values(array_filter(explode('||', (string)($r['non_paganti_nomi'] ?? ''))));
+                        $annullatiNomi = array_values(array_filter(explode('||', (string)($r['annullati_nomi'] ?? ''))));
                         ?>
                         <tr>
                             <td class="text-center"><span class="pagopa-date"><?= dateIt($r['send_date']) ?></span></td>
@@ -390,8 +494,25 @@ if (haRuolo('segreteria-docenti') && !haRuolo('segreteria-didattica') && !haRuol
                                 <?php if ($nonMappati > 0): ?><div class="pagopa-muted"><?= $nonMappati ?> non mappati</div><?php endif; ?>
                             </td>
                             <td>
-                                <strong><?= $pagati ?>/<?= $numAvvisi ?></strong>
+                                <strong><?= $pagati ?>/<?= $pagabili ?></strong>
+                                <?php if ($annullati > 0): ?><div class="pagopa-muted"><?= $annullati ?> annullati</div><?php endif; ?>
                                 <div class="pagopa-progress"><span style="width:<?= intval($paidPerc) ?>%"></span></div>
+                                <?php if ($nonPagati > 0 && $nonPagati <= 5 && count($nonPagantiNomi) > 0): ?>
+                                    <div class="pagopa-missing-list">
+                                        <strong>Da pagare:</strong>
+                                        <?php foreach ($nonPagantiNomi as $nome): ?>
+                                            <div><?= h($nome) ?></div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($annullati > 0 && $annullati <= 5 && count($annullatiNomi) > 0): ?>
+                                    <div class="pagopa-cancelled-list">
+                                        <strong>Richiesta cancellata:</strong>
+                                        <?php foreach ($annullatiNomi as $nome): ?>
+                                            <div><?= h($nome) ?></div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <td class="pagopa-actions">
                                 <a class="btn btn-xs btn-primary pagopa-detail-btn" href="index.php?id=<?= intval($r['id']) ?>"><span class="glyphicon glyphicon-folder-open"></span> Dettaglio</a>
@@ -406,6 +527,7 @@ if (haRuolo('segreteria-docenti') && !haRuolo('segreteria-didattica') && !haRuol
         <div class="pagopa-toolbar">
             <a class="btn btn-default" href="index.php"><span class="glyphicon glyphicon-arrow-left"></span> Torna all'elenco</a>
             <a class="btn btn-warning" href="index.php?id=<?= intval($activity['id']) ?>&problemi=1">Solo non mappati</a>
+            <a class="btn btn-danger" href="index.php?id=<?= intval($activity['id']) ?>&non_pagati=1">Solo non pagati</a>
             <a class="btn btn-default" href="index.php?id=<?= intval($activity['id']) ?>">Tutti</a>
             <form method="post" onsubmit="return confirm('Aggiornare il mapping studenti tramite codice fiscale?');" style="margin:0;">
                 <button type="submit" name="repair_mapping" value="1" class="btn btn-success"><span class="glyphicon glyphicon-refresh"></span> Aggiorna mapping studenti</button>
@@ -426,7 +548,7 @@ if (haRuolo('segreteria-docenti') && !haRuolo('segreteria-didattica') && !haRuol
         </div>
 
         <div class="panel pagopa-panel">
-            <div class="panel-heading"><span class="glyphicon glyphicon-user"></span> Avvisi studenti <?= $soloProblemi ? '(solo non mappati)' : '' ?></div>
+            <div class="panel-heading"><span class="glyphicon glyphicon-user"></span> Avvisi studenti <?= $soloProblemi ? '(solo non mappati)' : '' ?><?= $soloNonPagati ? '(solo non pagati)' : '' ?></div>
             <div class="table-responsive">
                 <table class="table table-bordered pagopa-table">
                     <thead>
@@ -439,8 +561,10 @@ if (haRuolo('segreteria-docenti') && !haRuolo('segreteria-didattica') && !haRuol
                         <?php
                         $mapped = !empty($r['gestore_id']);
                         $stateClass = statoClass($r['payment_state'] ?? '');
+                        $isCancelled = intval($r['cancelled'] ?? 0) === 1;
+                        $isPaid = ($r['payment_state'] ?? '') === 'PAGOPA_PAYMENT_VERIFICATION_OK';
                         ?>
-                        <tr>
+                        <tr class="<?= $isCancelled ? 'pagopa-row-cancelled' : '' ?>">
                             <td>
                                 <strong><?= h($r['cognome']) ?> <?= h($r['nome']) ?></strong><br>
                                 <span class="pagopa-muted">ISIREL student: <?= h($r['id_student_isirel']) ?></span><br>
@@ -453,6 +577,9 @@ if (haRuolo('segreteria-docenti') && !haRuolo('segreteria-didattica') && !haRuol
                                     <strong><?= h($r['gestore_cognome']) ?> <?= h($r['gestore_nome']) ?></strong><br>
                                     <span class="pagopa-muted">ID GestOre: <?= h($r['gestore_id']) ?></span><br>
                                     <span class="pagopa-muted"><?= h($r['gestore_email']) ?></span>
+                                    <?php if (intval($r['gestore_attivo'] ?? 1) === 0): ?>
+                                        <br><span class="pagopa-status pagopa-status-warn">Account disattivato</span>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <span class="pagopa-status pagopa-status-bad">Non trovato</span>
                                 <?php endif; ?>
@@ -461,7 +588,7 @@ if (haRuolo('segreteria-docenti') && !haRuolo('segreteria-didattica') && !haRuol
                             <td>
                                 <span class="pagopa-status <?= h($stateClass) ?>"><?= h(statoLabel($r['payment_state'])) ?></span><br>
                                 <span class="pagopa-muted"><?= h($r['payment_state']) ?></span>
-                                <?php if (intval($r['cancelled']) === 1): ?><br><span class="pagopa-status pagopa-status-bad">Annullato</span><?php endif; ?>
+                                <?php if ($isCancelled): ?><br><span class="pagopa-status pagopa-status-cancelled">RICHIESTA CANCELLATA</span><?php endif; ?>
                             </td>
                             <td class="text-right"><span class="pagopa-amount"><?= euroValue($r['payment_amount']) ?></span></td>
                             <td><?= h($r['payment_iuv']) ?></td>
@@ -475,15 +602,21 @@ if (haRuolo('segreteria-docenti') && !haRuolo('segreteria-didattica') && !haRuol
                                     <a class="btn btn-xs btn-success" href="pagopaPdf.php?id=<?= h($r['id']) ?>" target="_blank" rel="noopener">
                                         <span class="glyphicon glyphicon-file"></span> PDF archiviato
                                     </a>
+                                    <?php if ($isCancelled): ?>
+                                        <br><span class="pagopa-status pagopa-status-cancelled">Richiesta cancellata</span>
+                                    <?php endif; ?>
                                     <?php if (!empty($r['pdf_saved_at'])): ?>
                                         <br><span class="pagopa-muted">Salvato: <?= h(date('d/m/Y H:i', strtotime((string)$r['pdf_saved_at']))) ?></span>
                                     <?php endif; ?>
+                                <?php elseif ($isCancelled): ?>
+                                    <span class="pagopa-status pagopa-status-cancelled">Avviso annullato</span><br>
+                                    <span class="pagopa-muted">PDF non disponibile</span>
                                 <?php else: ?>
                                     <span class="pagopa-muted">Non archiviato</span>
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?php if (!empty($r['payment_link'])): ?>
+                                <?php if (!$isPaid && !$isCancelled && !empty($r['payment_link'])): ?>
                                     <a class="btn btn-xs btn-primary" href="<?= h($r['payment_link']) ?>" target="_blank" rel="noopener"><span class="glyphicon glyphicon-new-window"></span> Apri</a>
                                 <?php else: ?>
                                     -

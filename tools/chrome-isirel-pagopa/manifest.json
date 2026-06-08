@@ -1,18 +1,20 @@
 {
   "manifest_version": 3,
   "name": "GestOre - Import ISIREL pagoPA",
-  "version": "0.3.0",
+  "version": "0.4.9",
   "description": "Importa in GestOre gli avvisi pagoPA generati su ISIREL dopo login manuale.",
   "permissions": [
     "activeTab",
+    "debugger",
     "scripting",
     "storage",
+    "tabs",
     "webRequest"
   ],
   "host_permissions": [
     "https://istruzione.cloud.provincia.tn.it/*",
-    "https://www.buonarroti.tn.it/*",
-    "https://gestore.buonarroti.tn.it/*"
+    "https://mypay.provincia.tn.it/*",
+    "https://www.buonarroti.tn.it/*"
   ],
   "icons": {
     "16": "icon16.png",
@@ -24,7 +26,6 @@
   },
   "action": {
     "default_title": "Importa pagoPA in GestOre",
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "icon16.png",
       "48": "icon48.png",

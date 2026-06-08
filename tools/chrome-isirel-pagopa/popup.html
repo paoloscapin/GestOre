@@ -26,6 +26,9 @@ input:focus{border-color:#0ea5a3;box-shadow:0 0 0 3px rgba(14,165,163,.14)}
 .btn-main{width:100%;border:0;border-radius:11px;background:#0f766e;color:#fff;margin-top:12px;padding:11px 12px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(15,118,110,.22)}
 .btn-main:hover{background:#0b625b}
 .btn-main:disabled{background:#94a3b8;cursor:wait;box-shadow:none}
+.btn-stop{border:0;border-radius:999px;background:#dc2626;color:#fff;margin-top:12px;padding:7px 11px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(220,38,38,.22)}
+.btn-stop:hover{background:#b91c1c}
+.btn-stop:disabled{background:#94a3b8;cursor:wait;box-shadow:none}
 .btn-close-popup{border:1px solid rgba(255,255,255,.7);border-radius:999px;background:rgba(255,255,255,.18);color:#fff;margin-top:12px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer}
 .btn-close-popup:hover{background:rgba(255,255,255,.28)}
 .btn-close-popup-bottom{width:100%;border:0;border-radius:11px;background:#334155;color:#fff;margin-top:10px;padding:10px 12px;font-size:13px;font-weight:800;cursor:pointer}
@@ -48,6 +51,7 @@ pre{white-space:pre;background:#0f172a;color:#dbeafe;border-radius:10px;padding:
         <p class="hero-subtitle">Legge gli avvisi dal portale ISIREL aperto in questa scheda e li importa in GestOre.</p>
         <div class="hero-actions">
             <div id="statusPill" class="status-pill status-idle"><span class="status-dot"></span><span id="statusText">Pronto</span></div>
+            <button type="button" id="stopTopBtn" class="btn-stop hidden">Interrompi</button>
             <button type="button" id="closeTopBtn" class="btn-close-popup hidden">Chiudi estensione</button>
         </div>
     </section>
@@ -94,6 +98,7 @@ pre{white-space:pre;background:#0f172a;color:#dbeafe;border-radius:10px;padding:
     <section class="panel">
         <div class="log-title"><span>Log importazione</span><span id="logTime" class="muted"></span></div>
         <pre id="log"></pre>
+        <button type="button" id="stopBottomBtn" class="btn-stop hidden">Interrompi importazione</button>
         <button type="button" id="closeBottomBtn" class="btn-close-popup-bottom hidden">Chiudi estensione</button>
     </section>
 </div>
