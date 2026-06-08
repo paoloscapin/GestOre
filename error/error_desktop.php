@@ -12,6 +12,16 @@ require_once '../common/path.php';
 require_once '../common/connect.php';
 require_once '../common/__Settings.php';
 
+if (session_status() === PHP_SESSION_NONE) {
+    @session_name('GESTORESESSID');
+    @session_start();
+}
+
+$loginMastercomAssistenza = $_SESSION['login_mastercom_assistenza'] ?? null;
+$loginMastercomAssistenzaValida = is_array($loginMastercomAssistenza)
+    && !empty($loginMastercomAssistenza['token'])
+    && intval($loginMastercomAssistenza['expires_at'] ?? 0) >= time();
+
 ?>
 
 
@@ -36,7 +46,14 @@ require_once '../common/__Settings.php';
         <div class="col-md-12">
 <?php
 if (isset($_GET['message'])) {
-    echo '<h4>' . urldecode($_GET['message']) . '</h4>';
+    echo '<h4>' . htmlspecialchars(urldecode($_GET['message']), ENT_QUOTES, 'UTF-8') . '</h4>';
+    if ($loginMastercomAssistenzaValida) {
+        echo '<p style="margin-top:18px;">';
+        echo '<a class="btn btn-warning" href="login_mastercom_assistenza.php?token=' . urlencode((string)$loginMastercomAssistenza['token']) . '">';
+        echo 'Richiedi assistenza su questo problema';
+        echo '</a>';
+        echo '</p>';
+    }
     echo '<h4><code>Per eventuali segnalazioni, scrivi a <a href="mailto:registroelettronico@buonarroti.tn.it">registroelettronico@buonarroti.tn.it</a></code></h4>';
 }
 ?>

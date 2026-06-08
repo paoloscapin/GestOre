@@ -12,6 +12,16 @@ require_once '../common/path.php';
 require_once '../common/connect.php';
 require_once '../common/__Settings.php';
 
+if (session_status() === PHP_SESSION_NONE) {
+    @session_name('GESTORESESSID');
+    @session_start();
+}
+
+$loginMastercomAssistenza = $_SESSION['login_mastercom_assistenza'] ?? null;
+$loginMastercomAssistenzaValida = is_array($loginMastercomAssistenza)
+    && !empty($loginMastercomAssistenza['token'])
+    && intval($loginMastercomAssistenza['expires_at'] ?? 0) >= time();
+
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -38,6 +48,13 @@ require_once '../common/__Settings.php';
                         <?php
                         if (isset($_GET['message'])) {
                             echo '<h4>' . htmlspecialchars($_GET['message']) . '</h4>';
+                            if ($loginMastercomAssistenzaValida) {
+                                echo '<p style="margin-top:18px;">';
+                                echo '<a class="btn btn-warning btn-lg w-100" href="login_mastercom_assistenza.php?token=' . urlencode((string)$loginMastercomAssistenza['token']) . '">';
+                                echo 'Richiedi assistenza su questo problema';
+                                echo '</a>';
+                                echo '</p>';
+                            }
                         } else {
                             echo '<h4>Si è verificato un errore sconosciuto.</h4>';
                         }

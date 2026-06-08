@@ -380,7 +380,7 @@ function ticketMailRelayIsMailOrigin(?array $relay): bool
     }
 
     $origin = strtolower(trim((string)($relay['canale_apertura'] ?? '')));
-    return $origin === 'mail';
+    return in_array($origin, ['mail', 'login_mastercom'], true);
 }
 
 function ticketMailRelayUserLabel(array $relay): string

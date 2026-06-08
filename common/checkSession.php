@@ -11,6 +11,7 @@ require_once __DIR__ . '/__Util.php';
 require_once __DIR__ . '/path.php';
 require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/__Settings.php';
+require_once __DIR__ . '/__MasterCom.php';
 
 if ($__settings->config->MBApp !== true) {
     debug("checkSession: MBApp feature disabled, skipping connectMBApp.php ");
@@ -431,6 +432,94 @@ function aggiornaLoginGenitore(int $genitore_id): void
     dbExec($query);
 }
 
+function contaStudentiAttiviGenitore(int $genitore_id): int
+{
+    if ($genitore_id <= 0) {
+        return 0;
+    }
+
+    $count = dbGetValue("
+        SELECT COUNT(*)
+        FROM genitori_studenti gs
+        INNER JOIN studente s ON s.id = gs.id_studente
+        WHERE gs.id_genitore = " . dbI($genitore_id) . "
+          AND s.attivo = 1
+    ");
+
+    return intval($count);
+}
+
+function segnalaLoginMastercomGenitoreFallito(array $genitore, string $username, int $studentiAttivi, int $mastercomHttp, string $mastercomError): void
+{
+    static $sent = [];
+
+    $genitoreId = intval($genitore['id'] ?? 0);
+    if ($genitoreId <= 0 || isset($sent[$genitoreId])) {
+        return;
+    }
+    $sent[$genitoreId] = true;
+
+    global $__settings;
+
+    try {
+        $_SESSION['login_mastercom_assistenza'] = [
+            'token' => bin2hex(random_bytes(24)),
+            'expires_at' => time() + 1800,
+            'genitore_id' => $genitoreId,
+            'username' => $username,
+            'studenti_attivi' => $studentiAttivi,
+            'mastercom_http' => $mastercomHttp,
+            'mastercom_error' => $mastercomError,
+            'created_at' => time(),
+        ];
+    } catch (Throwable $e) {
+        errorTelegram("Token assistenza login MasterCom non creato: " . $e->getMessage());
+    }
+
+    $botToken = trim((string)($__settings->telegram->bot_token ?? ''));
+    $serviceChatId = trim((string)($__settings->telegram->chat_id ?? ''));
+    if ($botToken === '' || $serviceChatId === '') {
+        warningTelegram("Notifica login MasterCom genitore non inviata: configurazione Telegram mancante");
+        return;
+    }
+
+    require_once __DIR__ . '/telegram_webhook_utils.php';
+    require_once __DIR__ . '/telegram_webhook_api.php';
+
+    $nome = trim((string)($genitore['nome'] ?? ''));
+    $cognome = trim((string)($genitore['cognome'] ?? ''));
+    $email = trim((string)($genitore['email'] ?? ''));
+    $codiceFiscale = trim((string)($genitore['codice_fiscale'] ?? ''));
+    $ip = get_client_ip_single();
+    $userAgent = trim((string)($_SERVER['HTTP_USER_AGENT'] ?? ''));
+    $requestUri = trim((string)($_SERVER['REQUEST_URI'] ?? ''));
+
+    $ticketText =
+        "LOGIN_MASTERCOM\n" .
+        "Problema login genitore: MasterCom non autentica l'utente.\n\n" .
+        "Genitore: " . trim($cognome . ' ' . $nome) . "\n" .
+        "ID GestOre: " . $genitoreId . "\n" .
+        "Username MasterCom: " . $username . "\n" .
+        "Email: " . ($email !== '' ? $email : '-') . "\n" .
+        "Codice fiscale: " . ($codiceFiscale !== '' ? $codiceFiscale : '-') . "\n" .
+        "Studenti attivi collegati: " . $studentiAttivi . "\n" .
+        "MasterCom HTTP: " . $mastercomHttp . "\n" .
+        "MasterCom errore: " . ($mastercomError !== '' ? $mastercomError : '-') . "\n" .
+        "IP: " . $ip . "\n" .
+        "Pagina: " . ($requestUri !== '' ? $requestUri : '-') . "\n" .
+        "User agent: " . tgCut($userAgent, 240);
+
+    $sendRes = tgSendMessage(
+        $botToken,
+        $serviceChatId,
+        "Avviso login MasterCom genitore\n\n" . tgCut($ticketText, 3300) . "\n\nIl genitore può aprire un ticket dalla pagina di errore.",
+        []
+    );
+    if (empty($sendRes['ok'])) {
+        errorTelegram("Notifica login MasterCom genitore fallita: " . ($sendRes['error'] ?? 'errore sconosciuto'));
+    }
+}
+
 $newlogin_genitore = false;
 
 debug("checkSession: entering login/genitore+google block");
@@ -439,7 +528,7 @@ __dbg_session_state('BEFORE genitore/google auth block');
 // =====================================================
 // LOGIN GENITORI (username/password) - solo se NON già autenticato
 // =====================================================
-if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['ruolo'])) {
+if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['utente_ruolo'])) {
     debug("checkSession: login genitore con username/password POST");
     __dbg_session_state('GENITORE LOGIN: BEFORE handling POST credentials');
 
@@ -449,7 +538,7 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
     debug("checkSession: genitore username=" . $username);
 
     // Verifica esistenza nel DB locale
-    $query = "SELECT * FROM genitori WHERE username = '$username' AND attivo = 1";
+    $query = "SELECT * FROM genitori WHERE username = " . dbQ($username) . " AND attivo = 1";
     debug("checkSession: query genitori=" . $query);
     $genitore = dbGetFirst($query);
     $esiste_login = ($genitore != null);
@@ -458,36 +547,34 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
 
     if ($esiste_login) {
         debug("checkSession: trovato genitore con username=$username -> calling mastercom");
+        $studentiAttiviGenitore = contaStudentiAttiviGenitore((int)$genitore['id']);
+        $authResult = mastercomAuthenticate($username, $password, ['method' => 'GET']);
 
-        $curl = curl_init();
-        $newpassword = urlencode($password);
-        curl_setopt_array($curl, [
-            CURLOPT_URL => $__settings->config->ulrAPIMastercom . "?form_user=" . $username . "&form_password=" . $newpassword,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 60,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "GET",
-            CURLOPT_HTTPHEADER => ["User-Agent: GestOreAuth"]
-        ]);
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-        curl_close($curl);
-
-        if ($err) {
+        if (!$authResult['ok'] && !empty($authResult['error']) && $authResult['response'] === null && intval($authResult['http_code']) === 0) {
             $__message = 'Impossibile collegarsi a MasterCom';
-            debug("checkSession: mastercom ERROR=" . $err);
-            infoLogin("Impossibile collegarsi a MasterCom: " . $err);
+            debug("checkSession: mastercom ERROR=" . $authResult['error']);
+            infoLogin("Impossibile collegarsi a MasterCom: " . $authResult['error']);
             warning($__message);
             redirect('/error/error.php?message=' . $__message);
             exit();
         } else {
-            debug("checkSession: mastercom response=" . __dbg_mask($response));
-            $array = json_decode($response, true);
+            debug("checkSession: mastercom response=" . __dbg_mask($authResult['raw'] ?? null));
+            $array = is_array($authResult['response'] ?? null) ? $authResult['response'] : [];
 
             if (empty($array["auth"])) {
                 $__message = 'utente non trovato su MasterCom: [' . $username . ']';
-                debug("checkSession: mastercom auth EMPTY -> fail");
-                infoLogin("utente non trovato su MasterCom: " . $username);
+                $mastercomHttp = intval($authResult['http_code'] ?? 0);
+                $mastercomError = (string)($authResult['error'] ?? '');
+                debug("checkSession: mastercom auth EMPTY -> fail http=$mastercomHttp error=" . $mastercomError . " studenti_attivi=" . $studentiAttiviGenitore);
+                infoLogin(
+                    "utente non trovato su MasterCom: " . $username
+                    . " | genitore_locale_id=" . intval($genitore['id'])
+                    . " | locale_attivo=1"
+                    . " | studenti_attivi=" . $studentiAttiviGenitore
+                    . " | mastercom_http=" . $mastercomHttp
+                    . " | mastercom_error=" . $mastercomError
+                );
+                segnalaLoginMastercomGenitoreFallito($genitore, $username, $studentiAttiviGenitore, $mastercomHttp, $mastercomError);
                 warning($__message);
                 redirect('/error/error.php?message=' . $__message);
                 exit();
