@@ -57,11 +57,39 @@ function ferieSummaryStatePriority($state)
 {
   $state = ferieSummaryNormalizeState($state);
   if ($state === 'APPROVATO') return 500;
-  if ($state === 'AGGIUNTO') return 450;
-  if ($state === 'RICHIESTO') return 400;
+  if ($state === 'RESPINTO') return 450;
+  if ($state === 'AGGIUNTO') return 400;
+  if ($state === 'RICHIESTO') return 350;
   if ($state === 'BOZZA') return 300;
-  if ($state === 'RESPINTO') return 200;
   return 100;
+}
+
+function ferieSummaryNormalizeDayStateForRequest($dayState, $requestState)
+{
+  $state = ferieSummaryNormalizeState($dayState);
+  $requestState = strtoupper(trim((string)$requestState));
+  $requestApprovedStates = ['APPROVATO', 'APPROVATA', 'APPROVATO_PARZIALE', 'APPROVATA_PARZIALE', 'PARZIALE'];
+  $requestRejectedStates = ['RESPINTO', 'RESPINTA'];
+
+  if ($state === 'RIMOSSO') {
+    return 'RIMOSSO';
+  }
+
+  if ($state === 'RICHIESTO' && $requestState === 'BOZZA') {
+    return 'BOZZA';
+  }
+
+  if (in_array($state, ['RICHIESTO', 'AGGIUNTO'], true)) {
+    if (in_array($requestState, $requestApprovedStates, true)) {
+      return 'APPROVATO';
+    }
+
+    if (in_array($requestState, $requestRejectedStates, true)) {
+      return 'RESPINTO';
+    }
+  }
+
+  return $state;
 }
 
 function ferieSummaryExpandRange($from, $to)
@@ -146,13 +174,8 @@ $window = dbGetFirst("
   LIMIT 1
 ");
 
-$whereWindow = '';
-if ($window && !empty($window['data_inizio']) && !empty($window['data_fine'])) {
-  $whereWindow = "
-    AND rr.data_dal >= " . dbQ($window['data_inizio']) . "
-    AND rr.data_dal <= " . dbQ($window['data_fine']) . "
-  ";
-}
+$windowFrom = ($window && !empty($window['data_inizio'])) ? (string)$window['data_inizio'] : '';
+$windowTo = ($window && !empty($window['data_fine'])) ? (string)$window['data_fine'] : '';
 
 $rows = dbGetAll("
   SELECT
@@ -168,7 +191,6 @@ $rows = dbGetAll("
   WHERE r.personale_ata_id = " . dbI($__ata_id) . "
     AND t.codice = 'FERIE'
     AND UPPER(TRIM(r.ferie_sottotipo)) = " . dbQ($sottotipo) . "
-    $whereWindow
   ORDER BY rr.data_dal ASC, rr.id ASC
 ");
 
@@ -189,18 +211,26 @@ foreach ($rows as $row) {
 
   $requestId = (int)$row['richiesta_id'];
   $requestIds[$requestId] = true;
-  $state = ferieSummaryNormalizeState($details['stato_giorno'] ?? '');
   $requestState = strtoupper(trim((string)($row['richiesta_stato'] ?? '')));
-
-  if ($state === 'RICHIESTO' && $requestState === 'BOZZA') {
-    $state = 'BOZZA';
-  }
+  $state = ferieSummaryNormalizeDayStateForRequest($details['stato_giorno'] ?? '', $requestState);
   if ($state === 'RIMOSSO') {
     continue;
   }
 
+  if ($requestState === 'MODIFICATA' && $state === 'RICHIESTO') {
+    $state = 'AGGIUNTO';
+  }
+
   $range = ferieSummaryExpandRange($row['data_dal'] ?? '', $row['data_al'] ?? '');
   foreach ($range as $day) {
+    if ($windowFrom !== '' && $day < $windowFrom) {
+      continue;
+    }
+
+    if ($windowTo !== '' && $day > $windowTo) {
+      continue;
+    }
+
     $candidate = [
       'date' => $day,
       'day' => (int)date('j', strtotime($day)),

@@ -303,7 +303,7 @@ for ($h = 7; $h <= 18; $h++) {
 
         .ferie-summary-cards {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: 1fr;
             gap: 10px;
             margin-bottom: 12px;
         }
@@ -330,17 +330,6 @@ for ($h = 7; $h <= 18; $h++) {
             font-size: 24px;
             line-height: 1.1;
             margin-top: 7px;
-        }
-
-        .ferie-summary-ranges {
-            background: #fff7ed;
-            border: 1px solid #fed7aa;
-            border-radius: 16px;
-            color: #7c2d12;
-            padding: 12px 14px;
-            margin-bottom: 12px;
-            font-size: 14px;
-            line-height: 1.45;
         }
 
         .ferie-summary-month {

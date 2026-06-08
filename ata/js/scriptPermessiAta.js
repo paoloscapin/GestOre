@@ -172,47 +172,41 @@ function renderFerieSummary(data) {
     }
 
     const months = Array.isArray(data.months) ? data.months : [];
-    const ranges = Array.isArray(data.ranges) ? data.ranges : [];
-    const counts = data.state_counts || {};
-    const totalDays = parseInt(data.total_days || 0, 10) || 0;
-    const requestCount = parseInt(data.request_count || 0, 10) || 0;
-    const clickedDays = parseInt(data.clicked_days || 0, 10) || 0;
-    const title = escapeHtmlAta(data.title || "Ferie");
-    const windowLabel = escapeHtmlAta(data.window && data.window.label ? data.window.label : "-");
+    const visibleStates = ["APPROVATO", "RESPINTO", "RICHIESTO", "AGGIUNTO"];
+    let displayedDays = 0;
+
+    for (const month of months) {
+        const days = Array.isArray(month.days) ? month.days : [];
+        displayedDays += days.filter((day) => {
+            const state = String(day.state || "").toUpperCase();
+            return visibleStates.indexOf(state) !== -1;
+        }).length;
+    }
 
     let html = `
         <div class="ferie-summary-cards">
             <div class="ferie-summary-card">
                 <span>Totale giorni</span>
-                <strong>${totalDays}</strong>
+                <strong>${displayedDays}</strong>
             </div>
-            <div class="ferie-summary-card">
-                <span>Richieste considerate</span>
-                <strong>${requestCount}</strong>
-            </div>
-            <div class="ferie-summary-card">
-                <span>Giorni richiesta aperta</span>
-                <strong>${clickedDays}</strong>
-            </div>
-        </div>
-        <div class="ferie-summary-ranges">
-            <strong>${title}</strong><br>
-            Finestra: ${windowLabel}<br>
-            Periodi: ${ranges.length ? ranges.map(escapeHtmlAta).join(", ") : "nessun giorno attivo"}<br>
-            Approvati: ${parseInt(counts.APPROVATO || 0, 10) || 0}
-            &middot; Richiesti/aggiunti: ${(parseInt(counts.RICHIESTO || 0, 10) || 0) + (parseInt(counts.AGGIUNTO || 0, 10) || 0)}
-            &middot; Respinti: ${parseInt(counts.RESPINTO || 0, 10) || 0}
-            &middot; Bozza: ${parseInt(counts.BOZZA || 0, 10) || 0}
         </div>
     `;
 
-    if (months.length === 0) {
-        html += '<div class="ferie-summary-empty">Non ci sono giorni ferie attivi per questa tipologia.</div>';
+    if (displayedDays === 0) {
+        html += '<div class="ferie-summary-empty">Non ci sono giorni da riepilogare.</div>';
         return html;
     }
 
     for (const month of months) {
-        const days = Array.isArray(month.days) ? month.days : [];
+        const days = (Array.isArray(month.days) ? month.days : []).filter((day) => {
+            const state = String(day.state || "").toUpperCase();
+            return visibleStates.indexOf(state) !== -1;
+        });
+
+        if (days.length === 0) {
+            continue;
+        }
+
         html += `
             <div class="ferie-summary-month">
                 <div class="ferie-summary-month-title">${escapeHtmlAta(month.label || "")}</div>

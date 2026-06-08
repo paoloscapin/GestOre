@@ -121,28 +121,13 @@ if (count($rows) === 0) {
     $codice = trim((string)$row['codice']);
     $descrizione = trim((string)$row['descrizione']);
     $ferieSottotipo = strtoupper(trim((string)$row['ferie_sottotipo']));
-    $righeCount = (int)$row['righe_count'];
-    $ferieGiorniCount = (int)$row['ferie_giorni_count'];
     $periodoRichiesta = formatPeriodoRichiesta($row['data_min'] ?? '', $row['data_max'] ?? '');
 
     $tipoTitolo = $descrizione !== '' ? $descrizione : $codice;
-    $tipoCompleto = $codice;
-    if ($descrizione !== '' && strtoupper($descrizione) !== strtoupper($codice)) {
-      $tipoCompleto .= ' - ' . $descrizione;
-    }
-
-    $extraInfo = '';
     if ($codice === 'FERIE' && $ferieSottotipo !== '') {
       if ($ferieSottotipo === 'ESTIVE') {
         $tipoTitolo = 'Ferie estive';
-        $extraInfo .= '<div><strong>Tipologia:</strong> Ferie estive</div>';
-      } else {
-        $extraInfo .= '<div><strong>Tipologia ferie:</strong> ' . h($ferieSottotipo) . '</div>';
       }
-      $extraInfo .= '<div><strong>Giorni selezionati:</strong> ' . h((string)$ferieGiorniCount) . '</div>';
-    }
-    if ($periodoRichiesta !== '') {
-      $extraInfo .= '<div><strong>Periodo:</strong> ' . h($periodoRichiesta) . '</div>';
     }
 
     $stato = trim((string)$row['stato']);
@@ -196,26 +181,13 @@ if (count($rows) === 0) {
             ' . h($tipoTitolo) . '
           </div>
 
-          <div style="font-size:14px; color:#6b7280; margin-bottom:10px;">
-            Richiesta ' . $numeroVisuale . '
-          </div>
-
-          <div style="font-size:17px; line-height:1.4; margin-bottom:10px;">
-            <strong>Tipo:</strong><br>' . h($tipoCompleto) . '
-          </div>
-
-          ' . ($extraInfo !== '' ? '
-          <div style="font-size:15px; color:#4b5563; line-height:1.5; margin-bottom:10px;">
-            ' . $extraInfo . '
+          ' . ($periodoRichiesta !== '' ? '
+          <div style="font-size:16px; color:#4b5563; line-height:1.45; margin-bottom:12px;">
+            <strong>Periodo:</strong> ' . h($periodoRichiesta) . '
           </div>' : '') . '
 
           <div style="margin-bottom:12px;">
             <span class="label ' . $statoClass . '" style="font-size:14px; padding:8px 10px;">' . h($stato) . '</span>
-          </div>
-
-          <div style="font-size:15px; color:#4b5563; line-height:1.5; margin-bottom:14px;">
-            <div><strong>Creata:</strong> ' . h(formatDateTimeIt($row['created_at'])) . '</div>
-            <div><strong>Aggiornata:</strong> ' . h(formatDateTimeIt($row['updated_at'])) . '</div>
           </div>
 
           <div class="row">
