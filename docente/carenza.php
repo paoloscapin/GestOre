@@ -273,6 +273,7 @@ require_once '../common/header-docente.php';
 
             <input type="hidden" id="hidden_piano_di_lavoro_id">
             <input type="hidden" id="hidden_docente_id" value="<?php echo $__docente_id; ?>">
+            <input type="hidden" id="hidden_anno_scolastico_id" value="<?php echo $__anno_scolastico_corrente_id; ?>">
 
             </div>
             <div class="panel-footer text-center">

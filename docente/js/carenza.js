@@ -195,6 +195,12 @@ function carenzaEmailPdf(piano_di_lavoro_id) {
 
 $(document).ready(function () {
 
+    // anno scolastico di default e' quello corrente
+    if ($("#hidden_anno_scolastico_id").val() != '') {
+        anno_filtro_id = $("#hidden_anno_scolastico_id").val();
+        $('#anno_filtro').selectpicker('val', $("#hidden_anno_scolastico_id").val());
+    }
+
     // se e' collegato un docente, filtra direttamente i suoi piani quando apre la pagina
     if ($("#hidden_docente_id").val() != '') {
         docente_filtro_id = $("#hidden_docente_id").val();

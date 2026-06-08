@@ -1,3 +1,7 @@
+## Version 1.3.21 - 8 giu 2026
+##### ##### Improvements
+- carenza parte dall'anno in corso
+
 ## Version 1.3.20 - 28 mag 2026
 ##### ##### Improvements
 - gli studenti possono scaricare il piano di lavoro della loro classe
