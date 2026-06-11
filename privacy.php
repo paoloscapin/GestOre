@@ -35,6 +35,7 @@ $ultimoAggiornamento = privacySetting('ultimoAggiornamento', date('d/m/Y'));
 ?>
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -204,6 +205,7 @@ $ultimoAggiornamento = privacySetting('ultimoAggiornamento', date('d/m/Y'));
         }
     </style>
 </head>
+
 <body>
     <main class="privacy-shell">
         <section class="privacy-card">
@@ -292,6 +294,10 @@ $ultimoAggiornamento = privacySetting('ultimoAggiornamento', date('d/m/Y'));
                         <td>Dati di comunicazione</td>
                         <td>Email, notifiche, messaggi Telegram o altri avvisi inviati tramite i canali configurati dall'istituto.</td>
                     </tr>
+                    <tr>
+                        <td>Dati relativi a pagamenti e contributi scolastici</td>
+                        <td>Avvisi pagoPA, importi, scadenze, identificativi di pagamento e stato dei versamenti.</td>
+                    </tr>
                 </tbody>
             </table>
 
@@ -309,6 +315,33 @@ $ultimoAggiornamento = privacySetting('ultimoAggiornamento', date('d/m/Y'));
                 GestOre puo integrarsi con servizi esterni necessari all'erogazione delle funzionalita: autenticazione
                 Google, Registro elettronico MasterCom, Google Calendar, Google Drive, Gmail, Telegram, servizi email SMTP
                 e sistemi di notifica. I dati scambiati sono limitati a quanto necessario per la funzione attivata.
+            </p>
+
+            <h2>Estensione Chrome "GestOre - Import ISIREL pagoPA"</h2>
+
+            <p>
+                L'Istituto può utilizzare l'estensione Chrome "GestOre - Import ISIREL pagoPA"
+                per consentire al personale autorizzato di importare nel sistema GestOre gli
+                avvisi di pagamento presenti nel portale ISIREL della Provincia Autonoma di Trento.
+            </p>
+
+            <p>
+                L'estensione può trattare dati identificativi degli studenti e informazioni
+                relative agli avvisi di pagamento, quali importi, scadenze, identificativi
+                pagoPA e stato dei pagamenti, esclusivamente per le finalità amministrative
+                e organizzative connesse alla gestione delle attività scolastiche.
+            </p>
+
+            <p>
+                L'estensione accede esclusivamente ai dati già disponibili all'utente autenticato
+                nel portale ISIREL e li trasferisce a GestOre per consentire la gestione
+                centralizzata delle attività e dei relativi pagamenti.
+            </p>
+
+            <p>
+                L'estensione non effettua profilazione degli utenti, non mostra pubblicità,
+                non vende dati personali e non trasferisce dati a soggetti terzi per finalità
+                commerciali.
             </p>
 
             <h2>Cookie, sessione e memorizzazione locale</h2>
@@ -353,4 +386,5 @@ $ultimoAggiornamento = privacySetting('ultimoAggiornamento', date('d/m/Y'));
         </section>
     </main>
 </body>
+
 </html>
