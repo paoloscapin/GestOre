@@ -13,6 +13,7 @@ $rows = empty($missingTables)
             c.classe AS gestore_classe
         FROM mastercom_classi m
         LEFT JOIN classi c ON c.id = m.id_classe_gestore
+        WHERE COALESCE(m.attiva_mastercom, 1) = 1
         ORDER BY m.nome ASC
     ")
     : [];

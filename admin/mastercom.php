@@ -57,7 +57,7 @@ $gradesLastSync = mastercomGradesCacheLastSyncLabel();
                     <div class="col-md-3">
                         <div class="well">
                             <h4>Classi</h4>
-                            <p><?php echo intval(dbGetValue("SELECT COUNT(*) FROM mastercom_classi")); ?> record</p>
+                            <p><?php echo intval(dbGetValue("SELECT COUNT(*) FROM mastercom_classi WHERE COALESCE(attiva_mastercom, 1) = 1")); ?> record attivi</p>
                             <form method="post" action="mastercom_sync.php">
                                 <input type="hidden" name="entity" value="classes">
                                 <button class="btn btn-primary btn-block" type="submit">Sincronizza classi</button>
