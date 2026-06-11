@@ -570,6 +570,77 @@ function mastercomDebtsLocalStudentByMastercom(int $mastercomStudentId, string $
     ");
 }
 
+function mastercomDebtsActiveMastercomClassCondition(string $alias = 'mc'): string
+{
+    if (
+        !mastercomAdminTableExists('mastercom_classi')
+        || !mastercomAdminTableColumnExists('mastercom_classi', 'attiva_mastercom')
+    ) {
+        return '1=1';
+    }
+
+    return "EXISTS (
+        SELECT 1
+        FROM mastercom_classi mcc
+        WHERE mcc.mastercom_id_classe = {$alias}.mastercom_id_classe
+          AND COALESCE(mcc.attiva_mastercom, 1) = 1
+    )";
+}
+
+function mastercomDebtsDeleteInactiveClassCache(): int
+{
+    if (
+        !mastercomAdminTableExists('mastercom_classi')
+        || !mastercomAdminTableExists('mastercom_carenze')
+        || !mastercomAdminTableColumnExists('mastercom_classi', 'attiva_mastercom')
+    ) {
+        return 0;
+    }
+
+    $count = intval(dbGetValue("
+        SELECT COUNT(*)
+        FROM mastercom_carenze mc
+        INNER JOIN mastercom_classi mcc
+            ON mcc.mastercom_id_classe = mc.mastercom_id_classe
+        WHERE COALESCE(mcc.attiva_mastercom, 1) <> 1
+    ") ?? 0);
+
+    if ($count <= 0) {
+        return 0;
+    }
+
+    dbExec("
+        DELETE mc
+        FROM mastercom_carenze mc
+        INNER JOIN mastercom_classi mcc
+            ON mcc.mastercom_id_classe = mc.mastercom_id_classe
+        WHERE COALESCE(mcc.attiva_mastercom, 1) <> 1
+    ");
+
+    return $count;
+}
+
+function mastercomDebtsIsNoCourseExpectedSubjectName(string $subjectName): bool
+{
+    $canonical = mastercomDebtsCanonicalSubject($subjectName);
+    return in_array($canonical, [
+        'EDUCAZIONECIVICAALLACITTADINANZA',
+        'EDUCAZIONECIVICACITTADINANZA',
+        'EDUCAZIONECIVICA',
+        'EDCIVICA',
+    ], true);
+}
+
+function mastercomDebtsIsNoCourseExpectedSubjectId(int $subjectId): bool
+{
+    if ($subjectId <= 0) {
+        return false;
+    }
+
+    $subjectName = trim((string)(dbGetValue("SELECT nome FROM materia WHERE id = " . dbI($subjectId) . " LIMIT 1") ?? ''));
+    return $subjectName !== '' && mastercomDebtsIsNoCourseExpectedSubjectName($subjectName);
+}
+
 function mastercomDebtsClassIdForStudentYear(int $studentId, ?int $schoolYearId, ?int $fallbackClassId): ?int
 {
     if ($studentId > 0 && $schoolYearId !== null && $schoolYearId > 0) {
@@ -712,6 +783,7 @@ function mastercomDebtsUpsertRows(array $rows, int $mastercomClassId, string $cl
         'without_student' => 0,
         'without_subject' => 0,
         'without_year' => 0,
+        'removed_gestore_stale' => 0,
     ];
 
     if ($mastercomClassId > 0) {
@@ -726,12 +798,16 @@ function mastercomDebtsUpsertRows(array $rows, int $mastercomClassId, string $cl
         ");
     }
 
+    $touchedLocalClassIds = [];
     foreach ($rows as $row) {
         $localStudent = mastercomDebtsLocalStudentByMastercom(intval($row['mastercom_id_studente'] ?? 0), (string)($row['studente_nome'] ?? ''), $localClassId);
         $localStudentId = $localStudent != null ? intval($localStudent['id']) : null;
         $yearId = mastercomDebtsResolveSchoolYearId((string)($row['anno_label'] ?? ''));
         $rowClassId = $localStudentId !== null ? mastercomDebtsClassIdForStudentYear($localStudentId, $yearId, $localClassId) : $localClassId;
         $localSubjectId = mastercomDebtsResolveSubjectId((string)($row['materia'] ?? ''), $className);
+        if ($rowClassId !== null && intval($rowClassId) > 0) {
+            $touchedLocalClassIds[intval($rowClassId)] = true;
+        }
 
         if ($localStudentId === null) {
             $stats['without_student']++;
@@ -782,7 +858,66 @@ function mastercomDebtsUpsertRows(array $rows, int $mastercomClassId, string $cl
         $stats['saved']++;
     }
 
+    if (empty($touchedLocalClassIds) && $localClassId !== null && $localClassId > 0) {
+        $touchedLocalClassIds[intval($localClassId)] = true;
+    }
+    foreach (array_keys($touchedLocalClassIds) as $touchedClassId) {
+        $stats['removed_gestore_stale'] += mastercomDebtsRemoveGestoreStaleCarenze(0, intval($touchedClassId));
+    }
+
     return $stats;
+}
+
+function mastercomDebtsRemoveGestoreStaleCarenze(int $schoolYearId = 0, int $localClassId = 0): int
+{
+    mastercomDebtsEnsureTables();
+
+    $where = [
+        "c.mastercom_last_sync_at IS NOT NULL",
+    ];
+    if ($schoolYearId > 0) {
+        $where[] = "c.id_anno_scolastico = " . dbI($schoolYearId);
+    }
+    if ($localClassId > 0) {
+        $where[] = "c.id_classe = " . dbI($localClassId);
+    }
+
+    $whereSql = implode(' AND ', $where);
+    $count = intval(dbGetValue("
+        SELECT COUNT(*)
+        FROM carenze c
+        WHERE $whereSql
+          AND NOT EXISTS (
+              SELECT 1
+              FROM mastercom_carenze mc
+              WHERE mc.id_studente_gestore = c.id_studente
+                AND mc.id_materia_gestore = c.id_materia
+                AND mc.id_classe_gestore = c.id_classe
+                AND mc.id_anno_scolastico = c.id_anno_scolastico
+              LIMIT 1
+          )
+    ") ?? 0);
+
+    if ($count <= 0) {
+        return 0;
+    }
+
+    dbExec("
+        DELETE c
+        FROM carenze c
+        WHERE $whereSql
+          AND NOT EXISTS (
+              SELECT 1
+              FROM mastercom_carenze mc
+              WHERE mc.id_studente_gestore = c.id_studente
+                AND mc.id_materia_gestore = c.id_materia
+                AND mc.id_classe_gestore = c.id_classe
+                AND mc.id_anno_scolastico = c.id_anno_scolastico
+              LIMIT 1
+          )
+    ");
+
+    return $count;
 }
 
 function mastercomDebtsFetchAndStoreClass(int $mastercomClassId): array
@@ -803,16 +938,119 @@ function mastercomDebtsFetchAndStoreClass(int $mastercomClassId): array
     ];
 }
 
+function mastercomDebtsNormalizeClassToken(string $value): string
+{
+    $value = mastercomAdminNorm($value);
+    $value = preg_replace('/[^A-Z0-9]+/u', '', $value);
+    return trim((string)$value);
+}
+
+function mastercomDebtsClassComponentsFromName(string $className): array
+{
+    $className = mastercomAdminNorm($className);
+    $parts = preg_split('/[^A-Z0-9]+/u', $className, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    if (empty($parts)) {
+        return [];
+    }
+
+    $first = mastercomDebtsNormalizeClassToken((string)$parts[0]);
+    if ($first === '' || !preg_match('/^(\d+)[A-Z0-9]+$/u', $first, $matches)) {
+        return $first !== '' ? [$first] : [];
+    }
+
+    $yearPrefix = $matches[1];
+    $components = [$first];
+    for ($i = 1; $i < count($parts); $i++) {
+        $part = mastercomDebtsNormalizeClassToken((string)$parts[$i]);
+        if ($part === '') {
+            continue;
+        }
+
+        if (preg_match('/^\d+[A-Z0-9]+$/u', $part)) {
+            $components[] = $part;
+        } elseif (preg_match('/^[A-Z][A-Z0-9]+$/u', $part)) {
+            $components[] = $yearPrefix . $part;
+        }
+    }
+
+    return array_values(array_unique($components));
+}
+
+function mastercomDebtsArticulatedClassSkipMap(array $classRows): array
+{
+    $simpleRowsByToken = [];
+    foreach ($classRows as $row) {
+        $classId = intval($row['mastercom_id_classe'] ?? 0);
+        $name = trim((string)($row['nome'] ?? ''));
+        if ($classId <= 0 || $name === '') {
+            continue;
+        }
+
+        $components = mastercomDebtsClassComponentsFromName($name);
+        if (count($components) === 1) {
+            $simpleRowsByToken[$components[0]][] = $row;
+        }
+    }
+
+    $skipMap = [];
+    foreach ($classRows as $row) {
+        $articulatedId = intval($row['mastercom_id_classe'] ?? 0);
+        $articulatedName = trim((string)($row['nome'] ?? ''));
+        if ($articulatedId <= 0 || $articulatedName === '') {
+            continue;
+        }
+
+        $components = mastercomDebtsClassComponentsFromName($articulatedName);
+        if (count($components) <= 1) {
+            continue;
+        }
+
+        foreach ($components as $component) {
+            foreach (($simpleRowsByToken[$component] ?? []) as $simpleRow) {
+                $simpleId = intval($simpleRow['mastercom_id_classe'] ?? 0);
+                if ($simpleId > 0 && $simpleId !== $articulatedId) {
+                    $skipMap[$simpleId] = $articulatedName;
+                }
+            }
+        }
+    }
+
+    return $skipMap;
+}
+
+function mastercomDebtsClearSkippedComponentClassCache(int $mastercomClassId, string $className): int
+{
+    if ($mastercomClassId <= 0) {
+        return 0;
+    }
+
+    $deleted = intval(dbGetValue("
+        SELECT COUNT(*)
+        FROM mastercom_carenze
+        WHERE mastercom_id_classe = " . dbI($mastercomClassId) . "
+    ") ?? 0);
+
+    dbExec("
+        DELETE FROM mastercom_carenze
+        WHERE mastercom_id_classe = " . dbI($mastercomClassId) . "
+    ");
+
+    return $deleted;
+}
+
 function mastercomDebtsFetchAndStoreAllClasses(): array
 {
     $classRows = mastercomAdminOperationalClassRows('mastercom_id_classe, nome');
+    $articulatedSkipMap = mastercomDebtsArticulatedClassSkipMap($classRows);
     $stats = [
         'classes' => 0,
         'saved' => 0,
         'deleted_stale' => 0,
+        'skipped_articulated_components' => 0,
         'without_student' => 0,
         'without_subject' => 0,
         'without_year' => 0,
+        'removed_gestore_stale' => 0,
         'errors' => 0,
     ];
     $messages = [];
@@ -820,6 +1058,14 @@ function mastercomDebtsFetchAndStoreAllClasses(): array
     foreach ($classRows as $classRow) {
         $classId = intval($classRow['mastercom_id_classe'] ?? 0);
         if ($classId <= 0) {
+            continue;
+        }
+        if (isset($articulatedSkipMap[$classId])) {
+            $stats['skipped_articulated_components']++;
+            $stats['deleted_stale'] += mastercomDebtsClearSkippedComponentClassCache(
+                $classId,
+                trim((string)($classRow['nome'] ?? ''))
+            );
             continue;
         }
 
@@ -837,13 +1083,16 @@ function mastercomDebtsFetchAndStoreAllClasses(): array
         $stats['without_student'] += intval($classStats['without_student'] ?? 0);
         $stats['without_subject'] += intval($classStats['without_subject'] ?? 0);
         $stats['without_year'] += intval($classStats['without_year'] ?? 0);
+        $stats['removed_gestore_stale'] += intval($classStats['removed_gestore_stale'] ?? 0);
     }
 
     return [
         'ok' => $stats['classes'] > 0,
         'message' => 'Lettura globale completata: classi ' . intval($stats['classes'])
+            . ', componenti articolate saltate ' . intval($stats['skipped_articulated_components'])
             . ', carenze salvate ' . intval($stats['saved'])
             . ', cache precedente ' . intval($stats['deleted_stale'])
+            . ', rimosse da GestOre ' . intval($stats['removed_gestore_stale'])
             . ', errori classi ' . intval($stats['errors']) . '.',
         'stats' => $stats,
         'errors' => $messages,
@@ -916,10 +1165,14 @@ function mastercomDebtsRefreshCachedClassMatches(): int
 function mastercomDebtsSaveToGestoreCarenze(int $schoolYearId, int $mastercomClassId = 0): array
 {
     mastercomDebtsEnsureTables();
+    mastercomDebtsDeleteInactiveClassCache();
     mastercomDebtsRefreshMissingSubjectMatches();
     mastercomDebtsRefreshCachedClassMatches();
 
-    $where = ["id_anno_scolastico = " . dbI($schoolYearId)];
+    $where = [
+        "id_anno_scolastico = " . dbI($schoolYearId),
+        mastercomDebtsActiveMastercomClassCondition('mastercom_carenze'),
+    ];
     if ($mastercomClassId > 0) {
         $where[] = "mastercom_id_classe = " . dbI($mastercomClassId);
     }
@@ -936,16 +1189,35 @@ function mastercomDebtsSaveToGestoreCarenze(int $schoolYearId, int $mastercomCla
         'inserted' => 0,
         'updated' => 0,
         'skipped' => 0,
+        'skipped_unmapped' => 0,
+        'duplicate_source' => 0,
     ];
 
+    $processedKeys = [];
     foreach ($rows as $row) {
         $studentId = intval($row['id_studente_gestore'] ?? 0);
         $subjectId = intval($row['id_materia_gestore'] ?? 0);
         $classId = intval($row['id_classe_gestore'] ?? 0);
-        if ($studentId <= 0 || $subjectId <= 0 || $classId <= 0) {
+        if (
+            mastercomDebtsIsNoCourseExpectedSubjectName((string)($row['materia'] ?? ''))
+            || mastercomDebtsIsNoCourseExpectedSubjectId($subjectId)
+        ) {
             $stats['skipped']++;
             continue;
         }
+        if ($studentId <= 0 || $subjectId <= 0 || $classId <= 0) {
+            $stats['skipped']++;
+            $stats['skipped_unmapped']++;
+            continue;
+        }
+
+        $logicalKey = $studentId . ':' . $subjectId . ':' . $classId . ':' . $schoolYearId;
+        if (isset($processedKeys[$logicalKey])) {
+            $stats['skipped']++;
+            $stats['duplicate_source']++;
+            continue;
+        }
+        $processedKeys[$logicalKey] = true;
 
         $existingId = dbGetValue("
             SELECT id
@@ -994,6 +1266,193 @@ function mastercomDebtsSaveToGestoreCarenze(int $schoolYearId, int $mastercomCla
         $stats['inserted']++;
     }
 
+    return $stats;
+}
+
+function mastercomDebtsAuditIssues(int $schoolYearId = 0, int $mastercomClassId = 0): array
+{
+    mastercomDebtsEnsureTables();
+    mastercomDebtsDeleteInactiveClassCache();
+    mastercomDebtsRefreshMissingSubjectMatches();
+    mastercomDebtsRefreshCachedClassMatches();
+
+    $mcWhere = [
+        "id_studente_gestore IS NOT NULL",
+        "id_studente_gestore > 0",
+        "id_materia_gestore IS NOT NULL",
+        "id_materia_gestore > 0",
+        "id_classe_gestore IS NOT NULL",
+        "id_classe_gestore > 0",
+        "id_anno_scolastico IS NOT NULL",
+        "id_anno_scolastico > 0",
+        mastercomDebtsActiveMastercomClassCondition('mastercom_carenze'),
+    ];
+    if ($schoolYearId > 0) {
+        $mcWhere[] = "id_anno_scolastico = " . dbI($schoolYearId);
+    }
+    // Do not restrict source-duplicate checks to one MasterCom class: articulated classes
+    // can produce the same logical debt from different MasterCom class ids.
+
+    $mastercomDuplicates = dbGetAll("
+        SELECT
+            id_studente_gestore,
+            id_materia_gestore,
+            id_classe_gestore,
+            id_anno_scolastico,
+            MAX(studente_nome) AS studente_nome,
+            MAX(materia) AS materia,
+            MAX(classe) AS classe,
+            GROUP_CONCAT(DISTINCT mastercom_id_classe ORDER BY mastercom_id_classe SEPARATOR ', ') AS classi_mastercom,
+            GROUP_CONCAT(id ORDER BY id SEPARATOR ', ') AS ids,
+            COUNT(*) AS righe
+        FROM mastercom_carenze
+        WHERE " . implode(' AND ', $mcWhere) . "
+        GROUP BY id_studente_gestore, id_materia_gestore, id_classe_gestore, id_anno_scolastico
+        HAVING COUNT(*) > 1
+        ORDER BY studente_nome ASC, materia ASC
+    ") ?: [];
+
+    $geWhere = [];
+    if ($schoolYearId > 0) {
+        $geWhere[] = "c.id_anno_scolastico = " . dbI($schoolYearId);
+    }
+    $geWhereSql = !empty($geWhere) ? 'WHERE ' . implode(' AND ', $geWhere) : '';
+
+    $gestoreDuplicates = dbGetAll("
+        SELECT
+            c.id_studente,
+            c.id_materia,
+            c.id_classe,
+            c.id_anno_scolastico,
+            CONCAT(COALESCE(s.cognome, ''), ' ', COALESCE(s.nome, '')) AS studente_nome,
+            m.nome AS materia,
+            cl.classe AS classe,
+            GROUP_CONCAT(c.id ORDER BY c.id SEPARATOR ', ') AS ids,
+            COUNT(*) AS righe
+        FROM carenze c
+        LEFT JOIN studente s ON s.id = c.id_studente
+        LEFT JOIN materia m ON m.id = c.id_materia
+        LEFT JOIN classi cl ON cl.id = c.id_classe
+        $geWhereSql
+        GROUP BY c.id_studente, c.id_materia, c.id_classe, c.id_anno_scolastico
+        HAVING COUNT(*) > 1
+        ORDER BY studente_nome ASC, materia ASC
+    ") ?: [];
+
+    return [
+        'mastercom_duplicates' => $mastercomDuplicates,
+        'gestore_duplicates' => $gestoreDuplicates,
+    ];
+}
+
+function mastercomDebtsSaveSingleToGestoreCarenza(int $mastercomCarenzaId): array
+{
+    mastercomDebtsEnsureTables();
+    mastercomDebtsRefreshMissingSubjectMatches();
+    mastercomDebtsRefreshCachedClassMatches();
+
+    $stats = [
+        'source' => 0,
+        'inserted' => 0,
+        'updated' => 0,
+        'skipped' => 0,
+        'message' => '',
+    ];
+
+    $row = dbGetFirst("
+        SELECT *
+        FROM mastercom_carenze
+        WHERE id = " . dbI($mastercomCarenzaId) . "
+        LIMIT 1
+    ");
+
+    if (!$row) {
+        $stats['skipped'] = 1;
+        $stats['message'] = 'Carenza MasterCom non trovata.';
+        return $stats;
+    }
+
+    $stats['source'] = 1;
+    $studentId = intval($row['id_studente_gestore'] ?? 0);
+    $subjectId = intval($row['id_materia_gestore'] ?? 0);
+    $classId = intval($row['id_classe_gestore'] ?? 0);
+    $schoolYearId = intval($row['id_anno_scolastico'] ?? 0);
+
+    if (
+        mastercomDebtsIsNoCourseExpectedSubjectName((string)($row['materia'] ?? ''))
+        || mastercomDebtsIsNoCourseExpectedSubjectId($subjectId)
+    ) {
+        $stats['skipped'] = 1;
+        $stats['message'] = 'Materia informativa: nessun corso previsto e nessun inserimento in GestOre.';
+        return $stats;
+    }
+
+    if ($studentId <= 0 || $subjectId <= 0 || $classId <= 0 || $schoolYearId <= 0) {
+        $stats['skipped'] = 1;
+        $missing = [];
+        if ($studentId <= 0) {
+            $missing[] = 'studente';
+        }
+        if ($subjectId <= 0) {
+            $missing[] = 'materia';
+        }
+        if ($classId <= 0) {
+            $missing[] = 'classe';
+        }
+        if ($schoolYearId <= 0) {
+            $missing[] = 'anno scolastico';
+        }
+        $stats['message'] = 'Carenza non salvabile: manca abbinamento ' . implode(', ', $missing) . '.';
+        return $stats;
+    }
+
+    $existingId = dbGetValue("
+        SELECT id
+        FROM carenze
+        WHERE id_studente = " . dbI($studentId) . "
+          AND id_materia = " . dbI($subjectId) . "
+          AND id_classe = " . dbI($classId) . "
+          AND id_anno_scolastico = " . dbI($schoolYearId) . "
+        LIMIT 1
+    ");
+
+    if ($existingId !== null) {
+        dbExec("
+            UPDATE carenze
+            SET mastercom_recuperato = " . dbI($row['recuperato_mastercom'] ?? 0) . ",
+                mastercom_tipo_debito = " . dbQ(mastercomDebtsNormalizeDebtType((string)($row['tipo_debito'] ?? ''))) . ",
+                mastercom_last_sync_at = NOW(),
+                mastercom_raw_text = " . dbQ($row['raw_text'] ?? '') . "
+            WHERE id = " . dbI($existingId) . "
+        ");
+        $stats['updated'] = 1;
+        $stats['message'] = 'Carenza gia presente in GestOre: aggiornati i dati MasterCom.';
+        return $stats;
+    }
+
+    dbExec("
+        INSERT INTO carenze (
+            id_studente, id_materia, id_classe, id_docente, id_anno_scolastico,
+            stato, mastercom_recuperato, mastercom_tipo_debito, mastercom_last_sync_at,
+            mastercom_raw_text, data_inserimento, data_validazione, data_invio
+        ) VALUES (
+            " . dbI($studentId) . ",
+            " . dbI($subjectId) . ",
+            " . dbI($classId) . ",
+            0,
+            " . dbI($schoolYearId) . ",
+            0,
+            " . dbI($row['recuperato_mastercom'] ?? 0) . ",
+            " . dbQ(mastercomDebtsNormalizeDebtType((string)($row['tipo_debito'] ?? ''))) . ",
+            NOW(),
+            " . dbQ($row['raw_text'] ?? '') . ",
+            NOW(),
+            '',
+            ''
+        )
+    ");
+    $stats['inserted'] = 1;
+    $stats['message'] = 'Carenza inserita in GestOre.';
     return $stats;
 }
 
@@ -1085,13 +1544,27 @@ function mastercomDebtsNextSchoolYearId(int $schoolYearId): int
     ") ?? 0);
 }
 
-function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int $schoolYearId): array
+function mastercomDebtsNextSchoolYearIdFromLabel(string $yearLabel): int
 {
-    if ($studentId <= 0 || $subjectId <= 0 || $schoolYearId <= 0) {
-        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Non confrontabile', 'data_recupero' => ''];
+    $yearLabel = trim(str_replace(' ', '', $yearLabel));
+    if ($yearLabel === '') {
+        return 0;
     }
 
-    $courseYearId = mastercomDebtsNextSchoolYearId($schoolYearId);
+    if (preg_match('/^(\d{4})\/(\d{4})$/', $yearLabel, $matches)) {
+        $nextLabel = intval($matches[1]) + 1 . '/' . (intval($matches[2]) + 1);
+        return intval(dbGetValue("SELECT id FROM anno_scolastico WHERE anno = " . dbQ($nextLabel) . " LIMIT 1") ?? 0);
+    }
+
+    $yearId = mastercomDebtsResolveSchoolYearId($yearLabel);
+    return $yearId !== null ? mastercomDebtsNextSchoolYearId(intval($yearId)) : 0;
+}
+
+function mastercomDebtsCourseRecoveryStatusForCourseYear(int $studentId, int $subjectId, int $courseYearId): array
+{
+    if ($studentId <= 0 || $subjectId <= 0) {
+        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Non confrontabile', 'data_recupero' => ''];
+    }
     if ($courseYearId <= 0) {
         return ['has_esito' => false, 'recuperato' => null, 'label' => 'Nessun corso abbinato', 'data_recupero' => ''];
     }
@@ -1104,24 +1577,33 @@ function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int 
 
     $rows = dbGetAll("
         SELECT
+            co.id AS corso_id,
             ce.id AS esito_id,
             COALESCE(ce.recuperato, 0) AS recuperato,
-            GREATEST(COALESCE(NULLIF(co.carenza_sessione, 0), 1), COALESCE(NULLIF(ced.tentativo, 0), 1)) AS appello,
-            ced.tentativo AS tentativo_esame,
-            ced.data_inizio_esame,
+            GREATEST(COALESCE(NULLIF(co.carenza_sessione, 0), 1), COALESCE(NULLIF(COALESCE(ced.tentativo, ced_any.tentativo), 0), 1)) AS appello,
+            COALESCE(ced.tentativo, ced_any.tentativo) AS tentativo_esame,
+            COALESCE(ced.data_inizio_esame, ced_any.data_inizio_esame) AS data_inizio_esame,
+            ced.firmato AS esame_firmato,
             co.titolo,
             m.nome AS materia_corso
         FROM corso co
         INNER JOIN corso_iscritti ci ON ci.id_corso = co.id AND ci.id_studente = " . dbI($studentId) . "
-        INNER JOIN corso_esiti ce ON ce.id_corso = co.id AND ce.id_studente = ci.id_studente
+        LEFT JOIN corso_esiti ce ON ce.id_corso = co.id AND ce.id_studente = ci.id_studente
         LEFT JOIN corso_esami_date ced ON ced.id = ce.id_esame_data
+        LEFT JOIN corso_esami_date ced_any ON ced_any.id = (
+            SELECT ced2.id
+            FROM corso_esami_date ced2
+            WHERE ced2.id_corso = co.id
+            ORDER BY ced2.data_inizio_esame ASC, ced2.id ASC
+            LIMIT 1
+        )
         LEFT JOIN materia m ON m.id = co.id_materia
         WHERE co.carenza = 1
           AND co.id_materia IN ($subjectIdsSql)
           AND co.id_anno_scolastico = " . dbI($courseYearId) . "
         ORDER BY COALESCE(ce.recuperato, 0) DESC,
-                 GREATEST(COALESCE(NULLIF(co.carenza_sessione, 0), 1), COALESCE(NULLIF(ced.tentativo, 0), 1)) DESC,
-                 ced.data_inizio_esame DESC,
+                 GREATEST(COALESCE(NULLIF(co.carenza_sessione, 0), 1), COALESCE(NULLIF(COALESCE(ced.tentativo, ced_any.tentativo), 0), 1)) DESC,
+                 COALESCE(ced.data_inizio_esame, ced_any.data_inizio_esame) DESC,
                  ce.id DESC
     ") ?: [];
 
@@ -1129,10 +1611,11 @@ function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int 
         return ['has_esito' => false, 'recuperato' => null, 'label' => 'Nessun corso abbinato', 'data_recupero' => ''];
     }
 
-    $row = $rows[0];
-    $recovered = intval($row['recuperato'] ?? 0) === 1;
-    $attempt = intval($row['appello'] ?? 0);
-    $attemptLabel = mastercomDebtsRecoveryAttemptLabel($attempt);
+    $signedRows = array_values(array_filter($rows, function ($courseRow) {
+        return intval($courseRow['esito_id'] ?? 0) > 0
+            && intval($courseRow['esame_firmato'] ?? 0) === 1;
+    }));
+
     $debtSubjectName = trim((string)(dbGetValue("SELECT nome FROM materia WHERE id = " . dbI($subjectId) . " LIMIT 1") ?? ''));
     $courseLabels = [];
     foreach ($rows as $courseRow) {
@@ -1145,6 +1628,46 @@ function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int 
             $courseLabels[] = $courseLabel;
         }
     }
+    $courseLabels = array_values(array_unique($courseLabels));
+
+    if (empty($signedRows)) {
+        $today = new DateTime('today', new DateTimeZone('Europe/Rome'));
+        $hasFutureExam = false;
+        $hasExamDate = false;
+        foreach ($rows as $courseRow) {
+            $examDate = trim((string)($courseRow['data_inizio_esame'] ?? ''));
+            if ($examDate === '') {
+                continue;
+            }
+            $hasExamDate = true;
+            try {
+                if ((new DateTime($examDate, new DateTimeZone('Europe/Rome'))) > $today) {
+                    $hasFutureExam = true;
+                    break;
+                }
+            } catch (Exception $e) {
+                // If the date cannot be parsed, keep the generic "not available" label.
+            }
+        }
+
+        $label = $hasFutureExam
+            ? 'Corso abbinato - esame futuro'
+            : ($hasExamDate ? 'Corso abbinato - esito non ancora firmato' : 'Corso abbinato - esito non ancora disponibile');
+
+        return [
+            'has_esito' => false,
+            'recuperato' => null,
+            'appello' => null,
+            'label' => $label,
+            'data_recupero' => '',
+            'corsi' => implode(' | ', $courseLabels),
+        ];
+    }
+
+    $row = $signedRows[0];
+    $recovered = intval($row['recuperato'] ?? 0) === 1;
+    $attempt = intval($row['appello'] ?? 0);
+    $attemptLabel = mastercomDebtsRecoveryAttemptLabel($attempt);
 
     return [
         'has_esito' => true,
@@ -1152,15 +1675,151 @@ function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int 
         'appello' => $attempt,
         'label' => ($recovered ? 'Recuperato' : 'Non recuperato') . ' al ' . $attemptLabel,
         'data_recupero' => $recovered ? mastercomDebtsFormatRecoveryDate($row['data_inizio_esame'] ?? '') : '',
-        'corsi' => implode(' | ', array_values(array_unique($courseLabels))),
+        'corsi' => implode(' | ', $courseLabels),
+    ];
+}
+
+function mastercomDebtsCourseRecoveryStatus(int $studentId, int $subjectId, int $debtSchoolYearId): array
+{
+    if ($studentId <= 0 || $subjectId <= 0 || $debtSchoolYearId <= 0) {
+        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Non confrontabile', 'data_recupero' => ''];
+    }
+
+    $courseYearId = mastercomDebtsNextSchoolYearId($debtSchoolYearId);
+    if ($courseYearId <= 0) {
+        return ['has_esito' => false, 'recuperato' => null, 'label' => 'Nessun corso abbinato', 'data_recupero' => ''];
+    }
+
+    return mastercomDebtsCourseRecoveryStatusForCourseYear($studentId, $subjectId, $courseYearId);
+}
+
+function mastercomDebtsDebugCarenza(int $mastercomCarenzaId): array
+{
+    mastercomDebtsEnsureTables();
+    mastercomDebtsDeleteInactiveClassCache();
+    mastercomDebtsRefreshMissingSubjectMatches();
+    mastercomDebtsRefreshCachedClassMatches();
+
+    $row = dbGetFirst("
+        SELECT
+            mc.*,
+            mcc.nome AS mastercom_classe_nome,
+            COALESCE(mcc.attiva_mastercom, 1) AS mastercom_classe_attiva,
+            m.nome AS materia_gestore,
+            cl.classe AS classe_gestore,
+            CONCAT(COALESCE(s.cognome, ''), ' ', COALESCE(s.nome, '')) AS studente_gestore
+        FROM mastercom_carenze mc
+        LEFT JOIN mastercom_classi mcc ON mcc.mastercom_id_classe = mc.mastercom_id_classe
+        LEFT JOIN materia m ON m.id = mc.id_materia_gestore
+        LEFT JOIN classi cl ON cl.id = mc.id_classe_gestore
+        LEFT JOIN studente s ON s.id = mc.id_studente_gestore
+        WHERE mc.id = " . dbI($mastercomCarenzaId) . "
+        LIMIT 1
+    ");
+
+    if (!$row) {
+        return ['ok' => false, 'message' => 'Riga cache MasterCom non trovata: potrebbe essere stata eliminata perche la classe non e piu attiva.'];
+    }
+
+    $studentId = intval($row['id_studente_gestore'] ?? 0);
+    $subjectId = intval($row['id_materia_gestore'] ?? 0);
+    $courseYearId = mastercomDebtsNextSchoolYearIdFromLabel((string)($row['anno_label'] ?? ''));
+    if ($courseYearId <= 0) {
+        $courseYearId = mastercomDebtsNextSchoolYearId(intval($row['id_anno_scolastico'] ?? 0));
+    }
+
+    $courseYearLabel = $courseYearId > 0
+        ? (string)(dbGetValue("SELECT anno FROM anno_scolastico WHERE id = " . dbI($courseYearId) . " LIMIT 1") ?? '')
+        : '';
+    $subjectIds = mastercomDebtsEquivalentCourseSubjectIds($subjectId);
+    $subjectRows = [];
+    if (!empty($subjectIds)) {
+        $subjectRows = dbGetAll("
+            SELECT id, nome
+            FROM materia
+            WHERE id IN (" . implode(',', array_map('dbI', $subjectIds)) . ")
+            ORDER BY nome ASC
+        ") ?: [];
+    }
+
+    $matchingCourses = [];
+    $allStudentCourses = [];
+    if ($studentId > 0 && $courseYearId > 0) {
+        $subjectFilterSql = !empty($subjectIds)
+            ? " AND co.id_materia IN (" . implode(',', array_map('dbI', $subjectIds)) . ")"
+            : " AND 1=0";
+
+        $matchingCourses = dbGetAll("
+            SELECT
+                co.id AS corso_id,
+                co.titolo,
+                co.id_materia,
+                mat.nome AS materia,
+                co.id_anno_scolastico,
+                co.carenza,
+                co.carenza_sessione,
+                ce.id AS esito_id,
+                ce.recuperato,
+                ce.id_esame_data,
+                COALESCE(ced.tentativo, ced_any.tentativo) AS tentativo,
+                COALESCE(ced.data_inizio_esame, ced_any.data_inizio_esame) AS data_inizio_esame,
+                ced.firmato AS esame_firmato
+            FROM corso co
+            INNER JOIN corso_iscritti ci ON ci.id_corso = co.id AND ci.id_studente = " . dbI($studentId) . "
+            LEFT JOIN corso_esiti ce ON ce.id_corso = co.id AND ce.id_studente = ci.id_studente
+            LEFT JOIN corso_esami_date ced ON ced.id = ce.id_esame_data
+            LEFT JOIN corso_esami_date ced_any ON ced_any.id = (
+                SELECT ced2.id
+                FROM corso_esami_date ced2
+                WHERE ced2.id_corso = co.id
+                ORDER BY ced2.data_inizio_esame ASC, ced2.id ASC
+                LIMIT 1
+            )
+            LEFT JOIN materia mat ON mat.id = co.id_materia
+            WHERE co.carenza = 1
+              AND co.id_anno_scolastico = " . dbI($courseYearId) . "
+              $subjectFilterSql
+            ORDER BY co.id DESC, ce.id DESC
+        ") ?: [];
+
+        $allStudentCourses = dbGetAll("
+            SELECT
+                co.id AS corso_id,
+                co.titolo,
+                co.id_materia,
+                mat.nome AS materia,
+                co.id_anno_scolastico,
+                co.carenza,
+                co.carenza_sessione
+            FROM corso co
+            INNER JOIN corso_iscritti ci ON ci.id_corso = co.id AND ci.id_studente = " . dbI($studentId) . "
+            LEFT JOIN materia mat ON mat.id = co.id_materia
+            WHERE co.carenza = 1
+              AND co.id_anno_scolastico = " . dbI($courseYearId) . "
+            ORDER BY co.id DESC
+        ") ?: [];
+    }
+
+    return [
+        'ok' => true,
+        'row' => $row,
+        'course_year_id' => $courseYearId,
+        'course_year_label' => $courseYearLabel,
+        'subject_ids' => $subjectIds,
+        'subject_rows' => $subjectRows,
+        'matching_courses' => $matchingCourses,
+        'all_student_courses' => $allStudentCourses,
+        'no_course_expected' => mastercomDebtsIsNoCourseExpectedSubjectName((string)($row['materia'] ?? ''))
+            || mastercomDebtsIsNoCourseExpectedSubjectId($subjectId),
     ];
 }
 
 function mastercomDebtsReportRows(int $schoolYearId, int $mastercomClassId = 0): array
 {
     mastercomDebtsEnsureTables();
+    mastercomDebtsDeleteInactiveClassCache();
 
-    $where = [];
+    $where = [mastercomDebtsActiveMastercomClassCondition('mc')];
     if ($schoolYearId > 0) {
         $where[] = "mc.id_anno_scolastico = " . dbI($schoolYearId);
     }
@@ -1193,11 +1852,32 @@ function mastercomDebtsReportRows(int $schoolYearId, int $mastercomClassId = 0):
     ") ?: [];
 
     foreach ($rows as &$row) {
-        $course = mastercomDebtsCourseRecoveryStatus(
+        $debtSchoolYearId = intval($row['id_anno_scolastico'] ?? 0);
+        $subjectId = intval($row['id_materia_gestore'] ?? 0);
+        $noCourseExpected = mastercomDebtsIsNoCourseExpectedSubjectName((string)($row['materia'] ?? ''))
+            || mastercomDebtsIsNoCourseExpectedSubjectId($subjectId);
+        if ($noCourseExpected) {
+            $row['id_anno_scolastico_recupero'] = 0;
+            $row['corso_label'] = 'Nessun corso previsto per questa materia';
+            $row['corso_recuperato'] = null;
+            $row['corso_appello'] = null;
+            $row['data_recupero'] = '';
+            $row['corso_corsi'] = '';
+            $row['confronto'] = 'Carenza informativa';
+            $row['skip_gestore_save'] = 1;
+            continue;
+        }
+
+        $courseSchoolYearId = mastercomDebtsNextSchoolYearIdFromLabel((string)($row['anno_label'] ?? ''));
+        if ($courseSchoolYearId <= 0) {
+            $courseSchoolYearId = mastercomDebtsNextSchoolYearId($debtSchoolYearId);
+        }
+        $course = mastercomDebtsCourseRecoveryStatusForCourseYear(
             intval($row['id_studente_gestore'] ?? 0),
-            intval($row['id_materia_gestore'] ?? 0),
-            intval($row['id_anno_scolastico'] ?? 0)
+            $subjectId,
+            $courseSchoolYearId
         );
+        $row['id_anno_scolastico_recupero'] = $courseSchoolYearId;
         $row['corso_label'] = $course['label'];
         $row['corso_recuperato'] = $course['recuperato'];
         $row['corso_appello'] = $course['appello'] ?? null;
@@ -1207,7 +1887,14 @@ function mastercomDebtsReportRows(int $schoolYearId, int $mastercomClassId = 0):
         if (intval($row['id_studente_gestore'] ?? 0) <= 0 || intval($row['id_materia_gestore'] ?? 0) <= 0) {
             $row['confronto'] = 'Da abbinare';
         } elseif ($course['recuperato'] === null) {
-            $row['confronto'] = ($course['label'] ?? '') === 'Nessun corso abbinato' ? 'Nessun corso abbinato' : 'Senza esito corso';
+            $courseLabel = (string)($course['label'] ?? '');
+            if ($courseLabel === 'Nessun corso abbinato') {
+                $row['confronto'] = 'Nessun corso abbinato';
+            } elseif (strpos($courseLabel, 'Corso abbinato') === 0) {
+                $row['confronto'] = 'Corso abbinato, esito assente';
+            } else {
+                $row['confronto'] = 'Senza esito corso';
+            }
         } elseif (intval($row['recuperato_mastercom'] ?? 0) === intval($course['recuperato'])) {
             $row['confronto'] = 'OK';
         } else {

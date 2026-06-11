@@ -828,6 +828,9 @@ function mastercomAdminIsOperationalClassId(int $classId): bool
     }
 
     $row = dbGetFirst("SELECT * FROM mastercom_classi WHERE mastercom_id_classe = " . dbI($classId) . " LIMIT 1");
+    if (is_array($row) && mastercomAdminTableColumnExists('mastercom_classi', 'attiva_mastercom') && intval($row['attiva_mastercom'] ?? 1) !== 1) {
+        return false;
+    }
     return is_array($row) && mastercomAdminResolveLocalClass($row) !== null;
 }
 
@@ -837,7 +840,10 @@ function mastercomAdminOperationalClassRows(string $fields = '*'): array
         return [];
     }
 
-    $rows = dbGetAll("SELECT * FROM mastercom_classi ORDER BY nome ASC") ?: [];
+    $activeWhere = mastercomAdminTableColumnExists('mastercom_classi', 'attiva_mastercom')
+        ? 'WHERE COALESCE(attiva_mastercom, 1) = 1'
+        : '';
+    $rows = dbGetAll("SELECT * FROM mastercom_classi $activeWhere ORDER BY nome ASC") ?: [];
     $operational = [];
     foreach ($rows as $row) {
         if (mastercomAdminResolveLocalClass($row) === null) {
@@ -1362,19 +1368,25 @@ function mastercomAdminSyncClasses(callable $progress = null): array
         ?? mastercomAdminCleanText($userInfoResult['response']['result']['anno_scolastico'] ?? null);
     $total = count($classes);
     $updated = 0;
+    $seenClassIds = [];
     foreach ($classes as $class) {
         if (!is_array($class)) {
             continue;
         }
+        $mastercomClassId = intval($class['valore'] ?? 0);
+        if ($mastercomClassId <= 0) {
+            continue;
+        }
+        $seenClassIds[] = $mastercomClassId;
         mastercomAdminProgress($progress, 'classes', $updated + 1, $total, 'Sincronizzazione classe ' . (($class['nome'] ?? '')));
 
         $className = trim((string)($class['nome'] ?? ''));
         $parsed = mastercomAdminParseClassName($className);
         $localClassId = mastercomAdminFindLocalClassIdByName($className);
 
-        mastercomAdminUpsertByField('mastercom_classi', 'mastercom_id_classe', intval($class['valore']), [
+        mastercomAdminUpsertByField('mastercom_classi', 'mastercom_id_classe', $mastercomClassId, [
             'id_classe_gestore' => $localClassId,
-            'mastercom_id_classe' => intval($class['valore']),
+            'mastercom_id_classe' => $mastercomClassId,
             'nome' => mastercomAdminCleanText($className),
             'classe_numero' => $class['classe'] ?? $parsed['classe_numero'],
             'sezione' => mastercomAdminCleanText($parsed['sezione']),
@@ -1388,7 +1400,85 @@ function mastercomAdminSyncClasses(callable $progress = null): array
         $updated++;
     }
 
-    return ['ok' => true, 'message' => "Classi sincronizzate: $updated"];
+    $deactivated = 0;
+    if (!empty($seenClassIds) && mastercomAdminTableColumnExists('mastercom_classi', 'attiva_mastercom')) {
+        $seenSql = implode(',', array_map('intval', array_values(array_unique($seenClassIds))));
+        $yearWhere = trim((string)$year) !== ''
+            ? " AND (anno_scolastico = " . dbQ(mastercomAdminCleanText($year)) . " OR anno_scolastico IS NULL OR anno_scolastico = '')"
+            : '';
+
+        $classesToDeactivate = dbGetAll("
+            SELECT *
+            FROM mastercom_classi
+            WHERE COALESCE(attiva_mastercom, 1) = 1
+              AND mastercom_id_classe NOT IN ($seenSql)
+              $yearWhere
+        ") ?: [];
+
+        $deactivated = intval(dbGetValue("
+            SELECT COUNT(*)
+            FROM mastercom_classi
+            WHERE COALESCE(attiva_mastercom, 1) = 1
+              AND mastercom_id_classe NOT IN ($seenSql)
+              $yearWhere
+        ") ?? 0);
+
+        if ($deactivated > 0) {
+            dbExec("
+                UPDATE mastercom_classi
+                SET attiva_mastercom = 0,
+                    last_sync_at = " . dbQ(mastercomAdminNow()) . "
+                WHERE COALESCE(attiva_mastercom, 1) = 1
+                  AND mastercom_id_classe NOT IN ($seenSql)
+                  $yearWhere
+            ");
+
+            if (mastercomAdminTableExists('mastercom_carenze')) {
+                dbExec("
+                    DELETE mc
+                    FROM mastercom_carenze mc
+                    INNER JOIN mastercom_classi c
+                        ON c.mastercom_id_classe = mc.mastercom_id_classe
+                    WHERE COALESCE(c.attiva_mastercom, 0) = 0
+                ");
+            }
+
+            if (mastercomAdminTableExists('carenze') && mastercomAdminTableExists('mastercom_carenze')) {
+                $localClassIds = [];
+                foreach ($classesToDeactivate as $classToDeactivate) {
+                    $localClassId = intval($classToDeactivate['id_classe_gestore'] ?? 0);
+                    if ($localClassId <= 0) {
+                        $localClass = mastercomAdminResolveLocalClass($classToDeactivate);
+                        $localClassId = intval($localClass['id'] ?? 0);
+                    }
+                    if ($localClassId > 0) {
+                        $localClassIds[$localClassId] = true;
+                    }
+                }
+
+                if (!empty($localClassIds)) {
+                    $localClassIdsSql = implode(',', array_map('intval', array_keys($localClassIds)));
+                    dbExec("
+                        DELETE c
+                        FROM carenze c
+                        WHERE c.mastercom_last_sync_at IS NOT NULL
+                          AND c.id_classe IN ($localClassIdsSql)
+                          AND NOT EXISTS (
+                              SELECT 1
+                              FROM mastercom_carenze mc
+                              WHERE mc.id_studente_gestore = c.id_studente
+                                AND mc.id_materia_gestore = c.id_materia
+                                AND mc.id_classe_gestore = c.id_classe
+                                AND mc.id_anno_scolastico = c.id_anno_scolastico
+                              LIMIT 1
+                          )
+                    ");
+                }
+            }
+        }
+    }
+
+    return ['ok' => true, 'message' => "Classi sincronizzate: $updated, disattivate: $deactivated"];
 }
 
 function mastercomAdminSyncStudentsForClass(int $classId, callable $progress = null): array

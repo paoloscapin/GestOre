@@ -15,17 +15,21 @@ function mcd_state_label($value): string
     return intval($value) === 1 ? 'Recuperato' : 'Non recuperato';
 }
 
-function mcd_report_table_html(array $rows, bool $forExport = false): string
+function mcd_report_table_html(array $rows, bool $forExport = false, array $filters = []): string
 {
     $html = '<table class="table table-bordered table-condensed mcd-table">';
     $html .= '<thead><tr>';
-    foreach (['Classe', 'Studente', 'Materia', 'A.S.', 'Tipo debito', 'MasterCom', 'GestOre', 'Corso recupero', 'Data recupero', 'Confronto'] as $head) {
+    $heads = ['Classe', 'Studente', 'Materia', 'A.S.', 'Tipo debito', 'MasterCom', 'GestOre', 'Corso recupero', 'Data recupero', 'Confronto'];
+    if (!$forExport) {
+        $heads[] = 'Azioni';
+    }
+    foreach ($heads as $head) {
         $html .= '<th>' . mcd_h($head) . '</th>';
     }
     $html .= '</tr></thead><tbody>';
 
     if (empty($rows)) {
-        $html .= '<tr><td colspan="10" class="text-center">Nessuna carenza caricata per i filtri selezionati.</td></tr>';
+        $html .= '<tr><td colspan="' . count($heads) . '" class="text-center">Nessuna carenza caricata per i filtri selezionati.</td></tr>';
     }
 
     foreach ($rows as $row) {
@@ -48,7 +52,9 @@ function mcd_report_table_html(array $rows, bool $forExport = false): string
         }
 
         $gestore = intval($row['carenza_id'] ?? 0) > 0 ? 'Presente' : 'Non salvata';
-        if (intval($row['id_studente_gestore'] ?? 0) <= 0) {
+        if (intval($row['skip_gestore_save'] ?? 0) === 1) {
+            $gestore = 'Non previsto';
+        } elseif (intval($row['id_studente_gestore'] ?? 0) <= 0) {
             $gestore = 'Studente non abbinato';
         } elseif (intval($row['id_materia_gestore'] ?? 0) <= 0) {
             $gestore = 'Materia non abbinata';
@@ -61,10 +67,63 @@ function mcd_report_table_html(array $rows, bool $forExport = false): string
         $html .= '<td class="text-center">' . mcd_h($row['anno_label']) . '</td>';
         $html .= '<td>' . mcd_h($row['tipo_debito']) . '</td>';
         $html .= '<td class="text-center">' . mcd_h(mcd_state_label($row['recuperato_mastercom'])) . '</td>';
-        $html .= '<td class="text-center">' . mcd_h($gestore) . '</td>';
+        $gestoreTitle = intval($row['carenza_id'] ?? 0) > 0 ? 'ID carenza GestOre: ' . intval($row['carenza_id']) : '';
+        $html .= '<td class="text-center" title="' . mcd_h($gestoreTitle) . '">' . mcd_h($gestore) . '</td>';
         $html .= '<td>' . mcd_h($row['corso_label'] ?? '') . '</td>';
         $html .= '<td class="text-center">' . mcd_h($row['data_recupero'] ?? '') . '</td>';
         $html .= '<td class="text-center">' . mcd_h($comparison) . '</td>';
+        if (!$forExport) {
+            $html .= '<td class="text-center">';
+            $canSaveSingle =
+                intval($row['skip_gestore_save'] ?? 0) !== 1 &&
+                intval($row['carenza_id'] ?? 0) <= 0 &&
+                intval($row['id_studente_gestore'] ?? 0) > 0 &&
+                intval($row['id_materia_gestore'] ?? 0) > 0 &&
+                intval($row['id_classe_gestore'] ?? 0) > 0 &&
+                intval($row['id_anno_scolastico'] ?? 0) > 0;
+
+            if (intval($row['skip_gestore_save'] ?? 0) === 1) {
+                $html .= '<span class="text-muted">Solo informativa</span>';
+            } elseif (intval($row['carenza_id'] ?? 0) > 0) {
+                $html .= '<span class="text-muted" title="ID carenza GestOre: ' . intval($row['carenza_id']) . '">Gia salvata</span>';
+            } elseif ($canSaveSingle) {
+                $html .= '<form method="post" class="mcd-single-save-form">';
+                $html .= '<input type="hidden" name="action" value="save_gestore_single">';
+                $html .= '<input type="hidden" name="mastercom_carenza_id" value="' . intval($row['id'] ?? 0) . '">';
+                $html .= '<input type="hidden" name="class_id" value="' . intval($filters['class_id'] ?? 0) . '">';
+                $html .= '<input type="hidden" name="school_year_id" value="' . intval($filters['school_year_id'] ?? 0) . '">';
+                $html .= '<input type="hidden" name="issue_filter" value="' . mcd_h($filters['issue_filter'] ?? 'all') . '">';
+                $html .= '<input type="hidden" name="recovery_filter" value="' . mcd_h($filters['recovery_filter'] ?? 'all') . '">';
+                $html .= '<input type="hidden" name="appeal_filter" value="' . mcd_h($filters['appeal_filter'] ?? 'all') . '">';
+                $html .= '<button type="submit" class="btn btn-xs btn-success" onclick="return confirm(\'Salvare in GestOre solo questa carenza?\');">';
+                $html .= '<span class="glyphicon glyphicon-floppy-disk"></span> Salva';
+                $html .= '</button>';
+                $html .= '</form>';
+            } else {
+                $missing = [];
+                if (intval($row['id_studente_gestore'] ?? 0) <= 0) {
+                    $missing[] = 'studente';
+                }
+                if (intval($row['id_materia_gestore'] ?? 0) <= 0) {
+                    $missing[] = 'materia';
+                }
+                if (intval($row['id_classe_gestore'] ?? 0) <= 0) {
+                    $missing[] = 'classe';
+                }
+                if (intval($row['id_anno_scolastico'] ?? 0) <= 0) {
+                    $missing[] = 'anno';
+                }
+                $html .= '<span class="text-muted" title="' . mcd_h(implode(', ', $missing)) . '">Non salvabile</span>';
+            }
+            $debugUrl = '?class_id=' . intval($filters['class_id'] ?? 0)
+                . '&school_year_id=' . intval($filters['school_year_id'] ?? 0)
+                . '&issue_filter=' . urlencode((string)($filters['issue_filter'] ?? 'all'))
+                . '&recovery_filter=' . urlencode((string)($filters['recovery_filter'] ?? 'all'))
+                . '&appeal_filter=' . urlencode((string)($filters['appeal_filter'] ?? 'all'))
+                . '&debug_carenza_id=' . intval($row['id'] ?? 0);
+            $html .= ' <a class="btn btn-xs btn-default" href="' . mcd_h($debugUrl) . '"><span class="glyphicon glyphicon-search"></span> Debug</a>';
+            $html .= '</td>';
+        }
         $html .= '</tr>';
     }
 
@@ -103,6 +162,8 @@ if ($selectedRecoveryFilter !== 'recovered') {
 }
 $classRows = mastercomAdminOperationalClassRows('mastercom_id_classe, nome');
 $schoolYears = mastercomDebtsSchoolYears();
+$debugCarenzaId = intval($_GET['debug_carenza_id'] ?? 0);
+$debugCarenza = $debugCarenzaId > 0 ? mastercomDebtsDebugCarenza($debugCarenzaId) : null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['action'] ?? ''));
@@ -115,6 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stats = $result['stats'] ?? [];
                 $message = ($result['message'] ?? 'Lettura completata')
                     . ' Cache precedente ' . intval($stats['deleted_stale'] ?? 0) . '.'
+                    . ' Rimosse da GestOre perche non piu presenti su MasterCom: ' . intval($stats['removed_gestore_stale'] ?? 0) . '.'
                     . ' Non abbinate: studenti ' . intval($stats['without_student'] ?? 0)
                     . ', materie ' . intval($stats['without_subject'] ?? 0)
                     . ', anni ' . intval($stats['without_year'] ?? 0) . '.';
@@ -128,6 +190,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($result['ok'])) {
             $message = ($result['message'] ?? 'Lettura globale completata')
                 . ' Cache precedente ' . intval($stats['deleted_stale'] ?? 0) . '.'
+                . ' Componenti di classi articolate saltate: ' . intval($stats['skipped_articulated_components'] ?? 0) . '.'
+                . ' Rimosse da GestOre perche non piu presenti su MasterCom: ' . intval($stats['removed_gestore_stale'] ?? 0) . '.'
                 . ' Non abbinate: studenti ' . intval($stats['without_student'] ?? 0)
                 . ', materie ' . intval($stats['without_subject'] ?? 0)
                 . ', anni ' . intval($stats['without_year'] ?? 0) . '.';
@@ -147,7 +211,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stats = mastercomDebtsSaveToGestoreCarenze($selectedYearId, $selectedClassId);
             $message = 'Aggiornamento GestOre completato: inserite ' . intval($stats['inserted'])
                 . ', aggiornate ' . intval($stats['updated'])
+                . ', saltate ' . intval($stats['skipped'])
+                . ' (non abbinate ' . intval($stats['skipped_unmapped'] ?? 0)
+                . ', doppioni sorgente MasterCom ' . intval($stats['duplicate_source'] ?? 0) . ').';
+        }
+    } elseif ($action === 'save_gestore_single') {
+        $mastercomCarenzaId = intval($_POST['mastercom_carenza_id'] ?? 0);
+        if ($mastercomCarenzaId <= 0) {
+            $error = 'Carenza MasterCom non valida.';
+        } else {
+            $stats = mastercomDebtsSaveSingleToGestoreCarenza($mastercomCarenzaId);
+            $singleMessage = ($stats['message'] ?? 'Aggiornamento singola carenza completato.')
+                . ' Inserite ' . intval($stats['inserted'])
+                . ', aggiornate ' . intval($stats['updated'])
                 . ', saltate ' . intval($stats['skipped']) . '.';
+            if (intval($stats['inserted']) === 0 && intval($stats['updated']) === 0 && intval($stats['skipped']) > 0) {
+                $error = $singleMessage;
+            } else {
+                $message = $singleMessage;
+            }
         }
     }
 }
@@ -224,6 +306,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
     $pdf->Output(mastercomDebtsExportFileName('carenze_mastercom', 'pdf'), 'D');
     exit;
 }
+
+$auditIssues = mastercomDebtsAuditIssues($selectedYearId, $selectedClassId);
 ?>
 <!DOCTYPE html>
 <html>
@@ -313,8 +397,12 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
         .mcd-table th:nth-child(6),
         .mcd-table th:nth-child(7),
         .mcd-table th:nth-child(9),
-        .mcd-table th:nth-child(10) {
+        .mcd-table th:nth-child(10),
+        .mcd-table th:nth-child(11) {
             text-align: center;
+        }
+        .mcd-single-save-form {
+            margin: 0;
         }
         .mcd-table tbody tr.mcd-row-first-appeal > td {
             background-color: #c7ebc1 !important;
@@ -500,7 +588,169 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
                 La lettura da MasterCom aggiorna una cache locale. Il salvataggio in GestOre inserisce le carenze mancanti e aggiorna solo i campi di stato MasterCom, senza cancellare note, validazioni o invii gia presenti.
             </div>
 
-            <?php echo mcd_report_table_html($reportRows); ?>
+            <?php if ($debugCarenza !== null): ?>
+                <div class="alert alert-warning">
+                    <strong>Debug carenza MasterCom #<?php echo intval($debugCarenzaId); ?></strong>
+                    <?php if (empty($debugCarenza['ok'])): ?>
+                        <div style="margin-top:8px;"><?php echo mcd_h($debugCarenza['message'] ?? 'Debug non disponibile.'); ?></div>
+                    <?php else: ?>
+                        <?php
+                        $dbgRow = $debugCarenza['row'] ?? [];
+                        $dbgSubjects = $debugCarenza['subject_rows'] ?? [];
+                        $dbgMatchingCourses = $debugCarenza['matching_courses'] ?? [];
+                        $dbgAllCourses = $debugCarenza['all_student_courses'] ?? [];
+                        ?>
+                        <div style="margin-top:8px;">
+                            <strong>Riga cache:</strong>
+                            studente=<?php echo mcd_h($dbgRow['studente_gestore'] ?: $dbgRow['studente_nome']); ?>,
+                            classe MasterCom=<?php echo mcd_h(($dbgRow['mastercom_classe_nome'] ?: $dbgRow['classe']) . ' [' . ($dbgRow['mastercom_id_classe'] ?? '') . ']'); ?>,
+                            attiva=<?php echo intval($dbgRow['mastercom_classe_attiva'] ?? 1); ?>,
+                            materia=<?php echo mcd_h(($dbgRow['materia_gestore'] ?: $dbgRow['materia']) . ' [' . ($dbgRow['id_materia_gestore'] ?? '') . ']'); ?>,
+                            A.S. carenza=<?php echo mcd_h($dbgRow['anno_label'] ?? ''); ?>,
+                            A.S. corsi cercato=<?php echo mcd_h(($debugCarenza['course_year_label'] ?? '') . ' [' . ($debugCarenza['course_year_id'] ?? 0) . ']'); ?>.
+                        </div>
+                        <?php if (!empty($debugCarenza['no_course_expected'])): ?>
+                            <div style="margin-top:8px;"><span class="label label-info">Materia senza corso previsto</span></div>
+                        <?php endif; ?>
+                        <div style="margin-top:8px;">
+                            <strong>Materie equivalenti considerate:</strong>
+                            <?php if (empty($dbgSubjects)): ?>
+                                nessuna
+                            <?php else: ?>
+                                <?php echo mcd_h(implode(' | ', array_map(function ($item) {
+                                    return ($item['nome'] ?? '') . ' [' . ($item['id'] ?? '') . ']';
+                                }, $dbgSubjects))); ?>
+                            <?php endif; ?>
+                        </div>
+                        <div style="margin-top:10px;">
+                            <strong>Corsi abbinabili trovati per materia/anno:</strong>
+                            <?php if (empty($dbgMatchingCourses)): ?>
+                                nessuno
+                            <?php else: ?>
+                                <table class="table table-condensed table-bordered" style="margin-top:6px; background:#fff;">
+                                    <thead><tr><th>Corso ID</th><th>Titolo</th><th>Materia</th><th>Sessione</th><th>Esito ID</th><th>Firmato</th><th>Recuperato</th><th>Esame</th></tr></thead>
+                                    <tbody>
+                                    <?php foreach ($dbgMatchingCourses as $course): ?>
+                                        <tr>
+                                            <td><?php echo intval($course['corso_id'] ?? 0); ?></td>
+                                            <td><?php echo mcd_h($course['titolo'] ?? ''); ?></td>
+                                            <td><?php echo mcd_h(($course['materia'] ?? '') . ' [' . ($course['id_materia'] ?? '') . ']'); ?></td>
+                                            <td><?php echo mcd_h($course['carenza_sessione'] ?? ''); ?></td>
+                                            <td><?php echo mcd_h($course['esito_id'] ?? ''); ?></td>
+                                            <td><?php echo mcd_h($course['esame_firmato'] ?? ''); ?></td>
+                                            <td><?php echo mcd_h($course['recuperato'] ?? ''); ?></td>
+                                            <td><?php echo mcd_h(($course['data_inizio_esame'] ?? '') . ' tentativo ' . ($course['tentativo'] ?? '')); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            <?php endif; ?>
+                        </div>
+                        <div style="margin-top:10px;">
+                            <strong>Tutti i corsi carenze dello studente nello stesso anno corsi:</strong>
+                            <?php if (empty($dbgAllCourses)): ?>
+                                nessuno
+                            <?php else: ?>
+                                <table class="table table-condensed table-bordered" style="margin-top:6px; background:#fff;">
+                                    <thead><tr><th>Corso ID</th><th>Titolo</th><th>Materia</th><th>Sessione</th></tr></thead>
+                                    <tbody>
+                                    <?php foreach ($dbgAllCourses as $course): ?>
+                                        <tr>
+                                            <td><?php echo intval($course['corso_id'] ?? 0); ?></td>
+                                            <td><?php echo mcd_h($course['titolo'] ?? ''); ?></td>
+                                            <td><?php echo mcd_h(($course['materia'] ?? '') . ' [' . ($course['id_materia'] ?? '') . ']'); ?></td>
+                                            <td><?php echo mcd_h($course['carenza_sessione'] ?? ''); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php
+            $mastercomDuplicates = $auditIssues['mastercom_duplicates'] ?? [];
+            $gestoreDuplicates = $auditIssues['gestore_duplicates'] ?? [];
+            ?>
+            <?php if (!empty($mastercomDuplicates) || !empty($gestoreDuplicates)): ?>
+                <div class="alert alert-warning">
+                    <strong>Controllo doppioni carenze:</strong>
+                    <?php echo count($mastercomDuplicates); ?> possibili doppioni nella cache MasterCom,
+                    <?php echo count($gestoreDuplicates); ?> doppioni presenti in GestOre.
+                    <?php if (!empty($mastercomDuplicates)): ?>
+                        <div style="margin-top:10px;">
+                            <strong>Cache MasterCom</strong>
+                            <table class="table table-condensed table-bordered" style="margin-top:6px; background:#fff;">
+                                <thead>
+                                <tr>
+                                    <th>Studente</th>
+                                    <th>Materia</th>
+                                    <th>Classe</th>
+                                    <th>Classi MasterCom</th>
+                                    <th>Righe</th>
+                                    <th>ID cache</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <?php foreach (array_slice($mastercomDuplicates, 0, 10) as $dup): ?>
+                                    <tr>
+                                        <td><?php echo mcd_h($dup['studente_nome'] ?? ''); ?></td>
+                                        <td><?php echo mcd_h($dup['materia'] ?? ''); ?></td>
+                                        <td><?php echo mcd_h($dup['classe'] ?? ''); ?></td>
+                                        <td><?php echo mcd_h($dup['classi_mastercom'] ?? ''); ?></td>
+                                        <td class="text-center"><?php echo intval($dup['righe'] ?? 0); ?></td>
+                                        <td><?php echo mcd_h($dup['ids'] ?? ''); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                            <?php if (count($mastercomDuplicates) > 10): ?>
+                                <div>Mostrati i primi 10 doppioni MasterCom.</div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (!empty($gestoreDuplicates)): ?>
+                        <div style="margin-top:10px;">
+                            <strong>GestOre</strong>
+                            <table class="table table-condensed table-bordered" style="margin-top:6px; background:#fff;">
+                                <thead>
+                                <tr>
+                                    <th>Studente</th>
+                                    <th>Materia</th>
+                                    <th>Classe</th>
+                                    <th>Righe</th>
+                                    <th>ID carenze</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <?php foreach (array_slice($gestoreDuplicates, 0, 10) as $dup): ?>
+                                    <tr>
+                                        <td><?php echo mcd_h($dup['studente_nome'] ?? ''); ?></td>
+                                        <td><?php echo mcd_h($dup['materia'] ?? ''); ?></td>
+                                        <td><?php echo mcd_h($dup['classe'] ?? ''); ?></td>
+                                        <td class="text-center"><?php echo intval($dup['righe'] ?? 0); ?></td>
+                                        <td><?php echo mcd_h($dup['ids'] ?? ''); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                            <?php if (count($gestoreDuplicates) > 10): ?>
+                                <div>Mostrati i primi 10 doppioni GestOre.</div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php echo mcd_report_table_html($reportRows, false, [
+                'class_id' => $selectedClassId,
+                'school_year_id' => $selectedYearId,
+                'issue_filter' => $selectedIssueFilter,
+                'recovery_filter' => $selectedRecoveryFilter,
+                'appeal_filter' => $selectedAppealFilter,
+            ]); ?>
         </div>
     </div>
 </div>
