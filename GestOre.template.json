@@ -23,11 +23,18 @@
         "password": "--- db pass ---",
         "database": "--- db name ---"
     },
+    "dbMBApp": {
+        "host": "--- db host ---",
+        "user": "--- db user ---",
+        "password": "--- db pass ---",
+        "database": "--- db name ---"
+    },
     "log": {
         "logIntoAppFolder": true,
         "logFile": "GestOre.log",
         "timeFormat": "%d/%m/%Y - %H:%M:%S",
         "debug": false,
+        "logLoginUsers": true,
         "logLoginFile": "GestOreLogin.log",
         "logCronFile": "GestOreCron.log",
         "logImportSostituzioniFile": "import_sostituzioni.log",
@@ -55,6 +62,7 @@
         "programmiMinimi": true,
         "permessi": true,
         "biglietti": true,
+        "profiloGenitore": true,
         "carenze": false,
         "uscite": false,
         "corsi": false,
@@ -87,6 +95,7 @@
         "helpLinkAdmin": "https://docs.google.com/document/d/17B9ZXTg1WD7IBwZMKuHj47YigVjfPkH3o8gp-fpD9ig/edit?usp=sharing",
         "helpLinkDidattica": "https://docs.google.com/document/d/17B9ZXTg1WD7IBwZMKuHj47YigVjfPkH3o8gp-fpD9ig/edit?usp=sharing",
         "nomeIstituto": "ITT Buonarroti - Trento",
+        "emailNoReplyFrom": "noreplyGestOre@buonarroti.tn.it",
         "AppPassword": "xxxx xxxx xxxx xxxx app password 16 caratteri Google per invio mail",
         "smtpHost": "indirizzo del server smtp posta Google della scula",
         "smtpMail": "noreplyGestOre@server-scuola",
@@ -94,7 +103,6 @@
         "SMTPSecure": "tls",
         "Port": 587,
         "watch_secret": "#####",
-        "emailNoReplyFrom": "--- deve essere la mail usata per la GoogleApp oppure un alias collegato allo stesso account ---",
         "emailSportelli": "--- mail in BCC a cui viene inviato ogni email degli sportelli ---",
         "emailCarenze": "--- inserire un indirizzo di email a cui inviare in cc le lettere di carenza generate ---",
         "luogoIstituto": "--- inserire la località per i documenti generati ---",
@@ -168,6 +176,9 @@
             "clientId": "--- google client id ---",
             "clientSecret": "--- google client secret ---",
             "accountEmail": "noreplygestore@buonarroti.tn.it",
+            "accessToken": "",
+            "refreshToken": "",
+            "expiresIn": 3599,
             "logFolderId": "",
             "logFolderName": "GestOre Log",
             "syncSecret": "#####",
@@ -190,10 +201,12 @@
     },
     "telegram": {
         "enabled": true,
+        "chat_id": "-xxx",
         "bot_username": "ITTGestOreBot",
         "bot_token": "",
         "delete_old_topics": true,
-        "delete_old_topics_after_days": 30
+        "delete_old_topics_after_days": 30,
+        "miniapp_register_url": "https://www.buonarroti.tn.it/GestOre/common/miniapp_register.php"
     },
     "ticketMail": {
         "enabled": true,
@@ -394,6 +407,7 @@
         "docente_vede_solo_le_sue": false,
         "visibile_studenti": false,
         "visibile_genitori": false,
+        "studente_vede_esito": false,
         "docente_puo__modificare": false
     },
     "corsi": {
@@ -409,15 +423,20 @@
     },
     "permessi": {
         "visibile_docenti": false,
-        "visibile_genitori": false,
-        "visibile_studenti": false,
+        "visibile_genitori": true,
+        "visibile_studenti": true,
         "ora_limite_genitori": "09:00",
-        "giorni_festivi": []
+        "giorni_festivi": [
+            "2026-06-02",
+            "2026-12-08",
+            "2026-12-24"
+        ]
     },
     "profiloGenitore": {
-        "visibile_genitori": false,
+        "visibile_genitori": true,
         "visibile_telegram": true,
-        "sincronizza_mastercom": true,
+        "sincronizza_mastercom": false,
+        "sincronizza_mastercom_contatti": false,
         "email_segreteria_didattica": "segr.didattica@buonarroti.tn.it",
         "annulla_cambio_email_ore": 48
     },
