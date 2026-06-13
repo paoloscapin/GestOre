@@ -17,6 +17,7 @@ var $materia_filtro_id = 0;
 var $studente_filtro_id = 0;
 var $anno_filtro_id = 0;
 var $da_validare_filtro = 0;
+var $docente_scope_filtro = 1;
 let completati = 0;
 let totale = 0;
 
@@ -32,7 +33,7 @@ $('#daValidareCheckBox').change(function () {
 
 function carenzeReadRecords() {
     var vistaDocente = (parseInt($("#hidden_docente_id").val() || "0", 10) > 0) ? 1 : 0;
-    $.get("carenzeReadRecords.php?anno=" + $anno_filtro_id + "&docente_id=" + $docente_filtro_id + "&vista_docente=" + vistaDocente + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id + "&da_validare_filtro=" + $da_validare_filtro + "&anni_id=" + $anni_filtro_id, {}, function (data, status) {
+    $.get("carenzeReadRecords.php?anno=" + $anno_filtro_id + "&docente_id=" + $docente_filtro_id + "&vista_docente=" + vistaDocente + "&docente_scope_filtro=" + $docente_scope_filtro + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id + "&da_validare_filtro=" + $da_validare_filtro + "&anni_id=" + $anni_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
@@ -363,8 +364,11 @@ function hideTooltip(el) {
 }
 
 function exportFile() {
+    var vistaDocente = (parseInt($("#hidden_docente_id").val() || "0", 10) > 0) ? 1 : 0;
     const url = "carenzeExport.php"
         + "?id_docente=" + encodeURIComponent($docente_filtro_id)
+        + "&vista_docente=" + encodeURIComponent(vistaDocente)
+        + "&docente_scope_filtro=" + encodeURIComponent($docente_scope_filtro)
         + "&id_classe=" + encodeURIComponent($classe_filtro_id)
         + "&id_materia=" + encodeURIComponent($materia_filtro_id)
         + "&id_studente=" + encodeURIComponent($studente_filtro_id)
@@ -397,9 +401,15 @@ $(document).ready(function () {
         $docente_filtro_id = docentePreselezionato;
         $('#docente_filtro').selectpicker('val', String(docentePreselezionato));
     }
+    $docente_scope_filtro = $("#docenteScopeCheckBox").length === 0 || $("#docenteScopeCheckBox").prop("checked") ? 1 : 0;
 
     carenzeReadRecords();
     carenzeCoordinatoreReadRecords();
+
+    $("#docenteScopeCheckBox").change(function () {
+        $docente_scope_filtro = this.checked ? 1 : 0;
+        carenzeReadRecords();
+    });
 
     $("#docente_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {

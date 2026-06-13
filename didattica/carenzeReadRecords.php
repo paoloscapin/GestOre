@@ -19,6 +19,7 @@ $da_validare_filtro = intval($_GET["da_validare_filtro"] ?? 0);
 $anno = intval($_GET["anno"] ?? 0);
 $anni_filtro_id = intval($_GET["anni_id"] ?? 0);
 $vistaDocente = intval($_GET["vista_docente"] ?? 0) === 1;
+$docente_scope_filtro = intval($_GET["docente_scope_filtro"] ?? 1);
 $isAdminView = !$vistaDocente && (haRuolo('dirigente') || haRuolo('segreteria-didattica'));
 $isDocenteView = $vistaDocente || (($__utente_ruolo ?? '') === 'docente');
 
@@ -88,24 +89,29 @@ $query = "	SELECT
 					docente.nome AS doc_nome,
 					materia.nome AS materia
 				FROM carenze
-				INNER JOIN docente docente
+				LEFT JOIN docente docente
 				ON carenze.id_docente = docente.id
 				INNER JOIN studente studente
 				ON carenze.id_studente = studente.id
 				INNER JOIN materia materia
 				ON carenze.id_materia = materia.id
 				INNER JOIN classi classi
-				ON carenze.id_classe = classi.id";
+				ON carenze.id_classe = classi.id
+				WHERE 1=1";
 
 if ($anni_filtro_id > 0) {
-			$query .= " WHERE carenze.id_anno_scolastico=" . $anni_filtro_id;
+			$query .= " AND carenze.id_anno_scolastico=" . $anni_filtro_id;
 }
 
-if ($isDocenteView && (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false)))
+if ($isDocenteView && $docente_scope_filtro > 0)
 {
-	$query .= " AND carenze.id_docente=" . intval($id_docente_attuale);
+	$query .= " AND (carenze.stato='0' OR carenze.id_docente=" . intval($id_docente_attuale) . ")";
 }
-else if ($docente_id > 0) 
+else if ($isDocenteView && (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false)))
+{
+	$query .= " AND (carenze.id_docente=" . intval($id_docente_attuale) . " OR carenze.id_docente=0)";
+}
+else if (!$isDocenteView && $docente_id > 0)
 {
 	$query .= " AND carenze.id_docente=" . $docente_id;
 }

@@ -17,7 +17,9 @@ $materia_id = intval($_GET["id_materia"] ?? 0);
 $studente_id = intval($_GET["id_studente"] ?? 0);
 $anno = intval($_GET["id_anno"] ?? 0);
 $da_validare = intval($_GET["da_validare"] ?? 0);
-$isDocenteView = (($__utente_ruolo ?? '') === 'docente');
+$vistaDocente = intval($_GET["vista_docente"] ?? 0) === 1;
+$docente_scope_filtro = intval($_GET["docente_scope_filtro"] ?? 1);
+$isDocenteView = $vistaDocente || (($__utente_ruolo ?? '') === 'docente');
 
 $query = "	SELECT
 					carenze.id AS carenza_id,
@@ -48,7 +50,9 @@ $query = "	SELECT
 				ON carenze.id_classe = classi.id
 				WHERE carenze.id_anno_scolastico=$__anno_scolastico_corrente_id";
 
-if ($isDocenteView && $docente_id > 0 && getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false) && getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false)) {
+if ($isDocenteView && $docente_scope_filtro > 0 && $docente_id > 0) {
+	$query .= " AND (carenze.stato='0' OR carenze.id_docente=" . $docente_id . ")";
+} else if ($isDocenteView && $docente_id > 0 && getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false) && getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false)) {
 	$query .= " AND (carenze.id_docente=" . $docente_id . " OR carenze.id_docente=0)";
 } else if (!$isDocenteView && $docente_id > 0) {
 	$query .= " AND carenze.id_docente=" . $docente_id;
