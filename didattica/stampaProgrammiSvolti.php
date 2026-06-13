@@ -9,16 +9,17 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/vendor/autoload.php';
+require_once '../common/programmiPubbliciLib.php';
 
-ruoloRichiesto('docente', 'dirigente', 'segreteria-didattica');
+ruoloRichiesto('docente', 'dirigente', 'segreteria-didattica', 'studente', 'genitore');
 
-$programId = isset($_POST['id']) ? (int) $_POST['id'] : -1;
-$classId = isset($_POST['class_id']) ? (int) $_POST['class_id'] : -1;
-$annoScolasticoId = isset($_POST['anno_scolastico_id']) ? (int) $_POST['anno_scolastico_id'] : -1;
-$doPrint = isset($_POST['print']) && ($_POST['print'] == '1' || $_POST['print'] === 'true');
-$format = isset($_POST['format']) ? strtolower((string)$_POST['format']) : 'pdf';
-$titolo = isset($_POST['titolo']) ? $_POST['titolo'] : 'Programma didattico';
-$viewScope = isset($_POST['view_scope']) ? strtolower((string)$_POST['view_scope']) : 'full';
+$programId = isset($_REQUEST['id']) ? (int) $_REQUEST['id'] : -1;
+$classId = isset($_REQUEST['class_id']) ? (int) $_REQUEST['class_id'] : -1;
+$annoScolasticoId = isset($_REQUEST['anno_scolastico_id']) ? (int) $_REQUEST['anno_scolastico_id'] : -1;
+$doPrint = isset($_REQUEST['print']) && ($_REQUEST['print'] == '1' || $_REQUEST['print'] === 'true');
+$format = isset($_REQUEST['format']) ? strtolower((string)$_REQUEST['format']) : 'pdf';
+$titolo = isset($_REQUEST['titolo']) ? $_REQUEST['titolo'] : 'Programma didattico';
+$viewScope = isset($_REQUEST['view_scope']) ? strtolower((string)$_REQUEST['view_scope']) : 'full';
 $soloProgrammaCorrente = ($viewScope === 'own' || $viewScope === 'solo');
 $anno_scolastico_corrente_anno_safe = $GLOBALS['__anno_scolastico_corrente_anno'] ?? '';
 
@@ -571,7 +572,23 @@ function getModuliProgrammaSvolto(int $programId): array
 
 function userCanViewProgram(array $program): bool
 {
-    global $__docente_id;
+    global $__docente_id, $__studente_id, $__genitore_id;
+
+    if (haRuolo('genitore') || impersonaRuolo('genitore')) {
+        if (!programmiPubbliciVisibleForRole('svolti', 'genitore')) {
+            return false;
+        }
+        $publicStudentId = intval($_REQUEST['public_student_id'] ?? 0);
+        return programmiPubbliciGenitoreCanAccessStudent(intval($__genitore_id ?? 0), $publicStudentId)
+            && programmiPubbliciCanAccessProgram('svolti', intval($program['id'] ?? 0), $publicStudentId);
+    }
+
+    if (haRuolo('studente') || impersonaRuolo('studente')) {
+        if (!programmiPubbliciVisibleForRole('svolti', 'studente')) {
+            return false;
+        }
+        return programmiPubbliciCanAccessProgram('svolti', intval($program['id'] ?? 0), intval($__studente_id ?? 0));
+    }
 
     if (haRuolo('dirigente') || haRuolo('segreteria-didattica')) {
         return true;

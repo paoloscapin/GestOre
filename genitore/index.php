@@ -101,6 +101,14 @@ require_once '../common/programmiPubbliciLib.php';
 					</a>
 				<?php endif; ?>
 
+				<?php if (programmiPubbliciVisibleForRole('svolti', 'genitore')): ?>
+					<a href="../genitore/programmiSvolti.php" class="mobile-home-card">
+						<div class="mobile-home-card-icon"><span class="glyphicon glyphicon-education"></span></div>
+						<div class="mobile-home-card-title">Programmi svolti</div>
+						<div class="mobile-home-card-desc">Consulta e scarica i programmi svolti della classe dello studente</div>
+					</a>
+				<?php endif; ?>
+
 				<?php if (getSettingsValue('config', 'profiloGenitore', false) && getSettingsValue('profiloGenitore', 'visibile_genitori', false)): ?>
 					<a href="../genitore/profilo.php" class="mobile-home-card">
 						<div class="mobile-home-card-icon"><span class="glyphicon glyphicon-user"></span></div>

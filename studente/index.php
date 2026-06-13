@@ -98,6 +98,14 @@ ruoloRichiesto('studente', 'segreteria-didattica', 'dirigente');
 				</a>
 			<?php endif; ?>
 
+			<?php if (programmiPubbliciVisibleForRole('svolti', 'studente')): ?>
+				<a href="../studente/programmiSvolti.php" class="mobile-home-card">
+					<div class="mobile-home-card-icon"><span class="glyphicon glyphicon-education"></span></div>
+					<div class="mobile-home-card-title">Programmi svolti</div>
+					<div class="mobile-home-card-desc">Consulta e scarica i programmi svolti della tua classe</div>
+				</a>
+			<?php endif; ?>
+
 			<a href="../studente/profilo.php" class="mobile-home-card">
 				<div class="mobile-home-card-icon"><span class="glyphicon glyphicon-user"></span></div>
 				<div class="mobile-home-card-title">Profilo</div>
