@@ -135,6 +135,7 @@
 						<li><a href="../admin/mastercom_event_create.php"><span class="glyphicon glyphicon-plus"></span>&ensp;Nuovo evento</a></li>
 						<li><a href="../admin/mastercom_grades.php"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Voti</a></li>
 						<li><a href="../admin/mastercom_grade_insert.php"><span class="glyphicon glyphicon-pencil"></span>&ensp;Inserisci voti</a></li>
+						<li><a href="../admin/mastercom_tabelloni.php"><span class="glyphicon glyphicon-th"></span>&ensp;Tabelloni scrutini</a></li>
 						<li><a href="../admin/mastercom_debts.php"><span class="glyphicon glyphicon-alert"></span>&ensp;Carenze</a></li>
 						<li><a href="../admin/mastercom_debts_plan.php"><span class="glyphicon glyphicon-calendar"></span>&ensp;Pianifica carenze</a></li>
 						<li role="separator" class="divider"></li>

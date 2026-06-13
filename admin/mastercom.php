@@ -141,6 +141,15 @@ $gradesLastSync = mastercomGradesCacheLastSyncLabel();
                             <?php endif; ?>
                         </div>
                     </div>
+                    <div class="col-md-3">
+                        <div class="well">
+                            <h4>Tabelloni scrutini</h4>
+                            <p>Importa da MasterCom i tabelloni finali in formato XLS e salva righe, colonne e celle voto nel database.</p>
+                            <a class="btn btn-info btn-block" href="mastercom_tabelloni.php">
+                                <span class="glyphicon glyphicon-th"></span> Apri import tabelloni
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="alert alert-info">
