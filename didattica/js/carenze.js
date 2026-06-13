@@ -401,7 +401,7 @@ $(document).ready(function () {
         $docente_filtro_id = docentePreselezionato;
         $('#docente_filtro').selectpicker('val', String(docentePreselezionato));
     }
-    $docente_scope_filtro = $("#docenteScopeCheckBox").length === 0 || $("#docenteScopeCheckBox").prop("checked") ? 1 : 0;
+    $docente_scope_filtro = $("#docenteScopeCheckBox").length > 0 && $("#docenteScopeCheckBox").prop("checked") ? 1 : 0;
 
     carenzeReadRecords();
     carenzeCoordinatoreReadRecords();

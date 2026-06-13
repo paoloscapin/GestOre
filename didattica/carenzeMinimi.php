@@ -243,6 +243,86 @@ foreach (
             margin-bottom: 12px;
         }
 
+        .carenze-toolbar {
+            align-items: flex-end;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 16px;
+            padding: 4px 6px 10px;
+        }
+
+        .carenze-toolbar-title {
+            align-self: center;
+            font-weight: 700;
+            line-height: 1.25;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .carenze-toolbar-title .glyphicon {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .carenze-filter {
+            min-width: 110px;
+        }
+
+        .carenze-filter-xs {
+            min-width: 70px;
+            width: 76px;
+        }
+
+        .carenze-filter-sm {
+            min-width: 98px;
+            width: 108px;
+        }
+
+        .carenze-filter-md {
+            min-width: 170px;
+        }
+
+        .carenze-filter-lg {
+            flex: 1 1 260px;
+            min-width: 230px;
+        }
+
+        .carenze-filter label,
+        .carenze-actions label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 5px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .carenze-filter .bootstrap-select,
+        .carenze-filter .btn-group {
+            width: 100% !important;
+        }
+
+        .carenze-actions {
+            align-items: flex-end;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .carenze-action-stack {
+            text-align: center;
+        }
+
+        .carenze-action-stack .btn,
+        .carenze-actions .btn-file {
+            min-height: 30px;
+        }
+
+        .carenze-view-toggle {
+            min-width: 128px;
+            text-align: center;
+        }
+
         .carenze-coord-actions {
             margin: 10px 0;
             text-align: right;
@@ -285,121 +365,102 @@ foreach (
     <div class="container-fluid">
         <div class="panel panel-lima4">
             <div class="panel-heading">
-                <div class="row">
-                    <div class="col-md-1 text-center">
-                        <span class="glyphicon glyphicon-list-alt"
-                            style="margin:5px"></span><br><b>Elenco<br>Carenze</b>
+                <div class="carenze-toolbar">
+                    <div class="carenze-toolbar-title">
+                        <span class="glyphicon glyphicon-list-alt"></span>
+                        Elenco<br>Carenze
                     </div>
-                    <div class="col-md-1 text-center">
-                        <label class="col-sm-12 control-label" for="classe">Classe</label>
-                        <div class="text-center">
-                            <div class="col-sm-12"><select id="classe_filtro" name="classe_filtro"
-                                    class="classe_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
-                                    data-noneSelectedText="seleziona..."
-                                    data-width="100%"><?php echo $classiFiltroOptionList ?></select></div>
-                        </div>
+                    <div class="carenze-filter carenze-filter-sm">
+                        <label class="control-label" for="classe_filtro">Classe</label>
+                        <select id="classe_filtro" name="classe_filtro"
+                                class="classe_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
+                                data-noneSelectedText="seleziona..."
+                                data-width="100%"><?php echo $classiFiltroOptionList ?></select>
                     </div>
-                    <div class="col-md-1 text-center">
-                        <label class="col-sm-8 control-label" for="anno">Anno</label>
-                        <div class="text-center">
-                            <div class="col-sm-8"><select id="anno_filtro" name="anno_filtro"
-                                    class="anno_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
-                                    data-noneSelectedText="seleziona..."
-                                    data-width="100%"><?php echo $annoFiltroOptionList ?></select></div>
-                        </div>
+                    <div class="carenze-filter carenze-filter-xs">
+                        <label class="control-label" for="anno_filtro">Anno</label>
+                        <select id="anno_filtro" name="anno_filtro"
+                                class="anno_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
+                                data-noneSelectedText="seleziona..."
+                                data-width="100%"><?php echo $annoFiltroOptionList ?></select>
                     </div>
-                    <div class="col-md-3 text-center">
-                        <label class="col-sm-12 control-label" for="materia">Materia</label>
-                        <div class="text-center">
-                            <div class="col-sm-12"><select id="materia_filtro" name="materia_filtro"
-                                    class="mamteria_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
-                                    data-noneSelectedText="seleziona..."
-                                    data-width="100%"><?php echo $materiaFiltroOptionList ?></select></div>
-                        </div>
+                    <div class="carenze-filter carenze-filter-lg">
+                        <label class="control-label" for="materia_filtro">Materia</label>
+                        <select id="materia_filtro" name="materia_filtro"
+                                class="mamteria_filtro selectpicker" data-style="btn-salmon" data-live-search="true"
+                                data-noneSelectedText="seleziona..."
+                                data-width="100%"><?php echo $materiaFiltroOptionList ?></select>
                     </div>
                     <?php
                     if (!$carenzeMinimiVistaDocente && haRuolo('segreteria-didattica')) {
                         echo '
-                    <div class="col-md-2">
-                        <div class="text-center">
-                            <label class="col-sm-12 control-label" for="docente">Docente</label>
-                            <div class="col-sm-12"><select id="docente_filtro" name="docente_filtro"
+                    <div class="carenze-filter carenze-filter-md">
+                            <label class="control-label" for="docente_filtro">Docente</label>
+                            <select id="docente_filtro" name="docente_filtro"
                                     class="docente_filtro selectpicker" data-style="btn-yellow4" data-live-search="true"
                                     data-noneSelectedText="seleziona..." data-width="100%">';
                         echo $docentiFiltroOptionList;
                         echo '
-                                </select></div>
-                        </div>
+                                </select>
                     </div>
                     ';
                     }
                     ?>
-                    <div class="col-md-2">
-                        <div class="text-center">
-                            <label class="col-sm-12 control-label" for="materia">Studente</label>
-                            <div class="col-sm-12"><select id="studente_filtro" name="studente_filtro"
+                    <div class="carenze-filter carenze-filter-lg">
+                        <label class="control-label" for="studente_filtro">Studente</label>
+                        <select id="studente_filtro" name="studente_filtro"
                                     class="studente_filtro selectpicker" data-style="btn-yellow4"
                                     data-live-search="true" data-noneSelectedText="seleziona..." data-width="100%">
                                     <?php echo $studentiFiltroOptionList ?>
-                                </select></div>
-                        </div>
+                        </select>
                     </div>
 
-                    <div class="col-md-2">
-                        <div class="text-center">
-                            <label class="col-sm-10 control-label" for="anni_filtro">Anno scolastico</label>
-                            <div class="col-sm-10">
-                                <select id="anni_filtro" style="margin:0;" name="anni_filtro"
+                    <div class="carenze-filter carenze-filter-md">
+                        <label class="control-label" for="anni_filtro">Anno scolastico</label>
+                        <select id="anni_filtro" style="margin:0;" name="anni_filtro"
                                     class="anni_filtro selectpicker"
                                     data-style="btn-yellow4"
                                     data-live-search="true"
                                     data-noneSelectedText="Seleziona..."
-                                    data-width="60%">
+                                    data-width="100%">
                                     <?php echo $anniFiltroOptionList ?>
-                                </select>
-                            </div>
-                        </div>
+                        </select>
                     </div>
-
+                    <div class="carenze-actions">
                     <?php
                     if (!$carenzeMinimiVistaDocente && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                         echo '
-                    <div>
-                        <div>
-
-                            <div class="col-md-1 text-center">
-                                <div class="text-center">
-                                    <label class="control-label" for="materia">Aggiungi</label>
-                                    <button class="btn btn-xs btn-lima4" onclick="carenzeGetDetails(-1)"><span
-                                            style="font-size:15px" class="glyphicon glyphicon-plus"></span></button>
-                                    <button id="genera_btn" type="button" class="btn btn-xs btn-lima4" data-toggle="tooltip" title="Genera i pdf di tutte le carenze">
-                                        <span class="glyphicon glyphicon-send"></span>&emsp;Genera Carenze
-                                    </button>
-
-                                    <button id="send_btn" type="button" class="btn btn-xs btn-lima4" data-toggle="tooltip" title="Invia mail delle carenze">
-                                        <span class="glyphicon glyphicon-send"></span>&emsp;Mail Carenze
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="carenze-action-stack">
+                        <label class="control-label">Azioni</label>
+                        <button class="btn btn-xs btn-lima4" onclick="carenzeGetDetails(-1)" data-toggle="tooltip" title="Aggiungi carenza">
+                            <span class="glyphicon glyphicon-plus"></span>
+                        </button>
+                        <button id="genera_btn" type="button" class="btn btn-xs btn-lima4" data-toggle="tooltip" title="Genera i PDF di tutte le carenze">
+                            <span class="glyphicon glyphicon-fire"></span> Genera
+                        </button>
+                        <button id="send_btn" type="button" class="btn btn-xs btn-lima4" data-toggle="tooltip" title="Invia mail delle carenze">
+                            <span class="glyphicon glyphicon-send"></span> Mail
+                        </button>
                     </div>
-
-                    <div class="col-md-auto text-center">
-                        <label id="import_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Importa le carenze"><span
-                                class="glyphicon glyphicon-upload"></span>&emsp;Importa<input type="file"
-                                id="file_select_id" style="display: none;"></label></div>
+                    <div class="carenze-action-stack">
+                        <label class="control-label">&nbsp;</label>
+                        <label id="import_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Importa le carenze">
+                            <span class="glyphicon glyphicon-upload"></span> Importa<input type="file" id="file_select_id" style="display: none;">
+                        </label>
+                    </div>
                     ';
                     }
                     ?>
-                    <div class="col-md-auto text-center">
+                    <div class="carenze-action-stack">
+                        <label class="control-label">&nbsp;</label>
                         <label id="export_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip"
                             title="Esporta le carenze"><span id="file_export_id"
-                                class="glyphicon glyphicon-download"></span>&emsp;Esporta</label>
+                                class="glyphicon glyphicon-download"></span> Esporta</label>
                     </div>
                     <?php
-                    if ($carenzeMinimiVistaDocente) {
+                    if ($carenzeMinimiVistaDocente && !getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false)) {
                         echo '
-                    <div class="col-md-auto text-center pull-right">
+                    <div class="carenze-view-toggle">
                         <label class="control-label" for="docenteScopeCheckBox">Vista docente</label><br>
                         <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary"
                             id="docenteScopeCheckBox" data-on="Mie + aperte" data-off="Tutte" checked>
@@ -410,8 +471,9 @@ foreach (
                     <?php
                     if (!$carenzeMinimiVistaDocente && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                         echo '                    
-                                    <div class="col-md-auto text-center">
-                                                                <label class="checkbox-inline">
+                                    <div class="carenze-action-stack">
+                                                <label class="control-label">Filtro</label>
+                                                <label class="checkbox-inline">
                                                 <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary"
                                                     id="daValidareCheckBox" data-on="Tutte" data-off="Solo da validare">
                                             </label>
@@ -419,6 +481,8 @@ foreach (
                                         ';
                     }
                     ?>
+                    </div>
+                </div>
                     <div class="panel-body">
                         <div class="row" style="margin-bottom:10px;">
                             <div class="col-md-12 text-center" id='result_text'>
