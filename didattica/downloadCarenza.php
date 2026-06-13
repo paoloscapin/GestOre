@@ -7,7 +7,8 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
-require_once '../common/checkSession.php';
+require_once '../common/__Util.php';
+require_once '../common/connect.php';
 require_once __DIR__ . '/carenzeDownloadLib.php';
 
 function mostraMessaggio(string $titolo, string $messaggio): void {
@@ -219,8 +220,8 @@ if ($storageType === 'DRIVE') {
 }
 
 if ($downloadOk) {
-    $clientIP = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+    $clientIP = escapeString($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    $userAgent = escapeString($_SERVER['HTTP_USER_AGENT'] ?? 'unknown');
     $updateQuery = "
         UPDATE carenze_downloads 
         SET 

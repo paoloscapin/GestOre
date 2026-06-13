@@ -1,6 +1,7 @@
 <?php
 
-require_once __DIR__ . '/../common/checkSession.php';
+require_once __DIR__ . '/../common/__Util.php';
+require_once __DIR__ . '/../common/connect.php';
 
 function carenzeDownloadTableHasColumn(string $column): bool
 {

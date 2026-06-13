@@ -1014,13 +1014,7 @@ if ($doMail) {
     $__http_base_link
   );
 
-  if (($__utente_ruolo == "admin")&&($__studente_id>0)) 
-  {
-    $to = $studente_email;
-    $toName = $studente_nome . " " . $studente_cognome;
-    info("Invio carenza via mail allo studente: " . $to . " " . $toName . " da ruolo admin");
-  }
-  else
+  $ccGenitori = [];
   if ($__utente_ruolo == "studente") {
     $to = $studente_email;
     $toName = $studente_nome . " " . $studente_cognome;
@@ -1030,9 +1024,25 @@ if ($doMail) {
     $to = $genitore_email;
     $toName = $genitore_nome . " " . $genitore_cognome;
     info("Invio carenza via mail al genitore: " . $to . " " . $toName);
+  } else {
+    $to = $studente_email;
+    $toName = $studente_nome . " " . $studente_cognome;
+    $ccGenitori = carenzeGetGenitoriCc((int)$studente_id, (string)$studente_email);
+    info("Invio carenza via mail allo studente: " . $to . " " . $toName . " da ruolo " . $__utente_ruolo . " con genitori in CC=" . count($ccGenitori));
   }
   $mailsubject = 'GestOre - Invio programma carenza formativa - materia ' . $program['materia_nome'];
-  sendMail($to, $toName, $mailsubject, $full_mail_body);
+  if (!empty($ccGenitori)) {
+    sendMailCC(
+      $to,
+      $toName,
+      implode(',', array_keys($ccGenitori)),
+      implode(',', array_values($ccGenitori)),
+      $mailsubject,
+      $full_mail_body
+    );
+  } else {
+    sendMail($to, $toName, $mailsubject, $full_mail_body);
+  }
   date_default_timezone_set("Europe/Rome");
   $update = date("Y-m-d H-i-s");
   $query = "UPDATE carenze SET stato = '3', data_invio = '$update' WHERE id = '" . $program['carenza_id'] . "'";
