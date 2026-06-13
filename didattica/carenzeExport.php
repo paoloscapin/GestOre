@@ -11,12 +11,13 @@
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
 
-$docente_id = $_GET["id_docente"];
-$classe_id = $_GET["id_classe"];
-$materia_id = $_GET["id_materia"];
-$studente_id = $_GET["id_studente"];
-$anno = $_GET["id_anno"];
-$da_validare = $_GET["da_validare"];
+$docente_id = intval($_GET["id_docente"] ?? 0);
+$classe_id = intval($_GET["id_classe"] ?? 0);
+$materia_id = intval($_GET["id_materia"] ?? 0);
+$studente_id = intval($_GET["id_studente"] ?? 0);
+$anno = intval($_GET["id_anno"] ?? 0);
+$da_validare = intval($_GET["da_validare"] ?? 0);
+$isDocenteView = (($__utente_ruolo ?? '') === 'docente');
 
 $query = "	SELECT
 					carenze.id AS carenza_id,
@@ -34,9 +35,10 @@ $query = "	SELECT
 					classi.classe AS classe,
 					docente.cognome AS doc_cognome,
 					docente.nome AS doc_nome,
+					TRIM(CONCAT(COALESCE(docente.cognome, ''), ' ', COALESCE(docente.nome, ''))) AS docente,
 					materia.nome AS materia
 				FROM carenze
-				INNER JOIN docente docente
+				LEFT JOIN docente docente
 				ON carenze.id_docente = docente.id
 				INNER JOIN studente studente
 				ON carenze.id_studente = studente.id
@@ -46,7 +48,9 @@ $query = "	SELECT
 				ON carenze.id_classe = classi.id
 				WHERE carenze.id_anno_scolastico=$__anno_scolastico_corrente_id";
 
-if ($docente_id > 0) {
+if ($isDocenteView && $docente_id > 0 && getSettingsValue('config', 'carenzeObiettiviMinimi', false) && getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false) && getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false)) {
+	$query .= " AND (carenze.id_docente=" . $docente_id . " OR carenze.id_docente=0)";
+} else if (!$isDocenteView && $docente_id > 0) {
 	$query .= " AND carenze.id_docente=" . $docente_id;
 }
 if ($classe_id > 0) {

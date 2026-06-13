@@ -397,6 +397,17 @@ foreach (
                                 class="glyphicon glyphicon-download"></span>&emsp;Esporta</label>
                     </div>
                     <?php
+                    if ($carenzeMinimiVistaDocente) {
+                        echo '
+                    <div class="col-md-auto text-center pull-right">
+                        <label class="control-label" for="docenteScopeCheckBox">Vista docente</label><br>
+                        <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary"
+                            id="docenteScopeCheckBox" data-on="Mie + aperte" data-off="Tutte" checked>
+                    </div>
+                        ';
+                    }
+                    ?>
+                    <?php
                     if (!$carenzeMinimiVistaDocente && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                         echo '                    
                                     <div class="col-md-auto text-center">
