@@ -81,8 +81,10 @@ function getCarenzaAutorizzata($carenzaId, $utenteRuolo, $genitoreId = 0, $stude
             carenze.id_materia AS materia_id,
             carenze.id_classe AS classe_id,
             carenze.id_docente AS doc_id,
+            carenze.id_anno_scolastico AS carenza_anno_scolastico_id,
             carenze.stato AS stato,
             carenze.nota_docente AS nota,
+            anno_scolastico.anno AS anno_scolastico,
             classi.id AS classi_id,
             classi.classe AS classe_nome,
             classi.anno AS classe_anno,
@@ -120,6 +122,8 @@ function getCarenzaAutorizzata($carenzaId, $utenteRuolo, $genitoreId = 0, $stude
            )
         INNER JOIN gvgtcyej_gestione_ore.indirizzo indirizzo
             ON indirizzo.id = classi.id_primo_indirizzo
+        INNER JOIN gvgtcyej_gestione_ore.anno_scolastico anno_scolastico
+            ON anno_scolastico.id = carenze.id_anno_scolastico
         WHERE carenze.id = " . dbI($carenzaId) . "
         $whereExtra
         LIMIT 1
@@ -134,8 +138,8 @@ $doPrint = isset($_POST['print']) && ($_POST['print'] == '1' || $_POST['print'] 
 $doMail = isset($_POST['mail']) && ($_POST['mail'] == '1' || $_POST['mail'] === 'true');
 $titolo = isset($_POST['titolo']) ? $_POST['titolo'] : 'Programma didattico';
 $doGenera = isset($_POST['genera']) && ($_POST['genera'] == '1' || $_POST['genera'] === 'true');
-$anno = isset($_POST['anno']) ? (int) $_POST['anno'] : 1;
-$anno_scolastico = dbGetValue("SELECT anno FROM anno_scolastico WHERE id = $anno");
+$anno = isset($_POST['anno']) ? (int) $_POST['anno'] : 0;
+$anno_scolastico = '';
 
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -156,6 +160,12 @@ $program = getCarenzaAutorizzata(
 
 if (!$program) {
     carenzeFailUnauthorized();
+}
+
+$anno = (int)($program['carenza_anno_scolastico_id'] ?? 0);
+$anno_scolastico = trim((string)($program['anno_scolastico'] ?? ''));
+if ($anno_scolastico === '' && $anno > 0) {
+  $anno_scolastico = (string)dbGetValue("SELECT anno FROM anno_scolastico WHERE id = " . dbI($anno));
 }
 
 // se devo inviare solo la mail non mi serve rigenerare la pagina
