@@ -309,7 +309,7 @@ function viewAttivitaFatte() {
 }
 
 function oreFatteAggiornaStatoAttivita(attivita_id, commento, contestata, clilmode) {
-	$.post("oreFatteAggiornaStatoAttivita.php", {
+	$.post("../dirigente/oreFatteAggiornaStatoAttivita.php", {
 		attivita_id: attivita_id,
 		docente_id: $("#hidden_docente_id").val(),
 		contestata: contestata,

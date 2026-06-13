@@ -10,6 +10,7 @@
 if(isset($_POST)) {
 	require_once '../common/checkSession.php';
 	require_once '../common/connect.php';
+	ruoloRichiesto('dirigente');
 	
 	$attivita_id = $_POST['attivita_id'];
 	$docente_id = $_POST['docente_id'];

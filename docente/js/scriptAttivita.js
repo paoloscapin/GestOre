@@ -191,6 +191,89 @@ function oreFatteDeleteAttivita(id) {
     }
 }
 
+function oreFatteAggiornaStatoAttivita(attivita_id, commento, contestata, clilmode) {
+	$.post("../dirigente/oreFatteAggiornaStatoAttivita.php", {
+		attivita_id: attivita_id,
+		docente_id: $("#hidden_docente_id").val(),
+		contestata: contestata,
+		commento: commento,
+		clilmode: clilmode
+	},
+	function (data, status) {
+		oreFatteReloadTables();
+	});
+}
+
+function oreFatteRipristrinaAttivita(attivita_id, dettaglio, ore, commento, clilmode) {
+	bootbox.confirm({
+		message: "<p><strong>Attivit&agrave;:</strong></br>" + dettaglio + "</p>"
+			+ "<p><strong>Commento:</strong></br>" + commento + "</p>"
+			+ "<p><strong>Ore:</strong></br>" + ore + "</p>"
+			+ "<hr style=\"border-top: 2px solid #6699ff;\">"
+			+ "<p>Vuoi ripristinare questa attivit&agrave; e rimuovere il commento?</p>",
+		buttons: {
+			confirm: {
+				label: 'Si',
+				className: 'btn-success'
+			},
+			cancel: {
+				label: 'No',
+				className: 'btn-danger'
+			}
+		},
+		callback: function (result) {
+			if (result === true) {
+				oreFatteAggiornaStatoAttivita(attivita_id, "ripristinata", false, clilmode);
+			}
+		}
+	});
+}
+
+function oreFatteControllaAttivita(attivita_id, dettaglio, ore, clilmode) {
+	bootbox.prompt({
+		title: "<p>ore: " + ore + "</p><p>" + dettaglio + "</p>",
+		message: '<p>Seleziona il messaggio:</p>',
+		inputType: 'radio',
+		inputOptions: [
+		{
+			text: 'attivita gia inserita (duplicato)',
+			value: 'attivita gia inserita (duplicato)',
+		},
+		{
+			text: 'attivita non concordata con DS',
+			value: 'attivita non concordata con DS',
+		},
+		{
+			text: 'registro non compilato',
+			value: 'registro non compilato',
+		},
+		{
+			text: 'Altro (specificare)...',
+			value: '',
+		}
+		],
+		callback: function (result) {
+			if (result == null) {
+				return;
+			}
+			if (result !== "") {
+				oreFatteAggiornaStatoAttivita(attivita_id, result, true, clilmode);
+			} else {
+				bootbox.prompt({
+					title: "<p>ore: " + ore + "</p><p>" + dettaglio + "</p>",
+					message: '<p>Inserire il commento:</p>',
+					inputType: 'textarea',
+					callback: function (commento) {
+						if (commento != null) {
+							oreFatteAggiornaStatoAttivita(attivita_id, commento, true, clilmode);
+						}
+					}
+				});
+			}
+		}
+	});
+}
+
 function oreAttribuiteSommario() {
 	$.get("oreAttribuiteReadSommarioAttivita.php", {}, function (data, status) {
 		$(".sommario_attivita_records_content").html(data);
