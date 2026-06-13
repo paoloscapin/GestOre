@@ -11,25 +11,42 @@ require_once '../common/checkSession.php';
 
 ruoloRichiesto('segreteria-didattica','docente');
 
+function carenzaResolveDocenteValidatore(int $utenteId): int
+{
+	global $__docente_id, $__username;
+
+	$docenteId = intval($__docente_id ?? 0);
+	if ($docenteId > 0) {
+		return $docenteId;
+	}
+
+	$username = trim((string)($__username ?? ''));
+	if ($username !== '') {
+		$docenteId = intval(dbGetValue("SELECT id FROM docente WHERE username = " . dbQ($username) . " LIMIT 1"));
+		if ($docenteId > 0) {
+			return $docenteId;
+		}
+	}
+
+	$query = "
+		SELECT docente.id
+		FROM utente
+		INNER JOIN docente
+			ON docente.cognome = utente.cognome
+		   AND docente.nome = utente.nome
+		WHERE utente.id = " . dbI($utenteId) . "
+		LIMIT 1
+	";
+
+	return intval(dbGetValue($query));
+}
+
 if (isset($_POST)) {
 
-	$id = $_POST['id'];
-	$utente_id = $_POST['id_utente'];
-	$stato = $_POST['stato'];
-    $nota = $_POST['nota'];
-	$nota = str_replace("'","",$nota);
-	// recupero il docente_id partendo da utente_id
-	$query = "SELECT 
-	utente.id AS utente_id,
-	utente.cognome AS utente_cognome,
-	utente.nome AS utente_nome,
-	docente.id AS doc_id,
-	docente.nome AS doc_nome,
-	docente.cognome AS doc_cognome
-    FROM gvgtcyej_gestione_ore.utente
-	INNER JOIN docente docente
-	ON docente.cognome = utente.cognome AND docente.nome = utente.nome
-	WHERE utente.id='$utente_id'";
+	$id = intval($_POST['id'] ?? 0);
+	$utente_id = intval($_POST['id_utente'] ?? 0);
+	$stato = intval($_POST['stato'] ?? 0);
+    $nota = trim((string)($_POST['nota'] ?? ''));
 
 	if ($stato == 0) {
 		$stato = 1;
@@ -40,16 +57,21 @@ if (isset($_POST)) {
 	date_default_timezone_set("Europe/Rome");
 	$update = date("Y-m-d H-i-s");
 
-	$result = dbGetFirst($query);
-	$docente_id = $result['doc_id'];
+	$docente_id = carenzaResolveDocenteValidatore($utente_id);
 
 	if ($stato==0)
 	{
-		$query = "UPDATE carenze SET id_docente = '0', stato = '$stato', data_validazione = '$update', nota_docente = '' WHERE id = '$id'";
+		$query = "UPDATE carenze SET id_docente = 0, stato = 0, data_validazione = " . dbQ($update) . ", nota_docente = '' WHERE id = " . dbI($id);
 	}
 	else
 	{
-		$query = "UPDATE carenze SET id_docente = '$docente_id', stato = '$stato', data_validazione = '$update', nota_docente = '$nota'WHERE id = '$id'";
+		if ($docente_id <= 0) {
+			warning("validazione carenza bloccata: impossibile identificare docente validatore carenza id=$id utente_id=$utente_id ruolo=$__utente_ruolo username=$__username");
+			http_response_code(400);
+			echo "Impossibile validare: docente non identificato.";
+			exit;
+		}
+		$query = "UPDATE carenze SET id_docente = " . dbI($docente_id) . ", stato = 1, data_validazione = " . dbQ($update) . ", nota_docente = " . dbQ($nota) . " WHERE id = " . dbI($id);
 	}
 	dbExec($query);
 	info("aggiornata validazione carenza id=$id  docente_id=$docente_id stato=$stato updated=$update");

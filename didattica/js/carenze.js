@@ -303,9 +303,15 @@ function carenzaValida(id, id_utente, stato) {
             nota: nota_docente
         },
             function (data, status) {
+                if (data && $.trim(data) !== '') {
+                    alert(data);
+                }
                 carenzeReadRecords();
             }
-        );
+        ).fail(function (xhr) {
+            alert(xhr.responseText || "Validazione non riuscita.");
+            carenzeReadRecords();
+        });
     }
 }
 
