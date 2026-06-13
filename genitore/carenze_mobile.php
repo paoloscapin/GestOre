@@ -72,32 +72,92 @@ ruoloRichiesto('genitore');
     <link rel="stylesheet" href="<?php echo $__application_base_path; ?>/css/table-green-2.css">
 
     <style>
+        body {
+            background: #f5f8fb;
+        }
+
+        .carenze-mobile-panel.panel {
+            background: transparent;
+            border: 0;
+            box-shadow: none;
+            margin-bottom: 14px;
+        }
+
+        .carenze-mobile-panel .panel-heading {
+            background: #fff2d9 !important;
+            border: 1px solid #ffd58b;
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(38, 50, 70, .06);
+            color: #263246 !important;
+            margin: 12px 0;
+            padding: 14px;
+        }
+
+        .carenze-mobile-title {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .carenze-mobile-panel .panel-body {
+            padding: 0 !important;
+        }
+
         .filter-label {
             display: block;
-            margin: 8px 0 4px;
-            font-weight: bold;
+            color: #263246;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: .2px;
+            margin: 10px 0 6px;
+            text-transform: uppercase;
         }
 
-        /* padding "ok va bene": poco, ma visibile */
-        .panel-body {
-            padding-left: 10px !important;
-            padding-right: 10px !important;
+        .carenze-mobile-panel .bootstrap-select,
+        .carenze-mobile-panel select {
+            width: 100% !important;
         }
 
-        /* cards spacing */
-        .cards-container .card {
-            padding: 12px 12px !important;
-            margin: 10px 0 !important;
-            border-radius: 12px;
+        .cards-container {
+            display: grid;
+            gap: 12px;
+            padding: 0;
         }
 
-        .cards-container .card>div {
-            margin: 4px 0;
+        .carenza-mobile-card {
+            background: #fff;
+            border: 1px solid #dfe7ef;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(38, 50, 70, .08);
+            overflow: hidden;
         }
 
-        .cards-container .label {
-            display: inline-block;
-            margin: 2px 4px 2px 0;
+        .carenza-mobile-card-body {
+            display: grid;
+            gap: 10px;
+            padding: 16px;
+        }
+
+        .carenza-mobile-row {
+            display: grid;
+            gap: 8px;
+            grid-template-columns: minmax(82px, 32%) minmax(0, 1fr);
+            line-height: 1.35;
+        }
+
+        .carenza-mobile-label {
+            color: #5f6d7c;
+            font-weight: 800;
+        }
+
+        .carenza-mobile-actions {
+            background: #f6f9fb;
+            border-top: 1px solid #e7edf3;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            padding: 12px;
         }
     </style>
 </head>
@@ -106,11 +166,11 @@ ruoloRichiesto('genitore');
     <?php require_once '../common/header-genitore-mobile.php'; ?>
 
     <div class="container-fluid">
-        <div class="panel panel-orange4">
+        <div class="panel panel-orange4 carenze-mobile-panel">
             <div class="panel-heading">
                 <div class="row">
-                    <div class="col-xs-12" style="padding:10px">
-                        <span class="glyphicon glyphicon-blackboard"></span>&ensp;<b>Carenze</b>
+                    <div class="col-xs-12">
+                        <div class="carenze-mobile-title"><span class="glyphicon glyphicon-blackboard"></span>&ensp;Carenze</div>
                     </div>
 
                     <!-- Filtri -->
@@ -121,7 +181,7 @@ ruoloRichiesto('genitore');
                             data-style="btn-yellow4"
                             data-live-search="true"
                             data-noneSelectedText="seleziona..."
-                            data-width="85%"
+                            data-width="100%"
                             <?php echo $soloUnFiglio ? 'disabled' : ''; ?>>
                             <?php echo $studenteFiltroOptionList ?>
                         </select>

@@ -41,6 +41,9 @@ $studenteImpersonato = isset($session)
 			<?php if (programmiPubbliciVisibleForRole('minimi', 'studente')): ?>
 				<li><a href="../studente/programmiMinimi.php" class="nav-btn btn btn-default btn-teal4" role="button"><span class="glyphicon glyphicon-check"></span>&ensp;Programmi obiettivi minimi</a></li>
 			<?php endif; ?>
+			<?php if (programmiPubbliciVisibleForRole('svolti', 'studente')): ?>
+				<li><a href="../studente/programmiSvolti.php" class="nav-btn btn btn-default btn-teal4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Programmi svolti</a></li>
+			<?php endif; ?>
 		</ul>
 
 		<ul class="nav navbar-nav navbar-right top-navbar-nav">

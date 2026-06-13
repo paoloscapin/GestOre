@@ -208,7 +208,7 @@ function programmiPubbliciGenitoreCanAccessStudent(int $parentId, int $studentId
     return intval($count) > 0;
 }
 
-function programmiPubbliciRowsForStudent(string $type, int $studentId): array
+function programmiPubbliciRowsForStudent(string $type, int $studentId, int $annoScolasticoId = 0): array
 {
     $config = programmiPubbliciTypeConfig($type);
     $context = programmiPubbliciStudentContext($studentId);
@@ -222,7 +222,7 @@ function programmiPubbliciRowsForStudent(string $type, int $studentId): array
     }
 
     if ($type === 'svolti') {
-        return programmiPubbliciSvoltiRowsForStudent($studentId);
+        return programmiPubbliciSvoltiRowsForStudent($studentId, $annoScolasticoId);
     }
 
     $table = $config['table'];
@@ -256,11 +256,29 @@ function programmiPubbliciRowsForStudent(string $type, int $studentId): array
     ") ?: [];
 }
 
-function programmiPubbliciSvoltiRowsForStudent(int $studentId): array
+function programmiPubbliciSvoltiYearsForStudent(int $studentId): array
 {
     if ($studentId <= 0) {
         return [];
     }
+
+    return dbGetAll("
+        SELECT DISTINCT a.id, a.anno
+        FROM studente_frequenta sf
+        INNER JOIN anno_scolastico a
+            ON a.id = sf.id_anno_scolastico
+        WHERE sf.id_studente = " . dbI($studentId) . "
+        ORDER BY a.id DESC
+    ") ?: [];
+}
+
+function programmiPubbliciSvoltiRowsForStudent(int $studentId, int $annoScolasticoId = 0): array
+{
+    if ($studentId <= 0) {
+        return [];
+    }
+
+    $whereAnno = $annoScolasticoId > 0 ? " AND ps.id_anno_scolastico = " . dbI($annoScolasticoId) . " " : "";
 
     return dbGetAll("
         SELECT DISTINCT
@@ -295,6 +313,7 @@ function programmiPubbliciSvoltiRowsForStudent(int $studentId): array
         INNER JOIN docente d
             ON d.id = ps.id_docente
         WHERE sf.id_studente = " . dbI($studentId) . "
+        $whereAnno
         ORDER BY a.id DESC, c.classe ASC, m.nome ASC, d.cognome ASC, d.nome ASC
     ") ?: [];
 }

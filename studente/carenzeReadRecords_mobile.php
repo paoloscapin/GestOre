@@ -126,10 +126,13 @@ foreach ($carenze as $row) {
     $docente = htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $note    = htmlspecialchars((string)$row['nota'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-    echo '<div class="card mb-3 p-3 shadow-sm" style="border-radius:12px; background:#fff;">';
-    echo "<div><strong>Materia:</strong> {$materia}</div>";
-    echo "<div><strong>Docente:</strong> {$docente}</div>";
-    if (!empty($note)) echo "<div><strong>Note:</strong> {$note}</div>";
+    echo '<div class="carenza-mobile-card">';
+    echo '<div class="carenza-mobile-card-body">';
+    echo '<div class="carenza-mobile-row"><span class="carenza-mobile-label">Materia</span><span>' . $materia . '</span></div>';
+    echo '<div class="carenza-mobile-row"><span class="carenza-mobile-label">Docente</span><span>' . $docente . '</span></div>';
+    if (!empty($note)) {
+        echo '<div class="carenza-mobile-row"><span class="carenza-mobile-label">Note</span><span>' . $note . '</span></div>';
+    }
 
     $itinere = dbGetValue("
         SELECT COALESCE(MAX(co.in_itinere),0)
@@ -143,7 +146,7 @@ foreach ($carenze as $row) {
         ? '<span class="label label-info" style="margin-right:4px;">Recupero in itinere</span>'
         : '';
 
-    echo '<div style="margin-top:10px;"><strong>Esiti:</strong><br>';
+    echo '<div><strong>Esiti:</strong><br>';
 
     $idCorso1 = dbGetValue("
         SELECT co.id
@@ -231,8 +234,9 @@ foreach ($carenze as $row) {
     }
 
     echo '</div>';
+    echo '</div>';
 
-    echo '<div class="mt-2 text-center" style="margin-top:10px;">';
+    echo '<div class="carenza-mobile-actions">';
     echo '<button onclick="carenzaPrint(\'' . $idcarenza . '\')" class="btn btn-primary btn-sm me-1">';
     echo '<span class="glyphicon glyphicon-print"></span> PDF</button> ';
     echo '<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-info btn-sm">';

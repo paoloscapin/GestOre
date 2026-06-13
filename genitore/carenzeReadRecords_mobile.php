@@ -194,10 +194,13 @@ foreach ($carenze as $row) {
     $note    = htmlspecialchars($row['nota'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $docente = ($row['doc_id'] == 0) ? 'Studente esterno' : htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome']);
 
-    echo '<div class="card mb-3 p-3 shadow-sm" style="border-radius:12px; background:#fff;">';
-    echo "<div><strong>Materia:</strong> {$materia}</div>";
-    echo "<div><strong>Docente:</strong> {$docente}</div>";
-    if (!empty($note)) echo "<div><strong>Note:</strong> {$note}</div>";
+    echo '<div class="carenza-mobile-card">';
+    echo '<div class="carenza-mobile-card-body">';
+    echo '<div class="carenza-mobile-row"><span class="carenza-mobile-label">Materia</span><span>' . $materia . '</span></div>';
+    echo '<div class="carenza-mobile-row"><span class="carenza-mobile-label">Docente</span><span>' . $docente . '</span></div>';
+    if (!empty($note)) {
+        echo '<div class="carenza-mobile-row"><span class="carenza-mobile-label">Note</span><span>' . $note . '</span></div>';
+    }
 
     // Recupero in itinere
     $itinere = dbGetValue("
@@ -211,7 +214,7 @@ foreach ($carenze as $row) {
         ? '<span class="label label-info" style="margin-right:4px;">Recupero in itinere</span>'
         : '';
 
-    echo '<div style="margin-top:10px;"><strong>Esiti:</strong><br>';
+    echo '<div><strong>Esiti:</strong><br>';
 
     // 1) corso 1ª sessione nell'anno corsi corrente
     $idCorso1 = dbGetValue("
@@ -301,9 +304,10 @@ foreach ($carenze as $row) {
     }
 
     echo '</div>'; // esiti
+    echo '</div>'; // card body
 
     // azione PDF (genitore: usa id_anno_carenza)
-    echo '<div class="mt-2 text-center" style="margin-top:10px;">';
+    echo '<div class="carenza-mobile-actions">';
     echo '<button onclick="carenzaPrint(\'' . $idcarenza . '\',\'' . $idAnnoCarenza . '\')" class="btn btn-primary btn-sm">';
     echo '<span class="glyphicon glyphicon-print"></span> PDF</button>';
     echo '</div>';

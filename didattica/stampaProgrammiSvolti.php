@@ -572,9 +572,12 @@ function getModuliProgrammaSvolto(int $programId): array
 
 function userCanViewProgram(array $program): bool
 {
-    global $__docente_id, $__studente_id, $__genitore_id;
+    global $__docente_id, $__studente_id, $__genitore_id, $__utente_ruolo;
+    if (($__utente_ruolo ?? '') === 'admin') {
+        return true;
+    }
 
-    if (haRuolo('genitore') || impersonaRuolo('genitore')) {
+    if (($__utente_ruolo ?? '') === 'genitore' || (impersonaRuolo('genitore') && intval($__genitore_id ?? 0) > 0)) {
         if (!programmiPubbliciVisibleForRole('svolti', 'genitore')) {
             return false;
         }
@@ -583,7 +586,7 @@ function userCanViewProgram(array $program): bool
             && programmiPubbliciCanAccessProgram('svolti', intval($program['id'] ?? 0), $publicStudentId);
     }
 
-    if (haRuolo('studente') || impersonaRuolo('studente')) {
+    if (($__utente_ruolo ?? '') === 'studente' || (impersonaRuolo('studente') && intval($__studente_id ?? 0) > 0)) {
         if (!programmiPubbliciVisibleForRole('svolti', 'studente')) {
             return false;
         }

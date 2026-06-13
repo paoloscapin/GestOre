@@ -38,6 +38,9 @@ $genitoreImpersonato = isset($session)
 			<?php if (programmiPubbliciVisibleForRole('minimi', 'genitore')): ?>
 				<li><a href="../genitore/programmiMinimi.php" class="nav-btn btn btn-default btn-lightblue4" role="button"><span class="glyphicon glyphicon-check"></span>&ensp;Programmi obiettivi minimi</a></li>
 			<?php endif; ?>
+			<?php if (programmiPubbliciVisibleForRole('svolti', 'genitore')): ?>
+				<li><a href="../genitore/programmiSvolti.php" class="nav-btn btn btn-default btn-lightblue4" role="button"><span class="glyphicon glyphicon-education"></span>&ensp;Programmi svolti</a></li>
+			<?php endif; ?>
 			<?php if ((getSettingsValue('config', 'profiloGenitore', false)) && (getSettingsValue('profiloGenitore', 'visibile_genitori', false))): ?>
 				<li><a href="../genitore/profilo.php" class="nav-btn btn btn-default btn-lightblue4" role="button"><span class="glyphicon glyphicon-user"></span>&ensp;Profilo</a></li>
 			<?php endif; ?>

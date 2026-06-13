@@ -315,6 +315,27 @@ function carenzaValida(id, id_utente, stato) {
     }
 }
 
+function carenzaModificaNota(id, nota_attuale) {
+    var nuovaNota = prompt(
+        "Modifica la nota per lo studente (indicazioni materiali da studiare, materiale su classroom, ecc.)",
+        nota_attuale || ""
+    );
+    if (nuovaNota === null) {
+        return;
+    }
+    $.post("../didattica/carenzaNotaSave.php", {
+        id: id,
+        nota: nuovaNota
+    }, function (data) {
+        if (data) {
+            alert(data);
+        }
+        carenzeReadRecords();
+    }).fail(function (xhr) {
+        alert(xhr.responseText || "Errore durante il salvataggio della nota.");
+    });
+}
+
 function carenzaSave() {
 
     if ($("#studente").val() <= 0) {
