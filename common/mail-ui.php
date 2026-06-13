@@ -157,6 +157,51 @@ function studentiTableHtml(array $rows): string
     </div>';
 }
 
+function mailCarenzaHtml(
+    string $toName,
+    array $program,
+    string $docente,
+    string $notaDocente,
+    string $downloadLink,
+    string $baseLink
+): string {
+    $title = 'CARENZA FORMATIVA';
+    $intro = 'Hai ricevuto questa mail perche hai riportato una carenza formativa a fine anno.';
+
+    $baseLinkSafe = htmlspecialchars($baseLink, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $downloadLinkSafe = htmlspecialchars($downloadLink, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $nota = trim($notaDocente) !== '' ? $notaDocente : 'Nessuna nota aggiuntiva dal docente';
+
+    $content = '
+      <div style="margin:0 0 12px 0;">
+        ' . badge('PROGRAMMA DI RECUPERO', '#ccfbf1', '#134e4a') . '
+      </div>
+
+      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:12px 12px;margin:0 0 14px 0;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+          ' . kvRow('Classe', (string)($program['classe_nome'] ?? '')) . '
+          ' . kvRow('Indirizzo', (string)($program['ind_nome'] ?? '')) . '
+          ' . kvRow('Docente', $docente) . '
+          ' . kvRow('Materia', (string)($program['materia_nome'] ?? '')) . '
+          ' . kvRow('Note', $nota) . '
+        </table>
+      </div>
+
+      <div style="font-size:13.5px;line-height:1.55;color:#374151;margin:0 0 14px 0;">
+        Nella tua area riservata su <a href="' . $baseLinkSafe . '/">GestOre</a> trovi il programma con gli obiettivi minimi da recuperare.
+      </div>
+
+      <div style="text-align:center;margin:16px 0 4px 0;">
+        <a href="' . $downloadLinkSafe . '" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-weight:800;border-radius:10px;padding:12px 18px;font-size:13.5px;">
+          Scarica il programma
+        </a>
+      </div>';
+
+    $footer = 'Messaggio automatico relativo al programma di recupero della carenza formativa.';
+
+    return mailWrap($title, $toName, $intro, $content, $footer, 'studente');
+}
+
 function mailMbappCancelHtml(string $aula, string $dataIt, string $ora, int $sportello_id, string $categoria, string $materia): string
 {
     $title = "ANNULLAMENTO PRENOTAZIONE AULA (MBApp)";

@@ -13,6 +13,8 @@ require_once '../common/checkSession.php';
 // program.php (in testa al file, prima di qualsiasi uso di mPDF)
 require_once '../common/vendor/autoload.php';
 require_once '../common/send-mail.php';
+require_once '../common/mail-ui.php';
+require_once __DIR__ . '/carenzeDownloadLib.php';
 ruoloRichiesto('genitore', 'docente', 'studente', 'segreteria-didattica', 'dirigente');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -880,26 +882,51 @@ if ($doPrint ||  $doGenera) {
 }
 // 4) output
 if ($doPrint) {
-  $pdf->Output($titolo . ' ' . $program['stud_cognome'] . ' ' . $program['stud_nome'] . ' ' . $program['materia_nome'] . '  - Classe ' . $program['classe_nome'] . '° - Indirizzo ' . $program['ind_nome'] . '° - Docente ' . $program['doc_cognome'] . ' ' . $program['doc_nome'] . '.pdf', 'D');
+  $pdf->Output(carenzeDownloadBuildFilename($program + ['titolo' => $titolo]), 'D');
   exit;
 }
 if ($doGenera) {
   $token = bin2hex(random_bytes(16)); // link anonimo, sicuro
   $randomFileName = bin2hex(random_bytes(12)) . '.pdf';
-  $filename = __DIR__ . '/tmp/' . $randomFileName;
-  $filePath = 'tmp/' . $randomFileName;
+  $localDir = carenzeDownloadEnsureLocalDir($anno_scolastico);
+  $filename = $localDir . '/' . $randomFileName;
+  $filePath = carenzeDownloadLocalRelativePath($randomFileName, $anno_scolastico);
+  $originalFilename = carenzeDownloadBuildFilename($program + ['titolo' => $titolo]);
   $pdf->Output($filename, 'F'); // salva il file
   $created_at = date('Y-m-d H:i:s');
   $expires_at = date('Y-m-d H:i:s', strtotime('+3 months'));
-  $query = "SELECT COUNT(*) FROM carenze_downloads WHERE student_id='" . $studente_id . "' AND file_path='" . $filePath . "'";
+  $query = "SELECT COUNT(*) FROM carenze_downloads WHERE student_id='" . $studente_id . "' AND carenza_id='" . $carenza_id . "'";
   $esiste = dbGetValue($query);
 
 
   // salva nel DB
   if ($esiste == 0) {
-    $query = "INSERT INTO carenze_downloads (student_id, carenza_id, file_path, download_token,created_at,expires_at) VALUES ('$studente_id', '$carenza_id', '$filePath', '$token','$created_at','$expires_at')";
+    [$columns, $values] = carenzeDownloadInsertSqlFields([
+      'student_id' => "'" . escapeString($studente_id) . "'",
+      'carenza_id' => "'" . escapeString($carenza_id) . "'",
+      'file_path' => "'" . escapeString($filePath) . "'",
+      'download_token' => "'" . escapeString($token) . "'",
+      'created_at' => "'" . escapeString($created_at) . "'",
+      'expires_at' => "'" . escapeString($expires_at) . "'",
+      'storage_type' => "'LOCAL'",
+      'original_filename' => "'" . escapeString($originalFilename) . "'",
+    ]);
+    $query = "INSERT INTO carenze_downloads (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $values) . ")";
   } else {
-    $query = "UPDATE carenze_downloads SET download_token = '$token', file_path = '$filePath', created_at = '$created_at', expires_at = '$expires_at', download_count = 0, last_ip='' WHERE student_id = '$studente_id' AND carenza_id = '$carenza_id'";
+    $assignments = carenzeDownloadUpdateAssignments([
+      'download_token' => "'" . escapeString($token) . "'",
+      'file_path' => "'" . escapeString($filePath) . "'",
+      'created_at' => "'" . escapeString($created_at) . "'",
+      'expires_at' => "'" . escapeString($expires_at) . "'",
+      'download_count' => "0",
+      'last_ip' => "''",
+      'storage_type' => "'LOCAL'",
+      'drive_file_id' => "NULL",
+      'drive_web_view_link' => "NULL",
+      'original_filename' => "'" . escapeString($originalFilename) . "'",
+      'migrated_at' => "NULL",
+    ]);
+    $query = "UPDATE carenze_downloads SET $assignments WHERE student_id = '$studente_id' AND carenza_id = '$carenza_id'";
   }
   dbExec($query);
 
@@ -941,28 +968,16 @@ if ($doMail) {
     $genitore_email = $genitore['email'];
   }
 
-  $full_mail_body = file_get_contents("../didattica/template_mail_carenza.html");
-
-  $full_mail_body = str_replace("{titolo}", "CARENZA FORMATIVA", $full_mail_body);
-  $full_mail_body = str_replace("{nome}", strtoupper($studente_cognome) . " " . strtoupper($studente_nome), $full_mail_body);
-  $full_mail_body = str_replace("{messaggio}", "hai ricevuto questa mail perchè hai riportato la carenza formativa a fine anno secondo quanto qui riportato:", $full_mail_body);
-  $full_mail_body = str_replace("{classe}", $program['classe_nome'], $full_mail_body);
-  $full_mail_body = str_replace("{indirizzo}", $program['ind_nome'], $full_mail_body);
-  $full_mail_body = str_replace("{docente}", strtoupper($docente_cognome . " " .  $docente_nome), $full_mail_body);
-  $full_mail_body = str_replace("{materia}", $program['materia_nome'], $full_mail_body);
-  $full_mail_body = str_replace("{nota}", $nota_docente, $full_mail_body);
-  $full_mail_body = str_replace("{nome_istituto}", $__settings->local->nomeIstituto, $full_mail_body);
-
   $downloadLink = $__http_base_link . '/didattica/downloadCarenza.php?token=' . $download_token;
-
-  $full_mail_body = str_replace(
-    "{messaggio_finale}",
-    'Nella tua area riservata su <a style="color:black" href="' . $__http_base_link . '/">GestOre</a> trovi il programma con gli obiettivi minimi da recuperare.<br><br>
-     <p style="font-weight:bold; font-size: 16px; line-height: 140%; color:red;"> Il programma lo puoi scaricare direttamente da questo 
-     <a href="' . $downloadLink . '">LINK</a></p>',
-    $full_mail_body
+  $full_mail_body = mailCarenzaHtml(
+    strtoupper($studente_cognome) . " " . strtoupper($studente_nome),
+    $program,
+    strtoupper($docente_cognome . " " . $docente_nome),
+    (string)$nota_docente,
+    $downloadLink,
+    $__http_base_link
   );
-  
+
   if (($__utente_ruolo == "admin")&&($__studente_id>0)) 
   {
     $to = $studente_email;
