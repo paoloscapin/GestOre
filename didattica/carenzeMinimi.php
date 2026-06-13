@@ -319,8 +319,24 @@ foreach (
         }
 
         .carenze-view-toggle {
-            min-width: 128px;
+            min-width: 150px;
             text-align: center;
+        }
+
+        .carenze-view-toggle label {
+            line-height: 1.2;
+            margin-bottom: 5px;
+        }
+
+        .carenze-view-toggle .toggle {
+            min-width: 142px !important;
+        }
+
+        .carenze-view-toggle .toggle-on,
+        .carenze-view-toggle .toggle-off {
+            font-weight: 700;
+            padding-left: 12px;
+            padding-right: 12px;
         }
 
         .carenze-coord-actions {
@@ -426,10 +442,22 @@ foreach (
                                     <?php echo $anniFiltroOptionList ?>
                         </select>
                     </div>
-                    <div class="carenze-actions">
+                    <?php
+                    if ($carenzeMinimiVistaDocente && !getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false)) {
+                        echo '
+                    <div class="carenze-view-toggle">
+                        <label class="control-label" for="docenteScopeCheckBox">Vista docente</label><br>
+                        <input type="checkbox" data-toggle="toggle" data-size="small" data-width="142" data-height="30"
+                            data-onstyle="primary" data-offstyle="default"
+                            id="docenteScopeCheckBox" data-on="Aperte + mie" data-off="Tutte" checked>
+                    </div>
+                        ';
+                    }
+                    ?>
                     <?php
                     if (!$carenzeMinimiVistaDocente && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
                         echo '
+                    <div class="carenze-actions">
                     <div class="carenze-action-stack">
                         <label class="control-label">Azioni</label>
                         <button class="btn btn-xs btn-lima4" onclick="carenzeGetDetails(-1)" data-toggle="tooltip" title="Aggiungi carenza">
@@ -448,40 +476,23 @@ foreach (
                             <span class="glyphicon glyphicon-upload"></span> Importa<input type="file" id="file_select_id" style="display: none;">
                         </label>
                     </div>
-                    ';
-                    }
-                    ?>
                     <div class="carenze-action-stack">
                         <label class="control-label">&nbsp;</label>
                         <label id="export_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip"
                             title="Esporta le carenze"><span id="file_export_id"
                                 class="glyphicon glyphicon-download"></span> Esporta</label>
                     </div>
-                    <?php
-                    if ($carenzeMinimiVistaDocente && !getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false)) {
-                        echo '
-                    <div class="carenze-view-toggle">
-                        <label class="control-label" for="docenteScopeCheckBox">Vista docente</label><br>
-                        <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary"
-                            id="docenteScopeCheckBox" data-on="Mie + aperte" data-off="Tutte" checked>
+                    <div class="carenze-action-stack">
+                        <label class="control-label">Filtro</label>
+                        <label class="checkbox-inline">
+                            <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary"
+                                id="daValidareCheckBox" data-on="Tutte" data-off="Solo da validare">
+                        </label>
                     </div>
-                        ';
+                    </div>
+                    ';
                     }
                     ?>
-                    <?php
-                    if (!$carenzeMinimiVistaDocente && ((haRuolo('dirigente')) || (haRuolo('segreteria-didattica')))) {
-                        echo '                    
-                                    <div class="carenze-action-stack">
-                                                <label class="control-label">Filtro</label>
-                                                <label class="checkbox-inline">
-                                                <input type="checkbox" data-toggle="toggle" data-size="mini" data-onstyle="primary"
-                                                    id="daValidareCheckBox" data-on="Tutte" data-off="Solo da validare">
-                                            </label>
-                                    </div>
-                                        ';
-                    }
-                    ?>
-                    </div>
                 </div>
                     <div class="panel-body">
                         <div class="row" style="margin-bottom:10px;">
