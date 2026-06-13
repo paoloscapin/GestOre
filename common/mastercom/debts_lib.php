@@ -625,9 +625,11 @@ function mastercomDebtsIsNoCourseExpectedSubjectName(string $subjectName): bool
     $canonical = mastercomDebtsCanonicalSubject($subjectName);
     return in_array($canonical, [
         'EDUCAZIONECIVICAALLACITTADINANZA',
+        'EDUCAZIONECIVICAEDALLACITTADINANZA',
         'EDUCAZIONECIVICACITTADINANZA',
         'EDUCAZIONECIVICA',
         'EDCIVICA',
+        'ECC',
     ], true);
 }
 

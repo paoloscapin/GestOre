@@ -84,6 +84,7 @@ function mastercomTabelloniEnsureTables(): void
             `col_index` INT NOT NULL,
             `materia_codice` VARCHAR(100) NOT NULL,
             `materia_descrizione` VARCHAR(255) NULL,
+            `id_materia_gestore` INT NULL,
             `tipo_colonna` VARCHAR(50) NULL,
             `valore` VARCHAR(100) NULL,
             `valore_num` DECIMAL(5,2) NULL,
@@ -93,9 +94,28 @@ function mastercomTabelloniEnsureTables(): void
             PRIMARY KEY (`id`),
             UNIQUE KEY `uk_mastercom_tabellone_voto` (`tabellone_studente_id`, `col_index`),
             KEY `idx_mastercom_tabellone_voti_tabellone` (`tabellone_id`),
-            KEY `idx_mastercom_tabellone_voti_materia` (`materia_codice`)
+            KEY `idx_mastercom_tabellone_voti_materia` (`materia_codice`),
+            KEY `idx_mastercom_tabellone_voti_materia_gestore` (`id_materia_gestore`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8
     ");
+
+    mastercomTabelloniEnsureColumns();
+}
+
+function mastercomTabelloniEnsureColumns(): void
+{
+    if (!mastercomAdminTableColumnExists('mastercom_tabelloni_scrutini_studenti', 'esito_key')) {
+        dbExec("
+            ALTER TABLE `mastercom_tabelloni_scrutini_studenti`
+            ADD COLUMN `esito_key` VARCHAR(30) NULL AFTER `risultato`
+        ");
+    }
+    if (!mastercomAdminTableColumnExists('mastercom_tabelloni_scrutini_voti', 'id_materia_gestore')) {
+        dbExec("
+            ALTER TABLE `mastercom_tabelloni_scrutini_voti`
+            ADD COLUMN `id_materia_gestore` INT NULL AFTER `materia_descrizione`
+        ");
+    }
 }
 
 function mastercomTabelloniSchoolYears(): array
@@ -391,6 +411,76 @@ function mastercomTabelloniColumnType(string $code, string $subHeader = ''): str
     return mastercomAdminNorm($subHeader) === 'VOTO' ? 'voto' : 'dato';
 }
 
+function mastercomTabelloniNormalizeOutcome(string $result): string
+{
+    $norm = mastercomAdminNorm($result);
+    if ($norm === '') {
+        return 'sconosciuto';
+    }
+    if (strpos($norm, 'ANNO ESTERO') !== false || strpos($norm, 'ESTERO') !== false) {
+        return 'anno_estero';
+    }
+    if (strpos($norm, 'IN CORSO') !== false) {
+        return 'in_corso';
+    }
+    if (strpos($norm, 'NON AMMESS') !== false) {
+        return 'non_ammesso';
+    }
+    if (strpos($norm, 'AMMESS') !== false) {
+        return 'ammesso';
+    }
+    return 'sconosciuto';
+}
+
+function mastercomTabelloniResolveSubjectId(string $subjectCode, string $className = ''): ?int
+{
+    $subjectCode = mastercomTabelloniCleanCell($subjectCode);
+    if ($subjectCode === '') {
+        return null;
+    }
+
+    $directCode = dbGetValue("SELECT id FROM materia WHERE codice = " . dbQ($subjectCode) . " LIMIT 1");
+    if ($directCode !== null && intval($directCode) > 0) {
+        return intval($directCode);
+    }
+
+    $resolved = mastercomDebtsResolveSubjectId($subjectCode, $className);
+    if ($resolved !== null && $resolved > 0) {
+        return $resolved;
+    }
+
+    $fallbackNames = [
+        'ITA' => 'Lingua e letteratura italiana',
+        'ING' => 'Lingua inglese',
+        'STO' => 'Storia',
+        'MAT' => 'Matematica',
+        'DIR' => 'Diritto ed economia',
+        'INF' => 'Informatica',
+        'TPSI' => 'Tecnologie e progettazione di sistemi informatici e di telecomunicazioni',
+        'SIA' => 'Scienze motorie e sportive',
+        'IRC' => 'Religione cattolica',
+        'ECC' => 'Educazione civica e alla cittadinanza',
+    ];
+    $key = mastercomDebtsNormalizeSubject($subjectCode);
+    if (isset($fallbackNames[$key])) {
+        return mastercomDebtsFindSubjectIdByNames([$fallbackNames[$key]]);
+    }
+
+    return null;
+}
+
+function mastercomTabelloniClassYearFromName(string $className): int
+{
+    $components = mastercomDebtsClassComponentsFromName($className);
+    $tokens = !empty($components) ? $components : [mastercomDebtsNormalizeClassToken($className)];
+    foreach ($tokens as $token) {
+        if (preg_match('/^([1-5])/u', (string)$token, $matches)) {
+            return intval($matches[1]);
+        }
+    }
+    return 0;
+}
+
 function mastercomTabelloniParseXls(string $xls, int $mastercomClassId = 0, string $className = ''): array
 {
     $text = mastercomTabelloniNormalizeText($xls);
@@ -472,6 +562,7 @@ function mastercomTabelloniParseXls(string $xls, int $mastercomClassId = 0, stri
             'crediti_5' => null,
             'crediti_totale' => null,
             'risultato' => '',
+            'esito_key' => '',
             'values' => [],
             'raw_cells' => $cells,
         ];
@@ -494,6 +585,7 @@ function mastercomTabelloniParseXls(string $xls, int $mastercomClassId = 0, stri
                 $student['crediti_totale'] = mastercomTabelloniInt($value);
             } elseif ($type === 'risultato') {
                 $student['risultato'] = $value;
+                $student['esito_key'] = mastercomTabelloniNormalizeOutcome($value);
             }
 
             $numeric = mastercomTabelloniDecimal($value);
@@ -666,11 +758,16 @@ function mastercomTabelloniSaveParsed(array $parsed, string $rawXls = ''): array
             $stats['without_student']++;
         }
 
+        $studentOutcome = (string)($student['esito_key'] ?? '');
+        if ($studentOutcome === '') {
+            $studentOutcome = mastercomTabelloniNormalizeOutcome((string)($student['risultato'] ?? ''));
+        }
+
         dbExec("
             INSERT INTO mastercom_tabelloni_scrutini_studenti (
                 tabellone_id, row_index, numero, mastercom_id_studente, id_studente_gestore,
                 studente_nome, media, crediti_3, crediti_4, crediti_5, crediti_totale,
-                risultato, raw_json
+                risultato, esito_key, raw_json
             ) VALUES (
                 " . dbI($tabelloneId) . ",
                 " . dbI($student['row_index'] ?? 0) . ",
@@ -684,6 +781,7 @@ function mastercomTabelloniSaveParsed(array $parsed, string $rawXls = ''): array
                 " . dbI($student['crediti_5'] ?? null) . ",
                 " . dbI($student['crediti_totale'] ?? null) . ",
                 " . dbQ($student['risultato'] ?? '') . ",
+                " . dbQ($studentOutcome) . ",
                 " . dbQ(mastercomAdminJson($student)) . "
             )
         ");
@@ -693,7 +791,7 @@ function mastercomTabelloniSaveParsed(array $parsed, string $rawXls = ''): array
             dbExec("
                 INSERT INTO mastercom_tabelloni_scrutini_voti (
                     tabellone_id, tabellone_studente_id, col_index, materia_codice,
-                    materia_descrizione, tipo_colonna, valore, valore_num, raw_value,
+                    materia_descrizione, id_materia_gestore, tipo_colonna, valore, valore_num, raw_value,
                     insufficiente, raw_json
                 ) VALUES (
                     " . dbI($tabelloneId) . ",
@@ -701,6 +799,7 @@ function mastercomTabelloniSaveParsed(array $parsed, string $rawXls = ''): array
                     " . dbI($value['col_index'] ?? 0) . ",
                     " . dbQ($value['materia_codice'] ?? '') . ",
                     " . dbQ($value['materia_descrizione'] ?? '') . ",
+                    " . dbI(mastercomTabelloniResolveSubjectId((string)($value['materia_codice'] ?? ''), $className)) . ",
                     " . dbQ($value['tipo_colonna'] ?? '') . ",
                     " . dbQ($value['valore'] ?? '') . ",
                     " . dbF($value['valore_num'] ?? null) . ",
@@ -720,6 +819,53 @@ function mastercomTabelloniSaveParsed(array $parsed, string $rawXls = ''): array
         'tabellone_id' => $tabelloneId,
         'stats' => $stats,
     ];
+}
+
+function mastercomTabelloniRefreshDerivedFields(): array
+{
+    mastercomTabelloniEnsureTables();
+
+    $stats = ['subjects' => 0, 'outcomes' => 0];
+    $subjectRows = dbGetAll("
+        SELECT DISTINCT t.classe, v.materia_codice
+        FROM mastercom_tabelloni_scrutini_voti v
+        INNER JOIN mastercom_tabelloni_scrutini t ON t.id = v.tabellone_id
+        WHERE (v.id_materia_gestore IS NULL OR v.id_materia_gestore <= 0)
+          AND v.materia_codice IS NOT NULL
+          AND v.materia_codice <> ''
+    ") ?: [];
+    foreach ($subjectRows as $row) {
+        $subjectId = mastercomTabelloniResolveSubjectId((string)($row['materia_codice'] ?? ''), (string)($row['classe'] ?? ''));
+        if ($subjectId === null || $subjectId <= 0) {
+            continue;
+        }
+        dbExec("
+            UPDATE mastercom_tabelloni_scrutini_voti v
+            INNER JOIN mastercom_tabelloni_scrutini t ON t.id = v.tabellone_id
+            SET v.id_materia_gestore = " . dbI($subjectId) . "
+            WHERE (v.id_materia_gestore IS NULL OR v.id_materia_gestore <= 0)
+              AND v.materia_codice = " . dbQ($row['materia_codice'] ?? '') . "
+              AND t.classe = " . dbQ($row['classe'] ?? '') . "
+        ");
+        $stats['subjects']++;
+    }
+
+    $outcomeRows = dbGetAll("
+        SELECT id, risultato
+        FROM mastercom_tabelloni_scrutini_studenti
+        WHERE esito_key IS NULL OR esito_key = ''
+    ") ?: [];
+    foreach ($outcomeRows as $row) {
+        dbExec("
+            UPDATE mastercom_tabelloni_scrutini_studenti
+            SET esito_key = " . dbQ(mastercomTabelloniNormalizeOutcome((string)($row['risultato'] ?? ''))) . "
+            WHERE id = " . dbI($row['id'] ?? 0) . "
+            LIMIT 1
+        ");
+        $stats['outcomes']++;
+    }
+
+    return $stats;
 }
 
 function mastercomTabelloniFetchAndStoreClass(int $mastercomClassId, array $params = []): array
@@ -769,7 +915,22 @@ function mastercomTabelloniFetchAndStoreClass(int $mastercomClassId, array $para
 function mastercomTabelloniIsSeraleToken(string $token): bool
 {
     $token = mastercomDebtsNormalizeClassToken($token);
-    return $token !== '' && preg_match('/^\d+[A-Z0-9]*S$/u', $token) === 1;
+    if ($token === '') {
+        return false;
+    }
+
+    $seraleTokens = [
+        'AUS',
+        'INS',
+        'CTS',
+    ];
+    foreach ($seraleTokens as $seraleToken) {
+        if (preg_match('/^\d+' . preg_quote($seraleToken, '/') . '$/u', $token) === 1) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function mastercomTabelloniIsSeraleClassRow(array $row): bool
@@ -907,4 +1068,188 @@ function mastercomTabelloniRecentRows(int $limit = 80): array
         ORDER BY t.imported_at DESC, t.classe ASC
         LIMIT " . dbI($limit) . "
     ") ?: [];
+}
+
+function mastercomTabelloniAuditRows(int $schoolYearId = 0, int $mastercomClassId = 0, int $limit = 300): array
+{
+    mastercomTabelloniEnsureTables();
+    mastercomDebtsEnsureTables();
+
+    $where = ["t.periodo = '9'"];
+    if ($schoolYearId > 0) {
+        $where[] = "t.id_anno_scolastico = " . dbI($schoolYearId);
+    }
+    if ($mastercomClassId > 0) {
+        $where[] = "t.mastercom_id_classe = " . dbI($mastercomClassId);
+    }
+    $whereSql = implode(' AND ', $where);
+
+    $issues = [];
+    $expectedRows = dbGetAll("
+        SELECT t.id AS tabellone_id,
+               t.mastercom_id_classe,
+               t.id_classe_gestore,
+               t.classe,
+               t.anno_label,
+               t.id_anno_scolastico,
+               s.id AS tabellone_studente_id,
+               s.id_studente_gestore,
+               s.studente_nome,
+               s.esito_key,
+               v.id AS voto_id,
+               v.materia_codice,
+               v.id_materia_gestore,
+               v.valore,
+               v.valore_num,
+               m.nome AS materia_gestore
+        FROM mastercom_tabelloni_scrutini t
+        INNER JOIN mastercom_tabelloni_scrutini_studenti s ON s.tabellone_id = t.id
+        INNER JOIN mastercom_tabelloni_scrutini_voti v ON v.tabellone_studente_id = s.id
+        LEFT JOIN materia m ON m.id = v.id_materia_gestore
+        WHERE $whereSql
+          AND s.esito_key = 'ammesso'
+          AND v.tipo_colonna = 'voto'
+          AND v.valore_num IN (4, 5)
+        ORDER BY t.classe ASC, s.studente_nome ASC, v.materia_codice ASC
+    ") ?: [];
+
+    foreach ($expectedRows as $row) {
+        if (mastercomTabelloniClassYearFromName((string)($row['classe'] ?? '')) >= 5) {
+            continue;
+        }
+        $studentId = intval($row['id_studente_gestore'] ?? 0);
+        $subjectId = intval($row['id_materia_gestore'] ?? 0);
+        $yearId = intval($row['id_anno_scolastico'] ?? 0);
+        if ($studentId <= 0) {
+            $issues[] = array_merge($row, [
+                'tipo' => 'STUDENTE_NON_ABBINATO',
+                'messaggio' => 'Studente del tabellone non abbinato a GestOre.',
+            ]);
+            continue;
+        }
+        if ($subjectId <= 0) {
+            $issues[] = array_merge($row, [
+                'tipo' => 'MATERIA_NON_ABBINATA',
+                'messaggio' => 'Sigla materia del tabellone non abbinata a una materia GestOre.',
+            ]);
+            continue;
+        }
+        if (
+            mastercomDebtsIsNoCourseExpectedSubjectId($subjectId)
+            || mastercomDebtsIsNoCourseExpectedSubjectName((string)($row['materia_codice'] ?? ''))
+            || mastercomDebtsIsNoCourseExpectedSubjectName((string)($row['materia_gestore'] ?? ''))
+        ) {
+            continue;
+        }
+
+        $mcDebtId = dbGetValue("
+            SELECT id
+            FROM mastercom_carenze
+            WHERE id_studente_gestore = " . dbI($studentId) . "
+              AND id_materia_gestore = " . dbI($subjectId) . "
+              AND id_anno_scolastico = " . dbI($yearId) . "
+            LIMIT 1
+        ");
+        if ($mcDebtId === null) {
+            $gestoreDebtId = dbGetValue("
+                SELECT id
+                FROM carenze
+                WHERE id_studente = " . dbI($studentId) . "
+                  AND id_materia = " . dbI($subjectId) . "
+                  AND id_anno_scolastico = " . dbI($yearId) . "
+                LIMIT 1
+            ");
+            $issues[] = array_merge($row, [
+                'tipo' => 'MANCA_IMPORT_CARENZE',
+                'messaggio' => 'Il tabellone mostra insufficienza da carenza, ma l import carenze MasterCom non la contiene.',
+                'carenza_id' => $gestoreDebtId !== null ? intval($gestoreDebtId) : null,
+            ]);
+        }
+    }
+
+    $extraRows = dbGetAll("
+        SELECT mc.id AS mastercom_carenza_id,
+               mc.mastercom_id_classe,
+               mc.id_classe_gestore,
+               mc.classe,
+               mc.anno_label,
+               mc.id_anno_scolastico,
+               mc.id_studente_gestore,
+               mc.studente_nome,
+               mc.materia AS materia_codice,
+               mc.id_materia_gestore,
+               m.nome AS materia_gestore,
+               s.esito_key,
+               s.risultato,
+               c.id AS carenza_id
+        FROM mastercom_carenze mc
+        INNER JOIN mastercom_tabelloni_scrutini t
+            ON t.id_anno_scolastico = mc.id_anno_scolastico
+           AND t.id_classe_gestore = mc.id_classe_gestore
+           AND t.periodo = '9'
+        LEFT JOIN mastercom_tabelloni_scrutini_studenti s
+            ON s.tabellone_id = t.id
+           AND s.id_studente_gestore = mc.id_studente_gestore
+        LEFT JOIN materia m ON m.id = mc.id_materia_gestore
+        LEFT JOIN carenze c
+            ON c.id_studente = mc.id_studente_gestore
+           AND c.id_materia = mc.id_materia_gestore
+           AND c.id_anno_scolastico = mc.id_anno_scolastico
+        WHERE " . ($schoolYearId > 0 ? "mc.id_anno_scolastico = " . dbI($schoolYearId) . " AND " : "") . "
+              " . ($mastercomClassId > 0 ? "mc.mastercom_id_classe = " . dbI($mastercomClassId) . " AND " : "") . "
+              NOT EXISTS (
+                  SELECT 1
+                  FROM mastercom_tabelloni_scrutini_voti v
+                  INNER JOIN mastercom_tabelloni_scrutini_studenti ts ON ts.id = v.tabellone_studente_id
+                  WHERE ts.tabellone_id = t.id
+                    AND ts.id_studente_gestore = mc.id_studente_gestore
+                    AND ts.esito_key = 'ammesso'
+                    AND v.id_materia_gestore = mc.id_materia_gestore
+                    AND v.tipo_colonna = 'voto'
+                    AND v.valore_num IN (4, 5)
+                  LIMIT 1
+              )
+        ORDER BY mc.classe ASC, mc.studente_nome ASC, mc.materia ASC
+    ") ?: [];
+
+    foreach ($extraRows as $row) {
+        if (mastercomTabelloniClassYearFromName((string)($row['classe'] ?? '')) >= 5) {
+            continue;
+        }
+        $subjectId = intval($row['id_materia_gestore'] ?? 0);
+        if (
+            ($subjectId > 0 && mastercomDebtsIsNoCourseExpectedSubjectId($subjectId))
+            || mastercomDebtsIsNoCourseExpectedSubjectName((string)($row['materia_codice'] ?? ''))
+            || mastercomDebtsIsNoCourseExpectedSubjectName((string)($row['materia_gestore'] ?? ''))
+        ) {
+            continue;
+        }
+        $issues[] = array_merge($row, [
+            'tipo' => 'CARENZA_IMPORTATA_NON_NEL_TABELLONE',
+            'valore' => '',
+            'valore_num' => null,
+            'messaggio' => 'L import carenze MasterCom contiene questa carenza, ma il tabellone finale non mostra un 4 o 5 per studente promosso.',
+        ]);
+    }
+
+    return array_slice($issues, 0, max(1, $limit));
+}
+
+function mastercomTabelloniAuditStats(int $schoolYearId = 0, int $mastercomClassId = 0): array
+{
+    $rows = mastercomTabelloniAuditRows($schoolYearId, $mastercomClassId, 10000);
+    $stats = [
+        'totale' => count($rows),
+        'manca_import_carenze' => 0,
+        'carenza_importata_non_nel_tabellone' => 0,
+        'materia_non_abbinata' => 0,
+        'studente_non_abbinato' => 0,
+    ];
+    foreach ($rows as $row) {
+        $key = strtolower((string)($row['tipo'] ?? ''));
+        if (isset($stats[$key])) {
+            $stats[$key]++;
+        }
+    }
+    return $stats;
 }

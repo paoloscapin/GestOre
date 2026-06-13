@@ -673,12 +673,20 @@ $auditIssues = mastercomDebtsAuditIssues($selectedYearId, $selectedClassId);
             <?php
             $mastercomDuplicates = $auditIssues['mastercom_duplicates'] ?? [];
             $gestoreDuplicates = $auditIssues['gestore_duplicates'] ?? [];
+            $mastercomDuplicateExtraRows = 0;
+            foreach ($mastercomDuplicates as $dup) {
+                $mastercomDuplicateExtraRows += max(0, intval($dup['righe'] ?? 0) - 1);
+            }
             ?>
             <?php if (!empty($mastercomDuplicates) || !empty($gestoreDuplicates)): ?>
                 <div class="alert alert-warning">
                     <strong>Controllo doppioni carenze:</strong>
                     <?php echo count($mastercomDuplicates); ?> possibili doppioni nella cache MasterCom,
                     <?php echo count($gestoreDuplicates); ?> doppioni presenti in GestOre.
+                    <?php if ($mastercomDuplicateExtraRows > 0): ?>
+                        Righe MasterCom eccedenti rispetto alla chiave GestOre studente/materia/classe/anno:
+                        <strong><?php echo intval($mastercomDuplicateExtraRows); ?></strong>.
+                    <?php endif; ?>
                     <?php if (!empty($mastercomDuplicates)): ?>
                         <div style="margin-top:10px;">
                             <strong>Cache MasterCom</strong>
@@ -694,7 +702,7 @@ $auditIssues = mastercomDebtsAuditIssues($selectedYearId, $selectedClassId);
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <?php foreach (array_slice($mastercomDuplicates, 0, 10) as $dup): ?>
+                                <?php foreach ($mastercomDuplicates as $dup): ?>
                                     <tr>
                                         <td><?php echo mcd_h($dup['studente_nome'] ?? ''); ?></td>
                                         <td><?php echo mcd_h($dup['materia'] ?? ''); ?></td>
@@ -706,9 +714,6 @@ $auditIssues = mastercomDebtsAuditIssues($selectedYearId, $selectedClassId);
                                 <?php endforeach; ?>
                                 </tbody>
                             </table>
-                            <?php if (count($mastercomDuplicates) > 10): ?>
-                                <div>Mostrati i primi 10 doppioni MasterCom.</div>
-                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                     <?php if (!empty($gestoreDuplicates)): ?>

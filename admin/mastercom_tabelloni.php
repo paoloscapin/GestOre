@@ -10,12 +10,25 @@ function mct_h($value): string
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+function mct_audit_type_label(string $type): string
+{
+    $labels = [
+        'MANCA_IMPORT_CARENZE' => 'Manca in import carenze',
+        'CARENZA_IMPORTATA_NON_NEL_TABELLONE' => 'Carenza non confermata dal tabellone',
+        'MATERIA_NON_ABBINATA' => 'Materia non abbinata',
+        'STUDENTE_NON_ABBINATO' => 'Studente non abbinato',
+    ];
+    return $labels[$type] ?? $type;
+}
+
 mastercomTabelloniEnsureTables();
 
 $message = '';
 $error = '';
 $debugInfo = null;
 $selectedClassId = intval($_REQUEST['class_id'] ?? 0);
+$auditYearId = intval($_REQUEST['audit_school_year_id'] ?? 0);
+$auditClassId = intval($_REQUEST['audit_class_id'] ?? 0);
 $selectedPeriod = trim((string)($_REQUEST['period'] ?? '9'));
 if ($selectedPeriod === '') {
     $selectedPeriod = '9';
@@ -23,6 +36,11 @@ if ($selectedPeriod === '') {
 $periodLabels = mastercomTabelloniPeriodLabels();
 $classRows = mastercomTabelloniImportClassRows('mastercom_id_classe, nome');
 $importClassMap = mastercomTabelloniImportClassMap();
+$schoolYears = mastercomTabelloniSchoolYears();
+if ($auditYearId <= 0) {
+    global $__anno_scolastico_corrente_id;
+    $auditYearId = intval($__anno_scolastico_corrente_id ?? 0);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['action'] ?? ''));
@@ -96,6 +114,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $recentRows = mastercomTabelloniRecentRows(100);
+mastercomTabelloniRefreshDerivedFields();
+$auditRows = mastercomTabelloniAuditRows($auditYearId, $auditClassId, 300);
+$auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
 ?>
 <!DOCTYPE html>
 <html>
@@ -133,6 +154,28 @@ $recentRows = mastercomTabelloniRecentRows(100);
         }
         .mct-table td, .mct-table th {
             vertical-align: middle !important;
+        }
+        .mct-audit-stats {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 10px 0 14px;
+        }
+        .mct-audit-stat {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px 10px;
+            background: #fafafa;
+        }
+        .mct-audit-stat strong {
+            display: block;
+            font-size: 18px;
+        }
+        .mct-row-danger {
+            background: #ffe5e5;
+        }
+        .mct-row-warning {
+            background: #fff3cd;
         }
         .mct-muted {
             color: #777;
@@ -306,6 +349,99 @@ $recentRows = mastercomTabelloniRecentRows(100);
                     Il file MasterCom viene conservato anche in forma grezza nella tabella principale.
                 </div>
             </form>
+
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <span class="glyphicon glyphicon-check"></span>&emsp;Controllo carenze da tabelloni
+                </div>
+                <div class="panel-body">
+                    <form method="get" class="form-inline" style="margin-bottom: 12px;">
+                        <input type="hidden" name="period" value="<?php echo mct_h($selectedPeriod); ?>">
+                        <div class="form-group">
+                            <label for="audit_school_year_id">Anno scolastico</label>
+                            <select name="audit_school_year_id" id="audit_school_year_id" class="form-control">
+                                <option value="0">Tutti</option>
+                                <?php foreach ($schoolYears as $yearRow): ?>
+                                    <?php $yearId = intval($yearRow['id'] ?? 0); ?>
+                                    <option value="<?php echo $yearId; ?>" <?php echo $auditYearId === $yearId ? 'selected' : ''; ?>>
+                                        <?php echo mct_h($yearRow['anno'] ?? $yearId); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-left: 8px;">
+                            <label for="audit_class_id">Classe</label>
+                            <select name="audit_class_id" id="audit_class_id" class="form-control">
+                                <option value="0">Tutte</option>
+                                <?php foreach ($classRows as $classRow): ?>
+                                    <?php $classId = intval($classRow['mastercom_id_classe'] ?? 0); ?>
+                                    <option value="<?php echo $classId; ?>" <?php echo $auditClassId === $classId ? 'selected' : ''; ?>>
+                                        <?php echo mct_h(($classRow['nome'] ?? '') . ' [' . $classId . ']'); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-default" style="margin-left: 8px;">
+                            <span class="glyphicon glyphicon-refresh"></span> Aggiorna controllo
+                        </button>
+                    </form>
+
+                    <div class="mct-audit-stats">
+                        <div class="mct-audit-stat"><strong><?php echo intval($auditStats['totale']); ?></strong> problemi</div>
+                        <div class="mct-audit-stat"><strong><?php echo intval($auditStats['manca_import_carenze']); ?></strong> mancano nell'import carenze</div>
+                        <div class="mct-audit-stat"><strong><?php echo intval($auditStats['carenza_importata_non_nel_tabellone']); ?></strong> non confermate dal tabellone</div>
+                        <div class="mct-audit-stat"><strong><?php echo intval($auditStats['materia_non_abbinata']); ?></strong> materie non abbinate</div>
+                        <div class="mct-audit-stat"><strong><?php echo intval($auditStats['studente_non_abbinato']); ?></strong> studenti non abbinati</div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-condensed mct-table">
+                            <thead>
+                            <tr>
+                                <th>Problema</th>
+                                <th>Classe</th>
+                                <th>Studente</th>
+                                <th>Materia</th>
+                                <th class="text-center">Voto</th>
+                                <th>Esito</th>
+                                <th>Dettaglio</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <?php if (empty($auditRows)): ?>
+                                <tr>
+                                    <td colspan="7" class="text-center success">Nessuna differenza rilevata per i filtri selezionati.</td>
+                                </tr>
+                            <?php endif; ?>
+                            <?php foreach ($auditRows as $row): ?>
+                                <?php
+                                $type = (string)($row['tipo'] ?? '');
+                                $rowClass = in_array($type, ['MANCA_IMPORT_CARENZE', 'CARENZA_IMPORTATA_NON_NEL_TABELLONE'], true) ? 'mct-row-danger' : 'mct-row-warning';
+                                $subjectLabel = trim((string)(($row['materia_gestore'] ?? '') ?: ($row['materia_codice'] ?? '')));
+                                if (!empty($row['id_materia_gestore'])) {
+                                    $subjectLabel .= ' [' . intval($row['id_materia_gestore']) . ']';
+                                } elseif (!empty($row['materia_codice'])) {
+                                    $subjectLabel .= ' [' . $row['materia_codice'] . ']';
+                                }
+                                ?>
+                                <tr class="<?php echo $rowClass; ?>">
+                                    <td><?php echo mct_h(mct_audit_type_label($type)); ?></td>
+                                    <td><?php echo mct_h($row['classe'] ?? ''); ?></td>
+                                    <td><?php echo mct_h($row['studente_nome'] ?? ''); ?></td>
+                                    <td><?php echo mct_h($subjectLabel); ?></td>
+                                    <td class="text-center"><?php echo mct_h($row['valore'] ?? ''); ?></td>
+                                    <td><?php echo mct_h($row['esito_key'] ?? ''); ?></td>
+                                    <td><?php echo mct_h($row['messaggio'] ?? ''); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php if (count($auditRows) >= 300): ?>
+                        <p class="text-muted">Mostrate le prime 300 differenze. Raffina i filtri per vedere il dettaglio completo.</p>
+                    <?php endif; ?>
+                </div>
+            </div>
 
             <h4>Ultimi tabelloni importati</h4>
             <div class="table-responsive">
