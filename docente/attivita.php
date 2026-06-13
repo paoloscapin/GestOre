@@ -158,7 +158,7 @@ require_once '../common/header-docente.php';
 	</table>
 	</div>
 	<div id="fuis_message" class="row" style="margin-bottom:10px;"></div>
-	<div id="fuis_eccesso_message" class="row" style="margin-bottom:10px;"></div>
+	<div id="fuis_eccesso_message" class="row" style="padding:6px;margin:0px 6px 0px 6px;"></div>
 </div>
 
 <!-- <div class="panel-footer"></div> -->
@@ -268,7 +268,7 @@ require_once '../common/header-docente.php';
 	</table>
 	</div>
 	<div id="fuis_message" class="row" style="margin-bottom:10px;"></div>
-	<div id="fuis_eccesso_message" class="row" style="margin-bottom:10px;"></div>
+	<div id="fuis_eccesso_message" class="row" style="padding:6px;margin:0px 6px 0px 6px;"></div>
 </div>
 <!-- <div class="panel-footer"></div> -->
 </div>
@@ -326,6 +326,13 @@ require_once '../common/header-docente.php';
 				<td class="text-left" ></td>
 				<td class="text-left" ></td>
 			</tr>
+			<tr>
+				<td colspan="10">
+					<div style="font-weight:bold; text-align:center; background-color:#BAEED0; padding:6px; margin-bottom:0;">
+						Queste sono le ore dovute da fare in base alle ore di cattedra del docente.
+					</div>
+				</td>
+			</tr>
 			<tr class="orange5">
 				<td>previste</td>
 				<td></td>
@@ -341,6 +348,11 @@ require_once '../common/header-docente.php';
 				<td class="text-left clil" id="clil_previste_con_studenti"></td><td class="NOclil"></td>
 				<td class="text-left orientamento" id="orientamento_previste_funzionali"></td><td class="NOorientamento"></td>
 				<td class="text-left orientamento" id="orientamento_previste_con_studenti"></td><td class="NOorientamento"></td>
+			</tr>
+			<tr id="previste_dovute_message_row" class="hidden">
+				<td colspan="10">
+					<div id="previste_dovute_message" style="margin-bottom:0;"></div>
+				</td>
 			</tr>
 			<tr class="teal5">
 				<td>fatte</td>
@@ -365,10 +377,10 @@ require_once '../common/header-docente.php';
 		</tbody>
 	</table>
 	</div>
-	<div id="ore_message" class="row" style="margin-bottom:10px;"></div>
+	<div id="ore_message" class="row" style="padding:6px;margin:0px 6px 0px 6px;"></div>
 	<input type="hidden" id="accetta_con_studenti_per_funzionali" value="<?php if (getSettingsValue('fuis','accetta_con_studenti_per_funzionali', false)) {echo('1');} else {echo('0');} ?>">
 	<input type="hidden" id="accetta_funzionali_per_con_studenti" value="<?php if (getSettingsValue('fuis','accetta_funzionali_per_con_studenti', false)) {echo('1');} else {echo('0');} ?>">
-	<div id="ore_eccesso_message" class="row" style="margin-bottom:10px;"></div>
+	<div id="ore_eccesso_message" class="row" style="padding:6px;margin:0px 6px 0px 6px;"></div>
 	<input type="hidden" id="segnala_fatte_eccedenti_previsione" value="<?php if (getSettingsValue('fuis','segnala_fatte_eccedenti_previsione', false)) {echo('1');} else {echo('0');} ?>">
 </div>
 <input type="hidden" id="hidden_docente_id" value="<?php echo $docente_id; ?>">

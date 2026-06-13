@@ -49,6 +49,37 @@ require_once __DIR__ . '/../common/importi_load.php';
 
 debug("orePrevisteAggiorna.php: START (dbg=" . ($__dbg ? "1" : "0") . ")");
 
+function aggiungiMessaggioOrePreviste(&$messaggio, $testo) {
+    if (empty($testo)) {
+        return;
+    }
+    if (!empty($messaggio)) {
+        $messaggio = $messaggio . "</br>";
+    }
+    $messaggio = $messaggio . $testo;
+}
+
+function formattaOrePreviste($ore, $descrizione = '') {
+    $testo = $ore . ' ' . ($ore == 1 ? 'ora' : 'ore');
+    if (!empty($descrizione)) {
+        if ($ore == 1) {
+            $descrizione = str_replace('funzionali mancanti', 'funzionale mancante', $descrizione);
+            $descrizione = str_replace('funzionali', 'funzionale', $descrizione);
+        }
+        $testo = $testo . ' ' . $descrizione;
+    }
+    return $testo;
+}
+
+function formattaMessaggioCompensazionePreviste($testo) {
+    return '<div style="font-weight:bold; text-align:center; background-color:#D9EDF7; color:#245269; padding:6px; margin:0;">' . $testo . '</div>';
+}
+
+function formattaMessaggioProspettoPreviste($testo, $livello = 'ok') {
+    $background = ($livello == 'warning') ? '#FFC6B4' : '#BAEED0';
+    return '<div style="font-weight:bold; text-align:center; background-color:' . $background . '; color:#000; padding:6px; margin:0;">' . $testo . '</div>';
+}
+
 // Funzione principale
 function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile) {
     debug("orePrevisteAggiorna(): ENTER docente_id=$docente_id operatore=$operatore soloTotale=" . json_encode($soloTotale) . " modificabile=" . json_encode($modificabile));
@@ -68,6 +99,8 @@ function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_contr
     $diariaImportoPreviste = 0;
     $messaggio = '';
     $messaggioEccesso = '';
+    $messaggioPrevisteDovute = '';
+    $messaggioPrevisteDovuteLivello = '';
 
     $oreAggiornamentoPreviste = 0;
     $oreConStudentiPreviste = 0;
@@ -227,7 +260,7 @@ function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_contr
             }
             $bilancioConStudenti = $bilancioConStudenti - $daSpostare;
             $bilancioFunzionali = $bilancioFunzionali + $daSpostare;
-            $messaggio .= $daSpostare . " ore con studenti verranno usate per coprire " . $daSpostare . " ore funzionali mancanti. ";
+            $messaggio .= formattaMessaggioCompensazionePreviste(formattaOrePreviste($daSpostare, "con studenti") . " verranno usate per coprire " . formattaOrePreviste($daSpostare, "funzionali mancanti") . ".");
             debug('orePrevisteAggiorna(): spostate con studenti in funzionali bilancioFunzionali=' . $bilancioFunzionali . ' bilancioConStudenti=' . $bilancioConStudenti);
         }
     }
@@ -240,10 +273,56 @@ function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_contr
             }
             $bilancioFunzionali = $bilancioFunzionali - $daSpostare;
             $bilancioConStudenti = $bilancioConStudenti + $daSpostare;
-            $messaggio .= $daSpostare . " ore funzionali verranno usate per coprire " . $daSpostare . " ore con studenti mancanti. ";
+            $messaggio .= formattaMessaggioCompensazionePreviste(formattaOrePreviste($daSpostare, "funzionali") . " verranno usate per coprire " . formattaOrePreviste($daSpostare, "con studenti mancanti") . ".");
             debug('orePrevisteAggiorna(): spostate funzionali in con studenti bilancioFunzionali=' . $bilancioFunzionali . ' bilancioConStudenti=' . $bilancioConStudenti);
         }
     }
+
+    $oreFunzionaliPrevisteMancanti = max(-$bilancioFunzionali, 0);
+    $oreConStudentiPrevisteMancanti = max(-$bilancioConStudenti, 0);
+    $orePrevisteMancanti = $oreFunzionaliPrevisteMancanti + $oreConStudentiPrevisteMancanti;
+    $oreFunzionaliPrevisteFuis = max($bilancioFunzionali, 0);
+    $oreConStudentiPrevisteFuis = max($bilancioConStudenti, 0);
+    $orePrevisteFuis = $oreFunzionaliPrevisteFuis + $oreConStudentiPrevisteFuis;
+
+    if (!empty($messaggio)) {
+        aggiungiMessaggioOrePreviste($messaggioPrevisteDovute, $messaggio);
+    }
+    if ($orePrevisteMancanti > 0) {
+        $dettagliPrevisteMancanti = [];
+        if ($oreFunzionaliPrevisteMancanti > 0) {
+            $dettagliPrevisteMancanti[] = formattaOrePreviste($oreFunzionaliPrevisteMancanti, "funzionali");
+        }
+        if ($oreConStudentiPrevisteMancanti > 0) {
+            $dettagliPrevisteMancanti[] = formattaOrePreviste($oreConStudentiPrevisteMancanti, "con studenti");
+        }
+        $testoPrevisteDovute = "Le ore previste sono sotto il minimo dovuto di " . formattaOrePreviste($orePrevisteMancanti);
+        if (!empty($dettagliPrevisteMancanti)) {
+            $testoPrevisteDovute = $testoPrevisteDovute . ": " . implode(", ", $dettagliPrevisteMancanti);
+        }
+        $testoPrevisteDovute = $testoPrevisteDovute . ". Occorre prevedere altre ore per arrivare al minimo dovuto.";
+        aggiungiMessaggioOrePreviste($messaggioPrevisteDovute, formattaMessaggioProspettoPreviste($testoPrevisteDovute, 'warning'));
+        $messaggioPrevisteDovuteLivello = 'warning';
+    } elseif ($orePrevisteFuis > 0) {
+        $dettagliPrevisteFuis = [];
+        if ($oreFunzionaliPrevisteFuis > 0) {
+            $dettagliPrevisteFuis[] = formattaOrePreviste($oreFunzionaliPrevisteFuis, "funzionali");
+        }
+        if ($oreConStudentiPrevisteFuis > 0) {
+            $dettagliPrevisteFuis[] = formattaOrePreviste($oreConStudentiPrevisteFuis, "con studenti");
+        }
+        $testoPrevisteDovute = "Le ore previste coprono il minimo dovuto. Le ore oltre il minimo andranno a FUIS";
+        if (!empty($dettagliPrevisteFuis)) {
+            $testoPrevisteDovute = $testoPrevisteDovute . ": (" . implode(", ", $dettagliPrevisteFuis) . ")";
+        }
+        $testoPrevisteDovute = $testoPrevisteDovute . ".";
+        aggiungiMessaggioOrePreviste($messaggioPrevisteDovute, formattaMessaggioProspettoPreviste($testoPrevisteDovute));
+        $messaggioPrevisteDovuteLivello = 'ok';
+    } elseif (!empty($messaggioPrevisteDovute)) {
+        aggiungiMessaggioOrePreviste($messaggioPrevisteDovute, formattaMessaggioProspettoPreviste("Le ore previste coprono esattamente il minimo dovuto dopo compensazione."));
+        $messaggioPrevisteDovuteLivello = 'ok';
+    }
+    $messaggio = '';
 
     $fuisFunzionale = $bilancioFunzionali * $__importi['importo_ore_funzionali'];
     $fuisConStudenti = $bilancioConStudenti * $__importi['importo_ore_con_studenti'];
@@ -273,6 +352,8 @@ function orePrevisteAggiorna($soloTotale, $docente_id, $operatore, $ultimo_contr
     $totale = $totale + compact(
         'messaggio',
         'messaggioEccesso',
+        'messaggioPrevisteDovute',
+        'messaggioPrevisteDovuteLivello',
         'fuisFunzionale',
         'fuisConStudenti',
         'fuisOrePreviste',

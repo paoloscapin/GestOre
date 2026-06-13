@@ -14,12 +14,41 @@ function aggiornaWarningImportoViaggi(data) {
     $("#viaggi_warning_importo").html(
       "Attenzione: l'importo dei viaggi supera quanto previsto di " +
       number_format(importoExtra, 2) +
-      " euro. La parte eccedente non sar&agrave; pagata perch&eacute; non prevista."
+      " euro. La parte eccedente non sar&agrave; pagata perch&eacute; nelle previsioni era stato approvato un importo di " +
+      number_format(importoPrevisto, 2) +
+      " euro, inferiore a quello rendicontato."
     ).removeClass("hidden")
       .css({ "font-weight": "bold", "text-align": "center", "background-color": "#FFC6B4", "padding": "6px" });
   } else {
     $("#viaggi_warning_importo").addClass("hidden").html("");
   }
+}
+
+function aggiornaMessaggioPrevisteDovute(data) {
+  const messaggio = data.messaggioPrevisteDovute || "";
+  if (messaggio.length === 0) {
+    $("#previste_dovute_message_row").addClass("hidden");
+    $("#previste_dovute_message").html("");
+    return;
+  }
+
+  $("#previste_dovute_message").html(messaggio)
+    .css({ "font-weight": "bold", "text-align": "center", "background-color": "transparent", "padding": "0" });
+  $("#previste_dovute_message_row").removeClass("hidden");
+}
+
+function coloreMessaggioEccesso(data) {
+  if (data.messaggioEccessoLivello === "danger") {
+    return "#FF4D4D";
+  }
+  return "#FFC6B4";
+}
+
+function coloreTestoMessaggioEccesso(data) {
+  if (data.messaggioEccessoLivello === "danger") {
+    return "#FFF176";
+  }
+  return "#000";
 }
 
 function oreFatteReloadTables(soloTotale = false) {
@@ -87,6 +116,7 @@ function oreFatteReloadTables(soloTotale = false) {
     $("#previste_ore_40_aggiornamento").html(getHtmlNumAndPrevisteVisual(data.oreAggiornamentoPreviste, data.oreAggiornamentoDovute));
     $("#previste_ore_70_funzionali").html(getHtmlNumAndPrevisteVisual(data.oreFunzionaliPreviste, data.oreFunzionaliDovute));
     $("#previste_totale_con_studenti").html(getHtmlNumAndPrevisteVisual(data.oreConStudentiPreviste, data.oreConStudentiDovute));
+    aggiornaMessaggioPrevisteDovute(data);
 
     // ore fatte
     $("#fatte_ore_40_sostituzioni_di_ufficio").html(getHtmlNumAndFatteVisual(data.oreSostituzione, data.oreSostituzioniDovute));
@@ -123,7 +153,7 @@ function oreFatteReloadTables(soloTotale = false) {
 
     if (data.messaggioEccesso && data.messaggioEccesso.length > 0) {
       $("#ore_eccesso_message").html(data.messaggioEccesso).removeClass("hidden")
-        .css({ "font-weight": "bold", "text-align": "center", "background-color": "#BAEED0" });
+        .css({ "font-weight": "bold", "text-align": "center", "background-color": coloreMessaggioEccesso(data), "color": coloreTestoMessaggioEccesso(data) });
     } else {
       $("#ore_eccesso_message").addClass("hidden");
     }
@@ -167,7 +197,7 @@ function oreFatteReloadTables(soloTotale = false) {
 
     if (data.messaggioEccesso && data.messaggioEccesso.length > 0) {
       $("#fuis_eccesso_message").html(data.messaggioEccesso).removeClass("hidden")
-        .css({ "font-weight": "bold", "text-align": "center", "background-color": "#FFC6B4" });
+        .css({ "font-weight": "bold", "text-align": "center", "background-color": coloreMessaggioEccesso(data), "color": coloreTestoMessaggioEccesso(data) });
     } else {
       $("#fuis_eccesso_message").addClass("hidden");
     }
@@ -253,6 +283,7 @@ function orePrevisteReloadTables(soloTotale = false) {
     $("#previste_ore_40_aggiornamento").html(getHtmlNumAndPrevisteVisual(data.oreAggiornamentoPreviste, data.oreAggiornamentoDovute));
     $("#previste_ore_70_funzionali").html(getHtmlNumAndPrevisteVisual(data.oreFunzionaliPreviste, data.oreFunzionaliDovute));
     $("#previste_totale_con_studenti").html(getHtmlNumAndPrevisteVisual(data.oreConStudentiPreviste, data.oreConStudentiDovute));
+    aggiornaMessaggioPrevisteDovute(data);
 
     // clil previste
     $("#clil_previste_funzionali").html(getHtmlNumAndPrevisteVisual(data.oreClilFunzionaliPreviste, 0));
