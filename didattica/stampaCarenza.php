@@ -15,7 +15,7 @@ require_once '../common/vendor/autoload.php';
 require_once '../common/send-mail.php';
 require_once '../common/mail-ui.php';
 require_once __DIR__ . '/carenzeDownloadLib.php';
-ruoloRichiesto('genitore', 'docente', 'studente', 'segreteria-didattica', 'dirigente');
+ruoloRichiesto('admin', 'genitore', 'docente', 'studente', 'segreteria-didattica', 'dirigente');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect("/error/unauthorized.php");
@@ -132,6 +132,42 @@ function getCarenzaAutorizzata($carenzaId, $utenteRuolo, $genitoreId = 0, $stude
     ";
 
     return dbGetFirst($query);
+}
+
+function carenzeGetGenitoriCc(int $studenteId, string $excludeEmail = ''): array
+{
+    if ($studenteId <= 0) {
+        return [];
+    }
+
+    $excludeEmail = strtolower(trim($excludeEmail));
+    $query = "
+        SELECT DISTINCT
+            genitori.email,
+            genitori.nome,
+            genitori.cognome
+        FROM genitori_studenti
+        INNER JOIN genitori
+            ON genitori.id = genitori_studenti.id_genitore
+        WHERE genitori_studenti.id_studente = " . dbI($studenteId) . "
+          AND genitori.email IS NOT NULL
+          AND TRIM(genitori.email) <> ''
+          AND genitori.attivo = 1
+        ORDER BY genitori.cognome, genitori.nome
+    ";
+
+    $cc = [];
+    foreach (dbGetAll($query) as $row) {
+        $email = trim((string)($row['email'] ?? ''));
+        if ($email === '' || strtolower($email) === $excludeEmail || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            continue;
+        }
+
+        $name = trim((string)($row['nome'] ?? '') . ' ' . (string)($row['cognome'] ?? ''));
+        $cc[$email] = $name !== '' ? $name : $email;
+    }
+
+    return $cc;
 }
 
 // 1) PARAMETRI POST

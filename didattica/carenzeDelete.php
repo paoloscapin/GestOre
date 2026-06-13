@@ -10,6 +10,7 @@
 // include Database connection file
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once __DIR__ . '/carenzeDownloadLib.php';
 
 // check request
 if(isset($_POST['id']) && isset($_POST['id']) != ""){
@@ -20,11 +21,21 @@ if(isset($_POST['id']) && isset($_POST['id']) != ""){
 	$row = dbGetFirst($query);
 
 	if ($row) {
-		// cancello il file fisico
-		$filepath = $row['filepath'];
-		if (file_exists($filepath)) {
-			unlink($filepath);
-			info("cancellato il file fisico della carenza id = $carenza_id");
+		if (carenzeDownloadStorageType($row) === 'DRIVE' && carenzeDownloadTableHasColumn('drive_file_id') && trim((string)($row['drive_file_id'] ?? '')) !== '') {
+			require_once __DIR__ . '/../api/googleDriveLib.php';
+			try {
+				googleDriveDeleteFile((string)$row['drive_file_id']);
+				info("cancellato il file Drive della carenza id = $carenza_id");
+			} catch (Throwable $e) {
+				warning("file Drive della carenza id = $carenza_id non cancellato: " . $e->getMessage());
+			}
+		} else {
+			// cancello il file fisico locale
+			$filepath = carenzeDownloadResolveLocalPath((string)($row['file_path'] ?? ''));
+			if (file_exists($filepath)) {
+				unlink($filepath);
+				info("cancellato il file fisico della carenza id = $carenza_id");
+			}
 		}
 		$query = "DELETE FROM carenze_downloads WHERE carenza_id = $carenza_id";
 		dbExec($query);

@@ -7,7 +7,8 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 
- require_once '../common/checkSession.php';
+require_once '../common/checkSession.php';
+require_once __DIR__ . '/carenzeDownloadLib.php';
 
 function mostraMessaggio(string $titolo, string $messaggio): void {
     echo '
@@ -86,7 +87,8 @@ $token = $_GET['token'];
 info("Richiesta token per download: " . $token);
 
 // Verifica esistenza token valido nel DB
-$query = "SELECT file_path, last_download FROM carenze_downloads WHERE download_token = '$token' AND expires_at > NOW()";
+$selectFields = carenzeDownloadSelectFields();
+$query = "SELECT $selectFields FROM carenze_downloads WHERE download_token = '" . escapeString($token) . "' AND expires_at > NOW()";
 $result = dbGetFirst($query);
 
 if (!$result) {
@@ -94,11 +96,18 @@ if (!$result) {
     mostraMessaggio("Link non valido", "Il link è scaduto o non è valido.");
 }
 
-$filePath = __DIR__ . '/' . $result['file_path'];
+$storageType = carenzeDownloadStorageType($result);
+$downloadFilename = carenzeDownloadOriginalFilename($result);
+$filePath = carenzeDownloadResolveLocalPath((string)$result['file_path']);
 
-if (!file_exists($filePath)) {
+if ($storageType !== 'DRIVE' && !file_exists($filePath)) {
     http_response_code(404);
     mostraMessaggio("File non disponibile", "Il file richiesto non è più disponibile sul server.");
+}
+
+if ($storageType === 'DRIVE' && (!carenzeDownloadTableHasColumn('drive_file_id') || trim((string)($result['drive_file_id'] ?? '')) === '')) {
+    http_response_code(404);
+    mostraMessaggio("File non disponibile", "Il file richiesto non Ã¨ piÃ¹ disponibile sul server.");
 }
 
 // BLOCCO: controllo tempo prima del download
@@ -190,10 +199,26 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['confirm_download']))
 
 // DOWNLOAD effettivo
 header('Content-Type: application/pdf');
-header('Content-Disposition: attachment; filename="' . basename($filePath) . '"');
-header('Content-Length: ' . filesize($filePath));
+header('Content-Disposition: attachment; filename="' . str_replace('"', '', $downloadFilename) . '"');
 
-if (readfile($filePath)) {
+$downloadOk = false;
+if ($storageType === 'DRIVE') {
+    require_once __DIR__ . '/../api/googleDriveLib.php';
+    try {
+        $download = googleDriveDownloadFileContent((string)$result['drive_file_id']);
+        header('Content-Length: ' . intval($download['size'] ?? strlen((string)($download['content'] ?? ''))));
+        echo (string)($download['content'] ?? '');
+        $downloadOk = true;
+    } catch (Throwable $e) {
+        http_response_code(500);
+        mostraMessaggio("Errore download", "Non Ã¨ stato possibile recuperare il file da Google Drive.");
+    }
+} else {
+    header('Content-Length: ' . filesize($filePath));
+    $downloadOk = readfile($filePath) !== false;
+}
+
+if ($downloadOk) {
     $clientIP = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
     $updateQuery = "
@@ -203,7 +228,7 @@ if (readfile($filePath)) {
             download_count = download_count + 1, 
             last_download = NOW(),
             last_user_agent = '$userAgent'
-        WHERE download_token = '$token'
+        WHERE download_token = '" . escapeString($token) . "'
     ";
     dbExec($updateQuery);
 }
