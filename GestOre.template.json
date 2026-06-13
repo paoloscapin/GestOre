@@ -184,6 +184,8 @@
             "syncSecret": "#####",
             "deleteAfterUpload": true,
             "bonusFolderId": "ID_CARTELLA_DRIVE_BONUS",
+            "carenzeFolderId": "ID_CARTELLA_DRIVE_CARENZE",
+            "carenzeFolderName": "Carenze formative",
             "copertineVerificheFolderId": "",
             "copertineVerificheFolderName": "Copertine Verifiche",
             "verificheDigitaliFolderId": "ID_CARTELLA_DRIVE_VERIFICHE_DIGITALI",
