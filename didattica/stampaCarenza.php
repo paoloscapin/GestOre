@@ -931,8 +931,13 @@ if ($doGenera) {
   $pdf->Output($filename, 'F'); // salva il file
   $created_at = date('Y-m-d H:i:s');
   $expires_at = date('Y-m-d H:i:s', strtotime('+3 months'));
-  $query = "SELECT COUNT(*) FROM carenze_downloads WHERE student_id='" . $studente_id . "' AND carenza_id='" . $carenza_id . "'";
-  $esiste = dbGetValue($query);
+  $query = "SELECT * FROM carenze_downloads WHERE student_id='" . $studente_id . "' AND carenza_id='" . $carenza_id . "' LIMIT 1";
+  $downloadRow = dbGetFirst($query);
+  $esiste = $downloadRow ? 1 : 0;
+  $downloadTokenExpiresAt = strtotime((string)($downloadRow['expires_at'] ?? ''));
+  if ($downloadRow && trim((string)($downloadRow['download_token'] ?? '')) !== '' && $downloadTokenExpiresAt !== false && $downloadTokenExpiresAt > time()) {
+    $token = trim((string)$downloadRow['download_token']);
+  }
 
 
   // salva nel DB
@@ -989,7 +994,19 @@ if ($doMail) {
     exit;
   }
 
-  $download_token = $esiste['download_token'];
+  $download_token = trim((string)($esiste['download_token'] ?? ''));
+  $downloadTokenExpiresAt = strtotime((string)($esiste['expires_at'] ?? ''));
+  if ($download_token === '' || $downloadTokenExpiresAt === false || $downloadTokenExpiresAt <= time()) {
+    $download_token = bin2hex(random_bytes(16));
+  }
+  $mail_expires_at = date('Y-m-d H:i:s', strtotime('+3 months'));
+  dbExec("
+    UPDATE carenze_downloads
+    SET download_token = '" . escapeString($download_token) . "',
+        expires_at = '" . escapeString($mail_expires_at) . "'
+    WHERE student_id = '" . escapeString($studente_id) . "'
+      AND carenza_id = '" . escapeString($carenza_id) . "'
+  ");
   $studente_cognome = $program['stud_cognome'];
   $studente_nome = $program['stud_nome'];
   $studente_email = $program['stud_email'];
