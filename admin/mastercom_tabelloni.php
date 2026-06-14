@@ -33,6 +33,20 @@ function mct_class_year_label(int $year): string
     return $labels[$year] ?? ('Classi anno ' . $year);
 }
 
+function mct_datetime_it($value): string
+{
+    $value = trim((string)$value);
+    if ($value === '') {
+        return '';
+    }
+
+    try {
+        return (new DateTime($value))->format('d/m/Y H:i');
+    } catch (Exception $e) {
+        return $value;
+    }
+}
+
 mastercomTabelloniEnsureTables();
 
 $message = '';
@@ -693,7 +707,7 @@ $auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
                             <td><?php echo mct_h($row['periodo_label'] ?: $row['periodo']); ?></td>
                             <td class="text-center"><?php echo intval($row['studenti_count'] ?? 0); ?></td>
                             <td class="text-center"><?php echo intval($row['celle_count'] ?? 0); ?></td>
-                            <td class="text-center"><?php echo mct_h($row['imported_at'] ?? ''); ?></td>
+                            <td class="text-center"><?php echo mct_h(mct_datetime_it($row['imported_at'] ?? '')); ?></td>
                             <td><code><?php echo mct_h(substr((string)($row['source_hash'] ?? ''), 0, 10)); ?></code></td>
                         </tr>
                     <?php endforeach; ?>

@@ -218,9 +218,16 @@ function mcte_tabellone_export(int $tabelloneId, string $format): void
         }
     }
 
-    $columnCount = count($columns) + 1;
     $studentWidth = 20;
-    $otherWidth = $columnCount > 1 ? ((100 - $studentWidth) / ($columnCount - 1)) : 80;
+    $resultColumnIndexes = [];
+    foreach ($columns as $index => $column) {
+        if (($column['tipo'] ?? '') === 'risultato') {
+            $resultColumnIndexes[$index] = true;
+        }
+    }
+    $resultWidthTotal = !empty($resultColumnIndexes) ? 14 : 0;
+    $otherColumnCount = max(1, count($columns) - count($resultColumnIndexes));
+    $otherWidth = (100 - $studentWidth - $resultWidthTotal) / $otherColumnCount;
     $html = '<style>
         h1 { color:#0b4f71; font-size:18px; }
         .meta { color:#667085; font-size:9px; margin-bottom:8px; }
@@ -236,14 +243,16 @@ function mcte_tabellone_export(int $tabelloneId, string $format): void
     $html .= '<div class="meta">' . mcte_h($meta) . '</div>';
     $html .= '<table width="100%" cellpadding="2"><thead><tr>';
     $html .= '<th width="' . $studentWidth . '%" align="center">Studente</th>';
-    foreach ($columns as $column) {
-        $html .= '<th width="' . $otherWidth . '%" align="center">' . mcte_h($column['codice'] ?? $column['descrizione'] ?? '') . '</th>';
+    foreach ($columns as $index => $column) {
+        $width = isset($resultColumnIndexes[$index]) ? $resultWidthTotal : $otherWidth;
+        $html .= '<th width="' . $width . '%" align="center">' . mcte_h($column['codice'] ?? $column['descrizione'] ?? '') . '</th>';
     }
     $html .= '</tr></thead><tbody>';
     foreach ($students as $student) {
         $html .= '<tr>';
         $html .= '<td width="' . $studentWidth . '%">' . mcte_h(trim((string)($student['numero'] ?? '') . ' ' . (string)($student['nome'] ?? ''))) . '</td>';
-        foreach ($columns as $column) {
+        foreach ($columns as $index => $column) {
+            $width = isset($resultColumnIndexes[$index]) ? $resultWidthTotal : $otherWidth;
             $values = (array)($student['values'] ?? []);
             $value = $values[intval($column['col_index'] ?? 0)] ?? [];
             $class = 'center';
@@ -254,7 +263,7 @@ function mcte_tabellone_export(int $tabelloneId, string $format): void
                 $esito = (string)($student['esito_key'] ?? '');
                 $class .= in_array($esito, ['non_ammesso', 'in_corso'], true) ? ' ko' : ' ok';
             }
-            $html .= '<td width="' . $otherWidth . '%" class="' . mcte_h($class) . '">' . mcte_h(is_array($value) ? ($value['value'] ?? '') : '') . '</td>';
+            $html .= '<td width="' . $width . '%" class="' . mcte_h($class) . '">' . mcte_h(is_array($value) ? ($value['value'] ?? '') : '') . '</td>';
         }
         $html .= '</tr>';
     }
