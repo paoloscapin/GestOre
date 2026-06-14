@@ -19,7 +19,12 @@ function mcte_h($value): string
 
 function mcte_filename(string $extension): string
 {
-    return 'riepilogo_esiti_tabelloni_' . date('Ymd_His') . '.' . $extension;
+    return 'riepilogo_esiti_tabelloni_' . mcte_now()->format('Ymd_His') . '.' . $extension;
+}
+
+function mcte_now(): DateTimeImmutable
+{
+    return new DateTimeImmutable('now', new DateTimeZone('Europe/Rome'));
 }
 
 function mcte_class_year_label(int $year): string
@@ -88,6 +93,52 @@ function mcte_headers(int $year, bool $withClasses = false, bool $withYear = fal
     return $headers;
 }
 
+function mcte_average_headers(array $subjects, bool $withClasses = false, bool $withYear = false): array
+{
+    $headers = [];
+    if ($withYear) {
+        $headers[] = 'Anno';
+    }
+    $headers[] = $withClasses ? 'Raggruppamento' : 'Classe';
+    if ($withClasses) {
+        $headers[] = 'Classi';
+    }
+    $headers[] = 'Studenti';
+    foreach ($subjects as $subject) {
+        $headers[] = (string)($subject['label'] ?? '');
+    }
+
+    return $headers;
+}
+
+function mcte_average_row_values(array $row, array $subjects, bool $withClasses = false, ?int $year = null): array
+{
+    $values = [];
+    if ($year !== null) {
+        $values[] = mcte_class_year_label($year);
+    }
+    $values[] = (string)($row['label'] ?? '');
+    if ($withClasses) {
+        $values[] = intval($row['classes'] ?? 0);
+    }
+    $values[] = intval($row['students'] ?? 0);
+    foreach (array_keys($subjects) as $subjectKey) {
+        $avg = $row[$subjectKey . '_avg'] ?? null;
+        $values[] = $avg === null ? '' : round((float)$avg, 2);
+    }
+
+    return $values;
+}
+
+function mcte_average_cell($value): string
+{
+    if ($value === null || $value === '') {
+        return '-';
+    }
+
+    return number_format((float)$value, 2, ',', '');
+}
+
 function mcte_classes_by_year(array $classes): array
 {
     $grouped = [1 => [], 2 => [], 3 => [], 4 => [], 5 => [], 0 => []];
@@ -137,7 +188,7 @@ function mcte_tabellone_filename(array $detail, string $extension): string
         $title = 'tabellone';
     }
 
-    return 'tabellone_' . strtolower($title) . '_' . date('Ymd_His') . '.' . $extension;
+    return 'tabellone_' . strtolower($title) . '_' . mcte_now()->format('Ymd_His') . '.' . $extension;
 }
 
 function mcte_tabellone_export(int $tabelloneId, string $format): void
@@ -169,7 +220,7 @@ function mcte_tabellone_export(int $tabelloneId, string $format): void
         foreach ($columns as $column) {
             $headers[] = (string)($column['codice'] ?? $column['descrizione'] ?? '');
         }
-        $sheet->fromArray($headers, null, 'A4');
+        $sheet->fromArray($headers, null, 'A4', true);
 
         $rowIndex = 5;
         foreach ($students as $student) {
@@ -181,7 +232,7 @@ function mcte_tabellone_export(int $tabelloneId, string $format): void
                 $value = $values[intval($column['col_index'] ?? 0)] ?? null;
                 $rowValues[] = is_array($value) ? (string)($value['value'] ?? '') : '';
             }
-            $sheet->fromArray($rowValues, null, 'A' . $rowIndex);
+            $sheet->fromArray($rowValues, null, 'A' . $rowIndex, true);
             $rowIndex++;
         }
 
@@ -306,9 +357,10 @@ if ($period === '') {
 
 mastercomTabelloniRefreshDerivedFields();
 $summary = mastercomTabelloniOutcomeSummary($schoolYearId, $period);
+$averagesSummary = mastercomTabelloniAveragesSummary($schoolYearId, $period);
 $schoolYearLabel = mcte_school_year_label($schoolYearId);
 $periodLabel = mastercomTabelloniPeriodLabel($period);
-$generatedAt = date('d/m/Y H:i');
+$generatedAt = mcte_now()->format('d/m/Y H:i');
 
 if ($format === 'xlsx') {
     $spreadsheet = new Spreadsheet();
@@ -333,10 +385,10 @@ if ($format === 'xlsx') {
         $detailSheet->getStyle('A' . $rowIndex)->getFont()->setBold(true)->getColor()->setRGB('0B4F71');
         $rowIndex++;
         $detailHeaderRows[] = $rowIndex;
-        $detailSheet->fromArray(mcte_headers(intval($year), false), null, 'A' . $rowIndex);
+        $detailSheet->fromArray(mcte_headers(intval($year), false), null, 'A' . $rowIndex, true);
         $rowIndex++;
         foreach ($classRows as $row) {
-            $detailSheet->fromArray(mcte_row_values($row), null, 'A' . $rowIndex);
+            $detailSheet->fromArray(mcte_row_values($row), null, 'A' . $rowIndex, true);
             $rowIndex++;
         }
         $rowIndex++;
@@ -359,7 +411,7 @@ if ($format === 'xlsx') {
         $totalsSheet->getStyle('A' . $rowIndex)->getFont()->setBold(true)->getColor()->setRGB('0B4F71');
         $rowIndex++;
         $totalsHeaderRows[] = $rowIndex;
-        $totalsSheet->fromArray(mcte_headers(intval($year), true, true), null, 'A' . $rowIndex);
+        $totalsSheet->fromArray(mcte_headers(intval($year), true, true), null, 'A' . $rowIndex, true);
         $rowIndex++;
         foreach ($yearRows as $summaryRow) {
             $totalsSheet->fromArray([
@@ -372,16 +424,70 @@ if ($format === 'xlsx') {
                 intval($summaryRow['promossi_con_carenze'] ?? 0),
                 intval($summaryRow['promossi_una_carenza'] ?? 0),
                 intval($summaryRow['promossi_due_o_piu_carenze'] ?? 0),
-            ], null, 'A' . $rowIndex);
+            ], null, 'A' . $rowIndex, true);
             $rowIndex++;
         }
         $rowIndex++;
     }
     $lastTotalsRow = max(4, $rowIndex - 1);
 
+    $averageSubjects = (array)($averagesSummary['subjects'] ?? []);
+
+    $averagesClassSheet = $spreadsheet->createSheet();
+    $averagesClassSheet->setTitle('Medie classi');
+    $averagesClassSheet->setCellValue('A1', 'Medie voti per classe');
+    $averagesClassSheet->setCellValue('A2', 'Anno scolastico: ' . $schoolYearLabel . ' - Periodo: ' . $periodLabel . ' - Generato: ' . $generatedAt);
+    $rowIndex = 4;
+    $averageClassHeaderRows = [];
+    foreach (mcte_classes_by_year((array)($averagesSummary['classes'] ?? [])) as $year => $classRows) {
+        if (empty($classRows)) {
+            continue;
+        }
+        $averagesClassSheet->setCellValue('A' . $rowIndex, $year > 0 ? mcte_class_year_label(intval($year)) : 'Classi n/d');
+        $averagesClassSheet->mergeCells('A' . $rowIndex . ':H' . $rowIndex);
+        $averagesClassSheet->getStyle('A' . $rowIndex)->getFont()->setBold(true)->getColor()->setRGB('0B4F71');
+        $rowIndex++;
+        $averageClassHeaderRows[] = $rowIndex;
+        $averagesClassSheet->fromArray(mcte_average_headers($averageSubjects, false), null, 'A' . $rowIndex, true);
+        $rowIndex++;
+        foreach ($classRows as $row) {
+            $averagesClassSheet->fromArray(mcte_average_row_values($row, $averageSubjects), null, 'A' . $rowIndex, true);
+            $rowIndex++;
+        }
+        $rowIndex++;
+    }
+    $lastAverageClassRow = max(4, $rowIndex - 1);
+
+    $averagesTotalsSheet = $spreadsheet->createSheet();
+    $averagesTotalsSheet->setTitle('Medie totali');
+    $averagesTotalsSheet->setCellValue('A1', 'Medie voti per gruppi');
+    $averagesTotalsSheet->setCellValue('A2', 'Anno scolastico: ' . $schoolYearLabel . ' - Periodo: ' . $periodLabel . ' - Generato: ' . $generatedAt);
+    $rowIndex = 4;
+    $averageTotalsHeaderRows = [];
+    foreach (($averagesSummary['totals'] ?? []) as $year => $yearRows) {
+        if (empty($yearRows)) {
+            continue;
+        }
+        $averagesTotalsSheet->setCellValue('A' . $rowIndex, mcte_class_year_label(intval($year)));
+        $averagesTotalsSheet->mergeCells('A' . $rowIndex . ':J' . $rowIndex);
+        $averagesTotalsSheet->getStyle('A' . $rowIndex)->getFont()->setBold(true)->getColor()->setRGB('0B4F71');
+        $rowIndex++;
+        $averageTotalsHeaderRows[] = $rowIndex;
+        $averagesTotalsSheet->fromArray(mcte_average_headers($averageSubjects, true, true), null, 'A' . $rowIndex, true);
+        $rowIndex++;
+        foreach ($yearRows as $summaryRow) {
+            $averagesTotalsSheet->fromArray(mcte_average_row_values($summaryRow, $averageSubjects, true, intval($year)), null, 'A' . $rowIndex, true);
+            $rowIndex++;
+        }
+        $rowIndex++;
+    }
+    $lastAverageTotalsRow = max(4, $rowIndex - 1);
+
     foreach ([
         [$detailSheet, 'G', $lastDetailRow, $detailHeaderRows],
         [$totalsSheet, 'I', $lastTotalsRow, $totalsHeaderRows],
+        [$averagesClassSheet, 'H', $lastAverageClassRow, $averageClassHeaderRows],
+        [$averagesTotalsSheet, 'J', $lastAverageTotalsRow, $averageTotalsHeaderRows],
     ] as $sheetInfo) {
         [$sheet, $lastCol, $lastRow, $headerRows] = $sheetInfo;
         $sheet->mergeCells('A1:' . $lastCol . '1');
@@ -493,6 +599,70 @@ foreach (($summary['totals'] ?? []) as $year => $yearRows) {
         $html .= '<td width="12%" class="center warning">' . intval($summaryRow['promossi_con_carenze'] ?? 0) . '</td>';
         $html .= '<td width="11%" class="center warning">' . intval($summaryRow['promossi_una_carenza'] ?? 0) . '</td>';
         $html .= '<td width="11%" class="center warning">' . intval($summaryRow['promossi_due_o_piu_carenze'] ?? 0) . '</td>';
+        $html .= '</tr>';
+    }
+    $html .= '</tbody></table>';
+}
+
+$averageSubjects = (array)($averagesSummary['subjects'] ?? []);
+$html .= '<h2>Medie voti per classe</h2>';
+$hasAverageClassRows = false;
+foreach (mcte_classes_by_year((array)($averagesSummary['classes'] ?? [])) as $year => $classRows) {
+    if (empty($classRows)) {
+        continue;
+    }
+    $hasAverageClassRows = true;
+    $headers = mcte_average_headers($averageSubjects, false);
+    $widths = ['28%', '9%', '10.5%', '10.5%', '10.5%', '10.5%', '10.5%', '10.5%'];
+    $html .= '<table width="100%" cellpadding="3"><thead>';
+    $html .= '<tr><th colspan="8" align="center" class="group">' . mcte_h($year > 0 ? mcte_class_year_label(intval($year)) : 'Classi n/d') . '</th></tr>';
+    $html .= '<tr>';
+    foreach ($headers as $index => $header) {
+        $html .= '<th width="' . $widths[$index] . '" align="center">' . mcte_h($header) . '</th>';
+    }
+    $html .= '</tr></thead><tbody>';
+    foreach ($classRows as $row) {
+        $html .= '<tr>';
+        $html .= '<td width="' . $widths[0] . '">' . mcte_h($row['label'] ?? '') . '</td>';
+        $html .= '<td width="' . $widths[1] . '" class="center">' . intval($row['students'] ?? 0) . '</td>';
+        $cellIndex = 2;
+        foreach (array_keys($averageSubjects) as $subjectKey) {
+            $html .= '<td width="' . $widths[$cellIndex] . '" class="center">' . mcte_h(mcte_average_cell($row[$subjectKey . '_avg'] ?? null)) . '</td>';
+            $cellIndex++;
+        }
+        $html .= '</tr>';
+    }
+    $html .= '</tbody></table>';
+}
+if (!$hasAverageClassRows) {
+    $html .= '<table width="100%" cellpadding="3"><tbody><tr><td class="center">Nessun voto disponibile.</td></tr></tbody></table>';
+}
+
+$html .= '<h2>Medie voti per gruppi</h2>';
+foreach (($averagesSummary['totals'] ?? []) as $year => $yearRows) {
+    if (empty($yearRows)) {
+        continue;
+    }
+    $headers = mcte_average_headers($averageSubjects, true);
+    $headers[0] = intval($year) <= 2 ? 'Totale' : 'Indirizzo';
+    $widths = ['22%', '7%', '8%', '10.5%', '10.5%', '10.5%', '10.5%', '10.5%', '10.5%'];
+    $html .= '<table width="100%" cellpadding="3"><thead>';
+    $html .= '<tr><th colspan="9" align="center" class="group">' . mcte_h(mcte_class_year_label(intval($year))) . '</th></tr>';
+    $html .= '<tr>';
+    foreach ($headers as $index => $header) {
+        $html .= '<th width="' . $widths[$index] . '" align="center">' . mcte_h($header) . '</th>';
+    }
+    $html .= '</tr></thead><tbody>';
+    foreach ($yearRows as $summaryRow) {
+        $html .= '<tr>';
+        $html .= '<td width="' . $widths[0] . '">' . mcte_h($summaryRow['label'] ?? '') . '</td>';
+        $html .= '<td width="' . $widths[1] . '" class="center">' . intval($summaryRow['classes'] ?? 0) . '</td>';
+        $html .= '<td width="' . $widths[2] . '" class="center">' . intval($summaryRow['students'] ?? 0) . '</td>';
+        $cellIndex = 3;
+        foreach (array_keys($averageSubjects) as $subjectKey) {
+            $html .= '<td width="' . $widths[$cellIndex] . '" class="center">' . mcte_h(mcte_average_cell($summaryRow[$subjectKey . '_avg'] ?? null)) . '</td>';
+            $cellIndex++;
+        }
         $html .= '</tr>';
     }
     $html .= '</tbody></table>';

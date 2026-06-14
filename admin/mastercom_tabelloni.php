@@ -47,6 +47,15 @@ function mct_datetime_it($value): string
     }
 }
 
+function mct_avg_value($value): string
+{
+    if ($value === null || $value === '') {
+        return '-';
+    }
+
+    return number_format((float)$value, 2, ',', '');
+}
+
 mastercomTabelloniEnsureTables();
 
 $message = '';
@@ -162,6 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $recentRows = mastercomTabelloniRecentRows(100);
 mastercomTabelloniRefreshDerivedFields();
 $outcomeSummary = mastercomTabelloniOutcomeSummary($auditYearId, $selectedPeriod);
+$averagesSummary = mastercomTabelloniAveragesSummary($auditYearId, $selectedPeriod);
 $auditRows = mastercomTabelloniAuditRows($auditYearId, $auditClassId, 300);
 $auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
 ?>
@@ -571,6 +581,75 @@ $auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
                                             <td class="text-center warning"><?php echo intval($summaryRow['promossi_con_carenze'] ?? 0); ?></td>
                                             <td class="text-center warning"><?php echo intval($summaryRow['promossi_una_carenza'] ?? 0); ?></td>
                                             <td class="text-center warning"><?php echo intval($summaryRow['promossi_due_o_piu_carenze'] ?? 0); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="mct-summary-section">
+                        <h4>Medie voti</h4>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped table-condensed mct-table mct-summary-table">
+                                <thead>
+                                <tr>
+                                    <th>Classe</th>
+                                    <th class="text-center">Studenti</th>
+                                    <?php foreach (($averagesSummary['subjects'] ?? []) as $subjectConfig): ?>
+                                        <th class="text-center"><?php echo mct_h($subjectConfig['label'] ?? ''); ?></th>
+                                    <?php endforeach; ?>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <?php if (empty($averagesSummary['classes'])): ?>
+                                    <tr>
+                                        <td colspan="8" class="text-center">Nessun voto disponibile per anno scolastico e periodo selezionati.</td>
+                                    </tr>
+                                <?php endif; ?>
+                                <?php foreach (($averagesSummary['classes'] ?? []) as $summaryRow): ?>
+                                    <tr>
+                                        <td><?php echo mct_h($summaryRow['label'] ?? ''); ?></td>
+                                        <td class="text-center"><?php echo intval($summaryRow['students'] ?? 0); ?></td>
+                                        <?php foreach (array_keys((array)($averagesSummary['subjects'] ?? [])) as $subjectKey): ?>
+                                            <td class="text-center"><?php echo mct_avg_value($summaryRow[$subjectKey . '_avg'] ?? null); ?></td>
+                                        <?php endforeach; ?>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h4>Medie gruppi</h4>
+                        <?php foreach (($averagesSummary['totals'] ?? []) as $year => $yearRows): ?>
+                            <?php if (empty($yearRows)): ?>
+                                <?php continue; ?>
+                            <?php endif; ?>
+                            <div class="mct-summary-year">
+                                <?php echo mct_h(mct_class_year_label(intval($year))); ?>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-condensed mct-table mct-summary-table">
+                                    <thead>
+                                    <tr>
+                                        <th><?php echo intval($year) <= 2 ? 'Totale' : 'Indirizzo'; ?></th>
+                                        <th class="text-center">Classi</th>
+                                        <th class="text-center">Studenti</th>
+                                        <?php foreach (($averagesSummary['subjects'] ?? []) as $subjectConfig): ?>
+                                            <th class="text-center"><?php echo mct_h($subjectConfig['label'] ?? ''); ?></th>
+                                        <?php endforeach; ?>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <?php foreach ($yearRows as $summaryRow): ?>
+                                        <tr>
+                                            <td><?php echo mct_h($summaryRow['label'] ?? ''); ?></td>
+                                            <td class="text-center"><?php echo intval($summaryRow['classes'] ?? 0); ?></td>
+                                            <td class="text-center"><?php echo intval($summaryRow['students'] ?? 0); ?></td>
+                                            <?php foreach (array_keys((array)($averagesSummary['subjects'] ?? [])) as $subjectKey): ?>
+                                                <td class="text-center"><?php echo mct_avg_value($summaryRow[$subjectKey . '_avg'] ?? null); ?></td>
+                                            <?php endforeach; ?>
                                         </tr>
                                     <?php endforeach; ?>
                                     </tbody>

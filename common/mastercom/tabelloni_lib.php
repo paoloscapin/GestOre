@@ -1489,7 +1489,44 @@ function mastercomTabelloniSummaryClassLabel(array $row): string
         $label = trim((string)($row['classe'] ?? ''));
     }
 
+    $norm = mastercomAdminNorm($label);
+    $parts = preg_split('/[^A-Z0-9]+/u', $norm, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    if (!empty($parts) && mastercomTabelloniClassYearFromName($label) <= 2 && !in_array('ART', $parts, true)) {
+        return (string)$parts[0];
+    }
+
     return $label;
+}
+
+function mastercomTabelloniSummaryIsArticulatedLabel(string $label): bool
+{
+    $parts = preg_split('/[^A-Z0-9]+/u', mastercomAdminNorm($label), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    return in_array('ART', $parts, true);
+}
+
+function mastercomTabelloniSummaryEffectiveClassLabel(array $row): string
+{
+    $tabelloneLabel = mastercomTabelloniSummaryClassLabel($row);
+    $components = mastercomDebtsClassComponentsFromName($tabelloneLabel);
+    if (count($components) <= 1 || !mastercomTabelloniSummaryIsArticulatedLabel($tabelloneLabel)) {
+        return $tabelloneLabel;
+    }
+
+    foreach (['classe_gestore_studente', 'classe_mastercom_studente'] as $field) {
+        $studentClass = trim((string)($row[$field] ?? ''));
+        if ($studentClass === '') {
+            continue;
+        }
+
+        $studentComponents = mastercomDebtsClassComponentsFromName($studentClass);
+        foreach ($studentComponents as $studentComponent) {
+            if (in_array($studentComponent, $components, true)) {
+                return $studentClass;
+            }
+        }
+    }
+
+    return $tabelloneLabel;
 }
 
 function mastercomTabelloniSummaryAddress(string $className): string
@@ -1530,7 +1567,7 @@ function mastercomTabelloniSummaryAddress(string $className): string
 
     if (empty($addressParts)) {
         $first = mastercomDebtsNormalizeClassToken((string)$parts[0]);
-        if (preg_match('/^[3-5][A-Z]+([A-Z]{2,})$/u', $first, $matches)) {
+        if (preg_match('/^[3-5]([A-Z0-9]{2,})$/u', $first, $matches)) {
             return $matches[1];
         }
         return 'n/d';
@@ -1565,6 +1602,232 @@ function mastercomTabelloniAddOutcomeSummaryRow(array &$target, array $source): 
     $target['promossi_due_o_piu_carenze'] += intval($source['promossi_due_o_piu_carenze'] ?? 0);
 }
 
+function mastercomTabelloniAverageSubjects(): array
+{
+    return [
+        'matematica' => [
+            'label' => 'Matematica',
+            'codes' => ['MAT', 'MCM'],
+        ],
+        'italiano' => [
+            'label' => 'Lingua italiana',
+            'codes' => ['ITA'],
+        ],
+        'inglese' => [
+            'label' => 'Lingua inglese',
+            'codes' => ['ING'],
+        ],
+        'tedesco' => [
+            'label' => 'Lingua tedesca',
+            'codes' => ['TED'],
+        ],
+        'crel' => [
+            'label' => 'Capacita relazionale',
+            'codes' => ['CREL'],
+        ],
+        'media' => [
+            'label' => 'Media generale',
+            'codes' => ['MEDIA'],
+        ],
+    ];
+}
+
+function mastercomTabelloniAverageCategory(string $subjectCode, string $columnType): string
+{
+    $code = mastercomAdminNorm($subjectCode);
+    if ($columnType === 'media' || $code === 'MEDIA') {
+        return 'media';
+    }
+
+    foreach (mastercomTabelloniAverageSubjects() as $key => $config) {
+        if ($key === 'media') {
+            continue;
+        }
+        if (in_array($code, (array)($config['codes'] ?? []), true)) {
+            return $key;
+        }
+    }
+
+    return '';
+}
+
+function mastercomTabelloniEmptyAveragesSummaryRow(string $label, string $type = 'classe'): array
+{
+    $row = [
+        'type' => $type,
+        'label' => $label,
+        'classes' => 0,
+        'students' => 0,
+        'class_year' => 0,
+        'address' => '',
+    ];
+    foreach (mastercomTabelloniAverageSubjects() as $key => $config) {
+        $row[$key . '_sum'] = 0.0;
+        $row[$key . '_count'] = 0;
+        $row[$key . '_avg'] = null;
+    }
+
+    return $row;
+}
+
+function mastercomTabelloniAddAverageValue(array &$row, string $category, ?float $value): void
+{
+    if ($category === '' || $value === null) {
+        return;
+    }
+    if (!array_key_exists($category . '_sum', $row)) {
+        return;
+    }
+
+    $row[$category . '_sum'] += $value;
+    $row[$category . '_count']++;
+    $row[$category . '_avg'] = $row[$category . '_count'] > 0
+        ? $row[$category . '_sum'] / $row[$category . '_count']
+        : null;
+}
+
+function mastercomTabelloniAddAveragesSummaryRow(array &$target, array $source): void
+{
+    $target['classes'] += intval($source['classes'] ?? 0);
+    $target['students'] += intval($source['students'] ?? 0);
+    foreach (mastercomTabelloniAverageSubjects() as $key => $config) {
+        $target[$key . '_sum'] += floatval($source[$key . '_sum'] ?? 0);
+        $target[$key . '_count'] += intval($source[$key . '_count'] ?? 0);
+        $target[$key . '_avg'] = $target[$key . '_count'] > 0
+            ? $target[$key . '_sum'] / $target[$key . '_count']
+            : null;
+    }
+}
+
+function mastercomTabelloniAveragesSummary(int $schoolYearId = 0, string $period = '9'): array
+{
+    mastercomTabelloniEnsureTables();
+
+    $where = ["t.periodo = " . dbQ($period !== '' ? $period : '9')];
+    if ($schoolYearId > 0) {
+        $where[] = "t.id_anno_scolastico = " . dbI($schoolYearId);
+    }
+    $whereSql = implode(' AND ', $where);
+
+    $rows = dbGetAll("
+        SELECT
+            t.id AS tabellone_id,
+            t.classe,
+            t.classe_tabellone,
+            t.anno_label,
+            t.id_anno_scolastico,
+            s.id AS tabellone_studente_id,
+            s.mastercom_id_studente,
+            s.id_studente_gestore,
+            s.studente_nome,
+            cls_summary.classe AS classe_gestore_studente,
+            mcls_summary.nome AS classe_mastercom_studente,
+            v.materia_codice,
+            v.tipo_colonna,
+            v.valore_num
+        FROM mastercom_tabelloni_scrutini t
+        INNER JOIN mastercom_tabelloni_scrutini_studenti s ON s.tabellone_id = t.id
+        INNER JOIN mastercom_tabelloni_scrutini_voti v ON v.tabellone_studente_id = s.id
+        LEFT JOIN studente_frequenta sf_summary ON sf_summary.id = (
+            SELECT sf2.id
+            FROM studente_frequenta sf2
+            WHERE sf2.id_studente = s.id_studente_gestore
+              AND sf2.id_anno_scolastico = t.id_anno_scolastico
+            ORDER BY sf2.id DESC
+            LIMIT 1
+        )
+        LEFT JOIN classi cls_summary ON cls_summary.id = sf_summary.id_classe
+        LEFT JOIN mastercom_studenti mstu_summary ON mstu_summary.id = (
+            SELECT ms2.id
+            FROM mastercom_studenti ms2
+            WHERE ms2.mastercom_id_studente = s.mastercom_id_studente
+            ORDER BY ms2.id DESC
+            LIMIT 1
+        )
+        LEFT JOIN mastercom_classi mcls_summary ON mcls_summary.mastercom_id_classe = mstu_summary.mastercom_id_classe_corrente
+        WHERE $whereSql
+          AND v.valore_num IS NOT NULL
+          AND v.tipo_colonna IN ('voto', 'media')
+        ORDER BY t.classe ASC, s.studente_nome ASC, v.materia_codice ASC
+    ") ?: [];
+
+    $classes = [];
+    foreach ($rows as $row) {
+        $category = mastercomTabelloniAverageCategory((string)($row['materia_codice'] ?? ''), (string)($row['tipo_colonna'] ?? ''));
+        if ($category === '') {
+            continue;
+        }
+
+        $classLabel = mastercomTabelloniSummaryEffectiveClassLabel($row);
+        if ($classLabel === '') {
+            $classLabel = trim((string)($row['classe'] ?? ''));
+        }
+        if ($classLabel === '') {
+            $classLabel = 'Classe n/d';
+        }
+
+        $classYear = mastercomTabelloniClassYearFromName($classLabel);
+        $classKey = mastercomAdminNormCompact($classLabel);
+        if ($classKey === '') {
+            $classKey = 'CLASS_' . intval($row['tabellone_id'] ?? 0);
+        }
+        if (!isset($classes[$classKey])) {
+            $classes[$classKey] = mastercomTabelloniEmptyAveragesSummaryRow($classLabel, 'classe');
+            $classes[$classKey]['class_year'] = $classYear;
+            $classes[$classKey]['address'] = $classYear >= 3 ? mastercomTabelloniSummaryAddress($classLabel) : '';
+            $classes[$classKey]['classes'] = 1;
+        }
+
+        $studentKey = 'student_' . intval($row['tabellone_studente_id'] ?? 0);
+        if (empty($classes[$classKey]['_students'][$studentKey])) {
+            $classes[$classKey]['_students'][$studentKey] = true;
+            $classes[$classKey]['students']++;
+        }
+
+        mastercomTabelloniAddAverageValue($classes[$classKey], $category, floatval($row['valore_num']));
+    }
+
+    foreach ($classes as &$classRow) {
+        unset($classRow['_students']);
+    }
+    unset($classRow);
+
+    $totals = [
+        1 => [],
+        2 => [],
+        3 => [],
+        4 => [],
+        5 => [],
+    ];
+    foreach ($classes as $classRow) {
+        $classYear = intval($classRow['class_year'] ?? 0);
+        if ($classYear <= 0 || $classYear > 5) {
+            continue;
+        }
+        if ($classYear <= 2) {
+            $key = 'totale';
+            if (!isset($totals[$classYear][$key])) {
+                $totals[$classYear][$key] = mastercomTabelloniEmptyAveragesSummaryRow('Totale classi ' . $classYear . 'e', 'totale');
+            }
+        } else {
+            $key = (string)($classRow['address'] ?? 'n/d');
+            if ($key === '') {
+                $key = 'n/d';
+            }
+            if (!isset($totals[$classYear][$key])) {
+                $totals[$classYear][$key] = mastercomTabelloniEmptyAveragesSummaryRow($key, 'indirizzo');
+            }
+        }
+        mastercomTabelloniAddAveragesSummaryRow($totals[$classYear][$key], $classRow);
+    }
+
+    return [
+        'subjects' => mastercomTabelloniAverageSubjects(),
+        'classes' => array_values($classes),
+        'totals' => $totals,
+    ];
+}
+
 function mastercomTabelloniOutcomeSummary(int $schoolYearId = 0, string $period = '9'): array
 {
     mastercomTabelloniEnsureTables();
@@ -1581,9 +1844,14 @@ function mastercomTabelloniOutcomeSummary(int $schoolYearId = 0, string $period 
             t.classe,
             t.classe_tabellone,
             t.anno_label,
+            t.id_anno_scolastico,
             s.id AS tabellone_studente_id,
+            s.mastercom_id_studente,
+            s.id_studente_gestore,
             s.esito_key,
             s.studente_nome,
+            cls_summary.classe AS classe_gestore_studente,
+            mcls_summary.nome AS classe_mastercom_studente,
             MAX(CASE
                 WHEN v.tipo_colonna = 'voto'
                  AND v.valore_num IN (4, 5)
@@ -1600,16 +1868,35 @@ function mastercomTabelloniOutcomeSummary(int $schoolYearId = 0, string $period 
             ) AS carenze_subjects
         FROM mastercom_tabelloni_scrutini t
         INNER JOIN mastercom_tabelloni_scrutini_studenti s ON s.tabellone_id = t.id
+        LEFT JOIN studente_frequenta sf_summary ON sf_summary.id = (
+            SELECT sf2.id
+            FROM studente_frequenta sf2
+            WHERE sf2.id_studente = s.id_studente_gestore
+              AND sf2.id_anno_scolastico = t.id_anno_scolastico
+            ORDER BY sf2.id DESC
+            LIMIT 1
+        )
+        LEFT JOIN classi cls_summary ON cls_summary.id = sf_summary.id_classe
+        LEFT JOIN mastercom_studenti mstu_summary ON mstu_summary.id = (
+            SELECT ms2.id
+            FROM mastercom_studenti ms2
+            WHERE ms2.mastercom_id_studente = s.mastercom_id_studente
+            ORDER BY ms2.id DESC
+            LIMIT 1
+        )
+        LEFT JOIN mastercom_classi mcls_summary ON mcls_summary.mastercom_id_classe = mstu_summary.mastercom_id_classe_corrente
         LEFT JOIN mastercom_tabelloni_scrutini_voti v ON v.tabellone_studente_id = s.id
         LEFT JOIN materia m ON m.id = v.id_materia_gestore
         WHERE $whereSql
-        GROUP BY t.id, t.classe, t.classe_tabellone, t.anno_label, s.id, s.esito_key, s.studente_nome
+        GROUP BY t.id, t.classe, t.classe_tabellone, t.anno_label, t.id_anno_scolastico,
+                 s.id, s.mastercom_id_studente, s.id_studente_gestore, s.esito_key, s.studente_nome,
+                 cls_summary.classe, mcls_summary.nome
         ORDER BY t.classe ASC, s.studente_nome ASC
     ") ?: [];
 
     $classes = [];
     foreach ($rows as $row) {
-        $classLabel = mastercomTabelloniSummaryClassLabel($row);
+        $classLabel = mastercomTabelloniSummaryEffectiveClassLabel($row);
         if ($classLabel === '') {
             $classLabel = trim((string)($row['classe'] ?? ''));
         }
