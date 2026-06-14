@@ -19,7 +19,15 @@ if ($selectedStudentId > 0 && !programmiPubbliciGenitoreCanAccessStudent((int)$_
 }
 
 $context = $selectedStudentId > 0 ? programmiPubbliciStudentContext($selectedStudentId) : null;
-$svolti = $context ? programmiPubbliciRowsForStudent('svolti', $selectedStudentId) : [];
+$anniSvolti = $context ? programmiPubbliciSvoltiYearsForStudent($selectedStudentId) : [];
+$selectedAnnoId = intval($_GET['anno_id'] ?? 0);
+if ($selectedAnnoId <= 0) {
+    $selectedAnnoId = intval($__anno_scolastico_corrente_id ?? 0);
+}
+if ($selectedAnnoId > 0 && !in_array($selectedAnnoId, array_map('intval', array_column($anniSvolti, 'id')), true)) {
+    $selectedAnnoId = !empty($anniSvolti) ? intval($anniSvolti[0]['id']) : 0;
+}
+$svolti = $context ? programmiPubbliciRowsForStudent('svolti', $selectedStudentId, $selectedAnnoId) : [];
 
 function programmiPubbliciSvoltiIsMobile(): bool
 {
@@ -60,14 +68,28 @@ if (programmiPubbliciSvoltiIsMobile()) {
                 <div class="alert alert-warning">Non risultano studenti attivi collegati al genitore.</div>
             <?php else: ?>
                 <form method="get" class="programmi-pubblici-toolbar">
-                    <label for="studente_id">Studente</label>
-                    <select id="studente_id" name="studente_id" class="selectpicker" data-live-search="true" data-width="260px" onchange="this.form.submit()">
-                        <?php foreach ($students as $student): ?>
-                            <option value="<?php echo intval($student['studente_id']); ?>" <?php echo intval($student['studente_id']) === $selectedStudentId ? 'selected' : ''; ?>>
-                                <?php echo programmiPubbliciH(($student['studente_cognome'] ?? '') . ' ' . ($student['studente_nome'] ?? '')); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div>
+                        <label for="studente_id">Studente</label>
+                        <select id="studente_id" name="studente_id" class="selectpicker" data-live-search="true" data-width="260px" onchange="this.form.submit()">
+                            <?php foreach ($students as $student): ?>
+                                <option value="<?php echo intval($student['studente_id']); ?>" <?php echo intval($student['studente_id']) === $selectedStudentId ? 'selected' : ''; ?>>
+                                    <?php echo programmiPubbliciH(($student['studente_cognome'] ?? '') . ' ' . ($student['studente_nome'] ?? '')); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php if (!empty($anniSvolti)): ?>
+                        <div>
+                            <label for="anno_id">Anno scolastico</label>
+                            <select id="anno_id" name="anno_id" class="selectpicker" data-width="220px" onchange="this.form.submit()">
+                                <?php foreach ($anniSvolti as $anno): ?>
+                                    <option value="<?php echo intval($anno['id']); ?>" <?php echo intval($anno['id']) === $selectedAnnoId ? 'selected' : ''; ?>>
+                                        <?php echo programmiPubbliciH($anno['anno'] ?? ''); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    <?php endif; ?>
                 </form>
 
                 <?php if ($context == null): ?>

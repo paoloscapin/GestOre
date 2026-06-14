@@ -388,6 +388,8 @@
     },
     "programmiSvolti": {
         "visibile_docenti": true,
+        "visibile_studenti": false,
+        "visibile_genitori": false,
         "coordinatore_vede_programmi_altri_docenti": true,
         "docente_puo_inserire": false,
         "docente_puo_modificare": false,
