@@ -63,6 +63,48 @@ function mastercomAdminNorm(?string $value): string
 {
     $value = trim((string)$value);
     $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $value = strtr($value, [
+        'à' => 'a',
+        'á' => 'a',
+        'â' => 'a',
+        'ä' => 'a',
+        'À' => 'A',
+        'Á' => 'A',
+        'Â' => 'A',
+        'Ä' => 'A',
+        'è' => 'e',
+        'é' => 'e',
+        'ê' => 'e',
+        'ë' => 'e',
+        'È' => 'E',
+        'É' => 'E',
+        'Ê' => 'E',
+        'Ë' => 'E',
+        'ì' => 'i',
+        'í' => 'i',
+        'î' => 'i',
+        'ï' => 'i',
+        'Ì' => 'I',
+        'Í' => 'I',
+        'Î' => 'I',
+        'Ï' => 'I',
+        'ò' => 'o',
+        'ó' => 'o',
+        'ô' => 'o',
+        'ö' => 'o',
+        'Ò' => 'O',
+        'Ó' => 'O',
+        'Ô' => 'O',
+        'Ö' => 'O',
+        'ù' => 'u',
+        'ú' => 'u',
+        'û' => 'u',
+        'ü' => 'u',
+        'Ù' => 'U',
+        'Ú' => 'U',
+        'Û' => 'U',
+        'Ü' => 'U',
+    ]);
     $value = mb_strtoupper($value, 'UTF-8');
     $value = preg_replace('/\s+/', ' ', $value);
     return trim((string)$value);
@@ -961,11 +1003,7 @@ function mastercomAdminFindLocalStudent(array $masterStudent): ?array
     $cf = trim((string)($masterStudent['codice_fiscale'] ?? ''));
     $expectedClassId = mastercomAdminExpectedLocalClassId($masterStudent);
 
-    if ($cf === '') {
-        return null;
-    }
-
-    $query = "
+    $selectSql = "
         SELECT
             s.*,
             sf.id_classe AS id_classe_corrente,
@@ -987,10 +1025,35 @@ function mastercomAdminFindLocalStudent(array $masterStudent): ?array
             )
         LEFT JOIN classi c
             ON c.id = sf.id_classe
-        WHERE LOWER(s.codice_fiscale) = LOWER(" . dbQ($cf) . ")
-        ORDER BY s.attivo DESC, s.id DESC
     ";
-    $rows = dbGetAll($query) ?: [];
+
+    if ($cf !== '') {
+        $rows = dbGetAll($selectSql . "
+            WHERE LOWER(s.codice_fiscale) = LOWER(" . dbQ($cf) . ")
+            ORDER BY s.attivo DESC, s.id DESC
+        ") ?: [];
+        if ($expectedClassId !== null) {
+            foreach ($rows as $row) {
+                if (intval($row['id_classe_corrente'] ?? 0) === $expectedClassId) {
+                    return $row;
+                }
+            }
+        }
+
+        if (count($rows) === 1) {
+            return $rows[0];
+        }
+    }
+
+    $emailWhere = mastercomAdminLocalStudentEmailWhere($masterStudent);
+    if ($emailWhere === '') {
+        return null;
+    }
+
+    $rows = dbGetAll($selectSql . "
+        WHERE $emailWhere
+        ORDER BY s.attivo DESC, s.id DESC
+    ") ?: [];
     if ($expectedClassId !== null) {
         foreach ($rows as $row) {
             if (intval($row['id_classe_corrente'] ?? 0) === $expectedClassId) {
@@ -999,7 +1062,45 @@ function mastercomAdminFindLocalStudent(array $masterStudent): ?array
         }
     }
 
-    return count($rows) === 1 ? $rows[0] : null;
+    $ids = array_values(array_unique(array_map(function ($row) {
+        return intval($row['id'] ?? 0);
+    }, $rows)));
+    $ids = array_values(array_filter($ids, function ($id) {
+        return $id > 0;
+    }));
+
+    return count($ids) === 1 ? $rows[0] : null;
+}
+
+function mastercomAdminNormalizeEmail($value): string
+{
+    return strtolower(trim((string)$value));
+}
+
+function mastercomAdminLocalStudentEmailWhere(array $masterStudent): string
+{
+    $emails = [];
+    foreach (['email1', 'email2', 'email', 'mail', 'username'] as $field) {
+        $email = mastercomAdminNormalizeEmail($masterStudent[$field] ?? '');
+        if ($email !== '' && strpos($email, '@') !== false) {
+            $emails[$email] = true;
+        }
+    }
+    if (empty($emails)) {
+        return '';
+    }
+
+    $where = [];
+    foreach (array_keys($emails) as $email) {
+        $where[] = "LOWER(TRIM(s.email)) = " . dbQ($email);
+        $where[] = "LOWER(TRIM(s.username)) = " . dbQ($email);
+        $localPart = preg_replace('/@.*/', '', $email);
+        if ($localPart !== '' && $localPart !== $email) {
+            $where[] = "LOWER(TRIM(s.username)) = " . dbQ($localPart);
+        }
+    }
+
+    return '(' . implode(' OR ', $where) . ')';
 }
 
 function mastercomAdminFindLocalParent(array $masterParent): ?array

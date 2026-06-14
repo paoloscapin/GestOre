@@ -432,6 +432,22 @@ function mastercomTabelloniNormalizeOutcome(string $result): string
     return 'sconosciuto';
 }
 
+function mastercomTabelloniOutcomeCell(array $cells): string
+{
+    for ($i = count($cells) - 1; $i >= 0; $i--) {
+        $value = mastercomTabelloniCleanCell($cells[$i] ?? '');
+        if ($value === '') {
+            continue;
+        }
+        $outcome = mastercomTabelloniNormalizeOutcome($value);
+        if ($outcome !== 'sconosciuto') {
+            return $value;
+        }
+    }
+
+    return '';
+}
+
 function mastercomTabelloniResolveSubjectId(string $subjectCode, string $className = ''): ?int
 {
     $subjectCode = mastercomTabelloniCleanCell($subjectCode);
@@ -600,6 +616,13 @@ function mastercomTabelloniParseXls(string $xls, int $mastercomClassId = 0, stri
                 'insufficiente' => $type === 'voto' && $numeric !== null && $numeric < 6 ? 1 : 0,
             ];
         }
+        if (($student['risultato'] ?? '') === '' || ($student['esito_key'] ?? '') === 'sconosciuto') {
+            $fallbackOutcome = mastercomTabelloniOutcomeCell($cells);
+            if ($fallbackOutcome !== '') {
+                $student['risultato'] = $fallbackOutcome;
+                $student['esito_key'] = mastercomTabelloniNormalizeOutcome($fallbackOutcome);
+            }
+        }
 
         $parsed['students'][] = $student;
     }
@@ -607,17 +630,62 @@ function mastercomTabelloniParseXls(string $xls, int $mastercomClassId = 0, stri
     return $parsed;
 }
 
-function mastercomTabelloniStudentLookupMap(int $mastercomClassId, ?int $localClassId, ?int $schoolYearId = null): array
+function mastercomTabelloniLocalClassIdsForName(?int $localClassId, string $className): array
+{
+    $ids = [];
+    if ($localClassId !== null && $localClassId > 0) {
+        $ids[$localClassId] = $localClassId;
+    }
+
+    foreach (mastercomDebtsClassComponentsFromName($className) as $component) {
+        $componentId = mastercomAdminFindLocalClassIdByName($component);
+        if ($componentId !== null && $componentId > 0) {
+            $ids[$componentId] = $componentId;
+        }
+    }
+
+    return array_values($ids);
+}
+
+function mastercomTabelloniMastercomClassIdsForName(int $mastercomClassId, string $className): array
+{
+    $ids = [];
+    if ($mastercomClassId > 0) {
+        $ids[$mastercomClassId] = $mastercomClassId;
+    }
+
+    $components = mastercomDebtsClassComponentsFromName($className);
+    if (empty($components) || !mastercomAdminTableExists('mastercom_classi')) {
+        return array_values($ids);
+    }
+
+    $rows = dbGetAll("SELECT mastercom_id_classe, nome FROM mastercom_classi") ?: [];
+    foreach ($rows as $row) {
+        $rowId = intval($row['mastercom_id_classe'] ?? 0);
+        $rowComponents = mastercomDebtsClassComponentsFromName((string)($row['nome'] ?? ''));
+        if ($rowId <= 0 || count($rowComponents) !== 1) {
+            continue;
+        }
+        if (in_array($rowComponents[0], $components, true)) {
+            $ids[$rowId] = $rowId;
+        }
+    }
+
+    return array_values($ids);
+}
+
+function mastercomTabelloniStudentLookupMap(int $mastercomClassId, ?int $localClassId, ?int $schoolYearId = null, string $className = ''): array
 {
     $map = [];
     if (mastercomAdminTableExists('mastercom_studenti')) {
         $where = [];
-        if ($mastercomClassId > 0) {
-            $where[] = "mastercom_id_classe_corrente = " . dbI($mastercomClassId);
+        $mastercomClassIds = mastercomTabelloniMastercomClassIdsForName($mastercomClassId, $className);
+        if (!empty($mastercomClassIds)) {
+            $where[] = "mastercom_id_classe_corrente IN (" . implode(',', array_map('intval', $mastercomClassIds)) . ")";
         }
         $whereSql = !empty($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
         $rows = dbGetAll("
-            SELECT mastercom_id_studente, id_studente_gestore, cognome, nome
+            SELECT *
             FROM mastercom_studenti
             $whereSql
         ") ?: [];
@@ -625,15 +693,30 @@ function mastercomTabelloniStudentLookupMap(int $mastercomClassId, ?int $localCl
             $label = trim((string)(($row['cognome'] ?? '') . ' ' . ($row['nome'] ?? '')));
             $key = mastercomAdminNormCompact($label);
             if ($key !== '') {
+                $localStudentId = intval($row['id_studente_gestore'] ?? 0) ?: null;
+                if ($localStudentId === null) {
+                    $localStudent = mastercomAdminResolveLocalStudent($row);
+                    $localStudentId = intval($localStudent['id'] ?? 0) ?: null;
+                    if ($localStudentId !== null && intval($row['id'] ?? 0) > 0) {
+                        dbExec("
+                            UPDATE mastercom_studenti
+                            SET id_studente_gestore = " . dbI($localStudentId) . "
+                            WHERE id = " . dbI($row['id']) . "
+                            LIMIT 1
+                        ");
+                    }
+                }
                 $map[$key] = [
                     'mastercom_id_studente' => intval($row['mastercom_id_studente'] ?? 0) ?: null,
-                    'id_studente_gestore' => intval($row['id_studente_gestore'] ?? 0) ?: null,
+                    'id_studente_gestore' => $localStudentId,
+                    'label' => $label,
                 ];
             }
         }
     }
 
-    if ($localClassId !== null && $localClassId > 0) {
+    $localClassIds = mastercomTabelloniLocalClassIdsForName($localClassId, $className);
+    if (!empty($localClassIds)) {
         $yearWhere = $schoolYearId !== null && $schoolYearId > 0
             ? " AND sf.id_anno_scolastico = " . dbI($schoolYearId)
             : "";
@@ -641,7 +724,7 @@ function mastercomTabelloniStudentLookupMap(int $mastercomClassId, ?int $localCl
             SELECT s.id, s.cognome, s.nome
             FROM studente s
             INNER JOIN studente_frequenta sf ON sf.id_studente = s.id
-            WHERE sf.id_classe = " . dbI($localClassId) . "
+            WHERE sf.id_classe IN (" . implode(',', array_map('intval', $localClassIds)) . ")
             $yearWhere
         ") ?: [];
         foreach ($rows as $row) {
@@ -650,12 +733,177 @@ function mastercomTabelloniStudentLookupMap(int $mastercomClassId, ?int $localCl
                 $map[$key] = [
                     'mastercom_id_studente' => $map[$key]['mastercom_id_studente'] ?? null,
                     'id_studente_gestore' => intval($row['id'] ?? 0) ?: null,
+                    'label' => trim((string)(($row['cognome'] ?? '') . ' ' . ($row['nome'] ?? ''))),
                 ];
             }
         }
     }
 
     return $map;
+}
+
+function mastercomTabelloniStudentNameKeysCompatible(string $leftKey, string $rightKey): bool
+{
+    $leftKey = trim($leftKey);
+    $rightKey = trim($rightKey);
+    if ($leftKey === '' || $rightKey === '') {
+        return false;
+    }
+    if ($leftKey === $rightKey) {
+        return true;
+    }
+
+    $minLength = min(strlen($leftKey), strlen($rightKey));
+    if ($minLength < 6) {
+        return false;
+    }
+
+    return strpos($leftKey, $rightKey) === 0 || strpos($rightKey, $leftKey) === 0;
+}
+
+function mastercomTabelloniNameTokens(string $name): array
+{
+    $tokens = preg_split('/\s+/u', mastercomAdminNorm($name)) ?: [];
+    $tokens = array_values(array_unique(array_filter($tokens, function ($token) {
+        return strlen((string)$token) >= 2;
+    })));
+
+    return $tokens;
+}
+
+function mastercomTabelloniStudentNamesCompatible(string $leftName, string $rightName): bool
+{
+    if (mastercomTabelloniStudentNameKeysCompatible(
+        mastercomAdminNormCompact($leftName),
+        mastercomAdminNormCompact($rightName)
+    )) {
+        return true;
+    }
+
+    $leftTokens = mastercomTabelloniNameTokens($leftName);
+    $rightTokens = mastercomTabelloniNameTokens($rightName);
+    if (count($leftTokens) < 2 || count($rightTokens) < 2) {
+        return false;
+    }
+    if ($leftTokens[0] !== $rightTokens[0]) {
+        return false;
+    }
+
+    $leftMissing = array_diff($leftTokens, $rightTokens);
+    $rightMissing = array_diff($rightTokens, $leftTokens);
+
+    return empty($leftMissing) || empty($rightMissing);
+}
+
+function mastercomTabelloniFindCompatibleStudentLookup(string $studentName, array $studentMap): array
+{
+    $studentKey = mastercomAdminNormCompact($studentName);
+    if ($studentKey === '') {
+        return [];
+    }
+    if (!empty($studentMap[$studentKey])) {
+        return $studentMap[$studentKey];
+    }
+
+    $matches = [];
+    foreach ($studentMap as $candidateKey => $candidate) {
+        $candidateName = (string)($candidate['label'] ?? $candidateKey);
+        if (
+            mastercomTabelloniStudentNameKeysCompatible($studentKey, (string)$candidateKey)
+            || mastercomTabelloniStudentNamesCompatible($studentName, $candidateName)
+        ) {
+            $matchId = intval($candidate['id_studente_gestore'] ?? 0);
+            $matches[$matchId > 0 ? (string)$matchId : (string)$candidateKey] = $candidate;
+        }
+    }
+
+    $matches = array_values($matches);
+    return count($matches) === 1 ? $matches[0] : [];
+}
+
+function mastercomTabelloniFindExpectedByCompatibleStudentName(array $expectedRows, int $tabelloneId, int $subjectId, string $studentName): ?array
+{
+    $studentKey = mastercomAdminNormCompact($studentName);
+    if ($tabelloneId <= 0 || $subjectId <= 0 || $studentKey === '') {
+        return null;
+    }
+
+    $matches = [];
+    foreach ($expectedRows as $row) {
+        if (intval($row['tabellone_id'] ?? 0) !== $tabelloneId) {
+            continue;
+        }
+        if (intval($row['id_materia_gestore'] ?? 0) !== $subjectId) {
+            continue;
+        }
+        $candidateName = (string)($row['studente_nome'] ?? '');
+        $candidateKey = mastercomAdminNormCompact($candidateName);
+        if (
+            mastercomTabelloniStudentNameKeysCompatible($studentKey, $candidateKey)
+            || mastercomTabelloniStudentNamesCompatible($studentName, $candidateName)
+        ) {
+            $matches[] = $row;
+        }
+    }
+
+    return count($matches) === 1 ? $matches[0] : null;
+}
+
+function mastercomTabelloniFindExpectedForDebt(array $expectedRows, array $debtRow, int $subjectId): ?array
+{
+    if ($subjectId <= 0) {
+        return null;
+    }
+
+    $yearId = intval($debtRow['id_anno_scolastico'] ?? 0);
+    $studentId = intval($debtRow['id_studente_gestore'] ?? 0);
+    $studentName = (string)($debtRow['studente_nome'] ?? '');
+    $debtClassId = intval($debtRow['id_classe_gestore'] ?? 0) ?: null;
+    $debtClassName = (string)($debtRow['classe'] ?? '');
+    $matches = [];
+
+    foreach ($expectedRows as $row) {
+        if (intval($row['id_materia_gestore'] ?? 0) !== $subjectId) {
+            continue;
+        }
+        if ($yearId > 0 && intval($row['id_anno_scolastico'] ?? 0) !== $yearId) {
+            continue;
+        }
+        if (!mastercomTabelloniClassesCompatible(
+            intval($row['id_classe_gestore'] ?? 0) ?: null,
+            (string)(($row['classe_tabellone'] ?? '') !== '' ? $row['classe_tabellone'] : ($row['classe'] ?? '')),
+            $debtClassId,
+            $debtClassName
+        )) {
+            continue;
+        }
+
+        $rowStudentId = intval($row['id_studente_gestore'] ?? 0);
+        $sameStudent = $studentId > 0 && $rowStudentId > 0 && $studentId === $rowStudentId;
+        if (!$sameStudent) {
+            $sameStudent = mastercomTabelloniStudentNamesCompatible($studentName, (string)($row['studente_nome'] ?? ''));
+        }
+        if ($sameStudent) {
+            $matches[] = $row;
+        }
+    }
+
+    return count($matches) >= 1 ? $matches[0] : null;
+}
+
+function mastercomTabelloniClassesCompatible(?int $tabelloneClassId, string $tabelloneClassName, ?int $debtClassId, string $debtClassName): bool
+{
+    if ($tabelloneClassId !== null && $tabelloneClassId > 0 && $debtClassId !== null && $debtClassId > 0 && $tabelloneClassId === $debtClassId) {
+        return true;
+    }
+
+    $tabelloneComponents = mastercomDebtsClassComponentsFromName($tabelloneClassName);
+    $debtComponents = mastercomDebtsClassComponentsFromName($debtClassName);
+    if (empty($tabelloneComponents) || empty($debtComponents)) {
+        return false;
+    }
+
+    return count(array_intersect($tabelloneComponents, $debtComponents)) > 0;
 }
 
 function mastercomTabelloniDeleteDetails(int $tabelloneId): void
@@ -741,21 +989,28 @@ function mastercomTabelloniSaveParsed(array $parsed, string $rawXls = ''): array
         ");
     }
 
-    $studentMap = mastercomTabelloniStudentLookupMap($mastercomClassId, $localClassId, $yearId);
+    $studentMap = mastercomTabelloniStudentLookupMap(
+        $mastercomClassId,
+        $localClassId,
+        $yearId,
+        (string)($parsed['classe_tabellone'] ?? $className)
+    );
     $stats = [
         'columns' => count($parsed['columns'] ?? []),
         'students' => 0,
         'votes' => 0,
         'without_student' => 0,
+        'without_student_names' => [],
     ];
 
     foreach (($parsed['students'] ?? []) as $student) {
         $studentName = (string)($student['studente_nome'] ?? '');
-        $lookup = $studentMap[mastercomAdminNormCompact($studentName)] ?? [];
+        $lookup = mastercomTabelloniFindCompatibleStudentLookup($studentName, $studentMap);
         $mastercomStudentId = intval($lookup['mastercom_id_studente'] ?? 0) ?: null;
         $localStudentId = intval($lookup['id_studente_gestore'] ?? 0) ?: null;
         if ($localStudentId === null) {
             $stats['without_student']++;
+            $stats['without_student_names'][] = $studentName;
         }
 
         $studentOutcome = (string)($student['esito_key'] ?? '');
@@ -825,7 +1080,7 @@ function mastercomTabelloniRefreshDerivedFields(): array
 {
     mastercomTabelloniEnsureTables();
 
-    $stats = ['subjects' => 0, 'outcomes' => 0];
+    $stats = ['subjects' => 0, 'outcomes' => 0, 'students' => 0];
     $subjectRows = dbGetAll("
         SELECT DISTINCT t.classe, v.materia_codice
         FROM mastercom_tabelloni_scrutini_voti v
@@ -851,18 +1106,70 @@ function mastercomTabelloniRefreshDerivedFields(): array
     }
 
     $outcomeRows = dbGetAll("
-        SELECT id, risultato
+        SELECT id, risultato, esito_key, raw_json
         FROM mastercom_tabelloni_scrutini_studenti
-        WHERE esito_key IS NULL OR esito_key = ''
+        WHERE esito_key IS NULL OR esito_key = '' OR esito_key = 'sconosciuto'
     ") ?: [];
     foreach ($outcomeRows as $row) {
+        $result = (string)($row['risultato'] ?? '');
+        $outcome = mastercomTabelloniNormalizeOutcome($result);
+        if ($outcome === 'sconosciuto') {
+            $raw = json_decode((string)($row['raw_json'] ?? ''), true);
+            if (is_array($raw)) {
+                $fallbackOutcome = mastercomTabelloniOutcomeCell($raw['raw_cells'] ?? []);
+                if ($fallbackOutcome !== '') {
+                    $result = $fallbackOutcome;
+                    $outcome = mastercomTabelloniNormalizeOutcome($fallbackOutcome);
+                }
+            }
+        }
         dbExec("
             UPDATE mastercom_tabelloni_scrutini_studenti
-            SET esito_key = " . dbQ(mastercomTabelloniNormalizeOutcome((string)($row['risultato'] ?? ''))) . "
+            SET risultato = " . dbQ($result) . ",
+                esito_key = " . dbQ($outcome) . "
             WHERE id = " . dbI($row['id'] ?? 0) . "
             LIMIT 1
         ");
         $stats['outcomes']++;
+    }
+
+    $tabelloni = dbGetAll("
+        SELECT DISTINCT t.id, t.mastercom_id_classe, t.id_classe_gestore, t.id_anno_scolastico, t.classe, t.classe_tabellone
+        FROM mastercom_tabelloni_scrutini t
+        INNER JOIN mastercom_tabelloni_scrutini_studenti s ON s.tabellone_id = t.id
+        WHERE s.id_studente_gestore IS NULL OR s.id_studente_gestore <= 0
+    ") ?: [];
+    foreach ($tabelloni as $tabellone) {
+        $map = mastercomTabelloniStudentLookupMap(
+            intval($tabellone['mastercom_id_classe'] ?? 0),
+            intval($tabellone['id_classe_gestore'] ?? 0) ?: null,
+            intval($tabellone['id_anno_scolastico'] ?? 0) ?: null,
+            (string)(($tabellone['classe_tabellone'] ?? '') !== '' ? $tabellone['classe_tabellone'] : ($tabellone['classe'] ?? ''))
+        );
+        if (empty($map)) {
+            continue;
+        }
+        $studentRows = dbGetAll("
+            SELECT id, studente_nome
+            FROM mastercom_tabelloni_scrutini_studenti
+            WHERE tabellone_id = " . dbI($tabellone['id'] ?? 0) . "
+              AND (id_studente_gestore IS NULL OR id_studente_gestore <= 0)
+        ") ?: [];
+        foreach ($studentRows as $studentRow) {
+            $key = mastercomAdminNormCompact((string)($studentRow['studente_nome'] ?? ''));
+            $lookup = mastercomTabelloniFindCompatibleStudentLookup((string)($studentRow['studente_nome'] ?? ''), $map);
+            $localStudentId = intval($lookup['id_studente_gestore'] ?? 0);
+            if ($key === '' || $localStudentId <= 0) {
+                continue;
+            }
+            dbExec("
+                UPDATE mastercom_tabelloni_scrutini_studenti
+                SET id_studente_gestore = " . dbI($localStudentId) . "
+                WHERE id = " . dbI($studentRow['id'] ?? 0) . "
+                LIMIT 1
+            ");
+            $stats['students']++;
+        }
     }
 
     return $stats;
@@ -1019,6 +1326,7 @@ function mastercomTabelloniFetchAndStoreAllClasses(array $params = []): array
         'students' => 0,
         'votes' => 0,
         'without_student' => 0,
+        'without_student_names' => [],
         'errors' => 0,
     ];
     $messages = [];
@@ -1040,6 +1348,12 @@ function mastercomTabelloniFetchAndStoreAllClasses(array $params = []): array
         $stats['students'] += intval($classStats['students'] ?? 0);
         $stats['votes'] += intval($classStats['votes'] ?? 0);
         $stats['without_student'] += intval($classStats['without_student'] ?? 0);
+        foreach ((array)($classStats['without_student_names'] ?? []) as $missingStudentName) {
+            $missingStudentName = trim((string)$missingStudentName);
+            if ($missingStudentName !== '') {
+                $stats['without_student_names'][] = trim((string)($classRow['nome'] ?? '')) . ': ' . $missingStudentName;
+            }
+        }
     }
 
     return [
@@ -1090,6 +1404,7 @@ function mastercomTabelloniAuditRows(int $schoolYearId = 0, int $mastercomClassI
                t.mastercom_id_classe,
                t.id_classe_gestore,
                t.classe,
+               t.classe_tabellone,
                t.anno_label,
                t.id_anno_scolastico,
                s.id AS tabellone_studente_id,
@@ -1113,12 +1428,37 @@ function mastercomTabelloniAuditRows(int $schoolYearId = 0, int $mastercomClassI
         ORDER BY t.classe ASC, s.studente_nome ASC, v.materia_codice ASC
     ") ?: [];
 
+    $expectedByStudentId = [];
+    $expectedByStudentName = [];
+    foreach ($expectedRows as $expectedRow) {
+        $tabelloneId = intval($expectedRow['tabellone_id'] ?? 0);
+        $subjectId = intval($expectedRow['id_materia_gestore'] ?? 0);
+        $studentId = intval($expectedRow['id_studente_gestore'] ?? 0);
+        if ($tabelloneId <= 0 || $subjectId <= 0) {
+            continue;
+        }
+        if ($studentId > 0) {
+            $expectedByStudentId[$tabelloneId . '|' . $studentId . '|' . $subjectId] = $expectedRow;
+        }
+        $studentKey = mastercomAdminNormCompact((string)($expectedRow['studente_nome'] ?? ''));
+        if ($studentKey !== '') {
+            $expectedByStudentName[$tabelloneId . '|' . $studentKey . '|' . $subjectId] = $expectedRow;
+        }
+    }
+
     foreach ($expectedRows as $row) {
         if (mastercomTabelloniClassYearFromName((string)($row['classe'] ?? '')) >= 5) {
             continue;
         }
         $studentId = intval($row['id_studente_gestore'] ?? 0);
         $subjectId = intval($row['id_materia_gestore'] ?? 0);
+        if (
+            ($subjectId > 0 && mastercomDebtsIsNoCourseExpectedSubjectId($subjectId))
+            || mastercomDebtsIsNoCourseExpectedSubjectName((string)($row['materia_codice'] ?? ''))
+            || mastercomDebtsIsNoCourseExpectedSubjectName((string)($row['materia_gestore'] ?? ''))
+        ) {
+            continue;
+        }
         $yearId = intval($row['id_anno_scolastico'] ?? 0);
         if ($studentId <= 0) {
             $issues[] = array_merge($row, [
@@ -1132,13 +1472,6 @@ function mastercomTabelloniAuditRows(int $schoolYearId = 0, int $mastercomClassI
                 'tipo' => 'MATERIA_NON_ABBINATA',
                 'messaggio' => 'Sigla materia del tabellone non abbinata a una materia GestOre.',
             ]);
-            continue;
-        }
-        if (
-            mastercomDebtsIsNoCourseExpectedSubjectId($subjectId)
-            || mastercomDebtsIsNoCourseExpectedSubjectName((string)($row['materia_codice'] ?? ''))
-            || mastercomDebtsIsNoCourseExpectedSubjectName((string)($row['materia_gestore'] ?? ''))
-        ) {
             continue;
         }
 
@@ -1168,7 +1501,12 @@ function mastercomTabelloniAuditRows(int $schoolYearId = 0, int $mastercomClassI
     }
 
     $extraRows = dbGetAll("
-        SELECT mc.id AS mastercom_carenza_id,
+        SELECT DISTINCT
+               t.id AS tabellone_id,
+               t.id_classe_gestore AS tabellone_id_classe_gestore,
+               t.classe AS tabellone_classe,
+               t.classe_tabellone,
+               mc.id AS mastercom_carenza_id,
                mc.mastercom_id_classe,
                mc.id_classe_gestore,
                mc.classe,
@@ -1185,7 +1523,6 @@ function mastercomTabelloniAuditRows(int $schoolYearId = 0, int $mastercomClassI
         FROM mastercom_carenze mc
         INNER JOIN mastercom_tabelloni_scrutini t
             ON t.id_anno_scolastico = mc.id_anno_scolastico
-           AND t.id_classe_gestore = mc.id_classe_gestore
            AND t.periodo = '9'
         LEFT JOIN mastercom_tabelloni_scrutini_studenti s
             ON s.tabellone_id = t.id
@@ -1197,23 +1534,20 @@ function mastercomTabelloniAuditRows(int $schoolYearId = 0, int $mastercomClassI
            AND c.id_anno_scolastico = mc.id_anno_scolastico
         WHERE " . ($schoolYearId > 0 ? "mc.id_anno_scolastico = " . dbI($schoolYearId) . " AND " : "") . "
               " . ($mastercomClassId > 0 ? "mc.mastercom_id_classe = " . dbI($mastercomClassId) . " AND " : "") . "
-              NOT EXISTS (
-                  SELECT 1
-                  FROM mastercom_tabelloni_scrutini_voti v
-                  INNER JOIN mastercom_tabelloni_scrutini_studenti ts ON ts.id = v.tabellone_studente_id
-                  WHERE ts.tabellone_id = t.id
-                    AND ts.id_studente_gestore = mc.id_studente_gestore
-                    AND ts.esito_key = 'ammesso'
-                    AND v.id_materia_gestore = mc.id_materia_gestore
-                    AND v.tipo_colonna = 'voto'
-                    AND v.valore_num IN (4, 5)
-                  LIMIT 1
-              )
+              1 = 1
         ORDER BY mc.classe ASC, mc.studente_nome ASC, mc.materia ASC
     ") ?: [];
 
     foreach ($extraRows as $row) {
         if (mastercomTabelloniClassYearFromName((string)($row['classe'] ?? '')) >= 5) {
+            continue;
+        }
+        if (!mastercomTabelloniClassesCompatible(
+            intval($row['tabellone_id_classe_gestore'] ?? 0) ?: null,
+            (string)(($row['classe_tabellone'] ?? '') !== '' ? $row['classe_tabellone'] : ($row['tabellone_classe'] ?? '')),
+            intval($row['id_classe_gestore'] ?? 0) ?: null,
+            (string)($row['classe'] ?? '')
+        )) {
             continue;
         }
         $subjectId = intval($row['id_materia_gestore'] ?? 0);
@@ -1224,6 +1558,34 @@ function mastercomTabelloniAuditRows(int $schoolYearId = 0, int $mastercomClassI
         ) {
             continue;
         }
+
+        $tabelloneId = intval($row['tabellone_id'] ?? 0);
+        $studentId = intval($row['id_studente_gestore'] ?? 0);
+        $matchedExpected = null;
+        if ($tabelloneId > 0 && $studentId > 0 && $subjectId > 0) {
+            $matchedExpected = $expectedByStudentId[$tabelloneId . '|' . $studentId . '|' . $subjectId] ?? null;
+        }
+        if ($matchedExpected === null && $tabelloneId > 0 && $subjectId > 0) {
+            $studentKey = mastercomAdminNormCompact((string)($row['studente_nome'] ?? ''));
+            if ($studentKey !== '') {
+                $matchedExpected = $expectedByStudentName[$tabelloneId . '|' . $studentKey . '|' . $subjectId] ?? null;
+            }
+        }
+        if ($matchedExpected === null) {
+            $matchedExpected = mastercomTabelloniFindExpectedByCompatibleStudentName(
+                $expectedRows,
+                $tabelloneId,
+                $subjectId,
+                (string)($row['studente_nome'] ?? '')
+            );
+        }
+        if ($matchedExpected === null) {
+            $matchedExpected = mastercomTabelloniFindExpectedForDebt($expectedRows, $row, $subjectId);
+        }
+        if ($matchedExpected !== null) {
+            continue;
+        }
+
         $issues[] = array_merge($row, [
             'tipo' => 'CARENZA_IMPORTATA_NON_NEL_TABELLONE',
             'valore' => '',

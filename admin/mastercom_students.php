@@ -31,6 +31,16 @@ function mastercomStudentsExportFileName(string $extension): string
     return 'mail_studenti_da_aggiornare_' . $timestamp . '.' . $extension;
 }
 
+function mastercomStudentsIsSeraleClass(?string $className): bool
+{
+    $className = mastercomAdminNorm((string)$className);
+    if ($className === '') {
+        return false;
+    }
+
+    return preg_match('/\b[1-5](AUS|INS|CTS)\b/u', $className) === 1;
+}
+
 $missingTables = mastercomAdminMissingTables(['mastercom_studenti', 'mastercom_classi', 'mastercom_genitori', 'mastercom_genitori_studenti']);
 $hasDescrizioneMateriaIntegrativa = empty($missingTables) && mastercomAdminTableColumnExists('mastercom_studenti', 'descrizione_materia_integrativa');
 $selectedClassId = intval($_GET['class_id'] ?? 0);
@@ -390,6 +400,7 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                             $expectedActive = mastercomAdminStudentExpectedActive($row);
                             $linkedParents = mastercomAdminCleanText($row['mastercom_genitori_nomi'] ?? '') ?? '';
                             $linkedParentsCount = intval($row['mastercom_genitori_count'] ?? 0);
+                            $isSeraleStudent = mastercomStudentsIsSeraleClass($row['classe_mastercom'] ?? '');
                             $rawStudent = json_decode((string)($row['raw_json'] ?? ''), true);
                             $rawCsvExport = is_array($rawStudent['_csv_export'] ?? null) ? $rawStudent['_csv_export'] : [];
                             ?>
@@ -503,7 +514,7 @@ if ($showMailReport && !empty($mailUpdateRows) && in_array($exportFormat, ['csv'
                                         <?php if (intval($compare['local']['attivo'] ?? 0) === 0): ?>
                                             <br><span class="label label-default">disattivato in GestOre</span>
                                         <?php endif; ?>
-                                        <?php if (intval($row['genitori_locali_count'] ?? 0) === 0): ?>
+                                        <?php if (!$isSeraleStudent && intval($row['genitori_locali_count'] ?? 0) === 0): ?>
                                             <br>
                                             <?php if (intval($row['gestore_attivo'] ?? 0) === 0): ?>
                                                 <span class="label label-success">senza genitori in GestOre, attivo=0</span>

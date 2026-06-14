@@ -87,6 +87,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = ($result['message'] ?? 'Import completato')
                     . ' Celle salvate: ' . intval($stats['votes'] ?? 0)
                     . '. Studenti non abbinati: ' . intval($stats['without_student'] ?? 0) . '.';
+                $missingStudentNames = array_filter(array_map('trim', (array)($stats['without_student_names'] ?? [])));
+                if (!empty($missingStudentNames)) {
+                    $message .= ' Non abbinati: ' . implode(', ', array_slice($missingStudentNames, 0, 8)) . '.';
+                    if (count($missingStudentNames) > 8) {
+                        $message .= ' ...';
+                    }
+                }
             } else {
                 $error = $result['message'] ?? 'Import tabellone non riuscito.';
             }
@@ -96,6 +103,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stats = $result['stats'] ?? [];
         if (!empty($result['ok'])) {
             $message = $result['message'] ?? 'Import globale completato.';
+            $missingStudentNames = array_filter(array_map('trim', (array)($stats['without_student_names'] ?? [])));
+            if (!empty($missingStudentNames)) {
+                $message .= ' Non abbinati: ' . implode(' | ', array_slice($missingStudentNames, 0, 12));
+                if (count($missingStudentNames) > 12) {
+                    $message .= ' ...';
+                }
+            }
             if (!empty($result['errors'])) {
                 $message .= ' Classi con errore: ' . implode(' | ', array_slice((array)$result['errors'], 0, 8));
                 if (count((array)$result['errors']) > 8) {
