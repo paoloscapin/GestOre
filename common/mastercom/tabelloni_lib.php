@@ -110,6 +110,12 @@ function mastercomTabelloniEnsureColumns(): void
             ADD COLUMN `esito_key` VARCHAR(30) NULL AFTER `risultato`
         ");
     }
+    if (!mastercomAdminTableColumnExists('mastercom_tabelloni_scrutini_colonne', 'sub_header')) {
+        dbExec("
+            ALTER TABLE `mastercom_tabelloni_scrutini_colonne`
+            ADD COLUMN `sub_header` VARCHAR(100) NULL AFTER `tipo`
+        ");
+    }
     if (!mastercomAdminTableColumnExists('mastercom_tabelloni_scrutini_voti', 'id_materia_gestore')) {
         dbExec("
             ALTER TABLE `mastercom_tabelloni_scrutini_voti`
@@ -977,13 +983,14 @@ function mastercomTabelloniSaveParsed(array $parsed, string $rawXls = ''): array
     foreach (($parsed['columns'] ?? []) as $column) {
         dbExec("
             INSERT INTO mastercom_tabelloni_scrutini_colonne (
-                tabellone_id, col_index, codice, descrizione, tipo, raw_json
+                tabellone_id, col_index, codice, descrizione, tipo, sub_header, raw_json
             ) VALUES (
                 " . dbI($tabelloneId) . ",
                 " . dbI($column['col_index'] ?? 0) . ",
                 " . dbQ($column['codice'] ?? '') . ",
                 " . dbQ($column['descrizione'] ?? '') . ",
                 " . dbQ($column['tipo'] ?? '') . ",
+                " . dbQ($column['sub_header'] ?? '') . ",
                 " . dbQ(mastercomAdminJson($column)) . "
             )
         ");
@@ -1379,9 +1386,312 @@ function mastercomTabelloniRecentRows(int $limit = 80): array
         LEFT JOIN mastercom_tabelloni_scrutini_studenti s ON s.tabellone_id = t.id
         LEFT JOIN mastercom_tabelloni_scrutini_voti v ON v.tabellone_id = t.id
         GROUP BY t.id
-        ORDER BY t.imported_at DESC, t.classe ASC
+        ORDER BY t.classe ASC, t.classe_tabellone ASC, t.imported_at DESC
         LIMIT " . dbI($limit) . "
     ") ?: [];
+}
+
+function mastercomTabelloniDetail(int $tabelloneId): array
+{
+    mastercomTabelloniEnsureTables();
+    if ($tabelloneId <= 0) {
+        return ['ok' => false, 'message' => 'Tabellone non valido.'];
+    }
+
+    $tabellone = dbGetFirst("
+        SELECT *
+        FROM mastercom_tabelloni_scrutini
+        WHERE id = " . dbI($tabelloneId) . "
+        LIMIT 1
+    ");
+    if ($tabellone == null) {
+        return ['ok' => false, 'message' => 'Tabellone non trovato.'];
+    }
+
+    $columns = dbGetAll("
+        SELECT col_index, codice, descrizione, tipo, sub_header
+        FROM mastercom_tabelloni_scrutini_colonne
+        WHERE tabellone_id = " . dbI($tabelloneId) . "
+        ORDER BY col_index ASC
+    ") ?: [];
+    $students = dbGetAll("
+        SELECT id, row_index, numero, studente_nome, media, crediti_3, crediti_4, crediti_5, crediti_totale, risultato, esito_key
+        FROM mastercom_tabelloni_scrutini_studenti
+        WHERE tabellone_id = " . dbI($tabelloneId) . "
+        ORDER BY numero ASC, row_index ASC
+    ") ?: [];
+    $votes = dbGetAll("
+        SELECT tabellone_studente_id, col_index, tipo_colonna, valore, valore_num, insufficiente
+        FROM mastercom_tabelloni_scrutini_voti
+        WHERE tabellone_id = " . dbI($tabelloneId) . "
+        ORDER BY tabellone_studente_id ASC, col_index ASC
+    ") ?: [];
+
+    $voteMap = [];
+    foreach ($votes as $vote) {
+        $studentId = intval($vote['tabellone_studente_id'] ?? 0);
+        $colIndex = intval($vote['col_index'] ?? 0);
+        if ($studentId <= 0) {
+            continue;
+        }
+        if (!isset($voteMap[$studentId])) {
+            $voteMap[$studentId] = [];
+        }
+        $voteMap[$studentId][$colIndex] = [
+            'value' => (string)($vote['valore'] ?? ''),
+            'type' => (string)($vote['tipo_colonna'] ?? ''),
+            'num' => $vote['valore_num'] !== null ? floatval($vote['valore_num']) : null,
+            'insufficiente' => intval($vote['insufficiente'] ?? 0) === 1,
+        ];
+    }
+
+    $studentRows = [];
+    foreach ($students as $student) {
+        $studentId = intval($student['id'] ?? 0);
+        $studentRows[] = [
+            'id' => $studentId,
+            'numero' => intval($student['numero'] ?? 0),
+            'nome' => (string)($student['studente_nome'] ?? ''),
+            'risultato' => (string)($student['risultato'] ?? ''),
+            'esito_key' => (string)($student['esito_key'] ?? ''),
+            'values' => $voteMap[$studentId] ?? [],
+        ];
+    }
+
+    return [
+        'ok' => true,
+        'tabellone' => [
+            'id' => intval($tabellone['id'] ?? 0),
+            'classe' => (string)($tabellone['classe'] ?? ''),
+            'classe_tabellone' => (string)($tabellone['classe_tabellone'] ?? ''),
+            'anno_label' => (string)($tabellone['anno_label'] ?? ''),
+            'periodo' => (string)($tabellone['periodo'] ?? ''),
+            'periodo_label' => (string)($tabellone['periodo_label'] ?? ''),
+            'imported_at' => (string)($tabellone['imported_at'] ?? ''),
+        ],
+        'columns' => array_map(function ($column) {
+            return [
+                'col_index' => intval($column['col_index'] ?? 0),
+                'codice' => (string)($column['codice'] ?? ''),
+                'descrizione' => (string)($column['descrizione'] ?? ''),
+                'tipo' => (string)($column['tipo'] ?? ''),
+                'sub_header' => (string)($column['sub_header'] ?? ''),
+            ];
+        }, $columns),
+        'students' => $studentRows,
+    ];
+}
+
+function mastercomTabelloniSummaryClassLabel(array $row): string
+{
+    $label = trim((string)($row['classe_tabellone'] ?? ''));
+    if ($label === '') {
+        $label = trim((string)($row['classe'] ?? ''));
+    }
+
+    return $label;
+}
+
+function mastercomTabelloniSummaryAddress(string $className): string
+{
+    $className = mastercomAdminNorm($className);
+    $parts = preg_split('/[^A-Z0-9]+/u', $className, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    if (empty($parts)) {
+        return 'n/d';
+    }
+
+    if (in_array('ART', $parts, true)) {
+        $componentLabels = [];
+        foreach (mastercomDebtsClassComponentsFromName($className) as $component) {
+            $component = preg_replace('/^[1-5]/u', '', $component);
+            if ($component === '' || $component === 'ART') {
+                continue;
+            }
+            $componentLabels[] = $component;
+        }
+        if (!empty($componentLabels)) {
+            return implode(' / ', array_values(array_unique($componentLabels)));
+        }
+    }
+
+    $addressParts = [];
+    foreach ($parts as $index => $part) {
+        if ($index === 0) {
+            continue;
+        }
+        if ($part === 'ART') {
+            continue;
+        }
+        if (preg_match('/^[1-5][A-Z0-9]+$/u', $part)) {
+            continue;
+        }
+        $addressParts[] = $part;
+    }
+
+    if (empty($addressParts)) {
+        $first = mastercomDebtsNormalizeClassToken((string)$parts[0]);
+        if (preg_match('/^[3-5][A-Z]+([A-Z]{2,})$/u', $first, $matches)) {
+            return $matches[1];
+        }
+        return 'n/d';
+    }
+
+    return implode(' / ', array_values(array_unique($addressParts)));
+}
+
+function mastercomTabelloniEmptyOutcomeSummaryRow(string $label, string $type = 'classe'): array
+{
+    return [
+        'type' => $type,
+        'label' => $label,
+        'classes' => 0,
+        'students' => 0,
+        'promossi' => 0,
+        'bocciati' => 0,
+        'promossi_con_carenze' => 0,
+        'promossi_una_carenza' => 0,
+        'promossi_due_o_piu_carenze' => 0,
+    ];
+}
+
+function mastercomTabelloniAddOutcomeSummaryRow(array &$target, array $source): void
+{
+    $target['classes'] += intval($source['classes'] ?? 0);
+    $target['students'] += intval($source['students'] ?? 0);
+    $target['promossi'] += intval($source['promossi'] ?? 0);
+    $target['bocciati'] += intval($source['bocciati'] ?? 0);
+    $target['promossi_con_carenze'] += intval($source['promossi_con_carenze'] ?? 0);
+    $target['promossi_una_carenza'] += intval($source['promossi_una_carenza'] ?? 0);
+    $target['promossi_due_o_piu_carenze'] += intval($source['promossi_due_o_piu_carenze'] ?? 0);
+}
+
+function mastercomTabelloniOutcomeSummary(int $schoolYearId = 0, string $period = '9'): array
+{
+    mastercomTabelloniEnsureTables();
+
+    $where = ["t.periodo = " . dbQ($period !== '' ? $period : '9')];
+    if ($schoolYearId > 0) {
+        $where[] = "t.id_anno_scolastico = " . dbI($schoolYearId);
+    }
+    $whereSql = implode(' AND ', $where);
+
+    $rows = dbGetAll("
+        SELECT
+            t.id AS tabellone_id,
+            t.classe,
+            t.classe_tabellone,
+            t.anno_label,
+            s.id AS tabellone_studente_id,
+            s.esito_key,
+            s.studente_nome,
+            MAX(CASE
+                WHEN v.tipo_colonna = 'voto'
+                 AND v.valore_num IN (4, 5)
+                THEN 1 ELSE 0
+            END) AS has_raw_carenza,
+            GROUP_CONCAT(DISTINCT
+                CASE
+                    WHEN v.tipo_colonna = 'voto'
+                     AND v.valore_num IN (4, 5)
+                    THEN CONCAT(COALESCE(v.materia_codice, ''), '||', COALESCE(v.id_materia_gestore, 0), '||', COALESCE(m.nome, ''))
+                    ELSE NULL
+                END
+                SEPARATOR '\n'
+            ) AS carenze_subjects
+        FROM mastercom_tabelloni_scrutini t
+        INNER JOIN mastercom_tabelloni_scrutini_studenti s ON s.tabellone_id = t.id
+        LEFT JOIN mastercom_tabelloni_scrutini_voti v ON v.tabellone_studente_id = s.id
+        LEFT JOIN materia m ON m.id = v.id_materia_gestore
+        WHERE $whereSql
+        GROUP BY t.id, t.classe, t.classe_tabellone, t.anno_label, s.id, s.esito_key, s.studente_nome
+        ORDER BY t.classe ASC, s.studente_nome ASC
+    ") ?: [];
+
+    $classes = [];
+    foreach ($rows as $row) {
+        $classLabel = mastercomTabelloniSummaryClassLabel($row);
+        if ($classLabel === '') {
+            $classLabel = trim((string)($row['classe'] ?? ''));
+        }
+        if ($classLabel === '') {
+            $classLabel = 'Classe n/d';
+        }
+
+        $classYear = mastercomTabelloniClassYearFromName($classLabel);
+        $classKey = mastercomAdminNormCompact($classLabel);
+        if ($classKey === '') {
+            $classKey = 'CLASS_' . intval($row['tabellone_id'] ?? 0);
+        }
+        if (!isset($classes[$classKey])) {
+            $classes[$classKey] = mastercomTabelloniEmptyOutcomeSummaryRow($classLabel, 'classe');
+            $classes[$classKey]['class_year'] = $classYear;
+            $classes[$classKey]['address'] = $classYear >= 3 ? mastercomTabelloniSummaryAddress($classLabel) : '';
+            $classes[$classKey]['classes'] = 1;
+        }
+
+        $outcome = (string)($row['esito_key'] ?? '');
+        $classes[$classKey]['students']++;
+        if (in_array($outcome, ['ammesso', 'anno_estero'], true)) {
+            $classes[$classKey]['promossi']++;
+            $carenzeCount = 0;
+            foreach (preg_split('/\n/u', (string)($row['carenze_subjects'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $subjectInfo) {
+                [$subjectCode, $subjectId, $subjectName] = array_pad(explode('||', $subjectInfo, 3), 3, '');
+                $subjectId = intval($subjectId);
+                if (
+                    ($subjectId > 0 && mastercomDebtsIsNoCourseExpectedSubjectId($subjectId))
+                    || mastercomDebtsIsNoCourseExpectedSubjectName($subjectCode)
+                    || mastercomDebtsIsNoCourseExpectedSubjectName($subjectName)
+                ) {
+                    continue;
+                }
+                $carenzeCount++;
+            }
+            if ($carenzeCount > 0) {
+                $classes[$classKey]['promossi_con_carenze']++;
+                if ($carenzeCount === 1) {
+                    $classes[$classKey]['promossi_una_carenza']++;
+                } else {
+                    $classes[$classKey]['promossi_due_o_piu_carenze']++;
+                }
+            }
+        } elseif (in_array($outcome, ['non_ammesso', 'in_corso'], true)) {
+            $classes[$classKey]['bocciati']++;
+        }
+    }
+
+    $totals = [
+        1 => [],
+        2 => [],
+        3 => [],
+        4 => [],
+        5 => [],
+    ];
+    foreach ($classes as $classRow) {
+        $classYear = intval($classRow['class_year'] ?? 0);
+        if ($classYear <= 0 || $classYear > 5) {
+            continue;
+        }
+        if ($classYear <= 2) {
+            $key = 'totale';
+            if (!isset($totals[$classYear][$key])) {
+                $totals[$classYear][$key] = mastercomTabelloniEmptyOutcomeSummaryRow('Totale classi ' . $classYear . 'e', 'totale');
+            }
+        } else {
+            $key = (string)($classRow['address'] ?? 'n/d');
+            if ($key === '') {
+                $key = 'n/d';
+            }
+            if (!isset($totals[$classYear][$key])) {
+                $totals[$classYear][$key] = mastercomTabelloniEmptyOutcomeSummaryRow($key, 'indirizzo');
+            }
+        }
+        mastercomTabelloniAddOutcomeSummaryRow($totals[$classYear][$key], $classRow);
+    }
+
+    return [
+        'classes' => array_values($classes),
+        'totals' => $totals,
+    ];
 }
 
 function mastercomTabelloniAuditRows(int $schoolYearId = 0, int $mastercomClassId = 0, int $limit = 300): array

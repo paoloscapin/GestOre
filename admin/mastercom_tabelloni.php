@@ -21,6 +21,18 @@ function mct_audit_type_label(string $type): string
     return $labels[$type] ?? $type;
 }
 
+function mct_class_year_label(int $year): string
+{
+    $labels = [
+        1 => 'Classi prime',
+        2 => 'Classi seconde',
+        3 => 'Classi terze',
+        4 => 'Classi quarte',
+        5 => 'Classi quinte',
+    ];
+    return $labels[$year] ?? ('Classi anno ' . $year);
+}
+
 mastercomTabelloniEnsureTables();
 
 $message = '';
@@ -40,6 +52,12 @@ $schoolYears = mastercomTabelloniSchoolYears();
 if ($auditYearId <= 0) {
     global $__anno_scolastico_corrente_id;
     $auditYearId = intval($__anno_scolastico_corrente_id ?? 0);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && trim((string)($_GET['ajax'] ?? '')) === 'tabellone_detail') {
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode(mastercomTabelloniDetail(intval($_GET['id'] ?? 0)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -129,6 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $recentRows = mastercomTabelloniRecentRows(100);
 mastercomTabelloniRefreshDerivedFields();
+$outcomeSummary = mastercomTabelloniOutcomeSummary($auditYearId, $selectedPeriod);
 $auditRows = mastercomTabelloniAuditRows($auditYearId, $auditClassId, 300);
 $auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
 ?>
@@ -184,6 +203,20 @@ $auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
         .mct-audit-stat strong {
             display: block;
             font-size: 18px;
+        }
+        .mct-summary-table tfoot tr {
+            background: #f5f5f5;
+            font-weight: 700;
+        }
+        .mct-summary-section {
+            margin-bottom: 18px;
+        }
+        .mct-summary-year {
+            margin-top: 14px;
+            padding: 6px 8px;
+            background: #eef7fb;
+            border-left: 4px solid #337ab7;
+            font-weight: 700;
         }
         .mct-row-danger {
             background: #ffe5e5;
@@ -246,6 +279,72 @@ $auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
             margin-top: 10px;
             color: #555;
             font-size: 13px;
+        }
+        .mct-tabellone-link {
+            border: 0;
+            background: transparent;
+            color: #337ab7;
+            padding: 0;
+            font-weight: 700;
+            text-align: left;
+        }
+        .mct-tabellone-link:hover {
+            color: #23527c;
+            text-decoration: underline;
+        }
+        .mct-tabellone-modal .modal-dialog {
+            width: 96vw;
+            max-width: 1500px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .mct-tabellone-modal .modal-body {
+            padding: 10px;
+        }
+        .mct-tabellone-modal .modal-header {
+            padding: 10px 15px;
+        }
+        .mct-tabellone-scroll {
+            max-height: calc(100vh - 135px);
+            overflow: auto;
+            border: 1px solid #ddd;
+        }
+        .mct-tabellone-grid {
+            margin-bottom: 0;
+            white-space: nowrap;
+        }
+        .mct-tabellone-grid th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #eef7fb;
+        }
+        .mct-tabellone-grid th:first-child,
+        .mct-tabellone-grid td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 3;
+            background: #fff;
+        }
+        .mct-tabellone-grid th:first-child {
+            background: #d9edf7;
+            z-index: 4;
+        }
+        .mct-tabellone-grid .mct-voto-insufficiente {
+            background: #ffd6d6;
+            color: #9f1239;
+            font-weight: 700;
+        }
+        .mct-tabellone-grid .mct-esito-ammesso,
+        .mct-tabellone-grid .mct-esito-anno_estero {
+            background: #d9f0d3;
+            font-weight: 700;
+        }
+        .mct-tabellone-grid .mct-esito-non_ammesso,
+        .mct-tabellone-grid .mct-esito-in_corso {
+            background: #d9534f;
+            color: #ffffff;
+            font-weight: 700;
         }
         @keyframes mct-spin {
             to { transform: rotate(360deg); }
@@ -366,6 +465,110 @@ $auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
 
             <div class="panel panel-default">
                 <div class="panel-heading">
+                    <span class="glyphicon glyphicon-stats"></span>&emsp;Riepilogo esiti tabelloni
+                </div>
+                <div class="panel-body">
+                    <div class="text-right" style="margin-bottom: 10px;">
+                        <?php
+                        $summaryExportParams = [
+                            'school_year_id' => $auditYearId,
+                            'period' => $selectedPeriod,
+                        ];
+                        ?>
+                        <a class="btn btn-sm btn-success" href="mastercom_tabelloni_export.php?<?php echo http_build_query($summaryExportParams + ['format' => 'xlsx']); ?>">
+                            <span class="glyphicon glyphicon-list-alt"></span> Esporta Excel
+                        </a>
+                        <a class="btn btn-sm btn-danger" href="mastercom_tabelloni_export.php?<?php echo http_build_query($summaryExportParams + ['format' => 'pdf']); ?>">
+                            <span class="glyphicon glyphicon-file"></span> Esporta PDF
+                        </a>
+                    </div>
+                    <div class="mct-muted" style="margin-bottom: 10px;">
+                        Promossi = ammessi + anno estero. Bocciati = non ammessi + in corso. Promossi con carenze = promossi con almeno un voto 4 o 5 su materia non informativa.
+                    </div>
+
+                    <div class="mct-summary-section">
+                        <h4>Dettaglio classi</h4>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped table-condensed mct-table mct-summary-table">
+                                <thead>
+                                <tr>
+                                    <th>Classe</th>
+                                    <th class="text-center">Studenti</th>
+                                    <th class="text-center">Promossi</th>
+                                    <th class="text-center">Bocciati</th>
+                                    <th class="text-center">Promossi con carenze</th>
+                                    <th class="text-center">1 carenza</th>
+                                    <th class="text-center">2 o pi&ugrave; carenze</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <?php if (empty($outcomeSummary['classes'])): ?>
+                                    <tr>
+                                        <td colspan="7" class="text-center">Nessun tabellone disponibile per anno scolastico e periodo selezionati.</td>
+                                    </tr>
+                                <?php endif; ?>
+                                <?php foreach (($outcomeSummary['classes'] ?? []) as $summaryRow): ?>
+                                    <tr>
+                                        <td><?php echo mct_h($summaryRow['label'] ?? ''); ?></td>
+                                        <td class="text-center"><?php echo intval($summaryRow['students'] ?? 0); ?></td>
+                                        <td class="text-center success"><?php echo intval($summaryRow['promossi'] ?? 0); ?></td>
+                                        <td class="text-center danger"><?php echo intval($summaryRow['bocciati'] ?? 0); ?></td>
+                                        <td class="text-center warning"><?php echo intval($summaryRow['promossi_con_carenze'] ?? 0); ?></td>
+                                        <td class="text-center warning"><?php echo intval($summaryRow['promossi_una_carenza'] ?? 0); ?></td>
+                                        <td class="text-center warning"><?php echo intval($summaryRow['promossi_due_o_piu_carenze'] ?? 0); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mct-summary-section">
+                        <h4>Totali</h4>
+                        <?php foreach (($outcomeSummary['totals'] ?? []) as $year => $yearRows): ?>
+                            <?php if (empty($yearRows)): ?>
+                                <?php continue; ?>
+                            <?php endif; ?>
+                            <div class="mct-summary-year">
+                                <?php echo mct_h(mct_class_year_label(intval($year))); ?>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-condensed mct-table mct-summary-table">
+                                    <thead>
+                                    <tr>
+                                        <th><?php echo intval($year) <= 2 ? 'Totale' : 'Indirizzo'; ?></th>
+                                        <th class="text-center">Classi</th>
+                                        <th class="text-center">Studenti</th>
+                                        <th class="text-center">Promossi</th>
+                                        <th class="text-center">Bocciati</th>
+                                        <th class="text-center">Promossi con carenze</th>
+                                        <th class="text-center">1 carenza</th>
+                                        <th class="text-center">2 o pi&ugrave; carenze</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <?php foreach ($yearRows as $summaryRow): ?>
+                                        <tr>
+                                            <td><?php echo mct_h($summaryRow['label'] ?? ''); ?></td>
+                                            <td class="text-center"><?php echo intval($summaryRow['classes'] ?? 0); ?></td>
+                                            <td class="text-center"><?php echo intval($summaryRow['students'] ?? 0); ?></td>
+                                            <td class="text-center success"><?php echo intval($summaryRow['promossi'] ?? 0); ?></td>
+                                            <td class="text-center danger"><?php echo intval($summaryRow['bocciati'] ?? 0); ?></td>
+                                            <td class="text-center warning"><?php echo intval($summaryRow['promossi_con_carenze'] ?? 0); ?></td>
+                                            <td class="text-center warning"><?php echo intval($summaryRow['promossi_una_carenza'] ?? 0); ?></td>
+                                            <td class="text-center warning"><?php echo intval($summaryRow['promossi_due_o_piu_carenze'] ?? 0); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel panel-default">
+                <div class="panel-heading">
                     <span class="glyphicon glyphicon-check"></span>&emsp;Controllo carenze da tabelloni
                 </div>
                 <div class="panel-body">
@@ -457,7 +660,7 @@ $auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
                 </div>
             </div>
 
-            <h4>Ultimi tabelloni importati</h4>
+            <h4>Tabelloni importati</h4>
             <div class="table-responsive">
                 <table class="table table-bordered table-striped table-condensed mct-table">
                     <thead>
@@ -480,7 +683,11 @@ $auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
                     <?php endif; ?>
                     <?php foreach ($recentRows as $row): ?>
                         <tr>
-                            <td><?php echo mct_h($row['classe'] ?? ''); ?></td>
+                            <td>
+                                <button type="button" class="mct-tabellone-link" data-tabellone-id="<?php echo intval($row['id'] ?? 0); ?>">
+                                    <?php echo mct_h($row['classe'] ?? ''); ?>
+                                </button>
+                            </td>
                             <td><?php echo mct_h($row['classe_tabellone'] ?? ''); ?></td>
                             <td class="text-center"><?php echo mct_h($row['anno_label'] ?? ''); ?></td>
                             <td><?php echo mct_h($row['periodo_label'] ?: $row['periodo']); ?></td>
@@ -496,6 +703,31 @@ $auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
         </div>
     </div>
 </div>
+<div class="modal fade mct-tabellone-modal" id="mctTabelloneModal" tabindex="-1" role="dialog" aria-labelledby="mctTabelloneTitle">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Chiudi"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="mctTabelloneTitle">Tabellone</h4>
+                <div class="mct-muted" id="mctTabelloneMeta"></div>
+                <div class="text-right" style="margin-top: 8px;">
+                    <a class="btn btn-xs btn-success disabled" id="mctTabelloneExportXlsx" href="#" target="_blank">
+                        <span class="glyphicon glyphicon-list-alt"></span> Excel
+                    </a>
+                    <a class="btn btn-xs btn-danger disabled" id="mctTabelloneExportPdf" href="#" target="_blank">
+                        <span class="glyphicon glyphicon-file"></span> PDF
+                    </a>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div id="mctTabelloneStatus" class="alert alert-info">Caricamento tabellone...</div>
+                <div class="mct-tabellone-scroll" id="mctTabelloneScroll" style="display:none;">
+                    <table class="table table-bordered table-condensed mct-tabellone-grid" id="mctTabelloneGrid"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <script>
 (function () {
     var form = document.getElementById('mctImportForm');
@@ -506,6 +738,14 @@ $auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
     var progressWrap = document.getElementById('mctProgressWrap');
     var progressBar = document.getElementById('mctProgressBar');
     var globalButton = document.getElementById('mctGlobalButton');
+    var tabelloneModal = $('#mctTabelloneModal');
+    var tabelloneTitle = document.getElementById('mctTabelloneTitle');
+    var tabelloneMeta = document.getElementById('mctTabelloneMeta');
+    var tabelloneStatus = document.getElementById('mctTabelloneStatus');
+    var tabelloneScroll = document.getElementById('mctTabelloneScroll');
+    var tabelloneGrid = document.getElementById('mctTabelloneGrid');
+    var tabelloneExportXlsx = document.getElementById('mctTabelloneExportXlsx');
+    var tabelloneExportPdf = document.getElementById('mctTabelloneExportPdf');
     var importClasses = <?php echo json_encode(array_map(function ($row) {
         return [
             'id' => intval($row['mastercom_id_classe'] ?? 0),
@@ -590,6 +830,132 @@ $auditStats = mastercomTabelloniAuditStats($auditYearId, $auditClassId);
             window.location.href = window.location.pathname + '?period=' + encodeURIComponent(document.getElementById('period').value);
         }, errors.length ? 3500 : 900);
     }
+
+    function htmlEscape(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function tabelloneClassYear(label) {
+        var match = String(label || '').match(/^\s*([1-5])/);
+        return match ? parseInt(match[1], 10) : 0;
+    }
+
+    function cellClass(value, column, student) {
+        var classes = ['text-center'];
+        if (value && value.insufficiente) {
+            classes.push('mct-voto-insufficiente');
+        }
+        if (column && column.tipo === 'risultato') {
+            classes.push('mct-esito-' + String((student && student.esito_key) || ''));
+        }
+        return classes.join(' ');
+    }
+
+    function renderTabellone(payload) {
+        var tabellone = payload.tabellone || {};
+        var columns = payload.columns || [];
+        var students = payload.students || [];
+        var titleLabel = tabellone.classe_tabellone || tabellone.classe || 'Tabellone';
+        var classYear = tabelloneClassYear(titleLabel);
+        var visibleColumns = columns.filter(function (column) {
+            if (classYear <= 2 && (column.tipo === 'credito' || column.tipo === 'credito_totale')) {
+                return false;
+            }
+            return true;
+        });
+        tabelloneTitle.textContent = titleLabel;
+        tabelloneMeta.textContent = 'A.S. ' + (tabellone.anno_label || '')
+            + ' - ' + (tabellone.periodo_label || tabellone.periodo || '')
+            + ' - importato ' + (tabellone.imported_at || '');
+
+        var html = '<thead><tr>';
+        html += '<th>Studente</th>';
+        visibleColumns.forEach(function (column) {
+            var label = column.codice || column.descrizione || '';
+            label = htmlEscape(label);
+            if (column.sub_header && column.sub_header !== label) {
+                label += '<br><small>' + htmlEscape(column.sub_header) + '</small>';
+            }
+            html += '<th class="text-center" title="' + htmlEscape(column.tipo || '') + '">' + label + '</th>';
+        });
+        html += '</tr></thead><tbody>';
+
+        if (!students.length) {
+            html += '<tr><td colspan="' + (visibleColumns.length + 1) + '" class="text-center">Nessuno studente nel tabellone.</td></tr>';
+        }
+
+        students.forEach(function (student) {
+            html += '<tr>';
+            html += '<td><strong>' + htmlEscape(student.numero || '') + '</strong> ' + htmlEscape(student.nome || '') + '</td>';
+            visibleColumns.forEach(function (column) {
+                var values = student.values || {};
+                var value = values[String(column.col_index)] || values[column.col_index] || null;
+                html += '<td class="' + cellClass(value, column, student) + '">' + htmlEscape(value ? value.value : '') + '</td>';
+            });
+            html += '</tr>';
+        });
+        html += '</tbody>';
+
+        tabelloneGrid.innerHTML = html;
+        tabelloneStatus.style.display = 'none';
+        tabelloneScroll.style.display = 'block';
+    }
+
+    function loadTabellone(tabelloneId) {
+        tabelloneTitle.textContent = 'Tabellone';
+        tabelloneMeta.textContent = '';
+        tabelloneGrid.innerHTML = '';
+        if (tabelloneExportXlsx && tabelloneExportPdf) {
+            tabelloneExportXlsx.classList.add('disabled');
+            tabelloneExportPdf.classList.add('disabled');
+            tabelloneExportXlsx.setAttribute('href', '#');
+            tabelloneExportPdf.setAttribute('href', '#');
+        }
+        tabelloneScroll.style.display = 'none';
+        tabelloneStatus.className = 'alert alert-info';
+        tabelloneStatus.textContent = 'Caricamento tabellone...';
+        tabelloneStatus.style.display = 'block';
+        tabelloneModal.modal('show');
+
+        fetch(window.location.pathname + '?ajax=tabellone_detail&id=' + encodeURIComponent(tabelloneId), {
+            method: 'GET',
+            credentials: 'same-origin'
+        }).then(function (response) {
+            return response.text();
+        }).then(function (text) {
+            try {
+                return JSON.parse(text);
+            } catch (err) {
+                throw new Error(text ? text.substring(0, 300) : 'Risposta vuota dal server.');
+            }
+        }).then(function (payload) {
+            if (!payload || !payload.ok) {
+                throw new Error((payload && payload.message) || 'Tabellone non disponibile.');
+            }
+            if (tabelloneExportXlsx && tabelloneExportPdf) {
+                var exportBase = 'mastercom_tabelloni_export.php?mode=tabellone&id=' + encodeURIComponent(tabelloneId);
+                tabelloneExportXlsx.setAttribute('href', exportBase + '&format=xlsx');
+                tabelloneExportPdf.setAttribute('href', exportBase + '&format=pdf');
+                tabelloneExportXlsx.classList.remove('disabled');
+                tabelloneExportPdf.classList.remove('disabled');
+            }
+            renderTabellone(payload);
+        }).catch(function (err) {
+            tabelloneStatus.className = 'alert alert-danger';
+            tabelloneStatus.textContent = err.message || 'Errore caricamento tabellone.';
+        });
+    }
+
+    document.querySelectorAll('.mct-tabellone-link').forEach(function (button) {
+        button.addEventListener('click', function () {
+            loadTabellone(button.getAttribute('data-tabellone-id'));
+        });
+    });
 })();
 </script>
 </body>
