@@ -347,10 +347,10 @@ function carenzaApriNotaModal(options) {
     $("#carenza_nota_testo").val(options.note || "");
     $("#carenza_nota_save_btn").text(options.mode === "validate" ? "Conferma carenza" : "Salva nota");
 
-    $modal.modal("show");
     $modal.one("shown.bs.modal", function () {
         $("#carenza_nota_testo").focus().select();
     });
+    $modal.modal("show");
 }
 
 function carenzaNotaModalSalva() {
