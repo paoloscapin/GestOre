@@ -259,7 +259,36 @@ function mastercomDebtsPlanSourceRows(int $schoolYearId): array
             mc.tipo_debito,
             m.nome AS materia_gestore,
             cl.classe AS classe_gestore,
-            CONCAT(COALESCE(s.cognome, ''), ' ', COALESCE(s.nome, '')) AS studente_gestore
+            CONCAT(COALESCE(s.cognome, ''), ' ', COALESCE(s.nome, '')) AS studente_gestore,
+            (
+                SELECT GROUP_CONCAT(DISTINCT TRIM(CONCAT(COALESCE(dc.cognome, ''), ' ', COALESCE(dc.nome, ''))) ORDER BY dc.cognome, dc.nome SEPARATOR ', ')
+                FROM carenze cdoc
+                INNER JOIN docente dc ON dc.id = cdoc.id_docente
+                WHERE cdoc.id_studente = mc.id_studente_gestore
+                  AND cdoc.id_materia = mc.id_materia_gestore
+                  AND cdoc.id_classe = mc.id_classe_gestore
+                  AND cdoc.id_anno_scolastico = mc.id_anno_scolastico
+                  AND COALESCE(cdoc.id_docente, 0) > 0
+            ) AS docente_carenza,
+            (
+                SELECT GROUP_CONCAT(DISTINCT TRIM(CONCAT(COALESCE(di_doc.cognome, ''), ' ', COALESCE(di_doc.nome, ''))) ORDER BY di_doc.cognome, di_doc.nome SEPARATOR ', ')
+                FROM docente_insegna di
+                INNER JOIN docente di_doc ON di_doc.id = di.id_docente
+                LEFT JOIN classi di_cl ON di_cl.id = di.id_classe
+                WHERE (
+                        di.id_classe = mc.id_classe_gestore
+                        OR (
+                            COALESCE(mc.id_classe_gestore, 0) <= 0
+                            AND di_cl.classe = mc.classe
+                        )
+                  )
+                  AND di.id_materia = mc.id_materia_gestore
+                  AND (
+                        di.id_anno_scolastico = mc.id_anno_scolastico
+                        OR di.id_anno_scolastico IS NULL
+                        OR di.id_anno_scolastico = 0
+                  )
+            ) AS docenti_insegnamento
         FROM mastercom_carenze mc
         LEFT JOIN materia m ON m.id = mc.id_materia_gestore
         LEFT JOIN classi cl ON cl.id = mc.id_classe_gestore
@@ -290,6 +319,10 @@ function mastercomDebtsPlanBuildBaseGroups(array $rows): array
         $className = trim((string)(($row['classe_gestore'] ?? '') ?: ($row['classe'] ?? '')));
         $classYear = mastercomDebtsPlanClassYear($className);
         $subjectName = trim((string)(($row['materia_gestore'] ?? '') ?: ($row['materia'] ?? 'Materia')));
+        $teacherName = trim((string)($row['docente_carenza'] ?? ''));
+        if ($teacherName === '') {
+            $teacherName = trim((string)($row['docenti_insegnamento'] ?? ''));
+        }
         $key = $classYear . ':' . $subjectId;
         $studentKey = $key . ':' . $studentId;
         if (isset($seen[$studentKey])) {
@@ -311,6 +344,7 @@ function mastercomDebtsPlanBuildBaseGroups(array $rows): array
             'id' => $studentId,
             'name' => $studentLabel,
             'class' => $className,
+            'teacher' => $teacherName,
         ];
     }
 

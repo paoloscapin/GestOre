@@ -156,33 +156,150 @@ function mcdp_unique_classes(array $students): string
     return implode(', ', $classLabels);
 }
 
-function mcdp_public_course_rows(array $groups): array
+function mcdp_export_group_key(array $group): string
+{
+    $groupKey = trim((string)(($group['plan_id'] ?? '') ?: ($group['key'] ?? '')));
+    if ($groupKey === '') {
+        $groupKey = md5(json_encode([$group['class_year'] ?? '', $group['subject'] ?? '', $group['part_index'] ?? '']));
+    }
+
+    return $groupKey;
+}
+
+function mcdp_export_group_short_label(array $group): string
+{
+    $partIndex = intval($group['part_index'] ?? 1);
+    $partTotal = intval($group['part_total'] ?? 1);
+    if ($partIndex <= 0) {
+        $partIndex = 1;
+    }
+    if ($partTotal <= 0) {
+        $partTotal = 1;
+    }
+
+    return $partIndex . '/' . $partTotal;
+}
+
+function mcdp_export_year_order($year): int
+{
+    $year = trim((string)$year);
+    return preg_match('/^[1-5]$/', $year) ? intval($year) : 99;
+}
+
+function mcdp_export_sort_groups(array $groups): array
+{
+    usort($groups, function ($a, $b) {
+        $cmp = mcdp_export_year_order($a['class_year'] ?? '') <=> mcdp_export_year_order($b['class_year'] ?? '');
+        if ($cmp !== 0) {
+            return $cmp;
+        }
+        $cmp = strnatcasecmp((string)($a['subject'] ?? ''), (string)($b['subject'] ?? ''));
+        if ($cmp !== 0) {
+            return $cmp;
+        }
+        $cmp = intval($a['part_index'] ?? 1) <=> intval($b['part_index'] ?? 1);
+        if ($cmp !== 0) {
+            return $cmp;
+        }
+        return strcmp(mcdp_export_group_key($a), mcdp_export_group_key($b));
+    });
+
+    return $groups;
+}
+
+function mcdp_export_group_refs(array $groups): array
+{
+    $refs = [];
+    $number = 1;
+    foreach ($groups as $group) {
+        $groupKey = mcdp_export_group_key($group);
+        if (isset($refs[$groupKey])) {
+            continue;
+        }
+        $subject = trim((string)($group['subject'] ?? ''));
+        $refs[$groupKey] = [
+            'number' => $number,
+            'label' => $number . ($subject !== '' ? ' - ' . $subject : ''),
+        ];
+        $number++;
+    }
+
+    return $refs;
+}
+
+function mcdp_student_course_titles(array $groups, array $groupRefs): array
+{
+    $map = [];
+    foreach ($groups as $group) {
+        $groupKey = mcdp_export_group_key($group);
+        $title = trim((string)($groupRefs[$groupKey]['label'] ?? ''));
+        if ($title === '') {
+            $title = trim((string)($group['subject'] ?? ''));
+        }
+        foreach (($group['students'] ?? []) as $student) {
+            $studentId = intval($student['id'] ?? 0);
+            if ($studentId <= 0) {
+                continue;
+            }
+            $map[$studentId][$groupKey] = $title;
+        }
+    }
+
+    return $map;
+}
+
+function mcdp_student_other_courses(array $student, array $studentCourseTitles, string $currentGroupKey): array
+{
+    $studentId = intval($student['id'] ?? 0);
+    if ($studentId <= 0) {
+        return [];
+    }
+
+    $otherTitles = $studentCourseTitles[$studentId] ?? [];
+    if ($currentGroupKey !== '') {
+        unset($otherTitles[$currentGroupKey]);
+    }
+    return array_values(array_unique(array_filter(array_map('trim', $otherTitles))));
+}
+
+function mcdp_public_course_rows(array $groups, array $studentCourseCounts, array $studentCourseTitles, string $kind): array
 {
     $rows = [];
     foreach ($groups as $group) {
-        $slots = array_values($group['slots'] ?? []);
-        if (empty($slots) && !empty($group['slot'])) {
-            $slots = [$group['slot']];
-        }
-        while (count($slots) < 3) {
-            $slots[] = ['label' => ''];
-        }
+        $students = (array)($group['students'] ?? []);
+        $groupKey = mcdp_export_group_key($group);
+        $groupTitle = mcdp_export_group_short_label($group);
+        $groupClasses = mcdp_unique_classes($students);
+        $studentCount = intval($group['student_count'] ?? count($students));
+        $courseNumber = intval($GLOBALS['mcdp_export_group_refs'][$groupKey]['number'] ?? 0);
 
-        $rows[] = [
-            'class_year' => (string)($group['class_year'] ?? ''),
-            'subject' => (string)($group['subject'] ?? ''),
-            'classes' => mcdp_unique_classes($group['students'] ?? []),
-            'group' => mcdp_group_title($group),
-            'students' => intval($group['student_count'] ?? count($group['students'] ?? [])),
-            'lesson_1' => (string)($slots[0]['label'] ?? ''),
-            'lesson_2' => (string)($slots[1]['label'] ?? ''),
-            'lesson_3' => (string)($slots[2]['label'] ?? ''),
-            'aula' => trim((string)($group['aula'] ?? '')),
-            'docente' => trim((string)($group['docente_nome'] ?? '')),
-        ];
+        foreach ($students as $student) {
+            $studentId = intval($student['id'] ?? 0);
+            $otherCourses = mcdp_student_other_courses($student, $studentCourseTitles, $groupKey);
+            $rows[] = [
+                'kind' => $kind,
+                'group_key' => $groupKey,
+                'course_number' => $courseNumber > 0 ? $courseNumber : '',
+                'class_year' => (string)($group['class_year'] ?? ''),
+                'subject' => (string)($group['subject'] ?? ''),
+                'teacher' => trim((string)($student['teacher'] ?? '')),
+                'classes' => $groupClasses,
+                'group' => $groupTitle,
+                'student_count' => $studentCount,
+                'student_class' => trim((string)($student['class'] ?? '')),
+                'student_name' => trim((string)($student['name'] ?? '')),
+                'other_courses' => implode("\n", $otherCourses),
+                'other_courses_html' => implode('<br>', array_map('mcdp_h', $otherCourses)),
+                'has_multi' => $studentId > 0 && intval($studentCourseCounts[$studentId] ?? 0) > 1,
+            ];
+        }
     }
 
     usort($rows, function ($a, $b) {
+        $cmp = intval($a['course_number'] ?? 0) <=> intval($b['course_number'] ?? 0);
+        if ($cmp !== 0) {
+            return $cmp;
+        }
         $cmp = strcmp((string)$a['class_year'], (string)$b['class_year']);
         if ($cmp !== 0) {
             return $cmp;
@@ -191,7 +308,15 @@ function mcdp_public_course_rows(array $groups): array
         if ($cmp !== 0) {
             return $cmp;
         }
-        return strcmp((string)$a['lesson_1'], (string)$b['lesson_1']);
+        $cmp = strcmp((string)$a['group'], (string)$b['group']);
+        if ($cmp !== 0) {
+            return $cmp;
+        }
+        $cmp = strnatcasecmp((string)$a['student_class'], (string)$b['student_class']);
+        if ($cmp !== 0) {
+            return $cmp;
+        }
+        return strnatcasecmp((string)$a['student_name'], (string)$b['student_name']);
     });
 
     return $rows;
@@ -205,58 +330,154 @@ function mcdp_export_filename(string $ext): string
 function mcdp_export_columns(): array
 {
     return [
+        'course_number' => 'N. corso',
         'class_year' => 'Anno',
         'subject' => 'Materia',
+        'teacher' => 'Docente carenza',
         'classes' => 'Classi',
         'group' => 'Gruppo',
-        'students' => 'Studenti',
-        'lesson_1' => 'Lezione 1',
-        'lesson_2' => 'Lezione 2',
-        'lesson_3' => 'Lezione 3',
-        'aula' => 'Aula',
-        'docente' => 'Docente',
+        'student_count' => 'N. studenti',
+        'student_class' => 'Classe studente',
+        'student_name' => 'Studente',
+        'other_courses' => 'Altri corsi/recuperi',
     ];
 }
 
-function mcdp_export_xlsx(array $rows, array $plan): void
+function mcdp_export_xlsx(array $courseRows, array $itinereRows, array $plan): void
 {
     require_once __DIR__ . '/../common/vendor/autoload.php';
 
     $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-    $sheet = $spreadsheet->getActiveSheet();
-    $sheet->setTitle('Corsi recupero');
-
     $columns = mcdp_export_columns();
-    $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($columns));
 
-    $sheet->setCellValue('A1', 'Calendario corsi recupero carenze');
-    $sheet->setCellValue('A2', 'Anno carenza: ' . ($plan['school_year_label'] ?? '') . ' - generato il ' . date('d/m/Y H:i'));
-    $sheet->fromArray(array_values($columns), null, 'A4');
+    foreach ([
+        ['sheet' => $spreadsheet->getActiveSheet(), 'title' => 'Corsi', 'heading' => 'Lista corsi recupero carenze', 'rows' => $courseRows],
+        ['sheet' => $spreadsheet->createSheet(), 'title' => 'Recupero in itinere', 'heading' => 'Recupero in itinere - gruppi sotto soglia', 'rows' => $itinereRows],
+    ] as $sheetInfo) {
+        $sheet = $sheetInfo['sheet'];
+        $rows = (array)$sheetInfo['rows'];
+        $sheet->setTitle($sheetInfo['title']);
+        $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($columns));
 
-    $rowIndex = 5;
-    foreach ($rows as $row) {
-        $sheet->fromArray(array_map(function ($key) use ($row) {
-            $value = trim((string)($row[$key] ?? ''));
-            if (($key === 'aula' || $key === 'docente') && $value === '') {
-                return 'Da definire';
+        $sheet->setCellValue('A1', $sheetInfo['heading']);
+        $sheet->setCellValue('A2', 'Anno carenza: ' . ($plan['school_year_label'] ?? '') . ' - generato il ' . date('d/m/Y H:i'));
+        $sheet->fromArray(array_values($columns), null, 'A4', true);
+
+        $rowIndex = 5;
+        $courseRanges = [];
+        foreach ($rows as $row) {
+            $sheet->fromArray(array_map(function ($key) use ($row) {
+                return trim((string)($row[$key] ?? ''));
+            }, array_keys($columns)), null, 'A' . $rowIndex, true);
+
+            $groupKey = trim((string)($row['group_key'] ?? ''));
+            if ($groupKey !== '') {
+                if (!isset($courseRanges[$groupKey])) {
+                    $courseRanges[$groupKey] = [
+                        'start' => $rowIndex,
+                        'end' => $rowIndex,
+                        'number' => intval($row['course_number'] ?? 0),
+                    ];
+                } else {
+                    $courseRanges[$groupKey]['end'] = $rowIndex;
+                }
             }
-            return $value;
-        }, array_keys($columns)), null, 'A' . $rowIndex);
-        $rowIndex++;
-    }
 
-    $lastRow = max(4, $rowIndex - 1);
-    $sheet->mergeCells('A1:' . $lastCol . '1');
-    $sheet->mergeCells('A2:' . $lastCol . '2');
-    $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16)->getColor()->setRGB('0B4F71');
-    $sheet->getStyle('A2')->getFont()->setItalic(true)->getColor()->setRGB('667085');
-    $sheet->getStyle('A4:' . $lastCol . '4')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
-    $sheet->getStyle('A4:' . $lastCol . '4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('0B79A5');
-    $sheet->getStyle('A4:' . $lastCol . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN)->getColor()->setRGB('C7D2DA');
-    $sheet->getStyle('A4:' . $lastCol . $lastRow)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP)->setWrapText(true);
+            if (intval($row['course_number'] ?? 0) % 2 === 0) {
+                $sheet->getStyle('A' . $rowIndex . ':' . $lastCol . $rowIndex)
+                    ->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()
+                    ->setRGB('EAF6FF');
+            }
+            $rowIndex++;
+        }
+        if (empty($rows)) {
+            $sheet->setCellValue('A5', 'Nessun gruppo.');
+            $rowIndex = 6;
+        }
 
-    foreach (range(1, count($columns)) as $colIndex) {
-        $sheet->getColumnDimension(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex))->setAutoSize(true);
+        $lastRow = max(4, $rowIndex - 1);
+        foreach ($courseRanges as $range) {
+            $start = intval($range['start'] ?? 0);
+            $end = intval($range['end'] ?? 0);
+            if ($start > 0) {
+                $sheet->mergeCells('A' . $start . ':A' . $end);
+                $sheet->mergeCells('B' . $start . ':B' . $end);
+                $sheet->mergeCells('C' . $start . ':C' . $end);
+                $sheet->mergeCells('E' . $start . ':E' . $end);
+                $sheet->mergeCells('F' . $start . ':F' . $end);
+                $sheet->mergeCells('G' . $start . ':G' . $end);
+                $sheet->getStyle('A' . $start . ':A' . $end)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                $sheet->getStyle('B' . $start . ':B' . $end)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                $sheet->getStyle('C' . $start . ':C' . $end)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                $sheet->getStyle('E' . $start . ':E' . $end)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                $sheet->getStyle('F' . $start . ':F' . $end)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                $sheet->getStyle('G' . $start . ':G' . $end)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                $classStart = $start;
+                $previousClass = null;
+                for ($r = $start; $r <= $end; $r++) {
+                    $currentClass = trim((string)$sheet->getCell('H' . $r)->getValue());
+                    if ($previousClass === null) {
+                        $previousClass = $currentClass;
+                        continue;
+                    }
+                    if ($currentClass !== $previousClass) {
+                        if ($r - 1 > $classStart) {
+                            $sheet->mergeCells('D' . $classStart . ':D' . ($r - 1));
+                            $sheet->mergeCells('H' . $classStart . ':H' . ($r - 1));
+                            $sheet->getStyle('D' . $classStart . ':D' . ($r - 1))->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                            $sheet->getStyle('H' . $classStart . ':H' . ($r - 1))->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                        }
+                        $classStart = $r;
+                        $previousClass = $currentClass;
+                    }
+                }
+                if ($end > $classStart) {
+                    $sheet->mergeCells('D' . $classStart . ':D' . $end);
+                    $sheet->mergeCells('H' . $classStart . ':H' . $end);
+                    $sheet->getStyle('D' . $classStart . ':D' . $end)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                    $sheet->getStyle('H' . $classStart . ':H' . $end)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                }
+                $sheet->getStyle('A' . $start . ':' . $lastCol . $start)
+                    ->getBorders()
+                    ->getTop()
+                    ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM)
+                    ->getColor()
+                    ->setRGB('5B7083');
+                $sheet->getStyle('A' . $end . ':' . $lastCol . $end)
+                    ->getBorders()
+                    ->getBottom()
+                    ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM)
+                    ->getColor()
+                    ->setRGB('5B7083');
+            }
+        }
+        $sheet->mergeCells('A1:' . $lastCol . '1');
+        $sheet->mergeCells('A2:' . $lastCol . '2');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16)->getColor()->setRGB('0B4F71');
+        $sheet->getStyle('A2')->getFont()->setItalic(true)->getColor()->setRGB('667085');
+        $sheet->getStyle('A1:' . $lastCol . '2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A4:' . $lastCol . '4')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle('A4:' . $lastCol . '4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('0B79A5');
+        $sheet->getStyle('A4:' . $lastCol . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN)->getColor()->setRGB('C7D2DA');
+        $sheet->getStyle('A4:' . $lastCol . $lastRow)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP)->setWrapText(true);
+        $sheet->getStyle('A4:' . $lastCol . '4')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A5:A' . $lastRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('B5:B' . $lastRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('F5:G' . $lastRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('H5:H' . $lastRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getColumnDimension('A')->setWidth(9);
+        $sheet->getColumnDimension('B')->setWidth(7);
+        $sheet->getColumnDimension('C')->setWidth(28);
+        $sheet->getColumnDimension('D')->setWidth(26);
+        $sheet->getColumnDimension('E')->setWidth(16);
+        $sheet->getColumnDimension('F')->setWidth(10);
+        $sheet->getColumnDimension('G')->setWidth(10);
+        $sheet->getColumnDimension('H')->setWidth(14);
+        $sheet->getColumnDimension('I')->setWidth(30);
+        $sheet->getColumnDimension('J')->setWidth(45);
+        $sheet->freezePane('A5');
     }
 
     header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -266,7 +487,7 @@ function mcdp_export_xlsx(array $rows, array $plan): void
     exit;
 }
 
-function mcdp_export_pdf(array $rows, array $plan): void
+function mcdp_export_pdf(array $courseRows, array $itinereRows, array $plan): void
 {
     if (!class_exists('TCPDF')) {
         $tcpdf = __DIR__ . '/../common/vendor/tecnickcom/tcpdf/tcpdf.php';
@@ -278,45 +499,113 @@ function mcdp_export_pdf(array $rows, array $plan): void
     }
 
     $columns = mcdp_export_columns();
-    $widths = ['5%', '18%', '10%', '13%', '5%', '11%', '11%', '11%', '5%', '11%'];
+    $widths = ['5%', '4%', '16%', '14%', '8%', '6%', '6%', '8%', '15%', '18%'];
     $html = '<style>
         h1 { color:#0b4f71; font-size:18px; }
+        h2 { color:#0b4f71; font-size:12px; margin-top:10px; }
         .meta { color:#667085; font-size:9px; margin-bottom:8px; }
         table { border-collapse:collapse; font-size:7px; }
         th { background-color:#0b79a5; color:#ffffff; font-weight:bold; text-align:center; }
         td, th { border:1px solid #c7d2da; padding:4px; }
+        .course-alt td { background-color:#eaf6ff; }
+        .course-start td { border-top:1.6px solid #5b7083; }
+        .course-end td { border-bottom:1.6px solid #5b7083; }
     </style>';
-    $html .= '<h1>Calendario corsi recupero carenze</h1>';
-    $html .= '<div class="meta">Anno carenza: ' . mcdp_h($plan['school_year_label'] ?? '') . ' - corsi: ' . count($rows) . ' - generato il ' . date('d/m/Y H:i') . '</div>';
-    $html .= '<table width="100%" cellpadding="3"><thead><tr>';
-    $i = 0;
-    foreach ($columns as $label) {
-        $html .= '<th width="' . $widths[$i] . '">' . mcdp_h($label) . '</th>';
-        $i++;
-    }
-    $html .= '</tr></thead><tbody>';
-    foreach ($rows as $row) {
-        $html .= '<tr>';
+    $html .= '<h1>Lista corsi recupero carenze</h1>';
+    $html .= '<div class="meta">Anno carenza: ' . mcdp_h($plan['school_year_label'] ?? '') . ' - corsi: ' . count($courseRows) . ' - recuperi in itinere: ' . count($itinereRows) . ' - generato il ' . date('d/m/Y H:i') . '</div>';
+
+    foreach ([
+        'Corsi di recupero' => $courseRows,
+        'Recupero in itinere - gruppi sotto soglia' => $itinereRows,
+    ] as $title => $rows) {
+        $html .= '<h2>' . mcdp_h($title) . '</h2>';
+        $html .= '<table width="100%" cellpadding="3"><thead><tr>';
         $i = 0;
-        foreach (array_keys($columns) as $key) {
-            $value = trim((string)($row[$key] ?? ''));
-            if (($key === 'aula' || $key === 'docente') && $value === '') {
-                $value = 'Da definire';
-            }
-            $html .= '<td width="' . $widths[$i] . '">' . mcdp_h($value) . '</td>';
+        foreach ($columns as $label) {
+            $html .= '<th width="' . $widths[$i] . '">' . mcdp_h($label) . '</th>';
             $i++;
         }
-        $html .= '</tr>';
+        $html .= '</tr></thead><tbody>';
+        $rowGroups = [];
+        foreach ($rows as $row) {
+            $groupKey = trim((string)($row['group_key'] ?? ''));
+            if ($groupKey === '') {
+                $groupKey = 'row_' . count($rowGroups);
+            }
+            if (!isset($rowGroups[$groupKey])) {
+                $rowGroups[$groupKey] = [];
+            }
+            $rowGroups[$groupKey][] = $row;
+        }
+        foreach ($rowGroups as $groupRows) {
+            $rowspan = max(1, count($groupRows));
+            $classSpans = [];
+            $classSpanStarts = [];
+            $classStart = 0;
+            $previousClass = null;
+            foreach ($groupRows as $index => $groupRow) {
+                $currentClass = trim((string)($groupRow['student_class'] ?? ''));
+                if ($previousClass === null) {
+                    $previousClass = $currentClass;
+                    continue;
+                }
+                if ($currentClass !== $previousClass) {
+                    $classSpans[$classStart] = $index - $classStart;
+                    $classSpanStarts[$classStart] = true;
+                    $classStart = $index;
+                    $previousClass = $currentClass;
+                }
+            }
+            $classSpans[$classStart] = count($groupRows) - $classStart;
+            $classSpanStarts[$classStart] = true;
+            foreach ($groupRows as $rowIndex => $row) {
+                $rowClasses = [];
+                if (intval($row['course_number'] ?? 0) % 2 === 0) {
+                    $rowClasses[] = 'course-alt';
+                }
+                if ($rowIndex === 0) {
+                    $rowClasses[] = 'course-start';
+                }
+                if ($rowIndex === $rowspan - 1) {
+                    $rowClasses[] = 'course-end';
+                }
+                $html .= '<tr' . (!empty($rowClasses) ? ' class="' . implode(' ', $rowClasses) . '"' : '') . '>';
+                $i = 0;
+                foreach (array_keys($columns) as $key) {
+                    if (in_array($key, ['course_number', 'class_year', 'subject', 'classes', 'group', 'student_count'], true) && $rowIndex > 0) {
+                        $i++;
+                        continue;
+                    }
+                    if (in_array($key, ['teacher', 'student_class'], true) && empty($classSpanStarts[$rowIndex])) {
+                        $i++;
+                        continue;
+                    }
+                    $value = $key === 'other_courses'
+                        ? (string)($row['other_courses_html'] ?? '')
+                        : mcdp_h(trim((string)($row[$key] ?? '')));
+                    $align = in_array($key, ['course_number', 'class_year', 'group', 'student_count', 'student_class'], true) ? ' align="center"' : '';
+                    $rowspanAttr = '';
+                    if (in_array($key, ['course_number', 'class_year', 'subject', 'classes', 'group', 'student_count'], true) && $rowspan > 1) {
+                        $rowspanAttr = ' rowspan="' . $rowspan . '"';
+                    } elseif (in_array($key, ['teacher', 'student_class'], true) && intval($classSpans[$rowIndex] ?? 1) > 1) {
+                        $rowspanAttr = ' rowspan="' . intval($classSpans[$rowIndex]) . '"';
+                    }
+                    $html .= '<td width="' . $widths[$i] . '"' . $align . $rowspanAttr . '>' . $value . '</td>';
+                    $i++;
+                }
+                $html .= '</tr>';
+            }
+        }
+        if (empty($rows)) {
+            $html .= '<tr><td colspan="' . count($columns) . '">Nessun gruppo.</td></tr>';
+        }
+        $html .= '</tbody></table>';
     }
-    if (empty($rows)) {
-        $html .= '<tr><td colspan="' . count($columns) . '">Nessun corso pianificato.</td></tr>';
-    }
-    $html .= '</tbody></table>';
 
     $pdf = new \TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
     $pdf->SetCreator('GestOre');
     $pdf->SetAuthor('GestOre');
-    $pdf->SetTitle('Calendario corsi recupero carenze');
+    $pdf->SetTitle('Lista corsi recupero carenze');
     $pdf->setPrintHeader(false);
     $pdf->setPrintFooter(false);
     $pdf->SetMargins(8, 8, 8);
@@ -398,11 +687,21 @@ foreach ($studentCourseCounts as $count) {
 
 $export = strtolower(trim((string)($_GET['export'] ?? '')));
 if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
-    $publicRows = mcdp_public_course_rows($scheduled);
-    if ($export === 'xlsx') {
-        mcdp_export_xlsx($publicRows, $plan);
+    $courseGroupsForExport = mcdp_export_sort_groups(array_merge($scheduled, $unscheduled));
+    $itinereGroupsForExport = mcdp_export_sort_groups($autonomous);
+    $exportGroups = array_merge($courseGroupsForExport, $itinereGroupsForExport);
+    $GLOBALS['mcdp_export_group_refs'] = mcdp_export_group_refs($exportGroups);
+    $studentCourseTitles = mcdp_student_course_titles($exportGroups, $GLOBALS['mcdp_export_group_refs']);
+    $exportStudentCourseCounts = [];
+    foreach ($studentCourseTitles as $studentId => $titles) {
+        $exportStudentCourseCounts[$studentId] = count($titles);
     }
-    mcdp_export_pdf($publicRows, $plan);
+    $courseRows = mcdp_public_course_rows($courseGroupsForExport, $exportStudentCourseCounts, $studentCourseTitles, 'corso');
+    $itinereRows = mcdp_public_course_rows($itinereGroupsForExport, $exportStudentCourseCounts, $studentCourseTitles, 'itinere');
+    if ($export === 'xlsx') {
+        mcdp_export_xlsx($courseRows, $itinereRows, $plan);
+    }
+    mcdp_export_pdf($courseRows, $itinereRows, $plan);
 }
 
 ?>
