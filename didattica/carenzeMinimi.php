@@ -43,6 +43,23 @@ if (!getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false)) {
             height: 16px;
             width: 16px;
         }
+
+        #carenza_nota_modal .modal-dialog {
+            max-width: 720px;
+            width: 92%;
+        }
+
+        #carenza_nota_testo {
+            min-height: 220px;
+            resize: vertical;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .carenza-nota-help {
+            margin-bottom: 12px;
+            color: #555;
+        }
     </style>
 </head>
 
@@ -538,6 +555,36 @@ foreach (
                     </div>
 
                     <!-- <div class="panel-footer"></div> -->
+                </div>
+
+                <div class="modal fade" id="carenza_nota_modal" data-backdrop="static" tabindex="-1" role="dialog"
+                    aria-labelledby="carenza_nota_title">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Chiudi">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                                <h4 class="modal-title" id="carenza_nota_title">Nota carenza</h4>
+                            </div>
+                            <div class="modal-body">
+                                <p class="carenza-nota-help" id="carenza_nota_help"></p>
+                                <input type="hidden" id="carenza_nota_mode">
+                                <input type="hidden" id="carenza_nota_id">
+                                <input type="hidden" id="carenza_nota_id_utente">
+                                <div class="form-group">
+                                    <label for="carenza_nota_testo">Nota per lo studente</label>
+                                    <textarea class="form-control" id="carenza_nota_testo"
+                                        placeholder="Indicazioni materiali da studiare, riferimenti a Classroom, esercizi o altre note utili"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
+                                <button type="button" class="btn btn-primary" id="carenza_nota_save_btn"
+                                    onclick="carenzaNotaModalSalva()">Salva nota</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Modal - Add/Update Record -->

@@ -286,46 +286,89 @@ async function invioMassivoCarenze() {
 }
 
 function carenzaValida(id, id_utente, stato) {
-    var conf = true;
-    var nota_docente = "";
     if (stato == 0) {
-        nota_docente = prompt("Inserisci una nota per lo studente (OPZIONALE - indicazioni materiali da studiare, materiale su classroom, etc..)", "Nessuna nota aggiuntiva dal docente");
-    }
-
-    if (stato == 1) {
-        conf = confirm("fConfermi che vuoi togliere la validazione a questa carenza?");
-    }
-    if ((conf == true) && (nota_docente != null)) {
-        $.post("../didattica/carenzaValida.php", {
+        carenzaApriNotaModal({
+            mode: "validate",
             id: id,
             id_utente: id_utente,
-            stato: stato,
-            nota: nota_docente
-        },
-            function (data, status) {
-                if (data && $.trim(data) !== '') {
-                    alert(data);
-                }
-                carenzeReadRecords();
-            }
-        ).fail(function (xhr) {
-            alert(xhr.responseText || "Validazione non riuscita.");
-            carenzeReadRecords();
+            title: "Conferma carenza",
+            help: "Puoi aggiungere indicazioni per lo studente: materiali da studiare, riferimenti a Classroom, esercizi o altre note utili.",
+            note: "Nessuna nota aggiuntiva dal docente"
         });
+        return;
+    }
+
+    if (stato == 1 && confirm("Confermi che vuoi togliere la validazione a questa carenza?")) {
+        carenzaInviaValidazione(id, id_utente, stato, "");
     }
 }
 
+function carenzaInviaValidazione(id, id_utente, stato, nota_docente) {
+    $.post("../didattica/carenzaValida.php", {
+        id: id,
+        id_utente: id_utente,
+        stato: stato,
+        nota: nota_docente
+    },
+        function (data, status) {
+            if (data && $.trim(data) !== '') {
+                alert(data);
+            }
+            carenzeReadRecords();
+        }
+    ).fail(function (xhr) {
+        alert(xhr.responseText || "Validazione non riuscita.");
+        carenzeReadRecords();
+    });
+}
+
 function carenzaModificaNota(id, nota_attuale) {
-    var nuovaNota = prompt(
-        "Modifica la nota per lo studente (indicazioni materiali da studiare, materiale su classroom, ecc.)",
-        nota_attuale || ""
-    );
-    if (nuovaNota === null) {
+    carenzaApriNotaModal({
+        mode: "edit",
+        id: id,
+        title: "Modifica nota",
+        help: "Aggiorna le indicazioni che compariranno nella carenza dello studente.",
+        note: nota_attuale || ""
+    });
+}
+
+function carenzaApriNotaModal(options) {
+    var $modal = $("#carenza_nota_modal");
+    if ($modal.length === 0) {
+        alert("Modale nota non disponibile.");
         return;
     }
+
+    $("#carenza_nota_mode").val(options.mode || "");
+    $("#carenza_nota_id").val(options.id || "");
+    $("#carenza_nota_id_utente").val(options.id_utente || "");
+    $("#carenza_nota_title").text(options.title || "Nota carenza");
+    $("#carenza_nota_help").text(options.help || "");
+    $("#carenza_nota_testo").val(options.note || "");
+    $("#carenza_nota_save_btn").text(options.mode === "validate" ? "Conferma carenza" : "Salva nota");
+
+    $modal.modal("show");
+    $modal.one("shown.bs.modal", function () {
+        $("#carenza_nota_testo").focus().select();
+    });
+}
+
+function carenzaNotaModalSalva() {
+    var mode = $("#carenza_nota_mode").val();
+    var id = $("#carenza_nota_id").val();
+    var id_utente = $("#carenza_nota_id_utente").val();
+    var nota = $("#carenza_nota_testo").val();
+
+    $("#carenza_nota_modal").modal("hide");
+
+    if (mode === "validate") {
+        carenzaInviaValidazione(id, id_utente, 0, nota);
+        return;
+    }
+
     $.post("../didattica/carenzaNotaSave.php", {
         id: id,
-        nota: nuovaNota
+        nota: nota
     }, function (data) {
         if (data) {
             alert(data);
