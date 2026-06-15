@@ -327,6 +327,22 @@ function mcdp_export_filename(string $ext): string
     return 'pianificazione_corsi_recupero_' . date('Ymd_His') . '.' . $ext;
 }
 
+function mcdp_export_column_width(array $rows, string $key, int $min, int $max, int $padding = 2): int
+{
+    $longest = 0;
+    foreach ($rows as $row) {
+        $value = str_replace(["\r\n", "\r"], "\n", (string)($row[$key] ?? ''));
+        foreach (explode("\n", $value) as $line) {
+            $lineLength = mb_strlen(trim($line), 'UTF-8');
+            if ($lineLength > $longest) {
+                $longest = $lineLength;
+            }
+        }
+    }
+
+    return max($min, min($max, $longest + $padding));
+}
+
 function mcdp_export_columns(): array
 {
     return [
@@ -467,16 +483,53 @@ function mcdp_export_xlsx(array $courseRows, array $itinereRows, array $plan): v
         $sheet->getStyle('B5:B' . $lastRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('F5:G' . $lastRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('H5:H' . $lastRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('C5:C' . $lastRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('J5:J' . $lastRow)->getAlignment()->setWrapText(true);
+        foreach ($courseRanges as $range) {
+            $start = intval($range['start'] ?? 0);
+            $end = intval($range['end'] ?? 0);
+            if ($start <= 0 || $end < $start) {
+                continue;
+            }
+            foreach (['A', 'B', 'C', 'E', 'F', 'G'] as $column) {
+                $sheet->getStyle($column . $start . ':' . $column . $end)
+                    ->getAlignment()
+                    ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            }
+            $classStart = $start;
+            $previousClass = null;
+            for ($r = $start; $r <= $end; $r++) {
+                $currentClass = trim((string)$sheet->getCell('H' . $r)->getValue());
+                if ($previousClass === null) {
+                    $previousClass = $currentClass;
+                    continue;
+                }
+                if ($currentClass !== $previousClass) {
+                    foreach (['D', 'H'] as $column) {
+                        $sheet->getStyle($column . $classStart . ':' . $column . ($r - 1))
+                            ->getAlignment()
+                            ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                    }
+                    $classStart = $r;
+                    $previousClass = $currentClass;
+                }
+            }
+            foreach (['D', 'H'] as $column) {
+                $sheet->getStyle($column . $classStart . ':' . $column . $end)
+                    ->getAlignment()
+                    ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            }
+        }
         $sheet->getColumnDimension('A')->setWidth(9);
         $sheet->getColumnDimension('B')->setWidth(7);
-        $sheet->getColumnDimension('C')->setWidth(28);
+        $sheet->getColumnDimension('C')->setWidth(34);
         $sheet->getColumnDimension('D')->setWidth(26);
         $sheet->getColumnDimension('E')->setWidth(16);
         $sheet->getColumnDimension('F')->setWidth(10);
         $sheet->getColumnDimension('G')->setWidth(10);
         $sheet->getColumnDimension('H')->setWidth(14);
         $sheet->getColumnDimension('I')->setWidth(30);
-        $sheet->getColumnDimension('J')->setWidth(45);
+        $sheet->getColumnDimension('J')->setWidth(mcdp_export_column_width($rows, 'other_courses', 30, 58));
         $sheet->freezePane('A5');
     }
 
@@ -499,7 +552,7 @@ function mcdp_export_pdf(array $courseRows, array $itinereRows, array $plan): vo
     }
 
     $columns = mcdp_export_columns();
-    $widths = ['5%', '4%', '16%', '14%', '8%', '6%', '6%', '8%', '15%', '18%'];
+    $widths = ['4%', '3%', '22%', '10%', '6%', '5%', '5%', '7%', '14%', '24%'];
     $html = '<style>
         h1 { color:#0b4f71; font-size:18px; }
         h2 { color:#0b4f71; font-size:12px; margin-top:10px; }
@@ -584,13 +637,14 @@ function mcdp_export_pdf(array $courseRows, array $itinereRows, array $plan): vo
                         ? (string)($row['other_courses_html'] ?? '')
                         : mcdp_h(trim((string)($row[$key] ?? '')));
                     $align = in_array($key, ['course_number', 'class_year', 'group', 'student_count', 'student_class'], true) ? ' align="center"' : '';
+                    $nowrap = $key === 'subject' ? ' style="white-space:nowrap;"' : '';
                     $rowspanAttr = '';
                     if (in_array($key, ['course_number', 'class_year', 'subject', 'classes', 'group', 'student_count'], true) && $rowspan > 1) {
                         $rowspanAttr = ' rowspan="' . $rowspan . '"';
                     } elseif (in_array($key, ['teacher', 'student_class'], true) && intval($classSpans[$rowIndex] ?? 1) > 1) {
                         $rowspanAttr = ' rowspan="' . intval($classSpans[$rowIndex]) . '"';
                     }
-                    $html .= '<td width="' . $widths[$i] . '"' . $align . $rowspanAttr . '>' . $value . '</td>';
+                    $html .= '<td width="' . $widths[$i] . '" valign="middle"' . $align . $rowspanAttr . $nowrap . '>' . $value . '</td>';
                     $i++;
                 }
                 $html .= '</tr>';
