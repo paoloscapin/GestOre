@@ -19,6 +19,14 @@ function writeOreClil($attuali, $originali) {
 	return '<s style="text-decoration-style: double;"> '.oreToDisplay($originali).' </s>&ensp;<span class="text-danger"><strong> '.oreToDisplay($attuali).' </strong></span>';
 }
 
+function writeOreClilConStato($attuali, $originali, $contestata) {
+	$ore = writeOreClil($attuali, $originali);
+	if ($contestata == 1) {
+		return '<strike>'.$ore.'</strike>';
+	}
+	return $ore;
+}
+
 function oreFatteClilReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_controllo, $modificabile) {
 	global $__anno_scolastico_corrente_id;
 	global $__config;
@@ -108,7 +116,7 @@ function oreFatteClilReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_
 		$ore_con_minuti = oreToDisplay($row['ore_fatte_attivita_ore']);
 	
 		$dataClilAttivita .= '<td class="text-center">'.$strikeOn.strftime("%d/%m/%Y", strtotime($row['ore_fatte_attivita_data'])).$strikeOff.'</td>';
-		$dataClilAttivita .= '<td class="text-center">'.writeOreClil($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali']).'</td>';
+		$dataClilAttivita .= '<td class="text-center">'.writeOreClilConStato($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali'], $row['ore_fatte_attivita_contestata']).'</td>';
 	
 		$dataClilAttivita .='<td class="text-center"><button onclick="oreFatteClilGetRegistroAttivita('.$row['ore_fatte_attivita_id'].', '.$row['registro_attivita_id'].')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-list-alt"></button></td>';
 	
@@ -121,6 +129,7 @@ function oreFatteClilReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_
 				$dataClilAttivita .='<button onclick="oreFatteClilGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 					<button onclick="oreFatteClilDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>';
 			} else {
+				$dataClilAttivita .='<button onclick="oreFatteClilGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button> ';
 				if ($row['ore_fatte_attivita_contestata'] == 1) {
 					$dataClilAttivita .='<button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'clil\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>';
 				} else {
@@ -135,11 +144,13 @@ function oreFatteClilReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_
 		}
 		$dataClilAttivita .='</td></tr>';
 	
-		// aggiorna il totale delle ore
-		if ($row['ore_fatte_attivita_con_studenti']) {
-			$attivitaClilOreConStudenti += $row['ore_fatte_attivita_ore'];
-		} else {
-			$attivitaClilOreFunzionali += $row['ore_fatte_attivita_ore'];
+		// aggiorna il totale delle ore: le righe contestate restano visibili ma non contano nei totali
+		if ($row['ore_fatte_attivita_contestata'] != 1) {
+			if ($row['ore_fatte_attivita_con_studenti']) {
+				$attivitaClilOreConStudenti += $row['ore_fatte_attivita_ore'];
+			} else {
+				$attivitaClilOreFunzionali += $row['ore_fatte_attivita_ore'];
+			}
 		}
 	}
 	

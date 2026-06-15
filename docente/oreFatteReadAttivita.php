@@ -19,6 +19,14 @@ function writeOreAttivita($attuali, $originali) {
 	return '<s style="text-decoration-style: double;"> '.oreToDisplay($originali).' </s>&ensp;<span class="text-danger"><strong> '.oreToDisplay($attuali).' </strong></span>';
 }
 
+function writeOreAttivitaConStato($attuali, $originali, $contestata) {
+	$ore = writeOreAttivita($attuali, $originali);
+	if ($contestata == 1) {
+		return '<strike>'.$ore.'</strike>';
+	}
+	return $ore;
+}
+
 // valori da restituire come totali
 $attivitaAggiornamento = 0;
 $attivitaOreFunzionali = 0;
@@ -27,6 +35,48 @@ $attivitaClilOreFunzionali = 0;
 $attivitaClilOreConStudenti = 0;
 $attivitaOrientamentoOreFunzionali = 0;
 $attivitaOrientamentoOreConStudenti = 0;
+
+function aggiungiTotaliAttivita($row) {
+	global $attivitaAggiornamento;
+	global $attivitaOreFunzionali;
+	global $attivitaOreConStudenti;
+	global $attivitaClilOreFunzionali;
+	global $attivitaClilOreConStudenti;
+	global $attivitaOrientamentoOreFunzionali;
+	global $attivitaOrientamentoOreConStudenti;
+
+	if ($row['ore_fatte_attivita_contestata'] == 1) {
+		return;
+	}
+
+	if ($row['ore_previste_tipo_attivita_categoria'] == 'aggiornamento') {
+		$attivitaAggiornamento += $row['ore_fatte_attivita_ore'];
+	} elseif ($row['ore_previste_tipo_attivita_clil'] == 1) {
+		if ($row['ore_previste_tipo_attivita_funzionali'] == 1) {
+			$attivitaClilOreFunzionali += $row['ore_fatte_attivita_ore'];
+		} elseif ($row['ore_previste_tipo_attivita_con_studenti'] == 1) {
+			$attivitaClilOreConStudenti += $row['ore_fatte_attivita_ore'];
+		} else {
+			warning('attivita clil non funzionale e non con studenti: id=' . $row['ore_previste_tipo_attivita_id']);
+		}
+	} elseif ($row['ore_previste_tipo_attivita_orientamento'] == 1) {
+		if ($row['ore_previste_tipo_attivita_funzionali'] == 1) {
+			$attivitaOrientamentoOreFunzionali += $row['ore_fatte_attivita_ore'];
+		} elseif ($row['ore_previste_tipo_attivita_con_studenti'] == 1) {
+			$attivitaOrientamentoOreConStudenti += $row['ore_fatte_attivita_ore'];
+		} else {
+			warning('attivita orientamento non funzionale e non con studenti: id=' . $row['ore_previste_tipo_attivita_id']);
+		}
+	} else {
+		if ($row['ore_previste_tipo_attivita_funzionali'] == 1) {
+			$attivitaOreFunzionali += $row['ore_fatte_attivita_ore'];
+		} elseif ($row['ore_previste_tipo_attivita_con_studenti'] == 1) {
+			$attivitaOreConStudenti += $row['ore_fatte_attivita_ore'];
+		} else {
+			warning('attivita orientamento non funzionale e non con studenti: id=' . $row['ore_previste_tipo_attivita_id']);
+		}
+	}
+}
 
 function writeLineAttivita($row, $clil, $orientamento, $operatore, $ultimo_controllo, $modificabile) {
 	global $__config;
@@ -73,10 +123,10 @@ function writeLineAttivita($row, $clil, $orientamento, $operatore, $ultimo_contr
 	// data e ora solo per quelle inserite da docente (dovrebbero essere tutte a questo punto)
 	if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
 		$dataAttivita .= '<td class="text-center">'.$strikeOn.strftime("%d/%m/%Y", strtotime($row['ore_fatte_attivita_data'])).$strikeOff.'</td>';
-		$dataAttivita .= '<td class="text-center">'.writeOreAttivita($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali']).'</td>';
+		$dataAttivita .= '<td class="text-center">'.writeOreAttivitaConStato($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali'], $row['ore_fatte_attivita_contestata']).'</td>';
 	} else {
 		$dataAttivita .= '<td class="text-center">'.$strikeOn.strftime("%d/%m/%Y", strtotime($row['ore_fatte_attivita_data'])).$strikeOff.'</td>';
-		$dataAttivita .= '<td class="text-center">'.writeOreAttivita($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali']).'</td>';
+		$dataAttivita .= '<td class="text-center">'.writeOreAttivitaConStato($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali'], $row['ore_fatte_attivita_contestata']).'</td>';
 //		$dataAttivita .='<td class="text-center">'.'</td><td class="text-center">'.writeOreAttivita($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali']).'</td>';
 	}
 
@@ -98,6 +148,7 @@ function writeLineAttivita($row, $clil, $orientamento, $operatore, $ultimo_contr
 				$dataAttivita .='<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 					<button onclick="oreFatteDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>';
 			} else {
+				$dataAttivita .='<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button> ';
 				if ($row['ore_fatte_attivita_contestata'] == 1) {
 					$dataAttivita .='<button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>';
 				} else {
@@ -116,40 +167,7 @@ function writeLineAttivita($row, $clil, $orientamento, $operatore, $ultimo_contr
 	}
 	$dataAttivita .='</td></tr>';
 
-	// aggiorna il totale delle ore: per prima cosa quelle di aggiornamento
-	if ($row['ore_previste_tipo_attivita_categoria'] == 'aggiornamento') {
-		$attivitaAggiornamento += $row['ore_fatte_attivita_ore'];
-
-		// ora consideriamo le attivita' clil (funzionali o con studenti)
-	} elseif ($row['ore_previste_tipo_attivita_clil'] == 1) {
-		if ($row['ore_previste_tipo_attivita_funzionali'] == 1) {
-			$attivitaClilOreFunzionali += $row['ore_fatte_attivita_ore'];
-		} elseif ($row['ore_previste_tipo_attivita_con_studenti'] == 1) {
-			$attivitaClilOreConStudenti += $row['ore_fatte_attivita_ore'];
-		} else {
-			warning('attivita clil non funzionale e non con studenti: id=' . $row['ore_previste_tipo_attivita_id']);
-		}
-
-		// consideriamo quelle di orientamento
-	} elseif ($row['ore_previste_tipo_attivita_orientamento'] == 1) {
-		if ($row['ore_previste_tipo_attivita_funzionali'] == 1) {
-			$attivitaOrientamentoOreFunzionali += $row['ore_fatte_attivita_ore'];
-		} elseif ($row['ore_previste_tipo_attivita_con_studenti'] == 1) {
-			$attivitaOrientamentoOreConStudenti += $row['ore_fatte_attivita_ore'];
-		} else {
-			warning('attivita orientamento non funzionale e non con studenti: id=' . $row['ore_previste_tipo_attivita_id']);
-		}
-
-		// infine le altre attivita'
-	} else {
-		if ($row['ore_previste_tipo_attivita_funzionali'] == 1) {
-			$attivitaOreFunzionali += $row['ore_fatte_attivita_ore'];
-		} elseif ($row['ore_previste_tipo_attivita_con_studenti'] == 1) {
-			$attivitaOreConStudenti += $row['ore_fatte_attivita_ore'];
-		} else {
-			warning('attivita orientamento non funzionale e non con studenti: id=' . $row['ore_previste_tipo_attivita_id']);
-		}
-	}
+	aggiungiTotaliAttivita($row);
 
 	return $dataAttivita;
 }
@@ -240,7 +258,7 @@ function oreFatteReadAttivitaVecchio($soloTotale, $docente_id, $operatore, $ulti
 			} elseif ($attivita['clil'] == 1) {
 				if ($attivita['funzionali'] == 1) {
 					$attivitaClilOreFunzionali += $attivita['ore'];
-				} elseif ($roattivitaw['con_studenti'] == 1) {
+				} elseif ($attivita['con_studenti'] == 1) {
 					$attivitaClilOreConStudenti += $attivita['ore'];
 				} else {
 					warning('attivita clil non funzionale e non con studenti: id=' . $attivita['ore_previste_tipo_attivita_id']);
@@ -345,7 +363,7 @@ function oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_cont
 			} elseif ($attivita['clil'] == 1) {
 				if ($attivita['funzionali'] == 1) {
 					$attivitaClilOreFunzionali += $attivita['ore'];
-				} elseif ($roattivitaw['con_studenti'] == 1) {
+				} elseif ($attivita['con_studenti'] == 1) {
 					$attivitaClilOreConStudenti += $attivita['ore'];
 				} else {
 					warning('attivita clil non funzionale e non con studenti: id=' . $attivita['ore_previste_tipo_attivita_id']);
@@ -385,7 +403,7 @@ function oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_cont
 			} elseif ($attivita['clil'] == 1) {
 				if ($attivita['funzionali'] == 1) {
 					$attivitaClilOreFunzionali += $attivita['ore'];
-				} elseif ($roattivitaw['con_studenti'] == 1) {
+				} elseif ($attivita['con_studenti'] == 1) {
 					$attivitaClilOreConStudenti += $attivita['ore'];
 				} else {
 					warning('attivita clil non funzionale e non con studenti: id=' . $attivita['ore_previste_tipo_attivita_id']);
@@ -515,10 +533,10 @@ function oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_cont
 		// data e ora solo per quelle inserite da docente (dovrebbero essere tutte a questo punto)
 		if ($row['ore_previste_tipo_attivita_inserito_da_docente']) {
 			$dataAttivita .= '<td class="text-center">'.$strikeOn.strftime("%d/%m/%Y", strtotime($row['ore_fatte_attivita_data'])).$strikeOff.'</td>';
-			$dataAttivita .= '<td class="text-center">'.writeOreAttivita($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali']).'</td>';
+			$dataAttivita .= '<td class="text-center">'.writeOreAttivitaConStato($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali'], $row['ore_fatte_attivita_contestata']).'</td>';
 		} else {
 			$dataAttivita .= '<td class="text-center">'.$strikeOn.strftime("%d/%m/%Y", strtotime($row['ore_fatte_attivita_data'])).$strikeOff.'</td>';
-			$dataAttivita .= '<td class="text-center">'.writeOreAttivita($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali']).'</td>';
+			$dataAttivita .= '<td class="text-center">'.writeOreAttivitaConStato($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali'], $row['ore_fatte_attivita_contestata']).'</td>';
 	//		$dataAttivita .='<td class="text-center">'.'</td><td class="text-center">'.writeOreAttivita($row['ore_fatte_attivita_ore'], $row['ore_fatte_attivita_ore_originali']).'</td>';
 		}
 	
@@ -540,6 +558,7 @@ function oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_cont
 					$dataAttivita .='<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button>
 						<button onclick="oreFatteDeleteAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-trash"></button>';
 				} else {
+					$dataAttivita .='<button onclick="oreFatteGetAttivita('.$row['ore_fatte_attivita_id'].')" class="btn btn-warning btn-xs"><span class="glyphicon glyphicon-pencil"></button> ';
 					if ($row['ore_fatte_attivita_contestata'] == 1) {
 						$dataAttivita .='<button onclick="oreFatteRipristrinaAttivita('.$row['ore_fatte_attivita_id'].', \''.str2js($row['ore_fatte_attivita_dettaglio']).'\','.$ore_con_minuti.', \''.str2js($row['ore_fatte_attivita_commento_commento']).'\', \'\')" class="btn btn-success btn-xs"><span class="glyphicon glyphicon-ok"></span> Ripristina</button>';
 					} else {
@@ -558,40 +577,7 @@ function oreFatteReadAttivita($soloTotale, $docente_id, $operatore, $ultimo_cont
 		}
 		$dataAttivita .='</td></tr>';
 
-		// aggiorna il totale delle ore: per prima cosa quelle di aggiornamento
-		if ($row['ore_previste_tipo_attivita_categoria'] == 'aggiornamento') {
-			$attivitaAggiornamento += $row['ore_fatte_attivita_ore'];
-	
-			// ora consideriamo le attivita' clil (funzionali o con studenti)
-		} elseif ($row['ore_previste_tipo_attivita_clil'] == 1) {
-			if ($row['ore_previste_tipo_attivita_funzionali'] == 1) {
-				$attivitaClilOreFunzionali += $row['ore_fatte_attivita_ore'];
-			} elseif ($row['ore_previste_tipo_attivita_con_studenti'] == 1) {
-				$attivitaClilOreConStudenti += $row['ore_fatte_attivita_ore'];
-			} else {
-				warning('attivita clil non funzionale e non con studenti: id=' . $row['ore_previste_tipo_attivita_id']);
-			}
-	
-			// consideriamo quelle di orientamento
-		} elseif ($row['ore_previste_tipo_attivita_orientamento'] == 1) {
-			if ($row['ore_previste_tipo_attivita_funzionali'] == 1) {
-				$attivitaOrientamentoOreFunzionali += $row['ore_fatte_attivita_ore'];
-			} elseif ($row['ore_previste_tipo_attivita_con_studenti'] == 1) {
-				$attivitaOrientamentoOreConStudenti += $row['ore_fatte_attivita_ore'];
-			} else {
-				warning('attivita orientamento non funzionale e non con studenti: id=' . $row['ore_previste_tipo_attivita_id']);
-			}
-	
-			// infine le altre attivita'
-		} else {
-			if ($row['ore_previste_tipo_attivita_funzionali'] == 1) {
-				$attivitaOreFunzionali += $row['ore_fatte_attivita_ore'];
-			} elseif ($row['ore_previste_tipo_attivita_con_studenti'] == 1) {
-				$attivitaOreConStudenti += $row['ore_fatte_attivita_ore'];
-			} else {
-				warning('attivita orientamento non funzionale e non con studenti: id=' . $row['ore_previste_tipo_attivita_id']);
-			}
-		}
+		aggiungiTotaliAttivita($row);
 	}
 
 	$dataAttivita .= '</tbody></table></div>';
