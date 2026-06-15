@@ -32,8 +32,10 @@ $('#daValidareCheckBox').change(function () {
 });
 
 function carenzeReadRecords() {
-    var vistaDocente = (parseInt($("#hidden_docente_id").val() || "0", 10) > 0) ? 1 : 0;
-    $.get("carenzeReadRecords.php?anno=" + $anno_filtro_id + "&docente_id=" + $docente_filtro_id + "&vista_docente=" + vistaDocente + "&docente_scope_filtro=" + $docente_scope_filtro + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id + "&da_validare_filtro=" + $da_validare_filtro + "&anni_id=" + $anni_filtro_id, {}, function (data, status) {
+    var hiddenDocenteId = parseInt($("#hidden_docente_id").val() || "0", 10) || 0;
+    var vistaDocente = hiddenDocenteId > 0 ? 1 : 0;
+    var docenteId = vistaDocente ? hiddenDocenteId : $docente_filtro_id;
+    $.get("carenzeReadRecords.php?anno=" + $anno_filtro_id + "&docente_id=" + docenteId + "&vista_docente=" + vistaDocente + "&docente_scope_filtro=" + $docente_scope_filtro + "&classe_id=" + $classe_filtro_id + "&materia_id=" + $materia_filtro_id + "&studente_id=" + $studente_filtro_id + "&da_validare_filtro=" + $da_validare_filtro + "&anni_id=" + $anni_filtro_id, {}, function (data, status) {
         $(".records_content").html(data);
         $('[data-toggle="tooltip"]').tooltip({
             container: 'body'
@@ -434,9 +436,11 @@ function hideTooltip(el) {
 }
 
 function exportFile() {
-    var vistaDocente = (parseInt($("#hidden_docente_id").val() || "0", 10) > 0) ? 1 : 0;
+    var hiddenDocenteId = parseInt($("#hidden_docente_id").val() || "0", 10) || 0;
+    var vistaDocente = hiddenDocenteId > 0 ? 1 : 0;
+    var docenteId = vistaDocente ? hiddenDocenteId : $docente_filtro_id;
     const url = "carenzeExport.php"
-        + "?id_docente=" + encodeURIComponent($docente_filtro_id)
+        + "?id_docente=" + encodeURIComponent(docenteId)
         + "&vista_docente=" + encodeURIComponent(vistaDocente)
         + "&docente_scope_filtro=" + encodeURIComponent($docente_scope_filtro)
         + "&id_classe=" + encodeURIComponent($classe_filtro_id)

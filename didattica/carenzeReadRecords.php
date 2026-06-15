@@ -22,6 +22,9 @@ $vistaDocente = intval($_GET["vista_docente"] ?? 0) === 1;
 $docente_scope_filtro = intval($_GET["docente_scope_filtro"] ?? 1);
 $isAdminView = !$vistaDocente && (haRuolo('dirigente') || haRuolo('segreteria-didattica'));
 $isDocenteView = $vistaDocente || (($__utente_ruolo ?? '') === 'docente');
+$docenteVedeSoloLeSue = (getSettingsValue('config', 'carenzeObiettiviMinimi', false))
+	&& (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false))
+	&& (getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false));
 
 
 // Design initial table header
@@ -103,13 +106,16 @@ if ($anni_filtro_id > 0) {
 			$query .= " AND carenze.id_anno_scolastico=" . $anni_filtro_id;
 }
 
-if ($isDocenteView && $docente_scope_filtro > 0)
+if ($isDocenteView && ($docente_scope_filtro > 0 || $docenteVedeSoloLeSue))
 {
-	$query .= " AND (carenze.stato='0' OR carenze.id_docente=" . intval($id_docente_attuale) . ")";
-}
-else if ($isDocenteView && (getSettingsValue('config', 'carenzeObiettiviMinimi', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'visibile_docenti', false)) && (getSettingsValue('carenzeObiettiviMinimi', 'docente_vede_solo_le_sue', false)))
-{
-	$query .= " AND (carenze.id_docente=" . intval($id_docente_attuale) . " OR carenze.id_docente=0)";
+	$query .= " AND EXISTS (
+		SELECT 1
+		FROM docente_insegna di
+		WHERE di.id_docente = " . intval($id_docente_attuale) . "
+		  AND di.id_classe = carenze.id_classe
+		  AND di.id_materia = carenze.id_materia
+		  AND di.id_anno_scolastico = carenze.id_anno_scolastico
+	)";
 }
 else if (!$isDocenteView && $docente_id > 0)
 {

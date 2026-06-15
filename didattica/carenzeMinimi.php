@@ -466,7 +466,7 @@ foreach (
                         <label class="control-label" for="docenteScopeCheckBox">Vista docente</label><br>
                         <input type="checkbox" data-toggle="toggle" data-size="small" data-width="142" data-height="30"
                             data-onstyle="primary" data-offstyle="default"
-                            id="docenteScopeCheckBox" data-on="Aperte + mie" data-off="Tutte" checked>
+                            id="docenteScopeCheckBox" data-on="Le mie" data-off="Tutte" checked>
                     </div>
                         ';
                     }
