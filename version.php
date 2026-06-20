@@ -7,6 +7,6 @@
  *  @license    GPL-3.0+ <https://www.gnu.org/licenses/gpl-3.0.html>
  */
 $__software_name = 'GestOre';
-$__software_version = '1.4.26';
+$__software_version = '1.4.27';
 $__software_release_date = '21 giu 2026';
 ?>
