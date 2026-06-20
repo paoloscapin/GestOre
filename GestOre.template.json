@@ -102,6 +102,21 @@
         "smtpPassword": "password casella di posta",
         "SMTPSecure": "tls",
         "Port": 587,
+        "mailOAuth": {
+            "enabled": false,
+            "mode": "service_account_domain_delegation",
+            "serviceAccountFile": "secrets/gestore-mail-sender.json",
+            "fallbackSmtp": true,
+            "allowedSenders": [
+                "noreplygestore@buonarroti.tn.it",
+                "iscrizioni@buonarroti.tn.it",
+                "iscrizioni1@buonarroti.tn.it",
+                "iscrizioni2@buonarroti.tn.it",
+                "iscrizioni3@buonarroti.tn.it",
+                "iscrizioni4@buonarroti.tn.it",
+                "iscrizioni5@buonarroti.tn.it"
+            ]
+        },
         "watch_secret": "#####",
         "emailSportelli": "--- mail in BCC a cui viene inviato ogni email degli sportelli ---",
         "emailCarenze": "--- inserire un indirizzo di email a cui inviare in cc le lettere di carenza generate ---",
@@ -135,7 +150,7 @@
             "enabled": false,
             "mode": "service_account_domain_delegation",
             "applicationName": "GestOre Google Calendar Docenti",
-            "serviceAccountFile": "gestore-486511-eb09e5de6aae.json",
+            "serviceAccountFile": "secrets/gestore-calendar.json",
             "domain": "buonarroti.tn.it",
             "timeZone": "Europe/Rome",
             "calendarId": "primary",
@@ -189,7 +204,10 @@
             "copertineVerificheFolderId": "",
             "copertineVerificheFolderName": "Copertine Verifiche",
             "verificheDigitaliFolderId": "ID_CARTELLA_DRIVE_VERIFICHE_DIGITALI",
-            "verificheDigitaliFolderName": "Verifiche Digitali"
+            "verificheDigitaliFolderName": "Verifiche Digitali",
+            "iscrizioniPrimeEnabled": false,
+            "iscrizioniPrimeFolderId": "",
+            "iscrizioniPrimeFolderName": "Iscrizioni prime"
         }
     },
     "importi": {
@@ -220,6 +238,48 @@
         "quiet_hours_start": "20:00",
         "quiet_hours_end": "07:00",
         "reply_visible_from": "gestore@buonarroti.tn.it"
+    },
+    "iscrizioniPrime": {
+        "mail": {
+            "enabled": false,
+            "testMode": true,
+            "maxPerAccountPerDay": 450,
+            "batchSize": 50,
+            "confirmationSubject": "Conferma dati iscrizione ricevuta",
+            "fromName": "Iscrizioni ITT Buonarroti",
+            "replyToEmail": "segr.didattica@buonarroti.tn.it",
+            "replyToName": "Segreteria didattica",
+            "mailFailureAlertEmail": "segr.didattica@buonarroti.tn.it",
+            "smtpHost": "smtp.gmail.com",
+            "SMTPSecure": "tls",
+            "Port": 587,
+            "accounts": [
+                {
+                    "email": "iscrizioni1@buonarroti.tn.it",
+                    "password": "app password account iscrizioni1"
+                },
+                {
+                    "email": "iscrizioni2@buonarroti.tn.it",
+                    "password": "app password account iscrizioni2"
+                },
+                {
+                    "email": "iscrizioni3@buonarroti.tn.it",
+                    "password": "app password account iscrizioni3"
+                },
+                {
+                    "email": "iscrizioni4@buonarroti.tn.it",
+                    "password": "app password account iscrizioni4"
+                },
+                {
+                    "email": "iscrizioni5@buonarroti.tn.it",
+                    "password": "app password account iscrizioni5"
+                },
+                {
+                    "email": "iscrizioni@buonarroti.tn.it",
+                    "password": "lpsw jpfn robi fcbp"
+                }
+            ]
+        }
     },
     "ore80": {
         "minuti_ore_con_studenti": 50,
