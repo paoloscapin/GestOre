@@ -50,8 +50,14 @@ $stats = dbGetFirst("
                     <button type="button" class="btn btn-default" onclick="iscrizioniPrimeLoadTable()">
                         <span class="glyphicon glyphicon-refresh"></span> Aggiorna elenco
                     </button>
+                    <a class="btn btn-primary" href="iscrizioniPrimeDomande.php">
+                        <span class="glyphicon glyphicon-inbox"></span> Domande inviate
+                    </a>
                     <button type="button" class="btn btn-info" onclick="iscrizioniPrimeSendMail(1)">
                         <span class="glyphicon glyphicon-eye-open"></span> Simula invio mail
+                    </button>
+                    <button type="button" class="btn btn-info" onclick="iscrizioniPrimeSendTestMail()">
+                        <span class="glyphicon glyphicon-envelope"></span> Invia test mail
                     </button>
                     <button type="button" class="btn btn-warning" onclick="iscrizioniPrimeSendMail(0)">
                         <span class="glyphicon glyphicon-send"></span> Invia prossimo lotto
@@ -208,6 +214,32 @@ function iscrizioniPrimeSendMail(dryRun) {
             '<br>Mail ' + (dryRun ? 'simulabili' : 'inviate') + ': ' + iscrizioniPrimeEscape(data.sent) +
             ' - saltate: ' + iscrizioniPrimeEscape(data.skipped || 0) +
             (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniPrimeEscape).join(', ') : '');
+        iscrizioniPrimeLoadTable();
+    })
+    .catch(error => {
+        result.className = 'alert alert-danger';
+        result.textContent = error.message;
+    });
+}
+
+function iscrizioniPrimeSendTestMail() {
+    const result = document.getElementById('iscrizioni_prime_result');
+    result.className = 'alert alert-info';
+    result.style.display = 'block';
+    result.textContent = 'Invio mail di test in corso...';
+
+    fetch('iscrizioniPrimeMailTest.php', {
+        method: 'POST',
+        body: new FormData(),
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        result.className = data.ok ? 'alert alert-success' : 'alert alert-danger';
+        result.innerHTML = iscrizioniPrimeEscape(data.message || '') +
+            (data.to ? '<br>Inviata a: ' + iscrizioniPrimeEscape(data.to) : '') +
+            (data.original_recipient ? '<br>Destinatario reale simulato: ' + iscrizioniPrimeEscape(data.original_recipient) : '') +
+            (data.student ? '<br>Studente: ' + iscrizioniPrimeEscape(data.student) : '');
         iscrizioniPrimeLoadTable();
     })
     .catch(error => {

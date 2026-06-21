@@ -534,26 +534,64 @@ function iscrizioniPrimePickMailAccount(array $cfg, array $counts): ?array
 
 function iscrizioniPrimeMailBody(array $pratica, string $link, string $originalRecipient = ''): string
 {
+    global $__settings;
+
     $nome = trim((string)(($pratica['nome'] ?? '') . ' ' . ($pratica['cognome'] ?? '')));
+    $istituto = trim((string)($__settings->local->nomeIstituto ?? 'ITT Buonarroti - Trento'));
+    $anno = trim((string)($pratica['anno_scolastico'] ?? '2026-27'));
+    $corso = trim((string)($pratica['corso_studi'] ?? ''));
     $testBlock = '';
 
     if ($originalRecipient !== '') {
-        $testBlock = "
-            <p style=\"padding:10px;border-left:4px solid #f59e0b;background:#fffbeb;\">
-                <strong>Modalita' test:</strong> questa mail sarebbe stata inviata a
-                <strong>" . htmlspecialchars($originalRecipient, ENT_QUOTES, 'UTF-8') . "</strong>.
-            </p>
-        ";
+        $testBlock = iscrizioniPrimeMailTestBanner($originalRecipient);
     }
 
-    return "
-        $testBlock
-        <p>Gentile famiglia,</p>
-        <p>per completare la procedura di iscrizione alle future classi prime dell'ITT Buonarroti, chiediamo di confermare i dati anagrafici di <strong>" . htmlspecialchars($nome, ENT_QUOTES, 'UTF-8') . "</strong> e caricare i documenti richiesti.</p>
-        <p><a href=\"" . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . "\">Apri la pagina di conferma iscrizione</a></p>
-        <p>Il link e' personale e non richiede un account GestOre.</p>
-        <p>Cordiali saluti<br>Segreteria didattica</p>
-    ";
+    return $testBlock . '
+        <div style="margin:0;padding:0;background:#f4f7fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
+            <div style="max-width:720px;margin:0 auto;padding:22px 12px;">
+                <div style="background:#ffffff;border:1px solid #dbe3ef;border-radius:8px;overflow:hidden;">
+                    <div style="background:#0f766e;color:#ffffff;padding:20px 22px;">
+                        <div style="font-size:13px;letter-spacing:.04em;text-transform:uppercase;opacity:.9;">' . iscrizioniPrimeMailEscape($istituto) . '</div>
+                        <div style="font-size:24px;font-weight:800;margin-top:4px;">Conferma dati iscrizione</div>
+                        <div style="font-size:15px;margin-top:4px;">Future classi prime - anno scolastico ' . iscrizioniPrimeMailEscape($anno) . '</div>
+                    </div>
+                    <div style="padding:22px;">
+                        <p style="margin:0 0 12px;font-size:16px;">Gentile famiglia,</p>
+                        <p style="margin:0 0 16px;font-size:16px;line-height:1.5;">
+                            per completare la procedura di iscrizione alle future classi prime, chiediamo di confermare i dati anagrafici e caricare i documenti richiesti per
+                            <strong>' . iscrizioniPrimeMailEscape($nome) . '</strong>.
+                        </p>
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin:16px 0;">
+                            <tr>
+                                <td style="padding:9px 10px;border-bottom:1px solid #e5e7eb;color:#64748b;width:34%;">Studente</td>
+                                <td style="padding:9px 10px;border-bottom:1px solid #e5e7eb;color:#172033;font-weight:700;">' . iscrizioniPrimeMailEscape($nome) . '</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:9px 10px;border-bottom:1px solid #e5e7eb;color:#64748b;">Corso</td>
+                                <td style="padding:9px 10px;border-bottom:1px solid #e5e7eb;color:#172033;font-weight:700;">' . iscrizioniPrimeMailEscape($corso) . '</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:9px 10px;color:#64748b;">Anno scolastico</td>
+                                <td style="padding:9px 10px;color:#172033;font-weight:700;">' . iscrizioniPrimeMailEscape($anno) . '</td>
+                            </tr>
+                        </table>
+                        <p style="margin:18px 0;text-align:center;">
+                            <a href="' . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:13px 20px;border-radius:6px;font-weight:800;">
+                                Apri la pagina di conferma iscrizione
+                            </a>
+                        </p>
+                        <div style="border-left:5px solid #0ea5e9;background:#eaf6fc;padding:12px 14px;border-radius:6px;margin:16px 0;color:#0f172a;line-height:1.45;">
+                            Il link e\' personale e non richiede un account GestOre. Puoi salvare una bozza e rientrare dallo stesso link prima dell\'invio definitivo.
+                        </div>
+                        <p style="margin:18px 0 0;color:#475569;line-height:1.5;">
+                            Se i documenti sono cartacei, puoi fotografarli con il telefono direttamente dalla pagina. Le foto verranno trasformate in PDF.
+                        </p>
+                        <p style="margin:18px 0 0;color:#172033;line-height:1.5;">Cordiali saluti<br><strong>Segreteria didattica</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    ';
 }
 
 function iscrizioniPrimeMailRecipientsForPratica(array $pratica): array

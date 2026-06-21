@@ -8,7 +8,20 @@ iscrizioniPrimeEnsureSchema();
 
 function h($value): string
 {
-    return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $escaped = htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    if ($escaped === '' && trim((string)$value) !== '') {
+        if (function_exists('mb_convert_encoding')) {
+            return htmlspecialchars(mb_convert_encoding((string)$value, 'UTF-8', 'ISO-8859-1'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        }
+        if (function_exists('iconv')) {
+            $converted = iconv('ISO-8859-1', 'UTF-8//IGNORE', (string)$value);
+            if ($converted !== false) {
+                return htmlspecialchars($converted, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            }
+        }
+    }
+
+    return $escaped;
 }
 
 function confirmedValue(array $pratica, array $confirmed, string $field): string
@@ -38,7 +51,764 @@ function hasSecondResponsible(array $pratica, array $confirmed): bool
     return false;
 }
 
+function iscrizioniPrimeParentLanguages(): array
+{
+    return [
+        'it' => ['label' => '🇮🇹 Italiano', 'dir' => 'ltr'],
+        'en' => ['label' => '🇬🇧 English - Inglese', 'dir' => 'ltr'],
+        'fr' => ['label' => '🇫🇷 Français - Francese', 'dir' => 'ltr'],
+        'de' => ['label' => '🇩🇪 Deutsch - Tedesco', 'dir' => 'ltr'],
+        'es' => ['label' => '🇪🇸 Español - Spagnolo', 'dir' => 'ltr'],
+        'pt' => ['label' => '🇧🇷 Português - Portoghese', 'dir' => 'ltr'],
+        'ru' => ['label' => '🇷🇺 Русский - Russo', 'dir' => 'ltr'],
+        'sq' => ['label' => '🇦🇱 Shqip - Albanese', 'dir' => 'ltr'],
+        'ro' => ['label' => '🇷🇴 Română - Rumeno', 'dir' => 'ltr'],
+        'hi' => ['label' => '🇮🇳 हिन्दी - Hindi', 'dir' => 'ltr'],
+        'pa' => ['label' => '🇮🇳 ਪੰਜਾਬੀ - Punjabi', 'dir' => 'ltr'],
+        'bn' => ['label' => '🇧🇩 বাংলা - Bengali', 'dir' => 'ltr'],
+        'sr' => ['label' => '🇷🇸 Српски - Serbo', 'dir' => 'ltr'],
+        'hr' => ['label' => '🇭🇷 Hrvatski - Croato', 'dir' => 'ltr'],
+        'tr' => ['label' => '🇹🇷 Türkçe - Turco', 'dir' => 'ltr'],
+        'fa' => ['label' => '🇮🇷 فارسی - Persiano', 'dir' => 'ltr'],
+        'ps' => ['label' => '🇦🇫 پښتو - Pashto', 'dir' => 'ltr'],
+        'tl' => ['label' => '🇵🇭 Filipino - Tagalog', 'dir' => 'ltr'],
+        'pl' => ['label' => '🇵🇱 Polski - Polacco', 'dir' => 'ltr'],
+        'uk' => ['label' => '🇺🇦 Українська - Ucraino', 'dir' => 'ltr'],
+        'zh' => ['label' => '🇨🇳 中文 - Cinese', 'dir' => 'ltr'],
+        'ar' => ['label' => '🇲🇦 العربية - Arabo', 'dir' => 'ltr'],
+        'ur' => ['label' => '🇵🇰 اردو - Urdu', 'dir' => 'ltr'],
+    ];
+}
+
+function iscrizioniPrimeParentTranslations(): array
+{
+    $translations = [
+        'it' => [
+            'page_title' => 'Conferma iscrizione',
+            'school_kicker' => 'Istituto scolastico',
+            'school_year' => 'Anno scolastico',
+            'language' => 'Lingua',
+            'main_title' => 'Conferma dati iscrizione',
+            'subtitle' => 'Iscrizione alle classi prime',
+            'invalid_link' => 'Link non valido, scaduto o pratica non disponibile.',
+            'locked_notice' => 'La conferma dati iscrizione e gia stata inviata. Da questo link puoi consultare il riepilogo e i documenti caricati, ma non puoi piu modificare la pratica.',
+            'intro_notice' => 'Verifica i dati anagrafici e aggiorna email e telefoni. Puoi salvare una bozza e rientrare da questo stesso link prima dell\'invio definitivo.',
+            'student' => 'Studente',
+            'confirm_data' => 'Dati da confermare',
+            'documents' => 'Documenti',
+            'surname' => 'Cognome',
+            'name' => 'Nome',
+            'tax_code' => 'Codice fiscale',
+            'birth_date' => 'Data nascita',
+            'course' => 'Corso',
+            'practice_status' => 'Stato pratica',
+            'student_email' => 'Email studente',
+            'student_email_hint' => 'Indicare solo una email personale dello studente. Non usare la mail della scuola media; se non disponibile lasciare vuoto.',
+            'student_phone' => 'Telefono studente',
+            'resp1_email' => 'Email responsabile 1',
+            'resp1_phone' => 'Telefono responsabile 1',
+            'resp2_email' => 'Email responsabile 2',
+            'resp2_phone' => 'Telefono responsabile 2',
+            'responsible_1' => 'Responsabile 1',
+            'responsible_2' => 'Responsabile 2',
+            'data_confirm_checkbox' => 'Confermo che i dati indicati sono corretti o aggiornati.',
+            'save_draft' => 'Salva bozza',
+            'save_documents' => 'Salva e vai ai documenti',
+            'docs_intro' => 'Puoi caricare uno o piu PDF gia pronti oppure, da telefono, acquisire il documento come foto. Se servono piu pagine, seleziona o scatta piu foto: GestOre unisce tutto in un unico PDF multipagina.',
+            'docs_photo_help' => 'Le foto devono essere chiare, dritte e leggibili. Prima di caricare puoi eliminare una foto venuta male dalla selezione del telefono; dopo il caricamento puoi cancellare il documento e rifarlo.',
+            'privacy_notice' => 'I documenti vengono raccolti solo per la gestione della pratica di iscrizione e per gli adempimenti scolastici collegati.',
+            'privacy_link' => 'Leggi l\'informativa privacy sui documenti caricati',
+            'optional_doc_hint' => 'Facoltativo: da caricare solo se disponibile o se non gia consegnato/versato al momento dell\'iscrizione.',
+            'not_uploaded' => 'Non ancora caricato',
+            'paper_delivery' => 'Consegna cartacea in segreteria didattica',
+            'paper_badge' => 'Cartaceo',
+            'uploaded_badge' => 'Caricato',
+            'missing_badge' => 'Mancante',
+            'view_pdf' => 'Visualizza PDF caricato',
+            'choose_one' => 'Scegli una sola possibilita:',
+            'choose_123' => '1, 2 oppure 3.',
+            'choice_recorded' => 'Scelta gia registrata',
+            'cancel_paper' => 'Annulla scelta cartacea',
+            'delete_pdf' => 'Cancella PDF caricato',
+            'change_choice_hint' => 'Se devi cambiare scelta, annulla prima quella registrata e poi scegli 1, 2 oppure 3.',
+            'already_uploaded' => 'PDF gia caricato',
+            'append_pdf' => 'Aggiungi i nuovi file al PDF gia caricato.',
+            'replace_pdf' => 'Sostituisci il PDF gia caricato con i nuovi file.',
+            'choice_pdf' => 'Carico un PDF gia pronto',
+            'add_pdf' => 'Aggiungi PDF',
+            'pdf_help' => 'Usa questa scelta se hai gia il documento in PDF. Puoi aggiungere anche piu PDF: GestOre li unira in un unico file finale.',
+            'choice_photo' => 'Scatto una foto del documento',
+            'take_photo' => 'Scatta foto',
+            'photo_help' => 'Usa questa scelta se hai il documento su carta. Puoi fare una o piu foto con il telefono; GestOre le trasformera in PDF.',
+            'choice_paper' => 'Porto una fotocopia a scuola',
+            'paper_button' => 'Consegno fotocopia in segreteria',
+            'paper_help' => 'Usa questa scelta come alternativa al caricamento online. La segreteria sapra che consegnerai una copia cartacea.',
+            'confirm_upload' => 'Conferma caricamento online',
+            'upload_document' => 'Carica documento',
+            'upload_help' => 'Premi qui per salvare online i file che hai appena aggiunto.',
+            'final_section' => 'Invio domanda',
+            'final_help' => 'Quando hai controllato i dati e caricato i documenti, oppure indicato quelli che consegnerai in segreteria didattica, puoi inviare definitivamente la domanda.',
+            'final_button' => 'SALVA ED INVIA CONFERMA DATI ISCRIZIONE',
+            'sent_title' => 'Conferma dati iscrizione gia inviata.',
+            'sent_text' => 'Non serve fare altro da questa pagina. La segreteria didattica ha ricevuto la pratica e potra verificare i documenti caricati o indicati come consegna cartacea.',
+            'photo_editor_title' => 'Sistema foto',
+            'photo_editor_help' => 'Sposta i quattro punti blu sui vertici del documento. Con due dita puoi ruotare la foto; poi premi Conferma foto.',
+            'rotate_left' => 'Ruota -90',
+            'rotate_right' => 'Ruota +90',
+            'fine_rotation' => 'Rotazione fine',
+            'apply_rotation' => 'Applica rotazione',
+            'reset' => 'Ripristina',
+            'confirm_photo' => 'Conferma foto',
+            'cancel' => 'Annulla',
+            'busy' => 'Elaborazione in corso...',
+            'success_title' => 'Conferma inviata',
+            'success_main' => 'I dati dell\'iscrizione sono stati salvati e inviati correttamente.',
+            'success_text_1' => 'La segreteria didattica ricevera la conferma e potra verificare i documenti caricati o indicati come consegna cartacea.',
+            'success_text_2' => 'Una mail di conferma viene inviata agli indirizzi indicati, se l\'invio mail e configurato correttamente.',
+            'ok_understood' => 'Ho capito',
+            'error_title' => 'Manca un passaggio',
+            'error_main' => 'Prima di inviare devi completare i dati richiesti.',
+            'error_text' => 'Controlla la pagina e correggi il punto indicato. Poi potrai inviare di nuovo la conferma.',
+            'back_to_fix' => 'Torno a correggere',
+        ],
+        'en' => [
+            'language' => 'Language', 'school_kicker' => 'School', 'school_year' => 'School year', 'main_title' => 'Enrollment data confirmation', 'subtitle' => 'Enrollment in first-year classes',
+            'intro_notice' => 'Check personal data and update email addresses and phone numbers. You can save a draft and come back using this same link before the final submission.',
+            'locked_notice' => 'The enrollment confirmation has already been submitted. From this link you can view the summary and uploaded documents, but you can no longer edit the form.',
+            'invalid_link' => 'Invalid or expired link, or application not available.', 'student' => 'Student', 'confirm_data' => 'Data to confirm', 'documents' => 'Documents',
+            'surname' => 'Surname', 'name' => 'Name', 'tax_code' => 'Tax code', 'birth_date' => 'Date of birth', 'course' => 'Course', 'practice_status' => 'Application status',
+            'student_email' => 'Student email', 'student_email_hint' => 'Enter only a personal email address for the student. Do not use the lower-secondary school email; leave it blank if not available.',
+            'student_phone' => 'Student phone', 'resp1_email' => 'Parent/guardian 1 email', 'resp1_phone' => 'Parent/guardian 1 phone', 'resp2_email' => 'Parent/guardian 2 email', 'resp2_phone' => 'Parent/guardian 2 phone',
+            'responsible_1' => 'Parent/guardian 1', 'responsible_2' => 'Parent/guardian 2', 'data_confirm_checkbox' => 'I confirm that the information shown is correct or updated.',
+            'save_draft' => 'Save draft', 'save_documents' => 'Save and go to documents',
+            'docs_intro' => 'You can upload one or more ready PDF files or, from a phone, take photos of the document. If there are several pages, select or take several photos: GestOre will merge everything into one multi-page PDF.',
+            'docs_photo_help' => 'Photos must be clear, straight and readable. Before uploading you can remove a bad photo from the phone selection; after upload you can delete the document and redo it.',
+            'privacy_notice' => 'Documents are collected only to manage the enrollment application and the related school procedures.', 'privacy_link' => 'Read the privacy notice about uploaded documents',
+            'optional_doc_hint' => 'Optional: upload only if available or if it was not already delivered/paid during enrollment.', 'not_uploaded' => 'Not uploaded yet', 'paper_delivery' => 'Paper copy to be delivered to the school office',
+            'paper_badge' => 'Paper copy', 'uploaded_badge' => 'Uploaded', 'missing_badge' => 'Missing', 'view_pdf' => 'View uploaded PDF',
+            'choose_one' => 'Choose only one option:', 'choose_123' => '1, 2 or 3.', 'choice_recorded' => 'Choice already saved', 'cancel_paper' => 'Cancel paper-copy choice', 'delete_pdf' => 'Delete uploaded PDF',
+            'change_choice_hint' => 'To change your choice, first cancel the saved one, then choose 1, 2 or 3.', 'already_uploaded' => 'PDF already uploaded',
+            'append_pdf' => 'Add the new files to the already uploaded PDF.', 'replace_pdf' => 'Replace the already uploaded PDF with the new files.',
+            'choice_pdf' => 'I upload a ready PDF', 'add_pdf' => 'Add PDF', 'pdf_help' => 'Use this option if you already have the document as a PDF. You can add more than one PDF: GestOre will merge them into one final file.',
+            'choice_photo' => 'I take a photo of the document', 'take_photo' => 'Take photo', 'photo_help' => 'Use this option if the document is on paper. You can take one or more photos with your phone; GestOre will turn them into a PDF.',
+            'choice_paper' => 'I will bring a paper copy to school', 'paper_button' => 'I will deliver a paper copy to the office', 'paper_help' => 'Use this option as an alternative to online upload. The office will know that you will bring a paper copy.',
+            'confirm_upload' => 'Confirm online upload', 'upload_document' => 'Upload document', 'upload_help' => 'Press here to save online the files you have just added.',
+            'final_section' => 'Submit application', 'final_help' => 'When you have checked the data and uploaded the documents, or marked the ones you will deliver to the school office, you can submit the application permanently.',
+            'final_button' => 'SAVE AND SEND ENROLLMENT DATA CONFIRMATION', 'sent_title' => 'Enrollment data confirmation already submitted.', 'sent_text' => 'No further action is needed on this page. The school office has received the application and can check the uploaded documents or paper-copy choices.',
+        ],
+        'fr' => [
+            'language' => 'Langue', 'school_kicker' => 'Etablissement scolaire', 'school_year' => 'Annee scolaire', 'main_title' => 'Confirmation des donnees d\'inscription', 'subtitle' => 'Inscription aux classes de premiere annee',
+            'intro_notice' => 'Verifiez les donnees personnelles et mettez a jour les emails et telephones. Vous pouvez enregistrer un brouillon et revenir avec ce meme lien avant l\'envoi definitif.',
+            'student' => 'Eleve', 'confirm_data' => 'Donnees a confirmer', 'documents' => 'Documents', 'surname' => 'Nom', 'name' => 'Prenom', 'tax_code' => 'Code fiscal', 'birth_date' => 'Date de naissance',
+            'course' => 'Filiere', 'practice_status' => 'Etat du dossier', 'student_email' => 'Email de l\'eleve', 'student_email_hint' => 'Indiquez uniquement une adresse personnelle de l\'eleve. N\'utilisez pas l\'email du college; laissez vide si non disponible.',
+            'data_confirm_checkbox' => 'Je confirme que les donnees indiquees sont correctes ou mises a jour.', 'save_draft' => 'Enregistrer le brouillon', 'save_documents' => 'Enregistrer et aller aux documents',
+            'choose_one' => 'Choisissez une seule possibilite:', 'choose_123' => '1, 2 ou 3.', 'choice_pdf' => 'Je charge un PDF deja pret', 'add_pdf' => 'Ajouter PDF',
+            'choice_photo' => 'Je prends une photo du document', 'take_photo' => 'Prendre une photo', 'choice_paper' => 'J\'apporte une photocopie a l\'ecole', 'paper_button' => 'Je remets une photocopie au secretariat',
+            'final_button' => 'ENREGISTRER ET ENVOYER LA CONFIRMATION DES DONNEES D\'INSCRIPTION',
+        ],
+        'de' => [
+            'language' => 'Sprache', 'school_kicker' => 'Schule', 'school_year' => 'Schuljahr', 'main_title' => 'Bestaetigung der Einschreibedaten', 'subtitle' => 'Einschreibung in das erste Schuljahr',
+            'intro_notice' => 'Pruefen Sie die Daten und aktualisieren Sie E-Mail-Adressen und Telefonnummern. Sie koennen einen Entwurf speichern und vor dem endgueltigen Senden ueber denselben Link zurueckkehren.',
+            'student' => 'Schueler/in', 'confirm_data' => 'Zu bestaetigende Daten', 'documents' => 'Dokumente', 'surname' => 'Nachname', 'name' => 'Vorname', 'tax_code' => 'Steuernummer', 'birth_date' => 'Geburtsdatum',
+            'course' => 'Bildungsgang', 'practice_status' => 'Status', 'student_email' => 'E-Mail des Schuelers', 'student_email_hint' => 'Bitte nur eine persoenliche E-Mail-Adresse des Schuelers angeben. Keine E-Mail der Mittelschule verwenden; falls nicht vorhanden leer lassen.',
+            'data_confirm_checkbox' => 'Ich bestaetige, dass die angegebenen Daten richtig oder aktualisiert sind.', 'save_draft' => 'Entwurf speichern', 'save_documents' => 'Speichern und zu den Dokumenten',
+            'choose_one' => 'Waehlen Sie nur eine Moeglichkeit:', 'choose_123' => '1, 2 oder 3.', 'choice_pdf' => 'Ich lade ein fertiges PDF hoch', 'add_pdf' => 'PDF hinzufuegen',
+            'choice_photo' => 'Ich fotografiere das Dokument', 'take_photo' => 'Foto aufnehmen', 'choice_paper' => 'Ich bringe eine Papierkopie in die Schule', 'paper_button' => 'Papierkopie im Sekretariat abgeben',
+            'final_button' => 'EINSCHREIBEDATEN SPEICHERN UND SENDEN',
+        ],
+        'ru' => [
+            'language' => 'Язык', 'school_kicker' => 'Учебное заведение', 'school_year' => 'Учебный год', 'main_title' => 'Подтверждение данных для зачисления', 'subtitle' => 'Зачисление на первый год обучения',
+            'intro_notice' => 'Проверьте личные данные и обновите адреса электронной почты и телефоны. Можно сохранить черновик и вернуться по этой же ссылке до окончательной отправки.',
+            'student' => 'Ученик', 'confirm_data' => 'Данные для подтверждения', 'documents' => 'Документы', 'surname' => 'Фамилия', 'name' => 'Имя', 'tax_code' => 'Налоговый код', 'birth_date' => 'Дата рождения',
+            'course' => 'Курс', 'practice_status' => 'Статус заявления', 'student_email' => 'Email ученика', 'student_email_hint' => 'Укажите только личный email ученика. Не используйте школьный email средней школы; если email нет, оставьте поле пустым.',
+            'data_confirm_checkbox' => 'Подтверждаю, что указанные данные верны или обновлены.', 'save_draft' => 'Сохранить черновик', 'save_documents' => 'Сохранить и перейти к документам',
+            'choose_one' => 'Выберите только один вариант:', 'choose_123' => '1, 2 или 3.', 'choice_pdf' => 'Загрузить готовый PDF', 'add_pdf' => 'Добавить PDF',
+            'choice_photo' => 'Сфотографировать документ', 'take_photo' => 'Сделать фото', 'choice_paper' => 'Принесу копию в школу', 'paper_button' => 'Передам копию в секретариат',
+            'final_button' => 'СОХРАНИТЬ И ОТПРАВИТЬ ПОДТВЕРЖДЕНИЕ ДАННЫХ',
+        ],
+        'uk' => [
+            'language' => 'Мова', 'school_kicker' => 'Навчальний заклад', 'school_year' => 'Навчальний рік', 'main_title' => 'Підтвердження даних для зарахування', 'subtitle' => 'Зарахування на перший рік навчання',
+            'intro_notice' => 'Перевірте особисті дані та оновіть електронні адреси і телефони. Можна зберегти чернетку і повернутися за цим самим посиланням до остаточного надсилання.',
+            'student' => 'Учень/учениця', 'confirm_data' => 'Дані для підтвердження', 'documents' => 'Документи', 'surname' => 'Прізвище', 'name' => 'Імʼя', 'tax_code' => 'Податковий код', 'birth_date' => 'Дата народження',
+            'course' => 'Курс', 'practice_status' => 'Статус заяви', 'student_email' => 'Email учня', 'student_email_hint' => 'Вкажіть лише особистий email учня. Не використовуйте email середньої школи; якщо його немає, залиште поле порожнім.',
+            'data_confirm_checkbox' => 'Підтверджую, що зазначені дані правильні або оновлені.', 'save_draft' => 'Зберегти чернетку', 'save_documents' => 'Зберегти і перейти до документів',
+            'choose_one' => 'Оберіть лише один варіант:', 'choose_123' => '1, 2 або 3.', 'choice_pdf' => 'Завантажити готовий PDF', 'add_pdf' => 'Додати PDF',
+            'choice_photo' => 'Сфотографувати документ', 'take_photo' => 'Зробити фото', 'choice_paper' => 'Принесу копію до школи', 'paper_button' => 'Передам копію до секретаріату',
+            'final_button' => 'ЗБЕРЕГТИ І НАДІСЛАТИ ПІДТВЕРДЖЕННЯ ДАНИХ',
+        ],
+        'zh' => [
+            'language' => '语言', 'school_kicker' => '学校', 'school_year' => '学年', 'main_title' => '入学资料确认', 'subtitle' => '高中一年级入学',
+            'intro_notice' => '请检查个人资料并更新邮箱和电话号码。最终提交前，您可以保存草稿，并使用同一链接再次进入。',
+            'student' => '学生', 'confirm_data' => '需要确认的资料', 'documents' => '文件', 'surname' => '姓', 'name' => '名', 'tax_code' => '税号', 'birth_date' => '出生日期',
+            'course' => '课程', 'practice_status' => '申请状态', 'student_email' => '学生邮箱', 'student_email_hint' => '请只填写学生个人邮箱。不要使用初中学校邮箱；没有可留空。',
+            'data_confirm_checkbox' => '我确认所显示的信息正确或已更新。', 'save_draft' => '保存草稿', 'save_documents' => '保存并进入文件上传',
+            'choose_one' => '只能选择一种方式：', 'choose_123' => '1、2 或 3。', 'choice_pdf' => '上传已有 PDF', 'add_pdf' => '添加 PDF',
+            'choice_photo' => '拍摄文件照片', 'take_photo' => '拍照', 'choice_paper' => '我会把复印件带到学校', 'paper_button' => '把复印件交到秘书处',
+            'final_button' => '保存并发送入学资料确认',
+        ],
+        'ar' => [
+            'language' => 'اللغة', 'school_kicker' => 'المؤسسة التعليمية', 'school_year' => 'السنة الدراسية', 'main_title' => 'تأكيد بيانات التسجيل', 'subtitle' => 'التسجيل في السنة الدراسية الأولى',
+            'intro_notice' => 'يرجى التحقق من البيانات الشخصية وتحديث البريد الإلكتروني وأرقام الهاتف. يمكن حفظ مسودة والعودة من نفس الرابط قبل الإرسال النهائي.',
+            'student' => 'الطالب', 'confirm_data' => 'البيانات المطلوب تأكيدها', 'documents' => 'الوثائق', 'surname' => 'اللقب', 'name' => 'الاسم', 'tax_code' => 'الرقم الضريبي', 'birth_date' => 'تاريخ الميلاد',
+            'course' => 'المسار', 'practice_status' => 'حالة الطلب', 'student_email' => 'بريد الطالب', 'student_email_hint' => 'يرجى إدخال بريد شخصي للطالب فقط. لا تستخدم بريد المدرسة المتوسطة؛ اتركه فارغا إذا لم يكن متوفرا.',
+            'data_confirm_checkbox' => 'أؤكد أن البيانات المذكورة صحيحة أو محدثة.', 'save_draft' => 'حفظ مسودة', 'save_documents' => 'حفظ والانتقال إلى الوثائق',
+            'choose_one' => 'اختر إمكانية واحدة فقط:', 'choose_123' => '1 أو 2 أو 3.', 'choice_pdf' => 'أرفع ملف PDF جاهزا', 'add_pdf' => 'إضافة PDF',
+            'choice_photo' => 'ألتقط صورة للوثيقة', 'take_photo' => 'التقاط صورة', 'choice_paper' => 'سأحضر نسخة ورقية إلى المدرسة', 'paper_button' => 'تسليم نسخة ورقية إلى السكرتارية',
+            'final_button' => 'حفظ وإرسال تأكيد بيانات التسجيل',
+        ],
+        'ur' => [
+            'language' => 'زبان', 'school_kicker' => 'تعلیمی ادارہ', 'school_year' => 'تعلیمی سال', 'main_title' => 'داخلہ کے ڈیٹا کی تصدیق', 'subtitle' => 'پہلے تعلیمی سال میں داخلہ',
+            'intro_notice' => 'ذاتی معلومات چیک کریں اور ای میل اور فون نمبر اپ ڈیٹ کریں۔ حتمی ارسال سے پہلے آپ مسودہ محفوظ کر کے اسی لنک سے دوبارہ آ سکتے ہیں۔',
+            'student' => 'طالب علم', 'confirm_data' => 'تصدیق کے لیے معلومات', 'documents' => 'دستاویزات', 'surname' => 'خاندانی نام', 'name' => 'نام', 'tax_code' => 'ٹیکس کوڈ', 'birth_date' => 'تاریخ پیدائش',
+            'course' => 'کورس', 'practice_status' => 'درخواست کی حالت', 'student_email' => 'طالب علم کی ای میل', 'student_email_hint' => 'صرف طالب علم کی ذاتی ای میل درج کریں۔ مڈل اسکول کی ای میل استعمال نہ کریں؛ موجود نہ ہو تو خالی چھوڑ دیں۔',
+            'data_confirm_checkbox' => 'میں تصدیق کرتا/کرتی ہوں کہ درج معلومات درست یا اپ ڈیٹ ہیں۔', 'save_draft' => 'مسودہ محفوظ کریں', 'save_documents' => 'محفوظ کریں اور دستاویزات پر جائیں',
+            'choose_one' => 'صرف ایک امکان منتخب کریں:', 'choose_123' => '1، 2 یا 3۔', 'choice_pdf' => 'تیار PDF اپ لوڈ کرتا/کرتی ہوں', 'add_pdf' => 'PDF شامل کریں',
+            'choice_photo' => 'دستاویز کی تصویر لیتا/لیتی ہوں', 'take_photo' => 'تصویر لیں', 'choice_paper' => 'کاغذی کاپی اسکول لاؤں گا/گی', 'paper_button' => 'کاپی سیکرٹریٹ میں جمع کراؤں گا/گی',
+            'final_button' => 'داخلہ ڈیٹا کی تصدیق محفوظ اور ارسال کریں',
+        ],
+    ];
+
+    $missing = [
+        'fr' => [
+            'student_phone' => 'Telephone de l\'eleve',
+            'resp1_email' => 'Email responsable 1',
+            'resp1_phone' => 'Telephone responsable 1',
+            'resp2_email' => 'Email responsable 2',
+            'resp2_phone' => 'Telephone responsable 2',
+            'responsible_1' => 'Responsable 1',
+            'responsible_2' => 'Responsable 2',
+            'docs_intro' => 'Vous pouvez charger un ou plusieurs PDF deja prets ou, depuis un telephone, prendre le document en photo. S\'il y a plusieurs pages, selectionnez ou prenez plusieurs photos: GestOre les reunira dans un seul PDF multipage.',
+            'docs_photo_help' => 'Les photos doivent etre claires, droites et lisibles. Avant le chargement vous pouvez supprimer une photo mal prise; apres le chargement vous pouvez supprimer le document et le refaire.',
+            'privacy_notice' => 'Les documents sont collectes uniquement pour gerer le dossier d\'inscription et les formalites scolaires liees.',
+            'privacy_link' => 'Lire la note de confidentialite sur les documents charges',
+            'optional_doc_hint' => 'Facultatif: a charger seulement si disponible ou si ce document n\'a pas deja ete remis/paye au moment de l\'inscription.',
+            'not_uploaded' => 'Pas encore charge',
+            'paper_delivery' => 'Remise papier au secretariat didactique',
+            'paper_badge' => 'Papier',
+            'uploaded_badge' => 'Charge',
+            'missing_badge' => 'Manquant',
+            'view_pdf' => 'Voir le PDF charge',
+            'choice_recorded' => 'Choix deja enregistre',
+            'cancel_paper' => 'Annuler le choix papier',
+            'delete_pdf' => 'Supprimer le PDF charge',
+            'change_choice_hint' => 'Pour changer de choix, annulez d\'abord celui qui est enregistre, puis choisissez 1, 2 ou 3.',
+            'already_uploaded' => 'PDF deja charge',
+            'append_pdf' => 'Ajouter les nouveaux fichiers au PDF deja charge.',
+            'replace_pdf' => 'Remplacer le PDF deja charge par les nouveaux fichiers.',
+            'pdf_help' => 'Utilisez ce choix si vous avez deja le document en PDF. Vous pouvez ajouter plusieurs PDF: GestOre les reunira dans un seul fichier final.',
+            'photo_help' => 'Utilisez ce choix si le document est sur papier. Vous pouvez prendre une ou plusieurs photos avec le telephone; GestOre les transformera en PDF.',
+            'paper_help' => 'Utilisez ce choix comme alternative au chargement en ligne. Le secretariat saura que vous remettrez une copie papier.',
+            'confirm_upload' => 'Confirmer le chargement en ligne',
+            'upload_document' => 'Charger le document',
+            'upload_help' => 'Appuyez ici pour enregistrer en ligne les fichiers que vous venez d\'ajouter.',
+            'final_section' => 'Envoi de la demande',
+            'final_help' => 'Lorsque vous avez controle les donnees et charge les documents, ou indique ceux que vous remettrez au secretariat, vous pouvez envoyer definitivement la demande.',
+            'sent_title' => 'Confirmation des donnees d\'inscription deja envoyee.',
+            'sent_text' => 'Il n\'y a rien d\'autre a faire sur cette page. Le secretariat didactique a recu le dossier et pourra verifier les documents charges ou indiques comme remise papier.',
+        ],
+        'de' => [
+            'student_phone' => 'Telefon des Schuelers',
+            'resp1_email' => 'E-Mail Verantwortliche/r 1',
+            'resp1_phone' => 'Telefon Verantwortliche/r 1',
+            'resp2_email' => 'E-Mail Verantwortliche/r 2',
+            'resp2_phone' => 'Telefon Verantwortliche/r 2',
+            'responsible_1' => 'Verantwortliche/r 1',
+            'responsible_2' => 'Verantwortliche/r 2',
+            'docs_intro' => 'Sie koennen ein oder mehrere fertige PDF-Dateien hochladen oder mit dem Telefon Fotos des Dokuments aufnehmen. Bei mehreren Seiten nehmen oder waehlen Sie mehrere Fotos: GestOre fuehrt alles zu einer mehrseitigen PDF-Datei zusammen.',
+            'docs_photo_help' => 'Fotos muessen klar, gerade und lesbar sein. Vor dem Hochladen koennen Sie ein schlechtes Foto entfernen; nach dem Hochladen koennen Sie das Dokument loeschen und neu erstellen.',
+            'privacy_notice' => 'Die Dokumente werden nur fuer die Bearbeitung der Einschreibung und die damit verbundenen schulischen Verfahren gesammelt.',
+            'privacy_link' => 'Datenschutzhinweis zu den hochgeladenen Dokumenten lesen',
+            'optional_doc_hint' => 'Optional: nur hochladen, wenn vorhanden oder wenn es bei der Einschreibung noch nicht abgegeben/bezahlt wurde.',
+            'not_uploaded' => 'Noch nicht hochgeladen',
+            'paper_delivery' => 'Papierabgabe im Sekretariat',
+            'paper_badge' => 'Papier',
+            'uploaded_badge' => 'Hochgeladen',
+            'missing_badge' => 'Fehlt',
+            'view_pdf' => 'Hochgeladenes PDF anzeigen',
+            'choice_recorded' => 'Auswahl bereits gespeichert',
+            'cancel_paper' => 'Papierauswahl annullieren',
+            'delete_pdf' => 'Hochgeladenes PDF loeschen',
+            'change_choice_hint' => 'Wenn Sie die Auswahl aendern muessen, annullieren Sie zuerst die gespeicherte Auswahl und waehlen dann 1, 2 oder 3.',
+            'already_uploaded' => 'PDF bereits hochgeladen',
+            'append_pdf' => 'Neue Dateien zum bereits hochgeladenen PDF hinzufuegen.',
+            'replace_pdf' => 'Bereits hochgeladenes PDF durch die neuen Dateien ersetzen.',
+            'pdf_help' => 'Nutzen Sie diese Auswahl, wenn Sie das Dokument bereits als PDF haben. Sie koennen mehrere PDFs hinzufuegen: GestOre fuehrt sie zu einer Enddatei zusammen.',
+            'photo_help' => 'Nutzen Sie diese Auswahl, wenn das Dokument auf Papier vorliegt. Sie koennen ein oder mehrere Fotos mit dem Telefon machen; GestOre wandelt sie in PDF um.',
+            'paper_help' => 'Nutzen Sie diese Auswahl als Alternative zum Online-Upload. Das Sekretariat weiss dann, dass Sie eine Papierkopie abgeben.',
+            'confirm_upload' => 'Online-Upload bestaetigen',
+            'upload_document' => 'Dokument hochladen',
+            'upload_help' => 'Hier druecken, um die gerade hinzugefuegten Dateien online zu speichern.',
+            'final_section' => 'Antrag senden',
+            'final_help' => 'Wenn Sie die Daten kontrolliert und die Dokumente hochgeladen oder die Papierabgabe angegeben haben, koennen Sie den Antrag endgueltig senden.',
+            'sent_title' => 'Bestaetigung der Einschreibedaten bereits gesendet.',
+            'sent_text' => 'Auf dieser Seite ist nichts weiter zu tun. Das Sekretariat hat den Antrag erhalten und kann die hochgeladenen Dokumente oder Papierabgaben pruefen.',
+        ],
+        'ru' => [
+            'student_phone' => 'Телефон ученика',
+            'resp1_email' => 'Email ответственного 1',
+            'resp1_phone' => 'Телефон ответственного 1',
+            'resp2_email' => 'Email ответственного 2',
+            'resp2_phone' => 'Телефон ответственного 2',
+            'responsible_1' => 'Ответственный 1',
+            'responsible_2' => 'Ответственный 2',
+            'docs_intro' => 'Можно загрузить один или несколько готовых PDF-файлов или сфотографировать документ с телефона. Если страниц несколько, выберите или сделайте несколько фотографий: GestOre объединит их в один многостраничный PDF.',
+            'docs_photo_help' => 'Фотографии должны быть четкими, ровными и читаемыми. Перед загрузкой можно удалить неудачную фотографию; после загрузки можно удалить документ и сделать его заново.',
+            'privacy_notice' => 'Документы собираются только для обработки заявления о зачислении и связанных школьных процедур.',
+            'privacy_link' => 'Прочитать уведомление о конфиденциальности загруженных документов',
+            'optional_doc_hint' => 'Необязательно: загрузите только если документ доступен или если он еще не был передан/оплачен при записи.',
+            'not_uploaded' => 'Еще не загружено',
+            'paper_delivery' => 'Бумажная копия будет передана в учебный секретариат',
+            'paper_badge' => 'Бумага',
+            'uploaded_badge' => 'Загружено',
+            'missing_badge' => 'Не хватает',
+            'view_pdf' => 'Открыть загруженный PDF',
+            'choice_recorded' => 'Выбор уже сохранен',
+            'cancel_paper' => 'Отменить бумажную копию',
+            'delete_pdf' => 'Удалить загруженный PDF',
+            'change_choice_hint' => 'Чтобы изменить выбор, сначала отмените сохраненный вариант, затем выберите 1, 2 или 3.',
+            'already_uploaded' => 'PDF уже загружен',
+            'append_pdf' => 'Добавить новые файлы к уже загруженному PDF.',
+            'replace_pdf' => 'Заменить уже загруженный PDF новыми файлами.',
+            'pdf_help' => 'Используйте этот вариант, если документ уже есть в PDF. Можно добавить несколько PDF: GestOre объединит их в один итоговый файл.',
+            'photo_help' => 'Используйте этот вариант, если документ на бумаге. Можно сделать одну или несколько фотографий телефоном; GestOre преобразует их в PDF.',
+            'paper_help' => 'Используйте этот вариант вместо онлайн-загрузки. Секретариат будет знать, что вы принесете бумажную копию.',
+            'confirm_upload' => 'Подтвердить онлайн-загрузку',
+            'upload_document' => 'Загрузить документ',
+            'upload_help' => 'Нажмите здесь, чтобы сохранить онлайн только что добавленные файлы.',
+            'final_section' => 'Отправка заявления',
+            'final_help' => 'После проверки данных и загрузки документов, либо отметки документов для передачи в секретариат, можно окончательно отправить заявление.',
+            'sent_title' => 'Подтверждение данных уже отправлено.',
+            'sent_text' => 'На этой странице больше ничего делать не нужно. Учебный секретариат получил заявление и сможет проверить загруженные документы или бумажные копии.',
+        ],
+        'uk' => [
+            'student_phone' => 'Телефон учня',
+            'resp1_email' => 'Email відповідального 1',
+            'resp1_phone' => 'Телефон відповідального 1',
+            'resp2_email' => 'Email відповідального 2',
+            'resp2_phone' => 'Телефон відповідального 2',
+            'responsible_1' => 'Відповідальний 1',
+            'responsible_2' => 'Відповідальний 2',
+            'docs_intro' => 'Можна завантажити один або кілька готових PDF-файлів або сфотографувати документ телефоном. Якщо сторінок кілька, виберіть або зробіть кілька фото: GestOre обʼєднає їх в один багатосторінковий PDF.',
+            'docs_photo_help' => 'Фото мають бути чіткими, рівними і читабельними. Перед завантаженням можна видалити невдале фото; після завантаження можна видалити документ і зробити його знову.',
+            'privacy_notice' => 'Документи збираються лише для обробки заяви про зарахування і повʼязаних шкільних процедур.',
+            'privacy_link' => 'Прочитати повідомлення про конфіденційність завантажених документів',
+            'optional_doc_hint' => 'Необовʼязково: завантажуйте лише якщо документ доступний або якщо він ще не був переданий/оплачений під час запису.',
+            'not_uploaded' => 'Ще не завантажено',
+            'paper_delivery' => 'Паперова копія буде передана до навчального секретаріату',
+            'paper_badge' => 'Папір',
+            'uploaded_badge' => 'Завантажено',
+            'missing_badge' => 'Відсутній',
+            'view_pdf' => 'Відкрити завантажений PDF',
+            'choice_recorded' => 'Вибір уже збережено',
+            'cancel_paper' => 'Скасувати паперову копію',
+            'delete_pdf' => 'Видалити завантажений PDF',
+            'change_choice_hint' => 'Щоб змінити вибір, спочатку скасуйте збережений варіант, потім виберіть 1, 2 або 3.',
+            'already_uploaded' => 'PDF уже завантажено',
+            'append_pdf' => 'Додати нові файли до вже завантаженого PDF.',
+            'replace_pdf' => 'Замінити вже завантажений PDF новими файлами.',
+            'pdf_help' => 'Використайте цей варіант, якщо документ уже є у PDF. Можна додати кілька PDF: GestOre обʼєднає їх в один фінальний файл.',
+            'photo_help' => 'Використайте цей варіант, якщо документ на папері. Можна зробити одне або кілька фото телефоном; GestOre перетворить їх у PDF.',
+            'paper_help' => 'Використайте цей варіант замість онлайн-завантаження. Секретаріат знатиме, що ви принесете паперову копію.',
+            'confirm_upload' => 'Підтвердити онлайн-завантаження',
+            'upload_document' => 'Завантажити документ',
+            'upload_help' => 'Натисніть тут, щоб зберегти онлайн щойно додані файли.',
+            'final_section' => 'Надсилання заяви',
+            'final_help' => 'Після перевірки даних і завантаження документів, або позначення документів для передачі до секретаріату, можна остаточно надіслати заяву.',
+            'sent_title' => 'Підтвердження даних уже надіслано.',
+            'sent_text' => 'На цій сторінці більше нічого робити не потрібно. Навчальний секретаріат отримав заяву і зможе перевірити завантажені документи або паперові копії.',
+        ],
+        'zh' => [
+            'student_phone' => '学生电话',
+            'resp1_email' => '监护人 1 邮箱',
+            'resp1_phone' => '监护人 1 电话',
+            'resp2_email' => '监护人 2 邮箱',
+            'resp2_phone' => '监护人 2 电话',
+            'responsible_1' => '监护人 1',
+            'responsible_2' => '监护人 2',
+            'docs_intro' => '您可以上传一个或多个已准备好的 PDF，也可以用手机拍摄文件。如果有多页，请选择或拍摄多张照片：GestOre 会合并成一个多页 PDF。',
+            'docs_photo_help' => '照片必须清楚、端正、可阅读。上传前可以删除拍得不好的照片；上传后也可以删除文件并重新制作。',
+            'privacy_notice' => '这些文件只用于处理入学申请和相关学校手续。',
+            'privacy_link' => '阅读上传文件的隐私说明',
+            'optional_doc_hint' => '可选：只有在有该文件，且报名时尚未提交或支付时才上传。',
+            'not_uploaded' => '尚未上传',
+            'paper_delivery' => '将纸质复印件交给教学秘书处',
+            'paper_badge' => '纸质',
+            'uploaded_badge' => '已上传',
+            'missing_badge' => '缺少',
+            'view_pdf' => '查看已上传的 PDF',
+            'choice_recorded' => '选择已保存',
+            'cancel_paper' => '取消纸质提交选择',
+            'delete_pdf' => '删除已上传的 PDF',
+            'change_choice_hint' => '如需更改选择，请先取消已保存的选择，然后选择 1、2 或 3。',
+            'already_uploaded' => 'PDF 已上传',
+            'append_pdf' => '把新文件添加到已上传的 PDF 中。',
+            'replace_pdf' => '用新文件替换已上传的 PDF。',
+            'pdf_help' => '如果文件已经是 PDF，请使用此选择。可以添加多个 PDF：GestOre 会合并成一个最终文件。',
+            'photo_help' => '如果文件是纸质，请使用此选择。可以用手机拍一张或多张照片；GestOre 会转换成 PDF。',
+            'paper_help' => '如果不在线上传，可以选择此项。秘书处会知道您将提交纸质复印件。',
+            'confirm_upload' => '确认在线上传',
+            'upload_document' => '上传文件',
+            'upload_help' => '点击这里保存刚添加的文件。',
+            'final_section' => '提交申请',
+            'final_help' => '检查资料并上传文件，或标记将交到秘书处的文件后，可以最终提交申请。',
+            'sent_title' => '入学资料确认已提交。',
+            'sent_text' => '此页面无需再操作。教学秘书处已收到申请，并可检查上传文件或纸质提交选择。',
+        ],
+        'ar' => [
+            'student_phone' => 'هاتف الطالب',
+            'resp1_email' => 'بريد المسؤول 1',
+            'resp1_phone' => 'هاتف المسؤول 1',
+            'resp2_email' => 'بريد المسؤول 2',
+            'resp2_phone' => 'هاتف المسؤول 2',
+            'responsible_1' => 'المسؤول 1',
+            'responsible_2' => 'المسؤول 2',
+            'docs_intro' => 'يمكنك رفع ملف PDF واحد أو أكثر جاهزا، أو استخدام الهاتف لتصوير الوثيقة. إذا كانت هناك عدة صفحات، اختر أو التقط عدة صور: سيجمعها GestOre في ملف PDF واحد متعدد الصفحات.',
+            'docs_photo_help' => 'يجب أن تكون الصور واضحة ومستقيمة ومقروءة. قبل الرفع يمكنك حذف الصورة غير الواضحة؛ وبعد الرفع يمكنك حذف الوثيقة وإعادتها.',
+            'privacy_notice' => 'تجمع الوثائق فقط لإدارة طلب التسجيل والإجراءات المدرسية المرتبطة به.',
+            'privacy_link' => 'اقرأ بيان الخصوصية حول الوثائق المرفوعة',
+            'optional_doc_hint' => 'اختياري: ارفعه فقط إذا كان متوفرا أو إذا لم يتم تسليمه/دفعه عند التسجيل.',
+            'not_uploaded' => 'لم يتم الرفع بعد',
+            'paper_delivery' => 'تسليم نسخة ورقية إلى السكرتارية التعليمية',
+            'paper_badge' => 'ورقي',
+            'uploaded_badge' => 'مرفوع',
+            'missing_badge' => 'ناقص',
+            'view_pdf' => 'عرض ملف PDF المرفوع',
+            'choice_recorded' => 'تم حفظ الاختيار',
+            'cancel_paper' => 'إلغاء اختيار النسخة الورقية',
+            'delete_pdf' => 'حذف ملف PDF المرفوع',
+            'change_choice_hint' => 'إذا أردت تغيير الاختيار، ألغ الاختيار المحفوظ أولا ثم اختر 1 أو 2 أو 3.',
+            'already_uploaded' => 'تم رفع PDF سابقا',
+            'append_pdf' => 'أضف الملفات الجديدة إلى ملف PDF المرفوع سابقا.',
+            'replace_pdf' => 'استبدل ملف PDF المرفوع سابقا بالملفات الجديدة.',
+            'pdf_help' => 'استخدم هذا الخيار إذا كانت الوثيقة لديك بصيغة PDF. يمكنك إضافة عدة ملفات PDF: سيجمعها GestOre في ملف نهائي واحد.',
+            'photo_help' => 'استخدم هذا الخيار إذا كانت الوثيقة على الورق. يمكنك التقاط صورة أو أكثر بالهاتف؛ وسيحولها GestOre إلى PDF.',
+            'paper_help' => 'استخدم هذا الخيار كبديل للرفع عبر الإنترنت. ستعرف السكرتارية أنك ستسلم نسخة ورقية.',
+            'confirm_upload' => 'تأكيد الرفع عبر الإنترنت',
+            'upload_document' => 'رفع الوثيقة',
+            'upload_help' => 'اضغط هنا لحفظ الملفات التي أضفتها للتو عبر الإنترنت.',
+            'final_section' => 'إرسال الطلب',
+            'final_help' => 'عندما تتحقق من البيانات وترفع الوثائق، أو تحدد الوثائق التي ستسلمها إلى السكرتارية، يمكنك إرسال الطلب نهائيا.',
+            'sent_title' => 'تم إرسال تأكيد بيانات التسجيل سابقا.',
+            'sent_text' => 'لا يلزم القيام بأي شيء آخر من هذه الصفحة. استلمت السكرتارية التعليمية الطلب ويمكنها التحقق من الوثائق المرفوعة أو المحددة كتسليم ورقي.',
+        ],
+        'ur' => [
+            'student_phone' => 'طالب علم کا فون',
+            'resp1_email' => 'ذمہ دار 1 کی ای میل',
+            'resp1_phone' => 'ذمہ دار 1 کا فون',
+            'resp2_email' => 'ذمہ دار 2 کی ای میل',
+            'resp2_phone' => 'ذمہ دار 2 کا فون',
+            'responsible_1' => 'ذمہ دار 1',
+            'responsible_2' => 'ذمہ دار 2',
+            'docs_intro' => 'آپ ایک یا زیادہ تیار PDF فائلیں اپ لوڈ کر سکتے ہیں، یا فون سے دستاویز کی تصویر لے سکتے ہیں۔ اگر کئی صفحات ہوں تو کئی تصاویر منتخب کریں یا لیں: GestOre انہیں ایک ہی کئی صفحات والے PDF میں جوڑ دے گا۔',
+            'docs_photo_help' => 'تصاویر صاف، سیدھی اور پڑھنے کے قابل ہونی چاہئیں۔ اپ لوڈ سے پہلے خراب تصویر حذف کر سکتے ہیں؛ اپ لوڈ کے بعد دستاویز حذف کر کے دوبارہ بنا سکتے ہیں۔',
+            'privacy_notice' => 'دستاویزات صرف داخلہ درخواست اور اس سے متعلقہ اسکولی کارروائیوں کے لیے جمع کی جاتی ہیں۔',
+            'privacy_link' => 'اپ لوڈ دستاویزات کے بارے میں رازداری نوٹس پڑھیں',
+            'optional_doc_hint' => 'اختیاری: صرف اس صورت میں اپ لوڈ کریں اگر دستیاب ہو یا جنوری کے داخلہ وقت پہلے جمع/ادا نہ کیا گیا ہو۔',
+            'not_uploaded' => 'ابھی اپ لوڈ نہیں ہوا',
+            'paper_delivery' => 'تعلیمی سیکرٹریٹ میں کاغذی کاپی جمع کرانی ہے',
+            'paper_badge' => 'کاغذی',
+            'uploaded_badge' => 'اپ لوڈ شدہ',
+            'missing_badge' => 'غائب',
+            'view_pdf' => 'اپ لوڈ شدہ PDF دیکھیں',
+            'choice_recorded' => 'انتخاب محفوظ ہو چکا ہے',
+            'cancel_paper' => 'کاغذی انتخاب منسوخ کریں',
+            'delete_pdf' => 'اپ لوڈ شدہ PDF حذف کریں',
+            'change_choice_hint' => 'اگر انتخاب بدلنا ہو تو پہلے محفوظ انتخاب منسوخ کریں، پھر 1، 2 یا 3 منتخب کریں۔',
+            'already_uploaded' => 'PDF پہلے ہی اپ لوڈ ہے',
+            'append_pdf' => 'نئی فائلیں پہلے سے اپ لوڈ PDF میں شامل کریں۔',
+            'replace_pdf' => 'پہلے سے اپ لوڈ PDF کو نئی فائلوں سے بدل دیں۔',
+            'pdf_help' => 'اگر دستاویز پہلے ہی PDF میں ہے تو یہ انتخاب استعمال کریں۔ آپ ایک سے زیادہ PDF شامل کر سکتے ہیں: GestOre انہیں ایک حتمی فائل میں جوڑ دے گا۔',
+            'photo_help' => 'اگر دستاویز کاغذ پر ہے تو یہ انتخاب استعمال کریں۔ فون سے ایک یا زیادہ تصاویر لے سکتے ہیں؛ GestOre انہیں PDF میں بدل دے گا۔',
+            'paper_help' => 'آن لائن اپ لوڈ کے بدلے یہ انتخاب استعمال کریں۔ سیکرٹریٹ کو معلوم ہو گا کہ آپ کاغذی کاپی جمع کرائیں گے۔',
+            'confirm_upload' => 'آن لائن اپ لوڈ کی تصدیق',
+            'upload_document' => 'دستاویز اپ لوڈ کریں',
+            'upload_help' => 'ابھی شامل کی گئی فائلیں آن لائن محفوظ کرنے کے لیے یہاں دبائیں۔',
+            'final_section' => 'درخواست ارسال کریں',
+            'final_help' => 'جب آپ ڈیٹا چیک کر لیں اور دستاویزات اپ لوڈ کر دیں، یا جنہیں سیکرٹریٹ میں جمع کرانا ہے انہیں نشان زد کر دیں، تو درخواست حتمی طور پر بھیج سکتے ہیں۔',
+            'sent_title' => 'داخلہ ڈیٹا کی تصدیق پہلے ہی بھیجی جا چکی ہے۔',
+            'sent_text' => 'اس صفحے پر مزید کچھ کرنے کی ضرورت نہیں۔ تعلیمی سیکرٹریٹ نے درخواست وصول کر لی ہے اور اپ لوڈ دستاویزات یا کاغذی انتخاب کی جانچ کر سکے گا۔',
+        ],
+    ];
+
+    foreach ($missing as $lang => $values) {
+        $translations[$lang] = array_replace($translations[$lang] ?? [], $values);
+    }
+
+    return $translations;
+}
+
+function trp(string $key): string
+{
+    global $parentLang, $parentTranslations;
+    $vocabulary = iscrizioniPrimeParentTranslationVocabulary();
+    return $vocabulary[$parentLang][$key]
+        ?? $vocabulary['it'][$key]
+        ?? $parentTranslations[$parentLang][$key]
+        ?? $parentTranslations['it'][$key]
+        ?? $key;
+}
+
+function trpWithVars(string $key, array $vars): string
+{
+    $text = trp($key);
+    foreach ($vars as $name => $value) {
+        $text = str_replace('{' . $name . '}', (string)$value, $text);
+    }
+
+    return $text;
+}
+
+function iscrizioniPrimeParentTranslationVocabulary(): array
+{
+    static $vocabulary = null;
+    if ($vocabulary !== null) {
+        return $vocabulary;
+    }
+
+    $vocabulary = [];
+    $path = __DIR__ . '/traduzioni_vocabolario_it.tsv';
+    if (!is_readable($path)) {
+        return $vocabulary;
+    }
+
+    $handle = fopen($path, 'r');
+    if (!$handle) {
+        return $vocabulary;
+    }
+
+    $headers = fgetcsv($handle, 0, "\t");
+    if (!is_array($headers)) {
+        fclose($handle);
+        return $vocabulary;
+    }
+
+    $indexes = array_flip($headers);
+    $reservedColumns = ['chiave' => true, 'testo_it' => true, 'nota_contesto' => true];
+    $languageColumns = [];
+    foreach ($headers as $index => $header) {
+        $lang = trim((string)$header);
+        if ($lang !== '' && !isset($reservedColumns[$lang])) {
+            $languageColumns[$lang] = $index;
+        }
+    }
+
+    while (($row = fgetcsv($handle, 0, "\t")) !== false) {
+        $key = trim((string)($row[$indexes['chiave'] ?? -1] ?? ''));
+        if ($key === '') {
+            continue;
+        }
+
+        $italian = trim((string)($row[$indexes['testo_it'] ?? -1] ?? ''));
+        if ($italian !== '') {
+            $vocabulary['it'][$key] = $italian;
+        }
+
+        foreach ($languageColumns as $lang => $index) {
+            $value = trim((string)($row[$index] ?? ''));
+            if ($value !== '') {
+                $vocabulary[$lang][$key] = $value;
+            }
+        }
+    }
+    fclose($handle);
+
+    return $vocabulary;
+}
+
+function trpResponsibleRole(string $value, string $fallbackKey): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return trp($fallbackKey);
+    }
+
+    $normalized = strtolower($value);
+    $normalized = str_replace(['à', 'è', 'é', 'ì', 'ò', 'ù'], ['a', 'e', 'e', 'i', 'o', 'u'], $normalized);
+    $roleKeys = [
+        'padre' => 'role_father',
+        'madre' => 'role_mother',
+        'genitore' => 'role_parent',
+        'tutore' => 'role_guardian',
+    ];
+
+    return isset($roleKeys[$normalized]) ? trp($roleKeys[$normalized]) : $value;
+}
+
+function trpResponsibleContactLabel(int $index, string $kind): string
+{
+    global $parentLang, $parentTranslations;
+    $key = 'resp' . $index . '_' . $kind;
+    $genericKey = $kind === 'email' ? 'resp_email' : 'resp_phone';
+    $generic = trpWithVars($genericKey, ['n' => $index]);
+    if ($generic !== $genericKey) {
+        return $generic;
+    }
+
+    $labels = [
+        'fr' => [
+            'email' => ['Email responsable 1', 'Email responsable 2'],
+            'phone' => ['Telephone responsable 1', 'Telephone responsable 2'],
+        ],
+        'de' => [
+            'email' => ['E-Mail Verantwortliche/r 1', 'E-Mail Verantwortliche/r 2'],
+            'phone' => ['Telefon Verantwortliche/r 1', 'Telefon Verantwortliche/r 2'],
+        ],
+        'ru' => [
+            'email' => ['Email ответственного 1', 'Email ответственного 2'],
+            'phone' => ['Телефон ответственного 1', 'Телефон ответственного 2'],
+        ],
+        'uk' => [
+            'email' => ['Email відповідального 1', 'Email відповідального 2'],
+            'phone' => ['Телефон відповідального 1', 'Телефон відповідального 2'],
+        ],
+        'zh' => [
+            'email' => ['监护人 1 邮箱', '监护人 2 邮箱'],
+            'phone' => ['监护人 1 电话', '监护人 2 电话'],
+        ],
+        'ar' => [
+            'email' => ['بريد المسؤول 1', 'بريد المسؤول 2'],
+            'phone' => ['هاتف المسؤول 1', 'هاتف المسؤول 2'],
+        ],
+        'ur' => [
+            'email' => ['ذمہ دار 1 کی ای میل', 'ذمہ دار 2 کی ای میل'],
+            'phone' => ['ذمہ دار 1 کا فون', 'ذمہ دار 2 کا فون'],
+        ],
+    ];
+
+    if (isset($parentTranslations[$parentLang][$key])) {
+        return $parentTranslations[$parentLang][$key];
+    }
+
+    return $labels[$parentLang][$kind][$index - 1] ?? trp($key);
+}
+
+function iscrizioniPrimeParentDocumentLabel(string $tipo): string
+{
+    global $parentLang;
+    $labels = [
+        'en' => [
+            'pagella' => 'School report',
+            'diploma' => 'Final lower-secondary diploma',
+            'certificazione_competenze' => 'Skills certification',
+            'invalsi' => 'INVALSI',
+            'documento_identita_studente' => 'Student identity document',
+            'codice_fiscale_studente' => 'Student tax code card',
+            'documento_identita_genitore_1' => 'Parent/guardian 1 identity document',
+            'codice_fiscale_genitore_1' => 'Parent/guardian 1 tax code card',
+            'documento_identita_genitore_2' => 'Parent/guardian 2 identity document',
+            'codice_fiscale_genitore_2' => 'Parent/guardian 2 tax code card',
+            'attestazione_erogazione_liberale' => 'PagoPA voluntary contribution receipt - 50 euro',
+            'altro' => 'Other document',
+        ],
+        'fr' => [
+            'pagella' => 'Bulletin scolaire',
+            'diploma' => 'Diplome / certificat final',
+            'certificazione_competenze' => 'Certification des competences',
+            'documento_identita_studente' => 'Piece d\'identite de l\'eleve',
+            'codice_fiscale_studente' => 'Code fiscal de l\'eleve',
+            'documento_identita_genitore_1' => 'Piece d\'identite du responsable 1',
+            'codice_fiscale_genitore_1' => 'Code fiscal du responsable 1',
+            'documento_identita_genitore_2' => 'Piece d\'identite du responsable 2',
+            'codice_fiscale_genitore_2' => 'Code fiscal du responsable 2',
+            'attestazione_erogazione_liberale' => 'Recu contribution volontaire PagoPA 50 euros',
+            'altro' => 'Autre document',
+        ],
+        'de' => [
+            'pagella' => 'Schulzeugnis',
+            'diploma' => 'Abschlusszeugnis',
+            'certificazione_competenze' => 'Kompetenzbescheinigung',
+            'documento_identita_studente' => 'Ausweis des Schuelers',
+            'codice_fiscale_studente' => 'Steuernummer des Schuelers',
+            'documento_identita_genitore_1' => 'Ausweis des Verantwortlichen 1',
+            'codice_fiscale_genitore_1' => 'Steuernummer des Verantwortlichen 1',
+            'documento_identita_genitore_2' => 'Ausweis des Verantwortlichen 2',
+            'codice_fiscale_genitore_2' => 'Steuernummer des Verantwortlichen 2',
+            'attestazione_erogazione_liberale' => 'PagoPA-Spendenbescheinigung 50 Euro',
+            'altro' => 'Anderes Dokument',
+        ],
+        'ru' => [
+            'pagella' => 'Табель успеваемости',
+            'diploma' => 'Диплом / итоговое свидетельство',
+            'certificazione_competenze' => 'Сертификат компетенций',
+            'documento_identita_studente' => 'Документ, удостоверяющий личность ученика',
+            'codice_fiscale_studente' => 'Налоговый код ученика',
+            'documento_identita_genitore_1' => 'Документ ответственного 1',
+            'codice_fiscale_genitore_1' => 'Налоговый код ответственного 1',
+            'documento_identita_genitore_2' => 'Документ ответственного 2',
+            'codice_fiscale_genitore_2' => 'Налоговый код ответственного 2',
+            'attestazione_erogazione_liberale' => 'Квитанция добровольного взноса PagoPA 50 евро',
+            'altro' => 'Другой документ',
+        ],
+        'uk' => [
+            'pagella' => 'Табель успішності',
+            'diploma' => 'Диплом / підсумкове свідоцтво',
+            'certificazione_competenze' => 'Сертифікат компетентностей',
+            'documento_identita_studente' => 'Документ, що посвідчує особу учня',
+            'codice_fiscale_studente' => 'Податковий код учня',
+            'documento_identita_genitore_1' => 'Документ відповідального 1',
+            'codice_fiscale_genitore_1' => 'Податковий код відповідального 1',
+            'documento_identita_genitore_2' => 'Документ відповідального 2',
+            'codice_fiscale_genitore_2' => 'Податковий код відповідального 2',
+            'attestazione_erogazione_liberale' => 'Квитанція добровільного внеску PagoPA 50 євро',
+            'altro' => 'Інший документ',
+        ],
+        'zh' => [
+            'pagella' => '成绩单',
+            'diploma' => '毕业证书',
+            'certificazione_competenze' => '能力认证',
+            'documento_identita_studente' => '学生身份证件',
+            'codice_fiscale_studente' => '学生税号',
+            'documento_identita_genitore_1' => '监护人 1 身份证件',
+            'codice_fiscale_genitore_1' => '监护人 1 税号',
+            'documento_identita_genitore_2' => '监护人 2 身份证件',
+            'codice_fiscale_genitore_2' => '监护人 2 税号',
+            'attestazione_erogazione_liberale' => 'PagoPA 自愿捐款 50 欧元凭证',
+            'altro' => '其他文件',
+        ],
+        'ar' => [
+            'pagella' => 'كشف الدرجات',
+            'diploma' => 'الشهادة النهائية',
+            'certificazione_competenze' => 'شهادة الكفاءات',
+            'documento_identita_studente' => 'وثيقة هوية الطالب',
+            'codice_fiscale_studente' => 'الرقم الضريبي للطالب',
+            'documento_identita_genitore_1' => 'وثيقة هوية المسؤول 1',
+            'codice_fiscale_genitore_1' => 'الرقم الضريبي للمسؤول 1',
+            'documento_identita_genitore_2' => 'وثيقة هوية المسؤول 2',
+            'codice_fiscale_genitore_2' => 'الرقم الضريبي للمسؤول 2',
+            'attestazione_erogazione_liberale' => 'إيصال مساهمة PagoPA الاختيارية 50 يورو',
+            'altro' => 'وثيقة أخرى',
+        ],
+        'ur' => [
+            'pagella' => 'رپورٹ کارڈ',
+            'diploma' => 'آخری سند',
+            'certificazione_competenze' => 'مہارتوں کی تصدیق',
+            'documento_identita_studente' => 'طالب علم کی شناختی دستاویز',
+            'codice_fiscale_studente' => 'طالب علم کا ٹیکس کوڈ',
+            'documento_identita_genitore_1' => 'ذمہ دار 1 کی شناختی دستاویز',
+            'codice_fiscale_genitore_1' => 'ذمہ دار 1 کا ٹیکس کوڈ',
+            'documento_identita_genitore_2' => 'ذمہ دار 2 کی شناختی دستاویز',
+            'codice_fiscale_genitore_2' => 'ذمہ دار 2 کا ٹیکس کوڈ',
+            'attestazione_erogazione_liberale' => 'PagoPA رضاکارانہ ادائیگی 50 یورو کی رسید',
+            'altro' => 'دوسری دستاویز',
+        ],
+    ];
+
+    $fromVocabulary = trp('doc.' . $tipo);
+    if ($fromVocabulary !== 'doc.' . $tipo) {
+        return $fromVocabulary;
+    }
+
+    return $labels[$parentLang][$tipo] ?? (iscrizioniPrimeDocumentTypes()[$tipo] ?? $tipo);
+}
+
 $token = trim((string)($_GET['t'] ?? ''));
+$parentLanguages = iscrizioniPrimeParentLanguages();
+$parentTranslations = iscrizioniPrimeParentTranslations();
+$parentLang = strtolower(trim((string)($_GET['lang'] ?? 'it')));
+if (!isset($parentLanguages[$parentLang])) {
+    $parentLang = 'it';
+}
+$parentDir = $parentLanguages[$parentLang]['dir'];
 $pratica = iscrizioniPrimeGetByToken($token);
 $confirmed = [];
 $documents = [];
@@ -63,11 +833,11 @@ if (!$pratica) {
 
 ?>
 <!DOCTYPE html>
-<html lang="it">
+<html lang="<?php echo h($parentLang); ?>" dir="<?php echo h($parentDir); ?>">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Conferma iscrizione</title>
+    <title><?php echo h(trp('page_title')); ?></title>
     <link rel="icon" href="<?php echo h($__application_base_path); ?>/ore-32.png" type="image/png">
     <style>
         :root { color-scheme: light; }
@@ -81,6 +851,9 @@ if (!$pratica) {
         .school-kicker { color: #475569; font-size: 14px; font-weight: 750; text-transform: uppercase; letter-spacing: .02em; }
         .school-name { font-size: 18px; font-weight: 800; margin-top: 2px; }
         .school-year { display: inline-block; margin-top: 8px; border-radius: 999px; background: #e0f2fe; color: #075985; padding: 5px 10px; font-size: 13px; font-weight: 800; }
+        .language-switch { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        .language-switch label { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #475569; }
+        .language-switch select { border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 9px; font: inherit; background: #fff; color: #172033; }
         h1 { font-size: 24px; margin: 0 0 8px; }
         h2 { font-size: 18px; margin: 0 0 12px; }
         h3 { font-size: 15px; margin: 18px 0 10px; }
@@ -192,6 +965,15 @@ if (!$pratica) {
         .success-card button { margin-top: 16px; background: #15803d; color: #fff; width: 100%; }
         .success-card.warning button { background: #b45309; }
         .error-list { text-align: left; margin: 12px 0 4px; padding-left: 20px; color: #7c2d12; font-weight: 750; line-height: 1.45; }
+        html[dir="rtl"] body { direction: rtl; }
+        html[dir="rtl"] .school-header { flex-direction: row-reverse; text-align: right; }
+        html[dir="rtl"] .language-switch { justify-content: flex-start; }
+        html[dir="rtl"] .notice { border-left: 0; border-right: 4px solid #0ea5e9; }
+        html[dir="rtl"] .error { border-right-color: #dc2626; }
+        html[dir="rtl"] .success { border-right-color: #16a34a; }
+        html[dir="rtl"] .doc-item { border-left-width: 1px; border-right: 7px solid var(--doc-accent, var(--doc-border, #d9e0ea)); }
+        html[dir="rtl"] .doc-choice-step { margin-right: 0; margin-left: 6px; }
+        html[dir="rtl"] .error-list { text-align: right; padding-left: 0; padding-right: 20px; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 680px) {
             .grid { grid-template-columns: 1fr; }
@@ -214,117 +996,128 @@ if (!$pratica) {
 </head>
 <body>
 <main class="page">
+    <form class="language-switch" method="get">
+        <input type="hidden" name="t" value="<?php echo h($token); ?>">
+        <label>
+            <span><?php echo h(trp('language')); ?></span>
+            <select name="lang" onchange="this.form.submit()">
+                <?php foreach ($parentLanguages as $code => $info) : ?>
+                    <option value="<?php echo h($code); ?>" <?php echo $parentLang === $code ? 'selected' : ''; ?>><?php echo h($info['label']); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+    </form>
     <div class="card">
         <div class="school-header">
             <img class="school-logo" src="<?php echo h($__application_base_path); ?>/img/logoB_google.png" alt="Logo <?php echo h($nomeIstituto); ?>">
             <div>
-                <div class="school-kicker">Istituto scolastico</div>
+                <div class="school-kicker"><?php echo h(trp('school_kicker')); ?></div>
                 <div class="school-name"><?php echo h($nomeIstituto); ?></div>
-                <div class="school-year">Anno scolastico <?php echo h($annoScolastico); ?></div>
+                <div class="school-year"><?php echo h(trp('school_year')); ?> <?php echo h($annoScolastico); ?></div>
             </div>
         </div>
-        <h1 style="margin-top: 18px;">Conferma dati iscrizione</h1>
-        <div class="muted">Future classi prime</div>
+        <h1 style="margin-top: 18px;"><?php echo h(trp('main_title')); ?></h1>
+        <div class="muted"><?php echo h(trp('subtitle')); ?></div>
     </div>
 
     <?php if (!$pratica) : ?>
         <div class="card notice error">
-            Link non valido, scaduto o pratica non disponibile.
+            <?php echo h(trp('invalid_link')); ?>
         </div>
     <?php else : ?>
         <?php if ($praticaBloccata) : ?>
             <div class="card notice success">
-                La conferma dati iscrizione e gia stata inviata. Da questo link puoi consultare il riepilogo e i documenti caricati, ma non puoi piu modificare la pratica.
+                <?php echo h(trp('locked_notice')); ?>
             </div>
         <?php else : ?>
             <div class="card notice">
-                Verifica i dati anagrafici e aggiorna email e telefoni. Puoi salvare una bozza e rientrare da questo stesso link prima dell'invio definitivo.
+                <?php echo h(trp('intro_notice')); ?>
             </div>
         <?php endif; ?>
 
         <div class="card">
-            <h2>Studente</h2>
+            <h2><?php echo h(trp('student')); ?></h2>
             <div class="grid">
-                <div class="field"><div class="label">Cognome</div><div class="value"><?php echo h($pratica['cognome']); ?></div></div>
-                <div class="field"><div class="label">Nome</div><div class="value"><?php echo h($pratica['nome']); ?></div></div>
-                <div class="field"><div class="label">Codice fiscale</div><div class="value"><?php echo h($pratica['codice_fiscale']); ?></div></div>
-                <div class="field"><div class="label">Data nascita</div><div class="value"><?php echo h(iscrizioniPrimeFormatDateIt($pratica['data_nascita'] ?? '')); ?></div></div>
-                <div class="field"><div class="label">Corso</div><div class="value"><?php echo h($pratica['corso_studi']); ?></div></div>
-                <div class="field"><div class="label">Stato pratica</div><div class="value"><?php echo h($pratica['stato']); ?></div></div>
+                <div class="field"><div class="label"><?php echo h(trp('surname')); ?></div><div class="value"><?php echo h($pratica['cognome']); ?></div></div>
+                <div class="field"><div class="label"><?php echo h(trp('name')); ?></div><div class="value"><?php echo h($pratica['nome']); ?></div></div>
+                <div class="field"><div class="label"><?php echo h(trp('tax_code')); ?></div><div class="value"><?php echo h($pratica['codice_fiscale']); ?></div></div>
+                <div class="field"><div class="label"><?php echo h(trp('birth_date')); ?></div><div class="value"><?php echo h(iscrizioniPrimeFormatDateIt($pratica['data_nascita'] ?? '')); ?></div></div>
+                <div class="field"><div class="label"><?php echo h(trp('course')); ?></div><div class="value"><?php echo h($pratica['corso_studi']); ?></div></div>
+                <div class="field"><div class="label"><?php echo h(trp('practice_status')); ?></div><div class="value"><?php echo h($pratica['stato']); ?></div></div>
             </div>
         </div>
 
         <form id="iscrizioneForm" class="card" autocomplete="on">
-            <h2>Dati da confermare</h2>
+            <h2><?php echo h(trp('confirm_data')); ?></h2>
             <input type="hidden" name="token" value="<?php echo h($token); ?>">
 
-            <h3>Studente</h3>
+            <h3><?php echo h(trp('student')); ?></h3>
             <div class="grid">
                 <div class="form-row">
-                    <label for="email_studente">Email studente</label>
+                    <label for="email_studente"><?php echo h(trp('student_email')); ?></label>
                     <input type="email" id="email_studente" name="email_studente" value="<?php echo h(confirmedValue($pratica, $confirmed, 'email_studente')); ?>" <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
-                    <div class="hint">Indicare solo una email personale dello studente. Non usare la mail della scuola media; se non disponibile lasciare vuoto.</div>
+                    <div class="hint"><?php echo h(trp('student_email_hint')); ?></div>
                 </div>
                 <div class="form-row">
-                    <label for="telefono_studente">Telefono studente</label>
+                    <label for="telefono_studente"><?php echo h(trp('student_phone')); ?></label>
                     <input type="tel" id="telefono_studente" name="telefono_studente" value="<?php echo h(confirmedValue($pratica, $confirmed, 'telefono_studente')); ?>" <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
                 </div>
             </div>
 
-            <h3><?php echo h($pratica['responsabile_1_tipo'] ?: 'Responsabile 1'); ?></h3>
+            <h3><?php echo h(trpResponsibleRole((string)($pratica['responsabile_1_tipo'] ?? ''), 'responsible_1')); ?></h3>
             <div class="field">
-                <div class="label">Nome</div>
+                <div class="label"><?php echo h(trp('name')); ?></div>
                 <div class="value"><?php echo h(trim(($pratica['responsabile_1_cognome'] ?? '') . ' ' . ($pratica['responsabile_1_nome'] ?? ''))); ?></div>
             </div>
             <div class="grid">
                 <div class="form-row">
-                    <label for="email_genitore_1">Email responsabile 1</label>
+                    <label for="email_genitore_1"><?php echo h(trpResponsibleContactLabel(1, 'email')); ?></label>
                     <input type="email" id="email_genitore_1" name="email_genitore_1" value="<?php echo h(confirmedValue($pratica, $confirmed, 'email_genitore_1')); ?>" <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
                 </div>
                 <div class="form-row">
-                    <label for="telefono_genitore_1">Telefono responsabile 1</label>
+                    <label for="telefono_genitore_1"><?php echo h(trpResponsibleContactLabel(1, 'phone')); ?></label>
                     <input type="tel" id="telefono_genitore_1" name="telefono_genitore_1" value="<?php echo h(confirmedValue($pratica, $confirmed, 'telefono_genitore_1')); ?>" <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
                 </div>
             </div>
 
-            <h3><?php echo h($pratica['responsabile_2_tipo'] ?: 'Responsabile 2'); ?></h3>
+            <h3><?php echo h(trpResponsibleRole((string)($pratica['responsabile_2_tipo'] ?? ''), 'responsible_2')); ?></h3>
             <div class="field">
-                <div class="label">Nome</div>
+                <div class="label"><?php echo h(trp('name')); ?></div>
                 <div class="value"><?php echo h(trim(($pratica['responsabile_2_cognome'] ?? '') . ' ' . ($pratica['responsabile_2_nome'] ?? ''))); ?></div>
             </div>
             <div class="grid">
                 <div class="form-row">
-                    <label for="email_genitore_2">Email responsabile 2</label>
+                    <label for="email_genitore_2"><?php echo h(trpResponsibleContactLabel(2, 'email')); ?></label>
                     <input type="email" id="email_genitore_2" name="email_genitore_2" value="<?php echo h(confirmedValue($pratica, $confirmed, 'email_genitore_2')); ?>" <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
                 </div>
                 <div class="form-row">
-                    <label for="telefono_genitore_2">Telefono responsabile 2</label>
+                    <label for="telefono_genitore_2"><?php echo h(trpResponsibleContactLabel(2, 'phone')); ?></label>
                     <input type="tel" id="telefono_genitore_2" name="telefono_genitore_2" value="<?php echo h(confirmedValue($pratica, $confirmed, 'telefono_genitore_2')); ?>" <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
                 </div>
             </div>
 
             <label class="check">
                 <input type="checkbox" name="privacy_confermata" value="1" <?php echo !empty($confirmed['privacy_confermata']) ? 'checked' : ''; ?> <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
-                <span>Confermo che i dati indicati sono corretti o aggiornati.</span>
+                <span><?php echo h(trp('data_confirm_checkbox')); ?></span>
             </label>
 
             <?php if (!$praticaBloccata) : ?>
                 <div class="actions">
-                    <button type="submit" class="btn-primary" data-action="draft">Salva bozza</button>
-                    <button type="submit" class="btn-secondary" data-action="documents">Salva e vai ai documenti</button>
+                    <button type="submit" class="btn-primary" data-action="draft"><?php echo h(trp('save_draft')); ?></button>
+                    <button type="submit" class="btn-secondary" data-action="documents"><?php echo h(trp('save_documents')); ?></button>
                 </div>
             <?php endif; ?>
             <div id="saveStatus" class="status-line" aria-live="polite"></div>
         </form>
 
         <div class="card <?php echo $praticaBloccata ? 'readonly-documents' : ''; ?>">
-            <h2>Documenti</h2>
-            <div class="muted">Puoi caricare uno o piu PDF gia pronti oppure, da telefono, acquisire il documento come foto. Se servono piu pagine, seleziona o scatta piu foto: GestOre unisce tutto in un unico PDF multipagina.</div>
-            <div class="doc-help">Le foto devono essere chiare, dritte e leggibili. Prima di caricare puoi eliminare una foto venuta male dalla selezione del telefono; dopo il caricamento puoi cancellare il documento e rifarlo.</div>
+            <h2><?php echo h(trp('documents')); ?></h2>
+            <div class="muted"><?php echo h(trp('docs_intro')); ?></div>
+            <div class="doc-help"><?php echo h(trp('docs_photo_help')); ?></div>
             <div class="notice" style="margin-top: 12px;">
-                I documenti vengono raccolti solo per la gestione della pratica di iscrizione e per gli adempimenti scolastici collegati.
+                <?php echo h(trp('privacy_notice')); ?>
                 <br>
-                <a class="privacy-link" href="privacy_documenti.php?t=<?php echo rawurlencode($token); ?>" target="_blank" rel="noopener">Leggi l'informativa privacy sui documenti caricati</a>
+                <a class="privacy-link" href="privacy_documenti.php?t=<?php echo rawurlencode($token); ?>&lang=<?php echo rawurlencode($parentLang); ?>" target="_blank" rel="noopener"><?php echo h(trp('privacy_link')); ?></a>
             </div>
             <div class="doc-list" style="margin-top: 14px;">
                 <?php
@@ -346,12 +1139,12 @@ if (!$pratica) {
                     }
                     $documentColor = $documentColors[$documentIndex % count($documentColors)];
                     $documentIndex++;
-                    $label = iscrizioniPrimeDocumentTypes()[$tipo] ?? $tipo;
+                    $label = iscrizioniPrimeParentDocumentLabel($tipo);
                     $isOptional = in_array($tipo, ['attestazione_erogazione_liberale', 'altro'], true);
                     $isPaper = (string)$document['stato'] === 'consegna_cartacea';
                     $isUploaded = !$isPaper && (string)$document['stato'] !== 'mancante' && !empty($document['original_name']);
-                    $documentStatusText = $isPaper ? 'Consegna cartacea in segreteria didattica' : ($isUploaded ? (string)$document['original_name'] : 'Non ancora caricato');
-                    $badgeText = $isPaper ? 'Cartaceo' : ($isUploaded ? 'Caricato' : 'Mancante');
+                    $documentStatusText = $isPaper ? trp('paper_delivery') : ($isUploaded ? (string)$document['original_name'] : trp('not_uploaded'));
+                    $badgeText = $isPaper ? trp('paper_badge') : ($isUploaded ? trp('uploaded_badge') : trp('missing_badge'));
                     $badgeClass = $isPaper ? 'badge-paper' : ($isUploaded ? 'badge-ok' : '');
                     $viewUrl = 'visualizza_documento.php?t=' . rawurlencode($token) . '&tipo=' . rawurlencode($tipo);
                 ?>
@@ -362,13 +1155,13 @@ if (!$pratica) {
                             <div class="doc-meta">
                                 <div class="doc-title"><?php echo h($label); ?></div>
                                 <?php if ($isOptional) : ?>
-                                    <div class="hint">Facoltativo: da caricare solo se disponibile o se non gia consegnato/versato al momento dell'iscrizione.</div>
+                                    <div class="hint"><?php echo h(trp('optional_doc_hint')); ?></div>
                                 <?php endif; ?>
                                 <div class="muted doc-current"><?php echo h($documentStatusText); ?></div>
                                 <?php if ($isUploaded) : ?>
-                                    <a class="doc-view" href="<?php echo h($viewUrl); ?>" target="_blank" rel="noopener">Visualizza PDF caricato</a>
+                                    <a class="doc-view" href="<?php echo h($viewUrl); ?>" target="_blank" rel="noopener"><?php echo h(trp('view_pdf')); ?></a>
                                 <?php else : ?>
-                                    <a class="doc-view" href="<?php echo h($viewUrl); ?>" target="_blank" rel="noopener" hidden>Visualizza PDF caricato</a>
+                                    <a class="doc-view" href="<?php echo h($viewUrl); ?>" target="_blank" rel="noopener" hidden><?php echo h(trp('view_pdf')); ?></a>
                                 <?php endif; ?>
                             </div>
                             <span class="badge <?php echo h($badgeClass); ?>"><?php echo h($badgeText); ?></span>
@@ -378,56 +1171,56 @@ if (!$pratica) {
                             <input type="file" class="doc-native-camera-input" accept="image/jpeg,image/png" capture="environment" multiple>
                             <input type="hidden" name="upload_mode" value="<?php echo $isUploaded ? 'append' : 'replace'; ?>" class="doc-upload-mode">
                             <div class="doc-choice-intro">
-                                <div>Scegli una sola possibilita:</div>
-                                <div>1, 2 oppure 3.</div>
+                                <div><?php echo h(trp('choose_one')); ?></div>
+                                <div><?php echo h(trp('choose_123')); ?></div>
                             </div>
                             <div class="doc-action-group doc-clear-group" <?php echo ($isUploaded || $isPaper) ? '' : 'hidden'; ?>>
-                                <div class="doc-action-title">Scelta gia registrata</div>
+                                <div class="doc-action-title"><?php echo h(trp('choice_recorded')); ?></div>
                                 <div class="doc-action-buttons single">
-                                    <button type="button" class="btn-delete doc-delete"><?php echo $isPaper ? 'Annulla scelta cartacea' : 'Cancella PDF caricato'; ?></button>
+                                    <button type="button" class="btn-delete doc-delete"><?php echo $isPaper ? h(trp('cancel_paper')) : h(trp('delete_pdf')); ?></button>
                                 </div>
-                                <div class="doc-help">Se devi cambiare scelta, annulla prima quella registrata e poi scegli 1, 2 oppure 3.</div>
+                                <div class="doc-help"><?php echo h(trp('change_choice_hint')); ?></div>
                             </div>
                             <div class="doc-action-group doc-existing-options" <?php echo $isUploaded ? '' : 'hidden'; ?>>
-                                <div class="doc-action-title">PDF gia caricato</div>
+                                <div class="doc-action-title"><?php echo h(trp('already_uploaded')); ?></div>
                                 <div class="doc-mode-options">
                                     <label>
                                         <input type="radio" name="upload_mode_choice_<?php echo h($tipo); ?>" value="append" checked>
-                                        <span>Aggiungi i nuovi file al PDF gia caricato.</span>
+                                        <span><?php echo h(trp('append_pdf')); ?></span>
                                     </label>
                                     <label>
                                         <input type="radio" name="upload_mode_choice_<?php echo h($tipo); ?>" value="replace">
-                                        <span>Sostituisci il PDF gia caricato con i nuovi file.</span>
+                                        <span><?php echo h(trp('replace_pdf')); ?></span>
                                     </label>
                                 </div>
                             </div>
                             <div class="doc-action-group doc-choice-group">
-                                <div class="doc-choice-title"><span class="doc-choice-step">1</span>Carico un PDF gia pronto</div>
+                                <div class="doc-choice-title"><span class="doc-choice-step">1</span><?php echo h(trp('choice_pdf')); ?></div>
                                 <div class="doc-action-buttons">
-                                    <button type="button" class="btn-file doc-file-button">Aggiungi PDF</button>
+                                    <button type="button" class="btn-file doc-file-button"><?php echo h(trp('add_pdf')); ?></button>
                                 </div>
-                                <div class="doc-help">Usa questa scelta se hai gia il documento in PDF. Puoi aggiungere anche piu PDF: GestOre li unira in un unico file finale.</div>
+                                <div class="doc-help"><?php echo h(trp('pdf_help')); ?></div>
                             </div>
                             <div class="doc-action-group doc-choice-group">
-                                <div class="doc-choice-title"><span class="doc-choice-step">2</span>Scatto una foto del documento</div>
+                                <div class="doc-choice-title"><span class="doc-choice-step">2</span><?php echo h(trp('choice_photo')); ?></div>
                                 <div class="doc-action-buttons">
-                                    <button type="button" class="btn-native-camera doc-native-camera">Scatta foto</button>
+                                    <button type="button" class="btn-native-camera doc-native-camera"><?php echo h(trp('take_photo')); ?></button>
                                 </div>
-                                <div class="doc-help">Usa questa scelta se hai il documento su carta. Puoi fare una o piu foto con il telefono; GestOre le trasformera in PDF.</div>
+                                <div class="doc-help"><?php echo h(trp('photo_help')); ?></div>
                             </div>
                             <div class="doc-action-group doc-choice-group">
-                                <div class="doc-choice-title"><span class="doc-choice-step">3</span>Porto una fotocopia a scuola</div>
+                                <div class="doc-choice-title"><span class="doc-choice-step">3</span><?php echo h(trp('choice_paper')); ?></div>
                                 <div class="doc-action-buttons single">
-                                    <button type="button" class="btn-paper doc-paper" <?php echo $isPaper ? 'hidden' : ''; ?>>Consegno fotocopia in segreteria</button>
+                                    <button type="button" class="btn-paper doc-paper" <?php echo $isPaper ? 'hidden' : ''; ?>><?php echo h(trp('paper_button')); ?></button>
                                 </div>
-                                <div class="doc-help">Usa questa scelta come alternativa al caricamento online. La segreteria sapra che consegnerai una copia cartacea.</div>
+                                <div class="doc-help"><?php echo h(trp('paper_help')); ?></div>
                             </div>
                             <div class="doc-action-group doc-final-group" hidden>
-                                <div class="doc-action-title doc-final-title">Conferma caricamento online</div>
+                                <div class="doc-action-title doc-final-title"><?php echo h(trp('confirm_upload')); ?></div>
                                 <div class="doc-action-buttons single">
-                                    <button type="submit" class="btn-final doc-upload-button" disabled>Carica documento</button>
+                                    <button type="submit" class="btn-final doc-upload-button" disabled><?php echo h(trp('upload_document')); ?></button>
                                 </div>
-                                <div class="doc-help doc-final-help">Premi qui per salvare online i file che hai appena aggiunto.</div>
+                                <div class="doc-help doc-final-help"><?php echo h(trp('upload_help')); ?></div>
                             </div>
                         </div>
                         <div class="photo-preview"></div>
@@ -440,15 +1233,15 @@ if (!$pratica) {
 
         <?php if ($praticaBloccata) : ?>
             <div class="card notice success">
-                <strong>Conferma dati iscrizione gia inviata.</strong><br>
-                Non serve fare altro da questa pagina. La segreteria didattica ha ricevuto la pratica e potra verificare i documenti caricati o indicati come consegna cartacea.
+                <strong><?php echo h(trp('sent_title')); ?></strong><br>
+                <?php echo h(trp('sent_text')); ?>
             </div>
         <?php else : ?>
             <div class="card">
-                <h2>Invio domanda</h2>
-                <div class="muted">Quando hai controllato i dati e caricato i documenti, oppure indicato quelli che consegnerai in segreteria didattica, puoi inviare definitivamente la domanda.</div>
+                <h2><?php echo h(trp('final_section')); ?></h2>
+                <div class="muted"><?php echo h(trp('final_help')); ?></div>
                 <div class="actions">
-                    <button type="button" id="submitApplication" class="btn-submit-final">SALVA ED INVIA CONFERMA DATI ISCRIZIONE</button>
+                    <button type="button" id="submitApplication" class="btn-submit-final"><?php echo h(trp('final_button')); ?></button>
                 </div>
                 <div id="submitStatus" class="status-line" aria-live="polite"></div>
             </div>
@@ -457,25 +1250,25 @@ if (!$pratica) {
 </main>
 <div id="editPhotoModal" class="camera-modal" aria-hidden="true">
     <div class="camera-panel">
-        <h2>Sistema foto</h2>
+        <h2><?php echo h(trp('photo_editor_title')); ?></h2>
         <canvas id="editPhotoCanvas" class="edit-canvas"></canvas>
         <canvas id="editOutputCanvas" hidden></canvas>
         <img id="editPhotoImage" class="edit-image" alt="Foto da ritagliare" hidden>
-        <div class="doc-help">Sposta i quattro punti blu sui vertici del documento. Con due dita puoi ruotare la foto; poi premi Conferma foto.</div>
+        <div class="doc-help"><?php echo h(trp('photo_editor_help')); ?></div>
         <div class="camera-actions">
-            <button type="button" id="editRotateLeft">Ruota -90</button>
-            <button type="button" id="editRotateRight">Ruota +90</button>
+            <button type="button" id="editRotateLeft"><?php echo h(trp('rotate_left')); ?></button>
+            <button type="button" id="editRotateRight"><?php echo h(trp('rotate_right')); ?></button>
             <label class="rotate-control" for="editRotateFine">
-                Rotazione fine
+                <?php echo h(trp('fine_rotation')); ?>
                 <input type="range" id="editRotateFine" min="-12" max="12" step="0.5" value="0">
                 <span id="editRotateFineValue">0</span>
             </label>
-            <button type="button" id="editApplyFineRotate">Applica rotazione</button>
+            <button type="button" id="editApplyFineRotate"><?php echo h(trp('apply_rotation')); ?></button>
             <button type="button" id="editSkewLeft" hidden>Raddrizza -1</button>
             <button type="button" id="editSkewRight" hidden>Raddrizza +1</button>
-            <button type="button" id="editReset">Ripristina</button>
-            <button type="button" id="editConfirm" class="btn-primary">Conferma foto</button>
-            <button type="button" id="editCancel">Annulla</button>
+            <button type="button" id="editReset"><?php echo h(trp('reset')); ?></button>
+            <button type="button" id="editConfirm" class="btn-primary"><?php echo h(trp('confirm_photo')); ?></button>
+            <button type="button" id="editCancel"><?php echo h(trp('cancel')); ?></button>
         </div>
         <div id="editPhotoStatus" class="status-line muted" aria-live="polite"></div>
     </div>
@@ -483,26 +1276,26 @@ if (!$pratica) {
 <div id="busyOverlay" class="busy-overlay" aria-hidden="true">
     <div class="busy-box">
         <div class="busy-spinner"></div>
-        <div id="busyOverlayText">Elaborazione in corso...</div>
+        <div id="busyOverlayText"><?php echo h(trp('busy')); ?></div>
     </div>
 </div>
 <div id="submitSuccessOverlay" class="success-overlay" aria-hidden="true">
     <div class="success-card" role="dialog" aria-modal="true" aria-labelledby="submitSuccessTitle">
         <div class="success-icon" aria-hidden="true">✓</div>
-        <h2 id="submitSuccessTitle">Conferma inviata</h2>
-        <p class="success-main">I dati dell'iscrizione sono stati salvati e inviati correttamente.</p>
-        <p>La segreteria didattica ricevera la conferma e potra verificare i documenti caricati o indicati come consegna cartacea.</p>
-        <p>Una mail di conferma viene inviata agli indirizzi indicati, se l'invio mail e configurato correttamente.</p>
-        <button type="button" id="submitSuccessClose">Ho capito</button>
+        <h2 id="submitSuccessTitle"><?php echo h(trp('success_title')); ?></h2>
+        <p class="success-main"><?php echo h(trp('success_main')); ?></p>
+        <p><?php echo h(trp('success_text_1')); ?></p>
+        <p><?php echo h(trp('success_text_2')); ?></p>
+        <button type="button" id="submitSuccessClose"><?php echo h(trp('ok_understood')); ?></button>
     </div>
 </div>
 <div id="submitErrorOverlay" class="success-overlay" aria-hidden="true">
     <div class="success-card warning" role="dialog" aria-modal="true" aria-labelledby="submitErrorTitle">
         <div class="success-icon" aria-hidden="true">!</div>
-        <h2 id="submitErrorTitle">Manca un passaggio</h2>
-        <p id="submitErrorMessage" class="success-main">Prima di inviare devi completare i dati richiesti.</p>
-        <p>Controlla la pagina e correggi il punto indicato. Poi potrai inviare di nuovo la conferma.</p>
-        <button type="button" id="submitErrorClose">Torno a correggere</button>
+        <h2 id="submitErrorTitle"><?php echo h(trp('error_title')); ?></h2>
+        <p id="submitErrorMessage" class="success-main"><?php echo h(trp('error_main')); ?></p>
+        <p><?php echo h(trp('error_text')); ?></p>
+        <button type="button" id="submitErrorClose"><?php echo h(trp('back_to_fix')); ?></button>
     </div>
 </div>
 <?php if ($pratica) : ?>
