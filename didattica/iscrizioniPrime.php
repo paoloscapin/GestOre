@@ -15,7 +15,10 @@ $stats = dbGetFirst("
         SUM(stato = 'verificata') AS verificate,
         SUM(email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AS con_email
     FROM iscrizioni_prime_pratiche
+    WHERE tipo_iscrizione = 'prime'
 ");
+$mailTemplate = iscrizioniPrimeMailTemplate('prime');
+$mailAttachments = iscrizioniPrimeMailAttachments('prime');
 
 ?>
 <!DOCTYPE html>
@@ -65,7 +68,40 @@ $stats = dbGetFirst("
                 </div>
             </div>
             <hr>
+            <div class="panel panel-default">
+                <div class="panel-heading"><strong>Testo mail e allegati</strong></div>
+                <div class="panel-body">
+                    <form id="iscrizioni_prime_mail_template_form">
+                        <input type="hidden" name="tipo_iscrizione" value="prime">
+                        <div class="form-group">
+                            <label>Oggetto mail</label>
+                            <input type="text" name="subject" class="form-control" value="<?php echo htmlspecialchars((string)($mailTemplate['subject'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Lascia vuoto per usare l'oggetto automatico">
+                        </div>
+                        <div class="form-group">
+                            <label>Testo mail</label>
+                            <textarea name="body_html" class="form-control" rows="8" placeholder="Lascia vuoto per usare il testo automatico"><?php echo htmlspecialchars((string)($mailTemplate['body_html'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                            <span class="help-block">Segnaposto disponibili: {link}, {studente}, {nome}, {cognome}, {corso}, {anno}, {istituto}. Puoi usare anche semplice HTML.</span>
+                        </div>
+                        <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-floppy-disk"></span> Salva testo mail</button>
+                    </form>
+                    <hr>
+                    <form id="iscrizioni_prime_mail_attachment_form" enctype="multipart/form-data">
+                        <input type="hidden" name="tipo_iscrizione" value="prime">
+                        <div class="form-inline">
+                            <input type="file" name="pdf" accept="application/pdf,.pdf" class="form-control" required>
+                            <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-paperclip"></span> Aggiungi PDF allegato</button>
+                        </div>
+                    </form>
+                    <div style="margin-top:8px;">
+                        <?php foreach ($mailAttachments as $attachment) : ?>
+                            <span class="label label-info"><?php echo htmlspecialchars((string)$attachment['original_name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+            <hr>
             <form id="iscrizioni_prime_import_form" class="form-horizontal" enctype="multipart/form-data">
+                <input type="hidden" name="tipo_iscrizione" value="prime">
                 <div class="form-group">
                     <label class="col-sm-3 control-label">CSV iscrizioni PRIME</label>
                     <div class="col-sm-9">
@@ -135,7 +171,7 @@ function iscrizioniPrimeLoadTable() {
     const tbody = document.querySelector('#iscrizioni_prime_table tbody');
     tbody.innerHTML = '<tr><td colspan="7" class="text-muted">Caricamento...</td></tr>';
 
-    fetch('iscrizioniPrimeRead.php', {credentials: 'same-origin'})
+    fetch('iscrizioniPrimeRead.php?tipo_iscrizione=prime', {credentials: 'same-origin'})
         .then(response => response.json())
         .then(data => {
             if (!data.ok) {
@@ -196,6 +232,7 @@ function iscrizioniPrimeSendMail(dryRun) {
 
     const formData = new FormData();
     formData.append('dry_run', dryRun ? '1' : '0');
+    formData.append('tipo_iscrizione', 'prime');
 
     result.className = 'alert alert-info';
     result.style.display = 'block';
@@ -230,7 +267,7 @@ function iscrizioniPrimeSendTestMail() {
 
     fetch('iscrizioniPrimeMailTest.php', {
         method: 'POST',
-        body: new FormData(),
+        body: (() => { const fd = new FormData(); fd.append('tipo_iscrizione', 'prime'); return fd; })(),
         credentials: 'same-origin'
     })
     .then(response => response.json())
@@ -281,6 +318,29 @@ document.getElementById('iscrizioni_prime_import_form').addEventListener('submit
         result.className = 'alert alert-danger';
         result.textContent = error.message;
     });
+});
+
+document.getElementById('iscrizioni_prime_mail_template_form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    fetch('iscrizioniPrimeMailTemplateSave.php', { method: 'POST', body: new FormData(event.target), credentials: 'same-origin' })
+        .then(response => response.json().then(data => ({ok: response.ok, data})))
+        .then(result => {
+            if (!result.ok || !result.data.ok) throw new Error(result.data.message || 'Errore salvataggio testo mail');
+            alert(result.data.message || 'Testo mail salvato.');
+        })
+        .catch(error => alert(error.message));
+});
+
+document.getElementById('iscrizioni_prime_mail_attachment_form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    fetch('iscrizioniPrimeMailAttachmentUpload.php', { method: 'POST', body: new FormData(event.target), credentials: 'same-origin' })
+        .then(response => response.json().then(data => ({ok: response.ok, data})))
+        .then(result => {
+            if (!result.ok || !result.data.ok) throw new Error(result.data.message || 'Errore caricamento allegato');
+            alert(result.data.message || 'Allegato caricato.');
+            window.location.reload();
+        })
+        .catch(error => alert(error.message));
 });
 
 iscrizioniPrimeLoadTable();

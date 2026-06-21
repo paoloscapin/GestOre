@@ -25,7 +25,12 @@
 					<ul class="dropdown-menu">
 						<li><a href="../didattica/studente.php"><span class="glyphicon glyphicon-education"></span>&ensp;Studenti</a></li>
 						<li><a href="../didattica/genitore.php"><span class="glyphicon glyphicon-user"></span>&ensp;Genitori</a></li>
+						<li role="separator" class="divider"></li>
 						<li><a href="../didattica/iscrizioniPrime.php"><span class="glyphicon glyphicon-folder-open"></span>&ensp;Iscrizioni prime</a></li>
+						<li><a href="../didattica/iscrizioniPrimeDomande.php?tipo_iscrizione=prime"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Domande prime</a></li>
+						<li><a href="../didattica/iscrizioniTerze.php"><span class="glyphicon glyphicon-folder-open"></span>&ensp;Iscrizioni terze</a></li>
+						<li><a href="../didattica/iscrizioniPrimeDomande.php?tipo_iscrizione=terze"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Domande terze</a></li>
+						<li role="separator" class="divider"></li>
 						<?php if (getSettingsValue('config', 'permessi', false)) : ?>
 							<li><a href="../didattica/permessi.php"><span class="glyphicon glyphicon-time"></span>&ensp;Permessi</a></li>
 						<?php endif; ?>

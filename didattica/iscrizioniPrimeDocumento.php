@@ -6,7 +6,10 @@ ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
 
 $praticaId = intval($_GET['pratica_id'] ?? 0);
 $tipo = trim((string)($_GET['tipo'] ?? ''));
-$types = iscrizioniPrimeDocumentTypes();
+$pratica = $praticaId > 0
+    ? (dbGetFirst("SELECT tipo_iscrizione FROM iscrizioni_prime_pratiche WHERE id = " . dbI($praticaId) . " LIMIT 1") ?: [])
+    : [];
+$types = iscrizioniPrimeDocumentTypes($pratica);
 
 if ($praticaId <= 0 || !isset($types[$tipo])) {
     http_response_code(400);

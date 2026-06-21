@@ -5,6 +5,7 @@ require_once '../common/iscrizioniPrimeLib.php';
 ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
 
 iscrizioniPrimeEnsureSchema();
+$tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($_GET['tipo_iscrizione'] ?? 'prime');
 
 $rows = dbGetAll("
     SELECT
@@ -19,11 +20,13 @@ $rows = dbGetAll("
         telefono_genitore_1,
         telefono_genitore_2
     FROM iscrizioni_prime_pratiche
-    WHERE stato IN ('importata', 'bozza', 'da_integrare')
+    WHERE tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+      AND studente_interno = 0
+      AND stato IN ('importata', 'bozza', 'da_integrare')
     ORDER BY cognome ASC, nome ASC
 ");
 
-$filename = 'iscrizioni_prime_link_' . date('Ymd_His') . '.csv';
+$filename = 'iscrizioni_' . $tipoIscrizione . '_link_' . date('Ymd_His') . '.csv';
 
 header('Content-Type: text/csv; charset=utf-8');
 header('Content-Disposition: attachment; filename="' . $filename . '"');

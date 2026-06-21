@@ -10,6 +10,7 @@ header('Content-Type: application/json; charset=utf-8');
 iscrizioniPrimeEnsureSchema();
 
 $id = intval($_POST['id'] ?? 0);
+$tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($_POST['tipo_iscrizione'] ?? 'prime');
 
 try {
     $cfg = iscrizioniPrimeMailConfig();
@@ -19,12 +20,13 @@ try {
 
     $where = $id > 0
         ? 'id = ' . dbI($id)
-        : "(email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL)";
+        : "tipo_iscrizione = " . dbQ($tipoIscrizione) . " AND studente_interno = 0 AND (email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL)";
 
     $pratica = dbGetFirst("
         SELECT *
         FROM iscrizioni_prime_pratiche
         WHERE $where
+          AND tipo_iscrizione = " . dbQ($tipoIscrizione) . "
         ORDER BY cognome ASC, nome ASC
         LIMIT 1
     ");
@@ -41,8 +43,13 @@ try {
     $token = iscrizioniPrimeSetToken((int)$pratica['id']);
     $link = ($GLOBALS['__http_base_link'] ?? '') . '/iscrizioni/conferma.php?t=' . rawurlencode($token);
     $body = iscrizioniPrimeMailBody($pratica, $link, $recipients[0]);
+    $template = iscrizioniPrimeMailTemplate($tipoIscrizione);
+    $subject = trim((string)($template['subject'] ?? ''));
+    if ($subject === '') {
+        $subject = iscrizioniPrimeMailSubject($pratica);
+    }
 
-    $ok = sendMailCustom($account['email'], 'Test iscrizioni', $cfg['subject'], $body, [
+    $ok = sendMailCustom($account['email'], 'Test iscrizioni', $subject, $body, [
         'from_email' => $account['email'],
         'from_name' => $cfg['fromName'],
         'reply_to_email' => $cfg['replyToEmail'] !== '' ? $cfg['replyToEmail'] : $account['email'],
@@ -54,6 +61,7 @@ try {
         'smtp_password' => $account['password'],
         'smtp_secure' => $cfg['SMTPSecure'],
         'smtp_port' => $cfg['Port'],
+        'attachments' => iscrizioniPrimeMailAttachmentPaths($tipoIscrizione),
     ]);
 
     echo json_encode([

@@ -7,11 +7,14 @@ ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
 header('Content-Type: application/json; charset=utf-8');
 
 iscrizioniPrimeEnsureSchema();
+$tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($_GET['tipo_iscrizione'] ?? 'prime');
 
 $rows = dbGetAll("
     SELECT
         id,
         anno_scolastico,
+        tipo_iscrizione,
+        studente_interno,
         codice_domanda,
         codice_fiscale,
         cognome,
@@ -26,6 +29,7 @@ $rows = dbGetAll("
         token_expires_at,
         updated_at
     FROM iscrizioni_prime_pratiche
+    WHERE tipo_iscrizione = " . dbQ($tipoIscrizione) . "
     ORDER BY cognome ASC, nome ASC
 ");
 

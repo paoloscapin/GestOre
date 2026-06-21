@@ -80,6 +80,54 @@ function iscrizioniPrimeParentLanguages(): array
     ];
 }
 
+function iscrizioniPrimeParentLanguagesClean(): array
+{
+    return [
+        'it' => ['label' => '🇮🇹 Italiano', 'dir' => 'ltr'],
+        'en' => ['label' => '🇬🇧 English - Inglese', 'dir' => 'ltr'],
+        'fr' => ['label' => '🇫🇷 Français - Francese', 'dir' => 'ltr'],
+        'de' => ['label' => '🇩🇪 Deutsch - Tedesco', 'dir' => 'ltr'],
+        'es' => ['label' => '🇪🇸 Español - Spagnolo', 'dir' => 'ltr'],
+        'pt' => ['label' => '🇧🇷 Português - Portoghese', 'dir' => 'ltr'],
+        'ru' => ['label' => '🇷🇺 Русский - Russo', 'dir' => 'ltr'],
+        'sq' => ['label' => '🇦🇱 Shqip - Albanese', 'dir' => 'ltr'],
+        'ro' => ['label' => '🇷🇴 Română - Rumeno', 'dir' => 'ltr'],
+        'hi' => ['label' => '🇮🇳 हिन्दी - Hindi', 'dir' => 'ltr'],
+        'pa' => ['label' => '🇮🇳 ਪੰਜਾਬੀ - Punjabi', 'dir' => 'ltr'],
+        'bn' => ['label' => '🇧🇩 বাংলা - Bengali', 'dir' => 'ltr'],
+        'sr' => ['label' => '🇷🇸 Српски - Serbo', 'dir' => 'ltr'],
+        'hr' => ['label' => '🇭🇷 Hrvatski - Croato', 'dir' => 'ltr'],
+        'tr' => ['label' => '🇹🇷 Türkçe - Turco', 'dir' => 'ltr'],
+        'fa' => ['label' => '🇮🇷 فارسی - Persiano', 'dir' => 'rtl'],
+        'ps' => ['label' => '🇦🇫 پښتو - Pashto', 'dir' => 'rtl'],
+        'tl' => ['label' => '🇵🇭 Filipino - Tagalog', 'dir' => 'ltr'],
+        'pl' => ['label' => '🇵🇱 Polski - Polacco', 'dir' => 'ltr'],
+        'uk' => ['label' => '🇺🇦 Українська - Ucraino', 'dir' => 'ltr'],
+        'zh' => ['label' => '🇨🇳 中文 - Cinese', 'dir' => 'ltr'],
+        'ar' => ['label' => '🇲🇦 العربية - Arabo', 'dir' => 'rtl'],
+        'ur' => ['label' => '🇵🇰 اردو - Urdu', 'dir' => 'rtl'],
+    ];
+}
+
+function iscrizioniPrimeLanguageFlagHtml(string $lang): string
+{
+    $countryByLang = [
+        'it' => 'IT', 'en' => 'GB', 'fr' => 'FR', 'de' => 'DE', 'es' => 'ES', 'pt' => 'BR',
+        'ru' => 'RU', 'sq' => 'AL', 'ro' => 'RO', 'hi' => 'IN', 'pa' => 'IN', 'bn' => 'BD',
+        'sr' => 'RS', 'hr' => 'HR', 'tr' => 'TR', 'fa' => 'IR', 'ps' => 'AF', 'tl' => 'PH',
+        'pl' => 'PL', 'uk' => 'UA', 'zh' => 'CN', 'ar' => 'MA', 'ur' => 'PK',
+    ];
+    $country = $countryByLang[strtolower(trim($lang))] ?? '';
+    if (strlen($country) !== 2) {
+        return '';
+    }
+    $html = '';
+    foreach (str_split($country) as $letter) {
+        $html .= '&#x' . strtoupper(dechex(0x1F1E6 + ord($letter) - ord('A'))) . ';';
+    }
+    return $html;
+}
+
 function iscrizioniPrimeParentTranslations(): array
 {
     $translations = [
@@ -798,11 +846,11 @@ function iscrizioniPrimeParentDocumentLabel(string $tipo): string
         return $fromVocabulary;
     }
 
-    return $labels[$parentLang][$tipo] ?? (iscrizioniPrimeDocumentTypes()[$tipo] ?? $tipo);
+    return $labels[$parentLang][$tipo] ?? (iscrizioniPrimeDocumentTypes($GLOBALS['pratica'] ?? [])[$tipo] ?? $tipo);
 }
 
 $token = trim((string)($_GET['t'] ?? ''));
-$parentLanguages = iscrizioniPrimeParentLanguages();
+$parentLanguages = iscrizioniPrimeParentLanguagesClean();
 $parentTranslations = iscrizioniPrimeParentTranslations();
 $parentLang = strtolower(trim((string)($_GET['lang'] ?? 'it')));
 if (!isset($parentLanguages[$parentLang])) {
@@ -817,6 +865,9 @@ if ($annoScolastico === '') {
     $annoScolastico = '2026-27';
 }
 $nomeIstituto = trim((string)($__settings->local->nomeIstituto ?? 'ITT Buonarroti - Trento'));
+$classeTargetLabel = $pratica && iscrizioniPrimeTipoIscrizioneFromPratica($pratica) === 'terze'
+    ? 'Iscrizione alle classi terze'
+    : trp('subtitle');
 $praticaBloccata = $pratica && in_array((string)($pratica['stato'] ?? ''), ['inviata', 'verificata', 'annullata'], true);
 
 if (!$pratica) {
@@ -853,6 +904,7 @@ if (!$pratica) {
         .school-year { display: inline-block; margin-top: 8px; border-radius: 999px; background: #e0f2fe; color: #075985; padding: 5px 10px; font-size: 13px; font-weight: 800; }
         .language-switch { display: flex; justify-content: flex-end; margin-bottom: 10px; }
         .language-switch label { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #475569; }
+        .language-flag { font-size: 22px; line-height: 1; min-width: 28px; text-align: center; }
         .language-switch select { border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 9px; font: inherit; background: #fff; color: #172033; }
         h1 { font-size: 24px; margin: 0 0 8px; }
         h2 { font-size: 18px; margin: 0 0 12px; }
@@ -1000,6 +1052,7 @@ if (!$pratica) {
         <input type="hidden" name="t" value="<?php echo h($token); ?>">
         <label>
             <span><?php echo h(trp('language')); ?></span>
+            <span class="language-flag" aria-hidden="true"><?php echo iscrizioniPrimeLanguageFlagHtml($parentLang); ?></span>
             <select name="lang" onchange="this.form.submit()">
                 <?php foreach ($parentLanguages as $code => $info) : ?>
                     <option value="<?php echo h($code); ?>" <?php echo $parentLang === $code ? 'selected' : ''; ?>><?php echo h($info['label']); ?></option>
@@ -1017,7 +1070,7 @@ if (!$pratica) {
             </div>
         </div>
         <h1 style="margin-top: 18px;"><?php echo h(trp('main_title')); ?></h1>
-        <div class="muted"><?php echo h(trp('subtitle')); ?></div>
+        <div class="muted"><?php echo h($classeTargetLabel); ?></div>
     </div>
 
     <?php if (!$pratica) : ?>
@@ -1134,7 +1187,7 @@ if (!$pratica) {
                 $documentIndex = 0;
                 foreach ($documents as $document) :
                     $tipo = (string)$document['tipo_documento'];
-                    if (in_array($tipo, ['documento_identita_genitore_2', 'codice_fiscale_genitore_2'], true) && !hasSecondResponsible($pratica, $confirmed)) {
+                    if (in_array($tipo, ['documento_identita_genitore_2', 'codice_fiscale_genitore_2', 'documento_cf_genitore_2'], true) && !hasSecondResponsible($pratica, $confirmed)) {
                         continue;
                     }
                     $documentColor = $documentColors[$documentIndex % count($documentColors)];
