@@ -160,4 +160,69 @@ function carenzeDownloadUpdateAssignments(array $values): string
     return implode(", ", $assignments);
 }
 
+function carenzeDownloadDriveRequiredColumns(): array
+{
+    return ['storage_type', 'drive_file_id', 'original_filename', 'migrated_at'];
+}
+
+function carenzeDownloadDriveMissingColumns(): array
+{
+    $missing = [];
+    foreach (carenzeDownloadDriveRequiredColumns() as $column) {
+        if (!carenzeDownloadTableHasColumn($column)) {
+            $missing[] = $column;
+        }
+    }
+
+    return $missing;
+}
+
+function carenzeDownloadDriveRequiredSql(): string
+{
+    return "ALTER TABLE carenze_downloads\n"
+        . "ADD COLUMN storage_type VARCHAR(20) NOT NULL DEFAULT 'LOCAL',\n"
+        . "ADD COLUMN drive_file_id VARCHAR(255) NULL,\n"
+        . "ADD COLUMN original_filename VARCHAR(255) NULL,\n"
+        . "ADD COLUMN migrated_at DATETIME NULL;";
+}
+
+function carenzeDownloadDriveRootFolderId(): string
+{
+    $cfg = googleDriveGetConfig();
+    $folderId = trim((string)($cfg->carenzeFolderId ?? ''));
+    if ($folderId !== '') {
+        return $folderId;
+    }
+
+    $folderName = trim((string)($cfg->carenzeFolderName ?? 'Carenze formative'));
+    $folderId = googleDriveFindFolderByName($folderName);
+    if ($folderId === '') {
+        $folderId = googleDriveCreateFolder($folderName);
+    }
+    if ($folderId === '') {
+        throw new Exception('Impossibile trovare o creare la cartella Drive delle carenze');
+    }
+
+    return $folderId;
+}
+
+function carenzeDownloadDriveAnnoFolderName(string $annoScolastico): string
+{
+    $annoScolastico = trim($annoScolastico);
+    return 'AS ' . str_replace('/', '-', ($annoScolastico !== '' ? $annoScolastico : 'senza-anno'));
+}
+
+function carenzeDownloadUploadToDrive(string $localPath, string $driveName, string $annoScolastico): array
+{
+    $missingColumns = carenzeDownloadDriveMissingColumns();
+    if (!empty($missingColumns)) {
+        throw new Exception('Tabella carenze_downloads non pronta per Drive. Esegui: ' . carenzeDownloadDriveRequiredSql());
+    }
+
+    $rootFolderId = carenzeDownloadDriveRootFolderId();
+    $folderId = googleDriveGetOrCreateFolderInParent(carenzeDownloadDriveAnnoFolderName($annoScolastico), $rootFolderId);
+
+    return googleDriveUploadFile($localPath, $driveName, $folderId, 'application/pdf');
+}
+
 ?>

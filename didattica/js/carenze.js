@@ -20,6 +20,7 @@ var $da_validare_filtro = 0;
 var $docente_scope_filtro = 1;
 let completati = 0;
 let totale = 0;
+let operazioniErrori = [];
 
 $('#daValidareCheckBox').change(function () {
     // this si riferisce al checkbox
@@ -118,24 +119,8 @@ function carenzaPrint(id_carenza,id_anno_carenza) {
 
 }
 
-function carenzaSend(id_carenza) {
-        // creo form nascosto
-    console.log($anni_filtro_id)
-    var form = $('<form>', {
-        action: 'stampaCarenza.php',
-        method: 'POST',
-        target: '_black'    // apre in un nuovo tab
-    });
-    // aggiungo i campi
-    form.append($('<input>', { type: 'hidden', name: 'id', value: id_carenza }));
-    form.append($('<input>', { type: 'hidden', name: 'print', value: 0 }));
-    form.append($('<input>', { type: 'hidden', name: 'mail', value: 1 }));
-    form.append($('<input>', { type: 'hidden', name: 'genera', value: 0 }));
-    form.append($('<input>', { type: 'hidden', name: 'view', value: 0 }));
-    form.append($('<input>', { type: 'hidden', name: 'anno', value: id_anno_carenza }));
-    form.append($('<input>', { type: 'hidden', name: 'titolo', value: 'Programma carenza formativa' }));
+function carenzaSend(id_carenza, id_anno_carenza) {
     // lo “submitto” e lo rimuovo
-    form.appendTo('body').submit().remove();
     $.post("stampaCarenza.php", {
         id: id_carenza,
         print: 0,
@@ -147,7 +132,7 @@ function carenzaSend(id_carenza) {
     },
         function (data, status) {
             if (data == 'sent') {
-                alert("Carenza spedita alla mail dello studente!");
+                alert("Carenza spedita alla mail dello studente e dei genitori!");
             }
             else {
                 alert("Carenza NON spedita! " + data);
@@ -157,7 +142,7 @@ function carenzaSend(id_carenza) {
     );
 }
 
-function carenzaGenera(id_carenza) {
+function carenzaGenera(id_carenza, id_anno_carenza) {
     $.post("stampaCarenza.php", {
         id: id_carenza,
         print: 0,
@@ -204,7 +189,11 @@ function aggiornaProgressBar() {
     if (completati === totale) {
         setTimeout(() => {
             nascondiOverlay();
-            alert("Tutte le operazioni sono stato concluse correttamente!");
+            if (operazioniErrori.length > 0) {
+                alert("Operazioni concluse con " + operazioniErrori.length + " errore/i. Controlla la console del browser e i log di GestOre.");
+            } else {
+                alert("Tutte le operazioni sono state concluse correttamente!");
+            }
             carenzeReadRecords();
         }, 500);
     }
@@ -219,6 +208,7 @@ if (!arrayc || arrayc.trim() === '' || arrayc.split(',').filter(e => e.trim() !=
     const arraycarenze = arrayc.split(',').map(id => id.trim()).filter(id => id !== '');
       totale = arraycarenze.length;
       completati = 0;
+      operazioniErrori = [];
       if (arraycarenze.length > 0)
       {
         mostraOverlay();
@@ -236,10 +226,12 @@ if (!arrayc || arrayc.trim() === '' || arrayc.split(',').filter(e => e.trim() !=
 
                 if ((response.trim() !== 'generato')&&(response.trim() !== 'aggiornato')) {
                     console.error(`Errore per studente ID ${id}: ${response}`);
+                    operazioniErrori.push({ id: id, errore: response });
                 }
 
             } catch (err) {
                 console.error(`Errore AJAX per studente ID ${id}:`, err);
+                operazioniErrori.push({ id: id, errore: err });
             }
             aggiornaProgressBar(completati, totale);
 
@@ -258,6 +250,7 @@ async function invioMassivoCarenze() {
 
     totale = carenze_array.length;
     completati = 0;
+    operazioniErrori = [];
 
     if (totale > 0) {
         mostraOverlay();
@@ -273,9 +266,11 @@ async function invioMassivoCarenze() {
             }).then(response => {
                 if (response.trim() !== 'sent') {
                     console.error(`Errore per studente ID ${carenza}: ${response}`);
+                    operazioniErrori.push({ id: carenza, errore: response });
                 }
             }).catch(err => {
                 console.error(`Errore AJAX per studente ID ${carenza}:`, err);
+                operazioniErrori.push({ id: carenza, errore: err });
             });
 
             aggiornaProgressBar();

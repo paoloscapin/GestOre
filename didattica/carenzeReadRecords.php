@@ -92,8 +92,16 @@ $query = "	SELECT
 					docente.nome AS doc_nome,
 					materia.nome AS materia
 				FROM carenze
+				LEFT JOIN (
+					SELECT id_classe, id_materia, id_anno_scolastico, MIN(id_docente) AS id_docente
+					FROM docente_insegna
+					GROUP BY id_classe, id_materia, id_anno_scolastico
+				) docente_carenza
+				ON docente_carenza.id_classe = carenze.id_classe
+				   AND docente_carenza.id_materia = carenze.id_materia
+				   AND docente_carenza.id_anno_scolastico = carenze.id_anno_scolastico
 				LEFT JOIN docente docente
-				ON carenze.id_docente = docente.id
+				ON docente.id = COALESCE(docente_carenza.id_docente, carenze.id_docente)
 				INNER JOIN studente studente
 				ON carenze.id_studente = studente.id
 				INNER JOIN materia materia
@@ -119,7 +127,26 @@ if ($isDocenteView && ($docente_scope_filtro > 0 || $docenteVedeSoloLeSue))
 }
 else if (!$isDocenteView && $docente_id > 0)
 {
-	$query .= " AND carenze.id_docente=" . $docente_id;
+	$query .= " AND (
+		EXISTS (
+			SELECT 1
+			FROM docente_insegna di_filter
+			WHERE di_filter.id_docente = " . intval($docente_id) . "
+			  AND di_filter.id_classe = carenze.id_classe
+			  AND di_filter.id_materia = carenze.id_materia
+			  AND di_filter.id_anno_scolastico = carenze.id_anno_scolastico
+		)
+		OR (
+			carenze.id_docente = " . intval($docente_id) . "
+			AND NOT EXISTS (
+				SELECT 1
+				FROM docente_insegna di_any
+				WHERE di_any.id_classe = carenze.id_classe
+				  AND di_any.id_materia = carenze.id_materia
+				  AND di_any.id_anno_scolastico = carenze.id_anno_scolastico
+			)
+		)
+	)";
 }
 if ($classe_id > 0) {
 	$query .= " AND carenze.id_classe=" . $classe_id;
@@ -254,7 +281,7 @@ foreach ($resultArray as $row) {
 			$data .= '
 			<button onclick="carenzaPrint(\'' . $idcarenza . '\',\'' . $anno_carenza . '\')" class="btn btn-info btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Apri l\'anteprima della carenza: da lì puoi scaricare il PDF"><span class="glyphicon glyphicon-print"></button>
 			<button onclick="carenzaGenera(\'' . $idcarenza . '\',\'' . $anno_carenza . '\')" class="btn btn-success btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Genera sul server il PDF della carenza"><span class="glyphicon glyphicon-fire"></button>
-			<button onclick="carenzaSend(\'' . $idcarenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia la mail della carenza allo studente"><span class="glyphicon glyphicon-send"></button>';
+			<button onclick="carenzaSend(\'' . $idcarenza . '\',\'' . $anno_carenza . '\')" class="btn btn-primary btn-xs" data-toggle="tooltip" data-trigger="hover" data-placement="top" title="Invia la mail della carenza allo studente e ai genitori"><span class="glyphicon glyphicon-send"></button>';
 		}	
 	} else
 		if ($isDocenteView) {

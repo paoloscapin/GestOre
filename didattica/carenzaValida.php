@@ -41,6 +41,57 @@ function carenzaResolveDocenteValidatore(int $utenteId): int
 	return intval(dbGetValue($query));
 }
 
+function carenzaResolveDocenteCarenza(int $carenzaId, int $docenteValidatoreId): int
+{
+	if ($carenzaId <= 0) {
+		return 0;
+	}
+
+	$carenza = dbGetFirst("
+		SELECT id_classe, id_materia, id_anno_scolastico
+		FROM carenze
+		WHERE id = " . dbI($carenzaId) . "
+		LIMIT 1
+	");
+	if (!$carenza) {
+		return 0;
+	}
+
+	$idClasse = intval($carenza['id_classe'] ?? 0);
+	$idMateria = intval($carenza['id_materia'] ?? 0);
+	$idAnno = intval($carenza['id_anno_scolastico'] ?? 0);
+	if ($idClasse <= 0 || $idMateria <= 0 || $idAnno <= 0) {
+		return $docenteValidatoreId;
+	}
+
+	if ($docenteValidatoreId > 0) {
+		$validatoreInsegna = intval(dbGetValue("
+			SELECT COUNT(*)
+			FROM docente_insegna
+			WHERE id_docente = " . dbI($docenteValidatoreId) . "
+			  AND id_classe = " . dbI($idClasse) . "
+			  AND id_materia = " . dbI($idMateria) . "
+			  AND id_anno_scolastico = " . dbI($idAnno) . "
+		"));
+		if ($validatoreInsegna > 0) {
+			return $docenteValidatoreId;
+		}
+	}
+
+	$docenteMateria = intval(dbGetValue("
+		SELECT di.id_docente
+		FROM docente_insegna di
+		INNER JOIN docente d ON d.id = di.id_docente
+		WHERE di.id_classe = " . dbI($idClasse) . "
+		  AND di.id_materia = " . dbI($idMateria) . "
+		  AND di.id_anno_scolastico = " . dbI($idAnno) . "
+		ORDER BY d.cognome, d.nome, d.id
+		LIMIT 1
+	"));
+
+	return $docenteMateria > 0 ? $docenteMateria : $docenteValidatoreId;
+}
+
 if (isset($_POST)) {
 
 	$id = intval($_POST['id'] ?? 0);
@@ -57,7 +108,8 @@ if (isset($_POST)) {
 	date_default_timezone_set("Europe/Rome");
 	$update = date("Y-m-d H-i-s");
 
-	$docente_id = carenzaResolveDocenteValidatore($utente_id);
+	$docente_validatore_id = carenzaResolveDocenteValidatore($utente_id);
+	$docente_id = carenzaResolveDocenteCarenza($id, $docente_validatore_id);
 
 	if ($stato==0)
 	{
@@ -74,6 +126,6 @@ if (isset($_POST)) {
 		$query = "UPDATE carenze SET id_docente = " . dbI($docente_id) . ", stato = 1, data_validazione = " . dbQ($update) . ", nota_docente = " . dbQ($nota) . " WHERE id = " . dbI($id);
 	}
 	dbExec($query);
-	info("aggiornata validazione carenza id=$id  docente_id=$docente_id stato=$stato updated=$update");
+	info("aggiornata validazione carenza id=$id  docente_id=$docente_id docente_validatore_id=$docente_validatore_id stato=$stato updated=$update");
 
 }
