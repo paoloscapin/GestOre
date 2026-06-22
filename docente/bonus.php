@@ -122,9 +122,11 @@ AND bonus_docente.anno_scolastico_id = $anno_scolastico_id
 ORDER BY bonus.codice;
 ";
 									$resultArray = dbGetAll($query);
+									$punteggioVariabile = getSettingsValue('bonus', 'punteggio_variabile', false);
+									$bonusVisioneAperta = $__config->getBonus_visione_aperto();
 
 									foreach ($resultArray as $bonus) {
-										$bonus_valore = getSettingsValue('bonus', 'punteggio_variabile', false) ? '0 - ' : '';
+										$bonus_valore = $punteggioVariabile ? '0 - ' : '';
 										$bonus_valore .= $bonus['bonus_valore_previsto'];
 
 										$bonus_descrittori = js_escape($bonus['bonus_descrittori']);
@@ -144,7 +146,9 @@ ORDER BY bonus.codice;
 									</td>
 								';
 
-										if (getSettingsValue('bonus', 'punteggio_variabile', false)) {
+										if (!$bonusVisioneAperta) {
+											$data .= '<td class="text-left text-muted">In fase di approvazione</td></tr>';
+										} else if ($punteggioVariabile) {
 											$data .= '<td class="text-left">' . htmlspecialchars($bonus['bonus_docente_approvato']) . '</td></tr>';
 										} else {
 											if ($bonus['bonus_docente_approvato'] !== NULL) {

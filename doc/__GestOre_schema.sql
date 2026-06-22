@@ -803,6 +803,7 @@ CREATE TABLE IF NOT EXISTS `config` (
   `ore_fatte_aperto` TINYINT NULL,
   `bonus_adesione_aperto` TINYINT NULL,
   `bonus_rendiconto_aperto` TINYINT NULL,
+  `bonus_visione_aperto` TINYINT NULL DEFAULT 0,
   `bonus_budget` FLOAT NULL,
   `fuis_budget` FLOAT NULL,
   `fuis_ore_con_studenti` FLOAT NULL,

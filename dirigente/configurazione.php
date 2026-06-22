@@ -107,7 +107,12 @@ require_once '../common/importi_load.php';
 			<label class="col-sm-3 control-label" for="bonus_rendiconto_checkbox">Rendiconto Bonus
 				<input type="checkbox" class="checkbox-inline col-sm-1" id="bonus_rendiconto_checkbox"  data-toggle="toggle" data-size="small" data-onstyle="success" data-on="Aperto" data-off="Chiuso" <?php if ($__config->getBonus_rendiconto_aperto()) echo 'checked'; ?> >
 			</label>
-			<div class="col-sm-6 text-center">
+
+			<label class="col-sm-3 control-label" for="bonus_visione_checkbox">Visione Bonus
+				<input type="checkbox" class="checkbox-inline col-sm-1" id="bonus_visione_checkbox"  data-toggle="toggle" data-size="small" data-onstyle="success" data-on="Visibile" data-off="Nascosto" <?php if ($__config->getBonus_visione_aperto()) echo 'checked'; ?> >
+			</label>
+
+			<div class="col-sm-3 text-center">
 				<label id="import_btn" class="btn btn-lima4 btn-file"><span class="glyphicon glyphicon-upload"></span>&emsp;Importa Bonus<input type="file" id="bonus_select_id" style="display: none;"></label>
 			</div>
 		</div>
