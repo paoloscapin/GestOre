@@ -20,6 +20,34 @@ function iscrizioniPrimeEnsureSchema(): void
           nome varchar(100) NOT NULL,
           sesso char(1) DEFAULT NULL,
           data_nascita date DEFAULT NULL,
+          nazione_nascita varchar(100) DEFAULT NULL,
+          provincia_nascita varchar(100) DEFAULT NULL,
+          comune_nascita varchar(100) DEFAULT NULL,
+          luogo_nascita varchar(150) DEFAULT NULL,
+          cittadinanza varchar(100) DEFAULT NULL,
+          nazione_residenza varchar(100) DEFAULT NULL,
+          provincia_residenza varchar(100) DEFAULT NULL,
+          sigla_provincia_residenza varchar(5) DEFAULT NULL,
+          comune_residenza varchar(100) DEFAULT NULL,
+          frazione_residenza varchar(100) DEFAULT NULL,
+          cap_residenza varchar(10) DEFAULT NULL,
+          indirizzo_residenza varchar(255) DEFAULT NULL,
+          telefono_residenza varchar(100) DEFAULT NULL,
+          scuola_provenienza varchar(255) DEFAULT NULL,
+          anno_esame_licenza varchar(20) DEFAULT NULL,
+          esito_esame_licenza varchar(100) DEFAULT NULL,
+          voto_esame_licenza varchar(20) DEFAULT NULL,
+          sezione_richiesta varchar(20) DEFAULT NULL,
+          lingua_straniera_1 varchar(100) DEFAULT NULL,
+          lingua_straniera_2 varchar(100) DEFAULT NULL,
+          lingua_straniera_3 varchar(100) DEFAULT NULL,
+          trattamento_immagini varchar(50) DEFAULT NULL,
+          esami_integrativi_da_verificare tinyint NOT NULL DEFAULT 0,
+          nulla_osta_richiesto tinyint NOT NULL DEFAULT 0,
+          nulla_osta_data date DEFAULT NULL,
+          carenze_formative_dichiarate enum('','no','si') NOT NULL DEFAULT '',
+          carenze_formative_materie text DEFAULT NULL,
+          carenze_formative_altro varchar(255) DEFAULT NULL,
           unita_scolastica varchar(255) DEFAULT NULL,
           corso_studi varchar(255) DEFAULT NULL,
           anno_corso tinyint DEFAULT NULL,
@@ -51,6 +79,7 @@ function iscrizioniPrimeEnsureSchema(): void
           dati_confermati_json mediumtext DEFAULT NULL,
           raw_prime_json mediumtext DEFAULT NULL,
           raw_dsa_json mediumtext DEFAULT NULL,
+          raw_licenza_media_json mediumtext DEFAULT NULL,
           raw_anagrafica_json mediumtext DEFAULT NULL,
           note_interne text DEFAULT NULL,
           imported_at datetime NOT NULL,
@@ -113,9 +142,11 @@ function iscrizioniPrimeEnsureSchema(): void
           prime_filename varchar(255) DEFAULT NULL,
           dsa_filename varchar(255) DEFAULT NULL,
           anagrafica_filename varchar(255) DEFAULT NULL,
+          licenza_media_filename varchar(255) DEFAULT NULL,
           righe_prime int NOT NULL DEFAULT 0,
           righe_dsa int NOT NULL DEFAULT 0,
           righe_anagrafica int NOT NULL DEFAULT 0,
+          righe_licenza_media int NOT NULL DEFAULT 0,
           inserite int NOT NULL DEFAULT 0,
           aggiornate int NOT NULL DEFAULT 0,
           contatti_aggiornati int NOT NULL DEFAULT 0,
@@ -178,6 +209,34 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'studente_interno', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN studente_interno tinyint NOT NULL DEFAULT 0 AFTER tipo_iscrizione");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'email_studente', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN email_studente varchar(255) DEFAULT NULL AFTER certificazione_online");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'telefono_studente', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN telefono_studente varchar(50) DEFAULT NULL AFTER email_studente");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'nazione_nascita', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN nazione_nascita varchar(100) DEFAULT NULL AFTER data_nascita");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'provincia_nascita', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN provincia_nascita varchar(100) DEFAULT NULL AFTER nazione_nascita");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'comune_nascita', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN comune_nascita varchar(100) DEFAULT NULL AFTER provincia_nascita");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'luogo_nascita', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN luogo_nascita varchar(150) DEFAULT NULL AFTER comune_nascita");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'cittadinanza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN cittadinanza varchar(100) DEFAULT NULL AFTER luogo_nascita");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'nazione_residenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN nazione_residenza varchar(100) DEFAULT NULL AFTER cittadinanza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'provincia_residenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN provincia_residenza varchar(100) DEFAULT NULL AFTER nazione_residenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'sigla_provincia_residenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN sigla_provincia_residenza varchar(5) DEFAULT NULL AFTER provincia_residenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'comune_residenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN comune_residenza varchar(100) DEFAULT NULL AFTER sigla_provincia_residenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'frazione_residenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN frazione_residenza varchar(100) DEFAULT NULL AFTER comune_residenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'cap_residenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN cap_residenza varchar(10) DEFAULT NULL AFTER frazione_residenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'indirizzo_residenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN indirizzo_residenza varchar(255) DEFAULT NULL AFTER cap_residenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'telefono_residenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN telefono_residenza varchar(100) DEFAULT NULL AFTER indirizzo_residenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'scuola_provenienza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN scuola_provenienza varchar(255) DEFAULT NULL AFTER telefono_residenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'anno_esame_licenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN anno_esame_licenza varchar(20) DEFAULT NULL AFTER scuola_provenienza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'esito_esame_licenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN esito_esame_licenza varchar(100) DEFAULT NULL AFTER anno_esame_licenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'voto_esame_licenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN voto_esame_licenza varchar(20) DEFAULT NULL AFTER esito_esame_licenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'sezione_richiesta', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN sezione_richiesta varchar(20) DEFAULT NULL AFTER voto_esame_licenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'lingua_straniera_1', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN lingua_straniera_1 varchar(100) DEFAULT NULL AFTER sezione_richiesta");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'lingua_straniera_2', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN lingua_straniera_2 varchar(100) DEFAULT NULL AFTER lingua_straniera_1");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'lingua_straniera_3', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN lingua_straniera_3 varchar(100) DEFAULT NULL AFTER lingua_straniera_2");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'trattamento_immagini', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN trattamento_immagini varchar(50) DEFAULT NULL AFTER lingua_straniera_3");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'esami_integrativi_da_verificare', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN esami_integrativi_da_verificare tinyint NOT NULL DEFAULT 0 AFTER trattamento_immagini");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'nulla_osta_richiesto', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN nulla_osta_richiesto tinyint NOT NULL DEFAULT 0 AFTER esami_integrativi_da_verificare");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'nulla_osta_data', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN nulla_osta_data date DEFAULT NULL AFTER nulla_osta_richiesto");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'carenze_formative_dichiarate', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN carenze_formative_dichiarate enum('','no','si') NOT NULL DEFAULT '' AFTER nulla_osta_data");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'carenze_formative_materie', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN carenze_formative_materie text DEFAULT NULL AFTER carenze_formative_dichiarate");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'carenze_formative_altro', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN carenze_formative_altro varchar(255) DEFAULT NULL AFTER carenze_formative_materie");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'responsabile_1_cognome', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN responsabile_1_cognome varchar(100) DEFAULT NULL AFTER responsabile_1_tipo");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'responsabile_1_nome', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN responsabile_1_nome varchar(100) DEFAULT NULL AFTER responsabile_1_cognome");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'responsabile_1_codice_fiscale', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN responsabile_1_codice_fiscale varchar(16) DEFAULT NULL AFTER responsabile_1_nome");
@@ -186,8 +245,11 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'responsabile_2_nome', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN responsabile_2_nome varchar(100) DEFAULT NULL AFTER responsabile_2_cognome");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'responsabile_2_codice_fiscale', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN responsabile_2_codice_fiscale varchar(16) DEFAULT NULL AFTER responsabile_2_nome");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'raw_anagrafica_json', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN raw_anagrafica_json mediumtext DEFAULT NULL AFTER raw_dsa_json");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'raw_licenza_media_json', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN raw_licenza_media_json mediumtext DEFAULT NULL AFTER raw_dsa_json");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'anagrafica_filename', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN anagrafica_filename varchar(255) DEFAULT NULL AFTER dsa_filename");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'righe_anagrafica', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN righe_anagrafica int NOT NULL DEFAULT 0 AFTER righe_dsa");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'licenza_media_filename', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN licenza_media_filename varchar(255) DEFAULT NULL AFTER anagrafica_filename");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'righe_licenza_media', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN righe_licenza_media int NOT NULL DEFAULT 0 AFTER righe_anagrafica");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'contatti_aggiornati', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN contatti_aggiornati int NOT NULL DEFAULT 0 AFTER aggiornate");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'contatti_ignorati', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN contatti_ignorati int NOT NULL DEFAULT 0 AFTER contatti_aggiornati");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'tipo_iscrizione', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN tipo_iscrizione varchar(20) NOT NULL DEFAULT 'prime' AFTER contatti_ignorati");
@@ -251,8 +313,7 @@ function iscrizioniPrimeDocumentTypes($tipo = 'prime'): array
 
     if ($tipo === 'terze') {
         return [
-            'richiesta_nulla_osta' => "Richiesta nulla osta dell'Istituto di provenienza",
-            'carenze_formative' => 'Comunicazione eventuali carenze formative',
+            'pagella_seconda' => 'Pagella finale della classe seconda',
             'documento_cf_studente' => 'Carta identita fronte/retro studente con codice fiscale',
             'documento_cf_genitore_1' => 'Carta identita fronte/retro responsabile 1 con codice fiscale',
             'documento_cf_genitore_2' => 'Carta identita fronte/retro responsabile 2 con codice fiscale',
@@ -275,6 +336,29 @@ function iscrizioniPrimeDocumentTypes($tipo = 'prime'): array
         'attestazione_erogazione_liberale' => 'Attestazione erogazione liberale PagoPA 50 euro',
         'altro' => 'Altro documento',
     ];
+}
+
+function iscrizioniPrimeSecretaryDocumentTypes($tipo = 'prime'): array
+{
+    if (is_array($tipo)) {
+        $tipo = iscrizioniPrimeTipoIscrizioneFromPratica($tipo);
+    } else {
+        $tipo = iscrizioniPrimeNormalizeTipoIscrizione($tipo);
+    }
+
+    if ($tipo !== 'terze') {
+        return [];
+    }
+
+    return [
+        'nulla_osta_scuola_provenienza' => 'Nulla osta ricevuto dalla scuola di provenienza',
+        'carenze_formative_scuola_provenienza' => 'Comunicazione carenze formative ricevuta dalla scuola di provenienza',
+    ];
+}
+
+function iscrizioniPrimeSecretaryAllowedDocumentTypes(array $pratica): array
+{
+    return array_merge(iscrizioniPrimeDocumentTypes($pratica), iscrizioniPrimeSecretaryDocumentTypes($pratica));
 }
 
 function iscrizioniPrimeUploadBaseDir(): string
@@ -466,6 +550,13 @@ function iscrizioniPrimeDate(?string $value): ?string
         return $dt->format('Y-m-d');
     }
 
+    foreach (['Y-m-d H:i:s', 'Y-m-d'] as $format) {
+        $dt = DateTime::createFromFormat($format, $value);
+        if ($dt instanceof DateTime) {
+            return $dt->format('Y-m-d');
+        }
+    }
+
     if (preg_match('/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/', $value, $m)) {
         $months = [
             'gen' => '01', 'feb' => '02', 'mar' => '03', 'apr' => '04',
@@ -488,6 +579,20 @@ function iscrizioniPrimeDate(?string $value): ?string
 function iscrizioniPrimeJson(array $row): string
 {
     return json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+function iscrizioniPrimeField(array $row, array $names, $default = null)
+{
+    foreach ($names as $name) {
+        if (array_key_exists($name, $row)) {
+            $value = trim((string)$row[$name]);
+            if ($value !== '') {
+                return $value;
+            }
+        }
+    }
+
+    return $default;
 }
 
 function iscrizioniPrimeGenerateToken(): array
@@ -986,6 +1091,29 @@ function iscrizioniPrimeSubmissionConfirmationBody(array $pratica): string
         ['Telefono responsabile 2', iscrizioniPrimeMailValue($pratica, $confirmed, 'telefono_genitore_2'), true],
     ]);
 
+    $terzeRowsHtml = '';
+    if (iscrizioniPrimeTipoIscrizioneFromPratica($pratica) === 'terze') {
+        $materie = $confirmed['carenze_formative_materie'] ?? [];
+        if (!is_array($materie)) {
+            $materie = [];
+        }
+        $altro = trim((string)($confirmed['carenze_formative_altro'] ?? ''));
+        if ($altro !== '') {
+            $materie[] = $altro;
+        }
+        $carenze = (string)($confirmed['carenze_formative_dichiarate'] ?? '');
+        $terzeRows = iscrizioniPrimeMailRows([
+            ['Nulla osta richiesto alla scuola di provenienza', !empty($confirmed['nulla_osta_richiesto']) ? 'Si' : 'No'],
+            ['Data richiesta nulla osta', iscrizioniPrimeFormatDateIt($confirmed['nulla_osta_data'] ?? '')],
+            ['Carenze formative dichiarate', $carenze === 'si' ? 'Si' : ($carenze === 'no' ? 'No' : '')],
+            ['Materie con carenza', implode(', ', array_values(array_filter($materie, 'strlen')))],
+        ]);
+        $terzeRowsHtml = '
+                        <h3 style="font-size:18px;margin:22px 0 8px;color:#172033;">Informazioni iscrizione in terza</h3>
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">' . $terzeRows . '</table>
+        ';
+    }
+
     return '
         <div style="margin:0;padding:0;background:#f4f7fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
             <div style="max-width:760px;margin:0 auto;padding:22px 12px;">
@@ -1010,6 +1138,8 @@ function iscrizioniPrimeSubmissionConfirmationBody(array $pratica): string
 
                         <h3 style="font-size:18px;margin:22px 0 8px;color:#172033;">Contatti confermati</h3>
                         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">' . $responsibleRows . '</table>
+
+                        ' . $terzeRowsHtml . '
 
                         <h3 style="font-size:18px;margin:22px 0 8px;color:#172033;">Documenti</h3>
                         ' . iscrizioniPrimeMailDocumentsTable($pratica) . '
@@ -1319,6 +1449,30 @@ function iscrizioniPrimeSaveDraftByToken(string $token, array $data): array
         return ['ok' => false, 'message' => 'La pratica non puo essere modificata in questo stato.'];
     }
 
+    $carenzeMaterie = [];
+    $carenzeAltroSelected = false;
+    foreach ((array)($data['carenze_formative_materie'] ?? []) as $materia) {
+        $materia = trim((string)$materia);
+        if ($materia === '__ALTRO__') {
+            $carenzeAltroSelected = true;
+            continue;
+        }
+        if ($materia !== '' && !in_array($materia, $carenzeMaterie, true)) {
+            $carenzeMaterie[] = $materia;
+        }
+    }
+    $carenzeDichiarate = trim((string)($data['carenze_formative_dichiarate'] ?? ''));
+    if (!in_array($carenzeDichiarate, ['si', 'no'], true)) {
+        $carenzeDichiarate = '';
+    }
+    if ($carenzeDichiarate !== 'si') {
+        $carenzeMaterie = [];
+        $data['carenze_formative_altro'] = null;
+    } elseif (!$carenzeAltroSelected) {
+        $data['carenze_formative_altro'] = null;
+    }
+    $nullaOstaData = iscrizioniPrimeDate((string)($data['nulla_osta_data'] ?? ''));
+
     $confirmed = [
         'email_studente' => iscrizioniPrimeTrimValue($data['email_studente'] ?? null),
         'telefono_studente' => iscrizioniPrimeTrimValue($data['telefono_studente'] ?? null),
@@ -1326,6 +1480,11 @@ function iscrizioniPrimeSaveDraftByToken(string $token, array $data): array
         'telefono_genitore_1' => iscrizioniPrimeTrimValue($data['telefono_genitore_1'] ?? null),
         'email_genitore_2' => iscrizioniPrimeTrimValue($data['email_genitore_2'] ?? null),
         'telefono_genitore_2' => iscrizioniPrimeTrimValue($data['telefono_genitore_2'] ?? null),
+        'nulla_osta_richiesto' => !empty($data['nulla_osta_richiesto']) ? 1 : 0,
+        'nulla_osta_data' => $nullaOstaData,
+        'carenze_formative_dichiarate' => $carenzeDichiarate,
+        'carenze_formative_materie' => $carenzeMaterie,
+        'carenze_formative_altro' => iscrizioniPrimeTrimValue($data['carenze_formative_altro'] ?? null),
         'privacy_confermata' => !empty($data['privacy_confermata']) ? 1 : 0,
         'saved_at' => date('c'),
     ];
@@ -1342,6 +1501,11 @@ function iscrizioniPrimeSaveDraftByToken(string $token, array $data): array
             telefono_genitore_1 = " . dbQ($confirmed['telefono_genitore_1']) . ",
             email_genitore_2 = " . dbQ($confirmed['email_genitore_2']) . ",
             telefono_genitore_2 = " . dbQ($confirmed['telefono_genitore_2']) . ",
+            nulla_osta_richiesto = " . intval($confirmed['nulla_osta_richiesto']) . ",
+            nulla_osta_data = " . dbQ($confirmed['nulla_osta_data']) . ",
+            carenze_formative_dichiarate = " . dbQ($confirmed['carenze_formative_dichiarate']) . ",
+            carenze_formative_materie = " . dbQ(json_encode($confirmed['carenze_formative_materie'], JSON_UNESCAPED_UNICODE)) . ",
+            carenze_formative_altro = " . dbQ($confirmed['carenze_formative_altro']) . ",
             dati_confermati_json = " . dbQ(json_encode($confirmed, JSON_UNESCAPED_UNICODE)) . ",
             stato = 'bozza',
             updated_at = NOW()
@@ -1359,7 +1523,7 @@ function iscrizioniPrimeRequiredDocumentTypes(array $pratica, array $confirmed =
     if (iscrizioniPrimeTipoIscrizioneFromPratica($pratica) === 'terze') {
         $types = array_values(array_filter(
             array_keys(iscrizioniPrimeDocumentTypes($pratica)),
-            fn($tipo) => !in_array($tipo, ['altro', 'attestazione_erogazione_liberale', 'carenze_formative'], true)
+            fn($tipo) => !in_array($tipo, ['altro', 'attestazione_erogazione_liberale'], true)
         ));
         if (!hasSecondResponsibleForIscrizioniPrime($pratica, $confirmed)) {
             $types = array_values(array_filter($types, fn($tipo) => $tipo !== 'documento_cf_genitore_2'));
@@ -1403,7 +1567,19 @@ function iscrizioniPrimeEnsureDocumentRows(int $praticaId, ?array $pratica = nul
         $pratica = dbGetFirst("SELECT tipo_iscrizione FROM iscrizioni_prime_pratiche WHERE id = " . intval($praticaId) . " LIMIT 1") ?: [];
     }
 
-    foreach (array_keys(iscrizioniPrimeDocumentTypes($pratica)) as $tipo) {
+    $types = array_keys(iscrizioniPrimeDocumentTypes($pratica));
+    $typesSql = implode(', ', array_map('dbQ', $types));
+
+    dbExec("
+        DELETE FROM iscrizioni_prime_documenti
+        WHERE pratica_id = " . intval($praticaId) . "
+          AND tipo_documento NOT IN (" . $typesSql . ")
+          AND stato = 'mancante'
+          AND (file_path IS NULL OR file_path = '')
+          AND (drive_file_id IS NULL OR drive_file_id = '')
+    ");
+
+    foreach ($types as $tipo) {
         dbExec("
             INSERT IGNORE INTO iscrizioni_prime_documenti (pratica_id, tipo_documento, stato)
             VALUES (" . intval($praticaId) . ", " . dbQ($tipo) . ", 'mancante')
@@ -1424,6 +1600,42 @@ function iscrizioniPrimeDocumentsForPratica(int $praticaId): array
           AND tipo_documento IN (" . implode(', ', array_map('dbQ', $types)) . ")
         ORDER BY FIELD(tipo_documento, " . implode(', ', array_map('dbQ', $types)) . ")
     ");
+}
+
+function iscrizioniPrimeSecretaryDocumentsForPratica(int $praticaId): array
+{
+    $pratica = dbGetFirst("SELECT tipo_iscrizione FROM iscrizioni_prime_pratiche WHERE id = " . intval($praticaId) . " LIMIT 1") ?: [];
+    $types = array_keys(iscrizioniPrimeSecretaryDocumentTypes($pratica));
+    if (!$types) {
+        return [];
+    }
+
+    $rows = dbGetAll("
+        SELECT *
+        FROM iscrizioni_prime_documenti
+        WHERE pratica_id = " . intval($praticaId) . "
+          AND tipo_documento IN (" . implode(', ', array_map('dbQ', $types)) . ")
+        ORDER BY FIELD(tipo_documento, " . implode(', ', array_map('dbQ', $types)) . ")
+    ");
+
+    $byType = [];
+    foreach ($rows as $row) {
+        $byType[(string)$row['tipo_documento']] = $row;
+    }
+
+    $documents = [];
+    foreach ($types as $tipo) {
+        $documents[] = $byType[$tipo] ?? [
+            'pratica_id' => $praticaId,
+            'tipo_documento' => $tipo,
+            'stato' => 'mancante',
+            'original_name' => null,
+            'file_path' => null,
+            'drive_file_id' => null,
+        ];
+    }
+
+    return $documents;
 }
 
 function iscrizioniPrimeUploadedFiles(array $fileInput): array
@@ -1629,7 +1841,7 @@ function iscrizioniPrimeUploadDocumentByToken(string $token, string $tipo, array
         return ['ok' => false, 'message' => 'La pratica non puo essere modificata in questo stato.'];
     }
 
-    $types = iscrizioniPrimeDocumentTypes($pratica);
+    $types = iscrizioniPrimeSecretaryAllowedDocumentTypes($pratica);
     if (!isset($types[$tipo])) {
         return ['ok' => false, 'message' => 'Tipo documento non valido.'];
     }
@@ -1860,7 +2072,7 @@ function iscrizioniPrimeUploadSecretaryPdf(int $praticaId, string $tipo, array $
         return ['ok' => false, 'message' => 'Pratica non trovata.'];
     }
 
-    $types = iscrizioniPrimeDocumentTypes($pratica);
+    $types = iscrizioniPrimeSecretaryAllowedDocumentTypes($pratica);
     if (!isset($types[$tipo])) {
         return ['ok' => false, 'message' => 'Tipo documento non valido.'];
     }
@@ -1929,6 +2141,11 @@ function iscrizioniPrimeUploadSecretaryPdf(int $praticaId, string $tipo, array $
     }
 
     dbExec("
+        INSERT IGNORE INTO iscrizioni_prime_documenti (pratica_id, tipo_documento, stato)
+        VALUES (" . dbI($praticaId) . ", " . dbQ($tipo) . ", 'mancante')
+    ");
+
+    dbExec("
         UPDATE iscrizioni_prime_documenti SET
             stato = 'caricato',
             file_path = " . dbQ($relativePath) . ",
@@ -1951,6 +2168,14 @@ function iscrizioniPrimeUploadSecretaryPdf(int $praticaId, string $tipo, array $
             require_once __DIR__ . '/../api/googleDriveLib.php';
             googleDriveDeleteFile((string)$previousDocument['drive_file_id']);
         } catch (Throwable $e) {
+        }
+    }
+
+    if ($previousDocument && !empty($previousDocument['file_path']) && (string)$previousDocument['file_path'] !== $relativePath) {
+        $previousAbsolute = realpath(__DIR__ . '/../' . $previousDocument['file_path']);
+        $base = realpath(iscrizioniPrimeUploadBaseDir() . '/iscrizioni_prime_uploads');
+        if ($previousAbsolute && $base && strpos($previousAbsolute, $base) === 0 && is_file($previousAbsolute)) {
+            @unlink($previousAbsolute);
         }
     }
 
@@ -2104,6 +2329,22 @@ function iscrizioniPrimeSubmitByToken(string $token, array $data): array
         return ['ok' => false, 'message' => 'Prima di inviare devi confermare che i dati indicati sono corretti o aggiornati.'];
     }
 
+    if (iscrizioniPrimeTipoIscrizioneFromPratica($pratica) === 'terze') {
+        if (empty($confirmed['nulla_osta_richiesto']) || empty($confirmed['nulla_osta_data'])) {
+            return ['ok' => false, 'message' => 'Prima di inviare devi confermare di aver richiesto il nulla osta alla scuola di provenienza e indicare la data della richiesta.'];
+        }
+        if (!in_array((string)($confirmed['carenze_formative_dichiarate'] ?? ''), ['si', 'no'], true)) {
+            return ['ok' => false, 'message' => 'Prima di inviare devi indicare se sono presenti carenze formative.'];
+        }
+        if ((string)$confirmed['carenze_formative_dichiarate'] === 'si') {
+            $materie = (array)($confirmed['carenze_formative_materie'] ?? []);
+            $altro = trim((string)($confirmed['carenze_formative_altro'] ?? ''));
+            if (!$materie && $altro === '') {
+                return ['ok' => false, 'message' => 'Hai indicato che sono presenti carenze formative: seleziona almeno una materia oppure scegli Altro e scrivi la materia.'];
+            }
+        }
+    }
+
     $documents = iscrizioniPrimeDocumentsForPratica((int)$pratica['id']);
     $byType = [];
     foreach ($documents as $document) {
@@ -2208,6 +2449,7 @@ function iscrizioniPrimeUpdateContacts(array $anagraficaRows, string $tipoIscriz
 {
     $updated = 0;
     $ignored = 0;
+    $internalSkipped = 0;
     $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
 
     foreach ($anagraficaRows as $row) {
@@ -2218,6 +2460,22 @@ function iscrizioniPrimeUpdateContacts(array $anagraficaRows, string $tipoIscriz
         }
         $anno = trim((string)($row['ANNO SCOLASTICO'] ?? ''));
         $annoCondition = $anno !== '' ? " AND anno_scolastico = " . dbQ($anno) : '';
+
+        if ($tipoIscrizione === 'terze') {
+            $internal = dbGetFirst("
+                SELECT id
+                FROM iscrizioni_prime_pratiche
+                WHERE codice_fiscale = " . dbQ($cf) . "
+                  AND tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+                  AND studente_interno = 1
+                $annoCondition
+                LIMIT 1
+            ");
+            if ($internal) {
+                $internalSkipped++;
+                continue;
+            }
+        }
 
         $pratica = dbGetFirst("
             SELECT id
@@ -2278,7 +2536,7 @@ function iscrizioniPrimeUpdateContacts(array $anagraficaRows, string $tipoIscriz
         $updated++;
     }
 
-    return ['updated' => $updated, 'ignored' => $ignored];
+    return ['updated' => $updated, 'ignored' => $ignored, 'internal_skipped' => $internalSkipped];
 }
 
 function iscrizioniPrimeStudentIsInternal(string $cf): bool
@@ -2397,11 +2655,11 @@ function iscrizioniPrimeApplyInternalContacts(int $praticaId, string $cf): bool
     return true;
 }
 
-function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione = 'prime', ?bool $studenteInterno = null): array
+function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione = 'prime', ?bool $studenteInterno = null, ?array $licenzaMedia = null): array
 {
     $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
-    $cf = strtoupper(trim((string)($prime['CODICE FISCALE STUDENTE'] ?? ($dsa['CODICE FISCALE'] ?? ''))));
-    $anno = trim((string)($prime['ANNO SCOLASTICO'] ?? ($dsa['ANNO SCOLASTICO'] ?? '')));
+    $cf = strtoupper(trim((string)iscrizioniPrimeField($prime, ['CODICE FISCALE STUDENTE', 'CODICE FISCALE', 'CHIAVE FISCALE'], $dsa['CODICE FISCALE'] ?? '')));
+    $anno = trim((string)iscrizioniPrimeField($prime, ['ANNO SCOLASTICO'], $dsa['ANNO SCOLASTICO'] ?? ''));
 
     if ($cf === '' || $anno === '') {
         return ['ok' => false, 'error' => 'codice fiscale o anno scolastico mancante'];
@@ -2425,25 +2683,51 @@ function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione
         'anno_scolastico' => $anno,
         'tipo_iscrizione' => $tipoIscrizione,
         'studente_interno' => $studenteInterno === null ? 0 : ($studenteInterno ? 1 : 0),
-        'codice_domanda' => $prime['CODICE DOMANDA'] ?? null,
-        'codice_sidi' => $dsa['CODICE SIDI'] ?? null,
+        'codice_domanda' => iscrizioniPrimeField($prime, ['CODICE DOMANDA']),
+        'codice_sidi' => iscrizioniPrimeField($prime, ['CODICE SIDI'], $dsa['CODICE SIDI'] ?? null),
         'codice_giada' => $dsa['CODICE GIADA'] ?? null,
         'codice_fiscale' => $cf,
-        'cognome' => $prime['COGNOME STUDENTE'] ?? ($dsa['COGNOME'] ?? ''),
-        'nome' => $prime['NOME STUDENTE'] ?? ($dsa['NOME'] ?? ''),
-        'sesso' => $dsa['SESSO'] ?? null,
-        'data_nascita' => iscrizioniPrimeDate($prime['DATA NASCITA STUDENTE'] ?? ($dsa['DATA NASCITA'] ?? '')),
-        'unita_scolastica' => $prime['UNITA SCOLASTICA DI ISCRIZIONE'] ?? ($dsa['UNITA SCOLASTICA'] ?? null),
-        'corso_studi' => $prime['CORSO DI STUDI DI ISCRIZIONE'] ?? ($dsa['CORSO STUDI'] ?? null),
-        'anno_corso' => $prime['ANNO DI CORSO'] ?? ($dsa['ANNO CORSO'] ?? null),
-        'mensa' => $dsa['MENSA'] ?? null,
-        'religione' => $dsa['RELIGIONE'] ?? null,
-        'scelta_alternativa_religione' => $dsa['SCELTA ALTERNATIVA RELIGIONE'] ?? null,
-        'richiesta_trasporto' => $dsa['RICHIESTA TRASPORTO'] ?? null,
-        'scelta_formativa' => $dsa['SCELTA FORMATIVA'] ?? null,
+        'cognome' => iscrizioniPrimeField($prime, ['COGNOME STUDENTE', 'COGNOME'], $dsa['COGNOME'] ?? ''),
+        'nome' => iscrizioniPrimeField($prime, ['NOME STUDENTE', 'NOME'], $dsa['NOME'] ?? ''),
+        'sesso' => iscrizioniPrimeField($prime, ['SESSO'], $dsa['SESSO'] ?? null),
+        'data_nascita' => iscrizioniPrimeDate((string)iscrizioniPrimeField($prime, ['DATA NASCITA STUDENTE', 'DATA NASCITA'], $dsa['DATA NASCITA'] ?? '')),
+        'nazione_nascita' => iscrizioniPrimeField($prime, ['NAZIONE NASCITA']),
+        'provincia_nascita' => iscrizioniPrimeField($prime, ['PROVINCIA NASCITA']),
+        'comune_nascita' => iscrizioniPrimeField($prime, ['COMUNE NASCITA']),
+        'luogo_nascita' => iscrizioniPrimeField($prime, ['LUOGO NASCITA']),
+        'cittadinanza' => iscrizioniPrimeField($prime, ['CITTADINANZA']),
+        'nazione_residenza' => iscrizioniPrimeField($prime, ['NAZIONE RESIDENZA']),
+        'provincia_residenza' => iscrizioniPrimeField($prime, ['PROVINCIA RESIDENZA']),
+        'sigla_provincia_residenza' => iscrizioniPrimeField($prime, ['SIGLA PROV. RESIDENZA']),
+        'comune_residenza' => iscrizioniPrimeField($prime, ['COMUNE RESIDENZA']),
+        'frazione_residenza' => iscrizioniPrimeField($prime, ['FRAZIONE RESIDENZA']),
+        'cap_residenza' => iscrizioniPrimeField($prime, ['CAP RESIDENZA']),
+        'indirizzo_residenza' => iscrizioniPrimeField($prime, ['INDIRIZZO RESIDENZA']),
+        'telefono_residenza' => iscrizioniPrimeField($prime, ['TEL. RESIDENZA']),
+        'scuola_provenienza' => iscrizioniPrimeField($licenzaMedia ?? [], ['DENOMINAZIONE ISTITUZIONE SCOLASTICA']),
+        'anno_esame_licenza' => iscrizioniPrimeField($licenzaMedia ?? [], ['ANNO ESAME']),
+        'esito_esame_licenza' => iscrizioniPrimeField($licenzaMedia ?? [], ['ESITO']),
+        'voto_esame_licenza' => iscrizioniPrimeField($licenzaMedia ?? [], ['VOTO']),
+        'sezione_richiesta' => iscrizioniPrimeField($prime, ['SEZIONE']),
+        'lingua_straniera_1' => iscrizioniPrimeField($prime, ['LINGUA STRANIERA 1']),
+        'lingua_straniera_2' => iscrizioniPrimeField($prime, ['LINGUA STRANIERA 2']),
+        'lingua_straniera_3' => iscrizioniPrimeField($prime, ['LINGUA STRANIERA 3']),
+        'trattamento_immagini' => iscrizioniPrimeField($prime, ['TRATTAMENTO IMMAGINI']),
+        'esami_integrativi_da_verificare' => ($tipoIscrizione === 'terze' && $studenteInterno === false) ? 1 : 0,
+        'unita_scolastica' => iscrizioniPrimeField($prime, ['UNITA SCOLASTICA DI ISCRIZIONE', 'UNITA SCOLASTICA'], $dsa['UNITA SCOLASTICA'] ?? null),
+        'corso_studi' => iscrizioniPrimeField($prime, ['CORSO DI STUDI DI ISCRIZIONE', 'CORSO DI STUDI', 'CORSO STUDI'], $dsa['CORSO STUDI'] ?? null),
+        'anno_corso' => iscrizioniPrimeField($prime, ['ANNO DI CORSO', 'ANNO CORSO'], $dsa['ANNO CORSO'] ?? null),
+        'mensa' => iscrizioniPrimeField($prime, ['MENSA'], $dsa['MENSA'] ?? null),
+        'religione' => iscrizioniPrimeField($prime, ['RELIGIONE'], $dsa['RELIGIONE'] ?? null),
+        'scelta_alternativa_religione' => iscrizioniPrimeField($prime, ['SCELTA ALTERNATIVA RELIGIONE', 'RELIGIONE ALTERNATIVA'], $dsa['SCELTA ALTERNATIVA RELIGIONE'] ?? null),
+        'richiesta_trasporto' => iscrizioniPrimeField($prime, ['RICHIESTA TRASPORTO', 'TRASPORTI'], $dsa['RICHIESTA TRASPORTO'] ?? null),
+        'scelta_formativa' => iscrizioniPrimeField($prime, ['SCELTA FORMATIVA'], $dsa['SCELTA FORMATIVA'] ?? null),
         'certificazione_online' => $dsa['DICHIARAZIONE CERTIFICAZIONE ONLINE'] ?? ($dsa['COLONNA_52'] ?? null),
+        'email_studente' => iscrizioniPrimeField($prime, ['EMAIL']),
+        'telefono_studente' => iscrizioniPrimeField($prime, ['TELEFONO CELLULARE', 'TEL. RESIDENZA']),
         'raw_prime_json' => iscrizioniPrimeJson($prime),
         'raw_dsa_json' => $dsa ? iscrizioniPrimeJson($dsa) : null,
+        'raw_licenza_media_json' => $licenzaMedia ? iscrizioniPrimeJson($licenzaMedia) : null,
     ];
 
     if ($existing) {
@@ -2492,20 +2776,29 @@ function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione
     return ['ok' => true, 'inserted' => true, 'id' => intval($id), 'token' => $token['plain'] ?? null];
 }
 
-function iscrizioniPrimeImport(string $primePath, string $dsaPath, string $primeName = '', string $dsaName = '', string $createdBy = '', ?string $anagraficaPath = null, string $anagraficaName = '', string $tipoIscrizione = 'prime'): array
+function iscrizioniPrimeImport(string $primePath, ?string $dsaPath, string $primeName = '', string $dsaName = '', string $createdBy = '', ?string $anagraficaPath = null, string $anagraficaName = '', string $tipoIscrizione = 'prime', ?string $licenzaMediaPath = null, string $licenzaMediaName = ''): array
 {
     iscrizioniPrimeEnsureSchema();
     $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
 
     $primeRows = iscrizioniPrimeReadCsv($primePath);
-    $dsaRows = iscrizioniPrimeReadCsv($dsaPath);
+    $dsaRows = $dsaPath ? iscrizioniPrimeReadCsv($dsaPath) : [];
     $anagraficaRows = $anagraficaPath ? iscrizioniPrimeReadCsv($anagraficaPath) : [];
+    $licenzaMediaRows = $licenzaMediaPath ? iscrizioniPrimeReadCsv($licenzaMediaPath) : [];
     $dsaByCf = [];
+    $licenzaMediaByCf = [];
 
     foreach ($dsaRows as $row) {
         $cf = strtoupper(trim((string)($row['CODICE FISCALE'] ?? '')));
         if ($cf !== '') {
             $dsaByCf[$cf] = $row;
+        }
+    }
+
+    foreach ($licenzaMediaRows as $row) {
+        $cf = strtoupper(trim((string)($row['CODICE FISCALE'] ?? '')));
+        if ($cf !== '') {
+            $licenzaMediaByCf[$cf] = $row;
         }
     }
 
@@ -2517,14 +2810,14 @@ function iscrizioniPrimeImport(string $primePath, string $dsaPath, string $prime
     $external = 0;
 
     foreach ($primeRows as $index => $row) {
-        $cf = strtoupper(trim((string)($row['CODICE FISCALE STUDENTE'] ?? '')));
+        $cf = strtoupper(trim((string)iscrizioniPrimeField($row, ['CODICE FISCALE STUDENTE', 'CODICE FISCALE', 'CHIAVE FISCALE'], '')));
         $isInternal = $tipoIscrizione === 'terze' ? iscrizioniPrimeStudentIsInternal($cf) : false;
         if ($isInternal) {
             $internal++;
         } else {
             $external++;
         }
-        $result = iscrizioniPrimeUpsert($row, $dsaByCf[$cf] ?? null, $tipoIscrizione, $isInternal);
+        $result = iscrizioniPrimeUpsert($row, $dsaByCf[$cf] ?? null, $tipoIscrizione, $isInternal, $licenzaMediaByCf[$cf] ?? null);
 
         if (!$result['ok']) {
             $errors[] = 'Riga PRIME ' . ($index + 2) . ': ' . $result['error'];
@@ -2545,23 +2838,25 @@ function iscrizioniPrimeImport(string $primePath, string $dsaPath, string $prime
         }
     }
 
-    $contacts = ['updated' => 0, 'ignored' => 0];
+    $contacts = ['updated' => 0, 'ignored' => 0, 'internal_skipped' => 0];
     if (!empty($anagraficaRows)) {
         $contacts = iscrizioniPrimeUpdateContacts($anagraficaRows, $tipoIscrizione);
     }
 
     dbExec("
         INSERT INTO iscrizioni_prime_import_log
-        (created_at, created_by, prime_filename, dsa_filename, anagrafica_filename, righe_prime, righe_dsa, righe_anagrafica, inserite, aggiornate, contatti_aggiornati, contatti_ignorati, tipo_iscrizione, errori_json)
+        (created_at, created_by, prime_filename, dsa_filename, anagrafica_filename, licenza_media_filename, righe_prime, righe_dsa, righe_anagrafica, righe_licenza_media, inserite, aggiornate, contatti_aggiornati, contatti_ignorati, tipo_iscrizione, errori_json)
         VALUES (
             NOW(),
             " . dbQ($createdBy) . ",
             " . dbQ($primeName) . ",
             " . dbQ($dsaName) . ",
             " . dbQ($anagraficaName) . ",
+            " . dbQ($licenzaMediaName) . ",
             " . intval(count($primeRows)) . ",
             " . intval(count($dsaRows)) . ",
             " . intval(count($anagraficaRows)) . ",
+            " . intval(count($licenzaMediaRows)) . ",
             " . intval($inserted) . ",
             " . intval($updated) . ",
             " . intval($contacts['updated']) . ",
@@ -2577,8 +2872,10 @@ function iscrizioniPrimeImport(string $primePath, string $dsaPath, string $prime
         'inserted' => $inserted,
         'updated' => $updated,
         'contact_rows' => count($anagraficaRows),
+        'licenza_media_rows' => count($licenzaMediaRows),
         'contacts_updated' => $contacts['updated'],
         'contacts_ignored' => $contacts['ignored'],
+        'contacts_internal_skipped' => $contacts['internal_skipped'] ?? 0,
         'tipo_iscrizione' => $tipoIscrizione,
         'interni' => $internal,
         'esterni' => $external,

@@ -15,34 +15,44 @@ function iscrizioniPrimeImportFail(string $message, int $code = 400): void
 
 if (
     empty($_FILES['prime_csv']['tmp_name']) ||
-    empty($_FILES['dsa_csv']['tmp_name']) ||
-    !is_uploaded_file($_FILES['prime_csv']['tmp_name']) ||
-    !is_uploaded_file($_FILES['dsa_csv']['tmp_name'])
+    !is_uploaded_file($_FILES['prime_csv']['tmp_name'])
 ) {
-    iscrizioniPrimeImportFail('Caricare i due file CSV iscrizioni e DSA.');
+    iscrizioniPrimeImportFail('Caricare il file CSV iscrizioni.');
 }
 
 try {
     $createdBy = trim((string)($GLOBALS['__useremail'] ?? $GLOBALS['__username'] ?? ''));
     $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($_POST['tipo_iscrizione'] ?? 'prime');
+    $dsaPath = null;
+    $dsaName = '';
+    if (!empty($_FILES['dsa_csv']['tmp_name']) && is_uploaded_file($_FILES['dsa_csv']['tmp_name'])) {
+        $dsaPath = $_FILES['dsa_csv']['tmp_name'];
+        $dsaName = $_FILES['dsa_csv']['name'] ?? '';
+    }
     $anagraficaPath = null;
     $anagraficaName = '';
     if (!empty($_FILES['anagrafica_csv']['tmp_name']) && is_uploaded_file($_FILES['anagrafica_csv']['tmp_name'])) {
         $anagraficaPath = $_FILES['anagrafica_csv']['tmp_name'];
         $anagraficaName = $_FILES['anagrafica_csv']['name'] ?? '';
-    } elseif ($tipoIscrizione === 'prime') {
-        iscrizioniPrimeImportFail('Caricare anche il CSV anagrafica responsabili.');
+    }
+    $licenzaMediaPath = null;
+    $licenzaMediaName = '';
+    if (!empty($_FILES['licenza_media_csv']['tmp_name']) && is_uploaded_file($_FILES['licenza_media_csv']['tmp_name'])) {
+        $licenzaMediaPath = $_FILES['licenza_media_csv']['tmp_name'];
+        $licenzaMediaName = $_FILES['licenza_media_csv']['name'] ?? '';
     }
 
     $result = iscrizioniPrimeImport(
         $_FILES['prime_csv']['tmp_name'],
-        $_FILES['dsa_csv']['tmp_name'],
+        $dsaPath,
         $_FILES['prime_csv']['name'] ?? '',
-        $_FILES['dsa_csv']['name'] ?? '',
+        $dsaName,
         $createdBy,
         $anagraficaPath,
         $anagraficaName,
-        $tipoIscrizione
+        $tipoIscrizione,
+        $licenzaMediaPath,
+        $licenzaMediaName
     );
 
     echo json_encode([
@@ -50,10 +60,12 @@ try {
         'prime_rows' => $result['prime_rows'],
         'dsa_rows' => $result['dsa_rows'],
         'contact_rows' => $result['contact_rows'],
+        'licenza_media_rows' => $result['licenza_media_rows'],
         'inserted' => $result['inserted'],
         'updated' => $result['updated'],
         'contacts_updated' => $result['contacts_updated'],
         'contacts_ignored' => $result['contacts_ignored'],
+        'contacts_internal_skipped' => $result['contacts_internal_skipped'],
         'tipo_iscrizione' => $result['tipo_iscrizione'],
         'interni' => $result['interni'],
         'esterni' => $result['esterni'],

@@ -164,7 +164,7 @@ $stats = dbGetFirst("
     WHERE tipo_iscrizione = " . dbQ($tipoIscrizione) . "
 ");
 
-$labels = iscrizioniPrimeDocumentTypes($tipoIscrizione);
+$labels = array_merge(iscrizioniPrimeDocumentTypes($tipoIscrizione), iscrizioniPrimeSecretaryDocumentTypes($tipoIscrizione));
 
 ?>
 <!DOCTYPE html>
@@ -201,6 +201,10 @@ $labels = iscrizioniPrimeDocumentTypes($tipoIscrizione);
         .ipd-pill.paper { background: #fef3c7; color: #92400e; }
         .ipd-pill.missing { background: #fee2e2; color: #991b1b; }
         .ipd-toggle { min-width: 92px; }
+        .ipd-secretary-docs { margin-top: 18px; padding: 12px; border: 1px solid #bfdbfe; border-radius: 6px; background: #eff6ff; }
+        .ipd-secretary-docs h4 { margin-top: 0; }
+        .ipd-secretary-upload { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 3px 0 0 0; }
+        .ipd-secretary-upload input[type="file"] { max-width: 260px; }
         @media (max-width: 900px) {
             .ipd-grid { grid-template-columns: 1fr; }
             .ipd-status-actions { justify-content: flex-start; }
@@ -247,6 +251,7 @@ $labels = iscrizioniPrimeDocumentTypes($tipoIscrizione);
     <?php foreach ($pratiche as $pratica) :
         $confirmed = ipd_confirmed($pratica);
         $documents = iscrizioniPrimeDocumentsForPratica((int)$pratica['id']);
+        $secretaryDocuments = $tipoIscrizione === 'terze' ? iscrizioniPrimeSecretaryDocumentsForPratica((int)$pratica['id']) : [];
         $nome = trim((string)(($pratica['cognome'] ?? '') . ' ' . ($pratica['nome'] ?? '')));
         $extraInfo = ipd_extra_info($pratica);
         $docCounts = ['ok' => 0, 'paper' => 0, 'missing' => 0];
@@ -370,6 +375,55 @@ $labels = iscrizioniPrimeDocumentTypes($tipoIscrizione);
                         </tbody>
                     </table>
                 </div>
+
+                <?php if ($secretaryDocuments) : ?>
+                    <div class="ipd-secretary-docs">
+                        <h4>Documenti ricevuti da altra segreteria</h4>
+                        <div class="text-muted" style="margin-bottom: 8px;">
+                            Questi PDF non sono richiesti al genitore: arrivano via mail dalla scuola di provenienza e vengono archiviati qui dalla segreteria didattica.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-condensed table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Documento</th>
+                                        <th>Stato</th>
+                                        <th>File</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($secretaryDocuments as $document) :
+                                        $tipo = (string)$document['tipo_documento'];
+                                        $statoDoc = (string)($document['stato'] ?? 'mancante');
+                                        $isUploaded = in_array($statoDoc, ['caricato', 'estratto', 'verificato'], true);
+                                        $statusClass = $isUploaded ? 'ok' : 'missing';
+                                    ?>
+                                        <tr>
+                                            <td><?php echo ipd_h($labels[$tipo] ?? $tipo); ?></td>
+                                            <td class="ipd-doc-status <?php echo $statusClass; ?>"><?php echo $isUploaded ? 'caricato' : 'mancante'; ?></td>
+                                            <td>
+                                                <?php if ($isUploaded) : ?>
+                                                    <a class="btn btn-xs btn-primary" target="_blank" rel="noopener" href="iscrizioniPrimeDocumento.php?pratica_id=<?php echo intval($pratica['id']); ?>&tipo=<?php echo rawurlencode($tipo); ?>">
+                                                        <span class="glyphicon glyphicon-file"></span> Apri PDF
+                                                    </a>
+                                                    <span class="text-muted"><?php echo ipd_h($document['original_name'] ?? ''); ?></span>
+                                                <?php else : ?>
+                                                    <span class="text-danger">Mancante</span>
+                                                <?php endif; ?>
+                                                <form class="ipd-secretary-upload" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
+                                                    <input type="file" name="pdf" accept="application/pdf,.pdf" required>
+                                                    <button type="submit" class="btn btn-xs <?php echo $isUploaded ? 'btn-default' : 'btn-success'; ?>">
+                                                        <span class="glyphicon glyphicon-upload"></span> <?php echo $isUploaded ? 'Sostituisci PDF' : 'Carica PDF'; ?>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     <?php endforeach; ?>

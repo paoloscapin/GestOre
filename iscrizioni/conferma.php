@@ -51,6 +51,40 @@ function hasSecondResponsible(array $pratica, array $confirmed): bool
     return false;
 }
 
+function iscrizioniTerzeMaterieSeconda(): array
+{
+    $rows = dbGetAll("
+        SELECT DISTINCT m.nome
+        FROM materia m
+        INNER JOIN docente_insegna di ON di.id_materia = m.id
+        INNER JOIN classi c ON c.id = di.id_classe
+        WHERE c.anno = 2
+        ORDER BY m.nome ASC
+    ") ?: [];
+
+    $materie = [];
+    foreach ($rows as $row) {
+        $nome = trim((string)($row['nome'] ?? ''));
+        if ($nome !== '') {
+            $materie[] = $nome;
+        }
+    }
+
+    if ($materie) {
+        return $materie;
+    }
+
+    $rows = dbGetAll("SELECT nome FROM materia ORDER BY nome ASC") ?: [];
+    foreach ($rows as $row) {
+        $nome = trim((string)($row['nome'] ?? ''));
+        if ($nome !== '') {
+            $materie[] = $nome;
+        }
+    }
+
+    return $materie;
+}
+
 function iscrizioniPrimeParentLanguages(): array
 {
     return [
@@ -160,6 +194,18 @@ function iscrizioniPrimeParentTranslations(): array
             'responsible_1' => 'Responsabile 1',
             'responsible_2' => 'Responsabile 2',
             'data_confirm_checkbox' => 'Confermo che i dati indicati sono corretti o aggiornati.',
+            'terze_specific_title' => 'Informazioni richieste per iscrizione in terza',
+            'nulla_osta_title' => 'Nulla osta',
+            'nulla_osta_help' => 'Il nulla osta deve essere richiesto dal genitore alla segreteria della scuola attualmente frequentata. La scuola di provenienza inviera poi il nulla osta alla nostra segreteria.',
+            'nulla_osta_checkbox' => 'Confermo di aver richiesto il nulla osta alla scuola di provenienza.',
+            'nulla_osta_date' => 'Data della richiesta di nulla osta',
+            'carenze_title' => 'Carenze formative',
+            'carenze_question' => 'Sono presenti carenze formative comunicate dalla scuola di provenienza?',
+            'carenze_no' => 'No, non sono presenti carenze formative',
+            'carenze_yes' => 'Si, sono presenti carenze formative',
+            'carenze_subjects' => 'Materie con carenza',
+            'carenze_subjects_help' => 'Seleziona una o piu materie. Se la materia non e presente, scegli Altro e scrivila nel campo sotto.',
+            'carenze_other' => 'Altra materia',
             'save_draft' => 'Salva bozza',
             'save_documents' => 'Salva e vai ai documenti',
             'docs_intro' => 'Puoi caricare uno o piu PDF gia pronti oppure, da telefono, acquisire il documento come foto. Se servono piu pagine, seleziona o scatta piu foto: GestOre unisce tutto in un unico PDF multipagina.',
@@ -860,12 +906,15 @@ $parentDir = $parentLanguages[$parentLang]['dir'];
 $pratica = iscrizioniPrimeGetByToken($token);
 $confirmed = [];
 $documents = [];
+$isTerze = $pratica && iscrizioniPrimeTipoIscrizioneFromPratica($pratica) === 'terze';
+$allowedDocumentTypes = $pratica ? array_keys(iscrizioniPrimeDocumentTypes($pratica)) : [];
+$materieSeconda = $isTerze ? iscrizioniTerzeMaterieSeconda() : [];
 $annoScolastico = $pratica ? trim((string)($pratica['anno_scolastico'] ?? '')) : '';
 if ($annoScolastico === '') {
     $annoScolastico = '2026-27';
 }
 $nomeIstituto = trim((string)($__settings->local->nomeIstituto ?? 'ITT Buonarroti - Trento'));
-$classeTargetLabel = $pratica && iscrizioniPrimeTipoIscrizioneFromPratica($pratica) === 'terze'
+$classeTargetLabel = $isTerze
     ? 'Iscrizione alle classi terze'
     : trp('subtitle');
 $praticaBloccata = $pratica && in_array((string)($pratica['stato'] ?? ''), ['inviata', 'verificata', 'annullata'], true);
@@ -921,8 +970,15 @@ if (!$pratica) {
         .form-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
         label { font-weight: 650; }
         .hint { color: #64748b; font-size: 13px; line-height: 1.35; }
-        input[type="email"], input[type="tel"], input[type="text"] { width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 11px 12px; font: inherit; background: #fff; color: #172033; }
+        input[type="email"], input[type="tel"], input[type="text"], input[type="date"], select, textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 11px 12px; font: inherit; background: #fff; color: #172033; }
         input:focus { border-color: #0ea5e9; outline: 3px solid rgba(14,165,233,.18); }
+        .terze-extra { border: 1px solid #bfdbfe; background: #eff6ff; border-radius: 8px; padding: 14px; margin-top: 18px; }
+        .terze-extra h3 { margin-top: 0; }
+        .terze-panel { border: 1px solid #dbeafe; background: #fff; border-radius: 8px; padding: 12px; margin-top: 12px; }
+        .radio-stack { display: grid; gap: 9px; margin: 8px 0 12px; }
+        .radio-stack label { display: flex; gap: 9px; align-items: flex-start; color: #334155; }
+        .radio-stack input { margin-top: 4px; flex: 0 0 auto; }
+        select[multiple] { min-height: 150px; }
         .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
         button { border: 0; border-radius: 6px; padding: 11px 16px; font: inherit; font-weight: 700; cursor: pointer; }
         .btn-primary { background: #0f766e; color: #fff; }
@@ -1149,6 +1205,66 @@ if (!$pratica) {
                 </div>
             </div>
 
+            <?php if ($isTerze) :
+                $nullaOstaChecked = !empty($confirmed['nulla_osta_richiesto']) || !empty($pratica['nulla_osta_richiesto']);
+                $nullaOstaData = (string)($confirmed['nulla_osta_data'] ?? ($pratica['nulla_osta_data'] ?? ''));
+                $carenzeDichiarate = (string)($confirmed['carenze_formative_dichiarate'] ?? ($pratica['carenze_formative_dichiarate'] ?? ''));
+                $materieSelezionate = $confirmed['carenze_formative_materie'] ?? null;
+                if (!is_array($materieSelezionate)) {
+                    $decodedMaterie = json_decode((string)($pratica['carenze_formative_materie'] ?? '[]'), true);
+                    $materieSelezionate = is_array($decodedMaterie) ? $decodedMaterie : [];
+                }
+                $carenzeAltro = (string)($confirmed['carenze_formative_altro'] ?? ($pratica['carenze_formative_altro'] ?? ''));
+            ?>
+                <div class="terze-extra">
+                    <h3><?php echo h(trp('terze_specific_title')); ?></h3>
+                    <div class="terze-panel">
+                        <h3><?php echo h(trp('nulla_osta_title')); ?></h3>
+                        <div class="hint"><?php echo h(trp('nulla_osta_help')); ?></div>
+                        <label class="check">
+                            <input type="checkbox" name="nulla_osta_richiesto" value="1" <?php echo $nullaOstaChecked ? 'checked' : ''; ?> <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
+                            <span><?php echo h(trp('nulla_osta_checkbox')); ?></span>
+                        </label>
+                        <div class="form-row">
+                            <label for="nulla_osta_data"><?php echo h(trp('nulla_osta_date')); ?></label>
+                            <input type="date" id="nulla_osta_data" name="nulla_osta_data" value="<?php echo h($nullaOstaData); ?>" <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                    <div class="terze-panel">
+                        <h3><?php echo h(trp('carenze_title')); ?></h3>
+                        <div class="form-row">
+                            <label><?php echo h(trp('carenze_question')); ?></label>
+                            <div class="radio-stack">
+                                <label>
+                                    <input type="radio" name="carenze_formative_dichiarate" value="no" <?php echo $carenzeDichiarate === 'no' ? 'checked' : ''; ?> <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
+                                    <span><?php echo h(trp('carenze_no')); ?></span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="carenze_formative_dichiarate" value="si" <?php echo $carenzeDichiarate === 'si' ? 'checked' : ''; ?> <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
+                                    <span><?php echo h(trp('carenze_yes')); ?></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="carenzeMaterieBox" <?php echo $carenzeDichiarate === 'si' ? '' : 'hidden'; ?>>
+                            <div class="form-row">
+                                <label for="carenzeMaterieSelect"><?php echo h(trp('carenze_subjects')); ?></label>
+                                <div class="hint"><?php echo h(trp('carenze_subjects_help')); ?></div>
+                                <select id="carenzeMaterieSelect" name="carenze_formative_materie[]" multiple <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
+                                    <?php foreach ($materieSeconda as $materiaSeconda) : ?>
+                                        <option value="<?php echo h($materiaSeconda); ?>" <?php echo in_array($materiaSeconda, $materieSelezionate, true) ? 'selected' : ''; ?>><?php echo h($materiaSeconda); ?></option>
+                                    <?php endforeach; ?>
+                                    <option value="__ALTRO__" <?php echo $carenzeAltro !== '' ? 'selected' : ''; ?>>ALTRO</option>
+                                </select>
+                            </div>
+                            <div id="carenzeAltroRow" class="form-row" <?php echo $carenzeAltro !== '' ? '' : 'hidden'; ?>>
+                                <label for="carenze_formative_altro"><?php echo h(trp('carenze_other')); ?></label>
+                                <input type="text" id="carenze_formative_altro" name="carenze_formative_altro" value="<?php echo h($carenzeAltro); ?>" <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <label class="check">
                 <input type="checkbox" name="privacy_confermata" value="1" <?php echo !empty($confirmed['privacy_confermata']) ? 'checked' : ''; ?> <?php echo $praticaBloccata ? 'disabled' : ''; ?>>
                 <span><?php echo h(trp('data_confirm_checkbox')); ?></span>
@@ -1187,6 +1303,9 @@ if (!$pratica) {
                 $documentIndex = 0;
                 foreach ($documents as $document) :
                     $tipo = (string)$document['tipo_documento'];
+                    if (!in_array($tipo, $allowedDocumentTypes, true)) {
+                        continue;
+                    }
                     if (in_array($tipo, ['documento_identita_genitore_2', 'codice_fiscale_genitore_2', 'documento_cf_genitore_2'], true) && !hasSecondResponsible($pratica, $confirmed)) {
                         continue;
                     }
@@ -1364,6 +1483,35 @@ let perspectiveDraggingPoint = null;
 let perspectiveGesture = null;
 let perspectiveViewZoom = 1;
 const pendingNativeImages = new WeakMap();
+
+function updateCarenzeMaterieVisibility() {
+    const box = document.getElementById('carenzeMaterieBox');
+    if (!box) {
+        return;
+    }
+    const selected = document.querySelector('input[name="carenze_formative_dichiarate"]:checked');
+    box.hidden = !selected || selected.value !== 'si';
+    updateCarenzeAltroVisibility();
+}
+
+function updateCarenzeAltroVisibility() {
+    const row = document.getElementById('carenzeAltroRow');
+    const select = document.getElementById('carenzeMaterieSelect');
+    if (!row || !select) {
+        return;
+    }
+    const hasOther = Array.from(select.selectedOptions).some((option) => option.value === '__ALTRO__');
+    row.hidden = hasOther === false;
+}
+
+document.querySelectorAll('input[name="carenze_formative_dichiarate"]').forEach(function (input) {
+    input.addEventListener('change', updateCarenzeMaterieVisibility);
+});
+const carenzeMaterieSelect = document.getElementById('carenzeMaterieSelect');
+if (carenzeMaterieSelect) {
+    carenzeMaterieSelect.addEventListener('change', updateCarenzeAltroVisibility);
+}
+updateCarenzeMaterieVisibility();
 
 function readyFilesInfo(files) {
     const count = files.length;

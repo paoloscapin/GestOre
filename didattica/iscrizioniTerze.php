@@ -172,7 +172,8 @@ $mailAttachments = iscrizioniPrimeMailAttachments('terze');
                 <div class="form-group">
                     <label class="col-sm-3 control-label">CSV SAA DSA TERZE</label>
                     <div class="col-sm-9">
-                        <input type="file" name="dsa_csv" accept=".csv,text/csv" class="form-control" required>
+                        <input type="file" name="dsa_csv" accept=".csv,text/csv" class="form-control">
+                        <span class="help-block">Opzionale: puoi caricarlo anche in un secondo momento per aggiornare DSA/104.</span>
                     </div>
                 </div>
                 <div class="form-group">
@@ -400,7 +401,9 @@ document.getElementById('iscrizioni_terze_import_form').addEventListener('submit
             data.inserted + ' nuove, ' +
             data.updated + ' aggiornate. ' +
             'Interni: ' + data.interni + ', esterni: ' + data.esterni + '. ' +
+            'Righe DSA: ' + data.dsa_rows + '. ' +
             'Contatti aggiornati: ' + data.contacts_updated + ', anagrafiche ignorate: ' + data.contacts_ignored + '. ' +
+            'Interni non aggiornati: ' + (data.contacts_internal_skipped || 0) + '. ' +
             'Token nuovi generati: ' + data.generated_tokens + '.';
         iscrizioniTerzeLoadTable();
     })

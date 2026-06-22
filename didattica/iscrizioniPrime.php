@@ -111,14 +111,22 @@ $mailAttachments = iscrizioniPrimeMailAttachments('prime');
                 <div class="form-group">
                     <label class="col-sm-3 control-label">CSV SAA DSA PRIME</label>
                     <div class="col-sm-9">
-                        <input type="file" name="dsa_csv" accept=".csv,text/csv" class="form-control" required>
+                        <input type="file" name="dsa_csv" accept=".csv,text/csv" class="form-control">
+                        <span class="help-block">Opzionale: puoi caricarlo anche in un secondo momento per aggiornare DSA/104.</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">CSV esame licenza media</label>
+                    <div class="col-sm-9">
+                        <input type="file" name="licenza_media_csv" accept=".csv,text/csv" class="form-control">
+                        <span class="help-block">Opzionale: importa scuola media di provenienza, anno esame, esito e voto.</span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="col-sm-3 control-label">CSV anagrafica responsabili</label>
                     <div class="col-sm-9">
-                        <input type="file" name="anagrafica_csv" accept=".csv,text/csv" class="form-control" required>
-                        <span class="help-block">Gli studenti non presenti nelle pratiche prime vengono ignorati.</span>
+                        <input type="file" name="anagrafica_csv" accept=".csv,text/csv" class="form-control">
+                        <span class="help-block">Opzionale: aggiorna email, telefoni e responsabili. Gli studenti non presenti nelle pratiche prime vengono ignorati.</span>
                     </div>
                 </div>
                 <div class="form-group">
@@ -310,6 +318,7 @@ document.getElementById('iscrizioni_prime_import_form').addEventListener('submit
             data.inserted + ' nuove, ' +
             data.updated + ' aggiornate. ' +
             'Righe PRIME: ' + data.prime_rows + ', righe DSA: ' + data.dsa_rows + '. ' +
+            'Righe licenza media: ' + (data.licenza_media_rows || 0) + '. ' +
             'Contatti aggiornati: ' + data.contacts_updated + ', anagrafiche ignorate: ' + data.contacts_ignored + '. ' +
             'Token nuovi generati: ' + data.generated_tokens + '.';
         iscrizioniPrimeLoadTable();

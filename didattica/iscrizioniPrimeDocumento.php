@@ -9,7 +9,7 @@ $tipo = trim((string)($_GET['tipo'] ?? ''));
 $pratica = $praticaId > 0
     ? (dbGetFirst("SELECT tipo_iscrizione FROM iscrizioni_prime_pratiche WHERE id = " . dbI($praticaId) . " LIMIT 1") ?: [])
     : [];
-$types = iscrizioniPrimeDocumentTypes($pratica);
+$types = iscrizioniPrimeSecretaryAllowedDocumentTypes($pratica);
 
 if ($praticaId <= 0 || !isset($types[$tipo])) {
     http_response_code(400);
