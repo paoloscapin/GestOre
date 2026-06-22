@@ -14,6 +14,7 @@ require_once '../common/checkSession.php';
 require_once '../common/vendor/autoload.php';
 require_once '../common/send-mail.php';
 require_once '../common/mail-ui.php';
+require_once '../api/googleDriveLib.php';
 require_once __DIR__ . '/carenzeDownloadLib.php';
 ruoloRichiesto('admin', 'genitore', 'docente', 'studente', 'segreteria-didattica', 'dirigente');
 
@@ -106,25 +107,33 @@ function getCarenzaAutorizzata($carenzaId, $utenteRuolo, $genitoreId = 0, $stude
             programma_minimi.ID_INDIRIZZO as prog_id_indirizzo,
             programma_minimi.ID_MATERIA as prog_id_materia,
             programma_minimi.anno AS prog_anno
-        FROM gvgtcyej_gestione_ore.carenze
-        INNER JOIN gvgtcyej_gestione_ore.classi classi
+        FROM carenze
+        INNER JOIN classi classi
             ON classi.id = carenze.id_classe
-        INNER JOIN gvgtcyej_gestione_ore.materia materia
+        INNER JOIN materia materia
             ON materia.id = carenze.id_materia
-        INNER JOIN gvgtcyej_gestione_ore.studente studente
+        INNER JOIN studente studente
             ON studente.id = carenze.id_studente
-        INNER JOIN gvgtcyej_gestione_ore.docente docente
-            ON docente.id = carenze.id_docente
-        INNER JOIN gvgtcyej_gestione_ore.programma_minimi programma_minimi
+        LEFT JOIN (
+            SELECT id_classe, id_materia, id_anno_scolastico, MIN(id_docente) AS id_docente
+            FROM docente_insegna
+            GROUP BY id_classe, id_materia, id_anno_scolastico
+        ) docente_carenza
+            ON docente_carenza.id_classe = carenze.id_classe
+           AND docente_carenza.id_materia = carenze.id_materia
+           AND docente_carenza.id_anno_scolastico = carenze.id_anno_scolastico
+        LEFT JOIN docente docente
+            ON docente.id = COALESCE(docente_carenza.id_docente, carenze.id_docente)
+        INNER JOIN programma_minimi programma_minimi
             ON programma_minimi.ANNO = classi.anno
            AND programma_minimi.ID_MATERIA = materia.id
            AND (
                 programma_minimi.ID_INDIRIZZO = classi.id_primo_indirizzo
                 OR programma_minimi.ID_INDIRIZZO = classi.id_secondo_indirizzo
            )
-        INNER JOIN gvgtcyej_gestione_ore.indirizzo indirizzo
+        INNER JOIN indirizzo indirizzo
             ON indirizzo.id = classi.id_primo_indirizzo
-        INNER JOIN gvgtcyej_gestione_ore.anno_scolastico anno_scolastico
+        INNER JOIN anno_scolastico anno_scolastico
             ON anno_scolastico.id = carenze.id_anno_scolastico
         WHERE carenze.id = " . dbI($carenzaId) . "
         $whereExtra
@@ -939,6 +948,21 @@ if ($doGenera) {
     $token = trim((string)$downloadRow['download_token']);
   }
 
+  try {
+    $upload = carenzeDownloadUploadToDrive($filename, $originalFilename, $anno_scolastico);
+    $driveFileId = trim((string)($upload['id'] ?? ''));
+    if ($driveFileId === '') {
+      throw new Exception('Upload Drive completato senza ID file');
+    }
+    $driveWebViewLink = (string)($upload['webViewLink'] ?? '');
+  } catch (Throwable $e) {
+    if (is_file($filename)) {
+      @unlink($filename);
+    }
+    error("upload Drive carenza id=" . $program['carenza_id'] . " fallito: " . $e->getMessage());
+    echo 'PDF generato ma upload Drive fallito: ' . $e->getMessage();
+    exit;
+  }
 
   // salva nel DB
   if ($esiste == 0) {
@@ -949,8 +973,11 @@ if ($doGenera) {
       'download_token' => "'" . escapeString($token) . "'",
       'created_at' => "'" . escapeString($created_at) . "'",
       'expires_at' => "'" . escapeString($expires_at) . "'",
-      'storage_type' => "'LOCAL'",
+      'storage_type' => "'DRIVE'",
+      'drive_file_id' => "'" . escapeString($driveFileId) . "'",
+      'drive_web_view_link' => "'" . escapeString($driveWebViewLink) . "'",
       'original_filename' => "'" . escapeString($originalFilename) . "'",
+      'migrated_at' => "NOW()",
     ]);
     $query = "INSERT INTO carenze_downloads (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $values) . ")";
   } else {
@@ -961,11 +988,11 @@ if ($doGenera) {
       'expires_at' => "'" . escapeString($expires_at) . "'",
       'download_count' => "0",
       'last_ip' => "''",
-      'storage_type' => "'LOCAL'",
-      'drive_file_id' => "NULL",
-      'drive_web_view_link' => "NULL",
+      'storage_type' => "'DRIVE'",
+      'drive_file_id' => "'" . escapeString($driveFileId) . "'",
+      'drive_web_view_link' => "'" . escapeString($driveWebViewLink) . "'",
       'original_filename' => "'" . escapeString($originalFilename) . "'",
-      'migrated_at' => "NULL",
+      'migrated_at' => "NOW()",
     ]);
     $query = "UPDATE carenze_downloads SET $assignments WHERE student_id = '$studente_id' AND carenza_id = '$carenza_id'";
   }
@@ -1048,8 +1075,9 @@ if ($doMail) {
     info("Invio carenza via mail allo studente: " . $to . " " . $toName . " da ruolo " . $__utente_ruolo . " con genitori in CC=" . count($ccGenitori));
   }
   $mailsubject = 'GestOre - Invio programma carenza formativa - materia ' . $program['materia_nome'];
+  $mailOk = false;
   if (!empty($ccGenitori)) {
-    sendMailCC(
+    $mailOk = sendMailCC(
       $to,
       $toName,
       implode(',', array_keys($ccGenitori)),
@@ -1058,7 +1086,12 @@ if ($doMail) {
       $full_mail_body
     );
   } else {
-    sendMail($to, $toName, $mailsubject, $full_mail_body);
+    $mailOk = sendMail($to, $toName, $mailsubject, $full_mail_body);
+  }
+  if (!$mailOk) {
+    error("invio mail carenza id=" . $program['carenza_id'] . " fallito per destinatario " . $to);
+    echo 'Invio mail fallito: controlla configurazione SMTP/OAuth e log di GestOre';
+    exit;
   }
   date_default_timezone_set("Europe/Rome");
   $update = date("Y-m-d H-i-s");
