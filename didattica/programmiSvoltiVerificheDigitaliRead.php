@@ -36,19 +36,16 @@ try {
         foreach ($rows as $row) {
             $id = intval($row['id']);
             $name = htmlspecialchars((string)$row['original_name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $link = htmlspecialchars((string)($row['drive_web_view_link'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $link = 'programmiSvoltiVerificheDigitaliDownload.php?id=' . $id;
             $sizeKb = round(intval($row['file_size'] ?? 0) / 1024);
             $uploadedAt = htmlspecialchars((string)($row['uploaded_at'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
             echo '<li class="list-group-item">';
             echo '<span class="glyphicon glyphicon-compressed"></span> ';
-            if ($link !== '') {
-                echo '<a href="' . $link . '" target="_blank">' . $name . '</a>';
-            } else {
-                echo $name;
-            }
+            echo '<a href="' . htmlspecialchars($link, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" target="_blank">' . $name . '</a>';
             echo ' <span class="label label-warning">Drive</span>';
             echo ' <span class="text-muted">(' . $sizeKb . ' KB, ' . $uploadedAt . ')</span>';
+            echo ' <a class="btn btn-default btn-xs pull-right" style="margin-left:6px;" href="' . htmlspecialchars($link . '&download=1', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><span class="glyphicon glyphicon-download-alt"></span></a>';
             echo ' <button type="button" class="btn btn-danger btn-xs pull-right" onclick="programmiSvoltiVerificheDigitaliDelete(' . $id . ')"><span class="glyphicon glyphicon-trash"></span></button>';
             echo '</li>';
         }
