@@ -163,10 +163,22 @@ foreach (
     $studentiOptionList .= '<option value="' . $studente['id'] . '" >' . $studente['cognome'] . ' ' . $studente['nome'] . ' - ' . $classe . '</option> ';
 }
 
+$carenzeMailAccountEmails = [];
+$carenzeMailConfig = $__settings->iscrizioniPrime->mail ?? null;
+if ($carenzeMailConfig != null && !empty($carenzeMailConfig->accounts) && is_array($carenzeMailConfig->accounts)) {
+    foreach ($carenzeMailConfig->accounts as $account) {
+        $email = strtolower(trim((string)($account->email ?? '')));
+        if ($email !== '') {
+            $carenzeMailAccountEmails[] = $email;
+        }
+    }
+}
+
 ?>
 
 <body>
     <input type="hidden" id="hidden_docente_id" value="<?php echo $id_docente_utente ?>">
+    <input type="hidden" id="hidden_carenze_mail_accounts" value="<?php echo htmlspecialchars(json_encode($carenzeMailAccountEmails, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG), ENT_QUOTES, 'UTF-8'); ?>">
     <?php
     if ($carenzeMinimiVistaDocente) {
         require_once '../common/header-docente.php';
@@ -485,6 +497,9 @@ foreach (
                         </button>
                         <button id="send_btn" type="button" class="btn btn-xs btn-lima4" data-toggle="tooltip" title="Invia mail delle carenze">
                             <span class="glyphicon glyphicon-send"></span> Mail
+                        </button>
+                        <button id="bounce_check_btn" type="button" class="btn btn-xs btn-lima4" data-toggle="tooltip" title="Controlla le mail carenze tornate indietro">
+                            <span class="glyphicon glyphicon-warning-sign"></span> Bounce
                         </button>
                     </div>
                     <div class="carenze-action-stack">

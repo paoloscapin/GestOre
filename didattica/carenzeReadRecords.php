@@ -101,7 +101,7 @@ $query = "	SELECT
 				   AND docente_carenza.id_materia = carenze.id_materia
 				   AND docente_carenza.id_anno_scolastico = carenze.id_anno_scolastico
 				LEFT JOIN docente docente
-				ON docente.id = COALESCE(docente_carenza.id_docente, carenze.id_docente)
+				ON docente.id = COALESCE(NULLIF(carenze.id_docente, 0), docente_carenza.id_docente)
 				INNER JOIN studente studente
 				ON carenze.id_studente = studente.id
 				INNER JOIN materia materia

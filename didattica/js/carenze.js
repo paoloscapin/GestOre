@@ -247,6 +247,15 @@ if (!arrayc || arrayc.trim() === '' || arrayc.split(',').filter(e => e.trim() !=
 async function invioMassivoCarenze() {
    const carenze = $('#hidden_arraycarenzemail').val();
     const carenze_array = carenze.split(',').map(id => id.trim()).filter(id => id !== '');
+    let mailAccounts = [];
+    try {
+        mailAccounts = JSON.parse($('#hidden_carenze_mail_accounts').val() || '[]');
+        if (!Array.isArray(mailAccounts)) {
+            mailAccounts = [];
+        }
+    } catch (e) {
+        mailAccounts = [];
+    }
 
     totale = carenze_array.length;
     completati = 0;
@@ -255,13 +264,15 @@ async function invioMassivoCarenze() {
     if (totale > 0) {
         mostraOverlay();
 
-        for (const carenza of carenze_array) {
+        for (const [index, carenza] of carenze_array.entries()) {
+            const mailAccount = mailAccounts.length > 0 ? mailAccounts[index % mailAccounts.length] : '';
             await $.post("stampaCarenza.php", {
                 id: carenza,
                 print: 0,
                 mail: 1,
                 genera: 0,
                 view: 0,
+                mail_account: mailAccount,
                 titolo: 'Programma carenze formative'
             }).then(response => {
                 if (response.trim() !== 'sent') {
@@ -280,6 +291,81 @@ async function invioMassivoCarenze() {
         alert("Nessuna carenza da inviare!");
     }
     carenzeReadRecords();
+}
+
+function carenzeBounceCheck() {
+    const $btn = $('#bounce_check_btn');
+    $btn.prop('disabled', true);
+    $.post("carenzeMailBounceCheck.php", { max: 40 })
+        .then(response => {
+            let data = response;
+            if (typeof data === 'string') {
+                data = JSON.parse(data);
+            }
+            const totals = data.totals || {};
+            const accountErrors = (data.accounts || [])
+                .filter(account => account.error)
+                .map(account => `<li><strong>${account.account}</strong>: ${account.error}</li>`)
+                .join('');
+            const bounceRows = [];
+            (data.accounts || []).forEach(account => {
+                (account.bounces || []).forEach(bounce => {
+                    if (!bounce.log_id && bounce.type !== 'quota_limit') {
+                        return;
+                    }
+                    bounceRows.push(`
+                        <tr>
+                            <td>${account.account || ''}</td>
+                            <td>${bounce.student || (bounce.student_id ? `ID ${bounce.student_id}` : '-')}</td>
+                            <td>${bounce.carenza_id || '-'}</td>
+                            <td>${bounce.to_email || '-'}</td>
+                            <td>${bounce.reason || bounce.type || '-'}</td>
+                        </tr>
+                    `);
+                });
+            });
+            const bounceTable = bounceRows.length > 0 ? `
+                <hr>
+                <p><strong>Segnalazioni da verificare:</strong></p>
+                <div style="max-height: 320px; overflow:auto;">
+                    <table class="table table-condensed table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Account</th>
+                                <th>Studente</th>
+                                <th>Carenza</th>
+                                <th>Destinatario</th>
+                                <th>Motivo</th>
+                            </tr>
+                        </thead>
+                        <tbody>${bounceRows.join('')}</tbody>
+                    </table>
+                </div>
+            ` : '';
+            const html = `
+                <p><strong>Messaggi di mancata consegna controllati:</strong> ${totals.checked || 0}</p>
+                <p><strong>Collegati a invii carenze:</strong> ${totals.matched || 0}</p>
+                <p><strong>Non collegati automaticamente:</strong> ${totals.unmatched || 0}</p>
+                <hr>
+                <p><strong>Possibile superamento limite invio:</strong> ${totals.quota_limit || 0}</p>
+                <p><strong>Indirizzo errato o inesistente:</strong> ${totals.invalid_recipient || 0}</p>
+                <p><strong>Casella piena:</strong> ${totals.mailbox_full || 0}</p>
+                <p><strong>Altro bounce:</strong> ${totals.other_bounce || 0}</p>
+                ${bounceTable}
+                ${accountErrors ? `<hr><p><strong>Errori account:</strong></p><ul>${accountErrors}</ul>` : ''}
+            `;
+            bootbox.alert({
+                title: data.ok ? 'Controllo bounce completato' : 'Controllo bounce completato con errori',
+                message: html
+            });
+        })
+        .catch(err => {
+            console.error('Errore controllo bounce carenze:', err);
+            bootbox.alert('Errore durante il controllo delle mail tornate indietro. Controlla il log di GestOre.');
+        })
+        .always(() => {
+            $btn.prop('disabled', false);
+        });
 }
 
 function carenzaValida(id, id_utente, stato) {
@@ -304,6 +390,7 @@ function carenzaInviaValidazione(id, id_utente, stato, nota_docente) {
     $.post("../didattica/carenzaValida.php", {
         id: id,
         id_utente: id_utente,
+        docente_id: parseInt($("#hidden_docente_id").val() || "0", 10) || 0,
         stato: stato,
         nota: nota_docente
     },
@@ -535,6 +622,10 @@ $(document).ready(function () {
 
     $('#send_btn').on('click', function (e) {
         invioMassivoCarenze();
+    });
+
+    $('#bounce_check_btn').on('click', function (e) {
+        carenzeBounceCheck();
     });
 
     $('#genera_btn').on('click', function (e) {

@@ -11,19 +11,43 @@ require_once '../common/checkSession.php';
 
 ruoloRichiesto('segreteria-didattica','docente');
 
-function carenzaResolveDocenteValidatore(int $utenteId): int
+function carenzaDocenteExists(int $docenteId): bool
 {
-	global $__docente_id, $__username;
+	if ($docenteId <= 0) {
+		return false;
+	}
 
-	$docenteId = intval($__docente_id ?? 0);
-	if ($docenteId > 0) {
+	return intval(dbGetValue("SELECT COUNT(*) FROM docente WHERE id = " . dbI($docenteId) . " AND attivo = 1 LIMIT 1")) > 0;
+}
+
+function carenzaResolveDocenteValidatore(int $utenteId, int $docenteRichiestoId = 0): int
+{
+	global $__docente_id, $__username, $__utente_ruolo, $session;
+
+	$docenteSessioneId = intval($__docente_id ?? 0);
+	if ($docenteSessioneId <= 0) {
+		$docenteSessioneId = intval($session->get('docente_id') ?? 0);
+	}
+
+	$ruoloPrivilegiato = in_array((string)($__utente_ruolo ?? ''), ['admin', 'dirigente', 'segreteria-didattica'], true);
+	if (carenzaDocenteExists($docenteRichiestoId) && ($ruoloPrivilegiato || $docenteRichiestoId === $docenteSessioneId)) {
+		return $docenteRichiestoId;
+	}
+
+	$docenteId = $docenteSessioneId;
+	if (carenzaDocenteExists($docenteId)) {
+		return $docenteId;
+	}
+
+	$docenteId = intval($session->get('docente_id') ?? 0);
+	if (carenzaDocenteExists($docenteId)) {
 		return $docenteId;
 	}
 
 	$username = trim((string)($__username ?? ''));
 	if ($username !== '') {
 		$docenteId = intval(dbGetValue("SELECT id FROM docente WHERE username = " . dbQ($username) . " LIMIT 1"));
-		if ($docenteId > 0) {
+		if (carenzaDocenteExists($docenteId)) {
 			return $docenteId;
 		}
 	}
@@ -47,55 +71,14 @@ function carenzaResolveDocenteCarenza(int $carenzaId, int $docenteValidatoreId):
 		return 0;
 	}
 
-	$carenza = dbGetFirst("
-		SELECT id_classe, id_materia, id_anno_scolastico
-		FROM carenze
-		WHERE id = " . dbI($carenzaId) . "
-		LIMIT 1
-	");
-	if (!$carenza) {
-		return 0;
-	}
-
-	$idClasse = intval($carenza['id_classe'] ?? 0);
-	$idMateria = intval($carenza['id_materia'] ?? 0);
-	$idAnno = intval($carenza['id_anno_scolastico'] ?? 0);
-	if ($idClasse <= 0 || $idMateria <= 0 || $idAnno <= 0) {
-		return $docenteValidatoreId;
-	}
-
-	if ($docenteValidatoreId > 0) {
-		$validatoreInsegna = intval(dbGetValue("
-			SELECT COUNT(*)
-			FROM docente_insegna
-			WHERE id_docente = " . dbI($docenteValidatoreId) . "
-			  AND id_classe = " . dbI($idClasse) . "
-			  AND id_materia = " . dbI($idMateria) . "
-			  AND id_anno_scolastico = " . dbI($idAnno) . "
-		"));
-		if ($validatoreInsegna > 0) {
-			return $docenteValidatoreId;
-		}
-	}
-
-	$docenteMateria = intval(dbGetValue("
-		SELECT di.id_docente
-		FROM docente_insegna di
-		INNER JOIN docente d ON d.id = di.id_docente
-		WHERE di.id_classe = " . dbI($idClasse) . "
-		  AND di.id_materia = " . dbI($idMateria) . "
-		  AND di.id_anno_scolastico = " . dbI($idAnno) . "
-		ORDER BY d.cognome, d.nome, d.id
-		LIMIT 1
-	"));
-
-	return $docenteMateria > 0 ? $docenteMateria : $docenteValidatoreId;
+	return carenzaDocenteExists($docenteValidatoreId) ? $docenteValidatoreId : 0;
 }
 
 if (isset($_POST)) {
 
 	$id = intval($_POST['id'] ?? 0);
 	$utente_id = intval($_POST['id_utente'] ?? 0);
+	$docente_richiesto_id = intval($_POST['docente_id'] ?? 0);
 	$stato = intval($_POST['stato'] ?? 0);
     $nota = trim((string)($_POST['nota'] ?? ''));
 
@@ -108,7 +91,7 @@ if (isset($_POST)) {
 	date_default_timezone_set("Europe/Rome");
 	$update = date("Y-m-d H-i-s");
 
-	$docente_validatore_id = carenzaResolveDocenteValidatore($utente_id);
+	$docente_validatore_id = carenzaResolveDocenteValidatore($utente_id, $docente_richiesto_id);
 	$docente_id = carenzaResolveDocenteCarenza($id, $docente_validatore_id);
 
 	if ($stato==0)

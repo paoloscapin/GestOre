@@ -13,6 +13,7 @@ require_once '../common/checkSession.php';
 // program.php (in testa al file, prima di qualsiasi uso di mPDF)
 require_once '../common/vendor/autoload.php';
 require_once '../common/send-mail.php';
+require_once '../common/carenzeMailLogLib.php';
 require_once '../common/mail-ui.php';
 require_once '../api/googleDriveLib.php';
 require_once __DIR__ . '/carenzeDownloadLib.php';
@@ -48,6 +49,115 @@ function canGenitoreAccessStudente($idStudente, $idGenitore)
 
     $row = dbGetFirst($q);
     return is_array($row) && !empty($row['id_studente']);
+}
+
+function carenzeMailConfiguredAccounts(): array
+{
+    global $__settings;
+
+    $mailConfig = $__settings->iscrizioniPrime->mail ?? null;
+    $accounts = [];
+    if ($mailConfig == null || empty($mailConfig->accounts) || !is_array($mailConfig->accounts)) {
+        return $accounts;
+    }
+
+    foreach ($mailConfig->accounts as $account) {
+        $email = strtolower(trim((string)($account->email ?? '')));
+        if ($email === '') {
+            continue;
+        }
+        $accounts[$email] = [
+            'email' => $email,
+            'password' => (string)($account->password ?? ''),
+            'smtp_host' => trim((string)($mailConfig->smtpHost ?? $__settings->local->smtpHost)),
+            'smtp_secure' => (string)($mailConfig->SMTPSecure ?? $__settings->local->SMTPSecure),
+            'smtp_port' => intval($mailConfig->Port ?? $__settings->local->Port),
+        ];
+    }
+
+    return $accounts;
+}
+
+function carenzeMailAccountByEmail(string $email): ?array
+{
+    $email = strtolower(trim($email));
+    if ($email === '') {
+        return null;
+    }
+
+    $accounts = carenzeMailConfiguredAccounts();
+    return $accounts[$email] ?? null;
+}
+
+function carenzeMailNextConfiguredAccount(): ?array
+{
+    $accounts = carenzeMailConfiguredAccounts();
+    if (!$accounts) {
+        return null;
+    }
+
+    carenzeMailLogEnsureTable();
+    $usageRows = dbGetAll("
+        SELECT account_email, COUNT(*) AS n
+        FROM carenze_mail_log
+        WHERE DATE(created_at) = CURDATE()
+        GROUP BY account_email
+    ");
+    $usage = [];
+    foreach ($usageRows as $row) {
+        $usage[strtolower(trim((string)($row['account_email'] ?? '')))] = intval($row['n'] ?? 0);
+    }
+
+    $bestAccount = null;
+    $bestCount = PHP_INT_MAX;
+    foreach ($accounts as $email => $account) {
+        $count = $usage[$email] ?? 0;
+        if ($count < $bestCount) {
+            $bestCount = $count;
+            $bestAccount = $account;
+        }
+    }
+
+    return $bestAccount;
+}
+
+function carenzeMailOptions(array $ccGenitori, ?array $account = null, string $logToken = ''): array
+{
+    global $__settings;
+
+    $fromEmail = trim((string)($__settings->local->emailNoReplyFrom ?? ''));
+    $fromName = "GestOre " . (string)($__settings->local->nomeIstituto ?? '');
+    $replyToEmail = trim((string)($__settings->local->emailCarenze ?? ''));
+    if ($replyToEmail === '') {
+        $replyToEmail = $fromEmail;
+    }
+
+    $options = [
+        'from_email' => $fromEmail,
+        'from_name' => $fromName,
+        'reply_to_email' => $replyToEmail,
+        'reply_to_name' => 'Segreteria didattica',
+        'sender_email' => trim((string)($__settings->local->smtpMail ?? $fromEmail)),
+        'sender_name' => $fromName,
+        'cc' => $ccGenitori,
+        'custom_headers' => [],
+    ];
+
+    if ($logToken !== '') {
+        $options['custom_headers']['X-GestOre-Carenza-Log-Token'] = $logToken;
+    }
+
+    if ($account != null) {
+        $options['sender_email'] = $account['email'];
+        $options['smtp_username'] = $account['email'];
+        $options['smtp_password'] = $account['password'];
+        $options['smtp_host'] = $account['smtp_host'];
+        $options['smtp_secure'] = $account['smtp_secure'];
+        $options['smtp_port'] = $account['smtp_port'];
+        $options['dispatch_sender_email'] = $account['email'];
+    }
+
+    return $options;
 }
 
 function getCarenzaAutorizzata($carenzaId, $utenteRuolo, $genitoreId = 0, $studenteId = 0)
@@ -123,7 +233,7 @@ function getCarenzaAutorizzata($carenzaId, $utenteRuolo, $genitoreId = 0, $stude
            AND docente_carenza.id_materia = carenze.id_materia
            AND docente_carenza.id_anno_scolastico = carenze.id_anno_scolastico
         LEFT JOIN docente docente
-            ON docente.id = COALESCE(docente_carenza.id_docente, carenze.id_docente)
+            ON docente.id = COALESCE(NULLIF(carenze.id_docente, 0), docente_carenza.id_docente)
         INNER JOIN programma_minimi programma_minimi
             ON programma_minimi.ANNO = classi.anno
            AND programma_minimi.ID_MATERIA = materia.id
@@ -187,6 +297,7 @@ $titolo = isset($_POST['titolo']) ? $_POST['titolo'] : 'Programma didattico';
 $doGenera = isset($_POST['genera']) && ($_POST['genera'] == '1' || $_POST['genera'] === 'true');
 $anno = isset($_POST['anno']) ? (int) $_POST['anno'] : 0;
 $anno_scolastico = '';
+$mailAccountEmail = isset($_POST['mail_account']) ? trim((string)$_POST['mail_account']) : '';
 
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -1075,19 +1186,45 @@ if ($doMail) {
     info("Invio carenza via mail allo studente: " . $to . " " . $toName . " da ruolo " . $__utente_ruolo . " con genitori in CC=" . count($ccGenitori));
   }
   $mailsubject = 'GestOre - Invio programma carenza formativa - materia ' . $program['materia_nome'];
-  $mailOk = false;
-  if (!empty($ccGenitori)) {
-    $mailOk = sendMailCC(
-      $to,
-      $toName,
-      implode(',', array_keys($ccGenitori)),
-      implode(',', array_values($ccGenitori)),
-      $mailsubject,
-      $full_mail_body
-    );
-  } else {
-    $mailOk = sendMail($to, $toName, $mailsubject, $full_mail_body);
+  $mailAccount = null;
+  if ($mailAccountEmail !== '') {
+    if (!in_array($__utente_ruolo, ['admin', 'segreteria-didattica', 'dirigente'], true)) {
+      carenzeFailUnauthorized();
+    }
+    $mailAccount = carenzeMailAccountByEmail($mailAccountEmail);
+    if ($mailAccount == null) {
+      error("invio mail carenza id=" . $program['carenza_id'] . " account massivo non configurato: " . $mailAccountEmail);
+      echo 'Account di invio non configurato: ' . htmlspecialchars($mailAccountEmail, ENT_QUOTES, 'UTF-8');
+      exit;
+    }
+    info("Invio carenza id=" . $program['carenza_id'] . " con account massivo " . $mailAccount['email']);
+  } elseif (in_array($__utente_ruolo, ['admin', 'segreteria-didattica', 'dirigente'], true)) {
+    $mailAccount = carenzeMailNextConfiguredAccount();
+    if ($mailAccount != null) {
+      info("Invio carenza id=" . $program['carenza_id'] . " con account massivo automatico " . $mailAccount['email']);
+    }
   }
+  $mailOptionsWithoutToken = carenzeMailOptions($ccGenitori, $mailAccount);
+  $accountEmailForLog = strtolower(trim((string)($mailOptionsWithoutToken['dispatch_sender_email'] ?? $mailOptionsWithoutToken['sender_email'] ?? $mailOptionsWithoutToken['from_email'] ?? '')));
+  $fromEmailForLog = strtolower(trim((string)($mailOptionsWithoutToken['from_email'] ?? '')));
+  $mailLog = carenzeMailLogCreate(
+    (int)$program['carenza_id'],
+    (int)$studente_id,
+    $accountEmailForLog,
+    $fromEmailForLog,
+    (string)$to,
+    array_keys($ccGenitori),
+    $mailsubject
+  );
+  $mailOptions = carenzeMailOptions($ccGenitori, $mailAccount, (string)$mailLog['token']);
+  $mailOk = sendMailCustom(
+    $to,
+    $toName,
+    $mailsubject,
+    $full_mail_body,
+    $mailOptions
+  );
+  carenzeMailLogUpdateSent((int)$mailLog['id'], (bool)$mailOk, sendMailLastDispatchResult());
   if (!$mailOk) {
     error("invio mail carenza id=" . $program['carenza_id'] . " fallito per destinatario " . $to);
     echo 'Invio mail fallito: controlla configurazione SMTP/OAuth e log di GestOre';

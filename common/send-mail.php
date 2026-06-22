@@ -87,18 +87,19 @@ function sendMailLoadServiceAccount(): array
     return $json;
 }
 
-function sendMailOAuthAccessToken(string $subjectEmail): string
+function sendMailOAuthAccessToken(string $subjectEmail, string $scope = 'https://www.googleapis.com/auth/gmail.send'): string
 {
     static $cache = [];
 
     $subjectEmail = strtolower(trim($subjectEmail));
-    if (isset($cache[$subjectEmail]) && $cache[$subjectEmail]['expires_at'] > time() + 60) {
-        return $cache[$subjectEmail]['access_token'];
+    $scope = trim($scope) !== '' ? trim($scope) : 'https://www.googleapis.com/auth/gmail.send';
+    $cacheKey = $subjectEmail . '|' . $scope;
+    if (isset($cache[$cacheKey]) && $cache[$cacheKey]['expires_at'] > time() + 60) {
+        return $cache[$cacheKey]['access_token'];
     }
 
     $sa = sendMailLoadServiceAccount();
     $now = time();
-    $scope = 'https://www.googleapis.com/auth/gmail.send';
 
     $header = [
         'alg' => 'RS256',
@@ -151,15 +152,15 @@ function sendMailOAuthAccessToken(string $subjectEmail): string
     $decoded = json_decode((string)$response, true);
     if ($httpCode < 200 || $httpCode >= 300 || !is_array($decoded) || empty($decoded['access_token'])) {
         $clientId = trim((string)($sa['client_id'] ?? ''));
-        throw new Exception('Errore token Gmail API HTTP ' . $httpCode . ': ' . $response . ' Verifica delega dominio client ID ' . $clientId . ' con scope https://www.googleapis.com/auth/gmail.send e subject ' . $subjectEmail . '.');
+        throw new Exception('Errore token Gmail API HTTP ' . $httpCode . ': ' . $response . ' Verifica delega dominio client ID ' . $clientId . ' con scope ' . $scope . ' e subject ' . $subjectEmail . '.');
     }
 
-    $cache[$subjectEmail] = [
+    $cache[$cacheKey] = [
         'access_token' => $decoded['access_token'],
         'expires_at' => time() + intval($decoded['expires_in'] ?? 3600),
     ];
 
-    return $cache[$subjectEmail]['access_token'];
+    return $cache[$cacheKey]['access_token'];
 }
 
 function sendMailGmailApiSendRaw(string $senderEmail, string $rawMime): array
@@ -197,6 +198,13 @@ function sendMailGmailApiSendRaw(string $senderEmail, string $rawMime): array
 function sendMailDispatch(PHPMailer $mail, string $senderEmail, string $logLabel, string $to, string $subject): bool
 {
     $senderEmail = strtolower(trim($senderEmail));
+    $GLOBALS['__sendMailLastDispatchResult'] = [
+        'ok' => false,
+        'transport' => '',
+        'sender' => $senderEmail,
+        'gmail_message_id' => '',
+        'error' => '',
+    ];
 
     if (sendMailOAuthEnabledForSender($senderEmail)) {
         try {
@@ -205,9 +213,17 @@ function sendMailDispatch(PHPMailer $mail, string $senderEmail, string $logLabel
             }
             $res = sendMailGmailApiSendRaw($senderEmail, $mail->getSentMIMEMessage());
             info("[send-mail] $logLabel gmail_api ok=1 id=" . trim((string)($res['id'] ?? '')) . " from=$senderEmail to=$to subj=$subject");
+            $GLOBALS['__sendMailLastDispatchResult'] = [
+                'ok' => true,
+                'transport' => 'gmail_api',
+                'sender' => $senderEmail,
+                'gmail_message_id' => trim((string)($res['id'] ?? '')),
+                'error' => '',
+            ];
             return true;
         } catch (Throwable $e) {
             error("[send-mail] $logLabel GMAIL API EXCEPTION: " . $e->getMessage());
+            $GLOBALS['__sendMailLastDispatchResult']['error'] = $e->getMessage();
             if (!sendMailOAuthFallbackEnabled()) {
                 return false;
             }
@@ -218,6 +234,13 @@ function sendMailDispatch(PHPMailer $mail, string $senderEmail, string $logLabel
     try {
         $ok = $mail->send();
         info("[send-mail] $logLabel smtp ok=" . ($ok ? "1" : "0") . " to=$to subj=$subject");
+        $GLOBALS['__sendMailLastDispatchResult'] = [
+            'ok' => (bool)$ok,
+            'transport' => 'smtp',
+            'sender' => $senderEmail,
+            'gmail_message_id' => '',
+            'error' => '',
+        ];
         try {
             $mail->smtpClose();
         } catch (Throwable $e2) {
@@ -225,12 +248,30 @@ function sendMailDispatch(PHPMailer $mail, string $senderEmail, string $logLabel
         return (bool)$ok;
     } catch (Throwable $e) {
         error("[send-mail] $logLabel SMTP EXCEPTION: " . $e->getMessage());
+        $GLOBALS['__sendMailLastDispatchResult'] = [
+            'ok' => false,
+            'transport' => 'smtp',
+            'sender' => $senderEmail,
+            'gmail_message_id' => '',
+            'error' => $e->getMessage(),
+        ];
         try {
             $mail->smtpClose();
         } catch (Throwable $e2) {
         }
         return false;
     }
+}
+
+function sendMailLastDispatchResult(): array
+{
+    return $GLOBALS['__sendMailLastDispatchResult'] ?? [
+        'ok' => false,
+        'transport' => '',
+        'sender' => '',
+        'gmail_message_id' => '',
+        'error' => '',
+    ];
 }
 
 function sendMail($to, $toName, $subject, $Content): bool
@@ -402,13 +443,16 @@ function sendMailCustom($to, $toName, $subject, $Content, array $options = []): 
     $replyToName = trim((string)($options['reply_to_name'] ?? $fromName));
     $senderEmail = trim((string)($options['sender_email'] ?? $__settings->local->smtpMail));
     $senderName = trim((string)($options['sender_name'] ?? $fromName));
+    $dispatchSenderEmail = trim((string)($options['dispatch_sender_email'] ?? ''));
     $smtpHost = trim((string)($options['smtp_host'] ?? $__settings->local->smtpHost));
     $smtpUsername = trim((string)($options['smtp_username'] ?? $__settings->local->smtpMail));
     $smtpPassword = (string)($options['smtp_password'] ?? $__settings->local->AppPassword);
     $smtpSecure = (string)($options['smtp_secure'] ?? $__settings->local->SMTPSecure);
     $smtpPort = intval($options['smtp_port'] ?? $__settings->local->Port);
+    $ccRecipients = $options['cc'] ?? [];
     $attachments = $options['attachments'] ?? [];
     $embeddedImages = $options['embedded_images'] ?? [];
+    $customHeaders = $options['custom_headers'] ?? [];
     $addBcc = array_key_exists('add_bcc_default', $options) ? (bool)$options['add_bcc_default'] : false;
 
     $mail = new PHPMailer(true);
@@ -437,11 +481,33 @@ function sendMailCustom($to, $toName, $subject, $Content, array $options = []): 
 
         $mail->IsHTML(true);
         $mail->addAddress($to, $toName);
+        if (!is_array($ccRecipients)) {
+            $ccRecipients = [$ccRecipients];
+        }
+        foreach ($ccRecipients as $ccEmail => $ccName) {
+            if (is_int($ccEmail)) {
+                $ccEmail = is_array($ccName) ? (string)($ccName['email'] ?? '') : (string)$ccName;
+                $ccName = is_array($ccName) ? (string)($ccName['name'] ?? '') : '';
+            }
+            $ccEmail = trim((string)$ccEmail);
+            if ($ccEmail !== '') {
+                $mail->addCC($ccEmail, trim((string)$ccName));
+            }
+        }
         $mail->setFrom($fromEmail, $fromName, true);
         $mail->addReplyTo($replyToEmail, $replyToName);
         if ($senderEmail !== '') {
             $mail->Sender = $senderEmail;
             $mail->addCustomHeader('Sender', $senderName !== '' ? sprintf('"%s" <%s>', addslashes($senderName), $senderEmail) : $senderEmail);
+        }
+        if (is_array($customHeaders)) {
+            foreach ($customHeaders as $headerName => $headerValue) {
+                $headerName = trim((string)$headerName);
+                $headerValue = trim((string)$headerValue);
+                if ($headerName !== '' && $headerValue !== '') {
+                    $mail->addCustomHeader($headerName, $headerValue);
+                }
+            }
         }
 
         if ($addBcc && trim((string)$__settings->local->emailSportelli) !== '') {
@@ -468,7 +534,10 @@ function sendMailCustom($to, $toName, $subject, $Content, array $options = []): 
         $mail->Subject = $subject;
         $mail->msgHTML($Content);
 
-        return sendMailDispatch($mail, $fromEmail !== '' ? $fromEmail : $smtpUsername, 'sendCustom', (string)$to, (string)$subject);
+        if ($dispatchSenderEmail === '') {
+            $dispatchSenderEmail = $fromEmail !== '' ? $fromEmail : $smtpUsername;
+        }
+        return sendMailDispatch($mail, $dispatchSenderEmail, 'sendCustom', (string)$to, (string)$subject);
     } catch (Throwable $e) {
         error("[send-mail] CUSTOM EXCEPTION: " . $e->getMessage());
 
