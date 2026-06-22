@@ -18,10 +18,19 @@ class Config {
 	private $fuis_visibile;
 	private $bonus_adesione_aperto;
 	private $bonus_rendiconto_aperto;
+	private $bonus_visione_aperto;
 	private $email_carenze_aperto;
+
+	private function ensureSchema() {
+		$column = dbGetFirst("SHOW COLUMNS FROM `$this->tableName` LIKE 'bonus_visione_aperto'");
+		if ($column == null) {
+			dbExec("ALTER TABLE `$this->tableName` ADD COLUMN `bonus_visione_aperto` TINYINT NULL DEFAULT 0 AFTER `bonus_rendiconto_aperto`");
+		}
+	}
 	
 	public function load() {
 		require_once __DIR__ . '/connect.php';
+		$this->ensureSchema();
 		$query = "SELECT * FROM `$this->tableName`";
 		$item = dbGetFirst($query);
 		$this->id = $item['id'];
@@ -31,6 +40,7 @@ class Config {
 		$this->ore_fatte_aperto = $item['ore_fatte_aperto'];
 		$this->bonus_adesione_aperto = $item['bonus_adesione_aperto'];
 		$this->bonus_rendiconto_aperto = $item['bonus_rendiconto_aperto'];
+		$this->bonus_visione_aperto = $item['bonus_visione_aperto'];
 		$this->email_carenze_aperto = $item['email_carenze_aperto'];
 		$this->fuis_visibile = $item['fuis_visibile_docenti'];
 		$this->loaded = true;
@@ -38,6 +48,7 @@ class Config {
 
 	public function save() {
 		require_once __DIR__ . '/connect.php';
+		$this->ensureSchema();
 		$query = '';
 		if ($this->id != null) {
 			$query = "  UPDATE `$this->tableName`
@@ -48,6 +59,7 @@ class Config {
                             `ore_previsioni_aperto`=$this->ore_previsioni_aperto,
                             `bonus_adesione_aperto`=$this->bonus_adesione_aperto,
                             `bonus_rendiconto_aperto`=$this->bonus_rendiconto_aperto,
+                            `bonus_visione_aperto`=$this->bonus_visione_aperto,
 							`fuis_visibile_docenti`=$this->fuis_visibile,
                             `email_carenze_aperto`=$this->email_carenze_aperto
                         WHERE
@@ -62,6 +74,7 @@ class Config {
                             `ore_fatte_aperto`,
                             `bonus_adesione_aperto`,
                             `bonus_rendiconto_aperto`,
+                            `bonus_visione_aperto`,
                             `email_carenze_aperto`)
                         VALUES (
                             $this->voti_recupero_settembre_aperto,
@@ -70,6 +83,7 @@ class Config {
                             $this->ore_fatte_aperto,
                             $this->bonus_adesione_aperto,
                             $this->bonus_rendiconto_aperto,
+                            $this->bonus_visione_aperto,
                             $this->email_carenze_aperto
                         );
                     ";
@@ -127,6 +141,13 @@ class Config {
 	    return $this->bonus_rendiconto_aperto;
 	}
 
+	public function getBonus_visione_aperto() {
+	    if (!$this->loaded) {
+	        $this->load();
+	    }
+	    return $this->bonus_visione_aperto;
+	}
+
 	public function getEmail_carenze_aperto() {
 	    if (!$this->loaded) {
 	        $this->load();
@@ -160,6 +181,10 @@ class Config {
 
     public function setBonus_rendiconto_aperto($bonus_rendiconto_aperto) {
         $this->bonus_rendiconto_aperto = $bonus_rendiconto_aperto;
+    }
+
+    public function setBonus_visione_aperto($bonus_visione_aperto) {
+        $this->bonus_visione_aperto = $bonus_visione_aperto;
     }
 
     public function setEmail_carenze_aperto($email_carenze_aperto) {
