@@ -69,6 +69,12 @@ if ($__settings->log->logIntoAppFolder) {
 }
 $fileNameProfili .= ($__settings->log->logProfiliFile ?? 'profili.log');
 
+$fileNameIscrizioniClassi = '';
+if ($__settings->log->logIntoAppFolder) {
+    $fileNameIscrizioniClassi = __DIR__ . "/../log/";
+}
+$fileNameIscrizioniClassi .= ($__settings->log->logIscrizioniClassiFile ?? 'iscrizioni_classi.log');
+
 $__logger = Log::factory('file', $fileName, '', array("timeFormat"=>$__settings->log->timeFormat), $__logLevel);
 $__logger_login = Log::factory('file', $fileNameLogin, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
 $__logger_cron = Log::factory('file', $fileNameCron, '', array("timeFormat"=>$__settings->log->timeFormat), PEAR_LOG_INFO);
@@ -107,6 +113,13 @@ $__logger_gmail = Log::factory(
     array("timeFormat" => $__settings->log->timeFormat),
     $__logLevel
 );
+$__logger_iscrizioni_classi = Log::factory(
+    'file',
+    $fileNameIscrizioniClassi,
+    '',
+    array("timeFormat" => $__settings->log->timeFormat),
+    $__logLevel
+);
 
 $__logChannel = 'app';
 
@@ -120,7 +133,35 @@ function setLogChannel(string $channel): void
 function getLogChannel(): string
 {
     global $__logChannel;
-    return strtolower(trim((string)($__logChannel ?? 'app'))) ?: 'app';
+    $channel = strtolower(trim((string)($__logChannel ?? 'app'))) ?: 'app';
+    if ($channel === 'app') {
+        $autoChannel = autoLogChannelForCurrentRequest();
+        if ($autoChannel !== '') {
+            return $autoChannel;
+        }
+    }
+    return $channel;
+}
+
+function autoLogChannelForCurrentRequest(): string
+{
+    $script = strtolower(str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? $_SERVER['PHP_SELF'] ?? '')));
+    $page = strtolower(basename($script));
+
+    if (
+        strpos($script, '/iscrizioni/') !== false ||
+        strpos($page, 'iscrizioniprime') === 0 ||
+        strpos($page, 'iscrizioniterze') === 0 ||
+        strpos($page, 'formazioneclassi') === 0 ||
+        strpos($page, 'entrateuscite') === 0 ||
+        strpos($page, 'entrate_uscite') === 0 ||
+        strpos($page, 'movimenti') === 0 ||
+        strpos($page, 'studentimovimenti') === 0
+    ) {
+        return 'iscrizioni_classi';
+    }
+
+    return '';
 }
 
 function initCronLog(string $name = ''): void
@@ -164,6 +205,7 @@ function logChannelLogger(string $channel)
     global $__logger_calendar;
     global $__logger_calendar_mbapp;
     global $__logger_gmail;
+    global $__logger_iscrizioni_classi;
 
     switch (strtolower(trim($channel))) {
         case 'cron':
@@ -182,6 +224,11 @@ function logChannelLogger(string $channel)
         case 'gmail':
         case 'ticket_mail':
             return $__logger_gmail;
+        case 'iscrizioni_classi':
+        case 'iscrizioni':
+        case 'formazione_classi':
+        case 'entrate_uscite':
+            return $__logger_iscrizioni_classi;
         default:
             return $__logger;
     }
@@ -353,6 +400,18 @@ function rotateLog() {
     }
     $__logger_gmail->open();
     $__logger_gmail->info("old log was saved into $rotateFileName");
+
+    global $fileNameIscrizioniClassi;
+    global $__logger_iscrizioni_classi;
+    $rotateFileName = buildRotatedLogFileName($fileNameIscrizioniClassi);
+    $__logger_iscrizioni_classi->info("rotating into $rotateFileName");
+    $__logger_iscrizioni_classi->flush();
+    $__logger_iscrizioni_classi->close();
+    if (file_exists($fileNameIscrizioniClassi)) {
+        rename($fileNameIscrizioniClassi, $rotateFileName);
+    }
+    $__logger_iscrizioni_classi->open();
+    $__logger_iscrizioni_classi->info("old log was saved into $rotateFileName");
 
     global $fileNameProfili;
     $rotateFileName = buildRotatedLogFileName($fileNameProfili);
@@ -526,6 +585,36 @@ function debugGmail(string $msg): void
 {
     global $__logger_gmail;
     $__logger_gmail->debug('[GMAIL] ' . $msg);
+}
+
+/**
+ * ================================
+ * LOG ISCRIZIONI / FORMAZIONE CLASSI / ENTRATE-USCITE
+ * ================================
+ */
+
+function infoIscrizioniClassi(string $msg): void
+{
+    global $__logger_iscrizioni_classi;
+    $__logger_iscrizioni_classi->info('[ISCRIZIONI_CLASSI] ' . $msg);
+}
+
+function warningIscrizioniClassi(string $msg): void
+{
+    global $__logger_iscrizioni_classi;
+    $__logger_iscrizioni_classi->warning('[ISCRIZIONI_CLASSI] ' . $msg);
+}
+
+function errorIscrizioniClassi(string $msg): void
+{
+    global $__logger_iscrizioni_classi;
+    $__logger_iscrizioni_classi->err('[ISCRIZIONI_CLASSI] ' . $msg);
+}
+
+function debugIscrizioniClassi(string $msg): void
+{
+    global $__logger_iscrizioni_classi;
+    $__logger_iscrizioni_classi->debug('[ISCRIZIONI_CLASSI] ' . $msg);
 }
 
 ?>
