@@ -195,6 +195,44 @@ function sendMailGmailApiSendRaw(string $senderEmail, string $rawMime): array
     return $decoded;
 }
 
+function sendMailGmailApiRequestRaw(string $senderEmail, string $scope, string $method, string $url, $body = null): array
+{
+    $accessToken = sendMailOAuthAccessToken($senderEmail, $scope);
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $accessToken,
+        'Content-Type: application/json',
+    ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    if ($body !== null) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+    }
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlError) {
+        throw new Exception('Errore CURL Gmail API: ' . $curlError);
+    }
+
+    $decoded = json_decode((string)$response, true);
+    if ($httpCode < 200 || $httpCode >= 300 || !is_array($decoded)) {
+        throw new Exception('Errore Gmail API HTTP ' . $httpCode . ': ' . $response);
+    }
+
+    return $decoded;
+}
+
+function sendMailGmailApiDecode(string $data): string
+{
+    return (string)base64_decode(strtr($data, '-_', '+/'));
+}
+
 function sendMailDispatch(PHPMailer $mail, string $senderEmail, string $logLabel, string $to, string $subject): bool
 {
     $senderEmail = strtolower(trim($senderEmail));
