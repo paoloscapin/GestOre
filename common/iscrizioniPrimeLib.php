@@ -204,6 +204,16 @@ function iscrizioniPrimeEnsureSchema(): void
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
 
+    dbExec("
+        CREATE TABLE IF NOT EXISTS iscrizioni_prime_config (
+          config_key varchar(100) NOT NULL,
+          config_value text DEFAULT NULL,
+          updated_by varchar(255) DEFAULT NULL,
+          updated_at datetime NOT NULL,
+          PRIMARY KEY (config_key)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'responsabile_1_tipo', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN responsabile_1_tipo varchar(50) DEFAULT NULL AFTER telefono_genitore_2");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tipo_iscrizione', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tipo_iscrizione varchar(20) NOT NULL DEFAULT 'prime' AFTER codice_fiscale");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'studente_interno', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN studente_interno tinyint NOT NULL DEFAULT 0 AFTER tipo_iscrizione");
@@ -637,7 +647,7 @@ function iscrizioniPrimeMailConfig(): array
     foreach (($cfg->accounts ?? []) as $account) {
         $email = trim((string)($account->email ?? ''));
         $password = (string)($account->password ?? '');
-        if ($email !== '' && $password !== '') {
+        if ($email !== '') {
             $accounts[] = [
                 'email' => $email,
                 'password' => $password,
@@ -651,6 +661,8 @@ function iscrizioniPrimeMailConfig(): array
         'maxPerAccountPerDay' => max(1, intval($cfg->maxPerAccountPerDay ?? 450)),
         'batchSize' => max(1, intval($cfg->batchSize ?? 50)),
         'subject' => iscrizioniPrimeMailSubject(),
+        'draftSubjectPrime' => trim((string)($cfg->draftSubjectPrime ?? '[BOZZA] Regolarizzazione domanda di iscrizione classe prima a.s. 2026/2027')),
+        'draftSubjectTerze' => trim((string)($cfg->draftSubjectTerze ?? '[BOZZA] Regolarizzazione domanda di iscrizione classe terza a.s. 2026/2027')),
         'confirmationSubject' => trim((string)($cfg->confirmationSubject ?? 'Conferma dati iscrizione ricevuta')),
         'fromName' => trim((string)($cfg->fromName ?? 'Iscrizioni')),
         'replyToEmail' => trim((string)($cfg->replyToEmail ?? '')),
@@ -706,13 +718,134 @@ function iscrizioniPrimeMailSaveTemplate(string $tipoIscrizione, string $subject
     ");
 }
 
+function iscrizioniPrimeDraftSubject(string $tipoIscrizione, ?array $cfg = null): string
+{
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+    $configKey = $tipoIscrizione === 'terze' ? 'draft_subject_terze' : 'draft_subject_prime';
+    $row = dbGetFirst("
+        SELECT config_value
+        FROM iscrizioni_prime_config
+        WHERE config_key = " . dbQ($configKey) . "
+        LIMIT 1
+    ");
+    $subject = trim((string)($row['config_value'] ?? ''));
+    if ($subject !== '') {
+        return $subject;
+    }
+
+    if ($cfg === null) {
+        $cfg = iscrizioniPrimeMailConfig();
+    }
+
+    return $tipoIscrizione === 'terze'
+        ? (string)($cfg['draftSubjectTerze'] ?? '[BOZZA] Regolarizzazione domanda di iscrizione classe terza a.s. 2026/2027')
+        : (string)($cfg['draftSubjectPrime'] ?? '[BOZZA] Regolarizzazione domanda di iscrizione classe prima a.s. 2026/2027');
+}
+
+function iscrizioniPrimeDraftSubjectSave(string $tipoIscrizione, string $subject, string $updatedBy = ''): void
+{
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+    $subject = trim($subject);
+    if ($subject === '') {
+        throw new Exception('Oggetto bozza obbligatorio.');
+    }
+    $configKey = $tipoIscrizione === 'terze' ? 'draft_subject_terze' : 'draft_subject_prime';
+
+    dbExec("
+        INSERT INTO iscrizioni_prime_config
+            (config_key, config_value, updated_by, updated_at)
+        VALUES
+            (" . dbQ($configKey) . ", " . dbQ($subject) . ", " . dbQ($updatedBy) . ", NOW())
+        ON DUPLICATE KEY UPDATE
+            config_value = VALUES(config_value),
+            updated_by = VALUES(updated_by),
+            updated_at = NOW()
+    ");
+}
+
+function iscrizioniPrimeMailPublicBaseUrl(): string
+{
+    global $__http_base_link;
+
+    $base = trim((string)($__http_base_link ?? ''));
+    if ($base !== '') {
+        return rtrim($base, '/');
+    }
+
+    $host = trim((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
+    if ($host !== '') {
+        $https = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+        return ($https ? 'https://' : 'http://') . $host . '/GestOre';
+    }
+
+    return 'https://www.buonarroti.tn.it/GestOre';
+}
+
+function iscrizioniPrimeMailTranslationsUrl(string $tipoIscrizione): string
+{
+    return iscrizioniPrimeMailPublicBaseUrl()
+        . '/iscrizioni/comunicazione.php?tipo='
+        . rawurlencode(iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione));
+}
+
+function iscrizioniPrimeMailTranslationsBlock(string $tipoIscrizione): string
+{
+    $translationsUrl = iscrizioniPrimeMailTranslationsUrl($tipoIscrizione);
+
+    return '
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:18px 0;background:#f8fafc;border:1px solid #dbeafe;border-radius:10px;overflow:hidden;">
+            <tr>
+                <td style="padding:0;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                        <tr>
+                            <td style="height:8px;background:#0ea5e9;font-size:0;line-height:0;">&nbsp;</td>
+                            <td style="height:8px;background:#22c55e;font-size:0;line-height:0;">&nbsp;</td>
+                            <td style="height:8px;background:#f59e0b;font-size:0;line-height:0;">&nbsp;</td>
+                            <td style="height:8px;background:#ef4444;font-size:0;line-height:0;">&nbsp;</td>
+                            <td style="height:8px;background:#8b5cf6;font-size:0;line-height:0;">&nbsp;</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding:16px 18px;text-align:center;font-family:Arial,Helvetica,sans-serif;">
+                    <div style="font-size:26px;line-height:1.25;margin-bottom:8px;">
+                        &#127470;&#127481; &#127468;&#127463; &#127467;&#127479; &#127465;&#127466; &#127466;&#127480; &#127477;&#127481; &#127482;&#127462; &#127479;&#127482; &#127480;&#127462; &#127464;&#127475; &#127477;&#127472;
+                    </div>
+                    <div style="font-size:20px;font-weight:800;color:#0f172a;margin-bottom:6px;">
+                        Comunicazione disponibile in piu lingue
+                    </div>
+                    <div style="font-size:14px;color:#475569;line-height:1.45;margin-bottom:14px;">
+                        Translations available - Traductions disponibles - Traducciones disponibles - Traducoes disponiveis
+                    </div>
+                    <a href="' . htmlspecialchars($translationsUrl, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:7px;font-weight:800;font-size:15px;">
+                        Apri la pagina multilingue
+                    </a>
+                    <div style="font-size:12px;color:#64748b;line-height:1.45;margin-top:12px;">
+                        English - Francais - Deutsch - Espanol - Portugues - Ukrainian - Russian - Arabic - Chinese - Urdu
+                    </div>
+                </td>
+            </tr>
+        </table>
+    ';
+}
+
 function iscrizioniPrimeMailRenderTemplate(string $bodyHtml, array $pratica, string $link): string
 {
     global $__settings;
 
+    $tipoIscrizione = iscrizioniPrimeTipoIscrizioneFromPratica($pratica);
     $nomeCompleto = trim((string)(($pratica['nome'] ?? '') . ' ' . ($pratica['cognome'] ?? '')));
+    $translationsUrl = iscrizioniPrimeMailTranslationsUrl($tipoIscrizione);
+    $translationsBlock = iscrizioniPrimeMailTranslationsBlock($tipoIscrizione);
     $replacements = [
         '{link}' => htmlspecialchars($link, ENT_QUOTES, 'UTF-8'),
+        '{traduzioni}' => htmlspecialchars($translationsUrl, ENT_QUOTES, 'UTF-8'),
+        '{link_traduzioni}' => htmlspecialchars($translationsUrl, ENT_QUOTES, 'UTF-8'),
+        '{blocco_traduzioni}' => $translationsBlock,
+        '{traduzioni_box}' => $translationsBlock,
+        '{{LINK_COMUNICAZIONE_MULTILINGUE}}' => htmlspecialchars($translationsUrl, ENT_QUOTES, 'UTF-8'),
+        '{{BLOCCO_COMUNICAZIONE_MULTILINGUE}}' => $translationsBlock,
         '{studente}' => iscrizioniPrimeMailEscape($nomeCompleto),
         '{nome}' => iscrizioniPrimeMailEscape($pratica['nome'] ?? ''),
         '{cognome}' => iscrizioniPrimeMailEscape($pratica['cognome'] ?? ''),
@@ -847,6 +980,10 @@ function iscrizioniPrimeMailBody(array $pratica, string $link, string $originalR
         if (strpos($html, $link) === false && strpos($html, '{link}') === false) {
             $html .= '<p><a href="' . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . '">Apri la pagina di conferma iscrizione</a></p>';
         }
+        $translationsUrl = iscrizioniPrimeMailTranslationsUrl(iscrizioniPrimeTipoIscrizioneFromPratica($pratica));
+        if (strpos($html, $translationsUrl) === false && strpos($html, '{traduzioni}') === false && strpos($html, '{link_traduzioni}') === false && strpos($html, '{blocco_traduzioni}') === false) {
+            $html .= iscrizioniPrimeMailTranslationsBlock(iscrizioniPrimeTipoIscrizioneFromPratica($pratica));
+        }
         return $originalRecipient !== '' ? iscrizioniPrimeMailTestBanner($originalRecipient) . $html : $html;
     }
 
@@ -898,6 +1035,7 @@ function iscrizioniPrimeMailBody(array $pratica, string $link, string $originalR
                         <div style="border-left:5px solid #0ea5e9;background:#eaf6fc;padding:12px 14px;border-radius:6px;margin:16px 0;color:#0f172a;line-height:1.45;">
                             Il link e\' personale e non richiede un account GestOre. Puoi salvare una bozza e rientrare dallo stesso link prima dell\'invio definitivo.
                         </div>
+                        ' . iscrizioniPrimeMailTranslationsBlock(iscrizioniPrimeTipoIscrizioneFromPratica($pratica)) . '
                         <p style="margin:18px 0 0;color:#475569;line-height:1.5;">
                             Se i documenti sono cartacei, puoi fotografarli con il telefono direttamente dalla pagina. Le foto verranno trasformate in PDF.
                         </p>
@@ -1155,6 +1293,219 @@ function iscrizioniPrimeSubmissionConfirmationBody(array $pratica): string
     ';
 }
 
+function iscrizioniPrimeGmailHeader(array $message, string $name): string
+{
+    foreach (($message['payload']['headers'] ?? []) as $header) {
+        if (strcasecmp((string)($header['name'] ?? ''), $name) === 0) {
+            return (string)($header['value'] ?? '');
+        }
+    }
+    return '';
+}
+
+function iscrizioniPrimeGmailDraftSubject(array $cfg, string $tipoIscrizione): string
+{
+    return iscrizioniPrimeDraftSubject($tipoIscrizione, $cfg);
+}
+
+function iscrizioniPrimeMailParseAddress(string $headerValue): array
+{
+    $headerValue = trim($headerValue);
+    if ($headerValue === '') {
+        return ['email' => '', 'name' => ''];
+    }
+
+    if (preg_match('/^(.*?)<([^>]+)>$/', $headerValue, $matches)) {
+        $name = trim(trim((string)$matches[1]), "\"'");
+        $email = trim((string)$matches[2]);
+        return ['email' => filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : '', 'name' => $name];
+    }
+
+    return ['email' => filter_var($headerValue, FILTER_VALIDATE_EMAIL) ? $headerValue : '', 'name' => ''];
+}
+
+function iscrizioniPrimeGmailDraftFetch(string $accountEmail, string $draftSubject): array
+{
+    $scope = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send';
+    $query = 'in:drafts subject:"' . $draftSubject . '"';
+    $list = sendMailGmailApiRequestRaw(
+        $accountEmail,
+        $scope,
+        'GET',
+        'https://gmail.googleapis.com/gmail/v1/users/' . rawurlencode($accountEmail) . '/drafts?q=' . rawurlencode($query) . '&maxResults=10'
+    );
+
+    foreach (($list['drafts'] ?? []) as $draftRef) {
+        $draftId = trim((string)($draftRef['id'] ?? ''));
+        if ($draftId === '') {
+            continue;
+        }
+        $draft = sendMailGmailApiRequestRaw(
+            $accountEmail,
+            $scope,
+            'GET',
+            'https://gmail.googleapis.com/gmail/v1/users/' . rawurlencode($accountEmail) . '/drafts/' . rawurlencode($draftId) . '?format=full'
+        );
+        $message = $draft['message'] ?? [];
+        if (is_array($message) && trim(iscrizioniPrimeGmailHeader($message, 'Subject')) === $draftSubject) {
+            return $message;
+        }
+    }
+
+    throw new Exception('Bozza Gmail non trovata in ' . $accountEmail . ' con oggetto: ' . $draftSubject);
+}
+
+function iscrizioniPrimeGmailDraftCollectParts(array $payload, string $accountEmail, string $messageId, array &$parts): void
+{
+    $mimeType = strtolower((string)($payload['mimeType'] ?? ''));
+    $filename = trim((string)($payload['filename'] ?? ''));
+    $body = $payload['body'] ?? [];
+
+    if ($filename !== '' && !empty($body['attachmentId'])) {
+        $attachment = sendMailGmailApiRequestRaw(
+            $accountEmail,
+            'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send',
+            'GET',
+            'https://gmail.googleapis.com/gmail/v1/users/' . rawurlencode($accountEmail) . '/messages/' . rawurlencode($messageId) . '/attachments/' . rawurlencode((string)$body['attachmentId'])
+        );
+        $parts['attachments'][] = [
+            'name' => $filename,
+            'mime' => $mimeType !== '' ? $mimeType : 'application/octet-stream',
+            'data' => sendMailGmailApiDecode((string)($attachment['data'] ?? '')),
+        ];
+        return;
+    }
+
+    if (!empty($body['data'])) {
+        $decoded = sendMailGmailApiDecode((string)$body['data']);
+        if ($mimeType === 'text/html') {
+            $parts['html'][] = $decoded;
+        } elseif ($mimeType === 'text/plain') {
+            $parts['plain'][] = $decoded;
+        }
+    }
+
+    foreach (($payload['parts'] ?? []) as $child) {
+        if (is_array($child)) {
+            iscrizioniPrimeGmailDraftCollectParts($child, $accountEmail, $messageId, $parts);
+        }
+    }
+}
+
+function iscrizioniPrimeMailApplyDraftPlaceholders(string $content, array $pratica, string $link, string $tipoIscrizione): string
+{
+    $nomeStudente = trim((string)(($pratica['nome'] ?? '') . ' ' . ($pratica['cognome'] ?? '')));
+    $bloccoTraduzioni = iscrizioniPrimeMailTranslationsBlock($tipoIscrizione);
+    $plainBloccoTraduzioni = trim(strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $bloccoTraduzioni)));
+
+    $isHtml = stripos($content, '<html') !== false || stripos($content, '<body') !== false || stripos($content, '<p') !== false || stripos($content, '<div') !== false || stripos($content, '<table') !== false;
+    $block = $isHtml ? $bloccoTraduzioni : $plainBloccoTraduzioni;
+
+    $replacements = [
+        '{{LINK_PERSONALE}}' => $link,
+        '{LINK_PERSONALE}' => $link,
+        '{{NOME_STUDENTE}}' => $nomeStudente,
+        '{NOME_STUDENTE}' => $nomeStudente,
+        '{{BLOCCO_TRADUZIONI}}' => $block,
+        '{blocco_traduzioni}' => $block,
+        '{blocco traduzioni}' => $block,
+        '{{LINK_COMUNICAZIONE_MULTILINGUE}}' => iscrizioniPrimeMailTranslationsUrl($tipoIscrizione),
+        '{traduzioni}' => iscrizioniPrimeMailTranslationsUrl($tipoIscrizione),
+    ];
+
+    return strtr($content, $replacements);
+}
+
+function iscrizioniPrimeSendMailFromGmailDraft(array $cfg, array $account, array $pratica, string $recipient, string $link, string $originalRecipientForBody, string $tipoIscrizione): bool
+{
+    $accountEmail = strtolower(trim((string)($account['email'] ?? '')));
+    $draftSubject = iscrizioniPrimeGmailDraftSubject($cfg, $tipoIscrizione);
+    $message = iscrizioniPrimeGmailDraftFetch($accountEmail, $draftSubject);
+    $messageId = trim((string)($message['id'] ?? ''));
+    if ($messageId === '') {
+        throw new Exception('Bozza Gmail senza message id per account ' . $accountEmail);
+    }
+
+    $parts = ['html' => [], 'plain' => [], 'attachments' => []];
+    iscrizioniPrimeGmailDraftCollectParts($message['payload'] ?? [], $accountEmail, $messageId, $parts);
+
+    $html = trim(implode("\n", $parts['html']));
+    $plain = trim(implode("\n", $parts['plain']));
+    if ($html === '' && $plain === '') {
+        throw new Exception('La bozza Gmail non contiene testo leggibile: ' . $draftSubject);
+    }
+
+    $subject = preg_replace('/^\s*\[BOZZA\]\s*/iu', '', $draftSubject);
+    $draftFrom = iscrizioniPrimeMailParseAddress(iscrizioniPrimeGmailHeader($message, 'From'));
+    $draftReplyTo = iscrizioniPrimeMailParseAddress(iscrizioniPrimeGmailHeader($message, 'Reply-To'));
+    $fromEmail = $draftFrom['email'] !== '' ? $draftFrom['email'] : $accountEmail;
+    $fromName = $draftFrom['name'] !== '' ? $draftFrom['name'] : $cfg['fromName'];
+    $replyToEmail = $draftReplyTo['email'] !== '' ? $draftReplyTo['email'] : ($cfg['replyToEmail'] !== '' ? $cfg['replyToEmail'] : $fromEmail);
+    $replyToName = $draftReplyTo['name'] !== '' ? $draftReplyTo['name'] : $cfg['replyToName'];
+    $html = $html !== '' ? iscrizioniPrimeMailApplyDraftPlaceholders($html, $pratica, $link, $tipoIscrizione) : '';
+    $plain = $plain !== '' ? iscrizioniPrimeMailApplyDraftPlaceholders($plain, $pratica, $link, $tipoIscrizione) : '';
+
+    if ($originalRecipientForBody !== '') {
+        $banner = iscrizioniPrimeMailTestBanner($originalRecipientForBody);
+        $html = $html !== '' ? ($banner . $html) : ($banner . nl2br(htmlspecialchars($plain, ENT_QUOTES, 'UTF-8')));
+        $plain = "Modalita test: questa conferma sarebbe stata inviata a $originalRecipientForBody.\n\n" . $plain;
+    }
+
+    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+    try {
+        $mail->CharSet = 'UTF-8';
+        $mail->Encoding = 'base64';
+        $mail->isSMTP();
+        $mail->Mailer = 'smtp';
+        $mail->SMTPDebug = 0;
+        $mail->Host = $cfg['smtpHost'];
+        $mail->SMTPAuth = true;
+        $mail->Username = $accountEmail;
+        $mail->Password = (string)($account['password'] ?? '');
+        $mail->SMTPSecure = $cfg['SMTPSecure'];
+        $mail->SMTPAutoTLS = false;
+        $mail->Port = intval($cfg['Port']);
+        $mail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true,
+            ],
+        ];
+        $mail->IsHTML($html !== '');
+        $mail->addAddress($recipient, $recipient);
+        $mail->setFrom($fromEmail, $fromName, true);
+        $mail->addReplyTo($replyToEmail, $replyToName);
+        $mail->Sender = $accountEmail;
+        $mail->Subject = $subject;
+        if ($html !== '') {
+            $mail->msgHTML($html);
+            if ($plain !== '') {
+                $mail->AltBody = $plain;
+            }
+        } else {
+            $mail->Body = $plain;
+        }
+        foreach ($parts['attachments'] as $attachment) {
+            $mail->addStringAttachment(
+                (string)$attachment['data'],
+                (string)$attachment['name'],
+                'base64',
+                (string)$attachment['mime']
+            );
+        }
+
+        return sendMailDispatch($mail, $accountEmail, 'iscrizioniDraft', $recipient, $subject);
+    } catch (Throwable $e) {
+        error('[iscrizioni] errore invio da bozza Gmail: ' . $e->getMessage());
+        try {
+            $mail->smtpClose();
+        } catch (Throwable $e2) {
+        }
+        return false;
+    }
+}
+
 function iscrizioniPrimeNotifyMailFailure(array $cfg, string $message): void
 {
     $alertEmail = strtolower(trim((string)($cfg['mailFailureAlertEmail'] ?? '')));
@@ -1356,28 +1707,7 @@ function iscrizioniPrimeSendMailBatch(bool $dryRun = false, string $tipoIscrizio
                 $originalRecipientForBody = $recipient;
             }
 
-              $body = iscrizioniPrimeMailBody($pratica, $link, $originalRecipientForBody);
-
-            $template = iscrizioniPrimeMailTemplate($tipoIscrizione);
-            $subject = trim((string)($template['subject'] ?? ''));
-            if ($subject === '') {
-                $subject = iscrizioniPrimeMailSubject($pratica);
-            }
-
-            $ok = sendMailCustom($actualRecipient, $recipientName, $subject, $body, [
-                'from_email' => $account['email'],
-                'from_name' => $cfg['fromName'],
-                'reply_to_email' => $cfg['replyToEmail'] !== '' ? $cfg['replyToEmail'] : $account['email'],
-                'reply_to_name' => $cfg['replyToName'],
-                'sender_email' => $account['email'],
-                'sender_name' => $cfg['fromName'],
-                'smtp_host' => $cfg['smtpHost'],
-                'smtp_username' => $account['email'],
-                'smtp_password' => $account['password'],
-                'smtp_secure' => $cfg['SMTPSecure'],
-                'smtp_port' => $cfg['Port'],
-                'attachments' => iscrizioniPrimeMailAttachmentPaths($tipoIscrizione),
-            ]);
+            $ok = iscrizioniPrimeSendMailFromGmailDraft($cfg, $account, $pratica, $actualRecipient, $link, $originalRecipientForBody, $tipoIscrizione);
 
             dbExec("
                 INSERT INTO iscrizioni_prime_mail_log
@@ -2376,16 +2706,28 @@ function iscrizioniPrimeSubmitByToken(string $token, array $data): array
         LIMIT 1
     ");
 
+    $pratica = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . intval($pratica['id']) . " LIMIT 1") ?: $pratica;
     $pratica['stato'] = 'inviata';
+    $syncGestore = ['ok' => true, 'skipped' => true];
+    try {
+        $syncGestore = iscrizioniPrimeSyncGestoreStudentAndParents($pratica);
+    } catch (Throwable $e) {
+        $syncGestore = ['ok' => false, 'message' => $e->getMessage()];
+        warning('[iscrizioni] errore sincronizzazione anagrafica GestOre pratica ID ' . intval($pratica['id']) . ': ' . $e->getMessage());
+    }
+
     $mail = iscrizioniPrimeSendSubmissionConfirmation($pratica);
     $message = 'Domanda inviata. I dati e i documenti sono stati registrati.';
+    if (empty($syncGestore['ok'])) {
+        $message .= ' Attenzione: non e\' stato possibile creare automaticamente l\'anagrafica studente/genitori in GestOre. La segreteria dovra verificarla.';
+    }
     if (!empty($mail['ok'])) {
         $message .= ' Abbiamo inviato una mail di conferma ai genitori e alla segreteria.';
     } else {
         $message .= ' Attenzione: la registrazione e\' riuscita, ma non e\' stato possibile inviare la mail di conferma. La segreteria e\' stata avvisata se e\' configurata la mail di emergenza.';
     }
 
-    return ['ok' => true, 'message' => $message, 'stato' => 'inviata', 'mail' => $mail];
+    return ['ok' => true, 'message' => $message, 'stato' => 'inviata', 'mail' => $mail, 'sync_gestore' => $syncGestore];
 }
 
 function iscrizioniPrimeDocumentFileByToken(string $token, string $tipo): ?array
@@ -2589,6 +2931,238 @@ function iscrizioniPrimeStudentIdForCurrentYear(string $cf): int
           AND s.attivo = 1
         LIMIT 1
     ") ?? 0);
+}
+
+function iscrizioniPrimeCurrentSchoolYearId(): int
+{
+    global $__anno_scolastico_corrente_id;
+
+    $annoCorrenteId = intval($__anno_scolastico_corrente_id ?? 0);
+    if ($annoCorrenteId > 0) {
+        return $annoCorrenteId;
+    }
+
+    return intval(dbGetValue("SELECT anno_scolastico_id FROM anno_scolastico_corrente LIMIT 1") ?? 0);
+}
+
+function iscrizioniPrimeClassIdByCode(string $classe): int
+{
+    $classe = strtoupper(trim($classe));
+    if ($classe === '') {
+        return 0;
+    }
+
+    $id = intval(dbGetValue("SELECT id FROM classi WHERE UPPER(TRIM(classe)) = " . dbQ($classe) . " LIMIT 1") ?? 0);
+    if ($id > 0) {
+        return $id;
+    }
+
+    $fields = ['classe' => dbQ($classe)];
+    if (iscrizioniPrimeTableColumnExists('classi', 'anno')) {
+        $fields['anno'] = '0';
+    }
+    if (iscrizioniPrimeTableColumnExists('classi', 'attiva')) {
+        $fields['attiva'] = '1';
+    }
+
+    dbExec("INSERT INTO classi (`" . implode('`, `', array_keys($fields)) . "`) VALUES (" . implode(', ', array_values($fields)) . ")");
+    return intval(dblastId());
+}
+
+function iscrizioniPrimeTableColumnExists(string $table, string $column): bool
+{
+    return intval(dbGetValue("
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = " . dbQ($table) . "
+          AND COLUMN_NAME = " . dbQ($column) . "
+    ") ?? 0) > 0;
+}
+
+function iscrizioniPrimeRelazioneId(string $tipo): int
+{
+    $tipo = strtolower(trim($tipo));
+    $map = [
+        'padre' => 'padre',
+        'madre' => 'madre',
+        'tutore' => 'tutore',
+        'tutrice' => 'tutore',
+        'affidatario' => 'affidatario',
+        'affidataria' => 'affidataria',
+        'genitore' => 'genitore',
+        'responsabile' => 'genitore',
+    ];
+    $relazione = $map[$tipo] ?? $tipo;
+
+    $id = intval(dbGetValue("SELECT id FROM genitori_relazioni WHERE LOWER(TRIM(relazione)) = " . dbQ($relazione) . " LIMIT 1") ?? 0);
+    if ($id > 0) {
+        return $id;
+    }
+
+    return intval(dbGetValue("SELECT id FROM genitori_relazioni WHERE LOWER(TRIM(relazione)) = 'genitore' LIMIT 1") ?? 0);
+}
+
+function iscrizioniPrimeUpsertGestoreStudent(array $pratica): int
+{
+    $cf = strtoupper(trim((string)($pratica['codice_fiscale'] ?? '')));
+    if ($cf === '') {
+        return 0;
+    }
+
+    $sesso = strtoupper(trim((string)($pratica['sesso'] ?? '')));
+    if (!in_array($sesso, ['M', 'F'], true)) {
+        $sesso = null;
+    }
+    $email = iscrizioniPrimeTrimValue($pratica['email_studente'] ?? null);
+    $studenteId = intval(dbGetValue("SELECT id FROM studente WHERE codice_fiscale = " . dbQ($cf) . " LIMIT 1") ?? 0);
+
+    if ($studenteId > 0) {
+        dbExec("
+            UPDATE studente SET
+                cognome = " . dbQ($pratica['cognome'] ?? '') . ",
+                nome = " . dbQ($pratica['nome'] ?? '') . ",
+                email = " . dbQ($email) . ",
+                codice_fiscale = " . dbQ($cf) . ",
+                sesso = " . dbQ($sesso) . ",
+                attivo = 1
+            WHERE id = " . dbI($studenteId) . "
+            LIMIT 1
+        ");
+        return $studenteId;
+    }
+
+    dbExec("
+        INSERT INTO studente (cognome, nome, email, username, codice_fiscale, sesso, attivo)
+        VALUES (
+            " . dbQ($pratica['cognome'] ?? '') . ",
+            " . dbQ($pratica['nome'] ?? '') . ",
+            " . dbQ($email) . ",
+            '',
+            " . dbQ($cf) . ",
+            " . dbQ($sesso) . ",
+            1
+        )
+    ");
+
+    return intval(dblastId());
+}
+
+function iscrizioniPrimeUpsertGestoreFrequency(int $studenteId, string $classeCode): void
+{
+    $annoCorrenteId = iscrizioniPrimeCurrentSchoolYearId();
+    $classeId = iscrizioniPrimeClassIdByCode($classeCode);
+    if ($studenteId <= 0 || $annoCorrenteId <= 0 || $classeId <= 0) {
+        warning('[iscrizioni] impossibile creare frequenza provvisoria studente=' . $studenteId . ' anno=' . $annoCorrenteId . ' classe=' . $classeCode . ' id_classe=' . $classeId);
+        return;
+    }
+
+    dbExec("
+        INSERT INTO studente_frequenta (id_studente, id_anno_scolastico, id_classe)
+        VALUES (" . dbI($studenteId) . ", " . dbI($annoCorrenteId) . ", " . dbI($classeId) . ")
+        ON DUPLICATE KEY UPDATE id_classe = VALUES(id_classe)
+    ");
+}
+
+function iscrizioniPrimeUpsertGestoreParent(array $parent, int $studenteId): int
+{
+    $cf = strtoupper(trim((string)($parent['codice_fiscale'] ?? '')));
+    $email = iscrizioniPrimeTrimValue($parent['email'] ?? null);
+    $cognome = trim((string)($parent['cognome'] ?? ''));
+    $nome = trim((string)($parent['nome'] ?? ''));
+
+    if ($studenteId <= 0 || ($cf === '' && $email === '') || ($cognome === '' && $nome === '')) {
+        return 0;
+    }
+
+    $where = $cf !== ''
+        ? "codice_fiscale = " . dbQ($cf)
+        : "LOWER(TRIM(email)) = " . dbQ(strtolower((string)$email));
+
+    $genitoreId = intval(dbGetValue("SELECT id FROM genitori WHERE $where LIMIT 1") ?? 0);
+    $username = $email !== null ? $email : '';
+
+    if ($genitoreId > 0) {
+        dbExec("
+            UPDATE genitori SET
+                cognome = " . dbQ($cognome) . ",
+                nome = " . dbQ($nome) . ",
+                email = " . dbQ($email) . ",
+                codice_fiscale = " . dbQ($cf) . ",
+                username = " . dbQ($username) . ",
+                attivo = 1
+            WHERE id = " . dbI($genitoreId) . "
+            LIMIT 1
+        ");
+    } else {
+        dbExec("
+            INSERT INTO genitori (cognome, nome, email, codice_fiscale, username, attivo, last_login, last_IP)
+            VALUES (" . dbQ($cognome) . ", " . dbQ($nome) . ", " . dbQ($email) . ", " . dbQ($cf) . ", " . dbQ($username) . ", 1, '', '')
+        ");
+        $genitoreId = intval(dblastId());
+    }
+
+    $relazioneId = iscrizioniPrimeRelazioneId((string)($parent['tipo'] ?? 'genitore'));
+    if ($relazioneId > 0) {
+        dbExec("
+            INSERT INTO genitori_studenti (id_genitore, id_studente, id_relazione)
+            VALUES (" . dbI($genitoreId) . ", " . dbI($studenteId) . ", " . dbI($relazioneId) . ")
+            ON DUPLICATE KEY UPDATE id_relazione = VALUES(id_relazione)
+        ");
+    }
+
+    return $genitoreId;
+}
+
+function iscrizioniPrimeSyncGestoreStudentAndParents(array $pratica): array
+{
+    if (!empty($pratica['studente_interno'])) {
+        return ['ok' => true, 'skipped' => true, 'message' => 'Studente interno: anagrafica GestOre gia presente.'];
+    }
+
+    $tipoIscrizione = iscrizioniPrimeTipoIscrizioneFromPratica($pratica);
+    $classeProvvisoria = $tipoIscrizione === 'terze' ? 'EE' : 'MEDIE';
+    $studenteId = iscrizioniPrimeUpsertGestoreStudent($pratica);
+    if ($studenteId <= 0) {
+        return ['ok' => false, 'message' => 'Codice fiscale studente mancante: impossibile creare anagrafica GestOre.'];
+    }
+
+    iscrizioniPrimeUpsertGestoreFrequency($studenteId, $classeProvvisoria);
+
+    $parents = [
+        [
+            'tipo' => $pratica['responsabile_1_tipo'] ?? 'genitore',
+            'cognome' => $pratica['responsabile_1_cognome'] ?? '',
+            'nome' => $pratica['responsabile_1_nome'] ?? '',
+            'codice_fiscale' => $pratica['responsabile_1_codice_fiscale'] ?? '',
+            'email' => $pratica['email_genitore_1'] ?? '',
+        ],
+        [
+            'tipo' => $pratica['responsabile_2_tipo'] ?? 'genitore',
+            'cognome' => $pratica['responsabile_2_cognome'] ?? '',
+            'nome' => $pratica['responsabile_2_nome'] ?? '',
+            'codice_fiscale' => $pratica['responsabile_2_codice_fiscale'] ?? '',
+            'email' => $pratica['email_genitore_2'] ?? '',
+        ],
+    ];
+
+    $parentIds = [];
+    foreach ($parents as $parent) {
+        $parentId = iscrizioniPrimeUpsertGestoreParent($parent, $studenteId);
+        if ($parentId > 0) {
+            $parentIds[] = $parentId;
+        }
+    }
+
+    info('[iscrizioni] sincronizzata anagrafica GestOre studente id=' . $studenteId . ' classe=' . $classeProvvisoria . ' genitori=' . implode(',', $parentIds));
+
+    return [
+        'ok' => true,
+        'skipped' => false,
+        'studente_id' => $studenteId,
+        'classe' => $classeProvvisoria,
+        'genitori_ids' => $parentIds,
+    ];
 }
 
 function iscrizioniPrimeApplyInternalContacts(int $praticaId, string $cf): bool

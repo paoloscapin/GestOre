@@ -42,27 +42,7 @@ try {
     $account = $cfg['accounts'][0];
     $token = iscrizioniPrimeSetToken((int)$pratica['id']);
     $link = ($GLOBALS['__http_base_link'] ?? '') . '/iscrizioni/conferma.php?t=' . rawurlencode($token);
-    $body = iscrizioniPrimeMailBody($pratica, $link, $recipients[0]);
-    $template = iscrizioniPrimeMailTemplate($tipoIscrizione);
-    $subject = trim((string)($template['subject'] ?? ''));
-    if ($subject === '') {
-        $subject = iscrizioniPrimeMailSubject($pratica);
-    }
-
-    $ok = sendMailCustom($account['email'], 'Test iscrizioni', $subject, $body, [
-        'from_email' => $account['email'],
-        'from_name' => $cfg['fromName'],
-        'reply_to_email' => $cfg['replyToEmail'] !== '' ? $cfg['replyToEmail'] : $account['email'],
-        'reply_to_name' => $cfg['replyToName'],
-        'sender_email' => $account['email'],
-        'sender_name' => $cfg['fromName'],
-        'smtp_host' => $cfg['smtpHost'],
-        'smtp_username' => $account['email'],
-        'smtp_password' => $account['password'],
-        'smtp_secure' => $cfg['SMTPSecure'],
-        'smtp_port' => $cfg['Port'],
-        'attachments' => iscrizioniPrimeMailAttachmentPaths($tipoIscrizione),
-    ]);
+    $ok = iscrizioniPrimeSendMailFromGmailDraft($cfg, $account, $pratica, $account['email'], $link, $recipients[0], $tipoIscrizione);
 
     echo json_encode([
         'ok' => (bool)$ok,

@@ -17,8 +17,7 @@ $stats = dbGetFirst("
     FROM iscrizioni_prime_pratiche
     WHERE tipo_iscrizione = 'terze'
 ");
-$mailTemplate = iscrizioniPrimeMailTemplate('terze');
-$mailAttachments = iscrizioniPrimeMailAttachments('terze');
+$draftSubject = iscrizioniPrimeDraftSubject('terze');
 
 ?>
 <!DOCTYPE html>
@@ -29,9 +28,111 @@ $mailAttachments = iscrizioniPrimeMailAttachments('terze');
     require_once '../common/header-common.php';
     require_once '../common/style.php';
     ?>
+    <style>
+        .iscrizioni-mail-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(15, 23, 42, 0.62);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+        }
+        .iscrizioni-mail-card {
+            width: min(620px, 100%);
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 18px 60px rgba(15, 23, 42, 0.35);
+            padding: 28px;
+            text-align: center;
+            border-top: 8px solid #0ea5e9;
+        }
+        .iscrizioni-mail-icon {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            background: #0ea5e9;
+            font-size: 30px;
+            margin-bottom: 12px;
+        }
+        .iscrizioni-mail-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+        .iscrizioni-mail-text {
+            color: #475569;
+            font-size: 16px;
+            line-height: 1.45;
+            margin-bottom: 18px;
+        }
+        .iscrizioni-mail-percent {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+        .iscrizioni-mail-progress {
+            height: 18px;
+            background: #e2e8f0;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .iscrizioni-mail-progress-bar {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, #0ea5e9, #22c55e);
+            transition: width .35s ease;
+        }
+        .iscrizioni-mail-progress-bar.is-running {
+            width: 75%;
+            background-size: 42px 42px;
+            background-image: linear-gradient(45deg, rgba(255,255,255,.25) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.25) 50%, rgba(255,255,255,.25) 75%, transparent 75%, transparent);
+            animation: iscrizioniMailStripe 1s linear infinite;
+        }
+        @keyframes iscrizioniMailStripe {
+            from { background-position: 42px 0; }
+            to { background-position: 0 0; }
+        }
+        .mail-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+        .mail-badge-real { background: #dcfce7; color: #166534; }
+        .mail-badge-test { background: #dbeafe; color: #1d4ed8; }
+        .mail-badge-none { background: #fee2e2; color: #991b1b; }
+        .mail-badge-skip { background: #e5e7eb; color: #374151; }
+    </style>
 </head>
 <body>
 <?php require_once '../common/header-didattica.php'; ?>
+
+<div id="iscrizioni_mail_overlay" class="iscrizioni-mail-overlay" role="status" aria-live="polite">
+    <div class="iscrizioni-mail-card">
+        <div id="iscrizioni_mail_icon" class="iscrizioni-mail-icon">
+            <span class="glyphicon glyphicon-send"></span>
+        </div>
+        <div id="iscrizioni_mail_title" class="iscrizioni-mail-title">Invio mail in corso</div>
+        <div id="iscrizioni_mail_text" class="iscrizioni-mail-text">GestOre sta preparando e inviando il lotto. Tieni aperta questa pagina.</div>
+        <div id="iscrizioni_mail_percent" class="iscrizioni-mail-percent">0%</div>
+        <div class="iscrizioni-mail-progress">
+            <div id="iscrizioni_mail_progress_bar" class="iscrizioni-mail-progress-bar is-running"></div>
+        </div>
+        <div id="iscrizioni_mail_details" class="text-muted"></div>
+        <button type="button" id="iscrizioni_mail_close" class="btn btn-primary" style="display:none;margin-top:16px;" onclick="iscrizioniTerzeHideMailOverlay()">Chiudi</button>
+    </div>
+</div>
 
 <div class="container-fluid">
     <div class="panel panel-lightblue4">
@@ -40,12 +141,12 @@ $mailAttachments = iscrizioniPrimeMailAttachments('terze');
         </div>
         <div class="panel-body">
             <div class="row">
-                <div class="col-md-2"><strong>Totale:</strong> <?php echo intval($stats['totale'] ?? 0); ?></div>
-                <div class="col-md-2"><strong>Interni:</strong> <?php echo intval($stats['interni'] ?? 0); ?></div>
-                <div class="col-md-2"><strong>Esterni:</strong> <?php echo intval($stats['esterni'] ?? 0); ?></div>
-                <div class="col-md-2"><strong>Bozze esterni:</strong> <?php echo intval($stats['bozze'] ?? 0); ?></div>
-                <div class="col-md-2"><strong>Inviate:</strong> <?php echo intval($stats['inviate'] ?? 0); ?></div>
-                <div class="col-md-2"><strong>Esterni con email:</strong> <?php echo intval($stats['esterni_con_email'] ?? 0); ?></div>
+                <div class="col-md-2"><strong>Totale:</strong> <span id="stat_totale"><?php echo intval($stats['totale'] ?? 0); ?></span></div>
+                <div class="col-md-2"><strong>Interni:</strong> <span id="stat_interni"><?php echo intval($stats['interni'] ?? 0); ?></span></div>
+                <div class="col-md-2"><strong>Esterni:</strong> <span id="stat_esterni"><?php echo intval($stats['esterni'] ?? 0); ?></span></div>
+                <div class="col-md-2"><strong>Domande inviate:</strong> <span id="stat_domande_inviate"><?php echo intval($stats['inviate'] ?? 0); ?></span></div>
+                <div class="col-md-2"><strong>Mail reali:</strong> <span id="stat_mail_reali">0</span></div>
+                <div class="col-md-2"><strong>Mail test:</strong> <span id="stat_mail_test">0</span></div>
             </div>
             <div class="alert alert-info" style="margin-top:14px;">
                 Gli studenti gia presenti in GestOre vengono segnati come interni e non ricevono il link. La raccolta dati e documenti viene inviata solo agli studenti esterni.
@@ -72,36 +173,26 @@ $mailAttachments = iscrizioniPrimeMailAttachments('terze');
                     </button>
                 </div>
             </div>
+            <div id="iscrizioni_terze_result" class="alert" style="display:none;margin-top:12px;"></div>
             <hr>
             <div class="panel panel-default">
-                <div class="panel-heading"><strong>Testo mail e allegati per esterni</strong></div>
+                <div class="panel-heading"><strong>Bozza Gmail per invio mail esterni</strong></div>
                 <div class="panel-body">
-                    <form id="iscrizioni_terze_mail_template_form">
+                    <form id="iscrizioni_terze_draft_subject_form">
                         <input type="hidden" name="tipo_iscrizione" value="terze">
                         <div class="form-group">
-                            <label>Oggetto mail</label>
-                            <input type="text" name="subject" class="form-control" value="<?php echo htmlspecialchars((string)($mailTemplate['subject'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Lascia vuoto per usare l'oggetto automatico">
+                            <label>Oggetto della mail BOZZA in Gmail</label>
+                            <input type="text" name="draft_subject" class="form-control" value="<?php echo htmlspecialchars($draftSubject, ENT_QUOTES, 'UTF-8'); ?>" required>
+                            <span class="help-block">
+                                GestOre cerca questa bozza nelle caselle iscrizioni1, iscrizioni2, ecc. Nella bozza usa
+                                <strong>{{LINK_PERSONALE}}</strong>, <strong>{{NOME_STUDENTE}}</strong> e
+                                <strong>{blocco traduzioni}</strong>. Gli allegati presenti nella bozza vengono copiati nella mail inviata.
+                            </span>
                         </div>
-                        <div class="form-group">
-                            <label>Testo mail</label>
-                            <textarea name="body_html" class="form-control" rows="8" placeholder="Lascia vuoto per usare il testo automatico"><?php echo htmlspecialchars((string)($mailTemplate['body_html'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-                            <span class="help-block">Segnaposto disponibili: {link}, {studente}, {nome}, {cognome}, {corso}, {anno}, {istituto}. Puoi usare anche semplice HTML.</span>
-                        </div>
-                        <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-floppy-disk"></span> Salva testo mail</button>
+                        <button type="submit" class="btn btn-default">
+                            <span class="glyphicon glyphicon-floppy-disk"></span> Salva oggetto bozza
+                        </button>
                     </form>
-                    <hr>
-                    <form id="iscrizioni_terze_mail_attachment_form" enctype="multipart/form-data">
-                        <input type="hidden" name="tipo_iscrizione" value="terze">
-                        <div class="form-inline">
-                            <input type="file" name="pdf" accept="application/pdf,.pdf" class="form-control" required>
-                            <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-paperclip"></span> Aggiungi PDF allegato</button>
-                        </div>
-                    </form>
-                    <div style="margin-top:8px;">
-                        <?php foreach ($mailAttachments as $attachment) : ?>
-                            <span class="label label-info"><?php echo htmlspecialchars((string)$attachment['original_name'], ENT_QUOTES, 'UTF-8'); ?></span>
-                        <?php endforeach; ?>
-                    </div>
                 </div>
             </div>
             <hr>
@@ -191,7 +282,6 @@ $mailAttachments = iscrizioniPrimeMailAttachments('terze');
                     </div>
                 </div>
             </form>
-            <div id="iscrizioni_terze_result" class="alert" style="display:none;"></div>
         </div>
     </div>
 
@@ -210,12 +300,13 @@ $mailAttachments = iscrizioniPrimeMailAttachments('terze');
                             <th>Tipo</th>
                             <th>Stato</th>
                             <th>Email responsabili</th>
+                            <th>Mail avviso</th>
                             <th>Token</th>
                             <th>Test</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td colspan="8" class="text-muted">Caricamento...</td></tr>
+                        <tr><td colspan="9" class="text-muted">Caricamento...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -224,22 +315,118 @@ $mailAttachments = iscrizioniPrimeMailAttachments('terze');
 </div>
 
 <script>
+let iscrizioniTerzeMailProgressTimer = null;
+let iscrizioniTerzeMailProgressValue = 0;
+
 function iscrizioniTerzeEscape(value) {
     return String(value || '').replace(/[&<>"']/g, function (char) {
         return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[char];
     });
 }
 
+function iscrizioniTerzeSetText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value || 0;
+}
+
+function iscrizioniTerzeNumber(value) {
+    return value === undefined || value === null || value === '' ? 0 : value;
+}
+
+function iscrizioniTerzeUpdateStats(stats, mailStats) {
+    stats = stats || {};
+    mailStats = mailStats || {};
+    iscrizioniTerzeSetText('stat_totale', stats.totale || 0);
+    iscrizioniTerzeSetText('stat_interni', stats.interni || 0);
+    iscrizioniTerzeSetText('stat_esterni', stats.esterni || 0);
+    iscrizioniTerzeSetText('stat_domande_inviate', stats.domande_inviate_esterni || stats.domande_inviate || 0);
+    iscrizioniTerzeSetText('stat_mail_reali', mailStats.mail_reali || 0);
+    iscrizioniTerzeSetText('stat_mail_test', mailStats.mail_test || 0);
+}
+
+function iscrizioniTerzeMailStatus(row) {
+    if (Number(row.studente_interno)) {
+        return '<span class="mail-badge mail-badge-skip">Non richiesta</span>';
+    }
+    const real = Number(row.mail_reali || 0);
+    const test = Number(row.mail_test || 0);
+    let html = '';
+    if (real > 0) {
+        html += '<span class="mail-badge mail-badge-real">Reale inviata</span>';
+        if (row.last_real_sent_at) html += '<br><small>' + iscrizioniTerzeEscape(row.last_real_sent_at) + '</small>';
+    } else if (test > 0) {
+        html += '<span class="mail-badge mail-badge-test">Test inviato</span>';
+        if (row.last_test_sent_at) html += '<br><small>' + iscrizioniTerzeEscape(row.last_test_sent_at) + '</small>';
+    } else {
+        html += '<span class="mail-badge mail-badge-none">Da inviare</span>';
+    }
+    if (real > 1 || test > 1) {
+        html += '<br><small>reali ' + real + ' / test ' + test + '</small>';
+    }
+    return html;
+}
+
+function iscrizioniTerzeShowMailOverlay(title, text) {
+    if (iscrizioniTerzeMailProgressTimer) {
+        clearInterval(iscrizioniTerzeMailProgressTimer);
+    }
+    iscrizioniTerzeMailProgressValue = 3;
+    document.getElementById('iscrizioni_mail_overlay').style.display = 'flex';
+    document.getElementById('iscrizioni_mail_title').textContent = title;
+    document.getElementById('iscrizioni_mail_text').textContent = text;
+    document.getElementById('iscrizioni_mail_percent').textContent = iscrizioniTerzeMailProgressValue + '%';
+    document.getElementById('iscrizioni_mail_details').textContent = '';
+    document.getElementById('iscrizioni_mail_close').style.display = 'none';
+    const bar = document.getElementById('iscrizioni_mail_progress_bar');
+    bar.className = 'iscrizioni-mail-progress-bar';
+    bar.style.width = iscrizioniTerzeMailProgressValue + '%';
+    document.getElementById('iscrizioni_mail_icon').style.background = '#0ea5e9';
+    document.getElementById('iscrizioni_mail_icon').innerHTML = '<span class="glyphicon glyphicon-send"></span>';
+
+    iscrizioniTerzeMailProgressTimer = setInterval(function () {
+        if (iscrizioniTerzeMailProgressValue < 70) {
+            iscrizioniTerzeMailProgressValue += 4;
+        } else if (iscrizioniTerzeMailProgressValue < 90) {
+            iscrizioniTerzeMailProgressValue += 1;
+        }
+        document.getElementById('iscrizioni_mail_percent').textContent = iscrizioniTerzeMailProgressValue + '%';
+        bar.style.width = iscrizioniTerzeMailProgressValue + '%';
+    }, 900);
+}
+
+function iscrizioniTerzeCompleteMailOverlay(ok, title, text, details) {
+    if (iscrizioniTerzeMailProgressTimer) {
+        clearInterval(iscrizioniTerzeMailProgressTimer);
+        iscrizioniTerzeMailProgressTimer = null;
+    }
+    document.getElementById('iscrizioni_mail_title').textContent = title;
+    document.getElementById('iscrizioni_mail_text').textContent = text;
+    document.getElementById('iscrizioni_mail_percent').textContent = ok ? '100%' : 'Errore';
+    document.getElementById('iscrizioni_mail_details').innerHTML = details || '';
+    document.getElementById('iscrizioni_mail_close').style.display = 'inline-block';
+    const bar = document.getElementById('iscrizioni_mail_progress_bar');
+    bar.className = 'iscrizioni-mail-progress-bar';
+    bar.style.width = '100%';
+    bar.style.background = ok ? 'linear-gradient(90deg, #22c55e, #16a34a)' : '#dc2626';
+    document.getElementById('iscrizioni_mail_icon').style.background = ok ? '#16a34a' : '#dc2626';
+    document.getElementById('iscrizioni_mail_icon').innerHTML = ok ? '<span class="glyphicon glyphicon-ok"></span>' : '<span class="glyphicon glyphicon-alert"></span>';
+}
+
+function iscrizioniTerzeHideMailOverlay() {
+    document.getElementById('iscrizioni_mail_overlay').style.display = 'none';
+}
+
 function iscrizioniTerzeLoadTable() {
     const tbody = document.querySelector('#iscrizioni_terze_table tbody');
-    tbody.innerHTML = '<tr><td colspan="8" class="text-muted">Caricamento...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Caricamento...</td></tr>';
 
     fetch('iscrizioniPrimeRead.php?tipo_iscrizione=terze', {credentials: 'same-origin'})
         .then(response => response.json())
         .then(data => {
             if (!data.ok) throw new Error(data.message || 'Errore lettura pratiche');
+            iscrizioniTerzeUpdateStats(data.stats, data.mail_stats);
             if (!data.rows.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-muted">Nessuna pratica importata.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Nessuna pratica importata.</td></tr>';
                 return;
             }
             tbody.innerHTML = data.rows.map(row => {
@@ -257,13 +444,14 @@ function iscrizioniTerzeLoadTable() {
                     '<td>' + tipo + '</td>' +
                     '<td>' + iscrizioniTerzeEscape(row.stato) + '</td>' +
                     '<td>' + (emails || '<span class="text-danger">mancante</span>') + '</td>' +
+                    '<td>' + iscrizioniTerzeMailStatus(row) + '</td>' +
                     '<td>' + token + '</td>' +
                     '<td>' + testButton + '</td>' +
                     '</tr>';
             }).join('');
         })
         .catch(error => {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-danger">' + iscrizioniTerzeEscape(error.message) + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-danger">' + iscrizioniTerzeEscape(error.message) + '</td></tr>';
         });
 }
 
@@ -296,6 +484,10 @@ function iscrizioniTerzeSendMail(dryRun) {
     result.className = 'alert alert-info';
     result.style.display = 'block';
     result.textContent = dryRun ? 'Simulazione invio in corso...' : 'Invio mail in corso...';
+    iscrizioniTerzeShowMailOverlay(
+        dryRun ? 'Simulazione invio mail terze' : 'Invio lotto mail terze',
+        dryRun ? 'GestOre sta calcolando quali mail verrebbero inviate agli esterni.' : 'GestOre sta inviando il prossimo lotto agli esterni. Tieni aperta questa pagina fino alla conferma finale.'
+    );
 
     fetch('iscrizioniPrimeMailSend.php', {
         method: 'POST',
@@ -307,14 +499,23 @@ function iscrizioniTerzeSendMail(dryRun) {
         result.className = data.ok ? 'alert alert-success' : 'alert alert-warning';
         result.innerHTML =
             iscrizioniTerzeEscape(data.message || '') +
-            '<br>Mail ' + (dryRun ? 'simulabili' : 'inviate') + ': ' + iscrizioniTerzeEscape(data.sent) +
-            ' - saltate: ' + iscrizioniTerzeEscape(data.skipped || 0) +
+            '<br>Mail ' + (dryRun ? 'simulabili' : 'inviate') + ': ' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.sent)) +
+            ' - saltate: ' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.skipped)) +
             (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniTerzeEscape).join(', ') : '');
+        iscrizioniTerzeCompleteMailOverlay(
+            !!data.ok,
+            data.ok ? (dryRun ? 'Simulazione completata' : 'Lotto completato') : 'Lotto completato con avvisi',
+            data.message || '',
+            'Mail ' + (dryRun ? 'simulabili' : 'inviate') + ': <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.sent)) + '</strong>' +
+            ' &middot; Saltate: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.skipped)) + '</strong>' +
+            (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniTerzeEscape).join(', ') : '')
+        );
         iscrizioniTerzeLoadTable();
     })
     .catch(error => {
         result.className = 'alert alert-danger';
         result.textContent = error.message;
+        iscrizioniTerzeCompleteMailOverlay(false, 'Invio non riuscito', error.message, '');
     });
 }
 
@@ -325,13 +526,25 @@ function iscrizioniTerzeSendTestMail() {
     result.className = 'alert alert-info';
     result.style.display = 'block';
     result.textContent = 'Invio mail di test in corso...';
+    result.scrollIntoView({behavior: 'smooth', block: 'center'});
 
     fetch('iscrizioniPrimeMailTest.php', {
         method: 'POST',
         body: fd,
         credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(response => response.text().then(text => {
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            throw new Error('Risposta non valida dal server. Verifica che la sessione sia attiva e riprova.');
+        }
+        if (!response.ok || !data.ok) {
+            throw new Error(data.message || 'Invio mail di test non riuscito.');
+        }
+        return data;
+    }))
     .then(data => {
         result.className = data.ok ? 'alert alert-success' : 'alert alert-danger';
         result.innerHTML = iscrizioniTerzeEscape(data.message || '') +
@@ -343,6 +556,7 @@ function iscrizioniTerzeSendTestMail() {
     .catch(error => {
         result.className = 'alert alert-danger';
         result.textContent = error.message;
+        result.scrollIntoView({behavior: 'smooth', block: 'center'});
     });
 }
 
@@ -413,27 +627,30 @@ document.getElementById('iscrizioni_terze_import_form').addEventListener('submit
     });
 });
 
-document.getElementById('iscrizioni_terze_mail_template_form').addEventListener('submit', function (event) {
+document.getElementById('iscrizioni_terze_draft_subject_form').addEventListener('submit', function (event) {
     event.preventDefault();
-    fetch('iscrizioniPrimeMailTemplateSave.php', { method: 'POST', body: new FormData(event.target), credentials: 'same-origin' })
-        .then(response => response.json().then(data => ({ok: response.ok, data})))
-        .then(result => {
-            if (!result.ok || !result.data.ok) throw new Error(result.data.message || 'Errore salvataggio testo mail');
-            alert(result.data.message || 'Testo mail salvato.');
-        })
-        .catch(error => alert(error.message));
-});
+    const result = document.getElementById('iscrizioni_terze_result');
+    result.className = 'alert alert-info';
+    result.style.display = 'block';
+    result.textContent = 'Salvataggio oggetto bozza in corso...';
 
-document.getElementById('iscrizioni_terze_mail_attachment_form').addEventListener('submit', function (event) {
-    event.preventDefault();
-    fetch('iscrizioniPrimeMailAttachmentUpload.php', { method: 'POST', body: new FormData(event.target), credentials: 'same-origin' })
+    fetch('iscrizioniPrimeDraftSubjectSave.php', {
+        method: 'POST',
+        body: new FormData(event.target),
+        credentials: 'same-origin'
+    })
         .then(response => response.json().then(data => ({ok: response.ok, data})))
-        .then(result => {
-            if (!result.ok || !result.data.ok) throw new Error(result.data.message || 'Errore caricamento allegato');
-            alert(result.data.message || 'Allegato caricato.');
-            window.location.reload();
+        .then(resultData => {
+            if (!resultData.ok || !resultData.data.ok) {
+                throw new Error(resultData.data.message || 'Errore salvataggio oggetto bozza');
+            }
+            result.className = 'alert alert-success';
+            result.textContent = resultData.data.message || 'Oggetto bozza salvato.';
         })
-        .catch(error => alert(error.message));
+        .catch(error => {
+            result.className = 'alert alert-danger';
+            result.textContent = error.message;
+        });
 });
 
 iscrizioniTerzeLoadTable();
