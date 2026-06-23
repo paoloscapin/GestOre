@@ -28,10 +28,11 @@ $stats = dbGetFirst("
 
 $mailStats = dbGetFirst("
     SELECT
-        COUNT(DISTINCT CASE WHEN l.stato = 'inviata' AND l.test_mode = 0 THEN l.pratica_id END) AS pratiche_mail_reali,
+        COUNT(DISTINCT CASE WHEN l.stato IN ('inviata','bounce') AND l.test_mode = 0 THEN l.pratica_id END) AS pratiche_mail_reali,
         COUNT(DISTINCT CASE WHEN l.stato = 'inviata' AND l.test_mode = 1 THEN l.pratica_id END) AS pratiche_mail_test,
-        SUM(CASE WHEN l.stato = 'inviata' AND l.test_mode = 0 THEN 1 ELSE 0 END) AS mail_reali,
-        SUM(CASE WHEN l.stato = 'inviata' AND l.test_mode = 1 THEN 1 ELSE 0 END) AS mail_test
+        SUM(CASE WHEN l.stato IN ('inviata','bounce') AND l.test_mode = 0 THEN 1 ELSE 0 END) AS mail_reali,
+        SUM(CASE WHEN l.stato = 'inviata' AND l.test_mode = 1 THEN 1 ELSE 0 END) AS mail_test,
+        SUM(CASE WHEN l.stato = 'bounce' AND l.test_mode = 0 THEN 1 ELSE 0 END) AS mail_bounce
     FROM iscrizioni_prime_mail_log l
     INNER JOIN iscrizioni_prime_pratiche p ON p.id = l.pratica_id
     WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
@@ -62,16 +63,24 @@ $rows = dbGetAll("
         p.updated_at,
         COALESCE(mail_log.mail_reali, 0) AS mail_reali,
         COALESCE(mail_log.mail_test, 0) AS mail_test,
+        COALESCE(mail_log.mail_bounce, 0) AS mail_bounce,
         mail_log.last_real_sent_at,
-        mail_log.last_test_sent_at
+        mail_log.last_test_sent_at,
+        mail_log.last_bounced_at,
+        mail_log.bounce_type,
+        mail_log.bounce_reason
     FROM iscrizioni_prime_pratiche p
     LEFT JOIN (
         SELECT
             pratica_id,
-            SUM(CASE WHEN stato = 'inviata' AND test_mode = 0 THEN 1 ELSE 0 END) AS mail_reali,
+            SUM(CASE WHEN stato IN ('inviata','bounce') AND test_mode = 0 THEN 1 ELSE 0 END) AS mail_reali,
             SUM(CASE WHEN stato = 'inviata' AND test_mode = 1 THEN 1 ELSE 0 END) AS mail_test,
-            MAX(CASE WHEN stato = 'inviata' AND test_mode = 0 THEN sent_at ELSE NULL END) AS last_real_sent_at,
-            MAX(CASE WHEN stato = 'inviata' AND test_mode = 1 THEN sent_at ELSE NULL END) AS last_test_sent_at
+            SUM(CASE WHEN stato = 'bounce' AND test_mode = 0 THEN 1 ELSE 0 END) AS mail_bounce,
+            MAX(CASE WHEN stato IN ('inviata','bounce') AND test_mode = 0 THEN sent_at ELSE NULL END) AS last_real_sent_at,
+            MAX(CASE WHEN stato = 'inviata' AND test_mode = 1 THEN sent_at ELSE NULL END) AS last_test_sent_at,
+            MAX(CASE WHEN stato = 'bounce' AND test_mode = 0 THEN bounced_at ELSE NULL END) AS last_bounced_at,
+            SUBSTRING_INDEX(GROUP_CONCAT(CASE WHEN stato = 'bounce' AND test_mode = 0 THEN bounce_type ELSE NULL END ORDER BY bounced_at DESC SEPARATOR '||'), '||', 1) AS bounce_type,
+            SUBSTRING_INDEX(GROUP_CONCAT(CASE WHEN stato = 'bounce' AND test_mode = 0 THEN bounce_reason ELSE NULL END ORDER BY bounced_at DESC SEPARATOR '||'), '||', 1) AS bounce_reason
         FROM iscrizioni_prime_mail_log
         GROUP BY pratica_id
     ) mail_log ON mail_log.pratica_id = p.id

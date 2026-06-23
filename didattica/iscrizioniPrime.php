@@ -112,6 +112,7 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
         .mail-badge-real { background: #dcfce7; color: #166534; }
         .mail-badge-test { background: #dbeafe; color: #1d4ed8; }
         .mail-badge-none { background: #fee2e2; color: #991b1b; }
+        .mail-badge-bounce { background: #fecaca; color: #7f1d1d; }
     </style>
 </head>
 <body>
@@ -167,6 +168,12 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
                     <button type="button" class="btn btn-warning" onclick="iscrizioniPrimeSendMail(0)">
                         <span class="glyphicon glyphicon-send"></span> Invia prossimo lotto
                     </button>
+                    <button type="button" class="btn btn-danger" onclick="iscrizioniPrimeCheckBounce()">
+                        <span class="glyphicon glyphicon-warning-sign"></span> Bounce
+                    </button>
+                    <a class="btn btn-default" href="iscrizioniPrimeMailBounceExport.php?tipo_iscrizione=prime&days=30">
+                        <span class="glyphicon glyphicon-download-alt"></span> Esporta report bounce
+                    </a>
                 </div>
             </div>
             <div id="iscrizioni_prime_result" class="alert" style="display:none;margin-top:12px;"></div>
@@ -292,8 +299,13 @@ function iscrizioniPrimeUpdateStats(stats, mailStats) {
 function iscrizioniPrimeMailStatus(row) {
     const real = Number(row.mail_reali || 0);
     const test = Number(row.mail_test || 0);
+    const bounce = Number(row.mail_bounce || 0);
     let html = '';
-    if (real > 0) {
+    if (bounce > 0) {
+        html += '<span class="mail-badge mail-badge-bounce">Bounce</span>';
+        if (row.bounce_reason) html += '<br><small>' + iscrizioniPrimeEscape(row.bounce_reason) + '</small>';
+        if (row.last_bounced_at) html += '<br><small>' + iscrizioniPrimeEscape(row.last_bounced_at) + '</small>';
+    } else if (real > 0) {
         html += '<span class="mail-badge mail-badge-real">Reale inviata</span>';
         if (row.last_real_sent_at) html += '<br><small>' + iscrizioniPrimeEscape(row.last_real_sent_at) + '</small>';
     } else if (test > 0) {
@@ -306,6 +318,59 @@ function iscrizioniPrimeMailStatus(row) {
         html += '<br><small>reali ' + real + ' / test ' + test + '</small>';
     }
     return html;
+}
+
+function iscrizioniPrimeBounceDetails(data) {
+    const totals = data.totals || {};
+    let html =
+        'Messaggi controllati: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(totals.checked)) + '</strong>' +
+        ' &middot; collegati a pratiche: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(totals.matched)) + '</strong>' +
+        ' &middot; non collegati: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(totals.unmatched)) + '</strong>' +
+        '<br>Limite invio: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(totals.quota_limit)) + '</strong>' +
+        ' &middot; indirizzo errato: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(totals.invalid_recipient)) + '</strong>' +
+        ' &middot; casella piena: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(totals.mailbox_full)) + '</strong>' +
+        ' &middot; altro: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(totals.other_bounce)) + '</strong>';
+
+    if (data.export_url) {
+        html += '<br><a class="btn btn-sm btn-default" style="margin-top:10px;" href="' + iscrizioniPrimeEscape(data.export_url) + '"><span class="glyphicon glyphicon-download-alt"></span> Scarica report CSV</a>';
+    }
+    return html;
+}
+
+function iscrizioniPrimeCheckBounce() {
+    const result = document.getElementById('iscrizioni_prime_result');
+    const formData = new FormData();
+    formData.append('tipo_iscrizione', 'prime');
+    formData.append('max', '60');
+
+    result.className = 'alert alert-info';
+    result.style.display = 'block';
+    result.textContent = 'Controllo bounce in corso...';
+    iscrizioniPrimeShowMailOverlay('Controllo bounce', 'GestOre sta leggendo le notifiche di mancata consegna nelle caselle iscrizioni.');
+
+    fetch('iscrizioniPrimeMailBounceCheck.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        const details = iscrizioniPrimeBounceDetails(data);
+        result.className = data.ok ? 'alert alert-success' : 'alert alert-warning';
+        result.innerHTML = details;
+        iscrizioniPrimeCompleteMailOverlay(
+            !!data.ok,
+            data.ok ? 'Controllo bounce completato' : 'Controllo completato con avvisi',
+            data.ok ? 'Le mail rimbalzate trovate sono state segnate nelle pratiche.' : 'Alcuni account non sono stati controllati correttamente.',
+            details
+        );
+        iscrizioniPrimeLoadTable();
+    })
+    .catch(error => {
+        result.className = 'alert alert-danger';
+        result.textContent = error.message;
+        iscrizioniPrimeCompleteMailOverlay(false, 'Controllo bounce non riuscito', error.message, '');
+    });
 }
 
 function iscrizioniPrimeShowMailOverlay(title, text) {
@@ -447,6 +512,7 @@ function iscrizioniPrimeSendMail(dryRun) {
             iscrizioniPrimeEscape(data.message || '') +
             '<br>Mail ' + (dryRun ? 'simulabili' : 'inviate') + ': ' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.sent)) +
             ' - saltate: ' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.skipped)) +
+            (data.remaining !== undefined ? ' - restanti: ' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.remaining)) : '') +
             (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniPrimeEscape).join(', ') : '');
         iscrizioniPrimeCompleteMailOverlay(
             !!data.ok,
@@ -454,6 +520,7 @@ function iscrizioniPrimeSendMail(dryRun) {
             data.message || '',
             'Mail ' + (dryRun ? 'simulabili' : 'inviate') + ': <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.sent)) + '</strong>' +
             ' &middot; Saltate: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.skipped)) + '</strong>' +
+            (data.remaining !== undefined ? ' &middot; Restanti: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.remaining)) + '</strong>' : '') +
             (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniPrimeEscape).join(', ') : '')
         );
         iscrizioniPrimeLoadTable();

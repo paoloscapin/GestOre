@@ -113,6 +113,7 @@ $draftSubject = iscrizioniPrimeDraftSubject('terze');
         .mail-badge-test { background: #dbeafe; color: #1d4ed8; }
         .mail-badge-none { background: #fee2e2; color: #991b1b; }
         .mail-badge-skip { background: #e5e7eb; color: #374151; }
+        .mail-badge-bounce { background: #fecaca; color: #7f1d1d; }
     </style>
 </head>
 <body>
@@ -171,6 +172,12 @@ $draftSubject = iscrizioniPrimeDraftSubject('terze');
                     <button type="button" class="btn btn-warning" onclick="iscrizioniTerzeSendMail(0)">
                         <span class="glyphicon glyphicon-send"></span> Invia prossimo lotto esterni
                     </button>
+                    <button type="button" class="btn btn-danger" onclick="iscrizioniTerzeCheckBounce()">
+                        <span class="glyphicon glyphicon-warning-sign"></span> Bounce
+                    </button>
+                    <a class="btn btn-default" href="iscrizioniPrimeMailBounceExport.php?tipo_iscrizione=terze&days=30">
+                        <span class="glyphicon glyphicon-download-alt"></span> Esporta report bounce
+                    </a>
                 </div>
             </div>
             <div id="iscrizioni_terze_result" class="alert" style="display:none;margin-top:12px;"></div>
@@ -350,8 +357,13 @@ function iscrizioniTerzeMailStatus(row) {
     }
     const real = Number(row.mail_reali || 0);
     const test = Number(row.mail_test || 0);
+    const bounce = Number(row.mail_bounce || 0);
     let html = '';
-    if (real > 0) {
+    if (bounce > 0) {
+        html += '<span class="mail-badge mail-badge-bounce">Bounce</span>';
+        if (row.bounce_reason) html += '<br><small>' + iscrizioniTerzeEscape(row.bounce_reason) + '</small>';
+        if (row.last_bounced_at) html += '<br><small>' + iscrizioniTerzeEscape(row.last_bounced_at) + '</small>';
+    } else if (real > 0) {
         html += '<span class="mail-badge mail-badge-real">Reale inviata</span>';
         if (row.last_real_sent_at) html += '<br><small>' + iscrizioniTerzeEscape(row.last_real_sent_at) + '</small>';
     } else if (test > 0) {
@@ -364,6 +376,59 @@ function iscrizioniTerzeMailStatus(row) {
         html += '<br><small>reali ' + real + ' / test ' + test + '</small>';
     }
     return html;
+}
+
+function iscrizioniTerzeBounceDetails(data) {
+    const totals = data.totals || {};
+    let html =
+        'Messaggi controllati: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(totals.checked)) + '</strong>' +
+        ' &middot; collegati a pratiche: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(totals.matched)) + '</strong>' +
+        ' &middot; non collegati: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(totals.unmatched)) + '</strong>' +
+        '<br>Limite invio: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(totals.quota_limit)) + '</strong>' +
+        ' &middot; indirizzo errato: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(totals.invalid_recipient)) + '</strong>' +
+        ' &middot; casella piena: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(totals.mailbox_full)) + '</strong>' +
+        ' &middot; altro: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(totals.other_bounce)) + '</strong>';
+
+    if (data.export_url) {
+        html += '<br><a class="btn btn-sm btn-default" style="margin-top:10px;" href="' + iscrizioniTerzeEscape(data.export_url) + '"><span class="glyphicon glyphicon-download-alt"></span> Scarica report CSV</a>';
+    }
+    return html;
+}
+
+function iscrizioniTerzeCheckBounce() {
+    const result = document.getElementById('iscrizioni_terze_result');
+    const formData = new FormData();
+    formData.append('tipo_iscrizione', 'terze');
+    formData.append('max', '60');
+
+    result.className = 'alert alert-info';
+    result.style.display = 'block';
+    result.textContent = 'Controllo bounce in corso...';
+    iscrizioniTerzeShowMailOverlay('Controllo bounce', 'GestOre sta leggendo le notifiche di mancata consegna nelle caselle iscrizioni.');
+
+    fetch('iscrizioniPrimeMailBounceCheck.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        const details = iscrizioniTerzeBounceDetails(data);
+        result.className = data.ok ? 'alert alert-success' : 'alert alert-warning';
+        result.innerHTML = details;
+        iscrizioniTerzeCompleteMailOverlay(
+            !!data.ok,
+            data.ok ? 'Controllo bounce completato' : 'Controllo completato con avvisi',
+            data.ok ? 'Le mail rimbalzate trovate sono state segnate nelle pratiche.' : 'Alcuni account non sono stati controllati correttamente.',
+            details
+        );
+        iscrizioniTerzeLoadTable();
+    })
+    .catch(error => {
+        result.className = 'alert alert-danger';
+        result.textContent = error.message;
+        iscrizioniTerzeCompleteMailOverlay(false, 'Controllo bounce non riuscito', error.message, '');
+    });
 }
 
 function iscrizioniTerzeShowMailOverlay(title, text) {
@@ -501,6 +566,7 @@ function iscrizioniTerzeSendMail(dryRun) {
             iscrizioniTerzeEscape(data.message || '') +
             '<br>Mail ' + (dryRun ? 'simulabili' : 'inviate') + ': ' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.sent)) +
             ' - saltate: ' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.skipped)) +
+            (data.remaining !== undefined ? ' - restanti: ' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.remaining)) : '') +
             (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniTerzeEscape).join(', ') : '');
         iscrizioniTerzeCompleteMailOverlay(
             !!data.ok,
@@ -508,6 +574,7 @@ function iscrizioniTerzeSendMail(dryRun) {
             data.message || '',
             'Mail ' + (dryRun ? 'simulabili' : 'inviate') + ': <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.sent)) + '</strong>' +
             ' &middot; Saltate: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.skipped)) + '</strong>' +
+            (data.remaining !== undefined ? ' &middot; Restanti: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.remaining)) + '</strong>' : '') +
             (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniTerzeEscape).join(', ') : '')
         );
         iscrizioniTerzeLoadTable();

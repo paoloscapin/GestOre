@@ -164,9 +164,17 @@ function iscrizioniPrimeEnsureSchema(): void
           recipient_email varchar(255) NOT NULL,
           account_email varchar(255) DEFAULT NULL,
           token_last4 char(4) DEFAULT NULL,
-          stato enum('inviata','errore') NOT NULL,
+          stato enum('inviata','errore','bounce') NOT NULL,
           test_mode tinyint NOT NULL DEFAULT 0,
+          transport varchar(50) DEFAULT NULL,
+          gmail_message_id varchar(190) DEFAULT NULL,
           errore text DEFAULT NULL,
+          bounce_type varchar(40) DEFAULT NULL,
+          bounce_reason text DEFAULT NULL,
+          bounce_message_id varchar(190) DEFAULT NULL,
+          bounce_snippet text DEFAULT NULL,
+          checked_at datetime DEFAULT NULL,
+          bounced_at datetime DEFAULT NULL,
           sent_at datetime DEFAULT NULL,
           created_at datetime NOT NULL,
           PRIMARY KEY (id),
@@ -187,6 +195,23 @@ function iscrizioniPrimeEnsureSchema(): void
           updated_at datetime NOT NULL,
           PRIMARY KEY (id),
           UNIQUE KEY idx_iscrizioni_mail_template_tipo (tipo_iscrizione)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    dbExec("
+        CREATE TABLE IF NOT EXISTS iscrizioni_prime_mail_bounce_unmatched (
+          id int NOT NULL AUTO_INCREMENT,
+          account_email varchar(255) NOT NULL,
+          gmail_message_id varchar(190) NOT NULL,
+          bounce_type varchar(40) DEFAULT NULL,
+          bounce_reason text DEFAULT NULL,
+          subject varchar(255) DEFAULT NULL,
+          snippet text DEFAULT NULL,
+          checked_at datetime NOT NULL,
+          created_at datetime NOT NULL,
+          PRIMARY KEY (id),
+          UNIQUE KEY idx_iscrizioni_bounce_unmatched_msg (account_email, gmail_message_id),
+          KEY idx_iscrizioni_bounce_unmatched_checked (checked_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
 
@@ -264,11 +289,20 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'contatti_ignorati', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN contatti_ignorati int NOT NULL DEFAULT 0 AFTER contatti_aggiornati");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'tipo_iscrizione', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN tipo_iscrizione varchar(20) NOT NULL DEFAULT 'prime' AFTER contatti_ignorati");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_mail_log', 'test_mode', "ALTER TABLE iscrizioni_prime_mail_log ADD COLUMN test_mode tinyint NOT NULL DEFAULT 0 AFTER stato");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_mail_log', 'transport', "ALTER TABLE iscrizioni_prime_mail_log ADD COLUMN transport varchar(50) DEFAULT NULL AFTER test_mode");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_mail_log', 'gmail_message_id', "ALTER TABLE iscrizioni_prime_mail_log ADD COLUMN gmail_message_id varchar(190) DEFAULT NULL AFTER transport");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_mail_log', 'bounce_type', "ALTER TABLE iscrizioni_prime_mail_log ADD COLUMN bounce_type varchar(40) DEFAULT NULL AFTER errore");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_mail_log', 'bounce_reason', "ALTER TABLE iscrizioni_prime_mail_log ADD COLUMN bounce_reason text DEFAULT NULL AFTER bounce_type");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_mail_log', 'bounce_message_id', "ALTER TABLE iscrizioni_prime_mail_log ADD COLUMN bounce_message_id varchar(190) DEFAULT NULL AFTER bounce_reason");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_mail_log', 'bounce_snippet', "ALTER TABLE iscrizioni_prime_mail_log ADD COLUMN bounce_snippet text DEFAULT NULL AFTER bounce_message_id");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_mail_log', 'checked_at', "ALTER TABLE iscrizioni_prime_mail_log ADD COLUMN checked_at datetime DEFAULT NULL AFTER bounce_snippet");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_mail_log', 'bounced_at', "ALTER TABLE iscrizioni_prime_mail_log ADD COLUMN bounced_at datetime DEFAULT NULL AFTER checked_at");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_documenti', 'storage_type', "ALTER TABLE iscrizioni_prime_documenti ADD COLUMN storage_type enum('LOCAL','DRIVE') NOT NULL DEFAULT 'LOCAL' AFTER file_size");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_documenti', 'drive_file_id', "ALTER TABLE iscrizioni_prime_documenti ADD COLUMN drive_file_id varchar(255) DEFAULT NULL AFTER storage_type");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_documenti', 'drive_web_view_link', "ALTER TABLE iscrizioni_prime_documenti ADD COLUMN drive_web_view_link varchar(500) DEFAULT NULL AFTER drive_file_id");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_documenti', 'drive_folder_id', "ALTER TABLE iscrizioni_prime_documenti ADD COLUMN drive_folder_id varchar(255) DEFAULT NULL AFTER drive_web_view_link");
     iscrizioniPrimeEnsureDocumentStatusEnum();
+    iscrizioniPrimeEnsureMailLogStatusEnum();
 }
 
 function iscrizioniPrimeEnsureColumn(string $table, string $column, string $alterSql): void
@@ -299,6 +333,22 @@ function iscrizioniPrimeEnsureDocumentStatusEnum(): void
 
     if (strpos($columnType, 'consegna_cartacea') === false) {
         dbExec("ALTER TABLE iscrizioni_prime_documenti MODIFY COLUMN stato enum('mancante','caricato','consegna_cartacea','estratto','verificato','da_sostituire') NOT NULL DEFAULT 'mancante'");
+    }
+}
+
+function iscrizioniPrimeEnsureMailLogStatusEnum(): void
+{
+    $columnType = (string)dbGetValue("
+        SELECT COLUMN_TYPE
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'iscrizioni_prime_mail_log'
+          AND COLUMN_NAME = 'stato'
+        LIMIT 1
+    ");
+
+    if (strpos($columnType, 'bounce') === false) {
+        dbExec("ALTER TABLE iscrizioni_prime_mail_log MODIFY COLUMN stato enum('inviata','errore','bounce') NOT NULL");
     }
 }
 
@@ -937,7 +987,7 @@ function iscrizioniPrimeMailAccountCounts(): array
     $rows = dbGetAll("
         SELECT account_email, COUNT(*) AS totale
         FROM iscrizioni_prime_mail_log
-        WHERE stato = 'inviata'
+        WHERE stato IN ('inviata','bounce')
           AND test_mode = 0
           AND sent_at >= CURDATE()
           AND account_email IS NOT NULL
@@ -950,6 +1000,53 @@ function iscrizioniPrimeMailAccountCounts(): array
     }
 
     return $counts;
+}
+
+function iscrizioniPrimeMailPendingRecipientCount(string $tipoIscrizione): int
+{
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+
+    $count = dbGetValue("
+        SELECT COALESCE(SUM(
+            CASE
+                WHEN p.email_genitore_1 IS NOT NULL
+                 AND TRIM(p.email_genitore_1) <> ''
+                 AND NOT EXISTS (
+                    SELECT 1
+                    FROM iscrizioni_prime_mail_log l
+                    WHERE l.pratica_id = p.id
+                      AND l.recipient_email = p.email_genitore_1
+                      AND l.stato IN ('inviata','bounce')
+                      AND l.test_mode = 0
+                    LIMIT 1
+                 )
+                THEN 1 ELSE 0
+            END
+            +
+            CASE
+                WHEN p.email_genitore_2 IS NOT NULL
+                 AND TRIM(p.email_genitore_2) <> ''
+                 AND p.email_genitore_2 <> p.email_genitore_1
+                 AND NOT EXISTS (
+                    SELECT 1
+                    FROM iscrizioni_prime_mail_log l
+                    WHERE l.pratica_id = p.id
+                      AND l.recipient_email = p.email_genitore_2
+                      AND l.stato IN ('inviata','bounce')
+                      AND l.test_mode = 0
+                    LIMIT 1
+                 )
+                THEN 1 ELSE 0
+            END
+        ), 0)
+        FROM iscrizioni_prime_pratiche p
+        WHERE p.stato IN ('importata', 'bozza', 'da_integrare')
+          AND p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+          AND p.studente_interno = 0
+          AND (p.email_genitore_1 IS NOT NULL OR p.email_genitore_2 IS NOT NULL)
+    ");
+
+    return intval($count);
 }
 
 function iscrizioniPrimePickMailAccount(array $cfg, array $counts): ?array
@@ -1608,6 +1705,19 @@ function iscrizioniPrimeSendMailBatch(bool $dryRun = false, string $tipoIscrizio
     }
 
     $batchSize = intval($cfg['batchSize']);
+    $pendingBefore = iscrizioniPrimeMailPendingRecipientCount($tipoIscrizione);
+    if ($pendingBefore <= 0) {
+        return [
+            'ok' => true,
+            'message' => 'Non ci sono mail da inviare: tutte le mail risultano gia inviate oppure non ci sono pratiche esterne con email.',
+            'sent' => 0,
+            'skipped' => 0,
+            'remaining' => 0,
+            'last_batch' => true,
+            'errors' => [],
+        ];
+    }
+
     $pratiche = dbGetAll("
         SELECT *
         FROM iscrizioni_prime_pratiche p
@@ -1615,6 +1725,36 @@ function iscrizioniPrimeSendMailBatch(bool $dryRun = false, string $tipoIscrizio
           AND p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
           AND p.studente_interno = 0
           AND (p.email_genitore_1 IS NOT NULL OR p.email_genitore_2 IS NOT NULL)
+          AND (
+            (
+                p.email_genitore_1 IS NOT NULL
+                AND TRIM(p.email_genitore_1) <> ''
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM iscrizioni_prime_mail_log l
+                    WHERE l.pratica_id = p.id
+                      AND l.recipient_email = p.email_genitore_1
+                      AND l.stato IN ('inviata','bounce')
+                      AND l.test_mode = 0
+                    LIMIT 1
+                )
+            )
+            OR
+            (
+                p.email_genitore_2 IS NOT NULL
+                AND TRIM(p.email_genitore_2) <> ''
+                AND p.email_genitore_2 <> p.email_genitore_1
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM iscrizioni_prime_mail_log l
+                    WHERE l.pratica_id = p.id
+                      AND l.recipient_email = p.email_genitore_2
+                      AND l.stato IN ('inviata','bounce')
+                      AND l.test_mode = 0
+                    LIMIT 1
+                )
+            )
+          )
         ORDER BY p.cognome ASC, p.nome ASC
         LIMIT " . intval($batchSize * 2) . "
     ");
@@ -1642,7 +1782,7 @@ function iscrizioniPrimeSendMailBatch(bool $dryRun = false, string $tipoIscrizio
                 FROM iscrizioni_prime_mail_log
                 WHERE pratica_id = " . intval($pratica['id']) . "
                   AND recipient_email = " . dbQ($recipient) . "
-                  AND stato = 'inviata'
+                  AND stato IN ('inviata','bounce')
                   AND test_mode = 0
             ");
             if (intval($already) === 0) {
@@ -1673,7 +1813,7 @@ function iscrizioniPrimeSendMailBatch(bool $dryRun = false, string $tipoIscrizio
                 FROM iscrizioni_prime_mail_log
                 WHERE pratica_id = " . intval($pratica['id']) . "
                   AND recipient_email = " . dbQ($recipient) . "
-                  AND stato = 'inviata'
+                  AND stato IN ('inviata','bounce')
                   AND test_mode = 0
             ");
             if (intval($already) > 0) {
@@ -1708,10 +1848,11 @@ function iscrizioniPrimeSendMailBatch(bool $dryRun = false, string $tipoIscrizio
             }
 
             $ok = iscrizioniPrimeSendMailFromGmailDraft($cfg, $account, $pratica, $actualRecipient, $link, $originalRecipientForBody, $tipoIscrizione);
+            $dispatchResult = $GLOBALS['__sendMailLastDispatchResult'] ?? [];
 
             dbExec("
                 INSERT INTO iscrizioni_prime_mail_log
-                (pratica_id, recipient_email, account_email, token_last4, stato, test_mode, errore, sent_at, created_at)
+                (pratica_id, recipient_email, account_email, token_last4, stato, test_mode, transport, gmail_message_id, errore, sent_at, created_at)
                 VALUES (
                     " . intval($pratica['id']) . ",
                     " . dbQ($recipient) . ",
@@ -1719,7 +1860,9 @@ function iscrizioniPrimeSendMailBatch(bool $dryRun = false, string $tipoIscrizio
                     " . dbQ(substr($token, -4)) . ",
                     " . dbQ($ok ? 'inviata' : 'errore') . ",
                     " . (!empty($cfg['testMode']) ? '1' : '0') . ",
-                    " . dbQ($ok ? null : 'sendMailCustom ha restituito false') . ",
+                    " . dbQ((string)($dispatchResult['transport'] ?? '')) . ",
+                    " . dbQ((string)($dispatchResult['gmail_message_id'] ?? '')) . ",
+                    " . dbQ($ok ? null : ((string)($dispatchResult['error'] ?? '') !== '' ? (string)$dispatchResult['error'] : 'sendMailCustom ha restituito false')) . ",
                     " . ($ok ? 'NOW()' : 'NULL') . ",
                     NOW()
                 )
@@ -1734,13 +1877,403 @@ function iscrizioniPrimeSendMailBatch(bool $dryRun = false, string $tipoIscrizio
         }
     }
 
+    $remaining = $dryRun ? $pendingBefore : iscrizioniPrimeMailPendingRecipientCount($tipoIscrizione);
+    if (!empty($errors)) {
+        $message = (empty($cfg['testMode']) ? '' : 'Modalita test attiva: mail inviate agli account mittenti. ') . 'Invio completato con errori';
+    } elseif ($sent <= 0) {
+        $message = 'Non ci sono mail da inviare in questo lotto.';
+    } elseif (!$dryRun && $remaining <= 0) {
+        $message = (empty($cfg['testMode']) ? '' : 'Modalita test attiva: mail inviate agli account mittenti. ') . 'Ultimo lotto completato: non restano altre mail da inviare.';
+    } else {
+        $message = (empty($cfg['testMode']) ? '' : 'Modalita test attiva: mail inviate agli account mittenti. ') . 'Lotto completato. Restano ' . intval($remaining) . ' mail da inviare.';
+    }
+
     return [
         'ok' => empty($errors),
-          'message' => (empty($cfg['testMode']) ? '' : 'Modalita test attiva: mail inviate agli account mittenti. ') . (empty($errors) ? 'Invio completato' : 'Invio completato con errori'),
+        'message' => $message,
         'sent' => $sent,
         'skipped' => $skipped,
+        'remaining' => $remaining,
+        'last_batch' => !$dryRun && $remaining <= 0,
         'errors' => $errors,
     ];
+}
+
+function iscrizioniPrimeMailLogClassifyBounce(string $subject, string $snippet, string $body): array
+{
+    $text = strtolower($subject . "\n" . $snippet . "\n" . $body);
+
+    $limitPatterns = [
+        'daily user sending limit exceeded',
+        'user-rate limit exceeded',
+        'rate limit exceeded',
+        'too many messages',
+        'you have reached a limit for sending mail',
+        '550 5.4.5',
+        '550-5.4.5',
+        'mail sending limit',
+        'limite di invio',
+        'hai raggiunto il limite',
+    ];
+    foreach ($limitPatterns as $pattern) {
+        if (strpos($text, $pattern) !== false) {
+            return ['type' => 'quota_limit', 'reason' => 'Possibile superamento del limite giornaliero di invio'];
+        }
+    }
+
+    $mailboxPatterns = [
+        'mailbox full',
+        'over quota',
+        'quota exceeded',
+        'mailbox is full',
+        'casella piena',
+        'spazio esaurito',
+    ];
+    foreach ($mailboxPatterns as $pattern) {
+        if (strpos($text, $pattern) !== false) {
+            return ['type' => 'mailbox_full', 'reason' => 'Casella destinatario piena'];
+        }
+    }
+
+    $invalidPatterns = [
+        'address not found',
+        'user unknown',
+        'no such user',
+        'recipient address rejected',
+        'invalid recipient',
+        'does not exist',
+        'indirizzo non trovato',
+        'utente sconosciuto',
+    ];
+    foreach ($invalidPatterns as $pattern) {
+        if (strpos($text, $pattern) !== false) {
+            return ['type' => 'invalid_recipient', 'reason' => 'Indirizzo destinatario errato o inesistente'];
+        }
+    }
+
+    return ['type' => 'other_bounce', 'reason' => 'Mancata consegna non classificata automaticamente'];
+}
+
+function iscrizioniPrimeMailGmailApiRequestAs(string $accountEmail, string $method, string $url, $body = null): array
+{
+    require_once __DIR__ . '/send-mail.php';
+
+    return sendMailGmailApiRequestRaw($accountEmail, 'https://www.googleapis.com/auth/gmail.readonly', $method, $url, $body);
+}
+
+function iscrizioniPrimeMailGmailHeader(array $message, string $name): string
+{
+    foreach (($message['payload']['headers'] ?? []) as $header) {
+        if (strcasecmp((string)($header['name'] ?? ''), $name) === 0) {
+            return (string)($header['value'] ?? '');
+        }
+    }
+    return '';
+}
+
+function iscrizioniPrimeMailGmailDecode($data): string
+{
+    $data = strtr((string)$data, '-_', '+/');
+    return (string)base64_decode($data);
+}
+
+function iscrizioniPrimeMailGmailExtractText(array $payload): string
+{
+    $chunks = [];
+    if (!empty($payload['body']['data'])) {
+        $chunks[] = iscrizioniPrimeMailGmailDecode($payload['body']['data']);
+    }
+    foreach (($payload['parts'] ?? []) as $part) {
+        $chunks[] = iscrizioniPrimeMailGmailExtractText($part);
+    }
+    return trim(implode("\n", array_filter($chunks)));
+}
+
+function iscrizioniPrimeMailLogFindByBounceText(string $text, string $accountEmail): ?array
+{
+    iscrizioniPrimeEnsureSchema();
+
+    $accountEmail = strtolower(trim($accountEmail));
+    foreach (dbGetAll("
+        SELECT
+            l.*,
+            p.cognome,
+            p.nome,
+            p.tipo_iscrizione,
+            p.codice_fiscale
+        FROM iscrizioni_prime_mail_log l
+        INNER JOIN iscrizioni_prime_pratiche p ON p.id = l.pratica_id
+        WHERE l.account_email = " . dbQ($accountEmail) . "
+          AND l.stato IN ('inviata', 'bounce')
+          AND l.test_mode = 0
+          AND l.sent_at >= DATE_SUB(NOW(), INTERVAL 21 DAY)
+        ORDER BY l.sent_at DESC
+        LIMIT 1000
+    ") as $row) {
+        $email = strtolower(trim((string)($row['recipient_email'] ?? '')));
+        if ($email !== '' && stripos($text, $email) !== false) {
+            return $row;
+        }
+    }
+
+    return null;
+}
+
+function iscrizioniPrimeMailLogMarkBounce(int $logId, string $type, string $reason, string $gmailMessageId, string $snippet): void
+{
+    iscrizioniPrimeEnsureSchema();
+
+    dbExec("
+        UPDATE iscrizioni_prime_mail_log
+        SET stato = 'bounce',
+            bounce_type = " . dbQ($type) . ",
+            bounce_reason = " . dbQ($reason) . ",
+            bounce_message_id = " . dbQ($gmailMessageId) . ",
+            bounce_snippet = " . dbQ($snippet) . ",
+            bounced_at = COALESCE(bounced_at, NOW()),
+            checked_at = NOW()
+        WHERE id = " . dbI($logId) . "
+        LIMIT 1
+    ");
+}
+
+function iscrizioniPrimeMailLogMarkChecked(array $logIds): void
+{
+    iscrizioniPrimeEnsureSchema();
+    $ids = array_values(array_filter(array_map('intval', $logIds), static fn($id) => $id > 0));
+    if (!$ids) {
+        return;
+    }
+
+    dbExec("
+        UPDATE iscrizioni_prime_mail_log
+        SET checked_at = NOW()
+        WHERE id IN (" . implode(',', $ids) . ")
+    ");
+}
+
+function iscrizioniPrimeMailLogMarkUnmatchedBounce(string $accountEmail, string $gmailMessageId, string $type, string $reason, string $subject, string $snippet): void
+{
+    iscrizioniPrimeEnsureSchema();
+
+    dbExec("
+        INSERT INTO iscrizioni_prime_mail_bounce_unmatched
+            (account_email, gmail_message_id, bounce_type, bounce_reason, subject, snippet, checked_at, created_at)
+        VALUES
+            (" . dbQ(strtolower(trim($accountEmail))) . ",
+             " . dbQ($gmailMessageId) . ",
+             " . dbQ($type) . ",
+             " . dbQ($reason) . ",
+             " . dbQ($subject) . ",
+             " . dbQ($snippet) . ",
+             NOW(),
+             NOW())
+        ON DUPLICATE KEY UPDATE
+            bounce_type = VALUES(bounce_type),
+            bounce_reason = VALUES(bounce_reason),
+            subject = VALUES(subject),
+            snippet = VALUES(snippet),
+            checked_at = NOW()
+    ");
+}
+
+function iscrizioniPrimeMailBounceAccounts(): array
+{
+    $cfg = iscrizioniPrimeMailConfig();
+    $accounts = [];
+    foreach (($cfg['accounts'] ?? []) as $account) {
+        $email = strtolower(trim((string)($account['email'] ?? '')));
+        if ($email !== '') {
+            $accounts[] = $email;
+        }
+    }
+    return array_values(array_unique($accounts));
+}
+
+function iscrizioniPrimeMailBounceCheckAccount(string $accountEmail, int $maxResults = 30, string $tipoIscrizione = ''): array
+{
+    iscrizioniPrimeEnsureSchema();
+
+    $accountEmail = strtolower(trim($accountEmail));
+    $tipoIscrizione = $tipoIscrizione === '' ? '' : iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+    $query = 'newer_than:21d (from:(mailer-daemon OR mailer-daemon@googlemail.com OR postmaster OR "Mail Delivery Subsystem") OR subject:("Delivery Status Notification" OR "Undelivered Mail Returned" OR "Mail delivery failed" OR "Message not delivered"))';
+    $list = iscrizioniPrimeMailGmailApiRequestAs(
+        $accountEmail,
+        'GET',
+        'https://gmail.googleapis.com/gmail/v1/users/' . rawurlencode($accountEmail) . '/messages?q=' . rawurlencode($query) . '&maxResults=' . max(1, min(100, $maxResults))
+    );
+
+    $checked = 0;
+    $matched = 0;
+    $unmatched = 0;
+    $bounces = [];
+    $checkedLogIds = [];
+
+    foreach (($list['messages'] ?? []) as $messageRef) {
+        $gmailMessageId = (string)($messageRef['id'] ?? '');
+        if ($gmailMessageId === '') {
+            continue;
+        }
+
+        $message = iscrizioniPrimeMailGmailApiRequestAs(
+            $accountEmail,
+            'GET',
+            'https://gmail.googleapis.com/gmail/v1/users/' . rawurlencode($accountEmail) . '/messages/' . rawurlencode($gmailMessageId) . '?format=full'
+        );
+
+        $checked++;
+        $subject = iscrizioniPrimeMailGmailHeader($message, 'Subject');
+        $snippet = (string)($message['snippet'] ?? '');
+        $body = iscrizioniPrimeMailGmailExtractText($message['payload'] ?? []);
+        $searchText = $subject . "\n" . $snippet . "\n" . $body;
+        $classification = iscrizioniPrimeMailLogClassifyBounce($subject, $snippet, $body);
+        $logRow = iscrizioniPrimeMailLogFindByBounceText($searchText, $accountEmail);
+
+        if ($logRow && ($tipoIscrizione === '' || (string)($logRow['tipo_iscrizione'] ?? '') === $tipoIscrizione)) {
+            $matched++;
+            $checkedLogIds[] = (int)$logRow['id'];
+            iscrizioniPrimeMailLogMarkBounce((int)$logRow['id'], $classification['type'], $classification['reason'], $gmailMessageId, $snippet);
+            $bounces[] = [
+                'log_id' => (int)$logRow['id'],
+                'pratica_id' => (int)$logRow['pratica_id'],
+                'tipo_iscrizione' => (string)($logRow['tipo_iscrizione'] ?? ''),
+                'student' => trim((string)($logRow['cognome'] ?? '') . ' ' . (string)($logRow['nome'] ?? '')),
+                'codice_fiscale' => (string)($logRow['codice_fiscale'] ?? ''),
+                'recipient_email' => (string)($logRow['recipient_email'] ?? ''),
+                'account_email' => $accountEmail,
+                'type' => $classification['type'],
+                'reason' => $classification['reason'],
+                'snippet' => $snippet,
+            ];
+        } else {
+            $unmatched++;
+            iscrizioniPrimeMailLogMarkUnmatchedBounce($accountEmail, $gmailMessageId, $classification['type'], $classification['reason'], $subject, $snippet);
+            if ($tipoIscrizione === '') {
+                $bounces[] = [
+                    'log_id' => 0,
+                    'pratica_id' => 0,
+                    'tipo_iscrizione' => '',
+                    'student' => '',
+                    'codice_fiscale' => '',
+                    'recipient_email' => '',
+                    'account_email' => $accountEmail,
+                    'type' => $classification['type'],
+                    'reason' => $classification['reason'],
+                    'snippet' => $snippet,
+                ];
+            }
+        }
+    }
+
+    iscrizioniPrimeMailLogMarkChecked($checkedLogIds);
+
+    return [
+        'account' => $accountEmail,
+        'checked' => $checked,
+        'matched' => $matched,
+        'unmatched' => $unmatched,
+        'bounces' => $bounces,
+    ];
+}
+
+function iscrizioniPrimeMailBounceSummary(int $maxResults = 30, string $tipoIscrizione = ''): array
+{
+    $summary = [
+        'ok' => true,
+        'accounts' => [],
+        'totals' => [
+            'checked' => 0,
+            'matched' => 0,
+            'unmatched' => 0,
+            'quota_limit' => 0,
+            'invalid_recipient' => 0,
+            'mailbox_full' => 0,
+            'other_bounce' => 0,
+        ],
+    ];
+
+    foreach (iscrizioniPrimeMailBounceAccounts() as $accountEmail) {
+        try {
+            $result = iscrizioniPrimeMailBounceCheckAccount($accountEmail, $maxResults, $tipoIscrizione);
+            $summary['accounts'][] = $result;
+            $summary['totals']['checked'] += intval($result['checked'] ?? 0);
+            $summary['totals']['matched'] += intval($result['matched'] ?? 0);
+            $summary['totals']['unmatched'] += intval($result['unmatched'] ?? 0);
+            foreach (($result['bounces'] ?? []) as $bounce) {
+                $type = (string)($bounce['type'] ?? 'other_bounce');
+                if (!array_key_exists($type, $summary['totals'])) {
+                    $type = 'other_bounce';
+                }
+                $summary['totals'][$type]++;
+            }
+        } catch (Throwable $e) {
+            $summary['ok'] = false;
+            $summary['accounts'][] = [
+                'account' => $accountEmail,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    return $summary;
+}
+
+function iscrizioniPrimeMailBounceReportRows(string $tipoIscrizione = '', int $days = 30): array
+{
+    iscrizioniPrimeEnsureSchema();
+    $tipoWhere = '';
+    $tipoIscrizione = trim($tipoIscrizione);
+    if ($tipoIscrizione !== '') {
+        $tipoWhere = " AND p.tipo_iscrizione = " . dbQ(iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione));
+    }
+    $days = max(1, min(365, $days));
+
+    return dbGetAll("
+        SELECT
+            l.id,
+            p.tipo_iscrizione,
+            p.cognome,
+            p.nome,
+            p.codice_fiscale,
+            p.corso_studi,
+            l.recipient_email,
+            l.account_email,
+            l.stato,
+            l.bounce_type,
+            l.bounce_reason,
+            l.bounce_snippet,
+            l.sent_at,
+            l.bounced_at,
+            l.checked_at
+        FROM iscrizioni_prime_mail_log l
+        INNER JOIN iscrizioni_prime_pratiche p ON p.id = l.pratica_id
+        WHERE l.stato = 'bounce'
+          AND l.test_mode = 0
+          AND COALESCE(l.bounced_at, l.checked_at, l.sent_at, l.created_at) >= DATE_SUB(NOW(), INTERVAL " . intval($days) . " DAY)
+          " . $tipoWhere . "
+        ORDER BY COALESCE(l.bounced_at, l.checked_at, l.sent_at, l.created_at) DESC, p.cognome ASC, p.nome ASC
+    ");
+}
+
+function iscrizioniPrimeMailBounceUnmatchedReportRows(int $days = 30): array
+{
+    iscrizioniPrimeEnsureSchema();
+    $days = max(1, min(365, $days));
+
+    return dbGetAll("
+        SELECT
+            account_email,
+            gmail_message_id,
+            bounce_type,
+            bounce_reason,
+            subject,
+            snippet,
+            checked_at,
+            created_at
+        FROM iscrizioni_prime_mail_bounce_unmatched
+        WHERE checked_at >= DATE_SUB(NOW(), INTERVAL " . intval($days) . " DAY)
+        ORDER BY checked_at DESC
+    ");
 }
 
 function iscrizioniPrimeGetByToken(string $token): ?array
