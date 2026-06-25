@@ -5,6 +5,12 @@ require_once '../common/iscrizioniPrimeLib.php';
 
 $token = trim((string)($_GET['t'] ?? ''));
 $tipo = trim((string)($_GET['tipo'] ?? ''));
+
+if (preg_match('/^admin_preview:\d+$/', $token)) {
+    require_once '../common/checkSession.php';
+    ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
+}
+
 $document = iscrizioniPrimeDocumentFileByToken($token, $tipo);
 
 if (!$document) {

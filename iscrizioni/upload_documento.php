@@ -18,6 +18,10 @@ $tipo = trim((string)($_POST['tipo_documento'] ?? ''));
 $uploadMode = trim((string)($_POST['upload_mode'] ?? 'replace'));
 
 try {
+    if (preg_match('/^admin_preview:\d+$/', $token)) {
+        require_once '../common/checkSession.php';
+        ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
+    }
     $result = iscrizioniPrimeUploadDocumentByToken($token, $tipo, $_FILES['documento'] ?? [], $uploadMode);
     if (!$result['ok']) {
         http_response_code(400);
