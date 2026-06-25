@@ -46,7 +46,24 @@ $loginMastercomAssistenzaValida = is_array($loginMastercomAssistenza)
         <div class="col-md-12">
 <?php
 if (isset($_GET['message'])) {
-    echo '<h4>' . htmlspecialchars(urldecode($_GET['message']), ENT_QUOTES, 'UTF-8') . '</h4>';
+    $message = urldecode((string)$_GET['message']);
+    $isGoogleWrongAccount = stripos($message, 'mail utilizzata non') !== false
+        && stripos($message, 'anagrafica') !== false;
+    echo '<h4>' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</h4>';
+    if ($isGoogleWrongAccount) {
+        echo '<div class="alert alert-info" style="margin-top:18px;">';
+        echo '<strong>Probabile account Google sbagliato.</strong><br>';
+        echo 'Se il browser ha usato una Gmail personale o diversa da quella censita in GestOre, scegli l account Google corretto e riprova.';
+        echo '</div>';
+        echo '<p style="margin-top:16px;">';
+        echo '<a class="btn btn-primary btn-lg" href="../common/googleAccountSwitch.php">';
+        echo '<span class="glyphicon glyphicon-user"></span>&ensp;Cambia account Google';
+        echo '</a> ';
+        echo '<a class="btn btn-default btn-lg" href="../common/logout.php">';
+        echo '<span class="glyphicon glyphicon-log-out"></span>&ensp;Esci da GestOre';
+        echo '</a>';
+        echo '</p>';
+    }
     if ($loginMastercomAssistenzaValida) {
         echo '<p style="margin-top:18px;">';
         echo '<a class="btn btn-warning" href="login_mastercom_assistenza.php?token=' . urlencode((string)$loginMastercomAssistenza['token']) . '">';

@@ -496,7 +496,7 @@ function segnalaLoginMastercomGenitoreFallito(array $genitore, string $username,
 
     $ticketText =
         "LOGIN_MASTERCOM\n" .
-        "Problema login genitore: MasterCom non autentica l'utente.\n\n" .
+        "Problema login genitore: MasterCom non autentica le credenziali.\n\n" .
         "Genitore: " . trim($cognome . ' ' . $nome) . "\n" .
         "ID GestOre: " . $genitoreId . "\n" .
         "Username MasterCom: " . $username . "\n" .
@@ -520,6 +520,47 @@ function segnalaLoginMastercomGenitoreFallito(array $genitore, string $username,
     }
 }
 
+function mastercomGenitoreLoginMirrorAvailable(): bool
+{
+    require_once __DIR__ . '/mastercom/admin_lib.php';
+    return mastercomAdminTableExists('mastercom_genitori')
+        && mastercomAdminTableColumnExists('mastercom_genitori', 'mastercom_id_parente')
+        && mastercomAdminTableColumnExists('mastercom_genitori', 'id_genitore_gestore');
+}
+
+function mastercomGenitoreMirrorByUsername(string $username): ?array
+{
+    $username = trim($username);
+    if ($username === '' || !mastercomGenitoreLoginMirrorAvailable()) {
+        return null;
+    }
+
+    $conditions = [];
+    if (ctype_digit($username)) {
+        $conditions[] = 'mastercom_id_parente = ' . dbI($username);
+    }
+    if (mastercomAdminTableColumnExists('mastercom_genitori', 'username')) {
+        $conditions[] = 'LOWER(TRIM(username)) = ' . dbQ(strtolower($username));
+    }
+    if (!$conditions) {
+        return null;
+    }
+
+    $activeWhere = mastercomAdminTableColumnExists('mastercom_genitori', 'attivo_mastercom')
+        ? ' AND COALESCE(attivo_mastercom, 1) = 1'
+        : '';
+
+    $row = dbGetFirst("
+        SELECT *
+        FROM mastercom_genitori
+        WHERE (" . implode(' OR ', $conditions) . ")
+          " . $activeWhere . "
+        LIMIT 1
+    ");
+
+    return $row ?: null;
+}
+
 $newlogin_genitore = false;
 
 debug("checkSession: entering login/genitore+google block");
@@ -534,11 +575,26 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
 
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
+    unset($_SESSION['login_mastercom_assistenza']);
 
     debug("checkSession: genitore username=" . $username);
 
-    // Verifica esistenza nel DB locale
-    $query = "SELECT * FROM genitori WHERE username = " . dbQ($username) . " AND attivo = 1";
+    $mirrorAvailable = mastercomGenitoreLoginMirrorAvailable();
+    $mirror = $mirrorAvailable ? mastercomGenitoreMirrorByUsername($username) : null;
+    if ($mirrorAvailable && !$mirror) {
+        $__message = 'Accesso MasterCom riservato ai genitori: username non censito fra i genitori della scuola. Se sei un docente usa Accesso Google.';
+        debug("checkSession: username MasterCom non censito fra genitori -> fail");
+        infoLogin("Username MasterCom non censito fra genitori: " . $username);
+        warning($__message);
+        redirect('/error/error.php?message=' . urlencode($__message));
+        exit();
+    }
+
+    if ($mirror && intval($mirror['id_genitore_gestore'] ?? 0) > 0) {
+        $query = "SELECT * FROM genitori WHERE id = " . dbI($mirror['id_genitore_gestore']) . " AND attivo = 1";
+    } else {
+        $query = "SELECT * FROM genitori WHERE username = " . dbQ($username) . " AND attivo = 1";
+    }
     debug("checkSession: query genitori=" . $query);
     $genitore = dbGetFirst($query);
     $esiste_login = ($genitore != null);
@@ -555,19 +611,19 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
             debug("checkSession: mastercom ERROR=" . $authResult['error']);
             infoLogin("Impossibile collegarsi a MasterCom: " . $authResult['error']);
             warning($__message);
-            redirect('/error/error.php?message=' . $__message);
+            redirect('/error/error.php?message=' . urlencode($__message));
             exit();
         } else {
             debug("checkSession: mastercom response=" . __dbg_mask($authResult['raw'] ?? null));
             $array = is_array($authResult['response'] ?? null) ? $authResult['response'] : [];
 
             if (empty($array["auth"])) {
-                $__message = 'utente non trovato su MasterCom: [' . $username . ']';
+                $__message = 'Credenziali MasterCom non valide. Controlla username e password del registro elettronico.';
                 $mastercomHttp = intval($authResult['http_code'] ?? 0);
                 $mastercomError = (string)($authResult['error'] ?? '');
                 debug("checkSession: mastercom auth EMPTY -> fail http=$mastercomHttp error=" . $mastercomError . " studenti_attivi=" . $studentiAttiviGenitore);
                 infoLogin(
-                    "utente non trovato su MasterCom: " . $username
+                    "Credenziali MasterCom non valide: " . $username
                     . " | genitore_locale_id=" . intval($genitore['id'])
                     . " | locale_attivo=1"
                     . " | studenti_attivi=" . $studentiAttiviGenitore
@@ -576,7 +632,7 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
                 );
                 segnalaLoginMastercomGenitoreFallito($genitore, $username, $studentiAttiviGenitore, $mastercomHttp, $mastercomError);
                 warning($__message);
-                redirect('/error/error.php?message=' . $__message);
+                redirect('/error/error.php?message=' . urlencode($__message));
                 exit();
             } else {
                 debug("checkSession: mastercom auth OK -> set session genitore");
@@ -610,11 +666,13 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
             }
         }
     } else {
-        $__message = 'Genitore non trovato fra gli utenti della scuola: [' . $username . ']';
+        $__message = $mirror
+            ? 'Credenziali MasterCom riconosciute ma non collegate a un genitore GestOre. Scrivi a gestore@buonarroti.tn.it.'
+            : 'Genitore non trovato fra gli utenti della scuola: [' . $username . ']';
         debug("checkSession: genitore NOT found locally -> fail");
         infoLogin("Genitore non trovato fra gli utenti della scuola: " . $username);
         warning($__message);
-        redirect('/error/error.php?message=' . $__message);
+        redirect('/error/error.php?message=' . urlencode($__message));
         exit();
     }
 }

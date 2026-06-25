@@ -47,7 +47,26 @@ $loginMastercomAssistenzaValida = is_array($loginMastercomAssistenza)
                     <div class="card-body text-center">
                         <?php
                         if (isset($_GET['message'])) {
-                            echo '<h4>' . htmlspecialchars($_GET['message']) . '</h4>';
+                            $message = urldecode((string)$_GET['message']);
+                            $isGoogleWrongAccount = stripos($message, 'mail utilizzata non') !== false
+                                && stripos($message, 'anagrafica') !== false;
+                            echo '<h4>' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</h4>';
+                            if ($isGoogleWrongAccount) {
+                                echo '<div class="alert alert-info" style="margin-top:18px;text-align:left;">';
+                                echo '<strong>Probabile account Google sbagliato.</strong><br>';
+                                echo 'Se il telefono ha usato una Gmail personale o diversa da quella censita in GestOre, scegli l account Google corretto e riprova.';
+                                echo '</div>';
+                                echo '<p style="margin-top:16px;">';
+                                echo '<a class="btn btn-primary btn-lg w-100" href="../common/googleAccountSwitch.php">';
+                                echo 'Cambia account Google';
+                                echo '</a>';
+                                echo '</p>';
+                                echo '<p>';
+                                echo '<a class="btn btn-outline-secondary btn-lg w-100" href="../common/logout.php">';
+                                echo 'Esci da GestOre';
+                                echo '</a>';
+                                echo '</p>';
+                            }
                             if ($loginMastercomAssistenzaValida) {
                                 echo '<p style="margin-top:18px;">';
                                 echo '<a class="btn btn-warning btn-lg w-100" href="login_mastercom_assistenza.php?token=' . urlencode((string)$loginMastercomAssistenza['token']) . '">';
