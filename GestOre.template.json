@@ -454,7 +454,10 @@
         "docente_puo_inserire": false,
         "docente_puo_modificare": false,
         "stampa_copertine_verifiche": false,
-        "verifiche_digitali_drive": false
+        "verifiche_digitali_drive": false,
+        "docenti_esclusi_completezza": {
+        "emails": []
+        }
     },
     "programmiIniziali": {
         "visibile_docenti": true,
