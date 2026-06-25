@@ -24,6 +24,7 @@ if ($stato === 'da_integrare' && strlen($note) < 8) {
 }
 
 try {
+    iscrizioniPrimeEnsureSchema();
     $pratica = dbGetFirst("
         SELECT *
         FROM iscrizioni_prime_pratiche
@@ -37,19 +38,34 @@ try {
         echo json_encode(['ok' => false, 'message' => 'Pratica non trovata o non modificabile.'], JSON_UNESCAPED_UNICODE);
         exit;
     }
+    $statoPrecedente = (string)($pratica['stato'] ?? '');
 
     dbExec("
         UPDATE iscrizioni_prime_pratiche SET
             stato = " . dbQ($stato) . ",
+            novita_segreteria_at = " . ($stato === 'verificata' ? 'NULL' : 'novita_segreteria_at') . ",
+            novita_segreteria_messaggio = " . ($stato === 'verificata' ? 'NULL' : 'novita_segreteria_messaggio') . ",
             updated_at = NOW()
         WHERE id = " . dbI($id) . "
           AND stato IN ('inviata', 'verificata', 'da_integrare', 'annullata')
         LIMIT 1
     ");
 
+    iscrizioniPrimeRecordEvent($id, 'cambio_stato', 'Stato pratica aggiornato', [
+        'stato_precedente' => $statoPrecedente,
+        'stato_nuovo' => $stato,
+        'messaggio' => $note !== '' ? $note : null,
+    ]);
+
     if ($stato === 'da_integrare') {
         $pratica['stato'] = 'da_integrare';
         $mail = iscrizioniPrimeSendIntegrationRequest($pratica, $note);
+        iscrizioniPrimeRecordEvent($id, 'richiesta_integrazione', !empty($mail['ok']) ? 'Richiesta integrazione inviata alla famiglia' : 'Richiesta integrazione registrata, mail non inviata', [
+            'stato_precedente' => $statoPrecedente,
+            'stato_nuovo' => 'da_integrare',
+            'messaggio' => $note,
+            'dettagli' => $mail,
+        ]);
         if (!empty($mail['ok'])) {
             echo json_encode(['ok' => true, 'message' => 'Pratica riaperta e mail di richiesta integrazione inviata ai genitori.'], JSON_UNESCAPED_UNICODE);
             exit;

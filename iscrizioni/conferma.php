@@ -925,6 +925,7 @@ $nomeIstituto = trim((string)($__settings->local->nomeIstituto ?? 'ITT Buonarrot
 $classeTargetLabel = $isTerze
     ? 'Iscrizione alle classi terze'
     : trp('subtitle');
+$praticaInviata = $pratica && (string)($pratica['stato'] ?? '') === 'inviata';
 $praticaBloccata = $pratica && in_array((string)($pratica['stato'] ?? ''), ['verificata', 'annullata'], true);
 
 if (!$pratica) {
@@ -937,6 +938,20 @@ if (!$pratica) {
     $documents = iscrizioniPrimeDocumentsForPratica((int)$pratica['id']);
 } elseif ($pratica) {
     $documents = iscrizioniPrimeDocumentsForPratica((int)$pratica['id']);
+}
+
+$dataInvioPratica = '';
+if ($praticaInviata) {
+    $sentValue = trim((string)($confirmed['saved_at'] ?? ''));
+    if ($sentValue === '') {
+        $sentValue = trim((string)($pratica['updated_at'] ?? ''));
+    }
+    if ($sentValue !== '') {
+        $timestampInvio = strtotime($sentValue);
+        if ($timestampInvio) {
+            $dataInvioPratica = date('d/m/Y H:i', $timestampInvio);
+        }
+    }
 }
 
 ?>
@@ -954,15 +969,18 @@ if (!$pratica) {
         body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f7fb; color: #172033; }
         .page { max-width: 920px; margin: 0 auto; padding: 18px; }
         .card { background: #fff; border: 1px solid #d9e0ea; border-radius: 8px; box-shadow: 0 8px 28px rgba(23,32,51,.08); padding: 18px; margin: 14px 0; }
-        .school-header { display: flex; gap: 14px; align-items: center; }
+        .school-title-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); gap: 18px; align-items: center; }
+        .school-header { display: flex; gap: 14px; align-items: center; min-width: 0; }
         .school-logo { width: 76px; height: 58px; object-fit: contain; flex: 0 0 auto; }
         .school-kicker { color: #475569; font-size: 14px; font-weight: 750; text-transform: uppercase; letter-spacing: .02em; }
         .school-name { font-size: 18px; font-weight: 800; margin-top: 2px; }
         .school-year { display: inline-block; margin-top: 8px; border-radius: 999px; background: #e0f2fe; color: #075985; padding: 5px 10px; font-size: 13px; font-weight: 800; }
-        .language-switch { display: flex; justify-content: flex-end; margin-bottom: 10px; }
-        .language-switch label { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #475569; }
-        .language-flag { font-size: 22px; line-height: 1; min-width: 28px; text-align: center; }
-        .language-switch select { border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 9px; font: inherit; background: #fff; color: #172033; }
+        .language-switch { display: flex; justify-content: stretch; }
+        .language-switch label { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 12px; align-items: center; font-size: 16px; color: #172033; background: #fff7ed; border: 3px solid #fb923c; border-radius: 10px; padding: 12px 14px; box-shadow: 0 10px 28px rgba(194,65,12,.22); }
+        .language-title { font-size: 18px; line-height: 1.12; font-weight: 900; color: #7c2d12; }
+        .language-subtitle { display: block; margin-top: 3px; font-size: 13px; color: #9a3412; font-weight: 800; }
+        .language-flag { grid-row: span 2; font-size: 54px; line-height: 1; min-width: 64px; text-align: center; filter: drop-shadow(0 4px 8px rgba(15,23,42,.18)); }
+        .language-switch select { grid-column: 2; border: 2px solid #c2410c; border-radius: 8px; padding: 11px 12px; font: inherit; font-weight: 800; background: #fff; color: #172033; min-width: 0; width: 100%; }
         h1 { font-size: 24px; margin: 0 0 8px; }
         h2 { font-size: 18px; margin: 0 0 12px; }
         h3 { font-size: 15px; margin: 18px 0 10px; }
@@ -972,6 +990,8 @@ if (!$pratica) {
         .label { color: #64748b; font-size: 13px; margin-bottom: 4px; }
         .value { font-weight: 650; overflow-wrap: anywhere; }
         .notice { border-left: 4px solid #0ea5e9; background: #eaf6fc; padding: 12px; border-radius: 6px; }
+        .resubmit-notice { border: 2px solid #f59e0b; border-left-width: 7px; background: #fffbeb; color: #78350f; padding: 14px; border-radius: 8px; font-weight: 750; box-shadow: 0 8px 26px rgba(146,64,14,.16); }
+        .resubmit-notice strong { display: block; font-size: 18px; margin-bottom: 6px; color: #7c2d12; }
         .error { border-left-color: #dc2626; background: #fee2e2; }
         .success { border-left-color: #16a34a; background: #e9f8ef; }
         .privacy-link { display: inline-block; margin-top: 8px; color: #0369a1; font-weight: 750; }
@@ -1010,13 +1030,13 @@ if (!$pratica) {
         .doc-form.is-complete { padding-top: 10px; padding-bottom: 10px; }
         .doc-form.is-complete .doc-head { margin-bottom: 0; }
         .doc-form.is-complete .doc-upload { margin-top: 8px; }
-        .doc-form.is-complete .doc-choice-intro,
-        .doc-form.is-complete .doc-choice-group,
-        .doc-form.is-complete .doc-existing-options,
         .doc-form.is-complete .doc-final-group,
         .doc-form.is-complete .photo-preview,
         .doc-form.is-complete .doc-pending,
         .doc-form.is-complete .doc-status { display: none !important; }
+        .doc-form.is-paper .doc-choice-intro,
+        .doc-form.is-paper .doc-choice-group,
+        .doc-form.is-paper .doc-existing-options { display: none !important; }
         .doc-form.is-complete .doc-current { font-size: 13px; }
         .doc-form.is-complete .doc-clear-group { padding: 8px; }
         .doc-form.is-pending .doc-choice-intro,
@@ -1084,8 +1104,8 @@ if (!$pratica) {
         .error-list { text-align: left; margin: 12px 0 4px; padding-left: 20px; color: #7c2d12; font-weight: 750; line-height: 1.45; }
         html[dir="rtl"] body { direction: rtl; }
         html[dir="rtl"] .school-header { flex-direction: row-reverse; text-align: right; }
-        html[dir="rtl"] .language-switch { justify-content: flex-start; }
         html[dir="rtl"] .notice { border-left: 0; border-right: 4px solid #0ea5e9; }
+        html[dir="rtl"] .resubmit-notice { border-left-width: 2px; border-right-width: 7px; }
         html[dir="rtl"] .error { border-right-color: #dc2626; }
         html[dir="rtl"] .success { border-right-color: #16a34a; }
         html[dir="rtl"] .doc-item { border-left-width: 1px; border-right: 7px solid var(--doc-accent, var(--doc-border, #d9e0ea)); }
@@ -1095,8 +1115,11 @@ if (!$pratica) {
         @media (max-width: 680px) {
             .grid { grid-template-columns: 1fr; }
             .page { padding: 10px; }
+            .school-title-card { grid-template-columns: 1fr; }
             .school-header { align-items: flex-start; }
             .school-logo { width: 68px; height: 52px; }
+            .language-switch label { grid-template-columns: auto minmax(0, 1fr); }
+            .language-flag { font-size: 48px; min-width: 58px; }
             .actions button { width: 100%; }
             .doc-head { align-items: flex-start; }
             .doc-action-buttons { display: grid; grid-template-columns: 1fr 1fr; }
@@ -1113,29 +1136,40 @@ if (!$pratica) {
 </head>
 <body>
 <main class="page">
-    <form class="language-switch" method="get">
-        <input type="hidden" name="t" value="<?php echo h($token); ?>">
-        <label>
-            <span><?php echo h(trp('language')); ?></span>
-            <span class="language-flag" aria-hidden="true"><?php echo iscrizioniPrimeLanguageFlagHtml($parentLang); ?></span>
-            <select name="lang" onchange="this.form.submit()">
-                <?php foreach ($parentLanguages as $code => $info) : ?>
-                    <option value="<?php echo h($code); ?>" <?php echo $parentLang === $code ? 'selected' : ''; ?>><?php echo h($info['label']); ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-    </form>
     <div class="card">
-        <div class="school-header">
-            <img class="school-logo" src="<?php echo h($__application_base_path); ?>/img/logoB_google.png" alt="Logo <?php echo h($nomeIstituto); ?>">
+        <div class="school-title-card">
             <div>
-                <div class="school-kicker"><?php echo h(trp('school_kicker')); ?></div>
-                <div class="school-name"><?php echo h($nomeIstituto); ?></div>
-                <div class="school-year"><?php echo h(trp('school_year')); ?> <?php echo h($annoScolastico); ?></div>
+                <div class="school-header">
+                    <img class="school-logo" src="<?php echo h($__application_base_path); ?>/img/logoB_google.png" alt="Logo <?php echo h($nomeIstituto); ?>">
+                    <div>
+                        <div class="school-kicker"><?php echo h(trp('school_kicker')); ?></div>
+                        <div class="school-name"><?php echo h($nomeIstituto); ?></div>
+                        <div class="school-year"><?php echo h(trp('school_year')); ?> <?php echo h($annoScolastico); ?></div>
+                    </div>
+                </div>
+                <h1 style="margin-top: 18px;"><?php echo h(trp('main_title')); ?></h1>
+                <div class="muted"><?php echo h($classeTargetLabel); ?></div>
             </div>
+            <form class="language-switch" method="get">
+                <?php if ($adminPreview && $previewId > 0) : ?>
+                    <input type="hidden" name="preview_id" value="<?php echo intval($previewId); ?>">
+                <?php else : ?>
+                    <input type="hidden" name="t" value="<?php echo h($token); ?>">
+                <?php endif; ?>
+                <label>
+                    <span class="language-flag" aria-hidden="true"><?php echo iscrizioniPrimeLanguageFlagHtml($parentLang); ?></span>
+                    <span class="language-title">
+                        Cambia lingua
+                        <span class="language-subtitle"><?php echo h(trp('language')); ?> / Language</span>
+                    </span>
+                    <select name="lang" onchange="this.form.submit()" aria-label="Cambia lingua">
+                        <?php foreach ($parentLanguages as $code => $info) : ?>
+                            <option value="<?php echo h($code); ?>" <?php echo $parentLang === $code ? 'selected' : ''; ?>><?php echo h($info['label']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+            </form>
         </div>
-        <h1 style="margin-top: 18px;"><?php echo h(trp('main_title')); ?></h1>
-        <div class="muted"><?php echo h($classeTargetLabel); ?></div>
     </div>
 
     <?php if (!$pratica) : ?>
@@ -1417,17 +1451,43 @@ if (!$pratica) {
             </div>
         </div>
 
-        <?php if ($praticaBloccata) : ?>
+        <?php if ($praticaInviata && !$praticaBloccata) : ?>
+            <div class="card resubmit-notice" id="resubmitNotice">
+                <strong>Attenzione: dopo ogni modifica devi reinviare la conferma.</strong>
+                Se cancelli, sostituisci, aggiungi allegati o cambi una scelta di consegna, la segreteria vede la modifica solo dopo che premi nuovamente
+                <em>SALVA ED INVIA CONFERMA DATI ISCRIZIONE</em> in fondo alla pagina.
+            </div>
+        <?php endif; ?>
+
+        <?php if ($praticaBloccata || $praticaInviata) : ?>
             <div class="card notice success">
                 <strong><?php echo h(trp('sent_title')); ?></strong><br>
-                <?php echo h(trp('sent_text')); ?>
+                <?php if ($dataInvioPratica !== '') : ?>
+                    La conferma dati iscrizione e' stata inviata il <?php echo h($dataInvioPratica); ?>.<br>
+                <?php endif; ?>
+                <?php if ($praticaInviata && !$praticaBloccata) : ?>
+                    La segreteria didattica ha ricevuto la pratica. Puoi ancora aggiornare o integrare gli allegati caricati finche' la pratica non viene verificata dalla segreteria.
+                <?php else : ?>
+                    <?php echo h(trp('sent_text')); ?>
+                <?php endif; ?>
             </div>
-        <?php else : ?>
+        <?php endif; ?>
+
+        <?php if (!$praticaBloccata) : ?>
             <div class="card">
                 <h2><?php echo h(trp('final_section')); ?></h2>
-                <div class="muted"><?php echo h(trp('final_help')); ?></div>
+                <?php if ($praticaInviata) : ?>
+                    <div class="resubmit-notice">
+                        <strong>Hai modificato o integrato la pratica?</strong>
+                        Premi il pulsante qui sotto per reinviare la conferma aggiornata alla segreteria didattica.
+                    </div>
+                <?php else : ?>
+                    <div class="muted"><?php echo h(trp('final_help')); ?></div>
+                <?php endif; ?>
                 <div class="actions">
-                    <button type="button" id="submitApplication" class="btn-submit-final"><?php echo h(trp('final_button')); ?></button>
+                    <button type="button" id="submitApplication" class="btn-submit-final">
+                        <?php echo $praticaInviata ? 'SALVA E REINVIA CONFERMA DATI ISCRIZIONE' : h(trp('final_button')); ?>
+                    </button>
                 </div>
                 <div id="submitStatus" class="status-line" aria-live="polite"></div>
             </div>
@@ -1576,6 +1636,8 @@ function setDocumentUiState(form, state) {
     form.classList.toggle('is-missing', state === 'missing');
     form.classList.toggle('is-pending', state === 'pending');
     form.classList.toggle('is-complete', state === 'uploaded' || state === 'paper');
+    form.classList.toggle('is-uploaded', state === 'uploaded');
+    form.classList.toggle('is-paper', state === 'paper');
 
     const intro = form.querySelector('.doc-choice-intro');
     const choices = form.querySelectorAll('.doc-choice-group');
@@ -1583,12 +1645,25 @@ function setDocumentUiState(form, state) {
     const existingOptions = form.querySelector('.doc-existing-options');
     const finalGroup = form.querySelector('.doc-final-group');
     const hasFinalFiles = form.querySelector('.doc-file-input').files.length > 0;
+    const uploadMode = form.querySelector('.doc-upload-mode');
+    const appendChoice = form.querySelector('.doc-mode-options input[value="append"]');
+    const replaceChoice = form.querySelector('.doc-mode-options input[value="replace"]');
+    const canAddToExisting = state === 'uploaded';
 
-    if (intro) intro.hidden = state !== 'missing';
-    choices.forEach((group) => group.hidden = state !== 'missing');
+    if (intro) intro.hidden = !(state === 'missing' || canAddToExisting);
+    choices.forEach((group) => group.hidden = !(state === 'missing' || canAddToExisting));
     if (clearGroup) clearGroup.hidden = !(state === 'uploaded' || state === 'paper');
-    if (existingOptions) existingOptions.hidden = true;
+    if (existingOptions) existingOptions.hidden = !canAddToExisting;
     if (finalGroup) finalGroup.hidden = !(state === 'pending' && hasFinalFiles);
+    if (canAddToExisting && uploadMode && uploadMode.value !== 'append' && uploadMode.value !== 'replace') {
+        uploadMode.value = 'append';
+    }
+    if (canAddToExisting && uploadMode && uploadMode.value === 'append' && appendChoice) {
+        appendChoice.checked = true;
+    }
+    if (canAddToExisting && uploadMode && uploadMode.value === 'replace' && replaceChoice) {
+        replaceChoice.checked = true;
+    }
 }
 
 function refreshPhotoPreview(form) {
@@ -1602,14 +1677,19 @@ function refreshPhotoPreview(form) {
     const finalHelp = form.querySelector('.doc-final-help');
     preview.innerHTML = '';
 
+    const previousState = form.dataset.docState || 'missing';
     const files = Array.from(input.files);
     const info = files.length ? readyFilesInfo(files) : null;
+    const uploadMode = form.querySelector('.doc-upload-mode');
+    const isAppending = uploadMode && uploadMode.value === 'append' && previousState === 'uploaded';
     const hasImages = files.some((file) => file.type.startsWith('image/'));
     uploadButton.disabled = files.length === 0;
     if (info) {
-        uploadButton.textContent = info.button;
+        uploadButton.textContent = isAppending ? 'Aggiungi al PDF caricato' : info.button;
         if (finalHelp) {
-            finalHelp.textContent = info.help;
+            finalHelp.textContent = isAppending
+                ? 'GestOre aggiungera questi file al PDF gia caricato e salvera un unico PDF finale.'
+                : info.help;
         }
     }
     if (addPhotoButton) {
@@ -1623,11 +1703,19 @@ function refreshPhotoPreview(form) {
         finalGroup.hidden = files.length === 0;
     }
     if (files.length) {
+        if (previousState !== 'pending') {
+            form.dataset.previousDocState = previousState;
+        }
         setDocumentUiState(form, 'pending');
         pending.style.display = 'block';
-        pending.textContent = info.pending;
+        pending.textContent = isAppending
+            ? info.status + ' Premi Aggiungi al PDF caricato per unirli al documento gia presente.'
+            : info.pending;
     } else {
-        const emptyState = form.dataset.docState === 'pending' ? 'missing' : (form.dataset.docState || 'missing');
+        const emptyState = form.dataset.docState === 'pending'
+            ? (form.dataset.previousDocState || 'missing')
+            : (form.dataset.docState || 'missing');
+        delete form.dataset.previousDocState;
         setDocumentUiState(form, emptyState);
         pending.style.display = 'none';
         pending.textContent = '';
@@ -1738,6 +1826,27 @@ function hideBusy() {
     overlay.setAttribute('aria-hidden', 'true');
 }
 
+async function readJsonResponse(response) {
+    const text = await response.text();
+    try {
+        return JSON.parse(text);
+    } catch (error) {
+        const looksHtml = /^\s*</.test(text);
+        if (looksHtml && (response.status === 401 || response.status === 403 || response.redirected)) {
+            return {
+                ok: false,
+                message: 'Sessione scaduta o accesso non autorizzato. Riapri la pagina dal pannello segreteria e riprova.'
+            };
+        }
+        return {
+            ok: false,
+            message: looksHtml
+                ? 'Il server ha restituito una pagina di errore invece di una risposta JSON. Riprova dopo aver ricaricato la pagina.'
+                : (text || 'Risposta del server non valida.')
+        };
+    }
+}
+
 function showSubmitSuccess() {
     const overlay = document.getElementById('submitSuccessOverlay');
     overlay.classList.add('open');
@@ -1776,6 +1885,20 @@ function showSubmitError(message) {
 
     overlay.classList.add('open');
     overlay.setAttribute('aria-hidden', 'false');
+}
+
+function showResubmitReminder() {
+    const notice = document.getElementById('resubmitNotice');
+    const submitButton = document.getElementById('submitApplication');
+    if (!notice || !submitButton) {
+        return;
+    }
+
+    notice.innerHTML = '<strong>Modifica registrata: ora devi reinviare la conferma.</strong>'
+        + ' Hai cambiato uno o piu documenti. Scorri in fondo alla pagina e premi '
+        + '<em>SALVA E REINVIA CONFERMA DATI ISCRIZIONE</em>, altrimenti la segreteria non riceve la conferma aggiornata.';
+    notice.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    submitButton.style.boxShadow = '0 0 0 4px rgba(245, 158, 11, .35)';
 }
 
 function cvReady() {
@@ -2354,9 +2477,13 @@ if (iscrizioneForm) {
         try {
             const response = await fetch('salva.php', {
                 method: 'POST',
-                body: new FormData(form)
+                body: new FormData(form),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
             });
-            const result = await response.json();
+            const result = await readJsonResponse(response);
 
             if (!result.ok) {
                 throw new Error(result.message || 'Salvataggio non riuscito.');
@@ -2393,9 +2520,13 @@ if (submitApplication) {
         try {
             const response = await fetch('invia.php', {
                 method: 'POST',
-                body: new FormData(form)
+                body: new FormData(form),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
             });
-            const result = await response.json();
+            const result = await readJsonResponse(response);
 
             if (!result.ok) {
                 throw new Error(result.message || 'Invio non riuscito.');
@@ -2518,9 +2649,13 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
             payload.set('token', pageToken || (form.querySelector('input[name="token"]') ? form.querySelector('input[name="token"]').value : ''));
             const response = await fetch('upload_documento.php?t=' + encodeURIComponent(pageToken || ''), {
                 method: 'POST',
-                body: payload
+                body: payload,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
             });
-            const result = await response.json();
+            const result = await readJsonResponse(response);
 
             if (!result.ok) {
                 throw new Error(result.message || 'Caricamento non riuscito.');
@@ -2541,11 +2676,12 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
                 paperButton.hidden = false;
             }
             if (uploadMode) {
-                uploadMode.value = 'replace';
+                uploadMode.value = 'append';
             }
             input.value = '';
             setDocumentUiState(form, 'uploaded');
             refreshPhotoPreview(form);
+            showResubmitReminder();
         } catch (error) {
             status.textContent = error.message;
         } finally {
@@ -2576,9 +2712,13 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
             try {
                 const response = await fetch('consegna_cartacea_documento.php', {
                     method: 'POST',
-                    body: new FormData(form)
+                    body: new FormData(form),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
                 });
-                const result = await response.json();
+                const result = await readJsonResponse(response);
 
                 if (!result.ok) {
                     throw new Error(result.message || 'Registrazione non riuscita.');
@@ -2607,6 +2747,7 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
                 input.value = '';
                 setDocumentUiState(form, 'paper');
                 refreshPhotoPreview(form);
+                showResubmitReminder();
             } catch (error) {
                 status.textContent = error.message;
             } finally {
@@ -2639,9 +2780,13 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
         try {
             const response = await fetch('cancella_documento.php', {
                 method: 'POST',
-                body: new FormData(form)
+                body: new FormData(form),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
             });
-            const result = await response.json();
+            const result = await readJsonResponse(response);
 
             if (!result.ok) {
                 throw new Error(result.message || 'Cancellazione non riuscita.');
@@ -2670,6 +2815,7 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
             input.value = '';
             setDocumentUiState(form, 'missing');
             refreshPhotoPreview(form);
+            showResubmitReminder();
         } catch (error) {
             status.textContent = error.message;
         } finally {

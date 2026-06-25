@@ -33,6 +33,9 @@
 						<li><a href="../didattica/iscrizioniPrimeDomande.php?tipo_iscrizione=terze"><span class="glyphicon glyphicon-list-alt"></span>&ensp;Domande terze</a></li>
 						<li><a href="../didattica/formazioneClassi.php"><span class="glyphicon glyphicon-th-large"></span>&ensp;Formazione classi</a></li>
 						<li><a href="../didattica/movimentiStudenti.php"><span class="glyphicon glyphicon-transfer"></span>&ensp;Entrate / uscite</a></li>
+						<?php if (haRuolo('admin')) : ?>
+							<li><a href="../didattica/colloquiGenitori.php"><span class="glyphicon glyphicon-comment"></span>&ensp;Colloqui genitori</a></li>
+						<?php endif; ?>
 						<li role="separator" class="divider"></li>
 						<?php if (getSettingsValue('config', 'permessi', false)) : ?>
 							<li><a href="../didattica/permessi.php"><span class="glyphicon glyphicon-time"></span>&ensp;Permessi</a></li>

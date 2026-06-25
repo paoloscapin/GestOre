@@ -16,6 +16,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $token = trim((string)($_POST['token'] ?? ''));
 
 try {
+    if (preg_match('/^admin_preview:\d+$/', $token)) {
+        require_once '../common/checkSession.php';
+        ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
+    }
     $result = iscrizioniPrimeSubmitByToken($token, $_POST);
     if (!$result['ok']) {
         http_response_code(400);

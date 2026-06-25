@@ -168,6 +168,10 @@ $stats = dbGetFirst("
 ");
 
 $labels = array_merge(iscrizioniPrimeDocumentTypes($tipoIscrizione), iscrizioniPrimeSecretaryDocumentTypes($tipoIscrizione));
+$eventiPratiche = [];
+foreach ($pratiche as $praticaEvento) {
+    $eventiPratiche[intval($praticaEvento['id'] ?? 0)] = iscrizioniPrimeEventsForPratica($praticaEvento);
+}
 
 ?>
 <!DOCTYPE html>
@@ -209,6 +213,9 @@ $labels = array_merge(iscrizioniPrimeDocumentTypes($tipoIscrizione), iscrizioniP
         .ipd-pill.ok { background: #dcfce7; color: #166534; }
         .ipd-pill.paper { background: #fef3c7; color: #92400e; }
         .ipd-pill.missing { background: #fee2e2; color: #991b1b; }
+        .ipd-pill.news { background: #f97316; color: #fff; box-shadow: 0 0 0 2px rgba(249,115,22,.18); }
+        .ipd-news-box { border: 2px solid #fb923c; border-left-width: 7px; background: #fff7ed; color: #7c2d12; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-weight: 750; }
+        .ipd-news-box small { display: block; margin-top: 4px; color: #9a3412; font-weight: 650; }
         .ipd-toggle { min-width: 92px; }
         .ipd-secretary-docs { margin-top: 18px; padding: 12px; border: 1px solid #bfdbfe; border-radius: 6px; background: #eff6ff; }
         .ipd-secretary-docs h4 { margin-top: 0; }
@@ -334,6 +341,9 @@ $labels = array_merge(iscrizioniPrimeDocumentTypes($tipoIscrizione), iscrizioniP
                         <?php if ($docCounts['missing'] > 0) : ?>
                             <span class="ipd-pill missing"><?php echo intval($docCounts['missing']); ?> mancanti</span>
                         <?php endif; ?>
+                        <?php if (!empty($pratica['novita_segreteria_at'])) : ?>
+                            <span class="ipd-pill news">Novita' per segreteria</span>
+                        <?php endif; ?>
                         <?php if ($extraInfo['scuola_provenienza'] !== '') : ?>
                             <span class="ipd-pill">Scuola: <?php echo ipd_h($extraInfo['scuola_provenienza']); ?></span>
                         <?php endif; ?>
@@ -355,6 +365,12 @@ $labels = array_merge(iscrizioniPrimeDocumentTypes($tipoIscrizione), iscrizioniP
                 </div>
             </div>
             <div class="ipd-card-body">
+                <?php if (!empty($pratica['novita_segreteria_at'])) : ?>
+                    <div class="ipd-news-box">
+                        Ci sono novita' da controllare: <?php echo ipd_h($pratica['novita_segreteria_messaggio'] ?: 'la pratica e stata aggiornata dalla famiglia.'); ?>
+                        <small>Aggiornamento registrato il <?php echo ipd_h(iscrizioniPrimeFormatDateTimeIt($pratica['novita_segreteria_at'])); ?>. Il flag viene tolto quando segni la pratica come verificata.</small>
+                    </div>
+                <?php endif; ?>
                 <div class="ipd-grid">
                     <div class="ipd-field"><div class="ipd-label">Data nascita</div><div class="ipd-value"><?php echo ipd_h(iscrizioniPrimeFormatDateIt($pratica['data_nascita'] ?? '')); ?></div></div>
                     <div class="ipd-field"><div class="ipd-label">Email studente</div><div class="ipd-value"><?php echo ipd_h(ipd_value($pratica, $confirmed, 'email_studente')); ?></div></div>
@@ -423,6 +439,59 @@ $labels = array_merge(iscrizioniPrimeDocumentTypes($tipoIscrizione), iscrizioniP
                         </tbody>
                     </table>
                 </div>
+
+                <?php $eventi = $eventiPratiche[intval($pratica['id'])] ?? []; ?>
+                <h4>Storico pratica</h4>
+                <?php if (!$eventi) : ?>
+                    <div class="ipd-empty">Nessun evento registrato.</div>
+                <?php else : ?>
+                    <div class="ipd-cambio-history" style="max-height:none;">
+                        <?php foreach ($eventi as $evento) :
+                            $dettagli = [];
+                            if (!empty($evento['dettagli_json'])) {
+                                $decodedDetails = json_decode((string)$evento['dettagli_json'], true);
+                                if (is_array($decodedDetails)) {
+                                    $dettagli = $decodedDetails;
+                                }
+                            }
+                        ?>
+                            <div class="ipd-cambio-event">
+                                <div class="ipd-cambio-event-head">
+                                    <span><?php echo ipd_h($evento['titolo'] ?? $evento['tipo_evento'] ?? 'Evento'); ?></span>
+                                    <span><?php echo ipd_h(iscrizioniPrimeFormatDateTimeIt($evento['created_at'] ?? '')); ?></span>
+                                </div>
+                                <div class="ipd-cambio-event-meta">
+                                    <?php if (!empty($evento['created_by'])) : ?>
+                                        Operatore: <?php echo ipd_h($evento['created_by']); ?>
+                                    <?php endif; ?>
+                                    <?php if (!empty($evento['stato_precedente']) || !empty($evento['stato_nuovo'])) : ?>
+                                        &middot; Stato: <?php echo ipd_h(($evento['stato_precedente'] ?? '-') . ' -> ' . ($evento['stato_nuovo'] ?? '-')); ?>
+                                    <?php endif; ?>
+                                    <?php if (!empty($evento['oggetto'])) : ?>
+                                        &middot; Oggetto: <?php echo ipd_h($evento['oggetto']); ?>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if (!empty($evento['messaggio'])) : ?>
+                                    <div class="ipd-cambio-event-note"><?php echo ipd_h($evento['messaggio']); ?></div>
+                                <?php endif; ?>
+                                <?php if ($dettagli) : ?>
+                                    <div class="ipd-cambio-event-meta">
+                                        <?php foreach ($dettagli as $key => $value) :
+                                            if (is_array($value)) {
+                                                $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                                            }
+                                            if (trim((string)$value) === '') {
+                                                continue;
+                                            }
+                                        ?>
+                                            <span><?php echo ipd_h(str_replace('_', ' ', (string)$key)); ?>: <?php echo ipd_h($value); ?></span>&nbsp;
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
 
                 <?php if ($secretaryDocuments) : ?>
                     <div class="ipd-secretary-docs">
@@ -508,11 +577,9 @@ $labels = array_merge(iscrizioniPrimeDocumentTypes($tipoIscrizione), iscrizioniP
                         <label for="ipdCambioScuolaScuolaDestinazione">Scuola di destinazione</label>
                         <input type="hidden" name="scuola_destinazione" id="ipdCambioScuolaScuolaDestinazione">
                         <select name="id_istituto_destinazione" id="ipdCambioScuolaIstitutoDestinazione" class="form-control">
-                            <option value="">Seleziona istituto</option>
-                            <?php foreach ($istitutiScuole as $istituto): ?>
-                                <option value="<?php echo intval($istituto['id']); ?>"><?php echo ipd_h($istituto['nome'] ?? ''); ?></option>
-                            <?php endforeach; ?>
+                            <?php echo scuoleIstitutiSelectOptionsHtml(null); ?>
                         </select>
+                        <input type="text" id="ipdCambioScuolaScuolaDestinazioneManuale" class="form-control" style="margin-top:8px;" placeholder="Se non trovi la scuola nell'elenco, scrivila qui">
                         <div id="ipdCambioScuolaScuolaDestinazioneLibera" class="help-block" style="display:none;"></div>
                     </div>
                     <div class="col-sm-12 ipd-modal-field">
@@ -678,9 +745,29 @@ ITT Buonarroti - Trento</textarea>
     </div>
 </div>
 
+<div id="ipdStatusNoteModal" class="ipd-modal-backdrop" aria-hidden="true">
+    <div class="ipd-modal-box" role="dialog" aria-modal="true" aria-labelledby="ipdStatusNoteTitle">
+        <div id="ipdStatusNoteTitle" class="ipd-modal-head" style="background:#334155;">Aggiorna stato pratica</div>
+        <div class="ipd-modal-body">
+            <p id="ipdStatusNoteHelp" class="text-muted"></p>
+            <div class="ipd-modal-field">
+                <label for="ipdStatusNoteText">Motivo / nota interna</label>
+                <textarea id="ipdStatusNoteText" placeholder="Scrivi il motivo dell'aggiornamento dello stato."></textarea>
+            </div>
+            <div id="ipdStatusNoteError" class="text-danger" style="margin-top:8px;" hidden></div>
+        </div>
+        <div class="ipd-modal-actions">
+            <button type="button" class="btn btn-default" onclick="ipdCloseStatusNoteModal()">Annulla</button>
+            <button type="button" class="btn btn-primary" onclick="ipdSubmitStatusNote()">Salva stato</button>
+        </div>
+    </div>
+</div>
+
 <script>
 let ipdIntegrationPraticaId = 0;
 let ipdCustomMailPraticaId = 0;
+let ipdStatusNotePraticaId = 0;
+let ipdStatusNoteStato = '';
 const ipdTipoIscrizione = <?php echo json_encode($tipoIscrizione); ?>;
 let ipdBulkMailRunning = false;
 let ipdBulkMailSent = 0;
@@ -759,6 +846,10 @@ function ipdSetStato(id, stato) {
         ipdOpenCambioScuolaModal(id);
         return;
     }
+    if (stato === 'inviata') {
+        ipdOpenStatusNoteModal(id, stato, 'Riporta la pratica allo stato inviata e indica il motivo.');
+        return;
+    }
 
     const labels = {
         verificata: 'segnare la pratica come verificata',
@@ -770,6 +861,40 @@ function ipdSetStato(id, stato) {
         return;
     }
     ipdSendStato(id, stato, '');
+}
+
+function ipdOpenStatusNoteModal(id, stato, help) {
+    ipdStatusNotePraticaId = id;
+    ipdStatusNoteStato = stato;
+    document.getElementById('ipdStatusNoteHelp').textContent = help || '';
+    document.getElementById('ipdStatusNoteText').value = '';
+    document.getElementById('ipdStatusNoteError').hidden = true;
+    document.getElementById('ipdStatusNoteError').textContent = '';
+    const modal = document.getElementById('ipdStatusNoteModal');
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function ipdCloseStatusNoteModal() {
+    const modal = document.getElementById('ipdStatusNoteModal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    ipdStatusNotePraticaId = 0;
+    ipdStatusNoteStato = '';
+}
+
+function ipdSubmitStatusNote() {
+    const note = document.getElementById('ipdStatusNoteText').value.trim();
+    if (note.length < 3) {
+        const error = document.getElementById('ipdStatusNoteError');
+        error.textContent = 'Scrivi una breve nota per lo storico.';
+        error.hidden = false;
+        return;
+    }
+    const id = ipdStatusNotePraticaId;
+    const stato = ipdStatusNoteStato;
+    ipdCloseStatusNoteModal();
+    ipdSendStato(id, stato, note);
 }
 
 function ipdOpenCambioScuolaModal(id) {
@@ -800,6 +925,7 @@ function ipdOpenCambioScuolaModal(id) {
             document.getElementById('ipdCambioScuolaCanale').value = record.canale || 'mail';
             document.getElementById('ipdCambioScuolaScuolaDestinazione').value = record.scuola_destinazione || '';
             document.getElementById('ipdCambioScuolaIstitutoDestinazione').value = record.id_istituto_destinazione || '';
+            document.getElementById('ipdCambioScuolaScuolaDestinazioneManuale').value = record.id_istituto_destinazione ? '' : (record.scuola_destinazione || '');
             document.getElementById('ipdCambioScuolaIndirizzoDestinazione').value = record.indirizzo_destinazione || '';
             ipdCambioScuolaUpdateSchoolName();
             const libera = document.getElementById('ipdCambioScuolaScuolaDestinazioneLibera');
@@ -850,10 +976,16 @@ function ipdCambioScuolaLabel(value) {
 function ipdCambioScuolaUpdateSchoolName() {
     const select = document.getElementById('ipdCambioScuolaIstitutoDestinazione');
     const hidden = document.getElementById('ipdCambioScuolaScuolaDestinazione');
+    const manual = document.getElementById('ipdCambioScuolaScuolaDestinazioneManuale');
     if (!select || !hidden) return;
     const option = select.options[select.selectedIndex];
     if (select.value && option) {
         hidden.value = option.textContent || '';
+        if (manual) {
+            manual.value = '';
+        }
+    } else if (manual) {
+        hidden.value = manual.value || '';
     }
 }
 
@@ -864,6 +996,12 @@ document.getElementById('ipdCambioScuolaIstitutoDestinazione').addEventListener(
         libera.style.display = 'none';
         libera.textContent = '';
     }
+});
+document.getElementById('ipdCambioScuolaScuolaDestinazioneManuale').addEventListener('input', function () {
+    if (this.value.trim() !== '') {
+        document.getElementById('ipdCambioScuolaIstitutoDestinazione').value = '';
+    }
+    ipdCambioScuolaUpdateSchoolName();
 });
 
 function ipdRenderCambioScuolaStorico(praticaId, eventi) {
@@ -945,6 +1083,8 @@ document.getElementById('ipdCambioScuolaForm').addEventListener('submit', functi
     const error = document.getElementById('ipdCambioScuolaError');
     const button = this.querySelector('button[type="submit"]');
     const data = new FormData(this);
+    ipdCambioScuolaUpdateSchoolName();
+    data.set('scuola_destinazione', document.getElementById('ipdCambioScuolaScuolaDestinazione').value || '');
     if (button) {
         button.disabled = true;
         button.textContent = 'Salvataggio...';
@@ -1249,6 +1389,7 @@ function ipdSendCustomMail() {
         }
         alert(payload.result.message || 'Comunicazione inviata.');
         ipdCloseCustomMailModal();
+        window.location.reload();
     })
     .catch(err => {
         if (error) {

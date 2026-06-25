@@ -17,6 +17,10 @@ $token = trim((string)($_POST['token'] ?? ''));
 $tipo = trim((string)($_POST['tipo_documento'] ?? ''));
 
 try {
+    if (preg_match('/^admin_preview:\d+$/', $token)) {
+        require_once '../common/checkSession.php';
+        ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
+    }
     $result = iscrizioniPrimeDeleteDocumentByToken($token, $tipo);
     if (!$result['ok']) {
         http_response_code(400);

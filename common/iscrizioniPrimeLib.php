@@ -80,6 +80,8 @@ function iscrizioniPrimeEnsureSchema(): void
           token_expires_at datetime DEFAULT NULL,
           stato enum('importata','bozza','inviata','verificata','da_integrare','annullata') NOT NULL DEFAULT 'importata',
           dati_confermati_json mediumtext DEFAULT NULL,
+          novita_segreteria_at datetime DEFAULT NULL,
+          novita_segreteria_messaggio varchar(255) DEFAULT NULL,
           raw_prime_json mediumtext DEFAULT NULL,
           raw_dsa_json mediumtext DEFAULT NULL,
           raw_licenza_media_json mediumtext DEFAULT NULL,
@@ -191,6 +193,27 @@ function iscrizioniPrimeEnsureSchema(): void
           KEY idx_iscrizioni_cambio_eventi_pratica (pratica_id),
           KEY idx_iscrizioni_cambio_eventi_cambio (cambio_scuola_id),
           KEY idx_iscrizioni_cambio_eventi_tipo (tipo_iscrizione)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
+    dbExec("
+        CREATE TABLE IF NOT EXISTS iscrizioni_prime_eventi (
+          id int NOT NULL AUTO_INCREMENT,
+          pratica_id int NOT NULL,
+          tipo_iscrizione varchar(20) NOT NULL DEFAULT 'prime',
+          tipo_evento varchar(60) NOT NULL,
+          titolo varchar(255) NOT NULL,
+          stato_precedente varchar(30) DEFAULT NULL,
+          stato_nuovo varchar(30) DEFAULT NULL,
+          oggetto varchar(255) DEFAULT NULL,
+          messaggio mediumtext DEFAULT NULL,
+          dettagli_json mediumtext DEFAULT NULL,
+          created_by varchar(255) DEFAULT NULL,
+          created_at datetime NOT NULL,
+          PRIMARY KEY (id),
+          KEY idx_iscrizioni_eventi_pratica (pratica_id),
+          KEY idx_iscrizioni_eventi_tipo (tipo_iscrizione),
+          KEY idx_iscrizioni_eventi_evento (tipo_evento)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
 
@@ -383,6 +406,8 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'responsabile_2_codice_fiscale', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN responsabile_2_codice_fiscale varchar(16) DEFAULT NULL AFTER responsabile_2_nome");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'raw_anagrafica_json', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN raw_anagrafica_json mediumtext DEFAULT NULL AFTER raw_dsa_json");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'raw_licenza_media_json', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN raw_licenza_media_json mediumtext DEFAULT NULL AFTER raw_dsa_json");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'novita_segreteria_at', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN novita_segreteria_at datetime DEFAULT NULL AFTER dati_confermati_json");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'novita_segreteria_messaggio', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN novita_segreteria_messaggio varchar(255) DEFAULT NULL AFTER novita_segreteria_at");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'anagrafica_filename', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN anagrafica_filename varchar(255) DEFAULT NULL AFTER dsa_filename");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'righe_anagrafica', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN righe_anagrafica int NOT NULL DEFAULT 0 AFTER righe_dsa");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'licenza_media_filename', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN licenza_media_filename varchar(255) DEFAULT NULL AFTER anagrafica_filename");
@@ -428,6 +453,12 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola_eventi', 'allegato_path', "ALTER TABLE iscrizioni_prime_cambio_scuola_eventi ADD COLUMN allegato_path varchar(500) DEFAULT NULL AFTER note");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola_eventi', 'allegato_original_name', "ALTER TABLE iscrizioni_prime_cambio_scuola_eventi ADD COLUMN allegato_original_name varchar(255) DEFAULT NULL AFTER allegato_path");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_cambio_scuola_eventi', 'allegato_size', "ALTER TABLE iscrizioni_prime_cambio_scuola_eventi ADD COLUMN allegato_size int DEFAULT NULL AFTER allegato_original_name");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'stato_precedente', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN stato_precedente varchar(30) DEFAULT NULL AFTER titolo");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'stato_nuovo', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN stato_nuovo varchar(30) DEFAULT NULL AFTER stato_precedente");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'oggetto', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN oggetto varchar(255) DEFAULT NULL AFTER stato_nuovo");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'messaggio', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN messaggio mediumtext DEFAULT NULL AFTER oggetto");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'dettagli_json', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN dettagli_json mediumtext DEFAULT NULL AFTER messaggio");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'created_by', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN created_by varchar(255) DEFAULT NULL AFTER dettagli_json");
     iscrizioniPrimeEnsureDocumentStatusEnum();
     iscrizioniPrimeEnsureMailLogStatusEnum();
 }
@@ -1444,6 +1475,143 @@ function iscrizioniPrimeFormatDateIt($value): string
     return $timestamp ? date('d/m/Y', $timestamp) : $value;
 }
 
+function iscrizioniPrimeFormatDateTimeIt($value): string
+{
+    $value = trim((string)$value);
+    if ($value === '' || $value === '0000-00-00 00:00:00') {
+        return '';
+    }
+
+    $timestamp = strtotime($value);
+    return $timestamp ? date('d/m/Y H:i', $timestamp) : $value;
+}
+
+function iscrizioniPrimeCurrentActor(): string
+{
+    global $__useremail, $__utente_nome, $__utente_cognome;
+    $name = trim((string)($__utente_nome ?? '') . ' ' . (string)($__utente_cognome ?? ''));
+    if ($name !== '') {
+        return $name;
+    }
+    return trim((string)($__useremail ?? ''));
+}
+
+function iscrizioniPrimeRecordEvent(int $praticaId, string $tipoEvento, string $titolo, array $options = []): void
+{
+    if ($praticaId <= 0) {
+        return;
+    }
+
+    $pratica = dbGetFirst("SELECT tipo_iscrizione FROM iscrizioni_prime_pratiche WHERE id = " . dbI($praticaId) . " LIMIT 1");
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($options['tipo_iscrizione'] ?? ($pratica['tipo_iscrizione'] ?? 'prime'));
+    $details = $options['dettagli'] ?? null;
+    $detailsJson = is_array($details) ? json_encode($details, JSON_UNESCAPED_UNICODE) : null;
+    $createdAt = trim((string)($options['created_at'] ?? '')) !== '' ? dbQ((string)$options['created_at']) : 'NOW()';
+
+    dbExec("
+        INSERT INTO iscrizioni_prime_eventi
+            (pratica_id, tipo_iscrizione, tipo_evento, titolo, stato_precedente, stato_nuovo, oggetto, messaggio, dettagli_json, created_by, created_at)
+        VALUES
+            (
+                " . dbI($praticaId) . ",
+                " . dbQ($tipoIscrizione) . ",
+                " . dbQ($tipoEvento) . ",
+                " . dbQ($titolo) . ",
+                " . dbQ($options['stato_precedente'] ?? null) . ",
+                " . dbQ($options['stato_nuovo'] ?? null) . ",
+                " . dbQ($options['oggetto'] ?? null) . ",
+                " . dbQ($options['messaggio'] ?? null) . ",
+                " . dbQ($detailsJson) . ",
+                " . dbQ($options['created_by'] ?? iscrizioniPrimeCurrentActor()) . ",
+                $createdAt
+            )
+    ");
+}
+
+function iscrizioniPrimeMarkSecretaryNews(int $praticaId, string $message): void
+{
+    if ($praticaId <= 0) {
+        return;
+    }
+
+    dbExec("
+        UPDATE iscrizioni_prime_pratiche SET
+            novita_segreteria_at = NOW(),
+            novita_segreteria_messaggio = " . dbQ($message) . ",
+            updated_at = NOW()
+        WHERE id = " . dbI($praticaId) . "
+        LIMIT 1
+    ");
+}
+
+function iscrizioniPrimeClearSecretaryNews(int $praticaId): void
+{
+    if ($praticaId <= 0) {
+        return;
+    }
+
+    dbExec("
+        UPDATE iscrizioni_prime_pratiche SET
+            novita_segreteria_at = NULL,
+            novita_segreteria_messaggio = NULL,
+            updated_at = NOW()
+        WHERE id = " . dbI($praticaId) . "
+        LIMIT 1
+    ");
+}
+
+function iscrizioniPrimeEventsForPratica(array $pratica): array
+{
+    $praticaId = intval($pratica['id'] ?? 0);
+    if ($praticaId <= 0) {
+        return [];
+    }
+
+    $events = dbGetAll("
+        SELECT *
+        FROM iscrizioni_prime_eventi
+        WHERE pratica_id = " . dbI($praticaId) . "
+        ORDER BY created_at DESC, id DESC
+    ") ?: [];
+
+    $confirmed = [];
+    if (!empty($pratica['dati_confermati_json'])) {
+        $decoded = json_decode((string)$pratica['dati_confermati_json'], true);
+        if (is_array($decoded)) {
+            $confirmed = $decoded;
+        }
+    }
+    $sentAt = trim((string)($confirmed['saved_at'] ?? ''));
+    if ($sentAt === '' && in_array((string)($pratica['stato'] ?? ''), ['inviata', 'verificata', 'da_integrare', 'annullata'], true)) {
+        $sentAt = trim((string)($pratica['updated_at'] ?? ''));
+    }
+    if ($sentAt !== '') {
+        $events[] = [
+            'id' => 0,
+            'tipo_evento' => 'invio_famiglia',
+            'titolo' => 'Conferma dati inviata dalla famiglia',
+            'stato_precedente' => null,
+            'stato_nuovo' => 'inviata',
+            'oggetto' => null,
+            'messaggio' => null,
+            'dettagli_json' => null,
+            'created_by' => 'Famiglia',
+            'created_at' => date('Y-m-d H:i:s', strtotime($sentAt) ?: time()),
+        ];
+    }
+
+    usort($events, static function ($a, $b) {
+        $timeA = strtotime((string)($a['created_at'] ?? '')) ?: 0;
+        $timeB = strtotime((string)($b['created_at'] ?? '')) ?: 0;
+        if ($timeA === $timeB) {
+            return intval($b['id'] ?? 0) <=> intval($a['id'] ?? 0);
+        }
+        return $timeB <=> $timeA;
+    });
+
+    return $events;
+}
+
 function iscrizioniPrimeMailConfirmedData(array $pratica): array
 {
     $confirmed = [];
@@ -1790,6 +1958,14 @@ function iscrizioniPrimeSendCustomPracticeMail(array $pratica, string $subject, 
     }
 
     info('[iscrizioni] comunicazione personalizzata inviata pratica=' . intval($pratica['id'] ?? 0) . ' destinatari=' . implode(',', $recipients));
+    iscrizioniPrimeRecordEvent((int)($pratica['id'] ?? 0), 'mail_personalizzata', 'Mail personalizzata inviata ai genitori', [
+        'oggetto' => $subject,
+        'messaggio' => $message . ($signature !== '' ? "\n\nFirma:\n" . $signature : ''),
+        'dettagli' => [
+            'destinatari' => $recipients,
+            'inviate' => $sent,
+        ],
+    ]);
     return ['ok' => true, 'message' => 'Comunicazione inviata ai genitori.', 'sent' => $sent, 'recipients' => $recipients];
 }
 
@@ -2005,6 +2181,7 @@ function iscrizioniPrimeSendCustomBulkMail(string $tipoIscrizione, string $subje
     $sent = 0;
     $skipped = 0;
     $errors = [];
+    $eventRecordedForPractice = [];
 
     foreach ($pratiche as $pratica) {
         if ($sent >= $batchSize) {
@@ -2112,6 +2289,18 @@ function iscrizioniPrimeSendCustomBulkMail(string $tipoIscrizione, string $subje
             if ($ok) {
                 $sent++;
                 $counts[$account['email']] = intval($counts[$account['email']] ?? 0) + 1;
+                $eventKey = (int)$pratica['id'];
+                if (!$testMode && empty($eventRecordedForPractice[$eventKey])) {
+                    iscrizioniPrimeRecordEvent($eventKey, 'mail_massiva', 'Comunicazione massiva inviata ai genitori', [
+                        'oggetto' => $subject,
+                        'messaggio' => $message . ($signature !== '' ? "\n\nFirma:\n" . $signature : ''),
+                        'dettagli' => [
+                            'audience' => $audience,
+                            'communication_key' => $communicationKey,
+                        ],
+                    ]);
+                    $eventRecordedForPractice[$eventKey] = true;
+                }
             } else {
                 $errors[] = $recipient;
             }
@@ -3933,6 +4122,18 @@ function iscrizioniPrimeSaveDraftByToken(string $token, array $data): array
         return ['ok' => false, 'message' => 'La pratica non puo essere modificata in questo stato.'];
     }
 
+    $previousConfirmed = [];
+    if (!empty($pratica['dati_confermati_json'])) {
+        $decodedPrevious = json_decode((string)$pratica['dati_confermati_json'], true);
+        if (is_array($decodedPrevious)) {
+            $previousConfirmed = $decodedPrevious;
+        }
+    }
+    $savedAt = date('c');
+    if ((string)($pratica['stato'] ?? '') === 'inviata' && !empty($previousConfirmed['saved_at'])) {
+        $savedAt = (string)$previousConfirmed['saved_at'];
+    }
+
     $carenzeMaterie = [];
     $carenzeAltroSelected = false;
     foreach ((array)($data['carenze_formative_materie'] ?? []) as $materia) {
@@ -3970,7 +4171,7 @@ function iscrizioniPrimeSaveDraftByToken(string $token, array $data): array
         'carenze_formative_materie' => $carenzeMaterie,
         'carenze_formative_altro' => iscrizioniPrimeTrimValue($data['carenze_formative_altro'] ?? null),
         'privacy_confermata' => !empty($data['privacy_confermata']) ? 1 : 0,
-        'saved_at' => date('c'),
+        'saved_at' => $savedAt,
     ];
 
     if ($confirmed['email_genitore_1'] === null && $confirmed['email_genitore_2'] === null) {
@@ -3979,6 +4180,7 @@ function iscrizioniPrimeSaveDraftByToken(string $token, array $data): array
 
     iscrizioniPrimeRecordContactChanges($pratica, $confirmed);
 
+    $nextPracticeState = (string)($pratica['stato'] ?? '') === 'inviata' ? 'inviata' : 'bozza';
     dbExec("
         UPDATE iscrizioni_prime_pratiche SET
             email_studente = " . dbQ($confirmed['email_studente']) . ",
@@ -3993,7 +4195,7 @@ function iscrizioniPrimeSaveDraftByToken(string $token, array $data): array
             carenze_formative_materie = " . dbQ(json_encode($confirmed['carenze_formative_materie'], JSON_UNESCAPED_UNICODE)) . ",
             carenze_formative_altro = " . dbQ($confirmed['carenze_formative_altro']) . ",
             dati_confermati_json = " . dbQ(json_encode($confirmed, JSON_UNESCAPED_UNICODE)) . ",
-            stato = 'bozza',
+            stato = " . dbQ($nextPracticeState) . ",
             updated_at = NOW()
         WHERE id = " . intval($pratica['id']) . "
         LIMIT 1
@@ -4001,7 +4203,11 @@ function iscrizioniPrimeSaveDraftByToken(string $token, array $data): array
 
     iscrizioniPrimeEnsureDocumentRows((int)$pratica['id'], $pratica);
 
-    return ['ok' => true, 'message' => 'Bozza salvata.', 'stato' => 'bozza'];
+    return [
+        'ok' => true,
+        'message' => $nextPracticeState === 'inviata' ? 'Modifiche salvate. La pratica resta inviata alla segreteria.' : 'Bozza salvata.',
+        'stato' => $nextPracticeState,
+    ];
 }
 
 function iscrizioniPrimeRequiredDocumentTypes(array $pratica, array $confirmed = []): array
@@ -4529,13 +4735,32 @@ function iscrizioniPrimeUploadDocumentByToken(string $token, string $tipo, array
         }
     }
 
+    $nextPracticeState = (string)($pratica['stato'] ?? '') === 'inviata' ? 'inviata' : 'bozza';
+    $newsMessage = null;
+    if ((string)($pratica['stato'] ?? '') === 'inviata') {
+        $newsMessage = $appendedToPrevious
+            ? 'La famiglia ha aggiunto nuovi file al documento: ' . $types[$tipo] . '. Deve reinviare la conferma.'
+            : 'La famiglia ha caricato o sostituito il documento: ' . $types[$tipo] . '. Deve reinviare la conferma.';
+    }
     dbExec("
         UPDATE iscrizioni_prime_pratiche SET
-            stato = 'bozza',
+            stato = " . dbQ($nextPracticeState) . ",
+            novita_segreteria_at = " . ($newsMessage ? 'NOW()' : 'novita_segreteria_at') . ",
+            novita_segreteria_messaggio = " . ($newsMessage ? dbQ($newsMessage) : 'novita_segreteria_messaggio') . ",
             updated_at = NOW()
         WHERE id = " . intval($pratica['id']) . "
         LIMIT 1
     ");
+    if ($newsMessage) {
+        iscrizioniPrimeRecordEvent((int)$pratica['id'], 'allegati_modificati', 'Allegati modificati dopo invio', [
+            'messaggio' => $newsMessage,
+            'created_by' => 'Famiglia',
+            'dettagli' => [
+                'documento' => $types[$tipo],
+                'modalita' => $appendedToPrevious ? 'aggiunta al PDF esistente' : 'caricamento/sostituzione',
+            ],
+        ]);
+    }
 
     return [
         'ok' => true,
@@ -4860,6 +5085,24 @@ function iscrizioniPrimeSaveCambioScuola(int $praticaId, array $data, ?array $fi
             )
     ");
 
+    iscrizioniPrimeRecordEvent($praticaId, 'cambio_scuola', 'Cambio scuola / non prosegue registrato', [
+        'stato_precedente' => (string)($pratica['stato'] ?? ''),
+        'stato_nuovo' => 'annullata',
+        'messaggio' => $note,
+        'created_by' => $updatedBy,
+        'dettagli' => [
+            'richiesta_data' => $richiestaData,
+            'canale' => $canale,
+            'scuola_destinazione' => $scuolaDestinazione,
+            'indirizzo_destinazione' => $indirizzoDestinazione,
+            'colloquio_stato' => $colloquioStato,
+            'nulla_osta_stato' => $nullaOstaStato,
+            'documenti_stato' => $documentiStato,
+            'pratica_stato' => $praticaStato,
+            'allegato' => $eventOriginalName,
+        ],
+    ]);
+
     dbExec("
         UPDATE iscrizioni_prime_pratiche SET
             stato = 'annullata',
@@ -5056,13 +5299,29 @@ function iscrizioniPrimeDeleteDocumentByToken(string $token, string $tipo): arra
         LIMIT 1
     ");
 
+    $nextPracticeState = (string)($pratica['stato'] ?? '') === 'inviata' ? 'inviata' : 'bozza';
+    $newsMessage = (string)($pratica['stato'] ?? '') === 'inviata'
+        ? 'La famiglia ha cancellato il documento: ' . $types[$tipo] . '. Deve reinviare la conferma.'
+        : null;
     dbExec("
         UPDATE iscrizioni_prime_pratiche SET
-            stato = 'bozza',
+            stato = " . dbQ($nextPracticeState) . ",
+            novita_segreteria_at = " . ($newsMessage ? 'NOW()' : 'novita_segreteria_at') . ",
+            novita_segreteria_messaggio = " . ($newsMessage ? dbQ($newsMessage) : 'novita_segreteria_messaggio') . ",
             updated_at = NOW()
         WHERE id = " . intval($pratica['id']) . "
         LIMIT 1
     ");
+    if ($newsMessage) {
+        iscrizioniPrimeRecordEvent((int)$pratica['id'], 'allegati_modificati', 'Allegato cancellato dopo invio', [
+            'messaggio' => $newsMessage,
+            'created_by' => 'Famiglia',
+            'dettagli' => [
+                'documento' => $types[$tipo],
+                'modalita' => 'cancellazione',
+            ],
+        ]);
+    }
 
     return ['ok' => true, 'message' => $types[$tipo] . ' cancellato.'];
 }
@@ -5100,13 +5359,29 @@ function iscrizioniPrimeMarkDocumentPaperByToken(string $token, string $tipo): a
         LIMIT 1
     ");
 
+    $nextPracticeState = (string)($pratica['stato'] ?? '') === 'inviata' ? 'inviata' : 'bozza';
+    $newsMessage = (string)($pratica['stato'] ?? '') === 'inviata'
+        ? 'La famiglia ha scelto consegna cartacea per: ' . $types[$tipo] . '. Deve reinviare la conferma.'
+        : null;
     dbExec("
         UPDATE iscrizioni_prime_pratiche SET
-            stato = 'bozza',
+            stato = " . dbQ($nextPracticeState) . ",
+            novita_segreteria_at = " . ($newsMessage ? 'NOW()' : 'novita_segreteria_at') . ",
+            novita_segreteria_messaggio = " . ($newsMessage ? dbQ($newsMessage) : 'novita_segreteria_messaggio') . ",
             updated_at = NOW()
         WHERE id = " . intval($pratica['id']) . "
         LIMIT 1
     ");
+    if ($newsMessage) {
+        iscrizioniPrimeRecordEvent((int)$pratica['id'], 'allegati_modificati', 'Scelta consegna cartacea dopo invio', [
+            'messaggio' => $newsMessage,
+            'created_by' => 'Famiglia',
+            'dettagli' => [
+                'documento' => $types[$tipo],
+                'modalita' => 'consegna cartacea',
+            ],
+        ]);
+    }
 
     return [
         'ok' => true,
@@ -5185,10 +5460,18 @@ function iscrizioniPrimeSubmitByToken(string $token, array $data): array
     dbExec("
         UPDATE iscrizioni_prime_pratiche SET
             stato = 'inviata',
+            novita_segreteria_at = NOW(),
+            novita_segreteria_messaggio = " . dbQ((string)($pratica['stato'] ?? '') === 'inviata' ? 'La famiglia ha reinviato la conferma dati iscrizione.' : 'La famiglia ha inviato la conferma dati iscrizione.') . ",
             updated_at = NOW()
         WHERE id = " . intval($pratica['id']) . "
         LIMIT 1
     ");
+
+    iscrizioniPrimeRecordEvent((int)$pratica['id'], 'invio_famiglia', 'Conferma dati inviata dalla famiglia', [
+        'stato_precedente' => (string)($pratica['stato'] ?? ''),
+        'stato_nuovo' => 'inviata',
+        'created_by' => 'Famiglia',
+    ]);
 
     $pratica = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . intval($pratica['id']) . " LIMIT 1") ?: $pratica;
     $pratica['stato'] = 'inviata';

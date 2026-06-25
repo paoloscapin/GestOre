@@ -6,6 +6,8 @@ ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
 
 header('Content-Type: application/json; charset=utf-8');
 
+iscrizioniPrimeEnsureSchema();
+
 $id = intval($_POST['id'] ?? 0);
 $subject = trim((string)($_POST['subject'] ?? ''));
 $message = trim((string)($_POST['message'] ?? ''));

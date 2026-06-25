@@ -561,7 +561,7 @@ function ms_data_attr($value): string
                         <label>Classe richiesta</label>
                         <input type="text" name="classe_richiesta" id="ms_classe_richiesta" class="form-control input-sm">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group ms-only-entrata">
                         <label>Scuola provenienza</label>
                         <input type="hidden" name="scuola_provenienza" id="ms_scuola_provenienza">
                         <select name="id_istituto_provenienza" id="ms_id_istituto_provenienza" class="form-control input-sm">
@@ -572,11 +572,11 @@ function ms_data_attr($value): string
                         </select>
                         <div id="ms_scuola_provenienza_libera" class="help-block" style="display:none;"></div>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group ms-only-entrata">
                         <label>Indirizzo di studio di provenienza</label>
                         <input type="text" name="indirizzo_provenienza" id="ms_indirizzo_provenienza" class="form-control input-sm" placeholder="Es. informatica, liceo scientifico...">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group ms-only-uscita">
                         <label>Scuola destinazione</label>
                         <input type="hidden" name="scuola_destinazione" id="ms_scuola_destinazione">
                         <select name="id_istituto_destinazione" id="ms_id_istituto_destinazione" class="form-control input-sm">
@@ -587,11 +587,11 @@ function ms_data_attr($value): string
                         </select>
                         <div id="ms_scuola_destinazione_libera" class="help-block" style="display:none;"></div>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group ms-only-uscita">
                         <label>Indirizzo di studio di destinazione</label>
                         <input type="text" name="indirizzo_destinazione" id="ms_indirizzo_destinazione" class="form-control input-sm" placeholder="Es. informatica, liceo scientifico...">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group ms-only-entrata">
                         <label>Esami integrativi</label>
                         <select name="esami_integrativi" id="ms_esami_integrativi" class="form-control input-sm">
                             <option value="0">No</option>
@@ -727,6 +727,7 @@ function msOpenNew(kind) {
     msSetField('ms_note', '');
     msRenderHistory(0);
     document.getElementById('msPracticeTitle').textContent = kind === 'entrata' ? 'Nuova entrata' : 'Nuova uscita';
+    msUpdatePracticeKindFields();
     $('#msPracticeModal').modal('show');
 }
 
@@ -757,9 +758,32 @@ document.querySelectorAll('.ms-edit').forEach(function (button) {
         msSetField('ms_note', button.dataset.note || '');
         msRenderHistory(button.dataset.id || 0);
         document.getElementById('msPracticeTitle').textContent = 'Dettaglio pratica';
+        msUpdatePracticeKindFields();
         $('#msPracticeModal').modal('show');
     });
 });
+
+function msUpdatePracticeKindFields() {
+    const kind = document.getElementById('ms_tipo_pratica').value === 'entrata' ? 'entrata' : 'uscita';
+    document.querySelectorAll('.ms-only-entrata').forEach(function (element) {
+        element.style.display = kind === 'entrata' ? '' : 'none';
+    });
+    document.querySelectorAll('.ms-only-uscita').forEach(function (element) {
+        element.style.display = kind === 'uscita' ? '' : 'none';
+    });
+    if (kind === 'entrata') {
+        msSetField('ms_id_istituto_destinazione', '');
+        msSetField('ms_scuola_destinazione', '');
+        msSetField('ms_indirizzo_destinazione', '');
+    } else {
+        msSetField('ms_id_istituto_provenienza', '');
+        msSetField('ms_scuola_provenienza', '');
+        msSetField('ms_indirizzo_provenienza', '');
+        msSetField('ms_esami_integrativi', '0');
+    }
+}
+
+document.getElementById('ms_tipo_pratica').addEventListener('change', msUpdatePracticeKindFields);
 
 document.getElementById('ms_id_istituto_provenienza').addEventListener('change', function () {
     msSyncSchoolHidden('ms_id_istituto_provenienza', 'ms_scuola_provenienza');
