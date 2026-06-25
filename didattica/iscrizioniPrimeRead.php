@@ -8,22 +8,25 @@ header('Content-Type: application/json; charset=utf-8');
 
 iscrizioniPrimeEnsureSchema();
 $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($_GET['tipo_iscrizione'] ?? 'prime');
+$effectiveInternal = iscrizioniPrimeEffectiveInternalCondition('p');
+$effectiveExternal = iscrizioniPrimeEffectiveExternalCondition('p');
 
 $stats = dbGetFirst("
     SELECT
         COUNT(*) AS totale,
-        SUM(studente_interno = 1) AS interni,
-        SUM(studente_interno = 0) AS esterni,
+        SUM($effectiveInternal) AS interni,
+        SUM($effectiveExternal) AS esterni,
         SUM(stato = 'importata') AS importate,
         SUM(stato = 'bozza') AS bozze,
-        SUM(stato = 'bozza' AND studente_interno = 0) AS bozze_esterni,
+        SUM(stato = 'bozza' AND $effectiveExternal) AS bozze_esterni,
         SUM(stato = 'inviata') AS domande_inviate,
-        SUM(stato = 'inviata' AND studente_interno = 0) AS domande_inviate_esterni,
+        SUM(stato = 'inviata' AND $effectiveExternal) AS domande_inviate_esterni,
         SUM(stato = 'verificata') AS verificate,
+        SUM(stato = 'annullata') AS annullate,
         SUM(email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AS con_email,
-        SUM((email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AND studente_interno = 0) AS esterni_con_email
-    FROM iscrizioni_prime_pratiche
-    WHERE tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+        SUM((email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AND $effectiveExternal) AS esterni_con_email
+    FROM iscrizioni_prime_pratiche p
+    WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
 ");
 
 $mailStats = dbGetFirst("
@@ -44,6 +47,8 @@ $rows = dbGetAll("
         p.anno_scolastico,
         p.tipo_iscrizione,
         p.studente_interno,
+        CASE WHEN " . iscrizioniPrimeEffectiveInternalCondition('p') . " THEN 1 ELSE 0 END AS studente_interno_effettivo,
+        classe_corrente.classe_corrente_gestore,
         p.codice_domanda,
         p.codice_fiscale,
         p.cognome,
@@ -64,11 +69,57 @@ $rows = dbGetAll("
         COALESCE(mail_log.mail_reali, 0) AS mail_reali,
         COALESCE(mail_log.mail_test, 0) AS mail_test,
         COALESCE(mail_log.mail_bounce, 0) AS mail_bounce,
+        CASE
+            WHEN " . iscrizioniPrimeEffectiveInternalCondition('p') . " THEN 0
+            WHEN p.stato NOT IN ('importata', 'bozza', 'da_integrare') THEN 0
+            ELSE
+                CASE
+                    WHEN p.email_genitore_1 IS NOT NULL
+                     AND TRIM(p.email_genitore_1) <> ''
+                     AND NOT EXISTS (
+                        SELECT 1
+                        FROM iscrizioni_prime_mail_log l1
+                        WHERE l1.pratica_id = p.id
+                          AND LOWER(TRIM(l1.recipient_email)) = LOWER(TRIM(p.email_genitore_1))
+                          AND l1.stato IN ('inviata','bounce')
+                          AND l1.test_mode = 0
+                        LIMIT 1
+                     )
+                    THEN 1 ELSE 0
+                END
+                +
+                CASE
+                    WHEN p.email_genitore_2 IS NOT NULL
+                     AND TRIM(p.email_genitore_2) <> ''
+                     AND LOWER(TRIM(p.email_genitore_2)) <> LOWER(TRIM(COALESCE(p.email_genitore_1, '')))
+                     AND NOT EXISTS (
+                        SELECT 1
+                        FROM iscrizioni_prime_mail_log l2
+                        WHERE l2.pratica_id = p.id
+                          AND LOWER(TRIM(l2.recipient_email)) = LOWER(TRIM(p.email_genitore_2))
+                          AND l2.stato IN ('inviata','bounce')
+                          AND l2.test_mode = 0
+                        LIMIT 1
+                     )
+                    THEN 1 ELSE 0
+                END
+        END AS mail_pending,
+        CASE
+            WHEN " . iscrizioniPrimeEffectiveInternalCondition('p') . " THEN 'studente interno'
+            WHEN p.stato NOT IN ('importata', 'bozza', 'da_integrare') THEN CONCAT('pratica ', p.stato)
+            WHEN (p.email_genitore_1 IS NULL OR TRIM(p.email_genitore_1) = '')
+             AND (p.email_genitore_2 IS NULL OR TRIM(p.email_genitore_2) = '') THEN 'senza email responsabili'
+            ELSE ''
+        END AS mail_diagnosi,
         mail_log.last_real_sent_at,
         mail_log.last_test_sent_at,
         mail_log.last_bounced_at,
         mail_log.bounce_type,
-        mail_log.bounce_reason
+        mail_log.bounce_reason,
+        cambio.richiesta_data AS cambio_scuola_richiesta_data,
+        cambio.canale AS cambio_scuola_canale,
+        cambio.scuola_destinazione AS cambio_scuola_scuola_destinazione,
+        cambio.pratica_stato AS cambio_scuola_pratica_stato
     FROM iscrizioni_prime_pratiche p
     LEFT JOIN (
         SELECT
@@ -84,6 +135,20 @@ $rows = dbGetAll("
         FROM iscrizioni_prime_mail_log
         GROUP BY pratica_id
     ) mail_log ON mail_log.pratica_id = p.id
+    LEFT JOIN (
+        SELECT
+            UPPER(TRIM(s.codice_fiscale)) AS codice_fiscale,
+            GROUP_CONCAT(DISTINCT c.classe ORDER BY c.classe SEPARATOR ', ') AS classe_corrente_gestore
+        FROM studente s
+        INNER JOIN studente_frequenta sf
+            ON sf.id_studente = s.id
+           AND sf.id_anno_scolastico = " . dbI(intval($__anno_scolastico_corrente_id ?? 0)) . "
+        INNER JOIN classi c
+            ON c.id = sf.id_classe
+        WHERE s.attivo = 1
+        GROUP BY UPPER(TRIM(s.codice_fiscale))
+    ) classe_corrente ON classe_corrente.codice_fiscale = UPPER(TRIM(p.codice_fiscale))
+    LEFT JOIN iscrizioni_prime_cambio_scuola cambio ON cambio.pratica_id = p.id
     WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
     ORDER BY p.cognome ASC, p.nome ASC
 ");

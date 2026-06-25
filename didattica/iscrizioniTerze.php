@@ -114,6 +114,20 @@ $draftSubject = iscrizioniPrimeDraftSubject('terze');
         .mail-badge-none { background: #fee2e2; color: #991b1b; }
         .mail-badge-skip { background: #e5e7eb; color: #374151; }
         .mail-badge-bounce { background: #fecaca; color: #7f1d1d; }
+        .iscrizioni-terze-filter {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .iscrizioni-terze-filter input {
+            width: min(560px, 100%);
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 9px 11px;
+        }
+        .iscrizioni-terze-filter-count { color: #64748b; }
     </style>
 </head>
 <body>
@@ -163,6 +177,9 @@ $draftSubject = iscrizioniPrimeDraftSubject('terze');
                     <a class="btn btn-primary" href="iscrizioniPrimeDomande.php?tipo_iscrizione=terze">
                         <span class="glyphicon glyphicon-inbox"></span> Domande inviate
                     </a>
+                    <a class="btn btn-default" href="iscrizioniContattiVariazioni.php?tipo_iscrizione=terze">
+                        <span class="glyphicon glyphicon-transfer"></span> Variazioni contatti
+                    </a>
                     <button type="button" class="btn btn-info" onclick="iscrizioniTerzeSendMail(1)">
                         <span class="glyphicon glyphicon-eye-open"></span> Simula invio mail esterni
                     </button>
@@ -171,6 +188,12 @@ $draftSubject = iscrizioniPrimeDraftSubject('terze');
                     </button>
                     <button type="button" class="btn btn-warning" onclick="iscrizioniTerzeSendMail(0)">
                         <span class="glyphicon glyphicon-send"></span> Invia prossimo lotto esterni
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="iscrizioniTerzeCorrectSentLinks(1)">
+                        <span class="glyphicon glyphicon-search"></span> Simula controllo link inviati
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="iscrizioniTerzeCorrectSentLinks(0)">
+                        <span class="glyphicon glyphicon-link"></span> Correggi link inviati
                     </button>
                     <button type="button" class="btn btn-danger" onclick="iscrizioniTerzeCheckBounce()">
                         <span class="glyphicon glyphicon-warning-sign"></span> Bounce
@@ -297,6 +320,15 @@ $draftSubject = iscrizioniPrimeDraftSubject('terze');
             <span class="glyphicon glyphicon-list"></span>&ensp;Pratiche terze importate
         </div>
         <div class="panel-body">
+            <div class="iscrizioni-terze-filter">
+                <label for="iscrizioni_terze_filter" style="margin:0;">Filtra elenco</label>
+                <input type="search" id="iscrizioni_terze_filter" placeholder="Cerca nome, codice fiscale, corso, stato, email...">
+                <button type="button" class="btn btn-default btn-sm" onclick="iscrizioniTerzeClearFilter()">Pulisci</button>
+                <button type="button" class="btn btn-success btn-sm" onclick="iscrizioniTerzeExportFilteredCsv()">
+                    <span class="glyphicon glyphicon-download-alt"></span> Esporta tabella filtrata
+                </button>
+                <span id="iscrizioni_terze_filter_count" class="iscrizioni-terze-filter-count"></span>
+            </div>
             <div class="table-responsive">
                 <table class="table table-striped table-condensed" id="iscrizioni_terze_table">
                     <thead>
@@ -324,9 +356,11 @@ $draftSubject = iscrizioniPrimeDraftSubject('terze');
 <script>
 let iscrizioniTerzeMailProgressTimer = null;
 let iscrizioniTerzeMailProgressValue = 0;
+let iscrizioniTerzeRows = [];
+let iscrizioniTerzeVisibleRows = [];
 
 function iscrizioniTerzeEscape(value) {
-    return String(value || '').replace(/[&<>"']/g, function (char) {
+    return String(value ?? '').replace(/[&<>"']/g, function (char) {
         return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[char];
     });
 }
@@ -338,6 +372,48 @@ function iscrizioniTerzeSetText(id, value) {
 
 function iscrizioniTerzeNumber(value) {
     return value === undefined || value === null || value === '' ? 0 : value;
+}
+
+function iscrizioniTerzeTipoEffettivo(row) {
+    return Number(row.studente_interno_effettivo ?? row.studente_interno ?? 0) === 1 ? 'INTERNO' : 'ESTERNO';
+}
+
+function iscrizioniTerzeNormalizeSearch(value) {
+    return String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function iscrizioniTerzeRowSearchText(row) {
+    return iscrizioniTerzeNormalizeSearch([
+        row.cognome,
+        row.nome,
+        iscrizioniTerzeTipoEffettivo(row),
+        row.codice_fiscale,
+        row.corso_studi,
+        row.stato,
+        row.email_genitore_1,
+        row.email_genitore_2,
+        row.telefono_genitore_1,
+        row.telefono_genitore_2,
+        row.token_last4,
+        row.mail_diagnosi,
+        row.scuola_provenienza,
+        row.comune_residenza
+    ].filter(Boolean).join(' '));
+}
+
+function iscrizioniTerzeFilteredRows() {
+    const filter = document.getElementById('iscrizioni_terze_filter');
+    const terms = iscrizioniTerzeNormalizeSearch(filter ? filter.value : '').trim().split(/\s+/).filter(Boolean);
+    if (!terms.length) {
+        return iscrizioniTerzeRows.slice();
+    }
+    return iscrizioniTerzeRows.filter(row => {
+        const text = iscrizioniTerzeRowSearchText(row);
+        return terms.every(term => text.includes(term));
+    });
 }
 
 function iscrizioniTerzeUpdateStats(stats, mailStats) {
@@ -352,7 +428,7 @@ function iscrizioniTerzeUpdateStats(stats, mailStats) {
 }
 
 function iscrizioniTerzeMailStatus(row) {
-    if (Number(row.studente_interno)) {
+    if (iscrizioniTerzeTipoEffettivo(row) === 'INTERNO') {
         return '<span class="mail-badge mail-badge-skip">Non richiesta</span>';
     }
     const real = Number(row.mail_reali || 0);
@@ -369,6 +445,12 @@ function iscrizioniTerzeMailStatus(row) {
     } else if (test > 0) {
         html += '<span class="mail-badge mail-badge-test">Test inviato</span>';
         if (row.last_test_sent_at) html += '<br><small>' + iscrizioniTerzeEscape(row.last_test_sent_at) + '</small>';
+    } else if (Number(row.mail_pending || 0) <= 0 && row.mail_diagnosi) {
+        html += '<span class="mail-badge mail-badge-skip">Non richiesta</span>';
+        html += '<br><small>' + iscrizioniTerzeEscape(row.mail_diagnosi) + '</small>';
+    } else if (!['importata', 'bozza', 'da_integrare'].includes(String(row.stato || '').toLowerCase())) {
+        html += '<span class="mail-badge mail-badge-skip">Non richiesta</span>';
+        if (row.stato) html += '<br><small>pratica ' + iscrizioniTerzeEscape(row.stato) + '</small>';
     } else {
         html += '<span class="mail-badge mail-badge-none">Da inviare</span>';
     }
@@ -376,6 +458,117 @@ function iscrizioniTerzeMailStatus(row) {
         html += '<br><small>reali ' + real + ' / test ' + test + '</small>';
     }
     return html;
+}
+
+function iscrizioniTerzeRenderTable() {
+    const tbody = document.querySelector('#iscrizioni_terze_table tbody');
+    const counter = document.getElementById('iscrizioni_terze_filter_count');
+    iscrizioniTerzeVisibleRows = iscrizioniTerzeFilteredRows();
+
+    if (!iscrizioniTerzeRows.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Nessuna pratica importata.</td></tr>';
+        if (counter) counter.textContent = '';
+        return;
+    }
+
+    if (!iscrizioniTerzeVisibleRows.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Nessuna pratica corrisponde al filtro.</td></tr>';
+        if (counter) counter.textContent = '0 di ' + iscrizioniTerzeRows.length + ' pratiche';
+        return;
+    }
+
+    tbody.innerHTML = iscrizioniTerzeVisibleRows.map(row => {
+        const emails = [row.email_genitore_1, row.email_genitore_2].filter(Boolean).join('<br>');
+        const isInternal = iscrizioniTerzeTipoEffettivo(row) === 'INTERNO';
+        const token = isInternal ? '-' : (row.token_last4 ? ('...' + row.token_last4) : '<span class="text-danger">da esportare</span>');
+        const tipo = isInternal
+            ? '<span class="label label-default">interno</span>' + (row.classe_corrente_gestore ? '<br><small class="text-muted">' + iscrizioniTerzeEscape(row.classe_corrente_gestore) + '</small>' : '')
+            : '<span class="label label-warning">esterno</span>' + (row.classe_corrente_gestore ? '<br><small class="text-muted">' + iscrizioniTerzeEscape(row.classe_corrente_gestore) + '</small>' : '');
+        const testButton = isInternal
+            ? '<span class="text-muted">non richiesto</span>'
+            : '<button type="button" class="btn btn-xs btn-info" onclick="iscrizioniTerzeOpenTestLink(' + Number(row.id) + ')"><span class="glyphicon glyphicon-new-window"></span> Apri</button>';
+
+        return '<tr>' +
+            '<td><strong>' + iscrizioniTerzeEscape(row.cognome) + '</strong> ' + iscrizioniTerzeEscape(row.nome) + '</td>' +
+            '<td>' + iscrizioniTerzeEscape(row.codice_fiscale) + '</td>' +
+            '<td>' + iscrizioniTerzeEscape(row.corso_studi) + '</td>' +
+            '<td>' + tipo + '</td>' +
+            '<td>' + iscrizioniTerzeEscape(row.stato) + '</td>' +
+            '<td>' + (emails || '<span class="text-danger">mancante</span>') + '</td>' +
+            '<td>' + iscrizioniTerzeMailStatus(row) + '</td>' +
+            '<td>' + token + '</td>' +
+            '<td>' + testButton + '</td>' +
+            '</tr>';
+    }).join('');
+
+    if (counter) {
+        counter.textContent = iscrizioniTerzeVisibleRows.length + ' di ' + iscrizioniTerzeRows.length + ' pratiche';
+    }
+}
+
+function iscrizioniTerzeClearFilter() {
+    const filter = document.getElementById('iscrizioni_terze_filter');
+    if (filter) {
+        filter.value = '';
+        filter.focus();
+    }
+    iscrizioniTerzeRenderTable();
+}
+
+function iscrizioniTerzeCsvCell(value) {
+    const text = String(value ?? '').replace(/\r?\n/g, ' ').trim();
+    return '"' + text.replace(/"/g, '""') + '"';
+}
+
+function iscrizioniTerzeExportFilteredCsv() {
+    const rows = iscrizioniTerzeVisibleRows.length || !iscrizioniTerzeRows.length
+        ? iscrizioniTerzeVisibleRows
+        : iscrizioniTerzeFilteredRows();
+    if (!rows.length) {
+        alert('Nessuna riga da esportare.');
+        return;
+    }
+
+    const header = [
+        'Studente',
+        'Tipo',
+        'Codice fiscale',
+        'Corso',
+        'Stato',
+        'Email responsabile 1',
+        'Email responsabile 2',
+        'Mail reali',
+        'Mail test',
+        'Bounce',
+        'Token'
+    ];
+    const lines = [header.map(iscrizioniTerzeCsvCell).join(';')];
+    rows.forEach(row => {
+        lines.push([
+            ((row.cognome || '') + ' ' + (row.nome || '')).trim(),
+            iscrizioniTerzeTipoEffettivo(row),
+            row.codice_fiscale,
+            row.corso_studi,
+            row.stato,
+            row.email_genitore_1,
+            row.email_genitore_2,
+            row.mail_reali || 0,
+            row.mail_test || 0,
+            row.mail_bounce || 0,
+            row.token_last4 ? '...' + row.token_last4 : ''
+        ].map(iscrizioniTerzeCsvCell).join(';'));
+    });
+
+    const blob = new Blob(['\ufeff' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const now = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = 'iscrizioni_terze_filtrate_' + now + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 function iscrizioniTerzeBounceDetails(data) {
@@ -490,30 +683,8 @@ function iscrizioniTerzeLoadTable() {
         .then(data => {
             if (!data.ok) throw new Error(data.message || 'Errore lettura pratiche');
             iscrizioniTerzeUpdateStats(data.stats, data.mail_stats);
-            if (!data.rows.length) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Nessuna pratica importata.</td></tr>';
-                return;
-            }
-            tbody.innerHTML = data.rows.map(row => {
-                const emails = [row.email_genitore_1, row.email_genitore_2].filter(Boolean).join('<br>');
-                const token = Number(row.studente_interno) ? '-' : (row.token_last4 ? ('...' + row.token_last4) : '<span class="text-danger">da esportare</span>');
-                const tipo = Number(row.studente_interno) ? '<span class="label label-default">interno</span>' : '<span class="label label-warning">esterno</span>';
-                const testButton = Number(row.studente_interno)
-                    ? '<span class="text-muted">non richiesto</span>'
-                    : '<button type="button" class="btn btn-xs btn-info" onclick="iscrizioniTerzeOpenTestLink(' + Number(row.id) + ')"><span class="glyphicon glyphicon-new-window"></span> Apri</button>';
-
-                return '<tr>' +
-                    '<td><strong>' + iscrizioniTerzeEscape(row.cognome) + '</strong> ' + iscrizioniTerzeEscape(row.nome) + '</td>' +
-                    '<td>' + iscrizioniTerzeEscape(row.codice_fiscale) + '</td>' +
-                    '<td>' + iscrizioniTerzeEscape(row.corso_studi) + '</td>' +
-                    '<td>' + tipo + '</td>' +
-                    '<td>' + iscrizioniTerzeEscape(row.stato) + '</td>' +
-                    '<td>' + (emails || '<span class="text-danger">mancante</span>') + '</td>' +
-                    '<td>' + iscrizioniTerzeMailStatus(row) + '</td>' +
-                    '<td>' + token + '</td>' +
-                    '<td>' + testButton + '</td>' +
-                    '</tr>';
-            }).join('');
+            iscrizioniTerzeRows = data.rows || [];
+            iscrizioniTerzeRenderTable();
         })
         .catch(error => {
             tbody.innerHTML = '<tr><td colspan="9" class="text-danger">' + iscrizioniTerzeEscape(error.message) + '</td></tr>';
@@ -583,6 +754,70 @@ function iscrizioniTerzeSendMail(dryRun) {
         result.className = 'alert alert-danger';
         result.textContent = error.message;
         iscrizioniTerzeCompleteMailOverlay(false, 'Invio non riuscito', error.message, '');
+    });
+}
+
+function iscrizioniTerzeCorrectSentLinks(dryRun) {
+    const result = document.getElementById('iscrizioni_terze_result');
+    if (!dryRun && !confirm('Controllare le mail gia inviate in Gmail e reinviare il link corretto solo agli esterni di terza che hanno ricevuto un link non piu valido?')) return;
+
+    const formData = new FormData();
+    formData.append('dry_run', dryRun ? '1' : '0');
+    formData.append('tipo_iscrizione', 'terze');
+
+    result.className = 'alert alert-info';
+    result.style.display = 'block';
+    result.textContent = dryRun ? 'Controllo link inviati in corso...' : 'Correzione link inviati in corso...';
+    iscrizioniTerzeShowMailOverlay(
+        dryRun ? 'Simulazione controllo link terze' : 'Correzione link inviati terze',
+        'GestOre legge la posta inviata degli account iscrizioni, confronta i link con quelli attuali e prepara solo le correzioni necessarie.'
+    );
+
+    fetch('iscrizioniPrimeMailCorrectLinks.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        const correctionDetails = data.details && data.details.length
+            ? '<br><div style="margin-top:10px;"><strong>Pratiche individuate:</strong><ul style="margin-top:6px;">' +
+                data.details.map(item =>
+                    '<li>' +
+                    iscrizioniTerzeEscape(item.studente || '') +
+                    (item.codice_fiscale ? ' - ' + iscrizioniTerzeEscape(item.codice_fiscale) : '') +
+                    ' - ' + iscrizioniTerzeEscape(item.recipient_email || '') +
+                    (item.account_email ? ' <span class="text-muted">(' + iscrizioniTerzeEscape(item.account_email) + ')</span>' : '') +
+                    '</li>'
+                ).join('') +
+                '</ul></div>'
+            : '';
+        result.className = data.ok ? 'alert alert-success' : 'alert alert-warning';
+        result.innerHTML =
+            iscrizioniTerzeEscape(data.message || '') +
+            '<br>Mail Gmail controllate: ' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.checked)) +
+            '<br>Correzioni ' + (dryRun ? 'simulabili' : 'inviate') + ': ' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.sent)) +
+            ' - saltate: ' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.skipped)) +
+            (data.remaining !== undefined ? ' - restanti: ' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.remaining)) : '') +
+            (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniTerzeEscape).join(', ') : '') +
+            correctionDetails;
+        iscrizioniTerzeCompleteMailOverlay(
+            !!data.ok,
+            data.ok ? (dryRun ? 'Controllo completato' : 'Correzione completata') : 'Correzione completata con avvisi',
+            data.message || '',
+            'Mail Gmail controllate: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.checked)) + '</strong>' +
+            '<br>Correzioni ' + (dryRun ? 'simulabili' : 'inviate') + ': <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.sent)) + '</strong>' +
+            ' &middot; Saltate: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.skipped)) + '</strong>' +
+            (data.remaining !== undefined ? ' &middot; Restanti: <strong>' + iscrizioniTerzeEscape(iscrizioniTerzeNumber(data.remaining)) + '</strong>' : '') +
+            (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniTerzeEscape).join(', ') : '') +
+            correctionDetails
+        );
+        iscrizioniTerzeLoadTable();
+    })
+    .catch(error => {
+        result.className = 'alert alert-danger';
+        result.textContent = error.message;
+        iscrizioniTerzeCompleteMailOverlay(false, 'Controllo link non riuscito', error.message, '');
     });
 }
 
@@ -685,6 +920,7 @@ document.getElementById('iscrizioni_terze_import_form').addEventListener('submit
             'Righe DSA: ' + data.dsa_rows + '. ' +
             'Contatti aggiornati: ' + data.contacts_updated + ', anagrafiche ignorate: ' + data.contacts_ignored + '. ' +
             'Interni non aggiornati: ' + (data.contacts_internal_skipped || 0) + '. ' +
+            'Studenti gia nostri marcati interni: ' + (data.interni_marcati_da_gestore || 0) + '. ' +
             'Token nuovi generati: ' + data.generated_tokens + '.';
         iscrizioniTerzeLoadTable();
     })
@@ -718,6 +954,13 @@ document.getElementById('iscrizioni_terze_draft_subject_form').addEventListener(
             result.className = 'alert alert-danger';
             result.textContent = error.message;
         });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const filter = document.getElementById('iscrizioni_terze_filter');
+    if (filter) {
+        filter.addEventListener('input', iscrizioniTerzeRenderTable);
+    }
 });
 
 iscrizioniTerzeLoadTable();

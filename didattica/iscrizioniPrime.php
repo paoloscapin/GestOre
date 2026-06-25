@@ -13,6 +13,7 @@ $stats = dbGetFirst("
         SUM(stato = 'bozza') AS bozze,
         SUM(stato = 'inviata') AS inviate,
         SUM(stato = 'verificata') AS verificate,
+        SUM(stato = 'annullata') AS annullate,
         SUM(email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AS con_email
     FROM iscrizioni_prime_pratiche
     WHERE tipo_iscrizione = 'prime'
@@ -112,7 +113,111 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
         .mail-badge-real { background: #dcfce7; color: #166534; }
         .mail-badge-test { background: #dbeafe; color: #1d4ed8; }
         .mail-badge-none { background: #fee2e2; color: #991b1b; }
+        .mail-badge-skip { background: #e5e7eb; color: #374151; }
         .mail-badge-bounce { background: #fecaca; color: #7f1d1d; }
+        .iscrizioni-table-tools {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .iscrizioni-table-tools input {
+            width: min(460px, 100%);
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+        .iscrizioni-filter-count {
+            color: #64748b;
+            font-weight: 700;
+        }
+        .cambio-scuola-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 9998;
+            background: rgba(15, 23, 42, 0.62);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+        }
+        .cambio-scuola-modal.open { display: flex; }
+        .cambio-scuola-card {
+            width: min(1180px, 100%);
+            max-height: calc(100vh - 36px);
+            overflow: auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 22px 56px rgba(0,0,0,.28);
+        }
+        .cambio-scuola-head {
+            padding: 16px 18px;
+            background: #7f1d1d;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 800;
+        }
+        .cambio-scuola-body { padding: 18px; }
+        .cambio-scuola-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr);
+            gap: 16px;
+            align-items: start;
+        }
+        .cambio-scuola-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .cambio-scuola-field label { display: block; font-weight: 700; margin-bottom: 5px; }
+        .cambio-scuola-field input,
+        .cambio-scuola-field select,
+        .cambio-scuola-field textarea {
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 9px 10px;
+            background: #fff;
+        }
+        .cambio-scuola-field textarea { min-height: 120px; resize: vertical; }
+        .cambio-scuola-wide { grid-column: 1 / -1; }
+        .cambio-scuola-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 12px 18px;
+            border-top: 1px solid #e5e7eb;
+            background: #f8fafc;
+        }
+        .cambio-scuola-history {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            background: #fff;
+            max-height: calc(100vh - 210px);
+            overflow: auto;
+        }
+        .cambio-scuola-event {
+            border: 1px solid #dbe4ef;
+            border-left: 5px solid #7f1d1d;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: #f8fafc;
+        }
+        .cambio-scuola-event-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-weight: 800;
+        }
+        .cambio-scuola-event-meta { color: #64748b; margin-top: 4px; }
+        .cambio-scuola-event-note { margin-top: 6px; white-space: pre-wrap; }
+        @media (max-width: 980px) {
+            .cambio-scuola-layout { grid-template-columns: 1fr; }
+            .cambio-scuola-history { max-height: none; }
+        }
+        @media (max-width: 760px) {
+            .cambio-scuola-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -134,6 +239,98 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
     </div>
 </div>
 
+<div id="cambio_scuola_modal" class="cambio-scuola-modal" aria-hidden="true">
+    <div class="cambio-scuola-card" role="dialog" aria-modal="true" aria-labelledby="cambio_scuola_title">
+        <div id="cambio_scuola_title" class="cambio-scuola-head">Cambio scuola</div>
+        <form id="cambio_scuola_form" enctype="multipart/form-data">
+            <div class="cambio-scuola-body">
+                <input type="hidden" name="id" id="cambio_scuola_id">
+                <p id="cambio_scuola_student" class="text-muted"></p>
+                <div class="alert alert-warning">
+                    Questa pratica verra' segnata come cambio scuola e non ricevera' piu comunicazioni automatiche per completare l'iscrizione.
+                </div>
+                <div class="cambio-scuola-layout">
+                <div>
+                    <h4>Nuovo aggiornamento</h4>
+                    <div class="cambio-scuola-grid">
+                    <div class="cambio-scuola-field">
+                        <label for="cambio_scuola_richiesta_data">Data richiesta</label>
+                        <input type="date" name="richiesta_data" id="cambio_scuola_richiesta_data">
+                    </div>
+                    <div class="cambio-scuola-field">
+                        <label for="cambio_scuola_canale">Richiesta arrivata via</label>
+                        <select name="canale" id="cambio_scuola_canale">
+                            <option value="mail">Mail</option>
+                            <option value="telefono">Telefono</option>
+                            <option value="presenza">Di persona</option>
+                            <option value="altro">Altro</option>
+                        </select>
+                    </div>
+                    <div class="cambio-scuola-field cambio-scuola-wide">
+                        <label for="cambio_scuola_scuola_destinazione">Scuola di destinazione</label>
+                        <input type="text" name="scuola_destinazione" id="cambio_scuola_scuola_destinazione" placeholder="Nome della scuola verso cui la famiglia intende trasferirsi">
+                    </div>
+                    <div class="cambio-scuola-field">
+                        <label for="cambio_scuola_colloquio">Colloquio uscita</label>
+                        <select name="colloquio_stato" id="cambio_scuola_colloquio">
+                            <option value="da_valutare">Da valutare</option>
+                            <option value="da_fare">Da fare</option>
+                            <option value="fatto">Fatto</option>
+                            <option value="non_necessario">Non necessario</option>
+                        </select>
+                    </div>
+                    <div class="cambio-scuola-field">
+                        <label for="cambio_scuola_nulla_osta">Nulla osta</label>
+                        <select name="nulla_osta_stato" id="cambio_scuola_nulla_osta">
+                            <option value="da_richiedere">Da richiedere</option>
+                            <option value="richiesto">Richiesto dalla famiglia</option>
+                            <option value="ricevuto">Ricevuto/in lavorazione</option>
+                            <option value="evaso_inviato">Evaso / inviato</option>
+                            <option value="non_necessario">Non necessario</option>
+                        </select>
+                    </div>
+                    <div class="cambio-scuola-field">
+                        <label for="cambio_scuola_documenti">Documenti pratica</label>
+                        <select name="documenti_stato" id="cambio_scuola_documenti">
+                            <option value="da_verificare">Da verificare</option>
+                            <option value="manca_qualcosa">Manca qualcosa</option>
+                            <option value="completi">Completi</option>
+                        </select>
+                    </div>
+                    <div class="cambio-scuola-field">
+                        <label for="cambio_scuola_pratica_stato">Stato pratica cambio scuola</label>
+                        <select name="pratica_stato" id="cambio_scuola_pratica_stato">
+                            <option value="aperta">Aperta</option>
+                            <option value="in_attesa">In attesa</option>
+                            <option value="completata">Completata</option>
+                        </select>
+                    </div>
+                    <div class="cambio-scuola-field cambio-scuola-wide">
+                        <label for="cambio_scuola_allegato">PDF collegato a questo aggiornamento</label>
+                        <input type="file" name="allegato" id="cambio_scuola_allegato" accept="application/pdf,.pdf">
+                        <div class="help-block">Puoi allegare, per esempio, la stampa PDF della mail ricevuta o inviata. Ogni salvataggio resta nello storico.</div>
+                    </div>
+                    <div class="cambio-scuola-field cambio-scuola-wide">
+                        <label for="cambio_scuola_note">Note segreteria</label>
+                        <textarea name="note" id="cambio_scuola_note" placeholder="Annota cosa e' stato comunicato, eventuali documenti mancanti, contatti con la famiglia o con la scuola di destinazione."></textarea>
+                    </div>
+                    </div>
+                </div>
+                    <div class="cambio-scuola-history">
+                        <h4>Storico aggiornamenti</h4>
+                        <div id="cambio_scuola_storico" class="text-muted">Nessun aggiornamento registrato.</div>
+                    </div>
+                </div>
+                <div id="cambio_scuola_error" class="text-danger" style="margin-top:10px;" hidden></div>
+            </div>
+            <div class="cambio-scuola-actions">
+                <button type="button" class="btn btn-default" onclick="iscrizioniPrimeCloseCambioScuola()">Annulla</button>
+                <button type="submit" class="btn btn-danger">Salva cambio scuola</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="container-fluid">
     <div class="panel panel-lightblue4">
         <div class="panel-heading">
@@ -145,8 +342,9 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
                 <div class="col-md-2"><strong>Bozze:</strong> <span id="stat_bozze"><?php echo intval($stats['bozze'] ?? 0); ?></span></div>
                 <div class="col-md-2"><strong>Domande inviate:</strong> <span id="stat_domande_inviate"><?php echo intval($stats['inviate'] ?? 0); ?></span></div>
                 <div class="col-md-2"><strong>Con email:</strong> <span id="stat_con_email"><?php echo intval($stats['con_email'] ?? 0); ?></span></div>
+                <div class="col-md-2"><strong>Cambio scuola:</strong> <span id="stat_annullate"><?php echo intval($stats['annullate'] ?? 0); ?></span></div>
                 <div class="col-md-2"><strong>Mail reali:</strong> <span id="stat_mail_reali">0</span></div>
-                <div class="col-md-2"><strong>Mail test:</strong> <span id="stat_mail_test">0</span></div>
+                <div class="col-md-2" style="margin-top:8px;"><strong>Mail test:</strong> <span id="stat_mail_test">0</span></div>
             </div>
             <div class="row" style="margin-top:14px;">
                 <div class="col-md-12">
@@ -159,6 +357,9 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
                     <a class="btn btn-primary" href="iscrizioniPrimeDomande.php">
                         <span class="glyphicon glyphicon-inbox"></span> Domande inviate
                     </a>
+                    <a class="btn btn-default" href="iscrizioniContattiVariazioni.php?tipo_iscrizione=prime">
+                        <span class="glyphicon glyphicon-transfer"></span> Variazioni contatti
+                    </a>
                     <button type="button" class="btn btn-info" onclick="iscrizioniPrimeSendMail(1)">
                         <span class="glyphicon glyphicon-eye-open"></span> Simula invio mail
                     </button>
@@ -167,6 +368,12 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
                     </button>
                     <button type="button" class="btn btn-warning" onclick="iscrizioniPrimeSendMail(0)">
                         <span class="glyphicon glyphicon-send"></span> Invia prossimo lotto
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="iscrizioniPrimeCorrectSentLinks(1)">
+                        <span class="glyphicon glyphicon-search"></span> Simula controllo link inviati
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="iscrizioniPrimeCorrectSentLinks(0)">
+                        <span class="glyphicon glyphicon-link"></span> Correggi link inviati
                     </button>
                     <button type="button" class="btn btn-danger" onclick="iscrizioniPrimeCheckBounce()">
                         <span class="glyphicon glyphicon-warning-sign"></span> Bounce
@@ -243,22 +450,33 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
             <span class="glyphicon glyphicon-list"></span>&ensp;Pratiche importate
         </div>
         <div class="panel-body">
+            <div class="iscrizioni-table-tools">
+                <input type="text" id="iscrizioni_prime_filter" placeholder="Filtra per nome, codice fiscale, corso, stato, email, tipo..." autocomplete="off">
+                <button type="button" class="btn btn-default" onclick="iscrizioniPrimeClearFilter()">
+                    <span class="glyphicon glyphicon-remove"></span> Pulisci filtro
+                </button>
+                <button type="button" class="btn btn-success" onclick="iscrizioniPrimeExportFilteredCsv()">
+                    <span class="glyphicon glyphicon-download-alt"></span> Esporta tabella filtrata
+                </button>
+                <span id="iscrizioni_prime_filter_count" class="iscrizioni-filter-count"></span>
+            </div>
             <div class="table-responsive">
                 <table class="table table-striped table-condensed" id="iscrizioni_prime_table">
                     <thead>
                         <tr>
                             <th>Studente</th>
+                            <th>Tipo</th>
                             <th>Codice fiscale</th>
                             <th>Corso</th>
                             <th>Stato</th>
                             <th>Email responsabili</th>
                             <th>Mail avviso</th>
                             <th>Token</th>
-                            <th>Test</th>
+                            <th>Azioni</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td colspan="8" class="text-muted">Caricamento...</td></tr>
+                        <tr><td colspan="9" class="text-muted">Caricamento...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -269,11 +487,26 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
 <script>
 let iscrizioniPrimeMailProgressTimer = null;
 let iscrizioniPrimeMailProgressValue = 0;
+let iscrizioniPrimeRows = [];
+let iscrizioniPrimeVisibleRows = [];
 
 function iscrizioniPrimeEscape(value) {
-    return String(value || '').replace(/[&<>"']/g, function (char) {
+    return String(value ?? '').replace(/[&<>"']/g, function (char) {
         return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[char];
     });
+}
+
+function iscrizioniPrimeFormatDateIt(value) {
+    const text = String(value || '').trim();
+    const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return match ? (match[3] + '/' + match[2] + '/' + match[1]) : text;
+}
+
+function iscrizioniPrimeFormatDateTimeIt(value) {
+    const text = String(value || '').trim();
+    const match = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+    if (!match) return text;
+    return match[3] + '/' + match[2] + '/' + match[1] + (match[4] ? ' ' + match[4] + ':' + match[5] : '');
 }
 
 function iscrizioniPrimeSetText(id, value) {
@@ -291,6 +524,7 @@ function iscrizioniPrimeUpdateStats(stats, mailStats) {
     iscrizioniPrimeSetText('stat_totale', stats.totale || 0);
     iscrizioniPrimeSetText('stat_bozze', stats.bozze || 0);
     iscrizioniPrimeSetText('stat_domande_inviate', stats.domande_inviate || 0);
+    iscrizioniPrimeSetText('stat_annullate', stats.annullate || 0);
     iscrizioniPrimeSetText('stat_con_email', stats.con_email || 0);
     iscrizioniPrimeSetText('stat_mail_reali', mailStats.mail_reali || 0);
     iscrizioniPrimeSetText('stat_mail_test', mailStats.mail_test || 0);
@@ -311,6 +545,12 @@ function iscrizioniPrimeMailStatus(row) {
     } else if (test > 0) {
         html += '<span class="mail-badge mail-badge-test">Test inviato</span>';
         if (row.last_test_sent_at) html += '<br><small>' + iscrizioniPrimeEscape(row.last_test_sent_at) + '</small>';
+    } else if (Number(row.mail_pending || 0) <= 0 && row.mail_diagnosi) {
+        html += '<span class="mail-badge mail-badge-skip">Non richiesta</span>';
+        html += '<br><small>' + iscrizioniPrimeEscape(row.mail_diagnosi) + '</small>';
+    } else if (!['importata', 'bozza', 'da_integrare'].includes(String(row.stato || '').toLowerCase())) {
+        html += '<span class="mail-badge mail-badge-skip">Non richiesta</span>';
+        if (row.stato) html += '<br><small>pratica ' + iscrizioniPrimeEscape(row.stato) + '</small>';
     } else {
         html += '<span class="mail-badge mail-badge-none">Da inviare</span>';
     }
@@ -318,6 +558,274 @@ function iscrizioniPrimeMailStatus(row) {
         html += '<br><small>reali ' + real + ' / test ' + test + '</small>';
     }
     return html;
+}
+
+function iscrizioniPrimeStatoHtml(row) {
+    let html = iscrizioniPrimeEscape(row.stato);
+    if (String(row.stato || '') === 'annullata' && row.cambio_scuola_pratica_stato) {
+        html += '<br><span class="mail-badge mail-badge-skip">Cambio scuola: ' + iscrizioniPrimeEscape(row.cambio_scuola_pratica_stato) + '</span>';
+        if (row.cambio_scuola_richiesta_data) {
+            html += '<br><small>Richiesta ' + iscrizioniPrimeEscape(iscrizioniPrimeFormatDateIt(row.cambio_scuola_richiesta_data)) + '</small>';
+        }
+    }
+    return html;
+}
+
+function iscrizioniPrimeTipoHtml(row) {
+    const interno = Number(row.studente_interno_effettivo || 0) === 1;
+    const classeCorrente = row.classe_corrente_gestore ? '<br><small class="text-muted">classe attuale: ' + iscrizioniPrimeEscape(row.classe_corrente_gestore) + '</small>' : '';
+    return interno
+        ? '<span class="label label-warning">INTERNO</span><br><small class="text-muted">gia nostro</small>' + classeCorrente
+        : '<span class="label label-success">ESTERNO</span><br><small class="text-muted">nuovo studente</small>' + classeCorrente;
+}
+
+function iscrizioniPrimeTipoLabel(row) {
+    return Number(row.studente_interno_effettivo || 0) === 1 ? 'INTERNO' : 'ESTERNO';
+}
+
+function iscrizioniPrimeNormalizeSearch(value) {
+    return String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function iscrizioniPrimeRowSearchText(row) {
+    return iscrizioniPrimeNormalizeSearch([
+        row.cognome,
+        row.nome,
+        iscrizioniPrimeTipoLabel(row),
+        row.codice_fiscale,
+        row.corso_studi,
+        row.stato,
+        row.email_genitore_1,
+        row.email_genitore_2,
+        row.telefono_genitore_1,
+        row.telefono_genitore_2,
+        row.token_last4,
+        row.mail_diagnosi,
+        row.cambio_scuola_pratica_stato,
+        row.cambio_scuola_canale,
+        row.cambio_scuola_scuola_destinazione,
+        row.cambio_scuola_richiesta_data
+    ].filter(Boolean).join(' '));
+}
+
+function iscrizioniPrimeFilteredRows() {
+    const filter = document.getElementById('iscrizioni_prime_filter');
+    const terms = iscrizioniPrimeNormalizeSearch(filter ? filter.value : '').trim().split(/\s+/).filter(Boolean);
+    if (!terms.length) {
+        return iscrizioniPrimeRows.slice();
+    }
+    return iscrizioniPrimeRows.filter(row => {
+        const text = iscrizioniPrimeRowSearchText(row);
+        return terms.every(term => text.includes(term));
+    });
+}
+
+function iscrizioniPrimeRenderTable() {
+    const tbody = document.querySelector('#iscrizioni_prime_table tbody');
+    const counter = document.getElementById('iscrizioni_prime_filter_count');
+    iscrizioniPrimeVisibleRows = iscrizioniPrimeFilteredRows();
+
+    if (!iscrizioniPrimeRows.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Nessuna pratica importata.</td></tr>';
+        if (counter) counter.textContent = '';
+        return;
+    }
+
+    if (!iscrizioniPrimeVisibleRows.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Nessuna pratica corrisponde al filtro.</td></tr>';
+        if (counter) counter.textContent = '0 di ' + iscrizioniPrimeRows.length + ' pratiche';
+        return;
+    }
+
+    tbody.innerHTML = iscrizioniPrimeVisibleRows.map(row => {
+        const emails = [row.email_genitore_1, row.email_genitore_2].filter(Boolean).join('<br>');
+        const token = row.token_last4 ? ('...' + row.token_last4) : '<span class="text-danger">da esportare</span>';
+
+        return '<tr>' +
+            '<td><strong>' + iscrizioniPrimeEscape(row.cognome) + '</strong> ' + iscrizioniPrimeEscape(row.nome) + '</td>' +
+            '<td>' + iscrizioniPrimeTipoHtml(row) + '</td>' +
+            '<td>' + iscrizioniPrimeEscape(row.codice_fiscale) + '</td>' +
+            '<td>' + iscrizioniPrimeEscape(row.corso_studi) + '</td>' +
+            '<td>' + iscrizioniPrimeStatoHtml(row) + '</td>' +
+            '<td>' + (emails || '<span class="text-danger">mancante</span>') + '</td>' +
+            '<td>' + iscrizioniPrimeMailStatus(row) + '</td>' +
+            '<td>' + token + '</td>' +
+            '<td>' +
+                '<button type="button" class="btn btn-xs btn-info" onclick="iscrizioniPrimeOpenTestLink(' + Number(row.id) + ')"><span class="glyphicon glyphicon-new-window"></span> Apri</button> ' +
+                '<button type="button" class="btn btn-xs btn-danger" onclick="iscrizioniPrimeOpenCambioScuola(' + Number(row.id) + ')"><span class="glyphicon glyphicon-transfer"></span> Cambio scuola</button>' +
+            '</td>' +
+            '</tr>';
+    }).join('');
+
+    if (counter) {
+        counter.textContent = iscrizioniPrimeVisibleRows.length + ' di ' + iscrizioniPrimeRows.length + ' pratiche';
+    }
+}
+
+function iscrizioniPrimeClearFilter() {
+    const filter = document.getElementById('iscrizioni_prime_filter');
+    if (filter) {
+        filter.value = '';
+        filter.focus();
+    }
+    iscrizioniPrimeRenderTable();
+}
+
+function iscrizioniPrimeCsvCell(value) {
+    const text = String(value ?? '').replace(/\r?\n/g, ' ').trim();
+    return '"' + text.replace(/"/g, '""') + '"';
+}
+
+function iscrizioniPrimeExportFilteredCsv() {
+    const rows = iscrizioniPrimeVisibleRows.length || !iscrizioniPrimeRows.length
+        ? iscrizioniPrimeVisibleRows
+        : iscrizioniPrimeFilteredRows();
+    if (!rows.length) {
+        alert('Nessuna riga da esportare.');
+        return;
+    }
+
+    const header = [
+        'Studente',
+        'Tipo',
+        'Codice fiscale',
+        'Corso',
+        'Stato',
+        'Email responsabile 1',
+        'Email responsabile 2',
+        'Mail reali',
+        'Mail test',
+        'Bounce',
+        'Token',
+        'Cambio scuola data',
+        'Cambio scuola destinazione',
+        'Cambio scuola stato'
+    ];
+    const lines = [header.map(iscrizioniPrimeCsvCell).join(';')];
+    rows.forEach(row => {
+        lines.push([
+            ((row.cognome || '') + ' ' + (row.nome || '')).trim(),
+            iscrizioniPrimeTipoLabel(row),
+            row.codice_fiscale,
+            row.corso_studi,
+            row.stato,
+            row.email_genitore_1,
+            row.email_genitore_2,
+            row.mail_reali || 0,
+            row.mail_test || 0,
+            row.mail_bounce || 0,
+            row.token_last4 ? '...' + row.token_last4 : '',
+            row.cambio_scuola_richiesta_data || '',
+            row.cambio_scuola_scuola_destinazione || '',
+            row.cambio_scuola_pratica_stato || ''
+        ].map(iscrizioniPrimeCsvCell).join(';'));
+    });
+
+    const blob = new Blob(['\ufeff' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const now = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = 'iscrizioni_prime_filtrate_' + now + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function iscrizioniPrimeCambioScuolaLabel(value) {
+    const labels = {
+        mail: 'Mail',
+        telefono: 'Telefono',
+        presenza: 'Di persona',
+        altro: 'Altro',
+        da_valutare: 'Da valutare',
+        da_fare: 'Da fare',
+        fatto: 'Fatto',
+        non_necessario: 'Non necessario',
+        da_richiedere: 'Da richiedere',
+        richiesto: 'Richiesto',
+        ricevuto: 'Ricevuto/in lavorazione',
+        evaso_inviato: 'Evaso / inviato',
+        da_verificare: 'Da verificare',
+        manca_qualcosa: 'Manca qualcosa',
+        completi: 'Completi',
+        aperta: 'Aperta',
+        in_attesa: 'In attesa',
+        completata: 'Completata'
+    };
+    return labels[value] || value || '-';
+}
+
+function iscrizioniPrimeRenderCambioScuolaStorico(praticaId, eventi) {
+    const box = document.getElementById('cambio_scuola_storico');
+    if (!box) return;
+    if (!eventi || !eventi.length) {
+        box.innerHTML = '<span class="text-muted">Nessun aggiornamento registrato.</span>';
+        return;
+    }
+    box.innerHTML = eventi.map((evento, index) => {
+        const allegato = evento.allegato_path
+            ? '<a class="btn btn-xs btn-primary" target="_blank" rel="noopener" href="iscrizioniPrimeCambioScuolaAllegato.php?id=' + encodeURIComponent(praticaId) + '&evento_id=' + encodeURIComponent(evento.id) + '"><span class="glyphicon glyphicon-file"></span> Apri PDF</a> <span class="text-muted">' + iscrizioniPrimeEscape(evento.allegato_original_name || '') + '</span>'
+            : '<span class="text-muted">Nessun PDF allegato a questo aggiornamento</span>';
+        const undo = index === 0 && Number(evento.id || 0) > 0
+            ? '<button type="button" class="btn btn-xs btn-danger pull-right" onclick="iscrizioniPrimeUndoCambioScuolaLast(' + Number(praticaId) + ')"><span class="glyphicon glyphicon-repeat"></span> Annulla ultimo aggiornamento</button>'
+            : '';
+        return '<div class="cambio-scuola-event">' +
+            '<div class="cambio-scuola-event-head">' +
+                '<span>' + iscrizioniPrimeEscape(iscrizioniPrimeFormatDateTimeIt(evento.created_at || '')) + '</span>' +
+                '<span>' + iscrizioniPrimeEscape(evento.created_by || '') + '</span>' +
+            '</div>' +
+            '<div class="cambio-scuola-event-meta">' +
+                'Richiesta: ' + iscrizioniPrimeEscape(evento.richiesta_data ? iscrizioniPrimeFormatDateIt(evento.richiesta_data) : '-') +
+                ' &middot; Canale: ' + iscrizioniPrimeEscape(iscrizioniPrimeCambioScuolaLabel(evento.canale)) +
+                ' &middot; Destinazione: ' + iscrizioniPrimeEscape(evento.scuola_destinazione || '-') +
+                ' &middot; Colloquio: ' + iscrizioniPrimeEscape(iscrizioniPrimeCambioScuolaLabel(evento.colloquio_stato)) +
+                ' &middot; Nulla osta: ' + iscrizioniPrimeEscape(iscrizioniPrimeCambioScuolaLabel(evento.nulla_osta_stato)) +
+                ' &middot; Documenti: ' + iscrizioniPrimeEscape(iscrizioniPrimeCambioScuolaLabel(evento.documenti_stato)) +
+                ' &middot; Stato: ' + iscrizioniPrimeEscape(iscrizioniPrimeCambioScuolaLabel(evento.pratica_stato)) +
+            '</div>' +
+            (evento.note ? '<div class="cambio-scuola-event-note">' + iscrizioniPrimeEscape(evento.note) + '</div>' : '') +
+            '<div style="margin-top:8px;">' + allegato + undo + '<div style="clear:both;"></div></div>' +
+        '</div>';
+    }).join('');
+}
+
+function iscrizioniPrimeUndoCambioScuolaLast(praticaId) {
+    if (!confirm("Vuoi annullare l'ultimo aggiornamento del cambio scuola? L'eventuale PDF collegato a quell'aggiornamento verra cancellato.")) {
+        return;
+    }
+    const error = document.getElementById('cambio_scuola_error');
+    const data = new FormData();
+    data.append('id', praticaId);
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+    fetch('iscrizioniPrimeCambioScuolaUndoLast.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(result => ({ok: response.ok, result})))
+    .then(payload => {
+        if (!payload.ok || !payload.result.ok) {
+            throw new Error(payload.result.message || 'Annullamento non riuscito.');
+        }
+        iscrizioniPrimeOpenCambioScuola(praticaId);
+        iscrizioniPrimeLoadTable();
+    })
+    .catch(err => {
+        if (error) {
+            error.textContent = err.message;
+            error.hidden = false;
+        } else {
+            alert(err.message);
+        }
+    });
 }
 
 function iscrizioniPrimeBounceDetails(data) {
@@ -425,7 +933,7 @@ function iscrizioniPrimeHideMailOverlay() {
 
 function iscrizioniPrimeLoadTable() {
     const tbody = document.querySelector('#iscrizioni_prime_table tbody');
-    tbody.innerHTML = '<tr><td colspan="8" class="text-muted">Caricamento...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Caricamento...</td></tr>';
 
     fetch('iscrizioniPrimeRead.php?tipo_iscrizione=prime', {credentials: 'same-origin'})
         .then(response => response.json())
@@ -434,32 +942,109 @@ function iscrizioniPrimeLoadTable() {
                 throw new Error(data.message || 'Errore lettura pratiche');
             }
             iscrizioniPrimeUpdateStats(data.stats, data.mail_stats);
-
-            if (!data.rows.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-muted">Nessuna pratica importata.</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = data.rows.map(row => {
-                const emails = [row.email_genitore_1, row.email_genitore_2].filter(Boolean).join('<br>');
-                const token = row.token_last4 ? ('...' + row.token_last4) : '<span class="text-danger">da esportare</span>';
-
-                return '<tr>' +
-                    '<td><strong>' + iscrizioniPrimeEscape(row.cognome) + '</strong> ' + iscrizioniPrimeEscape(row.nome) + '</td>' +
-                    '<td>' + iscrizioniPrimeEscape(row.codice_fiscale) + '</td>' +
-                    '<td>' + iscrizioniPrimeEscape(row.corso_studi) + '</td>' +
-                    '<td>' + iscrizioniPrimeEscape(row.stato) + '</td>' +
-                    '<td>' + (emails || '<span class="text-danger">mancante</span>') + '</td>' +
-                    '<td>' + iscrizioniPrimeMailStatus(row) + '</td>' +
-                    '<td>' + token + '</td>' +
-                    '<td><button type="button" class="btn btn-xs btn-info" onclick="iscrizioniPrimeOpenTestLink(' + Number(row.id) + ')"><span class="glyphicon glyphicon-new-window"></span> Apri</button></td>' +
-                    '</tr>';
-            }).join('');
+            iscrizioniPrimeRows = data.rows || [];
+            iscrizioniPrimeRenderTable();
         })
         .catch(error => {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-danger">' + iscrizioniPrimeEscape(error.message) + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-danger">' + iscrizioniPrimeEscape(error.message) + '</td></tr>';
         });
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    const filter = document.getElementById('iscrizioni_prime_filter');
+    if (filter) {
+        filter.addEventListener('input', iscrizioniPrimeRenderTable);
+    }
+});
+
+function iscrizioniPrimeOpenCambioScuola(id) {
+    const modal = document.getElementById('cambio_scuola_modal');
+    const form = document.getElementById('cambio_scuola_form');
+    const error = document.getElementById('cambio_scuola_error');
+    if (form) form.reset();
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+    document.getElementById('cambio_scuola_id').value = id;
+    document.getElementById('cambio_scuola_student').textContent = 'Caricamento dati pratica...';
+    iscrizioniPrimeRenderCambioScuolaStorico(id, []);
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+
+    fetch('iscrizioniPrimeCambioScuolaRead.php?id=' + encodeURIComponent(id), {credentials: 'same-origin'})
+        .then(response => response.json())
+        .then(data => {
+            if (!data.ok) throw new Error(data.message || 'Errore lettura cambio scuola.');
+            const pratica = data.pratica || {};
+            const record = data.record || {};
+            document.getElementById('cambio_scuola_student').textContent = 'Pratica di ' + (pratica.cognome || '') + ' ' + (pratica.nome || '') + ' - stato attuale: ' + (pratica.stato || '');
+            document.getElementById('cambio_scuola_richiesta_data').value = record.richiesta_data || '';
+            document.getElementById('cambio_scuola_canale').value = record.canale || 'mail';
+            document.getElementById('cambio_scuola_scuola_destinazione').value = record.scuola_destinazione || '';
+            document.getElementById('cambio_scuola_colloquio').value = record.colloquio_stato || 'da_valutare';
+            document.getElementById('cambio_scuola_nulla_osta').value = record.nulla_osta_stato || 'da_richiedere';
+            document.getElementById('cambio_scuola_documenti').value = record.documenti_stato || 'da_verificare';
+            document.getElementById('cambio_scuola_pratica_stato').value = record.pratica_stato || 'aperta';
+            document.getElementById('cambio_scuola_note').value = '';
+            iscrizioniPrimeRenderCambioScuolaStorico(id, data.eventi || []);
+        })
+        .catch(err => {
+            if (error) {
+                error.textContent = err.message;
+                error.hidden = false;
+            }
+        });
+}
+
+function iscrizioniPrimeCloseCambioScuola() {
+    const modal = document.getElementById('cambio_scuola_modal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+}
+
+document.getElementById('cambio_scuola_form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    const error = document.getElementById('cambio_scuola_error');
+    const button = this.querySelector('button[type="submit"]');
+    const data = new FormData(this);
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Salvataggio...';
+    }
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+
+    fetch('iscrizioniPrimeCambioScuolaSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(result => ({ok: response.ok, result})))
+    .then(payload => {
+        if (!payload.ok || !payload.result.ok) {
+            throw new Error(payload.result.message || 'Salvataggio non riuscito.');
+        }
+        iscrizioniPrimeCloseCambioScuola();
+        iscrizioniPrimeLoadTable();
+    })
+    .catch(err => {
+        if (error) {
+            error.textContent = err.message;
+            error.hidden = false;
+        } else {
+            alert(err.message);
+        }
+    })
+    .finally(() => {
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Salva cambio scuola';
+        }
+    });
+});
 
 function iscrizioniPrimeOpenTestLink(id) {
     const formData = new FormData();
@@ -529,6 +1114,73 @@ function iscrizioniPrimeSendMail(dryRun) {
         result.className = 'alert alert-danger';
         result.textContent = error.message;
         iscrizioniPrimeCompleteMailOverlay(false, 'Invio non riuscito', error.message, '');
+    });
+}
+
+function iscrizioniPrimeCorrectSentLinks(dryRun) {
+    const result = document.getElementById('iscrizioni_prime_result');
+
+    if (!dryRun && !confirm('Controllare le mail gia inviate in Gmail e reinviare il link corretto solo alle famiglie che hanno ricevuto un link non piu valido?')) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('dry_run', dryRun ? '1' : '0');
+    formData.append('tipo_iscrizione', 'prime');
+
+    result.className = 'alert alert-info';
+    result.style.display = 'block';
+    result.textContent = dryRun ? 'Controllo link inviati in corso...' : 'Correzione link inviati in corso...';
+    iscrizioniPrimeShowMailOverlay(
+        dryRun ? 'Simulazione controllo link' : 'Correzione link inviati',
+        'GestOre legge la posta inviata degli account iscrizioni, confronta i link con quelli attuali e prepara solo le correzioni necessarie.'
+    );
+
+    fetch('iscrizioniPrimeMailCorrectLinks.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        const correctionDetails = data.details && data.details.length
+            ? '<br><div style="margin-top:10px;"><strong>Pratiche individuate:</strong><ul style="margin-top:6px;">' +
+                data.details.map(item =>
+                    '<li>' +
+                    iscrizioniPrimeEscape(item.studente || '') +
+                    (item.codice_fiscale ? ' - ' + iscrizioniPrimeEscape(item.codice_fiscale) : '') +
+                    ' - ' + iscrizioniPrimeEscape(item.recipient_email || '') +
+                    (item.account_email ? ' <span class="text-muted">(' + iscrizioniPrimeEscape(item.account_email) + ')</span>' : '') +
+                    '</li>'
+                ).join('') +
+                '</ul></div>'
+            : '';
+        result.className = data.ok ? 'alert alert-success' : 'alert alert-warning';
+        result.innerHTML =
+            iscrizioniPrimeEscape(data.message || '') +
+            '<br>Mail Gmail controllate: ' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.checked)) +
+            '<br>Correzioni ' + (dryRun ? 'simulabili' : 'inviate') + ': ' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.sent)) +
+            ' - saltate: ' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.skipped)) +
+            (data.remaining !== undefined ? ' - restanti: ' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.remaining)) : '') +
+            (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniPrimeEscape).join(', ') : '') +
+            correctionDetails;
+        iscrizioniPrimeCompleteMailOverlay(
+            !!data.ok,
+            data.ok ? (dryRun ? 'Controllo completato' : 'Correzione completata') : 'Correzione completata con avvisi',
+            data.message || '',
+            'Mail Gmail controllate: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.checked)) + '</strong>' +
+            '<br>Correzioni ' + (dryRun ? 'simulabili' : 'inviate') + ': <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.sent)) + '</strong>' +
+            ' &middot; Saltate: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.skipped)) + '</strong>' +
+            (data.remaining !== undefined ? ' &middot; Restanti: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.remaining)) + '</strong>' : '') +
+            (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniPrimeEscape).join(', ') : '') +
+            correctionDetails
+        );
+        iscrizioniPrimeLoadTable();
+    })
+    .catch(error => {
+        result.className = 'alert alert-danger';
+        result.textContent = error.message;
+        iscrizioniPrimeCompleteMailOverlay(false, 'Controllo link non riuscito', error.message, '');
     });
 }
 
@@ -617,6 +1269,7 @@ document.getElementById('iscrizioni_prime_import_form').addEventListener('submit
             'Righe PRIME: ' + data.prime_rows + ', righe DSA: ' + data.dsa_rows + '. ' +
             'Righe licenza media: ' + (data.licenza_media_rows || 0) + '. ' +
             'Contatti aggiornati: ' + data.contacts_updated + ', anagrafiche ignorate: ' + data.contacts_ignored + '. ' +
+            'Studenti gia nostri marcati interni: ' + (data.interni_marcati_da_gestore || 0) + '. ' +
             'Token nuovi generati: ' + data.generated_tokens + '.';
         iscrizioniPrimeLoadTable();
     })

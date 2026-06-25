@@ -21,7 +21,7 @@ $rows = dbGetAll("
         telefono_genitore_2
     FROM iscrizioni_prime_pratiche
     WHERE tipo_iscrizione = " . dbQ($tipoIscrizione) . "
-      AND studente_interno = 0
+      AND " . iscrizioniPrimeEffectiveExternalCondition('iscrizioni_prime_pratiche') . "
       AND stato IN ('importata', 'bozza', 'da_integrare')
     ORDER BY cognome ASC, nome ASC
 ");

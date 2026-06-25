@@ -69,6 +69,7 @@ try {
         'tipo_iscrizione' => $result['tipo_iscrizione'],
         'interni' => $result['interni'],
         'esterni' => $result['esterni'],
+        'interni_marcati_da_gestore' => $result['interni_marcati_da_gestore'] ?? 0,
         'errors' => $result['errors'],
         'generated_tokens' => count($result['generated_tokens']),
     ], JSON_UNESCAPED_UNICODE);

@@ -173,7 +173,7 @@ function iscrizioniPrimeParentTranslations(): array
             'main_title' => 'Conferma dati iscrizione',
             'subtitle' => 'Iscrizione alle classi prime',
             'invalid_link' => 'Link non valido, scaduto o pratica non disponibile.',
-            'locked_notice' => 'La conferma dati iscrizione e gia stata inviata. Da questo link puoi consultare il riepilogo e i documenti caricati, ma non puoi piu modificare la pratica.',
+            'locked_notice' => 'La pratica e stata verificata dalla segreteria. Da questo link puoi consultare il riepilogo e i documenti caricati, ma non puoi piu modificare la pratica.',
             'intro_notice' => 'Verifica i dati anagrafici e aggiorna email e telefoni. Puoi salvare una bozza e rientrare da questo stesso link prima dell\'invio definitivo.',
             'student' => 'Studente',
             'confirm_data' => 'Dati da confermare',
@@ -268,7 +268,7 @@ function iscrizioniPrimeParentTranslations(): array
         'en' => [
             'language' => 'Language', 'school_kicker' => 'School', 'school_year' => 'School year', 'main_title' => 'Enrollment data confirmation', 'subtitle' => 'Enrollment in first-year classes',
             'intro_notice' => 'Check personal data and update email addresses and phone numbers. You can save a draft and come back using this same link before the final submission.',
-            'locked_notice' => 'The enrollment confirmation has already been submitted. From this link you can view the summary and uploaded documents, but you can no longer edit the form.',
+            'locked_notice' => 'The application has been checked by the school office. From this link you can view the summary and uploaded documents, but you can no longer edit the form.',
             'invalid_link' => 'Invalid or expired link, or application not available.', 'student' => 'Student', 'confirm_data' => 'Data to confirm', 'documents' => 'Documents',
             'surname' => 'Surname', 'name' => 'Name', 'tax_code' => 'Tax code', 'birth_date' => 'Date of birth', 'course' => 'Course', 'practice_status' => 'Application status',
             'student_email' => 'Student email', 'student_email_hint' => 'Enter only a personal email address for the student. Do not use the lower-secondary school email; leave it blank if not available.',
@@ -896,6 +896,14 @@ function iscrizioniPrimeParentDocumentLabel(string $tipo): string
 }
 
 $token = trim((string)($_GET['t'] ?? ''));
+$adminPreview = false;
+$previewId = intval($_GET['preview_id'] ?? 0);
+if ($previewId > 0) {
+    require_once '../common/checkSession.php';
+    ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
+    $adminPreview = true;
+    $token = 'admin_preview:' . $previewId;
+}
 $parentLanguages = iscrizioniPrimeParentLanguagesClean();
 $parentTranslations = iscrizioniPrimeParentTranslations();
 $parentLang = strtolower(trim((string)($_GET['lang'] ?? 'it')));
@@ -917,7 +925,7 @@ $nomeIstituto = trim((string)($__settings->local->nomeIstituto ?? 'ITT Buonarrot
 $classeTargetLabel = $isTerze
     ? 'Iscrizione alle classi terze'
     : trp('subtitle');
-$praticaBloccata = $pratica && in_array((string)($pratica['stato'] ?? ''), ['inviata', 'verificata', 'annullata'], true);
+$praticaBloccata = $pratica && in_array((string)($pratica['stato'] ?? ''), ['verificata', 'annullata'], true);
 
 if (!$pratica) {
     http_response_code(404);
@@ -1033,6 +1041,7 @@ if (!$pratica) {
         .doc-final-group { border-color: #bbf7d0; background: #f0fdf4; }
         .btn-file { background: #0ea5e9 !important; color: #fff; }
         .btn-native-camera { background: #2563eb !important; color: #fff; }
+        .btn-add-photo { background: #1d4ed8 !important; color: #fff; }
         .btn-paper { background: #a16207 !important; color: #fff; }
         .btn-delete { background: #b91c1c !important; color: #fff; }
         .btn-final { background: #0f766e !important; color: #fff; }
@@ -1134,7 +1143,11 @@ if (!$pratica) {
             <?php echo h(trp('invalid_link')); ?>
         </div>
     <?php else : ?>
-        <?php if ($praticaBloccata) : ?>
+        <?php if ($adminPreview) : ?>
+            <div class="card notice">
+                Accesso riservato alla segreteria: questa apertura non rigenera il token e non modifica il link inviato alla famiglia.
+            </div>
+        <?php elseif ($praticaBloccata) : ?>
             <div class="card notice success">
                 <?php echo h(trp('locked_notice')); ?>
             </div>
@@ -1389,7 +1402,8 @@ if (!$pratica) {
                             </div>
                             <div class="doc-action-group doc-final-group" hidden>
                                 <div class="doc-action-title doc-final-title"><?php echo h(trp('confirm_upload')); ?></div>
-                                <div class="doc-action-buttons single">
+                                <div class="doc-action-buttons doc-final-buttons single">
+                                    <button type="button" class="btn-add-photo doc-add-photo" hidden>Aggiungi altra foto</button>
                                     <button type="submit" class="btn-final doc-upload-button" disabled><?php echo h(trp('upload_document')); ?></button>
                                 </div>
                                 <div class="doc-help doc-final-help"><?php echo h(trp('upload_help')); ?></div>
@@ -1473,6 +1487,7 @@ if (!$pratica) {
 <?php if ($pratica) : ?>
 <script src="<?php echo h($__application_base_path); ?>/common/opencvjs/opencv.js"></script>
 <script>
+const pageToken = <?php echo json_encode($token, JSON_UNESCAPED_SLASHES); ?>;
 let activeCropperObjectUrl = '';
 let activeCropperForm = null;
 let activeCropperIndex = null;
@@ -1581,18 +1596,28 @@ function refreshPhotoPreview(form) {
     const preview = form.querySelector('.photo-preview');
     const pending = form.querySelector('.doc-pending');
     const uploadButton = form.querySelector('.doc-upload-button');
+    const addPhotoButton = form.querySelector('.doc-add-photo');
+    const finalButtons = form.querySelector('.doc-final-buttons');
     const finalGroup = form.querySelector('.doc-final-group');
     const finalHelp = form.querySelector('.doc-final-help');
     preview.innerHTML = '';
 
     const files = Array.from(input.files);
     const info = files.length ? readyFilesInfo(files) : null;
+    const hasImages = files.some((file) => file.type.startsWith('image/'));
     uploadButton.disabled = files.length === 0;
     if (info) {
         uploadButton.textContent = info.button;
         if (finalHelp) {
             finalHelp.textContent = info.help;
         }
+    }
+    if (addPhotoButton) {
+        addPhotoButton.hidden = !hasImages;
+        addPhotoButton.textContent = files.length > 1 ? 'Aggiungi altra foto / pagina' : 'Aggiungi foto del retro o altra pagina';
+    }
+    if (finalButtons) {
+        finalButtons.classList.toggle('single', !hasImages);
     }
     if (finalGroup) {
         finalGroup.hidden = files.length === 0;
@@ -2451,6 +2476,13 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
         nativeCameraInput.click();
     });
 
+    const addPhotoButton = form.querySelector('.doc-add-photo');
+    if (addPhotoButton) {
+        addPhotoButton.addEventListener('click', function () {
+            nativeCameraInput.click();
+        });
+    }
+
     form.querySelectorAll('.doc-mode-options input[type="radio"]').forEach(function (radio) {
         radio.addEventListener('change', function () {
             const uploadMode = form.querySelector('.doc-upload-mode');
@@ -2482,9 +2514,11 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
         status.textContent = 'Caricamento in corso...';
 
         try {
-            const response = await fetch('upload_documento.php', {
+            const payload = new FormData(form);
+            payload.set('token', pageToken || (form.querySelector('input[name="token"]') ? form.querySelector('input[name="token"]').value : ''));
+            const response = await fetch('upload_documento.php?t=' + encodeURIComponent(pageToken || ''), {
                 method: 'POST',
-                body: new FormData(form)
+                body: payload
             });
             const result = await response.json();
 

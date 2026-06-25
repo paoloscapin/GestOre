@@ -16,7 +16,7 @@ if ($id <= 0) {
 }
 
 $pratica = dbGetFirst("
-    SELECT id
+    SELECT id, tipo_iscrizione
     FROM iscrizioni_prime_pratiche
     WHERE id = $id
     LIMIT 1
@@ -28,11 +28,10 @@ if (!$pratica) {
     exit;
 }
 
-$token = iscrizioniPrimeSetToken($id);
-$link = ($GLOBALS['__http_base_link'] ?? '') . '/iscrizioni/conferma.php?t=' . rawurlencode($token);
+$link = '../iscrizioni/conferma.php?preview_id=' . rawurlencode((string)$id);
 
 echo json_encode([
     'ok' => true,
     'link' => $link,
-    'token_last4' => substr($token, -4),
+    'preview' => true,
 ], JSON_UNESCAPED_UNICODE);

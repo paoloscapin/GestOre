@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$token = trim((string)($_POST['token'] ?? ''));
+$token = trim((string)($_POST['token'] ?? ($_GET['t'] ?? '')));
 $tipo = trim((string)($_POST['tipo_documento'] ?? ''));
 $uploadMode = trim((string)($_POST['upload_mode'] ?? 'replace'));
 

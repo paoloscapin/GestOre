@@ -20,7 +20,7 @@ try {
 
     $where = $id > 0
         ? 'id = ' . dbI($id)
-        : "tipo_iscrizione = " . dbQ($tipoIscrizione) . " AND studente_interno = 0 AND (email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL)";
+        : "tipo_iscrizione = " . dbQ($tipoIscrizione) . " AND " . iscrizioniPrimeEffectiveExternalCondition('iscrizioni_prime_pratiche') . " AND (email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL)";
 
     $pratica = dbGetFirst("
         SELECT *

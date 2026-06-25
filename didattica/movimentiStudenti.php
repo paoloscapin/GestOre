@@ -18,6 +18,9 @@ try {
         if ($action === 'sync_bocciati') {
             $syncResult = studentiMovimentiSyncBocciatiFromTabelloni(studentiMovimentiCurrentYearId());
             $message = 'Bocciati aggiornati dai tabelloni.';
+        } elseif ($action === 'sync_iscrizioni') {
+            $syncResult = studentiMovimentiSyncCambioScuolaDaIscrizioni();
+            $message = 'Cambi scuola aggiornati dalle iscrizioni.';
         } else {
             $practiceId = studentiMovimentiSavePractice($_POST);
             if (!empty($_FILES['allegato']) && intval($_FILES['allegato']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
@@ -34,8 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && ($_GET['autosync'] ?? '1') !== '0')
     try {
         $autoSyncResult = studentiMovimentiSyncBocciatiFromTabelloni(studentiMovimentiCurrentYearId());
         $syncResult = $autoSyncResult;
+        $iscrizioniSync = studentiMovimentiSyncCambioScuolaDaIscrizioni();
         if (intval($autoSyncResult['created'] ?? 0) > 0) {
             $message = 'Bocciati aggiornati automaticamente dai tabelloni: creati ' . intval($autoSyncResult['created']) . '.';
+        } elseif (intval($iscrizioniSync['created'] ?? 0) > 0 || intval($iscrizioniSync['updated'] ?? 0) > 0) {
+            $message = 'Cambi scuola iscrizioni sincronizzati: creati ' . intval($iscrizioniSync['created'] ?? 0) . ', aggiornati ' . intval($iscrizioniSync['updated'] ?? 0) . '.';
         }
     } catch (Throwable $e) {
         if ($error === '') {
@@ -46,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && ($_GET['autosync'] ?? '1') !== '0')
 
 $tipi = studentiMovimentiTipi();
 $stati = studentiMovimentiStati();
+$istitutiScuole = scuoleIstitutiAll();
 $activeSection = trim((string)($_GET['sezione'] ?? 'uscite'));
 if (!in_array($activeSection, ['uscite', 'entrate'], true)) {
     $activeSection = 'uscite';
@@ -91,6 +98,11 @@ if (!empty($pratiche)) {
     foreach ($rows as $row) {
         $allegati[intval($row['id_pratica'] ?? 0)][] = $row;
     }
+}
+
+$storico = [];
+if (!empty($pratiche)) {
+    $storico = studentiMovimentiHistoryForPractices(array_map(static function ($row) { return intval($row['id']); }, $pratiche));
 }
 
 $currentStudents = dbGetAll("
@@ -224,6 +236,41 @@ function ms_data_attr($value): string
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 10px;
         }
+        #msPracticeModal .modal-dialog {
+            width: 95%;
+            max-width: 1180px;
+        }
+        .ms-modal-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(330px, .9fr);
+            gap: 14px;
+            align-items: start;
+        }
+        .ms-history {
+            border: 1px solid #d8dee8;
+            border-radius: 4px;
+            background: #f8fafc;
+            padding: 10px;
+            max-height: calc(100vh - 240px);
+            overflow: auto;
+        }
+        .ms-history-event {
+            border: 1px solid #dbe4ef;
+            border-left: 5px solid #2f80ed;
+            border-radius: 4px;
+            background: #fff;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+        }
+        .ms-history-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-weight: 700;
+        }
+        .ms-history-meta { color: #60718a; font-size: 12px; margin-top: 3px; }
+        .ms-history-note { margin-top: 6px; white-space: pre-wrap; }
         .ms-modal-wide {
             grid-column: span 2;
         }
@@ -233,8 +280,18 @@ function ms_data_attr($value): string
             color: #60718a;
         }
         @media (max-width: 800px) {
+            #msPracticeModal .modal-dialog {
+                width: auto;
+                max-width: none;
+            }
             .ms-modal-grid {
                 grid-template-columns: 1fr;
+            }
+            .ms-modal-layout {
+                grid-template-columns: 1fr;
+            }
+            .ms-history {
+                max-height: none;
             }
             .ms-modal-wide {
                 grid-column: span 1;
@@ -252,10 +309,10 @@ function ms_data_attr($value): string
                 <div class="alert alert-success">
                     <?php echo studentiMovimentiH($message); ?>
                     <?php if (is_array($syncResult)): ?>
-                        Letti <?php echo intval($syncResult['read'] ?? 0); ?> bocciati,
+                        Letti <?php echo intval($syncResult['read'] ?? 0); ?> record,
                         creati <?php echo intval($syncResult['created'] ?? 0); ?>,
                         gia presenti <?php echo intval($syncResult['existing'] ?? 0); ?>,
-                        completati <?php echo intval($syncResult['updated_existing'] ?? 0); ?>.
+                        aggiornati <?php echo intval(($syncResult['updated'] ?? 0) + ($syncResult['updated_existing'] ?? 0)); ?>.
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
@@ -295,6 +352,12 @@ function ms_data_attr($value): string
                     <input type="hidden" name="action" value="sync_bocciati">
                     <button type="submit" class="btn btn-warning btn-sm">
                         <span class="glyphicon glyphicon-refresh"></span>&ensp;Aggiorna bocciati da tabelloni
+                    </button>
+                </form>
+                <form method="post" style="margin:0;" onsubmit="return confirm('Sincronizzare nelle uscite i cambi scuola registrati nelle iscrizioni prime/terze?');">
+                    <input type="hidden" name="action" value="sync_iscrizioni">
+                    <button type="submit" class="btn btn-info btn-sm">
+                        <span class="glyphicon glyphicon-transfer"></span>&ensp;Aggiorna cambi scuola da iscrizioni
                     </button>
                 </form>
             </div>
@@ -358,8 +421,14 @@ function ms_data_attr($value): string
                             <td>
                                 <?php if ($activeSection === 'entrate'): ?>
                                     <?php echo studentiMovimentiH($row['scuola_provenienza'] ?: '-'); ?>
+                                    <?php if (($row['indirizzo_provenienza'] ?? '') !== ''): ?>
+                                        <div class="ms-muted"><?php echo studentiMovimentiH($row['indirizzo_provenienza']); ?></div>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <?php echo studentiMovimentiH($row['scuola_destinazione'] ?: '-'); ?>
+                                    <?php if (($row['indirizzo_destinazione'] ?? '') !== ''): ?>
+                                        <div class="ms-muted"><?php echo studentiMovimentiH($row['indirizzo_destinazione']); ?></div>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </td>
                             <td><?php echo intval($row['esami_integrativi'] ?? 0) ? '<span class="label label-warning">Si</span>' : '<span class="text-muted">No</span>'; ?></td>
@@ -380,6 +449,9 @@ function ms_data_attr($value): string
                                 <button type="button"
                                         class="btn btn-default btn-xs ms-edit"
                                         data-id="<?php echo $id; ?>"
+                                        data-fonte="<?php echo ms_data_attr($row['fonte'] ?? 'manuale'); ?>"
+                                        data-id_pratica_iscrizione="<?php echo intval($row['id_pratica_iscrizione'] ?? 0); ?>"
+                                        data-id_cambio_scuola_iscrizione="<?php echo intval($row['id_cambio_scuola_iscrizione'] ?? 0); ?>"
                                         data-tipo_pratica="<?php echo ms_data_attr($row['tipo_pratica'] ?? ''); ?>"
                                         data-stato_pratica="<?php echo ms_data_attr($row['stato_pratica'] ?? ''); ?>"
                                         data-id_studente="<?php echo intval($row['id_studente'] ?? 0); ?>"
@@ -389,8 +461,12 @@ function ms_data_attr($value): string
                                         data-anno_corso="<?php echo intval($row['anno_corso'] ?? 0); ?>"
                                         data-classe_origine="<?php echo ms_data_attr($row['classe_origine'] ?: $row['classe_corrente']); ?>"
                                         data-classe_richiesta="<?php echo ms_data_attr($row['classe_richiesta'] ?? ''); ?>"
+                                        data-id_istituto_provenienza="<?php echo intval($row['id_istituto_provenienza'] ?? 0); ?>"
                                         data-scuola_provenienza="<?php echo ms_data_attr($row['scuola_provenienza'] ?? ''); ?>"
+                                        data-indirizzo_provenienza="<?php echo ms_data_attr($row['indirizzo_provenienza'] ?? ''); ?>"
+                                        data-id_istituto_destinazione="<?php echo intval($row['id_istituto_destinazione'] ?? 0); ?>"
                                         data-scuola_destinazione="<?php echo ms_data_attr($row['scuola_destinazione'] ?? ''); ?>"
+                                        data-indirizzo_destinazione="<?php echo ms_data_attr($row['indirizzo_destinazione'] ?? ''); ?>"
                                         data-esami_integrativi="<?php echo intval($row['esami_integrativi'] ?? 0); ?>"
                                         data-note="<?php echo ms_data_attr($row['note'] ?? ''); ?>">
                                     Dettaglio
@@ -414,11 +490,15 @@ function ms_data_attr($value): string
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" id="ms_id" value="">
             <input type="hidden" name="fonte" id="ms_fonte" value="manuale">
+            <input type="hidden" name="id_pratica_iscrizione" id="ms_id_pratica_iscrizione" value="">
+            <input type="hidden" name="id_cambio_scuola_iscrizione" id="ms_id_cambio_scuola_iscrizione" value="">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Chiudi"><span aria-hidden="true">&times;</span></button>
                 <h4 class="modal-title" id="msPracticeTitle">Pratica studente</h4>
             </div>
             <div class="modal-body">
+                <div class="ms-modal-layout">
+                    <div>
                 <div class="ms-modal-grid">
                     <div class="form-group">
                         <label>Tipo pratica</label>
@@ -483,11 +563,33 @@ function ms_data_attr($value): string
                     </div>
                     <div class="form-group">
                         <label>Scuola provenienza</label>
-                        <input type="text" name="scuola_provenienza" id="ms_scuola_provenienza" class="form-control input-sm">
+                        <input type="hidden" name="scuola_provenienza" id="ms_scuola_provenienza">
+                        <select name="id_istituto_provenienza" id="ms_id_istituto_provenienza" class="form-control input-sm">
+                            <option value="">Seleziona istituto</option>
+                            <?php foreach ($istitutiScuole as $istituto): ?>
+                                <option value="<?php echo intval($istituto['id']); ?>"><?php echo studentiMovimentiH($istituto['nome'] ?? ''); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div id="ms_scuola_provenienza_libera" class="help-block" style="display:none;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Indirizzo di studio di provenienza</label>
+                        <input type="text" name="indirizzo_provenienza" id="ms_indirizzo_provenienza" class="form-control input-sm" placeholder="Es. informatica, liceo scientifico...">
                     </div>
                     <div class="form-group">
                         <label>Scuola destinazione</label>
-                        <input type="text" name="scuola_destinazione" id="ms_scuola_destinazione" class="form-control input-sm">
+                        <input type="hidden" name="scuola_destinazione" id="ms_scuola_destinazione">
+                        <select name="id_istituto_destinazione" id="ms_id_istituto_destinazione" class="form-control input-sm">
+                            <option value="">Seleziona istituto</option>
+                            <?php foreach ($istitutiScuole as $istituto): ?>
+                                <option value="<?php echo intval($istituto['id']); ?>"><?php echo studentiMovimentiH($istituto['nome'] ?? ''); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div id="ms_scuola_destinazione_libera" class="help-block" style="display:none;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Indirizzo di studio di destinazione</label>
+                        <input type="text" name="indirizzo_destinazione" id="ms_indirizzo_destinazione" class="form-control input-sm" placeholder="Es. informatica, liceo scientifico...">
                     </div>
                     <div class="form-group">
                         <label>Esami integrativi</label>
@@ -515,6 +617,12 @@ function ms_data_attr($value): string
                         <textarea name="note" id="ms_note" class="form-control input-sm" rows="5"></textarea>
                     </div>
                 </div>
+                    </div>
+                    <div class="ms-history">
+                        <h4 style="margin-top:0;">Storico pratica</h4>
+                        <div id="ms_history_content" class="ms-muted">Nessuno storico disponibile.</div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Chiudi</button>
@@ -525,14 +633,79 @@ function ms_data_attr($value): string
 </div>
 
 <script>
+const msHistory = <?php echo json_encode($storico, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+
 function msSetField(id, value) {
     const element = document.getElementById(id);
     if (element) element.value = value || '';
 }
 
+function msEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, function (char) {
+        return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[char];
+    });
+}
+
+function msFormatDateTimeIt(value) {
+    const text = String(value || '').trim();
+    const match = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+    if (!match) return text;
+    return match[3] + '/' + match[2] + '/' + match[1] + (match[4] ? ' ' + match[4] + ':' + match[5] : '');
+}
+
+function msRenderHistory(practiceId) {
+    const box = document.getElementById('ms_history_content');
+    if (!box) return;
+    const rows = msHistory[String(practiceId)] || msHistory[Number(practiceId)] || [];
+    if (!practiceId || !rows.length) {
+        box.innerHTML = '<span class="ms-muted">Nessuno storico disponibile.</span>';
+        return;
+    }
+    box.innerHTML = rows.map(row => {
+        const meta = [
+            row.tipo_pratica ? 'Tipo: ' + row.tipo_pratica : '',
+            row.stato_pratica ? 'Stato: ' + row.stato_pratica : '',
+            row.scuola_destinazione ? 'Destinazione: ' + row.scuola_destinazione : '',
+            row.indirizzo_destinazione ? 'Indirizzo destinazione: ' + row.indirizzo_destinazione : '',
+            row.scuola_provenienza ? 'Provenienza: ' + row.scuola_provenienza : '',
+            row.indirizzo_provenienza ? 'Indirizzo provenienza: ' + row.indirizzo_provenienza : ''
+        ].filter(Boolean).join(' - ');
+        return '<div class="ms-history-event">' +
+            '<div class="ms-history-head">' +
+                '<span>' + msEscape(row.descrizione || row.tipo_evento || 'Aggiornamento') + '</span>' +
+                '<span>' + msEscape(msFormatDateTimeIt(row.created_at || '')) + '</span>' +
+            '</div>' +
+            (row.created_by ? '<div class="ms-history-meta">' + msEscape(row.created_by) + '</div>' : '') +
+            (meta ? '<div class="ms-history-meta">' + msEscape(meta) + '</div>' : '') +
+            (row.note ? '<div class="ms-history-note">' + msEscape(row.note) + '</div>' : '') +
+        '</div>';
+    }).join('');
+}
+
+function msSyncSchoolHidden(selectId, hiddenId) {
+    const select = document.getElementById(selectId);
+    const hidden = document.getElementById(hiddenId);
+    if (!select || !hidden) return;
+    const option = select.options[select.selectedIndex];
+    if (select.value && option) {
+        hidden.value = option.textContent || '';
+    }
+}
+
+function msShowLegacySchool(selectId, boxId, value) {
+    const select = document.getElementById(selectId);
+    const box = document.getElementById(boxId);
+    if (!select || !box) return;
+    const show = !select.value && String(value || '').trim() !== '';
+    box.style.display = show ? 'block' : 'none';
+    box.textContent = show ? 'Valore gia presente: ' + value : '';
+}
+
 function msOpenNew(kind) {
     msSetField('ms_id', '');
     msSetField('ms_fonte', 'manuale');
+    msSetField('ms_id_pratica_iscrizione', '');
+    msSetField('ms_id_cambio_scuola_iscrizione', '');
     msSetField('ms_tipo_pratica', kind === 'entrata' ? 'entrata' : 'uscita');
     msSetField('ms_stato_pratica', kind === 'entrata' ? 'contatto_ricevuto' : 'da_verificare');
     msSetField('ms_id_studente', '');
@@ -542,10 +715,17 @@ function msOpenNew(kind) {
     msSetField('ms_anno_corso', '');
     msSetField('ms_classe_origine', '');
     msSetField('ms_classe_richiesta', '');
+    msSetField('ms_id_istituto_provenienza', '');
     msSetField('ms_scuola_provenienza', '');
+    msSetField('ms_indirizzo_provenienza', '');
+    msSetField('ms_id_istituto_destinazione', '');
     msSetField('ms_scuola_destinazione', '');
+    msSetField('ms_indirizzo_destinazione', '');
+    msShowLegacySchool('ms_id_istituto_provenienza', 'ms_scuola_provenienza_libera', '');
+    msShowLegacySchool('ms_id_istituto_destinazione', 'ms_scuola_destinazione_libera', '');
     msSetField('ms_esami_integrativi', '0');
     msSetField('ms_note', '');
+    msRenderHistory(0);
     document.getElementById('msPracticeTitle').textContent = kind === 'entrata' ? 'Nuova entrata' : 'Nuova uscita';
     $('#msPracticeModal').modal('show');
 }
@@ -553,7 +733,9 @@ function msOpenNew(kind) {
 document.querySelectorAll('.ms-edit').forEach(function (button) {
     button.addEventListener('click', function () {
         msSetField('ms_id', button.dataset.id || '');
-        msSetField('ms_fonte', 'manuale');
+        msSetField('ms_fonte', button.dataset.fonte || 'manuale');
+        msSetField('ms_id_pratica_iscrizione', button.dataset.id_pratica_iscrizione || '');
+        msSetField('ms_id_cambio_scuola_iscrizione', button.dataset.id_cambio_scuola_iscrizione || '');
         msSetField('ms_tipo_pratica', button.dataset.tipo_pratica || 'uscita');
         msSetField('ms_stato_pratica', button.dataset.stato_pratica || 'da_verificare');
         msSetField('ms_id_studente', button.dataset.id_studente || '');
@@ -563,13 +745,30 @@ document.querySelectorAll('.ms-edit').forEach(function (button) {
         msSetField('ms_anno_corso', button.dataset.anno_corso || '');
         msSetField('ms_classe_origine', button.dataset.classe_origine || '');
         msSetField('ms_classe_richiesta', button.dataset.classe_richiesta || '');
+        msSetField('ms_id_istituto_provenienza', button.dataset.id_istituto_provenienza || '');
         msSetField('ms_scuola_provenienza', button.dataset.scuola_provenienza || '');
+        msSetField('ms_indirizzo_provenienza', button.dataset.indirizzo_provenienza || '');
+        msSetField('ms_id_istituto_destinazione', button.dataset.id_istituto_destinazione || '');
         msSetField('ms_scuola_destinazione', button.dataset.scuola_destinazione || '');
+        msSetField('ms_indirizzo_destinazione', button.dataset.indirizzo_destinazione || '');
+        msShowLegacySchool('ms_id_istituto_provenienza', 'ms_scuola_provenienza_libera', button.dataset.scuola_provenienza || '');
+        msShowLegacySchool('ms_id_istituto_destinazione', 'ms_scuola_destinazione_libera', button.dataset.scuola_destinazione || '');
         msSetField('ms_esami_integrativi', button.dataset.esami_integrativi || '0');
         msSetField('ms_note', button.dataset.note || '');
+        msRenderHistory(button.dataset.id || 0);
         document.getElementById('msPracticeTitle').textContent = 'Dettaglio pratica';
         $('#msPracticeModal').modal('show');
     });
+});
+
+document.getElementById('ms_id_istituto_provenienza').addEventListener('change', function () {
+    msSyncSchoolHidden('ms_id_istituto_provenienza', 'ms_scuola_provenienza');
+    msShowLegacySchool('ms_id_istituto_provenienza', 'ms_scuola_provenienza_libera', '');
+});
+
+document.getElementById('ms_id_istituto_destinazione').addEventListener('change', function () {
+    msSyncSchoolHidden('ms_id_istituto_destinazione', 'ms_scuola_destinazione');
+    msShowLegacySchool('ms_id_istituto_destinazione', 'ms_scuola_destinazione_libera', '');
 });
 
 document.getElementById('ms_id_studente').addEventListener('change', function () {
