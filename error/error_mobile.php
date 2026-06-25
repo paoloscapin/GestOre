@@ -58,7 +58,7 @@ $loginMastercomAssistenzaValida = is_array($loginMastercomAssistenza)
                         } else {
                             echo '<h4>Si è verificato un errore sconosciuto.</h4>';
                         }
-                        echo '<h4><code>Per eventuali segnalazioni, scrivi a <a href="mailto:registroelettronico@buonarroti.tn.it">registroelettronico@buonarroti.tn.it</a></code></h4>';
+                        echo '<h4><code>Per eventuali segnalazioni, scrivi a <a href="mailto:gestore@buonarroti.tn.it">gestore@buonarroti.tn.it</a></code></h4>';
                         ?>
                     </div>
                 </div>
