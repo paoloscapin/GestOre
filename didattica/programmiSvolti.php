@@ -73,8 +73,8 @@ $programmaSvoltiDocenteDaParametro = applicaDocenteDaParametroSeAutorizzato();
             padding: 20px 30px;
             border-radius: 10px;
             text-align: center;
-            width: 300px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            width: min(520px, 92vw);
+            box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
         }
 
         #progressBarContainer {
@@ -86,13 +86,92 @@ $programmaSvoltiDocenteDaParametro = applicaDocenteDaParametroSeAutorizzato();
         }
 
         #progressBar {
-            background: green;
+            background: #15803d;
             width: 0%;
             height: 100%;
             color: white;
             text-align: center;
             line-height: 25px;
             transition: width 0.3s;
+        }
+
+        .programmi-progress-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #172033;
+            margin-bottom: 8px;
+        }
+
+        .programmi-progress-text {
+            color: #475569;
+            line-height: 1.45;
+            margin-bottom: 12px;
+        }
+
+        .programmi-progress-status {
+            margin-top: 12px;
+            text-align: left;
+            background: #f8fafc;
+            border: 1px solid #dbe3ef;
+            border-radius: 8px;
+            padding: 10px 12px;
+            min-height: 42px;
+            color: #334155;
+        }
+
+        .programmi-sollecito-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.62);
+            z-index: 10000;
+            padding: 18px;
+        }
+
+        .programmi-sollecito-modal.open {
+            display: flex;
+        }
+
+        .programmi-sollecito-box {
+            width: min(620px, 100%);
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 24px 70px rgba(0,0,0,.35);
+            overflow: hidden;
+        }
+
+        .programmi-sollecito-head {
+            background: #1f4e79;
+            color: #fff;
+            padding: 18px 20px;
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        .programmi-sollecito-body {
+            padding: 18px 20px;
+            color: #172033;
+            line-height: 1.5;
+        }
+
+        .programmi-sollecito-summary {
+            background: #eff6ff;
+            border-left: 5px solid #2563eb;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-top: 12px;
+            font-weight: 700;
+        }
+
+        .programmi-sollecito-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 14px 20px;
+            border-top: 1px solid #e5e7eb;
+            background: #f8fafc;
         }
 
         .programma-preview-row {
@@ -696,9 +775,36 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
     <!-- OVERLAY con progress bar -->
     <div id="progressOverlay" style="display: none;">
         <div id="progressContent">
-            <p>Invio email in corso...</p>
+            <div class="programmi-progress-title" id="programmiProgressTitle">Invio email in corso</div>
+            <div class="programmi-progress-text" id="programmiProgressText">Preparazione invio...</div>
             <div id="progressBarContainer">
                 <div id="progressBar">0%</div>
+            </div>
+            <div class="programmi-progress-status" id="programmiProgressStatus">Attendere...</div>
+        </div>
+    </div>
+    <div id="programmiSollecitoConfirmModal" class="programmi-sollecito-modal" aria-hidden="true">
+        <div class="programmi-sollecito-box" role="dialog" aria-modal="true" aria-labelledby="programmiSollecitoConfirmTitle">
+            <div class="programmi-sollecito-head" id="programmiSollecitoConfirmTitle">
+                Conferma invio sollecito programmi svolti
+            </div>
+            <div class="programmi-sollecito-body">
+                <p>
+                    GestOre inviera' una mail ai docenti che hanno programmi svolti mancanti o non compilati.
+                    Ogni docente ricevera' una sola mail con il riepilogo delle proprie classi e materie.
+                </p>
+                <div class="programmi-sollecito-summary" id="programmiSollecitoConfirmSummary">
+                    Calcolo destinatari...
+                </div>
+                <p class="text-muted" style="margin-top:12px;">
+                    Mittente previsto: <strong>noreplyGestOre@buonarroti.tn.it</strong>.
+                </p>
+            </div>
+            <div class="programmi-sollecito-actions">
+                <button type="button" class="btn btn-default" id="programmiSollecitoCancelBtn">Annulla</button>
+                <button type="button" class="btn btn-warning" id="programmiSollecitoConfirmBtn">
+                    <span class="glyphicon glyphicon-envelope"></span> Invia solleciti
+                </button>
             </div>
         </div>
     </div>
@@ -813,6 +919,15 @@ foreach (dbGetAll("SELECT * FROM docente WHERE docente.attivo=1 ORDER BY docente
                                     <div class="col-md-auto text-center">
                                         <label id="send_btn" class="btn btn-xs btn-lima4 btn-file" data-toggle="tooltip" title="Invia mail sollecito"><span
                                         class="glyphicon glyphicon-send" ></span>&emsp;Mail Sollecito</label></div>
+                                    <div class="col-md-auto text-center">
+                                        <label id="report_mancanti_btn" class="btn btn-xs btn-info btn-file" data-toggle="tooltip" title="Scarica elenco docenti/materia/classe con programmi mancanti o vuoti"><span
+                                        class="glyphicon glyphicon-download-alt" ></span>&emsp;Report mancanti</label></div>
+                                    <div class="col-md-auto text-center">
+                                        <label id="report_mancanti_pdf_btn" class="btn btn-xs btn-info btn-file" data-toggle="tooltip" title="Scarica PDF docenti/materia/classe con programmi mancanti o vuoti"><span
+                                        class="glyphicon glyphicon-file" ></span>&emsp;PDF mancanti</label></div>
+                                    <div class="col-md-auto text-center">
+                                        <label id="sollecito_mancanti_btn" class="btn btn-xs btn-warning btn-file" data-toggle="tooltip" title="Invia sollecito ai docenti con programmi mancanti o vuoti"><span
+                                        class="glyphicon glyphicon-envelope" ></span>&emsp;Sollecito mancanti</label></div>
                                     <div class="col-md-auto text-center"></div>
                                         ';
                     }

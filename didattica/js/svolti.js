@@ -1413,6 +1413,7 @@ function programmiSvoltiReadRecords() {
 }
 
 function mostraOverlay() {
+    programmiSvoltiSetProgress(0, 'Preparazione invio...', 'Attendere...');
     $('#progressOverlay').show();
 }
 
@@ -1431,6 +1432,27 @@ function aggiornaProgressBar() {
             alert("Tutte le email sono state inviate!");
         }, 500);
     }
+}
+
+function programmiSvoltiSetProgress(percent, text, status) {
+    const safePercent = Math.max(0, Math.min(100, parseInt(percent, 10) || 0));
+    $('#progressBar').css('width', safePercent + '%').text(safePercent + '%');
+    $('#programmiProgressText').text(text || '');
+    $('#programmiProgressStatus').html(status || '');
+}
+
+function programmiSvoltiOpenConfirm(summaryHtml, onConfirm) {
+    $('#programmiSollecitoConfirmSummary').html(summaryHtml);
+    $('#programmiSollecitoConfirmModal').addClass('open').attr('aria-hidden', 'false');
+    $('#programmiSollecitoCancelBtn').off('click').on('click', function () {
+        $('#programmiSollecitoConfirmModal').removeClass('open').attr('aria-hidden', 'true');
+    });
+    $('#programmiSollecitoConfirmBtn').off('click').on('click', function () {
+        $('#programmiSollecitoConfirmModal').removeClass('open').attr('aria-hidden', 'true');
+        if (typeof onConfirm === 'function') {
+            onConfirm();
+        }
+    });
 }
 
 function sleep(ms) {
@@ -1479,6 +1501,106 @@ async function inviaSollecito(single_id) {
             alert("Nessun sollecito da inviare!");
         }
     }
+}
+
+function programmiSvoltiMancantiParams() {
+    return {
+        classi_id: $classi_filtro_id || 0,
+        materia_id: $materia_filtro_id || 0,
+        docenti_id: $docenti_filtro_id || 0,
+        anni_id: $anni_filtro_id || 0
+    };
+}
+
+function programmiSvoltiMancantiReport(format) {
+    const params = new URLSearchParams(programmiSvoltiMancantiParams());
+    if (format) {
+        params.set('format', format);
+    }
+    window.location.href = 'programmiSvoltiMancantiReport.php?' + params.toString();
+}
+
+function programmiSvoltiMancantiSollecito() {
+    const params = programmiSvoltiMancantiParams();
+    params.dry_run = 1;
+    $.post('programmiSvoltiMancantiSollecito.php', params, function (preview) {
+        if (!preview || !preview.ok) {
+            alert((preview && preview.message) ? preview.message : 'Impossibile preparare il sollecito.');
+            return;
+        }
+        if (parseInt(preview.docenti || 0, 10) <= 0) {
+            alert('Nessun docente da sollecitare: tutti i programmi risultano presenti e compilati.');
+            return;
+        }
+
+        const docenti = Array.isArray(preview.docenti_list) ? preview.docenti_list : [];
+        const summary = '<div>' + preview.message + '</div>'
+            + '<div class="text-muted" style="margin-top:6px;">Invio progressivo: una mail per docente, con percentuale reale di avanzamento.</div>';
+
+        programmiSvoltiOpenConfirm(summary, async function () {
+            mostraOverlay();
+            let sent = 0;
+            let skipped = 0;
+            let errors = [];
+            const totalDocenti = Math.max(docenti.length, 1);
+
+            for (let i = 0; i < docenti.length; i++) {
+                const docente = docenti[i];
+                const percent = Math.round((i / totalDocenti) * 100);
+                programmiSvoltiSetProgress(
+                    percent,
+                    'Invio ' + (i + 1) + ' di ' + docenti.length,
+                    'Sto inviando a <strong>' + $('<div>').text(docente.docente || docente.email || '').html() + '</strong><br>'
+                    + '<span class="text-muted">' + $('<div>').text(docente.email || '').html() + '</span>'
+                );
+
+                const sendParams = programmiSvoltiMancantiParams();
+                sendParams.single_docente_id = docente.id;
+
+                try {
+                    const result = await $.post('programmiSvoltiMancantiSollecito.php', sendParams, null, 'json');
+                    sent += parseInt(result.sent || 0, 10);
+                    skipped += parseInt(result.skipped || 0, 10);
+                    if (result && result.dispatches && result.dispatches.length) {
+                        const dispatch = result.dispatches[0];
+                        programmiSvoltiSetProgress(
+                            Math.round(((i + 1) / totalDocenti) * 100),
+                            'Invio ' + (i + 1) + ' di ' + docenti.length,
+                            'Inviata a <strong>' + $('<div>').text(docente.docente || '').html() + '</strong>'
+                            + '<br><span class="text-muted">Mittente: ' + $('<div>').text(dispatch.sender || 'noreplyGestOre@buonarroti.tn.it').html()
+                            + ' - canale: ' + $('<div>').text(dispatch.transport || '-').html() + '</span>'
+                        );
+                    }
+                    if (!result || !result.ok) {
+                        errors = errors.concat(result && result.errors ? result.errors : ['Errore invio a ' + (docente.email || docente.docente)]);
+                    }
+                } catch (xhr) {
+                    const message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Errore invio a ' + (docente.email || docente.docente);
+                    errors.push(message);
+                }
+
+                await sleep(250);
+            }
+
+            programmiSvoltiSetProgress(
+                100,
+                'Invio completato',
+                '<strong>Inviate:</strong> ' + sent + ' &nbsp; <strong>Saltate:</strong> ' + skipped
+                + (errors.length ? '<br><span class="text-danger">' + errors.map(e => $('<div>').text(e).html()).join('<br>') + '</span>' : '')
+            );
+
+            setTimeout(function () {
+                nascondiOverlay();
+                if (errors.length) {
+                    alert('Invio completato con errori. Controlla il messaggio riepilogativo e il log.');
+                } else {
+                    alert('Solleciti inviati: ' + sent + ' - saltati: ' + skipped);
+                }
+            }, 900);
+        });
+    }, 'json').fail(function (xhr) {
+        alert((xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Errore durante il controllo dei programmi mancanti.');
+    });
 }
 
 function moduliSvoltiReadRecords(programma_id) {
@@ -2201,6 +2323,18 @@ $(document).ready(function () {
 
     $('#send_btn').on('click', function () {
         inviaSollecito(-1);
+    });
+
+    $('#report_mancanti_btn').on('click', function () {
+        programmiSvoltiMancantiReport('xls');
+    });
+
+    $('#report_mancanti_pdf_btn').on('click', function () {
+        programmiSvoltiMancantiReport('pdf');
+    });
+
+    $('#sollecito_mancanti_btn').on('click', function () {
+        programmiSvoltiMancantiSollecito();
     });
 
     $("#materia_filtro").on("changed.bs.select", function () {
