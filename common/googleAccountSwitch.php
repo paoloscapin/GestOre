@@ -50,10 +50,12 @@ $gClient->setRedirectUri($redirectUrl);
 new Google_Oauth2Service($gClient);
 
 $authUrl = $gClient->createAuthUrl();
-$separator = strpos($authUrl, '?') === false ? '?' : '&';
-$authUrl .= $separator . http_build_query([
-    'prompt' => 'select_account',
-]);
+$parts = parse_url($authUrl);
+$query = [];
+parse_str((string)($parts['query'] ?? ''), $query);
+unset($query['approval_prompt']);
+$query['prompt'] = 'select_account';
+$authUrl = ($parts['scheme'] ?? 'https') . '://' . ($parts['host'] ?? 'accounts.google.com') . ($parts['path'] ?? '/o/oauth2/auth') . '?' . http_build_query($query);
 
 header('Location: ' . $authUrl);
 exit;
