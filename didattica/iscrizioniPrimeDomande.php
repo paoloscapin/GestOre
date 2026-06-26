@@ -689,6 +689,7 @@ ITT Buonarroti - Trento</textarea>
         </div>
         <div class="ipd-modal-actions">
             <button type="button" class="btn btn-default" id="ipdBulkMailCancelButton" onclick="ipdCloseBulkMailModal()">Annulla</button>
+            <button type="button" class="btn btn-info" id="ipdBulkMailStatusButton" onclick="ipdCheckBulkMailStatus()">Verifica stato invio</button>
             <button type="button" class="btn btn-primary" id="ipdBulkMailSendButton" onclick="ipdStartBulkMail()">Invia a tutti</button>
         </div>
     </div>
@@ -1162,6 +1163,7 @@ function ipdOpenBulkMailModal() {
     const progress = document.getElementById('ipdBulkMailProgress');
     const cancelButton = document.getElementById('ipdBulkMailCancelButton');
     const sendButton = document.getElementById('ipdBulkMailSendButton');
+    const statusButton = document.getElementById('ipdBulkMailStatusButton');
     ipdBulkMailRunning = false;
     ipdBulkMailSent = 0;
     ipdBulkMailInitialRemaining = 0;
@@ -1184,6 +1186,10 @@ function ipdOpenBulkMailModal() {
         sendButton.textContent = 'Invia a tutti';
         sendButton.className = 'btn btn-primary';
         sendButton.onclick = ipdStartBulkMail;
+    }
+    if (statusButton) {
+        statusButton.disabled = false;
+        statusButton.style.display = '';
     }
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
@@ -1265,10 +1271,97 @@ function ipdBulkMailRequest(dryRun) {
     }).then(response => response.json().then(result => ({ok: response.ok, result})));
 }
 
+function ipdBulkMailStatusRequest() {
+    return fetch('iscrizioniPrimeMailTuttiStatus.php', {
+        method: 'POST',
+        body: ipdBulkMailFormData(false),
+        credentials: 'same-origin'
+    }).then(response => response.json().then(result => ({ok: response.ok, result})));
+}
+
+function ipdBulkMailStatusHtml(result) {
+    const testMode = !!result.test_mode_config;
+    const gmail = result.gmail_subject_scan || {};
+    const accounts = Array.isArray(gmail.accounts) ? gmail.accounts : [];
+    const accountHtml = accounts.length
+        ? '<details style="margin-top:8px;"><summary>Dettaglio Gmail per account</summary>'
+            + '<ul style="margin:6px 0 0 18px;">'
+            + accounts.map(row => '<li><strong>' + ipdEscape(row.account || '') + '</strong>: '
+                + Number(row.matches || 0) + ' con oggetto, '
+                + Number(row.test_matches || 0) + ' in modalita test'
+                + (row.warning ? ' <span style="color:#b91c1c;">(' + ipdEscape(row.warning) + ')</span>' : '')
+                + '</li>').join('')
+            + '</ul></details>'
+        : '';
+    const warningHtml = Array.isArray(gmail.warnings) && gmail.warnings.length
+        ? '<div style="margin-top:8px;color:#b91c1c;"><strong>Avvisi Gmail:</strong><br>'
+            + gmail.warnings.map(ipdEscape).join('<br>') + '</div>'
+        : '';
+    const modeText = testMode
+        ? '<strong style="color:#b45309;">Modalita test ATTIVA: il prossimo invio andra agli account mittenti.</strong>'
+        : '<strong style="color:#047857;">Modalita test DISATTIVA: il prossimo invio e reale.</strong>';
+    return '<div class="alert alert-info" style="margin-bottom:0;">'
+        + '<div>' + modeText + '</div>'
+        + '<div style="margin-top:8px;">Destinatari comunicazione: <strong>' + Number(result.total_recipients || 0) + '</strong></div>'
+        + '<div>Mail reali gia inviate: <strong>' + Number(result.real_sent || 0) + '</strong></div>'
+        + '<div>Mail reali ancora da inviare: <strong>' + Number(result.real_pending || 0) + '</strong></div>'
+        + '<div>Mail test gia inviate: <strong>' + Number(result.test_sent || 0) + '</strong></div>'
+        + '<hr style="margin:10px 0;border-color:#cbd5e1;">'
+        + '<div><strong>Controllo Gmail posta inviata, solo per oggetto</strong></div>'
+        + '<div>Mail Gmail controllate: <strong>' + Number(gmail.checked || 0) + '</strong></div>'
+        + '<div>Mail trovate con questo oggetto: <strong>' + Number(gmail.matches || 0) + '</strong></div>'
+        + '<div>Di cui riconosciute come modalita test: <strong>' + Number(gmail.test_matches || 0) + '</strong></div>'
+        + '<div>Destinatari test unici dedotti dal corpo: <strong>' + Number(gmail.test_unique_recipients || 0) + '</strong></div>'
+        + '<div>Destinatari test presenti nella platea attuale: <strong>' + Number(gmail.test_recipients_in_current_audience || 0) + '</strong></div>'
+        + '<div>Destinatari test fuori dalla platea attuale: <strong>' + Number(gmail.test_recipients_outside_current_audience || 0) + '</strong></div>'
+        + (Array.isArray(gmail.test_recipients_outside_current_audience_samples) && gmail.test_recipients_outside_current_audience_samples.length
+            ? '<div style="margin-top:6px;"><strong>Fuori platea:</strong> ' + gmail.test_recipients_outside_current_audience_samples.map(ipdEscape).join(', ') + '</div>'
+            : '')
+        + accountHtml
+        + warningHtml
+        + '</div>';
+}
+
+async function ipdCheckBulkMailStatus() {
+    const error = document.getElementById('ipdBulkMailError');
+    const status = document.getElementById('ipdBulkMailStatus');
+    const subject = (document.getElementById('ipdBulkMailSubject')?.value || '').trim();
+    const message = (document.getElementById('ipdBulkMailMessage')?.value || '').trim();
+    if (subject === '' || message.length < 4) {
+        if (error) {
+            error.textContent = 'Inserire oggetto e testo della comunicazione.';
+            error.hidden = false;
+        }
+        return;
+    }
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+    if (status) {
+        status.textContent = 'Verifica invio in corso...';
+    }
+    try {
+        const payload = await ipdBulkMailStatusRequest();
+        if (!payload.ok || !payload.result.ok) {
+            throw new Error(payload.result.message || 'Impossibile verificare lo stato dell\'invio.');
+        }
+        if (status) {
+            status.innerHTML = ipdBulkMailStatusHtml(payload.result);
+        }
+    } catch (err) {
+        if (error) {
+            error.textContent = err.message;
+            error.hidden = false;
+        }
+    }
+}
+
 async function ipdStartBulkMail() {
     const error = document.getElementById('ipdBulkMailError');
     const button = document.getElementById('ipdBulkMailSendButton');
     const cancelButton = document.getElementById('ipdBulkMailCancelButton');
+    const statusButton = document.getElementById('ipdBulkMailStatusButton');
     const subject = (document.getElementById('ipdBulkMailSubject')?.value || '').trim();
     const message = (document.getElementById('ipdBulkMailMessage')?.value || '').trim();
     let completed = false;
@@ -1293,6 +1386,9 @@ async function ipdStartBulkMail() {
         cancelButton.disabled = true;
         cancelButton.textContent = 'Attendere...';
     }
+    if (statusButton) {
+        statusButton.disabled = true;
+    }
     if (error) {
         error.hidden = true;
         error.textContent = '';
@@ -1302,6 +1398,10 @@ async function ipdStartBulkMail() {
         const preview = await ipdBulkMailRequest(true);
         if (!preview.ok || !preview.result.ok) {
             throw new Error(preview.result.message || 'Impossibile preparare l\'invio.');
+        }
+        if (preview.result.test_mode && !confirm('ATTENZIONE: GestOre e in modalita test. Le mail saranno inviate agli account mittenti, non alle famiglie. Continuare?')) {
+            completed = false;
+            return;
         }
         ipdBulkMailInitialRemaining = Number(preview.result.remaining || preview.result.sent || 0);
         ipdBulkMailSent = 0;
@@ -1347,6 +1447,10 @@ async function ipdStartBulkMail() {
                 button.className = 'btn btn-warning';
                 button.onclick = ipdStartBulkMail;
             }
+        }
+        if (statusButton) {
+            statusButton.disabled = false;
+            statusButton.style.display = completed ? 'none' : '';
         }
     }
 }

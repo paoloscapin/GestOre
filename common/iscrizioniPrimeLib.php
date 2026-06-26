@@ -2096,6 +2096,293 @@ function iscrizioniPrimeCustomBulkPendingCount(string $tipoIscrizione, string $c
     return intval($count);
 }
 
+function iscrizioniPrimeCustomBulkRecipientCount(string $tipoIscrizione, string $audience = 'esterni'): int
+{
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+    $audienceCondition = iscrizioniPrimeCustomMailAudienceCondition($audience, 'p');
+
+    $count = dbGetValue("
+        SELECT COUNT(*)
+        FROM (
+            SELECT p.id AS pratica_id, LOWER(TRIM(p.email_genitore_1)) AS recipient_email
+            FROM iscrizioni_prime_pratiche p
+            WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+              AND p.stato <> 'annullata'
+              $audienceCondition
+              AND p.email_genitore_1 IS NOT NULL
+              AND TRIM(p.email_genitore_1) <> ''
+            UNION
+            SELECT p.id AS pratica_id, LOWER(TRIM(p.email_genitore_2)) AS recipient_email
+            FROM iscrizioni_prime_pratiche p
+            WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+              AND p.stato <> 'annullata'
+              $audienceCondition
+              AND p.email_genitore_2 IS NOT NULL
+              AND TRIM(p.email_genitore_2) <> ''
+              AND LOWER(TRIM(p.email_genitore_2)) <> LOWER(TRIM(COALESCE(p.email_genitore_1, '')))
+        ) recipients
+    ");
+
+    return intval($count);
+}
+
+function iscrizioniPrimeCustomBulkRecipientEmails(string $tipoIscrizione, string $audience = 'esterni'): array
+{
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+    $audienceCondition = iscrizioniPrimeCustomMailAudienceCondition($audience, 'p');
+
+    $rows = dbGetAll("
+        SELECT recipient_email
+        FROM (
+            SELECT LOWER(TRIM(p.email_genitore_1)) AS recipient_email
+            FROM iscrizioni_prime_pratiche p
+            WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+              AND p.stato <> 'annullata'
+              $audienceCondition
+              AND p.email_genitore_1 IS NOT NULL
+              AND TRIM(p.email_genitore_1) <> ''
+            UNION
+            SELECT LOWER(TRIM(p.email_genitore_2)) AS recipient_email
+            FROM iscrizioni_prime_pratiche p
+            WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+              AND p.stato <> 'annullata'
+              $audienceCondition
+              AND p.email_genitore_2 IS NOT NULL
+              AND TRIM(p.email_genitore_2) <> ''
+              AND LOWER(TRIM(p.email_genitore_2)) <> LOWER(TRIM(COALESCE(p.email_genitore_1, '')))
+        ) recipients
+        WHERE recipient_email <> ''
+        ORDER BY recipient_email
+    ") ?: [];
+
+    return array_values(array_unique(array_map(
+        static fn($row) => strtolower(trim((string)($row['recipient_email'] ?? ''))),
+        $rows
+    )));
+}
+
+function iscrizioniPrimeCustomBulkSentCount(string $tipoIscrizione, string $communicationKey, bool $testMode, string $audience = 'esterni'): int
+{
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+    $audienceCondition = iscrizioniPrimeCustomMailAudienceCondition($audience, 'p');
+
+    $count = dbGetValue("
+        SELECT COUNT(*)
+        FROM (
+            SELECT DISTINCT p.id AS pratica_id, LOWER(TRIM(l.recipient_email)) AS recipient_email
+            FROM iscrizioni_prime_custom_mail_log l
+            INNER JOIN iscrizioni_prime_pratiche p
+                ON p.id = l.pratica_id
+            WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+              AND p.stato <> 'annullata'
+              $audienceCondition
+              AND l.communication_key = " . dbQ($communicationKey) . "
+              AND l.stato IN ('inviata','bounce')
+              AND l.test_mode = " . intval($testMode ? 1 : 0) . "
+              AND (
+                    LOWER(TRIM(l.recipient_email)) = LOWER(TRIM(COALESCE(p.email_genitore_1, '')))
+                 OR LOWER(TRIM(l.recipient_email)) = LOWER(TRIM(COALESCE(p.email_genitore_2, '')))
+              )
+        ) sent_recipients
+    ");
+
+    return intval($count);
+}
+
+function iscrizioniPrimeCustomBulkSubjectSentCount(string $tipoIscrizione, string $subject, bool $testMode, string $audience = 'esterni'): int
+{
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+    $audienceCondition = iscrizioniPrimeCustomMailAudienceCondition($audience, 'p');
+
+    $count = dbGetValue("
+        SELECT COUNT(*)
+        FROM (
+            SELECT DISTINCT p.id AS pratica_id, LOWER(TRIM(l.recipient_email)) AS recipient_email
+            FROM iscrizioni_prime_custom_mail_log l
+            INNER JOIN iscrizioni_prime_pratiche p
+                ON p.id = l.pratica_id
+            WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+              AND p.stato <> 'annullata'
+              $audienceCondition
+              AND TRIM(COALESCE(l.subject, '')) = " . dbQ(trim($subject)) . "
+              AND l.stato IN ('inviata','bounce')
+              AND l.test_mode = " . intval($testMode ? 1 : 0) . "
+              AND (
+                    LOWER(TRIM(l.recipient_email)) = LOWER(TRIM(COALESCE(p.email_genitore_1, '')))
+                 OR LOWER(TRIM(l.recipient_email)) = LOWER(TRIM(COALESCE(p.email_genitore_2, '')))
+              )
+        ) sent_recipients
+    ");
+
+    return intval($count);
+}
+
+function iscrizioniPrimeCustomBulkScanSentGmailBySubject(string $subject, array $currentRecipients = [], int $maxPerAccount = 100): array
+{
+    $subject = trim($subject);
+    if ($subject === '') {
+        return ['checked' => 0, 'matches' => 0, 'test_matches' => 0, 'accounts' => [], 'warnings' => []];
+    }
+
+    $currentRecipientSet = array_fill_keys(array_values(array_unique(array_filter(array_map(
+        static fn($email) => strtolower(trim((string)$email)),
+        $currentRecipients
+    )))), true);
+    $accounts = iscrizioniPrimeMailBounceAccounts();
+    $checked = 0;
+    $matches = 0;
+    $testMatches = 0;
+    $testRecipients = [];
+    $testRecipientsOutsideAudience = [];
+    $warnings = [];
+    $accountRows = [];
+
+    foreach ($accounts as $accountEmail) {
+        $accountChecked = 0;
+        $accountMatches = 0;
+        $accountTestMatches = 0;
+        $samples = [];
+        $query = 'in:sent newer_than:45d subject:"' . $subject . '"';
+
+        try {
+            $list = iscrizioniPrimeMailGmailApiRequestAs(
+                $accountEmail,
+                'GET',
+                'https://gmail.googleapis.com/gmail/v1/users/' . rawurlencode($accountEmail) . '/messages?q=' . rawurlencode($query) . '&maxResults=' . max(1, min(200, $maxPerAccount))
+            );
+        } catch (Throwable $e) {
+            $warnings[] = 'Account ' . $accountEmail . ': ' . $e->getMessage();
+            warning('[iscrizioni] controllo Gmail oggetto saltato account=' . $accountEmail . ' errore=' . $e->getMessage());
+            $accountRows[] = [
+                'account' => $accountEmail,
+                'checked' => 0,
+                'matches' => 0,
+                'test_matches' => 0,
+                'samples' => [],
+                'warning' => $e->getMessage(),
+            ];
+            continue;
+        }
+
+        foreach (($list['messages'] ?? []) as $messageRef) {
+            $gmailMessageId = trim((string)($messageRef['id'] ?? ''));
+            if ($gmailMessageId === '') {
+                continue;
+            }
+
+            try {
+                $message = iscrizioniPrimeMailGmailApiRequestAs(
+                    $accountEmail,
+                    'GET',
+                    'https://gmail.googleapis.com/gmail/v1/users/' . rawurlencode($accountEmail) . '/messages/' . rawurlencode($gmailMessageId) . '?format=full'
+                );
+            } catch (Throwable $e) {
+                $warnings[] = 'Messaggio ' . $gmailMessageId . ' su ' . $accountEmail . ': ' . $e->getMessage();
+                warning('[iscrizioni] controllo Gmail oggetto messaggio saltato account=' . $accountEmail . ' gmailMessageId=' . $gmailMessageId . ' errore=' . $e->getMessage());
+                continue;
+            }
+
+            $checked++;
+            $accountChecked++;
+            $messageSubject = trim(iscrizioniPrimeMailGmailHeader($message, 'Subject'));
+            if (stripos($messageSubject, $subject) === false) {
+                continue;
+            }
+
+            $matches++;
+            $accountMatches++;
+            $body = iscrizioniPrimeMailGmailExtractText($message['payload'] ?? []);
+            $bodyCheck = strtolower($body . "\n" . (string)($message['snippet'] ?? ''));
+            $isTest = strpos($bodyCheck, 'modalita') !== false && strpos($bodyCheck, 'test') !== false;
+            $isTest = $isTest || strpos($bodyCheck, 'modalità test') !== false || strpos($bodyCheck, 'sarebbe stata inviata') !== false;
+            if ($isTest) {
+                $testMatches++;
+                $accountTestMatches++;
+            }
+            $intendedRecipient = '';
+            if (preg_match('/sarebbe stata inviata a\s+([A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,})/i', $body . "\n" . (string)($message['snippet'] ?? ''), $matchesRecipient)) {
+                $intendedRecipient = strtolower(trim((string)$matchesRecipient[1]));
+                if ($intendedRecipient !== '') {
+                    $testRecipients[$intendedRecipient] = true;
+                    if ($currentRecipientSet && empty($currentRecipientSet[$intendedRecipient])) {
+                        $testRecipientsOutsideAudience[$intendedRecipient] = true;
+                    }
+                }
+            }
+
+            if (count($samples) < 5) {
+                $samples[] = [
+                    'subject' => $messageSubject,
+                    'to' => iscrizioniPrimeMailGmailHeader($message, 'To'),
+                    'date' => iscrizioniPrimeMailGmailHeader($message, 'Date'),
+                    'test' => $isTest,
+                    'intended_recipient' => $intendedRecipient,
+                ];
+            }
+        }
+
+        $accountRows[] = [
+            'account' => $accountEmail,
+            'checked' => $accountChecked,
+            'matches' => $accountMatches,
+            'test_matches' => $accountTestMatches,
+            'samples' => $samples,
+        ];
+    }
+
+    return [
+        'checked' => $checked,
+        'matches' => $matches,
+        'test_matches' => $testMatches,
+        'test_unique_recipients' => count($testRecipients),
+        'test_recipients_in_current_audience' => count(array_intersect_key($testRecipients, $currentRecipientSet)),
+        'test_recipients_outside_current_audience' => count($testRecipientsOutsideAudience),
+        'test_recipients_outside_current_audience_samples' => array_slice(array_keys($testRecipientsOutsideAudience), 0, 20),
+        'accounts' => $accountRows,
+        'warnings' => $warnings,
+    ];
+}
+
+function iscrizioniPrimeCustomBulkStatus(string $tipoIscrizione, string $subject, string $message, string $signature, string $audience = 'esterni'): array
+{
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+    $subject = trim($subject);
+    $message = trim($message);
+    $signature = trim($signature);
+    $audience = iscrizioniPrimeCustomMailAudience($audience);
+
+    if ($subject === '' || $message === '') {
+        return ['ok' => false, 'message' => 'Inserire oggetto e testo della comunicazione.'];
+    }
+
+    $cfg = iscrizioniPrimeMailConfig();
+    $communicationKey = iscrizioniPrimeCustomMailKey($tipoIscrizione, $subject, $message, $signature);
+    $total = iscrizioniPrimeCustomBulkRecipientCount($tipoIscrizione, $audience);
+    $currentRecipients = iscrizioniPrimeCustomBulkRecipientEmails($tipoIscrizione, $audience);
+    $realSent = iscrizioniPrimeCustomBulkSentCount($tipoIscrizione, $communicationKey, false, $audience);
+    $testSent = iscrizioniPrimeCustomBulkSentCount($tipoIscrizione, $communicationKey, true, $audience);
+    $realSentSameSubject = iscrizioniPrimeCustomBulkSubjectSentCount($tipoIscrizione, $subject, false, $audience);
+    $testSentSameSubject = iscrizioniPrimeCustomBulkSubjectSentCount($tipoIscrizione, $subject, true, $audience);
+    $gmailSubjectScan = iscrizioniPrimeCustomBulkScanSentGmailBySubject($subject, $currentRecipients);
+
+    return [
+        'ok' => true,
+        'communication_key' => $communicationKey,
+        'tipo_iscrizione' => $tipoIscrizione,
+        'audience' => $audience,
+        'test_mode_config' => !empty($cfg['testMode']),
+        'total_recipients' => $total,
+        'real_sent' => $realSent,
+        'test_sent' => $testSent,
+        'real_sent_same_subject' => $realSentSameSubject,
+        'test_sent_same_subject' => $testSentSameSubject,
+        'real_pending' => max(0, $total - $realSent),
+        'test_pending' => max(0, $total - $testSent),
+        'exact_match' => ($realSentSameSubject === $realSent && $testSentSameSubject === $testSent),
+        'gmail_subject_scan' => $gmailSubjectScan,
+    ];
+}
+
 function iscrizioniPrimeSendCustomBulkMail(string $tipoIscrizione, string $subject, string $message, string $signature, bool $dryRun = false, string $audience = 'esterni'): array
 {
     require_once __DIR__ . '/send-mail.php';
@@ -2132,6 +2419,7 @@ function iscrizioniPrimeSendCustomBulkMail(string $tipoIscrizione, string $subje
             'last_batch' => true,
             'communication_key' => $communicationKey,
             'audience' => $audience,
+            'test_mode' => $testMode,
         ];
     }
 
@@ -2226,6 +2514,7 @@ function iscrizioniPrimeSendCustomBulkMail(string $tipoIscrizione, string $subje
                     'last_batch' => false,
                     'communication_key' => $communicationKey,
                     'audience' => $audience,
+                    'test_mode' => $testMode,
                     'errors' => $errors,
                 ];
             }
@@ -2328,6 +2617,7 @@ function iscrizioniPrimeSendCustomBulkMail(string $tipoIscrizione, string $subje
         'last_batch' => !$dryRun && $remaining <= 0,
         'communication_key' => $communicationKey,
         'audience' => $audience,
+        'test_mode' => $testMode,
         'errors' => $errors,
     ];
 }
