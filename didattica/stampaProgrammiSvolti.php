@@ -577,7 +577,7 @@ function userCanViewProgram(array $program): bool
         return true;
     }
 
-    if (($__utente_ruolo ?? '') === 'genitore' || (impersonaRuolo('genitore') && intval($__genitore_id ?? 0) > 0)) {
+    if (($__utente_ruolo ?? '') === 'genitore') {
         if (!programmiPubbliciVisibleForRole('svolti', 'genitore')) {
             return false;
         }
@@ -586,7 +586,7 @@ function userCanViewProgram(array $program): bool
             && programmiPubbliciCanAccessProgram('svolti', intval($program['id'] ?? 0), $publicStudentId);
     }
 
-    if (($__utente_ruolo ?? '') === 'studente' || (impersonaRuolo('studente') && intval($__studente_id ?? 0) > 0)) {
+    if (($__utente_ruolo ?? '') === 'studente') {
         if (!programmiPubbliciVisibleForRole('svolti', 'studente')) {
             return false;
         }

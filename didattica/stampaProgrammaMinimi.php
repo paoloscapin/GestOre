@@ -35,7 +35,8 @@ $titolo = isset($_REQUEST['titolo']) ? $_REQUEST['titolo'] : 'Programma didattic
 if ($programId==-1)
   exit;
 
-if (haRuolo('genitore') || impersonaRuolo('genitore')) {
+$ruoloEffettivo = (string)($__utente_ruolo ?? '');
+if ($ruoloEffettivo === 'genitore') {
   if (!programmiPubbliciVisibleForRole('minimi', 'genitore')) {
     http_response_code(403);
     exit('Programma non disponibile per i genitori.');
@@ -46,7 +47,7 @@ if (haRuolo('genitore') || impersonaRuolo('genitore')) {
     http_response_code(403);
     exit('Programma non disponibile per questo studente.');
   }
-} elseif (haRuolo('studente') || impersonaRuolo('studente')) {
+} elseif ($ruoloEffettivo === 'studente') {
   if (!programmiPubbliciVisibleForRole('minimi', 'studente')) {
     http_response_code(403);
     exit('Programma non disponibile per gli studenti.');
