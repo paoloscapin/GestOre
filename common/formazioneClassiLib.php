@@ -11,10 +11,12 @@
 
 require_once __DIR__ . '/mastercom/tabelloni_lib.php';
 require_once __DIR__ . '/studentiMovimentiLib.php';
+require_once __DIR__ . '/studentiAttributiRiservatiLib.php';
 
 function formazioneClassiEnsureTables(): void
 {
     studentiMovimentiEnsureTables();
+    studentiAttrEnsureTables();
 
     dbExec("
         CREATE TABLE IF NOT EXISTS `formazione_classi_sessioni` (
@@ -203,7 +205,7 @@ function formazioneClassiAddressOptions(int $sourceYearId, int $classYear): arra
         if (mastercomTabelloniClassYearFromName($classLabel) !== $classYear) {
             continue;
         }
-        $address = formazioneClassiAddressKeyFromClass($classLabel);
+        $address = formazioneClassiAddressKeyFromClass(mastercomTabelloniSummaryClassLabel($row));
         if ($address === '' || $address === 'n/d') {
             continue;
         }
@@ -243,13 +245,6 @@ function formazioneClassiTargetClasses(int $classYear, string $indirizzo = ''): 
 function formazioneClassiAddressOptionsForFormation(int $sourceYearId, int $targetClassYear): array
 {
     $addresses = [];
-    foreach (formazioneClassiTargetClasses($targetClassYear) as $class) {
-        $address = formazioneClassiAddressKeyFromClass((string)$class['label']);
-        if ($address !== '' && $address !== 'n/d') {
-            $addresses[$address] = formazioneClassiAddressLabel($address);
-        }
-    }
-
     if ($targetClassYear > 1 && $targetClassYear !== 3) {
         foreach (formazioneClassiAddressOptions($sourceYearId, $targetClassYear - 1) as $key => $label) {
             $addresses[$key] = $label;
@@ -504,9 +499,18 @@ function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tip
             mp_note.note AS movimento_note,
             mp_note.tipo_pratica AS movimento_tipo_pratica,
             mp_note.stato_pratica AS movimento_stato_pratica,
-            mp_note.updated_at AS movimento_updated_at
+            mp_note.updated_at AS movimento_updated_at,
+            attr.attributi_riservati_raw
         FROM formazione_classi_studenti f
         LEFT JOIN studente s ON s.id = f.id_studente
+        LEFT JOIN (
+            SELECT
+                id_studente,
+                GROUP_CONCAT(CONCAT(codice_attributo, '|', fonte) ORDER BY codice_attributo ASC SEPARATOR '||') AS attributi_riservati_raw
+            FROM studente_attributi_riservati
+            WHERE attivo = 1
+            GROUP BY id_studente
+        ) attr ON attr.id_studente = f.id_studente
         LEFT JOIN studenti_movimenti_pratiche mp_status ON mp_status.id_studente = f.id_studente
             AND mp_status.tipo_pratica IN ('bocciato_reiscrizione', 'uscita', 'ritiro')
             AND mp_status.stato_pratica <> 'annullata'
@@ -610,7 +614,21 @@ function formazioneClassiStudentView(array $row): array
         'note_formazione_origine' => trim((string)($row['movimento_tipo_pratica'] ?? '')),
         'note_formazione_stato' => trim((string)($row['movimento_stato_pratica'] ?? '')),
         'note_formazione_updated_at' => trim((string)($row['movimento_updated_at'] ?? '')),
+        'attributi_riservati' => formazioneClassiParseStudentAttrs((string)($row['attributi_riservati_raw'] ?? '')),
     ];
+}
+
+function formazioneClassiParseStudentAttrs(string $raw): array
+{
+    $rows = [];
+    foreach (preg_split('/\|\|/u', $raw, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $chunk) {
+        [$code, $source] = array_pad(explode('|', $chunk, 2), 2, '');
+        $rows[] = [
+            'codice_attributo' => $code,
+            'fonte' => $source,
+        ];
+    }
+    return studentiAttrRowsToDisplay($rows);
 }
 
 function formazioneClassiNullableFloat($value): ?float

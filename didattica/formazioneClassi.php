@@ -30,16 +30,15 @@ if (($indirizzo === '' || !array_key_exists($indirizzo, $addressOptions)) && !em
 }
 
 $schoolYears = formazioneClassiSchoolYears();
-$state = $indirizzo !== '' ? formazioneClassiState($sourceYearId, $targetYearId, $tipoFormazione, $indirizzo) : [
-    'session' => [],
-    'classes' => [],
-    'unassigned' => [],
-    'unassigned_stats' => formazioneClassiStats([]),
-];
-$sessionId = intval($state['session']['id'] ?? 0);
-$classColors = fc_class_colors(array_map(function ($class) {
-    return (string)($class['label'] ?? '');
-}, $state['classes'] ?? []));
+$statesByAddress = [];
+$classColorsByAddress = [];
+foreach ($addressOptions as $addressKey => $addressLabel) {
+    $addressKey = (string)$addressKey;
+    $statesByAddress[$addressKey] = formazioneClassiState($sourceYearId, $targetYearId, $tipoFormazione, $addressKey);
+    $classColorsByAddress[$addressKey] = fc_class_colors(array_map(function ($class) {
+        return (string)($class['label'] ?? '');
+    }, $statesByAddress[$addressKey]['classes'] ?? []));
+}
 
 function fc_select($a, $b): string
 {
@@ -202,6 +201,12 @@ function fc_anno_label(int $year): string
             background: #edf2f7;
             color: #324255;
             font-size: 11px;
+        }
+        .fc-attr-chip {
+            background: #fef3c7;
+            color: #7c2d12;
+            border: 1px solid #f59e0b;
+            font-weight: 800;
         }
         .fc-bocciati-panel {
             border-left-color: #d97706;
@@ -393,7 +398,7 @@ function fc_anno_label(int $year): string
                 <div class="fc-toolbar-row">
                     <div class="form-group">
                         <label>Classi da formare</label>
-                        <select name="tipo_formazione" class="form-control input-sm fc-filter-select">
+                        <select name="tipo_formazione" class="form-control input-sm fc-reload-select">
                             <?php foreach ($tipiFormazione as $tipoKey => $tipoData): ?>
                                 <option value="<?php echo formazioneClassiH($tipoKey); ?>" <?php echo fc_select($tipoFormazione, $tipoKey); ?>>
                                     <?php echo formazioneClassiH($tipoData['label'] ?? $tipoKey); ?>
@@ -403,7 +408,7 @@ function fc_anno_label(int $year): string
                     </div>
                     <div class="form-group">
                         <label>Anno origine tabelloni</label>
-                        <select name="anno_origine_id" class="form-control input-sm fc-filter-select">
+                        <select name="anno_origine_id" class="form-control input-sm fc-reload-select">
                             <?php foreach ($schoolYears as $year): ?>
                                 <option value="<?php echo intval($year['id']); ?>" <?php echo fc_select($sourceYearId, $year['id']); ?>>
                                     <?php echo formazioneClassiH($year['anno'] ?? $year['id']); ?>
@@ -413,7 +418,7 @@ function fc_anno_label(int $year): string
                     </div>
                     <div class="form-group">
                         <label>Anno classi da formare</label>
-                        <select name="anno_target_id" class="form-control input-sm fc-filter-select">
+                        <select name="anno_target_id" class="form-control input-sm fc-reload-select">
                             <?php foreach ($schoolYears as $year): ?>
                                 <option value="<?php echo intval($year['id']); ?>" <?php echo fc_select($targetYearId, $year['id']); ?>>
                                     <?php echo formazioneClassiH($year['anno'] ?? $year['id']); ?>
@@ -423,7 +428,7 @@ function fc_anno_label(int $year): string
                     </div>
                     <div class="form-group">
                         <label>Indirizzo</label>
-                        <select name="indirizzo" class="form-control input-sm fc-filter-select">
+                        <select name="indirizzo" class="form-control input-sm" id="fc_indirizzo_select">
                             <?php foreach ($addressOptions as $addressKey => $addressLabel): ?>
                                 <option value="<?php echo formazioneClassiH($addressKey); ?>" <?php echo fc_select($indirizzo, $addressKey); ?>>
                                     <?php echo formazioneClassiH($addressLabel); ?>
@@ -446,51 +451,57 @@ function fc_anno_label(int $year): string
                     <?php endif; ?>
                     I bocciati delle <?php echo formazioneClassiH(fc_anno_label($targetClassYear)); ?> sono a destra: trascinali nella classe in cui vuoi inserirli.
                 </div>
-                <div class="fc-layout" data-session-id="<?php echo intval($sessionId); ?>">
-                    <div class="fc-classes-window">
-                        <div class="fc-classes">
-                            <?php foreach ($state['classes'] as $class): ?>
-                                <?php $stats = $class['stats']; ?>
-                                <?php $classColor = $classColors[(string)$class['label']] ?? '#4c78a8'; ?>
-                                <section class="fc-class-panel" data-class-label="<?php echo formazioneClassiH($class['label']); ?>" style="<?php echo formazioneClassiH(fc_class_style($classColor)); ?>">
-                                    <div class="fc-class-heading">
-                                        <div class="fc-class-title"><span class="fc-color-dot"></span><?php echo formazioneClassiH($class['label']); ?></div>
-                                        <span class="label label-primary"><?php echo intval($stats['count']); ?> studenti</span>
-                                    </div>
-                                    <?php echo fc_render_stats($stats); ?>
-                                    <div class="fc-dropzone" data-target-label="<?php echo formazioneClassiH($class['label']); ?>">
-                                        <?php if (empty($class['students'])): ?>
-                                            <div class="fc-empty">Trascina qui gli studenti</div>
-                                        <?php endif; ?>
-                                        <?php foreach ($class['students'] as $student): ?>
-                                            <?php echo fc_render_student($student); ?>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </section>
-                            <?php endforeach; ?>
+                <?php foreach ($statesByAddress as $addressKey => $state): ?>
+                    <?php $sessionId = intval($state['session']['id'] ?? 0); ?>
+                    <?php $classColors = $classColorsByAddress[$addressKey] ?? []; ?>
+                    <div class="fc-address-section" data-address="<?php echo formazioneClassiH($addressKey); ?>" <?php echo $addressKey === $indirizzo ? '' : 'hidden'; ?>>
+                        <div class="fc-layout" data-session-id="<?php echo intval($sessionId); ?>">
+                            <div class="fc-classes-window">
+                                <div class="fc-classes">
+                                    <?php foreach ($state['classes'] as $class): ?>
+                                        <?php $stats = $class['stats']; ?>
+                                        <?php $classColor = $classColors[(string)$class['label']] ?? '#4c78a8'; ?>
+                                        <section class="fc-class-panel" data-class-label="<?php echo formazioneClassiH($class['label']); ?>" style="<?php echo formazioneClassiH(fc_class_style($classColor)); ?>">
+                                            <div class="fc-class-heading">
+                                                <div class="fc-class-title"><span class="fc-color-dot"></span><?php echo formazioneClassiH($class['label']); ?></div>
+                                                <span class="label label-primary"><?php echo intval($stats['count']); ?> studenti</span>
+                                            </div>
+                                            <?php echo fc_render_stats($stats); ?>
+                                            <div class="fc-dropzone" data-target-label="<?php echo formazioneClassiH($class['label']); ?>">
+                                                <?php if (empty($class['students'])): ?>
+                                                    <div class="fc-empty">Trascina qui gli studenti</div>
+                                                <?php endif; ?>
+                                                <?php foreach ($class['students'] as $student): ?>
+                                                    <?php echo fc_render_student($student); ?>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </section>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+
+                            <aside class="fc-bocciati-panel">
+                                <div class="fc-bocciati-heading">
+                                    <div class="fc-class-title">Bocciati da piazzare</div>
+                                    <span class="label label-warning"><?php echo count($state['unassigned']); ?></span>
+                                </div>
+                                <?php echo fc_render_stats($state['unassigned_stats']); ?>
+                                <div class="fc-dropzone" data-target-label="">
+                                    <?php if (empty($state['unassigned'])): ?>
+                                        <div class="fc-empty">Nessun bocciato da piazzare</div>
+                                    <?php endif; ?>
+                                    <?php foreach ($state['unassigned'] as $student): ?>
+                                        <?php echo fc_render_student($student); ?>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="fc-summary">
+                                    <div class="fc-summary-title">Confronto classi</div>
+                                    <?php echo fc_render_summary_by_indicator($state['classes'], $classColors); ?>
+                                </div>
+                            </aside>
                         </div>
                     </div>
-
-                    <aside class="fc-bocciati-panel">
-                        <div class="fc-bocciati-heading">
-                            <div class="fc-class-title">Bocciati da piazzare</div>
-                            <span class="label label-warning"><?php echo count($state['unassigned']); ?></span>
-                        </div>
-                        <?php echo fc_render_stats($state['unassigned_stats']); ?>
-                        <div class="fc-dropzone" data-target-label="">
-                            <?php if (empty($state['unassigned'])): ?>
-                                <div class="fc-empty">Nessun bocciato da piazzare</div>
-                            <?php endif; ?>
-                            <?php foreach ($state['unassigned'] as $student): ?>
-                                <?php echo fc_render_student($student); ?>
-                            <?php endforeach; ?>
-                        </div>
-                        <div class="fc-summary">
-                            <div class="fc-summary-title">Confronto classi</div>
-                            <?php echo fc_render_summary_by_indicator($state['classes'], $classColors); ?>
-                        </div>
-                    </aside>
-                </div>
+                <?php endforeach; ?>
             <?php endif; ?>
         </div>
     </div>
@@ -499,11 +510,10 @@ function fc_anno_label(int $year): string
     <button type="button" id="fc_context_movimenti" role="menuitem">Apri pratica in movimenti studenti</button>
 </div>
 <script>
-const fcSessionId = Number(document.querySelector('.fc-layout')?.dataset.sessionId || 0);
 let fcDraggedId = 0;
 let fcContextStudent = null;
 
-document.querySelectorAll('.fc-filter-select').forEach(function (select) {
+document.querySelectorAll('.fc-reload-select').forEach(function (select) {
     select.addEventListener('change', function () {
         const form = document.getElementById('fc_filter_form');
         if (form) {
@@ -511,6 +521,30 @@ document.querySelectorAll('.fc-filter-select').forEach(function (select) {
         }
     });
 });
+
+document.getElementById('fc_indirizzo_select')?.addEventListener('change', function () {
+    fcShowAddress(this.value || '');
+});
+
+function fcShowAddress(address) {
+    let found = false;
+    document.querySelectorAll('.fc-address-section').forEach(function (section) {
+        const active = (section.dataset.address || '') === address;
+        section.hidden = !active;
+        if (active) {
+            found = true;
+        }
+    });
+    const status = document.getElementById('fc_status');
+    if (status) {
+        status.textContent = found ? '' : 'Indirizzo non disponibile nella pagina caricata.';
+    }
+    if (found && window.history && window.URLSearchParams) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('indirizzo', address);
+        window.history.replaceState({}, '', url.toString());
+    }
+}
 
 document.querySelectorAll('.fc-student').forEach(function (card) {
     card.addEventListener('dragstart', function (event) {
@@ -532,8 +566,10 @@ document.querySelectorAll('.fc-dropzone').forEach(function (zone) {
         event.preventDefault();
         zone.classList.remove('fc-over');
         const rowId = Number(event.dataTransfer.getData('text/plain') || fcDraggedId || 0);
-        if (!rowId || !fcSessionId) return;
-        fcMoveStudent(rowId, zone.dataset.targetLabel || '');
+        const layout = zone.closest('.fc-layout');
+        const sessionId = Number(layout?.dataset.sessionId || 0);
+        if (!rowId || !sessionId || !layout) return;
+        fcMoveStudent(rowId, zone.dataset.targetLabel || '', layout, sessionId);
     });
 });
 
@@ -586,17 +622,17 @@ document.getElementById('fc_context_movimenti')?.addEventListener('click', funct
     fcHideContextMenu();
 });
 
-function fcMoveStudent(rowId, targetLabel) {
+function fcMoveStudent(rowId, targetLabel, layout, sessionId) {
     const status = document.getElementById('fc_status');
-    const card = document.querySelector('.fc-student[data-row-id="' + rowId + '"]');
-    const targetZone = document.querySelector('.fc-dropzone[data-target-label="' + fcCssEscape(targetLabel) + '"]');
+    const card = layout.querySelector('.fc-student[data-row-id="' + rowId + '"]');
+    const targetZone = layout.querySelector('.fc-dropzone[data-target-label="' + fcCssEscape(targetLabel) + '"]');
     if (!card || !targetZone) {
-        status.textContent = 'Elemento non trovato nella pagina.';
+        if (status) status.textContent = 'Elemento non trovato nella pagina.';
         return;
     }
-    status.textContent = 'Salvataggio spostamento...';
+    if (status) status.textContent = 'Salvataggio spostamento...';
     const data = new FormData();
-    data.append('session_id', String(fcSessionId));
+    data.append('session_id', String(sessionId));
     data.append('row_id', String(rowId));
     data.append('target_label', targetLabel);
     fetch('formazioneClassiMove.php', {
@@ -607,15 +643,15 @@ function fcMoveStudent(rowId, targetLabel) {
         .then(response => response.json())
         .then(json => {
             if (!json || !json.ok) {
-                status.textContent = json && json.message ? json.message : 'Spostamento non salvato.';
+                if (status) status.textContent = json && json.message ? json.message : 'Spostamento non salvato.';
                 return;
             }
-            status.textContent = json.message || 'Spostamento salvato.';
+            if (status) status.textContent = json.message || 'Spostamento salvato.';
             fcMoveCard(card, targetZone);
-            fcRefreshAllStats();
+            fcRefreshAllStats(layout);
         })
         .catch(() => {
-            status.textContent = 'Errore di rete durante lo spostamento.';
+            if (status) status.textContent = 'Errore di rete durante lo spostamento.';
         });
 }
 
@@ -644,9 +680,10 @@ function fcSortZone(zone) {
     });
 }
 
-function fcRefreshAllStats() {
+function fcRefreshAllStats(scope) {
+    scope = scope || document;
     const allStats = {};
-    document.querySelectorAll('.fc-class-panel, .fc-bocciati-panel').forEach(function (panel) {
+    scope.querySelectorAll('.fc-class-panel, .fc-bocciati-panel').forEach(function (panel) {
         const zone = panel.querySelector('.fc-dropzone');
         const stats = fcStatsFromZone(zone);
         const label = zone ? (zone.dataset.targetLabel || '') : '';
@@ -662,7 +699,7 @@ function fcRefreshAllStats() {
             fcWriteSummary(label, stats);
         }
     });
-    fcRefreshSummaryScale(allStats);
+    fcRefreshSummaryScale(allStats, scope);
 }
 
 function fcStatsFromZone(zone) {
@@ -699,7 +736,8 @@ function fcWriteStats(panel, stats) {
 }
 
 function fcWriteSummary(label, stats) {
-    document.querySelectorAll('[data-summary-label="' + fcCssEscape(label) + '"]').forEach(function (row) {
+    const scope = document.querySelector('.fc-address-section:not([hidden])') || document;
+    scope.querySelectorAll('[data-summary-label="' + fcCssEscape(label) + '"]').forEach(function (row) {
         Object.keys(stats).forEach(function (key) {
             const target = row.querySelector('[data-summary-stat="' + key + '"]');
             if (!target) return;
@@ -710,7 +748,7 @@ function fcWriteSummary(label, stats) {
             bar.style.setProperty('--fc-bar-width', fcBarWidth(key, stats[key]));
         });
     });
-    const mfTarget = document.querySelector('[data-summary-mf-label="' + fcCssEscape(label) + '"]');
+    const mfTarget = scope.querySelector('[data-summary-mf-label="' + fcCssEscape(label) + '"]');
     if (mfTarget) {
         ['maschi', 'femmine'].forEach(function (key) {
             const target = mfTarget.querySelector('[data-summary-stat="' + key + '"]');
@@ -725,13 +763,14 @@ function fcWriteSummary(label, stats) {
     }
 }
 
-function fcRefreshSummaryScale(allStats) {
+function fcRefreshSummaryScale(allStats, scope) {
+    scope = scope || document;
     let maxCount = 0;
     Object.keys(allStats).forEach(function (label) {
         maxCount = Math.max(maxCount, Number(allStats[label].count || 0));
     });
     const maxForStudents = Math.max(1, maxCount + 1);
-    document.querySelectorAll('[data-bar-stat="count"]').forEach(function (bar) {
+    scope.querySelectorAll('[data-bar-stat="count"]').forEach(function (bar) {
         const row = bar.closest('[data-summary-label]');
         if (!row) return;
         const label = row.getAttribute('data-summary-label') || '';
@@ -810,6 +849,11 @@ function fc_render_student(array $student): string
     $html .= '<span class="fc-chip">Mat ' . formazioneClassiH(formazioneClassiFormatAvg($student['voto_matematica'] ?? null)) . '</span>';
     $html .= '<span class="fc-chip">Ita ' . formazioneClassiH(formazioneClassiFormatAvg($student['voto_italiano'] ?? null)) . '</span>';
     $html .= '<span class="fc-chip">Rel ' . formazioneClassiH(formazioneClassiFormatAvg($student['voto_capacita_relazionale'] ?? null)) . '</span>';
+    foreach (($student['attributi_riservati'] ?? []) as $attr) {
+        $source = trim((string)($attr['fonte'] ?? ''));
+        $title = $source !== '' ? ' title="fonte: ' . formazioneClassiH($source) . '"' : '';
+        $html .= '<span class="fc-chip fc-attr-chip"' . $title . '>' . formazioneClassiH($attr['label'] ?? $attr['codice'] ?? '') . '</span>';
+    }
     $html .= '</div>';
     if (trim((string)($student['note_formazione'] ?? '')) !== '') {
         $noteMeta = [];
