@@ -3629,28 +3629,41 @@ function iscrizioniPrimeCollectWrongSentLinksFromGmail(string $tipoIscrizione = 
     $wrong = [];
     $seen = [];
     $checked = 0;
+    $warnings = [];
     $searchSubject = $tipoIscrizione === 'terze'
         ? 'Regolarizzazione domanda di iscrizione classe terza'
         : 'Regolarizzazione domanda di iscrizione classe prima';
 
     foreach ($accounts as $accountEmail) {
         $query = 'in:sent newer_than:45d subject:"' . $searchSubject . '"';
-        $list = iscrizioniPrimeMailGmailApiRequestAs(
-            $accountEmail,
-            'GET',
-            'https://gmail.googleapis.com/gmail/v1/users/' . rawurlencode($accountEmail) . '/messages?q=' . rawurlencode($query) . '&maxResults=' . max(1, min(500, $maxPerAccount))
-        );
+        try {
+            $list = iscrizioniPrimeMailGmailApiRequestAs(
+                $accountEmail,
+                'GET',
+                'https://gmail.googleapis.com/gmail/v1/users/' . rawurlencode($accountEmail) . '/messages?q=' . rawurlencode($query) . '&maxResults=' . max(1, min(500, $maxPerAccount))
+            );
+        } catch (Throwable $e) {
+            $warnings[] = 'Account ' . $accountEmail . ': ' . $e->getMessage();
+            warning('[iscrizioni] controllo link inviati saltato per account=' . $accountEmail . ' errore=' . $e->getMessage());
+            continue;
+        }
 
         foreach (($list['messages'] ?? []) as $messageRef) {
             $gmailMessageId = trim((string)($messageRef['id'] ?? ''));
             if ($gmailMessageId === '') {
                 continue;
             }
-            $message = iscrizioniPrimeMailGmailApiRequestAs(
-                $accountEmail,
-                'GET',
-                'https://gmail.googleapis.com/gmail/v1/users/' . rawurlencode($accountEmail) . '/messages/' . rawurlencode($gmailMessageId) . '?format=full'
-            );
+            try {
+                $message = iscrizioniPrimeMailGmailApiRequestAs(
+                    $accountEmail,
+                    'GET',
+                    'https://gmail.googleapis.com/gmail/v1/users/' . rawurlencode($accountEmail) . '/messages/' . rawurlencode($gmailMessageId) . '?format=full'
+                );
+            } catch (Throwable $e) {
+                $warnings[] = 'Messaggio ' . $gmailMessageId . ' su ' . $accountEmail . ': ' . $e->getMessage();
+                warning('[iscrizioni] controllo link inviati messaggio saltato account=' . $accountEmail . ' gmailMessageId=' . $gmailMessageId . ' errore=' . $e->getMessage());
+                continue;
+            }
             $checked++;
             $messageSubject = trim(iscrizioniPrimeMailGmailHeader($message, 'Subject'));
             if ($subject !== '' && stripos($messageSubject, $subject) === false && stripos($messageSubject, $searchSubject) === false) {
@@ -3703,7 +3716,7 @@ function iscrizioniPrimeCollectWrongSentLinksFromGmail(string $tipoIscrizione = 
         }
     }
 
-    return ['checked' => $checked, 'wrong' => $wrong];
+    return ['checked' => $checked, 'wrong' => $wrong, 'warnings' => $warnings];
 }
 
 function iscrizioniPrimeResendCorrectLinkFromSentMailBatch(bool $dryRun = false, string $tipoIscrizione = 'prime'): array
@@ -3714,110 +3727,146 @@ function iscrizioniPrimeResendCorrectLinkFromSentMailBatch(bool $dryRun = false,
     $batchSize = intval($cfg['batchSize'] ?? 50);
     $scan = iscrizioniPrimeCollectWrongSentLinksFromGmail($tipoIscrizione, max(100, $batchSize * 4));
     $wrong = $scan['wrong'];
+    $warnings = $scan['warnings'] ?? [];
 
     if (!$wrong) {
         return [
-            'ok' => true,
-            'message' => 'Controllo posta inviata completato: non risultano link da correggere.',
+            'ok' => empty($warnings),
+            'message' => empty($warnings)
+                ? 'Controllo posta inviata completato: non risultano link da correggere.'
+                : 'Controllo posta inviata completato con avvisi: non risultano link da correggere negli account controllati.',
             'sent' => 0,
             'skipped' => 0,
             'remaining' => 0,
             'last_batch' => true,
             'checked' => intval($scan['checked'] ?? 0),
+            'warnings' => $warnings,
             'errors' => [],
         ];
     }
 
+    $groups = [];
+    foreach ($wrong as $item) {
+        $pratica = $item['pratica'] ?? [];
+        $practiceId = intval($pratica['id'] ?? 0);
+        if ($practiceId <= 0) {
+            continue;
+        }
+        if (!isset($groups[$practiceId])) {
+            $groups[$practiceId] = [
+                'pratica' => $pratica,
+                'recipients' => iscrizioniPrimeMailRecipientsForPratica($pratica),
+                'detected_recipients' => [],
+            ];
+        }
+        $recipient = strtolower(trim((string)($item['recipient_email'] ?? '')));
+        if ($recipient !== '') {
+            $groups[$practiceId]['detected_recipients'][$recipient] = true;
+        }
+    }
+
     $counts = iscrizioniPrimeMailAccountCounts();
-    $tokenByPractice = [];
     $sent = 0;
     $skipped = 0;
     $errors = [];
     $details = [];
+    $totalRecipients = 0;
+    foreach ($groups as $group) {
+        $totalRecipients += count($group['recipients'] ?? []);
+    }
 
-    foreach ($wrong as $item) {
-        if ($sent >= $batchSize) {
-            break;
-        }
-        $pratica = $item['pratica'];
-        $recipient = strtolower(trim((string)$item['recipient_email']));
-        $practiceId = intval($pratica['id'] ?? 0);
-        if ($practiceId <= 0 || $recipient === '') {
+    foreach ($groups as $practiceId => $group) {
+        $pratica = $group['pratica'];
+        $recipients = $group['recipients'] ?? [];
+        if (!$recipients) {
             $skipped++;
             continue;
         }
+        $recipientCount = count($recipients);
 
-        $account = iscrizioniPrimePickMailAccount($cfg, $counts);
-        if ($account === null) {
+        if ($sent > 0 && $sent + $recipientCount > $batchSize) {
             break;
         }
 
         if ($dryRun) {
-            $sent++;
-            $counts[$account['email']] = intval($counts[$account['email']] ?? 0) + 1;
-            $details[] = [
-                'pratica_id' => $practiceId,
-                'studente' => trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? '')),
-                'codice_fiscale' => (string)($pratica['codice_fiscale'] ?? ''),
-                'recipient_email' => $recipient,
-                'account_email' => (string)($item['account_email'] ?? ''),
-            ];
+            foreach ($recipients as $recipient) {
+                $account = iscrizioniPrimePickMailAccount($cfg, $counts);
+                if ($account === null) {
+                    break 2;
+                }
+                $sent++;
+                $counts[$account['email']] = intval($counts[$account['email']] ?? 0) + 1;
+                $details[] = [
+                    'pratica_id' => $practiceId,
+                    'studente' => trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? '')),
+                    'codice_fiscale' => (string)($pratica['codice_fiscale'] ?? ''),
+                    'recipient_email' => $recipient,
+                    'account_email' => (string)($account['email'] ?? ''),
+                ];
+            }
             continue;
         }
 
-        if (!isset($tokenByPractice[$practiceId])) {
-            $tokenByPractice[$practiceId] = iscrizioniPrimeSetToken($practiceId);
-        }
-        $token = $tokenByPractice[$practiceId];
+        $token = iscrizioniPrimeSetToken($practiceId);
         $link = ($GLOBALS['__http_base_link'] ?? '') . '/iscrizioni/conferma.php?t=' . rawurlencode($token);
 
-        $ok = iscrizioniPrimeSendCorrectLinkMail($cfg, $account, $pratica, $recipient, $link, $tipoIscrizione);
-        $dispatchResult = $GLOBALS['__sendMailLastDispatchResult'] ?? [];
-        dbExec("
-            INSERT INTO iscrizioni_prime_mail_log
-            (pratica_id, recipient_email, account_email, token_last4, stato, test_mode, transport, gmail_message_id, errore, sent_at, created_at)
-            VALUES (
-                " . dbI($practiceId) . ",
-                " . dbQ($recipient) . ",
-                " . dbQ($account['email']) . ",
-                " . dbQ(substr($token, -4)) . ",
-                " . dbQ($ok ? 'inviata' : 'errore') . ",
-                " . (!empty($cfg['testMode']) ? '1' : '0') . ",
-                " . dbQ((string)($dispatchResult['transport'] ?? '')) . ",
-                " . dbQ((string)($dispatchResult['gmail_message_id'] ?? '')) . ",
-                " . dbQ($ok ? null : ((string)($dispatchResult['error'] ?? '') !== '' ? (string)$dispatchResult['error'] : 'sendMailCustom ha restituito false')) . ",
-                " . ($ok ? 'NOW()' : 'NULL') . ",
-                NOW()
-            )
-        ");
+        foreach ($recipients as $recipient) {
+            $account = iscrizioniPrimePickMailAccount($cfg, $counts);
+            if ($account === null) {
+                break 2;
+            }
 
-        if ($ok) {
-            $sent++;
-            $counts[$account['email']] = intval($counts[$account['email']] ?? 0) + 1;
-            $details[] = [
-                'pratica_id' => $practiceId,
-                'studente' => trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? '')),
-                'codice_fiscale' => (string)($pratica['codice_fiscale'] ?? ''),
-                'recipient_email' => $recipient,
-                'account_email' => (string)($account['email'] ?? ''),
-            ];
-        } else {
-            $errors[] = $recipient;
+            $ok = iscrizioniPrimeSendCorrectLinkMail($cfg, $account, $pratica, $recipient, $link, $tipoIscrizione);
+            $dispatchResult = $GLOBALS['__sendMailLastDispatchResult'] ?? [];
+            dbExec("
+                INSERT INTO iscrizioni_prime_mail_log
+                (pratica_id, recipient_email, account_email, token_last4, stato, test_mode, transport, gmail_message_id, errore, sent_at, created_at)
+                VALUES (
+                    " . dbI($practiceId) . ",
+                    " . dbQ($recipient) . ",
+                    " . dbQ($account['email']) . ",
+                    " . dbQ(substr($token, -4)) . ",
+                    " . dbQ($ok ? 'inviata' : 'errore') . ",
+                    " . (!empty($cfg['testMode']) ? '1' : '0') . ",
+                    " . dbQ((string)($dispatchResult['transport'] ?? '')) . ",
+                    " . dbQ((string)($dispatchResult['gmail_message_id'] ?? '')) . ",
+                    " . dbQ($ok ? null : ((string)($dispatchResult['error'] ?? '') !== '' ? (string)$dispatchResult['error'] : 'sendMailCustom ha restituito false')) . ",
+                    " . ($ok ? 'NOW()' : 'NULL') . ",
+                    NOW()
+                )
+            ");
+
+            if ($ok) {
+                $sent++;
+                $counts[$account['email']] = intval($counts[$account['email']] ?? 0) + 1;
+                $details[] = [
+                    'pratica_id' => $practiceId,
+                    'studente' => trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? '')),
+                    'codice_fiscale' => (string)($pratica['codice_fiscale'] ?? ''),
+                    'recipient_email' => $recipient,
+                    'account_email' => (string)($account['email'] ?? ''),
+                ];
+            } else {
+                $errors[] = $recipient;
+            }
         }
     }
 
-    $remaining = max(0, count($wrong) - $sent - $skipped);
+    $remaining = max(0, $totalRecipients - $sent - $skipped);
     return [
-        'ok' => empty($errors),
+        'ok' => empty($errors) && empty($warnings),
         'message' => $dryRun
-            ? 'Simulazione controllo posta inviata completata.'
-            : ($remaining <= 0 ? 'Correzione link completata.' : 'Lotto correzione link completato. Restano ' . intval($remaining) . ' link da correggere.'),
+            ? (empty($warnings) ? 'Simulazione controllo posta inviata completata.' : 'Simulazione controllo posta inviata completata con avvisi.')
+            : (empty($warnings)
+                ? ($remaining <= 0 ? 'Correzione link completata.' : 'Lotto correzione link completato. Restano ' . intval($remaining) . ' link da correggere.')
+                : ($remaining <= 0 ? 'Correzione link completata con avvisi.' : 'Lotto correzione link completato con avvisi. Restano ' . intval($remaining) . ' link da correggere.')),
         'sent' => $sent,
         'skipped' => $skipped,
         'remaining' => $remaining,
         'last_batch' => $remaining <= 0,
         'checked' => intval($scan['checked'] ?? 0),
         'details' => $details,
+        'warnings' => $warnings,
         'errors' => $errors,
     ];
 }

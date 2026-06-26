@@ -176,7 +176,8 @@ function sendMailGmailApiSendRaw(string $senderEmail, string $rawMime): array
         'Content-Type: application/json',
     ]);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -206,7 +207,8 @@ function sendMailGmailApiRequestRaw(string $senderEmail, string $scope, string $
         'Authorization: Bearer ' . $accessToken,
         'Content-Type: application/json',
     ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
     if ($body !== null) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
     }
