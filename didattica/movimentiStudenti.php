@@ -58,6 +58,22 @@ if (!in_array($activeSection, ['uscite', 'entrate'], true)) {
     $activeSection = 'uscite';
 }
 $activeYear = intval($_GET['anno'] ?? 0);
+$openMovementId = intval($_GET['open_movimento_id'] ?? 0);
+$openMovementFound = false;
+if ($openMovementId > 0) {
+    $openMovement = dbGetFirst("
+        SELECT tipo_pratica, anno_corso
+        FROM studenti_movimenti_pratiche
+        WHERE id = " . dbI($openMovementId) . "
+        LIMIT 1
+    ");
+    if ($openMovement) {
+        $openMovementFound = true;
+        $activeSection = (($openMovement['tipo_pratica'] ?? '') === 'entrata') ? 'entrate' : 'uscite';
+        $movementYear = intval($openMovement['anno_corso'] ?? 0);
+        $activeYear = ($movementYear >= 1 && $movementYear <= 5) ? $movementYear : 0;
+    }
+}
 
 $pratiche = dbGetAll("
     SELECT p.*,
@@ -127,7 +143,7 @@ foreach ($pratiche as $pratica) {
     }
     $grouped[$section][$year][] = $pratica;
 }
-if ($activeYear === 0) {
+if ($activeYear === 0 && !$openMovementFound) {
     foreach ([1, 2, 3, 4, 5, 0] as $year) {
         if (!empty($grouped[$activeSection][$year])) {
             $activeYear = $year;
@@ -634,6 +650,7 @@ function ms_data_attr($value): string
 
 <script>
 const msHistory = <?php echo json_encode($storico, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+const msOpenMovementId = <?php echo intval($openMovementId); ?>;
 
 function msSetField(id, value) {
     const element = document.getElementById(id);
@@ -731,37 +748,54 @@ function msOpenNew(kind) {
     $('#msPracticeModal').modal('show');
 }
 
+function msOpenPracticeFromButton(button) {
+    if (!button) return;
+    msSetField('ms_id', button.dataset.id || '');
+    msSetField('ms_fonte', button.dataset.fonte || 'manuale');
+    msSetField('ms_id_pratica_iscrizione', button.dataset.id_pratica_iscrizione || '');
+    msSetField('ms_id_cambio_scuola_iscrizione', button.dataset.id_cambio_scuola_iscrizione || '');
+    msSetField('ms_tipo_pratica', button.dataset.tipo_pratica || 'uscita');
+    msSetField('ms_stato_pratica', button.dataset.stato_pratica || 'da_verificare');
+    msSetField('ms_id_studente', button.dataset.id_studente || '');
+    msSetField('ms_cognome', button.dataset.cognome || '');
+    msSetField('ms_nome', button.dataset.nome || '');
+    msSetField('ms_codice_fiscale', button.dataset.codice_fiscale || '');
+    msSetField('ms_anno_corso', button.dataset.anno_corso || '');
+    msSetField('ms_classe_origine', button.dataset.classe_origine || '');
+    msSetField('ms_classe_richiesta', button.dataset.classe_richiesta || '');
+    msSetField('ms_id_istituto_provenienza', button.dataset.id_istituto_provenienza || '');
+    msSetField('ms_scuola_provenienza', button.dataset.scuola_provenienza || '');
+    msSetField('ms_indirizzo_provenienza', button.dataset.indirizzo_provenienza || '');
+    msSetField('ms_id_istituto_destinazione', button.dataset.id_istituto_destinazione || '');
+    msSetField('ms_scuola_destinazione', button.dataset.scuola_destinazione || '');
+    msSetField('ms_indirizzo_destinazione', button.dataset.indirizzo_destinazione || '');
+    msShowLegacySchool('ms_id_istituto_provenienza', 'ms_scuola_provenienza_libera', button.dataset.scuola_provenienza || '');
+    msShowLegacySchool('ms_id_istituto_destinazione', 'ms_scuola_destinazione_libera', button.dataset.scuola_destinazione || '');
+    msSetField('ms_esami_integrativi', button.dataset.esami_integrativi || '0');
+    msSetField('ms_note', button.dataset.note || '');
+    msRenderHistory(button.dataset.id || 0);
+    document.getElementById('msPracticeTitle').textContent = 'Dettaglio pratica';
+    msUpdatePracticeKindFields();
+    $('#msPracticeModal').modal('show');
+}
+
 document.querySelectorAll('.ms-edit').forEach(function (button) {
     button.addEventListener('click', function () {
-        msSetField('ms_id', button.dataset.id || '');
-        msSetField('ms_fonte', button.dataset.fonte || 'manuale');
-        msSetField('ms_id_pratica_iscrizione', button.dataset.id_pratica_iscrizione || '');
-        msSetField('ms_id_cambio_scuola_iscrizione', button.dataset.id_cambio_scuola_iscrizione || '');
-        msSetField('ms_tipo_pratica', button.dataset.tipo_pratica || 'uscita');
-        msSetField('ms_stato_pratica', button.dataset.stato_pratica || 'da_verificare');
-        msSetField('ms_id_studente', button.dataset.id_studente || '');
-        msSetField('ms_cognome', button.dataset.cognome || '');
-        msSetField('ms_nome', button.dataset.nome || '');
-        msSetField('ms_codice_fiscale', button.dataset.codice_fiscale || '');
-        msSetField('ms_anno_corso', button.dataset.anno_corso || '');
-        msSetField('ms_classe_origine', button.dataset.classe_origine || '');
-        msSetField('ms_classe_richiesta', button.dataset.classe_richiesta || '');
-        msSetField('ms_id_istituto_provenienza', button.dataset.id_istituto_provenienza || '');
-        msSetField('ms_scuola_provenienza', button.dataset.scuola_provenienza || '');
-        msSetField('ms_indirizzo_provenienza', button.dataset.indirizzo_provenienza || '');
-        msSetField('ms_id_istituto_destinazione', button.dataset.id_istituto_destinazione || '');
-        msSetField('ms_scuola_destinazione', button.dataset.scuola_destinazione || '');
-        msSetField('ms_indirizzo_destinazione', button.dataset.indirizzo_destinazione || '');
-        msShowLegacySchool('ms_id_istituto_provenienza', 'ms_scuola_provenienza_libera', button.dataset.scuola_provenienza || '');
-        msShowLegacySchool('ms_id_istituto_destinazione', 'ms_scuola_destinazione_libera', button.dataset.scuola_destinazione || '');
-        msSetField('ms_esami_integrativi', button.dataset.esami_integrativi || '0');
-        msSetField('ms_note', button.dataset.note || '');
-        msRenderHistory(button.dataset.id || 0);
-        document.getElementById('msPracticeTitle').textContent = 'Dettaglio pratica';
-        msUpdatePracticeKindFields();
-        $('#msPracticeModal').modal('show');
+        msOpenPracticeFromButton(button);
     });
 });
+
+if (msOpenMovementId > 0) {
+    window.setTimeout(function () {
+        const button = document.querySelector('.ms-edit[data-id="' + msOpenMovementId + '"]');
+        if (!button) return;
+        const row = button.closest('tr');
+        if (row) {
+            row.scrollIntoView({block: 'center'});
+        }
+        msOpenPracticeFromButton(button);
+    }, 100);
+}
 
 function msUpdatePracticeKindFields() {
     const kind = document.getElementById('ms_tipo_pratica').value === 'entrata' ? 'entrata' : 'uscita';

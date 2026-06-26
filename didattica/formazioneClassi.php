@@ -7,6 +7,14 @@ ruoloRichiesto('admin', 'segreteria-didattica');
 
 formazioneClassiEnsureTables();
 
+$tipiFormazione = formazioneClassiTipi();
+$tipoFormazione = trim((string)($_GET['tipo_formazione'] ?? 'quinte'));
+if (!isset($tipiFormazione[$tipoFormazione])) {
+    $tipoFormazione = 'quinte';
+}
+$targetClassYear = intval($tipiFormazione[$tipoFormazione]['anno'] ?? 5);
+$tipoFormazioneLabel = (string)($tipiFormazione[$tipoFormazione]['label'] ?? 'Future quinte');
+
 $sourceYearId = intval($_GET['anno_origine_id'] ?? 0);
 if ($sourceYearId <= 0) {
     $sourceYearId = formazioneClassiCurrentYearId();
@@ -15,18 +23,14 @@ $targetYearId = intval($_GET['anno_target_id'] ?? 0);
 if ($targetYearId <= 0) {
     $targetYearId = formazioneClassiDefaultTargetYear($sourceYearId);
 }
-
-$addressOptions = formazioneClassiAddressOptions($sourceYearId, 5);
-if (empty($addressOptions)) {
-    $addressOptions = formazioneClassiAddressOptions($sourceYearId, 4);
-}
+$addressOptions = formazioneClassiAddressOptionsForFormation($sourceYearId, $targetClassYear);
 $indirizzo = trim((string)($_GET['indirizzo'] ?? ''));
 if (($indirizzo === '' || !array_key_exists($indirizzo, $addressOptions)) && !empty($addressOptions)) {
     $indirizzo = (string)array_key_first($addressOptions);
 }
 
 $schoolYears = formazioneClassiSchoolYears();
-$state = $indirizzo !== '' ? formazioneClassiQuinteState($sourceYearId, $targetYearId, $indirizzo) : [
+$state = $indirizzo !== '' ? formazioneClassiState($sourceYearId, $targetYearId, $tipoFormazione, $indirizzo) : [
     'session' => [],
     'classes' => [],
     'unassigned' => [],
@@ -40,6 +44,12 @@ $classColors = fc_class_colors(array_map(function ($class) {
 function fc_select($a, $b): string
 {
     return (string)$a === (string)$b ? 'selected' : '';
+}
+
+function fc_anno_label(int $year): string
+{
+    $labels = [1 => 'prime', 2 => 'seconde', 3 => 'terze', 4 => 'quarte', 5 => 'quinte'];
+    return $labels[$year] ?? 'classi';
 }
 
 ?>
@@ -334,6 +344,33 @@ function fc_select($a, $b): string
             margin-top: 8px;
             color: #52657a;
         }
+        .fc-context-menu {
+            position: fixed;
+            z-index: 10000;
+            display: none;
+            min-width: 230px;
+            padding: 5px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: #fff;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.22);
+        }
+        .fc-context-menu.open { display: block; }
+        .fc-context-menu button {
+            display: block;
+            width: 100%;
+            padding: 8px 10px;
+            border: 0;
+            border-radius: 3px;
+            background: #fff;
+            color: #17202f;
+            text-align: left;
+        }
+        .fc-context-menu button:hover { background: #eff6ff; }
+        .fc-context-menu button[disabled] {
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
         @media (max-width: 1100px) {
             .fc-layout { grid-template-columns: 1fr; }
             .fc-bocciati-panel { position: static; }
@@ -350,10 +387,20 @@ function fc_select($a, $b): string
 <?php require_once '../common/header-didattica.php'; ?>
 <div class="container-fluid">
     <div class="panel panel-lightblue4">
-        <div class="panel-heading"><span class="glyphicon glyphicon-th-large"></span>&emsp;Formazione classi - future quinte</div>
+        <div class="panel-heading"><span class="glyphicon glyphicon-th-large"></span>&emsp;Formazione classi - <?php echo formazioneClassiH(strtolower($tipoFormazioneLabel)); ?></div>
         <div class="panel-body">
             <form method="get" class="fc-toolbar" id="fc_filter_form">
                 <div class="fc-toolbar-row">
+                    <div class="form-group">
+                        <label>Classi da formare</label>
+                        <select name="tipo_formazione" class="form-control input-sm fc-filter-select">
+                            <?php foreach ($tipiFormazione as $tipoKey => $tipoData): ?>
+                                <option value="<?php echo formazioneClassiH($tipoKey); ?>" <?php echo fc_select($tipoFormazione, $tipoKey); ?>>
+                                    <?php echo formazioneClassiH($tipoData['label'] ?? $tipoKey); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label>Anno origine tabelloni</label>
                         <select name="anno_origine_id" class="form-control input-sm fc-filter-select">
@@ -384,7 +431,6 @@ function fc_select($a, $b): string
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-sm"><span class="glyphicon glyphicon-refresh"></span> Carica</button>
                     <div class="fc-status" id="fc_status"></div>
                 </div>
             </form>
@@ -393,8 +439,12 @@ function fc_select($a, $b): string
                 <div class="alert alert-warning">Non ho trovato indirizzi nei tabelloni finali MasterCom dell'anno selezionato.</div>
             <?php else: ?>
                 <div class="alert alert-info">
-                    In questa prima vista i promossi delle quarte dell'indirizzo selezionato sono gia nella futura quinta corrispondente.
-                    I bocciati delle quinte sono a destra: trascinali nella classe in cui vuoi inserirli.
+                    <?php if (in_array($targetClassYear, [2, 4, 5], true)): ?>
+                        I promossi delle <?php echo formazioneClassiH(fc_anno_label($targetClassYear - 1)); ?> dell'indirizzo selezionato sono gia nella classe futura corrispondente.
+                    <?php else: ?>
+                        Per le <?php echo formazioneClassiH(strtolower($tipoFormazioneLabel)); ?> la bozza parte dalle sezioni target; l'import/distribuzione degli iscritti sara' il prossimo passo.
+                    <?php endif; ?>
+                    I bocciati delle <?php echo formazioneClassiH(fc_anno_label($targetClassYear)); ?> sono a destra: trascinali nella classe in cui vuoi inserirli.
                 </div>
                 <div class="fc-layout" data-session-id="<?php echo intval($sessionId); ?>">
                     <div class="fc-classes-window">
@@ -445,9 +495,13 @@ function fc_select($a, $b): string
         </div>
     </div>
 </div>
+<div id="fc_context_menu" class="fc-context-menu" role="menu" aria-hidden="true">
+    <button type="button" id="fc_context_movimenti" role="menuitem">Apri pratica in movimenti studenti</button>
+</div>
 <script>
 const fcSessionId = Number(document.querySelector('.fc-layout')?.dataset.sessionId || 0);
 let fcDraggedId = 0;
+let fcContextStudent = null;
 
 document.querySelectorAll('.fc-filter-select').forEach(function (select) {
     select.addEventListener('change', function () {
@@ -481,6 +535,55 @@ document.querySelectorAll('.fc-dropzone').forEach(function (zone) {
         if (!rowId || !fcSessionId) return;
         fcMoveStudent(rowId, zone.dataset.targetLabel || '');
     });
+});
+
+document.querySelectorAll('.fc-student-bocciato').forEach(function (card) {
+    card.addEventListener('contextmenu', function (event) {
+        event.preventDefault();
+        fcContextStudent = card;
+        fcShowContextMenu(event.clientX, event.clientY);
+    });
+});
+
+function fcShowContextMenu(x, y) {
+    const menu = document.getElementById('fc_context_menu');
+    const button = document.getElementById('fc_context_movimenti');
+    if (!menu || !button) return;
+    const movementId = Number(fcContextStudent?.dataset.idMovimento || 0);
+    button.disabled = movementId <= 0;
+    button.textContent = movementId > 0 ? 'Apri pratica in movimenti studenti' : 'Nessuna pratica movimento collegata';
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+    menu.classList.add('open');
+    menu.setAttribute('aria-hidden', 'false');
+
+    const rect = menu.getBoundingClientRect();
+    const left = Math.min(x, window.innerWidth - rect.width - 8);
+    const top = Math.min(y, window.innerHeight - rect.height - 8);
+    menu.style.left = Math.max(8, left) + 'px';
+    menu.style.top = Math.max(8, top) + 'px';
+}
+
+function fcHideContextMenu() {
+    const menu = document.getElementById('fc_context_menu');
+    if (!menu) return;
+    menu.classList.remove('open');
+    menu.setAttribute('aria-hidden', 'true');
+}
+
+document.addEventListener('click', fcHideContextMenu);
+document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+        fcHideContextMenu();
+    }
+});
+
+document.getElementById('fc_context_movimenti')?.addEventListener('click', function () {
+    const movementId = Number(fcContextStudent?.dataset.idMovimento || 0);
+    if (movementId > 0) {
+        window.open('movimentiStudenti.php?open_movimento_id=' + encodeURIComponent(String(movementId)), '_blank', 'noopener');
+    }
+    fcHideContextMenu();
 });
 
 function fcMoveStudent(rowId, targetLabel) {
@@ -685,6 +788,7 @@ function fc_render_student(array $student): string
     }
     $html = '<div class="' . implode(' ', $classes) . '" draggable="true"'
         . ' data-row-id="' . intval($student['id']) . '"'
+        . ' data-id-movimento="' . intval($student['id_movimento'] ?? 0) . '"'
         . ' data-name="' . formazioneClassiH($student['nome'] ?? '') . '"'
         . ' data-sesso="' . formazioneClassiH($student['sesso'] ?? '') . '"'
         . ' data-media_generale="' . formazioneClassiH(fc_float_attr($student['media_generale'] ?? null)) . '"'

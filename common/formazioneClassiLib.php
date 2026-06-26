@@ -96,6 +96,33 @@ function formazioneClassiAddressLabel(string $addressKey): string
     return $labels[$addressKey] ?? $addressKey;
 }
 
+function formazioneClassiTipi(): array
+{
+    return [
+        'prime' => ['anno' => 1, 'label' => 'Future prime'],
+        'seconde' => ['anno' => 2, 'label' => 'Future seconde'],
+        'terze' => ['anno' => 3, 'label' => 'Future terze'],
+        'quarte' => ['anno' => 4, 'label' => 'Future quarte'],
+        'quinte' => ['anno' => 5, 'label' => 'Future quinte'],
+    ];
+}
+
+function formazioneClassiTipoDaAnno(int $classYear): string
+{
+    foreach (formazioneClassiTipi() as $key => $data) {
+        if (intval($data['anno'] ?? 0) === $classYear) {
+            return $key;
+        }
+    }
+    return 'quinte';
+}
+
+function formazioneClassiAnnoDaTipo(string $tipo): int
+{
+    $tipi = formazioneClassiTipi();
+    return intval($tipi[$tipo]['anno'] ?? 5);
+}
+
 function formazioneClassiSchoolYears(): array
 {
     return dbGetAll("SELECT id, anno FROM anno_scolastico ORDER BY anno DESC") ?: [];
@@ -182,6 +209,56 @@ function formazioneClassiAddressOptions(int $sourceYearId, int $classYear): arra
         }
         $addresses[$address] = formazioneClassiAddressLabel($address);
     }
+    asort($addresses, SORT_NATURAL | SORT_FLAG_CASE);
+    return $addresses;
+}
+
+function formazioneClassiTargetClasses(int $classYear, string $indirizzo = ''): array
+{
+    $rows = dbGetAll("
+        SELECT id, classe
+        FROM classi
+        WHERE anno = " . dbI($classYear) . "
+        ORDER BY classe ASC
+    ") ?: [];
+
+    $indirizzoNorm = formazioneClassiNorm($indirizzo);
+    $result = [];
+    foreach ($rows as $row) {
+        $label = trim((string)($row['classe'] ?? ''));
+        if ($label === '') {
+            continue;
+        }
+        if ($indirizzoNorm !== '' && formazioneClassiNorm(formazioneClassiAddressKeyFromClass($label)) !== $indirizzoNorm) {
+            continue;
+        }
+        $result[] = [
+            'id' => intval($row['id'] ?? 0),
+            'label' => $label,
+        ];
+    }
+    return $result;
+}
+
+function formazioneClassiAddressOptionsForFormation(int $sourceYearId, int $targetClassYear): array
+{
+    $addresses = [];
+    foreach (formazioneClassiTargetClasses($targetClassYear) as $class) {
+        $address = formazioneClassiAddressKeyFromClass((string)$class['label']);
+        if ($address !== '' && $address !== 'n/d') {
+            $addresses[$address] = formazioneClassiAddressLabel($address);
+        }
+    }
+
+    if ($targetClassYear > 1 && $targetClassYear !== 3) {
+        foreach (formazioneClassiAddressOptions($sourceYearId, $targetClassYear - 1) as $key => $label) {
+            $addresses[$key] = $label;
+        }
+    }
+    foreach (formazioneClassiAddressOptions($sourceYearId, $targetClassYear) as $key => $label) {
+        $addresses[$key] = $label;
+    }
+
     asort($addresses, SORT_NATURAL | SORT_FLAG_CASE);
     return $addresses;
 }
@@ -343,7 +420,7 @@ function formazioneClassiMetricsFromValues(string $values, $media): array
     return $metrics;
 }
 
-function formazioneClassiInitQuinte(array $session, string $indirizzo): void
+function formazioneClassiInitDaTabelloni(array $session, int $targetClassYear, string $indirizzo): void
 {
     $sessionId = intval($session['id'] ?? 0);
     $sourceYearId = intval($session['id_anno_scolastico_origine'] ?? 0);
@@ -351,15 +428,17 @@ function formazioneClassiInitQuinte(array $session, string $indirizzo): void
         return;
     }
 
-    $promossi = formazioneClassiTabelloneRows($sourceYearId, 4, $indirizzo, ['ammesso', 'anno_estero']);
-    foreach ($promossi as $row) {
-        $sourceLabel = (string)($row['classe_effettiva'] ?? '');
-        $targetLabel = formazioneClassiNextClassLabel($sourceLabel);
-        $targetClass = formazioneClassiLocalClassByLabel($targetLabel);
-        formazioneClassiUpsertStudent($sessionId, $row, 'promosso', $targetClass ? intval($targetClass['id']) : null, $targetLabel);
+    if ($targetClassYear > 1 && $targetClassYear !== 3) {
+        $promossi = formazioneClassiTabelloneRows($sourceYearId, $targetClassYear - 1, $indirizzo, ['ammesso', 'anno_estero']);
+        foreach ($promossi as $row) {
+            $sourceLabel = (string)($row['classe_effettiva'] ?? '');
+            $targetLabel = formazioneClassiNextClassLabel($sourceLabel);
+            $targetClass = formazioneClassiLocalClassByLabel($targetLabel);
+            formazioneClassiUpsertStudent($sessionId, $row, 'promosso', $targetClass ? intval($targetClass['id']) : null, $targetLabel);
+        }
     }
 
-    $bocciati = formazioneClassiTabelloneRows($sourceYearId, 5, $indirizzo, ['non_ammesso', 'in_corso']);
+    $bocciati = formazioneClassiTabelloneRows($sourceYearId, $targetClassYear, $indirizzo, ['non_ammesso', 'in_corso']);
     foreach ($bocciati as $row) {
         formazioneClassiUpsertStudent($sessionId, $row, 'bocciato', null, null);
     }
@@ -408,10 +487,11 @@ function formazioneClassiUpsertStudent(int $sessionId, array $row, string $grupp
     ");
 }
 
-function formazioneClassiQuinteState(int $sourceYearId, int $targetYearId, string $indirizzo): array
+function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tipo, string $indirizzo): array
 {
-    $session = formazioneClassiSession($sourceYearId, $targetYearId, 'quinte', $indirizzo);
-    formazioneClassiInitQuinte($session, $indirizzo);
+    $targetClassYear = formazioneClassiAnnoDaTipo($tipo);
+    $session = formazioneClassiSession($sourceYearId, $targetYearId, $tipo, $indirizzo);
+    formazioneClassiInitDaTabelloni($session, $targetClassYear, $indirizzo);
 
     $rows = dbGetAll("
         SELECT
@@ -420,6 +500,7 @@ function formazioneClassiQuinteState(int $sourceYearId, int $targetYearId, strin
             s.nome,
             s.codice_fiscale,
             s.sesso,
+            mp_status.id AS movimento_pratica_id,
             mp_note.note AS movimento_note,
             mp_note.tipo_pratica AS movimento_tipo_pratica,
             mp_note.stato_pratica AS movimento_stato_pratica,
@@ -452,12 +533,6 @@ function formazioneClassiQuinteState(int $sourceYearId, int $targetYearId, strin
                 LIMIT 1
             )
         WHERE f.id_sessione = " . dbI($session['id'] ?? 0) . "
-          AND (
-                f.gruppo_origine <> 'bocciato'
-                OR TRIM(COALESCE(f.classe_provvisoria_label, '')) <> ''
-                OR mp_status.id IS NULL
-                OR mp_status.stato_pratica = 'reiscrizione_confermata'
-          )
         ORDER BY COALESCE(f.classe_provvisoria_label, 'ZZZ') ASC,
                  COALESCE(s.cognome, f.studente_nome) ASC,
                  COALESCE(s.nome, '') ASC,
@@ -465,6 +540,15 @@ function formazioneClassiQuinteState(int $sourceYearId, int $targetYearId, strin
     ") ?: [];
 
     $classes = [];
+    foreach (formazioneClassiTargetClasses($targetClassYear, $indirizzo) as $targetClass) {
+        $label = (string)$targetClass['label'];
+        $classes[$label] = [
+            'label' => $label,
+            'id_classe' => intval($targetClass['id'] ?? 0),
+            'students' => [],
+            'stats' => [],
+        ];
+    }
     $unassigned = [];
     foreach ($rows as $row) {
         $item = formazioneClassiStudentView($row);
@@ -497,6 +581,11 @@ function formazioneClassiQuinteState(int $sourceYearId, int $targetYearId, strin
     ];
 }
 
+function formazioneClassiQuinteState(int $sourceYearId, int $targetYearId, string $indirizzo): array
+{
+    return formazioneClassiState($sourceYearId, $targetYearId, 'quinte', $indirizzo);
+}
+
 function formazioneClassiStudentView(array $row): array
 {
     $name = trim((string)($row['cognome'] ?? '') . ' ' . (string)($row['nome'] ?? ''));
@@ -512,6 +601,7 @@ function formazioneClassiStudentView(array $row): array
         'classe_origine' => (string)($row['classe_origine_label'] ?? ''),
         'gruppo_origine' => (string)($row['gruppo_origine'] ?? ''),
         'bloccato' => intval($row['bloccato'] ?? 0),
+        'id_movimento' => intval($row['movimento_pratica_id'] ?? 0),
         'media_generale' => formazioneClassiNullableFloat($row['media_generale'] ?? null),
         'voto_matematica' => formazioneClassiNullableFloat($row['voto_matematica'] ?? null),
         'voto_italiano' => formazioneClassiNullableFloat($row['voto_italiano'] ?? null),
