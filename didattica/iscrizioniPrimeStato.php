@@ -51,11 +51,13 @@ try {
         LIMIT 1
     ");
 
-    iscrizioniPrimeRecordEvent($id, 'cambio_stato', 'Stato pratica aggiornato', [
-        'stato_precedente' => $statoPrecedente,
-        'stato_nuovo' => $stato,
-        'messaggio' => $note !== '' ? $note : null,
-    ]);
+    try {
+        $praticaSync = $pratica;
+        $praticaSync['stato'] = $stato;
+        iscrizioniPrimeSyncGestoreStudentFromPractice($praticaSync);
+    } catch (Throwable $syncError) {
+        warning('[iscrizioni] errore aggiornamento studente GestOre pratica id=' . $id . ': ' . $syncError->getMessage());
+    }
 
     if ($stato === 'da_integrare') {
         $pratica['stato'] = 'da_integrare';
@@ -78,6 +80,12 @@ try {
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
+
+    iscrizioniPrimeRecordEvent($id, 'cambio_stato', 'Stato pratica aggiornato', [
+        'stato_precedente' => $statoPrecedente,
+        'stato_nuovo' => $stato,
+        'messaggio' => $note !== '' ? $note : null,
+    ]);
 
     echo json_encode(['ok' => true, 'message' => 'Stato pratica aggiornato.'], JSON_UNESCAPED_UNICODE);
 } catch (Throwable $e) {

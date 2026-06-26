@@ -65,6 +65,7 @@ $rows = dbGetAll("
         p.telefono_genitore_2,
         p.token_last4,
         p.token_expires_at,
+        p.raw_dsa_json,
         p.updated_at,
         COALESCE(mail_log.mail_reali, 0) AS mail_reali,
         COALESCE(mail_log.mail_test, 0) AS mail_test,
@@ -152,5 +153,11 @@ $rows = dbGetAll("
     WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
     ORDER BY p.cognome ASC, p.nome ASC
 ");
+
+$rows = array_map(static function (array $row): array {
+    $row['attributi_riservati'] = studentiAttrForIscrizionePratica($row);
+    unset($row['raw_dsa_json']);
+    return $row;
+}, $rows ?: []);
 
 echo json_encode(['ok' => true, 'stats' => $stats ?: [], 'mail_stats' => $mailStats ?: [], 'rows' => $rows], JSON_UNESCAPED_UNICODE);

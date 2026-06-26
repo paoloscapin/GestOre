@@ -114,6 +114,22 @@ $draftSubject = iscrizioniPrimeDraftSubject('terze');
         .mail-badge-none { background: #fee2e2; color: #991b1b; }
         .mail-badge-skip { background: #e5e7eb; color: #374151; }
         .mail-badge-bounce { background: #fecaca; color: #7f1d1d; }
+        .stud-attr-badge {
+            display: inline-block;
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: #fef3c7;
+            color: #7c2d12;
+            font-weight: 800;
+            font-size: 12px;
+            margin: 0 3px 3px 0;
+        }
+        .stud-attr-source {
+            display: block;
+            color: #64748b;
+            font-size: 11px;
+            margin-top: 2px;
+        }
         .iscrizioni-terze-filter {
             display: flex;
             gap: 10px;
@@ -431,6 +447,7 @@ ITT Buonarroti - Trento</textarea>
                             <th>Studente</th>
                             <th>Codice fiscale</th>
                             <th>Corso</th>
+                            <th>Attributi</th>
                             <th>Tipo</th>
                             <th>Stato</th>
                             <th>Email responsabili</th>
@@ -440,7 +457,7 @@ ITT Buonarroti - Trento</textarea>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td colspan="9" class="text-muted">Caricamento...</td></tr>
+                        <tr><td colspan="10" class="text-muted">Caricamento...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -580,6 +597,17 @@ function iscrizioniTerzeTipoEffettivo(row) {
     return Number(row.studente_interno_effettivo ?? row.studente_interno ?? 0) === 1 ? 'INTERNO' : 'ESTERNO';
 }
 
+function iscrizioniTerzeAttributiHtml(row) {
+    const attrs = Array.isArray(row.attributi_riservati) ? row.attributi_riservati : [];
+    if (!attrs.length) {
+        return '<span class="text-muted">-</span>';
+    }
+    return attrs.map(attr => {
+        const source = attr.fonte ? '<span class="stud-attr-source">' + iscrizioniTerzeEscape(attr.fonte) + '</span>' : '';
+        return '<span class="stud-attr-badge" title="' + iscrizioniTerzeEscape(attr.codice || '') + '">' + iscrizioniTerzeEscape(attr.label || attr.codice || '') + source + '</span>';
+    }).join(' ');
+}
+
 function iscrizioniTerzeNormalizeSearch(value) {
     return String(value || '')
         .toLowerCase()
@@ -601,6 +629,7 @@ function iscrizioniTerzeRowSearchText(row) {
         row.telefono_genitore_2,
         row.token_last4,
         row.mail_diagnosi,
+        (Array.isArray(row.attributi_riservati) ? row.attributi_riservati.map(attr => attr.label + ' ' + attr.codice + ' ' + (attr.fonte || '')).join(' ') : ''),
         row.scuola_provenienza,
         row.comune_residenza
     ].filter(Boolean).join(' '));
@@ -668,13 +697,13 @@ function iscrizioniTerzeRenderTable() {
     iscrizioniTerzeVisibleRows = iscrizioniTerzeFilteredRows();
 
     if (!iscrizioniTerzeRows.length) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Nessuna pratica importata.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-muted">Nessuna pratica importata.</td></tr>';
         if (counter) counter.textContent = '';
         return;
     }
 
     if (!iscrizioniTerzeVisibleRows.length) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Nessuna pratica corrisponde al filtro.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-muted">Nessuna pratica corrisponde al filtro.</td></tr>';
         if (counter) counter.textContent = '0 di ' + iscrizioniTerzeRows.length + ' pratiche';
         return;
     }
@@ -695,6 +724,7 @@ function iscrizioniTerzeRenderTable() {
             '<td><strong>' + iscrizioniTerzeEscape(row.cognome) + '</strong> ' + iscrizioniTerzeEscape(row.nome) + '</td>' +
             '<td>' + iscrizioniTerzeEscape(row.codice_fiscale) + '</td>' +
             '<td>' + iscrizioniTerzeEscape(row.corso_studi) + '</td>' +
+            '<td>' + iscrizioniTerzeAttributiHtml(row) + '</td>' +
             '<td>' + tipo + '</td>' +
             '<td>' + iscrizioniTerzeEscape(row.stato) + '</td>' +
             '<td>' + (emails || '<span class="text-danger">mancante</span>') + '</td>' +
@@ -737,6 +767,7 @@ function iscrizioniTerzeExportFilteredCsv() {
         'Tipo',
         'Codice fiscale',
         'Corso',
+        'Attributi',
         'Stato',
         'Email responsabile 1',
         'Email responsabile 2',
@@ -752,6 +783,7 @@ function iscrizioniTerzeExportFilteredCsv() {
             iscrizioniTerzeTipoEffettivo(row),
             row.codice_fiscale,
             row.corso_studi,
+            Array.isArray(row.attributi_riservati) ? row.attributi_riservati.map(attr => attr.label || attr.codice || '').join(', ') : '',
             row.stato,
             row.email_genitore_1,
             row.email_genitore_2,
@@ -1012,7 +1044,7 @@ async function iscrizioniTerzeSendCustomMail() {
 
 function iscrizioniTerzeLoadTable() {
     const tbody = document.querySelector('#iscrizioni_terze_table tbody');
-    tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Caricamento...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="text-muted">Caricamento...</td></tr>';
 
     fetch('iscrizioniPrimeRead.php?tipo_iscrizione=terze', {credentials: 'same-origin'})
         .then(response => response.json())
@@ -1023,7 +1055,7 @@ function iscrizioniTerzeLoadTable() {
             iscrizioniTerzeRenderTable();
         })
         .catch(error => {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-danger">' + iscrizioniTerzeEscape(error.message) + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" class="text-danger">' + iscrizioniTerzeEscape(error.message) + '</td></tr>';
         });
 }
 

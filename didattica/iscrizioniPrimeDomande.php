@@ -139,6 +139,40 @@ function ipd_badge_class(string $stato): string
     return 'label-default';
 }
 
+function ipd_event_key(array $evento): string
+{
+    return implode('|', [
+        (string)($evento['pratica_id'] ?? ''),
+        (string)($evento['created_at'] ?? ''),
+        (string)($evento['stato_precedente'] ?? ''),
+        (string)($evento['stato_nuovo'] ?? ''),
+        trim((string)($evento['messaggio'] ?? '')),
+    ]);
+}
+
+function ipd_filter_duplicate_integration_events(array $eventi): array
+{
+    $integrationKeys = [];
+    foreach ($eventi as $evento) {
+        if (($evento['tipo_evento'] ?? '') === 'richiesta_integrazione') {
+            $integrationKeys[ipd_event_key($evento)] = true;
+        }
+    }
+    if (empty($integrationKeys)) {
+        return $eventi;
+    }
+
+    return array_values(array_filter($eventi, static function (array $evento) use ($integrationKeys): bool {
+        if (($evento['tipo_evento'] ?? '') !== 'cambio_stato') {
+            return true;
+        }
+        if (($evento['stato_nuovo'] ?? '') !== 'da_integrare') {
+            return true;
+        }
+        return !isset($integrationKeys[ipd_event_key($evento)]);
+    }));
+}
+
 $filtroStato = trim((string)($_GET['stato'] ?? 'inviata'));
 $allowedFilters = ['tutte', 'inviata', 'verificata', 'da_integrare', 'annullata'];
 if (!in_array($filtroStato, $allowedFilters, true)) {
@@ -170,7 +204,7 @@ $stats = dbGetFirst("
 $labels = array_merge(iscrizioniPrimeDocumentTypes($tipoIscrizione), iscrizioniPrimeSecretaryDocumentTypes($tipoIscrizione));
 $eventiPratiche = [];
 foreach ($pratiche as $praticaEvento) {
-    $eventiPratiche[intval($praticaEvento['id'] ?? 0)] = iscrizioniPrimeEventsForPratica($praticaEvento);
+    $eventiPratiche[intval($praticaEvento['id'] ?? 0)] = ipd_filter_duplicate_integration_events(iscrizioniPrimeEventsForPratica($praticaEvento));
 }
 
 ?>
@@ -480,6 +514,9 @@ foreach ($pratiche as $praticaEvento) {
                                 <?php if ($dettagli) : ?>
                                     <div class="ipd-cambio-event-meta">
                                         <?php foreach ($dettagli as $key => $value) :
+                                            if (in_array((string)$key, ['ok', 'message'], true)) {
+                                                continue;
+                                            }
                                             if (is_array($value)) {
                                                 $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                                             }

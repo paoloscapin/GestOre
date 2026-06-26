@@ -75,6 +75,23 @@ function studentiAttrParseNote(string $note): array
     return $result;
 }
 
+function studentiAttrLabelsForCodes(array $codes): array
+{
+    $map = studentiAttrMap();
+    $result = [];
+    foreach ($codes as $code) {
+        $code = (string)$code;
+        if ($code === '' || !isset($map[$code])) {
+            continue;
+        }
+        $result[$code] = [
+            'codice' => $code,
+            'label' => (string)($map[$code]['label'] ?? $code),
+        ];
+    }
+    return array_values($result);
+}
+
 function studentiAttrUpsert(int $studentId, string $code, bool $active, string $source, string $sourceRef = '', string $sourceHash = ''): void
 {
     if ($studentId <= 0 || $code === '') {
@@ -116,6 +133,24 @@ function studentiAttrFindStudentByMbappId(string $mbappId): ?array
         WHERE username = " . dbQ($mbappId) . "
            OR email = " . dbQ($mbappId . '@buonarroti.tn.it') . "
            OR SUBSTRING_INDEX(email, '@', 1) = " . dbQ($mbappId) . "
+        ORDER BY attivo DESC, id DESC
+        LIMIT 1
+    ");
+
+    return $row ?: null;
+}
+
+function studentiAttrFindStudentByFiscalCode(string $fiscalCode): ?array
+{
+    $fiscalCode = strtoupper(trim($fiscalCode));
+    if ($fiscalCode === '') {
+        return null;
+    }
+
+    $row = dbGetFirst("
+        SELECT id, cognome, nome, username, email, codice_fiscale
+        FROM studente
+        WHERE UPPER(TRIM(codice_fiscale)) = " . dbQ($fiscalCode) . "
         ORDER BY attivo DESC, id DESC
         LIMIT 1
     ");
@@ -191,4 +226,120 @@ function studentiAttrActiveForStudent(int $studentId): array
     return array_map(static function ($row) {
         return (string)($row['codice_attributo'] ?? '');
     }, $rows);
+}
+
+function studentiAttrActiveForStudentWithSource(int $studentId): array
+{
+    studentiAttrEnsureTables();
+    if ($studentId <= 0) {
+        return [];
+    }
+    $rows = dbGetAll("
+        SELECT codice_attributo, fonte
+        FROM studente_attributi_riservati
+        WHERE id_studente = " . dbI($studentId) . "
+          AND attivo = 1
+        ORDER BY codice_attributo ASC
+    ") ?: [];
+
+    return studentiAttrRowsToDisplay($rows);
+}
+
+function studentiAttrActiveForFiscalCode(string $fiscalCode): array
+{
+    $student = studentiAttrFindStudentByFiscalCode($fiscalCode);
+    if (!$student) {
+        return [];
+    }
+    return studentiAttrActiveForStudentWithSource((int)$student['id']);
+}
+
+function studentiAttrRowsToDisplay(array $rows): array
+{
+    $map = studentiAttrMap();
+    $result = [];
+    foreach ($rows as $row) {
+        $code = (string)($row['codice_attributo'] ?? $row['codice'] ?? '');
+        if ($code === '' || !isset($map[$code])) {
+            continue;
+        }
+        $source = trim((string)($row['fonte'] ?? $row['source'] ?? ''));
+        $result[$code] = [
+            'codice' => $code,
+            'label' => (string)($map[$code]['label'] ?? $code),
+            'fonte' => $source,
+        ];
+    }
+    return array_values($result);
+}
+
+function studentiAttrActiveFromDsaCsvRow(?array $dsa): array
+{
+    if (empty($dsa)) {
+        return [];
+    }
+
+    $textParts = [];
+    foreach ($dsa as $key => $value) {
+        $textParts[] = (string)$key . ' ' . (string)$value;
+    }
+    $parsed = studentiAttrParseNote(implode(' ', $textParts));
+    $parsed[STUD_ATTR_R7A2] = true;
+
+    $rows = [];
+    foreach ($parsed as $code => $active) {
+        if ($active) {
+            $rows[] = [
+                'codice_attributo' => $code,
+                'fonte' => 'csv_dsa',
+            ];
+        }
+    }
+    return studentiAttrRowsToDisplay($rows);
+}
+
+function studentiAttrSyncFromDsaCsvRow(string $fiscalCode, ?array $dsa, string $sourceRef = ''): void
+{
+    if (empty($dsa)) {
+        return;
+    }
+    studentiAttrEnsureTables();
+    $student = studentiAttrFindStudentByFiscalCode($fiscalCode);
+    if (!$student) {
+        return;
+    }
+
+    $sourceHash = hash('sha256', json_encode($dsa, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    foreach (studentiAttrActiveFromDsaCsvRow($dsa) as $attr) {
+        studentiAttrUpsert((int)$student['id'], (string)$attr['codice'], true, 'csv_dsa', $sourceRef, $sourceHash);
+    }
+}
+
+function studentiAttrForIscrizionePratica(array $pratica): array
+{
+    $result = [];
+    foreach (studentiAttrActiveForFiscalCode((string)($pratica['codice_fiscale'] ?? '')) as $attr) {
+        $result[(string)$attr['codice']] = $attr;
+    }
+
+    $dsa = null;
+    $rawDsa = trim((string)($pratica['raw_dsa_json'] ?? ''));
+    if ($rawDsa !== '') {
+        $decoded = json_decode($rawDsa, true);
+        if (is_array($decoded)) {
+            $dsa = $decoded;
+        }
+    }
+    foreach (studentiAttrActiveFromDsaCsvRow($dsa) as $attr) {
+        $code = (string)$attr['codice'];
+        if (isset($result[$code]) && trim((string)($result[$code]['fonte'] ?? '')) !== '') {
+            if (strpos((string)$result[$code]['fonte'], 'csv_dsa') === false) {
+                $result[$code]['fonte'] .= '+csv_dsa';
+            }
+        } else {
+            $result[$code] = $attr;
+        }
+    }
+
+    return array_values($result);
 }

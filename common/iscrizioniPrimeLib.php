@@ -4,6 +4,7 @@ defined('GESTORE_BOOTSTRAP') || define('GESTORE_BOOTSTRAP', true);
 
 require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/scuoleIstitutiLib.php';
+require_once __DIR__ . '/studentiAttributiRiservatiLib.php';
 
 function iscrizioniPrimeEnsureSchema(): void
 {
@@ -6162,7 +6163,13 @@ function iscrizioniPrimeRelazioneId(string $tipo): int
     return intval(dbGetValue("SELECT id FROM genitori_relazioni WHERE LOWER(TRIM(relazione)) = 'genitore' LIMIT 1") ?? 0);
 }
 
-function iscrizioniPrimeUpsertGestoreStudent(array $pratica): int
+function iscrizioniPrimeGestoreStudentActiveFromPratica(array $pratica): int
+{
+    $stato = (string)($pratica['stato'] ?? '');
+    return in_array($stato, ['inviata', 'da_integrare', 'verificata'], true) ? 1 : 0;
+}
+
+function iscrizioniPrimeUpsertGestoreStudent(array $pratica, ?int $attivo = null): int
 {
     $cf = strtoupper(trim((string)($pratica['codice_fiscale'] ?? '')));
     if ($cf === '') {
@@ -6175,6 +6182,7 @@ function iscrizioniPrimeUpsertGestoreStudent(array $pratica): int
     }
     $email = iscrizioniPrimeTrimValue($pratica['email_studente'] ?? null);
     $studenteId = intval(dbGetValue("SELECT id FROM studente WHERE codice_fiscale = " . dbQ($cf) . " LIMIT 1") ?? 0);
+    $attivo = $attivo === null ? iscrizioniPrimeGestoreStudentActiveFromPratica($pratica) : ($attivo ? 1 : 0);
 
     if ($studenteId > 0) {
         dbExec("
@@ -6184,7 +6192,7 @@ function iscrizioniPrimeUpsertGestoreStudent(array $pratica): int
                 email = " . dbQ($email) . ",
                 codice_fiscale = " . dbQ($cf) . ",
                 sesso = " . dbQ($sesso) . ",
-                attivo = 1
+                attivo = " . dbI($attivo) . "
             WHERE id = " . dbI($studenteId) . "
             LIMIT 1
         ");
@@ -6200,11 +6208,35 @@ function iscrizioniPrimeUpsertGestoreStudent(array $pratica): int
             '',
             " . dbQ($cf) . ",
             " . dbQ($sesso) . ",
-            1
+            " . dbI($attivo) . "
         )
     ");
 
     return intval(dblastId());
+}
+
+function iscrizioniPrimeSyncGestoreStudentFromPractice(array $pratica, ?int $attivo = null): array
+{
+    if (!empty($pratica['studente_interno'])) {
+        return ['ok' => true, 'skipped' => true, 'message' => 'Studente interno: anagrafica GestOre gia presente.'];
+    }
+
+    $tipoIscrizione = iscrizioniPrimeTipoIscrizioneFromPratica($pratica);
+    $classeProvvisoria = $tipoIscrizione === 'terze' ? 'EE' : 'MEDIE';
+    $studenteId = iscrizioniPrimeUpsertGestoreStudent($pratica, $attivo);
+    if ($studenteId <= 0) {
+        return ['ok' => false, 'message' => 'Codice fiscale studente mancante: impossibile creare anagrafica GestOre.'];
+    }
+
+    iscrizioniPrimeUpsertGestoreFrequency($studenteId, $classeProvvisoria);
+
+    return [
+        'ok' => true,
+        'skipped' => false,
+        'studente_id' => $studenteId,
+        'classe' => $classeProvvisoria,
+        'attivo' => $attivo === null ? iscrizioniPrimeGestoreStudentActiveFromPratica($pratica) : ($attivo ? 1 : 0),
+    ];
 }
 
 function iscrizioniPrimeUpsertGestoreFrequency(int $studenteId, string $classeCode): void
@@ -6279,14 +6311,11 @@ function iscrizioniPrimeSyncGestoreStudentAndParents(array $pratica): array
         return ['ok' => true, 'skipped' => true, 'message' => 'Studente interno: anagrafica GestOre gia presente.'];
     }
 
-    $tipoIscrizione = iscrizioniPrimeTipoIscrizioneFromPratica($pratica);
-    $classeProvvisoria = $tipoIscrizione === 'terze' ? 'EE' : 'MEDIE';
-    $studenteId = iscrizioniPrimeUpsertGestoreStudent($pratica);
-    if ($studenteId <= 0) {
-        return ['ok' => false, 'message' => 'Codice fiscale studente mancante: impossibile creare anagrafica GestOre.'];
+    $syncStudent = iscrizioniPrimeSyncGestoreStudentFromPractice($pratica);
+    if (empty($syncStudent['ok'])) {
+        return $syncStudent;
     }
-
-    iscrizioniPrimeUpsertGestoreFrequency($studenteId, $classeProvvisoria);
+    $studenteId = intval($syncStudent['studente_id'] ?? 0);
 
     $parents = [
         [
@@ -6313,13 +6342,14 @@ function iscrizioniPrimeSyncGestoreStudentAndParents(array $pratica): array
         }
     }
 
-    info('[iscrizioni] sincronizzata anagrafica GestOre studente id=' . $studenteId . ' classe=' . $classeProvvisoria . ' genitori=' . implode(',', $parentIds));
+    info('[iscrizioni] sincronizzata anagrafica GestOre studente id=' . $studenteId . ' classe=' . (string)($syncStudent['classe'] ?? '') . ' genitori=' . implode(',', $parentIds));
 
     return [
         'ok' => true,
         'skipped' => false,
         'studente_id' => $studenteId,
-        'classe' => $classeProvvisoria,
+        'classe' => (string)($syncStudent['classe'] ?? ''),
+        'attivo' => intval($syncStudent['attivo'] ?? 0),
         'genitori_ids' => $parentIds,
     ];
 }
@@ -6498,6 +6528,9 @@ function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione
         if ($tipoIscrizione === 'terze' && !empty($fields['studente_interno'])) {
             iscrizioniPrimeApplyInternalContacts($id, $cf);
         }
+        $praticaSync = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($id) . " LIMIT 1") ?: array_merge($fields, ['id' => $id]);
+        iscrizioniPrimeSyncGestoreStudentFromPractice($praticaSync);
+        studentiAttrSyncFromDsaCsvRow($cf, $dsa, $tipoIscrizione . ':' . $id);
 
         return ['ok' => true, 'inserted' => false, 'id' => $id, 'token' => $token['plain'] ?? null];
     }
@@ -6520,6 +6553,9 @@ function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione
     if ($tipoIscrizione === 'terze' && !empty($fields['studente_interno'])) {
         iscrizioniPrimeApplyInternalContacts((int)$id, $cf);
     }
+    $praticaSync = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($id) . " LIMIT 1") ?: array_merge($fields, ['id' => intval($id)]);
+    iscrizioniPrimeSyncGestoreStudentFromPractice($praticaSync);
+    studentiAttrSyncFromDsaCsvRow($cf, $dsa, $tipoIscrizione . ':' . intval($id));
 
     info('[iscrizioni] pratica inserita tipo=' . $tipoIscrizione . ' id=' . intval($id) . ' cf=' . $cf . ' anno=' . $anno . ' interno=' . intval(!empty($fields['studente_interno'])));
 
