@@ -1155,6 +1155,11 @@ function iscrizioniPrimeCorrectSentLinks(dryRun) {
                 ).join('') +
                 '</ul></div>'
             : '';
+        const warningDetails = data.warnings && data.warnings.length
+            ? '<br><div style="margin-top:10px;"><strong>Avvisi Gmail:</strong><ul style="margin-top:6px;">' +
+                data.warnings.map(item => '<li>' + iscrizioniPrimeEscape(item) + '</li>').join('') +
+                '</ul></div>'
+            : '';
         result.className = data.ok ? 'alert alert-success' : 'alert alert-warning';
         result.innerHTML =
             iscrizioniPrimeEscape(data.message || '') +
@@ -1163,6 +1168,7 @@ function iscrizioniPrimeCorrectSentLinks(dryRun) {
             ' - saltate: ' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.skipped)) +
             (data.remaining !== undefined ? ' - restanti: ' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.remaining)) : '') +
             (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniPrimeEscape).join(', ') : '') +
+            warningDetails +
             correctionDetails;
         iscrizioniPrimeCompleteMailOverlay(
             !!data.ok,
@@ -1173,6 +1179,7 @@ function iscrizioniPrimeCorrectSentLinks(dryRun) {
             ' &middot; Saltate: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.skipped)) + '</strong>' +
             (data.remaining !== undefined ? ' &middot; Restanti: <strong>' + iscrizioniPrimeEscape(iscrizioniPrimeNumber(data.remaining)) + '</strong>' : '') +
             (data.errors && data.errors.length ? '<br>Errori: ' + data.errors.map(iscrizioniPrimeEscape).join(', ') : '') +
+            warningDetails +
             correctionDetails
         );
         iscrizioniPrimeLoadTable();

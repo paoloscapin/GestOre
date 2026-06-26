@@ -137,7 +137,7 @@ function genitoriColloquiAllowed(string $value, array $allowed, string $default)
     return in_array($value, $allowed, true) ? $value : $default;
 }
 
-function genitoriColloquiSave(array $data, ?array $file = null): int
+function genitoriColloquiSave(array $data, ?array $file = null, ?array $receiptFile = null): int
 {
     genitoriColloquiEnsureTables();
 
@@ -206,7 +206,7 @@ function genitoriColloquiSave(array $data, ?array $file = null): int
                 richiesta_data = " . dbQ($fields['richiesta_data']) . ",
                 appuntamento_at = " . dbQ($fields['appuntamento_at']) . ",
                 stato = " . dbQ($fields['stato']) . ",
-                esito = " . dbQ($fields['esito']) . ",
+                esito = " . dbQNotNull($fields['esito'], '') . ",
                 esami_integrativi = " . dbQ($fields['esami_integrativi']) . ",
                 carenze_note = " . dbQ($fields['carenze_note']) . ",
                 libri_note = " . dbQ($fields['libri_note']) . ",
@@ -241,7 +241,7 @@ function genitoriColloquiSave(array $data, ?array $file = null): int
                     " . dbQ($fields['richiesta_data']) . ",
                     " . dbQ($fields['appuntamento_at']) . ",
                     " . dbQ($fields['stato']) . ",
-                    " . dbQ($fields['esito']) . ",
+                    " . dbQNotNull($fields['esito'], '') . ",
                     " . dbQ($fields['esami_integrativi']) . ",
                     " . dbQ($fields['carenze_note']) . ",
                     " . dbQ($fields['libri_note']) . ",
@@ -257,8 +257,8 @@ function genitoriColloquiSave(array $data, ?array $file = null): int
     if ($file && intval($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
         genitoriColloquiAttachFile($id, $file);
     }
-    if (!empty($_FILES['ricevuta_libri']) && intval($_FILES['ricevuta_libri']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-        genitoriColloquiAttachReceipt($id, $_FILES['ricevuta_libri']);
+    if ($receiptFile && intval($receiptFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+        genitoriColloquiAttachReceipt($id, $receiptFile);
     }
 
     genitoriColloquiAddEvent($id, $id > 0 && intval($data['id'] ?? 0) > 0 ? 'aggiornamento' : 'creazione', 'Colloquio salvato', $fields);
@@ -442,6 +442,41 @@ function genitoriColloquiHistoryForIds(array $ids): array
         $history[intval($row['colloquio_id'] ?? 0)][] = $row;
     }
     return $history;
+}
+
+function genitoriColloquiDelete(int $id): bool
+{
+    if ($id <= 0) {
+        return false;
+    }
+
+    genitoriColloquiEnsureTables();
+    $row = dbGetFirst("SELECT id FROM genitori_colloqui WHERE id = " . dbI($id) . " LIMIT 1");
+    if (!$row) {
+        return false;
+    }
+
+    dbExec("DELETE FROM genitori_colloqui_eventi WHERE colloquio_id = " . dbI($id));
+    dbExec("DELETE FROM genitori_colloqui WHERE id = " . dbI($id) . " LIMIT 1");
+
+    $dir = realpath(genitoriColloquiUploadDir($id));
+    $base = realpath(__DIR__ . '/../data/genitori_colloqui');
+    if ($dir && $base && strpos(str_replace('\\', '/', $dir), str_replace('\\', '/', $base) . '/') === 0 && is_dir($dir)) {
+        $items = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($items as $item) {
+            if ($item->isDir()) {
+                @rmdir($item->getPathname());
+            } else {
+                @unlink($item->getPathname());
+            }
+        }
+        @rmdir($dir);
+    }
+
+    return true;
 }
 
 function genitoriColloquiNotifySecretary(array $row, string $title, string $message): bool

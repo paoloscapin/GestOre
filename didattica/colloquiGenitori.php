@@ -12,8 +12,14 @@ $error = '';
 
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        genitoriColloquiSave($_POST, $_FILES['allegato'] ?? null);
-        $message = 'Colloquio salvato.';
+        $action = trim((string)($_POST['action'] ?? 'save'));
+        if ($action === 'delete') {
+            $deleted = genitoriColloquiDelete((int)($_POST['id'] ?? 0));
+            $message = $deleted ? 'Colloquio eliminato.' : 'Colloquio non trovato.';
+        } else {
+            genitoriColloquiSave($_POST, $_FILES['allegato'] ?? null, $_FILES['ricevuta_libri'] ?? null);
+            $message = 'Colloquio salvato.';
+        }
     }
 } catch (Throwable $e) {
     $error = $e->getMessage();
@@ -115,6 +121,16 @@ function cg_receipt_link(array $row): string
     <?php require_once '../common/header-common.php'; ?>
     <?php require_once '../common/style.php'; ?>
     <style>
+        body {
+            padding-top: 42px;
+        }
+        .container-fluid {
+            padding-top: 0;
+        }
+        .page-header {
+            margin: 8px 0 16px;
+            padding-bottom: 10px;
+        }
         .cg-toolbar {
             display: flex;
             justify-content: space-between;
@@ -140,6 +156,29 @@ function cg_receipt_link(array $row): string
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
+        }
+        .modal-dialog.cg-wide-modal {
+            width: min(1380px, 96vw);
+        }
+        .cg-modal-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 360px;
+            gap: 16px;
+            align-items: start;
+        }
+        .cg-modal-main {
+            min-width: 0;
+        }
+        .cg-modal-side {
+            border: 1px solid #d9e2ef;
+            border-radius: 8px;
+            background: #f8fafc;
+            padding: 12px;
+            position: sticky;
+            top: 10px;
+        }
+        .cg-modal-side h4 {
+            margin-top: 0;
         }
         .cg-modal-grid .full {
             grid-column: 1 / -1;
@@ -192,6 +231,15 @@ function cg_receipt_link(array $row): string
             font-size: 12px;
             margin-top: 3px;
         }
+        .cg-row-actions {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            white-space: nowrap;
+        }
+        .cg-row-actions form {
+            margin: 0;
+        }
         @media (max-width: 900px) {
             .cg-toolbar {
                 display: block;
@@ -204,6 +252,15 @@ function cg_receipt_link(array $row): string
             }
             .cg-context {
                 grid-template-columns: 1fr;
+            }
+            .modal-dialog.cg-wide-modal {
+                width: auto;
+            }
+            .cg-modal-layout {
+                grid-template-columns: 1fr;
+            }
+            .cg-modal-side {
+                position: static;
             }
         }
     </style>
@@ -300,11 +357,18 @@ function cg_receipt_link(array $row): string
                         <td class="cg-notes"><?php echo cg_h($row['note'] ?? ''); ?></td>
                         <td><?php echo $allegato !== '' ? $allegato : '<span class="cg-muted">-</span>'; ?></td>
                         <td>
-                            <button type="button" class="btn btn-xs btn-default editColloquioBtn"
-                                data-record='<?php echo cg_h(json_encode($row, JSON_UNESCAPED_UNICODE)); ?>'
-                                data-history='<?php echo cg_h(json_encode($history, JSON_UNESCAPED_UNICODE)); ?>'>
-                                Modifica
-                            </button>
+                            <div class="cg-row-actions">
+                                <button type="button" class="btn btn-xs btn-default editColloquioBtn"
+                                    data-record='<?php echo cg_h(json_encode($row, JSON_UNESCAPED_UNICODE)); ?>'
+                                    data-history='<?php echo cg_h(json_encode($history, JSON_UNESCAPED_UNICODE)); ?>'>
+                                    Modifica
+                                </button>
+                                <form method="post" onsubmit="return confirm('Eliminare definitivamente questo colloquio e il relativo storico?');">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="<?php echo intval($row['id']); ?>">
+                                    <button type="submit" class="btn btn-xs btn-danger">Elimina</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -315,7 +379,7 @@ function cg_receipt_link(array $row): string
 </div>
 
 <div class="modal fade" id="colloquioModal" tabindex="-1" role="dialog" aria-labelledby="colloquioModalTitle">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-lg cg-wide-modal" role="document">
         <form method="post" enctype="multipart/form-data" class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Chiudi"><span aria-hidden="true">&times;</span></button>
@@ -369,6 +433,8 @@ function cg_receipt_link(array $row): string
                     <p class="help-block">Se colleghi una domanda o una pratica, al salvataggio lo storico collegato verrà aggiornato quando il colloquio risulta svolto o approvato.</p>
                 </div>
 
+                <div class="cg-modal-layout">
+                <div class="cg-modal-main">
                 <div class="cg-modal-grid">
                     <div>
                         <label for="cg_ambito">Ambito</label>
@@ -490,11 +556,11 @@ function cg_receipt_link(array $row): string
                             </div>
                         </div>
                     </div>
-                    <div class="full">
+                    <div class="full cg-entrata-extra">
                         <label for="cg_esami">Esami integrativi</label>
                         <textarea class="form-control" name="esami_integrativi" id="cg_esami" rows="2" placeholder="Materie, indicazioni, eventuale domanda esami integrativi"></textarea>
                     </div>
-                    <div class="full">
+                    <div class="full cg-entrata-extra">
                         <label for="cg_carenze">Carenze da recuperare</label>
                         <textarea class="form-control" name="carenze_note" id="cg_carenze" rows="2"></textarea>
                     </div>
@@ -511,12 +577,15 @@ function cg_receipt_link(array $row): string
                         <input type="file" class="form-control" name="allegato" id="cg_allegato" accept=".pdf,.jpg,.jpeg,.png">
                         <p class="help-block" id="cg_allegato_attuale"></p>
                     </div>
-                    <div class="full">
-                        <label>Storico colloquio</label>
+                </div>
+                </div>
+                <div class="cg-modal-side">
+                    <h4>Storico colloquio</h4>
                         <div class="cg-history-box" id="cg_history_box">
                             <span class="cg-muted">Nessuno storico registrato.</span>
                         </div>
-                    </div>
+                    <p class="help-block">Ogni salvataggio del colloquio resta tracciato qui.</p>
+                </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -581,6 +650,9 @@ function cg_receipt_link(array $row): string
         var ambito = document.getElementById('cg_ambito').value;
         document.getElementById('cg_entrata_panel').style.display = ambito === 'entrata' ? '' : 'none';
         document.getElementById('cg_uscita_panel').style.display = ambito === 'uscita' ? '' : 'none';
+        Array.prototype.forEach.call(document.querySelectorAll('.cg-entrata-extra'), function (el) {
+            el.style.display = ambito === 'uscita' ? 'none' : '';
+        });
     }
     function resetForm() {
         setValue('cg_id', '');
