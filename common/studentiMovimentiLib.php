@@ -168,6 +168,15 @@ function studentiMovimentiH($value): string
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+function studentiMovimentiCurrentActor(): string
+{
+    $name = trim((string)($GLOBALS['__utente_nome'] ?? '') . ' ' . (string)($GLOBALS['__utente_cognome'] ?? ''));
+    if ($name !== '') {
+        return $name;
+    }
+    return trim((string)($GLOBALS['__useremail'] ?? $GLOBALS['__username'] ?? ''));
+}
+
 function studentiMovimentiUploadDir(int $practiceId): string
 {
     return dirname(__DIR__) . '/data/movimenti_studenti/' . $practiceId;
@@ -188,7 +197,7 @@ function studentiMovimentiSavePractice(array $data): int
     studentiMovimentiEnsureTables();
 
     $id = intval($data['id'] ?? 0);
-    $createdBy = trim((string)($GLOBALS['__useremail'] ?? $GLOBALS['__username'] ?? ''));
+    $createdBy = studentiMovimentiCurrentActor();
     $fields = [
         'tipo_pratica' => trim((string)($data['tipo_pratica'] ?? 'entrata')),
         'stato_pratica' => trim((string)($data['stato_pratica'] ?? 'da_verificare')),
@@ -670,6 +679,15 @@ function studentiMovimentiFormatDateIt(?string $date): string
     return $match[3] . '/' . $match[2] . '/' . $match[1];
 }
 
+function studentiMovimentiFormatDateTimeIt(?string $dateTime): string
+{
+    $dateTime = trim((string)$dateTime);
+    if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/', $dateTime, $match)) {
+        return $dateTime;
+    }
+    return $match[3] . '/' . $match[2] . '/' . $match[1] . (isset($match[4]) && $match[4] !== '' ? ' ' . $match[4] . ':' . $match[5] : '');
+}
+
 function studentiMovimentiAttachFile(int $practiceId, array $file, string $type): void
 {
     if ($practiceId <= 0 || empty($file['tmp_name']) || intval($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
@@ -706,5 +724,5 @@ function studentiMovimentiAttachFile(int $practiceId, array $file, string $type)
     ");
     studentiMovimentiAddEvent($practiceId, 'allegato', 'Allegato aggiunto: ' . $original, [
         'note' => 'Tipo allegato: ' . $type,
-    ], trim((string)($GLOBALS['__useremail'] ?? $GLOBALS['__username'] ?? '')));
+    ], studentiMovimentiCurrentActor());
 }

@@ -282,6 +282,10 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
             <div id="iscrizioni_mail_progress_bar" class="iscrizioni-mail-progress-bar is-running"></div>
         </div>
         <div id="iscrizioni_mail_details" class="text-muted"></div>
+        <div id="iscrizioni_mail_confirm_actions" style="display:none;margin-top:16px;">
+            <button type="button" id="iscrizioni_mail_cancel" class="btn btn-default">Annulla</button>
+            <button type="button" id="iscrizioni_mail_confirm" class="btn btn-primary">Conferma invio</button>
+        </div>
         <button type="button" id="iscrizioni_mail_close" class="btn btn-primary" style="display:none;margin-top:16px;" onclick="iscrizioniPrimeHideMailOverlay()">Chiudi</button>
     </div>
 </div>
@@ -470,6 +474,11 @@ ITT Buonarroti - Trento</textarea>
             </div>
             <div id="iscrizioni_prime_result" class="alert" style="display:none;margin-top:12px;"></div>
             <hr>
+            <button type="button" class="btn btn-default" onclick="iscrizioniPrimeToggleInitialTools()">
+                <span id="iscrizioni_prime_initial_tools_icon" class="glyphicon glyphicon-chevron-down"></span>
+                <span id="iscrizioni_prime_initial_tools_label">Mostra bozza Gmail e import CSV</span>
+            </button>
+            <div id="iscrizioni_prime_initial_tools" style="display:none;margin-top:14px;">
             <div class="panel panel-default">
                 <div class="panel-heading"><strong>Bozza Gmail per invio mail</strong></div>
                 <div class="panel-body">
@@ -527,6 +536,7 @@ ITT Buonarroti - Trento</textarea>
                     </div>
                 </div>
             </form>
+            </div>
         </div>
     </div>
 
@@ -601,6 +611,21 @@ function iscrizioniPrimeSetText(id, value) {
 
 function iscrizioniPrimeNumber(value) {
     return value === undefined || value === null || value === '' ? 0 : value;
+}
+
+function iscrizioniPrimeToggleInitialTools() {
+    const box = document.getElementById('iscrizioni_prime_initial_tools');
+    const icon = document.getElementById('iscrizioni_prime_initial_tools_icon');
+    const label = document.getElementById('iscrizioni_prime_initial_tools_label');
+    if (!box) return;
+    const open = box.style.display === 'none' || box.style.display === '';
+    box.style.display = open ? 'block' : 'none';
+    if (icon) {
+        icon.className = 'glyphicon ' + (open ? 'glyphicon-chevron-up' : 'glyphicon-chevron-down');
+    }
+    if (label) {
+        label.textContent = open ? 'Nascondi bozza Gmail e import CSV' : 'Mostra bozza Gmail e import CSV';
+    }
 }
 
 function iscrizioniPrimeFindRowById(id) {
@@ -695,7 +720,7 @@ function iscrizioniPrimeFormatTextarea(id, mode) {
     field.selectionEnd = start + replacement.length;
 }
 
-function iscrizioniPrimeSendCustomMail() {
+async function iscrizioniPrimeSendCustomMail() {
     const id = Number(document.getElementById('custom_mail_id')?.value || 0);
     const subject = (document.getElementById('custom_mail_subject')?.value || '').trim();
     const message = (document.getElementById('custom_mail_message')?.value || '').trim();
@@ -725,9 +750,15 @@ function iscrizioniPrimeSendCustomMail() {
         }
         return;
     }
-    if (!confirm('Inviare questa comunicazione a ' + recipients.length + ' destinatari selezionati?')) {
+    const confirmed = await iscrizioniPrimeConfirmMailDialog(
+        'Conferma invio mail',
+        'La comunicazione sara inviata a ' + recipients.length + ' destinatari selezionati.',
+        recipients.map(iscrizioniPrimeEscape).join('<br>')
+    );
+    if (!confirmed) {
         return;
     }
+    iscrizioniPrimeShowMailOverlay('Invio mail in corso', 'GestOre sta inviando la comunicazione ai destinatari selezionati.');
 
     const data = new FormData();
     data.append('id', id);
@@ -755,15 +786,19 @@ function iscrizioniPrimeSendCustomMail() {
         if (!payload.ok || !payload.result.ok) {
             throw new Error(payload.result.message || 'Invio non riuscito.');
         }
-        alert(payload.result.message || 'Comunicazione inviata.');
+        iscrizioniPrimeCompleteMailOverlay(
+            true,
+            'Mail inviata',
+            payload.result.message || 'Comunicazione inviata.',
+            'Destinatari selezionati: <strong>' + recipients.length + '</strong>'
+        );
         iscrizioniPrimeCloseCustomMail();
     })
     .catch(err => {
+        iscrizioniPrimeCompleteMailOverlay(false, 'Invio non riuscito', err.message, '');
         if (error) {
             error.textContent = err.message;
             error.hidden = false;
-        } else {
-            alert(err.message);
         }
     })
     .finally(() => {
@@ -1149,6 +1184,9 @@ function iscrizioniPrimeShowMailOverlay(title, text) {
     document.getElementById('iscrizioni_mail_percent').textContent = iscrizioniPrimeMailProgressValue + '%';
     document.getElementById('iscrizioni_mail_details').textContent = '';
     document.getElementById('iscrizioni_mail_close').style.display = 'none';
+    document.getElementById('iscrizioni_mail_confirm_actions').style.display = 'none';
+    document.querySelector('.iscrizioni-mail-progress').style.display = '';
+    document.getElementById('iscrizioni_mail_percent').style.display = '';
     const bar = document.getElementById('iscrizioni_mail_progress_bar');
     bar.className = 'iscrizioni-mail-progress-bar';
     bar.style.width = iscrizioniPrimeMailProgressValue + '%';
@@ -1166,6 +1204,39 @@ function iscrizioniPrimeShowMailOverlay(title, text) {
     }, 900);
 }
 
+function iscrizioniPrimeConfirmMailDialog(title, text, details) {
+    if (iscrizioniPrimeMailProgressTimer) {
+        clearInterval(iscrizioniPrimeMailProgressTimer);
+        iscrizioniPrimeMailProgressTimer = null;
+    }
+    document.getElementById('iscrizioni_mail_overlay').style.display = 'flex';
+    document.getElementById('iscrizioni_mail_title').textContent = title;
+    document.getElementById('iscrizioni_mail_text').textContent = text;
+    document.getElementById('iscrizioni_mail_percent').style.display = 'none';
+    document.querySelector('.iscrizioni-mail-progress').style.display = 'none';
+    document.getElementById('iscrizioni_mail_details').innerHTML = details || '';
+    document.getElementById('iscrizioni_mail_close').style.display = 'none';
+    document.getElementById('iscrizioni_mail_confirm_actions').style.display = 'block';
+    document.getElementById('iscrizioni_mail_icon').style.background = '#1d4ed8';
+    document.getElementById('iscrizioni_mail_icon').innerHTML = '<span class="glyphicon glyphicon-envelope"></span>';
+
+    return new Promise(resolve => {
+        const cancel = document.getElementById('iscrizioni_mail_cancel');
+        const confirm = document.getElementById('iscrizioni_mail_confirm');
+        const cleanup = result => {
+            cancel.onclick = null;
+            confirm.onclick = null;
+            document.getElementById('iscrizioni_mail_confirm_actions').style.display = 'none';
+            if (!result) {
+                iscrizioniPrimeHideMailOverlay();
+            }
+            resolve(result);
+        };
+        cancel.onclick = () => cleanup(false);
+        confirm.onclick = () => cleanup(true);
+    });
+}
+
 function iscrizioniPrimeCompleteMailOverlay(ok, title, text, details) {
     if (iscrizioniPrimeMailProgressTimer) {
         clearInterval(iscrizioniPrimeMailProgressTimer);
@@ -1176,6 +1247,9 @@ function iscrizioniPrimeCompleteMailOverlay(ok, title, text, details) {
     document.getElementById('iscrizioni_mail_percent').textContent = ok ? '100%' : 'Errore';
     document.getElementById('iscrizioni_mail_details').innerHTML = details || '';
     document.getElementById('iscrizioni_mail_close').style.display = 'inline-block';
+    document.getElementById('iscrizioni_mail_confirm_actions').style.display = 'none';
+    document.querySelector('.iscrizioni-mail-progress').style.display = '';
+    document.getElementById('iscrizioni_mail_percent').style.display = '';
     const bar = document.getElementById('iscrizioni_mail_progress_bar');
     bar.className = 'iscrizioni-mail-progress-bar';
     bar.style.width = ok ? '100%' : '100%';
@@ -1186,6 +1260,9 @@ function iscrizioniPrimeCompleteMailOverlay(ok, title, text, details) {
 
 function iscrizioniPrimeHideMailOverlay() {
     document.getElementById('iscrizioni_mail_overlay').style.display = 'none';
+    document.getElementById('iscrizioni_mail_confirm_actions').style.display = 'none';
+    document.querySelector('.iscrizioni-mail-progress').style.display = '';
+    document.getElementById('iscrizioni_mail_percent').style.display = '';
 }
 
 function iscrizioniPrimeLoadTable() {

@@ -753,6 +753,24 @@ ITT Buonarroti - Trento</textarea>
     </div>
 </div>
 
+<div id="ipdMessageModal" class="ipd-modal-backdrop" aria-hidden="true">
+    <div class="ipd-modal-box" role="dialog" aria-modal="true" aria-labelledby="ipdMessageTitle" style="max-width:560px;text-align:center;">
+        <div class="ipd-modal-body" style="padding:28px 24px;">
+            <div id="ipdMessageIcon" style="width:68px;height:68px;border-radius:50%;background:#1d4ed8;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:12px;">
+                <span class="glyphicon glyphicon-envelope"></span>
+            </div>
+            <h3 id="ipdMessageTitle" style="font-size:26px;font-weight:800;color:#0f172a;margin:0 0 8px;">Conferma invio</h3>
+            <p id="ipdMessageText" class="text-muted" style="font-size:16px;line-height:1.45;margin-bottom:12px;"></p>
+            <div id="ipdMessageDetails" class="text-muted"></div>
+        </div>
+        <div class="ipd-modal-actions" id="ipdMessageActions">
+            <button type="button" class="btn btn-default" id="ipdMessageCancel">Annulla</button>
+            <button type="button" class="btn btn-primary" id="ipdMessageConfirm">Conferma invio</button>
+            <button type="button" class="btn btn-primary" id="ipdMessageClose" style="display:none;">Chiudi</button>
+        </div>
+    </div>
+</div>
+
 <div id="ipdStatusNoteModal" class="ipd-modal-backdrop" aria-hidden="true">
     <div class="ipd-modal-box" role="dialog" aria-modal="true" aria-labelledby="ipdStatusNoteTitle">
         <div id="ipdStatusNoteTitle" class="ipd-modal-head" style="background:#334155;">Aggiorna stato pratica</div>
@@ -1180,6 +1198,60 @@ function ipdCloseCustomMailModal() {
     ipdCustomMailPraticaId = 0;
 }
 
+function ipdShowMessageModal(title, text, details, mode) {
+    const modal = document.getElementById('ipdMessageModal');
+    const icon = document.getElementById('ipdMessageIcon');
+    const close = document.getElementById('ipdMessageClose');
+    document.getElementById('ipdMessageTitle').textContent = title;
+    document.getElementById('ipdMessageText').textContent = text;
+    document.getElementById('ipdMessageDetails').innerHTML = details || '';
+    document.getElementById('ipdMessageCancel').style.display = 'none';
+    document.getElementById('ipdMessageConfirm').style.display = 'none';
+    close.style.display = 'inline-block';
+    close.onclick = () => ipdCloseMessageModal();
+    icon.style.background = mode === 'error' ? '#dc2626' : (mode === 'success' ? '#16a34a' : '#1d4ed8');
+    icon.innerHTML = mode === 'error'
+        ? '<span class="glyphicon glyphicon-alert"></span>'
+        : (mode === 'success' ? '<span class="glyphicon glyphicon-ok"></span>' : '<span class="glyphicon glyphicon-envelope"></span>');
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function ipdCloseMessageModal() {
+    const modal = document.getElementById('ipdMessageModal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+}
+
+function ipdConfirmMessageModal(title, text, details) {
+    const modal = document.getElementById('ipdMessageModal');
+    const cancel = document.getElementById('ipdMessageCancel');
+    const confirm = document.getElementById('ipdMessageConfirm');
+    const close = document.getElementById('ipdMessageClose');
+    const icon = document.getElementById('ipdMessageIcon');
+    document.getElementById('ipdMessageTitle').textContent = title;
+    document.getElementById('ipdMessageText').textContent = text;
+    document.getElementById('ipdMessageDetails').innerHTML = details || '';
+    cancel.style.display = 'inline-block';
+    confirm.style.display = 'inline-block';
+    close.style.display = 'none';
+    icon.style.background = '#1d4ed8';
+    icon.innerHTML = '<span class="glyphicon glyphicon-envelope"></span>';
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+
+    return new Promise(resolve => {
+        const cleanup = result => {
+            cancel.onclick = null;
+            confirm.onclick = null;
+            ipdCloseMessageModal();
+            resolve(result);
+        };
+        cancel.onclick = () => cleanup(false);
+        confirm.onclick = () => cleanup(true);
+    });
+}
+
 function ipdOpenBulkMailModal() {
     const modal = document.getElementById('ipdBulkMailModal');
     const message = document.getElementById('ipdBulkMailMessage');
@@ -1480,7 +1552,7 @@ async function ipdStartBulkMail() {
     }
 }
 
-function ipdSendCustomMail() {
+async function ipdSendCustomMail() {
     const subject = document.getElementById('ipdCustomMailSubject');
     const message = document.getElementById('ipdCustomMailMessage');
     const signature = document.getElementById('ipdCustomMailSignature');
@@ -1504,7 +1576,12 @@ function ipdSendCustomMail() {
         }
         return;
     }
-    if (!confirm('Inviare questa comunicazione a ' + recipients.length + ' destinatari selezionati?')) {
+    const confirmed = await ipdConfirmMessageModal(
+        'Conferma invio mail',
+        'La comunicazione sara inviata a ' + recipients.length + ' destinatari selezionati.',
+        recipients.map(ipdEscape).join('<br>')
+    );
+    if (!confirmed) {
         return;
     }
 
@@ -1525,16 +1602,20 @@ function ipdSendCustomMail() {
         if (!payload.ok || !payload.result.ok) {
             throw new Error(payload.result.message || 'Invio non riuscito.');
         }
-        alert(payload.result.message || 'Comunicazione inviata.');
         ipdCloseCustomMailModal();
-        window.location.reload();
+        ipdShowMessageModal(
+            'Mail inviata',
+            payload.result.message || 'Comunicazione inviata.',
+            'Destinatari selezionati: <strong>' + recipients.length + '</strong>',
+            'success'
+        );
+        document.getElementById('ipdMessageClose').onclick = () => window.location.reload();
     })
     .catch(err => {
+        ipdShowMessageModal('Invio non riuscito', err.message, '', 'error');
         if (error) {
             error.textContent = err.message;
             error.hidden = false;
-        } else {
-            alert(err.message);
         }
     });
 }

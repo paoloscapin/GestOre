@@ -444,7 +444,7 @@ function ms_data_attr($value): string
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </td>
-                            <td><?php echo studentiMovimentiH(substr((string)($row['updated_at'] ?? ''), 0, 16)); ?></td>
+                            <td><?php echo studentiMovimentiH(studentiMovimentiFormatDateTimeIt((string)($row['updated_at'] ?? ''))); ?></td>
                             <td class="text-right">
                                 <button type="button"
                                         class="btn btn-default btn-xs ms-edit"
