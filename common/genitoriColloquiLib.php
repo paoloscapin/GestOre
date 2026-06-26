@@ -137,6 +137,91 @@ function genitoriColloquiAllowed(string $value, array $allowed, string $default)
     return in_array($value, $allowed, true) ? $value : $default;
 }
 
+function genitoriColloquiFindOrCreateStudentForEntrata(array $fields): int
+{
+    $cognome = trim((string)($fields['cognome'] ?? ''));
+    $nome = trim((string)($fields['nome'] ?? ''));
+    $cf = strtoupper(trim((string)($fields['codice_fiscale'] ?? '')));
+    if ($cognome === '' || $nome === '') {
+        return 0;
+    }
+
+    if ($cf !== '') {
+        $studentId = intval(dbGetValue("
+            SELECT id
+            FROM studente
+            WHERE UPPER(TRIM(codice_fiscale)) = " . dbQ($cf) . "
+            LIMIT 1
+        ") ?? 0);
+        if ($studentId > 0) {
+            return $studentId;
+        }
+    }
+
+    $studentId = intval(dbGetValue("
+        SELECT id
+        FROM studente
+        WHERE LOWER(TRIM(cognome)) = LOWER(" . dbQ($cognome) . ")
+          AND LOWER(TRIM(nome)) = LOWER(" . dbQ($nome) . ")
+        LIMIT 1
+    ") ?? 0);
+    if ($studentId > 0) {
+        return $studentId;
+    }
+
+    dbExec("
+        INSERT INTO studente (cognome, nome, email, username, codice_fiscale, sesso, attivo)
+        VALUES (
+            " . dbQ($cognome) . ",
+            " . dbQ($nome) . ",
+            NULL,
+            '',
+            " . dbQ($cf) . ",
+            NULL,
+            1
+        )
+    ");
+
+    return intval(dblastId());
+}
+
+function genitoriColloquiAutoCreateEntrataIfNeeded(array $fields): array
+{
+    if (($fields['ambito'] ?? '') !== 'entrata') {
+        return $fields;
+    }
+    if (!empty($fields['id_pratica_iscrizione']) || !empty($fields['id_movimento'])) {
+        return $fields;
+    }
+
+    $studentId = genitoriColloquiFindOrCreateStudentForEntrata($fields);
+    if ($studentId <= 0) {
+        return $fields;
+    }
+
+    $movementId = studentiMovimentiSavePractice([
+        'tipo_pratica' => 'entrata',
+        'stato_pratica' => 'contatto_ricevuto',
+        'id_studente' => $studentId,
+        'cognome' => $fields['cognome'] ?? '',
+        'nome' => $fields['nome'] ?? '',
+        'codice_fiscale' => $fields['codice_fiscale'] ?? '',
+        'classe_richiesta' => $fields['classe_iscrizione'] ?: ($fields['classe'] ?? ''),
+        'anno_corso' => $fields['anno_corso'] ?? null,
+        'id_istituto_destinazione' => $fields['id_istituto_destinazione'] ?? null,
+        'scuola_destinazione' => $fields['scuola_destinazione'] ?? '',
+        'indirizzo_destinazione' => $fields['indirizzo_destinazione'] ?? '',
+        'esami_integrativi' => trim((string)($fields['esami_integrativi'] ?? '')) !== '' ? 1 : 0,
+        'fonte' => 'colloquio_genitori',
+        'note' => trim((string)($fields['note'] ?? '')),
+    ]);
+    if ($movementId > 0) {
+        $fields['id_movimento'] = $movementId;
+    }
+
+    return $fields;
+}
+
 function genitoriColloquiSave(array $data, ?array $file = null, ?array $receiptFile = null): int
 {
     genitoriColloquiEnsureTables();
@@ -182,6 +267,7 @@ function genitoriColloquiSave(array $data, ?array $file = null, ?array $receiptF
         'libri_note' => trim((string)($data['libri_note'] ?? '')),
         'note' => trim((string)($data['note'] ?? '')),
     ];
+    $fields = genitoriColloquiAutoCreateEntrataIfNeeded($fields);
 
     if ($id > 0) {
         dbExec("
@@ -516,7 +602,7 @@ function genitoriColloquiIscrizioniOptions(): array
     return dbGetAll("
         SELECT id, tipo_iscrizione, cognome, nome, codice_fiscale, corso_studi, stato
         FROM iscrizioni_prime_pratiche
-        WHERE stato IN ('inviata','verificata','da_integrare','annullata')
+        WHERE stato IN ('importata','bozza','inviata','verificata','da_integrare','annullata')
         ORDER BY cognome ASC, nome ASC
         LIMIT 800
     ") ?: [];
