@@ -351,15 +351,6 @@ function formazioneClassiInitQuinte(array $session, string $indirizzo): void
         return;
     }
 
-    $existingRows = dbGetValue("
-        SELECT COUNT(*)
-        FROM formazione_classi_studenti
-        WHERE id_sessione = " . dbI($sessionId) . "
-    ");
-    if (intval($existingRows ?? 0) > 0) {
-        return;
-    }
-
     $promossi = formazioneClassiTabelloneRows($sourceYearId, 4, $indirizzo, ['ammesso', 'anno_estero']);
     foreach ($promossi as $row) {
         $sourceLabel = (string)($row['classe_effettiva'] ?? '');
@@ -423,17 +414,49 @@ function formazioneClassiQuinteState(int $sourceYearId, int $targetYearId, strin
     formazioneClassiInitQuinte($session, $indirizzo);
 
     $rows = dbGetAll("
-        SELECT f.*, s.cognome, s.nome, s.codice_fiscale, s.sesso
+        SELECT
+            f.*,
+            s.cognome,
+            s.nome,
+            s.codice_fiscale,
+            s.sesso,
+            mp_note.note AS movimento_note,
+            mp_note.tipo_pratica AS movimento_tipo_pratica,
+            mp_note.stato_pratica AS movimento_stato_pratica,
+            mp_note.updated_at AS movimento_updated_at
         FROM formazione_classi_studenti f
         LEFT JOIN studente s ON s.id = f.id_studente
-        LEFT JOIN studenti_movimenti_pratiche mp ON mp.id_studente = f.id_studente
-            AND mp.tipo_pratica IN ('bocciato_reiscrizione', 'uscita', 'ritiro')
-            AND mp.stato_pratica <> 'annullata'
+        LEFT JOIN studenti_movimenti_pratiche mp_status ON mp_status.id_studente = f.id_studente
+            AND mp_status.tipo_pratica IN ('bocciato_reiscrizione', 'uscita', 'ritiro')
+            AND mp_status.stato_pratica <> 'annullata'
+            AND mp_status.id = (
+                SELECT mp1.id
+                FROM studenti_movimenti_pratiche mp1
+                WHERE mp1.id_studente = f.id_studente
+                  AND mp1.tipo_pratica IN ('bocciato_reiscrizione', 'uscita', 'ritiro')
+                  AND mp1.stato_pratica <> 'annullata'
+                ORDER BY mp1.updated_at DESC, mp1.id DESC
+                LIMIT 1
+            )
+        LEFT JOIN studenti_movimenti_pratiche mp_note ON mp_note.id_studente = f.id_studente
+            AND mp_note.tipo_pratica IN ('bocciato_reiscrizione', 'uscita', 'ritiro')
+            AND mp_note.stato_pratica <> 'annullata'
+            AND mp_note.id = (
+                SELECT mp2.id
+                FROM studenti_movimenti_pratiche mp2
+                WHERE mp2.id_studente = f.id_studente
+                  AND mp2.tipo_pratica IN ('bocciato_reiscrizione', 'uscita', 'ritiro')
+                  AND mp2.stato_pratica <> 'annullata'
+                  AND TRIM(COALESCE(mp2.note, '')) <> ''
+                ORDER BY mp2.updated_at DESC, mp2.id DESC
+                LIMIT 1
+            )
         WHERE f.id_sessione = " . dbI($session['id'] ?? 0) . "
           AND (
                 f.gruppo_origine <> 'bocciato'
-                OR mp.id IS NULL
-                OR mp.stato_pratica = 'reiscrizione_confermata'
+                OR TRIM(COALESCE(f.classe_provvisoria_label, '')) <> ''
+                OR mp_status.id IS NULL
+                OR mp_status.stato_pratica = 'reiscrizione_confermata'
           )
         ORDER BY COALESCE(f.classe_provvisoria_label, 'ZZZ') ASC,
                  COALESCE(s.cognome, f.studente_nome) ASC,
@@ -493,6 +516,10 @@ function formazioneClassiStudentView(array $row): array
         'voto_matematica' => formazioneClassiNullableFloat($row['voto_matematica'] ?? null),
         'voto_italiano' => formazioneClassiNullableFloat($row['voto_italiano'] ?? null),
         'voto_capacita_relazionale' => formazioneClassiNullableFloat($row['voto_capacita_relazionale'] ?? null),
+        'note_formazione' => trim((string)($row['movimento_note'] ?? '')),
+        'note_formazione_origine' => trim((string)($row['movimento_tipo_pratica'] ?? '')),
+        'note_formazione_stato' => trim((string)($row['movimento_stato_pratica'] ?? '')),
+        'note_formazione_updated_at' => trim((string)($row['movimento_updated_at'] ?? '')),
     ];
 }
 

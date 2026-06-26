@@ -21,7 +21,7 @@ if (empty($addressOptions)) {
     $addressOptions = formazioneClassiAddressOptions($sourceYearId, 4);
 }
 $indirizzo = trim((string)($_GET['indirizzo'] ?? ''));
-if ($indirizzo === '' && !empty($addressOptions)) {
+if (($indirizzo === '' || !array_key_exists($indirizzo, $addressOptions)) && !empty($addressOptions)) {
     $indirizzo = (string)array_key_first($addressOptions);
 }
 
@@ -169,6 +169,22 @@ function fc_select($a, $b): string
             display: flex;
             flex-wrap: wrap;
             gap: 4px;
+        }
+        .fc-student-note {
+            margin-top: 7px;
+            padding: 6px 7px;
+            border-radius: 4px;
+            background: #fff7ed;
+            border: 1px solid #fdba74;
+            color: #7c2d12;
+            font-size: 12px;
+            line-height: 1.35;
+            white-space: pre-wrap;
+        }
+        .fc-student-note strong {
+            display: block;
+            color: #9a3412;
+            margin-bottom: 2px;
         }
         .fc-chip {
             border-radius: 3px;
@@ -336,11 +352,11 @@ function fc_select($a, $b): string
     <div class="panel panel-lightblue4">
         <div class="panel-heading"><span class="glyphicon glyphicon-th-large"></span>&emsp;Formazione classi - future quinte</div>
         <div class="panel-body">
-            <form method="get" class="fc-toolbar">
+            <form method="get" class="fc-toolbar" id="fc_filter_form">
                 <div class="fc-toolbar-row">
                     <div class="form-group">
                         <label>Anno origine tabelloni</label>
-                        <select name="anno_origine_id" class="form-control input-sm">
+                        <select name="anno_origine_id" class="form-control input-sm fc-filter-select">
                             <?php foreach ($schoolYears as $year): ?>
                                 <option value="<?php echo intval($year['id']); ?>" <?php echo fc_select($sourceYearId, $year['id']); ?>>
                                     <?php echo formazioneClassiH($year['anno'] ?? $year['id']); ?>
@@ -350,7 +366,7 @@ function fc_select($a, $b): string
                     </div>
                     <div class="form-group">
                         <label>Anno classi da formare</label>
-                        <select name="anno_target_id" class="form-control input-sm">
+                        <select name="anno_target_id" class="form-control input-sm fc-filter-select">
                             <?php foreach ($schoolYears as $year): ?>
                                 <option value="<?php echo intval($year['id']); ?>" <?php echo fc_select($targetYearId, $year['id']); ?>>
                                     <?php echo formazioneClassiH($year['anno'] ?? $year['id']); ?>
@@ -360,7 +376,7 @@ function fc_select($a, $b): string
                     </div>
                     <div class="form-group">
                         <label>Indirizzo</label>
-                        <select name="indirizzo" class="form-control input-sm">
+                        <select name="indirizzo" class="form-control input-sm fc-filter-select">
                             <?php foreach ($addressOptions as $addressKey => $addressLabel): ?>
                                 <option value="<?php echo formazioneClassiH($addressKey); ?>" <?php echo fc_select($indirizzo, $addressKey); ?>>
                                     <?php echo formazioneClassiH($addressLabel); ?>
@@ -432,6 +448,15 @@ function fc_select($a, $b): string
 <script>
 const fcSessionId = Number(document.querySelector('.fc-layout')?.dataset.sessionId || 0);
 let fcDraggedId = 0;
+
+document.querySelectorAll('.fc-filter-select').forEach(function (select) {
+    select.addEventListener('change', function () {
+        const form = document.getElementById('fc_filter_form');
+        if (form) {
+            form.submit();
+        }
+    });
+});
 
 document.querySelectorAll('.fc-student').forEach(function (card) {
     card.addEventListener('dragstart', function (event) {
@@ -681,7 +706,22 @@ function fc_render_student(array $student): string
     $html .= '<span class="fc-chip">Mat ' . formazioneClassiH(formazioneClassiFormatAvg($student['voto_matematica'] ?? null)) . '</span>';
     $html .= '<span class="fc-chip">Ita ' . formazioneClassiH(formazioneClassiFormatAvg($student['voto_italiano'] ?? null)) . '</span>';
     $html .= '<span class="fc-chip">Rel ' . formazioneClassiH(formazioneClassiFormatAvg($student['voto_capacita_relazionale'] ?? null)) . '</span>';
-    $html .= '</div></div>';
+    $html .= '</div>';
+    if (trim((string)($student['note_formazione'] ?? '')) !== '') {
+        $noteMeta = [];
+        if (trim((string)($student['note_formazione_origine'] ?? '')) !== '') {
+            $noteMeta[] = str_replace('_', ' ', (string)$student['note_formazione_origine']);
+        }
+        if (trim((string)($student['note_formazione_stato'] ?? '')) !== '') {
+            $noteMeta[] = str_replace('_', ' ', (string)$student['note_formazione_stato']);
+        }
+        $title = 'Nota segreteria';
+        if ($noteMeta) {
+            $title .= ' - ' . implode(' / ', $noteMeta);
+        }
+        $html .= '<div class="fc-student-note"><strong>' . formazioneClassiH($title) . '</strong>' . formazioneClassiH($student['note_formazione']) . '</div>';
+    }
+    $html .= '</div>';
     return $html;
 }
 
