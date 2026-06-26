@@ -218,6 +218,53 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
         @media (max-width: 760px) {
             .cambio-scuola-grid { grid-template-columns: 1fr; }
         }
+        .custom-mail-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 9998;
+            background: rgba(15, 23, 42, 0.62);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+        }
+        .custom-mail-modal.open { display: flex; }
+        .custom-mail-card {
+            width: min(760px, 100%);
+            max-height: calc(100vh - 36px);
+            overflow: auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 22px 56px rgba(0,0,0,.28);
+        }
+        .custom-mail-head {
+            padding: 16px 18px;
+            background: #1d4ed8;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 800;
+        }
+        .custom-mail-body { padding: 18px; }
+        .custom-mail-field { margin-bottom: 12px; }
+        .custom-mail-field label { display: block; font-weight: 700; margin-bottom: 5px; }
+        .custom-mail-field input[type="text"],
+        .custom-mail-field textarea {
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 9px 10px;
+            background: #fff;
+        }
+        .custom-mail-field textarea { min-height: 150px; resize: vertical; }
+        .custom-mail-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 12px 18px;
+            border-top: 1px solid #e5e7eb;
+            background: #f8fafc;
+        }
+        .custom-mail-tools { margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 5px; }
     </style>
 </head>
 <body>
@@ -328,6 +375,44 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
                 <button type="submit" class="btn btn-danger">Salva cambio scuola</button>
             </div>
         </form>
+    </div>
+</div>
+
+<div id="custom_mail_modal" class="custom-mail-modal" aria-hidden="true">
+    <div class="custom-mail-card" role="dialog" aria-modal="true" aria-labelledby="custom_mail_title">
+        <div id="custom_mail_title" class="custom-mail-head">Scrivi ai genitori</div>
+        <div class="custom-mail-body">
+            <input type="hidden" id="custom_mail_id">
+            <p id="custom_mail_student" class="text-muted"></p>
+            <div class="custom-mail-field">
+                <label>Destinatari</label>
+                <div id="custom_mail_recipients" class="well well-sm" style="margin-bottom:0;"></div>
+            </div>
+            <div class="custom-mail-field">
+                <label for="custom_mail_subject">Oggetto</label>
+                <input type="text" id="custom_mail_subject" value="Comunicazione pratica iscrizione">
+            </div>
+            <div class="custom-mail-field">
+                <label for="custom_mail_message">Messaggio</label>
+                <div class="custom-mail-tools">
+                    <button type="button" class="btn btn-default btn-xs" onclick="iscrizioniPrimeFormatTextarea('custom_mail_message', 'bold')"><strong>B</strong></button>
+                    <button type="button" class="btn btn-default btn-xs" onclick="iscrizioniPrimeFormatTextarea('custom_mail_message', 'ul')">Elenco puntato</button>
+                    <button type="button" class="btn btn-default btn-xs" onclick="iscrizioniPrimeFormatTextarea('custom_mail_message', 'ol')">Elenco numerato</button>
+                </div>
+                <textarea id="custom_mail_message" placeholder="Scrivi qui il testo da inviare ai genitori."></textarea>
+                <div class="help-block">Puoi usare **testo** per il grassetto, "- " per elenco puntato e "1. " per elenco numerato.</div>
+            </div>
+            <div class="custom-mail-field">
+                <label for="custom_mail_signature">Firma</label>
+                <textarea id="custom_mail_signature" style="min-height:90px;">Segreteria didattica
+ITT Buonarroti - Trento</textarea>
+            </div>
+            <div id="custom_mail_error" class="text-danger" style="margin-top:8px;" hidden></div>
+        </div>
+        <div class="custom-mail-actions">
+            <button type="button" class="btn btn-default" onclick="iscrizioniPrimeCloseCustomMail()">Annulla</button>
+            <button type="button" class="btn btn-primary" id="custom_mail_send_button" onclick="iscrizioniPrimeSendCustomMail()">Invia mail</button>
+        </div>
     </div>
 </div>
 
@@ -518,6 +603,177 @@ function iscrizioniPrimeNumber(value) {
     return value === undefined || value === null || value === '' ? 0 : value;
 }
 
+function iscrizioniPrimeFindRowById(id) {
+    id = Number(id || 0);
+    return iscrizioniPrimeRows.find(row => Number(row.id || 0) === id) || null;
+}
+
+function iscrizioniPrimeRenderCustomMailRecipients(row) {
+    const box = document.getElementById('custom_mail_recipients');
+    if (!box) return;
+    const items = [];
+    const seen = {};
+    [['Genitore 1', row?.email_genitore_1 || ''], ['Genitore 2', row?.email_genitore_2 || '']].forEach(item => {
+        const email = String(item[1] || '').trim().toLowerCase();
+        if (!email || seen[email]) return;
+        seen[email] = true;
+        items.push('<label style="display:block;margin:4px 0;font-weight:600;">'
+            + '<input type="checkbox" class="custom-mail-recipient" value="' + iscrizioniPrimeEscape(email) + '" checked> '
+            + iscrizioniPrimeEscape(item[0]) + ' - ' + iscrizioniPrimeEscape(email)
+            + '</label>');
+    });
+    box.innerHTML = items.length ? items.join('') : '<span class="text-danger">Nessuna email genitore presente nella pratica.</span>';
+}
+
+function iscrizioniPrimeOpenCustomMail(id) {
+    const row = iscrizioniPrimeFindRowById(id);
+    if (!row) {
+        alert('Pratica non trovata.');
+        return;
+    }
+    document.getElementById('custom_mail_id').value = Number(row.id || 0);
+    document.getElementById('custom_mail_student').textContent = 'Pratica di ' + String((row.cognome || '') + ' ' + (row.nome || '')).trim();
+    const subject = document.getElementById('custom_mail_subject');
+    const message = document.getElementById('custom_mail_message');
+    const error = document.getElementById('custom_mail_error');
+    if (subject && subject.value.trim() === '') {
+        subject.value = 'Comunicazione pratica iscrizione';
+    }
+    if (message) {
+        message.value = '';
+    }
+    iscrizioniPrimeRenderCustomMailRecipients(row);
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+    const button = document.getElementById('custom_mail_send_button');
+    if (button) {
+        button.disabled = false;
+        button.textContent = 'Invia mail';
+    }
+    const modal = document.getElementById('custom_mail_modal');
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => message && message.focus(), 50);
+}
+
+function iscrizioniPrimeCloseCustomMail() {
+    const modal = document.getElementById('custom_mail_modal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.getElementById('custom_mail_id').value = '';
+}
+
+function iscrizioniPrimeFormatTextarea(id, mode) {
+    const field = document.getElementById(id);
+    if (!field) return;
+    const start = field.selectionStart || 0;
+    const end = field.selectionEnd || 0;
+    const selected = field.value.substring(start, end);
+    let replacement = selected;
+
+    if (mode === 'bold') {
+        replacement = selected ? '**' + selected + '**' : '**testo in grassetto**';
+    } else if (mode === 'ul') {
+        const source = selected || 'prima voce\nseconda voce';
+        replacement = source.split(/\r?\n/).map(line => {
+            line = line.replace(/^\s*[-*]\s+/, '').trim();
+            return line ? '- ' + line : '';
+        }).join('\n');
+    } else if (mode === 'ol') {
+        const source = selected || 'prima voce\nseconda voce';
+        replacement = source.split(/\r?\n/).map((line, index) => {
+            line = line.replace(/^\s*\d+[.)]\s+/, '').trim();
+            return line ? (index + 1) + '. ' + line : '';
+        }).join('\n');
+    }
+
+    field.value = field.value.substring(0, start) + replacement + field.value.substring(end);
+    field.focus();
+    field.selectionStart = start;
+    field.selectionEnd = start + replacement.length;
+}
+
+function iscrizioniPrimeSendCustomMail() {
+    const id = Number(document.getElementById('custom_mail_id')?.value || 0);
+    const subject = (document.getElementById('custom_mail_subject')?.value || '').trim();
+    const message = (document.getElementById('custom_mail_message')?.value || '').trim();
+    const signature = (document.getElementById('custom_mail_signature')?.value || '').trim();
+    const recipients = Array.from(document.querySelectorAll('.custom-mail-recipient:checked')).map(el => el.value);
+    const error = document.getElementById('custom_mail_error');
+    const button = document.getElementById('custom_mail_send_button');
+
+    if (id <= 0) {
+        if (error) {
+            error.textContent = 'Pratica non valida.';
+            error.hidden = false;
+        }
+        return;
+    }
+    if (subject === '' || message.length < 4) {
+        if (error) {
+            error.textContent = 'Inserire oggetto e testo della comunicazione.';
+            error.hidden = false;
+        }
+        return;
+    }
+    if (recipients.length <= 0) {
+        if (error) {
+            error.textContent = 'Selezionare almeno un destinatario.';
+            error.hidden = false;
+        }
+        return;
+    }
+    if (!confirm('Inviare questa comunicazione a ' + recipients.length + ' destinatari selezionati?')) {
+        return;
+    }
+
+    const data = new FormData();
+    data.append('id', id);
+    data.append('subject', subject);
+    data.append('message', message);
+    data.append('signature', signature);
+    recipients.forEach(email => data.append('recipients[]', email));
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Invio...';
+    }
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+
+    fetch('iscrizioniPrimeMailPratica.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(result => ({ok: response.ok, result})))
+    .then(payload => {
+        if (!payload.ok || !payload.result.ok) {
+            throw new Error(payload.result.message || 'Invio non riuscito.');
+        }
+        alert(payload.result.message || 'Comunicazione inviata.');
+        iscrizioniPrimeCloseCustomMail();
+    })
+    .catch(err => {
+        if (error) {
+            error.textContent = err.message;
+            error.hidden = false;
+        } else {
+            alert(err.message);
+        }
+    })
+    .finally(() => {
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Invia mail';
+        }
+    });
+}
+
 function iscrizioniPrimeUpdateStats(stats, mailStats) {
     stats = stats || {};
     mailStats = mailStats || {};
@@ -655,6 +911,7 @@ function iscrizioniPrimeRenderTable() {
             '<td>' + token + '</td>' +
             '<td>' +
                 '<button type="button" class="btn btn-xs btn-info" onclick="iscrizioniPrimeOpenTestLink(' + Number(row.id) + ')"><span class="glyphicon glyphicon-new-window"></span> Apri</button> ' +
+                '<button type="button" class="btn btn-xs btn-primary" onclick="iscrizioniPrimeOpenCustomMail(' + Number(row.id) + ')"><span class="glyphicon glyphicon-envelope"></span> Scrivi</button> ' +
                 '<button type="button" class="btn btn-xs btn-danger" onclick="iscrizioniPrimeOpenCambioScuola(' + Number(row.id) + ')"><span class="glyphicon glyphicon-transfer"></span> Cambio scuola</button>' +
             '</td>' +
             '</tr>';

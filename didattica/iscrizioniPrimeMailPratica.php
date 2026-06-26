@@ -12,6 +12,10 @@ $id = intval($_POST['id'] ?? 0);
 $subject = trim((string)($_POST['subject'] ?? ''));
 $message = trim((string)($_POST['message'] ?? ''));
 $signature = trim((string)($_POST['signature'] ?? ''));
+$recipients = $_POST['recipients'] ?? null;
+if ($recipients !== null && !is_array($recipients)) {
+    $recipients = [$recipients];
+}
 
 if ($id <= 0) {
     http_response_code(400);
@@ -39,7 +43,7 @@ try {
         exit;
     }
 
-    $result = iscrizioniPrimeSendCustomPracticeMail($pratica, $subject, $message, $signature);
+    $result = iscrizioniPrimeSendCustomPracticeMail($pratica, $subject, $message, $signature, $recipients);
     if (empty($result['ok'])) {
         http_response_code(500);
     }

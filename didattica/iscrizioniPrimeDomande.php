@@ -356,7 +356,10 @@ foreach ($pratiche as $praticaEvento) {
                     <span class="label <?php echo ipd_badge_class((string)$pratica['stato']); ?>"><?php echo ipd_h($pratica['stato']); ?></span>
                     <div class="btn-group btn-group-sm">
                         <button type="button" class="btn btn-info ipd-toggle" onclick="ipdToggleDettagli(<?php echo intval($pratica['id']); ?>, this)">Dettagli</button>
-                        <button type="button" class="btn btn-primary" title="Invia una comunicazione personalizzata ai genitori collegati alla pratica." onclick="ipdOpenCustomMailModal(<?php echo intval($pratica['id']); ?>, <?php echo ipd_h(json_encode($nome, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT)); ?>)">Scrivi ai genitori</button>
+                        <button type="button" class="btn btn-primary" title="Invia una comunicazione personalizzata ai genitori collegati alla pratica." onclick="ipdOpenCustomMailModal(<?php echo intval($pratica['id']); ?>, <?php echo ipd_h(json_encode($nome, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT)); ?>, <?php echo ipd_h(json_encode([
+                            'genitore1' => strtolower(trim((string)($pratica['email_genitore_1'] ?? ''))),
+                            'genitore2' => strtolower(trim((string)($pratica['email_genitore_2'] ?? ''))),
+                        ], JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT)); ?>)">Scrivi ai genitori</button>
                         <button type="button" class="btn btn-success" title="La pratica e stata controllata ed e completa." onclick="ipdSetStato(<?php echo intval($pratica['id']); ?>, 'verificata')">Segna verificata</button>
                         <button type="button" class="btn btn-warning" title="Riapre la pratica e invia una mail ai genitori." onclick="ipdSetStato(<?php echo intval($pratica['id']); ?>, 'da_integrare')">Richiedi integrazione</button>
                         <button type="button" class="btn btn-default" title="Riporta la pratica allo stato ricevuto/inviata." onclick="ipdSetStato(<?php echo intval($pratica['id']); ?>, 'inviata')">Rimetti in inviata</button>
@@ -700,6 +703,10 @@ ITT Buonarroti - Trento</textarea>
         <div id="ipdCustomMailTitle" class="ipd-modal-head" style="background:#1d4ed8;">Scrivi ai genitori</div>
         <div class="ipd-modal-body">
             <p id="ipdCustomMailStudent" class="text-muted"></p>
+            <div class="ipd-modal-field">
+                <label>Destinatari</label>
+                <div id="ipdCustomMailRecipients" class="well well-sm" style="margin-bottom:0;"></div>
+            </div>
             <div class="ipd-modal-field">
                 <label for="ipdCustomMailSubject">Oggetto</label>
                 <input type="text" id="ipdCustomMailSubject" value="Comunicazione pratica iscrizione">
@@ -1123,7 +1130,24 @@ document.getElementById('ipdCambioScuolaForm').addEventListener('submit', functi
     });
 });
 
-function ipdOpenCustomMailModal(id, studentName) {
+function ipdRenderCustomMailRecipients(containerId, recipients) {
+    const box = document.getElementById(containerId);
+    if (!box) return;
+    const items = [];
+    const seen = {};
+    [['Genitore 1', recipients?.genitore1 || ''], ['Genitore 2', recipients?.genitore2 || '']].forEach(item => {
+        const email = String(item[1] || '').trim().toLowerCase();
+        if (!email || seen[email]) return;
+        seen[email] = true;
+        items.push('<label style="display:block;margin:4px 0;font-weight:600;">'
+            + '<input type="checkbox" class="ipd-custom-mail-recipient" value="' + ipdEscape(email) + '" checked> '
+            + ipdEscape(item[0]) + ' - ' + ipdEscape(email)
+            + '</label>');
+    });
+    box.innerHTML = items.length ? items.join('') : '<span class="text-danger">Nessuna email genitore presente nella pratica.</span>';
+}
+
+function ipdOpenCustomMailModal(id, studentName, recipients) {
     ipdCustomMailPraticaId = id;
     const modal = document.getElementById('ipdCustomMailModal');
     const student = document.getElementById('ipdCustomMailStudent');
@@ -1139,6 +1163,7 @@ function ipdOpenCustomMailModal(id, studentName) {
     if (message) {
         message.value = '';
     }
+    ipdRenderCustomMailRecipients('ipdCustomMailRecipients', recipients || {});
     if (error) {
         error.hidden = true;
         error.textContent = '';
@@ -1463,6 +1488,7 @@ function ipdSendCustomMail() {
     const subjectValue = (subject && subject.value ? subject.value : '').trim();
     const messageValue = (message && message.value ? message.value : '').trim();
     const signatureValue = (signature && signature.value ? signature.value : '').trim();
+    const recipients = Array.from(document.querySelectorAll('.ipd-custom-mail-recipient:checked')).map(el => el.value);
 
     if (subjectValue === '' || messageValue.length < 4) {
         if (error) {
@@ -1471,7 +1497,14 @@ function ipdSendCustomMail() {
         }
         return;
     }
-    if (!confirm('Inviare questa comunicazione ai genitori collegati alla pratica?')) {
+    if (recipients.length <= 0) {
+        if (error) {
+            error.textContent = 'Selezionare almeno un destinatario.';
+            error.hidden = false;
+        }
+        return;
+    }
+    if (!confirm('Inviare questa comunicazione a ' + recipients.length + ' destinatari selezionati?')) {
         return;
     }
 
@@ -1480,6 +1513,7 @@ function ipdSendCustomMail() {
     data.append('subject', subjectValue);
     data.append('message', messageValue);
     data.append('signature', signatureValue);
+    recipients.forEach(email => data.append('recipients[]', email));
 
     fetch('iscrizioniPrimeMailPratica.php', {
         method: 'POST',

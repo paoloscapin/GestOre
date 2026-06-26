@@ -1881,7 +1881,7 @@ function iscrizioniPrimeCustomPracticeMailBody(array $pratica, string $message, 
     ';
 }
 
-function iscrizioniPrimeSendCustomPracticeMail(array $pratica, string $subject, string $message, string $signature): array
+function iscrizioniPrimeSendCustomPracticeMail(array $pratica, string $subject, string $message, string $signature, ?array $selectedRecipients = null): array
 {
     require_once __DIR__ . '/send-mail.php';
 
@@ -1904,6 +1904,13 @@ function iscrizioniPrimeSendCustomPracticeMail(array $pratica, string $subject, 
     }
 
     $recipients = iscrizioniPrimeMailRecipientsForPratica($pratica);
+    if (is_array($selectedRecipients)) {
+        $allowed = array_fill_keys($recipients, true);
+        $recipients = array_values(array_unique(array_filter(array_map(
+            static fn($email) => strtolower(trim((string)$email)),
+            $selectedRecipients
+        ), static fn($email) => $email !== '' && isset($allowed[$email]))));
+    }
     if (empty($recipients)) {
         return ['ok' => false, 'message' => 'Nessun destinatario valido collegato alla pratica.'];
     }
