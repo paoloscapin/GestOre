@@ -19,6 +19,7 @@ function scuoleIstitutiEnsureTable(): void
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
     scuoleIstitutiImportSeed();
+    scuoleIstitutiEnsureCustomSeeds();
 }
 
 function scuoleIstitutiImportSeed(): void
@@ -54,6 +55,38 @@ function scuoleIstitutiImportSeed(): void
         ");
     }
     fclose($handle);
+
+}
+
+function scuoleIstitutiEnsureCustomSeeds(): void
+{
+    foreach ([
+        'UPT SCUOLA DELLE PROFESSIONI PER IL TERZIARIO',
+        'ISTITUTO PARITARIO IVO DE CARNERI',
+        'CFP ENAIP VILLAZZANO',
+        'COLLEGIO ARCIVESCOVILE TRENTO',
+    ] as $nome) {
+        $exists = intval(dbGetValue("
+            SELECT id
+            FROM scuole_istituti
+            WHERE UPPER(TRIM(nome)) = " . dbQ($nome) . "
+            LIMIT 1
+        ") ?? 0);
+        if ($exists > 0) {
+            dbExec("
+                UPDATE scuole_istituti
+                SET attivo = 1,
+                    updated_at = NOW()
+                WHERE id = " . dbI($exists) . "
+                LIMIT 1
+            ");
+            continue;
+        }
+        dbExec("
+            INSERT INTO scuole_istituti (codice_esterno, nome, attivo, created_at, updated_at)
+            VALUES (NULL, " . dbQ($nome) . ", 1, NOW(), NOW())
+        ");
+    }
 }
 
 function scuoleIstitutiAll(): array

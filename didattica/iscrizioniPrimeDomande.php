@@ -2,13 +2,16 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/iscrizioniPrimeLib.php';
+require_once '../common/studentiMovimentiLib.php';
 ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
 
 iscrizioniPrimeEnsureSchema();
+studentiMovimentiEnsureTables();
 $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($_GET['tipo_iscrizione'] ?? 'prime');
 $pageTitle = $tipoIscrizione === 'terze' ? 'Domande iscrizioni terze' : 'Domande iscrizioni prime';
 $returnPage = $tipoIscrizione === 'terze' ? 'iscrizioniTerze.php' : 'iscrizioniPrime.php';
 $istitutiScuole = scuoleIstitutiAll();
+$movimentiStati = studentiMovimentiStati();
 
 function ipd_h($value): string
 {
@@ -133,10 +136,23 @@ function ipd_extra_info(array $pratica): array
 function ipd_badge_class(string $stato): string
 {
     if ($stato === 'verificata') return 'label-success';
+    if ($stato === 'verifica_iniziale_ok') return 'label-info';
     if ($stato === 'da_integrare') return 'label-warning';
     if ($stato === 'inviata') return 'label-primary';
     if ($stato === 'annullata') return 'label-danger';
     return 'label-default';
+}
+
+function ipd_stato_label(string $stato): string
+{
+    $labels = [
+        'inviata' => 'Inviata',
+        'verifica_iniziale_ok' => 'Verifica iniziale OK',
+        'verificata' => 'Pratica completata',
+        'da_integrare' => 'Da integrare',
+        'annullata' => 'Cambio scuola',
+    ];
+    return $labels[$stato] ?? $stato;
 }
 
 function ipd_event_key(array $evento): string
@@ -174,26 +190,44 @@ function ipd_filter_duplicate_integration_events(array $eventi): array
 }
 
 $filtroStato = trim((string)($_GET['stato'] ?? 'inviata'));
-$allowedFilters = ['tutte', 'inviata', 'verificata', 'da_integrare', 'annullata'];
+$allowedFilters = ['tutte', 'inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata'];
 if (!in_array($filtroStato, $allowedFilters, true)) {
     $filtroStato = 'inviata';
 }
 
-$where = "tipo_iscrizione = " . dbQ($tipoIscrizione) . " AND stato IN ('inviata', 'verificata', 'da_integrare', 'annullata')";
+$where = "p.tipo_iscrizione = " . dbQ($tipoIscrizione) . " AND p.stato IN ('inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata')";
 if ($filtroStato !== 'tutte') {
-    $where = "tipo_iscrizione = " . dbQ($tipoIscrizione) . " AND stato = " . dbQ($filtroStato);
+    $where = "p.tipo_iscrizione = " . dbQ($tipoIscrizione) . " AND p.stato = " . dbQ($filtroStato);
 }
 
 $pratiche = dbGetAll("
-    SELECT *
-    FROM iscrizioni_prime_pratiche
+    SELECT p.*,
+           movimento_reiscrizione.id AS movimento_reiscrizione_id,
+           movimento_reiscrizione.stato_pratica AS movimento_reiscrizione_stato,
+           movimento_reiscrizione.classe_origine AS movimento_reiscrizione_classe_origine,
+           movimento_reiscrizione.classe_richiesta AS movimento_reiscrizione_classe_richiesta,
+           movimento_reiscrizione.updated_at AS movimento_reiscrizione_updated_at
+    FROM iscrizioni_prime_pratiche p
+    LEFT JOIN studenti_movimenti_pratiche movimento_reiscrizione
+      ON movimento_reiscrizione.id = (
+          SELECT m2.id
+          FROM studenti_movimenti_pratiche m2
+          WHERE m2.tipo_pratica = 'bocciato_reiscrizione'
+            AND m2.stato_pratica <> 'annullata'
+            AND m2.codice_fiscale IS NOT NULL
+            AND m2.codice_fiscale <> ''
+            AND UPPER(TRIM(m2.codice_fiscale)) = UPPER(TRIM(p.codice_fiscale))
+          ORDER BY m2.updated_at DESC, m2.id DESC
+          LIMIT 1
+      )
     WHERE $where
-    ORDER BY updated_at DESC, cognome ASC, nome ASC
+    ORDER BY p.updated_at DESC, p.cognome ASC, p.nome ASC
 ");
 
 $stats = dbGetFirst("
     SELECT
         SUM(stato = 'inviata') AS inviate,
+        SUM(stato = 'verifica_iniziale_ok') AS verifica_iniziale_ok,
         SUM(stato = 'verificata') AS verificate,
         SUM(stato = 'da_integrare') AS da_integrare,
         SUM(stato = 'annullata') AS annullate
@@ -248,8 +282,12 @@ foreach ($pratiche as $praticaEvento) {
         .ipd-pill.paper { background: #fef3c7; color: #92400e; }
         .ipd-pill.missing { background: #fee2e2; color: #991b1b; }
         .ipd-pill.news { background: #f97316; color: #fff; box-shadow: 0 0 0 2px rgba(249,115,22,.18); }
+        .ipd-pill.reiscrizione { background: #dcfce7; color: #166534; }
         .ipd-news-box { border: 2px solid #fb923c; border-left-width: 7px; background: #fff7ed; color: #7c2d12; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-weight: 750; }
         .ipd-news-box small { display: block; margin-top: 4px; color: #9a3412; font-weight: 650; }
+        .ipd-movement-box { border: 1px solid #bbf7d0; border-left: 5px solid #16a34a; background: #f0fdf4; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; color: #14532d; }
+        .ipd-movement-box.pending { border-color: #fde68a; border-left-color: #f59e0b; background: #fffbeb; color: #78350f; }
+        .ipd-movement-box a { font-weight: 700; }
         .ipd-toggle { min-width: 92px; }
         .ipd-secretary-docs { margin-top: 18px; padding: 12px; border: 1px solid #bfdbfe; border-radius: 6px; background: #eff6ff; }
         .ipd-secretary-docs h4 { margin-top: 0; }
@@ -294,10 +332,11 @@ foreach ($pratiche as $praticaEvento) {
         <div class="panel-body">
             <div class="row">
                 <div class="col-md-2"><strong>Inviate:</strong> <?php echo intval($stats['inviate'] ?? 0); ?></div>
-                <div class="col-md-2"><strong>Verificate:</strong> <?php echo intval($stats['verificate'] ?? 0); ?></div>
+                <div class="col-md-2"><strong>Verifica iniziale OK:</strong> <?php echo intval($stats['verifica_iniziale_ok'] ?? 0); ?></div>
+                <div class="col-md-2"><strong>Completate:</strong> <?php echo intval($stats['verificate'] ?? 0); ?></div>
                 <div class="col-md-2"><strong>Da integrare:</strong> <?php echo intval($stats['da_integrare'] ?? 0); ?></div>
                 <div class="col-md-2"><strong>Cambio scuola:</strong> <?php echo intval($stats['annullate'] ?? 0); ?></div>
-                <div class="col-md-4 text-right">
+                <div class="col-md-2 text-right">
                     <a class="btn btn-default btn-sm" href="iscrizioniContattiVariazioni.php?tipo_iscrizione=<?php echo urlencode($tipoIscrizione); ?>">
                         <span class="glyphicon glyphicon-transfer"></span> Variazioni contatti
                     </a>
@@ -309,7 +348,7 @@ foreach ($pratiche as $praticaEvento) {
             <hr>
             <div class="ipd-toolbar">
                 <div class="btn-group">
-                    <?php foreach (['inviata' => 'Inviate', 'verificata' => 'Verificate', 'da_integrare' => 'Da integrare', 'annullata' => 'Cambio scuola', 'tutte' => 'Tutte'] as $key => $label) : ?>
+                    <?php foreach (['inviata' => 'Inviate', 'verifica_iniziale_ok' => 'Verifica iniziale OK', 'verificata' => 'Completate', 'da_integrare' => 'Da integrare', 'annullata' => 'Cambio scuola', 'tutte' => 'Tutte'] as $key => $label) : ?>
                         <a class="btn btn-<?php echo $filtroStato === $key ? 'primary' : 'default'; ?>" href="?tipo_iscrizione=<?php echo urlencode($tipoIscrizione); ?>&stato=<?php echo urlencode($key); ?>"><?php echo ipd_h($label); ?></a>
                     <?php endforeach; ?>
                 </div>
@@ -325,7 +364,7 @@ foreach ($pratiche as $praticaEvento) {
                     <span class="text-muted">Invia ai genitori di tutte le pratiche <?php echo $tipoIscrizione === 'terze' ? 'esterne delle terze' : 'delle prime'; ?>, indipendentemente dallo stato.</span>
                 </div>
                 <div class="ipd-status-help">
-                    <strong>Uso degli stati:</strong> "Segna verificata" chiude il controllo della segreteria, "Richiedi integrazione" riapre la pratica, invia una mail ai genitori con le indicazioni della segreteria e permette di correggere/reinviare, "Rimetti in inviata" riporta una domanda allo stato ricevuto senza inviare mail. "Cambio scuola" mantiene la pratica archiviata ma la esclude dagli invii massivi.
+                    <strong>Uso degli stati:</strong> "Verifica iniziale OK" registra che quanto caricato e' corretto e che eventuali documenti cartacei sono attesi; "Pratica completata" chiude definitivamente la pratica; "Richiedi integrazione" riapre la pratica, invia una mail ai genitori con le indicazioni della segreteria e permette di correggere/reinviare. "Rimetti in inviata" riporta una domanda allo stato ricevuto senza inviare mail. "Cambio scuola" mantiene la pratica archiviata ma la esclude dagli invii massivi.
                 </div>
             </div>
         </div>
@@ -359,6 +398,11 @@ foreach ($pratiche as $praticaEvento) {
                 $docCounts['missing']++;
             }
         }
+        $movementId = intval($pratica['movimento_reiscrizione_id'] ?? 0);
+        $movementState = (string)($pratica['movimento_reiscrizione_stato'] ?? '');
+        $movementLabel = $movimentiStati[$movementState] ?? $movementState;
+        $movementDone = $movementId > 0 && in_array($movementState, ['reiscrizione_confermata', 'chiusa'], true);
+        $movementUrl = 'movimentiStudenti.php?sezione=uscite&open_movimento_id=' . $movementId;
     ?>
         <div class="ipd-card" id="pratica-<?php echo intval($pratica['id']); ?>">
             <div class="ipd-card-head">
@@ -378,8 +422,28 @@ foreach ($pratiche as $praticaEvento) {
                         <?php if (!empty($pratica['novita_segreteria_at'])) : ?>
                             <span class="ipd-pill news">Novita' per segreteria</span>
                         <?php endif; ?>
+                        <?php if ($movementId > 0) : ?>
+                            <span class="ipd-pill reiscrizione"><?php echo $movementDone ? 'Reiscrizione gia sistemata' : 'Reiscrizione in gestione'; ?></span>
+                        <?php endif; ?>
                         <?php if ($extraInfo['scuola_provenienza'] !== '') : ?>
                             <span class="ipd-pill">Scuola: <?php echo ipd_h($extraInfo['scuola_provenienza']); ?></span>
+                        <?php endif; ?>
+                        <?php if (intval($pratica['tablet_scelto'] ?? 0) === 1) : ?>
+                            <?php
+                            $tabletStato = (string)($pratica['tablet_stato'] ?? '');
+                            $tabletGroup = (string)($pratica['tablet_gruppo'] ?? '');
+                            $tabletText = iscrizioniPrimeTabletStatusLabel($tabletStato);
+                            if ($tabletGroup !== '') {
+                                $tabletText .= ' - ' . iscrizioniPrimeTabletGroupLabel($tabletGroup);
+                            }
+                            if (!empty($pratica['tablet_posizione'])) {
+                                $tabletText .= ' pos. ' . intval($pratica['tablet_posizione']);
+                            }
+                            if ($tabletStato === 'confermato') {
+                                $tabletText .= intval($pratica['tablet_acquistato'] ?? 0) === 1 ? ' - acquistato' : ' - da acquistare';
+                            }
+                            ?>
+                            <span class="ipd-pill <?php echo $tabletStato === 'rinuncia' ? 'missing' : ($tabletStato === 'confermato' ? 'ok' : 'paper'); ?>">Tablet: <?php echo ipd_h($tabletText); ?></span>
                         <?php endif; ?>
                         <?php if ($extraInfo['residenza'] !== '') : ?>
                             <span class="ipd-pill">Residenza: <?php echo ipd_h($extraInfo['residenza']); ?></span>
@@ -387,14 +451,15 @@ foreach ($pratiche as $praticaEvento) {
                     </div>
                 </div>
                 <div class="ipd-status-actions">
-                    <span class="label <?php echo ipd_badge_class((string)$pratica['stato']); ?>"><?php echo ipd_h($pratica['stato']); ?></span>
+                    <span class="label <?php echo ipd_badge_class((string)$pratica['stato']); ?>"><?php echo ipd_h(ipd_stato_label((string)$pratica['stato'])); ?></span>
                     <div class="btn-group btn-group-sm">
                         <button type="button" class="btn btn-info ipd-toggle" onclick="ipdToggleDettagli(<?php echo intval($pratica['id']); ?>, this)">Dettagli</button>
                         <button type="button" class="btn btn-primary" title="Invia una comunicazione personalizzata ai genitori collegati alla pratica." onclick="ipdOpenCustomMailModal(<?php echo intval($pratica['id']); ?>, <?php echo ipd_h(json_encode($nome, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT)); ?>, <?php echo ipd_h(json_encode([
                             'genitore1' => strtolower(trim((string)($pratica['email_genitore_1'] ?? ''))),
                             'genitore2' => strtolower(trim((string)($pratica['email_genitore_2'] ?? ''))),
                         ], JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT)); ?>)">Scrivi ai genitori</button>
-                        <button type="button" class="btn btn-success" title="La pratica e stata controllata ed e completa." onclick="ipdSetStato(<?php echo intval($pratica['id']); ?>, 'verificata')">Segna verificata</button>
+                        <button type="button" class="btn btn-info" title="Quanto caricato e' stato controllato; restano eventuali documenti cartacei attesi." onclick="ipdSetStato(<?php echo intval($pratica['id']); ?>, 'verifica_iniziale_ok')">Verifica iniziale OK</button>
+                        <button type="button" class="btn btn-success" title="La pratica e' completa e viene chiusa definitivamente." onclick="ipdSetStato(<?php echo intval($pratica['id']); ?>, 'verificata')">Pratica completata</button>
                         <button type="button" class="btn btn-warning" title="Riapre la pratica e invia una mail ai genitori." onclick="ipdSetStato(<?php echo intval($pratica['id']); ?>, 'da_integrare')">Richiedi integrazione</button>
                         <button type="button" class="btn btn-default" title="Riporta la pratica allo stato ricevuto/inviata." onclick="ipdSetStato(<?php echo intval($pratica['id']); ?>, 'inviata')">Rimetti in inviata</button>
                         <button type="button" class="btn btn-danger" title="La famiglia ha cambiato scuola: la pratica resta archiviata ma non riceve piu comunicazioni automatiche." onclick="ipdOpenCambioScuolaModal(<?php echo intval($pratica['id']); ?>)">Cambio scuola</button>
@@ -405,7 +470,20 @@ foreach ($pratiche as $praticaEvento) {
                 <?php if (!empty($pratica['novita_segreteria_at'])) : ?>
                     <div class="ipd-news-box">
                         Ci sono novita' da controllare: <?php echo ipd_h($pratica['novita_segreteria_messaggio'] ?: 'la pratica e stata aggiornata dalla famiglia.'); ?>
-                        <small>Aggiornamento registrato il <?php echo ipd_h(iscrizioniPrimeFormatDateTimeIt($pratica['novita_segreteria_at'])); ?>. Il flag viene tolto quando segni la pratica come verificata.</small>
+                        <small>Aggiornamento registrato il <?php echo ipd_h(iscrizioniPrimeFormatDateTimeIt($pratica['novita_segreteria_at'])); ?>. Il flag viene tolto quando registri la verifica iniziale o completi la pratica.</small>
+                    </div>
+                <?php endif; ?>
+                <?php if ($movementId > 0) : ?>
+                    <div class="ipd-movement-box <?php echo $movementDone ? '' : 'pending'; ?>">
+                        <strong><?php echo $movementDone ? 'Reiscrizione gia sistemata in Entrate / uscite.' : 'Reiscrizione presente in Entrate / uscite.'; ?></strong>
+                        Stato movimento: <?php echo ipd_h($movementLabel); ?>.
+                        <?php if (!empty($pratica['movimento_reiscrizione_classe_origine']) || !empty($pratica['movimento_reiscrizione_classe_richiesta'])) : ?>
+                            <br>Classe: <?php echo ipd_h(trim((string)($pratica['movimento_reiscrizione_classe_origine'] ?? ''))); ?>
+                            <?php if (!empty($pratica['movimento_reiscrizione_classe_richiesta'])) : ?>
+                                &rarr; <?php echo ipd_h((string)$pratica['movimento_reiscrizione_classe_richiesta']); ?>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        <br><a href="<?php echo ipd_h($movementUrl); ?>" target="_blank" rel="noopener">Apri pratica movimenti</a>
                     </div>
                 <?php endif; ?>
                 <div class="ipd-grid">
@@ -420,6 +498,25 @@ foreach ($pratiche as $praticaEvento) {
                     <div class="ipd-field"><div class="ipd-label">Telefono responsabile 2</div><div class="ipd-value"><?php echo ipd_h(ipd_value($pratica, $confirmed, 'telefono_genitore_2')); ?></div></div>
                     <div class="ipd-field"><div class="ipd-label">Residenza</div><div class="ipd-value"><?php echo ipd_h($extraInfo['residenza'] ?: 'Non disponibile nei dati importati'); ?></div></div>
                     <div class="ipd-field"><div class="ipd-label">Scuola di provenienza</div><div class="ipd-value"><?php echo ipd_h($extraInfo['scuola_provenienza'] ?: 'Non disponibile nei dati importati'); ?></div></div>
+                </div>
+
+                <?php
+                $carenzeDichiarate = (string)($confirmed['carenze_formative_dichiarate'] ?? ($pratica['carenze_formative_dichiarate'] ?? ''));
+                $carenzeMaterie = $confirmed['carenze_formative_materie'] ?? null;
+                if (!is_array($carenzeMaterie)) {
+                    $decodedCarenzeMaterie = json_decode((string)($pratica['carenze_formative_materie'] ?? '[]'), true);
+                    $carenzeMaterie = is_array($decodedCarenzeMaterie) ? $decodedCarenzeMaterie : [];
+                }
+                $carenzeAltro = trim((string)($confirmed['carenze_formative_altro'] ?? ($pratica['carenze_formative_altro'] ?? '')));
+                if ($carenzeAltro !== '' && !in_array($carenzeAltro, $carenzeMaterie, true)) {
+                    $carenzeMaterie[] = $carenzeAltro;
+                }
+                $carenzeLabel = $carenzeDichiarate === 'si' ? 'Si' : ($carenzeDichiarate === 'no' ? 'No' : 'Non indicato');
+                ?>
+                <h4>Carenze formative</h4>
+                <div class="ipd-grid">
+                    <div class="ipd-field"><div class="ipd-label">Carenze dichiarate dal genitore</div><div class="ipd-value"><?php echo ipd_h($carenzeLabel); ?></div></div>
+                    <div class="ipd-field"><div class="ipd-label">Materie indicate</div><div class="ipd-value"><?php echo ipd_h($carenzeDichiarate === 'si' ? (implode(', ', array_values(array_filter($carenzeMaterie, 'strlen'))) ?: 'Non specificate') : '-'); ?></div></div>
                 </div>
 
                 <h4>Documenti</h4>
@@ -502,7 +599,7 @@ foreach ($pratiche as $praticaEvento) {
                                         Operatore: <?php echo ipd_h($evento['created_by']); ?>
                                     <?php endif; ?>
                                     <?php if (!empty($evento['stato_precedente']) || !empty($evento['stato_nuovo'])) : ?>
-                                        &middot; Stato: <?php echo ipd_h(($evento['stato_precedente'] ?? '-') . ' -> ' . ($evento['stato_nuovo'] ?? '-')); ?>
+                                        &middot; Stato: <?php echo ipd_h(ipd_stato_label((string)($evento['stato_precedente'] ?? '-')) . ' -> ' . ipd_stato_label((string)($evento['stato_nuovo'] ?? '-'))); ?>
                                     <?php endif; ?>
                                     <?php if (!empty($evento['oggetto'])) : ?>
                                         &middot; Oggetto: <?php echo ipd_h($evento['oggetto']); ?>
@@ -913,9 +1010,14 @@ function ipdSetStato(id, stato) {
         ipdOpenStatusNoteModal(id, stato, 'Riporta la pratica allo stato inviata e indica il motivo.');
         return;
     }
+    if (stato === 'verifica_iniziale_ok') {
+        ipdOpenStatusNoteModal(id, stato, 'Indica cosa e\' stato controllato e cosa resta da consegnare in cartaceo.');
+        return;
+    }
 
     const labels = {
-        verificata: 'segnare la pratica come verificata',
+        verifica_iniziale_ok: 'registrare la verifica iniziale OK',
+        verificata: 'segnare la pratica come completata',
         da_integrare: 'segnare la pratica come da integrare',
         inviata: 'riportare la pratica allo stato inviata',
         annullata: 'segnare la pratica come cambio scuola/non prosegue'

@@ -12,8 +12,15 @@ $stats = dbGetFirst("
         SUM(stato = 'importata') AS importate,
         SUM(stato = 'bozza') AS bozze,
         SUM(stato = 'inviata') AS inviate,
+        SUM(stato = 'verifica_iniziale_ok') AS verifica_iniziale_ok,
         SUM(stato = 'verificata') AS verificate,
         SUM(stato = 'annullata') AS annullate,
+        SUM(tablet_scelto = 1) AS tablet_scelti,
+        SUM(tablet_stato = 'confermato') AS tablet_confermati,
+        SUM(tablet_stato = 'escluso') AS tablet_esclusi,
+        SUM(tablet_stato = 'rinuncia') AS tablet_rinunce,
+        SUM(tablet_stato = 'confermato' AND tablet_acquistato = 1) AS tablet_acquistati,
+        SUM(tablet_stato = 'confermato' AND tablet_acquistato = 0) AS tablet_da_acquistare,
         SUM(email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AS con_email
     FROM iscrizioni_prime_pratiche
     WHERE tipo_iscrizione = 'prime'
@@ -115,6 +122,19 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
         .mail-badge-none { background: #fee2e2; color: #991b1b; }
         .mail-badge-skip { background: #e5e7eb; color: #374151; }
         .mail-badge-bounce { background: #fecaca; color: #7f1d1d; }
+        .tablet-badge { display:inline-block; padding:4px 8px; border-radius:999px; font-weight:800; font-size:12px; margin:0 3px 3px 0; }
+        .tablet-badge-ok { background:#dcfce7; color:#166534; }
+        .tablet-badge-wait { background:#fef3c7; color:#92400e; }
+        .tablet-badge-out { background:#e5e7eb; color:#374151; }
+        .tablet-badge-stop { background:#fee2e2; color:#991b1b; }
+        .tablet-actions .btn { margin:0 2px 3px 0; }
+        .tablet-actions select {
+            max-width: 145px;
+            height: 24px;
+            padding: 2px 4px;
+            margin: 0 2px 3px 0;
+            display: inline-block;
+        }
         .stud-attr-badge {
             display: inline-block;
             padding: 3px 7px;
@@ -143,6 +163,12 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
             border: 1px solid #cbd5e1;
             border-radius: 6px;
             padding: 8px 10px;
+        }
+        .iscrizioni-table-tools select {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 10px;
+            background: #fff;
         }
         .iscrizioni-filter-count {
             color: #64748b;
@@ -436,6 +462,57 @@ ITT Buonarroti - Trento</textarea>
     </div>
 </div>
 
+<div id="tablet_rinuncia_modal" class="custom-mail-modal" aria-hidden="true">
+    <div class="custom-mail-card" role="dialog" aria-modal="true" aria-labelledby="tablet_rinuncia_title">
+        <div id="tablet_rinuncia_title" class="custom-mail-head" style="background:#b45309;">Rinuncia classe tablet</div>
+        <form id="tablet_rinuncia_form" enctype="multipart/form-data">
+            <div class="custom-mail-body">
+                <input type="hidden" name="id" id="tablet_rinuncia_id">
+                <input type="hidden" name="action" value="rinuncia">
+                <p id="tablet_rinuncia_student" class="text-muted"></p>
+                <div class="alert alert-warning">
+                    La rinuncia segna lo studente come non piu confermato e ripesca il primo escluso disponibile.
+                </div>
+                <div class="custom-mail-field">
+                    <label>Destinatari conferma</label>
+                    <div id="tablet_rinuncia_recipients" class="well well-sm" style="margin-bottom:0;"></div>
+                    <label style="margin-top:8px;font-weight:600;">
+                        <input type="checkbox" name="send_mail" id="tablet_rinuncia_send_mail" value="1" checked>
+                        invia mail di conferma alla famiglia
+                    </label>
+                </div>
+                <div class="custom-mail-field">
+                    <label for="tablet_rinuncia_note">Messaggio interno segreteria</label>
+                    <textarea name="note" id="tablet_rinuncia_note" placeholder="Annota data, canale e riferimento della richiesta ricevuta dalla famiglia."></textarea>
+                </div>
+                <div class="custom-mail-field">
+                    <label for="tablet_rinuncia_allegato">PDF richiesta genitore</label>
+                    <input type="file" name="allegato" id="tablet_rinuncia_allegato" accept="application/pdf,.pdf">
+                    <div class="help-block">Allega la mail o la richiesta firmata salvata in PDF.</div>
+                </div>
+                <div class="custom-mail-field">
+                    <label for="tablet_rinuncia_subject">Oggetto mail</label>
+                    <input type="text" name="mail_subject" id="tablet_rinuncia_subject" value="Conferma rinuncia classe tablet">
+                </div>
+                <div class="custom-mail-field">
+                    <label for="tablet_rinuncia_message">Testo mail</label>
+                    <textarea name="mail_message" id="tablet_rinuncia_message"></textarea>
+                </div>
+                <div class="custom-mail-field">
+                    <label for="tablet_rinuncia_signature">Firma</label>
+                    <textarea name="mail_signature" id="tablet_rinuncia_signature" style="min-height:80px;">Segreteria didattica
+ITT Buonarroti - Trento</textarea>
+                </div>
+                <div id="tablet_rinuncia_error" class="text-danger" style="margin-top:8px;" hidden></div>
+            </div>
+            <div class="custom-mail-actions">
+                <button type="button" class="btn btn-default" onclick="iscrizioniPrimeCloseTabletRinuncia()">Annulla</button>
+                <button type="submit" class="btn btn-warning" id="tablet_rinuncia_save_button">Registra rinuncia</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="container-fluid">
     <div class="panel panel-lightblue4">
         <div class="panel-heading">
@@ -450,6 +527,9 @@ ITT Buonarroti - Trento</textarea>
                 <div class="col-md-2"><strong>Cambio scuola:</strong> <span id="stat_annullate"><?php echo intval($stats['annullate'] ?? 0); ?></span></div>
                 <div class="col-md-2"><strong>Mail reali:</strong> <span id="stat_mail_reali">0</span></div>
                 <div class="col-md-2" style="margin-top:8px;"><strong>Mail test:</strong> <span id="stat_mail_test">0</span></div>
+                <div class="col-md-2" style="margin-top:8px;"><strong>Tablet confermati:</strong> <span id="stat_tablet_confermati">0</span></div>
+                <div class="col-md-2" style="margin-top:8px;"><strong>Tablet da acquistare:</strong> <span id="stat_tablet_da_acquistare">0</span></div>
+                <div class="col-md-2" style="margin-top:8px;"><strong>Tablet esclusi:</strong> <span id="stat_tablet_esclusi">0</span></div>
             </div>
             <div class="row" style="margin-top:14px;">
                 <div class="col-md-12">
@@ -552,6 +632,23 @@ ITT Buonarroti - Trento</textarea>
                     </div>
                 </div>
             </form>
+            <hr>
+            <form id="iscrizioni_prime_tablet_import_form" class="form-horizontal" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">Excel classi tablet</label>
+                    <div class="col-sm-9">
+                        <input type="file" name="tablet_xlsx" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="form-control" required>
+                        <span class="help-block">Importa confermati, Digital Science ed esclusi da TABLET.xlsx. L'elenco esclusi resta ordinato per ripescaggio.</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-3 col-sm-9">
+                        <button type="submit" class="btn btn-primary">
+                            <span class="glyphicon glyphicon-blackboard"></span> Importa tablet
+                        </button>
+                    </div>
+                </div>
+            </form>
             </div>
         </div>
     </div>
@@ -563,6 +660,19 @@ ITT Buonarroti - Trento</textarea>
         <div class="panel-body">
             <div class="iscrizioni-table-tools">
                 <input type="text" id="iscrizioni_prime_filter" placeholder="Filtra per nome, codice fiscale, corso, stato, email, tipo..." autocomplete="off">
+                <select id="iscrizioni_prime_tablet_filter" title="Filtro tablet">
+                    <option value="">Tablet: tutti</option>
+                    <option value="classi_tablet">Classi tablet</option>
+                    <option value="confermato">Confermato</option>
+                    <option value="escluso">Escluso</option>
+                    <option value="rinuncia">Rinuncia</option>
+                    <option value="non_tablet">Non tablet</option>
+                </select>
+                <select id="iscrizioni_prime_acquisto_filter" title="Filtro acquisto tablet">
+                    <option value="">Acquisto: tutti</option>
+                    <option value="acquistato">Acquistato</option>
+                    <option value="da_acquistare">Da acquistare</option>
+                </select>
                 <button type="button" class="btn btn-default" onclick="iscrizioniPrimeClearFilter()">
                     <span class="glyphicon glyphicon-remove"></span> Pulisci filtro
                 </button>
@@ -580,7 +690,9 @@ ITT Buonarroti - Trento</textarea>
                             <th>Codice fiscale</th>
                             <th>Corso</th>
                             <th>Attributi</th>
+                            <th>Tablet</th>
                             <th>Stato</th>
+                            <th>Genitori</th>
                             <th>Email responsabili</th>
                             <th>Mail avviso</th>
                             <th>Token</th>
@@ -588,7 +700,7 @@ ITT Buonarroti - Trento</textarea>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td colspan="10" class="text-muted">Caricamento...</td></tr>
+                        <tr><td colspan="12" class="text-muted">Caricamento...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -606,6 +718,40 @@ function iscrizioniPrimeEscape(value) {
     return String(value ?? '').replace(/[&<>"']/g, function (char) {
         return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[char];
     });
+}
+
+function iscrizioniPrimeReadJsonResponse(response) {
+    return response.text().then(text => {
+        const trimmed = String(text || '').trim();
+        if (trimmed === '') {
+            throw new Error('Risposta vuota dal server. Controlla il log PHP/Apache per iscrizioniPrimeRead.php.');
+        }
+        try {
+            return JSON.parse(trimmed);
+        } catch (e) {
+            throw new Error('Risposta non JSON dal server: ' + trimmed.slice(0, 500));
+        }
+    });
+}
+
+function iscrizioniPrimeStatoLabel(stato) {
+    const labels = {
+        inviata: 'Inviata',
+        verifica_iniziale_ok: 'Verifica iniziale OK',
+        verificata: 'Pratica completata',
+        da_integrare: 'Da integrare',
+        annullata: 'Cambio scuola'
+    };
+    return labels[String(stato || '')] || String(stato || '');
+}
+
+function iscrizioniPrimeMovimentoStatoLabel(stato) {
+    const labels = {
+        reiscrizione_confermata: 'Reiscrizione confermata',
+        chiusa: 'Chiusa',
+        da_verificare: 'Da verificare'
+    };
+    return labels[String(stato || '')] || String(stato || '').replace(/_/g, ' ');
 }
 
 function iscrizioniPrimeFormatDateIt(value) {
@@ -836,6 +982,9 @@ function iscrizioniPrimeUpdateStats(stats, mailStats) {
     iscrizioniPrimeSetText('stat_con_email', stats.con_email || 0);
     iscrizioniPrimeSetText('stat_mail_reali', mailStats.mail_reali || 0);
     iscrizioniPrimeSetText('stat_mail_test', mailStats.mail_test || 0);
+    iscrizioniPrimeSetText('stat_tablet_confermati', stats.tablet_confermati || 0);
+    iscrizioniPrimeSetText('stat_tablet_da_acquistare', stats.tablet_da_acquistare || 0);
+    iscrizioniPrimeSetText('stat_tablet_esclusi', stats.tablet_esclusi || 0);
 }
 
 function iscrizioniPrimeMailStatus(row) {
@@ -858,7 +1007,7 @@ function iscrizioniPrimeMailStatus(row) {
         html += '<br><small>' + iscrizioniPrimeEscape(row.mail_diagnosi) + '</small>';
     } else if (!['importata', 'bozza', 'da_integrare'].includes(String(row.stato || '').toLowerCase())) {
         html += '<span class="mail-badge mail-badge-skip">Non richiesta</span>';
-        if (row.stato) html += '<br><small>pratica ' + iscrizioniPrimeEscape(row.stato) + '</small>';
+        if (row.stato) html += '<br><small>pratica ' + iscrizioniPrimeEscape(iscrizioniPrimeStatoLabel(row.stato)) + '</small>';
     } else {
         html += '<span class="mail-badge mail-badge-none">Da inviare</span>';
     }
@@ -869,7 +1018,7 @@ function iscrizioniPrimeMailStatus(row) {
 }
 
 function iscrizioniPrimeStatoHtml(row) {
-    let html = iscrizioniPrimeEscape(row.stato);
+    let html = iscrizioniPrimeEscape(iscrizioniPrimeStatoLabel(row.stato));
     if (String(row.stato || '') === 'annullata' && row.cambio_scuola_pratica_stato) {
         html += '<br><span class="mail-badge mail-badge-skip">Cambio scuola: ' + iscrizioniPrimeEscape(row.cambio_scuola_pratica_stato) + '</span>';
         if (row.cambio_scuola_richiesta_data) {
@@ -882,9 +1031,12 @@ function iscrizioniPrimeStatoHtml(row) {
 function iscrizioniPrimeTipoHtml(row) {
     const interno = Number(row.studente_interno_effettivo || 0) === 1;
     const classeCorrente = row.classe_corrente_gestore ? '<br><small class="text-muted">classe attuale: ' + iscrizioniPrimeEscape(row.classe_corrente_gestore) + '</small>' : '';
+    const reiscrizione = Number(row.movimento_reiscrizione_id || 0) > 0
+        ? '<br><span class="mail-badge mail-badge-real">Reiscrizione: ' + iscrizioniPrimeEscape(iscrizioniPrimeMovimentoStatoLabel(row.movimento_reiscrizione_stato)) + '</span>'
+        : '';
     return interno
-        ? '<span class="label label-warning">INTERNO</span><br><small class="text-muted">gia nostro</small>' + classeCorrente
-        : '<span class="label label-success">ESTERNO</span><br><small class="text-muted">nuovo studente</small>' + classeCorrente;
+        ? '<span class="label label-warning">INTERNO</span><br><small class="text-muted">gia nostro</small>' + classeCorrente + reiscrizione
+        : '<span class="label label-success">ESTERNO</span><br><small class="text-muted">nuovo studente</small>' + classeCorrente + reiscrizione;
 }
 
 function iscrizioniPrimeTipoLabel(row) {
@@ -900,6 +1052,67 @@ function iscrizioniPrimeAttributiHtml(row) {
         const source = attr.fonte ? '<span class="stud-attr-source">' + iscrizioniPrimeEscape(attr.fonte) + '</span>' : '';
         return '<span class="stud-attr-badge" title="' + iscrizioniPrimeEscape(attr.codice || '') + '">' + iscrizioniPrimeEscape(attr.label || attr.codice || '') + source + '</span>';
     }).join(' ');
+}
+
+function iscrizioniPrimeTabletLabel(status) {
+    const labels = {
+        '': 'Non indicato',
+        richiesto: 'Richiesto',
+        confermato: 'Confermato',
+        escluso: 'Escluso',
+        rinuncia: 'Rinuncia'
+    };
+    return labels[status || ''] || status;
+}
+
+function iscrizioniPrimeTabletGroupLabel(group) {
+    const labels = {
+        ipad: 'Classi tablet',
+        digital_science: 'Digital Science'
+    };
+    return labels[group || ''] || group || '';
+}
+
+function iscrizioniPrimeTabletHtml(row) {
+    const chosen = Number(row.tablet_scelto || 0) === 1;
+    const status = String(row.tablet_stato || '');
+    const cls = status === 'confermato' ? 'tablet-badge-ok' : (status === 'escluso' ? 'tablet-badge-out' : (status === 'rinuncia' ? 'tablet-badge-stop' : 'tablet-badge-wait'));
+    let html = chosen
+        ? '<span class="tablet-badge ' + cls + '">' + iscrizioniPrimeEscape(iscrizioniPrimeTabletLabel(status)) + '</span>'
+        : '<span class="text-muted">Non tablet</span>';
+    if (row.tablet_gruppo) html += '<br><small>' + iscrizioniPrimeEscape(iscrizioniPrimeTabletGroupLabel(row.tablet_gruppo)) + '</small>';
+    if (row.tablet_posizione) html += '<br><small>pos. ' + iscrizioniPrimeEscape(row.tablet_posizione) + '</small>';
+    if (status === 'confermato') {
+        html += '<br>' + (Number(row.tablet_acquistato || 0) === 1
+            ? '<span class="tablet-badge tablet-badge-ok">Acquistato</span>'
+            : '<span class="tablet-badge tablet-badge-wait">Da acquistare</span>');
+    }
+    if (row.tablet_ripescato_da_pratica_id) html += '<br><small>ripescato</small>';
+    if (row.tablet_rinuncia_allegato_original_name) html += '<br><small>PDF: ' + iscrizioniPrimeEscape(row.tablet_rinuncia_allegato_original_name).slice(0, 45) + '</small>';
+    if (row.tablet_note) html += '<br><small>' + iscrizioniPrimeEscape(row.tablet_note).slice(0, 90) + '</small>';
+    html += '<div class="tablet-actions">';
+    html += '<select class="form-control input-sm" onchange="iscrizioniPrimeTabletManualStatus(' + Number(row.id) + ', this.value, &quot;' + iscrizioniPrimeEscape(row.tablet_gruppo || '') + '&quot;)">';
+    [
+        ['0|', 'Non tablet'],
+        ['1|richiesto', 'Richiesto'],
+        ['1|confermato', 'Confermato'],
+        ['1|escluso', 'Escluso'],
+        ['1|rinuncia', 'Rinuncia']
+    ].forEach(item => {
+        const selected = (chosen ? '1|' + status : '0|') === item[0] ? ' selected' : '';
+        html += '<option value="' + item[0] + '"' + selected + '>' + item[1] + '</option>';
+    });
+    html += '</select>';
+    if (status === 'confermato') {
+        if (Number(row.tablet_acquistato || 0) === 1) {
+            html += '<button type="button" class="btn btn-xs btn-default" onclick="iscrizioniPrimeTabletAction(' + Number(row.id) + ', &quot;non_acquistato&quot;)">No acquisto</button>';
+        } else {
+            html += '<button type="button" class="btn btn-xs btn-success" onclick="iscrizioniPrimeTabletAction(' + Number(row.id) + ', &quot;acquistato&quot;)">Acquistato</button>';
+        }
+        html += '<button type="button" class="btn btn-xs btn-warning" onclick="iscrizioniPrimeOpenTabletRinuncia(' + Number(row.id) + ')">Rinuncia</button>';
+    }
+    html += '</div>';
+    return html;
 }
 
 function iscrizioniPrimeNormalizeSearch(value) {
@@ -919,10 +1132,19 @@ function iscrizioniPrimeRowSearchText(row) {
         row.stato,
         row.email_genitore_1,
         row.email_genitore_2,
+        row.responsabile_1_cognome,
+        row.responsabile_1_nome,
+        row.responsabile_2_cognome,
+        row.responsabile_2_nome,
         row.telefono_genitore_1,
         row.telefono_genitore_2,
         row.token_last4,
         row.mail_diagnosi,
+        iscrizioniPrimeTabletLabel(row.tablet_stato || ''),
+        iscrizioniPrimeTabletGroupLabel(row.tablet_gruppo || ''),
+        row.tablet_posizione,
+        row.tablet_acquistato ? 'tablet acquistato' : '',
+        row.tablet_note,
         (Array.isArray(row.attributi_riservati) ? row.attributi_riservati.map(attr => attr.label + ' ' + attr.codice + ' ' + (attr.fonte || '')).join(' ') : ''),
         row.cambio_scuola_pratica_stato,
         row.cambio_scuola_canale,
@@ -933,11 +1155,18 @@ function iscrizioniPrimeRowSearchText(row) {
 
 function iscrizioniPrimeFilteredRows() {
     const filter = document.getElementById('iscrizioni_prime_filter');
+    const tabletFilter = document.getElementById('iscrizioni_prime_tablet_filter');
+    const acquistoFilter = document.getElementById('iscrizioni_prime_acquisto_filter');
     const terms = iscrizioniPrimeNormalizeSearch(filter ? filter.value : '').trim().split(/\s+/).filter(Boolean);
-    if (!terms.length) {
-        return iscrizioniPrimeRows.slice();
-    }
     return iscrizioniPrimeRows.filter(row => {
+        const tabletValue = tabletFilter ? tabletFilter.value : '';
+        if (tabletValue === 'classi_tablet' && !(Number(row.tablet_scelto || 0) === 1 && row.tablet_gruppo === 'ipad' && row.tablet_stato === 'confermato')) return false;
+        if (tabletValue === 'non_tablet' && Number(row.tablet_scelto || 0) === 1) return false;
+        if (['confermato', 'escluso', 'rinuncia'].includes(tabletValue) && row.tablet_stato !== tabletValue) return false;
+        const acquistoValue = acquistoFilter ? acquistoFilter.value : '';
+        if (acquistoValue === 'acquistato' && !(row.tablet_stato === 'confermato' && Number(row.tablet_acquistato || 0) === 1)) return false;
+        if (acquistoValue === 'da_acquistare' && !(row.tablet_stato === 'confermato' && Number(row.tablet_acquistato || 0) !== 1)) return false;
+        if (!terms.length) return true;
         const text = iscrizioniPrimeRowSearchText(row);
         return terms.every(term => text.includes(term));
     });
@@ -949,19 +1178,23 @@ function iscrizioniPrimeRenderTable() {
     iscrizioniPrimeVisibleRows = iscrizioniPrimeFilteredRows();
 
     if (!iscrizioniPrimeRows.length) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-muted">Nessuna pratica importata.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" class="text-muted">Nessuna pratica importata.</td></tr>';
         if (counter) counter.textContent = '';
         return;
     }
 
     if (!iscrizioniPrimeVisibleRows.length) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-muted">Nessuna pratica corrisponde al filtro.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" class="text-muted">Nessuna pratica corrisponde al filtro.</td></tr>';
         if (counter) counter.textContent = '0 di ' + iscrizioniPrimeRows.length + ' pratiche';
         return;
     }
 
     tbody.innerHTML = iscrizioniPrimeVisibleRows.map(row => {
         const emails = [row.email_genitore_1, row.email_genitore_2].filter(Boolean).join('<br>');
+        const parents = [
+            [row.responsabile_1_cognome, row.responsabile_1_nome].filter(Boolean).join(' '),
+            [row.responsabile_2_cognome, row.responsabile_2_nome].filter(Boolean).join(' ')
+        ].filter(Boolean).map(iscrizioniPrimeEscape).join('<br>');
         const token = row.token_last4 ? ('...' + row.token_last4) : '<span class="text-danger">da esportare</span>';
 
         return '<tr>' +
@@ -970,7 +1203,9 @@ function iscrizioniPrimeRenderTable() {
             '<td>' + iscrizioniPrimeEscape(row.codice_fiscale) + '</td>' +
             '<td>' + iscrizioniPrimeEscape(row.corso_studi) + '</td>' +
             '<td>' + iscrizioniPrimeAttributiHtml(row) + '</td>' +
+            '<td>' + iscrizioniPrimeTabletHtml(row) + '</td>' +
             '<td>' + iscrizioniPrimeStatoHtml(row) + '</td>' +
+            '<td>' + (parents || '<span class="text-muted">-</span>') + '</td>' +
             '<td>' + (emails || '<span class="text-danger">mancante</span>') + '</td>' +
             '<td>' + iscrizioniPrimeMailStatus(row) + '</td>' +
             '<td>' + token + '</td>' +
@@ -993,6 +1228,10 @@ function iscrizioniPrimeClearFilter() {
         filter.value = '';
         filter.focus();
     }
+    const tabletFilter = document.getElementById('iscrizioni_prime_tablet_filter');
+    const acquistoFilter = document.getElementById('iscrizioni_prime_acquisto_filter');
+    if (tabletFilter) tabletFilter.value = '';
+    if (acquistoFilter) acquistoFilter.value = '';
     iscrizioniPrimeRenderTable();
 }
 
@@ -1016,7 +1255,14 @@ function iscrizioniPrimeExportFilteredCsv() {
         'Codice fiscale',
         'Corso',
         'Attributi',
+        'Tablet stato',
+        'Tablet gruppo',
+        'Tablet posizione',
+        'Tablet acquistato',
+        'Tablet note',
         'Stato',
+        'Genitore 1',
+        'Genitore 2',
         'Email responsabile 1',
         'Email responsabile 2',
         'Mail reali',
@@ -1035,7 +1281,14 @@ function iscrizioniPrimeExportFilteredCsv() {
             row.codice_fiscale,
             row.corso_studi,
             Array.isArray(row.attributi_riservati) ? row.attributi_riservati.map(attr => attr.label || attr.codice || '').join(', ') : '',
+            iscrizioniPrimeTabletLabel(row.tablet_stato || ''),
+            iscrizioniPrimeTabletGroupLabel(row.tablet_gruppo || ''),
+            row.tablet_posizione || '',
+            Number(row.tablet_acquistato || 0) === 1 ? 'si' : 'no',
+            row.tablet_note || '',
             row.stato,
+            [row.responsabile_1_cognome, row.responsabile_1_nome].filter(Boolean).join(' '),
+            [row.responsabile_2_cognome, row.responsabile_2_nome].filter(Boolean).join(' '),
             row.email_genitore_1,
             row.email_genitore_2,
             row.mail_reali || 0,
@@ -1205,6 +1458,115 @@ function iscrizioniPrimeCheckBounce() {
     });
 }
 
+function iscrizioniPrimeTabletAction(id, action) {
+    const result = document.getElementById('iscrizioni_prime_result');
+    const data = new FormData();
+    data.append('id', id);
+    data.append('action', action);
+    data.append('note', '');
+    result.className = 'alert alert-info';
+    result.style.display = 'block';
+    result.textContent = 'Aggiornamento tablet in corso...';
+    fetch('iscrizioniPrimeTabletSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(payload => ({ok: response.ok, payload})))
+    .then(({ok, payload}) => {
+        if (!ok || !payload.ok) {
+            throw new Error(payload.message || 'Aggiornamento tablet non riuscito.');
+        }
+        result.className = 'alert alert-success';
+        let html = iscrizioniPrimeEscape(payload.message || 'Aggiornamento tablet completato.');
+        if (payload.replacement && payload.replacement.id) {
+            html += '<br><strong>Ripescato da avvisare:</strong> ' +
+                iscrizioniPrimeEscape((payload.replacement.cognome || '') + ' ' + (payload.replacement.nome || '')) +
+                ' - ' + iscrizioniPrimeEscape(payload.replacement.codice_fiscale || '') +
+                '. Usa il pulsante Scrivi sulla sua pratica per inviare la mail.';
+        }
+        result.innerHTML = html;
+        iscrizioniPrimeLoadTable();
+    })
+    .catch(error => {
+        result.className = 'alert alert-danger';
+        result.textContent = error.message;
+    });
+}
+
+function iscrizioniPrimeTabletManualStatus(id, packed, group) {
+    const parts = String(packed || '').split('|');
+    const data = new FormData();
+    data.append('id', id);
+    data.append('action', 'stato');
+    data.append('tablet_scelto', parts[0] === '1' ? '1' : '0');
+    data.append('tablet_stato', parts[1] || '');
+    data.append('tablet_gruppo', group || 'ipad');
+    data.append('note', '');
+    const result = document.getElementById('iscrizioni_prime_result');
+    result.className = 'alert alert-info';
+    result.style.display = 'block';
+    result.textContent = 'Aggiornamento stato tablet...';
+    fetch('iscrizioniPrimeTabletSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(payload => ({ok: response.ok, payload})))
+    .then(({ok, payload}) => {
+        if (!ok || !payload.ok) throw new Error(payload.message || 'Aggiornamento stato tablet non riuscito.');
+        result.className = 'alert alert-success';
+        result.textContent = payload.message || 'Stato tablet aggiornato.';
+        iscrizioniPrimeLoadTable();
+    })
+    .catch(error => {
+        result.className = 'alert alert-danger';
+        result.textContent = error.message;
+        iscrizioniPrimeLoadTable();
+    });
+}
+
+function iscrizioniPrimeOpenTabletRinuncia(id) {
+    const row = iscrizioniPrimeRows.find(item => Number(item.id) === Number(id));
+    if (!row) return;
+    const modal = document.getElementById('tablet_rinuncia_modal');
+    const form = document.getElementById('tablet_rinuncia_form');
+    const error = document.getElementById('tablet_rinuncia_error');
+    form.reset();
+    error.hidden = true;
+    error.textContent = '';
+    document.getElementById('tablet_rinuncia_id').value = row.id;
+    const student = ((row.cognome || '') + ' ' + (row.nome || '')).trim();
+    document.getElementById('tablet_rinuncia_student').textContent = 'Pratica di ' + student;
+    document.getElementById('tablet_rinuncia_message').value =
+        'Gentili genitori,\n\nconfermiamo di aver registrato la rinuncia alla classe tablet per ' + student + '.\n\nLa pratica e stata aggiornata dalla segreteria didattica.';
+    iscrizioniPrimeRenderTabletRecipients(row);
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function iscrizioniPrimeRenderTabletRecipients(row) {
+    const box = document.getElementById('tablet_rinuncia_recipients');
+    const items = [];
+    const seen = {};
+    [
+        ['Genitore 1', row.email_genitore_1],
+        ['Genitore 2', row.email_genitore_2]
+    ].forEach(item => {
+        const email = String(item[1] || '').trim().toLowerCase();
+        if (!email || seen[email]) return;
+        seen[email] = true;
+        items.push('<label style="display:block;font-weight:600;"><input type="checkbox" name="recipients[]" value="' + iscrizioniPrimeEscape(email) + '" checked> ' + iscrizioniPrimeEscape(item[0] + ' - ' + email) + '</label>');
+    });
+    box.innerHTML = items.length ? items.join('') : '<span class="text-danger">Nessuna email genitore presente nella pratica.</span>';
+}
+
+function iscrizioniPrimeCloseTabletRinuncia() {
+    const modal = document.getElementById('tablet_rinuncia_modal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+}
+
 function iscrizioniPrimeShowMailOverlay(title, text) {
     if (iscrizioniPrimeMailProgressTimer) {
         clearInterval(iscrizioniPrimeMailProgressTimer);
@@ -1299,10 +1661,10 @@ function iscrizioniPrimeHideMailOverlay() {
 
 function iscrizioniPrimeLoadTable() {
     const tbody = document.querySelector('#iscrizioni_prime_table tbody');
-    tbody.innerHTML = '<tr><td colspan="10" class="text-muted">Caricamento...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="text-muted">Caricamento...</td></tr>';
 
     fetch('iscrizioniPrimeRead.php?tipo_iscrizione=prime', {credentials: 'same-origin'})
-        .then(response => response.json())
+        .then(iscrizioniPrimeReadJsonResponse)
         .then(data => {
             if (!data.ok) {
                 throw new Error(data.message || 'Errore lettura pratiche');
@@ -1312,7 +1674,7 @@ function iscrizioniPrimeLoadTable() {
             iscrizioniPrimeRenderTable();
         })
         .catch(error => {
-            tbody.innerHTML = '<tr><td colspan="10" class="text-danger">' + iscrizioniPrimeEscape(error.message) + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="12" class="text-danger">' + iscrizioniPrimeEscape(error.message) + '</td></tr>';
         });
 }
 
@@ -1321,6 +1683,63 @@ document.addEventListener('DOMContentLoaded', function () {
     if (filter) {
         filter.addEventListener('input', iscrizioniPrimeRenderTable);
     }
+    const tabletFilter = document.getElementById('iscrizioni_prime_tablet_filter');
+    const acquistoFilter = document.getElementById('iscrizioni_prime_acquisto_filter');
+    if (tabletFilter) tabletFilter.addEventListener('change', iscrizioniPrimeRenderTable);
+    if (acquistoFilter) acquistoFilter.addEventListener('change', iscrizioniPrimeRenderTable);
+});
+
+document.getElementById('tablet_rinuncia_form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    const error = document.getElementById('tablet_rinuncia_error');
+    const button = document.getElementById('tablet_rinuncia_save_button');
+    const result = document.getElementById('iscrizioni_prime_result');
+    const data = new FormData(this);
+    if (document.getElementById('tablet_rinuncia_send_mail').checked && String(data.get('mail_message') || '').trim() === '') {
+        error.textContent = 'Inserisci il testo della mail di conferma rinuncia.';
+        error.hidden = false;
+        return;
+    }
+    error.hidden = true;
+    error.textContent = '';
+    button.disabled = true;
+    button.textContent = 'Salvataggio...';
+    result.className = 'alert alert-info';
+    result.style.display = 'block';
+    result.textContent = 'Registrazione rinuncia tablet...';
+
+    fetch('iscrizioniPrimeTabletSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(payload => ({ok: response.ok, payload})))
+    .then(({ok, payload}) => {
+        if (!ok || !payload.ok) throw new Error(payload.message || 'Registrazione rinuncia non riuscita.');
+        iscrizioniPrimeCloseTabletRinuncia();
+        result.className = 'alert alert-success';
+        let html = iscrizioniPrimeEscape(payload.message || 'Rinuncia tablet registrata.');
+        if (payload.mail) {
+            html += '<br>Mail conferma: ' + iscrizioniPrimeEscape(payload.mail.message || (payload.mail.ok ? 'inviata' : 'non inviata'));
+        }
+        if (payload.replacement && payload.replacement.id) {
+            html += '<br><strong>Ripescato da avvisare:</strong> ' +
+                iscrizioniPrimeEscape((payload.replacement.cognome || '') + ' ' + (payload.replacement.nome || '')) +
+                ' - ' + iscrizioniPrimeEscape(payload.replacement.codice_fiscale || '') + '.';
+        }
+        result.innerHTML = html;
+        iscrizioniPrimeLoadTable();
+    })
+    .catch(err => {
+        error.textContent = err.message;
+        error.hidden = false;
+        result.className = 'alert alert-danger';
+        result.textContent = err.message;
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.textContent = 'Registra rinuncia';
+    });
 });
 
 function iscrizioniPrimeOpenCambioScuola(id) {
@@ -1644,6 +2063,45 @@ document.getElementById('iscrizioni_prime_import_form').addEventListener('submit
             'Contatti aggiornati: ' + data.contacts_updated + ', anagrafiche ignorate: ' + data.contacts_ignored + '. ' +
             'Studenti gia nostri marcati interni: ' + (data.interni_marcati_da_gestore || 0) + '. ' +
             'Token nuovi generati: ' + data.generated_tokens + '.';
+        iscrizioniPrimeLoadTable();
+    })
+    .catch(error => {
+        result.className = 'alert alert-danger';
+        result.textContent = error.message;
+    });
+});
+
+document.getElementById('iscrizioni_prime_tablet_import_form').addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    const result = document.getElementById('iscrizioni_prime_result');
+    result.className = 'alert alert-info';
+    result.style.display = 'block';
+    result.textContent = 'Import tablet in corso...';
+
+    fetch('iscrizioniPrimeTabletImport.php', {
+        method: 'POST',
+        body: new FormData(event.target),
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(data => ({ok: response.ok, data})))
+    .then(({ok, data}) => {
+        if (!ok || !data.ok) {
+            throw new Error(data.message || 'Errore import tablet');
+        }
+        result.className = 'alert alert-success';
+        let html =
+            iscrizioniPrimeEscape(data.message || 'Import tablet completato.') +
+            '<br>Righe lette: <strong>' + iscrizioniPrimeEscape(data.rows || 0) + '</strong>' +
+            ' &middot; agganciate: <strong>' + iscrizioniPrimeEscape(data.matched || 0) + '</strong>' +
+            ' &middot; confermati: <strong>' + iscrizioniPrimeEscape(data.confirmed || 0) + '</strong>' +
+            ' &middot; esclusi: <strong>' + iscrizioniPrimeEscape(data.excluded || 0) + '</strong>' +
+            ' &middot; Digital Science: <strong>' + iscrizioniPrimeEscape(data.digital_science || 0) + '</strong>';
+        if (Array.isArray(data.unmatched) && data.unmatched.length) {
+            html += '<br><strong>Non agganciati:</strong><br>' + data.unmatched.slice(0, 20).map(iscrizioniPrimeEscape).join('<br>');
+            if (data.unmatched.length > 20) html += '<br>Altri: ' + (data.unmatched.length - 20);
+        }
+        result.innerHTML = html;
         iscrizioniPrimeLoadTable();
     })
     .catch(error => {

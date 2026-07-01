@@ -79,10 +79,21 @@ function iscrizioniPrimeEnsureSchema(): void
           token_last4 char(4) DEFAULT NULL,
           token_created_at datetime DEFAULT NULL,
           token_expires_at datetime DEFAULT NULL,
-          stato enum('importata','bozza','inviata','verificata','da_integrare','annullata') NOT NULL DEFAULT 'importata',
+          stato enum('importata','bozza','inviata','verifica_iniziale_ok','verificata','da_integrare','annullata') NOT NULL DEFAULT 'importata',
           dati_confermati_json mediumtext DEFAULT NULL,
           novita_segreteria_at datetime DEFAULT NULL,
           novita_segreteria_messaggio varchar(255) DEFAULT NULL,
+          tablet_scelto tinyint NOT NULL DEFAULT 0,
+          tablet_stato varchar(30) NOT NULL DEFAULT '',
+          tablet_gruppo varchar(50) DEFAULT NULL,
+          tablet_posizione int DEFAULT NULL,
+          tablet_acquistato tinyint NOT NULL DEFAULT 0,
+          tablet_acquistato_at date DEFAULT NULL,
+          tablet_ripescato_da_pratica_id int DEFAULT NULL,
+          tablet_note text DEFAULT NULL,
+          tablet_rinuncia_allegato_path text DEFAULT NULL,
+          tablet_rinuncia_allegato_original_name text DEFAULT NULL,
+          tablet_rinuncia_allegato_size int DEFAULT NULL,
           raw_prime_json mediumtext DEFAULT NULL,
           raw_dsa_json mediumtext DEFAULT NULL,
           raw_licenza_media_json mediumtext DEFAULT NULL,
@@ -409,6 +420,17 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'raw_licenza_media_json', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN raw_licenza_media_json mediumtext DEFAULT NULL AFTER raw_dsa_json");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'novita_segreteria_at', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN novita_segreteria_at datetime DEFAULT NULL AFTER dati_confermati_json");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'novita_segreteria_messaggio', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN novita_segreteria_messaggio varchar(255) DEFAULT NULL AFTER novita_segreteria_at");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_scelto', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_scelto tinyint NOT NULL DEFAULT 0 AFTER novita_segreteria_messaggio");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_stato', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_stato varchar(30) NOT NULL DEFAULT '' AFTER tablet_scelto");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_gruppo', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_gruppo varchar(50) DEFAULT NULL AFTER tablet_stato");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_posizione', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_posizione int DEFAULT NULL AFTER tablet_gruppo");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_acquistato', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_acquistato tinyint NOT NULL DEFAULT 0 AFTER tablet_posizione");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_acquistato_at', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_acquistato_at date DEFAULT NULL AFTER tablet_acquistato");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_ripescato_da_pratica_id', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_ripescato_da_pratica_id int DEFAULT NULL AFTER tablet_acquistato_at");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_note', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_note text DEFAULT NULL AFTER tablet_ripescato_da_pratica_id");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_path', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_path text DEFAULT NULL AFTER tablet_note");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_original_name', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_original_name text DEFAULT NULL AFTER tablet_rinuncia_allegato_path");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_size', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_size int DEFAULT NULL AFTER tablet_rinuncia_allegato_original_name");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'anagrafica_filename', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN anagrafica_filename varchar(255) DEFAULT NULL AFTER dsa_filename");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'righe_anagrafica', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN righe_anagrafica int NOT NULL DEFAULT 0 AFTER righe_dsa");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'licenza_media_filename', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN licenza_media_filename varchar(255) DEFAULT NULL AFTER anagrafica_filename");
@@ -461,6 +483,7 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'dettagli_json', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN dettagli_json mediumtext DEFAULT NULL AFTER messaggio");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_eventi', 'created_by', "ALTER TABLE iscrizioni_prime_eventi ADD COLUMN created_by varchar(255) DEFAULT NULL AFTER dettagli_json");
     iscrizioniPrimeEnsureDocumentStatusEnum();
+    iscrizioniPrimeEnsurePracticeStatusEnum();
     iscrizioniPrimeEnsureMailLogStatusEnum();
 }
 
@@ -495,6 +518,22 @@ function iscrizioniPrimeEnsureDocumentStatusEnum(): void
     }
 }
 
+function iscrizioniPrimeEnsurePracticeStatusEnum(): void
+{
+    $columnType = (string)dbGetValue("
+        SELECT COLUMN_TYPE
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'iscrizioni_prime_pratiche'
+          AND COLUMN_NAME = 'stato'
+        LIMIT 1
+    ");
+
+    if (strpos($columnType, 'verifica_iniziale_ok') === false) {
+        dbExec("ALTER TABLE iscrizioni_prime_pratiche MODIFY COLUMN stato enum('importata','bozza','inviata','verifica_iniziale_ok','verificata','da_integrare','annullata') NOT NULL DEFAULT 'importata'");
+    }
+}
+
 function iscrizioniPrimeEnsureMailLogStatusEnum(): void
 {
     $columnType = (string)dbGetValue("
@@ -511,6 +550,11 @@ function iscrizioniPrimeEnsureMailLogStatusEnum(): void
     }
 }
 
+function iscrizioniPrimeIsReceivedBySecretaryState(string $stato): bool
+{
+    return in_array($stato, ['inviata', 'verifica_iniziale_ok'], true);
+}
+
 function iscrizioniPrimeNormalizeTipoIscrizione($tipo): string
 {
     $tipo = strtolower(trim((string)$tipo));
@@ -520,6 +564,214 @@ function iscrizioniPrimeNormalizeTipoIscrizione($tipo): string
 function iscrizioniPrimeTipoIscrizioneFromPratica(array $pratica): string
 {
     return iscrizioniPrimeNormalizeTipoIscrizione($pratica['tipo_iscrizione'] ?? 'prime');
+}
+
+function iscrizioniPrimeTabletStatusLabel(string $status): string
+{
+    $labels = [
+        '' => 'Non indicato',
+        'richiesto' => 'Richiesto',
+        'confermato' => 'Confermato',
+        'escluso' => 'Escluso',
+        'rinuncia' => 'Rinuncia',
+    ];
+    return $labels[$status] ?? $status;
+}
+
+function iscrizioniPrimeTabletGroupLabel(string $group): string
+{
+    $labels = [
+        'ipad' => 'Classi tablet',
+        'digital_science' => 'Digital Science',
+    ];
+    return $labels[$group] ?? $group;
+}
+
+function iscrizioniPrimeTabletRecordEvent(int $praticaId, string $title, array $details = []): void
+{
+    iscrizioniPrimeRecordEvent($praticaId, 'tablet', $title, [
+        'dettagli' => $details,
+    ]);
+}
+
+function iscrizioniPrimeTabletSetPurchase(int $praticaId, bool $purchased, string $note = ''): array
+{
+    iscrizioniPrimeEnsureSchema();
+    $pratica = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($praticaId) . " LIMIT 1");
+    if (!$pratica) {
+        return ['ok' => false, 'message' => 'Pratica non trovata.'];
+    }
+    $dateSql = $purchased ? 'CURDATE()' : 'NULL';
+    dbExec("
+        UPDATE iscrizioni_prime_pratiche
+        SET tablet_acquistato = " . dbI($purchased ? 1 : 0) . ",
+            tablet_acquistato_at = " . $dateSql . ",
+            tablet_note = " . dbQ($note !== '' ? $note : ($pratica['tablet_note'] ?? null)) . ",
+            updated_at = NOW()
+        WHERE id = " . dbI($praticaId) . "
+    ");
+    iscrizioniPrimeTabletRecordEvent($praticaId, $purchased ? 'Tablet acquistato' : 'Tablet segnato non acquistato', [
+        'note' => $note,
+    ]);
+    return ['ok' => true, 'message' => $purchased ? 'Acquisto tablet registrato.' : 'Acquisto tablet rimosso.'];
+}
+
+function iscrizioniPrimeTabletAttachmentDir(int $praticaId): string
+{
+    return iscrizioniPrimeUploadBaseDir() . '/iscrizioni_tablet_rinunce/' . intval($praticaId);
+}
+
+function iscrizioniPrimeTabletSaveRenounceAttachment(int $praticaId, array $file): ?array
+{
+    if (empty($file['tmp_name']) || intval($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+    if (intval($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+        throw new RuntimeException('Caricamento PDF rinuncia non riuscito.');
+    }
+    $name = trim((string)($file['name'] ?? 'rinuncia-tablet.pdf'));
+    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+    if ($ext !== 'pdf') {
+        throw new RuntimeException('Allegare un file PDF per la richiesta di rinuncia.');
+    }
+    $dir = iscrizioniPrimeTabletAttachmentDir($praticaId);
+    if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+        throw new RuntimeException('Impossibile creare la cartella per la rinuncia tablet.');
+    }
+    $safeName = preg_replace('/[^A-Za-z0-9._-]+/', '_', $name);
+    $targetName = date('Ymd_His') . '_' . ($safeName ?: 'rinuncia-tablet.pdf');
+    $target = $dir . '/' . $targetName;
+    if (!move_uploaded_file($file['tmp_name'], $target)) {
+        throw new RuntimeException('Impossibile salvare il PDF della rinuncia tablet.');
+    }
+    return [
+        'absolute_path' => $target,
+        'relative_path' => 'data/iscrizioni_tablet_rinunce/' . intval($praticaId) . '/' . $targetName,
+        'original_name' => $name,
+        'size' => intval(filesize($target) ?: ($file['size'] ?? 0)),
+    ];
+}
+
+function iscrizioniPrimeTabletSetStatus(int $praticaId, int $tabletScelto, string $status, string $group = '', string $note = ''): array
+{
+    iscrizioniPrimeEnsureSchema();
+    $allowed = ['', 'richiesto', 'confermato', 'escluso', 'rinuncia'];
+    if (!in_array($status, $allowed, true)) {
+        return ['ok' => false, 'message' => 'Stato tablet non valido.'];
+    }
+    $group = in_array($group, ['ipad', 'digital_science'], true) ? $group : '';
+    dbExec("
+        UPDATE iscrizioni_prime_pratiche
+        SET tablet_scelto = " . dbI($tabletScelto ? 1 : 0) . ",
+            tablet_stato = " . dbQ($tabletScelto ? $status : '') . ",
+            tablet_gruppo = " . dbQ($tabletScelto ? ($group !== '' ? $group : null) : null) . ",
+            tablet_acquistato = CASE WHEN " . dbI($tabletScelto ? 1 : 0) . " = 1 AND " . dbQ($status) . " = 'confermato' THEN tablet_acquistato ELSE 0 END,
+            tablet_acquistato_at = CASE WHEN " . dbI($tabletScelto ? 1 : 0) . " = 1 AND " . dbQ($status) . " = 'confermato' THEN tablet_acquistato_at ELSE NULL END,
+            tablet_note = " . dbQ($note) . ",
+            updated_at = NOW()
+        WHERE id = " . dbI($praticaId) . "
+        LIMIT 1
+    ");
+    iscrizioniPrimeTabletRecordEvent($praticaId, 'Stato tablet aggiornato manualmente', [
+        'tablet_scelto' => $tabletScelto ? 1 : 0,
+        'tablet_stato' => $status,
+        'tablet_gruppo' => $group,
+        'note' => $note,
+    ]);
+    return ['ok' => true, 'message' => 'Stato tablet aggiornato senza ripescaggio.'];
+}
+
+function iscrizioniPrimeTabletRenounce(int $praticaId, string $note = '', ?array $attachment = null, bool $sendMail = false, string $mailSubject = '', string $mailMessage = '', string $mailSignature = '', ?array $selectedRecipients = null): array
+{
+    iscrizioniPrimeEnsureSchema();
+    $pratica = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($praticaId) . " LIMIT 1");
+    if (!$pratica) {
+        return ['ok' => false, 'message' => 'Pratica non trovata.'];
+    }
+
+    $attachmentData = $attachment ? iscrizioniPrimeTabletSaveRenounceAttachment($praticaId, $attachment) : null;
+
+    dbExec("START TRANSACTION");
+    dbExec("
+        UPDATE iscrizioni_prime_pratiche
+        SET tablet_scelto = 1,
+            tablet_stato = 'rinuncia',
+            tablet_acquistato = 0,
+            tablet_acquistato_at = NULL,
+            tablet_note = " . dbQ($note) . ",
+            tablet_rinuncia_allegato_path = " . dbQ($attachmentData['relative_path'] ?? ($pratica['tablet_rinuncia_allegato_path'] ?? null)) . ",
+            tablet_rinuncia_allegato_original_name = " . dbQ($attachmentData['original_name'] ?? ($pratica['tablet_rinuncia_allegato_original_name'] ?? null)) . ",
+            tablet_rinuncia_allegato_size = " . dbQ($attachmentData['size'] ?? ($pratica['tablet_rinuncia_allegato_size'] ?? null)) . ",
+            updated_at = NOW()
+        WHERE id = " . dbI($praticaId) . "
+    ");
+
+    $replacement = dbGetFirst("
+        SELECT *
+        FROM iscrizioni_prime_pratiche
+        WHERE tipo_iscrizione = 'prime'
+          AND tablet_scelto = 1
+          AND tablet_stato = 'escluso'
+        ORDER BY tablet_posizione ASC, cognome ASC, nome ASC
+        LIMIT 1
+    ");
+
+    if ($replacement) {
+        dbExec("
+            UPDATE iscrizioni_prime_pratiche
+            SET tablet_stato = 'confermato',
+                tablet_gruppo = COALESCE(NULLIF(tablet_gruppo, ''), 'ipad'),
+                tablet_ripescato_da_pratica_id = " . dbI($praticaId) . ",
+                tablet_note = CONCAT(COALESCE(tablet_note, ''), " . dbQ(($note !== '' ? "\n" : '') . 'Ripescato per rinuncia di ' . trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? ''))) . "),
+                updated_at = NOW()
+            WHERE id = " . dbI($replacement['id'] ?? 0) . "
+        ");
+    }
+    dbExec("COMMIT");
+
+    iscrizioniPrimeTabletRecordEvent($praticaId, 'Rinuncia tablet registrata', [
+        'note' => $note,
+        'allegato' => $attachmentData['relative_path'] ?? ($pratica['tablet_rinuncia_allegato_path'] ?? ''),
+        'ripescato_id' => intval($replacement['id'] ?? 0),
+    ]);
+    if ($replacement) {
+        iscrizioniPrimeTabletRecordEvent((int)$replacement['id'], 'Ripescato per classi tablet', [
+            'rinuncia_pratica_id' => $praticaId,
+            'rinuncia_studente' => trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? '')),
+        ]);
+    }
+
+    $mailResult = null;
+    if ($sendMail) {
+        $freshPratica = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($praticaId) . " LIMIT 1") ?: $pratica;
+        $attachments = [];
+        $attachmentPath = trim((string)($attachmentData['absolute_path'] ?? ''));
+        if ($attachmentPath === '' && !empty($freshPratica['tablet_rinuncia_allegato_path'])) {
+            $path = realpath(__DIR__ . '/../' . (string)$freshPratica['tablet_rinuncia_allegato_path']);
+            $base = realpath(iscrizioniPrimeUploadBaseDir() . '/iscrizioni_tablet_rinunce');
+            if ($path && $base && strpos($path, $base) === 0 && is_file($path)) {
+                $attachmentPath = $path;
+            }
+        }
+        if ($attachmentPath !== '') {
+            $attachments[] = $attachmentPath;
+        }
+        $mailResult = iscrizioniPrimeSendCustomPracticeMail($freshPratica, $mailSubject, $mailMessage, $mailSignature, $selectedRecipients, $attachments, 'mail_rinuncia_tablet');
+    }
+
+    return [
+        'ok' => true,
+        'message' => $replacement
+            ? 'Rinuncia registrata. Ripescato ' . trim((string)($replacement['cognome'] ?? '') . ' ' . (string)($replacement['nome'] ?? '')) . ': inviare avviso ai genitori.'
+            : 'Rinuncia registrata. Nessun escluso disponibile per il ripescaggio.',
+        'mail' => $mailResult,
+        'replacement' => $replacement ? [
+            'id' => intval($replacement['id'] ?? 0),
+            'cognome' => (string)($replacement['cognome'] ?? ''),
+            'nome' => (string)($replacement['nome'] ?? ''),
+            'codice_fiscale' => (string)($replacement['codice_fiscale'] ?? ''),
+        ] : null,
+    ];
 }
 
 function iscrizioniPrimeDocumentTypes($tipo = 'prime'): array
@@ -1583,7 +1835,7 @@ function iscrizioniPrimeEventsForPratica(array $pratica): array
         }
     }
     $sentAt = trim((string)($confirmed['saved_at'] ?? ''));
-    if ($sentAt === '' && in_array((string)($pratica['stato'] ?? ''), ['inviata', 'verificata', 'da_integrare', 'annullata'], true)) {
+    if ($sentAt === '' && in_array((string)($pratica['stato'] ?? ''), ['inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata'], true)) {
         $sentAt = trim((string)($pratica['updated_at'] ?? ''));
     }
     if ($sentAt !== '') {
@@ -1882,7 +2134,7 @@ function iscrizioniPrimeCustomPracticeMailBody(array $pratica, string $message, 
     ';
 }
 
-function iscrizioniPrimeSendCustomPracticeMail(array $pratica, string $subject, string $message, string $signature, ?array $selectedRecipients = null): array
+function iscrizioniPrimeSendCustomPracticeMail(array $pratica, string $subject, string $message, string $signature, ?array $selectedRecipients = null, array $attachments = [], string $eventType = 'mail_personalizzata'): array
 {
     require_once __DIR__ . '/send-mail.php';
 
@@ -1950,6 +2202,7 @@ function iscrizioniPrimeSendCustomPracticeMail(array $pratica, string $subject, 
             'smtp_password' => $account['password'],
             'smtp_secure' => $cfg['SMTPSecure'],
             'smtp_port' => $cfg['Port'],
+            'attachments' => $attachments,
         ]);
 
         if ($ok) {
@@ -1966,12 +2219,13 @@ function iscrizioniPrimeSendCustomPracticeMail(array $pratica, string $subject, 
     }
 
     info('[iscrizioni] comunicazione personalizzata inviata pratica=' . intval($pratica['id'] ?? 0) . ' destinatari=' . implode(',', $recipients));
-    iscrizioniPrimeRecordEvent((int)($pratica['id'] ?? 0), 'mail_personalizzata', 'Mail personalizzata inviata ai genitori', [
+    iscrizioniPrimeRecordEvent((int)($pratica['id'] ?? 0), $eventType, $eventType === 'mail_rinuncia_tablet' ? 'Mail conferma rinuncia tablet inviata ai genitori' : 'Mail personalizzata inviata ai genitori', [
         'oggetto' => $subject,
         'messaggio' => $message . ($signature !== '' ? "\n\nFirma:\n" . $signature : ''),
         'dettagli' => [
             'destinatari' => $recipients,
             'inviate' => $sent,
+            'allegati' => array_map('basename', $attachments),
         ],
     ]);
     return ['ok' => true, 'message' => 'Comunicazione inviata ai genitori.', 'sent' => $sent, 'recipients' => $recipients];
@@ -4477,7 +4731,7 @@ function iscrizioniPrimeSaveDraftByToken(string $token, array $data): array
         }
     }
     $savedAt = date('c');
-    if ((string)($pratica['stato'] ?? '') === 'inviata' && !empty($previousConfirmed['saved_at'])) {
+    if (iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? '')) && !empty($previousConfirmed['saved_at'])) {
         $savedAt = (string)$previousConfirmed['saved_at'];
     }
 
@@ -4527,7 +4781,7 @@ function iscrizioniPrimeSaveDraftByToken(string $token, array $data): array
 
     iscrizioniPrimeRecordContactChanges($pratica, $confirmed);
 
-    $nextPracticeState = (string)($pratica['stato'] ?? '') === 'inviata' ? 'inviata' : 'bozza';
+    $nextPracticeState = iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? '')) ? 'inviata' : 'bozza';
     dbExec("
         UPDATE iscrizioni_prime_pratiche SET
             email_studente = " . dbQ($confirmed['email_studente']) . ",
@@ -5082,9 +5336,9 @@ function iscrizioniPrimeUploadDocumentByToken(string $token, string $tipo, array
         }
     }
 
-    $nextPracticeState = (string)($pratica['stato'] ?? '') === 'inviata' ? 'inviata' : 'bozza';
+    $nextPracticeState = iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? '')) ? 'inviata' : 'bozza';
     $newsMessage = null;
-    if ((string)($pratica['stato'] ?? '') === 'inviata') {
+    if (iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? ''))) {
         $newsMessage = $appendedToPrevious
             ? 'La famiglia ha aggiunto nuovi file al documento: ' . $types[$tipo] . '. Deve reinviare la conferma.'
             : 'La famiglia ha caricato o sostituito il documento: ' . $types[$tipo] . '. Deve reinviare la conferma.';
@@ -5646,8 +5900,8 @@ function iscrizioniPrimeDeleteDocumentByToken(string $token, string $tipo): arra
         LIMIT 1
     ");
 
-    $nextPracticeState = (string)($pratica['stato'] ?? '') === 'inviata' ? 'inviata' : 'bozza';
-    $newsMessage = (string)($pratica['stato'] ?? '') === 'inviata'
+    $nextPracticeState = iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? '')) ? 'inviata' : 'bozza';
+    $newsMessage = iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? ''))
         ? 'La famiglia ha cancellato il documento: ' . $types[$tipo] . '. Deve reinviare la conferma.'
         : null;
     dbExec("
@@ -5706,8 +5960,8 @@ function iscrizioniPrimeMarkDocumentPaperByToken(string $token, string $tipo): a
         LIMIT 1
     ");
 
-    $nextPracticeState = (string)($pratica['stato'] ?? '') === 'inviata' ? 'inviata' : 'bozza';
-    $newsMessage = (string)($pratica['stato'] ?? '') === 'inviata'
+    $nextPracticeState = iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? '')) ? 'inviata' : 'bozza';
+    $newsMessage = iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? ''))
         ? 'La famiglia ha scelto consegna cartacea per: ' . $types[$tipo] . '. Deve reinviare la conferma.'
         : null;
     dbExec("
@@ -5808,7 +6062,7 @@ function iscrizioniPrimeSubmitByToken(string $token, array $data): array
         UPDATE iscrizioni_prime_pratiche SET
             stato = 'inviata',
             novita_segreteria_at = NOW(),
-            novita_segreteria_messaggio = " . dbQ((string)($pratica['stato'] ?? '') === 'inviata' ? 'La famiglia ha reinviato la conferma dati iscrizione.' : 'La famiglia ha inviato la conferma dati iscrizione.') . ",
+            novita_segreteria_messaggio = " . dbQ(iscrizioniPrimeIsReceivedBySecretaryState((string)($pratica['stato'] ?? '')) ? 'La famiglia ha reinviato la conferma dati iscrizione.' : 'La famiglia ha inviato la conferma dati iscrizione.') . ",
             updated_at = NOW()
         WHERE id = " . intval($pratica['id']) . "
         LIMIT 1
@@ -6166,7 +6420,7 @@ function iscrizioniPrimeRelazioneId(string $tipo): int
 function iscrizioniPrimeGestoreStudentActiveFromPratica(array $pratica): int
 {
     $stato = (string)($pratica['stato'] ?? '');
-    return in_array($stato, ['inviata', 'da_integrare', 'verificata'], true) ? 1 : 0;
+    return in_array($stato, ['inviata', 'verifica_iniziale_ok', 'da_integrare', 'verificata'], true) ? 1 : 0;
 }
 
 function iscrizioniPrimeUpsertGestoreStudent(array $pratica, ?int $attivo = null): int

@@ -13,6 +13,8 @@ $stats = dbGetFirst("
         SUM(studente_interno = 0) AS esterni,
         SUM(stato = 'bozza' AND studente_interno = 0) AS bozze,
         SUM(stato = 'inviata' AND studente_interno = 0) AS inviate,
+        SUM(stato = 'verifica_iniziale_ok' AND studente_interno = 0) AS verifica_iniziale_ok,
+        SUM(stato = 'verificata' AND studente_interno = 0) AS verificate,
         SUM((email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AND studente_interno = 0) AS esterni_con_email
     FROM iscrizioni_prime_pratiche
     WHERE tipo_iscrizione = 'terze'
@@ -477,6 +479,26 @@ function iscrizioniTerzeEscape(value) {
     });
 }
 
+function iscrizioniTerzeStatoLabel(stato) {
+    const labels = {
+        inviata: 'Inviata',
+        verifica_iniziale_ok: 'Verifica iniziale OK',
+        verificata: 'Pratica completata',
+        da_integrare: 'Da integrare',
+        annullata: 'Cambio scuola'
+    };
+    return labels[String(stato || '')] || String(stato || '');
+}
+
+function iscrizioniTerzeMovimentoStatoLabel(stato) {
+    const labels = {
+        reiscrizione_confermata: 'Reiscrizione confermata',
+        chiusa: 'Chiusa',
+        da_verificare: 'Da verificare'
+    };
+    return labels[String(stato || '')] || String(stato || '').replace(/_/g, ' ');
+}
+
 function iscrizioniTerzeSetText(id, value) {
     const el = document.getElementById(id);
     if (el) el.textContent = value || 0;
@@ -681,7 +703,7 @@ function iscrizioniTerzeMailStatus(row) {
         html += '<br><small>' + iscrizioniTerzeEscape(row.mail_diagnosi) + '</small>';
     } else if (!['importata', 'bozza', 'da_integrare'].includes(String(row.stato || '').toLowerCase())) {
         html += '<span class="mail-badge mail-badge-skip">Non richiesta</span>';
-        if (row.stato) html += '<br><small>pratica ' + iscrizioniTerzeEscape(row.stato) + '</small>';
+        if (row.stato) html += '<br><small>pratica ' + iscrizioniTerzeEscape(iscrizioniTerzeStatoLabel(row.stato)) + '</small>';
     } else {
         html += '<span class="mail-badge mail-badge-none">Da inviare</span>';
     }
@@ -712,9 +734,12 @@ function iscrizioniTerzeRenderTable() {
         const emails = [row.email_genitore_1, row.email_genitore_2].filter(Boolean).join('<br>');
         const isInternal = iscrizioniTerzeTipoEffettivo(row) === 'INTERNO';
         const token = isInternal ? '-' : (row.token_last4 ? ('...' + row.token_last4) : '<span class="text-danger">da esportare</span>');
+        const reiscrizione = Number(row.movimento_reiscrizione_id || 0) > 0
+            ? '<br><span class="mail-badge mail-badge-real">Reiscrizione: ' + iscrizioniTerzeEscape(iscrizioniTerzeMovimentoStatoLabel(row.movimento_reiscrizione_stato)) + '</span>'
+            : '';
         const tipo = isInternal
-            ? '<span class="label label-default">interno</span>' + (row.classe_corrente_gestore ? '<br><small class="text-muted">' + iscrizioniTerzeEscape(row.classe_corrente_gestore) + '</small>' : '')
-            : '<span class="label label-warning">esterno</span>' + (row.classe_corrente_gestore ? '<br><small class="text-muted">' + iscrizioniTerzeEscape(row.classe_corrente_gestore) + '</small>' : '');
+            ? '<span class="label label-default">interno</span>' + (row.classe_corrente_gestore ? '<br><small class="text-muted">' + iscrizioniTerzeEscape(row.classe_corrente_gestore) + '</small>' : '') + reiscrizione
+            : '<span class="label label-warning">esterno</span>' + (row.classe_corrente_gestore ? '<br><small class="text-muted">' + iscrizioniTerzeEscape(row.classe_corrente_gestore) + '</small>' : '') + reiscrizione;
         const testButton = isInternal
             ? '<span class="text-muted">non richiesto</span>'
             : '<button type="button" class="btn btn-xs btn-info" onclick="iscrizioniTerzeOpenTestLink(' + Number(row.id) + ')"><span class="glyphicon glyphicon-new-window"></span> Apri</button>';
@@ -726,7 +751,7 @@ function iscrizioniTerzeRenderTable() {
             '<td>' + iscrizioniTerzeEscape(row.corso_studi) + '</td>' +
             '<td>' + iscrizioniTerzeAttributiHtml(row) + '</td>' +
             '<td>' + tipo + '</td>' +
-            '<td>' + iscrizioniTerzeEscape(row.stato) + '</td>' +
+            '<td>' + iscrizioniTerzeEscape(iscrizioniTerzeStatoLabel(row.stato)) + '</td>' +
             '<td>' + (emails || '<span class="text-danger">mancante</span>') + '</td>' +
             '<td>' + iscrizioniTerzeMailStatus(row) + '</td>' +
             '<td>' + token + '</td>' +

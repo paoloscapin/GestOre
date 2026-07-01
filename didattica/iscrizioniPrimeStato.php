@@ -9,7 +9,7 @@ header('Content-Type: application/json; charset=utf-8');
 $id = intval($_POST['id'] ?? 0);
 $stato = trim((string)($_POST['stato'] ?? ''));
 $note = trim((string)($_POST['note'] ?? ''));
-$allowed = ['inviata', 'verificata', 'da_integrare', 'annullata'];
+$allowed = ['inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata'];
 
 if ($id <= 0 || !in_array($stato, $allowed, true)) {
     http_response_code(400);
@@ -29,7 +29,7 @@ try {
         SELECT *
         FROM iscrizioni_prime_pratiche
         WHERE id = " . dbI($id) . "
-          AND stato IN ('inviata', 'verificata', 'da_integrare', 'annullata')
+          AND stato IN ('inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata')
         LIMIT 1
     ");
 
@@ -40,14 +40,16 @@ try {
     }
     $statoPrecedente = (string)($pratica['stato'] ?? '');
 
+    $clearsSecretaryNews = in_array($stato, ['verifica_iniziale_ok', 'verificata'], true);
+
     dbExec("
         UPDATE iscrizioni_prime_pratiche SET
             stato = " . dbQ($stato) . ",
-            novita_segreteria_at = " . ($stato === 'verificata' ? 'NULL' : 'novita_segreteria_at') . ",
-            novita_segreteria_messaggio = " . ($stato === 'verificata' ? 'NULL' : 'novita_segreteria_messaggio') . ",
+            novita_segreteria_at = " . ($clearsSecretaryNews ? 'NULL' : 'novita_segreteria_at') . ",
+            novita_segreteria_messaggio = " . ($clearsSecretaryNews ? 'NULL' : 'novita_segreteria_messaggio') . ",
             updated_at = NOW()
         WHERE id = " . dbI($id) . "
-          AND stato IN ('inviata', 'verificata', 'da_integrare', 'annullata')
+          AND stato IN ('inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata')
         LIMIT 1
     ");
 

@@ -6,10 +6,43 @@ ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
 
 header('Content-Type: application/json; charset=utf-8');
 
+try {
 iscrizioniPrimeEnsureSchema();
 $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($_GET['tipo_iscrizione'] ?? 'prime');
 $effectiveInternal = iscrizioniPrimeEffectiveInternalCondition('p');
 $effectiveExternal = iscrizioniPrimeEffectiveExternalCondition('p');
+$movimentiRequiredColumns = ['id', 'tipo_pratica', 'stato_pratica', 'codice_fiscale', 'classe_origine', 'classe_richiesta', 'updated_at'];
+$movimentiEnabled = dbGetFirst("SHOW TABLES LIKE 'studenti_movimenti_pratiche'") !== null;
+if ($movimentiEnabled) {
+    foreach ($movimentiRequiredColumns as $column) {
+        if (dbGetFirst("SHOW COLUMNS FROM studenti_movimenti_pratiche LIKE " . dbQ($column)) === null) {
+            $movimentiEnabled = false;
+            break;
+        }
+    }
+}
+$movimentiSelect = $movimentiEnabled
+    ? "movimento_reiscrizione.id AS movimento_reiscrizione_id,
+        movimento_reiscrizione.stato_pratica AS movimento_reiscrizione_stato,
+        movimento_reiscrizione.classe_origine AS movimento_reiscrizione_classe_origine,
+        movimento_reiscrizione.classe_richiesta AS movimento_reiscrizione_classe_richiesta"
+    : "NULL AS movimento_reiscrizione_id,
+        NULL AS movimento_reiscrizione_stato,
+        NULL AS movimento_reiscrizione_classe_origine,
+        NULL AS movimento_reiscrizione_classe_richiesta";
+$movimentiJoin = $movimentiEnabled ? "
+    LEFT JOIN studenti_movimenti_pratiche movimento_reiscrizione
+      ON movimento_reiscrizione.id = (
+          SELECT m2.id
+          FROM studenti_movimenti_pratiche m2
+          WHERE m2.tipo_pratica = 'bocciato_reiscrizione'
+            AND m2.stato_pratica <> 'annullata'
+            AND m2.codice_fiscale IS NOT NULL
+            AND m2.codice_fiscale <> ''
+            AND UPPER(TRIM(m2.codice_fiscale)) = UPPER(TRIM(p.codice_fiscale))
+          ORDER BY m2.updated_at DESC, m2.id DESC
+          LIMIT 1
+      )" : "";
 
 $stats = dbGetFirst("
     SELECT
@@ -21,8 +54,15 @@ $stats = dbGetFirst("
         SUM(stato = 'bozza' AND $effectiveExternal) AS bozze_esterni,
         SUM(stato = 'inviata') AS domande_inviate,
         SUM(stato = 'inviata' AND $effectiveExternal) AS domande_inviate_esterni,
+        SUM(stato = 'verifica_iniziale_ok') AS verifica_iniziale_ok,
         SUM(stato = 'verificata') AS verificate,
         SUM(stato = 'annullata') AS annullate,
+        SUM(tablet_scelto = 1) AS tablet_scelti,
+        SUM(tablet_stato = 'confermato') AS tablet_confermati,
+        SUM(tablet_stato = 'escluso') AS tablet_esclusi,
+        SUM(tablet_stato = 'rinuncia') AS tablet_rinunce,
+        SUM(tablet_stato = 'confermato' AND tablet_acquistato = 1) AS tablet_acquistati,
+        SUM(tablet_stato = 'confermato' AND tablet_acquistato = 0) AS tablet_da_acquistare,
         SUM(email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AS con_email,
         SUM((email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AND $effectiveExternal) AS esterni_con_email
     FROM iscrizioni_prime_pratiche p
@@ -63,8 +103,21 @@ $rows = dbGetAll("
         p.email_genitore_2,
         p.telefono_genitore_1,
         p.telefono_genitore_2,
+        p.responsabile_1_cognome,
+        p.responsabile_1_nome,
+        p.responsabile_2_cognome,
+        p.responsabile_2_nome,
         p.token_last4,
         p.token_expires_at,
+        p.tablet_scelto,
+        p.tablet_stato,
+        p.tablet_gruppo,
+        p.tablet_posizione,
+        p.tablet_acquistato,
+        p.tablet_acquistato_at,
+        p.tablet_ripescato_da_pratica_id,
+        p.tablet_note,
+        p.tablet_rinuncia_allegato_original_name,
         p.raw_dsa_json,
         p.updated_at,
         COALESCE(mail_log.mail_reali, 0) AS mail_reali,
@@ -120,7 +173,8 @@ $rows = dbGetAll("
         cambio.richiesta_data AS cambio_scuola_richiesta_data,
         cambio.canale AS cambio_scuola_canale,
         cambio.scuola_destinazione AS cambio_scuola_scuola_destinazione,
-        cambio.pratica_stato AS cambio_scuola_pratica_stato
+        cambio.pratica_stato AS cambio_scuola_pratica_stato,
+        $movimentiSelect
     FROM iscrizioni_prime_pratiche p
     LEFT JOIN (
         SELECT
@@ -150,6 +204,7 @@ $rows = dbGetAll("
         GROUP BY UPPER(TRIM(s.codice_fiscale))
     ) classe_corrente ON classe_corrente.codice_fiscale = UPPER(TRIM(p.codice_fiscale))
     LEFT JOIN iscrizioni_prime_cambio_scuola cambio ON cambio.pratica_id = p.id
+    $movimentiJoin
     WHERE p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
     ORDER BY p.cognome ASC, p.nome ASC
 ");
@@ -161,3 +216,10 @@ $rows = array_map(static function (array $row): array {
 }, $rows ?: []);
 
 echo json_encode(['ok' => true, 'stats' => $stats ?: [], 'mail_stats' => $mailStats ?: [], 'rows' => $rows], JSON_UNESCAPED_UNICODE);
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        'ok' => false,
+        'message' => 'Errore lettura iscrizioni prime: ' . $e->getMessage(),
+    ], JSON_UNESCAPED_UNICODE);
+}
