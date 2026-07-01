@@ -579,24 +579,47 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
 
     debug("checkSession: genitore username=" . $username);
 
-    $mirrorAvailable = mastercomGenitoreLoginMirrorAvailable();
-    $mirror = $mirrorAvailable ? mastercomGenitoreMirrorByUsername($username) : null;
-    if ($mirrorAvailable && !$mirror) {
+    // Prima cerco SEMPRE il genitore nella tabella GestOre,
+    // perché lo username di login è genitori.username.
+    $query = "
+    SELECT *
+    FROM genitori
+    WHERE username = " . dbQ($username) . "
+      AND attivo = 1
+    LIMIT 1
+";
+
+    debug("checkSession: query genitori=" . $query);
+    $genitore = dbGetFirst($query);
+    $esiste_login = ($genitore != null);
+
+    if (!$esiste_login) {
         $__message = 'Accesso MasterCom riservato ai genitori: username non censito fra i genitori della scuola. Se sei un docente usa Accesso Google.';
-        debug("checkSession: username MasterCom non censito fra genitori -> fail");
-        infoLogin("Username MasterCom non censito fra genitori: " . $username);
+        debug("checkSession: username non trovato in genitori.username -> fail");
+        infoLogin("Username non trovato in genitori.username: " . $username);
         warning($__message);
         redirect('/error/error.php?message=' . urlencode($__message));
         exit();
     }
 
-    if ($mirror && intval($mirror['id_genitore_gestore'] ?? 0) > 0) {
-        $query = "SELECT * FROM genitori WHERE id = " . dbI($mirror['id_genitore_gestore']) . " AND attivo = 1";
-    } else {
-        $query = "SELECT * FROM genitori WHERE username = " . dbQ($username) . " AND attivo = 1";
+    // Controllo facoltativo: se esiste il mirror, verifico solo che il genitore sia collegato.
+    $mirrorAvailable = mastercomGenitoreLoginMirrorAvailable();
+
+    if ($mirrorAvailable) {
+        $mirror = dbGetFirst("
+        SELECT *
+        FROM mastercom_genitori
+        WHERE id_genitore_gestore = " . dbI($genitore['id']) . "
+        LIMIT 1
+    ");
+
+        if (!$mirror) {
+            debug("checkSession: genitore trovato in genitori ma non collegato in mastercom_genitori id_genitore_gestore=" . intval($genitore['id']));
+            infoLogin("Genitore non collegato in mastercom_genitori: id_genitore_gestore=" . intval($genitore['id']));
+            // Qui NON bloccherei il login, perché l'autenticazione vera la farà MasterCom.
+        }
     }
     debug("checkSession: query genitori=" . $query);
-    $genitore = dbGetFirst($query);
     $esiste_login = ($genitore != null);
 
     debug("checkSession: esiste_login=" . ($esiste_login ? "YES" : "NO"));
@@ -624,11 +647,11 @@ if (isset($_POST['username']) && isset($_POST['password']) && !isset($_SESSION['
                 debug("checkSession: mastercom auth EMPTY -> fail http=$mastercomHttp error=" . $mastercomError . " studenti_attivi=" . $studentiAttiviGenitore);
                 infoLogin(
                     "Credenziali MasterCom non valide: " . $username
-                    . " | genitore_locale_id=" . intval($genitore['id'])
-                    . " | locale_attivo=1"
-                    . " | studenti_attivi=" . $studentiAttiviGenitore
-                    . " | mastercom_http=" . $mastercomHttp
-                    . " | mastercom_error=" . $mastercomError
+                        . " | genitore_locale_id=" . intval($genitore['id'])
+                        . " | locale_attivo=1"
+                        . " | studenti_attivi=" . $studentiAttiviGenitore
+                        . " | mastercom_http=" . $mastercomHttp
+                        . " | mastercom_error=" . $mastercomError
                 );
                 segnalaLoginMastercomGenitoreFallito($genitore, $username, $studentiAttiviGenitore, $mastercomHttp, $mastercomError);
                 warning($__message);
