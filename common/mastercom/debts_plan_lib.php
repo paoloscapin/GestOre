@@ -19,6 +19,67 @@ function mastercomDebtsPlanEnsureTables(): void
             KEY `idx_mastercom_carenze_plan_lock_docente` (`id_docente`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8
     ");
+
+    dbExec("
+        CREATE TABLE IF NOT EXISTS `mastercom_carenze_plan_real_courses` (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `id_anno_scolastico` INT NOT NULL,
+            `course_key` VARCHAR(190) NOT NULL,
+            `kind` VARCHAR(20) NOT NULL DEFAULT 'corso',
+            `class_year` VARCHAR(10) NULL,
+            `subject` VARCHAR(190) NOT NULL,
+            `date_text` VARCHAR(190) NULL,
+            `time_text` VARCHAR(100) NULL,
+            `slots_json` MEDIUMTEXT NOT NULL,
+            `teacher_name` VARCHAR(190) NULL,
+            `aula` VARCHAR(100) NULL,
+            `sort_order` INT NOT NULL DEFAULT 0,
+            `source_hash` VARCHAR(64) NULL,
+            `created_at` DATETIME NOT NULL,
+            `updated_at` DATETIME NOT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uk_mcdp_real_course` (`id_anno_scolastico`, `course_key`),
+            KEY `idx_mcdp_real_course_year_kind` (`id_anno_scolastico`, `kind`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+    ");
+
+    dbExec("
+        CREATE TABLE IF NOT EXISTS `mastercom_carenze_plan_real_students` (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `course_id` INT NOT NULL,
+            `id_studente` INT NULL,
+            `student_name` VARCHAR(190) NOT NULL,
+            `class_name` VARCHAR(50) NULL,
+            `debt_teacher_name` VARCHAR(190) NULL,
+            `auditor` TINYINT(1) NOT NULL DEFAULT 0,
+            `sort_order` INT NOT NULL DEFAULT 0,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uk_mcdp_real_student` (`course_id`, `student_name`, `class_name`),
+            KEY `idx_mcdp_real_student_course` (`course_id`),
+            KEY `idx_mcdp_real_student_studente` (`id_studente`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+    ");
+
+    if (dbGetFirst("SHOW COLUMNS FROM `mastercom_carenze_plan_real_students` LIKE 'auditor'") === null) {
+        dbExec("ALTER TABLE `mastercom_carenze_plan_real_students` ADD COLUMN `auditor` TINYINT(1) NOT NULL DEFAULT 0 AFTER `debt_teacher_name`");
+    }
+
+    dbExec("
+        CREATE TABLE IF NOT EXISTS `mastercom_carenze_plan_course_map` (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `id_anno_scolastico_corsi` INT NOT NULL,
+            `id_anno_scolastico_carenze` INT NOT NULL,
+            `real_course_id` INT NOT NULL,
+            `course_key` VARCHAR(190) NOT NULL,
+            `id_corso` INT NOT NULL,
+            `created_at` DATETIME NOT NULL,
+            `updated_at` DATETIME NOT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uk_mcdp_course_map_real` (`id_anno_scolastico_corsi`, `real_course_id`),
+            UNIQUE KEY `uk_mcdp_course_map_key` (`id_anno_scolastico_corsi`, `course_key`),
+            KEY `idx_mcdp_course_map_corso` (`id_corso`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+    ");
 }
 
 function mastercomDebtsPlanSlotKey(array $slot): string
@@ -227,6 +288,972 @@ function mastercomDebtsPlanClassYear(string $className): string
         return $matches[1];
     }
     return 'NA';
+}
+
+function mastercomDebtsPlanLoadRealGroups(int $schoolYearId): array
+{
+    mastercomDebtsPlanEnsureTables();
+    if ($schoolYearId <= 0) {
+        return ['course_groups' => [], 'autonomous_groups' => [], 'student_course_counts' => [], 'source_rows' => 0];
+    }
+
+    $courseRows = dbGetAll("
+        SELECT *
+        FROM mastercom_carenze_plan_real_courses
+        WHERE id_anno_scolastico = " . dbI($schoolYearId) . "
+        ORDER BY sort_order ASC, id ASC
+    ") ?: [];
+
+    if (empty($courseRows)) {
+        return ['course_groups' => [], 'autonomous_groups' => [], 'student_course_counts' => [], 'source_rows' => 0];
+    }
+
+    $ids = array_values(array_filter(array_map(function ($row) {
+        return intval($row['id'] ?? 0);
+    }, $courseRows)));
+    $studentsByCourse = [];
+    if (!empty($ids)) {
+        $studentRows = dbGetAll("
+            SELECT *
+            FROM mastercom_carenze_plan_real_students
+            WHERE course_id IN (" . implode(',', $ids) . ")
+            ORDER BY course_id ASC, sort_order ASC, class_name ASC, student_name ASC
+        ") ?: [];
+        foreach ($studentRows as $studentRow) {
+            $courseId = intval($studentRow['course_id'] ?? 0);
+            if ($courseId <= 0) {
+                continue;
+            }
+            $studentsByCourse[$courseId][] = [
+                'id' => intval($studentRow['id_studente'] ?? 0),
+                'name' => trim((string)($studentRow['student_name'] ?? '')),
+                'class' => trim((string)($studentRow['class_name'] ?? '')),
+                'teacher' => trim((string)($studentRow['debt_teacher_name'] ?? '')),
+                'auditor' => intval($studentRow['auditor'] ?? 0) === 1,
+            ];
+        }
+    }
+
+    $courseGroups = [];
+    $autonomousGroups = [];
+    $studentCourseCounts = [];
+    $sourceRows = 0;
+    foreach ($courseRows as $courseIndex => $courseRow) {
+        $courseId = intval($courseRow['id'] ?? 0);
+        $students = $studentsByCourse[$courseId] ?? [];
+        $sourceRows += count($students);
+        $slots = json_decode((string)($courseRow['slots_json'] ?? '[]'), true);
+        if (!is_array($slots)) {
+            $slots = [];
+        }
+        $slots = array_values(array_map('mastercomDebtsPlanFormatSlot', $slots));
+        $classYear = trim((string)($courseRow['class_year'] ?? ''));
+        if ($classYear === '' && !empty($students)) {
+            $classYear = mastercomDebtsPlanClassYear((string)($students[0]['class'] ?? ''));
+        }
+
+        $group = [
+            'key' => 'real:' . $courseId,
+            'plan_id' => 'real:' . $courseId,
+            'class_year' => $classYear !== '' ? $classYear : 'NA',
+            'subject_id' => 0,
+            'subject' => trim((string)($courseRow['subject'] ?? '')),
+            'students' => $students,
+            'student_count' => count($students),
+            'part_index' => 1,
+            'part_total' => 1,
+            'slots' => $slots,
+            'slot' => $slots[0] ?? null,
+            'slot_index' => $courseIndex,
+            'locked' => true,
+            'imported' => true,
+            'aula' => trim((string)($courseRow['aula'] ?? '')),
+            'docente_nome' => trim((string)($courseRow['teacher_name'] ?? '')),
+            'id_docente' => 0,
+            'date_text' => trim((string)($courseRow['date_text'] ?? '')),
+            'time_text' => trim((string)($courseRow['time_text'] ?? '')),
+        ];
+
+        foreach ($students as $student) {
+            $studentId = intval($student['id'] ?? 0);
+            if ($studentId > 0) {
+                $studentCourseCounts[$studentId] = ($studentCourseCounts[$studentId] ?? 0) + 1;
+            }
+        }
+
+        if (trim((string)($courseRow['kind'] ?? 'corso')) === 'itinere') {
+            $group['reason'] = 'Recupero in itinere da CSV';
+            $autonomousGroups[] = $group;
+        } else {
+            $courseGroups[] = $group;
+        }
+    }
+
+    return [
+        'course_groups' => $courseGroups,
+        'autonomous_groups' => $autonomousGroups,
+        'student_course_counts' => $studentCourseCounts,
+        'source_rows' => $sourceRows,
+    ];
+}
+
+function mastercomDebtsPlanImportNorm(string $value): string
+{
+    $value = trim($value);
+    $value = function_exists('mb_strtolower') ? mb_strtolower($value, 'UTF-8') : strtolower($value);
+    $plain = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+    if ($plain !== false) {
+        $value = $plain;
+    }
+    return preg_replace('/[^a-z0-9]+/', '', $value) ?? '';
+}
+
+function mastercomDebtsPlanImportHeaderKey(string $value): string
+{
+    $value = preg_replace('/^\xEF\xBB\xBF/', '', $value) ?? $value;
+    $value = str_replace("\xC2\xA0", ' ', $value);
+    return mastercomDebtsPlanImportNorm($value);
+}
+
+function mastercomDebtsPlanImportStudentInfo(string $studentName): array
+{
+    $studentName = trim($studentName);
+    $auditor = preg_match('/\budit(?:ore|rice)\b/iu', $studentName) === 1;
+    if ($auditor) {
+        $studentName = trim(preg_replace('/\s*\budit(?:ore|rice)\b\s*/iu', ' ', $studentName) ?? $studentName);
+    }
+    return [
+        'name' => preg_replace('/\s+/', ' ', $studentName) ?? $studentName,
+        'auditor' => $auditor,
+    ];
+}
+
+function mastercomDebtsPlanImportSubjectKeys(string $subjectName): array
+{
+    $keys = [mastercomDebtsPlanImportNorm($subjectName)];
+    $primary = $keys[0] ?? '';
+    if ($primary === 'inglese') {
+        $keys[] = mastercomDebtsPlanImportNorm('Lingua inglese');
+    } elseif ($primary === 'linguainglese') {
+        $keys[] = mastercomDebtsPlanImportNorm('Inglese');
+    }
+    return array_values(array_unique(array_filter($keys)));
+}
+
+function mastercomDebtsPlanImportCanonicalSubject(string $subjectName): string
+{
+    if (mastercomDebtsPlanImportNorm($subjectName) === 'inglese') {
+        return 'Lingua inglese';
+    }
+    return trim($subjectName);
+}
+
+function mastercomDebtsPlanImportTimeValue(string $value): string
+{
+    $value = trim(str_replace('.', ':', $value));
+    if (preg_match('/^\d{1,2}$/', $value)) {
+        $value .= ':00';
+    }
+    if (preg_match('/^(\d{1,2}):(\d{1,2})$/', $value, $matches)) {
+        return sprintf('%02d:%02d', intval($matches[1]), intval($matches[2]));
+    }
+    return '';
+}
+
+function mastercomDebtsPlanImportTimeRange(string $value): array
+{
+    $parts = preg_split('/\s*-\s*/', trim($value));
+    if (!is_array($parts) || count($parts) !== 2) {
+        return ['', ''];
+    }
+    return [mastercomDebtsPlanImportTimeValue($parts[0]), mastercomDebtsPlanImportTimeValue($parts[1])];
+}
+
+function mastercomDebtsPlanImportParseSlots(string $dateText, string $timeText, int $year, array &$warnings): array
+{
+    [$defaultStart, $defaultEnd] = mastercomDebtsPlanImportTimeRange($timeText);
+    if ($defaultStart === '' || $defaultEnd === '') {
+        return [];
+    }
+
+    $slots = [];
+    $lastMonth = 0;
+    foreach (preg_split('/\s*;\s*/', trim($dateText)) ?: [] as $segment) {
+        $segment = trim($segment);
+        if ($segment === '') {
+            continue;
+        }
+
+        $start = $defaultStart;
+        $end = $defaultEnd;
+        if (preg_match('/\(([^)]*)\)/', $segment, $matches)) {
+            [$overrideStart, $overrideEnd] = mastercomDebtsPlanImportTimeRange($matches[1]);
+            if ($overrideStart !== '' && $overrideEnd !== '') {
+                $start = $overrideStart;
+                $end = $overrideEnd;
+            }
+            $segment = trim(preg_replace('/\([^)]*\)/', '', $segment) ?? $segment);
+        }
+
+        $month = 0;
+        $daysText = $segment;
+        if (preg_match('/^(.+?)\/(\d{1,2})$/', $segment, $matches)) {
+            $daysText = trim($matches[1]);
+            $month = intval($matches[2]);
+            $lastMonth = $month;
+        } else {
+            $month = $lastMonth > 0 ? $lastMonth : 0;
+        }
+
+        foreach (preg_split('/\s*-\s*/', $daysText) ?: [] as $dayText) {
+            $day = intval(trim($dayText));
+            if ($day <= 0) {
+                continue;
+            }
+            $slotMonth = $month > 0 ? $month : ($day >= 24 ? 8 : 9);
+            if (!checkdate($slotMonth, $day, $year) && $slotMonth === 9 && $day === 31) {
+                $warnings[] = "Corretto 31/9 in 31/8 per '" . $dateText . "'";
+                $slotMonth = 8;
+            }
+            if (!checkdate($slotMonth, $day, $year)) {
+                $warnings[] = "Data non valida ignorata: " . $day . "/" . $slotMonth . "/" . $year . " in '" . $dateText . "'";
+                continue;
+            }
+            $slots[] = mastercomDebtsPlanFormatSlot([
+                'date' => sprintf('%04d-%02d-%02d', $year, $slotMonth, $day),
+                'start' => $start,
+                'end' => $end,
+            ]);
+        }
+    }
+
+    return $slots;
+}
+
+function mastercomDebtsPlanImportDebtIndex(int $schoolYearId): array
+{
+    $index = [];
+    foreach (mastercomDebtsPlanSourceRows($schoolYearId) as $row) {
+        $studentName = mastercomDebtsPlanStudentLabel($row);
+        $className = trim((string)(($row['classe_gestore'] ?? '') ?: ($row['classe'] ?? '')));
+        $subjectName = trim((string)(($row['materia_gestore'] ?? '') ?: ($row['materia'] ?? '')));
+        foreach (mastercomDebtsPlanImportSubjectKeys($subjectName) as $subjectKey) {
+            $key = mastercomDebtsPlanImportNorm($className) . '|' . $subjectKey . '|' . mastercomDebtsPlanImportNorm($studentName);
+            $index[$key] = intval($row['id_studente_gestore'] ?? 0);
+        }
+    }
+    return $index;
+}
+
+function mastercomDebtsPlanImportRealCsv(int $schoolYearId, string $csvPath, bool $apply = false): array
+{
+    mastercomDebtsPlanEnsureTables();
+    $summary = [
+        'ok' => false,
+        'applied' => false,
+        'rows' => 0,
+        'groups' => 0,
+        'matched' => 0,
+        'unmatched' => [],
+        'warnings' => [],
+        'itinere_groups' => 0,
+        'auditors' => 0,
+        'auditors_matched' => 0,
+        'auditors_unmatched' => 0,
+        'message' => '',
+    ];
+
+    if ($schoolYearId <= 0 || !is_file($csvPath)) {
+        $summary['message'] = 'File CSV o anno scolastico non valido.';
+        return $summary;
+    }
+
+    $calendarYear = mastercomDebtsPlanCalendarYear($schoolYearId);
+    $debtIndex = mastercomDebtsPlanImportDebtIndex($schoolYearId);
+    $handle = fopen($csvPath, 'rb');
+    if (!$handle) {
+        $summary['message'] = 'Impossibile aprire il CSV.';
+        return $summary;
+    }
+
+    $headers = fgetcsv($handle, 0, ';');
+    if (!is_array($headers)) {
+        fclose($handle);
+        $summary['message'] = 'CSV vuoto o intestazione non valida.';
+        return $summary;
+    }
+    $headerMap = [];
+    foreach ($headers as $index => $header) {
+        $canonicalKey = mastercomDebtsPlanImportHeaderKey((string)$header);
+        if ($canonicalKey !== '') {
+            $headerMap[$canonicalKey] = $index;
+        }
+    }
+    $requiredHeaders = ['Studente', 'Classe studente', 'Materia', 'Docente classe', 'Data corso', 'Orario corso', 'Docente corso', 'Aula'];
+    foreach ($requiredHeaders as $header) {
+        if (!array_key_exists(mastercomDebtsPlanImportHeaderKey($header), $headerMap)) {
+            fclose($handle);
+            $summary['message'] = 'Colonna mancante nel CSV: ' . $header;
+            return $summary;
+        }
+    }
+
+    $groups = [];
+    while (($values = fgetcsv($handle, 0, ';')) !== false) {
+        $row = [];
+        foreach ($requiredHeaders as $header) {
+            $index = intval($headerMap[mastercomDebtsPlanImportHeaderKey($header)] ?? -1);
+            $row[$header] = $index >= 0 ? trim((string)($values[$index] ?? '')) : '';
+        }
+
+        $studentInfo = mastercomDebtsPlanImportStudentInfo($row['Studente'] ?? '');
+        $student = $studentInfo['name'];
+        $isAuditor = !empty($studentInfo['auditor']);
+        $class = $row['Classe studente'] ?? '';
+        $subject = mastercomDebtsPlanImportCanonicalSubject($row['Materia'] ?? '');
+        if ($student === '' || $class === '' || $subject === '') {
+            continue;
+        }
+
+        $summary['rows']++;
+        $dateText = $row['Data corso'] ?? '';
+        $timeText = $row['Orario corso'] ?? '';
+        $courseTeacher = $row['Docente corso'] ?? '';
+        $aula = $row['Aula'] ?? '';
+        $kind = ($dateText === '' || $timeText === '' || mastercomDebtsPlanImportNorm($courseTeacher) === 'initinere') ? 'itinere' : 'corso';
+        $courseKey = sha1(mastercomDebtsPlanImportNorm($subject) . '|' . mastercomDebtsPlanImportNorm($dateText) . '|' . mastercomDebtsPlanImportNorm($timeText) . '|' . mastercomDebtsPlanImportNorm($courseTeacher) . '|' . mastercomDebtsPlanImportNorm($aula));
+
+        if (!isset($groups[$courseKey])) {
+            $slots = $kind === 'corso' ? mastercomDebtsPlanImportParseSlots($dateText, $timeText, $calendarYear, $summary['warnings']) : [];
+            $groups[$courseKey] = [
+                'course_key' => $courseKey,
+                'kind' => $kind,
+                'subject' => $subject,
+                'date_text' => $dateText,
+                'time_text' => $timeText,
+                'teacher_name' => $courseTeacher,
+                'aula' => $aula,
+                'slots' => $slots,
+                'students' => [],
+                'class_years' => [],
+            ];
+        }
+
+        $studentId = 0;
+        if ($isAuditor) {
+            $studentId = mastercomDebtsPlanSyncStudentIdByNameClass($student, $class, $schoolYearId);
+        } else {
+            foreach (mastercomDebtsPlanImportSubjectKeys($subject) as $subjectKey) {
+                $debtKey = mastercomDebtsPlanImportNorm($class) . '|' . $subjectKey . '|' . mastercomDebtsPlanImportNorm($student);
+                $studentId = intval($debtIndex[$debtKey] ?? 0);
+                if ($studentId > 0) {
+                    break;
+                }
+            }
+        }
+        if ($isAuditor) {
+            $summary['auditors'] = intval($summary['auditors'] ?? 0) + 1;
+            if ($studentId > 0) {
+                $summary['auditors_matched'] = intval($summary['auditors_matched'] ?? 0) + 1;
+            } else {
+                $summary['auditors_unmatched'] = intval($summary['auditors_unmatched'] ?? 0) + 1;
+                $summary['unmatched'][] = $student . ' - ' . $class . ' - ' . $subject . ' (uditore non agganciato)';
+            }
+        } elseif ($studentId > 0) {
+            $summary['matched']++;
+        } else {
+            $summary['unmatched'][] = $student . ' - ' . $class . ' - ' . $subject;
+        }
+
+        $classYear = mastercomDebtsPlanClassYear($class);
+        if ($classYear !== 'NA') {
+            $groups[$courseKey]['class_years'][$classYear] = true;
+        }
+        $groups[$courseKey]['students'][] = [
+            'id_studente' => $studentId,
+            'student_name' => $student,
+            'class_name' => $class,
+            'debt_teacher_name' => $row['Docente classe'] ?? '',
+            'auditor' => $isAuditor,
+        ];
+    }
+    fclose($handle);
+
+    $summary['groups'] = count($groups);
+    $summary['itinere_groups'] = count(array_filter($groups, function ($group) {
+        return ($group['kind'] ?? '') === 'itinere';
+    }));
+    $summary['unmatched'] = array_values(array_unique($summary['unmatched']));
+    $summary['warnings'] = array_values(array_unique($summary['warnings']));
+    $summary['ok'] = true;
+
+    if (!$apply) {
+        $summary['message'] = 'Anteprima completata. Nessun dato scritto.';
+        return $summary;
+    }
+
+    dbExec("START TRANSACTION");
+    dbExec("
+        DELETE s
+        FROM mastercom_carenze_plan_real_students s
+        INNER JOIN mastercom_carenze_plan_real_courses c ON c.id = s.course_id
+        WHERE c.id_anno_scolastico = " . dbI($schoolYearId) . "
+    ");
+    dbExec("DELETE FROM mastercom_carenze_plan_real_courses WHERE id_anno_scolastico = " . dbI($schoolYearId));
+
+    $sortOrder = 0;
+    foreach ($groups as $group) {
+        $classYears = array_keys($group['class_years']);
+        sort($classYears, SORT_NATURAL);
+        dbExec("
+            INSERT INTO mastercom_carenze_plan_real_courses
+                (id_anno_scolastico, course_key, kind, class_year, subject, date_text, time_text, slots_json, teacher_name, aula, sort_order, source_hash, created_at, updated_at)
+            VALUES
+                (" . dbI($schoolYearId) . ",
+                 " . dbQ($group['course_key']) . ",
+                 " . dbQ($group['kind']) . ",
+                 " . dbQ(implode(',', $classYears)) . ",
+                 " . dbQ($group['subject']) . ",
+                 " . dbQ($group['date_text']) . ",
+                 " . dbQ($group['time_text']) . ",
+                 " . dbQ(json_encode($group['slots'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) . ",
+                 " . dbQ($group['teacher_name']) . ",
+                 " . dbQ($group['aula']) . ",
+                 " . dbI($sortOrder++) . ",
+                 " . dbQ(sha1(json_encode($group, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))) . ",
+                 NOW(),
+                 NOW())
+        ");
+        $courseId = dblastId();
+        $studentOrder = 0;
+        foreach ($group['students'] as $student) {
+            dbExec("
+                INSERT INTO mastercom_carenze_plan_real_students
+                    (course_id, id_studente, student_name, class_name, debt_teacher_name, auditor, sort_order)
+                VALUES
+                    (" . dbI($courseId) . ",
+                     " . dbI($student['id_studente'] > 0 ? $student['id_studente'] : null) . ",
+                     " . dbQ($student['student_name']) . ",
+                     " . dbQ($student['class_name']) . ",
+                     " . dbQ($student['debt_teacher_name']) . ",
+                     " . dbI(!empty($student['auditor']) ? 1 : 0) . ",
+                     " . dbI($studentOrder++) . ")
+            ");
+        }
+    }
+    dbExec("COMMIT");
+
+    $summary['applied'] = true;
+    $summary['message'] = 'Import applicato: ' . $summary['groups'] . ' gruppi e ' . $summary['rows'] . ' partecipazioni salvati.';
+    return $summary;
+}
+
+function mastercomDebtsPlanPreviousSchoolYearId(int $courseSchoolYearId): int
+{
+    $label = mastercomDebtsPlanSchoolYearLabel($courseSchoolYearId);
+    if (preg_match('/^(\d{4})\s*\/\s*\d{4}$/', $label, $matches)) {
+        $previousLabel = (intval($matches[1]) - 1) . '/' . intval($matches[1]);
+        $previousId = dbGetValue("SELECT id FROM anno_scolastico WHERE anno = " . dbQ($previousLabel) . " LIMIT 1");
+        if ($previousId !== null) {
+            return intval($previousId);
+        }
+    }
+    $previousId = dbGetValue("SELECT id FROM anno_scolastico WHERE id < " . dbI($courseSchoolYearId) . " ORDER BY id DESC LIMIT 1");
+    return $previousId !== null ? intval($previousId) : 0;
+}
+
+function mastercomDebtsPlanResolveSubjectId(string $subjectName): int
+{
+    $subjectName = mastercomDebtsPlanImportCanonicalSubject($subjectName);
+    $rows = dbGetAll("SELECT id, nome FROM materia") ?: [];
+    $wantedKeys = mastercomDebtsPlanImportSubjectKeys($subjectName);
+    foreach ($rows as $row) {
+        if (in_array(mastercomDebtsPlanImportNorm((string)($row['nome'] ?? '')), $wantedKeys, true)) {
+            return intval($row['id'] ?? 0);
+        }
+    }
+    return 0;
+}
+
+function mastercomDebtsPlanTeacherInputName(string $teacherName): string
+{
+    $teacherName = trim(preg_replace('/\s+\d+$/', '', $teacherName) ?? $teacherName);
+    $teacherName = preg_replace('/\bprof(?:\.|essoressa|essore|ssa)?\b/iu', ' ', $teacherName) ?? $teacherName;
+    return trim(preg_replace('/\s+/', ' ', $teacherName) ?? $teacherName);
+}
+
+function mastercomDebtsPlanTeacherLabel(array $teacher): string
+{
+    return trim((string)($teacher['cognome'] ?? '') . ' ' . (string)($teacher['nome'] ?? ''));
+}
+
+function mastercomDebtsPlanTeacherClassIds(array $students): array
+{
+    $classKeys = [];
+    foreach ($students as $student) {
+        $className = trim((string)($student['class_name'] ?? $student['class'] ?? ''));
+        if ($className !== '') {
+            $classKeys[mastercomDebtsPlanImportNorm($className)] = true;
+        }
+    }
+    if (empty($classKeys)) {
+        return [];
+    }
+
+    $ids = [];
+    foreach (dbGetAll("SELECT id, classe FROM classi") ?: [] as $row) {
+        if (isset($classKeys[mastercomDebtsPlanImportNorm((string)($row['classe'] ?? ''))])) {
+            $ids[] = intval($row['id'] ?? 0);
+        }
+    }
+    return array_values(array_filter(array_unique($ids)));
+}
+
+function mastercomDebtsPlanFilterTeachersByTeaching(array $teachers, int $subjectId, int $schoolYearId, array $students): array
+{
+    $teacherIds = array_values(array_filter(array_map(function ($row) {
+        return intval($row['id'] ?? 0);
+    }, $teachers)));
+    if (empty($teacherIds) || $subjectId <= 0 || $schoolYearId <= 0) {
+        return [];
+    }
+
+    $classIds = mastercomDebtsPlanTeacherClassIds($students);
+    $query = "
+        SELECT DISTINCT id_docente
+        FROM docente_insegna
+        WHERE id_docente IN (" . implode(',', $teacherIds) . ")
+          AND id_anno_scolastico = " . dbI($schoolYearId) . "
+          AND id_materia = " . dbI($subjectId) . "
+    ";
+    if (!empty($classIds)) {
+        $query .= " AND id_classe IN (" . implode(',', $classIds) . ")";
+    }
+
+    $allowed = [];
+    foreach (dbGetAll($query) ?: [] as $row) {
+        $allowed[intval($row['id_docente'] ?? 0)] = true;
+    }
+    if (empty($allowed)) {
+        return [];
+    }
+
+    return array_values(array_filter($teachers, function ($row) use ($allowed) {
+        return isset($allowed[intval($row['id'] ?? 0)]);
+    }));
+}
+
+function mastercomDebtsPlanResolveTeacher(string $teacherName, int $subjectId = 0, int $schoolYearId = 0, array $students = []): array
+{
+    $teacherName = mastercomDebtsPlanTeacherInputName($teacherName);
+    if ($teacherName === '' || mastercomDebtsPlanImportNorm($teacherName) === 'initinere') {
+        return ['id' => 0, 'status' => 'missing', 'message' => 'Docente corso vuoto'];
+    }
+
+    $teacherKey = mastercomDebtsPlanImportNorm($teacherName);
+    $exact = [];
+    $surname = [];
+    $initial = [];
+    foreach (dbGetAll("SELECT id, cognome, nome FROM docente WHERE attivo = 1") ?: [] as $row) {
+        $surnameKey = mastercomDebtsPlanImportNorm((string)($row['cognome'] ?? ''));
+        $nameKey = mastercomDebtsPlanImportNorm((string)($row['nome'] ?? ''));
+        $fullKey = mastercomDebtsPlanImportNorm(trim((string)($row['cognome'] ?? '') . ' ' . (string)($row['nome'] ?? '')));
+        $reverseFullKey = mastercomDebtsPlanImportNorm(trim((string)($row['nome'] ?? '') . ' ' . (string)($row['cognome'] ?? '')));
+        $firstNameInitial = $nameKey !== '' ? substr($nameKey, 0, 1) : '';
+
+        if ($teacherKey === $fullKey || $teacherKey === $reverseFullKey) {
+            $exact[] = $row;
+        } elseif ($teacherKey === $surnameKey) {
+            $surname[] = $row;
+        } elseif ($firstNameInitial !== '' && ($teacherKey === $surnameKey . $firstNameInitial || $teacherKey === $firstNameInitial . $surnameKey)) {
+            $initial[] = $row;
+        }
+    }
+
+    foreach ([$exact, $surname, $initial] as $candidates) {
+        if (count($candidates) === 1) {
+            return ['id' => intval($candidates[0]['id'] ?? 0), 'status' => 'ok', 'message' => ''];
+        }
+        if (count($candidates) > 1) {
+            $teachingCandidates = mastercomDebtsPlanFilterTeachersByTeaching($candidates, $subjectId, $schoolYearId, $students);
+            if (count($teachingCandidates) === 1) {
+                return ['id' => intval($teachingCandidates[0]['id'] ?? 0), 'status' => 'ok_teaching', 'message' => ''];
+            }
+            $labels = array_map('mastercomDebtsPlanTeacherLabel', !empty($teachingCandidates) ? $teachingCandidates : $candidates);
+            return [
+                'id' => 0,
+                'status' => 'ambiguous',
+                'message' => 'Docente corso ambiguo: ' . $teacherName . ' (' . implode(', ', array_slice($labels, 0, 5)) . ')',
+            ];
+        }
+    }
+
+    return ['id' => 0, 'status' => 'missing', 'message' => 'Docente corso non trovato in GestOre: ' . $teacherName];
+}
+
+function mastercomDebtsPlanResolveTeacherId(string $teacherName): int
+{
+    return intval(mastercomDebtsPlanResolveTeacher($teacherName)['id'] ?? 0);
+}
+
+function mastercomDebtsPlanRealCoursesForSync(int $courseSchoolYearId): array
+{
+    $courses = dbGetAll("
+        SELECT *
+        FROM mastercom_carenze_plan_real_courses
+        WHERE id_anno_scolastico = " . dbI($courseSchoolYearId) . "
+          AND kind = 'corso'
+        ORDER BY sort_order ASC, id ASC
+    ") ?: [];
+    if (empty($courses)) {
+        return [];
+    }
+
+    $ids = array_values(array_filter(array_map(function ($row) {
+        return intval($row['id'] ?? 0);
+    }, $courses)));
+    $studentsByCourse = [];
+    if (!empty($ids)) {
+        foreach (dbGetAll("
+            SELECT *
+            FROM mastercom_carenze_plan_real_students
+            WHERE course_id IN (" . implode(',', $ids) . ")
+            ORDER BY course_id ASC, sort_order ASC, class_name ASC, student_name ASC
+        ") ?: [] as $studentRow) {
+            $studentsByCourse[intval($studentRow['course_id'] ?? 0)][] = $studentRow;
+        }
+    }
+
+    foreach ($courses as &$course) {
+        $course['students'] = $studentsByCourse[intval($course['id'] ?? 0)] ?? [];
+        $slots = json_decode((string)($course['slots_json'] ?? '[]'), true);
+        $course['slots'] = is_array($slots) ? array_values(array_map('mastercomDebtsPlanFormatSlot', $slots)) : [];
+    }
+    unset($course);
+
+    return $courses;
+}
+
+function mastercomDebtsPlanSyncStudentId(array $student, int $debtSchoolYearId): int
+{
+    $studentId = intval($student['id_studente'] ?? 0);
+    if ($studentId > 0) {
+        return $studentId;
+    }
+
+    $studentName = mastercomDebtsPlanImportStudentInfo((string)($student['student_name'] ?? ''))['name'];
+    $className = trim((string)($student['class_name'] ?? ''));
+    $studentId = mastercomDebtsPlanSyncStudentIdByNameClass($studentName, $className, $debtSchoolYearId);
+    if ($studentId > 0) {
+        return $studentId;
+    }
+    if (intval($student['auditor'] ?? 0) === 1) {
+        return 0;
+    }
+    $debtIndex = mastercomDebtsPlanImportDebtIndex($debtSchoolYearId);
+    foreach (mastercomDebtsPlanImportSubjectKeys((string)($student['subject'] ?? '')) as $subjectKey) {
+        $key = mastercomDebtsPlanImportNorm($className) . '|' . $subjectKey . '|' . mastercomDebtsPlanImportNorm($studentName);
+        $studentId = intval($debtIndex[$key] ?? 0);
+        if ($studentId > 0) {
+            return $studentId;
+        }
+    }
+    return 0;
+}
+
+function mastercomDebtsPlanSyncStudentIdByNameClass(string $studentName, string $className, int $schoolYearId): int
+{
+    $nameKey = mastercomDebtsPlanImportNorm($studentName);
+    if ($nameKey === '') {
+        return 0;
+    }
+    $classKey = mastercomDebtsPlanImportNorm($className);
+    $rows = dbGetAll("
+        SELECT
+            s.id,
+            s.cognome,
+            s.nome,
+            c.classe
+        FROM studente s
+        LEFT JOIN studente_frequenta sf
+               ON sf.id_studente = s.id
+              AND sf.id_anno_scolastico = " . dbI($schoolYearId) . "
+        LEFT JOIN classi c ON c.id = sf.id_classe
+        WHERE COALESCE(s.attivo, 1) = 1
+    ") ?: [];
+
+    $matches = [];
+    foreach ($rows as $row) {
+        $full1 = mastercomDebtsPlanImportNorm(trim((string)($row['cognome'] ?? '') . ' ' . (string)($row['nome'] ?? '')));
+        $full2 = mastercomDebtsPlanImportNorm(trim((string)($row['nome'] ?? '') . ' ' . (string)($row['cognome'] ?? '')));
+        if ($nameKey !== $full1 && $nameKey !== $full2) {
+            continue;
+        }
+        if ($classKey !== '' && mastercomDebtsPlanImportNorm((string)($row['classe'] ?? '')) !== $classKey) {
+            continue;
+        }
+        $matches[] = intval($row['id'] ?? 0);
+    }
+    $matches = array_values(array_unique(array_filter($matches)));
+    return count($matches) === 1 ? intval($matches[0]) : 0;
+}
+
+function mastercomDebtsPlanSyncDates(int $courseId, array $slots, string $aula, array &$summary): void
+{
+    $existing = dbGetAll("SELECT * FROM corso_date WHERE id_corso = " . dbI($courseId) . " ORDER BY data_inizio ASC, id ASC") ?: [];
+    $max = max(count($existing), count($slots));
+    for ($i = 0; $i < $max; $i++) {
+        $slot = $slots[$i] ?? null;
+        $existingRow = $existing[$i] ?? null;
+        if ($slot !== null) {
+            $start = trim((string)($slot['date'] ?? '')) . ' ' . trim((string)($slot['start'] ?? '')) . ':00';
+            $end = trim((string)($slot['date'] ?? '')) . ' ' . trim((string)($slot['end'] ?? '')) . ':00';
+            if ($existingRow) {
+                dbExec("
+                    UPDATE corso_date
+                    SET data_inizio = " . dbQ($start) . ",
+                        data_fine = " . dbQ($end) . ",
+                        aula = " . dbQ($aula) . "
+                    WHERE id = " . dbI($existingRow['id'] ?? 0) . "
+                ");
+            } else {
+                dbExec("
+                    INSERT INTO corso_date (id_corso, data_inizio, data_fine, aula)
+                    VALUES (" . dbI($courseId) . ", " . dbQ($start) . ", " . dbQ($end) . ", " . dbQ($aula) . ")
+                ");
+            }
+        } elseif ($existingRow) {
+            if (intval($existingRow['firmato'] ?? 0) === 1) {
+                $summary['warnings'][] = 'Lezione firmata non rimossa dal corso #' . $courseId . ': ' . (string)($existingRow['data_inizio'] ?? '');
+            } else {
+                dbExec("DELETE FROM corso_date WHERE id = " . dbI($existingRow['id'] ?? 0));
+            }
+        }
+    }
+}
+
+function mastercomDebtsPlanSyncStudents(int $courseId, array $students, int $debtSchoolYearId, string $subjectName, array &$summary): void
+{
+    $wanted = [];
+    foreach ($students as $student) {
+        $student['subject'] = $subjectName;
+        $studentId = mastercomDebtsPlanSyncStudentId($student, $debtSchoolYearId);
+        if ($studentId > 0) {
+            $wanted[$studentId] = intval($student['auditor'] ?? 0) === 1 ? 'auditor' : 'debt';
+        } else {
+            $suffix = intval($student['auditor'] ?? 0) === 1 ? ' (uditore non agganciato)' : '';
+            $summary['unmatched_students'][] = trim((string)($student['student_name'] ?? '')) . ' - ' . trim((string)($student['class_name'] ?? '')) . ' - ' . $subjectName . $suffix;
+        }
+    }
+
+    $existingRows = dbGetAll("SELECT id, id_studente FROM corso_iscritti WHERE id_corso = " . dbI($courseId)) ?: [];
+    $existing = [];
+    foreach ($existingRows as $row) {
+        $existing[intval($row['id_studente'] ?? 0)] = intval($row['id'] ?? 0);
+    }
+
+    foreach ($wanted as $studentId => $studentType) {
+        if (!isset($existing[$studentId])) {
+            dbExec("INSERT INTO corso_iscritti (id_corso, id_studente) VALUES (" . dbI($courseId) . ", " . dbI($studentId) . ")");
+            $summary['students_added']++;
+        }
+        if ($studentType === 'auditor') {
+            dbExec("DELETE FROM corso_esiti WHERE id_corso = " . dbI($courseId) . " AND id_studente = " . dbI($studentId));
+            $summary['auditors_synced'] = intval($summary['auditors_synced'] ?? 0) + 1;
+        } else {
+            dbExec("
+                INSERT INTO corso_esiti (id_corso, id_studente)
+                SELECT " . dbI($courseId) . ", " . dbI($studentId) . "
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM corso_esiti
+                    WHERE id_corso = " . dbI($courseId) . "
+                      AND id_studente = " . dbI($studentId) . "
+                )
+            ");
+        }
+    }
+
+    foreach ($existing as $studentId => $subscriptionId) {
+        if ($studentId <= 0 || isset($wanted[$studentId])) {
+            continue;
+        }
+        dbExec("DELETE FROM corso_iscritti WHERE id = " . dbI($subscriptionId));
+        dbExec("DELETE FROM corso_esiti WHERE id_corso = " . dbI($courseId) . " AND id_studente = " . dbI($studentId));
+        $summary['students_removed']++;
+    }
+}
+
+function mastercomDebtsPlanSyncRealCoursesToCorsi(int $realPlanSchoolYearId, ?int $debtSchoolYearId = null, ?int $courseSchoolYearId = null): array
+{
+    mastercomDebtsPlanEnsureTables();
+    $courseSchoolYearId = $courseSchoolYearId !== null ? intval($courseSchoolYearId) : $realPlanSchoolYearId;
+    $debtSchoolYearId = $debtSchoolYearId !== null ? intval($debtSchoolYearId) : mastercomDebtsPlanPreviousSchoolYearId($courseSchoolYearId);
+    $summary = [
+        'ok' => false,
+        'message' => '',
+        'real_plan_year_id' => $realPlanSchoolYearId,
+        'course_year_id' => $courseSchoolYearId,
+        'debt_year_id' => $debtSchoolYearId,
+        'created' => 0,
+        'updated' => 0,
+        'dates_synced' => 0,
+        'students_added' => 0,
+        'students_removed' => 0,
+        'auditors_synced' => 0,
+        'actual_courses' => 0,
+        'mapped_courses' => 0,
+        'created_ids' => [],
+        'skipped' => [],
+        'warnings' => [],
+        'unmatched_students' => [],
+    ];
+
+    if ($realPlanSchoolYearId <= 0 || $courseSchoolYearId <= 0 || $debtSchoolYearId <= 0) {
+        $summary['message'] = 'Anno piano, anno corsi o anno carenze non valido.';
+        return $summary;
+    }
+
+    $realCourses = mastercomDebtsPlanRealCoursesForSync($realPlanSchoolYearId);
+    if (empty($realCourses)) {
+        $summary['message'] = 'Nessun corso reale con calendario da sincronizzare.';
+        return $summary;
+    }
+
+    dbExec("START TRANSACTION");
+    foreach ($realCourses as $realCourse) {
+        $realCourseId = intval($realCourse['id'] ?? 0);
+        $courseKey = trim((string)($realCourse['course_key'] ?? ''));
+        $subjectName = mastercomDebtsPlanImportCanonicalSubject((string)($realCourse['subject'] ?? ''));
+        $subjectId = mastercomDebtsPlanResolveSubjectId($subjectName);
+        if ($subjectId <= 0) {
+            $summary['skipped'][] = 'Materia non trovata: ' . $subjectName;
+            continue;
+        }
+
+        $teacherName = trim((string)($realCourse['teacher_name'] ?? ''));
+        $teacherMatch = mastercomDebtsPlanResolveTeacher($teacherName, $subjectId, $debtSchoolYearId, $realCourse['students'] ?? []);
+        $teacherId = intval($teacherMatch['id'] ?? 0);
+        if ($teacherId <= 0) {
+            $reason = trim((string)($teacherMatch['message'] ?? 'Docente corso non agganciato'));
+            $summary['skipped'][] = $reason . ' - ' . $subjectName;
+            continue;
+        }
+
+        $map = dbGetFirst("
+            SELECT *
+            FROM mastercom_carenze_plan_course_map
+            WHERE id_anno_scolastico_corsi = " . dbI($courseSchoolYearId) . "
+              AND real_course_id = " . dbI($realCourseId) . "
+            LIMIT 1
+        ");
+        if ($map === null && $courseKey !== '') {
+            $map = dbGetFirst("
+                SELECT *
+                FROM mastercom_carenze_plan_course_map
+                WHERE id_anno_scolastico_corsi = " . dbI($courseSchoolYearId) . "
+                  AND course_key = " . dbQ($courseKey) . "
+                LIMIT 1
+            ");
+        }
+        $courseId = intval($map['id_corso'] ?? 0);
+        if ($courseId > 0 && dbGetFirst("SELECT id FROM corso WHERE id = " . dbI($courseId) . " LIMIT 1") === null) {
+            $courseId = 0;
+        }
+
+        $title = 'Recupero carenze - ' . $subjectName;
+        if ($courseId > 0) {
+            dbExec("
+                UPDATE mastercom_carenze_plan_course_map
+                SET id_anno_scolastico_carenze = " . dbI($debtSchoolYearId) . ",
+                    real_course_id = " . dbI($realCourseId) . ",
+                    course_key = " . dbQ($courseKey) . ",
+                    updated_at = NOW()
+                WHERE id = " . dbI($map['id'] ?? 0) . "
+            ");
+            dbExec("
+                UPDATE corso
+                SET id_materia = " . dbI($subjectId) . ",
+                    id_docente = " . dbI($teacherId) . ",
+                    id_anno_scolastico = " . dbI($courseSchoolYearId) . ",
+                    titolo = " . dbQ($title) . ",
+                    carenza = 1,
+                    carenza_sessione = 1,
+                    in_itinere = 0,
+                    prevede_esami = 1
+                WHERE id = " . dbI($courseId) . "
+            ");
+            $summary['updated']++;
+        } else {
+            dbExec("
+                INSERT INTO corso
+                    (id_materia, id_docente, id_anno_scolastico, titolo, carenza, carenza_sessione, in_itinere, prevede_esami)
+                VALUES
+                    (" . dbI($subjectId) . ",
+                     " . dbI($teacherId) . ",
+                     " . dbI($courseSchoolYearId) . ",
+                     " . dbQ($title) . ",
+                     1,
+                     1,
+                     0,
+                     1)
+            ");
+            $courseId = intval(dblastId());
+            if ($courseId <= 0 || dbGetFirst("SELECT id FROM corso WHERE id = " . dbI($courseId) . " LIMIT 1") === null) {
+                $summary['warnings'][] = 'Insert corso non verificato per ' . $subjectName . ' - ' . ($teacherName !== '' ? $teacherName : '(docente vuoto)') . ' (id generato: ' . $courseId . ')';
+                continue;
+            }
+            dbExec("
+                INSERT INTO mastercom_carenze_plan_course_map
+                    (id_anno_scolastico_corsi, id_anno_scolastico_carenze, real_course_id, course_key, id_corso, created_at, updated_at)
+                VALUES
+                    (" . dbI($courseSchoolYearId) . ",
+                     " . dbI($debtSchoolYearId) . ",
+                     " . dbI($realCourseId) . ",
+                     " . dbQ($courseKey) . ",
+                     " . dbI($courseId) . ",
+                     NOW(),
+                     NOW())
+                ON DUPLICATE KEY UPDATE
+                    id_anno_scolastico_carenze = VALUES(id_anno_scolastico_carenze),
+                    course_key = VALUES(course_key),
+                    id_corso = VALUES(id_corso),
+                    updated_at = NOW()
+            ");
+            $summary['created']++;
+            if (count($summary['created_ids']) < 10) {
+                $summary['created_ids'][] = $courseId;
+            }
+        }
+
+        dbExec("DELETE FROM corso_docenti WHERE id_corso = " . dbI($courseId));
+        dbExec("INSERT INTO corso_docenti (id_corso, id_docente, principale) VALUES (" . dbI($courseId) . ", " . dbI($teacherId) . ", 1)");
+
+        mastercomDebtsPlanSyncDates($courseId, $realCourse['slots'] ?? [], trim((string)($realCourse['aula'] ?? '')), $summary);
+        $summary['dates_synced'] += count($realCourse['slots'] ?? []);
+        mastercomDebtsPlanSyncStudents($courseId, $realCourse['students'] ?? [], $debtSchoolYearId, $subjectName, $summary);
+    }
+    dbExec("COMMIT");
+
+    $actualRows = dbGetFirst("
+        SELECT COUNT(DISTINCT c.id) AS actual_courses,
+               COUNT(DISTINCT m.id) AS mapped_courses
+        FROM mastercom_carenze_plan_course_map m
+        LEFT JOIN corso c ON c.id = m.id_corso
+        WHERE m.id_anno_scolastico_corsi = " . dbI($courseSchoolYearId) . "
+          AND m.id_anno_scolastico_carenze = " . dbI($debtSchoolYearId) . "
+    ") ?: [];
+    $summary['actual_courses'] = intval($actualRows['actual_courses'] ?? 0);
+    $summary['mapped_courses'] = intval($actualRows['mapped_courses'] ?? 0);
+    if ($summary['mapped_courses'] > 0 && $summary['actual_courses'] === 0) {
+        $summary['warnings'][] = 'Attenzione: la mappa contiene corsi sincronizzati, ma nessun id risulta presente nella tabella corso.';
+    }
+
+    $summary['skipped'] = array_values(array_unique($summary['skipped']));
+    $summary['warnings'] = array_values(array_unique($summary['warnings']));
+    $summary['unmatched_students'] = array_values(array_unique($summary['unmatched_students']));
+    $summary['ok'] = true;
+    $summary['message'] = 'Sincronizzazione completata: ' . $summary['created'] . ' corsi creati, ' . $summary['updated'] . ' aggiornati, ' . $summary['actual_courses'] . ' presenti in corso.';
+    return $summary;
 }
 
 function mastercomDebtsPlanStudentLabel(array $row): string
@@ -587,10 +1614,33 @@ function mastercomDebtsPlanBuild(int $schoolYearId, int $minSize = 4, int $maxSi
     mastercomDebtsRefreshMissingSubjectMatches();
     mastercomDebtsRefreshCachedClassMatches();
 
+    $calendarYear = mastercomDebtsPlanCalendarYear($schoolYearId);
+    $realPlan = mastercomDebtsPlanLoadRealGroups($schoolYearId);
+    if (!empty($realPlan['course_groups']) || !empty($realPlan['autonomous_groups'])) {
+        $courseGroups = $realPlan['course_groups'];
+        $autonomousGroups = $realPlan['autonomous_groups'];
+        return [
+            'school_year_id' => $schoolYearId,
+            'school_year_label' => mastercomDebtsPlanSchoolYearLabel($schoolYearId),
+            'calendar_year' => $calendarYear,
+            'source_rows' => intval($realPlan['source_rows'] ?? 0),
+            'base_groups' => array_merge($courseGroups, $autonomousGroups),
+            'course_groups' => $courseGroups,
+            'scheduled_groups' => $courseGroups,
+            'unscheduled_groups' => [],
+            'autonomous_groups' => $autonomousGroups,
+            'slots' => mastercomDebtsPlanSlots($calendarYear),
+            'student_course_counts' => $realPlan['student_course_counts'] ?? [],
+            'locks' => [],
+            'min_size' => $minSize,
+            'max_size' => $maxSize,
+            'using_imported_plan' => true,
+        ];
+    }
+
     $rows = mastercomDebtsPlanSourceRows($schoolYearId);
     $baseGroups = mastercomDebtsPlanBuildBaseGroups($rows);
     [$courseGroups, $autonomousGroups] = mastercomDebtsPlanSplitGroups($baseGroups, $minSize, $maxSize);
-    $calendarYear = mastercomDebtsPlanCalendarYear($schoolYearId);
     $locks = mastercomDebtsPlanLoadLocks($schoolYearId);
     [$scheduledGroups, $unscheduledGroups, $slots] = mastercomDebtsPlanScheduleGroups($courseGroups, $calendarYear, $locks);
 

@@ -16,6 +16,9 @@ function mcdp_students_html(array $students): string
     foreach ($students as $student) {
         $class = trim((string)($student['class'] ?? ''));
         $name = trim((string)($student['name'] ?? ''));
+        if (!empty($student['auditor'])) {
+            $name .= ' (uditore)';
+        }
         $items[] = mcdp_h($name . ($class !== '' ? ' (' . $class . ')' : ''));
     }
     return implode('<br>', $items);
@@ -46,6 +49,19 @@ function mcdp_slots_html(array $group): string
 
 function mcdp_group_lock_form(array $group, array $teachers, int $schoolYearId, int $minSize, int $maxSize): string
 {
+    if (!empty($group['imported'])) {
+        $aula = trim((string)($group['aula'] ?? ''));
+        $docente = trim((string)($group['docente_nome'] ?? ''));
+        $parts = ['Importato da CSV'];
+        if ($docente !== '') {
+            $parts[] = 'Docente: ' . $docente;
+        }
+        if ($aula !== '') {
+            $parts[] = 'Aula: ' . $aula;
+        }
+        return '<span class="label label-success">' . mcdp_h(implode(' - ', $parts)) . '</span>';
+    }
+
     $planId = trim((string)($group['plan_id'] ?? ''));
     if ($planId === '') {
         return '';
@@ -102,6 +118,167 @@ function mcdp_group_lock_form(array $group, array $teachers, int $schoolYearId, 
     }
 
     return $html;
+}
+
+function mcdp_import_summary_html(array $summary): string
+{
+    if (empty($summary)) {
+        return '';
+    }
+
+    $alertClass = !empty($summary['ok']) ? (!empty($summary['applied']) ? 'alert-success' : 'alert-info') : 'alert-danger';
+    $html = '<div class="alert ' . $alertClass . '">';
+    $html .= '<strong>' . mcdp_h($summary['message'] ?? '') . '</strong>';
+    if (!empty($summary['ok'])) {
+        $html .= '<div class="mcdp-import-kpis">';
+        $html .= '<span>Righe CSV: <strong>' . intval($summary['rows'] ?? 0) . '</strong></span>';
+        $html .= '<span>Gruppi reali: <strong>' . intval($summary['groups'] ?? 0) . '</strong></span>';
+        $html .= '<span>In itinere: <strong>' . intval($summary['itinere_groups'] ?? 0) . '</strong></span>';
+        $auditors = intval($summary['auditors'] ?? 0);
+        $matchableRows = max(0, intval($summary['rows'] ?? 0) - $auditors);
+        $html .= '<span>Uditori: <strong>' . $auditors . '</strong></span>';
+        $html .= '<span>Uditori agganciati: <strong>' . intval($summary['auditors_matched'] ?? 0) . '/' . $auditors . '</strong></span>';
+        $html .= '<span>Agganciati: <strong>' . intval($summary['matched'] ?? 0) . '/' . $matchableRows . '</strong></span>';
+        $html .= '</div>';
+    }
+
+    $warnings = array_values((array)($summary['warnings'] ?? []));
+    if (!empty($warnings)) {
+        $html .= '<div><strong>Avvisi date</strong><ul>';
+        foreach (array_slice($warnings, 0, 10) as $warning) {
+            $html .= '<li>' . mcdp_h($warning) . '</li>';
+        }
+        if (count($warnings) > 10) {
+            $html .= '<li>Altri avvisi: ' . (count($warnings) - 10) . '</li>';
+        }
+        $html .= '</ul></div>';
+    }
+
+    $unmatched = array_values((array)($summary['unmatched'] ?? []));
+    if (!empty($unmatched)) {
+        $html .= '<div><strong>Righe non agganciate a MasterCom</strong><ul>';
+        foreach (array_slice($unmatched, 0, 20) as $missing) {
+            $html .= '<li>' . mcdp_h($missing) . '</li>';
+        }
+        if (count($unmatched) > 20) {
+            $html .= '<li>Altre righe non agganciate: ' . (count($unmatched) - 20) . '</li>';
+        }
+        $html .= '</ul></div>';
+    }
+
+    $html .= '</div>';
+    return $html;
+}
+
+function mcdp_sync_summary_html(array $summary): string
+{
+    if (empty($summary)) {
+        return '';
+    }
+    $alertClass = !empty($summary['ok']) ? 'alert-success' : 'alert-danger';
+    $html = '<div class="alert ' . $alertClass . '">';
+    $html .= '<strong>' . mcdp_h($summary['message'] ?? '') . '</strong>';
+    if (!empty($summary['ok'])) {
+        $html .= '<div class="mcdp-import-kpis">';
+        $html .= '<span>Creati: <strong>' . intval($summary['created'] ?? 0) . '</strong></span>';
+        $html .= '<span>Aggiornati: <strong>' . intval($summary['updated'] ?? 0) . '</strong></span>';
+        $html .= '<span>Presenti in corso: <strong>' . intval($summary['actual_courses'] ?? 0) . '</strong></span>';
+        $html .= '<span>Date sincronizzate: <strong>' . intval($summary['dates_synced'] ?? 0) . '</strong></span>';
+        $html .= '<span>Iscritti aggiunti: <strong>' . intval($summary['students_added'] ?? 0) . '</strong></span>';
+        $html .= '<span>Iscritti rimossi: <strong>' . intval($summary['students_removed'] ?? 0) . '</strong></span>';
+        $html .= '<span>Uditori iscritti: <strong>' . intval($summary['auditors_synced'] ?? 0) . '</strong></span>';
+        $html .= '</div>';
+        $createdIds = array_values((array)($summary['created_ids'] ?? []));
+        if (!empty($createdIds)) {
+            $html .= '<div class="small">Primi id corso creati: ' . mcdp_h(implode(', ', array_map('intval', $createdIds))) . '</div>';
+        }
+    }
+
+    foreach (['skipped' => 'Corsi saltati', 'warnings' => 'Avvisi', 'unmatched_students' => 'Studenti non agganciati'] as $key => $title) {
+        $items = array_values((array)($summary[$key] ?? []));
+        if (empty($items)) {
+            continue;
+        }
+        $html .= '<div><strong>' . mcdp_h($title) . '</strong><ul>';
+        foreach (array_slice($items, 0, 20) as $item) {
+            $html .= '<li>' . mcdp_h($item) . '</li>';
+        }
+        if (count($items) > 20) {
+            $html .= '<li>Altri elementi: ' . (count($items) - 20) . '</li>';
+        }
+        $html .= '</ul></div>';
+    }
+
+    $html .= '</div>';
+    return $html;
+}
+
+function mcdp_previous_school_year_id_from_rows(array $schoolYears, int $selectedYearId): int
+{
+    $selectedLabel = '';
+    foreach ($schoolYears as $year) {
+        if (intval($year['id'] ?? 0) === $selectedYearId) {
+            $selectedLabel = trim((string)($year['anno'] ?? ''));
+            break;
+        }
+    }
+
+    $wantedLabel = '';
+    if (preg_match('/^(\d{4})\s*\/\s*\d{4}$/', $selectedLabel, $matches)) {
+        $wantedLabel = (intval($matches[1]) - 1) . '/' . intval($matches[1]);
+    }
+
+    if ($wantedLabel !== '') {
+        foreach ($schoolYears as $year) {
+            if (trim((string)($year['anno'] ?? '')) === $wantedLabel) {
+                return intval($year['id'] ?? 0);
+            }
+        }
+    }
+
+    $fallbackId = 0;
+    foreach ($schoolYears as $year) {
+        $yearId = intval($year['id'] ?? 0);
+        if ($yearId > 0 && $yearId < $selectedYearId && $yearId > $fallbackId) {
+            $fallbackId = $yearId;
+        }
+    }
+
+    return $fallbackId;
+}
+
+function mcdp_next_school_year_id_from_rows(array $schoolYears, int $selectedYearId): int
+{
+    $selectedLabel = '';
+    foreach ($schoolYears as $year) {
+        if (intval($year['id'] ?? 0) === $selectedYearId) {
+            $selectedLabel = trim((string)($year['anno'] ?? ''));
+            break;
+        }
+    }
+
+    $wantedLabel = '';
+    if (preg_match('/^\d{4}\s*\/\s*(\d{4})$/', $selectedLabel, $matches)) {
+        $wantedLabel = intval($matches[1]) . '/' . (intval($matches[1]) + 1);
+    }
+
+    if ($wantedLabel !== '') {
+        foreach ($schoolYears as $year) {
+            if (trim((string)($year['anno'] ?? '')) === $wantedLabel) {
+                return intval($year['id'] ?? 0);
+            }
+        }
+    }
+
+    $fallbackId = 0;
+    foreach ($schoolYears as $year) {
+        $yearId = intval($year['id'] ?? 0);
+        if ($yearId > $selectedYearId && ($fallbackId === 0 || $yearId < $fallbackId)) {
+            $fallbackId = $yearId;
+        }
+    }
+
+    return $fallbackId > 0 ? $fallbackId : $selectedYearId;
 }
 
 function mcdp_course_summary_rows(array $groups): array
@@ -288,6 +465,7 @@ function mcdp_public_course_rows(array $groups, array $studentCourseCounts, arra
                 'student_count' => $studentCount,
                 'student_class' => trim((string)($student['class'] ?? '')),
                 'student_name' => trim((string)($student['name'] ?? '')),
+                'student_type' => !empty($student['auditor']) ? 'Uditore' : '',
                 'other_courses' => implode("\n", $otherCourses),
                 'other_courses_html' => implode('<br>', array_map('mcdp_h', $otherCourses)),
                 'has_multi' => $studentId > 0 && intval($studentCourseCounts[$studentId] ?? 0) > 1,
@@ -355,8 +533,131 @@ function mcdp_export_columns(): array
         'student_count' => 'N. studenti',
         'student_class' => 'Classe studente',
         'student_name' => 'Studente',
+        'student_type' => 'Tipo',
         'other_courses' => 'Altri corsi/recuperi',
     ];
+}
+
+function mcdp_course_list_columns(): array
+{
+    return [
+        'subject' => 'Disciplina-materia',
+        'classes' => 'Classi abbinate al corso',
+        'teacher' => 'Docente',
+        'schedule' => 'Giorni ed orari del corso',
+        'room' => 'Aula',
+    ];
+}
+
+function mcdp_course_list_rows(array $groups): array
+{
+    $rows = [];
+    foreach (mcdp_export_sort_groups($groups) as $group) {
+        $students = (array)($group['students'] ?? []);
+        $classes = mcdp_unique_classes($students);
+        if ($classes === '') {
+            $classes = trim((string)($group['class_year'] ?? ''));
+        }
+        $slots = $group['slots'] ?? [];
+        if (empty($slots) && !empty($group['slot'])) {
+            $slots = [$group['slot']];
+        }
+        $slotLabels = [];
+        foreach ($slots as $slot) {
+            $label = trim((string)($slot['label'] ?? ''));
+            if ($label === '') {
+                $date = trim((string)($slot['date'] ?? ''));
+                if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $m)) {
+                    $date = $m[3] . '/' . $m[2] . '/' . $m[1];
+                }
+                $label = trim($date . ' ' . trim((string)($slot['start'] ?? '')) . '-' . trim((string)($slot['end'] ?? '')));
+            }
+            if ($label !== '') {
+                $slotLabels[] = $label;
+            }
+        }
+        $rows[] = [
+            'subject' => trim((string)($group['subject'] ?? '')),
+            'classes' => $classes,
+            'teacher' => trim((string)(($group['docente_nome'] ?? '') ?: ($group['teacher_name'] ?? '') ?: ($group['docente'] ?? ''))),
+            'schedule' => implode("\n", $slotLabels),
+            'room' => trim((string)($group['aula'] ?? '')),
+        ];
+    }
+    return $rows;
+}
+
+function mcdp_course_list_export_xlsx(array $rows): void
+{
+    require_once __DIR__ . '/../common/vendor/autoload.php';
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('Elenco corsi');
+    $columns = mcdp_course_list_columns();
+    $sheet->setCellValue('A1', 'Elenco corsi carenze');
+    $sheet->mergeCells('A1:E1');
+    $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+    $colIndex = 1;
+    foreach ($columns as $label) {
+        $sheet->setCellValueByColumnAndRow($colIndex++, 3, $label);
+    }
+    $sheet->getStyle('A3:E3')->getFont()->setBold(true);
+    $rowIndex = 4;
+    foreach ($rows as $row) {
+        $colIndex = 1;
+        foreach (array_keys($columns) as $key) {
+            $sheet->setCellValueByColumnAndRow($colIndex++, $rowIndex, (string)($row[$key] ?? ''));
+        }
+        $rowIndex++;
+    }
+    foreach (range('A', 'E') as $col) {
+        $sheet->getColumnDimension($col)->setAutoSize(true);
+    }
+    $sheet->getStyle('A:E')->getAlignment()->setWrapText(true)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename="' . mcdp_export_filename('xlsx') . '"');
+    header('Cache-Control: max-age=0');
+    (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save('php://output');
+    exit;
+}
+
+function mcdp_course_list_export_pdf(array $rows): void
+{
+    if (!class_exists('TCPDF')) {
+        $tcpdf = __DIR__ . '/../common/vendor/tecnickcom/tcpdf/tcpdf.php';
+        if (file_exists($tcpdf)) {
+            require_once $tcpdf;
+        } else {
+            require_once __DIR__ . '/../common/tcpdf/tcpdf.php';
+        }
+    }
+    $columns = mcdp_course_list_columns();
+    $html = '<h2>Elenco corsi carenze</h2><table border="1" cellpadding="4"><thead><tr>';
+    foreach ($columns as $label) {
+        $html .= '<th><strong>' . mcdp_h($label) . '</strong></th>';
+    }
+    $html .= '</tr></thead><tbody>';
+    foreach ($rows as $row) {
+        $html .= '<tr>';
+        foreach (array_keys($columns) as $key) {
+            $html .= '<td>' . nl2br(mcdp_h($row[$key] ?? '')) . '</td>';
+        }
+        $html .= '</tr>';
+    }
+    $html .= '</tbody></table>';
+    $pdf = new \TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
+    $pdf->SetCreator('GestOre');
+    $pdf->SetAuthor('GestOre');
+    $pdf->SetTitle('Elenco corsi carenze');
+    $pdf->setPrintHeader(false);
+    $pdf->setPrintFooter(false);
+    $pdf->SetMargins(8, 8, 8);
+    $pdf->SetAutoPageBreak(true, 8);
+    $pdf->AddPage();
+    $pdf->SetFont('dejavusans', '', 8);
+    $pdf->writeHTML($html, true, false, true, false, '');
+    $pdf->Output(mcdp_export_filename('pdf'), 'D');
+    exit;
 }
 
 function mcdp_export_xlsx(array $courseRows, array $itinereRows, array $plan): void
@@ -529,7 +830,8 @@ function mcdp_export_xlsx(array $courseRows, array $itinereRows, array $plan): v
         $sheet->getColumnDimension('G')->setWidth(10);
         $sheet->getColumnDimension('H')->setWidth(14);
         $sheet->getColumnDimension('I')->setWidth(30);
-        $sheet->getColumnDimension('J')->setWidth(mcdp_export_column_width($rows, 'other_courses', 30, 58));
+        $sheet->getColumnDimension('J')->setWidth(12);
+        $sheet->getColumnDimension('K')->setWidth(mcdp_export_column_width($rows, 'other_courses', 30, 58));
         $sheet->freezePane('A5');
     }
 
@@ -683,10 +985,34 @@ if ($maxSize > 30) {
 
 $message = '';
 $error = '';
+$importSummary = [];
+$syncSummary = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['action'] ?? ''));
     $planId = trim((string)($_POST['plan_id'] ?? ''));
-    if ($action === 'save_lock') {
+    if ($action === 'import_real_plan') {
+        $uploaded = $_FILES['real_plan_csv'] ?? null;
+        $applyImport = !empty($_POST['apply_import']);
+        if (!is_array($uploaded) || intval($uploaded['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            $error = 'Seleziona un file CSV valido da importare.';
+        } else {
+            $importSummary = mastercomDebtsPlanImportRealCsv($selectedYearId, (string)($uploaded['tmp_name'] ?? ''), $applyImport);
+            if (empty($importSummary['ok'])) {
+                $error = trim((string)($importSummary['message'] ?? 'Import non riuscito.'));
+            } elseif (!empty($importSummary['applied'])) {
+                $message = trim((string)($importSummary['message'] ?? 'Import applicato.'));
+            }
+        }
+    } elseif ($action === 'sync_real_plan_courses') {
+        $debtYearId = intval($_POST['debt_school_year_id'] ?? $selectedYearId);
+        $courseYearId = intval($_POST['course_school_year_id'] ?? mcdp_next_school_year_id_from_rows($schoolYears, $selectedYearId));
+        $syncSummary = mastercomDebtsPlanSyncRealCoursesToCorsi($selectedYearId, $debtYearId, $courseYearId);
+        if (empty($syncSummary['ok'])) {
+            $error = trim((string)($syncSummary['message'] ?? 'Sincronizzazione non riuscita.'));
+        } else {
+            $message = trim((string)($syncSummary['message'] ?? 'Sincronizzazione completata.'));
+        }
+    } elseif ($action === 'save_lock') {
         $dates = $_POST['slot_date'] ?? [];
         $starts = $_POST['slot_start'] ?? [];
         $ends = $_POST['slot_end'] ?? [];
@@ -740,6 +1066,13 @@ foreach ($studentCourseCounts as $count) {
 }
 
 $export = strtolower(trim((string)($_GET['export'] ?? '')));
+if ($plan !== null && in_array($export, ['course_list_pdf', 'course_list_xlsx'], true)) {
+    $courseListRows = mcdp_course_list_rows(array_merge($scheduled, $unscheduled));
+    if ($export === 'course_list_xlsx') {
+        mcdp_course_list_export_xlsx($courseListRows);
+    }
+    mcdp_course_list_export_pdf($courseListRows);
+}
 if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
     $courseGroupsForExport = mcdp_export_sort_groups(array_merge($scheduled, $unscheduled));
     $itinereGroupsForExport = mcdp_export_sort_groups($autonomous);
@@ -877,6 +1210,28 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
             color: #456;
             margin-bottom: 16px;
         }
+        .mcdp-import-panel {
+            border: 1px solid #d7e3ec;
+            background: #f8fbfd;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+        .mcdp-import-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .mcdp-import-row .form-group {
+            margin-bottom: 0;
+        }
+        .mcdp-import-kpis {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
         @media (max-width: 1100px) {
             .mcdp-kpis {
                 grid-template-columns: repeat(2, minmax(150px, 1fr));
@@ -928,21 +1283,103 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
                     <a class="btn btn-success" href="mastercom_debts_plan.php?school_year_id=<?php echo intval($selectedYearId); ?>&min_size=<?php echo intval($minSize); ?>&max_size=<?php echo intval($maxSize); ?>&export=xlsx">
                         <span class="glyphicon glyphicon-list-alt"></span> XLS
                     </a>
+                    <a class="btn btn-danger" href="mastercom_debts_plan.php?school_year_id=<?php echo intval($selectedYearId); ?>&min_size=<?php echo intval($minSize); ?>&max_size=<?php echo intval($maxSize); ?>&export=course_list_pdf">
+                        <span class="glyphicon glyphicon-file"></span> PDF elenco corsi
+                    </a>
+                    <a class="btn btn-success" href="mastercom_debts_plan.php?school_year_id=<?php echo intval($selectedYearId); ?>&min_size=<?php echo intval($minSize); ?>&max_size=<?php echo intval($maxSize); ?>&export=course_list_xlsx">
+                        <span class="glyphicon glyphicon-list-alt"></span> XLS elenco corsi
+                    </a>
                     <a class="btn btn-default" href="mastercom_debts.php?school_year_id=<?php echo intval($selectedYearId); ?>">
                         <span class="glyphicon glyphicon-arrow-left"></span> Carenze
                     </a>
                 </div>
             </form>
 
+            <form method="post" enctype="multipart/form-data" class="mcdp-import-panel">
+                <input type="hidden" name="action" value="import_real_plan">
+                <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
+                <input type="hidden" name="min_size" value="<?php echo intval($minSize); ?>">
+                <input type="hidden" name="max_size" value="<?php echo intval($maxSize); ?>">
+                <div class="mcdp-import-row">
+                    <div class="form-group">
+                        <label for="real_plan_csv">Import corsi reali CSV</label>
+                        <input type="file" class="form-control" id="real_plan_csv" name="real_plan_csv" accept=".csv,text/csv">
+                    </div>
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" name="apply_import" value="1">
+                            Applica import e sostituisci piano reale dell'anno
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-info">
+                        <span class="glyphicon glyphicon-upload"></span> Importa CSV
+                    </button>
+                </div>
+            </form>
+
+            <?php echo mcdp_import_summary_html($importSummary); ?>
+            <?php $defaultDebtYearId = $selectedYearId; ?>
+            <?php $defaultCourseYearId = mcdp_next_school_year_id_from_rows($schoolYears, $selectedYearId); ?>
+
+            <form method="post" class="mcdp-import-panel">
+                <input type="hidden" name="action" value="sync_real_plan_courses">
+                <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
+                <input type="hidden" name="min_size" value="<?php echo intval($minSize); ?>">
+                <input type="hidden" name="max_size" value="<?php echo intval($maxSize); ?>">
+                <div class="mcdp-import-row">
+                    <div class="form-group">
+                        <label for="debt_school_year_id">Anno carenze sorgente</label>
+                        <select id="debt_school_year_id" name="debt_school_year_id" class="form-control">
+                            <?php foreach ($schoolYears as $year): ?>
+                                <option value="<?php echo intval($year['id']); ?>" <?php echo intval($year['id']) === $defaultDebtYearId ? 'selected' : ''; ?>>
+                                    <?php echo mcdp_h($year['anno']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="course_school_year_id">Anno corsi didattici</label>
+                        <select id="course_school_year_id" name="course_school_year_id" class="form-control">
+                            <?php foreach ($schoolYears as $year): ?>
+                                <option value="<?php echo intval($year['id']); ?>" <?php echo intval($year['id']) === $defaultCourseYearId ? 'selected' : ''; ?>>
+                                    <?php echo mcdp_h($year['anno']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="glyphicon glyphicon-transfer"></span> Aggiorna corsi didattici
+                    </button>
+                    <a class="btn btn-default" href="../didattica/corsi.php">
+                        <span class="glyphicon glyphicon-list-alt"></span> Vai ai corsi
+                    </a>
+                </div>
+            </form>
+
+            <?php echo mcdp_sync_summary_html($syncSummary); ?>
+
             <?php if ($plan === null): ?>
                 <div class="alert alert-warning">Seleziona un anno scolastico.</div>
             <?php else: ?>
+                <?php if (!empty($plan['using_imported_plan'])): ?>
+                    <div class="alert alert-info">
+                        Sono caricati i corsi reali importati da CSV per l'anno
+                        <strong><?php echo mcdp_h($plan['school_year_label']); ?></strong>.
+                        La proposta automatica resta disponibile solo se si svuota l'import reale.
+                    </div>
+                <?php endif; ?>
                 <div class="mcdp-note">
-                    La pianificazione usa le carenze non recuperate lette da MasterCom per l'anno
-                    <strong><?php echo mcdp_h($plan['school_year_label']); ?></strong>.
-                    I gruppi sono per anno di classe e materia. Il calendario proposto copre il periodo
-                    <strong>24/08/<?php echo intval($plan['calendar_year']); ?> - 05/09/<?php echo intval($plan['calendar_year']); ?></strong>.
-                    Ogni corso prevede tre lezioni da 2 ore scolastiche, cioe 100 minuti ciascuna, in tre giornate diverse.
+                    <?php if (!empty($plan['using_imported_plan'])): ?>
+                        La pianificazione usa i corsi reali importati da CSV per l'anno
+                        <strong><?php echo mcdp_h($plan['school_year_label']); ?></strong>,
+                        inclusi partecipanti effettivi, docenti, aule, date e recuperi in itinere.
+                    <?php else: ?>
+                        La pianificazione usa le carenze non recuperate lette da MasterCom per l'anno
+                        <strong><?php echo mcdp_h($plan['school_year_label']); ?></strong>.
+                        I gruppi sono per anno di classe e materia. Il calendario proposto copre il periodo
+                        <strong>24/08/<?php echo intval($plan['calendar_year']); ?> - 05/09/<?php echo intval($plan['calendar_year']); ?></strong>.
+                        Ogni corso prevede tre lezioni da 2 ore scolastiche, cioe 100 minuti ciascuna, in tre giornate diverse.
+                    <?php endif; ?>
                 </div>
 
                 <div class="mcdp-kpis">
