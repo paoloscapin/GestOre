@@ -137,6 +137,118 @@ function mcd_report_table_html(array $rows, bool $forExport = false, array $filt
     return $html;
 }
 
+function mcd_split_mastercom_student_name(string $value): array
+{
+    $value = trim(preg_replace('/\s+/', ' ', $value));
+    if ($value === '') {
+        return ['', ''];
+    }
+    if (strpos($value, ',') !== false) {
+        $parts = array_map('trim', explode(',', $value, 2));
+        return [$parts[0] ?? '', $parts[1] ?? ''];
+    }
+    return [$value, ''];
+}
+
+function mcd_student_debts_export_rows(array $reportRows): array
+{
+    $studentIds = [];
+    foreach ($reportRows as $row) {
+        $id = intval($row['id_studente_gestore'] ?? 0);
+        if ($id > 0) {
+            $studentIds[$id] = $id;
+        }
+    }
+
+    $studentsById = [];
+    if (!empty($studentIds)) {
+        $idList = implode(',', array_map('intval', array_values($studentIds)));
+        $students = dbGetAll("
+            SELECT id, cognome, nome, codice_fiscale
+            FROM studente
+            WHERE id IN ($idList)
+        ") ?: [];
+        foreach ($students as $student) {
+            $studentsById[intval($student['id'] ?? 0)] = $student;
+        }
+    }
+
+    $items = [];
+    foreach ($reportRows as $row) {
+        $studentId = intval($row['id_studente_gestore'] ?? 0);
+        $classe = trim((string)(($row['classe_gestore'] ?? '') ?: ($row['classe'] ?? '')));
+
+        if ($studentId > 0) {
+            $key = 's:' . $studentId . ':c:' . $classe;
+            $student = $studentsById[$studentId] ?? [];
+            $cognome = trim((string)($student['cognome'] ?? ''));
+            $nome = trim((string)($student['nome'] ?? ''));
+            $cf = trim((string)($student['codice_fiscale'] ?? ''));
+            if ($cognome === '' && $nome === '') {
+                [$cognome, $nome] = mcd_split_mastercom_student_name((string)(($row['studente_gestore'] ?? '') ?: ($row['studente_nome'] ?? '')));
+            }
+        } else {
+            $key = 'mc:' . intval($row['mastercom_id_studente'] ?? 0) . ':c:' . intval($row['mastercom_id_classe'] ?? 0) . ':' . (string)($row['studente_nome'] ?? '');
+            [$cognome, $nome] = mcd_split_mastercom_student_name((string)($row['studente_nome'] ?? ''));
+            $cf = '';
+        }
+
+        if (!isset($items[$key])) {
+            $items[$key] = [
+                'cognome' => $cognome,
+                'nome' => $nome,
+                'codice_fiscale' => $cf,
+                'classe' => $classe,
+                'numero_carenze' => 0,
+            ];
+        }
+        $items[$key]['numero_carenze']++;
+    }
+
+    $rows = array_values($items);
+    usort($rows, function ($a, $b) {
+        return strnatcasecmp((string)$a['classe'], (string)$b['classe'])
+            ?: strcasecmp((string)$a['cognome'], (string)$b['cognome'])
+            ?: strcasecmp((string)$a['nome'], (string)$b['nome']);
+    });
+
+    $n = 1;
+    foreach ($rows as &$row) {
+        $row['n'] = $n++;
+    }
+    unset($row);
+
+    return $rows;
+}
+
+function mcd_student_debts_table_html(array $rows): string
+{
+    $html = '<table class="table table-bordered table-condensed mcd-students-table">';
+    $html .= '<thead><tr>';
+    foreach (['N.', 'Cognome', 'Nome', 'Codice fiscale', 'Classe', 'Numero carenze'] as $head) {
+        $html .= '<th>' . mcd_h($head) . '</th>';
+    }
+    $html .= '</tr></thead><tbody>';
+
+    if (empty($rows)) {
+        $html .= '<tr><td colspan="6" class="text-center">Nessuno studente con carenze per i filtri selezionati.</td></tr>';
+    }
+
+    foreach ($rows as $row) {
+        $html .= '<tr>';
+        $html .= '<td class="text-center">' . intval($row['n'] ?? 0) . '</td>';
+        $html .= '<td>' . mcd_h($row['cognome'] ?? '') . '</td>';
+        $html .= '<td>' . mcd_h($row['nome'] ?? '') . '</td>';
+        $html .= '<td>' . mcd_h($row['codice_fiscale'] ?? '') . '</td>';
+        $html .= '<td class="text-center">' . mcd_h($row['classe'] ?? '') . '</td>';
+        $html .= '<td class="text-center">' . intval($row['numero_carenze'] ?? 0) . '</td>';
+        $html .= '</tr>';
+    }
+
+    $html .= '</tbody></table>';
+    return $html;
+}
+
 mastercomDebtsEnsureTables();
 
 global $__anno_scolastico_corrente_id;
@@ -277,6 +389,18 @@ if (isset($_GET['export']) && $_GET['export'] === 'xls') {
     exit;
 }
 
+if (isset($_GET['export']) && $_GET['export'] === 'students_xls') {
+    $fileName = mastercomDebtsExportFileName('studenti_carenze_mastercom', 'xls');
+    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $fileName . '"');
+    echo "\xEF\xBB\xBF";
+    echo '<html><head><meta charset="UTF-8"></head><body>';
+    echo '<h2>Elenco studenti con carenze</h2>';
+    echo mcd_student_debts_table_html(mcd_student_debts_export_rows($reportRows));
+    echo '</body></html>';
+    exit;
+}
+
 if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
     $tcpdf = __DIR__ . '/../common/vendor/tecnickcom/tcpdf/tcpdf.php';
     if (file_exists($tcpdf)) {
@@ -307,6 +431,37 @@ if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
     exit;
 }
 
+if (isset($_GET['export']) && $_GET['export'] === 'students_pdf') {
+    $tcpdf = __DIR__ . '/../common/vendor/tecnickcom/tcpdf/tcpdf.php';
+    if (file_exists($tcpdf)) {
+        require_once $tcpdf;
+    } else {
+        require_once '../common/tcpdf/tcpdf.php';
+    }
+
+    $pdf = new TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
+    $pdf->SetCreator('GestOre');
+    $pdf->SetAuthor('GestOre');
+    $pdf->SetTitle('Elenco studenti con carenze');
+    $pdf->setPrintHeader(false);
+    $pdf->setPrintFooter(false);
+    $pdf->SetMargins(10, 10, 10);
+    $pdf->SetAutoPageBreak(true, 10);
+    $pdf->AddPage();
+    $html = '<style>
+        h1 { color: #0b5d7e; font-size: 18px; }
+        table { border-collapse: collapse; width: 100%; font-size: 9px; }
+        th { background-color: #2f7d32; color: #fff; font-weight: bold; border: 1px solid #222; padding: 5px; }
+        td { border: 1px solid #555; padding: 4px; }
+        .text-center { text-align: center; }
+    </style>';
+    $html .= '<h1>Elenco studenti con carenze</h1>';
+    $html .= mcd_student_debts_table_html(mcd_student_debts_export_rows($reportRows));
+    $pdf->writeHTML($html, true, false, true, false, '');
+    $pdf->Output(mastercomDebtsExportFileName('studenti_carenze_mastercom', 'pdf'), 'D');
+    exit;
+}
+
 $auditIssues = mastercomDebtsAuditIssues($selectedYearId, $selectedClassId);
 ?>
 <!DOCTYPE html>
@@ -328,7 +483,9 @@ $auditIssues = mastercomDebtsAuditIssues($selectedYearId, $selectedClassId);
             display: flex;
             align-items: flex-end;
             gap: 10px;
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
+            margin-left: 0;
+            margin-right: 0;
         }
         .mcd-toolbar .mcd-filter-class {
             flex: 0 1 420px;
@@ -347,12 +504,22 @@ $auditIssues = mastercomDebtsAuditIssues($selectedYearId, $selectedClassId);
             min-width: 145px;
         }
         .mcd-toolbar .mcd-actions {
-            flex: 1 0 auto;
-            min-width: 430px;
-            white-space: nowrap;
+            display: flex;
+            flex: 1 1 100%;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: flex-start;
+            min-width: 0;
+            padding-top: 6px;
+            width: 100%;
+        }
+        .mcd-toolbar .mcd-actions label,
+        .mcd-toolbar .mcd-actions br {
+            display: none;
         }
         .mcd-toolbar .mcd-actions .btn {
             margin-bottom: 3px;
+            white-space: nowrap;
         }
         @media (max-width: 1200px) {
             .mcd-toolbar {
@@ -378,7 +545,7 @@ $auditIssues = mastercomDebtsAuditIssues($selectedYearId, $selectedClassId);
                 min-width: 140px;
             }
             .mcd-toolbar .mcd-actions {
-                min-width: 390px;
+                padding-top: 4px;
             }
             .mcd-toolbar .mcd-actions .btn {
                 padding-left: 7px;
@@ -554,6 +721,12 @@ $auditIssues = mastercomDebtsAuditIssues($selectedYearId, $selectedClassId);
                         </a>
                         <a class="btn btn-success" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&issue_filter=<?php echo urlencode($selectedIssueFilter); ?>&recovery_filter=<?php echo urlencode($selectedRecoveryFilter); ?>&appeal_filter=<?php echo urlencode($selectedAppealFilter); ?>&export=xls">
                             <span class="glyphicon glyphicon-list-alt"></span> <span class="mcd-btn-text">XLS</span>
+                        </a>
+                        <a class="btn btn-danger" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&issue_filter=<?php echo urlencode($selectedIssueFilter); ?>&recovery_filter=<?php echo urlencode($selectedRecoveryFilter); ?>&appeal_filter=<?php echo urlencode($selectedAppealFilter); ?>&export=students_pdf">
+                            <span class="glyphicon glyphicon-user"></span> <span class="mcd-btn-text">PDF studenti</span>
+                        </a>
+                        <a class="btn btn-success" onclick="mcdExportWait(this); return false;" href="?class_id=<?php echo intval($selectedClassId); ?>&school_year_id=<?php echo intval($selectedYearId); ?>&issue_filter=<?php echo urlencode($selectedIssueFilter); ?>&recovery_filter=<?php echo urlencode($selectedRecoveryFilter); ?>&appeal_filter=<?php echo urlencode($selectedAppealFilter); ?>&export=students_xls">
+                            <span class="glyphicon glyphicon-user"></span> <span class="mcd-btn-text">XLS studenti</span>
                         </a>
                     </div>
                 </div>
