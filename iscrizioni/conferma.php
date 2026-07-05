@@ -925,7 +925,10 @@ $nomeIstituto = trim((string)($__settings->local->nomeIstituto ?? 'ITT Buonarrot
 $classeTargetLabel = $isTerze
     ? 'Iscrizione alle classi terze'
     : trp('subtitle');
-$praticaInviata = $pratica && (string)($pratica['stato'] ?? '') === 'inviata';
+$praticaInviata = $pratica && (
+    in_array((string)($pratica['stato'] ?? ''), ['inviata', 'verifica_iniziale_ok', 'da_integrare', 'verificata'], true)
+    || trim((string)($pratica['dati_confermati_json'] ?? '')) !== ''
+);
 $praticaBloccata = $pratica && in_array((string)($pratica['stato'] ?? ''), ['verificata', 'annullata'], true);
 
 if (!$pratica) {
