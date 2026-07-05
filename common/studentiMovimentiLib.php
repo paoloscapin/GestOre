@@ -12,6 +12,7 @@
 require_once __DIR__ . '/connect.php';
 require_once __DIR__ . '/mastercom/tabelloni_lib.php';
 require_once __DIR__ . '/scuoleIstitutiLib.php';
+require_once __DIR__ . '/iscrizioniPrimeLib.php';
 
 function studentiMovimentiColumnExists(string $table, string $column): bool
 {
@@ -52,10 +53,12 @@ function studentiMovimentiEnsureTables(): void
             `id_istituto_destinazione` INT NULL,
             `scuola_destinazione` VARCHAR(255) NULL,
             `indirizzo_destinazione` VARCHAR(255) NULL,
+            `id_indirizzo_gestore` INT NULL,
             `id_istituto_provenienza` INT NULL,
             `scuola_provenienza` VARCHAR(255) NULL,
             `indirizzo_provenienza` VARCHAR(255) NULL,
             `doppio_bocciato` TINYINT(1) NOT NULL DEFAULT 0,
+            `doppio_bocciato_non_consecutivo` TINYINT(1) NOT NULL DEFAULT 0,
             `esami_integrativi` TINYINT(1) NOT NULL DEFAULT 0,
             `esami_integrativi_note` TEXT NULL,
             `carenze_presenti` TINYINT(1) NOT NULL DEFAULT 0,
@@ -96,6 +99,9 @@ function studentiMovimentiEnsureTables(): void
     if (!studentiMovimentiColumnExists('studenti_movimenti_pratiche', 'indirizzo_destinazione')) {
         dbExec("ALTER TABLE studenti_movimenti_pratiche ADD COLUMN `indirizzo_destinazione` VARCHAR(255) NULL AFTER `scuola_destinazione`");
     }
+    if (!studentiMovimentiColumnExists('studenti_movimenti_pratiche', 'id_indirizzo_gestore')) {
+        dbExec("ALTER TABLE studenti_movimenti_pratiche ADD COLUMN `id_indirizzo_gestore` INT NULL AFTER `indirizzo_destinazione`");
+    }
     if (!studentiMovimentiColumnExists('studenti_movimenti_pratiche', 'id_istituto_provenienza')) {
         dbExec("ALTER TABLE studenti_movimenti_pratiche ADD COLUMN `id_istituto_provenienza` INT NULL AFTER `indirizzo_destinazione`");
     }
@@ -104,6 +110,9 @@ function studentiMovimentiEnsureTables(): void
     }
     if (!studentiMovimentiColumnExists('studenti_movimenti_pratiche', 'doppio_bocciato')) {
         dbExec("ALTER TABLE studenti_movimenti_pratiche ADD COLUMN `doppio_bocciato` TINYINT(1) NOT NULL DEFAULT 0 AFTER `indirizzo_provenienza`");
+    }
+    if (!studentiMovimentiColumnExists('studenti_movimenti_pratiche', 'doppio_bocciato_non_consecutivo')) {
+        dbExec("ALTER TABLE studenti_movimenti_pratiche ADD COLUMN `doppio_bocciato_non_consecutivo` TINYINT(1) NOT NULL DEFAULT 0 AFTER `doppio_bocciato`");
     }
     if (!studentiMovimentiColumnExists('studenti_movimenti_pratiche', 'data_nascita')) {
         dbExec("ALTER TABLE studenti_movimenti_pratiche ADD COLUMN `data_nascita` DATE NULL AFTER `codice_fiscale`");
@@ -451,6 +460,245 @@ function studentiMovimentiFindOrCreateStudentForEntrata(array $fields): int
     return intval(dblastId());
 }
 
+function studentiMovimentiSchoolYearForIscrizione(string $tipoIscrizione): string
+{
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+    $defaultStart = intval(date('Y'));
+    $default = sprintf('%04d/%02d', $defaultStart, ($defaultStart + 1) % 100);
+    $latest = trim((string)(dbGetValue("
+        SELECT anno_scolastico
+        FROM iscrizioni_prime_pratiche
+        WHERE tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+          AND stato <> 'annullata'
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 1
+    ") ?? ''));
+    if ($latest !== '') {
+        $latest = iscrizioniPrimeNormalizeSchoolYear($latest);
+        if (preg_match('/^(\d{4})\//', $latest, $m) && intval($m[1]) >= $defaultStart) {
+            return $latest;
+        }
+    }
+
+    return $default;
+}
+
+function studentiMovimentiTipoIscrizioneForEntrata(array $fields): string
+{
+    $annoCorso = intval($fields['anno_corso'] ?? 0);
+    if ($annoCorso <= 0) {
+        $annoCorso = studentiMovimentiClassYear((string)($fields['classe_richiesta'] ?? '')) ?? 0;
+    }
+    if ($annoCorso <= 0) {
+        $annoCorso = studentiMovimentiClassYear((string)($fields['classe_origine'] ?? '')) ?? 0;
+    }
+    return $annoCorso === 3 ? 'terze' : ($annoCorso === 1 ? 'prime' : '');
+}
+
+function studentiMovimentiIndirizzoNomeById(?int $id): string
+{
+    $id = intval($id ?? 0);
+    if ($id <= 0) {
+        return '';
+    }
+    return trim((string)(dbGetValue("SELECT nome FROM indirizzo WHERE id = " . dbI($id) . " LIMIT 1") ?? ''));
+}
+
+function studentiMovimentiUpdateIscrizioneContactsFromEntrata(int $praticaId, array $fields, bool $force = false): void
+{
+    if ($praticaId <= 0) {
+        return;
+    }
+    $sets = [];
+    foreach ([
+        'responsabile_1_tipo',
+        'responsabile_1_cognome',
+        'responsabile_1_nome',
+        'responsabile_1_codice_fiscale',
+        'email_genitore_1',
+        'telefono_genitore_1',
+        'responsabile_2_tipo',
+        'responsabile_2_cognome',
+        'responsabile_2_nome',
+        'responsabile_2_codice_fiscale',
+        'email_genitore_2',
+        'telefono_genitore_2',
+    ] as $field) {
+        $value = trim((string)($fields[$field] ?? ''));
+        if ($value === '') {
+            continue;
+        }
+        $sets[] = $field . ' = ' . ($force
+            ? dbQ($value)
+            : "CASE WHEN COALESCE(" . $field . ", '') = '' THEN " . dbQ($value) . " ELSE " . $field . " END");
+    }
+    if (!$sets) {
+        return;
+    }
+    $sets[] = 'updated_at = NOW()';
+    dbExec("
+        UPDATE iscrizioni_prime_pratiche
+        SET " . implode(", ", $sets) . "
+        WHERE id = " . dbI($praticaId) . "
+        LIMIT 1
+    ");
+}
+
+function studentiMovimentiEnsureIscrizioneForEntrata(array &$fields, int $movementId = 0): void
+{
+    if (($fields['tipo_pratica'] ?? '') !== 'entrata') {
+        return;
+    }
+    if (intval($fields['id_pratica_iscrizione'] ?? 0) > 0) {
+        studentiMovimentiUpdateIscrizioneContactsFromEntrata(intval($fields['id_pratica_iscrizione']), $fields);
+        return;
+    }
+
+    $tipoIscrizione = studentiMovimentiTipoIscrizioneForEntrata($fields);
+    if (!in_array($tipoIscrizione, ['prime', 'terze'], true)) {
+        return;
+    }
+
+    iscrizioniPrimeEnsureSchema();
+    $cf = strtoupper(trim((string)($fields['codice_fiscale'] ?? '')));
+    $cognome = studentiMovimentiUpperName($fields['cognome'] ?? '');
+    $nome = studentiMovimentiUpperName($fields['nome'] ?? '');
+    if ($cf === '' || $cognome === '' || $nome === '') {
+        throw new RuntimeException('Per una entrata di prima o terza servono cognome, nome e codice fiscale per creare la pratica iscrizione.');
+    }
+
+    $annoScolastico = studentiMovimentiSchoolYearForIscrizione($tipoIscrizione);
+    $existing = dbGetFirst("
+        SELECT id, raw_prime_json
+        FROM iscrizioni_prime_pratiche
+        WHERE " . iscrizioniPrimeSchoolYearWhere('anno_scolastico', $annoScolastico) . "
+          AND tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+          AND UPPER(TRIM(codice_fiscale)) = " . dbQ($cf) . "
+          AND stato <> 'annullata'
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 1
+    ");
+    if ($existing) {
+        $fields['id_pratica_iscrizione'] = intval($existing['id']);
+        $raw = json_decode((string)($existing['raw_prime_json'] ?? ''), true);
+        studentiMovimentiUpdateIscrizioneContactsFromEntrata(intval($existing['id']), $fields, is_array($raw) && (($raw['FONTE'] ?? '') === 'movimenti_entrata'));
+        return;
+    }
+
+    $annoCorso = $tipoIscrizione === 'terze' ? 3 : 1;
+    $indirizzoNome = studentiMovimentiIndirizzoNomeById(intval($fields['id_indirizzo_gestore'] ?? 0));
+    $corsoStudi = $tipoIscrizione === 'terze'
+        ? ($indirizzoNome !== '' ? $indirizzoNome : trim((string)($fields['indirizzo_destinazione'] ?? '')))
+        : ($indirizzoNome !== '' ? $indirizzoNome : 'BIENNIO SETTORE TECNOLOGICO');
+    $codiceDomanda = $movementId > 0 ? ('MOV-ENT-' . $movementId) : ('MOV-ENT-' . $cf);
+    $token = iscrizioniPrimeGenerateToken();
+    $raw = [
+        'FONTE' => 'movimenti_entrata',
+        'ID_MOVIMENTO' => $movementId,
+        'CODICE DOMANDA' => $codiceDomanda,
+        'ANNO SCOLASTICO' => $annoScolastico,
+        'COGNOME STUDENTE' => $cognome,
+        'NOME STUDENTE' => $nome,
+        'CODICE FISCALE STUDENTE' => $cf,
+        'ANNO DI CORSO' => (string)$annoCorso,
+        'CORSO DI STUDI DI ISCRIZIONE' => $corsoStudi,
+    ];
+
+    dbExec("
+        INSERT INTO iscrizioni_prime_pratiche
+            (anno_scolastico, codice_domanda, codice_fiscale, tipo_iscrizione, studente_interno,
+             cognome, nome, data_nascita, luogo_nascita, scuola_provenienza, corso_studi, id_indirizzo_gestore, anno_corso,
+             responsabile_1_tipo, responsabile_1_cognome, responsabile_1_nome, responsabile_1_codice_fiscale,
+             email_genitore_1, telefono_genitore_1,
+             responsabile_2_tipo, responsabile_2_cognome, responsabile_2_nome, responsabile_2_codice_fiscale,
+             email_genitore_2, telefono_genitore_2,
+             token_hash, token_last4, token_created_at, token_expires_at,
+             raw_prime_json, note_interne, imported_at, updated_at)
+        VALUES
+            (" . dbQ($annoScolastico) . ",
+             " . dbQ($codiceDomanda) . ",
+             " . dbQ($cf) . ",
+             " . dbQ($tipoIscrizione) . ",
+             0,
+             " . dbQ($cognome) . ",
+             " . dbQ($nome) . ",
+             " . dbQ($fields['data_nascita'] ?? null) . ",
+             " . dbQ($fields['luogo_nascita'] ?? null) . ",
+             " . dbQ($fields['scuola_provenienza'] ?? null) . ",
+             " . dbQ($corsoStudi) . ",
+             " . dbI($fields['id_indirizzo_gestore'] ?? null) . ",
+             " . dbI($annoCorso) . ",
+             " . dbQ($fields['responsabile_1_tipo'] ?? null) . ",
+             " . dbQ($fields['responsabile_1_cognome'] ?? null) . ",
+             " . dbQ($fields['responsabile_1_nome'] ?? null) . ",
+             " . dbQ($fields['responsabile_1_codice_fiscale'] ?? null) . ",
+             " . dbQ($fields['email_genitore_1'] ?? null) . ",
+             " . dbQ($fields['telefono_genitore_1'] ?? null) . ",
+             " . dbQ($fields['responsabile_2_tipo'] ?? null) . ",
+             " . dbQ($fields['responsabile_2_cognome'] ?? null) . ",
+             " . dbQ($fields['responsabile_2_nome'] ?? null) . ",
+             " . dbQ($fields['responsabile_2_codice_fiscale'] ?? null) . ",
+             " . dbQ($fields['email_genitore_2'] ?? null) . ",
+             " . dbQ($fields['telefono_genitore_2'] ?? null) . ",
+             " . dbQ($token['hash']) . ",
+             " . dbQ($token['last4']) . ",
+             NOW(),
+             DATE_ADD(NOW(), INTERVAL 90 DAY),
+             " . dbQ(iscrizioniPrimeJson($raw)) . ",
+             " . dbQ('Pratica creata automaticamente da movimenti studenti in entrata.') . ",
+             NOW(),
+             NOW())
+    ");
+
+    $praticaId = intval(dblastId());
+    iscrizioniPrimeEnsureDocumentRows($praticaId);
+    $fields['id_pratica_iscrizione'] = $praticaId;
+}
+
+function studentiMovimentiEnsureIscrizioniForEntrate(): array
+{
+    studentiMovimentiEnsureTables();
+    $rows = dbGetAll("
+        SELECT *
+        FROM studenti_movimenti_pratiche
+        WHERE tipo_pratica = 'entrata'
+          AND stato_pratica <> 'annullata'
+          AND COALESCE(id_pratica_iscrizione, 0) = 0
+          AND COALESCE(anno_corso, 0) IN (1, 3)
+        ORDER BY id ASC
+    ") ?: [];
+
+    $createdOrLinked = 0;
+    $skipped = 0;
+    $errors = [];
+    foreach ($rows as $row) {
+        $fields = $row;
+        try {
+            studentiMovimentiEnsureIscrizioneForEntrata($fields, intval($row['id'] ?? 0));
+            $praticaId = intval($fields['id_pratica_iscrizione'] ?? 0);
+            if ($praticaId > 0) {
+                dbExec("
+                    UPDATE studenti_movimenti_pratiche
+                    SET id_pratica_iscrizione = " . dbI($praticaId) . ",
+                        updated_at = NOW()
+                    WHERE id = " . dbI($row['id'] ?? 0) . "
+                    LIMIT 1
+                ");
+                $createdOrLinked++;
+            } else {
+                $skipped++;
+            }
+        } catch (Throwable $e) {
+            $skipped++;
+            if (count($errors) < 20) {
+                $errors[] = trim((string)($row['cognome'] ?? '') . ' ' . (string)($row['nome'] ?? '')) . ': ' . $e->getMessage();
+            }
+        }
+    }
+
+    return ['read' => count($rows), 'linked' => $createdOrLinked, 'skipped' => $skipped, 'errors' => $errors];
+}
+
 function studentiMovimentiLinkColloquiToPractice(int $practiceId, array $fields): int
 {
     if ($practiceId <= 0 || !dbGetValue("SHOW TABLES LIKE 'genitori_colloqui'")) {
@@ -550,10 +798,12 @@ function studentiMovimentiSavePractice(array $data): int
         'id_istituto_destinazione' => intval($data['id_istituto_destinazione'] ?? 0) ?: null,
         'scuola_destinazione' => trim((string)($data['scuola_destinazione'] ?? '')),
         'indirizzo_destinazione' => trim((string)($data['indirizzo_destinazione'] ?? '')),
+        'id_indirizzo_gestore' => intval($data['id_indirizzo_gestore'] ?? 0) ?: null,
         'id_istituto_provenienza' => intval($data['id_istituto_provenienza'] ?? 0) ?: null,
         'scuola_provenienza' => trim((string)($data['scuola_provenienza'] ?? '')),
         'indirizzo_provenienza' => trim((string)($data['indirizzo_provenienza'] ?? '')),
         'doppio_bocciato' => !empty($data['doppio_bocciato']) ? 1 : 0,
+        'doppio_bocciato_non_consecutivo' => !empty($data['doppio_bocciato_non_consecutivo']) ? 1 : 0,
         'esami_integrativi' => !empty($data['esami_integrativi']) ? 1 : 0,
         'esami_integrativi_note' => trim((string)($data['esami_integrativi_note'] ?? '')),
         'carenze_presenti' => !empty($data['carenze_presenti']) ? 1 : 0,
@@ -589,7 +839,6 @@ function studentiMovimentiSavePractice(array $data): int
     if ($nomeProvenienza !== '') {
         $fields['scuola_provenienza'] = $nomeProvenienza;
     }
-
     if ($fields['id_studente']) {
         $student = dbGetFirst("SELECT cognome, nome, codice_fiscale FROM studente WHERE id = " . dbI($fields['id_studente']) . " LIMIT 1");
         if ($student) {
@@ -605,7 +854,8 @@ function studentiMovimentiSavePractice(array $data): int
     }
     if ($id > 0) {
         $existingContacts = dbGetFirst("
-            SELECT data_nascita, luogo_nascita,
+            SELECT esami_integrativi, esami_integrativi_note,
+                   data_nascita, luogo_nascita,
                    responsabile_1_tipo, responsabile_1_cognome, responsabile_1_nome, responsabile_1_codice_fiscale,
                    email_genitore_1, telefono_genitore_1,
                    responsabile_2_tipo, responsabile_2_cognome, responsabile_2_nome, responsabile_2_codice_fiscale,
@@ -620,6 +870,14 @@ function studentiMovimentiSavePractice(array $data): int
             }
         }
     }
+    studentiMovimentiEnsureIscrizioneForEntrata($fields, $id);
+    $shouldClearLinkedColloquiEsami = $id > 0
+        && $fields['tipo_pratica'] === 'entrata'
+        && intval($fields['esami_integrativi']) === 0
+        && (
+            intval($existingContacts['esami_integrativi'] ?? 0) === 1
+            || trim((string)($existingContacts['esami_integrativi_note'] ?? '')) !== ''
+        );
 
     if ($id > 0) {
         dbExec("
@@ -650,10 +908,12 @@ function studentiMovimentiSavePractice(array $data): int
                 id_istituto_destinazione = " . dbI($fields['id_istituto_destinazione']) . ",
                 scuola_destinazione = " . dbQ($fields['scuola_destinazione']) . ",
                 indirizzo_destinazione = " . dbQ($fields['indirizzo_destinazione']) . ",
+                id_indirizzo_gestore = " . dbI($fields['id_indirizzo_gestore']) . ",
                 id_istituto_provenienza = " . dbI($fields['id_istituto_provenienza']) . ",
                 scuola_provenienza = " . dbQ($fields['scuola_provenienza']) . ",
                 indirizzo_provenienza = " . dbQ($fields['indirizzo_provenienza']) . ",
                 doppio_bocciato = " . dbI($fields['doppio_bocciato']) . ",
+                doppio_bocciato_non_consecutivo = " . dbI($fields['doppio_bocciato_non_consecutivo']) . ",
                 esami_integrativi = " . dbI($fields['esami_integrativi']) . ",
                 esami_integrativi_note = " . dbQ($fields['esami_integrativi_note']) . ",
                 carenze_presenti = " . dbI($fields['carenze_presenti']) . ",
@@ -673,6 +933,17 @@ function studentiMovimentiSavePractice(array $data): int
         ");
         studentiMovimentiAddEvent($id, 'salvataggio', 'Pratica aggiornata', $fields, $createdBy);
         studentiMovimentiLinkColloquiToPractice($id, $fields);
+        if ($shouldClearLinkedColloquiEsami && dbGetValue("SHOW TABLES LIKE 'genitori_colloqui'")) {
+            require_once __DIR__ . '/genitoriColloquiLib.php';
+            $clearedColloqui = genitoriColloquiClearEsamiIntegrativiForMovement($id);
+            if ($clearedColloqui > 0) {
+                studentiMovimentiAddEvent($id, 'sync_colloqui', 'Esami integrativi rimossi dai colloqui collegati', [
+                    'tipo_pratica' => $fields['tipo_pratica'],
+                    'stato_pratica' => $fields['stato_pratica'],
+                    'note' => 'Colloqui aggiornati: ' . $clearedColloqui,
+                ], $createdBy);
+            }
+        }
         return $id;
     }
 
@@ -685,9 +956,9 @@ function studentiMovimentiSavePractice(array $data): int
             responsabile_2_tipo, responsabile_2_cognome, responsabile_2_nome, responsabile_2_codice_fiscale,
             email_genitore_2, telefono_genitore_2,
             classe_origine, classe_richiesta, anno_corso,
-            id_istituto_destinazione, scuola_destinazione, indirizzo_destinazione,
+            id_istituto_destinazione, scuola_destinazione, indirizzo_destinazione, id_indirizzo_gestore,
             id_istituto_provenienza, scuola_provenienza, indirizzo_provenienza,
-            doppio_bocciato,
+            doppio_bocciato, doppio_bocciato_non_consecutivo,
             esami_integrativi, esami_integrativi_note, carenze_presenti, carenze_note,
             doc_modulo_iscrizione, doc_nulla_osta_entrata, doc_pagella_precedente, doc_carenze, doc_esami_integrativi,
             fonte, id_pratica_iscrizione, id_cambio_scuola_iscrizione, note, created_at, updated_at
@@ -718,10 +989,12 @@ function studentiMovimentiSavePractice(array $data): int
             " . dbI($fields['id_istituto_destinazione']) . ",
             " . dbQ($fields['scuola_destinazione']) . ",
             " . dbQ($fields['indirizzo_destinazione']) . ",
+            " . dbI($fields['id_indirizzo_gestore']) . ",
             " . dbI($fields['id_istituto_provenienza']) . ",
             " . dbQ($fields['scuola_provenienza']) . ",
             " . dbQ($fields['indirizzo_provenienza']) . ",
             " . dbI($fields['doppio_bocciato']) . ",
+            " . dbI($fields['doppio_bocciato_non_consecutivo']) . ",
             " . dbI($fields['esami_integrativi']) . ",
             " . dbQ($fields['esami_integrativi_note']) . ",
             " . dbI($fields['carenze_presenti']) . ",
@@ -1257,6 +1530,7 @@ function studentiMovimentiSyncCambioScuolaDaIscrizioni(): array
             p.responsabile_2_nome,
             p.responsabile_2_codice_fiscale,
             p.corso_studi,
+            p.id_indirizzo_gestore,
             p.studente_interno,
             c.id AS cambio_id,
             c.richiesta_data,
@@ -1357,6 +1631,7 @@ function studentiMovimentiSyncCambioScuolaDaIscrizioni(): array
             'id_istituto_destinazione' => intval($row['id_istituto_destinazione'] ?? 0) ?: null,
             'scuola_destinazione' => $row['scuola_destinazione'] ?? '',
             'indirizzo_destinazione' => $row['indirizzo_destinazione'] ?? '',
+            'id_indirizzo_gestore' => intval($row['id_indirizzo_gestore'] ?? 0) ?: null,
             'id_istituto_provenienza' => null,
             'scuola_provenienza' => '',
             'indirizzo_provenienza' => '',
@@ -1395,6 +1670,7 @@ function studentiMovimentiPracticeNeedsUpdate(array $existing, array $data): boo
         'id_istituto_destinazione',
         'scuola_destinazione',
         'indirizzo_destinazione',
+        'id_indirizzo_gestore',
         'id_istituto_provenienza',
         'scuola_provenienza',
         'indirizzo_provenienza',

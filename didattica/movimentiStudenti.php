@@ -82,6 +82,20 @@ $materieGestore = dbGetAll("
     FROM materia
     ORDER BY nome ASC
 ") ?: [];
+$indirizziGestore = iscrizioniPrimeGestoreAddressOptions();
+try {
+    $entrateIscrizioniSync = studentiMovimentiEnsureIscrizioniForEntrate();
+    if (intval($entrateIscrizioniSync['linked'] ?? 0) > 0 && $message === '') {
+        $message = 'Pratiche iscrizione collegate/create per entrate prime-terze: ' . intval($entrateIscrizioniSync['linked']) . '.';
+    }
+    if (!empty($entrateIscrizioniSync['errors']) && $error === '') {
+        $error = 'Alcune entrate prime-terze non hanno ancora la pratica iscrizione: ' . implode(' | ', $entrateIscrizioniSync['errors']);
+    }
+} catch (Throwable $e) {
+    if ($error === '') {
+        $error = 'Controllo pratiche iscrizione entrate non riuscito: ' . $e->getMessage();
+    }
+}
 $activeSection = trim((string)($_GET['sezione'] ?? 'uscite'));
 if (!in_array($activeSection, ['uscite', 'entrate'], true)) {
     $activeSection = 'uscite';
@@ -114,6 +128,7 @@ $pratiche = dbGetAll("
            s.codice_fiscale AS studente_cf,
            s.id AS studente_id,
            c.classe AS classe_corrente,
+           ind_gestore.nome AS indirizzo_gestore_nome,
            COUNT(a.id) AS allegati_count
     FROM studenti_movimenti_pratiche p
     LEFT JOIN studente s ON s.id = p.id_studente
@@ -126,6 +141,7 @@ $pratiche = dbGetAll("
         LIMIT 1
     )
     LEFT JOIN classi c ON c.id = sf.id_classe
+    LEFT JOIN indirizzo ind_gestore ON ind_gestore.id = p.id_indirizzo_gestore
     LEFT JOIN studenti_movimenti_allegati a ON a.id_pratica = p.id
     GROUP BY p.id
     ORDER BY COALESCE(p.anno_corso, 99) ASC,
@@ -240,6 +256,18 @@ function ms_practice_name(array $row): string
 function ms_data_attr($value): string
 {
     return studentiMovimentiH($value);
+}
+
+function ms_iscrizione_pratica_url(array $row): string
+{
+    $praticaId = intval($row['id_pratica_iscrizione'] ?? 0);
+    if ($praticaId <= 0) {
+        return '';
+    }
+    $tipoIscrizione = intval($row['anno_corso'] ?? 0) === 3 ? 'terze' : 'prime';
+    return 'iscrizioniPrimeDomande.php?tipo_iscrizione=' . rawurlencode($tipoIscrizione)
+        . '&stato=tutte&open_pratica_id=' . $praticaId
+        . '#pratica-' . $praticaId;
 }
 
 ?>
@@ -546,6 +574,9 @@ function ms_data_attr($value): string
                                 <?php if (!empty($row['doppio_bocciato'])): ?>
                                     <div><span class="label label-danger">Doppio bocciato</span></div>
                                 <?php endif; ?>
+                                <?php if (!empty($row['doppio_bocciato_non_consecutivo'])): ?>
+                                    <div><span class="label label-info">Doppio non consecutivo</span></div>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <?php if ($activeSection === 'entrate'): ?>
@@ -554,6 +585,9 @@ function ms_data_attr($value): string
                                     <?php echo studentiMovimentiH($row['scuola_destinazione'] ?: '-'); ?>
                                     <?php if (($row['indirizzo_destinazione'] ?? '') !== ''): ?>
                                         <div class="ms-muted"><?php echo studentiMovimentiH($row['indirizzo_destinazione']); ?></div>
+                                    <?php endif; ?>
+                                    <?php if (intval($row['id_indirizzo_gestore'] ?? 0) > 0 && trim((string)($row['indirizzo_gestore_nome'] ?? '')) !== ''): ?>
+                                        <div class="ms-muted">GestOre: <?php echo studentiMovimentiH($row['indirizzo_gestore_nome']); ?></div>
                                     <?php endif; ?>
                                 <?php endif; ?>
                             </td>
@@ -594,7 +628,9 @@ function ms_data_attr($value): string
                                         data-id_istituto_destinazione="<?php echo intval($row['id_istituto_destinazione'] ?? 0); ?>"
                                         data-scuola_destinazione="<?php echo ms_data_attr($row['scuola_destinazione'] ?? ''); ?>"
                                         data-indirizzo_destinazione="<?php echo ms_data_attr($row['indirizzo_destinazione'] ?? ''); ?>"
+                                        data-id_indirizzo_gestore="<?php echo intval($row['id_indirizzo_gestore'] ?? 0); ?>"
                                         data-doppio_bocciato="<?php echo intval($row['doppio_bocciato'] ?? 0); ?>"
+                                        data-doppio_bocciato_non_consecutivo="<?php echo intval($row['doppio_bocciato_non_consecutivo'] ?? 0); ?>"
                                         data-esami_integrativi="<?php echo intval($row['esami_integrativi'] ?? 0); ?>"
                                         data-esami_integrativi_note="<?php echo ms_data_attr($row['esami_integrativi_note'] ?? ''); ?>"
                                         data-carenze_presenti="<?php echo intval($row['carenze_presenti'] ?? 0); ?>"
@@ -602,6 +638,14 @@ function ms_data_attr($value): string
                                         data-note="<?php echo ms_data_attr($row['note'] ?? ''); ?>">
                                     Dettaglio
                                 </button>
+                                <?php $iscrizioneUrl = ms_iscrizione_pratica_url($row); ?>
+                                <?php if ($activeSection === 'entrate' && $iscrizioneUrl !== ''): ?>
+                                    <a class="btn btn-success btn-xs" href="<?php echo studentiMovimentiH($iscrizioneUrl); ?>">
+                                        <span class="glyphicon glyphicon-folder-open"></span> Pratica iscrizione
+                                    </a>
+                                <?php elseif ($activeSection === 'entrate' && in_array(intval($row['anno_corso'] ?? 0), [1, 3], true)): ?>
+                                    <span class="label label-warning">Pratica iscrizione mancante</span>
+                                <?php endif; ?>
                                 <?php if ($canOpenColloqui && !empty($colloquiCounts[$id])): ?>
                                     <a class="btn btn-info btn-xs" href="colloquiGenitori.php?movimento=<?php echo $id; ?>">Colloqui <?php echo intval($colloquiCounts[$id]); ?></a>
                                 <?php endif; ?>
@@ -661,6 +705,10 @@ function ms_data_attr($value): string
                         <label class="checkbox-inline">
                             <input type="checkbox" name="doppio_bocciato" id="ms_doppio_bocciato" value="1">
                             deve cambiare scuola o ritirarsi
+                        </label>
+                        <label class="checkbox-inline">
+                            <input type="checkbox" name="doppio_bocciato_non_consecutivo" id="ms_doppio_bocciato_non_consecutivo" value="1">
+                            non consecutivo, puo reiscriversi
                         </label>
                     </div>
                     <div class="form-group ms-modal-wide">
@@ -738,6 +786,16 @@ function ms_data_attr($value): string
                     <div class="form-group ms-only-uscita">
                         <label>Indirizzo di studio di destinazione</label>
                         <input type="text" name="indirizzo_destinazione" id="ms_indirizzo_destinazione" class="form-control input-sm" placeholder="Es. informatica, liceo scientifico...">
+                    </div>
+                    <div class="form-group ms-address-gestore">
+                        <label>Indirizzo GestOre</label>
+                        <select name="id_indirizzo_gestore" id="ms_id_indirizzo_gestore" class="form-control input-sm">
+                            <option value="">Da ricavare dal testo</option>
+                            <?php foreach ($indirizziGestore as $indirizzoRow): ?>
+                                <option value="<?php echo intval($indirizzoRow['id']); ?>"><?php echo studentiMovimentiH($indirizzoRow['nome'] ?? ''); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="help-block">Usato nella formazione classi per filtrare bocciati, entrate e reiscrizioni.</span>
                     </div>
                     <div class="ms-section-title ms-only-uscita">Colloqui</div>
                     <div class="form-group ms-only-uscita ms-modal-wide">
@@ -1262,7 +1320,9 @@ function msOpenNew(kind) {
     msSetField('ms_id_istituto_destinazione', '');
     msSetField('ms_scuola_destinazione', '');
     msSetField('ms_indirizzo_destinazione', '');
+    msSetField('ms_id_indirizzo_gestore', '');
     msSetChecked('ms_doppio_bocciato', '0');
+    msSetChecked('ms_doppio_bocciato_non_consecutivo', '0');
     msUpdateSchoolOther('ms_id_istituto_provenienza', 'ms_scuola_provenienza', 'ms_scuola_provenienza_altro', 'ms_scuola_provenienza_libera', '');
     msUpdateSchoolOther('ms_id_istituto_destinazione', 'ms_scuola_destinazione', 'ms_scuola_destinazione_altro', 'ms_scuola_destinazione_libera', '');
     msSetField('ms_esami_integrativi', '0');
@@ -1297,7 +1357,9 @@ function msOpenPracticeFromButton(button) {
     msSetField('ms_id_istituto_destinazione', button.dataset.id_istituto_destinazione || '');
     msSetField('ms_scuola_destinazione', button.dataset.scuola_destinazione || '');
     msSetField('ms_indirizzo_destinazione', button.dataset.indirizzo_destinazione || '');
+    msSetField('ms_id_indirizzo_gestore', button.dataset.id_indirizzo_gestore || '');
     msSetChecked('ms_doppio_bocciato', button.dataset.doppio_bocciato || '0');
+    msSetChecked('ms_doppio_bocciato_non_consecutivo', button.dataset.doppio_bocciato_non_consecutivo || '0');
     msUpdateSchoolOther('ms_id_istituto_provenienza', 'ms_scuola_provenienza', 'ms_scuola_provenienza_altro', 'ms_scuola_provenienza_libera', button.dataset.scuola_provenienza || '');
     msUpdateSchoolOther('ms_id_istituto_destinazione', 'ms_scuola_destinazione', 'ms_scuola_destinazione_altro', 'ms_scuola_destinazione_libera', button.dataset.scuola_destinazione || '');
     msSetField('ms_esami_integrativi', button.dataset.esami_integrativi || '0');
@@ -1337,6 +1399,10 @@ function msUpdatePracticeKindFields() {
     });
     document.querySelectorAll('.ms-only-uscita').forEach(function (element) {
         element.style.display = kind === 'uscita' ? '' : 'none';
+    });
+    document.querySelectorAll('.ms-address-gestore').forEach(function (element) {
+        const type = document.getElementById('ms_tipo_pratica').value || '';
+        element.style.display = (kind === 'entrata' || type === 'bocciato_reiscrizione' || document.getElementById('ms_doppio_bocciato').checked) ? '' : 'none';
     });
     const type = document.getElementById('ms_tipo_pratica').value || '';
     document.querySelectorAll('.ms-needs-nullosta').forEach(function (element) {
