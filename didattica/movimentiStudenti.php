@@ -510,6 +510,20 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
             text-align: center;
             color: #60718a;
         }
+        .ms-auto-dismiss {
+            transition: opacity .35s ease, max-height .35s ease, margin .35s ease, padding .35s ease;
+            overflow: hidden;
+            max-height: 180px;
+        }
+        .ms-auto-dismiss.is-hiding {
+            opacity: 0;
+            max-height: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            border-width: 0;
+        }
         @media (max-width: 800px) {
             #msPracticeModal .modal-dialog {
                 width: auto;
@@ -537,7 +551,7 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
         <div class="panel-heading"><span class="glyphicon glyphicon-transfer"></span>&emsp;Entrate e uscite studenti</div>
         <div class="panel-body">
             <?php if ($message !== ''): ?>
-                <div class="alert alert-success">
+                <div class="alert alert-success ms-auto-dismiss">
                     <?php echo studentiMovimentiH($message); ?>
                     <?php if (is_array($syncResult)): ?>
                         Letti <?php echo intval($syncResult['read'] ?? 0); ?> record,
@@ -549,7 +563,7 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
             <?php endif; ?>
             <?php if ($error !== ''): ?><div class="alert alert-danger"><?php echo studentiMovimentiH($error); ?></div><?php endif; ?>
             <?php if (is_array($syncResult)): ?>
-                <div class="alert alert-warning">
+                <div class="alert alert-warning ms-auto-dismiss">
                     <strong>Controllo tabelloni:</strong>
                     trovati <?php echo intval($syncResult['read'] ?? 0); ?> bocciati/non ammessi.
                     <?php $byYear = (array)($syncResult['by_year'] ?? []); ?>
@@ -1026,6 +1040,17 @@ const msStatesByType = <?php echo json_encode(studentiMovimentiStatiPerTipo(), J
 const msStateLabels = <?php echo json_encode($stati, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 const msFilterSection = <?php echo json_encode($activeSection, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 const msFilterYear = <?php echo intval($activeYear); ?>;
+
+window.setTimeout(function () {
+    document.querySelectorAll('.ms-auto-dismiss').forEach(function (element) {
+        element.classList.add('is-hiding');
+        window.setTimeout(function () {
+            if (element && element.parentNode) {
+                element.parentNode.removeChild(element);
+            }
+        }, 450);
+    });
+}, 7000);
 
 function msTextLower(value) {
     return String(value || '').toLocaleLowerCase('it-IT');
