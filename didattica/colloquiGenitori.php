@@ -21,6 +21,10 @@ try {
             $message = 'Pulizia pratiche false completata: trovate ' . intval($cleanup['found'] ?? 0)
                 . ', eliminate ' . intval($cleanup['deleted'] ?? 0)
                 . ', colloqui scollegati ' . intval($cleanup['unlinked'] ?? 0) . '.';
+        } elseif ($action === 'cleanup_duplicate_events') {
+            $cleanup = genitoriColloquiCleanupDuplicateEvents();
+            $message = 'Pulizia doppioni storico completata: lette ' . intval($cleanup['read'] ?? 0)
+                . ' righe, eliminati ' . intval($cleanup['deleted'] ?? 0) . ' doppioni.';
         } elseif ($action === 'delete_event') {
             $deleted = genitoriColloquiDeleteEvent((int)($_POST['event_id'] ?? 0));
             $message = $deleted ? 'Riga storico eliminata.' : 'Riga storico non trovata.';
@@ -274,7 +278,7 @@ function cg_receipt_link(array $row): string
             display: grid;
             grid-template-columns: minmax(0, 1fr) 360px;
             gap: 16px;
-            align-items: start;
+            align-items: stretch;
         }
         .cg-modal-main {
             min-width: 0;
@@ -286,6 +290,10 @@ function cg_receipt_link(array $row): string
             padding: 12px;
             position: sticky;
             top: 10px;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 190px);
+            min-height: 520px;
         }
         .cg-modal-side h4 {
             margin-top: 0;
@@ -348,22 +356,69 @@ function cg_receipt_link(array $row): string
             border: 1px solid #e5e7eb;
             border-radius: 6px;
             padding: 10px;
-            background: #fff;
+            background: #eef3f8;
             max-height: 260px;
             overflow: auto;
         }
+        #cg_incontri_summary {
+            flex: 0 0 auto;
+        }
+        #cg_history_box {
+            flex: 1 1 auto;
+            min-height: 390px;
+            max-height: none;
+        }
         .cg-history-item {
-            border-left: 4px solid #64748b;
-            background: #f8fafc;
-            padding: 8px 10px;
-            margin-bottom: 8px;
-            border-radius: 4px;
+            border: 1px solid #d8e0ea;
+            border-left: 5px solid #64748b;
+            background: #fff7ed;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+        }
+        .cg-history-item:nth-child(5n+1) {
+            background: #fff7ed;
+            border-color: #fed7aa;
+            border-left-color: #f97316;
+        }
+        .cg-history-item:nth-child(5n+2) {
+            background: #ecfeff;
+            border-color: #a5f3fc;
+            border-left-color: #0891b2;
+        }
+        .cg-history-item:nth-child(5n+3) {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            border-left-color: #16a34a;
+        }
+        .cg-history-item:nth-child(5n+4) {
+            background: #f5f3ff;
+            border-color: #ddd6fe;
+            border-left-color: #7c3aed;
+        }
+        .cg-history-item:nth-child(5n) {
+            background: #fefce8;
+            border-color: #fde68a;
+            border-left-color: #ca8a04;
         }
         .cg-history-head {
             display: flex;
             justify-content: space-between;
             gap: 8px;
             font-weight: 700;
+            align-items: flex-start;
+            margin-bottom: 5px;
+        }
+        .cg-history-date {
+            flex: 0 0 auto;
+            border-radius: 999px;
+            background: #1d4ed8;
+            color: #fff;
+            padding: 3px 8px;
+            font-size: 12px;
+            font-weight: 800;
+            box-shadow: 0 1px 2px rgba(29, 78, 216, .25);
         }
         .cg-row-detail {
             color: #475569;
@@ -441,6 +496,11 @@ function cg_receipt_link(array $row): string
             }
             .cg-modal-side {
                 position: static;
+                max-height: none;
+                min-height: 0;
+            }
+            #cg_history_box {
+                min-height: 260px;
             }
         }
     </style>
@@ -460,6 +520,12 @@ function cg_receipt_link(array $row): string
                     <input type="hidden" name="action" value="cleanup_fake_movimenti">
                     <button type="submit" class="btn btn-warning btn-lg">
                         <span class="glyphicon glyphicon-erase"></span> Ripulisci pratiche false
+                    </button>
+                </form>
+                <form method="post" style="display:inline;" onsubmit="return confirm('Eliminare le righe duplicate identiche dallo storico colloqui? Verrà mantenuta la prima occorrenza.');">
+                    <input type="hidden" name="action" value="cleanup_duplicate_events">
+                    <button type="submit" class="btn btn-info btn-lg">
+                        <span class="glyphicon glyphicon-filter"></span> Ripulisci doppioni storico
                     </button>
                 </form>
                 <button type="button" class="btn btn-primary btn-lg" id="newColloquioBtn">
@@ -537,6 +603,7 @@ function cg_receipt_link(array $row): string
                         $row['note'] ?? '',
                         $lastIncontro['note'] ?? '',
                         $hasLinkedMovement ? 'pratica movimenti collegata pratica iscrizione presente' : '',
+                        !empty($row['studente_bocciato']) ? 'studente bocciato bocciato' : '',
                     ]));
                     ?>
                     <tr class="<?php echo $isMovementRequested ? 'cg-row-requested' : ''; ?>" data-search="<?php echo cg_h(strtolower($searchText)); ?>">
@@ -551,6 +618,9 @@ function cg_receipt_link(array $row): string
                             <?php foreach ($parentContacts as $contact) : ?>
                                 <div class="cg-row-detail"><?php echo cg_h($contact); ?></div>
                             <?php endforeach; ?>
+                            <?php if (!empty($row['studente_bocciato'])) : ?>
+                                <div><span class="label label-danger">Studente bocciato</span></div>
+                            <?php endif; ?>
                         </td>
                         <td><?php echo cg_h($ambiti[$row['ambito'] ?? 'altro'] ?? ($row['ambito'] ?? '')); ?></td>
                         <td>
@@ -732,6 +802,15 @@ function cg_receipt_link(array $row): string
                     <div>
                         <label for="cg_cf">Codice fiscale</label>
                         <input class="form-control" name="codice_fiscale" id="cg_cf">
+                    </div>
+                    <div>
+                        <label>Esito anno</label>
+                        <div class="checkbox" style="margin-top:6px;">
+                            <label>
+                                <input type="checkbox" name="studente_bocciato" id="cg_studente_bocciato" value="1">
+                                Studente bocciato
+                            </label>
+                        </div>
                     </div>
                     <div>
                         <label for="cg_richiesta_data">Data richiesta</label>
@@ -1182,7 +1261,7 @@ function cg_receipt_link(array $row): string
                 data.scuola_destinazione ? 'Scuola destinazione: ' + data.scuola_destinazione : ''
             ].filter(Boolean).join(' · ');
             return '<div class="cg-history-item">'
-                + '<div class="cg-history-head"><span>' + escapeHtml(event.descrizione || event.tipo_evento || 'Evento') + '</span><span>' + escapeHtml(formatHistoryDate(event.created_at)) + '</span></div>'
+                + '<div class="cg-history-head"><span>' + escapeHtml(event.descrizione || event.tipo_evento || 'Evento') + '</span><span class="cg-history-date">' + escapeHtml(formatHistoryDate(event.created_at)) + '</span></div>'
                 + '<div class="cg-muted">Operatore: ' + escapeHtml(event.created_by || '') + '</div>'
                 + (detail ? '<div class="cg-row-detail">' + escapeHtml(detail) + '</div>' : '')
                 + (data.note ? '<div class="cg-notes">' + escapeHtml(data.note) + '</div>' : '')
@@ -1220,7 +1299,7 @@ function cg_receipt_link(array $row): string
                 + '<button type="button" class="btn btn-default btn-xs" onclick="toggleHistoryEdit(' + eventId + ', false)">Annulla</button></div>'
                 + '</div>';
             return '<div class="cg-history-item">'
-                + '<div class="cg-history-head"><span>' + escapeHtml(event.descrizione || event.tipo_evento || 'Evento') + '</span><span>' + escapeHtml(formatHistoryDate(event.created_at)) + '</span></div>'
+                + '<div class="cg-history-head"><span>' + escapeHtml(event.descrizione || event.tipo_evento || 'Evento') + '</span><span class="cg-history-date">' + escapeHtml(formatHistoryDate(event.created_at)) + '</span></div>'
                 + '<div class="cg-muted">Operatore: ' + escapeHtml(event.created_by || '') + '</div>'
                 + (detail ? '<div class="cg-row-detail">' + escapeHtml(detail) + '</div>' : '')
                 + (data.note ? '<div class="cg-notes"><strong>Note pratica generale:</strong><br>' + escapeHtml(data.note) + '</div>' : '')
@@ -1263,6 +1342,9 @@ function cg_receipt_link(array $row): string
             event_libri_note: document.getElementById('cg_history_libri_' + id).value || ''
         });
     }
+    window.toggleHistoryEdit = toggleHistoryEdit;
+    window.deleteHistoryEvent = deleteHistoryEvent;
+    window.submitHistoryUpdate = submitHistoryUpdate;
     function renderIncontri(incontri) {
         var box = document.getElementById('cg_incontri_box');
         var summary = document.getElementById('cg_incontri_summary');
@@ -1356,6 +1438,7 @@ function cg_receipt_link(array $row): string
         setValue('cg_cognome', '');
         setValue('cg_nome', '');
         setValue('cg_cf', '');
+        setChecked('cg_studente_bocciato', 0);
         setValue('cg_classe', '');
         setValue('cg_anno_corso', '');
         setValue('cg_classe_iscrizione', '');
@@ -1616,6 +1699,7 @@ function cg_receipt_link(array $row): string
             setValue('cg_cognome', row.cognome || '');
             setValue('cg_nome', row.nome || '');
             setValue('cg_cf', row.codice_fiscale || '');
+            setChecked('cg_studente_bocciato', row.studente_bocciato || 0);
             setValue('cg_classe', row.classe || '');
             setValue('cg_responsabile_1_tipo', row.responsabile_1_tipo || '');
             setValue('cg_responsabile_1_cognome', row.responsabile_1_cognome || '');

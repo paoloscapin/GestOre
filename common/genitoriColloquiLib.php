@@ -45,6 +45,7 @@ function genitoriColloquiEnsureTables(): void
             ricevuta_libri_path varchar(500) DEFAULT NULL,
             ricevuta_libri_original_name varchar(255) DEFAULT NULL,
             ricevuta_libri_size int DEFAULT NULL,
+            studente_bocciato tinyint NOT NULL DEFAULT 0,
             referente varchar(255) DEFAULT NULL,
             richiesta_data date DEFAULT NULL,
             appuntamento_at datetime DEFAULT NULL,
@@ -156,6 +157,7 @@ function genitoriColloquiEnsureTables(): void
     genitoriColloquiEnsureColumn('genitori_colloqui', 'ricevuta_libri_path', "ALTER TABLE genitori_colloqui ADD COLUMN ricevuta_libri_path varchar(500) DEFAULT NULL AFTER libri_restituiti_at");
     genitoriColloquiEnsureColumn('genitori_colloqui', 'ricevuta_libri_original_name', "ALTER TABLE genitori_colloqui ADD COLUMN ricevuta_libri_original_name varchar(255) DEFAULT NULL AFTER ricevuta_libri_path");
     genitoriColloquiEnsureColumn('genitori_colloqui', 'ricevuta_libri_size', "ALTER TABLE genitori_colloqui ADD COLUMN ricevuta_libri_size int DEFAULT NULL AFTER ricevuta_libri_original_name");
+    genitoriColloquiEnsureColumn('genitori_colloqui', 'studente_bocciato', "ALTER TABLE genitori_colloqui ADD COLUMN studente_bocciato tinyint NOT NULL DEFAULT 0 AFTER ricevuta_libri_size");
     genitoriColloquiBackfillLegacyIncontri();
     genitoriColloquiBackfillMovementClasseOrigine();
     genitoriColloquiBackfillMovementLinks();
@@ -498,6 +500,44 @@ function genitoriColloquiSyncContactsToMovement(int $movementId, array $fields):
     ");
 }
 
+function genitoriColloquiClearEsamiIntegrativiForMovement(int $movementId): int
+{
+    if ($movementId <= 0) {
+        return 0;
+    }
+    genitoriColloquiEnsureTables();
+
+    $rows = dbGetAll("
+        SELECT id, esito, esami_integrativi
+        FROM genitori_colloqui
+        WHERE id_movimento = " . dbI($movementId) . "
+          AND ambito = 'entrata'
+          AND (esito = 'integrazione' OR TRIM(COALESCE(esami_integrativi, '')) <> '')
+    ") ?: [];
+    if (!$rows) {
+        return 0;
+    }
+
+    foreach ($rows as $row) {
+        genitoriColloquiAddEvent((int)$row['id'], 'sync_movimento', 'Esami integrativi rimossi da Entrate / uscite', [
+            'esito_precedente' => (string)($row['esito'] ?? ''),
+            'esami_integrativi_precedenti' => (string)($row['esami_integrativi'] ?? ''),
+        ]);
+    }
+
+    dbExec("
+        UPDATE genitori_colloqui
+        SET esito = IF(esito = 'integrazione', '', esito),
+            esami_integrativi = NULL,
+            updated_at = NOW()
+        WHERE id_movimento = " . dbI($movementId) . "
+          AND ambito = 'entrata'
+          AND (esito = 'integrazione' OR TRIM(COALESCE(esami_integrativi, '')) <> '')
+    ");
+
+    return count($rows);
+}
+
 function genitoriColloquiSave(array $data, ?array $file = null, ?array $receiptFile = null): int
 {
     genitoriColloquiEnsureTables();
@@ -558,6 +598,7 @@ function genitoriColloquiSave(array $data, ?array $file = null, ?array $receiptF
         'telefono_genitore_2' => trim((string)($data['telefono_genitore_2'] ?? '')),
         'libri_da_restituire' => !empty($data['libri_da_restituire']) ? 1 : 0,
         'libri_restituiti_at' => $libriRestituitiAt,
+        'studente_bocciato' => !empty($data['studente_bocciato']) ? 1 : 0,
         'referente' => trim((string)($data['referente'] ?? 'prof.ssa Ceschini')),
         'richiesta_data' => $richiestaData,
         'appuntamento_at' => $appuntamentoAt,
@@ -603,6 +644,7 @@ function genitoriColloquiSave(array $data, ?array $file = null, ?array $receiptF
                 telefono_genitore_2 = " . dbQ($fields['telefono_genitore_2']) . ",
                 libri_da_restituire = " . dbI($fields['libri_da_restituire']) . ",
                 libri_restituiti_at = " . dbQ($fields['libri_restituiti_at']) . ",
+                studente_bocciato = " . dbI($fields['studente_bocciato']) . ",
                 referente = " . dbQ($fields['referente']) . ",
                 richiesta_data = " . dbQ($fields['richiesta_data']) . ",
                 appuntamento_at = " . dbQ($fields['appuntamento_at']) . ",
@@ -619,7 +661,7 @@ function genitoriColloquiSave(array $data, ?array $file = null, ?array $receiptF
     } else {
         dbExec("
             INSERT INTO genitori_colloqui
-                (ambito, id_pratica_iscrizione, id_movimento, cognome, nome, codice_fiscale, classe, anno_corso, classe_iscrizione, indirizzo_iscrizione, gruppo_iscrizione, id_istituto_provenienza, scuola_provenienza, indirizzo_provenienza, id_istituto_destinazione, scuola_destinazione, indirizzo_destinazione, referente_scuola_destinazione, responsabile_1_tipo, responsabile_1_cognome, responsabile_1_nome, responsabile_1_codice_fiscale, email_genitore_1, telefono_genitore_1, responsabile_2_tipo, responsabile_2_cognome, responsabile_2_nome, responsabile_2_codice_fiscale, email_genitore_2, telefono_genitore_2, libri_da_restituire, libri_restituiti_at, referente, richiesta_data, appuntamento_at, stato, esito, esami_integrativi, carenze_note, libri_note, note, created_by, created_at, updated_at)
+                (ambito, id_pratica_iscrizione, id_movimento, cognome, nome, codice_fiscale, classe, anno_corso, classe_iscrizione, indirizzo_iscrizione, gruppo_iscrizione, id_istituto_provenienza, scuola_provenienza, indirizzo_provenienza, id_istituto_destinazione, scuola_destinazione, indirizzo_destinazione, referente_scuola_destinazione, responsabile_1_tipo, responsabile_1_cognome, responsabile_1_nome, responsabile_1_codice_fiscale, email_genitore_1, telefono_genitore_1, responsabile_2_tipo, responsabile_2_cognome, responsabile_2_nome, responsabile_2_codice_fiscale, email_genitore_2, telefono_genitore_2, libri_da_restituire, libri_restituiti_at, studente_bocciato, referente, richiesta_data, appuntamento_at, stato, esito, esami_integrativi, carenze_note, libri_note, note, created_by, created_at, updated_at)
             VALUES
                 (
                     " . dbQ($fields['ambito']) . ",
@@ -654,6 +696,7 @@ function genitoriColloquiSave(array $data, ?array $file = null, ?array $receiptF
                     " . dbQ($fields['telefono_genitore_2']) . ",
                     " . dbI($fields['libri_da_restituire']) . ",
                     " . dbQ($fields['libri_restituiti_at']) . ",
+                    " . dbI($fields['studente_bocciato']) . ",
                     " . dbQ($fields['referente']) . ",
                     " . dbQ($fields['richiesta_data']) . ",
                     " . dbQ($fields['appuntamento_at']) . ",
@@ -918,6 +961,27 @@ function genitoriColloquiAddEvent(int $id, string $type, string $description, ar
         return;
     }
     $row = dbGetFirst("SELECT allegato_path, allegato_original_name FROM genitori_colloqui WHERE id = " . dbI($id) . " LIMIT 1") ?: [];
+    $dataJson = json_encode($fields, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $lastEvent = dbGetFirst("
+        SELECT colloquio_id, tipo_evento, descrizione, stato, esito, ambito, dati_json, allegato_path, allegato_original_name
+        FROM genitori_colloqui_eventi
+        WHERE colloquio_id = " . dbI($id) . "
+        ORDER BY id DESC
+        LIMIT 1
+    ") ?: null;
+    if ($lastEvent && genitoriColloquiEventDuplicateKey($lastEvent) === genitoriColloquiEventDuplicateKey([
+        'colloquio_id' => $id,
+        'tipo_evento' => $type,
+        'descrizione' => $description,
+        'stato' => $fields['stato'] ?? null,
+        'esito' => $fields['esito'] ?? null,
+        'ambito' => $fields['ambito'] ?? null,
+        'dati_json' => $dataJson,
+        'allegato_path' => $row['allegato_path'] ?? null,
+        'allegato_original_name' => $row['allegato_original_name'] ?? null,
+    ])) {
+        return;
+    }
     dbExec("
         INSERT INTO genitori_colloqui_eventi
             (colloquio_id, tipo_evento, descrizione, stato, esito, ambito, dati_json, allegato_path, allegato_original_name, created_by, created_at)
@@ -929,13 +993,79 @@ function genitoriColloquiAddEvent(int $id, string $type, string $description, ar
                 " . dbQ($fields['stato'] ?? null) . ",
                 " . dbQ($fields['esito'] ?? null) . ",
                 " . dbQ($fields['ambito'] ?? null) . ",
-                " . dbQ(json_encode($fields, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) . ",
+                " . dbQ($dataJson) . ",
                 " . dbQ($row['allegato_path'] ?? null) . ",
                 " . dbQ($row['allegato_original_name'] ?? null) . ",
                 " . dbQ(genitoriColloquiActor()) . ",
                 NOW()
             )
     ");
+}
+
+function genitoriColloquiEventDuplicateKey(array $row): string
+{
+    $data = json_decode((string)($row['dati_json'] ?? '{}'), true);
+    if (!is_array($data)) {
+        $data = [];
+    }
+    ksort($data);
+    $description = trim((string)($row['descrizione'] ?? ''));
+    $type = trim((string)($row['tipo_evento'] ?? ''));
+    if ($description === 'Colloquio salvato' || in_array($type, ['creazione', 'aggiornamento'], true)) {
+        return implode('|', [
+            intval($row['colloquio_id'] ?? 0),
+            'salvataggio_colloquio',
+            genitoriColloquiNormalizeDuplicateText((string)($data['note'] ?? '')),
+            genitoriColloquiNormalizeDuplicateText((string)($data['libri_note'] ?? '')),
+            genitoriColloquiNormalizeDuplicateText((string)($data['esami_integrativi'] ?? '')),
+            genitoriColloquiNormalizeDuplicateText((string)($data['carenze_note'] ?? '')),
+            trim((string)($row['allegato_path'] ?? '')),
+            trim((string)($row['allegato_original_name'] ?? '')),
+        ]);
+    }
+    return implode('|', [
+        intval($row['colloquio_id'] ?? 0),
+        $type,
+        $description,
+        trim((string)($row['stato'] ?? '')),
+        trim((string)($row['esito'] ?? '')),
+        trim((string)($row['ambito'] ?? '')),
+        json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        trim((string)($row['allegato_path'] ?? '')),
+        trim((string)($row['allegato_original_name'] ?? '')),
+    ]);
+}
+
+function genitoriColloquiNormalizeDuplicateText(string $text): string
+{
+    $text = strtolower(trim($text));
+    $text = preg_replace('/\s+/u', ' ', $text);
+    return $text ?? '';
+}
+
+function genitoriColloquiCleanupDuplicateEvents(): array
+{
+    genitoriColloquiEnsureTables();
+    $rows = dbGetAll("
+        SELECT id, colloquio_id, tipo_evento, descrizione, stato, esito, ambito, dati_json, allegato_path, allegato_original_name
+        FROM genitori_colloqui_eventi
+        ORDER BY colloquio_id ASC, id DESC
+    ") ?: [];
+    $seen = [];
+    $deleteIds = [];
+    foreach ($rows as $row) {
+        $key = genitoriColloquiEventDuplicateKey($row);
+        if (isset($seen[$key])) {
+            $deleteIds[] = intval($row['id'] ?? 0);
+            continue;
+        }
+        $seen[$key] = true;
+    }
+    $deleteIds = array_values(array_filter($deleteIds, static fn($id) => $id > 0));
+    if ($deleteIds) {
+        dbExec("DELETE FROM genitori_colloqui_eventi WHERE id IN (" . implode(',', array_map('intval', $deleteIds)) . ")");
+    }
+    return ['read' => count($rows), 'deleted' => count($deleteIds)];
 }
 
 function genitoriColloquiEsitoLabel(string $esito): string
@@ -1009,6 +1139,8 @@ function genitoriColloquiPropagateOutcome(int $id): void
             $movementState = 'non_idoneo';
         } elseif ($ambito === 'entrata' && ($esito === 'integrazione' || trim((string)($row['esami_integrativi'] ?? '')) !== '')) {
             $movementState = 'esami_integrativi';
+        } elseif ($ambito === 'entrata' && $esito === 'ingresso_ok') {
+            $movementState = 'idoneo_iscrizione';
         }
         $movementType = $ambito === 'entrata' ? 'entrata' : 'uscita';
         $allowedStates = studentiMovimentiStatiPerTipo();
