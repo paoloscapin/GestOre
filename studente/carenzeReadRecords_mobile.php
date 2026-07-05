@@ -76,7 +76,7 @@ function renderEsameStudMob($label, $s, $extraPrefixHtml = '')
     $html .= $extraPrefixHtml;
 
     if (!$s) {
-        $html .= badgeStudMob('warning', 'Nessuna sessione di esame');
+        $html .= badgeStudMob('warning', 'Data esame non ancora fissata');
         return $html . '</div>';
     }
 
@@ -163,7 +163,7 @@ foreach ($carenze as $row) {
     $idCorso1 = (int)$idCorso1;
 
     if ($idCorso1 <= 0) {
-        echo badgeStudMob('warning', 'Nessuna sessione di esame');
+        echo badgeStudMob('warning', 'Nessun corso abbinato');
     } else {
         $primo = dbGetFirst("
             SELECT

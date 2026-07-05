@@ -84,6 +84,46 @@ function carenzaSend(id_carenza) {
     });
 }
 
+function carenzaCorsoRead(id_corso) {
+    $.ajax({
+        url: "carenzeCorsoRead.php",
+        method: "POST",
+        dataType: "json",
+        data: {
+            id_corso: id_corso
+        },
+        success: function (res) {
+            if (!res || !res.success) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Corso non disponibile',
+                    text: (res && res.error) ? res.error : 'Impossibile leggere il dettaglio del corso.',
+                    confirmButtonText: 'Chiudi'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: res.title || 'Dettaglio corso',
+                html: res.html || '',
+                width: '900px',
+                customClass: {
+                    popup: 'carenze-course-modal'
+                },
+                confirmButtonText: 'Chiudi'
+            });
+        },
+        error: function () {
+            Swal.fire({
+                icon: 'error',
+                title: 'Errore',
+                text: 'Impossibile leggere il dettaglio del corso.',
+                confirmButtonText: 'Chiudi'
+            });
+        }
+    });
+}
+
 $(document).ready(function () {
     $('.selectpicker').selectpicker();
 

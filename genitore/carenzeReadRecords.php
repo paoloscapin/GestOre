@@ -17,6 +17,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/carenze_course_detail_lib.php';
 ruoloRichiesto('genitore');
 
 function carenzeFailUnauthorized()
@@ -63,20 +64,23 @@ $__studente_id = $studente_filtro_id;
 
 $anni_filtro_id = isset($_POST["anni_filtro_id"]) ? intval($_POST["anni_filtro_id"]) : 0;
 $anno_corsi_id  = intval($__anno_scolastico_corrente_id); // anno dei corsi (corrente)
+$visibileEsiti = (bool)getSettingsValue('carenzeObiettiviMinimi', 'visibile_esiti_genitori', true);
+$visibileCorsi = (bool)getSettingsValue('carenzeObiettiviMinimi', 'visibile_corsi_genitori', true);
 
 // ======================
 // HEADER TABELLA (senza Data ricezione)
 // ======================
 $data = '
-<div class="table-wrapper table-responsive">
-<table class="table table-bordered table-striped table-green">
+<div class="carenze-table-card table-responsive">
+<table class="table carenze-table">
 <thead>
 <tr>
     <th class="text-center col-md-2">Materia</th>
     <th class="text-center col-md-2">Docente</th>
     <th class="text-center col-md-4">Note</th>
     <th class="text-center col-md-1">Programma Carenza</th>
-    <th class="text-center col-md-3">Esiti</th>
+    ' . ($visibileEsiti ? '<th class="text-center col-md-2">Esiti</th>' : '') . '
+    ' . ($visibileCorsi ? '<th class="text-center col-md-2">Corso</th>' : '') . '
 </tr>
 </thead>
 <tbody>';
@@ -126,16 +130,16 @@ function dtLabel($dt, $aula = '') {
 
 function badge($cls, $txt, $title = '') {
     $t = $title ? ' data-toggle="tooltip" title="'.htmlspecialchars($title).'"' : '';
-    return '<span class="label label-'.$cls.'"'.$t.'>'.$txt.'</span>';
+    return '<span class="label label-'.$cls.' carenze-status"'.$t.'>'.$txt.'</span>';
 }
 
-function renderEsame($label, $s, $extraPrefixHtml = '') {
+function renderEsame($label, $s, $extraPrefixHtml = '', $emptyTitle = '') {
     $html = '<div style="margin-bottom:4px;">';
     if ($label !== '') $html .= "<strong>{$label}: </strong>";
     $html .= $extraPrefixHtml;
 
     if (!$s) {
-        $html .= badge('warning', 'Nessuna sessione di esame');
+        $html .= badge('warning', 'Data esame non ancora fissata', $emptyTitle);
         return $html . '</div>';
     }
 
@@ -182,20 +186,6 @@ foreach ($carenze as $row) {
 
     $materia = htmlspecialchars($row['materia'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $note    = htmlspecialchars($row['nota'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');    
-    $docente = ($row['doc_id'] == 0)
-        ? 'Studente esterno'
-        : htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome']);
-
-    $data .= "<tr>
-        <td align='center'>{$materia}</td>
-        <td align='center'>{$docente}</td>
-        <td align='center'>{$note}</td>
-        <td align='center'>
-            <button onclick=\"carenzaPrint('{$idcarenza}','{$idAnnoCarenza}')\" class='btn btn-primary btn-xs' data-toggle='tooltip' title='Scarica il PDF del programma'>
-                <span class='glyphicon glyphicon-print'></span>
-            </button>
-        </td>
-        <td align='center'>";
 
     // Recupero in itinere
     $itinere = dbGetValue("
@@ -224,12 +214,44 @@ foreach ($carenze as $row) {
         LIMIT 1
     ");
 
+    $courseInfo = $idCorso1 ? carenzeCourseGetInfo((int)$idCorso1) : null;
+    $docenteCorso = $courseInfo ? carenzeCourseDocentiLabel($courseInfo) : '';
+    $docente = $docenteCorso !== ''
+        ? htmlspecialchars($docenteCorso, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+        : (($row['doc_id'] == 0)
+            ? 'Studente esterno'
+            : htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+
+    $data .= "<tr>
+        <td align='center'><div class='carenze-materia'>{$materia}</div></td>
+        <td align='center'><div class='carenze-docente'>{$docente}</div></td>
+        <td align='center'><div class='carenze-subtle'>{$note}</div></td>
+        <td align='center'>
+            <button onclick=\"carenzaPrint('{$idcarenza}','{$idAnnoCarenza}')\" class='btn btn-primary btn-xs carenze-icon-btn' data-toggle='tooltip' title='Scarica il PDF del programma'>
+                <span class='glyphicon glyphicon-print'></span>
+            </button>
+        </td>";
+
     if (!$idCorso1) {
-        $data .= badge('warning', 'Nessuna sessione di esame', 'Nessun corso di recupero 1ª sessione trovato');
-        $data .= "</td></tr>";
+        if ($visibileEsiti) {
+            $data .= "<td align='center'>" . badge('warning', 'Nessun corso abbinato', 'Nessun corso di recupero 1ª sessione trovato') . "</td>";
+        }
+        if ($visibileCorsi) {
+            $data .= "<td align='center'><span class='text-muted'>Nessun corso abbinato</span></td>";
+        }
+        $data .= "</tr>";
         continue;
     }
     $idCorso1 = intval($idCorso1);
+    $corsoCell = '';
+    if ($visibileCorsi) {
+        $primaDataCorso = carenzeCourseFormatFirstDate($idCorso1);
+        $corsoCell = '<button onclick="carenzaCorsoRead(' . $idCorso1 . ')" class="btn btn-success btn-xs carenze-course-btn" data-toggle="tooltip" title="Vedi calendario, presenze e argomenti del corso">'
+            . '<span class="glyphicon glyphicon-calendar"></span> Corso</button>';
+        if ($primaDataCorso !== '') {
+            $corsoCell .= '<div class="carenze-course-date">' . htmlspecialchars($primaDataCorso, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</div>';
+        }
+    }
 
     $primo = dbGetFirst("
         SELECT
@@ -264,7 +286,7 @@ foreach ($carenze as $row) {
     $hasSecondo = ($map && intval($map['id_corso_secondo']) > 0);
     $labelPrimo = $hasSecondo ? 'Primo tentativo' : '';
 
-    $data .= renderEsame($labelPrimo, $primo, $badgeInItinere);
+    $esitiCell = renderEsame($labelPrimo, $primo, $badgeInItinere, 'Corso di recupero trovato, ma la data dell esame non e ancora stata inserita');
 
     if ($hasSecondo) {
         $idCorso2 = intval($map['id_corso_secondo']);
@@ -296,10 +318,16 @@ foreach ($carenze as $row) {
             $extraBadge = '<span class="label label-info" data-toggle="tooltip" title="Iscritto al corso collegato">Iscritto</span>&ensp;';
         }
 
-        $data .= renderEsame($label2, $secondo, $extraBadge);
+        $esitiCell .= renderEsame($label2, $secondo, $extraBadge, 'Corso collegato trovato, ma la data dell esame non e ancora stata inserita');
     }
 
-    $data .= "</td></tr>";
+    if ($visibileEsiti) {
+        $data .= "<td align='center'>{$esitiCell}</td>";
+    }
+    if ($visibileCorsi) {
+        $data .= "<td align='center'>{$corsoCell}</td>";
+    }
+    $data .= "</tr>";
 }
 
 $data .= '</tbody></table></div>';

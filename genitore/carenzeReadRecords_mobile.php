@@ -91,7 +91,7 @@ function renderEsameMobile($label, $s, $extraPrefixHtml = '')
     $html .= $extraPrefixHtml;
 
     if (!$s) {
-        $html .= badge('warning', 'Nessuna sessione di esame');
+        $html .= badge('warning', 'Data esame non ancora fissata');
         return $html . '</div>';
     }
 
@@ -232,7 +232,7 @@ foreach ($carenze as $row) {
     $idCorso1 = intval($idCorso1);
 
     if ($idCorso1 <= 0) {
-        echo badge('warning', 'Nessuna sessione di esame');
+        echo badge('warning', 'Nessun corso abbinato');
     } else {
         // esame corso1
         $primo = dbGetFirst("

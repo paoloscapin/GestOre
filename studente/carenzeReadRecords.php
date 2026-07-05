@@ -9,6 +9,7 @@
 
 require_once '../common/checkSession.php';
 require_once '../common/connect.php';
+require_once '../common/carenze_course_detail_lib.php';
 
 ruoloRichiesto('studente');
 
@@ -23,20 +24,27 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $anni_filtro_id = isset($_POST["anni_filtro_id"]) ? (int)$_POST["anni_filtro_id"] : 0;
 $anno_corsi_id = (int)$__anno_scolastico_corrente_id;
+$visibileEsiti = (bool)getSettingsValue(
+    'carenzeObiettiviMinimi',
+    'visibile_esiti_studenti',
+    getSettingsValue('carenzeObiettiviMinimi', 'studente_vede_esito', true)
+);
+$visibileCorsi = (bool)getSettingsValue('carenzeObiettiviMinimi', 'visibile_corsi_studenti', true);
 
 // ======================
 // HEADER TABELLA
 // ======================
 $data = '
-<div class="table-wrapper table-responsive">
-<table class="table table-bordered table-striped table-green">
+<div class="carenze-table-card table-responsive">
+<table class="table carenze-table">
 <thead>
 <tr>
     <th class="text-center col-md-2">Materia</th>
     <th class="text-center col-md-2">Docente</th>
     <th class="text-center col-md-3">Note</th>
     <th class="text-center col-md-1">Programma Carenza</th>
-    <th class="text-center col-md-3">Esiti</th>
+    ' . ($visibileEsiti ? '<th class="text-center col-md-2">Esiti</th>' : '') . '
+    ' . ($visibileCorsi ? '<th class="text-center col-md-2">Corso</th>' : '') . '
 </tr>
 </thead>
 <tbody>';
@@ -83,17 +91,17 @@ function dtLabelStud($dt, $aula = '')
 function badgeStud($cls, $txt, $title = '')
 {
     $t = $title ? ' data-toggle="tooltip" title="' . htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"' : '';
-    return '<span class="label label-' . $cls . '"' . $t . '>' . htmlspecialchars($txt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
+    return '<span class="label label-' . $cls . ' carenze-status"' . $t . '>' . htmlspecialchars($txt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
 }
 
-function renderEsameStud($label, $s, $extraPrefixHtml = '')
+function renderEsameStud($label, $s, $extraPrefixHtml = '', $emptyTitle = '')
 {
     $html = '<div style="margin-bottom:4px;">';
     if ($label !== '') $html .= "<strong>" . htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ":</strong> ";
     $html .= $extraPrefixHtml;
 
     if (!$s) {
-        $html .= badgeStud('warning', 'Nessuna sessione di esame');
+        $html .= badgeStud('warning', 'Data esame non ancora fissata', $emptyTitle);
         return $html . '</div>';
     }
 
@@ -135,22 +143,7 @@ foreach ($carenze as $row) {
     $idMateria  = (int)$row['id_materia'];
 
     $materia = htmlspecialchars($row['materia'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    $docente = htmlspecialchars($row['doc_cognome'] . ' ' . $row['doc_nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $note    = htmlspecialchars((string)$row['nota'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-
-    $data .= "<tr>
-        <td align='center'>{$materia}</td>
-        <td align='center'>{$docente}</td>
-        <td align='center'>{$note}</td>
-        <td align='center'>
-            <button onclick=\"carenzaPrint('{$idcarenza}')\" class='btn btn-primary btn-xs' data-toggle='tooltip' title='Scarica il PDF del programma'>
-                <span class='glyphicon glyphicon-print'></span>
-            </button>
-            <button onclick=\"carenzaSend('{$idcarenza}')\" class='btn btn-info btn-xs' data-toggle='tooltip' title='Invia via mail'>
-                <span class='glyphicon glyphicon-envelope'></span>
-            </button>
-        </td>
-        <td align='center'>";
 
     $itinere = dbGetValue("
         SELECT COALESCE(MAX(co.in_itinere),0)
@@ -177,13 +170,48 @@ foreach ($carenze as $row) {
         LIMIT 1
     ");
 
+    $courseInfo = $idCorso1 ? carenzeCourseGetInfo((int)$idCorso1) : null;
+    $docenteCorso = $courseInfo ? carenzeCourseDocentiLabel($courseInfo) : '';
+    $docente = htmlspecialchars(
+        $docenteCorso !== '' ? $docenteCorso : ($row['doc_cognome'] . ' ' . $row['doc_nome']),
+        ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8'
+    );
+
+    $data .= "<tr>
+        <td align='center'><div class='carenze-materia'>{$materia}</div></td>
+        <td align='center'><div class='carenze-docente'>{$docente}</div></td>
+        <td align='center'><div class='carenze-subtle'>{$note}</div></td>
+        <td align='center'>
+            <button onclick=\"carenzaPrint('{$idcarenza}')\" class='btn btn-primary btn-xs carenze-icon-btn' data-toggle='tooltip' title='Scarica il PDF del programma'>
+                <span class='glyphicon glyphicon-print'></span>
+            </button>
+            <button onclick=\"carenzaSend('{$idcarenza}')\" class='btn btn-info btn-xs carenze-icon-btn' data-toggle='tooltip' title='Invia via mail'>
+                <span class='glyphicon glyphicon-envelope'></span>
+            </button>
+        </td>";
+
     if (!$idCorso1) {
-        $data .= badgeStud('warning', 'Nessuna sessione di esame', 'Nessun corso di recupero 1ª sessione trovato');
-        $data .= "</td></tr>";
+        if ($visibileEsiti) {
+            $data .= "<td align='center'>" . badgeStud('warning', 'Nessun corso abbinato', 'Nessun corso di recupero 1ª sessione trovato') . "</td>";
+        }
+        if ($visibileCorsi) {
+            $data .= "<td align='center'><span class='text-muted'>Nessun corso abbinato</span></td>";
+        }
+        $data .= "</tr>";
         continue;
     }
 
     $idCorso1 = (int)$idCorso1;
+    $corsoCell = '';
+    if ($visibileCorsi) {
+        $primaDataCorso = carenzeCourseFormatFirstDate($idCorso1);
+        $corsoCell = '<button onclick="carenzaCorsoRead(' . $idCorso1 . ')" class="btn btn-success btn-xs carenze-course-btn" data-toggle="tooltip" title="Vedi calendario, presenze e argomenti del corso">'
+            . '<span class="glyphicon glyphicon-calendar"></span> Corso</button>';
+        if ($primaDataCorso !== '') {
+            $corsoCell .= '<div class="carenze-course-date">' . htmlspecialchars($primaDataCorso, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</div>';
+        }
+    }
 
     $primo = dbGetFirst("
         SELECT
@@ -217,7 +245,7 @@ foreach ($carenze as $row) {
     $hasSecondo = ($map && (int)$map['id_corso_secondo'] > 0);
     $labelPrimo = $hasSecondo ? 'Prima sessione' : '';
 
-    $data .= renderEsameStud($labelPrimo, $primo, $badgeInItinere);
+    $esitiCell = renderEsameStud($labelPrimo, $primo, $badgeInItinere, 'Corso di recupero trovato, ma la data dell esame non e ancora stata inserita');
 
     if ($hasSecondo) {
         $idCorso2 = (int)$map['id_corso_secondo'];
@@ -249,10 +277,16 @@ foreach ($carenze as $row) {
             $extraBadge = '<span class="label label-info" data-toggle="tooltip" title="Iscritto al corso collegato">Iscritto</span>&ensp;';
         }
 
-        $data .= renderEsameStud($label2, $secondo, $extraBadge);
+        $esitiCell .= renderEsameStud($label2, $secondo, $extraBadge, 'Corso collegato trovato, ma la data dell esame non e ancora stata inserita');
     }
 
-    $data .= "</td></tr>";
+    if ($visibileEsiti) {
+        $data .= "<td align='center'>{$esitiCell}</td>";
+    }
+    if ($visibileCorsi) {
+        $data .= "<td align='center'>{$corsoCell}</td>";
+    }
+    $data .= "</tr>";
 }
 
 $data .= '</tbody></table></div>';

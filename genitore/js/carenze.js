@@ -73,12 +73,58 @@ function carenzaSend(id_carenza) {
     );
 }
 
+function carenzaCorsoRead(id_corso) {
+    $.ajax({
+        url: "carenzeCorsoRead.php",
+        method: "POST",
+        dataType: "json",
+        data: {
+            id_corso: id_corso,
+            id_studente: studente_filtro_id
+        },
+        success: function (res) {
+            if (!res || !res.success) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Corso non disponibile',
+                    text: (res && res.error) ? res.error : 'Impossibile leggere il dettaglio del corso.',
+                    confirmButtonText: 'Chiudi'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: res.title || 'Dettaglio corso',
+                html: res.html || '',
+                width: '900px',
+                customClass: {
+                    popup: 'carenze-course-modal'
+                },
+                confirmButtonText: 'Chiudi'
+            });
+        },
+        error: function () {
+            Swal.fire({
+                icon: 'error',
+                title: 'Errore',
+                text: 'Impossibile leggere il dettaglio del corso.',
+                confirmButtonText: 'Chiudi'
+            });
+        }
+    });
+}
+
 $(document).ready(function () {
+    $('.selectpicker').selectpicker();
     carenzeReadRecords();
 
     $("#studente_filtro").on("changed.bs.select",
         function (e, clickedIndex, newValue, oldValue) {
             studente_filtro_id = this.value;
+            if (typeof carenzeAnnoDefaultByStudente !== 'undefined' && carenzeAnnoDefaultByStudente[studente_filtro_id]) {
+                anni_filtro_id = String(carenzeAnnoDefaultByStudente[studente_filtro_id]);
+                $("#anni_filtro").selectpicker('val', anni_filtro_id);
+            }
             carenzeReadRecords();
         });
 
