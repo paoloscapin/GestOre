@@ -41,6 +41,7 @@ function iscrizioniPrimeEnsureSchema(): void
           anno_esame_licenza varchar(20) DEFAULT NULL,
           esito_esame_licenza varchar(100) DEFAULT NULL,
           voto_esame_licenza varchar(20) DEFAULT NULL,
+          bocciato_altra_scuola tinyint NOT NULL DEFAULT 0,
           sezione_richiesta varchar(20) DEFAULT NULL,
           lingua_straniera_1 varchar(100) DEFAULT NULL,
           lingua_straniera_2 varchar(100) DEFAULT NULL,
@@ -407,6 +408,7 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'anno_esame_licenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN anno_esame_licenza varchar(20) DEFAULT NULL AFTER scuola_provenienza");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'esito_esame_licenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN esito_esame_licenza varchar(100) DEFAULT NULL AFTER anno_esame_licenza");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'voto_esame_licenza', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN voto_esame_licenza varchar(20) DEFAULT NULL AFTER esito_esame_licenza");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'bocciato_altra_scuola', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN bocciato_altra_scuola tinyint NOT NULL DEFAULT 0 AFTER voto_esame_licenza");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'sezione_richiesta', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN sezione_richiesta varchar(20) DEFAULT NULL AFTER voto_esame_licenza");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'lingua_straniera_1', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN lingua_straniera_1 varchar(100) DEFAULT NULL AFTER sezione_richiesta");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'lingua_straniera_2', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN lingua_straniera_2 varchar(100) DEFAULT NULL AFTER lingua_straniera_1");
@@ -525,6 +527,91 @@ function iscrizioniPrimeEnsureColumn(string $table, string $column, string $alte
 
     if (intval($exists) === 0) {
         dbExec($alterSql);
+    }
+}
+
+function iscrizioniPrimeTableExists(string $table): bool
+{
+    return intval(dbGetValue("
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = " . dbQ($table) . "
+    ") ?? 0) > 0;
+}
+
+function iscrizioniPrimeTableColumnExists(string $table, string $column): bool
+{
+    return intval(dbGetValue("
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = " . dbQ($table) . "
+          AND COLUMN_NAME = " . dbQ($column) . "
+    ") ?? 0) > 0;
+}
+
+function iscrizioniPrimeEnsureBocciatoAltraScuolaColumns(): void
+{
+    if (iscrizioniPrimeTableExists('iscrizioni_prime_pratiche')) {
+        iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'bocciato_altra_scuola', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN bocciato_altra_scuola tinyint NOT NULL DEFAULT 0 AFTER voto_esame_licenza");
+    }
+    if (iscrizioniPrimeTableExists('studenti_movimenti_pratiche')) {
+        iscrizioniPrimeEnsureColumn('studenti_movimenti_pratiche', 'bocciato_altra_scuola', "ALTER TABLE studenti_movimenti_pratiche ADD COLUMN bocciato_altra_scuola TINYINT(1) NOT NULL DEFAULT 0 AFTER indirizzo_provenienza");
+    }
+}
+
+function iscrizioniPrimeSyncBocciatoAltraScuola(bool $flag, array $refs = []): void
+{
+    iscrizioniPrimeEnsureBocciatoAltraScuolaColumns();
+    $value = $flag ? 1 : 0;
+    $practiceId = intval($refs['id_pratica_iscrizione'] ?? $refs['pratica_id'] ?? 0);
+    $movementId = intval($refs['id_movimento'] ?? $refs['movimento_id'] ?? 0);
+    $colloquioId = intval($refs['id_colloquio'] ?? $refs['colloquio_id'] ?? 0);
+    $cf = strtoupper(trim((string)($refs['codice_fiscale'] ?? '')));
+
+    if ($practiceId <= 0 && $movementId > 0 && iscrizioniPrimeTableExists('studenti_movimenti_pratiche')) {
+        $practiceId = intval(dbGetValue("SELECT id_pratica_iscrizione FROM studenti_movimenti_pratiche WHERE id = " . dbI($movementId) . " LIMIT 1") ?? 0);
+    }
+    if ($practiceId <= 0 && $colloquioId > 0 && iscrizioniPrimeTableExists('genitori_colloqui')) {
+        $practiceId = intval(dbGetValue("SELECT id_pratica_iscrizione FROM genitori_colloqui WHERE id = " . dbI($colloquioId) . " LIMIT 1") ?? 0);
+    }
+    if ($movementId <= 0 && $practiceId > 0 && iscrizioniPrimeTableExists('studenti_movimenti_pratiche')) {
+        $movementId = intval(dbGetValue("SELECT id FROM studenti_movimenti_pratiche WHERE id_pratica_iscrizione = " . dbI($practiceId) . " AND stato_pratica <> 'annullata' ORDER BY updated_at DESC, id DESC LIMIT 1") ?? 0);
+    }
+    if ($cf === '' && $practiceId > 0) {
+        $cf = strtoupper(trim((string)(dbGetValue("SELECT codice_fiscale FROM iscrizioni_prime_pratiche WHERE id = " . dbI($practiceId) . " LIMIT 1") ?? '')));
+    }
+    if ($cf === '' && $movementId > 0 && iscrizioniPrimeTableExists('studenti_movimenti_pratiche')) {
+        $cf = strtoupper(trim((string)(dbGetValue("SELECT codice_fiscale FROM studenti_movimenti_pratiche WHERE id = " . dbI($movementId) . " LIMIT 1") ?? '')));
+    }
+
+    if (iscrizioniPrimeTableColumnExists('iscrizioni_prime_pratiche', 'bocciato_altra_scuola')) {
+        $where = [];
+        if ($practiceId > 0) $where[] = 'id = ' . dbI($practiceId);
+        if ($cf !== '') $where[] = "UPPER(TRIM(codice_fiscale)) = " . dbQ($cf);
+        if ($where) {
+            dbExec("UPDATE iscrizioni_prime_pratiche SET bocciato_altra_scuola = " . dbI($value) . ", updated_at = NOW() WHERE tipo_iscrizione IN ('prime','terze') AND (" . implode(' OR ', $where) . ")");
+        }
+    }
+    if (iscrizioniPrimeTableColumnExists('studenti_movimenti_pratiche', 'bocciato_altra_scuola')) {
+        $where = [];
+        if ($movementId > 0) $where[] = 'id = ' . dbI($movementId);
+        if ($practiceId > 0) $where[] = 'id_pratica_iscrizione = ' . dbI($practiceId);
+        if ($cf !== '') $where[] = "UPPER(TRIM(codice_fiscale)) = " . dbQ($cf);
+        if ($where) {
+            dbExec("UPDATE studenti_movimenti_pratiche SET bocciato_altra_scuola = " . dbI($value) . ", updated_at = NOW() WHERE tipo_pratica = 'entrata' AND (" . implode(' OR ', $where) . ")");
+        }
+    }
+    if (iscrizioniPrimeTableColumnExists('genitori_colloqui', 'studente_bocciato')) {
+        $where = [];
+        if ($colloquioId > 0) $where[] = 'id = ' . dbI($colloquioId);
+        if ($movementId > 0) $where[] = 'id_movimento = ' . dbI($movementId);
+        if ($practiceId > 0) $where[] = 'id_pratica_iscrizione = ' . dbI($practiceId);
+        if ($cf !== '') $where[] = "UPPER(TRIM(codice_fiscale)) = " . dbQ($cf);
+        if ($where) {
+            dbExec("UPDATE genitori_colloqui SET studente_bocciato = " . dbI($value) . ", updated_at = NOW() WHERE ambito IN ('entrata','iscrizione_prime','iscrizione_terze') AND (" . implode(' OR ', $where) . ")");
+        }
     }
 }
 
@@ -6825,17 +6912,6 @@ function iscrizioniPrimeClassIdByCode(string $classe): int
     return intval(dblastId());
 }
 
-function iscrizioniPrimeTableColumnExists(string $table, string $column): bool
-{
-    return intval(dbGetValue("
-        SELECT COUNT(*)
-        FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = " . dbQ($table) . "
-          AND COLUMN_NAME = " . dbQ($column) . "
-    ") ?? 0) > 0;
-}
-
 function iscrizioniPrimeRelazioneId(string $tipo): int
 {
     $tipo = strtolower(trim($tipo));
@@ -7182,6 +7258,7 @@ function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione
         'anno_esame_licenza' => iscrizioniPrimeField($licenzaMedia ?? [], ['ANNO ESAME']),
         'esito_esame_licenza' => iscrizioniPrimeField($licenzaMedia ?? [], ['ESITO']),
         'voto_esame_licenza' => iscrizioniPrimeField($licenzaMedia ?? [], ['VOTO']),
+        'bocciato_altra_scuola' => !empty($prime['bocciato_altra_scuola']) ? 1 : 0,
         'sezione_richiesta' => iscrizioniPrimeField($prime, ['SEZIONE']),
         'lingua_straniera_1' => iscrizioniPrimeField($prime, ['LINGUA STRANIERA 1']),
         'lingua_straniera_2' => iscrizioniPrimeField($prime, ['LINGUA STRANIERA 2']),

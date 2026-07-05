@@ -732,6 +732,7 @@ function cg_receipt_link(array $row): string
                                             data-indirizzo_iscrizione="<?php echo cg_h($opt['corso_studi'] ?? ''); ?>"
                                             data-id_istituto_provenienza=""
                                             data-scuola_provenienza="<?php echo cg_h($opt['scuola_provenienza'] ?? ''); ?>"
+                                            data-studente_bocciato="<?php echo intval($opt['bocciato_altra_scuola'] ?? 0); ?>"
                                             data-responsabile_1_tipo="<?php echo cg_h($opt['responsabile_1_tipo'] ?? ''); ?>"
                                             data-responsabile_1_cognome="<?php echo cg_h($opt['responsabile_1_cognome'] ?? ''); ?>"
                                             data-responsabile_1_nome="<?php echo cg_h($opt['responsabile_1_nome'] ?? ''); ?>"
@@ -768,6 +769,7 @@ function cg_receipt_link(array $row): string
                                             data-id_istituto_provenienza="<?php echo intval($opt['id_istituto_provenienza'] ?? 0); ?>"
                                             data-scuola_provenienza="<?php echo cg_h($opt['scuola_provenienza'] ?? ''); ?>"
                                             data-indirizzo_provenienza="<?php echo cg_h($opt['indirizzo_provenienza'] ?? ''); ?>"
+                                            data-studente_bocciato="<?php echo intval($opt['bocciato_altra_scuola'] ?? 0); ?>"
                                             data-scuola_destinazione="<?php echo cg_h($opt['scuola_destinazione'] ?? ''); ?>"
                                             data-indirizzo_destinazione="<?php echo cg_h($opt['indirizzo_destinazione'] ?? ''); ?>"
                                             data-responsabile_1_tipo="<?php echo cg_h($opt['responsabile_1_tipo'] ?? ''); ?>"
@@ -1583,6 +1585,7 @@ function cg_receipt_link(array $row): string
         setValue('cg_istituto_provenienza', option.getAttribute('data-id_istituto_provenienza') || '');
         setValue('cg_scuola_provenienza', option.getAttribute('data-scuola_provenienza') || '');
         setValue('cg_indirizzo_provenienza', option.getAttribute('data-indirizzo_provenienza') || '');
+        setChecked('cg_studente_bocciato', option.getAttribute('data-studente_bocciato') || 0);
         setValue('cg_scuola_destinazione', option.getAttribute('data-scuola_destinazione') || '');
         setValue('cg_indirizzo_destinazione', option.getAttribute('data-indirizzo_destinazione') || '');
         setValue('cg_responsabile_1_tipo', option.getAttribute('data-responsabile_1_tipo') || '');

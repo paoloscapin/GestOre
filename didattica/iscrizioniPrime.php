@@ -491,6 +491,14 @@ ITT Buonarroti - Trento</textarea>
                         <div class="custom-mail-field"><label>Telefono</label><input type="text" name="telefono_genitore_2" id="parents_r2_tel"></div>
                     </div>
                 </div>
+                <div class="custom-mail-field" style="margin-top:12px;">
+                    <label style="display:block;">Esito anno precedente</label>
+                    <label style="font-weight:600;">
+                        <input type="checkbox" name="bocciato_altra_scuola" id="parents_bocciato_altra_scuola" value="1">
+                        Studente bocciato in altra scuola
+                    </label>
+                    <div class="help-block">Valore sincronizzato con pratiche entrata e colloquio di entrata.</div>
+                </div>
                 <div id="parents_error" class="text-danger" style="margin-top:8px;" hidden></div>
             </div>
             <div class="custom-mail-actions">
@@ -977,6 +985,8 @@ function iscrizioniPrimeOpenParentsModal(id) {
     iscrizioniPrimeSetInputValue('parents_r2_cf', row.responsabile_2_codice_fiscale);
     iscrizioniPrimeSetInputValue('parents_r2_email', row.email_genitore_2);
     iscrizioniPrimeSetInputValue('parents_r2_tel', row.telefono_genitore_2);
+    const bocciatoAltraScuola = document.getElementById('parents_bocciato_altra_scuola');
+    if (bocciatoAltraScuola) bocciatoAltraScuola.checked = Number(row.bocciato_altra_scuola || 0) === 1;
     const error = document.getElementById('parents_error');
     if (error) {
         error.hidden = true;
@@ -1296,9 +1306,13 @@ function iscrizioniPrimeAttributiHtml(row) {
 
 function iscrizioniPrimeNoteBadge(row) {
     const note = String(row.note_genitori_iscrizione || '').trim();
-    if (note === '') return '';
+    let html = '';
+    if (Number(row.bocciato_altra_scuola || 0) === 1) {
+        html += '<div style="margin-top:6px;"><span class="label label-warning">Bocciato altra scuola</span></div>';
+    }
+    if (note === '') return html;
     const shortNote = note.length > 160 ? note.slice(0, 157) + '...' : note;
-    return '<div style="margin-top:6px;"><span class="stud-attr-badge" title="' + iscrizioniPrimeEscape(note) + '">Note genitori</span><br><small class="text-muted">' + iscrizioniPrimeEscape(shortNote) + '</small></div>';
+    return html + '<div style="margin-top:6px;"><span class="stud-attr-badge" title="' + iscrizioniPrimeEscape(note) + '">Note genitori</span><br><small class="text-muted">' + iscrizioniPrimeEscape(shortNote) + '</small></div>';
 }
 
 function iscrizioniPrimeTabletLabel(status) {
@@ -1400,6 +1414,7 @@ function iscrizioniPrimeRowSearchText(row) {
         row.tablet_posizione,
         row.tablet_acquistato ? 'tablet acquistato' : '',
         row.tablet_proprio ? 'tablet gia di proprieta' : '',
+        row.bocciato_altra_scuola ? 'bocciato altra scuola' : '',
         row.tablet_note,
         row.note_genitori_iscrizione,
         (Array.isArray(row.attributi_riservati) ? row.attributi_riservati.map(attr => attr.label + ' ' + attr.codice + ' ' + (attr.fonte || '')).join(' ') : ''),

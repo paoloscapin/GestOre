@@ -577,6 +577,9 @@ function ms_iscrizione_pratica_url(array $row): string
                                 <?php if (!empty($row['doppio_bocciato_non_consecutivo'])): ?>
                                     <div><span class="label label-info">Doppio non consecutivo</span></div>
                                 <?php endif; ?>
+                                <?php if (!empty($row['bocciato_altra_scuola'])): ?>
+                                    <div><span class="label label-warning">Bocciato altra scuola</span></div>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <?php if ($activeSection === 'entrate'): ?>
@@ -625,6 +628,7 @@ function ms_iscrizione_pratica_url(array $row): string
                                         data-id_istituto_provenienza="<?php echo intval($row['id_istituto_provenienza'] ?? 0); ?>"
                                         data-scuola_provenienza="<?php echo ms_data_attr($row['scuola_provenienza'] ?? ''); ?>"
                                         data-indirizzo_provenienza="<?php echo ms_data_attr($row['indirizzo_provenienza'] ?? ''); ?>"
+                                        data-bocciato_altra_scuola="<?php echo intval($row['bocciato_altra_scuola'] ?? 0); ?>"
                                         data-id_istituto_destinazione="<?php echo intval($row['id_istituto_destinazione'] ?? 0); ?>"
                                         data-scuola_destinazione="<?php echo ms_data_attr($row['scuola_destinazione'] ?? ''); ?>"
                                         data-indirizzo_destinazione="<?php echo ms_data_attr($row['indirizzo_destinazione'] ?? ''); ?>"
@@ -770,6 +774,14 @@ function ms_iscrizione_pratica_url(array $row): string
                         <div id="ms_scuola_provenienza_libera" class="help-block" style="display:none;"></div>
                     </div>
                     <input type="hidden" name="indirizzo_provenienza" id="ms_indirizzo_provenienza" value="">
+                    <div class="form-group ms-only-entrata">
+                        <label style="display:block;">Esito anno precedente</label>
+                        <label class="checkbox-inline">
+                            <input type="checkbox" name="bocciato_altra_scuola" id="ms_bocciato_altra_scuola" value="1">
+                            bocciato in altra scuola
+                        </label>
+                        <span class="help-block">Valore sincronizzato con domanda di iscrizione e colloquio di entrata.</span>
+                    </div>
                     <div class="form-group ms-only-uscita">
                         <label>Scuola destinazione</label>
                         <input type="hidden" name="scuola_destinazione" id="ms_scuola_destinazione">
@@ -1323,6 +1335,7 @@ function msOpenNew(kind) {
     msSetField('ms_id_indirizzo_gestore', '');
     msSetChecked('ms_doppio_bocciato', '0');
     msSetChecked('ms_doppio_bocciato_non_consecutivo', '0');
+    msSetChecked('ms_bocciato_altra_scuola', '0');
     msUpdateSchoolOther('ms_id_istituto_provenienza', 'ms_scuola_provenienza', 'ms_scuola_provenienza_altro', 'ms_scuola_provenienza_libera', '');
     msUpdateSchoolOther('ms_id_istituto_destinazione', 'ms_scuola_destinazione', 'ms_scuola_destinazione_altro', 'ms_scuola_destinazione_libera', '');
     msSetField('ms_esami_integrativi', '0');
@@ -1360,6 +1373,7 @@ function msOpenPracticeFromButton(button) {
     msSetField('ms_id_indirizzo_gestore', button.dataset.id_indirizzo_gestore || '');
     msSetChecked('ms_doppio_bocciato', button.dataset.doppio_bocciato || '0');
     msSetChecked('ms_doppio_bocciato_non_consecutivo', button.dataset.doppio_bocciato_non_consecutivo || '0');
+    msSetChecked('ms_bocciato_altra_scuola', button.dataset.bocciato_altra_scuola || '0');
     msUpdateSchoolOther('ms_id_istituto_provenienza', 'ms_scuola_provenienza', 'ms_scuola_provenienza_altro', 'ms_scuola_provenienza_libera', button.dataset.scuola_provenienza || '');
     msUpdateSchoolOther('ms_id_istituto_destinazione', 'ms_scuola_destinazione', 'ms_scuola_destinazione_altro', 'ms_scuola_destinazione_libera', button.dataset.scuola_destinazione || '');
     msSetField('ms_esami_integrativi', button.dataset.esami_integrativi || '0');

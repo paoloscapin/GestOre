@@ -723,6 +723,14 @@ function genitoriColloquiSave(array $data, ?array $file = null, ?array $receiptF
 
     genitoriColloquiAddEvent($id, $id > 0 && intval($data['id'] ?? 0) > 0 ? 'aggiornamento' : 'creazione', 'Colloquio salvato', $fields);
     genitoriColloquiSyncContactsToMovement(intval($fields['id_movimento'] ?? 0), $fields);
+    if (in_array($fields['ambito'], ['entrata', 'iscrizione_prime', 'iscrizione_terze'], true)) {
+        iscrizioniPrimeSyncBocciatoAltraScuola(!empty($fields['studente_bocciato']), [
+            'id_pratica_iscrizione' => $fields['id_pratica_iscrizione'],
+            'id_movimento' => $fields['id_movimento'],
+            'id_colloquio' => $id,
+            'codice_fiscale' => $fields['codice_fiscale'],
+        ]);
+    }
 
     if (in_array($stato, ['svolto','approvato','non_approvato'], true) || $esito !== '') {
         genitoriColloquiPropagateOutcome($id);
@@ -1513,7 +1521,7 @@ function genitoriColloquiIscrizioniOptions(): array
     iscrizioniPrimeEnsureSchema();
     return dbGetAll("
         SELECT id, tipo_iscrizione, cognome, nome, codice_fiscale, corso_studi, stato,
-               scuola_provenienza,
+               scuola_provenienza, bocciato_altra_scuola,
                responsabile_1_tipo, responsabile_1_cognome, responsabile_1_nome, responsabile_1_codice_fiscale,
                email_genitore_1, telefono_genitore_1,
                responsabile_2_tipo, responsabile_2_cognome, responsabile_2_nome, responsabile_2_codice_fiscale,
@@ -1530,7 +1538,7 @@ function genitoriColloquiMovimentiOptions(): array
     studentiMovimentiEnsureTables();
     return dbGetAll("
         SELECT id, tipo_pratica, cognome, nome, codice_fiscale, classe_origine, classe_richiesta, stato_pratica,
-               id_istituto_provenienza, scuola_provenienza, indirizzo_provenienza, scuola_destinazione, indirizzo_destinazione, anno_corso,
+               id_istituto_provenienza, scuola_provenienza, indirizzo_provenienza, bocciato_altra_scuola, scuola_destinazione, indirizzo_destinazione, anno_corso,
                responsabile_1_tipo, responsabile_1_cognome, responsabile_1_nome, responsabile_1_codice_fiscale,
                email_genitore_1, telefono_genitore_1,
                responsabile_2_tipo, responsabile_2_cognome, responsabile_2_nome, responsabile_2_codice_fiscale,

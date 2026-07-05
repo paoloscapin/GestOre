@@ -137,6 +137,7 @@ $rows = dbGetAll("
         p.sezione_richiesta,
         p.comune_residenza,
         p.scuola_provenienza,
+        p.bocciato_altra_scuola,
         p.esami_integrativi_da_verificare,
         p.stato,
         p.email_genitore_1,

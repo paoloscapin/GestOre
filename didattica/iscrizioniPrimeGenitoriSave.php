@@ -58,6 +58,7 @@ try {
         'responsabile_2_codice_fiscale' => ipg_cf('responsabile_2_codice_fiscale'),
         'email_genitore_2' => $email2,
         'telefono_genitore_2' => ipg_value('telefono_genitore_2'),
+        'bocciato_altra_scuola' => !empty($_POST['bocciato_altra_scuola']) ? 1 : 0,
     ];
 
     $sets = [];
@@ -85,6 +86,10 @@ try {
             'dettagli' => $changes,
         ]);
     }
+    iscrizioniPrimeSyncBocciatoAltraScuola(!empty($fields['bocciato_altra_scuola']), [
+        'id_pratica_iscrizione' => $id,
+        'codice_fiscale' => (string)($before['codice_fiscale'] ?? ''),
+    ]);
 
     $after = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($id) . " LIMIT 1") ?: array_merge($before, $fields);
     try {

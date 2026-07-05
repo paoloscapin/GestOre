@@ -57,6 +57,7 @@ function studentiMovimentiEnsureTables(): void
             `id_istituto_provenienza` INT NULL,
             `scuola_provenienza` VARCHAR(255) NULL,
             `indirizzo_provenienza` VARCHAR(255) NULL,
+            `bocciato_altra_scuola` TINYINT(1) NOT NULL DEFAULT 0,
             `doppio_bocciato` TINYINT(1) NOT NULL DEFAULT 0,
             `doppio_bocciato_non_consecutivo` TINYINT(1) NOT NULL DEFAULT 0,
             `esami_integrativi` TINYINT(1) NOT NULL DEFAULT 0,
@@ -108,8 +109,11 @@ function studentiMovimentiEnsureTables(): void
     if (!studentiMovimentiColumnExists('studenti_movimenti_pratiche', 'indirizzo_provenienza')) {
         dbExec("ALTER TABLE studenti_movimenti_pratiche ADD COLUMN `indirizzo_provenienza` VARCHAR(255) NULL AFTER `scuola_provenienza`");
     }
+    if (!studentiMovimentiColumnExists('studenti_movimenti_pratiche', 'bocciato_altra_scuola')) {
+        dbExec("ALTER TABLE studenti_movimenti_pratiche ADD COLUMN `bocciato_altra_scuola` TINYINT(1) NOT NULL DEFAULT 0 AFTER `indirizzo_provenienza`");
+    }
     if (!studentiMovimentiColumnExists('studenti_movimenti_pratiche', 'doppio_bocciato')) {
-        dbExec("ALTER TABLE studenti_movimenti_pratiche ADD COLUMN `doppio_bocciato` TINYINT(1) NOT NULL DEFAULT 0 AFTER `indirizzo_provenienza`");
+        dbExec("ALTER TABLE studenti_movimenti_pratiche ADD COLUMN `doppio_bocciato` TINYINT(1) NOT NULL DEFAULT 0 AFTER `bocciato_altra_scuola`");
     }
     if (!studentiMovimentiColumnExists('studenti_movimenti_pratiche', 'doppio_bocciato_non_consecutivo')) {
         dbExec("ALTER TABLE studenti_movimenti_pratiche ADD COLUMN `doppio_bocciato_non_consecutivo` TINYINT(1) NOT NULL DEFAULT 0 AFTER `doppio_bocciato`");
@@ -802,6 +806,7 @@ function studentiMovimentiSavePractice(array $data): int
         'id_istituto_provenienza' => intval($data['id_istituto_provenienza'] ?? 0) ?: null,
         'scuola_provenienza' => trim((string)($data['scuola_provenienza'] ?? '')),
         'indirizzo_provenienza' => trim((string)($data['indirizzo_provenienza'] ?? '')),
+        'bocciato_altra_scuola' => !empty($data['bocciato_altra_scuola']) ? 1 : 0,
         'doppio_bocciato' => !empty($data['doppio_bocciato']) ? 1 : 0,
         'doppio_bocciato_non_consecutivo' => !empty($data['doppio_bocciato_non_consecutivo']) ? 1 : 0,
         'esami_integrativi' => !empty($data['esami_integrativi']) ? 1 : 0,
@@ -912,6 +917,7 @@ function studentiMovimentiSavePractice(array $data): int
                 id_istituto_provenienza = " . dbI($fields['id_istituto_provenienza']) . ",
                 scuola_provenienza = " . dbQ($fields['scuola_provenienza']) . ",
                 indirizzo_provenienza = " . dbQ($fields['indirizzo_provenienza']) . ",
+                bocciato_altra_scuola = " . dbI($fields['bocciato_altra_scuola']) . ",
                 doppio_bocciato = " . dbI($fields['doppio_bocciato']) . ",
                 doppio_bocciato_non_consecutivo = " . dbI($fields['doppio_bocciato_non_consecutivo']) . ",
                 esami_integrativi = " . dbI($fields['esami_integrativi']) . ",
@@ -933,6 +939,13 @@ function studentiMovimentiSavePractice(array $data): int
         ");
         studentiMovimentiAddEvent($id, 'salvataggio', 'Pratica aggiornata', $fields, $createdBy);
         studentiMovimentiLinkColloquiToPractice($id, $fields);
+        if ($fields['tipo_pratica'] === 'entrata') {
+            iscrizioniPrimeSyncBocciatoAltraScuola(!empty($fields['bocciato_altra_scuola']), [
+                'id_pratica_iscrizione' => $fields['id_pratica_iscrizione'],
+                'id_movimento' => $id,
+                'codice_fiscale' => $fields['codice_fiscale'],
+            ]);
+        }
         if ($shouldClearLinkedColloquiEsami && dbGetValue("SHOW TABLES LIKE 'genitori_colloqui'")) {
             require_once __DIR__ . '/genitoriColloquiLib.php';
             $clearedColloqui = genitoriColloquiClearEsamiIntegrativiForMovement($id);
@@ -958,7 +971,7 @@ function studentiMovimentiSavePractice(array $data): int
             classe_origine, classe_richiesta, anno_corso,
             id_istituto_destinazione, scuola_destinazione, indirizzo_destinazione, id_indirizzo_gestore,
             id_istituto_provenienza, scuola_provenienza, indirizzo_provenienza,
-            doppio_bocciato, doppio_bocciato_non_consecutivo,
+            bocciato_altra_scuola, doppio_bocciato, doppio_bocciato_non_consecutivo,
             esami_integrativi, esami_integrativi_note, carenze_presenti, carenze_note,
             doc_modulo_iscrizione, doc_nulla_osta_entrata, doc_pagella_precedente, doc_carenze, doc_esami_integrativi,
             fonte, id_pratica_iscrizione, id_cambio_scuola_iscrizione, note, created_at, updated_at
@@ -993,6 +1006,7 @@ function studentiMovimentiSavePractice(array $data): int
             " . dbI($fields['id_istituto_provenienza']) . ",
             " . dbQ($fields['scuola_provenienza']) . ",
             " . dbQ($fields['indirizzo_provenienza']) . ",
+            " . dbI($fields['bocciato_altra_scuola']) . ",
             " . dbI($fields['doppio_bocciato']) . ",
             " . dbI($fields['doppio_bocciato_non_consecutivo']) . ",
             " . dbI($fields['esami_integrativi']) . ",
@@ -1015,6 +1029,13 @@ function studentiMovimentiSavePractice(array $data): int
     $newId = intval(dblastId());
     studentiMovimentiAddEvent($newId, 'creazione', 'Pratica creata', $fields, $createdBy);
     studentiMovimentiLinkColloquiToPractice($newId, $fields);
+    if ($fields['tipo_pratica'] === 'entrata') {
+        iscrizioniPrimeSyncBocciatoAltraScuola(!empty($fields['bocciato_altra_scuola']), [
+            'id_pratica_iscrizione' => $fields['id_pratica_iscrizione'],
+            'id_movimento' => $newId,
+            'codice_fiscale' => $fields['codice_fiscale'],
+        ]);
+    }
     return $newId;
 }
 
