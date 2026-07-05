@@ -145,7 +145,10 @@ function genitoreProfiloStudentContext(int $mastercomParentId): ?array
 
 function genitoreProfiloSyncMasterCom(array $mirror, string $email, string $telefono, string $cellulare, string $codiceFiscale): array
 {
-    if (!getSettingsValue('profiloGenitore', 'sincronizza_mastercom', true)) {
+    if (
+        !getSettingsValue('profiloGenitore', 'sincronizza_mastercom', true) ||
+        !getSettingsValue('profiloGenitore', 'sincronizza_mastercom_contatti', false)
+    ) {
         return ['ok' => true, 'skipped' => true, 'message' => 'Sincronizzazione MasterCom disabilitata.'];
     }
 

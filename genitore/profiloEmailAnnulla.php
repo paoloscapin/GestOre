@@ -84,7 +84,10 @@ function gea_student_context(int $mastercomParentId): ?array
 
 function gea_sync_mastercom_email(array $mirror, string $email, string $telefono, string $cellulare): bool
 {
-    if (!getSettingsValue('profiloGenitore', 'sincronizza_mastercom', true)) {
+    if (
+        !getSettingsValue('profiloGenitore', 'sincronizza_mastercom', true) ||
+        !getSettingsValue('profiloGenitore', 'sincronizza_mastercom_contatti', false)
+    ) {
         return true;
     }
 
