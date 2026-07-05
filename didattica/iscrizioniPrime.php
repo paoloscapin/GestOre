@@ -20,7 +20,8 @@ $stats = dbGetFirst("
         SUM(tablet_stato = 'escluso') AS tablet_esclusi,
         SUM(tablet_stato = 'rinuncia') AS tablet_rinunce,
         SUM(tablet_stato = 'confermato' AND tablet_acquistato = 1) AS tablet_acquistati,
-        SUM(tablet_stato = 'confermato' AND tablet_acquistato = 0) AS tablet_da_acquistare,
+        SUM(tablet_stato = 'confermato' AND tablet_proprio = 1) AS tablet_propri,
+        SUM(tablet_stato = 'confermato' AND tablet_acquistato = 0 AND tablet_proprio = 0) AS tablet_da_acquistare,
         SUM(email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AS con_email
     FROM iscrizioni_prime_pratiche
     WHERE tipo_iscrizione = 'prime'
@@ -125,6 +126,7 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
         .tablet-badge { display:inline-block; padding:4px 8px; border-radius:999px; font-weight:800; font-size:12px; margin:0 3px 3px 0; }
         .tablet-badge-ok { background:#dcfce7; color:#166534; }
         .tablet-badge-wait { background:#fef3c7; color:#92400e; }
+        .tablet-badge-own { background:#e0e7ff; color:#3730a3; }
         .tablet-badge-out { background:#e5e7eb; color:#374151; }
         .tablet-badge-stop { background:#fee2e2; color:#991b1b; }
         .tablet-actions .btn { margin:0 2px 3px 0; }
@@ -499,6 +501,31 @@ ITT Buonarroti - Trento</textarea>
     </div>
 </div>
 
+<div id="tablet_proprio_modal" class="custom-mail-modal" aria-hidden="true">
+    <div class="custom-mail-card" role="dialog" aria-modal="true" aria-labelledby="tablet_proprio_title">
+        <div id="tablet_proprio_title" class="custom-mail-head" style="background:#4338ca;">Tablet gia di proprieta</div>
+        <form id="tablet_proprio_form">
+            <div class="custom-mail-body">
+                <input type="hidden" name="id" id="tablet_proprio_id">
+                <input type="hidden" name="action" value="proprio">
+                <p id="tablet_proprio_student" class="text-muted"></p>
+                <div class="alert alert-info">
+                    Usa questa voce quando la famiglia ha gia acquistato il tablet in autonomia o possiede gia un dispositivo da portare a scuola per la configurazione.
+                </div>
+                <div class="custom-mail-field">
+                    <label for="tablet_proprio_note">Annotazione segreteria</label>
+                    <textarea name="note" id="tablet_proprio_note"></textarea>
+                </div>
+                <div id="tablet_proprio_error" class="text-danger" style="margin-top:8px;" hidden></div>
+            </div>
+            <div class="custom-mail-actions">
+                <button type="button" class="btn btn-default" onclick="iscrizioniPrimeCloseTabletProprio()">Annulla</button>
+                <button type="submit" class="btn btn-primary" id="tablet_proprio_save_button">Registra tablet proprio</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div id="tablet_rinuncia_modal" class="custom-mail-modal" aria-hidden="true">
     <div class="custom-mail-card" role="dialog" aria-modal="true" aria-labelledby="tablet_rinuncia_title">
         <div id="tablet_rinuncia_title" class="custom-mail-head" style="background:#b45309;">Rinuncia classe tablet</div>
@@ -566,6 +593,7 @@ ITT Buonarroti - Trento</textarea>
                 <div class="col-md-2" style="margin-top:8px;"><strong>Mail test:</strong> <span id="stat_mail_test">0</span></div>
                 <div class="col-md-2" style="margin-top:8px;"><strong>Tablet confermati:</strong> <span id="stat_tablet_confermati">0</span></div>
                 <div class="col-md-2" style="margin-top:8px;"><strong>Tablet da acquistare:</strong> <span id="stat_tablet_da_acquistare">0</span></div>
+                <div class="col-md-2" style="margin-top:8px;"><strong>Tablet propri:</strong> <span id="stat_tablet_propri">0</span></div>
                 <div class="col-md-2" style="margin-top:8px;"><strong>Tablet esclusi:</strong> <span id="stat_tablet_esclusi">0</span></div>
             </div>
             <div class="row" style="margin-top:14px;">
@@ -723,6 +751,7 @@ ITT Buonarroti - Trento</textarea>
                 <select id="iscrizioni_prime_acquisto_filter" title="Filtro acquisto tablet">
                     <option value="">Acquisto: tutti</option>
                     <option value="acquistato">Acquistato</option>
+                    <option value="proprio">Gia di proprieta</option>
                     <option value="da_acquistare">Da acquistare</option>
                 </select>
                 <button type="button" class="btn btn-default" onclick="iscrizioniPrimeClearFilter()">
@@ -1182,6 +1211,7 @@ function iscrizioniPrimeUpdateStats(stats, mailStats) {
     iscrizioniPrimeSetText('stat_mail_test', mailStats.mail_test || 0);
     iscrizioniPrimeSetText('stat_tablet_confermati', stats.tablet_confermati || 0);
     iscrizioniPrimeSetText('stat_tablet_da_acquistare', stats.tablet_da_acquistare || 0);
+    iscrizioniPrimeSetText('stat_tablet_propri', stats.tablet_propri || 0);
     iscrizioniPrimeSetText('stat_tablet_esclusi', stats.tablet_esclusi || 0);
 }
 
@@ -1300,9 +1330,13 @@ function iscrizioniPrimeTabletHtml(row) {
     if (row.tablet_gruppo) html += '<br><small>' + iscrizioniPrimeEscape(iscrizioniPrimeTabletGroupLabel(row.tablet_gruppo)) + '</small>';
     if (row.tablet_posizione) html += '<br><small>pos. ' + iscrizioniPrimeEscape(row.tablet_posizione) + '</small>';
     if (status === 'confermato') {
-        html += '<br>' + (Number(row.tablet_acquistato || 0) === 1
-            ? '<span class="tablet-badge tablet-badge-ok">Acquistato</span>'
-            : '<span class="tablet-badge tablet-badge-wait">Da acquistare</span>');
+        if (Number(row.tablet_proprio || 0) === 1) {
+            html += '<br><span class="tablet-badge tablet-badge-own">Gia di proprieta</span>';
+        } else {
+            html += '<br>' + (Number(row.tablet_acquistato || 0) === 1
+                ? '<span class="tablet-badge tablet-badge-ok">Acquistato</span>'
+                : '<span class="tablet-badge tablet-badge-wait">Da acquistare</span>');
+        }
     }
     if (row.tablet_ripescato_da_pratica_id) html += '<br><small>ripescato</small>';
     if (row.tablet_rinuncia_allegato_original_name) html += '<br><small>PDF: ' + iscrizioniPrimeEscape(row.tablet_rinuncia_allegato_original_name).slice(0, 45) + '</small>';
@@ -1321,10 +1355,14 @@ function iscrizioniPrimeTabletHtml(row) {
     });
     html += '</select>';
     if (status === 'confermato') {
-        if (Number(row.tablet_acquistato || 0) === 1) {
+        if (Number(row.tablet_proprio || 0) === 1) {
+            html += '<button type="button" class="btn btn-xs btn-default" onclick="iscrizioniPrimeTabletAction(' + Number(row.id) + ', &quot;non_proprio&quot;)">Rimuovi proprio</button>';
+        } else if (Number(row.tablet_acquistato || 0) === 1) {
             html += '<button type="button" class="btn btn-xs btn-default" onclick="iscrizioniPrimeTabletAction(' + Number(row.id) + ', &quot;non_acquistato&quot;)">No acquisto</button>';
+            html += '<button type="button" class="btn btn-xs btn-primary" onclick="iscrizioniPrimeOpenTabletProprio(' + Number(row.id) + ')">Gia suo</button>';
         } else {
             html += '<button type="button" class="btn btn-xs btn-success" onclick="iscrizioniPrimeTabletAction(' + Number(row.id) + ', &quot;acquistato&quot;)">Acquistato</button>';
+            html += '<button type="button" class="btn btn-xs btn-primary" onclick="iscrizioniPrimeOpenTabletProprio(' + Number(row.id) + ')">Gia suo</button>';
         }
         html += '<button type="button" class="btn btn-xs btn-warning" onclick="iscrizioniPrimeOpenTabletRinuncia(' + Number(row.id) + ')">Rinuncia</button>';
     }
@@ -1361,6 +1399,7 @@ function iscrizioniPrimeRowSearchText(row) {
         iscrizioniPrimeTabletGroupLabel(row.tablet_gruppo || ''),
         row.tablet_posizione,
         row.tablet_acquistato ? 'tablet acquistato' : '',
+        row.tablet_proprio ? 'tablet gia di proprieta' : '',
         row.tablet_note,
         row.note_genitori_iscrizione,
         (Array.isArray(row.attributi_riservati) ? row.attributi_riservati.map(attr => attr.label + ' ' + attr.codice + ' ' + (attr.fonte || '')).join(' ') : ''),
@@ -1383,7 +1422,8 @@ function iscrizioniPrimeFilteredRows() {
         if (['confermato', 'escluso', 'rinuncia'].includes(tabletValue) && row.tablet_stato !== tabletValue) return false;
         const acquistoValue = acquistoFilter ? acquistoFilter.value : '';
         if (acquistoValue === 'acquistato' && !(row.tablet_stato === 'confermato' && Number(row.tablet_acquistato || 0) === 1)) return false;
-        if (acquistoValue === 'da_acquistare' && !(row.tablet_stato === 'confermato' && Number(row.tablet_acquistato || 0) !== 1)) return false;
+        if (acquistoValue === 'proprio' && !(row.tablet_stato === 'confermato' && Number(row.tablet_proprio || 0) === 1)) return false;
+        if (acquistoValue === 'da_acquistare' && !(row.tablet_stato === 'confermato' && Number(row.tablet_acquistato || 0) !== 1 && Number(row.tablet_proprio || 0) !== 1)) return false;
         if (!terms.length) return true;
         const text = iscrizioniPrimeRowSearchText(row);
         return terms.every(term => text.includes(term));
@@ -1480,6 +1520,7 @@ function iscrizioniPrimeExportFilteredCsv() {
         'Tablet gruppo',
         'Tablet posizione',
         'Tablet acquistato',
+        'Tablet proprio',
         'Tablet note',
         'Stato',
         'Genitore 1',
@@ -1506,6 +1547,7 @@ function iscrizioniPrimeExportFilteredCsv() {
             iscrizioniPrimeTabletGroupLabel(row.tablet_gruppo || ''),
             row.tablet_posizione || '',
             Number(row.tablet_acquistato || 0) === 1 ? 'si' : 'no',
+            Number(row.tablet_proprio || 0) === 1 ? 'si' : 'no',
             row.tablet_note || '',
             row.stato,
             [row.responsabile_1_cognome, row.responsabile_1_nome].filter(Boolean).join(' '),
@@ -1745,6 +1787,31 @@ function iscrizioniPrimeTabletManualStatus(id, packed, group) {
         result.textContent = error.message;
         iscrizioniPrimeLoadTable();
     });
+}
+
+function iscrizioniPrimeOpenTabletProprio(id) {
+    const row = iscrizioniPrimeRows.find(item => Number(item.id) === Number(id));
+    if (!row) return;
+    const modal = document.getElementById('tablet_proprio_modal');
+    const form = document.getElementById('tablet_proprio_form');
+    const error = document.getElementById('tablet_proprio_error');
+    form.reset();
+    error.hidden = true;
+    error.textContent = '';
+    document.getElementById('tablet_proprio_id').value = row.id;
+    const student = ((row.cognome || '') + ' ' + (row.nome || '')).trim();
+    document.getElementById('tablet_proprio_student').textContent = 'Pratica di ' + student;
+    document.getElementById('tablet_proprio_note').value =
+        row.tablet_note ||
+        'Tablet gia di proprieta/acquistato autonomamente dalla famiglia: il genitore lo portera direttamente a scuola per la configurazione.';
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function iscrizioniPrimeCloseTabletProprio() {
+    const modal = document.getElementById('tablet_proprio_modal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
 }
 
 function iscrizioniPrimeOpenTabletRinuncia(id) {
@@ -2252,7 +2319,43 @@ document.getElementById('iscrizioni_prime_draft_subject_form').addEventListener(
         .catch(error => {
             result.className = 'alert alert-danger';
             result.textContent = error.message;
-        });
+    });
+});
+
+document.getElementById('tablet_proprio_form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    const error = document.getElementById('tablet_proprio_error');
+    const button = document.getElementById('tablet_proprio_save_button');
+    const result = document.getElementById('iscrizioni_prime_result');
+    const data = new FormData(this);
+    error.hidden = true;
+    error.textContent = '';
+    button.disabled = true;
+    result.className = 'alert alert-info';
+    result.style.display = 'block';
+    result.textContent = 'Registrazione tablet gia di proprieta...';
+    fetch('iscrizioniPrimeTabletSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(payload => ({ok: response.ok, payload})))
+    .then(({ok, payload}) => {
+        if (!ok || !payload.ok) throw new Error(payload.message || 'Registrazione tablet non riuscita.');
+        iscrizioniPrimeCloseTabletProprio();
+        result.className = 'alert alert-success';
+        result.textContent = payload.message || 'Tablet gia di proprieta registrato.';
+        iscrizioniPrimeLoadTable();
+    })
+    .catch(err => {
+        error.hidden = false;
+        error.textContent = err.message;
+        result.className = 'alert alert-danger';
+        result.textContent = err.message;
+    })
+    .finally(() => {
+        button.disabled = false;
+    });
 });
 
 document.getElementById('iscrizioni_prime_import_form').addEventListener('submit', function (event) {

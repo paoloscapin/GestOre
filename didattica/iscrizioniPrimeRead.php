@@ -97,7 +97,8 @@ $stats = dbGetFirst("
         SUM(tablet_stato = 'escluso') AS tablet_esclusi,
         SUM(tablet_stato = 'rinuncia') AS tablet_rinunce,
         SUM(tablet_stato = 'confermato' AND tablet_acquistato = 1) AS tablet_acquistati,
-        SUM(tablet_stato = 'confermato' AND tablet_acquistato = 0) AS tablet_da_acquistare,
+        SUM(tablet_stato = 'confermato' AND tablet_proprio = 1) AS tablet_propri,
+        SUM(tablet_stato = 'confermato' AND tablet_acquistato = 0 AND tablet_proprio = 0) AS tablet_da_acquistare,
         SUM(email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AS con_email,
         SUM((email_genitore_1 IS NOT NULL OR email_genitore_2 IS NOT NULL) AND $effectiveExternal) AS esterni_con_email
     FROM iscrizioni_prime_pratiche p
@@ -158,6 +159,7 @@ $rows = dbGetAll("
         p.tablet_posizione,
         p.tablet_acquistato,
         p.tablet_acquistato_at,
+        p.tablet_proprio,
         p.tablet_ripescato_da_pratica_id,
         p.tablet_note,
         p.tablet_rinuncia_allegato_original_name,

@@ -92,6 +92,7 @@ function iscrizioniPrimeEnsureSchema(): void
           tablet_posizione int DEFAULT NULL,
           tablet_acquistato tinyint NOT NULL DEFAULT 0,
           tablet_acquistato_at date DEFAULT NULL,
+          tablet_proprio tinyint NOT NULL DEFAULT 0,
           tablet_ripescato_da_pratica_id int DEFAULT NULL,
           tablet_note text DEFAULT NULL,
           tablet_rinuncia_allegato_path text DEFAULT NULL,
@@ -435,7 +436,8 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_posizione', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_posizione int DEFAULT NULL AFTER tablet_gruppo");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_acquistato', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_acquistato tinyint NOT NULL DEFAULT 0 AFTER tablet_posizione");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_acquistato_at', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_acquistato_at date DEFAULT NULL AFTER tablet_acquistato");
-    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_ripescato_da_pratica_id', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_ripescato_da_pratica_id int DEFAULT NULL AFTER tablet_acquistato_at");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_proprio', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_proprio tinyint NOT NULL DEFAULT 0 AFTER tablet_acquistato_at");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_ripescato_da_pratica_id', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_ripescato_da_pratica_id int DEFAULT NULL AFTER tablet_proprio");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_note', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_note text DEFAULT NULL AFTER tablet_ripescato_da_pratica_id");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_path', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_path text DEFAULT NULL AFTER tablet_note");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_original_name', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_original_name text DEFAULT NULL AFTER tablet_rinuncia_allegato_path");
@@ -448,6 +450,7 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'terza_voto_italiano', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN terza_voto_italiano decimal(4,2) DEFAULT NULL AFTER terza_voto_matematica");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'terza_voto_capacita_relazionale', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN terza_voto_capacita_relazionale decimal(4,2) DEFAULT NULL AFTER terza_voto_italiano");
     iscrizioniPrimeNormalizeGestoreAddressIds();
+    iscrizioniPrimeNormalizeTerzeDigitalScienceAddress();
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'anagrafica_filename', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN anagrafica_filename varchar(255) DEFAULT NULL AFTER dsa_filename");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'righe_anagrafica', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN righe_anagrafica int NOT NULL DEFAULT 0 AFTER righe_dsa");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'licenza_media_filename', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN licenza_media_filename varchar(255) DEFAULT NULL AFTER anagrafica_filename");
@@ -629,6 +632,44 @@ function iscrizioniPrimeNormalizeGestoreAddressIds(): void
     }
 }
 
+function iscrizioniPrimeNormalizeTerzeDigitalScienceAddress(): void
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $done = true;
+    $digitalScienceAddressId = iscrizioniPrimeGestoreAddressIdFromText('DIGITAL SCIENCE');
+    if ($digitalScienceAddressId <= 0) {
+        return;
+    }
+
+    $rows = dbGetAll("
+        SELECT id, codice_fiscale, corso_studi, id_indirizzo_gestore
+        FROM iscrizioni_prime_pratiche
+        WHERE tipo_iscrizione = 'terze'
+          AND (stato IS NULL OR stato <> 'annullata')
+    ") ?: [];
+    foreach ($rows as $row) {
+        if (!iscrizioniPrimeIsPromotedFromSecondaDigitalScience((string)($row['codice_fiscale'] ?? ''))) {
+            continue;
+        }
+        if (intval($row['id_indirizzo_gestore'] ?? 0) === $digitalScienceAddressId
+            && strtoupper(trim((string)($row['corso_studi'] ?? ''))) === 'DIGITAL SCIENCE') {
+            continue;
+        }
+        dbExec("
+            UPDATE iscrizioni_prime_pratiche
+            SET id_indirizzo_gestore = " . dbI($digitalScienceAddressId) . ",
+                corso_studi = 'DIGITAL SCIENCE',
+                scelta_formativa = 'DIGITAL SCIENCE',
+                updated_at = NOW()
+            WHERE id = " . dbI($row['id'] ?? 0) . "
+            LIMIT 1
+        ");
+    }
+}
+
 function iscrizioniPrimeEnsureDocumentStatusEnum(): void
 {
     $columnType = (string)dbGetValue("
@@ -733,6 +774,7 @@ function iscrizioniPrimeTabletSetPurchase(int $praticaId, bool $purchased, strin
         UPDATE iscrizioni_prime_pratiche
         SET tablet_acquistato = " . dbI($purchased ? 1 : 0) . ",
             tablet_acquistato_at = " . $dateSql . ",
+            tablet_proprio = 0,
             tablet_note = " . dbQ($note !== '' ? $note : ($pratica['tablet_note'] ?? null)) . ",
             updated_at = NOW()
         WHERE id = " . dbI($praticaId) . "
@@ -741,6 +783,34 @@ function iscrizioniPrimeTabletSetPurchase(int $praticaId, bool $purchased, strin
         'note' => $note,
     ]);
     return ['ok' => true, 'message' => $purchased ? 'Acquisto tablet registrato.' : 'Acquisto tablet rimosso.'];
+}
+
+function iscrizioniPrimeTabletSetOwnDevice(int $praticaId, bool $ownDevice, string $note = ''): array
+{
+    iscrizioniPrimeEnsureSchema();
+    $pratica = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($praticaId) . " LIMIT 1");
+    if (!$pratica) {
+        return ['ok' => false, 'message' => 'Pratica non trovata.'];
+    }
+    $existingNote = trim((string)($pratica['tablet_note'] ?? ''));
+    if ($ownDevice && trim($note) === '') {
+        $note = 'Tablet gia di proprieta/acquistato autonomamente dalla famiglia: il genitore lo portera direttamente a scuola per la configurazione.';
+    }
+    $noteToSave = trim($note) !== '' ? trim($note) : $existingNote;
+    dbExec("
+        UPDATE iscrizioni_prime_pratiche
+        SET tablet_proprio = " . dbI($ownDevice ? 1 : 0) . ",
+            tablet_acquistato = 0,
+            tablet_acquistato_at = NULL,
+            tablet_note = " . dbQ($noteToSave !== '' ? $noteToSave : null) . ",
+            updated_at = NOW()
+        WHERE id = " . dbI($praticaId) . "
+        LIMIT 1
+    ");
+    iscrizioniPrimeTabletRecordEvent($praticaId, $ownDevice ? 'Tablet gia di proprieta' : 'Tablet proprieta famiglia rimosso', [
+        'note' => $noteToSave,
+    ]);
+    return ['ok' => true, 'message' => $ownDevice ? 'Tablet gia di proprieta registrato.' : 'Segnalazione tablet gia di proprieta rimossa.'];
 }
 
 function iscrizioniPrimeTabletAttachmentDir(int $praticaId): string
@@ -794,6 +864,7 @@ function iscrizioniPrimeTabletSetStatus(int $praticaId, int $tabletScelto, strin
             tablet_gruppo = " . dbQ($tabletScelto ? ($group !== '' ? $group : null) : null) . ",
             tablet_acquistato = CASE WHEN " . dbI($tabletScelto ? 1 : 0) . " = 1 AND " . dbQ($status) . " = 'confermato' THEN tablet_acquistato ELSE 0 END,
             tablet_acquistato_at = CASE WHEN " . dbI($tabletScelto ? 1 : 0) . " = 1 AND " . dbQ($status) . " = 'confermato' THEN tablet_acquistato_at ELSE NULL END,
+            tablet_proprio = CASE WHEN " . dbI($tabletScelto ? 1 : 0) . " = 1 AND " . dbQ($status) . " = 'confermato' THEN tablet_proprio ELSE 0 END,
             tablet_note = " . dbQ($note) . ",
             updated_at = NOW()
         WHERE id = " . dbI($praticaId) . "
@@ -825,6 +896,7 @@ function iscrizioniPrimeTabletRenounce(int $praticaId, string $note = '', ?array
             tablet_stato = 'rinuncia',
             tablet_acquistato = 0,
             tablet_acquistato_at = NULL,
+            tablet_proprio = 0,
             tablet_note = " . dbQ($note) . ",
             tablet_rinuncia_allegato_path = " . dbQ($attachmentData['relative_path'] ?? ($pratica['tablet_rinuncia_allegato_path'] ?? null)) . ",
             tablet_rinuncia_allegato_original_name = " . dbQ($attachmentData['original_name'] ?? ($pratica['tablet_rinuncia_allegato_original_name'] ?? null)) . ",
@@ -6653,6 +6725,69 @@ function iscrizioniPrimeCurrentSchoolYearId(): int
     return intval(dbGetValue("SELECT anno_scolastico_id FROM anno_scolastico_corrente LIMIT 1") ?? 0);
 }
 
+function iscrizioniPrimeCurrentClassForCf(string $cf, ?int $annoScolasticoId = null): string
+{
+    $cf = strtoupper(trim($cf));
+    $annoScolasticoId = $annoScolasticoId !== null ? intval($annoScolasticoId) : iscrizioniPrimeCurrentSchoolYearId();
+    if ($cf === '' || $annoScolasticoId <= 0) {
+        return '';
+    }
+
+    return trim((string)(dbGetValue("
+        SELECT c.classe
+        FROM studente s
+        INNER JOIN studente_frequenta sf
+                ON sf.id_studente = s.id
+               AND sf.id_anno_scolastico = " . dbI($annoScolasticoId) . "
+               AND sf.id_classe <> 0
+        INNER JOIN classi c ON c.id = sf.id_classe
+        WHERE UPPER(TRIM(s.codice_fiscale)) = " . dbQ($cf) . "
+          AND s.attivo = 1
+        ORDER BY sf.id DESC
+        LIMIT 1
+    ") ?? ''));
+}
+
+function iscrizioniPrimeSecondaOutcomeForCf(string $cf, ?int $annoScolasticoId = null): string
+{
+    $cf = strtoupper(trim($cf));
+    $annoScolasticoId = $annoScolasticoId !== null ? intval($annoScolasticoId) : iscrizioniPrimeCurrentSchoolYearId();
+    if ($cf === '' || $annoScolasticoId <= 0) {
+        return '';
+    }
+
+    try {
+        return trim((string)(dbGetValue("
+            SELECT s.esito_key
+            FROM mastercom_tabelloni_scrutini t
+            INNER JOIN mastercom_tabelloni_scrutini_studenti s ON s.tabellone_id = t.id
+            INNER JOIN studente st ON st.id = s.id_studente_gestore
+            WHERE t.id_anno_scolastico = " . dbI($annoScolasticoId) . "
+              AND t.periodo = '9'
+              AND UPPER(TRIM(st.codice_fiscale)) = " . dbQ($cf) . "
+              AND (
+                    UPPER(TRIM(t.classe)) LIKE '2%'
+                 OR UPPER(TRIM(t.classe_tabellone)) LIKE '2%'
+              )
+            ORDER BY t.id DESC, s.id DESC
+            LIMIT 1
+        ") ?? ''));
+    } catch (Throwable $e) {
+        return '';
+    }
+}
+
+function iscrizioniPrimeIsPromotedFromSecondaDigitalScience(string $cf): bool
+{
+    $class = strtoupper(trim(iscrizioniPrimeCurrentClassForCf($cf)));
+    if (!preg_match('/^2DS\b/u', $class)) {
+        return false;
+    }
+
+    $outcome = iscrizioniPrimeSecondaOutcomeForCf($cf);
+    return $outcome === '' || in_array($outcome, ['ammesso', 'anno_estero'], true);
+}
+
 function iscrizioniPrimeClassIdByCode(string $classe): int
 {
     $classe = strtoupper(trim($classe));
@@ -7056,6 +7191,14 @@ function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione
         'raw_dsa_json' => $dsa ? iscrizioniPrimeJson($dsa) : null,
         'raw_licenza_media_json' => $licenzaMedia ? iscrizioniPrimeJson($licenzaMedia) : null,
     ];
+    if ($tipoIscrizione === 'terze' && iscrizioniPrimeIsPromotedFromSecondaDigitalScience($cf)) {
+        $digitalScienceAddressId = iscrizioniPrimeGestoreAddressIdFromText('DIGITAL SCIENCE');
+        if ($digitalScienceAddressId > 0) {
+            $fields['id_indirizzo_gestore'] = $digitalScienceAddressId;
+        }
+        $fields['corso_studi'] = 'DIGITAL SCIENCE';
+        $fields['scelta_formativa'] = 'DIGITAL SCIENCE';
+    }
     $resolvedAddressId = iscrizioniPrimeGestoreAddressIdFromPractice($fields);
     if ($resolvedAddressId > 0) {
         $fields['id_indirizzo_gestore'] = $resolvedAddressId;
