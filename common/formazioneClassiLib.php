@@ -12,11 +12,13 @@
 require_once __DIR__ . '/mastercom/tabelloni_lib.php';
 require_once __DIR__ . '/studentiMovimentiLib.php';
 require_once __DIR__ . '/studentiAttributiRiservatiLib.php';
+require_once __DIR__ . '/iscrizioniPrimeLib.php';
 
 function formazioneClassiEnsureTables(): void
 {
     studentiMovimentiEnsureTables();
     studentiAttrEnsureTables();
+    formazioneClassiEnsureClassiAnnoTabletColumn();
 
     dbExec("
         CREATE TABLE IF NOT EXISTS `formazione_classi_sessioni` (
@@ -66,6 +68,39 @@ function formazioneClassiEnsureTables(): void
     ");
 }
 
+function formazioneClassiEnsureClassiAnnoTabletColumn(): void
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $done = true;
+    dbExec("
+        CREATE TABLE IF NOT EXISTS `classi_anno_scolastico` (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `id_classe` INT NOT NULL,
+            `id_anno_scolastico` INT NOT NULL,
+            `attiva` TINYINT(1) NOT NULL DEFAULT 1,
+            `is_tablet` TINYINT(1) NOT NULL DEFAULT 0,
+            `created_at` DATETIME NOT NULL,
+            `updated_at` DATETIME NOT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uk_classi_anno_classe_anno` (`id_classe`, `id_anno_scolastico`),
+            KEY `idx_classi_anno_anno` (`id_anno_scolastico`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+    ");
+    $exists = dbGetValue("
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'classi_anno_scolastico'
+          AND COLUMN_NAME = 'is_tablet'
+    ");
+    if (intval($exists) === 0) {
+        dbExec("ALTER TABLE classi_anno_scolastico ADD COLUMN is_tablet TINYINT(1) NOT NULL DEFAULT 0 AFTER attiva");
+    }
+}
+
 function formazioneClassiH($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -76,26 +111,262 @@ function formazioneClassiNorm(string $value): string
     return mastercomAdminNorm($value);
 }
 
+function formazioneClassiAddressKeyFromAddressName(string $addressName): string
+{
+    $norm = formazioneClassiNorm($addressName);
+    if ($norm === '' || $norm === 'N/D') {
+        return '';
+    }
+    if (strpos($norm, 'BIENNIO') !== false) {
+        return 'BIENNIO';
+    }
+    if (strpos($norm, 'DIGITAL') !== false && strpos($norm, 'SCIENCE') !== false) {
+        return 'DIGITAL SCIENCE';
+    }
+    return $norm;
+}
+
 function formazioneClassiAddressKeyFromClass(string $classLabel): string
 {
     $classLabel = trim($classLabel);
     $norm = formazioneClassiNorm($classLabel);
     if (preg_match('/^[1-5]DS\b/u', $norm) || preg_match('/\bDIGITAL\s+SCIENCE\b/u', $norm)) {
-        return 'DIGITAL_SCIENCE';
+        return 'DIGITAL SCIENCE';
     }
-    if (preg_match('/^[3-5]MEA\b/u', $norm) || preg_match('/\bMEA\b/u', $norm)) {
-        return 'MEA';
+    if (preg_match('/^[3-5]([A-Z0-9]{2,})\b/u', $norm, $matches)) {
+        $code = (string)$matches[1];
+        if (formazioneClassiIsKnownAddressKey($code)) {
+            return $code;
+        }
     }
-    return formazioneClassiNorm(mastercomTabelloniSummaryAddress($classLabel));
+
+    $summaryAddress = formazioneClassiAddressKeyFromAddressName(mastercomTabelloniSummaryAddress($classLabel));
+    if ($summaryAddress !== '') {
+        return $summaryAddress;
+    }
+
+    $year = mastercomTabelloniClassYearFromName($classLabel);
+    if ($year > 0 && $year <= 2) {
+        return 'BIENNIO';
+    }
+
+    return '';
+}
+
+function formazioneClassiIsKnownAddressKey(string $addressKey): bool
+{
+    $key = formazioneClassiNorm($addressKey);
+    return in_array($key, ['BIENNIO', 'DIGITAL_SCIENCE', 'MEA', 'AUA', 'ELA', 'INF', 'TEL', 'TLC', 'BTS', 'BTA', 'CHI', 'GRA'], true);
 }
 
 function formazioneClassiAddressLabel(string $addressKey): string
 {
     $labels = [
+        'BIENNIO' => 'BIENNIO COMUNE',
         'DIGITAL_SCIENCE' => 'DIGITAL SCIENCE',
-        'MEA' => 'MECCANICA E MECCATRONICA - ENERGIA',
     ];
-    return $labels[$addressKey] ?? $addressKey;
+    return $labels[$addressKey] ?? str_replace('_', ' ', $addressKey);
+}
+
+function formazioneClassiAddressAliases(string $addressKey): array
+{
+    $key = formazioneClassiNorm($addressKey);
+    $aliases = [
+        'BIENNIO' => ['BIENNIO', 'BIENNIO COMUNE', 'BIENNIO SETTORE TECNOLOGICO'],
+        'DIGITAL SCIENCE' => ['DIGITAL SCIENCE', 'DIGITAL_SCIENCE', 'DS'],
+        'DIGITAL_SCIENCE' => ['DIGITAL SCIENCE', 'DIGITAL_SCIENCE', 'DS'],
+        'MEA' => ['MEA', 'MECCANICA ED ENERGIA', 'MECCANICA E MECCATRONICA ENERGIA', 'MECCANICA E MECCATRONICA - ENERGIA'],
+        'ELA' => ['ELA', 'ELETTRONICA ELETTROTECNICA', 'ELETTRONICA / ELETTROTECNICA'],
+        'AUA' => ['AUA', 'AUTOMAZIONE'],
+        'INF' => ['INF', 'INFORMATICA'],
+        'TEL' => ['TEL', 'TLC', 'TELECOMUNICAZIONI'],
+        'TLC' => ['TEL', 'TLC', 'TELECOMUNICAZIONI'],
+        'BTS' => ['BTS', 'BIOTECNOLOGIE SANITARIE'],
+        'BTA' => ['BTA', 'BIOTECNOLOGIE AMBIENTALI'],
+        'CHI' => ['CHI', 'CHIMICA E MATERIALI'],
+        'GRA' => ['GRA', 'GRAFICA', 'COMUNICAZIONE'],
+    ];
+    $values = $aliases[$key] ?? [$key];
+    $values[] = $key;
+    return array_values(array_unique(array_map('formazioneClassiNorm', $values)));
+}
+
+function formazioneClassiAddressKeysMatch(string $left, string $right): bool
+{
+    $leftNorm = formazioneClassiNorm($left);
+    $rightNorm = formazioneClassiNorm($right);
+    if ($leftNorm !== '' && $leftNorm === $rightNorm) {
+        return true;
+    }
+    if (ctype_digit(trim($left)) || ctype_digit(trim($right))) {
+        $leftResolved = ctype_digit(trim($left)) ? trim($left) : (string)formazioneClassiAddressIdByName($left, 5);
+        $rightResolved = ctype_digit(trim($right)) ? trim($right) : (string)formazioneClassiAddressIdByName($right, 5);
+        return $leftResolved !== '' && $leftResolved !== '0' && $leftResolved === $rightResolved;
+    }
+    $leftAliases = formazioneClassiAddressAliases($left);
+    $rightAliases = formazioneClassiAddressAliases($right);
+    return count(array_intersect($leftAliases, $rightAliases)) > 0;
+}
+
+function formazioneClassiAddressKeysMatchStrict(string $left, string $right): bool
+{
+    $leftNorm = formazioneClassiNorm($left);
+    $rightNorm = formazioneClassiNorm($right);
+    $equivalences = [
+        'CHIMICA E MATERIALI' => 'CHIMICA DEI MATERIALI',
+    ];
+    $leftNorm = $equivalences[$leftNorm] ?? $leftNorm;
+    $rightNorm = $equivalences[$rightNorm] ?? $rightNorm;
+    if ($leftNorm === '' || $rightNorm === '') {
+        return false;
+    }
+    if ($leftNorm === $rightNorm) {
+        return true;
+    }
+    $leftBiennio = strpos($leftNorm, 'BIENNIO') !== false;
+    $rightBiennio = strpos($rightNorm, 'BIENNIO') !== false;
+    if ($leftBiennio && $rightBiennio) {
+        return true;
+    }
+    $leftDs = strpos($leftNorm, 'DIGITAL') !== false && strpos($leftNorm, 'SCIENCE') !== false;
+    $rightDs = strpos($rightNorm, 'DIGITAL') !== false && strpos($rightNorm, 'SCIENCE') !== false;
+    if ($leftDs && $rightDs) {
+        return true;
+    }
+    return count(array_intersect(formazioneClassiAddressAliases($left), formazioneClassiAddressAliases($right))) > 0;
+}
+
+function formazioneClassiGestoreAddressKeyFromId($id): string
+{
+    $id = intval($id);
+    if ($id <= 0) {
+        return '';
+    }
+    $name = trim((string)dbGetValue("SELECT nome FROM indirizzo WHERE id = " . dbI($id) . " LIMIT 1"));
+    return $name !== '' ? formazioneClassiAddressKeyFromAddressName($name) : '';
+}
+
+function formazioneClassiGestoreAddressKeyFromPracticeText(string $value): string
+{
+    $norm = formazioneClassiNorm($value);
+    if ($norm === '') {
+        return '';
+    }
+    $equivalences = [
+        'CHIMICA E MATERIALI' => 'CHIMICA DEI MATERIALI',
+    ];
+    if (isset($equivalences[$norm])) {
+        $norm = $equivalences[$norm];
+    }
+    foreach (formazioneClassiIndirizziRows(range(1, 10)) as $row) {
+        $name = (string)($row['nome'] ?? '');
+        if (formazioneClassiNorm($name) === $norm) {
+            return formazioneClassiAddressKeyFromAddressName($name);
+        }
+    }
+    if ($norm === 'ENERGIA') {
+        foreach (formazioneClassiIndirizziRows(range(1, 10)) as $row) {
+            $nameNorm = formazioneClassiNorm((string)($row['nome'] ?? ''));
+            if (strpos($nameNorm, 'ENERGIA') !== false && strpos($nameNorm, 'MECCANICA') !== false) {
+                return formazioneClassiAddressKeyFromAddressName((string)($row['nome'] ?? ''));
+            }
+        }
+    }
+    return '';
+}
+
+function formazioneClassiIndirizziRows(?array $ids = null): array
+{
+    $where = '';
+    if ($ids !== null) {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), fn($id) => $id > 0)));
+        if (empty($ids)) {
+            return [];
+        }
+        $where = 'WHERE id IN (' . implode(',', array_map('dbI', $ids)) . ')';
+    }
+
+    return dbGetAll("
+        SELECT id, nome
+        FROM indirizzo
+        $where
+        ORDER BY id ASC
+    ") ?: [];
+}
+
+function formazioneClassiAddressOptionsFromIndirizzi(int $targetClassYear): array
+{
+    $ids = $targetClassYear <= 2 ? [11] : range(1, 10);
+    if ($targetClassYear <= 2) {
+        $digitalScienceId = formazioneClassiAddressIdByName('DIGITAL SCIENCE', 5);
+        if ($digitalScienceId > 0) {
+            $ids[] = $digitalScienceId;
+        }
+    }
+    $addresses = [];
+    foreach (formazioneClassiIndirizziRows($ids) as $row) {
+        $id = intval($row['id'] ?? 0);
+        $name = trim((string)($row['nome'] ?? ''));
+        if ($id <= 0 || $name === '') {
+            continue;
+        }
+        $addresses[(string)$id] = $name;
+    }
+    return $addresses;
+}
+
+function formazioneClassiAddressIdByName(string $name, int $targetClassYear): int
+{
+    $nameNorm = formazioneClassiNorm($name);
+    if ($nameNorm === '') {
+        return 0;
+    }
+    if ($targetClassYear <= 2 && strpos($nameNorm, 'BIENNIO') !== false && strpos($nameNorm, 'TECNOLOG') !== false) {
+        return 11;
+    }
+
+    foreach (formazioneClassiIndirizziRows($targetClassYear <= 2 ? [11] : range(1, 10)) as $row) {
+        $id = intval($row['id'] ?? 0);
+        $indirizzoNorm = formazioneClassiNorm((string)($row['nome'] ?? ''));
+        if ($id <= 0 || $indirizzoNorm === '') {
+            continue;
+        }
+        if ($nameNorm === $indirizzoNorm
+            || strpos($nameNorm, $indirizzoNorm) !== false
+            || strpos($indirizzoNorm, $nameNorm) !== false
+            || count(array_intersect(formazioneClassiAddressAliases($name), formazioneClassiAddressAliases((string)($row['nome'] ?? '')))) > 0) {
+            return $id;
+        }
+    }
+    return 0;
+}
+
+function formazioneClassiClassMatchesAddress(array $classRow, string $indirizzo): bool
+{
+    $indirizzoId = intval($indirizzo);
+    if ($indirizzoId <= 0) {
+        return formazioneClassiAddressKeysMatch(formazioneClassiAddressKeyFromClass((string)($classRow['classe'] ?? '')), $indirizzo);
+    }
+    $classLabel = (string)($classRow['classe'] ?? '');
+    $classYear = mastercomTabelloniClassYearFromName($classLabel);
+    if (preg_match('/^[1-5]DS\b/u', formazioneClassiNorm($classLabel))) {
+        return formazioneClassiAddressKeysMatch('DIGITAL_SCIENCE', $indirizzo);
+    }
+    $firstAddressId = intval($classRow['id_primo_indirizzo'] ?? 0);
+    if ($firstAddressId > 0 && $firstAddressId === $indirizzoId) {
+        return true;
+    }
+    if ($firstAddressId > 0) {
+        return false;
+    }
+    $classAddressKey = formazioneClassiAddressKeyFromClass($classLabel);
+    if ($classAddressKey !== '' && formazioneClassiAddressKeysMatch($classAddressKey, $indirizzo)) {
+        return true;
+    }
+    if ($classYear > 0 && $classYear <= 2 && $indirizzoId === 11) {
+        return true;
+    }
+    return false;
 }
 
 function formazioneClassiTipi(): array
@@ -165,16 +436,27 @@ function formazioneClassiCurrentYearId(): int
     return intval($__anno_scolastico_corrente_id ?? 0);
 }
 
+function formazioneClassiRefreshTabelloniOnce(): void
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    mastercomTabelloniRefreshDerivedFields();
+    $done = true;
+}
+
 function formazioneClassiAddressOptions(int $sourceYearId, int $classYear): array
 {
     mastercomTabelloniEnsureTables();
-    mastercomTabelloniRefreshDerivedFields();
+    formazioneClassiRefreshTabelloniOnce();
 
     $rows = dbGetAll("
         SELECT DISTINCT
             t.classe,
             t.classe_tabellone,
             cls_summary.classe AS classe_gestore_studente,
+            cls_summary.id_primo_indirizzo AS id_primo_indirizzo_gestore_studente,
             mcls_summary.nome AS classe_mastercom_studente
         FROM mastercom_tabelloni_scrutini t
         INNER JOIN mastercom_tabelloni_scrutini_studenti s ON s.tabellone_id = t.id
@@ -202,10 +484,15 @@ function formazioneClassiAddressOptions(int $sourceYearId, int $classYear): arra
     $addresses = [];
     foreach ($rows as $row) {
         $classLabel = mastercomTabelloniSummaryEffectiveClassLabel($row);
-        if (mastercomTabelloniClassYearFromName($classLabel) !== $classYear) {
+        $gestoreClassLabel = trim((string)($row['classe_gestore_studente'] ?? ''));
+        $filterLabel = $gestoreClassLabel !== '' ? $gestoreClassLabel : $classLabel;
+        if (mastercomTabelloniClassYearFromName($filterLabel) !== $classYear) {
             continue;
         }
-        $address = formazioneClassiAddressKeyFromClass(mastercomTabelloniSummaryClassLabel($row));
+        $address = formazioneClassiGestoreAddressKeyFromId($row['id_primo_indirizzo_gestore_studente'] ?? 0);
+        if ($address === '') {
+            $address = formazioneClassiAddressKeyFromClass($classLabel);
+        }
         if ($address === '' || $address === 'n/d') {
             continue;
         }
@@ -215,13 +502,180 @@ function formazioneClassiAddressOptions(int $sourceYearId, int $classYear): arra
     return $addresses;
 }
 
-function formazioneClassiTargetClasses(int $classYear, string $indirizzo = ''): array
+function formazioneClassiAddressOptionsFromClasses(array $classYears): array
+{
+    $years = array_values(array_unique(array_filter(array_map('intval', $classYears), fn($year) => $year > 0)));
+    if (empty($years)) {
+        return [];
+    }
+
+    $rows = dbGetAll("
+        SELECT classe
+        FROM classi
+        WHERE anno IN (" . implode(',', array_map('dbI', $years)) . ")
+        ORDER BY anno ASC, classe ASC
+    ") ?: [];
+
+    $addresses = [];
+    foreach ($rows as $row) {
+        $address = formazioneClassiAddressKeyFromClass((string)($row['classe'] ?? ''));
+        if ($address === '') {
+            continue;
+        }
+        $addresses[$address] = formazioneClassiAddressLabel($address);
+    }
+    asort($addresses, SORT_NATURAL | SORT_FLAG_CASE);
+    return $addresses;
+}
+
+function formazioneClassiAddressKeyFromPractice(array $practice, int $targetClassYear): string
+{
+    $gestoreId = intval($practice['id_indirizzo_gestore'] ?? 0);
+    if ($gestoreId > 0) {
+        $address = formazioneClassiGestoreAddressKeyFromId($gestoreId);
+        if ($address !== '') {
+            return $address;
+        }
+    }
+    if (formazioneClassiPracticeIsDigitalScience($practice)) {
+        return 'DIGITAL SCIENCE';
+    }
+    $course = trim((string)($practice['corso_studi'] ?? ''));
+    if ($course === '') {
+        $course = trim((string)($practice['corso'] ?? ''));
+    }
+    if ($course === '') {
+        $course = trim((string)($practice['indirizzo'] ?? ''));
+    }
+    $choice = trim((string)($practice['scelta_formativa'] ?? ''));
+    $section = trim((string)($practice['sezione_richiesta'] ?? ''));
+    $tabletGroup = trim((string)($practice['tablet_gruppo'] ?? ''));
+    $textNorm = formazioneClassiNorm($course . ' ' . $choice . ' ' . $section);
+    $sectionNorm = formazioneClassiNorm($section);
+
+    if ($targetClassYear <= 2) {
+        return 'BIENNIO';
+    }
+
+    foreach ([$course, $choice] as $value) {
+        $address = formazioneClassiGestoreAddressKeyFromPracticeText((string)$value);
+        if ($address !== '') {
+            return $address;
+        }
+    }
+
+    if (strpos($textNorm, 'ENERGIA') !== false || strpos($textNorm, 'MEA') !== false || strpos($textNorm, 'MECCAN') !== false) {
+        $address = formazioneClassiGestoreAddressKeyFromPracticeText('ENERGIA');
+        return $address !== '' ? $address : formazioneClassiAddressKeyFromAddressName('MECCANICA ED ENERGIA');
+    }
+
+    if (strpos($textNorm, 'AUTOMAZIONE') !== false || strpos($textNorm, 'AUA') !== false) {
+        return formazioneClassiAddressKeyFromAddressName('AUTOMAZIONE');
+    }
+
+    if (strpos($textNorm, 'ELETTRON') !== false || strpos($textNorm, 'ELETTROTEC') !== false) {
+        return formazioneClassiAddressKeyFromAddressName('ELETTRONICA / ELETTROTECNICA');
+    }
+    if (strpos($textNorm, 'INFORMATICA') !== false) {
+        return formazioneClassiAddressKeyFromAddressName('INFORMATICA');
+    }
+    if (strpos($textNorm, 'TELECOM') !== false) {
+        return formazioneClassiAddressKeyFromAddressName('TELECOMUNICAZIONI');
+    }
+    if (strpos($textNorm, 'BIOTECNOLOGIE SANITARIE') !== false) {
+        return formazioneClassiAddressKeyFromAddressName('BIOTECNOLOGIE SANITARIE');
+    }
+    if (strpos($textNorm, 'BIOTECNOLOGIE AMBIENTALI') !== false) {
+        return formazioneClassiAddressKeyFromAddressName('BIOTECNOLOGIE AMBIENTALI');
+    }
+    if (strpos($textNorm, 'CHIMICA') !== false) {
+        return formazioneClassiAddressKeyFromAddressName('CHIMICA E MATERIALI');
+    }
+    if (strpos($textNorm, 'GRAFICA') !== false || strpos($textNorm, 'COMUNICAZIONE') !== false) {
+        return formazioneClassiAddressKeyFromAddressName('GRAFICA E COMUNICAZIONE');
+    }
+
+    return '';
+}
+
+function formazioneClassiPracticeIsDigitalScience(array $practice): bool
+{
+    $tabletGroup = trim((string)($practice['tablet_gruppo'] ?? ''));
+    $section = formazioneClassiNorm((string)($practice['sezione_richiesta'] ?? ''));
+    $text = formazioneClassiNorm(
+        (string)($practice['corso_studi'] ?? '')
+        . ' ' . (string)($practice['scelta_formativa'] ?? '')
+        . ' ' . (string)($practice['corso'] ?? '')
+        . ' ' . (string)($practice['indirizzo'] ?? '')
+    );
+    if ($tabletGroup === 'digital_science' || strpos($text, 'DIGITAL SCIENCE') !== false) {
+        return true;
+    }
+    return preg_match('/^[1-5]?DS\b/u', $section) === 1;
+}
+
+function formazioneClassiAddressOptionsFromIscrizioni(int $targetYearId, int $targetClassYear): array
+{
+    if (!in_array($targetClassYear, [1, 3], true)) {
+        return [];
+    }
+
+    if (!formazioneClassiIscrizioniTableAvailable()) {
+        return [];
+    }
+    $targetYear = trim((string)dbGetValue("SELECT anno FROM anno_scolastico WHERE id = " . dbI($targetYearId) . " LIMIT 1"));
+    if ($targetYear === '') {
+        return [];
+    }
+
+    $tipo = $targetClassYear === 3 ? 'terze' : 'prime';
+    $rows = dbGetAll("
+        SELECT corso_studi, scelta_formativa, sezione_richiesta, tablet_gruppo, id_indirizzo_gestore
+        FROM iscrizioni_prime_pratiche p
+        WHERE p.tipo_iscrizione = " . dbQ($tipo) . "
+          AND (p.stato IS NULL OR p.stato <> 'annullata')
+          AND " . iscrizioniPrimeSchoolYearWhere('p.anno_scolastico', $targetYear) . "
+    ") ?: [];
+
+    $addresses = [];
+    foreach ($rows as $row) {
+        $address = formazioneClassiAddressKeyFromPractice($row, $targetClassYear);
+        if ($address === '') {
+            continue;
+        }
+        $addresses[$address] = formazioneClassiAddressLabel($address);
+    }
+    asort($addresses, SORT_NATURAL | SORT_FLAG_CASE);
+    return $addresses;
+}
+
+function formazioneClassiIscrizioniTableAvailable(): bool
+{
+    static $available = null;
+    if ($available !== null) {
+        return $available;
+    }
+
+    $row = dbGetFirst("SHOW TABLES LIKE 'iscrizioni_prime_pratiche'");
+    $available = $row !== null;
+    return $available;
+}
+
+function formazioneClassiTargetClasses(int $classYear, string $indirizzo = '', int $schoolYearId = 0): array
 {
     $rows = dbGetAll("
-        SELECT id, classe
-        FROM classi
-        WHERE anno = " . dbI($classYear) . "
-        ORDER BY classe ASC
+        SELECT
+            c.id,
+            c.classe,
+            c.id_primo_indirizzo,
+            c.id_secondo_indirizzo,
+            COALESCE(cas.is_tablet, 0) AS is_tablet
+        FROM classi c
+        LEFT JOIN classi_anno_scolastico cas
+            ON cas.id_classe = c.id
+           AND cas.id_anno_scolastico = " . dbI($schoolYearId) . "
+        WHERE c.anno = " . dbI($classYear) . "
+        ORDER BY c.classe ASC
     ") ?: [];
 
     $indirizzoNorm = formazioneClassiNorm($indirizzo);
@@ -231,27 +685,51 @@ function formazioneClassiTargetClasses(int $classYear, string $indirizzo = ''): 
         if ($label === '') {
             continue;
         }
-        if ($indirizzoNorm !== '' && formazioneClassiNorm(formazioneClassiAddressKeyFromClass($label)) !== $indirizzoNorm) {
-            continue;
+        if ($indirizzoNorm !== '') {
+            $gestoreAddress = preg_match('/^[1-5]DS\b/u', formazioneClassiNorm($label))
+                ? 'DIGITAL SCIENCE'
+                : formazioneClassiGestoreAddressKeyFromId($row['id_primo_indirizzo'] ?? 0);
+            if ($gestoreAddress === '') {
+                $gestoreAddress = formazioneClassiAddressKeyFromClass($label);
+            }
+            if (!formazioneClassiAddressKeysMatchStrict($gestoreAddress, $indirizzo)) {
+                continue;
+            }
         }
         $result[] = [
             'id' => intval($row['id'] ?? 0),
             'label' => $label,
+            'is_tablet' => intval($row['is_tablet'] ?? 0),
         ];
     }
     return $result;
 }
 
-function formazioneClassiAddressOptionsForFormation(int $sourceYearId, int $targetClassYear): array
+function formazioneClassiSingleTargetClass(int $classYear, string $indirizzo, int $schoolYearId): ?array
+{
+    $classes = formazioneClassiTargetClasses($classYear, $indirizzo, $schoolYearId);
+    return count($classes) === 1 ? $classes[0] : null;
+}
+
+function formazioneClassiAddressOptionsForFormation(int $sourceYearId, int $targetClassYear, int $targetYearId = 0): array
 {
     $addresses = [];
-    if ($targetClassYear > 1 && $targetClassYear !== 3) {
+    if ($targetClassYear === 3) {
+        foreach (formazioneClassiIndirizziRows(range(1, 10)) as $row) {
+            $address = formazioneClassiAddressKeyFromAddressName((string)($row['nome'] ?? ''));
+            if ($address !== '') {
+                $addresses[$address] = formazioneClassiAddressLabel($address);
+            }
+        }
+    } elseif ($targetClassYear > 1) {
         foreach (formazioneClassiAddressOptions($sourceYearId, $targetClassYear - 1) as $key => $label) {
             $addresses[$key] = $label;
         }
     }
-    foreach (formazioneClassiAddressOptions($sourceYearId, $targetClassYear) as $key => $label) {
-        $addresses[$key] = $label;
+    if ($targetClassYear !== 3) {
+        foreach (formazioneClassiAddressOptions($sourceYearId, $targetClassYear) as $key => $label) {
+            $addresses[$key] = $label;
+        }
     }
 
     asort($addresses, SORT_NATURAL | SORT_FLAG_CASE);
@@ -301,13 +779,157 @@ function formazioneClassiLocalClassByLabel(string $label): ?array
     if ($label === '') {
         return null;
     }
-    $row = dbGetFirst("SELECT id, classe FROM classi WHERE classe = " . dbQ($label) . " LIMIT 1");
+    $row = dbGetFirst("SELECT id, classe, id_primo_indirizzo, id_secondo_indirizzo FROM classi WHERE classe = " . dbQ($label) . " LIMIT 1");
     return $row ?: null;
+}
+
+function formazioneClassiBestTabletClass(int $sessionId, int $classYear, string $indirizzo, int $schoolYearId): ?array
+{
+    $tabletClasses = [];
+    foreach (formazioneClassiTargetClasses($classYear, $indirizzo, $schoolYearId) as $class) {
+        if (intval($class['is_tablet'] ?? 0) === 1) {
+            $tabletClasses[] = $class;
+        }
+    }
+    if (empty($tabletClasses)) {
+        return null;
+    }
+
+    $counts = [];
+    $labels = array_values(array_unique(array_filter(array_map(function ($class) {
+        return (string)($class['label'] ?? '');
+    }, $tabletClasses))));
+    if ($sessionId > 0 && !empty($labels)) {
+        $rows = dbGetAll("
+            SELECT classe_provvisoria_label, COUNT(*) AS totale
+            FROM formazione_classi_studenti
+            WHERE id_sessione = " . dbI($sessionId) . "
+              AND classe_provvisoria_label IN (" . implode(',', array_map('dbQ', $labels)) . ")
+            GROUP BY classe_provvisoria_label
+        ") ?: [];
+        foreach ($rows as $row) {
+            $counts[(string)($row['classe_provvisoria_label'] ?? '')] = intval($row['totale'] ?? 0);
+        }
+    }
+
+    usort($tabletClasses, function ($a, $b) use ($counts) {
+        $labelA = (string)($a['label'] ?? '');
+        $labelB = (string)($b['label'] ?? '');
+        $countA = intval($counts[$labelA] ?? 0);
+        $countB = intval($counts[$labelB] ?? 0);
+        if ($countA !== $countB) {
+            return $countA <=> $countB;
+        }
+        return strnatcasecmp($labelA, $labelB);
+    });
+
+    return $tabletClasses[0];
+}
+
+function formazioneClassiPracticeHasConfirmedTablet(array $practice): bool
+{
+    return intval($practice['tablet_scelto'] ?? 0) === 1
+        && trim((string)($practice['tablet_stato'] ?? '')) === 'confermato';
+}
+
+function formazioneClassiBestClassByLabels(int $sessionId, array $labels): ?array
+{
+    $classes = [];
+    foreach (array_values(array_unique(array_filter($labels))) as $label) {
+        $class = formazioneClassiLocalClassByLabel((string)$label);
+        if ($class) {
+            $classes[] = ['id' => intval($class['id'] ?? 0), 'label' => (string)($class['classe'] ?? $label)];
+        }
+    }
+    if (!$classes) {
+        return null;
+    }
+
+    $counts = [];
+    $classLabels = array_map(static function ($class) {
+        return (string)($class['label'] ?? '');
+    }, $classes);
+    if ($sessionId > 0 && $classLabels) {
+        $rows = dbGetAll("
+            SELECT classe_provvisoria_label, COUNT(*) AS totale
+            FROM formazione_classi_studenti
+            WHERE id_sessione = " . dbI($sessionId) . "
+              AND classe_provvisoria_label IN (" . implode(',', array_map('dbQ', $classLabels)) . ")
+            GROUP BY classe_provvisoria_label
+        ") ?: [];
+        foreach ($rows as $row) {
+            $counts[(string)($row['classe_provvisoria_label'] ?? '')] = intval($row['totale'] ?? 0);
+        }
+    }
+
+    usort($classes, static function ($a, $b) use ($counts) {
+        $labelA = (string)($a['label'] ?? '');
+        $labelB = (string)($b['label'] ?? '');
+        $countA = intval($counts[$labelA] ?? 0);
+        $countB = intval($counts[$labelB] ?? 0);
+        if ($countA !== $countB) {
+            return $countA <=> $countB;
+        }
+        return strnatcasecmp($labelA, $labelB);
+    });
+
+    return $classes[0];
+}
+
+function formazioneClassiCatCurvatureLabels(array $practice): array
+{
+    $curvature = strtolower(trim((string)($practice['curvatura_design'] ?? '')));
+    if ($curvature === 'design') {
+        return ['3CTC', '3CTD'];
+    }
+    if ($curvature === 'normale') {
+        return ['3CTA', '3CTB'];
+    }
+    return [];
+}
+
+function formazioneClassiClassLabelAddressKey(string $classLabel): string
+{
+    if (preg_match('/^[1-5]DS\b/u', formazioneClassiNorm($classLabel))) {
+        return 'DIGITAL SCIENCE';
+    }
+    $classAddress = formazioneClassiAddressKeyFromClass($classLabel);
+    if ($classAddress !== '') {
+        return $classAddress;
+    }
+    $localClass = formazioneClassiLocalClassByLabel($classLabel);
+    if ($localClass) {
+        $address = formazioneClassiGestoreAddressKeyFromId($localClass['id_primo_indirizzo'] ?? 0);
+        if ($address !== '') {
+            return $address;
+        }
+    }
+    return '';
+}
+
+function formazioneClassiCanonicalClassLabel(string $classLabel): string
+{
+    $classLabel = trim($classLabel);
+    $norm = formazioneClassiNorm($classLabel);
+    if (preg_match('/^([1-5])DS\b/u', $norm, $matches)) {
+        return $matches[1] . 'DS';
+    }
+    $exact = formazioneClassiLocalClassByLabel($classLabel);
+    if ($exact) {
+        return (string)$exact['classe'];
+    }
+    if (preg_match('/^([1-5][A-Z0-9]+)\b/u', $norm, $matches)) {
+        $local = formazioneClassiLocalClassByLabel($matches[1]);
+        if ($local) {
+            return (string)$local['classe'];
+        }
+    }
+    return $classLabel;
 }
 
 function formazioneClassiNextClassLabel(string $classLabel): string
 {
-    $classLabel = trim($classLabel);
+    $classLabel = formazioneClassiCanonicalClassLabel($classLabel);
     if (preg_match('/^([1-4])(.*)$/u', $classLabel, $m)) {
         return (string)(intval($m[1]) + 1) . $m[2];
     }
@@ -317,7 +939,7 @@ function formazioneClassiNextClassLabel(string $classLabel): string
 function formazioneClassiTabelloneRows(int $sourceYearId, int $classYear, string $indirizzo, array $outcomes): array
 {
     mastercomTabelloniEnsureTables();
-    mastercomTabelloniRefreshDerivedFields();
+    formazioneClassiRefreshTabelloniOnce();
 
     $rows = dbGetAll("
         SELECT
@@ -330,13 +952,17 @@ function formazioneClassiTabelloneRows(int $sourceYearId, int $classYear, string
             s.studente_nome,
             s.media,
             s.esito_key,
+            st_gestore.codice_fiscale AS codice_fiscale_gestore,
             cls_summary.id AS id_classe_gestore_studente,
             cls_summary.classe AS classe_gestore_studente,
+            cls_summary.id_primo_indirizzo AS id_primo_indirizzo_gestore_studente,
+            cls_summary.id_secondo_indirizzo AS id_secondo_indirizzo_gestore_studente,
             mcls_summary.nome AS classe_mastercom_studente,
             GROUP_CONCAT(CONCAT_WS('|', v.materia_codice, v.tipo_colonna, COALESCE(v.valore_num, '')) SEPARATOR '\n') AS valori
         FROM mastercom_tabelloni_scrutini t
         INNER JOIN mastercom_tabelloni_scrutini_studenti s ON s.tabellone_id = t.id
         LEFT JOIN mastercom_tabelloni_scrutini_voti v ON v.tabellone_studente_id = s.id
+        LEFT JOIN studente st_gestore ON st_gestore.id = s.id_studente_gestore
         LEFT JOIN studente_frequenta sf_summary ON sf_summary.id = (
             SELECT sf2.id
             FROM studente_frequenta sf2
@@ -360,7 +986,9 @@ function formazioneClassiTabelloneRows(int $sourceYearId, int $classYear, string
           AND s.id_studente_gestore > 0
         GROUP BY t.id, t.classe, t.classe_tabellone, t.id_anno_scolastico,
                  s.id, s.id_studente_gestore, s.studente_nome, s.media, s.esito_key,
-                 cls_summary.id, cls_summary.classe, mcls_summary.nome
+                 st_gestore.codice_fiscale,
+                 cls_summary.id, cls_summary.classe, cls_summary.id_primo_indirizzo, cls_summary.id_secondo_indirizzo,
+                 mcls_summary.nome
         ORDER BY t.classe ASC, s.studente_nome ASC
     ") ?: [];
 
@@ -369,10 +997,12 @@ function formazioneClassiTabelloneRows(int $sourceYearId, int $classYear, string
     $result = [];
     foreach ($rows as $row) {
         $classLabel = mastercomTabelloniSummaryEffectiveClassLabel($row);
-        if (mastercomTabelloniClassYearFromName($classLabel) !== $classYear) {
+        $gestoreClassLabel = trim((string)($row['classe_gestore_studente'] ?? ''));
+        $filterLabel = $gestoreClassLabel !== '' ? $gestoreClassLabel : $classLabel;
+        if (mastercomTabelloniClassYearFromName($filterLabel) !== $classYear) {
             continue;
         }
-        if (formazioneClassiNorm(formazioneClassiAddressKeyFromClass($classLabel)) !== $indirizzoNorm) {
+        if ($indirizzoNorm !== '' && !formazioneClassiAddressKeysMatch(formazioneClassiClassLabelAddressKey($filterLabel), $indirizzo)) {
             continue;
         }
         $outcome = (string)($row['esito_key'] ?? '');
@@ -380,7 +1010,7 @@ function formazioneClassiTabelloneRows(int $sourceYearId, int $classYear, string
             continue;
         }
         $metrics = formazioneClassiMetricsFromValues((string)($row['valori'] ?? ''), $row['media'] ?? null);
-        $row['classe_effettiva'] = $classLabel;
+        $row['classe_effettiva'] = formazioneClassiCanonicalClassLabel($filterLabel);
         $row['metrics'] = $metrics;
         $result[] = $row;
     }
@@ -423,7 +1053,28 @@ function formazioneClassiInitDaTabelloni(array $session, int $targetClassYear, s
         return;
     }
 
-    if ($targetClassYear > 1 && $targetClassYear !== 3) {
+    formazioneClassiNormalizeDigitalScienceAssignments($sessionId);
+    formazioneClassiPruneMastercomRowsByAddress($sessionId, $indirizzo, $targetClassYear);
+    formazioneClassiPruneTerzaDigitalScienceRows($sessionId, $indirizzo, $targetClassYear);
+    formazioneClassiPruneRowsByProvisionalAddress($sessionId, $indirizzo);
+
+    if ($targetClassYear === 3) {
+        $promossi = formazioneClassiTabelloneRows($sourceYearId, 2, '', ['ammesso', 'anno_estero']);
+        foreach ($promossi as $row) {
+            if (!formazioneClassiSecondaPromossaMatchesTerzaAddress($row, $session, $indirizzo)) {
+                continue;
+            }
+            $targetClass = formazioneClassiTargetClassForTerza($row, $session, $indirizzo);
+            formazioneClassiUpsertStudent($sessionId, $row, 'promosso', $targetClass['id'] !== null ? intval($targetClass['id']) : null, $targetClass['label'] ?? null);
+        }
+        $bocciatiSeconda = formazioneClassiTabelloneRows($sourceYearId, 2, '', ['non_ammesso', 'in_corso']);
+        foreach ($bocciatiSeconda as $row) {
+            if (!formazioneClassiSecondaPromossaMatchesTerzaAddress($row, $session, $indirizzo)) {
+                continue;
+            }
+            formazioneClassiUpsertStudent($sessionId, $row, 'bocciato', null, null);
+        }
+    } elseif ($targetClassYear > 1) {
         $promossi = formazioneClassiTabelloneRows($sourceYearId, $targetClassYear - 1, $indirizzo, ['ammesso', 'anno_estero']);
         foreach ($promossi as $row) {
             $sourceLabel = (string)($row['classe_effettiva'] ?? '');
@@ -437,6 +1088,715 @@ function formazioneClassiInitDaTabelloni(array $session, int $targetClassYear, s
     foreach ($bocciati as $row) {
         formazioneClassiUpsertStudent($sessionId, $row, 'bocciato', null, null);
     }
+
+    formazioneClassiSyncIscrizioni($session, $targetClassYear, $indirizzo);
+    formazioneClassiSyncMovimenti($session, $targetClassYear, $indirizzo);
+    formazioneClassiPruneTerzaRowsByPracticeAddress($sessionId, $targetClassYear, $indirizzo, intval($session['id_anno_scolastico_target'] ?? 0));
+}
+
+function formazioneClassiNormalizeDigitalScienceAssignments(int $sessionId): void
+{
+    if ($sessionId <= 0) {
+        return;
+    }
+
+    $rows = dbGetAll("
+        SELECT id, classe_provvisoria_label
+        FROM formazione_classi_studenti
+        WHERE id_sessione = " . dbI($sessionId) . "
+          AND TRIM(COALESCE(classe_provvisoria_label, '')) <> ''
+    ") ?: [];
+
+    foreach ($rows as $row) {
+        $canonical = formazioneClassiCanonicalClassLabel((string)($row['classe_provvisoria_label'] ?? ''));
+        if ($canonical === '' || $canonical === (string)($row['classe_provvisoria_label'] ?? '')) {
+            continue;
+        }
+        $targetClass = formazioneClassiLocalClassByLabel($canonical);
+        dbExec("
+            UPDATE formazione_classi_studenti SET
+                id_classe_provvisoria = " . dbI($targetClass ? intval($targetClass['id']) : null) . ",
+                classe_provvisoria_label = " . dbQ($canonical) . ",
+                updated_at = NOW()
+            WHERE id = " . dbI($row['id'] ?? 0) . "
+            LIMIT 1
+        ");
+    }
+}
+
+function formazioneClassiPruneMastercomRowsByAddress(int $sessionId, string $indirizzo, int $targetClassYear): void
+{
+    if ($sessionId <= 0 || trim($indirizzo) === '') {
+        return;
+    }
+    $rows = dbGetAll("
+        SELECT id, classe_origine_label
+        FROM formazione_classi_studenti
+        WHERE id_sessione = " . dbI($sessionId) . "
+          AND fonte_valori = 'mastercom'
+          AND COALESCE(bloccato, 0) = 0
+          AND TRIM(COALESCE(classe_origine_label, '')) <> ''
+    ") ?: [];
+    foreach ($rows as $row) {
+        $classLabel = (string)($row['classe_origine_label'] ?? '');
+        $classYear = mastercomTabelloniClassYearFromName($classLabel);
+        if ($classYear > 0 && $classYear !== $targetClassYear) {
+            continue;
+        }
+        $address = formazioneClassiClassLabelAddressKey($classLabel);
+        if ($address !== '' && !formazioneClassiAddressKeysMatchStrict($address, $indirizzo)) {
+            dbExec("DELETE FROM formazione_classi_studenti WHERE id = " . dbI($row['id'] ?? 0) . " LIMIT 1");
+        }
+    }
+}
+
+function formazioneClassiPruneTerzaDigitalScienceRows(int $sessionId, string $indirizzo, int $targetClassYear): void
+{
+    if ($sessionId <= 0 || $targetClassYear !== 3 || trim($indirizzo) === '') {
+        return;
+    }
+    if (formazioneClassiAddressKeysMatchStrict('DIGITAL SCIENCE', $indirizzo)) {
+        return;
+    }
+    $rows = dbGetAll("
+        SELECT id, classe_origine_label, classe_provvisoria_label
+        FROM formazione_classi_studenti
+        WHERE id_sessione = " . dbI($sessionId) . "
+          AND fonte_valori IN ('mastercom', 'iscrizioni')
+          AND COALESCE(bloccato, 0) = 0
+          AND (
+              TRIM(COALESCE(classe_origine_label, '')) <> ''
+              OR TRIM(COALESCE(classe_provvisoria_label, '')) <> ''
+          )
+    ") ?: [];
+    foreach ($rows as $row) {
+        $origin = formazioneClassiNorm((string)($row['classe_origine_label'] ?? ''));
+        $target = formazioneClassiNorm((string)($row['classe_provvisoria_label'] ?? ''));
+        if (preg_match('/^2DS\b/u', $origin) || preg_match('/^3DS\b/u', $target)) {
+            dbExec("DELETE FROM formazione_classi_studenti WHERE id = " . dbI($row['id'] ?? 0) . " LIMIT 1");
+        }
+    }
+}
+
+function formazioneClassiPruneRowsByProvisionalAddress(int $sessionId, string $indirizzo): void
+{
+    if ($sessionId <= 0 || trim($indirizzo) === '') {
+        return;
+    }
+    $rows = dbGetAll("
+        SELECT id, classe_provvisoria_label
+        FROM formazione_classi_studenti
+        WHERE id_sessione = " . dbI($sessionId) . "
+          AND fonte_valori IN ('mastercom', 'iscrizioni', 'movimenti')
+          AND COALESCE(bloccato, 0) = 0
+          AND TRIM(COALESCE(classe_provvisoria_label, '')) <> ''
+    ") ?: [];
+    foreach ($rows as $row) {
+        $address = formazioneClassiClassLabelAddressKey((string)($row['classe_provvisoria_label'] ?? ''));
+        if ($address !== '' && !formazioneClassiAddressKeysMatchStrict($address, $indirizzo)) {
+            dbExec("
+                UPDATE formazione_classi_studenti SET
+                    id_classe_provvisoria = NULL,
+                    classe_provvisoria_label = NULL,
+                    updated_at = NOW()
+                WHERE id = " . dbI($row['id'] ?? 0) . "
+                LIMIT 1
+            ");
+        }
+    }
+}
+
+function formazioneClassiPruneTerzaRowsByPracticeAddress(int $sessionId, int $targetClassYear, string $indirizzo, int $targetYearId): void
+{
+    if ($sessionId <= 0 || $targetClassYear !== 3 || $targetYearId <= 0 || trim($indirizzo) === '') {
+        return;
+    }
+
+    $rows = dbGetAll("
+        SELECT f.id, f.classe_origine_label, s.codice_fiscale
+        FROM formazione_classi_studenti f
+        LEFT JOIN studente s ON s.id = f.id_studente
+        WHERE f.id_sessione = " . dbI($sessionId) . "
+          AND COALESCE(f.bloccato, 0) = 0
+          AND f.fonte_valori = 'iscrizioni'
+          AND TRIM(COALESCE(s.codice_fiscale, '')) <> ''
+    ") ?: [];
+
+    foreach ($rows as $row) {
+        $practice = formazioneClassiTerzaPracticeByCf($targetYearId, (string)($row['codice_fiscale'] ?? ''));
+        if (preg_match('/^2DS\b/u', formazioneClassiNorm((string)($row['classe_origine_label'] ?? '')))) {
+            $practiceAddress = 'DIGITAL SCIENCE';
+        } elseif (intval($practice['id_indirizzo_gestore'] ?? 0) <= 0) {
+            $practiceAddress = '';
+        } else {
+            $practiceAddress = formazioneClassiAddressKeyFromPractice($practice, 3);
+        }
+        if ($practiceAddress === '' || !formazioneClassiAddressKeysMatchStrict($practiceAddress, $indirizzo)) {
+            dbExec("DELETE FROM formazione_classi_studenti WHERE id = " . dbI($row['id'] ?? 0) . " LIMIT 1");
+        }
+    }
+}
+
+function formazioneClassiSecondaPromossaMatchesTerzaAddress(array $row, array $session, string $indirizzo): bool
+{
+    $indirizzo = trim($indirizzo);
+    if ($indirizzo === '') {
+        return true;
+    }
+
+    $sourceLabel = (string)($row['classe_effettiva'] ?? '');
+    if (preg_match('/^2DS\b/u', formazioneClassiNorm($sourceLabel))) {
+        return formazioneClassiAddressKeysMatchStrict('DIGITAL SCIENCE', $indirizzo);
+    }
+
+    $targetYearId = intval($session['id_anno_scolastico_target'] ?? 0);
+    $cf = strtoupper(trim((string)($row['codice_fiscale_gestore'] ?? '')));
+    if ($targetYearId <= 0 || $cf === '') {
+        return false;
+    }
+
+    $practice = formazioneClassiTerzaPracticeByCf($targetYearId, $cf);
+    $practiceAddress = formazioneClassiAddressKeyFromPractice($practice, 3);
+    if ($practiceAddress === '') {
+        return false;
+    }
+
+    return formazioneClassiAddressKeysMatchStrict($practiceAddress, $indirizzo);
+}
+
+function formazioneClassiTerzaPracticeByCf(int $targetYearId, string $codiceFiscale): array
+{
+    static $cache = [];
+    $codiceFiscale = strtoupper(trim($codiceFiscale));
+    if ($targetYearId <= 0 || $codiceFiscale === '' || !formazioneClassiIscrizioniTableAvailable()) {
+        return [];
+    }
+    if (!isset($cache[$targetYearId])) {
+        $targetYear = trim((string)dbGetValue("SELECT anno FROM anno_scolastico WHERE id = " . dbI($targetYearId) . " LIMIT 1"));
+        $cache[$targetYearId] = [];
+        if ($targetYear !== '') {
+            $rows = dbGetAll("
+                SELECT p.*
+                FROM iscrizioni_prime_pratiche p
+                WHERE p.tipo_iscrizione = 'terze'
+                  AND (p.stato IS NULL OR p.stato <> 'annullata')
+                  AND " . iscrizioniPrimeSchoolYearWhere('p.anno_scolastico', $targetYear) . "
+            ") ?: [];
+            foreach ($rows as $practice) {
+                $cf = strtoupper(trim((string)($practice['codice_fiscale'] ?? '')));
+                if ($cf === '') {
+                    continue;
+                }
+                $cache[$targetYearId][$cf] = $practice;
+            }
+        }
+    }
+
+    return (array)($cache[$targetYearId][$codiceFiscale] ?? []);
+}
+
+function formazioneClassiTargetClassForTerza(array $row, array $session, string $indirizzo): array
+{
+    $sessionId = intval($session['id'] ?? 0);
+    $targetYearId = intval($session['id_anno_scolastico_target'] ?? 0);
+    $cf = strtoupper(trim((string)($row['codice_fiscale_gestore'] ?? '')));
+    $practice = $cf !== '' ? formazioneClassiTerzaPracticeByCf($targetYearId, $cf) : [];
+    $labels = [];
+
+    if (!empty($practice)) {
+        $curvatureClass = formazioneClassiBestClassByLabels($sessionId, formazioneClassiCatCurvatureLabels($practice));
+        if ($curvatureClass !== null) {
+            return ['id' => intval($curvatureClass['id'] ?? 0), 'label' => (string)($curvatureClass['label'] ?? '')];
+        }
+    }
+
+    $practiceLabel = !empty($practice) ? formazioneClassiTargetLabelFromPractice($practice, 3) : null;
+    if ($practiceLabel !== null) {
+        $labels[] = $practiceLabel;
+    }
+
+    $sourceLabel = (string)($row['classe_effettiva'] ?? '');
+    if (preg_match('/^2DS\b/u', formazioneClassiNorm($sourceLabel))) {
+        $labels[] = '3DS';
+    }
+
+    foreach (array_values(array_unique(array_filter($labels))) as $label) {
+        $class = formazioneClassiLocalClassByLabel($label);
+        if (!$class) {
+            continue;
+        }
+        $address = formazioneClassiClassLabelAddressKey((string)($class['classe'] ?? $label));
+        if ($indirizzo === '' || formazioneClassiAddressKeysMatchStrict($address, $indirizzo)) {
+            return ['id' => intval($class['id'] ?? 0), 'label' => (string)($class['classe'] ?? $label)];
+        }
+    }
+
+    $singleClass = formazioneClassiSingleTargetClass(3, $indirizzo, $targetYearId);
+    if ($singleClass !== null) {
+        return ['id' => intval($singleClass['id'] ?? 0), 'label' => (string)($singleClass['label'] ?? '')];
+    }
+
+    return ['id' => null, 'label' => null];
+}
+
+function formazioneClassiSecondaOutcomeByCf(int $sourceYearId, string $codiceFiscale): string
+{
+    static $cache = [];
+    $codiceFiscale = strtoupper(trim($codiceFiscale));
+    if ($sourceYearId <= 0 || $codiceFiscale === '') {
+        return '';
+    }
+    if (!isset($cache[$sourceYearId])) {
+        $cache[$sourceYearId] = [];
+        foreach (['ammesso', 'anno_estero', 'non_ammesso', 'in_corso'] as $outcome) {
+            foreach (formazioneClassiTabelloneRows($sourceYearId, 2, '', [$outcome]) as $row) {
+                $cf = strtoupper(trim((string)($row['codice_fiscale_gestore'] ?? '')));
+                if ($cf !== '') {
+                    $cache[$sourceYearId][$cf] = (string)($row['esito_key'] ?? $outcome);
+                }
+            }
+        }
+    }
+    return (string)($cache[$sourceYearId][$codiceFiscale] ?? '');
+}
+
+function formazioneClassiTargetLabelFromPractice(array $practice, int $targetClassYear): ?string
+{
+    $section = strtoupper(trim((string)($practice['sezione_richiesta'] ?? '')));
+    if ($section === '') {
+        return null;
+    }
+    $section = preg_replace('/[^A-Z0-9]/u', '', $section);
+    if ($section === '') {
+        return null;
+    }
+    if (preg_match('/^[1-5]/u', $section)) {
+        return $section;
+    }
+    return (string)$targetClassYear . $section;
+}
+
+function formazioneClassiStudentHasBocciatoReiscrizione(int $studentId): bool
+{
+    if ($studentId <= 0) {
+        return false;
+    }
+    return dbGetFirst("
+        SELECT id
+        FROM studenti_movimenti_pratiche
+        WHERE id_studente = " . dbI($studentId) . "
+          AND tipo_pratica = 'bocciato_reiscrizione'
+          AND stato_pratica <> 'annullata'
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 1
+    ") !== null;
+}
+
+function formazioneClassiSyncIscrizioni(array $session, int $targetClassYear, string $indirizzo): void
+{
+    if (!in_array($targetClassYear, [1, 3], true)) {
+        return;
+    }
+
+    $sessionId = intval($session['id'] ?? 0);
+    $targetYearId = intval($session['id_anno_scolastico_target'] ?? 0);
+    if ($sessionId <= 0 || $targetYearId <= 0) {
+        return;
+    }
+
+    if (!formazioneClassiIscrizioniTableAvailable()) {
+        return;
+    }
+    $targetYear = trim((string)dbGetValue("SELECT anno FROM anno_scolastico WHERE id = " . dbI($targetYearId) . " LIMIT 1"));
+    if ($targetYear === '') {
+        return;
+    }
+
+    $tipo = $targetClassYear === 3 ? 'terze' : 'prime';
+    $rows = dbGetAll("
+        SELECT
+            p.*,
+            s.id AS id_studente_gestore,
+            s.cognome AS studente_cognome,
+            s.nome AS studente_nome,
+            sf_orig.id_classe AS id_classe_origine,
+            c_orig.classe AS classe_origine
+        FROM iscrizioni_prime_pratiche p
+        LEFT JOIN studente s ON UPPER(TRIM(s.codice_fiscale)) = UPPER(TRIM(p.codice_fiscale))
+        LEFT JOIN studente_frequenta sf_orig ON sf_orig.id = (
+            SELECT sf2.id
+            FROM studente_frequenta sf2
+            WHERE sf2.id_studente = s.id
+              AND sf2.id_anno_scolastico = " . dbI($session['id_anno_scolastico_origine'] ?? 0) . "
+            ORDER BY sf2.id DESC
+            LIMIT 1
+        )
+        LEFT JOIN classi c_orig ON c_orig.id = sf_orig.id_classe
+        WHERE p.tipo_iscrizione = " . dbQ($tipo) . "
+          AND (p.stato IS NULL OR p.stato <> 'annullata')
+          AND " . iscrizioniPrimeSchoolYearWhere('p.anno_scolastico', $targetYear) . "
+        ORDER BY p.cognome ASC, p.nome ASC
+    ") ?: [];
+
+    $indirizzoNorm = formazioneClassiNorm($indirizzo);
+    foreach ($rows as $practice) {
+        if (intval($practice['id_studente_gestore'] ?? 0) <= 0) {
+            $practice['id_studente_gestore'] = iscrizioniPrimeUpsertGestoreStudent($practice);
+            $practice['studente_cognome'] = $practice['cognome'] ?? '';
+            $practice['studente_nome'] = $practice['nome'] ?? '';
+        }
+
+        $studentId = intval($practice['id_studente_gestore'] ?? 0);
+        $isOrigin2Ds = $targetClassYear === 3
+            && preg_match('/^2DS\b/u', formazioneClassiNorm((string)($practice['classe_origine'] ?? '')));
+        if ($targetClassYear === 3 && !$isOrigin2Ds && intval($practice['id_indirizzo_gestore'] ?? 0) <= 0) {
+            continue;
+        }
+
+        $address = formazioneClassiAddressKeyFromPractice($practice, $targetClassYear);
+        $isBocciatoReiscrizione = formazioneClassiStudentHasBocciatoReiscrizione($studentId);
+        $secondaOutcome = $targetClassYear === 3
+            ? formazioneClassiSecondaOutcomeByCf(intval($session['id_anno_scolastico_origine'] ?? 0), (string)($practice['codice_fiscale'] ?? ''))
+            : '';
+        if (in_array($secondaOutcome, ['non_ammesso', 'in_corso'], true)) {
+            $isBocciatoReiscrizione = true;
+        }
+        $targetLabel = $isBocciatoReiscrizione ? null : formazioneClassiTargetLabelFromPractice($practice, $targetClassYear);
+        if ($targetClassYear === 1 && formazioneClassiPracticeIsDigitalScience($practice)) {
+            $address = 'DIGITAL SCIENCE';
+            if (!$isBocciatoReiscrizione) {
+                $targetLabel = '1DS';
+            }
+        }
+        if ($targetClassYear === 1
+            && !$isBocciatoReiscrizione
+            && !formazioneClassiPracticeIsDigitalScience($practice)
+            && formazioneClassiPracticeHasConfirmedTablet($practice)) {
+            $tabletClass = formazioneClassiBestTabletClass($sessionId, 1, $indirizzo, $targetYearId);
+            if ($tabletClass !== null) {
+                $targetLabel = (string)($tabletClass['label'] ?? '');
+            }
+        }
+        if ($targetClassYear === 3 && !$isBocciatoReiscrizione) {
+            $curvatureClass = formazioneClassiBestClassByLabels($sessionId, formazioneClassiCatCurvatureLabels($practice));
+            if ($curvatureClass !== null) {
+                $targetClass = ['id' => intval($curvatureClass['id'] ?? 0), 'classe' => (string)($curvatureClass['label'] ?? '')];
+                $targetLabel = (string)($curvatureClass['label'] ?? '');
+            }
+        }
+        if ($isOrigin2Ds) {
+            $address = 'DIGITAL SCIENCE';
+            if (!$isBocciatoReiscrizione) {
+                $targetLabel = '3DS';
+            }
+        }
+        if ($targetLabel !== null && preg_match('/^[1-5]DS\b/u', formazioneClassiNorm($targetLabel))) {
+            $address = 'DIGITAL SCIENCE';
+        }
+        if ($indirizzoNorm !== '' && !formazioneClassiAddressKeysMatchStrict($address, $indirizzo)) {
+            continue;
+        }
+
+        $targetClass = $targetClass ?? ($targetLabel !== null ? formazioneClassiLocalClassByLabel($targetLabel) : null);
+        if ($targetClass && $indirizzoNorm !== '' && !formazioneClassiClassMatchesAddress($targetClass, $indirizzo)) {
+            $targetClass = null;
+            $targetLabel = null;
+        }
+        if (!$targetClass) {
+            $singleClass = !$isBocciatoReiscrizione
+                ? formazioneClassiSingleTargetClass($targetClassYear, $indirizzo, $targetYearId)
+                : null;
+            if ($singleClass !== null) {
+                $targetClass = ['id' => intval($singleClass['id'] ?? 0), 'classe' => (string)($singleClass['label'] ?? '')];
+                $targetLabel = (string)($singleClass['label'] ?? '');
+            } else {
+                $targetLabel = null;
+            }
+        }
+
+        $originYear = mastercomTabelloniClassYearFromName((string)($practice['classe_origine'] ?? ''));
+        $isInternalPractice = !empty($practice['studente_interno']) || intval($practice['id_classe_origine'] ?? 0) > 0 || $originYear > 0;
+        $group = $isBocciatoReiscrizione ? 'bocciato' : ($isInternalPractice ? 'promosso' : 'neo_iscritto');
+        formazioneClassiUpsertPracticeStudent(
+            $sessionId,
+            $practice,
+            $group,
+            $targetClass ? intval($targetClass['id']) : null,
+            $targetLabel
+        );
+    }
+}
+
+function formazioneClassiUpsertPracticeStudent(int $sessionId, array $practice, string $gruppo, ?int $targetClassId, ?string $targetLabel): void
+{
+    $studentId = intval($practice['id_studente_gestore'] ?? 0);
+    if ($sessionId <= 0 || $studentId <= 0) {
+        return;
+    }
+
+    $name = trim((string)(($practice['studente_cognome'] ?? $practice['cognome'] ?? '') . ' ' . ($practice['studente_nome'] ?? $practice['nome'] ?? '')));
+    $metrics = formazioneClassiMetricsFromPractice($practice);
+    $practiceNotes = formazioneClassiPracticeNotes($practice);
+    $existing = dbGetFirst("
+        SELECT id, bloccato, fonte_valori
+        FROM formazione_classi_studenti
+        WHERE id_sessione = " . dbI($sessionId) . "
+          AND id_studente = " . dbI($studentId) . "
+        LIMIT 1
+    ");
+    if ($existing !== null) {
+        $sets = [
+            "studente_nome = COALESCE(NULLIF(studente_nome, ''), " . dbQ($name) . ")",
+            "gruppo_origine = CASE
+                    WHEN gruppo_origine = 'bocciato' THEN gruppo_origine
+                    ELSE " . dbQ($gruppo) . "
+                END",
+            "classe_origine_label = COALESCE(NULLIF(classe_origine_label, ''), " . dbQ($practice['classe_origine'] ?? '') . ")",
+            "note = " . dbQ($practiceNotes),
+            "updated_at = NOW()",
+        ];
+        $metricFields = [
+            'media_generale',
+            'voto_matematica',
+            'voto_italiano',
+            'voto_capacita_relazionale',
+        ];
+        foreach ($metricFields as $field) {
+            $valueSql = dbF($metrics[$field] ?? null);
+            if ((string)($existing['fonte_valori'] ?? '') === 'iscrizioni') {
+                $sets[] = $field . " = " . $valueSql;
+            } else {
+                $sets[] = $field . " = COALESCE(" . $field . ", " . $valueSql . ")";
+            }
+        }
+        if (intval($existing['bloccato'] ?? 0) === 0) {
+            if ($targetLabel !== null && trim((string)$targetLabel) !== '') {
+                $sets[] = "id_classe_provvisoria = " . dbI($targetClassId);
+                $sets[] = "classe_provvisoria_label = " . dbQ($targetLabel);
+            } else {
+                $sets[] = "id_classe_provvisoria = NULL";
+                $sets[] = "classe_provvisoria_label = NULL";
+            }
+        }
+        dbExec("
+            UPDATE formazione_classi_studenti SET
+                " . implode(",\n                ", $sets) . "
+            WHERE id = " . dbI($existing['id'] ?? 0) . "
+            LIMIT 1
+        ");
+        return;
+    }
+
+    dbExec("
+        INSERT INTO formazione_classi_studenti (
+            id_sessione, id_studente, studente_nome, id_classe_origine, classe_origine_label,
+            id_classe_provvisoria, classe_provvisoria_label, gruppo_origine,
+            media_generale, voto_matematica, voto_italiano, voto_capacita_relazionale,
+            fonte_valori, note, created_at, updated_at
+        ) VALUES (
+            " . dbI($sessionId) . ",
+            " . dbI($studentId) . ",
+            " . dbQ($name) . ",
+            " . dbI($practice['id_classe_origine'] ?? null) . ",
+            " . dbQ($practice['classe_origine'] ?? '') . ",
+            " . dbI($targetClassId) . ",
+            " . dbQ($targetLabel) . ",
+            " . dbQ($gruppo) . ",
+            " . dbF($metrics['media_generale'] ?? null) . ",
+            " . dbF($metrics['voto_matematica'] ?? null) . ",
+            " . dbF($metrics['voto_italiano'] ?? null) . ",
+            " . dbF($metrics['voto_capacita_relazionale'] ?? null) . ",
+            'iscrizioni',
+            " . dbQ($practiceNotes) . ",
+            NOW(),
+            NOW()
+        )
+    ");
+}
+
+function formazioneClassiPracticeNotes(array $practice): string
+{
+    $parts = [];
+
+    $curvature = strtolower(trim((string)($practice['curvatura_design'] ?? '')));
+    if ($curvature === 'design') {
+        $parts[] = 'Curvatura CAT: Design e riqualificazione ambientale';
+    } elseif ($curvature === 'normale') {
+        $parts[] = 'Curvatura CAT: Normale';
+    }
+
+    $parentNotes = trim((string)($practice['note_genitori_iscrizione'] ?? ''));
+    if ($parentNotes !== '') {
+        $parts[] = $parentNotes;
+    }
+
+    $internalNotes = trim((string)($practice['note_interne'] ?? ''));
+    if ($internalNotes !== '') {
+        $parts[] = 'Note interne iscrizione: ' . $internalNotes;
+    }
+
+    return trim(implode("\n", array_unique(array_filter($parts))));
+}
+
+function formazioneClassiMetricsFromPractice(array $practice): array
+{
+    return [
+        'media_generale' => formazioneClassiNullableFloat($practice['terza_media_pagella'] ?? null),
+        'voto_matematica' => formazioneClassiNullableFloat($practice['terza_voto_matematica'] ?? null),
+        'voto_italiano' => formazioneClassiNullableFloat($practice['terza_voto_italiano'] ?? null),
+        'voto_capacita_relazionale' => formazioneClassiNullableFloat($practice['terza_voto_capacita_relazionale'] ?? null),
+    ];
+}
+
+function formazioneClassiConfirmedIncomingStates(): array
+{
+    return ['idoneo_iscrizione', 'chiusa'];
+}
+
+function formazioneClassiConfirmedReiscrizioneStates(): array
+{
+    return ['reiscrizione_confermata', 'chiusa'];
+}
+
+function formazioneClassiConfirmedOutgoingStates(): array
+{
+    return ['nulla_osta_inviato', 'si_ritira', 'firmato_entrambi', 'chiusa'];
+}
+
+function formazioneClassiSyncMovimenti(array $session, int $targetClassYear, string $indirizzo): void
+{
+    $sessionId = intval($session['id'] ?? 0);
+    if ($sessionId <= 0) {
+        return;
+    }
+
+    $rows = dbGetAll("
+        SELECT
+            m.*,
+            s.cognome AS studente_cognome,
+            s.nome AS studente_nome,
+            s.codice_fiscale AS studente_cf,
+            s.sesso AS studente_sesso
+        FROM studenti_movimenti_pratiche m
+        LEFT JOIN studente s ON s.id = m.id_studente
+        WHERE m.tipo_pratica IN ('entrata','bocciato_reiscrizione')
+          AND m.stato_pratica <> 'annullata'
+          AND COALESCE(m.id_studente, 0) > 0
+          AND COALESCE(m.anno_corso, 0) = " . dbI($targetClassYear) . "
+        ORDER BY m.updated_at DESC, m.id DESC
+    ") ?: [];
+
+    foreach ($rows as $movement) {
+        $requested = trim((string)($movement['classe_richiesta'] ?? ''));
+        $isBocciatoReiscrizione = (string)($movement['tipo_pratica'] ?? '') === 'bocciato_reiscrizione';
+        $gestoreAddress = formazioneClassiGestoreAddressKeyFromId($movement['id_indirizzo_gestore'] ?? 0);
+        if (!$isBocciatoReiscrizione && $gestoreAddress === '') {
+            continue;
+        }
+        $addressSource = $gestoreAddress !== '' ? $gestoreAddress : $requested;
+        if (!formazioneClassiMovementMatchesAddress($addressSource, $indirizzo, $targetClassYear)) {
+            continue;
+        }
+        $targetClass = $isBocciatoReiscrizione ? formazioneClassiLocalClassByLabel($requested) : null;
+        $targetLabel = $targetClass ? $requested : null;
+        if (!$isBocciatoReiscrizione && $targetClassYear > 0) {
+            $singleClass = formazioneClassiSingleTargetClass($targetClassYear, $indirizzo, intval($session['id_anno_scolastico_target'] ?? 0));
+            if ($singleClass !== null) {
+                $targetClass = ['id' => intval($singleClass['id'] ?? 0), 'classe' => (string)($singleClass['label'] ?? '')];
+                $targetLabel = (string)($singleClass['label'] ?? '');
+            }
+        }
+        $group = $isBocciatoReiscrizione ? 'bocciato' : 'neo_iscritto';
+        formazioneClassiUpsertMovementStudent($sessionId, $movement, $group, $targetClass ? intval($targetClass['id']) : null, $targetLabel);
+    }
+}
+
+function formazioneClassiMovementMatchesAddress(string $value, string $indirizzo, int $targetClassYear): bool
+{
+    $indirizzoNorm = formazioneClassiNorm($indirizzo);
+    if ($indirizzoNorm === '') {
+        return true;
+    }
+    $value = trim($value);
+    if ($value === '') {
+        return $targetClassYear <= 2;
+    }
+    $localClass = formazioneClassiLocalClassByLabel($value);
+    if ($localClass && formazioneClassiClassMatchesAddress($localClass, $indirizzo)) {
+        return true;
+    }
+    $practiceAddressId = formazioneClassiAddressIdByName($value, $targetClassYear);
+    if ($practiceAddressId > 0 && (string)$practiceAddressId === trim($indirizzo)) {
+        return true;
+    }
+    $fromClass = formazioneClassiNorm(formazioneClassiAddressKeyFromClass($value));
+    if (formazioneClassiAddressKeysMatch($fromClass, $indirizzo)) {
+        return true;
+    }
+    $valueNorm = formazioneClassiNorm($value);
+    return $valueNorm === $indirizzoNorm || strpos($valueNorm, $indirizzoNorm) !== false || strpos($indirizzoNorm, $valueNorm) !== false;
+}
+
+function formazioneClassiUpsertMovementStudent(int $sessionId, array $movement, string $gruppo, ?int $targetClassId, ?string $targetLabel): void
+{
+    $studentId = intval($movement['id_studente'] ?? 0);
+    if ($sessionId <= 0 || $studentId <= 0) {
+        return;
+    }
+    $name = trim((string)(($movement['studente_cognome'] ?? $movement['cognome'] ?? '') . ' ' . ($movement['studente_nome'] ?? $movement['nome'] ?? '')));
+    $existing = dbGetFirst("
+        SELECT id, gruppo_origine, bloccato
+        FROM formazione_classi_studenti
+        WHERE id_sessione = " . dbI($sessionId) . "
+          AND id_studente = " . dbI($studentId) . "
+        LIMIT 1
+    ");
+    if ($existing) {
+        if ((string)($existing['gruppo_origine'] ?? '') !== 'bocciato' || $gruppo === 'bocciato') {
+            $sets = [
+                "gruppo_origine = " . dbQ($gruppo),
+                "classe_origine_label = COALESCE(NULLIF(classe_origine_label, ''), " . dbQ($movement['classe_origine'] ?? '') . ")",
+                "updated_at = NOW()",
+            ];
+            if (intval($existing['bloccato'] ?? 0) === 0) {
+                if ($targetLabel !== null && trim((string)$targetLabel) !== '') {
+                    $sets[] = "id_classe_provvisoria = " . dbI($targetClassId);
+                    $sets[] = "classe_provvisoria_label = " . dbQ($targetLabel);
+                } elseif ($gruppo === 'neo_iscritto') {
+                    $sets[] = "id_classe_provvisoria = NULL";
+                    $sets[] = "classe_provvisoria_label = NULL";
+                }
+            }
+            dbExec("
+                UPDATE formazione_classi_studenti SET
+                    " . implode(",\n                    ", $sets) . "
+                WHERE id = " . dbI($existing['id']) . "
+                LIMIT 1
+            ");
+        }
+        return;
+    }
+
+    dbExec("
+        INSERT INTO formazione_classi_studenti (
+            id_sessione, id_studente, studente_nome, id_classe_origine, classe_origine_label,
+            id_classe_provvisoria, classe_provvisoria_label, gruppo_origine,
+            fonte_valori, note, created_at, updated_at
+        ) VALUES (
+            " . dbI($sessionId) . ",
+            " . dbI($studentId) . ",
+            " . dbQ($name) . ",
+            NULL,
+            " . dbQ($movement['classe_origine'] ?? '') . ",
+            " . dbI($targetClassId) . ",
+            " . dbQ($targetLabel) . ",
+            " . dbQ($gruppo) . ",
+            'movimenti',
+            " . dbQ($movement['note'] ?? '') . ",
+            NOW(),
+            NOW()
+        )
+    ");
 }
 
 function formazioneClassiUpsertStudent(int $sessionId, array $row, string $gruppo, ?int $targetClassId, ?string $targetLabel): void
@@ -445,17 +1805,36 @@ function formazioneClassiUpsertStudent(int $sessionId, array $row, string $grupp
     if ($sessionId <= 0 || $studentId <= 0) {
         return;
     }
-    $existing = dbGetValue("
-        SELECT id
+    $metrics = (array)($row['metrics'] ?? []);
+    $existing = dbGetFirst("
+        SELECT id, bloccato
         FROM formazione_classi_studenti
         WHERE id_sessione = " . dbI($sessionId) . "
           AND id_studente = " . dbI($studentId) . "
         LIMIT 1
     ");
     if ($existing !== null) {
+        $sets = [
+            "studente_nome = COALESCE(NULLIF(studente_nome, ''), " . dbQ($row['studente_nome'] ?? '') . ")",
+            "gruppo_origine = CASE WHEN gruppo_origine = 'bocciato' THEN gruppo_origine ELSE " . dbQ($gruppo) . " END",
+            "media_generale = COALESCE(media_generale, " . dbF($metrics['media_generale'] ?? null) . ")",
+            "voto_matematica = COALESCE(voto_matematica, " . dbF($metrics['voto_matematica'] ?? null) . ")",
+            "voto_italiano = COALESCE(voto_italiano, " . dbF($metrics['voto_italiano'] ?? null) . ")",
+            "voto_capacita_relazionale = COALESCE(voto_capacita_relazionale, " . dbF($metrics['voto_capacita_relazionale'] ?? null) . ")",
+            "updated_at = NOW()",
+        ];
+        if (intval($existing['bloccato'] ?? 0) === 0 && $targetLabel !== null && trim((string)$targetLabel) !== '') {
+            $sets[] = "id_classe_provvisoria = " . dbI($targetClassId);
+            $sets[] = "classe_provvisoria_label = " . dbQ($targetLabel);
+        }
+        dbExec("
+            UPDATE formazione_classi_studenti SET
+                " . implode(",\n                ", $sets) . "
+            WHERE id = " . dbI($existing['id'] ?? 0) . "
+            LIMIT 1
+        ");
         return;
     }
-    $metrics = (array)($row['metrics'] ?? []);
     dbExec("
         INSERT INTO formazione_classi_studenti (
             id_sessione, id_studente, studente_nome, id_classe_origine, classe_origine_label,
@@ -496,10 +1875,19 @@ function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tip
             s.codice_fiscale,
             s.sesso,
             mp_status.id AS movimento_pratica_id,
+            mp_status.doppio_bocciato_non_consecutivo AS movimento_doppio_bocciato_non_consecutivo,
             mp_note.note AS movimento_note,
             mp_note.tipo_pratica AS movimento_tipo_pratica,
             mp_note.stato_pratica AS movimento_stato_pratica,
             mp_note.updated_at AS movimento_updated_at,
+            mp_exit.id AS uscita_movimento_id,
+            mp_exit.tipo_pratica AS uscita_tipo_pratica,
+            mp_exit.stato_pratica AS uscita_stato_pratica,
+            mp_exit.updated_at AS uscita_updated_at,
+            mp_exit_any.id AS uscita_attiva_movimento_id,
+            mp_exit_any.tipo_pratica AS uscita_attiva_tipo_pratica,
+            mp_exit_any.stato_pratica AS uscita_attiva_stato_pratica,
+            mp_exit_any.updated_at AS uscita_attiva_updated_at,
             attr.attributi_riservati_raw
         FROM formazione_classi_studenti f
         LEFT JOIN studente s ON s.id = f.id_studente
@@ -512,28 +1900,52 @@ function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tip
             GROUP BY id_studente
         ) attr ON attr.id_studente = f.id_studente
         LEFT JOIN studenti_movimenti_pratiche mp_status ON mp_status.id_studente = f.id_studente
-            AND mp_status.tipo_pratica IN ('bocciato_reiscrizione', 'uscita', 'ritiro')
+            AND mp_status.tipo_pratica IN ('entrata', 'bocciato_reiscrizione', 'uscita', 'ritiro')
             AND mp_status.stato_pratica <> 'annullata'
             AND mp_status.id = (
                 SELECT mp1.id
                 FROM studenti_movimenti_pratiche mp1
                 WHERE mp1.id_studente = f.id_studente
-                  AND mp1.tipo_pratica IN ('bocciato_reiscrizione', 'uscita', 'ritiro')
+                  AND mp1.tipo_pratica IN ('entrata', 'bocciato_reiscrizione', 'uscita', 'ritiro')
                   AND mp1.stato_pratica <> 'annullata'
                 ORDER BY mp1.updated_at DESC, mp1.id DESC
                 LIMIT 1
             )
         LEFT JOIN studenti_movimenti_pratiche mp_note ON mp_note.id_studente = f.id_studente
-            AND mp_note.tipo_pratica IN ('bocciato_reiscrizione', 'uscita', 'ritiro')
+            AND mp_note.tipo_pratica IN ('entrata', 'bocciato_reiscrizione', 'uscita', 'ritiro')
             AND mp_note.stato_pratica <> 'annullata'
             AND mp_note.id = (
                 SELECT mp2.id
                 FROM studenti_movimenti_pratiche mp2
                 WHERE mp2.id_studente = f.id_studente
-                  AND mp2.tipo_pratica IN ('bocciato_reiscrizione', 'uscita', 'ritiro')
+                  AND mp2.tipo_pratica IN ('entrata', 'bocciato_reiscrizione', 'uscita', 'ritiro')
                   AND mp2.stato_pratica <> 'annullata'
                   AND TRIM(COALESCE(mp2.note, '')) <> ''
                 ORDER BY mp2.updated_at DESC, mp2.id DESC
+                LIMIT 1
+            )
+        LEFT JOIN studenti_movimenti_pratiche mp_exit ON mp_exit.id_studente = f.id_studente
+            AND mp_exit.tipo_pratica IN ('uscita', 'ritiro')
+            AND mp_exit.stato_pratica IN (" . implode(',', array_map('dbQ', formazioneClassiConfirmedOutgoingStates())) . ")
+            AND mp_exit.id = (
+                SELECT mp3.id
+                FROM studenti_movimenti_pratiche mp3
+                WHERE mp3.id_studente = f.id_studente
+                  AND mp3.tipo_pratica IN ('uscita', 'ritiro')
+                  AND mp3.stato_pratica IN (" . implode(',', array_map('dbQ', formazioneClassiConfirmedOutgoingStates())) . ")
+                ORDER BY mp3.updated_at DESC, mp3.id DESC
+                LIMIT 1
+            )
+        LEFT JOIN studenti_movimenti_pratiche mp_exit_any ON mp_exit_any.id_studente = f.id_studente
+            AND mp_exit_any.tipo_pratica IN ('uscita', 'ritiro')
+            AND mp_exit_any.stato_pratica <> 'annullata'
+            AND mp_exit_any.id = (
+                SELECT mp4.id
+                FROM studenti_movimenti_pratiche mp4
+                WHERE mp4.id_studente = f.id_studente
+                  AND mp4.tipo_pratica IN ('uscita', 'ritiro')
+                  AND mp4.stato_pratica <> 'annullata'
+                ORDER BY mp4.updated_at DESC, mp4.id DESC
                 LIMIT 1
             )
         WHERE f.id_sessione = " . dbI($session['id'] ?? 0) . "
@@ -544,7 +1956,7 @@ function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tip
     ") ?: [];
 
     $classes = [];
-    foreach (formazioneClassiTargetClasses($targetClassYear, $indirizzo) as $targetClass) {
+    foreach (formazioneClassiTargetClasses($targetClassYear, $indirizzo, $targetYearId) as $targetClass) {
         $label = (string)$targetClass['label'];
         $classes[$label] = [
             'label' => $label,
@@ -557,6 +1969,9 @@ function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tip
     foreach ($rows as $row) {
         $item = formazioneClassiStudentView($row);
         $label = trim((string)($row['classe_provvisoria_label'] ?? ''));
+        if (($item['gruppo_origine'] ?? '') === 'bocciato' && !empty($item['in_uscita'])) {
+            $label = '';
+        }
         if ($label === '') {
             $unassigned[] = $item;
             continue;
@@ -596,6 +2011,38 @@ function formazioneClassiStudentView(array $row): array
     if ($name === '') {
         $name = trim((string)($row['studente_nome'] ?? ''));
     }
+    $gruppoOrigine = (string)($row['gruppo_origine'] ?? '');
+    if ((string)($row['movimento_tipo_pratica'] ?? '') === 'bocciato_reiscrizione') {
+        $gruppoOrigine = 'bocciato';
+    }
+    $activeOutgoingId = intval($row['uscita_attiva_movimento_id'] ?? 0);
+    $confirmedOutgoingId = intval($row['uscita_movimento_id'] ?? 0);
+    $outgoingId = $activeOutgoingId > 0 ? $activeOutgoingId : $confirmedOutgoingId;
+    $outgoingType = trim((string)(($activeOutgoingId > 0 ? $row['uscita_attiva_tipo_pratica'] : $row['uscita_tipo_pratica']) ?? ''));
+    $outgoingState = trim((string)(($activeOutgoingId > 0 ? $row['uscita_attiva_stato_pratica'] : $row['uscita_stato_pratica']) ?? ''));
+    $outgoingUpdated = trim((string)(($activeOutgoingId > 0 ? $row['uscita_attiva_updated_at'] : $row['uscita_updated_at']) ?? ''));
+    $doubleNonConsecutive = intval($row['movimento_doppio_bocciato_non_consecutivo'] ?? 0);
+    if ($doubleNonConsecutive > 0) {
+        $outgoingId = 0;
+        $confirmedOutgoingId = 0;
+        $outgoingType = '';
+        $outgoingState = '';
+        $outgoingUpdated = '';
+    }
+    $formationNote = formazioneClassiCleanDisplayNote(trim((string)($row['note'] ?? '')));
+    $curvature = formazioneClassiExtractCurvatureFromNote($formationNote);
+    if ($curvature !== '') {
+        $formationNote = formazioneClassiCleanDisplayNote(preg_replace('/^Curvatura\s+CAT\s*:\s*.*$/mi', '', $formationNote) ?? $formationNote);
+    }
+    $movementNote = trim((string)($row['movimento_note'] ?? ''));
+    $notes = [];
+    if ($formationNote !== '') {
+        $notes[] = $formationNote;
+    }
+    if ($movementNote !== '' && $movementNote !== $formationNote) {
+        $notes[] = 'Nota movimenti: ' . $movementNote;
+    }
+
     return [
         'id' => intval($row['id'] ?? 0),
         'id_studente' => intval($row['id_studente'] ?? 0),
@@ -603,19 +2050,52 @@ function formazioneClassiStudentView(array $row): array
         'codice_fiscale' => (string)($row['codice_fiscale'] ?? ''),
         'sesso' => strtoupper(trim((string)($row['sesso'] ?? ''))),
         'classe_origine' => (string)($row['classe_origine_label'] ?? ''),
-        'gruppo_origine' => (string)($row['gruppo_origine'] ?? ''),
+        'gruppo_origine' => $gruppoOrigine,
         'bloccato' => intval($row['bloccato'] ?? 0),
         'id_movimento' => intval($row['movimento_pratica_id'] ?? 0),
+        'in_uscita' => $outgoingId > 0 ? 1 : 0,
+        'uscita_confermata' => $confirmedOutgoingId > 0 ? 1 : 0,
+        'id_movimento_uscita' => $outgoingId,
+        'uscita_tipo_pratica' => $outgoingType,
+        'uscita_stato_pratica' => $outgoingState,
+        'uscita_updated_at' => $outgoingUpdated,
         'media_generale' => formazioneClassiNullableFloat($row['media_generale'] ?? null),
         'voto_matematica' => formazioneClassiNullableFloat($row['voto_matematica'] ?? null),
         'voto_italiano' => formazioneClassiNullableFloat($row['voto_italiano'] ?? null),
         'voto_capacita_relazionale' => formazioneClassiNullableFloat($row['voto_capacita_relazionale'] ?? null),
-        'note_formazione' => trim((string)($row['movimento_note'] ?? '')),
-        'note_formazione_origine' => trim((string)($row['movimento_tipo_pratica'] ?? '')),
+        'note_formazione' => trim(implode("\n", $notes)),
+        'curvatura_design' => $curvature,
+        'note_formazione_origine' => $formationNote !== '' ? 'iscrizione' : trim((string)($row['movimento_tipo_pratica'] ?? '')),
         'note_formazione_stato' => trim((string)($row['movimento_stato_pratica'] ?? '')),
+        'doppio_bocciato_non_consecutivo' => $doubleNonConsecutive,
         'note_formazione_updated_at' => trim((string)($row['movimento_updated_at'] ?? '')),
         'attributi_riservati' => formazioneClassiParseStudentAttrs((string)($row['attributi_riservati_raw'] ?? '')),
     ];
+}
+
+function formazioneClassiCleanDisplayNote(string $note): string
+{
+    if ($note === '') {
+        return '';
+    }
+    $lines = preg_split('/\r?\n/u', $note) ?: [];
+    $lines = array_values(array_filter($lines, static function ($line): bool {
+        $line = trim((string)$line);
+        return stripos($line, 'Genitori/responsabili:') !== 0
+            && stripos($line, 'Responsabili:') !== 0;
+    }));
+    return trim(implode("\n", $lines));
+}
+
+function formazioneClassiExtractCurvatureFromNote(string $note): string
+{
+    if (preg_match('/Curvatura\s+CAT\s*:\s*(Design|Design e riqualificazione ambientale)/iu', $note)) {
+        return 'design';
+    }
+    if (preg_match('/Curvatura\s+CAT\s*:\s*Normale/iu', $note)) {
+        return 'normale';
+    }
+    return '';
 }
 
 function formazioneClassiParseStudentAttrs(string $raw): array
@@ -641,27 +2121,42 @@ function formazioneClassiNullableFloat($value): ?float
 
 function formazioneClassiStats(array $students): array
 {
+    $activeStudents = array_values(array_filter($students, static function (array $student): bool {
+        return empty($student['in_uscita']);
+    }));
     $stats = [
-        'count' => count($students),
+        'count' => count($activeStudents),
         'maschi' => 0,
         'femmine' => 0,
         'media_generale' => null,
         'voto_matematica' => null,
         'voto_italiano' => null,
         'voto_capacita_relazionale' => null,
+        'dsa' => 0,
+        'fascia_c' => 0,
+        'legge_104' => 0,
     ];
-    foreach ($students as $student) {
+    foreach ($activeStudents as $student) {
         $sesso = strtoupper(trim((string)($student['sesso'] ?? '')));
         if ($sesso === 'M') {
             $stats['maschi']++;
         } elseif ($sesso === 'F') {
             $stats['femmine']++;
         }
+        if (formazioneClassiStudentHasAttr($student, STUD_ATTR_R7A2)) {
+            $stats['dsa']++;
+        }
+        if (formazioneClassiStudentHasAttr($student, STUD_ATTR_Z8C3)) {
+            $stats['fascia_c']++;
+        }
+        if (formazioneClassiStudentHasAttr($student, STUD_ATTR_Q4M9)) {
+            $stats['legge_104']++;
+        }
     }
     foreach (['media_generale', 'voto_matematica', 'voto_italiano', 'voto_capacita_relazionale'] as $field) {
         $sum = 0.0;
         $count = 0;
-        foreach ($students as $student) {
+        foreach ($activeStudents as $student) {
             if (($student[$field] ?? null) === null) {
                 continue;
             }
@@ -671,6 +2166,16 @@ function formazioneClassiStats(array $students): array
         $stats[$field] = $count > 0 ? $sum / $count : null;
     }
     return $stats;
+}
+
+function formazioneClassiStudentHasAttr(array $student, string $code): bool
+{
+    foreach (($student['attributi_riservati'] ?? []) as $attr) {
+        if ((string)($attr['codice'] ?? $attr['codice_attributo'] ?? '') === $code) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function formazioneClassiMoveStudent(int $sessionId, int $rowId, string $targetLabel): array
