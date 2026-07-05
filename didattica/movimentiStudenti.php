@@ -7,7 +7,7 @@ ruoloRichiesto('admin', 'segreteria-didattica');
 
 studentiMovimentiEnsureTables();
 
-$canOpenColloqui = (string)($__utente_ruolo ?? '') === 'admin';
+$canOpenColloqui = function_exists('haRuolo') ? haRuolo('admin') : ((string)($__utente_ruolo ?? '') === 'admin');
 $message = '';
 $error = '';
 $syncResult = null;
@@ -103,6 +103,11 @@ if (!in_array($activeSection, ['uscite', 'entrate'], true)) {
 $activeYear = intval($_GET['anno'] ?? 0);
 if ($activeYear < 1 || $activeYear > 5) {
     $activeYear = 1;
+}
+$filterText = trim((string)($_GET['q'] ?? ''));
+$filterState = trim((string)($_GET['stato'] ?? ''));
+if ($filterState !== '' && !array_key_exists($filterState, $stati)) {
+    $filterState = '';
 }
 $openMovementId = intval($_GET['open_movimento_id'] ?? 0);
 $openMovementFound = false;
@@ -270,6 +275,57 @@ function ms_iscrizione_pratica_url(array $row): string
         . '#pratica-' . $praticaId;
 }
 
+function ms_lower(string $value): string
+{
+    return function_exists('mb_strtolower') ? mb_strtolower($value, 'UTF-8') : strtolower($value);
+}
+
+function ms_filter_blob(array $row, array $tipi, array $stati): string
+{
+    $parts = [
+        ms_practice_name($row),
+        $row['codice_fiscale'] ?? '',
+        $row['studente_cf'] ?? '',
+        $row['classe_origine'] ?? '',
+        $row['classe_corrente'] ?? '',
+        $row['classe_richiesta'] ?? '',
+        $row['scuola_provenienza'] ?? '',
+        $row['indirizzo_provenienza'] ?? '',
+        $row['scuola_destinazione'] ?? '',
+        $row['indirizzo_destinazione'] ?? '',
+        $row['indirizzo_gestore_nome'] ?? '',
+        $row['note'] ?? '',
+        $row['esami_integrativi_note'] ?? '',
+        $row['carenze_note'] ?? '',
+        $row['tipo_pratica'] ?? '',
+        $tipi[$row['tipo_pratica'] ?? ''] ?? '',
+        $row['stato_pratica'] ?? '',
+        $stati[$row['stato_pratica'] ?? ''] ?? '',
+    ];
+    if (!empty($row['doppio_bocciato'])) {
+        $parts[] = 'doppio bocciato';
+    }
+    if (!empty($row['doppio_bocciato_non_consecutivo'])) {
+        $parts[] = 'doppio non consecutivo';
+    }
+    if (!empty($row['bocciato_altra_scuola'])) {
+        $parts[] = 'bocciato altra scuola';
+    }
+    return ms_lower(implode(' ', array_map('strval', $parts)));
+}
+
+function ms_matches_filters(array $row, string $filterText, string $filterState, array $tipi, array $stati): bool
+{
+    if ($filterState !== '' && (string)($row['stato_pratica'] ?? '') !== $filterState) {
+        return false;
+    }
+    if ($filterText === '') {
+        return true;
+    }
+    $needle = ms_lower($filterText);
+    return strpos(ms_filter_blob($row, $tipi, $stati), $needle) !== false;
+}
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -292,6 +348,32 @@ function ms_iscrizione_pratica_url(array $row): string
         }
         .ms-year-tabs {
             margin-bottom: 12px;
+        }
+        .ms-filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-end;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #d8dee8;
+            border-radius: 4px;
+            background: #f8fafc;
+        }
+        .ms-filter-field {
+            min-width: 210px;
+            flex: 1 1 220px;
+        }
+        .ms-filter-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        .ms-filter-count {
+            color: #60718a;
+            font-size: 12px;
+            margin-left: auto;
         }
         .ms-table-wrap {
             border: 1px solid #d8dee8;
@@ -530,7 +612,51 @@ function ms_iscrizione_pratica_url(array $row): string
                 <?php endforeach; ?>
             </ul>
 
-            <?php $rows = $grouped[$activeSection][$activeYear] ?? []; ?>
+            <?php
+            $rowsAll = $grouped[$activeSection][$activeYear] ?? [];
+            $rows = array_values(array_filter($rowsAll, static function ($row) use ($filterText, $filterState, $tipi, $stati) {
+                return ms_matches_filters($row, $filterText, $filterState, $tipi, $stati);
+            }));
+            $exportBase = 'movimentiStudentiExport.php?sezione=' . rawurlencode($activeSection)
+                . '&anno=' . intval($activeYear)
+                . '&q=' . rawurlencode($filterText)
+                . '&stato=' . rawurlencode($filterState);
+            ?>
+            <form method="get" class="ms-filter-bar">
+                <input type="hidden" name="sezione" value="<?php echo studentiMovimentiH($activeSection); ?>">
+                <input type="hidden" name="anno" value="<?php echo intval($activeYear); ?>">
+                <div class="ms-filter-field">
+                    <label for="ms_filter_q">Filtro testo</label>
+                    <input type="text" class="form-control" id="ms_filter_q" name="q" value="<?php echo studentiMovimentiH($filterText); ?>" placeholder="Nome, CF, classe, scuola, note...">
+                </div>
+                <div class="ms-filter-field">
+                    <label for="ms_filter_stato">Stato</label>
+                    <select class="form-control" id="ms_filter_stato" name="stato">
+                        <option value="">Tutti gli stati</option>
+                        <?php foreach ($stati as $stateKey => $stateLabel): ?>
+                            <option value="<?php echo studentiMovimentiH($stateKey); ?>" <?php echo ms_selected($filterState, $stateKey); ?>>
+                                <?php echo studentiMovimentiH($stateLabel); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="ms-filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span class="glyphicon glyphicon-search"></span> Filtra
+                    </button>
+                    <a class="btn btn-default" href="movimentiStudenti.php?sezione=<?php echo studentiMovimentiH($activeSection); ?>&anno=<?php echo intval($activeYear); ?>">Pulisci</a>
+                    <a class="btn btn-success" href="<?php echo studentiMovimentiH($exportBase . '&format=xls'); ?>">
+                        <span class="glyphicon glyphicon-list-alt"></span> XLS
+                    </a>
+                    <a class="btn btn-danger" href="<?php echo studentiMovimentiH($exportBase . '&format=pdf'); ?>">
+                        <span class="glyphicon glyphicon-file"></span> PDF
+                    </a>
+                </div>
+                <div class="ms-filter-count">
+                    <?php echo count($rows); ?> righe<?php if (count($rows) !== count($rowsAll)): ?> su <?php echo count($rowsAll); ?><?php endif; ?>
+                </div>
+            </form>
+
             <div class="ms-table-wrap">
                 <table class="table table-striped table-hover ms-table">
                     <thead>
