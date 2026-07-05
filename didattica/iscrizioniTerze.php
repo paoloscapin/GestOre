@@ -20,6 +20,7 @@ $stats = dbGetFirst("
     WHERE tipo_iscrizione = 'terze'
 ");
 $draftSubject = iscrizioniPrimeDraftSubject('terze');
+$indirizziGestore = iscrizioniPrimeGestoreAddressOptions();
 
 ?>
 <!DOCTYPE html>
@@ -256,6 +257,43 @@ ITT Buonarroti - Trento</textarea>
     </div>
 </div>
 
+<div id="parents_modal" class="custom-mail-modal" aria-hidden="true">
+    <div class="custom-mail-card" role="dialog" aria-modal="true" aria-labelledby="parents_modal_title">
+        <div id="parents_modal_title" class="custom-mail-head" style="background:#0f766e;">Dati genitori</div>
+        <form id="parents_form">
+            <div class="custom-mail-body">
+                <input type="hidden" name="id" id="parents_id">
+                <p id="parents_student" class="text-muted"></p>
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h4>Responsabile 1</h4>
+                        <div class="custom-mail-field"><label>Tipo rapporto</label><input type="text" name="responsabile_1_tipo" id="parents_r1_tipo"></div>
+                        <div class="custom-mail-field"><label>Cognome</label><input type="text" name="responsabile_1_cognome" id="parents_r1_cognome"></div>
+                        <div class="custom-mail-field"><label>Nome</label><input type="text" name="responsabile_1_nome" id="parents_r1_nome"></div>
+                        <div class="custom-mail-field"><label>Codice fiscale</label><input type="text" name="responsabile_1_codice_fiscale" id="parents_r1_cf" maxlength="16"></div>
+                        <div class="custom-mail-field"><label>Email</label><input type="email" name="email_genitore_1" id="parents_r1_email"></div>
+                        <div class="custom-mail-field"><label>Telefono</label><input type="text" name="telefono_genitore_1" id="parents_r1_tel"></div>
+                    </div>
+                    <div class="col-sm-6">
+                        <h4>Responsabile 2</h4>
+                        <div class="custom-mail-field"><label>Tipo rapporto</label><input type="text" name="responsabile_2_tipo" id="parents_r2_tipo"></div>
+                        <div class="custom-mail-field"><label>Cognome</label><input type="text" name="responsabile_2_cognome" id="parents_r2_cognome"></div>
+                        <div class="custom-mail-field"><label>Nome</label><input type="text" name="responsabile_2_nome" id="parents_r2_nome"></div>
+                        <div class="custom-mail-field"><label>Codice fiscale</label><input type="text" name="responsabile_2_codice_fiscale" id="parents_r2_cf" maxlength="16"></div>
+                        <div class="custom-mail-field"><label>Email</label><input type="email" name="email_genitore_2" id="parents_r2_email"></div>
+                        <div class="custom-mail-field"><label>Telefono</label><input type="text" name="telefono_genitore_2" id="parents_r2_tel"></div>
+                    </div>
+                </div>
+                <div id="parents_error" class="text-danger" style="margin-top:8px;" hidden></div>
+            </div>
+            <div class="custom-mail-actions">
+                <button type="button" class="btn btn-default" onclick="iscrizioniTerzeCloseParentsModal()">Annulla</button>
+                <button type="submit" class="btn btn-primary" id="parents_save_button">Salva dati genitori</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="container-fluid">
     <div class="panel panel-lightblue4">
         <div class="panel-heading">
@@ -352,6 +390,18 @@ ITT Buonarroti - Trento</textarea>
                     <div class="col-sm-6"><input type="text" name="corso_studi" class="form-control" placeholder="es. INFORMATICA"></div>
                 </div>
                 <div class="form-group">
+                    <label class="col-sm-2 control-label">Indirizzo GestOre</label>
+                    <div class="col-sm-10">
+                        <select name="id_indirizzo_gestore" class="form-control">
+                            <option value="">Da ricavare dal corso importato</option>
+                            <?php foreach ($indirizziGestore as $indirizzoRow): ?>
+                                <option value="<?php echo intval($indirizzoRow['id']); ?>"><?php echo htmlspecialchars((string)$indirizzoRow['nome'], ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="help-block">Usato per formazione classi e filtri indirizzo. Il testo importato resta nel campo corso richiesto.</span>
+                    </div>
+                </div>
+                <div class="form-group">
                     <label class="col-sm-2 control-label">Cognome</label>
                     <div class="col-sm-4"><input type="text" name="cognome" class="form-control" required></div>
                     <label class="col-sm-2 control-label">Nome</label>
@@ -399,7 +449,8 @@ ITT Buonarroti - Trento</textarea>
                 <div class="form-group">
                     <label class="col-sm-3 control-label">CSV iscrizioni TERZE</label>
                     <div class="col-sm-9">
-                        <input type="file" name="prime_csv" accept=".csv,text/csv" class="form-control" required>
+                        <input type="file" name="prime_csv" accept=".csv,text/csv" class="form-control">
+                        <span class="help-block">Obbligatorio solo per il primo import. Negli import successivi puoi caricare anche solo anagrafica, DSA o certificazioni scuola.</span>
                     </div>
                 </div>
                 <div class="form-group">
@@ -414,6 +465,20 @@ ITT Buonarroti - Trento</textarea>
                     <div class="col-sm-9">
                         <input type="file" name="anagrafica_csv" accept=".csv,text/csv" class="form-control">
                         <span class="help-block">Puoi importarlo anche in un secondo momento: aggiorna email, telefoni e responsabili degli esterni.</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">CSV dati aggiuntivi TERZE</label>
+                    <div class="col-sm-9">
+                        <input type="file" name="dati_aggiuntivi_csv" accept=".csv,text/csv" class="form-control">
+                        <span class="help-block">Opzionale: per Costruzioni Ambiente e Territorio importa la scelta curvatura Design/Normale.</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">Excel DSA/Fascia C/104 scuola</label>
+                    <div class="col-sm-9">
+                        <input type="file" name="dsa_school_xls" accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="form-control">
+                        <span class="help-block">Opzionale: aggiorna gli attributi riservati DSA, 104 e Fascia C di tutti gli studenti agganciati per codice fiscale.</span>
                     </div>
                 </div>
                 <div class="form-group">
@@ -449,6 +514,7 @@ ITT Buonarroti - Trento</textarea>
                             <th>Studente</th>
                             <th>Codice fiscale</th>
                             <th>Corso</th>
+                            <th>Indirizzo GestOre</th>
                             <th>Attributi</th>
                             <th>Tipo</th>
                             <th>Stato</th>
@@ -459,7 +525,7 @@ ITT Buonarroti - Trento</textarea>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td colspan="10" class="text-muted">Caricamento...</td></tr>
+                        <tr><td colspan="11" class="text-muted">Caricamento...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -472,10 +538,45 @@ let iscrizioniTerzeMailProgressTimer = null;
 let iscrizioniTerzeMailProgressValue = 0;
 let iscrizioniTerzeRows = [];
 let iscrizioniTerzeVisibleRows = [];
+const iscrizioniTerzeIndirizziGestore = <?php echo json_encode(array_map(static function ($row) {
+    return ['id' => intval($row['id'] ?? 0), 'nome' => (string)($row['nome'] ?? '')];
+}, $indirizziGestore), JSON_UNESCAPED_UNICODE); ?>;
 
 function iscrizioniTerzeEscape(value) {
     return String(value ?? '').replace(/[&<>"']/g, function (char) {
         return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[char];
+    });
+}
+
+function iscrizioniTerzeImportList(title, rows) {
+    rows = Array.isArray(rows) ? rows : [];
+    if (!rows.length) return '';
+    return '<div style="margin-top:8px;"><strong>' + iscrizioniTerzeEscape(title) + ':</strong><ul style="margin:4px 0 0 18px;">' +
+        rows.slice(0, 40).map(function (row) {
+            const parts = [];
+            if (row.id) parts.push('#' + row.id);
+            if (row.studente) parts.push(row.studente);
+            if (row.codice_fiscale) parts.push(row.codice_fiscale);
+            if (row.corso_studi) parts.push(row.corso_studi);
+            if (row.voto) parts.push('voto ' + row.voto);
+            if (row.motivo) parts.push(row.motivo);
+            return '<li>' + iscrizioniTerzeEscape(parts.join(' - ') || JSON.stringify(row)) + '</li>';
+        }).join('') +
+        (rows.length > 40 ? '<li>... altri ' + iscrizioniTerzeEscape(rows.length - 40) + '</li>' : '') +
+        '</ul></div>';
+}
+
+function iscrizioniTerzeReadJsonResponse(response) {
+    return response.text().then(text => {
+        const trimmed = String(text || '').trim();
+        if (trimmed === '') {
+            throw new Error('Risposta vuota dal server. Controlla il log PHP/Apache per iscrizioniPrimeImport.php.');
+        }
+        try {
+            return JSON.parse(trimmed);
+        } catch (e) {
+            throw new Error('Risposta non JSON dal server: ' + trimmed.slice(0, 500));
+        }
     });
 }
 
@@ -585,6 +686,87 @@ function iscrizioniTerzeCloseCustomMail() {
     document.getElementById('custom_mail_id').value = '';
 }
 
+function iscrizioniTerzeSetInputValue(id, value) {
+    const input = document.getElementById(id);
+    if (input) input.value = value || '';
+}
+
+function iscrizioniTerzeOpenParentsModal(id) {
+    const row = iscrizioniTerzeFindRowById(id);
+    if (!row) {
+        alert('Pratica non trovata.');
+        return;
+    }
+    document.getElementById('parents_id').value = Number(row.id || 0);
+    document.getElementById('parents_student').textContent = 'Pratica di ' + String((row.cognome || '') + ' ' + (row.nome || '')).trim();
+    iscrizioniTerzeSetInputValue('parents_r1_tipo', row.responsabile_1_tipo);
+    iscrizioniTerzeSetInputValue('parents_r1_cognome', row.responsabile_1_cognome);
+    iscrizioniTerzeSetInputValue('parents_r1_nome', row.responsabile_1_nome);
+    iscrizioniTerzeSetInputValue('parents_r1_cf', row.responsabile_1_codice_fiscale);
+    iscrizioniTerzeSetInputValue('parents_r1_email', row.email_genitore_1);
+    iscrizioniTerzeSetInputValue('parents_r1_tel', row.telefono_genitore_1);
+    iscrizioniTerzeSetInputValue('parents_r2_tipo', row.responsabile_2_tipo);
+    iscrizioniTerzeSetInputValue('parents_r2_cognome', row.responsabile_2_cognome);
+    iscrizioniTerzeSetInputValue('parents_r2_nome', row.responsabile_2_nome);
+    iscrizioniTerzeSetInputValue('parents_r2_cf', row.responsabile_2_codice_fiscale);
+    iscrizioniTerzeSetInputValue('parents_r2_email', row.email_genitore_2);
+    iscrizioniTerzeSetInputValue('parents_r2_tel', row.telefono_genitore_2);
+    const error = document.getElementById('parents_error');
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+    document.getElementById('parents_modal').classList.add('open');
+    document.getElementById('parents_modal').setAttribute('aria-hidden', 'false');
+}
+
+function iscrizioniTerzeCloseParentsModal() {
+    document.getElementById('parents_modal').classList.remove('open');
+    document.getElementById('parents_modal').setAttribute('aria-hidden', 'true');
+    document.getElementById('parents_id').value = '';
+}
+
+document.getElementById('parents_form')?.addEventListener('submit', function (event) {
+    event.preventDefault();
+    const error = document.getElementById('parents_error');
+    const button = document.getElementById('parents_save_button');
+    const data = new FormData(event.target);
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Salvataggio...';
+    }
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+
+    fetch('iscrizioniPrimeGenitoriSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(result => ({ok: response.ok, result})))
+    .then(payload => {
+        if (!payload.ok || !payload.result.ok) {
+            throw new Error(payload.result.message || 'Salvataggio non riuscito.');
+        }
+        iscrizioniTerzeCloseParentsModal();
+        iscrizioniTerzeLoadTable();
+    })
+    .catch(err => {
+        if (error) {
+            error.textContent = err.message;
+            error.hidden = false;
+        }
+    })
+    .finally(() => {
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Salva dati genitori';
+        }
+    });
+});
+
 function iscrizioniTerzeFormatTextarea(id, mode) {
     const field = document.getElementById(id);
     if (!field) return;
@@ -619,6 +801,18 @@ function iscrizioniTerzeTipoEffettivo(row) {
     return Number(row.studente_interno_effettivo ?? row.studente_interno ?? 0) === 1 ? 'INTERNO' : 'ESTERNO';
 }
 
+function iscrizioniTerzeHasSubmittedPractice(row) {
+    return ['inviata', 'verifica_iniziale_ok', 'da_integrare', 'verificata', 'annullata'].includes(String(row.stato || '').toLowerCase());
+}
+
+function iscrizioniTerzePracticeButton(row) {
+    if (!iscrizioniTerzeHasSubmittedPractice(row)) {
+        return '';
+    }
+    const url = 'iscrizioniPrimeDomande.php?tipo_iscrizione=terze&stato=tutte&open_pratica_id=' + encodeURIComponent(Number(row.id || 0)) + '#pratica-' + encodeURIComponent(Number(row.id || 0));
+    return '<a class="btn btn-xs btn-success" href="' + url + '"><span class="glyphicon glyphicon-folder-open"></span> Pratica</a> ';
+}
+
 function iscrizioniTerzeAttributiHtml(row) {
     const attrs = Array.isArray(row.attributi_riservati) ? row.attributi_riservati : [];
     if (!attrs.length) {
@@ -628,6 +822,27 @@ function iscrizioniTerzeAttributiHtml(row) {
         const source = attr.fonte ? '<span class="stud-attr-source">' + iscrizioniTerzeEscape(attr.fonte) + '</span>' : '';
         return '<span class="stud-attr-badge" title="' + iscrizioniTerzeEscape(attr.codice || '') + '">' + iscrizioniTerzeEscape(attr.label || attr.codice || '') + source + '</span>';
     }).join(' ');
+}
+
+function iscrizioniTerzeNoteBadge(row) {
+    const note = String(row.note_genitori_iscrizione || '').trim();
+    if (note === '') return '';
+    const shortNote = note.length > 160 ? note.slice(0, 157) + '...' : note;
+    return '<div style="margin-top:6px;"><span class="stud-attr-badge" title="' + iscrizioniTerzeEscape(note) + '">Note genitori</span><br><small class="text-muted">' + iscrizioniTerzeEscape(shortNote) + '</small></div>';
+}
+
+function iscrizioniTerzeCurvaturaHtml(row) {
+    const course = iscrizioniTerzeNormalizeSearch((row.corso_studi || '') + ' ' + (row.indirizzo_gestore_nome || ''));
+    const isCat = course.includes('costruzioni') || course.includes('territorio');
+    if (!isCat && !row.curvatura_design) return '';
+    const value = String(row.curvatura_design || '').toLowerCase();
+    if (value === 'design') {
+        return '<br><span class="mail-badge mail-badge-real">Design: si</span>';
+    }
+    if (value === 'normale') {
+        return '<br><span class="mail-badge mail-badge-skip">Design: no</span>';
+    }
+    return '<br><span class="mail-badge mail-badge-none">Design: da indicare</span>';
 }
 
 function iscrizioniTerzeNormalizeSearch(value) {
@@ -644,6 +859,9 @@ function iscrizioniTerzeRowSearchText(row) {
         iscrizioniTerzeTipoEffettivo(row),
         row.codice_fiscale,
         row.corso_studi,
+        row.indirizzo_gestore_nome,
+        row.note_genitori_iscrizione,
+        row.curvatura_design,
         row.stato,
         row.email_genitore_1,
         row.email_genitore_2,
@@ -655,6 +873,44 @@ function iscrizioniTerzeRowSearchText(row) {
         row.scuola_provenienza,
         row.comune_residenza
     ].filter(Boolean).join(' '));
+}
+
+function iscrizioniTerzeIndirizzoSelect(row) {
+    let html = '<select class="form-control input-sm" onchange="iscrizioniTerzeSaveIndirizzo(' + Number(row.id) + ', this)">';
+    html += '<option value="">Da impostare</option>';
+    iscrizioniTerzeIndirizziGestore.forEach(item => {
+        const selected = Number(row.id_indirizzo_gestore || 0) === Number(item.id) ? ' selected' : '';
+        html += '<option value="' + Number(item.id) + '"' + selected + '>' + iscrizioniTerzeEscape(item.nome) + '</option>';
+    });
+    html += '</select>';
+    if (row.corso_studi) {
+        html += '<small class="text-muted">import: ' + iscrizioniTerzeEscape(row.corso_studi) + '</small>';
+    }
+    return html;
+}
+
+function iscrizioniTerzeSaveIndirizzo(id, select) {
+    const formData = new FormData();
+    formData.append('id', String(id));
+    formData.append('id_indirizzo_gestore', select.value || '');
+    select.disabled = true;
+    fetch('iscrizioniTerzeIndirizzoSave.php', {method: 'POST', body: formData})
+        .then(response => response.json())
+        .then(data => {
+            if (!data.ok) throw new Error(data.message || 'Errore salvataggio indirizzo.');
+            const row = iscrizioniTerzeRows.find(item => Number(item.id) === Number(id));
+            if (row) {
+                row.id_indirizzo_gestore = select.value || '';
+                const opt = iscrizioniTerzeIndirizziGestore.find(item => Number(item.id) === Number(select.value || 0));
+                row.indirizzo_gestore_nome = opt ? opt.nome : '';
+            }
+        })
+        .catch(error => {
+            alert(error.message || 'Errore salvataggio indirizzo.');
+        })
+        .finally(() => {
+            select.disabled = false;
+        });
 }
 
 function iscrizioniTerzeFilteredRows() {
@@ -719,13 +975,13 @@ function iscrizioniTerzeRenderTable() {
     iscrizioniTerzeVisibleRows = iscrizioniTerzeFilteredRows();
 
     if (!iscrizioniTerzeRows.length) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-muted">Nessuna pratica importata.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="text-muted">Nessuna pratica importata.</td></tr>';
         if (counter) counter.textContent = '';
         return;
     }
 
     if (!iscrizioniTerzeVisibleRows.length) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-muted">Nessuna pratica corrisponde al filtro.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="text-muted">Nessuna pratica corrisponde al filtro.</td></tr>';
         if (counter) counter.textContent = '0 di ' + iscrizioniTerzeRows.length + ' pratiche';
         return;
     }
@@ -744,18 +1000,24 @@ function iscrizioniTerzeRenderTable() {
             ? '<span class="text-muted">non richiesto</span>'
             : '<button type="button" class="btn btn-xs btn-info" onclick="iscrizioniTerzeOpenTestLink(' + Number(row.id) + ')"><span class="glyphicon glyphicon-new-window"></span> Apri</button>';
         const writeButton = '<button type="button" class="btn btn-xs btn-primary" onclick="iscrizioniTerzeOpenCustomMail(' + Number(row.id) + ')"><span class="glyphicon glyphicon-envelope"></span> Scrivi</button>';
+        const resendLinkButton = isInternal
+            ? ''
+            : ' <button type="button" class="btn btn-xs btn-warning" onclick="iscrizioniTerzeResendPracticeLink(' + Number(row.id) + ')"><span class="glyphicon glyphicon-share-alt"></span> Rimanda link</button>';
 
         return '<tr>' +
-            '<td><strong>' + iscrizioniTerzeEscape(row.cognome) + '</strong> ' + iscrizioniTerzeEscape(row.nome) + '</td>' +
+            '<td><strong>' + iscrizioniTerzeEscape(row.cognome) + '</strong> ' + iscrizioniTerzeEscape(row.nome) + iscrizioniTerzeNoteBadge(row) + '</td>' +
             '<td>' + iscrizioniTerzeEscape(row.codice_fiscale) + '</td>' +
-            '<td>' + iscrizioniTerzeEscape(row.corso_studi) + '</td>' +
+            '<td>' + iscrizioniTerzeEscape(row.corso_studi) + iscrizioniTerzeCurvaturaHtml(row) + '</td>' +
+            '<td>' + iscrizioniTerzeIndirizzoSelect(row) + '</td>' +
             '<td>' + iscrizioniTerzeAttributiHtml(row) + '</td>' +
             '<td>' + tipo + '</td>' +
             '<td>' + iscrizioniTerzeEscape(iscrizioniTerzeStatoLabel(row.stato)) + '</td>' +
             '<td>' + (emails || '<span class="text-danger">mancante</span>') + '</td>' +
             '<td>' + iscrizioniTerzeMailStatus(row) + '</td>' +
             '<td>' + token + '</td>' +
-            '<td>' + writeButton + ' ' + testButton + '</td>' +
+            '<td>' + writeButton + ' ' + testButton + ' ' + iscrizioniTerzePracticeButton(row) +
+                '<button type="button" class="btn btn-xs btn-default" onclick="iscrizioniTerzeOpenParentsModal(' + Number(row.id) + ')"><span class="glyphicon glyphicon-user"></span> Genitori</button>' +
+                resendLinkButton + '</td>' +
             '</tr>';
     }).join('');
 
@@ -792,6 +1054,7 @@ function iscrizioniTerzeExportFilteredCsv() {
         'Tipo',
         'Codice fiscale',
         'Corso',
+        'Indirizzo GestOre',
         'Attributi',
         'Stato',
         'Email responsabile 1',
@@ -808,6 +1071,7 @@ function iscrizioniTerzeExportFilteredCsv() {
             iscrizioniTerzeTipoEffettivo(row),
             row.codice_fiscale,
             row.corso_studi,
+            row.indirizzo_gestore_nome,
             Array.isArray(row.attributi_riservati) ? row.attributi_riservati.map(attr => attr.label || attr.codice || '').join(', ') : '',
             row.stato,
             row.email_genitore_1,
@@ -1067,6 +1331,57 @@ async function iscrizioniTerzeSendCustomMail() {
     });
 }
 
+async function iscrizioniTerzeResendPracticeLink(id) {
+    const row = iscrizioniTerzeFindRowById(id);
+    if (!row) {
+        alert('Pratica non trovata.');
+        return;
+    }
+    if (iscrizioniTerzeTipoEffettivo(row) === 'INTERNO') {
+        iscrizioniTerzeCompleteMailOverlay(false, 'Link non previsto', 'Per gli studenti interni la pratica online non e richiesta.', '');
+        return;
+    }
+    const recipients = [row.email_genitore_1, row.email_genitore_2].filter(Boolean);
+    if (!recipients.length) {
+        iscrizioniTerzeCompleteMailOverlay(false, 'Link non inviato', 'Nessuna email genitore presente nella pratica.', '');
+        return;
+    }
+    const confirmed = await iscrizioniTerzeConfirmMailDialog(
+        'Rimandare il link?',
+        'GestOre generera un nuovo link per la pratica e lo inviera ai genitori presenti.',
+        recipients.map(iscrizioniTerzeEscape).join('<br>')
+    );
+    if (!confirmed) {
+        return;
+    }
+
+    iscrizioniTerzeShowMailOverlay('Invio link pratica', 'GestOre sta inviando il link personale ai genitori.');
+    const data = new FormData();
+    data.append('id', Number(id || 0));
+
+    fetch('iscrizioniPrimeMailLink.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(result => ({ok: response.ok, result})))
+    .then(payload => {
+        if (!payload.ok || !payload.result.ok) {
+            throw new Error(payload.result.message || 'Invio link non riuscito.');
+        }
+        iscrizioniTerzeCompleteMailOverlay(
+            true,
+            'Link inviato',
+            payload.result.message || 'Link pratica inviato ai genitori.',
+            'Nuovo token: <strong>...' + iscrizioniTerzeEscape(payload.result.token_last4 || '') + '</strong>'
+        );
+        iscrizioniTerzeLoadTable();
+    })
+    .catch(error => {
+        iscrizioniTerzeCompleteMailOverlay(false, 'Invio link non riuscito', error.message, '');
+    });
+}
+
 function iscrizioniTerzeLoadTable() {
     const tbody = document.querySelector('#iscrizioni_terze_table tbody');
     tbody.innerHTML = '<tr><td colspan="10" class="text-muted">Caricamento...</td></tr>';
@@ -1301,7 +1616,7 @@ document.getElementById('iscrizioni_terze_import_form').addEventListener('submit
         body: new FormData(event.target),
         credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(iscrizioniTerzeReadJsonResponse)
     .then(data => {
         if (!data.ok) throw new Error(data.message || 'Errore importazione');
         result.className = 'alert alert-success';
@@ -1310,11 +1625,23 @@ document.getElementById('iscrizioni_terze_import_form').addEventListener('submit
             data.inserted + ' nuove, ' +
             data.updated + ' aggiornate. ' +
             'Interni: ' + data.interni + ', esterni: ' + data.esterni + '. ' +
-            'Righe DSA: ' + data.dsa_rows + '. ' +
+            'Righe DSA: ' + data.dsa_rows + ', aggiornamenti standalone: ' + (data.dsa_updated || 0) + '. ' +
+            'Dati aggiuntivi: ' + (data.additional_rows || 0) + ' righe, aggiornate: ' + (data.additional_updated || 0) + ', ignorate: ' + (data.additional_ignored || 0) + '. ' +
+            'Certificazioni scuola: ' + (data.school_attr_rows || 0) + ' righe, studenti agganciati: ' + (data.school_attr_matched || 0) + ', non agganciati: ' + (data.school_attr_unmatched || 0) + '. ' +
             'Contatti aggiornati: ' + data.contacts_updated + ', anagrafiche ignorate: ' + data.contacts_ignored + '. ' +
             'Interni non aggiornati: ' + (data.contacts_internal_skipped || 0) + '. ' +
+            'Movimenti entrata collegati: ' + (data.movimenti_entrata_collegati || 0) + ', gia collegati: ' + (data.movimenti_entrata_gia_collegati || 0) + ', conflitti: ' + (data.movimenti_entrata_conflitti || 0) + '. ' +
             'Studenti gia nostri marcati interni: ' + (data.interni_marcati_da_gestore || 0) + '. ' +
-            'Token nuovi generati: ' + data.generated_tokens + '.';
+            'Token nuovi generati: ' + data.generated_tokens + '.' +
+            iscrizioniTerzeImportList('Nuove pratiche create', data.inserted_details) +
+            iscrizioniTerzeImportList('Pratiche aggiornate - prime 40', data.updated_details) +
+            iscrizioniTerzeImportList('Movimenti in entrata agganciati', data.movimenti_entrata_collegati_details) +
+            iscrizioniTerzeImportList('Movimenti in entrata gia collegati ad altra pratica', data.movimenti_entrata_conflitti_details) +
+            iscrizioniTerzeImportList('Dati aggiuntivi aggiornati', data.additional_updated_details) +
+            iscrizioniTerzeImportList('Dati aggiuntivi non agganciati/ignorati', data.additional_ignored_details) +
+            iscrizioniTerzeImportList('DSA standalone aggiornati', data.dsa_updated_details) +
+            iscrizioniTerzeImportList('DSA standalone non agganciati', data.dsa_ignored_details) +
+            iscrizioniTerzeImportList('Certificazioni scuola non agganciate', data.school_attr_unmatched_examples);
         iscrizioniTerzeLoadTable();
     })
     .catch(error => {

@@ -6,6 +6,41 @@ ruoloRichiesto('admin', 'segreteria-didattica', 'dirigente');
 
 header('Content-Type: application/json; charset=utf-8');
 
+function iscrizioniPrimeReadJson(array $payload, int $statusCode = 200): void
+{
+    http_response_code($statusCode);
+    $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($json === false) {
+        http_response_code(500);
+        echo json_encode([
+            'ok' => false,
+            'message' => 'Errore codifica JSON iscrizioni prime: ' . json_last_error_msg(),
+        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        return;
+    }
+    echo $json;
+}
+
+register_shutdown_function(static function (): void {
+    $error = error_get_last();
+    if (!$error) {
+        return;
+    }
+    $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+    if (!in_array((int)($error['type'] ?? 0), $fatalTypes, true)) {
+        return;
+    }
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(500);
+    }
+    $payload = [
+        'ok' => false,
+        'message' => 'Errore fatale lettura iscrizioni prime: ' . (string)($error['message'] ?? 'errore sconosciuto'),
+    ];
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+});
+
 try {
 iscrizioniPrimeEnsureSchema();
 $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($_GET['tipo_iscrizione'] ?? 'prime');
@@ -94,6 +129,10 @@ $rows = dbGetAll("
         p.cognome,
         p.nome,
         p.corso_studi,
+        p.id_indirizzo_gestore,
+        ind_gestore.nome AS indirizzo_gestore_nome,
+        p.note_genitori_iscrizione,
+        p.curvatura_design,
         p.sezione_richiesta,
         p.comune_residenza,
         p.scuola_provenienza,
@@ -103,10 +142,14 @@ $rows = dbGetAll("
         p.email_genitore_2,
         p.telefono_genitore_1,
         p.telefono_genitore_2,
+        p.responsabile_1_tipo,
         p.responsabile_1_cognome,
         p.responsabile_1_nome,
+        p.responsabile_1_codice_fiscale,
+        p.responsabile_2_tipo,
         p.responsabile_2_cognome,
         p.responsabile_2_nome,
+        p.responsabile_2_codice_fiscale,
         p.token_last4,
         p.token_expires_at,
         p.tablet_scelto,
@@ -176,6 +219,7 @@ $rows = dbGetAll("
         cambio.pratica_stato AS cambio_scuola_pratica_stato,
         $movimentiSelect
     FROM iscrizioni_prime_pratiche p
+    LEFT JOIN indirizzo ind_gestore ON ind_gestore.id = p.id_indirizzo_gestore
     LEFT JOIN (
         SELECT
             pratica_id,
@@ -209,17 +253,77 @@ $rows = dbGetAll("
     ORDER BY p.cognome ASC, p.nome ASC
 ");
 
-$rows = array_map(static function (array $row): array {
-    $row['attributi_riservati'] = studentiAttrForIscrizionePratica($row);
+$rows = $rows ?: [];
+$fiscalCodes = [];
+foreach ($rows as $row) {
+    $cf = strtoupper(trim((string)($row['codice_fiscale'] ?? '')));
+    if ($cf !== '') {
+        $fiscalCodes[$cf] = true;
+    }
+}
+
+$attrsByCf = [];
+if (!empty($fiscalCodes)) {
+    studentiAttrEnsureTables();
+    $quotedFiscalCodes = implode(',', array_map(static fn($cf) => dbQ($cf), array_keys($fiscalCodes)));
+    $attrRows = dbGetAll("
+        SELECT
+            UPPER(TRIM(s.codice_fiscale)) AS codice_fiscale,
+            a.codice_attributo,
+            a.fonte
+        FROM studente s
+        INNER JOIN studente_attributi_riservati a
+            ON a.id_studente = s.id
+           AND a.attivo = 1
+        WHERE s.attivo = 1
+          AND UPPER(TRIM(s.codice_fiscale)) IN ($quotedFiscalCodes)
+        ORDER BY a.codice_attributo ASC
+    ") ?: [];
+    foreach ($attrRows as $attrRow) {
+        $cf = strtoupper(trim((string)($attrRow['codice_fiscale'] ?? '')));
+        if ($cf === '') {
+            continue;
+        }
+        $attrsByCf[$cf][] = $attrRow;
+    }
+}
+
+$rows = array_map(static function (array $row) use ($attrsByCf): array {
+    $cf = strtoupper(trim((string)($row['codice_fiscale'] ?? '')));
+    $result = [];
+    foreach (studentiAttrRowsToDisplay($attrsByCf[$cf] ?? []) as $attr) {
+        $result[(string)$attr['codice']] = $attr;
+    }
+
+    $rawDsa = trim((string)($row['raw_dsa_json'] ?? ''));
+    if ($rawDsa !== '') {
+        $decoded = json_decode($rawDsa, true);
+        if (is_array($decoded)) {
+            foreach (studentiAttrActiveFromDsaCsvRow($decoded) as $attr) {
+                $code = (string)($attr['codice'] ?? '');
+                if ($code === '') {
+                    continue;
+                }
+                if (isset($result[$code]) && trim((string)($result[$code]['fonte'] ?? '')) !== '') {
+                    if (strpos((string)$result[$code]['fonte'], 'csv_dsa') === false) {
+                        $result[$code]['fonte'] .= '+csv_dsa';
+                    }
+                } else {
+                    $result[$code] = $attr;
+                }
+            }
+        }
+    }
+
+    $row['attributi_riservati'] = array_values($result);
     unset($row['raw_dsa_json']);
     return $row;
-}, $rows ?: []);
+}, $rows);
 
-echo json_encode(['ok' => true, 'stats' => $stats ?: [], 'mail_stats' => $mailStats ?: [], 'rows' => $rows], JSON_UNESCAPED_UNICODE);
+iscrizioniPrimeReadJson(['ok' => true, 'stats' => $stats ?: [], 'mail_stats' => $mailStats ?: [], 'rows' => $rows]);
 } catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode([
+    iscrizioniPrimeReadJson([
         'ok' => false,
         'message' => 'Errore lettura iscrizioni prime: ' . $e->getMessage(),
-    ], JSON_UNESCAPED_UNICODE);
+    ], 500);
 }

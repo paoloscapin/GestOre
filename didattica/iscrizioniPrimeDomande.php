@@ -189,10 +189,11 @@ function ipd_filter_duplicate_integration_events(array $eventi): array
     }));
 }
 
-$filtroStato = trim((string)($_GET['stato'] ?? 'inviata'));
+$filtroStato = trim((string)($_GET['stato'] ?? 'tutte'));
+$openPraticaId = intval($_GET['open_pratica_id'] ?? 0);
 $allowedFilters = ['tutte', 'inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata'];
 if (!in_array($filtroStato, $allowedFilters, true)) {
-    $filtroStato = 'inviata';
+    $filtroStato = 'tutte';
 }
 
 $where = "p.tipo_iscrizione = " . dbQ($tipoIscrizione) . " AND p.stato IN ('inviata', 'verifica_iniziale_ok', 'verificata', 'da_integrare', 'annullata')";
@@ -253,13 +254,14 @@ foreach ($pratiche as $praticaEvento) {
     <style>
         .ipd-toolbar { margin-bottom: 14px; }
         .ipd-card { border: 1px solid #d9e0ea; border-radius: 6px; margin-bottom: 14px; background: #fff; box-shadow: 0 3px 14px rgba(0,0,0,.06); }
+        .ipd-card.ipd-target { border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, .16), 0 8px 24px rgba(15, 23, 42, .12); }
         .ipd-filter-box { margin: 12px 0 0; }
         .ipd-filter-box input { width: 100%; max-width: 620px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; font-size: 15px; }
         .ipd-filter-count { display: inline-block; margin-left: 10px; color: #64748b; }
         .ipd-bulk-actions { margin-top: 12px; }
         .ipd-progress { width: 100%; height: 14px; border-radius: 999px; background: #e2e8f0; overflow: hidden; margin-top: 8px; }
         .ipd-progress > span { display: block; height: 100%; width: 0; background: #1d4ed8; transition: width .25s ease; }
-        .ipd-card-head { padding: 12px 14px; border-bottom: 1px solid #e8edf4; background: #f8fafc; display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; }
+        .ipd-card-head { padding: 12px 14px; border-bottom: 1px solid #e8edf4; background: #f8fafc; display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
         .ipd-card-body { padding: 14px; }
         .ipd-name { font-size: 18px; font-weight: 700; }
         .ipd-meta { color: #64748b; margin-top: 3px; }
@@ -273,7 +275,8 @@ foreach ($pratiche as $praticaEvento) {
         .ipd-doc-status.missing { color: #b91c1c; }
         .ipd-empty { padding: 18px; color: #64748b; }
         .ipd-status-help { margin-top: 10px; color: #64748b; line-height: 1.45; }
-        .ipd-status-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+        .ipd-status-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-start; }
+        .ipd-status-actions .btn-group { display: flex; flex-wrap: wrap; gap: 0; }
         .ipd-card-body { display: none; }
         .ipd-card.open .ipd-card-body { display: block; }
         .ipd-summary-line { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; color: #64748b; }
@@ -288,11 +291,19 @@ foreach ($pratiche as $praticaEvento) {
         .ipd-movement-box { border: 1px solid #bbf7d0; border-left: 5px solid #16a34a; background: #f0fdf4; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; color: #14532d; }
         .ipd-movement-box.pending { border-color: #fde68a; border-left-color: #f59e0b; background: #fffbeb; color: #78350f; }
         .ipd-movement-box a { font-weight: 700; }
+        .ipd-terze-values { border: 1px solid #c7d2fe; border-left: 5px solid #4f46e5; background: #eef2ff; border-radius: 8px; padding: 12px; margin: 14px 0 18px; }
+        .ipd-terze-values h4 { margin: 0 0 8px; color: #312e81; }
+        .ipd-terze-values-grid { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 10px; align-items: end; }
+        .ipd-terze-values label { display: block; color: #475569; font-size: 12px; margin-bottom: 4px; }
+        .ipd-terze-values input { width: 100%; border: 1px solid #b7c4e8; border-radius: 6px; padding: 8px 9px; background: #fff; }
+        .ipd-terze-values-status { margin-top: 8px; color: #475569; font-weight: 650; }
         .ipd-toggle { min-width: 92px; }
         .ipd-secretary-docs { margin-top: 18px; padding: 12px; border: 1px solid #bfdbfe; border-radius: 6px; background: #eff6ff; }
         .ipd-secretary-docs h4 { margin-top: 0; }
         .ipd-secretary-upload { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 3px 0 0 0; }
         .ipd-secretary-upload input[type="file"] { max-width: 260px; }
+        .ipd-secretary-upload-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 10px; }
+        .ipd-secretary-upload-status { color: #475569; font-weight: 700; }
         .ipd-modal-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(15,23,42,.62); z-index: 4000; padding: 16px; }
         .ipd-modal-backdrop.open { display: flex; }
         .ipd-modal-box { width: min(620px, 100%); background: #fff; border-radius: 8px; box-shadow: 0 22px 56px rgba(0,0,0,.28); overflow: hidden; }
@@ -315,6 +326,7 @@ foreach ($pratiche as $praticaEvento) {
         .ipd-cambio-event-note { margin-top: 6px; white-space: pre-wrap; }
         @media (max-width: 900px) {
             .ipd-grid { grid-template-columns: 1fr; }
+            .ipd-terze-values-grid { grid-template-columns: 1fr 1fr; }
             .ipd-status-actions { justify-content: flex-start; }
             .ipd-cambio-layout { grid-template-columns: 1fr; }
             .ipd-cambio-history { max-height: none; }
@@ -422,6 +434,14 @@ foreach ($pratiche as $praticaEvento) {
                         <?php if (!empty($pratica['novita_segreteria_at'])) : ?>
                             <span class="ipd-pill news">Novita' per segreteria</span>
                         <?php endif; ?>
+                        <?php if (trim((string)($pratica['note_genitori_iscrizione'] ?? '')) !== '') : ?>
+                            <span class="ipd-pill news" title="<?php echo ipd_h($pratica['note_genitori_iscrizione']); ?>">Note genitori</span>
+                        <?php endif; ?>
+                        <?php if ($tipoIscrizione === 'terze' && trim((string)($pratica['curvatura_design'] ?? '')) !== '') : ?>
+                            <span class="ipd-pill <?php echo $pratica['curvatura_design'] === 'design' ? 'ok' : 'paper'; ?>">
+                                Design: <?php echo $pratica['curvatura_design'] === 'design' ? 'si' : 'no'; ?>
+                            </span>
+                        <?php endif; ?>
                         <?php if ($movementId > 0) : ?>
                             <span class="ipd-pill reiscrizione"><?php echo $movementDone ? 'Reiscrizione gia sistemata' : 'Reiscrizione in gestione'; ?></span>
                         <?php endif; ?>
@@ -498,6 +518,15 @@ foreach ($pratiche as $praticaEvento) {
                     <div class="ipd-field"><div class="ipd-label">Telefono responsabile 2</div><div class="ipd-value"><?php echo ipd_h(ipd_value($pratica, $confirmed, 'telefono_genitore_2')); ?></div></div>
                     <div class="ipd-field"><div class="ipd-label">Residenza</div><div class="ipd-value"><?php echo ipd_h($extraInfo['residenza'] ?: 'Non disponibile nei dati importati'); ?></div></div>
                     <div class="ipd-field"><div class="ipd-label">Scuola di provenienza</div><div class="ipd-value"><?php echo ipd_h($extraInfo['scuola_provenienza'] ?: 'Non disponibile nei dati importati'); ?></div></div>
+                    <?php if ($tipoIscrizione === 'prime') : ?>
+                        <div class="ipd-field"><div class="ipd-label">Esame scuola media</div><div class="ipd-value"><?php echo ipd_h(trim((string)($pratica['voto_esame_licenza'] ?? '')) !== '' ? ('Voto ' . $pratica['voto_esame_licenza']) : 'Non disponibile'); ?><?php if (trim((string)($pratica['esito_esame_licenza'] ?? '')) !== '') : ?><br><span class="text-muted"><?php echo ipd_h($pratica['esito_esame_licenza']); ?></span><?php endif; ?></div></div>
+                    <?php endif; ?>
+                    <?php if (trim((string)($pratica['note_genitori_iscrizione'] ?? '')) !== '') : ?>
+                        <div class="ipd-field"><div class="ipd-label">Note genitori per iscrizione/formazione</div><div class="ipd-value"><?php echo nl2br(ipd_h($pratica['note_genitori_iscrizione'])); ?></div></div>
+                    <?php endif; ?>
+                    <?php if ($tipoIscrizione === 'terze' && trim((string)($pratica['curvatura_design'] ?? '')) !== '') : ?>
+                        <div class="ipd-field"><div class="ipd-label">Curvatura CAT</div><div class="ipd-value"><?php echo ipd_h($pratica['curvatura_design'] === 'design' ? 'Design e riqualificazione ambientale' : 'Normale'); ?></div></div>
+                    <?php endif; ?>
                 </div>
 
                 <?php
@@ -519,7 +548,44 @@ foreach ($pratiche as $praticaEvento) {
                     <div class="ipd-field"><div class="ipd-label">Materie indicate</div><div class="ipd-value"><?php echo ipd_h($carenzeDichiarate === 'si' ? (implode(', ', array_values(array_filter($carenzeMaterie, 'strlen'))) ?: 'Non specificate') : '-'); ?></div></div>
                 </div>
 
+                <?php if ($tipoIscrizione === 'terze') : ?>
+                    <form class="ipd-terze-values" onsubmit="return ipdSaveTerzeValues(event, <?php echo intval($pratica['id']); ?>);">
+                        <h4>Valori pagella seconda per formazione classi</h4>
+                        <div class="text-muted" style="margin-bottom:10px;">Da compilare per studenti esterni quando i valori non sono disponibili dai tabelloni.</div>
+                        <div class="ipd-terze-values-grid">
+                            <div>
+                                <label>Media pagella</label>
+                                <input type="text" name="terza_media_pagella" inputmode="decimal" placeholder="es. 7,50" value="<?php echo ipd_h($pratica['terza_media_pagella'] ?? ''); ?>">
+                            </div>
+                            <div>
+                                <label>Matematica</label>
+                                <input type="text" name="terza_voto_matematica" inputmode="decimal" placeholder="es. 8" value="<?php echo ipd_h($pratica['terza_voto_matematica'] ?? ''); ?>">
+                            </div>
+                            <div>
+                                <label>Italiano</label>
+                                <input type="text" name="terza_voto_italiano" inputmode="decimal" placeholder="es. 7" value="<?php echo ipd_h($pratica['terza_voto_italiano'] ?? ''); ?>">
+                            </div>
+                            <div>
+                                <label>Capacita relazionale</label>
+                                <input type="text" name="terza_voto_capacita_relazionale" inputmode="decimal" placeholder="es. 9" value="<?php echo ipd_h($pratica['terza_voto_capacita_relazionale'] ?? ''); ?>">
+                            </div>
+                        </div>
+                        <div style="margin-top:10px;">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <span class="glyphicon glyphicon-floppy-disk"></span> Salva valori
+                            </button>
+                            <span class="ipd-terze-values-status" id="ipdTerzeValuesStatus-<?php echo intval($pratica['id']); ?>"></span>
+                        </div>
+                    </form>
+                <?php endif; ?>
+
                 <h4>Documenti</h4>
+                <div class="ipd-secretary-upload-tools">
+                    <button type="button" class="btn btn-sm btn-success" onclick="return ipdUploadSegreteriaDocumentiSelezionati(event, <?php echo intval($pratica['id']); ?>);">
+                        <span class="glyphicon glyphicon-upload"></span> Carica tutti i PDF selezionati
+                    </button>
+                    <span class="ipd-secretary-upload-status" id="ipdUploadAllStatus-<?php echo intval($pratica['id']); ?>"></span>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-condensed table-bordered">
                         <thead>
@@ -552,16 +618,16 @@ foreach ($pratiche as $praticaEvento) {
                                             <span class="text-muted"><?php echo ipd_h($document['original_name'] ?? ''); ?></span>
                                         <?php elseif ($statoDoc === 'consegna_cartacea') : ?>
                                             <span class="text-muted">Consegna in segreteria didattica</span>
-                                            <form class="ipd-secretary-upload" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
-                                                <input type="file" name="pdf" accept="application/pdf,.pdf" required>
+                                            <form class="ipd-secretary-upload" data-pratica-id="<?php echo intval($pratica['id']); ?>" data-tipo-documento="<?php echo ipd_h($tipo); ?>" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
+                                                <input type="file" name="pdf[]" accept="application/pdf,.pdf" multiple required>
                                                 <button type="submit" class="btn btn-xs btn-success">
                                                     <span class="glyphicon glyphicon-upload"></span> Carica scansione PDF
                                                 </button>
                                             </form>
                                         <?php else : ?>
                                             <span class="text-danger">Mancante</span>
-                                            <form class="ipd-secretary-upload" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
-                                                <input type="file" name="pdf" accept="application/pdf,.pdf" required>
+                                            <form class="ipd-secretary-upload" data-pratica-id="<?php echo intval($pratica['id']); ?>" data-tipo-documento="<?php echo ipd_h($tipo); ?>" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
+                                                <input type="file" name="pdf[]" accept="application/pdf,.pdf" multiple required>
                                                 <button type="submit" class="btn btn-xs btn-default">
                                                     <span class="glyphicon glyphicon-upload"></span> Carica PDF
                                                 </button>
@@ -664,8 +730,8 @@ foreach ($pratiche as $praticaEvento) {
                                                 <?php else : ?>
                                                     <span class="text-danger">Mancante</span>
                                                 <?php endif; ?>
-                                                <form class="ipd-secretary-upload" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
-                                                    <input type="file" name="pdf" accept="application/pdf,.pdf" required>
+                                                <form class="ipd-secretary-upload" data-pratica-id="<?php echo intval($pratica['id']); ?>" data-tipo-documento="<?php echo ipd_h($tipo); ?>" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
+                                                    <input type="file" name="pdf[]" accept="application/pdf,.pdf" multiple required>
                                                     <button type="submit" class="btn btn-xs <?php echo $isUploaded ? 'btn-default' : 'btn-success'; ?>">
                                                         <span class="glyphicon glyphicon-upload"></span> <?php echo $isUploaded ? 'Sostituisci PDF' : 'Carica PDF'; ?>
                                                     </button>
@@ -929,6 +995,7 @@ let ipdCustomMailPraticaId = 0;
 let ipdStatusNotePraticaId = 0;
 let ipdStatusNoteStato = '';
 const ipdTipoIscrizione = <?php echo json_encode($tipoIscrizione); ?>;
+const ipdOpenPraticaId = <?php echo intval($openPraticaId); ?>;
 let ipdBulkMailRunning = false;
 let ipdBulkMailSent = 0;
 let ipdBulkMailInitialRemaining = 0;
@@ -959,6 +1026,21 @@ function ipdToggleDettagli(id, button) {
     }
     const open = card.classList.toggle('open');
     button.textContent = open ? 'Nascondi' : 'Dettagli';
+}
+
+function ipdOpenPraticaCard(id) {
+    const card = document.getElementById('pratica-' + Number(id || 0));
+    if (!card) {
+        return;
+    }
+    card.classList.add('open', 'ipd-target');
+    const button = card.querySelector('.ipd-toggle');
+    if (button) {
+        button.textContent = 'Nascondi';
+    }
+    setTimeout(function () {
+        card.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }, 80);
 }
 
 function ipdNormalizeFilterText(value) {
@@ -994,6 +1076,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const input = document.getElementById('ipdLiveFilter');
     if (input) {
         input.addEventListener('input', ipdApplyLiveFilter);
+    }
+    const hashMatch = String(window.location.hash || '').match(/^#pratica-(\d+)$/);
+    const hashPraticaId = hashMatch ? Number(hashMatch[1] || 0) : 0;
+    if (ipdOpenPraticaId > 0 || hashPraticaId > 0) {
+        ipdOpenPraticaCard(ipdOpenPraticaId > 0 ? ipdOpenPraticaId : hashPraticaId);
     }
 });
 
@@ -1821,40 +1908,194 @@ function ipdSendStato(id, stato, note) {
     .catch(error => alert(error.message));
 }
 
+function ipdSaveTerzeValues(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const button = form.querySelector('button[type="submit"]');
+    const status = document.getElementById('ipdTerzeValuesStatus-' + id);
+    const data = new FormData(form);
+    data.append('id', id);
+
+    if (button) {
+        button.disabled = true;
+    }
+    if (status) {
+        status.textContent = 'Salvataggio...';
+        status.style.color = '#475569';
+    }
+
+    fetch('iscrizioniTerzeValoriSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(payload => ({ok: response.ok, payload})))
+    .then(result => {
+        if (!result.ok || !result.payload.ok) {
+            throw new Error(result.payload.message || 'Errore salvataggio valori.');
+        }
+        if (status) {
+            status.textContent = result.payload.message || 'Valori salvati.';
+            status.style.color = '#166534';
+        }
+    })
+    .catch(error => {
+        if (status) {
+            status.textContent = error.message;
+            status.style.color = '#b91c1c';
+        } else {
+            alert(error.message);
+        }
+    })
+    .finally(() => {
+        if (button) {
+            button.disabled = false;
+        }
+    });
+
+    return false;
+}
+
+function ipdReloadPratica(praticaId) {
+    const url = new URL(window.location.href);
+    url.hash = 'pratica-' + Number(praticaId || 0);
+    window.history.replaceState({}, '', url.toString());
+    window.location.reload();
+}
+
+function ipdSelectedFileCount(form) {
+    const input = form ? form.querySelector('input[type="file"]') : null;
+    return input && input.files ? input.files.length : 0;
+}
+
+function ipdUploadSegreteriaDocumentoForm(form, praticaId, tipo) {
+    const data = new FormData(form);
+    data.append('pratica_id', praticaId);
+    data.append('tipo', tipo);
+
+    return fetch('iscrizioniPrimeSegreteriaDocumentoUpload.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.text().then(text => {
+        let data;
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (e) {
+            throw new Error('Risposta non valida dal server durante il caricamento PDF.');
+        }
+        return {ok: response.ok, data};
+    }))
+    .then(result => {
+        if (!result.ok || !result.data.ok) {
+            throw new Error(result.data.message || 'Errore caricamento PDF');
+        }
+        return result.data;
+    });
+}
+
 function ipdUploadSegreteriaDocumento(event, praticaId, tipo) {
     event.preventDefault();
     const form = event.target;
     const button = form.querySelector('button[type="submit"]');
-    const data = new FormData(form);
-    data.append('pratica_id', praticaId);
-    data.append('tipo', tipo);
+    const originalHtml = button ? button.innerHTML : '';
+    if (ipdSelectedFileCount(form) <= 0) {
+        alert('Selezionare almeno un PDF da caricare.');
+        return false;
+    }
 
     if (button) {
         button.disabled = true;
         button.textContent = 'Caricamento...';
     }
 
-    fetch('iscrizioniPrimeSegreteriaDocumentoUpload.php', {
-        method: 'POST',
-        body: data,
-        credentials: 'same-origin'
-    })
-    .then(response => response.json().then(data => ({ok: response.ok, data})))
-    .then(result => {
-        if (!result.ok || !result.data.ok) {
-            throw new Error(result.data.message || 'Errore caricamento PDF');
-        }
-        alert(result.data.message || 'Documento caricato.');
-        window.location.reload();
+    ipdUploadSegreteriaDocumentoForm(form, praticaId, tipo)
+    .then(data => {
+        alert(data.message || 'Documento caricato.');
+        ipdReloadPratica(praticaId);
     })
     .catch(error => {
         alert(error.message);
         if (button) {
             button.disabled = false;
-            button.innerHTML = '<span class="glyphicon glyphicon-upload"></span> Carica PDF';
+            button.innerHTML = originalHtml || '<span class="glyphicon glyphicon-upload"></span> Carica PDF';
         }
     });
 
+    return false;
+}
+
+async function ipdUploadSegreteriaDocumentiSelezionati(event, praticaId) {
+    event.preventDefault();
+    const card = document.getElementById('pratica-' + Number(praticaId || 0));
+    const status = document.getElementById('ipdUploadAllStatus-' + Number(praticaId || 0));
+    const trigger = event.currentTarget;
+    if (!card) {
+        return false;
+    }
+    const forms = Array.from(card.querySelectorAll('.ipd-secretary-upload')).filter(function (form) {
+        return ipdSelectedFileCount(form) > 0;
+    });
+    if (!forms.length) {
+        if (status) {
+            status.textContent = 'Seleziona almeno un PDF in una riga documento.';
+            status.style.color = '#b91c1c';
+        }
+        return false;
+    }
+
+    const buttons = forms.map(function (form) {
+        return form.querySelector('button[type="submit"]');
+    }).filter(Boolean);
+    const originalButtonHtml = new Map();
+    buttons.forEach(function (button) {
+        originalButtonHtml.set(button, button.innerHTML);
+        button.disabled = true;
+    });
+    if (trigger) {
+        trigger.disabled = true;
+    }
+
+    let uploaded = 0;
+    const errors = [];
+    for (const form of forms) {
+        const tipo = form.dataset.tipoDocumento || '';
+        const button = form.querySelector('button[type="submit"]');
+        if (button) {
+            button.textContent = 'Caricamento...';
+        }
+        if (status) {
+            status.textContent = 'Caricamento ' + (uploaded + 1) + ' di ' + forms.length + '...';
+            status.style.color = '#475569';
+        }
+        try {
+            await ipdUploadSegreteriaDocumentoForm(form, praticaId, tipo);
+            uploaded++;
+        } catch (error) {
+            errors.push(error.message);
+        }
+    }
+
+    if (uploaded > 0) {
+        if (errors.length) {
+            alert(uploaded + ' documenti caricati. Errori: ' + errors.join(' | '));
+        }
+        ipdReloadPratica(praticaId);
+        return false;
+    }
+
+    if (status) {
+        status.textContent = errors.length ? errors.join(' | ') : 'Nessun documento caricato.';
+        status.style.color = '#b91c1c';
+    }
+    buttons.forEach(function (button) {
+        button.disabled = false;
+        button.innerHTML = originalButtonHtml.get(button) || '<span class="glyphicon glyphicon-upload"></span> Carica PDF';
+    });
+    if (trigger) {
+        trigger.disabled = false;
+    }
     return false;
 }
 </script>

@@ -54,6 +54,9 @@ function iscrizioniPrimeEnsureSchema(): void
           carenze_formative_altro varchar(255) DEFAULT NULL,
           unita_scolastica varchar(255) DEFAULT NULL,
           corso_studi varchar(255) DEFAULT NULL,
+          id_indirizzo_gestore int DEFAULT NULL,
+          note_genitori_iscrizione text DEFAULT NULL,
+          curvatura_design varchar(20) NOT NULL DEFAULT '',
           anno_corso tinyint DEFAULT NULL,
           mensa varchar(50) DEFAULT NULL,
           religione varchar(50) DEFAULT NULL,
@@ -98,6 +101,7 @@ function iscrizioniPrimeEnsureSchema(): void
           raw_dsa_json mediumtext DEFAULT NULL,
           raw_licenza_media_json mediumtext DEFAULT NULL,
           raw_anagrafica_json mediumtext DEFAULT NULL,
+          raw_dati_aggiuntivi_json mediumtext DEFAULT NULL,
           note_interne text DEFAULT NULL,
           imported_at datetime NOT NULL,
           updated_at datetime NOT NULL,
@@ -238,10 +242,14 @@ function iscrizioniPrimeEnsureSchema(): void
           dsa_filename varchar(255) DEFAULT NULL,
           anagrafica_filename varchar(255) DEFAULT NULL,
           licenza_media_filename varchar(255) DEFAULT NULL,
+          dsa_school_filename varchar(255) DEFAULT NULL,
           righe_prime int NOT NULL DEFAULT 0,
           righe_dsa int NOT NULL DEFAULT 0,
           righe_anagrafica int NOT NULL DEFAULT 0,
           righe_licenza_media int NOT NULL DEFAULT 0,
+          righe_dsa_school int NOT NULL DEFAULT 0,
+          attributi_school_aggiornati int NOT NULL DEFAULT 0,
+          attributi_school_non_agganciati int NOT NULL DEFAULT 0,
           inserite int NOT NULL DEFAULT 0,
           aggiornate int NOT NULL DEFAULT 0,
           contatti_aggiornati int NOT NULL DEFAULT 0,
@@ -418,6 +426,7 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'responsabile_2_codice_fiscale', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN responsabile_2_codice_fiscale varchar(16) DEFAULT NULL AFTER responsabile_2_nome");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'raw_anagrafica_json', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN raw_anagrafica_json mediumtext DEFAULT NULL AFTER raw_dsa_json");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'raw_licenza_media_json', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN raw_licenza_media_json mediumtext DEFAULT NULL AFTER raw_dsa_json");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'raw_dati_aggiuntivi_json', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN raw_dati_aggiuntivi_json mediumtext DEFAULT NULL AFTER raw_anagrafica_json");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'novita_segreteria_at', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN novita_segreteria_at datetime DEFAULT NULL AFTER dati_confermati_json");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'novita_segreteria_messaggio', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN novita_segreteria_messaggio varchar(255) DEFAULT NULL AFTER novita_segreteria_at");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_scelto', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_scelto tinyint NOT NULL DEFAULT 0 AFTER novita_segreteria_messaggio");
@@ -431,10 +440,24 @@ function iscrizioniPrimeEnsureSchema(): void
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_path', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_path text DEFAULT NULL AFTER tablet_note");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_original_name', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_original_name text DEFAULT NULL AFTER tablet_rinuncia_allegato_path");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'tablet_rinuncia_allegato_size', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN tablet_rinuncia_allegato_size int DEFAULT NULL AFTER tablet_rinuncia_allegato_original_name");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'id_indirizzo_gestore', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN id_indirizzo_gestore int DEFAULT NULL AFTER corso_studi");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'note_genitori_iscrizione', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN note_genitori_iscrizione text DEFAULT NULL AFTER id_indirizzo_gestore");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'curvatura_design', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN curvatura_design varchar(20) NOT NULL DEFAULT '' AFTER note_genitori_iscrizione");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'terza_media_pagella', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN terza_media_pagella decimal(4,2) DEFAULT NULL AFTER id_indirizzo_gestore");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'terza_voto_matematica', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN terza_voto_matematica decimal(4,2) DEFAULT NULL AFTER terza_media_pagella");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'terza_voto_italiano', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN terza_voto_italiano decimal(4,2) DEFAULT NULL AFTER terza_voto_matematica");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_pratiche', 'terza_voto_capacita_relazionale', "ALTER TABLE iscrizioni_prime_pratiche ADD COLUMN terza_voto_capacita_relazionale decimal(4,2) DEFAULT NULL AFTER terza_voto_italiano");
+    iscrizioniPrimeNormalizeGestoreAddressIds();
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'anagrafica_filename', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN anagrafica_filename varchar(255) DEFAULT NULL AFTER dsa_filename");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'righe_anagrafica', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN righe_anagrafica int NOT NULL DEFAULT 0 AFTER righe_dsa");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'licenza_media_filename', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN licenza_media_filename varchar(255) DEFAULT NULL AFTER anagrafica_filename");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'righe_licenza_media', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN righe_licenza_media int NOT NULL DEFAULT 0 AFTER righe_anagrafica");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'dati_aggiuntivi_filename', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN dati_aggiuntivi_filename varchar(255) DEFAULT NULL AFTER licenza_media_filename");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'righe_dati_aggiuntivi', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN righe_dati_aggiuntivi int NOT NULL DEFAULT 0 AFTER righe_licenza_media");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'dsa_school_filename', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN dsa_school_filename varchar(255) DEFAULT NULL AFTER licenza_media_filename");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'righe_dsa_school', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN righe_dsa_school int NOT NULL DEFAULT 0 AFTER righe_licenza_media");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'attributi_school_aggiornati', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN attributi_school_aggiornati int NOT NULL DEFAULT 0 AFTER righe_dsa_school");
+    iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'attributi_school_non_agganciati', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN attributi_school_non_agganciati int NOT NULL DEFAULT 0 AFTER attributi_school_aggiornati");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'contatti_aggiornati', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN contatti_aggiornati int NOT NULL DEFAULT 0 AFTER aggiornate");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'contatti_ignorati', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN contatti_ignorati int NOT NULL DEFAULT 0 AFTER contatti_aggiornati");
     iscrizioniPrimeEnsureColumn('iscrizioni_prime_import_log', 'tipo_iscrizione', "ALTER TABLE iscrizioni_prime_import_log ADD COLUMN tipo_iscrizione varchar(20) NOT NULL DEFAULT 'prime' AFTER contatti_ignorati");
@@ -499,6 +522,110 @@ function iscrizioniPrimeEnsureColumn(string $table, string $column, string $alte
 
     if (intval($exists) === 0) {
         dbExec($alterSql);
+    }
+}
+
+function iscrizioniPrimeNormalizeTextForAddress(string $value): string
+{
+    $value = strtoupper(trim($value));
+    $value = str_replace(['À','Á','È','É','Ì','Í','Ò','Ó','Ù','Ú'], ['A','A','E','E','I','I','O','O','U','U'], $value);
+    $value = preg_replace('/[^A-Z0-9]+/u', ' ', $value) ?? $value;
+    return trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
+}
+
+function iscrizioniPrimeGestoreAddressOptions(): array
+{
+    return dbGetAll("SELECT id, nome FROM indirizzo WHERE id BETWEEN 1 AND 10 ORDER BY nome ASC") ?: [];
+}
+
+function iscrizioniPrimeGestoreAddressIdFromText(string $value): int
+{
+    $norm = iscrizioniPrimeNormalizeTextForAddress($value);
+    if ($norm === '') {
+        return 0;
+    }
+    $aliases = [
+        'ENERGIA' => ['MECCANICA', 'ENERGIA'],
+        'MECCANICA ENERGIA' => ['MECCANICA', 'ENERGIA'],
+        'MECCANICA E MECCATRONICA ENERGIA' => ['MECCANICA', 'ENERGIA'],
+        'CHIMICA E MATERIALI' => ['CHIMICA', 'MATERIALI'],
+        'CHIMICA DEI MATERIALI' => ['CHIMICA', 'MATERIALI'],
+        'AUTOMAZIONE' => ['AUTOMAZIONE'],
+        'AUA' => ['AUTOMAZIONE'],
+        'ELETTRONICA ELETTROTECNICA' => ['ELETTROTECNICA'],
+        'ELETTROTECNICA' => ['ELETTROTECNICA'],
+        'ELA' => ['ELETTROTECNICA'],
+        'INFORMATICA' => ['INFORMATICA'],
+        'TELECOMUNICAZIONI' => ['TELECOMUNICAZIONI'],
+        'BIOTECNOLOGIE SANITARIE' => ['BIOTECNOLOGIE', 'SANITARIE'],
+        'BIOTECNOLOGIE AMBIENTALI' => ['BIOTECNOLOGIE', 'AMBIENTALI'],
+        'GRAFICA E COMUNICAZIONE' => ['GRAFICA', 'COMUNICAZIONE'],
+        'DIGITAL SCIENCE' => ['DIGITAL', 'SCIENCE'],
+    ];
+    $needleParts = $aliases[$norm] ?? [$norm];
+    foreach (iscrizioniPrimeGestoreAddressOptions() as $row) {
+        $id = intval($row['id'] ?? 0);
+        $nameNorm = iscrizioniPrimeNormalizeTextForAddress((string)($row['nome'] ?? ''));
+        if ($id <= 0 || $nameNorm === '') {
+            continue;
+        }
+        if ($nameNorm === $norm || strpos($nameNorm, $norm) !== false || strpos($norm, $nameNorm) !== false) {
+            return $id;
+        }
+        $ok = true;
+        foreach ($needleParts as $part) {
+            $partNorm = iscrizioniPrimeNormalizeTextForAddress((string)$part);
+            if ($partNorm === '' || strpos($nameNorm, $partNorm) === false) {
+                $ok = false;
+                break;
+            }
+        }
+        if ($ok) {
+            return $id;
+        }
+    }
+    return 0;
+}
+
+function iscrizioniPrimeGestoreAddressIdFromPractice(array $practice): int
+{
+    $existing = intval($practice['id_indirizzo_gestore'] ?? 0);
+    if ($existing > 0) {
+        return $existing;
+    }
+    foreach (['corso_studi', 'scelta_formativa', 'corso', 'indirizzo'] as $field) {
+        $id = iscrizioniPrimeGestoreAddressIdFromText((string)($practice[$field] ?? ''));
+        if ($id > 0) {
+            return $id;
+        }
+    }
+    return 0;
+}
+
+function iscrizioniPrimeNormalizeGestoreAddressIds(): void
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $done = true;
+    $rows = dbGetAll("
+        SELECT id, corso_studi, scelta_formativa
+        FROM iscrizioni_prime_pratiche
+        WHERE tipo_iscrizione = 'terze'
+          AND COALESCE(id_indirizzo_gestore, 0) = 0
+    ") ?: [];
+    foreach ($rows as $row) {
+        $idIndirizzo = iscrizioniPrimeGestoreAddressIdFromPractice($row);
+        if ($idIndirizzo <= 0) {
+            continue;
+        }
+        dbExec("
+            UPDATE iscrizioni_prime_pratiche
+            SET id_indirizzo_gestore = " . dbI($idIndirizzo) . "
+            WHERE id = " . dbI($row['id'] ?? 0) . "
+            LIMIT 1
+        ");
     }
 }
 
@@ -958,7 +1085,7 @@ function iscrizioniPrimeNormalizeHeader(array $header): array
     $normalized = [];
 
     foreach ($header as $index => $name) {
-        $name = trim((string)$name);
+        $name = trim(iscrizioniPrimeUtf8((string)$name));
         $name = preg_replace('/^\xEF\xBB\xBF/', '', $name);
         $name = preg_replace('/^\x{FEFF}/u', '', $name);
 
@@ -980,6 +1107,24 @@ function iscrizioniPrimeNormalizeHeader(array $header): array
     return $normalized;
 }
 
+function iscrizioniPrimeUtf8(string $value): string
+{
+    if ($value === '') {
+        return '';
+    }
+    if (function_exists('mb_check_encoding') && mb_check_encoding($value, 'UTF-8')) {
+        return $value;
+    }
+    if (function_exists('mb_convert_encoding')) {
+        return mb_convert_encoding($value, 'UTF-8', 'Windows-1252,ISO-8859-1,UTF-8');
+    }
+    $converted = @iconv('Windows-1252', 'UTF-8//IGNORE', $value);
+    if ($converted !== false) {
+        return $converted;
+    }
+    return preg_replace('/[^\x09\x0A\x0D\x20-\x7E]/', '', $value) ?? '';
+}
+
 function iscrizioniPrimeReadCsv(string $path): array
 {
     $fp = fopen($path, 'r');
@@ -988,7 +1133,17 @@ function iscrizioniPrimeReadCsv(string $path): array
         throw new RuntimeException('Impossibile leggere il file CSV.');
     }
 
-    $header = fgetcsv($fp, 0, ',');
+    $firstLine = fgets($fp);
+    if ($firstLine === false) {
+        fclose($fp);
+        throw new RuntimeException('Intestazione CSV non valida.');
+    }
+    $commaCount = substr_count($firstLine, ',');
+    $semicolonCount = substr_count($firstLine, ';');
+    $delimiter = $semicolonCount > $commaCount ? ';' : ',';
+    rewind($fp);
+
+    $header = fgetcsv($fp, 0, $delimiter);
     if (!$header) {
         fclose($fp);
         throw new RuntimeException('Intestazione CSV non valida.');
@@ -997,14 +1152,14 @@ function iscrizioniPrimeReadCsv(string $path): array
     $header = iscrizioniPrimeNormalizeHeader($header);
     $rows = [];
 
-    while (($row = fgetcsv($fp, 0, ',')) !== false) {
+    while (($row = fgetcsv($fp, 0, $delimiter)) !== false) {
         if (!count(array_filter($row, fn($value) => trim((string)$value) !== ''))) {
             continue;
         }
 
         $assoc = [];
         foreach ($header as $index => $name) {
-            $assoc[$name] = trim((string)($row[$index] ?? ''));
+            $assoc[$name] = trim(iscrizioniPrimeUtf8((string)($row[$index] ?? '')));
         }
         $rows[] = $assoc;
     }
@@ -3325,7 +3480,7 @@ function iscrizioniPrimeSendMailFromGmailDraft(array $cfg, array $account, array
     }
 }
 
-function iscrizioniPrimeCorrectLinkMailBody(array $pratica, string $link, string $tipoIscrizione): string
+function iscrizioniPrimeCorrectLinkMailBody(array $pratica, string $link, string $tipoIscrizione, bool $manualResend = false): string
 {
     global $__settings;
 
@@ -3335,36 +3490,51 @@ function iscrizioniPrimeCorrectLinkMailBody(array $pratica, string $link, string
     $classeTarget = iscrizioniPrimeClasseTargetLabel($pratica);
     $tipoLabel = $tipoIscrizione === 'terze' ? 'classi terze' : 'classi prime';
 
+    $title = $manualResend ? 'Link pratica iscrizione' : 'Rettifica link conferma dati iscrizione';
+    $intro = $manualResend
+        ? 'ti inviamo nuovamente il link personale per accedere alla pratica di iscrizione di'
+        : 'in una precedente comunicazione relativa alla pratica di iscrizione di';
+    $introAfter = $manualResend ? '.' : 'potrebbe essere stato inviato un link non piu valido.';
+    $warning = $manualResend
+        ? '<strong>Usa questo link per rientrare nella pratica.</strong><br>Il link consente di consultare i dati e integrare eventuali documenti finche la pratica non viene verificata dalla segreteria.'
+        : '<strong>Usate esclusivamente il nuovo link indicato sotto.</strong><br>Il link ricevuto in precedenza puo essere ignorato.';
+    $button = $manualResend ? 'Apri la pratica iscrizione' : 'Apri il link corretto';
+    $after = $manualResend
+        ? 'Non e necessario ricompilare da capo: eventuali dati o documenti gia salvati nella pratica restano disponibili.'
+        : 'Non e necessario ricompilare da capo: eventuali dati o documenti gia salvati nella pratica restano disponibili.';
+    $scopeText = $manualResend
+        ? 'Questa comunicazione riguarda solo il link personale per la procedura online GestOre per le '
+        : 'Questa rettifica riguarda solo il link personale per la procedura online GestOre per le ';
+
     return '
         <div style="margin:0;padding:0;background:#f4f7fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
             <div style="max-width:760px;margin:0 auto;padding:22px 12px;">
                 <div style="background:#ffffff;border:1px solid #dbe3ef;border-radius:8px;overflow:hidden;">
                     <div style="background:#0f766e;color:#ffffff;padding:20px 22px;">
                         <div style="font-size:13px;letter-spacing:.04em;text-transform:uppercase;opacity:.9;">' . iscrizioniPrimeMailEscape($istituto) . '</div>
-                        <div style="font-size:24px;font-weight:800;margin-top:4px;">Rettifica link conferma dati iscrizione</div>
+                        <div style="font-size:24px;font-weight:800;margin-top:4px;">' . iscrizioniPrimeMailEscape($title) . '</div>
                         <div style="font-size:15px;margin-top:4px;">' . iscrizioniPrimeMailEscape(ucfirst($classeTarget)) . ' - anno scolastico ' . iscrizioniPrimeMailEscape($anno) . '</div>
                     </div>
                     <div style="padding:22px;">
                         <p style="margin:0 0 14px;line-height:1.55;">Gentile famiglia,</p>
                         <p style="margin:0 0 14px;line-height:1.55;">
-                            in una precedente comunicazione relativa alla pratica di iscrizione di
+                            ' . iscrizioniPrimeMailEscape($intro) . '
                             <strong>' . iscrizioniPrimeMailEscape($nomeStudente) . '</strong>
-                            potrebbe essere stato inviato un link non piu valido.
+                            ' . iscrizioniPrimeMailEscape($introAfter) . '
                         </p>
                         <div style="border-left:5px solid #f59e0b;background:#fffbeb;border-radius:8px;padding:14px 16px;margin:18px 0;color:#7c2d12;line-height:1.55;">
-                            <strong>Usate esclusivamente il nuovo link indicato sotto.</strong><br>
-                            Il link ricevuto in precedenza puo essere ignorato.
+                            ' . $warning . '
                         </div>
                         <p style="margin:18px 0;text-align:center;">
                             <a href="' . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . '" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:13px 20px;border-radius:6px;font-weight:800;">
-                                Apri il link corretto
+                                ' . iscrizioniPrimeMailEscape($button) . '
                             </a>
                         </p>
                         <p style="margin:0 0 14px;line-height:1.55;">
-                            Non e necessario ricompilare da capo: eventuali dati o documenti gia salvati nella pratica restano disponibili.
+                            ' . iscrizioniPrimeMailEscape($after) . '
                         </p>
                         <div style="border-left:5px solid #0ea5e9;background:#eaf6fc;border-radius:8px;padding:12px 14px;margin:18px 0;color:#0f172a;line-height:1.45;">
-                            Questa rettifica riguarda solo il link personale per la procedura online GestOre per le ' . iscrizioniPrimeMailEscape($tipoLabel) . '.
+                            ' . iscrizioniPrimeMailEscape($scopeText) . iscrizioniPrimeMailEscape($tipoLabel) . '.
                         </div>
                         <p style="margin:18px 0 0;color:#172033;line-height:1.5;">Cordiali saluti<br><strong>Segreteria didattica</strong></p>
                     </div>
@@ -3374,15 +3544,15 @@ function iscrizioniPrimeCorrectLinkMailBody(array $pratica, string $link, string
     ';
 }
 
-function iscrizioniPrimeSendCorrectLinkMail(array $cfg, array $account, array $pratica, string $recipient, string $link, string $tipoIscrizione): bool
+function iscrizioniPrimeSendCorrectLinkMail(array $cfg, array $account, array $pratica, string $recipient, string $link, string $tipoIscrizione, bool $manualResend = false): bool
 {
     require_once __DIR__ . '/send-mail.php';
 
     $recipient = strtolower(trim($recipient));
-    $body = iscrizioniPrimeCorrectLinkMailBody($pratica, $link, $tipoIscrizione);
+    $body = iscrizioniPrimeCorrectLinkMailBody($pratica, $link, $tipoIscrizione, $manualResend);
     $nomeStudente = trim((string)(($pratica['nome'] ?? '') . ' ' . ($pratica['cognome'] ?? '')));
     $subjectSuffix = $tipoIscrizione === 'terze' ? 'classi terze' : 'classi prime';
-    $subject = 'Rettifica link conferma dati iscrizione ' . $subjectSuffix;
+    $subject = ($manualResend ? 'Link pratica iscrizione ' : 'Rettifica link conferma dati iscrizione ') . $subjectSuffix;
     if ($nomeStudente !== '') {
         $subject .= ' - ' . $nomeStudente;
     }
@@ -3409,6 +3579,103 @@ function iscrizioniPrimeSendCorrectLinkMail(array $cfg, array $account, array $p
         'smtp_secure' => $cfg['SMTPSecure'],
         'smtp_port' => $cfg['Port'],
     ]);
+}
+
+function iscrizioniPrimeResendPracticeLink(int $practiceId): array
+{
+    require_once __DIR__ . '/send-mail.php';
+
+    $practiceId = intval($practiceId);
+    if ($practiceId <= 0) {
+        return ['ok' => false, 'message' => 'Pratica non valida.'];
+    }
+
+    $pratica = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($practiceId) . " LIMIT 1");
+    if (!$pratica) {
+        return ['ok' => false, 'message' => 'Pratica non trovata.'];
+    }
+    if ((string)($pratica['stato'] ?? '') === 'annullata') {
+        return ['ok' => false, 'message' => 'La pratica e annullata: non posso reinviare il link.'];
+    }
+
+    $cfg = iscrizioniPrimeMailConfig();
+    if (empty($cfg['enabled'])) {
+        return ['ok' => false, 'message' => 'Invio mail iscrizioni non abilitato in GestOre.json.'];
+    }
+    if (empty($cfg['accounts'])) {
+        return ['ok' => false, 'message' => 'Nessun account SMTP iscrizioni configurato.'];
+    }
+
+    $recipients = iscrizioniPrimeMailRecipientsForPratica($pratica);
+    if (!$recipients) {
+        return ['ok' => false, 'message' => 'Nessuna email genitore valida presente nella pratica.'];
+    }
+
+    $token = iscrizioniPrimeSetToken($practiceId);
+    $link = ($GLOBALS['__http_base_link'] ?? '') . '/iscrizioni/conferma.php?t=' . rawurlencode($token);
+    $tipoIscrizione = iscrizioniPrimeTipoIscrizioneFromPratica($pratica);
+    $counts = iscrizioniPrimeMailAccountCounts();
+    $sent = 0;
+    $errors = [];
+    $usedRecipients = [];
+
+    foreach ($recipients as $recipient) {
+        $account = iscrizioniPrimePickMailAccount($cfg, $counts);
+        if ($account === null) {
+            $errors[] = 'Limite giornaliero degli account iscrizioni raggiunto.';
+            break;
+        }
+
+        $ok = iscrizioniPrimeSendCorrectLinkMail($cfg, $account, $pratica, $recipient, $link, $tipoIscrizione, true);
+        $dispatchResult = $GLOBALS['__sendMailLastDispatchResult'] ?? [];
+        dbExec("
+            INSERT INTO iscrizioni_prime_mail_log
+            (pratica_id, recipient_email, account_email, token_last4, stato, test_mode, transport, gmail_message_id, errore, sent_at, created_at)
+            VALUES (
+                " . dbI($practiceId) . ",
+                " . dbQ($recipient) . ",
+                " . dbQ($account['email']) . ",
+                " . dbQ(substr($token, -4)) . ",
+                " . dbQ($ok ? 'inviata' : 'errore') . ",
+                " . (!empty($cfg['testMode']) ? '1' : '0') . ",
+                " . dbQ((string)($dispatchResult['transport'] ?? '')) . ",
+                " . dbQ((string)($dispatchResult['gmail_message_id'] ?? '')) . ",
+                " . dbQ($ok ? null : ((string)($dispatchResult['error'] ?? '') !== '' ? (string)$dispatchResult['error'] : 'sendMailCustom ha restituito false')) . ",
+                " . ($ok ? 'NOW()' : 'NULL') . ",
+                NOW()
+            )
+        ");
+
+        if ($ok) {
+            $sent++;
+            $usedRecipients[] = $recipient;
+            $counts[$account['email']] = intval($counts[$account['email']] ?? 0) + 1;
+        } else {
+            $errors[] = $recipient;
+        }
+    }
+
+    if ($sent > 0) {
+        iscrizioniPrimeRecordEvent($practiceId, 'mail_link_pratica', 'Link pratica reinviato ai genitori', [
+            'oggetto' => 'Link pratica iscrizione',
+            'messaggio' => 'Reinvio manuale del link personale della pratica.',
+            'dettagli' => [
+                'recipients' => $usedRecipients,
+                'token_last4' => substr($token, -4),
+            ],
+        ]);
+    }
+
+    return [
+        'ok' => $sent > 0 && empty($errors),
+        'message' => $sent > 0
+            ? 'Link pratica reinviato a ' . $sent . ' destinatari.'
+            : 'Nessun link inviato.',
+        'sent' => $sent,
+        'recipients' => $usedRecipients,
+        'errors' => $errors,
+        'token_last4' => substr($token, -4),
+    ];
 }
 
 function iscrizioniPrimeNotifyMailFailure(array $cfg, string $message): void
@@ -5389,19 +5656,39 @@ function iscrizioniPrimeUploadSecretaryPdf(int $praticaId, string $tipo, array $
         return ['ok' => false, 'message' => 'Tipo documento non valido.'];
     }
 
-    if (!empty($file['error']) || empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
-        return ['ok' => false, 'message' => 'Selezionare un PDF da caricare.'];
+    $files = array_values(array_filter(iscrizioniPrimeUploadedFiles($file), function ($item) {
+        return intval($item['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+    }));
+    if (empty($files)) {
+        return ['ok' => false, 'message' => 'Selezionare almeno un PDF da caricare.'];
+    }
+    if (count($files) > 12) {
+        return ['ok' => false, 'message' => 'Caricare al massimo 12 PDF per documento.'];
     }
 
-    $size = intval($file['size'] ?? 0);
-    if ($size <= 0 || $size > 30 * 1024 * 1024) {
-        return ['ok' => false, 'message' => 'Il PDF deve essere inferiore a 30 MB.'];
-    }
+    $totalSize = 0;
+    $preparedFiles = [];
+    foreach ($files as $currentFile) {
+        if (!empty($currentFile['error']) || empty($currentFile['tmp_name']) || !is_uploaded_file($currentFile['tmp_name'])) {
+            return ['ok' => false, 'message' => 'Uno dei PDF selezionati non e valido.'];
+        }
 
-    $originalName = (string)($file['name'] ?? 'documento.pdf');
-    $mime = iscrizioniPrimeMimeType($file['tmp_name'], (string)($file['type'] ?? ''));
-    if (strtolower(pathinfo($originalName, PATHINFO_EXTENSION)) !== 'pdf' && $mime !== 'application/pdf') {
-        return ['ok' => false, 'message' => 'Caricare solo file PDF.'];
+        $size = intval($currentFile['size'] ?? 0);
+        $totalSize += $size;
+        if ($size <= 0 || $size > 30 * 1024 * 1024) {
+            return ['ok' => false, 'message' => 'Ogni PDF deve essere inferiore a 30 MB.'];
+        }
+
+        $originalName = (string)($currentFile['name'] ?? 'documento.pdf');
+        $mime = iscrizioniPrimeMimeType($currentFile['tmp_name'], (string)($currentFile['type'] ?? ''));
+        if (strtolower(pathinfo($originalName, PATHINFO_EXTENSION)) !== 'pdf' && $mime !== 'application/pdf') {
+            return ['ok' => false, 'message' => 'Caricare solo file PDF.'];
+        }
+        $currentFile['kind'] = 'pdf';
+        $preparedFiles[] = $currentFile;
+    }
+    if ($totalSize > 90 * 1024 * 1024) {
+        return ['ok' => false, 'message' => 'Il caricamento complessivo deve essere inferiore a 90 MB.'];
     }
 
     iscrizioniPrimeEnsureDocumentRows((int)$pratica['id'], $pratica);
@@ -5425,7 +5712,11 @@ function iscrizioniPrimeUploadSecretaryPdf(int $praticaId, string $tipo, array $
     $generatedBaseName = iscrizioniPrimeGeneratedPdfBaseName($pratica, $types[$tipo]);
     $fileName = iscrizioniPrimeUniquePdfFileName($dir, $generatedBaseName);
     $target = $dir . '/' . $fileName;
-    if (!move_uploaded_file($file['tmp_name'], $target)) {
+    if (count($preparedFiles) === 1) {
+        if (!move_uploaded_file($preparedFiles[0]['tmp_name'], $target)) {
+            return ['ok' => false, 'message' => 'Impossibile salvare il PDF caricato.'];
+        }
+    } elseif (!iscrizioniPrimeMergeFilesToPdf($preparedFiles, $target)) {
         return ['ok' => false, 'message' => 'Impossibile salvare il PDF caricato.'];
     }
 
@@ -5463,7 +5754,7 @@ function iscrizioniPrimeUploadSecretaryPdf(int $praticaId, string $tipo, array $
             file_path = " . dbQ($relativePath) . ",
             original_name = " . dbQ($fileName) . ",
             mime_type = 'application/pdf',
-            file_size = " . intval(filesize($target) ?: $size) . ",
+            file_size = " . intval(filesize($target) ?: $totalSize) . ",
             storage_type = " . dbQ($storageType) . ",
             drive_file_id = " . dbQ($driveFileId) . ",
             drive_web_view_link = " . dbQ($driveWebViewLink) . ",
@@ -5491,7 +5782,10 @@ function iscrizioniPrimeUploadSecretaryPdf(int $praticaId, string $tipo, array $
         }
     }
 
-    return ['ok' => true, 'message' => $types[$tipo] . ' caricato dalla segreteria.'];
+    return [
+        'ok' => true,
+        'message' => $types[$tipo] . (count($preparedFiles) > 1 ? ' caricato dalla segreteria: PDF unico generato da ' . count($preparedFiles) . ' file.' : ' caricato dalla segreteria.'),
+    ];
 }
 
 function iscrizioniPrimeCambioScuolaAllowedValues(string $field): array
@@ -6748,6 +7042,7 @@ function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione
         'esami_integrativi_da_verificare' => ($tipoIscrizione === 'terze' && $studenteInterno === false) ? 1 : 0,
         'unita_scolastica' => iscrizioniPrimeField($prime, ['UNITA SCOLASTICA DI ISCRIZIONE', 'UNITA SCOLASTICA'], $dsa['UNITA SCOLASTICA'] ?? null),
         'corso_studi' => iscrizioniPrimeField($prime, ['CORSO DI STUDI DI ISCRIZIONE', 'CORSO DI STUDI', 'CORSO STUDI'], $dsa['CORSO STUDI'] ?? null),
+        'id_indirizzo_gestore' => intval($prime['id_indirizzo_gestore'] ?? 0) ?: null,
         'anno_corso' => iscrizioniPrimeField($prime, ['ANNO DI CORSO', 'ANNO CORSO'], $dsa['ANNO CORSO'] ?? null),
         'mensa' => iscrizioniPrimeField($prime, ['MENSA'], $dsa['MENSA'] ?? null),
         'religione' => iscrizioniPrimeField($prime, ['RELIGIONE'], $dsa['RELIGIONE'] ?? null),
@@ -6761,6 +7056,10 @@ function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione
         'raw_dsa_json' => $dsa ? iscrizioniPrimeJson($dsa) : null,
         'raw_licenza_media_json' => $licenzaMedia ? iscrizioniPrimeJson($licenzaMedia) : null,
     ];
+    $resolvedAddressId = iscrizioniPrimeGestoreAddressIdFromPractice($fields);
+    if ($resolvedAddressId > 0) {
+        $fields['id_indirizzo_gestore'] = $resolvedAddressId;
+    }
 
     if ($existing) {
         $sets = [];
@@ -6785,8 +7084,19 @@ function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione
         $praticaSync = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($id) . " LIMIT 1") ?: array_merge($fields, ['id' => $id]);
         iscrizioniPrimeSyncGestoreStudentFromPractice($praticaSync);
         studentiAttrSyncFromDsaCsvRow($cf, $dsa, $tipoIscrizione . ':' . $id);
+        $movimentiLink = iscrizioniPrimeLinkExistingEntrataMovimenti($id, $fields);
 
-        return ['ok' => true, 'inserted' => false, 'id' => $id, 'token' => $token['plain'] ?? null];
+        return [
+            'ok' => true,
+            'inserted' => false,
+            'id' => $id,
+            'token' => $token['plain'] ?? null,
+            'codice_fiscale' => $cf,
+            'studente' => trim((string)($fields['cognome'] ?? '') . ' ' . (string)($fields['nome'] ?? '')),
+            'anno_scolastico' => $anno,
+            'corso_studi' => (string)($fields['corso_studi'] ?? ''),
+            'movimenti_entrata_link' => $movimentiLink,
+        ];
     }
 
     $columns = array_keys($fields);
@@ -6810,21 +7120,504 @@ function iscrizioniPrimeUpsert(array $prime, ?array $dsa, string $tipoIscrizione
     $praticaSync = dbGetFirst("SELECT * FROM iscrizioni_prime_pratiche WHERE id = " . dbI($id) . " LIMIT 1") ?: array_merge($fields, ['id' => intval($id)]);
     iscrizioniPrimeSyncGestoreStudentFromPractice($praticaSync);
     studentiAttrSyncFromDsaCsvRow($cf, $dsa, $tipoIscrizione . ':' . intval($id));
+    $movimentiLink = iscrizioniPrimeLinkExistingEntrataMovimenti((int)$id, $fields);
 
     info('[iscrizioni] pratica inserita tipo=' . $tipoIscrizione . ' id=' . intval($id) . ' cf=' . $cf . ' anno=' . $anno . ' interno=' . intval(!empty($fields['studente_interno'])));
 
-    return ['ok' => true, 'inserted' => true, 'id' => intval($id), 'token' => $token['plain'] ?? null];
+    return [
+        'ok' => true,
+        'inserted' => true,
+        'id' => intval($id),
+        'token' => $token['plain'] ?? null,
+        'codice_fiscale' => $cf,
+        'studente' => trim((string)($fields['cognome'] ?? '') . ' ' . (string)($fields['nome'] ?? '')),
+        'anno_scolastico' => $anno,
+        'corso_studi' => (string)($fields['corso_studi'] ?? ''),
+        'movimenti_entrata_link' => $movimentiLink,
+    ];
 }
 
-function iscrizioniPrimeImport(string $primePath, ?string $dsaPath, string $primeName = '', string $dsaName = '', string $createdBy = '', ?string $anagraficaPath = null, string $anagraficaName = '', string $tipoIscrizione = 'prime', ?string $licenzaMediaPath = null, string $licenzaMediaName = ''): array
+function iscrizioniPrimeLinkExistingEntrataMovimenti(int $praticaId, array $fields): array
+{
+    $stats = ['linked' => 0, 'already_linked' => 0, 'conflicts' => 0, 'details' => [], 'conflict_details' => []];
+    $cf = strtoupper(trim((string)($fields['codice_fiscale'] ?? '')));
+    if ($praticaId <= 0 || $cf === '') {
+        return $stats;
+    }
+
+    $tableExists = intval(dbGetValue("
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'studenti_movimenti_pratiche'
+    ")) > 0;
+    if (!$tableExists) {
+        return $stats;
+    }
+
+    $linkColumnExists = intval(dbGetValue("
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'studenti_movimenti_pratiche'
+          AND COLUMN_NAME = 'id_pratica_iscrizione'
+    ")) > 0;
+    if (!$linkColumnExists) {
+        return $stats;
+    }
+
+    $movimenti = dbGetAll("
+        SELECT id, cognome, nome, codice_fiscale, classe_origine, classe_richiesta, stato_pratica, id_pratica_iscrizione
+        FROM studenti_movimenti_pratiche
+        WHERE tipo_pratica = 'entrata'
+          AND stato_pratica <> 'annullata'
+          AND codice_fiscale IS NOT NULL
+          AND codice_fiscale <> ''
+          AND UPPER(TRIM(codice_fiscale)) = " . dbQ($cf) . "
+        ORDER BY id DESC
+    ") ?: [];
+
+    foreach ($movimenti as $movimento) {
+        $movementId = intval($movimento['id'] ?? 0);
+        $linkedPracticeId = intval($movimento['id_pratica_iscrizione'] ?? 0);
+        $detail = [
+            'id' => $praticaId,
+            'studente' => trim((string)($fields['cognome'] ?? '') . ' ' . (string)($fields['nome'] ?? '')),
+            'codice_fiscale' => $cf,
+            'motivo' => 'movimento entrata #' . $movementId . ' - ' . (string)($movimento['stato_pratica'] ?? ''),
+        ];
+
+        if ($movementId <= 0) {
+            continue;
+        }
+        if ($linkedPracticeId === $praticaId) {
+            $stats['already_linked']++;
+            $detail['motivo'] .= ' gia collegato';
+            $stats['details'][] = $detail;
+            continue;
+        }
+        if ($linkedPracticeId > 0 && $linkedPracticeId !== $praticaId) {
+            $stats['conflicts']++;
+            $detail['motivo'] .= ' gia collegato a pratica #' . $linkedPracticeId;
+            $stats['conflict_details'][] = $detail;
+            continue;
+        }
+
+        dbExec("
+            UPDATE studenti_movimenti_pratiche
+            SET id_pratica_iscrizione = " . dbI($praticaId) . ",
+                updated_at = NOW()
+            WHERE id = " . dbI($movementId) . "
+              AND (id_pratica_iscrizione IS NULL OR id_pratica_iscrizione = 0)
+            LIMIT 1
+        ");
+        $stats['linked']++;
+        $detail['motivo'] .= ' collegato';
+        $stats['details'][] = $detail;
+    }
+
+    return $stats;
+}
+
+function iscrizioniPrimeBackfillEntrataMovimentiLinks(string $tipoIscrizione): array
+{
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+    $stats = ['linked' => 0, 'already_linked' => 0, 'conflicts' => 0, 'details' => [], 'conflict_details' => []];
+
+    $tableExists = intval(dbGetValue("
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'studenti_movimenti_pratiche'
+    ")) > 0;
+    if (!$tableExists) {
+        return $stats;
+    }
+
+    $rows = dbGetAll("
+        SELECT
+            p.id,
+            p.cognome,
+            p.nome,
+            p.codice_fiscale,
+            p.corso_studi
+        FROM studenti_movimenti_pratiche m
+        INNER JOIN iscrizioni_prime_pratiche p
+            ON UPPER(TRIM(p.codice_fiscale)) = UPPER(TRIM(m.codice_fiscale))
+           AND p.tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+           AND p.stato <> 'annullata'
+        WHERE m.tipo_pratica = 'entrata'
+          AND m.stato_pratica <> 'annullata'
+          AND (m.id_pratica_iscrizione IS NULL OR m.id_pratica_iscrizione = 0)
+          AND p.id = (
+              SELECT p2.id
+              FROM iscrizioni_prime_pratiche p2
+              WHERE p2.tipo_iscrizione = p.tipo_iscrizione
+                AND p2.stato <> 'annullata'
+                AND UPPER(TRIM(p2.codice_fiscale)) = UPPER(TRIM(p.codice_fiscale))
+              ORDER BY p2.updated_at DESC, p2.id DESC
+              LIMIT 1
+          )
+        GROUP BY p.id, p.cognome, p.nome, p.codice_fiscale, p.corso_studi
+        ORDER BY p.cognome ASC, p.nome ASC
+    ") ?: [];
+
+    foreach ($rows as $row) {
+        $result = iscrizioniPrimeLinkExistingEntrataMovimenti(intval($row['id'] ?? 0), $row);
+        $stats['linked'] += intval($result['linked'] ?? 0);
+        $stats['already_linked'] += intval($result['already_linked'] ?? 0);
+        $stats['conflicts'] += intval($result['conflicts'] ?? 0);
+        foreach (($result['details'] ?? []) as $detail) {
+            if (count($stats['details']) < 80) {
+                $stats['details'][] = $detail;
+            }
+        }
+        foreach (($result['conflict_details'] ?? []) as $detail) {
+            if (count($stats['conflict_details']) < 80) {
+                $stats['conflict_details'][] = $detail;
+            }
+        }
+    }
+
+    return $stats;
+}
+
+function iscrizioniPrimeUpdateDsaRows(array $dsaRows, string $tipoIscrizione): array
+{
+    $stats = ['updated' => 0, 'ignored' => 0, 'updated_details' => [], 'ignored_details' => []];
+    foreach ($dsaRows as $row) {
+        $cf = strtoupper(trim((string)iscrizioniPrimeField($row, ['CODICE FISCALE STUDENTE', 'CODICE FISCALE', 'CHIAVE FISCALE'], '')));
+        if ($cf === '') {
+            $stats['ignored']++;
+            if (count($stats['ignored_details']) < 40) {
+                $stats['ignored_details'][] = ['studente' => trim((string)($row['COGNOME'] ?? '') . ' ' . (string)($row['NOME'] ?? '')), 'motivo' => 'codice fiscale mancante'];
+            }
+            continue;
+        }
+
+        $practice = dbGetFirst("
+            SELECT id
+            FROM iscrizioni_prime_pratiche
+            WHERE tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+              AND UPPER(TRIM(codice_fiscale)) = " . dbQ($cf) . "
+              AND stato <> 'annullata'
+            ORDER BY id DESC
+            LIMIT 1
+        ");
+        if (!$practice) {
+            $stats['ignored']++;
+            if (count($stats['ignored_details']) < 40) {
+                $stats['ignored_details'][] = ['studente' => trim((string)($row['COGNOME'] ?? '') . ' ' . (string)($row['NOME'] ?? '')), 'codice_fiscale' => $cf, 'motivo' => 'pratica non trovata'];
+            }
+            studentiAttrSyncFromDsaCsvRow($cf, $row, $tipoIscrizione . ':standalone');
+            continue;
+        }
+
+        dbExec("
+            UPDATE iscrizioni_prime_pratiche SET
+                codice_sidi = COALESCE(NULLIF(codice_sidi, ''), " . dbQ($row['CODICE SIDI'] ?? null) . "),
+                codice_giada = COALESCE(NULLIF(codice_giada, ''), " . dbQ($row['CODICE GIADA'] ?? null) . "),
+                certificazione_online = " . dbQ($row['DICHIARAZIONE CERTIFICAZIONE ONLINE'] ?? ($row['COLONNA_52'] ?? null)) . ",
+                raw_dsa_json = " . dbQ(iscrizioniPrimeJson($row)) . ",
+                updated_at = NOW()
+            WHERE id = " . dbI($practice['id'] ?? 0) . "
+            LIMIT 1
+        ");
+        studentiAttrSyncFromDsaCsvRow($cf, $row, $tipoIscrizione . ':' . intval($practice['id'] ?? 0));
+        $stats['updated']++;
+        if (count($stats['updated_details']) < 40) {
+            $stats['updated_details'][] = ['id' => intval($practice['id'] ?? 0), 'studente' => trim((string)($row['COGNOME'] ?? '') . ' ' . (string)($row['NOME'] ?? '')), 'codice_fiscale' => $cf];
+        }
+    }
+    return $stats;
+}
+
+function iscrizioniPrimeUpdateLicenzaMediaRows(array $licenzaMediaRows, string $tipoIscrizione): array
+{
+    $stats = ['updated' => 0, 'ignored' => 0, 'updated_details' => [], 'ignored_details' => []];
+    foreach ($licenzaMediaRows as $row) {
+        $cf = strtoupper(trim((string)iscrizioniPrimeField($row, ['CODICE FISCALE STUDENTE', 'CODICE FISCALE', 'CHIAVE FISCALE'], '')));
+        if ($cf === '') {
+            $stats['ignored']++;
+            if (count($stats['ignored_details']) < 40) {
+                $stats['ignored_details'][] = ['studente' => trim((string)($row['COGNOME'] ?? '') . ' ' . (string)($row['NOME'] ?? '')), 'motivo' => 'codice fiscale mancante'];
+            }
+            continue;
+        }
+        $practice = dbGetFirst("
+            SELECT id
+            FROM iscrizioni_prime_pratiche
+            WHERE tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+              AND UPPER(TRIM(codice_fiscale)) = " . dbQ($cf) . "
+              AND stato <> 'annullata'
+            ORDER BY id DESC
+            LIMIT 1
+        ");
+        if (!$practice) {
+            $stats['ignored']++;
+            if (count($stats['ignored_details']) < 40) {
+                $stats['ignored_details'][] = ['studente' => trim((string)($row['COGNOME'] ?? '') . ' ' . (string)($row['NOME'] ?? '')), 'codice_fiscale' => $cf, 'motivo' => 'pratica non trovata'];
+            }
+            continue;
+        }
+        dbExec("
+            UPDATE iscrizioni_prime_pratiche SET
+                scuola_provenienza = " . dbQ(iscrizioniPrimeField($row, ['DENOMINAZIONE ISTITUZIONE SCOLASTICA', 'SCUOLA DI PROVENIENZA'])) . ",
+                anno_esame_licenza = " . dbQ(iscrizioniPrimeField($row, ['ANNO ESAME'])) . ",
+                esito_esame_licenza = " . dbQ(iscrizioniPrimeField($row, ['ESITO'])) . ",
+                voto_esame_licenza = " . dbQ(iscrizioniPrimeField($row, ['VOTO'])) . ",
+                raw_licenza_media_json = " . dbQ(iscrizioniPrimeJson($row)) . ",
+                updated_at = NOW()
+            WHERE id = " . dbI($practice['id'] ?? 0) . "
+            LIMIT 1
+        ");
+        $stats['updated']++;
+        if (count($stats['updated_details']) < 40) {
+            $stats['updated_details'][] = ['id' => intval($practice['id'] ?? 0), 'studente' => trim((string)($row['COGNOME'] ?? '') . ' ' . (string)($row['NOME'] ?? '')), 'codice_fiscale' => $cf, 'voto' => (string)iscrizioniPrimeField($row, ['VOTO'], '')];
+        }
+    }
+    return $stats;
+}
+
+function iscrizioniPrimeAdditionalParentNotes(array $row, string $tipoIscrizione): string
+{
+    $parts = [];
+    if ($tipoIscrizione === 'prime') {
+        foreach ([
+            'RISPOSTA 6' => 'Richieste personali',
+            'RISPOSTA 8' => 'Annotazioni quesito 8',
+        ] as $field => $label) {
+            $value = trim((string)iscrizioniPrimeField($row, [$field], ''));
+            if ($value !== '') {
+                $parts[] = $label . ': ' . $value;
+            }
+        }
+    }
+
+    $annotazioni = trim((string)iscrizioniPrimeField($row, ['ANNOTAZIONI'], ''));
+    if ($annotazioni !== '') {
+        $parts[] = 'Annotazioni: ' . $annotazioni;
+    }
+
+    return trim(implode("\n", array_values(array_unique($parts))));
+}
+
+function iscrizioniPrimeAdditionalDesignCurvature(array $row): string
+{
+    $course = iscrizioniPrimeNormalizeTextForAddress((string)iscrizioniPrimeField($row, ['CORSO DI STUDI DI ISCRIZIONE', 'CORSO DI STUDI', 'CORSO STUDI'], ''));
+    if (strpos($course, 'COSTRUZIONI') === false || strpos($course, 'TERRITORIO') === false) {
+        return '';
+    }
+
+    for ($i = 1; $i <= 25; $i++) {
+        $question = iscrizioniPrimeNormalizeTextForAddress((string)iscrizioniPrimeField($row, ['QUESITO ' . $i], ''));
+        if ($question === '') {
+            continue;
+        }
+        if (strpos($question, 'INSERIMENTO') === false
+            || strpos($question, 'CURVATURA') === false
+            || strpos($question, 'DESIGN') === false
+            || strpos($question, 'RIQUALIFICAZIONE') === false) {
+            continue;
+        }
+        $answer = iscrizioniPrimeNormalizeTextForAddress((string)iscrizioniPrimeField($row, ['RISPOSTA ' . $i], ''));
+        if ($answer === 'SI') {
+            return 'design';
+        }
+        if ($answer === 'NO') {
+            return 'normale';
+        }
+    }
+
+    return '';
+}
+
+function iscrizioniPrimeUpdateAdditionalRows(array $rows, string $tipoIscrizione): array
+{
+    $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
+    $stats = [
+        'rows' => count($rows),
+        'updated' => 0,
+        'ignored' => 0,
+        'updated_details' => [],
+        'ignored_details' => [],
+    ];
+
+    foreach ($rows as $row) {
+        $cf = strtoupper(trim((string)iscrizioniPrimeField($row, ['CODICE FISCALE STUDENTE', 'CODICE FISCALE', 'CHIAVE FISCALE'], '')));
+        $anno = iscrizioniPrimeNormalizeSchoolYear(iscrizioniPrimeField($row, ['ANNO SCOLASTICO'], ''));
+        $student = trim((string)iscrizioniPrimeField($row, ['COGNOME STUDENTE', 'COGNOME'], '') . ' ' . (string)iscrizioniPrimeField($row, ['NOME STUDENTE', 'NOME'], ''));
+        if ($cf === '') {
+            $stats['ignored']++;
+            if (count($stats['ignored_details']) < 40) {
+                $stats['ignored_details'][] = ['studente' => $student, 'motivo' => 'codice fiscale mancante'];
+            }
+            continue;
+        }
+
+        $whereYear = $anno !== '' ? iscrizioniPrimeSchoolYearWhere('anno_scolastico', $anno) : '1 = 1';
+        $practice = dbGetFirst("
+            SELECT id
+            FROM iscrizioni_prime_pratiche
+            WHERE tipo_iscrizione = " . dbQ($tipoIscrizione) . "
+              AND UPPER(TRIM(codice_fiscale)) = " . dbQ($cf) . "
+              AND stato <> 'annullata'
+              AND " . $whereYear . "
+            ORDER BY updated_at DESC, id DESC
+            LIMIT 1
+        ");
+        if (!$practice) {
+            $stats['ignored']++;
+            if (count($stats['ignored_details']) < 40) {
+                $stats['ignored_details'][] = ['studente' => $student, 'codice_fiscale' => $cf, 'motivo' => 'pratica non trovata'];
+            }
+            continue;
+        }
+
+        $notes = iscrizioniPrimeAdditionalParentNotes($row, $tipoIscrizione);
+        $curvature = $tipoIscrizione === 'terze' ? iscrizioniPrimeAdditionalDesignCurvature($row) : '';
+        if ($notes === '' && $curvature === '') {
+            $stats['ignored']++;
+            if (count($stats['ignored_details']) < 40) {
+                $stats['ignored_details'][] = ['id' => intval($practice['id'] ?? 0), 'studente' => $student, 'codice_fiscale' => $cf, 'motivo' => 'nessun dato aggiuntivo valorizzato'];
+            }
+            continue;
+        }
+
+        $sets = ['raw_dati_aggiuntivi_json = ' . dbQ(iscrizioniPrimeJson($row)), 'updated_at = NOW()'];
+        if ($notes !== '') {
+            $sets[] = 'note_genitori_iscrizione = ' . dbQ($notes);
+        }
+        if ($curvature !== '') {
+            $sets[] = 'curvatura_design = ' . dbQ($curvature);
+        }
+        dbExec("
+            UPDATE iscrizioni_prime_pratiche
+            SET " . implode(", ", $sets) . "
+            WHERE id = " . dbI($practice['id'] ?? 0) . "
+            LIMIT 1
+        ");
+
+        $stats['updated']++;
+        if (count($stats['updated_details']) < 80) {
+            $detail = ['id' => intval($practice['id'] ?? 0), 'studente' => $student, 'codice_fiscale' => $cf];
+            if ($notes !== '') {
+                $detail['motivo'] = 'note genitori';
+            }
+            if ($curvature !== '') {
+                $detail['corso_studi'] = 'curvatura ' . $curvature;
+            }
+            $stats['updated_details'][] = $detail;
+        }
+    }
+
+    return $stats;
+}
+
+function iscrizioniPrimeReadSpreadsheetRows(string $path): array
+{
+    require_once __DIR__ . '/vendor/autoload.php';
+
+    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+    $sheet = $spreadsheet->getSheet(0);
+    $rawRows = $sheet->toArray(null, true, true, true);
+    if (!$rawRows) {
+        return [];
+    }
+    $headerRow = array_shift($rawRows);
+    $headers = iscrizioniPrimeNormalizeHeader(array_values($headerRow));
+    $columns = array_keys($headerRow);
+    $rows = [];
+    foreach ($rawRows as $rawRow) {
+        $assoc = [];
+        $hasValue = false;
+        foreach ($columns as $index => $columnKey) {
+            $name = $headers[$index] ?? '';
+            if ($name === '') {
+                continue;
+            }
+            $value = trim((string)($rawRow[$columnKey] ?? ''));
+            if ($value !== '') {
+                $hasValue = true;
+            }
+            $assoc[$name] = $value;
+        }
+        if ($hasValue) {
+            $rows[] = $assoc;
+        }
+    }
+    $spreadsheet->disconnectWorksheets();
+    return $rows;
+}
+
+function iscrizioniPrimeImportSchoolAttributesFromXls(string $path, string $sourceName = ''): array
+{
+    studentiAttrEnsureTables();
+    $rows = iscrizioniPrimeReadSpreadsheetRows($path);
+    $stats = [
+        'rows' => count($rows),
+        'matched_students' => 0,
+        'unmatched_students' => 0,
+        'updated_attributes' => 0,
+        'active_by_code' => array_fill_keys(array_keys(studentiAttrMap()), 0),
+        'unmatched_examples' => [],
+        'matched_examples' => [],
+    ];
+
+    foreach ($rows as $row) {
+        $cf = strtoupper(trim((string)iscrizioniPrimeField($row, ['CODICE FISCALE', 'CHIAVE FISCALE', 'CODICE FISCALE STUDENTE'], '')));
+        if ($cf === '') {
+            $stats['unmatched_students']++;
+            continue;
+        }
+        $student = studentiAttrFindStudentByFiscalCode($cf);
+        if (!$student) {
+            $stats['unmatched_students']++;
+            if (count($stats['unmatched_examples']) < 20) {
+                $stats['unmatched_examples'][] = [
+                    'studente' => trim((string)iscrizioniPrimeField($row, ['COGNOME'], '') . ' ' . (string)iscrizioniPrimeField($row, ['NOME'], '')),
+                    'codice_fiscale' => $cf,
+                ];
+            }
+            continue;
+        }
+
+        $stats['matched_students']++;
+        if (count($stats['matched_examples']) < 20) {
+            $stats['matched_examples'][] = [
+                'id' => intval($student['id'] ?? 0),
+                'studente' => trim((string)($student['cognome'] ?? '') . ' ' . (string)($student['nome'] ?? '')),
+                'codice_fiscale' => $cf,
+            ];
+        }
+        $text = '';
+        foreach ($row as $key => $value) {
+            $text .= ' ' . (string)$key . ' ' . (string)$value;
+        }
+        $parsed = studentiAttrParseNote($text);
+        $sourceHash = hash('sha256', json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        foreach ($parsed as $code => $active) {
+            studentiAttrUpsert((int)$student['id'], (string)$code, (bool)$active, 'xls_certificazioni', $sourceName, $sourceHash);
+            $stats['updated_attributes']++;
+            if ($active) {
+                $stats['active_by_code'][$code]++;
+            }
+        }
+    }
+
+    return $stats;
+}
+
+function iscrizioniPrimeImport(?string $primePath, ?string $dsaPath, string $primeName = '', string $dsaName = '', string $createdBy = '', ?string $anagraficaPath = null, string $anagraficaName = '', string $tipoIscrizione = 'prime', ?string $licenzaMediaPath = null, string $licenzaMediaName = '', ?string $dsaSchoolPath = null, string $dsaSchoolName = '', ?string $additionalPath = null, string $additionalName = ''): array
 {
     iscrizioniPrimeEnsureSchema();
     $tipoIscrizione = iscrizioniPrimeNormalizeTipoIscrizione($tipoIscrizione);
 
-    $primeRows = iscrizioniPrimeReadCsv($primePath);
+    $primeRows = $primePath ? iscrizioniPrimeReadCsv($primePath) : [];
     $dsaRows = $dsaPath ? iscrizioniPrimeReadCsv($dsaPath) : [];
     $anagraficaRows = $anagraficaPath ? iscrizioniPrimeReadCsv($anagraficaPath) : [];
     $licenzaMediaRows = $licenzaMediaPath ? iscrizioniPrimeReadCsv($licenzaMediaPath) : [];
+    $additionalRows = $additionalPath ? iscrizioniPrimeReadCsv($additionalPath) : [];
     $dsaByCf = [];
     $licenzaMediaByCf = [];
 
@@ -6848,6 +7641,14 @@ function iscrizioniPrimeImport(string $primePath, ?string $dsaPath, string $prim
     $generatedTokens = [];
     $internal = 0;
     $external = 0;
+    $insertedDetails = [];
+    $updatedDetails = [];
+    $licenzaLinkedDetails = [];
+    $movementLinked = 0;
+    $movementAlreadyLinked = 0;
+    $movementConflicts = 0;
+    $movementLinkedDetails = [];
+    $movementConflictDetails = [];
 
     foreach ($primeRows as $index => $row) {
         $cf = strtoupper(trim((string)iscrizioniPrimeField($row, ['CODICE FISCALE STUDENTE', 'CODICE FISCALE', 'CHIAVE FISCALE'], '')));
@@ -6864,10 +7665,48 @@ function iscrizioniPrimeImport(string $primePath, ?string $dsaPath, string $prim
             continue;
         }
 
+        $movimentiLink = $result['movimenti_entrata_link'] ?? [];
+        $movementLinked += intval($movimentiLink['linked'] ?? 0);
+        $movementAlreadyLinked += intval($movimentiLink['already_linked'] ?? 0);
+        $movementConflicts += intval($movimentiLink['conflicts'] ?? 0);
+        foreach (($movimentiLink['details'] ?? []) as $detail) {
+            if (count($movementLinkedDetails) < 80) {
+                $movementLinkedDetails[] = $detail;
+            }
+        }
+        foreach (($movimentiLink['conflict_details'] ?? []) as $detail) {
+            if (count($movementConflictDetails) < 80) {
+                $movementConflictDetails[] = $detail;
+            }
+        }
+
         if ($result['inserted']) {
             $inserted++;
+            $insertedDetails[] = [
+                'id' => intval($result['id'] ?? 0),
+                'studente' => (string)($result['studente'] ?? ''),
+                'codice_fiscale' => (string)($result['codice_fiscale'] ?? $cf),
+                'corso_studi' => (string)($result['corso_studi'] ?? ''),
+            ];
         } else {
             $updated++;
+            if (count($updatedDetails) < 40) {
+                $updatedDetails[] = [
+                    'id' => intval($result['id'] ?? 0),
+                    'studente' => (string)($result['studente'] ?? ''),
+                    'codice_fiscale' => (string)($result['codice_fiscale'] ?? $cf),
+                    'corso_studi' => (string)($result['corso_studi'] ?? ''),
+                ];
+            }
+        }
+
+        if (isset($licenzaMediaByCf[$cf])) {
+            $licenzaLinkedDetails[] = [
+                'id' => intval($result['id'] ?? 0),
+                'studente' => (string)($result['studente'] ?? ''),
+                'codice_fiscale' => $cf,
+                'voto' => (string)iscrizioniPrimeField($licenzaMediaByCf[$cf], ['VOTO'], ''),
+            ];
         }
 
         if (!empty($result['token'])) {
@@ -6878,15 +7717,55 @@ function iscrizioniPrimeImport(string $primePath, ?string $dsaPath, string $prim
         }
     }
 
+    $dsaStandalone = ['updated' => 0, 'ignored' => 0];
+    if (empty($primeRows) && !empty($dsaRows)) {
+        $dsaStandalone = iscrizioniPrimeUpdateDsaRows($dsaRows, $tipoIscrizione);
+    }
+
+    $licenzaStandalone = ['updated' => 0, 'ignored' => 0];
+    if (empty($primeRows) && !empty($licenzaMediaRows)) {
+        $licenzaStandalone = iscrizioniPrimeUpdateLicenzaMediaRows($licenzaMediaRows, $tipoIscrizione);
+    }
+
+    $additionalStats = ['rows' => count($additionalRows), 'updated' => 0, 'ignored' => 0, 'updated_details' => [], 'ignored_details' => []];
+    if (!empty($additionalRows)) {
+        $additionalStats = iscrizioniPrimeUpdateAdditionalRows($additionalRows, $tipoIscrizione);
+    }
+
     $contacts = ['updated' => 0, 'ignored' => 0, 'internal_skipped' => 0];
     if (!empty($anagraficaRows)) {
         $contacts = iscrizioniPrimeUpdateContacts($anagraficaRows, $tipoIscrizione);
     }
+    $schoolAttrs = [
+        'rows' => 0,
+        'matched_students' => 0,
+        'unmatched_students' => 0,
+        'updated_attributes' => 0,
+        'active_by_code' => array_fill_keys(array_keys(studentiAttrMap()), 0),
+        'unmatched_examples' => [],
+    ];
+    if ($dsaSchoolPath) {
+        $schoolAttrs = iscrizioniPrimeImportSchoolAttributesFromXls($dsaSchoolPath, $dsaSchoolName);
+    }
     $markedInternal = iscrizioniPrimeMarkCurrentStudentsAsInternal($tipoIscrizione);
+    $movementBackfill = iscrizioniPrimeBackfillEntrataMovimentiLinks($tipoIscrizione);
+    $movementLinked += intval($movementBackfill['linked'] ?? 0);
+    $movementAlreadyLinked += intval($movementBackfill['already_linked'] ?? 0);
+    $movementConflicts += intval($movementBackfill['conflicts'] ?? 0);
+    foreach (($movementBackfill['details'] ?? []) as $detail) {
+        if (count($movementLinkedDetails) < 80) {
+            $movementLinkedDetails[] = $detail;
+        }
+    }
+    foreach (($movementBackfill['conflict_details'] ?? []) as $detail) {
+        if (count($movementConflictDetails) < 80) {
+            $movementConflictDetails[] = $detail;
+        }
+    }
 
     dbExec("
         INSERT INTO iscrizioni_prime_import_log
-        (created_at, created_by, prime_filename, dsa_filename, anagrafica_filename, licenza_media_filename, righe_prime, righe_dsa, righe_anagrafica, righe_licenza_media, inserite, aggiornate, contatti_aggiornati, contatti_ignorati, tipo_iscrizione, errori_json)
+        (created_at, created_by, prime_filename, dsa_filename, anagrafica_filename, licenza_media_filename, dati_aggiuntivi_filename, dsa_school_filename, righe_prime, righe_dsa, righe_anagrafica, righe_licenza_media, righe_dati_aggiuntivi, righe_dsa_school, attributi_school_aggiornati, attributi_school_non_agganciati, inserite, aggiornate, contatti_aggiornati, contatti_ignorati, tipo_iscrizione, errori_json)
         VALUES (
             NOW(),
             " . dbQ($createdBy) . ",
@@ -6894,10 +7773,16 @@ function iscrizioniPrimeImport(string $primePath, ?string $dsaPath, string $prim
             " . dbQ($dsaName) . ",
             " . dbQ($anagraficaName) . ",
             " . dbQ($licenzaMediaName) . ",
+            " . dbQ($additionalName) . ",
+            " . dbQ($dsaSchoolName) . ",
             " . intval(count($primeRows)) . ",
             " . intval(count($dsaRows)) . ",
             " . intval(count($anagraficaRows)) . ",
             " . intval(count($licenzaMediaRows)) . ",
+            " . intval(count($additionalRows)) . ",
+            " . intval($schoolAttrs['rows'] ?? 0) . ",
+            " . intval($schoolAttrs['updated_attributes'] ?? 0) . ",
+            " . intval($schoolAttrs['unmatched_students'] ?? 0) . ",
             " . intval($inserted) . ",
             " . intval($updated) . ",
             " . intval($contacts['updated']) . ",
@@ -6912,11 +7797,40 @@ function iscrizioniPrimeImport(string $primePath, ?string $dsaPath, string $prim
         'dsa_rows' => count($dsaRows),
         'inserted' => $inserted,
         'updated' => $updated,
+        'inserted_details' => $insertedDetails,
+        'updated_details' => $updatedDetails,
         'contact_rows' => count($anagraficaRows),
         'licenza_media_rows' => count($licenzaMediaRows),
+        'licenza_media_linked' => count($licenzaLinkedDetails),
+        'licenza_media_linked_details' => array_slice($licenzaLinkedDetails, 0, 40),
+        'movimenti_entrata_collegati' => $movementLinked,
+        'movimenti_entrata_gia_collegati' => $movementAlreadyLinked,
+        'movimenti_entrata_conflitti' => $movementConflicts,
+        'movimenti_entrata_collegati_details' => $movementLinkedDetails,
+        'movimenti_entrata_conflitti_details' => $movementConflictDetails,
+        'dsa_updated' => $dsaStandalone['updated'],
+        'dsa_ignored' => $dsaStandalone['ignored'],
+        'dsa_updated_details' => $dsaStandalone['updated_details'] ?? [],
+        'dsa_ignored_details' => $dsaStandalone['ignored_details'] ?? [],
+        'licenza_media_updated' => $licenzaStandalone['updated'],
+        'licenza_media_ignored' => $licenzaStandalone['ignored'],
+        'licenza_media_updated_details' => $licenzaStandalone['updated_details'] ?? [],
+        'licenza_media_ignored_details' => $licenzaStandalone['ignored_details'] ?? [],
+        'additional_rows' => $additionalStats['rows'] ?? 0,
+        'additional_updated' => $additionalStats['updated'] ?? 0,
+        'additional_ignored' => $additionalStats['ignored'] ?? 0,
+        'additional_updated_details' => $additionalStats['updated_details'] ?? [],
+        'additional_ignored_details' => $additionalStats['ignored_details'] ?? [],
         'contacts_updated' => $contacts['updated'],
         'contacts_ignored' => $contacts['ignored'],
         'contacts_internal_skipped' => $contacts['internal_skipped'] ?? 0,
+        'school_attr_rows' => $schoolAttrs['rows'] ?? 0,
+        'school_attr_matched' => $schoolAttrs['matched_students'] ?? 0,
+        'school_attr_unmatched' => $schoolAttrs['unmatched_students'] ?? 0,
+        'school_attr_updated' => $schoolAttrs['updated_attributes'] ?? 0,
+        'school_attr_active_by_code' => $schoolAttrs['active_by_code'] ?? [],
+        'school_attr_matched_examples' => $schoolAttrs['matched_examples'] ?? [],
+        'school_attr_unmatched_examples' => $schoolAttrs['unmatched_examples'] ?? [],
         'tipo_iscrizione' => $tipoIscrizione,
         'interni' => $internal,
         'esterni' => $external,
@@ -6963,6 +7877,7 @@ function iscrizioniTerzeManualSave(array $data, string $createdBy = ''): array
 
     dbExec("
         UPDATE iscrizioni_prime_pratiche SET
+            id_indirizzo_gestore = " . dbI(intval($data['id_indirizzo_gestore'] ?? 0) ?: iscrizioniPrimeGestoreAddressIdFromText($corso)) . ",
             email_studente = " . dbQ($data['email_studente'] ?? null) . ",
             telefono_studente = " . dbQ($data['telefono_studente'] ?? null) . ",
             email_genitore_1 = " . dbQ($data['email_genitore_1'] ?? null) . ",
