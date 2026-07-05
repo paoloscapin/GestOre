@@ -133,6 +133,100 @@ $indirizziGestore = iscrizioniPrimeGestoreAddressOptions();
             font-size: 11px;
             margin-top: 2px;
         }
+        .iscrizioni-dashboard {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: start;
+        }
+        .iscrizioni-dashboard-title {
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+        .iscrizioni-dashboard-subtitle {
+            color: #64748b;
+            font-weight: 650;
+        }
+        .iscrizioni-dashboard-main-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+        .iscrizioni-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+            gap: 8px;
+            margin: 12px 0;
+        }
+        .iscrizioni-stat-card {
+            border: 1px solid #dbe4ef;
+            border-left: 5px solid #38bdf8;
+            border-radius: 8px;
+            background: #fff;
+            padding: 8px 10px;
+            min-height: 62px;
+        }
+        .iscrizioni-stat-card .value {
+            display: block;
+            font-size: 22px;
+            line-height: 1;
+            font-weight: 850;
+            color: #0f172a;
+        }
+        .iscrizioni-stat-card .label {
+            display: block;
+            padding: 0;
+            margin-top: 6px;
+            background: transparent;
+            color: #475569;
+            font-size: 12px;
+            text-align: left;
+            white-space: normal;
+        }
+        .iscrizioni-stat-card.primary { border-left-color: #2563eb; }
+        .iscrizioni-stat-card.ok { border-left-color: #16a34a; }
+        .iscrizioni-stat-card.warn { border-left-color: #f59e0b; }
+        .iscrizioni-stat-card.mail { border-left-color: #0ea5e9; }
+        .iscrizioni-stat-card.internal { border-left-color: #64748b; }
+        .iscrizioni-action-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(180px, 1fr));
+            gap: 8px;
+            margin: 8px 0 12px;
+        }
+        .iscrizioni-action-group {
+            border: 1px solid #dbe4ef;
+            border-radius: 8px;
+            background: #f8fafc;
+            padding: 8px;
+        }
+        .iscrizioni-action-title {
+            color: #475569;
+            font-weight: 800;
+            font-size: 12px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+        .iscrizioni-action-group .btn {
+            margin: 0 4px 5px 0;
+        }
+        .iscrizioni-import-toggle-row {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 2px;
+        }
+        .iscrizioni-note-inline {
+            border: 1px solid #bae6fd;
+            border-left: 5px solid #0ea5e9;
+            background: #f0f9ff;
+            border-radius: 8px;
+            padding: 9px 11px;
+            color: #075985;
+            font-weight: 650;
+            margin: 8px 0 0;
+        }
         .iscrizioni-terze-filter {
             display: flex;
             gap: 10px;
@@ -194,6 +288,14 @@ $indirizziGestore = iscrizioniPrimeGestoreAddressOptions();
             background: #f8fafc;
         }
         .custom-mail-tools { margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 5px; }
+        @media (max-width: 760px) {
+            .iscrizioni-dashboard { grid-template-columns: 1fr; }
+            .iscrizioni-dashboard-main-actions { justify-content: flex-start; }
+            .iscrizioni-action-grid { grid-template-columns: 1fr; }
+        }
+        @media (min-width: 761px) and (max-width: 1100px) {
+            .iscrizioni-action-grid { grid-template-columns: 1fr 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -300,60 +402,82 @@ ITT Buonarroti - Trento</textarea>
             <span class="glyphicon glyphicon-folder-open"></span>&ensp;Iscrizioni future classi terze
         </div>
         <div class="panel-body">
-            <div class="row">
-                <div class="col-md-2"><strong>Totale:</strong> <span id="stat_totale"><?php echo intval($stats['totale'] ?? 0); ?></span></div>
-                <div class="col-md-2"><strong>Interni:</strong> <span id="stat_interni"><?php echo intval($stats['interni'] ?? 0); ?></span></div>
-                <div class="col-md-2"><strong>Esterni:</strong> <span id="stat_esterni"><?php echo intval($stats['esterni'] ?? 0); ?></span></div>
-                <div class="col-md-2"><strong>Domande inviate:</strong> <span id="stat_domande_inviate"><?php echo intval($stats['inviate'] ?? 0); ?></span></div>
-                <div class="col-md-2"><strong>Mail reali:</strong> <span id="stat_mail_reali">0</span></div>
-                <div class="col-md-2"><strong>Mail test:</strong> <span id="stat_mail_test">0</span></div>
-            </div>
-            <div class="alert alert-info" style="margin-top:14px;">
-                Gli studenti gia presenti in GestOre vengono segnati come interni e non ricevono il link. La raccolta dati e documenti viene inviata solo agli studenti esterni.
-            </div>
-            <div class="row" style="margin-top:14px;">
-                <div class="col-md-12">
+            <div class="iscrizioni-dashboard">
+                <div>
+                    <div class="iscrizioni-dashboard-title">Pratiche future terze</div>
+                    <div class="iscrizioni-dashboard-subtitle">Esterni, interni gia presenti e raccolta documenti</div>
+                </div>
+                <div class="iscrizioni-dashboard-main-actions">
                     <button type="button" class="btn btn-default" onclick="iscrizioniTerzeLoadTable()">
                         <span class="glyphicon glyphicon-refresh"></span> Aggiorna elenco
                     </button>
-                    <a class="btn btn-success" href="iscrizioniPrimeLinkExport.php?tipo_iscrizione=terze" onclick="return confirm('Generare un nuovo token per tutte le pratiche esterne non chiuse e scaricare il CSV dei link? I link esportati in precedenza verranno sostituiti.');">
-                        <span class="glyphicon glyphicon-envelope"></span> Esporta link esterni
-                    </a>
                     <a class="btn btn-primary" href="iscrizioniPrimeDomande.php?tipo_iscrizione=terze">
                         <span class="glyphicon glyphicon-inbox"></span> Domande inviate
                     </a>
                     <a class="btn btn-default" href="iscrizioniContattiVariazioni.php?tipo_iscrizione=terze">
                         <span class="glyphicon glyphicon-transfer"></span> Variazioni contatti
                     </a>
+                </div>
+            </div>
+
+            <div class="iscrizioni-stat-grid">
+                <div class="iscrizioni-stat-card primary"><span class="value" id="stat_totale"><?php echo intval($stats['totale'] ?? 0); ?></span><span class="label">Totale</span></div>
+                <div class="iscrizioni-stat-card internal"><span class="value" id="stat_interni"><?php echo intval($stats['interni'] ?? 0); ?></span><span class="label">Interni</span></div>
+                <div class="iscrizioni-stat-card ok"><span class="value" id="stat_esterni"><?php echo intval($stats['esterni'] ?? 0); ?></span><span class="label">Esterni</span></div>
+                <div class="iscrizioni-stat-card ok"><span class="value" id="stat_domande_inviate"><?php echo intval($stats['inviate'] ?? 0); ?></span><span class="label">Domande inviate</span></div>
+                <div class="iscrizioni-stat-card mail"><span class="value" id="stat_mail_reali">0</span><span class="label">Mail reali</span></div>
+                <div class="iscrizioni-stat-card"><span class="value" id="stat_mail_test">0</span><span class="label">Mail test</span></div>
+            </div>
+
+            <div class="iscrizioni-note-inline">
+                Gli studenti gia presenti in GestOre vengono segnati come interni e non ricevono il link. La raccolta dati e documenti viene inviata solo agli studenti esterni.
+            </div>
+
+            <div class="iscrizioni-action-grid">
+                <div class="iscrizioni-action-group">
+                    <div class="iscrizioni-action-title">Link esterni</div>
+                    <a class="btn btn-success" href="iscrizioniPrimeLinkExport.php?tipo_iscrizione=terze" onclick="return confirm('Generare un nuovo token per tutte le pratiche esterne non chiuse e scaricare il CSV dei link? I link esportati in precedenza verranno sostituiti.');">
+                        <span class="glyphicon glyphicon-envelope"></span> Esporta link
+                    </a>
+                </div>
+                <div class="iscrizioni-action-group">
+                    <div class="iscrizioni-action-title">Invio mail</div>
                     <button type="button" class="btn btn-info" onclick="iscrizioniTerzeSendMail(1)">
-                        <span class="glyphicon glyphicon-eye-open"></span> Simula invio mail esterni
+                        <span class="glyphicon glyphicon-eye-open"></span> Simula
                     </button>
                     <button type="button" class="btn btn-info" onclick="iscrizioniTerzeSendTestMail()">
-                        <span class="glyphicon glyphicon-envelope"></span> Invia test mail esterni
+                        <span class="glyphicon glyphicon-envelope"></span> Test
                     </button>
                     <button type="button" class="btn btn-warning" onclick="iscrizioniTerzeSendMail(0)">
-                        <span class="glyphicon glyphicon-send"></span> Invia prossimo lotto esterni
+                        <span class="glyphicon glyphicon-send"></span> Lotto
                     </button>
+                </div>
+                <div class="iscrizioni-action-group">
+                    <div class="iscrizioni-action-title">Controlli link</div>
                     <button type="button" class="btn btn-danger" onclick="iscrizioniTerzeCorrectSentLinks(1)">
-                        <span class="glyphicon glyphicon-search"></span> Simula controllo link inviati
+                        <span class="glyphicon glyphicon-search"></span> Simula
                     </button>
                     <button type="button" class="btn btn-danger" onclick="iscrizioniTerzeCorrectSentLinks(0)">
-                        <span class="glyphicon glyphicon-link"></span> Correggi link inviati
+                        <span class="glyphicon glyphicon-link"></span> Correggi
                     </button>
+                </div>
+                <div class="iscrizioni-action-group">
+                    <div class="iscrizioni-action-title">Bounce</div>
                     <button type="button" class="btn btn-danger" onclick="iscrizioniTerzeCheckBounce()">
                         <span class="glyphicon glyphicon-warning-sign"></span> Bounce
                     </button>
                     <a class="btn btn-default" href="iscrizioniPrimeMailBounceExport.php?tipo_iscrizione=terze&days=30">
-                        <span class="glyphicon glyphicon-download-alt"></span> Esporta report bounce
+                        <span class="glyphicon glyphicon-download-alt"></span> Report
                     </a>
                 </div>
             </div>
             <div id="iscrizioni_terze_result" class="alert" style="display:none;margin-top:12px;"></div>
-            <hr>
-            <button type="button" class="btn btn-default" onclick="iscrizioniTerzeToggleInitialTools()">
-                <span id="iscrizioni_terze_initial_tools_icon" class="glyphicon glyphicon-chevron-down"></span>
-                <span id="iscrizioni_terze_initial_tools_label">Mostra bozza Gmail e import CSV</span>
-            </button>
+            <div class="iscrizioni-import-toggle-row">
+                <button type="button" class="btn btn-default" onclick="iscrizioniTerzeToggleInitialTools()">
+                    <span id="iscrizioni_terze_initial_tools_icon" class="glyphicon glyphicon-chevron-down"></span>
+                    <span id="iscrizioni_terze_initial_tools_label">Mostra bozza Gmail e import CSV</span>
+                </button>
+            </div>
             <div id="iscrizioni_terze_initial_tools" style="display:none;margin-top:14px;">
             <div class="panel panel-default">
                 <div class="panel-heading"><strong>Bozza Gmail per invio mail esterni</strong></div>

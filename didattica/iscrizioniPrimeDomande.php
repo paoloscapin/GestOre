@@ -235,6 +235,11 @@ $stats = dbGetFirst("
     FROM iscrizioni_prime_pratiche
     WHERE tipo_iscrizione = " . dbQ($tipoIscrizione) . "
 ");
+$statsTotale = intval($stats['inviate'] ?? 0)
+    + intval($stats['verifica_iniziale_ok'] ?? 0)
+    + intval($stats['verificate'] ?? 0)
+    + intval($stats['da_integrare'] ?? 0)
+    + intval($stats['annullate'] ?? 0);
 
 $labels = array_merge(iscrizioniPrimeDocumentTypes($tipoIscrizione), iscrizioniPrimeSecretaryDocumentTypes($tipoIscrizione));
 $eventiPratiche = [];
@@ -252,13 +257,98 @@ foreach ($pratiche as $praticaEvento) {
     require_once '../common/style.php';
     ?>
     <style>
-        .ipd-toolbar { margin-bottom: 14px; }
+        .ipd-top {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: start;
+        }
+        .ipd-title-sub {
+            color: #475569;
+            font-weight: 650;
+            margin-top: 2px;
+        }
+        .ipd-top-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+        .ipd-stats {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(110px, 1fr));
+            gap: 8px;
+            margin: 12px 0 10px;
+        }
+        .ipd-stat {
+            display: block;
+            border: 1px solid #dbe4ef;
+            border-left: 5px solid #94a3b8;
+            border-radius: 8px;
+            background: #fff;
+            padding: 7px 10px;
+            color: #0f172a;
+            text-decoration: none;
+            min-height: 56px;
+        }
+        .ipd-stat:hover,
+        .ipd-stat:focus {
+            text-decoration: none;
+            background: #f8fafc;
+        }
+        .ipd-stat.active {
+            border-color: #2563eb;
+            border-left-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+        }
+        .ipd-stat .num {
+            display: block;
+            font-size: 21px;
+            line-height: 1;
+            font-weight: 850;
+        }
+        .ipd-stat .label {
+            display: block;
+            padding: 0;
+            margin-top: 5px;
+            background: transparent;
+            color: #475569;
+            font-size: 12px;
+            text-align: left;
+            white-space: normal;
+        }
+        .ipd-stat.inviata { border-left-color: #2563eb; }
+        .ipd-stat.verifica { border-left-color: #0891b2; }
+        .ipd-stat.completata { border-left-color: #16a34a; }
+        .ipd-stat.integrazione { border-left-color: #f59e0b; }
+        .ipd-stat.cambio { border-left-color: #dc2626; }
+        .ipd-stat.tutte { border-left-color: #64748b; }
+        .ipd-toolbar {
+            display: grid;
+            grid-template-columns: minmax(260px, 1fr) auto;
+            gap: 8px 12px;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 10px;
+            border: 1px solid #dbe4ef;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+        .ipd-toolbar label { display: block; margin: 0 0 7px; }
         .ipd-card { border: 1px solid #d9e0ea; border-radius: 6px; margin-bottom: 14px; background: #fff; box-shadow: 0 3px 14px rgba(0,0,0,.06); }
         .ipd-card.ipd-target { border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37, 99, 235, .16), 0 8px 24px rgba(15, 23, 42, .12); }
-        .ipd-filter-box { margin: 12px 0 0; }
-        .ipd-filter-box input { width: 100%; max-width: 620px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; font-size: 15px; }
-        .ipd-filter-count { display: inline-block; margin-left: 10px; color: #64748b; }
-        .ipd-bulk-actions { margin-top: 12px; }
+        .ipd-filter-box input { width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 9px 12px; font-size: 15px; background: #fff; }
+        .ipd-filter-count { display: inline-block; margin-top: 6px; color: #64748b; font-weight: 700; }
+        .ipd-bulk-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: flex-end;
+            align-items: center;
+            align-self: end;
+            padding-bottom: 1px;
+        }
+        .ipd-bulk-actions .btn { height: 38px; }
         .ipd-progress { width: 100%; height: 14px; border-radius: 999px; background: #e2e8f0; overflow: hidden; margin-top: 8px; }
         .ipd-progress > span { display: block; height: 100%; width: 0; background: #1d4ed8; transition: width .25s ease; }
         .ipd-card-head { padding: 12px 14px; border-bottom: 1px solid #e8edf4; background: #f8fafc; display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
@@ -274,7 +364,47 @@ foreach ($pratiche as $praticaEvento) {
         .ipd-doc-status.paper { color: #92400e; }
         .ipd-doc-status.missing { color: #b91c1c; }
         .ipd-empty { padding: 18px; color: #64748b; }
-        .ipd-status-help { margin-top: 10px; color: #64748b; line-height: 1.45; }
+        .ipd-help-tip {
+            position: relative;
+            display: inline-block;
+        }
+        .ipd-help-tip > button {
+            font-weight: 700;
+        }
+        .ipd-help-tip .ipd-help-popup {
+            display: none;
+            position: absolute;
+            right: 0;
+            bottom: calc(100% + 8px);
+            z-index: 50;
+            width: min(560px, calc(100vw - 40px));
+            padding: 12px 14px;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            background: #fff;
+            color: #1e293b;
+            box-shadow: 0 14px 38px rgba(15, 23, 42, .20);
+            line-height: 1.45;
+            text-align: left;
+            font-weight: 500;
+        }
+        .ipd-help-tip .ipd-help-popup strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #0f172a;
+        }
+        .ipd-help-tip:hover .ipd-help-popup,
+        .ipd-help-tip:focus-within .ipd-help-popup {
+            display: block;
+        }
+        .ipd-help-tip .ipd-help-popup:after {
+            content: "";
+            position: absolute;
+            right: 18px;
+            top: 100%;
+            border: 8px solid transparent;
+            border-top-color: #fff;
+        }
         .ipd-status-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-start; }
         .ipd-status-actions .btn-group { display: flex; flex-wrap: wrap; gap: 0; }
         .ipd-card-body { display: none; }
@@ -325,6 +455,11 @@ foreach ($pratiche as $praticaEvento) {
         .ipd-cambio-event-meta { color: #64748b; margin-top: 4px; }
         .ipd-cambio-event-note { margin-top: 6px; white-space: pre-wrap; }
         @media (max-width: 900px) {
+            .ipd-top { grid-template-columns: 1fr; }
+            .ipd-top-actions { justify-content: flex-start; }
+            .ipd-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .ipd-toolbar { grid-template-columns: 1fr; }
+            .ipd-bulk-actions { justify-content: flex-start; }
             .ipd-grid { grid-template-columns: 1fr; }
             .ipd-terze-values-grid { grid-template-columns: 1fr 1fr; }
             .ipd-status-actions { justify-content: flex-start; }
@@ -339,16 +474,16 @@ foreach ($pratiche as $praticaEvento) {
 <div class="container-fluid">
     <div class="panel panel-lightblue4">
         <div class="panel-heading">
-            <span class="glyphicon glyphicon-inbox"></span>&ensp;<?php echo ipd_h($pageTitle); ?> inviate
+            <span class="glyphicon glyphicon-inbox"></span>&ensp;<?php echo ipd_h($pageTitle); ?>
         </div>
         <div class="panel-body">
-            <div class="row">
-                <div class="col-md-2"><strong>Inviate:</strong> <?php echo intval($stats['inviate'] ?? 0); ?></div>
-                <div class="col-md-2"><strong>Verifica iniziale OK:</strong> <?php echo intval($stats['verifica_iniziale_ok'] ?? 0); ?></div>
-                <div class="col-md-2"><strong>Completate:</strong> <?php echo intval($stats['verificate'] ?? 0); ?></div>
-                <div class="col-md-2"><strong>Da integrare:</strong> <?php echo intval($stats['da_integrare'] ?? 0); ?></div>
-                <div class="col-md-2"><strong>Cambio scuola:</strong> <?php echo intval($stats['annullate'] ?? 0); ?></div>
-                <div class="col-md-2 text-right">
+            <div class="ipd-top">
+                <div>
+                    <div class="ipd-title-sub">
+                        <?php echo $tipoIscrizione === 'terze' ? 'Pratiche esterne future terze' : 'Pratiche future prime'; ?>
+                    </div>
+                </div>
+                <div class="ipd-top-actions">
                     <a class="btn btn-default btn-sm" href="iscrizioniContattiVariazioni.php?tipo_iscrizione=<?php echo urlencode($tipoIscrizione); ?>">
                         <span class="glyphicon glyphicon-transfer"></span> Variazioni contatti
                     </a>
@@ -357,13 +492,28 @@ foreach ($pratiche as $praticaEvento) {
                     </a>
                 </div>
             </div>
-            <hr>
+
+            <div class="ipd-stats">
+                <?php
+                $statCards = [
+                    ['key' => 'inviata', 'class' => 'inviata', 'label' => 'Inviate', 'value' => intval($stats['inviate'] ?? 0)],
+                    ['key' => 'verifica_iniziale_ok', 'class' => 'verifica', 'label' => 'Verifica iniziale OK', 'value' => intval($stats['verifica_iniziale_ok'] ?? 0)],
+                    ['key' => 'verificata', 'class' => 'completata', 'label' => 'Completate', 'value' => intval($stats['verificate'] ?? 0)],
+                    ['key' => 'da_integrare', 'class' => 'integrazione', 'label' => 'Da integrare', 'value' => intval($stats['da_integrare'] ?? 0)],
+                    ['key' => 'annullata', 'class' => 'cambio', 'label' => 'Cambio scuola', 'value' => intval($stats['annullate'] ?? 0)],
+                    ['key' => 'tutte', 'class' => 'tutte', 'label' => 'Tutte', 'value' => $statsTotale],
+                ];
+                ?>
+                <?php foreach ($statCards as $card) : ?>
+                    <a class="ipd-stat <?php echo ipd_h($card['class']); ?> <?php echo $filtroStato === $card['key'] ? 'active' : ''; ?>"
+                       href="?tipo_iscrizione=<?php echo urlencode($tipoIscrizione); ?>&stato=<?php echo urlencode($card['key']); ?>">
+                        <span class="num"><?php echo intval($card['value']); ?></span>
+                        <span class="label"><?php echo ipd_h($card['label']); ?></span>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+
             <div class="ipd-toolbar">
-                <div class="btn-group">
-                    <?php foreach (['inviata' => 'Inviate', 'verifica_iniziale_ok' => 'Verifica iniziale OK', 'verificata' => 'Completate', 'da_integrare' => 'Da integrare', 'annullata' => 'Cambio scuola', 'tutte' => 'Tutte'] as $key => $label) : ?>
-                        <a class="btn btn-<?php echo $filtroStato === $key ? 'primary' : 'default'; ?>" href="?tipo_iscrizione=<?php echo urlencode($tipoIscrizione); ?>&stato=<?php echo urlencode($key); ?>"><?php echo ipd_h($label); ?></a>
-                    <?php endforeach; ?>
-                </div>
                 <div class="ipd-filter-box">
                     <label for="ipdLiveFilter">Cerca pratica</label><br>
                     <input type="search" id="ipdLiveFilter" placeholder="Scrivi nome, cognome, codice fiscale, corso, email, scuola...">
@@ -373,10 +523,22 @@ foreach ($pratiche as $praticaEvento) {
                     <button type="button" class="btn btn-primary" onclick="ipdOpenBulkMailModal()">
                         <span class="glyphicon glyphicon-envelope"></span> Scrivi a tutti i genitori
                     </button>
-                    <span class="text-muted">Invia ai genitori di tutte le pratiche <?php echo $tipoIscrizione === 'terze' ? 'esterne delle terze' : 'delle prime'; ?>, indipendentemente dallo stato.</span>
-                </div>
-                <div class="ipd-status-help">
-                    <strong>Uso degli stati:</strong> "Verifica iniziale OK" registra che quanto caricato e' corretto e che eventuali documenti cartacei sono attesi; "Pratica completata" chiude definitivamente la pratica; "Richiedi integrazione" riapre la pratica, invia una mail ai genitori con le indicazioni della segreteria e permette di correggere/reinviare. "Rimetti in inviata" riporta una domanda allo stato ricevuto senza inviare mail. "Cambio scuola" mantiene la pratica archiviata ma la esclude dagli invii massivi.
+                    <button type="button" class="btn btn-default" onclick="document.getElementById('ipdLiveFilter').value=''; ipdApplyLiveFilter();">
+                        <span class="glyphicon glyphicon-remove"></span> Pulisci ricerca
+                    </button>
+                    <span class="ipd-help-tip">
+                        <button type="button" class="btn btn-default">
+                            <span class="glyphicon glyphicon-question-sign"></span> Uso stati
+                        </button>
+                        <span class="ipd-help-popup" role="tooltip">
+                            <strong>Uso degli stati</strong>
+                            "Verifica iniziale OK" registra che quanto caricato e' corretto e che eventuali documenti cartacei sono attesi.
+                            "Pratica completata" chiude definitivamente la pratica.
+                            "Richiedi integrazione" riapre la pratica, invia una mail ai genitori con le indicazioni della segreteria e permette di correggere/reinviare.
+                            "Rimetti in inviata" riporta una domanda allo stato ricevuto senza inviare mail.
+                            "Cambio scuola" mantiene la pratica archiviata ma la esclude dagli invii massivi.
+                        </span>
+                    </span>
                 </div>
             </div>
         </div>

@@ -153,6 +153,91 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
             font-size: 11px;
             margin-top: 2px;
         }
+        .iscrizioni-dashboard {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: start;
+        }
+        .iscrizioni-dashboard-title {
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+        .iscrizioni-dashboard-subtitle {
+            color: #64748b;
+            font-weight: 650;
+        }
+        .iscrizioni-dashboard-main-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+        .iscrizioni-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+            gap: 8px;
+            margin: 12px 0;
+        }
+        .iscrizioni-stat-card {
+            border: 1px solid #dbe4ef;
+            border-left: 5px solid #38bdf8;
+            border-radius: 8px;
+            background: #fff;
+            padding: 8px 10px;
+            min-height: 62px;
+        }
+        .iscrizioni-stat-card .value {
+            display: block;
+            font-size: 22px;
+            line-height: 1;
+            font-weight: 850;
+            color: #0f172a;
+        }
+        .iscrizioni-stat-card .label {
+            display: block;
+            padding: 0;
+            margin-top: 6px;
+            background: transparent;
+            color: #475569;
+            font-size: 12px;
+            text-align: left;
+            white-space: normal;
+        }
+        .iscrizioni-stat-card.primary { border-left-color: #2563eb; }
+        .iscrizioni-stat-card.ok { border-left-color: #16a34a; }
+        .iscrizioni-stat-card.warn { border-left-color: #f59e0b; }
+        .iscrizioni-stat-card.danger { border-left-color: #dc2626; }
+        .iscrizioni-stat-card.mail { border-left-color: #0ea5e9; }
+        .iscrizioni-stat-card.tablet { border-left-color: #7c3aed; }
+        .iscrizioni-action-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(180px, 1fr));
+            gap: 8px;
+            margin: 8px 0 12px;
+        }
+        .iscrizioni-action-group {
+            border: 1px solid #dbe4ef;
+            border-radius: 8px;
+            background: #f8fafc;
+            padding: 8px;
+        }
+        .iscrizioni-action-title {
+            color: #475569;
+            font-weight: 800;
+            font-size: 12px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+        .iscrizioni-action-group .btn {
+            margin: 0 4px 5px 0;
+        }
+        .iscrizioni-import-toggle-row {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 2px;
+        }
         .iscrizioni-table-tools {
             display: flex;
             flex-wrap: wrap;
@@ -264,9 +349,13 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
         @media (max-width: 980px) {
             .cambio-scuola-layout { grid-template-columns: 1fr; }
             .cambio-scuola-history { max-height: none; }
+            .iscrizioni-dashboard { grid-template-columns: 1fr; }
+            .iscrizioni-dashboard-main-actions { justify-content: flex-start; }
+            .iscrizioni-action-grid { grid-template-columns: 1fr 1fr; }
         }
         @media (max-width: 760px) {
             .cambio-scuola-grid { grid-template-columns: 1fr; }
+            .iscrizioni-action-grid { grid-template-columns: 1fr; }
         }
         .custom-mail-modal {
             position: fixed;
@@ -597,24 +686,12 @@ ITT Buonarroti - Trento</textarea>
             <span class="glyphicon glyphicon-folder-open"></span>&ensp;Iscrizioni future classi prime
         </div>
         <div class="panel-body">
-            <div class="row">
-                <div class="col-md-2"><strong>Pratiche:</strong> <span id="stat_totale"><?php echo intval($stats['totale'] ?? 0); ?></span></div>
-                <div class="col-md-2"><strong>Bozze:</strong> <span id="stat_bozze"><?php echo intval($stats['bozze'] ?? 0); ?></span></div>
-                <div class="col-md-2"><strong>Domande inviate:</strong> <span id="stat_domande_inviate"><?php echo intval($stats['inviate'] ?? 0); ?></span></div>
-                <div class="col-md-2"><strong>Con email:</strong> <span id="stat_con_email"><?php echo intval($stats['con_email'] ?? 0); ?></span></div>
-                <div class="col-md-2"><strong>Cambio scuola:</strong> <span id="stat_annullate"><?php echo intval($stats['annullate'] ?? 0); ?></span></div>
-                <div class="col-md-2"><strong>Mail reali:</strong> <span id="stat_mail_reali">0</span></div>
-                <div class="col-md-2" style="margin-top:8px;"><strong>Mail test:</strong> <span id="stat_mail_test">0</span></div>
-                <div class="col-md-2" style="margin-top:8px;"><strong>Tablet confermati:</strong> <span id="stat_tablet_confermati">0</span></div>
-                <div class="col-md-2" style="margin-top:8px;"><strong>Tablet da acquistare:</strong> <span id="stat_tablet_da_acquistare">0</span></div>
-                <div class="col-md-2" style="margin-top:8px;"><strong>Tablet propri:</strong> <span id="stat_tablet_propri">0</span></div>
-                <div class="col-md-2" style="margin-top:8px;"><strong>Tablet esclusi:</strong> <span id="stat_tablet_esclusi">0</span></div>
-            </div>
-            <div class="row" style="margin-top:14px;">
-                <div class="col-md-12">
-                    <a class="btn btn-success" href="iscrizioniPrimeLinkExport.php" onclick="return confirm('Generare un nuovo token per tutte le pratiche non chiuse e scaricare il CSV dei link? I link esportati in precedenza verranno sostituiti.');">
-                        <span class="glyphicon glyphicon-envelope"></span> Esporta link famiglie
-                    </a>
+            <div class="iscrizioni-dashboard">
+                <div>
+                    <div class="iscrizioni-dashboard-title">Pratiche future prime</div>
+                    <div class="iscrizioni-dashboard-subtitle">Import, invio link e controllo risposte famiglie</div>
+                </div>
+                <div class="iscrizioni-dashboard-main-actions">
                     <button type="button" class="btn btn-default" onclick="iscrizioniPrimeLoadTable()">
                         <span class="glyphicon glyphicon-refresh"></span> Aggiorna elenco
                     </button>
@@ -624,35 +701,68 @@ ITT Buonarroti - Trento</textarea>
                     <a class="btn btn-default" href="iscrizioniContattiVariazioni.php?tipo_iscrizione=prime">
                         <span class="glyphicon glyphicon-transfer"></span> Variazioni contatti
                     </a>
+                </div>
+            </div>
+
+            <div class="iscrizioni-stat-grid">
+                <div class="iscrizioni-stat-card primary"><span class="value" id="stat_totale"><?php echo intval($stats['totale'] ?? 0); ?></span><span class="label">Pratiche</span></div>
+                <div class="iscrizioni-stat-card"><span class="value" id="stat_bozze"><?php echo intval($stats['bozze'] ?? 0); ?></span><span class="label">Bozze</span></div>
+                <div class="iscrizioni-stat-card ok"><span class="value" id="stat_domande_inviate"><?php echo intval($stats['inviate'] ?? 0); ?></span><span class="label">Domande inviate</span></div>
+                <div class="iscrizioni-stat-card mail"><span class="value" id="stat_con_email"><?php echo intval($stats['con_email'] ?? 0); ?></span><span class="label">Con email</span></div>
+                <div class="iscrizioni-stat-card danger"><span class="value" id="stat_annullate"><?php echo intval($stats['annullate'] ?? 0); ?></span><span class="label">Cambio scuola</span></div>
+                <div class="iscrizioni-stat-card mail"><span class="value" id="stat_mail_reali">0</span><span class="label">Mail reali</span></div>
+                <div class="iscrizioni-stat-card"><span class="value" id="stat_mail_test">0</span><span class="label">Mail test</span></div>
+                <div class="iscrizioni-stat-card tablet"><span class="value" id="stat_tablet_confermati">0</span><span class="label">Tablet confermati</span></div>
+                <div class="iscrizioni-stat-card warn"><span class="value" id="stat_tablet_da_acquistare">0</span><span class="label">Tablet da acquistare</span></div>
+                <div class="iscrizioni-stat-card tablet"><span class="value" id="stat_tablet_propri">0</span><span class="label">Tablet propri</span></div>
+                <div class="iscrizioni-stat-card"><span class="value" id="stat_tablet_esclusi">0</span><span class="label">Tablet esclusi</span></div>
+            </div>
+
+            <div class="iscrizioni-action-grid">
+                <div class="iscrizioni-action-group">
+                    <div class="iscrizioni-action-title">Link famiglie</div>
+                    <a class="btn btn-success" href="iscrizioniPrimeLinkExport.php" onclick="return confirm('Generare un nuovo token per tutte le pratiche non chiuse e scaricare il CSV dei link? I link esportati in precedenza verranno sostituiti.');">
+                        <span class="glyphicon glyphicon-envelope"></span> Esporta link
+                    </a>
+                </div>
+                <div class="iscrizioni-action-group">
+                    <div class="iscrizioni-action-title">Invio mail</div>
                     <button type="button" class="btn btn-info" onclick="iscrizioniPrimeSendMail(1)">
-                        <span class="glyphicon glyphicon-eye-open"></span> Simula invio mail
+                        <span class="glyphicon glyphicon-eye-open"></span> Simula
                     </button>
                     <button type="button" class="btn btn-info" onclick="iscrizioniPrimeSendTestMail()">
-                        <span class="glyphicon glyphicon-envelope"></span> Invia test mail
+                        <span class="glyphicon glyphicon-envelope"></span> Test
                     </button>
                     <button type="button" class="btn btn-warning" onclick="iscrizioniPrimeSendMail(0)">
-                        <span class="glyphicon glyphicon-send"></span> Invia prossimo lotto
+                        <span class="glyphicon glyphicon-send"></span> Lotto
                     </button>
+                </div>
+                <div class="iscrizioni-action-group">
+                    <div class="iscrizioni-action-title">Controlli link</div>
                     <button type="button" class="btn btn-danger" onclick="iscrizioniPrimeCorrectSentLinks(1)">
-                        <span class="glyphicon glyphicon-search"></span> Simula controllo link inviati
+                        <span class="glyphicon glyphicon-search"></span> Simula
                     </button>
                     <button type="button" class="btn btn-danger" onclick="iscrizioniPrimeCorrectSentLinks(0)">
-                        <span class="glyphicon glyphicon-link"></span> Correggi link inviati
+                        <span class="glyphicon glyphicon-link"></span> Correggi
                     </button>
+                </div>
+                <div class="iscrizioni-action-group">
+                    <div class="iscrizioni-action-title">Bounce</div>
                     <button type="button" class="btn btn-danger" onclick="iscrizioniPrimeCheckBounce()">
                         <span class="glyphicon glyphicon-warning-sign"></span> Bounce
                     </button>
                     <a class="btn btn-default" href="iscrizioniPrimeMailBounceExport.php?tipo_iscrizione=prime&days=30">
-                        <span class="glyphicon glyphicon-download-alt"></span> Esporta report bounce
+                        <span class="glyphicon glyphicon-download-alt"></span> Report
                     </a>
                 </div>
             </div>
             <div id="iscrizioni_prime_result" class="alert" style="display:none;margin-top:12px;"></div>
-            <hr>
-            <button type="button" class="btn btn-default" onclick="iscrizioniPrimeToggleInitialTools()">
-                <span id="iscrizioni_prime_initial_tools_icon" class="glyphicon glyphicon-chevron-down"></span>
-                <span id="iscrizioni_prime_initial_tools_label">Mostra bozza Gmail e import CSV</span>
-            </button>
+            <div class="iscrizioni-import-toggle-row">
+                <button type="button" class="btn btn-default" onclick="iscrizioniPrimeToggleInitialTools()">
+                    <span id="iscrizioni_prime_initial_tools_icon" class="glyphicon glyphicon-chevron-down"></span>
+                    <span id="iscrizioni_prime_initial_tools_label">Mostra bozza Gmail e import CSV</span>
+                </button>
+            </div>
             <div id="iscrizioni_prime_initial_tools" style="display:none;margin-top:14px;">
             <div class="panel panel-default">
                 <div class="panel-heading"><strong>Bozza Gmail per invio mail</strong></div>
