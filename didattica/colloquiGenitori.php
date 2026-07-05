@@ -25,6 +25,13 @@ try {
             $cleanup = genitoriColloquiCleanupDuplicateEvents();
             $message = 'Pulizia doppioni storico completata: lette ' . intval($cleanup['read'] ?? 0)
                 . ' righe, eliminati ' . intval($cleanup['deleted'] ?? 0) . ' doppioni.';
+        } elseif ($action === 'repropagate_outcomes') {
+            $sync = genitoriColloquiRepropagateLinkedOutcomes();
+            $message = 'Stati pratiche aggiornati dai colloqui: letti ' . intval($sync['read'] ?? 0)
+                . ', riallineati ' . intval($sync['updated'] ?? 0) . '.';
+            if (!empty($sync['errors'])) {
+                $message .= ' Errori: ' . implode(' | ', array_slice((array)$sync['errors'], 0, 5));
+            }
         } elseif ($action === 'delete_event') {
             $deleted = genitoriColloquiDeleteEvent((int)($_POST['event_id'] ?? 0));
             $message = $deleted ? 'Riga storico eliminata.' : 'Riga storico non trovata.';
@@ -526,6 +533,12 @@ function cg_receipt_link(array $row): string
                     <input type="hidden" name="action" value="cleanup_duplicate_events">
                     <button type="submit" class="btn btn-info btn-lg">
                         <span class="glyphicon glyphicon-filter"></span> Ripulisci doppioni storico
+                    </button>
+                </form>
+                <form method="post" style="display:inline;" onsubmit="return confirm('Riallineare gli stati delle pratiche collegate in base agli esiti dei colloqui gia registrati? Non verranno inviate nuove notifiche.');">
+                    <input type="hidden" name="action" value="repropagate_outcomes">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <span class="glyphicon glyphicon-refresh"></span> Aggiorna stati pratiche
                     </button>
                 </form>
                 <button type="button" class="btn btn-primary btn-lg" id="newColloquioBtn">

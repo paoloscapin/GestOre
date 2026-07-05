@@ -1080,7 +1080,7 @@ function genitoriColloquiEsitoLabel(string $esito): string
     return $labels[$esito] ?? 'Esito non indicato';
 }
 
-function genitoriColloquiPropagateOutcome(int $id): void
+function genitoriColloquiPropagateOutcome(int $id, bool $sendNotification = true): void
 {
     $row = dbGetFirst("SELECT * FROM genitori_colloqui WHERE id = " . dbI($id) . " LIMIT 1");
     if (!$row) {
@@ -1191,11 +1191,48 @@ function genitoriColloquiPropagateOutcome(int $id): void
         }
     }
 
-    if (empty($row['notifica_inviata_at']) && in_array((string)($row['stato'] ?? ''), ['approvato','non_approvato'], true)) {
+    if ($sendNotification && empty($row['notifica_inviata_at']) && in_array((string)($row['stato'] ?? ''), ['approvato','non_approvato'], true)) {
         if (genitoriColloquiNotifySecretary($row, $title, $message)) {
             dbExec("UPDATE genitori_colloqui SET notifica_inviata_at = NOW() WHERE id = " . dbI($id) . " LIMIT 1");
         }
     }
+}
+
+function genitoriColloquiRepropagateLinkedOutcomes(): array
+{
+    genitoriColloquiEnsureTables();
+    $rows = dbGetAll("
+        SELECT id
+        FROM genitori_colloqui
+        WHERE id_movimento IS NOT NULL
+          AND id_movimento > 0
+          AND (
+              stato IN ('svolto','approvato','non_approvato')
+              OR esito <> ''
+              OR TRIM(COALESCE(esami_integrativi, '')) <> ''
+              OR TRIM(COALESCE(carenze_note, '')) <> ''
+          )
+        ORDER BY updated_at DESC, id DESC
+    ") ?: [];
+
+    $updated = 0;
+    $errors = [];
+    foreach ($rows as $row) {
+        $id = intval($row['id'] ?? 0);
+        if ($id <= 0) {
+            continue;
+        }
+        try {
+            genitoriColloquiPropagateOutcome($id, false);
+            $updated++;
+        } catch (Throwable $e) {
+            if (count($errors) < 10) {
+                $errors[] = 'Colloquio #' . $id . ': ' . $e->getMessage();
+            }
+        }
+    }
+
+    return ['read' => count($rows), 'updated' => $updated, 'errors' => $errors];
 }
 
 function genitoriColloquiHistoryForIds(array $ids): array
