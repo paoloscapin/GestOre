@@ -475,6 +475,10 @@
         "visibile_studenti": false,
         "visibile_genitori": false,
         "studente_vede_esito": false,
+        "visibile_esiti_studenti": false,
+        "visibile_esiti_genitori": false,
+        "visibile_corsi_studenti": false,
+        "visibile_corsi_genitori": false,
         "docente_puo__modificare": false
     },
     "corsi": {
