@@ -924,6 +924,7 @@ const fcInitialTipo = <?php echo json_encode($tipoFormazione, JSON_UNESCAPED_UNI
 let fcSectionsLoaded = false;
 const fcLoadedSections = {};
 const fcSectionPromises = {};
+let fcSelectionRequestId = 0;
 
 document.addEventListener('DOMContentLoaded', function () {
     fcResizeWorkArea();
@@ -933,37 +934,48 @@ window.addEventListener('resize', fcResizeWorkArea);
 window.addEventListener('orientationchange', fcResizeWorkArea);
 
 async function fcLoadInitialFormation() {
+    const requestId = fcBeginSelectionRequest();
     const tipo = document.getElementById('fc_tipo_select')?.value || fcInitialTipo || '';
     fcSetStatus('Calcolo indirizzi disponibili...');
     try {
         await fcEnsureFormationMeta(tipo);
+        if (!fcIsCurrentSelectionRequest(requestId, tipo)) return;
         fcShowFormationType(tipo);
         const address = fcFormationMeta[tipo]?.activeAddress || '';
-        await fcEnsureSectionLoaded(tipo, address, 'Caricamento ' + (fcFormationMeta[tipo]?.label || tipo) + ' - ' + (fcFormationMeta[tipo]?.addresses?.[address] || address));
+        await fcEnsureSectionLoaded(tipo, address, 'Caricamento ' + (fcFormationMeta[tipo]?.label || tipo) + ' - ' + (fcFormationMeta[tipo]?.addresses?.[address] || address), requestId);
+        if (!fcIsCurrentSelectionRequest(requestId, tipo, address)) return;
         fcSectionsLoaded = true;
         fcSetStatus('');
         fcResizeWorkArea();
     } catch (error) {
-        fcSetStatus('Errore nel caricamento della formazione classi.');
+        if (fcIsCurrentSelectionRequest(requestId, tipo)) {
+            fcSetStatus('Errore nel caricamento della formazione classi.');
+        }
     }
 }
 
 async function fcHandleFormationTypeChange(tipo) {
+    const requestId = fcBeginSelectionRequest();
     fcShowFormationType(tipo);
     fcSetStatus('Calcolo indirizzi disponibili...');
     try {
         await fcEnsureFormationMeta(tipo);
+        if (!fcIsCurrentSelectionRequest(requestId, tipo)) return;
         fcShowFormationType(tipo);
         const address = fcFormationMeta[tipo]?.activeAddress || '';
-        await fcEnsureSectionLoaded(tipo, address, 'Caricamento ' + (fcFormationMeta[tipo]?.label || tipo) + ' - ' + (fcFormationMeta[tipo]?.addresses?.[address] || address));
+        await fcEnsureSectionLoaded(tipo, address, 'Caricamento ' + (fcFormationMeta[tipo]?.label || tipo) + ' - ' + (fcFormationMeta[tipo]?.addresses?.[address] || address), requestId);
+        if (!fcIsCurrentSelectionRequest(requestId, tipo, address)) return;
         fcSetStatus('');
         fcResizeWorkArea();
     } catch (error) {
-        fcSetStatus('Errore nel caricamento della vista selezionata.');
+        if (fcIsCurrentSelectionRequest(requestId, tipo)) {
+            fcSetStatus('Errore nel caricamento della vista selezionata.');
+        }
     }
 }
 
 async function fcHandleAddressChange(address) {
+    const requestId = fcBeginSelectionRequest();
     const tipo = fcActiveFormationType();
     fcShowAddress(address || '');
     if (!tipo || !address) {
@@ -971,12 +983,36 @@ async function fcHandleAddressChange(address) {
     }
     fcSetStatus('Caricamento ' + (fcFormationMeta[tipo]?.addresses?.[address] || address) + '...');
     try {
-        await fcEnsureSectionLoaded(tipo, address, 'Caricamento ' + (fcFormationMeta[tipo]?.addresses?.[address] || address));
+        await fcEnsureSectionLoaded(tipo, address, 'Caricamento ' + (fcFormationMeta[tipo]?.addresses?.[address] || address), requestId);
+        if (!fcIsCurrentSelectionRequest(requestId, tipo, address)) return;
         fcSetStatus('');
         fcResizeWorkArea();
     } catch (error) {
-        fcSetStatus('Errore nel caricamento dell\'indirizzo selezionato.');
+        if (fcIsCurrentSelectionRequest(requestId, tipo, address)) {
+            fcSetStatus('Errore nel caricamento dell\'indirizzo selezionato.');
+        }
     }
+}
+
+function fcBeginSelectionRequest() {
+    fcSelectionRequestId += 1;
+    return fcSelectionRequestId;
+}
+
+function fcIsCurrentSelectionRequest(requestId, tipo, address) {
+    if (requestId !== fcSelectionRequestId) {
+        return false;
+    }
+    if (tipo && fcActiveFormationType() !== tipo) {
+        return false;
+    }
+    if (address !== undefined) {
+        const selectedAddress = document.getElementById('fc_indirizzo_select')?.value || '';
+        if (selectedAddress !== address) {
+            return false;
+        }
+    }
+    return true;
 }
 
 async function fcEnsureFormationMeta(tipo) {
@@ -1009,13 +1045,15 @@ function fcFetchFormationMeta(tipo) {
         });
 }
 
-async function fcEnsureSectionLoaded(tipo, address, text) {
+async function fcEnsureSectionLoaded(tipo, address, text, requestId) {
     if (!tipo || !address) {
         return;
     }
     const key = tipo + '|' + address;
     if (fcLoadedSections[key]) {
-        fcShowAddress(address);
+        if (requestId === undefined || fcIsCurrentSelectionRequest(requestId, tipo, address)) {
+            fcShowAddress(address);
+        }
         return;
     }
     if (!fcSectionPromises[key]) {
@@ -1031,7 +1069,9 @@ async function fcEnsureSectionLoaded(tipo, address, text) {
             });
     }
     await fcSectionPromises[key];
-    fcShowAddress(address);
+    if (requestId === undefined || fcIsCurrentSelectionRequest(requestId, tipo, address)) {
+        fcShowAddress(address);
+    }
 }
 
 function fcInsertFormationSection(tipo, address, html) {
