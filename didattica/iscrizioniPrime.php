@@ -176,6 +176,12 @@ $draftSubject = iscrizioniPrimeDraftSubject('prime');
             color: #64748b;
             font-weight: 700;
         }
+        .iscrizioni-auto-fade {
+            transition: opacity .35s ease;
+        }
+        .iscrizioni-auto-fade.is-hiding {
+            opacity: 0;
+        }
         .cambio-scuola-modal {
             position: fixed;
             inset: 0;
@@ -885,17 +891,56 @@ function iscrizioniPrimeNumber(value) {
 
 function iscrizioniPrimeToggleInitialTools() {
     const box = document.getElementById('iscrizioni_prime_initial_tools');
+    const open = box ? (box.style.display === 'none' || box.style.display === '') : false;
+    iscrizioniPrimeSetInitialToolsOpen(open);
+}
+
+function iscrizioniPrimeSetInitialToolsOpen(open) {
+    const box = document.getElementById('iscrizioni_prime_initial_tools');
     const icon = document.getElementById('iscrizioni_prime_initial_tools_icon');
     const label = document.getElementById('iscrizioni_prime_initial_tools_label');
     if (!box) return;
-    const open = box.style.display === 'none' || box.style.display === '';
     box.style.display = open ? 'block' : 'none';
+    box.classList.remove('is-hiding');
     if (icon) {
         icon.className = 'glyphicon ' + (open ? 'glyphicon-chevron-up' : 'glyphicon-chevron-down');
     }
     if (label) {
         label.textContent = open ? 'Nascondi bozza Gmail e import CSV' : 'Mostra bozza Gmail e import CSV';
     }
+}
+
+let iscrizioniPrimeImportHideTimer = null;
+let iscrizioniPrimeImportRemoveTimer = null;
+
+function iscrizioniPrimeCancelImportAutoHide() {
+    window.clearTimeout(iscrizioniPrimeImportHideTimer);
+    window.clearTimeout(iscrizioniPrimeImportRemoveTimer);
+    iscrizioniPrimeImportHideTimer = null;
+    iscrizioniPrimeImportRemoveTimer = null;
+    const result = document.getElementById('iscrizioni_prime_result');
+    const tools = document.getElementById('iscrizioni_prime_initial_tools');
+    if (result) result.classList.remove('iscrizioni-auto-fade', 'is-hiding');
+    if (tools) tools.classList.remove('iscrizioni-auto-fade', 'is-hiding');
+}
+
+function iscrizioniPrimeScheduleImportAutoHide() {
+    iscrizioniPrimeCancelImportAutoHide();
+    const result = document.getElementById('iscrizioni_prime_result');
+    const tools = document.getElementById('iscrizioni_prime_initial_tools');
+    if (result) result.classList.add('iscrizioni-auto-fade');
+    if (tools) tools.classList.add('iscrizioni-auto-fade');
+    iscrizioniPrimeImportHideTimer = window.setTimeout(function () {
+        if (result) result.classList.add('is-hiding');
+        if (tools) tools.classList.add('is-hiding');
+        iscrizioniPrimeImportRemoveTimer = window.setTimeout(function () {
+            if (result) {
+                result.style.display = 'none';
+                result.classList.remove('iscrizioni-auto-fade', 'is-hiding');
+            }
+            iscrizioniPrimeSetInitialToolsOpen(false);
+        }, 450);
+    }, 7000);
 }
 
 function iscrizioniPrimeFindRowById(id) {
@@ -2376,6 +2421,7 @@ document.getElementById('tablet_proprio_form').addEventListener('submit', functi
 document.getElementById('iscrizioni_prime_import_form').addEventListener('submit', function (event) {
     event.preventDefault();
 
+    iscrizioniPrimeCancelImportAutoHide();
     const result = document.getElementById('iscrizioni_prime_result');
     result.className = 'alert alert-info';
     result.style.display = 'block';
@@ -2419,8 +2465,10 @@ document.getElementById('iscrizioni_prime_import_form').addEventListener('submit
             iscrizioniPrimeImportList('DSA standalone non agganciati', data.dsa_ignored_details) +
             iscrizioniPrimeImportList('Certificazioni scuola non agganciate', data.school_attr_unmatched_examples);
         iscrizioniPrimeLoadTable();
+        iscrizioniPrimeScheduleImportAutoHide();
     })
     .catch(error => {
+        iscrizioniPrimeCancelImportAutoHide();
         result.className = 'alert alert-danger';
         result.textContent = error.message;
     });
@@ -2429,6 +2477,7 @@ document.getElementById('iscrizioni_prime_import_form').addEventListener('submit
 document.getElementById('iscrizioni_prime_tablet_import_form').addEventListener('submit', function (event) {
     event.preventDefault();
 
+    iscrizioniPrimeCancelImportAutoHide();
     const result = document.getElementById('iscrizioni_prime_result');
     result.className = 'alert alert-info';
     result.style.display = 'block';
@@ -2458,8 +2507,10 @@ document.getElementById('iscrizioni_prime_tablet_import_form').addEventListener(
         }
         result.innerHTML = html;
         iscrizioniPrimeLoadTable();
+        iscrizioniPrimeScheduleImportAutoHide();
     })
     .catch(error => {
+        iscrizioniPrimeCancelImportAutoHide();
         result.className = 'alert alert-danger';
         result.textContent = error.message;
     });
