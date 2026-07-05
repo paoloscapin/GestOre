@@ -916,15 +916,26 @@ function iscrizioniPrimeTabletRenounce(int $praticaId, string $note = '', ?array
     ");
 
     if ($replacement) {
+        $replacementPosition = intval(dbGetValue("
+            SELECT COALESCE(MAX(tablet_posizione), 82)
+            FROM iscrizioni_prime_pratiche
+            WHERE tipo_iscrizione = 'prime'
+              AND tablet_scelto = 1
+              AND tablet_stato = 'confermato'
+              AND COALESCE(tablet_gruppo, '') = 'ipad'
+              AND COALESCE(tablet_posizione, 0) > 0
+        ") ?? 82) + 1;
         dbExec("
             UPDATE iscrizioni_prime_pratiche
             SET tablet_stato = 'confermato',
                 tablet_gruppo = COALESCE(NULLIF(tablet_gruppo, ''), 'ipad'),
+                tablet_posizione = " . dbI($replacementPosition) . ",
                 tablet_ripescato_da_pratica_id = " . dbI($praticaId) . ",
                 tablet_note = CONCAT(COALESCE(tablet_note, ''), " . dbQ(($note !== '' ? "\n" : '') . 'Ripescato per rinuncia di ' . trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? ''))) . "),
                 updated_at = NOW()
             WHERE id = " . dbI($replacement['id'] ?? 0) . "
         ");
+        $replacement['tablet_posizione'] = $replacementPosition;
     }
     dbExec("COMMIT");
 
@@ -937,6 +948,7 @@ function iscrizioniPrimeTabletRenounce(int $praticaId, string $note = '', ?array
         iscrizioniPrimeTabletRecordEvent((int)$replacement['id'], 'Ripescato per classi tablet', [
             'rinuncia_pratica_id' => $praticaId,
             'rinuncia_studente' => trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? '')),
+            'posizione' => intval($replacement['tablet_posizione'] ?? 0),
         ]);
     }
 
@@ -969,6 +981,7 @@ function iscrizioniPrimeTabletRenounce(int $praticaId, string $note = '', ?array
             'cognome' => (string)($replacement['cognome'] ?? ''),
             'nome' => (string)($replacement['nome'] ?? ''),
             'codice_fiscale' => (string)($replacement['codice_fiscale'] ?? ''),
+            'tablet_posizione' => intval($replacement['tablet_posizione'] ?? 0),
         ] : null,
     ];
 }
