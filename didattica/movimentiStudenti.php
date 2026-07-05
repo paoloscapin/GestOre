@@ -614,15 +614,13 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
 
             <?php
             $rowsAll = $grouped[$activeSection][$activeYear] ?? [];
-            $rows = array_values(array_filter($rowsAll, static function ($row) use ($filterText, $filterState, $tipi, $stati) {
-                return ms_matches_filters($row, $filterText, $filterState, $tipi, $stati);
-            }));
+            $rows = $rowsAll;
             $exportBase = 'movimentiStudentiExport.php?sezione=' . rawurlencode($activeSection)
                 . '&anno=' . intval($activeYear)
                 . '&q=' . rawurlencode($filterText)
                 . '&stato=' . rawurlencode($filterState);
             ?>
-            <form method="get" class="ms-filter-bar">
+            <form method="get" class="ms-filter-bar" id="msInstantFilterForm" onsubmit="return false;">
                 <input type="hidden" name="sezione" value="<?php echo studentiMovimentiH($activeSection); ?>">
                 <input type="hidden" name="anno" value="<?php echo intval($activeYear); ?>">
                 <div class="ms-filter-field">
@@ -641,19 +639,16 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                     </select>
                 </div>
                 <div class="ms-filter-actions">
-                    <button type="submit" class="btn btn-primary">
-                        <span class="glyphicon glyphicon-search"></span> Filtra
-                    </button>
-                    <a class="btn btn-default" href="movimentiStudenti.php?sezione=<?php echo studentiMovimentiH($activeSection); ?>&anno=<?php echo intval($activeYear); ?>">Pulisci</a>
-                    <a class="btn btn-success" href="<?php echo studentiMovimentiH($exportBase . '&format=xls'); ?>">
+                    <button type="button" class="btn btn-default" id="ms_filter_clear">Pulisci</button>
+                    <a class="btn btn-success" id="ms_export_xls" href="<?php echo studentiMovimentiH($exportBase . '&format=xls'); ?>">
                         <span class="glyphicon glyphicon-list-alt"></span> XLS
                     </a>
-                    <a class="btn btn-danger" href="<?php echo studentiMovimentiH($exportBase . '&format=pdf'); ?>">
+                    <a class="btn btn-danger" id="ms_export_pdf" href="<?php echo studentiMovimentiH($exportBase . '&format=pdf'); ?>">
                         <span class="glyphicon glyphicon-file"></span> PDF
                     </a>
                 </div>
-                <div class="ms-filter-count">
-                    <?php echo count($rows); ?> righe<?php if (count($rows) !== count($rowsAll)): ?> su <?php echo count($rowsAll); ?><?php endif; ?>
+                <div class="ms-filter-count" id="ms_filter_count">
+                    <?php echo count($rowsAll); ?> righe
                 </div>
             </form>
 
@@ -676,7 +671,9 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                     <tbody>
                     <?php foreach ($rows as $row): ?>
                         <?php $id = intval($row['id'] ?? 0); ?>
-                        <tr>
+                        <tr class="ms-data-row"
+                            data-filter-text="<?php echo ms_data_attr(ms_filter_blob($row, $tipi, $stati)); ?>"
+                            data-filter-state="<?php echo ms_data_attr($row['stato_pratica'] ?? ''); ?>">
                             <td>
                                 <div class="ms-name"><?php echo studentiMovimentiH(studentiMovimentiUpperName(ms_practice_name($row))); ?></div>
                                 <div class="ms-muted"><?php echo studentiMovimentiH($row['codice_fiscale'] ?: $row['studente_cf'] ?: ''); ?></div>
@@ -788,7 +785,9 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                         </tr>
                     <?php endforeach; ?>
                     <?php if (empty($rows)): ?>
-                        <tr><td colspan="10"><div class="ms-empty">Nessuna pratica in questa sezione.</div></td></tr>
+                        <tr id="ms_empty_row"><td colspan="10"><div class="ms-empty">Nessuna pratica in questa sezione.</div></td></tr>
+                    <?php else: ?>
+                        <tr id="ms_empty_row" style="display:none;"><td colspan="10"><div class="ms-empty">Nessuna pratica trovata con questi filtri.</div></td></tr>
                     <?php endif; ?>
                     </tbody>
                 </table>
@@ -1025,6 +1024,68 @@ const msAttachments = <?php echo json_encode($allegati, JSON_UNESCAPED_UNICODE |
 const msOpenMovementId = <?php echo intval($openMovementId); ?>;
 const msStatesByType = <?php echo json_encode(studentiMovimentiStatiPerTipo(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 const msStateLabels = <?php echo json_encode($stati, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+const msFilterSection = <?php echo json_encode($activeSection, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+const msFilterYear = <?php echo intval($activeYear); ?>;
+
+function msTextLower(value) {
+    return String(value || '').toLocaleLowerCase('it-IT');
+}
+
+function msExportUrl(format, q, stato) {
+    const params = new URLSearchParams();
+    params.set('sezione', msFilterSection);
+    params.set('anno', String(msFilterYear));
+    params.set('q', q || '');
+    params.set('stato', stato || '');
+    params.set('format', format);
+    return 'movimentiStudentiExport.php?' + params.toString();
+}
+
+function msApplyInstantFilters() {
+    const qInput = document.getElementById('ms_filter_q');
+    const stateInput = document.getElementById('ms_filter_stato');
+    const rows = Array.from(document.querySelectorAll('.ms-data-row'));
+    const emptyRow = document.getElementById('ms_empty_row');
+    const countBox = document.getElementById('ms_filter_count');
+    const q = msTextLower(qInput ? qInput.value : '').trim();
+    const state = stateInput ? String(stateInput.value || '') : '';
+    let visible = 0;
+    rows.forEach(function (row) {
+        const textOk = q === '' || String(row.dataset.filterText || '').indexOf(q) !== -1;
+        const stateOk = state === '' || String(row.dataset.filterState || '') === state;
+        const show = textOk && stateOk;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    if (emptyRow) {
+        emptyRow.style.display = visible === 0 ? '' : 'none';
+    }
+    if (countBox) {
+        countBox.textContent = visible + ' righe' + (visible !== rows.length ? ' su ' + rows.length : '');
+    }
+    const xls = document.getElementById('ms_export_xls');
+    const pdf = document.getElementById('ms_export_pdf');
+    if (xls) xls.href = msExportUrl('xls', qInput ? qInput.value.trim() : '', state);
+    if (pdf) pdf.href = msExportUrl('pdf', qInput ? qInput.value.trim() : '', state);
+}
+
+const msFilterQ = document.getElementById('ms_filter_q');
+const msFilterState = document.getElementById('ms_filter_stato');
+if (msFilterQ) {
+    msFilterQ.addEventListener('input', msApplyInstantFilters);
+}
+if (msFilterState) {
+    msFilterState.addEventListener('change', msApplyInstantFilters);
+}
+const msFilterClear = document.getElementById('ms_filter_clear');
+if (msFilterClear) {
+    msFilterClear.addEventListener('click', function () {
+        if (msFilterQ) msFilterQ.value = '';
+        if (msFilterState) msFilterState.value = '';
+        msApplyInstantFilters();
+    });
+}
+msApplyInstantFilters();
 
 function msSetField(id, value) {
     const element = document.getElementById(id);
