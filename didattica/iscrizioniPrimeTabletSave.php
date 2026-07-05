@@ -51,6 +51,10 @@ try {
         $result = iscrizioniPrimeTabletSetPurchase($id, true, $note);
     } elseif ($action === 'non_acquistato') {
         $result = iscrizioniPrimeTabletSetPurchase($id, false, $note);
+    } elseif ($action === 'proprio') {
+        $result = iscrizioniPrimeTabletSetOwnDevice($id, true, $note);
+    } elseif ($action === 'non_proprio') {
+        $result = iscrizioniPrimeTabletSetOwnDevice($id, false, $note);
     } elseif ($action === 'note') {
         dbExec("
             UPDATE iscrizioni_prime_pratiche
