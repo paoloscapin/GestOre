@@ -34,6 +34,7 @@ function classiAdminEnsureTables(): void
             `id_classe` INT NOT NULL,
             `id_anno_scolastico` INT NOT NULL,
             `attiva` TINYINT(1) NOT NULL DEFAULT 1,
+            `is_tablet` TINYINT(1) NOT NULL DEFAULT 0,
             `created_at` DATETIME NOT NULL,
             `updated_at` DATETIME NOT NULL,
             PRIMARY KEY (`id`),
@@ -41,6 +42,9 @@ function classiAdminEnsureTables(): void
             KEY `idx_classi_anno_anno` (`id_anno_scolastico`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8
     ");
+    if (!classiAdminColumn('classi_anno_scolastico', 'is_tablet')) {
+        dbExec("ALTER TABLE classi_anno_scolastico ADD COLUMN is_tablet TINYINT(1) NOT NULL DEFAULT 0 AFTER attiva");
+    }
 
     dbExec("
         CREATE TABLE IF NOT EXISTS `classi_articolate` (
@@ -113,7 +117,7 @@ function classiAdminUpdateClass(int $id, array $fields): void
     }
 }
 
-function classiAdminSaveClassYear(int $classeId, int $annoId, int $attiva): void
+function classiAdminSaveClassYear(int $classeId, int $annoId, int $attiva, int $isTablet = 0): void
 {
     if ($classeId <= 0 || $annoId <= 0) {
         return;
@@ -128,7 +132,10 @@ function classiAdminSaveClassYear(int $classeId, int $annoId, int $attiva): void
     "));
 
     if ($existingId > 0) {
-        $set = ['attiva = ' . dbI($attiva)];
+        $set = [
+            'attiva = ' . dbI($attiva),
+            'is_tablet = ' . dbI($isTablet),
+        ];
         if (classiAdminColumn('classi_anno_scolastico', 'updated_at')) {
             $set[] = 'updated_at = NOW()';
         }
@@ -138,6 +145,7 @@ function classiAdminSaveClassYear(int $classeId, int $annoId, int $attiva): void
             'id_classe' => dbI($classeId),
             'id_anno_scolastico' => dbI($annoId),
             'attiva' => dbI($attiva),
+            'is_tablet' => dbI($isTablet),
         ];
         if (classiAdminColumn('classi_anno_scolastico', 'created_at')) {
             $fields['created_at'] = 'NOW()';
@@ -224,11 +232,12 @@ function classiAdminBackfillClassYearsFromStudenti(): int
     global $__con;
 
     dbExec("
-        INSERT INTO classi_anno_scolastico (id_classe, id_anno_scolastico, attiva, created_at, updated_at)
+        INSERT INTO classi_anno_scolastico (id_classe, id_anno_scolastico, attiva, is_tablet, created_at, updated_at)
         SELECT DISTINCT
             sf.id_classe,
             sf.id_anno_scolastico,
             1,
+            0,
             NOW(),
             NOW()
         FROM studente_frequenta sf
@@ -296,6 +305,7 @@ try {
             $primoIndirizzo = intval($classData['id_primo_indirizzo'] ?? 0);
             $secondoIndirizzo = intval($classData['id_secondo_indirizzo'] ?? 0);
             $attivaAnno = isset($classData['attiva_anno']) ? 1 : 0;
+            $isTablet = isset($classData['is_tablet']) ? 1 : 0;
             $coordinatoreId = intval($classData['coordinatore_id'] ?? 0);
 
             if ($classe === '') {
@@ -307,7 +317,7 @@ try {
 
             $attivaLegacy = $selectedAnnoId === $annoCorrenteId ? $attivaAnno : null;
             classiAdminUpdateClass($id, classiAdminBuildFields($classe, $anno, $primoIndirizzo, $secondoIndirizzo, $attivaLegacy));
-            classiAdminSaveClassYear($id, $selectedAnnoId, $attivaAnno);
+            classiAdminSaveClassYear($id, $selectedAnnoId, $attivaAnno, $isTablet);
             classiAdminSaveCoordinator($id, $selectedAnnoId, $coordinatoreId);
             $updated++;
         }
@@ -318,6 +328,7 @@ try {
         $primoIndirizzo = intval($_POST['id_primo_indirizzo'] ?? 0);
         $secondoIndirizzo = intval($_POST['id_secondo_indirizzo'] ?? 0);
         $attivaAnno = isset($_POST['attiva_anno']) ? 1 : 0;
+        $isTablet = isset($_POST['is_tablet']) ? 1 : 0;
         $coordinatoreId = intval($_POST['coordinatore_id'] ?? 0);
 
         if ($classe === '') {
@@ -331,7 +342,7 @@ try {
         $fields = classiAdminBuildFields($classe, $anno, $primoIndirizzo, $secondoIndirizzo, $attivaLegacy);
         dbExec("INSERT INTO classi (`" . implode('`, `', array_keys($fields)) . "`) VALUES (" . implode(', ', array_values($fields)) . ")");
         $newId = intval(dbGetValue("SELECT LAST_INSERT_ID()"));
-        classiAdminSaveClassYear($newId, $selectedAnnoId, $attivaAnno);
+        classiAdminSaveClassYear($newId, $selectedAnnoId, $attivaAnno, $isTablet);
         classiAdminSaveCoordinator($newId, $selectedAnnoId, $coordinatoreId);
         $message = 'Classe creata per l\'anno scolastico ' . $selectedAnnoLabel . '.';
     } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save_articolata') {
@@ -360,6 +371,7 @@ $classRows = dbGetAll("
         i1.nome AS primo_indirizzo_nome,
         i2.nome AS secondo_indirizzo_nome,
         COALESCE(cas.attiva, CASE WHEN " . dbI($selectedAnnoId) . " = " . dbI($annoCorrenteId) . " THEN c.attiva ELSE 0 END) AS attiva_anno,
+        COALESCE(cas.is_tablet, 0) AS is_tablet,
         MIN(coord.id_docente) AS coordinatore_id
     FROM classi c
     LEFT JOIN classi_anno_scolastico cas
@@ -436,6 +448,7 @@ $articolate = dbGetAll("
                 Coordinatori e classi articolate sono riferiti all'anno scolastico selezionato:
                 <strong><?php echo classiAdminH($selectedAnnoLabel); ?></strong>.
                 Per l'anno corrente viene aggiornata anche l'attivazione storica usata dalle pagine gia esistenti.
+                Le classi marcate <strong>Tablet</strong> valgono solo per l'anno scolastico selezionato e vengono usate dalla formazione classi dell'anno target.
             </div>
 
             <h4>Nuova classe</h4>
@@ -448,6 +461,7 @@ $articolate = dbGetAll("
                 <?php classiAdminRenderIndirizzoSelect('id_secondo_indirizzo', $indirizzi, 0, 'Secondo indirizzo'); ?>
                 <?php classiAdminRenderDocenteSelect('coordinatore_id', $docenti, 0, 'Coordinatore'); ?>
                 <label class="checkbox-inline"><input type="checkbox" name="attiva_anno" value="1" checked> attiva in <?php echo classiAdminH($selectedAnnoLabel); ?></label>
+                <label class="checkbox-inline"><input type="checkbox" name="is_tablet" value="1"> classe tablet</label>
                 <button type="submit" class="btn btn-success"><span class="glyphicon glyphicon-plus"></span> Aggiungi</button>
             </form>
 
@@ -469,6 +483,7 @@ $articolate = dbGetAll("
                             <th class="text-center">Secondo indirizzo</th>
                             <th class="text-center">Coordinatore</th>
                             <th class="text-center">Attiva nell'anno</th>
+                            <th class="text-center">Tablet<br><small><?php echo classiAdminH($selectedAnnoLabel); ?></small></th>
                         </tr>
                         </thead>
                         <tbody>
@@ -481,6 +496,7 @@ $articolate = dbGetAll("
                                 <td><?php classiAdminRenderIndirizzoSelect('classi[' . $rowId . '][id_secondo_indirizzo]', $indirizzi, intval($row['id_secondo_indirizzo'] ?? 0)); ?></td>
                                 <td><?php classiAdminRenderDocenteSelect('classi[' . $rowId . '][coordinatore_id]', $docenti, intval($row['coordinatore_id'] ?? 0)); ?></td>
                                 <td class="text-center"><input type="checkbox" name="classi[<?php echo $rowId; ?>][attiva_anno]" value="1" <?php echo classiAdminChecked($row['attiva_anno'] ?? 0); ?>></td>
+                                <td class="text-center"><input type="checkbox" name="classi[<?php echo $rowId; ?>][is_tablet]" value="1" <?php echo classiAdminChecked($row['is_tablet'] ?? 0); ?> title="Vale per l'anno scolastico selezionato"></td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>
