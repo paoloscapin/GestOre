@@ -6,6 +6,7 @@ require_once '../common/studentiMovimentiLib.php';
 ruoloRichiesto('admin', 'segreteria-didattica');
 
 studentiMovimentiEnsureTables();
+iscrizioniPrimeEnsureSchema();
 
 $canOpenColloqui = function_exists('haRuolo') ? haRuolo('admin') : ((string)($__utente_ruolo ?? '') === 'admin');
 $message = '';
@@ -96,9 +97,9 @@ try {
         $error = 'Controllo pratiche iscrizione entrate non riuscito: ' . $e->getMessage();
     }
 }
-$activeSection = trim((string)($_GET['sezione'] ?? 'uscite'));
+$activeSection = trim((string)($_GET['sezione'] ?? 'entrate'));
 if (!in_array($activeSection, ['uscite', 'entrate'], true)) {
-    $activeSection = 'uscite';
+    $activeSection = 'entrate';
 }
 $activeYear = intval($_GET['anno'] ?? 0);
 if ($activeYear < 1 || $activeYear > 5) {
@@ -133,7 +134,14 @@ $pratiche = dbGetAll("
            s.codice_fiscale AS studente_cf,
            s.id AS studente_id,
            c.classe AS classe_corrente,
+           c.id_primo_indirizzo AS classe_corrente_id_primo_indirizzo,
            ind_gestore.nome AS indirizzo_gestore_nome,
+           pre.id AS preiscrizione_terze_id,
+           pre.corso_studi AS preiscrizione_terze_corso,
+           pre.scelta_formativa AS preiscrizione_terze_scelta_formativa,
+           pre.curvatura_design AS preiscrizione_terze_curvatura_design,
+           pre.id_indirizzo_gestore AS preiscrizione_terze_indirizzo_id,
+           ind_pre.nome AS preiscrizione_terze_indirizzo_nome,
            COUNT(a.id) AS allegati_count
     FROM studenti_movimenti_pratiche p
     LEFT JOIN studente s ON s.id = p.id_studente
@@ -147,6 +155,21 @@ $pratiche = dbGetAll("
     )
     LEFT JOIN classi c ON c.id = sf.id_classe
     LEFT JOIN indirizzo ind_gestore ON ind_gestore.id = p.id_indirizzo_gestore
+    LEFT JOIN iscrizioni_prime_pratiche pre ON pre.id = (
+        SELECT pre2.id
+        FROM iscrizioni_prime_pratiche pre2
+        WHERE pre2.tipo_iscrizione = 'terze'
+          AND pre2.codice_fiscale IS NOT NULL
+          AND pre2.codice_fiscale <> ''
+          AND UPPER(TRIM(pre2.codice_fiscale)) = UPPER(TRIM(COALESCE(NULLIF(p.codice_fiscale, ''), s.codice_fiscale, '')))
+        ORDER BY
+          CASE WHEN pre2.stato = 'annullata' THEN 1 ELSE 0 END ASC,
+          pre2.anno_scolastico DESC,
+          pre2.updated_at DESC,
+          pre2.id DESC
+        LIMIT 1
+    )
+    LEFT JOIN indirizzo ind_pre ON ind_pre.id = pre.id_indirizzo_gestore
     LEFT JOIN studenti_movimenti_allegati a ON a.id_pratica = p.id
     GROUP BY p.id
     ORDER BY COALESCE(p.anno_corso, 99) ASC,
@@ -294,6 +317,8 @@ function ms_filter_blob(array $row, array $tipi, array $stati): string
         $row['scuola_destinazione'] ?? '',
         $row['indirizzo_destinazione'] ?? '',
         $row['indirizzo_gestore_nome'] ?? '',
+        $row['preiscrizione_terze_indirizzo_nome'] ?? '',
+        $row['preiscrizione_terze_corso'] ?? '',
         $row['note'] ?? '',
         $row['esami_integrativi_note'] ?? '',
         $row['carenze_note'] ?? '',
@@ -312,6 +337,173 @@ function ms_filter_blob(array $row, array $tipi, array $stati): string
         $parts[] = 'bocciato altra scuola';
     }
     return ms_lower(implode(' ', array_map('strval', $parts)));
+}
+
+function ms_uscita_has_address_column(string $section, int $year): bool
+{
+    return $section === 'uscite' && $year >= 2 && $year <= 5;
+}
+
+function ms_row_address_label(array $row, int $year, string $section): string
+{
+    if (!ms_uscita_has_address_column($section, $year)) {
+        return '';
+    }
+    $values = $year === 2
+        ? [
+            $row['preiscrizione_terze_indirizzo_nome'] ?? '',
+            $row['preiscrizione_terze_corso'] ?? '',
+            $row['indirizzo_gestore_nome'] ?? '',
+            $row['indirizzo_destinazione'] ?? '',
+        ]
+        : [
+            $row['indirizzo_gestore_nome'] ?? '',
+            $row['indirizzo_destinazione'] ?? '',
+        ];
+    foreach ($values as $value) {
+        $value = trim((string)$value);
+        if ($value !== '') {
+            return $value . ms_cat_curvature_suffix($row, $value);
+        }
+    }
+    if ($year <= 2) {
+        return 'BIENNIO SETTORE TECNOLOGICO';
+    }
+
+    if (intval($row['classe_corrente_id_primo_indirizzo'] ?? 0) > 0) {
+        $name = trim((string)dbGetValue("SELECT nome FROM indirizzo WHERE id = " . dbI($row['classe_corrente_id_primo_indirizzo']) . " LIMIT 1"));
+        if ($name !== '') {
+            return $name . ms_cat_curvature_suffix($row, $name);
+        }
+    }
+
+    foreach ([$row['classe_origine'] ?? '', $row['classe_corrente'] ?? ''] as $classLabel) {
+        $classLabel = trim((string)$classLabel);
+        if ($classLabel === '') {
+            continue;
+        }
+        $localClass = dbGetFirst("SELECT id_primo_indirizzo FROM classi WHERE classe = " . dbQ($classLabel) . " LIMIT 1");
+        if ($localClass && intval($localClass['id_primo_indirizzo'] ?? 0) > 0) {
+            $name = trim((string)dbGetValue("SELECT nome FROM indirizzo WHERE id = " . dbI($localClass['id_primo_indirizzo']) . " LIMIT 1"));
+            if ($name !== '') {
+                return $name . ms_cat_curvature_suffix($row, $name);
+            }
+        }
+        $classAddress = ms_address_label_from_class($classLabel);
+        if ($classAddress !== '') {
+            return $classAddress . ms_cat_curvature_suffix($row, $classAddress);
+        }
+    }
+    return '';
+}
+
+function ms_address_label_from_class(string $classLabel): string
+{
+    $classLabel = trim($classLabel);
+    $norm = strtoupper(trim($classLabel));
+    if ($norm === '') {
+        return '';
+    }
+    if (preg_match('/^[1-2]/', $norm)) {
+        return 'BIENNIO SETTORE TECNOLOGICO';
+    }
+    if (preg_match('/^[3-5]DS\b/u', $norm)) {
+        return 'DIGITAL SCIENCE';
+    }
+    if (preg_match('/^[3-5]([A-Z0-9]{2,})\b/u', $norm, $matches)) {
+        $code = (string)$matches[1];
+        $labels = [
+            'MEA' => 'MECCANICA ED ENERGIA',
+            'AUA' => 'AUTOMAZIONE',
+            'ELA' => 'ELETTRONICA / ELETTROTECNICA',
+            'INF' => 'INFORMATICA',
+            'TEL' => 'TELECOMUNICAZIONI',
+            'TLC' => 'TELECOMUNICAZIONI',
+            'BTS' => 'BIOTECNOLOGIE SANITARIE',
+            'BTA' => 'BIOTECNOLOGIE AMBIENTALI',
+            'CHI' => 'CHIMICA E MATERIALI',
+            'GRA' => 'GRAFICA E COMUNICAZIONE',
+            'CTA' => 'COSTRUZIONI AMBIENTE E TERRITORIO',
+            'CTB' => 'COSTRUZIONI AMBIENTE E TERRITORIO',
+            'CTC' => 'COSTRUZIONI AMBIENTE E TERRITORIO',
+            'CTD' => 'COSTRUZIONI AMBIENTE E TERRITORIO',
+            'CAT' => 'COSTRUZIONI AMBIENTE E TERRITORIO',
+        ];
+        return $labels[$code] ?? '';
+    }
+    return '';
+}
+
+function ms_cat_curvature_suffix(array $row, string $baseLabel): string
+{
+    $text = strtoupper(trim($baseLabel
+        . ' ' . (string)($row['preiscrizione_terze_corso'] ?? '')
+        . ' ' . (string)($row['preiscrizione_terze_scelta_formativa'] ?? '')
+        . ' ' . (string)($row['classe_origine'] ?? '')
+        . ' ' . (string)($row['classe_corrente'] ?? '')));
+    if (!ms_is_cat_text($text)) {
+        return '';
+    }
+    $curvature = strtolower(trim((string)($row['preiscrizione_terze_curvatura_design'] ?? '')));
+    if ($curvature === '') {
+        $choice = strtoupper(trim((string)($row['preiscrizione_terze_scelta_formativa'] ?? '')));
+        if (preg_match('/\b[3-5]CT[CD]\b/u', $text) || strpos($choice, 'DESIGN') !== false) {
+            $curvature = 'design';
+        } elseif (preg_match('/\b[3-5]CT[AB]\b/u', $text) || strpos($choice, 'NORMAL') !== false) {
+            $curvature = 'normale';
+        }
+    }
+    if ($curvature === 'design') {
+        return ' - DESIGN';
+    }
+    if ($curvature === 'normale') {
+        return ' - NORMALE';
+    }
+    return ' - CURVATURA DA VERIFICARE';
+}
+
+function ms_is_cat_text(string $text): bool
+{
+    return strpos($text, 'COSTRUZ') !== false
+        || preg_match('/\bCAT\b/u', $text) === 1
+        || preg_match('/\b[3-5]CT[ABCD]\b/u', $text) === 1;
+}
+
+function ms_row_summary_address(array $row, int $year, string $section): string
+{
+    $label = ms_row_address_label($row, $year, $section);
+    return $label !== '' ? $label : 'Senza indirizzo';
+}
+
+function ms_row_counts_in_address_summary(array $row, int $year, string $section): bool
+{
+    if (!ms_uscita_has_address_column($section, $year)) {
+        return false;
+    }
+    if ((string)($row['stato_pratica'] ?? '') === 'annullata') {
+        return false;
+    }
+    if ($year === 2) {
+        return (string)($row['tipo_pratica'] ?? '') === 'bocciato_reiscrizione';
+    }
+    return true;
+}
+
+function ms_address_summary(array $rows, int $year, string $section): array
+{
+    $summary = [];
+    foreach ($rows as $row) {
+        if (!ms_row_counts_in_address_summary($row, $year, $section)) {
+            continue;
+        }
+        $address = ms_row_summary_address($row, $year, $section);
+        if (!isset($summary[$address])) {
+            $summary[$address] = 0;
+        }
+        $summary[$address]++;
+    }
+    ksort($summary, SORT_NATURAL | SORT_FLAG_CASE);
+    return $summary;
 }
 
 function ms_matches_filters(array $row, string $filterText, string $filterState, array $tipi, array $stati): bool
@@ -374,6 +566,44 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
             color: #60718a;
             font-size: 12px;
             margin-left: auto;
+        }
+        .ms-address-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            align-items: center;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            border: 1px solid #cfe2f3;
+            border-radius: 4px;
+            background: #f4f8fc;
+        }
+        .ms-address-summary-title {
+            font-weight: 700;
+            color: #17202f;
+        }
+        .ms-address-summary-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        .ms-address-chip {
+            display: inline-flex;
+            gap: 7px;
+            align-items: center;
+            padding: 4px 8px;
+            border: 1px solid #b9d6ee;
+            border-radius: 4px;
+            background: #fff;
+            color: #17202f;
+        }
+        .ms-address-chip strong {
+            color: #0f4c81;
+        }
+        .ms-address-empty {
+            color: #60718a;
+            font-size: 12px;
         }
         .ms-table-wrap {
             border: 1px solid #d8dee8;
@@ -471,6 +701,10 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
             background: #f4f8fc;
             color: #17202f;
             font-weight: 700;
+        }
+        .ms-section-title .ms-section-toggle {
+            float: right;
+            margin-top: -2px;
         }
         .ms-section-title.ms-nullosta {
             border-left-color: #b7791f;
@@ -604,6 +838,14 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                         <span class="glyphicon glyphicon-transfer"></span>&ensp;Aggiorna cambi scuola da iscrizioni
                     </button>
                 </form>
+                <div class="btn-group">
+                    <a class="btn btn-success btn-sm" href="movimentiStudentiFormazioneExport.php?format=xls">
+                        <span class="glyphicon glyphicon-list-alt"></span>&ensp;Export formazione XLS
+                    </a>
+                    <a class="btn btn-danger btn-sm" href="movimentiStudentiFormazioneExport.php?format=pdf">
+                        <span class="glyphicon glyphicon-file"></span>&ensp;PDF
+                    </a>
+                </div>
             </div>
 
             <ul class="nav nav-tabs ms-tabs">
@@ -628,7 +870,10 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
 
             <?php
             $rowsAll = $grouped[$activeSection][$activeYear] ?? [];
-            $rows = $rowsAll;
+            $isGlobalFilter = $filterText !== '' || $filterState !== '';
+            $rows = $pratiche;
+            $showAddressColumn = !$isGlobalFilter && ms_uscita_has_address_column($activeSection, $activeYear);
+            $addressSummary = ms_address_summary($rowsAll, $activeYear, $activeSection);
             $exportBase = 'movimentiStudentiExport.php?sezione=' . rawurlencode($activeSection)
                 . '&anno=' . intval($activeYear)
                 . '&q=' . rawurlencode($filterText)
@@ -639,7 +884,7 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                 <input type="hidden" name="anno" value="<?php echo intval($activeYear); ?>">
                 <div class="ms-filter-field">
                     <label for="ms_filter_q">Filtro testo</label>
-                    <input type="text" class="form-control" id="ms_filter_q" name="q" value="<?php echo studentiMovimentiH($filterText); ?>" placeholder="Nome, CF, classe, scuola, note...">
+                    <input type="text" class="form-control" id="ms_filter_q" name="q" value="<?php echo studentiMovimentiH($filterText); ?>" placeholder="Cerca in tutti gli anni, entrate e uscite...">
                 </div>
                 <div class="ms-filter-field">
                     <label for="ms_filter_stato">Stato</label>
@@ -662,9 +907,35 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                     </a>
                 </div>
                 <div class="ms-filter-count" id="ms_filter_count">
-                    <?php echo count($rowsAll); ?> righe
+                    <?php echo count($rows); ?> righe<?php echo $isGlobalFilter ? ' trovate in tutte le pratiche' : ''; ?>
                 </div>
             </form>
+
+            <?php if ($isGlobalFilter): ?>
+                <div class="alert alert-info" style="margin-top:-6px;">
+                    Ricerca estesa a tutti gli anni, entrate e uscite. Pulisci il filtro per tornare alla vista per anno.
+                </div>
+            <?php endif; ?>
+
+            <?php if ($showAddressColumn): ?>
+                <div class="ms-address-summary" id="ms_address_summary">
+                    <div class="ms-address-summary-title">
+                        <?php echo $activeYear === 2 ? 'Bocciati / mancati iscritti per indirizzo' : 'Totali uscite per indirizzo'; ?>
+                    </div>
+                    <div class="ms-address-summary-items" id="ms_address_summary_items">
+                        <?php if (empty($addressSummary)): ?>
+                            <span class="ms-address-empty">Nessun dato da riepilogare</span>
+                        <?php else: ?>
+                            <?php foreach ($addressSummary as $address => $total): ?>
+                                <span class="ms-address-chip">
+                                    <?php echo studentiMovimentiH($address); ?>
+                                    <strong><?php echo intval($total); ?></strong>
+                                </span>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <div class="ms-table-wrap">
                 <table class="table table-striped table-hover ms-table">
@@ -672,8 +943,12 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                     <tr>
                         <th>Studente</th>
                         <th>Classe</th>
+                        <th>Anno / sezione</th>
                         <th>Tipo</th>
                         <th>Stato</th>
+                        <?php if ($showAddressColumn): ?>
+                            <th><?php echo $activeYear === 2 ? 'Indirizzo pre-iscrizione' : 'Indirizzo'; ?></th>
+                        <?php endif; ?>
                         <th>Scuola</th>
                         <th>Esami integrativi</th>
                         <th>Carenze</th>
@@ -687,7 +962,11 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                         <?php $id = intval($row['id'] ?? 0); ?>
                         <tr class="ms-data-row"
                             data-filter-text="<?php echo ms_data_attr(ms_filter_blob($row, $tipi, $stati)); ?>"
-                            data-filter-state="<?php echo ms_data_attr($row['stato_pratica'] ?? ''); ?>">
+                            data-filter-state="<?php echo ms_data_attr($row['stato_pratica'] ?? ''); ?>"
+                            data-filter-section="<?php echo ms_data_attr(($row['tipo_pratica'] ?? '') === 'entrata' ? 'entrate' : 'uscite'); ?>"
+                            data-filter-year="<?php echo intval($row['anno_corso'] ?? 0); ?>"
+                            data-summary-address="<?php echo ms_data_attr(ms_row_summary_address($row, $activeYear, $activeSection)); ?>"
+                            data-summary-include="<?php echo ms_row_counts_in_address_summary($row, $activeYear, $activeSection) ? 1 : 0; ?>">
                             <td>
                                 <div class="ms-name"><?php echo studentiMovimentiH(studentiMovimentiUpperName(ms_practice_name($row))); ?></div>
                                 <div class="ms-muted"><?php echo studentiMovimentiH($row['codice_fiscale'] ?: $row['studente_cf'] ?: ''); ?></div>
@@ -702,6 +981,10 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                                 <?php elseif ($classeBase === ''): ?>
                                     <span class="text-muted">-</span>
                                 <?php endif; ?>
+                            </td>
+                            <td>
+                                <strong><?php echo studentiMovimentiH(ms_year_label(intval($row['anno_corso'] ?? 0))); ?></strong>
+                                <div class="ms-muted"><?php echo (($row['tipo_pratica'] ?? '') === 'entrata') ? 'Entrata' : 'Uscita'; ?></div>
                             </td>
                             <td><?php echo studentiMovimentiH($tipi[$row['tipo_pratica']] ?? $row['tipo_pratica']); ?></td>
                             <td>
@@ -718,8 +1001,22 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                                     <div><span class="label label-warning">Bocciato altra scuola</span></div>
                                 <?php endif; ?>
                             </td>
+                            <?php if ($showAddressColumn): ?>
+                                <td>
+                                    <?php $addressLabel = ms_row_address_label($row, $activeYear, $activeSection); ?>
+                                    <?php if ($addressLabel !== ''): ?>
+                                        <strong><?php echo studentiMovimentiH($addressLabel); ?></strong>
+                                        <?php if ($activeYear === 2 && intval($row['preiscrizione_terze_id'] ?? 0) > 0): ?>
+                                            <div class="ms-muted">Pre-iscrizione terze #<?php echo intval($row['preiscrizione_terze_id']); ?></div>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?>
+                                </td>
+                            <?php endif; ?>
                             <td>
-                                <?php if ($activeSection === 'entrate'): ?>
+                                <?php $rowSection = ($row['tipo_pratica'] ?? '') === 'entrata' ? 'entrate' : 'uscite'; ?>
+                                <?php if ($rowSection === 'entrate'): ?>
                                     <?php echo studentiMovimentiH($row['scuola_provenienza'] ?: '-'); ?>
                                 <?php else: ?>
                                     <?php echo studentiMovimentiH($row['scuola_destinazione'] ?: '-'); ?>
@@ -766,6 +1063,18 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                                         data-scuola_provenienza="<?php echo ms_data_attr($row['scuola_provenienza'] ?? ''); ?>"
                                         data-indirizzo_provenienza="<?php echo ms_data_attr($row['indirizzo_provenienza'] ?? ''); ?>"
                                         data-bocciato_altra_scuola="<?php echo intval($row['bocciato_altra_scuola'] ?? 0); ?>"
+                                        data-responsabile_1_tipo="<?php echo ms_data_attr($row['responsabile_1_tipo'] ?? ''); ?>"
+                                        data-responsabile_1_cognome="<?php echo ms_data_attr($row['responsabile_1_cognome'] ?? ''); ?>"
+                                        data-responsabile_1_nome="<?php echo ms_data_attr($row['responsabile_1_nome'] ?? ''); ?>"
+                                        data-responsabile_1_codice_fiscale="<?php echo ms_data_attr($row['responsabile_1_codice_fiscale'] ?? ''); ?>"
+                                        data-email_genitore_1="<?php echo ms_data_attr($row['email_genitore_1'] ?? ''); ?>"
+                                        data-telefono_genitore_1="<?php echo ms_data_attr($row['telefono_genitore_1'] ?? ''); ?>"
+                                        data-responsabile_2_tipo="<?php echo ms_data_attr($row['responsabile_2_tipo'] ?? ''); ?>"
+                                        data-responsabile_2_cognome="<?php echo ms_data_attr($row['responsabile_2_cognome'] ?? ''); ?>"
+                                        data-responsabile_2_nome="<?php echo ms_data_attr($row['responsabile_2_nome'] ?? ''); ?>"
+                                        data-responsabile_2_codice_fiscale="<?php echo ms_data_attr($row['responsabile_2_codice_fiscale'] ?? ''); ?>"
+                                        data-email_genitore_2="<?php echo ms_data_attr($row['email_genitore_2'] ?? ''); ?>"
+                                        data-telefono_genitore_2="<?php echo ms_data_attr($row['telefono_genitore_2'] ?? ''); ?>"
                                         data-id_istituto_destinazione="<?php echo intval($row['id_istituto_destinazione'] ?? 0); ?>"
                                         data-scuola_destinazione="<?php echo ms_data_attr($row['scuola_destinazione'] ?? ''); ?>"
                                         data-indirizzo_destinazione="<?php echo ms_data_attr($row['indirizzo_destinazione'] ?? ''); ?>"
@@ -780,11 +1089,11 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                                     Dettaglio
                                 </button>
                                 <?php $iscrizioneUrl = ms_iscrizione_pratica_url($row); ?>
-                                <?php if ($activeSection === 'entrate' && $iscrizioneUrl !== ''): ?>
+                                <?php if ($rowSection === 'entrate' && $iscrizioneUrl !== ''): ?>
                                     <a class="btn btn-success btn-xs" href="<?php echo studentiMovimentiH($iscrizioneUrl); ?>">
                                         <span class="glyphicon glyphicon-folder-open"></span> Pratica iscrizione
                                     </a>
-                                <?php elseif ($activeSection === 'entrate' && in_array(intval($row['anno_corso'] ?? 0), [1, 3], true)): ?>
+                                <?php elseif ($rowSection === 'entrate' && in_array(intval($row['anno_corso'] ?? 0), [1, 3], true)): ?>
                                     <span class="label label-warning">Pratica iscrizione mancante</span>
                                 <?php endif; ?>
                                 <?php if ($canOpenColloqui && !empty($colloquiCounts[$id])): ?>
@@ -798,10 +1107,11 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                             </td>
                         </tr>
                     <?php endforeach; ?>
+                    <?php $emptyColspan = $showAddressColumn ? 12 : 11; ?>
                     <?php if (empty($rows)): ?>
-                        <tr id="ms_empty_row"><td colspan="10"><div class="ms-empty">Nessuna pratica in questa sezione.</div></td></tr>
+                        <tr id="ms_empty_row"><td colspan="<?php echo $emptyColspan; ?>"><div class="ms-empty">Nessuna pratica in questa sezione.</div></td></tr>
                     <?php else: ?>
-                        <tr id="ms_empty_row" style="display:none;"><td colspan="10"><div class="ms-empty">Nessuna pratica trovata con questi filtri.</div></td></tr>
+                        <tr id="ms_empty_row" style="display:none;"><td colspan="<?php echo $emptyColspan; ?>"><div class="ms-empty">Nessuna pratica trovata con questi filtri.</div></td></tr>
                     <?php endif; ?>
                     </tbody>
                 </table>
@@ -920,6 +1230,60 @@ function ms_matches_filters(array $row, string $filterText, string $filterState,
                             bocciato in altra scuola
                         </label>
                         <span class="help-block">Valore sincronizzato con domanda di iscrizione e colloquio di entrata.</span>
+                    </div>
+                    <div class="ms-section-title ms-only-entrata ms-parent-title">
+                        Dati genitori
+                        <button type="button" class="btn btn-default btn-xs ms-section-toggle" id="ms_toggle_parents" onclick="msToggleParents()">
+                            Mostra dati genitori
+                        </button>
+                    </div>
+                    <div class="form-group ms-only-entrata ms-parent-field">
+                        <label>Responsabile 1 - tipo</label>
+                        <input type="text" name="responsabile_1_tipo" id="ms_responsabile_1_tipo" class="form-control input-sm" placeholder="madre, padre, tutore...">
+                    </div>
+                    <div class="form-group ms-only-entrata ms-parent-field">
+                        <label>Responsabile 1 - cognome</label>
+                        <input type="text" name="responsabile_1_cognome" id="ms_responsabile_1_cognome" class="form-control input-sm">
+                    </div>
+                    <div class="form-group ms-only-entrata ms-parent-field">
+                        <label>Responsabile 1 - nome</label>
+                        <input type="text" name="responsabile_1_nome" id="ms_responsabile_1_nome" class="form-control input-sm">
+                    </div>
+                    <div class="form-group ms-only-entrata ms-parent-field">
+                        <label>Responsabile 1 - codice fiscale</label>
+                        <input type="text" name="responsabile_1_codice_fiscale" id="ms_responsabile_1_codice_fiscale" class="form-control input-sm">
+                    </div>
+                    <div class="form-group ms-only-entrata ms-parent-field">
+                        <label>Email genitore 1</label>
+                        <input type="email" name="email_genitore_1" id="ms_email_genitore_1" class="form-control input-sm">
+                    </div>
+                    <div class="form-group ms-only-entrata ms-parent-field">
+                        <label>Telefono genitore 1</label>
+                        <input type="text" name="telefono_genitore_1" id="ms_telefono_genitore_1" class="form-control input-sm">
+                    </div>
+                    <div class="form-group ms-only-entrata ms-parent-field">
+                        <label>Responsabile 2 - tipo</label>
+                        <input type="text" name="responsabile_2_tipo" id="ms_responsabile_2_tipo" class="form-control input-sm" placeholder="madre, padre, tutore...">
+                    </div>
+                    <div class="form-group ms-only-entrata ms-parent-field">
+                        <label>Responsabile 2 - cognome</label>
+                        <input type="text" name="responsabile_2_cognome" id="ms_responsabile_2_cognome" class="form-control input-sm">
+                    </div>
+                    <div class="form-group ms-only-entrata ms-parent-field">
+                        <label>Responsabile 2 - nome</label>
+                        <input type="text" name="responsabile_2_nome" id="ms_responsabile_2_nome" class="form-control input-sm">
+                    </div>
+                    <div class="form-group ms-only-entrata ms-parent-field">
+                        <label>Responsabile 2 - codice fiscale</label>
+                        <input type="text" name="responsabile_2_codice_fiscale" id="ms_responsabile_2_codice_fiscale" class="form-control input-sm">
+                    </div>
+                    <div class="form-group ms-only-entrata ms-parent-field">
+                        <label>Email genitore 2</label>
+                        <input type="email" name="email_genitore_2" id="ms_email_genitore_2" class="form-control input-sm">
+                    </div>
+                    <div class="form-group ms-only-entrata ms-parent-field">
+                        <label>Telefono genitore 2</label>
+                        <input type="text" name="telefono_genitore_2" id="ms_telefono_genitore_2" class="form-control input-sm">
                     </div>
                     <div class="form-group ms-only-uscita">
                         <label>Scuola destinazione</label>
@@ -1040,6 +1404,7 @@ const msStatesByType = <?php echo json_encode(studentiMovimentiStatiPerTipo(), J
 const msStateLabels = <?php echo json_encode($stati, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 const msFilterSection = <?php echo json_encode($activeSection, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 const msFilterYear = <?php echo intval($activeYear); ?>;
+let msParentsExpanded = false;
 
 window.setTimeout(function () {
     document.querySelectorAll('.ms-auto-dismiss').forEach(function (element) {
@@ -1066,6 +1431,38 @@ function msExportUrl(format, q, stato) {
     return 'movimentiStudentiExport.php?' + params.toString();
 }
 
+function msRenderAddressSummary(summary, hidden) {
+    const box = document.getElementById('ms_address_summary');
+    const container = document.getElementById('ms_address_summary_items');
+    if (!container) return;
+    if (box) {
+        box.style.display = hidden ? 'none' : '';
+    }
+    if (hidden) {
+        return;
+    }
+    container.innerHTML = '';
+    const addresses = Object.keys(summary).sort(function (a, b) {
+        return a.localeCompare(b, 'it-IT', { sensitivity: 'base', numeric: true });
+    });
+    if (addresses.length === 0) {
+        const empty = document.createElement('span');
+        empty.className = 'ms-address-empty';
+        empty.textContent = 'Nessun dato da riepilogare';
+        container.appendChild(empty);
+        return;
+    }
+    addresses.forEach(function (address) {
+        const chip = document.createElement('span');
+        chip.className = 'ms-address-chip';
+        chip.appendChild(document.createTextNode(address + ' '));
+        const total = document.createElement('strong');
+        total.textContent = String(summary[address]);
+        chip.appendChild(total);
+        container.appendChild(chip);
+    });
+}
+
 function msApplyInstantFilters() {
     const qInput = document.getElementById('ms_filter_q');
     const stateInput = document.getElementById('ms_filter_stato');
@@ -1075,23 +1472,37 @@ function msApplyInstantFilters() {
     const q = msTextLower(qInput ? qInput.value : '').trim();
     const state = stateInput ? String(stateInput.value || '') : '';
     let visible = 0;
+    const addressSummary = {};
+    const globalSearch = q !== '' || state !== '';
     rows.forEach(function (row) {
+        const rowSection = String(row.dataset.filterSection || '');
+        const rowYear = parseInt(row.dataset.filterYear || '0', 10);
+        const scopeOk = globalSearch
+            ? (rowYear >= 1 && rowYear <= 5)
+            : (rowSection === msFilterSection && rowYear === msFilterYear);
         const textOk = q === '' || String(row.dataset.filterText || '').indexOf(q) !== -1;
         const stateOk = state === '' || String(row.dataset.filterState || '') === state;
-        const show = textOk && stateOk;
+        const show = scopeOk && textOk && stateOk;
         row.style.display = show ? '' : 'none';
-        if (show) visible++;
+        if (show) {
+            visible++;
+            if (!globalSearch && String(row.dataset.summaryInclude || '') === '1') {
+                const address = String(row.dataset.summaryAddress || 'Senza indirizzo');
+                addressSummary[address] = (addressSummary[address] || 0) + 1;
+            }
+        }
     });
     if (emptyRow) {
         emptyRow.style.display = visible === 0 ? '' : 'none';
     }
     if (countBox) {
-        countBox.textContent = visible + ' righe' + (visible !== rows.length ? ' su ' + rows.length : '');
+        countBox.textContent = visible + ' righe' + (globalSearch ? ' trovate in tutte le pratiche' : '');
     }
     const xls = document.getElementById('ms_export_xls');
     const pdf = document.getElementById('ms_export_pdf');
     if (xls) xls.href = msExportUrl('xls', qInput ? qInput.value.trim() : '', state);
     if (pdf) pdf.href = msExportUrl('pdf', qInput ? qInput.value.trim() : '', state);
+    msRenderAddressSummary(addressSummary, globalSearch);
 }
 
 const msFilterQ = document.getElementById('ms_filter_q');
@@ -1120,6 +1531,25 @@ function msSetField(id, value) {
 function msSetChecked(id, value) {
     const element = document.getElementById(id);
     if (element) element.checked = String(value || '') === '1';
+}
+
+function msSetParentsVisible(expanded) {
+    msParentsExpanded = !!expanded;
+    const kind = document.getElementById('ms_tipo_pratica') && document.getElementById('ms_tipo_pratica').value === 'entrata' ? 'entrata' : 'uscita';
+    document.querySelectorAll('.ms-parent-field').forEach(function (element) {
+        element.style.display = kind === 'entrata' && msParentsExpanded ? '' : 'none';
+    });
+    document.querySelectorAll('.ms-parent-title').forEach(function (element) {
+        element.style.display = kind === 'entrata' ? '' : 'none';
+    });
+    const button = document.getElementById('ms_toggle_parents');
+    if (button) {
+        button.textContent = msParentsExpanded ? 'Nascondi dati genitori' : 'Mostra dati genitori';
+    }
+}
+
+function msToggleParents() {
+    msSetParentsVisible(!msParentsExpanded);
 }
 
 function msSplitList(value) {
@@ -1548,6 +1978,9 @@ function msOpenNew(kind) {
     msSetChecked('ms_doppio_bocciato', '0');
     msSetChecked('ms_doppio_bocciato_non_consecutivo', '0');
     msSetChecked('ms_bocciato_altra_scuola', '0');
+    ['responsabile_1_tipo','responsabile_1_cognome','responsabile_1_nome','responsabile_1_codice_fiscale','email_genitore_1','telefono_genitore_1','responsabile_2_tipo','responsabile_2_cognome','responsabile_2_nome','responsabile_2_codice_fiscale','email_genitore_2','telefono_genitore_2'].forEach(function (field) {
+        msSetField('ms_' + field, '');
+    });
     msUpdateSchoolOther('ms_id_istituto_provenienza', 'ms_scuola_provenienza', 'ms_scuola_provenienza_altro', 'ms_scuola_provenienza_libera', '');
     msUpdateSchoolOther('ms_id_istituto_destinazione', 'ms_scuola_destinazione', 'ms_scuola_destinazione_altro', 'ms_scuola_destinazione_libera', '');
     msSetField('ms_esami_integrativi', '0');
@@ -1557,6 +1990,7 @@ function msOpenNew(kind) {
     msSetNote('');
     msRenderHistory(0);
     document.getElementById('msPracticeTitle').textContent = kind === 'entrata' ? 'Nuova entrata' : 'Nuova uscita';
+    msParentsExpanded = false;
     msUpdatePracticeKindFields();
     $('#msPracticeModal').modal('show');
 }
@@ -1586,6 +2020,9 @@ function msOpenPracticeFromButton(button) {
     msSetChecked('ms_doppio_bocciato', button.dataset.doppio_bocciato || '0');
     msSetChecked('ms_doppio_bocciato_non_consecutivo', button.dataset.doppio_bocciato_non_consecutivo || '0');
     msSetChecked('ms_bocciato_altra_scuola', button.dataset.bocciato_altra_scuola || '0');
+    ['responsabile_1_tipo','responsabile_1_cognome','responsabile_1_nome','responsabile_1_codice_fiscale','email_genitore_1','telefono_genitore_1','responsabile_2_tipo','responsabile_2_cognome','responsabile_2_nome','responsabile_2_codice_fiscale','email_genitore_2','telefono_genitore_2'].forEach(function (field) {
+        msSetField('ms_' + field, button.dataset[field] || '');
+    });
     msUpdateSchoolOther('ms_id_istituto_provenienza', 'ms_scuola_provenienza', 'ms_scuola_provenienza_altro', 'ms_scuola_provenienza_libera', button.dataset.scuola_provenienza || '');
     msUpdateSchoolOther('ms_id_istituto_destinazione', 'ms_scuola_destinazione', 'ms_scuola_destinazione_altro', 'ms_scuola_destinazione_libera', button.dataset.scuola_destinazione || '');
     msSetField('ms_esami_integrativi', button.dataset.esami_integrativi || '0');
@@ -1595,6 +2032,7 @@ function msOpenPracticeFromButton(button) {
     msSetNote(button.dataset.note || '');
     msRenderHistory(button.dataset.id || 0);
     document.getElementById('msPracticeTitle').textContent = 'Dettaglio pratica';
+    msParentsExpanded = false;
     msUpdatePracticeKindFields();
     $('#msPracticeModal').modal('show');
 }
@@ -1634,6 +2072,7 @@ function msUpdatePracticeKindFields() {
     document.querySelectorAll('.ms-needs-nullosta').forEach(function (element) {
         element.style.display = (type === 'entrata' || type === 'uscita') ? '' : 'none';
     });
+    msSetParentsVisible(msParentsExpanded);
     if (kind === 'entrata') {
         msSetField('ms_id_istituto_destinazione', '');
         msSetField('ms_scuola_destinazione', '');
