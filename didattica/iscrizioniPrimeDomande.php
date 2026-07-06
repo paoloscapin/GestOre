@@ -32,6 +32,10 @@ function ipd_confirmed(array $pratica): array
 
 function ipd_value(array $pratica, array $confirmed, string $field): string
 {
+    if (in_array($field, ['email_studente', 'telefono_studente', 'email_genitore_1', 'telefono_genitore_1', 'email_genitore_2', 'telefono_genitore_2'], true)) {
+        return trim((string)($pratica[$field] ?? ''));
+    }
+
     return trim((string)($confirmed[$field] ?? $pratica[$field] ?? ''));
 }
 
@@ -362,6 +366,7 @@ foreach ($pratiche as $praticaEvento) {
         .ipd-doc-status { font-weight: 700; }
         .ipd-doc-status.ok { color: #166534; }
         .ipd-doc-status.paper { color: #92400e; }
+        .ipd-doc-status.optional { color: #64748b; }
         .ipd-doc-status.missing { color: #b91c1c; }
         .ipd-empty { padding: 18px; color: #64748b; }
         .ipd-help-tip {
@@ -430,8 +435,10 @@ foreach ($pratiche as $praticaEvento) {
         .ipd-toggle { min-width: 92px; }
         .ipd-secretary-docs { margin-top: 18px; padding: 12px; border: 1px solid #bfdbfe; border-radius: 6px; background: #eff6ff; }
         .ipd-secretary-docs h4 { margin-top: 0; }
-        .ipd-secretary-upload { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 3px 0 0 0; }
-        .ipd-secretary-upload input[type="file"] { max-width: 260px; }
+        .ipd-file-line { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; min-width: 0; }
+        .ipd-file-name { color: #64748b; min-width: 80px; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ipd-secretary-upload { display: inline-flex; gap: 6px; align-items: center; flex-wrap: nowrap; margin: 0; }
+        .ipd-secretary-upload input[type="file"] { width: 230px; max-width: 24vw; }
         .ipd-secretary-upload-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 10px; }
         .ipd-secretary-upload-status { color: #475569; font-weight: 700; }
         .ipd-modal-backdrop { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(15,23,42,.62); z-index: 4000; padding: 16px; }
@@ -448,6 +455,9 @@ foreach ($pratiche as $praticaEvento) {
         .ipd-modal-field label { display: block; margin-bottom: 5px; font-weight: 700; }
         .ipd-modal-field .help-block { margin: 4px 0 0; }
         .ipd-modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid #e5e7eb; background: #f8fafc; }
+        .ipd-busy-box { width: min(420px, 100%); background: #fff; border-radius: 8px; box-shadow: 0 20px 55px rgba(15,23,42,.35); padding: 22px; text-align: center; }
+        .ipd-busy-spinner { width: 42px; height: 42px; border: 4px solid #dbeafe; border-top-color: #2563eb; border-radius: 50%; margin: 0 auto 14px; animation: ipdSpin .8s linear infinite; }
+        @keyframes ipdSpin { to { transform: rotate(360deg); } }
         .ipd-cambio-layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr); gap: 16px; align-items: start; }
         .ipd-cambio-history { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; background: #fff; max-height: calc(100vh - 210px); overflow: auto; }
         .ipd-cambio-event { border: 1px solid #dbe4ef; border-left: 5px solid #7f1d1d; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; background: #f8fafc; }
@@ -683,9 +693,15 @@ foreach ($pratiche as $praticaEvento) {
                     <?php if ($tipoIscrizione === 'prime') : ?>
                         <div class="ipd-field"><div class="ipd-label">Esame scuola media</div><div class="ipd-value"><?php echo ipd_h(trim((string)($pratica['voto_esame_licenza'] ?? '')) !== '' ? ('Voto ' . $pratica['voto_esame_licenza']) : 'Non disponibile'); ?><?php if (trim((string)($pratica['esito_esame_licenza'] ?? '')) !== '') : ?><br><span class="text-muted"><?php echo ipd_h($pratica['esito_esame_licenza']); ?></span><?php endif; ?></div></div>
                     <?php endif; ?>
-                    <?php if (trim((string)($pratica['note_genitori_iscrizione'] ?? '')) !== '') : ?>
-                        <div class="ipd-field"><div class="ipd-label">Note genitori per iscrizione/formazione</div><div class="ipd-value"><?php echo nl2br(ipd_h($pratica['note_genitori_iscrizione'])); ?></div></div>
-                    <?php endif; ?>
+                    <div class="ipd-field">
+                        <div class="ipd-label">Note genitori per iscrizione/formazione</div>
+                        <div class="ipd-value" id="ipd_note_formazione_value_<?php echo intval($pratica['id']); ?>">
+                            <?php echo trim((string)($pratica['note_genitori_iscrizione'] ?? '')) !== '' ? nl2br(ipd_h($pratica['note_genitori_iscrizione'])) : '<span class="text-muted">Nessuna nota inserita.</span>'; ?>
+                        </div>
+                        <button type="button" class="btn btn-xs btn-default" id="ipd_note_formazione_button_<?php echo intval($pratica['id']); ?>" style="margin-top:6px;" onclick='ipdOpenFormationNoteModal(<?php echo intval($pratica['id']); ?>, <?php echo json_encode(trim(($pratica['cognome'] ?? '') . ' ' . ($pratica['nome'] ?? '')), JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, <?php echo json_encode((string)($pratica['note_genitori_iscrizione'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)'>
+                            <span class="glyphicon glyphicon-pencil"></span> Modifica note
+                        </button>
+                    </div>
                     <?php if ($tipoIscrizione === 'terze' && trim((string)($pratica['curvatura_design'] ?? '')) !== '') : ?>
                         <div class="ipd-field"><div class="ipd-label">Curvatura CAT</div><div class="ipd-value"><?php echo ipd_h($pratica['curvatura_design'] === 'design' ? 'Design e riqualificazione ambientale' : 'Normale'); ?></div></div>
                     <?php endif; ?>
@@ -760,40 +776,58 @@ foreach ($pratiche as $praticaEvento) {
                         <tbody>
                             <?php foreach ($documents as $document) :
                                 $tipo = (string)$document['tipo_documento'];
-                                if ($tipo === 'altro' && (string)$document['stato'] === 'mancante') {
-                                    continue;
-                                }
                                 if (in_array($tipo, ['documento_identita_genitore_2', 'codice_fiscale_genitore_2', 'documento_cf_genitore_2'], true) && !hasSecondResponsibleForIscrizioniPrime($pratica, $confirmed)) {
                                     continue;
                                 }
                                 $statoDoc = (string)$document['stato'];
-                                $statusClass = $statoDoc === 'consegna_cartacea' ? 'paper' : (in_array($statoDoc, ['caricato', 'estratto', 'verificato'], true) ? 'ok' : 'missing');
+                                $hasFile = !empty($document['file_path']) || !empty($document['drive_file_id']);
+                                $isOptionalMissing = $tipo === 'altro' && !$hasFile && $statoDoc === 'mancante';
+                                $statusClass = $isOptionalMissing ? 'optional' : ($statoDoc === 'consegna_cartacea' ? 'paper' : ($hasFile || in_array($statoDoc, ['caricato', 'estratto', 'verificato'], true) ? 'ok' : 'missing'));
+                                $statusLabel = $isOptionalMissing ? 'facoltativo' : ($statoDoc === 'consegna_cartacea' ? 'consegna cartacea' : $statoDoc);
                             ?>
                                 <tr>
                                     <td><?php echo ipd_h($labels[$tipo] ?? $tipo); ?></td>
-                                    <td class="ipd-doc-status <?php echo $statusClass; ?>"><?php echo ipd_h($statoDoc === 'consegna_cartacea' ? 'consegna cartacea' : $statoDoc); ?></td>
+                                    <td class="ipd-doc-status <?php echo $statusClass; ?>"><?php echo ipd_h($statusLabel); ?></td>
                                     <td>
-                                        <?php if ($statusClass === 'ok') : ?>
-                                            <a class="btn btn-xs btn-primary" target="_blank" rel="noopener" href="iscrizioniPrimeDocumento.php?pratica_id=<?php echo intval($pratica['id']); ?>&tipo=<?php echo rawurlencode($tipo); ?>">
-                                                <span class="glyphicon glyphicon-file"></span> Apri PDF
-                                            </a>
-                                            <span class="text-muted"><?php echo ipd_h($document['original_name'] ?? ''); ?></span>
+                                        <?php if ($hasFile) : ?>
+                                            <div class="ipd-file-line">
+                                                <a class="btn btn-xs btn-primary" target="_blank" rel="noopener" href="iscrizioniPrimeDocumento.php?pratica_id=<?php echo intval($pratica['id']); ?>&tipo=<?php echo rawurlencode($tipo); ?>">
+                                                    <span class="glyphicon glyphicon-file"></span> Apri PDF
+                                                </a>
+                                                <span class="ipd-file-name" title="<?php echo ipd_h($document['original_name'] ?? ''); ?>"><?php echo ipd_h($document['original_name'] ?? ''); ?></span>
+                                                <button type="button" class="btn btn-xs btn-danger" onclick="return ipdDeleteSegreteriaDocumento(<?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');">
+                                                    <span class="glyphicon glyphicon-trash"></span> Cancella allegato
+                                                </button>
+                                                <form class="ipd-secretary-upload" data-pratica-id="<?php echo intval($pratica['id']); ?>" data-tipo-documento="<?php echo ipd_h($tipo); ?>" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
+                                                    <input type="hidden" name="upload_mode" value="append">
+                                                    <input type="file" name="pdf[]" accept="application/pdf,.pdf" multiple required>
+                                                    <button type="submit" class="btn btn-xs btn-success">
+                                                        <span class="glyphicon glyphicon-plus"></span> Aggiungi al PDF
+                                                    </button>
+                                                </form>
+                                            </div>
                                         <?php elseif ($statoDoc === 'consegna_cartacea') : ?>
-                                            <span class="text-muted">Consegna in segreteria didattica</span>
-                                            <form class="ipd-secretary-upload" data-pratica-id="<?php echo intval($pratica['id']); ?>" data-tipo-documento="<?php echo ipd_h($tipo); ?>" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
-                                                <input type="file" name="pdf[]" accept="application/pdf,.pdf" multiple required>
-                                                <button type="submit" class="btn btn-xs btn-success">
-                                                    <span class="glyphicon glyphicon-upload"></span> Carica scansione PDF
-                                                </button>
-                                            </form>
+                                            <div class="ipd-file-line">
+                                                <span class="text-muted">Consegna in segreteria didattica</span>
+                                                <form class="ipd-secretary-upload" data-pratica-id="<?php echo intval($pratica['id']); ?>" data-tipo-documento="<?php echo ipd_h($tipo); ?>" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
+                                                    <input type="hidden" name="upload_mode" value="replace">
+                                                    <input type="file" name="pdf[]" accept="application/pdf,.pdf" multiple required>
+                                                    <button type="submit" class="btn btn-xs btn-success">
+                                                        <span class="glyphicon glyphicon-upload"></span> Carica scansione PDF
+                                                    </button>
+                                                </form>
+                                            </div>
                                         <?php else : ?>
-                                            <span class="text-danger">Mancante</span>
-                                            <form class="ipd-secretary-upload" data-pratica-id="<?php echo intval($pratica['id']); ?>" data-tipo-documento="<?php echo ipd_h($tipo); ?>" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
-                                                <input type="file" name="pdf[]" accept="application/pdf,.pdf" multiple required>
-                                                <button type="submit" class="btn btn-xs btn-default">
-                                                    <span class="glyphicon glyphicon-upload"></span> Carica PDF
-                                                </button>
-                                            </form>
+                                            <div class="ipd-file-line">
+                                                <span class="text-danger">Mancante</span>
+                                                <form class="ipd-secretary-upload" data-pratica-id="<?php echo intval($pratica['id']); ?>" data-tipo-documento="<?php echo ipd_h($tipo); ?>" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
+                                                    <input type="hidden" name="upload_mode" value="replace">
+                                                    <input type="file" name="pdf[]" accept="application/pdf,.pdf" multiple required>
+                                                    <button type="submit" class="btn btn-xs btn-default">
+                                                        <span class="glyphicon glyphicon-upload"></span> Carica PDF
+                                                    </button>
+                                                </form>
+                                            </div>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -803,7 +837,12 @@ foreach ($pratiche as $praticaEvento) {
                 </div>
 
                 <?php $eventi = $eventiPratiche[intval($pratica['id'])] ?? []; ?>
-                <h4>Storico pratica</h4>
+                <h4>
+                    Storico pratica
+                    <button type="button" class="btn btn-xs btn-primary pull-right" data-student="<?php echo ipd_h(trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? ''))); ?>" onclick="return ipdOpenManualEventModal(<?php echo intval($pratica['id']); ?>, this.getAttribute('data-student') || '');">
+                        <span class="glyphicon glyphicon-plus"></span> Aggiungi evento
+                    </button>
+                </h4>
                 <?php if (!$eventi) : ?>
                     <div class="ipd-empty">Nessun evento registrato.</div>
                 <?php else : ?>
@@ -835,6 +874,14 @@ foreach ($pratiche as $praticaEvento) {
                                 </div>
                                 <?php if (!empty($evento['messaggio'])) : ?>
                                     <div class="ipd-cambio-event-note"><?php echo ipd_h($evento['messaggio']); ?></div>
+                                <?php endif; ?>
+                                <?php if (!empty($evento['allegato_path']) && intval($evento['id'] ?? 0) > 0) : ?>
+                                    <div class="ipd-cambio-event-meta">
+                                        <a class="btn btn-xs btn-default" target="_blank" rel="noopener" href="iscrizioniPrimeEventoAllegato.php?evento_id=<?php echo intval($evento['id']); ?>">
+                                            <span class="glyphicon glyphicon-paperclip"></span>
+                                            <?php echo ipd_h($evento['allegato_original_name'] ?: 'Apri allegato'); ?>
+                                        </a>
+                                    </div>
                                 <?php endif; ?>
                                 <?php if ($dettagli) : ?>
                                     <div class="ipd-cambio-event-meta">
@@ -877,7 +924,7 @@ foreach ($pratiche as $praticaEvento) {
                                     <?php foreach ($secretaryDocuments as $document) :
                                         $tipo = (string)$document['tipo_documento'];
                                         $statoDoc = (string)($document['stato'] ?? 'mancante');
-                                        $isUploaded = in_array($statoDoc, ['caricato', 'estratto', 'verificato'], true);
+                                        $isUploaded = !empty($document['file_path']) || !empty($document['drive_file_id']) || in_array($statoDoc, ['caricato', 'estratto', 'verificato'], true);
                                         $statusClass = $isUploaded ? 'ok' : 'missing';
                                     ?>
                                         <tr>
@@ -885,19 +932,34 @@ foreach ($pratiche as $praticaEvento) {
                                             <td class="ipd-doc-status <?php echo $statusClass; ?>"><?php echo $isUploaded ? 'caricato' : 'mancante'; ?></td>
                                             <td>
                                                 <?php if ($isUploaded) : ?>
-                                                    <a class="btn btn-xs btn-primary" target="_blank" rel="noopener" href="iscrizioniPrimeDocumento.php?pratica_id=<?php echo intval($pratica['id']); ?>&tipo=<?php echo rawurlencode($tipo); ?>">
-                                                        <span class="glyphicon glyphicon-file"></span> Apri PDF
-                                                    </a>
-                                                    <span class="text-muted"><?php echo ipd_h($document['original_name'] ?? ''); ?></span>
+                                                    <div class="ipd-file-line">
+                                                        <a class="btn btn-xs btn-primary" target="_blank" rel="noopener" href="iscrizioniPrimeDocumento.php?pratica_id=<?php echo intval($pratica['id']); ?>&tipo=<?php echo rawurlencode($tipo); ?>">
+                                                            <span class="glyphicon glyphicon-file"></span> Apri PDF
+                                                        </a>
+                                                        <span class="ipd-file-name" title="<?php echo ipd_h($document['original_name'] ?? ''); ?>"><?php echo ipd_h($document['original_name'] ?? ''); ?></span>
+                                                        <button type="button" class="btn btn-xs btn-danger" onclick="return ipdDeleteSegreteriaDocumento(<?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');">
+                                                            <span class="glyphicon glyphicon-trash"></span> Cancella allegato
+                                                        </button>
+                                                        <form class="ipd-secretary-upload" data-pratica-id="<?php echo intval($pratica['id']); ?>" data-tipo-documento="<?php echo ipd_h($tipo); ?>" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
+                                                            <input type="hidden" name="upload_mode" value="append">
+                                                            <input type="file" name="pdf[]" accept="application/pdf,.pdf" multiple required>
+                                                            <button type="submit" class="btn btn-xs btn-default">
+                                                                <span class="glyphicon glyphicon-plus"></span> Aggiungi al PDF
+                                                            </button>
+                                                        </form>
+                                                    </div>
                                                 <?php else : ?>
-                                                    <span class="text-danger">Mancante</span>
+                                                    <div class="ipd-file-line">
+                                                        <span class="text-danger">Mancante</span>
+                                                        <form class="ipd-secretary-upload" data-pratica-id="<?php echo intval($pratica['id']); ?>" data-tipo-documento="<?php echo ipd_h($tipo); ?>" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
+                                                            <input type="hidden" name="upload_mode" value="replace">
+                                                            <input type="file" name="pdf[]" accept="application/pdf,.pdf" multiple required>
+                                                            <button type="submit" class="btn btn-xs btn-success">
+                                                                <span class="glyphicon glyphicon-upload"></span> Carica PDF
+                                                            </button>
+                                                        </form>
+                                                    </div>
                                                 <?php endif; ?>
-                                                <form class="ipd-secretary-upload" data-pratica-id="<?php echo intval($pratica['id']); ?>" data-tipo-documento="<?php echo ipd_h($tipo); ?>" onsubmit="return ipdUploadSegreteriaDocumento(event, <?php echo intval($pratica['id']); ?>, '<?php echo ipd_h($tipo); ?>');" enctype="multipart/form-data">
-                                                    <input type="file" name="pdf[]" accept="application/pdf,.pdf" multiple required>
-                                                    <button type="submit" class="btn btn-xs <?php echo $isUploaded ? 'btn-default' : 'btn-success'; ?>">
-                                                        <span class="glyphicon glyphicon-upload"></span> <?php echo $isUploaded ? 'Sostituisci PDF' : 'Carica PDF'; ?>
-                                                    </button>
-                                                </form>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -1098,6 +1160,26 @@ ITT Buonarroti - Trento</textarea>
     </div>
 </div>
 
+<div id="ipdFormationNoteModal" class="ipd-modal-backdrop" aria-hidden="true">
+    <div class="ipd-modal-box" role="dialog" aria-modal="true" aria-labelledby="ipdFormationNoteTitle">
+        <div id="ipdFormationNoteTitle" class="ipd-modal-head" style="background:#4f46e5;">Richieste / note genitori</div>
+        <div class="ipd-modal-body">
+            <input type="hidden" id="ipdFormationNoteId">
+            <p id="ipdFormationNoteStudent" class="text-muted"></p>
+            <div class="ipd-modal-field">
+                <label for="ipdFormationNoteText">Note per iscrizione e formazione classi</label>
+                <textarea id="ipdFormationNoteText" placeholder="Inserisci richieste dei genitori, abbinamenti, incompatibilita o note utili per la futura classe."></textarea>
+                <div class="help-block">Queste note sono le stesse mostrate nella pagina formazione classi sullo studente.</div>
+            </div>
+            <div id="ipdFormationNoteError" class="text-danger" style="margin-top:8px;" hidden></div>
+        </div>
+        <div class="ipd-modal-actions">
+            <button type="button" class="btn btn-default" onclick="ipdCloseFormationNoteModal()">Annulla</button>
+            <button type="button" class="btn btn-primary" id="ipdFormationNoteSaveButton" onclick="ipdSaveFormationNote()">Salva note</button>
+        </div>
+    </div>
+</div>
+
 <div id="ipdIntegrationModal" class="ipd-modal-backdrop" aria-hidden="true">
     <div class="ipd-modal-box" role="dialog" aria-modal="true" aria-labelledby="ipdIntegrationTitle">
         <div id="ipdIntegrationTitle" class="ipd-modal-head">Richiedi integrazione ai genitori</div>
@@ -1151,9 +1233,47 @@ ITT Buonarroti - Trento</textarea>
     </div>
 </div>
 
+<div id="ipdManualEventModal" class="ipd-modal-backdrop" aria-hidden="true">
+    <div class="ipd-modal-box" role="dialog" aria-modal="true" aria-labelledby="ipdManualEventTitle">
+        <form id="ipdManualEventForm" enctype="multipart/form-data">
+            <div id="ipdManualEventTitle" class="ipd-modal-head" style="background:#1d4ed8;">Aggiungi evento allo storico</div>
+            <div class="ipd-modal-body">
+                <input type="hidden" name="pratica_id" id="ipdManualEventPraticaId">
+                <p id="ipdManualEventStudent" class="text-muted"></p>
+                <div class="ipd-modal-field">
+                    <label for="ipdManualEventTitolo">Titolo evento</label>
+                    <input type="text" name="titolo" id="ipdManualEventTitolo" placeholder="Es. Telefonata con genitore">
+                </div>
+                <div class="ipd-modal-field">
+                    <label for="ipdManualEventMessaggio">Note</label>
+                    <textarea name="messaggio" id="ipdManualEventMessaggio" placeholder="Scrivi il contenuto da registrare nello storico."></textarea>
+                </div>
+                <div class="ipd-modal-field">
+                    <label for="ipdManualEventAllegato">Allegato opzionale</label>
+                    <input type="file" name="allegato" id="ipdManualEventAllegato" class="form-control" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png">
+                </div>
+                <div id="ipdManualEventError" class="text-danger" style="margin-top:8px;" hidden></div>
+            </div>
+            <div class="ipd-modal-actions">
+                <button type="button" class="btn btn-default" onclick="ipdCloseManualEventModal()">Annulla</button>
+                <button type="submit" class="btn btn-primary" id="ipdManualEventSaveButton">Salva evento</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="ipdBusyModal" class="ipd-modal-backdrop" aria-hidden="true">
+    <div class="ipd-busy-box" role="status" aria-live="polite">
+        <div class="ipd-busy-spinner"></div>
+        <h3 id="ipdBusyTitle" style="margin:0 0 6px;font-weight:800;color:#0f172a;">Operazione in corso</h3>
+        <p id="ipdBusyText" class="text-muted" style="margin:0;">Attendere...</p>
+    </div>
+</div>
+
 <script>
 let ipdIntegrationPraticaId = 0;
 let ipdCustomMailPraticaId = 0;
+let ipdManualEventPraticaId = 0;
 let ipdStatusNotePraticaId = 0;
 let ipdStatusNoteStato = '';
 const ipdTipoIscrizione = <?php echo json_encode($tipoIscrizione); ?>;
@@ -1611,6 +1731,48 @@ function ipdCloseMessageModal() {
     modal.setAttribute('aria-hidden', 'true');
 }
 
+function ipdShowBusy(title, text) {
+    const modal = document.getElementById('ipdBusyModal');
+    document.getElementById('ipdBusyTitle').textContent = title || 'Operazione in corso';
+    document.getElementById('ipdBusyText').textContent = text || 'Attendere...';
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function ipdHideBusy() {
+    const modal = document.getElementById('ipdBusyModal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+}
+
+function ipdOpenManualEventModal(id, studentName) {
+    ipdManualEventPraticaId = Number(id || 0);
+    const modal = document.getElementById('ipdManualEventModal');
+    const form = document.getElementById('ipdManualEventForm');
+    const student = document.getElementById('ipdManualEventStudent');
+    const error = document.getElementById('ipdManualEventError');
+    if (form) {
+        form.reset();
+    }
+    document.getElementById('ipdManualEventPraticaId').value = String(ipdManualEventPraticaId);
+    student.textContent = studentName ? 'Pratica di ' + studentName : 'Pratica selezionata';
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => document.getElementById('ipdManualEventTitolo').focus(), 50);
+    return false;
+}
+
+function ipdCloseManualEventModal() {
+    const modal = document.getElementById('ipdManualEventModal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    ipdManualEventPraticaId = 0;
+}
+
 function ipdConfirmMessageModal(title, text, details) {
     const modal = document.getElementById('ipdMessageModal');
     const cancel = document.getElementById('ipdMessageCancel');
@@ -2046,12 +2208,98 @@ function ipdSubmitIntegrationRequest() {
     ipdSendStato(ipdIntegrationPraticaId, 'da_integrare', value);
 }
 
+function ipdOpenFormationNoteModal(id, studentName, note) {
+    document.getElementById('ipdFormationNoteId').value = Number(id || 0);
+    document.getElementById('ipdFormationNoteStudent').textContent = 'Pratica di ' + String(studentName || '').trim();
+    document.getElementById('ipdFormationNoteText').value = note || '';
+    const error = document.getElementById('ipdFormationNoteError');
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+    const modal = document.getElementById('ipdFormationNoteModal');
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => document.getElementById('ipdFormationNoteText')?.focus(), 50);
+}
+
+function ipdCloseFormationNoteModal() {
+    const modal = document.getElementById('ipdFormationNoteModal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.getElementById('ipdFormationNoteId').value = '';
+}
+
+function ipdNoteHtml(value) {
+    const text = String(value || '').trim();
+    if (text === '') {
+        return '<span class="text-muted">Nessuna nota inserita.</span>';
+    }
+    return ipdEscape(text).replace(/\r?\n/g, '<br>');
+}
+
+function ipdSaveFormationNote() {
+    const id = Number(document.getElementById('ipdFormationNoteId').value || 0);
+    const note = document.getElementById('ipdFormationNoteText').value || '';
+    const error = document.getElementById('ipdFormationNoteError');
+    const button = document.getElementById('ipdFormationNoteSaveButton');
+    const data = new FormData();
+    data.append('id', String(id));
+    data.append('note_genitori_iscrizione', note);
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Salvataggio...';
+    }
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+
+    fetch('iscrizioniPrimeNoteSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(payload => ({ok: response.ok, payload})))
+    .then(result => {
+        if (!result.ok || !result.payload.ok) {
+            throw new Error(result.payload.message || 'Errore salvataggio note.');
+        }
+        const value = document.getElementById('ipd_note_formazione_value_' + id);
+        if (value) {
+            value.innerHTML = ipdNoteHtml(result.payload.note_genitori_iscrizione || '');
+        }
+        const button = document.getElementById('ipd_note_formazione_button_' + id);
+        if (button) {
+            const studentName = String(document.getElementById('ipdFormationNoteStudent').textContent || '').replace(/^Pratica di\s*/i, '');
+            const savedNote = result.payload.note_genitori_iscrizione || '';
+            button.onclick = function () {
+                ipdOpenFormationNoteModal(id, studentName, savedNote);
+            };
+        }
+        ipdCloseFormationNoteModal();
+    })
+    .catch(err => {
+        if (error) {
+            error.textContent = err.message;
+            error.hidden = false;
+        }
+    })
+    .finally(() => {
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Salva note';
+        }
+    });
+}
+
 function ipdSendStato(id, stato, note) {
     const data = new FormData();
     data.append('id', id);
     data.append('stato', stato);
     data.append('note', note || '');
 
+    ipdShowBusy('Aggiornamento pratica', 'Sto salvando il nuovo stato. Attendere...');
     fetch('iscrizioniPrimeStato.php', {
         method: 'POST',
         body: data,
@@ -2067,7 +2315,10 @@ function ipdSendStato(id, stato, note) {
         }
         window.location.reload();
     })
-    .catch(error => alert(error.message));
+    .catch(error => {
+        ipdHideBusy();
+        alert(error.message);
+    });
 }
 
 function ipdSaveTerzeValues(event, id) {
@@ -2120,7 +2371,11 @@ function ipdSaveTerzeValues(event, id) {
 
 function ipdReloadPratica(praticaId) {
     const url = new URL(window.location.href);
-    url.hash = 'pratica-' + Number(praticaId || 0);
+    const id = Number(praticaId || 0);
+    if (id > 0) {
+        url.searchParams.set('open_pratica_id', String(id));
+    }
+    url.hash = 'pratica-' + id;
     window.history.replaceState({}, '', url.toString());
     window.location.reload();
 }
@@ -2132,6 +2387,8 @@ function ipdSelectedFileCount(form) {
 
 function ipdUploadSegreteriaDocumentoForm(form, praticaId, tipo) {
     const data = new FormData(form);
+    const modeInput = form ? form.querySelector('input[name="upload_mode"]') : null;
+    data.set('upload_mode', modeInput && modeInput.value === 'append' ? 'append' : 'replace');
     data.append('pratica_id', praticaId);
     data.append('tipo', tipo);
 
@@ -2172,17 +2429,55 @@ function ipdUploadSegreteriaDocumento(event, praticaId, tipo) {
         button.textContent = 'Caricamento...';
     }
 
+    ipdShowBusy('Caricamento allegato', 'Sto salvando il PDF nella pratica. Attendere...');
     ipdUploadSegreteriaDocumentoForm(form, praticaId, tipo)
     .then(data => {
-        alert(data.message || 'Documento caricato.');
         ipdReloadPratica(praticaId);
     })
     .catch(error => {
+        ipdHideBusy();
         alert(error.message);
         if (button) {
             button.disabled = false;
             button.innerHTML = originalHtml || '<span class="glyphicon glyphicon-upload"></span> Carica PDF';
         }
+    });
+
+    return false;
+}
+
+function ipdDeleteSegreteriaDocumento(praticaId, tipo) {
+    if (!window.confirm('Cancellare questo allegato? Dopo la cancellazione potrai ricaricare un nuovo PDF.')) {
+        return false;
+    }
+    const data = new FormData();
+    data.append('pratica_id', String(praticaId));
+    data.append('tipo', tipo);
+
+    ipdShowBusy('Cancellazione allegato', 'Sto aggiornando la pratica. Attendere...');
+    fetch('iscrizioniPrimeSegreteriaDocumentoDelete.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.text().then(text => {
+        let payload;
+        try {
+            payload = text ? JSON.parse(text) : {};
+        } catch (e) {
+            throw new Error('Risposta non valida dal server durante la cancellazione allegato.');
+        }
+        return {ok: response.ok, payload};
+    }))
+    .then(result => {
+        if (!result.ok || !result.payload.ok) {
+            throw new Error(result.payload.message || 'Errore cancellazione allegato.');
+        }
+        ipdReloadPratica(praticaId);
+    })
+    .catch(error => {
+        ipdHideBusy();
+        alert(error.message);
     });
 
     return false;
@@ -2218,6 +2513,7 @@ async function ipdUploadSegreteriaDocumentiSelezionati(event, praticaId) {
     if (trigger) {
         trigger.disabled = true;
     }
+    ipdShowBusy('Caricamento allegati', 'Sto salvando i PDF selezionati. Attendere...');
 
     let uploaded = 0;
     const errors = [];
@@ -2251,6 +2547,7 @@ async function ipdUploadSegreteriaDocumentiSelezionati(event, praticaId) {
         status.textContent = errors.length ? errors.join(' | ') : 'Nessun documento caricato.';
         status.style.color = '#b91c1c';
     }
+    ipdHideBusy();
     buttons.forEach(function (button) {
         button.disabled = false;
         button.innerHTML = originalButtonHtml.get(button) || '<span class="glyphicon glyphicon-upload"></span> Carica PDF';
@@ -2260,6 +2557,50 @@ async function ipdUploadSegreteriaDocumentiSelezionati(event, praticaId) {
     }
     return false;
 }
+
+document.getElementById('ipdManualEventForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    const form = event.target;
+    const button = document.getElementById('ipdManualEventSaveButton');
+    const error = document.getElementById('ipdManualEventError');
+    const data = new FormData(form);
+    const praticaId = Number(data.get('pratica_id') || ipdManualEventPraticaId || 0);
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Salvataggio...';
+    }
+    ipdShowBusy('Salvataggio evento', 'Sto aggiungendo la riga allo storico. Attendere...');
+
+    fetch('iscrizioniPrimeEventoSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(payload => ({ok: response.ok, payload})))
+    .then(result => {
+        if (!result.ok || !result.payload.ok) {
+            throw new Error(result.payload.message || 'Errore salvataggio evento.');
+        }
+        ipdReloadPratica(praticaId);
+    })
+    .catch(err => {
+        ipdHideBusy();
+        if (error) {
+            error.textContent = err.message;
+            error.hidden = false;
+        } else {
+            alert(err.message);
+        }
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Salva evento';
+        }
+    });
+});
 </script>
 
 </body>
