@@ -26,6 +26,10 @@ function h($value): string
 
 function confirmedValue(array $pratica, array $confirmed, string $field): string
 {
+    if (in_array($field, ['email_studente', 'telefono_studente', 'email_genitore_1', 'telefono_genitore_1', 'email_genitore_2', 'telefono_genitore_2'], true)) {
+        return (string)($pratica[$field] ?? '');
+    }
+
     if (array_key_exists($field, $confirmed)) {
         return (string)$confirmed[$field];
     }
