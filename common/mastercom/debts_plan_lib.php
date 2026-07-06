@@ -433,6 +433,8 @@ function mastercomDebtsPlanNeoCarenzeRows(int $courseSchoolYearId, int $debtScho
               AND co.id_materia = " . dbI($subjectId) . "
             ORDER BY co.titolo ASC, co.id ASC
         ") ?: [];
+        $parentEmails = preg_split('/\s*,\s*/', (string)($row['email_genitori'] ?? '')) ?: [];
+        $parentEmails = array_values(array_filter(array_map('trim', $parentEmails), static fn($email) => $email !== ''));
         $result[] = [
             'carenza_id' => intval($row['carenza_id'] ?? 0),
             'student_id' => $studentId,
@@ -441,7 +443,7 @@ function mastercomDebtsPlanNeoCarenzeRows(int $courseSchoolYearId, int $debtScho
             'subject' => trim((string)($row['materia_nome'] ?? '')),
             'subject_id' => $subjectId,
             'courses' => $courses,
-            'parents' => mastercomDebtsPlanSplitSubjects(str_replace(',', "\n", (string)($row['email_genitori'] ?? ''))),
+            'parents' => $parentEmails,
         ];
     }
 
@@ -513,6 +515,13 @@ function mastercomDebtsPlanCalendarYear(int $schoolYearId): int
 function mastercomDebtsPlanClassYear(string $className): string
 {
     $className = trim($className);
+    $upper = strtoupper($className);
+    if ($upper === 'MEDIE') {
+        return '1';
+    }
+    if ($upper === 'EE') {
+        return '3';
+    }
     if (preg_match('/([1-5])/', $className, $matches)) {
         return $matches[1];
     }
@@ -1500,7 +1509,7 @@ function mastercomDebtsPlanSourceRows(int $schoolYearId): array
         return [];
     }
 
-    return dbGetAll("
+    $mastercomRows = dbGetAll("
         SELECT
             mc.id,
             mc.mastercom_id_classe,
@@ -1553,6 +1562,37 @@ function mastercomDebtsPlanSourceRows(int $schoolYearId): array
           AND COALESCE(mc.recuperato_mastercom, 0) = 0
         ORDER BY mc.materia ASC, mc.studente_nome ASC, mc.classe ASC
     ") ?: [];
+
+    $localRows = dbGetAll("
+        SELECT
+            c.id,
+            0 AS mastercom_id_classe,
+            cls.classe,
+            0 AS mastercom_id_studente,
+            c.id_studente AS id_studente_gestore,
+            CONCAT(COALESCE(s.cognome, ''), ' ', COALESCE(s.nome, '')) AS studente_nome,
+            c.id_anno_scolastico,
+            m.nome AS materia,
+            c.id_materia AS id_materia_gestore,
+            0 AS recuperato_mastercom,
+            'NEO_ISCRITTO' AS tipo_debito,
+            m.nome AS materia_gestore,
+            cls.classe AS classe_gestore,
+            CONCAT(COALESCE(s.cognome, ''), ' ', COALESCE(s.nome, '')) AS studente_gestore,
+            CONCAT(COALESCE(d.cognome, ''), ' ', COALESCE(d.nome, '')) AS docente_carenza,
+            '' AS docenti_insegnamento
+        FROM carenze c
+        INNER JOIN studente s ON s.id = c.id_studente
+        INNER JOIN materia m ON m.id = c.id_materia
+        INNER JOIN classi cls ON cls.id = c.id_classe
+        LEFT JOIN docente d ON d.id = c.id_docente
+        WHERE c.id_anno_scolastico = " . dbI($schoolYearId) . "
+          AND UPPER(TRIM(cls.classe)) IN ('MEDIE', 'EE')
+          AND COALESCE(c.id_docente, 0) = " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . "
+        ORDER BY m.nome ASC, s.cognome ASC, s.nome ASC
+    ") ?: [];
+
+    return array_merge($mastercomRows, $localRows);
 }
 
 function mastercomDebtsPlanBuildBaseGroups(array $rows): array

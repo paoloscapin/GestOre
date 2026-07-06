@@ -1382,7 +1382,18 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
 
             <h4>Neo-iscritti con carenze da piazzare</h4>
             <div class="mcdp-note">
-                Elenco ricavato dalle pratiche di entrata con carenze. Gli avvisi dei corsi per questi studenti dovranno usare le email dei genitori, non la mail studente.
+                Elenco ricavato dalle pratiche di iscrizione completate con carenze formative. Gli studenti esterni vengono sincronizzati in GestOre in classe provvisoria MEDIE o EE e le carenze vengono create con docente #<?php echo intval(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID); ?>.
+                Gli avvisi dei corsi per questi studenti dovranno usare le email dei genitori, non la mail studente.
+                <?php if (!empty($neoSyncSummary)): ?>
+                    <br>
+                    Sincronizzazione: pratiche lette <strong><?php echo intval($neoSyncSummary['read'] ?? 0); ?></strong>,
+                    studenti aggiornati <strong><?php echo intval($neoSyncSummary['students_synced'] ?? 0); ?></strong>,
+                    carenze create <strong><?php echo intval($neoSyncSummary['created'] ?? 0); ?></strong>,
+                    carenze aggiornate <strong><?php echo intval($neoSyncSummary['updated'] ?? 0); ?></strong>.
+                    <?php if (!empty($neoSyncSummary['errors'])): ?>
+                        <span class="text-danger">Avvisi: <?php echo mcdp_h(implode(' | ', array_slice((array)$neoSyncSummary['errors'], 0, 5))); ?></span>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
             <table class="table table-bordered table-condensed mcdp-table">
                 <thead>
