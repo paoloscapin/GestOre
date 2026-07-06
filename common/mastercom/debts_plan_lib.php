@@ -287,6 +287,33 @@ function mastercomDebtsPlanPracticeCarenzeSubjects(array $pratica): array
     return array_values(array_unique(array_filter($materie, static fn($value) => trim((string)$value) !== '')));
 }
 
+function mastercomDebtsPlanPracticeFutureYear(array $pratica): int
+{
+    $raw = trim((string)($pratica['anno_corso'] ?? ''));
+    if ($raw === '') {
+        return iscrizioniPrimeTipoIscrizioneFromPratica($pratica) === 'terze' ? 3 : 1;
+    }
+    if (preg_match('/[1-5]/', $raw, $matches)) {
+        return intval($matches[0]);
+    }
+    return 0;
+}
+
+function mastercomDebtsPlanPracticeDebtClassId(array $pratica): int
+{
+    if (iscrizioniPrimeTipoIscrizioneFromPratica($pratica) !== 'terze') {
+        return 0;
+    }
+
+    $futureYear = mastercomDebtsPlanPracticeFutureYear($pratica);
+    $debtYear = $futureYear - 1;
+    if ($debtYear < 1 || $debtYear > 4) {
+        return 0;
+    }
+
+    return iscrizioniPrimeClassIdByCode($debtYear . 'EE');
+}
+
 function mastercomDebtsPlanSyncNeoIscrizioniCarenze(int $debtSchoolYearId): array
 {
     iscrizioniPrimeEnsureSchema();
@@ -299,6 +326,7 @@ function mastercomDebtsPlanSyncNeoIscrizioniCarenze(int $debtSchoolYearId): arra
         SELECT *
         FROM iscrizioni_prime_pratiche
         WHERE studente_interno = 0
+          AND tipo_iscrizione = 'terze'
           AND stato IN ('inviata', 'verifica_iniziale_ok', 'verificata')
           AND carenze_formative_dichiarate = 'si'
           AND (
@@ -313,10 +341,12 @@ function mastercomDebtsPlanSyncNeoIscrizioniCarenze(int $debtSchoolYearId): arra
         try {
             $sync = iscrizioniPrimeSyncGestoreStudentAndParents($pratica);
             $studentId = intval($sync['studente_id'] ?? 0);
-            $classCode = (string)($sync['classe'] ?? '');
-            $classId = $classCode !== '' ? iscrizioniPrimeClassIdByCode($classCode) : 0;
+            $classId = mastercomDebtsPlanPracticeDebtClassId($pratica);
             if ($studentId <= 0 || $classId <= 0) {
                 $summary['skipped']++;
+                if (count($summary['errors']) < 20) {
+                    $summary['errors'][] = trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? '')) . ': anno di iscrizione non valido per calcolare la classe della carenza';
+                }
                 continue;
             }
             $summary['students_synced']++;
@@ -330,19 +360,25 @@ function mastercomDebtsPlanSyncNeoIscrizioniCarenze(int $debtSchoolYearId): arra
                     continue;
                 }
                 $existing = dbGetFirst("
-                    SELECT id, id_docente
-                    FROM carenze
-                    WHERE id_studente = " . dbI($studentId) . "
-                      AND id_materia = " . dbI($subjectId) . "
-                      AND id_classe = " . dbI($classId) . "
-                      AND id_anno_scolastico = " . dbI($debtSchoolYearId) . "
+                    SELECT c.id, c.id_docente, c.id_classe
+                    FROM carenze c
+                    INNER JOIN classi cls ON cls.id = c.id_classe
+                    WHERE c.id_studente = " . dbI($studentId) . "
+                      AND c.id_materia = " . dbI($subjectId) . "
+                      AND (
+                            c.id_classe = " . dbI($classId) . "
+                         OR UPPER(TRIM(cls.classe)) = 'EE'
+                      )
+                      AND c.id_anno_scolastico = " . dbI($debtSchoolYearId) . "
+                    ORDER BY CASE WHEN c.id_classe = " . dbI($classId) . " THEN 0 ELSE 1 END
                     LIMIT 1
                 ");
                 if ($existing) {
-                    if (intval($existing['id_docente'] ?? 0) <= 0) {
+                    if (intval($existing['id_docente'] ?? 0) !== MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID || intval($existing['id_classe'] ?? 0) !== $classId) {
                         dbExec("
                             UPDATE carenze
-                            SET id_docente = " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . "
+                            SET id_docente = " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . ",
+                                id_classe = " . dbI($classId) . "
                             WHERE id = " . dbI($existing['id'] ?? 0) . "
                             LIMIT 1
                         ");
@@ -401,7 +437,7 @@ function mastercomDebtsPlanNeoCarenzeRows(int $courseSchoolYearId, int $debtScho
         LEFT JOIN genitori_studenti gs ON gs.id_studente = s.id
         LEFT JOIN genitori g ON g.id = gs.id_genitore
         WHERE c.id_anno_scolastico = " . dbI($debtSchoolYearId) . "
-          AND UPPER(TRIM(cls.classe)) IN ('MEDIE', 'EE')
+          AND UPPER(TRIM(cls.classe)) IN ('1EE', '2EE', '3EE', '4EE')
           AND COALESCE(c.id_docente, 0) = " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . "
         GROUP BY c.id
         ORDER BY s.cognome ASC, s.nome ASC, m.nome ASC
@@ -515,13 +551,6 @@ function mastercomDebtsPlanCalendarYear(int $schoolYearId): int
 function mastercomDebtsPlanClassYear(string $className): string
 {
     $className = trim($className);
-    $upper = strtoupper($className);
-    if ($upper === 'MEDIE') {
-        return '1';
-    }
-    if ($upper === 'EE') {
-        return '3';
-    }
     if (preg_match('/([1-5])/', $className, $matches)) {
         return $matches[1];
     }
@@ -1587,7 +1616,7 @@ function mastercomDebtsPlanSourceRows(int $schoolYearId): array
         INNER JOIN classi cls ON cls.id = c.id_classe
         LEFT JOIN docente d ON d.id = c.id_docente
         WHERE c.id_anno_scolastico = " . dbI($schoolYearId) . "
-          AND UPPER(TRIM(cls.classe)) IN ('MEDIE', 'EE')
+          AND UPPER(TRIM(cls.classe)) IN ('1EE', '2EE', '3EE', '4EE')
           AND COALESCE(c.id_docente, 0) = " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . "
         ORDER BY m.nome ASC, s.cognome ASC, s.nome ASC
     ") ?: [];
