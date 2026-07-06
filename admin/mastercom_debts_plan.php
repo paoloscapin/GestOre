@@ -989,6 +989,7 @@ $message = '';
 $error = '';
 $importSummary = [];
 $syncSummary = [];
+$neoSyncSummary = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['action'] ?? ''));
     $planId = trim((string)($_POST['plan_id'] ?? ''));
@@ -1062,12 +1063,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+try {
+    if ($selectedYearId > 0) {
+        $neoSyncSummary = mastercomDebtsPlanSyncNeoIscrizioniCarenze($selectedYearId);
+    }
+} catch (Throwable $e) {
+    if ($error === '') {
+        $error = 'Sincronizzazione carenze neo-iscritti non riuscita: ' . $e->getMessage();
+    }
+}
+
 $plan = $selectedYearId > 0 ? mastercomDebtsPlanBuild($selectedYearId, $minSize, $maxSize) : null;
 $scheduled = $plan['scheduled_groups'] ?? [];
 $unscheduled = $plan['unscheduled_groups'] ?? [];
 $autonomous = $plan['autonomous_groups'] ?? [];
 $teachers = mastercomDebtsPlanTeacherRows();
-$neoCarenzeRows = mastercomDebtsPlanNeoCarenzeRows($selectedCourseYearId);
+$neoCarenzeRows = mastercomDebtsPlanNeoCarenzeRows($selectedCourseYearId, $selectedYearId);
 $studentCourseCounts = $plan['student_course_counts'] ?? [];
 $courseSummaryRows = $plan !== null ? mcdp_course_summary_rows(array_merge($scheduled, $unscheduled)) : [];
 $multiDebtStudents = 0;
