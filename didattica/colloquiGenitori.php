@@ -9,9 +9,10 @@ genitoriColloquiEnsureTables();
 
 $message = '';
 $error = '';
+$requestWasPost = $_SERVER['REQUEST_METHOD'] === 'POST';
 
 try {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($requestWasPost) {
         $action = trim((string)($_POST['action'] ?? 'save'));
         if ($action === 'delete') {
             $deleted = genitoriColloquiDelete((int)($_POST['id'] ?? 0));
@@ -463,6 +464,20 @@ function cg_receipt_link(array $row): string
         .cg-row-hidden {
             display: none !important;
         }
+        .cg-auto-dismiss {
+            transition: opacity .35s ease, max-height .35s ease, margin .35s ease, padding .35s ease;
+            overflow: hidden;
+            max-height: 180px;
+        }
+        .cg-auto-dismiss.is-hiding {
+            opacity: 0;
+            max-height: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            border-width: 0;
+        }
         .cg-row-actions {
             display: flex;
             gap: 5px;
@@ -549,7 +564,7 @@ function cg_receipt_link(array $row): string
     </div>
 
     <?php if ($message !== '') : ?>
-        <div class="alert alert-success"><?php echo cg_h($message); ?></div>
+        <div class="alert alert-success cg-auto-dismiss"><?php echo cg_h($message); ?></div>
     <?php endif; ?>
     <?php if ($error !== '') : ?>
         <div class="alert alert-danger"><?php echo cg_h($error); ?></div>
@@ -1106,6 +1121,17 @@ function cg_receipt_link(array $row): string
 
 <script>
 (function () {
+    window.setTimeout(function () {
+        document.querySelectorAll('.cg-auto-dismiss').forEach(function (element) {
+            element.classList.add('is-hiding');
+            window.setTimeout(function () {
+                if (element && element.parentNode) {
+                    element.parentNode.removeChild(element);
+                }
+            }, 450);
+        });
+    }, 4500);
+
     var cgEsiti = <?php echo json_encode($esiti, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     function setValue(id, value) {
         var el = document.getElementById(id);
@@ -1770,7 +1796,7 @@ function cg_receipt_link(array $row): string
         });
     });
     document.getElementById('cg_incontro_esito').addEventListener('change', syncGeneralOutcomeFromIncontro);
-    var openMovementId = new URLSearchParams(window.location.search).get('movimento');
+    var openMovementId = <?php echo $requestWasPost ? "''" : "new URLSearchParams(window.location.search).get('movimento')"; ?>;
     if (openMovementId) {
         Array.prototype.some.call(document.querySelectorAll('.editColloquioBtn'), function (btn) {
             var row = JSON.parse(btn.getAttribute('data-record') || '{}');
