@@ -14,6 +14,7 @@ require_once '../common/checkSession.php';
 require_once '../common/vendor/autoload.php';
 require_once '../common/send-mail.php';
 require_once '../common/carenzeMailLogLib.php';
+require_once '../common/carenzeParentAccessLib.php';
 require_once '../common/mail-ui.php';
 require_once '../api/googleDriveLib.php';
 require_once __DIR__ . '/carenzeDownloadLib.php';
@@ -287,6 +288,15 @@ function carenzeGetGenitoriCc(int $studenteId, string $excludeEmail = ''): array
     }
 
     return $cc;
+}
+
+function carenzePopFirstRecipient(array &$recipients): array
+{
+    foreach ($recipients as $email => $name) {
+        unset($recipients[$email]);
+        return ['email' => (string)$email, 'name' => trim((string)$name) !== '' ? (string)$name : (string)$email];
+    }
+    return ['email' => '', 'name' => ''];
 }
 
 // 1) PARAMETRI POST
@@ -1160,13 +1170,18 @@ if ($doMail) {
   }
 
   $downloadLink = $__http_base_link . '/didattica/downloadCarenza.php?token=' . $download_token;
+  $classeCarenza = strtoupper(trim((string)($program['classe_nome'] ?? '')));
+  $parentAccessHtml = $classeCarenza === 'EE'
+    ? carenzeParentAccessFooterHtml((int)$studente_id, $__http_base_link)
+    : '';
   $full_mail_body = mailCarenzaHtml(
     strtoupper($studente_cognome) . " " . strtoupper($studente_nome),
     $program,
     strtoupper($docente_cognome . " " . $docente_nome),
     (string)$nota_docente,
     $downloadLink,
-    $__http_base_link
+    $__http_base_link,
+    $parentAccessHtml
   );
 
   $ccGenitori = [];
@@ -1180,10 +1195,22 @@ if ($doMail) {
     $toName = $genitore_nome . " " . $genitore_cognome;
     info("Invio carenza via mail al genitore: " . $to . " " . $toName);
   } else {
-    $to = $studente_email;
-    $toName = $studente_nome . " " . $studente_cognome;
     $ccGenitori = carenzeGetGenitoriCc((int)$studente_id, (string)$studente_email);
-    info("Invio carenza via mail allo studente: " . $to . " " . $toName . " da ruolo " . $__utente_ruolo . " con genitori in CC=" . count($ccGenitori));
+    if (trim((string)$studente_email) !== '' && filter_var($studente_email, FILTER_VALIDATE_EMAIL)) {
+      $to = $studente_email;
+      $toName = $studente_nome . " " . $studente_cognome;
+      info("Invio carenza via mail allo studente: " . $to . " " . $toName . " da ruolo " . $__utente_ruolo . " con genitori in CC=" . count($ccGenitori));
+    } else {
+      $firstParent = carenzePopFirstRecipient($ccGenitori);
+      $to = $firstParent['email'];
+      $toName = $firstParent['name'];
+      if ($to === '') {
+        error("invio mail carenza id=" . $program['carenza_id'] . " impossibile: mail studente vuota e nessuna mail genitore valida");
+        echo 'Invio mail fallito: mail studente vuota e nessuna mail genitore valida';
+        exit;
+      }
+      info("Invio carenza via mail al genitore: " . $to . " " . $toName . " da ruolo " . $__utente_ruolo . " per studente senza email, altri genitori in CC=" . count($ccGenitori));
+    }
   }
   $mailsubject = 'GestOre - Invio programma carenza formativa - materia ' . $program['materia_nome'];
   $mailAccount = null;

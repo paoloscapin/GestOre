@@ -163,7 +163,8 @@ function mailCarenzaHtml(
     string $docente,
     string $notaDocente,
     string $downloadLink,
-    string $baseLink
+    string $baseLink,
+    string $parentAccessHtml = ''
 ): string {
     $title = 'CARENZA FORMATIVA';
     $intro = 'Hai ricevuto questa mail perche hai riportato una carenza formativa a fine anno.';
@@ -197,7 +198,7 @@ function mailCarenzaHtml(
         </a>
       </div>';
 
-    $footer = 'Messaggio automatico relativo al programma di recupero della carenza formativa.';
+    $footer = 'Messaggio automatico relativo al programma di recupero della carenza formativa.' . $parentAccessHtml;
 
     return mailWrap($title, $toName, $intro, $content, $footer, 'studente');
 }
