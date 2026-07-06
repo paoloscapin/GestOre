@@ -1382,7 +1382,7 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
 
             <h4>Neo-iscritti con carenze da piazzare</h4>
             <div class="mcdp-note">
-                Elenco ricavato dalle pratiche di iscrizione completate con carenze formative. Gli studenti esterni vengono sincronizzati in GestOre in classe provvisoria EE, mentre la carenza usa la classe tecnica dell'anno precedente all'iscrizione (es. 1EE se entra in seconda). Le carenze vengono create con docente #<?php echo intval(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID); ?>.
+                Elenco ricavato dalle pratiche di iscrizione completate con carenze formative. Gli studenti esterni vengono sincronizzati in GestOre e nelle carenze con classe provvisoria EE; per la pianificazione viene calcolato solo l'anno della carenza dalla classe futura di iscrizione (es. entra in seconda = carenza di prima). Le carenze vengono create con docente #<?php echo intval(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID); ?>.
                 Gli avvisi dei corsi per questi studenti dovranno usare le email dei genitori, non la mail studente.
                 <?php if (!empty($neoSyncSummary)): ?>
                     <br>

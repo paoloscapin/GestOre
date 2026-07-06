@@ -311,7 +311,16 @@ function mastercomDebtsPlanPracticeDebtClassId(array $pratica): int
         return 0;
     }
 
-    return iscrizioniPrimeClassIdByCode($debtYear . 'EE');
+    return iscrizioniPrimeClassIdByCode('EE');
+}
+
+function mastercomDebtsPlanNeoDebtClassLabelSql(string $practiceAlias = 'p', string $fallbackClassAlias = 'cls'): string
+{
+    $annoCorso = "COALESCE($practiceAlias.anno_corso, 0)";
+    return "CASE
+                WHEN $annoCorso BETWEEN 2 AND 5 THEN CONCAT(($annoCorso - 1), 'EE')
+                ELSE $fallbackClassAlias.classe
+            END";
 }
 
 function mastercomDebtsPlanSyncNeoIscrizioniCarenze(int $debtSchoolYearId): array
@@ -368,6 +377,7 @@ function mastercomDebtsPlanSyncNeoIscrizioniCarenze(int $debtSchoolYearId): arra
                       AND (
                             c.id_classe = " . dbI($classId) . "
                          OR UPPER(TRIM(cls.classe)) = 'EE'
+                         OR UPPER(TRIM(cls.classe)) IN ('1EE', '2EE', '3EE', '4EE')
                       )
                       AND c.id_anno_scolastico = " . dbI($debtSchoolYearId) . "
                     ORDER BY CASE WHEN c.id_classe = " . dbI($classId) . " THEN 0 ELSE 1 END
@@ -420,6 +430,7 @@ function mastercomDebtsPlanNeoCarenzeRows(int $courseSchoolYearId, int $debtScho
         return [];
     }
 
+    $debtClassLabelSql = mastercomDebtsPlanNeoDebtClassLabelSql('p', 'cls');
     $rows = dbGetAll("
         SELECT c.id AS carenza_id,
                c.id_studente,
@@ -427,17 +438,27 @@ function mastercomDebtsPlanNeoCarenzeRows(int $courseSchoolYearId, int $debtScho
                c.id_classe,
                c.id_anno_scolastico,
                CONCAT(COALESCE(s.cognome, ''), ' ', COALESCE(s.nome, '')) AS studente_nome,
-               cls.classe AS classe_attuale,
+               $debtClassLabelSql AS classe_attuale,
                m.nome AS materia_nome,
                GROUP_CONCAT(DISTINCT g.email ORDER BY g.email SEPARATOR ', ') AS email_genitori
         FROM carenze c
         INNER JOIN studente s ON s.id = c.id_studente
         INNER JOIN classi cls ON cls.id = c.id_classe
         INNER JOIN materia m ON m.id = c.id_materia
+        LEFT JOIN iscrizioni_prime_pratiche p
+               ON p.id = (
+                    SELECT p2.id
+                    FROM iscrizioni_prime_pratiche p2
+                    WHERE p2.studente_interno = 0
+                      AND p2.tipo_iscrizione = 'terze'
+                      AND UPPER(TRIM(p2.codice_fiscale)) = UPPER(TRIM(s.codice_fiscale))
+                    ORDER BY p2.updated_at DESC, p2.id DESC
+                    LIMIT 1
+               )
         LEFT JOIN genitori_studenti gs ON gs.id_studente = s.id
         LEFT JOIN genitori g ON g.id = gs.id_genitore
         WHERE c.id_anno_scolastico = " . dbI($debtSchoolYearId) . "
-          AND UPPER(TRIM(cls.classe)) IN ('1EE', '2EE', '3EE', '4EE')
+          AND UPPER(TRIM(cls.classe)) = 'EE'
           AND COALESCE(c.id_docente, 0) = " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . "
         GROUP BY c.id
         ORDER BY s.cognome ASC, s.nome ASC, m.nome ASC
@@ -1592,11 +1613,12 @@ function mastercomDebtsPlanSourceRows(int $schoolYearId): array
         ORDER BY mc.materia ASC, mc.studente_nome ASC, mc.classe ASC
     ") ?: [];
 
+    $neoDebtClassLabelSql = mastercomDebtsPlanNeoDebtClassLabelSql('p', 'cls');
     $localRows = dbGetAll("
         SELECT
             c.id,
             0 AS mastercom_id_classe,
-            cls.classe,
+            $neoDebtClassLabelSql AS classe,
             0 AS mastercom_id_studente,
             c.id_studente AS id_studente_gestore,
             CONCAT(COALESCE(s.cognome, ''), ' ', COALESCE(s.nome, '')) AS studente_nome,
@@ -1606,7 +1628,7 @@ function mastercomDebtsPlanSourceRows(int $schoolYearId): array
             0 AS recuperato_mastercom,
             'NEO_ISCRITTO' AS tipo_debito,
             m.nome AS materia_gestore,
-            cls.classe AS classe_gestore,
+            $neoDebtClassLabelSql AS classe_gestore,
             CONCAT(COALESCE(s.cognome, ''), ' ', COALESCE(s.nome, '')) AS studente_gestore,
             CONCAT(COALESCE(d.cognome, ''), ' ', COALESCE(d.nome, '')) AS docente_carenza,
             '' AS docenti_insegnamento
@@ -1614,9 +1636,19 @@ function mastercomDebtsPlanSourceRows(int $schoolYearId): array
         INNER JOIN studente s ON s.id = c.id_studente
         INNER JOIN materia m ON m.id = c.id_materia
         INNER JOIN classi cls ON cls.id = c.id_classe
+        LEFT JOIN iscrizioni_prime_pratiche p
+               ON p.id = (
+                    SELECT p2.id
+                    FROM iscrizioni_prime_pratiche p2
+                    WHERE p2.studente_interno = 0
+                      AND p2.tipo_iscrizione = 'terze'
+                      AND UPPER(TRIM(p2.codice_fiscale)) = UPPER(TRIM(s.codice_fiscale))
+                    ORDER BY p2.updated_at DESC, p2.id DESC
+                    LIMIT 1
+               )
         LEFT JOIN docente d ON d.id = c.id_docente
         WHERE c.id_anno_scolastico = " . dbI($schoolYearId) . "
-          AND UPPER(TRIM(cls.classe)) IN ('1EE', '2EE', '3EE', '4EE')
+          AND UPPER(TRIM(cls.classe)) = 'EE'
           AND COALESCE(c.id_docente, 0) = " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . "
         ORDER BY m.nome ASC, s.cognome ASC, s.nome ASC
     ") ?: [];
