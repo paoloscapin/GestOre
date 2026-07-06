@@ -982,6 +982,8 @@ $maxSize = max($minSize, intval($_REQUEST['max_size'] ?? 10));
 if ($maxSize > 30) {
     $maxSize = 30;
 }
+$defaultCourseYearId = mcdp_next_school_year_id_from_rows($schoolYears, $selectedYearId);
+$selectedCourseYearId = intval($_REQUEST['course_school_year_id'] ?? $defaultCourseYearId);
 
 $message = '';
 $error = '';
@@ -1005,12 +1007,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'sync_real_plan_courses') {
         $debtYearId = intval($_POST['debt_school_year_id'] ?? $selectedYearId);
-        $courseYearId = intval($_POST['course_school_year_id'] ?? mcdp_next_school_year_id_from_rows($schoolYears, $selectedYearId));
+        $courseYearId = intval($_POST['course_school_year_id'] ?? $defaultCourseYearId);
+        $selectedCourseYearId = $courseYearId;
         $syncSummary = mastercomDebtsPlanSyncRealCoursesToCorsi($selectedYearId, $debtYearId, $courseYearId);
         if (empty($syncSummary['ok'])) {
             $error = trim((string)($syncSummary['message'] ?? 'Sincronizzazione non riuscita.'));
         } else {
             $message = trim((string)($syncSummary['message'] ?? 'Sincronizzazione completata.'));
+        }
+    } elseif ($action === 'assign_neo_carenza') {
+        $selectedCourseYearId = intval($_POST['course_school_year_id'] ?? $selectedCourseYearId);
+        $assign = mastercomDebtsPlanAssignNeoCarenza(intval($_POST['id_corso'] ?? 0), intval($_POST['id_studente'] ?? 0));
+        if (empty($assign['ok'])) {
+            $error = trim((string)($assign['message'] ?? 'Abbinamento non riuscito.'));
+        } else {
+            $message = trim((string)($assign['message'] ?? 'Studente aggiunto al corso.'));
         }
     } elseif ($action === 'save_lock') {
         $dates = $_POST['slot_date'] ?? [];
@@ -1056,6 +1067,7 @@ $scheduled = $plan['scheduled_groups'] ?? [];
 $unscheduled = $plan['unscheduled_groups'] ?? [];
 $autonomous = $plan['autonomous_groups'] ?? [];
 $teachers = mastercomDebtsPlanTeacherRows();
+$neoCarenzeRows = mastercomDebtsPlanNeoCarenzeRows($selectedCourseYearId);
 $studentCourseCounts = $plan['student_course_counts'] ?? [];
 $courseSummaryRows = $plan !== null ? mcdp_course_summary_rows(array_merge($scheduled, $unscheduled)) : [];
 $multiDebtStudents = 0;
@@ -1319,7 +1331,6 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
 
             <?php echo mcdp_import_summary_html($importSummary); ?>
             <?php $defaultDebtYearId = $selectedYearId; ?>
-            <?php $defaultCourseYearId = mcdp_next_school_year_id_from_rows($schoolYears, $selectedYearId); ?>
 
             <form method="post" class="mcdp-import-panel">
                 <input type="hidden" name="action" value="sync_real_plan_courses">
@@ -1341,7 +1352,7 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
                         <label for="course_school_year_id">Anno corsi didattici</label>
                         <select id="course_school_year_id" name="course_school_year_id" class="form-control">
                             <?php foreach ($schoolYears as $year): ?>
-                                <option value="<?php echo intval($year['id']); ?>" <?php echo intval($year['id']) === $defaultCourseYearId ? 'selected' : ''; ?>>
+                                <option value="<?php echo intval($year['id']); ?>" <?php echo intval($year['id']) === $selectedCourseYearId ? 'selected' : ''; ?>>
                                     <?php echo mcdp_h($year['anno']); ?>
                                 </option>
                             <?php endforeach; ?>
@@ -1357,6 +1368,78 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
             </form>
 
             <?php echo mcdp_sync_summary_html($syncSummary); ?>
+
+            <h4>Neo-iscritti con carenze da piazzare</h4>
+            <div class="mcdp-note">
+                Elenco ricavato dalle pratiche di entrata con carenze. Gli avvisi dei corsi per questi studenti dovranno usare le email dei genitori, non la mail studente.
+            </div>
+            <table class="table table-bordered table-condensed mcdp-table">
+                <thead>
+                <tr>
+                    <th>Studente</th>
+                    <th>Classe</th>
+                    <th>Materia</th>
+                    <th>Email genitori</th>
+                    <th>Corso</th>
+                    <th>Abbinamento</th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php if (empty($neoCarenzeRows)): ?>
+                    <tr><td colspan="6" class="text-center">Nessun neo-iscritto da piazzare per l'anno corsi selezionato.</td></tr>
+                <?php endif; ?>
+                <?php foreach ($neoCarenzeRows as $row): ?>
+                    <tr>
+                        <td><?php echo mcdp_h($row['student_name'] ?? ''); ?></td>
+                        <td><?php echo mcdp_h($row['class_name'] ?? ''); ?></td>
+                        <td>
+                            <?php echo mcdp_h($row['subject'] ?? ''); ?>
+                            <?php if (intval($row['subject_id'] ?? 0) <= 0): ?>
+                                <div class="text-danger small">Materia non agganciata in GestOre</div>
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo mcdp_h(implode(', ', (array)($row['parents'] ?? []))); ?></td>
+                        <td>
+                            <?php $courses = (array)($row['courses'] ?? []); ?>
+                            <?php if (empty($courses)): ?>
+                                <span class="text-danger">Nessun corso carenze disponibile per questa materia</span>
+                            <?php else: ?>
+                                <form method="post" class="form-inline">
+                                    <input type="hidden" name="action" value="assign_neo_carenza">
+                                    <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
+                                    <input type="hidden" name="course_school_year_id" value="<?php echo intval($selectedCourseYearId); ?>">
+                                    <input type="hidden" name="min_size" value="<?php echo intval($minSize); ?>">
+                                    <input type="hidden" name="max_size" value="<?php echo intval($maxSize); ?>">
+                                    <input type="hidden" name="id_studente" value="<?php echo intval($row['student_id'] ?? 0); ?>">
+                                    <select name="id_corso" class="form-control input-sm">
+                                        <?php foreach ($courses as $course): ?>
+                                            <option value="<?php echo intval($course['id'] ?? 0); ?>">
+                                                #<?php echo intval($course['id'] ?? 0); ?> -
+                                                <?php echo mcdp_h(trim((string)($course['titolo'] ?? ''))); ?>
+                                                <?php if (trim((string)($course['docente_nome'] ?? '')) !== ''): ?>
+                                                    - <?php echo mcdp_h(trim((string)$course['docente_nome'])); ?>
+                                                <?php endif; ?>
+                                                (<?php echo intval($course['iscritti'] ?? 0); ?> iscritti)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button type="submit" class="btn btn-xs btn-success" style="margin-top:6px;">
+                                        <span class="glyphicon glyphicon-plus"></span> Aggancia
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if (!empty($courses)): ?>
+                                <span class="label label-warning">Da piazzare</span>
+                            <?php else: ?>
+                                <span class="text-muted">Prima crea/sincronizza il corso</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
 
             <?php if ($plan === null): ?>
                 <div class="alert alert-warning">Seleziona un anno scolastico.</div>

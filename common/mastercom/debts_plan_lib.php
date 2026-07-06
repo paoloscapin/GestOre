@@ -1,6 +1,9 @@
 <?php
 
 require_once __DIR__ . '/debts_lib.php';
+require_once __DIR__ . '/../iscrizioniPrimeLib.php';
+
+const MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID = 652;
 
 function mastercomDebtsPlanEnsureTables(): void
 {
@@ -250,6 +253,232 @@ function mastercomDebtsPlanDeleteLock(int $schoolYearId, string $planId): void
           AND plan_id = " . dbQ($planId) . "
         LIMIT 1
     ");
+}
+
+function mastercomDebtsPlanSplitSubjects(string $text): array
+{
+    $parts = preg_split('/[\r\n;,]+/', $text) ?: [];
+    $subjects = [];
+    foreach ($parts as $part) {
+        $part = trim((string)$part);
+        if ($part !== '') {
+            $subjects[] = $part;
+        }
+    }
+    return array_values(array_unique($subjects));
+}
+
+function mastercomDebtsPlanPracticeCarenzeSubjects(array $pratica): array
+{
+    $materie = [];
+    $decoded = json_decode((string)($pratica['carenze_formative_materie'] ?? '[]'), true);
+    if (is_array($decoded)) {
+        foreach ($decoded as $materia) {
+            $materia = trim((string)$materia);
+            if ($materia !== '' && $materia !== '__ALTRO__') {
+                $materie[] = $materia;
+            }
+        }
+    }
+    $altro = trim((string)($pratica['carenze_formative_altro'] ?? ''));
+    if ($altro !== '') {
+        $materie = array_merge($materie, mastercomDebtsPlanSplitSubjects($altro));
+    }
+    return array_values(array_unique(array_filter($materie, static fn($value) => trim((string)$value) !== '')));
+}
+
+function mastercomDebtsPlanSyncNeoIscrizioniCarenze(int $debtSchoolYearId): array
+{
+    iscrizioniPrimeEnsureSchema();
+    $summary = ['read' => 0, 'students_synced' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => []];
+    if ($debtSchoolYearId <= 0 || !mastercomAdminTableExists('carenze')) {
+        return $summary;
+    }
+
+    $rows = dbGetAll("
+        SELECT *
+        FROM iscrizioni_prime_pratiche
+        WHERE studente_interno = 0
+          AND stato IN ('inviata', 'verifica_iniziale_ok', 'verificata')
+          AND carenze_formative_dichiarate = 'si'
+          AND (
+                TRIM(COALESCE(carenze_formative_materie, '')) NOT IN ('', '[]')
+             OR TRIM(COALESCE(carenze_formative_altro, '')) <> ''
+          )
+        ORDER BY cognome ASC, nome ASC, id ASC
+    ") ?: [];
+    $summary['read'] = count($rows);
+
+    foreach ($rows as $pratica) {
+        try {
+            $sync = iscrizioniPrimeSyncGestoreStudentAndParents($pratica);
+            $studentId = intval($sync['studente_id'] ?? 0);
+            $classCode = (string)($sync['classe'] ?? '');
+            $classId = $classCode !== '' ? iscrizioniPrimeClassIdByCode($classCode) : 0;
+            if ($studentId <= 0 || $classId <= 0) {
+                $summary['skipped']++;
+                continue;
+            }
+            $summary['students_synced']++;
+            foreach (mastercomDebtsPlanPracticeCarenzeSubjects($pratica) as $subjectName) {
+                $subjectId = mastercomDebtsPlanResolveSubjectId($subjectName);
+                if ($subjectId <= 0) {
+                    $summary['skipped']++;
+                    if (count($summary['errors']) < 20) {
+                        $summary['errors'][] = trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? '')) . ': materia non trovata "' . $subjectName . '"';
+                    }
+                    continue;
+                }
+                $existing = dbGetFirst("
+                    SELECT id, id_docente
+                    FROM carenze
+                    WHERE id_studente = " . dbI($studentId) . "
+                      AND id_materia = " . dbI($subjectId) . "
+                      AND id_classe = " . dbI($classId) . "
+                      AND id_anno_scolastico = " . dbI($debtSchoolYearId) . "
+                    LIMIT 1
+                ");
+                if ($existing) {
+                    if (intval($existing['id_docente'] ?? 0) <= 0) {
+                        dbExec("
+                            UPDATE carenze
+                            SET id_docente = " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . "
+                            WHERE id = " . dbI($existing['id'] ?? 0) . "
+                            LIMIT 1
+                        ");
+                        $summary['updated']++;
+                    }
+                    continue;
+                }
+                dbExec("
+                    INSERT INTO carenze
+                        (id_studente, id_materia, id_classe, id_docente, id_anno_scolastico, stato, data_inserimento, data_validazione, data_invio)
+                    VALUES
+                        (" . dbI($studentId) . ",
+                         " . dbI($subjectId) . ",
+                         " . dbI($classId) . ",
+                         " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . ",
+                         " . dbI($debtSchoolYearId) . ",
+                         0,
+                         NOW(),
+                         '',
+                         '')
+                ");
+                $summary['created']++;
+            }
+        } catch (Throwable $e) {
+            $summary['skipped']++;
+            if (count($summary['errors']) < 20) {
+                $summary['errors'][] = trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? '')) . ': ' . $e->getMessage();
+            }
+        }
+    }
+
+    return $summary;
+}
+
+function mastercomDebtsPlanNeoCarenzeRows(int $courseSchoolYearId, int $debtSchoolYearId = 0): array
+{
+    mastercomDebtsPlanEnsureTables();
+    if ($courseSchoolYearId <= 0 || $debtSchoolYearId <= 0 || !mastercomAdminTableExists('carenze')) {
+        return [];
+    }
+
+    $rows = dbGetAll("
+        SELECT c.id AS carenza_id,
+               c.id_studente,
+               c.id_materia,
+               c.id_classe,
+               c.id_anno_scolastico,
+               CONCAT(COALESCE(s.cognome, ''), ' ', COALESCE(s.nome, '')) AS studente_nome,
+               cls.classe AS classe_attuale,
+               m.nome AS materia_nome,
+               GROUP_CONCAT(DISTINCT g.email ORDER BY g.email SEPARATOR ', ') AS email_genitori
+        FROM carenze c
+        INNER JOIN studente s ON s.id = c.id_studente
+        INNER JOIN classi cls ON cls.id = c.id_classe
+        INNER JOIN materia m ON m.id = c.id_materia
+        LEFT JOIN genitori_studenti gs ON gs.id_studente = s.id
+        LEFT JOIN genitori g ON g.id = gs.id_genitore
+        WHERE c.id_anno_scolastico = " . dbI($debtSchoolYearId) . "
+          AND UPPER(TRIM(cls.classe)) IN ('MEDIE', 'EE')
+          AND COALESCE(c.id_docente, 0) = " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . "
+        GROUP BY c.id
+        ORDER BY s.cognome ASC, s.nome ASC, m.nome ASC
+    ") ?: [];
+
+    $result = [];
+    foreach ($rows as $row) {
+        $studentId = intval($row['id_studente'] ?? 0);
+        $subjectId = intval($row['id_materia'] ?? 0);
+        $alreadyPlaced = intval(dbGetValue("
+            SELECT COUNT(*)
+            FROM corso_iscritti ci
+            INNER JOIN corso co ON co.id = ci.id_corso
+            WHERE ci.id_studente = " . dbI($studentId) . "
+              AND co.id_anno_scolastico = " . dbI($courseSchoolYearId) . "
+              AND co.carenza = 1
+              AND co.id_materia = " . dbI($subjectId) . "
+        ") ?? 0) > 0;
+        if ($alreadyPlaced) {
+            continue;
+        }
+        $courses = dbGetAll("
+            SELECT co.id, co.titolo, CONCAT(COALESCE(d.cognome, ''), ' ', COALESCE(d.nome, '')) AS docente_nome,
+                   (SELECT COUNT(*) FROM corso_iscritti ci WHERE ci.id_corso = co.id) AS iscritti
+            FROM corso co
+            LEFT JOIN docente d ON d.id = co.id_docente
+            WHERE co.id_anno_scolastico = " . dbI($courseSchoolYearId) . "
+              AND co.carenza = 1
+              AND co.id_materia = " . dbI($subjectId) . "
+            ORDER BY co.titolo ASC, co.id ASC
+        ") ?: [];
+        $result[] = [
+            'carenza_id' => intval($row['carenza_id'] ?? 0),
+            'student_id' => $studentId,
+            'student_name' => trim((string)($row['studente_nome'] ?? '')),
+            'class_name' => trim((string)($row['classe_attuale'] ?? '')),
+            'subject' => trim((string)($row['materia_nome'] ?? '')),
+            'subject_id' => $subjectId,
+            'courses' => $courses,
+            'parents' => mastercomDebtsPlanSplitSubjects(str_replace(',', "\n", (string)($row['email_genitori'] ?? ''))),
+        ];
+    }
+
+    return $result;
+}
+
+function mastercomDebtsPlanAssignNeoCarenza(int $courseId, int $studentId): array
+{
+    if ($courseId <= 0 || $studentId <= 0) {
+        return ['ok' => false, 'message' => 'Corso o studente non valido.'];
+    }
+    $course = dbGetFirst("SELECT id, prevede_esami FROM corso WHERE id = " . dbI($courseId) . " AND carenza = 1 LIMIT 1");
+    if (!$course) {
+        return ['ok' => false, 'message' => 'Corso carenze non trovato.'];
+    }
+    $exists = intval(dbGetValue("
+        SELECT COUNT(*)
+        FROM corso_iscritti
+        WHERE id_corso = " . dbI($courseId) . "
+          AND id_studente = " . dbI($studentId) . "
+    ") ?? 0) > 0;
+    if (!$exists) {
+        dbExec("INSERT INTO corso_iscritti (id_corso, id_studente) VALUES (" . dbI($courseId) . ", " . dbI($studentId) . ")");
+    }
+    if (intval($course['prevede_esami'] ?? 0) === 1) {
+        dbExec("
+            INSERT INTO corso_esiti (id_corso, id_studente)
+            SELECT " . dbI($courseId) . ", " . dbI($studentId) . "
+            WHERE NOT EXISTS (
+                SELECT 1 FROM corso_esiti
+                WHERE id_corso = " . dbI($courseId) . "
+                  AND id_studente = " . dbI($studentId) . "
+            )
+        ");
+    }
+
+    return ['ok' => true, 'message' => $exists ? 'Studente gia presente nel corso.' : 'Neo-iscritto aggiunto al corso.'];
 }
 
 function mastercomDebtsPlanTeacherRows(): array
