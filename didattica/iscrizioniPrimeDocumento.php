@@ -11,7 +11,7 @@ $pratica = $praticaId > 0
     : [];
 $types = iscrizioniPrimeSecretaryAllowedDocumentTypes($pratica);
 
-if ($praticaId <= 0 || !isset($types[$tipo])) {
+if ($praticaId <= 0 || $tipo === '') {
     http_response_code(400);
     echo 'Richiesta non valida.';
     exit;
@@ -31,6 +31,10 @@ if (!$document) {
     http_response_code(404);
     echo 'Documento non disponibile.';
     exit;
+}
+
+if (!isset($types[$tipo])) {
+    $types[$tipo] = $tipo;
 }
 
 $downloadName = trim((string)($document['original_name'] ?? ''));

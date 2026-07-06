@@ -8,9 +8,8 @@ header('Content-Type: application/json; charset=utf-8');
 
 $praticaId = intval($_POST['pratica_id'] ?? 0);
 $tipo = trim((string)($_POST['tipo'] ?? ''));
-$uploadMode = trim((string)($_POST['upload_mode'] ?? 'replace'));
 
-if ($praticaId <= 0 || $tipo === '' || empty($_FILES['pdf']['tmp_name'])) {
+if ($praticaId <= 0 || $tipo === '') {
     http_response_code(400);
     echo json_encode(['ok' => false, 'message' => 'Richiesta non valida.'], JSON_UNESCAPED_UNICODE);
     exit;
@@ -18,7 +17,13 @@ if ($praticaId <= 0 || $tipo === '' || empty($_FILES['pdf']['tmp_name'])) {
 
 try {
     iscrizioniPrimeEnsureSchema();
-    $result = iscrizioniPrimeUploadSecretaryPdf($praticaId, $tipo, $_FILES['pdf'], $uploadMode);
+    if (function_exists('iscrizioniPrimeDeleteSecretaryDocument')) {
+        $result = iscrizioniPrimeDeleteSecretaryDocument($praticaId, $tipo);
+    } elseif (function_exists('iscrizioniPrimeDeleteSecreteraryDocument')) {
+        $result = iscrizioniPrimeDeleteSecreteraryDocument($praticaId, $tipo);
+    } else {
+        throw new RuntimeException('Funzione cancellazione documento non disponibile.');
+    }
     if (empty($result['ok'])) {
         http_response_code(400);
     }

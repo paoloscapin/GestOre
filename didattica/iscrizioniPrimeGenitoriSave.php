@@ -72,6 +72,21 @@ try {
             ];
         }
     }
+
+    $confirmed = [];
+    $confirmedRaw = trim((string)($before['dati_confermati_json'] ?? ''));
+    if ($confirmedRaw !== '') {
+        $decodedConfirmed = json_decode($confirmedRaw, true);
+        if (is_array($decodedConfirmed)) {
+            $confirmed = $decodedConfirmed;
+        }
+    }
+    if ($confirmed) {
+        foreach (['email_genitore_1', 'telefono_genitore_1', 'email_genitore_2', 'telefono_genitore_2'] as $field) {
+            $confirmed[$field] = $fields[$field] ?? null;
+        }
+        $sets[] = 'dati_confermati_json = ' . dbQ(json_encode($confirmed, JSON_UNESCAPED_UNICODE));
+    }
     $sets[] = 'updated_at = NOW()';
 
     dbExec("

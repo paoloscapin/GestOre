@@ -21,6 +21,8 @@ $stats = dbGetFirst("
 ");
 $draftSubject = iscrizioniPrimeDraftSubject('terze');
 $indirizziGestore = iscrizioniPrimeGestoreAddressOptions();
+$riepilogoIscrizioni = iscrizioniPrimeSummary('terze');
+$riepilogoTerze = $riepilogoIscrizioni['summary'] ?? [];
 
 ?>
 <!DOCTYPE html>
@@ -190,6 +192,48 @@ $indirizziGestore = iscrizioniPrimeGestoreAddressOptions();
         .iscrizioni-stat-card.warn { border-left-color: #f59e0b; }
         .iscrizioni-stat-card.mail { border-left-color: #0ea5e9; }
         .iscrizioni-stat-card.internal { border-left-color: #64748b; }
+        .iscrizioni-summary-box {
+            border: 1px solid #dbe4ef;
+            border-radius: 8px;
+            background: #f8fafc;
+            padding: 10px;
+            margin: 10px 0 12px;
+        }
+        .iscrizioni-summary-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .iscrizioni-summary-title {
+            font-weight: 850;
+            color: #1e293b;
+        }
+        .iscrizioni-summary-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .iscrizioni-summary-table {
+            margin-bottom: 0;
+            background: #fff;
+        }
+        .iscrizioni-summary-table th {
+            background: #eef6ff;
+            color: #17202f;
+            white-space: nowrap;
+        }
+        .iscrizioni-summary-table td,
+        .iscrizioni-summary-table th {
+            text-align: center;
+            vertical-align: middle;
+        }
+        .iscrizioni-summary-table td:first-child,
+        .iscrizioni-summary-table th:first-child {
+            text-align: left;
+        }
         .iscrizioni-action-grid {
             display: grid;
             grid-template-columns: repeat(4, minmax(180px, 1fr));
@@ -396,6 +440,28 @@ ITT Buonarroti - Trento</textarea>
     </div>
 </div>
 
+<div id="formation_note_modal" class="custom-mail-modal" aria-hidden="true">
+    <div class="custom-mail-card" role="dialog" aria-modal="true" aria-labelledby="formation_note_title">
+        <div id="formation_note_title" class="custom-mail-head" style="background:#4f46e5;">Richieste / note genitori</div>
+        <form id="formation_note_form">
+            <div class="custom-mail-body">
+                <input type="hidden" name="id" id="formation_note_id">
+                <p id="formation_note_student" class="text-muted"></p>
+                <div class="custom-mail-field">
+                    <label for="formation_note_text">Note per iscrizione e formazione classi</label>
+                    <textarea name="note_genitori_iscrizione" id="formation_note_text" placeholder="Inserisci richieste dei genitori, abbinamenti, incompatibilita o note utili per la futura classe."></textarea>
+                    <div class="help-block">Queste note sono le stesse mostrate nella pagina formazione classi sullo studente.</div>
+                </div>
+                <div id="formation_note_error" class="text-danger" style="margin-top:8px;" hidden></div>
+            </div>
+            <div class="custom-mail-actions">
+                <button type="button" class="btn btn-default" onclick="iscrizioniTerzeCloseFormationNote()">Annulla</button>
+                <button type="submit" class="btn btn-primary" id="formation_note_save_button">Salva note</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="container-fluid">
     <div class="panel panel-lightblue4">
         <div class="panel-heading">
@@ -427,6 +493,53 @@ ITT Buonarroti - Trento</textarea>
                 <div class="iscrizioni-stat-card ok"><span class="value" id="stat_domande_inviate"><?php echo intval($stats['inviate'] ?? 0); ?></span><span class="label">Domande inviate</span></div>
                 <div class="iscrizioni-stat-card mail"><span class="value" id="stat_mail_reali">0</span><span class="label">Mail reali</span></div>
                 <div class="iscrizioni-stat-card"><span class="value" id="stat_mail_test">0</span><span class="label">Mail test</span></div>
+            </div>
+
+            <div class="iscrizioni-summary-box">
+                <div class="iscrizioni-summary-head">
+                    <div class="iscrizioni-summary-title">Riepilogo per indirizzo</div>
+                    <div class="iscrizioni-summary-actions">
+                        <a class="btn btn-success btn-sm" href="iscrizioniRiepilogoExport.php?tipo_iscrizione=terze&format=xls">
+                            <span class="glyphicon glyphicon-list-alt"></span> Export XLS
+                        </a>
+                        <a class="btn btn-danger btn-sm" href="iscrizioniRiepilogoExport.php?tipo_iscrizione=terze&format=pdf">
+                            <span class="glyphicon glyphicon-file"></span> PDF
+                        </a>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-condensed iscrizioni-summary-table">
+                        <thead>
+                        <tr>
+                            <th>Indirizzo</th>
+                            <th>Promossi dalla seconda reali</th>
+                            <th>Bocciati seconde</th>
+                            <th>Bocciati in terza</th>
+                            <th>Esterni in entrata</th>
+                            <th>DSA</th>
+                            <th>104</th>
+                            <th>Totale studenti</th>
+                        </tr>
+                        </thead>
+                        <tbody id="iscrizioni_terze_summary_body">
+                        <?php foreach ($riepilogoTerze as $summaryRow): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars((string)($summaryRow['indirizzo'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo intval($summaryRow['promossi_seconda_reali'] ?? 0); ?></td>
+                                <td><?php echo intval($summaryRow['bocciati_seconda'] ?? 0); ?></td>
+                                <td><?php echo intval($summaryRow['bocciati_terza'] ?? 0); ?></td>
+                                <td><?php echo intval($summaryRow['esterni_entrata'] ?? 0); ?></td>
+                                <td><?php echo intval($summaryRow['dsa'] ?? 0); ?></td>
+                                <td><?php echo intval($summaryRow['legge_104'] ?? 0); ?></td>
+                                <td><?php echo intval($summaryRow['totale'] ?? 0); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        <?php if (empty($riepilogoTerze)): ?>
+                            <tr><td colspan="8" class="text-muted">Nessuno studente da riepilogare.</td></tr>
+                        <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="iscrizioni-note-inline">
@@ -891,6 +1004,77 @@ document.getElementById('parents_form')?.addEventListener('submit', function (ev
     });
 });
 
+function iscrizioniTerzeOpenFormationNote(id) {
+    const row = iscrizioniTerzeFindRowById(id);
+    if (!row) {
+        alert('Pratica non trovata.');
+        return;
+    }
+    document.getElementById('formation_note_id').value = Number(row.id || 0);
+    document.getElementById('formation_note_student').textContent = 'Pratica di ' + String((row.cognome || '') + ' ' + (row.nome || '')).trim();
+    document.getElementById('formation_note_text').value = row.note_genitori_iscrizione || '';
+    const error = document.getElementById('formation_note_error');
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+    document.getElementById('formation_note_modal').classList.add('open');
+    document.getElementById('formation_note_modal').setAttribute('aria-hidden', 'false');
+    setTimeout(() => document.getElementById('formation_note_text')?.focus(), 50);
+}
+
+function iscrizioniTerzeCloseFormationNote() {
+    document.getElementById('formation_note_modal').classList.remove('open');
+    document.getElementById('formation_note_modal').setAttribute('aria-hidden', 'true');
+    document.getElementById('formation_note_id').value = '';
+}
+
+document.getElementById('formation_note_form')?.addEventListener('submit', function (event) {
+    event.preventDefault();
+    const error = document.getElementById('formation_note_error');
+    const button = document.getElementById('formation_note_save_button');
+    const data = new FormData(event.target);
+    const id = Number(data.get('id') || 0);
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Salvataggio...';
+    }
+    if (error) {
+        error.hidden = true;
+        error.textContent = '';
+    }
+
+    fetch('iscrizioniPrimeNoteSave.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json().then(result => ({ok: response.ok, result})))
+    .then(payload => {
+        if (!payload.ok || !payload.result.ok) {
+            throw new Error(payload.result.message || 'Salvataggio non riuscito.');
+        }
+        const row = iscrizioniTerzeFindRowById(id);
+        if (row) {
+            row.note_genitori_iscrizione = payload.result.note_genitori_iscrizione || '';
+        }
+        iscrizioniTerzeCloseFormationNote();
+        iscrizioniTerzeRenderTable();
+    })
+    .catch(err => {
+        if (error) {
+            error.textContent = err.message;
+            error.hidden = false;
+        }
+    })
+    .finally(() => {
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Salva note';
+        }
+    });
+});
+
 function iscrizioniTerzeFormatTextarea(id, mode) {
     const field = document.getElementById(id);
     if (!field) return;
@@ -1060,6 +1244,28 @@ function iscrizioniTerzeUpdateStats(stats, mailStats) {
     iscrizioniTerzeSetText('stat_mail_test', mailStats.mail_test || 0);
 }
 
+function iscrizioniTerzeUpdateSummary(summary) {
+    const tbody = document.getElementById('iscrizioni_terze_summary_body');
+    if (!tbody) return;
+    summary = Array.isArray(summary) ? summary : [];
+    if (!summary.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-muted">Nessuno studente da riepilogare.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = summary.map(function (row) {
+        return '<tr>' +
+            '<td>' + iscrizioniTerzeEscape(row.indirizzo || '') + '</td>' +
+            '<td>' + Number(row.promossi_seconda_reali || 0) + '</td>' +
+            '<td>' + Number(row.bocciati_seconda || 0) + '</td>' +
+            '<td>' + Number(row.bocciati_terza || 0) + '</td>' +
+            '<td>' + Number(row.esterni_entrata || 0) + '</td>' +
+            '<td>' + Number(row.dsa || 0) + '</td>' +
+            '<td>' + Number(row.legge_104 || 0) + '</td>' +
+            '<td>' + Number(row.totale || 0) + '</td>' +
+        '</tr>';
+    }).join('');
+}
+
 function iscrizioniTerzeMailStatus(row) {
     if (iscrizioniTerzeTipoEffettivo(row) === 'INTERNO') {
         return '<span class="mail-badge mail-badge-skip">Non richiesta</span>';
@@ -1140,7 +1346,8 @@ function iscrizioniTerzeRenderTable() {
             '<td>' + iscrizioniTerzeMailStatus(row) + '</td>' +
             '<td>' + token + '</td>' +
             '<td>' + writeButton + ' ' + testButton + ' ' + iscrizioniTerzePracticeButton(row) +
-                '<button type="button" class="btn btn-xs btn-default" onclick="iscrizioniTerzeOpenParentsModal(' + Number(row.id) + ')"><span class="glyphicon glyphicon-user"></span> Genitori</button>' +
+                '<button type="button" class="btn btn-xs btn-default" onclick="iscrizioniTerzeOpenParentsModal(' + Number(row.id) + ')"><span class="glyphicon glyphicon-user"></span> Genitori</button> ' +
+                '<button type="button" class="btn btn-xs btn-default" onclick="iscrizioniTerzeOpenFormationNote(' + Number(row.id) + ')"><span class="glyphicon glyphicon-pencil"></span> Note</button>' +
                 resendLinkButton + '</td>' +
             '</tr>';
     }).join('');
@@ -1515,6 +1722,7 @@ function iscrizioniTerzeLoadTable() {
         .then(data => {
             if (!data.ok) throw new Error(data.message || 'Errore lettura pratiche');
             iscrizioniTerzeUpdateStats(data.stats, data.mail_stats);
+            iscrizioniTerzeUpdateSummary(data.summary);
             iscrizioniTerzeRows = data.rows || [];
             iscrizioniTerzeRenderTable();
         })

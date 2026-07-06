@@ -323,7 +323,8 @@ $rows = array_map(static function (array $row) use ($attrsByCf): array {
     return $row;
 }, $rows);
 
-iscrizioniPrimeReadJson(['ok' => true, 'stats' => $stats ?: [], 'mail_stats' => $mailStats ?: [], 'rows' => $rows]);
+$summary = iscrizioniPrimeSummary($tipoIscrizione);
+iscrizioniPrimeReadJson(['ok' => true, 'stats' => $stats ?: [], 'mail_stats' => $mailStats ?: [], 'summary' => $summary['summary'] ?? [], 'rows' => $rows]);
 } catch (Throwable $e) {
     iscrizioniPrimeReadJson([
         'ok' => false,
