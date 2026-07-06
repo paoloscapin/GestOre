@@ -754,6 +754,53 @@ function studentiMovimentiLinkColloquiToPractice(int $practiceId, array $fields)
     return $linked;
 }
 
+function studentiMovimentiSyncContactsToColloqui(int $practiceId, array $fields): void
+{
+    if ($practiceId <= 0 || !dbGetValue("SHOW TABLES LIKE 'genitori_colloqui'")) {
+        return;
+    }
+    $tipoPratica = (string)($fields['tipo_pratica'] ?? '');
+    $ambito = $tipoPratica === 'entrata' ? 'entrata' : ($tipoPratica === 'uscita' ? 'uscita' : '');
+    if ($ambito === '') {
+        return;
+    }
+
+    $updates = [];
+    foreach ([
+        'cognome',
+        'nome',
+        'codice_fiscale',
+        'responsabile_1_tipo',
+        'responsabile_1_cognome',
+        'responsabile_1_nome',
+        'responsabile_1_codice_fiscale',
+        'email_genitore_1',
+        'telefono_genitore_1',
+        'responsabile_2_tipo',
+        'responsabile_2_cognome',
+        'responsabile_2_nome',
+        'responsabile_2_codice_fiscale',
+        'email_genitore_2',
+        'telefono_genitore_2',
+    ] as $field) {
+        $value = trim((string)($fields[$field] ?? ''));
+        if ($value !== '') {
+            $updates[] = "`$field` = " . dbQ($value);
+        }
+    }
+
+    if (!$updates) {
+        return;
+    }
+    $updates[] = "updated_at = NOW()";
+    dbExec("
+        UPDATE genitori_colloqui
+        SET " . implode(", ", $updates) . "
+        WHERE id_movimento = " . dbI($practiceId) . "
+          AND ambito = " . dbQ($ambito) . "
+    ");
+}
+
 function studentiMovimentiUploadDir(int $practiceId): string
 {
     return dirname(__DIR__) . '/data/movimenti_studenti/' . $practiceId;
@@ -939,6 +986,7 @@ function studentiMovimentiSavePractice(array $data): int
         ");
         studentiMovimentiAddEvent($id, 'salvataggio', 'Pratica aggiornata', $fields, $createdBy);
         studentiMovimentiLinkColloquiToPractice($id, $fields);
+        studentiMovimentiSyncContactsToColloqui($id, $fields);
         if ($fields['tipo_pratica'] === 'entrata') {
             iscrizioniPrimeSyncBocciatoAltraScuola(!empty($fields['bocciato_altra_scuola']), [
                 'id_pratica_iscrizione' => $fields['id_pratica_iscrizione'],
@@ -1029,6 +1077,7 @@ function studentiMovimentiSavePractice(array $data): int
     $newId = intval(dblastId());
     studentiMovimentiAddEvent($newId, 'creazione', 'Pratica creata', $fields, $createdBy);
     studentiMovimentiLinkColloquiToPractice($newId, $fields);
+    studentiMovimentiSyncContactsToColloqui($newId, $fields);
     if ($fields['tipo_pratica'] === 'entrata') {
         iscrizioniPrimeSyncBocciatoAltraScuola(!empty($fields['bocciato_altra_scuola']), [
             'id_pratica_iscrizione' => $fields['id_pratica_iscrizione'],
