@@ -929,10 +929,7 @@ $nomeIstituto = trim((string)($__settings->local->nomeIstituto ?? 'ITT Buonarrot
 $classeTargetLabel = $isTerze
     ? 'Iscrizione alle classi terze'
     : trp('subtitle');
-$praticaInviata = $pratica && (
-    in_array((string)($pratica['stato'] ?? ''), ['inviata', 'verifica_iniziale_ok', 'da_integrare', 'verificata'], true)
-    || trim((string)($pratica['dati_confermati_json'] ?? '')) !== ''
-);
+$praticaInviata = $pratica && in_array((string)($pratica['stato'] ?? ''), ['inviata', 'verifica_iniziale_ok', 'da_integrare', 'verificata'], true);
 $praticaBloccata = $pratica && in_array((string)($pratica['stato'] ?? ''), ['verificata', 'annullata'], true);
 
 if (!$pratica) {
@@ -949,10 +946,14 @@ if (!$pratica) {
 
 $dataInvioPratica = '';
 if ($praticaInviata) {
-    $sentValue = trim((string)($confirmed['saved_at'] ?? ''));
-    if ($sentValue === '') {
-        $sentValue = trim((string)($pratica['updated_at'] ?? ''));
-    }
+    $sentValue = trim((string)(dbGetValue("
+        SELECT created_at
+        FROM iscrizioni_prime_eventi
+        WHERE pratica_id = " . dbI((int)($pratica['id'] ?? 0)) . "
+          AND tipo_evento = 'invio_famiglia'
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+    ") ?? ''));
     if ($sentValue !== '') {
         $timestampInvio = strtotime($sentValue);
         if ($timestampInvio) {
@@ -999,6 +1000,7 @@ if ($praticaInviata) {
         .notice { border-left: 4px solid #0ea5e9; background: #eaf6fc; padding: 12px; border-radius: 6px; }
         .resubmit-notice { border: 2px solid #f59e0b; border-left-width: 7px; background: #fffbeb; color: #78350f; padding: 14px; border-radius: 8px; font-weight: 750; box-shadow: 0 8px 26px rgba(146,64,14,.16); }
         .resubmit-notice strong { display: block; font-size: 18px; margin-bottom: 6px; color: #7c2d12; }
+        .resubmit-notice.needs-resubmit { box-shadow: 0 0 0 4px rgba(245,158,11,.22), 0 8px 26px rgba(146,64,14,.16); }
         .error { border-left-color: #dc2626; background: #fee2e2; }
         .success { border-left-color: #16a34a; background: #e9f8ef; }
         .privacy-link { display: inline-block; margin-top: 8px; color: #0369a1; font-weight: 750; }
@@ -1420,21 +1422,21 @@ if ($praticaInviata) {
                                     </label>
                                 </div>
                             </div>
-                            <div class="doc-action-group doc-choice-group">
+                            <div class="doc-action-group doc-choice-group" data-choice="pdf">
                                 <div class="doc-choice-title"><span class="doc-choice-step">1</span><?php echo h(trp('choice_pdf')); ?></div>
                                 <div class="doc-action-buttons">
                                     <button type="button" class="btn-file doc-file-button"><?php echo h(trp('add_pdf')); ?></button>
                                 </div>
                                 <div class="doc-help"><?php echo h(trp('pdf_help')); ?></div>
                             </div>
-                            <div class="doc-action-group doc-choice-group">
+                            <div class="doc-action-group doc-choice-group" data-choice="photo">
                                 <div class="doc-choice-title"><span class="doc-choice-step">2</span><?php echo h(trp('choice_photo')); ?></div>
                                 <div class="doc-action-buttons">
                                     <button type="button" class="btn-native-camera doc-native-camera"><?php echo h(trp('take_photo')); ?></button>
                                 </div>
                                 <div class="doc-help"><?php echo h(trp('photo_help')); ?></div>
                             </div>
-                            <div class="doc-action-group doc-choice-group">
+                            <div class="doc-action-group doc-choice-group" data-choice="paper">
                                 <div class="doc-choice-title"><span class="doc-choice-step">3</span><?php echo h(trp('choice_paper')); ?></div>
                                 <div class="doc-action-buttons single">
                                     <button type="button" class="btn-paper doc-paper" <?php echo $isPaper ? 'hidden' : ''; ?>><?php echo h(trp('paper_button')); ?></button>
@@ -1658,7 +1660,12 @@ function setDocumentUiState(form, state) {
     const canAddToExisting = state === 'uploaded';
 
     if (intro) intro.hidden = !(state === 'missing' || canAddToExisting);
-    choices.forEach((group) => group.hidden = !(state === 'missing' || canAddToExisting));
+    choices.forEach(function (group) {
+        const choice = group.dataset.choice || '';
+        group.hidden = state === 'missing'
+            ? false
+            : !(canAddToExisting && choice === 'pdf');
+    });
     if (clearGroup) clearGroup.hidden = !(state === 'uploaded' || state === 'paper');
     if (existingOptions) existingOptions.hidden = !canAddToExisting;
     if (finalGroup) finalGroup.hidden = !(state === 'pending' && hasFinalFiles);
@@ -1902,9 +1909,9 @@ function showResubmitReminder() {
     }
 
     notice.innerHTML = '<strong>Modifica registrata: ora devi reinviare la conferma.</strong>'
-        + ' Hai cambiato uno o piu documenti. Scorri in fondo alla pagina e premi '
+        + ' Hai cambiato uno o piu documenti. Quando hai finito le modifiche premi '
         + '<em>SALVA E REINVIA CONFERMA DATI ISCRIZIONE</em>, altrimenti la segreteria non riceve la conferma aggiornata.';
-    notice.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    notice.classList.add('needs-resubmit');
     submitButton.style.boxShadow = '0 0 0 4px rgba(245, 158, 11, .35)';
 }
 
@@ -2650,6 +2657,7 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
 
         button.disabled = true;
         status.textContent = 'Caricamento in corso...';
+        showBusy('Caricamento documento in corso...');
 
         try {
             const payload = new FormData(form);
@@ -2680,7 +2688,7 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
             viewLink.hidden = false;
             const paperButton = form.querySelector('.doc-paper');
             if (paperButton) {
-                paperButton.hidden = false;
+                paperButton.hidden = true;
             }
             if (uploadMode) {
                 uploadMode.value = 'append';
@@ -2692,6 +2700,7 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
         } catch (error) {
             status.textContent = error.message;
         } finally {
+            hideBusy();
             button.disabled = false;
         }
     });
@@ -2715,6 +2724,7 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
 
             paperButton.disabled = true;
             status.textContent = 'Registrazione consegna cartacea...';
+            showBusy('Registrazione consegna cartacea in corso...');
 
             try {
                 const response = await fetch('consegna_cartacea_documento.php', {
@@ -2758,6 +2768,7 @@ document.querySelectorAll('.doc-form').forEach(function (form) {
             } catch (error) {
                 status.textContent = error.message;
             } finally {
+                hideBusy();
                 paperButton.disabled = false;
             }
         });
