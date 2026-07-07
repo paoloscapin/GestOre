@@ -379,6 +379,39 @@ function googleDriveGetFileMetadata(string $fileId): array
     );
 }
 
+function googleDriveMoveFileToFolder(string $fileId, string $folderId): array
+{
+    $fileId = trim($fileId);
+    $folderId = trim($folderId);
+    if ($fileId === '' || $folderId === '') {
+        return [];
+    }
+
+    $metadata = googleDriveApiRequest(
+        'GET',
+        'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId)
+            . '?fields=id,name,parents,webViewLink'
+    );
+    $parents = array_values(array_filter(array_map('strval', $metadata['parents'] ?? [])));
+    if (in_array($folderId, $parents, true)) {
+        return $metadata;
+    }
+
+    $url = 'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId)
+        . '?addParents=' . rawurlencode($folderId)
+        . '&fields=id,name,parents,webViewLink';
+    if ($parents) {
+        $url .= '&removeParents=' . rawurlencode(implode(',', $parents));
+    }
+
+    return googleDriveApiRequest(
+        'PATCH',
+        $url,
+        new stdClass(),
+        ['Content-Type: application/json']
+    );
+}
+
 function googleDriveDownloadFileContent(string $fileId): array
 {
     $fileId = trim($fileId);
@@ -577,4 +610,18 @@ function googleDriveListFilesInFolder(string $folderId): array
     } while ($pageToken !== '');
 
     return $files;
+}
+
+function googleDriveDeleteFolderIfEmpty(string $folderId): bool
+{
+    $folderId = trim($folderId);
+    if ($folderId === '') {
+        return false;
+    }
+    $files = googleDriveListFilesInFolder($folderId);
+    if ($files) {
+        return false;
+    }
+    googleDriveDeleteFile($folderId);
+    return true;
 }

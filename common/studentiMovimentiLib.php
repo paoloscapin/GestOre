@@ -1099,6 +1099,59 @@ function studentiMovimentiUploadMetadata(int $practiceId, string $localPath, str
     ];
 }
 
+function studentiMovimentiMoveDriveAttachmentsToCurrentFolder(int $practiceId): int
+{
+    if ($practiceId <= 0 || !studentiMovimentiDriveEnabled()) {
+        return 0;
+    }
+    require_once __DIR__ . '/../api/googleDriveLib.php';
+    $folderId = studentiMovimentiDriveFolderId($practiceId);
+    $rows = dbGetAll("
+        SELECT id, drive_file_id, drive_folder_id
+        FROM studenti_movimenti_allegati
+        WHERE id_pratica = " . dbI($practiceId) . "
+          AND storage_type = 'DRIVE'
+          AND drive_file_id IS NOT NULL
+          AND drive_file_id <> ''
+    ") ?: [];
+    $moved = 0;
+    $seen = [];
+    $oldFolderIds = [];
+    foreach ($rows as $row) {
+        $fileId = trim((string)($row['drive_file_id'] ?? ''));
+        if ($fileId === '' || isset($seen[$fileId])) {
+            continue;
+        }
+        $seen[$fileId] = true;
+        $oldFolderId = trim((string)($row['drive_folder_id'] ?? ''));
+        if ($oldFolderId !== '' && $oldFolderId !== $folderId) {
+            $oldFolderIds[$oldFolderId] = true;
+        }
+        googleDriveMoveFileToFolder($fileId, $folderId);
+        dbExec("
+            UPDATE studenti_movimenti_allegati
+            SET drive_folder_id = " . dbQ($folderId) . "
+            WHERE id_pratica = " . dbI($practiceId) . "
+              AND drive_file_id = " . dbQ($fileId) . "
+        ");
+        dbExec("
+            UPDATE studenti_movimenti_eventi
+            SET allegato_drive_folder_id = " . dbQ($folderId) . "
+            WHERE id_pratica = " . dbI($practiceId) . "
+              AND allegato_drive_file_id = " . dbQ($fileId) . "
+        ");
+        $moved++;
+    }
+    foreach (array_keys($oldFolderIds) as $oldFolderId) {
+        try {
+            googleDriveDeleteFolderIfEmpty($oldFolderId);
+        } catch (Throwable $e) {
+            // La cartella puo contenere altri file o non essere eliminabile: lo spostamento resta valido.
+        }
+    }
+    return $moved;
+}
+
 function studentiMovimentiPublicPath(string $absolutePath): string
 {
     $base = str_replace('\\', '/', dirname(__DIR__));
@@ -1199,7 +1252,7 @@ function studentiMovimentiSavePractice(array $data): int
     }
     if ($id > 0) {
         $existingContacts = dbGetFirst("
-            SELECT esami_integrativi, esami_integrativi_note,
+            SELECT tipo_pratica, esami_integrativi, esami_integrativi_note,
                    data_nascita, luogo_nascita,
                    responsabile_1_tipo, responsabile_1_cognome, responsabile_1_nome, responsabile_1_codice_fiscale,
                    email_genitore_1, telefono_genitore_1,
@@ -1210,6 +1263,9 @@ function studentiMovimentiSavePractice(array $data): int
             LIMIT 1
         ") ?: [];
         foreach (array_keys($existingContacts) as $contactField) {
+            if ($contactField === 'tipo_pratica') {
+                continue;
+            }
             if (($fields[$contactField] ?? null) === null || trim((string)($fields[$contactField] ?? '')) === '') {
                 $fields[$contactField] = $existingContacts[$contactField] ?? $fields[$contactField] ?? null;
             }
@@ -1278,6 +1334,25 @@ function studentiMovimentiSavePractice(array $data): int
             LIMIT 1
         ");
         studentiMovimentiAddEvent($id, 'salvataggio', 'Pratica aggiornata', $fields, $createdBy);
+        $previousTipoPratica = trim((string)($existingContacts['tipo_pratica'] ?? ''));
+        if ($previousTipoPratica !== '' && $previousTipoPratica !== $fields['tipo_pratica']) {
+            try {
+                $movedDriveFiles = studentiMovimentiMoveDriveAttachmentsToCurrentFolder($id);
+                if ($movedDriveFiles > 0) {
+                    studentiMovimentiAddEvent($id, 'drive_sync', 'Allegati Drive spostati nella nuova cartella pratica', [
+                        'tipo_pratica' => $fields['tipo_pratica'],
+                        'stato_pratica' => $fields['stato_pratica'],
+                        'note' => 'Tipo pratica precedente: ' . $previousTipoPratica . '. File spostati: ' . $movedDriveFiles,
+                    ], $createdBy);
+                }
+            } catch (Throwable $e) {
+                studentiMovimentiAddEvent($id, 'drive_sync_errore', 'Errore spostamento allegati Drive', [
+                    'tipo_pratica' => $fields['tipo_pratica'],
+                    'stato_pratica' => $fields['stato_pratica'],
+                    'note' => $e->getMessage(),
+                ], $createdBy);
+            }
+        }
         studentiMovimentiLinkColloquiToPractice($id, $fields);
         studentiMovimentiSyncContactsToColloqui($id, $fields);
         if ($fields['tipo_pratica'] === 'entrata') {
