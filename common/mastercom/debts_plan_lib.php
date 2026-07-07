@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/debts_lib.php';
 require_once __DIR__ . '/../iscrizioniPrimeLib.php';
+require_once __DIR__ . '/../studentiMovimentiLib.php';
 
 const MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID = 652;
 
@@ -257,7 +258,7 @@ function mastercomDebtsPlanDeleteLock(int $schoolYearId, string $planId): void
 
 function mastercomDebtsPlanSplitSubjects(string $text): array
 {
-    $parts = preg_split('/[\r\n;,]+/', $text) ?: [];
+    $parts = preg_split('/[\r\n;,|]+/', $text) ?: [];
     $subjects = [];
     foreach ($parts as $part) {
         $part = trim((string)$part);
@@ -314,9 +315,121 @@ function mastercomDebtsPlanPracticeDebtClassId(array $pratica): int
     return iscrizioniPrimeClassIdByCode('EE');
 }
 
-function mastercomDebtsPlanNeoDebtClassLabelSql(string $practiceAlias = 'p', string $fallbackClassAlias = 'cls'): string
+function mastercomDebtsPlanMovementFutureYear(array $movement): int
 {
-    $annoCorso = "COALESCE($practiceAlias.anno_corso, 0)";
+    $raw = trim((string)($movement['anno_corso'] ?? ''));
+    if ($raw !== '' && preg_match('/[1-5]/', $raw, $matches)) {
+        return intval($matches[0]);
+    }
+    foreach (['classe_richiesta', 'classe_origine'] as $field) {
+        $value = trim((string)($movement[$field] ?? ''));
+        if ($value !== '' && preg_match('/[1-5]/', $value, $matches)) {
+            return intval($matches[0]);
+        }
+    }
+    return 0;
+}
+
+function mastercomDebtsPlanMovementDebtClassId(array $movement): int
+{
+    $futureYear = mastercomDebtsPlanMovementFutureYear($movement);
+    $debtYear = $futureYear - 1;
+    if ($debtYear < 1 || $debtYear > 4) {
+        return 0;
+    }
+
+    return iscrizioniPrimeClassIdByCode('EE');
+}
+
+function mastercomDebtsPlanMovementCarenzeSubjects(array $movement): array
+{
+    return mastercomDebtsPlanSplitSubjects((string)($movement['carenze_note'] ?? ''));
+}
+
+function mastercomDebtsPlanSyncMovementStudentAndParents(array $movement): array
+{
+    $studentId = intval($movement['id_studente'] ?? 0);
+    if ($studentId <= 0) {
+        $studentId = studentiMovimentiFindOrCreateStudentForEntrata($movement);
+        if ($studentId > 0 && intval($movement['id'] ?? 0) > 0) {
+            dbExec("
+                UPDATE studenti_movimenti_pratiche
+                SET id_studente = " . dbI($studentId) . ",
+                    updated_at = NOW()
+                WHERE id = " . dbI($movement['id'] ?? 0) . "
+                LIMIT 1
+            ");
+        }
+    }
+    if ($studentId <= 0) {
+        return ['ok' => false, 'studente_id' => 0];
+    }
+
+    iscrizioniPrimeUpsertGestoreFrequency($studentId, 'EE');
+
+    return ['ok' => true, 'studente_id' => $studentId];
+}
+
+function mastercomDebtsPlanUpsertNeoCarenza(int $studentId, int $classId, int $debtSchoolYearId, string $subjectName, string $studentLabel, array &$summary): void
+{
+    $subjectId = mastercomDebtsPlanResolveSubjectId($subjectName);
+    if ($subjectId <= 0) {
+        $summary['skipped']++;
+        if (count($summary['errors']) < 20) {
+            $summary['errors'][] = $studentLabel . ': materia non trovata "' . $subjectName . '"';
+        }
+        return;
+    }
+    $existing = dbGetFirst("
+        SELECT c.id, c.id_docente, c.id_classe
+        FROM carenze c
+        INNER JOIN classi cls ON cls.id = c.id_classe
+        WHERE c.id_studente = " . dbI($studentId) . "
+          AND c.id_materia = " . dbI($subjectId) . "
+          AND (
+                c.id_classe = " . dbI($classId) . "
+             OR UPPER(TRIM(cls.classe)) = 'EE'
+             OR UPPER(TRIM(cls.classe)) IN ('1EE', '2EE', '3EE', '4EE')
+          )
+          AND c.id_anno_scolastico = " . dbI($debtSchoolYearId) . "
+        ORDER BY CASE WHEN c.id_classe = " . dbI($classId) . " THEN 0 ELSE 1 END
+        LIMIT 1
+    ");
+    if ($existing) {
+        if (intval($existing['id_docente'] ?? 0) !== MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID || intval($existing['id_classe'] ?? 0) !== $classId) {
+            dbExec("
+                UPDATE carenze
+                SET id_docente = " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . ",
+                    id_classe = " . dbI($classId) . "
+                WHERE id = " . dbI($existing['id'] ?? 0) . "
+                LIMIT 1
+            ");
+            $summary['updated']++;
+        }
+        return;
+    }
+    dbExec("
+        INSERT INTO carenze
+            (id_studente, id_materia, id_classe, id_docente, id_anno_scolastico, stato, data_inserimento, data_validazione, data_invio)
+        VALUES
+            (" . dbI($studentId) . ",
+             " . dbI($subjectId) . ",
+             " . dbI($classId) . ",
+             " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . ",
+             " . dbI($debtSchoolYearId) . ",
+             0,
+             NOW(),
+             '',
+             '')
+    ");
+    $summary['created']++;
+}
+
+function mastercomDebtsPlanNeoDebtClassLabelSql(string $practiceAlias = 'p', string $fallbackClassAlias = 'cls', ?string $movementAlias = null): string
+{
+    $annoCorso = $movementAlias !== null
+        ? "COALESCE($practiceAlias.anno_corso, $movementAlias.anno_corso, 0)"
+        : "COALESCE($practiceAlias.anno_corso, 0)";
     return "CASE
                 WHEN $annoCorso BETWEEN 2 AND 5 THEN CONCAT(($annoCorso - 1), 'EE')
                 ELSE $fallbackClassAlias.classe
@@ -336,7 +449,7 @@ function mastercomDebtsPlanSyncNeoIscrizioniCarenze(int $debtSchoolYearId): arra
         FROM iscrizioni_prime_pratiche
         WHERE studente_interno = 0
           AND tipo_iscrizione = 'terze'
-          AND stato IN ('inviata', 'verifica_iniziale_ok', 'verificata')
+          AND stato <> 'annullata'
           AND carenze_formative_dichiarate = 'si'
           AND (
                 TRIM(COALESCE(carenze_formative_materie, '')) NOT IN ('', '[]')
@@ -360,62 +473,62 @@ function mastercomDebtsPlanSyncNeoIscrizioniCarenze(int $debtSchoolYearId): arra
             }
             $summary['students_synced']++;
             foreach (mastercomDebtsPlanPracticeCarenzeSubjects($pratica) as $subjectName) {
-                $subjectId = mastercomDebtsPlanResolveSubjectId($subjectName);
-                if ($subjectId <= 0) {
-                    $summary['skipped']++;
-                    if (count($summary['errors']) < 20) {
-                        $summary['errors'][] = trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? '')) . ': materia non trovata "' . $subjectName . '"';
-                    }
-                    continue;
-                }
-                $existing = dbGetFirst("
-                    SELECT c.id, c.id_docente, c.id_classe
-                    FROM carenze c
-                    INNER JOIN classi cls ON cls.id = c.id_classe
-                    WHERE c.id_studente = " . dbI($studentId) . "
-                      AND c.id_materia = " . dbI($subjectId) . "
-                      AND (
-                            c.id_classe = " . dbI($classId) . "
-                         OR UPPER(TRIM(cls.classe)) = 'EE'
-                         OR UPPER(TRIM(cls.classe)) IN ('1EE', '2EE', '3EE', '4EE')
-                      )
-                      AND c.id_anno_scolastico = " . dbI($debtSchoolYearId) . "
-                    ORDER BY CASE WHEN c.id_classe = " . dbI($classId) . " THEN 0 ELSE 1 END
-                    LIMIT 1
-                ");
-                if ($existing) {
-                    if (intval($existing['id_docente'] ?? 0) !== MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID || intval($existing['id_classe'] ?? 0) !== $classId) {
-                        dbExec("
-                            UPDATE carenze
-                            SET id_docente = " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . ",
-                                id_classe = " . dbI($classId) . "
-                            WHERE id = " . dbI($existing['id'] ?? 0) . "
-                            LIMIT 1
-                        ");
-                        $summary['updated']++;
-                    }
-                    continue;
-                }
-                dbExec("
-                    INSERT INTO carenze
-                        (id_studente, id_materia, id_classe, id_docente, id_anno_scolastico, stato, data_inserimento, data_validazione, data_invio)
-                    VALUES
-                        (" . dbI($studentId) . ",
-                         " . dbI($subjectId) . ",
-                         " . dbI($classId) . ",
-                         " . dbI(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID) . ",
-                         " . dbI($debtSchoolYearId) . ",
-                         0,
-                         NOW(),
-                         '',
-                         '')
-                ");
-                $summary['created']++;
+                mastercomDebtsPlanUpsertNeoCarenza(
+                    $studentId,
+                    $classId,
+                    $debtSchoolYearId,
+                    $subjectName,
+                    trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? '')),
+                    $summary
+                );
             }
         } catch (Throwable $e) {
             $summary['skipped']++;
             if (count($summary['errors']) < 20) {
                 $summary['errors'][] = trim((string)($pratica['cognome'] ?? '') . ' ' . (string)($pratica['nome'] ?? '')) . ': ' . $e->getMessage();
+            }
+        }
+    }
+
+    studentiMovimentiEnsureTables();
+    $movementRows = dbGetAll("
+        SELECT *
+        FROM studenti_movimenti_pratiche
+        WHERE tipo_pratica = 'entrata'
+          AND stato_pratica <> 'annullata'
+          AND COALESCE(carenze_presenti, 0) = 1
+          AND TRIM(COALESCE(carenze_note, '')) <> ''
+        ORDER BY cognome ASC, nome ASC, id ASC
+    ") ?: [];
+    $summary['read'] += count($movementRows);
+
+    foreach ($movementRows as $movement) {
+        try {
+            $sync = mastercomDebtsPlanSyncMovementStudentAndParents($movement);
+            $studentId = intval($sync['studente_id'] ?? 0);
+            $classId = mastercomDebtsPlanMovementDebtClassId($movement);
+            if ($studentId <= 0 || $classId <= 0) {
+                $summary['skipped']++;
+                if (count($summary['errors']) < 20) {
+                    $summary['errors'][] = trim((string)($movement['cognome'] ?? '') . ' ' . (string)($movement['nome'] ?? '')) . ': anno di entrata non valido per calcolare la classe della carenza';
+                }
+                continue;
+            }
+            $summary['students_synced']++;
+            foreach (mastercomDebtsPlanMovementCarenzeSubjects($movement) as $subjectName) {
+                mastercomDebtsPlanUpsertNeoCarenza(
+                    $studentId,
+                    $classId,
+                    $debtSchoolYearId,
+                    $subjectName,
+                    trim((string)($movement['cognome'] ?? '') . ' ' . (string)($movement['nome'] ?? '')),
+                    $summary
+                );
+            }
+        } catch (Throwable $e) {
+            $summary['skipped']++;
+            if (count($summary['errors']) < 20) {
+                $summary['errors'][] = trim((string)($movement['cognome'] ?? '') . ' ' . (string)($movement['nome'] ?? '')) . ' [movimento entrata #' . intval($movement['id'] ?? 0) . ']: ' . $e->getMessage();
             }
         }
     }
@@ -430,7 +543,7 @@ function mastercomDebtsPlanNeoCarenzeRows(int $courseSchoolYearId, int $debtScho
         return [];
     }
 
-    $debtClassLabelSql = mastercomDebtsPlanNeoDebtClassLabelSql('p', 'cls');
+    $debtClassLabelSql = mastercomDebtsPlanNeoDebtClassLabelSql('p', 'cls', 'mv');
     $rows = dbGetAll("
         SELECT c.id AS carenza_id,
                c.id_studente,
@@ -440,7 +553,10 @@ function mastercomDebtsPlanNeoCarenzeRows(int $courseSchoolYearId, int $debtScho
                CONCAT(COALESCE(s.cognome, ''), ' ', COALESCE(s.nome, '')) AS studente_nome,
                $debtClassLabelSql AS classe_attuale,
                m.nome AS materia_nome,
-               GROUP_CONCAT(DISTINCT g.email ORDER BY g.email SEPARATOR ', ') AS email_genitori
+               COALESCE(
+                   NULLIF(GROUP_CONCAT(DISTINCT NULLIF(TRIM(g.email), '') ORDER BY g.email SEPARATOR ', '), ''),
+                   CONCAT_WS(', ', NULLIF(MAX(mv.email_genitore_1), ''), NULLIF(MAX(mv.email_genitore_2), ''))
+               ) AS email_genitori
         FROM carenze c
         INNER JOIN studente s ON s.id = c.id_studente
         INNER JOIN classi cls ON cls.id = c.id_classe
@@ -453,6 +569,29 @@ function mastercomDebtsPlanNeoCarenzeRows(int $courseSchoolYearId, int $debtScho
                       AND p2.tipo_iscrizione = 'terze'
                       AND UPPER(TRIM(p2.codice_fiscale)) = UPPER(TRIM(s.codice_fiscale))
                     ORDER BY p2.updated_at DESC, p2.id DESC
+                    LIMIT 1
+               )
+        LEFT JOIN studenti_movimenti_pratiche mv
+               ON mv.id = (
+                    SELECT mv2.id
+                    FROM studenti_movimenti_pratiche mv2
+                    WHERE mv2.tipo_pratica = 'entrata'
+                      AND mv2.stato_pratica <> 'annullata'
+                      AND (
+                            mv2.id_studente = s.id
+                         OR (
+                                TRIM(COALESCE(mv2.codice_fiscale, '')) <> ''
+                            AND TRIM(COALESCE(s.codice_fiscale, '')) <> ''
+                            AND UPPER(TRIM(mv2.codice_fiscale)) = UPPER(TRIM(s.codice_fiscale))
+                            )
+                         OR (
+                                TRIM(COALESCE(mv2.codice_fiscale, '')) = ''
+                            AND TRIM(COALESCE(s.codice_fiscale, '')) = ''
+                            AND LOWER(TRIM(mv2.cognome)) = LOWER(TRIM(s.cognome))
+                            AND LOWER(TRIM(mv2.nome)) = LOWER(TRIM(s.nome))
+                            )
+                      )
+                    ORDER BY mv2.updated_at DESC, mv2.id DESC
                     LIMIT 1
                )
         LEFT JOIN genitori_studenti gs ON gs.id_studente = s.id
@@ -1613,7 +1752,7 @@ function mastercomDebtsPlanSourceRows(int $schoolYearId): array
         ORDER BY mc.materia ASC, mc.studente_nome ASC, mc.classe ASC
     ") ?: [];
 
-    $neoDebtClassLabelSql = mastercomDebtsPlanNeoDebtClassLabelSql('p', 'cls');
+    $neoDebtClassLabelSql = mastercomDebtsPlanNeoDebtClassLabelSql('p', 'cls', 'mv');
     $localRows = dbGetAll("
         SELECT
             c.id,
@@ -1644,6 +1783,29 @@ function mastercomDebtsPlanSourceRows(int $schoolYearId): array
                       AND p2.tipo_iscrizione = 'terze'
                       AND UPPER(TRIM(p2.codice_fiscale)) = UPPER(TRIM(s.codice_fiscale))
                     ORDER BY p2.updated_at DESC, p2.id DESC
+                    LIMIT 1
+               )
+        LEFT JOIN studenti_movimenti_pratiche mv
+               ON mv.id = (
+                    SELECT mv2.id
+                    FROM studenti_movimenti_pratiche mv2
+                    WHERE mv2.tipo_pratica = 'entrata'
+                      AND mv2.stato_pratica <> 'annullata'
+                      AND (
+                            mv2.id_studente = s.id
+                         OR (
+                                TRIM(COALESCE(mv2.codice_fiscale, '')) <> ''
+                            AND TRIM(COALESCE(s.codice_fiscale, '')) <> ''
+                            AND UPPER(TRIM(mv2.codice_fiscale)) = UPPER(TRIM(s.codice_fiscale))
+                            )
+                         OR (
+                                TRIM(COALESCE(mv2.codice_fiscale, '')) = ''
+                            AND TRIM(COALESCE(s.codice_fiscale, '')) = ''
+                            AND LOWER(TRIM(mv2.cognome)) = LOWER(TRIM(s.cognome))
+                            AND LOWER(TRIM(mv2.nome)) = LOWER(TRIM(s.nome))
+                            )
+                      )
+                    ORDER BY mv2.updated_at DESC, mv2.id DESC
                     LIMIT 1
                )
         LEFT JOIN docente d ON d.id = c.id_docente

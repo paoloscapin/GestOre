@@ -1124,20 +1124,84 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
     <?php require_once '../common/style.php'; ?>
     <style>
         .mcdp-toolbar {
-            background: linear-gradient(#eef8ff, #bfe8fb);
-            border: 1px solid #6ab7d8;
-            border-radius: 4px;
-            padding: 14px;
-            margin-bottom: 16px;
+            background: #eef8ff;
+            border: 1px solid #8cc9e3;
+            border-radius: 6px;
+            padding: 12px 14px;
+            margin-bottom: 12px;
         }
         .mcdp-toolbar-row {
             display: flex;
             align-items: flex-end;
-            gap: 12px;
+            gap: 10px;
             flex-wrap: wrap;
         }
         .mcdp-toolbar-row .form-group {
             margin-bottom: 0;
+        }
+        .mcdp-toolbar-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .mcdp-tools-grid {
+            display: grid;
+            grid-template-columns: minmax(360px, 1fr) minmax(360px, 1fr);
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .mcdp-section {
+            border: 1px solid #d7e3ec;
+            border-radius: 6px;
+            background: #fff;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .mcdp-section-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background: #f8fbfd;
+            border-bottom: 1px solid #d7e3ec;
+            padding: 10px 12px;
+        }
+        .mcdp-section-heading h4 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .mcdp-section-body {
+            padding: 12px;
+        }
+        .mcdp-section-body > .table {
+            margin-bottom: 0;
+        }
+        .mcdp-sync-stats {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 8px 0 0;
+        }
+        .mcdp-stat-pill {
+            background: #eef6ff;
+            border: 1px solid #cfe3f8;
+            border-radius: 999px;
+            color: #29506f;
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 9px;
+        }
+        .mcdp-warning-list {
+            border-left: 3px solid #d9534f;
+            color: #b52b27;
+            margin-top: 8px;
+            padding-left: 10px;
+        }
+        .mcdp-warning-list div {
+            margin-bottom: 3px;
         }
         .mcdp-kpis {
             display: grid;
@@ -1148,9 +1212,9 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
         .mcdp-kpi {
             border: 1px solid #d7e3ec;
             background: #fff;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 12px;
-            min-height: 80px;
+            min-height: 74px;
         }
         .mcdp-kpi .label {
             display: block;
@@ -1171,6 +1235,13 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
         .mcdp-table th,
         .mcdp-table td {
             vertical-align: middle !important;
+        }
+        .mcdp-table > thead > tr > th {
+            background: #f8fafc;
+            border-bottom: 1px solid #d7e3ec;
+        }
+        .mcdp-table > tbody > tr:hover > td {
+            background: #f7fbff;
         }
         .mcdp-table th:nth-child(1),
         .mcdp-table th:nth-child(2),
@@ -1231,14 +1302,16 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
         }
         .mcdp-note {
             color: #456;
-            margin-bottom: 16px;
+            line-height: 1.45;
+            margin-bottom: 10px;
         }
         .mcdp-import-panel {
             border: 1px solid #d7e3ec;
             background: #f8fbfd;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 0;
+            min-height: 86px;
         }
         .mcdp-import-row {
             display: flex;
@@ -1249,6 +1322,24 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
         .mcdp-import-row .form-group {
             margin-bottom: 0;
         }
+        .mcdp-import-panel h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin: 0 0 8px;
+        }
+        .mcdp-neo-table th:nth-child(1) { width: 170px; }
+        .mcdp-neo-table th:nth-child(2) { width: 70px; }
+        .mcdp-neo-table th:nth-child(3) { width: 260px; }
+        .mcdp-neo-table th:nth-child(6) { width: 120px; }
+        .mcdp-course-form {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .mcdp-course-form select {
+            min-width: 360px;
+            max-width: 100%;
+        }
         .mcdp-import-kpis {
             display: flex;
             gap: 14px;
@@ -1258,6 +1349,17 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
         @media (max-width: 1100px) {
             .mcdp-kpis {
                 grid-template-columns: repeat(2, minmax(150px, 1fr));
+            }
+            .mcdp-tools-grid {
+                grid-template-columns: 1fr;
+            }
+            .mcdp-course-form {
+                align-items: stretch;
+                flex-direction: column;
+            }
+            .mcdp-course-form select {
+                min-width: 0;
+                width: 100%;
             }
         }
     </style>
@@ -1300,199 +1402,220 @@ if ($plan !== null && in_array($export, ['pdf', 'xlsx'], true)) {
                     <button type="submit" class="btn btn-primary">
                         <span class="glyphicon glyphicon-refresh"></span> Rigenera
                     </button>
-                    <a class="btn btn-danger" href="mastercom_debts_plan.php?school_year_id=<?php echo intval($selectedYearId); ?>&min_size=<?php echo intval($minSize); ?>&max_size=<?php echo intval($maxSize); ?>&export=pdf">
-                        <span class="glyphicon glyphicon-file"></span> PDF
-                    </a>
-                    <a class="btn btn-success" href="mastercom_debts_plan.php?school_year_id=<?php echo intval($selectedYearId); ?>&min_size=<?php echo intval($minSize); ?>&max_size=<?php echo intval($maxSize); ?>&export=xlsx">
-                        <span class="glyphicon glyphicon-list-alt"></span> XLS
-                    </a>
-                    <a class="btn btn-danger" href="mastercom_debts_plan.php?school_year_id=<?php echo intval($selectedYearId); ?>&min_size=<?php echo intval($minSize); ?>&max_size=<?php echo intval($maxSize); ?>&export=course_list_pdf">
-                        <span class="glyphicon glyphicon-file"></span> PDF elenco corsi
-                    </a>
-                    <a class="btn btn-success" href="mastercom_debts_plan.php?school_year_id=<?php echo intval($selectedYearId); ?>&min_size=<?php echo intval($minSize); ?>&max_size=<?php echo intval($maxSize); ?>&export=course_list_xlsx">
-                        <span class="glyphicon glyphicon-list-alt"></span> XLS elenco corsi
-                    </a>
-                    <a class="btn btn-default" href="mastercom_debts.php?school_year_id=<?php echo intval($selectedYearId); ?>">
-                        <span class="glyphicon glyphicon-arrow-left"></span> Carenze
-                    </a>
+                    <div class="mcdp-toolbar-actions">
+                        <a class="btn btn-danger" href="mastercom_debts_plan.php?school_year_id=<?php echo intval($selectedYearId); ?>&min_size=<?php echo intval($minSize); ?>&max_size=<?php echo intval($maxSize); ?>&export=pdf">
+                            <span class="glyphicon glyphicon-file"></span> PDF
+                        </a>
+                        <a class="btn btn-success" href="mastercom_debts_plan.php?school_year_id=<?php echo intval($selectedYearId); ?>&min_size=<?php echo intval($minSize); ?>&max_size=<?php echo intval($maxSize); ?>&export=xlsx">
+                            <span class="glyphicon glyphicon-list-alt"></span> XLS
+                        </a>
+                        <a class="btn btn-danger" href="mastercom_debts_plan.php?school_year_id=<?php echo intval($selectedYearId); ?>&min_size=<?php echo intval($minSize); ?>&max_size=<?php echo intval($maxSize); ?>&export=course_list_pdf">
+                            <span class="glyphicon glyphicon-file"></span> PDF elenco corsi
+                        </a>
+                        <a class="btn btn-success" href="mastercom_debts_plan.php?school_year_id=<?php echo intval($selectedYearId); ?>&min_size=<?php echo intval($minSize); ?>&max_size=<?php echo intval($maxSize); ?>&export=course_list_xlsx">
+                            <span class="glyphicon glyphicon-list-alt"></span> XLS elenco corsi
+                        </a>
+                        <a class="btn btn-default" href="mastercom_debts.php?school_year_id=<?php echo intval($selectedYearId); ?>">
+                            <span class="glyphicon glyphicon-arrow-left"></span> Carenze
+                        </a>
+                    </div>
                 </div>
             </form>
 
-            <form method="post" enctype="multipart/form-data" class="mcdp-import-panel">
-                <input type="hidden" name="action" value="import_real_plan">
-                <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
-                <input type="hidden" name="min_size" value="<?php echo intval($minSize); ?>">
-                <input type="hidden" name="max_size" value="<?php echo intval($maxSize); ?>">
-                <div class="mcdp-import-row">
-                    <div class="form-group">
-                        <label for="real_plan_csv">Import corsi reali CSV</label>
-                        <input type="file" class="form-control" id="real_plan_csv" name="real_plan_csv" accept=".csv,text/csv">
+            <div class="mcdp-tools-grid">
+                <form method="post" enctype="multipart/form-data" class="mcdp-import-panel">
+                    <input type="hidden" name="action" value="import_real_plan">
+                    <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
+                    <input type="hidden" name="min_size" value="<?php echo intval($minSize); ?>">
+                    <input type="hidden" name="max_size" value="<?php echo intval($maxSize); ?>">
+                    <h4>Import corsi reali CSV</h4>
+                    <div class="mcdp-import-row">
+                        <div class="form-group">
+                            <input type="file" class="form-control" id="real_plan_csv" name="real_plan_csv" accept=".csv,text/csv">
+                        </div>
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" name="apply_import" value="1">
+                                Sostituisci piano reale dell'anno
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-info">
+                            <span class="glyphicon glyphicon-upload"></span> Importa CSV
+                        </button>
                     </div>
-                    <div class="checkbox">
-                        <label>
-                            <input type="checkbox" name="apply_import" value="1">
-                            Applica import e sostituisci piano reale dell'anno
-                        </label>
+                </form>
+
+                <?php $defaultDebtYearId = $selectedYearId; ?>
+
+                <form method="post" class="mcdp-import-panel">
+                    <input type="hidden" name="action" value="sync_real_plan_courses">
+                    <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
+                    <input type="hidden" name="min_size" value="<?php echo intval($minSize); ?>">
+                    <input type="hidden" name="max_size" value="<?php echo intval($maxSize); ?>">
+                    <h4>Sincronizza corsi didattici</h4>
+                    <div class="mcdp-import-row">
+                        <div class="form-group">
+                            <label for="debt_school_year_id">Anno carenze</label>
+                            <select id="debt_school_year_id" name="debt_school_year_id" class="form-control">
+                                <?php foreach ($schoolYears as $year): ?>
+                                    <option value="<?php echo intval($year['id']); ?>" <?php echo intval($year['id']) === $defaultDebtYearId ? 'selected' : ''; ?>>
+                                        <?php echo mcdp_h($year['anno']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="course_school_year_id">Anno corsi</label>
+                            <select id="course_school_year_id" name="course_school_year_id" class="form-control">
+                                <?php foreach ($schoolYears as $year): ?>
+                                    <option value="<?php echo intval($year['id']); ?>" <?php echo intval($year['id']) === $selectedCourseYearId ? 'selected' : ''; ?>>
+                                        <?php echo mcdp_h($year['anno']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="glyphicon glyphicon-transfer"></span> Aggiorna
+                        </button>
+                        <a class="btn btn-default" href="../didattica/corsi.php">
+                            <span class="glyphicon glyphicon-list-alt"></span> Vai ai corsi
+                        </a>
                     </div>
-                    <button type="submit" class="btn btn-info">
-                        <span class="glyphicon glyphicon-upload"></span> Importa CSV
-                    </button>
-                </div>
-            </form>
+                </form>
+            </div>
 
             <?php echo mcdp_import_summary_html($importSummary); ?>
-            <?php $defaultDebtYearId = $selectedYearId; ?>
-
-            <form method="post" class="mcdp-import-panel">
-                <input type="hidden" name="action" value="sync_real_plan_courses">
-                <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
-                <input type="hidden" name="min_size" value="<?php echo intval($minSize); ?>">
-                <input type="hidden" name="max_size" value="<?php echo intval($maxSize); ?>">
-                <div class="mcdp-import-row">
-                    <div class="form-group">
-                        <label for="debt_school_year_id">Anno carenze sorgente</label>
-                        <select id="debt_school_year_id" name="debt_school_year_id" class="form-control">
-                            <?php foreach ($schoolYears as $year): ?>
-                                <option value="<?php echo intval($year['id']); ?>" <?php echo intval($year['id']) === $defaultDebtYearId ? 'selected' : ''; ?>>
-                                    <?php echo mcdp_h($year['anno']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="course_school_year_id">Anno corsi didattici</label>
-                        <select id="course_school_year_id" name="course_school_year_id" class="form-control">
-                            <?php foreach ($schoolYears as $year): ?>
-                                <option value="<?php echo intval($year['id']); ?>" <?php echo intval($year['id']) === $selectedCourseYearId ? 'selected' : ''; ?>>
-                                    <?php echo mcdp_h($year['anno']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        <span class="glyphicon glyphicon-transfer"></span> Aggiorna corsi didattici
-                    </button>
-                    <a class="btn btn-default" href="../didattica/corsi.php">
-                        <span class="glyphicon glyphicon-list-alt"></span> Vai ai corsi
-                    </a>
-                </div>
-            </form>
 
             <?php echo mcdp_sync_summary_html($syncSummary); ?>
 
-            <h4>Neo-iscritti con carenze da piazzare</h4>
-            <div class="mcdp-note">
-                Elenco ricavato dalle pratiche di iscrizione completate con carenze formative. Gli studenti esterni vengono sincronizzati in GestOre e nelle carenze con classe provvisoria EE; per la pianificazione viene calcolato solo l'anno della carenza dalla classe futura di iscrizione (es. entra in seconda = carenza di prima). Le carenze vengono create con docente #<?php echo intval(MASTERCOM_DEBTS_PLAN_NEO_CARENZE_DOCENTE_ID); ?>.
-                Gli avvisi dei corsi per questi studenti dovranno usare le email dei genitori, non la mail studente.
-                <?php if (!empty($neoSyncSummary)): ?>
-                    <br>
-                    Sincronizzazione: pratiche lette <strong><?php echo intval($neoSyncSummary['read'] ?? 0); ?></strong>,
-                    studenti aggiornati <strong><?php echo intval($neoSyncSummary['students_synced'] ?? 0); ?></strong>,
-                    carenze create <strong><?php echo intval($neoSyncSummary['created'] ?? 0); ?></strong>,
-                    carenze aggiornate <strong><?php echo intval($neoSyncSummary['updated'] ?? 0); ?></strong>.
-                    <?php if (!empty($neoSyncSummary['errors'])): ?>
-                        <span class="text-danger">Avvisi: <?php echo mcdp_h(implode(' | ', array_slice((array)$neoSyncSummary['errors'], 0, 5))); ?></span>
-                    <?php endif; ?>
-                <?php endif; ?>
+            <div class="mcdp-section">
+                <div class="mcdp-section-heading">
+                    <h4>Neo-iscritti con carenze da piazzare</h4>
+                    <span class="label label-warning"><?php echo count($neoCarenzeRows); ?> da piazzare</span>
+                </div>
+                <div class="mcdp-section-body">
+                    <div class="mcdp-note">
+                        Studenti esterni in classe provvisoria <strong>EE</strong>. L'anno della carenza viene calcolato dalla classe futura di iscrizione; le comunicazioni vanno ai genitori.
+                        <?php if (!empty($neoSyncSummary)): ?>
+                            <div class="mcdp-sync-stats">
+                                <span class="mcdp-stat-pill">Pratiche <?php echo intval($neoSyncSummary['read'] ?? 0); ?></span>
+                                <span class="mcdp-stat-pill">Studenti <?php echo intval($neoSyncSummary['students_synced'] ?? 0); ?></span>
+                                <span class="mcdp-stat-pill">Create <?php echo intval($neoSyncSummary['created'] ?? 0); ?></span>
+                                <span class="mcdp-stat-pill">Aggiornate <?php echo intval($neoSyncSummary['updated'] ?? 0); ?></span>
+                            </div>
+                            <?php if (!empty($neoSyncSummary['errors'])): ?>
+                                <div class="mcdp-warning-list">
+                                    <?php foreach (array_slice((array)$neoSyncSummary['errors'], 0, 5) as $syncError): ?>
+                                        <div><?php echo mcdp_h($syncError); ?></div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-condensed mcdp-table mcdp-neo-table">
+                            <thead>
+                            <tr>
+                                <th>Studente</th>
+                                <th>Classe</th>
+                                <th>Materia</th>
+                                <th>Email genitori</th>
+                                <th>Corso</th>
+                                <th>Stato</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <?php if (empty($neoCarenzeRows)): ?>
+                                <tr><td colspan="6" class="text-center">Nessun neo-iscritto da piazzare per l'anno corsi selezionato.</td></tr>
+                            <?php endif; ?>
+                            <?php foreach ($neoCarenzeRows as $row): ?>
+                                <tr>
+                                    <td><strong><?php echo mcdp_h($row['student_name'] ?? ''); ?></strong></td>
+                                    <td class="text-center"><?php echo mcdp_h($row['class_name'] ?? ''); ?></td>
+                                    <td>
+                                        <?php echo mcdp_h($row['subject'] ?? ''); ?>
+                                        <?php if (intval($row['subject_id'] ?? 0) <= 0): ?>
+                                            <div class="text-danger small">Materia non agganciata in GestOre</div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo mcdp_h(implode(', ', (array)($row['parents'] ?? []))); ?></td>
+                                    <td>
+                                        <?php $courses = (array)($row['courses'] ?? []); ?>
+                                        <?php if (empty($courses)): ?>
+                                            <span class="text-danger">Nessun corso disponibile per questa materia</span>
+                                        <?php else: ?>
+                                            <form method="post" class="mcdp-course-form">
+                                                <input type="hidden" name="action" value="assign_neo_carenza">
+                                                <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
+                                                <input type="hidden" name="course_school_year_id" value="<?php echo intval($selectedCourseYearId); ?>">
+                                                <input type="hidden" name="min_size" value="<?php echo intval($minSize); ?>">
+                                                <input type="hidden" name="max_size" value="<?php echo intval($maxSize); ?>">
+                                                <input type="hidden" name="id_studente" value="<?php echo intval($row['student_id'] ?? 0); ?>">
+                                                <select name="id_corso" class="form-control input-sm">
+                                                    <?php foreach ($courses as $course): ?>
+                                                        <option value="<?php echo intval($course['id'] ?? 0); ?>">
+                                                            #<?php echo intval($course['id'] ?? 0); ?> -
+                                                            <?php echo mcdp_h(trim((string)($course['titolo'] ?? ''))); ?>
+                                                            <?php if (trim((string)($course['docente_nome'] ?? '')) !== ''): ?>
+                                                                - <?php echo mcdp_h(trim((string)$course['docente_nome'])); ?>
+                                                            <?php endif; ?>
+                                                            (<?php echo intval($course['iscritti'] ?? 0); ?> iscritti)
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <button type="submit" class="btn btn-xs btn-success">
+                                                    <span class="glyphicon glyphicon-plus"></span> Aggancia
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if (!empty($courses)): ?>
+                                            <span class="label label-warning">Da piazzare</span>
+                                        <?php else: ?>
+                                            <span class="text-muted">Crea/sincronizza corso</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <table class="table table-bordered table-condensed mcdp-table">
-                <thead>
-                <tr>
-                    <th>Studente</th>
-                    <th>Classe</th>
-                    <th>Materia</th>
-                    <th>Email genitori</th>
-                    <th>Corso</th>
-                    <th>Abbinamento</th>
-                </tr>
-                </thead>
-                <tbody>
-                <?php if (empty($neoCarenzeRows)): ?>
-                    <tr><td colspan="6" class="text-center">Nessun neo-iscritto da piazzare per l'anno corsi selezionato.</td></tr>
-                <?php endif; ?>
-                <?php foreach ($neoCarenzeRows as $row): ?>
-                    <tr>
-                        <td><?php echo mcdp_h($row['student_name'] ?? ''); ?></td>
-                        <td><?php echo mcdp_h($row['class_name'] ?? ''); ?></td>
-                        <td>
-                            <?php echo mcdp_h($row['subject'] ?? ''); ?>
-                            <?php if (intval($row['subject_id'] ?? 0) <= 0): ?>
-                                <div class="text-danger small">Materia non agganciata in GestOre</div>
-                            <?php endif; ?>
-                        </td>
-                        <td><?php echo mcdp_h(implode(', ', (array)($row['parents'] ?? []))); ?></td>
-                        <td>
-                            <?php $courses = (array)($row['courses'] ?? []); ?>
-                            <?php if (empty($courses)): ?>
-                                <span class="text-danger">Nessun corso carenze disponibile per questa materia</span>
-                            <?php else: ?>
-                                <form method="post" class="form-inline">
-                                    <input type="hidden" name="action" value="assign_neo_carenza">
-                                    <input type="hidden" name="school_year_id" value="<?php echo intval($selectedYearId); ?>">
-                                    <input type="hidden" name="course_school_year_id" value="<?php echo intval($selectedCourseYearId); ?>">
-                                    <input type="hidden" name="min_size" value="<?php echo intval($minSize); ?>">
-                                    <input type="hidden" name="max_size" value="<?php echo intval($maxSize); ?>">
-                                    <input type="hidden" name="id_studente" value="<?php echo intval($row['student_id'] ?? 0); ?>">
-                                    <select name="id_corso" class="form-control input-sm">
-                                        <?php foreach ($courses as $course): ?>
-                                            <option value="<?php echo intval($course['id'] ?? 0); ?>">
-                                                #<?php echo intval($course['id'] ?? 0); ?> -
-                                                <?php echo mcdp_h(trim((string)($course['titolo'] ?? ''))); ?>
-                                                <?php if (trim((string)($course['docente_nome'] ?? '')) !== ''): ?>
-                                                    - <?php echo mcdp_h(trim((string)$course['docente_nome'])); ?>
-                                                <?php endif; ?>
-                                                (<?php echo intval($course['iscritti'] ?? 0); ?> iscritti)
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <button type="submit" class="btn btn-xs btn-success" style="margin-top:6px;">
-                                        <span class="glyphicon glyphicon-plus"></span> Aggancia
-                                    </button>
-                                </form>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <?php if (!empty($courses)): ?>
-                                <span class="label label-warning">Da piazzare</span>
-                            <?php else: ?>
-                                <span class="text-muted">Prima crea/sincronizza il corso</span>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
 
             <?php if ($plan === null): ?>
                 <div class="alert alert-warning">Seleziona un anno scolastico.</div>
             <?php else: ?>
-                <?php if (!empty($plan['using_imported_plan'])): ?>
-                    <div class="alert alert-info">
-                        Sono caricati i corsi reali importati da CSV per l'anno
-                        <strong><?php echo mcdp_h($plan['school_year_label']); ?></strong>.
-                        La proposta automatica resta disponibile solo se si svuota l'import reale.
+                <div class="mcdp-section">
+                    <div class="mcdp-section-heading">
+                        <h4>Quadro piano</h4>
+                        <span class="text-muted">Anno <?php echo mcdp_h($plan['school_year_label']); ?></span>
                     </div>
-                <?php endif; ?>
-                <div class="mcdp-note">
-                    <?php if (!empty($plan['using_imported_plan'])): ?>
-                        La pianificazione usa i corsi reali importati da CSV per l'anno
-                        <strong><?php echo mcdp_h($plan['school_year_label']); ?></strong>,
-                        inclusi partecipanti effettivi, docenti, aule, date e recuperi in itinere.
-                    <?php else: ?>
-                        La pianificazione usa le carenze non recuperate lette da MasterCom per l'anno
-                        <strong><?php echo mcdp_h($plan['school_year_label']); ?></strong>.
-                        I gruppi sono per anno di classe e materia. Il calendario proposto copre il periodo
-                        <strong>24/08/<?php echo intval($plan['calendar_year']); ?> - 05/09/<?php echo intval($plan['calendar_year']); ?></strong>.
-                        Ogni corso prevede tre lezioni da 2 ore scolastiche, cioe 100 minuti ciascuna, in tre giornate diverse.
-                    <?php endif; ?>
-                </div>
+                    <div class="mcdp-section-body">
+                        <?php if (!empty($plan['using_imported_plan'])): ?>
+                            <div class="alert alert-info">
+                                Sono caricati i corsi reali importati da CSV. La proposta automatica resta disponibile solo se si svuota l'import reale.
+                            </div>
+                        <?php endif; ?>
+                        <div class="mcdp-note">
+                            <?php if (!empty($plan['using_imported_plan'])): ?>
+                                La pianificazione usa i corsi reali importati da CSV, inclusi partecipanti effettivi, docenti, aule, date e recuperi in itinere.
+                            <?php else: ?>
+                                Carenze non recuperate lette da MasterCom. Gruppi per anno di classe e materia, calendario proposto
+                                <strong>24/08/<?php echo intval($plan['calendar_year']); ?> - 05/09/<?php echo intval($plan['calendar_year']); ?></strong>,
+                                tre lezioni da 100 minuti in giornate diverse.
+                            <?php endif; ?>
+                        </div>
 
-                <div class="mcdp-kpis">
-                    <div class="mcdp-kpi"><span class="label">Carenze sorgente</span><span class="value"><?php echo intval($plan['source_rows']); ?></span></div>
-                    <div class="mcdp-kpi"><span class="label">Gruppi base</span><span class="value"><?php echo count($plan['base_groups']); ?></span></div>
-                    <div class="mcdp-kpi"><span class="label">Corsi proposti</span><span class="value"><?php echo count($plan['course_groups']); ?></span></div>
-                    <div class="mcdp-kpi"><span class="label">Autonomi</span><span class="value"><?php echo count($autonomous); ?></span></div>
-                    <div class="mcdp-kpi"><span class="label">Studenti con piu carenze</span><span class="value"><?php echo intval($multiDebtStudents); ?></span></div>
+                        <div class="mcdp-kpis">
+                            <div class="mcdp-kpi"><span class="label">Carenze sorgente</span><span class="value"><?php echo intval($plan['source_rows']); ?></span></div>
+                            <div class="mcdp-kpi"><span class="label">Gruppi base</span><span class="value"><?php echo count($plan['base_groups']); ?></span></div>
+                            <div class="mcdp-kpi"><span class="label">Corsi proposti</span><span class="value"><?php echo count($plan['course_groups']); ?></span></div>
+                            <div class="mcdp-kpi"><span class="label">Autonomi</span><span class="value"><?php echo count($autonomous); ?></span></div>
+                            <div class="mcdp-kpi"><span class="label">Studenti con piu carenze</span><span class="value"><?php echo intval($multiDebtStudents); ?></span></div>
+                        </div>
+                    </div>
                 </div>
 
                 <?php if (!empty($unscheduled)): ?>
