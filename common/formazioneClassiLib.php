@@ -50,7 +50,11 @@ function formazioneClassiEnsureTables(): void
             `classe_provvisoria_label` VARCHAR(80) NULL,
             `gruppo_origine` VARCHAR(40) NOT NULL DEFAULT 'promosso',
             `bloccato` TINYINT(1) NOT NULL DEFAULT 0,
+            `blocco_individuale` TINYINT(1) NOT NULL DEFAULT 0,
+            `blocco_classe` TINYINT(1) NOT NULL DEFAULT 0,
+            `assegnazione_manuale` TINYINT(1) NOT NULL DEFAULT 0,
             `ordine` INT NOT NULL DEFAULT 0,
+            `richiesta_tablet` TINYINT(1) NULL,
             `media_generale` DECIMAL(5,2) NULL,
             `voto_matematica` DECIMAL(5,2) NULL,
             `voto_italiano` DECIMAL(5,2) NULL,
@@ -65,6 +69,25 @@ function formazioneClassiEnsureTables(): void
             KEY `idx_formazione_studenti_classe` (`id_sessione`, `classe_provvisoria_label`),
             KEY `idx_formazione_studenti_gruppo` (`id_sessione`, `gruppo_origine`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+    ");
+    if (!studentiMovimentiColumnExists('formazione_classi_studenti', 'assegnazione_manuale')) {
+        dbExec("ALTER TABLE formazione_classi_studenti ADD COLUMN `assegnazione_manuale` TINYINT(1) NOT NULL DEFAULT 0 AFTER `bloccato`");
+    }
+    if (!studentiMovimentiColumnExists('formazione_classi_studenti', 'blocco_individuale')) {
+        dbExec("ALTER TABLE formazione_classi_studenti ADD COLUMN `blocco_individuale` TINYINT(1) NOT NULL DEFAULT 0 AFTER `bloccato`");
+    }
+    if (!studentiMovimentiColumnExists('formazione_classi_studenti', 'blocco_classe')) {
+        dbExec("ALTER TABLE formazione_classi_studenti ADD COLUMN `blocco_classe` TINYINT(1) NOT NULL DEFAULT 0 AFTER `blocco_individuale`");
+    }
+    if (!studentiMovimentiColumnExists('formazione_classi_studenti', 'richiesta_tablet')) {
+        dbExec("ALTER TABLE formazione_classi_studenti ADD COLUMN `richiesta_tablet` TINYINT(1) NULL AFTER `ordine`");
+    }
+    dbExec("
+        UPDATE formazione_classi_studenti
+        SET blocco_individuale = 1
+        WHERE COALESCE(bloccato, 0) = 1
+          AND COALESCE(blocco_individuale, 0) = 0
+          AND COALESCE(blocco_classe, 0) = 0
     ");
 }
 
@@ -661,7 +684,7 @@ function formazioneClassiIscrizioniTableAvailable(): bool
     return $available;
 }
 
-function formazioneClassiTargetClasses(int $classYear, string $indirizzo = '', int $schoolYearId = 0): array
+function formazioneClassiTargetClasses(int $classYear, string $indirizzo = '', int $schoolYearId = 0, string $tabletFilter = 'all'): array
 {
     $rows = dbGetAll("
         SELECT
@@ -679,6 +702,7 @@ function formazioneClassiTargetClasses(int $classYear, string $indirizzo = '', i
     ") ?: [];
 
     $indirizzoNorm = formazioneClassiNorm($indirizzo);
+    $tabletFilter = formazioneClassiNormalizeTabletFilter($tabletFilter);
     $result = [];
     foreach ($rows as $row) {
         $label = trim((string)($row['classe'] ?? ''));
@@ -696,6 +720,15 @@ function formazioneClassiTargetClasses(int $classYear, string $indirizzo = '', i
                 continue;
             }
         }
+        if (in_array($classYear, [1, 2], true) && $tabletFilter !== 'all') {
+            $isTablet = intval($row['is_tablet'] ?? 0) === 1;
+            if ($tabletFilter === 'tablet' && !$isTablet) {
+                continue;
+            }
+            if ($tabletFilter === 'non_tablet' && $isTablet) {
+                continue;
+            }
+        }
         $result[] = [
             'id' => intval($row['id'] ?? 0),
             'label' => $label,
@@ -705,10 +738,16 @@ function formazioneClassiTargetClasses(int $classYear, string $indirizzo = '', i
     return $result;
 }
 
-function formazioneClassiSingleTargetClass(int $classYear, string $indirizzo, int $schoolYearId): ?array
+function formazioneClassiSingleTargetClass(int $classYear, string $indirizzo, int $schoolYearId, string $tabletFilter = 'all'): ?array
 {
-    $classes = formazioneClassiTargetClasses($classYear, $indirizzo, $schoolYearId);
+    $classes = formazioneClassiTargetClasses($classYear, $indirizzo, $schoolYearId, $tabletFilter);
     return count($classes) === 1 ? $classes[0] : null;
+}
+
+function formazioneClassiNormalizeTabletFilter(string $tabletFilter): string
+{
+    $tabletFilter = trim($tabletFilter);
+    return in_array($tabletFilter, ['tablet', 'non_tablet'], true) ? $tabletFilter : 'all';
 }
 
 function formazioneClassiAddressOptionsForFormation(int $sourceYearId, int $targetClassYear, int $targetYearId = 0): array
@@ -1135,6 +1174,7 @@ function formazioneClassiPruneMastercomRowsByAddress(int $sessionId, string $ind
         WHERE id_sessione = " . dbI($sessionId) . "
           AND fonte_valori = 'mastercom'
           AND COALESCE(bloccato, 0) = 0
+          AND COALESCE(assegnazione_manuale, 0) = 0
           AND TRIM(COALESCE(classe_origine_label, '')) <> ''
     ") ?: [];
     foreach ($rows as $row) {
@@ -1164,6 +1204,7 @@ function formazioneClassiPruneTerzaDigitalScienceRows(int $sessionId, string $in
         WHERE id_sessione = " . dbI($sessionId) . "
           AND fonte_valori IN ('mastercom', 'iscrizioni')
           AND COALESCE(bloccato, 0) = 0
+          AND COALESCE(assegnazione_manuale, 0) = 0
           AND (
               TRIM(COALESCE(classe_origine_label, '')) <> ''
               OR TRIM(COALESCE(classe_provvisoria_label, '')) <> ''
@@ -1189,6 +1230,7 @@ function formazioneClassiPruneRowsByProvisionalAddress(int $sessionId, string $i
         WHERE id_sessione = " . dbI($sessionId) . "
           AND fonte_valori IN ('mastercom', 'iscrizioni', 'movimenti')
           AND COALESCE(bloccato, 0) = 0
+          AND COALESCE(assegnazione_manuale, 0) = 0
           AND TRIM(COALESCE(classe_provvisoria_label, '')) <> ''
     ") ?: [];
     foreach ($rows as $row) {
@@ -1218,6 +1260,7 @@ function formazioneClassiPruneTerzaRowsByPracticeAddress(int $sessionId, int $ta
         LEFT JOIN studente s ON s.id = f.id_studente
         WHERE f.id_sessione = " . dbI($sessionId) . "
           AND COALESCE(f.bloccato, 0) = 0
+          AND COALESCE(f.assegnazione_manuale, 0) = 0
           AND f.fonte_valori = 'iscrizioni'
           AND TRIM(COALESCE(s.codice_fiscale, '')) <> ''
     ") ?: [];
@@ -1537,8 +1580,9 @@ function formazioneClassiUpsertPracticeStudent(int $sessionId, array $practice, 
     $name = trim((string)(($practice['studente_cognome'] ?? $practice['cognome'] ?? '') . ' ' . ($practice['studente_nome'] ?? $practice['nome'] ?? '')));
     $metrics = formazioneClassiMetricsFromPractice($practice);
     $practiceNotes = formazioneClassiPracticeNotes($practice);
+    $tabletRequest = formazioneClassiPracticeHasConfirmedTablet($practice) ? 1 : 0;
     $existing = dbGetFirst("
-        SELECT id, bloccato, fonte_valori
+        SELECT id, bloccato, assegnazione_manuale, fonte_valori, classe_provvisoria_label
         FROM formazione_classi_studenti
         WHERE id_sessione = " . dbI($sessionId) . "
           AND id_studente = " . dbI($studentId) . "
@@ -1552,6 +1596,7 @@ function formazioneClassiUpsertPracticeStudent(int $sessionId, array $practice, 
                     ELSE " . dbQ($gruppo) . "
                 END",
             "classe_origine_label = COALESCE(NULLIF(classe_origine_label, ''), " . dbQ($practice['classe_origine'] ?? '') . ")",
+            "richiesta_tablet = " . dbI($tabletRequest),
             "note = " . dbQ($practiceNotes),
             "updated_at = NOW()",
         ];
@@ -1569,11 +1614,11 @@ function formazioneClassiUpsertPracticeStudent(int $sessionId, array $practice, 
                 $sets[] = $field . " = COALESCE(" . $field . ", " . $valueSql . ")";
             }
         }
-        if (intval($existing['bloccato'] ?? 0) === 0) {
+        if (intval($existing['bloccato'] ?? 0) === 0 && intval($existing['assegnazione_manuale'] ?? 0) === 0) {
             if ($targetLabel !== null && trim((string)$targetLabel) !== '') {
                 $sets[] = "id_classe_provvisoria = " . dbI($targetClassId);
                 $sets[] = "classe_provvisoria_label = " . dbQ($targetLabel);
-            } else {
+            } elseif (trim((string)($existing['classe_provvisoria_label'] ?? '')) === '') {
                 $sets[] = "id_classe_provvisoria = NULL";
                 $sets[] = "classe_provvisoria_label = NULL";
             }
@@ -1591,6 +1636,7 @@ function formazioneClassiUpsertPracticeStudent(int $sessionId, array $practice, 
         INSERT INTO formazione_classi_studenti (
             id_sessione, id_studente, studente_nome, id_classe_origine, classe_origine_label,
             id_classe_provvisoria, classe_provvisoria_label, gruppo_origine,
+            richiesta_tablet,
             media_generale, voto_matematica, voto_italiano, voto_capacita_relazionale,
             fonte_valori, note, created_at, updated_at
         ) VALUES (
@@ -1602,6 +1648,7 @@ function formazioneClassiUpsertPracticeStudent(int $sessionId, array $practice, 
             " . dbI($targetClassId) . ",
             " . dbQ($targetLabel) . ",
             " . dbQ($gruppo) . ",
+            " . dbI($tabletRequest) . ",
             " . dbF($metrics['media_generale'] ?? null) . ",
             " . dbF($metrics['voto_matematica'] ?? null) . ",
             " . dbF($metrics['voto_italiano'] ?? null) . ",
@@ -1745,7 +1792,7 @@ function formazioneClassiUpsertMovementStudent(int $sessionId, array $movement, 
     }
     $name = trim((string)(($movement['studente_cognome'] ?? $movement['cognome'] ?? '') . ' ' . ($movement['studente_nome'] ?? $movement['nome'] ?? '')));
     $existing = dbGetFirst("
-        SELECT id, gruppo_origine, bloccato
+        SELECT id, gruppo_origine, bloccato, assegnazione_manuale, classe_provvisoria_label
         FROM formazione_classi_studenti
         WHERE id_sessione = " . dbI($sessionId) . "
           AND id_studente = " . dbI($studentId) . "
@@ -1758,11 +1805,11 @@ function formazioneClassiUpsertMovementStudent(int $sessionId, array $movement, 
                 "classe_origine_label = COALESCE(NULLIF(classe_origine_label, ''), " . dbQ($movement['classe_origine'] ?? '') . ")",
                 "updated_at = NOW()",
             ];
-            if (intval($existing['bloccato'] ?? 0) === 0) {
+            if (intval($existing['bloccato'] ?? 0) === 0 && intval($existing['assegnazione_manuale'] ?? 0) === 0) {
                 if ($targetLabel !== null && trim((string)$targetLabel) !== '') {
                     $sets[] = "id_classe_provvisoria = " . dbI($targetClassId);
                     $sets[] = "classe_provvisoria_label = " . dbQ($targetLabel);
-                } elseif ($gruppo === 'neo_iscritto') {
+                } elseif ($gruppo === 'neo_iscritto' && trim((string)($existing['classe_provvisoria_label'] ?? '')) === '') {
                     $sets[] = "id_classe_provvisoria = NULL";
                     $sets[] = "classe_provvisoria_label = NULL";
                 }
@@ -1807,7 +1854,7 @@ function formazioneClassiUpsertStudent(int $sessionId, array $row, string $grupp
     }
     $metrics = (array)($row['metrics'] ?? []);
     $existing = dbGetFirst("
-        SELECT id, bloccato
+        SELECT id, bloccato, assegnazione_manuale
         FROM formazione_classi_studenti
         WHERE id_sessione = " . dbI($sessionId) . "
           AND id_studente = " . dbI($studentId) . "
@@ -1823,7 +1870,7 @@ function formazioneClassiUpsertStudent(int $sessionId, array $row, string $grupp
             "voto_capacita_relazionale = COALESCE(voto_capacita_relazionale, " . dbF($metrics['voto_capacita_relazionale'] ?? null) . ")",
             "updated_at = NOW()",
         ];
-        if (intval($existing['bloccato'] ?? 0) === 0 && $targetLabel !== null && trim((string)$targetLabel) !== '') {
+        if (intval($existing['bloccato'] ?? 0) === 0 && intval($existing['assegnazione_manuale'] ?? 0) === 0 && $targetLabel !== null && trim((string)$targetLabel) !== '') {
             $sets[] = "id_classe_provvisoria = " . dbI($targetClassId);
             $sets[] = "classe_provvisoria_label = " . dbQ($targetLabel);
         }
@@ -1861,9 +1908,10 @@ function formazioneClassiUpsertStudent(int $sessionId, array $row, string $grupp
     ");
 }
 
-function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tipo, string $indirizzo): array
+function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tipo, string $indirizzo, string $tabletFilter = 'all'): array
 {
     $targetClassYear = formazioneClassiAnnoDaTipo($tipo);
+    $tabletFilter = in_array($targetClassYear, [1, 2], true) ? formazioneClassiNormalizeTabletFilter($tabletFilter) : 'all';
     $session = formazioneClassiSession($sourceYearId, $targetYearId, $tipo, $indirizzo);
     formazioneClassiInitDaTabelloni($session, $targetClassYear, $indirizzo);
 
@@ -1888,9 +1936,16 @@ function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tip
             mp_exit_any.tipo_pratica AS uscita_attiva_tipo_pratica,
             mp_exit_any.stato_pratica AS uscita_attiva_stato_pratica,
             mp_exit_any.updated_at AS uscita_attiva_updated_at,
+            COALESCE(cas_origin.is_tablet, 0) AS classe_origine_is_tablet,
+            COALESCE(cas_target.is_tablet, 0) AS classe_provvisoria_is_tablet,
             attr.attributi_riservati_raw
         FROM formazione_classi_studenti f
         LEFT JOIN studente s ON s.id = f.id_studente
+        LEFT JOIN classi c_target ON c_target.classe = f.classe_provvisoria_label
+        LEFT JOIN classi_anno_scolastico cas_target ON cas_target.id_classe = c_target.id
+            AND cas_target.id_anno_scolastico = " . dbI($targetYearId) . "
+        LEFT JOIN classi_anno_scolastico cas_origin ON cas_origin.id_classe = f.id_classe_origine
+            AND cas_origin.id_anno_scolastico = " . dbI($sourceYearId) . "
         LEFT JOIN (
             SELECT
                 id_studente,
@@ -1956,7 +2011,7 @@ function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tip
     ") ?: [];
 
     $classes = [];
-    foreach (formazioneClassiTargetClasses($targetClassYear, $indirizzo, $targetYearId) as $targetClass) {
+    foreach (formazioneClassiTargetClasses($targetClassYear, $indirizzo, $targetYearId, $tabletFilter) as $targetClass) {
         $label = (string)$targetClass['label'];
         $classes[$label] = [
             'label' => $label,
@@ -1968,6 +2023,9 @@ function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tip
     $unassigned = [];
     foreach ($rows as $row) {
         $item = formazioneClassiStudentView($row);
+        if ($tabletFilter !== 'all' && !formazioneClassiStudentMatchesTabletFilter($item, $tabletFilter)) {
+            continue;
+        }
         $label = trim((string)($row['classe_provvisoria_label'] ?? ''));
         if (($item['gruppo_origine'] ?? '') === 'bocciato' && !empty($item['in_uscita'])) {
             $label = '';
@@ -1977,6 +2035,9 @@ function formazioneClassiState(int $sourceYearId, int $targetYearId, string $tip
             continue;
         }
         if (!isset($classes[$label])) {
+            if ($tabletFilter !== 'all') {
+                continue;
+            }
             $classes[$label] = [
                 'label' => $label,
                 'id_classe' => intval($row['id_classe_provvisoria'] ?? 0),
@@ -2052,6 +2113,11 @@ function formazioneClassiStudentView(array $row): array
         'classe_origine' => (string)($row['classe_origine_label'] ?? ''),
         'gruppo_origine' => $gruppoOrigine,
         'bloccato' => intval($row['bloccato'] ?? 0),
+        'blocco_individuale' => intval($row['blocco_individuale'] ?? 0),
+        'blocco_classe' => intval($row['blocco_classe'] ?? 0),
+        'richiesta_tablet' => !array_key_exists('richiesta_tablet', $row) || $row['richiesta_tablet'] === null ? null : intval($row['richiesta_tablet']),
+        'classe_origine_is_tablet' => intval($row['classe_origine_is_tablet'] ?? 0),
+        'classe_provvisoria_is_tablet' => intval($row['classe_provvisoria_is_tablet'] ?? 0),
         'id_movimento' => intval($row['movimento_pratica_id'] ?? 0),
         'in_uscita' => $outgoingId > 0 ? 1 : 0,
         'uscita_confermata' => $confirmedOutgoingId > 0 ? 1 : 0,
@@ -2071,6 +2137,25 @@ function formazioneClassiStudentView(array $row): array
         'note_formazione_updated_at' => trim((string)($row['movimento_updated_at'] ?? '')),
         'attributi_riservati' => formazioneClassiParseStudentAttrs((string)($row['attributi_riservati_raw'] ?? '')),
     ];
+}
+
+function formazioneClassiStudentMatchesTabletFilter(array $student, string $tabletFilter): bool
+{
+    $tabletFilter = formazioneClassiNormalizeTabletFilter($tabletFilter);
+    if ($tabletFilter === 'all') {
+        return true;
+    }
+
+    $isTablet = false;
+    if (trim((string)($student['classe_origine'] ?? '')) !== '') {
+        $isTablet = intval($student['classe_origine_is_tablet'] ?? 0) === 1;
+    } elseif (($student['richiesta_tablet'] ?? null) !== null) {
+        $isTablet = intval($student['richiesta_tablet'] ?? 0) === 1;
+    } elseif (($student['classe_provvisoria_is_tablet'] ?? null) !== null) {
+        $isTablet = intval($student['classe_provvisoria_is_tablet'] ?? 0) === 1;
+    }
+
+    return $tabletFilter === 'tablet' ? $isTablet : !$isTablet;
 }
 
 function formazioneClassiCleanDisplayNote(string $note): string
@@ -2197,6 +2282,16 @@ function formazioneClassiMoveStudent(int $sessionId, int $rowId, string $targetL
     $targetLabel = trim($targetLabel);
     $classId = null;
     if ($targetLabel !== '') {
+        $classLocked = intval(dbGetValue("
+            SELECT COUNT(*)
+            FROM formazione_classi_studenti
+            WHERE id_sessione = " . dbI($sessionId) . "
+              AND classe_provvisoria_label = " . dbQ($targetLabel) . "
+              AND COALESCE(blocco_classe, 0) = 1
+        "));
+        if ($classLocked > 0) {
+            return ['ok' => false, 'message' => 'Classe bloccata: sblocca la classe prima di spostare studenti.'];
+        }
         $targetClass = formazioneClassiLocalClassByLabel($targetLabel);
         $classId = $targetClass ? intval($targetClass['id']) : null;
     }
@@ -2204,6 +2299,7 @@ function formazioneClassiMoveStudent(int $sessionId, int $rowId, string $targetL
         UPDATE formazione_classi_studenti
         SET id_classe_provvisoria = " . dbI($classId) . ",
             classe_provvisoria_label = " . dbQ($targetLabel) . ",
+            assegnazione_manuale = " . dbI($targetLabel !== '' ? 1 : 0) . ",
             updated_at = NOW()
         WHERE id = " . dbI($rowId) . "
           AND id_sessione = " . dbI($sessionId) . "
@@ -2212,6 +2308,568 @@ function formazioneClassiMoveStudent(int $sessionId, int $rowId, string $targetL
     dbExec("UPDATE formazione_classi_sessioni SET updated_at = NOW() WHERE id = " . dbI($sessionId) . " LIMIT 1");
 
     return ['ok' => true, 'message' => 'Spostamento salvato.'];
+}
+
+function formazioneClassiSetStudentLock(int $sessionId, int $rowId, bool $locked): array
+{
+    if ($sessionId <= 0 || $rowId <= 0) {
+        return ['ok' => false, 'message' => 'Studente non valido.'];
+    }
+    $row = dbGetFirst("
+        SELECT id, blocco_classe
+        FROM formazione_classi_studenti
+        WHERE id = " . dbI($rowId) . "
+          AND id_sessione = " . dbI($sessionId) . "
+        LIMIT 1
+    ");
+    if (!$row) {
+        return ['ok' => false, 'message' => 'Studente non trovato nella bozza.'];
+    }
+    $effective = $locked || intval($row['blocco_classe'] ?? 0) === 1;
+    dbExec("
+        UPDATE formazione_classi_studenti
+        SET blocco_individuale = " . dbI($locked ? 1 : 0) . ",
+            bloccato = " . dbI($effective ? 1 : 0) . ",
+            updated_at = NOW()
+        WHERE id = " . dbI($rowId) . "
+          AND id_sessione = " . dbI($sessionId) . "
+        LIMIT 1
+    ");
+    dbExec("UPDATE formazione_classi_sessioni SET updated_at = NOW() WHERE id = " . dbI($sessionId) . " LIMIT 1");
+    return ['ok' => true, 'message' => $locked ? 'Studente bloccato.' : 'Blocco studente rimosso.'];
+}
+
+function formazioneClassiSetClassLock(int $sessionId, string $classLabel, bool $locked): array
+{
+    $classLabel = trim($classLabel);
+    if ($sessionId <= 0 || $classLabel === '') {
+        return ['ok' => false, 'message' => 'Classe non valida.'];
+    }
+    if ($locked) {
+        dbExec("
+            UPDATE formazione_classi_studenti
+            SET blocco_classe = 1,
+                bloccato = 1,
+                updated_at = NOW()
+            WHERE id_sessione = " . dbI($sessionId) . "
+              AND classe_provvisoria_label = " . dbQ($classLabel) . "
+        ");
+        $message = 'Classe bloccata.';
+    } else {
+        dbExec("
+            UPDATE formazione_classi_studenti
+            SET blocco_classe = 0,
+                bloccato = CASE WHEN COALESCE(blocco_individuale, 0) = 1 THEN 1 ELSE 0 END,
+                updated_at = NOW()
+            WHERE id_sessione = " . dbI($sessionId) . "
+              AND classe_provvisoria_label = " . dbQ($classLabel) . "
+        ");
+        $message = 'Blocco classe rimosso.';
+    }
+    dbExec("UPDATE formazione_classi_sessioni SET updated_at = NOW() WHERE id = " . dbI($sessionId) . " LIMIT 1");
+    return ['ok' => true, 'message' => $message];
+}
+
+function formazioneClassiAutoAssign(int $sessionId, array $rowIds, array $targetLabels, array $weights = []): array
+{
+    $rowIds = array_values(array_unique(array_filter(array_map('intval', $rowIds), static function (int $id): bool {
+        return $id > 0;
+    })));
+    $targetLabels = array_values(array_unique(array_filter(array_map(static function ($label): string {
+        return trim((string)$label);
+    }, $targetLabels), static function (string $label): bool {
+        return $label !== '';
+    })));
+
+    if ($sessionId <= 0 || empty($rowIds) || empty($targetLabels)) {
+        return ['ok' => false, 'message' => 'Dati insufficienti per la distribuzione automatica.'];
+    }
+
+    $metricKeys = ['media_generale', 'voto_matematica', 'voto_italiano', 'voto_capacita_relazionale'];
+    $defaultWeights = [
+        'media_generale' => 4.0,
+        'voto_matematica' => 3.0,
+        'voto_italiano' => 2.0,
+        'voto_capacita_relazionale' => 2.0,
+        'rapporto_mf' => 2.0,
+    ];
+    foreach ($defaultWeights as $key => $default) {
+        $value = str_replace(',', '.', trim((string)($weights[$key] ?? $default)));
+        $weights[$key] = max(0.0, (float)$value);
+    }
+
+    $idList = implode(',', array_map('dbI', $rowIds));
+    $labelList = implode(',', array_map('dbQ', $targetLabels));
+
+    $lockedLabels = dbGetAll("
+        SELECT DISTINCT classe_provvisoria_label
+        FROM formazione_classi_studenti
+        WHERE id_sessione = " . dbI($sessionId) . "
+          AND classe_provvisoria_label IN ($labelList)
+          AND COALESCE(blocco_classe, 0) = 1
+    ") ?: [];
+    if (!empty($lockedLabels)) {
+        $locked = array_fill_keys(array_map(static function ($row): string {
+            return trim((string)($row['classe_provvisoria_label'] ?? ''));
+        }, $lockedLabels), true);
+        $targetLabels = array_values(array_filter($targetLabels, static function (string $label) use ($locked): bool {
+            return !isset($locked[$label]);
+        }));
+        if (empty($targetLabels)) {
+            return ['ok' => false, 'message' => 'Tutte le classi visibili sono bloccate.'];
+        }
+        $labelList = implode(',', array_map('dbQ', $targetLabels));
+    }
+
+    $allRows = dbGetAll("
+        SELECT f.*, s.cognome, s.nome, s.sesso
+        FROM formazione_classi_studenti f
+        LEFT JOIN studente s ON s.id = f.id_studente
+        WHERE f.id_sessione = " . dbI($sessionId) . "
+          AND (
+              f.id IN ($idList)
+              OR COALESCE(f.classe_provvisoria_label, '') IN ($labelList)
+          )
+    ") ?: [];
+
+    $candidateById = [];
+    $buckets = [];
+    foreach ($targetLabels as $label) {
+        $buckets[$label] = [
+            'label' => $label,
+            'students' => [],
+            'count' => 0,
+            'maschi' => 0,
+            'femmine' => 0,
+            'sums' => array_fill_keys($metricKeys, 0.0),
+            'counts' => array_fill_keys($metricKeys, 0),
+        ];
+    }
+
+    foreach ($allRows as $row) {
+        $id = intval($row['id'] ?? 0);
+        if ((string)($row['gruppo_origine'] ?? '') === 'bocciato') {
+            continue;
+        }
+        $isCandidate = in_array($id, $rowIds, true);
+        if ($isCandidate) {
+            if (intval($row['bloccato'] ?? 0) === 1) {
+                continue;
+            }
+            $candidateById[$id] = $row;
+            continue;
+        }
+        $label = trim((string)($row['classe_provvisoria_label'] ?? ''));
+        if (isset($buckets[$label])) {
+            formazioneClassiAutoBucketAdd($buckets[$label], $row, $metricKeys);
+        }
+    }
+
+    if (empty($candidateById)) {
+        return ['ok' => false, 'message' => 'Nessuno studente spostabile trovato.'];
+    }
+
+    $global = [
+        'count' => 0,
+        'maschi' => 0,
+        'femmine' => 0,
+        'sums' => array_fill_keys($metricKeys, 0.0),
+        'counts' => array_fill_keys($metricKeys, 0),
+    ];
+    foreach ($buckets as $bucket) {
+        formazioneClassiAutoBucketMerge($global, $bucket, $metricKeys);
+    }
+    foreach ($candidateById as $row) {
+        formazioneClassiAutoBucketAdd($global, $row, $metricKeys);
+    }
+
+    $globalAverages = [];
+    foreach ($metricKeys as $key) {
+        $globalAverages[$key] = $global['counts'][$key] > 0 ? $global['sums'][$key] / $global['counts'][$key] : null;
+    }
+    $genderTotal = max(1, intval($global['maschi']) + intval($global['femmine']));
+    $globalMaleRatio = intval($global['maschi']) / $genderTotal;
+    $totalStudentsForDistribution = count($candidateById) + array_sum(array_map(static function ($bucket) {
+        return intval($bucket['count'] ?? 0);
+    }, $buckets));
+    $classCount = count($targetLabels);
+    $idealCount = $classCount > 0 ? $totalStudentsForDistribution / $classCount : 0;
+    $minTargetCount = $classCount > 0 ? intdiv($totalStudentsForDistribution, $classCount) : 0;
+    $maxCount = $classCount > 0 ? (int)ceil($idealCount) : 0;
+    $totalFemales = intval($global['femmine'] ?? 0);
+    $femalePairTarget = $classCount > 0 ? min($classCount, intdiv($totalFemales, 2)) : 0;
+    $femaleSingleRemainder = $classCount > $femalePairTarget ? min($classCount - $femalePairTarget, $totalFemales - ($femalePairTarget * 2)) : 0;
+    $minFemalesPerClass = $totalFemales >= ($classCount * 2) ? 2 : 0;
+
+    $candidates = array_values($candidateById);
+    usort($candidates, static function (array $a, array $b) use ($weights, $metricKeys): int {
+        $scoreA = formazioneClassiAutoScore($a, $weights, $metricKeys);
+        $scoreB = formazioneClassiAutoScore($b, $weights, $metricKeys);
+        if (abs($scoreA - $scoreB) > 0.0001) {
+            return $scoreA < $scoreB ? 1 : -1;
+        }
+        $nameA = trim((string)($a['cognome'] ?? '') . ' ' . (string)($a['nome'] ?? '') . ' ' . (string)($a['studente_nome'] ?? ''));
+        $nameB = trim((string)($b['cognome'] ?? '') . ' ' . (string)($b['nome'] ?? '') . ' ' . (string)($b['studente_nome'] ?? ''));
+        return strcasecmp($nameA, $nameB);
+    });
+
+    $assignments = [];
+    $assignedRows = [];
+    $remainingRows = $candidates;
+    while (!empty($remainingRows)) {
+        $row = array_shift($remainingRows);
+        $bestLabel = '';
+        $bestCost = null;
+        $minCount = null;
+        foreach ($targetLabels as $label) {
+            $count = intval($buckets[$label]['count'] ?? 0);
+            if ($minCount === null || $count < $minCount) {
+                $minCount = $count;
+            }
+        }
+        $eligibleLabels = formazioneClassiAutoEligibleLabels($targetLabels, $buckets, $row, $remainingRows, $minCount, $maxCount, $femalePairTarget, $femaleSingleRemainder);
+        foreach ($eligibleLabels as $label) {
+            $cost = formazioneClassiAutoClassCost(
+                $buckets,
+                $targetLabels,
+                $label,
+                $row,
+                $weights,
+                $metricKeys,
+                $globalAverages,
+                $globalMaleRatio,
+                $idealCount,
+                $minTargetCount,
+                $maxCount,
+                $minFemalesPerClass,
+                $femalePairTarget,
+                $femaleSingleRemainder
+            );
+            if ($bestCost === null || $cost < $bestCost || (abs($cost - $bestCost) < 0.0001 && intval($buckets[$label]['count']) < intval($buckets[$bestLabel]['count'] ?? 999999))) {
+                $bestCost = $cost;
+                $bestLabel = $label;
+            }
+        }
+        if ($bestLabel === '') {
+            continue;
+        }
+        $assignments[intval($row['id'])] = $bestLabel;
+        $assignedRows[intval($row['id'])] = $row;
+        formazioneClassiAutoBucketAdd($buckets[$bestLabel], $row, $metricKeys);
+    }
+
+    formazioneClassiAutoOptimizeAssignments(
+        $assignments,
+        $assignedRows,
+        $buckets,
+        $targetLabels,
+        $weights,
+        $metricKeys,
+        $globalAverages,
+        $globalMaleRatio,
+        $idealCount,
+        $minTargetCount,
+        $maxCount,
+        $minFemalesPerClass,
+        $femalePairTarget,
+        $femaleSingleRemainder
+    );
+
+    foreach ($assignments as $rowId => $label) {
+        $targetClass = formazioneClassiLocalClassByLabel($label);
+        $classId = $targetClass ? intval($targetClass['id']) : null;
+        dbExec("
+            UPDATE formazione_classi_studenti
+            SET id_classe_provvisoria = " . dbI($classId) . ",
+                classe_provvisoria_label = " . dbQ($label) . ",
+                assegnazione_manuale = 0,
+                updated_at = NOW()
+            WHERE id = " . dbI($rowId) . "
+              AND id_sessione = " . dbI($sessionId) . "
+              AND bloccato = 0
+              AND gruppo_origine <> 'bocciato'
+            LIMIT 1
+        ");
+    }
+    dbExec("UPDATE formazione_classi_sessioni SET updated_at = NOW() WHERE id = " . dbI($sessionId) . " LIMIT 1");
+
+    return [
+        'ok' => true,
+        'message' => count($assignments) . ' studenti distribuiti automaticamente.',
+        'assignments' => $assignments,
+    ];
+}
+
+function formazioneClassiAutoBucketAdd(array &$bucket, array $row, array $metricKeys): void
+{
+    $bucket['count'] = intval($bucket['count'] ?? 0) + 1;
+    $sesso = strtoupper(trim((string)($row['sesso'] ?? '')));
+    if ($sesso === 'M') {
+        $bucket['maschi'] = intval($bucket['maschi'] ?? 0) + 1;
+    } elseif ($sesso === 'F') {
+        $bucket['femmine'] = intval($bucket['femmine'] ?? 0) + 1;
+    }
+    foreach ($metricKeys as $key) {
+        $value = formazioneClassiNullableFloat($row[$key] ?? null);
+        if ($value === null) {
+            continue;
+        }
+        $bucket['sums'][$key] = (float)($bucket['sums'][$key] ?? 0) + $value;
+        $bucket['counts'][$key] = intval($bucket['counts'][$key] ?? 0) + 1;
+    }
+}
+
+function formazioneClassiAutoBucketRemove(array &$bucket, array $row, array $metricKeys): void
+{
+    $bucket['count'] = max(0, intval($bucket['count'] ?? 0) - 1);
+    $sesso = strtoupper(trim((string)($row['sesso'] ?? '')));
+    if ($sesso === 'M') {
+        $bucket['maschi'] = max(0, intval($bucket['maschi'] ?? 0) - 1);
+    } elseif ($sesso === 'F') {
+        $bucket['femmine'] = max(0, intval($bucket['femmine'] ?? 0) - 1);
+    }
+    foreach ($metricKeys as $key) {
+        $value = formazioneClassiNullableFloat($row[$key] ?? null);
+        if ($value === null) {
+            continue;
+        }
+        $bucket['sums'][$key] = (float)($bucket['sums'][$key] ?? 0) - $value;
+        $bucket['counts'][$key] = max(0, intval($bucket['counts'][$key] ?? 0) - 1);
+        if (abs((float)$bucket['sums'][$key]) < 0.0001) {
+            $bucket['sums'][$key] = 0.0;
+        }
+    }
+}
+
+function formazioneClassiAutoBucketMerge(array &$target, array $source, array $metricKeys): void
+{
+    $target['count'] = intval($target['count'] ?? 0) + intval($source['count'] ?? 0);
+    $target['maschi'] = intval($target['maschi'] ?? 0) + intval($source['maschi'] ?? 0);
+    $target['femmine'] = intval($target['femmine'] ?? 0) + intval($source['femmine'] ?? 0);
+    foreach ($metricKeys as $key) {
+        $target['sums'][$key] = (float)($target['sums'][$key] ?? 0) + (float)($source['sums'][$key] ?? 0);
+        $target['counts'][$key] = intval($target['counts'][$key] ?? 0) + intval($source['counts'][$key] ?? 0);
+    }
+}
+
+function formazioneClassiAutoScore(array $row, array $weights, array $metricKeys): float
+{
+    $score = 0.0;
+    foreach ($metricKeys as $key) {
+        $value = formazioneClassiNullableFloat($row[$key] ?? null);
+        if ($value === null) {
+            continue;
+        }
+        $score += $value * (float)($weights[$key] ?? 0);
+    }
+    return $score;
+}
+
+function formazioneClassiAutoEligibleLabels(array $targetLabels, array $buckets, array $row, array $remainingRows, ?int $minCount, int $maxCount, int $femalePairTarget, int $femaleSingleRemainder): array
+{
+    $underMin = array_values(array_filter($targetLabels, static function (string $label) use ($buckets, $minCount): bool {
+        return intval($buckets[$label]['count'] ?? 0) === intval($minCount);
+    }));
+    $labels = $underMin ?: $targetLabels;
+
+    $sesso = strtoupper(trim((string)($row['sesso'] ?? '')));
+    if ($sesso === 'F' && $femalePairTarget > 0) {
+        $pairedClasses = 0;
+        $singleClasses = 0;
+        foreach ($targetLabels as $label) {
+            $femaleCount = intval($buckets[$label]['femmine'] ?? 0);
+            if ($femaleCount >= 2) {
+                $pairedClasses++;
+            } elseif ($femaleCount === 1) {
+                $singleClasses++;
+            }
+        }
+
+        if ($pairedClasses < $femalePairTarget) {
+            $completePairLabels = array_values(array_filter($labels, static function (string $label) use ($buckets): bool {
+                return intval($buckets[$label]['femmine'] ?? 0) === 1;
+            }));
+            if ($completePairLabels) {
+                return $completePairLabels;
+            }
+            $emptyFemaleLabels = array_values(array_filter($labels, static function (string $label) use ($buckets): bool {
+                return intval($buckets[$label]['femmine'] ?? 0) === 0;
+            }));
+            if ($emptyFemaleLabels) {
+                return $emptyFemaleLabels;
+            }
+        } elseif ($femaleSingleRemainder > 0 && $singleClasses < $femaleSingleRemainder) {
+            $emptyFemaleLabels = array_values(array_filter($labels, static function (string $label) use ($buckets): bool {
+                return intval($buckets[$label]['femmine'] ?? 0) === 0;
+            }));
+            if ($emptyFemaleLabels) {
+                return $emptyFemaleLabels;
+            }
+        }
+    }
+
+    if ($maxCount > 0) {
+        $notFull = array_values(array_filter($labels, static function (string $label) use ($buckets, $maxCount): bool {
+            return intval($buckets[$label]['count'] ?? 0) < $maxCount;
+        }));
+        if ($notFull) {
+            return $notFull;
+        }
+    }
+
+    return $labels ?: $targetLabels;
+}
+
+function formazioneClassiAutoClassCost(array $buckets, array $targetLabels, string $label, array $row, array $weights, array $metricKeys, array $globalAverages, float $globalMaleRatio, float $idealCount, int $minCount, int $maxCount, int $minFemalesPerClass = 0, int $femalePairTarget = 0, int $femaleSingleRemainder = 0): float
+{
+    if (!isset($buckets[$label])) {
+        return 999999999.0;
+    }
+    formazioneClassiAutoBucketAdd($buckets[$label], $row, $metricKeys);
+    return formazioneClassiAutoPlanCost($buckets, $targetLabels, $weights, $metricKeys, $globalAverages, $globalMaleRatio, $idealCount, $minCount, $maxCount, $minFemalesPerClass, $femalePairTarget, $femaleSingleRemainder);
+}
+
+function formazioneClassiAutoPlanCost(array $buckets, array $targetLabels, array $weights, array $metricKeys, array $globalAverages, float $globalMaleRatio, float $idealCount, int $minCount, int $maxCount, int $minFemalesPerClass = 0, int $femalePairTarget = 0, int $femaleSingleRemainder = 0): float
+{
+    $cost = 0.0;
+    $femaleCounts = [];
+    foreach ($targetLabels as $label) {
+        $bucket = $buckets[$label] ?? [];
+        $count = intval($bucket['count'] ?? 0);
+        $deltaCount = $count - $idealCount;
+        $cost += ($deltaCount * $deltaCount) * 1000000000.0;
+        if ($count < $minCount) {
+            $cost += ($minCount - $count) * 10000000000.0;
+        }
+        if ($maxCount > 0 && $count > $maxCount) {
+            $cost += ($count - $maxCount) * 10000000000.0;
+        }
+        $femaleCounts[] = intval($bucket['femmine'] ?? 0);
+        $genderWeight = (float)($weights['rapporto_mf'] ?? 0);
+        $knownGender = intval($bucket['maschi'] ?? 0) + intval($bucket['femmine'] ?? 0);
+        if ($genderWeight > 0 && $knownGender > 0) {
+            $cost += abs((intval($bucket['maschi'] ?? 0) / $knownGender) - $globalMaleRatio) * $genderWeight * 1000.0;
+        }
+    }
+
+    rsort($femaleCounts, SORT_NUMERIC);
+    foreach ($femaleCounts as $index => $femaleCount) {
+        if ($index < $femalePairTarget) {
+            $pairDeficit = max(0, 2 - $femaleCount);
+            if ($pairDeficit > 0) {
+                $cost += $pairDeficit * 500000000.0;
+            }
+            continue;
+        }
+        if ($index < ($femalePairTarget + $femaleSingleRemainder)) {
+            $singleDeficit = max(0, 1 - $femaleCount);
+            if ($singleDeficit > 0) {
+                $cost += $singleDeficit * 250000000.0;
+            }
+            if ($femaleCount > 1) {
+                $cost += ($femaleCount - 1) * 50000000.0;
+            }
+            continue;
+        }
+        if ($femaleCount > 0) {
+            $cost += $femaleCount * 250000000.0;
+        }
+    }
+
+    foreach ($metricKeys as $key) {
+        $weight = (float)($weights[$key] ?? 0);
+        if ($weight <= 0 || $globalAverages[$key] === null) {
+            continue;
+        }
+        $averages = [];
+        foreach ($targetLabels as $label) {
+            $bucket = $buckets[$label] ?? [];
+            $metricCount = intval($bucket['counts'][$key] ?? 0);
+            if ($metricCount <= 0) {
+                continue;
+            }
+            $averages[] = (float)($bucket['sums'][$key] ?? 0) / $metricCount;
+        }
+        if (empty($averages)) {
+            continue;
+        }
+        $minAvg = min($averages);
+        $maxAvg = max($averages);
+        $spread = $maxAvg - $minAvg;
+        $multiplier = 50000.0;
+        if ($key === 'media_generale') {
+            $multiplier = 1000000.0;
+        } elseif ($key === 'voto_matematica') {
+            $multiplier = 250000.0;
+        } elseif ($key === 'voto_italiano') {
+            $multiplier = 125000.0;
+        } elseif ($key === 'voto_capacita_relazionale') {
+            $multiplier = 75000.0;
+        }
+        $cost += ($spread * $spread) * $weight * $multiplier;
+        foreach ($averages as $avg) {
+            $delta = $avg - (float)$globalAverages[$key];
+            $cost += ($delta * $delta) * $weight * ($multiplier / 3.0);
+        }
+    }
+    return $cost;
+}
+
+function formazioneClassiAutoOptimizeAssignments(array &$assignments, array $assignedRows, array &$buckets, array $targetLabels, array $weights, array $metricKeys, array $globalAverages, float $globalMaleRatio, float $idealCount, int $minCount, int $maxCount, int $minFemalesPerClass = 0, int $femalePairTarget = 0, int $femaleSingleRemainder = 0): void
+{
+    if (count($assignments) < 2 || count($targetLabels) < 2) {
+        return;
+    }
+
+    $currentCost = formazioneClassiAutoPlanCost($buckets, $targetLabels, $weights, $metricKeys, $globalAverages, $globalMaleRatio, $idealCount, $minCount, $maxCount, $minFemalesPerClass, $femalePairTarget, $femaleSingleRemainder);
+    $ids = array_keys($assignments);
+    $maxPasses = 80;
+    for ($pass = 0; $pass < $maxPasses; $pass++) {
+        $bestSwap = null;
+        $bestCost = $currentCost;
+        $countIds = count($ids);
+        for ($i = 0; $i < $countIds; $i++) {
+            $idA = intval($ids[$i]);
+            $labelA = (string)($assignments[$idA] ?? '');
+            if ($labelA === '' || !isset($assignedRows[$idA])) {
+                continue;
+            }
+            for ($j = $i + 1; $j < $countIds; $j++) {
+                $idB = intval($ids[$j]);
+                $labelB = (string)($assignments[$idB] ?? '');
+                if ($labelB === '' || $labelA === $labelB || !isset($assignedRows[$idB])) {
+                    continue;
+                }
+
+                $trialBuckets = $buckets;
+                formazioneClassiAutoBucketRemove($trialBuckets[$labelA], $assignedRows[$idA], $metricKeys);
+                formazioneClassiAutoBucketRemove($trialBuckets[$labelB], $assignedRows[$idB], $metricKeys);
+                formazioneClassiAutoBucketAdd($trialBuckets[$labelA], $assignedRows[$idB], $metricKeys);
+                formazioneClassiAutoBucketAdd($trialBuckets[$labelB], $assignedRows[$idA], $metricKeys);
+                $trialCost = formazioneClassiAutoPlanCost($trialBuckets, $targetLabels, $weights, $metricKeys, $globalAverages, $globalMaleRatio, $idealCount, $minCount, $maxCount, $minFemalesPerClass, $femalePairTarget, $femaleSingleRemainder);
+                if ($trialCost + 0.0001 < $bestCost) {
+                    $bestCost = $trialCost;
+                    $bestSwap = [$idA, $idB, $labelA, $labelB];
+                }
+            }
+        }
+
+        if ($bestSwap === null) {
+            break;
+        }
+
+        $idA = intval($bestSwap[0]);
+        $idB = intval($bestSwap[1]);
+        $labelA = (string)$bestSwap[2];
+        $labelB = (string)$bestSwap[3];
+        formazioneClassiAutoBucketRemove($buckets[$labelA], $assignedRows[$idA], $metricKeys);
+        formazioneClassiAutoBucketRemove($buckets[$labelB], $assignedRows[$idB], $metricKeys);
+        formazioneClassiAutoBucketAdd($buckets[$labelA], $assignedRows[$idB], $metricKeys);
+        formazioneClassiAutoBucketAdd($buckets[$labelB], $assignedRows[$idA], $metricKeys);
+        $assignments[$idA] = $labelB;
+        $assignments[$idB] = $labelA;
+        $currentCost = $bestCost;
+    }
 }
 
 function formazioneClassiFormatAvg($value): string

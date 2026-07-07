@@ -24,6 +24,7 @@ if ($targetYearId <= 0) {
     $targetYearId = formazioneClassiDefaultTargetYear($sourceYearId);
 }
 $indirizzo = trim((string)($_GET['indirizzo'] ?? ''));
+$tabletFilter = formazioneClassiNormalizeTabletFilter((string)($_GET['tablet_filter'] ?? 'all'));
 
 $schoolYears = formazioneClassiSchoolYears();
 $formationMeta = [];
@@ -64,6 +65,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'section') {
     header('Content-Type: application/json; charset=utf-8');
     $ajaxTipo = trim((string)($_GET['tipo_formazione'] ?? ''));
     $ajaxAddress = trim((string)($_GET['indirizzo'] ?? ''));
+    $ajaxTabletFilter = formazioneClassiNormalizeTabletFilter((string)($_GET['tablet_filter'] ?? 'all'));
     if (!isset($tipiFormazione[$ajaxTipo])) {
         http_response_code(400);
         echo json_encode(['ok' => false, 'message' => 'Tipo formazione non valido.']);
@@ -76,7 +78,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'section') {
         exit;
     }
 
-    $ajaxState = formazioneClassiState($sourceYearId, $targetYearId, $ajaxTipo, $ajaxAddress);
+    $ajaxState = formazioneClassiState($sourceYearId, $targetYearId, $ajaxTipo, $ajaxAddress, $ajaxTabletFilter);
     $ajaxClassColors = fc_class_colors(array_map(function ($class) {
         return (string)($class['label'] ?? '');
     }, $ajaxState['classes'] ?? []));
@@ -178,6 +180,46 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
         }
         .fc-view-toggle .btn {
             height: 30px;
+        }
+        .fc-auto-panel {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            border: 1px solid #c7d8ea;
+            border-left: 5px solid #2563eb;
+            border-radius: 4px;
+            background: #f8fbff;
+        }
+        .fc-auto-title {
+            font-weight: 800;
+            color: #102a43;
+            margin-right: 6px;
+            min-width: 160px;
+        }
+        .fc-auto-field {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 86px;
+            margin: 0;
+        }
+        .fc-auto-field label {
+            margin: 0;
+            font-size: 11px;
+            color: #52657a;
+        }
+        .fc-auto-field input {
+            height: 30px;
+            padding: 4px 7px;
+        }
+        .fc-auto-help {
+            flex: 1 1 260px;
+            color: #52657a;
+            font-size: 12px;
+            line-height: 1.25;
         }
         .fc-address-section {
             --fc-work-height: calc(100vh - 300px);
@@ -352,17 +394,6 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
             cursor: not-allowed;
             opacity: .9;
         }
-        .fc-student.fc-student-locked .fc-student-name::after {
-            content: " solo controllo";
-            display: inline-block;
-            margin-left: 6px;
-            padding: 1px 5px;
-            border-radius: 3px;
-            background: #475569;
-            color: #fff;
-            font-size: 11px;
-            font-weight: 700;
-        }
         .fc-student.fc-student-lost {
             border-left-color: #7c3aed;
             background: #f5f3ff;
@@ -401,6 +432,38 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
         }
         .fc-student:active { cursor: grabbing; }
         .fc-student-name { font-weight: 700; color: #17202f; }
+        .fc-student-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .fc-lock-btn {
+            border: 1px solid #cbd5e1;
+            border-radius: 3px;
+            background: #fff;
+            color: #475569;
+            padding: 2px 6px;
+            line-height: 1.2;
+            font-size: 12px;
+        }
+        .fc-lock-btn.locked {
+            border-color: #b45309;
+            background: #fef3c7;
+            color: #92400e;
+            font-weight: 800;
+        }
+        .fc-lock-btn .glyphicon,
+        .fc-lock-btn .fc-lock-symbol {
+            margin-right: 3px;
+        }
+        .fc-class-lock {
+            margin-left: auto;
+            white-space: nowrap;
+        }
+        .fc-student-lock {
+            flex: 0 0 auto;
+        }
         .fc-student-meta {
             color: #64748b;
             font-size: 12px;
@@ -872,6 +935,14 @@ function fc_unassigned_groups(array $students, int $targetClassYear): array
                             <option value="">Caricamento indirizzi...</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label>Tablet</label>
+                        <select name="tablet_filter" class="form-control input-sm" id="fc_tablet_filter">
+                            <option value="all" <?php echo fc_select($tabletFilter, 'all'); ?>>Tutte</option>
+                            <option value="tablet" <?php echo fc_select($tabletFilter, 'tablet'); ?>>Solo tablet</option>
+                            <option value="non_tablet" <?php echo fc_select($tabletFilter, 'non_tablet'); ?>>Solo non tablet</option>
+                        </select>
+                    </div>
                     <div class="form-group fc-view-toggle">
                         <label>Vista</label><br>
                         <button type="button" class="btn btn-default btn-sm" id="fc_compact_toggle">
@@ -921,6 +992,7 @@ let fcDraggedSourceZone = null;
 let fcContextStudent = null;
 let fcFormationMeta = <?php echo json_encode($formationMeta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?> || {};
 const fcInitialTipo = <?php echo json_encode($tipoFormazione, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+const fcInitialTabletFilter = <?php echo json_encode($tabletFilter, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 let fcSectionsLoaded = false;
 const fcLoadedSections = {};
 const fcSectionPromises = {};
@@ -956,6 +1028,7 @@ async function fcLoadInitialFormation() {
 
 async function fcHandleFormationTypeChange(tipo) {
     const requestId = fcBeginSelectionRequest();
+    fcShowLoadingOverlay('Caricamento formazione classi...');
     fcShowFormationType(tipo);
     fcSetStatus('Calcolo indirizzi disponibili...');
     try {
@@ -971,14 +1044,20 @@ async function fcHandleFormationTypeChange(tipo) {
         if (fcIsCurrentSelectionRequest(requestId, tipo)) {
             fcSetStatus('Errore nel caricamento della vista selezionata.');
         }
+    } finally {
+        if (fcIsCurrentSelectionRequest(requestId, tipo)) {
+            fcHideLoadingOverlay();
+        }
     }
 }
 
 async function fcHandleAddressChange(address) {
     const requestId = fcBeginSelectionRequest();
     const tipo = fcActiveFormationType();
+    fcShowLoadingOverlay('Caricamento indirizzo selezionato...');
     fcShowAddress(address || '');
     if (!tipo || !address) {
+        fcHideLoadingOverlay();
         return;
     }
     fcSetStatus('Caricamento ' + (fcFormationMeta[tipo]?.addresses?.[address] || address) + '...');
@@ -990,6 +1069,32 @@ async function fcHandleAddressChange(address) {
     } catch (error) {
         if (fcIsCurrentSelectionRequest(requestId, tipo, address)) {
             fcSetStatus('Errore nel caricamento dell\'indirizzo selezionato.');
+        }
+    } finally {
+        if (fcIsCurrentSelectionRequest(requestId, tipo, address)) {
+            fcHideLoadingOverlay();
+        }
+    }
+}
+
+async function fcHandleTabletFilterChange() {
+    const requestId = fcBeginSelectionRequest();
+    const tipo = fcActiveFormationType();
+    const address = document.getElementById('fc_indirizzo_select')?.value || '';
+    if (!tipo || !address) return;
+    fcShowLoadingOverlay('Caricamento filtro tablet...');
+    try {
+        await fcEnsureSectionLoaded(tipo, address, 'Caricamento filtro tablet', requestId, true);
+        if (!fcIsCurrentSelectionRequest(requestId, tipo, address)) return;
+        fcSetStatus('');
+        fcResizeWorkArea();
+    } catch (error) {
+        if (fcIsCurrentSelectionRequest(requestId, tipo, address)) {
+            fcSetStatus('Errore nel caricamento del filtro tablet.');
+        }
+    } finally {
+        if (fcIsCurrentSelectionRequest(requestId, tipo, address)) {
+            fcHideLoadingOverlay();
         }
     }
 }
@@ -1045,11 +1150,17 @@ function fcFetchFormationMeta(tipo) {
         });
 }
 
-async function fcEnsureSectionLoaded(tipo, address, text, requestId) {
+async function fcEnsureSectionLoaded(tipo, address, text, requestId, forceReload) {
     if (!tipo || !address) {
         return;
     }
-    const key = tipo + '|' + address;
+    const key = fcSectionKey(tipo, address);
+    if (forceReload && fcLoadedSections[key]) {
+        delete fcLoadedSections[key];
+        const view = document.querySelector('.fc-formation-view[data-tipo="' + fcCssEscape(tipo) + '"]');
+        const existing = view ? view.querySelector('.fc-address-section[data-address="' + fcCssEscape(address) + '"]') : null;
+        if (existing) existing.remove();
+    }
     if (fcLoadedSections[key]) {
         if (requestId === undefined || fcIsCurrentSelectionRequest(requestId, tipo, address)) {
             fcShowAddress(address);
@@ -1099,11 +1210,16 @@ function fcInsertFormationSection(tipo, address, html) {
     fcResizeWorkArea();
 }
 
+function fcSectionKey(tipo, address) {
+    return tipo + '|' + address + '|' + fcActiveTabletFilter();
+}
+
 function fcFetchFormationSection(tipo, address) {
     const url = new URL(window.location.href);
     url.searchParams.set('ajax', 'section');
     url.searchParams.set('tipo_formazione', tipo);
     url.searchParams.set('indirizzo', address);
+    url.searchParams.set('tablet_filter', fcActiveTabletFilter());
     return fetch(url.toString(), {credentials: 'same-origin'})
         .then(function (response) {
             if (!response.ok) {
@@ -1129,6 +1245,25 @@ function fcUpdateLoadingProgress(done, total, text) {
     if (bar) bar.style.width = pct + '%';
     if (label) label.textContent = text || '';
     if (detail) detail.textContent = done + ' di ' + total + ' passaggi completati';
+}
+
+function fcShowLoadingOverlay(text) {
+    const overlay = document.getElementById('fc_loading_overlay');
+    if (!overlay) return;
+    const label = document.getElementById('fc_loading_text');
+    const percent = document.getElementById('fc_loading_percent');
+    const bar = document.getElementById('fc_loading_bar');
+    const detail = document.getElementById('fc_loading_detail');
+    if (label) label.textContent = text || 'Caricamento dati...';
+    if (percent) percent.textContent = '';
+    if (bar) bar.style.width = '100%';
+    if (detail) detail.textContent = 'Attendere qualche secondo';
+    overlay.classList.add('open');
+}
+
+function fcHideLoadingOverlay() {
+    const overlay = document.getElementById('fc_loading_overlay');
+    if (overlay) overlay.classList.remove('open');
 }
 
 function fcSetStatus(text) {
@@ -1160,6 +1295,7 @@ document.querySelectorAll('.fc-reload-select').forEach(function (select) {
     select.addEventListener('change', function () {
         const form = document.getElementById('fc_filter_form');
         if (form) {
+            fcShowLoadingOverlay('Caricamento formazione classi...');
             form.submit();
         }
     });
@@ -1171,6 +1307,10 @@ document.getElementById('fc_tipo_select')?.addEventListener('change', function (
 
 document.getElementById('fc_indirizzo_select')?.addEventListener('change', function () {
     fcHandleAddressChange(this.value || '');
+});
+
+document.getElementById('fc_tablet_filter')?.addEventListener('change', function () {
+    fcHandleTabletFilterChange();
 });
 
 document.getElementById('fc_compact_toggle')?.addEventListener('click', function () {
@@ -1191,6 +1331,10 @@ document.getElementById('fc_compact_toggle')?.addEventListener('click', function
 
 function fcActiveFormationType() {
     return document.getElementById('fc_tipo_select')?.value || '';
+}
+
+function fcActiveTabletFilter() {
+    return document.getElementById('fc_tablet_filter')?.value || fcInitialTabletFilter || 'all';
 }
 
 function fcActiveFormationView() {
@@ -1232,6 +1376,7 @@ function fcShowAddress(address) {
             url.searchParams.set('tipo_formazione', tipo);
         }
         url.searchParams.set('indirizzo', address);
+        url.searchParams.set('tablet_filter', fcActiveTabletFilter());
         window.history.replaceState({}, '', url.toString());
     }
     fcResizeWorkArea();
@@ -1253,10 +1398,22 @@ function fcShowFormationType(tipo) {
     }
 
     fcReplaceAddressOptions(meta.addresses || {}, meta.activeAddress || '');
+    fcUpdateTabletFilterState(tipo);
     if (meta.activeAddress !== '') {
         fcShowAddress(meta.activeAddress || '');
     }
     fcResizeWorkArea();
+}
+
+function fcUpdateTabletFilterState(tipo) {
+    const select = document.getElementById('fc_tablet_filter');
+    if (!select) return;
+    const targetYear = Number(fcFormationMeta[tipo]?.targetYear || 0);
+    const enabled = targetYear === 1 || targetYear === 2;
+    select.disabled = !enabled;
+    if (!enabled && select.value !== 'all') {
+        select.value = 'all';
+    }
 }
 
 function fcReplaceAddressOptions(addresses, activeAddress) {
@@ -1341,6 +1498,195 @@ function fcInitFormationInteractions(scope) {
             fcShowContextMenu(event.clientX, event.clientY);
         });
     });
+
+    scope.querySelectorAll('.fc-auto-assign').forEach(function (button) {
+        if (button.dataset.fcAutoBound === '1') {
+            return;
+        }
+        button.dataset.fcAutoBound = '1';
+        button.addEventListener('click', function () {
+            fcAutoAssign(button);
+        });
+    });
+
+    scope.querySelectorAll('.fc-student-lock').forEach(function (button) {
+        if (button.dataset.fcLockBound === '1') {
+            return;
+        }
+        button.dataset.fcLockBound = '1';
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            fcToggleStudentLock(button);
+        });
+    });
+
+    scope.querySelectorAll('.fc-class-lock').forEach(function (button) {
+        if (button.dataset.fcLockBound === '1') {
+            return;
+        }
+        button.dataset.fcLockBound = '1';
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            fcToggleClassLock(button);
+        });
+    });
+}
+
+function fcToggleStudentLock(button) {
+    const card = button.closest('.fc-student');
+    const layout = button.closest('.fc-layout');
+    const status = document.getElementById('fc_status');
+    const sessionId = Number(layout?.dataset.sessionId || 0);
+    const rowId = Number(card?.dataset.rowId || 0);
+    const locked = button.dataset.locked !== '1';
+    if (!sessionId || !rowId) return;
+    fcPostLock({scope: 'student', session_id: sessionId, row_id: rowId, locked: locked ? 1 : 0}, button)
+        .then(function (json) {
+            if (!json || !json.ok) {
+                if (status) status.textContent = json && json.message ? json.message : 'Blocco non salvato.';
+                return;
+            }
+            fcApplyStudentLock(card, locked, card.dataset.classLocked === '1');
+            if (status) status.textContent = json.message || 'Blocco salvato.';
+        });
+}
+
+function fcToggleClassLock(button) {
+    const panel = button.closest('.fc-class-panel');
+    const layout = button.closest('.fc-layout');
+    const status = document.getElementById('fc_status');
+    const sessionId = Number(layout?.dataset.sessionId || 0);
+    const classLabel = button.dataset.classLabel || panel?.dataset.classLabel || '';
+    const locked = button.dataset.locked !== '1';
+    if (!sessionId || !classLabel) return;
+    fcPostLock({scope: 'class', session_id: sessionId, class_label: classLabel, locked: locked ? 1 : 0}, button)
+        .then(function (json) {
+            if (!json || !json.ok) {
+                if (status) status.textContent = json && json.message ? json.message : 'Blocco classe non salvato.';
+                return;
+            }
+            fcApplyClassLock(panel, locked);
+            if (status) status.textContent = json.message || 'Blocco classe salvato.';
+        });
+}
+
+function fcPostLock(payload, button) {
+    const data = new FormData();
+    Object.keys(payload).forEach(function (key) {
+        data.append(key, String(payload[key]));
+    });
+    button.disabled = true;
+    return fetch('formazioneClassiLock.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+        .then(response => response.json())
+        .catch(() => ({ok: false, message: 'Errore di rete durante il salvataggio del blocco.'}))
+        .finally(() => {
+            button.disabled = false;
+        });
+}
+
+function fcApplyStudentLock(card, individualLocked, classLocked) {
+    if (!card) return;
+    const effectiveLocked = individualLocked || classLocked;
+    card.classList.toggle('fc-student-locked', effectiveLocked);
+    card.draggable = !effectiveLocked && !card.classList.contains('fc-student-uscita');
+    card.dataset.classLocked = classLocked ? '1' : '0';
+    const button = card.querySelector('.fc-student-lock');
+    if (button) {
+        button.dataset.locked = individualLocked ? '1' : '0';
+        button.classList.toggle('locked', individualLocked);
+        button.innerHTML = (individualLocked ? '<span class="glyphicon glyphicon-lock"></span>' : '<span class="fc-lock-symbol" aria-hidden="true">&#128275;</span>') + ' ' + (individualLocked ? 'Sblocca' : 'Blocca');
+    }
+}
+
+function fcApplyClassLock(panel, locked) {
+    if (!panel) return;
+    const button = panel.querySelector('.fc-class-lock');
+    if (button) {
+        button.dataset.locked = locked ? '1' : '0';
+        button.classList.toggle('locked', locked);
+        button.innerHTML = (locked ? '<span class="glyphicon glyphicon-lock"></span>' : '<span class="fc-lock-symbol" aria-hidden="true">&#128275;</span>') + ' ' + (locked ? 'Sblocca classe' : 'Blocca classe');
+    }
+    panel.querySelectorAll('.fc-student').forEach(function (card) {
+        const studentButton = card.querySelector('.fc-student-lock');
+        const individualLocked = studentButton ? studentButton.dataset.locked === '1' : false;
+        fcApplyStudentLock(card, individualLocked, locked);
+    });
+}
+
+function fcAutoAssign(button) {
+    const section = button.closest('.fc-address-section');
+    const layout = section ? section.querySelector('.fc-layout') : null;
+    const status = document.getElementById('fc_status');
+    const sessionId = Number(layout?.dataset.sessionId || 0);
+    if (!section || !layout || !sessionId) {
+        if (status) status.textContent = 'Sezione formazione non trovata.';
+        return;
+    }
+
+    const targetLabels = Array.from(layout.querySelectorAll('.fc-class-panel[data-class-label]'))
+        .filter(panel => !(panel.querySelector('.fc-class-lock')?.dataset.locked === '1'))
+        .map(panel => panel.dataset.classLabel || '')
+        .filter(label => label !== '');
+    const cards = Array.from(layout.querySelectorAll('.fc-dropzone:not([data-readonly="1"]) .fc-student'))
+        .filter(card => {
+            if (card.classList.contains('fc-student-uscita') || card.classList.contains('fc-student-locked')) {
+                return false;
+            }
+            return card.classList.contains('fc-student-neo-iscritto') || card.classList.contains('fc-student-promosso');
+        });
+    const rowIds = cards.map(card => Number(card.dataset.rowId || 0)).filter(id => id > 0);
+    if (targetLabels.length === 0 || rowIds.length === 0) {
+        if (status) status.textContent = 'Non ci sono studenti da distribuire in questa sezione.';
+        return;
+    }
+
+    const data = new FormData();
+    data.append('session_id', String(sessionId));
+    rowIds.forEach(id => data.append('row_ids[]', String(id)));
+    targetLabels.forEach(label => data.append('target_labels[]', label));
+    section.querySelectorAll('.fc-auto-weight').forEach(function (input) {
+        data.append('weights[' + (input.dataset.weightKey || '') + ']', input.value || '0');
+    });
+
+    button.disabled = true;
+    const previousHtml = button.innerHTML;
+    button.innerHTML = '<span class="glyphicon glyphicon-refresh"></span> Distribuzione...';
+    if (status) status.textContent = 'Distribuzione automatica in corso...';
+    fetch('formazioneClassiAuto.php', {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+        .then(response => response.json())
+        .then(json => {
+            if (!json || !json.ok) {
+                if (status) status.textContent = json && json.message ? json.message : 'Distribuzione non salvata.';
+                return;
+            }
+            const assignments = json.assignments || {};
+            Object.keys(assignments).forEach(function (rowId) {
+                const card = layout.querySelector('.fc-student[data-row-id="' + fcCssEscape(rowId) + '"]');
+                const targetZone = layout.querySelector('.fc-dropzone[data-target-label="' + fcCssEscape(assignments[rowId]) + '"]');
+                if (card && targetZone) {
+                    fcMoveCard(card, targetZone);
+                }
+            });
+            fcRefreshAllStats(layout);
+            if (status) status.textContent = json.message || 'Distribuzione automatica salvata.';
+        })
+        .catch(() => {
+            if (status) status.textContent = 'Errore di rete durante la distribuzione automatica.';
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.innerHTML = previousHtml;
+        });
 }
 
 function fcShowContextMenu(x, y) {
@@ -1394,6 +1740,12 @@ function fcMoveStudent(rowId, targetLabel, layout, sessionId, droppedZone) {
     }
     if (targetZone.dataset.readonly === '1') {
         if (status) status.textContent = 'Questo gruppo e solo di controllo: lo studente non e stato spostato.';
+        return;
+    }
+    const targetPanel = targetZone.closest('.fc-class-panel');
+    const classLock = targetPanel ? targetPanel.querySelector('.fc-class-lock') : null;
+    if (classLock && classLock.dataset.locked === '1') {
+        if (status) status.textContent = 'Classe bloccata: sblocca la classe prima di spostare studenti.';
         return;
     }
     if (card.closest('.fc-dropzone') === targetZone || fcDraggedSourceZone === targetZone) {
@@ -1608,16 +1960,50 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
         <div class="fc-compact-dashboard">
             <?php echo fc_render_compact_dashboard($state['classes'], $classColors); ?>
         </div>
+        <div class="fc-auto-panel">
+            <div class="fc-auto-title">
+                <span class="glyphicon glyphicon-random"></span>
+                Auto-distribuzione
+            </div>
+            <div class="fc-auto-field">
+                <label>Media</label>
+                <input type="number" class="form-control input-sm fc-auto-weight" data-weight-key="media_generale" value="4" min="0" max="20" step="0.5">
+            </div>
+            <div class="fc-auto-field">
+                <label>Matematica</label>
+                <input type="number" class="form-control input-sm fc-auto-weight" data-weight-key="voto_matematica" value="3" min="0" max="20" step="0.5">
+            </div>
+            <div class="fc-auto-field">
+                <label>Italiano</label>
+                <input type="number" class="form-control input-sm fc-auto-weight" data-weight-key="voto_italiano" value="2" min="0" max="20" step="0.5">
+            </div>
+            <div class="fc-auto-field">
+                <label>Cap. relazionale</label>
+                <input type="number" class="form-control input-sm fc-auto-weight" data-weight-key="voto_capacita_relazionale" value="2" min="0" max="20" step="0.5">
+            </div>
+            <div class="fc-auto-field">
+                <label>M/F</label>
+                <input type="number" class="form-control input-sm fc-auto-weight" data-weight-key="rapporto_mf" value="2" min="0" max="20" step="0.5">
+            </div>
+            <button type="button" class="btn btn-primary btn-sm fc-auto-assign">
+                <span class="glyphicon glyphicon-flash"></span> Distribuisci da piazzare
+            </button>
+            <div class="fc-auto-help">Prima pareggia il numero studenti, poi distribuisce le ragazze; dopo rende simili media, matematica, italiano, capacita relazionale e rapporto M/F secondo i pesi indicati.</div>
+        </div>
         <div class="fc-layout" data-session-id="<?php echo intval($sessionId); ?>">
             <div class="fc-classes-window">
                 <div class="fc-classes">
                     <?php foreach ($state['classes'] as $class): ?>
                         <?php $stats = $class['stats']; ?>
                         <?php $classColor = $classColors[(string)$class['label']] ?? '#4c78a8'; ?>
+                        <?php $classLocked = fc_class_locked($class['students']); ?>
                         <section class="fc-class-panel" data-class-label="<?php echo formazioneClassiH($class['label']); ?>" style="<?php echo formazioneClassiH(fc_class_style($classColor)); ?>">
                             <div class="fc-class-heading">
                                 <div class="fc-class-title"><span class="fc-color-dot"></span><?php echo formazioneClassiH($class['label']); ?></div>
                                 <span class="label label-primary"><?php echo intval($stats['count']); ?> studenti</span>
+                                <button type="button" class="fc-lock-btn fc-class-lock <?php echo $classLocked ? 'locked' : ''; ?>" data-class-label="<?php echo formazioneClassiH($class['label']); ?>" data-locked="<?php echo $classLocked ? '1' : '0'; ?>" title="Blocca o sblocca tutti gli studenti della classe">
+                                    <?php echo $classLocked ? '<span class="glyphicon glyphicon-lock"></span>' : '<span class="fc-lock-symbol" aria-hidden="true">&#128275;</span>'; ?> <?php echo $classLocked ? 'Sblocca classe' : 'Blocca classe'; ?>
+                                </button>
                             </div>
                             <?php echo fc_render_stats($stats); ?>
                             <div class="fc-dropzone" data-target-label="<?php echo formazioneClassiH($class['label']); ?>">
@@ -1635,44 +2021,56 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
 
             <?php $unassignedGroups = fc_unassigned_groups($state['unassigned'], $targetClassYear); ?>
             <aside class="fc-side-stack">
-                <section class="fc-bocciati-panel fc-side-panel-bocciati-persi" data-preserve-badge="1">
+                <section class="fc-bocciati-panel fc-side-panel-neo">
                     <div class="fc-bocciati-heading">
-                        <div class="fc-class-title">Bocciati persi</div>
-                        <span class="label label-default"><?php echo count($unassignedGroups['bocciati_persi']); ?></span>
+                        <div class="fc-class-title">Neo iscritti esterni</div>
+                        <span class="label label-success"><?php echo count($unassignedGroups['neo_iscritti']); ?></span>
                     </div>
-                    <div class="fc-stats">
-                        <div class="fc-stat"><strong><?php echo count($unassignedGroups['bocciati_persi']); ?></strong>persi</div>
-                        <div class="fc-stat"><strong>-</strong>M/F</div>
-                        <div class="fc-stat"><strong>-</strong>media</div>
-                        <div class="fc-stat"><strong>-</strong>matematica</div>
-                    </div>
-                    <div class="fc-dropzone" data-target-label="" data-readonly="1" data-empty-text="Nessun bocciato perso">
-                        <?php if (empty($unassignedGroups['bocciati_persi'])): ?>
-                            <div class="fc-empty">Nessun bocciato perso</div>
+                    <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['neo_iscritti'])); ?>
+                    <div class="fc-dropzone" data-target-label="" data-empty-text="Nessun neo iscritto esterno da piazzare">
+                        <?php if (empty($unassignedGroups['neo_iscritti'])): ?>
+                            <div class="fc-empty">Nessun neo iscritto esterno da piazzare</div>
                         <?php endif; ?>
-                        <?php foreach ($unassignedGroups['bocciati_persi'] as $student): ?>
+                        <?php foreach ($unassignedGroups['neo_iscritti'] as $student): ?>
                             <?php echo fc_render_student($student); ?>
                         <?php endforeach; ?>
                     </div>
                 </section>
 
                 <?php if ($targetClassYear === 3): ?>
-                    <section class="fc-bocciati-panel fc-side-panel-bocciati-seconda">
+                    <section class="fc-bocciati-panel fc-side-panel-promossi">
                         <div class="fc-bocciati-heading">
-                            <div class="fc-class-title">Bocciati seconda</div>
-                            <span class="label label-default"><?php echo count($unassignedGroups['bocciati_seconda']); ?></span>
+                            <div class="fc-class-title">Promossi di seconda</div>
+                            <span class="label label-primary"><?php echo count($unassignedGroups['promossi_seconda']); ?></span>
                         </div>
-                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['bocciati_seconda'])); ?>
-                        <div class="fc-dropzone" data-target-label="" data-readonly="1" data-empty-text="Nessun bocciato di seconda">
-                            <?php if (empty($unassignedGroups['bocciati_seconda'])): ?>
-                                <div class="fc-empty">Nessun bocciato di seconda</div>
+                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['promossi_seconda'])); ?>
+                        <div class="fc-dropzone" data-target-label="" data-empty-text="Nessun promosso di seconda da piazzare">
+                            <?php if (empty($unassignedGroups['promossi_seconda'])): ?>
+                                <div class="fc-empty">Nessun promosso di seconda da piazzare</div>
                             <?php endif; ?>
-                            <?php foreach ($unassignedGroups['bocciati_seconda'] as $student): ?>
+                            <?php foreach ($unassignedGroups['promossi_seconda'] as $student): ?>
                                 <?php echo fc_render_student($student); ?>
                             <?php endforeach; ?>
                         </div>
                     </section>
+                <?php endif; ?>
 
+                <?php if (!empty($unassignedGroups['altri'])): ?>
+                    <section class="fc-bocciati-panel fc-side-panel-altri">
+                        <div class="fc-bocciati-heading">
+                            <div class="fc-class-title">Altri da piazzare</div>
+                            <span class="label label-default"><?php echo count($unassignedGroups['altri']); ?></span>
+                        </div>
+                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['altri'])); ?>
+                        <div class="fc-dropzone" data-target-label="" data-empty-text="Nessun altro studente da piazzare">
+                            <?php foreach ($unassignedGroups['altri'] as $student): ?>
+                                <?php echo fc_render_student($student); ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+                <?php endif; ?>
+
+                <?php if ($targetClassYear === 3): ?>
                     <section class="fc-bocciati-panel fc-side-panel-bocciati">
                         <div class="fc-bocciati-heading">
                             <div class="fc-class-title">Bocciati terza</div>
@@ -1707,53 +2105,43 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
                 <?php endif; ?>
 
                 <?php if ($targetClassYear === 3): ?>
-                    <section class="fc-bocciati-panel fc-side-panel-promossi">
+                    <section class="fc-bocciati-panel fc-side-panel-bocciati-seconda">
                         <div class="fc-bocciati-heading">
-                            <div class="fc-class-title">Promossi di seconda</div>
-                            <span class="label label-primary"><?php echo count($unassignedGroups['promossi_seconda']); ?></span>
+                            <div class="fc-class-title">Bocciati seconda</div>
+                            <span class="label label-default"><?php echo count($unassignedGroups['bocciati_seconda']); ?></span>
                         </div>
-                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['promossi_seconda'])); ?>
-                        <div class="fc-dropzone" data-target-label="" data-empty-text="Nessun promosso di seconda da piazzare">
-                            <?php if (empty($unassignedGroups['promossi_seconda'])): ?>
-                                <div class="fc-empty">Nessun promosso di seconda da piazzare</div>
+                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['bocciati_seconda'])); ?>
+                        <div class="fc-dropzone" data-target-label="" data-readonly="1" data-empty-text="Nessun bocciato di seconda">
+                            <?php if (empty($unassignedGroups['bocciati_seconda'])): ?>
+                                <div class="fc-empty">Nessun bocciato di seconda</div>
                             <?php endif; ?>
-                            <?php foreach ($unassignedGroups['promossi_seconda'] as $student): ?>
+                            <?php foreach ($unassignedGroups['bocciati_seconda'] as $student): ?>
                                 <?php echo fc_render_student($student); ?>
                             <?php endforeach; ?>
                         </div>
                     </section>
                 <?php endif; ?>
 
-                <section class="fc-bocciati-panel fc-side-panel-neo">
+                <section class="fc-bocciati-panel fc-side-panel-bocciati-persi" data-preserve-badge="1">
                     <div class="fc-bocciati-heading">
-                        <div class="fc-class-title">Neo iscritti esterni</div>
-                        <span class="label label-success"><?php echo count($unassignedGroups['neo_iscritti']); ?></span>
+                        <div class="fc-class-title">Bocciati persi</div>
+                        <span class="label label-default"><?php echo count($unassignedGroups['bocciati_persi']); ?></span>
                     </div>
-                    <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['neo_iscritti'])); ?>
-                    <div class="fc-dropzone" data-target-label="" data-empty-text="Nessun neo iscritto esterno da piazzare">
-                        <?php if (empty($unassignedGroups['neo_iscritti'])): ?>
-                            <div class="fc-empty">Nessun neo iscritto esterno da piazzare</div>
+                    <div class="fc-stats">
+                        <div class="fc-stat"><strong><?php echo count($unassignedGroups['bocciati_persi']); ?></strong>persi</div>
+                        <div class="fc-stat"><strong>-</strong>M/F</div>
+                        <div class="fc-stat"><strong>-</strong>media</div>
+                        <div class="fc-stat"><strong>-</strong>matematica</div>
+                    </div>
+                    <div class="fc-dropzone" data-target-label="" data-readonly="1" data-empty-text="Nessun bocciato perso">
+                        <?php if (empty($unassignedGroups['bocciati_persi'])): ?>
+                            <div class="fc-empty">Nessun bocciato perso</div>
                         <?php endif; ?>
-                        <?php foreach ($unassignedGroups['neo_iscritti'] as $student): ?>
+                        <?php foreach ($unassignedGroups['bocciati_persi'] as $student): ?>
                             <?php echo fc_render_student($student); ?>
                         <?php endforeach; ?>
                     </div>
                 </section>
-
-                <?php if (!empty($unassignedGroups['altri'])): ?>
-                    <section class="fc-bocciati-panel fc-side-panel-altri">
-                        <div class="fc-bocciati-heading">
-                            <div class="fc-class-title">Altri da piazzare</div>
-                            <span class="label label-default"><?php echo count($unassignedGroups['altri']); ?></span>
-                        </div>
-                        <?php echo fc_render_stats(formazioneClassiStats($unassignedGroups['altri'])); ?>
-                        <div class="fc-dropzone" data-target-label="" data-empty-text="Nessun altro studente da piazzare">
-                            <?php foreach ($unassignedGroups['altri'] as $student): ?>
-                                <?php echo fc_render_student($student); ?>
-                            <?php endforeach; ?>
-                        </div>
-                    </section>
-                <?php endif; ?>
 
                 <div class="fc-bocciati-panel">
                     <div class="fc-summary">
@@ -1766,6 +2154,19 @@ function fc_render_address_section(string $addressKey, array $state, array $clas
     </div>
     <?php
     return trim((string)ob_get_clean());
+}
+
+function fc_class_locked(array $students): bool
+{
+    if (empty($students)) {
+        return false;
+    }
+    foreach ($students as $student) {
+        if (empty($student['blocco_classe'])) {
+            return false;
+        }
+    }
+    return true;
 }
 
 function fc_render_student(array $student): string
@@ -1783,7 +2184,7 @@ function fc_render_student(array $student): string
     if (!empty($student['in_uscita'])) {
         $classes[] = 'fc-student-uscita';
     }
-    if (!empty($student['non_trascinabile'])) {
+    if (!empty($student['non_trascinabile']) || !empty($student['bloccato'])) {
         $classes[] = 'fc-student-locked';
     }
     if (!empty($student['bocciato_perso'])) {
@@ -1795,13 +2196,14 @@ function fc_render_student(array $student): string
         $classes[] = 'fc-cat-normal';
     }
     $movementId = intval(($student['id_movimento_uscita'] ?? 0) ?: ($student['id_movimento'] ?? 0));
-    $draggable = (empty($student['in_uscita']) && empty($student['non_trascinabile'])) ? 'true' : 'false';
+    $draggable = (empty($student['in_uscita']) && empty($student['non_trascinabile']) && empty($student['bloccato'])) ? 'true' : 'false';
     $hasDsa = formazioneClassiStudentHasAttr($student, STUD_ATTR_R7A2) ? 1 : 0;
     $hasFasciaC = formazioneClassiStudentHasAttr($student, STUD_ATTR_Z8C3) ? 1 : 0;
     $has104 = formazioneClassiStudentHasAttr($student, STUD_ATTR_Q4M9) ? 1 : 0;
     $html = '<div class="' . implode(' ', $classes) . '" draggable="' . $draggable . '"'
         . ' data-row-id="' . intval($student['id']) . '"'
         . ' data-id-movimento="' . $movementId . '"'
+        . ' data-class-locked="' . (!empty($student['blocco_classe']) ? '1' : '0') . '"'
         . ' data-name="' . formazioneClassiH($student['nome'] ?? '') . '"'
         . ' data-sesso="' . formazioneClassiH($student['sesso'] ?? '') . '"'
         . ' data-dsa="' . $hasDsa . '"'
@@ -1812,7 +2214,12 @@ function fc_render_student(array $student): string
         . ' data-voto_italiano="' . formazioneClassiH(fc_float_attr($student['voto_italiano'] ?? null)) . '"'
         . ' data-voto_capacita_relazionale="' . formazioneClassiH(fc_float_attr($student['voto_capacita_relazionale'] ?? null)) . '"'
         . '>';
+    $html .= '<div class="fc-student-head">';
     $html .= '<div class="fc-student-name">' . formazioneClassiH($student['nome']) . '</div>';
+    $locked = !empty($student['blocco_individuale']);
+    $lockIcon = $locked ? '<span class="glyphicon glyphicon-lock"></span>' : '<span class="fc-lock-symbol" aria-hidden="true">&#128275;</span>';
+    $html .= '<button type="button" class="fc-lock-btn fc-student-lock ' . ($locked ? 'locked' : '') . '" data-locked="' . ($locked ? '1' : '0') . '" title="Blocca o sblocca questo studente">' . $lockIcon . ' ' . ($locked ? 'Sblocca' : 'Blocca') . '</button>';
+    $html .= '</div>';
     $meta = [];
     $studentGroup = (string)($student['gruppo_origine'] ?? '');
     $originClass = trim((string)($student['classe_origine'] ?? ''));
@@ -1827,6 +2234,11 @@ function fc_render_student(array $student): string
     }
     if (!empty($student['non_trascinabile']) && empty($student['bocciato_perso'])) {
         $meta[] = 'non assegnabile a una terza';
+    }
+    if (!empty($student['blocco_classe'])) {
+        $meta[] = 'classe bloccata';
+    } elseif (!empty($student['blocco_individuale'])) {
+        $meta[] = 'studente bloccato';
     }
     if (!empty($student['bocciato_perso'])) {
         $meta[] = 'non assegnabile a una classe';
